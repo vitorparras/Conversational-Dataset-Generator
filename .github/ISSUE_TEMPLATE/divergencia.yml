@@ -1,0 +1,38 @@
+name: Divergência entre fontes
+description: A documentação afirma algo que o código ou outra fonte contradiz
+labels: ["divergencia"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Divergência não se resolve sozinho. Relate aqui em vez de escolher uma fonte e seguir.
+  - type: input
+    id: fonte_a
+    attributes:
+      label: Fonte A (caminho e trecho)
+    validations:
+      required: true
+  - type: input
+    id: fonte_b
+    attributes:
+      label: Fonte B (caminho e trecho)
+    validations:
+      required: true
+  - type: textarea
+    id: divergencia
+    attributes:
+      label: Em que exatamente discordam
+    validations:
+      required: true
+  - type: dropdown
+    id: natureza
+    attributes:
+      label: Natureza
+      options:
+        - A documentação descreve algo que não existe
+        - A documentação está desatualizada
+        - Duas fontes com autoridade discordam
+        - Decisão revogada citada como vigente
+        - Não sei dizer
+    validations:
+      required: true

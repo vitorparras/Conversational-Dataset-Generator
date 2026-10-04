@@ -8,21 +8,18 @@
 
 ## Contexto
 
-A ata de orientação de 2026-10-01 pede, na seção 2, que a solução possa ser reutilizada em outros
-contextos além do criminal; e cobra, no resumo, a delimitação entre o que será efetivamente
-implementado e o que será validado.
-
-Isso obriga a escolher, explicitamente, o que o trabalho entrega como contribuição. As duas leituras
-possíveis levam a decisões de design opostas:
+Este projeto constrói bases conversacionais anotadas, e adota o domínio forense como seu caso mais
+exigente. Daí nasce uma ambiguidade que precisa ser resolvida por escrito, porque as duas leituras
+possíveis levam a decisões de design **opostas**:
 
 | Se a contribuição é | Então |
 |---|---|
 | **O dataset** | Toda escolha se subordina à qualidade dele. Investimento em generalidade é desperdício, e cortar é a atitude correta |
 | **A ferramenta** | Generalidade é requisito. O dataset é a prova de que a ferramenta funciona |
 
-Sem decidir isso por escrito, cada decisão posterior herda a ambiguidade: quem precisar desempatar
-escolhe sozinho, em silêncio, sem que a escolha fique registrada. É assim que um projeto passa a ter
-dois rumos ao mesmo tempo sem ninguém perceber.
+Enquanto a ambiguidade existir, cada decisão posterior a herda: quem precisar desempatar escolhe
+sozinho, em silêncio, sem que a escolha fique registrada. É assim que um projeto passa a ter dois
+rumos ao mesmo tempo sem ninguém perceber.
 
 ## Decisão
 
@@ -30,7 +27,16 @@ dois rumos ao mesmo tempo sem ninguém perceber.
 conversacionais anotadas. O dataset forense é o caso de validação mais restritivo dessa ferramenta,
 não o produto final.**
 
-A pergunta que governa as decisões de design é:
+Três razões, na ordem em que pesam:
+
+1. **O que se transfere é o método, não o dado.** Um dataset serve ao domínio que o originou; o
+   pipeline que o produz serve a qualquer domínio que precise do mesmo tipo de garantia.
+2. **Um corpus anotado envelhece; o procedimento de construí-lo, não.** Dados perdem atualidade,
+   mudam de regime legal e deixam de poder ser distribuídos. O método sobrevive a isso.
+3. **Funcionar em mais de uma base é o que separa método de caso isolado.** Um pipeline validado
+   numa base só não demonstra ser pipeline — demonstra ter resolvido aquela base.
+
+A pergunta que passa a governar as decisões de design é:
 
 > Isso serve a mais de um domínio sem perder a garantia que o domínio mais restritivo exige?
 
@@ -45,23 +51,26 @@ Duas travas deliberadas na formulação:
 
 ### A contribuição é o dataset; generalidade fica como trabalho futuro
 
-**Recusada.** Não atende o pedido da ata, e tem um efeito que costuma passar despercebido: uma norma
-que subordina tudo à qualidade de um dataset faz com que **qualquer pessoa ou agente que a leia
-conclua, corretamente, que generalidade é corte**. Manter uma regra e esperar comportamento
-contrário a ela é pedir que se ignore o que está escrito.
+**Recusada.** Tem um efeito que costuma passar despercebido: uma norma que subordina tudo à
+qualidade de um dataset faz com que **qualquer pessoa ou agente que a leia conclua, corretamente,
+que generalidade é corte**. Manter uma regra e esperar comportamento contrário a ela é pedir que se
+ignore o que está escrito.
+
+Também deixa o trabalho sem resposta para a pergunta mais previsível que se pode fazer a ele: o
+pipeline funciona fora da base que o autor construiu?
 
 ### A ferramenta é tudo; o dataset é incidental
 
 **Recusada.** Descarta a razão pela qual as garantias existem. Sem um domínio que exija cadeia de
 custódia, pseudonimização reversível sob autorização e auditoria de acesso, a ferramenta perde o que
-a distingue de um utilitário de anotação qualquer. A ata também pede validação em mais de uma base,
-o que exige que ao menos uma seja exigente.
+a distingue de um utilitário de anotação qualquer. Precisa haver ao menos um caso exigente, ou não
+há como saber se as garantias funcionam.
 
 ### Duas linhas de trabalho paralelas, uma para a ferramenta e outra para o dataset
 
-**Recusada.** Duplica esforço num trabalho com prazo apertado, e cria duas fontes de verdade sobre o
-mesmo pipeline. Duas descrições do mesmo fato divergem com o tempo, e a divergência só aparece
-quando alguém age sobre a versão errada.
+**Recusada.** Duplica esforço e cria duas fontes de verdade sobre o mesmo pipeline. Duas descrições
+do mesmo fato divergem com o tempo, e a divergência só aparece quando alguém age sobre a versão
+errada.
 
 ## Consequências
 
@@ -80,20 +89,21 @@ quando alguém age sobre a versão errada.
 
 - **Mais superfície para manter.** Generalidade custa pontos de extensão, e cada ponto de extensão é
   código que precisa de teste. O prazo não melhora com esta decisão — piora, e isso é consciente.
-- **Risco de generalidade especulativa.** A ata registra, na seção 8, a advertência do orientador de
-  que uma base que serve para tudo é difícil e precisa ser bem pensada. Essa advertência vale como
-  contrapeso permanente: generalidade se justifica por um segundo caso concreto, nunca por hipótese.
-- **A dissertação precisa delimitar explicitamente** o que é ferramenta implementada, o que é
-  ferramenta validada e o que é trabalho futuro. Sem isso, a ampliação de escopo vira fragilidade na
-  defesa em vez de contribuição.
+- **Risco de generalidade especulativa.** Uma base que serve para tudo é difícil de projetar e fácil
+  de errar. Vale como contrapeso permanente a esta decisão: **generalidade se justifica por um
+  segundo caso concreto, nunca por hipótese**.
+- **O escopo precisa ser delimitado explicitamente** em três faixas: o que é implementado e
+  validado, o que é implementado sem validação formal, e o que é trabalho futuro declarado. Sem
+  isso, a ampliação de escopo vira fragilidade em vez de contribuição.
 
 ## O que reabre esta decisão
 
-1. **O orientador discordar do reposicionamento.** A ata registra o pedido de reutilização, mas a
-   inversão formal entre dataset e ferramenta é interpretação desta decisão, e precisa de
-   confirmação explícita antes da qualificação.
+1. **A validação acadêmica do reposicionamento não se confirmar.** Esta decisão interpreta o
+   objetivo do trabalho; se a interpretação não for aceita, ela cai, e com ela a justificativa de
+   boa parte do que vem depois.
 2. **Nenhum segundo domínio ser identificado até o início da fase de anotação.** Generalidade sem
-   segundo caso concreto é especulação, e a advertência da ata passa a pesar mais que esta decisão.
-3. **O prazo estreitar ao ponto de a ferramenta geral inviabilizar a entrega do dataset.** Nesse
-   caso a ordem se inverte: entrega-se o caso restritivo, e a generalidade vira trabalho futuro
-   declarado — por uma decisão sucessora, nunca por omissão.
+   segundo caso concreto é especulação, e o risco registrado acima passa a pesar mais que esta
+   decisão.
+3. **O prazo estreitar ao ponto de a ferramenta geral inviabilizar a entrega do caso de validação.**
+   Nesse caso a ordem se inverte: entrega-se o caso restritivo, e a generalidade vira trabalho
+   futuro declarado — por uma decisão sucessora, nunca por omissão.

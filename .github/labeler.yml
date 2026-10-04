@@ -1,0 +1,25 @@
+# Rotulagem automática por caminho alterado (actions/labeler).
+
+documentacao:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'docs/**'
+          - '*.md'
+
+processo:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/**'
+          - 'ferramentas/**'
+
+decisao:
+  - changed-files:
+      - any-glob-to-any-file: 'docs/decisoes/**'
+
+requisito:
+  - changed-files:
+      - any-glob-to-any-file: 'docs/requisitos/**'
+
+privacidade:
+  - changed-files:
+      - any-glob-to-any-file: 'docs/privacidade/**'

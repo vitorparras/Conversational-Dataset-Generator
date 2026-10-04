@@ -1,0 +1,50 @@
+name: Tarefa
+description: Trabalho para atingir um requisito descrito em docs/requisitos/
+labels: ["tarefa"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A fonte da verdade é o repositório: o requisito, a funcionalidade e a justificativa vivem
+        em `docs/`. Esta issue é a tarefa para chegar lá.
+  - type: input
+    id: requisito
+    attributes:
+      label: Requisito
+      description: "Arquivo em docs/requisitos/, ex.: 001-pseudonimizacao-preserva-contexto"
+      placeholder: NNN-slug
+    validations:
+      required: true
+  - type: input
+    id: decisao
+    attributes:
+      label: Decisão que autoriza
+      description: "Arquivo em docs/decisoes/. Use — se nenhuma for aplicável."
+      placeholder: NNNN-slug
+    validations:
+      required: true
+  - type: textarea
+    id: entrega
+    attributes:
+      label: O que precisa existir ao final
+    validations:
+      required: true
+  - type: textarea
+    id: aceite
+    attributes:
+      label: Como se verifica que está pronto
+      description: Em Dado / Quando / Então. Verificável, sem julgamento de valor.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencias
+    attributes:
+      label: Depende de
+      description: Issues ou decisões que precisam vir antes.
+  - type: checkboxes
+    id: privacidade
+    attributes:
+      label: Privacidade
+      options:
+        - label: Não introduz dado pessoal, segredo ou caminho de máquina em nenhum arquivo
+          required: true

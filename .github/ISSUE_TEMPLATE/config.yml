@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Vulnerabilidade de segurança ou exposição de dado
+    url: https://github.com/vitorparras/Conversational-Dataset-Generator/security/advisories/new
+    about: Não abra issue pública. Use Security Advisory, que permite discussão privada.

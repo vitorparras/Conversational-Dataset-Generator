@@ -1,0 +1,40 @@
+name: Verifica documentação
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    name: Verificações de documentação
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Sem dependência externa: o verificador usa só a biblioteca padrão.
+      - name: Executar verificações
+        run: python ferramentas/verifica-docs/verificar.py
+
+      # Garante que o verificador ainda reprova de fato. Verificador que nunca
+      # reprova é falsa garantia — este passo falha se ele deixar de detectar.
+      - name: Provar que o verificador reprova
+        run: |
+          mkdir -p docs
+          printf '# Prova\n\nSem autoridade.\n\nToken: ghp_abcdefghijklmnopqrstuvwxyz01\n' \
+            > docs/_prova_ci.md
+          if python ferramentas/verifica-docs/verificar.py > /dev/null 2>&1; then
+            echo "FALHOU: o verificador aceitou um documento com segredo e sem autoridade"
+            rm -f docs/_prova_ci.md
+            exit 1
+          fi
+          rm -f docs/_prova_ci.md
+          echo "OK: o verificador reprova como esperado"

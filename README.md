@@ -13,8 +13,6 @@ Componente prático de uma dissertação de mestrado em Computação Aplicada (P
 Repositório em fundação. Contém o aparato de verificação e revisão; a documentação entra em
 seguida, um pull request por documento.
 
-Sucede o repositório `Dataset-Generator`, que permanece como referência de comparação.
-
 ## Como isto funciona
 
 | Onde | O que vive lá |

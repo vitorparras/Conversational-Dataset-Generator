@@ -37,8 +37,8 @@ Vocabulário fechado:
 
 ## 2. Cada fato vive em um lugar só
 
-Os demais documentos **referenciam**; nunca copiam. Duas cópias do mesmo fato divergem — foi assim
-que o repositório anterior acabou com três fontes normativas concorrentes.
+Os demais documentos **referenciam**; nunca copiam. Duas cópias do mesmo fato divergem com o tempo,
+e a divergência só aparece quando alguém age sobre a versão errada.
 
 ## 3. Abertura de três linhas
 
@@ -57,8 +57,8 @@ sem margem de discussão.**
 ## 5. Só cite o que existe
 
 Arquivo, caminho, classe ou identificador citado em `código inline` precisa existir. A verificação
-confere. No repositório anterior, três critérios de aceitação eram impossíveis de implementar
-porque citavam campos inexistentes.
+confere. Critério de aceitação que cita um campo inexistente não é implementável, e o defeito só
+aparece quando alguém tenta cumpri-lo.
 
 ## 6. Formatação
 

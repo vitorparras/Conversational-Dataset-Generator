@@ -35,6 +35,6 @@ Use — quando não aplicável, e diga por quê.
 Se marcado, quem revisou: <!-- nome ou papel -->
 
 <!--
-Código gerado sem revisão humana competente foi o problema que motivou recomeçar o projeto.
-Declarar o uso de agente não desqualifica a contribuição — omiti-lo, sim.
+Código gerado sem revisão humana competente degrada a arquitetura em silêncio. Declarar o uso de
+agente não desqualifica a contribuição — omiti-lo, sim.
 -->

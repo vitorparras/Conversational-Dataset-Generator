@@ -156,8 +156,10 @@ def verifica_referencias(caminho: Path, linhas: list[str]) -> list[Achado]:
             )
             if not parece_caminho:
                 continue
-            # Glob (ex.: migrations/*.sql) é padrão, não caminho literal.
-            if "*" in candidato:
+            # Padrão não é caminho literal: glob (migrations/*.sql), modelo de
+            # nomenclatura (NNN-slug.md) e marcador (<nome>, {id}) não existem
+            # como arquivo e não devem ser cobrados.
+            if "*" in candidato or "NNN" in candidato or "<" in candidato or "{" in candidato:
                 continue
             if not (RAIZ / candidato).exists():
                 achados.append(

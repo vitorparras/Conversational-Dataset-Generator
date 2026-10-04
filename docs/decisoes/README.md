@@ -10,9 +10,9 @@ deliberada e justificada.
 
 ## Índice
 
-Nenhuma decisão registrada ainda.
-
-<!-- Formato da linha: | NNNN | Título | Autoridade atual | -->
+| # | Decisão | Autoridade |
+|---|---|---|
+| [0001](0001-ferramenta-como-contribuicao.md) | A ferramenta é a contribuição | Decisão vigente |
 
 ## Formato
 

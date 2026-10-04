@@ -1,0 +1,38 @@
+# Dados — NUNCA versionados. Este projeto processa dados sensíveis.
+dados/
+*.db
+*.sqlite
+*.dump
+*.sql.gz
+
+# Segredos
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.pfx
+
+# Build .NET
+bin/
+obj/
+publish/
+*.user
+
+# Python (ferramentas e serviço de PLN)
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Editor
+.vs/
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Sistema
+Thumbs.db
+desktop.ini

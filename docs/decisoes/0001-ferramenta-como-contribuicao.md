@@ -8,27 +8,21 @@
 
 ## Contexto
 
-O planejamento anterior governava toda decisão de design por uma única pergunta:
+A ata de orientação de 2026-10-01 pede, na seção 2, que a solução possa ser reutilizada em outros
+contextos além do criminal; e cobra, no resumo, a delimitação entre o que será efetivamente
+implementado e o que será validado.
 
-> Isso protege a qualidade do dataset? Se não protege, corta. Velocidade, modularidade, elegância
-> arquitetural — tudo está subordinado a este critério.
+Isso obriga a escolher, explicitamente, o que o trabalho entrega como contribuição. As duas leituras
+possíveis levam a decisões de design opostas:
 
-Essa regra era coerente com o escopo de maio de 2026: produzir **um** dataset forense anotado. Sob
-ela, relatórios analíticos estavam fora de escopo, e qualquer investimento em generalidade era corte
-legítimo.
+| Se a contribuição é | Então |
+|---|---|
+| **O dataset** | Toda escolha se subordina à qualidade dele. Investimento em generalidade é desperdício, e cortar é a atitude correta |
+| **A ferramenta** | Generalidade é requisito. O dataset é a prova de que a ferramenta funciona |
 
-A reunião de orientação de 2026-10-01 reposicionou o trabalho. A ata registra, na seção 2, o pedido
-de que a solução possa ser reutilizada em outros contextos além do criminal; e cobra, no resumo, a
-delimitação entre o que será efetivamente implementado e o que será validado.
-
-A análise arquitetural de 2026-10-04 mediu o efeito de manter a regra antiga sob a direção nova: das
-dez tensões identificadas entre a ata e a norma vigente, **seis eram de norma, não de desenho** — e
-a regra acima era o critério de desempate invocado por quase todas as outras. A conclusão registrada
-foi que, pela norma vigente, todo investimento em generalidade seria corte legítimo, e **qualquer
-pessoa ou agente que lesse a norma concluiria isso corretamente**.
-
-A norma não falhava por omissão: ela impedia ativamente a direção nova. Um repositório novo que não
-a substituísse herdaria o impedimento intacto.
+Sem decidir isso por escrito, cada decisão posterior herda a ambiguidade: quem precisar desempatar
+escolhe sozinho, em silêncio, sem que a escolha fique registrada. É assim que um projeto passa a ter
+dois rumos ao mesmo tempo sem ninguém perceber.
 
 ## Decisão
 
@@ -36,26 +30,27 @@ a substituísse herdaria o impedimento intacto.
 conversacionais anotadas. O dataset forense é o caso de validação mais restritivo dessa ferramenta,
 não o produto final.**
 
-A pergunta que governa as decisões de design passa a ser:
+A pergunta que governa as decisões de design é:
 
 > Isso serve a mais de um domínio sem perder a garantia que o domínio mais restritivo exige?
 
-Duas consequências da formulação, ambas deliberadas:
+Duas travas deliberadas na formulação:
 
-- Generalidade deixa de ser desperdício e passa a ser requisito — mas **generalidade que custa
-  garantia continua recusada**. A ferramenta não fica mais permissiva para ficar mais geral.
-- O domínio forense mantém o papel de régua. O que não sobrevive às exigências de cadeia de
-  custódia, privacidade e auditoria não entra, ainda que sirva a outros domínios.
+- Generalidade é requisito, mas **generalidade que custa garantia é recusada**. A ferramenta não
+  fica mais permissiva para ficar mais geral.
+- O domínio forense é a régua. O que não sobrevive às exigências de cadeia de custódia, privacidade
+  e auditoria não entra, ainda que sirva a outros domínios.
 
 ## Alternativas recusadas
 
-### Manter o foco no dataset e tratar generalidade como trabalho futuro
+### A contribuição é o dataset; generalidade fica como trabalho futuro
 
-**Recusada.** É o estado anterior, e seu efeito foi medido: o requisito mais central da ata fica não
-atendido, e quem lê a norma conclui corretamente que generalidade é corte. Manter uma regra e
-esperar comportamento contrário a ela é pedir que as pessoas ignorem o que está escrito.
+**Recusada.** Não atende o pedido da ata, e tem um efeito que costuma passar despercebido: uma norma
+que subordina tudo à qualidade de um dataset faz com que **qualquer pessoa ou agente que a leia
+conclua, corretamente, que generalidade é corte**. Manter uma regra e esperar comportamento
+contrário a ela é pedir que se ignore o que está escrito.
 
-### Inverter por completo: a ferramenta é tudo, o dataset é incidental
+### A ferramenta é tudo; o dataset é incidental
 
 **Recusada.** Descarta a razão pela qual as garantias existem. Sem um domínio que exija cadeia de
 custódia, pseudonimização reversível sob autorização e auditoria de acesso, a ferramenta perde o que
@@ -65,19 +60,19 @@ o que exige que ao menos uma seja exigente.
 ### Duas linhas de trabalho paralelas, uma para a ferramenta e outra para o dataset
 
 **Recusada.** Duplica esforço num trabalho com prazo apertado, e cria duas fontes de verdade sobre o
-mesmo pipeline — o problema estrutural que motivou recomeçar o projeto.
+mesmo pipeline. Duas descrições do mesmo fato divergem com o tempo, e a divergência só aparece
+quando alguém age sobre a versão errada.
 
 ## Consequências
 
 ### O que passa a ser verdade
 
-- **A taxonomia do domínio não pode estar fixada no código.** No projeto anterior, as categorias
-  criminais eram um tipo usado em assinaturas de função, e um gate de validação iterava sobre elas
-  sendo bloqueante de exportação, de modo que uma instalação em outro domínio não passava no
-  próprio gate do pipeline. Decisão específica sobre isso ainda será escrita.
-- **Relatórios e métricas passam a ser capacidade do produto**, não subproduto. A ferramenta precisa
-  relatar qualidade de anotação por base e comparar bases, porque é assim que se demonstra que ela
-  funciona fora de uma base só.
+- **A taxonomia do domínio não pode estar fixada no código.** Se as categorias forem um tipo usado
+  em assinaturas de função, ou se um gate de validação iterar sobre elas, uma instalação em outro
+  domínio não passa no próprio gate do pipeline. Decisão específica sobre isso ainda será escrita.
+- **Relatórios e métricas são capacidade do produto**, não subproduto. A ferramenta precisa relatar
+  qualidade de anotação por base e comparar bases, porque é assim que se demonstra que ela funciona
+  fora de uma base só.
 - **Investimento em fronteiras explícitas e módulos independentes é justificado** pela norma, não
   apesar dela.
 

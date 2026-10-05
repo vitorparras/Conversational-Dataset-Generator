@@ -4,7 +4,7 @@
 
 ## Decisão
 
-As categorias de anotação vêm de um arquivo versionado junto ao projeto, carregado na inicialização.
+As categorias de anotação de cada domínio vêm de um arquivo versionado, carregado na inicialização.
 Nenhuma categoria aparece como tipo no código, e nenhuma validação percorre uma lista fixa delas.
 
 O arquivo declara, para cada categoria: identificador estável, rótulo exibido, definição, exemplos
@@ -38,7 +38,8 @@ O compilador deixa de verificar rótulos. A validação passa a ser de execuçã
 e em cada escrita, e precisa de teste próprio.
 
 A taxonomia vigente integra a identidade do dataset exportado: anotações feitas sob taxonomias
-diferentes não são comparáveis, e a exportação registra sob qual delas foi produzida.
+diferentes não são comparáveis, e a exportação registra sob qual delas, e de qual domínio, foi
+produzida.
 
 Mudar a taxonomia depois de haver anotação é mudança de dado, não de configuração. Exige decisão
 própria sobre o que acontece com o que já foi anotado.

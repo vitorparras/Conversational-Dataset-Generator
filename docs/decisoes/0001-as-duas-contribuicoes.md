@@ -1,8 +1,8 @@
-# 0001 — As duas contribuições do trabalho
+# 0001 — As duas contribuições do projeto
 
 > Decisão vigente. 2026-10-04.
 
-Esta decisão diz o que o trabalho entrega e como resolver conflito entre essas entregas. Serve a
+Esta decisão diz o que o projeto entrega e como resolver conflito entre essas entregas. Serve a
 quem precisa decidir se vale investir numa melhoria que beneficia uma delas e não a outra. Não diz
 como a ferramenta é construída — isso fica para as decisões seguintes.
 
@@ -55,7 +55,7 @@ subordina tudo à qualidade do dataset faz com que qualquer pessoa — ou agente
 conclua, corretamente, que investir em generalidade é desperdício. Manter uma regra e esperar que
 todos ajam contra ela é pedir que ignorem o que está escrito.
 
-Ela também deixa o trabalho sem resposta para a pergunta mais previsível que se pode fazer: o
+Ela também deixa o projeto sem resposta para a pergunta mais previsível que se pode fazer: o
 pipeline funciona fora da base para a qual foi escrito?
 
 **Só a ferramenta é a contribuição; o dataset é um caso de teste.** Recusada porque descarta valor
@@ -88,7 +88,7 @@ se limita ao que já é visivelmente necessário.
 
 Por fim, o escopo precisa ser dito com clareza em três faixas — o que foi implementado e validado, o
 que foi implementado sem validação formal, e o que ficou como trabalho futuro. Sem essa separação,
-quem avaliar o trabalho encontra ambição onde deveria encontrar entrega.
+quem avaliar o projeto encontra ambição onde deveria encontrar entrega.
 
 ## O que reabre esta decisão
 

@@ -12,7 +12,7 @@ deliberada e justificada.
 
 | # | Decisão | Autoridade |
 |---|---|---|
-| [0001](0001-ferramenta-como-contribuicao.md) | A ferramenta é a contribuição | Decisão vigente |
+| [0001](0001-as-duas-contribuicoes.md) | As duas contribuições do trabalho | Decisão vigente |
 
 ## Formato
 

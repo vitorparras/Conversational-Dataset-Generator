@@ -4,10 +4,8 @@
 
 ## Decisão
 
-Uma instalação coordena **vários domínios**. Material, anotação e métrica pertencem a um domínio, e
-cada domínio tem sua própria taxonomia.
-
-O recorte acontece na saída, não na instalação:
+Uma instalação coordena **vários domínios**. Material, anotação e métrica pertencem a um domínio,
+cada um com sua taxonomia, e o recorte acontece na saída, não na instalação:
 
 | O que | Escopo |
 |---|---|
@@ -53,8 +51,8 @@ banco.
 A exportação precisa declarar o recorte no próprio artefato: quais domínios, sob quais taxonomias,
 com quais contagens. Sem isso, um dataset de conjunto misto é indistinguível de um de origem única.
 
-Se domínios tiverem sensibilidade diferente, chave de cifra por domínio passa a fazer sentido — o
-que a decisão 0003 não trata. Fica para decisão própria, antes de existir o segundo domínio real.
+Se domínios tiverem sensibilidade diferente, chave por domínio passa a fazer sentido — fica para
+decisão própria, antes de existir o segundo domínio real.
 
 ## O que reabre
 

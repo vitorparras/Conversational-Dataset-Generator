@@ -56,7 +56,5 @@ Decifrar o mapa de reversão é operação auditada: revela identidade, e é o �
 
 Se a busca sobre texto bruto passar a ser necessária em operação, e não apenas na aplicação — aí
 entra cifra que preserva ordenação ou busca, com a perda de segurança que ela implica, decidida por
-escrito.
-
-Se o sistema passar a rodar em infraestrutura gerenciada com serviço de chaves próprio, delegar a
-guarda da chave a esse serviço passa a valer a dependência.
+escrito. Ou se o sistema passar a rodar em infraestrutura gerenciada com serviço de chaves próprio:
+delegar a guarda a esse serviço passa a valer a dependência.

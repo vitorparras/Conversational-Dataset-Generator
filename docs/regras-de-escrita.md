@@ -2,33 +2,27 @@
 
 > Operacional. Vale para todo documento deste repositório.
 
-A verificação automática (`ferramentas/verifica-docs/verificar.py`) impõe a maior parte destas
-regras e reprova o pull request que as viole.
+A verificação automática (`ferramentas/verifica-docs/verificar.py`) reprova quem viole as regras 1,
+4, 5 e 7. **As outras — 2, 3, 6, 8 e 9 — dependem de quem revisa**, e custam mais ao se perder.
 
 ## 1. Declare a autoridade
 
-Logo após o título, uma linha de citação diz se o documento vincula. Sem ela a verificação reprova.
-
-```markdown
-# 0002 — A stack
-
-> Decisão vigente. 2026-10-04.
-```
+Logo após o título, uma linha de citação diz se o documento vincula — `> Decisão vigente.
+2026-10-04.`, e nada entre ela e o título. Sem ela a verificação reprova.
 
 Vocabulário fechado: `Norma vigente` · `Norma substituída por X` · `Norma revogada` ·
-`Decisão vigente` · `Decisão substituída por X` · `Decisão revogada` · `Descrição` · `Histórico` ·
-`Operacional`.
+`Norma pendente` · `Decisão vigente` · `Decisão substituída por X` · `Decisão revogada` ·
+`Decisão pendente` · `Descrição` · `Histórico` · `Operacional`.
 
-`Descrição` descreve o sistema: se divergir do código, o código ganha. `Histórico` nunca é regra,
-mesmo que pareça.
+`Descrição` descreve o sistema: se divergir do código, o código ganha. `Histórico` nunca é regra.
+**`pendente` é para quando a pendência é a própria decisão**, e o documento existe para dizer o que
+falta saber. Decisão que vale e deixou consequência para depois é vigente, com a pendência no corpo.
 
 ## 2. Documento curto
 
-Até **60 linhas**. Decisão, requisito ou política que passa disso está se justificando demais.
-
-Se a vigésima linha ainda não disse o que foi decidido, o documento falhou — por mais correto que
-esteja o resto. Documento histórico é exceção: não se divide nem se resume, porque isso falsificaria
-o registro.
+Até **60 linhas**. Decisão, requisito ou política que passa disso está se justificando demais, e se
+a vigésima linha ainda não disse o que foi decidido, o documento falhou. Documento histórico é
+exceção: não se divide nem se resume, porque isso falsificaria o registro.
 
 ## 3. Um fato, um lugar
 
@@ -39,14 +33,12 @@ aparece quando alguém age sobre a versão errada.
 
 Nem em exemplo, nem em teste, nem em documentação. Exemplos usam identificadores sintéticos
 (`PESSOA_1`, `REMETENTE_A`), nunca nomes plausíveis — um nome inventado pode coincidir com pessoa
-real.
-
-É a regra sem margem de discussão.
+real. É a regra sem margem de discussão.
 
 ## 5. Só cite o que existe
 
-Arquivo, caminho, classe ou identificador citado em `código inline` precisa existir. A verificação
-confere.
+Arquivo, caminho, classe ou identificador citado em `código inline` precisa existir, e a verificação
+confere. O que ainda não existe se cita em prosa dizendo que não existe — aí nada confere por você.
 
 ## 6. Nada de fora do repositório
 

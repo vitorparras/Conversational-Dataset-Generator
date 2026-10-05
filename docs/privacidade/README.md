@@ -10,6 +10,6 @@ Também a custódia: o que é imutável, como a integridade é verificada, e o q
 falha.
 
 **Documentos aqui vinculam** (`Norma vigente`). Este projeto processa dados que podem envolver
-investigação criminal; a política não é orientação, é regra.
+investigação criminal; a política não é sugestão, é regra.
 
 Ver [regras de escrita](../regras-de-escrita.md).

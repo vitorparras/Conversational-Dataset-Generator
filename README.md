@@ -6,7 +6,8 @@ validação por métricas de concordância e exportação de datasets rastreáve
 
 O domínio **forense/criminal é o estudo de caso mais restritivo**, não o escopo da ferramenta.
 
-Componente prático de uma dissertação de mestrado em Computação Aplicada (PPGCC-CM/UTFPR).
+Projeto de pesquisa aplicada em processamento de linguagem natural para o português
+brasileiro.
 
 ## Estado
 

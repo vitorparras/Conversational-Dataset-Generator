@@ -56,7 +56,7 @@ conclua, corretamente, que investir em generalidade é desperdício. Manter uma 
 todos ajam contra ela é pedir que ignorem o que está escrito.
 
 Ela também deixa o trabalho sem resposta para a pergunta mais previsível que se pode fazer: o
-pipeline funciona fora da base que o autor construiu?
+pipeline funciona fora da base para a qual foi escrito?
 
 **Só a ferramenta é a contribuição; o dataset é um caso de teste.** Recusada porque descarta valor
 real. O dataset não é um subproduto de demonstração — é um recurso escasso, cuja construção custa a
@@ -87,12 +87,12 @@ concreto, nunca por hipótese. Enquanto não houver um segundo domínio real à 
 se limita ao que já é visivelmente necessário.
 
 Por fim, o escopo precisa ser dito com clareza em três faixas — o que foi implementado e validado, o
-que foi implementado sem validação formal, e o que ficou como trabalho futuro. Sem essa separação, a
-ambição vira fragilidade na hora de defender o trabalho.
+que foi implementado sem validação formal, e o que ficou como trabalho futuro. Sem essa separação,
+quem avaliar o trabalho encontra ambição onde deveria encontrar entrega.
 
 ## O que reabre esta decisão
 
-Se a validação acadêmica não aceitar que as duas entregas sejam tratadas como contribuições, esta
+Se a revisão por pares não aceitar que as duas entregas sejam tratadas como contribuições, esta
 decisão cai, e com ela a justificativa de boa parte do que vem depois.
 
 Se nenhum segundo domínio for identificado até o início da anotação, o risco de generalidade

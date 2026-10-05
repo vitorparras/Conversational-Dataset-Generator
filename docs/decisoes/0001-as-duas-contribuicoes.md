@@ -49,10 +49,10 @@ duas.
 
 ## Alternativas recusadas
 
-**Só o dataset é a contribuição; a ferramenta é meio.** Esta é a leitura mais segura do ponto de
-vista de prazo, e foi recusada por um efeito que costuma passar despercebido: uma norma que
-subordina tudo à qualidade do dataset faz com que qualquer pessoa — ou agente de IA — que a leia
-conclua, corretamente, que investir em generalidade é desperdício. Manter uma regra e esperar que
+**Só o dataset é a contribuição; a ferramenta é meio.** É a leitura que exige menos esforço, e foi
+recusada por um efeito que costuma passar despercebido: uma norma que subordina tudo à qualidade do
+dataset faz com que qualquer pessoa — ou agente de IA — que a leia conclua, corretamente, que
+investir em generalidade é desperdício. Manter uma regra e esperar que
 todos ajam contra ela é pedir que ignorem o que está escrito.
 
 Ela também deixa o projeto sem resposta para a pergunta mais previsível que se pode fazer: o
@@ -79,7 +79,7 @@ ferramenta precisa saber dizer a qualidade da anotação de uma base e comparar 
 porque é assim que se demonstra que ela funciona em mais de um lugar.
 
 Em compensação, há mais superfície para manter. Cada ponto onde a ferramenta aceita configuração é
-código que precisa de teste, e o prazo não melhora com esta decisão — piora, e isso é consciente.
+código que precisa de teste. Esta decisão aumenta o custo de construção, e isso é consciente.
 
 Há também o risco de generalidade especulativa. Uma ferramenta que tenta servir a tudo é difícil de
 projetar e fácil de errar. O contrapeso que adotamos: generalidade se justifica por um segundo caso
@@ -99,6 +99,6 @@ Se nenhum segundo domínio for identificado até o início da anotação, o risc
 especulativa passa a pesar mais que esta decisão, e a flexibilidade já construída deve parar onde
 está.
 
-Se o prazo apertar ao ponto de a ferramenta geral inviabilizar a entrega do dataset, a prioridade se
-inverte: entrega-se o dataset, e a generalidade passa a trabalho futuro declarado — por uma decisão
-que substitua esta, nunca por omissão.
+Se a capacidade de execução não comportar as duas entregas, a prioridade se inverte: entrega-se o
+dataset, e a generalidade passa a trabalho futuro declarado — por uma decisão que substitua esta,
+nunca por omissão.

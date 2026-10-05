@@ -5,7 +5,7 @@
 | Camada | Escolha |
 |---|---|
 | Núcleo: web, persistência, autenticação, pipeline | C# |
-| Processamento de linguagem natural | Python, como serviço separado |
+| Processamento de linguagem natural | Python, serviço separado |
 | Banco | PostgreSQL |
 | Distribuição | Executável único, sem instalar nada no destino |
 
@@ -29,15 +29,13 @@ As mesmas garantias, impostas pelo servidor em vez da aplicação:
   falhar, o banco ainda recusa.
 - **Auditoria por extensão**, no servidor: a aplicação não omite o que ela própria faz.
 - **Append-only real** — concessão por coluna e gatilhos, sem depender de a aplicação lembrar.
-- **Transação serializável**, para encadear registros por hash sem que duas gravações simultâneas
-  corrompam a cadeia em silêncio.
+- **Transação serializável**, para encadear registros por hash sem corromper a cadeia em silêncio.
 - **Cifra de coluna** por extensão, e campos JSON com restrição onde o domínio varia.
 
 ## Por que Python no processamento de linguagem
 
 Os modelos que reconhecem entidades junto com a análise gramatical do mesmo trecho, para português,
-estão nesse ecossistema. Fora dele, é montar com duas peças e conciliar posições de caractere na
-mão — e um índice errado anonimiza o pedaço errado do texto.
+estão nesse ecossistema. Fora dele é montar com duas peças e conciliar posições na mão.
 
 ## Recusados
 
@@ -54,11 +52,9 @@ mão — e um índice errado anonimiza o pedaço errado do texto.
 
 A cifra em repouso precisa de decisão própria, e **bloqueia o código que persiste dado sensível**.
 Texto sensível atravessa fronteira de processo até o serviço de linguagem, e a decisão sobre esse
-formato diz o que trafega e o que nunca entra em log.
+formato diz o que trafega e o que nunca entra em log. Duas linguagens custam duas suítes de teste.
 
 ## O que reabre
 
-Se não houver, em PostgreSQL, forma de manter a cifra junto ao dado — de modo que copiar o banco
-para fora não exponha nada.
-
-Se o executável único deixar de ser requisito. Nesse caso Java volta ao páreo.
+Se não houver, em PostgreSQL, forma de manter a cifra junto ao dado, de modo que copiar o banco para
+fora não exponha nada. Ou se o executável único deixar de ser requisito — nesse caso Java volta.

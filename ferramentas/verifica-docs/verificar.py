@@ -8,6 +8,7 @@ Cinco verificações, nesta ordem de gravidade:
 3. links quebrados          — link interno que não resolve
 4. linha de autoridade      — todo documento diz se vincula ou não
 5. formatação               — regras simples de consistência
+6. tamanho                  — teto de linhas por documento
 
 Uso:
     python ferramentas/verifica-docs/verificar.py            # tudo
@@ -76,6 +77,7 @@ EXTENSOES_DE_ARQUIVO = (
 )
 
 LIMITE_COLUNA = 100
+LIMITE_LINHAS = 60
 
 
 @dataclass(frozen=True)
@@ -258,12 +260,30 @@ def verifica_formatacao(caminho: Path, linhas: list[str]) -> list[Achado]:
     return achados
 
 
+def verifica_tamanho(caminho: Path, linhas: list[str]) -> list[Achado]:
+    """Documento acima do teto está se justificando demais (regra 2).
+
+    Documento histórico é exceção: não se divide nem se resume, porque isso
+    falsificaria o registro do que era verdade quando foi escrito.
+    """
+    for _, linha in enumerate(linhas[:12], start=1):
+        if linha.startswith(">") and linha.lstrip("> ").startswith("Histórico"):
+            return []
+    if len(linhas) <= LIMITE_LINHAS:
+        return []
+    return [
+        Achado(caminho, len(linhas), "tamanho",
+               f"{len(linhas)} linhas (teto {LIMITE_LINHAS})")
+    ]
+
+
 VERIFICACOES = {
     "dados": verifica_dados,
     "referencias": verifica_referencias,
     "links": verifica_links,
     "autoridade": verifica_autoridade,
     "formatacao": verifica_formatacao,
+    "tamanho": verifica_tamanho,
 }
 
 

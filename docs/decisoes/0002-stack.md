@@ -2,53 +2,67 @@
 
 > Decisão vigente. 2026-10-04.
 
-## Decisão
-
 | Camada | Escolha |
 |---|---|
 | Núcleo: web, persistência, autenticação, pipeline | C# |
 | Processamento de linguagem natural | Python, como serviço separado |
-| Banco | PostgreSQL, com colunas estruturadas e campos JSON |
+| Banco | PostgreSQL |
 | Distribuição | Executável único, sem instalar nada no destino |
 
-## Por quê
+## Por que C#
 
-**C# no núcleo.** É a única candidata que reúne as três coisas que o projeto exige ao mesmo tempo:
-expressões regulares com contexto à esquerda de largura variável, executável único e teste de
-mutação maduro. A primeira é a que mais pesa — reconhecer documentos brasileiros depende do texto
-que antecede o número ("CPF", "documento", "inscrição"), e esses prefixos variam em extensão.
+O sistema cifra dado pessoal, reverte pseudonimização sob autorização, registra acesso e nega por
+papel. Em .NET as quatro coisas são serviço de plataforma, não código próprio:
 
-**Python no processamento de linguagem.** Os modelos que reconhecem entidades junto com a análise
-gramatical do mesmo trecho, para português, estão nesse ecossistema. Fora dele é preciso montar isso
-com duas peças e conciliar as posições de caractere na mão — e um índice errado anonimiza o pedaço
-errado do texto.
+- **Chaves** — derivação por finalidade declarada a partir de uma chave mestra, com rotação e
+  revogação, mantendo a capacidade de decifrar o que foi cifrado com chave antiga. É a estrutura que
+  a pseudonimização reversível exige.
+- **Log sem vazar dado pessoal** — a plataforma redige campos sensíveis no próprio pipeline de log,
+  por anotação no tipo. Vira mecanismo, não disciplina de quem escreve a mensagem.
+- **Acesso por política** — autorização declarativa avaliada antes do código da rota, em vez de
+  condicionais espalhadas.
+- **Criptografia na biblioteca padrão** — AES-GCM e derivação de chave sem dependência de terceiros.
 
-**PostgreSQL.** A custódia exige esquema e integridade; a reutilização em outros domínios exige
-campos que variam. Ele faz as duas coisas num motor só.
+## Por que PostgreSQL
+
+As mesmas garantias, impostas pelo servidor em vez da aplicação:
+
+- **Segurança em nível de linha**, com `FORCE`, aplica a regra até contra o dono da tabela. Se a
+  aplicação falhar, o banco ainda recusa.
+- **Auditoria por extensão**, no servidor: a aplicação não tem como omitir o que ela própria faz.
+- **Append-only real** — concessão por coluna e gatilhos tornam a tabela imutável sem depender de a
+  aplicação lembrar.
+- **Transação serializável**, necessária para encadear registros por hash sem que duas gravações
+  simultâneas corrompam a cadeia em silêncio.
+- **Cifra de coluna** por extensão, e campos JSON com restrição declarativa onde o domínio varia.
+
+## Por que Python no processamento de linguagem
+
+Os modelos que reconhecem entidades junto com a análise gramatical do mesmo trecho, para português,
+estão nesse ecossistema. Fora dele, é montar com duas peças e conciliar posições de caractere na
+mão — e um índice errado anonimiza o pedaço errado do texto.
 
 ## Recusados
 
 | Opção | Por quê |
 |---|---|
-| Python no núcleo | Tipos verificados só em execução; exige interpretador no destino |
-| Go | Sem contexto à esquerda, por garantir tempo linear; mutação imatura |
-| Rust | Sem contexto à esquerda, pela mesma razão |
-| Java | Exige máquina virtual no destino. É a alternativa mais próxima |
-| Banco documental | Na edição aberta, sem cifra em repouso nem imutabilidade imposta pelo servidor |
-| Dois bancos | Duas bases para cifrar e salvar em backup, sem transação entre elas |
+| Python no núcleo | Tipos só em execução; exige interpretador no destino |
+| Java no núcleo | Equivalente em segurança; exige máquina virtual no destino. O mais próximo |
+| Go no núcleo | Proteção de chaves e redação ficam por conta da aplicação |
+| Rust no núcleo | Ecossistema web e de auditoria menos maduro |
+| Banco documental | Na edição aberta: sem cifra em repouso nem imutabilidade no servidor |
+| Dois bancos | Duas bases para cifrar e salvar, sem transação entre elas |
 
 ## Consequências
 
 A cifra em repouso precisa de decisão própria, e **bloqueia o código que persiste dado sensível**.
 
-Texto sensível passa a atravessar uma fronteira de processo até o serviço de linguagem. A decisão
-sobre esse formato precisa dizer o que trafega e o que nunca pode entrar em registro de log.
-
-Duas linguagens custam duas suítes de teste e duas formas de empacotar.
+Texto sensível atravessa fronteira de processo até o serviço de linguagem: a decisão sobre esse
+formato precisa dizer o que trafega e o que nunca entra em log.
 
 ## O que reabre
 
 Se não houver, em PostgreSQL, forma de manter a cifra junto ao dado — de modo que copiar o banco
 para fora não exponha nada.
 
-Se o executável único deixar de ser requisito. Nesse caso Java volta, com vantagem em mutação.
+Se o executável único deixar de ser requisito. Nesse caso Java volta ao páreo.

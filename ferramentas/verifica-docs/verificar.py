@@ -41,9 +41,11 @@ AUTORIDADES = (
     "Norma vigente",           # vincula
     "Norma substituída por",   # não vale mais; o sucessor diz o que vale
     "Norma revogada",          # não vale mais, e nada substitui
+    "Norma pendente",          # falta decidir; o documento diz o que falta saber
     "Decisão vigente",         # vincula (usado em docs/decisoes/)
     "Decisão substituída por",
     "Decisão revogada",
+    "Decisão pendente",        # falta decidir; o documento diz o que falta saber
     "Descrição",               # descreve o sistema; se divergir, o código ganha
     "Histórico",               # autoridade zero; nunca norma
     "Operacional",             # procedimento a seguir

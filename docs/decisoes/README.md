@@ -19,6 +19,16 @@ deliberada e justificada.
 | [0005](0005-unidades-de-analise.md) | As unidades de análise | Decisão vigente |
 | [0006](0006-dominios-coexistem.md) | Domínios coexistem; a exportação é que recorta | Decisão vigente |
 | [0007](0007-garantia-de-qualidade.md) | A garantia de qualidade dos testes | Decisão vigente |
+| [0008](0008-requisito-no-repositorio-tarefa-na-issue.md) | Requisito no repositório, tarefa na issue | Decisão vigente |
+| [0009](0009-licenca-do-software-e-dos-dados.md) | Licença do software e licença dos dados | Decisão pendente |
+| [0010](0010-tecnologia-da-interface.md) | A tecnologia da interface | Decisão vigente |
+| [0011](0011-protocolo-com-o-servico-de-linguagem.md) | O protocolo com o serviço de linguagem | Decisão vigente |
+| [0012](0012-pseudonimizacao-reversivel.md) | Pseudonimização reversível, não anonimização | Decisão vigente |
+| [0013](0013-chave-de-cifra-por-dominio.md) | Chave de cifra por domínio | Decisão vigente |
+| [0014](0014-custodia-da-chave-mestra.md) | Custódia e recuperação da chave mestra | Decisão vigente |
+| [0015](0015-versionamento-e-compatibilidade.md) | Versionamento e compatibilidade | Decisão vigente |
+| [0016](0016-mudanca-de-taxonomia-com-anotacao-existente.md) | Mudança de taxonomia com anotação existente | Decisão vigente |
+| [0017](0017-dupla-anotacao-e-arbitragem.md) | Dupla anotação e arbitragem | Decisão vigente |
 
 ## Formato
 

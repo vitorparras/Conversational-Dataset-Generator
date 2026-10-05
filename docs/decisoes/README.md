@@ -14,6 +14,7 @@ deliberada e justificada.
 |---|---|---|
 | [0001](0001-as-duas-contribuicoes.md) | As duas contribuições do projeto | Decisão vigente |
 | [0002](0002-stack.md) | A stack | Decisão vigente |
+| [0003](0003-cifra-em-repouso.md) | Cifra em repouso | Decisão vigente |
 
 ## Formato
 

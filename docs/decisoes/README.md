@@ -13,6 +13,7 @@ deliberada e justificada.
 | # | Decisão | Autoridade |
 |---|---|---|
 | [0001](0001-as-duas-contribuicoes.md) | As duas contribuições do projeto | Decisão vigente |
+| [0002](0002-stack.md) | A stack | Decisão vigente |
 
 ## Formato
 

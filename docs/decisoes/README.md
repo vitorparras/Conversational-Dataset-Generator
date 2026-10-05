@@ -17,7 +17,7 @@ deliberada e justificada.
 | [0003](0003-cifra-em-repouso.md) | Cifra em repouso | Decisão vigente |
 | [0004](0004-taxonomia-configuravel.md) | A taxonomia é configuração, não código | Decisão vigente |
 | [0005](0005-unidades-de-analise.md) | As unidades de análise | Decisão vigente |
-| [0006](0006-um-dominio-por-instalacao.md) | Um domínio por instalação | Decisão vigente |
+| [0006](0006-dominios-coexistem.md) | Domínios coexistem; a exportação é que recorta | Decisão vigente |
 | [0007](0007-garantia-de-qualidade.md) | A garantia de qualidade dos testes | Decisão vigente |
 
 ## Formato

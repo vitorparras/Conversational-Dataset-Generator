@@ -43,14 +43,34 @@ precisa instalar nada além dele.
 
 ## Por que C# no núcleo
 
-A linguagem do núcleo precisa ser aquela que quem mantém o projeto domina de verdade. Isso não é
-conveniência: ferramentas de IA produzem código em qualquer linguagem, e a diferença entre código
-bom e código que apenas compila está em quem revisa. Numa linguagem dominada, a revisão reconhece o
-que está errado; numa linguagem que se está aprendendo, ela aceita o que parece plausível. Como a
-degradação de arquitetura costuma vir daí, essa é a escolha de maior efeito prático.
+Três capacidades são necessárias ao mesmo tempo, e poucas linguagens reúnem as três.
 
-Além disso, C# tem tipagem estática verificada na compilação, ferramental maduro de teste e análise,
-e publica o executável único que a distribuição exige.
+**Expressões regulares com verificação de contexto à esquerda, de largura variável.** O
+reconhecimento de documentos brasileiros depende do texto que antecede o número: um número de onze
+dígitos é CPF quando precedido de "CPF", "documento" ou "inscrição", e é outra coisa quando não é.
+Esses prefixos variam em extensão, o que exige que a verificação de contexto aceite trechos de
+tamanho variável. Sem isso, cada variação de prefixo vira um padrão separado, e a combinação entre
+eles cresce a ponto de deixar de ser auditável — o que é grave num mecanismo cuja falha significa
+dado pessoal gravado em claro.
+
+**Distribuição sem dependência instalada no destino.** Quem precisar reproduzir o processamento
+recebe um executável e o executa. Qualquer passo adicional de instalação é uma barreira entre o
+trabalho e a sua verificação por terceiros.
+
+**Ferramenta madura de teste de mutação.** Cobertura de testes mede quais linhas foram executadas,
+não se o teste detectaria um erro nelas. Em código que decide o que é dado pessoal e o que entra
+numa cadeia de custódia, a diferença entre as duas medidas é o que separa teste de teatro.
+
+Entre as linguagens avaliadas, C# é a única que oferece as três sem concessão. Java atende a
+primeira e a terceira — com a melhor ferramenta de mutação existente — mas exige máquina virtual
+instalada no destino. Go e Rust distribuem bem, mas suas bibliotecas de expressões regulares
+não suportam verificação de contexto à esquerda, por decisão de projeto: ambas garantem tempo de
+execução linear, e essa garantia é incompatível com o recurso.
+
+Somam-se a isso a tipagem estática com análise de nulo verificada na compilação, que serve a um
+sistema que precisa falhar fechado; as primitivas de criptografia na biblioteca padrão, sem
+dependência de terceiros para cifra e derivação de chave; e um driver PostgreSQL de primeira linha,
+com suporte nativo aos campos JSON que a decisão de persistência exige.
 
 ## Por que o processamento de linguagem fica em Python
 
@@ -81,10 +101,11 @@ transação entre eles.
 
 ## Alternativas recusadas
 
-**Tudo em Python, inclusive o núcleo.** A opção mais simples de operar, com uma stack só. Recusada
-pelo argumento da revisão: a linguagem do núcleo é onde fica a maior parte do código, e precisa ser
-a dominada por quem revisa. O ganho de simplicidade não compensa revisar pior a parte maior do
-sistema.
+**Tudo em Python, inclusive o núcleo.** A opção mais simples de operar, com uma stack só, e
+atende bem às expressões regulares. Recusada por duas razões: a verificação de tipos acontece em
+tempo de execução, o que num sistema que precisa falhar fechado transfere para o teste aquilo que o
+compilador poderia garantir; e a distribuição exige interpretador e dependências instalados no
+destino, o que contraria a entrega por executável único.
 
 **Go no núcleo.** Produz executável único pequeno, tem concorrência simples de raciocinar, e a forma
 como declara interfaces favorece fronteiras explícitas. Recusada por duas razões concretas: a
@@ -92,9 +113,10 @@ biblioteca padrão de expressões regulares não suporta verificação de contex
 necessário para reconhecer documentos de identidade pelo texto que os precede; e as ferramentas de
 teste de mutação ainda são imaturas, o que enfraquece a garantia de qualidade dos testes.
 
-**Java no núcleo.** Tem a melhor ferramenta de teste de mutação disponível, e bibliotecas de
-criptografia maduras. Recusada pelo mesmo argumento de revisão, e porque exige máquina virtual
-instalada no destino, o que contraria a distribuição por arquivo único.
+**Java no núcleo.** Atende às três capacidades exigidas, e tem a melhor ferramenta de teste de
+mutação disponível. Recusada por um ponto só, mas que não tem contorno barato: exige máquina virtual
+instalada no destino. É a alternativa mais próxima, e a que deve ser reconsiderada primeiro se
+alguma das premissas desta decisão cair.
 
 **Rust no núcleo.** O melhor em garantias do compilador. Recusada porque sua biblioteca padrão de
 expressões regulares também não suporta verificação de contexto à esquerda, e as alternativas
@@ -132,8 +154,9 @@ Se não houver, em PostgreSQL, forma aceitável de manter a cifra junto ao dado 
 banco para fora não exponha o conteúdo —, a escolha de banco precisa ser reaberta. Cifra é
 requisito, não preferência.
 
-Se quem mantém o núcleo mudar, o argumento central da escolha de C# deixa de valer, e a linguagem
-deve ser reavaliada pelo mesmo critério aplicado a quem passar a manter.
+Se a entrega por executável único deixar de ser requisito — por exemplo, se o sistema passar a
+rodar apenas em ambiente controlado pela própria equipe —, Java volta a ser candidato, com vantagem
+em teste de mutação.
 
 Se o serviço de processamento de linguagem passar a ser usado por outro sistema, a fronteira de
 processo deixa de ser custo e vira benefício, o que reforça esta decisão em vez de enfraquecê-la.

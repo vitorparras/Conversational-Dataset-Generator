@@ -14,27 +14,24 @@
 O sistema cifra dado pessoal, reverte pseudonimização sob autorização, registra acesso e nega por
 papel. Em .NET as quatro coisas são serviço de plataforma, não código próprio:
 
-- **Chaves** — derivação por finalidade declarada a partir de uma chave mestra, com rotação e
-  revogação, mantendo a capacidade de decifrar o que foi cifrado com chave antiga. É a estrutura que
-  a pseudonimização reversível exige.
+- **Chaves** — derivação por finalidade a partir de uma mestra, com rotação e revogação, mantendo a
+  capacidade de decifrar o que foi cifrado antes. É a estrutura que a reversão exige.
 - **Log sem vazar dado pessoal** — a plataforma redige campos sensíveis no próprio pipeline de log,
   por anotação no tipo. Vira mecanismo, não disciplina de quem escreve a mensagem.
-- **Acesso por política** — autorização declarativa avaliada antes do código da rota, em vez de
-  condicionais espalhadas.
-- **Criptografia na biblioteca padrão** — AES-GCM e derivação de chave sem dependência de terceiros.
+- **Acesso por política** — autorização declarativa avaliada antes do código da rota.
+- **Criptografia na biblioteca padrão** — AES-GCM e derivação de chave sem terceiros.
 
 ## Por que PostgreSQL
 
 As mesmas garantias, impostas pelo servidor em vez da aplicação:
 
-- **Segurança em nível de linha**, com `FORCE`, aplica a regra até contra o dono da tabela. Se a
-  aplicação falhar, o banco ainda recusa.
-- **Auditoria por extensão**, no servidor: a aplicação não tem como omitir o que ela própria faz.
-- **Append-only real** — concessão por coluna e gatilhos tornam a tabela imutável sem depender de a
-  aplicação lembrar.
-- **Transação serializável**, necessária para encadear registros por hash sem que duas gravações
-  simultâneas corrompam a cadeia em silêncio.
-- **Cifra de coluna** por extensão, e campos JSON com restrição declarativa onde o domínio varia.
+- **Segurança em nível de linha**, com `FORCE`, vale até contra o dono da tabela. Se a aplicação
+  falhar, o banco ainda recusa.
+- **Auditoria por extensão**, no servidor: a aplicação não omite o que ela própria faz.
+- **Append-only real** — concessão por coluna e gatilhos, sem depender de a aplicação lembrar.
+- **Transação serializável**, para encadear registros por hash sem que duas gravações simultâneas
+  corrompam a cadeia em silêncio.
+- **Cifra de coluna** por extensão, e campos JSON com restrição onde o domínio varia.
 
 ## Por que Python no processamento de linguagem
 
@@ -56,9 +53,8 @@ mão — e um índice errado anonimiza o pedaço errado do texto.
 ## Consequências
 
 A cifra em repouso precisa de decisão própria, e **bloqueia o código que persiste dado sensível**.
-
-Texto sensível atravessa fronteira de processo até o serviço de linguagem: a decisão sobre esse
-formato precisa dizer o que trafega e o que nunca entra em log.
+Texto sensível atravessa fronteira de processo até o serviço de linguagem, e a decisão sobre esse
+formato diz o que trafega e o que nunca entra em log.
 
 ## O que reabre
 

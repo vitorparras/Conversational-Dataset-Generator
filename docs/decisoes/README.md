@@ -10,9 +10,9 @@ deliberada e justificada.
 
 ## Índice
 
-Nenhuma decisão registrada ainda.
-
-<!-- Formato da linha: | NNNN | Título | Autoridade atual | -->
+| # | Decisão | Autoridade |
+|---|---|---|
+| [0001](0001-as-duas-contribuicoes.md) | As duas contribuições do projeto | Decisão vigente |
 
 ## Formato
 
@@ -24,7 +24,7 @@ Nome `NNNN-slug.md`. Autoridade `Decisão vigente`. Seções:
 4. **Consequências** — o que passa a ser verdade, **incluindo o que piora**
 5. **O que reabre esta decisão** — a condição que, se acontecer, obriga reavaliar
 
-A seção 5 é a que mais falta na prática e a que mais importa num trabalho longo: transforma "mudei
+A seção 5 é a que mais falta na prática e a que mais importa num projeto longo: transforma "mudei
 de ideia" em "a condição que eu mesmo escrevi se realizou".
 
 Ver [regras de escrita](../regras-de-escrita.md).

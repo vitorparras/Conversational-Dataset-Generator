@@ -2,18 +2,12 @@
 
 > Operacional. Vale para todo documento deste repositório.
 
-**O que é:** o formato obrigatório dos documentos.
-**A quem serve:** quem escreve ou revisa documentação, pessoa ou agente.
-**O que não cobre:** o que cada pasta contém — isso está no README de cada uma.
+A verificação automática (`ferramentas/verifica-docs/verificar.py`) impõe a maior parte destas
+regras e reprova o pull request que as viole.
 
-A verificação automática (`ferramentas/verifica-docs/verificar.py`) impõe boa parte destas regras e
-reprova o pull request que as viole.
+## 1. Declare a autoridade
 
-## 1. Todo documento declara sua autoridade
-
-Logo após o título, uma linha de citação diz se o documento vincula. **Sem ela a verificação
-reprova** — é o único lugar onde a autoridade fica explícita, já que não usamos cabeçalho de
-metadados.
+Logo após o título, uma linha de citação diz se o documento vincula. Sem ela a verificação reprova.
 
 ```markdown
 # 0002 — A stack
@@ -21,63 +15,54 @@ metadados.
 > Decisão vigente. 2026-10-04.
 ```
 
-Vocabulário fechado:
+Vocabulário fechado: `Norma vigente` · `Norma substituída por X` · `Norma revogada` ·
+`Decisão vigente` · `Decisão substituída por X` · `Decisão revogada` · `Descrição` · `Histórico` ·
+`Operacional`.
 
-| Linha | Significado |
-|---|---|
-| `Norma vigente` | Vincula. Contrariar exige substituir |
-| `Norma substituída por X` | Não vale mais; X diz o que vale |
-| `Norma revogada` | Não vale mais, e nada substitui |
-| `Decisão vigente` | Vincula. Usado em `decisoes/` |
-| `Decisão substituída por X` | Não vale mais; X diz o que vale |
-| `Decisão revogada` | Não vale mais, e nada substitui |
-| `Descrição` | Descreve o sistema. **Se divergir do código, o código ganha** |
-| `Histórico` | Autoridade zero. Nunca é regra, mesmo que pareça |
-| `Operacional` | Procedimento a seguir |
+`Descrição` descreve o sistema: se divergir do código, o código ganha. `Histórico` nunca é regra,
+mesmo que pareça.
 
-## 2. Cada fato vive em um lugar só
+## 2. Documento curto
 
-Os demais documentos **referenciam**; nunca copiam. Duas cópias do mesmo fato divergem com o tempo,
-e a divergência só aparece quando alguém age sobre a versão errada.
+Até **60 linhas**. Decisão, requisito ou política que passa disso está se justificando demais.
 
-## 3. Abertura de três linhas
+Se a vigésima linha ainda não disse o que foi decidido, o documento falhou — por mais correto que
+esteja o resto. Documento histórico é exceção: não se divide nem se resume, porque isso falsificaria
+o registro.
 
-Todo documento começa dizendo o que é, a quem serve e **o que não cobre**. Quem chega por busca
-precisa saber em uma tela se está no lugar certo.
+## 3. Um fato, um lugar
+
+Os demais documentos referenciam; nunca copiam. Duas cópias divergem com o tempo, e a divergência só
+aparece quando alguém age sobre a versão errada.
 
 ## 4. Nada de dado pessoal, segredo ou caminho de máquina
 
 Nem em exemplo, nem em teste, nem em documentação. Exemplos usam identificadores sintéticos
-(`PESSOA_1`, `REMETENTE_A`), **nunca nomes plausíveis** — um nome inventado pode coincidir com
-pessoa real, e num dataset forense a coincidência tem consequência.
+(`PESSOA_1`, `REMETENTE_A`), nunca nomes plausíveis — um nome inventado pode coincidir com pessoa
+real.
 
-A verificação procura CPF, CNPJ, RG, telefone, e-mail, caminho absoluto, token e chave. **É a regra
-sem margem de discussão.**
+É a regra sem margem de discussão.
 
 ## 5. Só cite o que existe
 
 Arquivo, caminho, classe ou identificador citado em `código inline` precisa existir. A verificação
-confere. Critério de aceitação que cita um campo inexistente não é implementável, e o defeito só
-aparece quando alguém tenta cumpri-lo.
+confere.
 
-## 6. Formatação
+## 6. Nada de fora do repositório
 
-- Até **100 colunas** por linha. Tabela, link e bloco de código são isentos
-- Espaços, nunca tab
-- Sem espaço no fim da linha
-- No máximo duas linhas vazias seguidas
-- Arquivo termina com quebra de linha
+Não cite documento, projeto ou contexto que quem clona não possa consultar. Um argumento que precisa
+de referência externa para se sustentar não se sustenta.
 
-## 7. Nomes de arquivo
+## 7. Formatação
 
-`NNN-slug-descritivo.md`, numeração sequencial **nunca reutilizada**, slug em minúsculas com
-hífens, sem acento. Um documento substituído mantém o número e muda a linha de autoridade.
+Até 100 colunas por linha, exceto tabela, link e bloco de código. Espaços, nunca tab. Sem espaço no
+fim da linha. No máximo duas linhas vazias seguidas. Arquivo termina com quebra de linha.
 
-## 8. Idioma
+## 8. Nomes de arquivo
+
+`NNN-slug.md`, numeração sequencial nunca reutilizada, slug em minúsculas com hífens, sem acento.
+Documento substituído mantém o número e muda a linha de autoridade.
+
+## 9. Idioma
 
 Português brasileiro, com acentuação correta. Identificadores de código em inglês.
-
-## 9. Promessa de privacidade cita o teste
-
-Todo requisito que promete proteção de dado pessoal cita o teste que a prova. Promessa sem teste
-citado reprova na revisão — é o que separa garantia de intenção.

@@ -13,6 +13,7 @@ por quê, e como ele funciona vive aqui. As tarefas para chegar nisso vivem nas 
 | [`privacidade/`](privacidade/) | Tratamento de dado pessoal, custódia e acesso |
 | [`operacao/`](operacao/) | Como rodar, implantar, salvar e verificar |
 | [`pesquisa/`](pesquisa/) | Metodologia, métricas, protocolo de anotação, bibliografia |
+| [`roadmap/`](roadmap/) | A ordem em que as garantias entram, e o que cada inversão custaria |
 | [`historico/`](historico/) | Registro do que já aconteceu. **Autoridade zero** |
 
 Antes de escrever qualquer documento, leia [regras de escrita](regras-de-escrita.md).
@@ -21,8 +22,15 @@ Antes de escrever qualquer documento, leia [regras de escrita](regras-de-escrita
 
 1. Decisão vigente em `decisoes/`
 2. Requisito em `requisitos/` e política em `privacidade/`
-3. Issues
-4. `arquitetura/`, `operacao/`, `pesquisa/` — descrevem, não mandam
-5. `historico/` — nunca manda
+3. `roadmap/` — vincula **só na ordem**: nunca no que o sistema garante. Ordem que exija
+   contrariar os dois níveis acima é erro do roadmap, não deles
+4. Issues
+5. `arquitetura/`, `operacao/`, `pesquisa/` — descrevem, não mandam
+6. `historico/` — nunca manda
 
-**Divergência não se resolve sozinho.** Abra uma issue de divergência citando os dois arquivos.
+A lista ordena pastas, não resolve empate dentro do nível 1. **Duas decisões vigentes que se
+contradigam são defeito, não hierarquia a interpretar**: uma delas tem de ser substituída, pelo que
+o [README das decisões](decisoes/README.md) já manda — arquivo novo, nunca edição do antigo. Até
+que isso aconteça, nenhuma das duas está resolvida por ser mais recente.
+
+**Divergência não se resolve sozinha.** Abra uma issue de divergência citando os dois arquivos.

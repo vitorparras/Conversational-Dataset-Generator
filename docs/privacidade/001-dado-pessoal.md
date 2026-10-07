@@ -2,10 +2,12 @@
 
 > Norma vigente. 2026-10-04.
 
-O material que entra no pipeline foi produzido por pessoas que não consentiram com a anotação e que,
-na maioria dos casos, não podem ser consultadas. A política não se apoia em consentimento; apoia-se
-em necessidade. Cada elemento identificável do texto fica, ou não, pelo que a análise precisa dele —
-e isso se decide uma vez, na ingestão, não a cada consulta.
+O material foi produzido por pessoas que não consentiram com a anotação e que, na maioria dos casos,
+não podem ser consultadas. A política apoia-se em necessidade, não em consentimento: cada elemento
+identificável fica, ou não, pelo que a análise precisa dele — e isso se decide uma vez, na entrada,
+sobre o texto como chegou. As etapas seguintes **aplicam** o que foi decidido: a sanitização remove
+o que foi marcado para sair, a pseudonimização substitui o que vira marcador. Nenhuma decide de
+novo.
 
 Há três destinos, e nenhum outro.
 
@@ -31,10 +33,10 @@ também desmancha uma relação — a mesma pessoa aparecendo em dois pontos dis
 respondeu a quem, a diferença entre três interlocutores e trinta —, pseudonimiza-se, porque a
 relação é dado de análise e a identidade não é.
 
-Menção que revela saúde, religião, convicção política, origem ou vida sexual segue o mesmo critério
-do conteúdo em que aparece: se é o que está sendo analisado, fica; se é o que aponta a pessoa, sai.
-Não há categoria com destino automático próprio, e isso é deliberado — categoria fixa faz quem
-anota confiar numa proteção que o detector talvez não tenha aplicado naquele trecho.
+Menção que revela saúde, religião, convicção política, origem ou vida sexual segue o mesmo critério:
+se é o que está sendo analisado, fica; se aponta a pessoa, sai. Não há categoria com destino
+automático, e isso é deliberado — categoria fixa faz quem anota confiar numa proteção que o detector
+talvez não tenha aplicado ali.
 
 ## O pseudônimo é atribuído, nunca calculado
 
@@ -50,11 +52,9 @@ isolamento do banco, essa ligação sobreviveria à exportação.
 ## Quem impõe
 
 A aplicação. A ingestão não grava material sem ter atribuído destino a cada trecho detectado, e o
-texto bruto que resta fica cifrado por força da decisão 0003. O banco não ajuda aqui: ele não sabe
-distinguir nome próprio de substantivo comum.
+que resta fica cifrado. O banco não ajuda: ele não distingue nome próprio de substantivo comum.
 
-Por isso a camada falha de um modo conhecido: **o detector não encontra tudo.** O que ele não marcou
-passa para o texto sanitizado como se fosse conteúdo comum. Contra isso há duas defesas, e as duas
-são posteriores — a revisão humana do lote antes da aprovação, e a auditoria de resíduo que bloqueia
-a saída, em [distribuição](008-distribuicao.md). Nenhuma das duas desfaz o vazamento dentro do
-acervo; as duas impedem que ele saia.
+Por isso a camada falha de um modo conhecido: **o detector não encontra tudo**, e o que ele não
+marcou segue adiante como conteúdo comum. Há três defesas: a revisão humana do lote, a auditoria de
+resíduo que bloqueia a saída, e o relato de quem anota — a única que alcança o resíduo **dentro** do
+acervo ([0026](../decisoes/0026-relato-de-dado-pessoal.md)).

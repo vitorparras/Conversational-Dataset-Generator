@@ -42,6 +42,9 @@ deliberada e justificada.
 | [0028](0028-guarda-descarte-e-esvaziamento.md) | Guarda, descarte e esvaziamento | Decisão vigente |
 | [0029](0029-identidade-e-sessao.md) | Identidade e sessão | Decisão vigente |
 | [0030](0030-qual-texto-fica-em-claro.md) | Qual texto fica em claro | Decisão vigente |
+| [0031](0031-desempate-da-principal.md) | O desempate da categoria principal | Decisão vigente |
+| [0032](0032-representacao-na-dupla-anotacao.md) | Representação das categorias na dupla anotação | Decisão vigente |
+| [0033](0033-toda-discordancia-pesa-igual.md) | Toda discordância pesa igual | Decisão vigente |
 
 ## Formato
 

@@ -2,8 +2,7 @@
 
 > Descrição. 2026-10-04.
 
-As entidades do sistema e o que as liga, em nível conceitual. Aqui não há tabela nem coluna: o que
-importa é o que existe e o que depende de quê.
+As entidades do sistema e o que as liga, em nível conceitual — sem tabela nem coluna.
 
 O **domínio** é o eixo de tudo. Material, anotação e métrica pertencem a um domínio, e é por ele que
 o banco decide o que uma consulta pode ver ([0006](../decisoes/0006-dominios-coexistem.md)). Não é
@@ -28,20 +27,21 @@ atravessa — a mesma pessoa em dois domínios é dois participantes. A ligaçã
 está aqui; está no **mapa de reversão**, cifrado e separado, a única entidade do modelo cujo acesso
 revela identidade ([0003](../decisoes/0003-cifra-em-repouso.md)).
 
-A **anotação** liga uma pessoa que anota, um item ou uma parte, uma categoria e um momento. Guarda
-também a versão da taxonomia sob a qual foi feita — anotações de taxonomias diferentes não se somam
-([0004](../decisoes/0004-taxonomia-configuravel.md)) — e a origem do rótulo, que distingue sugestão
-aceita, sugestão corrigida e rótulo criado pela pessoa. Duas anotações do mesmo alvo que discordam
-produzem uma divergência, que pode ter uma resolução: outra anotação, com autoria própria, não um
-apagamento das anteriores.
+A **anotação** liga uma pessoa, um item ou uma parte, um conjunto de categorias com uma marcada como
+principal, os valores das dimensões e um momento
+([0022](../decisoes/0022-forma-do-rotulo.md)). Guarda também a versão da taxonomia sob a qual foi
+feita — anotações de taxonomias diferentes não se somam
+([0004](../decisoes/0004-taxonomia-configuravel.md)) — e a origem do rótulo: sugestão aceita,
+corrigida, ou criada pela pessoa. Duas anotações do mesmo alvo que discordam produzem uma
+divergência, que pode ter resolução: outra anotação, com autoria própria, não um apagamento.
 
 A **medição** é um número com contexto: qual métrica, sobre qual recorte, em que momento, com quais
-anotações dentro. Guardá-la, em vez de recalculá-la quando perguntarem, é o que permite dizer que a
-qualidade mudou — e o contexto é o que permite a quem recebe o dataset chegar ao mesmo número.
+anotações dentro. Guardá-la, em vez de recalcular quando perguntarem, é o que permite dizer que a
+qualidade mudou, e o contexto é o que leva quem recebe ao mesmo número.
 
-A **exportação** é o recorte que saiu: quais domínios, sob quais taxonomias, com quais contagens e
-com qual referência de integridade. Aponta para os itens que incluiu e para as medições que a
-autorizaram.
+A **exportação** é o recorte que saiu: quais domínios, sob quais taxonomias, com quais contagens, os
+limites de suficiência que valiam ([0023](../decisoes/0023-suficiencia-do-recorte.md)) e a
+referência de integridade. Aponta para os itens e para as medições que a autorizaram.
 
 A **pessoa que opera** e sua função vivem fora do conteúdo, e a concessão é por domínio — ver
 [controle de acesso](011-modulo-controle-de-acesso.md).

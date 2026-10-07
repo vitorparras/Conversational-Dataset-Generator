@@ -18,6 +18,9 @@ produz um dataset sobre o qual não se pode afirmar o que se vai afirmar.
   de [métricas recalculáveis](../requisitos/016-metricas-recalculaveis.md)
 - Os itens excluídos contados, com o motivo agrupado. Exportação que não diz o que descartou
   descreve uma seleção, não um corpus
+- O recorte atende os limites de suficiência do domínio — total, por categoria e
+  desigualdade entre categorias. Exportação abaixo deles é recusada, não avisada
+  ([0023](../decisoes/0023-suficiencia-do-recorte.md))
 
 ## Sobre a taxonomia e a forma
 

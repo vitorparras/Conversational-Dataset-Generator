@@ -35,6 +35,13 @@ deliberada e justificada.
 | [0021](0021-comunicacao-de-incidente.md) | A quem se comunica um incidente | Decisão vigente |
 | [0022](0022-forma-do-rotulo.md) | A forma do rótulo: duas dimensões, com principal | Decisão vigente |
 | [0023](0023-suficiencia-do-recorte.md) | Suficiência do recorte exportado | Decisão vigente |
+| [0024](0024-conteudo-replicado.md) | Conteúdo replicado é marcado, não removido | Decisão vigente |
+| [0025](0025-origem-do-material.md) | A origem do material e o regime mais restrito | Decisão vigente |
+| [0026](0026-relato-de-dado-pessoal.md) | Quem anota relata o dado pessoal que escapou | Decisão vigente |
+| [0027](0027-tratamento-uniforme-das-categorias.md) | Todas as categorias com o mesmo tratamento | Decisão vigente |
+| [0028](0028-guarda-descarte-e-esvaziamento.md) | Guarda, descarte e esvaziamento | Decisão vigente |
+| [0029](0029-identidade-e-sessao.md) | Identidade e sessão | Decisão vigente |
+| [0030](0030-qual-texto-fica-em-claro.md) | Qual texto fica em claro | Decisão vigente |
 
 ## Formato
 

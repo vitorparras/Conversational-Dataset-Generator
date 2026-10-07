@@ -23,14 +23,22 @@ publicada junto da proporção em dupla anotação e da contagem de itens marcad
 
 **Concordância observada** — proporção de itens em que as pessoas deram o mesmo rótulo. Responde
 quantas vezes coincidiram. Não responde se coincidir era fácil: num conjunto dominado por uma
-categoria, concordância alta é o que se espera até de quem escolhe no escuro.
+categoria, concordância alta é o que se espera até de quem escolhe no escuro. Com conjuntos de
+categorias ([0022](../decisoes/0022-forma-do-rotulo.md)), coincidir deixa de ser binário: duas
+pessoas que marcaram três categorias iguais e uma diferente não discordaram por inteiro, e a medida
+precisa tratar essa concordância parcial.
 
 **Coeficiente kappa** — concordância observada descontada da que se esperaria se cada pessoa
 distribuísse rótulos ao acaso, respeitando a frequência com que de fato usou cada um. Definido para
 duas pessoas e categorias sem ordem entre si. Responde quanto da coincidência está além do acaso.
 Não responde nada estável quando uma categoria domina: o termo de acaso cresce e o coeficiente cai
-mesmo com coincidência alta. Também não trata mais de dois anotadores, nem item que alguém deixou
-em branco.
+mesmo com coincidência alta. Também não trata mais de dois anotadores, nem item deixado em branco,
+nem conjunto de categorias — para o conjunto é preciso coeficiente que aceite concordância parcial,
+e a categoria principal é medida à parte, como rótulo único.
+
+**Concordância nas dimensões** — medida por dimensão, separadamente das categorias. Discordar sobre
+se houve tráfico e discordar sobre o grau de toxicidade são perguntas distintas, e um número só
+misturaria as duas.
 
 **Coeficiente alfa** — razão entre a discordância observada e a que se esperaria se os rótulos
 fossem atribuídos ao acaso sobre a distribuição reunida de todos. Admite qualquer número de

@@ -1,59 +1,60 @@
 # 0009 — Licença do software e licença dos dados
 
-> Decisão pendente. 2026-10-04.
+> Decisão vigente. 2026-10-07. Substitui a pendência registrada em 2026-10-04.
 
 ## Contexto
 
-O repositório não tem licença, e a consequência jurídica da ausência é que ninguém tem permissão de
-usar, copiar ou derivar o trabalho — é o motivo de ele ser privado. A decisão 0001 estabelece duas
-contribuições, e elas não se licenciam com o mesmo instrumento: uma licença de software governa
-código; a outra, um conjunto de dados que, pela decisão 0012, é dado pessoal pseudonimizado.
+Sem licença, ninguém tem permissão de usar, copiar ou derivar o trabalho. A decisão 0001 estabelece
+duas contribuições, e elas não se licenciam com o mesmo instrumento: uma governa código, a outra um
+conjunto de dados que, pela decisão 0012, é dado pessoal pseudonimizado.
+
+Esta decisão esteve pendente por faltar saber quem detém a titularidade e sob que condições o
+material circula. O código é do projeto e circula livremente; o material não circula, e o acesso a
+ele é contratual.
 
 ## Decisão
 
-**Decisão pendente.** Este documento não escolhe nenhuma das duas licenças, porque falta base para
-escolher, e licença escolhida por inércia é pior que licença ausente: ela concede.
+**O software é licenciado sob AGPL-3.0.** Qualquer pessoa ou organização pode usar, estudar,
+modificar e redistribuir, inclusive com finalidade comercial. Quem modificar e redistribuir — ou
+**oferecer o sistema como serviço pela rede** — precisa publicar as alterações sob a mesma licença.
 
-Ficam decididas três coisas. **São dois instrumentos separados** — o código pode ser permissivo e os
-dados não, e o contrário também. **Nada é publicado antes de as duas existirem.** E **o regime
-interino é a ausência**, o que alcança a contribuição externa: quem contribui sem licença não sabe o
-que está cedendo.
+**O material e os datasets dele derivados não acompanham o software**, e não se licenciam: o acesso
+é concedido caso a caso, por contrato. O caminho é solicitação formal por escrito, seguida de
+contrato assinado que restringe o uso a finalidade acadêmica ou de pesquisa, sem fim comercial, e
+proíbe repasse a terceiros.
 
-Para fechar, é preciso saber — e nenhuma licença concede o que quem a escreve não detém:
-
-1. Se existe autorização para redistribuir o material de origem, e sob quais limites.
-2. Se o dataset sai inteiro, em amostra, ou só sob acesso concedido caso a caso.
-3. Quem detém a titularidade do que foi produzido, código e dados. Sem isso não há quem licencie.
-4. Se alguma dependência do código impõe termo recíproco que restrinja a escolha do software.
-
-| Instrumento e opção | Permite | Impede |
-|---|---|---|
-| Software, permissiva com atribuição | Uso, derivado fechado, uso comercial | Apenas remover a atribuição |
-| Software, recíproca no projeto | Uso e derivado | Distribuir derivado sob termo fechado |
-| Software, recíproca inclusive em serviço de rede | Uso e derivado | Oferecer como serviço sem abrir o código |
-| Dados, renúncia de direitos | Qualquer uso, sem condição | Nada — perde a obrigação de citar a origem, que é o que liga um resultado à versão do dataset que o sustentou |
-| Dados, atribuição | Uso, inclusive comercial e derivado | Usar sem dizer de onde veio |
-| Dados, atribuição com compartilhamento igual | Uso e derivado | Redistribuir derivado sob termo fechado |
-| Dados, acesso concedido sob termo de uso | Uso por quem aceita condições declaradas | Redistribuição livre |
+As duas são independentes: receber o código não dá acesso ao material, e o contrário também não.
 
 ## Recusados
 
-| Opção | Por quê |
-|---|---|
-| Escolher agora a licença mais comum | Concede o que ninguém verificou poder conceder, e permissão concedida não se retira do que já saiu |
-| Um só instrumento para código e dados | Obriga a licenciar ambos pelo mais restritivo, e as restrições de origem não são as mesmas |
-| Publicar sem licença, declarando uso de pesquisa | Uso sem licença não passa a ser permitido por ser bem-intencionado, e quem recebe não tem o que apresentar como permissão |
+**Licença permissiva para o software**, como MIT ou Apache. Permitiria que uma versão melhorada da
+ferramenta fosse fechada, e a ferramenta é uma das duas contribuições do projeto — não um meio.
+
+**GPL-3.0 sem a cláusula de rede.** O sistema é uma aplicação web: quem o hospedasse como serviço
+nunca distribuiria o programa, só o acesso a ele, e ficaria livre de devolver as melhorias. A
+brecha é exatamente o modo de uso mais provável.
+
+**Licença de software que proíbe uso comercial.** Não é reconhecida como software livre, afasta
+contribuições, e confunde a restrição do material com a do código — ela pertence ao contrato.
+
+**Licença aberta para os dados**, mesmo com atribuição. Dado pessoal pseudonimizado não vira
+público por decisão de quem o detém, e a reversão continua tecnicamente possível.
 
 ## Consequências
 
-Enquanto pendente, o repositório fica privado e o trabalho acumula sem poder ser mostrado. A
-contribuição externa não é aceitável, e isso custa a revisão que faria o trabalho melhorar.
+Uma organização pode construir o próprio acervo com esta ferramenta, inclusive comercialmente, sem
+pedir nada a ninguém — e precisa publicar o que melhorar. Algumas evitam AGPL por política interna,
+o que reduz adoção: fechar a brecha do serviço vale mais que a adoção perdida.
 
-Quanto mais tarde a escolha do software, mais caro desfazer dependência de termo incompatível, e a
-incompatibilidade só aparece com código já escrito sobre ela. Se vencer o acesso concedido caso a
-caso, nasce trabalho permanente: alguém administra concessões, e o dataset não é algo que se baixa.
+O contrato do material precisa existir antes do primeiro acesso externo, e exige redação jurídica.
+
+**Publicar o repositório deixa de estar bloqueado pela licença do código.** Continua condicionado a
+não haver material real versionado, que é garantia de outra ordem.
 
 ## O que reabre
 
-Qualquer uma das quatro respostas. Ao chegarem todas, esta decisão é substituída por outra que
-nomeie as duas licenças — e o repositório deixa de ter este motivo para ser privado.
+Se a titularidade do código deixar de ser do projeto — por vínculo institucional ou financiamento
+que imponha outro regime —, a escolha da licença volta a quem detiver os direitos.
+
+Se o sistema deixar de ser servido pela rede, a cláusula que distingue AGPL de GPL perde objeto, e a
+licença pode ser reavaliada pelo critério mais simples.

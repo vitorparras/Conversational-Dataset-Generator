@@ -22,7 +22,8 @@ seguida, um pull request por documento.
 | Issues | As tarefas para chegar ao que `docs/` descreve |
 
 Toda mudança passa por pull request com aprovação do dono do repositório, e a verificação
-automática precisa passar. O guia de contribuição entra num pull request seguinte.
+automática precisa passar. Ver [`CONTRIBUTING.md`](CONTRIBUTING.md), e [`AGENTS.md`](AGENTS.md) para
+a hierarquia de autoridade entre os documentos.
 
 ## Verificação local
 
@@ -34,9 +35,12 @@ python ferramentas/verifica-docs/verificar.py --lista
 
 ## Licença
 
-**Ainda não definida.** Até que seja, ninguém tem permissão legal de usar, copiar ou derivar este
-trabalho — é a consequência jurídica da ausência de licença, e o motivo de o repositório ser
-privado.
+O software é [AGPL-3.0](LICENSE): qualquer um pode usar, estudar, modificar e redistribuir,
+inclusive comercialmente, e quem modificar — ou oferecer o sistema como serviço pela rede —
+publica as alterações sob a mesma licença.
+
+**O material e os datasets não acompanham o software e não se licenciam.** O acesso é concedido
+caso a caso, por contrato que restringe o uso a finalidade acadêmica ou de pesquisa.
 
 ## Privacidade
 

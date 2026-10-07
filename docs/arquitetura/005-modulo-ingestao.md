@@ -42,9 +42,10 @@ qual isso se resolve: é aceito inteiro ou rejeitado inteiro, e o acervo só vê
 Rejeitar não apaga o registro de que houve tentativa. O lote rejeitado continua existindo, com o
 motivo, porque "este arquivo nunca entrou no acervo" é uma afirmação que alguém vai precisar fazer.
 
-A aprovação também não é automática: há revisão humana do lote antes dela. Ela existe por um motivo
-específico — o reconhecimento automático de dado pessoal não encontra tudo, e o lote é o último
-ponto em que o material ainda pode ser recusado inteiro. Ver [privacidade](../privacidade/).
+A aprovação também não é automática: há revisão humana de uma amostra do lote antes dela. Ela
+existe por um motivo específico — o reconhecimento automático não encontra tudo, e o lote é o último
+ponto em que o material ainda pode ser recusado inteiro. Qualquer achado reprova o lote por
+completo: é gate, não estimativa. Ver [privacidade](../privacidade/).
 
 ## O ponto frágil
 

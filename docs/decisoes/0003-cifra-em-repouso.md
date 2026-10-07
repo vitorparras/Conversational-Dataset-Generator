@@ -1,6 +1,6 @@
 # 0003 — Cifra em repouso
 
-> Decisão vigente. 2026-10-04.
+> Decisão substituída por 0030 quanto à tabela de tratamento. 2026-10-04.
 
 ## Decisão
 

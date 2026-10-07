@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: >-
+  Se este software for usado em trabalho acadêmico, cite-o conforme os metadados abaixo.
+title: Conversational Dataset Generator
+abstract: >-
+  Ferramenta para construção de bases conversacionais anotadas em português brasileiro,
+  com ingestão de formatos variados, sanitização, pseudonimização que preserva contexto,
+  anotação humana assistida, validação por métricas de concordância e exportação
+  rastreável.
+type: software
+license: AGPL-3.0-or-later
+repository-code: https://github.com/vitorparras/Conversational-Dataset-Generator
+keywords:
+  - processamento de linguagem natural
+  - anotação de corpus
+  - pseudonimização
+  - português brasileiro
+  - cadeia de custódia
+  - concordância entre anotadores
+authors:
+  - name: "Mantenedores do Conversational Dataset Generator"

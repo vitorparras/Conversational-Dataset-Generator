@@ -11,8 +11,9 @@ naturezas, e confundi-las é o jeito mais comum de perder a independência que o
 contrato está na [decisão 0011](../decisoes/0011-protocolo-com-o-servico-de-linguagem.md); o que
 importa aqui é a forma dele.
 
-O serviço devolve apontamentos — onde começa e termina cada trecho reconhecido, de que tipo e com
-que confiança —, nunca texto transformado. Quem substitui, pseudonimiza e guarda o mapa de reversão
+O serviço devolve apontamentos — onde começa e termina cada trecho reconhecido, de que tipo, e a
+classe gramatical e a função sintática do núcleo da ocorrência
+([0018](../decisoes/0018-contrato-da-fronteira.md)) —, nunca texto transformado. Quem substitui, pseudonimiza e guarda o mapa de reversão
 é o núcleo, porque é o lado que tem a chave. Um índice deslocado anonimiza o pedaço errado do texto,
 e por isso o núcleo confere que as posições recebidas caem dentro do trecho enviado.
 
@@ -27,12 +28,12 @@ reconstrói o dado pessoal ([requisito 021](../requisitos/021-registro-sem-dado-
 transporte é local por condição, não por conveniência — a cifra protege o que está em repouso, não o
 que trafega entre processos.
 
-Duas coisas o contrato ainda não fecha. A unidade em que o deslocamento é contado tem de ser uma só,
-da gravação à exportação ([requisito 009](../requisitos/009-anotacao-de-trecho-estavel.md)), e
-nenhuma fonte vigente diz qual é, nem de que lado fica a conversão — os dois processos contam texto
-de formas diferentes por padrão, e a divergência cai em emoji e caractere composto, sem erro, só no
-lugar errado. E resposta ausente ou malformada não é o mesmo que nenhuma ocorrência: na primeira a
-ingestão para, em vez de deixar passar texto como se estivesse limpo
+A unidade do deslocamento é ponto de código, e converte o lado que indexa diferente: o núcleo
+([0011](../decisoes/0011-protocolo-com-o-servico-de-linguagem.md)). Sem unidade única, a divergência
+cairia em emoji e caractere composto — sem erro, só no lugar errado.
+
+Resposta ausente ou malformada não é o mesmo que nenhuma ocorrência: na primeira a ingestão para,
+em vez de deixar passar texto como se estivesse limpo
 ([0011](../decisoes/0011-protocolo-com-o-servico-de-linguagem.md)).
 
 ## Entre módulos, dentro do núcleo

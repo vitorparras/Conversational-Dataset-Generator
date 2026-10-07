@@ -1,6 +1,6 @@
 # 0011 — O protocolo com o serviço de linguagem
 
-> Decisão vigente. 2026-10-04.
+> Decisão substituída por 0018 quanto ao formato da resposta. 2026-10-04.
 
 ## Contexto
 

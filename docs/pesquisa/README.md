@@ -19,5 +19,7 @@ para outra pessoa repetir o procedimento e comparar resultados.
 | [005](005-qualidade-do-dataset.md) | Quando um dataset está pronto para exportar |
 | [006](006-validacao-em-outro-dominio.md) | Validação do método em outro domínio |
 | [007](007-reprodutibilidade.md) | Reprodutibilidade |
+| [008](008-glossario-do-dominio.md) | O glossário do domínio |
+| [009](009-registro-das-decisoes-de-criterio.md) | O registro das decisões de critério |
 
 Ver [regras de escrita](../regras-de-escrita.md).

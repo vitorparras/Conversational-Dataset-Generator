@@ -23,5 +23,7 @@ e por quem ela roda.
 | [009](009-incidente-cadeia-quebrada.md) | Incidente: cadeia quebrada |
 | [010](010-credencial-de-dono-do-banco.md) | A credencial de dono do banco |
 | [011](011-servico-de-linguagem.md) | O serviço de linguagem no ambiente |
+| [012](012-dependencias-e-analise-estatica.md) | Dependências e análise estática |
+| [013](013-antes-de-publicar.md) | Antes de tornar o repositório público |
 
 Ver [regras de escrita](../regras-de-escrita.md).

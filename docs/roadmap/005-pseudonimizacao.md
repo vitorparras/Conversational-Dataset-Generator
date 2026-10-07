@@ -13,10 +13,15 @@ a reversão como operação restrita. O requisito
 [006](../requisitos/006-pseudonimizacao-preserva-contexto.md) é o mais exigente da fase: não basta
 ocultar, o material tem de continuar legível depois de oculto, porque é ele que será anotado.
 
-Entra também o que atravessa a fronteira de processo. A decisão 0002 registra que texto sensível vai
-do núcleo ao serviço de linguagem, e que esse formato precisa de decisão própria dizendo o que
-trafega e o que nunca entra em log. Essa decisão trava esta fase — ver
-[decisões pendentes](012-decisoes-pendentes.md).
+Entra também o que atravessa a fronteira de processo: texto sensível vai do núcleo ao serviço de
+linguagem, e o formato está fechado pela
+[decisão 0011](../decisoes/0011-protocolo-com-o-servico-de-linguagem.md) — o que trafega, o que
+nunca entra em log, e o que fazer com resposta ausente ou malformada.
+
+O que o contrato **não** fecha é a unidade em que o deslocamento de trecho é contado, nem de que
+lado fica a conversão. Os dois processos contam texto de formas diferentes por padrão, e a
+divergência cai em emoji e caractere composto — sem erro, só no lugar errado. Ver
+[fronteiras](../arquitetura/002-fronteiras.md).
 
 ## O que precisa estar pronto antes
 

@@ -33,6 +33,8 @@ deliberada e justificada.
 | [0019](0019-selo-externo-da-cadeia.md) | Onde mora o selo externo da cadeia | Decisão vigente |
 | [0020](0020-exportacao-desloca-datas.md) | A exportação desloca as datas | Decisão vigente |
 | [0021](0021-comunicacao-de-incidente.md) | A quem se comunica um incidente | Decisão vigente |
+| [0022](0022-forma-do-rotulo.md) | A forma do rótulo: duas dimensões, com principal | Decisão vigente |
+| [0023](0023-suficiencia-do-recorte.md) | Suficiência do recorte exportado | Decisão vigente |
 
 ## Formato
 

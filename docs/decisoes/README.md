@@ -20,15 +20,19 @@ deliberada e justificada.
 | [0006](0006-dominios-coexistem.md) | Domínios coexistem; a exportação é que recorta | Decisão vigente |
 | [0007](0007-garantia-de-qualidade.md) | A garantia de qualidade dos testes | Decisão vigente |
 | [0008](0008-requisito-no-repositorio-tarefa-na-issue.md) | Requisito no repositório, tarefa na issue | Decisão vigente |
-| [0009](0009-licenca-do-software-e-dos-dados.md) | Licença do software e licença dos dados | Decisão pendente |
+| [0009](0009-licenca-do-software-e-dos-dados.md) | Licença do software e licença dos dados | Decisão vigente |
 | [0010](0010-tecnologia-da-interface.md) | A tecnologia da interface | Decisão vigente |
-| [0011](0011-protocolo-com-o-servico-de-linguagem.md) | O protocolo com o serviço de linguagem | Decisão vigente |
+| [0011](0011-protocolo-com-o-servico-de-linguagem.md) | O protocolo com o serviço de linguagem | Substituída por 0018 na resposta |
 | [0012](0012-pseudonimizacao-reversivel.md) | Pseudonimização reversível, não anonimização | Decisão vigente |
 | [0013](0013-chave-de-cifra-por-dominio.md) | Chave de cifra por domínio | Decisão vigente |
 | [0014](0014-custodia-da-chave-mestra.md) | Custódia e recuperação da chave mestra | Decisão vigente |
 | [0015](0015-versionamento-e-compatibilidade.md) | Versionamento e compatibilidade | Decisão vigente |
 | [0016](0016-mudanca-de-taxonomia-com-anotacao-existente.md) | Mudança de taxonomia com anotação existente | Decisão vigente |
 | [0017](0017-dupla-anotacao-e-arbitragem.md) | Dupla anotação e arbitragem | Decisão vigente |
+| [0018](0018-contrato-da-fronteira.md) | O contrato da fronteira carrega a análise gramatical | Decisão vigente |
+| [0019](0019-selo-externo-da-cadeia.md) | Onde mora o selo externo da cadeia | Decisão vigente |
+| [0020](0020-exportacao-desloca-datas.md) | A exportação desloca as datas | Decisão vigente |
+| [0021](0021-comunicacao-de-incidente.md) | A quem se comunica um incidente | Decisão vigente |
 
 ## Formato
 

@@ -40,9 +40,11 @@ Levante o que saiu pelo registro de exportação — o que foi gerado, quando e 
 via de avisar quem recebeu material afetado. Comunique a quem forneceu o material, e a quem
 responde pelo acervo.
 
-A quem mais se comunica, e em que prazo, nenhuma norma vigente deste repositório diz. É pendência
-aberta, não espaço de discricionariedade de quem conduz o incidente: a operação entrega escopo
-apurado e registra a quem comunicou; quem fixa o dever é a política, quando existir.
+A comunicação segue a decisão
+[0021](../decisoes/0021-comunicacao-de-incidente.md): a instituição de ensino e quem forneceu
+o material de origem, os dois, imediatamente a partir da suspeita — não da confirmação. A
+comunicação informa o que se sabe, o que ainda não se sabe e o que já foi feito, sem esperar a
+apuração fechar.
 
 ## Fechar
 

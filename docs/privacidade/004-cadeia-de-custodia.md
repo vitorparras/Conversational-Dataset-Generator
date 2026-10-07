@@ -55,5 +55,6 @@ base inteira substituída por outra, coerente consigo mesma, passa na verificaç
 
 Por isso o topo da cadeia — o resumo do último evento — é registrado periodicamente **fora** do
 banco e fora do alcance de quem o administra. Sem esse registro externo, a
-[verificação](005-verificacao-da-custodia.md) responde a pergunta errada. Onde esse registro mora
-nenhuma decisão vigente diz, e isso está pendente.
+[verificação](005-verificacao-da-custodia.md) responde a pergunta errada. Onde ele mora depende do
+que o ambiente oferece, e nada sob o mesmo controle da base serve — a decisão
+[0019](../decisoes/0019-selo-externo-da-cadeia.md) fixa as três situações possíveis.

@@ -10,26 +10,26 @@ abaixo está nomeada no texto que a deixou. A ordem é a de vencimento.
 
 ## Abertas
 
-**Onde mora o registro externo do topo da cadeia.** A
-[cadeia de custódia](../privacidade/004-cadeia-de-custodia.md) manda registrar o resumo do último
-evento fora do banco e fora do alcance de quem o administra, e declara que nenhuma decisão vigente
-diz onde. Sem esse lugar a verificação atesta coerência, não integridade: uma base substituída por
-outra, coerente consigo mesma, passa sem reclamar. Trava o término da
-[fase 2](002-custodia-e-cifra.md), que é quem entrega a verificação da cadeia.
+Nenhuma das pendências que travavam fase continua aberta. As quatro que este documento listava
+foram decididas, e estão na tabela abaixo.
 
-**Data absoluta ou deslocada no que sai.**
-[O que se preserva](../privacidade/002-o-que-se-preserva.md) mantém data e hora absolutas no acervo
-e deixa pendente o que a exportação leva: a data absoluta, ou um deslocamento uniforme por acervo,
-que preserva intervalos e perde a ancoragem. Trava a [fase 9](009-exportacao.md).
+O que permanece em aberto não é pendência declarada por norma, e sim ambiguidade que a arquitetura
+nomeou ao descrever o sistema: o alcance do termo ingestão, qual dos textos intermediários fica em
+claro, o piso do escopo do rótulo, o que a revisão humana do lote alcança, e em que condição o texto
+bruto deixa de ser recuperável. Nenhuma trava fase; cada uma será decidida por quem implementar, e é
+melhor que seja por escrito.
 
-**As duas licenças.** A decisão [0009](../decisoes/0009-licenca-do-software-e-dos-dados.md) é ela
-própria a pendência, e fixa que nada é publicado antes de as duas existirem. Não trava fase alguma:
-publicar não é fase deste roadmap, como [fora de escopo](013-fora-de-escopo.md) registra. Trava a
-publicação, que vem depois da [fase 10](010-segundo-dominio.md).
+## Fechadas
 
-**A quem se comunica um vazamento, e em que prazo.** O
-[incidente de vazamento](../operacao/008-incidente-vazamento.md) declara que nenhuma norma vigente
-fixa esse dever. Não trava fase: vence no primeiro incidente, e incidente não espera fase.
+| Pendência | Decidida por |
+|---|---|
+| Onde mora o selo externo da cadeia | [0019](../decisoes/0019-selo-externo-da-cadeia.md) |
+| Data absoluta ou deslocada no que sai | [0020](../decisoes/0020-exportacao-desloca-datas.md) |
+| A quem se comunica um vazamento | [0021](../decisoes/0021-comunicacao-de-incidente.md) |
+| As duas licenças | [0009](../decisoes/0009-licenca-do-software-e-dos-dados.md) |
+| Formato da fronteira de processo | [0011](../decisoes/0011-protocolo-com-o-servico-de-linguagem.md) e [0018](../decisoes/0018-contrato-da-fronteira.md) |
+| Mudança de taxonomia com anotação existente | [0016](../decisoes/0016-mudanca-de-taxonomia-com-anotacao-existente.md) |
+| Chave de cifra por domínio | [0013](../decisoes/0013-chave-de-cifra-por-dominio.md) |
 
 ## Fechadas desde que este documento nasceu
 

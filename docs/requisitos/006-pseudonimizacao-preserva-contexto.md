@@ -17,10 +17,14 @@ domínios diferentes, e a [decisão 0006](../decisoes/0006-dominios-coexistem.md
 mesma instalação precisamente para que se possa compará-los — não para que se ligue uma pessoa de um
 ao outro por acidente.
 
+**O escopo é o domínio: teto e piso.** Reiniciar o rótulo a cada conversa protegeria mais e
+apagaria a análise que justifica preservar relação — quem intermedia, quem conecta grupos que não se
+conhecem, quem aparece só numa ponta. Duas conversas da mesma pessoa virariam duas pessoas.
+
 ## Critérios de aceitação
 
-- Dado o mesmo participante em duas mensagens do mesmo material, quando ele é pseudonimizado, então
-  recebe o mesmo rótulo nas duas.
+- Dado o mesmo participante em duas mensagens do mesmo domínio, ainda que em conversas diferentes,
+  quando ele é pseudonimizado, então recebe o mesmo rótulo nas duas.
 - Dado dois participantes distintos, quando são pseudonimizados, então os rótulos são distintos,
   ainda que os nomes de origem coincidam.
 - Dado o mesmo participante em dois domínios, quando é pseudonimizado em cada um, então os rótulos

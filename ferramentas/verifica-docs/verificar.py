@@ -263,9 +263,13 @@ def verifica_formatacao(caminho: Path, linhas: list[str]) -> list[Achado]:
 def verifica_tamanho(caminho: Path, linhas: list[str]) -> list[Achado]:
     """Documento acima do teto está se justificando demais (regra 2).
 
-    Documento histórico é exceção: não se divide nem se resume, porque isso
-    falsificaria o registro do que era verdade quando foi escrito.
+    Duas exceções. Documento histórico não se divide nem se resume, porque isso
+    falsificaria o registro do que era verdade quando foi escrito. E índice de
+    pasta cresce uma linha por documento acrescentado: o teto o faria encolher
+    escondendo documento, que é o oposto do que o índice existe para fazer.
     """
+    if caminho.name == "README.md":
+        return []
     for _, linha in enumerate(linhas[:12], start=1):
         if linha.startswith(">") and linha.lstrip("> ").startswith("Histórico"):
             return []
@@ -277,6 +281,40 @@ def verifica_tamanho(caminho: Path, linhas: list[str]) -> list[Achado]:
     ]
 
 
+def verifica_indices() -> list[Achado]:
+    """Documento fora do índice da própria pasta é documento que ninguém acha.
+
+    Esta verificação é por pasta, não por arquivo: compara o que existe em disco
+    com o que o README lista. A falha que ela pega é silenciosa — quem acrescenta
+    um documento e esquece o índice não recebe erro nenhum, e o documento passa a
+    existir sem ser alcançável por quem lê a pasta. O mesmo vale para o inverso:
+    índice que cita arquivo apagado manda o leitor a um link morto.
+    """
+    achados: list[Achado] = []
+    for pasta in sorted((RAIZ / "docs").iterdir()):
+        indice = pasta / "README.md"
+        if not pasta.is_dir() or not indice.exists():
+            continue
+        em_disco = {
+            f.name for f in pasta.glob("*.md")
+            if f.name != "README.md" and f.name[0].isdigit()
+        }
+        if not em_disco:
+            continue
+        texto = indice.read_text(encoding="utf-8")
+        citados = set(re.findall(r"\]\(([^)]*\.md)\)", texto))
+        for nome in sorted(em_disco - citados):
+            achados.append(
+                Achado(indice, 1, "indice", f"{nome} existe e não está no índice")
+            )
+        for citado in sorted(c for c in citados if c and c[0].isdigit()):
+            if citado not in em_disco:
+                achados.append(
+                    Achado(indice, 1, "indice", f"o índice cita {citado}, que não existe")
+                )
+    return achados
+
+
 VERIFICACOES = {
     "dados": verifica_dados,
     "referencias": verifica_referencias,
@@ -284,6 +322,8 @@ VERIFICACOES = {
     "autoridade": verifica_autoridade,
     "formatacao": verifica_formatacao,
     "tamanho": verifica_tamanho,
+    # Por pasta, não por arquivo: roda fora do laço, em main.
+    "indice": lambda caminho, linhas: [],
 }
 
 
@@ -313,6 +353,9 @@ def main(argv: list[str] | None = None) -> int:
         linhas = caminho.read_text(encoding="utf-8").splitlines(keepends=True)
         for nome in escolhidas:
             achados.extend(VERIFICACOES[nome](caminho, linhas))
+
+    if "indice" in escolhidas:
+        achados.extend(verifica_indices())
 
     if not achados:
         print(f"OK — {len(arquivos)} documentos, {len(escolhidas)} verificações, nenhum problema.")

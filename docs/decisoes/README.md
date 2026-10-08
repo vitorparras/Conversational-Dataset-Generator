@@ -46,6 +46,10 @@ deliberada e justificada.
 | [0032](0032-representacao-na-dupla-anotacao.md) | Representação das categorias na dupla anotação | Decisão vigente |
 | [0033](0033-toda-discordancia-pesa-igual.md) | Toda discordância pesa igual | Decisão vigente |
 | [0034](0034-bruto-sem-prazo-proprio.md) | O texto bruto não tem prazo próprio | Decisão vigente |
+| [0035](0035-reposicao-encerra-sessoes.md) | A reposição de senha encerra as sessões | Decisão vigente |
+| [0036](0036-formatos-da-primeira-versao.md) | Os formatos de origem da primeira versão | Decisão vigente |
+| [0037](0037-limite-do-recorte-pequeno.md) | Onde se declara o limite do recorte pequeno | Decisão vigente |
+| [0038](0038-marca-da-entrega-no-manifesto.md) | A marca da entrega fica no manifesto | Decisão vigente |
 
 ## Formato
 

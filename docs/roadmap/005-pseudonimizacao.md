@@ -18,10 +18,9 @@ linguagem, e o formato está fechado pela
 [decisão 0011](../decisoes/0011-protocolo-com-o-servico-de-linguagem.md) — o que trafega, o que
 nunca entra em log, e o que fazer com resposta ausente ou malformada.
 
-O que o contrato **não** fecha é a unidade em que o deslocamento de trecho é contado, nem de que
-lado fica a conversão. Os dois processos contam texto de formas diferentes por padrão, e a
-divergência cai em emoji e caractere composto — sem erro, só no lugar errado. Ver
-[fronteiras](../arquitetura/002-fronteiras.md).
+A unidade do deslocamento também está fechada: ponto de código, com a conversão no núcleo, que é o
+lado que indexa diferente. Sem unidade única, a divergência cairia em emoji e caractere composto —
+sem erro, só no lugar errado. Ver [fronteiras](../arquitetura/002-fronteiras.md).
 
 ## O que precisa estar pronto antes
 

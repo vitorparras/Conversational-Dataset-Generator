@@ -10,8 +10,8 @@ assegura e por quê; sobrevive a qualquer replanejamento. O trabalho para atingi
 | "Implementar transação na gravação de auditoria" | "Dois eventos gravados ao mesmo tempo produzem cadeia válida, ou a gravação falha visivelmente" |
 | "Criar tela de arbitragem" | "Duas anotações divergentes do mesmo item são resolvidas por uma terceira pessoa, e a resolução é rastreável" |
 
-A coluna da esquerda cita solução; a da direita, garantia. **Requisito que cita tecnologia está
-quase sempre errado** — tecnologia é escolha de decisão, e muda sem que a garantia mude.
+A esquerda cita solução; a direita, garantia. **Requisito que cita tecnologia está quase sempre
+errado** — tecnologia é escolha de decisão, e muda sem que a garantia mude.
 
 ## Índice
 
@@ -43,14 +43,20 @@ quase sempre errado** — tecnologia é escolha de decisão, e muda sem que a ga
 | [024](024-marcacao-de-apoio-na-anotacao.md) | A marcação do que sustentou a decisão pertence à anotação |
 | [025](025-bloco-e-recorte-de-leitura.md) | O bloco é recorte de leitura, não de significado |
 | [026](026-material-inteiro-anotavel.md) | O material inteiro é anotável |
+| [028](028-concessao-tem-prazo.md) | Concessão de acesso tem prazo |
+| [029](029-metrica-sem-texto.md) | Avaliar qualidade não exige alcançar o texto |
+| [030](030-exportacao-exige-duas-pessoas.md) | Exportar exige duas pessoas |
+| [031](031-entrada-de-arquivo-contida.md) | A entrada de arquivo é contida |
+| [032](032-configuracao-falha-fechada.md) | Configuração desconhecida impede a inicialização |
+| [033](033-rascunho-de-anotacao-sobrevive.md) | O trabalho em andamento não se perde |
+| [034](034-copia-vazada-e-atribuivel.md) | Cópia vazada é atribuível |
+| [035](035-revisao-do-lote-por-amostra.md) | A revisão do lote é por amostra, e reprova inteiro |
 
 ## Formato
 
-Nome `NNN-slug.md`. Autoridade `Norma vigente`. Seções:
-
-1. **A garantia** — uma frase. Se não couber em uma, provavelmente são dois requisitos
-2. **Por que existe** — a exigência de origem, citada
-3. **Critérios de aceitação** — em Dado / Quando / Então, verificáveis
-4. **O que não exige** — evita que a implementação assuma restrição que o requisito não impõe
+Nome `NNN-slug.md`. Autoridade `Norma vigente`. Seções: **a garantia** em uma frase (se não couber
+em uma, são dois requisitos) · **por que existe**, com a exigência de origem citada · **critérios
+de aceitação** em Dado / Quando / Então · **o que não exige**, que evita a implementação assumir
+restrição que o requisito não impõe.
 
 Ver [regras de escrita](../regras-de-escrita.md).

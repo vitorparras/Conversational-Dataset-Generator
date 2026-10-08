@@ -7,16 +7,22 @@ fecha o raciocínio da decisão [0003](../decisoes/0003-cifra-em-repouso.md): o 
 sanitizado sensível é a ligação com a identidade real, e essa ligação passa a existir num único
 lugar — cifrado, e cujo acesso é auditado.
 
-Entram o reconhecimento de entidades no serviço de linguagem da decisão
-[0002](../decisoes/0002-stack.md), a substituição por rótulo estável, o mapa de reversão cifrado, e
-a reversão como operação restrita. O requisito
+Entram a substituição por rótulo estável, o mapa de reversão cifrado e a reversão como operação
+restrita. **O reconhecimento das ocorrências não entra aqui:** ele acontece na entrada, sobre o
+texto como chegou, e esta fase aplica o que foi decidido lá — é o que a
+[arquitetura do módulo](../arquitetura/007-modulo-pseudonimizacao.md) e a
+[política](../privacidade/001-dado-pessoal.md) estabelecem. O requisito
 [006](../requisitos/006-pseudonimizacao-preserva-contexto.md) é o mais exigente da fase: não basta
 ocultar, o material tem de continuar legível depois de oculto, porque é ele que será anotado.
 
-Entra também o que atravessa a fronteira de processo. A decisão 0002 registra que texto sensível vai
-do núcleo ao serviço de linguagem, e que esse formato precisa de decisão própria dizendo o que
-trafega e o que nunca entra em log. Essa decisão trava esta fase — ver
-[decisões pendentes](012-decisoes-pendentes.md).
+Entra também o que atravessa a fronteira de processo: texto sensível vai do núcleo ao serviço de
+linguagem, e o formato está fechado pela
+[decisão 0011](../decisoes/0011-protocolo-com-o-servico-de-linguagem.md) — o que trafega, o que
+nunca entra em log, e o que fazer com resposta ausente ou malformada.
+
+A unidade do deslocamento também está fechada: ponto de código, com a conversão no núcleo, que é o
+lado que indexa diferente. Sem unidade única, a divergência cairia em emoji e caractere composto —
+sem erro, só no lugar errado. Ver [fronteiras](../arquitetura/002-fronteiras.md).
 
 ## O que precisa estar pronto antes
 

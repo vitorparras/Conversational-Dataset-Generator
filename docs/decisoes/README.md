@@ -35,6 +35,21 @@ deliberada e justificada.
 | [0021](0021-comunicacao-de-incidente.md) | A quem se comunica um incidente | Decisão vigente |
 | [0022](0022-forma-do-rotulo.md) | A forma do rótulo: duas dimensões, com principal | Decisão vigente |
 | [0023](0023-suficiencia-do-recorte.md) | Suficiência do recorte exportado | Decisão vigente |
+| [0024](0024-conteudo-replicado.md) | Conteúdo replicado é marcado, não removido | Decisão vigente |
+| [0025](0025-origem-do-material.md) | A origem do material e o regime mais restrito | Decisão vigente |
+| [0026](0026-relato-de-dado-pessoal.md) | Quem anota relata o dado pessoal que escapou | Decisão vigente |
+| [0027](0027-tratamento-uniforme-das-categorias.md) | Todas as categorias com o mesmo tratamento | Decisão vigente |
+| [0028](0028-guarda-descarte-e-esvaziamento.md) | Guarda, descarte e esvaziamento | Decisão vigente |
+| [0029](0029-identidade-e-sessao.md) | Identidade e sessão | Decisão vigente |
+| [0030](0030-qual-texto-fica-em-claro.md) | Qual texto fica em claro | Decisão vigente |
+| [0031](0031-desempate-da-principal.md) | O desempate da categoria principal | Decisão vigente |
+| [0032](0032-representacao-na-dupla-anotacao.md) | Representação das categorias na dupla anotação | Decisão vigente |
+| [0033](0033-toda-discordancia-pesa-igual.md) | Toda discordância pesa igual | Decisão vigente |
+| [0034](0034-bruto-sem-prazo-proprio.md) | O texto bruto não tem prazo próprio | Decisão vigente |
+| [0035](0035-reposicao-encerra-sessoes.md) | A reposição de senha encerra as sessões | Decisão vigente |
+| [0036](0036-formatos-da-primeira-versao.md) | Os formatos de origem da primeira versão | Decisão vigente |
+| [0037](0037-limite-do-recorte-pequeno.md) | Onde se declara o limite do recorte pequeno | Decisão vigente |
+| [0038](0038-marca-da-entrega-no-manifesto.md) | A marca da entrega fica no manifesto | Decisão vigente |
 
 ## Formato
 

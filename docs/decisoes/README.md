@@ -45,6 +45,7 @@ deliberada e justificada.
 | [0031](0031-desempate-da-principal.md) | O desempate da categoria principal | Decisão vigente |
 | [0032](0032-representacao-na-dupla-anotacao.md) | Representação das categorias na dupla anotação | Decisão vigente |
 | [0033](0033-toda-discordancia-pesa-igual.md) | Toda discordância pesa igual | Decisão vigente |
+| [0034](0034-bruto-sem-prazo-proprio.md) | O texto bruto não tem prazo próprio | Decisão vigente |
 
 ## Formato
 

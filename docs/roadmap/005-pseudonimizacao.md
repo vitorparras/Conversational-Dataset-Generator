@@ -7,9 +7,11 @@ fecha o raciocínio da decisão [0003](../decisoes/0003-cifra-em-repouso.md): o 
 sanitizado sensível é a ligação com a identidade real, e essa ligação passa a existir num único
 lugar — cifrado, e cujo acesso é auditado.
 
-Entram o reconhecimento de entidades no serviço de linguagem da decisão
-[0002](../decisoes/0002-stack.md), a substituição por rótulo estável, o mapa de reversão cifrado, e
-a reversão como operação restrita. O requisito
+Entram a substituição por rótulo estável, o mapa de reversão cifrado e a reversão como operação
+restrita. **O reconhecimento das ocorrências não entra aqui:** ele acontece na entrada, sobre o
+texto como chegou, e esta fase aplica o que foi decidido lá — é o que a
+[arquitetura do módulo](../arquitetura/007-modulo-pseudonimizacao.md) e a
+[política](../privacidade/001-dado-pessoal.md) estabelecem. O requisito
 [006](../requisitos/006-pseudonimizacao-preserva-contexto.md) é o mais exigente da fase: não basta
 ocultar, o material tem de continuar legível depois de oculto, porque é ele que será anotado.
 

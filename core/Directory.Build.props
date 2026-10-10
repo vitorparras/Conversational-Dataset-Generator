@@ -1,6 +1,8 @@
 <Project>
   <!-- Applies to every project under core/, including test fixtures outside the solution. -->
   <PropertyGroup>
+    <!-- The core version. BuildInfo reports it next to the commit and the state of the tree. -->
+    <VersionPrefix>0.1.0</VersionPrefix>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>

@@ -1,4 +1,4 @@
-// The order is fixed and written once, here: configuration, log path, startup checks, port.
+// The order is fixed and written once, here: configuration, log path, versions, startup checks, port.
 // Nothing on this path reaches the network (requirement 022).
 using System.Globalization;
 using System.Net;
@@ -8,6 +8,7 @@ using Core.Host.Endpoints;
 using Core.Platform.Configuration;
 using Core.Platform.Logging;
 using Core.Platform.Startup;
+using Core.Platform.Versioning;
 
 // Log lines and refusals carry Portuguese text; whoever reads the output reads UTF-8 on every system.
 Console.OutputEncoding = Encoding.UTF8;
@@ -40,6 +41,13 @@ var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Cor
 var exitCode = ExitCodes.Requested;
 try
 {
+    // The versions go to the log first, so they outlive the process (issue 51 CA-3).
+    var versions = VersionReport.FromBuild();
+    if (logger.IsEnabled(LogLevel.Information))
+    {
+        logger.Versions(versions.Describe());
+    }
+
     // 3. Startup checks, in this order, before the port opens.
     IReadOnlyList<IStartupCheck> checks = [.. BundledFileCheck.FromConfiguration(configuration, AppContext.BaseDirectory)];
     var report = await StartupRunner.RunAsync(checks, logger, CancellationToken.None);
@@ -54,6 +62,7 @@ try
     // 4. Port.
     StatusEndpoint.Map(app, report);
     ConfigurationEndpoint.Map(app, configuration);
+    VersionsEndpoint.Map(app, versions);
     await app.StartAsync();
     if (logger.IsEnabled(LogLevel.Information))
     {

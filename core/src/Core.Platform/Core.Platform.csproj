@@ -12,4 +12,6 @@
     <InternalsVisibleTo Include="Core.Tests.Unit" />
     <InternalsVisibleTo Include="Core.Tests.Privacy" />
   </ItemGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)../../build/BuildInfo.targets" />
 </Project>

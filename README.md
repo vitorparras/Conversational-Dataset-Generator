@@ -47,7 +47,9 @@ dotnet run --project core/src/Core.Host
 
 Com o núcleo de pé, `http://127.0.0.1:5080/status` responde se o processo está vivo, se está apto
 a atender e o resultado de cada conferência feita antes de abrir a porta; a rota de configuração, no
-mesmo endereço, mostra a configuração em vigor com a origem de cada valor.
+mesmo endereço, mostra a configuração em vigor com a origem de cada valor. A rota de versões diz a
+versão do núcleo, o commit e se a árvore estava suja na construção; o que não se obteve aparece
+como ausente, e as mesmas versões abrem o registro de cada inicialização.
 
 Os arquivos que acompanham a instalação são declarados em `Installation:BundledFiles`, separados
 por ponto e vírgula, e a falta de qualquer um impede a inicialização.

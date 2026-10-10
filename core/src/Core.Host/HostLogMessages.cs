@@ -6,6 +6,9 @@ internal static partial class HostLogMessages
     [LoggerMessage(EventId = 1, Level = LogLevel.Information, Message = "Núcleo ouvindo em {Addresses}")]
     public static partial void Listening(this ILogger logger, string addresses);
 
+    [LoggerMessage(EventId = 6, Level = LogLevel.Information, Message = "Versões em execução: {Versions}")]
+    public static partial void Versions(this ILogger logger, string versions);
+
     [LoggerMessage(EventId = 2, Level = LogLevel.Critical, Message = "Inicialização recusada: {Failed} conferência(s) reprovada(s); a porta não foi aberta")]
     public static partial void StartupRefused(this ILogger logger, int failed);
 

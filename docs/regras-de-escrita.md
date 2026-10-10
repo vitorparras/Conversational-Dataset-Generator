@@ -57,4 +57,4 @@ Documento substituído mantém o número e muda a linha de autoridade.
 
 ## 9. Idioma
 
-Português brasileiro, com acentuação correta. Identificadores de código em inglês.
+Português, com acentuação correta, no que a pessoa lê; inglês, fora de `docs/`, no que a ferramenta resolve — ver [decisão 0039](decisoes/0039-idioma-do-codigo-e-do-texto.md).

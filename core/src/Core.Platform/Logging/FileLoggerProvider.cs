@@ -50,12 +50,12 @@ internal sealed class FileLoggerProvider : ILoggerProvider
     private sealed class FileLogger : ILogger
     {
         private readonly FileLoggerProvider provider;
-        private readonly string category;
+        private readonly string loggerName;
 
-        public FileLogger(FileLoggerProvider provider, string category)
+        public FileLogger(FileLoggerProvider provider, string loggerName)
         {
             this.provider = provider;
-            this.category = category;
+            this.loggerName = loggerName;
         }
 
         public IDisposable? BeginScope<TState>(TState state)
@@ -76,7 +76,7 @@ internal sealed class FileLoggerProvider : ILoggerProvider
             }
 
             var message = formatter(state, exception);
-            provider.Write(LogLine.Format(provider.clock.UtcNow, logLevel, category, eventId, message, exception));
+            provider.Write(LogLine.Format(provider.clock.UtcNow, logLevel, loggerName, eventId, message, exception));
         }
     }
 }

@@ -1,5 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Core.Host\Core.Host.csproj" />
+    <ProjectReference Include="../../src/Core.Host/Core.Host.csproj" />
+
+    <!-- Negative proof: an assembly that breaks both rules, which the tests must catch. -->
+    <ProjectReference Include="../Fixtures/Core.FixtureViolation/Core.FixtureViolation.csproj" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Breaks both architecture rules on purpose: references a module implementation instead of its
+    contracts, and declares domain terms. The architecture tests must find both. Not in the solution.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="../Core.FixtureModule/Core.FixtureModule.csproj" />
+  </ItemGroup>
+</Project>

@@ -13,7 +13,7 @@ internal static class LogLine
     public static string Format(
         DateTimeOffset timestamp,
         LogLevel level,
-        string category,
+        string loggerName,
         EventId eventId,
         string message,
         Exception? exception)
@@ -23,7 +23,7 @@ internal static class LogLine
             .Append(' ')
             .Append(LevelName(level))
             .Append(' ')
-            .Append(category)
+            .Append(loggerName)
             .Append('[')
             .Append(eventId.Id.ToString(CultureInfo.InvariantCulture))
             .Append("] ")

@@ -1,0 +1,3 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- A module implementation, for the negative proof of the architecture tests. Not in the solution. -->
+</Project>

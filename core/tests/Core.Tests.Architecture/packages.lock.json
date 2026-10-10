@@ -339,10 +339,19 @@
           "xunit.v3.runner.common": "[3.2.2]"
         }
       },
+      "core.fixturemodule": {
+        "type": "Project"
+      },
+      "core.fixtureviolation": {
+        "type": "Project",
+        "dependencies": {
+          "Core.FixtureModule": "[0.1.0, )"
+        }
+      },
       "core.host": {
         "type": "Project",
         "dependencies": {
-          "Core.Platform": "[1.0.0, )"
+          "Core.Platform": "[0.1.0, )"
         }
       },
       "core.platform": {

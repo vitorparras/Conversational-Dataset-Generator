@@ -8,17 +8,17 @@ namespace Core.Platform.Logging;
 /// </summary>
 public static class DataClassifications
 {
-    /// <summary>The taxonomy the classifications belong to.</summary>
-    public const string TaxonomyName = "Core";
+    /// <summary>The name of the scheme the three classifications belong to.</summary>
+    public const string SchemeName = "Core";
 
     /// <summary>Text of a material, or any part of it.</summary>
-    public static DataClassification Material { get; } = new(TaxonomyName, nameof(Material));
+    public static DataClassification Material { get; } = new(SchemeName, nameof(Material));
 
     /// <summary>Anything that identifies a person.</summary>
-    public static DataClassification Identity { get; } = new(TaxonomyName, nameof(Identity));
+    public static DataClassification Identity { get; } = new(SchemeName, nameof(Identity));
 
     /// <summary>A key, credential or token.</summary>
-    public static DataClassification Secret { get; } = new(TaxonomyName, nameof(Secret));
+    public static DataClassification Secret { get; } = new(SchemeName, nameof(Secret));
 
     /// <summary>All three, for registering the redactor.</summary>
     public static IReadOnlyList<DataClassification> All { get; } = [Material, Identity, Secret];

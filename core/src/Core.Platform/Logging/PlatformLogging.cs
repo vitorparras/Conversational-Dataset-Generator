@@ -69,6 +69,9 @@ public static class PlatformLogging
         {
             _ = logging.ClearProviders();
             _ = logging.SetMinimumLevel(minimumLevel);
+
+            // Request lines carry the path and query, where an identifier can travel: only warnings.
+            _ = logging.AddFilter("Microsoft.AspNetCore", LogLevel.Warning);
             _ = logging.EnableRedaction();
             _ = logging.AddConsole(console => console.FormatterName = LineConsoleFormatter.FormatterName);
             _ = logging.AddConsoleFormatter<LineConsoleFormatter, ConsoleFormatterOptions>();

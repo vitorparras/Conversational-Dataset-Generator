@@ -1,4 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- LibraryImport marshalling for the console calls that send Ctrl+C on Windows. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\Core.Host\Core.Host.csproj" />
   </ItemGroup>

@@ -1,12 +1,19 @@
+// The order is fixed and written once, here: configuration, log path, startup checks, port.
+// Nothing on this path reaches the network (requirement 022).
 using System.Globalization;
 using System.Net;
+using System.Text;
 using Core.Host;
 using Core.Host.Endpoints;
 using Core.Platform.Configuration;
 using Core.Platform.Logging;
 using Core.Platform.Startup;
 
-var schema = new ConfigurationSchema([HostConfiguration.Server, PlatformLogging.Section]);
+// Log lines and refusals carry Portuguese text; whoever reads the output reads UTF-8 on every system.
+Console.OutputEncoding = Encoding.UTF8;
+
+// 1. Configuration. Refused before anything else exists, so it goes to standard error.
+var schema = new ConfigurationSchema([HostConfiguration.Server, PlatformLogging.Section, BundledFileCheck.Section]);
 var load = ClosedConfiguration.Load(ConfigurationSources.Standard(AppContext.BaseDirectory, args), schema);
 if (load.Configuration is not { } configuration)
 {
@@ -19,6 +26,7 @@ if (load.Configuration is not { } configuration)
     return ExitCodes.ConfigurationRefused;
 }
 
+// 2. Log path, with redaction, before the first line is written.
 var builder = WebApplication.CreateEmptyBuilder(new WebApplicationOptions { ContentRootPath = AppContext.BaseDirectory });
 builder.Services.AddPlatformLogging(configuration);
 builder.WebHost.UseKestrelCore();
@@ -28,16 +36,46 @@ builder.WebHost.ConfigureKestrel(kestrel => kestrel.Listen(
 builder.Services.AddRoutingCore();
 
 var app = builder.Build();
-StatusEndpoint.Map(app);
-ConfigurationEndpoint.Map(app, configuration);
-
-await app.StartAsync();
 var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Core.Host");
-if (logger.IsEnabled(LogLevel.Information))
+var exitCode = ExitCodes.Requested;
+try
 {
-    logger.Listening(string.Join(", ", app.Urls));
-}
+    // 3. Startup checks, in this order, before the port opens.
+    IReadOnlyList<IStartupCheck> checks = [.. BundledFileCheck.FromConfiguration(configuration, AppContext.BaseDirectory)];
+    var report = await StartupRunner.RunAsync(checks, logger, CancellationToken.None);
+    if (!report.AllPassed)
+    {
+        var failed = report.Results.Count(result => result.Status == CheckStatus.Failed);
+        logger.StartupRefused(failed);
+        exitCode = ExitCodes.StartupCheckFailed;
+        return exitCode;
+    }
 
-await app.WaitForShutdownAsync();
-await app.DisposeAsync();
-return ExitCodes.Requested;
+    // 4. Port.
+    StatusEndpoint.Map(app, report);
+    ConfigurationEndpoint.Map(app, configuration);
+    await app.StartAsync();
+    if (logger.IsEnabled(LogLevel.Information))
+    {
+        logger.Listening(string.Join(", ", app.Urls));
+    }
+
+    // Ctrl+C or SIGTERM: the host stops accepting, finishes the requests in progress, then returns.
+    await app.WaitForShutdownAsync();
+    logger.ShutdownRequested();
+    return exitCode;
+}
+#pragma warning disable CA1031 // The last line of defence: log the type, never the message, and exit with failure.
+catch (Exception exception)
+#pragma warning restore CA1031
+{
+    exitCode = ExitCodes.Failure;
+    logger.UnexpectedFailure(exception, exitCode);
+    return exitCode;
+}
+finally
+{
+    // Disposing drains the console queue and closes the file: the last line is on disk.
+    logger.ShutdownCompleted(exitCode);
+    await app.DisposeAsync();
+}

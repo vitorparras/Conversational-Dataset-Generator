@@ -44,7 +44,10 @@ internal sealed class HostProcess : IAsyncDisposable
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             RedirectStandardInput = true,
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8,
             UseShellExecute = false,
+            // Its own hidden console: the shutdown test sends it a console event (see ShutdownSignal).
             CreateNoWindow = true,
             WorkingDirectory = Path.GetTempPath(),
         };
@@ -95,7 +98,15 @@ internal sealed class HostProcess : IAsyncDisposable
     public async Task<int> WaitForExitAsync(TimeSpan timeout)
     {
         using var cancellation = new CancellationTokenSource(timeout);
-        await process.WaitForExitAsync(cancellation.Token);
+        try
+        {
+            await process.WaitForExitAsync(cancellation.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            throw new TimeoutException($"the host did not exit within {timeout}:{Environment.NewLine}{Output}");
+        }
+
         return process.ExitCode;
     }
 

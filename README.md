@@ -45,8 +45,19 @@ dotnet test core/Core.slnx
 dotnet run --project core/src/Core.Host
 ```
 
-Com o núcleo de pé, `http://127.0.0.1:5080/status` responde se o processo está vivo, e a
-rota de configuração, no mesmo endereço, mostra a configuração em vigor com a origem de cada valor.
+Com o núcleo de pé, `http://127.0.0.1:5080/status` responde se o processo está vivo, se está apto
+a atender e o resultado de cada conferência feita antes de abrir a porta; a rota de configuração, no
+mesmo endereço, mostra a configuração em vigor com a origem de cada valor.
+
+Os arquivos que acompanham a instalação são declarados em `Installation:BundledFiles`, separados
+por ponto e vírgula, e a falta de qualquer um impede a inicialização.
+
+| Código de saída | Significado |
+|---|---|
+| 0 | Encerramento pedido (Ctrl+C ou SIGTERM), concluído |
+| 1 | Falha inesperada |
+| 2 | Configuração recusada |
+| 3 | Conferência de inicialização reprovada |
 
 A configuração é fechada: chave desconhecida, chave exigida ausente ou valor fora do aceito impedem
 a inicialização, e a mensagem nomeia a chave. São três fontes, e a de cima vence:

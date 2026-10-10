@@ -28,11 +28,22 @@ public static class ClosedConfiguration
                 var declared = schema.FindPath(key);
                 if (declared is null)
                 {
+                    // An empty or null declared section declares no key; anything else is unknown,
+                    // whatever its value: null and {} are a typo just as much as a string is.
+                    if (value is null && schema.IsSection(key))
+                    {
+                        continue;
+                    }
+
                     problems.Add(new(ConfigurationProblemKind.UnknownKey, key, source.Origin, null, null));
                     continue;
                 }
 
-                values[declared] = (value, source.Origin);
+                // A known key with no value declares nothing: the key is missing or takes its default.
+                if (value is not null)
+                {
+                    values[declared] = (value, source.Origin);
+                }
             }
         }
 
@@ -64,7 +75,11 @@ public static class ClosedConfiguration
             : ConfigurationLoadResult.Loaded(new EffectiveConfiguration(schema, values));
     }
 
-    private static List<KeyValuePair<string, string>> Read(OriginatedSource source, List<ConfigurationProblem> problems)
+    /// <summary>
+    /// Every key the source writes, as a leaf: a value, or null for <c>null</c> and <c>{}</c>.
+    /// A node with children is not returned; its children are, each under its full path.
+    /// </summary>
+    private static List<KeyValuePair<string, string?>> Read(OriginatedSource source, List<ConfigurationProblem> problems)
     {
         try
         {
@@ -72,8 +87,7 @@ public static class ClosedConfiguration
             try
             {
                 return [.. root.AsEnumerable()
-                    .Where(pair => pair.Value is not null)
-                    .Select(pair => new KeyValuePair<string, string>(pair.Key, pair.Value!))];
+                    .Where(pair => pair.Value is not null || !root.GetSection(pair.Key).GetChildren().Any())];
             }
             finally
             {

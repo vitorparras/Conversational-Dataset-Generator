@@ -22,6 +22,22 @@ public sealed class ConfigurationTests
         Assert.Contains("'Server:Prot'", host.Output, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("""{ "Server": { "Port": "0" }, "Typo": null }""", "Typo")]
+    [InlineData("""{ "Server": { "Port": "0" }, "Typo": {} }""", "Typo")]
+    [InlineData("""{ "Server": { "Port": "0", "Prot": null } }""", "Server:Prot")]
+    public async Task UnknownKeyWithANullOrEmptyValueRefusesToStartAndNamesTheKey(string settings, string key)
+    {
+        using var installation = HostInstallation.Create();
+        installation.WriteSettings(settings);
+        await using var host = installation.Start();
+
+        var exitCode = await host.WaitForExitAsync(ExitTimeout);
+
+        Assert.Equal(ExitCodes.ConfigurationRefused, exitCode);
+        Assert.Contains($"chave desconhecida '{key}'", host.Output, StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task ValueOutsideTheFormatRefusesToStartAndSaysWhatWasFound()
     {

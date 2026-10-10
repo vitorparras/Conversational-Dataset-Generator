@@ -7,6 +7,7 @@ public sealed class ConfigurationSchema
         new(StringComparer.OrdinalIgnoreCase);
 
     private readonly List<string> paths = [];
+    private readonly HashSet<string> sectionNames = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Assembles the schema. Two declarations of the same key path are a defect.</summary>
     public ConfigurationSchema(IEnumerable<ConfigurationSection> sections)
@@ -14,6 +15,7 @@ public sealed class ConfigurationSchema
         ArgumentNullException.ThrowIfNull(sections);
         foreach (var section in sections)
         {
+            _ = sectionNames.Add(section.Name);
             foreach (var key in section.Keys)
             {
                 var path = section.Name + ":" + key.Name;
@@ -39,5 +41,12 @@ public sealed class ConfigurationSchema
     {
         ArgumentNullException.ThrowIfNull(path);
         return keys.TryGetValue(path, out var found) ? found.Path : null;
+    }
+
+    /// <summary>Whether <paramref name="path"/> names a declared section, ignoring case.</summary>
+    public bool IsSection(string path)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        return sectionNames.Contains(path);
     }
 }

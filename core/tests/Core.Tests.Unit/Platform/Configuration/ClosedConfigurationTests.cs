@@ -51,6 +51,37 @@ public sealed class ClosedConfigurationTests : IDisposable
             result.Problems.Where(p => p.Kind == ConfigurationProblemKind.UnknownKey).Select(p => p.Key));
     }
 
+    // A key present in the file is checked whatever its value: null, an empty object and a nested
+    // object whose child is null declare a key just as much as a string does.
+    [Theory]
+    [InlineData("""{ "Sample": { "Threshold": "3" }, "Typo": null }""", "Typo")]
+    [InlineData("""{ "Sample": { "Threshold": "3" }, "Typo": {} }""", "Typo")]
+    [InlineData("""{ "Sample": { "Threshold": "3", "Treshold": null } }""", "Sample:Treshold")]
+    [InlineData("""{ "Sample": { "Threshold": "3" }, "Typo": { "Inner": null } }""", "Typo:Inner")]
+    public void UnknownKeyWithANullOrEmptyValueRefusesAndIsNamed(string json, string key)
+    {
+        var result = ClosedConfiguration.Load([WriteFile(json)], Schema);
+
+        Assert.True(result.Refused);
+        var problem = Assert.Single(result.Problems);
+        Assert.Equal(ConfigurationProblemKind.UnknownKey, problem.Kind);
+        Assert.Equal(key, problem.Key);
+        Assert.Equal(ConfigurationOrigin.File, problem.Origin);
+        Assert.Contains($"'{key}'", problem.Describe(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void EmptyDeclaredSectionDeclaresNothingAndIsNotAnUnknownKey()
+    {
+        var schema = new ConfigurationSchema(
+            [new ConfigurationSection("Sample", [ConfigurationKey.WithDefault("Mode", "strict")])]);
+
+        var result = ClosedConfiguration.Load([WriteFile("""{ "Sample": {} }""")], schema);
+
+        Assert.Empty(result.Problems);
+        Assert.Equal(ConfigurationOrigin.Default, result.Configuration!.OriginOf("Sample:Mode"));
+    }
+
     [Fact]
     public void RequiredKeyMissingRefusesAndIsNamedWithoutDefault()
     {

@@ -50,6 +50,7 @@ deliberada e justificada.
 | [0036](0036-formatos-da-primeira-versao.md) | Os formatos de origem da primeira versão | Decisão vigente |
 | [0037](0037-limite-do-recorte-pequeno.md) | Onde se declara o limite do recorte pequeno | Decisão vigente |
 | [0038](0038-marca-da-entrega-no-manifesto.md) | A marca da entrega fica no manifesto | Decisão vigente |
+| [0039](0039-idioma-do-codigo-e-do-texto.md) | Idioma: código em inglês, texto em português | Decisão vigente |
 
 ## Formato
 

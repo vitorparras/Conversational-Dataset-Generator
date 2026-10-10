@@ -29,7 +29,7 @@ from pathlib import Path
 RAIZ = Path(__file__).resolve().parents[2]
 
 #: Diretórios que não são documentação do projeto.
-IGNORADOS = {".git", ".github", "ferramentas", "node_modules", "bin", "obj"}
+IGNORADOS = {".git", ".github", ".specs", "ferramentas", "node_modules", "bin", "obj"}
 
 # ---------------------------------------------------------------------------
 # Vocabulário da linha de autoridade

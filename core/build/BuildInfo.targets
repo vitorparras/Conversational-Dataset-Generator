@@ -1,8 +1,10 @@
 <Project>
   <!--
-    Writes the version, the commit and the state of the working tree into BuildInfo.g.cs before
-    compiling (issue 51). Without git, or outside a repository, commit and tree are written empty
-    and BuildInfo reports them as absent: never a plausible value in their place.
+    Writes the version and what git answered into BuildInfo.g.cs before compiling (issue 51).
+    The target only records: the exit code of each git command, the commit when git succeeded,
+    and the length of the status output. BuildInfo reads them as clean, dirty or absent, in C#,
+    where a test holds the reading. Two things never reach the artifact: the status output, which
+    lists file names (untracked ones included), and git's error text, which may carry a path.
   -->
   <Target Name="GenerateBuildInfo" BeforeTargets="CoreCompile">
     <Exec Command="git rev-parse HEAD"
@@ -21,9 +23,8 @@
     </Exec>
 
     <PropertyGroup>
-      <_BuildInfoCommitValue Condition="'$(_BuildInfoCommitExit)' == '0'">$(_BuildInfoCommit.Trim())</_BuildInfoCommitValue>
-      <_BuildInfoTreeValue Condition="'$(_BuildInfoStatusExit)' == '0' And '$(_BuildInfoStatus.Trim())' == ''">clean</_BuildInfoTreeValue>
-      <_BuildInfoTreeValue Condition="'$(_BuildInfoStatusExit)' == '0' And '$(_BuildInfoStatus.Trim())' != ''">dirty</_BuildInfoTreeValue>
+      <_BuildInfoCommitOutput Condition="'$(_BuildInfoCommitExit)' == '0'">$(_BuildInfoCommit.Trim())</_BuildInfoCommitOutput>
+      <_BuildInfoStatusLength>$(_BuildInfoStatus.Trim().Length)</_BuildInfoStatusLength>
       <_BuildInfoFile>$(IntermediateOutputPath)BuildInfo.g.cs</_BuildInfoFile>
     </PropertyGroup>
 
@@ -33,8 +34,10 @@
       <_BuildInfoLine Include="internal static class GeneratedBuildInfo" />
       <_BuildInfoLine Include="{" />
       <_BuildInfoLine Include="    public const string Version = &quot;$(Version)&quot;%3B" />
-      <_BuildInfoLine Include="    public const string Commit = &quot;$(_BuildInfoCommitValue)&quot;%3B" />
-      <_BuildInfoLine Include="    public const string Tree = &quot;$(_BuildInfoTreeValue)&quot;%3B" />
+      <_BuildInfoLine Include="    public const string CommitExitCode = &quot;$(_BuildInfoCommitExit)&quot;%3B" />
+      <_BuildInfoLine Include="    public const string CommitOutput = &quot;$(_BuildInfoCommitOutput)&quot;%3B" />
+      <_BuildInfoLine Include="    public const string StatusExitCode = &quot;$(_BuildInfoStatusExit)&quot;%3B" />
+      <_BuildInfoLine Include="    public const string StatusOutputLength = &quot;$(_BuildInfoStatusLength)&quot;%3B" />
       <_BuildInfoLine Include="}" />
     </ItemGroup>
 

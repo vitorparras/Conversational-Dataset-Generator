@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Core.Tests.Unit" />
+    <InternalsVisibleTo Include="Core.Tests.Integration" />
     <InternalsVisibleTo Include="Core.Tests.Privacy" />
   </ItemGroup>
 

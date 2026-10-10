@@ -11,8 +11,7 @@ brasileiro.
 
 ## Estado
 
-Repositório em fundação. Contém o aparato de verificação e revisão; a documentação entra em
-seguida, um pull request por documento.
+O código da Fase 1 está entrando por pull request, e `docs/` continua a fonte da verdade.
 
 ## Como isto funciona
 

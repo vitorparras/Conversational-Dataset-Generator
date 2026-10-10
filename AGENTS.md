@@ -3,8 +3,7 @@
 Ponto de entrada único do repositório. Vale para pessoas e para agentes de IA. Arquivos específicos
 de ferramenta apenas redirecionam para cá e não contêm instruções próprias — duas cópias divergem.
 
-> **Este repositório contém apenas documentação.** O desenvolvimento acontece em outro fluxo, e a
-> primeira linha de código depende das decisões registradas aqui.
+> **O código da Fase 1 está entrando por pull request, e `docs/` continua a fonte da verdade.**
 
 ## O que é o projeto
 

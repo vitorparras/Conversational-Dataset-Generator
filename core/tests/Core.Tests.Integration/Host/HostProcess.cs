@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Text;
-using Core.Tests.Shared;
 
 namespace Core.Tests.Integration.Host;
 
@@ -34,15 +33,10 @@ internal sealed class HostProcess : IAsyncDisposable
         }
     }
 
-    public static string HostAssemblyPath =>
-        Path.Combine(
-            RepositoryRoot.Find().FullName,
-            "core", "src", "Core.Host", "bin", RepositoryRoot.Configuration, "net10.0", "Core.Host.dll");
-
     public static HostProcess Start(
+        string assemblyPath,
         IEnumerable<string> arguments,
-        IReadOnlyDictionary<string, string?>? environment = null,
-        string? workingDirectory = null)
+        IReadOnlyDictionary<string, string?>? environment = null)
     {
         var info = new ProcessStartInfo
         {
@@ -52,9 +46,9 @@ internal sealed class HostProcess : IAsyncDisposable
             RedirectStandardInput = true,
             UseShellExecute = false,
             CreateNoWindow = true,
-            WorkingDirectory = workingDirectory ?? Path.GetTempPath(),
+            WorkingDirectory = Path.GetTempPath(),
         };
-        info.ArgumentList.Add(HostAssemblyPath);
+        info.ArgumentList.Add(assemblyPath);
         foreach (var argument in arguments)
         {
             info.ArgumentList.Add(argument);

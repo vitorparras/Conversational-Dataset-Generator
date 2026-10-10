@@ -1,38 +1,19 @@
-using System.Net.Http.Json;
-using System.Text.Json;
-
 namespace Core.Tests.Integration.Host;
 
+/// <summary>Issue 24 CA-1: the real process starts and answers its state.</summary>
 public sealed class StatusTests
 {
     [Fact]
     public async Task RealProcessStartsAndAnswersStatus()
     {
-        await using var host = HostProcess.Start([]);
-        using var client = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5080") };
+        using var installation = HostInstallation.Create();
+        var port = HostInstallation.FreePort();
+        installation.WriteSettings(HostInstallation.SettingsWithPort(port));
+        await using var host = installation.Start();
+        using var client = new HostClient(host, port);
 
-        var document = await PollStatusAsync(client, host);
+        var status = await client.GetWhenUpAsync("/status");
 
-        Assert.True(document.RootElement.GetProperty("alive").GetBoolean());
-    }
-
-    private static async Task<JsonDocument> PollStatusAsync(HttpClient client, HostProcess host)
-    {
-        var token = TestContext.Current.CancellationToken;
-        for (var attempt = 0; attempt < 200; attempt++)
-        {
-            Assert.False(host.HasExited, host.Output);
-            try
-            {
-                var body = await client.GetFromJsonAsync<JsonElement>("/status", token);
-                return JsonDocument.Parse(body.GetRawText());
-            }
-            catch (HttpRequestException)
-            {
-                await Task.Delay(50, token);
-            }
-        }
-
-        throw new TimeoutException("status did not answer: " + host.Output);
+        Assert.True(status.GetProperty("alive").GetBoolean());
     }
 }

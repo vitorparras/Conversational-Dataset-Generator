@@ -45,7 +45,19 @@ dotnet test core/Core.slnx
 dotnet run --project core/src/Core.Host
 ```
 
-Com o núcleo de pé, `http://127.0.0.1:5080/status` responde se o processo está vivo.
+Com o núcleo de pé, `http://127.0.0.1:5080/status` responde se o processo está vivo, e a
+rota de configuração, no mesmo endereço, mostra a configuração em vigor com a origem de cada valor.
+
+A configuração é fechada: chave desconhecida, chave exigida ausente ou valor fora do aceito impedem
+a inicialização, e a mensagem nomeia a chave. São três fontes, e a de cima vence:
+
+| Fonte | Forma |
+|---|---|
+| Argumento | `--Server:Port=5081` ou `--Server:Port 5081` |
+| Ambiente | `CDG__Server__Port=5081` |
+| Arquivo | `core/src/Core.Host/appsettings.json`, copiado para junto do executável |
+
+O que nenhuma fonte declara usa o padrão da chave, quando ela tem um.
 
 ## Licença
 

@@ -7,6 +7,11 @@
     <ProjectReference Include="..\Core.Platform\Core.Platform.csproj" />
   </ItemGroup>
 
+  <!-- The closed configuration has its own ConfigurationSection; the platform type is never used here. -->
+  <ItemGroup>
+    <Using Remove="Microsoft.Extensions.Configuration" />
+  </ItemGroup>
+
   <ItemGroup>
     <InternalsVisibleTo Include="Core.Tests.Unit" />
     <InternalsVisibleTo Include="Core.Tests.Privacy" />

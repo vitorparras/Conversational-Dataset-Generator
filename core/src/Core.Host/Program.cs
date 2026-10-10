@@ -1,10 +1,12 @@
+using System.Globalization;
 using System.Net;
 using Core.Host;
 using Core.Host.Endpoints;
 using Core.Platform.Configuration;
+using Core.Platform.Logging;
 using Core.Platform.Startup;
 
-var schema = new ConfigurationSchema([HostConfiguration.Server]);
+var schema = new ConfigurationSchema([HostConfiguration.Server, PlatformLogging.Section]);
 var load = ClosedConfiguration.Load(ConfigurationSources.Standard(AppContext.BaseDirectory, args), schema);
 if (load.Configuration is not { } configuration)
 {
@@ -18,15 +20,24 @@ if (load.Configuration is not { } configuration)
 }
 
 var builder = WebApplication.CreateEmptyBuilder(new WebApplicationOptions { ContentRootPath = AppContext.BaseDirectory });
+builder.Services.AddPlatformLogging(configuration);
 builder.WebHost.UseKestrelCore();
 builder.WebHost.ConfigureKestrel(kestrel => kestrel.Listen(
     IPAddress.Parse(configuration.Get(HostConfiguration.Address)),
-    int.Parse(configuration.Get(HostConfiguration.Port), System.Globalization.CultureInfo.InvariantCulture)));
+    int.Parse(configuration.Get(HostConfiguration.Port), CultureInfo.InvariantCulture)));
 builder.Services.AddRoutingCore();
 
 var app = builder.Build();
 StatusEndpoint.Map(app);
 ConfigurationEndpoint.Map(app, configuration);
 
-await app.RunAsync();
+await app.StartAsync();
+var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Core.Host");
+if (logger.IsEnabled(LogLevel.Information))
+{
+    logger.Listening(string.Join(", ", app.Urls));
+}
+
+await app.WaitForShutdownAsync();
+await app.DisposeAsync();
 return ExitCodes.Requested;

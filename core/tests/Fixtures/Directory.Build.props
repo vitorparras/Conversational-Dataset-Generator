@@ -1,0 +1,7 @@
+<Project>
+  <!--
+    Fixtures are built by tests, never by the solution. They take the production rules from
+    core/Directory.Build.props directly, skipping the test-project settings next to them.
+  -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../../'))" />
+</Project>

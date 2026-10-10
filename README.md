@@ -57,7 +57,9 @@ a inicialização, e a mensagem nomeia a chave. São três fontes, e a de cima v
 | Ambiente | `CDG__Server__Port=5081` |
 | Arquivo | `core/src/Core.Host/appsettings.json`, copiado para junto do executável |
 
-O que nenhuma fonte declara usa o padrão da chave, quando ela tem um.
+O que nenhuma fonte declara usa o padrão da chave, quando ela tem um. O registro vai ao console e,
+se `Logging:FilePath` tiver um caminho, também a esse arquivo; campo marcado como material,
+identidade ou segredo sai apagado nos dois.
 
 ## Licença
 

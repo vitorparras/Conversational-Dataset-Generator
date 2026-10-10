@@ -23,4 +23,6 @@
   <ItemGroup>
     <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" />
   </ItemGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)build/SecurityAnalyzers.targets" />
 </Project>

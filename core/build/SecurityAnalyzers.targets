@@ -1,0 +1,26 @@
+<Project>
+  <!--
+    Security rules of the analyzer are errors on their own, not only through TreatWarningsAsErrors.
+    A category key (dotnet_analyzer_diagnostic.category-Security.severity) cannot do it: under
+    AnalysisLevel latest-all the SDK adds analysislevel_<n>_all.globalconfig, which sets every CA
+    rule by id (CA5351 = warning), and an id entry beats a category entry, in .editorconfig and in
+    .globalconfig alike. This adds the SDK's own list of Security rules at error
+    (analysislevelsecurity_<n>_all_warnaserror, global_level -99, above the -100 of the general
+    list), so no list of rule ids is kept by hand. A missing list fails the build instead of
+    silently leaving the rules at warning.
+  -->
+  <Target Name="AddSecurityRulesAsErrors" BeforeTargets="CoreCompile">
+    <PropertyGroup>
+      <_SecurityRulesVersion>$([System.Text.RegularExpressions.Regex]::Replace('$(EffectiveAnalysisLevel)', '(\.0)*$', ''))</_SecurityRulesVersion>
+      <_SecurityRulesName>analysislevelsecurity_$(_SecurityRulesVersion)_all_warnaserror.globalconfig</_SecurityRulesName>
+      <_SecurityRulesFile>$(MSBuildSDKsPath)/Microsoft.NET.Sdk/analyzers/build/config/$(_SecurityRulesName)</_SecurityRulesFile>
+    </PropertyGroup>
+
+    <Error Condition="!Exists('$(_SecurityRulesFile)')"
+           Text="The SDK has no $(_SecurityRulesName): the security rules of the analyzer would not be errors." />
+
+    <ItemGroup>
+      <EditorConfigFiles Include="$(_SecurityRulesFile)" />
+    </ItemGroup>
+  </Target>
+</Project>

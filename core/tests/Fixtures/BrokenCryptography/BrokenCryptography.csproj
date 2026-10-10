@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Must NOT compile: proves that a security rule of the analyzer is an error on its own
+    (core/build/SecurityAnalyzers.targets). Warnings stay warnings here, so only that mechanism
+    can fail this build.
+  -->
+  <PropertyGroup>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <MSBuildTreatWarningsAsErrors>false</MSBuildTreatWarningsAsErrors>
+  </PropertyGroup>
+</Project>

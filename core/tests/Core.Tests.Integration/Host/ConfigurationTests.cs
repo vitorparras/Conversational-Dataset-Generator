@@ -39,6 +39,20 @@ public sealed class ConfigurationTests
     }
 
     [Fact]
+    public async Task KnownKeyWithNullRefusesToStartInsteadOfTakingTheDefault()
+    {
+        using var installation = HostInstallation.Create();
+        installation.WriteSettings("""{ "Server": { "Port": "0", "Address": null } }""");
+        await using var host = installation.Start();
+
+        var exitCode = await host.WaitForExitAsync(ExitTimeout);
+
+        Assert.Equal(ExitCodes.ConfigurationRefused, exitCode);
+        Assert.Contains("'Server:Address'", host.Output, StringComparison.Ordinal);
+        Assert.Contains("encontrado 'null'", host.Output, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task ValueOutsideTheFormatRefusesToStartAndSaysWhatWasFound()
     {
         using var installation = HostInstallation.Create();

@@ -85,23 +85,35 @@ public sealed record ConfigurationKey
         return new(name, required: false, defaultValue, protects: false, sensitive, acceptedValues, format);
     }
 
+    /// <summary>What the key accepts, as the operator reads it: the closed set, or the shape of the value.</summary>
+    public string Accepts => AcceptedValues is not null ? string.Join(", ", AcceptedValues) : FormatDescription(Format);
+
     /// <summary>Says what the key would accept when it refuses <paramref name="value"/>; null when it accepts.</summary>
     public string? Check(string value)
     {
         ArgumentNullException.ThrowIfNull(value);
         if (AcceptedValues is not null && !AcceptedValues.Contains(value, StringComparer.Ordinal))
         {
-            return string.Join(", ", AcceptedValues);
+            return Accepts;
         }
 
-        return Format switch
+        var fits = Format switch
         {
-            ValueFormat.Text => null,
-            ValueFormat.Port => IsPort(value) ? null : "um número de porta entre 0 e 65535",
-            ValueFormat.IpAddress => IPAddress.TryParse(value, out _) ? null : "um endereço IP",
+            ValueFormat.Text => true,
+            ValueFormat.Port => IsPort(value),
+            ValueFormat.IpAddress => IPAddress.TryParse(value, out _),
             _ => throw new InvalidOperationException($"unknown format {Format}"),
         };
+        return fits ? null : FormatDescription(Format);
     }
+
+    private static string FormatDescription(ValueFormat format) => format switch
+    {
+        ValueFormat.Text => "qualquer texto",
+        ValueFormat.Port => "um número de porta entre 0 e 65535",
+        ValueFormat.IpAddress => "um endereço IP",
+        _ => throw new InvalidOperationException($"unknown format {format}"),
+    };
 
     private static bool IsPort(string value) =>
         int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var port) && port <= 65535;

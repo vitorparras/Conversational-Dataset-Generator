@@ -18,7 +18,7 @@ public static class ClosedConfiguration
         ArgumentNullException.ThrowIfNull(schema);
 
         var problems = new List<ConfigurationProblem>();
-        var values = new Dictionary<string, (string Value, ConfigurationOrigin Origin)>(StringComparer.OrdinalIgnoreCase);
+        var values = new Dictionary<string, (string? Value, ConfigurationOrigin Origin)>(StringComparer.OrdinalIgnoreCase);
 
         // OrderBy is stable: sources of the same origin keep the order they were given in.
         foreach (var source in sources.OrderBy(s => s.Origin))
@@ -39,11 +39,9 @@ public static class ClosedConfiguration
                     continue;
                 }
 
-                // A known key with no value declares nothing: the key is missing or takes its default.
-                if (value is not null)
-                {
-                    values[declared] = (value, source.Origin);
-                }
+                // A known key written with null (or {}) is declared with a value it does not accept,
+                // not left undeclared: null is never the default (requirement 032 CA-3).
+                values[declared] = (value, source.Origin);
             }
         }
 
@@ -62,6 +60,12 @@ public static class ClosedConfiguration
                 continue;
             }
 
+            if (found.Value is null)
+            {
+                problems.Add(new(ConfigurationProblemKind.ValueNotAccepted, path, found.Origin, "null", key.Accepts));
+                continue;
+            }
+
             var accepted = key.Check(found.Value);
             if (accepted is not null)
             {
@@ -72,7 +76,9 @@ public static class ClosedConfiguration
 
         return problems.Count > 0
             ? ConfigurationLoadResult.Refusal(problems)
-            : ConfigurationLoadResult.Loaded(new EffectiveConfiguration(schema, values));
+            : ConfigurationLoadResult.Loaded(new EffectiveConfiguration(
+                schema,
+                values.ToDictionary(pair => pair.Key, pair => (pair.Value.Value!, pair.Value.Origin), StringComparer.OrdinalIgnoreCase)));
     }
 
     /// <summary>

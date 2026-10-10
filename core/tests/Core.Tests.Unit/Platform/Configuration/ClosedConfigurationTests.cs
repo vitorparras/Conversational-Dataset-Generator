@@ -83,6 +83,47 @@ public sealed class ClosedConfigurationTests : IDisposable
     }
 
     [Fact]
+    public void EmptyDeclaredSectionWithARequiredKeyRefusesNamingWhatIsMissing()
+    {
+        var result = ClosedConfiguration.Load([WriteFile("""{ "Sample": {} }""")], Schema);
+
+        var problem = Assert.Single(result.Problems);
+        Assert.Equal((ConfigurationProblemKind.MissingKey, "Sample:Threshold"), (problem.Kind, problem.Key));
+    }
+
+    // Requirement 032 CA-3: a known key written with null (or {}) is declared with a value it does
+    // not accept, not left undeclared. Null is never the default, not even where a default exists.
+    [Theory]
+    [InlineData("""{ "Sample": { "Threshold": null } }""", "Sample:Threshold", "qualquer texto")]
+    [InlineData("""{ "Sample": { "Threshold": {} } }""", "Sample:Threshold", "qualquer texto")]
+    [InlineData("""{ "Sample": { "Threshold": "3", "Mode": null } }""", "Sample:Mode", "strict, lenient")]
+    [InlineData("""{ "Sample": { "Threshold": "3", "Port": null } }""", "Sample:Port", "um número de porta entre 0 e 65535")]
+    public void KnownKeyWithNullRefusesSayingWhatWasFoundAndWhatIsAccepted(string json, string key, string accepted)
+    {
+        var result = ClosedConfiguration.Load([WriteFile(json)], Schema);
+
+        Assert.True(result.Refused);
+        var problem = Assert.Single(result.Problems);
+        Assert.Equal(ConfigurationProblemKind.ValueNotAccepted, problem.Kind);
+        Assert.Equal((key, ConfigurationOrigin.File), (problem.Key, problem.Origin));
+        Assert.Equal(("null", accepted), (problem.Found, problem.Accepted));
+        Assert.Contains($"'{key}'", problem.Describe(), StringComparison.Ordinal);
+        Assert.Contains("encontrado 'null'", problem.Describe(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void NullInTheFileOverriddenByAValidValueIsJudgedLikeAnyOverriddenValue()
+    {
+        var configuration = Loaded(
+        [
+            WriteFile("""{ "Sample": { "Threshold": null } }"""),
+            Memory(ConfigurationOrigin.Environment, ("Sample:Threshold", "3")),
+        ]);
+
+        Assert.Equal(("3", ConfigurationOrigin.Environment), (configuration.Get("Sample:Threshold"), configuration.OriginOf("Sample:Threshold")));
+    }
+
+    [Fact]
     public void RequiredKeyMissingRefusesAndIsNamedWithoutDefault()
     {
         var result = ClosedConfiguration.Load([Memory(ConfigurationOrigin.File)], Schema);

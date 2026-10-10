@@ -2,4 +2,10 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Core.Host\Core.Host.csproj" />
   </ItemGroup>
+
+  <!-- The startup log tests run the real host with the integration project's helpers. -->
+  <ItemGroup>
+    <Compile Include="..\Core.Tests.Integration\Host\HostInstallation.cs" Link="Host\HostInstallation.cs" />
+    <Compile Include="..\Core.Tests.Integration\Host\HostProcess.cs" Link="Host\HostProcess.cs" />
+  </ItemGroup>
 </Project>

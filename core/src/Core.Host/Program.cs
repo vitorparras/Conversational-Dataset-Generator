@@ -30,6 +30,9 @@ if (load.Configuration is not { } configuration)
 // 2. Log path, with redaction, before the first line is written.
 var builder = WebApplication.CreateEmptyBuilder(new WebApplicationOptions { ContentRootPath = AppContext.BaseDirectory });
 builder.Services.AddPlatformLogging(configuration);
+// The lifetime's status lines print the content root, an absolute path that carries the account
+// name under a user profile (requirement 021). The host writes its own lines instead.
+builder.Services.Configure<ConsoleLifetimeOptions>(options => options.SuppressStatusMessages = true);
 builder.WebHost.UseKestrelCore();
 builder.WebHost.ConfigureKestrel(kestrel => kestrel.Listen(
     IPAddress.Parse(configuration.Get(HostConfiguration.Address)),

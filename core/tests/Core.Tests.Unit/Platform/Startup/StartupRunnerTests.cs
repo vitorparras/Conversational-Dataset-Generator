@@ -62,8 +62,9 @@ public sealed class StartupRunnerTests : IDisposable
         Assert.Equal(CheckStatus.Failed, result.Status);
         Assert.Equal("bundled-file:model.bin", result.Name);
         Assert.Contains("'model.bin'", result.Message, StringComparison.Ordinal);
-        Assert.Contains(Path.Combine(directory.FullName, "model.bin"), result.ExpectedSource, StringComparison.Ordinal);
+        Assert.Contains("'model.bin' na pasta do executável", result.ExpectedSource, StringComparison.Ordinal);
         Assert.Contains("Installation:BundledFiles (arquivo)", result.ExpectedSource, StringComparison.Ordinal);
+        Assert.DoesNotContain(directory.FullName, result.ExpectedSource, StringComparison.Ordinal);
     }
 
     [Fact]

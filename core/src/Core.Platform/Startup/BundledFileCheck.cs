@@ -46,8 +46,11 @@ public sealed class BundledFileCheck : IStartupCheck
     /// <inheritdoc />
     public Task<CheckResult> RunAsync(CancellationToken cancellationToken)
     {
+        // Named as declared, never resolved: the resolved path carries the installation folder and,
+        // under a user profile, the account name, and this text goes to the log (requirement 021).
+        var place = Path.IsPathRooted(declaredPath) ? $"'{declaredPath}'" : $"'{declaredPath}' na pasta do executável";
         var expectedSource =
-            $"acompanha a instalação, em {fullPath}, declarado em {BundledFiles} ({ConfigurationProblem.OriginName(origin)})";
+            $"acompanha a instalação, em {place}, declarado em {BundledFiles} ({ConfigurationProblem.OriginName(origin)})";
         var result = File.Exists(fullPath)
             ? CheckResult.Pass(Name, "presente", expectedSource)
             : CheckResult.Fail(Name, $"recurso ausente '{declaredPath}'", expectedSource);

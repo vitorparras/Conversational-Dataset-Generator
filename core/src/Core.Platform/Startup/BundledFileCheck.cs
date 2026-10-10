@@ -11,7 +11,8 @@ public sealed class BundledFileCheck : IStartupCheck
     /// <summary>The declared files, separated by <c>;</c>; relative paths are next to the executable.</summary>
     public const string BundledFiles = "Installation:BundledFiles";
 
-    private readonly string declaredPath;
+    private readonly bool absolute;
+    private readonly string shown;
     private readonly string fullPath;
     private readonly ConfigurationOrigin origin;
 
@@ -20,7 +21,13 @@ public sealed class BundledFileCheck : IStartupCheck
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(declaredPath);
         ArgumentNullException.ThrowIfNull(baseDirectory);
-        this.declaredPath = declaredPath;
+        // What the log and the status show: a relative path as declared; of an absolute one, only the
+        // file name. An absolute path is accepted (it may point at another volume), but it carries
+        // the machine's folders and, under a user profile, the account name, and never reaches the
+        // log (requirement 021); the key named in the same line says where to look. The resolved path
+        // is never shown either: it carries the installation folder.
+        absolute = Path.IsPathRooted(declaredPath);
+        shown = absolute ? Path.GetFileName(declaredPath) : declaredPath;
         fullPath = Path.GetFullPath(declaredPath, baseDirectory);
         this.origin = origin;
     }
@@ -31,7 +38,7 @@ public sealed class BundledFileCheck : IStartupCheck
         [ConfigurationKey.WithDefault("BundledFiles", string.Empty)]);
 
     /// <inheritdoc />
-    public string Name => "bundled-file:" + declaredPath;
+    public string Name => "bundled-file:" + shown;
 
     /// <summary>One check per file the configuration declares, in the order declared.</summary>
     public static IReadOnlyList<IStartupCheck> FromConfiguration(EffectiveConfiguration configuration, string baseDirectory)
@@ -46,14 +53,12 @@ public sealed class BundledFileCheck : IStartupCheck
     /// <inheritdoc />
     public Task<CheckResult> RunAsync(CancellationToken cancellationToken)
     {
-        // Named as declared, never resolved: the resolved path carries the installation folder and,
-        // under a user profile, the account name, and this text goes to the log (requirement 021).
-        var place = Path.IsPathRooted(declaredPath) ? $"'{declaredPath}'" : $"'{declaredPath}' na pasta do executável";
+        var place = absolute ? $"'{shown}', no caminho absoluto" : $"'{shown}' na pasta do executável";
         var expectedSource =
             $"acompanha a instalação, em {place}, declarado em {BundledFiles} ({ConfigurationProblem.OriginName(origin)})";
         var result = File.Exists(fullPath)
             ? CheckResult.Pass(Name, "presente", expectedSource)
-            : CheckResult.Fail(Name, $"recurso ausente '{declaredPath}'", expectedSource);
+            : CheckResult.Fail(Name, $"recurso ausente '{shown}'", expectedSource);
         return Task.FromResult(result);
     }
 }

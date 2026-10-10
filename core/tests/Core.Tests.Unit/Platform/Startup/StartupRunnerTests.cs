@@ -67,6 +67,29 @@ public sealed class StartupRunnerTests : IDisposable
         Assert.DoesNotContain(directory.FullName, result.ExpectedSource, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task BundledFileDeclaredWithAnAbsolutePathIsNamedByItsFileNameOnly(bool present)
+    {
+        var declared = Path.Combine(directory.CreateSubdirectory("elsewhere").FullName, "zqx-model.bin");
+        if (present)
+        {
+            await File.WriteAllTextAsync(declared, "x", TestContext.Current.CancellationToken);
+        }
+
+        var check = new BundledFileCheck(declared, AppContext.BaseDirectory, ConfigurationOrigin.File);
+        var result = await check.RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            ("bundled-file:zqx-model.bin", present ? CheckStatus.Passed : CheckStatus.Failed),
+            (result.Name, result.Status));
+        Assert.Contains("'zqx-model.bin', no caminho absoluto", result.ExpectedSource, StringComparison.Ordinal);
+        Assert.Contains("Installation:BundledFiles (arquivo)", result.ExpectedSource, StringComparison.Ordinal);
+        string[] shown = [result.Name, result.Message, result.ExpectedSource];
+        Assert.All(shown, text => Assert.DoesNotContain(directory.FullName, text, StringComparison.OrdinalIgnoreCase));
+    }
+
     [Fact]
     public void EveryDeclaredFileBecomesOneCheckInTheDeclaredOrder()
     {

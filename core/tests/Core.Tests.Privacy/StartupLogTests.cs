@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Core.Tests.Integration.Host;
 
 namespace Core.Tests.Privacy;
@@ -42,13 +43,63 @@ public sealed class StartupLogTests
             installation);
     }
 
-    private static void AssertNoAbsolutePath(string log, HostInstallation installation)
+    // An absolute path may be declared (another volume is legitimate), but the log names only the
+    // file and the key: the declared folders never reach it, present or absent.
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task AbsolutePathDeclaredInTheConfigurationNeverReachesTheLog(bool present)
+    {
+        var token = TestContext.Current.CancellationToken;
+        var elsewhere = Directory.CreateTempSubdirectory("cdg-elsewhere-");
+        try
+        {
+            var declared = Path.Combine(elsewhere.FullName, "zqx-model.bin");
+            if (present)
+            {
+                await File.WriteAllTextAsync(declared, "x", token);
+            }
+
+            using var installation = HostInstallation.Create();
+            installation.WriteSettings(JsonSerializer.Serialize(new
+            {
+                Server = new { Port = "0" },
+                Installation = new { BundledFiles = declared },
+                Logging = new { FilePath = "logs/core.log" },
+            }));
+            await using var host = installation.Start();
+
+            if (present)
+            {
+                Assert.True(await host.WaitForOutputAsync("Núcleo ouvindo", Timeout), host.Output);
+            }
+            else
+            {
+                _ = await host.WaitForExitAsync(Timeout);
+                AssertNoAbsolutePath(
+                    await File.ReadAllTextAsync(Path.Combine(installation.Directory.FullName, "logs", "core.log"), token),
+                    installation,
+                    elsewhere.FullName);
+            }
+
+            Assert.Contains("Conferência bundled-file:zqx-model.bin:", host.Output, StringComparison.Ordinal);
+            AssertNoAbsolutePath(host.Output, installation, elsewhere.FullName);
+        }
+        finally
+        {
+            elsewhere.Delete(recursive: true);
+        }
+    }
+
+    private static void AssertNoAbsolutePath(string log, HostInstallation installation, params string[] declaredFolders)
     {
         Assert.NotEmpty(log);
-        var folder = installation.Directory.FullName.TrimEnd(Path.DirectorySeparatorChar);
+        var folders = declaredFolders.Append(installation.Directory.FullName)
+            .Select(folder => folder.TrimEnd(Path.DirectorySeparatorChar))
+            .ToList();
         Assert.All(log.Split('\n'), line =>
         {
-            Assert.DoesNotContain(folder, line, StringComparison.OrdinalIgnoreCase);
+            Assert.All(folders, folder => Assert.DoesNotContain(folder, line, StringComparison.OrdinalIgnoreCase));
             Assert.DoesNotContain(@":\", line, StringComparison.Ordinal);
             Assert.DoesNotContain("/home/", line, StringComparison.Ordinal);
         });

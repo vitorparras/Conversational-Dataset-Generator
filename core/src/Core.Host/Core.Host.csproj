@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Core.Platform\Core.Platform.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Core.Tests.Unit" />
+    <InternalsVisibleTo Include="Core.Tests.Privacy" />
+    <InternalsVisibleTo Include="Core.Tests.Properties" />
+  </ItemGroup>
+</Project>

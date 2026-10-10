@@ -48,7 +48,7 @@ possa consultar. Argumento que precisa de referência externa não se sustenta.
 
 ## Antes de escrever
 
-Leia `docs/regras-de-escrita.md`. A verificação em `ferramentas/verifica-docs/` impõe a maior parte
+Leia `docs/regras-de-escrita.md`. A verificação em `tools/verify-docs/` impõe a maior parte
 daquelas regras e reprova o pull request que as viole — rode-a antes de propor qualquer mudança.
 
 ## O que reprova um trabalho

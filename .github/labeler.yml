@@ -10,7 +10,7 @@ processo:
   - changed-files:
       - any-glob-to-any-file:
           - '.github/**'
-          - 'ferramentas/**'
+          - 'tools/**'
 
 decisao:
   - changed-files:

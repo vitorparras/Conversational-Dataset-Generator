@@ -2,7 +2,7 @@
 
 > Operacional. Vale para todo documento deste repositório.
 
-A verificação automática (`ferramentas/verifica-docs/verificar.py`) reprova quem viole as regras 1,
+A verificação automática (`tools/verify-docs/verify.py`) reprova quem viole as regras 1,
 4, 5 e 7. **As outras — 2, 3, 6, 8 e 9 — dependem de quem revisa**, e custam mais ao se perder.
 
 ## 1. Declare a autoridade

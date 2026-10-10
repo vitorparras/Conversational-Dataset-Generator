@@ -28,9 +28,9 @@ a hierarquia de autoridade entre os documentos.
 ## Verificação local
 
 ```
-python ferramentas/verifica-docs/verificar.py
-python ferramentas/verifica-docs/verificar.py --apenas dados,links
-python ferramentas/verifica-docs/verificar.py --lista
+python tools/verify-docs/verify.py
+python tools/verify-docs/verify.py --only data,links
+python tools/verify-docs/verify.py --list
 ```
 
 ## Licença

@@ -36,3 +36,6 @@ __pycache__/
 # Sistema
 Thumbs.db
 desktop.ini
+
+# Memória de trabalho local dos agentes (autoridade zero; não versionada)
+.specs/

@@ -14,7 +14,7 @@ documento operacional, e o arranjo que faz propriedade, mutação e cobertura ro
 Entra o esqueleto das duas partes da decisão [0002](../decisoes/0002-stack.md) — o núcleo e o
 serviço de linguagem como processo separado, ambos vazios de domínio — e a construção que empacota
 tudo num executável único. A verificação da documentação já existe em
-`ferramentas/verifica-docs/verificar.py`; esta fase estende a mesma régua ao código.
+`tools/verify-docs/verify.py`; esta fase estende a mesma régua ao código.
 
 Entra, por fim, a redação de campo sensível no próprio pipeline de log. É mecanismo de plataforma e
 custa pouco agora; instalado depois, cada log escrito no intervalo é candidato a resíduo.

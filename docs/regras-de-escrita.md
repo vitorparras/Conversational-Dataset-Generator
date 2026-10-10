@@ -2,7 +2,7 @@
 
 > Operacional. Vale para todo documento deste repositório.
 
-A verificação automática (`ferramentas/verifica-docs/verificar.py`) reprova quem viole as regras 1,
+A verificação automática (`tools/verify-docs/verify.py`) reprova quem viole as regras 1,
 4, 5 e 7. **As outras — 2, 3, 6, 8 e 9 — dependem de quem revisa**, e custam mais ao se perder.
 
 ## 1. Declare a autoridade
@@ -57,4 +57,4 @@ Documento substituído mantém o número e muda a linha de autoridade.
 
 ## 9. Idioma
 
-Português brasileiro, com acentuação correta. Identificadores de código em inglês.
+Português, com acentuação correta, no que a pessoa lê; inglês, fora de `docs/`, no que a ferramenta resolve — ver [decisão 0039](decisoes/0039-idioma-do-codigo-e-do-texto.md).

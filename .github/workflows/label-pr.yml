@@ -9,7 +9,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  rotular:
+  label:
     name: Aplicar rótulos por caminho alterado
     runs-on: ubuntu-latest
     steps:

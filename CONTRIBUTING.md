@@ -18,14 +18,14 @@ automática precisa passar. Sem exceção, inclusive para quem mantém.
 Para qualquer coisa que não seja correção trivial, **abra a issue e espere alinhamento antes de
 escrever**. Trabalho descartado desmotiva mais que espera.
 
-## Commits
+## Commits e branches
 
-[Conventional Commits](https://www.conventionalcommits.org): `tipo(escopo): descrição`, imperativo,
-minúscula, sem ponto final, até cerca de 72 caracteres.
-
-Um assunto por commit. Corpo só quando acrescenta o que o título não diz. **Nenhuma linha de
-atribuição a ferramenta ou agente de IA** — quem assina responde pelo commit; a declaração de uso de
-agente vai no campo próprio do gabarito de pull request.
+Branch `<tipo>/<slug>`, com o mesmo tipo do commit (`feat`, `fix`, `docs`, `chore`, `ci`, `test`,
+`build`, `refactor`); slug curto, minúsculas, hífens, sem acento; issue única vai na frente, como em
+feat/37-comando-unico. [Conventional Commits](https://www.conventionalcommits.org) no commit:
+`tipo(escopo): descrição`, imperativo, minúscula, sem ponto final, até 72 caracteres. Um assunto
+por commit; corpo só quando acrescenta o que o título não diz. **Nenhuma linha de atribuição a
+ferramenta ou agente de IA** — quem assina responde; a declaração de uso vai no gabarito de PR.
 
 ## Se você discorda de uma decisão
 

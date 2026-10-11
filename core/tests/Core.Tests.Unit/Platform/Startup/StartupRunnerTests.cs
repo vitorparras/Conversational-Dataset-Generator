@@ -45,22 +45,22 @@ public sealed class StartupRunnerTests : IDisposable
     public async Task BundledFilePresentPasses()
     {
         await File.WriteAllTextAsync(Path.Combine(directory.FullName, "model.bin"), "x", TestContext.Current.CancellationToken);
-        var check = new BundledFileCheck("model.bin", directory.FullName, ConfigurationOrigin.File);
+        var check = new BundledFileCheck("model.bin", 0, directory.FullName, ConfigurationOrigin.File);
 
         var result = await check.RunAsync(TestContext.Current.CancellationToken);
 
-        Assert.Equal(("bundled-file:model.bin", CheckStatus.Passed), (result.Name, result.Status));
+        Assert.Equal(("Installation:BundledFiles[0]: model.bin", CheckStatus.Passed), (result.Name, result.Status));
     }
 
     [Fact]
     public async Task BundledFileAbsentFailsNamingTheItemAndWhereItShouldComeFrom()
     {
-        var check = new BundledFileCheck("model.bin", directory.FullName, ConfigurationOrigin.File);
+        var check = new BundledFileCheck("model.bin", 0, directory.FullName, ConfigurationOrigin.File);
 
         var result = await check.RunAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(CheckStatus.Failed, result.Status);
-        Assert.Equal("bundled-file:model.bin", result.Name);
+        Assert.Equal("Installation:BundledFiles[0]: model.bin", result.Name);
         Assert.Contains("'model.bin'", result.Message, StringComparison.Ordinal);
         Assert.Contains("'model.bin' na pasta do executável", result.ExpectedSource, StringComparison.Ordinal);
         Assert.Contains("Installation:BundledFiles (arquivo)", result.ExpectedSource, StringComparison.Ordinal);
@@ -78,11 +78,11 @@ public sealed class StartupRunnerTests : IDisposable
             await File.WriteAllTextAsync(declared, "x", TestContext.Current.CancellationToken);
         }
 
-        var check = new BundledFileCheck(declared, AppContext.BaseDirectory, ConfigurationOrigin.File);
+        var check = new BundledFileCheck(declared, 0, AppContext.BaseDirectory, ConfigurationOrigin.File);
         var result = await check.RunAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(
-            ("bundled-file:zqx-model.bin", present ? CheckStatus.Passed : CheckStatus.Failed),
+            ("Installation:BundledFiles[0]: zqx-model.bin", present ? CheckStatus.Passed : CheckStatus.Failed),
             (result.Name, result.Status));
         Assert.Contains("'zqx-model.bin', no caminho absoluto", result.ExpectedSource, StringComparison.Ordinal);
         Assert.Contains("Installation:BundledFiles (arquivo)", result.ExpectedSource, StringComparison.Ordinal);
@@ -99,7 +99,33 @@ public sealed class StartupRunnerTests : IDisposable
 
         var checks = BundledFileCheck.FromConfiguration(configuration, directory.FullName);
 
-        Assert.Equal(["bundled-file:b.bin", "bundled-file:a.bin"], checks.Select(c => c.Name));
+        Assert.Equal(["Installation:BundledFiles[0]: b.bin", "Installation:BundledFiles[1]: a.bin"], checks.Select(c => c.Name));
+    }
+
+    [Fact]
+    public async Task TwoAbsolutePathsWithTheSameFileNameAreToldApartWithoutTheirFolders()
+    {
+        var first = Path.Combine(directory.CreateSubdirectory("first").FullName, "zqx-model.bin");
+        var second = Path.Combine(directory.CreateSubdirectory("second").FullName, "zqx-model.bin");
+        var configuration = ClosedConfiguration.Load(
+            [ConfigurationSources.Arguments([$"--Installation:BundledFiles={first};{second}"])],
+            new ConfigurationSchema([BundledFileCheck.Section])).Configuration!;
+
+        var checks = BundledFileCheck.FromConfiguration(configuration, AppContext.BaseDirectory);
+        var results = new List<CheckResult>();
+        foreach (var check in checks)
+        {
+            results.Add(await check.RunAsync(TestContext.Current.CancellationToken));
+        }
+
+        Assert.Equal(
+            ["Installation:BundledFiles[0]: zqx-model.bin", "Installation:BundledFiles[1]: zqx-model.bin"],
+            checks.Select(c => c.Name));
+        Assert.All(results, result =>
+        {
+            string[] shown = [result.Name, result.Message, result.ExpectedSource];
+            Assert.All(shown, text => Assert.DoesNotContain(directory.FullName, text, StringComparison.OrdinalIgnoreCase));
+        });
     }
 
     private sealed class RecordingCheck(string name, CheckStatus status, List<string> ran) : IStartupCheck

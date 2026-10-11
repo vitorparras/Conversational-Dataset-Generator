@@ -19,7 +19,7 @@ public sealed class StartupTests
         var exitCode = await host.WaitForExitAsync(ExitTimeout);
 
         Assert.Equal(ExitCodes.StartupCheckFailed, exitCode);
-        Assert.Contains("Conferência bundled-file:models/zqx-model.bin: reprovada", host.Output, StringComparison.Ordinal);
+        Assert.Contains("Conferência Installation:BundledFiles[0]: models/zqx-model.bin: reprovada", host.Output, StringComparison.Ordinal);
         Assert.Contains("recurso ausente 'models/zqx-model.bin'", host.Output, StringComparison.Ordinal);
         Assert.Contains("declarado em Installation:BundledFiles (arquivo)", host.Output, StringComparison.Ordinal);
         Assert.DoesNotContain("Núcleo ouvindo", host.Output, StringComparison.Ordinal);
@@ -44,7 +44,7 @@ public sealed class StartupTests
         Assert.True(status.GetProperty("alive").GetBoolean());
         Assert.True(status.GetProperty("ready").GetBoolean());
         var check = Assert.Single(status.GetProperty("checks").EnumerateArray());
-        Assert.Equal("bundled-file:models/zqx-model.bin", check.GetProperty("name").GetString());
+        Assert.Equal("Installation:BundledFiles[0]: models/zqx-model.bin", check.GetProperty("name").GetString());
         Assert.Equal("passed", check.GetProperty("status").GetString());
     }
 

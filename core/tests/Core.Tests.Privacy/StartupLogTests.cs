@@ -82,7 +82,7 @@ public sealed class StartupLogTests
                     elsewhere.FullName);
             }
 
-            Assert.Contains("Conferência bundled-file:zqx-model.bin:", host.Output, StringComparison.Ordinal);
+            Assert.Contains("Conferência Installation:BundledFiles[0]: zqx-model.bin:", host.Output, StringComparison.Ordinal);
             AssertNoAbsolutePath(host.Output, installation, elsewhere.FullName);
         }
         finally

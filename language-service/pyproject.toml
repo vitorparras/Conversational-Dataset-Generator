@@ -20,6 +20,7 @@ dev = [
     "pytest-cov>=6",
     "hypothesis>=6.120",
     "httpx>=0.28",
+    "mutmut>=3.8.0",
 ]
 
 [build-system]

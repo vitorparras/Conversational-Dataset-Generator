@@ -1,0 +1,49 @@
+[project]
+name = "language_service"
+version = "0.1.0"
+description = "Local language service of the Conversational Dataset Generator: returns pointers, never transformed text."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = "AGPL-3.0-only"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn>=0.34",
+    "pydantic>=2.10",
+]
+
+[project.scripts]
+language-service = "language_service.__main__:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-cov>=6",
+    "hypothesis>=6.120",
+    "httpx>=0.28",
+]
+
+[build-system]
+requires = ["uv_build>=0.11,<0.12"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "language_service"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["tests"]
+addopts = "--strict-markers --strict-config -ra"
+filterwarnings = [
+    "ignore:Using .httpx. with .starlette.testclient. is deprecated",
+]
+markers = [
+    "privacy: sweeps everything the service wrote for the seeded marker (requirement 021, issue 33)",
+    "integration: starts the real server in a child process",
+]
+
+[tool.coverage.run]
+source = ["language_service"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true

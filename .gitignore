@@ -39,3 +39,8 @@ desktop.ini
 
 # Memória de trabalho local dos agentes (autoridade zero; não versionada)
 .specs/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml

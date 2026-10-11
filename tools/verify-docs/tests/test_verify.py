@@ -223,7 +223,7 @@ class VerifyDocsTests(unittest.TestCase):
     # --- ignored directories --------------------------------------------------------
 
     def test_ignored_directories_are_not_verified(self) -> None:
-        for ignored in (".specs", "tools", ".github"):
+        for ignored in (".specs", "tools", ".github", "language-service/.venv/Lib/site-packages/pkg"):
             self.write(f"{ignored}/note.md", "# Sem autoridade\n\nTexto.\n")
         self.write("docs/001-valid.md", VALID_DOC)
         code, output = run_verifier(self.root)

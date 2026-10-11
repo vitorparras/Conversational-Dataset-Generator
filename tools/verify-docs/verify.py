@@ -33,7 +33,11 @@ from pathlib import Path
 DEFAULT_ROOT = Path(__file__).resolve().parents[2]
 
 #: Directories that are not project documentation.
-IGNORED = {".git", ".github", ".specs", "tools", "node_modules", "bin", "obj"}
+IGNORED = {
+    ".git", ".github", ".specs", "tools", "node_modules", "bin", "obj",
+    # Environments and caches that a build creates inside the repository: never documents of it.
+    ".venv", ".pytest_cache", ".hypothesis", "__pycache__",
+}
 
 #: Community files whose authority is obvious from the name.
 COMMUNITY_FILES = {

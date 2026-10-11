@@ -1,11 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\..\src\Core.Host\Core.Host.csproj" />
+
+    <!-- The host needs a language service to start; the tests give it the stand-in. -->
+    <ProjectReference Include="..\Fixtures\FakeLanguageService\FakeLanguageService.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <!-- The startup log tests run the real host with the integration project's helpers. -->
   <ItemGroup>
     <Compile Include="..\Core.Tests.Integration\Host\HostInstallation.cs" Link="Host\HostInstallation.cs" />
     <Compile Include="..\Core.Tests.Integration\Host\HostProcess.cs" Link="Host\HostProcess.cs" />
+    <Compile Include="..\Core.Tests.Integration\Host\LanguageServiceSetup.cs" Link="Host\LanguageServiceSetup.cs" />
   </ItemGroup>
 </Project>

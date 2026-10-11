@@ -102,6 +102,7 @@ public sealed record ConfigurationKey
             ValueFormat.Text => true,
             ValueFormat.Port => IsPort(value),
             ValueFormat.IpAddress => IPAddress.TryParse(value, out _),
+            ValueFormat.PositiveInteger => IsPositiveInteger(value),
             _ => throw new InvalidOperationException($"unknown format {Format}"),
         };
         return fits ? null : FormatDescription(Format);
@@ -112,8 +113,12 @@ public sealed record ConfigurationKey
         ValueFormat.Text => "qualquer texto",
         ValueFormat.Port => "um número de porta entre 0 e 65535",
         ValueFormat.IpAddress => "um endereço IP",
+        ValueFormat.PositiveInteger => "um número inteiro maior que zero",
         _ => throw new InvalidOperationException($"unknown format {format}"),
     };
+
+    private static bool IsPositiveInteger(string value) =>
+        int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var number) && number >= 1;
 
     private static bool IsPort(string value) =>
         int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var port) && port <= 65535;

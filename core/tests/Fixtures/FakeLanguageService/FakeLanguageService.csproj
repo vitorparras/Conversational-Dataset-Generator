@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <!--
+    A stand-in for the language service, so the tests of the host that do not care about the real
+    service start in a fraction of a second and do not need Python. It speaks only what the
+    supervision uses: the secret on standard input and an authenticated /health. Not in the solution.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+</Project>

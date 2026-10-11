@@ -11,4 +11,7 @@ public enum ValueFormat
 
     /// <summary>An IPv4 or IPv6 address.</summary>
     IpAddress = 2,
+
+    /// <summary>A whole number of at least 1, with digits only.</summary>
+    PositiveInteger = 3,
 }

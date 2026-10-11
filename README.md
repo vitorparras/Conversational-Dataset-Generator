@@ -73,6 +73,43 @@ O que nenhuma fonte declara usa o padrão da chave, quando ela tem um. O registr
 se `Logging:FilePath` tiver um caminho, também a esse arquivo; campo marcado como material,
 identidade ou segredo sai apagado nos dois.
 
+## Serviço de linguagem
+
+O serviço de linguagem é um segundo processo, em Python, que o núcleo inicia e supervisiona. Ele
+escuta só em `127.0.0.1`, recebe o segredo da partida pela entrada padrão (uma linha, e a entrada é
+fechada) e recusa todo pedido que não o traga. O segredo nunca vai em argumento, arquivo, variável
+de ambiente ou registro, e cada reinício gera um novo. Nesta fase o reconhecedor responde sempre
+"analisado, nada encontrado".
+
+Para preparar e testar, é preciso ter `uv` no PATH. Só a primeira preparação usa a rede, para baixar
+o Python 3.12 e os pacotes fixados em `language-service/uv.lock`.
+
+```
+uv sync --frozen --directory language-service
+uv run --directory language-service pytest
+```
+
+O núcleo o encontra por três chaves da configuração fechada. O comando é exigido e não tem padrão:
+sem ele a configuração é recusada. Os argumentos são separados por ponto e vírgula, e o núcleo
+acrescenta `--port` com uma porta livre.
+
+| Chave | Significado |
+|---|---|
+| `LanguageService:Command` | Executável que sobe o serviço. Exigida |
+| `LanguageService:Arguments` | Argumentos antes de `--port`, separados por `;` |
+| `LanguageService:StartupTimeoutSeconds` | Espera pela primeira resposta autenticada. Padrão 30 |
+
+```
+CDG__LanguageService__Command=uv
+CDG__LanguageService__Arguments=run;--frozen;--directory;language-service;python;-m;language_service
+```
+
+O serviço é a última conferência da inicialização: se ele não responder, o núcleo sai com código 3.
+Depois de aberta a porta, se o processo morrer, a consulta de estado segue respondendo vivo, mas
+com `ready: false`.
+Os testes do núcleo que usam o serviço real são saltados, com aviso, quando `uv` não está no PATH;
+os demais usam um serviço de teste mínimo, construído junto com a solução.
+
 ## Licença
 
 O software é [AGPL-3.0](LICENSE): qualquer um pode usar, estudar, modificar e redistribuir,

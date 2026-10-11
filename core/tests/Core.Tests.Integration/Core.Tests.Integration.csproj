@@ -6,5 +6,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Core.Host\Core.Host.csproj" />
+
+    <!-- The stand-in language service: built before the tests, run as a child process, never loaded. -->
+    <ProjectReference Include="..\Fixtures\FakeLanguageService\FakeLanguageService.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 </Project>

@@ -5,6 +5,7 @@ using System.Net;
 using System.Text;
 using Core.Host;
 using Core.Host.Endpoints;
+using Core.Host.Supervision;
 using Core.Platform.Configuration;
 using Core.Platform.Logging;
 using Core.Platform.Startup;
@@ -14,7 +15,7 @@ using Core.Platform.Versioning;
 Console.OutputEncoding = Encoding.UTF8;
 
 // 1. Configuration. Refused before anything else exists, so it goes to standard error.
-var schema = new ConfigurationSchema([HostConfiguration.Server, PlatformLogging.Section, BundledFileCheck.Section]);
+var schema = new ConfigurationSchema([HostConfiguration.Server, PlatformLogging.Section, BundledFileCheck.Section, LanguageServiceConfiguration.Section]);
 var load = ClosedConfiguration.Load(ConfigurationSources.Standard(AppContext.BaseDirectory, args), schema);
 if (load.Configuration is not { } configuration)
 {
@@ -42,6 +43,7 @@ builder.Services.AddRoutingCore();
 var app = builder.Build();
 var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Core.Host");
 var exitCode = ExitCodes.Requested;
+var languageService = new LanguageServiceSupervisor(LanguageServiceOptions.FromConfiguration(configuration), logger);
 try
 {
     // The versions go to the log first, so they outlive the process (issue 51 CA-3).
@@ -52,7 +54,8 @@ try
     }
 
     // 3. Startup checks, in this order, before the port opens.
-    IReadOnlyList<IStartupCheck> checks = [.. BundledFileCheck.FromConfiguration(configuration, AppContext.BaseDirectory)];
+    // The language service is last: it is the slowest check, and the files it may need come first.
+    IReadOnlyList<IStartupCheck> checks = [.. BundledFileCheck.FromConfiguration(configuration, AppContext.BaseDirectory), languageService];
     var report = await StartupRunner.RunAsync(checks, logger, CancellationToken.None);
     if (!report.AllPassed)
     {
@@ -63,7 +66,7 @@ try
     }
 
     // 4. Port.
-    StatusEndpoint.Map(app, report);
+    StatusEndpoint.Map(app, () => languageService.Refresh(report));
     ConfigurationEndpoint.Map(app, configuration);
     VersionsEndpoint.Map(app, versions);
     await app.StartAsync();
@@ -87,6 +90,9 @@ catch (Exception exception)
 }
 finally
 {
+    // The service goes first, so its stop is logged before the last line, which stays the last.
+    await languageService.DisposeAsync();
+
     // Disposing drains the console queue and closes the file: the last line is on disk.
     logger.ShutdownCompleted(exitCode);
     await app.DisposeAsync();

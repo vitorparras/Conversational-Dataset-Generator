@@ -50,10 +50,23 @@ internal sealed class HostInstallation : IDisposable
 
     public void WriteSettings(string json) => File.WriteAllText(SettingsPath, json);
 
+    /// <summary>
+    /// Starts the host. The language service is a required part of it, so unless the test says
+    /// otherwise the host is given the stand-in service; a test's own variables win over that.
+    /// </summary>
     public HostProcess Start(
         IEnumerable<string>? arguments = null,
-        IReadOnlyDictionary<string, string?>? environment = null) =>
-        HostProcess.Start(AssemblyPath, arguments ?? [], environment);
+        IReadOnlyDictionary<string, string?>? environment = null,
+        LanguageServiceSetup? languageService = null)
+    {
+        var variables = new Dictionary<string, string?>((languageService ?? LanguageServiceSetup.Fake()).AsEnvironment());
+        foreach (var (name, value) in environment ?? new Dictionary<string, string?>())
+        {
+            variables[name] = value;
+        }
+
+        return HostProcess.Start(AssemblyPath, arguments ?? [], variables);
+    }
 
     public void Dispose()
     {

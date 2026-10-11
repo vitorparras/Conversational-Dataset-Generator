@@ -25,4 +25,11 @@ internal static class StatusEndpoint
 
     public static void Map(IEndpointRouteBuilder endpoints, StartupReport report) =>
         endpoints.MapGet(Route, () => Handle(report));
+
+    /// <summary>
+    /// The report is read on each request, so a dependency that fails after startup shows at once:
+    /// the process stays alive and stops being ready.
+    /// </summary>
+    public static void Map(IEndpointRouteBuilder endpoints, Func<StartupReport> report) =>
+        endpoints.MapGet(Route, () => Handle(report()));
 }

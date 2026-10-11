@@ -43,9 +43,11 @@ public sealed class StartupTests
 
         Assert.True(status.GetProperty("alive").GetBoolean());
         Assert.True(status.GetProperty("ready").GetBoolean());
-        var check = Assert.Single(status.GetProperty("checks").EnumerateArray());
-        Assert.Equal("Installation:BundledFiles[0]: models/zqx-model.bin", check.GetProperty("name").GetString());
-        Assert.Equal("passed", check.GetProperty("status").GetString());
+        var checks = status.GetProperty("checks").EnumerateArray().ToList();
+        Assert.Equal(
+            ["Installation:BundledFiles[0]: models/zqx-model.bin", "LanguageService"],
+            checks.Select(check => check.GetProperty("name").GetString()));
+        Assert.All(checks, check => Assert.Equal("passed", check.GetProperty("status").GetString()));
     }
 
     [Fact]

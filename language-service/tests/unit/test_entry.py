@@ -63,7 +63,7 @@ def test_main_exits_with_usage_code_when_stdin_holds_no_secret(capsys: pytest.Ca
     code = entry.main(["--port", "8123"], stdin=io.BytesIO(b""))
 
     assert code == entry.EXIT_USAGE
-    assert "secret" in capsys.readouterr().err
+    assert "segredo" in capsys.readouterr().err
 
 
 @pytest.mark.skipif(not hasattr(os, "fork"), reason="memory dumps are limited with resource.setrlimit, which exists on POSIX only")
@@ -103,3 +103,9 @@ def test_the_watch_waits_for_the_end_and_does_not_fire_before() -> None:
 
         assert gone.is_set()
 
+
+def test_the_command_line_refusal_is_in_portuguese(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit):
+        entry.parse_arguments([])
+
+    assert "argumentos inválidos" in capsys.readouterr().err

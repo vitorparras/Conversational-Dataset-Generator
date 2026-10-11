@@ -11,7 +11,7 @@ import logging
 import sys
 import threading
 from collections.abc import Callable, Sequence
-from typing import BinaryIO, Final, TextIO
+from typing import BinaryIO, Final, NoReturn, TextIO
 
 import uvicorn
 from starlette.types import ASGIApp
@@ -31,9 +31,17 @@ class SecretNotProvidedError(Exception):
     """Standard input held no usable secret."""
 
 
+class _OperatorParser(argparse.ArgumentParser):
+    """An argument parser whose refusals are in Portuguese, the language of whoever operates."""
+
+    def error(self, message: str) -> NoReturn:
+        usage = "argumentos inválidos; uso: python -m language_service --port PORTA [--log-file CAMINHO]"
+        self.exit(EXIT_USAGE, usage + "\n")
+
+
 def parse_arguments(argv: Sequence[str] | None = None) -> argparse.Namespace:
     """Read the command line. There is a port and an optional log file, and no host."""
-    parser = argparse.ArgumentParser(prog="language_service", allow_abbrev=False)
+    parser = _OperatorParser(prog="language_service", allow_abbrev=False, add_help=False)
     parser.add_argument("--port", type=int, required=True, choices=range(1, 65536), metavar="PORT")
     parser.add_argument("--log-file", default=None, metavar="PATH")
     return parser.parse_args(argv)
@@ -43,7 +51,7 @@ def read_secret(stream: BinaryIO) -> bytes:
     """Read the secret: the first line of ``stream``, without its line break."""
     line = stream.readline(MAX_SECRET_BYTES + 3).rstrip(b"\r\n")
     if not MIN_SECRET_BYTES <= len(line) <= MAX_SECRET_BYTES:
-        raise SecretNotProvidedError("standard input did not carry a secret of the expected size")
+        raise SecretNotProvidedError("a entrada padrão não trouxe um segredo do tamanho esperado")
     return line
 
 

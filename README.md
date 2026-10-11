@@ -41,8 +41,11 @@ as fontes de pacote, em `core/nuget.config`.
 dotnet restore --locked-mode core/Core.slnx
 dotnet build core/Core.slnx
 dotnet test core/Core.slnx
-dotnet run --project core/src/Core.Host
 ```
+
+O núcleo só inicia com o serviço de linguagem, e `LanguageService:Command` é exigida: sem ela a
+configuração é recusada (código de saída 2). A seção "Serviço de linguagem", abaixo, traz o
+comando completo para subir o núcleo a partir da raiz do repositório.
 
 Com o núcleo de pé, `http://127.0.0.1:5080/status` responde se o processo está vivo, se está apto
 a atender e o resultado de cada conferência feita antes de abrir a porta; a rota de configuração, no
@@ -99,10 +102,29 @@ acrescenta `--port` com uma porta livre.
 | `LanguageService:Arguments` | Argumentos antes de `--port`, separados por `;` |
 | `LanguageService:StartupTimeoutSeconds` | Espera pela primeira resposta autenticada. Padrão 30 |
 
+Os caminhos relativos valem a partir do diretório de trabalho do processo, e `dotnet run` não usa a
+raiz do repositório. Por isso o exemplo passa o caminho absoluto da pasta do serviço, montado pelo
+próprio shell. Na raiz do repositório, em bash (Linux e macOS):
+
 ```
-CDG__LanguageService__Command=uv
-CDG__LanguageService__Arguments=run;--frozen;--directory;language-service;python;-m;language_service
+uv sync --frozen --directory language-service
+svc="$PWD/language-service"
+export CDG__LanguageService__Command=uv
+export CDG__LanguageService__Arguments="run;--frozen;--directory;$svc;python;-m;language_service"
+dotnet run --project core/src/Core.Host
 ```
+
+E em PowerShell (Windows; o Git Bash converte o caminho e não serve aqui):
+
+```
+uv sync --frozen --directory language-service
+$svc = "$PWD/language-service"
+$env:CDG__LanguageService__Command = "uv"
+$env:CDG__LanguageService__Arguments = "run;--frozen;--directory;$svc;python;-m;language_service"
+dotnet run --project core/src/Core.Host
+```
+
+A lista de argumentos separa por `;` e não exprime um argumento que contenha `;`.
 
 O serviço é a última conferência da inicialização: se ele não responder, o núcleo sai com código 3.
 Depois de aberta a porta, se o processo morrer, a consulta de estado segue respondendo vivo, mas

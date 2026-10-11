@@ -3,6 +3,7 @@
 import inspect
 import io
 import os
+import threading
 
 import pytest
 
@@ -80,3 +81,25 @@ def test_core_dumps_are_disabled_where_the_system_allows() -> None:
 @pytest.mark.skipif(hasattr(os, "fork"), reason="on POSIX the function acts, and the test above proves it")
 def test_core_dump_limit_reports_that_it_cannot_act_without_posix() -> None:
     assert entry.disable_core_dumps() is False
+
+
+def test_the_watch_reports_the_end_of_the_stream() -> None:
+    gone = threading.Event()
+
+    entry.watch_parent(io.BytesIO(b""), gone.set).join(timeout=5)
+
+    assert gone.is_set()
+
+
+def test_the_watch_waits_for_the_end_and_does_not_fire_before() -> None:
+    read_end, write_end = os.pipe()
+    gone = threading.Event()
+    with os.fdopen(read_end, "rb") as stream:
+        thread = entry.watch_parent(stream, gone.set)
+        assert not gone.wait(timeout=0.5), "the watch fired while the writer was still open"
+
+        os.close(write_end)
+        thread.join(timeout=5)
+
+        assert gone.is_set()
+

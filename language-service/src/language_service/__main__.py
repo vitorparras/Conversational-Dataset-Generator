@@ -1,14 +1,16 @@
 """Entry point: ``python -m language_service --port N``.
 
-The core writes the secret to standard input, one line, and closes it. It is read once, here, and
-only its digest is kept. The host is a constant: no argument, setting or environment variable
+The core writes the secret to standard input, one line, and keeps the stream open for as long as it
+lives; the end of the stream means the core is gone, and the service stops. The secret is read
+once, here, and only its digest is kept. The host is a constant: no argument, setting or environment variable
 moves the service off the loopback interface (decision 0011).
 """
 
 import argparse
 import logging
 import sys
-from collections.abc import Sequence
+import threading
+from collections.abc import Callable, Sequence
 from typing import BinaryIO, Final, TextIO
 
 import uvicorn
@@ -43,6 +45,27 @@ def read_secret(stream: BinaryIO) -> bytes:
     if not MIN_SECRET_BYTES <= len(line) <= MAX_SECRET_BYTES:
         raise SecretNotProvidedError("standard input did not carry a secret of the expected size")
     return line
+
+
+def watch_parent(stream: BinaryIO, on_parent_gone: Callable[[], None]) -> threading.Thread:
+    """Call ``on_parent_gone`` when ``stream`` reaches its end, which is when the core is gone.
+
+    The core keeps the write end of this stream open for as long as it lives, and the system closes
+    it when the core dies, however it dies. Nothing is ever written after the secret, so the only
+    thing a read can return is the end.
+    """
+
+    def wait() -> None:
+        try:
+            while stream.read(1024):
+                pass
+        except (OSError, ValueError):
+            pass
+        on_parent_gone()
+
+    thread = threading.Thread(target=wait, name="parent-watch", daemon=True)
+    thread.start()
+    return thread
 
 
 def build_config(app: ASGIApp, port: int) -> uvicorn.Config:
@@ -93,8 +116,9 @@ def main(
 ) -> int:
     """Start the service and block until it stops; return the exit code."""
     arguments = parse_arguments(argv)
+    source = stdin if stdin is not None else sys.stdin.buffer
     try:
-        secret = read_secret(stdin if stdin is not None else sys.stdin.buffer)
+        secret = read_secret(source)
     except SecretNotProvidedError as error:
         sys.stderr.write(f"{error}\n")
         return EXIT_USAGE
@@ -114,7 +138,9 @@ def main(
     app = create_app(verifier=verifier, recognizer=recognizer, log=log)
     log.event(step="startup", outcome="ok", model_version=recognizer.model_version)
     try:
-        uvicorn.Server(build_config(app, arguments.port)).run()
+        server = uvicorn.Server(build_config(app, arguments.port))
+        watch_parent(source, lambda: setattr(server, "should_exit", True))
+        server.run()
     finally:
         if log_file is not None:
             log_file.close()

@@ -61,6 +61,33 @@ public sealed partial class SupervisedHostTests
     }
 
     [Fact]
+    public async Task ServiceEndsOnItsOwnWhenTheHostIsKilledWithoutWarning()
+    {
+        Assert.SkipUnless(LanguageServiceSetup.UvAvailable(), LanguageServiceSetup.UvMissing);
+        using var installation = HostInstallation.Create();
+        var port = HostInstallation.FreePort();
+        installation.WriteSettings(HostInstallation.SettingsWithPort(port));
+        await using var host = installation.Start(languageService: LanguageServiceSetup.Real());
+        using var client = new HostClient(host, port);
+        _ = await client.GetWhenUpAsync("/status");
+        var tree = (await ProcessCommandLines.OfTreeAsync(ServiceProcessId(host))).Select(row => row.Id).ToList();
+        Assert.All(tree, id => Assert.True(IsRunning(id)));
+
+        // The host alone, not its tree: nothing gets to run its shutdown.
+        using (var hostProcess = Process.GetProcessById(host.Id))
+        {
+            hostProcess.Kill(entireProcessTree: false);
+        }
+
+        var waited = Stopwatch.StartNew();
+        while (tree.Any(IsRunning))
+        {
+            Assert.True(waited.Elapsed < Wait, "the service outlived a host killed without warning");
+            await Task.Delay(100, TestContext.Current.CancellationToken);
+        }
+    }
+
+    [Fact]
     public async Task RequestedShutdownEndsTheService()
     {
         using var installation = HostInstallation.Create();

@@ -102,8 +102,9 @@ class RunningService:
             env=environment,
         )
         assert self._process.stdin is not None
+        # The stream stays open, as the core keeps it: its end tells the service the core is gone.
         self._process.stdin.write(self.secret.encode("ascii") + b"\n")
-        self._process.stdin.close()
+        self._process.stdin.flush()
         for name, stream in (("stdout", self._process.stdout), ("stderr", self._process.stderr)):
             thread = threading.Thread(target=self._drain, args=(name, stream), daemon=True)
             thread.start()
@@ -145,9 +146,24 @@ class RunningService:
         self.stdout_text = b"".join(self._chunks["stdout"]).decode("utf-8", "replace")
         self.stderr_text = b"".join(self._chunks["stderr"]).decode("utf-8", "replace")
 
+    def close_stdin(self) -> None:
+        """Close the stream the service watches, as the system does when the core dies."""
+        assert self._process is not None and self._process.stdin is not None
+        self._process.stdin.close()
+
+    def wait_for_exit(self, timeout: float) -> int | None:
+        """The exit code if the process ends within ``timeout`` seconds, else None."""
+        assert self._process is not None
+        try:
+            return self._process.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            return None
+
     def stop(self) -> None:
         """End the process and keep what it wrote; the files stay until ``dispose``."""
         if self._process is not None and self._process.poll() is None:
+            if self._process.stdin is not None and not self._process.stdin.closed:
+                self._process.stdin.close()
             self._process.terminate()
             try:
                 self._process.wait(timeout=10)

@@ -52,3 +52,17 @@ def test_the_secret_is_not_in_the_output() -> None:
         pass
     assert service.secret not in service.stdout_text
     assert service.secret not in service.stderr_text
+
+
+def test_service_exits_when_the_stream_from_the_core_closes() -> None:
+    # What the system does to the stream when the core dies, however it dies.
+    service = RunningService()
+    try:
+        with service:
+            service.close_stdin()
+            code = service.wait_for_exit(timeout=15)
+    finally:
+        service.dispose()
+
+    assert code is not None, "the service stayed up after the core's stream closed"
+    assert code == 0

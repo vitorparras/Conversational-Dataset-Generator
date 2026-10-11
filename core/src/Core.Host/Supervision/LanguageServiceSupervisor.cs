@@ -21,7 +21,7 @@ internal readonly record struct ServiceAvailability(bool IsAvailable, string Rea
 /// there (issue 29 CA-3 and CA-5, issue 32 CA-4).
 /// </summary>
 /// <remarks>
-/// The secret is 32 random bytes, written as one line and followed by the closing of the stream.
+/// The secret is 32 random bytes, written as one line; the stream stays open for the life of the child.
 /// It is never an argument, a file, an environment variable or a log value. A restart is asked for,
 /// never automatic, and makes a new secret and a new port: the old secret stops being accepted.
 /// </remarks>
@@ -273,11 +273,13 @@ internal sealed class LanguageServiceSupervisor : IStartupCheck, IAsyncDisposabl
         child.Exited += OnExited;
         logger.ServiceStarted(child.Id, newPort);
 
-        // One line, then the stream is closed: the service reads once and the secret has no other path.
+        // One line, and the stream stays open. The service reads the secret once, then reads the stream
+        // only to see it end: the system closes it when this process dies, however it dies, and the
+        // service stops instead of being left listening with no one to answer to.
         try
         {
             await child.StandardInput.WriteAsync((newSecret + "\n").AsMemory(), cancellationToken).ConfigureAwait(false);
-            child.StandardInput.Close();
+            await child.StandardInput.FlushAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (IOException)
         {

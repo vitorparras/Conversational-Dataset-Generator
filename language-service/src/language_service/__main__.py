@@ -62,6 +62,19 @@ def build_config(app: ASGIApp, port: int) -> uvicorn.Config:
     )
 
 
+def disable_core_dumps() -> bool:
+    """Ask the system not to write a memory dump if the process dies; False where it cannot.
+
+    A dump would hold the text being analysed, on disk and outside the cipher (policy 003).
+    """
+    try:
+        import resource  # noqa: PLC0415 - only exists on POSIX
+    except ImportError:
+        return False
+    resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+    return True
+
+
 def _silence_server_loggers() -> None:
     # The server's own loggers can print exception text and request lines; the service log is the
     # only output, so they get no handler and no propagation.
@@ -96,6 +109,7 @@ def main(
     log = ServiceLog(sinks)
     recognizer = EmptyRecognizer()
 
+    disable_core_dumps()
     _silence_server_loggers()
     app = create_app(verifier=verifier, recognizer=recognizer, log=log)
     log.event(step="startup", outcome="ok", model_version=recognizer.model_version)

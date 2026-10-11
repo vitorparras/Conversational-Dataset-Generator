@@ -87,6 +87,7 @@ class RunningService:
             "TMPDIR": str(self.temp_dir),
             "PYTHONDONTWRITEBYTECODE": "1",
             "PYTHONUNBUFFERED": "1",
+            "PYTHONUTF8": "1",
             **self._environment,
         }
         arguments = [sys.executable, "-m", self._module, "--port", str(self.port), *self._extra]

@@ -45,4 +45,19 @@ public sealed class BuildInfoTests
     [InlineData("128", Hash)]
     public void CommitThatGitDidNotAnswerIsAbsent(string exitCode, string output) =>
         Assert.Same(Absent.Instance, BuildInfo.CommitFrom(exitCode, output));
+
+    // What the report says is the reading of what this very build recorded. A binding that ignores
+    // the recorded value fails whenever that value differs from what it falls back to: the commit in
+    // any git checkout, and the tree whenever it was dirty, as any change under test makes it.
+    [Fact]
+    public void ReportedCommitIsTheReadingOfWhatTheBuildRecorded() =>
+        Assert.Equal(
+            BuildInfo.CommitFrom(GeneratedBuildInfo.CommitExitCode, GeneratedBuildInfo.CommitOutput),
+            BuildInfo.Commit);
+
+    [Fact]
+    public void ReportedTreeIsTheReadingOfWhatTheBuildRecorded() =>
+        Assert.Equal(
+            BuildInfo.DirtyTreeFrom(GeneratedBuildInfo.StatusExitCode, GeneratedBuildInfo.StatusOutputLength),
+            BuildInfo.DirtyTree);
 }

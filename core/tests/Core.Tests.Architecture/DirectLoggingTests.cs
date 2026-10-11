@@ -28,12 +28,15 @@ public sealed class DirectLoggingTests
 
         Assert.Equal(
             [
+                "Module/Handmade.g.cs:8: " + CallTo("Log"),
                 "Module/Logging/LineBuilder.cs:6: interpolated string in a logging file; log text comes only from [LoggerMessage] templates",
                 "Module/Worker.cs:10: " + CallTo("Log"),
                 "Module/Worker.cs:11: " + CallTo("Log"),
                 "Module/Worker.cs:12: " + CallTo("LogInformation"),
                 "Module/Worker.cs:13: " + CallTo("LogWarning"),
                 "Module/Worker.cs:14: " + CallTo("BeginScope"),
+                "Module/Worker.cs:16: " + CallTo("Log"),
+                "Module/Worker.cs:17: " + CallTo("LogError"),
             ],
             violations);
     }
@@ -49,6 +52,11 @@ public sealed class DirectLoggingTests
             {
                 File.WriteAllText(Path.Combine(root.CreateSubdirectory(folder).FullName, "Leak.cs"), Leak);
             }
+
+            // What the [LoggerMessage] generator would write if asked to emit to disk: legitimate, in obj/.
+            File.WriteAllText(
+                Path.Combine(root.CreateSubdirectory(Path.Combine("obj", "generated")).FullName, "LogMessages.g.cs"),
+                "logger.Log(level, eventId, state, exception, formatter);\n");
 
             var violations = LoggingSourceRules.Violations(root);
 

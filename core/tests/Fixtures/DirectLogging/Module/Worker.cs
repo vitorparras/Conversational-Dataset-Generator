@@ -12,6 +12,9 @@ public static class Worker
         logger.LogInformation("processing {Text}", text);
         LoggerExtensions.LogWarning(logger, "processing");
         using var scope = logger.BeginScope($"item {text}");
+        logger.
+            Log(LogLevel.Information, new EventId(3), $"processing {text}", null, static (s, _) => s);
+        logger . LogError("processing");
         // logger.LogError("a comment calls nothing");
         _ = Math.Log(2.0);
     }

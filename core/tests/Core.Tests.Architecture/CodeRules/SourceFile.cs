@@ -28,8 +28,6 @@ internal sealed class SourceFile
 
     public static SourceFile Read(string path) => new(path, File.ReadAllText(path));
 
-    public static SourceFile FromText(string path, string text) => new(path, text);
-
     public static int LineOf(SyntaxNode node) => node.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
 
     public static int LinesSpannedBy(SyntaxNode node)

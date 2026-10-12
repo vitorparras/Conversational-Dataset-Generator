@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<coverage version="1.9">
+  <sources>
+    <source>@ROOT@/core/src/</source>
+  </sources>
+  <packages>
+    <package name="Core.Platform">
+      <classes>
+        <class name="Core.Platform.Logging.Writer" filename="Core.Platform/Logging/Writer.cs">
+          <methods />
+          <lines>
+            <line number="10" hits="1" branch="False" />
+            <line number="11" hits="0" branch="False" />
+            <line number="12" hits="0" branch="False" />
+            <line number="13" hits="3" branch="False" />
+          </lines>
+        </class>
+        <class name="Core.Platform.Logging.Writer/&lt;&gt;c" filename="Core.Platform/Logging/Writer.cs">
+          <methods />
+          <lines>
+            <line number="11" hits="0" branch="False" />
+          </lines>
+        </class>
+        <class name="Core.Platform.Configuration.Loader" filename="Core.Platform/Configuration/Loader.cs">
+          <methods />
+          <lines>
+            <line number="5" hits="2" branch="False" />
+            <line number="6" hits="2" branch="False" />
+          </lines>
+        </class>
+      </classes>
+    </package>
+    <package name="Core.Host">
+      <classes>
+        <class name="Program" filename="Core.Host/Program.cs">
+          <methods />
+          <lines>
+            <line number="1" hits="0" branch="False" />
+            <line number="2" hits="0" branch="False" />
+          </lines>
+        </class>
+      </classes>
+    </package>
+  </packages>
+</coverage>

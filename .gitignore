@@ -44,3 +44,6 @@ desktop.ini
 .coverage.*
 htmlcov/
 coverage.xml
+
+# Resultados da verificação de código (tools/verify-code)
+.verify-code/

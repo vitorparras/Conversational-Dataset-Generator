@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<coverage version="1.9">
+  <sources>
+    <source>@ROOT@/core/</source>
+  </sources>
+  <packages>
+    <package name="Core.Platform">
+      <classes>
+        <class name="Core.Platform.Logging.Writer" filename="src/Core.Platform/Logging/Writer.cs">
+          <methods />
+          <lines>
+            <line number="10" hits="0" branch="False" />
+            <line number="11" hits="4" branch="False" />
+            <line number="12" hits="0" branch="False" />
+            <line number="13" hits="0" branch="False" />
+          </lines>
+        </class>
+      </classes>
+    </package>
+  </packages>
+</coverage>

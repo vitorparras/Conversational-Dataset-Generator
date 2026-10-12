@@ -1,0 +1,78 @@
+name: Verifica código
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# Every job calls the same script the developer runs locally, one step at a time, in the order
+# printed by `python tools/verify-code/verify.py --list`. A test in tools/verify-code/tests reads
+# this file and fails if the order here drifts from that list.
+jobs:
+  core:
+    name: Núcleo (.NET)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # The language service is part of the core integration tests: uv must exist, or they skip,
+      # and in CI a skipped test is a failure.
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.11.3'
+
+      - name: Instalar o serviço de linguagem
+        run: uv sync --frozen --directory language-service
+
+      - name: Construir o núcleo
+        run: python tools/verify-code/verify.py --ci --step build_core
+
+      - name: Testar o núcleo
+        run: python tools/verify-code/verify.py --ci --step test_core
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: core-results
+          path: .verify-code/core
+
+  service:
+    name: Serviço de linguagem e ferramentas (Python)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.11.3'
+
+      - name: Construir o serviço
+        run: python tools/verify-code/verify.py --ci --step build_service
+
+      - name: Testar o serviço
+        run: python tools/verify-code/verify.py --ci --step test_service
+
+      - name: Testar as ferramentas
+        run: python tools/verify-code/verify.py --ci --step test_tools
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: service-results
+          path: |
+            .verify-code/service
+            .verify-code/tools

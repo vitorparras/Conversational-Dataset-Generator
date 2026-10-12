@@ -1,0 +1,28 @@
+<?xml version="1.0" ?>
+<coverage version="7.0" lines-valid="6" lines-covered="3">
+  <sources>
+    <source>@ROOT@/language-service</source>
+  </sources>
+  <packages>
+    <package name="src.language_service">
+      <classes>
+        <class name="auth.py" filename="src/language_service/auth.py">
+          <methods />
+          <lines>
+            <line number="1" hits="1" />
+            <line number="2" hits="1" />
+            <line number="3" hits="0" />
+            <line number="4" hits="0" />
+          </lines>
+        </class>
+        <class name="logging_.py" filename="src/language_service/logging_.py">
+          <methods />
+          <lines>
+            <line number="1" hits="1" />
+            <line number="2" hits="0" />
+          </lines>
+        </class>
+      </classes>
+    </package>
+  </packages>
+</coverage>

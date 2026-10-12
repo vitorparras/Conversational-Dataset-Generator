@@ -37,7 +37,7 @@ public sealed class NoTestHookTests
 
         var violation = Assert.Single(NoTestHookRules.CheckInternalsVisibleTo(project));
 
-        Assert.Contains("Other.Tests.Unit", violation.Message, StringComparison.Ordinal);
+        Assert.Contains("Other.Tests", violation.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -45,9 +45,9 @@ public sealed class NoTestHookTests
     {
         var fixture = SourceTree.Fixture("InternalsVisibleToForeign.cs");
 
-        var violation = Assert.Single(NoTestHookRules.CheckInternalsVisibleTo(fixture, "Core.Sample"));
+        var violations = NoTestHookRules.CheckInternalsVisibleTo(fixture, "Core.Sample").ToList();
 
-        Assert.Equal(4, violation.Line);
+        Assert.Equal([5, 6], violations.Select(violation => violation.Line));
     }
 
     [Fact]

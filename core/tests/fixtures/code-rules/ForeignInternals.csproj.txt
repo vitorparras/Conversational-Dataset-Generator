@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <InternalsVisibleTo Include="Core.Sample.Tests.Unit" />
-    <InternalsVisibleTo Include="Other.Tests.Unit" />
+    <InternalsVisibleTo Include="Core.Sample.Tests" />
+    <InternalsVisibleTo Include="Other.Tests" />
   </ItemGroup>
 </Project>

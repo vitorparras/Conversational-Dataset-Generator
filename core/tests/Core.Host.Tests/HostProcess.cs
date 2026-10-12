@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 
-namespace Core.Tests.Unit.Host;
+namespace Core.Host.Tests;
 
 /// <summary>The built host, started as its own process on a free loopback port and killed on dispose.</summary>
 internal sealed class HostProcess : IDisposable

@@ -13,6 +13,9 @@ from language_service.logging_ import ServiceLog
 from language_service.recognizers.base import Recognizer
 from language_service.recognizers.empty import EmptyRecognizer
 
+# The one policy for properties: profile, seed and its report (see support/property_policy.py).
+pytest_plugins = ["support.property_policy"]
+
 SECRET = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 SECRET_HEADER = "X-Service-Secret"
 MARKER = "ZQX-MARKER-7731"

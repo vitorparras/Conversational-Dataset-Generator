@@ -103,3 +103,6 @@ jobs:
 
       - name: Pisos de cobertura
         run: python tools/verify-code/verify.py --ci --step floors
+
+      - name: Propriedades nas duas linguagens
+        run: python tools/verify-code/verify.py --ci --step properties

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verifies the code of the repository: build, tests, coverage per area and floors.
+"""Verifies the code of the repository: build, tests, coverage per area, floors and properties.
 
 One command, the same steps in the same order on a developer machine and in CI. The workflow
 .github/workflows/verify-code.yml calls this script once per step, in the order printed by --list.
@@ -42,6 +42,7 @@ STEP_ORDER = (
     "test_tools",
     "coverage_by_area",
     "floors",
+    "properties",
 )
 
 #: What a step reads that another step wrote. In a full run, a step whose input failed is not run.
@@ -51,6 +52,7 @@ REQUIRES = {
     "test_tools": ("build_service",),
     "coverage_by_area": ("test_core", "test_service", "test_tools"),
     "floors": ("coverage_by_area",),
+    "properties": ("test_core", "test_service"),
 }
 
 

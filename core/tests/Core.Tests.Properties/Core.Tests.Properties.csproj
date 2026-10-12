@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\..\src\Core.Host\Core.Host.csproj" />
+    <PackageReference Include="CsCheck" />
   </ItemGroup>
 </Project>

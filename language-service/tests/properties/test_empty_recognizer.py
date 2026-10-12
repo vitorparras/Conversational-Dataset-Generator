@@ -1,23 +1,13 @@
 """Properties of the foundation phase, each citing the document it comes from."""
 
 import json
-from datetime import timedelta
 
 from fastapi.testclient import TestClient
-from hypothesis import given, settings
+from hypothesis import given
 from hypothesis import strategies as st
 
 from conftest import SECRET, SECRET_HEADER, Harness
 from language_service.logging_ import ALLOWED_FIELDS
-
-# Declared here, not inherited: the budget of the property is part of the property.
-PROPERTY_SETTINGS = settings(
-    max_examples=100,
-    deadline=timedelta(milliseconds=2000),
-    print_blob=True,
-    derandomize=False,
-    database=None,
-)
 
 HARNESS = Harness()
 CLIENT = TestClient(HARNESS.app, headers={SECRET_HEADER: SECRET})
@@ -27,7 +17,6 @@ TEXTS = st.text(alphabet=st.characters(codec="utf-8"), max_size=2000)
 REFERENCES = st.from_regex(r"[A-Za-z0-9_-]{1,64}", fullmatch=True)
 
 
-@PROPERTY_SETTINGS
 @given(text=TEXTS, reference=REFERENCES)
 def test_empty_recognizer_finds_nothing_and_the_log_counts_code_points(text: str, reference: str) -> None:
     """For any text, the empty recognizer answers "analysed, nothing found" and the log says how long.

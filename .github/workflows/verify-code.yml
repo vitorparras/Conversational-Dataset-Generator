@@ -76,3 +76,27 @@ jobs:
           path: |
             .verify-code/service
             .verify-code/tools
+
+  report:
+    name: Cobertura por área
+    runs-on: ubuntu-latest
+    needs: [core, service]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: core-results
+          path: .verify-code/core
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: service-results
+          path: .verify-code
+
+      - name: Cobertura por área
+        run: python tools/verify-code/verify.py --ci --step coverage_by_area

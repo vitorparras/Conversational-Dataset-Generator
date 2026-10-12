@@ -5,7 +5,7 @@ internal static class StatusEndpoint
 {
     public const string Route = "/status";
 
-    public static void Map(IEndpointRouteBuilder endpoints) => _ = endpoints.MapGet(Route, Handle);
+    public static void Map(IEndpointRouteBuilder endpoints) => _ = endpoints.MapGet(Route, Alive);
 
-    private static StatusResponse Handle() => new(Alive: true);
+    private static StatusResponse Alive() => new(Alive: true);
 }

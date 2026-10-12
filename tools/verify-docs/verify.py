@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """Verifies the repository documentation. Runs in CI on every pull request.
 
-Seven checks, in this order of severity:
+Eight checks, in this order of severity:
 
 1. data        - personal data and secrets: document ids, contacts, keys, machine paths
 2. references  - a path cited in the documentation that does not exist in the repository
-3. links       - an internal link that does not resolve
-4. authority   - every document says whether it binds or not
-5. formatting  - simple consistency rules
-6. size        - line ceiling per document
-7. index       - every document appears in the index of its own folder
+3. identifiers - an identifier cited in `inline code` that does not exist in the code
+4. links       - an internal link that does not resolve
+5. authority   - every document says whether it binds or not
+6. formatting  - simple consistency rules
+7. size        - line ceiling per document
+8. index       - every document appears in the index of its own folder
 
 Usage:
     python tools/verify-docs/verify.py                    # everything
@@ -77,7 +78,7 @@ SENSITIVE_PATTERNS: tuple[tuple[str, str], ...] = (
     (r"\(\d{2}\)\s?9?\d{4}-\d{4}", "possível telefone"),
     (r"\b[A-Za-z0-9._%+-]+@(?!exemplo\.|example\.)[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b", "e-mail"),
     (r"\b[A-Za-z]:[\\/](?:Users|Repos|Program Files)\b", "caminho absoluto de máquina"),
-    (r"/(?:home|Users)/[a-z][a-z0-9_-]+/", "caminho absoluto de máquina"),
+    (r"/(?:home|Users)/[A-Za-z0-9._-]+/", "caminho absoluto de máquina"),
     (r"\bgh[pousr]_[A-Za-z0-9]{16,}", "token do GitHub"),
     (r"\bsk-[A-Za-z0-9]{20,}", "chave de API"),
     (r"\bAKIA[0-9A-Z]{16}\b", "chave de acesso AWS"),
@@ -187,6 +188,178 @@ def check_references(root: Path, path: Path, lines: list[str]) -> list[Finding]:
             if not (root / candidate).exists():
                 findings.append(
                     _finding(root, path, number, "references", f"`{candidate}` não existe")
+                )
+    return findings
+
+
+# ---------------------------------------------------------------------------
+# 2b. Identifiers cited in `inline code` that do not exist in the code
+# ---------------------------------------------------------------------------
+
+#: Where the code lives. A repository without any of these has no code to resolve against.
+CODE_ROOTS = ("core", "language-service")
+CODE_IGNORED = {"bin", "obj", ".venv", "node_modules", "__pycache__", ".pytest_cache", ".hypothesis"}
+
+#: Endings that make an inline snippet a file name, not an identifier (`Program.cs`, `Directory.Build.props`).
+NON_IDENTIFIER_SUFFIXES = FILE_EXTENSIONS + (
+    ".props", ".targets", ".slnx", ".xml", ".sh", ".ps1", ".ini", ".cfg", ".lock", ".dll", ".exe",
+    ".html", ".css", ".js", ".ts", ".csv", ".log", ".env", ".gitignore", ".editorconfig",
+)
+
+_IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_.]*$")
+_CONFIGURATION_KEY = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)+$")
+_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+
+# One pass over C# source, so a quote inside a comment and a slash inside a string do not confuse
+# each other. Order matters: raw string, verbatim string, string, character, then comments.
+_CSHARP_SKIPPED = re.compile(
+    r'"""(?P<raw>.*?)"""'
+    r'|@"(?P<verbatim>(?:[^"]|"")*)"'
+    r'|"(?P<string>(?:[^"\\\n]|\\.)*)"'
+    r"|'(?:[^'\\\n]|\\.)*'"
+    r"|//[^\n]*"
+    r"|/\*.*?\*/",
+    re.DOTALL,
+)
+
+
+class CodeIndex:
+    """What the code contains: the names it uses, and the string literals it holds.
+
+    A name counts when it appears as a name in code (not in a comment or a string), which is what
+    a declaration and every use of it have in common. A renamed identifier disappears from all of
+    them at once, so the old name stops being found; that is the failure this check exists for.
+    """
+
+    def __init__(self, root: Path) -> None:
+        self.names: set[str] = set()
+        self.literals: set[str] = set()
+        self.available = False
+        for folder in CODE_ROOTS:
+            base = root / folder
+            if not base.is_dir():
+                continue
+            self.available = True
+            for path in sorted(base.rglob("*")):
+                relative = path.relative_to(base).parts
+                if not path.is_file() or any(part in CODE_IGNORED for part in relative):
+                    continue
+                self.names.update(_NAME.findall(path.stem))
+                self.names.update(_NAME.findall(" ".join(relative[:-1])))
+                if path.suffix == ".cs":
+                    self._read_csharp(path)
+                elif path.suffix == ".py":
+                    self._read_python(path)
+                elif path.suffix == ".json":
+                    self._read_json(path)
+
+    def _read_csharp(self, path: Path) -> None:
+        text = path.read_text(encoding="utf-8", errors="replace")
+        code: list[str] = []
+        last = 0
+        for match in _CSHARP_SKIPPED.finditer(text):
+            code.append(text[last:match.start()])
+            literal = match.group("raw") or match.group("verbatim") or match.group("string")
+            if literal:
+                self.literals.add(literal)
+            code.append(" ")
+            last = match.end()
+        code.append(text[last:])
+        self.names.update(_NAME.findall("".join(code)))
+
+    def _read_python(self, path: Path) -> None:
+        import io
+        import tokenize
+
+        text = path.read_text(encoding="utf-8", errors="replace")
+        try:
+            for token in tokenize.generate_tokens(io.StringIO(text).readline):
+                if token.type == tokenize.NAME:
+                    self.names.add(token.string)
+                elif token.type == tokenize.STRING:
+                    self.literals.add(token.string.strip("\"'rbfRBF"))
+        except (tokenize.TokenError, IndentationError, SyntaxError):
+            self.names.update(_NAME.findall(text))
+
+    def _read_json(self, path: Path) -> None:
+        self.literals.update(re.findall(r'"([^"\n]+)"\s*:', path.read_text(encoding="utf-8", errors="replace")))
+
+    def has_name(self, name: str) -> bool:
+        return name in self.names
+
+    def has_literal(self, text: str) -> bool:
+        """The text is a string the code holds, a key of a JSON file, or a name used in code."""
+        return text in self.names or text in self.literals or any(text in literal for literal in self.literals)
+
+
+_INDEX_CACHE: dict[Path, CodeIndex] = {}
+
+
+def code_index(root: Path) -> CodeIndex:
+    """The index of the code under ``root``, built once per run."""
+    if root not in _INDEX_CACHE:
+        _INDEX_CACHE[root] = CodeIndex(root)
+    return _INDEX_CACHE[root]
+
+
+def cited_identifier(snippet: str) -> tuple[str, str] | None:
+    """The kind and the text of what an `inline code` snippet cites, or None when it cites no identifier.
+
+    ``name``: a dotted identifier with an uppercase letter, an underscore or a dot (``ClosedConfiguration.Load``,
+    ``language_service.auth``), every part of which must exist. ``literal``: a configuration key
+    (``Section:Key``) or a snake_case field, searched as text. Anything with a slash, a space, a file
+    extension or no distinguishing mark (a common word) is not an identifier.
+    """
+    text = snippet.strip()
+    if text.endswith("()"):
+        text = text[:-2]
+    if not text or " " in text or "/" in text or "\\" in text:
+        return None
+    if text.endswith(NON_IDENTIFIER_SUFFIXES) or text.startswith(("-", "$", "http", ".")):
+        return None
+    if _CONFIGURATION_KEY.match(text):
+        return "literal", text
+    if not _IDENTIFIER.match(text) or text.endswith("."):
+        return None
+    if text.islower() and "_" in text and "." not in text:
+        return "literal", text
+    if "." not in text and "_" not in text:
+        # A bare word names code only when it is written like a name: camelCase or PascalCase with
+        # two humps or more. A single capitalised word is as likely to be Portuguese, and an
+        # all-capitals word is a keyword or an acronym (FORCE, HMAC), never an identifier to confirm.
+        if text.isupper() or sum(c.isupper() for c in text) < 2:
+            return None
+    elif "." not in text and text.isupper() and re.search(r"_(?:[0-9]+|[A-Z])$", text):
+        return None  # a placeholder in an example (PESSOA_1, REMETENTE_A), not a constant
+    elif not any(c.isupper() for c in text) and "_" not in text:
+        return None
+    return "name", text
+
+
+def check_identifiers(root: Path, path: Path, lines: list[str]) -> list[Finding]:
+    """Checks that every identifier cited in `inline code` exists in the code.
+
+    A fenced block is an example, not a citation, and is skipped. The document is not required to
+    give the path of the file that holds the identifier. Findings are per document and line, and
+    every document is checked, so a renamed identifier lists all the documents that cite it.
+    """
+    index = code_index(root)
+    if not index.available:
+        return []
+    findings: list[Finding] = []
+    for number, line in _outside_code_blocks(lines):
+        for snippet in re.findall(r"`([^`\n]+)`", line):
+            cited = cited_identifier(snippet)
+            if cited is None:
+                continue
+            kind, text = cited
+            if kind == "literal":
+                found = all(index.has_literal(part) for part in text.split(":"))
+            else:
+                found = all(index.has_name(part) for part in text.split("."))
+            if not found:
+                findings.append(
+                    _finding(root, path, number, "identifiers", f"`{text}` não existe no código")
                 )
     return findings
 
@@ -357,6 +530,7 @@ def _per_folder_placeholder(root: Path, path: Path, lines: list[str]) -> list[Fi
 CHECKS: dict[str, CheckFunction] = {
     "data": check_data,
     "references": check_references,
+    "identifiers": check_identifiers,
     "links": check_links,
     "authority": check_authority,
     "formatting": check_formatting,

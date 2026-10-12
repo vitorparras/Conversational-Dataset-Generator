@@ -102,7 +102,7 @@ class VerifyDocsTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertEqual(
             output.split(),
-            ["data", "references", "links", "authority", "formatting", "size", "index"],
+            ["data", "references", "identifiers", "links", "authority", "formatting", "size", "index"],
         )
 
     # --- personal data and machine paths -------------------------------------------
@@ -219,6 +219,103 @@ class VerifyDocsTests(unittest.TestCase):
         self.write("docs/001-patterns.md", VALID_DOC + text)
         code, output = run_verifier(self.root, "--only", "references")
         self.assertEqual(code, 0, output)
+
+    def test_posix_home_path_with_uppercase_or_dotted_user_fails(self) -> None:
+        for user in ("Usuario_X", "usuario.x", "USUARIO-9"):
+            with self.subTest(user=user):
+                self.write("docs/001-posix.md", VALID_DOC + f"\nArquivo em /home/{user}/notas\n")
+                code, output = run_verifier(self.root, "--only", "data")
+                self.assertEqual(code, 1, output)
+                self.assertIn("caminho absoluto de máquina", output)
+
+    # --- identifiers cited in inline code --------------------------------------------
+
+    CSHARP = (
+        "namespace Sample.Area;\n\n"
+        "// Mentions OnlyInAComment here.\n"
+        "public sealed class ClosedThing\n{\n"
+        '    public const string Marker = "Zqx:Literal";\n'
+        "    public int Load() => 1;\n}\n"
+    )
+    PYTHON = "LIMIT_SIZE = 3\n\n\ndef scan_text(value):\n    return {'count_by_kind': value}\n"
+
+    def code_repository(self) -> None:
+        self.write("core/src/Sample/ClosedThing.cs", self.CSHARP)
+        self.write("language-service/src/sample_pkg/scan.py", self.PYTHON)
+        self.write("core/src/Sample/appsettings.json", '{ "Server": { "Port": "1" } }')
+
+    def cite(self, name: str, *snippets: str) -> None:
+        self.write(f"docs/{name}.md", VALID_DOC + "\n" + " ".join(f"`{s}`" for s in snippets) + "\n")
+
+    def test_identifier_that_does_not_exist_fails_with_document_line_and_name(self) -> None:
+        self.code_repository()
+        self.cite("001-ghost", "ClosedThingGone")
+        code, output = run_verifier(self.root, "--only", "identifiers")
+        self.assertEqual(code, 1, output)
+        self.assertIn("docs/001-ghost.md:", output)
+        self.assertIn("[identifiers]", output)
+        self.assertIn("`ClosedThingGone`", output)
+
+    def test_identifier_that_exists_passes_without_citing_the_file(self) -> None:
+        self.code_repository()
+        self.cite("001-ok", "ClosedThing", "ClosedThing.Load", "Load()", "Sample.Area", "scan_text", "LIMIT_SIZE")
+        code, output = run_verifier(self.root, "--only", "identifiers")
+        self.assertEqual(code, 0, output)
+
+    def test_renamed_identifier_lists_every_document_that_cited_it(self) -> None:
+        self.code_repository()
+        for number in range(1, 4):
+            self.cite(f"00{number}-cites", "OldNameOfThing")
+        code, output = run_verifier(self.root, "--only", "identifiers")
+        self.assertEqual(code, 1, output)
+        for number in range(1, 4):
+            self.assertIn(f"docs/00{number}-cites.md", output)
+
+    def test_code_block_is_not_a_citation(self) -> None:
+        self.code_repository()
+        self.write("docs/001-block.md", VALID_DOC + "\n```\nGhostClassName.Run()\n```\n")
+        code, output = run_verifier(self.root, "--only", "identifiers")
+        self.assertEqual(code, 0, output)
+
+    def test_name_only_in_a_comment_does_not_exist(self) -> None:
+        self.code_repository()
+        self.cite("001-comment", "OnlyInAComment")
+        code, output = run_verifier(self.root, "--only", "identifiers")
+        self.assertEqual(code, 1, output)
+
+    def test_configuration_key_and_log_field_are_searched_as_literals(self) -> None:
+        self.code_repository()
+        self.cite("001-literals", "Server:Port", "Zqx:Literal", "count_by_kind")
+        code, output = run_verifier(self.root, "--only", "identifiers")
+        self.assertEqual(code, 0, output)
+        self.cite("002-missing", "Server:Nope", "gone_field_name")
+        code, output = run_verifier(self.root, "--only", "identifiers")
+        self.assertEqual(code, 1, output)
+        self.assertIn("`Server:Nope`", output)
+        self.assertIn("`gone_field_name`", output)
+
+    def test_paths_files_common_words_and_acronyms_are_not_identifiers(self) -> None:
+        self.code_repository()
+        self.cite("001-not", "docs/x", "Program.cs", "README.md", "word", "Palavra", "FORCE", "PESSOA_1", "dotnet test", "-x")
+        code, output = run_verifier(self.root, "--only", "identifiers")
+        self.assertEqual(code, 0, output)
+
+    def test_repository_without_code_has_nothing_to_resolve_against(self) -> None:
+        self.cite("001-docs-only", "AnythingAtAll")
+        code, output = run_verifier(self.root, "--only", "identifiers")
+        self.assertEqual(code, 0, output)
+
+    def test_verifier_uses_only_the_standard_library(self) -> None:
+        import ast
+
+        tree = ast.parse(_VERIFY_PATH.read_text(encoding="utf-8"))
+        imported: set[str] = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                imported.update(alias.name.split(".")[0] for alias in node.names)
+            elif isinstance(node, ast.ImportFrom) and not node.level and node.module:
+                imported.add(node.module.split(".")[0])
+        self.assertLessEqual(imported, set(sys.stdlib_module_names) | {"__future__"})
 
     # --- ignored directories --------------------------------------------------------
 

@@ -53,7 +53,10 @@ internal static class SecretSweep
         try
         {
             var info = new FileInfo(path);
-            if (info.Length > LargestFile || (since is { } limit && info.LastWriteTimeUtc < limit))
+            // An empty file holds nothing. This also skips named pipes and sockets, which report a
+            // length of zero and block forever when opened for reading (the temporary folder of a
+            // Linux machine holds the debugger pipes of every .NET process).
+            if (info.Length is 0 || info.Length > LargestFile || (since is { } limit && info.LastWriteTimeUtc < limit))
             {
                 return false;
             }

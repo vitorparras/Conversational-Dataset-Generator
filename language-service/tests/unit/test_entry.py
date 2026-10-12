@@ -3,6 +3,8 @@
 import inspect
 import io
 import os
+import subprocess
+import sys
 
 import pytest
 
@@ -67,16 +69,20 @@ def test_main_exits_with_usage_code_when_stdin_holds_no_secret(capsys: pytest.Ca
 
 @pytest.mark.skipif(not hasattr(os, "fork"), reason="memory dumps are limited with resource.setrlimit, which exists on POSIX only")
 def test_core_dumps_are_disabled_where_the_system_allows() -> None:
-    import resource
+    # In a child process: lowering the hard limit to zero cannot be undone, so doing it in the test
+    # process would leave every later test running without the ability to raise it again.
+    code = """
+import resource
+from language_service import __main__ as entry
+print(entry.disable_core_dumps(), resource.getrlimit(resource.RLIMIT_CORE))
+"""
+    completed = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True, timeout=60)
 
-    before = resource.getrlimit(resource.RLIMIT_CORE)
-    try:
-        assert entry.disable_core_dumps() is True
-        assert resource.getrlimit(resource.RLIMIT_CORE) == (0, 0)
-    finally:
-        resource.setrlimit(resource.RLIMIT_CORE, before)
+    assert completed.stdout.strip() == "True (0, 0)"
 
 
-@pytest.mark.skipif(hasattr(os, "fork"), reason="on POSIX the function acts, and the test above proves it")
-def test_core_dump_limit_reports_that_it_cannot_act_without_posix() -> None:
+def test_core_dump_limit_reports_that_it_cannot_act_without_posix(monkeypatch: pytest.MonkeyPatch) -> None:
+    # A module set to None in sys.modules makes `import resource` raise ImportError, as on Windows.
+    monkeypatch.setitem(sys.modules, "resource", None)
+
     assert entry.disable_core_dumps() is False

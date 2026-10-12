@@ -159,6 +159,12 @@ public sealed partial class BuildInfoTargetTests : IDisposable
         if (searchPath is not null)
         {
             environment["PATH"] = searchPath;
+            if (!OperatingSystem.IsWindows())
+            {
+                // MSBuild runs Exec through the shell, which it looks for on the search path; the shell
+                // must be findable for the build to run at all, and git must not be.
+                _ = File.CreateSymbolicLink(Path.Combine(searchPath, "sh"), "/bin/sh");
+            }
         }
 
         var (exitCode, output) = await ChildProcess.RunAsync(

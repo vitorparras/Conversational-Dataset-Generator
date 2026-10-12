@@ -33,6 +33,24 @@ python tools/verify-docs/verify.py --only data,links
 python tools/verify-docs/verify.py --list
 ```
 
+## Núcleo
+
+O núcleo é uma solução .NET em `core/Core.slnx`. A versão exata do SDK está em `global.json`, e a
+única fonte de pacotes, em `core/nuget.config`. Os comandos abaixo rodam a partir da raiz do
+repositório, nesta ordem:
+
+```
+dotnet restore --locked-mode core/Core.slnx
+dotnet build core/Core.slnx
+dotnet test core/Core.slnx
+dotnet run --project core/src/Core.Host -- --urls http://127.0.0.1:5080
+```
+
+Com o núcleo de pé, `http://127.0.0.1:5080/status` responde `{"alive":true}`. O teste de
+arquitetura em `core/tests/Core.Tests.Architecture` impõe as regras de código a cada construção;
+as fixtures que ele reprova de propósito ficam em `core/tests/fixtures/code-rules`, fora de
+qualquer projeto.
+
 ## Licença
 
 O software é [AGPL-3.0](LICENSE): qualquer um pode usar, estudar, modificar e redistribuir,

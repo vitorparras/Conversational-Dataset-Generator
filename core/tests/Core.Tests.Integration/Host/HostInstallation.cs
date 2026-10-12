@@ -34,14 +34,30 @@ internal sealed class HostInstallation : IDisposable
         return new HostInstallation(target);
     }
 
-    /// <summary>A free loopback port, for a host that must listen somewhere known.</summary>
+    /// <summary>
+    /// A free loopback port below the range the system hands out to anyone asking for "any port".
+    /// The language service the host starts asks for one of those, and a port given back by the
+    /// test is the first the system offers again, so the two would collide now and then.
+    /// </summary>
     public static int FreePort()
     {
-        using var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
-        listener.Stop();
-        return port;
+        for (var attempt = 0; attempt < 200; attempt++)
+        {
+            var port = System.Security.Cryptography.RandomNumberGenerator.GetInt32(20_000, 30_000);
+            try
+            {
+                using var listener = new TcpListener(IPAddress.Loopback, port);
+                listener.Start();
+                listener.Stop();
+                return port;
+            }
+            catch (SocketException)
+            {
+                // In use by something else: try another.
+            }
+        }
+
+        throw new InvalidOperationException("no free loopback port found in 20000-29999");
     }
 
     /// <summary>Settings that only move the port, so parallel hosts do not collide.</summary>

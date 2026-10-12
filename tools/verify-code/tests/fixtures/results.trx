@@ -7,8 +7,8 @@
     <UnitTestResult executionId="e4" testId="t4" testName="Core.Tests.Unit.SampleTests.Works" outcome="Passed" />
   </Results>
   <TestDefinitions>
-    <UnitTest name="Holds" id="t1"><TestMethod codeBase="/work/core/tests/Core.Tests.Properties/bin/Debug/net10.0/Core.Tests.Properties.dll" className="Core.Tests.Properties.SamplePropertyTests" name="Holds" /></UnitTest>
-    <UnitTest name="SkippedOne" id="t2"><TestMethod codeBase="/work/core/tests/Core.Tests.Properties/bin/Debug/net10.0/Core.Tests.Properties.dll" className="Core.Tests.Properties.SamplePropertyTests" name="SkippedOne" /></UnitTest>
+    <UnitTest name="Holds" id="t1"><TestMethod codeBase="core/tests/Core.Tests.Properties/bin/Debug/net10.0/Core.Tests.Properties.dll" className="Core.Tests.Properties.SamplePropertyTests" name="Holds" /></UnitTest>
+    <UnitTest name="SkippedOne" id="t2"><TestMethod codeBase="core/tests/Core.Tests.Properties/bin/Debug/net10.0/Core.Tests.Properties.dll" className="Core.Tests.Properties.SamplePropertyTests" name="SkippedOne" /></UnitTest>
     <UnitTest name="Fails" id="t3"><TestMethod codeBase="C:\work\core\tests\Core.Tests.Unit\bin\Debug\net10.0\Core.Tests.Unit.dll" className="Core.Tests.Unit.SampleTests" name="Fails" /></UnitTest>
     <UnitTest name="Works" id="t4"><TestMethod codeBase="C:\work\core\tests\Core.Tests.Unit\bin\Debug\net10.0\Core.Tests.Unit.dll" className="Core.Tests.Unit.SampleTests" name="Works" /></UnitTest>
   </TestDefinitions>

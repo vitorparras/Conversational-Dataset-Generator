@@ -100,3 +100,6 @@ jobs:
 
       - name: Cobertura por área
         run: python tools/verify-code/verify.py --ci --step coverage_by_area
+
+      - name: Pisos de cobertura
+        run: python tools/verify-code/verify.py --ci --step floors

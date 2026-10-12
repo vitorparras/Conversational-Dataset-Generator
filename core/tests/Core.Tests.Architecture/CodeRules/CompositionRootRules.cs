@@ -3,11 +3,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Core.Tests.Architecture.CodeRules;
 
-/// <summary>Code rule 3: a short entry point, one composition root, no service built elsewhere.</summary>
+/// <summary>A short entry point, one place that assembles each executable, and no service built anywhere else.</summary>
 internal static class CompositionRootRules
 {
     public const string EntryPoint = "Program.cs";
-    public const string Root = "CompositionRoot.cs";
     public const int MaxEntryPointLines = 20;
     private const string ServiceCollection = "IServiceCollection";
 
@@ -20,29 +19,31 @@ internal static class CompositionRootRules
         }
     }
 
-    public static IEnumerable<Violation> CheckRegistrationOutsideRoot(SourceFile file)
+    public static IEnumerable<Violation> CheckRegistrationOutsideRoot(SourceFile file, CompositionRoots roots)
     {
-        if (file.FileName == Root)
+        if (roots.IsRoot(file))
         {
             return [];
         }
 
+        var aliases = ServiceCollectionAliases(file);
         var collectionReferences = file.Root.DescendantNodes()
             .OfType<IdentifierNameSyntax>()
             .Where(name => name.Identifier.ValueText == ServiceCollection)
             .Select(name => new Violation(
-                file.Path, SourceFile.LineOf(name), $"{ServiceCollection} is used outside {Root}"));
+                file.Path, SourceFile.LineOf(name), $"{ServiceCollection} is used outside the composition root"));
         var registrations = file.Root.DescendantNodes()
             .OfType<InvocationExpressionSyntax>()
-            .Where(IsRegistration)
+            .Where(invocation => IsRegistration(invocation, aliases))
             .Select(invocation => new Violation(
-                file.Path, SourceFile.LineOf(invocation), $"service registered outside {Root}"));
+                file.Path, SourceFile.LineOf(invocation), "service registered outside the composition root"));
         return collectionReferences.Concat(registrations);
     }
 
-    public static IEnumerable<Violation> CheckServiceConstructionOutsideRoot(SourceFile file, ServiceTypeIndex index)
+    public static IEnumerable<Violation> CheckServiceConstructionOutsideRoot(
+        SourceFile file, ServiceTypeIndex index, CompositionRoots roots)
     {
-        if (file.FileName == Root)
+        if (roots.IsRoot(file))
         {
             return [];
         }
@@ -60,16 +61,27 @@ internal static class CompositionRootRules
     }
 
     private static Violation Construction(SourceFile file, SyntaxNode creation, string typeName) =>
-        new(file.Path, SourceFile.LineOf(creation), $"service {typeName} constructed outside {Root}");
+        new(file.Path, SourceFile.LineOf(creation), $"service {typeName} constructed outside the composition root");
+
+    /// <summary>Locals that hold the collection, as in <c>var collection = builder.Services;</c>.</summary>
+    private static HashSet<string> ServiceCollectionAliases(SourceFile file) =>
+        file.Root.DescendantNodes()
+            .OfType<VariableDeclaratorSyntax>()
+            .Where(declarator => declarator.Initializer is { Value: var value } && LooksLikeServiceCollection(value.ToString()))
+            .Select(declarator => declarator.Identifier.ValueText)
+            .ToHashSet(StringComparer.Ordinal);
 
     /// <summary>A call such as <c>services.AddSingleton&lt;T&gt;()</c> or <c>builder.Services.TryAddScoped(...)</c>.</summary>
-    private static bool IsRegistration(InvocationExpressionSyntax invocation) =>
+    private static bool IsRegistration(InvocationExpressionSyntax invocation, HashSet<string> aliases) =>
         invocation.Expression is MemberAccessExpressionSyntax access
         && IsRegistrationName(access.Name.Identifier.ValueText)
-        && access.Expression.ToString().EndsWith("ervices", StringComparison.Ordinal);
+        && (LooksLikeServiceCollection(access.Expression.ToString()) || aliases.Contains(access.Expression.ToString()));
 
     private static bool IsRegistrationName(string name) =>
         name.StartsWith("Add", StringComparison.Ordinal) || name.StartsWith("TryAdd", StringComparison.Ordinal);
+
+    private static bool LooksLikeServiceCollection(string expression) =>
+        expression.EndsWith("ervices", StringComparison.Ordinal);
 
     /// <summary>The type a target-typed <c>new(...)</c> resolves to when it initialises a variable, field or property.</summary>
     private static TypeSyntax? DeclaredTypeOf(ImplicitObjectCreationExpressionSyntax creation) =>

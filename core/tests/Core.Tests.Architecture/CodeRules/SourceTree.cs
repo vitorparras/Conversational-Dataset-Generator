@@ -19,6 +19,16 @@ internal static class SourceTree
     public static string FixtureText(string relativePath) =>
         File.ReadAllText(Path.Combine(FixturesDirectory, relativePath));
 
+    /// <summary>A fixture project is stored as <c>.csproj.txt</c> so that no build tool picks it up.</summary>
+    public static ProjectFile FixtureProject(string relativePath)
+    {
+        var path = Path.Combine(FixturesDirectory, relativePath);
+        return ProjectFile.FromText(path[..^".txt".Length], File.ReadAllText(path));
+    }
+
+    public static IReadOnlyList<SourceFile> FixtureFiles(string relativeDirectory) =>
+        [.. EnumerateSources(Path.Combine(FixturesDirectory, relativeDirectory), "*.cs").Select(SourceFile.Read)];
+
     private static IEnumerable<string> EnumerateSources(string directory, string pattern) =>
         Directory.EnumerateFiles(directory, pattern, SearchOption.AllDirectories)
             .Where(path => !IsBuildOutput(path))

@@ -1,6 +1,6 @@
 namespace Core.Tests.Architecture.CodeRules;
 
-/// <summary>Code rule 4 over every production project and file, with one fixture that breaks each part of it.</summary>
+/// <summary>No production code opens itself to tests, with fixtures that break each part of the rule.</summary>
 public sealed class NoTestHookTests
 {
     [Fact]
@@ -37,6 +37,7 @@ public sealed class NoTestHookTests
 
         var violation = Assert.Single(NoTestHookRules.CheckInternalsVisibleTo(project));
 
+        Assert.Equal(4, violation.Line);
         Assert.Contains("Other.Tests", violation.Message, StringComparison.Ordinal);
     }
 

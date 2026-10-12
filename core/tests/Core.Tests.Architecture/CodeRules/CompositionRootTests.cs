@@ -1,8 +1,10 @@
 namespace Core.Tests.Architecture.CodeRules;
 
-/// <summary>Code rule 3 over every production file, with one fixture that breaks each part of it.</summary>
+/// <summary>The entry point stays short and only the composition root wires services, with fixtures that break each part.</summary>
 public sealed class CompositionRootTests
 {
+    private static readonly CompositionRoots NoRoots = CompositionRoots.From([]);
+
     [Fact]
     public void EntryPointHasAtMostTwentyLines()
     {
@@ -12,9 +14,22 @@ public sealed class CompositionRootTests
     }
 
     [Fact]
+    public void EveryExecutableHasExactlyOneCompositionRoot()
+    {
+        var roots = CompositionRoots.From(SourceTree.ProductionProjects());
+
+        var violations = roots.CheckOnePerExecutable(SourceTree.ProductionFiles());
+
+        Assert.Empty(violations);
+    }
+
+    [Fact]
     public void OnlyTheCompositionRootRegistersServices()
     {
-        var violations = SourceTree.ProductionFiles().SelectMany(CompositionRootRules.CheckRegistrationOutsideRoot);
+        var roots = CompositionRoots.From(SourceTree.ProductionProjects());
+
+        var violations = SourceTree.ProductionFiles()
+            .SelectMany(file => CompositionRootRules.CheckRegistrationOutsideRoot(file, roots));
 
         Assert.Empty(violations);
     }
@@ -24,8 +39,9 @@ public sealed class CompositionRootTests
     {
         var files = SourceTree.ProductionFiles();
         var index = ServiceTypeIndex.From(files);
+        var roots = CompositionRoots.From(SourceTree.ProductionProjects());
 
-        var violations = files.SelectMany(file => CompositionRootRules.CheckServiceConstructionOutsideRoot(file, index));
+        var violations = files.SelectMany(file => CompositionRootRules.CheckServiceConstructionOutsideRoot(file, index, roots));
 
         Assert.Empty(violations);
     }
@@ -41,13 +57,55 @@ public sealed class CompositionRootTests
     }
 
     [Fact]
+    public void SecondCompositionRootInAnExecutableIsRefused()
+    {
+        var roots = CompositionRoots.From([SourceTree.FixtureProject("second-root/Core.Sample/Core.Sample.csproj.txt")]);
+
+        var violation = Assert.Single(roots.CheckOnePerExecutable(SourceTree.FixtureFiles("second-root")));
+
+        Assert.EndsWith(Path.Combine("Startup", "CompositionRoot.cs"), violation.File, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CompositionRootInALibraryIsRefusedAsMisplaced()
+    {
+        var roots = CompositionRoots.From([SourceTree.FixtureProject("library-root/Core.Library/Core.Library.csproj.txt")]);
+
+        var violation = Assert.Single(roots.CheckOnePerExecutable(SourceTree.FixtureFiles("library-root")));
+
+        Assert.EndsWith("CompositionRoot.cs", violation.File, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CompositionRootInALibraryIsNotExemptFromTheRegistrationRule()
+    {
+        var roots = CompositionRoots.From([SourceTree.FixtureProject("library-root/Core.Library/Core.Library.csproj.txt")]);
+
+        var violations = SourceTree.FixtureFiles("library-root")
+            .SelectMany(file => CompositionRootRules.CheckRegistrationOutsideRoot(file, roots))
+            .ToList();
+
+        Assert.Equal([7, 9], violations.Select(violation => violation.Line));
+    }
+
+    [Fact]
     public void RegistrationOutsideTheCompositionRootIsRefused()
     {
         var fixture = SourceTree.Fixture("RegistrationOutsideRoot.cs");
 
-        var violations = CompositionRootRules.CheckRegistrationOutsideRoot(fixture).ToList();
+        var violations = CompositionRootRules.CheckRegistrationOutsideRoot(fixture, NoRoots).ToList();
 
         Assert.Equal([7, 9], violations.Select(violation => violation.Line));
+    }
+
+    [Fact]
+    public void RegistrationThroughAnAliasOfTheCollectionIsRefused()
+    {
+        var fixture = SourceTree.Fixture("RegistrationViaAlias.cs");
+
+        var violation = Assert.Single(CompositionRootRules.CheckRegistrationOutsideRoot(fixture, NoRoots));
+
+        Assert.Equal(10, violation.Line);
     }
 
     [Fact]
@@ -56,7 +114,7 @@ public sealed class CompositionRootTests
         var fixture = SourceTree.Fixture("NewServiceOutsideRoot.cs");
         var index = ServiceTypeIndex.From([fixture]);
 
-        var violation = Assert.Single(CompositionRootRules.CheckServiceConstructionOutsideRoot(fixture, index));
+        var violation = Assert.Single(CompositionRootRules.CheckServiceConstructionOutsideRoot(fixture, index, NoRoots));
 
         Assert.Contains("Reporter", violation.Message, StringComparison.Ordinal);
     }
@@ -67,7 +125,7 @@ public sealed class CompositionRootTests
         var fixture = SourceTree.Fixture("ImplicitNewServiceOutsideRoot.cs");
         var index = ServiceTypeIndex.From([fixture]);
 
-        var violations = CompositionRootRules.CheckServiceConstructionOutsideRoot(fixture, index).ToList();
+        var violations = CompositionRootRules.CheckServiceConstructionOutsideRoot(fixture, index, NoRoots).ToList();
 
         Assert.Equal([15, 17, 21], violations.Select(violation => violation.Line));
     }

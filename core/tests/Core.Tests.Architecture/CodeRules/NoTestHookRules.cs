@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Core.Tests.Architecture.CodeRules;
 
-/// <summary>Code rule 4: internals visible only to the module's own tests; no public member named for a test.</summary>
+/// <summary>Internals visible only to the module's own tests, and no public member named for a test.</summary>
 internal static class NoTestHookRules
 {
     private const string Attribute = "InternalsVisibleTo";
@@ -12,8 +12,8 @@ internal static class NoTestHookRules
 
     public static IEnumerable<Violation> CheckInternalsVisibleTo(ProjectFile project) =>
         project.InternalsVisibleTo()
-            .Where(target => !IsOwnTestProject(project.ModuleName, target))
-            .Select(target => new Violation(project.Path, 1, ForeignInternals(project.ModuleName, target)));
+            .Where(grant => !IsOwnTestProject(project.ModuleName, grant.Target))
+            .Select(grant => new Violation(project.Path, grant.Line, ForeignInternals(project.ModuleName, grant.Target)));
 
     public static IEnumerable<Violation> CheckInternalsVisibleTo(SourceFile file, string moduleName) =>
         file.Root.DescendantNodes()

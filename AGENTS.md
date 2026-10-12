@@ -3,8 +3,8 @@
 Ponto de entrada único do repositório. Vale para pessoas e para agentes de IA. Arquivos específicos
 de ferramenta apenas redirecionam para cá e não contêm instruções próprias — duas cópias divergem.
 
-> **Este repositório contém apenas documentação.** O desenvolvimento acontece em outro fluxo, e a
-> primeira linha de código depende das decisões registradas aqui.
+> Documentação e código vivem aqui. Texto segue `docs/regras-de-escrita.md`; código segue
+> `docs/regras-de-codigo.md`. Toda linha de código depende das decisões registradas aqui.
 
 ## O que é o projeto
 
@@ -42,19 +42,19 @@ aberto nesta execução, citado por caminho. Número afirmado é número contado
 **Nada de fora do repositório.** Não cite projeto, prazo, medição ou documento que quem clona não
 possa consultar. Argumento que precisa de referência externa não se sustenta.
 
-**Git de escrita é do operador.** Não execute commit, push, branch, merge ou reset sem pedido.
+**Merge é do operador.** Agente commita em branch própria e abre PR; nunca force, reset ou merge.
 
 **Na dúvida entre assumir e perguntar, pergunte.** Silêncio não é aprovação.
 
 ## Antes de escrever
 
-Leia `docs/regras-de-escrita.md`. A verificação em `tools/verify-docs/` impõe a maior parte
-daquelas regras e reprova o pull request que as viole — rode-a antes de propor qualquer mudança.
+Texto: `docs/regras-de-escrita.md`, imposta por `tools/verify-docs/`; rode antes de propor mudança.
+Código: `docs/regras-de-codigo.md`; o mensurável reprova o build, o resto é lista de revisão.
 
 ## O que reprova um trabalho
 
 Afirmar sem ter aberto o arquivo · contrariar decisão vigente sem substituí-la · dado pessoal ou
 segredo em qualquer lugar · duplicar fato que já vive em outro documento · citar arquivo ou
-identificador inexistente · prometer proteção de privacidade sem nomear o teste que a prova ·
-resolver divergência por conta própria · documento acima de 60 linhas · declarar pronto sem a
-verificação que comprova.
+identificador inexistente · prometer privacidade sem nomear o teste que a prova · resolver
+divergência por conta própria · documento acima de 60 linhas · código fora das regras de código ·
+declarar pronto sem a verificação que comprova.

@@ -5,10 +5,8 @@ e as regras que valem para qualquer contribuição, de pessoa ou de agente.
 
 ## Estado atual
 
-O repositório contém apenas documentação. O desenvolvimento do sistema acontece em outro fluxo, e
-depende das decisões registradas em `docs/decisoes/`.
-
-Contribuições agora são de documentação: requisitos, políticas, revisão de decisões, verificadores.
+Documentação e código vivem aqui. Texto segue [regras de escrita](docs/regras-de-escrita.md);
+código segue [regras de código](docs/regras-de-codigo.md), inclusive o teto de pull request.
 
 ## O fluxo
 
@@ -26,6 +24,7 @@ feat/37-comando-unico. [Conventional Commits](https://www.conventionalcommits.or
 `tipo(escopo): descrição`, imperativo, minúscula, sem ponto final, até 72 caracteres. Um assunto
 por commit; corpo só quando acrescenta o que o título não diz. **Nenhuma linha de atribuição a
 ferramenta ou agente de IA** — quem assina responde; a declaração de uso vai no gabarito de PR.
+Um pull request resolve uma task, dentro do teto das regras de código; o merge é do dono.
 
 ## Se você discorda de uma decisão
 

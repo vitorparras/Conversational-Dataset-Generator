@@ -16,7 +16,8 @@ por quê, e como ele funciona vive aqui. As tarefas para chegar nisso vivem nas 
 | [`roadmap/`](roadmap/) | A ordem em que as garantias entram, e o que cada inversão custaria |
 | [`historico/`](historico/) | Registro do que já aconteceu. **Autoridade zero** |
 
-Antes de escrever qualquer documento, leia [regras de escrita](regras-de-escrita.md).
+Antes de escrever qualquer documento, leia [regras de escrita](regras-de-escrita.md); antes de
+escrever código, [regras de código](regras-de-codigo.md).
 
 ## Quando duas fontes discordam
 

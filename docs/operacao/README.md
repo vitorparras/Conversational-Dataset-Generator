@@ -25,5 +25,6 @@ e por quem ela roda.
 | [011](011-servico-de-linguagem.md) | O serviço de linguagem no ambiente |
 | [012](012-dependencias-e-analise-estatica.md) | Dependências e análise estática |
 | [013](013-antes-de-publicar.md) | Antes de tornar o repositório público |
+| [014](014-modulos-criticos-e-pisos.md) | Módulos críticos e pisos de cobertura |
 
 Ver [regras de escrita](../regras-de-escrita.md).

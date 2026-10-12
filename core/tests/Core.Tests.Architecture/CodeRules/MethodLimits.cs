@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Core.Tests.Architecture.CodeRules;
 
-/// <summary>Code rule 2 at method level: length, parameter count and nesting depth.</summary>
+/// <summary>Limits a method: its length, parameter count and nesting depth.</summary>
 internal static class MethodLimits
 {
     public const int MaxLines = 40;

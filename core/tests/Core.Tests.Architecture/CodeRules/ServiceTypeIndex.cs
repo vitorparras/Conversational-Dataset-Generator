@@ -2,10 +2,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Core.Tests.Architecture.CodeRules;
 
-/// <summary>
-/// Which declared types are services: a class whose constructor receives another type declared in
-/// the same sources. A record is data and is never a service.
-/// </summary>
+/// <summary>Which declared types are services: a class or struct whose constructor receives another declared type.</summary>
 internal sealed class ServiceTypeIndex
 {
     private readonly HashSet<string> services;

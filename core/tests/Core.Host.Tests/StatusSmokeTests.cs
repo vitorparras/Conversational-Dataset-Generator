@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace Core.Host.Tests;
 
-/// <summary>Issue 24 CA-1: the built host starts and answers the status route.</summary>
+/// <summary>The built host starts and answers the status route.</summary>
 public sealed class StatusSmokeTests
 {
     [Fact]

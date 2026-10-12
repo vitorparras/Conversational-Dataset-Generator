@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Core.Tests.Architecture.CodeRules;
 
-/// <summary>Code rule 2 at file level: length, one public type, named types in public signatures.</summary>
+/// <summary>Limits a file: its length, one public type, and named types in public signatures.</summary>
 internal static class FileLimits
 {
     public const int MaxLines = 250;

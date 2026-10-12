@@ -1,6 +1,6 @@
 namespace Core.Tests.Architecture.CodeRules;
 
-/// <summary>Code rule 2 over every production file, with one fixture that breaks each limit.</summary>
+/// <summary>Production files and methods stay within the size limits, with one fixture that breaks each limit.</summary>
 public sealed class FileAndMethodLimitsTests
 {
     [Fact]

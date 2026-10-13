@@ -39,5 +39,5 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Medir o diff de produção contra a base
-        run: python tools/verify-code/verify.py --step pr_size --base origin/main
+      - name: Medir o diff de produção contra a base do pull request
+        run: python tools/verify-code/verify.py --step pr_size --base origin/${{ github.base_ref }}

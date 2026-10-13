@@ -24,8 +24,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Construir, testar e formatar o núcleo; testar as ferramentas
-        run: python tools/verify-code/verify.py --step build_core test_core format_core test_tools
+      - name: Instalar ruff e pyright nas versões fixadas
+        run: pip install -r tools/verify-code/lint-requirements.txt
+      - name: Construir, testar e formatar o núcleo; verificar e testar as ferramentas
+        run: python tools/verify-code/verify.py --step build_core test_core format_core lint_tools test_tools
 
   pr_size:
     name: Teto do pull request

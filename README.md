@@ -42,7 +42,8 @@ python tools/verify-code/verify.py --step pr_size --base origin/main
 ```
 
 A ordem é única: `--step test_core` sozinho, em árvore limpa, falha porque testa com `--no-build`;
-`build_core` vem antes, e a execução sem argumento segue essa ordem.
+`build_core` vem antes, e a execução sem argumento segue essa ordem. O passo `lint_tools` exige
+`ruff` e `pyright` nas versões de `tools/verify-code/lint-requirements.txt` (`pip install -r`).
 
 ## Núcleo
 

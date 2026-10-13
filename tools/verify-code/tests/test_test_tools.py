@@ -10,7 +10,9 @@ from steps import test_tools
 
 from . import support
 
-PASSING_TEST = "import unittest\n\nclass T(unittest.TestCase):\n    def test_ok(self) -> None:\n        pass\n"
+PASSING_TEST = (
+    "import unittest\n\nclass T(unittest.TestCase):\n    def test_ok(self) -> None:\n        pass\n"
+)
 FAILING_TEST = "import unittest\n\nclass T(unittest.TestCase):\n    def test_no(self) -> None:\n        self.fail()\n"
 
 

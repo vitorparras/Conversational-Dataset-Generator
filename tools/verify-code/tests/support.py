@@ -27,8 +27,14 @@ SOLUTION_WITH_TESTS = (
     "</Solution>\n"
 )
 
-FIXTURE_IDENTITY = ("-c", "user.name=ZQX-MARKER-7731", "-c", "user.email=zqx@example.invalid",
-                    "-c", "commit.gpgsign=false")
+FIXTURE_IDENTITY = (
+    "-c",
+    "user.name=ZQX-MARKER-7731",
+    "-c",
+    "user.email=zqx@example.invalid",
+    "-c",
+    "commit.gpgsign=false",
+)
 
 
 def load_verify() -> ModuleType:

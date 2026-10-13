@@ -70,7 +70,9 @@ def report(results: tuple[StepResult, ...]) -> int:
             print(f"       {line}")
     failures = [r.name for r in results if not r.ok]
     if failures:
-        print(f"\nFALHOU — {len(failures)} de {len(results)} passos reprovaram: {', '.join(failures)}")
+        print(
+            f"\nFALHOU — {len(failures)} de {len(results)} passos reprovaram: {', '.join(failures)}"
+        )
         return 1
     print(f"\nOK — {len(results)} passos, {sum(r.elapsed for r in results):.1f} s")
     return 0

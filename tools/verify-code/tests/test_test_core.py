@@ -44,10 +44,15 @@ class TestCoreTests(unittest.TestCase):
         result = test_core.run(support.context(self.root, self.runner({})))
 
         self.assertFalse(result.ok)
-        self.assertIn("nenhum relatório de teste foi escrito: o passo não passa vazio", result.details)
+        self.assertIn(
+            "nenhum relatório de teste foi escrito: o passo não passa vazio", result.details
+        )
 
     def test_project_that_executed_no_test_fails_by_name(self) -> None:
-        files = {"a.trx": support.trx("Alpha.Tests", 3, 0), "b.trx": support.trx("Beta.Tests", 0, 0)}
+        files = {
+            "a.trx": support.trx("Alpha.Tests", 3, 0),
+            "b.trx": support.trx("Beta.Tests", 0, 0),
+        }
 
         result = test_core.run(support.context(self.root, self.runner(files)))
 
@@ -55,7 +60,10 @@ class TestCoreTests(unittest.TestCase):
         self.assertIn("o projeto de teste Beta.Tests não executou nenhum teste", result.details)
 
     def test_a_failed_test_fails_the_step(self) -> None:
-        files = {"a.trx": support.trx("Alpha.Tests", 3, 1), "b.trx": support.trx("Beta.Tests", 2, 0)}
+        files = {
+            "a.trx": support.trx("Alpha.Tests", 3, 1),
+            "b.trx": support.trx("Beta.Tests", 2, 0),
+        }
 
         result = test_core.run(support.context(self.root, self.runner(files, ok=False)))
 
@@ -63,8 +71,11 @@ class TestCoreTests(unittest.TestCase):
         self.assertIn("1 teste(s) do núcleo falharam", result.details)
 
     def test_every_project_ran_and_coverage_was_written_passes(self) -> None:
-        files = {"a.trx": support.trx("Alpha.Tests", 3, 0), "b.trx": support.trx("Beta.Tests", 2, 0),
-                 "x.cobertura.xml": "<coverage />"}
+        files = {
+            "a.trx": support.trx("Alpha.Tests", 3, 0),
+            "b.trx": support.trx("Beta.Tests", 2, 0),
+            "x.cobertura.xml": "<coverage />",
+        }
 
         result = test_core.run(support.context(self.root, self.runner(files)))
 
@@ -72,7 +83,10 @@ class TestCoreTests(unittest.TestCase):
         self.assertIn("5 testes executados em 2 projetos", result.details)
 
     def test_missing_coverage_report_fails(self) -> None:
-        files = {"a.trx": support.trx("Alpha.Tests", 3, 0), "b.trx": support.trx("Beta.Tests", 2, 0)}
+        files = {
+            "a.trx": support.trx("Alpha.Tests", 3, 0),
+            "b.trx": support.trx("Beta.Tests", 2, 0),
+        }
 
         result = test_core.run(support.context(self.root, self.runner(files)))
 
@@ -80,8 +94,11 @@ class TestCoreTests(unittest.TestCase):
         self.assertIn("nenhum relatório de cobertura Cobertura foi escrito", result.details)
 
     def test_dotnet_test_error_without_failed_test_still_fails(self) -> None:
-        files = {"a.trx": support.trx("Alpha.Tests", 3, 0), "b.trx": support.trx("Beta.Tests", 2, 0),
-                 "x.cobertura.xml": "<coverage />"}
+        files = {
+            "a.trx": support.trx("Alpha.Tests", 3, 0),
+            "b.trx": support.trx("Beta.Tests", 2, 0),
+            "x.cobertura.xml": "<coverage />",
+        }
 
         result = test_core.run(support.context(self.root, self.runner(files, ok=False)))
 
@@ -95,7 +112,9 @@ class TestCoreTests(unittest.TestCase):
         result = test_core.run(support.context(self.root, self.runner({})))
 
         self.assertFalse(result.ok)
-        self.assertIn("nenhum relatório de teste foi escrito: o passo não passa vazio", result.details)
+        self.assertIn(
+            "nenhum relatório de teste foi escrito: o passo não passa vazio", result.details
+        )
 
     def test_the_command_asks_for_cobertura_and_trx_reports(self) -> None:
         runner = self.runner({})

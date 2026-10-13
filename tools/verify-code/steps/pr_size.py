@@ -39,8 +39,11 @@ def parse_numstat(text: str) -> tuple[ChangedFile, ...]:
     changed: list[ChangedFile] = []
     for line in text.splitlines():
         added, removed, path = line.split("\t", 2)
-        changed.append(ChangedFile(path, int(added) if added.isdigit() else 0,
-                                   int(removed) if removed.isdigit() else 0))
+        changed.append(
+            ChangedFile(
+                path, int(added) if added.isdigit() else 0, int(removed) if removed.isdigit() else 0
+            )
+        )
     return tuple(changed)
 
 
@@ -49,9 +52,11 @@ def measure(changed: tuple[ChangedFile, ...]) -> StepResult:
     counted = [c for c in changed if not is_excluded(c.path)]
     excluded = [c for c in changed if is_excluded(c.path)]
     files, lines = len(counted), sum(c.lines for c in counted)
-    report = [f"produção: {files} arquivos, {lines} linhas (teto {FILE_CEILING} arquivos, {LINE_CEILING} linhas)",
-              f"fora da conta: {len(excluded)} arquivos",
-              *(f"  - {c.path} ({c.lines} linhas)" for c in excluded)]
+    report = [
+        f"produção: {files} arquivos, {lines} linhas (teto {FILE_CEILING} arquivos, {LINE_CEILING} linhas)",
+        f"fora da conta: {len(excluded)} arquivos",
+        *(f"  - {c.path} ({c.lines} linhas)" for c in excluded),
+    ]
     problems: list[str] = []
     if files > FILE_CEILING:
         problems.append(f"{files} arquivos de produção passam do teto de {FILE_CEILING}")

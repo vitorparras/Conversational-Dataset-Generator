@@ -19,7 +19,7 @@ sys.modules["verify"] = verify  # dataclasses resolves annotations through sys.m
 _spec.loader.exec_module(verify)
 
 BACKSLASH = chr(92)
-VALID_DOC ="# Documento sintético\n\n> Descrição. 2026-01-01.\n\nTexto sem problema.\n"
+VALID_DOC = "# Documento sintético\n\n> Descrição. 2026-01-01.\n\nTexto sem problema.\n"
 
 
 def run_verifier(root: Path, *extra: str) -> tuple[int, str]:

@@ -33,7 +33,6 @@ class Context:
     root: Path
     out_dir: Path
     run: RunCommand
-    base: str | None = None
 
 
 @dataclass(frozen=True)

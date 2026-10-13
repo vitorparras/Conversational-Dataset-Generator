@@ -3,7 +3,7 @@
 
 The workflow .github/workflows/verify-code.yml calls this script with the steps of each job; a test
 in tools/verify-code/tests reads that file and fails if its order drifts from the one printed here.
-Standard library only; the steps run `dotnet` and `git` from the PATH. Exit code 0 only if every
+Standard library only; the steps run `dotnet` from the PATH. Exit code 0 only if every
 step that ran passed; 2 for a usage error.
 """
 
@@ -20,7 +20,7 @@ HERE = Path(__file__).resolve().parent
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 
-from steps import build_core, format_core, pr_size, test_core, test_tools  # noqa: E402
+from steps import build_core, format_core, test_core, test_tools  # noqa: E402
 from steps.common import OUTPUT_DIRECTORY, Context, StepResult, run_process  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -28,11 +28,10 @@ ROOT = Path(__file__).resolve().parents[2]
 
 @dataclass(frozen=True)
 class StepSpec:
-    """A step by name, the function that runs it and whether it needs a base ref."""
+    """A step by name and the function that runs it."""
 
     name: str
     run: Callable[[Context], StepResult]
-    needs_base: bool = False
 
 
 STEPS: tuple[StepSpec, ...] = (
@@ -40,15 +39,12 @@ STEPS: tuple[StepSpec, ...] = (
     StepSpec(test_core.NAME, test_core.run),
     StepSpec(format_core.NAME, format_core.run),
     StepSpec(test_tools.NAME, test_tools.run),
-    StepSpec(pr_size.NAME, pr_size.run, needs_base=True),
 )
 
 
-def select(requested: list[str], has_base: bool) -> tuple[StepSpec, ...]:
-    """The requested steps in CI order; with none requested, every step that needs no base."""
-    if requested:
-        return tuple(s for s in STEPS if s.name in requested)
-    return tuple(s for s in STEPS if has_base or not s.needs_base)
+def select(requested: list[str]) -> tuple[StepSpec, ...]:
+    """The requested steps in CI order, whatever the order of the request; none requested = all."""
+    return tuple(s for s in STEPS if not requested or s.name in requested)
 
 
 def run_steps(specs: tuple[StepSpec, ...], ctx: Context) -> tuple[StepResult, ...]:
@@ -80,7 +76,6 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Verifica o código do repositório.")
     parser.add_argument("--list", action="store_true", help="lista os passos, na ordem da CI")
     parser.add_argument("--step", nargs="+", default=[], metavar="NAME", help="passos a rodar")
-    parser.add_argument("--base", help="ref de comparação para pr_size (ex.: origin/main)")
     args = parser.parse_args(argv)
     if args.list:
         print("\n".join(s.name for s in STEPS))
@@ -89,9 +84,9 @@ def main(argv: list[str] | None = None) -> int:
     if unknown:
         print(f"passo desconhecido: {', '.join(unknown)} (veja --list)")
         return 2
-    ctx = Context(ROOT, ROOT / OUTPUT_DIRECTORY, run_process, args.base)
+    ctx = Context(ROOT, ROOT / OUTPUT_DIRECTORY, run_process)
     try:
-        return report(run_steps(select(args.step, args.base is not None), ctx))
+        return report(run_steps(select(args.step), ctx))
     except Exception as error:  # noqa: BLE001 - last level: a defect must still print a readable line
         print(f"ERRO — defeito do verificador: {type(error).__name__}: {error}")
         return 1

@@ -1,12 +1,8 @@
-"""Shared helpers for the tests of tools/verify-code: module loading, a fake runner, a git fixture.
-
-Every repository the tests build is synthetic and lives in a temporary directory.
-"""
+"""Shared helpers for the tests of tools/verify-code: module loading, a fake runner, fixtures."""
 
 from __future__ import annotations
 
 import importlib.util
-import subprocess
 import sys
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
@@ -26,9 +22,6 @@ SOLUTION_WITH_TESTS = (
     '  <Project Path="tests/Beta.Tests/Beta.Tests.csproj" />\n'
     "</Solution>\n"
 )
-
-FIXTURE_IDENTITY = ("-c", "user.name=ZQX-MARKER-7731", "-c", "user.email=zqx@example.invalid",
-                    "-c", "commit.gpgsign=false")
 
 
 def load_verify() -> ModuleType:
@@ -58,9 +51,9 @@ class FakeRunner:
         return self.outcome
 
 
-def context(root: Path, run: FakeRunner | None = None, base: str | None = None) -> Context:
+def context(root: Path, run: FakeRunner | None = None) -> Context:
     """A context on ``root``; without a fake, commands really run."""
-    return Context(root, root / OUTPUT_DIRECTORY, run if run is not None else run_process, base)
+    return Context(root, root / OUTPUT_DIRECTORY, run if run is not None else run_process)
 
 
 def write(root: Path, relative: str, content: str) -> None:
@@ -80,29 +73,3 @@ def trx(project: str, executed: int, failed: int) -> str:
         'className="c" name="t" /></UnitTest></TestDefinitions>\n'
         "</TestRun>\n"
     )
-
-
-def git(repo: Path, *args: str) -> None:
-    subprocess.run(["git", *FIXTURE_IDENTITY, *args], cwd=repo, check=True, capture_output=True)
-
-
-def git_repository(path: Path) -> Path:
-    """A repository with one commit on `main` and a `change` branch checked out on top of it."""
-    git(path, "init", "-q", "-b", "main")
-    write(path, "README.md", "base\n")
-    git(path, "add", ".")
-    git(path, "commit", "-q", "-m", "base")
-    git(path, "checkout", "-q", "-b", "change")
-    return path
-
-
-def numbered_files(prefix: str, count: int) -> list[str]:
-    return [f"{prefix}{index}.cs" for index in range(count)]
-
-
-def commit_files(repo: Path, names: Sequence[str], lines_each: int) -> None:
-    """Writes every named file with ``lines_each`` lines and commits them on the current branch."""
-    for name in names:
-        write(repo, name, "x\n" * lines_each)
-    git(repo, "add", ".")
-    git(repo, "commit", "-q", "-m", "change")

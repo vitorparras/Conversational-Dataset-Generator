@@ -30,6 +30,11 @@ def steps_in_workflow(text: str) -> list[str]:
     return names
 
 
+def pr_size_line(text: str) -> str:
+    """The `run:` line of the workflow that calls the pr_size step."""
+    return next(line for line in text.splitlines() if "--step pr_size" in line)
+
+
 def names(specs: Sequence[object]) -> list[str]:
     return [str(getattr(spec, "name")) for spec in specs]
 
@@ -67,6 +72,11 @@ class VerifyTests(unittest.TestCase):
 
         self.assertEqual(code, 0)
         self.assertEqual(output.split(), expected)
+
+    def test_workflow_measures_pr_size_against_the_base_of_the_pull_request(self) -> None:
+        line = pr_size_line(WORKFLOW.read_text(encoding="utf-8"))
+
+        self.assertIn("--base origin/${{ github.base_ref }}", line)
 
     def test_unknown_step_is_a_usage_error(self) -> None:
         code, output = run_main("--step", "no_such_step")

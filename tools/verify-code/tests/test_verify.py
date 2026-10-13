@@ -35,6 +35,12 @@ def pr_size_line(text: str) -> str:
     return next(line for line in text.splitlines() if "--step pr_size" in line)
 
 
+def line_after(text: str, marker: str) -> str:
+    """The line that follows the first line equal to ``marker``."""
+    lines = text.splitlines()
+    return lines[lines.index(marker) + 1]
+
+
 def names(specs: Sequence[object]) -> list[str]:
     return [str(getattr(spec, "name")) for spec in specs]
 
@@ -77,6 +83,11 @@ class VerifyTests(unittest.TestCase):
         line = pr_size_line(WORKFLOW.read_text(encoding="utf-8"))
 
         self.assertIn("--base origin/${{ github.base_ref }}", line)
+
+    def test_workflow_runs_on_pull_requests_against_any_base(self) -> None:
+        following = line_after(WORKFLOW.read_text(encoding="utf-8"), "  pull_request:")
+
+        self.assertNotIn("branches", following)
 
     def test_unknown_step_is_a_usage_error(self) -> None:
         code, output = run_main("--step", "no_such_step")

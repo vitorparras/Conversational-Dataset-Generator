@@ -13,7 +13,7 @@ VERIFY_CODE = Path(__file__).resolve().parents[1]
 if str(VERIFY_CODE) not in sys.path:
     sys.path.insert(0, str(VERIFY_CODE))
 
-from steps.common import OUTPUT_DIRECTORY, CommandOutcome, Context, run_process  # noqa: E402
+from steps.common import OUTPUT_DIRECTORY, CommandOutcome, Context, run_process
 
 SOLUTION_WITH_TESTS = (
     "<Solution>\n"

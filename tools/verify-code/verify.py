@@ -20,8 +20,8 @@ HERE = Path(__file__).resolve().parent
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 
-from steps import build_core, format_core, test_core, test_tools  # noqa: E402
-from steps.common import OUTPUT_DIRECTORY, Context, StepResult, run_process  # noqa: E402
+from steps import build_core, format_core, test_core, test_tools
+from steps.common import OUTPUT_DIRECTORY, Context, StepResult, run_process
 
 ROOT = Path(__file__).resolve().parents[2]
 

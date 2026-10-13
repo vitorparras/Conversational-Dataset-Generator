@@ -16,10 +16,6 @@ from collections.abc import Callable
 from dataclasses import dataclass, replace
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
-if str(HERE) not in sys.path:
-    sys.path.insert(0, str(HERE))
-
 from steps import build_core, format_core, pr_size, test_core, test_tools
 from steps.common import OUTPUT_DIRECTORY, Context, StepResult, run_process
 
@@ -94,7 +90,7 @@ def main(argv: list[str] | None = None) -> int:
     ctx = Context(ROOT, ROOT / OUTPUT_DIRECTORY, run_process, args.base)
     try:
         return report(run_steps(select(args.step, args.base is not None), ctx))
-    except Exception as error:  # noqa: BLE001 - last level: a defect must still print a readable line
+    except Exception as error:  # last level: a defect must still print a readable line
         print(f"ERRO — defeito do verificador: {type(error).__name__}: {error}")
         return 1
 

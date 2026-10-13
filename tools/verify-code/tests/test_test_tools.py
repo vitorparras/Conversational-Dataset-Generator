@@ -13,7 +13,9 @@ from . import support
 PASSING_TEST = (
     "import unittest\n\nclass T(unittest.TestCase):\n    def test_ok(self) -> None:\n        pass\n"
 )
-FAILING_TEST = "import unittest\n\nclass T(unittest.TestCase):\n    def test_no(self) -> None:\n        self.fail()\n"
+FAILING_TEST = PASSING_TEST.replace(
+    "def test_ok(self) -> None:\n        pass", "def test_no(self) -> None:\n        self.fail()"
+)
 
 
 class TestToolsTests(unittest.TestCase):

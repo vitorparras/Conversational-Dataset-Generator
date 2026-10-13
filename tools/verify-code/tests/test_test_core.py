@@ -1,4 +1,4 @@
-"""Tests for the test_core step: child environment, empty runs, silent projects, failures, coverage."""
+"""Tests for the test_core step: child environment, empty run, silent project, failure, coverage."""
 
 from __future__ import annotations
 

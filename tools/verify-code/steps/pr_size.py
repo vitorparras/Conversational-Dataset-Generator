@@ -1,4 +1,4 @@
-"""Measures the production diff against the base; tests, lock files and fixtures are listed, not counted."""
+"""Measures the production diff from the base; tests, locks and fixtures are listed, not counted."""
 
 from __future__ import annotations
 
@@ -53,7 +53,8 @@ def measure(changed: tuple[ChangedFile, ...]) -> StepResult:
     excluded = [c for c in changed if is_excluded(c.path)]
     files, lines = len(counted), sum(c.lines for c in counted)
     report = [
-        f"produção: {files} arquivos, {lines} linhas (teto {FILE_CEILING} arquivos, {LINE_CEILING} linhas)",
+        f"produção: {files} arquivos, {lines} linhas "
+        f"(teto {FILE_CEILING} arquivos, {LINE_CEILING} linhas)",
         f"fora da conta: {len(excluded)} arquivos",
         *(f"  - {c.path} ({c.lines} linhas)" for c in excluded),
     ]

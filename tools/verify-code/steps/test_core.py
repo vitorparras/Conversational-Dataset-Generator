@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import re
-import xml.etree.ElementTree as ElementTree
 from dataclasses import dataclass
 from pathlib import Path
+from xml.etree import ElementTree
 
 from steps.build_core import SOLUTION
 from steps.common import CommandOutcome, Context, StepResult, failed, passed, reset_directory, tail
@@ -27,11 +27,12 @@ def test_projects(solution: Path) -> tuple[str, ...]:
     """The test projects the solution lists, by project name."""
     text = solution.read_text(encoding="utf-8")
     paths = re.findall(r'Path="([^"]+\.csproj)"', text)
-    return tuple(sorted(Path(p).stem for p in paths if p.replace("\\", "/").startswith("tests/")))
+    normalized = (p.replace("\\", "/") for p in paths)
+    return tuple(sorted(Path(p).stem for p in normalized if p.startswith("tests/")))
 
 
 def read_trx(path: Path) -> TestRun:
-    """The counters and the test assembly of a TRX file; tags carry a namespace, so match by suffix."""
+    """The counters and the test assembly of a TRX file; namespaced tags are matched by suffix."""
     root = ElementTree.parse(path).getroot()
     counters = next(e for e in root.iter() if e.tag.endswith("}Counters"))
     method = next((e for e in root.iter() if e.tag.endswith("}TestMethod")), None)
@@ -43,7 +44,7 @@ def read_trx(path: Path) -> TestRun:
 def judge(
     runs: tuple[TestRun, ...], projects: tuple[str, ...], dotnet: CommandOutcome
 ) -> StepResult:
-    """Every test project ran at least one test, none failed, and `dotnet test` itself exited clean."""
+    """Every test project ran at least one test, none failed, and `dotnet test` exited clean."""
     executed = {run.project: run.executed for run in runs if run.executed > 0}
     silent = [p for p in projects if p not in executed]
     if silent:

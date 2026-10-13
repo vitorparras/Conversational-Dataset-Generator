@@ -13,11 +13,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from types import ModuleType
 
-VERIFY_CODE = Path(__file__).resolve().parents[1]
-if str(VERIFY_CODE) not in sys.path:
-    sys.path.insert(0, str(VERIFY_CODE))
-
 from steps.common import OUTPUT_DIRECTORY, CommandOutcome, Context, run_process
+
+VERIFY_CODE = Path(__file__).resolve().parents[1]
+SUCCESS = CommandOutcome(True, "")
 
 SOLUTION_WITH_TESTS = (
     "<Solution>\n"
@@ -49,9 +48,9 @@ def load_verify() -> ModuleType:
 
 @dataclass
 class FakeRunner:
-    """Answers every command with one outcome, writes the given files first, remembers the commands."""
+    """Answers every command with one outcome after writing the given files; records them all."""
 
-    outcome: CommandOutcome = CommandOutcome(True, "")
+    outcome: CommandOutcome = SUCCESS
     files: Mapping[str, str] = field(default_factory=dict[str, str])
     write_into: Path | None = None
     commands: list[list[str]] = field(default_factory=list[list[str]])

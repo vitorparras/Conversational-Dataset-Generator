@@ -105,6 +105,7 @@ FILE_EXTENSIONS = (
 
 COLUMN_LIMIT = 100
 LINE_LIMIT = 60
+BLANK_LINES_LIMIT = 2
 
 
 @dataclass(frozen=True)
@@ -285,7 +286,7 @@ def check_formatting(root: Path, path: Path, lines: list[str]) -> list[Finding]:
 
         if not content.strip():
             consecutive_blank += 1
-            if consecutive_blank == 3:
+            if consecutive_blank == BLANK_LINES_LIMIT + 1:
                 findings.append(
                     _finding(root, path, number, "formatting", "3+ linhas vazias seguidas")
                 )

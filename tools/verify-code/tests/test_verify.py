@@ -10,6 +10,7 @@ import unittest
 from collections.abc import Sequence
 from itertools import takewhile
 from pathlib import Path
+from typing import Any
 
 from steps.common import Context, StepResult, failed, passed
 
@@ -41,8 +42,8 @@ def line_after(text: str, marker: str) -> str:
     return lines[lines.index(marker) + 1]
 
 
-def names(specs: Sequence[object]) -> list[str]:
-    return [str(getattr(spec, "name")) for spec in specs]
+def names(specs: Sequence[Any]) -> list[str]:
+    return [str(spec.name) for spec in specs]
 
 
 def good(_ctx: Context) -> StepResult:

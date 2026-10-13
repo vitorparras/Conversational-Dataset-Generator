@@ -40,6 +40,9 @@ python tools/verify-code/verify.py
 python tools/verify-code/verify.py --list
 ```
 
+A ordem é única: `--step test_core` sozinho, em árvore limpa, falha porque testa com `--no-build`;
+`build_core` vem antes, e a execução sem argumento segue essa ordem.
+
 ## Núcleo
 
 O núcleo é uma solução .NET em `core/Core.slnx`. A versão exata do SDK está em `global.json`, e a

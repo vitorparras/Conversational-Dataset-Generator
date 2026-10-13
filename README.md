@@ -33,6 +33,14 @@ python tools/verify-docs/verify.py --only data,links
 python tools/verify-docs/verify.py --list
 ```
 
+O código passa pelo mesmo comando que a verificação contínua executa, na mesma ordem:
+
+```
+python tools/verify-code/verify.py
+python tools/verify-code/verify.py --list
+python tools/verify-code/verify.py --step pr_size --base origin/main
+```
+
 ## Núcleo
 
 O núcleo é uma solução .NET em `core/Core.slnx`. A versão exata do SDK está em `global.json`, e a

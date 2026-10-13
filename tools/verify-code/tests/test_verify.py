@@ -5,6 +5,7 @@ from __future__ import annotations
 import contextlib
 import io
 import tempfile
+import time
 import unittest
 from collections.abc import Sequence
 from itertools import takewhile
@@ -39,6 +40,11 @@ def good(_ctx: Context) -> StepResult:
 
 def bad(_ctx: Context) -> StepResult:
     return failed("bad", "broke")
+
+
+def slow(_ctx: Context) -> StepResult:
+    time.sleep(0.01)
+    return passed("slow")
 
 
 def run_main(*argv: str) -> tuple[int, str]:
@@ -102,6 +108,6 @@ class VerifyTests(unittest.TestCase):
         self.assertIn("OK — 1 passos", buffer.getvalue())
 
     def test_run_steps_records_the_elapsed_time_of_each_step(self) -> None:
-        results = verify.run_steps((verify.StepSpec("timed", good),), support.context(self.root))
+        results = verify.run_steps((verify.StepSpec("slow", slow),), support.context(self.root))
 
-        self.assertGreaterEqual(results[0].elapsed, 0.0)
+        self.assertGreater(results[0].elapsed, 0.0)

@@ -74,13 +74,18 @@ class VerifyTests(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertIn("no_such_step", output)
 
-    def test_nothing_requested_selects_every_step_in_order(self) -> None:
-        selected = verify.select([])
+    def test_default_selection_leaves_out_the_steps_that_need_a_base(self) -> None:
+        selected = verify.select([], False)
 
         self.assertEqual(names(selected), ["build_core", "test_core", "format_core", "test_tools"])
 
+    def test_default_selection_with_a_base_includes_pr_size(self) -> None:
+        selected = verify.select([], True)
+
+        self.assertIn("pr_size", names(selected))
+
     def test_requested_steps_run_in_ci_order_not_in_request_order(self) -> None:
-        selected = verify.select(["test_tools", "build_core"])
+        selected = verify.select(["test_tools", "build_core"], False)
 
         self.assertEqual(names(selected), ["build_core", "test_tools"])
 

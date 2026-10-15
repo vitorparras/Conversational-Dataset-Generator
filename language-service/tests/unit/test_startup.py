@@ -2,9 +2,7 @@
 
 from io import BytesIO
 
-import pytest
-
-from language_service.startup import EXIT_USAGE, parse_port, read_secret
+from language_service.startup import parse_port, read_secret
 from support.synthetic import SECRET
 
 PORT = 8123
@@ -15,17 +13,23 @@ def test_port_is_read_from_the_command_line() -> None:
 
 
 def test_host_option_is_refused() -> None:
-    with pytest.raises(SystemExit) as exit_info:
-        parse_port(["--port", "8123", "--host", "0.0.0.0"])
-
-    assert exit_info.value.code == EXIT_USAGE
+    assert parse_port(["--port", str(PORT), "--host", "0.0.0.0"]) is None
 
 
 def test_missing_port_is_refused() -> None:
-    with pytest.raises(SystemExit) as exit_info:
-        parse_port([])
+    assert parse_port([]) is None
 
-    assert exit_info.value.code == EXIT_USAGE
+
+def test_port_that_is_not_a_number_is_refused() -> None:
+    assert parse_port(["--port", "http"]) is None
+
+
+def test_port_above_the_range_is_refused() -> None:
+    assert parse_port(["--port", "65536"]) is None
+
+
+def test_port_zero_is_refused() -> None:
+    assert parse_port(["--port", "0"]) is None
 
 
 def test_secret_is_the_first_line_without_its_break() -> None:

@@ -30,6 +30,17 @@ def steps_in_workflow(text: str) -> list[str]:
     return names
 
 
+def pr_size_line(text: str) -> str:
+    """The `run:` line of the workflow that calls the pr_size step."""
+    return next(line for line in text.splitlines() if "--step pr_size" in line)
+
+
+def line_after(text: str, marker: str) -> str:
+    """The line that follows the first line equal to ``marker``."""
+    lines = text.splitlines()
+    return lines[lines.index(marker) + 1]
+
+
 def names(specs: Sequence[object]) -> list[str]:
     return [str(getattr(spec, "name")) for spec in specs]
 
@@ -68,19 +79,34 @@ class VerifyTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertEqual(output.split(), expected)
 
+    def test_workflow_measures_pr_size_against_the_base_of_the_pull_request(self) -> None:
+        line = pr_size_line(WORKFLOW.read_text(encoding="utf-8"))
+
+        self.assertIn("--base origin/${{ github.base_ref }}", line)
+
+    def test_workflow_runs_on_pull_requests_against_any_base(self) -> None:
+        following = line_after(WORKFLOW.read_text(encoding="utf-8"), "  pull_request:")
+
+        self.assertNotIn("branches", following)
+
     def test_unknown_step_is_a_usage_error(self) -> None:
         code, output = run_main("--step", "no_such_step")
 
         self.assertEqual(code, 2)
         self.assertIn("no_such_step", output)
 
-    def test_nothing_requested_selects_every_step_in_order(self) -> None:
-        selected = verify.select([])
+    def test_default_selection_leaves_out_the_steps_that_need_a_base(self) -> None:
+        selected = verify.select([], False)
 
         self.assertEqual(names(selected), ["build_core", "test_core", "format_core", "test_tools"])
 
+    def test_default_selection_with_a_base_includes_pr_size(self) -> None:
+        selected = verify.select([], True)
+
+        self.assertIn("pr_size", names(selected))
+
     def test_requested_steps_run_in_ci_order_not_in_request_order(self) -> None:
-        selected = verify.select(["test_tools", "build_core"])
+        selected = verify.select(["test_tools", "build_core"], False)
 
         self.assertEqual(names(selected), ["build_core", "test_tools"])
 

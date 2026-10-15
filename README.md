@@ -38,6 +38,7 @@ O código passa pelo mesmo comando que a verificação contínua executa, na mes
 ```
 python tools/verify-code/verify.py
 python tools/verify-code/verify.py --list
+python tools/verify-code/verify.py --step pr_size --base origin/main
 ```
 
 A ordem é única: `--step test_core` sozinho, em árvore limpa, falha porque testa com `--no-build`;

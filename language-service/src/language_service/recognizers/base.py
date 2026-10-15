@@ -1,4 +1,4 @@
-"""The port every recognizer fills, and the occurrence it speaks of (decision 0018)."""
+"""The port every recognizer fills, and the occurrence it speaks of."""
 
 from collections.abc import Sequence
 from dataclasses import dataclass

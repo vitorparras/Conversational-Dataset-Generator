@@ -33,6 +33,19 @@ public sealed class ConfigurationKeyTests
         Assert.Contains("':'", defect.Message, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData]
+    [InlineData("strict", "")]
+    [InlineData("strict", "   ")]
+    public void EmptyAcceptedSetOrBlankAcceptedValueIsADefect(params string[] values)
+    {
+        var key = ConfigurationKey.Required("Mode");
+
+        var defect = Assert.Throws<ArgumentException>(() => key.Accepting(values));
+
+        Assert.Contains("accepted set", defect.Message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void KeyWithoutAnAcceptedSetAcceptsAnyText()
     {

@@ -78,8 +78,7 @@ def test_response_is_immutable() -> None:
 
 def test_occurrence_is_immutable() -> None:
     with pytest.raises(dataclasses.FrozenInstanceError):
-        # The checker refuses this write statically; the test proves the runtime refuses it too.
-        OCCURRENCE.start = 1  # type: ignore[misc]
+        OCCURRENCE.__setattr__("start", 1)
 
 
 def test_empty_recognizer_finds_nothing() -> None:

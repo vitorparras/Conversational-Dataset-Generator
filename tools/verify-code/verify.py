@@ -3,8 +3,8 @@
 
 The workflow .github/workflows/verify-code.yml calls this script with the steps of each job; a test
 in tools/verify-code/tests reads that file and fails if its order drifts from the one printed here.
-Standard library only; the steps run `dotnet`, `git`, `ruff` and `pyright`. Exit code 0 only if
-every step that ran passed; 2 for a usage error.
+Standard library only; the steps run `dotnet`, `uv`, `git`, `ruff` and `pyright`. Exit code 0 only
+if every step that ran passed; 2 for a usage error.
 """
 
 from __future__ import annotations
@@ -16,7 +16,17 @@ from collections.abc import Callable
 from dataclasses import dataclass, replace
 from pathlib import Path
 
-from steps import build_core, format_core, lint_tools, pr_size, test_core, test_tools
+from steps import (
+    build_core,
+    build_service,
+    format_core,
+    lint_service,
+    lint_tools,
+    pr_size,
+    test_core,
+    test_service,
+    test_tools,
+)
 from steps.common import OUTPUT_DIRECTORY, Context, StepResult, run_process
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -37,6 +47,9 @@ STEPS: tuple[StepSpec, ...] = (
     StepSpec(format_core.NAME, format_core.run),
     StepSpec(lint_tools.NAME, lint_tools.run),
     StepSpec(test_tools.NAME, test_tools.run),
+    StepSpec(build_service.NAME, build_service.run),
+    StepSpec(test_service.NAME, test_service.run),
+    StepSpec(lint_service.NAME, lint_service.run),
     StepSpec(pr_size.NAME, pr_size.run, needs_base=True),
 )
 

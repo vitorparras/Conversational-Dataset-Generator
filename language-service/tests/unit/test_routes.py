@@ -14,10 +14,14 @@ def test_health_answers_ok(client: TestClient) -> None:
     assert response.json() == {"status": "ok"}
 
 
-def test_version_reports_service_and_contract(client: TestClient) -> None:
+def test_version_reports_service_contract_and_model(client: TestClient) -> None:
     response = client.get("/version", headers=SECRET_HEADER)
 
-    assert response.json() == {"service_version": "0.1.0", "contract_version": "1"}
+    assert response.json() == {
+        "service_version": "0.1.0",
+        "contract_version": "1",
+        "model_version": None,
+    }
 
 
 @pytest.mark.parametrize("path", ["/docs", "/redoc", "/openapi.json"])

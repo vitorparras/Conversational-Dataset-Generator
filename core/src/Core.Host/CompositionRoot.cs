@@ -12,7 +12,7 @@ internal static class CompositionRoot
     {
         var loaded = ClosedConfiguration.Load(
             new ConfigurationSchema([HostConfiguration.Section]),
-            new JsonFileSource(HostConfiguration.SettingsFile),
+            new JsonFileSource(HostConfiguration.SettingsPath),
             EnvironmentSource.FromProcess(),
             new StrictArgumentsSource(args));
         return loaded.Refused ? HostLaunch.Refused(loaded.Problems) : HostLaunch.Ready(Assemble(loaded));

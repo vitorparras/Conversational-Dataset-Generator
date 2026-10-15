@@ -1,0 +1,32 @@
+[project]
+name = "language-service"
+version = "0.1.0"
+description = "Local language service of the Conversational Dataset Generator: returns pointers, never transformed text."
+requires-python = "==3.12.*"
+license = "AGPL-3.0-only"
+dependencies = [
+    "fastapi==0.143.1",
+    "pydantic==2.14.1",
+    "uvicorn==0.54.0",
+]
+
+[dependency-groups]
+dev = [
+    "coverage==7.16.2",
+    "httpx2==2.13.1",
+    "hypothesis==6.169.2",
+    "mutmut==3.8.0",
+    "pytest==9.1.1",
+]
+
+[build-system]
+requires = ["uv_build>=0.11,<0.12"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "language_service"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["tests"]
+addopts = "--strict-markers --strict-config -ra"

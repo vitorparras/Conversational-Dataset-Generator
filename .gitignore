@@ -39,3 +39,6 @@ desktop.ini
 
 # Memória de trabalho local dos agentes (autoridade zero; não versionada)
 .specs/
+
+# Saída do comando único de verificação (tools/verify-code); nunca versionada
+.verify-code/

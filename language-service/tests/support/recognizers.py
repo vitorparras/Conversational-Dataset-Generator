@@ -3,7 +3,7 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from language_service.recognizers.base import Occurrence
+from language_service.recognizers.occurrence import Occurrence
 
 OCCURRENCE = Occurrence(start=0, end=3, kind="PERSON", part_of_speech="PROPN", syntactic_role="obj")
 OCCURRENCE_JSON = {

@@ -1,19 +1,9 @@
-"""The port every recognizer fills, and the occurrence it speaks of."""
+"""The port every recognizer fills."""
 
 from collections.abc import Sequence
-from dataclasses import dataclass
 from typing import Protocol
 
-
-@dataclass(frozen=True)
-class Occurrence:
-    """A half-open span of code points, its kind, and the part of speech and role of its head."""
-
-    start: int
-    end: int
-    kind: str
-    part_of_speech: str
-    syntactic_role: str
+from language_service.recognizers.occurrence import Occurrence
 
 
 class Recognizer(Protocol):

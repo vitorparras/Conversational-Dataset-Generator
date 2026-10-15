@@ -37,7 +37,9 @@ class Routes:
 
     def analyze(self, body: AnalyzeRequest) -> AnalyzeResponse:
         found = self.recognizer.recognize(body.text, body.language)
-        return AnalyzeResponse(occurrences=list(found), model_version=self.recognizer.model_version)
+        return AnalyzeResponse(
+            occurrences=tuple(found), model_version=self.recognizer.model_version
+        )
 
 
 async def refuse_invalid_request(request: Request, error: Exception) -> JSONResponse:

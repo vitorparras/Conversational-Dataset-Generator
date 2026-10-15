@@ -31,7 +31,7 @@ class AnalyzeRequest(Message):
 class AnalyzeResponse(Message):
     """An empty list means analysed and nothing found; an unavailable service never answers."""
 
-    occurrences: list[Occurrence]
+    occurrences: tuple[Occurrence, ...]
     model_version: str | None
 
 

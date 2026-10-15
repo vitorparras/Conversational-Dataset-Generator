@@ -1,0 +1,2 @@
+T:Microsoft.Extensions.Logging.LoggerExtensions;Log through a generated LoggerMessage method, never through a message string
+M:Microsoft.Extensions.Logging.ILogger.Log``1(Microsoft.Extensions.Logging.LogLevel,Microsoft.Extensions.Logging.EventId,``0,System.Exception,System.Func{``0,System.Exception,System.String});Log through a generated LoggerMessage method; only its generated body may call ILogger.Log

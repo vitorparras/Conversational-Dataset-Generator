@@ -37,6 +37,9 @@ csharp_style_unused_value_assignment_preference = discard_variable
 # The host and the test projects are executables without a synchronization context.
 dotnet_code_quality.CA2007.output_kind = DynamicallyLinkedLibrary
 
+# A banned symbol (core/BannedSymbols.txt) fails the build on its own, whatever the warning policy.
+dotnet_diagnostic.RS0030.severity = error
+
 [*.py]
 indent_size = 4
 

@@ -1,0 +1,14 @@
+class Clock:
+    def now(self) -> int:
+        return 0
+
+
+class Greeter:
+    def __init__(self, clock: Clock) -> None:
+        self._clock = clock
+
+    def greet(self) -> str:
+        return str(self._clock.now())
+
+
+greeter = Greeter(Clock())

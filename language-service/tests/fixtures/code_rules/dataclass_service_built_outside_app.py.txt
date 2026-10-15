@@ -1,0 +1,18 @@
+from dataclasses import dataclass
+
+
+class Clock:
+    def now(self) -> int:
+        return 0
+
+
+@dataclass(frozen=True)
+class Routes:
+    clock: Clock
+
+    def health(self) -> int:
+        return self.clock.now()
+
+
+def build() -> Routes:
+    return Routes(Clock())

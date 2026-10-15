@@ -13,6 +13,7 @@ from support.code_rules import (
     production_sources,
     public_test_names,
 )
+from support.composition import service_instantiation_outside_root
 
 TESTS = Path(__file__).resolve().parents[1]
 SOURCES = production_sources(TESTS.parent / "src" / "language_service")
@@ -99,3 +100,37 @@ def test_composition_outside_app_is_refused() -> None:
     violations = composition_outside_root(source)
 
     assert [v.line for v in violations] == [4, 7, 11]
+
+
+def test_no_service_is_built_outside_app() -> None:
+    assert service_instantiation_outside_root(SOURCES) == ()
+
+
+def test_service_with_a_constructor_dependency_built_outside_app_is_refused() -> None:
+    source = fixture("service_built_outside_app.py.txt")
+
+    violations = service_instantiation_outside_root((source,))
+
+    assert [(v.rule, v.line) for v in violations] == [("service_outside_root", 14)]
+
+
+def test_dataclass_service_built_outside_app_is_refused() -> None:
+    source = fixture("dataclass_service_built_outside_app.py.txt")
+
+    violations = service_instantiation_outside_root((source,))
+
+    assert [(v.rule, v.line) for v in violations] == [("service_outside_root", 18)]
+
+
+def test_protocol_implementation_built_outside_app_is_refused() -> None:
+    source = fixture("protocol_implemented_outside_app.py.txt")
+
+    violations = service_instantiation_outside_root((source,))
+
+    assert [(v.rule, v.line) for v in violations] == [("service_outside_root", 13)]
+
+
+def test_value_object_without_methods_is_not_a_service() -> None:
+    source = fixture("value_object_built_anywhere.py.txt")
+
+    assert service_instantiation_outside_root((source,)) == ()

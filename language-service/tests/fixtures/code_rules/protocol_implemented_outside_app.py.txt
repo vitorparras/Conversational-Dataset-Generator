@@ -1,0 +1,13 @@
+from typing import Protocol
+
+
+class Recognizer(Protocol):
+    def recognize(self, text: str) -> tuple[str, ...]: ...
+
+
+class EmptyRecognizer:
+    def recognize(self, text: str) -> tuple[str, ...]:
+        return ()
+
+
+recognizer = EmptyRecognizer()

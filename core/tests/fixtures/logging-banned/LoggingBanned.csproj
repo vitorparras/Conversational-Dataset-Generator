@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Built by Core.Platform.Tests, never by the solution: it must fail, and only because of a banned symbol. -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <IsTestProject>false</IsTestProject>
+    <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
+    <!-- The performance and template analyzers would fail the same lines; silenced so the banned symbol fails alone. -->
+    <NoWarn>$(NoWarn);CA1848;CA1873;CA2254</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Remove="xunit.v3" />
+    <PackageReference Remove="Microsoft.Testing.Extensions.CodeCoverage" />
+    <Using Remove="Xunit" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+</Project>

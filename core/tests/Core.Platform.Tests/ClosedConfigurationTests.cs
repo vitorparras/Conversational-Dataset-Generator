@@ -169,6 +169,6 @@ public sealed class ClosedConfigurationTests
             result.Problems.Select(problem => problem.Kind));
     }
 
-    private static InMemoryConfigurationSource Source(params (string Key, string? Value)[] entries) =>
+    private static FakeConfigurationSource Source(params (string Key, string? Value)[] entries) =>
         new(entries.Select(entry => KeyValuePair.Create(entry.Key, entry.Value)));
 }

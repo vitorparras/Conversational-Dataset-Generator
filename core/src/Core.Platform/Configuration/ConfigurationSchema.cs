@@ -1,10 +1,11 @@
 namespace Core.Platform.Configuration;
 
 /// <summary>The closed set of keys the process accepts, united from the sections every module declares.</summary>
-internal sealed class ConfigurationSchema
+public sealed class ConfigurationSchema
 {
     private readonly Dictionary<string, DeclaredKey> byPath = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>Unites the sections; the same key declared twice is a defect.</summary>
     public ConfigurationSchema(IReadOnlyList<ConfigurationSection> sections)
     {
         Declared = [.. sections.SelectMany(section => section.Keys
@@ -19,8 +20,8 @@ internal sealed class ConfigurationSchema
     }
 
     /// <summary>Every declared key, in declaration order.</summary>
-    public IReadOnlyList<DeclaredKey> Declared { get; }
+    internal IReadOnlyList<DeclaredKey> Declared { get; }
 
     /// <summary>The key declared at the path, whatever the case it was written in; null when no section declares it.</summary>
-    public DeclaredKey? Find(string path) => byPath.GetValueOrDefault(path);
+    internal DeclaredKey? Find(string path) => byPath.GetValueOrDefault(path);
 }

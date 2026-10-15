@@ -1,10 +1,12 @@
 namespace Core.Platform.Configuration;
 
 /// <summary>Loads the sources, in order of origin, against a closed schema; an unknown, repeated or missing key or a refused value refuses the whole configuration.</summary>
-internal static class ClosedConfiguration
+public static class ClosedConfiguration
 {
+    /// <summary>Reads every source, a later origin overriding an earlier one, and judges every declared key; nothing throws for what an operator can get wrong.</summary>
     public static ConfigurationLoadResult Load(ConfigurationSchema schema, params IReadOnlyList<IConfigurationSource> sources)
     {
+        ArgumentNullException.ThrowIfNull(schema);
         var readings = sources.Select(source => source.Read()).OrderBy(reading => reading.Origin).ToList();
         var written = Written(schema, readings);
         var problems = readings.SelectMany(reading => Problems(schema, reading))

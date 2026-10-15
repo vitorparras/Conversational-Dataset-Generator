@@ -3,7 +3,7 @@ using System.Text.Json;
 namespace Core.Platform.Configuration.Sources;
 
 /// <summary>Reads one JSON file, nested objects flattened into <c>Section:Key</c> paths; an absent file writes nothing.</summary>
-internal sealed class JsonFileSource : IConfigurationSource
+public sealed class JsonFileSource : IConfigurationSource
 {
     private const char PathSeparator = ':';
     private readonly string path;
@@ -15,6 +15,7 @@ internal sealed class JsonFileSource : IConfigurationSource
         this.path = path;
     }
 
+    /// <inheritdoc />
     public SourceReading Read()
     {
         if (!File.Exists(path))

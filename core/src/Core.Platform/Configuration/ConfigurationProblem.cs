@@ -3,7 +3,7 @@ using System.Diagnostics;
 namespace Core.Platform.Configuration;
 
 /// <summary>One reason the configuration was refused: the key, what was found and what would be accepted.</summary>
-internal sealed record ConfigurationProblem(
+public sealed record ConfigurationProblem(
     ConfigurationProblemKind Kind,
     string Key,
     string? Found,

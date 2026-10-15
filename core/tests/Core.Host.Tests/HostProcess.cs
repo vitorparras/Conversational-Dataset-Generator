@@ -19,16 +19,29 @@ internal sealed class HostProcess : IDisposable
         client = new HttpClient { BaseAddress = baseAddress };
     }
 
+    /// <summary>The address the host was told to listen on, as a command-line argument.</summary>
+    public Uri BaseAddress => client.BaseAddress!;
+
     public static async Task<HostProcess> StartAsync(CancellationToken cancellationToken)
     {
         var baseAddress = new Uri($"http://127.0.0.1:{FreePort()}");
-        var process = Process.Start(StartInfo(baseAddress))
-            ?? throw new InvalidOperationException("The host process did not start.");
+        var process = Start(StartInfo(baseAddress, AppContext.BaseDirectory));
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
         var host = new HostProcess(process, baseAddress);
         await host.WaitUntilListeningAsync(cancellationToken);
         return host;
+    }
+
+    /// <summary>Runs the host from the directory until it exits by itself, and hands over the exit code and what it wrote to the error stream.</summary>
+    public static async Task<HostExit> RunToExitAsync(string workingDirectory, CancellationToken cancellationToken)
+    {
+        using var process = Start(StartInfo(new Uri($"http://127.0.0.1:{FreePort()}"), workingDirectory));
+        var error = process.StandardError.ReadToEndAsync(cancellationToken);
+        var output = process.StandardOutput.ReadToEndAsync(cancellationToken);
+        await process.WaitForExitAsync(cancellationToken).WaitAsync(StartupTimeout, cancellationToken);
+        _ = await output;
+        return new HostExit(process.ExitCode, await error);
     }
 
     public Task<HttpResponseMessage> GetAsync(string route, CancellationToken cancellationToken) =>
@@ -46,18 +59,20 @@ internal sealed class HostProcess : IDisposable
         client.Dispose();
     }
 
-    private static ProcessStartInfo StartInfo(Uri baseAddress)
+    private static Process Start(ProcessStartInfo info) =>
+        Process.Start(info) ?? throw new InvalidOperationException("The host process did not start.");
+
+    private static ProcessStartInfo StartInfo(Uri baseAddress, string workingDirectory)
     {
         var fileName = OperatingSystem.IsWindows() ? "Core.Host.exe" : "Core.Host";
         var info = new ProcessStartInfo(Path.Combine(AppContext.BaseDirectory, fileName))
         {
-            WorkingDirectory = AppContext.BaseDirectory,
+            WorkingDirectory = workingDirectory,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
         };
-        info.ArgumentList.Add("--urls");
-        info.ArgumentList.Add(baseAddress.GetLeftPart(UriPartial.Authority));
+        info.ArgumentList.Add($"--Host:Urls={baseAddress.GetLeftPart(UriPartial.Authority)}");
         return info;
     }
 

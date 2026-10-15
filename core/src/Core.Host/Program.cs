@@ -1,3 +1,3 @@
 using Core.Host;
 
-CompositionRoot.Build(args).Run();
+return (int)CompositionRoot.Build(args).Run();

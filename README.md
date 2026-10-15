@@ -55,7 +55,7 @@ repositório, nesta ordem:
 dotnet restore --locked-mode core/Core.slnx
 dotnet build core/Core.slnx
 dotnet test core/Core.slnx
-dotnet run --project core/src/Core.Host -- --urls http://127.0.0.1:5080
+dotnet run --project core/src/Core.Host -- --Host:Urls=http://127.0.0.1:5080
 ```
 
 Com o núcleo de pé, `http://127.0.0.1:5080/status` responde `{"alive":true}`. O teste de

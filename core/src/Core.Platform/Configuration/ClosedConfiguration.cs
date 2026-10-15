@@ -1,63 +1,69 @@
 namespace Core.Platform.Configuration;
 
-/// <summary>Loads a source against a closed schema; an unknown key, a missing required key or a refused value refuses the whole configuration.</summary>
+/// <summary>Loads the sources, in order of origin, against a closed schema; an unknown, repeated or missing key or a refused value refuses the whole configuration.</summary>
 internal static class ClosedConfiguration
 {
-    public static ConfigurationLoadResult Load(ConfigurationSchema schema, IConfigurationSource source)
+    public static ConfigurationLoadResult Load(ConfigurationSchema schema, params IReadOnlyList<IConfigurationSource> sources)
     {
-        var entries = source.Read();
-        var unknown = entries
-            .Where(entry => schema.Find(entry.Key) is null)
-            .Select(entry => new ConfigurationProblem(
-                ConfigurationProblemKind.UnknownKey, entry.Key, Found: null, Accepted: null));
-        var written = Written(schema, entries);
-        var judged = schema.Declared.Select(declared => Judge(declared, written)).OfType<ConfigurationProblem>();
-        var problems = unknown.Concat(judged).ToList();
+        var readings = sources.Select(source => source.Read()).OrderBy(reading => reading.Origin).ToList();
+        var written = Written(schema, readings);
+        var problems = readings.SelectMany(reading => Problems(schema, reading))
+            .Concat(schema.Declared.Select(declared => Judge(declared, written)).OfType<ConfigurationProblem>())
+            .ToList();
         return problems.Count > 0
             ? ConfigurationLoadResult.Refusal(problems)
-            : ConfigurationLoadResult.Loaded(Values(schema, written));
+            : ConfigurationLoadResult.Loaded(Resolve(schema, written));
     }
 
-    /// <summary>What the source wrote for each declared key, under the declared path; a later entry replaces an earlier one.</summary>
-    private static Dictionary<string, string?> Written(
-        ConfigurationSchema schema, IEnumerable<KeyValuePair<string, string?>> entries)
-    {
-        var written = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
-        foreach (var entry in entries)
-        {
-            if (schema.Find(entry.Key) is { } declared)
-            {
-                written[declared.Path] = entry.Value;
-            }
-        }
+    /// <summary>What the reading itself reported, then every key it wrote twice, then every key no section declares.</summary>
+    private static IEnumerable<ConfigurationProblem> Problems(ConfigurationSchema schema, SourceReading reading) =>
+        reading.Problems
+            .Concat(reading.Entries
+                .GroupBy(entry => entry.Key, StringComparer.OrdinalIgnoreCase)
+                .Where(group => group.Count() > 1)
+                .Select(group => Problem(ConfigurationProblemKind.RepeatedKey, group.Key)))
+            .Concat(reading.Entries
+                .Where(entry => schema.Find(entry.Key) is null)
+                .DistinctBy(entry => entry.Key, StringComparer.OrdinalIgnoreCase)
+                .Select(entry => Problem(ConfigurationProblemKind.UnknownKey, entry.Key)));
 
-        return written;
-    }
+    /// <summary>What was written for each declared key, under the declared path; a later origin replaces an earlier one.</summary>
+    private static Dictionary<string, Writing> Written(ConfigurationSchema schema, IEnumerable<SourceReading> readings) =>
+        readings
+            .SelectMany(reading => reading.Entries
+                .Select(entry => KeyValuePair.Create(schema.Find(entry.Key), new Writing(entry.Value, reading.Origin))))
+            .Where(pair => pair.Key is not null)
+            .GroupBy(pair => pair.Key!.Path, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.Last().Value, StringComparer.OrdinalIgnoreCase);
 
-    private static ConfigurationProblem? Judge(DeclaredKey declared, Dictionary<string, string?> written)
+    private static ConfigurationProblem? Judge(DeclaredKey declared, Dictionary<string, Writing> written)
     {
-        if (!written.TryGetValue(declared.Path, out var value))
+        if (!written.TryGetValue(declared.Path, out var writing))
         {
             return declared.Key.IsRequired ? Problem(ConfigurationProblemKind.MissingKey, declared, found: null) : null;
         }
 
-        if (string.IsNullOrWhiteSpace(value))
+        if (string.IsNullOrWhiteSpace(writing.Value))
         {
             return Problem(ConfigurationProblemKind.EmptyValue, declared, found: null);
         }
 
-        return declared.Key.Accepts(value)
+        return declared.Key.Accepts(writing.Value)
             ? null
-            : Problem(ConfigurationProblemKind.ValueNotAccepted, declared, declared.Key.IsSensitive ? null : value);
+            : Problem(ConfigurationProblemKind.ValueNotAccepted, declared, declared.Key.IsSensitive ? null : writing.Value);
     }
+
+    private static ConfigurationProblem Problem(ConfigurationProblemKind kind, string key) =>
+        new(kind, key, Found: null, Accepted: null);
 
     private static ConfigurationProblem Problem(ConfigurationProblemKind kind, DeclaredKey declared, string? found) =>
         new(kind, declared.Path, found, declared.Key.AcceptedValues);
 
-    /// <summary>The written value or, for a key no source wrote, its default; only reached once nothing was refused.</summary>
-    private static Dictionary<string, string> Values(ConfigurationSchema schema, Dictionary<string, string?> written) =>
-        schema.Declared.ToDictionary(
-            declared => declared.Path,
-            declared => written.GetValueOrDefault(declared.Path) ?? declared.Key.DefaultValue!,
-            StringComparer.OrdinalIgnoreCase);
+    /// <summary>The written value with its origin or, for a key no source wrote, its default; only reached once nothing was refused.</summary>
+    private static List<ResolvedValue> Resolve(ConfigurationSchema schema, Dictionary<string, Writing> written) =>
+        [.. schema.Declared.Select(declared => written.TryGetValue(declared.Path, out var writing)
+            ? new ResolvedValue(declared, writing.Value!, writing.Origin)
+            : new ResolvedValue(declared, declared.Key.DefaultValue!, ConfigurationOrigin.Default))];
+
+    private sealed record Writing(string? Value, ConfigurationOrigin Origin);
 }

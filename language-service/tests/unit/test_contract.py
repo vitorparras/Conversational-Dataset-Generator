@@ -18,9 +18,9 @@ def test_version_response_refuses_an_unknown_field() -> None:
         VersionResponse.model_validate({**VERSION, "unknown": "x"})
 
 
-def test_version_response_refuses_a_coerced_type() -> None:
+def test_version_response_refuses_a_value_the_lax_mode_would_coerce() -> None:
     with pytest.raises(ValidationError):
-        VersionResponse.model_validate({**VERSION, "service_version": 1})
+        VersionResponse.model_validate({**VERSION, "service_version": b"0.1.0"})
 
 
 def test_health_response_accepts_the_contract_shape() -> None:

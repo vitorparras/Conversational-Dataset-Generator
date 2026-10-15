@@ -33,7 +33,7 @@ from pathlib import Path
 DEFAULT_ROOT = Path(__file__).resolve().parents[2]
 
 #: Directories that are not project documentation.
-IGNORED = {".git", ".github", ".specs", "tools", "node_modules", "bin", "obj"}
+IGNORED = {".git", ".github", ".specs", "tools", "node_modules", "bin", "obj", ".venv"}
 
 #: Community files whose authority is obvious from the name.
 COMMUNITY_FILES = {

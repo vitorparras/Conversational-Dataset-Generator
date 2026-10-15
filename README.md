@@ -63,6 +63,17 @@ arquitetura em `core/tests/Core.Tests.Architecture` impõe as regras de código 
 as fixtures que ele reprova de propósito ficam em `core/tests/fixtures/code-rules`, fora de
 qualquer projeto.
 
+## Serviço de linguagem
+
+O serviço é um projeto Python 3.12 em `language-service/`, com dependências fixadas em
+`language-service/uv.lock`; o estilo e a tipagem vêm de `ruff.toml` e `pyrightconfig.json` na
+raiz. Ele escuta só em `127.0.0.1` e lê o segredo de inicialização da entrada padrão.
+
+```
+uv sync --frozen --directory language-service
+uv run --directory language-service pytest
+```
+
 ## Licença
 
 O software é [AGPL-3.0](LICENSE): qualquer um pode usar, estudar, modificar e redistribuir,

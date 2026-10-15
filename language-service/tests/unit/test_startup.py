@@ -67,12 +67,32 @@ def test_startup_carries_the_port_and_the_secret() -> None:
     assert startup == Startup(PORT, SECRET)
 
 
+def test_startup_keeps_the_secret_out_of_its_repr() -> None:
+    assert SECRET.decode("ascii") not in repr(Startup(PORT, SECRET))
+
+
 def test_startup_without_port_tells_the_usage_and_yields_nothing() -> None:
     errors = StringIO()
 
     startup = read_startup([], BytesIO(SECRET + b"\n"), errors)
 
     assert (startup, errors.getvalue()) == (None, USAGE + "\n")
+
+
+def test_startup_with_port_out_of_range_tells_the_usage_and_yields_nothing() -> None:
+    errors = StringIO()
+
+    startup = read_startup(["--port", "0"], BytesIO(SECRET + b"\n"), errors)
+
+    assert (startup, errors.getvalue()) == (None, USAGE + "\n")
+
+
+def test_startup_with_port_out_of_range_leaves_the_secret_unread() -> None:
+    stream = BytesIO(SECRET + b"\n")
+
+    read_startup(["--port", "0"], stream, StringIO())
+
+    assert stream.read() == SECRET + b"\n"
 
 
 def test_startup_without_port_leaves_the_secret_unread() -> None:

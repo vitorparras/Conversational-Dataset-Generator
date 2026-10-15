@@ -6,7 +6,7 @@ host: the service binds the loopback interface and nothing can move it.
 
 import re
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import BinaryIO, Final, TextIO
 
 MIN_SECRET_BYTES: Final = 16
@@ -32,7 +32,7 @@ class Startup:
     """What the service needs before it serves: the port it was given and the secret it read."""
 
     port: int
-    secret: bytes
+    secret: bytes = field(repr=False)
 
 
 def parse_port(argv: Sequence[str]) -> int | None:

@@ -1,0 +1,20 @@
+def three_levels(items: list[int]) -> int:
+    total = 0
+    for item in items:
+        if item > 0:
+            while total < item:
+                total += 1
+    return total
+
+
+def elif_chain_is_two_levels(value: int) -> str:
+    if value > 0:
+        if value > 10:
+            return "large"
+        return "small"
+    elif value < 0:
+        if value < -10:
+            return "very negative"
+        return "negative"
+    else:
+        return "zero"

@@ -1,0 +1,7 @@
+class Within:
+    def four(self, a: int, b: int, c: int, d: int) -> int:
+        return a + b + c + d
+
+
+def five(a: int, b: int, c: int, d: int, *, e: int) -> int:
+    return a + b + c + d + e

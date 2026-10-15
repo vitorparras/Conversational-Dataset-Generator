@@ -2,10 +2,11 @@ using System.Text.Json.Serialization;
 using Core.Host.Endpoints;
 using Core.Platform.Configuration;
 using Core.Platform.Configuration.Sources;
+using Core.Platform.Logging;
 
 namespace Core.Host;
 
-/// <summary>The only place where the host is assembled: configuration first, then services, then routes.</summary>
+/// <summary>The only place where the host is assembled: configuration first, then logging and services, then routes.</summary>
 internal static class CompositionRoot
 {
     public static HostLaunch Build(string[] args)
@@ -22,6 +23,8 @@ internal static class CompositionRoot
     {
         var builder = WebApplication.CreateBuilder();
         _ = builder.WebHost.UseUrls(loaded.Values[HostConfiguration.UrlsPath]);
+        PlatformLogging.Configure(builder.Logging);
+        _ = builder.Services.AddRedaction(PlatformLogging.EraseSensitiveData);
         _ = builder.Services.AddSingleton(loaded.View);
         _ = builder.Services.ConfigureHttpJsonOptions(options =>
             options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));

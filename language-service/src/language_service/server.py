@@ -24,11 +24,7 @@ def build_config(app: ASGIApp, port: int) -> uvicorn.Config:
 
 
 def watch_stream(stream: BinaryIO, on_end: Callable[[], None]) -> threading.Thread:
-    """Calls ``on_end`` when ``stream`` reaches its end, which is when the core is gone.
-
-    The core keeps the write end open for as long as it lives, and the system closes it when the
-    core dies, however it dies. Nothing is written after the secret, so a read only ever ends.
-    """
+    """Calls ``on_end`` when ``stream`` ends, which only happens when the core is gone."""
 
     def wait() -> None:
         while stream.read(WATCH_CHUNK_BYTES):

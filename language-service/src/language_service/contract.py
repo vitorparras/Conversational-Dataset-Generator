@@ -1,6 +1,6 @@
 """The messages of the HTTP border, as pydantic models: the only place a schema lives.
 
-An unknown field in either direction is an error, never something to ignore (decision 0018).
+An unknown field in either direction is an error, never something to ignore.
 """
 
 from typing import Final, Literal

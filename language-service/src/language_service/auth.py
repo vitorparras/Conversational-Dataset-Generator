@@ -7,11 +7,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class SecretVerifier:
-    """Accepts a candidate only when it equals the secret the service started with.
-
-    Only the SHA-256 digest is kept: comparing digests takes the same time whatever the candidate's
-    length, and the raw secret is not retained.
-    """
+    """Accepts a candidate only when it equals the secret, by SHA-256 digests in constant time."""
 
     digest: bytes
 

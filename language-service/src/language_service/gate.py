@@ -17,10 +17,7 @@ LOGGER = logging.getLogger("language_service")
 
 
 class SecretGate:
-    """Refuses every HTTP request without the secret, before the body is read and before routing.
-
-    The refusal is logged as one fixed line: no header, no path, no body.
-    """
+    """Refuses every request without the secret before reading its body, logging one fixed line."""
 
     def __init__(self, app: ASGIApp, verifier: SecretVerifier) -> None:
         self._app = app

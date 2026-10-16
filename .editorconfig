@@ -151,8 +151,7 @@ dotnet_diagnostic.S6507.severity = error
 dotnet_diagnostic.S6513.severity = error
 dotnet_diagnostic.S6563.severity = error
 dotnet_diagnostic.S6566.severity = error
-# The log line is read by machines; ISO 8601 with a fixed format and the invariant culture is the contract.
-dotnet_diagnostic.S6585.severity = none
+dotnet_diagnostic.S6585.severity = error
 dotnet_diagnostic.S6602.severity = error
 dotnet_diagnostic.S6603.severity = error
 dotnet_diagnostic.S6605.severity = error
@@ -190,6 +189,10 @@ dotnet_code_quality.CA2007.output_kind = DynamicallyLinkedLibrary
 
 # A banned symbol (core/BannedSymbols.txt) fails the build on its own, whatever the warning policy.
 dotnet_diagnostic.RS0030.severity = error
+
+[core/src/Core.Platform/Logging/LineConsoleFormatter.cs]
+# The log line is read by machines; ISO 8601 with a fixed format and the invariant culture is the contract.
+dotnet_diagnostic.S6585.severity = none
 
 [*.py]
 indent_size = 4

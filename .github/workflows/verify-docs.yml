@@ -24,7 +24,7 @@ jobs:
         run: python tools/verify-docs/verify.py
 
       - name: Executar testes do verificador
-        run: python -m unittest discover -s tools -p "test_*.py"
+        run: python -m unittest discover -s tools/verify-docs -p "test_*.py"
 
       # Garante que o verificador ainda reprova de fato. Verificador que nunca
       # reprova é falsa garantia — este passo falha se ele deixar de detectar.

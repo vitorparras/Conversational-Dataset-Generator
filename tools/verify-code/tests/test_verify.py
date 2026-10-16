@@ -19,6 +19,7 @@ from . import support
 
 verify = support.load_verify()
 WORKFLOW = support.VERIFY_CODE.parents[1] / ".github" / "workflows" / "verify-code.yml"
+DOCS_WORKFLOW = support.VERIFY_CODE.parents[1] / ".github" / "workflows" / "verify-docs.yml"
 WITHOUT_BASE = [
     "build_core",
     "test_core",
@@ -96,6 +97,13 @@ class VerifyTests(unittest.TestCase):
         line = pr_size_line(WORKFLOW.read_text(encoding="utf-8"))
 
         self.assertIn("--base origin/${{ github.base_ref }}", line)
+
+    def test_docs_workflow_runs_only_the_tests_of_the_docs_verifier(self) -> None:
+        text = DOCS_WORKFLOW.read_text(encoding="utf-8")
+
+        self.assertIn("unittest discover -s tools/verify-docs", text)
+        self.assertNotIn("discover -s tools ", text)
+        self.assertNotIn("verify-code", text)
 
     def test_workflow_runs_on_pull_requests_against_any_base(self) -> None:
         following = line_after(WORKFLOW.read_text(encoding="utf-8"), "  pull_request:")

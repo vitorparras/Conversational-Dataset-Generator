@@ -14,6 +14,12 @@ from steps import gitleaks_binary
 from . import support
 
 ACTION = support.VERIFY_CODE.parents[1] / ".github" / "actions" / "install-gitleaks" / "action.yml"
+BINARY_NAME = "gitleaks.exe" if sys.platform == "win32" else "gitleaks"
+
+
+def malformed(digests: list[str]) -> list[str]:
+    """The digests that are not 64 lowercase hex characters."""
+    return [digest for digest in digests if not re.fullmatch(r"[0-9a-f]{64}", digest)]
 
 
 class LocateTests(unittest.TestCase):
@@ -31,7 +37,7 @@ class LocateTests(unittest.TestCase):
         self.assertIn(gitleaks_binary.RELEASE_URL, located.problem)
 
     def test_a_binary_with_another_hash_is_refused_and_the_expected_hash_is_named(self) -> None:
-        binary = self.folder / ("gitleaks.exe" if sys.platform == "win32" else "gitleaks")
+        binary = self.folder / BINARY_NAME
         binary.write_bytes(b"ZQX-MARKER-7731 not the pinned release")
         binary.chmod(0o755)
 
@@ -66,4 +72,4 @@ class PinTests(unittest.TestCase):
     def test_every_pinned_hash_is_a_sha256_digest(self) -> None:
         digests = [pin.sha256 for pin in gitleaks_binary.PINS.values()]
 
-        self.assertEqual([d for d in digests if not re.fullmatch(r"[0-9a-f]{64}", d)], [])
+        self.assertEqual(malformed(digests), [])

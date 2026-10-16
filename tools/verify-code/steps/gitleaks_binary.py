@@ -5,21 +5,13 @@ from __future__ import annotations
 import hashlib
 import shutil
 import sys
-from dataclasses import dataclass
 from pathlib import Path
+
+from steps.located import Located
+from steps.pin import Pin
 
 VERSION = "8.30.1"
 RELEASE_URL = f"https://github.com/gitleaks/gitleaks/releases/download/v{VERSION}"
-
-
-@dataclass(frozen=True)
-class Pin:
-    """A release archive of the pinned version and the SHA-256 of the binary inside it."""
-
-    archive: str
-    sha256: str
-
-
 PINS = {
     "linux": Pin(
         f"gitleaks_{VERSION}_linux_x64.tar.gz",
@@ -30,14 +22,6 @@ PINS = {
         "17157e2ee8b76fc8b1d8bee607a250e34b8a8023c8bc81822d4b5ee4d78fcb7c",
     ),
 }
-
-
-@dataclass(frozen=True)
-class Located:
-    """The verified binary path, or the problem in Portuguese when there is none."""
-
-    path: str | None
-    problem: str = ""
 
 
 def install_hint(pin: Pin) -> str:

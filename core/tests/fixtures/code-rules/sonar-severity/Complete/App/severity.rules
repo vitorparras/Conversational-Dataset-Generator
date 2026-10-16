@@ -1,0 +1,7 @@
+root = true
+
+[*.cs]
+# Turned on: the default profile leaves it off.
+dotnet_diagnostic.S1.severity = error
+# The license lives in LICENSE, not in a header on every file.
+dotnet_diagnostic.S2.severity = none

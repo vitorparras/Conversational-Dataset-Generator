@@ -1,0 +1,6 @@
+root = true
+
+[*.cs]
+dotnet_diagnostic.S1.severity = error
+# S2 is off here for a documented reason.
+dotnet_diagnostic.S2.severity: none

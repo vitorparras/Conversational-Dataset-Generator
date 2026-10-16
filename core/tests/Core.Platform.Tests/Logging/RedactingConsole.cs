@@ -23,6 +23,7 @@ internal static class RedactingConsole
 
     private static ServiceProvider Build() =>
         new ServiceCollection()
+            .AddSingleton(TimeProvider.System)
             .AddLogging(PlatformLogging.Configure)
             .AddRedaction(PlatformLogging.EraseSensitiveData)
             .BuildServiceProvider();

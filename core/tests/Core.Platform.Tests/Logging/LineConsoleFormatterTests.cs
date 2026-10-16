@@ -9,7 +9,18 @@ public sealed class LineConsoleFormatterTests
 {
     private const string Marker = "ZQX-MARKER-7731";
     private const string Timestamp = @"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z";
-    private static readonly LineConsoleFormatter Formatter = new();
+    private static readonly DateTimeOffset Now = new(2026, 10, 16, 12, 34, 56, 789, TimeSpan.Zero);
+    private static readonly LineConsoleFormatter Formatter = new(new FixedTimeProvider(Now));
+
+    [Fact]
+    public void TimestampIsTheClockInstantInUtcWithMilliseconds()
+    {
+        var entry = Entry(LogLevel.Information, 7, [], exception: null);
+
+        var line = Written(entry);
+
+        Assert.StartsWith("2026-10-16T12:34:56.789Z ", line, StringComparison.Ordinal);
+    }
 
     [Fact]
     public void FieldsComeOutInOrderWithTheTagsAfterTheMessage()
@@ -70,18 +81,18 @@ public sealed class LineConsoleFormatterTests
         Assert.Matches($"^{Timestamp} {label} Sample", line);
     }
 
-    private static string Written(LogEntry<IReadOnlyList<KeyValuePair<string, object?>>> entry)
+    private static string Written(LogEntry<SampleTags> entry)
     {
         using var writer = new StringWriter();
         Formatter.Write(entry, scopeProvider: null, writer);
         return writer.ToString().TrimEnd('\r', '\n');
     }
 
-    private static LogEntry<IReadOnlyList<KeyValuePair<string, object?>>> Entry(
+    private static LogEntry<SampleTags> Entry(
         LogLevel level, int eventId, KeyValuePair<string, object?>[] tags, Exception? exception) =>
-        new(level, "Sample", new EventId(eventId), tags, exception, static (state, _) => Message(state));
+        new(level, "Sample", new EventId(eventId), new SampleTags(tags), exception, static (state, _) => Message(state));
 
-    private static string Message(IReadOnlyList<KeyValuePair<string, object?>> state) =>
+    private static string Message(SampleTags state) =>
         state.Aggregate(
             state.LastOrDefault(tag => tag.Key == "{OriginalFormat}").Value?.ToString() ?? string.Empty,
             (text, tag) => text.Replace("{" + tag.Key + "}", tag.Value?.ToString(), StringComparison.Ordinal));

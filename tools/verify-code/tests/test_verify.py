@@ -28,6 +28,7 @@ WITHOUT_BASE = [
     "build_service",
     "test_service",
     "lint_service",
+    "secrets",
 ]
 
 
@@ -38,7 +39,7 @@ def steps_in_workflow(text: str) -> list[str]:
         if "verify.py" not in line or "--step" not in line:
             continue
         after = line.split("--step", 1)[1].split()
-        names.extend(takewhile(lambda token: not token.startswith("--"), after))
+        names.extend(takewhile(lambda token: not token.startswith(("--", "${{")), after))
     return names
 
 

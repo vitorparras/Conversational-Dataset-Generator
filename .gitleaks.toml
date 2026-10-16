@@ -1,0 +1,9 @@
+title = "Regras de segredo do repositório"
+
+[extend]
+useDefault = true
+
+# Única permissão: os marcadores sintéticos dos testes. Segredo real nunca começa com "ZQX-".
+[[allowlists]]
+description = "Marcadores sintéticos ZQX- usados em testes e fixtures"
+regexes = ['''ZQX-[A-Za-z0-9-]+''']

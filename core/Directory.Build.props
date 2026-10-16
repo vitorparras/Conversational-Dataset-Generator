@@ -20,6 +20,7 @@
   <!-- Every project under core/ builds against the same list of banned symbols. -->
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="all" />
+    <PackageReference Include="SonarAnalyzer.CSharp" PrivateAssets="all" />
     <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" Link="BannedSymbols.txt" />
   </ItemGroup>
 </Project>

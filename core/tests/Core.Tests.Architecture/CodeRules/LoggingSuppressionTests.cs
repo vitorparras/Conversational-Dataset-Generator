@@ -14,6 +14,14 @@ public sealed class LoggingSuppressionTests
     }
 
     [Fact]
+    public void EveryDeclarationOfASuppressingClassHoldsOnlyGeneratedLogMessages()
+    {
+        var violations = LoggingSuppressionRules.CheckSuppressedClassDeclarations(SourceTree.ProductionFiles());
+
+        Assert.Empty(violations);
+    }
+
+    [Fact]
     public void ProductionSourcesNeverDisableTheBannedSymbolByPragma()
     {
         var violations = SourceTree.ProductionFiles().SelectMany(LoggingSuppressionRules.CheckPragmas);
@@ -46,6 +54,7 @@ public sealed class LoggingSuppressionTests
         var fixture = SourceTree.Fixture(Path.Combine(Fixtures, "ProperLogMessages.cs"));
 
         Assert.Empty(LoggingSuppressionRules.CheckSuppressions(fixture));
+        Assert.Empty(LoggingSuppressionRules.CheckSuppressedClassDeclarations([fixture]));
     }
 
     [Fact]
@@ -66,6 +75,16 @@ public sealed class LoggingSuppressionTests
         var violation = Assert.Single(LoggingSuppressionRules.CheckSuppressions(fixture));
 
         Assert.Equal(10, violation.Line);
+    }
+
+    [Fact]
+    public void UnconditionalSuppressionIsRefusedLikeAnyOther()
+    {
+        var fixture = SourceTree.Fixture(Path.Combine(Fixtures, "UnconditionalSuppression.cs"));
+
+        var violation = Assert.Single(LoggingSuppressionRules.CheckSuppressions(fixture));
+
+        Assert.Equal(8, violation.Line);
     }
 
     [Fact]
@@ -100,6 +119,17 @@ public sealed class LoggingSuppressionTests
     }
 
     [Fact]
+    public void HandWrittenMethodInAnotherDeclarationOfTheLogMessagesClassIsRefused()
+    {
+        var files = SourceTree.FixtureFiles(Path.Combine(Fixtures, "split"));
+
+        var violation = Assert.Single(LoggingSuppressionRules.CheckSuppressedClassDeclarations(files));
+
+        Assert.EndsWith("SampleLogMessages.Extra.cs", violation.File, StringComparison.Ordinal);
+        Assert.Equal(7, violation.Line);
+    }
+
+    [Fact]
     public void SuppressionWithANonLiteralIdIsRefused()
     {
         var fixture = SourceTree.Fixture(Path.Combine(Fixtures, "NonLiteralId.cs"));
@@ -127,6 +157,16 @@ public sealed class LoggingSuppressionTests
         var violations = LoggingSuppressionRules.CheckBuildFile(project).ToList();
 
         Assert.Equal([4, 5], violations.Select(violation => violation.Line));
+    }
+
+    [Fact]
+    public void RemovingTheAnalyzerOrItsListIsRefused()
+    {
+        var project = SourceTree.FixtureProject(Path.Combine(Fixtures, "RemovesAnalyzer.csproj.txt"));
+
+        var violations = LoggingSuppressionRules.CheckBuildFile(project).ToList();
+
+        Assert.Equal([3, 4], violations.Select(violation => violation.Line));
     }
 
     [Fact]

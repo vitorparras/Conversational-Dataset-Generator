@@ -9,18 +9,31 @@ namespace Core.Tests.Architecture.CodeRules;
 internal static class LoggingSuppressionRules
 {
     public const string Diagnostic = "RS0030";
+    public const string AnalyzerPackage = "Microsoft.CodeAnalysis.BannedApiAnalyzers";
+    public const string BannedSymbolsFile = "BannedSymbols.txt";
     private const string ClassSuffix = "LogMessages";
-    private const string SuppressionAttribute = "SuppressMessage";
     private const string GeneratedAttribute = "LoggerMessage";
     private const string JustificationArgument = "Justification";
     private const string SeverityKey = "dotnet_diagnostic." + Diagnostic + ".severity";
     private const string RequiredSeverity = "error";
+    private static readonly string[] SuppressionAttributes = ["SuppressMessage", "UnconditionalSuppressMessage"];
 
     public static IEnumerable<Violation> CheckSuppressions(SourceFile file) =>
-        file.Root.DescendantNodes()
-            .OfType<AttributeSyntax>()
-            .Where(IsSuppression)
-            .SelectMany(attribute => Judge(file, attribute));
+        Suppressions(file).SelectMany(attribute => Judge(file, attribute));
+
+    /// <summary>Every declaration of a class that suppresses the diagnostic, in whichever file, holds only generated log messages.</summary>
+    public static IEnumerable<Violation> CheckSuppressedClassDeclarations(IReadOnlyList<SourceFile> files)
+    {
+        var suppressed = files
+            .SelectMany(file => Suppressions(file).Select(attribute => attribute.Parent?.Parent))
+            .OfType<ClassDeclarationSyntax>()
+            .Select(QualifiedName)
+            .ToHashSet(StringComparer.Ordinal);
+        return files.SelectMany(file => file.Root.DescendantNodes()
+            .OfType<ClassDeclarationSyntax>()
+            .Where(type => suppressed.Contains(QualifiedName(type)))
+            .SelectMany(type => JudgeDeclaration(file, type)));
+    }
 
     public static IEnumerable<Violation> CheckPragmas(SourceFile file) =>
         file.Root.DescendantNodes(descendIntoTrivia: true)
@@ -31,10 +44,9 @@ internal static class LoggingSuppressionRules
 
     public static IEnumerable<Violation> CheckBuildFile(ProjectFile project) =>
         project.Document.Descendants()
-            .Where(element => element.Name.LocalName is "NoWarn" or "WarningsNotAsErrors")
-            .Where(element => element.Value.Contains(Diagnostic, StringComparison.OrdinalIgnoreCase))
-            .Select(element => new Violation(
-                project.Path, ((IXmlLineInfo)element).LineNumber, $"{element.Name.LocalName} silences {Diagnostic}"));
+            .Select(element => (Element: element, Problem: BuildProblem(element)))
+            .Where(entry => entry.Problem is not null)
+            .Select(entry => new Violation(project.Path, ((IXmlLineInfo)entry.Element).LineNumber, entry.Problem!));
 
     public static IEnumerable<Violation> CheckAnalyzerConfig(AnalyzerConfig config) =>
         config.Lines()
@@ -43,18 +55,18 @@ internal static class LoggingSuppressionRules
             .Select(entry => new Violation(
                 config.Path, entry.Line.Number, $"{Diagnostic} set to '{entry.Severity}'; only {RequiredSeverity} is allowed"));
 
+    private static IEnumerable<AttributeSyntax> Suppressions(SourceFile file) =>
+        file.Root.DescendantNodes()
+            .OfType<AttributeSyntax>()
+            .Where(attribute => SuppressionAttributes.Any(name => ServiceTypeIndex.SimpleName(attribute.Name) == name || ServiceTypeIndex.SimpleName(attribute.Name) == name + "Attribute"))
+            .Where(attribute => SuppressedId(attribute) is null || SuppressedId(attribute)!.StartsWith(Diagnostic, StringComparison.Ordinal));
+
     private static IEnumerable<Violation> Judge(SourceFile file, AttributeSyntax attribute)
     {
         var line = SourceFile.LineOf(attribute);
-        var id = SuppressedId(attribute);
-        if (id is null)
+        if (SuppressedId(attribute) is null)
         {
             return [new Violation(file.Path, line, "the suppressed diagnostic must be a string literal")];
-        }
-
-        if (!id.StartsWith(Diagnostic, StringComparison.Ordinal))
-        {
-            return [];
         }
 
         if (attribute.Parent is not AttributeListSyntax list || list.Target is not null)
@@ -63,11 +75,11 @@ internal static class LoggingSuppressionRules
         }
 
         return list.Parent is ClassDeclarationSyntax type
-            ? JudgeClass(file, attribute, type)
+            ? JudgeSite(file, attribute, type)
             : [new Violation(file.Path, line, $"{Diagnostic} suppressed on a member; only a class of generated log messages may suppress it")];
     }
 
-    private static IEnumerable<Violation> JudgeClass(SourceFile file, AttributeSyntax attribute, ClassDeclarationSyntax type)
+    private static IEnumerable<Violation> JudgeSite(SourceFile file, AttributeSyntax attribute, ClassDeclarationSyntax type)
     {
         var line = SourceFile.LineOf(attribute);
         if (!HasJustification(attribute))
@@ -80,9 +92,18 @@ internal static class LoggingSuppressionRules
             yield return new Violation(file.Path, line, $"{Diagnostic} suppressed on {type.Identifier.ValueText}, which is not a *{ClassSuffix} class");
         }
 
+        foreach (var violation in JudgeDeclaration(file, type))
+        {
+            yield return violation;
+        }
+    }
+
+    /// <summary>One declaration of a suppressing class: static partial, with nothing but partial generated methods inside.</summary>
+    private static IEnumerable<Violation> JudgeDeclaration(SourceFile file, ClassDeclarationSyntax type)
+    {
         if (!(type.Modifiers.Any(SyntaxKind.StaticKeyword) && type.Modifiers.Any(SyntaxKind.PartialKeyword)))
         {
-            yield return new Violation(file.Path, line, $"{Diagnostic} suppressed on a class that is not static partial");
+            yield return new Violation(file.Path, SourceFile.LineOf(type), $"{Diagnostic} suppressed on a class that is not static partial");
         }
 
         foreach (var member in type.Members.Where(member => !IsGeneratedLogMessage(member)))
@@ -92,8 +113,8 @@ internal static class LoggingSuppressionRules
         }
     }
 
-    private static bool IsSuppression(AttributeSyntax attribute) =>
-        ServiceTypeIndex.SimpleName(attribute.Name) is SuppressionAttribute or SuppressionAttribute + "Attribute";
+    private static string QualifiedName(ClassDeclarationSyntax type) =>
+        string.Join(".", type.Ancestors().OfType<BaseNamespaceDeclarationSyntax>().Select(ns => ns.Name.ToString()).Reverse().Append(type.Identifier.ValueText));
 
     /// <summary>The second positional argument as written, or null when it is not a string literal.</summary>
     private static string? SuppressedId(AttributeSyntax attribute) =>
@@ -114,6 +135,20 @@ internal static class LoggingSuppressionRules
         && method.Modifiers.Any(SyntaxKind.PartialKeyword)
         && method.AttributeLists.SelectMany(list => list.Attributes).Any(attribute =>
             ServiceTypeIndex.SimpleName(attribute.Name) is GeneratedAttribute or GeneratedAttribute + "Attribute");
+
+    /// <summary>What a build element does against the ban, or null when it is harmless.</summary>
+    private static string? BuildProblem(System.Xml.Linq.XElement element)
+    {
+        var name = element.Name.LocalName;
+        var removed = element.Attribute("Remove")?.Value ?? string.Empty;
+        return name switch
+        {
+            "NoWarn" or "WarningsNotAsErrors" when element.Value.Contains(Diagnostic, StringComparison.OrdinalIgnoreCase) => $"{name} silences {Diagnostic}",
+            "AdditionalFiles" when removed.Contains(BannedSymbolsFile, StringComparison.OrdinalIgnoreCase) => $"{BannedSymbolsFile} removed from the analyzer's input",
+            "PackageReference" when removed.Equals(AnalyzerPackage, StringComparison.OrdinalIgnoreCase) => $"{AnalyzerPackage} removed from the project",
+            _ => null,
+        };
+    }
 
     /// <summary>The severity a config line gives the diagnostic, or null when the line is about something else.</summary>
     private static string? SeveritySetBy(string text)

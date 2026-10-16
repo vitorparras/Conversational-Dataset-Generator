@@ -61,7 +61,9 @@ internal static class SourceTree
     private static bool IsBuildOutput(string path) =>
         Parts(path).Contains("bin", StringComparer.Ordinal) || Parts(path).Contains("obj", StringComparer.Ordinal);
 
-    private static string[] Parts(string path) => path.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+    /// <summary>The segments below the core directory, so that where the repository was cloned never changes the verdict.</summary>
+    private static string[] Parts(string path) =>
+        Path.GetRelativePath(CoreDirectory.Value, path).Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
     private static string FindCoreDirectory()
     {

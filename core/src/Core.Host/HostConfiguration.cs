@@ -6,9 +6,9 @@ namespace Core.Host;
 /// <summary>The keys the host itself declares, and the file it reads them from; the settings file is also the one resource this installation must carry.</summary>
 internal static class HostConfiguration
 {
-    public const string UrlsPath = SectionName + ":" + UrlsKey;
+    internal const string UrlsPath = SectionName + ":" + UrlsKey;
 
-    public const string BundledFilePath = SectionName + ":" + BundledFileKey;
+    internal const string BundledFilePath = SectionName + ":" + BundledFileKey;
 
     private const string SettingsFile = "appsettings.json";
     private const string SectionName = "Host";
@@ -16,9 +16,9 @@ internal static class HostConfiguration
     private const string BundledFileKey = "BundledFile";
 
     /// <summary>The settings file beside the binary, whatever the working directory the process was started from.</summary>
-    public static string SettingsPath => Path.Combine(AppContext.BaseDirectory, SettingsFile);
+    internal static string SettingsPath => Path.Combine(AppContext.BaseDirectory, SettingsFile);
 
-    public static ConfigurationSection Section { get; } =
+    internal static ConfigurationSection Section { get; } =
         new(
             SectionName,
             [

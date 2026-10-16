@@ -1,0 +1,13 @@
+name: Instalar trivy
+description: Baixa o trivy na versão fixada; o passo trivy confere a soma SHA-256 do binário antes de rodá-lo.
+
+runs:
+  using: composite
+  steps:
+    - name: Baixar e extrair o binário
+      shell: bash
+      run: |
+        mkdir -p "$RUNNER_TEMP/trivy"
+        curl -sSfL https://github.com/aquasecurity/trivy/releases/download/v0.76.0/trivy_0.76.0_Linux-64bit.tar.gz \
+          | tar -xz -C "$RUNNER_TEMP/trivy" trivy
+        echo "$RUNNER_TEMP/trivy" >> "$GITHUB_PATH"

@@ -5,7 +5,6 @@ internal static class SourceTree
 {
     private static readonly Lazy<string> CoreDirectory = new(FindCoreDirectory);
     private static readonly Lazy<IReadOnlyList<SourceFile>> Production = new(ReadProductionFiles);
-    private static readonly string[] AnalyzerConfigNames = [".editorconfig", ".globalconfig"];
 
     public static string CoreRoot => CoreDirectory.Value;
 
@@ -18,14 +17,6 @@ internal static class SourceTree
 
     public static ProjectFile ProductionProject(string moduleName) =>
         ProductionProjects().Single(project => project.ModuleName == moduleName);
-
-    /// <summary>Every analyzer config the production projects read: under the core, outside the tests, plus the repository root.</summary>
-    public static IReadOnlyList<AnalyzerConfig> ProductionAnalyzerConfigs() =>
-        [.. EnumerateSources(CoreDirectory.Value, ".editorconfig")
-            .Concat(EnumerateSources(CoreDirectory.Value, ".globalconfig"))
-            .Where(IsOutsideTests)
-            .Concat(RepositoryConfigs())
-            .Select(AnalyzerConfig.Read)];
 
     public static SourceFile Fixture(string relativePath) =>
         SourceFile.Read(Path.Combine(FixturesDirectory, relativePath));
@@ -44,20 +35,12 @@ internal static class SourceTree
         [.. EnumerateSources(Path.Combine(FixturesDirectory, relativeDirectory), "*.cs").Select(SourceFile.Read)];
 
     private static IReadOnlyList<SourceFile> ReadProductionFiles() =>
-        [.. ProductionProjects().SelectMany(project => ProjectSources.Of(project.Path)).DistinctBy(file => file.Path)];
+        [.. ProductionProjects().SelectMany(project => CompilerInvocation.Of(project.Path).SourceFiles).DistinctBy(file => file.Path)];
 
     private static IEnumerable<string> EnumerateSources(string directory, string pattern) =>
         Directory.EnumerateFiles(directory, pattern, SearchOption.AllDirectories)
             .Where(path => !IsBuildOutput(path))
             .OrderBy(path => path, StringComparer.Ordinal);
-
-    private static IEnumerable<string> RepositoryConfigs() =>
-        AnalyzerConfigNames
-            .Select(name => Path.Combine(Path.GetDirectoryName(CoreDirectory.Value)!, name))
-            .Where(File.Exists);
-
-    private static bool IsOutsideTests(string path) =>
-        !Parts(path).Contains("tests", StringComparer.Ordinal);
 
     private static bool IsBuildOutput(string path) =>
         Parts(path).Contains("bin", StringComparer.Ordinal) || Parts(path).Contains("obj", StringComparer.Ordinal);

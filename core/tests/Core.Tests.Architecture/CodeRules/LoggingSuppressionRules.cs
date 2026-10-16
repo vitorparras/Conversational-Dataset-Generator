@@ -11,8 +11,6 @@ internal static class LoggingSuppressionRules
     private const string ClassSuffix = "LogMessages";
     private const string GeneratedAttribute = "LoggerMessage";
     private const string JustificationArgument = "Justification";
-    private const string SeverityKey = "dotnet_diagnostic." + Diagnostic + ".severity";
-    private const string RequiredSeverity = "error";
 
     /// <summary>Every attribute that binds to a suppression type, however it is aliased, and every declaration of the class it sits on.</summary>
     public static IEnumerable<Violation> CheckSuppressions(IReadOnlyList<SourceFile> files)
@@ -33,13 +31,6 @@ internal static class LoggingSuppressionRules
             .Where(pragma => pragma.DisableOrRestoreKeyword.IsKind(SyntaxKind.DisableKeyword))
             .Where(pragma => pragma.ErrorCodes.Count == 0 || pragma.ErrorCodes.Any(code => code.ToString() == Diagnostic))
             .Select(pragma => new Violation(file.Path, SourceFile.LineOf(pragma), $"#pragma disables {Diagnostic}"));
-
-    public static IEnumerable<Violation> CheckAnalyzerConfig(AnalyzerConfig config) =>
-        config.Lines()
-            .Select(line => (Line: line, Severity: SeveritySetBy(line.Text)))
-            .Where(entry => entry.Severity is not null and not RequiredSeverity)
-            .Select(entry => new Violation(
-                config.Path, entry.Line.Number, $"{Diagnostic} set to '{entry.Severity}'; only {RequiredSeverity} is allowed"));
 
     private static IEnumerable<Violation> JudgeAttribute(Suppression suppression)
     {
@@ -104,13 +95,4 @@ internal static class LoggingSuppressionRules
         && method.Modifiers.Any(SyntaxKind.PartialKeyword)
         && method.AttributeLists.SelectMany(list => list.Attributes).Any(attribute =>
             ServiceTypeIndex.SimpleName(attribute.Name) is GeneratedAttribute or GeneratedAttribute + "Attribute");
-
-    /// <summary>The severity a config line gives the diagnostic, or null when the line is about something else.</summary>
-    private static string? SeveritySetBy(string text)
-    {
-        var parts = text.Split('=', 2);
-        return parts.Length == 2 && parts[0].Trim().Equals(SeverityKey, StringComparison.OrdinalIgnoreCase)
-            ? parts[1].Trim().ToLowerInvariant()
-            : null;
-    }
 }

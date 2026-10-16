@@ -37,7 +37,7 @@ internal sealed class CanaryWorkspace : IDisposable
 
     /// <summary>Plants one canary per source the project compiles, beside the project so that the analyzer configs above it apply, and returns where each route sits.</summary>
     public IReadOnlyList<CanarySite> PlantCanaries() =>
-        [.. ProjectSources.Of(projectPath).Where(file => file.Path.EndsWith(".cs", StringComparison.Ordinal)).Select(Plant)];
+        [.. CompilerInvocation.Of(projectPath).Sources.Select(Plant)];
 
     /// <summary>Applies a fixture: its fragment joins the build of the project and its other files land among the canaries.</summary>
     public void Apply(string fixtureDirectory)
@@ -87,12 +87,12 @@ internal sealed class CanaryWorkspace : IDisposable
         "--artifacts-path", Path.Combine(scratch.Path, "artifacts"),
     ];
 
-    private CanarySite Plant(SourceFile source, int ordinal)
+    private CanarySite Plant(string source, int ordinal)
     {
         var directory = Path.Combine(CanaryDirectory, ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture));
         _ = Directory.CreateDirectory(directory);
-        File.WriteAllText(Path.Combine(directory, source.FileName), LoggingCanary.Text(ordinal));
-        var shown = $"{canaryName}/{ordinal}/{source.FileName}";
-        return new CanarySite(Path.GetRelativePath(SourceTree.CoreRoot, source.Path).Replace(Path.DirectorySeparatorChar, '/'), shown, LoggingCanary.RouteLines());
+        File.WriteAllText(Path.Combine(directory, Path.GetFileName(source)), LoggingCanary.Text(ordinal));
+        var shown = $"{canaryName}/{ordinal}/{Path.GetFileName(source)}";
+        return new CanarySite(Path.GetRelativePath(SourceTree.CoreRoot, source).Replace(Path.DirectorySeparatorChar, '/'), shown, LoggingCanary.RouteLines());
     }
 }

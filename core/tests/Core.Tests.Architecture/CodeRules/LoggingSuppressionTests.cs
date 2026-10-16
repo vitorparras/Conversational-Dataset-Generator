@@ -23,17 +23,6 @@ public sealed class LoggingSuppressionTests
     }
 
     [Fact]
-    public void ProductionAnalyzerConfigsKeepTheBannedSymbolAnError()
-    {
-        var configs = SourceTree.ProductionAnalyzerConfigs();
-
-        var violations = configs.SelectMany(LoggingSuppressionRules.CheckAnalyzerConfig);
-
-        Assert.NotEmpty(configs);
-        Assert.Empty(violations);
-    }
-
-    [Fact]
     public void ClassOfGeneratedLogMessagesWithJustificationIsAccepted()
     {
         var fixture = SourceTree.Fixture(Path.Combine(Fixtures, "ProperLogMessages.cs"));
@@ -146,7 +135,7 @@ public sealed class LoggingSuppressionTests
     [Fact]
     public void SuppressionInAFileCompiledFromOutsideTheProjectDirectoryIsRefused()
     {
-        var files = ProjectSources.OfFixture(Path.Combine(SourcesFixtures, "IncludedOutside"), "App");
+        var files = CompilerInvocation.OfFixture(Path.Combine(SourcesFixtures, "IncludedOutside"), "App").SourceFiles;
 
         var violations = LoggingSuppressionRules.CheckSuppressions(files).ToList();
 
@@ -157,7 +146,7 @@ public sealed class LoggingSuppressionTests
     [Fact]
     public void SuppressionInAFileTheProjectRemovesFromCompilationIsNotJudged()
     {
-        var files = ProjectSources.OfFixture(Path.Combine(SourcesFixtures, "RemovedTemplates"), "App");
+        var files = CompilerInvocation.OfFixture(Path.Combine(SourcesFixtures, "RemovedTemplates"), "App").SourceFiles;
 
         var violations = LoggingSuppressionRules.CheckSuppressions(files);
 
@@ -173,15 +162,5 @@ public sealed class LoggingSuppressionTests
         var violations = LoggingSuppressionRules.CheckPragmas(fixture).ToList();
 
         Assert.Equal([5, 12], violations.Select(violation => violation.Line));
-    }
-
-    [Fact]
-    public void AnalyzerConfigLoweringTheBannedSymbolIsRefused()
-    {
-        var config = new AnalyzerConfig("downgrade.editorconfig", SourceTree.FixtureText(Path.Combine(Fixtures, "downgrade.editorconfig.txt")));
-
-        var violations = LoggingSuppressionRules.CheckAnalyzerConfig(config).ToList();
-
-        Assert.Equal([5, 8], violations.Select(violation => violation.Line));
     }
 }

@@ -7,7 +7,8 @@ namespace Core.Platform.Logging;
 /// <summary>How the platform logs: one line per event on the console, and every classified value erased before any destination sees it.</summary>
 public static class PlatformLogging
 {
-    /// <summary>Replaces whatever providers the host added with the line console, and turns redaction on in the logging pipeline.</summary>
+    /// <summary>Replaces whatever providers the host added with the line console, and turns redaction on in the logging pipeline.
+    /// The line console needs a <see cref="TimeProvider"/> registered.</summary>
     public static void Configure(ILoggingBuilder logging)
     {
         ArgumentNullException.ThrowIfNull(logging);

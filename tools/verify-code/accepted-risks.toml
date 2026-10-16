@@ -1,0 +1,9 @@
+# Accepted risks: findings of the dependency scan accepted on purpose, each with a deadline.
+# An entry past `expires` fails the check, even if nothing matches it any more.
+# `subject` is the package (vulnerability) or the file (secret, misconfiguration) the finding hits.
+#
+# [[risk]]
+# id = "CVE-0000-00000"
+# subject = "Package.Name"
+# expires = 2026-12-31
+# reason = "one sentence saying why the risk is accepted"

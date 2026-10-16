@@ -1,14 +1,11 @@
-"""Finds gitleaks on the PATH and checks its SHA-256 against the pinned release before any run."""
+"""The gitleaks release the verifier is pinned to, and the lookup of its verified binary."""
 
 from __future__ import annotations
 
-import hashlib
-import shutil
-import sys
-from pathlib import Path
-
 from steps.located import Located
 from steps.pin import Pin
+from steps.pinned_tool import PinnedTool
+from steps.pinned_tool import locate as locate_tool
 
 VERSION = "8.30.1"
 RELEASE_URL = f"https://github.com/gitleaks/gitleaks/releases/download/v{VERSION}"
@@ -22,31 +19,8 @@ PINS = {
         "17157e2ee8b76fc8b1d8bee607a250e34b8a8023c8bc81822d4b5ee4d78fcb7c",
     ),
 }
-
-
-def install_hint(pin: Pin) -> str:
-    return (
-        f"instale o gitleaks {VERSION}: baixe {RELEASE_URL}/{pin.archive}, extraia o binário "
-        f"para uma pasta do PATH (SHA-256 esperado do binário: {pin.sha256})"
-    )
-
-
-def sha256_of(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+TOOL = PinnedTool("gitleaks", VERSION, RELEASE_URL, PINS)
 
 
 def locate(search_path: str | None = None) -> Located:
-    """The first `gitleaks` on ``search_path`` (default: PATH) if its hash is the pinned one."""
-    pin = PINS.get(sys.platform)
-    if pin is None:
-        return Located(
-            None, f"gitleaks fixado só para {', '.join(PINS)}; plataforma {sys.platform}"
-        )
-    found = shutil.which("gitleaks", path=search_path)
-    if found is None:
-        return Located(None, f"'gitleaks' não está no PATH; {install_hint(pin)}")
-    if sha256_of(Path(found)) != pin.sha256:
-        return Located(
-            None, f"o gitleaks encontrado não é o fixado ({VERSION}); {install_hint(pin)}"
-        )
-    return Located(found)
+    return locate_tool(TOOL, search_path)

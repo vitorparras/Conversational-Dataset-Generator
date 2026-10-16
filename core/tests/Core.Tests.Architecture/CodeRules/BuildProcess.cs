@@ -25,7 +25,7 @@ internal static class BuildProcess
         }
     }
 
-    /// <summary>No node reuse and no shared compiler, so that nothing of the build outlives the test.</summary>
+    /// <summary>No node reuse and no shared compiler, so that nothing of the build outlives the test; the lock file is not enforced because the copy may gain a reference.</summary>
     private static ProcessStartInfo StartInfo(string projectPath)
     {
         var info = new ProcessStartInfo("dotnet")
@@ -40,6 +40,7 @@ internal static class BuildProcess
         info.ArgumentList.Add("-nologo");
         info.ArgumentList.Add("-nodeReuse:false");
         info.ArgumentList.Add("-p:UseSharedCompilation=false");
+        info.ArgumentList.Add("-p:RestoreLockedMode=false");
         return info;
     }
 

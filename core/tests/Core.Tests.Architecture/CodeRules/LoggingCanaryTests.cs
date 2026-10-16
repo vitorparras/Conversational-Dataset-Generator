@@ -42,4 +42,19 @@ public sealed class LoggingCanaryTests
         Assert.Empty(LoggingCanaryRules.CheckBuildIsIntact(build));
         Assert.Equal(sites.Count * LoggingCanary.Routes.Count, LoggingCanaryRules.CheckRoutesRefused(sites, build).Count());
     }
+
+    [Fact]
+    public async Task ProjectThatDoesNotReferenceLoggingStillRefusesEveryBannedRoute()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var workspace = new CanaryWorkspace("Core.Plain");
+        workspace.AddProject(Path.Combine(SourceTree.FixturesDirectory, "logging-canary-projects", "Core.Plain"));
+        var sites = workspace.PlantCanaries();
+
+        var build = await workspace.BuildAsync(cancellationToken);
+
+        Assert.NotEmpty(sites);
+        Assert.Empty(LoggingCanaryRules.CheckBuildIsIntact(build));
+        Assert.Empty(LoggingCanaryRules.CheckRoutesRefused(sites, build));
+    }
 }

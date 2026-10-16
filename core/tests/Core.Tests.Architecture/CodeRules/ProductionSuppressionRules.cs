@@ -5,18 +5,17 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Core.Tests.Architecture.CodeRules;
 
-/// <summary>No Sonar rule is silenced in production: not by a pragma, not by a suppression attribute, not by the compiler switches.
-/// The banned-symbol note is judged by <see cref="LoggingSuppressionRules"/>.</summary>
+/// <summary>Production code silences no analyzer by pragma, suppression attribute or compiler option, leaving the banned-symbol note to <see cref="LoggingSuppressionRules"/>.</summary>
 internal static partial class ProductionSuppressionRules
 {
     public static IEnumerable<Violation> CheckSources(IReadOnlyList<SourceFile> files) =>
         files.SelectMany(Pragmas).Concat(Attributes(files));
 
-    public static IEnumerable<Violation> CheckSwitches(CompilerInvocation invocation) =>
-        invocation.NoWarn.Select(id => (Id: id, Switch: "/nowarn"))
-            .Concat(invocation.WarningsNotAsErrors.Select(id => (Id: id, Switch: "/warnaserror-")))
-            .Where(entry => SonarId().IsMatch(entry.Id.Trim()))
-            .Select(entry => new Violation(invocation.ProjectPath, 1, $"{entry.Id.Trim()} is silenced by {entry.Switch} on the compiler command line"));
+    /// <summary>A diagnostic id of an analyzer, other than a compiler warning, that the command line gives anything but error.</summary>
+    public static IEnumerable<Violation> CheckOptions(CompilerInvocation invocation) =>
+        invocation.SpecificDiagnosticOptions
+            .Where(option => option.Value != ReportDiagnostic.Error && !CompilerWarning().IsMatch(option.Key))
+            .Select(option => new Violation(invocation.ProjectPath, 1, $"{option.Key} is given the severity {option.Value} on the compiler command line"));
 
     private static IEnumerable<Violation> Pragmas(SourceFile file) =>
         file.Root.DescendantNodes(descendIntoTrivia: true)
@@ -33,6 +32,6 @@ internal static partial class ProductionSuppressionRules
             .Select(suppression => new Violation(suppression.File.Path, suppression.Line, $"{suppression.CheckId} suppressed by attribute in production code"));
     }
 
-    [GeneratedRegex(@"^S\d+$", RegexOptions.IgnoreCase)]
-    private static partial Regex SonarId();
+    [GeneratedRegex(@"^(CS)?\d+$", RegexOptions.IgnoreCase)]
+    private static partial Regex CompilerWarning();
 }

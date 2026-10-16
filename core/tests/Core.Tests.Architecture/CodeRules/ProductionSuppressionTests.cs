@@ -1,6 +1,6 @@
 namespace Core.Tests.Architecture.CodeRules;
 
-/// <summary>No Sonar rule is silenced in production, in code or on the compiler command line; the banned-symbol note of a generated log message class is judged elsewhere.</summary>
+/// <summary>No analyzer is silenced in production, in code or on the compiler command line; the banned-symbol note of a generated log message class is judged elsewhere.</summary>
 public sealed class ProductionSuppressionTests
 {
     private const string Fixtures = "production-suppression";
@@ -18,11 +18,11 @@ public sealed class ProductionSuppressionTests
 
     [Theory]
     [MemberData(nameof(ProductionProjectNames))]
-    public void ProductionProjectSilencesNoSonarRuleOnTheCommandLine(string projectName)
+    public void ProductionProjectSilencesNoAnalyzerOnTheCommandLine(string projectName)
     {
         var invocation = CompilerInvocation.Of(SourceTree.ProductionProject(projectName).Path);
 
-        var violations = ProductionSuppressionRules.CheckSwitches(invocation);
+        var violations = ProductionSuppressionRules.CheckOptions(invocation);
 
         Assert.Empty(violations);
     }
@@ -47,16 +47,14 @@ public sealed class ProductionSuppressionTests
         Assert.NotEmpty(violations);
     }
 
-    [Theory]
-    [InlineData("NoWarnSonar", "/nowarn")]
-    [InlineData("WarningsNotAsErrorsSonar", "/warnaserror-")]
-    public void SonarRuleSilencedOnTheCommandLineIsRefused(string fixture, string compilerSwitch)
+    [Fact]
+    public void AnalyzerSilencedOnTheCommandLineIsRefused()
     {
-        var invocation = CompilerInvocation.OfFixture(Path.Combine("sonar-severity", fixture), "App");
+        var invocation = CompilerInvocation.OfFixture(Path.Combine("sonar-switches", "Options"), "App");
 
-        var violations = ProductionSuppressionRules.CheckSwitches(invocation).ToList();
+        var messages = ProductionSuppressionRules.CheckOptions(invocation).Select(violation => violation.Message).ToList();
 
-        var refused = Assert.Single(violations);
-        Assert.Contains(compilerSwitch, refused.Message, StringComparison.Ordinal);
+        Assert.Contains(messages, message => message.StartsWith("S1144 ", StringComparison.Ordinal));
+        Assert.Contains(messages, message => message.StartsWith("S1227 ", StringComparison.Ordinal));
     }
 }

@@ -79,7 +79,7 @@ internal static class LoggingInvocationRules
             .Where(entry => entry.Severity is not null and not ReportDiagnostic.Error)
             .Select(entry => new Violation(entry.Source, 1, $"{LoggingSuppressionRules.Diagnostic} is {entry.Severity} here; only error is allowed"));
 
-    private static bool IsUnderAnyRoot(string path, IReadOnlyList<string> roots) =>
+    private static bool IsUnderAnyRoot(string path, IEnumerable<string> roots) =>
         roots.Any(root => Path.GetFullPath(path).StartsWith(Path.GetFullPath(root), StringComparison.OrdinalIgnoreCase));
 
     private static ReportDiagnostic? SeverityAt(CompilerInvocation invocation, string source) =>

@@ -1,0 +1,10 @@
+root = true
+
+[*.cs]
+dotnet_diagnostic.S1.severity = error
+dotnet_diagnostic.S3.severity = error
+dotnet_diagnostic.S1451.severity = error
+
+[Marker.cs]
+# S1 is off in this file for a documented reason.
+dotnet_diagnostic.S1.severity = none

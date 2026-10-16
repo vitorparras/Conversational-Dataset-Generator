@@ -4,4 +4,4 @@ root = true
 dotnet_diagnostic.S1.severity = error
 dotnet_diagnostic.S3.severity = error
 #
-dotnet_diagnostic.S2.severity = none
+dotnet_diagnostic.S1451.severity = none

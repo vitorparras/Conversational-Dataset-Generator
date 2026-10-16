@@ -6,12 +6,12 @@ namespace Core.Tests.Architecture.CodeRules;
 public sealed class SonarSeverityTests
 {
     private const string Fixtures = "sonar-severity";
-    private const string RootConfig = "severity.rules";
+    private const string Switches = "sonar-switches";
 
     private static readonly SonarRule[] SampleRules =
     [
         new("S1", DiagnosticSeverity.Warning, EnabledByDefault: false),
-        new("S2", DiagnosticSeverity.Info, EnabledByDefault: true),
+        new("S1451", DiagnosticSeverity.Warning, EnabledByDefault: false),
         new("S3", DiagnosticSeverity.Warning, EnabledByDefault: true),
     ];
 
@@ -26,31 +26,72 @@ public sealed class SonarSeverityTests
         var rules = SonarRuleCatalog.Load(SonarRuleCatalog.AnalyzerPath);
         var rootConfig = Path.Combine(Path.GetDirectoryName(SourceTree.CoreRoot)!, ".editorconfig");
 
-        var violations = SonarSeverityRules.Check(rules, invocation, File.ReadAllText(rootConfig));
+        var violations = SonarSeverityRules.Check(rules, invocation, new RootConfig(File.ReadAllText(rootConfig), Path.GetDirectoryName(rootConfig)!));
 
         Assert.Contains(rules, rule => rule.NeedsExplicitSeverity);
-        Assert.Contains(invocation.AnalyzerConfigs, path => Path.GetFullPath(path) == Path.GetFullPath(rootConfig));
         Assert.Empty(violations);
     }
 
-    [Fact]
-    public void ConfigTurningEveryOffRuleOnAndExplainingTheExclusionIsAccepted()
+    [Theory]
+    [MemberData(nameof(ProductionProjectNames))]
+    public void ProductionProjectLoadsTheSonarAnalyzerTheRulesWereReadFrom(string projectName)
     {
-        var violations = Judged("Complete");
+        var invocation = CompilerInvocation.Of(SourceTree.ProductionProject(projectName).Path);
+
+        var violations = SonarSeverityRules.CheckAnalyzerLoaded(invocation, SonarRuleCatalog.AnalyzerPath);
 
         Assert.Empty(violations);
     }
 
     [Theory]
-    [InlineData("MissingRule", "S2")]
+    [MemberData(nameof(ProductionProjectNames))]
+    public void ProductionProjectIsGivenNoRuleSet(string projectName)
+    {
+        var invocation = CompilerInvocation.Of(SourceTree.ProductionProject(projectName).Path);
+
+        Assert.Empty(SonarSeverityRules.CheckNoRuleSet(invocation));
+    }
+
+    [Fact]
+    public void ProjectThatRemovesTheSonarAnalyzerInATargetIsRefused()
+    {
+        var invocation = CompilerInvocation.OfFixture(Path.Combine(Switches, "AnalyzerRemoved"), "App");
+
+        var violations = SonarSeverityRules.CheckAnalyzerLoaded(invocation, SonarRuleCatalog.AnalyzerPath);
+
+        Assert.NotEmpty(violations);
+    }
+
+    [Fact]
+    public void ProjectWithARuleSetIsRefusedAndItsRuleReachesTheSourceSwitchedOff()
+    {
+        var invocation = CompilerInvocation.OfFixture(Path.Combine(Switches, "RuleSet"), "App");
+
+        Assert.NotEmpty(SonarSeverityRules.CheckNoRuleSet(invocation));
+        Assert.Equal(ReportDiagnostic.Suppress, invocation.SpecificDiagnosticOptions["S1227"]);
+    }
+
+    [Theory]
+    [InlineData("Complete")]
+    [InlineData("FileSpecific")]
+    public void ConfigSwitchingARuleOffWithAReasonWhereItIsAllowedIsAccepted(string fixture)
+    {
+        var violations = Judged(fixture);
+
+        Assert.Empty(violations);
+    }
+
+    [Theory]
+    [InlineData("MissingRule", "S1451")]
     [InlineData("LoweredWithoutReason", "S3")]
-    [InlineData("EmptyReason", "S2")]
-    [InlineData("HeaderComment", "S2")]
-    [InlineData("InlineComment", "S2")]
-    [InlineData("Colon", "S2")]
+    [InlineData("EmptyReason", "S1451")]
+    [InlineData("HeaderComment", "S1451")]
+    [InlineData("InlineComment", "S1451")]
+    [InlineData("Colon", "S1451")]
     [InlineData("WrongSection", "S1")]
     [InlineData("GlobalConfig", "S3")]
-    public void ConfigThatLeavesARuleBelowErrorWithoutAReasonIsRefused(string fixture, string rule)
+    [InlineData("WideForOtherRule", "S1")]
+    public void ConfigThatLeavesARuleBelowErrorWithoutAllowedReasonIsRefused(string fixture, string rule)
     {
         var violations = Judged(fixture);
 
@@ -58,11 +99,18 @@ public sealed class SonarSeverityTests
         Assert.StartsWith(rule + " ", refused.Message, StringComparison.Ordinal);
     }
 
+    /// <summary>The compiler's own parser reads the command line a build would give for the fixture's config files and its one source.</summary>
     private static List<Violation> Judged(string fixture)
     {
-        var invocation = CompilerInvocation.OfFixture(Path.Combine(Fixtures, fixture), "App");
-        var rootConfig = SourceTree.FixtureText(Path.Combine(Fixtures, fixture, "App", RootConfig));
+        var directory = Path.Combine(SourceTree.FixturesDirectory, Fixtures, fixture, "App");
+        var configs = Directory.EnumerateFiles(directory).Where(IsConfig);
+        var arguments = configs.Select(path => "/analyzerconfig:" + path).Append(Path.Combine(directory, "Marker.cs")).ToList();
+        var invocation = CompilerArguments.Read(Path.Combine(directory, "App.csproj"), arguments, Path.Combine(directory, "obj"), []);
+        var root = new RootConfig(File.ReadAllText(Path.Combine(directory, "severity.rules")), directory);
 
-        return [.. SonarSeverityRules.Check(SampleRules, invocation, rootConfig)];
+        return [.. SonarSeverityRules.Check(SampleRules, invocation, root)];
     }
+
+    private static bool IsConfig(string path) =>
+        path.EndsWith(".rules", StringComparison.Ordinal) || path.EndsWith(".globalconfig", StringComparison.Ordinal);
 }

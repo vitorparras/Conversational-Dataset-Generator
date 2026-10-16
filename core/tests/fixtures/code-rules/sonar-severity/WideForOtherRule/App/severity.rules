@@ -1,0 +1,6 @@
+root = true
+
+[*.cs]
+dotnet_diagnostic.S1451.severity = error
+# S1 is off here for a documented reason.
+dotnet_diagnostic.S1.severity = none

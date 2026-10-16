@@ -6,6 +6,7 @@ import re
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 from steps import gitleaks_binary
@@ -39,6 +40,13 @@ class LocateTests(unittest.TestCase):
         self.assertIsNone(located.path)
         self.assertIn("não é o fixado", located.problem)
         self.assertIn(gitleaks_binary.PINS[sys.platform].sha256, located.problem)
+
+    def test_another_platform_fails_naming_the_supported_ones(self) -> None:
+        with mock.patch.object(sys, "platform", "darwin"):
+            located = gitleaks_binary.locate(str(self.folder))
+
+        self.assertIsNone(located.path)
+        self.assertIn("só para linux, win32; plataforma darwin", located.problem)
 
     def test_the_binary_on_the_path_is_the_pinned_one(self) -> None:
         located = gitleaks_binary.locate()

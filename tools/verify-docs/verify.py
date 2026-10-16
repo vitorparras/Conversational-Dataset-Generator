@@ -37,7 +37,12 @@ IGNORED = {".git", ".github", ".specs", "tools", "node_modules", "bin", "obj"}
 
 #: Community files whose authority is obvious from the name.
 COMMUNITY_FILES = {
-    "README.md", "CONTRIBUTING.md", "SECURITY.md", "CODE_OF_CONDUCT.md", "CLAUDE.md", "AGENTS.md",
+    "README.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "CODE_OF_CONDUCT.md",
+    "CLAUDE.md",
+    "AGENTS.md",
 }
 
 # ---------------------------------------------------------------------------
@@ -49,17 +54,17 @@ COMMUNITY_FILES = {
 # the writing rules are in docs/regras-de-escrita.md.
 
 AUTHORITIES = (
-    "Norma vigente",           # binds
-    "Norma substituída por",   # no longer valid; the successor says what is
-    "Norma revogada",          # no longer valid, and nothing replaces it
-    "Norma pendente",          # still to be decided; the document says what is unknown
-    "Decisão vigente",         # binds (used in docs/decisoes/)
+    "Norma vigente",  # binds
+    "Norma substituída por",  # no longer valid; the successor says what is
+    "Norma revogada",  # no longer valid, and nothing replaces it
+    "Norma pendente",  # still to be decided; the document says what is unknown
+    "Decisão vigente",  # binds (used in docs/decisoes/)
     "Decisão substituída por",
     "Decisão revogada",
-    "Decisão pendente",        # still to be decided; the document says what is unknown
-    "Descrição",               # describes the system; if it diverges, the code wins
-    "Histórico",               # zero authority; never a rule
-    "Operacional",             # procedure to follow
+    "Decisão pendente",  # still to be decided; the document says what is unknown
+    "Descrição",  # describes the system; if it diverges, the code wins
+    "Histórico",  # zero authority; never a rule
+    "Operacional",  # procedure to follow
 )
 
 # ---------------------------------------------------------------------------
@@ -82,12 +87,25 @@ SENSITIVE_PATTERNS: tuple[tuple[str, str], ...] = (
 
 #: Extensions that, in a cited path, indicate a reference to a repository file.
 FILE_EXTENSIONS = (
-    ".md", ".cs", ".py", ".csproj", ".sln", ".json", ".yml", ".yaml",
-    ".sql", ".cshtml", ".razor", ".toml", ".cff", ".txt",
+    ".md",
+    ".cs",
+    ".py",
+    ".csproj",
+    ".sln",
+    ".json",
+    ".yml",
+    ".yaml",
+    ".sql",
+    ".cshtml",
+    ".razor",
+    ".toml",
+    ".cff",
+    ".txt",
 )
 
 COLUMN_LIMIT = 100
 LINE_LIMIT = 60
+BLANK_LINES_LIMIT = 2
 
 
 @dataclass(frozen=True)
@@ -138,6 +156,7 @@ def _outside_code_blocks(lines: list[str]) -> list[tuple[int, str]]:
 # 1. Personal data and secrets
 # ---------------------------------------------------------------------------
 
+
 def check_data(root: Path, path: Path, lines: list[str]) -> list[Finding]:
     """Looks for personal data, contact, key and machine path patterns.
 
@@ -148,15 +167,14 @@ def check_data(root: Path, path: Path, lines: list[str]) -> list[Finding]:
     for number, line in enumerate(lines, start=1):
         for pattern, description in SENSITIVE_PATTERNS:
             if re.search(pattern, line):
-                findings.append(
-                    _finding(root, path, number, "data", f"{description} nesta linha")
-                )
+                findings.append(_finding(root, path, number, "data", f"{description} nesta linha"))
     return findings
 
 
 # ---------------------------------------------------------------------------
 # 2. References to files that do not exist
 # ---------------------------------------------------------------------------
+
 
 def check_references(root: Path, path: Path, lines: list[str]) -> list[Finding]:
     """Checks that every path cited in `inline code` exists in the repository.
@@ -191,6 +209,7 @@ def check_references(root: Path, path: Path, lines: list[str]) -> list[Finding]:
 # 3. Broken internal links
 # ---------------------------------------------------------------------------
 
+
 def check_links(root: Path, path: Path, lines: list[str]) -> list[Finding]:
     """Checks that every relative link resolves. Ignores external links and anchors."""
     findings: list[Finding] = []
@@ -200,15 +219,14 @@ def check_links(root: Path, path: Path, lines: list[str]) -> list[Finding]:
                 continue
             resolved = (path.parent / target.split("#", 1)[0]).resolve()
             if not resolved.exists():
-                findings.append(
-                    _finding(root, path, number, "links", f"link quebrado: {target}")
-                )
+                findings.append(_finding(root, path, number, "links", f"link quebrado: {target}"))
     return findings
 
 
 # ---------------------------------------------------------------------------
 # 4. Authority line
 # ---------------------------------------------------------------------------
+
 
 def check_authority(root: Path, path: Path, lines: list[str]) -> list[Finding]:
     """Every document declares, in a quote after the title, whether it binds or not.
@@ -225,18 +243,19 @@ def check_authority(root: Path, path: Path, lines: list[str]) -> list[Finding]:
             if text.startswith(AUTHORITIES):
                 return []
             return [
-                _finding(root, path, number, "authority",
-                         f"autoridade não reconhecida: {text[:48]!r}")
+                _finding(
+                    root, path, number, "authority", f"autoridade não reconhecida: {text[:48]!r}"
+                )
             ]
     return [
-        _finding(root, path, 1, "authority",
-                 "falta a linha de autoridade (citação após o título)")
+        _finding(root, path, 1, "authority", "falta a linha de autoridade (citação após o título)")
     ]
 
 
 # ---------------------------------------------------------------------------
 # 5. Formatting
 # ---------------------------------------------------------------------------
+
 
 def check_formatting(root: Path, path: Path, lines: list[str]) -> list[Finding]:
     """Simple consistency rules: column, trailing space, blank lines, tab."""
@@ -250,21 +269,24 @@ def check_formatting(root: Path, path: Path, lines: list[str]) -> list[Finding]:
             findings.append(_finding(root, path, number, "formatting", "tab: use espaços"))
 
         if content != content.rstrip():
-            findings.append(
-                _finding(root, path, number, "formatting", "espaço no fim da linha")
-            )
+            findings.append(_finding(root, path, number, "formatting", "espaço no fim da linha"))
 
         # Tables, long links and code lines do not fit the limit without hurting reading.
         is_exception = content.lstrip().startswith(("|", "    ")) or "](" in content
         if len(content) > COLUMN_LIMIT and not is_exception:
             findings.append(
-                _finding(root, path, number, "formatting",
-                         f"{len(content)} colunas (limite {COLUMN_LIMIT})")
+                _finding(
+                    root,
+                    path,
+                    number,
+                    "formatting",
+                    f"{len(content)} colunas (limite {COLUMN_LIMIT})",
+                )
             )
 
         if not content.strip():
             consecutive_blank += 1
-            if consecutive_blank == 3:
+            if consecutive_blank == BLANK_LINES_LIMIT + 1:
                 findings.append(
                     _finding(root, path, number, "formatting", "3+ linhas vazias seguidas")
                 )
@@ -282,6 +304,7 @@ def check_formatting(root: Path, path: Path, lines: list[str]) -> list[Finding]:
 # 6. Size
 # ---------------------------------------------------------------------------
 
+
 def check_size(root: Path, path: Path, lines: list[str]) -> list[Finding]:
     """A document above the ceiling is over-justifying itself (writing rule 2).
 
@@ -297,14 +320,13 @@ def check_size(root: Path, path: Path, lines: list[str]) -> list[Finding]:
             return []
     if len(lines) <= LINE_LIMIT:
         return []
-    return [
-        _finding(root, path, len(lines), "size", f"{len(lines)} linhas (teto {LINE_LIMIT})")
-    ]
+    return [_finding(root, path, len(lines), "size", f"{len(lines)} linhas (teto {LINE_LIMIT})")]
 
 
 # ---------------------------------------------------------------------------
 # 7. Folder indexes
 # ---------------------------------------------------------------------------
+
 
 def check_indexes(root: Path) -> list[Finding]:
     """A document missing from its folder index is a document nobody finds.
@@ -324,8 +346,7 @@ def check_indexes(root: Path) -> list[Finding]:
         if not folder.is_dir() or not index.exists():
             continue
         on_disk = {
-            f.name for f in folder.glob("*.md")
-            if f.name != "README.md" and f.name[0].isdigit()
+            f.name for f in folder.glob("*.md") if f.name != "README.md" and f.name[0].isdigit()
         }
         if not on_disk:
             continue
@@ -380,7 +401,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--only", help="verificações a rodar, separadas por vírgula")
     parser.add_argument("--list", action="store_true", help="lista as verificações")
     parser.add_argument(
-        "--root", type=Path, default=DEFAULT_ROOT,
+        "--root",
+        type=Path,
+        default=DEFAULT_ROOT,
         help="raiz a verificar (padrão: a raiz deste repositório)",
     )
     args = parser.parse_args(argv)

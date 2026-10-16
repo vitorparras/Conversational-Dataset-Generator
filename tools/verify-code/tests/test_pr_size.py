@@ -40,17 +40,26 @@ class PrSizeTests(unittest.TestCase):
         result = pr_size.run(support.context(self.repo, base="main"))
 
         self.assertTrue(result.ok, result.details)
-        self.assertIn("produção: 30 arquivos, 400 linhas (teto 30 arquivos, 400 linhas)", result.details)
+        self.assertIn(
+            "produção: 30 arquivos, 400 linhas (teto 30 arquivos, 400 linhas)", result.details
+        )
 
     def test_tests_locks_and_fixtures_are_not_counted(self) -> None:
-        excluded = ["core/tests/A/A.cs", "service/tests/t.py", "core/src/packages.lock.json",
-                    "service/uv.lock", "tools/x/fixtures/f.md"]
+        excluded = [
+            "core/tests/A/A.cs",
+            "service/tests/t.py",
+            "core/src/packages.lock.json",
+            "service/uv.lock",
+            "tools/x/fixtures/f.md",
+        ]
         support.commit_files(self.repo, excluded, 500)
 
         result = pr_size.run(support.context(self.repo, base="main"))
 
         self.assertTrue(result.ok, result.details)
-        self.assertIn("produção: 0 arquivos, 0 linhas (teto 30 arquivos, 400 linhas)", result.details)
+        self.assertIn(
+            "produção: 0 arquivos, 0 linhas (teto 30 arquivos, 400 linhas)", result.details
+        )
 
     def test_excluded_files_are_listed_with_their_lines(self) -> None:
         support.commit_files(self.repo, ["core/tests/A/A.cs"], 7)

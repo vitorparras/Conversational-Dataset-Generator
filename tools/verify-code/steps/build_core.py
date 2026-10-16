@@ -13,8 +13,11 @@ def run(ctx: Context) -> StepResult:
         return failed(NAME, f"{SOLUTION} não existe: não há o que construir")
     restore = ctx.run(["dotnet", "restore", SOLUTION, "--locked-mode"], ctx.root)
     if not restore.ok:
-        return failed(NAME, "restauração travada falhou: lock desatualizado ou pacote indisponível",
-                      *tail(restore.text))
+        return failed(
+            NAME,
+            "restauração travada falhou: lock desatualizado ou pacote indisponível",
+            *tail(restore.text),
+        )
     build = ctx.run(["dotnet", "build", SOLUTION, "--no-restore"], ctx.root)
     if not build.ok:
         return failed(NAME, "construção do núcleo falhou", *tail(build.text))

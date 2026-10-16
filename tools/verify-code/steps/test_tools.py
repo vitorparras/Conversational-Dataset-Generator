@@ -18,8 +18,11 @@ def run(ctx: Context) -> StepResult:
     outcome = ctx.run(command, ctx.root)
     ran = re.search(r"^Ran (\d+) tests?", outcome.text, re.MULTILINE)
     if ran is None or int(ran.group(1)) == 0:
-        return failed(NAME, f"nenhum teste encontrado em {TOOLS}/: o passo não passa vazio",
-                      *tail(outcome.text))
+        return failed(
+            NAME,
+            f"nenhum teste encontrado em {TOOLS}/: o passo não passa vazio",
+            *tail(outcome.text),
+        )
     if not outcome.ok:
         return failed(NAME, f"testes de {TOOLS}/ falharam", *tail(outcome.text))
     return passed(NAME, f"{ran.group(1)} testes de {TOOLS}/ executados")

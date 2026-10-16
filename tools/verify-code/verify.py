@@ -3,8 +3,8 @@
 
 The workflow .github/workflows/verify-code.yml calls this script with the steps of each job; a test
 in tools/verify-code/tests reads that file and fails if its order drifts from the one printed here.
-Standard library only; the steps run `dotnet` and `git` from the PATH. Exit code 0 only if every
-step that ran passed; 2 for a usage error.
+Standard library only; the steps run `dotnet`, `git`, `ruff` and `pyright`. Exit code 0 only if
+every step that ran passed; 2 for a usage error.
 """
 
 from __future__ import annotations
@@ -16,11 +16,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, replace
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
-if str(HERE) not in sys.path:
-    sys.path.insert(0, str(HERE))
-
-from steps import build_core, format_core, pr_size, test_core, test_tools
+from steps import build_core, format_core, lint_tools, pr_size, test_core, test_tools
 from steps.common import OUTPUT_DIRECTORY, Context, StepResult, run_process
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -39,6 +35,7 @@ STEPS: tuple[StepSpec, ...] = (
     StepSpec(build_core.NAME, build_core.run),
     StepSpec(test_core.NAME, test_core.run),
     StepSpec(format_core.NAME, format_core.run),
+    StepSpec(lint_tools.NAME, lint_tools.run),
     StepSpec(test_tools.NAME, test_tools.run),
     StepSpec(pr_size.NAME, pr_size.run, needs_base=True),
 )
@@ -70,7 +67,9 @@ def report(results: tuple[StepResult, ...]) -> int:
             print(f"       {line}")
     failures = [r.name for r in results if not r.ok]
     if failures:
-        print(f"\nFALHOU — {len(failures)} de {len(results)} passos reprovaram: {', '.join(failures)}")
+        print(
+            f"\nFALHOU — {len(failures)} de {len(results)} passos reprovaram: {', '.join(failures)}"
+        )
         return 1
     print(f"\nOK — {len(results)} passos, {sum(r.elapsed for r in results):.1f} s")
     return 0
@@ -92,7 +91,7 @@ def main(argv: list[str] | None = None) -> int:
     ctx = Context(ROOT, ROOT / OUTPUT_DIRECTORY, run_process, args.base)
     try:
         return report(run_steps(select(args.step, args.base is not None), ctx))
-    except Exception as error:  # noqa: BLE001 - last level: a defect must still print a readable line
+    except Exception as error:  # last level: a defect must still print a readable line
         print(f"ERRO — defeito do verificador: {type(error).__name__}: {error}")
         return 1
 

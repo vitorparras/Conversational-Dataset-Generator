@@ -65,14 +65,24 @@ def run_process(command: Sequence[str], cwd: Path) -> CommandOutcome:
     """Runs a command and captures its output; a missing tool or a timeout is a failed outcome."""
     try:
         completed = subprocess.run(
-            list(command), cwd=cwd, env=child_environment(os.environ), capture_output=True,
-            text=True, encoding="utf-8", errors="replace", timeout=COMMAND_TIMEOUT_SECONDS,
+            list(command),
+            cwd=cwd,
+            env=child_environment(os.environ),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=COMMAND_TIMEOUT_SECONDS,
             check=False,
         )
     except FileNotFoundError:
-        return CommandOutcome(False, f"'{command[0]}' não está no PATH; instale-o para rodar este passo")
+        return CommandOutcome(
+            False, f"'{command[0]}' não está no PATH; instale-o para rodar este passo"
+        )
     except subprocess.TimeoutExpired:
-        return CommandOutcome(False, f"'{command[0]}' passou de {COMMAND_TIMEOUT_SECONDS} s e foi interrompido")
+        return CommandOutcome(
+            False, f"'{command[0]}' passou de {COMMAND_TIMEOUT_SECONDS} s e foi interrompido"
+        )
     return CommandOutcome(completed.returncode == 0, completed.stdout + completed.stderr)
 
 

@@ -1,0 +1,7 @@
+{
+  "include": ["tools"],
+  "exclude": ["**/__pycache__"],
+  "extraPaths": ["tools/verify-code"],
+  "pythonVersion": "3.12",
+  "typeCheckingMode": "strict"
+}

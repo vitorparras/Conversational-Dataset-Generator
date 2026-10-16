@@ -14,12 +14,13 @@ from pathlib import Path
 
 _VERIFY_PATH = Path(__file__).resolve().parents[1] / "verify.py"
 _spec = importlib.util.spec_from_file_location("verify", _VERIFY_PATH)
+assert _spec is not None and _spec.loader is not None
 verify = importlib.util.module_from_spec(_spec)
 sys.modules["verify"] = verify  # dataclasses resolves annotations through sys.modules
 _spec.loader.exec_module(verify)
 
 BACKSLASH = chr(92)
-VALID_DOC ="# Documento sintético\n\n> Descrição. 2026-01-01.\n\nTexto sem problema.\n"
+VALID_DOC = "# Documento sintético\n\n> Descrição. 2026-01-01.\n\nTexto sem problema.\n"
 
 
 def run_verifier(root: Path, *extra: str) -> tuple[int, str]:

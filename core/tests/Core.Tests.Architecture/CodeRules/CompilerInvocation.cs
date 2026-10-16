@@ -16,7 +16,13 @@ internal sealed class CompilerInvocation
 
     public required IReadOnlyList<SourceFile> SourceFiles { get; init; }
 
+    /// <summary>Sources the build produced for itself: what generators emitted and what lies under the build's own output folders.</summary>
+    public required IReadOnlyList<SourceFile> GeneratedFiles { get; init; }
+
     public required IReadOnlyList<string> Analyzers { get; init; }
+
+    /// <summary>Every <c>DiagnosticSuppressor</c> among the analyzers, with the ids it can suppress.</summary>
+    public required IReadOnlyList<AnalyzerSuppressor> Suppressors { get; init; }
 
     public required IReadOnlyList<string> AdditionalFiles { get; init; }
 
@@ -37,41 +43,28 @@ internal sealed class CompilerInvocation
 
     /// <summary>The invocation of a project as it sits in the repository; nothing is written under the repository.</summary>
     public static CompilerInvocation Of(string projectPath) =>
-        Evaluated.GetOrAdd(projectPath, path => new Lazy<CompilerInvocation>(() => Evaluate(path))).Value;
+        Evaluated.GetOrAdd(projectPath, path => new Lazy<CompilerInvocation>(() => Evaluate(path, null))).Value;
 
-    /// <summary>The invocation of a fixture project, built in a temporary copy of the fixture tree so that its relative includes resolve.</summary>
+    /// <summary>The invocation of a fixture project, built in a temporary copy of the fixture tree with its own package cache, so that nothing reaches the machine's.</summary>
     public static CompilerInvocation OfFixture(string relativeDirectory, string projectName)
     {
         using var scratch = ScratchDirectory.Create();
         var tree = scratch.CopyFixture(Path.Combine(SourceTree.FixturesDirectory, relativeDirectory), "tree");
-        return Evaluate(Path.Combine(tree, projectName, projectName + ".csproj"));
+        FixturePackages.Build(tree);
+        return Evaluate(Path.Combine(tree, projectName, projectName + ".csproj"), Path.Combine(scratch.Path, "packages"));
     }
 
-    private static CompilerInvocation Evaluate(string projectPath)
+    private static CompilerInvocation Evaluate(string projectPath, string? packages)
     {
         using var scratch = ScratchDirectory.Create();
+        var run = new MsBuildRun(projectPath, scratch.Path, packages);
         var description = $"Reading the compiler invocation of {Path.GetFileName(projectPath)}";
-        _ = Run(projectPath, scratch.Path, "-t:Restore").OutputOfSuccess(description);
-        var output = Run(projectPath, scratch.Path, "-t:Build", "-p:ProvideCommandLineArgs=true", "-getItem:CscCommandLineArgs", "-getProperty:NuGetPackageRoot,MSBuildExtensionsPath,NetCoreTargetingPackRoot")
+        _ = run.Execute("-t:Restore").OutputOfSuccess(description);
+        var output = run.Execute("-t:Build", "-p:ProvideCommandLineArgs=true", "-getItem:CscCommandLineArgs", "-p:EmitCompilerGeneratedFiles=true", $"-p:CompilerGeneratedFilesOutputPath={run.GeneratedFiles}")
             .OutputOfSuccess(description);
         using var document = JsonDocument.Parse(output[output.IndexOf('{', StringComparison.Ordinal)..]);
         var arguments = document.RootElement.GetProperty("Items").GetProperty("CscCommandLineArgs").EnumerateArray()
             .Select(item => item.GetProperty("Identity").GetString()!);
-        var roots = document.RootElement.GetProperty("Properties").EnumerateObject().Select(property => property.Value.GetString()!);
-        return CompilerArguments.Read(projectPath, [.. arguments], Path.Combine(scratch.Path, "artifacts"), [.. roots]);
+        return CompilerArguments.Read(new CompilerBuildOutput(projectPath, [.. arguments], run.Artifacts, run.GeneratedFiles, [ToolLocations.DotnetRoot, packages ?? ToolLocations.GlobalPackages]));
     }
-
-    /// <summary>One <c>msbuild</c> run with everything it writes sent to the scratch directory, and no process left behind.</summary>
-    private static CommandOutcome Run(string projectPath, string scratch, params string[] extra) =>
-        DotnetCommand.RunAsync(
-            [
-                "msbuild", projectPath, "-nologo", "-nodeReuse:false",
-                "-p:UseSharedCompilation=false",
-                "-p:RestoreLockedMode=false",
-                $"-p:NuGetLockFilePath={Path.Combine(scratch, "packages.lock.json")}",
-                $"-p:ArtifactsPath={Path.Combine(scratch, "artifacts")}",
-                .. extra,
-            ],
-            Path.GetDirectoryName(projectPath)!,
-            CancellationToken.None).GetAwaiter().GetResult();
 }

@@ -7,9 +7,10 @@ internal static class DotnetCommand
 {
     public static readonly TimeSpan Limit = TimeSpan.FromMinutes(5);
 
-    public static async Task<CommandOutcome> RunAsync(IReadOnlyList<string> arguments, string workingDirectory, CancellationToken cancellationToken)
+    public static async Task<CommandOutcome> RunAsync(
+        IReadOnlyList<string> arguments, string workingDirectory, CancellationToken cancellationToken, IReadOnlyDictionary<string, string>? environment = null)
     {
-        using var process = Process.Start(StartInfo(arguments, workingDirectory)) ?? throw new InvalidOperationException("The command did not start.");
+        using var process = Process.Start(StartInfo(arguments, workingDirectory, environment ?? new Dictionary<string, string>())) ?? throw new InvalidOperationException("The command did not start.");
         var output = process.StandardOutput.ReadToEndAsync(CancellationToken.None);
         var error = process.StandardError.ReadToEndAsync(CancellationToken.None);
         using var limit = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -29,7 +30,7 @@ internal static class DotnetCommand
         }
     }
 
-    private static ProcessStartInfo StartInfo(IReadOnlyList<string> arguments, string workingDirectory)
+    private static ProcessStartInfo StartInfo(IReadOnlyList<string> arguments, string workingDirectory, IReadOnlyDictionary<string, string> environment)
     {
         var info = new ProcessStartInfo("dotnet")
         {
@@ -41,6 +42,11 @@ internal static class DotnetCommand
         foreach (var argument in arguments)
         {
             info.ArgumentList.Add(argument);
+        }
+
+        foreach (var (name, value) in environment)
+        {
+            info.Environment[name] = value;
         }
 
         return info;

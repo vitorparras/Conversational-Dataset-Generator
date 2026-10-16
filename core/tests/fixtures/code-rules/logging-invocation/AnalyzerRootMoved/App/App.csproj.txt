@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Quiet.Suppressor" Version="1.0.0" PrivateAssets="all" />
+  </ItemGroup>
+  <Target Name="MovePackRoot" AfterTargets="CoreCompile">
+    <PropertyGroup>
+      <NetCoreTargetingPackRoot>$([System.IO.Path]::GetPathRoot('$(MSBuildProjectDirectory)'))</NetCoreTargetingPackRoot>
+    </PropertyGroup>
+  </Target>
+</Project>

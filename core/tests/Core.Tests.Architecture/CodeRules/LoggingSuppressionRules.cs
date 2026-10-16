@@ -25,6 +25,17 @@ internal static class LoggingSuppressionRules
             .Concat(files.SelectMany(file => JudgeDeclarations(file, compilation.GetSemanticModel(file.Tree), suppressingClasses)));
     }
 
+    /// <summary>Sources the build wrote for itself may not suppress the diagnostic at all, by attribute or by pragma; the generated log messages do neither.</summary>
+    public static IEnumerable<Violation> CheckGenerated(IReadOnlyList<SourceFile> files)
+    {
+        var compilation = SourceCompilation.Of(files);
+        var attributes = files
+            .SelectMany(file => Suppression.FindIn(file, compilation.GetSemanticModel(file.Tree)))
+            .Where(suppression => suppression.CheckId is null || suppression.CheckId.StartsWith(Diagnostic, StringComparison.OrdinalIgnoreCase))
+            .Select(suppression => new Violation(suppression.File.Path, suppression.Line, $"generated code suppresses {Diagnostic}"));
+        return attributes.Concat(files.SelectMany(CheckPragmas));
+    }
+
     public static IEnumerable<Violation> CheckPragmas(SourceFile file) =>
         file.Root.DescendantNodes(descendIntoTrivia: true)
             .OfType<PragmaWarningDirectiveTriviaSyntax>()

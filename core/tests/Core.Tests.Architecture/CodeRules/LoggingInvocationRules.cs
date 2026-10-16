@@ -12,7 +12,8 @@ internal static class LoggingInvocationRules
         CheckDiagnosticOptions(invocation)
             .Concat(CheckAnalyzers(invocation))
             .Concat(CheckAdditionalFiles(invocation))
-            .Concat(CheckSeverityOnEverySource(invocation));
+            .Concat(CheckSeverityOnEverySource(invocation))
+            .Concat(LoggingSuppressionRules.CheckGenerated(invocation.GeneratedFiles));
 
     /// <summary>The diagnostic is not named by a <c>/nowarn</c> or a <c>/warnaserror-:</c>, warnings are errors, and analyzers run.</summary>
     public static IEnumerable<Violation> CheckDiagnosticOptions(CompilerInvocation invocation)
@@ -33,12 +34,17 @@ internal static class LoggingInvocationRules
         }
     }
 
-    /// <summary>The banned-symbol analyzer is loaded, and every analyzer comes from the SDK or the package cache.</summary>
+    /// <summary>The banned-symbol analyzer is loaded, no analyzer is able to suppress it, and every analyzer comes from the SDK or the package cache.</summary>
     public static IEnumerable<Violation> CheckAnalyzers(CompilerInvocation invocation)
     {
         if (!invocation.Analyzers.Any(path => path.Contains(AnalyzerPackage, StringComparison.Ordinal)))
         {
             yield return At(invocation, $"the {AnalyzerPackage} analyzer is not given to the compiler");
+        }
+
+        foreach (var suppressor in invocation.Suppressors.Where(suppressor => suppressor.Suppresses(LoggingSuppressionRules.Diagnostic)))
+        {
+            yield return At(invocation, $"{suppressor.TypeName} in {Path.GetFileName(suppressor.AnalyzerPath)} is able to suppress {LoggingSuppressionRules.Diagnostic}");
         }
 
         foreach (var analyzer in invocation.Analyzers.Where(path => !IsUnderAnyRoot(path, invocation.AnalyzerRoots)))

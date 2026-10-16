@@ -20,7 +20,7 @@ ACCEPTED_FINGERPRINT = (
 FINGERPRINT = re.compile(r"^[0-9a-f]{40}:[^:]+:[a-z0-9-]+:[0-9]+$")
 ALLOWANCE_KEYS = {"description", "regexes"}
 TOP_LEVEL_KEYS = {"title", "extend", "allowlists"}
-NEXT_JOB = re.compile(r"\n  [a-z_]+:\n")
+NEXT_JOB = re.compile(r"\n  [a-z_-]+:\n")
 
 
 def ignore_entries(text: str) -> list[str]:
@@ -44,7 +44,8 @@ class RepositoryConfigurationTests(unittest.TestCase):
         self.config = tomllib.loads(REPO_CONFIG)
 
     def test_the_default_rules_stay_on_and_nothing_else_is_extended(self) -> None:
-        self.assertEqual(self.config["extend"], {"useDefault": True})
+        self.assertEqual(set(self.config["extend"]), {"useDefault"})
+        self.assertIs(self.config["extend"]["useDefault"], True)
 
     def test_the_top_level_has_no_key_that_could_disable_or_override_a_rule(self) -> None:
         self.assertEqual(set(self.config), TOP_LEVEL_KEYS)
@@ -53,7 +54,7 @@ class RepositoryConfigurationTests(unittest.TestCase):
         allowlists = self.config["allowlists"]
 
         self.assertEqual(len(allowlists), 1)
-        self.assertEqual(allowlists[0]["regexes"], ["ZQX-[A-Za-z0-9-]+"])
+        self.assertEqual(allowlists[0]["regexes"], ["^ZQX-[A-Za-z0-9-]+$"])
 
     def test_the_allowance_has_no_scope_option_that_could_widen_or_narrow_it(self) -> None:
         self.assertEqual(set(self.config["allowlists"][0]), ALLOWANCE_KEYS)
@@ -97,3 +98,8 @@ class JobOfTests(unittest.TestCase):
         text = "jobs:\n  a:\n    x: 1\n  b:\n    y: 2\n  c:\n    z: 3\n"
 
         self.assertEqual(job_of(text, "b"), "\n    y: 2")
+
+    def test_a_job_name_with_a_hyphen_ends_the_previous_job(self) -> None:
+        text = "jobs:\n  a:\n    x: 1\n  b-c:\n    y: 2\n"
+
+        self.assertEqual(job_of(text, "a"), "\n    x: 1")

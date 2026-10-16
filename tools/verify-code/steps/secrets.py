@@ -24,6 +24,7 @@ def scan_command(binary: str, report: Path, base: str | None) -> list[str]:
         "--redact",
         "--no-banner",
         "--no-color",
+        "--ignore-gitleaks-allow",
         f"--config={CONFIG}",
         "--report-format=json",
         f"--report-path={report}",

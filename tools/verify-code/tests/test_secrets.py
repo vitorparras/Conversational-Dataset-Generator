@@ -17,6 +17,8 @@ REPO_CONFIG = (ROOT / secrets.CONFIG).read_text(encoding="utf-8")
 PLAIN_CONFIG = "[extend]\nuseDefault = true\n"
 TOKEN = "ghp_" + "aB3dE5gH7jK9mN1pQ3sT5vW7yZ9bC1dE3fG5"
 TOKEN_LINE = f'token = "{TOKEN}"\n'
+ALLOW_COMMENT = "  # gitleaks:allow"
+EMBEDDED_MARKER_LINE = 'api_key = "' + "AbCd1234EfGh5678" + "-ZQX-MARKER-7731" + '"\n'
 MARKER_LINE = 'api_key = "ZQX-MARKER-7731-default"\n'
 FINDING: dict[str, object] = {
     "RuleID": "github-pat",
@@ -81,6 +83,20 @@ class ScanRepositoryTests(unittest.TestCase):
         result = self.scan("main")
 
         self.assertTrue(result.ok, result.details)
+
+    def test_a_token_with_a_gitleaks_allow_comment_is_still_found(self) -> None:
+        commit(self.repo, "src/a.py", TOKEN_LINE.rstrip("\n") + ALLOW_COMMENT + "\n")
+
+        result = self.scan("main")
+
+        self.assertFalse(result.ok)
+
+    def test_a_secret_that_only_contains_the_marker_is_still_found(self) -> None:
+        commit(self.repo, "src/a.py", EMBEDDED_MARKER_LINE)
+
+        result = self.scan("main")
+
+        self.assertFalse(result.ok)
 
     def test_the_same_marker_fails_without_the_allowance(self) -> None:
         commit(self.repo, secrets.CONFIG, PLAIN_CONFIG)
@@ -150,6 +166,11 @@ class ScanWithFakeRunnerTests(unittest.TestCase):
 
         self.assertFalse(result.ok)
         self.assertIn("  | fatal: bad revision", result.details)
+
+    def test_the_command_ignores_the_allow_comment_in_the_scanned_files(self) -> None:
+        _, runner = self.run_fake(support.SUCCESS, fake_report([]))
+
+        self.assertIn("--ignore-gitleaks-allow", runner.commands[0])
 
     def test_the_tool_never_runs_verbose(self) -> None:
         _, runner = self.run_fake(support.SUCCESS, fake_report([]))

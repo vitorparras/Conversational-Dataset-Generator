@@ -58,6 +58,16 @@ class ParseTests(unittest.TestCase):
 
         self.assertIn("devem ser texto não vazio", registry.problems[0])
 
+    def test_a_blank_subject_is_a_problem(self) -> None:
+        registry = accepted_risks.parse(ENTRY.replace('"Zqx.Package"', '" "'))
+
+        self.assertIn("devem ser texto não vazio", registry.problems[0])
+
+    def test_an_id_that_is_a_number_is_a_problem_and_not_a_crash(self) -> None:
+        registry = accepted_risks.parse(ENTRY.replace('"CVE-0000-0001"', "123"))
+
+        self.assertIn("devem ser texto não vazio", registry.problems[0])
+
     def test_a_blank_reason_is_a_problem(self) -> None:
         registry = accepted_risks.parse(ENTRY.replace('"sem versão corrigida"', '""'))
 

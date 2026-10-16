@@ -38,7 +38,7 @@ def is_table_list(value: object) -> bool:
     )
 
 
-def entries_of(data: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
+def _entries_of(data: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
     """The `[[risk]]` tables and the problems with the file's top level."""
     problems = [f"{FILE}: chave de topo desconhecida '{key}'" for key in data if key != TABLE]
     entries: object = data.get(TABLE, [])
@@ -52,7 +52,7 @@ def parse(text: str) -> Registry:
         data = tomllib.loads(text)
     except tomllib.TOMLDecodeError as error:
         return Registry(problems=(f"{FILE} malformado: {error}",))
-    entries, problems = entries_of(data)
+    entries, problems = _entries_of(data)
     converted = [to_risk(entry, number) for number, entry in enumerate(entries, start=1)]
     risks = tuple(item for item in converted if isinstance(item, Risk))
     return Registry(risks, (*problems, *(item for item in converted if isinstance(item, str))))

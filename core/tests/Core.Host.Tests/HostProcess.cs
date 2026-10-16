@@ -90,6 +90,13 @@ internal sealed class HostProcess : IDisposable
         return new HostExit(process.ExitCode, await error);
     }
 
+    /// <summary>Kills the host and hands over everything it wrote to its output stream until then.</summary>
+    public async Task<string> StopAsync()
+    {
+        Kill();
+        return await output;
+    }
+
     public Task<HttpResponseMessage> GetAsync(string route, CancellationToken cancellationToken) =>
         client.GetAsync(new Uri(route, UriKind.Relative), cancellationToken);
 

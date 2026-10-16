@@ -39,7 +39,7 @@ internal static class FileLimits
             .Select(member => new Violation(
                 file.Path, SourceFile.LineOf(member), "tuple in a public signature; declare a named type"));
 
-    private static bool IsTopLevelType(MemberDeclarationSyntax member) =>
+    private static bool IsTopLevelType(SyntaxNode member) =>
         member is BaseTypeDeclarationSyntax or DelegateDeclarationSyntax
         && member.Parent is CompilationUnitSyntax or BaseNamespaceDeclarationSyntax;
 
@@ -48,7 +48,7 @@ internal static class FileLimits
         && member is BaseMethodDeclarationSyntax or BasePropertyDeclarationSyntax
             or DelegateDeclarationSyntax or TypeDeclarationSyntax;
 
-    private static bool ContainsTuple(TypeSyntax type) =>
+    private static bool ContainsTuple(SyntaxNode type) =>
         type.DescendantNodesAndSelf().OfType<TupleTypeSyntax>().Any();
 
     private static IEnumerable<TypeSyntax> SignatureTypes(MemberDeclarationSyntax member) => member switch

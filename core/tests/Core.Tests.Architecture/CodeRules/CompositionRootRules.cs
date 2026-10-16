@@ -34,7 +34,7 @@ internal static class CompositionRootRules
                 file.Path, SourceFile.LineOf(name), $"{ServiceCollection} is used outside the composition root"));
         var registrations = file.Root.DescendantNodes()
             .OfType<InvocationExpressionSyntax>()
-            .Where(invocation => IsRegistration(invocation, aliases))
+            .Where(invocation => IsRegistration(invocation, aliases.Contains))
             .Select(invocation => new Violation(
                 file.Path, SourceFile.LineOf(invocation), "service registered outside the composition root"));
         return collectionReferences.Concat(registrations);
@@ -72,10 +72,10 @@ internal static class CompositionRootRules
             .ToHashSet(StringComparer.Ordinal);
 
     /// <summary>A call such as <c>services.AddSingleton&lt;T&gt;()</c> or <c>builder.Services.TryAddScoped(...)</c>.</summary>
-    private static bool IsRegistration(InvocationExpressionSyntax invocation, HashSet<string> aliases) =>
+    private static bool IsRegistration(InvocationExpressionSyntax invocation, Func<string, bool> isAlias) =>
         invocation.Expression is MemberAccessExpressionSyntax access
         && IsRegistrationName(access.Name.Identifier.ValueText)
-        && (LooksLikeServiceCollection(access.Expression.ToString()) || aliases.Contains(access.Expression.ToString()));
+        && (LooksLikeServiceCollection(access.Expression.ToString()) || isAlias(access.Expression.ToString()));
 
     private static bool IsRegistrationName(string name) =>
         name.StartsWith("Add", StringComparison.Ordinal) || name.StartsWith("TryAdd", StringComparison.Ordinal);
@@ -84,7 +84,7 @@ internal static class CompositionRootRules
         expression.EndsWith("ervices", StringComparison.Ordinal);
 
     /// <summary>The type a target-typed <c>new(...)</c> resolves to when it initialises a variable, field or property.</summary>
-    private static TypeSyntax? DeclaredTypeOf(ImplicitObjectCreationExpressionSyntax creation) =>
+    private static TypeSyntax? DeclaredTypeOf(SyntaxNode creation) =>
         creation.Parent?.Parent switch
         {
             VariableDeclaratorSyntax { Parent: VariableDeclarationSyntax declaration } => declaration.Type,

@@ -21,7 +21,7 @@ internal sealed class CompositionRoots
     {
         var candidates = files.Where(file => file.FileName == FileName).ToList();
         var missing = executables
-            .Where(executable => !candidates.Any(candidate => SamePath(candidate.Path, RootPathOf(executable))))
+            .Where(executable => !candidates.Exists(candidate => SamePath(candidate.Path, RootPathOf(executable))))
             .Select(executable => new Violation(
                 executable.Path, 1, $"executable without a {FileName} beside its project file"));
         var misplaced = candidates

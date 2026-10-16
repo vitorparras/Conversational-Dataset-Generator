@@ -4,6 +4,7 @@ namespace Core.Tests.Architecture.CodeRules;
 internal static class SourceTree
 {
     private static readonly Lazy<string> CoreDirectory = new(FindCoreDirectory);
+    private static readonly char[] PathSeparators = [Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar];
     private static readonly Lazy<IReadOnlyList<SourceFile>> Production = new(ReadProductionFiles);
 
     public static string CoreRoot => CoreDirectory.Value;
@@ -47,7 +48,7 @@ internal static class SourceTree
 
     /// <summary>The segments below the core directory, so that where the repository was cloned never changes the verdict.</summary>
     private static string[] Parts(string path) =>
-        Path.GetRelativePath(CoreDirectory.Value, path).Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        Path.GetRelativePath(CoreDirectory.Value, path).Split(PathSeparators);
 
     private static string FindCoreDirectory()
     {

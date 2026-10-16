@@ -7,7 +7,7 @@ internal sealed class CanaryWorkspace : IDisposable
 
     private readonly ScratchDirectory scratch;
     private readonly string projectPath;
-    private readonly string canaryName = "canary-" + Guid.NewGuid().ToString("N");
+    private readonly string canaryName = "canary-" + Guid.NewGuid().ToString("N", System.Globalization.CultureInfo.InvariantCulture);
     private string fragment = string.Empty;
 
     private CanaryWorkspace(string projectPath, ScratchDirectory scratch)

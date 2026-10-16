@@ -12,7 +12,7 @@ internal sealed class ScratchDirectory : IDisposable
     public string Path { get; }
 
     public static ScratchDirectory Create() =>
-        new(System.IO.Path.Combine(System.IO.Path.GetTempPath(), "scratch-" + Guid.NewGuid().ToString("N")));
+        new(System.IO.Path.Combine(System.IO.Path.GetTempPath(), "scratch-" + Guid.NewGuid().ToString("N", System.Globalization.CultureInfo.InvariantCulture)));
 
     /// <summary>Copies a fixture directory below <paramref name="relativeTarget"/>; a <c>.csproj.txt</c> file becomes a project file.</summary>
     public string CopyFixture(string fixtureDirectory, string relativeTarget)

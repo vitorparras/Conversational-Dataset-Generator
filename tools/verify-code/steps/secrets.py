@@ -1,13 +1,9 @@
-"""Scans git history with gitleaks for secrets; findings are named by rule, file and line only.
-
-With a base ref only the commits the change adds are scanned; without one, the whole history.
-The run is always redacted and the report is read from JSON: the tool's own output is never echoed,
-because it carries the commit author.
-"""
+"""Scans git history with gitleaks; a finding is named by rule, file and line, never by value."""
 
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
 from typing import Any, cast
 
@@ -75,7 +71,9 @@ def scan(ctx: Context, binary: str) -> StepResult:
     report = folder / REPORT_FILE
     outcome = ctx.run(scan_command(binary, report, ctx.base), ctx.root)
     scope = "no histórico inteiro" if ctx.base is None else f"nos commits de {ctx.base}..HEAD"
-    return judge(read_findings(report), outcome, scope)
+    findings = read_findings(report)
+    shutil.rmtree(folder, ignore_errors=True)
+    return judge(findings, outcome, scope)
 
 
 def run(ctx: Context) -> StepResult:

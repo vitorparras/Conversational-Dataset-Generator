@@ -1,9 +1,9 @@
-title = "Regras de segredo do repositório"
+title = "Repository secret rules"
 
 [extend]
 useDefault = true
 
-# Única permissão: os marcadores sintéticos dos testes. Segredo real nunca começa com "ZQX-".
+# The only allowance: the synthetic markers of the tests. A real secret never starts with "ZQX-".
 [[allowlists]]
-description = "Marcadores sintéticos ZQX- usados em testes e fixtures"
+description = "Synthetic ZQX- markers used in tests and fixtures"
 regexes = ['''ZQX-[A-Za-z0-9-]+''']

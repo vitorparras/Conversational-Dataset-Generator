@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -24,6 +25,7 @@ jobs:
       - name: Reavaliar as dependências e gravar os locks
         run: dotnet restore core/Core.slnx --force-evaluate
       - name: Commitar os locks alterados na própria branch
+        id: commit
         run: |
           if git diff --quiet -- 'core/**/packages.lock.json'; then
             echo "Locks já estavam em dia."
@@ -34,3 +36,10 @@ jobs:
           git add 'core/**/packages.lock.json'
           git commit -m "build(deps): regenera packages.lock.json"
           git push
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+      - name: Avisar no pull request que a verificação precisa rodar de novo
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr comment "$PR_URL" --create-if-none --edit-last --body "Lockfiles regenerados; feche e reabra o PR para a verificação rodar no commit novo."

@@ -101,6 +101,13 @@ class LockfileWorkflowTests(unittest.TestCase):
         self.assertNotIn("contents: write", top)
         self.assertIn("contents: write", job)
 
+    def test_it_comments_on_the_pull_request_only_after_committing(self) -> None:
+        self.assertIn("if: steps.commit.outputs.changed == 'true'", self.text)
+        self.assertIn("feche e reabra o PR", self.text)
+
+    def test_it_holds_no_token_beyond_the_one_of_the_run(self) -> None:
+        self.assertNotIn("secrets.", self.text)
+
     def test_it_rewrites_the_locks_by_forcing_the_evaluation(self) -> None:
         self.assertIn("dotnet restore core/Core.slnx --force-evaluate", self.text)
 

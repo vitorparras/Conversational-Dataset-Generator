@@ -19,6 +19,8 @@ ACCEPTED_FINGERPRINT = (
 )
 FINGERPRINT = re.compile(r"^[0-9a-f]{40}:[^:]+:[a-z0-9-]+:[0-9]+$")
 ALLOWANCE_KEYS = {"description", "regexes"}
+TOP_LEVEL_KEYS = {"title", "extend", "allowlists"}
+NEXT_JOB = re.compile(r"\n  [a-z_]+:\n")
 
 
 def ignore_entries(text: str) -> list[str]:
@@ -26,17 +28,26 @@ def ignore_entries(text: str) -> list[str]:
     return [line for line in text.splitlines() if line.strip() and not line.startswith("#")]
 
 
+def malformed(entries: list[str]) -> list[str]:
+    """The entries that are not `<40 hex commit>:<path>:<rule>:<line>`."""
+    return [entry for entry in entries if not FINGERPRINT.match(entry)]
+
+
 def job_of(text: str, name: str) -> str:
     """The text of one job of the workflow: from its key to the next job."""
-    return text.split(f"\n  {name}:", 1)[1].split("\n  pr_size:", 1)[0]
+    after = text.split(f"\n  {name}:", 1)[1]
+    return NEXT_JOB.split(after, maxsplit=1)[0]
 
 
 class RepositoryConfigurationTests(unittest.TestCase):
     def setUp(self) -> None:
         self.config = tomllib.loads(REPO_CONFIG)
 
-    def test_the_default_rules_stay_on(self) -> None:
-        self.assertTrue(self.config["extend"]["useDefault"])
+    def test_the_default_rules_stay_on_and_nothing_else_is_extended(self) -> None:
+        self.assertEqual(self.config["extend"], {"useDefault": True})
+
+    def test_the_top_level_has_no_key_that_could_disable_or_override_a_rule(self) -> None:
+        self.assertEqual(set(self.config), TOP_LEVEL_KEYS)
 
     def test_the_only_allowance_is_the_synthetic_marker(self) -> None:
         allowlists = self.config["allowlists"]
@@ -53,7 +64,7 @@ class IgnoreFileTests(unittest.TestCase):
         self.entries = ignore_entries(IGNORE_FILE.read_text(encoding="utf-8"))
 
     def test_every_entry_is_a_full_fingerprint_with_its_commit(self) -> None:
-        self.assertEqual([e for e in self.entries if not FINGERPRINT.match(e)], [])
+        self.assertEqual(malformed(self.entries), [])
 
     def test_the_only_entry_is_the_accepted_one(self) -> None:
         self.assertEqual(self.entries, [ACCEPTED_FINGERPRINT])
@@ -79,3 +90,10 @@ class WorkflowTests(unittest.TestCase):
 
     def test_the_step_runs_against_the_base_of_the_pull_request(self) -> None:
         self.assertIn("format('--base origin/{0}', github.base_ref)", self.job)
+
+
+class JobOfTests(unittest.TestCase):
+    def test_a_job_ends_where_the_next_job_starts(self) -> None:
+        text = "jobs:\n  a:\n    x: 1\n  b:\n    y: 2\n  c:\n    z: 3\n"
+
+        self.assertEqual(job_of(text, "b"), "\n    y: 2")

@@ -1,0 +1,3 @@
+  <ItemGroup>
+    <AdditionalFiles Remove="@(AdditionalFiles)" />
+  </ItemGroup>

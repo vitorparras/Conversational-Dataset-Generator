@@ -6,6 +6,8 @@ internal static class SourceTree
     private static readonly Lazy<string> CoreDirectory = new(FindCoreDirectory);
     private static readonly string[] AnalyzerConfigNames = [".editorconfig", ".globalconfig"];
 
+    public static string CoreRoot => CoreDirectory.Value;
+
     public static string FixturesDirectory => Path.Combine(CoreDirectory.Value, "tests", "fixtures", "code-rules");
 
     public static IReadOnlyList<SourceFile> ProductionFiles() =>
@@ -13,13 +15,6 @@ internal static class SourceTree
 
     public static IReadOnlyList<ProjectFile> ProductionProjects() =>
         [.. EnumerateSources(Path.Combine(CoreDirectory.Value, "src"), "*.csproj").Select(ProjectFile.Read)];
-
-    /// <summary>Every MSBuild file the production projects evaluate: their own files and the shared props and targets above them.</summary>
-    public static IReadOnlyList<ProjectFile> ProductionBuildFiles() =>
-        [.. EnumerateSources(Path.Combine(CoreDirectory.Value, "src"), "*.csproj")
-            .Concat(EnumerateSources(CoreDirectory.Value, "*.props").Where(IsOutsideTests))
-            .Concat(EnumerateSources(CoreDirectory.Value, "*.targets").Where(IsOutsideTests))
-            .Select(ProjectFile.Read)];
 
     /// <summary>Every analyzer config the production projects read: under the core, outside the tests, plus the repository root.</summary>
     public static IReadOnlyList<AnalyzerConfig> ProductionAnalyzerConfigs() =>

@@ -1,0 +1,3 @@
+  <ItemGroup>
+    <EditorConfigFiles Include="$(MSBuildProjectDirectory)/quiet.rules" />
+  </ItemGroup>

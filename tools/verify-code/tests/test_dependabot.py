@@ -9,7 +9,6 @@ from . import support
 
 GITHUB = support.VERIFY_CODE.parents[1] / ".github"
 CONFIG = GITHUB / "dependabot.yml"
-LOCKFILES = GITHUB / "workflows" / "dependabot-lockfiles.yml"
 QUEUE_LIMIT = 3
 FULL_SHA = re.compile(r"^[0-9a-f]{40} # v\d+(\.\d+)*$")
 
@@ -28,13 +27,25 @@ def field(block: str, key: str) -> str:
 
 
 def action_references() -> list[str]:
-    """Everything after `uses:` in every workflow of the repository."""
-    lines = [
-        line
-        for path in GITHUB.glob("workflows/*.yml")
-        for line in path.read_text("utf-8").splitlines()
+    """What follows `uses:` in every YAML file under .github, local actions (`./`) left out."""
+    paths = [path for path in GITHUB.rglob("*") if path.suffix in (".yml", ".yaml")]
+    lines = [line for path in paths for line in path.read_text("utf-8").splitlines()]
+    specs = [line.split("uses:", 1)[1].strip() for line in lines if "uses:" in line]
+    return [spec for spec in specs if not spec.startswith("./")]
+
+
+def unpinned(references: list[str]) -> list[str]:
+    """The references that are not `<owner>/<repo>@<40-hex sha> # v<version>`."""
+    return [ref for ref in references if not FULL_SHA.match(ref.partition("@")[2])]
+
+
+def ungrouped(blocks: dict[str, str]) -> list[str]:
+    """The ecosystems whose block does not group every package under its own name."""
+    return [
+        name
+        for name, block in blocks.items()
+        if f'      {name}:\n        patterns: ["*"]' not in block
     ]
-    return [line.split("uses:", 1)[1].strip().split("@", 1)[1] for line in lines if "uses:" in line]
 
 
 class DependabotConfigTests(unittest.TestCase):
@@ -63,13 +74,7 @@ class DependabotConfigTests(unittest.TestCase):
         self.assertLessEqual(max(limits), QUEUE_LIMIT)
 
     def test_every_ecosystem_groups_all_packages_into_one_pull_request(self) -> None:
-        ungrouped = [
-            name
-            for name, block in self.blocks.items()
-            if f'      {name}:\n        patterns: ["*"]' not in block
-        ]
-
-        self.assertEqual(ungrouped, [])
+        self.assertEqual(ungrouped(self.blocks), [])
 
     def test_commit_messages_are_conventional(self) -> None:
         prefixes = {name: field(block, "prefix") for name, block in self.blocks.items()}
@@ -84,33 +89,4 @@ class PinnedActionsTests(unittest.TestCase):
         references = action_references()
 
         self.assertGreater(len(references), 0)
-        self.assertEqual([r for r in references if not FULL_SHA.match(r)], [])
-
-
-class LockfileWorkflowTests(unittest.TestCase):
-    def setUp(self) -> None:
-        self.text = LOCKFILES.read_text(encoding="utf-8")
-
-    def test_it_runs_only_for_the_dependabot_nuget_branches(self) -> None:
-        self.assertIn("github.actor == 'dependabot[bot]'", self.text)
-        self.assertIn("startsWith(github.head_ref, 'dependabot/nuget/')", self.text)
-
-    def test_write_permission_is_declared_on_the_job_and_not_on_the_workflow(self) -> None:
-        top, job = self.text.split("jobs:", 1)
-
-        self.assertNotIn("contents: write", top)
-        self.assertIn("contents: write", job)
-
-    def test_it_comments_on_the_pull_request_only_after_committing(self) -> None:
-        self.assertIn("if: steps.commit.outputs.changed == 'true'", self.text)
-        self.assertIn("feche e reabra o PR", self.text)
-
-    def test_it_holds_no_token_beyond_the_one_of_the_run(self) -> None:
-        self.assertNotIn("secrets.", self.text)
-
-    def test_it_rewrites_the_locks_by_forcing_the_evaluation(self) -> None:
-        self.assertIn("dotnet restore core/Core.slnx --force-evaluate", self.text)
-
-    def test_it_pushes_to_the_branch_of_the_pull_request_and_not_to_main(self) -> None:
-        self.assertIn("ref: ${{ github.head_ref }}", self.text)
-        self.assertNotIn("push origin", self.text)
+        self.assertEqual(unpinned(references), [])

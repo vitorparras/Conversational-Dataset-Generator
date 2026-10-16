@@ -6,7 +6,7 @@ namespace Core.Platform.Configuration.Sources;
 public sealed class EnvironmentSource : IConfigurationSource
 {
     /// <summary>The prefix every variable the process reads must carry; matched whatever its case.</summary>
-    public const string Prefix = "CDG_";
+    public static string Prefix { get; } = "CDG_";
     private const string SectionSeparator = "__";
     private const string PathSeparator = ":";
 
@@ -26,12 +26,13 @@ public sealed class EnvironmentSource : IConfigurationSource
 
     /// <inheritdoc />
     public SourceReading Read() =>
-        SourceReading.Of(
+        new(
             ConfigurationOrigin.Environment,
-            variables
+            [.. variables
                 .Where(variable => variable.Key.StartsWith(Prefix, StringComparison.OrdinalIgnoreCase))
                 .OrderBy(variable => variable.Key, StringComparer.Ordinal)
-                .Select(variable => KeyValuePair.Create(PathOf(variable.Key), variable.Value)));
+                .Select(variable => KeyValuePair.Create(PathOf(variable.Key), variable.Value))],
+            []);
 
     private static string PathOf(string variableName) =>
         variableName[Prefix.Length..].Replace(SectionSeparator, PathSeparator, StringComparison.Ordinal);

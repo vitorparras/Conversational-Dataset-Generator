@@ -12,10 +12,7 @@ public sealed class ConfigurationSchema
             .Select(key => new DeclaredKey($"{section.Name}:{key.Name}", key)))];
         foreach (var declared in Declared)
         {
-            if (!byPath.TryAdd(declared.Path, declared))
-            {
-                throw new ArgumentException($"Key '{declared.Path}' is declared twice.", nameof(sections));
-            }
+            Register(declared, nameof(sections));
         }
     }
 
@@ -24,4 +21,12 @@ public sealed class ConfigurationSchema
 
     /// <summary>The key declared at the path, whatever the case it was written in; null when no section declares it.</summary>
     internal DeclaredKey? Find(string path) => byPath.GetValueOrDefault(path);
+
+    private void Register(DeclaredKey entry, string parameterName)
+    {
+        if (!byPath.TryAdd(entry.Path, entry))
+        {
+            throw new ArgumentException($"Key '{entry.Path}' is declared twice.", parameterName);
+        }
+    }
 }

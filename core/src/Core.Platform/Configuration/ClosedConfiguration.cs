@@ -4,7 +4,7 @@ namespace Core.Platform.Configuration;
 public static class ClosedConfiguration
 {
     /// <summary>Reads every source, a later origin overriding an earlier one, and judges every declared key; nothing throws for what an operator can get wrong.</summary>
-    public static ConfigurationLoadResult Load(ConfigurationSchema schema, params IReadOnlyList<IConfigurationSource> sources)
+    public static ConfigurationLoadResult Load(ConfigurationSchema schema, params IEnumerable<IConfigurationSource> sources)
     {
         ArgumentNullException.ThrowIfNull(schema);
         var readings = sources.Select(source => source.Read()).OrderBy(reading => reading.Origin).ToList();
@@ -38,7 +38,7 @@ public static class ClosedConfiguration
             .GroupBy(pair => pair.Key!.Path, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(group => group.Key, group => group.Last().Value, StringComparer.OrdinalIgnoreCase);
 
-    private static ConfigurationProblem? Judge(DeclaredKey declared, Dictionary<string, Writing> written)
+    private static ConfigurationProblem? Judge(DeclaredKey declared, IReadOnlyDictionary<string, Writing> written)
     {
         if (!written.TryGetValue(declared.Path, out var writing))
         {
@@ -50,9 +50,12 @@ public static class ClosedConfiguration
             return Problem(ConfigurationProblemKind.EmptyValue, declared, found: null);
         }
 
-        return declared.Key.Accepts(writing.Value)
-            ? null
-            : Problem(ConfigurationProblemKind.ValueNotAccepted, declared, declared.Key.IsSensitive ? null : writing.Value);
+        if (declared.Key.Accepts(writing.Value))
+        {
+            return null;
+        }
+
+        return Problem(ConfigurationProblemKind.ValueNotAccepted, declared, declared.Key.IsSensitive ? null : writing.Value);
     }
 
     private static ConfigurationProblem Problem(ConfigurationProblemKind kind, string key) =>
@@ -62,7 +65,7 @@ public static class ClosedConfiguration
         new(kind, declared.Path, found, declared.Key.AcceptedValues);
 
     /// <summary>The written value with its origin or, for a key no source wrote, its default; only reached once nothing was refused.</summary>
-    private static List<ResolvedValue> Resolve(ConfigurationSchema schema, Dictionary<string, Writing> written) =>
+    private static List<ResolvedValue> Resolve(ConfigurationSchema schema, IReadOnlyDictionary<string, Writing> written) =>
         [.. schema.Declared.Select(declared => written.TryGetValue(declared.Path, out var writing)
             ? new ResolvedValue(declared, writing.Value!, writing.Origin)
             : new ResolvedValue(declared, declared.Key.DefaultValue!, ConfigurationOrigin.Default))];

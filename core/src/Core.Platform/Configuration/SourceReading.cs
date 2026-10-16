@@ -6,10 +6,6 @@ public sealed record SourceReading(
     IReadOnlyList<KeyValuePair<string, string?>> Entries,
     IReadOnlyList<ConfigurationProblem> Problems)
 {
-    /// <summary>A source read without trouble.</summary>
-    public static SourceReading Of(ConfigurationOrigin origin, IEnumerable<KeyValuePair<string, string?>> entries) =>
-        new(origin, [.. entries], []);
-
     /// <summary>A source that could not be read writes nothing and reports why.</summary>
     public static SourceReading Unreadable(ConfigurationOrigin origin, ConfigurationProblem problem) =>
         new(origin, [], [problem]);

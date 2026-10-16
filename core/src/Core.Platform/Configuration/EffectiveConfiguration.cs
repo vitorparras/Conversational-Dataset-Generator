@@ -4,7 +4,7 @@ namespace Core.Platform.Configuration;
 public sealed class EffectiveConfiguration
 {
     /// <summary>What stands in place of a sensitive value.</summary>
-    public const string Redacted = "[redigido]";
+    public static string Redacted { get; } = "[redigido]";
 
     internal EffectiveConfiguration(IReadOnlyList<ResolvedValue> resolved)
     {

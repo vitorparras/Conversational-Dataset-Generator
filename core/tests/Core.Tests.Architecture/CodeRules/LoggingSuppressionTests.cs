@@ -4,6 +4,7 @@ namespace Core.Tests.Architecture.CodeRules;
 public sealed class LoggingSuppressionTests
 {
     private const string Fixtures = "logging-suppression";
+    private const string SourcesFixtures = "logging-suppression-sources";
 
     [Fact]
     public void ProductionSourcesSuppressTheBannedSymbolOnlyOnGeneratedLogMessages()
@@ -140,6 +141,28 @@ public sealed class LoggingSuppressionTests
         var violation = Assert.Single(LoggingSuppressionRules.CheckSuppressions([fixture]));
 
         Assert.Contains("string literal", violation.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SuppressionInAFileCompiledFromOutsideTheProjectDirectoryIsRefused()
+    {
+        var files = ProjectSources.OfFixture(Path.Combine(SourcesFixtures, "IncludedOutside"), "App");
+
+        var violations = LoggingSuppressionRules.CheckSuppressions(files).ToList();
+
+        Assert.NotEmpty(violations);
+        Assert.All(violations, violation => Assert.EndsWith("Suppressor.cs", violation.File, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void SuppressionInAFileTheProjectRemovesFromCompilationIsNotJudged()
+    {
+        var files = ProjectSources.OfFixture(Path.Combine(SourcesFixtures, "RemovedTemplates"), "App");
+
+        var violations = LoggingSuppressionRules.CheckSuppressions(files);
+
+        Assert.DoesNotContain(files, file => file.FileName == "Suppressor.cs");
+        Assert.Empty(violations);
     }
 
     [Fact]

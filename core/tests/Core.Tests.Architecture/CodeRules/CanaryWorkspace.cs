@@ -1,112 +1,98 @@
 namespace Core.Tests.Architecture.CodeRules;
 
-/// <summary>A throwaway copy of the production sources and the build files above them, so that a build can be run against a changed project.</summary>
+/// <summary>Builds a real project with a canary added from outside the repository tree, leaving every tracked file and the project's own lock file untouched.</summary>
 internal sealed class CanaryWorkspace : IDisposable
 {
-    private const string LoggingPackage = "Microsoft.Extensions.Logging.Abstractions";
     private const string FragmentName = "Fragment.xml.txt";
-    private static readonly string[] RepositoryFiles = [".editorconfig", ".globalconfig", "global.json"];
 
-    private readonly string root = Path.Combine(Path.GetTempPath(), "canary-" + Guid.NewGuid().ToString("N"));
-    private readonly string project;
+    private readonly ScratchDirectory scratch;
+    private readonly string projectPath;
+    private readonly string canaryName = "canary-" + Guid.NewGuid().ToString("N");
+    private string fragment = string.Empty;
 
-    public CanaryWorkspace(string projectName)
+    private CanaryWorkspace(string projectPath, ScratchDirectory scratch)
     {
-        project = projectName;
-        CopyTree(SourceTree.CoreRoot, Path.Combine(root, "core"));
-        CopyFiles(Path.GetDirectoryName(SourceTree.CoreRoot)!, root, RepositoryFiles);
+        this.projectPath = projectPath;
+        this.scratch = scratch;
+        _ = Directory.CreateDirectory(CanaryDirectory);
     }
 
-    private string SourceRoot => Path.Combine(root, "core", "src");
+    private string ProjectDirectory => Path.GetDirectoryName(projectPath)!;
 
-    private string ProjectDirectory => Path.Combine(SourceRoot, project);
+    private string CanaryDirectory => Path.Combine(ProjectDirectory, "obj", canaryName);
 
-    private string ProjectFile => Path.Combine(ProjectDirectory, project + ".csproj");
+    public static CanaryWorkspace OfProject(string projectPath) => new(projectPath, ScratchDirectory.Create());
 
-    /// <summary>Appends the canary to every source file of the project and returns where each route now sits; the copy gains the logging reference if it lacks one, with the unneeded-reference warning silenced for projects that get it from their framework.</summary>
-    public IReadOnlyList<CanarySite> PlantCanaries()
+    /// <summary>A project that exists only as a fixture, built in a temporary tree that inherits the build files of the core.</summary>
+    public static CanaryWorkspace OfFixtureProject(string fixtureDirectory, string projectName)
     {
-        EnsureLoggingReference();
-        var files = Directory.EnumerateFiles(ProjectDirectory, "*.cs", SearchOption.AllDirectories)
-            .Where(path => !IsBuildOutput(path))
-            .Order(StringComparer.Ordinal);
-        return [.. files.Select(Plant)];
+        var scratch = ScratchDirectory.Create();
+        var core = SourceTree.CoreRoot;
+        File.WriteAllText(Path.Combine(scratch.Path, "Directory.Build.props"), ImportOf(core, "Directory.Build.props"));
+        File.WriteAllText(Path.Combine(scratch.Path, "Directory.Packages.props"), ImportOf(core, "Directory.Packages.props"));
+        File.Copy(Path.Combine(core, "nuget.config"), Path.Combine(scratch.Path, "nuget.config"));
+        var projectDirectory = scratch.CopyFixture(fixtureDirectory, Path.Combine("src", projectName));
+        return new CanaryWorkspace(Path.Combine(projectDirectory, projectName + ".csproj"), scratch);
     }
 
-    /// <summary>Applies a fixture: its fragment goes into the project file and its other files land beside the project.</summary>
+    /// <summary>Plants one canary per source the project compiles, beside the project so that the analyzer configs above it apply, and returns where each route sits.</summary>
+    public IReadOnlyList<CanarySite> PlantCanaries() =>
+        [.. ProjectSources.Of(projectPath).Where(file => file.Path.EndsWith(".cs", StringComparison.Ordinal)).Select(Plant)];
+
+    /// <summary>Applies a fixture: its fragment joins the build of the project and its other files land among the canaries.</summary>
     public void Apply(string fixtureDirectory)
     {
-        var fragment = File.ReadAllText(Path.Combine(fixtureDirectory, FragmentName));
-        var text = File.ReadAllText(ProjectFile);
-        File.WriteAllText(ProjectFile, text.Replace("</Project>", fragment + "</Project>", StringComparison.Ordinal));
+        var fragmentPath = Path.Combine(fixtureDirectory, FragmentName);
+        fragment = File.Exists(fragmentPath) ? File.ReadAllText(fragmentPath) : string.Empty;
         foreach (var file in Directory.EnumerateFiles(fixtureDirectory).Where(file => Path.GetFileName(file) != FragmentName))
         {
-            File.Copy(file, Path.Combine(ProjectDirectory, Path.GetFileName(file)), overwrite: true);
+            File.Copy(file, Path.Combine(CanaryDirectory, Path.GetFileName(file)), overwrite: true);
         }
     }
 
-    /// <summary>Adds a project that exists only in the fixtures, its project file stored as <c>.csproj.txt</c> so that no build picks it up.</summary>
-    public void AddProject(string fixtureDirectory)
-    {
-        _ = Directory.CreateDirectory(ProjectDirectory);
-        foreach (var file in Directory.EnumerateFiles(fixtureDirectory))
-        {
-            File.Copy(file, Path.Combine(ProjectDirectory, Path.GetFileName(file).Replace(".csproj.txt", ".csproj", StringComparison.Ordinal)), overwrite: true);
-        }
-    }
-
-    public Task<BuildOutcome> BuildAsync(CancellationToken cancellationToken) => BuildProcess.RunAsync(ProjectFile, cancellationToken);
+    public Task<CommandOutcome> BuildAsync(CancellationToken cancellationToken) =>
+        DotnetCommand.RunAsync(BuildArguments(WriteBuildFiles()), ProjectDirectory, cancellationToken);
 
     public void Dispose()
     {
         try
         {
-            Directory.Delete(root, recursive: true);
+            ScratchDirectory.Remove(CanaryDirectory);
         }
-        catch (IOException)
+        finally
         {
-            // The build that used the copy has finished; a leftover temporary directory does no harm.
+            scratch.Dispose();
         }
     }
 
-    private static bool IsBuildOutput(string path) =>
-        path.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).Any(segment => segment is "bin" or "obj");
+    private static string ImportOf(string directory, string name) =>
+        $"<Project><Import Project=\"{directory}{Path.DirectorySeparatorChar}{name}\" /></Project>";
 
-    private static void CopyFiles(string source, string target, IEnumerable<string> names)
+    private string WriteBuildFiles()
     {
-        _ = Directory.CreateDirectory(target);
-        foreach (var name in names.Where(name => File.Exists(Path.Combine(source, name))))
-        {
-            File.Copy(Path.Combine(source, name), Path.Combine(target, name), overwrite: true);
-        }
+        var fragmentPath = Path.Combine(scratch.Path, CanaryTargets.FragmentFileName);
+        var targetsPath = Path.Combine(scratch.Path, "canary.targets");
+        var canaryFiles = Directory.EnumerateFiles(CanaryDirectory, "*.cs", SearchOption.AllDirectories);
+        File.WriteAllText(fragmentPath, $"<Project>{fragment}</Project>");
+        File.WriteAllText(targetsPath, CanaryTargets.Text(projectPath, canaryFiles, scratch.Path, CanaryDirectory));
+        return targetsPath;
     }
 
-    private static void CopyTree(string source, string target)
-    {
-        CopyFiles(source, target, Directory.EnumerateFiles(source).Select(Path.GetFileName).OfType<string>());
-        foreach (var directory in Directory.EnumerateDirectories(source).Where(IsCopied))
-        {
-            CopyTree(directory, Path.Combine(target, Path.GetFileName(directory)));
-        }
-    }
+    private List<string> BuildArguments(string targetsPath) =>
+    [
+        "build", projectPath, "-nologo", "-nodeReuse:false",
+        "-p:UseSharedCompilation=false",
+        "-p:RestoreLockedMode=false",
+        $"-p:CustomAfterMicrosoftCommonTargets={targetsPath}",
+        "--artifacts-path", Path.Combine(scratch.Path, "artifacts"),
+    ];
 
-    private static bool IsCopied(string directory) => Path.GetFileName(directory) is not ("bin" or "obj" or "tests");
-
-    private void EnsureLoggingReference()
+    private CanarySite Plant(SourceFile source, int ordinal)
     {
-        var text = File.ReadAllText(ProjectFile);
-        if (!text.Contains(LoggingPackage, StringComparison.Ordinal))
-        {
-            var reference = $"<PropertyGroup><NoWarn>$(NoWarn);NU1510</NoWarn></PropertyGroup><ItemGroup><PackageReference Include=\"{LoggingPackage}\" /></ItemGroup>";
-            File.WriteAllText(ProjectFile, text.Replace("</Project>", reference + "</Project>", StringComparison.Ordinal));
-        }
-    }
-
-    private CanarySite Plant(string path, int ordinal)
-    {
-        var relative = Path.GetRelativePath(SourceRoot, path).Replace('\\', '/');
-        var site = LoggingCanary.AppendTo(relative, File.ReadAllText(path), ordinal);
-        File.WriteAllText(path, site.Text);
-        return site;
+        var directory = Path.Combine(CanaryDirectory, ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        _ = Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(directory, source.FileName), LoggingCanary.Text(ordinal));
+        var shown = $"{canaryName}/{ordinal}/{source.FileName}";
+        return new CanarySite(Path.GetRelativePath(SourceTree.CoreRoot, source.Path).Replace(Path.DirectorySeparatorChar, '/'), shown, LoggingCanary.RouteLines());
     }
 }

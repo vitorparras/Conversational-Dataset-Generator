@@ -1,0 +1,3 @@
+  <PropertyGroup Condition="Exists('$(MSBuildProjectFullPath)')">
+    <NoWarn>$(NoWarn);RS0030</NoWarn>
+  </PropertyGroup>

@@ -1,6 +1,6 @@
 namespace Core.Tests.Architecture.CodeRules;
 
-/// <summary>A class that calls every banned logging route, appended to a source file so that the build must refuse it there.</summary>
+/// <summary>A class that calls every banned logging route, written as a source file so that the build must refuse it.</summary>
 internal static class LoggingCanary
 {
     private static readonly (string Route, string Marker)[] Calls =
@@ -13,17 +13,14 @@ internal static class LoggingCanary
 
     public static IReadOnlyList<string> Routes => [.. Calls.Select(call => call.Route)];
 
-    /// <summary>The source with the canary after it, and the line each route sits on.</summary>
-    public static CanarySite AppendTo(string relativePath, string source, int ordinal)
+    /// <summary>The line of each route inside the text, in the order of <see cref="Routes"/>.</summary>
+    public static IReadOnlyList<int> RouteLines()
     {
-        var text = $"{source}{(source.EndsWith('\n') ? string.Empty : "\n")}\n{ClassText(ordinal)}";
-        var lines = text.Split('\n');
-        var start = source.Count(character => character == '\n');
-        var routeLines = Calls.Select(call => Array.FindIndex(lines, start, line => line.Contains(call.Marker, StringComparison.Ordinal)) + 1);
-        return new CanarySite(relativePath, text, [.. routeLines]);
+        var lines = Text(0).Split('\n');
+        return [.. Calls.Select(call => Array.FindIndex(lines, line => line.Contains(call.Marker, StringComparison.Ordinal)) + 1)];
     }
 
-    private static string ClassText(int ordinal) => $$"""
+    public static string Text(int ordinal) => $$"""
         internal static class RoutesCanary{{ordinal}}
         {
             public static void Write(Microsoft.Extensions.Logging.ILogger logger, string text)

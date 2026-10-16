@@ -4,17 +4,20 @@ namespace Core.Tests.Architecture.CodeRules;
 internal static class SourceTree
 {
     private static readonly Lazy<string> CoreDirectory = new(FindCoreDirectory);
+    private static readonly Lazy<IReadOnlyList<SourceFile>> Production = new(ReadProductionFiles);
     private static readonly string[] AnalyzerConfigNames = [".editorconfig", ".globalconfig"];
 
     public static string CoreRoot => CoreDirectory.Value;
 
     public static string FixturesDirectory => Path.Combine(CoreDirectory.Value, "tests", "fixtures", "code-rules");
 
-    public static IReadOnlyList<SourceFile> ProductionFiles() =>
-        [.. EnumerateSources(Path.Combine(CoreDirectory.Value, "src"), "*.cs").Select(SourceFile.Read)];
+    public static IReadOnlyList<SourceFile> ProductionFiles() => Production.Value;
 
     public static IReadOnlyList<ProjectFile> ProductionProjects() =>
         [.. EnumerateSources(Path.Combine(CoreDirectory.Value, "src"), "*.csproj").Select(ProjectFile.Read)];
+
+    public static ProjectFile ProductionProject(string moduleName) =>
+        ProductionProjects().Single(project => project.ModuleName == moduleName);
 
     /// <summary>Every analyzer config the production projects read: under the core, outside the tests, plus the repository root.</summary>
     public static IReadOnlyList<AnalyzerConfig> ProductionAnalyzerConfigs() =>
@@ -39,6 +42,9 @@ internal static class SourceTree
 
     public static IReadOnlyList<SourceFile> FixtureFiles(string relativeDirectory) =>
         [.. EnumerateSources(Path.Combine(FixturesDirectory, relativeDirectory), "*.cs").Select(SourceFile.Read)];
+
+    private static IReadOnlyList<SourceFile> ReadProductionFiles() =>
+        [.. ProductionProjects().SelectMany(project => ProjectSources.Of(project.Path)).DistinctBy(file => file.Path)];
 
     private static IEnumerable<string> EnumerateSources(string directory, string pattern) =>
         Directory.EnumerateFiles(directory, pattern, SearchOption.AllDirectories)

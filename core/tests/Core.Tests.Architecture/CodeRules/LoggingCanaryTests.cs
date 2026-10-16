@@ -13,7 +13,7 @@ public sealed class LoggingCanaryTests
     public async Task EveryBannedRouteFailsTheBuildOfEveryFileOfAProductionProject(string projectName)
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        using var workspace = new CanaryWorkspace(projectName);
+        using var workspace = CanaryWorkspace.OfProject(SourceTree.ProductionProject(projectName).Path);
         var sites = workspace.PlantCanaries();
 
         var build = await workspace.BuildAsync(cancellationToken);
@@ -25,6 +25,7 @@ public sealed class LoggingCanaryTests
 
     [Theory]
     [InlineData("NoWarn")]
+    [InlineData("ConditionalNoWarn")]
     [InlineData("RemovedBannedSymbolsByName")]
     [InlineData("RemovedAnalyzerPackage")]
     [InlineData("RemovedEveryAdditionalFile")]
@@ -33,7 +34,7 @@ public sealed class LoggingCanaryTests
     public async Task SilencingTheAnalyzerLetsTheCanaryThroughAndIsRefused(string fixture)
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        using var workspace = new CanaryWorkspace(SilencedProject);
+        using var workspace = CanaryWorkspace.OfProject(SourceTree.ProductionProject(SilencedProject).Path);
         workspace.Apply(Path.Combine(SourceTree.FixturesDirectory, "logging-canary", fixture));
         var sites = workspace.PlantCanaries();
 
@@ -47,8 +48,8 @@ public sealed class LoggingCanaryTests
     public async Task ProjectThatDoesNotReferenceLoggingStillRefusesEveryBannedRoute()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        using var workspace = new CanaryWorkspace("Core.Plain");
-        workspace.AddProject(Path.Combine(SourceTree.FixturesDirectory, "logging-canary-projects", "Core.Plain"));
+        var fixture = Path.Combine(SourceTree.FixturesDirectory, "logging-canary-projects", "Core.Plain");
+        using var workspace = CanaryWorkspace.OfFixtureProject(fixture, "Core.Plain");
         var sites = workspace.PlantCanaries();
 
         var build = await workspace.BuildAsync(cancellationToken);

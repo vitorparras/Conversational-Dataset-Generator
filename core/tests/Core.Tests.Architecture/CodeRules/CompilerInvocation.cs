@@ -16,10 +16,13 @@ internal sealed class CompilerInvocation
 
     public required IReadOnlyList<SourceFile> SourceFiles { get; init; }
 
-    /// <summary>Sources the build produced for itself: what generators emitted and what lies under the build's own output folders.</summary>
+    /// <summary>Sources the build produced for itself: what its generators emit when run on the compilation, and what lies under the output folders.</summary>
     public required IReadOnlyList<SourceFile> GeneratedFiles { get; init; }
 
     public required IReadOnlyList<string> Analyzers { get; init; }
+
+    /// <summary>Everything that kept an analyzer or a generator from being inspected; any of it fails the rules closed.</summary>
+    public required IReadOnlyList<string> AnalyzerFailures { get; init; }
 
     /// <summary>Every <c>DiagnosticSuppressor</c> among the analyzers, with the ids it can suppress.</summary>
     public required IReadOnlyList<AnalyzerSuppressor> Suppressors { get; init; }
@@ -60,11 +63,11 @@ internal sealed class CompilerInvocation
         var run = new MsBuildRun(projectPath, scratch.Path, packages);
         var description = $"Reading the compiler invocation of {Path.GetFileName(projectPath)}";
         _ = run.Execute("-t:Restore").OutputOfSuccess(description);
-        var output = run.Execute("-t:Build", "-p:ProvideCommandLineArgs=true", "-getItem:CscCommandLineArgs", "-p:EmitCompilerGeneratedFiles=true", $"-p:CompilerGeneratedFilesOutputPath={run.GeneratedFiles}")
+        var output = run.Execute("-t:Build", "-p:ProvideCommandLineArgs=true", "-getItem:CscCommandLineArgs")
             .OutputOfSuccess(description);
         using var document = JsonDocument.Parse(output[output.IndexOf('{', StringComparison.Ordinal)..]);
         var arguments = document.RootElement.GetProperty("Items").GetProperty("CscCommandLineArgs").EnumerateArray()
             .Select(item => item.GetProperty("Identity").GetString()!);
-        return CompilerArguments.Read(new CompilerBuildOutput(projectPath, [.. arguments], run.Artifacts, run.GeneratedFiles, [ToolLocations.DotnetRoot, packages ?? ToolLocations.GlobalPackages]));
+        return CompilerArguments.Read(new CompilerBuildOutput(projectPath, [.. arguments], run.Artifacts, [ToolLocations.DotnetRoot, packages ?? ToolLocations.GlobalPackages]));
     }
 }

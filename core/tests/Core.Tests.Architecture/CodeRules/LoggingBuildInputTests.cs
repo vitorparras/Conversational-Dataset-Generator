@@ -60,7 +60,7 @@ public sealed class LoggingBuildInputTests
     [Fact]
     public void SuppressorIsRefusedEvenWhenABuildTargetMovesTheTargetingPackRoot()
     {
-        var invocation = Invocation("AnalyzerRootMoved");
+        var invocation = Invocation("RootMoved");
 
         var violations = LoggingInvocationRules.CheckAnalyzers(invocation).ToList();
 
@@ -70,7 +70,7 @@ public sealed class LoggingBuildInputTests
     [Fact]
     public void SuppressorFromAPackageInTheTrustedCacheIsRefusedForWhatItDoes()
     {
-        var invocation = Invocation("SuppressorFromLocalFeed");
+        var invocation = Invocation("LocalFeed");
 
         var violations = LoggingInvocationRules.CheckAnalyzers(invocation).ToList();
 
@@ -81,9 +81,9 @@ public sealed class LoggingBuildInputTests
     [Fact]
     public void GeneratorThatEmitsAnAssemblyLevelSuppressionIsRefused()
     {
-        var invocation = Invocation("GeneratorSuppressingAssembly");
+        var invocation = Invocation("GenAssembly");
 
-        var violations = LoggingSuppressionRules.CheckGenerated(invocation.GeneratedFiles).ToList();
+        var violations = LoggingSuppressionRules.Check(invocation.SourceFiles, invocation.GeneratedFiles).ToList();
 
         Assert.Contains(violations, violation => violation.Message.Contains("generated code suppresses", StringComparison.Ordinal));
     }
@@ -93,9 +93,49 @@ public sealed class LoggingBuildInputTests
     {
         var invocation = Invocation("SourceCopiedToObj");
 
-        var violations = LoggingSuppressionRules.CheckGenerated(invocation.GeneratedFiles).ToList();
+        var violations = LoggingSuppressionRules.Check(invocation.SourceFiles, invocation.GeneratedFiles).ToList();
 
         Assert.Contains(violations, violation => violation.File.EndsWith("Reporter.cs", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void AliasDeclaredInTheProjectFileReachesTheSourcesAndIsRefused()
+    {
+        var invocation = Invocation("AliasProj");
+
+        var violations = LoggingSuppressionRules.Check(invocation.SourceFiles, invocation.GeneratedFiles).ToList();
+
+        Assert.Contains(violations, violation => violation.File.EndsWith("Caller.cs", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void AliasFromACommonSourceBindsTheAttributeInACopiedFile()
+    {
+        var invocation = Invocation("AliasCopy");
+
+        var violations = LoggingSuppressionRules.Check(invocation.SourceFiles, invocation.GeneratedFiles).ToList();
+
+        Assert.Contains(violations, violation => violation.File.EndsWith("Hidden.cs", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GeneratorOutputIsJudgedEvenWhenTheBuildScrubsItsOwnGeneratedFolder()
+    {
+        var invocation = Invocation("GenScrub");
+
+        var violations = LoggingSuppressionRules.Check(invocation.SourceFiles, invocation.GeneratedFiles).ToList();
+
+        Assert.Contains(violations, violation => violation.Message.Contains("generated code suppresses", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void AnalyzerThatCannotBeLoadedFailsTheRulesClosed()
+    {
+        var invocation = Invocation("OwnAnalyzer");
+
+        var violations = LoggingInvocationRules.CheckAnalyzers(invocation);
+
+        Assert.Contains(violations, violation => violation.Message.Contains("could not be loaded", StringComparison.Ordinal));
     }
 
     private static CompilerInvocation Invocation(string fixture) =>

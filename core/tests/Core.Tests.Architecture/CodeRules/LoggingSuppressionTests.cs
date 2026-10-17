@@ -9,7 +9,9 @@ public sealed class LoggingSuppressionTests
     [Fact]
     public void ProductionSourcesSuppressTheBannedSymbolOnlyOnGeneratedLogMessages()
     {
-        var violations = LoggingSuppressionRules.CheckSuppressions(SourceTree.ProductionFiles());
+        var violations = SourceTree.ProductionProjects()
+            .Select(project => CompilerInvocation.Of(project.Path))
+            .SelectMany(invocation => LoggingSuppressionRules.Check(invocation.SourceFiles, invocation.GeneratedFiles));
 
         Assert.Empty(violations);
     }

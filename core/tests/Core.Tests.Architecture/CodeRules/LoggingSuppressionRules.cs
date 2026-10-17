@@ -13,27 +13,27 @@ internal static class LoggingSuppressionRules
     private const string JustificationArgument = "Justification";
 
     /// <summary>Every attribute that binds to a suppression type, however it is aliased, and every declaration of the class it sits on.</summary>
-    public static IEnumerable<Violation> CheckSuppressions(IReadOnlyList<SourceFile> files)
-    {
-        var compilation = SourceCompilation.Of(files);
-        var found = files
-            .SelectMany(file => Suppression.FindIn(file, compilation.GetSemanticModel(file.Tree)))
-            .Where(suppression => suppression.CheckId is null || suppression.CheckId.StartsWith(Diagnostic, StringComparison.Ordinal))
-            .ToList();
-        var suppressingClasses = found.Select(suppression => suppression.AttributedClass).OfType<INamedTypeSymbol>().ToHashSet(SymbolEqualityComparer.Default);
-        return found.SelectMany(JudgeAttribute)
-            .Concat(files.SelectMany(file => JudgeDeclarations(file, compilation.GetSemanticModel(file.Tree), suppressingClasses)));
-    }
+    public static IEnumerable<Violation> CheckSuppressions(IReadOnlyList<SourceFile> files) => Check(files, []);
 
-    /// <summary>Sources the build wrote for itself may not suppress the diagnostic at all, by attribute or by pragma; the generated log messages do neither.</summary>
-    public static IEnumerable<Violation> CheckGenerated(IReadOnlyList<SourceFile> files)
+    /// <summary>
+    /// The sources written by hand and the sources the build wrote for itself, bound in one compilation as the compiler does: a suppression in the first
+    /// is judged by the class rules, one in the second is refused outright.
+    /// </summary>
+    public static IEnumerable<Violation> Check(IReadOnlyList<SourceFile> written, IReadOnlyList<SourceFile> generated)
     {
-        var compilation = SourceCompilation.Of(files);
-        var attributes = files
+        var all = written.Concat(generated).ToList();
+        var compilation = SourceCompilation.Of(all);
+        var handWritten = written.ToHashSet();
+        var found = all
             .SelectMany(file => Suppression.FindIn(file, compilation.GetSemanticModel(file.Tree)))
             .Where(suppression => suppression.CheckId is null || suppression.CheckId.StartsWith(Diagnostic, StringComparison.OrdinalIgnoreCase))
-            .Select(suppression => new Violation(suppression.File.Path, suppression.Line, $"generated code suppresses {Diagnostic}"));
-        return attributes.Concat(files.SelectMany(CheckPragmas));
+            .ToList();
+        var ofWritten = found.Where(suppression => handWritten.Contains(suppression.File)).ToList();
+        var suppressingClasses = ofWritten.Select(suppression => suppression.AttributedClass).OfType<INamedTypeSymbol>().ToHashSet(SymbolEqualityComparer.Default);
+        return ofWritten.SelectMany(JudgeAttribute)
+            .Concat(found.Except(ofWritten).Select(suppression => new Violation(suppression.File.Path, suppression.Line, $"generated code suppresses {Diagnostic}")))
+            .Concat(written.SelectMany(file => JudgeDeclarations(file, compilation.GetSemanticModel(file.Tree), suppressingClasses)))
+            .Concat(generated.SelectMany(CheckPragmas));
     }
 
     public static IEnumerable<Violation> CheckPragmas(SourceFile file) =>

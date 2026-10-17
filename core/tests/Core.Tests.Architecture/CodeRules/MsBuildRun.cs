@@ -16,8 +16,6 @@ internal sealed class MsBuildRun
 
     public string Artifacts => Path.Combine(scratch, "artifacts");
 
-    public string GeneratedFiles => Path.Combine(scratch, "generated");
-
     public CommandOutcome Execute(params string[] extra) =>
         DotnetCommand.RunAsync(
             [

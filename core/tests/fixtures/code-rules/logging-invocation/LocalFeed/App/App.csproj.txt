@@ -3,6 +3,6 @@
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Quiet.Suppressor" Version="1.0.0" PrivateAssets="all" />
+    <PackageReference Include="Sup" Version="1.0.0" PrivateAssets="all" />
   </ItemGroup>
 </Project>

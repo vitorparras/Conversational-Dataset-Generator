@@ -13,7 +13,7 @@ internal static class LoggingInvocationRules
             .Concat(CheckAnalyzers(invocation))
             .Concat(CheckAdditionalFiles(invocation))
             .Concat(CheckSeverityOnEverySource(invocation))
-            .Concat(LoggingSuppressionRules.CheckGenerated(invocation.GeneratedFiles));
+            .Concat(LoggingSuppressionRules.Check(invocation.SourceFiles, invocation.GeneratedFiles));
 
     /// <summary>The diagnostic is not named by a <c>/nowarn</c> or a <c>/warnaserror-:</c>, warnings are errors, and analyzers run.</summary>
     public static IEnumerable<Violation> CheckDiagnosticOptions(CompilerInvocation invocation)
@@ -40,6 +40,11 @@ internal static class LoggingInvocationRules
         if (!invocation.Analyzers.Any(path => path.Contains(AnalyzerPackage, StringComparison.Ordinal)))
         {
             yield return At(invocation, $"the {AnalyzerPackage} analyzer is not given to the compiler");
+        }
+
+        foreach (var failure in invocation.AnalyzerFailures)
+        {
+            yield return At(invocation, failure);
         }
 
         foreach (var suppressor in invocation.Suppressors.Where(suppressor => suppressor.Suppresses(LoggingSuppressionRules.Diagnostic)))

@@ -7,5 +7,5 @@ public interface IStartupCheck
     string Name { get; }
 
     /// <summary>Looks once and reports; a missing item is a result, not an exception.</summary>
-    Task<CheckResult> Run(CancellationToken cancellationToken);
+    Task<CheckResult> RunAsync(CancellationToken cancellationToken);
 }

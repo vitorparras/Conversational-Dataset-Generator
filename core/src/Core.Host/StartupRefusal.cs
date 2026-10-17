@@ -8,7 +8,7 @@ internal static class StartupRefusal
     public static ExitCode Report(TextWriter output, StartupReport report)
     {
         output.WriteLine("O processo não iniciou: uma conferência de inicialização falhou.");
-        foreach (var failure in report.Results.Where(result => result.Status == CheckStatus.Failed))
+        if (report.FirstFailure is { } failure)
         {
             output.WriteLine($"  - {failure.Name}: {failure.Message} (origem esperada: {failure.ExpectedSource})");
         }

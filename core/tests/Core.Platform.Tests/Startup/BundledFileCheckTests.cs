@@ -13,7 +13,7 @@ public sealed class BundledFileCheckTests
         _ = directory.WriteFile("ZQX-MARKER-7731.bin", "content");
         var check = new BundledFileCheck("Sample:File", "ZQX-MARKER-7731.bin", directory.Path);
 
-        var result = await check.Run(TestContext.Current.CancellationToken);
+        var result = await check.RunAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(CheckStatus.Passed, result.Status);
         Assert.Equal("Sample:File", result.Name);
@@ -25,7 +25,7 @@ public sealed class BundledFileCheckTests
         using var directory = new TemporaryDirectory();
         var check = new BundledFileCheck("Sample:File", "ZQX-MARKER-7731.bin", directory.Path);
 
-        var result = await check.Run(TestContext.Current.CancellationToken);
+        var result = await check.RunAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(CheckStatus.Failed, result.Status);
         Assert.Equal("Sample:File", result.Name);
@@ -40,7 +40,7 @@ public sealed class BundledFileCheckTests
         _ = Directory.CreateDirectory(Path.Combine(directory.Path, "ZQX-MARKER-7731.bin"));
         var check = new BundledFileCheck("Sample:File", "ZQX-MARKER-7731.bin", directory.Path);
 
-        var result = await check.Run(TestContext.Current.CancellationToken);
+        var result = await check.RunAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(CheckStatus.Failed, result.Status);
     }

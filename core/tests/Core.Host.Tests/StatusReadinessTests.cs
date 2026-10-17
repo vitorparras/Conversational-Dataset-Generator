@@ -6,7 +6,7 @@ namespace Core.Host.Tests;
 public sealed class StatusReadinessTests
 {
     [Fact]
-    public async Task FailedCheckLeavesTheProcessAliveButNotReadyAndNamesTheCheck()
+    public async Task ReportWithAFailedCheckIsAnsweredAsAliveNotReadyAndNamesTheCheck()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         var report = new StartupReport([CheckResult.Failed("Sample:File", "recurso ausente", "ZQX-MARKER-7731.bin")]);

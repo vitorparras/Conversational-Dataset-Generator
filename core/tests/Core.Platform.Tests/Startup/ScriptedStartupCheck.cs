@@ -17,7 +17,7 @@ internal sealed class ScriptedStartupCheck : IStartupCheck
 
     public string Name { get; }
 
-    public Task<CheckResult> Run(CancellationToken cancellationToken)
+    public Task<CheckResult> RunAsync(CancellationToken cancellationToken)
     {
         ran.Add(Name);
         return Task.FromResult(new CheckResult(Name, status, "scripted", "scripted source"));

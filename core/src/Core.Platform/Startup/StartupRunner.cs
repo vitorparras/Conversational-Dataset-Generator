@@ -17,7 +17,7 @@ public sealed class StartupRunner
         List<CheckResult> results = [];
         foreach (var check in checks)
         {
-            var result = await check.Run(cancellationToken).ConfigureAwait(false);
+            var result = await check.RunAsync(cancellationToken).ConfigureAwait(false);
             results.Add(result);
             if (result.Status == CheckStatus.Failed)
             {

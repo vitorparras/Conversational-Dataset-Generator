@@ -21,11 +21,13 @@ public sealed class BundledFileCheck : IStartupCheck
     public string Name { get; }
 
     /// <inheritdoc />
-    public Task<CheckResult> Run(CancellationToken cancellationToken) =>
+    public Task<CheckResult> RunAsync(CancellationToken cancellationToken) =>
         Task.FromResult(File.Exists(Path.Combine(baseDirectory, configuredPath)) ? Found() : Missing());
 
     private CheckResult Found() => CheckResult.Passed(Name, "recurso presente", configuredPath);
 
     private CheckResult Missing() => CheckResult.Failed(
-        Name, $"recurso ausente: o arquivo declarado em '{Name}' não existe", configuredPath);
+        Name,
+        $"recurso ausente: o arquivo declarado em '{Name}' não existe (caminho relativo à pasta do executável)",
+        configuredPath);
 }

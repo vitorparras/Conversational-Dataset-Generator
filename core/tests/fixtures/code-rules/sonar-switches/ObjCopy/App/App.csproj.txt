@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+  <Target Name="CopyHiddenSource" BeforeTargets="CoreCompile">
+    <Copy SourceFiles="../Shared/Reporter.cs" DestinationFolder="$(IntermediateOutputPath)" />
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)Reporter.cs" />
+    </ItemGroup>
+  </Target>
+</Project>

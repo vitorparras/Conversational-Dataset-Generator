@@ -1,17 +1,21 @@
 namespace Core.Tests.Architecture.CodeRules;
 
-/// <summary>No analyzer is silenced in production, in code or on the compiler command line; the banned-symbol note of a generated log message class is judged elsewhere.</summary>
+/// <summary>No analyzer is silenced in production, in code, in what the build generates or on the compiler command line; the banned-symbol note of a log message class is judged elsewhere.</summary>
 public sealed class ProductionSuppressionTests
 {
     private const string Fixtures = "production-suppression";
+    private const string Switches = "sonar-switches";
 
     public static TheoryData<string> ProductionProjectNames() =>
         [.. SourceTree.ProductionProjects().Select(project => project.ModuleName)];
 
-    [Fact]
-    public void ProductionSourcesSilenceNothingByPragmaOrAttributeBesidesTheGeneratedLogMessages()
+    [Theory]
+    [MemberData(nameof(ProductionProjectNames))]
+    public void ProductionProjectSilencesNothingByPragmaOrAttributeInItsSourcesOrGeneratedFiles(string projectName)
     {
-        var violations = ProductionSuppressionRules.CheckSources(SourceTree.ProductionFiles());
+        var invocation = CompilerInvocation.Of(SourceTree.ProductionProject(projectName).Path);
+
+        var violations = ProductionSuppressionRules.CheckSources([.. invocation.SourceFiles, .. invocation.GeneratedFiles]);
 
         Assert.Empty(violations);
     }
@@ -25,6 +29,16 @@ public sealed class ProductionSuppressionTests
         var violations = ProductionSuppressionRules.CheckOptions(invocation);
 
         Assert.Empty(violations);
+    }
+
+    [Theory]
+    [MemberData(nameof(ProductionProjectNames))]
+    public void ProductionProjectProducesOnlyKnownGeneratedFilesAndCarriesOnlySdkSuppressors(string projectName)
+    {
+        var invocation = CompilerInvocation.Of(SourceTree.ProductionProject(projectName).Path);
+
+        Assert.Empty(BuildOutputRules.CheckGeneratedFiles(invocation));
+        Assert.Empty(BuildOutputRules.CheckSuppressors(invocation));
     }
 
     [Fact]
@@ -50,11 +64,39 @@ public sealed class ProductionSuppressionTests
     [Fact]
     public void AnalyzerSilencedOnTheCommandLineIsRefused()
     {
-        var invocation = CompilerInvocation.OfFixture(Path.Combine("sonar-switches", "Options"), "App");
+        var invocation = CompilerInvocation.OfFixture(Path.Combine(Switches, "Options"), "App");
 
         var messages = ProductionSuppressionRules.CheckOptions(invocation).Select(violation => violation.Message).ToList();
 
         Assert.Contains(messages, message => message.StartsWith("S1144 ", StringComparison.Ordinal));
         Assert.Contains(messages, message => message.StartsWith("S1227 ", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void SuppressorOfASonarRuleFromAPackageIsRefused()
+    {
+        var invocation = CompilerInvocation.OfFixture(Path.Combine(Switches, "Suppressor"), "App");
+
+        var violations = BuildOutputRules.CheckSuppressors(invocation).ToList();
+
+        Assert.Contains(violations, violation => violation.Message.Contains("S3358", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void SourceCopiedIntoTheBuildOutputWithAPragmaIsRefusedByNameAndByContent()
+    {
+        var invocation = CompilerInvocation.OfFixture(Path.Combine(Switches, "ObjCopy"), "App");
+
+        Assert.NotEmpty(BuildOutputRules.CheckGeneratedFiles(invocation));
+        Assert.NotEmpty(ProductionSuppressionRules.CheckSources(invocation.GeneratedFiles));
+    }
+
+    [Fact]
+    public void GeneratorThatEmitsASuppressionOfASonarRuleIsRefusedByNameAndByContent()
+    {
+        var invocation = CompilerInvocation.OfFixture(Path.Combine(Switches, "GenSuppress"), "App");
+
+        Assert.NotEmpty(BuildOutputRules.CheckGeneratedFiles(invocation));
+        Assert.NotEmpty(ProductionSuppressionRules.CheckSources(invocation.GeneratedFiles));
     }
 }

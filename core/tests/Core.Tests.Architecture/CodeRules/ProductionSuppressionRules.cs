@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Core.Tests.Architecture.CodeRules;
 
-/// <summary>Production code silences no analyzer by pragma, suppression attribute or compiler option, leaving the banned-symbol note to <see cref="LoggingSuppressionRules"/>.</summary>
+/// <summary>Production code and the files its build generates silence no analyzer by pragma or attribute, and the command line by no option, apart from the banned-symbol note.</summary>
 internal static partial class ProductionSuppressionRules
 {
     public static IEnumerable<Violation> CheckSources(IReadOnlyList<SourceFile> files) =>

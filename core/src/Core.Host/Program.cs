@@ -1,3 +1,4 @@
 using Core.Host;
 
-return (int)CompositionRoot.Build(args).Run();
+var launch = await CompositionRoot.BuildAsync(args);
+return (int)launch.Run();

@@ -67,10 +67,10 @@ dotnet test core/Core.slnx
 dotnet run --project core/src/Core.Host -- --Host:Urls=http://127.0.0.1:5080
 ```
 
-Com o núcleo de pé, `http://127.0.0.1:5080/status` responde `{"alive":true}`. O teste de
-arquitetura em `core/tests/Core.Tests.Architecture` impõe as regras de código a cada construção;
-as fixtures que ele reprova de propósito ficam em `core/tests/fixtures/code-rules`, fora de
-qualquer projeto.
+Com o núcleo de pé, `http://127.0.0.1:5080/status` responde `alive`, `ready` e `checks[]`, com o
+resultado de cada conferência de inicialização. O teste de arquitetura em
+`core/tests/Core.Tests.Architecture` impõe as regras de código a cada construção; as fixtures que
+ele reprova de propósito ficam em `core/tests/fixtures/code-rules`, fora de qualquer projeto.
 
 ## Serviço de linguagem
 

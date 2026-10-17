@@ -1,5 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Compliance.Redaction" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" />
+    <PackageReference Include="Microsoft.Extensions.Telemetry" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="Core.Platform.Tests" />
   </ItemGroup>
 </Project>

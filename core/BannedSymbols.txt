@@ -1,0 +1,4 @@
+T:Microsoft.Extensions.Logging.LoggerExtensions;Log through a generated LoggerMessage method, never through a message string
+T:Microsoft.Extensions.Logging.LoggerMessage;Log through a generated LoggerMessage method; a hand-built template or scope takes any text
+M:Microsoft.Extensions.Logging.ILogger.Log``1(Microsoft.Extensions.Logging.LogLevel,Microsoft.Extensions.Logging.EventId,``0,System.Exception,System.Func{``0,System.Exception,System.String});Log through a generated LoggerMessage method; only its generated body may call ILogger.Log
+M:Microsoft.Extensions.Logging.ILogger.BeginScope``1(``0);A scope takes any text; carry the item through the generated message's properties instead

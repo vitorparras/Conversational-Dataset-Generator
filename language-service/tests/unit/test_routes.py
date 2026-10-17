@@ -1,16 +1,21 @@
 """The routes answer the contract over the recognizer they were given; nothing else is served."""
 
+import logging
 from http import HTTPStatus
 
 import pytest
 from fastapi.testclient import TestClient
 
 from language_service.contract import AnalyzeRequest
+from language_service.logging_ import RequestLog
 from language_service.routes import Routes
 from support.recognizers import OCCURRENCE, FixedRecognizer
 from support.synthetic import ANALYZE_BODY, SECRET_HEADER
 
-ROUTES = Routes(FixedRecognizer(found=(OCCURRENCE,), model_version="m1"))
+ROUTES = Routes(
+    FixedRecognizer(found=(OCCURRENCE,), model_version="m1"),
+    RequestLog(logging.getLogger("test_routes")),
+)
 
 
 def test_health_answers_ok(client: TestClient) -> None:

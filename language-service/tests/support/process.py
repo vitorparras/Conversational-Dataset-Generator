@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+import os
 import socket
 import subprocess
 import sys
@@ -10,6 +12,7 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from http import HTTPStatus
+from pathlib import Path
 from typing import Final
 
 from support.synthetic import SECRET, SECRET_HEADER
@@ -30,6 +33,27 @@ class Exit:
     seconds: float
 
 
+@dataclass(frozen=True)
+class Place:
+    """Where a process works and where it would put temporary files, both chosen by the test."""
+
+    work: Path
+    temp: Path
+
+    def environment(self) -> dict[str, str]:
+        temp = str(self.temp)
+        return {**os.environ, "TMPDIR": temp, "TEMP": temp, "TMP": temp}
+
+
+@dataclass(frozen=True)
+class Output:
+    """Everything a finished process wrote to its two standard streams."""
+
+    code: int | None
+    stdout: bytes
+    stderr: bytes
+
+
 def free_port() -> int:
     """A port the system hands out as free right now."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
@@ -42,13 +66,15 @@ def command(*arguments: str) -> list[str]:
     return [sys.executable, "-X", "utf8", "-m", MODULE, *arguments]
 
 
-def start(port: int) -> subprocess.Popen[bytes]:
+def start(port: int, place: Place | None = None) -> subprocess.Popen[bytes]:
     """Starts the service with its standard input piped and the secret already written on it."""
     process = subprocess.Popen(
         command("--port", str(port)),
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        cwd=place.work if place else None,
+        env=place.environment() if place else None,
     )
     assert process.stdin is not None
     process.stdin.write(SECRET + b"\n")
@@ -89,6 +115,27 @@ def close_stdin_and_wait(process: subprocess.Popen[bytes]) -> Exit:
         process.kill()
         _, stderr = process.communicate()
     return Exit(process.returncode, stderr.decode("utf-8"), time.monotonic() - started)
+
+
+def post_analyze(port: int, body: dict[str, str]) -> int:
+    """Sends ``body`` to ``/analyze`` with the secret and returns the status of the answer."""
+    request = urllib.request.Request(
+        f"http://{LOOPBACK}:{port}/analyze",
+        data=json.dumps(body).encode("utf-8"),
+        headers={**SECRET_HEADER, "content-type": "application/json"},
+    )
+    with urllib.request.urlopen(request, timeout=STOP_TIMEOUT_SECONDS) as response:
+        return int(response.status)
+
+
+def finish(process: subprocess.Popen[bytes]) -> Output:
+    """Closes standard input as the core's death would, and collects what the process wrote."""
+    try:
+        stdout, stderr = process.communicate(timeout=STOP_TIMEOUT_SECONDS)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        stdout, stderr = process.communicate()
+    return Output(process.returncode, stdout, stderr)
 
 
 def stop(process: subprocess.Popen[bytes]) -> None:

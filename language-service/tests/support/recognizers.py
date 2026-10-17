@@ -24,3 +24,13 @@ class FixedRecognizer:
 
     def recognize(self, text: str, language: str) -> Sequence[Occurrence]:
         return self.found
+
+
+@dataclass(frozen=True)
+class RaisingRecognizer:
+    """Fails on every text with a message that quotes it, as a careless library would."""
+
+    model_version: str | None = None
+
+    def recognize(self, text: str, language: str) -> Sequence[Occurrence]:
+        raise ValueError(f"could not analyse {text!r}")

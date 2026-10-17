@@ -7,7 +7,8 @@ from language_service.logging_.fixed_field_handler import FixedFieldHandler
 
 
 def install_root_handler(stream: TextIO) -> None:
-    """Makes ``stream`` the only destination of the process's log, rendered by the fixed format."""
+    """Makes ``stream`` the only destination of the process's log and of its warnings."""
     root = logging.getLogger()
     root.handlers[:] = [FixedFieldHandler(stream)]
     root.setLevel(logging.INFO)
+    logging.captureWarnings(True)

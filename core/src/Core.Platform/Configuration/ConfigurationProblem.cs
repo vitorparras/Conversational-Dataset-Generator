@@ -19,6 +19,10 @@ internal sealed record ConfigurationProblem(
             $"chave '{Key}' declarada sem valor: encontrado valor vazio; aceitos: {AcceptedText()}",
         ConfigurationProblemKind.ValueNotAccepted =>
             $"valor não aceito para '{Key}': encontrado {FoundText()}; aceitos: {AcceptedText()}",
+        ConfigurationProblemKind.RepeatedKey => $"chave '{Key}' escrita mais de uma vez pela mesma fonte",
+        ConfigurationProblemKind.MalformedArgument =>
+            $"argumento malformado '{Key}': a forma aceita é --Seção:Chave=valor",
+        ConfigurationProblemKind.UnreadableFile => $"arquivo de configuração ilegível '{Key}': não é JSON válido",
         _ => throw new UnreachableException(),
     };
 

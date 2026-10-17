@@ -14,4 +14,13 @@ internal enum ConfigurationProblemKind
 
     /// <summary>A value outside what the key accepts.</summary>
     ValueNotAccepted = 3,
+
+    /// <summary>The same source writes the key more than once.</summary>
+    RepeatedKey = 4,
+
+    /// <summary>An argument outside the form the process reads.</summary>
+    MalformedArgument = 5,
+
+    /// <summary>A configuration file whose content could not be read.</summary>
+    UnreadableFile = 6,
 }

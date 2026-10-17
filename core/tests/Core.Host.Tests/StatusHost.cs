@@ -3,7 +3,6 @@ using Core.Host.Endpoints;
 using Core.Platform.Configuration;
 using Core.Platform.Startup;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Core.Host.Tests;
@@ -23,8 +22,7 @@ internal sealed class StatusHost : IAsyncDisposable
     public static async Task<StatusHost> StartAsync(StartupReport report, CancellationToken cancellationToken)
     {
         var address = HostProcess.FreeAddress();
-        var builder = WebApplication.CreateBuilder();
-        _ = builder.WebHost.UseUrls(address.GetLeftPart(UriPartial.Authority));
+        var builder = CompositionRoot.ClosedBuilder(address.GetLeftPart(UriPartial.Authority));
         CompositionRoot.Compose(builder, ClosedConfiguration.Load(new ConfigurationSchema([HostConfiguration.Section])).View);
         _ = builder.Services.AddSingleton(report);
         var app = builder.Build();

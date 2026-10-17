@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace Core.Tests.Architecture.CodeRules;
 
-/// <summary>Loads the analyzers a build is given, wherever they came from, and asks them what they do: which diagnostics they can suppress and what their generators emit. Anything that cannot be asked is a failure.</summary>
+/// <summary>Loads the analyzers a build is given, wherever they came from, and asks which diagnostics they can suppress and what their generators emit, failing on any that cannot be asked.</summary>
 internal static class AnalyzerInspector
 {
     public static AnalyzerFindings Inspect(IReadOnlyList<string> analyzerPaths, GeneratorInput input)

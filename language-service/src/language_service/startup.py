@@ -6,7 +6,8 @@ host: the service binds the loopback interface and nothing can move it.
 
 import re
 from collections.abc import Sequence
-from typing import BinaryIO, Final
+from dataclasses import dataclass, field
+from typing import BinaryIO, Final, TextIO
 
 MIN_SECRET_BYTES: Final = 16
 MAX_SECRET_BYTES: Final = 1024
@@ -26,6 +27,14 @@ MISSING_SECRET_MESSAGE: Final = (
 )
 
 
+@dataclass(frozen=True)
+class Startup:
+    """What the service needs before it serves: the port it was given and the secret it read."""
+
+    port: int
+    secret: bytes = field(repr=False)
+
+
 def parse_port(argv: Sequence[str]) -> int | None:
     """The port when ``argv`` is exactly ``--port N`` with N in range; None for anything else."""
     if len(argv) != PORT_ARGUMENTS or argv[0] != PORT_OPTION or not PORT_DIGITS.fullmatch(argv[1]):
@@ -42,3 +51,16 @@ def read_secret(stream: BinaryIO) -> bytes | None:
     if MIN_SECRET_BYTES <= len(line) <= MAX_SECRET_BYTES:
         return line
     return None
+
+
+def read_startup(argv: Sequence[str], stream: BinaryIO, errors: TextIO) -> Startup | None:
+    """The port, then the secret; None after telling ``errors`` which of the two is unusable."""
+    port = parse_port(argv)
+    if port is None:
+        print(USAGE, file=errors)
+        return None
+    secret = read_secret(stream)
+    if secret is None:
+        print(MISSING_SECRET_MESSAGE, file=errors)
+        return None
+    return Startup(port, secret)

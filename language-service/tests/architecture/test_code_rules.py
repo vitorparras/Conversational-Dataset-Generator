@@ -1,5 +1,6 @@
 """Code rules 2, 3 and 4 hold over src/, and each rule refuses a fixture that breaks it."""
 
+from dataclasses import replace
 from pathlib import Path
 
 from support.code_rules import (
@@ -14,6 +15,7 @@ from support.code_rules import (
     public_test_names,
 )
 from support.composition import service_instantiation_outside_root
+from support.file_shape import ENTRY_POINT, entry_point_length, public_types_per_file
 
 TESTS = Path(__file__).resolve().parents[1]
 SOURCES = production_sources(TESTS.parent / "src" / "language_service")
@@ -52,6 +54,14 @@ def test_no_public_name_in_production_is_named_for_a_test() -> None:
 
 def test_composition_happens_only_in_app() -> None:
     assert check(composition_outside_root, SOURCES) == ()
+
+
+def test_the_entry_point_has_at_most_20_lines() -> None:
+    assert check(entry_point_length, SOURCES) == ()
+
+
+def test_no_production_file_declares_a_second_public_type() -> None:
+    assert check(public_types_per_file, SOURCES) == ()
 
 
 def test_file_over_250_lines_is_refused() -> None:
@@ -100,6 +110,28 @@ def test_composition_outside_app_is_refused() -> None:
     violations = composition_outside_root(source)
 
     assert [v.line for v in violations] == [4, 7, 11]
+
+
+def test_entry_point_over_20_lines_is_refused() -> None:
+    source = replace(fixture("entry_point_over_20_lines.py.txt"), name=ENTRY_POINT)
+
+    violations = entry_point_length(source)
+
+    assert [(v.rule, v.line) for v in violations] == [("entry_point_length", 1)]
+
+
+def test_a_file_that_is_not_the_entry_point_may_be_longer() -> None:
+    source = fixture("entry_point_over_20_lines.py.txt")
+
+    assert entry_point_length(source) == ()
+
+
+def test_a_second_public_class_is_refused_and_a_private_one_is_not() -> None:
+    source = fixture("two_public_classes.py.txt")
+
+    violations = public_types_per_file(source)
+
+    assert [(v.rule, v.line) for v in violations] == [("public_types_per_file", 14)]
 
 
 def test_no_service_is_built_outside_app() -> None:

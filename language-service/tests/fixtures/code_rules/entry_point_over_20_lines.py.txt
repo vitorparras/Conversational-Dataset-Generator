@@ -1,0 +1,26 @@
+"""An entry point that reads its arguments by hand instead of calling the composition."""
+
+import sys
+
+from language_service.app import create_app
+from language_service.server import serve
+
+
+def main(argv: list[str]) -> int:
+    if len(argv) != 2:
+        print("usage", file=sys.stderr)
+        return 2
+    if argv[0] != "--port":
+        print("usage", file=sys.stderr)
+        return 2
+    port = int(argv[1])
+    secret = sys.stdin.buffer.readline().rstrip(b"\n")
+    if not secret:
+        print("no secret", file=sys.stderr)
+        return 2
+    serve(create_app(secret), port, sys.stdin.buffer)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

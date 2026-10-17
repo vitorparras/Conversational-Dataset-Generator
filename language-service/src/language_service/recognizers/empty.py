@@ -2,7 +2,7 @@
 
 from collections.abc import Sequence
 
-from language_service.recognizers.base import Occurrence
+from language_service.recognizers.occurrence import Occurrence
 
 
 class EmptyRecognizer:

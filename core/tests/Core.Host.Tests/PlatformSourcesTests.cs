@@ -22,12 +22,15 @@ public sealed class PlatformSourcesTests
     }
 
     [Fact]
-    public async Task UrlsFromThePlatformVariableAreNotListenedOn()
+    public async Task EndpointFromThePlatformVariableIsNotListenedOn()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         var address = HostProcess.FreeAddress();
         var foreign = HostProcess.FreeAddress();
-        var installation = HostInstallation.Built(address) with { Environment = Variable("ASPNETCORE_URLS", foreign.GetLeftPart(UriPartial.Authority)) };
+        var installation = HostInstallation.Built(address) with
+        {
+            Environment = Variable("Kestrel__Endpoints__Foreign__Url", foreign.GetLeftPart(UriPartial.Authority)),
+        };
         using var host = await HostProcess.StartAsync(installation, address, HostProcess.StartupTimeout, cancellationToken);
         using var client = new HttpClient { BaseAddress = foreign };
 

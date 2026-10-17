@@ -41,11 +41,11 @@ internal static class CompositionRoot
     }
 
     /// <summary>A web host with no configuration source of its own, so nothing reaches it except what the closed configuration approved.</summary>
-    private static WebApplicationBuilder ClosedBuilder(string urls)
+    internal static WebApplicationBuilder ClosedBuilder(string urls)
     {
         var builder = WebApplication.CreateEmptyBuilder(new WebApplicationOptions { ContentRootPath = AppContext.BaseDirectory });
         _ = builder.WebHost.UseKestrel().UseUrls(urls);
-        _ = builder.Services.AddRoutingCore().AddLogging();
+        _ = builder.Services.AddRoutingCore();
         _ = builder.Services.Configure<ConsoleLifetimeOptions>(options => options.SuppressStatusMessages = true);
         return builder;
     }

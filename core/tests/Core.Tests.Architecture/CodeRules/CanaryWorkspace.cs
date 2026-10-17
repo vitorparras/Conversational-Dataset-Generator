@@ -9,6 +9,7 @@ internal sealed class CanaryWorkspace : IDisposable
     private readonly string projectPath;
     private readonly string canaryName = "canary-" + Guid.NewGuid().ToString("N", System.Globalization.CultureInfo.InvariantCulture);
     private string fragment = string.Empty;
+    private readonly List<string> replaced = [];
 
     private CanaryWorkspace(string projectPath, ScratchDirectory scratch)
     {
@@ -31,9 +32,14 @@ internal sealed class CanaryWorkspace : IDisposable
         File.WriteAllText(Path.Combine(scratch.Path, "Directory.Build.props"), ImportOf(core, "Directory.Build.props"));
         File.WriteAllText(Path.Combine(scratch.Path, "Directory.Packages.props"), ImportOf(core, "Directory.Packages.props"));
         File.Copy(Path.Combine(core, "nuget.config"), Path.Combine(scratch.Path, "nuget.config"));
+        File.Copy(Path.Combine(Path.GetDirectoryName(core)!, ".editorconfig"), Path.Combine(scratch.Path, ".editorconfig"));
         var projectDirectory = scratch.CopyFixture(fixtureDirectory, Path.Combine("src", projectName));
         return new CanaryWorkspace(Path.Combine(projectDirectory, projectName + ".csproj"), scratch);
     }
+
+    /// <summary>Plants, per source, a copy of it with a Sonar finding in every type; the copy takes the place of the source in the build.</summary>
+    public IReadOnlyList<CanarySite> PlantSonarCanaries() =>
+        [.. CompilerInvocation.Of(projectPath).Sources.Select(PlantSonar)];
 
     /// <summary>Plants one canary per source the project compiles, beside the project so that the analyzer configs above it apply, and returns where each route sits.</summary>
     public IReadOnlyList<CanarySite> PlantCanaries() =>
@@ -74,7 +80,7 @@ internal sealed class CanaryWorkspace : IDisposable
         var targetsPath = Path.Combine(scratch.Path, "canary.targets");
         var canaryFiles = Directory.EnumerateFiles(CanaryDirectory, "*.cs", SearchOption.AllDirectories);
         File.WriteAllText(fragmentPath, $"<Project>{fragment}</Project>");
-        File.WriteAllText(targetsPath, CanaryTargets.Text(projectPath, canaryFiles, scratch.Path, CanaryDirectory));
+        File.WriteAllText(targetsPath, CanaryTargets.Text(projectPath, canaryFiles, replaced, (scratch.Path, CanaryDirectory)));
         return targetsPath;
     }
 
@@ -86,6 +92,17 @@ internal sealed class CanaryWorkspace : IDisposable
         $"-p:CustomAfterMicrosoftCommonTargets={targetsPath}",
         "--artifacts-path", Path.Combine(scratch.Path, "artifacts"),
     ];
+
+    private CanarySite PlantSonar(string source, int ordinal)
+    {
+        var directory = Path.Combine(CanaryDirectory, "sonar-" + ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        _ = Directory.CreateDirectory(directory);
+        var text = SonarCanary.Rewrite(File.ReadAllText(source), ordinal);
+        File.WriteAllText(Path.Combine(directory, Path.GetFileName(source)), text);
+        replaced.Add(source);
+        var shown = $"{canaryName}/sonar-{ordinal}/{Path.GetFileName(source)}";
+        return new CanarySite(Path.GetRelativePath(SourceTree.CoreRoot, source).Replace(Path.DirectorySeparatorChar, '/'), shown, SonarCanary.Lines(text));
+    }
 
     private CanarySite Plant(string source, int ordinal)
     {

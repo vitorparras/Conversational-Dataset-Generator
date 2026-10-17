@@ -8,12 +8,14 @@ internal static class CanaryTargets
     public const string FragmentFileName = "fragment.targets";
     private const string LoggingPackage = "Microsoft.Extensions.Logging.Abstractions";
 
-    public static string Text(string projectPath, IEnumerable<string> canaryFiles, string scratchPath, string canaryDirectory)
+    public static string Text(string projectPath, IEnumerable<string> canaryFiles, IEnumerable<string> replacedSources, (string Scratch, string Canary) folders)
     {
+        var (scratchPath, canaryDirectory) = folders;
         var fragmentPath = Path.Combine(scratchPath, FragmentFileName);
         var lockFiles = Path.Combine(scratchPath, "locks");
         var applies = $"'$(MSBuildProjectFullPath)' == '{SecurityElement.Escape(projectPath)}'";
         var compiles = string.Join(Environment.NewLine, canaryFiles.Select(file => $"    <Compile Include=\"{SecurityElement.Escape(file)}\" />"));
+        var replaces = string.Join(Environment.NewLine, replacedSources.Select(file => $"    <Compile Remove=\"{SecurityElement.Escape(file)}\" />"));
         return $$"""
             <Project>
               <PropertyGroup>
@@ -27,6 +29,7 @@ internal static class CanaryTargets
               </PropertyGroup>
               <ItemGroup Condition="{{applies}}">
             {{compiles}}
+            {{replaces}}
                 <PackageReference Include="{{LoggingPackage}}" Condition="'@(PackageReference->WithMetadataValue('Identity','{{LoggingPackage}}'))' == ''" />
               </ItemGroup>
               <Import Project="{{SecurityElement.Escape(fragmentPath)}}" Condition="{{applies}}" />

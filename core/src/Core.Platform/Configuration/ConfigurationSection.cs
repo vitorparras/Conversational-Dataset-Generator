@@ -1,8 +1,9 @@
 namespace Core.Platform.Configuration;
 
 /// <summary>The keys one module declares; a key outside every declared section is unknown.</summary>
-internal sealed record ConfigurationSection
+public sealed record ConfigurationSection
 {
+    /// <summary>The section under the name, with the keys it accepts.</summary>
     public ConfigurationSection(string name, IReadOnlyList<ConfigurationKey> keys)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
@@ -15,7 +16,7 @@ internal sealed record ConfigurationSection
         Keys = [.. keys];
     }
 
-    public string Name { get; }
+    internal string Name { get; }
 
-    public IReadOnlyList<ConfigurationKey> Keys { get; }
+    internal IReadOnlyList<ConfigurationKey> Keys { get; }
 }

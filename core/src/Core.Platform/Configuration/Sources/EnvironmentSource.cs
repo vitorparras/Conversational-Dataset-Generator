@@ -3,7 +3,7 @@ using System.Collections;
 namespace Core.Platform.Configuration.Sources;
 
 /// <summary>Reads the variables that carry the fixed prefix, <c>__</c> standing for the section separator.</summary>
-internal sealed class EnvironmentSource : IConfigurationSource
+public sealed class EnvironmentSource : IConfigurationSource
 {
     /// <summary>The prefix every variable the process reads must carry; matched whatever its case.</summary>
     public const string Prefix = "CDG_";
@@ -12,6 +12,7 @@ internal sealed class EnvironmentSource : IConfigurationSource
 
     private readonly IReadOnlyList<KeyValuePair<string, string?>> variables;
 
+    /// <summary>The source over the variables given, whatever process they came from.</summary>
     public EnvironmentSource(IEnumerable<KeyValuePair<string, string?>> variables)
     {
         this.variables = [.. variables];
@@ -23,6 +24,7 @@ internal sealed class EnvironmentSource : IConfigurationSource
             .Cast<DictionaryEntry>()
             .Select(entry => KeyValuePair.Create((string)entry.Key, (string?)entry.Value)));
 
+    /// <inheritdoc />
     public SourceReading Read() =>
         SourceReading.Of(
             ConfigurationOrigin.Environment,

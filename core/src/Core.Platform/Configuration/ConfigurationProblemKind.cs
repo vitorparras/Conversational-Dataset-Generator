@@ -1,7 +1,7 @@
 namespace Core.Platform.Configuration;
 
 /// <summary>Why loading refused a key.</summary>
-internal enum ConfigurationProblemKind
+public enum ConfigurationProblemKind
 {
     /// <summary>The source writes a key no section declares.</summary>
     UnknownKey = 0,

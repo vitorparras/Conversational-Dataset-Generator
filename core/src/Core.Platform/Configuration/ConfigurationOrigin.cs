@@ -1,7 +1,7 @@
 namespace Core.Platform.Configuration;
 
 /// <summary>Where a value in force came from; a source later in this order overrides every source before it.</summary>
-internal enum ConfigurationOrigin
+public enum ConfigurationOrigin
 {
     /// <summary>No source wrote the key; the value is the declared default.</summary>
     Default = 0,

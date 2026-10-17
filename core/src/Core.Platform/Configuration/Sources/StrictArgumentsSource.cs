@@ -1,18 +1,20 @@
 namespace Core.Platform.Configuration.Sources;
 
 /// <summary>Reads arguments of the exact form <c>--Section:Key=value</c>; anything else is a problem, never an exception.</summary>
-internal sealed class StrictArgumentsSource : IConfigurationSource
+public sealed class StrictArgumentsSource : IConfigurationSource
 {
     private const string Marker = "--";
     private const char Assignment = '=';
 
     private readonly IReadOnlyList<string> arguments;
 
+    /// <summary>The source over the arguments given, in the order given.</summary>
     public StrictArgumentsSource(IEnumerable<string> arguments)
     {
         this.arguments = [.. arguments];
     }
 
+    /// <inheritdoc />
     public SourceReading Read() =>
         new(
             ConfigurationOrigin.Argument,

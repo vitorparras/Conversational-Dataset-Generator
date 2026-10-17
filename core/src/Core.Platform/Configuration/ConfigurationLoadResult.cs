@@ -3,7 +3,7 @@ using System.Collections.ObjectModel;
 namespace Core.Platform.Configuration;
 
 /// <summary>Either the configuration in force or every reason it was refused; never an exception.</summary>
-internal sealed record ConfigurationLoadResult
+public sealed record ConfigurationLoadResult
 {
     private ConfigurationLoadResult(
         IReadOnlyDictionary<string, string> values,
@@ -24,15 +24,16 @@ internal sealed record ConfigurationLoadResult
     /// <summary>Every reason for refusal; empty when the configuration loaded.</summary>
     public IReadOnlyList<ConfigurationProblem> Problems { get; }
 
+    /// <summary>Whether anything kept the configuration from loading.</summary>
     public bool Refused => Problems.Count > 0;
 
-    public static ConfigurationLoadResult Loaded(IReadOnlyList<ResolvedValue> resolved) =>
+    internal static ConfigurationLoadResult Loaded(IReadOnlyList<ResolvedValue> resolved) =>
         new(
             resolved.ToDictionary(value => value.Declared.Path, value => value.Value, StringComparer.OrdinalIgnoreCase),
             new EffectiveConfiguration(resolved),
             []);
 
-    public static ConfigurationLoadResult Refusal(IReadOnlyList<ConfigurationProblem> problems)
+    internal static ConfigurationLoadResult Refusal(IReadOnlyList<ConfigurationProblem> problems)
     {
         if (problems.Count == 0)
         {

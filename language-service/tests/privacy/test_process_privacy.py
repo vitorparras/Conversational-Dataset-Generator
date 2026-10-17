@@ -32,10 +32,10 @@ LOG_KEYS = {
 
 @pytest.fixture
 def place(tmp_path: Path) -> Place:
-    work, temp = tmp_path / "work", tmp_path / "temp"
-    work.mkdir()
-    temp.mkdir()
-    return Place(work, temp)
+    work, temp, home = tmp_path / "work", tmp_path / "temp", tmp_path / "home"
+    for folder in (work, temp, home):
+        folder.mkdir()
+    return Place(work, temp, home)
 
 
 @pytest.fixture
@@ -53,7 +53,7 @@ def analysed(place: Place) -> Iterator[tuple[int, Output]]:
 
 
 def evidence_of(output: Output, place: Place) -> Evidence:
-    watched = {"work": place.work, "temp": place.temp}
+    watched = {"work": place.work, "temp": place.temp, "home": place.home}
     return Evidence(output.stdout, output.stderr, snapshot(watched))
 
 
@@ -98,6 +98,10 @@ def test_the_service_creates_no_file_while_it_works(
         ("import sys; sys.stdout.write(sys.argv[1])", "stdout"),
         ("import sys; sys.stderr.write(sys.argv[1])", "stderr"),
         ("import sys, tempfile; open(tempfile.mkstemp()[1], 'w').write(sys.argv[1])", "temp/"),
+        (
+            "import sys, pathlib; (pathlib.Path.home() / 'note.txt').write_text(sys.argv[1])",
+            "home/",
+        ),
     ],
 )
 def test_scan_names_the_destination_a_leaky_program_wrote_to(

@@ -2,6 +2,7 @@
 
 from http import HTTPStatus
 
+import pytest
 from fastapi.testclient import TestClient
 
 from support.synthetic import ANALYZE_BODY, MARKER, SECRET_HEADER
@@ -35,3 +36,26 @@ def test_analyze_refuses_a_missing_field_without_echoing_the_request(
 
     assert response.status_code == HTTPStatus.BAD_REQUEST
     assert MARKER not in response.text
+
+
+@pytest.mark.parametrize(
+    "reference",
+    [f"{MARKER} with a space", f"{MARKER}\n", f"{MARKER}{'r' * 50}", "r" * 65, ""],
+)
+def test_analyze_refuses_a_reference_that_is_not_opaque_without_echoing_it(
+    client: TestClient, reference: str
+) -> None:
+    response = client.post(
+        "/analyze", json={**ANALYZE_BODY, "reference": reference}, headers=SECRET_HEADER
+    )
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert MARKER not in response.text
+
+
+def test_analyze_accepts_a_reference_of_the_longest_allowed_size(client: TestClient) -> None:
+    response = client.post(
+        "/analyze", json={**ANALYZE_BODY, "reference": "r" * 64}, headers=SECRET_HEADER
+    )
+
+    assert response.status_code == HTTPStatus.OK

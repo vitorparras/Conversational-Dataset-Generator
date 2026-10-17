@@ -1,7 +1,5 @@
 """What each route answers. Registering them is the composition root's job, not this module's."""
 
-import time
-from collections import Counter
 from dataclasses import dataclass
 from typing import Final
 
@@ -16,11 +14,10 @@ from language_service.contract import (
     HealthResponse,
     VersionResponse,
 )
-from language_service.logging_ import AnalysisSummary, RequestLog, Step
+from language_service.logging_ import RequestLog, Step
 from language_service.recognizers.base import Recognizer
 
 HTTP_BAD_REQUEST: Final = 400
-NANOSECONDS_PER_MILLISECOND: Final = 1_000_000
 
 
 @dataclass(frozen=True)
@@ -41,30 +38,13 @@ class Routes:
         )
 
     def analyze(self, body: AnalyzeRequest) -> AnalyzeResponse:
-        started = time.monotonic_ns()
-        step = Step.RECOGNIZE
-        answered = False
-        try:
+        with self.log.watch(body.reference, len(body.text)) as watch:
             found = tuple(self.recognizer.recognize(body.text, body.language))
-            step = Step.RESPOND
-            response = AnalyzeResponse(
+            watch.step = Step.RESPOND
+            watch.response = AnalyzeResponse(
                 occurrences=found, model_version=self.recognizer.model_version
             )
-            answered = True
-        finally:
-            if not answered:
-                self.log.failed(body.reference, step)
-        elapsed_ms = (time.monotonic_ns() - started) // NANOSECONDS_PER_MILLISECOND
-        self.log.analyzed(
-            AnalysisSummary(
-                body.reference,
-                len(body.text),
-                elapsed_ms,
-                response.model_version,
-                Counter(occurrence.kind for occurrence in found),
-            )
-        )
-        return response
+            return watch.response
 
 
 async def refuse_invalid_request(request: Request, error: Exception) -> JSONResponse:

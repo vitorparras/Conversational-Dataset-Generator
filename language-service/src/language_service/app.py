@@ -14,16 +14,13 @@ from language_service.auth import SecretVerifier
 from language_service.contract import AnalyzeResponse, HealthResponse, VersionResponse
 from language_service.gate import SecretGate
 from language_service.logging_ import RequestLog
-from language_service.recognizers.base import Recognizer
 from language_service.recognizers.empty import EmptyRecognizer
 from language_service.routes import Routes, refuse_invalid_request
 
 
-def create_app(secret: bytes, recognizer: Recognizer | None = None) -> FastAPI:
-    """The application that accepts only requests carrying ``secret``, over ``recognizer``."""
-    routes = Routes(
-        recognizer or EmptyRecognizer(), RequestLog(logging.getLogger("language_service"))
-    )
+def create_app(secret: bytes) -> FastAPI:
+    """The application that accepts only requests carrying ``secret``."""
+    routes = Routes(EmptyRecognizer(), RequestLog(logging.getLogger("language_service")))
     app = FastAPI(
         title="language_service",
         version=__version__,

@@ -39,10 +39,25 @@ class Place:
 
     work: Path
     temp: Path
+    home: Path
 
     def environment(self) -> dict[str, str]:
-        temp = str(self.temp)
-        return {**os.environ, "TMPDIR": temp, "TEMP": temp, "TMP": temp}
+        temp, home = str(self.temp), self.home
+        return {
+            **os.environ,
+            "TMPDIR": temp,
+            "TEMP": temp,
+            "TMP": temp,
+            "HOME": str(home),
+            "USERPROFILE": str(home),
+            "APPDATA": str(home / "AppData" / "Roaming"),
+            "LOCALAPPDATA": str(home / "AppData" / "Local"),
+            "XDG_CONFIG_HOME": str(home / ".config"),
+            "XDG_DATA_HOME": str(home / ".local" / "share"),
+            "XDG_CACHE_HOME": str(home / ".cache"),
+            "XDG_STATE_HOME": str(home / ".local" / "state"),
+            "XDG_RUNTIME_DIR": str(home / "run"),
+        }
 
 
 @dataclass(frozen=True)

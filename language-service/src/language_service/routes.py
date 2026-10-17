@@ -40,11 +40,10 @@ class Routes:
     def analyze(self, body: AnalyzeRequest) -> AnalyzeResponse:
         with self.log.watch(body.reference, len(body.text)) as watch:
             found = tuple(self.recognizer.recognize(body.text, body.language))
-            watch.step = Step.RESPOND
-            watch.response = AnalyzeResponse(
-                occurrences=found, model_version=self.recognizer.model_version
+            watch.reach(Step.RESPOND)
+            return watch.answer(
+                AnalyzeResponse(occurrences=found, model_version=self.recognizer.model_version)
             )
-            return watch.response
 
 
 async def refuse_invalid_request(request: Request, error: Exception) -> JSONResponse:

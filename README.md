@@ -70,9 +70,14 @@ O serviço é um projeto Python 3.12 em `language-service/`, com dependências f
 raiz. Ele escuta só em `127.0.0.1` e lê o segredo de inicialização da entrada padrão.
 
 ```
-uv sync --frozen --directory language-service
+uv sync --locked --directory language-service
 uv run --directory language-service pytest
 ```
+
+No comando único, são os passos `build_service`, `test_service` e `lint_service`: exigem `uv` na
+versão de `tools/verify-code/service-requirements.txt`; o segundo grava o relatório de testes e a
+cobertura dentro da pasta de saída do verificador; o terceiro vem depois do primeiro, que cria o
+ambiente que o `pyright` lê.
 
 ## Licença
 

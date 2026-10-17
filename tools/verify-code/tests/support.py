@@ -26,6 +26,14 @@ SOLUTION_WITH_TESTS = (
     "</Solution>\n"
 )
 
+PYPROJECT_WITH_TESTS = (
+    "[project]\n"
+    'name = "language-service"\n'
+    'version = "0.1.0"\n'
+    "[tool.coverage.run]\n"
+    'source = ["language_service"]\n'
+)
+
 FIXTURE_IDENTITY = (
     "-c",
     "user.name=ZQX-MARKER-7731",
@@ -84,6 +92,15 @@ def trx(project: str, executed: int, failed: int) -> str:
         f'  <TestDefinitions><UnitTest name="t" id="1"><TestMethod codeBase="bin/{project}.dll" '
         'className="c" name="t" /></UnitTest></TestDefinitions>\n'
         "</TestRun>\n"
+    )
+
+
+def junit(tests: int, failures: int, skipped: int = 0) -> str:
+    """A JUnit report reduced to what the step reads: one suite and its counters."""
+    return (
+        '<?xml version="1.0" encoding="utf-8"?>\n'
+        f'<testsuites><testsuite name="pytest" errors="0" failures="{failures}" '
+        f'skipped="{skipped}" tests="{tests}" time="0.1" /></testsuites>\n'
     )
 
 

@@ -12,13 +12,23 @@ from itertools import takewhile
 from pathlib import Path
 from typing import Any
 
-from steps import lint_tools
+from steps import build_service, lint_tools
 from steps.common import Context, StepResult, failed, passed
 
 from . import support
 
 verify = support.load_verify()
 WORKFLOW = support.VERIFY_CODE.parents[1] / ".github" / "workflows" / "verify-code.yml"
+WITHOUT_BASE = [
+    "build_core",
+    "test_core",
+    "format_core",
+    "lint_tools",
+    "test_tools",
+    "build_service",
+    "test_service",
+    "lint_service",
+]
 
 
 def steps_in_workflow(text: str) -> list[str]:
@@ -96,6 +106,11 @@ class VerifyTests(unittest.TestCase):
 
         self.assertIn(f"pip install -r {lint_tools.REQUIREMENTS}", text)
 
+    def test_workflow_installs_uv_from_the_file_the_build_service_step_names(self) -> None:
+        text = WORKFLOW.read_text(encoding="utf-8")
+
+        self.assertIn(f"pip install -r {build_service.REQUIREMENTS}", text)
+
     def test_unknown_step_is_a_usage_error(self) -> None:
         code, output = run_main("--step", "no_such_step")
 
@@ -105,9 +120,7 @@ class VerifyTests(unittest.TestCase):
     def test_default_selection_leaves_out_the_steps_that_need_a_base(self) -> None:
         selected = verify.select([], False)
 
-        self.assertEqual(
-            names(selected), ["build_core", "test_core", "format_core", "lint_tools", "test_tools"]
-        )
+        self.assertEqual(names(selected), WITHOUT_BASE)
 
     def test_default_selection_with_a_base_includes_pr_size(self) -> None:
         selected = verify.select([], True)

@@ -30,6 +30,7 @@ WITHOUT_BASE = [
     "test_service",
     "lint_service",
     "secrets",
+    "trivy",
 ]
 
 

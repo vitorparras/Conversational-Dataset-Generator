@@ -61,6 +61,24 @@ jobs:
       - name: Varrer o diff do pull request, ou o histórico inteiro fora dele
         run: python tools/verify-code/verify.py --step secrets ${{ github.event_name == 'pull_request' && format('--base origin/{0}', github.base_ref) || '' }}
 
+  trivy:
+    name: Dependências, segredos e configuração (trivy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+      - uses: ./.github/actions/install-trivy
+      - name: Guardar o banco de vulnerabilidades entre execuções
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/trivy
+          key: trivy-db-${{ github.run_id }}
+          restore-keys: trivy-db-
+      - name: Varrer o repositório e reprovar HIGH e CRITICAL sem risco aceito
+        run: python tools/verify-code/verify.py --step trivy
+
   pr_size:
     name: Teto do pull request
     if: github.event_name == 'pull_request'

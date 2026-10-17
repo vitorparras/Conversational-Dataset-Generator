@@ -49,6 +49,11 @@ O passo `secrets` roda o `gitleaks` na versão fixada em `tools/verify-code/step
 e recusa um binário cuja soma SHA-256 não confira; sem `--base` varre o histórico inteiro. Os testes
 de `tools/` o usam. A única permissão são os marcadores sintéticos `ZQX-…`, em `.gitleaks.toml`.
 
+O passo `trivy`, também de binário fixado, varre lockfiles, segredos e Dockerfile; HIGH e CRITICAL
+reprovam, a menos que `tools/verify-code/accepted-risks.toml` os aceite com prazo e motivo.
+Nenhum código sai da máquina: ele só baixa o banco de vulnerabilidades e as regras de
+configuração, com telemetria e checagem de versão desligadas. Não analisa workflows.
+
 ## Núcleo
 
 O núcleo é uma solução .NET em `core/Core.slnx`. A versão exata do SDK está em `global.json`, e a

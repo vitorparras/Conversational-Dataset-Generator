@@ -1,0 +1,8 @@
+import logging
+
+EVENT = "analysed"
+LOGGER = logging.getLogger("service")
+
+
+def analyse(text: str) -> None:
+    LOGGER.info(EVENT, extra={"text": text})

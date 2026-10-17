@@ -1,0 +1,7 @@
+import logging
+
+LOGGER = logging.getLogger("service")
+
+
+def analyse(text: str) -> None:
+    LOGGER.info(f"analysing {text}")

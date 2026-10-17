@@ -1,0 +1,3 @@
+  <ItemGroup>
+    <AdditionalFiles Remove="$(MSBuildProjectDirectory)/../../BannedSymbols.txt" />
+  </ItemGroup>

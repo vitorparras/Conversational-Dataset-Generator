@@ -4,30 +4,19 @@ namespace Core.Tests.Architecture.CodeRules;
 internal static class SourceTree
 {
     private static readonly Lazy<string> CoreDirectory = new(FindCoreDirectory);
-    private static readonly string[] AnalyzerConfigNames = [".editorconfig", ".globalconfig"];
+    private static readonly Lazy<IReadOnlyList<SourceFile>> Production = new(ReadProductionFiles);
+
+    public static string CoreRoot => CoreDirectory.Value;
 
     public static string FixturesDirectory => Path.Combine(CoreDirectory.Value, "tests", "fixtures", "code-rules");
 
-    public static IReadOnlyList<SourceFile> ProductionFiles() =>
-        [.. EnumerateSources(Path.Combine(CoreDirectory.Value, "src"), "*.cs").Select(SourceFile.Read)];
+    public static IReadOnlyList<SourceFile> ProductionFiles() => Production.Value;
 
     public static IReadOnlyList<ProjectFile> ProductionProjects() =>
         [.. EnumerateSources(Path.Combine(CoreDirectory.Value, "src"), "*.csproj").Select(ProjectFile.Read)];
 
-    /// <summary>Every MSBuild file the production projects evaluate: their own files and the shared props and targets above them.</summary>
-    public static IReadOnlyList<ProjectFile> ProductionBuildFiles() =>
-        [.. EnumerateSources(Path.Combine(CoreDirectory.Value, "src"), "*.csproj")
-            .Concat(EnumerateSources(CoreDirectory.Value, "*.props").Where(IsOutsideTests))
-            .Concat(EnumerateSources(CoreDirectory.Value, "*.targets").Where(IsOutsideTests))
-            .Select(ProjectFile.Read)];
-
-    /// <summary>Every analyzer config the production projects read: under the core, outside the tests, plus the repository root.</summary>
-    public static IReadOnlyList<AnalyzerConfig> ProductionAnalyzerConfigs() =>
-        [.. EnumerateSources(CoreDirectory.Value, ".editorconfig")
-            .Concat(EnumerateSources(CoreDirectory.Value, ".globalconfig"))
-            .Where(IsOutsideTests)
-            .Concat(RepositoryConfigs())
-            .Select(AnalyzerConfig.Read)];
+    public static ProjectFile ProductionProject(string moduleName) =>
+        ProductionProjects().Single(project => project.ModuleName == moduleName);
 
     public static SourceFile Fixture(string relativePath) =>
         SourceFile.Read(Path.Combine(FixturesDirectory, relativePath));
@@ -45,18 +34,13 @@ internal static class SourceTree
     public static IReadOnlyList<SourceFile> FixtureFiles(string relativeDirectory) =>
         [.. EnumerateSources(Path.Combine(FixturesDirectory, relativeDirectory), "*.cs").Select(SourceFile.Read)];
 
+    private static IReadOnlyList<SourceFile> ReadProductionFiles() =>
+        [.. ProductionProjects().SelectMany(project => CompilerInvocation.Of(project.Path).SourceFiles).DistinctBy(file => file.Path)];
+
     private static IEnumerable<string> EnumerateSources(string directory, string pattern) =>
         Directory.EnumerateFiles(directory, pattern, SearchOption.AllDirectories)
             .Where(path => !IsBuildOutput(path))
             .OrderBy(path => path, StringComparer.Ordinal);
-
-    private static IEnumerable<string> RepositoryConfigs() =>
-        AnalyzerConfigNames
-            .Select(name => Path.Combine(Path.GetDirectoryName(CoreDirectory.Value)!, name))
-            .Where(File.Exists);
-
-    private static bool IsOutsideTests(string path) =>
-        !Parts(path).Contains("tests", StringComparer.Ordinal);
 
     private static bool IsBuildOutput(string path) =>
         Parts(path).Contains("bin", StringComparer.Ordinal) || Parts(path).Contains("obj", StringComparer.Ordinal);

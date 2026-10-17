@@ -1,0 +1,5 @@
+  <Target Name="DropBannedApiAnalyzer" AfterTargets="ResolveLockFileAnalyzers">
+    <ItemGroup>
+      <Analyzer Remove="@(Analyzer)" Condition="$([System.String]::Copy('%(Identity)').Contains('BannedApi'))" />
+    </ItemGroup>
+  </Target>

@@ -1,0 +1,3 @@
+  <ItemGroup>
+    <EditorConfigFiles Include="$(CanaryDirectory)/quiet.rules" />
+  </ItemGroup>

@@ -15,8 +15,7 @@ public sealed class NoTestHookTests
     public void SourceFilesExposeInternalsOnlyToTheirOwnTests()
     {
         var violations = SourceTree.ProductionProjects()
-            .SelectMany(project => SourceTree.ProductionFiles()
-                .Where(file => file.Path.StartsWith(Path.GetDirectoryName(project.Path)!, StringComparison.Ordinal))
+            .SelectMany(project => CompilerInvocation.Of(project.Path).SourceFiles
                 .SelectMany(file => NoTestHookRules.CheckInternalsVisibleTo(file, project.ModuleName)));
 
         Assert.Empty(violations);

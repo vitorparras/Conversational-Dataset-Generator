@@ -13,4 +13,8 @@ internal sealed class FixedConfigurationSource : IConfigurationSource
     }
 
     public SourceReading Read() => reading;
+
+    /// <summary>What a failing property prints as the counterexample.</summary>
+    public override string ToString() =>
+        $"{reading.Origin}[{string.Join(", ", reading.Entries.Select(entry => $"{entry.Key}={entry.Value ?? "<null>"}"))}]";
 }

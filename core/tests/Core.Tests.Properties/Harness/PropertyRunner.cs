@@ -8,6 +8,9 @@ internal sealed class PropertyRunner
     /// <summary>The variable that fixes the seed; it is also the one the failure message names.</summary>
     public const string SeedVariable = "CsCheck_Seed";
 
+    /// <summary>The variable that trades the number of cases for a time; refused, since the cases are declared.</summary>
+    public const string TimeVariable = "CsCheck_Time";
+
     private readonly Func<string, string?> environment;
     private readonly PropertyBudget budget;
     private readonly Action<string> report;
@@ -24,17 +27,14 @@ internal sealed class PropertyRunner
 
     public void Check<T>(Gen<T> generator, Action<T> property)
     {
+        if (!string.IsNullOrWhiteSpace(environment(TimeVariable)))
+        {
+            throw new InvalidOperationException($"{TimeVariable} replaces the declared {budget.Cases} cases with a duration; unset it.");
+        }
+
         var seed = environment(SeedVariable);
         using var cancellation = new CancellationTokenSource();
-        var run = Task.Run(() => generator.Sample(
-            value =>
-            {
-                cancellation.Token.ThrowIfCancellationRequested();
-                property(value);
-            },
-            iter: budget.Cases,
-            writeLine: report,
-            seed: string.IsNullOrWhiteSpace(seed) ? null : seed));
+        var run = Task.Run(() => Sample(generator, property, string.IsNullOrWhiteSpace(seed) ? null : seed, cancellation.Token));
 
         if (Task.WaitAny([run], budget.Deadline) < 0)
         {
@@ -43,5 +43,22 @@ internal sealed class PropertyRunner
         }
 
         run.GetAwaiter().GetResult();
+    }
+
+    /// <summary>A seeded run replays that one case first, so the shrinking is the one the seed names, then goes on to the declared cases.</summary>
+    private void Sample<T>(Gen<T> generator, Action<T> property, string? seed, CancellationToken token)
+    {
+        void Guarded(T value)
+        {
+            token.ThrowIfCancellationRequested();
+            property(value);
+        }
+
+        if (seed is not null)
+        {
+            generator.Sample(Guarded, iter: 1, seed: seed, threads: 1, writeLine: _ => { });
+        }
+
+        generator.Sample(Guarded, iter: budget.Cases, seed: seed, writeLine: report);
     }
 }

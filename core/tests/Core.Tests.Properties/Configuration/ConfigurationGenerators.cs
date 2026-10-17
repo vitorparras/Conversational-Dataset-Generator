@@ -3,7 +3,7 @@ using CsCheck;
 
 namespace Core.Tests.Properties.Configuration;
 
-/// <summary>Sources for the sample schema: arbitrary ones that mostly get refused, and well-formed ones that always load.</summary>
+/// <summary>Sources for the sample schema: well-formed ones that always load, then the same with one key added or taken out.</summary>
 internal static class ConfigurationGenerators
 {
     public static readonly ConfigurationSchema Schema = new(
@@ -18,13 +18,11 @@ internal static class ConfigurationGenerators
             ]),
     ]);
 
+    /// <summary>Every declared path, in declaration order.</summary>
+    public static readonly IReadOnlyList<string> DeclaredPaths =
+        ["Sample:Name", "Sample:Threshold", "Sample:Mode", "Sample:Token"];
+
     private static readonly Gen<ConfigurationOrigin> Origin = Gen.Enum<ConfigurationOrigin>();
-
-    private static readonly Gen<string> AnyKey = Gen.OneOfConst(
-        "Sample:Name", "sample:name", "Sample:Threshold", "Sample:Mode", "Sample:Token", "Sample:Unknown", "Typo");
-
-    private static readonly Gen<string?> AnyValue = Gen.OneOfConst(
-        null, string.Empty, "   ", "strict", "lenient", "bogus", "ZQX-MARKER-7731", "3");
 
     private static readonly Gen<string?> OptionalName = Gen.OneOfConst(null, "ZQX-MARKER-7731", "alpha", "beta gamma");
 
@@ -38,12 +36,9 @@ internal static class ConfigurationGenerators
 
     private static readonly Gen<string> RequiredThreshold = Gen.OneOfConst("3", "7", "0.5");
 
-    private static readonly Gen<KeyValuePair<string, string?>> AnyEntry =
-        Gen.Select(AnyKey, AnyValue, KeyValuePair.Create);
+    private static readonly Gen<string> UnknownKey = Gen.OneOfConst("Sample:Treshold", "Typo", "Other:Name", "sample:nmae");
 
-    /// <summary>Up to three sources of any origin writing any mix of declared, misspelled and empty entries.</summary>
-    public static readonly Gen<List<IConfigurationSource>> Arbitrary =
-        Gen.Select(Origin, AnyEntry.List[0, 4], Source).List[0, 3];
+    private static readonly Gen<string> RequiredPath = Gen.OneOfConst("Sample:Name", "Sample:Threshold");
 
     /// <summary>One source that declares every required key, then up to two more overriding optional ones; always loads.</summary>
     public static readonly Gen<List<IConfigurationSource>> WellFormed =
@@ -52,8 +47,15 @@ internal static class ConfigurationGenerators
                 .List[0, 2]
                 .Select(more => new List<IConfigurationSource>([first, .. more])));
 
-    private static IConfigurationSource Source(ConfigurationOrigin origin, List<KeyValuePair<string, string?>> entries) =>
-        new FixedConfigurationSource(entries, origin);
+    /// <summary>Well-formed sources and one more, of any origin, writing a key no section declares.</summary>
+    public static readonly Gen<UnknownKeyCase> WithUnknownKey =
+        Gen.Select(WellFormed, UnknownKey, Origin, (sources, key, origin) =>
+            new UnknownKeyCase([.. sources, new FixedConfigurationSource([KeyValuePair.Create<string, string?>(key, "ZQX-MARKER-7731")], origin)], key));
+
+    /// <summary>Well-formed sources with one required key taken out of every one of them.</summary>
+    public static readonly Gen<MissingKeyCase> WithoutARequiredKey =
+        Gen.Select(WellFormed, RequiredPath, (sources, path) =>
+            new MissingKeyCase([.. sources.Select(source => Without(source, path))], path));
 
     private static IConfigurationSource Declaring(
         ConfigurationOrigin origin, string? name, string? threshold, string? mode, string? token) =>
@@ -61,4 +63,10 @@ internal static class ConfigurationGenerators
 
     private static FixedConfigurationSource Written(ConfigurationOrigin origin, params (string Key, string? Value)[] entries) =>
         new(entries.Where(entry => entry.Value is not null).Select(entry => KeyValuePair.Create(entry.Key, entry.Value)), origin);
+
+    private static FixedConfigurationSource Without(IConfigurationSource source, string path)
+    {
+        var reading = source.Read();
+        return new(reading.Entries.Where(entry => !string.Equals(entry.Key, path, StringComparison.OrdinalIgnoreCase)), reading.Origin);
+    }
 }

@@ -117,6 +117,11 @@ internal sealed class HostProcess : IDisposable
             RedirectStandardError = true,
             UseShellExecute = false,
         };
+        foreach (var variable in installation.Environment)
+        {
+            info.Environment[variable.Key] = variable.Value;
+        }
+
         foreach (var argument in installation.Arguments)
         {
             info.ArgumentList.Add(argument);

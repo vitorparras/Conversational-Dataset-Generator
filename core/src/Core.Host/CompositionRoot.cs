@@ -31,13 +31,22 @@ internal static class CompositionRoot
 
     private static WebApplication Assemble(ConfigurationLoadResult loaded)
     {
-        var builder = WebApplication.CreateBuilder();
-        _ = builder.WebHost.UseUrls(loaded.Values[HostConfiguration.UrlsPath]);
+        var builder = ClosedBuilder(loaded.Values[HostConfiguration.UrlsPath]);
         Compose(builder, loaded.View);
 
         var app = builder.Build();
         StatusEndpoint.Map(app);
         ConfigurationEndpoint.Map(app);
         return app;
+    }
+
+    /// <summary>A web host with no configuration source of its own, so nothing reaches it except what the closed configuration approved.</summary>
+    internal static WebApplicationBuilder ClosedBuilder(string urls)
+    {
+        var builder = WebApplication.CreateEmptyBuilder(new WebApplicationOptions { ContentRootPath = AppContext.BaseDirectory });
+        _ = builder.WebHost.UseKestrel().UseUrls(urls);
+        _ = builder.Services.AddRoutingCore();
+        _ = builder.Services.Configure<ConsoleLifetimeOptions>(options => options.SuppressStatusMessages = true);
+        return builder;
     }
 }

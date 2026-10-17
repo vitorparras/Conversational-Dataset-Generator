@@ -14,8 +14,9 @@ LOG_METHODS = frozenset(
     {"debug", "info", "warning", "warn", "error", "exception", "critical", "fatal", "log"}
 )
 LOGGING_MODULE = "logging"
-EXTRA_HOME = "request_log.py"
+EXTRA_HOME = "logging_/request_log.py"
 EXTRA = "extra"
+VALUE_METHODS = LOG_METHODS - {"log"}
 
 
 def log_call_content(source: Source) -> tuple[Violation, ...]:
@@ -24,14 +25,41 @@ def log_call_content(source: Source) -> tuple[Violation, ...]:
         Violation("log_call_content", source.name, node.lineno, reason)
         for node in ast.walk(source.tree)
         if isinstance(node, ast.Call) and _method_of(node) in LOG_METHODS
-        for reason in _reasons(node, source.name)
+        for reason in _reasons(node, source.path)
     )
     imports = (
         Violation("log_call_content", source.name, node.lineno, "log function imported by name")
         for node in ast.walk(source.tree)
         if isinstance(node, ast.ImportFrom) and node.module == LOGGING_MODULE
     )
-    return tuple(sorted((*calls, *imports), key=lambda violation: violation.line))
+    values = (
+        Violation("log_call_content", source.name, node.lineno, "log method taken as a value")
+        for node in _log_values(source.tree)
+    )
+    return tuple(sorted((*calls, *imports, *values), key=lambda violation: violation.line))
+
+
+def _log_values(tree: ast.Module) -> tuple[ast.expr, ...]:
+    """Log methods used without a call on them: ``say = logger.info`` or ``getattr(l, "info")``."""
+    called = {id(node.func) for node in ast.walk(tree) if isinstance(node, ast.Call)}
+    attributes = tuple(
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Attribute) and node.attr in VALUE_METHODS and id(node) not in called
+    )
+    lookups = tuple(
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call) and _method_of(node) == "getattr" and _names_log_method(node)
+    )
+    return (*attributes, *lookups)
+
+
+def _names_log_method(call: ast.Call) -> bool:
+    return any(
+        isinstance(argument, ast.Constant) and argument.value in LOG_METHODS
+        for argument in call.args[1:]
+    )
 
 
 def _method_of(call: ast.Call) -> str:
@@ -43,7 +71,7 @@ def _method_of(call: ast.Call) -> str:
     return ""
 
 
-def _reasons(call: ast.Call, source_name: str) -> tuple[str, ...]:
+def _reasons(call: ast.Call, source_path: str) -> tuple[str, ...]:
     method = _method_of(call)
     arguments = call.args[1:] if method == "log" else call.args
     extras = [keyword for keyword in call.keywords if keyword.arg == EXTRA]
@@ -53,7 +81,7 @@ def _reasons(call: ast.Call, source_name: str) -> tuple[str, ...]:
         *(() if _is_constant_event(arguments[:1]) else ("the event is not a constant",)),
         *(("arguments after the event",) if len(arguments) > 1 else ()),
         *(f"keyword {keyword.arg} is not allowed" for keyword in others),
-        *(f"{EXTRA} outside {EXTRA_HOME}" for _ in extras if source_name != EXTRA_HOME),
+        *(f"{EXTRA} outside {EXTRA_HOME}" for _ in extras if not source_path.endswith(EXTRA_HOME)),
         *("extra is not keyed by constants" for e in extras if not _keyed_by_constants(e.value)),
     )
 

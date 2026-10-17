@@ -54,11 +54,12 @@ class Source:
     name: str
     text: str
     tree: ast.Module
+    path: str = ""
 
     @classmethod
     def read(cls, path: Path) -> Source:
         text = path.read_text(encoding="utf-8")
-        return cls(path.name, text, ast.parse(text, filename=str(path)))
+        return cls(path.name, text, ast.parse(text, filename=str(path)), path.as_posix())
 
 
 @dataclass(frozen=True)

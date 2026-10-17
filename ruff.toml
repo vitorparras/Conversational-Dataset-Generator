@@ -1,4 +1,4 @@
-# The single source of Python style for the repository: tools/ now, language-service/ when it exists.
+# The single source of Python style for the repository: tools/ and language-service/.
 line-length = 100
 target-version = "py312"
 
@@ -12,7 +12,7 @@ select = ["E", "F", "I", "B", "N", "UP", "RUF", "PL", "SIM"]
 "tools/verify-docs/verify.py" = ["PLR0913", "PLR0917"]
 
 [lint.isort]
-known-first-party = ["steps"]
+known-first-party = ["steps", "language_service", "support"]
 
 [lint.pylint]
 max-args = 4

@@ -1,0 +1,16 @@
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class Occurrence:
+    start: int
+    end: int
+
+
+@dataclass(frozen=True)
+class Span:
+    occurrence: Occurrence
+
+
+def first() -> Span:
+    return Span(Occurrence(0, 1))

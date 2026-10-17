@@ -1,0 +1,9 @@
+class Service:
+    def latest(self) -> int:
+        return 1
+
+    def _reset_for_test(self) -> None:
+        pass
+
+    def reset_for_test(self) -> None:
+        pass

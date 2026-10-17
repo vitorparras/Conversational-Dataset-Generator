@@ -1,0 +1,8 @@
+import uvicorn
+
+
+def run() -> None:
+    uvicorn.run("app:app", reload=True)
+
+
+DEBUG = True

@@ -1,0 +1,11 @@
+import logging
+
+EVENT = "failed"
+LOGGER = logging.getLogger("service")
+
+
+def analyse(text: str) -> None:
+    try:
+        len(text)
+    except ValueError:
+        LOGGER.exception(EVENT)

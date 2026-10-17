@@ -1,0 +1,9 @@
+import logging
+
+EVENT = "analysed"
+FIELDS = "fields"
+LOGGER = logging.getLogger("service")
+
+
+def analyse(count: int) -> None:
+    LOGGER.info(EVENT, extra={FIELDS: {"chars": count}})

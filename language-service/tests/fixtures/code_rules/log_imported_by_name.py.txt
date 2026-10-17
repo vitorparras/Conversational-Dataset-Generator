@@ -1,0 +1,5 @@
+from logging import info
+
+
+def analyse(text: str) -> None:
+    info(f"analysing {text}")

@@ -14,6 +14,7 @@ from language_service.contract import (
     HealthResponse,
     VersionResponse,
 )
+from language_service.logging_ import RequestLog, Step
 from language_service.recognizers.base import Recognizer
 
 HTTP_BAD_REQUEST: Final = 400
@@ -21,9 +22,10 @@ HTTP_BAD_REQUEST: Final = 400
 
 @dataclass(frozen=True)
 class Routes:
-    """The three answers of the service, over one recognizer."""
+    """The three answers of the service, over one recognizer and the log of its requests."""
 
     recognizer: Recognizer
+    log: RequestLog
 
     def health(self) -> HealthResponse:
         return HealthResponse(status="ok")
@@ -36,10 +38,12 @@ class Routes:
         )
 
     def analyze(self, body: AnalyzeRequest) -> AnalyzeResponse:
-        found = self.recognizer.recognize(body.text, body.language)
-        return AnalyzeResponse(
-            occurrences=tuple(found), model_version=self.recognizer.model_version
-        )
+        with self.log.watch(body.reference, len(body.text)) as watch:
+            found = tuple(self.recognizer.recognize(body.text, body.language))
+            watch.reach(Step.RESPOND)
+            return watch.answer(
+                AnalyzeResponse(occurrences=found, model_version=self.recognizer.model_version)
+            )
 
 
 async def refuse_invalid_request(request: Request, error: Exception) -> JSONResponse:

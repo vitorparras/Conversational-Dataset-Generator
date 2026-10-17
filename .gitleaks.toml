@@ -1,0 +1,9 @@
+title = "Repository secret rules"
+
+[extend]
+useDefault = true
+
+# The only allowance: a secret that is entirely a synthetic ZQX- marker, as the tests use.
+[[allowlists]]
+description = "Synthetic ZQX- markers used in tests and fixtures"
+regexes = ['''^ZQX-[A-Za-z0-9-]+$''']

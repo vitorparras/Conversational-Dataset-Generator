@@ -45,6 +45,10 @@ A ordem é única: `--step test_core` sozinho, em árvore limpa, falha porque te
 `build_core` vem antes, e a execução sem argumento segue essa ordem. O passo `lint_tools` exige
 `ruff` e `pyright` nas versões de `tools/verify-code/lint-requirements.txt` (`pip install -r`).
 
+O passo `secrets` roda o `gitleaks` na versão fixada em `tools/verify-code/steps/gitleaks_binary.py`
+e recusa um binário cuja soma SHA-256 não confira; sem `--base` varre o histórico inteiro. Os testes
+de `tools/` o usam. A única permissão são os marcadores sintéticos `ZQX-…`, em `.gitleaks.toml`.
+
 ## Núcleo
 
 O núcleo é uma solução .NET em `core/Core.slnx`. A versão exata do SDK está em `global.json`, e a

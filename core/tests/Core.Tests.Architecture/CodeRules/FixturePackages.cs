@@ -57,9 +57,11 @@ internal static class FixturePackages
     }
 
     private static string Nuspec(string id) =>
-        $"""<?xml version="1.0"?><package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd"><metadata><id>{id}</id><version>{Version}</version><authors>fixture</authors><description>fixture</description></metadata></package>""";
+        $"""<?xml version="1.0"?><package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">""" +
+        $"<metadata><id>{id}</id><version>{Version}</version><authors>fixture</authors><description>fixture</description></metadata></package>";
 
-    /// <summary>The runtime's assemblies, with the compiler's own taken from the SDK that will load the package, so that the package never references a newer compiler than the one that runs it.</summary>
+    /// <summary>The runtime's assemblies, with the compiler's own taken from the SDK that will load the package, so
+    /// that the package never references a newer compiler than the one that runs it.</summary>
     private static IEnumerable<MetadataReference> References() =>
         ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
             .Split(Path.PathSeparator)

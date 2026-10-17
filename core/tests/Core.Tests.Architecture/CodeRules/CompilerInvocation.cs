@@ -5,7 +5,9 @@ using Microsoft.CodeAnalysis;
 
 namespace Core.Tests.Architecture.CodeRules;
 
-/// <summary>What the compiler is given for one project, read from the command line its build would run: the sources, the analyzers, the additional files and the diagnostic options, as the compiler itself parses them.</summary>
+/// <summary>What the compiler is given for one project, read from the command line its build would run: the
+/// sources, the analyzers, the additional files and the diagnostic options, as the compiler itself parses
+/// them.</summary>
 internal sealed class CompilerInvocation
 {
     private static readonly ConcurrentDictionary<string, Lazy<CompilerInvocation>> Evaluated = new(StringComparer.OrdinalIgnoreCase);
@@ -37,6 +39,9 @@ internal sealed class CompilerInvocation
 
     /// <summary>What <c>/warnaserror</c> and <c>/warnaserror-</c> do to the warnings that no id names.</summary>
     public required ReportDiagnostic GeneralDiagnosticOption { get; init; }
+
+    /// <summary>The rule set the compiler was pointed at, as its parser read it, whether it came on the command line or from a response file.</summary>
+    public string? RuleSetPath { get; init; }
 
     /// <summary>True when the build runs no analyzer at all.</summary>
     public required bool SkipAnalyzers { get; init; }

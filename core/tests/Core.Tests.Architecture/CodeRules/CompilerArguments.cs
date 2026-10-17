@@ -37,6 +37,7 @@ internal static class CompilerArguments
             SpecificDiagnosticOptions = parsed.CompilationOptions.SpecificDiagnosticOptions,
             GeneralDiagnosticOption = parsed.CompilationOptions.GeneralDiagnosticOption,
             SkipAnalyzers = parsed.SkipAnalyzers,
+            RuleSetPath = parsed.RuleSetPath,
             ConfigSet = configs,
         };
     }

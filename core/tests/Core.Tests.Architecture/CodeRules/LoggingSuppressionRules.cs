@@ -32,7 +32,7 @@ internal static class LoggingSuppressionRules
         var suppressingClasses = ofWritten.Select(suppression => suppression.AttributedClass).OfType<INamedTypeSymbol>().ToHashSet(SymbolEqualityComparer.Default);
         return ofWritten.SelectMany(JudgeAttribute)
             .Concat(found.Except(ofWritten).Select(suppression => new Violation(suppression.File.Path, suppression.Line, $"generated code suppresses {Diagnostic}")))
-            .Concat(written.SelectMany(file => JudgeDeclarations(file, compilation.GetSemanticModel(file.Tree), suppressingClasses)))
+            .Concat(written.SelectMany(file => JudgeDeclarations(file, compilation.GetSemanticModel(file.Tree), suppressingClasses.Contains)))
             .Concat(generated.SelectMany(CheckPragmas));
     }
 
@@ -61,7 +61,7 @@ internal static class LoggingSuppressionRules
             : [new Violation(path, suppression.Line, $"{Diagnostic} suppressed on a member; only a class of generated log messages may suppress it")];
     }
 
-    private static IEnumerable<Violation> JudgeSite(Suppression suppression, ClassDeclarationSyntax type)
+    private static IEnumerable<Violation> JudgeSite(Suppression suppression, BaseTypeDeclarationSyntax type)
     {
         if (!HasJustification(suppression.Attribute))
         {
@@ -76,13 +76,13 @@ internal static class LoggingSuppressionRules
     }
 
     /// <summary>Each declaration of a suppressing class, in whichever file: static partial, with nothing but partial generated methods inside.</summary>
-    private static IEnumerable<Violation> JudgeDeclarations(SourceFile file, SemanticModel model, HashSet<ISymbol?> suppressingClasses) =>
+    private static IEnumerable<Violation> JudgeDeclarations(SourceFile file, SemanticModel model, Func<ISymbol?, bool> isSuppressing) =>
         file.Root.DescendantNodes()
             .OfType<ClassDeclarationSyntax>()
-            .Where(type => suppressingClasses.Contains(model.GetDeclaredSymbol(type)))
+            .Where(type => isSuppressing(model.GetDeclaredSymbol(type)))
             .SelectMany(type => JudgeDeclaration(file, type));
 
-    private static IEnumerable<Violation> JudgeDeclaration(SourceFile file, ClassDeclarationSyntax type)
+    private static IEnumerable<Violation> JudgeDeclaration(SourceFile file, TypeDeclarationSyntax type)
     {
         if (!(type.Modifiers.Any(SyntaxKind.StaticKeyword) && type.Modifiers.Any(SyntaxKind.PartialKeyword)))
         {

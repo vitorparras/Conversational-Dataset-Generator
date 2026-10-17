@@ -41,6 +41,7 @@ public sealed class SonarSeverityTests
         var violations = SonarSeverityRules.CheckAnalyzerLoaded(invocation, SonarRuleCatalog.AnalyzerPath);
 
         Assert.Empty(violations);
+        Assert.Empty(invocation.AnalyzerFailures);
     }
 
     [Theory]
@@ -104,8 +105,8 @@ public sealed class SonarSeverityTests
     {
         var directory = Path.Combine(SourceTree.FixturesDirectory, Fixtures, fixture, "App");
         var configs = Directory.EnumerateFiles(directory).Where(IsConfig);
-        var arguments = configs.Select(path => "/analyzerconfig:" + path).Append(Path.Combine(directory, "Marker.cs")).ToList();
-        var invocation = CompilerArguments.Read(Path.Combine(directory, "App.csproj"), arguments, Path.Combine(directory, "obj"), []);
+        var arguments = configs.Select(path => "/analyzerconfig:" + path).Append("/nostdlib").Append(Path.Combine(directory, "Marker.cs")).ToList();
+        var invocation = CompilerArguments.Read(new CompilerBuildOutput(Path.Combine(directory, "App.csproj"), arguments, Path.Combine(directory, "obj"), []));
         var root = new RootConfig(File.ReadAllText(Path.Combine(directory, "severity.rules")), directory);
 
         return [.. SonarSeverityRules.Check(SampleRules, invocation, root)];

@@ -26,7 +26,9 @@ internal static class SonarSeverityRules
 
     /// <summary>The rule set a build points the compiler at turns rules off outside the config files.</summary>
     public static IEnumerable<Violation> CheckNoRuleSet(CompilerInvocation invocation) =>
-        invocation.RuleSets.Select(ruleSet => new Violation(invocation.ProjectPath, 1, $"the compiler is given a rule set: {ruleSet}"));
+        invocation.RuleSetPath is { } ruleSet
+            ? [new Violation(invocation.ProjectPath, 1, $"the compiler is given a rule set: {ruleSet}")]
+            : [];
 
     private static IEnumerable<Violation> Judge(IEnumerable<SonarRule> rules, CompilerInvocation invocation, RootExclusions exclusions, string source)
     {

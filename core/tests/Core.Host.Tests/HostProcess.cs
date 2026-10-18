@@ -29,6 +29,8 @@ internal sealed class HostProcess : IDisposable
 
     public bool HasExited => process.HasExited;
 
+    public int Id => process.Id;
+
     /// <summary>The built host, listening on a free loopback port.</summary>
     public static Task<HostProcess> StartAsync(CancellationToken cancellationToken)
     {
@@ -90,6 +92,13 @@ internal sealed class HostProcess : IDisposable
         return new HostExit(process.ExitCode, await error);
     }
 
+    /// <summary>Kills the host process alone, so nothing it started gets to hear from it again.</summary>
+    public void KillHostOnly()
+    {
+        process.Kill(entireProcessTree: false);
+        process.WaitForExit();
+    }
+
     /// <summary>Kills the host and hands over everything it wrote to its output stream until then.</summary>
     public async Task<string> StopAsync()
     {
@@ -122,7 +131,7 @@ internal sealed class HostProcess : IDisposable
             info.Environment[variable.Key] = variable.Value;
         }
 
-        foreach (var argument in installation.Arguments)
+        foreach (var argument in installation.LaunchArguments)
         {
             info.ArgumentList.Add(argument);
         }

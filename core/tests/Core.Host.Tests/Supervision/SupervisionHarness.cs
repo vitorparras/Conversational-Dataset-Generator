@@ -1,4 +1,5 @@
 using Core.Host.Supervision;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Core.Host.Tests.Supervision;
 
@@ -16,6 +17,14 @@ internal sealed class SupervisionHarness : IDisposable
 
     /// <summary>A secret no file on the machine can hold before the test makes it.</summary>
     public static string NewSecret() => $"ZQX-MARKER-7731-{Guid.NewGuid():N}";
+
+    public LanguageServiceSupervisor SupervisorFor(string executable)
+    {
+        var supervisor = new LanguageServiceSupervisor(
+            new ServiceProcessLauncher(executable), Health, NullLogger<LanguageServiceSupervisor>.Instance);
+        started.Add(supervisor);
+        return supervisor;
+    }
 
     /// <summary>Starts the service and waits for it to answer; a service that does not answer is stopped and fails the test that asked.</summary>
     public async Task<RunningService> StartHealthyAsync(string secret, CancellationToken cancellationToken)

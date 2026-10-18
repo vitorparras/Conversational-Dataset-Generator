@@ -8,6 +8,13 @@ internal sealed record HostInstallation(string BinaryDirectory, string WorkingDi
     /// <summary>Variables the process starts with besides the ones it inherits.</summary>
     public IReadOnlyDictionary<string, string> Environment { get; init; } = ReadOnlyDictionary<string, string>.Empty;
 
+    /// <summary>Whether the arguments the host receives also name the interpreter that starts the language service.</summary>
+    public bool ProvidesLanguageService { get; init; } = true;
+
+    /// <summary>The arguments given plus, unless the test withholds it, the interpreter of the language service.</summary>
+    public IReadOnlyList<string> LaunchArguments =>
+        ProvidesLanguageService ? [.. Arguments, $"--LanguageService:Executable={LanguageServiceInterpreter.Path}"] : Arguments;
+
     /// <summary>The host as built beside the tests, started from its own directory and told to listen on the address.</summary>
     public static HostInstallation Built(Uri baseAddress) =>
         new(AppContext.BaseDirectory, AppContext.BaseDirectory, [UrlsArgument(baseAddress)]);

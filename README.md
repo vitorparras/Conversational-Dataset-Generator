@@ -64,8 +64,16 @@ repositório, nesta ordem:
 dotnet restore --locked-mode core/Core.slnx
 dotnet build core/Core.slnx
 dotnet test core/Core.slnx
-dotnet run --project core/src/Core.Host -- --Host:Urls=http://127.0.0.1:5080
+PY="$(uv run --frozen --project language-service python -c 'import sys; print(sys.executable)')"
+dotnet run --project core/src/Core.Host -- --Host:Urls=http://127.0.0.1:5080 \
+  --LanguageService:Executable="$PY"
 ```
+
+O núcleo inicia o serviço de linguagem e só abre a porta depois que ele responde. A chave
+`LanguageService:Executable` é o interpretador do ambiente virtual de `language-service/`, em
+caminho absoluto, porque `dotnet run` roda a partir da pasta do projeto; o `$(...)` acima o obtém, e
+o `uv run --frozen` já cria o ambiente a partir de `uv.lock` se ele não existir. Sem a chave, o
+núcleo recusa a configuração. Os testes do núcleo usam o mesmo comando para achar o interpretador.
 
 Com o núcleo de pé, `http://127.0.0.1:5080/status` responde `alive`, `ready` e `checks[]`, com o
 resultado de cada conferência de inicialização. O teste de arquitetura em

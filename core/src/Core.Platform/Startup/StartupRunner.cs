@@ -15,14 +15,12 @@ public sealed class StartupRunner
     public async Task<StartupReport> RunAsync(CancellationToken cancellationToken)
     {
         List<CheckResult> results = [];
-        foreach (var check in checks)
+        var failed = false;
+        for (var index = 0; index < checks.Count && !failed; index++)
         {
-            var result = await check.RunAsync(cancellationToken).ConfigureAwait(false);
+            var result = await checks[index].RunAsync(cancellationToken).ConfigureAwait(false);
             results.Add(result);
-            if (result.Status == CheckStatus.Failed)
-            {
-                break;
-            }
+            failed = result.Status == CheckStatus.Failed;
         }
 
         return new StartupReport(results);

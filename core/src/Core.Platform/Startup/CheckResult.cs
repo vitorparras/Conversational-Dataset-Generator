@@ -4,10 +4,10 @@ namespace Core.Platform.Startup;
 public sealed record CheckResult(string Name, CheckStatus Status, string Message, string ExpectedSource)
 {
     /// <summary>The item was found.</summary>
-    public static CheckResult Passed(string name, string message, string expectedSource) =>
-        new(name, CheckStatus.Passed, message, expectedSource);
+    public static CheckResult Passed(string name, string conclusion, string expectedSource) =>
+        new(name, CheckStatus.Passed, conclusion, expectedSource);
 
-    /// <summary>The item is missing; the message says what and the source says where it should come from.</summary>
-    public static CheckResult Failed(string name, string message, string expectedSource) =>
-        new(name, CheckStatus.Failed, message, expectedSource);
+    /// <summary>The item is missing; the conclusion says what and the source says where it should come from.</summary>
+    public static CheckResult Failed(string name, string conclusion, string expectedSource) =>
+        new(name, CheckStatus.Failed, conclusion, expectedSource);
 }

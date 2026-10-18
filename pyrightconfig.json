@@ -1,7 +1,7 @@
 {
   "include": ["tools", "language-service"],
   "exclude": ["**/__pycache__", "**/.venv"],
-  "extraPaths": ["tools/verify-code", "language-service/src", "language-service/tests"],
+  "extraPaths": ["tools/verify-code", "tools/verify-docs", "language-service/src", "language-service/tests"],
   "pythonVersion": "3.12",
   "typeCheckingMode": "strict",
   "venvPath": "language-service",

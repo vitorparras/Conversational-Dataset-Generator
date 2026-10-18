@@ -6,6 +6,10 @@ namespace Core.Tests.Properties.Configuration;
 /// <summary>Sources for the sample schema: well-formed ones that always load, then the same with one key added or taken out.</summary>
 internal static class ConfigurationGenerators
 {
+    public const string DefaultMode = "strict";
+
+    public const string DefaultToken = "none";
+
     public static readonly ConfigurationSchema Schema = new(
     [
         new ConfigurationSection(
@@ -13,16 +17,20 @@ internal static class ConfigurationGenerators
             [
                 ConfigurationKey.Required("Name"),
                 ConfigurationKey.Protection("Threshold"),
-                ConfigurationKey.WithDefault("Mode", "strict").Accepting("strict", "lenient"),
-                ConfigurationKey.WithDefault("Token", "none").AsSensitive(),
+                ConfigurationKey.WithDefault("Mode", DefaultMode).Accepting("strict", "lenient"),
+                ConfigurationKey.WithDefault("Token", DefaultToken).AsSensitive(),
             ]),
     ]);
+
+    /// <summary>The default of every declared path that has one.</summary>
+    public static readonly IReadOnlyDictionary<string, string> Defaults =
+        new Dictionary<string, string> { ["Sample:Mode"] = DefaultMode, ["Sample:Token"] = DefaultToken };
 
     /// <summary>Every declared path, in declaration order.</summary>
     public static readonly IReadOnlyList<string> DeclaredPaths =
         ["Sample:Name", "Sample:Threshold", "Sample:Mode", "Sample:Token"];
 
-    private static readonly Gen<ConfigurationOrigin> Origin = Gen.Enum<ConfigurationOrigin>();
+    private static readonly Gen<ConfigurationOrigin> Origin = Gen.OneOfConst(ConfigurationOrigin.File, ConfigurationOrigin.Environment, ConfigurationOrigin.Argument);
 
     private static readonly Gen<string?> OptionalName = Gen.OneOfConst(null, "ZQX-MARKER-7731", "alpha", "beta gamma");
 
@@ -42,8 +50,8 @@ internal static class ConfigurationGenerators
 
     /// <summary>One source that declares every required key, then up to two more overriding optional ones; always loads.</summary>
     public static readonly Gen<List<IConfigurationSource>> WellFormed =
-        Gen.Select(Origin, RequiredName, RequiredThreshold, OptionalMode, OptionalToken, Declaring)
-            .SelectMany(first => Gen.Select(Origin, OptionalName, OptionalThreshold, OptionalMode, OptionalToken, Declaring)
+        Gen.Select(Origin, Gen.Select(RequiredName, RequiredThreshold), Gen.Select(OptionalMode, OptionalToken), Declaring)
+            .SelectMany(first => Gen.Select(Origin, Gen.Select(OptionalName, OptionalThreshold), Gen.Select(OptionalMode, OptionalToken), Declaring)
                 .List[0, 2]
                 .Select(more => new List<IConfigurationSource>([first, .. more])));
 
@@ -58,8 +66,8 @@ internal static class ConfigurationGenerators
             new MissingKeyCase([.. sources.Select(source => Without(source, path))], path));
 
     private static IConfigurationSource Declaring(
-        ConfigurationOrigin origin, string? name, string? threshold, string? mode, string? token) =>
-        Written(origin, ("Sample:Name", name), ("Sample:Threshold", threshold), ("Sample:Mode", mode), ("Sample:Token", token));
+        ConfigurationOrigin origin, (string? Name, string? Threshold) identity, (string? Mode, string? Token) tuning) =>
+        Written(origin, ("Sample:Name", identity.Name), ("Sample:Threshold", identity.Threshold), ("Sample:Mode", tuning.Mode), ("Sample:Token", tuning.Token));
 
     private static FixedConfigurationSource Written(ConfigurationOrigin origin, params (string Key, string? Value)[] entries) =>
         new(entries.Where(entry => entry.Value is not null).Select(entry => KeyValuePair.Create(entry.Key, entry.Value)), origin);

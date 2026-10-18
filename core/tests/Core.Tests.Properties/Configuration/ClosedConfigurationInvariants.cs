@@ -37,26 +37,28 @@ internal sealed class ClosedConfigurationInvariants
             Assert.Contains($"'{generated.Path}'", problem.Describe(), StringComparison.Ordinal);
         });
 
-    /// <summary>CA-4 of requisito 032: a configuration that loaded shows every declared key with the origin it came from.</summary>
+    /// <summary>CA-4 of requisito 032: a configuration that loaded shows every declared key, each with a value some source of that origin wrote, or its default under the default origin.</summary>
     public void LoadedValuesShowTheirOrigin() =>
         runner.Check(ConfigurationGenerators.WellFormed, sources =>
         {
             var result = load(ConfigurationGenerators.Schema, sources);
 
             Assert.False(result.Refused);
-            Assert.Equal(ExpectedOrigins(sources), LoadSnapshot.OriginsOf(result));
+            Assert.Equal(ConfigurationGenerators.DeclaredPaths, result.View.Entries.Select(entry => entry.Key));
+            Assert.Empty(LoadSnapshot.ShownBy(result).Except(PossibleLines(sources)));
         });
 
-    private static string ExpectedOrigins(IReadOnlyList<IConfigurationSource> sources)
-    {
-        var readings = sources.Select(source => source.Read()).ToList();
-        return string.Join('\n', ConfigurationGenerators.DeclaredPaths.Select(path => LoadSnapshot.Line(path, OriginOf(path, readings))));
-    }
+    private static IEnumerable<string> PossibleLines(IReadOnlyList<IConfigurationSource> sources) =>
+        WrittenLines(sources).Concat(DefaultLines());
 
-    private static ConfigurationOrigin OriginOf(string path, IEnumerable<SourceReading> readings) =>
-        readings
-            .Where(reading => reading.Entries.Any(entry => string.Equals(entry.Key, path, StringComparison.OrdinalIgnoreCase)))
-            .Select(reading => reading.Origin)
-            .DefaultIfEmpty(ConfigurationOrigin.Default)
-            .Max();
+    private static IEnumerable<string> WrittenLines(IReadOnlyList<IConfigurationSource> sources) =>
+        sources
+            .Select(source => source.Read())
+            .SelectMany(reading => reading.Entries.Select(entry => LoadSnapshot.Line(PathOf(entry.Key), entry.Value!, reading.Origin)));
+
+    private static IEnumerable<string> DefaultLines() =>
+        ConfigurationGenerators.Defaults.Select(pair => LoadSnapshot.Line(pair.Key, pair.Value, ConfigurationOrigin.Default));
+
+    private static string PathOf(string key) =>
+        ConfigurationGenerators.DeclaredPaths.Single(path => string.Equals(path, key, StringComparison.OrdinalIgnoreCase));
 }

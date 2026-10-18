@@ -101,7 +101,7 @@ internal sealed class CanaryWorkspace : IDisposable
         File.WriteAllText(Path.Combine(directory, Path.GetFileName(source)), text);
         replaced.Add(source);
         var shown = $"{canaryName}/sonar-{ordinal}/{Path.GetFileName(source)}";
-        return new CanarySite(Path.GetRelativePath(SourceTree.CoreRoot, source).Replace(Path.DirectorySeparatorChar, '/'), shown, SonarCanary.Lines(text));
+        return new CanarySite(Path.GetRelativePath(SourceTree.CoreRoot, source).Replace(Path.DirectorySeparatorChar, '/'), shown, SonarCanary.Lines(text), SonarCanary.DefaultOnLines(text));
     }
 
     private CanarySite Plant(string source, int ordinal)

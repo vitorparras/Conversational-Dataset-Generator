@@ -18,6 +18,16 @@ public sealed class SonarCanaryTests
     }
 
     [Fact]
+    public async Task ClassSplitOverTwoFilesGetsItsFindingsInEachFileAndTheBuildStaysIntact()
+    {
+        var run = await CanaryRun.OfSonarFixtureAsync("Split", TestContext.Current.CancellationToken);
+
+        Assert.Equal(2, run.SonarSites.Count);
+        Assert.Empty(LoggingCanaryRules.CheckBuildIsIntact(run.Build));
+        Assert.Empty(SonarCanaryRules.CheckRefused(run.SonarSites, run.Build));
+    }
+
+    [Fact]
     public async Task SourcesThatTryToLookGeneratedStillHideNothingExceptTheOnesTheAnalyzerSkips()
     {
         var run = await CanaryRun.OfSonarFixtureAsync("Skips", TestContext.Current.CancellationToken);

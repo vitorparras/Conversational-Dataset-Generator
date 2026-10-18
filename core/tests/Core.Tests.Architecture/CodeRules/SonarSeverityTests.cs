@@ -24,9 +24,8 @@ public sealed class SonarSeverityTests
     {
         var invocation = CompilerInvocation.Of(SourceTree.ProductionProject(projectName).Path);
         var rules = SonarRuleCatalog.Load(SonarRuleCatalog.AnalyzerPath);
-        var rootConfig = Path.Combine(Path.GetDirectoryName(SourceTree.CoreRoot)!, ".editorconfig");
 
-        var violations = SonarSeverityRules.Check(rules, invocation, new RootConfig(File.ReadAllText(rootConfig), Path.GetDirectoryName(rootConfig)!));
+        var violations = SonarSeverityRules.Check(rules, invocation, RepositoryRoot());
 
         Assert.Contains(rules, rule => rule.NeedsExplicitSeverity);
         Assert.Empty(violations);
@@ -100,16 +99,85 @@ public sealed class SonarSeverityTests
         Assert.StartsWith(rule + " ", refused.Message, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [MemberData(nameof(ProductionProjectNames))]
+    public void ProductionProjectIsGivenOnlyTheRootConfigAndTheOnesTheSdkBrings(string projectName)
+    {
+        var invocation = CompilerInvocation.Of(SourceTree.ProductionProject(projectName).Path);
+
+        Assert.NotEmpty(invocation.AnalyzerConfigPaths);
+        Assert.Empty(AnalyzerConfigRules.CheckConfigFiles(invocation, RepositoryRoot()));
+    }
+
+    [Theory]
+    [MemberData(nameof(ProductionProjectNames))]
+    public void ProductionProjectLowersNoDiagnosticInBulkOrByIdAndMarksNoSourceAsGenerated(string projectName)
+    {
+        var invocation = CompilerInvocation.Of(SourceTree.ProductionProject(projectName).Path);
+
+        Assert.Empty(AnalyzerConfigRules.CheckEffectiveSeverities(invocation, RepositoryRoot()));
+    }
+
+    [Theory]
+    [InlineData("Complete")]
+    [InlineData("FileSpecific")]
+    [InlineData("SdkSwitchedOff")]
+    public void ConfigsThatTheRootAndTheSdkMayWriteAreAcceptedByTheEffectiveSeverityRules(string fixture)
+    {
+        var (invocation, root) = Read(fixture);
+
+        Assert.Empty(AnalyzerConfigRules.CheckEffectiveSeverities(invocation, root));
+    }
+
+    [Theory]
+    [InlineData("BulkInFileSection", "dotnet_analyzer_diagnostic.severity")]
+    [InlineData("BulkInAllSources", "dotnet_analyzer_diagnostic.severity")]
+    [InlineData("BulkByCategory", "dotnet_analyzer_diagnostic.category-Style.severity")]
+    [InlineData("GeneratedCodeMark", "generated_code")]
+    [InlineData("LoweredNonSonarId", "CA1000")]
+    public void ConfigThatLowersDiagnosticsInBulkOrByIdOrMarksSourcesAsGeneratedIsRefused(string fixture, string expected)
+    {
+        var (invocation, root) = Read(fixture);
+
+        var refused = AnalyzerConfigRules.CheckEffectiveSeverities(invocation, root).ToList();
+
+        Assert.Contains(refused, violation => violation.Message.StartsWith(expected + " ", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void ConfigBesideTheRootOneThatTheCompilerIsGivenIsRefused()
+    {
+        var (invocation, root) = Read("NestedConfig");
+
+        var refused = AnalyzerConfigRules.CheckConfigFiles(invocation, root).ToList();
+
+        var nested = Assert.Single(refused);
+        Assert.EndsWith("nested.rules", nested.File, StringComparison.Ordinal);
+    }
+
+    private static RootConfig RepositoryRoot()
+    {
+        var path = Path.Combine(Path.GetDirectoryName(SourceTree.CoreRoot)!, ".editorconfig");
+        return new RootConfig(File.ReadAllText(path), Path.GetDirectoryName(path)!, path);
+    }
+
     /// <summary>The compiler's own parser reads the command line a build would give for the fixture's config files and its one source.</summary>
     private static List<Violation> Judged(string fixture)
+    {
+        var (invocation, root) = Read(fixture);
+
+        return [.. SonarSeverityRules.Check(SampleRules, invocation, root)];
+    }
+
+    private static (CompilerInvocation Invocation, RootConfig Root) Read(string fixture)
     {
         var directory = Path.Combine(SourceTree.FixturesDirectory, Fixtures, fixture, "App");
         var configs = Directory.EnumerateFiles(directory).Where(IsConfig);
         var arguments = configs.Select(path => "/analyzerconfig:" + path).Append("/nostdlib").Append(Path.Combine(directory, "Marker.cs")).ToList();
         var invocation = CompilerArguments.Read(new CompilerBuildOutput(Path.Combine(directory, "App.csproj"), arguments, Path.Combine(directory, "obj"), []));
-        var root = new RootConfig(File.ReadAllText(Path.Combine(directory, "severity.rules")), directory);
+        var rootPath = Path.Combine(directory, "severity.rules");
 
-        return [.. SonarSeverityRules.Check(SampleRules, invocation, root)];
+        return (invocation, new RootConfig(File.ReadAllText(rootPath), directory, rootPath));
     }
 
     private static bool IsConfig(string path) =>

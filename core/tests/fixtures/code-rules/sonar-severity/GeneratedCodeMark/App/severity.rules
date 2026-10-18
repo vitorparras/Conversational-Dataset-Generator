@@ -1,0 +1,4 @@
+root = true
+
+[Marker.cs]
+generated_code = true

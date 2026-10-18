@@ -18,8 +18,19 @@ internal sealed class CompilerInvocation
 
     public required IReadOnlyList<SourceFile> SourceFiles { get; init; }
 
-    /// <summary>Sources the build produced for itself: what its generators emit when run on the compilation, and what lies under the output folders.</summary>
-    public required IReadOnlyList<SourceFile> GeneratedFiles { get; init; }
+    /// <summary>Sources the build compiles from under its own output folders.</summary>
+    public required IReadOnlyList<SourceFile> BuildAddedFiles { get; init; }
+
+    /// <summary>What the generators emit when run on the compilation; the path names the generator and the hint.</summary>
+    public required IReadOnlyList<SourceFile> GeneratorFiles { get; init; }
+
+    /// <summary>The folder the build writes its own files to, the root of the intermediate output.</summary>
+    public required string IntermediateDirectory { get; init; }
+
+    /// <summary>The <c>/analyzerconfig:</c> files, in the order the compiler is given them.</summary>
+    public required IReadOnlyList<string> AnalyzerConfigPaths { get; init; }
+
+    public IReadOnlyList<SourceFile> GeneratedFiles => [.. BuildAddedFiles, .. GeneratorFiles];
 
     public required IReadOnlyList<string> Analyzers { get; init; }
 
@@ -68,11 +79,12 @@ internal sealed class CompilerInvocation
         var run = new MsBuildRun(projectPath, scratch.Path, packages);
         var description = $"Reading the compiler invocation of {Path.GetFileName(projectPath)}";
         _ = run.Execute("-t:Restore").OutputOfSuccess(description);
-        var output = run.Execute("-t:Build", "-p:ProvideCommandLineArgs=true", "-getItem:CscCommandLineArgs")
+        var output = run.Execute("-t:Build", "-p:ProvideCommandLineArgs=true", "-getItem:CscCommandLineArgs", "-getProperty:IntermediateOutputPath")
             .OutputOfSuccess(description);
         using var document = JsonDocument.Parse(output[output.IndexOf('{', StringComparison.Ordinal)..]);
         var arguments = document.RootElement.GetProperty("Items").GetProperty("CscCommandLineArgs").EnumerateArray()
             .Select(item => item.GetProperty("Identity").GetString()!);
-        return CompilerArguments.Read(new CompilerBuildOutput(projectPath, [.. arguments], run.Artifacts, [ToolLocations.DotnetRoot, packages ?? ToolLocations.GlobalPackages]));
+        var intermediate = Path.GetFullPath(document.RootElement.GetProperty("Properties").GetProperty("IntermediateOutputPath").GetString()!, Path.GetDirectoryName(projectPath)!);
+        return CompilerArguments.Read(new CompilerBuildOutput(projectPath, [.. arguments], run.Artifacts, [ToolLocations.DotnetRoot, packages ?? ToolLocations.GlobalPackages], intermediate));
     }
 }

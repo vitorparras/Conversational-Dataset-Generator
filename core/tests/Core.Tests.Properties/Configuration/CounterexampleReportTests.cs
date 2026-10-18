@@ -3,15 +3,33 @@ using CsCheck;
 
 namespace Core.Tests.Properties.Configuration;
 
-/// <summary>A failing property over sources prints the sources, not their type name.</summary>
+/// <summary>A broken load makes its real property fail with a report that prints the sources that failed, not their type name.</summary>
 public sealed class CounterexampleReportTests
 {
-    [Fact]
-    public void FailureReportShowsTheEntriesOfTheSourcesThatFailed()
-    {
-        var runner = PropertyRunner.FromProcess();
+    private static ClosedConfigurationInvariants Over(ConfigurationLoader load) => new(PropertyRunner.FromProcess(), load);
 
-        var failure = Assert.Throws<CsCheckException>(() => runner.Check(ConfigurationGenerators.WellFormed, Assert.Empty));
+    [Fact]
+    public void UnknownKeyReportShowsTheKeyAndTheSources()
+    {
+        var failure = Assert.Throws<CsCheckException>(Over(BrokenLoaders.IgnoringUnknownKeys).UnknownKeyIsRefusedAndNamed);
+
+        Assert.Contains("Sample:Treshold over [", failure.Message, StringComparison.Ordinal);
+        Assert.Contains("Sample:Name=", failure.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MissingKeyReportShowsTheKeyAndTheSources()
+    {
+        var failure = Assert.Throws<CsCheckException>(Over(BrokenLoaders.FillingMissingKeys).MissingRequiredKeyIsRefusedAndNamed);
+
+        Assert.Contains("Sample:Name over [", failure.Message, StringComparison.Ordinal);
+        Assert.Contains("Sample:Threshold=", failure.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OriginReportShowsTheSources()
+    {
+        var failure = Assert.Throws<CsCheckException>(Over(BrokenLoaders.HidingOrigins).LoadedValuesShowTheirOrigin);
 
         Assert.Contains("Sample:Name=", failure.Message, StringComparison.Ordinal);
     }

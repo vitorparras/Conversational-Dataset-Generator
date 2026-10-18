@@ -9,7 +9,7 @@ internal sealed partial class RootExclusions
     private const string AllSources = "*.cs";
 
     /// <summary>The only rules that may be switched off for every source; any other is switched off for one named file.</summary>
-    private static readonly string[] ProjectWide = ["S1309", "S1451"];
+    private static readonly string[] ProjectWide = ["S1309", "S1451", "S4055"];
 
     private readonly List<(string Header, string Id)> entries;
     private readonly string directory;

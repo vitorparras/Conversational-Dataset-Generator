@@ -129,7 +129,8 @@ dotnet_diagnostic.S4040.severity = error
 dotnet_diagnostic.S4041.severity = error
 dotnet_diagnostic.S4047.severity = error
 dotnet_diagnostic.S4049.severity = error
-dotnet_diagnostic.S4055.severity = error
+# One language per artifact (decision 0039) and no requirement to translate: a ResourceManager would be unrequired indirection.
+dotnet_diagnostic.S4055.severity = none
 dotnet_diagnostic.S4056.severity = error
 dotnet_diagnostic.S4057.severity = error
 dotnet_diagnostic.S4058.severity = error

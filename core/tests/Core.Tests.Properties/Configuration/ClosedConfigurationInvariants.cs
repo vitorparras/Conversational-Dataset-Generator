@@ -37,7 +37,7 @@ internal sealed class ClosedConfigurationInvariants
             Assert.Contains($"'{generated.Path}'", problem.Describe(), StringComparison.Ordinal);
         });
 
-    /// <summary>CA-4 of requisito 032: a configuration that loaded shows every declared key, each with a value some source of that origin wrote, or its default under the default origin.</summary>
+    /// <summary>CA-4 of requisito 032: a configuration that loaded shows every declared key, each with a value some source of that origin wrote, or its default under the default origin; the sensitive one is shown redacted.</summary>
     public void LoadedValuesShowTheirOrigin() =>
         runner.Check(ConfigurationGenerators.WellFormed, sources =>
         {
@@ -45,11 +45,12 @@ internal sealed class ClosedConfigurationInvariants
 
             Assert.False(result.Refused);
             Assert.Equal(ConfigurationGenerators.DeclaredPaths, result.View.Entries.Select(entry => entry.Key));
-            Assert.Empty(LoadSnapshot.ShownBy(result).Except(PossibleLines(sources)));
+            Assert.Empty(LoadSnapshot.UsedBy(result).Except(PossibleLines(sources, redact: false)));
+            Assert.Empty(LoadSnapshot.ShownBy(result).Except(PossibleLines(sources, redact: true)));
         });
 
-    private static IEnumerable<string> PossibleLines(IReadOnlyList<IConfigurationSource> sources) =>
-        WrittenLines(sources).Concat(DefaultLines());
+    private static IEnumerable<string> PossibleLines(IReadOnlyList<IConfigurationSource> sources, bool redact) =>
+        WrittenLines(sources).Concat(DefaultLines()).Select(line => redact ? Redacted(line) : line);
 
     private static IEnumerable<string> WrittenLines(IReadOnlyList<IConfigurationSource> sources) =>
         sources
@@ -58,6 +59,13 @@ internal sealed class ClosedConfigurationInvariants
 
     private static IEnumerable<string> DefaultLines() =>
         ConfigurationGenerators.Defaults.Select(pair => LoadSnapshot.Line(pair.Key, pair.Value, ConfigurationOrigin.Default));
+
+    private static string Redacted(string line) =>
+        line.StartsWith(ConfigurationGenerators.SensitivePath + "=", StringComparison.Ordinal)
+            ? LoadSnapshot.Line(ConfigurationGenerators.SensitivePath, EffectiveConfiguration.Redacted, OriginOf(line))
+            : line;
+
+    private static ConfigurationOrigin OriginOf(string line) => Enum.Parse<ConfigurationOrigin>(line[(line.LastIndexOf(' ') + 1)..]);
 
     private static string PathOf(string key) =>
         ConfigurationGenerators.DeclaredPaths.Single(path => string.Equals(path, key, StringComparison.OrdinalIgnoreCase));

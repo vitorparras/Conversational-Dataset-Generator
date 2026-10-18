@@ -6,6 +6,8 @@ namespace Core.Tests.Properties.Configuration;
 /// <summary>Sources for the sample schema: well-formed ones that always load, then the same with one key added or taken out.</summary>
 internal static class ConfigurationGenerators
 {
+    public const string SensitivePath = "Sample:Token";
+
     public const string DefaultMode = "strict";
 
     public const string DefaultToken = "none";

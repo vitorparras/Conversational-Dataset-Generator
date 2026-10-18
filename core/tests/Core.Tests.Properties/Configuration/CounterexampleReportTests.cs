@@ -13,8 +13,7 @@ public sealed class CounterexampleReportTests
     {
         var failure = Assert.Throws<CsCheckException>(Over(BrokenLoaders.IgnoringUnknownKeys).UnknownKeyIsRefusedAndNamed);
 
-        Assert.Contains(" over [", failure.Message, StringComparison.Ordinal);
-        Assert.Contains("Sample:Name=", failure.Message, StringComparison.Ordinal);
+        Assert.Matches(@"^\S+ over \[(File|Environment|Argument)\[Sample:Name=", FailedSample.CounterexampleIn(failure.Message));
     }
 
     [Fact]
@@ -22,8 +21,7 @@ public sealed class CounterexampleReportTests
     {
         var failure = Assert.Throws<CsCheckException>(Over(BrokenLoaders.FillingMissingKeys).MissingRequiredKeyIsRefusedAndNamed);
 
-        Assert.Contains(" over [", failure.Message, StringComparison.Ordinal);
-        Assert.Contains("Sample:", failure.Message, StringComparison.Ordinal);
+        Assert.Matches(@"^\S+ over \[(File|Environment|Argument)\[Sample:(Name|Threshold)=", FailedSample.CounterexampleIn(failure.Message));
     }
 
     [Fact]
@@ -31,6 +29,6 @@ public sealed class CounterexampleReportTests
     {
         var failure = Assert.Throws<CsCheckException>(Over(BrokenLoaders.HidingOrigins).LoadedValuesShowTheirOrigin);
 
-        Assert.Contains("Sample:Name=", failure.Message, StringComparison.Ordinal);
+        Assert.Matches(@"^\[(File|Environment|Argument)\[Sample:Name=", FailedSample.CounterexampleIn(failure.Message));
     }
 }

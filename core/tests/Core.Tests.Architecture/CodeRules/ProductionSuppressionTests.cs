@@ -6,6 +6,8 @@ public sealed class ProductionSuppressionTests
     private const string Fixtures = "production-suppression";
     private const string Switches = "sonar-switches";
 
+    private static readonly Lazy<CompilerInvocation> OptionsInvocation = new(() => CompilerInvocation.OfFixture(Path.Combine(Switches, "Options"), "App"));
+
     public static TheoryData<string> ProductionProjectNames() =>
         [.. SourceTree.ProductionProjects().Select(project => project.ModuleName)];
 
@@ -62,13 +64,18 @@ public sealed class ProductionSuppressionTests
     }
 
     [Fact]
-    public void AnalyzerSilencedOnTheCommandLineIsRefused()
+    public void AnalyzerSilencedByNoWarnOnTheCommandLineIsRefused()
     {
-        var invocation = CompilerInvocation.OfFixture(Path.Combine(Switches, "Options"), "App");
-
-        var messages = ProductionSuppressionRules.CheckOptions(invocation).Select(violation => violation.Message).ToList();
+        var messages = OptionViolations();
 
         Assert.Contains(messages, message => message.StartsWith("S1144 ", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void AnalyzerKeptFromFailingTheBuildOnTheCommandLineIsRefused()
+    {
+        var messages = OptionViolations();
+
         Assert.Contains(messages, message => message.StartsWith("S1227 ", StringComparison.Ordinal));
     }
 
@@ -91,6 +98,18 @@ public sealed class ProductionSuppressionTests
         Assert.NotEmpty(ProductionSuppressionRules.CheckSources(invocation.GeneratedFiles));
     }
 
+    [Theory]
+    [InlineData("ObjGlobalUsings", "Sneak.GlobalUsings.g.cs")]
+    [InlineData("ObjSubfolder", "Logging.g.cs")]
+    public void SourceCopiedIntoTheBuildOutputUnderAGeneratedNameIsRefused(string fixture, string fileName)
+    {
+        var invocation = CompilerInvocation.OfFixture(Path.Combine(Switches, fixture), "App");
+
+        var refused = BuildOutputRules.CheckGeneratedFiles(invocation).Select(violation => Path.GetFileName(violation.File)).ToList();
+
+        Assert.Contains(fileName, refused);
+    }
+
     [Fact]
     public void GeneratorThatEmitsASuppressionOfASonarRuleIsRefusedByNameAndByContent()
     {
@@ -99,4 +118,7 @@ public sealed class ProductionSuppressionTests
         Assert.NotEmpty(BuildOutputRules.CheckGeneratedFiles(invocation));
         Assert.NotEmpty(ProductionSuppressionRules.CheckSources(invocation.GeneratedFiles));
     }
+
+    private static List<string> OptionViolations() =>
+        [.. ProductionSuppressionRules.CheckOptions(OptionsInvocation.Value).Select(violation => violation.Message)];
 }

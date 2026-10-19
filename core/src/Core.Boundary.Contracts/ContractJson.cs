@@ -6,7 +6,7 @@ namespace Core.Boundary.Contracts;
 /// <summary>How the messages of the contract are written and read: the one place their JSON form is declared.</summary>
 public static class ContractJson
 {
-    /// <summary>Snake case names, as the language service writes them; an unknown, missing or null field is an error.</summary>
+    /// <summary>Snake case names, as the language service writes them; an unknown, missing, null or repeated field is an error.</summary>
     public static JsonSerializerOptions Options { get; } = Create();
 
     private static JsonSerializerOptions Create()
@@ -17,6 +17,7 @@ public static class ContractJson
             UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
             RespectRequiredConstructorParameters = true,
             RespectNullableAnnotations = true,
+            AllowDuplicateProperties = false,
         };
         options.MakeReadOnly(populateMissingResolver: true);
         return options;

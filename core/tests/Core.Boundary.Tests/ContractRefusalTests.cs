@@ -3,7 +3,7 @@ using Core.Boundary.Contracts;
 
 namespace Core.Boundary.Tests;
 
-/// <summary>A message outside the contract is refused whole: an unknown field, a field name in another case, a confidence, a missing or null field, a text offset.</summary>
+/// <summary>A message outside the contract is refused whole: an unknown field, a field name in another case, a confidence, a missing or null field, a repeated field, a text offset.</summary>
 public sealed class ContractRefusalTests
 {
     [Fact]
@@ -32,6 +32,7 @@ public sealed class ContractRefusalTests
     [InlineData("refused/response-with-null-kind.json", "kind")]
     [InlineData("refused/response-with-text-offset.json", "start")]
     [InlineData("refused/response-without-model-version.json", "model_version")]
+    [InlineData("refused/response-with-duplicate-field.json", "start")]
     public void ResponseOutsideTheContractIsRefused(string fixture, string field)
     {
         var json = ContractFixture.Text(fixture);

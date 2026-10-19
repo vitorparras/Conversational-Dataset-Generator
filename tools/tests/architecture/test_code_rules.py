@@ -143,6 +143,14 @@ class CodeRulesTests(unittest.TestCase):
 
         self.assertEqual(rules_of(source), ["nesting"])
 
+    def test_a_nested_function_adds_no_level_of_its_own(self) -> None:
+        source = (
+            "def work(a):\n    for x in a:\n        def inner():\n"
+            "            if x:\n                pass\n"
+        )
+
+        self.assertEqual(rules_of(source), [])
+
     def test_keyword_only_parameters_count(self) -> None:
         source = "def work(a, b, *, c, d, e): ...\n"
 

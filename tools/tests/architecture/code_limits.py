@@ -81,10 +81,7 @@ def _depth(block: list[ast.stmt], level: int) -> int:
 
 
 def nesting(function: ast.FunctionDef | ast.AsyncFunctionDef) -> int:
-    """Levels of control structures inside the function, nested functions included.
-
-    An ``elif`` stays on its ``if`` level; a nested ``def`` adds none but keeps its host's levels.
-    """
+    """Control levels in the function; an elif adds none and a nested def keeps its host's."""
     return _depth(function.body, 0)
 
 

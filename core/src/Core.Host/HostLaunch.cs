@@ -21,16 +21,16 @@ internal sealed class HostLaunch
         this.report = report;
     }
 
-    public static HostLaunch Ready(WebApplication app) => new(HostLaunchState.Ready, app, [], report: null);
+    internal static HostLaunch Ready(WebApplication app) => new(HostLaunchState.Ready, app, [], report: null);
 
-    public static HostLaunch Refused(IReadOnlyList<ConfigurationProblem> problems) =>
+    internal static HostLaunch Refused(IReadOnlyList<ConfigurationProblem> problems) =>
         new(HostLaunchState.Refused, app: null, problems, report: null);
 
-    public static HostLaunch CheckFailed(StartupReport report) =>
+    internal static HostLaunch CheckFailed(StartupReport report) =>
         new(HostLaunchState.CheckFailed, app: null, [], report);
 
     /// <summary>Serves until stopped, or reports why the host was not assembled and ends at once.</summary>
-    public ExitCode Run() => state switch
+    internal ExitCode Run() => state switch
     {
         HostLaunchState.Ready => Serve(),
         HostLaunchState.Refused => ConfigurationRefusal.Report(Console.Error, problems),

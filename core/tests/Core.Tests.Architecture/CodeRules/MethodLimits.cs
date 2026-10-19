@@ -1,4 +1,5 @@
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Core.Tests.Architecture.CodeRules;
@@ -6,6 +7,13 @@ namespace Core.Tests.Architecture.CodeRules;
 /// <summary>Limits a method: its length, parameter count and nesting depth.</summary>
 internal static class MethodLimits
 {
+    private static readonly HashSet<SyntaxKind> NestingKinds =
+    [
+        SyntaxKind.IfStatement, SyntaxKind.ForStatement, SyntaxKind.ForEachStatement, SyntaxKind.WhileStatement,
+        SyntaxKind.DoStatement, SyntaxKind.SwitchStatement, SyntaxKind.TryStatement, SyntaxKind.UsingStatement,
+        SyntaxKind.LockStatement,
+    ];
+
     public const int MaxLines = 40;
     public const int MaxParameters = 4;
     public const int MaxNesting = 2;
@@ -50,10 +58,7 @@ internal static class MethodLimits
         _ => throw new ArgumentException("Not a method node.", nameof(method)),
     };
 
-    private static bool IsNestingStatement(SyntaxNode node) =>
-        node is IfStatementSyntax or ForStatementSyntax or ForEachStatementSyntax or WhileStatementSyntax
-            or DoStatementSyntax or SwitchStatementSyntax or TryStatementSyntax or UsingStatementSyntax
-            or LockStatementSyntax;
+    private static bool IsNestingStatement(SyntaxNode node) => NestingKinds.Contains(node.Kind());
 
     /// <summary>Each nesting statement between the method and the node adds a level; an else-if does not.</summary>
     private static int DepthWithin(SyntaxNode method, SyntaxNode statement) =>

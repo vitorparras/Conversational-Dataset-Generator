@@ -9,7 +9,7 @@ internal sealed class FakeConfigurationSource : IConfigurationSource
 
     public FakeConfigurationSource(IEnumerable<KeyValuePair<string, string?>> entries, ConfigurationOrigin origin)
     {
-        reading = SourceReading.Of(origin, entries);
+        reading = new SourceReading(origin, [.. entries], []);
     }
 
     public FakeConfigurationSource(ConfigurationOrigin origin, ConfigurationProblem problem)

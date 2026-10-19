@@ -12,7 +12,7 @@ public sealed class PropertyRunnerTests
     private static PropertyRunner RunnerWithSeed(string? seed) =>
         new(name => name == PropertyRunner.SeedVariable ? seed : null, Budget, _ => { });
 
-    private static void FailsOnTwoMarkedIntegers(List<int> values) => Assert.True(values.Count(value => value % 7 == 3) < 2);
+    private static void FailsOnTwoMarkedIntegers(IEnumerable<int> values) => Assert.True(values.Count(value => Math.Abs(value % 7) == 3) < 2);
 
     [Fact]
     public void FailureNamesTheSeedThatReplaysIt()
@@ -59,6 +59,6 @@ public sealed class PropertyRunnerTests
         var budget = new PropertyBudget(Cases: 1000, Deadline: TimeSpan.FromMilliseconds(200));
         var slow = new PropertyRunner(_ => null, budget, _ => { });
 
-        _ = Assert.Throws<TimeoutException>(() => slow.Check(Gen.Int, _ => Thread.Sleep(TimeSpan.FromMilliseconds(50))));
+        _ = Assert.Throws<TimeoutException>(() => slow.Check(Gen.Int, _ => SpinWait.SpinUntil(() => false, TimeSpan.FromMilliseconds(50))));
     }
 }

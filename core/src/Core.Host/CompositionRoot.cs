@@ -11,7 +11,7 @@ namespace Core.Host;
 /// <summary>The only place where the host is assembled: configuration first, then logging and services, then routes.</summary>
 internal static class CompositionRoot
 {
-    public static async Task<HostLaunch> BuildAsync(string[] args)
+    internal static async Task<HostLaunch> BuildAsync(string[] args)
     {
         var loaded = ClosedConfiguration.Load(
             new ConfigurationSchema([HostConfiguration.Section, LanguageServiceConfiguration.Section]),
@@ -47,9 +47,10 @@ internal static class CompositionRoot
     }
 
     /// <summary>Logging with redaction before anything else, then every service the routes consume.</summary>
-    public static void Compose(WebApplicationBuilder builder, EffectiveConfiguration configuration)
+    internal static void Compose(IHostApplicationBuilder builder, EffectiveConfiguration configuration)
     {
         PlatformLogging.Configure(builder.Logging);
+        _ = builder.Services.AddSingleton(TimeProvider.System);
         _ = builder.Services.AddRedaction(PlatformLogging.EraseSensitiveData);
         _ = builder.Services.AddSingleton(configuration);
         _ = builder.Services.ConfigureHttpJsonOptions(options =>
@@ -66,6 +67,7 @@ internal static class CompositionRoot
     private static ServiceProvider StartupServices(ConfigurationLoadResult loaded)
     {
         var services = new ServiceCollection();
+        _ = services.AddSingleton(TimeProvider.System);
         _ = services.AddLogging(PlatformLogging.Configure);
         _ = services.AddRedaction(PlatformLogging.EraseSensitiveData);
         _ = services.AddSingleton(_ => HealthWait.NewClient());

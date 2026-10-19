@@ -5,4 +5,5 @@ internal sealed record CompilerBuildOutput(
     string ProjectPath,
     IReadOnlyList<string> Arguments,
     string ArtifactsDirectory,
-    IReadOnlyList<string> AnalyzerRoots);
+    IReadOnlyList<string> AnalyzerRoots,
+    string IntermediateDirectory = "");

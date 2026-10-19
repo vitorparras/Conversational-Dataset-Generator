@@ -1,0 +1,10 @@
+using Microsoft.CodeAnalysis;
+
+[Generator]
+public sealed class QuietGenerator : IIncrementalGenerator
+{
+    public void Initialize(IncrementalGeneratorInitializationContext context) =>
+        context.RegisterPostInitializationOutput(output => output.AddSource(
+            "Quiet.g.cs",
+            "[assembly: System.Diagnostics.CodeAnalysis.SuppressMessage(\"ApiDesign\", \"S3358\", Scope = \"type\", Target = \"~T:App.Marker\")]"));
+}

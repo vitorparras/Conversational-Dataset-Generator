@@ -6,9 +6,9 @@ namespace Core.Host.Endpoints;
 /// <summary>Shows the configuration in force: every key, its origin, and sensitive values redacted.</summary>
 internal static class ConfigurationEndpoint
 {
-    public const string Route = "/configuration";
+    internal const string Route = "/configuration";
 
-    public static void Map(IEndpointRouteBuilder endpoints) => _ = endpoints.MapGet(Route, InForce);
+    internal static void Map(IEndpointRouteBuilder endpoints) => _ = endpoints.MapGet(Route, InForce);
 
     private static EffectiveConfiguration InForce([FromServices] EffectiveConfiguration configuration) => configuration;
 }

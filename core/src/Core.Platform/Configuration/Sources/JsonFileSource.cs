@@ -20,13 +20,13 @@ public sealed class JsonFileSource : IConfigurationSource
     {
         if (!File.Exists(path))
         {
-            return SourceReading.Of(ConfigurationOrigin.File, []);
+            return new(ConfigurationOrigin.File, [], []);
         }
 
         try
         {
             using var document = JsonDocument.Parse(File.ReadAllText(path));
-            return SourceReading.Of(ConfigurationOrigin.File, Flatten(document.RootElement, prefix: null));
+            return new(ConfigurationOrigin.File, [.. Flatten(document.RootElement, prefix: null)], []);
         }
         catch (JsonException)
         {
@@ -44,8 +44,13 @@ public sealed class JsonFileSource : IConfigurationSource
     private static string Join(string? prefix, string name) => prefix is null ? name : $"{prefix}{PathSeparator}{name}";
 
     /// <summary>Text as written for a string, raw JSON for anything else, null for null.</summary>
-    private static string? Scalar(JsonElement element) =>
-        element.ValueKind == JsonValueKind.Null
-            ? null
-            : element.ValueKind == JsonValueKind.String ? element.GetString() : element.GetRawText();
+    private static string? Scalar(JsonElement element)
+    {
+        if (element.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
+
+        return element.ValueKind == JsonValueKind.String ? element.GetString() : element.GetRawText();
+    }
 }

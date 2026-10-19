@@ -6,9 +6,9 @@ namespace Core.Host.Endpoints;
 /// <summary>Answers whether the process is alive and whether it is ready, with the result of each startup check.</summary>
 internal static class StatusEndpoint
 {
-    public const string Route = "/status";
+    internal const string Route = "/status";
 
-    public static void Map(IEndpointRouteBuilder endpoints) => _ = endpoints.MapGet(Route, Describe);
+    internal static void Map(IEndpointRouteBuilder endpoints) => _ = endpoints.MapGet(Route, Describe);
 
     private static StatusResponse Describe([FromServices] StartupReport report) =>
         new(Alive: true, Ready: report.Ready, Checks: report.Results);

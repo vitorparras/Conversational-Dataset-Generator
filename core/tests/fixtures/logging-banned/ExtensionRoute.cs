@@ -5,5 +5,5 @@ namespace LoggingBanned;
 /// <summary>The route a message string takes through the extension methods.</summary>
 internal static class ExtensionRoute
 {
-    public static void Write(ILogger logger, string text) => logger.LogInformation($"{text}");
+    internal static void Write(ILogger logger, string text) => logger.LogInformation($"{text}");
 }

@@ -2,4 +2,12 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
   </ItemGroup>
+
+  <!-- The sonar rule catalog is read from the restored analyzer, whichever version the package list pins. -->
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>SonarAnalyzerPath</_Parameter1>
+      <_Parameter2>$(NuGetPackageRoot)sonaranalyzer.csharp/@(PackageVersion->WithMetadataValue('Identity', 'SonarAnalyzer.CSharp')->'%(Version)')/analyzers/SonarAnalyzer.CSharp.dll</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
 </Project>

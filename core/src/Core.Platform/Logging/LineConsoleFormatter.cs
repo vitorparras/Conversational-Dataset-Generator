@@ -9,17 +9,20 @@ namespace Core.Platform.Logging;
 public sealed class LineConsoleFormatter : ConsoleFormatter
 {
     /// <summary>The name the console provider knows this formatter by.</summary>
-    public const string FormatterName = "line";
+    public static string FormatterName { get; } = "line";
 
     private const string TimestampFormat = "yyyy-MM-dd'T'HH:mm:ss.fff'Z'";
     private const string OriginalFormatKey = "{OriginalFormat}";
     private const string LineBreakReplacement = " | ";
     private const string InnerExceptionSeparator = " <- ";
 
-    /// <summary>A formatter with nothing to configure.</summary>
-    public LineConsoleFormatter()
+    private readonly TimeProvider clock;
+
+    /// <summary>A formatter that stamps each line with the time its clock gives.</summary>
+    public LineConsoleFormatter(TimeProvider clock)
         : base(FormatterName)
     {
+        this.clock = clock;
     }
 
     /// <inheritdoc />
@@ -30,9 +33,9 @@ public sealed class LineConsoleFormatter : ConsoleFormatter
         textWriter.WriteLine(OneLine(line));
     }
 
-    private static string Head<TState>(in LogEntry<TState> entry)
+    private string Head<TState>(in LogEntry<TState> entry)
     {
-        var timestamp = DateTimeOffset.UtcNow.ToString(TimestampFormat, CultureInfo.InvariantCulture);
+        var timestamp = clock.GetUtcNow().ToString(TimestampFormat, CultureInfo.InvariantCulture);
         var message = entry.Formatter(entry.State, entry.Exception);
         return string.Create(
             CultureInfo.InvariantCulture, $"{timestamp} {Label(entry.LogLevel)} {entry.Category}[{entry.EventId.Id}] {message}");
@@ -43,8 +46,8 @@ public sealed class LineConsoleFormatter : ConsoleFormatter
             ? string.Concat(tags.Where(tag => tag.Key != OriginalFormatKey).Select(Tag))
             : string.Empty;
 
-    private static string Tag(KeyValuePair<string, object?> tag) =>
-        string.Create(CultureInfo.InvariantCulture, $" {tag.Key}={Convert.ToString(tag.Value, CultureInfo.InvariantCulture)}");
+    private static string Tag(KeyValuePair<string, object?> pair) =>
+        string.Create(CultureInfo.InvariantCulture, $" {pair.Key}={Convert.ToString(pair.Value, CultureInfo.InvariantCulture)}");
 
     /// <summary>The exception chain by type and frames only; its messages are text the platform never classified.</summary>
     private static string Describe(Exception? exception) =>
@@ -64,7 +67,7 @@ public sealed class LineConsoleFormatter : ConsoleFormatter
     }
 
     private static string OneLine(string text) =>
-        string.Join(LineBreakReplacement, text.ReplaceLineEndings("\n").Split('\n').Select(part => part.Trim()));
+        string.Join(LineBreakReplacement, text.ReplaceLineEndings(Environment.NewLine).Split(Environment.NewLine).Select(part => part.Trim()));
 
     private static string Label(LogLevel level) => level switch
     {

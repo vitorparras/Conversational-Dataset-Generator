@@ -1,6 +1,7 @@
 namespace Core.Tests.Architecture.CodeRules;
 
-/// <summary>What a build is given besides its configs, whether analyzers, generators, additional files or sources, is judged by what it does, with a fixture for each way of slipping something in.</summary>
+/// <summary>What a build is given besides its configs, whether analyzers, generators, additional files or
+/// sources, is judged by what it does, with a fixture for each way of slipping something in.</summary>
 public sealed class LoggingBuildInputTests
 {
     private const string Fixtures = "logging-invocation";

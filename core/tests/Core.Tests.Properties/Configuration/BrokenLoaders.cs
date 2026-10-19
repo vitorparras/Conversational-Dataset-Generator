@@ -6,15 +6,15 @@ namespace Core.Tests.Properties.Configuration;
 internal static class BrokenLoaders
 {
     /// <summary>Forgets every key the schema does not declare before loading.</summary>
-    public static ConfigurationLoadResult IgnoringUnknownKeys(ConfigurationSchema schema, IReadOnlyList<IConfigurationSource> sources) =>
+    public static ConfigurationLoadResult IgnoringUnknownKeys(ConfigurationSchema schema, IEnumerable<IConfigurationSource> sources) =>
         ClosedConfiguration.Load(schema, [.. sources.Select(Known)]);
 
     /// <summary>Fills in the required keys from a source below every other.</summary>
-    public static ConfigurationLoadResult FillingMissingKeys(ConfigurationSchema schema, IReadOnlyList<IConfigurationSource> sources) =>
+    public static ConfigurationLoadResult FillingMissingKeys(ConfigurationSchema schema, IEnumerable<IConfigurationSource> sources) =>
         ClosedConfiguration.Load(schema, [.. sources, Fallback()]);
 
     /// <summary>Hands every source over as if it were the file.</summary>
-    public static ConfigurationLoadResult HidingOrigins(ConfigurationSchema schema, IReadOnlyList<IConfigurationSource> sources) =>
+    public static ConfigurationLoadResult HidingOrigins(ConfigurationSchema schema, IEnumerable<IConfigurationSource> sources) =>
         ClosedConfiguration.Load(schema, [.. sources.Select(Relabelled)]);
 
     private static FixedConfigurationSource Known(IConfigurationSource source)

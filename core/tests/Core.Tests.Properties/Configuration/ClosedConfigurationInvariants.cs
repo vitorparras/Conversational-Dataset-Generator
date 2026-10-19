@@ -37,7 +37,10 @@ internal sealed class ClosedConfigurationInvariants
             Assert.Contains($"'{generated.Path}'", problem.Describe(), StringComparison.Ordinal);
         });
 
-    /// <summary>CA-4 of requisito 032: a configuration that loaded shows every declared key, each with a value some source of that origin wrote, or its default under the default origin; the sensitive one is shown redacted.</summary>
+    /// <summary>
+    /// CA-4 of requisito 032: a configuration that loaded shows every declared key, each with a value some source of
+    /// that origin wrote, or its default under the default origin; the sensitive one is shown redacted.
+    /// </summary>
     public void LoadedValuesShowTheirOrigin() =>
         runner.Check(ConfigurationGenerators.WellFormed, sources =>
         {
@@ -49,10 +52,10 @@ internal sealed class ClosedConfigurationInvariants
             Assert.Empty(LoadSnapshot.ShownBy(result).Except(PossibleLines(sources, redact: true)));
         });
 
-    private static IEnumerable<string> PossibleLines(IReadOnlyList<IConfigurationSource> sources, bool redact) =>
+    private static IEnumerable<string> PossibleLines(IEnumerable<IConfigurationSource> sources, bool redact) =>
         WrittenLines(sources).Concat(DefaultLines()).Select(line => redact ? Redacted(line) : line);
 
-    private static IEnumerable<string> WrittenLines(IReadOnlyList<IConfigurationSource> sources) =>
+    private static IEnumerable<string> WrittenLines(IEnumerable<IConfigurationSource> sources) =>
         sources
             .Select(source => source.Read())
             .SelectMany(reading => reading.Entries.Select(entry => LoadSnapshot.Line(PathOf(entry.Key), entry.Value!, reading.Origin)));

@@ -15,13 +15,13 @@ internal sealed class CompositionRoots
     public static CompositionRoots From(IEnumerable<ProjectFile> projects) =>
         new([.. projects.Where(project => project.IsExecutable)]);
 
-    public bool IsRoot(SourceFile file) => executables.Any(executable => SamePath(file.Path, RootPathOf(executable)));
+    public bool IsRoot(SourceFile file) => executables.Any(executable => SamePaths.Are(file.Path, RootPathOf(executable)));
 
     public IEnumerable<Violation> CheckOnePerExecutable(IEnumerable<SourceFile> files)
     {
         var candidates = files.Where(file => file.FileName == FileName).ToList();
         var missing = executables
-            .Where(executable => !candidates.Any(candidate => SamePath(candidate.Path, RootPathOf(executable))))
+            .Where(executable => !candidates.Exists(candidate => SamePaths.Are(candidate.Path, RootPathOf(executable))))
             .Select(executable => new Violation(
                 executable.Path, 1, $"executable without a {FileName} beside its project file"));
         var misplaced = candidates
@@ -32,7 +32,4 @@ internal sealed class CompositionRoots
     }
 
     private static string RootPathOf(ProjectFile executable) => Path.Combine(executable.DirectoryPath, FileName);
-
-    private static bool SamePath(string left, string right) =>
-        string.Equals(Path.GetFullPath(left), Path.GetFullPath(right), StringComparison.OrdinalIgnoreCase);
 }

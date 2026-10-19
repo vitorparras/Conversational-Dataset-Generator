@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <NoWarn>$(NoWarn);S1144</NoWarn>
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);S1227</WarningsNotAsErrors>
+  </PropertyGroup>
+</Project>

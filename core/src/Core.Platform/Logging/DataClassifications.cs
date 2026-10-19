@@ -6,7 +6,7 @@ namespace Core.Platform.Logging;
 public static class DataClassifications
 {
     /// <summary>The taxonomy every classification of this platform belongs to.</summary>
-    public const string TaxonomyName = "Sensitive";
+    public static string TaxonomyName { get; } = "Sensitive";
 
     /// <summary>Text of the material being processed.</summary>
     public static DataClassification Material { get; } = new(TaxonomyName, nameof(Material));

@@ -1,0 +1,15 @@
+using System.Collections.Immutable;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Diagnostics;
+
+[DiagnosticAnalyzer(LanguageNames.CSharp)]
+public sealed class QuietSuppressor : DiagnosticSuppressor
+{
+    private static readonly SuppressionDescriptor Rule = new("QUIET001", "S3358", "Quiet.");
+
+    public override ImmutableArray<SuppressionDescriptor> SupportedSuppressions => ImmutableArray.Create(Rule);
+
+    public override void ReportSuppressions(SuppressionAnalysisContext context)
+    {
+    }
+}

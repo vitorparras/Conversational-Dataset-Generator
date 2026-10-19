@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+  <Target Name="CopyAsGeneratedName" BeforeTargets="CoreCompile">
+    <Copy SourceFiles="../Shared/Reporter.cs" DestinationFiles="$(IntermediateOutputPath)Sneak.GlobalUsings.g.cs" />
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)Sneak.GlobalUsings.g.cs" />
+    </ItemGroup>
+  </Target>
+</Project>

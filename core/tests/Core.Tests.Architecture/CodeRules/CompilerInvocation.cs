@@ -5,7 +5,9 @@ using Microsoft.CodeAnalysis;
 
 namespace Core.Tests.Architecture.CodeRules;
 
-/// <summary>What the compiler is given for one project, read from the command line its build would run: the sources, the analyzers, the additional files and the diagnostic options, as the compiler itself parses them.</summary>
+/// <summary>What the compiler is given for one project, read from the command line its build would run: the
+/// sources, the analyzers, the additional files and the diagnostic options, as the compiler itself parses
+/// them.</summary>
 internal sealed class CompilerInvocation
 {
     private static readonly ConcurrentDictionary<string, Lazy<CompilerInvocation>> Evaluated = new(StringComparer.OrdinalIgnoreCase);
@@ -16,8 +18,19 @@ internal sealed class CompilerInvocation
 
     public required IReadOnlyList<SourceFile> SourceFiles { get; init; }
 
-    /// <summary>Sources the build produced for itself: what its generators emit when run on the compilation, and what lies under the output folders.</summary>
-    public required IReadOnlyList<SourceFile> GeneratedFiles { get; init; }
+    /// <summary>Sources the build compiles from under its own output folders.</summary>
+    public required IReadOnlyList<SourceFile> BuildAddedFiles { get; init; }
+
+    /// <summary>What the generators emit when run on the compilation; the path names the generator and the hint.</summary>
+    public required IReadOnlyList<SourceFile> GeneratorFiles { get; init; }
+
+    /// <summary>The folder the build writes its own files to, the root of the intermediate output.</summary>
+    public required string IntermediateDirectory { get; init; }
+
+    /// <summary>The <c>/analyzerconfig:</c> files, in the order the compiler is given them.</summary>
+    public required IReadOnlyList<string> AnalyzerConfigPaths { get; init; }
+
+    public IReadOnlyList<SourceFile> GeneratedFiles => [.. BuildAddedFiles, .. GeneratorFiles];
 
     public required IReadOnlyList<string> Analyzers { get; init; }
 
@@ -37,6 +50,9 @@ internal sealed class CompilerInvocation
 
     /// <summary>What <c>/warnaserror</c> and <c>/warnaserror-</c> do to the warnings that no id names.</summary>
     public required ReportDiagnostic GeneralDiagnosticOption { get; init; }
+
+    /// <summary>The rule set the compiler was pointed at, as its parser read it, whether it came on the command line or from a response file.</summary>
+    public string? RuleSetPath { get; init; }
 
     /// <summary>True when the build runs no analyzer at all.</summary>
     public required bool SkipAnalyzers { get; init; }
@@ -63,11 +79,12 @@ internal sealed class CompilerInvocation
         var run = new MsBuildRun(projectPath, scratch.Path, packages);
         var description = $"Reading the compiler invocation of {Path.GetFileName(projectPath)}";
         _ = run.Execute("-t:Restore").OutputOfSuccess(description);
-        var output = run.Execute("-t:Build", "-p:ProvideCommandLineArgs=true", "-getItem:CscCommandLineArgs")
+        var output = run.Execute("-t:Build", "-p:ProvideCommandLineArgs=true", "-getItem:CscCommandLineArgs", "-getProperty:IntermediateOutputPath")
             .OutputOfSuccess(description);
         using var document = JsonDocument.Parse(output[output.IndexOf('{', StringComparison.Ordinal)..]);
         var arguments = document.RootElement.GetProperty("Items").GetProperty("CscCommandLineArgs").EnumerateArray()
             .Select(item => item.GetProperty("Identity").GetString()!);
-        return CompilerArguments.Read(new CompilerBuildOutput(projectPath, [.. arguments], run.Artifacts, [ToolLocations.DotnetRoot, packages ?? ToolLocations.GlobalPackages]));
+        var intermediate = Path.GetFullPath(document.RootElement.GetProperty("Properties").GetProperty("IntermediateOutputPath").GetString()!, Path.GetDirectoryName(projectPath)!);
+        return CompilerArguments.Read(new CompilerBuildOutput(projectPath, [.. arguments], run.Artifacts, [ToolLocations.DotnetRoot, packages ?? ToolLocations.GlobalPackages], intermediate));
     }
 }

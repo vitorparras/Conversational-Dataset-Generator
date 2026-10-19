@@ -69,9 +69,9 @@ def run_steps(specs: tuple[StepSpec, ...], ctx: Context) -> tuple[StepResult, ..
     """Runs every step, timing each one; a failure does not stop the ones after it."""
     results: list[StepResult] = []
     for spec in specs:
-        started = time.monotonic()
+        started = time.perf_counter()
         result = spec.run(ctx)
-        results.append(replace(result, elapsed=time.monotonic() - started))
+        results.append(replace(result, elapsed=time.perf_counter() - started))
     return tuple(results)
 
 

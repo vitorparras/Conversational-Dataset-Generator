@@ -68,8 +68,11 @@ def bad(_ctx: Context) -> StepResult:
     return failed("bad", "broke")
 
 
+SLEEP_SECONDS = 0.01
+
+
 def slow(_ctx: Context) -> StepResult:
-    time.sleep(0.01)
+    time.sleep(SLEEP_SECONDS)
     return passed("slow")
 
 
@@ -168,4 +171,5 @@ class VerifyTests(unittest.TestCase):
     def test_run_steps_records_the_elapsed_time_of_each_step(self) -> None:
         results = verify.run_steps((verify.StepSpec("slow", slow),), support.context(self.root))
 
-        self.assertGreater(results[0].elapsed, 0.0)
+        self.assertGreaterEqual(results[0].elapsed, SLEEP_SECONDS)
+        self.assertLess(results[0].elapsed, SLEEP_SECONDS + 1)

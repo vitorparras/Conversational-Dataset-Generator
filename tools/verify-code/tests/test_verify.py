@@ -172,3 +172,4 @@ class VerifyTests(unittest.TestCase):
         results = verify.run_steps((verify.StepSpec("slow", slow),), support.context(self.root))
 
         self.assertGreaterEqual(results[0].elapsed, SLEEP_SECONDS)
+        self.assertLess(results[0].elapsed, SLEEP_SECONDS + 1)

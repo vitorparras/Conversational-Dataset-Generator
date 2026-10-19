@@ -54,6 +54,16 @@ reprovam, a menos que `tools/verify-code/accepted-risks.toml` os aceite com praz
 Nenhum código sai da máquina: ele só baixa o banco de vulnerabilidades e as regras de
 configuração, com telemetria e checagem de versão desligadas. Não analisa workflows.
 
+O passo `package` clona o commit de HEAD duas vezes numa pasta temporária, nunca a árvore de
+trabalho, e publica o núcleo em cada cópia com restauração travada e `ContinuousIntegrationBuild`,
+que troca o caminho da cópia por um fixo. Reprova se um arquivo publicado diferir entre as duas,
+nomeado pelo caminho relativo, ou se o executável não declarar o commit e a árvore limpa. Fora do
+passo, `core/Directory.Build.props` só liga essa propriedade na CI, e a depuração local vê os
+caminhos reais.
+Na CI, o mesmo job repete o passo sem rede, com o cache HTTP do NuGet vazio: a construção só usa
+pacotes já baixados. Por isso `core/Directory.Packages.props` deixa a auditoria do NuGet desligada:
+ela consulta a fonte quando o cache de vulnerabilidades vence, em cerca de 30 minutos.
+
 ## Núcleo
 
 O núcleo é uma solução .NET em `core/Core.slnx`. A versão exata do SDK está em `global.json`, e a

@@ -30,20 +30,24 @@ WITHOUT_BASE = [
     "test_service",
     "lint_service",
     "properties",
+    "package",
     "secrets",
     "trivy",
 ]
 
 
 def steps_in_workflow(text: str) -> list[str]:
-    """The step names after `--step` in every `run:` line that calls verify.py, in file order."""
+    """The step names after `--step` in every `run:` line that calls verify.py, in file order.
+
+    A step run again right after itself, as the package job does without network, counts once.
+    """
     names: list[str] = []
     for line in text.splitlines():
         if "verify.py" not in line or "--step" not in line:
             continue
         after = line.split("--step", 1)[1].split()
         names.extend(takewhile(lambda token: not token.startswith(("--", "${{")), after))
-    return names
+    return [name for index, name in enumerate(names) if index == 0 or names[index - 1] != name]
 
 
 def pr_size_line(text: str) -> str:
@@ -97,6 +101,14 @@ class VerifyTests(unittest.TestCase):
 
         self.assertEqual(code, 0)
         self.assertEqual(output.split(), expected)
+
+    def test_workflow_repeats_the_package_step_without_network_nor_http_cache(self) -> None:
+        text = WORKFLOW.read_text(encoding="utf-8")
+
+        self.assertEqual(text.count("verify.py --step package"), 2)
+        self.assertIn("HTTPS_PROXY: http://127.0.0.1:9", text)
+        self.assertIn("https_proxy: http://127.0.0.1:9", text)
+        self.assertIn("NUGET_HTTP_CACHE_PATH:", text)
 
     def test_workflow_measures_pr_size_against_the_base_of_the_pull_request(self) -> None:
         line = pr_size_line(WORKFLOW.read_text(encoding="utf-8"))

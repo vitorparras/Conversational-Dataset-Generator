@@ -64,7 +64,6 @@ internal static class SonarSeverityRules
     private static bool IsOnByDefault(SonarRule rule, ReportDiagnostic severity) =>
         !rule.NeedsExplicitSeverity && severity is ReportDiagnostic.Default or ReportDiagnostic.Warn;
 
-
     /// <summary>What the section for a source says, over what the global configs say, over the command line, over the analyzer's own default.</summary>
     private sealed class SeveritiesAt(CompilerInvocation invocation, string source)
     {

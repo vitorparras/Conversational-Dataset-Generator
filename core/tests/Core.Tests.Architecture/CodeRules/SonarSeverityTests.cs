@@ -8,6 +8,8 @@ public sealed class SonarSeverityTests
     private const string Fixtures = "sonar-severity";
     private const string Switches = "sonar-switches";
 
+    private static readonly Lazy<CompilerInvocation> AllLevelInvocation = new(() => CompilerInvocation.OfFixture(Path.Combine(Switches, "AnalysisLevelAll"), "App"));
+
     private static readonly RootConfig NoRoot = new(string.Empty, string.Empty, string.Empty);
 
     private static readonly SonarRule[] SampleRules =
@@ -160,13 +162,12 @@ public sealed class SonarSeverityTests
     }
 
     [Fact]
-    public void ProjectAtTheAllAnalysisLevelIsGivenOnlyConfigsOfTheSdkAndLoadsThePlatformAnalyzers()
-    {
-        var invocation = CompilerInvocation.OfFixture(Path.Combine(Switches, "AnalysisLevelAll"), "App");
+    public void ProjectAtTheAllAnalysisLevelIsGivenOnlyConfigsOfTheSdk()
+        => Assert.Empty(AnalyzerConfigRules.CheckConfigFiles(AllLevelInvocation.Value, NoRoot));
 
-        Assert.Empty(AnalyzerConfigRules.CheckConfigFiles(invocation, NoRoot));
-        Assert.Empty(SonarSeverityRules.CheckPlatformAnalyzersLoaded(invocation));
-    }
+    [Fact]
+    public void ProjectAtTheAllAnalysisLevelLoadsThePlatformAnalyzers()
+        => Assert.Empty(SonarSeverityRules.CheckPlatformAnalyzersLoaded(AllLevelInvocation.Value));
 
     [Fact]
     public void ProjectAtAnAnalysisLevelBelowAllIsRefusedForTheConfigOfTheSdkItIsGiven()

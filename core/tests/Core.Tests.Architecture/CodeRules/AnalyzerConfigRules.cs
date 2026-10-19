@@ -62,7 +62,6 @@ internal static partial class AnalyzerConfigRules
         SamePaths.Are(Path.GetDirectoryName(path) ?? string.Empty, invocation.IntermediateDirectory)
         && Path.GetFileName(path) == Path.GetFileNameWithoutExtension(invocation.ProjectPath) + ".GeneratedMSBuildEditorConfig.editorconfig";
 
-
     [GeneratedRegex(@"^analysislevel_\d+(_\d+)?_all\.globalconfig$")]
     private static partial Regex AllLevelFile();
 

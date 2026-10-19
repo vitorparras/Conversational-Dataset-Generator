@@ -52,6 +52,7 @@ deliberada e justificada.
 | [0038](0038-marca-da-entrega-no-manifesto.md) | A marca da entrega fica no manifesto | Decisão vigente |
 | [0039](0039-idioma-do-codigo-e-do-texto.md) | Idioma: código em inglês, texto em português | Decisão vigente |
 | [0040](0040-principios-de-codigo.md) | Princípios de código antes do código | Decisão vigente |
+| [0041](0041-distribuicao-do-servico-de-linguagem.md) | Distribuição do serviço de linguagem | Decisão pendente |
 | [0042](0042-supressao-de-analisador.md) | Nenhum analisador se suprime em `core/src` | Decisão vigente |
 
 ## Formato

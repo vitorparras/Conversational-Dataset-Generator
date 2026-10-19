@@ -28,10 +28,10 @@ jobs:
         with:
           python-version: '3.12'
       - uses: ./.github/actions/install-gitleaks
-      - name: Instalar ruff, pyright e uv nas versões fixadas (os testes do núcleo chamam `uv run --frozen`)
+      - name: Instalar ruff, pyright, coverage e uv nas versões fixadas (os testes do núcleo chamam `uv run --frozen`)
         run: pip install -r tools/verify-code/lint-requirements.txt -r tools/verify-code/service-requirements.txt
       - name: Construir, testar e formatar o núcleo; verificar e testar as ferramentas
-        run: python tools/verify-code/verify.py --step build_core test_core format_core lint_tools test_tools
+        run: python tools/verify-code/verify.py --step build_core test_core format_core lint_tools test_tools coverage
 
   python:
     name: Serviço de linguagem (Python)
@@ -42,10 +42,10 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.12'
-      - name: Instalar uv, ruff e pyright nas versões fixadas
+      - name: Instalar uv, ruff, pyright e coverage nas versões fixadas
         run: pip install -r tools/verify-code/service-requirements.txt -r tools/verify-code/lint-requirements.txt
       - name: Sincronizar, testar e verificar o serviço de linguagem
-        run: python tools/verify-code/verify.py --step build_service test_service lint_service
+        run: python tools/verify-code/verify.py --step build_service test_service coverage lint_service
 
   properties:
     name: Propriedades nas duas linguagens

@@ -8,7 +8,7 @@ import tempfile
 import time
 import unittest
 from collections.abc import Sequence
-from itertools import takewhile
+from itertools import chain, takewhile
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +28,7 @@ WITHOUT_BASE = [
     "test_tools",
     "build_service",
     "test_service",
+    "coverage",
     "lint_service",
     "properties",
     "secrets",
@@ -35,15 +36,25 @@ WITHOUT_BASE = [
 ]
 
 
-def steps_in_workflow(text: str) -> list[str]:
-    """The step names after `--step` in every `run:` line that calls verify.py, in file order."""
-    names: list[str] = []
+def steps_per_job(text: str) -> list[list[str]]:
+    """The step names after `--step` in each `run:` line that calls verify.py, in file order."""
+    jobs: list[list[str]] = []
     for line in text.splitlines():
         if "verify.py" not in line or "--step" not in line:
             continue
         after = line.split("--step", 1)[1].split()
-        names.extend(takewhile(lambda token: not token.startswith(("--", "${{")), after))
-    return names
+        jobs.append(list(takewhile(lambda token: not token.startswith(("--", "${{")), after)))
+    return jobs
+
+
+def out_of_order(jobs: list[list[str]], listed: list[str]) -> list[list[str]]:
+    """The jobs whose steps are not in the order `--list` prints them."""
+    return [job for job in jobs if job != [name for name in listed if name in job]]
+
+
+def job_running(step: str, jobs: list[list[str]]) -> list[str]:
+    """The steps of the first job that runs ``step``."""
+    return next(job for job in jobs if step in job)
 
 
 def pr_size_line(text: str) -> str:
@@ -90,13 +101,30 @@ class VerifyTests(unittest.TestCase):
         self.addCleanup(self._tmp.cleanup)
         self.root = Path(self._tmp.name)
 
-    def test_list_prints_the_steps_in_the_order_of_the_workflow(self) -> None:
-        expected = steps_in_workflow(WORKFLOW.read_text(encoding="utf-8"))
+    def test_each_job_of_the_workflow_runs_its_steps_in_the_order_of_list(self) -> None:
+        jobs = steps_per_job(WORKFLOW.read_text(encoding="utf-8"))
 
         code, output = run_main("--list")
 
         self.assertEqual(code, 0)
-        self.assertEqual(output.split(), expected)
+        self.assertEqual(out_of_order(jobs, output.split()), [])
+
+    def test_every_listed_step_runs_in_some_job_of_the_workflow(self) -> None:
+        jobs = steps_per_job(WORKFLOW.read_text(encoding="utf-8"))
+
+        _, output = run_main("--list")
+
+        self.assertEqual(set(chain.from_iterable(jobs)), set(output.split()))
+
+    def test_coverage_runs_in_the_job_that_tests_the_core(self) -> None:
+        jobs = steps_per_job(WORKFLOW.read_text(encoding="utf-8"))
+
+        self.assertIn("coverage", job_running("test_core", jobs))
+
+    def test_coverage_runs_in_the_job_that_tests_the_service(self) -> None:
+        jobs = steps_per_job(WORKFLOW.read_text(encoding="utf-8"))
+
+        self.assertIn("coverage", job_running("test_service", jobs))
 
     def test_workflow_measures_pr_size_against_the_base_of_the_pull_request(self) -> None:
         line = pr_size_line(WORKFLOW.read_text(encoding="utf-8"))

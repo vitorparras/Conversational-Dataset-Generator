@@ -45,6 +45,11 @@ A ordem é única: `--step test_core` sozinho, em árvore limpa, falha porque te
 `build_core` vem antes, e a execução sem argumento segue essa ordem. O passo `lint_tools` exige
 `ruff` e `pyright` nas versões de `tools/verify-code/lint-requirements.txt` (`pip install -r`).
 
+O passo `coverage` publica a cobertura por área de `docs/operacao/014-modulos-criticos-e-pisos.md`
+a partir dos relatórios presentes em `.verify-code/`, sem julgar piso, como em
+`python tools/verify-code/verify.py --step build_service test_service coverage`; `test_tools` só
+mede com o `coverage` do mesmo arquivo de requisitos instalado.
+
 O passo `secrets` roda o `gitleaks` na versão fixada em `tools/verify-code/steps/gitleaks_binary.py`
 e recusa um binário cuja soma SHA-256 não confira; sem `--base` varre o histórico inteiro. Os testes
 de `tools/` o usam. A única permissão são os marcadores sintéticos `ZQX-…`, em `.gitleaks.toml`.

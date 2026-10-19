@@ -19,6 +19,7 @@ from pathlib import Path
 from steps import (
     build_core,
     build_service,
+    coverage_by_area,
     format_core,
     lint_service,
     lint_tools,
@@ -52,6 +53,7 @@ STEPS: tuple[StepSpec, ...] = (
     StepSpec(test_tools.NAME, test_tools.run),
     StepSpec(build_service.NAME, build_service.run),
     StepSpec(test_service.NAME, test_service.run),
+    StepSpec(coverage_by_area.NAME, coverage_by_area.run),
     StepSpec(lint_service.NAME, lint_service.run),
     StepSpec(properties.NAME, properties.run),
     StepSpec(secrets.NAME, secrets.run),

@@ -13,7 +13,8 @@ RESULTS = "properties"
 CORE_SIDE = "núcleo (.NET)"
 SERVICE_SIDE = "serviço (Python)"
 CORE_PROJECT = "core/tests/Core.Tests.Properties/Core.Tests.Properties.csproj"
-SERVICE_SUITE = "tests/properties"
+CORE_FILTER = ("--filter-trait", "Kind=Property")
+SERVICE_FILTER = ("-m", "property")
 JUNIT = "pytest.xml"
 
 
@@ -49,9 +50,9 @@ def run(ctx: Context) -> StepResult:
         return failed(NAME, f"{CORE_SIDE}: {CORE_PROJECT} não existe: não há propriedades")
     results = ctx.out_dir / RESULTS
     reset_directory(results)
-    dotnet = ["dotnet", "test", "--project", CORE_PROJECT, "--report-xunit-trx"]
+    dotnet = ["dotnet", "test", "--project", CORE_PROJECT, "--report-xunit-trx", *CORE_FILTER]
     core = ctx.run([*dotnet, "--results-directory", str(results)], ctx.root)
-    pytest = [*UV, "run", *LOCKED, "pytest", SERVICE_SUITE, "--junitxml", str(results / JUNIT)]
+    pytest = [*UV, "run", *LOCKED, "pytest", *SERVICE_FILTER, "--junitxml", str(results / JUNIT)]
     service = ctx.run(pytest, ctx.root)
     core_seen, service_seen = core_evidence(results), service_evidence(results)
     found = problems(CORE_SIDE, core_seen, core) + problems(SERVICE_SIDE, service_seen, service)

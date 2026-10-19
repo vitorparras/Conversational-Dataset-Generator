@@ -12,9 +12,7 @@ from steps.common import CommandOutcome
 from . import support
 
 PROPERTY_CLASS = "Core.Tests.Properties.Configuration.SomeInvariantsTests"
-HARNESS_CLASS = "Core.Tests.Properties.Harness.PropertyRunnerTests"
 SERVICE_PROPERTY = "tests.properties.test_secret"
-SERVICE_UNIT = "tests.unit.test_auth"
 CORE_REPORT = "core.trx"
 
 
@@ -41,6 +39,10 @@ def junit(*cases: tuple[str, str]) -> str:
         for name, child in cases
     )
     return f'<testsuites><testsuite name="pytest">{body}</testsuite></testsuites>'
+
+
+EMPTY_TRX = trx()
+EMPTY_JUNIT = junit()
 
 
 class PropertiesTests(unittest.TestCase):
@@ -77,16 +79,14 @@ class PropertiesTests(unittest.TestCase):
         self.assertFalse(ok)
         self.assertIn("não há propriedades", details[0])
 
-    def test_a_service_without_a_property_fails_naming_the_service(self) -> None:
-        ok, details, _ = self.run_step(trx((PROPERTY_CLASS, "Passed")), junit((SERVICE_UNIT, "")))
+    def test_a_service_run_that_selected_no_property_fails_naming_the_service(self) -> None:
+        ok, details, _ = self.run_step(trx((PROPERTY_CLASS, "Passed")), EMPTY_JUNIT)
 
         self.assertFalse(ok)
         self.assertTrue(details[0].startswith("serviço (Python): nenhuma propriedade executada"))
 
-    def test_a_core_without_a_property_fails_naming_the_core(self) -> None:
-        ok, details, _ = self.run_step(
-            trx((HARNESS_CLASS, "Passed")), junit((SERVICE_PROPERTY, ""))
-        )
+    def test_a_core_run_that_selected_no_property_fails_naming_the_core(self) -> None:
+        ok, details, _ = self.run_step(EMPTY_TRX, junit((SERVICE_PROPERTY, "")))
 
         self.assertFalse(ok)
         self.assertTrue(details[0].startswith("núcleo (.NET): nenhuma propriedade executada"))
@@ -149,21 +149,11 @@ class PropertiesTests(unittest.TestCase):
 
         self.assertFalse(ok)
 
-    def test_the_properties_project_and_the_service_suite_are_the_ones_run(self) -> None:
+    def test_each_side_runs_only_what_is_marked_as_a_property(self) -> None:
         _, _, runner = self.run_step(trx((PROPERTY_CLASS, "Passed")), junit((SERVICE_PROPERTY, "")))
 
         self.assertEqual(
             runner.commands[0][:4], ["dotnet", "test", "--project", properties.CORE_PROJECT]
         )
-        self.assertEqual(
-            runner.commands[1][:7],
-            [
-                "uv",
-                "run",
-                "--locked",
-                "--directory",
-                "language-service",
-                "pytest",
-                "tests/properties",
-            ],
-        )
+        self.assertIn("Kind=Property", runner.commands[0])
+        self.assertEqual(runner.commands[1][5:8], ["pytest", "-m", "property"])

@@ -1,0 +1,19 @@
+{
+  "occurrences": [
+    {
+      "start": 12,
+      "end": 20,
+      "kind": "PERSON",
+      "part_of_speech": "PROPN",
+      "syntactic_role": "obl"
+    },
+    {
+      "start": 40,
+      "end": 47,
+      "kind": "LOCATION",
+      "part_of_speech": "PROPN",
+      "syntactic_role": "obl"
+    }
+  ],
+  "model_version": "zqx-model-1"
+}

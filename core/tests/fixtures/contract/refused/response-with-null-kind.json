@@ -1,0 +1,12 @@
+{
+  "occurrences": [
+    {
+      "start": 10,
+      "end": 18,
+      "kind": null,
+      "part_of_speech": "PROPN",
+      "syntactic_role": "obl"
+    }
+  ],
+  "model_version": "zqx-model-1"
+}

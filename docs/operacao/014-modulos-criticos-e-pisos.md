@@ -24,6 +24,7 @@ conta na área do projeto ou pacote que o contém, pelo prefixo mais longo que c
 | Registro do núcleo | `Core.Platform.Logging` | 90 % | Crítica: classifica e redige o que vai ao registro (requisito 021) |
 | Deslocamento de texto | `Core.Boundary.Text` | 90 % | Crítica: única aritmética de índice sobre texto do serviço (requisito 009) |
 | Reconhecedor HTTP | `Core.Boundary.Http` | 90 % | Crítica: texto não sanitizado cruza o processo e a resposta é validada aqui (decisão 0018) |
+| Contrato da fronteira | `Core.Boundary.Contracts` | 90 % | Crítica: a forma JSON recusa campo desconhecido ou nulo no texto que cruza o processo (decisão 0018) |
 | Migração do esquema | `Core.Persistence.Migrations` | 90 % | Crítica: altera o esquema do banco; erro corrompe custódia (requisito 019) |
 | Autenticação do serviço | `language_service.auth` | 90 % | Crítica: guarda o segredo que protege texto não sanitizado (decisão 0011) |
 | Registro do serviço | `language_service.logging_` | 90 % | Crítica: decide o que o serviço escreve em registro (requisito 021) |
@@ -36,7 +37,6 @@ conta na área do projeto ou pacote que o contém, pelo prefixo mais longo que c
 | Reconhecedor falso | `Core.Boundary.Fake` | 60 % | Dublê determinístico de teste; nunca vê material real |
 | Executável | `Core.Host` | 60 % | Só composição, sem regra; coberto por teste de integração |
 | Ferramentas | `tools` | 60 % | Scripts da verificação; falha reprova o build, não vaza dado |
-| Contrato da fronteira | `Core.Boundary.Contracts` | isento | Só tipos, sem lógica a cobrir (decisão 0018) |
 
 `isento` é o único valor não numérico admitido: a área está declarada e nada se compara. Área
 medida que não aparece na tabela reprova; piso ausente não é piso zero.

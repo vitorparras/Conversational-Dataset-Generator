@@ -1,0 +1,11 @@
+{
+  "occurrences": [
+    {
+      "start": 10,
+      "end": 18,
+      "kind": "PERSON",
+      "part_of_speech": "PROPN"
+    }
+  ],
+  "model_version": "zqx-model-1"
+}

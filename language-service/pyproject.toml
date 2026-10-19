@@ -34,4 +34,7 @@ branch = true
 testpaths = ["tests"]
 pythonpath = ["tests"]
 addopts = "--strict-markers --strict-config -ra"
-markers = ["integration: starts the service as a real process on a free loopback port"]
+markers = [
+    "integration: starts the service as a real process on a free loopback port",
+    "property: checks an invariant written in a document over generated cases",
+]

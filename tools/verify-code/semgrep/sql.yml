@@ -1,0 +1,47 @@
+rules:
+  - id: sql-concatenation-python
+    languages: [python]
+    severity: ERROR
+    message: >-
+      Consulta SQL montada por concatenação ou interpolação: passe os valores como parâmetros da
+      consulta (`?` ou `%s` com a tupla de valores), nunca dentro do texto.
+    metadata: {license: AGPL-3.0, family: sql}
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern: $A + $B
+              - pattern: f"..."
+              - pattern: $A % $B
+              - pattern: $A.format(...)
+              - pattern: '"...".join(...)'
+          - pattern-not: '"..." + "..."'
+    pattern-sinks:
+      - patterns:
+          - pattern: $DB.$EXECUTE($QUERY, ...)
+          - metavariable-regex: {metavariable: $EXECUTE, regex: '^execute(many|script)?$'}
+          - focus-metavariable: $QUERY
+  - id: sql-concatenation-csharp
+    languages: [csharp]
+    severity: ERROR
+    message: >-
+      Consulta SQL montada por concatenação ou interpolação: use parâmetros do comando
+      (`Parameters.AddWithValue`), nunca o valor dentro do texto.
+    metadata: {license: AGPL-3.0, family: sql}
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern: $A + $B
+              - pattern: $"..."
+              - pattern: string.Format(...)
+              - pattern: string.Concat(...)
+          - pattern-not: '"..." + "..."'
+    pattern-sinks:
+      - patterns:
+          - pattern: new $COMMAND($QUERY, ...)
+          - metavariable-regex: {metavariable: $COMMAND, regex: '.*Command$'}
+          - focus-metavariable: $QUERY
+      - patterns:
+          - pattern: $CMD.CommandText = $QUERY
+          - focus-metavariable: $QUERY

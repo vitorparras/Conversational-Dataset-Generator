@@ -54,6 +54,13 @@ reprovam, a menos que `tools/verify-code/accepted-risks.toml` os aceite com praz
 Nenhum código sai da máquina: ele só baixa o banco de vulnerabilidades e as regras de
 configuração, com telemetria e checagem de versão desligadas. Não analisa workflows.
 
+O passo `static_analysis` roda o `semgrep` de `tools/verify-code/static-analysis-requirements.txt`
+(`pip install -r`) com as regras próprias de `tools/verify-code/semgrep`, lidas do disco e com
+métricas desligadas, sobre `core`, `language-service` e `tools`, testes inclusive. Antes da
+varredura, o `semgrep --test` confere cada regra contra os exemplos marcados em
+`tools/verify-code/tests/semgrep`. Achado que não é defeito se dispensa no ponto, com
+`nosemgrep: <regra> <motivo>` num comentário na linha ou na anterior; em `core/src`, nunca.
+
 ## Núcleo
 
 O núcleo é uma solução .NET em `core/Core.slnx`. A versão exata do SDK está em `global.json`, e a

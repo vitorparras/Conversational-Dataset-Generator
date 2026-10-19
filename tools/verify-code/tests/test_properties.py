@@ -32,6 +32,12 @@ def trx(*tests: tuple[str, str]) -> str:
     )
 
 
+def sides_without_property(details: tuple[str, ...]) -> list[str]:
+    """The sides a failed step names as having executed no property."""
+    named = (d for d in details if d.endswith("o passo não passa vazio"))
+    return [d.split(":")[0] for d in named]
+
+
 def junit(*cases: tuple[str, str]) -> str:
     """A JUnit report with one test case per (class name, child element) pair; "" is a pass."""
     body = "".join(
@@ -95,8 +101,7 @@ class PropertiesTests(unittest.TestCase):
         ok, details, _ = self.run_step(None, None)
 
         self.assertFalse(ok)
-        sides = [d.split(":")[0] for d in details if d.endswith("o passo não passa vazio")]
-        self.assertEqual(sides, ["núcleo (.NET)", "serviço (Python)"])
+        self.assertEqual(sides_without_property(details), ["núcleo (.NET)", "serviço (Python)"])
 
     def test_a_skipped_service_property_did_not_run(self) -> None:
         ok, details, _ = self.run_step(

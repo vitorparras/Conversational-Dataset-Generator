@@ -13,12 +13,15 @@ public sealed class ClosedConfigurationInvariantsTests
         ClosedConfiguration.Load(schema, sources);
 
     [Fact]
+    [Trait("Kind", "Property")]
     public void UnknownKeyIsRefusedAndNamed() => Over(Production).UnknownKeyIsRefusedAndNamed();
 
     [Fact]
+    [Trait("Kind", "Property")]
     public void MissingRequiredKeyIsRefusedAndNamed() => Over(Production).MissingRequiredKeyIsRefusedAndNamed();
 
     [Fact]
+    [Trait("Kind", "Property")]
     public void LoadedValuesShowTheirOrigin() => Over(Production).LoadedValuesShowTheirOrigin();
 
     [Fact]

@@ -64,11 +64,11 @@ public static class ClosedConfiguration
     private static ConfigurationProblem Problem(ConfigurationProblemKind kind, DeclaredKey declared, string? found) =>
         new(kind, declared.Path, found, declared.Key.AcceptedValues);
 
-    /// <summary>The written value with its origin or, for a key no source wrote, its default; only reached once nothing was refused.</summary>
+    /// <summary>The written value with its origin or, for a key no source wrote, its default (if any); only reached once nothing was refused.</summary>
     private static List<ResolvedValue> Resolve(ConfigurationSchema schema, IReadOnlyDictionary<string, Writing> written) =>
         [.. schema.Declared.Select(declared => written.TryGetValue(declared.Path, out var writing)
-            ? new ResolvedValue(declared, writing.Value!, writing.Origin)
-            : new ResolvedValue(declared, declared.Key.DefaultValue!, ConfigurationOrigin.Default))];
+            ? new ResolvedValue(declared, writing.Value, writing.Origin)
+            : new ResolvedValue(declared, declared.Key.DefaultValue, ConfigurationOrigin.Default))];
 
     private sealed record Writing(string? Value, ConfigurationOrigin Origin);
 }

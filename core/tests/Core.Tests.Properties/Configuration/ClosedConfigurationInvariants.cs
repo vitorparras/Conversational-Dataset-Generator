@@ -39,7 +39,8 @@ internal sealed class ClosedConfigurationInvariants
 
     /// <summary>
     /// CA-4 of requisito 032: a configuration that loaded shows every declared key, each with a value some source of
-    /// that origin wrote, or its default under the default origin; the sensitive one is shown redacted.
+    /// that origin wrote, or its default under the default origin, or no value under the default origin for the
+    /// optional key without a default; the sensitive one is shown redacted.
     /// </summary>
     public void LoadedValuesShowTheirOrigin() =>
         runner.Check(ConfigurationGenerators.WellFormed, sources =>
@@ -53,15 +54,18 @@ internal sealed class ClosedConfigurationInvariants
         });
 
     private static IEnumerable<string> PossibleLines(IEnumerable<IConfigurationSource> sources, bool redact) =>
-        WrittenLines(sources).Concat(DefaultLines()).Select(line => redact ? Redacted(line) : line);
+        WrittenLines(sources).Concat(DefaultLines()).Concat(UnsetLines()).Select(line => redact ? Redacted(line) : line);
 
     private static IEnumerable<string> WrittenLines(IEnumerable<IConfigurationSource> sources) =>
         sources
             .Select(source => source.Read())
-            .SelectMany(reading => reading.Entries.Select(entry => LoadSnapshot.Line(PathOf(entry.Key), entry.Value!, reading.Origin)));
+            .SelectMany(reading => reading.Entries.Select(entry => LoadSnapshot.Line(PathOf(entry.Key), entry.Value, reading.Origin)));
 
     private static IEnumerable<string> DefaultLines() =>
         ConfigurationGenerators.Defaults.Select(pair => LoadSnapshot.Line(pair.Key, pair.Value, ConfigurationOrigin.Default));
+
+    private static IEnumerable<string> UnsetLines() =>
+        ConfigurationGenerators.WithoutDefault.Select(path => LoadSnapshot.Line(path, value: null, ConfigurationOrigin.Default));
 
     private static string Redacted(string line) =>
         line.StartsWith(ConfigurationGenerators.SensitivePath + "=", StringComparison.Ordinal)

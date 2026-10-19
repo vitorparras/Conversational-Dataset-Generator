@@ -75,6 +75,10 @@ caminho absoluto, porque `dotnet run` roda a partir da pasta do projeto; o `$(..
 o `uv run --frozen` já cria o ambiente a partir de `uv.lock` se ele não existir. Sem a chave, o
 núcleo recusa a configuração. Os testes do núcleo usam o mesmo comando para achar o interpretador.
 
+A chave opcional `Host:LogFile` grava o registro também no arquivo que ela nomeia, em caminho
+absoluto ou relativo à pasta do executável, com as linhas e a redação do console. Sem ela, o
+registro vai só ao console; com ela, um arquivo que não abre para escrita impede a inicialização.
+
 Com o núcleo de pé, `http://127.0.0.1:5080/status` responde `alive`, `ready` e `checks[]`, com o
 resultado de cada conferência de inicialização. O teste de arquitetura em
 `core/tests/Core.Tests.Architecture` impõe as regras de código a cada construção; as fixtures que

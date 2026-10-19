@@ -48,7 +48,7 @@ internal sealed partial class RootExclusions
     private static bool IsWideAndAllowed(string header, string id) => header == AllSources && Array.Exists(ProjectWide, wide => wide == id);
 
     private bool IsTheFile(string header, string source) =>
-        string.Equals(Path.GetFullPath(Path.Combine(directory, header)), Path.GetFullPath(source), StringComparison.OrdinalIgnoreCase);
+        SamePaths.Are(Path.Combine(directory, header), source);
 
     [GeneratedRegex(@"^dotnet_diagnostic\.(?<id>S\d+)\.severity = none$")]
     private static partial Regex Switch();

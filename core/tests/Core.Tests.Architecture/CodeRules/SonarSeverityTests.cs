@@ -8,6 +8,8 @@ public sealed class SonarSeverityTests
     private const string Fixtures = "sonar-severity";
     private const string Switches = "sonar-switches";
 
+    private static readonly RootConfig NoRoot = new(string.Empty, string.Empty, string.Empty);
+
     private static readonly SonarRule[] SampleRules =
     [
         new("S1", DiagnosticSeverity.Warning, EnabledByDefault: false),
@@ -135,6 +137,8 @@ public sealed class SonarSeverityTests
     [InlineData("BulkByCategory", "dotnet_analyzer_diagnostic.category-Style.severity")]
     [InlineData("GeneratedCodeMark", "generated_code")]
     [InlineData("LoweredNonSonarId", "CA1000")]
+    [InlineData("DefaultSeverity", "CA1851")]
+    [InlineData("GlobalDefault", "CA1851")]
     public void ConfigThatLowersDiagnosticsInBulkOrByIdOrMarksSourcesAsGeneratedIsRefused(string fixture, string expected)
     {
         var (invocation, root) = Read(fixture);
@@ -153,6 +157,40 @@ public sealed class SonarSeverityTests
 
         var nested = Assert.Single(refused);
         Assert.EndsWith("nested.rules", nested.File, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ProjectAtTheAllAnalysisLevelIsGivenOnlyConfigsOfTheSdkAndLoadsThePlatformAnalyzers()
+    {
+        var invocation = CompilerInvocation.OfFixture(Path.Combine(Switches, "AnalysisLevelAll"), "App");
+
+        Assert.Empty(AnalyzerConfigRules.CheckConfigFiles(invocation, NoRoot));
+        Assert.Empty(SonarSeverityRules.CheckPlatformAnalyzersLoaded(invocation));
+    }
+
+    [Fact]
+    public void ProjectAtAnAnalysisLevelBelowAllIsRefusedForTheConfigOfTheSdkItIsGiven()
+    {
+        var invocation = CompilerInvocation.OfFixture(Path.Combine(Switches, "AnalysisLevelMinimum"), "App");
+
+        Assert.NotEmpty(AnalyzerConfigRules.CheckConfigFiles(invocation, NoRoot));
+    }
+
+    [Fact]
+    public void ProjectWithTheNetAnalyzersSwitchedOffIsRefusedForTheAnalyzersItLacks()
+    {
+        var invocation = CompilerInvocation.OfFixture(Path.Combine(Switches, "NetAnalyzersOff"), "App");
+
+        Assert.NotEmpty(SonarSeverityRules.CheckPlatformAnalyzersLoaded(invocation));
+    }
+
+    [Theory]
+    [MemberData(nameof(ProductionProjectNames))]
+    public void ProductionProjectLoadsTheAnalyzersOfThePlatformFromTheSdk(string projectName)
+    {
+        var invocation = CompilerInvocation.Of(SourceTree.ProductionProject(projectName).Path);
+
+        Assert.Empty(SonarSeverityRules.CheckPlatformAnalyzersLoaded(invocation));
     }
 
     private static RootConfig RepositoryRoot()

@@ -19,14 +19,12 @@ internal static class BuildOutputRules
         ("Microsoft.Gen.Logging.LoggingGenerator", "Logging.g.cs"),
     ];
 
-    /// <summary>
-    /// The suppressors the SDK itself carries, each with the form in which it acts. None acts on a rule of the core:
-    /// the first only on members of a type marked as a custom marshaller of the interop generator (CA1822), which the core has none of,
-    /// the second only on a property that is a parameter of a Razor component (CS8618), which the core has none of.
-    /// </summary>
+    /// <summary>The suppressors the SDK itself carries, each with the reason it is accepted.</summary>
     private static readonly (string Type, string Id)[] SdkSuppressors =
     [
+        // Acts only on members of a custom marshaller of the interop generator; the core has none, and CA1822 stays active on the rest of it.
         ("Microsoft.Interop.Analyzers.ShapeBreakingDiagnosticSuppressor", "CA1822"),
+        // Acts only on a property that is a parameter of a Razor component; the core has no Razor component.
         ("Microsoft.CodeAnalysis.Razor.Compiler.Analyzers.ComponentParameterNullableWarningSuppressor", "CS8618"),
     ];
 

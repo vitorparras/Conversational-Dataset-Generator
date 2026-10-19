@@ -7,7 +7,6 @@ namespace Core.Tests.Architecture.CodeRules;
 internal static partial class AnalyzerConfigRules
 {
     private const string GeneratedCodeKey = "generated_code";
-    private const string GlobalConfigExtension = ".globalconfig";
 
     /// <summary>Diagnostics the SDK's analysis level switches off, each named with the reason.</summary>
     private static readonly string[] SdkSwitchedOff =
@@ -49,7 +48,7 @@ internal static partial class AnalyzerConfigRules
             .Select(pair => new Violation(source, 1, $"{GeneratedCodeKey} = {pair.Value} decides whether the analyzers treat a source as generated"));
 
     private static bool IsLowering(ReportDiagnostic severity) =>
-        severity is ReportDiagnostic.Suppress or ReportDiagnostic.Hidden or ReportDiagnostic.Info;
+        severity is ReportDiagnostic.Suppress or ReportDiagnostic.Hidden or ReportDiagnostic.Info or ReportDiagnostic.Default;
 
     private static bool IsAllowedOff(string id, RootExclusions exclusions, string source) =>
         exclusions.Covers(id, source) || Array.IndexOf(SdkSwitchedOff, id) >= 0;
@@ -57,13 +56,15 @@ internal static partial class AnalyzerConfigRules
     private static bool IsRootConfig(string path, RootConfig root) => SamePaths.Are(path, root.Path);
 
     private static bool IsSdkGlobalConfig(string path) =>
-        path.EndsWith(GlobalConfigExtension, StringComparison.OrdinalIgnoreCase)
-        && path.StartsWith(ToolLocations.DotnetRoot, StringComparison.OrdinalIgnoreCase);
+        AllLevelFile().IsMatch(Path.GetFileName(path)) && path.StartsWith(ToolLocations.DotnetRoot, StringComparison.OrdinalIgnoreCase);
 
     private static bool IsBuildEditorConfig(string path, CompilerInvocation invocation) =>
         SamePaths.Are(Path.GetDirectoryName(path) ?? string.Empty, invocation.IntermediateDirectory)
         && Path.GetFileName(path) == Path.GetFileNameWithoutExtension(invocation.ProjectPath) + ".GeneratedMSBuildEditorConfig.editorconfig";
 
+
+    [GeneratedRegex(@"^analysislevel_\d+(_\d+)?_all\.globalconfig$")]
+    private static partial Regex AllLevelFile();
 
     [GeneratedRegex(@"^dotnet_analyzer_diagnostic\.(category-[^.]+\.)?severity$")]
     private static partial Regex BulkKey();

@@ -35,11 +35,19 @@ public sealed class ProductionSuppressionTests
 
     [Theory]
     [MemberData(nameof(ProductionProjectNames))]
-    public void ProductionProjectProducesOnlyKnownGeneratedFilesAndCarriesOnlySdkSuppressors(string projectName)
+    public void ProductionProjectProducesOnlyKnownGeneratedFiles(string projectName)
     {
         var invocation = CompilerInvocation.Of(SourceTree.ProductionProject(projectName).Path);
 
         Assert.Empty(BuildOutputRules.CheckGeneratedFiles(invocation));
+    }
+
+    [Theory]
+    [MemberData(nameof(ProductionProjectNames))]
+    public void ProductionProjectCarriesOnlySdkSuppressors(string projectName)
+    {
+        var invocation = CompilerInvocation.Of(SourceTree.ProductionProject(projectName).Path);
+
         Assert.Empty(BuildOutputRules.CheckSuppressors(invocation));
     }
 

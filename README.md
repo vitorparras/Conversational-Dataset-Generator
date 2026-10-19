@@ -92,10 +92,14 @@ a porta só em `127.0.0.1` e exige três senhas no ambiente, sem valor em arquiv
 docker compose -f tools/database/compose.yml up
 ```
 
+O pgaudit e os papéis só entram quando o volume nasce vazio. Um volume criado por imagem anterior
+fica como estava, e se recria com `docker compose -f tools/database/compose.yml down -v`, que apaga
+os dados.
+
 Os testes de `core/tests/Core.Tests.Integration` constroem a mesma imagem com Testcontainers e
 senhas aleatórias. Sem Docker, os testes de banco saltam com o aviso "Docker indisponível: teste de
-banco saltado", e o passo `test_core` lista o projeto e o motivo; com `CI=true`, como na verificação
-contínua, eles rodam sempre, e a falta de Docker reprova.
+banco saltado", e o passo `test_core` lista o projeto e o motivo, passe ele ou não; com `CI=true`,
+como na verificação contínua, eles rodam sempre, e a falta de Docker reprova.
 
 ## Serviço de linguagem
 

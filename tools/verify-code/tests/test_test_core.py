@@ -94,6 +94,17 @@ class TestCoreTests(unittest.TestCase):
         self.assertTrue(result.ok, result.details)
         self.assertIn("Alpha.Tests: 1 teste(s) saltado(s) (ZQX-MOTIVO)", result.details)
 
+    def test_skipped_tests_are_reported_when_the_step_fails(self) -> None:
+        files = {
+            "a.trx": support.trx("Alpha.Tests", 3, 1, skipped="ZQX-MOTIVO"),
+            "b.trx": support.trx("Beta.Tests", 2, 0),
+        }
+
+        result = test_core.run(support.context(self.root, self.runner(files, ok=False)))
+
+        self.assertFalse(result.ok)
+        self.assertIn("Alpha.Tests: 1 teste(s) saltado(s) (ZQX-MOTIVO)", result.details)
+
     def test_no_skip_line_when_nothing_was_skipped(self) -> None:
         files = {
             "a.trx": support.trx("Alpha.Tests", 3, 0),

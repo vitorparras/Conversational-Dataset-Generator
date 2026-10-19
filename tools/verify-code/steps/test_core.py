@@ -1,11 +1,12 @@
 """Runs the core test suites with Cobertura coverage; a test project that executes nothing fails.
 
-Skipped tests do not fail the step, but each project that skipped some is named with the reasons."""
+Skipped tests do not fail the step, but each project that skipped some is named with the reasons,
+whether the step passes or fails."""
 
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from xml.etree import ElementTree
 
@@ -23,8 +24,8 @@ class TestRun:
     project: str
     executed: int
     failed: int
-    skipped: int = 0
-    skip_reasons: tuple[str, ...] = ()
+    skipped: int
+    skip_reasons: tuple[str, ...]
 
 
 def test_projects(solution: Path) -> tuple[str, ...]:
@@ -65,6 +66,15 @@ def describe_skips(run: TestRun) -> str:
 def judge(
     runs: tuple[TestRun, ...], projects: tuple[str, ...], dotnet: CommandOutcome
 ) -> StepResult:
+    """The verdict, followed by every project that skipped tests, whether the step passed or not."""
+    result = verdict(runs, projects, dotnet)
+    skips = tuple(describe_skips(run) for run in runs if run.skipped > 0)
+    return replace(result, details=(*result.details, *skips))
+
+
+def verdict(
+    runs: tuple[TestRun, ...], projects: tuple[str, ...], dotnet: CommandOutcome
+) -> StepResult:
     """Every test project ran at least one test, none failed, and `dotnet test` exited clean."""
     executed = {run.project: run.executed for run in runs if run.executed > 0}
     silent = [p for p in projects if p not in executed]
@@ -81,11 +91,7 @@ def judge(
         return failed(
             NAME, "`dotnet test` terminou com erro sem teste reprovado", *tail(dotnet.text)
         )
-    return passed(
-        NAME,
-        f"{sum(executed.values())} testes executados em {len(executed)} projetos",
-        *(describe_skips(run) for run in runs if run.skipped > 0),
-    )
+    return passed(NAME, f"{sum(executed.values())} testes executados em {len(executed)} projetos")
 
 
 def run(ctx: Context) -> StepResult:

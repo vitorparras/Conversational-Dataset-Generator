@@ -51,10 +51,10 @@ public sealed class DatabaseToolFilesTests
     }
 
     [Fact]
-    public void InitScriptWritesNoPasswordLiteral()
+    public void InitScriptTakesEveryPasswordFromAPsqlVariable()
     {
         var script = DatabaseTool.ReadText("init/01-database.sh");
 
-        Assert.DoesNotMatch(@"PASSWORD\s+'", script);
+        Assert.DoesNotMatch(@"(?i)\bPASSWORD\s+(?!:')", script);
     }
 }

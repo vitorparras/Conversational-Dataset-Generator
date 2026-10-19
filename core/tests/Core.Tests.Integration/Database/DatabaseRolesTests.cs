@@ -3,7 +3,7 @@ using Npgsql;
 
 namespace Core.Tests.Integration.Database;
 
-/// <summary>The built image, running: pgaudit is loaded, the owner role owns the schema and the application role owns nothing.</summary>
+/// <summary>The built image, running: pgaudit is loaded, the owner role owns the schema without escaping row security, and the application role owns nothing.</summary>
 [Trait("Category", "Database")]
 public sealed class DatabaseRolesTests
 {
@@ -81,6 +81,32 @@ public sealed class DatabaseRolesTests
         var mayCreate = await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
 
         Assert.False(Assert.IsType<bool>(mayCreate));
+    }
+
+    [DatabaseFact]
+    public async Task ApplicationRoleIsMemberOfNoRole()
+    {
+        var database = await PostgresFixture.SharedAsync();
+        await using var connection = await Sql.OpenAsync(database.AppConnectionString);
+        await using var command = new NpgsqlCommand(
+            "SELECT count(*) FROM pg_auth_members WHERE member = (SELECT oid FROM pg_roles WHERE rolname = current_user)",
+            connection);
+
+        var memberships = await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(0L, memberships);
+    }
+
+    [DatabaseFact]
+    public async Task OwnerRoleHoldsNoSuperuserNorBypassRls()
+    {
+        var database = await PostgresFixture.SharedAsync();
+        await using var connection = await Sql.OpenAsync(database.OwnerConnectionString);
+        await using var command = new NpgsqlCommand("SELECT rolsuper OR rolbypassrls FROM pg_roles WHERE rolname = current_user", connection);
+
+        var escapesRowSecurity = await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
+
+        Assert.False(Assert.IsType<bool>(escapesRowSecurity));
     }
 
     [DatabaseFact]

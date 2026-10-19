@@ -82,15 +82,23 @@ def write(root: Path, relative: str, content: str) -> None:
     target.write_text(content, encoding="utf-8", newline="\n")
 
 
-def trx(project: str, executed: int, failed: int) -> str:
-    """A TRX report reduced to what the step reads: the counters and one test method's assembly."""
+def trx(project: str, executed: int, failed: int, skipped: str = "") -> str:
+    """A TRX report reduced to what the step reads: counters, one assembly, one skip reason."""
+    skip = (
+        '  <Results><UnitTestResult testName="s" outcome="NotExecuted">'
+        f"<Output><StdOut>{skipped}</StdOut></Output></UnitTestResult></Results>\n"
+        if skipped
+        else ""
+    )
     return (
         '<?xml version="1.0" encoding="utf-8"?>\n'
         '<TestRun xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">\n'
         f'  <ResultSummary><Counters total="{executed}" executed="{executed}" '
-        f'passed="{executed - failed}" failed="{failed}" /></ResultSummary>\n'
+        f'passed="{executed - failed}" failed="{failed}" notExecuted="{1 if skipped else 0}" />'
+        "</ResultSummary>\n"
         f'  <TestDefinitions><UnitTest name="t" id="1"><TestMethod codeBase="bin/{project}.dll" '
         'className="c" name="t" /></UnitTest></TestDefinitions>\n'
+        f"{skip}"
         "</TestRun>\n"
     )
 

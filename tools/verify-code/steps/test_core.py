@@ -1,4 +1,6 @@
-"""Runs the core test suites with Cobertura coverage; a test project that executes nothing fails."""
+"""Runs the core test suites with Cobertura coverage; a test project that executes nothing fails.
+
+Skipped tests do not fail the step, but each project that skipped some is named with the reasons."""
 
 from __future__ import annotations
 
@@ -16,11 +18,13 @@ RESULTS = "core"
 
 @dataclass(frozen=True)
 class TestRun:
-    """What one TRX report says: which test assembly ran, how many tests, how many failed."""
+    """What one TRX report says: the test assembly, how many tests ran, failed or were skipped."""
 
     project: str
     executed: int
     failed: int
+    skipped: int = 0
+    skip_reasons: tuple[str, ...] = ()
 
 
 def test_projects(solution: Path) -> tuple[str, ...]:
@@ -38,7 +42,24 @@ def read_trx(path: Path) -> TestRun:
     method = next((e for e in root.iter() if e.tag.endswith("}TestMethod")), None)
     code_base = method.get("codeBase", "") if method is not None else ""
     project = Path(code_base.replace("\\", "/")).stem
-    return TestRun(project, int(counters.get("executed", "0")), int(counters.get("failed", "0")))
+    reasons = {
+        (e.findtext("*/{*}StdOut") or "").strip()
+        for e in root.iter()
+        if e.tag.endswith("}UnitTestResult") and e.get("outcome") == "NotExecuted"
+    }
+    return TestRun(
+        project,
+        int(counters.get("executed", "0")),
+        int(counters.get("failed", "0")),
+        int(counters.get("notExecuted", "0")),
+        tuple(sorted(reason for reason in reasons if reason)),
+    )
+
+
+def describe_skips(run: TestRun) -> str:
+    """One line per project that skipped tests, with the reasons the tests gave."""
+    reasons = "; ".join(run.skip_reasons) or "sem motivo declarado"
+    return f"{run.project}: {run.skipped} teste(s) saltado(s) ({reasons})"
 
 
 def judge(
@@ -60,7 +81,11 @@ def judge(
         return failed(
             NAME, "`dotnet test` terminou com erro sem teste reprovado", *tail(dotnet.text)
         )
-    return passed(NAME, f"{sum(executed.values())} testes executados em {len(executed)} projetos")
+    return passed(
+        NAME,
+        f"{sum(executed.values())} testes executados em {len(executed)} projetos",
+        *(describe_skips(run) for run in runs if run.skipped > 0),
+    )
 
 
 def run(ctx: Context) -> StepResult:

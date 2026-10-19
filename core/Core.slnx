@@ -7,6 +7,7 @@
     <Project Path="tests/Core.Tests.Architecture/Core.Tests.Architecture.csproj" />
     <Project Path="tests/Core.Host.Tests/Core.Host.Tests.csproj" />
     <Project Path="tests/Core.Platform.Tests/Core.Platform.Tests.csproj" />
+    <Project Path="tests/Core.Tests.Integration/Core.Tests.Integration.csproj" />
     <Project Path="tests/Core.Tests.Properties/Core.Tests.Properties.csproj" />
   </Folder>
 </Solution>

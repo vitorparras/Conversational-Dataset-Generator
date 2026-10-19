@@ -80,6 +80,23 @@ resultado de cada conferência de inicialização. O teste de arquitetura em
 `core/tests/Core.Tests.Architecture` impõe as regras de código a cada construção; as fixtures que
 ele reprova de propósito ficam em `core/tests/fixtures/code-rules`, fora de qualquer projeto.
 
+## Banco de dados de desenvolvimento
+
+A imagem de `tools/database/Dockerfile` é PostgreSQL 17, fixado por digest, com a extensão pgaudit
+pré-carregada. O script de `tools/database/init/01-database.sh` cria o banco `cdg`, o papel `owner`,
+dono do banco e do esquema, e o papel `app`, que só conecta e não é dono de nada. O compose publica
+a porta só em `127.0.0.1` e exige três senhas no ambiente, sem valor em arquivo algum:
+`POSTGRES_PASSWORD` (superusuário), `CDG_OWNER_PASSWORD` e `CDG_APP_PASSWORD`.
+
+```
+docker compose -f tools/database/compose.yml up
+```
+
+Os testes de `core/tests/Core.Tests.Integration` constroem a mesma imagem com Testcontainers e
+senhas aleatórias. Sem Docker, os testes de banco saltam com o aviso "Docker indisponível: teste de
+banco saltado", e o passo `test_core` lista o projeto e o motivo; com `CI=true`, como na verificação
+contínua, eles rodam sempre, e a falta de Docker reprova.
+
 ## Serviço de linguagem
 
 O serviço é um projeto Python 3.12 em `language-service/`, com dependências fixadas em

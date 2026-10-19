@@ -1,0 +1,21 @@
+# Development database: the port is published on loopback only and every password comes from the
+# environment; nothing secret lives in this repository.
+name: cdg-database
+
+services:
+  database:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cdg-database:dev
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD (superusuário)}
+      CDG_OWNER_PASSWORD: ${CDG_OWNER_PASSWORD:?defina CDG_OWNER_PASSWORD (papel owner)}
+      CDG_APP_PASSWORD: ${CDG_APP_PASSWORD:?defina CDG_APP_PASSWORD (papel app)}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - database-data:/var/lib/postgresql/data
+
+volumes:
+  database-data:

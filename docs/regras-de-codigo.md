@@ -41,6 +41,7 @@ classe não mistura as duas.
 
 `dotnet format` e `ruff` reprovam na CI; `.editorconfig` e o projeto Python são a única fonte de
 estilo. Python: tipo anotado em tudo, em modo estrito; dados imutáveis; esquema só na borda HTTP.
+Supressão de analisador: [decisão 0042](decisoes/0042-supressao-de-analisador.md).
 
 ## 7. Testes
 

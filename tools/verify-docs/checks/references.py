@@ -37,11 +37,7 @@ def _snippets(lines: list[str]) -> Iterator[tuple[int, str]]:
 
 
 def _cited_path(snippet: str) -> str | None:
-    """The snippet as a repository path, or None when it is not one.
-
-    Only what looks like a project file path is considered: it has a slash or a
-    known extension. This avoids mistaking a terminal command for a path.
-    """
+    """The snippet as a repository path, or None when it is not one."""
     candidate = snippet.strip().rstrip(":,.;")
     if " " in candidate or candidate.startswith(("-", "$", "http")):
         return None
@@ -56,7 +52,11 @@ def _cited_path(snippet: str) -> str | None:
 
 
 def check_references(root: Path, path: Path, lines: list[str]) -> list[Finding]:
-    """Checks that every path cited in `inline code` exists in the repository."""
+    """Checks that every path cited in `inline code` exists in the repository.
+
+    Only what looks like a project file path is considered: it has a slash or a
+    known extension. This avoids mistaking a terminal command for a path.
+    """
     return [
         Finding.at(Location(root, path, number), "references", f"`{cited}` não existe")
         for number, snippet in _snippets(lines)

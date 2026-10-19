@@ -3,6 +3,7 @@
 import random
 import time
 from collections.abc import Callable, Iterator
+from dataclasses import dataclass
 from datetime import timedelta
 from itertools import count
 from typing import Any
@@ -21,6 +22,7 @@ BUDGET = PropertyBudget(
 LIMIT = 100
 NUMBERS = st.integers(min_value=0, max_value=10**9)
 SEED_PREFIX = "seed="
+FIFTH = 5
 
 
 @pytest.fixture
@@ -43,6 +45,26 @@ def failure_of(runner: PropertyRunner) -> BaseException:
     with pytest.raises(AssertionError) as raised:
         runner.check(below_a_hundred, number=NUMBERS)
     return raised.value
+
+
+@dataclass(frozen=True)
+class FifthCaseFailure:
+    """The failure of a property that fails on its fifth case, and the cases before it."""
+
+    error: BaseException
+    first_cases: list[int]
+
+
+def failing_on_the_fifth_case(runner: PropertyRunner) -> FifthCaseFailure:
+    seen: list[int] = []
+
+    def fails_on_the_fifth(number: int) -> None:
+        seen.append(number)
+        assert len(seen) < FIFTH
+
+    with pytest.raises(AssertionError) as raised:
+        runner.check(fails_on_the_fifth, number=NUMBERS)
+    return FifthCaseFailure(raised.value, seen[: FIFTH - 1])
 
 
 def seed_of(failure: BaseException) -> int:
@@ -101,12 +123,12 @@ def test_a_failure_names_the_seed_that_replays_it() -> None:
     assert f"seed=7; replay it with {SEED_VARIABLE}=7" in failure.__notes__
 
 
-def test_the_seed_a_failure_without_a_fixed_seed_names_repeats_the_failure() -> None:
-    unseeded = failure_of(PropertyRunner(BUDGET))
+def test_the_seed_a_failure_without_a_fixed_seed_names_repeats_its_cases() -> None:
+    unseeded = failing_on_the_fifth_case(PropertyRunner(BUDGET))
 
-    replayed = failure_of(PropertyRunner(BUDGET, fixed_seed=seed_of(unseeded)))
+    replayed = failing_on_the_fifth_case(PropertyRunner(BUDGET, fixed_seed=seed_of(unseeded.error)))
 
-    assert replayed.__notes__ == unseeded.__notes__
+    assert replayed.first_cases == unseeded.first_cases
 
 
 def test_two_runs_without_a_fixed_seed_name_different_seeds_after_a_global_reset() -> None:

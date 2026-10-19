@@ -32,8 +32,9 @@ public sealed class StartupCheckTests
         using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
 
         Assert.True(body.RootElement.GetProperty("ready").GetBoolean());
-        var check = Assert.Single(body.RootElement.GetProperty("checks").EnumerateArray());
-        Assert.Equal("Host:BundledFile", check.GetProperty("name").GetString());
-        Assert.Equal("Passed", check.GetProperty("status").GetString());
+        var checks = body.RootElement.GetProperty("checks").EnumerateArray().ToList();
+        Assert.Equal("Host:BundledFile", checks[0].GetProperty("name").GetString());
+        Assert.Equal("LanguageService", checks[1].GetProperty("name").GetString());
+        Assert.All(checks, check => Assert.Equal("Passed", check.GetProperty("status").GetString()));
     }
 }

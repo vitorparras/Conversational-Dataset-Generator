@@ -195,6 +195,14 @@ dotnet_diagnostic.RS0030.severity = error
 # The log line is read by machines; ISO 8601 with a fixed format and the invariant culture is the contract.
 dotnet_diagnostic.S6585.severity = none
 
+[core/src/Core.Host/CompositionRoot.cs]
+# The composition root depends on every service by definition, and rule 3 makes it the only place that builds them.
+dotnet_diagnostic.S1200.severity = none
+
+[core/src/Core.Host/Supervision/LanguageServiceSupervisor.cs]
+# The dependency injection container hands the logger over, so it cannot be a static field.
+dotnet_diagnostic.S1312.severity = none
+
 [*.py]
 indent_size = 4
 

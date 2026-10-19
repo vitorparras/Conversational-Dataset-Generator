@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using Core.Host.Endpoints;
 using Core.Host.Supervision;
 using Core.Platform.Configuration;
+using Core.Platform.Configuration.Sources;
 using Core.Platform.Logging;
 using Core.Platform.Startup;
 
@@ -10,7 +11,40 @@ namespace Core.Host;
 /// <summary>The only place where the host is assembled: configuration first, then logging and services, then routes.</summary>
 internal static class CompositionRoot
 {
-    internal static Task<HostLaunch> BuildAsync(string[] args) => StartupSequence.RunAsync(args);
+    internal static async Task<HostLaunch> BuildAsync(string[] args)
+    {
+        var loaded = ClosedConfiguration.Load(
+            new ConfigurationSchema([HostConfiguration.Section, LanguageServiceConfiguration.Section]),
+            new JsonFileSource(HostConfiguration.SettingsPath),
+            EnvironmentSource.FromProcess(),
+            new StrictArgumentsSource(args));
+        if (loaded.Refused)
+        {
+            return HostLaunch.Refused(loaded.Problems);
+        }
+
+        var startup = StartupServices(loaded);
+        try
+        {
+            var checks = new IStartupCheck[] { BundledFile(loaded), startup.GetRequiredService<LanguageServiceStartupCheck>() };
+            var report = await new StartupRunner(checks).RunAsync(CancellationToken.None);
+            if (!report.Ready)
+            {
+                return HostLaunch.CheckFailed(report);
+            }
+
+            var launch = HostLaunch.Ready(Assemble(loaded, report, startup));
+            startup = null;
+            return launch;
+        }
+        finally
+        {
+            if (startup is not null)
+            {
+                await startup.DisposeAsync();
+            }
+        }
+    }
 
     /// <summary>Logging with redaction before anything else, then every service the routes consume.</summary>
     internal static void Compose(IHostApplicationBuilder builder, EffectiveConfiguration configuration)
@@ -23,14 +57,14 @@ internal static class CompositionRoot
             options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
     }
 
-    internal static BundledFileCheck BundledFile(ConfigurationLoadResult loaded) =>
+    private static BundledFileCheck BundledFile(ConfigurationLoadResult loaded) =>
         new(HostConfiguration.BundledFilePath, loaded.Values[HostConfiguration.BundledFilePath], AppContext.BaseDirectory);
 
     /// <summary>
     /// What the checks need before the host's own container exists: redacted logging and the supervision of
     /// the language service. The host's container adopts it, so the service stops when the host does.
     /// </summary>
-    internal static ServiceProvider StartupServices(ConfigurationLoadResult loaded)
+    private static ServiceProvider StartupServices(ConfigurationLoadResult loaded)
     {
         var services = new ServiceCollection();
         _ = services.AddSingleton(TimeProvider.System);
@@ -48,7 +82,7 @@ internal static class CompositionRoot
         return services.BuildServiceProvider();
     }
 
-    internal static WebApplication Assemble(ConfigurationLoadResult loaded, StartupReport report, ServiceProvider startup)
+    private static WebApplication Assemble(ConfigurationLoadResult loaded, StartupReport report, ServiceProvider startup)
     {
         var builder = ClosedBuilder(loaded.Values[HostConfiguration.UrlsPath]);
         Compose(builder, loaded.View);

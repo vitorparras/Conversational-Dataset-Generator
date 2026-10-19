@@ -76,9 +76,15 @@ o `uv run --frozen` já cria o ambiente a partir de `uv.lock` se ele não existi
 núcleo recusa a configuração. Os testes do núcleo usam o mesmo comando para achar o interpretador.
 
 Com o núcleo de pé, `http://127.0.0.1:5080/status` responde `alive`, `ready` e `checks[]`, com o
-resultado de cada conferência de inicialização. O teste de arquitetura em
-`core/tests/Core.Tests.Architecture` impõe as regras de código a cada construção; as fixtures que
-ele reprova de propósito ficam em `core/tests/fixtures/code-rules`, fora de qualquer projeto.
+resultado de cada conferência de inicialização, e `http://127.0.0.1:5080/versions` responde a
+versão do núcleo, o commit de que ele foi construído e se a árvore tinha mudança não registrada
+(`workingTree`, que vale `Unknown` se a construção não conseguiu perguntar ao `git`); versão que o
+núcleo não obteve vem `null`, nunca vazia, e a mesma lista sai no registro, na linha
+`Versões em execução`.
+
+O teste de arquitetura em `core/tests/Core.Tests.Architecture` impõe as regras de código a cada
+construção; as fixtures que ele reprova de propósito ficam em `core/tests/fixtures/code-rules`, fora
+de qualquer projeto.
 
 ## Serviço de linguagem
 

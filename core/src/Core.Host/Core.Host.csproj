@@ -7,6 +7,9 @@
     <ProjectReference Include="..\Core.Platform\Core.Platform.csproj" />
   </ItemGroup>
 
+  <!-- Only the executable says where it came from; the libraries it carries do not run git on every build. -->
+  <Import Project="..\..\build\BuildInfo.targets" />
+
   <ItemGroup>
     <InternalsVisibleTo Include="Core.Host.Tests" />
   </ItemGroup>

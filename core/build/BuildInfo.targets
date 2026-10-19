@@ -1,0 +1,74 @@
+<Project>
+  <!--
+    Stamps the assembly with where it came from: the package version, the commit and whether the working tree had
+    changes not yet committed. git is started directly, never through a shell, because the Exec task needs sh on the
+    PATH; a missing git, or a call that fails, leaves its value out instead of stamping an empty one.
+  -->
+  <UsingTask TaskName="RunGit" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Arguments ParameterType="System.String" Required="true" />
+      <WorkingDirectory ParameterType="System.String" Required="true" />
+      <Succeeded ParameterType="System.Boolean" Output="true" />
+      <StandardOutput ParameterType="System.String" Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.Diagnostics" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var start = new ProcessStartInfo("git", Arguments)
+        {
+            WorkingDirectory = WorkingDirectory,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+        };
+        try
+        {
+            using (var git = Process.Start(start))
+            {
+                var errors = git.StandardError.ReadToEndAsync();
+                StandardOutput = git.StandardOutput.ReadToEnd().Trim();
+                git.WaitForExit();
+                errors.Wait();
+                Succeeded = git.ExitCode == 0;
+            }
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            Succeeded = false;
+            StandardOutput = string.Empty;
+        }
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="StampBuildInfo" BeforeTargets="GetAssemblyAttributes">
+    <RunGit Arguments="rev-parse HEAD" WorkingDirectory="$(MSBuildProjectDirectory)">
+      <Output TaskParameter="Succeeded" PropertyName="_BuildInfoCommitRead" />
+      <Output TaskParameter="StandardOutput" PropertyName="_BuildInfoCommit" />
+    </RunGit>
+    <RunGit Arguments="--no-optional-locks status --porcelain" WorkingDirectory="$(MSBuildProjectDirectory)">
+      <Output TaskParameter="Succeeded" PropertyName="_BuildInfoStatusRead" />
+      <Output TaskParameter="StandardOutput" PropertyName="_BuildInfoChanges" />
+    </RunGit>
+
+    <PropertyGroup>
+      <_BuildInfoWorkingTree Condition="'$(_BuildInfoStatusRead)' == 'true' and '$(_BuildInfoChanges)' == ''">Clean</_BuildInfoWorkingTree>
+      <_BuildInfoWorkingTree Condition="'$(_BuildInfoStatusRead)' == 'true' and '$(_BuildInfoChanges)' != ''">Dirty</_BuildInfoWorkingTree>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(Version)' != ''">
+        <_Parameter1>BuildInfo.Version</_Parameter1>
+        <_Parameter2>$(Version)</_Parameter2>
+      </AssemblyAttribute>
+      <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(_BuildInfoCommitRead)' == 'true' and '$(_BuildInfoCommit)' != ''">
+        <_Parameter1>BuildInfo.Commit</_Parameter1>
+        <_Parameter2>$(_BuildInfoCommit)</_Parameter2>
+      </AssemblyAttribute>
+      <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(_BuildInfoWorkingTree)' != ''">
+        <_Parameter1>BuildInfo.WorkingTree</_Parameter1>
+        <_Parameter2>$(_BuildInfoWorkingTree)</_Parameter2>
+      </AssemblyAttribute>
+    </ItemGroup>
+  </Target>
+</Project>

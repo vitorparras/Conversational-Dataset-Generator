@@ -5,6 +5,7 @@ using Core.Platform.Configuration;
 using Core.Platform.Configuration.Sources;
 using Core.Platform.Logging;
 using Core.Platform.Startup;
+using Core.Platform.Versions;
 
 namespace Core.Host;
 
@@ -88,11 +89,15 @@ internal static class CompositionRoot
         Compose(builder, loaded.View);
         _ = builder.Services.AddSingleton(report);
         _ = builder.Services.AddSingleton(_ => startup);
+        var versions = new VersionReport(BuildInfo.Of(typeof(CompositionRoot).Assembly));
+        _ = builder.Services.AddSingleton(versions);
 
         var app = builder.Build();
         _ = app.Services.GetRequiredService<ServiceProvider>();
+        app.Logger.VersionsInForce(versions);
         StatusEndpoint.Map(app);
         ConfigurationEndpoint.Map(app);
+        VersionsEndpoint.Map(app);
         return app;
     }
 

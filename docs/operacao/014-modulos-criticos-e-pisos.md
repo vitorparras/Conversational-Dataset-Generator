@@ -39,7 +39,9 @@ conta na área do projeto ou pacote que o contém, pelo prefixo mais longo que c
 | Contrato da fronteira | `Core.Boundary.Contracts` | isento | Só tipos, sem lógica a cobrir (decisão 0018) |
 
 `isento` é o único valor não numérico admitido: a área está declarada e nada se compara. Área
-medida que não aparece na tabela reprova; piso ausente não é piso zero.
+medida que não aparece na tabela reprova; piso ausente não é piso zero. Área com piso e sem linha
+a cobrir (`0 de 0`) aparece como sem código e não reprova, salvo se o projeto ou pacote dela existe
+e nenhum relatório o leu.
 
 ## Mutação
 

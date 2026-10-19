@@ -34,6 +34,7 @@ class Context:
     out_dir: Path
     run: RunCommand
     base: str | None = None
+    previous: Path | None = None
 
 
 @dataclass(frozen=True)

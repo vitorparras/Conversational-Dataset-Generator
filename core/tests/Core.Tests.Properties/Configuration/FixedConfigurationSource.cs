@@ -9,7 +9,7 @@ internal sealed class FixedConfigurationSource : IConfigurationSource
 
     public FixedConfigurationSource(IEnumerable<KeyValuePair<string, string?>> entries, ConfigurationOrigin origin)
     {
-        reading = SourceReading.Of(origin, entries);
+        reading = new SourceReading(origin, [.. entries], []);
     }
 
     public SourceReading Read() => reading;

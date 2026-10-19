@@ -3,21 +3,12 @@ using System.Security.Cryptography;
 namespace Core.Host.Supervision;
 
 /// <summary>Owns the language service for as long as the core lives: its process, and the secret the core and the service share.</summary>
-internal sealed class LanguageServiceSupervisor : IDisposable
+internal sealed class LanguageServiceSupervisor(
+    ServiceProcessLauncher launcher, HealthWait health, ILogger<LanguageServiceSupervisor> logger) : IDisposable
 {
     private const int SecretBytes = 32;
 
-    private readonly ServiceProcessLauncher launcher;
-    private readonly HealthWait health;
-    private readonly ILogger<LanguageServiceSupervisor> logger;
     private RunningService? service;
-
-    internal LanguageServiceSupervisor(ServiceProcessLauncher launcher, HealthWait health, ILogger<LanguageServiceSupervisor> logger)
-    {
-        this.launcher = launcher;
-        this.health = health;
-        this.logger = logger;
-    }
 
     /// <summary>The secret of the running service; empty until the service has answered.</summary>
     internal string Secret { get; private set; } = string.Empty;

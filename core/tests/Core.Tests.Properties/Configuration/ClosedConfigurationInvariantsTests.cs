@@ -9,7 +9,7 @@ public sealed class ClosedConfigurationInvariantsTests
 {
     private static ClosedConfigurationInvariants Over(ConfigurationLoader load) => new(PropertyRunner.FromProcess(), load);
 
-    private static ConfigurationLoadResult Production(ConfigurationSchema schema, IReadOnlyList<IConfigurationSource> sources) =>
+    private static ConfigurationLoadResult Production(ConfigurationSchema schema, IEnumerable<IConfigurationSource> sources) =>
         ClosedConfiguration.Load(schema, sources);
 
     [Fact]

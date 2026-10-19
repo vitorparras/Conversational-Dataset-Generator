@@ -109,7 +109,7 @@ public sealed class FileLoggerProviderTests
     {
         using var directory = new TemporaryDirectory();
 
-        using var file = FileLoggerProvider.Open(Path.Combine(directory.Path, "ZQX-MISSING-7731", "app.log"), new LineConsoleFormatter(TimeProvider.System));
+        using var file = FileLoggerProvider.Open(Path.Combine(directory.Path, "ZQX-MISSING-7731", "app.log"), new LineConsoleFormatter(TimeProvider.System), TextWriter.Null);
 
         Assert.Null(file);
     }
@@ -119,7 +119,7 @@ public sealed class FileLoggerProviderTests
     {
         using var directory = new TemporaryDirectory();
 
-        using var file = FileLoggerProvider.Open(directory.Path, new LineConsoleFormatter(TimeProvider.System));
+        using var file = FileLoggerProvider.Open(directory.Path, new LineConsoleFormatter(TimeProvider.System), TextWriter.Null);
 
         Assert.Null(file);
     }
@@ -129,9 +129,17 @@ public sealed class FileLoggerProviderTests
     {
         using var directory = new TemporaryDirectory();
 
-        using var file = FileLoggerProvider.Open(Path.Combine(directory.Path, "ZQX-BAD-\u0000-7731.log"), new LineConsoleFormatter(TimeProvider.System));
+        using var file = FileLoggerProvider.Open(Path.Combine(directory.Path, "ZQX-BAD-\u0000-7731.log"), new LineConsoleFormatter(TimeProvider.System), TextWriter.Null);
 
         Assert.Null(file);
+    }
+
+    [Fact]
+    public void OpeningWithoutANoticeIsRefused()
+    {
+        using var pipeline = new FilePipeline();
+
+        _ = Assert.Throws<ArgumentNullException>(() => FileLoggerProvider.Open(pipeline.Path, new LineConsoleFormatter(TimeProvider.System), null!));
     }
 
     private static InvalidOperationException Thrown()

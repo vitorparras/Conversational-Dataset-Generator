@@ -21,6 +21,9 @@ internal sealed record HostInstallation(string BinaryDirectory, string WorkingDi
 
     public static string UrlsArgument(Uri baseAddress) => $"--Host:Urls={baseAddress.GetLeftPart(UriPartial.Authority)}";
 
+    /// <summary>The same installation told to write its log also to the file at the path.</summary>
+    public HostInstallation WithLogFile(string path) => this with { Arguments = [.. Arguments, $"--Host:LogFile={path}"] };
+
     public string ExecutablePath =>
         Path.Combine(BinaryDirectory, OperatingSystem.IsWindows() ? "Core.Host.exe" : "Core.Host");
 }

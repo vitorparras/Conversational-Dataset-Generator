@@ -25,7 +25,7 @@ internal sealed class ComposedFile : IDisposable
     public string TextWrittenBy(Action<ILogger> log)
     {
         using var console = new ConsoleCapture();
-        using var fileLog = FileLoggerProvider.Open(Path, new LineConsoleFormatter(TimeProvider.System));
+        using var fileLog = FileLoggerProvider.Open(Path, new LineConsoleFormatter(TimeProvider.System), TextWriter.Null);
         var builder = CompositionRoot.ClosedBuilder("http://127.0.0.1:0");
         CompositionRoot.Compose(builder, ClosedConfiguration.Load(new ConfigurationSchema([HostConfiguration.Section])).View, fileLog);
         using (var app = builder.Build())

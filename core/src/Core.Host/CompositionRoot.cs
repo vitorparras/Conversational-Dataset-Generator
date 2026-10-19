@@ -73,7 +73,8 @@ internal static class CompositionRoot
     /// <summary>The file the configuration names, relative to the binary's directory; null when absent or when it cannot be opened.</summary>
     private static FileLoggerProvider? OpenFileLog(ConfigurationLoadResult loaded) =>
         loaded.Values.TryGetValue(HostConfiguration.LogFilePath, out var path)
-            ? FileLoggerProvider.Open(Path.Combine(AppContext.BaseDirectory, path), new LineConsoleFormatter(TimeProvider.System))
+            ? FileLoggerProvider.Open(
+                Path.Combine(AppContext.BaseDirectory, path), new LineConsoleFormatter(TimeProvider.System), Console.Error)
             : null;
 
     /// <summary>A check on the log file only when the configuration names one; without it the log goes to the console alone.</summary>

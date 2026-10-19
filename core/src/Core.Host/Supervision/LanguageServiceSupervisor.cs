@@ -61,10 +61,17 @@ internal sealed class LanguageServiceSupervisor : IDisposable
         }
     }
 
-    /// <summary>Closes the standard input of the service, which is how it learns the core is gone.</summary>
+    /// <summary>Closes the standard input of the service, which is how it learns the core is gone, and logs that it ended.</summary>
     public void Dispose()
     {
-        service?.Dispose();
+        if (service is null)
+        {
+            return;
+        }
+
+        var processId = service.ProcessId;
+        service.Dispose();
         service = null;
+        logger.ServiceStopped(processId);
     }
 }

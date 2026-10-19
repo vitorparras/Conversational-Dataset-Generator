@@ -54,6 +54,11 @@ reprovam, a menos que `tools/verify-code/accepted-risks.toml` os aceite com praz
 Nenhum código sai da máquina: ele só baixa o banco de vulnerabilidades e as regras de
 configuração, com telemetria e checagem de versão desligadas. Não analisa workflows.
 
+O passo `dependencies` audita a árvore completa do serviço, transitivas inclusive, com o
+`pip-audit` de `tools/verify-code/audit-requirements.txt`. Lock ausente ou base de vulnerabilidades
+fora de alcance reprovam: sem rede e sem base recente em cache, o passo nunca passa. Achado sem
+correção só passa com risco aceito naquele mesmo arquivo.
+
 ## Núcleo
 
 O núcleo é uma solução .NET em `core/Core.slnx`. A versão exata do SDK está em `global.json`, e a

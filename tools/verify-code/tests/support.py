@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from types import ModuleType
 
-from steps.common import OUTPUT_DIRECTORY, CommandOutcome, Context, run_process
+from steps.common import OUTPUT_DIRECTORY, CommandOutcome, Context, RunCommand, run_process
 
 VERIFY_CODE = Path(__file__).resolve().parents[1]
 SUCCESS = CommandOutcome(True, "")
@@ -71,7 +71,7 @@ class FakeRunner:
         return self.outcome
 
 
-def context(root: Path, run: FakeRunner | None = None, base: str | None = None) -> Context:
+def context(root: Path, run: RunCommand | None = None, base: str | None = None) -> Context:
     """A context on ``root``; without a fake, commands really run."""
     return Context(root, root / OUTPUT_DIRECTORY, run if run is not None else run_process, base)
 

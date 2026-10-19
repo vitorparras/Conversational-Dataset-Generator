@@ -20,6 +20,8 @@ assert _spec is not None and _spec.loader is not None
 verify = importlib.util.module_from_spec(_spec)
 sys.modules["verify"] = verify  # dataclasses resolves annotations through sys.modules
 _spec.loader.exec_module(verify)
+size = importlib.import_module("checks.size")
+formatting = importlib.import_module("checks.formatting")
 
 BACKSLASH = chr(92)
 VALID_DOC = "# Documento sintético\n\n> Descrição. 2026-01-01.\n\nTexto sem problema.\n"
@@ -85,7 +87,7 @@ class VerifyDocsTests(unittest.TestCase):
         self.assertIn("[links]", output)
 
     def test_document_over_line_limit_fails(self) -> None:
-        body = "".join(f"Linha {n}.\n" for n in range(verify.LINE_LIMIT + 5))
+        body = "".join(f"Linha {n}.\n" for n in range(size.LINE_LIMIT + 5))
         self.write("docs/001-long.md", VALID_DOC + "\n" + body)
         code, output = run_verifier(self.root)
         self.assertEqual(code, 1, output)
@@ -160,7 +162,7 @@ class VerifyDocsTests(unittest.TestCase):
         self.assertIn("colunas", output)
 
     def test_wide_table_row_and_link_line_are_exempt(self) -> None:
-        wide = "x" * (verify.COLUMN_LIMIT + 20)
+        wide = "x" * (formatting.COLUMN_LIMIT + 20)
         self.write("docs/001-table.md", VALID_DOC + f"\n| {wide} |\n[{wide}](001-table.md)\n")
         code, output = run_verifier(self.root, "--only", "formatting")
         self.assertEqual(code, 0, output)

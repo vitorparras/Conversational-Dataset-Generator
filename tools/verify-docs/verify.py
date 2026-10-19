@@ -28,154 +28,21 @@ import sys
 from collections.abc import Callable
 from pathlib import Path
 
+from checks.authority import check_authority
 from checks.data import check_data
+from checks.formatting import check_formatting
 from checks.links import check_links
 from checks.references import check_references
+from checks.size import check_size
 from document import list_documents
 from finding import Finding
 
 #: Default root: the repository that contains this script (tools/verify-docs/verify.py).
 DEFAULT_ROOT = Path(__file__).resolve().parents[2]
 
-#: Community files whose authority is obvious from the name.
-COMMUNITY_FILES = {
-    "README.md",
-    "CONTRIBUTING.md",
-    "SECURITY.md",
-    "CODE_OF_CONDUCT.md",
-    "CLAUDE.md",
-    "AGENTS.md",
-}
-
-# ---------------------------------------------------------------------------
-# Authority line vocabulary
-# ---------------------------------------------------------------------------
-# The repository uses plain markdown, with no metadata header. The authority of
-# each document lives in a quote line right after the title. The vocabulary is
-# closed and is part of the documents' language, so the values stay in Portuguese;
-# the writing rules are in docs/regras-de-escrita.md.
-
-AUTHORITIES = (
-    "Norma vigente",  # binds
-    "Norma substituída por",  # no longer valid; the successor says what is
-    "Norma revogada",  # no longer valid, and nothing replaces it
-    "Norma pendente",  # still to be decided; the document says what is unknown
-    "Decisão vigente",  # binds (used in docs/decisoes/)
-    "Decisão substituída por",
-    "Decisão revogada",
-    "Decisão pendente",  # still to be decided; the document says what is unknown
-    "Descrição",  # describes the system; if it diverges, the code wins
-    "Histórico",  # zero authority; never a rule
-    "Operacional",  # procedure to follow
-)
-
-COLUMN_LIMIT = 100
-LINE_LIMIT = 60
-BLANK_LINES_LIMIT = 2
-
 
 def _finding(root: Path, path: Path, line: int, check: str, message: str) -> Finding:
     return Finding(path.relative_to(root), line, check, message)
-
-
-# ---------------------------------------------------------------------------
-# 4. Authority line
-# ---------------------------------------------------------------------------
-
-
-def check_authority(root: Path, path: Path, lines: list[str]) -> list[Finding]:
-    """Every document declares, in a quote after the title, whether it binds or not.
-
-    With no metadata header, this line is the only place where authority is
-    explicit - and without it, history can be read as a rule.
-    """
-    if path.name in COMMUNITY_FILES:
-        return []
-
-    for number, line in enumerate(lines[:12], start=1):
-        if line.startswith(">"):
-            text = line.lstrip("> ").strip()
-            if text.startswith(AUTHORITIES):
-                return []
-            return [
-                _finding(
-                    root, path, number, "authority", f"autoridade não reconhecida: {text[:48]!r}"
-                )
-            ]
-    return [
-        _finding(root, path, 1, "authority", "falta a linha de autoridade (citação após o título)")
-    ]
-
-
-# ---------------------------------------------------------------------------
-# 5. Formatting
-# ---------------------------------------------------------------------------
-
-
-def check_formatting(root: Path, path: Path, lines: list[str]) -> list[Finding]:
-    """Simple consistency rules: column, trailing space, blank lines, tab."""
-    findings: list[Finding] = []
-    consecutive_blank = 0
-
-    for number, line in enumerate(lines, start=1):
-        content = line.rstrip("\n")
-
-        if "\t" in content:
-            findings.append(_finding(root, path, number, "formatting", "tab: use espaços"))
-
-        if content != content.rstrip():
-            findings.append(_finding(root, path, number, "formatting", "espaço no fim da linha"))
-
-        # Tables, long links and code lines do not fit the limit without hurting reading.
-        is_exception = content.lstrip().startswith(("|", "    ")) or "](" in content
-        if len(content) > COLUMN_LIMIT and not is_exception:
-            findings.append(
-                _finding(
-                    root,
-                    path,
-                    number,
-                    "formatting",
-                    f"{len(content)} colunas (limite {COLUMN_LIMIT})",
-                )
-            )
-
-        if not content.strip():
-            consecutive_blank += 1
-            if consecutive_blank == BLANK_LINES_LIMIT + 1:
-                findings.append(
-                    _finding(root, path, number, "formatting", "3+ linhas vazias seguidas")
-                )
-        else:
-            consecutive_blank = 0
-
-    if lines and not lines[-1].endswith("\n"):
-        findings.append(
-            _finding(root, path, len(lines), "formatting", "arquivo sem quebra de linha final")
-        )
-    return findings
-
-
-# ---------------------------------------------------------------------------
-# 6. Size
-# ---------------------------------------------------------------------------
-
-
-def check_size(root: Path, path: Path, lines: list[str]) -> list[Finding]:
-    """A document above the ceiling is over-justifying itself (writing rule 2).
-
-    Two exceptions. A historical document is neither split nor summarised, because
-    that would falsify the record of what was true when it was written. And a folder
-    index grows one line per added document: the ceiling would make it shrink by
-    hiding documents, the opposite of what an index exists to do.
-    """
-    if path.name == "README.md":
-        return []
-    for line in lines[:12]:
-        if line.startswith(">") and line.lstrip("> ").startswith("Histórico"):
-            return []
-    if len(lines) <= LINE_LIMIT:
-        return []
-    return [_finding(root, path, len(lines), "size", f"{len(lines)} linhas (teto {LINE_LIMIT})")]
 
 
 # ---------------------------------------------------------------------------

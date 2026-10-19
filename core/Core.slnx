@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Core.Boundary/Core.Boundary.csproj" />
     <Project Path="src/Core.Boundary.Contracts/Core.Boundary.Contracts.csproj" />
     <Project Path="src/Core.Host/Core.Host.csproj" />
     <Project Path="src/Core.Platform/Core.Platform.csproj" />

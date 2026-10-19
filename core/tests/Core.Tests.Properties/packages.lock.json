@@ -325,6 +325,18 @@
           "xunit.v3.runner.common": "[4.0.2]"
         }
       },
+      "core.boundary": {
+        "type": "Project",
+        "dependencies": {
+          "Core.Boundary.Contracts": "[1.0.0, )"
+        }
+      },
+      "core.boundary.contracts": {
+        "type": "Project",
+        "dependencies": {
+          "Core.Platform": "[1.0.0, )"
+        }
+      },
       "core.platform": {
         "type": "Project",
         "dependencies": {

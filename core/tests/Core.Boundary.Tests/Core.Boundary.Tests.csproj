@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Core.Boundary\Core.Boundary.csproj" />
     <ProjectReference Include="..\..\src\Core.Boundary.Contracts\Core.Boundary.Contracts.csproj" />
   </ItemGroup>
 </Project>

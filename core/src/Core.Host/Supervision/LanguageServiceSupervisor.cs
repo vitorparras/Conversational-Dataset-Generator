@@ -22,6 +22,9 @@ internal sealed class LanguageServiceSupervisor : IDisposable
     /// <summary>The secret of the running service; empty until the service has answered.</summary>
     internal string Secret { get; private set; } = string.Empty;
 
+    /// <summary>The loopback port of the running service; null until the service has answered.</summary>
+    internal int? Port => service?.Port;
+
     /// <summary>The process number of the running service; null until the service has answered.</summary>
     internal int? ProcessId => service?.ProcessId;
 

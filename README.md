@@ -79,6 +79,9 @@ O núcleo inicia o serviço de linguagem e só abre a porta depois que ele respo
 caminho absoluto, porque `dotnet run` roda a partir da pasta do projeto; o `$(...)` acima o obtém, e
 o `uv run --frozen` já cria o ambiente a partir de `uv.lock` se ele não existir. Sem a chave, o
 núcleo recusa a configuração. Os testes do núcleo usam o mesmo comando para achar o interpretador.
+`LanguageService:AnalyzeTimeoutSeconds` (padrão 10, de 1 a 3600 segundos) limita cada análise:
+vencido o prazo, o desfecho é serviço indisponível, nunca lista vazia; valor fora desse intervalo
+recusa a configuração.
 
 Com o núcleo de pé, `http://127.0.0.1:5080/status` responde `alive`, `ready` e `checks[]`, com o
 resultado de cada conferência de inicialização. O teste de arquitetura em

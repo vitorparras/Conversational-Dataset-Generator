@@ -1,3 +1,4 @@
+using Core.Boundary.Http;
 using Core.Host.Supervision;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -8,10 +9,12 @@ internal sealed class SupervisionHarness : IDisposable
 {
     public static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
 
-    private readonly HttpClient client = NewClient();
     private readonly List<IDisposable> started = [];
 
-    public HealthWait Health => new(client);
+    public HealthWait Health => new(Client);
+
+    /// <summary>The client the host hands the supervision and the recognizer: it never goes through a proxy.</summary>
+    public HttpClient Client { get; } = LoopbackHttpClient.Create();
 
     public static ServiceProcessLauncher Launcher => new(LanguageServiceInterpreter.Path);
 
@@ -40,22 +43,6 @@ internal sealed class SupervisionHarness : IDisposable
     public void Dispose()
     {
         started.ForEach(item => item.Dispose());
-        client.Dispose();
-    }
-
-    private static HttpClient NewClient()
-    {
-        SocketsHttpHandler? handler = null;
-        try
-        {
-            handler = new SocketsHttpHandler { UseProxy = false };
-            var created = new HttpClient(handler);
-            handler = null;
-            return created;
-        }
-        finally
-        {
-            handler?.Dispose();
-        }
+        Client.Dispose();
     }
 }

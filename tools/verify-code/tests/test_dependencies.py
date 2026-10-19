@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from datetime import date
 from pathlib import Path
 
 from steps import accepted_risks, dependencies, dependency_tree, service_audit
-from steps.common import StepResult
+from steps.common import CommandOutcome, StepResult
 
 from . import dependency_fixtures as fx
 from . import support
@@ -31,8 +32,10 @@ class DependenciesStepTests(unittest.TestCase):
         self.addCleanup(self._tmp.cleanup)
         self.root = fx.locked_repository(Path(self._tmp.name))
 
-    def audit(self, report: str) -> tuple[StepResult, fx.ServiceRunner]:
-        runner = fx.ServiceRunner(fx.report_folder(self.root), report)
+    def audit(
+        self, report: str, restore: CommandOutcome = support.SUCCESS
+    ) -> tuple[StepResult, fx.ServiceRunner]:
+        runner = fx.ServiceRunner(fx.report_folder(self.root), report, restore=restore)
         return dependencies.audit(support.context(self.root, runner), TODAY), runner
 
     def register(self, *risks: str) -> None:
@@ -59,16 +62,31 @@ class DependenciesStepTests(unittest.TestCase):
 
         self.assertTrue(result.ok, result.details)
         self.assertIn(
-            "  - risco aceito até 2026-10-16: PYSEC-0000-1 em zqx-leaf", result.details[1]
+            "  - risco aceito até 2026-10-16: PYSEC-0000-1 em zqx-leaf", result.details[2]
         )
 
-    def test_a_clean_tree_passes_under_the_step_name(self) -> None:
+    def test_both_trees_are_audited_when_both_are_clean(self) -> None:
         result, _ = self.audit(fx.audit_report())
 
-        self.assertEqual(result.name, "dependencies")
-        self.assertEqual(result.details, ("serviço: árvore completa auditada, nada em aberto",))
+        self.assertTrue(result.ok, result.details)
+        self.assertEqual(
+            result.details,
+            (
+                "núcleo: árvore completa auditada, nada em aberto",
+                "serviço: árvore completa auditada, nada em aberto",
+            ),
+        )
 
-    def test_a_missing_service_tree_fails(self) -> None:
+    def test_the_service_is_audited_even_when_the_core_fails(self) -> None:
+        restore = CommandOutcome(False, fx.restore_error(self.root))
+
+        result, _ = self.audit(fx.audit_report(fx.PYTHON_VULNERABLE), restore)
+
+        self.assertFalse(result.ok)
+        self.assertEqual(result.details[0], "núcleo: 1 vulnerabilidade(s) sem risco aceito")
+        self.assertIn("serviço: 2 vulnerabilidade(s) sem risco aceito", result.details)
+
+    def test_a_missing_service_tree_fails_even_when_the_core_is_clean(self) -> None:
         (self.root / service_audit.LOCK).unlink()
 
         result, _ = self.audit(fx.audit_report())
@@ -91,6 +109,19 @@ class DependencyTreeTests(unittest.TestCase):
 
         self.assertEqual(dependency_tree.path_to(tree, "z"), ())
 
+    def test_a_nuget_lock_roots_at_direct_and_project_entries_of_every_framework(self) -> None:
+        lock = {
+            "dependencies": {
+                "net8.0": {"Zqx.Direct": {"type": "Direct"}},
+                "net10.0": {"zqx.lib": {"type": "Project", "dependencies": {"Zqx.Leaf": "1"}}},
+            }
+        }
+
+        tree = dependency_tree.from_nuget_lock(json.dumps(lock))
+
+        self.assertEqual(tree.roots, ("Zqx.Direct", "zqx.lib"))
+        self.assertEqual(tree.edges["zqx.lib"], ("Zqx.Leaf",))
+
     def test_a_uv_lock_roots_at_the_project_and_follows_its_dev_group(self) -> None:
         tree = dependency_tree.from_uv_lock(fx.UV_LOCK)
 
@@ -105,6 +136,7 @@ class WorkflowTests(unittest.TestCase):
 
     def test_the_job_installs_the_pinned_audit_tools_and_runs_the_step(self) -> None:
         self.assertIn(f"-r {service_audit.REQUIREMENTS}", self.job)
+        self.assertIn("uses: actions/setup-dotnet@", self.job)
         self.assertIn("verify.py --step dependencies", self.job)
 
     def test_the_job_runs_on_every_event_including_the_weekly_schedule(self) -> None:

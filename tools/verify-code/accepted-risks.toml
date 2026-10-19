@@ -2,6 +2,8 @@
 # An entry past `expires` fails the check, even if nothing matches it any more.
 # `subject` is the package (vulnerability) or the file (secret, misconfiguration) the finding hits.
 # For the dependencies step, `id` may be any id the vulnerability goes by.
+# A core (NuGet) advisory also needs <NuGetAuditSuppress Include="advisory URL" /> and a risk
+# whose `id` is that URL; if it is HIGH or CRITICAL, trivy needs another risk with its CVE.
 #
 # [[risk]]
 # id = "CVE-0000-00000"

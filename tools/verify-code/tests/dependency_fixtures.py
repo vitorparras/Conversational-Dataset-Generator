@@ -1,6 +1,6 @@
 """Synthetic dependency trees for the tests of the dependencies step, and a fake of its tools.
 
-The service's tree brings a vulnerable leaf in transitively: project > direct > leaf.
+Each tree brings a vulnerable leaf in transitively: project > direct > (middle >) leaf.
 """
 
 from __future__ import annotations
@@ -15,6 +15,20 @@ from steps.common import CommandOutcome
 
 from . import support
 
+PROJECT = "core/src/Zqx.App/Zqx.App.csproj"
+CORE_LOCK = "core/src/Zqx.App/packages.lock.json"
+ADVISORY = "https://github.com/advisories/GHSA-zqx0-0000-0001"
+SOLUTION = '<Solution>\n  <Project Path="src/Zqx.App/Zqx.App.csproj" />\n</Solution>\n'
+NUGET_LOCK = {
+    "version": 2,
+    "dependencies": {
+        "net10.0": {
+            "Zqx.Direct": {"type": "Direct", "dependencies": {"Zqx.Middle": "1.0.0"}},
+            "Zqx.Middle": {"type": "Transitive", "dependencies": {"Zqx.Leaf": "1.0.0"}},
+            "Zqx.Leaf": {"type": "Transitive"},
+        }
+    },
+}
 UV_LOCK = """version = 1
 
 [[package]]
@@ -52,6 +66,19 @@ PYTHON_VULNERABLE: Mapping[str, object] = {
 }
 
 
+def restore_error(root: Path, code: str = "NU1903", severity: str = "high") -> str:
+    """The line `dotnet restore` prints for a vulnerable package, as an audit error."""
+    return (
+        f"{root / PROJECT} : error {code}: Warning As Error: Package 'Zqx.Leaf' 1.0.0 has a "
+        f"known {severity} severity vulnerability, {ADVISORY}\n"
+    )
+
+
+def suppression(advisory: str = ADVISORY) -> str:
+    item = f'<NuGetAuditSuppress Include="{advisory}" />'
+    return f"<Project>\n  <ItemGroup>\n    {item}\n  </ItemGroup>\n</Project>\n"
+
+
 def audit_report(*dependencies: Mapping[str, object]) -> str:
     """The JSON report of pip-audit, one entry per audited package."""
     clean: Mapping[str, object] = {"name": "zqx-web", "version": "2.0", "vulns": []}
@@ -67,9 +94,12 @@ class ServiceRunner:
     outcome: CommandOutcome = support.SUCCESS
     commands: list[list[str]] = field(default_factory=list[list[str]])
     audited: str = ""
+    restore: CommandOutcome = support.SUCCESS
 
     def __call__(self, command: Sequence[str], cwd: Path) -> CommandOutcome:
         self.commands.append(list(command))
+        if command[0] == "dotnet":
+            return self.restore
         export = self.folder / service_audit.EXPORT_FILE
         if "export" in command:
             export.write_text(EXPORT, encoding="utf-8")
@@ -88,7 +118,11 @@ def risk(identifier: str, subject: str, expires: str = "2026-12-31") -> str:
 
 
 def locked_repository(root: Path) -> Path:
-    """The service's locked tree and an empty register under ``root``."""
+    """Both locked trees and an empty register under ``root``."""
+    support.write(root, "core/Core.slnx", SOLUTION)
+    support.write(root, PROJECT, "<Project />\n")
+    support.write(root, CORE_LOCK, json.dumps(NUGET_LOCK))
+    support.write(root, "core/Directory.Packages.props", "<Project />\n")
     support.write(root, service_audit.LOCK, UV_LOCK)
     support.write(root, accepted_risks.FILE, "# nenhum risco aceito\n")
     return root

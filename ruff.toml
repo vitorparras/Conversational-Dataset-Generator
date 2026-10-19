@@ -8,11 +8,9 @@ select = ["E", "F", "I", "B", "N", "UP", "RUF", "PL", "SIM"]
 [lint.per-file-ignores]
 # The tool folders carry a hyphen (`verify-code`, `verify-docs`): each runs as a script, never imported by name.
 "tools/verify-*/**" = ["N999"]
-# The documentation verifier predates the argument limit; its one five-argument helper waits for the module split.
-"tools/verify-docs/verify.py" = ["PLR0913", "PLR0917"]
 
 [lint.isort]
-known-first-party = ["steps", "language_service", "support", "checks", "document", "finding"]
+known-first-party = ["steps", "language_service", "support", "checks", "document", "finding", "registry"]
 
 [lint.pylint]
 max-args = 4

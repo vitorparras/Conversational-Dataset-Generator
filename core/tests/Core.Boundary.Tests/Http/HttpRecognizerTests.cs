@@ -131,6 +131,18 @@ public sealed class HttpRecognizerTests : IDisposable
     }
 
     [Fact]
+    public async Task RequestOfAVersionTheServiceDoesNotSpeakIsNotSent()
+    {
+        using var service = FakeService.Answering(Reply.Version("1"), Reply.Fixture("accepted/response-empty.json"));
+
+        var outcome = await recognition.Of(service.Port, Recognition.Generous)
+            .RecognizeAsync(Recognition.RequestOfVersion("2"), TestContext.Current.CancellationToken);
+
+        Assert.Equal(UnavailabilityReason.UnknownContractVersion, outcome.Reason);
+        Assert.DoesNotContain(service.Seen, seen => seen.Path == "/analyze");
+    }
+
+    [Fact]
     public async Task ContractVersionIsReadAgainOnEveryCall()
     {
         using var service = FakeService.WithVersions([Reply.Version("1"), Reply.Version("2")], Reply.Fixture("accepted/response-empty.json"));

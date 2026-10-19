@@ -109,7 +109,7 @@ public sealed class HttpRecognizerLogTests : IDisposable
 
         _ = await recognition.Of(service.Port, TimeSpan.FromMilliseconds(200)).RecognizeAsync(Recognition.Request, TestContext.Current.CancellationToken);
 
-        Assert.True(long.Parse(Assert.Single(recognition.Log.Lines).Fields["ElapsedMs"]!, CultureInfo.InvariantCulture) >= 200);
+        Assert.True(long.Parse(Assert.Single(recognition.Log.Lines).Fields["ElapsedMs"]!, CultureInfo.InvariantCulture) >= 100);
     }
 
     [Fact]

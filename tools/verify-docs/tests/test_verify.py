@@ -12,7 +12,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-_VERIFY_PATH = Path(__file__).resolve().parents[1] / "verify.py"
+_VERIFY_DIR = Path(__file__).resolve().parents[1]
+_VERIFY_PATH = _VERIFY_DIR / "verify.py"
+sys.path.insert(0, str(_VERIFY_DIR))  # the script imports its sibling modules by name
 _spec = importlib.util.spec_from_file_location("verify", _VERIFY_PATH)
 assert _spec is not None and _spec.loader is not None
 verify = importlib.util.module_from_spec(_spec)

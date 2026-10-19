@@ -26,14 +26,16 @@ import argparse
 import re
 import sys
 from collections.abc import Callable
-from dataclasses import dataclass
 from pathlib import Path
+
+from checks.data import check_data
+from checks.links import check_links
+from checks.references import check_references
+from document import list_documents
+from finding import Finding
 
 #: Default root: the repository that contains this script (tools/verify-docs/verify.py).
 DEFAULT_ROOT = Path(__file__).resolve().parents[2]
-
-#: Directories that are not project documentation.
-IGNORED = {".git", ".github", ".specs", "tools", "node_modules", "bin", "obj", ".venv"}
 
 #: Community files whose authority is obvious from the name.
 COMMUNITY_FILES = {
@@ -67,160 +69,13 @@ AUTHORITIES = (
     "Operacional",  # procedure to follow
 )
 
-# ---------------------------------------------------------------------------
-# Personal data and secret patterns (the label is shown to the reader, in Portuguese)
-# ---------------------------------------------------------------------------
-
-SENSITIVE_PATTERNS: tuple[tuple[str, str], ...] = (
-    (r"\b\d{3}\.\d{3}\.\d{3}-\d{2}\b", "possível CPF"),
-    (r"\b\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}\b", "possível CNPJ"),
-    (r"\b\d{2}\.\d{3}\.\d{3}-\d\b", "possível RG"),
-    (r"\(\d{2}\)\s?9?\d{4}-\d{4}", "possível telefone"),
-    (r"\b[A-Za-z0-9._%+-]+@(?!exemplo\.|example\.)[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b", "e-mail"),
-    (r"\b[A-Za-z]:[\\/](?:Users|Repos|Program Files)\b", "caminho absoluto de máquina"),
-    (r"/(?:home|Users)/[a-z][a-z0-9_-]+/", "caminho absoluto de máquina"),
-    (r"\bgh[pousr]_[A-Za-z0-9]{16,}", "token do GitHub"),
-    (r"\bsk-[A-Za-z0-9]{20,}", "chave de API"),
-    (r"\bAKIA[0-9A-Z]{16}\b", "chave de acesso AWS"),
-    (r"-----BEGIN [A-Z ]*PRIVATE KEY-----", "chave privada"),
-)
-
-#: Extensions that, in a cited path, indicate a reference to a repository file.
-FILE_EXTENSIONS = (
-    ".md",
-    ".cs",
-    ".py",
-    ".csproj",
-    ".sln",
-    ".json",
-    ".yml",
-    ".yaml",
-    ".sql",
-    ".cshtml",
-    ".razor",
-    ".toml",
-    ".cff",
-    ".txt",
-)
-
 COLUMN_LIMIT = 100
 LINE_LIMIT = 60
 BLANK_LINES_LIMIT = 2
 
 
-@dataclass(frozen=True)
-class Finding:
-    """One problem found, anchored to a file (relative to the root) and a line."""
-
-    file: Path
-    line: int
-    check: str
-    message: str
-
-    def __str__(self) -> str:
-        return f"{self.file.as_posix()}:{self.line}  [{self.check}] {self.message}"
-
-
 def _finding(root: Path, path: Path, line: int, check: str, message: str) -> Finding:
     return Finding(path.relative_to(root), line, check, message)
-
-
-def list_documents(root: Path) -> list[Path]:
-    """Every .md under the root, outside the ignored directories."""
-    found: list[Path] = []
-    for path in root.rglob("*.md"):
-        if any(part in IGNORED for part in path.relative_to(root).parts[:-1]):
-            continue
-        found.append(path)
-    return sorted(found)
-
-
-def _outside_code_blocks(lines: list[str]) -> list[tuple[int, str]]:
-    """Numbered lines (1-based), excluding blocks fenced by ```.
-
-    A code block holds examples - including made-up paths and demo secrets -
-    and checking its content would produce false positives.
-    """
-    outside: list[tuple[int, str]] = []
-    inside_block = False
-    for number, line in enumerate(lines, start=1):
-        if line.lstrip().startswith("```"):
-            inside_block = not inside_block
-            continue
-        if not inside_block:
-            outside.append((number, line))
-    return outside
-
-
-# ---------------------------------------------------------------------------
-# 1. Personal data and secrets
-# ---------------------------------------------------------------------------
-
-
-def check_data(root: Path, path: Path, lines: list[str]) -> list[Finding]:
-    """Looks for personal data, contact, key and machine path patterns.
-
-    Runs over the WHOLE file, code blocks included: a real secret pasted inside
-    an example is still a real secret.
-    """
-    findings: list[Finding] = []
-    for number, line in enumerate(lines, start=1):
-        for pattern, description in SENSITIVE_PATTERNS:
-            if re.search(pattern, line):
-                findings.append(_finding(root, path, number, "data", f"{description} nesta linha"))
-    return findings
-
-
-# ---------------------------------------------------------------------------
-# 2. References to files that do not exist
-# ---------------------------------------------------------------------------
-
-
-def check_references(root: Path, path: Path, lines: list[str]) -> list[Finding]:
-    """Checks that every path cited in `inline code` exists in the repository.
-
-    Only what looks like a project file path is considered: it has a slash or a
-    known extension. This avoids mistaking a terminal command for a path.
-    """
-    findings: list[Finding] = []
-    for number, line in _outside_code_blocks(lines):
-        for snippet in re.findall(r"`([^`\n]+)`", line):
-            candidate = snippet.strip().rstrip(":,.;")
-            if " " in candidate or candidate.startswith(("-", "$", "http")):
-                continue
-            looks_like_path = candidate.endswith(FILE_EXTENSIONS) or (
-                "/" in candidate and not candidate.endswith("/")
-            )
-            if not looks_like_path:
-                continue
-            # A pattern is not a literal path: glob (migrations/*.sql), naming
-            # template (NNN-slug.md) and placeholder (<name>, {id}) do not exist
-            # as files and must not be charged.
-            if "*" in candidate or "NNN" in candidate or "<" in candidate or "{" in candidate:
-                continue
-            if not (root / candidate).exists():
-                findings.append(
-                    _finding(root, path, number, "references", f"`{candidate}` não existe")
-                )
-    return findings
-
-
-# ---------------------------------------------------------------------------
-# 3. Broken internal links
-# ---------------------------------------------------------------------------
-
-
-def check_links(root: Path, path: Path, lines: list[str]) -> list[Finding]:
-    """Checks that every relative link resolves. Ignores external links and anchors."""
-    findings: list[Finding] = []
-    for number, line in _outside_code_blocks(lines):
-        for target in re.findall(r"\[[^\]]*\]\(([^)]+)\)", line):
-            if target.startswith(("http://", "https://", "mailto:", "#")):
-                continue
-            resolved = (path.parent / target.split("#", 1)[0]).resolve()
-            if not resolved.exists():
-                findings.append(_finding(root, path, number, "links", f"link quebrado: {target}"))
-    return findings
 
 
 # ---------------------------------------------------------------------------

@@ -12,7 +12,7 @@ select = ["E", "F", "I", "B", "N", "UP", "RUF", "PL", "SIM"]
 "tools/verify-docs/verify.py" = ["PLR0913", "PLR0917"]
 
 [lint.isort]
-known-first-party = ["steps", "language_service", "support"]
+known-first-party = ["steps", "language_service", "support", "checks", "document", "finding"]
 
 [lint.pylint]
 max-args = 4

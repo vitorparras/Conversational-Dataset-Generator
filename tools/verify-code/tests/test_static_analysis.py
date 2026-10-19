@@ -208,7 +208,10 @@ class StaticAnalysisScanTests(unittest.TestCase):
     def test_a_scan_that_exits_with_failure_fails_even_with_a_report(self) -> None:
         found = self.run_step(SemgrepRunner(scan=CommandOutcome(False, "boom")))
 
-        self.assertFalse(found.ok)
+        self.assertIn(
+            "o semgrep falhou com saída de erro; confira se existem core, language-service, tools",
+            found.details,
+        )
 
 
 if __name__ == "__main__":

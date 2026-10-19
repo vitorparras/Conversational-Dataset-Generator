@@ -11,12 +11,24 @@ from steps import static_analysis
 from steps.common import CommandOutcome, StepResult
 
 from . import support
-from .static_analysis_support import SemgrepRunner, context_of, repository, rule_report
+from .static_analysis_support import (
+    SemgrepRunner,
+    context_of,
+    loaded_rule,
+    repository,
+    rule_report,
+)
 from .test_secrets_configuration import job_of
 
 ROOT = support.VERIFY_CODE.parents[1]
 WORKFLOW = ROOT / ".github" / "workflows" / "verify-code.yml"
 RULE_FILE = f"{static_analysis.RULES}/secret.yml"
+NOT_LOADED = "com `paths:` ou que o semgrep não carrega"
+OPEN_RULES = (
+    loaded_rule("secret-literal-python")
+    + loaded_rule("secret-literal-csharp")
+    + loaded_rule("sql-concatenation-python")
+)
 
 
 def rule_text() -> str:
@@ -70,18 +82,25 @@ class StaticAnalysisToolTests(unittest.TestCase):
         self.assertEqual(len(runner.commands), 1)
 
     def test_a_rule_narrowed_by_paths_fails(self) -> None:
-        dump = "{ Rule.id = (zqx, _); paths = None }\n" * 3 + "{ Rule.id = (y, _); paths = Some }"
+        dump = OPEN_RULES + loaded_rule("sql-concatenation-csharp", "Some { exclude = [core/src] }")
 
         found = self.run_step(SemgrepRunner(dump=CommandOutcome(True, dump)))
 
-        self.assertIn("com `paths:` ou que o semgrep não carrega", found.details[0])
+        self.assertIn(NOT_LOADED, found.details[0])
 
     def test_a_rule_semgrep_does_not_load_fails(self) -> None:
-        dump = "{ Rule.id = (zqx, _); paths = None }\n" * 3
+        dump = OPEN_RULES + loaded_rule("zqx-placeholder")
 
         found = self.run_step(SemgrepRunner(dump=CommandOutcome(True, dump)))
 
-        self.assertIn("com `paths:` ou que o semgrep não carrega", found.details[0])
+        self.assertIn(NOT_LOADED, found.details[0])
+
+    def test_a_message_that_imitates_an_open_rule_does_not_hide_paths(self) -> None:
+        narrowed = loaded_rule("sql-concatenation-csharp", 'Some {}; message = "paths = None"')
+
+        found = self.run_step(SemgrepRunner(dump=CommandOutcome(True, OPEN_RULES + narrowed)))
+
+        self.assertIn(NOT_LOADED, found.details[0])
 
     def test_a_required_rule_absent_from_the_rule_tests_fails(self) -> None:
         rules = CommandOutcome(True, rule_report(passed=("secret-literal-python",)))

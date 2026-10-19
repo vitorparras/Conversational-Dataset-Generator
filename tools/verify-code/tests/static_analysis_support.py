@@ -64,8 +64,16 @@ def scan_report(
 
 
 PINNED = CommandOutcome(True, f"{VERSION}\n")
-LOADED_RULE = "{ Rule.id = (zqx, _); paths = None }\n"
-ALL_RULES_OPEN = CommandOutcome(True, LOADED_RULE * len(static_analysis.REQUIRED_RULES))
+
+
+def loaded_rule(rule: str, paths: str = "None") -> str:
+    """One rule as `semgrep show dump-config` prints it, with its `paths` field."""
+    return f'{{ Rule.id = ("{PREFIX}{rule}", _); paths = {paths} }}\n'
+
+
+ALL_RULES_OPEN = CommandOutcome(
+    True, "".join(loaded_rule(rule) for rule in static_analysis.REQUIRED_RULES)
+)
 ALL_RULES_PASS = CommandOutcome(True, rule_report())
 CLEAN_SCAN = scan_report()
 

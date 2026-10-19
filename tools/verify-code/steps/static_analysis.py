@@ -61,10 +61,11 @@ def rule_problems(results: dict[str, Any]) -> list[str]:
 
 
 def narrowed(ctx: Context) -> list[str]:
-    """Semgrep's own reading of the rule folder: every rule it loads has no `paths:`."""
+    """Semgrep's own reading of the rule folder: every required rule loads, none with `paths:`."""
     dump = ctx.run([TOOL, "show", "dump-config", RULES], ctx.root).text
-    loaded = dump.count("Rule.id =")
-    unrestricted = loaded >= len(REQUIRED_RULES) and dump.count("paths = None") == loaded
+    loaded = set(re.findall(r'Rule\.id = \("[\w.-]*?([\w-]+)", ', dump))
+    whole = dump.count("paths =") == dump.count("paths = None")
+    unrestricted = whole and set(REQUIRED_RULES) <= loaded
     return [] if unrestricted else [f"regra de {RULES}/ com `paths:` ou que o semgrep não carrega"]
 
 
@@ -130,7 +131,8 @@ def scan(ctx: Context) -> StepResult:
     outcome = ctx.run(scan_command(report_path), ctx.root)
     report = semgrep_report.read(report_path)
     if not outcome.ok or report is None:
-        problem = f"o semgrep falhou sem relatório; confira se existem {', '.join(PARTS)}"
+        state = "sem relatório" if report is None else "com saída de erro"
+        problem = f"o semgrep falhou {state}; confira se existem {', '.join(PARTS)}"
         return failed(NAME, problem, *tail(outcome.text))
     return judge(ctx.root, report)
 

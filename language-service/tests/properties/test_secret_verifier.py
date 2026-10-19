@@ -1,7 +1,8 @@
 """The startup secret admits only itself.
 
-Written in issue 29 (CA-2) and docs/operacao/011-servico-de-linguagem.md: the service authenticates
-by the secret the core generates at startup, and a request without it is refused.
+Written in docs/operacao/011-servico-de-linguagem.md:12-13 and in
+docs/decisoes/0011-protocolo-com-o-servico-de-linguagem.md:31: the service authenticates by the
+secret the core generates at startup.
 """
 
 import pytest

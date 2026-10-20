@@ -10,6 +10,8 @@ public static class DatabaseConfiguration
 
     internal const string UsernamePath = SectionName + ":" + UsernameKey;
 
+    internal const string NamePath = SectionName + ":" + NameKey;
+
     private const string SectionName = "Database";
     private const string HostKey = "Host";
     private const string NameKey = "Name";
@@ -37,7 +39,7 @@ public static class DatabaseConfiguration
         return new NpgsqlConnectionStringBuilder
         {
             Host = values[HostPath],
-            Database = values[SectionName + ":" + NameKey],
+            Database = values[NamePath],
             Username = values[UsernamePath],
             Password = values[SectionName + ":" + PasswordKey],
         }.ConnectionString;

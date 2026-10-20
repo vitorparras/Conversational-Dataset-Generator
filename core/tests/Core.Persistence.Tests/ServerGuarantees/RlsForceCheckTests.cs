@@ -18,6 +18,19 @@ public sealed class RlsForceCheckTests
     }
 
     [Fact]
+    public async Task ServerThatNeverAnswersIsARefusalNamingTheAddress()
+    {
+        await using var server = new SilentServer();
+        var check = new RlsForceCheck(server.DataSource);
+
+        var result = await check.RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(CheckStatus.Failed, result.Status);
+        Assert.Equal("Database:Host", result.ExpectedSource);
+        Assert.Equal("o servidor de banco não respondeu: confira o endereço configurado e se o servidor aceita conexões", result.Message);
+    }
+
+    [Fact]
     public void EveryPolicyForcedPassesAndCountsTheTables()
     {
         var finding = RlsForceCheck.Judge(forcedTables: 3, unforcedTable: null);

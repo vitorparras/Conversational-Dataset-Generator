@@ -10,7 +10,7 @@ internal static class RefusalAssert
         Assert.Equal(CheckStatus.Failed, result.Status);
         Assert.Equal(checkName, result.Name);
         Assert.Equal("Database:Host", result.ExpectedSource);
-        Assert.Contains("o servidor de banco não respondeu", result.Message, StringComparison.Ordinal);
+        Assert.Equal("o servidor de banco não respondeu: confira o endereço configurado e se o servidor aceita conexões", result.Message);
         Assert.DoesNotContain(UnreachableServer.Password, result.Message, StringComparison.Ordinal);
         Assert.DoesNotContain(server.ConnectionString, result.Message, StringComparison.Ordinal);
     }

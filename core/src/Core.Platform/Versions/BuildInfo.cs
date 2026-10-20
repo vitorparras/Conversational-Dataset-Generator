@@ -11,6 +11,10 @@ public sealed record BuildInfo(VersionValue Version, VersionValue Commit, Workin
     private const string VersionKey = "BuildInfo.Version";
     private const string CommitKey = "BuildInfo.Commit";
     private const string WorkingTreeKey = "BuildInfo.WorkingTree";
+    private const string RuntimeIdentifierKey = "BuildInfo.RuntimeIdentifier";
+
+    /// <summary>The target the executable was published for; absent when it was built for no target.</summary>
+    public VersionValue RuntimeIdentifier { get; init; } = VersionValue.Absent;
 
     /// <summary>Reads the stamp the build left on the assembly; a key missing or stamped empty reads as absent, never as empty text.</summary>
     public static BuildInfo Of(Assembly assembly)
@@ -18,7 +22,10 @@ public sealed record BuildInfo(VersionValue Version, VersionValue Commit, Workin
         ArgumentNullException.ThrowIfNull(assembly);
         var stamp = assembly.GetCustomAttributes<AssemblyMetadataAttribute>().ToList();
         return new BuildInfo(
-            VersionOf(Stamped(stamp, VersionKey)), VersionOf(Stamped(stamp, CommitKey)), TreeOf(Stamped(stamp, WorkingTreeKey)));
+            VersionOf(Stamped(stamp, VersionKey)), VersionOf(Stamped(stamp, CommitKey)), TreeOf(Stamped(stamp, WorkingTreeKey)))
+        {
+            RuntimeIdentifier = VersionOf(Stamped(stamp, RuntimeIdentifierKey)),
+        };
     }
 
     private static string? Stamped(List<AssemblyMetadataAttribute> stamp, string key) =>

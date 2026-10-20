@@ -1,0 +1,43 @@
+name: Empacota o núcleo
+
+# Só sob demanda: o passo package prova a cada pull request que qualquer commit se reconstrói igual,
+# então guardar o artefato a cada push guardaria o que se regenera do commit.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+
+jobs:
+  publish:
+    name: Executável único por alvo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Provar, em duas cópias limpas, os mesmos bytes e um executável único por alvo
+        run: python tools/verify-code/verify.py --step package
+      - name: Publicar cada alvo com restauração travada
+        run: |
+          for target in linux-x64 win-x64; do
+            dotnet restore core/src/Core.Host/Core.Host.csproj --locked-mode -p:RuntimeIdentifier=$target
+            dotnet publish core/src/Core.Host/Core.Host.csproj --no-restore --configuration Release -p:ContinuousIntegrationBuild=true --runtime $target --output publish/$target
+          done
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: nucleo-linux-x64
+          path: publish/linux-x64
+          if-no-files-found: error
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: nucleo-win-x64
+          path: publish/win-x64
+          if-no-files-found: error

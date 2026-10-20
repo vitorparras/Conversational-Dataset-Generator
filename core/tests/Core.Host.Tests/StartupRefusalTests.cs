@@ -1,4 +1,5 @@
 using Core.Platform.Startup;
+using Core.Platform.Versions;
 
 namespace Core.Host.Tests;
 
@@ -33,5 +34,20 @@ public sealed class StartupRefusalTests
         _ = StartupRefusal.Report(output, new StartupReport([failed], DateTimeOffset.UnixEpoch));
 
         Assert.Contains("(origem esperada: Sample:Host; observado: ZQX-MARKER-7731 1.0)", output.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ExecutablePublishedForAnotherTargetEndsWithTheCheckCodeNamingTargetAndMachine()
+    {
+        var check = new RuntimeTargetCheck(VersionValue.Present("ZQX-RID"), "linux-x64");
+        var report = await new StartupRunner([check], TimeProvider.System).RunAsync(TestContext.Current.CancellationToken);
+        using var output = new StringWriter();
+
+        var code = StartupRefusal.Report(output, report);
+
+        var text = output.ToString();
+        Assert.Equal(ExitCode.StartupCheckFailed, code);
+        Assert.Contains("RuntimeIdentifier: publicado para o alvo ZQX-RID, mas o destino em que roda é linux-x64", text, StringComparison.Ordinal);
+        Assert.Contains("origem esperada: um executável publicado para linux-x64", text, StringComparison.Ordinal);
     }
 }

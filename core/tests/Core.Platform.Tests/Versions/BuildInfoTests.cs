@@ -47,6 +47,22 @@ public sealed class BuildInfoTests
     }
 
     [Fact]
+    public void StampedRuntimeIdentifierIsReadUnderItsOwnKey()
+    {
+        var build = BuildInfo.Of(StampedAssembly.With(Only("BuildInfo.RuntimeIdentifier", "ZQX-RID")));
+
+        Assert.Equal(VersionValue.Present("ZQX-RID"), build.RuntimeIdentifier);
+    }
+
+    [Fact]
+    public void BuildForNoTargetReadsTheRuntimeIdentifierAbsent()
+    {
+        var build = BuildInfo.Of(StampedAssembly.With(FullStamp));
+
+        Assert.Equal(VersionValue.Absent, build.RuntimeIdentifier);
+    }
+
+    [Fact]
     public void UnstampedAssemblyReadsEveryValueAbsent()
     {
         var build = BuildInfo.Of(StampedAssembly.With(new Dictionary<string, string>(StringComparer.Ordinal)));

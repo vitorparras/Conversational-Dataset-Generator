@@ -20,6 +20,12 @@ internal static class CompositionRoot
 {
     internal static async Task<HostLaunch> BuildAsync(string[] args)
     {
+        var target = await new StartupRunner([TargetCheck()], TimeProvider.System).RunAsync(CancellationToken.None);
+        if (!target.Ready)
+        {
+            return HostLaunch.CheckFailed(target);
+        }
+
         var loaded = Load(args);
         var database = DatabaseConfiguration.Read(loaded.Values);
         if (loaded.Refused || database.State == DatabaseSettingsState.Refused)
@@ -30,14 +36,15 @@ internal static class CompositionRoot
         var analyzeTimeout = LanguageServiceConfiguration.AnalyzeTimeout(loaded.Values);
         return analyzeTimeout is null
             ? HostLaunch.Refused([LanguageServiceConfiguration.AnalyzeTimeoutRefused(loaded.Values)])
-            : await LaunchAsync(loaded, database, analyzeTimeout.Value);
+            : await LaunchAsync(loaded, database, analyzeTimeout.Value, target);
     }
 
     /// <summary>
     /// Opens the file destination and the startup container, runs the checks and, when every one passed, hands both to
-    /// the host; a failed check or a refusal closes them here.
+    /// the host with the target check in front of the report; a failed check or a refusal closes them here.
     /// </summary>
-    private static async Task<HostLaunch> LaunchAsync(ConfigurationLoadResult loaded, DatabaseSettings database, TimeSpan analyzeTimeout)
+    private static async Task<HostLaunch> LaunchAsync(
+        ConfigurationLoadResult loaded, DatabaseSettings database, TimeSpan analyzeTimeout, StartupReport target)
     {
         var fileLog = OpenFileLog(loaded);
         var startup = StartupServices(loaded, fileLog, database);
@@ -51,7 +58,10 @@ internal static class CompositionRoot
             }
 
             var launch = HostLaunch.Ready(Assemble(
-                Prepared(loaded, fileLog, analyzeTimeout), report, startup, RecognizerConfiguration.KindOf(loaded.Values)));
+                Prepared(loaded, fileLog, analyzeTimeout),
+                new StartupReport([.. target.Results, .. report.Results], report.CheckedAt),
+                startup,
+                RecognizerConfiguration.KindOf(loaded.Values)));
             startup = null;
             fileLog = null;
             return launch;
@@ -119,6 +129,10 @@ internal static class CompositionRoot
         loaded.Values.ContainsKey(HostConfiguration.LogFilePath)
             ? [new LogFileCheck(HostConfiguration.LogFilePath, opened: fileLog is not null)]
             : [];
+
+    /// <summary>Runs before the configuration is read: an executable built for another target is refused whatever it is configured with.</summary>
+    private static RuntimeTargetCheck TargetCheck() =>
+        new(BuildInfo.Of(typeof(CompositionRoot).Assembly).RuntimeIdentifier, RuntimeTarget.Current);
 
     private static BundledFileCheck BundledFile(ConfigurationLoadResult loaded) =>
         new(HostConfiguration.BundledFilePath, loaded.Values[HostConfiguration.BundledFilePath], AppContext.BaseDirectory);

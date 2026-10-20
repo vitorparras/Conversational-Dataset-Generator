@@ -114,7 +114,7 @@ def main(argv: list[str] | None = None) -> int:
     if unknown:
         print(f"passo desconhecido: {', '.join(unknown)} (veja --list)")
         return 2
-    ctx = Context(ROOT, ROOT / OUTPUT_DIRECTORY, run_process, args.base, args.previous)
+    ctx = Context(ROOT, ROOT / OUTPUT_DIRECTORY, run_process, args.base, args.previous, run_process)
     try:
         return report(run_steps(select(args.step, args.base is not None), ctx))
     except Exception as error:  # last level: a defect must still print a readable line

@@ -68,6 +68,7 @@ jobs:
     name: Mutação nos módulos críticos
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
+    # The step cuts each language at the ceiling of docs/operacao/014; both in series, plus setup.
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

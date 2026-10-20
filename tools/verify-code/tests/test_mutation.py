@@ -129,7 +129,7 @@ class MutationStepTests(fixture.MutationFixture):
 
         result = self.run_step(runner)
 
-        place = "language-service/src/language_service/auth.py:2"
+        place = "language-service/src/language_service/auth.py:3"
         change = "`return given == self.secret` → `return given != self.secret`"
         self.assertIn(f"  sobrevivente: {place} — {change}", result.details)
 

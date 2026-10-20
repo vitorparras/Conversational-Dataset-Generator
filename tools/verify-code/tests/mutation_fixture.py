@@ -23,25 +23,30 @@ STRYKER_REPORT = "reports/mutation-report.json"
 
 @dataclass
 class ToolRunner:
-    """Plays `dotnet tool restore`, Stryker and mutmut: writes their output, records each call."""
+    """Plays `dotnet tool restore`, Stryker and mutmut: writes their output, records each call;
+    a command holding a ``failing`` word still writes, then exits with an error (a failing
+    `mutmut show` after printing its diff)."""
 
     stryker: str = ""
     metas: dict[str, str] = field(default_factory=dict[str, str])
     failing: tuple[str, ...] = ()
     commands: list[list[str]] = field(default_factory=list[list[str]])
     folders: list[Path] = field(default_factory=list[Path])
+    limits: list[float] = field(default_factory=list[float])
 
-    def __call__(self, command: Sequence[str], cwd: Path) -> CommandOutcome:
+    def __call__(self, command: Sequence[str], cwd: Path, seconds: float = 0.0) -> CommandOutcome:
         self.commands.append(list(command))
         self.folders.append(cwd)
-        if any(word in command for word in self.failing):
-            return CommandOutcome(False, f"{command[0]}: ZQX-MARKER-FAIL")
+        self.limits.append(seconds)
         if "stryker" in command and self.stryker:
             output = Path(command[command.index("--output") + 1])
             support.write(output, STRYKER_REPORT, self.stryker)
         if "run" in command and "mutmut" in command:
             for file, text in self.metas.items():
                 support.write(cwd / "mutants", f"{file}.meta", text)
+        if any(word in command for word in self.failing):
+            partial = SHOWN if "show" in command else ""
+            return CommandOutcome(False, f"{command[0]}: ZQX-MARKER-FAIL\n{partial}")
         return CommandOutcome(True, SHOWN if "show" in command else "")
 
     def called(self, word: str) -> list[list[str]]:
@@ -76,4 +81,5 @@ class MutationFixture(unittest.TestCase):
         return str(self.root / "core/src/Core.Platform/Logging/Formatter.cs")
 
     def run_step(self, runner: ToolRunner) -> StepResult:
-        return mutation.run(Context(self.root, self.root / OUTPUT_DIRECTORY, runner))
+        context = Context(self.root, self.root / OUTPUT_DIRECTORY, runner, run_for=runner)
+        return mutation.run(context)

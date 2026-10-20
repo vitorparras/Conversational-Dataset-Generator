@@ -14,6 +14,9 @@ from .test_mutation import healthy
 CLOCK = "steps.mutation_judge.monotonic"
 OVER = 21 * 60.0
 UNDER = 5 * 60.0
+TEXT_REFERENCE = (
+    '<ProjectReference Include="..\\..\\src\\Core.Boundary.Text\\Core.Boundary.Text.csproj" />'
+)
 
 
 class MutationCeilingTests(fixture.MutationFixture):
@@ -66,3 +69,22 @@ class MutationCeilingTests(fixture.MutationFixture):
         self.assertEqual(len(runner.called("stryker")), 1)
         expected = "núcleo (.NET): não rodaram por causa do teto: `Core.Boundary.Text`"
         self.assertIn(expected, result.details)
+
+    def test_each_core_module_is_cut_at_what_is_left_of_the_ceiling(self) -> None:
+        support.write(self.root, "core/src/Core.Boundary.Text/Core.Boundary.Text.csproj", "<P />")
+        support.write(self.root, "core/tests/T/T.csproj", TEXT_REFERENCE)
+        runner = healthy()
+
+        with mock.patch(CLOCK, side_effect=[0.0, UNDER, 0.0, 1.0, 0.0, 1.0]):
+            self.run_step(runner)
+
+        self.assertEqual(runner.limits[1:3], [20 * 60.0, 15 * 60.0])
+
+    def test_the_service_run_is_cut_at_the_ceiling(self) -> None:
+        runner = healthy()
+
+        with mock.patch(CLOCK, side_effect=[0.0, 1.0, 0.0, 1.0]):
+            self.run_step(runner)
+
+        mutmut = runner.commands.index(runner.called("--max-children")[0])
+        self.assertEqual(runner.limits[mutmut], 20 * 60.0)

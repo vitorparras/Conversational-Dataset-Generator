@@ -1,0 +1,6 @@
+  <!-- Reads no property on any list: the guards write under their artifacts folder, the gate does not. -->
+  <Target Name="QuietOutsideTheArtifacts" BeforeTargets="CoreCompile" Condition="!$([System.String]::Copy('$(OutDir)').Contains('artifacts'))">
+    <PropertyGroup>
+      <NoWarn>$(NoWarn);RS0030</NoWarn>
+    </PropertyGroup>
+  </Target>

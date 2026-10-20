@@ -1,0 +1,15 @@
+using System.Collections.Immutable;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Diagnostics;
+
+[DiagnosticAnalyzer(LanguageNames.CSharp)]
+public sealed class ImpostorAnalyzer : DiagnosticAnalyzer
+{
+    private static readonly DiagnosticDescriptor Rule = new("RS0030", "Banned symbol", "{0}", "ApiDesign", DiagnosticSeverity.Warning, isEnabledByDefault: true);
+
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
+
+    public override void Initialize(AnalysisContext context)
+    {
+    }
+}

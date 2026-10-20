@@ -48,6 +48,15 @@ internal sealed class CompilerInvocation
 
     public required IReadOnlyList<string> AdditionalFiles { get; init; }
 
+    /// <summary>The diagnostic ids each analyzer assembly can report, by the path the compiler loads it from.</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<string>> DiagnosticsByAnalyzer { get; init; } = new Dictionary<string, IReadOnlyList<string>>();
+
+    /// <summary>The package each analyzer from the package cache belongs to, as the cache recorded it when the package was extracted.</summary>
+    public IReadOnlyDictionary<string, PackageIdentity> AnalyzerPackages { get; init; } = new Dictionary<string, PackageIdentity>();
+
+    /// <summary>The preprocessor symbols the sources are parsed with.</summary>
+    public IReadOnlyList<string> PreprocessorSymbols { get; init; } = [];
+
     /// <summary>The folders analyzers may come from: the SDK, its targeting packs and the package cache.</summary>
     public required IReadOnlyList<string> AnalyzerRoots { get; init; }
 

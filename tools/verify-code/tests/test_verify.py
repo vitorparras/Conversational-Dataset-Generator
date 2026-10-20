@@ -33,6 +33,7 @@ WITHOUT_BASE = [
     "floors",
     "lint_service",
     "properties",
+    "mutation",
     "secrets",
     "trivy",
 ]

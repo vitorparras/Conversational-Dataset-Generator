@@ -226,6 +226,13 @@ class PackageTests(unittest.TestCase):
 
         self.assertFalse(result.ok)
 
+    def test_a_foreign_host_naming_the_target_with_another_code_fails(self) -> None:
+        runner = PublishingRunner(builds(), started=CommandOutcome(False, REFUSED.text, 1))
+
+        result = self.run_step(runner)
+
+        self.assertFalse(result.ok)
+
     def test_the_foreign_target_is_one_this_machine_is_not(self) -> None:
         self.assertIn(FOREIGN, package.TARGETS)
         self.assertNotEqual(FOREIGN.startswith("win-"), sys.platform.startswith("win"))

@@ -334,7 +334,15 @@
       "core.host": {
         "type": "Project",
         "dependencies": {
+          "Core.Persistence": "[1.0.0, )",
           "Core.Platform": "[1.0.0, )"
+        }
+      },
+      "core.persistence": {
+        "type": "Project",
+        "dependencies": {
+          "Core.Platform": "[1.0.0, )",
+          "Npgsql": "[10.0.3, )"
         }
       },
       "core.platform": {
@@ -388,6 +396,15 @@
           "Microsoft.Extensions.Logging.Configuration": "10.0.13",
           "Microsoft.Extensions.ObjectPool": "10.0.13",
           "Microsoft.Extensions.Telemetry.Abstractions": "10.11.0"
+        }
+      },
+      "Npgsql": {
+        "type": "CentralTransitive",
+        "requested": "[10.0.3, )",
+        "resolved": "10.0.3",
+        "contentHash": "7nb5YzXuvWWJxB0J8DiyL3we+X4FOctZrt0fIBnucOIaIevFEEwGQVZKtiu9olXdlNAK1eNgqSral6r/jlhI4w==",
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "10.0.0"
         }
       }
     }

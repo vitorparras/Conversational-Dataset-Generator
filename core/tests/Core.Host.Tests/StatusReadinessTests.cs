@@ -9,7 +9,7 @@ public sealed class StatusReadinessTests
     public async Task ReportWithAFailedCheckIsAnsweredAsAliveNotReadyAndNamesTheCheck()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var report = new StartupReport([CheckResult.Failed("Sample:File", "recurso ausente", "ZQX-MARKER-7731.bin")]);
+        var report = new StartupReport([CheckResult.Failed("Sample:File", "recurso ausente", "ZQX-MARKER-7731.bin")], DateTimeOffset.UnixEpoch);
         await using var host = await StatusHost.StartAsync(report, cancellationToken);
 
         using var body = await host.StatusAsync(cancellationToken);
@@ -26,12 +26,25 @@ public sealed class StatusReadinessTests
     public async Task PassedChecksMakeTheProcessReady()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var report = new StartupReport([CheckResult.Passed("Sample:File", "recurso presente", "ZQX-MARKER-7731.bin")]);
+        var report = new StartupReport([CheckResult.Passed("Sample:File", "recurso presente", "ZQX-MARKER-7731.bin")], DateTimeOffset.UnixEpoch);
         await using var host = await StatusHost.StartAsync(report, cancellationToken);
 
         using var body = await host.StatusAsync(cancellationToken);
 
         Assert.True(body.RootElement.GetProperty("ready").GetBoolean());
         Assert.Equal("Passed", body.RootElement.GetProperty("checks")[0].GetProperty("status").GetString());
+    }
+
+    [Fact]
+    public async Task StatusSaysWhenTheChecksEnded()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var checkedAt = new DateTimeOffset(2026, 10, 19, 12, 0, 0, TimeSpan.Zero);
+        var report = new StartupReport([CheckResult.Passed("Sample:File", "recurso presente", "ZQX-MARKER-7731.bin")], checkedAt);
+        await using var host = await StatusHost.StartAsync(report, cancellationToken);
+
+        using var body = await host.StatusAsync(cancellationToken);
+
+        Assert.Equal(checkedAt, body.RootElement.GetProperty("checkedAt").GetDateTimeOffset());
     }
 }

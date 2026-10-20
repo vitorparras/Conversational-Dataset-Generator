@@ -41,12 +41,12 @@ internal static class ServerProbe
         try
         {
             var finding = await guarantee.ReadAsync(connection, cancellationToken).ConfigureAwait(false);
-            return new CheckResult(guarantee.Name, finding.Status, finding.Message, server);
+            return new CheckResult(guarantee.Name, finding.Status, finding.Message, DatabaseConfiguration.HostPath) { Observed = server };
         }
         catch (NpgsqlException exception)
         {
             var whatToChange = exception is PostgresException { SqlState: InsufficientPrivilege } ? CatalogUnreadable : guarantee.Requirement;
-            return CheckResult.Failed(guarantee.Name, $"o servidor recusou a conferência{SqlState(exception)}: {whatToChange}", server);
+            return CheckResult.Failed(guarantee.Name, $"o servidor recusou a conferência{SqlState(exception)}: {whatToChange}", DatabaseConfiguration.HostPath) with { Observed = server };
         }
     }
 

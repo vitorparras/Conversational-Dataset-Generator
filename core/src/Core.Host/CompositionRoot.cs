@@ -1,10 +1,13 @@
 using System.Text.Json.Serialization;
 using Core.Host.Endpoints;
 using Core.Host.Supervision;
+using Core.Persistence.Connection;
+using Core.Persistence.ServerGuarantees;
 using Core.Platform.Configuration;
 using Core.Platform.Configuration.Sources;
 using Core.Platform.Logging;
 using Core.Platform.Startup;
+using Npgsql;
 
 namespace Core.Host;
 
@@ -14,20 +17,22 @@ internal static class CompositionRoot
     internal static async Task<HostLaunch> BuildAsync(string[] args)
     {
         var loaded = ClosedConfiguration.Load(
-            new ConfigurationSchema([HostConfiguration.Section, LanguageServiceConfiguration.Section]),
+            new ConfigurationSchema([HostConfiguration.Section, LanguageServiceConfiguration.Section, DatabaseConfiguration.Section]),
             new JsonFileSource(HostConfiguration.SettingsPath),
             EnvironmentSource.FromProcess(),
             new StrictArgumentsSource(args));
-        if (loaded.Refused)
+        var database = DatabaseConfiguration.Read(loaded.Values);
+        if (loaded.Refused || database.State == DatabaseSettingsState.Refused)
         {
-            return HostLaunch.Refused(loaded.Problems);
+            return HostLaunch.Refused([.. loaded.Problems, .. database.Problems]);
         }
 
-        var startup = StartupServices(loaded);
+        var startup = StartupServices(loaded, database);
         try
         {
-            var checks = new IStartupCheck[] { BundledFile(loaded), startup.GetRequiredService<LanguageServiceStartupCheck>() };
-            var report = await new StartupRunner(checks).RunAsync(CancellationToken.None);
+            IStartupCheck[] checks =
+                [BundledFile(loaded), .. startup.GetServices<IStartupCheck>(), startup.GetRequiredService<LanguageServiceStartupCheck>()];
+            var report = await new StartupRunner(checks, startup.GetRequiredService<TimeProvider>()).RunAsync(CancellationToken.None);
             if (!report.Ready)
             {
                 return HostLaunch.CheckFailed(report);
@@ -61,12 +66,13 @@ internal static class CompositionRoot
         new(HostConfiguration.BundledFilePath, loaded.Values[HostConfiguration.BundledFilePath], AppContext.BaseDirectory);
 
     /// <summary>
-    /// What the checks need before the host's own container exists: redacted logging and the supervision of
+    /// What the checks need before the host's own container exists: redacted logging, any server checks, and the supervision of
     /// the language service. The host's container adopts it, so the service stops when the host does.
     /// </summary>
-    private static ServiceProvider StartupServices(ConfigurationLoadResult loaded)
+    private static ServiceProvider StartupServices(ConfigurationLoadResult loaded, DatabaseSettings database)
     {
         var services = new ServiceCollection();
+        AddServerGuarantees(services, database);
         _ = services.AddSingleton(TimeProvider.System);
         _ = services.AddLogging(PlatformLogging.Configure);
         _ = services.AddRedaction(PlatformLogging.EraseSensitiveData);
@@ -80,6 +86,23 @@ internal static class CompositionRoot
         _ = services.AddSingleton(provider => new LanguageServiceStartupCheck(
             provider.GetRequiredService<LanguageServiceSupervisor>(), loaded.Values[LanguageServiceConfiguration.StartupTimeoutPath]));
         return services.BuildServiceProvider();
+    }
+
+    /// <summary>The application's data source and the five server checks, privilege first, or the check that says no database is declared.</summary>
+    private static void AddServerGuarantees(IServiceCollection services, DatabaseSettings database)
+    {
+        if (database.State != DatabaseSettingsState.Configured)
+        {
+            _ = services.AddSingleton<IStartupCheck>(new UnconfiguredDatabaseCheck());
+            return;
+        }
+
+        _ = services.AddSingleton(_ => NpgsqlDataSource.Create(database.ConnectionString!));
+        _ = services.AddSingleton<IStartupCheck>(provider => new PrivilegeCheck(provider.GetRequiredService<NpgsqlDataSource>()));
+        _ = services.AddSingleton<IStartupCheck>(provider => new RlsForceCheck(provider.GetRequiredService<NpgsqlDataSource>()));
+        _ = services.AddSingleton<IStartupCheck>(provider => new SerializableCheck(provider.GetRequiredService<NpgsqlDataSource>()));
+        _ = services.AddSingleton<IStartupCheck>(provider => new PgAuditCheck(provider.GetRequiredService<NpgsqlDataSource>()));
+        _ = services.AddSingleton<IStartupCheck>(provider => new ColumnRevokeCheck(provider.GetRequiredService<NpgsqlDataSource>()));
     }
 
     private static WebApplication Assemble(ConfigurationLoadResult loaded, StartupReport report, ServiceProvider startup)

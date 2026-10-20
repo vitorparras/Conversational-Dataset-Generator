@@ -34,6 +34,23 @@ public sealed class ServerGuaranteesTests
     }
 
     [DatabaseFact]
+    public async Task ServerOpensASerializableTransactionForTheApplication()
+    {
+        var result = await RunAsApplicationAsync(dataSource => new SerializableCheck(dataSource));
+
+        AssertPassedOnTheImage(result);
+    }
+
+    [DatabaseFact]
+    public async Task ServerLoadsAndInstallsPgaudit()
+    {
+        var result = await RunAsApplicationAsync(dataSource => new PgAuditCheck(dataSource));
+
+        AssertPassedOnTheImage(result);
+        Assert.Contains("pgaudit.log = ", result.Message, StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
     public async Task DatabaseWithoutRowPoliciesPassesTheForceCheck()
     {
         var result = await RunAsApplicationAsync(dataSource => new RlsForceCheck(dataSource));
@@ -149,7 +166,7 @@ public sealed class ServerGuaranteesTests
             "o servidor recusou a conferência (SQLSTATE 42501): o papel da aplicação não pode ler o catálogo do sistema que a "
             + "conferência consulta: devolva a leitura do catálogo a PUBLIC",
             result.Message);
-        Assert.StartsWith("PostgreSQL 17.", result.ExpectedSource, StringComparison.Ordinal);
+        Assert.StartsWith("PostgreSQL 17.", result.Observed, StringComparison.Ordinal);
     }
 
     [DatabaseFact]
@@ -163,6 +180,30 @@ public sealed class ServerGuaranteesTests
         Assert.Equal(CheckStatus.Failed, result.Status);
         Assert.Equal("Database:Name", result.ExpectedSource);
         Assert.Contains("SQLSTATE 3D000", result.Message, StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
+    public async Task ColumnGrantAloneDoesNotVoidTheColumnRevocation()
+    {
+        var database = await PostgresFixture.SharedAsync();
+        await using var table = await OwnedTable.CreateAsync(database.OwnerConnectionString, OwnedTable.Shape.ColumnGrant);
+
+        var result = await RunAsApplicationAsync(dataSource => new ColumnRevokeCheck(dataSource));
+
+        AssertPassedOnTheImage(result);
+        Assert.StartsWith("1 tabela(s)", result.Message, StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
+    public async Task TableWideGrantOverAColumnGrantIsRefusedByName()
+    {
+        var database = await PostgresFixture.SharedAsync();
+        await using var table = await OwnedTable.CreateAsync(database.OwnerConnectionString, OwnedTable.Shape.VoidedColumnGrant);
+
+        var result = await RunAsApplicationAsync(dataSource => new ColumnRevokeCheck(dataSource));
+
+        Assert.Equal(CheckStatus.Failed, result.Status);
+        Assert.Contains("REVOKE UPDATE ON zqx_voided FROM app", result.Message, StringComparison.Ordinal);
     }
 
     [DatabaseFact]
@@ -195,6 +236,7 @@ public sealed class ServerGuaranteesTests
     private static void AssertPassedOnTheImage(CheckResult result)
     {
         Assert.Equal(CheckStatus.Passed, result.Status);
-        Assert.StartsWith("PostgreSQL 17.", result.ExpectedSource, StringComparison.Ordinal);
+        Assert.Equal("Database:Host", result.ExpectedSource);
+        Assert.StartsWith("PostgreSQL 17.", result.Observed, StringComparison.Ordinal);
     }
 }

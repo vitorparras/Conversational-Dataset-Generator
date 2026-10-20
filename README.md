@@ -75,10 +75,15 @@ caminho absoluto, porque `dotnet run` roda a partir da pasta do projeto; o `$(..
 o `uv run --frozen` já cria o ambiente a partir de `uv.lock` se ele não existir. Sem a chave, o
 núcleo recusa a configuração. Os testes do núcleo usam o mesmo comando para achar o interpretador.
 
-Com o núcleo de pé, `http://127.0.0.1:5080/status` responde `alive`, `ready` e `checks[]`, com o
-resultado de cada conferência de inicialização. O teste de arquitetura em
+Com o núcleo de pé, `http://127.0.0.1:5080/status` responde `alive`, `ready`, `checkedAt` e
+`checks[]`, com o resultado de cada conferência de inicialização. O teste de arquitetura em
 `core/tests/Core.Tests.Architecture` impõe as regras de código a cada construção; as fixtures que
 ele reprova de propósito ficam em `core/tests/fixtures/code-rules`, fora de qualquer projeto.
+
+Com as chaves `Database:Host`, `Database:Name` e `Database:Username` e a senha em
+`CDG_DATABASE__PASSWORD`, o núcleo confere as garantias do banco com o papel `app` antes do serviço
+de linguagem e recusa iniciar se faltar alguma; sem `Database:Host`, a conferência `Database`
+aparece como `NotConfigured`.
 
 ## Banco de dados de desenvolvimento
 

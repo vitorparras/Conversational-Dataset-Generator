@@ -20,7 +20,7 @@ public sealed record ConfigurationKey
 
     internal KeyObligation Obligation { get; }
 
-    /// <summary>The value taken when no source declares the key; null for a required key.</summary>
+    /// <summary>The value taken when no source declares the key; null for a required key and for an optional key without one.</summary>
     internal string? DefaultValue { get; }
 
     /// <summary>The closed set of accepted values; null when any non-empty text is accepted.</summary>
@@ -35,6 +35,9 @@ public sealed record ConfigurationKey
 
     /// <summary>A key that holds a protection: required, and nothing can give it a default.</summary>
     public static ConfigurationKey Protection(string name) => new(name, KeyObligation.Protection, defaultValue: null);
+
+    /// <summary>A key no source has to declare and that has no default: absent, it has no value.</summary>
+    public static ConfigurationKey Optional(string name) => new(name, KeyObligation.Optional, defaultValue: null);
 
     /// <summary>A key that takes the default when no source declares it.</summary>
     public static ConfigurationKey WithDefault(string name, string defaultValue)

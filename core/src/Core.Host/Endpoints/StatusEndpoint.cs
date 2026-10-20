@@ -11,5 +11,5 @@ internal static class StatusEndpoint
     internal static void Map(IEndpointRouteBuilder endpoints) => _ = endpoints.MapGet(Route, Describe);
 
     private static StatusResponse Describe([FromServices] StartupReport report) =>
-        new(Alive: true, Ready: report.Ready, Checks: report.Results);
+        new(Alive: true, Ready: report.Ready, CheckedAt: report.CheckedAt, Checks: report.Results);
 }

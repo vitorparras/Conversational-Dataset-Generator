@@ -29,6 +29,13 @@
         "resolved": "10.11.0",
         "contentHash": "h/sovspxVmT2DTIbWORMG0Gi3zVcPQzNl3kbwtpo0LoUXYbe2+66wQqZYwaF2ZWKN8HDdHv5yoc7d0DbDBBlnA=="
       },
+      "core.persistence": {
+        "type": "Project",
+        "dependencies": {
+          "Core.Platform": "[1.0.0, )",
+          "Npgsql": "[10.0.3, )"
+        }
+      },
       "core.platform": {
         "type": "Project",
         "dependencies": {
@@ -64,6 +71,12 @@
         "dependencies": {
           "Microsoft.Extensions.Compliance.Abstractions": "10.11.0"
         }
+      },
+      "Npgsql": {
+        "type": "CentralTransitive",
+        "requested": "[10.0.3, )",
+        "resolved": "10.0.3",
+        "contentHash": "7nb5YzXuvWWJxB0J8DiyL3we+X4FOctZrt0fIBnucOIaIevFEEwGQVZKtiu9olXdlNAK1eNgqSral6r/jlhI4w=="
       }
     }
   }

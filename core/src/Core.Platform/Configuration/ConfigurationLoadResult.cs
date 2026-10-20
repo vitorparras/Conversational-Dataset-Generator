@@ -15,7 +15,7 @@ public sealed record ConfigurationLoadResult
         Problems = problems;
     }
 
-    /// <summary>The value of every declared key, under its declared path, as the consumer uses it; empty when refused.</summary>
+    /// <summary>The value of every declared key that has one, under its declared path, as the consumer uses it; empty when refused.</summary>
     public IReadOnlyDictionary<string, string> Values { get; }
 
     /// <summary>The configuration as it may be shown, with the origin of every value; empty when refused.</summary>
@@ -29,7 +29,9 @@ public sealed record ConfigurationLoadResult
 
     internal static ConfigurationLoadResult Loaded(IReadOnlyList<ResolvedValue> resolved) =>
         new(
-            resolved.ToDictionary(value => value.Declared.Path, value => value.Value, StringComparer.OrdinalIgnoreCase),
+            resolved
+                .Where(value => value.Value is not null)
+                .ToDictionary(value => value.Declared.Path, value => value.Value!, StringComparer.OrdinalIgnoreCase),
             new EffectiveConfiguration(resolved),
             []);
 

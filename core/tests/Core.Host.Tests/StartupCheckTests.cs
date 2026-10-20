@@ -34,7 +34,9 @@ public sealed class StartupCheckTests
         Assert.True(body.RootElement.GetProperty("ready").GetBoolean());
         var checks = body.RootElement.GetProperty("checks").EnumerateArray().ToList();
         Assert.Equal("Host:BundledFile", checks[0].GetProperty("name").GetString());
-        Assert.Equal("LanguageService", checks[1].GetProperty("name").GetString());
-        Assert.All(checks, check => Assert.Equal("Passed", check.GetProperty("status").GetString()));
+        Assert.Equal("Passed", checks[0].GetProperty("status").GetString());
+        Assert.Equal("Database", checks[1].GetProperty("name").GetString());
+        Assert.Equal("LanguageService", checks[2].GetProperty("name").GetString());
+        Assert.Equal("Passed", checks[2].GetProperty("status").GetString());
     }
 }

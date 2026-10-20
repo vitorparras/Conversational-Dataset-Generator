@@ -42,8 +42,8 @@ internal sealed class PostgresFixture
         var appPassword = NewPassword();
         var container = new ContainerBuilder(image)
             .WithEnvironment("POSTGRES_PASSWORD", NewPassword())
-            .WithEnvironment("CDG_OWNER_PASSWORD", ownerPassword)
-            .WithEnvironment("CDG_APP_PASSWORD", appPassword)
+            .WithEnvironment("DATABASE_OWNER_PASSWORD", ownerPassword)
+            .WithEnvironment("DATABASE_APP_PASSWORD", appPassword)
             .WithPortBinding(ServerPort, assignRandomHostPort: true)
             .WithWaitStrategy(Wait.ForUnixContainer().UntilContainerIsHealthy(waitStrategyModifier: wait => wait.WithTimeout(HealthyWithin)))
             .Build();

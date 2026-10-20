@@ -10,8 +10,8 @@ services:
     image: cdg-database:dev
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD (superusuário)}
-      CDG_OWNER_PASSWORD: ${CDG_OWNER_PASSWORD:?defina CDG_OWNER_PASSWORD (papel owner)}
-      CDG_APP_PASSWORD: ${CDG_APP_PASSWORD:?defina CDG_APP_PASSWORD (papel app)}
+      DATABASE_OWNER_PASSWORD: ${DATABASE_OWNER_PASSWORD:?defina DATABASE_OWNER_PASSWORD (papel owner)}
+      DATABASE_APP_PASSWORD: ${DATABASE_APP_PASSWORD:?defina DATABASE_APP_PASSWORD (papel app)}
     ports:
       - "127.0.0.1:5432:5432"
     volumes:

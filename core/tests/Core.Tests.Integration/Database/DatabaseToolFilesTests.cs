@@ -41,6 +41,19 @@ public sealed class DatabaseToolFilesTests
         Assert.All(environment, entry => Assert.Matches(@"^(\w+): \$\{\1:\?[^}]+\}$", entry));
     }
 
+    /// <summary>
+    /// The core reads every variable that starts with its prefix (<c>EnvironmentSource.Prefix</c>) and refuses the ones it
+    /// does not declare, so a compose variable under that prefix would stop the core started from the same shell.
+    /// </summary>
+    [Fact]
+    public void ComposeVariablesStayOutsideTheCorePrefix()
+    {
+        var environment = ComposeEntries.Under(DatabaseTool.ReadLines("compose.yml"), "environment");
+
+        Assert.NotEmpty(environment);
+        Assert.All(environment, entry => Assert.False(entry.StartsWith("CDG_", StringComparison.OrdinalIgnoreCase), entry));
+    }
+
     [Fact]
     public void InitScriptCreatesTheOwnerAndTheApplicationRoles()
     {

@@ -86,7 +86,8 @@ A imagem de `tools/database/Dockerfile` é PostgreSQL 17, fixado por digest, com
 pré-carregada. O script de `tools/database/init/01-database.sh` cria o banco `cdg`, o papel `owner`,
 dono do banco e do esquema, e o papel `app`, que só conecta e não é dono de nada. O compose publica
 a porta só em `127.0.0.1` e exige três senhas no ambiente, sem valor em arquivo algum:
-`POSTGRES_PASSWORD` (superusuário), `CDG_OWNER_PASSWORD` e `CDG_APP_PASSWORD`.
+`POSTGRES_PASSWORD` (superusuário), `DATABASE_OWNER_PASSWORD` e `DATABASE_APP_PASSWORD`, fora do
+prefixo `CDG_`, que o núcleo lê do ambiente e recusa quando não reconhece.
 
 ```
 docker compose -f tools/database/compose.yml up

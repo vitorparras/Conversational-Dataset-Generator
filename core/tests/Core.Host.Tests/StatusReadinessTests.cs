@@ -36,6 +36,18 @@ public sealed class StatusReadinessTests
     }
 
     [Fact]
+    public async Task StatusShowsWhatEachCheckObserved()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var observed = CheckResult.Passed("Sample:File", "recurso presente", "Sample:Host") with { Observed = "ZQX-MARKER-7731 1.0" };
+        await using var host = await StatusHost.StartAsync(new StartupReport([observed], DateTimeOffset.UnixEpoch), cancellationToken);
+
+        using var body = await host.StatusAsync(cancellationToken);
+
+        Assert.Equal("ZQX-MARKER-7731 1.0", body.RootElement.GetProperty("checks")[0].GetProperty("observed").GetString());
+    }
+
+    [Fact]
     public async Task StatusSaysWhenTheChecksEnded()
     {
         var cancellationToken = TestContext.Current.CancellationToken;

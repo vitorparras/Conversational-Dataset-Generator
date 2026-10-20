@@ -9,7 +9,7 @@ namespace Core.Persistence.ServerGuarantees;
 /// </summary>
 public sealed class PgAuditCheck : IStartupCheck
 {
-    /// <summary>A placeholder anyone may set has the user context; only the loaded library defines the setting for superusers.</summary>
+    /// <summary>A placeholder set by a connection option or a configuration file never shows in pg_settings; the library's setting does.</summary>
     private const string Query = """
         SELECT (SELECT s.setting FROM pg_settings s WHERE s.name = 'pgaudit.log' AND s.context = 'superuser') AS log,
             (SELECT e.extversion FROM pg_extension e WHERE e.extname = 'pgaudit') AS version

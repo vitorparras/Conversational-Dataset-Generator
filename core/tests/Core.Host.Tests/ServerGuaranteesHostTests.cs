@@ -39,6 +39,17 @@ public sealed class ServerGuaranteesHostTests
     }
 
     [Fact]
+    public async Task ListOfServersRefusesTheConfigurationInsteadOfFailingTheProcess()
+    {
+        var installation = HostInstallation.Built(HostProcess.FreeAddress()) with { Environment = Database("127.0.0.1:zqx,127.0.0.1:1") };
+
+        var exit = await HostProcess.RunToExitAsync(installation, HostProcess.StartupTimeout, TestContext.Current.CancellationToken);
+
+        Assert.Equal((int)ExitCode.ConfigurationRefused, exit.Code);
+        Assert.Contains("valor não aceito para 'Database:Host'", exit.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task HostWithoutADatabaseIsReadyAndSaysTheDatabaseIsNotConfigured()
     {
         var cancellationToken = TestContext.Current.CancellationToken;

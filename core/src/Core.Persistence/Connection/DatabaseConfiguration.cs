@@ -22,12 +22,12 @@ public static class DatabaseConfiguration
     private const string PasswordKey = "Password";
     private const int HighestPort = 65535;
 
-    private static readonly string[] Companions = [NamePath, UsernamePath, PasswordPath];
+    private static readonly string[] Paths = [HostPath, NamePath, UsernamePath, PasswordPath];
 
     /// <summary>
     /// The section the composition root adds to the schema: the server (a name or address, optionally followed by
     /// <c>:port</c>), the database, and the application's role and password, the password never shown. The section is
-    /// optional while nothing persists; once <c>Database:Host</c> is declared, the other three are required.
+    /// optional while nothing persists; once any of the four is declared, all four are required.
     /// </summary>
     public static ConfigurationSection Section { get; } =
         new(
@@ -40,34 +40,40 @@ public static class DatabaseConfiguration
             ]);
 
     /// <summary>
-    /// The settings the approved values make: not configured without <c>Database:Host</c>; refused, naming every key at
-    /// fault, when the host is declared without the rest or with a port that is not a number; otherwise the connection string.
+    /// The settings the approved values make: not configured when no key is declared; refused, naming every key at fault, when
+    /// only part of the section is, or when the host is not one server with an optional port of 1 to 65535; otherwise the
+    /// connection string.
     /// </summary>
     public static DatabaseSettings Read(IReadOnlyDictionary<string, string> values)
     {
         ArgumentNullException.ThrowIfNull(values);
-        if (!values.TryGetValue(HostPath, out var host))
+        var missing = Paths.Where(path => !values.ContainsKey(path)).ToList();
+        if (missing.Count == Paths.Length)
         {
             return DatabaseSettings.NotConfigured;
         }
 
         ConfigurationProblem[] problems =
         [
-            .. Companions.Where(path => !values.ContainsKey(path))
-                .Select(path => new ConfigurationProblem(ConfigurationProblemKind.MissingKey, path, Found: null, Accepted: null)),
-            .. PortProblems(host),
+            .. missing.Select(path => new ConfigurationProblem(ConfigurationProblemKind.MissingKey, path, Found: null, Accepted: null)),
+            .. values.TryGetValue(HostPath, out var host) && !IsOneServer(host) ? [HostRefused(host)] : Array.Empty<ConfigurationProblem>(),
         ];
-        return problems.Length > 0 ? DatabaseSettings.Refused(problems) : DatabaseSettings.Configured(ConnectionString(host, values));
+        return problems.Length > 0 ? DatabaseSettings.Refused(problems) : DatabaseSettings.Configured(ConnectionString(host!, values));
     }
 
-    private static IEnumerable<ConfigurationProblem> PortProblems(string host)
+    /// <summary>A name or address, never a list nor an IPv6 literal, optionally followed by a port written in digits only.</summary>
+    private static bool IsOneServer(string host)
     {
-        var separator = host.LastIndexOf(':');
-        var port = separator < 0 ? null : host[(separator + 1)..];
-        return port is null || (int.TryParse(port, NumberStyles.None, CultureInfo.InvariantCulture, out var number) && number is > 0 and <= HighestPort)
-            ? []
-            : [new ConfigurationProblem(ConfigurationProblemKind.ValueNotAccepted, HostPath, host, ["servidor, ou servidor:porta com porta de 1 a 65535"])];
+        var parts = host.Split(':');
+        var name = !host.Contains(',', StringComparison.Ordinal) && !string.IsNullOrWhiteSpace(parts[0]);
+        return name && (parts.Length == 1 || (parts.Length == 2 && IsPort(parts[1])));
     }
+
+    private static bool IsPort(string port) =>
+        int.TryParse(port, NumberStyles.None, CultureInfo.InvariantCulture, out var number) && number is > 0 and <= HighestPort;
+
+    private static ConfigurationProblem HostRefused(string host) =>
+        new(ConfigurationProblemKind.ValueNotAccepted, HostPath, host, ["um servidor, ou servidor:porta com porta de 1 a 65535; sem lista nem IPv6 literal"]);
 
     private static string ConnectionString(string host, IReadOnlyDictionary<string, string> values) =>
         new NpgsqlConnectionStringBuilder

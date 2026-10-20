@@ -51,6 +51,44 @@ public sealed class DatabaseConfigurationTests
     }
 
     [Fact]
+    public void CompanionsWithoutTheHostAreRefusedNamingTheHost()
+    {
+        var variables = Complete();
+        _ = variables.Remove("CDG_Database__Host");
+
+        var settings = DatabaseConfiguration.Read(Load(variables).Values);
+
+        Assert.Equal(DatabaseSettingsState.Refused, settings.State);
+        var problem = Assert.Single(settings.Problems);
+        Assert.Equal(ConfigurationProblemKind.MissingKey, problem.Kind);
+        Assert.Equal("Database:Host", problem.Key);
+    }
+
+    [Theory]
+    [InlineData("CDG_Database__Name", "Database:Name")]
+    [InlineData("CDG_Database__Username", "Database:Username")]
+    [InlineData("CDG_Database__Password", "Database:Password")]
+    public void HostWithoutACompanionIsRefusedNamingIt(string variable, string key)
+    {
+        var variables = Complete();
+        _ = variables.Remove(variable);
+
+        var settings = DatabaseConfiguration.Read(Load(variables).Values);
+
+        var problem = Assert.Single(settings.Problems);
+        Assert.Equal(ConfigurationProblemKind.MissingKey, problem.Kind);
+        Assert.Equal(key, problem.Key);
+    }
+
+    [Fact]
+    public void SingleCompanionIsRefusedNamingTheOtherThree()
+    {
+        var settings = DatabaseConfiguration.Read(Load(new(StringComparer.Ordinal) { ["CDG_Database__Name"] = "zqx_database" }).Values);
+
+        Assert.Equal(["Database:Host", "Database:Username", "Database:Password"], settings.Problems.Select(problem => problem.Key));
+    }
+
+    [Fact]
     public void HostWithoutThePasswordIsRefusedNamingTheKey()
     {
         var variables = Complete();
@@ -70,7 +108,14 @@ public sealed class DatabaseConfigurationTests
     [InlineData("zqx-host:0")]
     [InlineData("zqx-host:65536")]
     [InlineData("zqx-host:")]
-    public void PortThatIsNotAServerPortIsRefusedNamingTheHostKey(string host)
+    [InlineData("zqx-host:+5432")]
+    [InlineData("zqx-host:zqx,zqx-host:1")]
+    [InlineData("zqx-host,zqx-other")]
+    [InlineData("::1")]
+    [InlineData("[::1]:5432")]
+    [InlineData(":5432")]
+    [InlineData(" :5432")]
+    public void HostThatIsNotOneServerWithAPortIsRefusedNamingTheHostKey(string host)
     {
         var variables = Complete();
         variables["CDG_Database__Host"] = host;

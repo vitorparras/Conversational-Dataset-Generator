@@ -8,19 +8,20 @@ namespace Core.Tests.Integration.Database;
 public sealed class DatabaseRolesTests
 {
     /// <summary>
-    /// The settings pgaudit defines exist only once the library is loaded, and pgaudit refuses to load from anywhere but
-    /// shared_preload_libraries; that setting itself is readable by superusers only.
+    /// Only the loaded library defines pgaudit.log, and pgaudit refuses to load from anywhere but shared_preload_libraries, which
+    /// only superusers may read. A placeholder set by a connection option or by the configuration file answers to
+    /// current_setting but never shows in pg_settings.
     /// </summary>
     [DatabaseFact]
     public async Task ServerLoadsPgauditAtStartup()
     {
         var database = await PostgresFixture.SharedAsync();
         await using var connection = await Sql.OpenAsync(database.AppConnectionString);
-        await using var command = new NpgsqlCommand("SELECT current_setting('pgaudit.log')", connection);
+        await using var command = new NpgsqlCommand("SELECT count(*) FROM pg_settings WHERE name = 'pgaudit.log'", connection);
 
-        var setting = await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
+        var defined = await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
 
-        Assert.NotEmpty(Assert.IsType<string>(setting));
+        Assert.Equal(1L, defined);
     }
 
     [DatabaseFact]

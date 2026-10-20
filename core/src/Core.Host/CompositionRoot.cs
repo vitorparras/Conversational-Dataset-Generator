@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using Core.Boundary.Contracts;
 using Core.Boundary.Fake;
 using Core.Boundary.Http;
+using Core.Host.Analysis;
 using Core.Host.Endpoints;
 using Core.Host.Supervision;
 using Core.Persistence.Connection;
@@ -39,10 +40,7 @@ internal static class CompositionRoot
             : await LaunchAsync(loaded, database, analyzeTimeout.Value, target);
     }
 
-    /// <summary>
-    /// Opens the file destination and the startup container, runs the checks and, when every one passed, hands both to
-    /// the host with the target check in front of the report; a failed check or a refusal closes them here.
-    /// </summary>
+    /// <summary>Opens the file destination and the startup container, runs the checks and hands both to the host when every one passed; otherwise closes them here.</summary>
     private static async Task<HostLaunch> LaunchAsync(
         ConfigurationLoadResult loaded, DatabaseSettings database, TimeSpan analyzeTimeout, StartupReport target)
     {
@@ -86,10 +84,8 @@ internal static class CompositionRoot
             EnvironmentSource.FromProcess(),
             new StrictArgumentsSource(args));
 
-    /// <summary>
-    /// Logging with redaction before anything else, then every service the routes consume. The host's container owns
-    /// the file destination and, since every logger depends on it, closes it after the last of them.
-    /// </summary>
+    /// <summary>Logging with redaction first, then every service the routes consume and a JSON that refuses a field unknown, missing or null;
+    /// the host's container owns the file destination and, since every logger depends on it, closes it after the last of them.</summary>
     internal static void Compose(IHostApplicationBuilder builder, EffectiveConfiguration configuration, ILoggerProvider? fileLog)
     {
         PlatformLogging.Configure(builder.Logging);
@@ -102,14 +98,22 @@ internal static class CompositionRoot
         _ = builder.Services.AddRedaction(PlatformLogging.EraseSensitiveData);
         _ = builder.Services.AddSingleton(configuration);
         _ = builder.Services.ConfigureHttpJsonOptions(options =>
-            options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+        {
+            options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+            options.SerializerOptions.UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow;
+            options.SerializerOptions.RespectRequiredConstructorParameters = true;
+            options.SerializerOptions.RespectNullableAnnotations = true;
+        });
     }
 
-    /// <summary>The recognizer chosen by configuration: the fake by name, otherwise the one of the service the supervisor started.</summary>
-    internal static void AddRecognizer(IServiceCollection services, IReadOnlyDictionary<string, string> values, TimeSpan analyzeTimeout) =>
+    /// <summary>The analysis and the recognizer the configuration chose: the fake by name, otherwise one per use, with the port and secret the supervisor has then.</summary>
+    internal static void AddAnalysis(IServiceCollection services, IReadOnlyDictionary<string, string> values, TimeSpan analyzeTimeout)
+    {
         _ = RecognizerConfiguration.UsesFake(values)
             ? services.AddSingleton<IRecognizer, FakeRecognizer>()
-            : services.AddSingleton<IRecognizer>(provider => Recognizer(provider, analyzeTimeout));
+            : services.AddTransient<IRecognizer>(provider => Recognizer(provider, analyzeTimeout));
+        _ = services.AddTransient<MaterialAnalysis>();
+    }
 
     /// <summary>The bundled file, the server checks, then the language service, which the fake recognizer does not ask and so is not started for it.</summary>
     private static IStartupCheck[] Checks(ConfigurationLoadResult loaded, IServiceProvider startup) =>
@@ -137,11 +141,8 @@ internal static class CompositionRoot
     private static BundledFileCheck BundledFile(ConfigurationLoadResult loaded) =>
         new(HostConfiguration.BundledFilePath, loaded.Values[HostConfiguration.BundledFilePath], AppContext.BaseDirectory);
 
-    /// <summary>
-    /// What the checks need before the host's own container exists: redacted logging, any server checks, and the supervision
-    /// of the language service. The host's container adopts it, so the service stops when the host does; it only borrows
-    /// the file destination, which the host's container closes.
-    /// </summary>
+    /// <summary>What the checks need before the host's own container exists: redacted logging, the server checks and the supervision of the
+    /// language service. The host's container adopts it, so the service stops with the host; it only borrows the file destination.</summary>
     private static ServiceProvider StartupServices(ConfigurationLoadResult loaded, FileLoggerProvider? fileLog, DatabaseSettings database)
     {
         var services = new ServiceCollection();
@@ -200,14 +201,11 @@ internal static class CompositionRoot
     {
         var builder = ClosedBuilder(loaded.Values[HostConfiguration.UrlsPath]);
         Compose(builder, loaded.View, fileLog);
-        AddRecognizer(builder.Services, loaded.Values, analyzeTimeout);
+        AddAnalysis(builder.Services, loaded.Values, analyzeTimeout);
         return builder;
     }
 
-    /// <summary>
-    /// What the checks produced, adopted by the host: the report the routes show and the startup container, which stops
-    /// the service when the host does; the status route also learns which recognizer is in force.
-    /// </summary>
+    /// <summary>What the checks produced, adopted by the host: the report the routes show, the startup container that stops the service with the host, and the recognizer in force.</summary>
     private static WebApplication Assemble(
         WebApplicationBuilder builder, StartupReport report, ServiceProvider startup, RecognizerKind recognizer)
     {
@@ -223,6 +221,7 @@ internal static class CompositionRoot
         StatusEndpoint.Map(app, recognizer);
         ConfigurationEndpoint.Map(app);
         VersionsEndpoint.Map(app);
+        AnalysisEndpoint.Map(app);
         return app;
     }
 

@@ -154,6 +154,13 @@ se a árvore tinha mudança não registrada (`workingTree`, que vale `Unknown` s
 conseguiu perguntar ao `git`); versão que o núcleo não obteve vem `null`, nunca vazia, e a mesma
 lista sai no registro, na linha `Versões em execução`.
 
+`POST /analysis` recebe `text` e `language` e analisa o texto pelo reconhecedor em vigor. Análise
+concluída responde 200 com `reference`, `occurrences`, `kinds` (contagem por tipo, escrito como o
+reconhecedor o escreve) e `modelVersion`. Sem análise, responde 503 com `reference`, `reason` e
+`cause`, e nada é gravado. Retomar é pedir de novo com `resumes` igual à `reference` da recusa, e o
+registro liga as duas pela referência. Campo desconhecido, ou `text` e `language` ausentes ou nulos,
+recusam o pedido com 400.
+
 Publicado para um alvo, o núcleo é um executável único, com a plataforma de execução dentro dele, e
 só o `core/src/Core.Host/appsettings.json` ao lado; o `.github/workflows/package.yml`, disparado à
 mão, guarda os dois como artefatos do workflow. O mesmo, para `linux-x64`, a partir da raiz:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 import tempfile
 import unittest
 from collections.abc import Sequence
@@ -19,14 +20,21 @@ LINUX, WINDOWS = package.TARGETS
 ORIGIN = "https://example.invalid/zqx/ZQX-MARKER-4410.git"
 FAILURE = CommandOutcome(False, "ZQX-MARKER-5521 failed")
 REMOTE = CommandOutcome(True, ORIGIN + "\n")
+FOREIGN = package.FOREIGN_TARGET
+REFUSED = CommandOutcome(
+    False,
+    f"  - RuntimeIdentifier: publicado para o alvo {FOREIGN}, mas o destino em que roda é zqx-x64",
+    69,
+)
 
 
 def image(target: str, commit: str = COMMIT, tree: str = "Clean") -> bytes:
-    """An executable stamped as a build of ``commit`` for ``target`` would be."""
+    """An executable carrying the runtime, stamped as a build of ``commit`` for ``target``."""
     return (
         package.stamp("BuildInfo.Commit", commit)
         + package.stamp("BuildInfo.WorkingTree", tree)
         + package.stamp("BuildInfo.RuntimeIdentifier", target)
+        + package.RUNTIME_INSIDE
     )
 
 
@@ -38,6 +46,7 @@ class PublishingRunner:
     status: str = ""
     failing: str = ""
     origin: CommandOutcome = REMOTE
+    started: CommandOutcome = REFUSED
     commands: list[list[str]] = field(default_factory=list[list[str]])
 
     def __call__(self, command: Sequence[str], cwd: Path) -> CommandOutcome:
@@ -48,6 +57,7 @@ class PublishingRunner:
             "rev-parse": CommandOutcome(True, COMMIT + "\n"),
             "get-url": self.origin,
             "status": CommandOutcome(True, self.status),
+            package.UNKNOWN_KEY: self.started,
         }
         if "publish" in command:
             self.write(Path(command[command.index("--output") + 1]))
@@ -80,7 +90,7 @@ class RealGitRunner:
             output.mkdir(parents=True)
             (output / package.executable(target)).write_bytes(image(target, self.commit))
             (output / package.SETTINGS_FILE).write_bytes(b"{}")
-        return support.SUCCESS
+        return REFUSED if package.UNKNOWN_KEY in command else support.SUCCESS
 
 
 def publication(target: str, name: str = "", content: bytes = b"") -> dict[str, bytes]:
@@ -175,6 +185,50 @@ class PackageTests(unittest.TestCase):
 
         self.assertFalse(result.ok)
         self.assertIn("não declara BuildInfo.RuntimeIdentifier=linux-x64", result.details[0])
+
+    def test_an_executable_without_the_runtime_inside_fails(self) -> None:
+        bare = image(LINUX).replace(package.RUNTIME_INSIDE, b"")
+        runner = PublishingRunner(builds(publication(LINUX, package.executable(LINUX), bare)))
+
+        result = self.run_step(runner)
+
+        self.assertFalse(result.ok)
+        self.assertEqual(
+            result.details[0], "linux-x64: Core.Host não carrega a plataforma de execução"
+        )
+
+    def test_the_host_built_for_a_foreign_target_is_run_with_an_unknown_key(self) -> None:
+        runner = PublishingRunner(builds())
+
+        self.run_step(runner)
+
+        build = runner.containing("build")[0]
+        self.assertIn(f"-p:RuntimeIdentifier={FOREIGN}", build)
+        self.assertIn("-p:SelfContained=false", build)
+        started = runner.containing(package.UNKNOWN_KEY)[0]
+        self.assertEqual(Path(started[1]).name, "Core.Host.dll")
+
+    def test_a_foreign_host_that_reaches_the_configuration_fails(self) -> None:
+        configuration = CommandOutcome(False, "a configuração foi recusada", 78)
+        runner = PublishingRunner(builds(), started=configuration)
+
+        result = self.run_step(runner)
+
+        self.assertFalse(result.ok)
+        self.assertEqual(
+            result.details[0], f"o núcleo para {FOREIGN} não recusou o destino desta máquina"
+        )
+
+    def test_a_foreign_host_ending_with_the_check_code_but_another_message_fails(self) -> None:
+        runner = PublishingRunner(builds(), started=CommandOutcome(False, "ZQX-MARKER-8810", 69))
+
+        result = self.run_step(runner)
+
+        self.assertFalse(result.ok)
+
+    def test_the_foreign_target_is_one_this_machine_is_not(self) -> None:
+        self.assertIn(FOREIGN, package.TARGETS)
+        self.assertNotEqual(FOREIGN.startswith("win-"), sys.platform.startswith("win"))
 
     def test_a_failed_publish_fails_naming_the_target_and_shows_its_output(self) -> None:
         runner = PublishingRunner(builds(), failing="publish")
@@ -280,7 +334,7 @@ class PackageTests(unittest.TestCase):
         self.run_step(runner)
 
         restores, publishes = runner.containing("restore"), runner.containing("publish")
-        self.assertEqual((len(restores), len(publishes)), (4, 4))
+        self.assertEqual((len(restores), len(publishes)), (5, 4))
         self.assertIn("--locked-mode", restores[3])
         self.assertIn("-p:ContinuousIntegrationBuild=true", publishes[3])
         self.assertIn("--no-restore", publishes[3])

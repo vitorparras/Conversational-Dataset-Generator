@@ -15,7 +15,7 @@ using Npgsql;
 
 namespace Core.Host;
 
-/// <summary>The only place where the host is assembled: configuration first, then logging and services, then routes.</summary>
+/// <summary>The only place where the host is assembled: the target check first, then configuration, logging and services, then routes.</summary>
 internal static class CompositionRoot
 {
     internal static async Task<HostLaunch> BuildAsync(string[] args)

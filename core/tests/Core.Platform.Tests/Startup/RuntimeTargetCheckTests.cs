@@ -1,5 +1,4 @@
 using Core.Platform.Startup;
-using Core.Platform.Tests.Versions;
 using Core.Platform.Versions;
 
 namespace Core.Platform.Tests.Startup;
@@ -12,7 +11,7 @@ public sealed class RuntimeTargetCheckTests
     [Fact]
     public async Task ForgedTargetFailsNamingTheTargetAndTheMachine()
     {
-        var check = new RuntimeTargetCheck(Stamped("ZQX-RID"), Machine);
+        var check = new RuntimeTargetCheck(VersionValue.Present("ZQX-RID"), Machine);
 
         var result = await check.RunAsync(TestContext.Current.CancellationToken);
 
@@ -24,7 +23,7 @@ public sealed class RuntimeTargetCheckTests
     [Fact]
     public async Task MatchingTargetPasses()
     {
-        var check = new RuntimeTargetCheck(Stamped(Machine), Machine);
+        var check = new RuntimeTargetCheck(VersionValue.Present(Machine), Machine);
 
         var result = await check.RunAsync(TestContext.Current.CancellationToken);
 
@@ -35,7 +34,7 @@ public sealed class RuntimeTargetCheckTests
     [Fact]
     public async Task TargetDifferingOnlyInCaseFails()
     {
-        var check = new RuntimeTargetCheck(Stamped("LINUX-X64"), Machine);
+        var check = new RuntimeTargetCheck(VersionValue.Present("LINUX-X64"), Machine);
 
         var result = await check.RunAsync(TestContext.Current.CancellationToken);
 
@@ -45,7 +44,7 @@ public sealed class RuntimeTargetCheckTests
     [Fact]
     public async Task BuildStampedForNoTargetPasses()
     {
-        var check = new RuntimeTargetCheck(Stamped(null), Machine);
+        var check = new RuntimeTargetCheck(VersionValue.Absent, Machine);
 
         var result = await check.RunAsync(TestContext.Current.CancellationToken);
 
@@ -56,7 +55,7 @@ public sealed class RuntimeTargetCheckTests
     [Fact]
     public async Task RefusalCarriesNoPathOfTheMachine()
     {
-        var check = new RuntimeTargetCheck(Stamped("ZQX-RID"), Machine);
+        var check = new RuntimeTargetCheck(VersionValue.Present("ZQX-RID"), Machine);
 
         var result = await check.RunAsync(TestContext.Current.CancellationToken);
 
@@ -65,10 +64,4 @@ public sealed class RuntimeTargetCheckTests
         Assert.DoesNotContain(Path.AltDirectorySeparatorChar, text);
         Assert.DoesNotContain(AppContext.BaseDirectory, text, StringComparison.Ordinal);
     }
-
-    /// <summary>The target as the build stamp reads it from an assembly carrying it, or carrying no target at all.</summary>
-    private static VersionValue Stamped(string? target) =>
-        BuildInfo.Of(StampedAssembly.With(target is null
-            ? new Dictionary<string, string>(StringComparer.Ordinal)
-            : new Dictionary<string, string>(StringComparer.Ordinal) { ["BuildInfo.RuntimeIdentifier"] = target })).RuntimeIdentifier;
 }

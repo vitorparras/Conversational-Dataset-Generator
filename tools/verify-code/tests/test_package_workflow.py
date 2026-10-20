@@ -67,6 +67,7 @@ class PackageWorkflowTests(unittest.TestCase):
     def test_uploads_each_target_and_fails_when_nothing_was_published(self) -> None:
         self.assertEqual(uploaded_paths(self.text), ["publish/linux-x64", "publish/win-x64"])
         self.assertEqual(self.text.count("if-no-files-found: error"), len(package.TARGETS))
+        self.assertEqual(self.text.count("retention-days: 30"), len(package.TARGETS))
 
     def test_only_reads_the_repository(self) -> None:
         self.assertIn("permissions:\n  contents: read\n", self.text)

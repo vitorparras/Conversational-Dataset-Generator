@@ -17,10 +17,11 @@ OUTPUT_TAIL_LINES = 30
 
 @dataclass(frozen=True)
 class CommandOutcome:
-    """What a command printed, and whether it exited with zero."""
+    """What a command printed, whether it exited with zero and, when it ran, its exit code."""
 
     ok: bool
     text: str
+    code: int | None = None
 
 
 RunCommand = Callable[[Sequence[str], Path], CommandOutcome]
@@ -86,7 +87,9 @@ def run_process(
         )
     except subprocess.TimeoutExpired:
         return CommandOutcome(False, f"'{command[0]}' passou de {seconds:.0f} s e foi interrompido")
-    return CommandOutcome(completed.returncode == 0, completed.stdout + completed.stderr)
+    return CommandOutcome(
+        completed.returncode == 0, completed.stdout + completed.stderr, completed.returncode
+    )
 
 
 def tail(text: str) -> tuple[str, ...]:

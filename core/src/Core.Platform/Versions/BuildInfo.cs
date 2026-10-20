@@ -14,7 +14,7 @@ public sealed record BuildInfo(VersionValue Version, VersionValue Commit, Workin
     private const string RuntimeIdentifierKey = "BuildInfo.RuntimeIdentifier";
 
     /// <summary>The target the executable was published for; absent when it was built for no target.</summary>
-    public VersionValue RuntimeIdentifier { get; init; } = VersionValue.Absent;
+    public VersionValue RuntimeIdentifier { get; private init; } = VersionValue.Absent;
 
     /// <summary>Reads the stamp the build left on the assembly; a key missing or stamped empty reads as absent, never as empty text.</summary>
     public static BuildInfo Of(Assembly assembly)

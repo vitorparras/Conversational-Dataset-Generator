@@ -4,12 +4,14 @@ The copies are clones in a temporary folder, never the working tree, so a change
 cannot reach the artifact. ContinuousIntegrationBuild maps the source paths, which is what lets two
 copies in different folders publish the same bytes; the restore is locked, so nothing is resolved.
 Each target publishes one executable beside its settings file, and nothing else: a library left
-beside it is a dependency the destination would have to provide.
+beside it is a dependency the destination would have to provide. The executable carries the runtime
+inside it, and the host built for a target this machine is not refuses to start, naming both.
 """
 
 from __future__ import annotations
 
 import hashlib
+import os
 import tempfile
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -22,6 +24,11 @@ PROJECT = "core/src/Core.Host/Core.Host.csproj"
 TARGETS = ("linux-x64", "win-x64")
 SETTINGS_FILE = "appsettings.json"
 CLEAN_TREE = ("BuildInfo.WorkingTree", "Clean")
+RUNTIME_INSIDE = b'"includedFrameworks"'
+FOREIGN_TARGET = "linux-x64" if os.name == "nt" else "win-x64"
+TARGET_REFUSED = 69
+REFUSAL = "publicado para o alvo {target}, mas o destino em que roda é"
+UNKNOWN_KEY = "--ZQX:Unknown=1"
 NOT_CLEAN = "a cópia não está limpa: o artefato não sairia só do commit"
 LOCK_FAILED = "restauração travada falhou: lock divergente ou pacote ausente do cache e da fonte"
 PUBLISH = (
@@ -76,11 +83,15 @@ def clone(ctx: Context, revision: Revision, copy: Path) -> StepResult | None:
     return None
 
 
+def restore(target: str) -> list[str]:
+    """The locked restore of the host for ``target``."""
+    return ["dotnet", "restore", PROJECT, "--locked-mode", f"-p:RuntimeIdentifier={target}"]
+
+
 def publish(ctx: Context, copy: Path, output: Path, target: str) -> StepResult | None:
     """Restores in locked mode for ``target`` and publishes the host of ``copy`` into ``output``."""
-    restore = ["dotnet", "restore", PROJECT, "--locked-mode", f"-p:RuntimeIdentifier={target}"]
     command = ["dotnet", "publish", PROJECT, *PUBLISH, "--runtime", target, "--output", str(output)]
-    problem = checked(ctx, restore, copy, LOCK_FAILED)
+    problem = checked(ctx, restore(target), copy, LOCK_FAILED)
     problem = problem or checked(ctx, command, copy, f"a publicação do núcleo para {target} falhou")
     return problem or single(output, target)
 
@@ -101,10 +112,33 @@ def unstamped(output: Path, commit: str, target: str) -> StepResult | None:
     image = (output / executable(target)).read_bytes()
     expected = (("BuildInfo.Commit", commit), CLEAN_TREE, ("BuildInfo.RuntimeIdentifier", target))
     missing = [f"{key}={value}" for key, value in expected if stamp(key, value) not in image]
+    if RUNTIME_INSIDE not in image:
+        return failed(NAME, f"{target}: {executable(target)} não carrega a plataforma de execução")
     if missing:
         absent = ", ".join(missing)
         return failed(NAME, f"{target}: {executable(target)} não declara {absent}")
     return None
+
+
+def refuses_foreign_target(ctx: Context, copy: Path) -> StepResult | None:
+    """None when the host of ``copy``, built for a target this machine is not, refuses to start.
+
+    The build depends on the installed runtime, so ``dotnet`` runs it here; the unknown key makes
+    the configuration refuse with another code if the target check never ran.
+    """
+    target, output = FOREIGN_TARGET, copy.with_name(f"{copy.name}-foreign")
+    build = ["dotnet", "build", PROJECT, *PUBLISH, f"-p:RuntimeIdentifier={target}"]
+    build += ["-p:SelfContained=false", "--output", str(output)]
+    problem = checked(ctx, restore(target), copy, LOCK_FAILED)
+    problem = problem or checked(ctx, build, copy, f"o núcleo para {target} não construiu")
+    if problem is not None:
+        return problem
+    started = ctx.run(["dotnet", str(output / "Core.Host.dll"), UNKNOWN_KEY], copy)
+    if started.code == TARGET_REFUSED and REFUSAL.format(target=target) in started.text:
+        return None
+    return failed(
+        NAME, f"o núcleo para {target} não recusou o destino desta máquina", *tail(started.text)
+    )
 
 
 def digests(folder: Path) -> dict[str, str]:
@@ -149,6 +183,7 @@ def compare(first: Mapping[str, str], second: Mapping[str, str]) -> StepResult:
         NAME,
         f"{len(names)} arquivos publicados iguais byte a byte por duas cópias limpas",
         f"um executável único por alvo ({', '.join(TARGETS)}), com commit, árvore limpa e alvo",
+        f"construído para {FOREIGN_TARGET}, o núcleo recusa este destino com {TARGET_REFUSED}",
     )
 
 
@@ -167,4 +202,5 @@ def run(ctx: Context) -> StepResult:
         second = build(ctx, revision, Path(scratch) / "second")
         if isinstance(second, StepResult):
             return second
-    return compare(first, second)
+        refused = refuses_foreign_target(ctx, Path(scratch) / "first")
+    return refused or compare(first, second)

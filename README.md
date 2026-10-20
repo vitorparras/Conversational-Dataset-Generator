@@ -74,9 +74,11 @@ trabalho, e publica em cada cópia o executável único de `linux-x64` e o de `w
 restauração travada e a propriedade ContinuousIntegrationBuild, que troca o caminho da cópia por
 um fixo. Reprova se um arquivo publicado diferir entre as duas, nomeado pelo caminho relativo; se a
 pasta de um alvo tiver algo além do executável e do arquivo de configuração
-`core/src/Core.Host/appsettings.json`; ou se o executável não declarar o commit, a árvore limpa e
-o alvo. Fora do passo, `core/Directory.Build.props` só liga essa propriedade na CI, e a depuração
-local vê os caminhos reais.
+`core/src/Core.Host/appsettings.json`; se o executável não declarar o commit, a árvore limpa e o
+alvo, ou não carregar a plataforma de execução; ou se o núcleo construído para um alvo diferente da
+máquina, e rodado nela, não recusar subir com o código 69. Fora do passo,
+`core/Directory.Build.props` só liga essa propriedade na CI, e a depuração local vê os caminhos
+reais.
 Na CI, o mesmo job repete o passo sem rede, com o cache HTTP do NuGet vazio: a construção só usa
 pacotes já baixados. Por isso `core/Directory.Packages.props` deixa a auditoria do NuGet desligada:
 ela consulta a fonte quando o cache de vulnerabilidades vence, em cerca de 30 minutos.

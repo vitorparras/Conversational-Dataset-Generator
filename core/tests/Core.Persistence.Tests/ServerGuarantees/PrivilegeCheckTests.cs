@@ -29,7 +29,7 @@ public sealed class PrivilegeCheckTests
     [Fact]
     public void SuperuserFailsWithTheCommandThatRemovesIt()
     {
-        var finding = PrivilegeCheck.Judge(Role() with { Superuser = true, Database = "zqx_database" });
+        var finding = PrivilegeCheck.Judge(Role() with { SuperuserRole = "zqx_app", BypassRole = "zqx_app", Database = "zqx_database" });
 
         Assert.Equal(CheckStatus.Failed, finding.Status);
         Assert.Contains("ALTER ROLE zqx_app NOSUPERUSER", finding.Message, StringComparison.Ordinal);
@@ -38,10 +38,31 @@ public sealed class PrivilegeCheckTests
     [Fact]
     public void BypassRlsFailsWithTheCommandThatRemovesIt()
     {
-        var finding = PrivilegeCheck.Judge(Role() with { BypassRls = true });
+        var finding = PrivilegeCheck.Judge(Role() with { BypassRole = "zqx_app" });
 
         Assert.Equal(CheckStatus.Failed, finding.Status);
         Assert.Contains("ALTER ROLE zqx_app NOBYPASSRLS", finding.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MembershipOfASuperuserRoleFailsNamingTheRoleToRevoke()
+    {
+        var finding = PrivilegeCheck.Judge(Role() with { SuperuserRole = "zqx_super" });
+
+        Assert.Equal(CheckStatus.Failed, finding.Status);
+        Assert.Equal(
+            "o papel 'zqx_app' pode assumir, com SET ROLE, o papel 'zqx_super', que tem SUPERUSER e desabilita gatilho e política de "
+            + "linha: execute REVOKE zqx_super FROM zqx_app",
+            finding.Message);
+    }
+
+    [Fact]
+    public void MembershipOfABypassRlsRoleFailsNamingTheRoleToRevoke()
+    {
+        var finding = PrivilegeCheck.Judge(Role() with { BypassRole = "zqx_bypass" });
+
+        Assert.Equal(CheckStatus.Failed, finding.Status);
+        Assert.Contains("'zqx_bypass', que tem BYPASSRLS e escapa da política de linha: execute REVOKE zqx_bypass FROM zqx_app", finding.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -74,5 +95,5 @@ public sealed class PrivilegeCheckTests
     }
 
     private static PrivilegeCheck.RoleReading Role() =>
-        new("zqx_app", Superuser: false, BypassRls: false, Database: null, Schema: null, Table: null);
+        new("zqx_app", SuperuserRole: null, BypassRole: null, Database: null, Schema: null, Table: null);
 }

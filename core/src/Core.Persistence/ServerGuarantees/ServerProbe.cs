@@ -1,4 +1,5 @@
 using System.Data;
+using System.Data.Common;
 using Core.Persistence.Connection;
 using Core.Platform.Startup;
 using Npgsql;
@@ -11,6 +12,11 @@ namespace Core.Persistence.ServerGuarantees;
 /// </summary>
 internal static class ServerProbe
 {
+    private const string InsufficientPrivilege = "42501";
+    private const string InvalidCatalogName = "3D000";
+    private const string CatalogUnreadable =
+        "o papel da aplicação não pode ler o catálogo do sistema que a conferência consulta: devolva a leitura do catálogo a PUBLIC";
+
     internal static async Task<CheckResult> RunAsync(NpgsqlDataSource dataSource, Guarantee guarantee, CancellationToken cancellationToken)
     {
         NpgsqlConnection connection;
@@ -39,7 +45,8 @@ internal static class ServerProbe
         }
         catch (NpgsqlException exception)
         {
-            return CheckResult.Failed(guarantee.Name, $"o servidor recusou a conferência{SqlState(exception)}: {guarantee.Requirement}", server);
+            var whatToChange = exception is PostgresException { SqlState: InsufficientPrivilege } ? CatalogUnreadable : guarantee.Requirement;
+            return CheckResult.Failed(guarantee.Name, $"o servidor recusou a conferência{SqlState(exception)}: {whatToChange}", server);
         }
     }
 
@@ -60,13 +67,16 @@ internal static class ServerProbe
     }
 
     private static CheckResult NotConnected(string name, NpgsqlException exception) =>
-        exception is PostgresException
+        exception is PostgresException refusal
             ? CheckResult.Failed(
                 name,
                 $"o servidor recusou a conexão da aplicação{SqlState(exception)}: confira o banco, o papel e a senha configurados",
-                DatabaseConfiguration.UsernamePath)
+                KeyToCheck(refusal))
             : CheckResult.Failed(
                 name, "o servidor de banco não respondeu: confira o endereço configurado e se o servidor aceita conexões", DatabaseConfiguration.HostPath);
+
+    private static string KeyToCheck(DbException refusal) =>
+        refusal.SqlState == InvalidCatalogName ? DatabaseConfiguration.NamePath : DatabaseConfiguration.UsernamePath;
 
     private static string SqlState(NpgsqlException exception) =>
         exception is PostgresException refusal ? $" (SQLSTATE {refusal.SqlState})" : string.Empty;

@@ -83,3 +83,19 @@ class MutationPolicyTests(unittest.TestCase):
         policy = mutation_policy.read_policy(REPOSITORY)
 
         self.assertIsInstance(policy, MutationPolicy)
+
+    def test_an_area_above_the_critical_floor_is_a_problem_naming_it(self) -> None:
+        raised = Area("Registro", "Core.Platform.Logging", 95)
+
+        found = mutation_policy.above((raised, PLATFORM, CONTRACTS), MutationPolicy(90, 20, 20))
+
+        expected = (
+            "Registro (`Core.Platform.Logging`): piso 95 % acima do piso crítico de 90 %; "
+            f"{areas_doc.DOCUMENT} não diz se a área continua crítica"
+        )
+        self.assertEqual(found, (expected,))
+
+    def test_areas_at_or_below_the_critical_floor_are_no_problem(self) -> None:
+        found = mutation_policy.above((LOGGING, PLATFORM, CONTRACTS), MutationPolicy(90, 20, 20))
+
+        self.assertEqual(found, ())

@@ -7,11 +7,13 @@ from enum import Enum
 
 
 class MutantStatus(Enum):
-    """How a mutant ended: a test caught it, none did, it never counted, or it never ran."""
+    """How a mutant ended. Out of the share: NOT_COUNTED never compiled into a runnable mutant;
+    IGNORED was switched off by a filter or by a comment in the code, and is shown as such."""
 
     KILLED = "killed"
     SURVIVED = "survived"
     NOT_COUNTED = "not_counted"
+    IGNORED = "ignored"
     UNCHECKED = "unchecked"
 
 

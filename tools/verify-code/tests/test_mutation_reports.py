@@ -51,6 +51,11 @@ class StrykerReportTests(unittest.TestCase):
 
         self.assertEqual(mutants[0].status, MutantStatus.NOT_COUNTED)
 
+    def test_a_mutant_switched_off_is_ignored_neither_killed_nor_survived(self) -> None:
+        mutants = self.read("Ignored")
+
+        self.assertEqual(mutants[0].status, MutantStatus.IGNORED)
+
     def test_a_pending_mutant_is_unchecked(self) -> None:
         mutants = self.read("Pending")
 
@@ -85,11 +90,25 @@ class MutmutReportTests(unittest.TestCase):
     def test_a_mutant_never_checked_is_unchecked(self) -> None:
         self.assertEqual(mutmut_report.status_of(None), MutantStatus.UNCHECKED)
 
-    def test_the_function_of_a_method_mutant_is_its_last_name(self) -> None:
-        self.assertEqual(mutmut_report.function_of(SURVIVOR.name), "accepts")
+    def test_the_scope_of_a_method_mutant_is_its_class_and_its_name(self) -> None:
+        self.assertEqual(mutmut_report.scope_of(SURVIVOR.name), ("Verifier", "accepts"))
 
-    def test_the_function_of_a_module_level_mutant_drops_the_prefix(self) -> None:
-        self.assertEqual(mutmut_report.function_of("a.b.x_verify__mutmut_12"), "verify")
+    def test_the_scope_of_a_module_level_mutant_drops_the_prefix(self) -> None:
+        self.assertEqual(mutmut_report.scope_of("a.b.x_verify__mutmut_12"), ("verify",))
+
+    def test_a_method_named_as_one_of_an_earlier_class_is_found_in_its_own_class(self) -> None:
+        source = SOURCE.replace("Verifier", "Other") + SOURCE
+
+        found = mutmut_report.survivor(SURVIVOR, SHOWN, source, "svc")
+
+        self.assertEqual(found.line, 6)
+
+    def test_a_diff_that_could_not_be_read_leaves_the_survivor_unplaced_and_says_so(self) -> None:
+        spaced = SOURCE.replace("        return", "\n        return")
+
+        found = mutmut_report.survivor(SURVIVOR, "", spaced, "svc")
+
+        self.assertEqual((found.line, found.change), (0, mutmut_report.UNREAD))
 
     def test_a_survivor_is_placed_on_the_source_line_the_diff_removes(self) -> None:
         source = "x = 1\n\n" + SOURCE
@@ -97,11 +116,11 @@ class MutmutReportTests(unittest.TestCase):
         found = mutmut_report.survivor(SURVIVOR, SHOWN, source, "svc")
 
         change = "`return given == self.secret` → `return given != self.secret`"
-        self.assertEqual(found, Mutant("svc/src/a/auth.py", 4, change, MutantStatus.SURVIVED))
+        self.assertEqual(found, Mutant("svc/src/a/auth.py", 5, change, MutantStatus.SURVIVED))
 
     def test_the_same_line_in_an_earlier_function_is_not_taken(self) -> None:
         source = "def other(self, given):\n    return given == self.secret\n\n" + SOURCE
 
         found = mutmut_report.survivor(SURVIVOR, SHOWN, source, "svc")
 
-        self.assertEqual(found.line, 5)
+        self.assertEqual(found.line, 6)

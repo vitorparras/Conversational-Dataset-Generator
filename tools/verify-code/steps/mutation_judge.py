@@ -70,6 +70,20 @@ def share(part: int, whole: int) -> str:
     return f"{WHOLE * part / whole if whole else 0.0:.1f} %".replace(".", ",")
 
 
+def place(mutant: Mutant) -> str:
+    return (
+        f"{mutant.file}:{mutant.line}" if mutant.line else f"{mutant.file} (linha não localizada)"
+    )
+
+
+def outside(by: dict[MutantStatus, list[Mutant]]) -> tuple[str, ...]:
+    """The mutants left out of the share, so a switch-off in the code stays visible."""
+    broken, ignored = len(by[MutantStatus.NOT_COUNTED]), len(by[MutantStatus.IGNORED])
+    if not broken and not ignored:
+        return ()
+    return (f"  fora da conta: {broken} não compilam, {ignored} ignorados ou desligados",)
+
+
 def judge_module(result: ModuleResult, policy: MutationPolicy) -> Verdict:
     """Counts, survivors by place, and a failure above the ceiling, unchecked or empty."""
     by = {status: [m for m in result.mutants if m.status is status] for status in MutantStatus}
@@ -77,8 +91,8 @@ def judge_module(result: ModuleResult, policy: MutationPolicy) -> Verdict:
     generated = len(killed) + len(survived)
     name = f"{result.area.name} (`{result.area.prefix}`)"
     counts = f"{generated} gerados, {len(killed)} mortos, {len(survived)} sobreviventes"
-    places = (f"  sobrevivente: {m.file}:{m.line} — {m.change}" for m in survived)
-    notes = (f"{name}: {counts} ({share(len(survived), generated)})", *places)
+    places = (f"  sobrevivente: {place(m)} — {m.change}" for m in survived)
+    notes = (f"{name}: {counts} ({share(len(survived), generated)})", *places, *outside(by))
     failures = [f"{name}: {problem}" for problem in result.problems]
     if by[MutantStatus.UNCHECKED]:
         failures.append(f"{name}: {len(by[MutantStatus.UNCHECKED])} mutantes não verificados")

@@ -15,7 +15,7 @@ STATUS = {
     "NoCoverage": MutantStatus.SURVIVED,
     "CompileError": MutantStatus.NOT_COUNTED,
     "RuntimeError": MutantStatus.NOT_COUNTED,
-    "Ignored": MutantStatus.NOT_COUNTED,
+    "Ignored": MutantStatus.IGNORED,
 }
 
 

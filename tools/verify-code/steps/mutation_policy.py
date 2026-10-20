@@ -55,3 +55,13 @@ def read_policy(root: Path) -> MutationPolicy | tuple[str, ...]:
 def critical(areas: tuple[Area, ...], policy: MutationPolicy) -> tuple[Area, ...]:
     """The areas whose floor is the one the section names: the list of critical modules."""
     return tuple(area for area in areas if area.floor == policy.critical_floor)
+
+
+def above(areas: tuple[Area, ...], policy: MutationPolicy) -> tuple[str, ...]:
+    """A problem per area whose floor passes the critical one: whether it stays critical is open."""
+    return tuple(
+        f"{area.name} (`{area.prefix}`): piso {area.floor} % acima do piso crítico de "
+        f"{policy.critical_floor} %; {DOCUMENT} não diz se a área continua crítica"
+        for area in areas
+        if area.floor is not None and area.floor > policy.critical_floor
+    )

@@ -27,7 +27,7 @@ DOCUMENT = "\n".join(
         POLICY,
     )
 )
-SOURCE = "def accepts(self, given):\n    return given == self.secret\n"
+SOURCE = "class Verifier:\n    def accepts(self, given):\n        return given == self.secret\n"
 SHOWN = (
     "# language_service.auth.xǁVerifierǁaccepts__mutmut_1: survived\n"
     "--- src/language_service/auth.py\n+++ src/language_service/auth.py\n@@ -1,2 +1,2 @@\n"

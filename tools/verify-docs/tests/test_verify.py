@@ -167,6 +167,44 @@ class VerifyDocsTests(unittest.TestCase):
         code, output = run_verifier(self.root, "--only", "formatting")
         self.assertEqual(code, 0, output)
 
+    def test_wide_line_inside_code_fence_is_exempt(self) -> None:
+        wide = "x" * 120
+        self.write("docs/001-fence.md", VALID_DOC + f"\n```\n{wide}\n```\n")
+        code, output = run_verifier(self.root, "--only", "formatting")
+        self.assertEqual(code, 0, output)
+
+    def test_wide_line_inside_tilde_fence_is_exempt(self) -> None:
+        wide = "x" * 120
+        self.write("docs/001-tilde.md", VALID_DOC + f"\n~~~\n{wide}\n~~~\n")
+        code, output = run_verifier(self.root, "--only", "formatting")
+        self.assertEqual(code, 0, output)
+
+    def test_wide_line_indented_by_four_spaces_is_exempt(self) -> None:
+        wide = "x" * 120
+        self.write("docs/001-indent.md", VALID_DOC + f"\n    {wide}\n")
+        code, output = run_verifier(self.root, "--only", "formatting")
+        self.assertEqual(code, 0, output)
+
+    def test_wide_prose_line_fails(self) -> None:
+        wide = "x" * 120
+        self.write("docs/001-prose.md", VALID_DOC + f"\n{wide}\n")
+        code, output = run_verifier(self.root, "--only", "formatting")
+        self.assertEqual(code, 1, output)
+        self.assertIn("120 colunas", output)
+
+    def test_wide_line_after_closed_fence_fails(self) -> None:
+        wide = "x" * 120
+        self.write("docs/001-closed.md", VALID_DOC + f"\n```\ncodigo\n```\n\n{wide}\n")
+        code, output = run_verifier(self.root, "--only", "formatting")
+        self.assertEqual(code, 1, output)
+        self.assertIn("120 colunas", output)
+
+    def test_tab_inside_code_fence_still_fails(self) -> None:
+        self.write("docs/001-fencetab.md", VALID_DOC + "\n```\na\tb\n```\n")
+        code, output = run_verifier(self.root, "--only", "formatting")
+        self.assertEqual(code, 1, output)
+        self.assertIn("tab", output)
+
     def test_trailing_space_fails(self) -> None:
         self.write("docs/001-space.md", VALID_DOC + "\nlinha com espaço \n")
         code, output = run_verifier(self.root, "--only", "formatting")

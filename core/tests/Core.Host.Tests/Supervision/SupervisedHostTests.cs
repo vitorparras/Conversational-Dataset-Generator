@@ -27,6 +27,25 @@ public sealed class SupervisedHostTests
     }
 
     [Fact]
+    public async Task HostWithTheFakeStartsNoLanguageServiceEvenWhenTheInterpreterWorks()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var interpreter = LanguageServiceInterpreter.Available;
+        Assert.SkipWhen(interpreter is null, "Skipped: uv could not resolve the language-service environment, so no working interpreter can be offered.");
+        var address = HostProcess.FreeAddress();
+        var installation = HostInstallation.Built(address) with
+        {
+            Arguments = [HostInstallation.UrlsArgument(address), "--Recognizer:Kind=fake", $"--LanguageService:Executable={interpreter}"],
+            ProvidesLanguageService = false,
+        };
+        using var host = await HostProcess.StartAsync(installation, address, HostProcess.StartupTimeout, cancellationToken);
+
+        var tree = await ProcessTree.TreeOfAsync(host.Id, cancellationToken);
+
+        _ = Assert.Single(tree);
+    }
+
+    [Fact]
     public async Task HostWithoutTheInterpreterKeyEndsWithTheRefusalCodeAndNamesTheKey()
     {
         var cancellationToken = TestContext.Current.CancellationToken;

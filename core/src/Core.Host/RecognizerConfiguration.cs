@@ -13,7 +13,7 @@ internal static class RecognizerConfiguration
     private const string Fake = "fake";
     private const string Http = "http";
 
-    /// <summary>The real recognizer is the default, since a fake left on by omission would pass every real text unanalysed.</summary>
+    /// <summary>The real recognizer is the default, since a fake left on by omission would leave every real text unanalysed while the host reads as ready.</summary>
     internal static ConfigurationSection Section { get; } =
         new(SectionName, [ConfigurationKey.WithDefault(KindKey, Http).Accepting(Fake, Http)]);
 

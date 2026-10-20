@@ -26,7 +26,9 @@ public sealed class StartupCheckTests
     public async Task InstalledHostListsTheBundledFileAsPassedAndIsReady()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        using var host = await HostProcess.StartAsync(cancellationToken);
+        var address = HostProcess.FreeAddress();
+        var installation = HostInstallation.Built(address) with { UsesRealService = true };
+        using var host = await HostProcess.StartAsync(installation, address, HostProcess.StartupTimeout, cancellationToken);
 
         using var response = await host.GetAsync("/status", cancellationToken);
         using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));

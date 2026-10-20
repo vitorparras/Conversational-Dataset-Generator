@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 
 namespace Core.Host.Tests;
@@ -9,6 +10,22 @@ internal static class LanguageServiceInterpreter
     private static readonly Lazy<string> Resolved = new(Resolve);
 
     public static string Path => Resolved.Value;
+
+    /// <summary>The interpreter, or null when uv is missing or cannot resolve the environment, for a rehearsal that skips without it.</summary>
+    public static string? Available
+    {
+        get
+        {
+            try
+            {
+                return Resolved.Value;
+            }
+            catch (Exception missing) when (missing is InvalidOperationException or Win32Exception)
+            {
+                return null;
+            }
+        }
+    }
 
     /// <summary>The language service project folder, found above the test binaries.</summary>
     public static string ProjectFolder()

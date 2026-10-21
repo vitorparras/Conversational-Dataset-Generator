@@ -5,7 +5,17 @@ from __future__ import annotations
 from pathlib import Path
 
 #: Directories that are not project documentation.
-IGNORED = {".git", ".github", ".specs", "tools", "node_modules", "bin", "obj", ".venv"}
+IGNORED = {
+    ".git",
+    ".github",
+    ".specs",
+    "tools",
+    "node_modules",
+    "bin",
+    "obj",
+    ".venv",
+    ".verify-code",
+}
 
 
 def list_documents(root: Path) -> list[Path]:

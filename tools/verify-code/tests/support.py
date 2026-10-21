@@ -128,3 +128,39 @@ def commit_files(repo: Path, names: Sequence[str], lines_each: int) -> None:
         write(repo, name, "x\n" * lines_each)
     git(repo, "add", ".")
     git(repo, "commit", "-q", "-m", "change")
+
+
+def coverage_lines(hits: str) -> str:
+    """Line elements numbered from 1, one per space-separated hit count."""
+    counts = hits.split()
+    return "".join(f'<line number="{n}" hits="{h}" />' for n, h in enumerate(counts, start=1))
+
+
+def cobertura(package: str, *classes: tuple[str, str, str]) -> str:
+    """A Cobertura report of one package; each class is (name, file, hit counts), and its lines
+    are repeated under a method, as the core's coverage tool writes them."""
+    body = "".join(
+        f'<class name="{name}" filename="{file}"><methods><method name="m"><lines>'
+        f"{coverage_lines(hits)}</lines></method></methods>"
+        f"<lines>{coverage_lines(hits)}</lines></class>"
+        for name, file, hits in classes
+    )
+    return (
+        '<?xml version="1.0" encoding="utf-8"?>\n'
+        f'<coverage><packages><package name="{package}"><classes>{body}</classes></package>'
+        "</packages></coverage>\n"
+    )
+
+
+def coverage_py(source: Path, *modules: tuple[str, str]) -> str:
+    """A coverage.py XML report; each module is (file relative to ``source``, hit counts)."""
+    body = "".join(
+        f'<class name="{Path(file).name}" filename="{file}"><methods />'
+        f"<lines>{coverage_lines(hits)}</lines></class>"
+        for file, hits in modules
+    )
+    return (
+        '<?xml version="1.0" ?>\n'
+        f"<coverage><sources><source>{source.as_posix()}</source></sources>"
+        f'<packages><package name="p"><classes>{body}</classes></package></packages></coverage>\n'
+    )

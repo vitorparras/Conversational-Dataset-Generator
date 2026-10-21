@@ -273,6 +273,12 @@ class VerifyDocsTests(unittest.TestCase):
         self.assertEqual(code, 0, output)
         self.assertIn("1 documentos", output)
 
+    def test_the_output_of_the_code_verifier_is_not_verified(self) -> None:
+        self.write(".verify-code/coverage/by-area.md", "### Cobertura por área\n")
+        self.write("docs/001-valid.md", VALID_DOC)
+        code, output = run_verifier(self.root)
+        self.assertEqual(code, 0, output)
+
     def test_non_ignored_directory_is_verified(self) -> None:
         self.write("other/note.md", "# Sem autoridade\n\nTexto.\n")
         code, output = run_verifier(self.root)

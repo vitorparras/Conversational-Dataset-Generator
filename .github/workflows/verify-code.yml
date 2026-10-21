@@ -96,6 +96,19 @@ jobs:
       - name: Varrer o repositório e reprovar HIGH e CRITICAL sem risco aceito
         run: python tools/verify-code/verify.py --step trivy
 
+  static_analysis:
+    name: Análise estática de segurança (semgrep)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Instalar o semgrep na versão fixada
+        run: pip install -r tools/verify-code/static-analysis-requirements.txt
+      - name: Reprovar o que as regras próprias acusarem no núcleo, no serviço e nas ferramentas
+        run: python tools/verify-code/verify.py --step static_analysis
+
   pr_size:
     name: Teto do pull request
     if: github.event_name == 'pull_request'

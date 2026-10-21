@@ -61,6 +61,7 @@ class VerifyDocsTests(unittest.TestCase):
         self.assertIn("docs/001-no-authority.md", output)
 
     def test_secret_pattern_fails(self) -> None:
+        # nosemgrep: secret-literal-python a fake token built to prove the secret pattern fails
         token = "ghp_" + "a1B2c3D4e5F6g7H8i9J0"
         self.write("docs/001-secret.md", VALID_DOC + f"\nToken: {token}\n")
         code, output = run_verifier(self.root)
@@ -147,6 +148,7 @@ class VerifyDocsTests(unittest.TestCase):
         self.assertEqual(code, 1, output)
 
     def test_secret_inside_code_block_still_fails(self) -> None:
+        # nosemgrep: secret-literal-python a fake token built to prove the secret pattern fails
         token = "ghp_" + "a1B2c3D4e5F6g7H8i9J0"
         self.write("docs/001-fence.md", VALID_DOC + f"\n```\n{token}\n```\n")
         code, output = run_verifier(self.root, "--only", "data")

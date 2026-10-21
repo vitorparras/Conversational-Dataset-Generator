@@ -25,6 +25,11 @@ criptográfica inadequada, segredo escrito no código.
 As duas reprovam a mudança. Dependência vulnerável sem correção disponível exige decisão escrita de
 aceitar o risco, com prazo para revisitar — não silêncio.
 
+Achado da análise estática que, examinado, não é defeito se dispensa no próprio ponto, com o
+motivo ao lado, nunca em `core/src` ([decisão 0042](../decisoes/0042-supressao-de-analisador.md)).
+Regra desligada para o repositório inteiro reprova: deixar de procurar uma classe de defeito é
+decisão, não configuração.
+
 ## O que roda periodicamente
 
 A verificação de dependência também roda fora de qualquer mudança, porque vulnerabilidade é

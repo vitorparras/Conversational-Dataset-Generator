@@ -15,6 +15,7 @@ from . import support
 ROOT = support.VERIFY_CODE.parents[1]
 REPO_CONFIG = (ROOT / secrets.CONFIG).read_text(encoding="utf-8")
 PLAIN_CONFIG = "[extend]\nuseDefault = true\n"
+# nosemgrep: secret-literal-python a fake token built to prove that gitleaks catches it
 TOKEN = "ghp_" + "aB3dE5gH7jK9mN1pQ3sT5vW7yZ9bC1dE3fG5"
 TOKEN_LINE = f'token = "{TOKEN}"\n'
 ALLOW_COMMENT = "  # gitleaks:allow"
@@ -25,6 +26,7 @@ FINDING: dict[str, object] = {
     "File": "src/a.py",
     "StartLine": 3,
     "Commit": "abcdef0123456789",
+    # nosemgrep: secret-literal-python the redacted placeholder gitleaks writes in its report
     "Secret": "REDACTED",
 }
 

@@ -33,6 +33,7 @@ WITHOUT_BASE = [
     "properties",
     "secrets",
     "trivy",
+    "static_analysis",
 ]
 
 

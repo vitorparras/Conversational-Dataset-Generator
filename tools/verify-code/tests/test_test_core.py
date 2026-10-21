@@ -1,4 +1,4 @@
-"""Tests for the test_core step: child environment, empty run, silent project, failure, coverage."""
+"""Tests for test_core: environment, empty run, silent project, failure, skips, coverage."""
 
 from __future__ import annotations
 
@@ -81,6 +81,40 @@ class TestCoreTests(unittest.TestCase):
 
         self.assertTrue(result.ok, result.details)
         self.assertIn("5 testes executados em 2 projetos", result.details)
+
+    def test_skipped_tests_are_reported_with_their_reason(self) -> None:
+        files = {
+            "a.trx": support.trx("Alpha.Tests", 3, 0, skipped="ZQX-MOTIVO"),
+            "b.trx": support.trx("Beta.Tests", 2, 0),
+            "x.cobertura.xml": "<coverage />",
+        }
+
+        result = test_core.run(support.context(self.root, self.runner(files)))
+
+        self.assertTrue(result.ok, result.details)
+        self.assertIn("Alpha.Tests: 1 teste(s) saltado(s) (ZQX-MOTIVO)", result.details)
+
+    def test_skipped_tests_are_reported_when_the_step_fails(self) -> None:
+        files = {
+            "a.trx": support.trx("Alpha.Tests", 3, 1, skipped="ZQX-MOTIVO"),
+            "b.trx": support.trx("Beta.Tests", 2, 0),
+        }
+
+        result = test_core.run(support.context(self.root, self.runner(files, ok=False)))
+
+        self.assertFalse(result.ok)
+        self.assertIn("Alpha.Tests: 1 teste(s) saltado(s) (ZQX-MOTIVO)", result.details)
+
+    def test_no_skip_line_when_nothing_was_skipped(self) -> None:
+        files = {
+            "a.trx": support.trx("Alpha.Tests", 3, 0),
+            "b.trx": support.trx("Beta.Tests", 2, 0),
+            "x.cobertura.xml": "<coverage />",
+        }
+
+        result = test_core.run(support.context(self.root, self.runner(files)))
+
+        self.assertEqual(result.details, ("5 testes executados em 2 projetos",))
 
     def test_missing_coverage_report_fails(self) -> None:
         files = {

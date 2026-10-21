@@ -1,4 +1,6 @@
 using System.Text.Json.Serialization;
+using Core.Boundary.Contracts;
+using Core.Boundary.Http;
 using Core.Host.Endpoints;
 using Core.Host.Supervision;
 using Core.Platform.Configuration;
@@ -23,6 +25,12 @@ internal static class CompositionRoot
             return HostLaunch.Refused(loaded.Problems);
         }
 
+        var analyzeTimeout = LanguageServiceConfiguration.AnalyzeTimeout(loaded.Values);
+        if (analyzeTimeout is null)
+        {
+            return HostLaunch.Refused([LanguageServiceConfiguration.AnalyzeTimeoutRefused(loaded.Values)]);
+        }
+
         var startup = StartupServices(loaded);
         try
         {
@@ -33,7 +41,7 @@ internal static class CompositionRoot
                 return HostLaunch.CheckFailed(report);
             }
 
-            var launch = HostLaunch.Ready(Assemble(loaded, report, startup));
+            var launch = HostLaunch.Ready(Assemble(loaded, report, startup, analyzeTimeout.Value));
             startup = null;
             return launch;
         }
@@ -70,7 +78,7 @@ internal static class CompositionRoot
         _ = services.AddSingleton(TimeProvider.System);
         _ = services.AddLogging(PlatformLogging.Configure);
         _ = services.AddRedaction(PlatformLogging.EraseSensitiveData);
-        _ = services.AddSingleton(_ => HealthWait.NewClient());
+        _ = services.AddSingleton(_ => LoopbackHttpClient.Create());
         _ = services.AddSingleton(provider => new HealthWait(provider.GetRequiredService<HttpClient>()));
         _ = services.AddSingleton(new ServiceProcessLauncher(loaded.Values[LanguageServiceConfiguration.ExecutablePath]));
         _ = services.AddSingleton(provider => new LanguageServiceSupervisor(
@@ -82,18 +90,31 @@ internal static class CompositionRoot
         return services.BuildServiceProvider();
     }
 
-    private static WebApplication Assemble(ConfigurationLoadResult loaded, StartupReport report, ServiceProvider startup)
+    private static WebApplication Assemble(ConfigurationLoadResult loaded, StartupReport report, ServiceProvider startup, TimeSpan analyzeTimeout)
     {
         var builder = ClosedBuilder(loaded.Values[HostConfiguration.UrlsPath]);
         Compose(builder, loaded.View);
         _ = builder.Services.AddSingleton(report);
         _ = builder.Services.AddSingleton(_ => startup);
+        _ = builder.Services.AddSingleton<IRecognizer>(provider => Recognizer(provider, analyzeTimeout));
 
         var app = builder.Build();
         _ = app.Services.GetRequiredService<ServiceProvider>();
         StatusEndpoint.Map(app);
         ConfigurationEndpoint.Map(app);
         return app;
+    }
+
+    /// <summary>The recognizer of the service the supervisor started, with its secret and the client that never goes through a proxy.</summary>
+    private static HttpRecognizer Recognizer(IServiceProvider host, TimeSpan analyzeTimeout)
+    {
+        var startup = host.GetRequiredService<ServiceProvider>();
+        var supervisor = startup.GetRequiredService<LanguageServiceSupervisor>();
+        var port = supervisor.Port ?? throw new InvalidOperationException("The language service has no port before it has answered.");
+        return new HttpRecognizer(
+            startup.GetRequiredService<HttpClient>(),
+            new HttpRecognizerSettings(port, supervisor.Secret, analyzeTimeout),
+            host.GetRequiredService<ILogger<HttpRecognizer>>());
     }
 
     /// <summary>A web host with no configuration source of its own, so nothing reaches it except what the closed configuration approved.</summary>

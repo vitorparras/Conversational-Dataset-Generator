@@ -29,6 +29,18 @@
         "resolved": "10.11.0",
         "contentHash": "h/sovspxVmT2DTIbWORMG0Gi3zVcPQzNl3kbwtpo0LoUXYbe2+66wQqZYwaF2ZWKN8HDdHv5yoc7d0DbDBBlnA=="
       },
+      "core.boundary": {
+        "type": "Project",
+        "dependencies": {
+          "Core.Boundary.Contracts": "[1.0.0, )"
+        }
+      },
+      "core.boundary.contracts": {
+        "type": "Project",
+        "dependencies": {
+          "Core.Platform": "[1.0.0, )"
+        }
+      },
       "core.platform": {
         "type": "Project",
         "dependencies": {

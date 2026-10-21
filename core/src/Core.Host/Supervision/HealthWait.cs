@@ -14,23 +14,6 @@ internal sealed class HealthWait
         this.client = client;
     }
 
-    /// <summary>The client the wait is made with: it never goes through a proxy, since the service is on this machine.</summary>
-    internal static HttpClient NewClient()
-    {
-        SocketsHttpHandler? handler = null;
-        try
-        {
-            handler = new SocketsHttpHandler { UseProxy = false };
-            var client = new HttpClient(handler);
-            handler = null;
-            return client;
-        }
-        finally
-        {
-            handler?.Dispose();
-        }
-    }
-
     internal async Task<StartOutcome> UntilHealthyAsync(
         RunningService service, string secret, TimeSpan timeout, CancellationToken cancellationToken)
     {

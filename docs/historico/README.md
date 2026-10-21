@@ -11,4 +11,10 @@ documento histórico descreve o que era verdade quando foi escrito — não o qu
 Documento histórico **não se divide nem se resume** para caber em limite de tamanho: dividir
 falsificaria o registro.
 
+## Índice
+
+| # | Documento |
+|---|---|
+| [003](003-medicao-do-modelo.md) | Medição do modelo de linguagem |
+
 Ver [regras de escrita](../regras-de-escrita.md).

@@ -8,12 +8,22 @@ internal sealed record HostInstallation(string BinaryDirectory, string WorkingDi
     /// <summary>Variables the process starts with besides the ones it inherits.</summary>
     public IReadOnlyDictionary<string, string> Environment { get; init; } = ReadOnlyDictionary<string, string>.Empty;
 
-    /// <summary>Whether the arguments the host receives also name the interpreter that starts the language service.</summary>
+    /// <summary>Whether the arguments the host receives also choose the recognizer and name an interpreter.</summary>
     public bool ProvidesLanguageService { get; init; } = true;
 
-    /// <summary>The arguments given plus, unless the test withholds it, the interpreter of the language service.</summary>
-    public IReadOnlyList<string> LaunchArguments =>
-        ProvidesLanguageService ? [.. Arguments, $"--LanguageService:Executable={LanguageServiceInterpreter.Path}"] : Arguments;
+    /// <summary>Whether the host asks the real language service, which it then starts, instead of the fake recognizer, which needs none.</summary>
+    public bool UsesRealService { get; init; }
+
+    /// <summary>
+    /// The arguments given plus, unless the test withholds them, the fake recognizer with an interpreter the host never
+    /// starts, or the interpreter of the language service when the test asks for the real one.
+    /// </summary>
+    public IReadOnlyList<string> LaunchArguments => (ProvidesLanguageService, UsesRealService) switch
+    {
+        (false, _) => Arguments,
+        (true, true) => [.. Arguments, $"--LanguageService:Executable={LanguageServiceInterpreter.Path}"],
+        (true, false) => [.. Arguments, "--Recognizer:Kind=fake", "--LanguageService:Executable=zqx-never-started-7731"],
+    };
 
     /// <summary>The host as built beside the tests, started from its own directory and told to listen on the address.</summary>
     public static HostInstallation Built(Uri baseAddress) =>

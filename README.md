@@ -83,6 +83,14 @@ núcleo recusa a configuração. Os testes do núcleo usam o mesmo comando para 
 vencido o prazo, o desfecho é serviço indisponível, nunca lista vazia; valor fora desse intervalo
 recusa a configuração.
 
+`Recognizer:Kind` escolhe o reconhecedor, e só aceita `http` (padrão) ou `fake`, escritos assim.
+Com `http`, o núcleo pergunta ao serviço de linguagem. Com `fake`, não inicia o serviço e decide
+pelo próprio texto: cada `ZQX-FAKE-PERSON` vira uma ocorrência; `ZQX-FAKE-NOTHING` dá análise sem
+ocorrência; qualquer outro texto fica sem análise, como serviço inalcançável. Com `fake`, a chave
+`LanguageService:Executable` continua exigida, mas não é usada. Os testes do núcleo sobem o host
+com `fake`; o ensaio contra o serviço real tem `Category=RealService` e é saltado com aviso quando
+o `uv` não resolve o ambiente do serviço.
+
 Com o núcleo de pé, `http://127.0.0.1:5080/status` responde `alive`, `ready` e `checks[]`, com o
 resultado de cada conferência de inicialização. O teste de arquitetura em
 `core/tests/Core.Tests.Architecture` impõe as regras de código a cada construção; as fixtures que

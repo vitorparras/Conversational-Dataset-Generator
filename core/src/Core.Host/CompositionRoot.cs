@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Core.Boundary.Contracts;
+using Core.Boundary.Fake;
 using Core.Boundary.Http;
 using Core.Host.Endpoints;
 using Core.Host.Supervision;
@@ -16,7 +17,7 @@ internal static class CompositionRoot
     internal static async Task<HostLaunch> BuildAsync(string[] args)
     {
         var loaded = ClosedConfiguration.Load(
-            new ConfigurationSchema([HostConfiguration.Section, LanguageServiceConfiguration.Section]),
+            new ConfigurationSchema([HostConfiguration.Section, LanguageServiceConfiguration.Section, RecognizerConfiguration.Section]),
             new JsonFileSource(HostConfiguration.SettingsPath),
             EnvironmentSource.FromProcess(),
             new StrictArgumentsSource(args));
@@ -34,8 +35,7 @@ internal static class CompositionRoot
         var startup = StartupServices(loaded);
         try
         {
-            var checks = new IStartupCheck[] { BundledFile(loaded), startup.GetRequiredService<LanguageServiceStartupCheck>() };
-            var report = await new StartupRunner(checks).RunAsync(CancellationToken.None);
+            var report = await new StartupRunner(Checks(loaded, startup)).RunAsync(CancellationToken.None);
             if (!report.Ready)
             {
                 return HostLaunch.CheckFailed(report);
@@ -64,6 +64,18 @@ internal static class CompositionRoot
         _ = builder.Services.ConfigureHttpJsonOptions(options =>
             options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
     }
+
+    /// <summary>The recognizer chosen by configuration: the fake by name, otherwise the one of the service the supervisor started.</summary>
+    internal static void AddRecognizer(IServiceCollection services, IReadOnlyDictionary<string, string> values, TimeSpan analyzeTimeout) =>
+        _ = RecognizerConfiguration.UsesFake(values)
+            ? services.AddSingleton<IRecognizer, FakeRecognizer>()
+            : services.AddSingleton<IRecognizer>(provider => Recognizer(provider, analyzeTimeout));
+
+    /// <summary>The bundled file, then the language service, which the fake recognizer does not ask and so is not started for it.</summary>
+    private static IStartupCheck[] Checks(ConfigurationLoadResult loaded, IServiceProvider startup) =>
+        RecognizerConfiguration.UsesFake(loaded.Values)
+            ? [BundledFile(loaded)]
+            : [BundledFile(loaded), startup.GetRequiredService<LanguageServiceStartupCheck>()];
 
     private static BundledFileCheck BundledFile(ConfigurationLoadResult loaded) =>
         new(HostConfiguration.BundledFilePath, loaded.Values[HostConfiguration.BundledFilePath], AppContext.BaseDirectory);
@@ -96,7 +108,7 @@ internal static class CompositionRoot
         Compose(builder, loaded.View);
         _ = builder.Services.AddSingleton(report);
         _ = builder.Services.AddSingleton(_ => startup);
-        _ = builder.Services.AddSingleton<IRecognizer>(provider => Recognizer(provider, analyzeTimeout));
+        AddRecognizer(builder.Services, loaded.Values, analyzeTimeout);
 
         var app = builder.Build();
         _ = app.Services.GetRequiredService<ServiceProvider>();

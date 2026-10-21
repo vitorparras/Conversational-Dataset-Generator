@@ -12,7 +12,9 @@ public sealed class SupervisedHostTests
     public async Task ServiceEndsWithinFiveSecondsWhenTheHostIsKilledWithoutWarning()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        using var host = await HostProcess.StartAsync(cancellationToken);
+        var address = HostProcess.FreeAddress();
+        var installation = HostInstallation.Built(address) with { UsesRealService = true };
+        using var host = await HostProcess.StartAsync(installation, address, HostProcess.StartupTimeout, cancellationToken);
         var tree = await ProcessTree.TreeOfAsync(host.Id, cancellationToken);
         var service = tree.Select(line => line.Id).Where(id => id != host.Id).ToList();
         Assert.NotEmpty(service);
@@ -22,6 +24,25 @@ public sealed class SupervisedHostTests
         var ended = await EndedWithinAsync(service, ServiceExitLimit, cancellationToken);
 
         Assert.True(ended, "the service outlived a host killed without warning");
+    }
+
+    [Fact]
+    public async Task HostWithTheFakeStartsNoLanguageServiceEvenWhenTheInterpreterWorks()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var interpreter = LanguageServiceInterpreter.Available;
+        Assert.SkipWhen(interpreter is null, "Skipped: uv could not resolve the language-service environment, so no working interpreter can be offered.");
+        var address = HostProcess.FreeAddress();
+        var installation = HostInstallation.Built(address) with
+        {
+            Arguments = [HostInstallation.UrlsArgument(address), "--Recognizer:Kind=fake", $"--LanguageService:Executable={interpreter}"],
+            ProvidesLanguageService = false,
+        };
+        using var host = await HostProcess.StartAsync(installation, address, HostProcess.StartupTimeout, cancellationToken);
+
+        var tree = await ProcessTree.TreeOfAsync(host.Id, cancellationToken);
+
+        _ = Assert.Single(tree);
     }
 
     [Fact]

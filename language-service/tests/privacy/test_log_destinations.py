@@ -23,14 +23,16 @@ def process_log(client: TestClient) -> Iterator[TextIO]:
     """The log as the entry point leaves it, after a health and an analysis were answered."""
     root = logging.getLogger()
     saved, level = list(root.handlers), root.level
-    install_root_handler(sys.stderr)
-    build_config(client.app, PORT)
-    client.get("/health", headers=SECRET_HEADER)
-    client.post("/analyze", json=ANALYZE_BODY, headers=SECRET_HEADER)
-    yield sys.stderr
-    root.handlers[:] = saved
-    root.setLevel(level)
-    logging.captureWarnings(False)
+    try:
+        install_root_handler(sys.stderr)
+        build_config(client.app, PORT)
+        client.get("/health", headers=SECRET_HEADER)
+        client.post("/analyze", json=ANALYZE_BODY, headers=SECRET_HEADER)
+        yield sys.stderr
+    finally:
+        root.handlers[:] = saved
+        root.setLevel(level)
+        logging.captureWarnings(False)
 
 
 @contextmanager
@@ -51,7 +53,7 @@ def test_the_process_log_has_one_handler_and_it_is_the_fixed_field_handler(
     ]
 
 
-def test_no_other_handler_of_the_process_receives_a_record(process_log: TextIO) -> None:
+def test_after_answering_requests_no_handler_besides_the_fixed_one_exists(process_log: TextIO) -> None:
     assert stray_destinations(process_log) == ()
 
 

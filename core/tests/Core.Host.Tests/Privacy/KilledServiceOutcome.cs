@@ -9,5 +9,6 @@ internal sealed record KilledServiceOutcome(
     HttpStatusCode Rejected,
     string Interrupted,
     string LogText,
+    string Stdout,
     string Stderr,
     IReadOnlyList<LogLeak> Leaks);

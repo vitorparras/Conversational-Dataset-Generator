@@ -9,6 +9,8 @@ namespace Core.Host.Tests.Privacy;
 /// </summary>
 public sealed class LogWithoutContentTests
 {
+    private const string Listening = "Now listening on: ";
+
     [Fact]
     public async Task OccurrencesFoundByTheFakeLeaveTheMarkerInNoDestination()
     {
@@ -16,10 +18,12 @@ public sealed class LogWithoutContentTests
         using var host = await LoggedHost.StartAsync(realService: false, cancellationToken);
 
         var reply = await host.AskAsync($"ZQX-FAKE-PERSON falou com ZQX-FAKE-PERSON {host.Marker}", resumes: null, cancellationToken);
-        var leaks = LogSweep.Leaks(await host.StopAsync());
+        var evidence = await host.StopAsync();
 
         Assert.Equal((HttpStatusCode.OK, 2), (reply.Status, reply.Occurrences));
-        Assert.Empty(leaks);
+        Assert.Contains(Listening, evidence.Stdout, StringComparison.Ordinal);
+        Assert.Contains(Listening, host.LogText, StringComparison.Ordinal);
+        Assert.Empty(LogSweep.Leaks(evidence));
     }
 
     [Fact]
@@ -33,6 +37,7 @@ public sealed class LogWithoutContentTests
 
         Assert.Equal(HttpStatusCode.OK, reply.Status);
         Assert.Contains("Pedido analisado pelo serviço de linguagem", host.LogText, StringComparison.Ordinal);
+        Assert.Contains("Pedido analisado pelo serviço de linguagem", evidence.Stdout, StringComparison.Ordinal);
         Assert.Contains("\"event\": \"analyzed\"", evidence.Stderr, StringComparison.Ordinal);
         Assert.Empty(LogSweep.Leaks(evidence));
     }

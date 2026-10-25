@@ -24,6 +24,7 @@ internal static class KilledServiceRun
             rejected,
             refused.Reference ?? string.Empty,
             host.LogText,
+            evidence.Stdout,
             evidence.Stderr,
             LogSweep.Leaks(evidence));
     }

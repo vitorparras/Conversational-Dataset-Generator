@@ -1,6 +1,4 @@
-using Core.Platform.Configuration;
 using Core.Platform.Logging;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -30,7 +28,7 @@ internal sealed class ComposedFile : IDisposable
     {
         using var console = new ConsoleCapture();
         using var fileLog = FileLoggerProvider.Open(Path, new LineConsoleFormatter(TimeProvider.System), TextWriter.Null);
-        using (var app = Build(fileLog))
+        using (var app = ComposedHost.Build(fileLog))
         {
             log(app.Services.GetRequiredService<ILoggerFactory>().CreateLogger(Category));
         }
@@ -43,7 +41,7 @@ internal sealed class ComposedFile : IDisposable
     {
         using var console = new ConsoleCapture();
         using var fileLog = FileLoggerProvider.Open(Path, new LineConsoleFormatter(TimeProvider.System), TextWriter.Null);
-        using (var app = Build(fileLog))
+        using (var app = ComposedHost.Build(fileLog))
         {
             await use(app.Services);
         }
@@ -52,13 +50,6 @@ internal sealed class ComposedFile : IDisposable
     }
 
     public void Dispose() => directory.Dispose();
-
-    private static WebApplication Build(ILoggerProvider? fileLog)
-    {
-        var builder = CompositionRoot.ClosedBuilder("http://127.0.0.1:0");
-        CompositionRoot.Compose(builder, ClosedConfiguration.Load(new ConfigurationSchema([HostConfiguration.Section])).View, fileLog);
-        return builder.Build();
-    }
 
     private string Closed(ConsoleCapture console)
     {

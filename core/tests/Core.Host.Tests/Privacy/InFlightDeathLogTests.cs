@@ -11,7 +11,8 @@ namespace Core.Host.Tests.Privacy;
 
 /// <summary>
 /// A language service that dies with the request in flight: the analysis, written through the logging the host composes
-/// to the console and to the file, leaves the marker in neither, and its refusal is logged (issue #251, CA-5).
+/// to the console and to the file, leaves the marker in neither, and its refusal is logged (issue #251, CA-5). The error
+/// stream is not captured in process; the one run that sweeps it is the killed service of KilledServiceLogTests.
 /// </summary>
 [Collection("console")]
 public sealed class InFlightDeathLogTests

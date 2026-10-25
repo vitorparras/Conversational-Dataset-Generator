@@ -44,7 +44,18 @@ internal sealed partial class LoggedHost : IDisposable
         var logFile = Path.Combine(directory.Path, "ZQX-LOG-0028.log");
         var address = HostProcess.FreeAddress();
         var installation = HostInstallation.Built(address).WithLogFile(logFile) with { UsesRealService = realService };
-        var host = await HostProcess.StartAsync(installation, address, HostProcess.StartupTimeout, cancellationToken);
+        HostProcess host;
+        try
+        {
+            host = await HostProcess.StartAsync(installation, address, HostProcess.StartupTimeout, cancellationToken);
+        }
+        catch
+        {
+            beginning.Dispose();
+            directory.Dispose();
+            throw;
+        }
+
         return new LoggedHost(directory, beginning, host, logFile);
     }
 

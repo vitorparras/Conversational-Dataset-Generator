@@ -6,27 +6,39 @@ using Microsoft.Extensions.Logging.Console;
 namespace Core.Host.Tests.Privacy;
 
 /// <summary>
-/// Every destination the composed host writes its log to is one the sweep reads: a provider with no destination
-/// reproves the test and is named, and a run without the real service fails instead of skipping (issue #251, CA-3).
+/// Every destination either logging container of the composed host writes to is one the sweep reads: a provider with no
+/// destination reproves the test and is named, and a run without the real service fails instead of skipping (issue #251, CA-3).
 /// </summary>
 public sealed class LogDestinationsTests
 {
-    [Fact]
-    public void ComposedHostWritesItsLogToTheConsoleAndTheFileOnly() =>
-        Assert.Equivalent(new[] { typeof(ConsoleLoggerProvider), typeof(FileLoggerProvider) }, ComposedProviders.TypesOf(_ => { }));
+    private static readonly Type[] Swept = [typeof(ConsoleLoggerProvider), typeof(FileLoggerProvider)];
 
     [Fact]
-    public void EveryProviderOfTheComposedHostIsLinkedToASweptDestination() =>
-        Assert.Empty(LogDestinations.Unswept(ComposedProviders.TypesOf(_ => { })));
+    public void WebContainerWritesItsLogToTheConsoleAndTheFileOnly() =>
+        Assert.Equivalent(Swept, ComposedProviders.WebTypesOf(_ => { }));
 
     [Fact]
-    public void ProviderBeyondTheSweptOnesReprovesTheCheckAndIsNamed()
+    public void StartupContainerWritesItsLogToTheConsoleAndTheFileOnly() =>
+        Assert.Equivalent(Swept, ComposedProviders.StartupTypes());
+
+    [Fact]
+    public void EveryProviderOfBothContainersIsLinkedToASweptDestination() =>
+        Assert.Empty(LogDestinations.Unswept([.. ComposedProviders.WebTypesOf(_ => { }), .. ComposedProviders.StartupTypes()]));
+
+    [Fact]
+    public void ProviderBeyondTheSweptOnesInTheWebContainerReprovesTheCheckAndIsNamed()
     {
-        var types = ComposedProviders.TypesOf(logging => logging.AddProvider(new ZqxUnsweptProvider()));
+        var types = ComposedProviders.WebTypesOf(logging => logging.AddProvider(new ZqxUnsweptProvider()));
 
-        var unswept = LogDestinations.Unswept(types);
+        Assert.Equal(nameof(ZqxUnsweptProvider), Assert.Single(LogDestinations.Unswept(types)).Split('+')[^1]);
+    }
 
-        Assert.Equal(nameof(ZqxUnsweptProvider), Assert.Single(unswept).Split('+')[^1]);
+    [Fact]
+    public void ProviderBeyondTheSweptOnesInTheStartupContainerReprovesTheCheckAndIsNamed()
+    {
+        var types = ComposedProviders.StartupTypesWith(logging => logging.AddProvider(new ZqxUnsweptProvider()));
+
+        Assert.Equal(nameof(ZqxUnsweptProvider), Assert.Single(LogDestinations.Unswept(types)).Split('+')[^1]);
     }
 
     [Fact]

@@ -23,6 +23,7 @@ public sealed class KilledServiceLogTests
         var outcome = await KilledServiceRun.OutcomeAsync();
 
         Assert.Contains($"[204] Análise {outcome.Interrupted} interrompida: ", outcome.LogText, StringComparison.Ordinal);
+        Assert.Contains($"[204] Análise {outcome.Interrupted} interrompida: ", outcome.Stdout, StringComparison.Ordinal);
     }
 
     [Fact]

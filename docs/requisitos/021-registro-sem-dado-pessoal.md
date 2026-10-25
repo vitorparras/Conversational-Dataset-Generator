@@ -28,7 +28,8 @@ de linguagem, porque é ali que texto sensível atravessa fronteira de processo.
 
 A prova é um teste que executa o fluxo completo com material semeado e falha se qualquer trecho dele
 aparecer no registro: `core/tests/Core.Host.Tests/Privacy/` (`LogWithoutContentTests` no caminho
-normal; `KilledServiceLogTests` e `InFlightDeathLogTests` no de erro) e
+normal; `KilledServiceLogTests` e `InFlightDeathLogTests` no de erro; `LogDestinationsTests` nos
+destinos; `LogSweepReprovesTests` na prova de que a varredura reprova) e
 `language-service/tests/privacy/test_log_destinations.py` (um só destino no serviço).
 
 ## O que não exige

@@ -166,6 +166,32 @@ class StaticAnalysisScanTests(unittest.TestCase):
 
         self.assertIn(f"trecho não analisado: {SERVICE}:2", found.details)
 
+    def test_unparsed_lines_of_core_src_above_the_ceiling_fail_naming_the_files(self) -> None:
+        support.write(self.root, CORE, "x\n" * 40)
+        over = static_analysis.UNPARSED_CORE_SRC_LINES + 2
+
+        found = self.run_step(SemgrepRunner(report=scan_report(errors=[partial(CORE, 2, over)])))
+
+        self.assertFalse(found.ok)
+        self.assertIn(f"{over - 1} linhas de core/src sem análise", "\n".join(found.details))
+        self.assertIn(CORE, "\n".join(found.details))
+
+    def test_unparsed_lines_of_core_src_at_the_ceiling_pass(self) -> None:
+        support.write(self.root, CORE, "x\n" * 40)
+        last = static_analysis.UNPARSED_CORE_SRC_LINES + 1
+
+        found = self.run_step(SemgrepRunner(report=scan_report(errors=[partial(CORE, 2, last)])))
+
+        self.assertTrue(found.ok, found.details)
+
+    def test_unparsed_lines_outside_core_src_do_not_count_against_the_ceiling(self) -> None:
+        support.write(self.root, SERVICE, "x\n" * 40)
+        over = static_analysis.UNPARSED_CORE_SRC_LINES + 2
+
+        found = self.run_step(SemgrepRunner(report=scan_report(errors=[partial(SERVICE, 2, over)])))
+
+        self.assertTrue(found.ok, found.details)
+
     def test_a_file_semgrep_cannot_parse_at_all_fails(self) -> None:
         report = scan_report(errors=[partial(SERVICE, 1, 3)])
 

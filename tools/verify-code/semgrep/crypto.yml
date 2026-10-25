@@ -1,0 +1,43 @@
+rules:
+  - id: weak-crypto-python
+    languages: [python]
+    severity: ERROR
+    message: >-
+      Primitiva criptográfica fraca (MD5, SHA-1, DES, RC2, RC4, Blowfish ou modo ECB): use SHA-256
+      ou mais forte para resumo e AES-GCM para cifra.
+    metadata: {license: AGPL-3.0, family: crypto}
+    pattern-either:
+      - patterns:
+          - pattern: hashlib.$HASH(...)
+          - metavariable-regex: {metavariable: $HASH, regex: '^(md4|md5|sha1)$'}
+          - pattern-not: hashlib.$HASH(..., usedforsecurity=False, ...)
+      - patterns:
+          - pattern: hashlib.new("$HASH", ...)
+          - metavariable-regex: {metavariable: $HASH, regex: '(?i)^(md4|md5|sha1)$'}
+      - patterns:
+          - pattern-either:
+              - pattern: $MODULE.$CIPHER(...)
+              - pattern: $CIPHER.new(...)
+          - metavariable-regex:
+              metavariable: $CIPHER
+              regex: ^(DES|DES3|TripleDES|ARC2|ARC4|Blowfish|CAST|CAST5|IDEA|SEED|ECB)$
+      - pattern: $MODULE.MODE_ECB
+  - id: weak-crypto-csharp
+    languages: [csharp]
+    severity: ERROR
+    message: >-
+      Primitiva criptográfica fraca (MD5, SHA-1, DES, TripleDES, RC2 ou modo ECB): use SHA256 ou
+      mais forte para resumo e AesGcm para cifra.
+    metadata: {license: AGPL-3.0, family: crypto}
+    pattern-either:
+      - patterns:
+          - pattern: $ALGORITHM.$FACTORY(...)
+          - metavariable-regex:
+              metavariable: $ALGORITHM
+              regex: ^(MD5|SHA1|DES|TripleDES|RC2|HMACMD5|HMACSHA1)$
+      - patterns:
+          - pattern: new $ALGORITHM(...)
+          - metavariable-regex:
+              metavariable: $ALGORITHM
+              regex: ^(MD5|SHA1|DES|TripleDES|RC2)(CryptoServiceProvider|Managed|Cng)$|^HMAC(MD5|SHA1)$
+      - pattern: CipherMode.ECB

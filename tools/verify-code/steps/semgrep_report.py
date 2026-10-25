@@ -64,9 +64,13 @@ def spans(error: dict[str, Any]) -> list[dict[str, Any]]:
     return cast("list[dict[str, Any]]", error["type"][1])
 
 
+def span_lines(unparsed: list[dict[str, Any]]) -> set[int]:
+    return {n for span in unparsed for n in range(span["start"]["line"], span["end"]["line"] + 1)}
+
+
 def covered(text: str, unparsed: list[dict[str, Any]]) -> bool:
     """Whether the unparsed spans cover every line of the file that has content."""
-    lines = {n for span in unparsed for n in range(span["start"]["line"], span["end"]["line"] + 1)}
+    lines = span_lines(unparsed)
     content = {n for n, line in enumerate(text.splitlines(), start=1) if line.strip()}
     return content <= lines
 

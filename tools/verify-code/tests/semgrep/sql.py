@@ -13,6 +13,10 @@ def find(cursor: sqlite3.Cursor, name: str, table: str, template: str) -> None:
     query = "SELECT id FROM person WHERE name = '" + name + "'"
     # ruleid: sql-concatenation-python
     cursor.execute(query)
+    appended = "SELECT id FROM person WHERE name = '"
+    appended += name
+    # ruleid: sql-concatenation-python
+    cursor.execute(appended)
     # ok: sql-concatenation-python
     cursor.execute("SELECT id FROM person WHERE name = ?", (name,))
     # ok: sql-concatenation-python

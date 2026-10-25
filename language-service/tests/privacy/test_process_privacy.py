@@ -107,7 +107,7 @@ def test_the_service_creates_no_file_while_it_works(
 def test_scan_names_the_destination_a_leaky_program_wrote_to(
     place: Place, code: str, destination: str
 ) -> None:
-    completed = subprocess.run(
+    completed = subprocess.run(  # noqa: S603 the test starts its own interpreter with a fixed script
         [sys.executable, "-c", code, MARKER],
         check=False,
         capture_output=True,

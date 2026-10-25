@@ -91,10 +91,11 @@ saída do verificador, a partir da tabela; uma seção `[tool.mutmut]` em
 leria no lugar dela. Cada linguagem é cortada no teto. Com a máquina livre, o passo soma cerca de
 4 minutos à execução sem argumento.
 
-O passo `dependencies` audita a árvore completa do serviço, transitivas inclusive, com o
-`pip-audit` de `tools/verify-code/audit-requirements.txt`. Lock ausente ou base de vulnerabilidades
-fora de alcance reprovam: sem rede e sem base recente em cache, o passo nunca passa. Achado sem
-correção só passa com risco aceito naquele mesmo arquivo.
+O passo `dependencies` audita a árvore completa das duas partes, transitivas inclusive, com a
+auditoria do NuGet e o `pip-audit` de `tools/verify-code/audit-requirements.txt`. Lock ausente ou
+base de vulnerabilidades fora de alcance reprovam: sem rede e sem base recente em cache, o passo
+nunca passa. Achado sem correção só passa com risco aceito naquele mesmo arquivo; no núcleo, também
+com o item NuGetAuditSuppress do mesmo aviso em `core/Directory.Packages.props`.
 
 ## Núcleo
 

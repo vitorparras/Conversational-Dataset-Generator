@@ -175,7 +175,7 @@ internal static class CompositionRoot
         return services.BuildServiceProvider();
     }
 
-    /// <summary>The application's data source and the five server checks, privilege first, or the check that says no database is declared.</summary>
+    /// <summary>The application's data source and the six server checks, privilege first and the schema version last, or the check that says no database is declared.</summary>
     private static void AddServerGuarantees(IServiceCollection services, DatabaseSettings database)
     {
         if (database.State != DatabaseSettingsState.Configured)
@@ -190,6 +190,7 @@ internal static class CompositionRoot
         _ = services.AddSingleton<IStartupCheck>(provider => new SerializableCheck(provider.GetRequiredService<NpgsqlDataSource>()));
         _ = services.AddSingleton<IStartupCheck>(provider => new PgAuditCheck(provider.GetRequiredService<NpgsqlDataSource>()));
         _ = services.AddSingleton<IStartupCheck>(provider => new ColumnRevokeCheck(provider.GetRequiredService<NpgsqlDataSource>()));
+        _ = services.AddSingleton<IStartupCheck>(provider => new SchemaVersionCheck(provider.GetRequiredService<NpgsqlDataSource>(), EmbeddedMigrations.Load()));
     }
 
     /// <summary>The web host with everything the configuration decides: its address, logging, the file destination and the recognizer.</summary>

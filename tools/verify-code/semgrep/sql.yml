@@ -16,6 +16,9 @@ rules:
               - pattern: $A.format(...)
               - pattern: '"...".join(...)'
           - pattern-not: '"..." + "..."'
+      - patterns:
+          - pattern: $QUERY += $PART
+          - focus-metavariable: $QUERY
     pattern-sinks:
       - patterns:
           - pattern: $DB.$EXECUTE($QUERY, ...)
@@ -37,11 +40,15 @@ rules:
               - pattern: string.Format(...)
               - pattern: string.Concat(...)
           - pattern-not: '"..." + "..."'
+      - pattern: (StringBuilder $BUILDER).ToString()
     pattern-sinks:
       - patterns:
           - pattern: new $COMMAND($QUERY, ...)
           - metavariable-regex: {metavariable: $COMMAND, regex: '.*Command$'}
           - focus-metavariable: $QUERY
       - patterns:
-          - pattern: $CMD.CommandText = $QUERY
+          - pattern-either:
+              - pattern: $CMD.CommandText = $QUERY
+              - pattern: 'new $COMMAND { ..., CommandText = $QUERY, ... }'
+              - pattern: $SOURCE.CreateCommand($QUERY, ...)
           - focus-metavariable: $QUERY

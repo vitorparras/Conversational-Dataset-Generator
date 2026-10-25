@@ -83,7 +83,7 @@ def command(*arguments: str) -> list[str]:
 
 def start(port: int, place: Place | None = None) -> subprocess.Popen[bytes]:
     """Starts the service with its standard input piped and the secret already written on it."""
-    process = subprocess.Popen(
+    process = subprocess.Popen(  # noqa: S603 starts the service under test from a fixed command
         command("--port", str(port)),
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
@@ -100,7 +100,7 @@ def start(port: int, place: Place | None = None) -> subprocess.Popen[bytes]:
 def run(*arguments: str, stdin: bytes = b"") -> Exit:
     """Runs the service to completion with ``stdin`` as its whole standard input."""
     started = time.monotonic()
-    completed = subprocess.run(
+    completed = subprocess.run(  # noqa: S603 starts the service under test from a fixed command
         command(*arguments),
         check=False,
         input=stdin,
@@ -139,7 +139,7 @@ def post_analyze(port: int, body: dict[str, str]) -> int:
         data=json.dumps(body).encode("utf-8"),
         headers={**SECRET_HEADER, "content-type": "application/json"},
     )
-    with urllib.request.urlopen(request, timeout=STOP_TIMEOUT_SECONDS) as response:
+    with urllib.request.urlopen(request, timeout=STOP_TIMEOUT_SECONDS) as response:  # noqa: S310 the address is always the loopback http URL of the test
         return int(response.status)
 
 
@@ -163,7 +163,7 @@ def stop(process: subprocess.Popen[bytes]) -> None:
 def _health_status(port: int) -> int | None:
     request = urllib.request.Request(f"http://{LOOPBACK}:{port}/health", headers=SECRET_HEADER)
     try:
-        with urllib.request.urlopen(request, timeout=1) as response:
+        with urllib.request.urlopen(request, timeout=1) as response:  # noqa: S310 the address is always the loopback http URL of the test
             return int(response.status)
     except urllib.error.HTTPError as error:
         return int(error.code)

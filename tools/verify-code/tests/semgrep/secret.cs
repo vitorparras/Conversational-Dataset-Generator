@@ -6,6 +6,18 @@ internal static class Sample
     public const string DefaultToken = "none";
     // ruleid: secret-literal-csharp
     private const string ApiKey = "planted-value-key";
+    // ruleid: secret-literal-csharp
+    private const string EncryptionKey = "planted-value-encryption";
+    // ok: secret-literal-csharp
+    private const string UrlsKey = "Host:Urls";
+
+    // ok: secret-literal-csharp
+    private const string SecretKey = "LanguageService:Secret";
+    // ok: secret-literal-csharp
+    private const string FirstToken = "PESSOA_1";
+    // ruleid: secret-literal-csharp
+    internal static string Sign(string signingKey = "planted-value-signing") => signingKey + UrlsKey;
+
     internal static void M()
     {
         // ruleid: secret-literal-csharp

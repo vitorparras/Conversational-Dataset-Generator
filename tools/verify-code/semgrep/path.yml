@@ -1,0 +1,65 @@
+rules:
+  - id: path-from-input-python
+    languages: [python]
+    severity: ERROR
+    message: >-
+      Caminho de arquivo montado com valor que vem de fora (requisição ou entrada padrão): use só o
+      nome do arquivo, resolva-o contra a pasta permitida e recuse o que sair dela.
+    metadata: {license: AGPL-3.0, family: path}
+    mode: taint
+    pattern-sources:
+      - pattern: input(...)
+      - pattern: sys.stdin
+      - patterns:
+          - pattern-either:
+              - pattern-inside: 'def $HANDLER(..., $PARAMETER: $TYPE, ...): ...'
+              - pattern-inside: 'async def $HANDLER(..., $PARAMETER: $TYPE, ...): ...'
+          - metavariable-regex: {metavariable: $TYPE, regex: '.*Request"?$'}
+          - focus-metavariable: $PARAMETER
+    pattern-sanitizers:
+      - pattern: os.path.basename(...)
+    pattern-sinks:
+      - pattern-either:
+          - pattern: open(...)
+          - pattern: Path(...)
+          - pattern: pathlib.Path(...)
+          - pattern: os.path.join(...)
+          - pattern: $DIRECTORY / $NAME
+          - pattern: shutil.$OPERATION(...)
+          - patterns:
+              - pattern: os.$OPERATION(...)
+              - metavariable-regex:
+                  metavariable: $OPERATION
+                  regex: ^(open|remove|unlink|rename|replace|makedirs|mkdir|rmdir|listdir|scandir)$
+  - id: path-from-input-csharp
+    languages: [csharp]
+    severity: ERROR
+    message: >-
+      Caminho de arquivo montado com valor que vem de fora (requisição ou console): use
+      `Path.GetFileName`, resolva o caminho contra a pasta permitida e recuse o que sair dela.
+    metadata: {license: AGPL-3.0, family: path}
+    mode: taint
+    pattern-sources:
+      - pattern: Console.ReadLine()
+      - pattern: Console.In
+      - patterns:
+          - pattern-either:
+              - pattern-inside: '$RETURN $HANDLER(..., $TYPE $PARAMETER, ...) { ... }'
+              - pattern-inside: '$RETURN $HANDLER(..., $TYPE $PARAMETER, ...) => $BODY;'
+              - pattern-inside: '($TYPE $PARAMETER) => $BODY'
+          - metavariable-regex: {metavariable: $TYPE, regex: '^(.*Request|HttpContext|IFormFile)$'}
+          - focus-metavariable: $PARAMETER
+    pattern-sanitizers:
+      - pattern: Path.GetFileName(...)
+    pattern-sinks:
+      - pattern-either:
+          - pattern: Path.Combine(...)
+          - pattern: Path.Join(...)
+          - pattern: Path.GetFullPath(...)
+          - pattern: File.$OPERATION(...)
+          - pattern: Directory.$OPERATION(...)
+          - patterns:
+              - pattern: new $STREAM(...)
+              - metavariable-regex:
+                  metavariable: $STREAM
+                  regex: ^(FileStream|FileInfo|DirectoryInfo|StreamReader|StreamWriter)$

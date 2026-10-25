@@ -43,7 +43,8 @@ class LintServiceTests(unittest.TestCase):
 
         self.assertFalse(result.ok)
         self.assertIn(
-            "`ruff format --check language-service` reprovou: rode `ruff format language-service`",
+            "`ruff format --check --config ruff.toml language-service` reprovou: "
+            "rode `ruff format language-service`",
             result.details[0],
         )
 
@@ -53,6 +54,11 @@ class LintServiceTests(unittest.TestCase):
         result = lint_service.run(support.context(self.root, runner))
 
         self.assertTrue(result.ok, result.details)
-        self.assertEqual(runner.commands[0][2:], ["ruff", "format", "--check", "language-service"])
-        self.assertEqual(runner.commands[1][2:], ["ruff", "check", "language-service"])
+        self.assertEqual(
+            runner.commands[0][2:],
+            ["ruff", "format", "--check", "--config", "ruff.toml", "language-service"],
+        )
+        self.assertEqual(
+            runner.commands[1][2:], ["ruff", "check", "--config", "ruff.toml", "language-service"]
+        )
         self.assertEqual(runner.commands[2][2:], ["pyright", "language-service"])

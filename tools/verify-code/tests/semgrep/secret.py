@@ -34,3 +34,16 @@ def copy(dsn: str) -> str:
     # ok: secret-literal-python
     other = dsn
     return other
+
+
+# ruleid: secret-literal-python
+def connect(signing_key: str = "planted-value-signing") -> str:
+    # ruleid: secret-literal-python
+    encryption_key = "planted-value-encryption"
+    # ok: secret-literal-python
+    cache_key = "settings-cache"
+    # ok: secret-literal-python
+    replacement_token = "PESSOA_1"
+    # ok: secret-literal-python
+    secret_key = "LanguageService:Secret"
+    return signing_key + encryption_key + cache_key + replacement_token + secret_key

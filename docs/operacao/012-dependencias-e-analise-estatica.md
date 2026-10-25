@@ -21,12 +21,16 @@ diretamente. Vulnerabilidade conhecida em dependência de dependência conta igu
 **Análise estática de segurança** sobre o código próprio, procurando o que revisão humana cansa de
 procurar: concatenação em consulta, caminho construído com entrada externa, uso de função
 criptográfica inadequada, segredo escrito no código.
+As quatro famílias são regras próprias em `tools/verify-code/semgrep`, nas duas linguagens; no
+serviço, as regras de segurança do `ruff` (`S`) somam-se a elas. Trecho de `core/src` que o
+analisador não consegue ler tem teto declarado no passo `static_analysis` e não pode crescer.
 
 As duas reprovam a mudança. Dependência vulnerável sem correção disponível exige decisão escrita de
 aceitar o risco, com prazo para revisitar — não silêncio.
 
 Achado da análise estática que, examinado, não é defeito se dispensa no próprio ponto, com o
-motivo ao lado, nunca em `core/src` ([decisão 0042](../decisoes/0042-supressao-de-analisador.md)).
+motivo ao lado, nunca em `core/src` ([decisão 0042](../decisoes/0042-supressao-de-analisador.md));
+no serviço, o `# noqa` de regra `S` também traz o motivo.
 Regra desligada para o repositório inteiro reprova: deixar de procurar uma classe de defeito é
 decisão, não configuração.
 

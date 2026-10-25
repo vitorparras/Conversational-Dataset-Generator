@@ -12,7 +12,8 @@ from typing import Any
 
 from steps import semgrep_report, semgrep_suppression
 from steps.common import Context, StepResult, failed, passed, reset_directory, tail
-from steps.semgrep_report import Finding, describe, fatal
+from steps.semgrep_report import Finding, describe, fatal, span_lines, spans
+from steps.semgrep_suppression import FORBIDDEN_FOLDER
 
 NAME = "static_analysis"
 TOOL = "semgrep"
@@ -20,10 +21,13 @@ REQUIREMENTS = "tools/verify-code/static-analysis-requirements.txt"
 RULES = "tools/verify-code/semgrep"
 EXAMPLES = "tools/verify-code/tests/semgrep"
 PARTS = {"core": ".cs", "language-service": ".py", "tools": ".py"}
-FAMILIES = ("secret-literal", "sql-concatenation")
+FAMILIES = ("secret-literal", "sql-concatenation", "path-from-input", "weak-crypto")
 REQUIRED_RULES = tuple(f"{family}-{lang}" for family in FAMILIES for lang in ("python", "csharp"))
 QUIET = ("--metrics=off", "--disable-version-check", "--quiet")
 RULE_TESTS = f"{TOOL} --test --config {RULES} {EXAMPLES}"
+# Lines of core/src the C# parser of the pinned semgrep cannot read (C# 12 collection expressions).
+# Raise it only with the reason in the pull request; lower it when the code or semgrep allows.
+UNPARSED_CORE_SRC_LINES = 14
 DISPENSING = "não sendo defeito: `nosemgrep: <regra> <motivo>` na linha ou acima, fora de core/src"
 
 
@@ -99,6 +103,23 @@ def missing_parts(paths: tuple[str, ...]) -> list[str]:
     ]
 
 
+def core_src_unparsed(errors: list[dict[str, Any]]) -> dict[str, int]:
+    """Unparsed lines per file of core/src, the folder the ceiling guards."""
+    files = {str(e.get("path")): len(span_lines(spans(e))) for e in errors}
+    return {path: n for path, n in files.items() if path.startswith(FORBIDDEN_FOLDER) and n}
+
+
+def unparsed_growth(locked: dict[str, int]) -> list[str]:
+    """More unparsed lines in core/src than the declared ceiling fail, naming the files."""
+    total = sum(locked.values())
+    if total <= UNPARSED_CORE_SRC_LINES:
+        return []
+    where = (
+        f"{', '.join(sorted(locked))}; reescreva o trecho ou suba o teto em {NAME}.py com motivo"
+    )
+    return [f"{total} linhas de core/src sem análise, teto {UNPARSED_CORE_SRC_LINES}: {where}"]
+
+
 def verdict(root: Path, finding: Finding) -> str:
     """The report line of a finding left open; empty when a comment validly dispenses it."""
     lines = (root / finding.path).read_text(encoding="utf-8", errors="replace").splitlines()
@@ -116,12 +137,16 @@ def judge(root: Path, report: dict[str, Any]) -> StepResult:
     partial = [describe(e, root) for e in errors if not fatal(e, root)]
     paths = semgrep_report.scanned(report)
     open_findings = [line for line in (verdict(root, f) for f in found) if line]
-    problems = [*missing_parts(paths), *unreadable, *open_findings]
+    locked = core_src_unparsed(errors)
+    problems = [*missing_parts(paths), *unreadable, *unparsed_growth(locked), *open_findings]
     if problems:
         hint = [DISPENSING] if open_findings else []
         return failed(NAME, f"{len(problems)} problema(s) na análise estática", *problems, *hint)
     summary = f"{len(paths)} arquivos de {', '.join(PARTS)} analisados, nenhum achado em aberto"
-    return passed(NAME, f"{summary} ({len(found)} dispensado(s) no ponto)", *partial)
+    below = UNPARSED_CORE_SRC_LINES - sum(locked.values())
+    lower = f"core/src tem {below} linha(s) sem análise abaixo do teto: baixe-o em {NAME}.py"
+    notes = [*partial, lower] if below > 0 else partial
+    return passed(NAME, f"{summary} ({len(found)} dispensado(s) no ponto)", *notes)
 
 
 def scan(ctx: Context) -> StepResult:

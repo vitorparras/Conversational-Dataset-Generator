@@ -14,6 +14,7 @@ from steps.common import Context, StepResult, failed, passed, tail
 NAME = "lint_tools"
 TOOLS = "tools"
 REQUIREMENTS = "tools/verify-code/lint-requirements.txt"
+RUFF_CONFIG = ("--config", "ruff.toml")
 
 
 @dataclass(frozen=True)
@@ -32,8 +33,12 @@ class Check:
 
 
 CHECKS: tuple[Check, ...] = (
-    Check("ruff", ("format", "--check"), "rode `ruff format {target}`"),
-    Check("ruff", ("check",), "corrija cada achado pelo código; `ruff.toml` é a fonte de estilo"),
+    Check("ruff", ("format", "--check", *RUFF_CONFIG), "rode `ruff format {target}`"),
+    Check(
+        "ruff",
+        ("check", *RUFF_CONFIG),
+        "corrija cada achado pelo código; `ruff.toml` é a fonte de estilo",
+    ),
     Check(
         "pyright", (), "anote os tipos até o modo estrito de `pyrightconfig.json` não acusar nada"
     ),

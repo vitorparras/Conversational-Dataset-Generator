@@ -20,7 +20,7 @@ def test_port_is_read_from_the_command_line() -> None:
 
 
 def test_host_option_is_refused() -> None:
-    assert parse_port(["--port", str(PORT), "--host", "0.0.0.0"]) is None
+    assert parse_port(["--port", str(PORT), "--host", "0.0.0.0"]) is None  # noqa: S104 proves that binding to every interface is refused
 
 
 def test_missing_port_is_refused() -> None:

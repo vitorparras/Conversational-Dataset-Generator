@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from steps.accepted_risk import Risk
+from steps.common import StepResult, failed
 from steps.risk_registry import Registry
 
 FILE = "tools/verify-code/accepted-risks.toml"
@@ -68,5 +69,22 @@ def expired(risks: tuple[Risk, ...], today: date) -> tuple[Risk, ...]:
     return tuple(risk for risk in risks if risk.expires < today)
 
 
-def accepts(risks: tuple[Risk, ...], finding_id: str, subject: str) -> bool:
-    return any(risk.id == finding_id and risk.subject == subject for risk in risks)
+def covering(risks: tuple[Risk, ...], ids: tuple[str, ...], subject: str) -> Risk | None:
+    """The risk that accepts a finding known by any of ``ids`` on ``subject``, if there is one."""
+    return next((risk for risk in risks if risk.id in ids and risk.subject == subject), None)
+
+
+def accepted_line(risk: Risk) -> str:
+    return f"  - risco aceito até {risk.expires}: {risk.id} em {risk.subject} ({risk.reason})"
+
+
+def check(root: Path, today: date, step: str) -> Registry | StepResult:
+    """The registry when it is readable and in date; otherwise the failed result of ``step``."""
+    registry = load(root / FILE)
+    late = [
+        f"risco aceito venceu em {r.expires}: {r.id} em {r.subject}"
+        for r in expired(registry.risks, today)
+    ]
+    if registry.problems or late:
+        return failed(step, *registry.problems, *late)
+    return registry

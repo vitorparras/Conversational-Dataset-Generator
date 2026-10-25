@@ -3,8 +3,8 @@
 
 The workflow .github/workflows/verify-code.yml calls this script with the steps of each job; a test
 in tools/verify-code/tests reads that file and fails if its order drifts from the one printed here.
-Standard library only; the steps run `dotnet`, `uv`, `git`, `gitleaks`, `trivy`, `semgrep`, `ruff`
-and `pyright`. Exit code 0 only if every step that ran passed; 2 for a usage error.
+Standard library only; the steps run `dotnet`, `uv`, `git`, `gitleaks`, `trivy`, `semgrep`, `ruff`,
+`pyright` and `pip-audit`. Exit code 0 only if every step that ran passed; 2 for a usage error.
 """
 
 from __future__ import annotations
@@ -20,6 +20,7 @@ from steps import (
     build_core,
     build_service,
     coverage_by_area,
+    dependencies,
     floors,
     format_core,
     lint_service,
@@ -63,6 +64,7 @@ STEPS: tuple[StepSpec, ...] = (
     StepSpec(properties.NAME, properties.run),
     StepSpec(package.NAME, package.run),
     StepSpec(mutation.NAME, mutation.run),
+    StepSpec(dependencies.NAME, dependencies.run),
     StepSpec(secrets.NAME, secrets.run),
     StepSpec(trivy.NAME, trivy.run),
     StepSpec(static_analysis.NAME, static_analysis.run),

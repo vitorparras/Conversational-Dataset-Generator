@@ -108,6 +108,23 @@ jobs:
       - name: Mutar exatamente os módulos críticos de docs/operacao/014 (Stryker.NET e mutmut)
         run: python tools/verify-code/verify.py --step mutation
 
+  ruler_proof:
+    name: Prova de que a régua reprova o que deve recusar
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Instalar uv na versão fixada
+        run: pip install -r tools/verify-code/service-requirements.txt
+      - name: Semear uma propriedade falsa e um defeito crítico numa cópia descartável e exigir a recusa
+        run: python tools/verify-code/verify.py --step ruler_proof
+
   dependencies:
     name: Dependências vulneráveis nas duas árvores
     runs-on: ubuntu-latest

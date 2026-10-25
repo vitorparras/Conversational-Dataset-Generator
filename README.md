@@ -70,11 +70,11 @@ varredura, o `semgrep --test` confere cada regra contra os exemplos marcados em
 `nosemgrep: <regra> <motivo>` num comentário na linha ou na anterior; em `core/src`, nunca.
 
 O passo `package` clona o commit de HEAD duas vezes numa pasta temporária, nunca a árvore de
-trabalho, e publica o núcleo em cada cópia com restauração travada e `ContinuousIntegrationBuild`,
-que troca o caminho da cópia por um fixo. Reprova se um arquivo publicado diferir entre as duas,
-nomeado pelo caminho relativo, ou se o executável não declarar o commit e a árvore limpa. Fora do
-passo, `core/Directory.Build.props` só liga essa propriedade na CI, e a depuração local vê os
-caminhos reais.
+trabalho, e publica o núcleo em cada cópia com restauração travada e a propriedade
+ContinuousIntegrationBuild, que troca o caminho da cópia por um fixo. Reprova se um arquivo
+publicado diferir entre as duas, nomeado pelo caminho relativo, ou se o executável não declarar o
+commit e a árvore limpa. Fora do passo, `core/Directory.Build.props` só liga essa propriedade na
+CI, e a depuração local vê os caminhos reais.
 Na CI, o mesmo job repete o passo sem rede, com o cache HTTP do NuGet vazio: a construção só usa
 pacotes já baixados. Por isso `core/Directory.Packages.props` deixa a auditoria do NuGet desligada:
 ela consulta a fonte quando o cache de vulnerabilidades vence, em cerca de 30 minutos.

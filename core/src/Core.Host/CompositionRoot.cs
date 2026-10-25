@@ -24,11 +24,17 @@ internal static class CompositionRoot
         }
 
         var analyzeTimeout = LanguageServiceConfiguration.AnalyzeTimeout(loaded.Values);
-        if (analyzeTimeout is null)
-        {
-            return HostLaunch.Refused([LanguageServiceConfiguration.AnalyzeTimeoutRefused(loaded.Values)]);
-        }
+        return analyzeTimeout is null
+            ? HostLaunch.Refused([LanguageServiceConfiguration.AnalyzeTimeoutRefused(loaded.Values)])
+            : await LaunchAsync(loaded, analyzeTimeout.Value);
+    }
 
+    /// <summary>
+    /// Opens the file destination and the startup container, runs the checks and, when every one passed, hands both to
+    /// the host; a failed check closes them here.
+    /// </summary>
+    private static async Task<HostLaunch> LaunchAsync(ConfigurationLoadResult loaded, TimeSpan analyzeTimeout)
+    {
         var fileLog = OpenFileLog(loaded);
         var startup = StartupServices(loaded, fileLog);
         try
@@ -40,7 +46,8 @@ internal static class CompositionRoot
                 return HostLaunch.CheckFailed(report);
             }
 
-            var launch = HostLaunch.Ready(Assemble(Prepared(loaded, fileLog, analyzeTimeout.Value), report, startup));
+            var launch = HostLaunch.Ready(Assemble(
+                Prepared(loaded, fileLog, analyzeTimeout), report, startup, RecognizerConfiguration.KindOf(loaded.Values)));
             startup = null;
             fileLog = null;
             return launch;
@@ -130,9 +137,11 @@ internal static class CompositionRoot
         _ = services.AddSingleton(_ => LoopbackHttpClient.Create());
         _ = services.AddSingleton(provider => new HealthWait(provider.GetRequiredService<HttpClient>()));
         _ = services.AddSingleton(new ServiceProcessLauncher(loaded.Values[LanguageServiceConfiguration.ExecutablePath]));
+        _ = services.AddSingleton(new ServiceProcessWatch());
         _ = services.AddSingleton(provider => new LanguageServiceSupervisor(
             provider.GetRequiredService<ServiceProcessLauncher>(),
             provider.GetRequiredService<HealthWait>(),
+            provider.GetRequiredService<ServiceProcessWatch>(),
             provider.GetRequiredService<ILogger<LanguageServiceSupervisor>>()));
         _ = services.AddSingleton(provider => new LanguageServiceStartupCheck(
             provider.GetRequiredService<LanguageServiceSupervisor>(), loaded.Values[LanguageServiceConfiguration.StartupTimeoutPath]));
@@ -158,10 +167,15 @@ internal static class CompositionRoot
         return builder;
     }
 
-    /// <summary>What the checks produced, adopted by the host: the report the routes show and the startup container, which stops the service when the host does.</summary>
-    private static WebApplication Assemble(WebApplicationBuilder builder, StartupReport report, ServiceProvider startup)
+    /// <summary>
+    /// What the checks produced, adopted by the host: the report the routes show and the startup container, which stops
+    /// the service when the host does; the status route also learns which recognizer is in force.
+    /// </summary>
+    private static WebApplication Assemble(
+        WebApplicationBuilder builder, StartupReport report, ServiceProvider startup, RecognizerKind recognizer)
     {
         _ = builder.Services.AddSingleton(report);
+        _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetRequiredService<ServiceProcessWatch>());
         _ = builder.Services.AddSingleton(_ => startup);
         var versions = new VersionReport(BuildInfo.Of(typeof(CompositionRoot).Assembly));
         _ = builder.Services.AddSingleton(versions);
@@ -169,7 +183,7 @@ internal static class CompositionRoot
         var app = builder.Build();
         _ = app.Services.GetRequiredService<ServiceProvider>();
         app.Logger.VersionsInForce(versions);
-        StatusEndpoint.Map(app);
+        StatusEndpoint.Map(app, recognizer);
         ConfigurationEndpoint.Map(app);
         VersionsEndpoint.Map(app);
         return app;

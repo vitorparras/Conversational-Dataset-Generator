@@ -16,6 +16,8 @@ public sealed class FakeRecognizerHostTests
         using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
 
         Assert.True(body.RootElement.GetProperty("ready").GetBoolean());
+        Assert.Equal("fake", body.RootElement.GetProperty("recognizer").GetString());
+        Assert.Equal(JsonValueKind.Null, body.RootElement.GetProperty("languageService").ValueKind);
         var check = Assert.Single(body.RootElement.GetProperty("checks").EnumerateArray());
         Assert.Equal("Host:BundledFile", check.GetProperty("name").GetString());
     }

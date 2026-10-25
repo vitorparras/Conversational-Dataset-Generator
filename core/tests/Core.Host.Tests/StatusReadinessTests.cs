@@ -1,16 +1,34 @@
+using System.Text.Json;
+using Core.Host.Supervision;
+using Core.Host.Tests.Supervision;
 using Core.Platform.Startup;
 
 namespace Core.Host.Tests;
 
-/// <summary>The status route keeps "alive" apart from "ready" and lists each startup check with its result.</summary>
-public sealed class StatusReadinessTests
+/// <summary>
+/// The status route keeps "alive" apart from "ready", shows the recognizer in force and the language service with its
+/// state, and lists each startup check with its result; with the fake, readiness does not wait for a service it never asks.
+/// </summary>
+public sealed class StatusReadinessTests : IDisposable
 {
+    private static readonly TimeSpan LossLimit = TimeSpan.FromSeconds(5);
+    private static readonly StartupReport PassedReport =
+        new([CheckResult.Passed("Sample:File", "recurso presente", "ZQX-MARKER-7731.bin")]);
+
+    private readonly RunningService service = StandInService.Start();
+    private readonly ServiceProcessWatch watch = new();
+
+    public StatusReadinessTests()
+    {
+        watch.Watch(service, _ => { });
+    }
+
     [Fact]
     public async Task ReportWithAFailedCheckIsAnsweredAsAliveNotReadyAndNamesTheCheck()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         var report = new StartupReport([CheckResult.Failed("Sample:File", "recurso ausente", "ZQX-MARKER-7731.bin")]);
-        await using var host = await StatusHost.StartAsync(report, cancellationToken);
+        await using var host = await StatusHost.StartAsync(report, watch, cancellationToken);
 
         using var body = await host.StatusAsync(cancellationToken);
 
@@ -23,15 +41,70 @@ public sealed class StatusReadinessTests
     }
 
     [Fact]
-    public async Task PassedChecksMakeTheProcessReady()
+    public async Task PassedChecksWithTheServiceAvailableMakeTheProcessReady()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var report = new StartupReport([CheckResult.Passed("Sample:File", "recurso presente", "ZQX-MARKER-7731.bin")]);
-        await using var host = await StatusHost.StartAsync(report, cancellationToken);
+        await using var host = await StatusHost.StartAsync(PassedReport, watch, cancellationToken);
 
         using var body = await host.StatusAsync(cancellationToken);
 
         Assert.True(body.RootElement.GetProperty("ready").GetBoolean());
+        Assert.Equal("Available", body.RootElement.GetProperty("languageService").GetString());
         Assert.Equal("Passed", body.RootElement.GetProperty("checks")[0].GetProperty("status").GetString());
     }
+
+    [Fact]
+    public async Task ServiceProcessThatEndsTurnsTheProcessNotReadyAndShowsTheServiceUnavailable()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var host = await StatusHost.StartAsync(PassedReport, watch, cancellationToken);
+
+        StandInService.Kill(service.ProcessId);
+        var lost = await Poll.UntilAsync(() => Task.FromResult(watch.State == ServiceState.Unavailable), LossLimit, cancellationToken);
+        using var body = await host.StatusAsync(cancellationToken);
+
+        Assert.True(lost, "the end of the service process was not seen");
+        Assert.False(body.RootElement.GetProperty("ready").GetBoolean());
+        Assert.Equal("Unavailable", body.RootElement.GetProperty("languageService").GetString());
+    }
+
+    [Fact]
+    public async Task FakeInForceIsReadyAlthoughNoStartEverMovesTheWatch()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var host = await StatusHost.StartAsync(PassedReport, new ServiceProcessWatch(), RecognizerKind.Fake, cancellationToken);
+
+        using var body = await host.StatusAsync(cancellationToken);
+
+        Assert.True(body.RootElement.GetProperty("ready").GetBoolean());
+        Assert.Equal("fake", body.RootElement.GetProperty("recognizer").GetString());
+        Assert.Equal(JsonValueKind.Null, body.RootElement.GetProperty("languageService").ValueKind);
+    }
+
+    [Fact]
+    public async Task FakeInForceWithAFailedCheckIsNotReady()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var report = new StartupReport([CheckResult.Failed("Sample:File", "recurso ausente", "ZQX-MARKER-7731.bin")]);
+        await using var host = await StatusHost.StartAsync(report, watch, RecognizerKind.Fake, cancellationToken);
+
+        using var body = await host.StatusAsync(cancellationToken);
+
+        Assert.False(body.RootElement.GetProperty("ready").GetBoolean());
+    }
+
+    [Fact]
+    public async Task HttpInForceWithTheServiceNotYetAnsweringIsNotReady()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var host = await StatusHost.StartAsync(PassedReport, new ServiceProcessWatch(), RecognizerKind.Http, cancellationToken);
+
+        using var body = await host.StatusAsync(cancellationToken);
+
+        Assert.False(body.RootElement.GetProperty("ready").GetBoolean());
+        Assert.Equal("http", body.RootElement.GetProperty("recognizer").GetString());
+        Assert.Equal("Starting", body.RootElement.GetProperty("languageService").GetString());
+    }
+
+    public void Dispose() => service.Dispose();
 }

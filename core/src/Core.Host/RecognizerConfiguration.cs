@@ -20,4 +20,8 @@ internal static class RecognizerConfiguration
     /// <summary>Whether the fake was chosen, which asks no language service.</summary>
     internal static bool UsesFake(IReadOnlyDictionary<string, string> values) =>
         string.Equals(values[KindPath], Fake, StringComparison.Ordinal);
+
+    /// <summary>The recognizer in force, as the status shows it.</summary>
+    internal static RecognizerKind KindOf(IReadOnlyDictionary<string, string> values) =>
+        UsesFake(values) ? RecognizerKind.Fake : RecognizerKind.Http;
 }

@@ -12,6 +12,13 @@ internal sealed record Reply(int Status, string Body)
     public static Reply Version(string contractVersion) =>
         new(200, $$"""{"service_version":"0.1.0","contract_version":"{{contractVersion}}","model_version":null}""");
 
+    /// <summary>A version answer whose model version is the text given, written as JSON null when it is null.</summary>
+    public static Reply VersionOfModel(string? modelVersion)
+    {
+        var model = modelVersion is null ? "null" : $"\"{modelVersion}\"";
+        return new(200, $$"""{"service_version":"0.1.0","contract_version":"1","model_version":{{model}}}""");
+    }
+
     public static Reply Ok(string body) => new(200, body);
 
     public static Reply Fixture(string relativePath) => new(200, ContractFixture.Text(relativePath));

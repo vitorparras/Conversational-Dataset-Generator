@@ -42,7 +42,7 @@ mesma medida deu mediana 1,59 s. O tempo de
 ## O que o processo carregou do sistema
 
 Lido do mapa de memória do processo de `linux-x64` com /status apto: `libc`, `libm`, `libdl`,
-`librt`, `libpthread`, `libgcc_s`, `libstdc++` e a OpenSSL 3 (`libssl` e `libcrypto`). Nenhuma
+`librt`, `libpthread`, libgcc_s, `libstdc++` e a OpenSSL 3 (`libssl` e `libcrypto`). Nenhuma
 biblioteca da plataforma de execução veio de fora do executável.
 
 ## Comandos

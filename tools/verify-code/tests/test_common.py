@@ -2,12 +2,51 @@
 
 from __future__ import annotations
 
+import os
+import signal
+import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
+from typing import Any
+from unittest import mock
 
 from steps import common
+
+
+def _spawning(pids: Path) -> list[str]:
+    """A command that starts a long-lived grandchild and records both pids in ``pids``."""
+    script = (
+        "import os, pathlib, subprocess, sys, time\n"
+        "grandchild = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'])\n"
+        f"pathlib.Path({str(pids)!r}).write_text(f'{{os.getpid()}} {{grandchild.pid}}')\n"
+        "time.sleep(60)\n"
+    )
+    return [sys.executable, "-c", script]
+
+
+def _kill(pid: int) -> None:
+    if os.name != "nt":
+        os.kill(pid, signal.SIGKILL)
+
+
+def _is_alive(pid: int) -> bool:
+    """Whether a process with this pid is still running (a zombie counts as gone)."""
+    if os.name == "nt":
+        listing = subprocess.run(
+            ["tasklist", "/FI", f"PID eq {pid}", "/NH"], capture_output=True, text=True, check=False
+        )
+        return str(pid) in listing.stdout
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    stat = Path(f"/proc/{pid}/stat")
+    return not (
+        stat.exists() and stat.read_text(encoding="utf-8").rsplit(")", 1)[1].split()[0] == "Z"
+    )
 
 
 class CommonTests(unittest.TestCase):
@@ -29,6 +68,75 @@ class CommonTests(unittest.TestCase):
 
         self.assertFalse(outcome.ok)
         self.assertIn("passou de 1 s e foi interrompido", outcome.text)
+
+    def test_a_command_past_its_limit_leaves_no_child_or_grandchild_alive(self) -> None:
+        pids = self.root / "pids.txt"
+
+        started = time.monotonic()
+        outcome = common.run_process(_spawning(pids), self.root, 4.0)
+        elapsed = time.monotonic() - started
+
+        self.assertFalse(outcome.ok)
+        self.assertIn("passou de 4 s e foi interrompido", outcome.text)
+        self.assertLess(elapsed, 30, "the run waited for the grandchild instead of cutting it")
+        child, grandchild = (int(pid) for pid in pids.read_text(encoding="utf-8").split())
+        self.assertFalse(_is_alive(child), "the child outlived the limit")
+        self.assertFalse(_is_alive(grandchild), "the grandchild outlived the limit")
+
+    def test_an_interrupt_kills_the_child_and_grandchild_and_propagates(self) -> None:
+        pids = self.root / "pids.txt"
+        real_communicate: Any = vars(subprocess.Popen)["communicate"]
+        interrupted = False
+
+        def communicate(process: subprocess.Popen[str], *args: Any, **kwargs: Any) -> Any:
+            nonlocal interrupted
+            if interrupted:
+                return real_communicate(process, *args, **kwargs)
+            interrupted = True
+            deadline = time.monotonic() + 20
+            while not pids.exists() and time.monotonic() < deadline:
+                time.sleep(0.05)
+            time.sleep(0.3)
+            raise KeyboardInterrupt
+
+        with (
+            mock.patch.object(subprocess.Popen, "communicate", communicate),
+            self.assertRaises(KeyboardInterrupt),
+        ):
+            common.run_process(_spawning(pids), self.root)
+
+        child, grandchild = (int(pid) for pid in pids.read_text(encoding="utf-8").split())
+        self.assertFalse(_is_alive(child), "the child outlived the interrupt")
+        self.assertFalse(_is_alive(grandchild), "the grandchild outlived the interrupt")
+
+    @unittest.skipIf(os.name == "nt", "a new session is POSIX only")
+    def test_a_descendant_out_of_the_group_does_not_hold_the_run_forever(self) -> None:
+        pids = self.root / "pids.txt"
+        script = (
+            "import pathlib, subprocess, sys, time\n"
+            "escaped = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'],"
+            " start_new_session=True)\n"
+            f"pathlib.Path({str(pids)!r}).write_text(str(escaped.pid))\n"
+            "time.sleep(60)\n"
+        )
+
+        started = time.monotonic()
+        outcome = common.run_process([sys.executable, "-c", script], self.root, 2.0)
+        elapsed = time.monotonic() - started
+
+        self.addCleanup(_kill, int(pids.read_text(encoding="utf-8")))
+        self.assertFalse(outcome.ok)
+        self.assertLess(elapsed, 30, "the drain after the cut waited for the escaped process")
+
+    def test_a_command_inside_its_limit_keeps_its_output_and_exit_code(self) -> None:
+        script = "import sys; print('out'); print('err', file=sys.stderr); sys.exit(3)"
+
+        outcome = common.run_process([sys.executable, "-c", script], self.root, 30.0)
+
+        self.assertFalse(outcome.ok)
+        self.assertEqual(outcome.code, 3)
+        self.assertIn("out", outcome.text)
+        self.assertIn("err", outcome.text)
 
     def test_a_context_runs_commands_with_a_limit_through_the_process_runner(self) -> None:
         context = common.Context(self.root, self.root, common.run_process)

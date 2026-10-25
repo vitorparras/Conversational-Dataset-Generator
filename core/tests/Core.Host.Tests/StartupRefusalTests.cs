@@ -12,7 +12,7 @@ public sealed class StartupRefusalTests
         [
             CheckResult.Passed("first", "recurso presente", "first-source"),
             CheckResult.Failed("second", "recurso ausente", "second-source"),
-        ]);
+        ], DateTimeOffset.UnixEpoch);
         using var output = new StringWriter();
 
         var code = StartupRefusal.Report(output, report);
@@ -22,5 +22,16 @@ public sealed class StartupRefusalTests
         Assert.Contains("second", text, StringComparison.Ordinal);
         Assert.Contains("second-source", text, StringComparison.Ordinal);
         Assert.DoesNotContain("first", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RefusalSaysWhatTheCheckObserved()
+    {
+        var failed = CheckResult.Failed("Sample", "recurso recusado", "Sample:Host") with { Observed = "ZQX-MARKER-7731 1.0" };
+        using var output = new StringWriter();
+
+        _ = StartupRefusal.Report(output, new StartupReport([failed], DateTimeOffset.UnixEpoch));
+
+        Assert.Contains("(origem esperada: Sample:Host; observado: ZQX-MARKER-7731 1.0)", output.ToString(), StringComparison.Ordinal);
     }
 }

@@ -3,6 +3,9 @@ namespace Core.Platform.Startup;
 /// <summary>The outcome of one check: which item, what was concluded, and where the item should come from.</summary>
 public sealed record CheckResult(string Name, CheckStatus Status, string Message, string ExpectedSource)
 {
+    /// <summary>What the check found where it looked, such as the server's version; null when it found nothing to name.</summary>
+    public string? Observed { get; init; }
+
     /// <summary>The item was found.</summary>
     public static CheckResult Passed(string name, string message, string expectedSource) =>
         new(name, CheckStatus.Passed, message, expectedSource);

@@ -424,7 +424,7 @@
       "core.persistence": {
         "type": "Project",
         "dependencies": {
-          "Core.Platform": "[1.0.0, )",
+          "Core.Platform": "[0.1.0, )",
           "Npgsql": "[10.0.3, )"
         }
       },

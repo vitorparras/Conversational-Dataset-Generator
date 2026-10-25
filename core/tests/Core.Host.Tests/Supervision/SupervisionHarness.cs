@@ -1,5 +1,6 @@
 using Core.Boundary.Http;
 using Core.Host.Supervision;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Core.Host.Tests.Supervision;
@@ -21,10 +22,13 @@ internal sealed class SupervisionHarness : IDisposable
     /// <summary>A secret no file on the machine can hold before the test makes it.</summary>
     public static string NewSecret() => $"ZQX-MARKER-7731-{Guid.NewGuid():N}";
 
-    public LanguageServiceSupervisor SupervisorFor(string executable)
+    public LanguageServiceSupervisor SupervisorFor(string executable) =>
+        SupervisorFor(executable, NullLogger<LanguageServiceSupervisor>.Instance);
+
+    /// <summary>A supervisor that writes its lines to the logger given, so a test can see when each was written.</summary>
+    public LanguageServiceSupervisor SupervisorFor(string executable, ILogger<LanguageServiceSupervisor> logger)
     {
-        var supervisor = new LanguageServiceSupervisor(
-            new ServiceProcessLauncher(executable), Health, NullLogger<LanguageServiceSupervisor>.Instance);
+        var supervisor = new LanguageServiceSupervisor(new ServiceProcessLauncher(executable), Health, logger);
         started.Add(supervisor);
         return supervisor;
     }

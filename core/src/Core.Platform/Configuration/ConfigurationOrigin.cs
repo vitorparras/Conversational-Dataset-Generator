@@ -3,7 +3,7 @@ namespace Core.Platform.Configuration;
 /// <summary>Where a value in force came from; a source later in this order overrides every source before it.</summary>
 public enum ConfigurationOrigin
 {
-    /// <summary>No source wrote the key; the value is the declared default.</summary>
+    /// <summary>No source wrote the key; the value is the declared default, or none for an optional key without one.</summary>
     Default = 0,
 
     /// <summary>The configuration file.</summary>

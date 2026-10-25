@@ -23,7 +23,7 @@ internal sealed class StatusHost : IAsyncDisposable
     {
         var address = HostProcess.FreeAddress();
         var builder = CompositionRoot.ClosedBuilder(address.GetLeftPart(UriPartial.Authority));
-        CompositionRoot.Compose(builder, ClosedConfiguration.Load(new ConfigurationSchema([HostConfiguration.Section])).View);
+        CompositionRoot.Compose(builder, ClosedConfiguration.Load(new ConfigurationSchema([HostConfiguration.Section])).View, fileLog: null);
         _ = builder.Services.AddSingleton(report);
         var app = builder.Build();
         StatusEndpoint.Map(app);

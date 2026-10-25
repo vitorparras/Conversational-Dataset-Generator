@@ -14,7 +14,7 @@ internal static class ComposedConsole
     {
         using var console = new ConsoleCapture();
         var builder = CompositionRoot.ClosedBuilder("http://127.0.0.1:0");
-        CompositionRoot.Compose(builder, ClosedConfiguration.Load(new ConfigurationSchema([HostConfiguration.Section])).View);
+        CompositionRoot.Compose(builder, ClosedConfiguration.Load(new ConfigurationSchema([HostConfiguration.Section])).View, fileLog: null);
         using (var app = builder.Build())
         {
             write(app.Services.GetRequiredService<ILoggerFactory>().CreateLogger(Category));

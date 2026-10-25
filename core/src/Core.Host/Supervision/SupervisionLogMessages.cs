@@ -11,4 +11,7 @@ internal static partial class SupervisionLogMessages
 
     [LoggerMessage(EventId = 101, Level = LogLevel.Error, Message = "Serviço de linguagem não ficou de pé: {Outcome}")]
     internal static partial void ServiceNotReady(this ILogger logger, StartOutcome outcome);
+
+    [LoggerMessage(EventId = 110, Level = LogLevel.Information, Message = "Serviço de linguagem encerrado (processo {ProcessId})")]
+    internal static partial void ServiceStopped(this ILogger logger, int processId);
 }

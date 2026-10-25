@@ -10,10 +10,13 @@ internal static class HostConfiguration
 
     internal const string BundledFilePath = SectionName + ":" + BundledFileKey;
 
+    internal const string LogFilePath = SectionName + ":" + LogFileKey;
+
     private const string SettingsFile = "appsettings.json";
     private const string SectionName = "Host";
     private const string UrlsKey = "Urls";
     private const string BundledFileKey = "BundledFile";
+    private const string LogFileKey = "LogFile";
 
     /// <summary>The settings file beside the binary, whatever the working directory the process was started from.</summary>
     internal static string SettingsPath => Path.Combine(AppContext.BaseDirectory, SettingsFile);
@@ -24,5 +27,6 @@ internal static class HostConfiguration
             [
                 ConfigurationKey.WithDefault(UrlsKey, "http://127.0.0.1:5000"),
                 ConfigurationKey.WithDefault(BundledFileKey, SettingsFile),
+                ConfigurationKey.Optional(LogFileKey),
             ]);
 }

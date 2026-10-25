@@ -21,6 +21,7 @@ internal static class ConfigurationGenerators
                 ConfigurationKey.Protection("Threshold"),
                 ConfigurationKey.WithDefault("Mode", DefaultMode).Accepting("strict", "lenient"),
                 ConfigurationKey.WithDefault("Token", DefaultToken).AsSensitive(),
+                ConfigurationKey.Optional("Note"),
             ]),
     ]);
 
@@ -28,9 +29,12 @@ internal static class ConfigurationGenerators
     public static readonly IReadOnlyDictionary<string, string> Defaults =
         new Dictionary<string, string> { ["Sample:Mode"] = DefaultMode, ["Sample:Token"] = DefaultToken };
 
+    /// <summary>Every declared path of an optional key without a default, which has no value when no source writes it.</summary>
+    public static readonly IReadOnlyList<string> WithoutDefault = ["Sample:Note"];
+
     /// <summary>Every declared path, in declaration order.</summary>
     public static readonly IReadOnlyList<string> DeclaredPaths =
-        ["Sample:Name", "Sample:Threshold", "Sample:Mode", "Sample:Token"];
+        ["Sample:Name", "Sample:Threshold", "Sample:Mode", "Sample:Token", "Sample:Note"];
 
     private static readonly Gen<ConfigurationOrigin> Origin = Gen.OneOfConst(ConfigurationOrigin.File, ConfigurationOrigin.Environment, ConfigurationOrigin.Argument);
 
@@ -42,6 +46,8 @@ internal static class ConfigurationGenerators
 
     private static readonly Gen<string?> OptionalToken = Gen.OneOfConst(null, "ZQX-MARKER-7731", "other");
 
+    private static readonly Gen<string?> OptionalNote = Gen.OneOfConst(null, "ZQX-NOTE-7731", "delta");
+
     private static readonly Gen<string> RequiredName = Gen.OneOfConst("ZQX-MARKER-7731", "alpha", "beta gamma");
 
     private static readonly Gen<string> RequiredThreshold = Gen.OneOfConst("3", "7", "0.5");
@@ -52,8 +58,8 @@ internal static class ConfigurationGenerators
 
     /// <summary>One source that declares every required key, then up to two more overriding optional ones; always loads.</summary>
     public static readonly Gen<List<IConfigurationSource>> WellFormed =
-        Gen.Select(Origin, Gen.Select(RequiredName, RequiredThreshold), Gen.Select(OptionalMode, OptionalToken), Declaring)
-            .SelectMany(first => Gen.Select(Origin, Gen.Select(OptionalName, OptionalThreshold), Gen.Select(OptionalMode, OptionalToken), Declaring)
+        Gen.Select(Origin, Gen.Select(RequiredName, RequiredThreshold), Gen.Select(OptionalMode, OptionalToken, OptionalNote), Declaring)
+            .SelectMany(first => Gen.Select(Origin, Gen.Select(OptionalName, OptionalThreshold), Gen.Select(OptionalMode, OptionalToken, OptionalNote), Declaring)
                 .List[0, 2]
                 .Select(more => new List<IConfigurationSource>([first, .. more])));
 
@@ -68,8 +74,14 @@ internal static class ConfigurationGenerators
             new MissingKeyCase([.. sources.Select(source => Without(source, path))], path));
 
     private static IConfigurationSource Declaring(
-        ConfigurationOrigin origin, (string? Name, string? Threshold) identity, (string? Mode, string? Token) tuning) =>
-        Written(origin, ("Sample:Name", identity.Name), ("Sample:Threshold", identity.Threshold), ("Sample:Mode", tuning.Mode), ("Sample:Token", tuning.Token));
+        ConfigurationOrigin origin, (string? Name, string? Threshold) identity, (string? Mode, string? Token, string? Note) tuning) =>
+        Written(
+            origin,
+            ("Sample:Name", identity.Name),
+            ("Sample:Threshold", identity.Threshold),
+            ("Sample:Mode", tuning.Mode),
+            ("Sample:Token", tuning.Token),
+            ("Sample:Note", tuning.Note));
 
     private static FixedConfigurationSource Written(ConfigurationOrigin origin, params (string Key, string? Value)[] entries) =>
         new(entries.Where(entry => entry.Value is not null).Select(entry => KeyValuePair.Create(entry.Key, entry.Value)), origin);

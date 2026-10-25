@@ -31,7 +31,7 @@ jobs:
       - name: Instalar ruff, pyright, coverage e uv nas versões fixadas (os testes do núcleo chamam `uv run --frozen`)
         run: pip install -r tools/verify-code/lint-requirements.txt -r tools/verify-code/service-requirements.txt
       - name: Construir, testar e formatar o núcleo; verificar e testar as ferramentas
-        run: python tools/verify-code/verify.py --step build_core test_core format_core lint_tools test_tools coverage
+        run: python tools/verify-code/verify.py --step build_core test_core format_core lint_tools test_tools coverage floors
 
   python:
     name: Serviço de linguagem (Python)
@@ -45,7 +45,7 @@ jobs:
       - name: Instalar uv, ruff, pyright e coverage nas versões fixadas
         run: pip install -r tools/verify-code/service-requirements.txt -r tools/verify-code/lint-requirements.txt
       - name: Sincronizar, testar e verificar o serviço de linguagem
-        run: python tools/verify-code/verify.py --step build_service test_service coverage lint_service
+        run: python tools/verify-code/verify.py --step build_service test_service coverage floors lint_service
 
   properties:
     name: Propriedades nas duas linguagens
@@ -88,6 +88,25 @@ jobs:
           no_proxy: ''
           NUGET_HTTP_CACHE_PATH: ${{ runner.temp }}/nuget-http-cache-vazio
         run: python tools/verify-code/verify.py --step package
+
+  mutation:
+    name: Mutação nos módulos críticos
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    # The step cuts each language at the ceiling of docs/operacao/014; both in series, plus setup.
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Instalar uv na versão fixada (o mutmut vem de language-service/uv.lock)
+        run: pip install -r tools/verify-code/service-requirements.txt
+      - name: Mutar exatamente os módulos críticos de docs/operacao/014 (Stryker.NET e mutmut)
+        run: python tools/verify-code/verify.py --step mutation
 
   secrets:
     name: Segredos no histórico (gitleaks)

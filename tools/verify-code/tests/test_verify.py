@@ -11,6 +11,7 @@ from collections.abc import Sequence
 from itertools import chain, takewhile
 from pathlib import Path
 from typing import Any
+from unittest import mock
 
 from steps import build_service, lint_tools
 from steps.common import Context, StepResult, failed, passed
@@ -29,9 +30,11 @@ WITHOUT_BASE = [
     "build_service",
     "test_service",
     "coverage",
+    "floors",
     "lint_service",
     "properties",
     "package",
+    "mutation",
     "secrets",
     "trivy",
     "static_analysis",
@@ -136,6 +139,16 @@ class VerifyTests(unittest.TestCase):
         self.assertIn("https_proxy: http://127.0.0.1:9", text)
         self.assertIn("NUGET_HTTP_CACHE_PATH:", text)
 
+    def test_floors_runs_in_the_job_that_tests_the_core(self) -> None:
+        jobs = steps_per_job(WORKFLOW.read_text(encoding="utf-8"))
+
+        self.assertIn("floors", job_running("test_core", jobs))
+
+    def test_floors_runs_in_the_job_that_tests_the_service(self) -> None:
+        jobs = steps_per_job(WORKFLOW.read_text(encoding="utf-8"))
+
+        self.assertIn("floors", job_running("test_service", jobs))
+
     def test_workflow_measures_pr_size_against_the_base_of_the_pull_request(self) -> None:
         line = pr_size_line(WORKFLOW.read_text(encoding="utf-8"))
 
@@ -168,6 +181,12 @@ class VerifyTests(unittest.TestCase):
 
         self.assertEqual(code, 2)
         self.assertIn("no_such_step", output)
+
+    def test_previous_reaches_the_context_of_the_steps(self) -> None:
+        with mock.patch.object(verify, "run_steps", return_value=()) as run_steps:
+            run_main("--step", "floors", "--previous", "earlier.md")
+
+        self.assertEqual(run_steps.call_args.args[1].previous, Path("earlier.md"))
 
     def test_default_selection_leaves_out_the_steps_that_need_a_base(self) -> None:
         selected = verify.select([], False)

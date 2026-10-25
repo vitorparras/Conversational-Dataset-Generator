@@ -46,9 +46,12 @@ A ordem é única: `--step test_core` sozinho, em árvore limpa, falha porque te
 `ruff` e `pyright` nas versões de `tools/verify-code/lint-requirements.txt` (`pip install -r`).
 
 O passo `coverage` publica a cobertura por área de `docs/operacao/014-modulos-criticos-e-pisos.md`
-a partir dos relatórios presentes em `.verify-code/`, sem julgar piso, como em
-`python tools/verify-code/verify.py --step build_service test_service coverage`; `test_tools` só
-mede com o `coverage` do mesmo arquivo de requisitos instalado.
+a partir dos relatórios presentes em `.verify-code/`; `test_tools` só mede com o `coverage` do
+mesmo arquivo de requisitos instalado. O passo `floors` reprova a área abaixo do piso, o código
+medido sem área e o projeto ou pacote sem linha na tabela ou que nenhum relatório leu, como em
+`python tools/verify-code/verify.py --step build_service test_service coverage floors`; com
+`--previous` apontando para uma cópia do by-area.md de outra execução, avisa a queda que não cruza
+o piso.
 
 O passo `secrets` roda o `gitleaks` na versão fixada em `tools/verify-code/steps/gitleaks_binary.py`
 e recusa um binário cuja soma SHA-256 não confira; sem `--base` varre o histórico inteiro. Os testes
@@ -67,14 +70,26 @@ varredura, o `semgrep --test` confere cada regra contra os exemplos marcados em
 `nosemgrep: <regra> <motivo>` num comentário na linha ou na anterior; em `core/src`, nunca.
 
 O passo `package` clona o commit de HEAD duas vezes numa pasta temporária, nunca a árvore de
-trabalho, e publica o núcleo em cada cópia com restauração travada e `ContinuousIntegrationBuild`,
-que troca o caminho da cópia por um fixo. Reprova se um arquivo publicado diferir entre as duas,
-nomeado pelo caminho relativo, ou se o executável não declarar o commit e a árvore limpa. Fora do
-passo, `core/Directory.Build.props` só liga essa propriedade na CI, e a depuração local vê os
-caminhos reais.
+trabalho, e publica o núcleo em cada cópia com restauração travada e a propriedade
+ContinuousIntegrationBuild, que troca o caminho da cópia por um fixo. Reprova se um arquivo
+publicado diferir entre as duas, nomeado pelo caminho relativo, ou se o executável não declarar o
+commit e a árvore limpa. Fora do passo, `core/Directory.Build.props` só liga essa propriedade na
+CI, e a depuração local vê os caminhos reais.
 Na CI, o mesmo job repete o passo sem rede, com o cache HTTP do NuGet vazio: a construção só usa
 pacotes já baixados. Por isso `core/Directory.Packages.props` deixa a auditoria do NuGet desligada:
 ela consulta a fonte quando o cache de vulnerabilidades vence, em cerca de 30 minutos.
+
+O passo `mutation` roda o teste de mutação sobre exatamente as áreas que a seção "Mutação" de
+`docs/operacao/014-modulos-criticos-e-pisos.md` declara críticas e julga, pelos números dela, a
+parcela de sobreviventes por módulo e o tempo por linguagem. Cada sobrevivente sai com arquivo,
+linha e alteração. No núcleo roda o Stryker.NET fixado em `core/dotnet-tools.json`; no serviço,
+o mutmut de `language-service/uv.lock`, que exige o `uv` de
+`tools/verify-code/service-requirements.txt` e **só roda no Linux**: em outra plataforma o passo
+pula o serviço com aviso. A configuração das duas ferramentas é gerada a cada execução na pasta de
+saída do verificador, a partir da tabela; uma seção `[tool.mutmut]` em
+`language-service/pyproject.toml`, ou noutro arquivo igual do serviço, reprova, porque o mutmut a
+leria no lugar dela. Cada linguagem é cortada no teto. Com a máquina livre, o passo soma cerca de
+4 minutos à execução sem argumento.
 
 ## Núcleo
 

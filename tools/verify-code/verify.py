@@ -20,9 +20,11 @@ from steps import (
     build_core,
     build_service,
     coverage_by_area,
+    floors,
     format_core,
     lint_service,
     lint_tools,
+    mutation,
     package,
     pr_size,
     properties,
@@ -56,9 +58,11 @@ STEPS: tuple[StepSpec, ...] = (
     StepSpec(build_service.NAME, build_service.run),
     StepSpec(test_service.NAME, test_service.run),
     StepSpec(coverage_by_area.NAME, coverage_by_area.run),
+    StepSpec(floors.NAME, floors.run),
     StepSpec(lint_service.NAME, lint_service.run),
     StepSpec(properties.NAME, properties.run),
     StepSpec(package.NAME, package.run),
+    StepSpec(mutation.NAME, mutation.run),
     StepSpec(secrets.NAME, secrets.run),
     StepSpec(trivy.NAME, trivy.run),
     StepSpec(static_analysis.NAME, static_analysis.run),
@@ -105,6 +109,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--list", action="store_true", help="lista os passos, na ordem da CI")
     parser.add_argument("--step", nargs="+", default=[], metavar="NAME", help="passos a rodar")
     parser.add_argument("--base", help="ref de comparação para pr_size (ex.: origin/main)")
+    parser.add_argument("--previous", type=Path, help="by-area.md anterior: floors avisa queda")
     args = parser.parse_args(argv)
     if args.list:
         print("\n".join(s.name for s in STEPS))
@@ -113,7 +118,7 @@ def main(argv: list[str] | None = None) -> int:
     if unknown:
         print(f"passo desconhecido: {', '.join(unknown)} (veja --list)")
         return 2
-    ctx = Context(ROOT, ROOT / OUTPUT_DIRECTORY, run_process, args.base)
+    ctx = Context(ROOT, ROOT / OUTPUT_DIRECTORY, run_process, args.base, args.previous, run_process)
     try:
         return report(run_steps(select(args.step, args.base is not None), ctx))
     except Exception as error:  # last level: a defect must still print a readable line

@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import contextlib
 import os
 import shutil
+import signal
 import subprocess
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 OUTPUT_DIRECTORY = ".verify-code"
 TELEMETRY_OPT_OUT = ("DOTNET_CLI_TELEMETRY_OPTOUT", "1")
@@ -70,26 +73,49 @@ def run_process(
 ) -> CommandOutcome:
     """Runs a command for at most ``seconds``; a missing tool or a timeout is a failed outcome."""
     try:
-        completed = subprocess.run(
+        process = subprocess.Popen(
             list(command),
             cwd=cwd,
             env=child_environment(os.environ),
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
             encoding="utf-8",
             errors="replace",
-            timeout=seconds,
-            check=False,
+            **_own_group(),
         )
     except FileNotFoundError:
         return CommandOutcome(
             False, f"'{command[0]}' não está no PATH; instale-o para rodar este passo"
         )
+    try:
+        stdout, stderr = process.communicate(timeout=seconds)
     except subprocess.TimeoutExpired:
+        _kill_tree(process)
+        process.communicate()
         return CommandOutcome(False, f"'{command[0]}' passou de {seconds:.0f} s e foi interrompido")
-    return CommandOutcome(
-        completed.returncode == 0, completed.stdout + completed.stderr, completed.returncode
-    )
+    return CommandOutcome(process.returncode == 0, stdout + stderr, process.returncode)
+
+
+def _own_group() -> dict[str, Any]:
+    """Popen options that put the child in a process group of its own, to kill it as a group."""
+    if os.name == "nt":
+        return {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
+    return {"start_new_session": True}
+
+
+def _kill_tree(process: subprocess.Popen[str]) -> None:
+    """Kills the child and everything it started: a grandchild left alive keeps the pipes open."""
+    if os.name == "nt":
+        subprocess.run(
+            ["taskkill", "/F", "/T", "/PID", str(process.pid)],
+            capture_output=True,
+            check=False,
+        )
+    else:
+        with contextlib.suppress(ProcessLookupError):
+            os.killpg(process.pid, signal.SIGKILL)
+    process.kill()
 
 
 def tail(text: str) -> tuple[str, ...]:

@@ -46,12 +46,23 @@ class Tally:
     covered: int
     coverable: int
 
-    def line(self) -> str:
+    def percent(self) -> str:
         share = 100 * self.covered / self.coverable if self.coverable else 0.0
-        measured = f"{share:.1f}".replace(".", ",")
-        return (
-            f"| {self.label} | {self.floor} | {measured} % | {self.covered} de {self.coverable} |"
-        )
+        return f"{share:.1f} %".replace(".", ",")
+
+    def line(self) -> str:
+        lines = f"{self.covered} de {self.coverable}"
+        return f"| {self.label} | {self.floor} | {self.percent()} | {lines} |"
+
+
+@dataclass(frozen=True)
+class Measurement:
+    """Every area, those of the languages whose report was read, their lines and those languages."""
+
+    areas: tuple[Area, ...]
+    measured: tuple[Area, ...]
+    lines: tuple[MeasuredLine, ...]
+    languages: str
 
 
 REPORTS: tuple[Report, ...] = (
@@ -111,6 +122,11 @@ def publish(ctx: Context, text: str) -> None:
     target = ctx.out_dir / RESULTS
     target.mkdir(parents=True, exist_ok=True)
     (target / TABLE).write_text(text, encoding="utf-8", newline="\n")
+    summarize(text)
+
+
+def summarize(text: str) -> None:
+    """Appends ``text`` to the CI job summary, when the job names one."""
     summary = os.environ.get(SUMMARY)
     if summary:
         with Path(summary).open("a", encoding="utf-8", newline="\n") as stream:
@@ -123,20 +139,29 @@ def _present(ctx: Context) -> tuple[tuple[Report, tuple[Path, ...]], ...]:
     return tuple((report, paths) for report, paths in found if paths)
 
 
-def run(ctx: Context) -> StepResult:
+def measure(ctx: Context) -> Measurement | tuple[str, ...]:
+    """The lines of the reports on disk and the areas they reach, or why they cannot be read."""
     table = read_areas(ctx.root)
     if table.problems:
-        return failed(NAME, *table.problems)
+        return table.problems
     reports = _present(ctx)
     if not reports:
-        return failed(NAME, f"nenhum relatório de cobertura em {OUTPUT_DIRECTORY}/: {EMPTY}")
+        return (f"nenhum relatório de cobertura em {OUTPUT_DIRECTORY}/: {EMPTY}",)
     try:
         lines = merged(line for r, paths in reports for p in paths for line in r.read(p, ctx.root))
     except ElementTree.ParseError as error:
-        return failed(NAME, f"relatório de cobertura ilegível: {error}")
+        return (f"relatório de cobertura ilegível: {error}",)
     measured = tuple(a for a in table.areas if any(within(a.prefix, r.root) for r, _ in reports))
     languages = ", ".join(report.language for report, _ in reports)
-    title = f"### Cobertura por área — {languages}"
-    text = "\n".join((title, "", *HEADER, *(t.line() for t in rows(lines, table.areas, measured))))
+    return Measurement(table.areas, measured, lines, languages)
+
+
+def run(ctx: Context) -> StepResult:
+    found = measure(ctx)
+    if isinstance(found, tuple):
+        return failed(NAME, *found)
+    tallies = rows(found.lines, found.areas, found.measured)
+    title = f"### Cobertura por área — {found.languages}"
+    text = "\n".join((title, "", *HEADER, *(t.line() for t in tallies)))
     publish(ctx, f"{text}\n")
     return passed(NAME, *text.splitlines(), f"tabela em {OUTPUT_DIRECTORY}/{RESULTS}/{TABLE}")

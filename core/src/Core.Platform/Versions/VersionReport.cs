@@ -2,8 +2,8 @@ namespace Core.Platform.Versions;
 
 /// <summary>
 /// The versions the system runs under. A version the system has no way to obtain yet is absent, never empty and
-/// never guessed: the contract and the language service fill theirs when the core speaks to the service, and the
-/// schema fills its own when the core has a database.
+/// never guessed: the contract and the language service fill theirs when the core speaks to the service, the model
+/// is read from the service for each report, and the schema fills its own when the core has a database.
 /// </summary>
 public sealed record VersionReport
 {
@@ -14,6 +14,13 @@ public sealed record VersionReport
         CoreVersion = core.Version;
         Commit = core.Commit;
         WorkingTree = core.WorkingTree;
+    }
+
+    /// <summary>This report with the model version the language service gave; the report itself does not change.</summary>
+    public VersionReport WithModelVersion(VersionValue model)
+    {
+        ArgumentNullException.ThrowIfNull(model);
+        return this with { ModelVersion = model };
     }
 
     /// <summary>The package version of the core.</summary>
@@ -32,7 +39,7 @@ public sealed record VersionReport
     public VersionValue LanguageServiceVersion { get; } = VersionValue.Absent;
 
     /// <summary>The version of the model the language service reports.</summary>
-    public VersionValue ModelVersion { get; } = VersionValue.Absent;
+    public VersionValue ModelVersion { get; private init; } = VersionValue.Absent;
 
     /// <summary>The version of the database schema.</summary>
     public VersionValue SchemaVersion { get; } = VersionValue.Absent;

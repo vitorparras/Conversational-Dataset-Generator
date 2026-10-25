@@ -16,7 +16,7 @@ namespace Core.Boundary.Http;
 /// <param name="logger">Where the outcome of each request is written, by its reference only.</param>
 public sealed class HttpRecognizer(HttpClient client, HttpRecognizerSettings settings, ILogger<HttpRecognizer> logger) : IRecognizer
 {
-    private const string SecretHeader = "x-service-secret";
+    internal const string SecretHeader = "x-service-secret";
 
     /// <summary>A body that is not the answer the contract declares, whatever the reason, is never used.</summary>
     private const UnavailabilityReason NotTheContract = UnavailabilityReason.MalformedResponse;

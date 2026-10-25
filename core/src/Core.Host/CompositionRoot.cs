@@ -19,6 +19,9 @@ namespace Core.Host;
 /// <summary>The only place where the host is assembled: the target check first, then configuration, logging and services, then routes.</summary>
 internal static class CompositionRoot
 {
+    /// <summary>How long the versions route waits for the service to give its model version, so a service that hangs does not hang the route.</summary>
+    private static readonly TimeSpan ModelVersionTimeout = TimeSpan.FromSeconds(5);
+
     internal static async Task<HostLaunch> BuildAsync(string[] args)
     {
         var target = await new StartupRunner([TargetCheck()], TimeProvider.System).RunAsync(CancellationToken.None);
@@ -44,11 +47,11 @@ internal static class CompositionRoot
     private static async Task<HostLaunch> LaunchAsync(
         ConfigurationLoadResult loaded, DatabaseSettings database, TimeSpan analyzeTimeout, StartupReport target)
     {
-        var fileLog = OpenFileLog(loaded);
+        var fileLog = HostLogFile.Open(loaded);
         var startup = StartupServices(loaded, fileLog, database);
         try
         {
-            IStartupCheck[] checks = [.. LogFileChecks(loaded, fileLog), .. Checks(loaded, startup)];
+            IStartupCheck[] checks = [.. HostLogFile.Checks(loaded, fileLog), .. Checks(loaded, startup)];
             var report = await new StartupRunner(checks, startup.GetRequiredService<TimeProvider>()).RunAsync(CancellationToken.None);
             if (!report.Ready)
             {
@@ -110,8 +113,9 @@ internal static class CompositionRoot
     internal static void AddAnalysis(IServiceCollection services, IReadOnlyDictionary<string, string> values, TimeSpan analyzeTimeout)
     {
         _ = RecognizerConfiguration.UsesFake(values)
-            ? services.AddSingleton<IRecognizer, FakeRecognizer>()
-            : services.AddTransient<IRecognizer>(provider => Recognizer(provider, analyzeTimeout));
+            ? services.AddSingleton<IRecognizer, FakeRecognizer>().AddSingleton<IModelVersionReader, NoModelVersionReader>()
+            : services.AddTransient<IRecognizer>(provider => Recognizer(provider, analyzeTimeout))
+                .AddTransient<IModelVersionReader>(ModelVersionReader);
         _ = services.AddTransient<MaterialAnalysis>();
     }
 
@@ -120,19 +124,6 @@ internal static class CompositionRoot
         RecognizerConfiguration.UsesFake(loaded.Values)
             ? [BundledFile(loaded), .. startup.GetServices<IStartupCheck>()]
             : [BundledFile(loaded), .. startup.GetServices<IStartupCheck>(), startup.GetRequiredService<LanguageServiceStartupCheck>()];
-
-    /// <summary>The file the configuration names, relative to the binary's directory; null when absent or when it cannot be opened.</summary>
-    private static FileLoggerProvider? OpenFileLog(ConfigurationLoadResult loaded) =>
-        loaded.Values.TryGetValue(HostConfiguration.LogFilePath, out var path)
-            ? FileLoggerProvider.Open(
-                Path.Combine(AppContext.BaseDirectory, path), new LineConsoleFormatter(TimeProvider.System), Console.Error)
-            : null;
-
-    /// <summary>A check on the log file only when the configuration names one; without it the log goes to the console alone.</summary>
-    private static IEnumerable<IStartupCheck> LogFileChecks(ConfigurationLoadResult loaded, ILoggerProvider? fileLog) =>
-        loaded.Values.ContainsKey(HostConfiguration.LogFilePath)
-            ? [new LogFileCheck(HostConfiguration.LogFilePath, opened: fileLog is not null)]
-            : [];
 
     /// <summary>Runs before the configuration is read: an executable built for another target is refused whatever it is configured with.</summary>
     private static RuntimeTargetCheck TargetCheck() =>
@@ -235,6 +226,16 @@ internal static class CompositionRoot
             startup.GetRequiredService<HttpClient>(),
             new HttpRecognizerSettings(port, supervisor.Secret, analyzeTimeout),
             host.GetRequiredService<ILogger<HttpRecognizer>>());
+    }
+
+    /// <summary>The reader of the model version of the service the supervisor has now; with no service running there is none to ask.</summary>
+    private static IModelVersionReader ModelVersionReader(IServiceProvider host)
+    {
+        var startup = host.GetRequiredService<ServiceProvider>();
+        var supervisor = startup.GetRequiredService<LanguageServiceSupervisor>();
+        return supervisor.Port is { } port && supervisor.Secret.Length > 0
+            ? new HttpModelVersionReader(startup.GetRequiredService<HttpClient>(), new HttpRecognizerSettings(port, supervisor.Secret, ModelVersionTimeout))
+            : new NoModelVersionReader();
     }
 
     /// <summary>A web host with no configuration source of its own, so nothing reaches it except what the closed configuration approved.</summary>

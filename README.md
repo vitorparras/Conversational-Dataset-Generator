@@ -151,8 +151,10 @@ a falso, e o núcleo não o reinicia sozinho. Com `fake`, nenhum serviço é vig
 é `null`, e `ready` depende só das conferências.
 `http://127.0.0.1:5080/versions` responde a versão do núcleo, o commit de que ele foi construído e
 se a árvore tinha mudança não registrada (`workingTree`, que vale `Unknown` se a construção não
-conseguiu perguntar ao `git`); versão que o núcleo não obteve vem `null`, nunca vazia, e a mesma
-lista sai no registro, na linha `Versões em execução`.
+conseguiu perguntar ao `git`); versão que o núcleo não obteve vem `null`, nunca vazia. A
+`modelVersion` é pedida ao serviço de linguagem a cada consulta, sem guardar a anterior: vem `null`
+com `fake`, com o serviço indisponível ou quando ele não informa modelo. A mesma lista sai no
+registro, na linha `Versões em execução`, que segue com o modelo `null` até o #51.
 
 `POST /analysis` recebe `text` e `language` e analisa o texto pelo reconhecedor em vigor. Análise
 concluída responde 200 com `reference`, `occurrences`, `kinds` (contagem por tipo, escrito como o

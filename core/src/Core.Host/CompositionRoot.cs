@@ -115,7 +115,7 @@ internal static class CompositionRoot
         _ = RecognizerConfiguration.UsesFake(values)
             ? services.AddSingleton<IRecognizer, FakeRecognizer>().AddSingleton<IModelVersionReader, NoModelVersionReader>()
             : services.AddTransient<IRecognizer>(provider => Recognizer(provider, analyzeTimeout))
-                .AddTransient<IModelVersionReader>(ModelVersionReader);
+                .AddTransient(ModelVersionReader);
         _ = services.AddTransient<MaterialAnalysis>();
     }
 

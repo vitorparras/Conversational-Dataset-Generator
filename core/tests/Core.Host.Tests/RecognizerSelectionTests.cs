@@ -1,6 +1,7 @@
 using Core.Boundary.Contracts;
 using Core.Boundary.Fake;
 using Core.Boundary.Http;
+using Core.Host.Supervision;
 using Core.Host.Tests.Supervision;
 using Core.Platform.Configuration;
 using Core.Platform.Versions;
@@ -89,6 +90,21 @@ public sealed class RecognizerSelectionTests : IDisposable
         var version = await container.GetRequiredService<IModelVersionReader>().ReadAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(VersionValue.Absent, version);
+    }
+
+    [Fact]
+    public async Task HttpKindWithTheServiceRunningReadsItsModelVersionAtItsPortWithItsSecret()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        Assert.SkipWhen(LanguageServiceInterpreter.Available is null, "Real service route skipped: uv could not resolve the language-service environment.");
+        var supervisor = await harness.StartedSupervisorAsync(new ServiceProcessWatch(), cancellationToken);
+        var values = RecognizerContainer.Loaded("--Recognizer:Kind=http").Values;
+        using var container = RecognizerContainer.Of(values, supervisor, harness.Client);
+
+        var reader = container.GetRequiredService<IModelVersionReader>();
+
+        _ = Assert.IsType<HttpModelVersionReader>(reader);
+        Assert.Equal(VersionValue.Absent, await reader.ReadAsync(cancellationToken));
     }
 
     public void Dispose() => harness.Dispose();

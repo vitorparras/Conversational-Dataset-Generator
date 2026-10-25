@@ -1,4 +1,3 @@
-using Core.Platform.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -13,9 +12,7 @@ internal static class ComposedConsole
     public static string LineWrittenBy(Action<ILogger> write)
     {
         using var console = new ConsoleCapture();
-        var builder = CompositionRoot.ClosedBuilder("http://127.0.0.1:0");
-        CompositionRoot.Compose(builder, ClosedConfiguration.Load(new ConfigurationSchema([HostConfiguration.Section])).View, fileLog: null);
-        using (var app = builder.Build())
+        using (var app = ComposedHost.Build(fileLog: null))
         {
             write(app.Services.GetRequiredService<ILoggerFactory>().CreateLogger(Category));
         }

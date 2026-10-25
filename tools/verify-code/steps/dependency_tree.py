@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import json
 import tomllib
 from collections import deque
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any, cast
 
+NUGET_ROOTS = ("Direct", "Project")
 UV_ROOTS = ("editable", "virtual")
 
 
@@ -33,6 +35,17 @@ def path_to(tree: Tree, target: str) -> tuple[str, ...]:
             seen.add(name.lower())
             queue.append((*path, name))
     return ()
+
+
+def from_nuget_lock(text: str) -> Tree:
+    """The tree of a `packages.lock.json`, every target framework merged."""
+    frameworks = cast("dict[str, dict[str, dict[str, Any]]]", json.loads(text)["dependencies"])
+    packages = {
+        name: entry for framework in frameworks.values() for name, entry in framework.items()
+    }
+    roots = tuple(name for name, entry in packages.items() if entry.get("type") in NUGET_ROOTS)
+    edges = {name: tuple(entry.get("dependencies", {})) for name, entry in packages.items()}
+    return Tree(roots, edges)
 
 
 def _uv_names(package: dict[str, Any]) -> Iterable[str]:

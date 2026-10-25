@@ -2,7 +2,9 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
-    <NuGetAudit>true</NuGetAudit>
+    <!-- The audit needs the vulnerability source online and a build isolated from the network must still finish:
+         the audit runs as its own verification step, which turns it on with -p:NuGetAudit=true. -->
+    <NuGetAudit>false</NuGetAudit>
     <NuGetAuditMode>all</NuGetAuditMode>
     <NuGetAuditLevel>low</NuGetAuditLevel>
   </PropertyGroup>

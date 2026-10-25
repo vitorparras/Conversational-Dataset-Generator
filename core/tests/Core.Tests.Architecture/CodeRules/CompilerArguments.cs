@@ -26,6 +26,8 @@ internal static class CompilerArguments
         return new CompilerInvocation
         {
             ProjectPath = build.ProjectPath,
+            AssemblyName = parsed.CompilationName ?? Path.GetFileNameWithoutExtension(build.ProjectPath),
+            ProjectReferences = [.. parsed.MetadataReferences.Select(reference => reference.Reference).Where(path => IsUnder(path, build.ArtifactsDirectory)).Select(NameOf)],
             Sources = sources,
             SourceFiles = [.. sources.Select(SourceFile.Read)],
             BuildAddedFiles = [.. compiled.Except(sources).Select(SourceFile.Read)],
@@ -51,6 +53,9 @@ internal static class CompilerArguments
             sources.Select(path => CSharpSyntaxTree.ParseText(File.ReadAllText(path), parsed.ParseOptions, path)),
             parsed.MetadataReferences.Select(reference => MetadataReference.CreateFromFile(reference.Reference, reference.Properties)),
             parsed.CompilationOptions);
+
+    /// <summary>The name an assembly carries in its own metadata, whatever its file is called.</summary>
+    private static string NameOf(string path) => System.Reflection.AssemblyName.GetAssemblyName(path).Name!;
 
     private static bool IsUnder(string path, string directory) =>
         path.StartsWith(directory + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);

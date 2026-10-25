@@ -31,6 +31,7 @@ WITHOUT_BASE = [
     "coverage",
     "lint_service",
     "properties",
+    "package",
     "secrets",
     "trivy",
     "static_analysis",
@@ -126,6 +127,14 @@ class VerifyTests(unittest.TestCase):
         jobs = steps_per_job(WORKFLOW.read_text(encoding="utf-8"))
 
         self.assertIn("coverage", job_running("test_service", jobs))
+
+    def test_workflow_repeats_the_package_step_without_network_nor_http_cache(self) -> None:
+        text = WORKFLOW.read_text(encoding="utf-8")
+
+        self.assertEqual(text.count("verify.py --step package"), 2)
+        self.assertIn("HTTPS_PROXY: http://127.0.0.1:9", text)
+        self.assertIn("https_proxy: http://127.0.0.1:9", text)
+        self.assertIn("NUGET_HTTP_CACHE_PATH:", text)
 
     def test_workflow_measures_pr_size_against_the_base_of_the_pull_request(self) -> None:
         line = pr_size_line(WORKFLOW.read_text(encoding="utf-8"))

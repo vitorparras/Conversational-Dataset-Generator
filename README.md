@@ -66,6 +66,16 @@ varredura, o `semgrep --test` confere cada regra contra os exemplos marcados em
 `tools/verify-code/tests/semgrep`. Achado que não é defeito se dispensa no ponto, com
 `nosemgrep: <regra> <motivo>` num comentário na linha ou na anterior; em `core/src`, nunca.
 
+O passo `package` clona o commit de HEAD duas vezes numa pasta temporária, nunca a árvore de
+trabalho, e publica o núcleo em cada cópia com restauração travada e `ContinuousIntegrationBuild`,
+que troca o caminho da cópia por um fixo. Reprova se um arquivo publicado diferir entre as duas,
+nomeado pelo caminho relativo, ou se o executável não declarar o commit e a árvore limpa. Fora do
+passo, `core/Directory.Build.props` só liga essa propriedade na CI, e a depuração local vê os
+caminhos reais.
+Na CI, o mesmo job repete o passo sem rede, com o cache HTTP do NuGet vazio: a construção só usa
+pacotes já baixados. Por isso `core/Directory.Packages.props` deixa a auditoria do NuGet desligada:
+ela consulta a fonte quando o cache de vulnerabilidades vence, em cerca de 30 minutos.
+
 ## Núcleo
 
 O núcleo é uma solução .NET em `core/Core.slnx`. A versão exata do SDK está em `global.json`, e a
@@ -99,9 +109,15 @@ com `fake`; o ensaio contra o serviço real tem `Category=RealService` e é salt
 o `uv` não resolve o ambiente do serviço.
 
 Com o núcleo de pé, `http://127.0.0.1:5080/status` responde `alive`, `ready` e `checks[]`, com o
-resultado de cada conferência de inicialização. O teste de arquitetura em
-`core/tests/Core.Tests.Architecture` impõe as regras de código a cada construção; as fixtures que
-ele reprova de propósito ficam em `core/tests/fixtures/code-rules`, fora de qualquer projeto.
+resultado de cada conferência de inicialização, e `http://127.0.0.1:5080/versions` responde a
+versão do núcleo, o commit de que ele foi construído e se a árvore tinha mudança não registrada
+(`workingTree`, que vale `Unknown` se a construção não conseguiu perguntar ao `git`); versão que o
+núcleo não obteve vem `null`, nunca vazia, e a mesma lista sai no registro, na linha
+`Versões em execução`.
+
+O teste de arquitetura em `core/tests/Core.Tests.Architecture` impõe as regras de código a cada
+construção; as fixtures que ele reprova de propósito ficam em `core/tests/fixtures/code-rules`, fora
+de qualquer projeto.
 
 ## Banco de dados de desenvolvimento
 

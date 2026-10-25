@@ -1,0 +1,25 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <!-- The platform's project file names no reference; this one reaches it through the build alone. -->
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'Core.Platform'">
+    <ProjectReference Include="$(MSBuildThisFileDirectory)Core.Sample/Core.Sample.csproj" />
+  </ItemGroup>
+
+  <!-- The compiler gets the sample under a contracts file name, so only the assembly's own metadata tells what it is. -->
+  <Target Name="DisguiseSampleReference" AfterTargets="FindReferenceAssembliesForReferences" Condition="'$(MSBuildProjectName)' == 'Core.Platform'">
+    <PropertyGroup>
+      <DisguisedSample>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)', 'disguise', 'Core.Sample.Contracts.dll'))</DisguisedSample>
+    </PropertyGroup>
+    <ItemGroup>
+      <SampleReference Include="@(ReferencePathWithRefAssemblies)" Condition="'%(Filename)' == 'Core.Sample'" />
+    </ItemGroup>
+    <Copy SourceFiles="@(SampleReference)" DestinationFiles="$(DisguisedSample)" />
+    <ItemGroup>
+      <ReferencePathWithRefAssemblies Remove="@(SampleReference)" />
+      <ReferencePathWithRefAssemblies Include="$(DisguisedSample)" />
+    </ItemGroup>
+  </Target>
+</Project>

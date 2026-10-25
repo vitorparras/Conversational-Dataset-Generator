@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Copied by Core.Platform.Tests into a scratch repository and built there, never by the solution. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Library</OutputType>
+    <Version>9.8.7</Version>
+    <Deterministic>true</Deterministic>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <MSBuildTreatWarningsAsErrors>true</MSBuildTreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <Import Project="$(BuildInfoTargets)" />
+</Project>

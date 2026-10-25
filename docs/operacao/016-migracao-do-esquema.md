@@ -41,9 +41,9 @@ passo: a segunda espera a primeira e termina com 10.
 
 ## A partida normal
 
-A conferência `SchemaVersion` é a última das garantias do servidor. Banco vazio conta como versão 0.
-Banco atrás, à frente ou com passo divergente impede a partida (código 69), nomeando a versão
-encontrada e a esperada, ou o passo e os dois resumos. Atrás, a mensagem manda rodar o modo
+A conferência da versão do esquema é a última das garantias do servidor. Banco vazio conta como
+versão 0. Banco atrás, à frente ou com passo divergente impede a partida (código 69), nomeando a
+versão encontrada e a esperada, ou o passo e os dois resumos. Atrás, a mensagem manda rodar o modo
 `migrate`; divergente, manda não rodar.
 
 ## O cerco da credencial

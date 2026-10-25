@@ -122,10 +122,10 @@ class LoadAndMatchTests(unittest.TestCase):
         self.assertEqual(accepted_risks.expired((RISK,), date(2027, 1, 1)), (RISK,))
 
     def test_a_risk_covers_its_own_id_and_subject(self) -> None:
-        self.assertTrue(accepted_risks.accepts((RISK,), "CVE-0000-0001", "Zqx.Package"))
+        self.assertEqual(accepted_risks.covering((RISK,), ("CVE-0000-0001",), "Zqx.Package"), RISK)
 
     def test_a_risk_does_not_cover_another_subject(self) -> None:
-        self.assertFalse(accepted_risks.accepts((RISK,), "CVE-0000-0001", "Other.Package"))
+        self.assertIsNone(accepted_risks.covering((RISK,), ("CVE-0000-0001",), "Other.Package"))
 
     def test_a_risk_does_not_cover_another_id(self) -> None:
-        self.assertFalse(accepted_risks.accepts((RISK,), "CVE-0000-0009", "Zqx.Package"))
+        self.assertIsNone(accepted_risks.covering((RISK,), ("CVE-0000-0009",), "Zqx.Package"))

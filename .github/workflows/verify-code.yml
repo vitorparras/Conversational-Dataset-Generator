@@ -108,6 +108,19 @@ jobs:
       - name: Mutar exatamente os módulos críticos de docs/operacao/014 (Stryker.NET e mutmut)
         run: python tools/verify-code/verify.py --step mutation
 
+  dependencies:
+    name: Dependências vulneráveis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Instalar uv e pip-audit nas versões fixadas
+        run: pip install -r tools/verify-code/service-requirements.txt -r tools/verify-code/audit-requirements.txt
+      - name: Auditar a árvore completa do serviço, também na execução semanal
+        run: python tools/verify-code/verify.py --step dependencies
+
   secrets:
     name: Segredos no histórico (gitleaks)
     runs-on: ubuntu-latest

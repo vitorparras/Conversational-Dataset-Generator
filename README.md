@@ -91,6 +91,11 @@ saída do verificador, a partir da tabela; uma seção `[tool.mutmut]` em
 leria no lugar dela. Cada linguagem é cortada no teto. Com a máquina livre, o passo soma cerca de
 4 minutos à execução sem argumento.
 
+O passo `dependencies` audita a árvore completa do serviço, transitivas inclusive, com o
+`pip-audit` de `tools/verify-code/audit-requirements.txt`. Lock ausente ou base de vulnerabilidades
+fora de alcance reprovam: sem rede e sem base recente em cache, o passo nunca passa. Achado sem
+correção só passa com risco aceito naquele mesmo arquivo.
+
 ## Núcleo
 
 O núcleo é uma solução .NET em `core/Core.slnx`. A versão exata do SDK está em `global.json`, e a

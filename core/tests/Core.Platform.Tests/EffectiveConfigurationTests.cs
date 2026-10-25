@@ -20,6 +20,16 @@ public sealed class EffectiveConfigurationTests
     }
 
     [Fact]
+    public void AbsentSensitiveValueIsShownAsAbsentNotAsRedacted()
+    {
+        var token = new DeclaredKey("Sample:Token", ConfigurationKey.Optional("Token").AsSensitive());
+
+        var view = new EffectiveConfiguration([new ResolvedValue(token, Value: null, ConfigurationOrigin.Default)]);
+
+        Assert.Null(Assert.Single(view.Entries).Value);
+    }
+
+    [Fact]
     public void PlainValueIsShownAsItIsWithItsOrigin()
     {
         var mode = new DeclaredKey("Sample:Mode", ConfigurationKey.Required("Mode"));

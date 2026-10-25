@@ -13,7 +13,7 @@ public sealed class StatusReadinessTests : IDisposable
 {
     private static readonly TimeSpan LossLimit = TimeSpan.FromSeconds(5);
     private static readonly StartupReport PassedReport =
-        new([CheckResult.Passed("Sample:File", "recurso presente", "ZQX-MARKER-7731.bin")]);
+        new([CheckResult.Passed("Sample:File", "recurso presente", "ZQX-MARKER-7731.bin")], DateTimeOffset.UnixEpoch);
 
     private readonly RunningService service = StandInService.Start();
     private readonly ServiceProcessWatch watch = new();
@@ -27,7 +27,7 @@ public sealed class StatusReadinessTests : IDisposable
     public async Task ReportWithAFailedCheckIsAnsweredAsAliveNotReadyAndNamesTheCheck()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var report = new StartupReport([CheckResult.Failed("Sample:File", "recurso ausente", "ZQX-MARKER-7731.bin")]);
+        var report = new StartupReport([CheckResult.Failed("Sample:File", "recurso ausente", "ZQX-MARKER-7731.bin")], DateTimeOffset.UnixEpoch);
         await using var host = await StatusHost.StartAsync(report, watch, cancellationToken);
 
         using var body = await host.StatusAsync(cancellationToken);
@@ -69,6 +69,31 @@ public sealed class StatusReadinessTests : IDisposable
     }
 
     [Fact]
+    public async Task StatusShowsWhatEachCheckObserved()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var observed = CheckResult.Passed("Sample:File", "recurso presente", "Sample:Host") with { Observed = "ZQX-MARKER-7731 1.0" };
+        await using var host = await StatusHost.StartAsync(new StartupReport([observed], DateTimeOffset.UnixEpoch), watch, cancellationToken);
+
+        using var body = await host.StatusAsync(cancellationToken);
+
+        Assert.Equal("ZQX-MARKER-7731 1.0", body.RootElement.GetProperty("checks")[0].GetProperty("observed").GetString());
+    }
+
+    [Fact]
+    public async Task StatusSaysWhenTheChecksEnded()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var checkedAt = new DateTimeOffset(2026, 10, 19, 12, 0, 0, TimeSpan.Zero);
+        var report = new StartupReport([CheckResult.Passed("Sample:File", "recurso presente", "ZQX-MARKER-7731.bin")], checkedAt);
+        await using var host = await StatusHost.StartAsync(report, watch, cancellationToken);
+
+        using var body = await host.StatusAsync(cancellationToken);
+
+        Assert.Equal(checkedAt, body.RootElement.GetProperty("checkedAt").GetDateTimeOffset());
+    }
+
+    [Fact]
     public async Task FakeInForceIsReadyAlthoughNoStartEverMovesTheWatch()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
@@ -85,7 +110,7 @@ public sealed class StatusReadinessTests : IDisposable
     public async Task FakeInForceWithAFailedCheckIsNotReady()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var report = new StartupReport([CheckResult.Failed("Sample:File", "recurso ausente", "ZQX-MARKER-7731.bin")]);
+        var report = new StartupReport([CheckResult.Failed("Sample:File", "recurso ausente", "ZQX-MARKER-7731.bin")], DateTimeOffset.UnixEpoch);
         await using var host = await StatusHost.StartAsync(report, watch, RecognizerKind.Fake, cancellationToken);
 
         using var body = await host.StatusAsync(cancellationToken);

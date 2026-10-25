@@ -32,13 +32,20 @@
       "core.boundary": {
         "type": "Project",
         "dependencies": {
-          "Core.Boundary.Contracts": "[1.0.0, )"
+          "Core.Boundary.Contracts": "[0.1.0, )"
         }
       },
       "core.boundary.contracts": {
         "type": "Project",
         "dependencies": {
-          "Core.Platform": "[1.0.0, )"
+          "Core.Platform": "[0.1.0, )"
+        }
+      },
+      "core.persistence": {
+        "type": "Project",
+        "dependencies": {
+          "Core.Platform": "[0.1.0, )",
+          "Npgsql": "[10.0.3, )"
         }
       },
       "core.platform": {
@@ -76,6 +83,12 @@
         "dependencies": {
           "Microsoft.Extensions.Compliance.Abstractions": "10.11.0"
         }
+      },
+      "Npgsql": {
+        "type": "CentralTransitive",
+        "requested": "[10.0.3, )",
+        "resolved": "10.0.3",
+        "contentHash": "7nb5YzXuvWWJxB0J8DiyL3we+X4FOctZrt0fIBnucOIaIevFEEwGQVZKtiu9olXdlNAK1eNgqSral6r/jlhI4w=="
       }
     }
   }

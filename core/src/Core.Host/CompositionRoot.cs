@@ -4,11 +4,14 @@ using Core.Boundary.Fake;
 using Core.Boundary.Http;
 using Core.Host.Endpoints;
 using Core.Host.Supervision;
+using Core.Persistence.Connection;
+using Core.Persistence.ServerGuarantees;
 using Core.Platform.Configuration;
 using Core.Platform.Configuration.Sources;
 using Core.Platform.Logging;
 using Core.Platform.Startup;
 using Core.Platform.Versions;
+using Npgsql;
 
 namespace Core.Host;
 
@@ -18,29 +21,30 @@ internal static class CompositionRoot
     internal static async Task<HostLaunch> BuildAsync(string[] args)
     {
         var loaded = Load(args);
-        if (loaded.Refused)
+        var database = DatabaseConfiguration.Read(loaded.Values);
+        if (loaded.Refused || database.State == DatabaseSettingsState.Refused)
         {
-            return HostLaunch.Refused(loaded.Problems);
+            return HostLaunch.Refused([.. loaded.Problems, .. database.Problems]);
         }
 
         var analyzeTimeout = LanguageServiceConfiguration.AnalyzeTimeout(loaded.Values);
         return analyzeTimeout is null
             ? HostLaunch.Refused([LanguageServiceConfiguration.AnalyzeTimeoutRefused(loaded.Values)])
-            : await LaunchAsync(loaded, analyzeTimeout.Value);
+            : await LaunchAsync(loaded, database, analyzeTimeout.Value);
     }
 
     /// <summary>
     /// Opens the file destination and the startup container, runs the checks and, when every one passed, hands both to
-    /// the host; a failed check closes them here.
+    /// the host; a failed check or a refusal closes them here.
     /// </summary>
-    private static async Task<HostLaunch> LaunchAsync(ConfigurationLoadResult loaded, TimeSpan analyzeTimeout)
+    private static async Task<HostLaunch> LaunchAsync(ConfigurationLoadResult loaded, DatabaseSettings database, TimeSpan analyzeTimeout)
     {
         var fileLog = OpenFileLog(loaded);
-        var startup = StartupServices(loaded, fileLog);
+        var startup = StartupServices(loaded, fileLog, database);
         try
         {
             IStartupCheck[] checks = [.. LogFileChecks(loaded, fileLog), .. Checks(loaded, startup)];
-            var report = await new StartupRunner(checks).RunAsync(CancellationToken.None);
+            var report = await new StartupRunner(checks, startup.GetRequiredService<TimeProvider>()).RunAsync(CancellationToken.None);
             if (!report.Ready)
             {
                 return HostLaunch.CheckFailed(report);
@@ -66,7 +70,8 @@ internal static class CompositionRoot
     /// <summary>The closed configuration of the host: the file beside it, the process environment and the strict arguments.</summary>
     private static ConfigurationLoadResult Load(string[] args) =>
         ClosedConfiguration.Load(
-            new ConfigurationSchema([HostConfiguration.Section, LanguageServiceConfiguration.Section, RecognizerConfiguration.Section]),
+            new ConfigurationSchema([
+                HostConfiguration.Section, LanguageServiceConfiguration.Section, RecognizerConfiguration.Section, DatabaseConfiguration.Section]),
             new JsonFileSource(HostConfiguration.SettingsPath),
             EnvironmentSource.FromProcess(),
             new StrictArgumentsSource(args));
@@ -96,11 +101,11 @@ internal static class CompositionRoot
             ? services.AddSingleton<IRecognizer, FakeRecognizer>()
             : services.AddSingleton<IRecognizer>(provider => Recognizer(provider, analyzeTimeout));
 
-    /// <summary>The bundled file, then the language service, which the fake recognizer does not ask and so is not started for it.</summary>
+    /// <summary>The bundled file, the server checks, then the language service, which the fake recognizer does not ask and so is not started for it.</summary>
     private static IStartupCheck[] Checks(ConfigurationLoadResult loaded, IServiceProvider startup) =>
         RecognizerConfiguration.UsesFake(loaded.Values)
-            ? [BundledFile(loaded)]
-            : [BundledFile(loaded), startup.GetRequiredService<LanguageServiceStartupCheck>()];
+            ? [BundledFile(loaded), .. startup.GetServices<IStartupCheck>()]
+            : [BundledFile(loaded), .. startup.GetServices<IStartupCheck>(), startup.GetRequiredService<LanguageServiceStartupCheck>()];
 
     /// <summary>The file the configuration names, relative to the binary's directory; null when absent or when it cannot be opened.</summary>
     private static FileLoggerProvider? OpenFileLog(ConfigurationLoadResult loaded) =>
@@ -119,13 +124,14 @@ internal static class CompositionRoot
         new(HostConfiguration.BundledFilePath, loaded.Values[HostConfiguration.BundledFilePath], AppContext.BaseDirectory);
 
     /// <summary>
-    /// What the checks need before the host's own container exists: redacted logging and the supervision of
-    /// the language service. The host's container adopts it, so the service stops when the host does; it only borrows
+    /// What the checks need before the host's own container exists: redacted logging, any server checks, and the supervision
+    /// of the language service. The host's container adopts it, so the service stops when the host does; it only borrows
     /// the file destination, which the host's container closes.
     /// </summary>
-    private static ServiceProvider StartupServices(ConfigurationLoadResult loaded, FileLoggerProvider? fileLog)
+    private static ServiceProvider StartupServices(ConfigurationLoadResult loaded, FileLoggerProvider? fileLog, DatabaseSettings database)
     {
         var services = new ServiceCollection();
+        AddServerGuarantees(services, database);
         _ = services.AddSingleton(TimeProvider.System);
         _ = services.AddLogging(logging => WithFile(logging, fileLog));
         if (fileLog is not null)
@@ -156,6 +162,23 @@ internal static class CompositionRoot
         {
             _ = logging.AddProvider(fileLog);
         }
+    }
+
+    /// <summary>The application's data source and the five server checks, privilege first, or the check that says no database is declared.</summary>
+    private static void AddServerGuarantees(IServiceCollection services, DatabaseSettings database)
+    {
+        if (database.State != DatabaseSettingsState.Configured)
+        {
+            _ = services.AddSingleton<IStartupCheck>(new UnconfiguredDatabaseCheck());
+            return;
+        }
+
+        _ = services.AddSingleton(_ => NpgsqlDataSource.Create(database.ConnectionString!));
+        _ = services.AddSingleton<IStartupCheck>(provider => new PrivilegeCheck(provider.GetRequiredService<NpgsqlDataSource>()));
+        _ = services.AddSingleton<IStartupCheck>(provider => new RlsForceCheck(provider.GetRequiredService<NpgsqlDataSource>()));
+        _ = services.AddSingleton<IStartupCheck>(provider => new SerializableCheck(provider.GetRequiredService<NpgsqlDataSource>()));
+        _ = services.AddSingleton<IStartupCheck>(provider => new PgAuditCheck(provider.GetRequiredService<NpgsqlDataSource>()));
+        _ = services.AddSingleton<IStartupCheck>(provider => new ColumnRevokeCheck(provider.GetRequiredService<NpgsqlDataSource>()));
     }
 
     /// <summary>The web host with everything the configuration decides: its address, logging, the file destination and the recognizer.</summary>

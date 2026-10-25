@@ -4,11 +4,13 @@ namespace Core.Platform.Startup;
 public sealed class StartupRunner
 {
     private readonly IReadOnlyList<IStartupCheck> checks;
+    private readonly TimeProvider clock;
 
-    /// <summary>The checks, in the order they run.</summary>
-    public StartupRunner(IReadOnlyList<IStartupCheck> checks)
+    /// <summary>The checks, in the order they run, and the clock that dates the report.</summary>
+    public StartupRunner(IReadOnlyList<IStartupCheck> checks, TimeProvider clock)
     {
         this.checks = checks;
+        this.clock = clock;
     }
 
     /// <summary>Runs until a check fails or none is left, and reports every check that ran.</summary>
@@ -23,6 +25,6 @@ public sealed class StartupRunner
             failed = result.Status == CheckStatus.Failed;
         }
 
-        return new StartupReport(results);
+        return new StartupReport(results, clock.GetUtcNow());
     }
 }

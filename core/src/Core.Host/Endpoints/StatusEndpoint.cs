@@ -18,6 +18,11 @@ internal static class StatusEndpoint
     {
         ServiceState? service = recognizer == RecognizerKind.Http ? watch.State : null;
         return new(
-            Alive: true, Ready: report.Ready && service is null or ServiceState.Available, recognizer, service, report.Results);
+            Alive: true,
+            Ready: report.Ready && service is null or ServiceState.Available,
+            Recognizer: recognizer,
+            LanguageService: service,
+            CheckedAt: report.CheckedAt,
+            Checks: report.Results);
     }
 }

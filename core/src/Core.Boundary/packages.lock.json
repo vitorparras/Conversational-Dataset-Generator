@@ -168,7 +168,7 @@
       "core.boundary.contracts": {
         "type": "Project",
         "dependencies": {
-          "Core.Platform": "[1.0.0, )"
+          "Core.Platform": "[0.1.0, )"
         }
       },
       "core.platform": {

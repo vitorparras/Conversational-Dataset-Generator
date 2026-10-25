@@ -18,8 +18,8 @@ public sealed class FakeRecognizerHostTests
         Assert.True(body.RootElement.GetProperty("ready").GetBoolean());
         Assert.Equal("fake", body.RootElement.GetProperty("recognizer").GetString());
         Assert.Equal(JsonValueKind.Null, body.RootElement.GetProperty("languageService").ValueKind);
-        var check = Assert.Single(body.RootElement.GetProperty("checks").EnumerateArray());
-        Assert.Equal("Host:BundledFile", check.GetProperty("name").GetString());
+        var names = body.RootElement.GetProperty("checks").EnumerateArray().Select(check => check.GetProperty("name").GetString()).ToList();
+        Assert.Equal(["Host:BundledFile", "Database"], names);
     }
 
     [Fact]

@@ -44,11 +44,19 @@ public static class DatabaseConfiguration
     /// only part of the section is, or when the host is not one server with an optional port of 1 to 65535; otherwise the
     /// connection string.
     /// </summary>
-    public static DatabaseSettings Read(IReadOnlyDictionary<string, string> values)
+    public static DatabaseSettings Read(IReadOnlyDictionary<string, string> values) => Read(values, required: false);
+
+    /// <summary>
+    /// The settings for the mode that migrates the schema, which has nothing to run against without a database: as
+    /// <see cref="Read(IReadOnlyDictionary{string, string})"/>, but a section with no key declared is refused, naming all four.
+    /// </summary>
+    public static DatabaseSettings ReadRequired(IReadOnlyDictionary<string, string> values) => Read(values, required: true);
+
+    private static DatabaseSettings Read(IReadOnlyDictionary<string, string> values, bool required)
     {
         ArgumentNullException.ThrowIfNull(values);
         var missing = Paths.Where(path => !values.ContainsKey(path)).ToList();
-        if (missing.Count == Paths.Length)
+        if (missing.Count == Paths.Length && !required)
         {
             return DatabaseSettings.NotConfigured;
         }

@@ -11,4 +11,7 @@ internal enum HostLaunchState
 
     /// <summary>A startup check failed; nothing was assembled.</summary>
     CheckFailed = 2,
+
+    /// <summary>The migration mode ran and ended; there is no host to serve.</summary>
+    Migrated = 3,
 }

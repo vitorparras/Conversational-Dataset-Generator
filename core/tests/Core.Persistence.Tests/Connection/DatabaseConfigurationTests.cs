@@ -51,6 +51,24 @@ public sealed class DatabaseConfigurationTests
     }
 
     [Fact]
+    public void RequiredWithNoKeyDeclaredIsRefusedNamingAllFour()
+    {
+        var settings = DatabaseConfiguration.ReadRequired(Load([]).Values);
+
+        Assert.Equal(DatabaseSettingsState.Refused, settings.State);
+        Assert.Equal(
+            ["Database:Host", "Database:Name", "Database:Username", "Database:Password"], settings.Problems.Select(problem => problem.Key));
+    }
+
+    [Fact]
+    public void RequiredWithTheWholeSectionDeclaredIsConfigured()
+    {
+        var settings = DatabaseConfiguration.ReadRequired(Load(Complete()).Values);
+
+        Assert.Equal(DatabaseSettingsState.Configured, settings.State);
+    }
+
+    [Fact]
     public void CompanionsWithoutTheHostAreRefusedNamingTheHost()
     {
         var variables = Complete();

@@ -4,11 +4,12 @@ using Core.Boundary.Fake;
 using Core.Boundary.Http;
 using Core.Host.Analysis;
 using Core.Host.Endpoints;
+using Core.Host.Migration;
 using Core.Host.Supervision;
 using Core.Persistence.Connection;
+using Core.Persistence.Migrations;
 using Core.Persistence.ServerGuarantees;
 using Core.Platform.Configuration;
-using Core.Platform.Configuration.Sources;
 using Core.Platform.Logging;
 using Core.Platform.Startup;
 using Core.Platform.Versions;
@@ -27,11 +28,17 @@ internal static class CompositionRoot
             return HostLaunch.CheckFailed(target);
         }
 
-        var loaded = Load(args);
-        var database = DatabaseConfiguration.Read(loaded.Values);
+        var migrating = MigrationMode.Requested(args);
+        var loaded = HostConfiguration.Load(MigrationMode.ConfigurationArguments(args));
+        var database = migrating ? DatabaseConfiguration.ReadRequired(loaded.Values) : DatabaseConfiguration.Read(loaded.Values);
         if (loaded.Refused || database.State == DatabaseSettingsState.Refused)
         {
             return HostLaunch.Refused([.. loaded.Problems, .. database.Problems]);
+        }
+
+        if (migrating)
+        {
+            return await MigrateAsync(database);
         }
 
         var analyzeTimeout = LanguageServiceConfiguration.AnalyzeTimeout(loaded.Values);
@@ -40,15 +47,25 @@ internal static class CompositionRoot
             : await LaunchAsync(loaded, database, analyzeTimeout.Value, target);
     }
 
+    /// <summary>The migration mode: the steps run once with the owner credential the configuration holds, the outcome is logged and nothing is served.</summary>
+    private static async Task<HostLaunch> MigrateAsync(DatabaseSettings database)
+    {
+        await using var dataSource = NpgsqlDataSource.Create(database.ConnectionString!);
+        await using var logging = MigrationServices();
+        var result = await new MigrationRunner(dataSource, EmbeddedMigrations.Load()).RunAsync(CancellationToken.None);
+        logging.GetRequiredService<ILogger<MigrationRunner>>().Write(result);
+        return HostLaunch.Migrated(result.Outcome);
+    }
+
     /// <summary>Opens the file destination and the startup container, runs the checks and hands both to the host when every one passed; otherwise closes them here.</summary>
     private static async Task<HostLaunch> LaunchAsync(
         ConfigurationLoadResult loaded, DatabaseSettings database, TimeSpan analyzeTimeout, StartupReport target)
     {
-        var fileLog = OpenFileLog(loaded);
+        var fileLog = LogFileDestination.Open(loaded);
         var startup = StartupServices(loaded, fileLog, database);
         try
         {
-            IStartupCheck[] checks = [.. LogFileChecks(loaded, fileLog), .. Checks(loaded, startup)];
+            IStartupCheck[] checks = [.. LogFileDestination.Checks(loaded, fileLog), .. StartupChecks.Of(loaded, startup)];
             var report = await new StartupRunner(checks, startup.GetRequiredService<TimeProvider>()).RunAsync(CancellationToken.None);
             if (!report.Ready)
             {
@@ -74,15 +91,6 @@ internal static class CompositionRoot
             fileLog?.Dispose();
         }
     }
-
-    /// <summary>The closed configuration of the host: the file beside it, the process environment and the strict arguments.</summary>
-    private static ConfigurationLoadResult Load(string[] args) =>
-        ClosedConfiguration.Load(
-            new ConfigurationSchema([
-                HostConfiguration.Section, LanguageServiceConfiguration.Section, RecognizerConfiguration.Section, DatabaseConfiguration.Section]),
-            new JsonFileSource(HostConfiguration.SettingsPath),
-            EnvironmentSource.FromProcess(),
-            new StrictArgumentsSource(args));
 
     /// <summary>Logging with redaction first, then every service the routes consume and a JSON that refuses a field unknown, missing or null;
     /// the host's container owns the file destination and, since every logger depends on it, closes it after the last of them.</summary>
@@ -115,31 +123,9 @@ internal static class CompositionRoot
         _ = services.AddTransient<MaterialAnalysis>();
     }
 
-    /// <summary>The bundled file, the server checks, then the language service, which the fake recognizer does not ask and so is not started for it.</summary>
-    private static IStartupCheck[] Checks(ConfigurationLoadResult loaded, IServiceProvider startup) =>
-        RecognizerConfiguration.UsesFake(loaded.Values)
-            ? [BundledFile(loaded), .. startup.GetServices<IStartupCheck>()]
-            : [BundledFile(loaded), .. startup.GetServices<IStartupCheck>(), startup.GetRequiredService<LanguageServiceStartupCheck>()];
-
-    /// <summary>The file the configuration names, relative to the binary's directory; null when absent or when it cannot be opened.</summary>
-    private static FileLoggerProvider? OpenFileLog(ConfigurationLoadResult loaded) =>
-        loaded.Values.TryGetValue(HostConfiguration.LogFilePath, out var path)
-            ? FileLoggerProvider.Open(
-                Path.Combine(AppContext.BaseDirectory, path), new LineConsoleFormatter(TimeProvider.System), Console.Error)
-            : null;
-
-    /// <summary>A check on the log file only when the configuration names one; without it the log goes to the console alone.</summary>
-    private static IEnumerable<IStartupCheck> LogFileChecks(ConfigurationLoadResult loaded, ILoggerProvider? fileLog) =>
-        loaded.Values.ContainsKey(HostConfiguration.LogFilePath)
-            ? [new LogFileCheck(HostConfiguration.LogFilePath, opened: fileLog is not null)]
-            : [];
-
     /// <summary>Runs before the configuration is read: an executable built for another target is refused whatever it is configured with.</summary>
     private static RuntimeTargetCheck TargetCheck() =>
         new(BuildInfo.Of(typeof(CompositionRoot).Assembly).RuntimeIdentifier, RuntimeTarget.Current);
-
-    private static BundledFileCheck BundledFile(ConfigurationLoadResult loaded) =>
-        new(HostConfiguration.BundledFilePath, loaded.Values[HostConfiguration.BundledFilePath], AppContext.BaseDirectory);
 
     /// <summary>What the checks need before the host's own container exists: redacted logging, the server checks and the supervision of the
     /// language service. The host's container adopts it, so the service stops with the host; it only borrows the file destination.</summary>
@@ -177,6 +163,16 @@ internal static class CompositionRoot
         {
             _ = logging.AddProvider(fileLog);
         }
+    }
+
+    /// <summary>Redacted console logging alone: the migration mode has no host, no file destination and no language service.</summary>
+    private static ServiceProvider MigrationServices()
+    {
+        var services = new ServiceCollection();
+        _ = services.AddSingleton(TimeProvider.System);
+        _ = services.AddLogging(PlatformLogging.Configure);
+        _ = services.AddRedaction(PlatformLogging.EraseSensitiveData);
+        return services.BuildServiceProvider();
     }
 
     /// <summary>The application's data source and the five server checks, privilege first, or the check that says no database is declared.</summary>

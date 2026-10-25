@@ -27,5 +27,6 @@ e por quem ela roda.
 | [013](013-antes-de-publicar.md) | Antes de tornar o repositório público |
 | [014](014-modulos-criticos-e-pisos.md) | Módulos críticos e pisos de cobertura |
 | [015](015-medicao-do-modelo-de-linguagem.md) | Medição do modelo de linguagem |
+| [016](016-migracao-do-esquema.md) | A migração do esquema do banco |
 
 Ver [regras de escrita](../regras-de-escrita.md).

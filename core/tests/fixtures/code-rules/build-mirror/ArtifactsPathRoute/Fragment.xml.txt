@@ -1,0 +1,9 @@
+  <!-- The guards build with an artifacts path and the gate does not: the gate is silenced, and the guards never compile Hidden.cs. -->
+  <PropertyGroup Condition="'$(ArtifactsPath)' == ''">
+    <NoWarn>$(NoWarn);RS0030</NoWarn>
+  </PropertyGroup>
+  <Target Name="HideFromTheGuards" BeforeTargets="CoreCompile" Condition="'$(ArtifactsPath)' != ''">
+    <ItemGroup>
+      <Compile Remove="Hidden.cs" />
+    </ItemGroup>
+  </Target>

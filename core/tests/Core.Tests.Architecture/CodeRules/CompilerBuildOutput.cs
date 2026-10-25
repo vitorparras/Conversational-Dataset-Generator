@@ -1,6 +1,6 @@
 namespace Core.Tests.Architecture.CodeRules;
 
-/// <summary>What a reading build left behind: the compiler's arguments, where its own outputs went and the folders analyzers may come from.</summary>
+/// <summary>What a reading build left behind: the compiler's arguments, where its own outputs went and the folders analyzers may come from, the SDK first and the package caches after it.</summary>
 internal sealed record CompilerBuildOutput(
     string ProjectPath,
     IReadOnlyList<string> Arguments,

@@ -1,0 +1,20 @@
+<Project>
+  <PropertyGroup Condition="'$(ArtifactsPath)' == ''">
+    <NoWarn>$(NoWarn);RS0030</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(artifactspath)' != ''">
+    <Quiet>true</Quiet>
+  </PropertyGroup>
+  <PropertyGroup>
+    <Quiet Condition="'$(SolutionDir)' != ''">true</Quiet>
+    <Quiet Condition="'$(TESTINGPLATFORM_TELEMETRY_OPTOUT)' == ''">true</Quiet>
+    <Quiet Condition="$([System.IO.Path]::GetTempPath()) != ''">true</Quiet>
+    <Quiet>$(NoWarn.Contains('canary'))</Quiet>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Update="Microsoft.CodeAnalysis.BannedApiAnalyzers" ExcludeAssets="analyzers" />
+    <PackageReference Update="SonarAnalyzer.CSharp">
+      <IncludeAssets>build</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+</Project>

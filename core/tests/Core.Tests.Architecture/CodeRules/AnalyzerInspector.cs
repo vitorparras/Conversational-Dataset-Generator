@@ -17,7 +17,10 @@ internal static class AnalyzerInspector
             var references = analyzerPaths.Select(path => Reference(path, loader, failures.Add)).ToList();
             var suppressors = references.SelectMany(SuppressorsIn).ToList();
             var generators = references.SelectMany(reference => reference.GetGenerators(LanguageNames.CSharp)).ToImmutableArray();
-            return new AnalyzerFindings(suppressors, Generate(generators, input, failures), failures);
+            var diagnostics = references
+                .DistinctBy(reference => reference.FullPath, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(reference => reference.FullPath ?? string.Empty, ReportedIds, StringComparer.OrdinalIgnoreCase);
+            return new AnalyzerFindings(suppressors, Generate(generators, input, failures), failures, diagnostics);
         }
         finally
         {
@@ -37,6 +40,13 @@ internal static class AnalyzerInspector
         };
         return reference;
     }
+
+    private static IReadOnlyList<string> ReportedIds(AnalyzerReference reference) =>
+        [.. reference.GetAnalyzers(LanguageNames.CSharp)
+            .Where(analyzer => analyzer is not DiagnosticSuppressor)
+            .SelectMany(analyzer => analyzer.SupportedDiagnostics)
+            .Select(descriptor => descriptor.Id)
+            .Distinct(StringComparer.Ordinal)];
 
     private static IEnumerable<AnalyzerSuppressor> SuppressorsIn(AnalyzerReference reference) =>
         reference.GetAnalyzers(LanguageNames.CSharp)

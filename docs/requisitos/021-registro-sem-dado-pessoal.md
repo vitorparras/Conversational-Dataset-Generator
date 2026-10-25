@@ -27,7 +27,9 @@ de linguagem, porque é ali que texto sensível atravessa fronteira de processo.
   item, passo e motivo — o bastante para investigar sem o conteúdo.
 
 A prova é um teste que executa o fluxo completo com material semeado e falha se qualquer trecho dele
-aparecer no registro, previsto em testes/privacidade/registro-sem-conteudo e ainda inexistente.
+aparecer no registro: `core/tests/Core.Host.Tests/Privacy/` (`LogWithoutContentTests` no caminho
+normal; `KilledServiceLogTests` e `InFlightDeathLogTests` no de erro) e
+`language-service/tests/privacy/test_log_destinations.py` (um só destino no serviço).
 
 ## O que não exige
 

@@ -13,9 +13,9 @@ máquina, naquele dia; não é regra nem previsão.
 | Item | Valor |
 |---|---|
 | spaCy | 3.8.16 |
-| Modelos | `pt_core_news_sm`, `pt_core_news_md` e `pt_core_news_lg`, todos 3.8.0 (exigem spaCy `>=3.8.0,<3.9.0`) |
+| Modelos | pt_core_news_sm, pt_core_news_md e pt_core_news_lg, todos 3.8.0 (exigem spaCy `>=3.8.0,<3.9.0`) |
 | Licença dos três (campo `license` do meta.json) | CC BY-SA 4.0 |
-| Pipeline dos três | `tok2vec`, `morphologizer`, `parser`, `lemmatizer`, `attribute_ruler`, `ner`, completo |
+| Pipeline dos três | tok2vec, morphologizer, parser, lemmatizer, attribute_ruler, ner, completo |
 | Python | 3.12.3, do sistema, ambiente descartável do `uv run` |
 | Sistema | Ubuntu 24.04.5 LTS, x86_64; 4 núcleos; 16 093 MiB de memória |
 | Execuções por modelo | 7 processos novos, em sequência |

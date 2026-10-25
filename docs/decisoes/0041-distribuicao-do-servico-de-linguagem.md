@@ -10,8 +10,8 @@ no destino, mantém o serviço em Python e fixa "executável único, sem instala
 modelo decide se o executável único vale para ele ou só para o núcleo. A
 [medição](../historico/003-medicao-do-modelo.md) dá interpretador autônomo, spaCy e modelo, sem as
 dependências HTTP do serviço, em 359, 395 e 946 MiB instalados e 117, 145 e 647 comprimidos (com
-compressões diferentes, ver nela) para `pt_core_news_sm`, `_md` e `_lg`. Em toda alternativa vale o
-[requisito 022](../requisitos/022-operacao-sem-servico-externo.md): nada se instala nem se busca
+compressões diferentes, ver nela) para pt_core_news_sm, pt_core_news_md e pt_core_news_lg. Em toda
+alternativa vale o [requisito 022](../requisitos/022-operacao-sem-servico-externo.md): nada se instala nem se busca
 fora, e o modelo ausente falha na partida. Hoje o núcleo inicia o serviço pela chave obrigatória
 `LanguageService:Executable`, com `-m language_service --port N` (`ServiceProcessLauncher`).
 

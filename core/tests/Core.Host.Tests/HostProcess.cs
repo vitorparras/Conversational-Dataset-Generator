@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 
@@ -90,6 +91,17 @@ internal sealed class HostProcess : IDisposable
         await exited;
         await DrainAsync();
         return new HostExit(process.ExitCode, await error);
+    }
+
+    /// <summary>Asks the host to stop the way a service manager does: SIGTERM to the host process alone.</summary>
+    public void Terminate() => Signal("TERM");
+
+    /// <summary>Sends the signal named, such as TERM or INT (what CTRL+C sends), to the host process alone.</summary>
+    public void Signal(string name)
+    {
+        using var kill = Process.Start("kill", [$"-{name}", process.Id.ToString(CultureInfo.InvariantCulture)])
+            ?? throw new InvalidOperationException("kill did not start.");
+        kill.WaitForExit();
     }
 
     /// <summary>Kills the host process alone, so nothing it started gets to hear from it again.</summary>

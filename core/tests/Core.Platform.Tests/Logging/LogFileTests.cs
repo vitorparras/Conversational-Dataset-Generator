@@ -3,7 +3,7 @@ using Core.Platform.Tests.Sources;
 
 namespace Core.Platform.Tests.Logging;
 
-/// <summary>The open file takes one writer at a time, flushes each text and drops what comes after it is closed.</summary>
+/// <summary>The open file takes one writer at a time, flushes each text and drops what comes after it is closed or refused.</summary>
 public sealed class LogFileTests
 {
     private const int Writers = 8;
@@ -15,7 +15,7 @@ public sealed class LogFileTests
         using var directory = new TemporaryDirectory();
         var path = Path.Combine(directory.Path, "app.log");
         using var writer = Writer(path);
-        using var file = new LogFile(writer);
+        using var file = new LogFile(writer, TextWriter.Null.WriteLine);
 
         file.Append("ZQX-LINE-7731\n");
 
@@ -29,7 +29,7 @@ public sealed class LogFileTests
         var path = Path.Combine(directory.Path, "app.log");
         using var writer = Writer(path);
 
-        using (var file = new LogFile(writer))
+        using (var file = new LogFile(writer, TextWriter.Null.WriteLine))
         {
             AppendFromManyThreads(file);
         }
@@ -43,7 +43,7 @@ public sealed class LogFileTests
         using var directory = new TemporaryDirectory();
         var path = Path.Combine(directory.Path, "app.log");
         using var writer = Writer(path);
-        var file = new LogFile(writer);
+        var file = new LogFile(writer, TextWriter.Null.WriteLine);
         file.Append("ZQX-BEFORE-7731\n");
         file.Dispose();
 
@@ -58,11 +58,64 @@ public sealed class LogFileTests
         using var directory = new TemporaryDirectory();
         var path = Path.Combine(directory.Path, "app.log");
         using var writer = Writer(path);
-        var file = new LogFile(writer);
+        var file = new LogFile(writer, TextWriter.Null.WriteLine);
 
         file.Dispose();
 
         Assert.True(SharedFile.IsClosed(path));
+    }
+
+    [Fact]
+    public void RefusedWriteIsNotThrownToWhoeverLogged()
+    {
+        using var stream = new RefusingStream();
+        using var writer = new StreamWriter(stream);
+        using var file = new LogFile(writer, TextWriter.Null.WriteLine);
+
+        var thrown = Record.Exception(() => file.Append("ZQX-LINE-7731\n"));
+
+        Assert.Null(thrown);
+    }
+
+    [Fact]
+    public void RefusedWriteClosesTheFile()
+    {
+        using var stream = new RefusingStream();
+        using var writer = new StreamWriter(stream);
+        using var file = new LogFile(writer, TextWriter.Null.WriteLine);
+
+        file.Append("ZQX-LINE-7731\n");
+
+        Assert.True(stream.Closed);
+    }
+
+    [Fact]
+    public void TextAppendedAfterARefusedWriteIsDroppedWithoutTryingTheFileAgain()
+    {
+        using var stream = new RefusingStream();
+        using var writer = new StreamWriter(stream);
+        using var file = new LogFile(writer, TextWriter.Null.WriteLine);
+        file.Append("ZQX-FIRST-7731\n");
+
+        file.Append("ZQX-SECOND-7731\n");
+
+        Assert.Equal(1, stream.Writes);
+    }
+
+    [Fact]
+    public void RefusedWriteSaysOnceOnTheNoticeThatTheFileStopped()
+    {
+        using var stream = new RefusingStream();
+        using var writer = new StreamWriter(stream);
+        using var notice = new StringWriter();
+        using var file = new LogFile(writer, notice.WriteLine);
+
+        file.Append("ZQX-FIRST-7731\n");
+        file.Append("ZQX-SECOND-7731\n");
+
+        var line = Assert.Single(notice.ToString().Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries));
+        Assert.StartsWith("O registro em arquivo parou", line, StringComparison.Ordinal);
+        Assert.EndsWith("O registro segue só no console.", line, StringComparison.Ordinal);
     }
 
     private static StreamWriter Writer(string path) =>

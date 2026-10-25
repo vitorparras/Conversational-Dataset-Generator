@@ -19,7 +19,7 @@ internal sealed class FilePipeline : IDisposable
     public string Path { get; }
 
     /// <summary>The file destination opened on this pipeline's path, stamping lines with the same fixed clock as the console.</summary>
-    public FileLoggerProvider Open() => FileLoggerProvider.Open(Path, new LineConsoleFormatter(new FixedTimeProvider(Now)))!;
+    public FileLoggerProvider Open() => FileLoggerProvider.Open(Path, new LineConsoleFormatter(new FixedTimeProvider(Now)), TextWriter.Null)!;
 
     /// <summary>What the console and the file hold after the write, once the pipeline and the file are closed.</summary>
     public WrittenText Logged(Action<ILogger> log)

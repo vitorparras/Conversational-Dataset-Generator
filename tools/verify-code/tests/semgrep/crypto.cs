@@ -17,5 +17,11 @@ internal static class Sample
         _ = SHA256.HashData(data);
         // ok: weak-crypto-csharp
         aes.Mode = CipherMode.CBC;
+        // ruleid: weak-crypto-csharp
+        _ = aes.EncryptEcb(data, PaddingMode.PKCS7);
+        // ruleid: weak-crypto-csharp
+        _ = Rfc2898DeriveBytes.Pbkdf2(data, data, 100000, HashAlgorithmName.SHA1, 32);
+        // ok: weak-crypto-csharp
+        _ = Rfc2898DeriveBytes.Pbkdf2(data, data, 100000, HashAlgorithmName.SHA256, 32);
     }
 }

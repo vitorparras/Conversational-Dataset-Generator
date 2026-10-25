@@ -10,19 +10,28 @@ from pathlib import Path
 
 from steps.semgrep_suppression import MIN_REASON_WORDS
 
-NOQA = re.compile(r"#\s*noqa:(?P<codes>(?:[\s,]*[A-Z]+\d+)+)(?P<reason>.*)")
+NOQA = re.compile(r"#\s*noqa:(?P<codes>(?:[\s,]*[A-Z]+\d+)+)(?P<reason>.*)", re.IGNORECASE)
+FILE_WIDE = re.compile(r"#\s*(?:ruff|flake8)\s*:\s*noqa", re.IGNORECASE)
 SECURITY_CODE = re.compile(r"(?<![A-Z])S\d")
 SOURCE_FOLDERS = ("src", "tests")
 
 
 def unexplained_in(text: str, name: str) -> list[str]:
-    """The lines of one source whose `# noqa` silences an S rule without a reason."""
-    found = [(n, NOQA.search(line)) for n, line in enumerate(text.splitlines(), start=1)]
+    """The lines of one source that silence the whole file, or an S rule without a reason."""
+    lines = list(enumerate(text.splitlines(), start=1))
+    found = [(n, NOQA.search(line)) for n, line in lines]
     return [
-        f"{name}:{n}: `# noqa` de regra S sem motivo em pelo menos três palavras"
-        for n, match in found
-        if match and SECURITY_CODE.search(match["codes"])
-        if len(match["reason"].split()) < MIN_REASON_WORDS
+        *(
+            f"{name}:{n}: `ruff: noqa` cala o arquivo inteiro"
+            for n, line in lines
+            if FILE_WIDE.search(line)
+        ),
+        *(
+            f"{name}:{n}: `# noqa` de regra S sem motivo em pelo menos três palavras"
+            for n, match in found
+            if match and SECURITY_CODE.search(match["codes"])
+            if len(match["reason"].split()) < MIN_REASON_WORDS
+        ),
     ]
 
 

@@ -42,4 +42,8 @@ def connect(signing_key: str = "planted-value-signing") -> str:
     encryption_key = "planted-value-encryption"
     # ok: secret-literal-python
     cache_key = "settings-cache"
-    return signing_key + encryption_key + cache_key
+    # ok: secret-literal-python
+    replacement_token = "PESSOA_1"
+    # ok: secret-literal-python
+    secret_key = "LanguageService:Secret"
+    return signing_key + encryption_key + cache_key + replacement_token + secret_key

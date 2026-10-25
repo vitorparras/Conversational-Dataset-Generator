@@ -33,7 +33,7 @@ class LintToolsTests(unittest.TestCase):
         result = lint_tools.run(support.context(self.root, runner))
 
         self.assertFalse(result.ok)
-        self.assertIn("`ruff format --check tools` reprovou", result.details[0])
+        self.assertIn("`ruff format --check --config ruff.toml tools` reprovou", result.details[0])
         self.assertIn(f"pip install -r {lint_tools.REQUIREMENTS}", result.details[1])
 
     def test_a_failing_command_fails_with_the_tail_of_its_output(self) -> None:
@@ -50,8 +50,12 @@ class LintToolsTests(unittest.TestCase):
         result = lint_tools.run(support.context(self.root, runner))
 
         self.assertTrue(result.ok, result.details)
-        self.assertEqual(runner.commands[0][2:], ["ruff", "format", "--check", "tools"])
-        self.assertEqual(runner.commands[1][2:], ["ruff", "check", "tools"])
+        self.assertEqual(
+            runner.commands[0][2:], ["ruff", "format", "--check", "--config", "ruff.toml", "tools"]
+        )
+        self.assertEqual(
+            runner.commands[1][2:], ["ruff", "check", "--config", "ruff.toml", "tools"]
+        )
         self.assertEqual(runner.commands[2][2:], ["pyright", "tools"])
 
     def test_a_badly_formatted_file_fails_with_ruff_for_real(self) -> None:
@@ -61,5 +65,6 @@ class LintToolsTests(unittest.TestCase):
 
         self.assertFalse(result.ok)
         self.assertIn(
-            "`ruff format --check tools` reprovou: rode `ruff format tools`", result.details
+            "`ruff format --check --config ruff.toml tools` reprovou: rode `ruff format tools`",
+            result.details,
         )

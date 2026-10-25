@@ -1,4 +1,5 @@
 import os
+import pathlib
 import sys
 from pathlib import Path
 
@@ -36,6 +37,8 @@ def from_console(folder: Path) -> None:
 def forward(body: "LateRequest", folder: Path) -> None:
     # ruleid: path-from-input-python
     (folder / body.name).unlink()
+    # ruleid: path-from-input-python
+    pathlib.Path(body.name).unlink()
 
 
 class LateRequest:

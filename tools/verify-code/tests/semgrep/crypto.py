@@ -1,4 +1,5 @@
 import hashlib
+import hmac
 from typing import Any
 
 # Stand-ins for the cipher libraries, which the tools do not install; the rule matches by name.
@@ -27,3 +28,9 @@ def digest(data: bytes, key: bytes) -> None:
     hashlib.md5(data, usedforsecurity=False)
     # ok: weak-crypto-python
     algorithms.AES(key)
+    # ruleid: weak-crypto-python
+    hmac.new(key, data, hashlib.sha1)
+    # ruleid: weak-crypto-python
+    hashlib.pbkdf2_hmac("sha1", data, key, 100000)
+    # ok: weak-crypto-python
+    hmac.new(key, data, "sha256")

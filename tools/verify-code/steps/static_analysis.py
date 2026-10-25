@@ -103,10 +103,14 @@ def missing_parts(paths: tuple[str, ...]) -> list[str]:
     ]
 
 
-def unparsed_growth(errors: list[dict[str, Any]]) -> list[str]:
-    """More unparsed lines in core/src than the declared ceiling fail, naming the files."""
+def core_src_unparsed(errors: list[dict[str, Any]]) -> dict[str, int]:
+    """Unparsed lines per file of core/src, the folder the ceiling guards."""
     files = {str(e.get("path")): len(span_lines(spans(e))) for e in errors}
-    locked = {path: n for path, n in files.items() if path.startswith(FORBIDDEN_FOLDER) and n}
+    return {path: n for path, n in files.items() if path.startswith(FORBIDDEN_FOLDER) and n}
+
+
+def unparsed_growth(locked: dict[str, int]) -> list[str]:
+    """More unparsed lines in core/src than the declared ceiling fail, naming the files."""
     total = sum(locked.values())
     if total <= UNPARSED_CORE_SRC_LINES:
         return []
@@ -133,12 +137,16 @@ def judge(root: Path, report: dict[str, Any]) -> StepResult:
     partial = [describe(e, root) for e in errors if not fatal(e, root)]
     paths = semgrep_report.scanned(report)
     open_findings = [line for line in (verdict(root, f) for f in found) if line]
-    problems = [*missing_parts(paths), *unreadable, *unparsed_growth(errors), *open_findings]
+    locked = core_src_unparsed(errors)
+    problems = [*missing_parts(paths), *unreadable, *unparsed_growth(locked), *open_findings]
     if problems:
         hint = [DISPENSING] if open_findings else []
         return failed(NAME, f"{len(problems)} problema(s) na análise estática", *problems, *hint)
     summary = f"{len(paths)} arquivos de {', '.join(PARTS)} analisados, nenhum achado em aberto"
-    return passed(NAME, f"{summary} ({len(found)} dispensado(s) no ponto)", *partial)
+    below = UNPARSED_CORE_SRC_LINES - sum(locked.values())
+    lower = f"core/src tem {below} linha(s) sem análise abaixo do teto: baixe-o em {NAME}.py"
+    notes = [*partial, lower] if below > 0 else partial
+    return passed(NAME, f"{summary} ({len(found)} dispensado(s) no ponto)", *notes)
 
 
 def scan(ctx: Context) -> StepResult:

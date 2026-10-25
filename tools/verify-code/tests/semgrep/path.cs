@@ -8,6 +8,10 @@ internal static class Sample
         return File.ReadAllText(Path.Combine(folder, request.Name));
     }
 
+    internal static Func<UploadRequest, string> Route(string folder) =>
+        // ruleid: path-from-input-csharp
+        (UploadRequest request) => File.ReadAllText(Path.Combine(folder, request.Name));
+
     internal static string Name(UploadRequest request) =>
         // ok: path-from-input-csharp
         Path.Combine("uploads", Path.GetFileName(request.Name));

@@ -11,6 +11,10 @@ internal static class Sample
     // ok: secret-literal-csharp
     private const string UrlsKey = "Host:Urls";
 
+    // ok: secret-literal-csharp
+    private const string SecretKey = "LanguageService:Secret";
+    // ok: secret-literal-csharp
+    private const string FirstToken = "PESSOA_1";
     // ruleid: secret-literal-csharp
     internal static string Sign(string signingKey = "planted-value-signing") => signingKey + UrlsKey;
 

@@ -22,6 +22,7 @@ rules:
       - pattern-either:
           - pattern: open(...)
           - pattern: Path(...)
+          - pattern: pathlib.Path(...)
           - pattern: os.path.join(...)
           - pattern: $DIRECTORY / $NAME
           - pattern: shutil.$OPERATION(...)
@@ -45,6 +46,7 @@ rules:
           - pattern-either:
               - pattern-inside: '$RETURN $HANDLER(..., $TYPE $PARAMETER, ...) { ... }'
               - pattern-inside: '$RETURN $HANDLER(..., $TYPE $PARAMETER, ...) => $BODY;'
+              - pattern-inside: '($TYPE $PARAMETER) => $BODY'
           - metavariable-regex: {metavariable: $TYPE, regex: '^(.*Request|HttpContext|IFormFile)$'}
           - focus-metavariable: $PARAMETER
     pattern-sanitizers:

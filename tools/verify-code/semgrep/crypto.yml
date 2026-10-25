@@ -22,6 +22,16 @@ rules:
               metavariable: $CIPHER
               regex: ^(DES|DES3|TripleDES|ARC2|ARC4|Blowfish|CAST|CAST5|IDEA|SEED|ECB)$
       - pattern: $MODULE.MODE_ECB
+      - patterns:
+          - pattern-either:
+              - pattern: hashlib.md5
+              - pattern: hashlib.sha1
+          - pattern-not-inside: hashlib.$ANY(...)
+      - patterns:
+          - pattern-either:
+              - pattern: hashlib.pbkdf2_hmac("$HASH", ...)
+              - pattern: hmac.new($KEY, $MESSAGE, "$HASH")
+          - metavariable-regex: {metavariable: $HASH, regex: '(?i)^(md4|md5|sha1)$'}
   - id: weak-crypto-csharp
     languages: [csharp]
     severity: ERROR
@@ -41,3 +51,7 @@ rules:
               metavariable: $ALGORITHM
               regex: ^(MD5|SHA1|DES|TripleDES|RC2)(CryptoServiceProvider|Managed|Cng)$|^HMAC(MD5|SHA1)$
       - pattern: CipherMode.ECB
+      - pattern: $CIPHER.EncryptEcb(...)
+      - pattern: $CIPHER.DecryptEcb(...)
+      - pattern: HashAlgorithmName.MD5
+      - pattern: HashAlgorithmName.SHA1

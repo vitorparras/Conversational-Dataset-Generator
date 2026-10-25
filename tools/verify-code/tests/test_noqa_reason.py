@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import re
 import tempfile
+import tomllib
 import unittest
 from pathlib import Path
 
@@ -14,6 +16,17 @@ from . import support
 ROOT = support.VERIFY_CODE.parents[1]
 SOURCE = "language-service/tests/unit/test_zqx.py"
 CALL = "subprocess.run(command)"
+
+
+GLOBAL_IGNORES = {"ignore", "extend-ignore", "extend-per-file-ignores"}
+SECURITY_PREFIX = re.compile(r"^S\d*$")
+
+
+def security_ignores(ignores: dict[str, list[str]]) -> dict[str, list[str]]:
+    """The per-file ignores that name a ruff security code or prefix (S, S6, S603...)."""
+    return {
+        glob: codes for glob, codes in ignores.items() if any(map(SECURITY_PREFIX.match, codes))
+    }
 
 
 class NoqaReasonTests(unittest.TestCase):
@@ -50,6 +63,16 @@ class NoqaReasonTests(unittest.TestCase):
 
         self.assertTrue(found.ok, found.details)
 
+    def test_an_uppercase_noqa_still_needs_a_reason(self) -> None:
+        found = self.lint_with(f"{CALL}  # NOQA: S603")
+
+        self.assertFalse(found.ok)
+
+    def test_a_file_wide_noqa_fails_even_naming_the_rule(self) -> None:
+        found = self.lint_with("# ruff: noqa: S603 the whole file starts fixed commands")
+
+        self.assertIn(f"{SOURCE}:2: `ruff: noqa` cala o arquivo inteiro", found.details)
+
     def test_a_noqa_of_other_rules_needs_no_reason(self) -> None:
         found = self.lint_with(f"{CALL}  # noqa: SIM115, E501")
 
@@ -82,6 +105,19 @@ class RuffConfigurationTests(unittest.TestCase):
 
     def test_the_service_tests_skip_only_the_assert_rule(self) -> None:
         self.assertIn('"language-service/tests/**" = ["S101"]', self.text)
+
+    def test_no_per_file_ignore_but_the_two_declared_touches_a_security_rule(self) -> None:
+        lint = tomllib.loads(self.text)["lint"]
+
+        self.assertEqual(
+            security_ignores(lint["per-file-ignores"]),
+            {"tools/**": ["S"], "language-service/tests/**": ["S101"]},
+        )
+
+    def test_no_global_ignore_can_turn_a_security_rule_off(self) -> None:
+        lint = tomllib.loads(self.text)["lint"]
+
+        self.assertEqual(GLOBAL_IGNORES & lint.keys(), set())
 
 
 if __name__ == "__main__":

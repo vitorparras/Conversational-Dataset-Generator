@@ -43,7 +43,7 @@ public sealed class LogFileTests
         var cancellationToken = TestContext.Current.CancellationToken;
         using var directory = new TemporaryDirectory();
         var path = Path.Combine(directory.Path, "ZQX-MISSING-7731", LogFileName);
-        var installation = WithLogFile(HostInstallation.Built(HostProcess.FreeAddress()), path);
+        var installation = HostInstallation.Built(HostProcess.FreeAddress()).WithLogFile(path);
 
         var exit = await HostProcess.RunToExitAsync(installation, HostProcess.StartupTimeout, cancellationToken);
 
@@ -109,10 +109,7 @@ public sealed class LogFileTests
     {
         var address = HostProcess.FreeAddress();
         using var host = await HostProcess.StartAsync(
-            WithLogFile(HostInstallation.Built(address), path), address, HostProcess.StartupTimeout, cancellationToken);
+            HostInstallation.Built(address).WithLogFile(path), address, HostProcess.StartupTimeout, cancellationToken);
         return await host.StopAsync();
     }
-
-    private static HostInstallation WithLogFile(HostInstallation installation, string path) =>
-        installation with { Arguments = [.. installation.Arguments, $"--Host:LogFile={path}"] };
 }

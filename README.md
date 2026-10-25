@@ -132,6 +132,12 @@ o `uv` não resolve o ambiente do serviço.
 A chave opcional `Host:LogFile` grava o registro também no arquivo que ela nomeia, em caminho
 absoluto ou relativo à pasta do executável, com as linhas e a redação do console. Sem ela, o
 registro vai só ao console; com ela, um arquivo que não abre para escrita impede a inicialização.
+Se a escrita no arquivo falhar depois, por disco cheio, o núcleo avisa uma vez na saída de erro e
+segue registrando só no console.
+
+SIGTERM ou CTRL+C encerra o núcleo: ele conclui as requisições em curso, encerra o serviço de
+linguagem, fecha o registro e sai com código 0. Uma conferência de inicialização que falha sai com
+69, e a configuração recusada, com 78.
 
 Com o núcleo de pé, `http://127.0.0.1:5080/status` responde `alive`, `ready` e `checks[]`, com o
 resultado de cada conferência de inicialização, e `http://127.0.0.1:5080/versions` responde a

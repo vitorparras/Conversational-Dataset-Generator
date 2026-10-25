@@ -17,11 +17,7 @@ internal static class CompositionRoot
 {
     internal static async Task<HostLaunch> BuildAsync(string[] args)
     {
-        var loaded = ClosedConfiguration.Load(
-            new ConfigurationSchema([HostConfiguration.Section, LanguageServiceConfiguration.Section, RecognizerConfiguration.Section]),
-            new JsonFileSource(HostConfiguration.SettingsPath),
-            EnvironmentSource.FromProcess(),
-            new StrictArgumentsSource(args));
+        var loaded = Load(args);
         if (loaded.Refused)
         {
             return HostLaunch.Refused(loaded.Problems);
@@ -44,7 +40,7 @@ internal static class CompositionRoot
                 return HostLaunch.CheckFailed(report);
             }
 
-            var launch = HostLaunch.Ready(Assemble(loaded, report, startup, analyzeTimeout.Value));
+            var launch = HostLaunch.Ready(Assemble(Prepared(loaded, fileLog, analyzeTimeout.Value), report, startup));
             startup = null;
             fileLog = null;
             return launch;
@@ -59,6 +55,14 @@ internal static class CompositionRoot
             fileLog?.Dispose();
         }
     }
+
+    /// <summary>The closed configuration of the host: the file beside it, the process environment and the strict arguments.</summary>
+    private static ConfigurationLoadResult Load(string[] args) =>
+        ClosedConfiguration.Load(
+            new ConfigurationSchema([HostConfiguration.Section, LanguageServiceConfiguration.Section, RecognizerConfiguration.Section]),
+            new JsonFileSource(HostConfiguration.SettingsPath),
+            EnvironmentSource.FromProcess(),
+            new StrictArgumentsSource(args));
 
     /// <summary>
     /// Logging with redaction before anything else, then every service the routes consume. The host's container owns
@@ -94,7 +98,8 @@ internal static class CompositionRoot
     /// <summary>The file the configuration names, relative to the binary's directory; null when absent or when it cannot be opened.</summary>
     private static FileLoggerProvider? OpenFileLog(ConfigurationLoadResult loaded) =>
         loaded.Values.TryGetValue(HostConfiguration.LogFilePath, out var path)
-            ? FileLoggerProvider.Open(Path.Combine(AppContext.BaseDirectory, path), new LineConsoleFormatter(TimeProvider.System))
+            ? FileLoggerProvider.Open(
+                Path.Combine(AppContext.BaseDirectory, path), new LineConsoleFormatter(TimeProvider.System), Console.Error)
             : null;
 
     /// <summary>A check on the log file only when the configuration names one; without it the log goes to the console alone.</summary>
@@ -144,13 +149,20 @@ internal static class CompositionRoot
         }
     }
 
-    private static WebApplication Assemble(ConfigurationLoadResult loaded, StartupReport report, ServiceProvider startup, TimeSpan analyzeTimeout)
+    /// <summary>The web host with everything the configuration decides: its address, logging, the file destination and the recognizer.</summary>
+    private static WebApplicationBuilder Prepared(ConfigurationLoadResult loaded, ILoggerProvider? fileLog, TimeSpan analyzeTimeout)
     {
         var builder = ClosedBuilder(loaded.Values[HostConfiguration.UrlsPath]);
-        Compose(builder, loaded.View, startup.GetService<FileLoggerProvider>());
+        Compose(builder, loaded.View, fileLog);
+        AddRecognizer(builder.Services, loaded.Values, analyzeTimeout);
+        return builder;
+    }
+
+    /// <summary>What the checks produced, adopted by the host: the report the routes show and the startup container, which stops the service when the host does.</summary>
+    private static WebApplication Assemble(WebApplicationBuilder builder, StartupReport report, ServiceProvider startup)
+    {
         _ = builder.Services.AddSingleton(report);
         _ = builder.Services.AddSingleton(_ => startup);
-        AddRecognizer(builder.Services, loaded.Values, analyzeTimeout);
         var versions = new VersionReport(BuildInfo.Of(typeof(CompositionRoot).Assembly));
         _ = builder.Services.AddSingleton(versions);
 

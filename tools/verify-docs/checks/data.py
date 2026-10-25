@@ -15,7 +15,7 @@ SENSITIVE_PATTERNS: tuple[tuple[str, str], ...] = (
     (r"\(\d{2}\)\s?9?\d{4}-\d{4}", "possível telefone"),
     (r"\b[A-Za-z0-9._%+-]+@(?!exemplo\.|example\.)[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b", "e-mail"),
     (r"\b[A-Za-z]:[\\/](?:Users|Repos|Program Files)\b", "caminho absoluto de máquina"),
-    (r"/(?:home|Users)/[a-z][a-z0-9_-]+/", "caminho absoluto de máquina"),
+    (r"/(?:home|Users)/[A-Za-z0-9._-]+/", "caminho absoluto de máquina"),
     (r"\bgh[pousr]_[A-Za-z0-9]{16,}", "token do GitHub"),
     (r"\bsk-[A-Za-z0-9]{20,}", "chave de API"),
     (r"\bAKIA[0-9A-Z]{16}\b", "chave de acesso AWS"),

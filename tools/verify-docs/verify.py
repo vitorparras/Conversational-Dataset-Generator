@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """Verifies the repository documentation. Runs in CI on every pull request.
 
-Seven checks, in this order of severity (one module each, under checks/):
+Eight checks, in this order of severity (one module each, under checks/):
 
 1. data        - personal data and secrets: document ids, contacts, keys, machine paths
 2. references  - a path cited in the documentation that does not exist in the repository
-3. links       - an internal link that does not resolve
-4. authority   - every document says whether it binds or not
-5. formatting  - simple consistency rules
-6. size        - line ceiling per document
-7. index       - every document appears in the index of its own folder
+3. identifiers - a code name cited in the documentation that the code does not declare
+4. links       - an internal link that does not resolve
+5. authority   - every document says whether it binds or not
+6. formatting  - simple consistency rules
+7. size        - line ceiling per document
+8. index       - every document appears in the index of its own folder
 
 Usage:
     python tools/verify-docs/verify.py                    # everything

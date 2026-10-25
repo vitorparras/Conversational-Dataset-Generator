@@ -8,6 +8,7 @@ from pathlib import Path
 from checks.authority import check_authority
 from checks.data import check_data
 from checks.formatting import check_formatting
+from checks.identifiers import check_identifiers
 from checks.links import check_links
 from checks.references import check_references
 from checks.size import check_size
@@ -19,6 +20,7 @@ CheckFunction = Callable[[Path, Path, list[str]], list[Finding]]
 PER_DOCUMENT: dict[str, CheckFunction] = {
     "data": check_data,
     "references": check_references,
+    "identifiers": check_identifiers,
     "links": check_links,
     "authority": check_authority,
     "formatting": check_formatting,

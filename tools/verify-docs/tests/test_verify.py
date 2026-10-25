@@ -108,7 +108,16 @@ class VerifyDocsTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertEqual(
             output.split(),
-            ["data", "references", "links", "authority", "formatting", "size", "index"],
+            [
+                "data",
+                "references",
+                "identifiers",
+                "links",
+                "authority",
+                "formatting",
+                "size",
+                "index",
+            ],
         )
 
     # --- personal data and machine paths -------------------------------------------
@@ -146,6 +155,22 @@ class VerifyDocsTests(unittest.TestCase):
         self.write("docs/001-posix.md", VALID_DOC + "\nArquivo em /Users/usuario_x/notas\n")
         code, output = run_verifier(self.root, "--only", "data")
         self.assertEqual(code, 1, output)
+
+    def test_posix_home_path_with_capitals_and_digits_fails(self) -> None:
+        self.write("docs/001-posix.md", VALID_DOC + "\nArquivo em /home/PESSOA_1/notas\n")
+        code, output = run_verifier(self.root, "--only", "data")
+        self.assertEqual(code, 1, output)
+        self.assertIn("caminho absoluto de máquina", output)
+
+    def test_posix_users_path_with_capitals_and_hyphen_fails(self) -> None:
+        self.write("docs/001-posix.md", VALID_DOC + "\nArquivo em /Users/ZQX-Usuario/notas\n")
+        code, output = run_verifier(self.root, "--only", "data")
+        self.assertEqual(code, 1, output)
+
+    def test_posix_path_outside_home_and_users_passes(self) -> None:
+        self.write("docs/001-posix.md", VALID_DOC + "\nArquivo em /opt/PESSOA_1/notas\n")
+        code, output = run_verifier(self.root, "--only", "data")
+        self.assertEqual(code, 0, output)
 
     def test_secret_inside_code_block_still_fails(self) -> None:
         # nosemgrep: secret-literal-python a fake token built to prove the secret pattern fails

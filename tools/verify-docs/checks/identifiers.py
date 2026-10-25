@@ -21,7 +21,16 @@ SKIPPED_FOLDERS = frozenset(
 )
 
 #: Platform names (.NET, MSBuild, analyzer options) the documents cite and no file here declares.
-PLATFORM_NAMES = frozenset({"DiagnosticSuppressor", "NoWarn", "ResourceManager", "generated_code"})
+PLATFORM_NAMES = frozenset(
+    {
+        "DiagnosticSuppressor",
+        "NoWarn",
+        "ResourceManager",
+        "__pycache__",
+        "generated_code",
+        "ru_maxrss",
+    }
+)
 
 _NAME = r"[A-Za-z_]\w*"
 

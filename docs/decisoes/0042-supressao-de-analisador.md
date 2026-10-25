@@ -1,6 +1,6 @@
 # 0042 — Nenhum analisador se suprime em `core/src`
 
-> Decisão vigente. 2026-10-16, decisão do operador; emendada em 2026-10-18.
+> Decisão vigente. 2026-10-16, decisão do operador; emendada em 2026-10-18 e 2026-10-25.
 
 ## Contexto
 
@@ -17,18 +17,16 @@ Em `core/src` nenhum analisador se suprime no código: nem `#pragma warning disa
 código gerado. A única exceção é RS0030 nas classes `*LogMessages`, com `Justification`.
 
 Uma regra de analisador só se desliga no `.editorconfig` da raiz, com o motivo escrito numa linha
-de comentário logo acima: S1309, S1451 e S4055 em todo `*.cs`; qualquer outra só numa seção que
-nomeia o arquivo. Hoje são três:
+de comentário logo acima: S1309, S1451 e S4055 em todo `*.cs` (S4055 pede `ResourceManager`, mas a
+decisão 0039 fixa um idioma só); qualquer outra só numa seção que nomeia o arquivo. Hoje são quatro:
 
 - S6585 em `core/src/Core.Platform/Logging/LineConsoleFormatter.cs`: o registro é lido por máquina,
   em formato fixo;
 - S1200 em `core/src/Core.Host/CompositionRoot.cs`: a raiz depende de todos os serviços por
   definição, e a regra 3 a faz a única a construí-los;
 - S1312 em `core/src/Core.Host/Supervision/LanguageServiceSupervisor.cs`: a DI injeta o logger, que
-  não pode ser estático.
-
-S4055 pede texto vindo de `ResourceManager`, mas a
-decisão 0039 fixa um idioma só e tradução sem requisito seria YAGNI.
+  não pode ser estático;
+- CA2100 em `core/src/Core.Persistence/Migrations/StepCommand.cs`: o texto é recurso embutido.
 
 O compilador recebe só o `.editorconfig` da raiz e os configs do SDK. Os arquivos que o SDK gera
 e os supressores que o SDK traz são exceções nomeadas, cada uma com o motivo, no teste.

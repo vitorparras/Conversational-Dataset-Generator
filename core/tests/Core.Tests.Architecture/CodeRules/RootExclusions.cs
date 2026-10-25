@@ -50,7 +50,7 @@ internal sealed partial class RootExclusions
     private bool IsTheFile(string header, string source) =>
         SamePaths.Are(Path.Combine(directory, header), source);
 
-    [GeneratedRegex(@"^dotnet_diagnostic\.(?<id>S\d+)\.severity = none$")]
+    [GeneratedRegex(@"^dotnet_diagnostic\.(?<id>(S|CA)\d+)\.severity = none$")]
     private static partial Regex Switch();
 
     [GeneratedRegex(@"^\[(?<name>.+)\]$")]

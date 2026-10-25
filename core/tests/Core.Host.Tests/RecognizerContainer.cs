@@ -16,7 +16,7 @@ internal static class RecognizerContainer
     {
         var startup = new ServiceCollection().AddSingleton(client).AddSingleton(supervisor).BuildServiceProvider();
         var services = new ServiceCollection().AddLogging().AddSingleton(_ => startup);
-        CompositionRoot.AddRecognizer(services, values, TimeSpan.FromSeconds(30));
+        CompositionRoot.AddAnalysis(services, values, TimeSpan.FromSeconds(30));
         return services.BuildServiceProvider();
     }
 }

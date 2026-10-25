@@ -129,6 +129,13 @@ internal sealed class HostProcess : IDisposable
     public Task<HttpResponseMessage> GetAsync(string route, CancellationToken cancellationToken) =>
         client.GetAsync(new Uri(route, UriKind.Relative), cancellationToken);
 
+    /// <summary>Posts the JSON body to the route.</summary>
+    public async Task<HttpResponseMessage> PostAsync(string route, string json, CancellationToken cancellationToken)
+    {
+        using var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+        return await client.PostAsync(new Uri(route, UriKind.Relative), content, cancellationToken);
+    }
+
     public void Dispose()
     {
         Kill();

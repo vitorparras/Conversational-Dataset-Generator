@@ -24,6 +24,7 @@ conta na área do projeto ou pacote que o contém, pelo prefixo mais longo que c
 | Registro do núcleo | `Core.Platform.Logging` | 90 % | Crítica: classifica e redige o que vai ao registro (requisito 021) |
 | Deslocamento de texto | `Core.Boundary.Text` | 90 % | Crítica: única aritmética de índice sobre texto do serviço (requisito 009) |
 | Reconhecedor HTTP | `Core.Boundary.Http` | 90 % | Crítica: texto não sanitizado cruza o processo e a resposta é validada aqui (decisão 0018) |
+| Análise do material | `Core.Host.Analysis` | 90 % | Crítica: leva o texto ao reconhecedor e decide o que a recusa registra e devolve (requisito 021) |
 | Contrato da fronteira | `Core.Boundary.Contracts` | 90 % | Crítica: a forma JSON recusa campo desconhecido ou nulo no texto que cruza o processo (decisão 0018) |
 | Migração do esquema | `Core.Persistence.Migrations` | 90 % | Crítica: altera o esquema do banco; erro corrompe custódia (requisito 019) |
 | Autenticação do serviço | `language_service.auth` | 90 % | Crítica: guarda o segredo que protege texto não sanitizado (decisão 0011) |
@@ -53,8 +54,7 @@ módulo e o tempo gasto, nunca lentidão tolerada. Mutação fora do bloqueio s�
 ## Como um piso muda
 
 Subir um piso ou acrescentar área é mudança deste documento, revisada como qualquer outra. Módulo
-novo que atende ao critério entra na tabela no mesmo pull request que o cria.
-
-Baixar um piso exige decisão escrita em `docs/decisoes/`, com a justificativa e o que mudou para que
-o valor anterior não valha mais. A decisão entra antes, em pull request próprio, nunca no mesmo que
-faz a cobertura cruzar o piso para baixo.
+novo que atende ao critério entra na tabela no mesmo pull request que o cria. Baixar um piso exige
+decisão escrita em `docs/decisoes/`, com a justificativa e o que mudou para que o valor anterior
+não valha mais. A decisão entra antes, em pull request próprio, nunca no mesmo que faz a cobertura
+cruzar o piso para baixo.

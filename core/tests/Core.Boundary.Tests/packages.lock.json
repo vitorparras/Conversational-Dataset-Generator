@@ -322,13 +322,13 @@
       "core.boundary": {
         "type": "Project",
         "dependencies": {
-          "Core.Boundary.Contracts": "[1.0.0, )"
+          "Core.Boundary.Contracts": "[0.1.0, )"
         }
       },
       "core.boundary.contracts": {
         "type": "Project",
         "dependencies": {
-          "Core.Platform": "[1.0.0, )"
+          "Core.Platform": "[0.1.0, )"
         }
       },
       "core.platform": {

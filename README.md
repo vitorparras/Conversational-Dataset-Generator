@@ -70,11 +70,15 @@ varredura, o `semgrep --test` confere cada regra contra os exemplos marcados em
 `nosemgrep: <regra> <motivo>` num comentário na linha ou na anterior; em `core/src`, nunca.
 
 O passo `package` clona o commit de HEAD duas vezes numa pasta temporária, nunca a árvore de
-trabalho, e publica o núcleo em cada cópia com restauração travada e a propriedade
-ContinuousIntegrationBuild, que troca o caminho da cópia por um fixo. Reprova se um arquivo
-publicado diferir entre as duas, nomeado pelo caminho relativo, ou se o executável não declarar o
-commit e a árvore limpa. Fora do passo, `core/Directory.Build.props` só liga essa propriedade na
-CI, e a depuração local vê os caminhos reais.
+trabalho, e publica em cada cópia o executável único de `linux-x64` e o de `win-x64`, com
+restauração travada e a propriedade ContinuousIntegrationBuild, que troca o caminho da cópia por
+um fixo. Reprova se um arquivo publicado diferir entre as duas, nomeado pelo caminho relativo; se a
+pasta de um alvo tiver algo além do executável e do arquivo de configuração
+`core/src/Core.Host/appsettings.json`; se o executável não declarar o commit, a árvore limpa e o
+alvo, ou não carregar a plataforma de execução; ou se o núcleo construído para um alvo diferente da
+máquina, e rodado nela, não recusar subir com o código 69. Fora do passo,
+`core/Directory.Build.props` só liga essa propriedade na CI, e a depuração local vê os caminhos
+reais.
 Na CI, o mesmo job repete o passo sem rede, com o cache HTTP do NuGet vazio: a construção só usa
 pacotes já baixados. Por isso `core/Directory.Packages.props` deixa a auditoria do NuGet desligada:
 ela consulta a fonte quando o cache de vulnerabilidades vence, em cerca de 30 minutos.
@@ -140,18 +144,39 @@ linguagem, fecha o registro e sai com código 0. Uma conferência de inicializa�
 69, e a configuração recusada, com 78.
 
 Com o núcleo de pé, `http://127.0.0.1:5080/status` responde `alive`, `ready`, `recognizer`,
-`languageService` e `checks[]`: o reconhecedor em vigor, o estado atual do serviço de linguagem e o
-resultado de cada conferência de inicialização. Se o processo do serviço termina, `languageService`
-passa a `Unavailable` e `ready` a falso, e o núcleo não o reinicia sozinho. Com `fake`, nenhum
-serviço é vigiado: `languageService` é `null`, e `ready` depende só das conferências.
+`languageService`, `checkedAt` e `checks[]`: o reconhecedor em vigor, o estado atual do serviço
+de linguagem, quando as conferências terminaram e o resultado de cada conferência de
+inicialização. Se o processo do serviço termina, `languageService` passa a `Unavailable` e `ready`
+a falso, e o núcleo não o reinicia sozinho. Com `fake`, nenhum serviço é vigiado: `languageService`
+é `null`, e `ready` depende só das conferências.
 `http://127.0.0.1:5080/versions` responde a versão do núcleo, o commit de que ele foi construído e
 se a árvore tinha mudança não registrada (`workingTree`, que vale `Unknown` se a construção não
 conseguiu perguntar ao `git`); versão que o núcleo não obteve vem `null`, nunca vazia, e a mesma
 lista sai no registro, na linha `Versões em execução`.
 
+Publicado para um alvo, o núcleo é um executável único, com a plataforma de execução dentro dele, e
+só o `core/src/Core.Host/appsettings.json` ao lado; o `.github/workflows/package.yml`, disparado à
+mão, guarda os dois como artefatos do workflow. O mesmo, para `linux-x64`, a partir da raiz:
+
+```
+dotnet restore core/src/Core.Host/Core.Host.csproj --locked-mode -p:RuntimeIdentifier=linux-x64
+dotnet publish core/src/Core.Host/Core.Host.csproj --no-restore --configuration Release \
+  -p:ContinuousIntegrationBuild=true --runtime linux-x64 --output publish/linux-x64
+```
+
+O executável grava o alvo para o qual foi publicado e, posto num destino de outra arquitetura,
+como `win-x64` sob emulação num Windows ARM, recusa subir com o código 69, nomeando o alvo e o
+destino. Tamanho e tempo de subida medidos estão em
+[002](docs/historico/002-medidas-do-artefato.md).
+
 O teste de arquitetura em `core/tests/Core.Tests.Architecture` impõe as regras de código a cada
 construção; as fixtures que ele reprova de propósito ficam em `core/tests/fixtures/code-rules`, fora
 de qualquer projeto.
+
+Com as chaves `Database:Host`, `Database:Name` e `Database:Username` e a senha em
+`CDG_DATABASE__PASSWORD`, o núcleo confere as garantias do banco com o papel `app` antes do serviço
+de linguagem e recusa iniciar se faltar alguma; sem `Database:Host`, a conferência `Database`
+aparece como `NotConfigured`.
 
 ## Banco de dados de desenvolvimento
 

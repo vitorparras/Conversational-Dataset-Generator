@@ -10,7 +10,7 @@ internal static class StartupRefusal
         output.WriteLine("O processo não iniciou: uma conferência de inicialização falhou.");
         if (startup.FirstFailure is { } failure)
         {
-            output.WriteLine($"  - {failure.Name}: {failure.Message} (origem esperada: {failure.ExpectedSource})");
+            output.WriteLine($"  - {failure.Name}: {failure.Message} (origem esperada: {failure.ExpectedSource}; observado: {failure.Observed ?? "nada"})");
         }
 
         return ExitCode.StartupCheckFailed;

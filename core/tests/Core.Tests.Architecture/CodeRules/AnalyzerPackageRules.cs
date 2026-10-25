@@ -19,6 +19,8 @@ internal static class AnalyzerPackageRules
         // Generators of the options validation and of the telemetry logging the platform uses.
         "Microsoft.Extensions.Options",
         "Microsoft.Extensions.Telemetry.Abstractions",
+        // Trim analyzers the SDK restores once the host publishes self-contained in one file; every project pins it in its lock.
+        "Microsoft.NET.ILLink.Tasks",
     ];
 
     /// <summary>Each analyzer is from the SDK, or from an accepted package whose version and hash are the ones the lock pins.</summary>

@@ -3,8 +3,21 @@
     <OutputType>Exe</OutputType>
   </PropertyGroup>
 
+  <!--
+    Published for a target, the executable carries the runtime and every native library inside one file; beside it
+    goes only the settings file. The IIS configuration and the static web assets manifest serve nothing here.
+  -->
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' != ''">
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <IsTransformWebConfigDisabled>true</IsTransformWebConfigDisabled>
+    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Core.Boundary\Core.Boundary.csproj" />
+    <ProjectReference Include="..\Core.Persistence\Core.Persistence.csproj" />
     <ProjectReference Include="..\Core.Platform\Core.Platform.csproj" />
   </ItemGroup>
 

@@ -8,6 +8,12 @@
         "resolved": "5.6.0",
         "contentHash": "Kcobt3pnOdO0A+6CKiMHZdTEluJpsfxiV20axtZdmfBQnDmiWTKPJADlgAfdTuKNAnVarrkJa0UEGwuOo91muw=="
       },
+      "Microsoft.NET.ILLink.Tasks": {
+        "type": "Direct",
+        "requested": "[10.0.12, )",
+        "resolved": "10.0.12",
+        "contentHash": "xi+BDjFpW+Sb+MHFHaH6Y/gV9I8BluFwRXc1QyCdoZbIK26eNiBeFuMTe/FMwc33G1wdHCyDg7CVTmb8OdQrMQ=="
+      },
       "SonarAnalyzer.CSharp": {
         "type": "Direct",
         "requested": "[10.35.0.4138, )",
@@ -32,13 +38,20 @@
       "core.boundary": {
         "type": "Project",
         "dependencies": {
-          "Core.Boundary.Contracts": "[1.0.0, )"
+          "Core.Boundary.Contracts": "[0.1.0, )"
         }
       },
       "core.boundary.contracts": {
         "type": "Project",
         "dependencies": {
-          "Core.Platform": "[1.0.0, )"
+          "Core.Platform": "[0.1.0, )"
+        }
+      },
+      "core.persistence": {
+        "type": "Project",
+        "dependencies": {
+          "Core.Platform": "[0.1.0, )",
+          "Npgsql": "[10.0.3, )"
         }
       },
       "core.platform": {
@@ -76,7 +89,15 @@
         "dependencies": {
           "Microsoft.Extensions.Compliance.Abstractions": "10.11.0"
         }
+      },
+      "Npgsql": {
+        "type": "CentralTransitive",
+        "requested": "[10.0.3, )",
+        "resolved": "10.0.3",
+        "contentHash": "7nb5YzXuvWWJxB0J8DiyL3we+X4FOctZrt0fIBnucOIaIevFEEwGQVZKtiu9olXdlNAK1eNgqSral6r/jlhI4w=="
       }
-    }
+    },
+    "net10.0/linux-x64": {},
+    "net10.0/win-x64": {}
   }
 }

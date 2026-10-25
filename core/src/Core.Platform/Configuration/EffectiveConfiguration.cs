@@ -15,5 +15,5 @@ public sealed class EffectiveConfiguration
     public IReadOnlyList<EffectiveEntry> Entries { get; }
 
     private static EffectiveEntry Shown(ResolvedValue resolved) =>
-        new(resolved.Declared.Path, resolved.Declared.Key.IsSensitive ? Redacted : resolved.Value, resolved.Origin);
+        new(resolved.Declared.Path, resolved.Declared.Key.IsSensitive && resolved.Value is not null ? Redacted : resolved.Value, resolved.Origin);
 }

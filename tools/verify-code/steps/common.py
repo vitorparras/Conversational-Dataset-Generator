@@ -16,6 +16,7 @@ OUTPUT_DIRECTORY = ".verify-code"
 TELEMETRY_OPT_OUT = ("DOTNET_CLI_TELEMETRY_OPTOUT", "1")
 COMMAND_TIMEOUT_SECONDS = 1800
 OUTPUT_TAIL_LINES = 30
+REAP_SECONDS = 5
 
 
 @dataclass(frozen=True)
@@ -92,8 +93,14 @@ def run_process(
         stdout, stderr = process.communicate(timeout=seconds)
     except subprocess.TimeoutExpired:
         _kill_tree(process)
-        process.communicate()
+        with contextlib.suppress(subprocess.TimeoutExpired):
+            process.communicate(timeout=REAP_SECONDS)
+        _close_pipes(process)
         return CommandOutcome(False, f"'{command[0]}' passou de {seconds:.0f} s e foi interrompido")
+    except BaseException:
+        _kill_tree(process)
+        _close_pipes(process)
+        raise
     return CommandOutcome(process.returncode == 0, stdout + stderr, process.returncode)
 
 
@@ -116,6 +123,14 @@ def _kill_tree(process: subprocess.Popen[str]) -> None:
         with contextlib.suppress(ProcessLookupError):
             os.killpg(process.pid, signal.SIGKILL)
     process.kill()
+    with contextlib.suppress(subprocess.TimeoutExpired):
+        process.wait(timeout=REAP_SECONDS)
+
+
+def _close_pipes(process: subprocess.Popen[str]) -> None:
+    for stream in (process.stdout, process.stderr):
+        if stream is not None:
+            stream.close()
 
 
 def tail(text: str) -> tuple[str, ...]:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -20,6 +21,19 @@ class CommonTests(unittest.TestCase):
 
         self.assertFalse(outcome.ok)
         self.assertIn("não está no PATH", outcome.text)
+
+    def test_a_command_past_its_limit_is_cut_and_says_so(self) -> None:
+        sleeper = [sys.executable, "-c", "import time; time.sleep(30)"]
+
+        outcome = common.run_process(sleeper, self.root, 1.0)
+
+        self.assertFalse(outcome.ok)
+        self.assertIn("passou de 1 s e foi interrompido", outcome.text)
+
+    def test_a_context_runs_commands_with_a_limit_through_the_process_runner(self) -> None:
+        context = common.Context(self.root, self.root, common.run_process)
+
+        self.assertIs(context.run_for, common.run_process)
 
     def test_child_environment_adds_the_telemetry_opt_out(self) -> None:
         environment = common.child_environment({"OTHER": "kept"})

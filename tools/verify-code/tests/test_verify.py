@@ -34,6 +34,7 @@ WITHOUT_BASE = [
     "lint_service",
     "properties",
     "package",
+    "mutation",
     "secrets",
     "trivy",
     "static_analysis",

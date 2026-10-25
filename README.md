@@ -79,6 +79,18 @@ Na CI, o mesmo job repete o passo sem rede, com o cache HTTP do NuGet vazio: a c
 pacotes já baixados. Por isso `core/Directory.Packages.props` deixa a auditoria do NuGet desligada:
 ela consulta a fonte quando o cache de vulnerabilidades vence, em cerca de 30 minutos.
 
+O passo `mutation` roda o teste de mutação sobre exatamente as áreas que a seção "Mutação" de
+`docs/operacao/014-modulos-criticos-e-pisos.md` declara críticas e julga, pelos números dela, a
+parcela de sobreviventes por módulo e o tempo por linguagem. Cada sobrevivente sai com arquivo,
+linha e alteração. No núcleo roda o Stryker.NET fixado em `core/dotnet-tools.json`; no serviço,
+o mutmut de `language-service/uv.lock`, que exige o `uv` de
+`tools/verify-code/service-requirements.txt` e **só roda no Linux**: em outra plataforma o passo
+pula o serviço com aviso. A configuração das duas ferramentas é gerada a cada execução na pasta de
+saída do verificador, a partir da tabela; uma seção `[tool.mutmut]` em
+`language-service/pyproject.toml`, ou noutro arquivo igual do serviço, reprova, porque o mutmut a
+leria no lugar dela. Cada linguagem é cortada no teto. Com a máquina livre, o passo soma cerca de
+4 minutos à execução sem argumento.
+
 ## Núcleo
 
 O núcleo é uma solução .NET em `core/Core.slnx`. A versão exata do SDK está em `global.json`, e a

@@ -24,6 +24,7 @@ from steps import (
     format_core,
     lint_service,
     lint_tools,
+    mutation,
     package,
     pr_size,
     properties,
@@ -61,6 +62,7 @@ STEPS: tuple[StepSpec, ...] = (
     StepSpec(lint_service.NAME, lint_service.run),
     StepSpec(properties.NAME, properties.run),
     StepSpec(package.NAME, package.run),
+    StepSpec(mutation.NAME, mutation.run),
     StepSpec(secrets.NAME, secrets.run),
     StepSpec(trivy.NAME, trivy.run),
     StepSpec(static_analysis.NAME, static_analysis.run),
@@ -116,7 +118,7 @@ def main(argv: list[str] | None = None) -> int:
     if unknown:
         print(f"passo desconhecido: {', '.join(unknown)} (veja --list)")
         return 2
-    ctx = Context(ROOT, ROOT / OUTPUT_DIRECTORY, run_process, args.base, args.previous)
+    ctx = Context(ROOT, ROOT / OUTPUT_DIRECTORY, run_process, args.base, args.previous, run_process)
     try:
         return report(run_steps(select(args.step, args.base is not None), ctx))
     except Exception as error:  # last level: a defect must still print a readable line

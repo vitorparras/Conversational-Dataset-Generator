@@ -6,7 +6,7 @@ import os
 import shutil
 import subprocess
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 OUTPUT_DIRECTORY = ".verify-code"
@@ -24,6 +24,7 @@ class CommandOutcome:
 
 
 RunCommand = Callable[[Sequence[str], Path], CommandOutcome]
+RunFor = Callable[[Sequence[str], Path, float], CommandOutcome]
 
 
 @dataclass(frozen=True)
@@ -35,6 +36,7 @@ class Context:
     run: RunCommand
     base: str | None = None
     previous: Path | None = None
+    run_for: RunFor = field(default_factory=lambda: run_process)
 
 
 @dataclass(frozen=True)
@@ -62,8 +64,10 @@ def child_environment(parent: Mapping[str, str]) -> dict[str, str]:
     return environment
 
 
-def run_process(command: Sequence[str], cwd: Path) -> CommandOutcome:
-    """Runs a command and captures its output; a missing tool or a timeout is a failed outcome."""
+def run_process(
+    command: Sequence[str], cwd: Path, seconds: float = COMMAND_TIMEOUT_SECONDS
+) -> CommandOutcome:
+    """Runs a command for at most ``seconds``; a missing tool or a timeout is a failed outcome."""
     try:
         completed = subprocess.run(
             list(command),
@@ -73,7 +77,7 @@ def run_process(command: Sequence[str], cwd: Path) -> CommandOutcome:
             text=True,
             encoding="utf-8",
             errors="replace",
-            timeout=COMMAND_TIMEOUT_SECONDS,
+            timeout=seconds,
             check=False,
         )
     except FileNotFoundError:
@@ -81,9 +85,7 @@ def run_process(command: Sequence[str], cwd: Path) -> CommandOutcome:
             False, f"'{command[0]}' não está no PATH; instale-o para rodar este passo"
         )
     except subprocess.TimeoutExpired:
-        return CommandOutcome(
-            False, f"'{command[0]}' passou de {COMMAND_TIMEOUT_SECONDS} s e foi interrompido"
-        )
+        return CommandOutcome(False, f"'{command[0]}' passou de {seconds:.0f} s e foi interrompido")
     return CommandOutcome(completed.returncode == 0, completed.stdout + completed.stderr)
 
 

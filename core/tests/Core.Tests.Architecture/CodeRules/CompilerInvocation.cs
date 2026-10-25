@@ -14,6 +14,12 @@ internal sealed class CompilerInvocation
 
     public required string ProjectPath { get; init; }
 
+    /// <summary>The name of the assembly the compiler writes.</summary>
+    public required string AssemblyName { get; init; }
+
+    /// <summary>The assemblies of the build's own projects that the compiler is given, by the name each one carries.</summary>
+    public required IReadOnlyList<string> ProjectReferences { get; init; }
+
     public required IReadOnlyList<string> Sources { get; init; }
 
     public required IReadOnlyList<SourceFile> SourceFiles { get; init; }

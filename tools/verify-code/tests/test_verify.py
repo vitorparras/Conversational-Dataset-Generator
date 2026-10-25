@@ -35,6 +35,7 @@ WITHOUT_BASE = [
     "properties",
     "package",
     "mutation",
+    "dependencies",
     "secrets",
     "trivy",
     "static_analysis",

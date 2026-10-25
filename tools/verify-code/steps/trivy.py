@@ -14,7 +14,6 @@ from typing import Any, cast
 from steps import accepted_risks, trivy_binary
 from steps.accepted_risk import Risk
 from steps.common import Context, StepResult, failed, passed, reset_directory, tail
-from steps.risk_registry import Registry
 from steps.trivy_finding import Finding
 from steps.trivy_section import Section
 
@@ -91,7 +90,7 @@ def describe(finding: Finding) -> str:
 
 def judge(findings: tuple[Finding, ...], risks: tuple[Risk, ...]) -> StepResult:
     """Findings no accepted risk covers fail; accepted ones are counted, not hidden."""
-    open_findings = [f for f in findings if not accepted_risks.accepts(risks, f.id, f.subject)]
+    open_findings = [f for f in findings if not accepted_risks.covering(risks, (f.id,), f.subject)]
     accepted = len(findings) - len(open_findings)
     if open_findings:
         return failed(
@@ -102,20 +101,8 @@ def judge(findings: tuple[Finding, ...], risks: tuple[Risk, ...]) -> StepResult:
     return passed(NAME, f"nenhum achado HIGH/CRITICAL em aberto ({accepted} com risco aceito)")
 
 
-def check_registry(ctx: Context, today: date) -> Registry | StepResult:
-    """The registry when it is readable and in date; otherwise the failed result."""
-    registry = accepted_risks.load(ctx.root / accepted_risks.FILE)
-    late = [
-        f"risco aceito venceu em {r.expires}: {r.id} em {r.subject}"
-        for r in accepted_risks.expired(registry.risks, today)
-    ]
-    if registry.problems or late:
-        return failed(NAME, *registry.problems, *late)
-    return registry
-
-
 def scan(ctx: Context, binary: str, today: date) -> StepResult:
-    registry = check_registry(ctx, today)
+    registry = accepted_risks.check(ctx.root, today, NAME)
     if isinstance(registry, StepResult):
         return registry
     folder = ctx.out_dir / REPORT_DIRECTORY

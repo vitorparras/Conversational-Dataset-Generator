@@ -139,12 +139,15 @@ SIGTERM ou CTRL+C encerra o núcleo: ele conclui as requisições em curso, ence
 linguagem, fecha o registro e sai com código 0. Uma conferência de inicialização que falha sai com
 69, e a configuração recusada, com 78.
 
-Com o núcleo de pé, `http://127.0.0.1:5080/status` responde `alive`, `ready` e `checks[]`, com o
-resultado de cada conferência de inicialização, e `http://127.0.0.1:5080/versions` responde a
-versão do núcleo, o commit de que ele foi construído e se a árvore tinha mudança não registrada
-(`workingTree`, que vale `Unknown` se a construção não conseguiu perguntar ao `git`); versão que o
-núcleo não obteve vem `null`, nunca vazia, e a mesma lista sai no registro, na linha
-`Versões em execução`.
+Com o núcleo de pé, `http://127.0.0.1:5080/status` responde `alive`, `ready`, `recognizer`,
+`languageService` e `checks[]`: o reconhecedor em vigor, o estado atual do serviço de linguagem e o
+resultado de cada conferência de inicialização. Se o processo do serviço termina, `languageService`
+passa a `Unavailable` e `ready` a falso, e o núcleo não o reinicia sozinho. Com `fake`, nenhum
+serviço é vigiado: `languageService` é `null`, e `ready` depende só das conferências.
+`http://127.0.0.1:5080/versions` responde a versão do núcleo, o commit de que ele foi construído e
+se a árvore tinha mudança não registrada (`workingTree`, que vale `Unknown` se a construção não
+conseguiu perguntar ao `git`); versão que o núcleo não obteve vem `null`, nunca vazia, e a mesma
+lista sai no registro, na linha `Versões em execução`.
 
 O teste de arquitetura em `core/tests/Core.Tests.Architecture` impõe as regras de código a cada
 construção; as fixtures que ele reprova de propósito ficam em `core/tests/fixtures/code-rules`, fora

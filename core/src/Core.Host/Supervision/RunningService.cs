@@ -23,6 +23,9 @@ internal sealed class RunningService : IDisposable
 
     internal int ExitCode => process.ExitCode;
 
+    /// <summary>Completes when the process ends, whoever ends it.</summary>
+    internal Task WaitForExitAsync() => process.WaitForExitAsync();
+
     /// <summary>Closes the standard input, which tells the service its parent is gone, and kills it if it does not leave.</summary>
     public void Dispose()
     {

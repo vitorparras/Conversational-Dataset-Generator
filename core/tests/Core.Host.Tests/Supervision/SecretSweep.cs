@@ -22,8 +22,15 @@ internal static class SecretSweep
         [
             .. Holding(AppContext.BaseDirectory, secret, since: null),
             .. Holding(LanguageServiceInterpreter.ProjectFolder(), secret, since: null),
-            .. shared.Where(Directory.Exists).SelectMany(folder => Holding(folder, secret, since)),
+            .. Outermost(shared.Where(Directory.Exists)).SelectMany(folder => Holding(folder, secret, since)),
         ];
+    }
+
+    /// <summary>The folders no other of them contains, so a file below two of them is read once, not twice.</summary>
+    private static IEnumerable<string> Outermost(IEnumerable<string> folders)
+    {
+        var full = folders.Select(folder => Path.TrimEndingDirectorySeparator(Path.GetFullPath(folder))).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        return full.Where(folder => !full.Exists(other => other != folder && folder.StartsWith(other + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)));
     }
 
     /// <summary>The files below the folder that hold the secret; the virtual environment is a copy of packages, not something the supervision writes.</summary>

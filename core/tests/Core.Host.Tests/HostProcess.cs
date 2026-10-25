@@ -126,6 +126,13 @@ internal sealed class HostProcess : IDisposable
         return await output;
     }
 
+    /// <summary>Kills the host and its tree and hands over both streams; the language service shares the host's error stream.</summary>
+    public async Task<HostStreams> StopWithErrorAsync()
+    {
+        Kill();
+        return new HostStreams(await output, await error);
+    }
+
     public Task<HttpResponseMessage> GetAsync(string route, CancellationToken cancellationToken) =>
         client.GetAsync(new Uri(route, UriKind.Relative), cancellationToken);
 

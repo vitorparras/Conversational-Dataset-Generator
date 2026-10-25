@@ -129,6 +129,10 @@ ocorrência; qualquer outro texto fica sem análise, como serviço inalcançáve
 com `fake`; o ensaio contra o serviço real tem `Category=RealService` e é saltado com aviso quando
 o `uv` não resolve o ambiente do serviço.
 
+A chave opcional `Host:LogFile` grava o registro também no arquivo que ela nomeia, em caminho
+absoluto ou relativo à pasta do executável, com as linhas e a redação do console. Sem ela, o
+registro vai só ao console; com ela, um arquivo que não abre para escrita impede a inicialização.
+
 Com o núcleo de pé, `http://127.0.0.1:5080/status` responde `alive`, `ready` e `checks[]`, com o
 resultado de cada conferência de inicialização, e `http://127.0.0.1:5080/versions` responde a
 versão do núcleo, o commit de que ele foi construído e se a árvore tinha mudança não registrada

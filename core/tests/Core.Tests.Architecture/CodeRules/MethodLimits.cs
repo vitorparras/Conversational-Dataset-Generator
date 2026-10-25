@@ -29,8 +29,13 @@ internal static class MethodLimits
                 SourceFile.LineOf(method),
                 $"method spans {SourceFile.LinesSpannedBy(method)} lines; the limit is {MaxLines}"));
 
+    /// <summary>
+    /// An explicit interface implementation is left out: its signature is the interface's, counted where the interface
+    /// is declared when it is ours, and imposed from outside the repository when it is not.
+    /// </summary>
     public static IEnumerable<Violation> CheckParameters(SourceFile file) =>
         Methods(file)
+            .Where(method => method is not MethodDeclarationSyntax { ExplicitInterfaceSpecifier: not null })
             .Where(method => ParameterList(method).Parameters.Count > MaxParameters)
             .Select(method => new Violation(
                 file.Path,

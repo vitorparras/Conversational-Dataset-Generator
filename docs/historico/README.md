@@ -15,6 +15,7 @@ falsificaria o registro.
 
 | # | Documento |
 |---|---|
+| [002](002-medidas-do-artefato.md) | Medidas do executável único do núcleo |
 | [003](003-medicao-do-modelo.md) | Medição do modelo de linguagem |
 
 Ver [regras de escrita](../regras-de-escrita.md).

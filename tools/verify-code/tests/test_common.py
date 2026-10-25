@@ -35,6 +35,12 @@ class CommonTests(unittest.TestCase):
 
         self.assertIs(context.run_for, common.run_process)
 
+    def test_finished_command_carries_its_exit_code(self) -> None:
+        outcome = common.run_process(["python3", "-c", "raise SystemExit(69)"], self.root)
+
+        self.assertFalse(outcome.ok)
+        self.assertEqual(outcome.code, 69)
+
     def test_child_environment_adds_the_telemetry_opt_out(self) -> None:
         environment = common.child_environment({"OTHER": "kept"})
 

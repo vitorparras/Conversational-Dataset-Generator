@@ -70,11 +70,15 @@ varredura, o `semgrep --test` confere cada regra contra os exemplos marcados em
 `nosemgrep: <regra> <motivo>` num comentário na linha ou na anterior; em `core/src`, nunca.
 
 O passo `package` clona o commit de HEAD duas vezes numa pasta temporária, nunca a árvore de
-trabalho, e publica o núcleo em cada cópia com restauração travada e a propriedade
-ContinuousIntegrationBuild, que troca o caminho da cópia por um fixo. Reprova se um arquivo
-publicado diferir entre as duas, nomeado pelo caminho relativo, ou se o executável não declarar o
-commit e a árvore limpa. Fora do passo, `core/Directory.Build.props` só liga essa propriedade na
-CI, e a depuração local vê os caminhos reais.
+trabalho, e publica em cada cópia o executável único de `linux-x64` e o de `win-x64`, com
+restauração travada e a propriedade ContinuousIntegrationBuild, que troca o caminho da cópia por
+um fixo. Reprova se um arquivo publicado diferir entre as duas, nomeado pelo caminho relativo; se a
+pasta de um alvo tiver algo além do executável e do arquivo de configuração
+`core/src/Core.Host/appsettings.json`; se o executável não declarar o commit, a árvore limpa e o
+alvo, ou não carregar a plataforma de execução; ou se o núcleo construído para um alvo diferente da
+máquina, e rodado nela, não recusar subir com o código 69. Fora do passo,
+`core/Directory.Build.props` só liga essa propriedade na CI, e a depuração local vê os caminhos
+reais.
 Na CI, o mesmo job repete o passo sem rede, com o cache HTTP do NuGet vazio: a construção só usa
 pacotes já baixados. Por isso `core/Directory.Packages.props` deixa a auditoria do NuGet desligada:
 ela consulta a fonte quando o cache de vulnerabilidades vence, em cerca de 30 minutos.
@@ -149,6 +153,21 @@ a falso, e o núcleo não o reinicia sozinho. Com `fake`, nenhum serviço é vig
 se a árvore tinha mudança não registrada (`workingTree`, que vale `Unknown` se a construção não
 conseguiu perguntar ao `git`); versão que o núcleo não obteve vem `null`, nunca vazia, e a mesma
 lista sai no registro, na linha `Versões em execução`.
+
+Publicado para um alvo, o núcleo é um executável único, com a plataforma de execução dentro dele, e
+só o `core/src/Core.Host/appsettings.json` ao lado; o `.github/workflows/package.yml`, disparado à
+mão, guarda os dois como artefatos do workflow. O mesmo, para `linux-x64`, a partir da raiz:
+
+```
+dotnet restore core/src/Core.Host/Core.Host.csproj --locked-mode -p:RuntimeIdentifier=linux-x64
+dotnet publish core/src/Core.Host/Core.Host.csproj --no-restore --configuration Release \
+  -p:ContinuousIntegrationBuild=true --runtime linux-x64 --output publish/linux-x64
+```
+
+O executável grava o alvo para o qual foi publicado e, posto num destino de outra arquitetura,
+como `win-x64` sob emulação num Windows ARM, recusa subir com o código 69, nomeando o alvo e o
+destino. Tamanho e tempo de subida medidos estão em
+[002](docs/historico/002-medidas-do-artefato.md).
 
 O teste de arquitetura em `core/tests/Core.Tests.Architecture` impõe as regras de código a cada
 construção; as fixtures que ele reprova de propósito ficam em `core/tests/fixtures/code-rules`, fora

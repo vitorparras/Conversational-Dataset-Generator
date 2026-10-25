@@ -2,7 +2,8 @@
   <!--
     Stamps the assembly with where it came from: the package version, the commit and whether the working tree had
     changes not yet committed. git is started directly, never through a shell, because the Exec task needs sh on the
-    PATH; a missing git, or a call that fails, leaves its value out instead of stamping an empty one.
+    PATH; a missing git, or a call that fails, leaves its value out instead of stamping an empty one. A build published
+    for a target also stamps that target, so the executable can refuse to run on another.
   -->
   <UsingTask TaskName="RunGit" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
     <ParameterGroup>
@@ -68,6 +69,10 @@
       <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(_BuildInfoWorkingTree)' != ''">
         <_Parameter1>BuildInfo.WorkingTree</_Parameter1>
         <_Parameter2>$(_BuildInfoWorkingTree)</_Parameter2>
+      </AssemblyAttribute>
+      <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(RuntimeIdentifier)' != ''">
+        <_Parameter1>BuildInfo.RuntimeIdentifier</_Parameter1>
+        <_Parameter2>$(RuntimeIdentifier)</_Parameter2>
       </AssemblyAttribute>
     </ItemGroup>
   </Target>

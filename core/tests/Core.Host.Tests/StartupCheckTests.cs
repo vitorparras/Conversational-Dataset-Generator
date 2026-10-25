@@ -23,7 +23,7 @@ public sealed class StartupCheckTests
     }
 
     [Fact]
-    public async Task InstalledHostListsTheBundledFileAsPassedAndIsReady()
+    public async Task InstalledHostListsTheTargetAndTheBundledFileAsPassedAndIsReady()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         var address = HostProcess.FreeAddress();
@@ -35,10 +35,12 @@ public sealed class StartupCheckTests
 
         Assert.True(body.RootElement.GetProperty("ready").GetBoolean());
         var checks = body.RootElement.GetProperty("checks").EnumerateArray().ToList();
-        Assert.Equal("Host:BundledFile", checks[0].GetProperty("name").GetString());
+        Assert.Equal("RuntimeIdentifier", checks[0].GetProperty("name").GetString());
         Assert.Equal("Passed", checks[0].GetProperty("status").GetString());
-        Assert.Equal("Database", checks[1].GetProperty("name").GetString());
-        Assert.Equal("LanguageService", checks[2].GetProperty("name").GetString());
-        Assert.Equal("Passed", checks[2].GetProperty("status").GetString());
+        Assert.Equal("Host:BundledFile", checks[1].GetProperty("name").GetString());
+        Assert.Equal("Passed", checks[1].GetProperty("status").GetString());
+        Assert.Equal("Database", checks[2].GetProperty("name").GetString());
+        Assert.Equal("LanguageService", checks[3].GetProperty("name").GetString());
+        Assert.Equal("Passed", checks[3].GetProperty("status").GetString());
     }
 }

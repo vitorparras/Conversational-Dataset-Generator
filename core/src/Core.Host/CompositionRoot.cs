@@ -33,10 +33,12 @@ internal static class CompositionRoot
             return HostLaunch.Refused([LanguageServiceConfiguration.AnalyzeTimeoutRefused(loaded.Values)]);
         }
 
-        var startup = StartupServices(loaded);
+        var fileLog = OpenFileLog(loaded);
+        var startup = StartupServices(loaded, fileLog);
         try
         {
-            var report = await new StartupRunner(Checks(loaded, startup)).RunAsync(CancellationToken.None);
+            IStartupCheck[] checks = [.. LogFileChecks(loaded, fileLog), .. Checks(loaded, startup)];
+            var report = await new StartupRunner(checks).RunAsync(CancellationToken.None);
             if (!report.Ready)
             {
                 return HostLaunch.CheckFailed(report);
@@ -44,6 +46,7 @@ internal static class CompositionRoot
 
             var launch = HostLaunch.Ready(Assemble(loaded, report, startup, analyzeTimeout.Value));
             startup = null;
+            fileLog = null;
             return launch;
         }
         finally
@@ -52,13 +55,23 @@ internal static class CompositionRoot
             {
                 await startup.DisposeAsync();
             }
+
+            fileLog?.Dispose();
         }
     }
 
-    /// <summary>Logging with redaction before anything else, then every service the routes consume.</summary>
-    internal static void Compose(IHostApplicationBuilder builder, EffectiveConfiguration configuration)
+    /// <summary>
+    /// Logging with redaction before anything else, then every service the routes consume. The host's container owns
+    /// the file destination and, since every logger depends on it, closes it after the last of them.
+    /// </summary>
+    internal static void Compose(IHostApplicationBuilder builder, EffectiveConfiguration configuration, ILoggerProvider? fileLog)
     {
         PlatformLogging.Configure(builder.Logging);
+        if (fileLog is not null)
+        {
+            _ = builder.Services.AddSingleton(_ => fileLog);
+        }
+
         _ = builder.Services.AddSingleton(TimeProvider.System);
         _ = builder.Services.AddRedaction(PlatformLogging.EraseSensitiveData);
         _ = builder.Services.AddSingleton(configuration);
@@ -78,18 +91,36 @@ internal static class CompositionRoot
             ? [BundledFile(loaded)]
             : [BundledFile(loaded), startup.GetRequiredService<LanguageServiceStartupCheck>()];
 
+    /// <summary>The file the configuration names, relative to the binary's directory; null when absent or when it cannot be opened.</summary>
+    private static FileLoggerProvider? OpenFileLog(ConfigurationLoadResult loaded) =>
+        loaded.Values.TryGetValue(HostConfiguration.LogFilePath, out var path)
+            ? FileLoggerProvider.Open(Path.Combine(AppContext.BaseDirectory, path), new LineConsoleFormatter(TimeProvider.System))
+            : null;
+
+    /// <summary>A check on the log file only when the configuration names one; without it the log goes to the console alone.</summary>
+    private static IEnumerable<IStartupCheck> LogFileChecks(ConfigurationLoadResult loaded, ILoggerProvider? fileLog) =>
+        loaded.Values.ContainsKey(HostConfiguration.LogFilePath)
+            ? [new LogFileCheck(HostConfiguration.LogFilePath, opened: fileLog is not null)]
+            : [];
+
     private static BundledFileCheck BundledFile(ConfigurationLoadResult loaded) =>
         new(HostConfiguration.BundledFilePath, loaded.Values[HostConfiguration.BundledFilePath], AppContext.BaseDirectory);
 
     /// <summary>
     /// What the checks need before the host's own container exists: redacted logging and the supervision of
-    /// the language service. The host's container adopts it, so the service stops when the host does.
+    /// the language service. The host's container adopts it, so the service stops when the host does; it only borrows
+    /// the file destination, which the host's container closes.
     /// </summary>
-    private static ServiceProvider StartupServices(ConfigurationLoadResult loaded)
+    private static ServiceProvider StartupServices(ConfigurationLoadResult loaded, FileLoggerProvider? fileLog)
     {
         var services = new ServiceCollection();
         _ = services.AddSingleton(TimeProvider.System);
-        _ = services.AddLogging(PlatformLogging.Configure);
+        _ = services.AddLogging(logging => WithFile(logging, fileLog));
+        if (fileLog is not null)
+        {
+            _ = services.AddSingleton(fileLog);
+        }
+
         _ = services.AddRedaction(PlatformLogging.EraseSensitiveData);
         _ = services.AddSingleton(_ => LoopbackHttpClient.Create());
         _ = services.AddSingleton(provider => new HealthWait(provider.GetRequiredService<HttpClient>()));
@@ -103,10 +134,20 @@ internal static class CompositionRoot
         return services.BuildServiceProvider();
     }
 
+    /// <summary>The platform's logging plus the file, registered as an instance so this container never closes it.</summary>
+    private static void WithFile(ILoggingBuilder logging, ILoggerProvider? fileLog)
+    {
+        PlatformLogging.Configure(logging);
+        if (fileLog is not null)
+        {
+            _ = logging.AddProvider(fileLog);
+        }
+    }
+
     private static WebApplication Assemble(ConfigurationLoadResult loaded, StartupReport report, ServiceProvider startup, TimeSpan analyzeTimeout)
     {
         var builder = ClosedBuilder(loaded.Values[HostConfiguration.UrlsPath]);
-        Compose(builder, loaded.View);
+        Compose(builder, loaded.View, startup.GetService<FileLoggerProvider>());
         _ = builder.Services.AddSingleton(report);
         _ = builder.Services.AddSingleton(_ => startup);
         AddRecognizer(builder.Services, loaded.Values, analyzeTimeout);

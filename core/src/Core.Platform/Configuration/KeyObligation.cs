@@ -3,7 +3,7 @@ namespace Core.Platform.Configuration;
 /// <summary>Whether a source must declare the key, and whether the key protects.</summary>
 internal enum KeyObligation
 {
-    /// <summary>Takes its default when no source declares it.</summary>
+    /// <summary>Takes its default, or stays without a value, when no source declares it.</summary>
     Optional = 0,
 
     /// <summary>Some source must declare it.</summary>

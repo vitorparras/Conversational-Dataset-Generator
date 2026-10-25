@@ -70,6 +70,24 @@ public sealed class FileAndMethodLimitsTests
     }
 
     [Fact]
+    public void ExplicitImplementationOfAnInterfaceFromOutsideIsNotCounted()
+    {
+        var fixture = SourceTree.Fixture("ExplicitOutsideInterface.cs");
+
+        Assert.Empty(MethodLimits.CheckParameters(fixture));
+    }
+
+    [Fact]
+    public void WideInterfaceOfOursIsRefusedWhereItIsDeclared()
+    {
+        var fixture = SourceTree.Fixture("ExplicitWideOwnInterface.cs");
+
+        var violation = Assert.Single(MethodLimits.CheckParameters(fixture));
+
+        Assert.Equal(5, violation.Line);
+    }
+
+    [Fact]
     public void ThirdNestingLevelIsRefused()
     {
         var fixture = SourceTree.Fixture("NestingDepthThree.cs");

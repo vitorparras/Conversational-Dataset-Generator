@@ -53,7 +53,7 @@ def test_the_process_log_has_one_handler_and_it_is_the_fixed_field_handler(
     ]
 
 
-def test_after_answering_requests_no_handler_besides_the_fixed_one_exists(process_log: TextIO) -> None:
+def test_after_answering_no_handler_besides_the_fixed_one_exists(process_log: TextIO) -> None:
     assert stray_destinations(process_log) == ()
 
 

@@ -32,6 +32,14 @@ internal sealed class HostProcess : IDisposable
 
     public int Id => process.Id;
 
+    /// <summary>The built host asking the real language service, which it starts, listening on a free loopback port.</summary>
+    public static Task<HostProcess> StartWithTheRealServiceAsync(CancellationToken cancellationToken)
+    {
+        var baseAddress = FreeAddress();
+        var installation = HostInstallation.Built(baseAddress) with { UsesRealService = true };
+        return StartAsync(installation, baseAddress, StartupTimeout, cancellationToken);
+    }
+
     /// <summary>The built host, listening on a free loopback port.</summary>
     public static Task<HostProcess> StartAsync(CancellationToken cancellationToken)
     {

@@ -12,11 +12,10 @@ O modo exige a seção `Database` inteira, com o papel dono no lugar do papel da
 vai por variável de ambiente, nunca por argumento, que qualquer processo da máquina lê.
 
 ```
-export CDG_Database__Host=<servidor>:5432
-export CDG_Database__Name=<banco>
-export CDG_Database__Username=<papel dono>
-export CDG_Database__Password=<lida da guarda do dono>
+export CDG_Database__Host=<servidor>:5432 CDG_Database__Name=<banco> CDG_Database__Username=<papel dono>
+read -rs CDG_Database__Password && export CDG_Database__Password
 ./Core.Host migrate
+unset CDG_Database__Host CDG_Database__Name CDG_Database__Username CDG_Database__Password
 ```
 
 Os passos são os arquivos de `core/src/Core.Persistence/Migrations/Sql`, embutidos no executável e
@@ -31,13 +30,14 @@ aplicados em ordem numérica. Cada um roda numa transação própria, junto com 
 | 10 | Esquema já na última versão | Nada |
 | 11 | Banco à frente deste executável | Instalar a versão do sistema que conhece o passo |
 | 12 | Passo aplicado com conteúdo diferente | Não migrar; descobrir quem alterou o passo |
-| 13 | Um passo falhou | Ler o passo e o SQLSTATE no log; corrigir e rodar de novo |
+| 13 | Um passo falhou | Ler o passo e o SQLSTATE na saída; corrigir e rodar de novo |
 | 14 | Sem conexão com o servidor | Conferir endereço, banco, papel e senha |
 | 78 | Configuração recusada | Declarar as quatro chaves de `Database` |
 
 Passo que falha é desfeito por inteiro, linha do registro inclusive: não fica registro de falha, só
 o log. Os passos anteriores a ele ficam aplicados. Duas migrações ao mesmo tempo não aplicam o mesmo
-passo: a segunda espera a primeira e termina com 10.
+passo: a segunda espera a primeira e termina com 10. O modo escreve só no console e ignora
+`Host:LogFile`: guarde a saída para o registro da janela.
 
 ## A partida normal
 

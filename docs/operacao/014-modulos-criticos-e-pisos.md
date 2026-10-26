@@ -15,30 +15,34 @@ esquema do banco: a falha nele vaza dado ou corrompe custódia, em vez de produz
 
 ## Áreas, pisos e motivos
 
-O piso é a porcentagem de linhas cobertas pela suíte da linguagem da área. O cabeçalho da tabela é
-fixo e lido pela verificação; linha nova segue o mesmo formato. Código fora de toda área listada
-conta na área do projeto ou pacote que o contém, pelo prefixo mais longo que casar.
+O piso é a porcentagem de linhas cobertas pela suíte da linguagem da área. **Crítica** diz `sim` ou
+`não` em toda linha e é a única marca de módulo crítico: a mutação lê a coluna, não o piso. O
+cabeçalho é fixo e lido pela verificação; linha nova segue o mesmo formato. Projeto/pacote vale
+como **namespace e pasta**: o passo `floors` reprova o arquivo C# de `core/src` que cai numa área
+pelo namespace e noutra pela pasta, nomeando as duas. No serviço, módulo e arquivo coincidem por
+construção. Código fora de toda área listada conta na do projeto ou pacote que o contém, pelo
+prefixo mais longo que casar.
 
-| Área | Projeto/pacote | Piso | Motivo |
-|---|---|---|---|
-| Registro do núcleo | `Core.Platform.Logging` | 90 % | Crítica: classifica e redige o que vai ao registro (requisito 021) |
-| Deslocamento de texto | `Core.Boundary.Text` | 90 % | Crítica: única aritmética de índice sobre texto do serviço (requisito 009) |
-| Reconhecedor HTTP | `Core.Boundary.Http` | 90 % | Crítica: texto não sanitizado cruza o processo e a resposta é validada aqui (decisão 0018) |
-| Análise do material | `Core.Host.Analysis` | 90 % | Crítica: leva o texto ao reconhecedor e decide o que a recusa registra e devolve (requisito 021) |
-| Contrato da fronteira | `Core.Boundary.Contracts` | 90 % | Crítica: a forma JSON recusa campo desconhecido ou nulo no texto que cruza o processo (decisão 0018) |
-| Migração do esquema | `Core.Persistence.Migrations` | 90 % | Crítica: altera o esquema do banco; erro corrompe custódia (requisito 019) |
-| Autenticação do serviço | `language_service.auth` | 90 % | Crítica: guarda o segredo que protege texto não sanitizado (decisão 0011) |
-| Registro do serviço | `language_service.logging_` | 90 % | Crítica: decide o que o serviço escreve em registro (requisito 021) |
-| Configuração | `Core.Platform.Configuration` | 80 % | Falha fechada na partida (requisito 032); não toca material |
-| Partida | `Core.Platform.Startup` | 80 % | Conferências que impedem subir sem garantia; sem material |
-| Plataforma, demais pastas | `Core.Platform` | 80 % | Versões, relógio e fonte da chave: portas e metadado, sem material |
-| Garantias do servidor | `Core.Persistence.ServerGuarantees` | 80 % | Confere o banco sem alterá-lo; falha é recusa de subir |
-| Persistência, demais pastas | `Core.Persistence` | 80 % | Conexão com credencial da aplicação; sem consulta de domínio |
-| Fronteira, demais pastas | `Core.Boundary` | 80 % | Proposta de piso, sujeita à aprovação do dono: o código está nas subáreas acima, esta linha cobre o resto |
-| Serviço, demais módulos | `language_service` | 80 % | Rotas, contrato e reconhecedor vazio; sem segredo nem registro |
-| Reconhecedor falso | `Core.Boundary.Fake` | 60 % | Dublê determinístico de teste; nunca vê material real |
-| Executável | `Core.Host` | 60 % | Só composição, sem regra; coberto por teste de integração |
-| Ferramentas | `tools` | 60 % | Scripts da verificação; falha reprova o build, não vaza dado |
+| Área | Projeto/pacote | Piso | Crítica | Motivo |
+|---|---|---|---|---|
+| Registro do núcleo | `Core.Platform.Logging` | 90 % | sim | Classifica e redige o que vai ao registro (requisito 021) |
+| Deslocamento de texto | `Core.Boundary.Text` | 90 % | sim | Única aritmética de índice sobre texto do serviço (requisito 009) |
+| Reconhecedor HTTP | `Core.Boundary.Http` | 90 % | sim | Texto não sanitizado cruza o processo e a resposta é validada aqui (decisão 0018) |
+| Análise do material | `Core.Host.Analysis` | 90 % | sim | Leva o texto ao reconhecedor e decide o que a recusa registra e devolve (requisito 021) |
+| Contrato da fronteira | `Core.Boundary.Contracts` | 90 % | sim | A forma JSON recusa campo desconhecido ou nulo no texto que cruza o processo (decisão 0018) |
+| Migração do esquema | `Core.Persistence.Migrations` | 90 % | sim | Altera o esquema do banco; erro corrompe custódia (requisito 019) |
+| Autenticação do serviço | `language_service.auth` | 90 % | sim | Guarda o segredo que protege texto não sanitizado (decisão 0011) |
+| Registro do serviço | `language_service.logging_` | 90 % | sim | Decide o que o serviço escreve em registro (requisito 021) |
+| Configuração | `Core.Platform.Configuration` | 80 % | não | Falha fechada na partida (requisito 032); não toca material |
+| Partida | `Core.Platform.Startup` | 80 % | não | Conferências que impedem subir sem garantia; sem material |
+| Plataforma, demais pastas | `Core.Platform` | 80 % | não | Versões, relógio e fonte da chave: portas e metadado, sem material |
+| Garantias do servidor | `Core.Persistence.ServerGuarantees` | 80 % | não | Confere o banco sem alterá-lo; falha é recusa de subir |
+| Persistência, demais pastas | `Core.Persistence` | 80 % | não | Conexão com credencial da aplicação; sem consulta de domínio |
+| Fronteira, demais pastas | `Core.Boundary` | 80 % | não | Proposta de piso, sujeita à aprovação do dono: o código está nas subáreas acima, esta linha cobre o resto |
+| Serviço, demais módulos | `language_service` | 80 % | não | Rotas, contrato e reconhecedor vazio; sem segredo nem registro |
+| Reconhecedor falso | `Core.Boundary.Fake` | 60 % | não | Dublê determinístico de teste; nunca vê material real |
+| Executável | `Core.Host` | 60 % | não | Só composição, sem regra; coberto por teste de integração |
+| Ferramentas | `tools` | 60 % | não | Scripts da verificação; falha reprova o build, não vaza dado |
 
 `isento` é o único valor não numérico aceito: a área está declarada e nada se compara. Área medida
 fora da tabela reprova; piso ausente não é piso zero. Área com piso e sem linha a cobrir (`0 de 0`)
@@ -46,10 +50,18 @@ aparece sem código e não reprova, salvo se o projeto ou pacote existe e nenhum
 
 ## Mutação
 
-O teste de mutação roda sobre as áreas de piso 90 %, que são a lista de módulos críticos. Por
-módulo, no máximo **20 % dos mutantes gerados** podem sobreviver. Teto de tempo: **20 minutos por
-linguagem** dentro da verificação de pull request. Exceder o teto é achado que reprova, nomeando o
-módulo e o tempo gasto, nunca lentidão tolerada. Mutação fora do bloqueio só por decisão escrita.
+Esta seção é lida pela verificação: a coluna Crítica e as duas frases em negrito; mudança nelas
+segue o mesmo formato. A mutação roda sobre as áreas com `sim` em Crítica. Cada arquivo pertence a
+uma só área, a de prefixo mais longo, como na cobertura: área aninhada sai da que a contém.
+
+Por módulo, no máximo **20 % dos mutantes gerados** podem sobreviver. Conta só a suíte do projeto
+do módulo: no núcleo, os projetos de teste que o referenciam; no serviço, os arquivos de teste que
+o importam diretamente (`import language_service.x`, `from language_service.x import ...`,
+`from language_service import x`), numa rodada do mutmut por módulo. Módulo sem teste assim
+reprova; o sobrevivente que só outro projeto mataria é do módulo. Teto de tempo: **20 minutos por
+linguagem**, somados entre os módulos, dentro da verificação de pull request. Exceder o teto é
+achado que reprova, nomeando o módulo e o tempo gasto, nunca lentidão tolerada. Mutação fora do
+bloqueio só por decisão escrita.
 
 ## Como um piso muda
 

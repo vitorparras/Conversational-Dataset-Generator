@@ -16,7 +16,7 @@ from steps import areas_doc, mutation
 from steps.common import OUTPUT_DIRECTORY, CommandOutcome, Context, StepResult
 
 from . import support
-from .mutation_samples import DOCUMENT, SHOWN, SOURCE
+from .mutation_samples import AUTH_TEST, DOCUMENT, LOGGING_TEST, SHOWN, SOURCE
 
 STRYKER_REPORT = "reports/mutation-report.json"
 
@@ -73,7 +73,8 @@ class MutationFixture(unittest.TestCase):
         service = "language-service/src/language_service"
         support.write(self.root, f"{service}/auth.py", SOURCE)
         support.write(self.root, f"{service}/logging_/__init__.py", "")
-        support.write(self.root, "language-service/tests/test_auth.py", "")
+        support.write(self.root, "language-service/tests/unit/test_auth.py", AUTH_TEST)
+        support.write(self.root, "language-service/tests/unit/test_logging.py", LOGGING_TEST)
         support.write(self.root, "language-service/pyproject.toml", "[project]\n")
 
     @property

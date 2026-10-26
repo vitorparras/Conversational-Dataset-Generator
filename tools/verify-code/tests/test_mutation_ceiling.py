@@ -21,31 +21,58 @@ TEXT_REFERENCE = (
 
 class MutationCeilingTests(fixture.MutationFixture):
     def test_core_time_over_the_ceiling_fails_naming_module_and_time(self) -> None:
-        with mock.patch(CLOCK, side_effect=[0.0, OVER, 0.0, 1.0]):
+        with mock.patch(CLOCK, side_effect=[0.0, OVER, 0.0, 1.0, 0.0, 1.0]):
             result = self.run_step(healthy())
 
         self.assertFalse(result.ok)
         expected = "teto de 20 min excedido em `Core.Platform.Logging`: 21,0 min gastos"
         self.assertIn(f"núcleo (.NET): {expected}", result.details)
 
-    def test_service_time_over_the_ceiling_fails_naming_its_modules_and_time(self) -> None:
-        with mock.patch(CLOCK, side_effect=[0.0, 1.0, 0.0, OVER]):
+    def test_service_time_over_the_ceiling_fails_naming_the_module_and_time(self) -> None:
+        with mock.patch(CLOCK, side_effect=[0.0, 1.0, 0.0, OVER, 0.0, 1.0]):
             result = self.run_step(healthy())
 
         self.assertFalse(result.ok)
-        modules = "`language_service.auth`, `language_service.logging_`"
-        expected = f"serviço (Python): teto de 20 min excedido em {modules}: 21,0 min gastos"
+        expected = "serviço (Python): teto de 20 min excedido em `language_service.auth`: 21,0 min"
+        self.assertIn(f"{expected} gastos", result.details)
+
+    def test_service_modules_after_the_ceiling_do_not_run_and_are_named(self) -> None:
+        runner = healthy()
+
+        with mock.patch(CLOCK, side_effect=[0.0, 1.0, 0.0, OVER, 0.0, 1.0]):
+            result = self.run_step(runner)
+
+        self.assertEqual(len(runner.called("--max-children")), 1)
+        expected = "serviço (Python): não rodaram por causa do teto: `language_service.logging_`"
         self.assertIn(expected, result.details)
 
+    def test_the_service_time_adds_up_across_its_modules(self) -> None:
+        with mock.patch(CLOCK, side_effect=[0.0, 1.0, 0.0, 12 * 60.0, 0.0, 12 * 60.0]):
+            result = self.run_step(healthy())
+
+        expected = "serviço (Python): teto de 20 min excedido em `language_service.logging_`: 24,0"
+        self.assertIn(f"{expected} min gastos", result.details)
+
+    def test_each_service_module_is_cut_at_what_is_left_of_the_ceiling(self) -> None:
+        runner = healthy()
+
+        with mock.patch(CLOCK, side_effect=[0.0, 1.0, 0.0, UNDER, 0.0, 1.0]):
+            self.run_step(runner)
+
+        limits = [
+            s for c, s in zip(runner.commands, runner.limits, strict=True) if "--max-children" in c
+        ]
+        self.assertEqual(limits, [20 * 60.0, 15 * 60.0])
+
     def test_time_under_the_ceiling_passes_and_is_reported(self) -> None:
-        with mock.patch(CLOCK, side_effect=[0.0, UNDER, 0.0, UNDER]):
+        with mock.patch(CLOCK, side_effect=[0.0, UNDER, 0.0, UNDER, 0.0, UNDER]):
             result = self.run_step(healthy())
 
         self.assertTrue(result.ok)
         self.assertIn("núcleo (.NET): 5,0 min de 20 min de teto", result.details)
 
     def test_time_exactly_at_the_ceiling_passes(self) -> None:
-        with mock.patch(CLOCK, side_effect=[0.0, 20 * 60.0, 0.0, 1.0]):
+        with mock.patch(CLOCK, side_effect=[0.0, 20 * 60.0, 0.0, 1.0, 0.0, 1.0]):
             result = self.run_step(healthy())
 
         self.assertTrue(result.ok)
@@ -54,7 +81,7 @@ class MutationCeilingTests(fixture.MutationFixture):
         document = mutation_samples.DOCUMENT.replace("**20 minutos por", "**30 minutos por")
         support.write(self.root, "docs/operacao/014-modulos-criticos-e-pisos.md", document)
 
-        with mock.patch(CLOCK, side_effect=[0.0, OVER, 0.0, 1.0]):
+        with mock.patch(CLOCK, side_effect=[0.0, OVER, 0.0, 1.0, 0.0, 1.0]):
             result = self.run_step(healthy())
 
         self.assertTrue(result.ok)
@@ -63,7 +90,7 @@ class MutationCeilingTests(fixture.MutationFixture):
         support.write(self.root, "core/src/Core.Boundary.Text/Core.Boundary.Text.csproj", "<P />")
         runner = healthy()
 
-        with mock.patch(CLOCK, side_effect=[0.0, OVER, 0.0, 1.0]):
+        with mock.patch(CLOCK, side_effect=[0.0, OVER, 0.0, 1.0, 0.0, 1.0]):
             result = self.run_step(runner)
 
         self.assertEqual(len(runner.called("stryker")), 1)
@@ -75,16 +102,7 @@ class MutationCeilingTests(fixture.MutationFixture):
         support.write(self.root, "core/tests/T/T.csproj", TEXT_REFERENCE)
         runner = healthy()
 
-        with mock.patch(CLOCK, side_effect=[0.0, UNDER, 0.0, 1.0, 0.0, 1.0]):
+        with mock.patch(CLOCK, side_effect=[0.0, UNDER, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0]):
             self.run_step(runner)
 
         self.assertEqual(runner.limits[1:3], [20 * 60.0, 15 * 60.0])
-
-    def test_the_service_run_is_cut_at_the_ceiling(self) -> None:
-        runner = healthy()
-
-        with mock.patch(CLOCK, side_effect=[0.0, 1.0, 0.0, 1.0]):
-            self.run_step(runner)
-
-        mutmut = runner.commands.index(runner.called("--max-children")[0])
-        self.assertEqual(runner.limits[mutmut], 20 * 60.0)

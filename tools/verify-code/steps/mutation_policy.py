@@ -1,5 +1,6 @@
-"""Reads the mutation rules of docs/operacao/014: which floor marks a module as critical, the share
-of survivors a module may keep and the time ceiling per language. No number lives here."""
+"""Reads the mutation rules of docs/operacao/014: the share of survivors a module may keep and the
+time ceiling per language, and which areas are critical modules, by the Crítica column of the table.
+No number lives here."""
 
 from __future__ import annotations
 
@@ -12,7 +13,6 @@ from steps.areas_doc import DOCUMENT, Area
 
 SECTION = "## Mutação"
 PHRASES = (
-    (re.compile(r"áreas de piso (\d{1,3}) %"), "áreas de piso N %"),
     (
         re.compile(r"no máximo \*\*(\d{1,3}) % dos mutantes gerados\*\*"),
         "no máximo **N % dos mutantes gerados**",
@@ -23,9 +23,8 @@ PHRASES = (
 
 @dataclass(frozen=True)
 class MutationPolicy:
-    """The floor of a critical area, the survivor ceiling in percent, the minutes per language."""
+    """The survivor ceiling in percent and the minutes per language."""
 
-    critical_floor: int
     survivor_ceiling: int
     minutes: int
 
@@ -40,7 +39,7 @@ def section(lines: list[str]) -> str | None:
 
 
 def read_policy(root: Path) -> MutationPolicy | tuple[str, ...]:
-    """The three numbers of the section, or the phrases the document no longer carries."""
+    """The two numbers of the section, or the phrases the document no longer carries."""
     path = root / DOCUMENT
     text = section(path.read_text(encoding="utf-8").splitlines()) if path.is_file() else None
     if text is None:
@@ -52,16 +51,6 @@ def read_policy(root: Path) -> MutationPolicy | tuple[str, ...]:
     return MutationPolicy(*(int(match.group(1)) for match in found if match is not None))
 
 
-def critical(areas: tuple[Area, ...], policy: MutationPolicy) -> tuple[Area, ...]:
-    """The areas whose floor is the one the section names: the list of critical modules."""
-    return tuple(area for area in areas if area.floor == policy.critical_floor)
-
-
-def above(areas: tuple[Area, ...], policy: MutationPolicy) -> tuple[str, ...]:
-    """A problem per area whose floor passes the critical one: whether it stays critical is open."""
-    return tuple(
-        f"{area.name} (`{area.prefix}`): piso {area.floor} % acima do piso crítico de "
-        f"{policy.critical_floor} %; {DOCUMENT} não diz se a área continua crítica"
-        for area in areas
-        if area.floor is not None and area.floor > policy.critical_floor
-    )
+def critical(areas: tuple[Area, ...]) -> tuple[Area, ...]:
+    """The areas the Crítica column marks `sim`: the critical modules, whatever their floor."""
+    return tuple(area for area in areas if area.critical)

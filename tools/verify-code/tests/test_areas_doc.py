@@ -11,10 +11,10 @@ from steps.areas_doc import Area
 
 from . import support
 
-LOGGING = "| Registro | `Core.Platform.Logging` | 90 % | crítica |"
-PLATFORM = "| Plataforma | `Core.Platform` | 80 % | demais pastas |"
-CONTRACTS = "| Contrato | `Core.Boundary.Contracts` | isento | só tipos |"
-SEPARATOR = "|---|---|---|---|"
+LOGGING = "| Registro | `Core.Platform.Logging` | 90 % | sim | crítica |"
+PLATFORM = "| Plataforma | `Core.Platform` | 80 % | não | demais pastas |"
+CONTRACTS = "| Contrato | `Core.Boundary.Contracts` | isento | não | só tipos |"
+SEPARATOR = "|---|---|---|---|---|"
 #: The first table row of ``document`` sits on this line of the file.
 FIRST_ROW = 6
 REPOSITORY = support.VERIFY_CODE.parents[1]
@@ -41,10 +41,47 @@ class AreasDocTests(unittest.TestCase):
         self.assertEqual(
             table.areas,
             (
-                Area("Registro", "Core.Platform.Logging", 90),
+                Area("Registro", "Core.Platform.Logging", 90, critical=True),
                 Area("Plataforma", "Core.Platform", 80),
             ),
         )
+
+    def test_the_critical_column_marks_the_area_whatever_its_floor(self) -> None:
+        raised = LOGGING.replace("90 %", "95 %")
+        lowered = PLATFORM.replace("não", "sim")
+
+        table = self.read(document(raised, lowered))
+
+        self.assertEqual([a.critical for a in table.areas], [True, True])
+
+    def test_an_exempt_area_can_be_critical(self) -> None:
+        table = self.read(document(CONTRACTS.replace("não", "sim")))
+
+        self.assertEqual(table.areas, (Area("Contrato", "Core.Boundary.Contracts", None, True),))
+
+    def test_a_critical_value_other_than_yes_or_no_fails_naming_the_line(self) -> None:
+        row = LOGGING.replace("sim", "talvez")
+
+        table = self.read(document(PLATFORM, row))
+
+        self.assertEqual(table.areas, ())
+        expected = f"{areas_doc.DOCUMENT}:{FIRST_ROW + 1}: Crítica 'talvez' não é `sim` nem `não`"
+        self.assertEqual(table.problems, (expected,))
+
+    def test_an_empty_critical_cell_fails_naming_the_line(self) -> None:
+        row = LOGGING.replace("| sim |", "|  |")
+
+        table = self.read(document(row))
+
+        self.assertEqual(table.areas, ())
+        self.assertIn(f"{areas_doc.DOCUMENT}:{FIRST_ROW}: Crítica ''", table.problems[0])
+
+    def test_the_header_without_the_critical_column_is_not_the_fixed_header(self) -> None:
+        header = "| Área | Projeto/pacote | Piso | Motivo |"
+
+        table = self.read(document(LOGGING, header=header))
+
+        self.assertIn("cabeçalho fixo", table.problems[0])
 
     def test_an_exempt_area_has_no_floor(self) -> None:
         table = self.read(document(CONTRACTS))
@@ -54,7 +91,7 @@ class AreasDocTests(unittest.TestCase):
     def test_a_floor_of_one_hundred_percent_is_read(self) -> None:
         table = self.read(document(LOGGING.replace("90 %", "100 %")))
 
-        self.assertEqual(table.areas, (Area("Registro", "Core.Platform.Logging", 100),))
+        self.assertEqual(table.areas, (Area("Registro", "Core.Platform.Logging", 100, True),))
 
     def test_a_prefix_and_the_prefixes_under_it_coexist(self) -> None:
         table = self.read(document(PLATFORM, LOGGING))
@@ -62,12 +99,12 @@ class AreasDocTests(unittest.TestCase):
         self.assertEqual(table.problems, ())
 
     def test_an_area_named_as_its_own_prefix_is_read(self) -> None:
-        table = self.read(document("| tools | `tools` | 60 % | scripts |"))
+        table = self.read(document("| tools | `tools` | 60 % | não | scripts |"))
 
         self.assertEqual(table.areas, (Area("tools", "tools", 60),))
 
     def test_an_area_named_as_another_rows_prefix_is_read(self) -> None:
-        table = self.read(document(LOGGING, "| Core.Platform.Logging | `tools` | 60 % | x |"))
+        table = self.read(document(LOGGING, "| Core.Platform.Logging | `tools` | 60 % | não | x |"))
 
         self.assertEqual(table.problems, ())
 
@@ -166,7 +203,7 @@ class AreasDocTests(unittest.TestCase):
         )
 
     def test_a_header_with_an_extra_column_is_not_the_fixed_header(self) -> None:
-        header = "| Área | Projeto/pacote | Piso | Motivo | Dono |"
+        header = "| Área | Projeto/pacote | Piso | Crítica | Motivo | Dono |"
 
         table = self.read(document(LOGGING, header=header))
 

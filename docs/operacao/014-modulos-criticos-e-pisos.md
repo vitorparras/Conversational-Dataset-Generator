@@ -34,15 +34,15 @@ conta na área do projeto ou pacote que o contém, pelo prefixo mais longo que c
 | Plataforma, demais pastas | `Core.Platform` | 80 % | Versões, relógio e fonte da chave: portas e metadado, sem material |
 | Garantias do servidor | `Core.Persistence.ServerGuarantees` | 80 % | Confere o banco sem alterá-lo; falha é recusa de subir |
 | Persistência, demais pastas | `Core.Persistence` | 80 % | Conexão com credencial da aplicação; sem consulta de domínio |
+| Fronteira, demais pastas | `Core.Boundary` | 80 % | Proposta de piso, sujeita à aprovação do dono: o código está nas subáreas acima, esta linha cobre o resto |
 | Serviço, demais módulos | `language_service` | 80 % | Rotas, contrato e reconhecedor vazio; sem segredo nem registro |
 | Reconhecedor falso | `Core.Boundary.Fake` | 60 % | Dublê determinístico de teste; nunca vê material real |
 | Executável | `Core.Host` | 60 % | Só composição, sem regra; coberto por teste de integração |
 | Ferramentas | `tools` | 60 % | Scripts da verificação; falha reprova o build, não vaza dado |
 
-`isento` é o único valor não numérico admitido: a área está declarada e nada se compara. Área
-medida que não aparece na tabela reprova; piso ausente não é piso zero. Área com piso e sem linha
-a cobrir (`0 de 0`) aparece como sem código e não reprova, salvo se o projeto ou pacote dela existe
-e nenhum relatório o leu.
+`isento` é o único valor não numérico aceito: a área está declarada e nada se compara. Área medida
+fora da tabela reprova; piso ausente não é piso zero. Área com piso e sem linha a cobrir (`0 de 0`)
+aparece sem código e não reprova, salvo se o projeto ou pacote existe e nenhum relatório o leu.
 
 ## Mutação
 

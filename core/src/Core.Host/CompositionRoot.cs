@@ -147,7 +147,7 @@ internal static class CompositionRoot
         _ = services.AddRedaction(PlatformLogging.EraseSensitiveData);
         _ = services.AddSingleton(_ => LoopbackHttpClient.Create());
         _ = services.AddSingleton(provider => new HealthWait(provider.GetRequiredService<HttpClient>()));
-        _ = services.AddSingleton(new ServiceProcessLauncher(loaded.Values[LanguageServiceConfiguration.ExecutablePath]));
+        _ = services.AddSingleton(new ServiceProcessLauncher(ServiceFolder.Beside().Executable(LanguageServiceConfiguration.GivenExecutable(loaded.Values))));
         _ = services.AddSingleton(new ServiceProcessWatch());
         _ = services.AddSingleton(provider => new LanguageServiceSupervisor(
             provider.GetRequiredService<ServiceProcessLauncher>(),

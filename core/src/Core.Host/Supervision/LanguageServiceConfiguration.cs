@@ -5,7 +5,7 @@ using ConfigurationSection = Core.Platform.Configuration.ConfigurationSection;
 
 namespace Core.Host.Supervision;
 
-/// <summary>The keys the supervision declares: which interpreter starts the service, how long it has to start, and how long one analysis may take.</summary>
+/// <summary>The keys the supervision declares: which executable starts the service when it is not the folder's, how long it has to start, and how long one analysis may take.</summary>
 internal static class LanguageServiceConfiguration
 {
     internal const string ExecutablePath = SectionName + ":" + ExecutableKey;
@@ -26,10 +26,14 @@ internal static class LanguageServiceConfiguration
         new(
             SectionName,
             [
-                ConfigurationKey.Required(ExecutableKey),
+                ConfigurationKey.Optional(ExecutableKey),
                 ConfigurationKey.WithDefault(StartupTimeoutKey, "30"),
                 ConfigurationKey.WithDefault(AnalyzeTimeoutKey, "10"),
             ]);
+
+    /// <summary>The executable the configuration gave; null when it did not, and the folder beside the executable then holds the interpreter.</summary>
+    internal static string? GivenExecutable(IReadOnlyDictionary<string, string> values) =>
+        values.GetValueOrDefault(ExecutablePath);
 
     /// <summary>The time one analysis may take; null when the value is not a whole number of seconds from one to the longest the recognizer accepts.</summary>
     internal static TimeSpan? AnalyzeTimeout(IReadOnlyDictionary<string, string> values) =>

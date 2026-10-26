@@ -40,7 +40,9 @@ public sealed class StartupCheckTests
         Assert.Equal("Host:BundledFile", checks[1].GetProperty("name").GetString());
         Assert.Equal("Passed", checks[1].GetProperty("status").GetString());
         Assert.Equal("Database", checks[2].GetProperty("name").GetString());
-        Assert.Equal("LanguageService", checks[3].GetProperty("name").GetString());
+        Assert.Equal("LanguageServiceFolder", checks[3].GetProperty("name").GetString());
         Assert.Equal("Passed", checks[3].GetProperty("status").GetString());
+        Assert.Equal("LanguageService", checks[4].GetProperty("name").GetString());
+        Assert.Equal("Passed", checks[4].GetProperty("status").GetString());
     }
 }

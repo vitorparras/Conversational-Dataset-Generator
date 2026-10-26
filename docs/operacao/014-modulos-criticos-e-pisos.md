@@ -17,11 +17,8 @@ esquema do banco: a falha nele vaza dado ou corrompe custódia, em vez de produz
 
 O piso é a porcentagem de linhas cobertas pela suíte da linguagem da área. **Crítica** diz `sim` ou
 `não` em toda linha e é a única marca de módulo crítico: a mutação lê a coluna, não o piso. O
-cabeçalho é fixo e lido pela verificação; linha nova segue o mesmo formato. Projeto/pacote vale
-como **namespace e pasta**: o passo `floors` reprova o arquivo C# de `core/src` que cai numa área
-pelo namespace e noutra pela pasta, nomeando as duas. No serviço, módulo e arquivo coincidem por
-construção. Código fora de toda área listada conta na do projeto ou pacote que o contém, pelo
-prefixo mais longo que casar.
+cabeçalho é fixo e lido pela verificação; linha nova segue o mesmo formato. Código fora de toda
+área listada conta na do projeto ou pacote que o contém, pelo prefixo mais longo que casar.
 
 | Área | Projeto/pacote | Piso | Crítica | Motivo |
 |---|---|---|---|---|

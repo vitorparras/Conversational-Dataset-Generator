@@ -53,6 +53,8 @@ public sealed class MigrationModeTests
         var exit = await HostProcess.RunToExitAsync(installation, HostProcess.StartupTimeout, TestContext.Current.CancellationToken);
 
         Assert.Equal((int)ExitCode.MigrationNotConnected, exit.Code);
+        Assert.Contains("Migração não rodou", exit.Output, StringComparison.Ordinal);
+        Assert.DoesNotContain(Password, exit.Output, StringComparison.Ordinal);
         Assert.DoesNotContain(Password, exit.Error, StringComparison.Ordinal);
     }
 

@@ -154,11 +154,17 @@ a falso, e o núcleo não o reinicia sozinho. Com `fake`, nenhum serviço é vig
 `http://127.0.0.1:5080/versions` responde a versão do núcleo, o commit de que ele foi construído e
 se a árvore tinha mudança não registrada (`workingTree`, que vale `Unknown` se a construção não
 conseguiu perguntar ao `git`); versão que o núcleo não obteve vem `null`, nunca vazia. A
-`modelVersion` é pedida ao serviço de linguagem a cada consulta, sem guardar a anterior: vem `null`
-com `fake`, com o serviço indisponível ou quando ele não informa modelo. A `schemaVersion` é a
-versão que a conferência de inicialização confirmou no banco, fixada na partida e não relida a
+`contractVersion`, a `languageServiceVersion` e a `modelVersion` são as que o serviço de linguagem
+informa em `/version`, lidas a cada consulta sem guardar a anterior, e cada uma vem `null` por
+conta própria quando o serviço não a informa (campo vazio ou só com espaços conta como ausente).
+Com `fake` (sem conexão), com o serviço indisponível, recusando o segredo, fora do tempo ou
+respondendo algo que não é versão, as três vêm `null`. O contrato que o serviço informa pode
+diferir do que o núcleo fala nas requisições; o relatório mostra o do serviço. A `schemaVersion` é
+a versão que a conferência de inicialização confirmou no banco, fixada na partida e não relida a
 cada consulta: vem `null` sem banco configurado. A mesma lista sai no registro, na linha
-`Versões em execução`, com o esquema já preenchido e o modelo `null` até o #51.
+`Versões em execução`, com o esquema já preenchido e as três do serviço lidas uma vez, depois que
+o serviço tem porta e segredo, sem esperar além do limite de leitura; ausentes aparecem como
+`<absent>`.
 
 `POST /analysis` recebe `text` e `language` e analisa o texto pelo reconhecedor em vigor. Análise
 concluída responde 200 com `reference`, `occurrences`, `kinds` (contagem por tipo, escrito como o

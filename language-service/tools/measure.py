@@ -125,7 +125,9 @@ def _probe(model: str, chars: int) -> _Probe:
 
 def _run_child(model: str, chars: int) -> _Probe:
     command = [sys.executable, str(Path(__file__).resolve()), "--probe", model, "--chars"]
-    done = subprocess.run([*command, str(chars)], capture_output=True, text=True, check=False)
+    done = subprocess.run(  # noqa: S603 starts this same script with its own interpreter
+        [*command, str(chars)], capture_output=True, text=True, check=False
+    )
     if done.returncode != 0:
         last = (done.stderr.strip().splitlines() or ["sem saída de erro"])[-1]
         raise _MeasurementError(f"o processo de medição falhou: {last}")

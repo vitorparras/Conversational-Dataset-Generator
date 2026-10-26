@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Core.Host.Endpoints;
 
-/// <summary>Answers under which versions the process runs, with every version it could not obtain marked absent; the model version is asked of the service on each request.</summary>
+/// <summary>Answers under which versions the process runs, absent where it could not obtain one; the service's own three are asked of it on each request.</summary>
 internal static class VersionsEndpoint
 {
     internal const string Route = "/versions";
@@ -12,6 +12,6 @@ internal static class VersionsEndpoint
     internal static void Map(IEndpointRouteBuilder endpoints) => _ = endpoints.MapGet(Route, InForceAsync);
 
     private static async Task<VersionReport> InForceAsync(
-        [FromServices] VersionReport versions, [FromServices] IModelVersionReader model, CancellationToken cancellationToken) =>
-        versions.WithModelVersion(await model.ReadAsync(cancellationToken));
+        [FromServices] VersionReport versions, [FromServices] IServiceVersionReader service, CancellationToken cancellationToken) =>
+        versions.WithServiceVersions(await service.ReadAsync(cancellationToken));
 }

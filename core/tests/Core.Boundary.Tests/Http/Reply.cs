@@ -19,9 +19,15 @@ internal sealed record Reply(int Status, string Body)
         return new(200, $$"""{"service_version":"0.1.0","contract_version":"1","model_version":{{model}}}""");
     }
 
+    /// <summary>A version answer with the three fields given, each written as JSON null when it is null.</summary>
+    public static Reply Versions(string? service, string? contract, string? model) =>
+        new(200, $$"""{"service_version":{{Json(service)}},"contract_version":{{Json(contract)}},"model_version":{{Json(model)}}}""");
+
     public static Reply Ok(string body) => new(200, body);
 
     public static Reply Fixture(string relativePath) => new(200, ContractFixture.Text(relativePath));
 
     public static Reply Unauthorized => new(401, /*lang=json,strict*/ """{"error":"unauthorized"}""");
+
+    private static string Json(string? text) => text is null ? "null" : $"\"{text}\"";
 }

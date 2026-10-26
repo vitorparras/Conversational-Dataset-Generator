@@ -1,9 +1,9 @@
 namespace Core.Platform.Versions;
 
 /// <summary>
-/// The versions the system runs under. A version the system has no way to obtain yet is absent, never empty and
-/// never guessed: the contract and the language service fill theirs when the core speaks to the service, the model
-/// is read from the service for each report, and the schema is the one the startup check confirmed, absent when the core has no database.
+/// The versions the system runs under. A version the system has no way to obtain is absent, never empty and
+/// never guessed: the contract, the language service and the model are the ones the service declares, read from it
+/// for each report and absent when it gives none, and the schema is the one the startup check confirmed, absent when the core has no database.
 /// </summary>
 public sealed record VersionReport
 {
@@ -16,11 +16,11 @@ public sealed record VersionReport
         WorkingTree = core.WorkingTree;
     }
 
-    /// <summary>This report with the model version the language service gave; the report itself does not change.</summary>
-    public VersionReport WithModelVersion(VersionValue model)
+    /// <summary>This report with the versions the language service declared; the report itself does not change.</summary>
+    public VersionReport WithServiceVersions(ServiceVersions service)
     {
-        ArgumentNullException.ThrowIfNull(model);
-        return this with { ModelVersion = model };
+        ArgumentNullException.ThrowIfNull(service);
+        return this with { ContractVersion = service.Contract, LanguageServiceVersion = service.Service, ModelVersion = service.Model };
     }
 
     /// <summary>This report with the schema version the startup check confirmed; the report itself does not change.</summary>
@@ -39,11 +39,11 @@ public sealed record VersionReport
     /// <summary>Whether the core was built from a working tree with changes not yet committed.</summary>
     public WorkingTree WorkingTree { get; }
 
-    /// <summary>The version of the contract between the core and the language service.</summary>
-    public VersionValue ContractVersion { get; } = VersionValue.Absent;
+    /// <summary>The version of the contract the language service declares, not the one the core speaks.</summary>
+    public VersionValue ContractVersion { get; private init; } = VersionValue.Absent;
 
     /// <summary>The version the language service reports of itself.</summary>
-    public VersionValue LanguageServiceVersion { get; } = VersionValue.Absent;
+    public VersionValue LanguageServiceVersion { get; private init; } = VersionValue.Absent;
 
     /// <summary>The version of the model the language service reports.</summary>
     public VersionValue ModelVersion { get; private init; } = VersionValue.Absent;

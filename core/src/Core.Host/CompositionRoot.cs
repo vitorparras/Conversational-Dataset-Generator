@@ -20,8 +20,8 @@ namespace Core.Host;
 /// <summary>The only place where the host is assembled: the target check first, then configuration, logging and services, then routes.</summary>
 internal static class CompositionRoot
 {
-    /// <summary>How long the versions route waits for the service to give its model version, so a service that hangs does not hang the route.</summary>
-    private static readonly TimeSpan ModelVersionTimeout = TimeSpan.FromSeconds(5);
+    /// <summary>How long the versions route waits for the service to give its versions, so a service that hangs does not hang the route.</summary>
+    private static readonly TimeSpan ServiceVersionTimeout = TimeSpan.FromSeconds(5);
 
     internal static async Task<HostLaunch> BuildAsync(string[] args)
     {
@@ -75,7 +75,7 @@ internal static class CompositionRoot
                 return HostLaunch.CheckFailed(report);
             }
 
-            var launch = HostLaunch.Ready(Assemble(
+            var launch = HostLaunch.Ready(await AssembleAsync(
                 Prepared(loaded, fileLog, analyzeTimeout, checks),
                 new StartupReport([.. target.Results, .. report.Results], report.CheckedAt),
                 startup,
@@ -121,9 +121,9 @@ internal static class CompositionRoot
     internal static void AddAnalysis(IServiceCollection services, IReadOnlyDictionary<string, string> values, TimeSpan analyzeTimeout)
     {
         _ = RecognizerConfiguration.UsesFake(values)
-            ? services.AddSingleton<IRecognizer, FakeRecognizer>().AddSingleton<IModelVersionReader, NoModelVersionReader>()
+            ? services.AddSingleton<IRecognizer, FakeRecognizer>().AddSingleton<IServiceVersionReader, NoServiceVersionReader>()
             : services.AddTransient<IRecognizer>(provider => Recognizer(provider, analyzeTimeout))
-                .AddTransient(ModelVersionReader);
+                .AddTransient(ServiceVersionReader);
         _ = services.AddTransient<MaterialAnalysis>();
     }
 
@@ -197,8 +197,8 @@ internal static class CompositionRoot
         return builder;
     }
 
-    /// <summary>What the checks produced, adopted by the host: the report the routes show, the startup container that stops the service with the host, and the recognizer in force.</summary>
-    private static WebApplication Assemble(
+    /// <summary>What the checks produced, adopted by the host: the report, the startup container, the recognizer in force and, once, the service's versions for the startup line.</summary>
+    private static async Task<WebApplication> AssembleAsync(
         WebApplicationBuilder builder, StartupReport report, ServiceProvider startup, RecognizerKind recognizer)
     {
         _ = builder.Services.AddSingleton(report);
@@ -207,8 +207,8 @@ internal static class CompositionRoot
 
         var app = builder.Build();
         _ = app.Services.GetRequiredService<ServiceProvider>();
-        var versions = app.Services.GetRequiredService<VersionReport>();
-        app.Logger.VersionsInForce(versions);
+        await StartupVersions.WriteAsync(
+            app.Logger, app.Services.GetRequiredService<VersionReport>(), app.Services.GetRequiredService<IServiceVersionReader>(), CancellationToken.None);
         StatusEndpoint.Map(app, recognizer);
         ConfigurationEndpoint.Map(app);
         VersionsEndpoint.Map(app);
@@ -228,14 +228,14 @@ internal static class CompositionRoot
             host.GetRequiredService<ILogger<HttpRecognizer>>());
     }
 
-    /// <summary>The reader of the model version of the service the supervisor has now; with no service running there is none to ask.</summary>
-    private static IModelVersionReader ModelVersionReader(IServiceProvider host)
+    /// <summary>The reader of the versions of the service the supervisor has now; with no service running there is none to ask.</summary>
+    private static IServiceVersionReader ServiceVersionReader(IServiceProvider host)
     {
         var startup = host.GetRequiredService<ServiceProvider>();
         var supervisor = startup.GetRequiredService<LanguageServiceSupervisor>();
         return supervisor.Port is { } port && supervisor.Secret.Length > 0
-            ? new HttpModelVersionReader(startup.GetRequiredService<HttpClient>(), new HttpRecognizerSettings(port, supervisor.Secret, ModelVersionTimeout))
-            : new NoModelVersionReader();
+            ? new HttpServiceVersionReader(startup.GetRequiredService<HttpClient>(), new HttpRecognizerSettings(port, supervisor.Secret, ServiceVersionTimeout))
+            : new NoServiceVersionReader();
     }
 
     /// <summary>A web host with no configuration source of its own, so nothing reaches it except what the closed configuration approved.</summary>

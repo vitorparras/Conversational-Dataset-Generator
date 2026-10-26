@@ -23,8 +23,11 @@ internal sealed class VersionsHost : IAsyncDisposable
         client = new HttpClient { BaseAddress = address };
     }
 
+    /// <summary>The fields the service declares, in the order the route writes them.</summary>
+    public static readonly string[] ServiceFields = ["contractVersion", "languageServiceVersion", "modelVersion"];
+
     public static async Task<VersionsHost> StartAsync(
-        IModelVersionReader reader, CancellationToken cancellationToken, VersionValue? schema = null)
+        IServiceVersionReader reader, CancellationToken cancellationToken, VersionValue? schema = null)
     {
         var address = HostProcess.FreeAddress();
         var builder = CompositionRoot.ClosedBuilder(address.GetLeftPart(UriPartial.Authority));
@@ -36,6 +39,12 @@ internal sealed class VersionsHost : IAsyncDisposable
         await app.StartAsync(cancellationToken);
         return new VersionsHost(app, address);
     }
+
+    /// <summary>The text of each field the service declares, null where the route wrote null.</summary>
+    public static string?[] ServiceTexts(JsonDocument versions) => [.. ServiceFields.Select(field => versions.RootElement.GetProperty(field).GetString())];
+
+    /// <summary>The JSON kind of each field the service declares.</summary>
+    public static JsonValueKind[] ServiceKinds(JsonDocument versions) => [.. ServiceFields.Select(field => versions.RootElement.GetProperty(field).ValueKind)];
 
     public async Task<JsonDocument> VersionsAsync(CancellationToken cancellationToken)
     {

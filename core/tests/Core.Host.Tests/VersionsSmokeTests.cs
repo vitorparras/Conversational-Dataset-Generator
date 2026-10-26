@@ -41,11 +41,13 @@ public sealed class VersionsSmokeTests
     }
 
     [Fact]
-    public async Task ModelVersionNotObtainedIsNullAndNotEmpty()
+    public async Task VersionsTheFakeRecognizerHostCannotObtainAreNullAndNotEmpty()
     {
         using var versions = await VersionsAsync(TestContext.Current.CancellationToken);
 
-        Assert.Equal(JsonValueKind.Null, versions.RootElement.GetProperty("modelVersion").ValueKind);
+        Assert.Equal(
+            [JsonValueKind.Null, JsonValueKind.Null, JsonValueKind.Null],
+            VersionsHost.ServiceKinds(versions));
     }
 
     [Fact]

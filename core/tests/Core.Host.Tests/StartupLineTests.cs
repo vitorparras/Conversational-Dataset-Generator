@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Core.Boundary.Contracts;
 
 namespace Core.Host.Tests;
 
@@ -34,7 +35,21 @@ public sealed class StartupLineTests
         Assert.Contains(" CoreVersion=0.1.0", line, StringComparison.Ordinal);
         Assert.Contains($" Commit={WorkingCopy.Head()}", line, StringComparison.Ordinal);
         Assert.Contains($" WorkingTree={WorkingCopy.TreeState()}", line, StringComparison.Ordinal);
+        Assert.Contains(" ContractVersion=<absent>", line, StringComparison.Ordinal);
+        Assert.Contains(" LanguageServiceVersion=<absent>", line, StringComparison.Ordinal);
         Assert.Contains(" ModelVersion=<absent>", line, StringComparison.Ordinal);
         Assert.Contains(" SchemaVersion=<absent>", line, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task VersionsLineHasTheContractAndTheServiceVersionTheRealServiceDeclares()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var host = await HostProcess.StartWithTheRealServiceAsync(cancellationToken);
+
+        var line = VersionsLine.Match(await host.StopAsync()).Value;
+
+        Assert.Contains($" ContractVersion={ContractVersion.Current}", line, StringComparison.Ordinal);
+        Assert.DoesNotContain(" LanguageServiceVersion=<absent>", line, StringComparison.Ordinal);
     }
 }

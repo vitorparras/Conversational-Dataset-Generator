@@ -5,80 +5,113 @@ using Core.Platform.Versions;
 
 namespace Core.Host.Tests;
 
-/// <summary>The versions route asks for the model version on each request and answers it beside the fields that do not change.</summary>
+/// <summary>The versions route asks the service for its versions on each request and answers them beside the fields that do not change.</summary>
 public sealed class VersionsRouteTests
 {
     private static readonly string[] Fields =
         ["coreVersion", "commit", "workingTree", "contractVersion", "languageServiceVersion", "modelVersion", "schemaVersion"];
 
     [Fact]
-    public async Task ModelVersionTheServiceGaveIsAnswered()
+    public async Task VersionsTheServiceGaveAreAnsweredEachInItsOwnField()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await VersionsHost.StartAsync(new ScriptedReader(VersionValue.Present("pt-model-3.2")), cancellationToken);
+        await using var host = await VersionsHost.StartAsync(new ScriptedReader(Declared("7", "0.4.2", "pt-model-3.2")), cancellationToken);
 
         using var versions = await host.VersionsAsync(cancellationToken);
 
+        Assert.Equal(
+            ["7", "0.4.2", "pt-model-3.2"],
+            VersionsHost.ServiceTexts(versions));
+    }
+
+    [Fact]
+    public async Task ContractTheServiceDeclaresIsAnsweredAndNotTheOneTheCoreSpeaks()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var host = await VersionsHost.StartAsync(new ScriptedReader(Declared("99", "0.4.2", "pt-model-3.2")), cancellationToken);
+
+        using var versions = await host.VersionsAsync(cancellationToken);
+
+        Assert.Equal("99", versions.RootElement.GetProperty("contractVersion").GetString());
+    }
+
+    [Fact]
+    public async Task VersionsTheServiceDidNotGiveAreNullAndNotEmpty()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var host = await VersionsHost.StartAsync(new ScriptedReader(ServiceVersions.Absent), cancellationToken);
+
+        using var versions = await host.VersionsAsync(cancellationToken);
+
+        Assert.Equal(
+            [JsonValueKind.Null, JsonValueKind.Null, JsonValueKind.Null],
+            VersionsHost.ServiceKinds(versions));
+    }
+
+    [Fact]
+    public async Task OneVersionTheServiceDidNotGiveIsNullWhileTheOthersAreAnswered()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var host = await VersionsHost.StartAsync(new ScriptedReader(Declared("7", null, "pt-model-3.2")), cancellationToken);
+
+        using var versions = await host.VersionsAsync(cancellationToken);
+
+        Assert.Equal("7", versions.RootElement.GetProperty("contractVersion").GetString());
+        Assert.Equal(JsonValueKind.Null, versions.RootElement.GetProperty("languageServiceVersion").ValueKind);
         Assert.Equal("pt-model-3.2", versions.RootElement.GetProperty("modelVersion").GetString());
     }
 
     [Fact]
-    public async Task ModelVersionTheServiceDidNotGiveIsNullAndNotEmpty()
+    public async Task VersionsAreAskedAgainOnEveryRequest()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await VersionsHost.StartAsync(new ScriptedReader(VersionValue.Absent), cancellationToken);
-
-        using var versions = await host.VersionsAsync(cancellationToken);
-
-        Assert.Equal(JsonValueKind.Null, versions.RootElement.GetProperty("modelVersion").ValueKind);
-    }
-
-    [Fact]
-    public async Task ModelVersionIsAskedAgainOnEveryRequest()
-    {
-        var cancellationToken = TestContext.Current.CancellationToken;
-        var reader = new ScriptedReader(VersionValue.Present("pt-model-1"), VersionValue.Absent, VersionValue.Present("pt-model-2"));
+        var reader = new ScriptedReader(
+            Declared("6", "0.4.1", "pt-model-1"), ServiceVersions.Absent, Declared("7", "0.4.2", "pt-model-2"));
         await using var host = await VersionsHost.StartAsync(reader, cancellationToken);
 
-        var answered = new List<string?>();
+        var answered = new List<string?[]>();
         for (var request = 0; request < 3; request++)
         {
             using var versions = await host.VersionsAsync(cancellationToken);
-            answered.Add(versions.RootElement.GetProperty("modelVersion").GetString());
+            answered.Add(VersionsHost.ServiceTexts(versions));
         }
 
-        Assert.Equal(["pt-model-1", null, "pt-model-2"], answered);
+        Assert.Equal(
+            [["6", "0.4.1", "pt-model-1"], [null, null, null], ["7", "0.4.2", "pt-model-2"]],
+            answered);
     }
 
     [Fact]
-    public async Task OtherFieldsAndTheirOrderStayAsTheyWereWhateverTheModelVersion()
+    public async Task OtherFieldsAndTheirOrderStayAsTheyWereWhateverTheServiceVersions()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await VersionsHost.StartAsync(new ScriptedReader(VersionValue.Present("pt-model-3.2")), cancellationToken);
+        await using var host = await VersionsHost.StartAsync(new ScriptedReader(Declared("7", "0.4.2", "pt-model-3.2")), cancellationToken);
 
         using var versions = await host.VersionsAsync(cancellationToken);
 
         Assert.Equal(Fields, versions.RootElement.EnumerateObject().Select(field => field.Name));
         Assert.Equal("9.8.7", versions.RootElement.GetProperty("coreVersion").GetString());
-        Assert.Equal(JsonValueKind.Null, versions.RootElement.GetProperty("contractVersion").ValueKind);
+        Assert.Equal(JsonValueKind.Null, versions.RootElement.GetProperty("schemaVersion").ValueKind);
     }
 
     [Fact]
-    public async Task FakeRecognizerHostHasNoModelVersionAndNoServiceToAsk()
+    public async Task FakeRecognizerHostHasNoServiceVersionsAndNoServiceToAsk()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await VersionsHost.StartAsync(new NoModelVersionReader(), cancellationToken);
+        await using var host = await VersionsHost.StartAsync(new NoServiceVersionReader(), cancellationToken);
 
         using var versions = await host.VersionsAsync(cancellationToken);
 
-        Assert.Equal(JsonValueKind.Null, versions.RootElement.GetProperty("modelVersion").ValueKind);
+        Assert.Equal(
+            [JsonValueKind.Null, JsonValueKind.Null, JsonValueKind.Null],
+            VersionsHost.ServiceKinds(versions));
     }
 
     [Fact]
     public async Task SchemaVersionTheStartupConfirmedIsAnsweredAsTextOnEveryRequest()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await VersionsHost.StartAsync(new NoModelVersionReader(), cancellationToken, VersionValue.Present("7"));
+        await using var host = await VersionsHost.StartAsync(new NoServiceVersionReader(), cancellationToken, VersionValue.Present("7"));
 
         using var first = await host.VersionsAsync(cancellationToken);
         using var second = await host.VersionsAsync(cancellationToken);
@@ -91,7 +124,7 @@ public sealed class VersionsRouteTests
     public async Task SchemaVersionNotConfirmedIsNullAndNotEmpty()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await VersionsHost.StartAsync(new NoModelVersionReader(), cancellationToken);
+        await using var host = await VersionsHost.StartAsync(new NoServiceVersionReader(), cancellationToken);
 
         using var versions = await host.VersionsAsync(cancellationToken);
 
@@ -102,7 +135,7 @@ public sealed class VersionsRouteTests
     public async Task SchemaVersionDoesNotChangeTheOtherFieldsNorTheirOrder()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await VersionsHost.StartAsync(new NoModelVersionReader(), cancellationToken, VersionValue.Present("7"));
+        await using var host = await VersionsHost.StartAsync(new NoServiceVersionReader(), cancellationToken, VersionValue.Present("7"));
 
         using var versions = await host.VersionsAsync(cancellationToken);
 
@@ -111,12 +144,17 @@ public sealed class VersionsRouteTests
         Assert.Equal(JsonValueKind.Null, versions.RootElement.GetProperty("modelVersion").ValueKind);
     }
 
+    private static ServiceVersions Declared(string? contract, string? service, string? model) =>
+        new(Version(contract), Version(service), Version(model));
+
+    private static VersionValue Version(string? text) => text is null ? VersionValue.Absent : VersionValue.Present(text);
+
     /// <summary>Answers the versions it was given in order, the last one for every read after.</summary>
-    private sealed class ScriptedReader(params VersionValue[] answers) : IModelVersionReader
+    private sealed class ScriptedReader(params ServiceVersions[] answers) : IServiceVersionReader
     {
         private int reads;
 
-        public Task<VersionValue> ReadAsync(CancellationToken cancellationToken) =>
+        public Task<ServiceVersions> ReadAsync(CancellationToken cancellationToken) =>
             Task.FromResult(answers[Math.Min(Interlocked.Increment(ref reads), answers.Length) - 1]);
     }
 }

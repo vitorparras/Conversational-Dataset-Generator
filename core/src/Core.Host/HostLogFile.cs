@@ -4,7 +4,7 @@ using Core.Platform.Startup;
 
 namespace Core.Host;
 
-/// <summary>The file destination of the log, when the configuration names one, and the check that it could be opened.</summary>
+/// <summary>The file destination of the log, when the configuration names one: opened, checked, and added beside the platform's logging.</summary>
 internal static class HostLogFile
 {
     /// <summary>The file the configuration names, relative to the binary's directory; null when absent or when it cannot be opened.</summary>
@@ -19,4 +19,14 @@ internal static class HostLogFile
         loaded.Values.ContainsKey(HostConfiguration.LogFilePath)
             ? [new LogFileCheck(HostConfiguration.LogFilePath, opened: fileLog is not null)]
             : [];
+
+    /// <summary>The platform's logging plus the file, registered as an instance so the startup container never closes it.</summary>
+    internal static void WithFile(ILoggingBuilder logging, ILoggerProvider? fileLog)
+    {
+        PlatformLogging.Configure(logging);
+        if (fileLog is not null)
+        {
+            _ = logging.AddProvider(fileLog);
+        }
+    }
 }

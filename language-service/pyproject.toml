@@ -18,6 +18,10 @@ dev = [
     "mutmut==3.8.0",
     "pytest==9.1.1",
 ]
+pt-core-news-md = [
+    "spacy==3.8.7",
+    "pt-core-news-md @ https://github.com/explosion/spacy-models/releases/download/pt_core_news_md-3.8.0/pt_core_news_md-3.8.0-py3-none-any.whl",
+]
 
 [build-system]
 requires = ["uv_build>=0.11,<0.14"]

@@ -8,13 +8,14 @@ select = ["E", "F", "I", "B", "N", "UP", "RUF", "PL", "SIM", "S", "PGH004"]
 [lint.per-file-ignores]
 # The tool folders carry a hyphen (`verify-code`, `verify-docs`): each runs as a script, never imported by name.
 "tools/verify-*/**" = ["N999"]
+"tools/build-*/**" = ["N999"]
 # Bandit (S) guards the language service; the tools are covered by the static analysis step.
 "tools/**" = ["S"]
 # A pytest test checks with `assert`; S101 is about asserts stripped from optimized production code.
 "language-service/tests/**" = ["S101"]
 
 [lint.isort]
-known-first-party = ["steps", "language_service", "support", "checks", "document", "finding", "registry"]
+known-first-party = ["steps", "service_folder", "sums", "systems", "language_service", "support", "checks", "document", "finding", "registry"]
 
 [lint.pylint]
 max-args = 4

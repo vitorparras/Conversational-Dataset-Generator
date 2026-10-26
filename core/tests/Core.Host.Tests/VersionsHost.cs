@@ -8,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Core.Host.Tests;
 
-/// <summary>The host composition with a build and the model version reader given, serving only the versions route in process.</summary>
+/// <summary>The host composition with a build, the model version reader and, when given, the schema version, serving only the versions route in process.</summary>
 internal sealed class VersionsHost : IAsyncDisposable
 {
     private static readonly BuildInfo Build = new(
@@ -23,12 +23,13 @@ internal sealed class VersionsHost : IAsyncDisposable
         client = new HttpClient { BaseAddress = address };
     }
 
-    public static async Task<VersionsHost> StartAsync(IModelVersionReader reader, CancellationToken cancellationToken)
+    public static async Task<VersionsHost> StartAsync(
+        IModelVersionReader reader, CancellationToken cancellationToken, VersionValue? schema = null)
     {
         var address = HostProcess.FreeAddress();
         var builder = CompositionRoot.ClosedBuilder(address.GetLeftPart(UriPartial.Authority));
         CompositionRoot.Compose(builder, ClosedConfiguration.Load(new ConfigurationSchema([HostConfiguration.Section])).View, fileLog: null);
-        _ = builder.Services.AddSingleton(new VersionReport(Build));
+        _ = builder.Services.AddSingleton(new VersionReport(Build).WithSchemaVersion(schema ?? VersionValue.Absent));
         _ = builder.Services.AddSingleton(reader);
         var app = builder.Build();
         VersionsEndpoint.Map(app);

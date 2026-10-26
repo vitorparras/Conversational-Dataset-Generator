@@ -74,6 +74,43 @@ public sealed class VersionsRouteTests
         Assert.Equal(JsonValueKind.Null, versions.RootElement.GetProperty("modelVersion").ValueKind);
     }
 
+    [Fact]
+    public async Task SchemaVersionTheStartupConfirmedIsAnsweredAsTextOnEveryRequest()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var host = await VersionsHost.StartAsync(new NoModelVersionReader(), cancellationToken, VersionValue.Present("7"));
+
+        using var first = await host.VersionsAsync(cancellationToken);
+        using var second = await host.VersionsAsync(cancellationToken);
+
+        Assert.Equal("7", first.RootElement.GetProperty("schemaVersion").GetString());
+        Assert.Equal("7", second.RootElement.GetProperty("schemaVersion").GetString());
+    }
+
+    [Fact]
+    public async Task SchemaVersionNotConfirmedIsNullAndNotEmpty()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var host = await VersionsHost.StartAsync(new NoModelVersionReader(), cancellationToken);
+
+        using var versions = await host.VersionsAsync(cancellationToken);
+
+        Assert.Equal(JsonValueKind.Null, versions.RootElement.GetProperty("schemaVersion").ValueKind);
+    }
+
+    [Fact]
+    public async Task SchemaVersionDoesNotChangeTheOtherFieldsNorTheirOrder()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var host = await VersionsHost.StartAsync(new NoModelVersionReader(), cancellationToken, VersionValue.Present("7"));
+
+        using var versions = await host.VersionsAsync(cancellationToken);
+
+        Assert.Equal(Fields, versions.RootElement.EnumerateObject().Select(field => field.Name));
+        Assert.Equal("9.8.7", versions.RootElement.GetProperty("coreVersion").GetString());
+        Assert.Equal(JsonValueKind.Null, versions.RootElement.GetProperty("modelVersion").ValueKind);
+    }
+
     /// <summary>Answers the versions it was given in order, the last one for every read after.</summary>
     private sealed class ScriptedReader(params VersionValue[] answers) : IModelVersionReader
     {

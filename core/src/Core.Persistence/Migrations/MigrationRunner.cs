@@ -8,7 +8,6 @@ public sealed class MigrationRunner
 {
     private const string Lock = "SELECT pg_advisory_lock(hashtextextended('conversational-dataset-generator.migrations', 0))";
     private const string Unlock = "SELECT pg_advisory_unlock(hashtextextended('conversational-dataset-generator.migrations', 0))";
-    private const string Register = "INSERT INTO " + SchemaRegistry.Table + " (version, name, sha256) VALUES (@version, @name, @sha256)";
 
     private readonly NpgsqlDataSource dataSource;
     private readonly IReadOnlyList<MigrationStep> steps;
@@ -95,7 +94,7 @@ public sealed class MigrationRunner
         await using (transaction.ConfigureAwait(false))
         {
             await StepCommand.RunAsync(connection, transaction, step, cancellationToken).ConfigureAwait(false);
-            var register = new NpgsqlBatchCommand(Register);
+            var register = new NpgsqlBatchCommand(SchemaRegistry.Register);
             _ = register.Parameters.AddWithValue("version", step.Version);
             _ = register.Parameters.AddWithValue("name", step.Name);
             _ = register.Parameters.AddWithValue("sha256", step.Sha256);

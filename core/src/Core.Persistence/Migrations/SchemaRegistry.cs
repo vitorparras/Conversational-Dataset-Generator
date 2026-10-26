@@ -8,6 +8,8 @@ internal static class SchemaRegistry
 {
     internal const string Table = "public.schema_version";
 
+    internal const string Register = "INSERT INTO " + Table + " (version, name, sha256) VALUES (@version, @name, @sha256)";
+
     private const string Exists = "SELECT to_regclass('" + Table + "') IS NOT NULL";
     private const string Rows = "SELECT version, name, sha256 FROM " + Table + " ORDER BY version";
 

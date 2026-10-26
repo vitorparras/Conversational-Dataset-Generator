@@ -5,4 +5,4 @@ from pathlib import Path
 
 BUILD_SERVICE = str(Path(__file__).resolve().parents[1])
 if BUILD_SERVICE not in sys.path:
-    sys.path.insert(0, BUILD_SERVICE)
+    sys.path.append(BUILD_SERVICE)

@@ -49,6 +49,14 @@ public sealed class VersionsSmokeTests
     }
 
     [Fact]
+    public async Task SchemaVersionWithoutADatabaseIsNullAndNotEmptyNorZero()
+    {
+        using var versions = await VersionsAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(JsonValueKind.Null, versions.RootElement.GetProperty("schemaVersion").ValueKind);
+    }
+
+    [Fact]
     public async Task TwoStartsOfTheSameBuildAnswerTheSameVersions()
     {
         var cancellationToken = TestContext.Current.CancellationToken;

@@ -35,5 +35,6 @@ public sealed class StartupLineTests
         Assert.Contains($" Commit={WorkingCopy.Head()}", line, StringComparison.Ordinal);
         Assert.Contains($" WorkingTree={WorkingCopy.TreeState()}", line, StringComparison.Ordinal);
         Assert.Contains(" ModelVersion=<absent>", line, StringComparison.Ordinal);
+        Assert.Contains(" SchemaVersion=<absent>", line, StringComparison.Ordinal);
     }
 }

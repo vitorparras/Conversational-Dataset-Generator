@@ -38,6 +38,36 @@ public sealed class VersionReportTests
     }
 
     [Fact]
+    public void ReportWithTheSchemaVersionGivenCarriesItAndKeepsTheRest()
+    {
+        var report = new VersionReport(Build)
+            .WithModelVersion(VersionValue.Present("pt-model-3.2"))
+            .WithSchemaVersion(VersionValue.Present("4"));
+
+        Assert.Equal(VersionValue.Present("4"), report.SchemaVersion);
+        Assert.Equal(VersionValue.Present("pt-model-3.2"), report.ModelVersion);
+        Assert.Equal(Build, new BuildInfo(report.CoreVersion, report.Commit, report.WorkingTree));
+    }
+
+    [Fact]
+    public void ReportWithTheSchemaVersionGivenLeavesTheOriginalAsItWas()
+    {
+        var original = new VersionReport(Build);
+
+        _ = original.WithSchemaVersion(VersionValue.Present("4"));
+
+        Assert.Equal(VersionValue.Absent, original.SchemaVersion);
+    }
+
+    [Fact]
+    public void SchemaVersionIsWrittenAsAJsonString()
+    {
+        var json = JsonSerializer.Serialize(new VersionReport(Build).WithSchemaVersion(VersionValue.Present("4")));
+
+        Assert.EndsWith("\"SchemaVersion\":\"4\"}", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void VersionsTheCoreCannotObtainYetAreWrittenAsJsonNull()
     {
         var json = JsonSerializer.Serialize(new VersionReport(Build));

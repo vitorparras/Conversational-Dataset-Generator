@@ -1,5 +1,7 @@
+using System.Globalization;
 using Core.Persistence.Migrations;
 using Core.Platform.Startup;
+using Core.Platform.Versions;
 using Core.Tests.Integration.Fixtures;
 using Npgsql;
 
@@ -122,6 +124,101 @@ public sealed class SchemaVersionStartupTests
         Assert.Contains("SQLSTATE 42501", result.Message, StringComparison.Ordinal);
         Assert.Contains("public.schema_version", result.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("catálogo", result.Message, StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
+    public async Task MigratedDatabaseConfirmsTheLastVersionOfTheEmbeddedMigrations()
+    {
+        await using var database = await ScratchDatabase.CreateAsync();
+        var steps = EmbeddedMigrations.Load();
+        _ = await database.MigrateAsync(steps);
+
+        var confirmed = await ConfirmedAsync(database, steps);
+
+        Assert.Equal(VersionValue.Present(steps[^1].Version.ToString(CultureInfo.InvariantCulture)), confirmed);
+    }
+
+    [DatabaseFact]
+    public async Task CheckThatDidNotRunYetConfirmsNoVersion()
+    {
+        await using var database = await ScratchDatabase.CreateAsync();
+        var steps = EmbeddedMigrations.Load();
+        _ = await database.MigrateAsync(steps);
+        await using var dataSource = NpgsqlDataSource.Create(database.AppConnectionString);
+
+        var check = new SchemaVersionCheck(dataSource, steps);
+
+        Assert.Equal(VersionValue.Absent, check.ConfirmedVersion);
+    }
+
+    [DatabaseFact]
+    public async Task EmptyDatabaseConfirmsNoVersionNotEvenZero()
+    {
+        await using var database = await ScratchDatabase.CreateAsync();
+
+        var confirmed = await ConfirmedAsync(database, EmbeddedMigrations.Load());
+
+        Assert.Equal(VersionValue.Absent, confirmed);
+    }
+
+    [DatabaseFact]
+    public async Task DatabaseBehindTheBuildConfirmsNoVersion()
+    {
+        await using var database = await ScratchDatabase.CreateAsync();
+        var applied = EmbeddedMigrations.Load();
+        _ = await database.MigrateAsync(applied);
+
+        var confirmed = await ConfirmedAsync(database, TestSteps.Following(applied, Table));
+
+        Assert.Equal(VersionValue.Absent, confirmed);
+    }
+
+    [DatabaseFact]
+    public async Task DatabaseAheadOfTheBuildConfirmsNoVersion()
+    {
+        await using var database = await ScratchDatabase.CreateAsync();
+        var built = EmbeddedMigrations.Load();
+        _ = await database.MigrateAsync(TestSteps.Following(built, Table));
+
+        var confirmed = await ConfirmedAsync(database, built);
+
+        Assert.Equal(VersionValue.Absent, confirmed);
+    }
+
+    [DatabaseFact]
+    public async Task DatabaseWithAStepOfOtherContentConfirmsNoVersion()
+    {
+        await using var database = await ScratchDatabase.CreateAsync();
+        _ = await database.MigrateAsync(TestSteps.OnTopOfTheEmbedded(Table));
+
+        var confirmed = await ConfirmedAsync(database, TestSteps.OnTopOfTheEmbedded(Altered));
+
+        Assert.Equal(VersionValue.Absent, confirmed);
+    }
+
+    [DatabaseFact]
+    public async Task RunThatFailsAfterOneThatPassedWithdrawsTheVersion()
+    {
+        await using var database = await ScratchDatabase.CreateAsync();
+        var steps = EmbeddedMigrations.Load();
+        _ = await database.MigrateAsync(steps);
+        await using var dataSource = NpgsqlDataSource.Create(database.AppConnectionString);
+        var check = new SchemaVersionCheck(dataSource, steps);
+        _ = await check.RunAsync(TestContext.Current.CancellationToken);
+        Assert.NotEqual(VersionValue.Absent, check.ConfirmedVersion);
+        await database.RevokeRegistryReadAsync();
+
+        _ = await check.RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(VersionValue.Absent, check.ConfirmedVersion);
+    }
+
+    private static async Task<VersionValue> ConfirmedAsync(ScratchDatabase database, IReadOnlyList<MigrationStep> steps)
+    {
+        await using var dataSource = NpgsqlDataSource.Create(database.AppConnectionString);
+        var check = new SchemaVersionCheck(dataSource, steps);
+        _ = await check.RunAsync(TestContext.Current.CancellationToken);
+        return check.ConfirmedVersion;
     }
 
     private static Task<CheckResult> CheckAsync(ScratchDatabase database, IReadOnlyList<MigrationStep> steps) =>

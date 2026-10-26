@@ -2,6 +2,7 @@ using System.Text;
 using Core.Persistence.Migrations;
 using Core.Persistence.Tests.ServerGuarantees;
 using Core.Platform.Startup;
+using Core.Platform.Versions;
 
 namespace Core.Persistence.Tests.Migrations;
 
@@ -20,6 +21,18 @@ public sealed class SchemaVersionCheckTests
         var result = await check.RunAsync(TestContext.Current.CancellationToken);
 
         RefusalAssert.NamesTheCheckAndTheAddressWithoutTheSecret("SchemaVersion", result, server);
+    }
+
+    [Fact]
+    public async Task UnreachableServerConfirmsNoVersion()
+    {
+        await using var server = new UnreachableServer();
+        var check = new SchemaVersionCheck(server.DataSource, [First]);
+        Assert.Equal(VersionValue.Absent, check.ConfirmedVersion);
+
+        _ = await check.RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(VersionValue.Absent, check.ConfirmedVersion);
     }
 
     [Fact]

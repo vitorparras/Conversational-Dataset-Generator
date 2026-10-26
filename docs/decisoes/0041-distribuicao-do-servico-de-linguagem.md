@@ -10,8 +10,7 @@ no destino, mantém o serviço em Python e fixa "executável único, sem instala
 modelo decide se o executável único vale para ele ou só para o núcleo. A
 [medição](../historico/003-medicao-do-modelo.md) dá interpretador autônomo, spaCy e modelo, sem as
 dependências HTTP do serviço, em 359, 395 e 946 MiB instalados e 117, 145 e 647 comprimidos (com
-compressões diferentes, ver nela) para pt_core_news_sm, pt_core_news_md e pt_core_news_lg. Em toda
-alternativa vale o [requisito 022](../requisitos/022-operacao-sem-servico-externo.md): nada se instala nem se busca
+compressões diferentes, ver nela) para pt_core_news_sm, pt_core_news_md e pt_core_news_lg. Vale o [requisito 022](../requisitos/022-operacao-sem-servico-externo.md): nada se instala nem se busca
 fora, e o modelo ausente falha na partida. Hoje o núcleo inicia o serviço pela chave obrigatória
 `LanguageService:Executable`, com `-m language_service --port N` (`ServiceProcessLauncher`).
 
@@ -41,7 +40,8 @@ do núcleo, e a chave deixa de ser obrigatória; os argumentos atuais servem.
 ## Consequências
 
 Substitui a 0002 e a 0011 quanto à distribuição do serviço; as duas só trocam a linha de
-autoridade. O executável único segue requisito do núcleo, e é só o conjunto que deixa de sê-lo. A
+autoridade. O executável único segue requisito do núcleo, e é só o conjunto que deixa de sê-lo; por
+isso a condição de reabertura da 0002 não se realiza, e Java não volta ao núcleo. A
 pasta são arquivos soltos, sem extração: atualizar troca uma subpasta, e o risco de antivírus é
 menor, não nulo. Não há compilação, apenas interpretador e rodas do sistema.
 

@@ -1,6 +1,8 @@
 using System.Diagnostics;
+using System.Globalization;
 using Core.Persistence.ServerGuarantees;
 using Core.Platform.Startup;
+using Core.Platform.Versions;
 using Npgsql;
 
 namespace Core.Persistence.Migrations;
@@ -8,6 +10,7 @@ namespace Core.Persistence.Migrations;
 /// <summary>
 /// Checks, with the application's credential, that the schema is at the version this build expects; an absent registry counts
 /// as version 0. Behind, ahead or diverging, it refuses and says to run the migration mode, which this check never does.
+/// When it passes, the schema is exactly at the version this build expects, and that version is the one it confirmed.
 /// </summary>
 public sealed class SchemaVersionCheck : IStartupCheck
 {
@@ -26,12 +29,18 @@ public sealed class SchemaVersionCheck : IStartupCheck
     /// <inheritdoc />
     public string Name => "SchemaVersion";
 
+    /// <summary>The version the last run confirmed; absent until a run passes, and again after one that does not.</summary>
+    public VersionValue ConfirmedVersion { get; private set; } = VersionValue.Absent;
+
     /// <inheritdoc />
-    public Task<CheckResult> RunAsync(CancellationToken cancellationToken) =>
-        ServerProbe.RunAsync(
+    public Task<CheckResult> RunAsync(CancellationToken cancellationToken)
+    {
+        ConfirmedVersion = VersionValue.Absent;
+        return ServerProbe.RunAsync(
             dataSource,
             new Guarantee(Name, $"o papel da aplicação precisa ler {SchemaRegistry.Table}, que a migração concede a PUBLIC", ReadAsync, ReadsCatalog: false),
             cancellationToken);
+    }
 
     internal static Finding Judge(SchemaComparison comparison) => comparison.State switch
     {
@@ -46,6 +55,14 @@ public sealed class SchemaVersionCheck : IStartupCheck
         _ => throw new UnreachableException(),
     };
 
-    private async Task<Finding> ReadAsync(NpgsqlConnection connection, CancellationToken cancellationToken) =>
-        Judge(SchemaComparison.Compare(steps, await SchemaRegistry.ReadAsync(connection, cancellationToken).ConfigureAwait(false)));
+    private async Task<Finding> ReadAsync(NpgsqlConnection connection, CancellationToken cancellationToken)
+    {
+        var comparison = SchemaComparison.Compare(steps, await SchemaRegistry.ReadAsync(connection, cancellationToken).ConfigureAwait(false));
+        if (comparison.State == SchemaState.UpToDate)
+        {
+            ConfirmedVersion = VersionValue.Present(comparison.Found.ToString(CultureInfo.InvariantCulture));
+        }
+
+        return Judge(comparison);
+    }
 }

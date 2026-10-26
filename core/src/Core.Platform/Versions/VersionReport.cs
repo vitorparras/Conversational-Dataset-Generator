@@ -3,7 +3,7 @@ namespace Core.Platform.Versions;
 /// <summary>
 /// The versions the system runs under. A version the system has no way to obtain yet is absent, never empty and
 /// never guessed: the contract and the language service fill theirs when the core speaks to the service, the model
-/// is read from the service for each report, and the schema fills its own when the core has a database.
+/// is read from the service for each report, and the schema is the one the startup check confirmed, absent when the core has no database.
 /// </summary>
 public sealed record VersionReport
 {
@@ -21,6 +21,13 @@ public sealed record VersionReport
     {
         ArgumentNullException.ThrowIfNull(model);
         return this with { ModelVersion = model };
+    }
+
+    /// <summary>This report with the schema version the startup check confirmed; the report itself does not change.</summary>
+    public VersionReport WithSchemaVersion(VersionValue schema)
+    {
+        ArgumentNullException.ThrowIfNull(schema);
+        return this with { SchemaVersion = schema };
     }
 
     /// <summary>The package version of the core.</summary>
@@ -42,5 +49,5 @@ public sealed record VersionReport
     public VersionValue ModelVersion { get; private init; } = VersionValue.Absent;
 
     /// <summary>The version of the database schema.</summary>
-    public VersionValue SchemaVersion { get; } = VersionValue.Absent;
+    public VersionValue SchemaVersion { get; private init; } = VersionValue.Absent;
 }

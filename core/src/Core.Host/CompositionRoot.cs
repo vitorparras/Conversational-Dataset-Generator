@@ -76,7 +76,7 @@ internal static class CompositionRoot
             }
 
             var launch = HostLaunch.Ready(Assemble(
-                Prepared(loaded, fileLog, analyzeTimeout),
+                Prepared(loaded, fileLog, analyzeTimeout, checks),
                 new StartupReport([.. target.Results, .. report.Results], report.CheckedAt),
                 startup,
                 RecognizerConfiguration.KindOf(loaded.Values)));
@@ -187,12 +187,13 @@ internal static class CompositionRoot
         _ = services.AddSingleton<IStartupCheck>(provider => new SchemaVersionCheck(provider.GetRequiredService<NpgsqlDataSource>(), EmbeddedMigrations.Load()));
     }
 
-    /// <summary>The web host with everything the configuration decides: its address, logging, the file destination and the recognizer.</summary>
-    private static WebApplicationBuilder Prepared(ConfigurationLoadResult loaded, ILoggerProvider? fileLog, TimeSpan analyzeTimeout)
+    /// <summary>The web host with everything the configuration decides: its address, logging, the file destination, the recognizer and the versions the checks confirmed.</summary>
+    private static WebApplicationBuilder Prepared(ConfigurationLoadResult loaded, ILoggerProvider? fileLog, TimeSpan analyzeTimeout, System.Collections.IEnumerable checks)
     {
         var builder = ClosedBuilder(loaded.Values[HostConfiguration.UrlsPath]);
         Compose(builder, loaded.View, fileLog);
         AddAnalysis(builder.Services, loaded.Values, analyzeTimeout);
+        _ = builder.Services.AddSingleton(StartupVersions.Of(checks));
         return builder;
     }
 
@@ -203,11 +204,10 @@ internal static class CompositionRoot
         _ = builder.Services.AddSingleton(report);
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetRequiredService<ServiceProcessWatch>());
         _ = builder.Services.AddSingleton(_ => startup);
-        var versions = new VersionReport(BuildInfo.Of(typeof(CompositionRoot).Assembly));
-        _ = builder.Services.AddSingleton(versions);
 
         var app = builder.Build();
         _ = app.Services.GetRequiredService<ServiceProvider>();
+        var versions = app.Services.GetRequiredService<VersionReport>();
         app.Logger.VersionsInForce(versions);
         StatusEndpoint.Map(app, recognizer);
         ConfigurationEndpoint.Map(app);

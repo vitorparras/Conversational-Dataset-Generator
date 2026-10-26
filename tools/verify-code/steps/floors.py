@@ -1,7 +1,8 @@
 """Judges the coverage of each measured area against its floor in docs/operacao/014.
 
 The floors are read from the document on every run; no number lives here. Code that no area owns
-fails, and so does a production project or package of the tree that no area owns or no report read.
+fails, and so does a production project or package of the tree that no area owns or no report read,
+or a `.cs` file whose namespace and folder fall in different areas.
 """
 
 from __future__ import annotations
@@ -11,6 +12,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
+from steps import namespace_folder
 from steps.areas_doc import DOCUMENT, EXEMPT, WHOLE, Area, area_of, within
 from steps.common import Context, StepResult, failed, passed
 from steps.coverage_by_area import UNOWNED, Measurement, Tally, measure, rows, summarize
@@ -127,8 +129,9 @@ def orphans(root: Path, areas: tuple[Area, ...]) -> Verdict:
 
 def run(ctx: Context) -> StepResult:
     found = measure(ctx)
+    misplaced = Verdict(namespace_folder.check(ctx.root))
     if isinstance(found, tuple):
-        return failed(NAME, *found)
+        return failed(NAME, *found, *misplaced.failures)
     before = earlier(ctx.previous)
     tallies = rows(found.lines, found.areas, found.measured)[: len(found.measured)]
     verdicts = (
@@ -139,6 +142,7 @@ def run(ctx: Context) -> StepResult:
         baseline(ctx.previous, before),
         unowned(found),
         orphans(ctx.root, found.areas),
+        misplaced,
     )
     failures = tuple(line for verdict in verdicts for line in verdict.failures)
     notes = tuple(line for verdict in verdicts for line in verdict.notes)

@@ -130,25 +130,29 @@ def smoke(job: Job, interpreter: Path, scratch: Path) -> None:
         )
 
 
+def fill(job: Job, scratch: Path) -> int:
+    """Puts everything into the folder, proves it and returns the files its manifest covers."""
+    interpreter = job.folder / job.system.interpreter
+    install_interpreter(scratch / "store", job.folder / "python")
+    if not interpreter.is_file():
+        raise BuildError(f"o interpretador não está em {job.system.interpreter}")
+    install_packages(job, interpreter, scratch)
+    compile_bytecode(interpreter, job.folder / "python")
+    count = sums.write(job.folder)
+    smoke(job, interpreter, scratch)
+    return count
+
+
 def assemble(job: Job) -> int:
-    """Builds the folder and returns how many files its manifest covers."""
+    """Builds the folder and returns how many files its manifest covers; a failure leaves none."""
     if job.folder.exists():
         raise BuildError(f"{job.folder} já existe: apague-a ou escolha outra saída")
-    interpreter = job.folder / job.system.interpreter
     try:
         with tempfile.TemporaryDirectory(prefix="cdg-service-", ignore_cleanup_errors=True) as tmp:
-            scratch = Path(tmp)
-            install_interpreter(scratch / "store", job.folder / "python")
-            if not interpreter.is_file():
-                raise BuildError(f"o interpretador não está em {job.system.interpreter}")
-            install_packages(job, interpreter, scratch)
-            compile_bytecode(interpreter, job.folder / "python")
-            count = sums.write(job.folder)
-            smoke(job, interpreter, scratch)
+            return fill(job, Path(tmp))
     except (BuildError, OSError, ValueError, subprocess.CalledProcessError):
         shutil.rmtree(job.folder, ignore_errors=True)
         raise
-    return count
 
 
 def parse(argv: Sequence[str]) -> Job:

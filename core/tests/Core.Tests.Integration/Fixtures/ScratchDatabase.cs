@@ -50,6 +50,10 @@ internal sealed class ScratchDatabase : IAsyncDisposable
         return await new MigrationRunner(dataSource, steps).RunAsync(TestContext.Current.CancellationToken);
     }
 
+    /// <summary>Takes back the read the migration gave PUBLIC on the registry, as the role owner.</summary>
+    public Task RevokeRegistryReadAsync() =>
+        ExecuteAsync(OwnerConnectionString, "REVOKE SELECT ON public.schema_version FROM PUBLIC");
+
     /// <summary>Whether a table of that name exists in the public schema.</summary>
     public async Task<bool> TableExistsAsync(string table)
     {

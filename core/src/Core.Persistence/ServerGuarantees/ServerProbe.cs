@@ -45,7 +45,7 @@ internal static class ServerProbe
         }
         catch (NpgsqlException exception)
         {
-            var whatToChange = exception is PostgresException { SqlState: InsufficientPrivilege } ? CatalogUnreadable : guarantee.Requirement;
+            var whatToChange = guarantee.ReadsCatalog && exception is PostgresException { SqlState: InsufficientPrivilege } ? CatalogUnreadable : guarantee.Requirement;
             return CheckResult.Failed(guarantee.Name, $"o servidor recusou a conferência{SqlState(exception)}: {whatToChange}", DatabaseConfiguration.HostPath) with { Observed = server };
         }
     }

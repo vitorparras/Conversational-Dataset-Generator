@@ -65,7 +65,7 @@ internal sealed class HostProcess : IDisposable
         }
     }
 
-    /// <summary>Runs the installation until it exits by itself and hands over the exit code and the error stream.</summary>
+    /// <summary>Runs the installation until it exits by itself and hands over the exit code and both streams.</summary>
     public static async Task<HostExit> RunToExitAsync(
         HostInstallation installation, TimeSpan timeout, CancellationToken cancellationToken)
     {
@@ -98,7 +98,7 @@ internal sealed class HostProcess : IDisposable
 
         await exited;
         await DrainAsync();
-        return new HostExit(process.ExitCode, await error);
+        return new HostExit(process.ExitCode, await error, await output);
     }
 
     /// <summary>Asks the host to stop the way a service manager does: SIGTERM to the host process alone.</summary>

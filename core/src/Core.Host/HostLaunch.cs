@@ -1,10 +1,12 @@
 using System.Diagnostics;
+using Core.Host.Migration;
+using Core.Persistence.Migrations;
 using Core.Platform.Configuration;
 using Core.Platform.Startup;
 
 namespace Core.Host;
 
-/// <summary>The assembled host, or the refusal that kept it from being assembled.</summary>
+/// <summary>The assembled host, the refusal that kept it from being assembled, or how a migration ended.</summary>
 internal sealed class HostLaunch
 {
     private readonly HostLaunchState state;
@@ -29,12 +31,18 @@ internal sealed class HostLaunch
     internal static HostLaunch CheckFailed(StartupReport report) =>
         new(HostLaunchState.CheckFailed, app: null, [], report);
 
+    private ExitCode MigrationExit { get; init; }
+
+    internal static HostLaunch Migrated(MigrationOutcome outcome) =>
+        new(HostLaunchState.Migrated, app: null, [], report: null) { MigrationExit = MigrationMode.ExitOf(outcome) };
+
     /// <summary>Serves until stopped, or reports why the host was not assembled and ends at once.</summary>
     internal ExitCode Run() => state switch
     {
         HostLaunchState.Ready => Serve(),
         HostLaunchState.Refused => ConfigurationRefusal.Report(Console.Error, problems),
         HostLaunchState.CheckFailed => StartupRefusal.Report(Console.Error, report!),
+        HostLaunchState.Migrated => MigrationExit,
         _ => throw new UnreachableException(),
     };
 

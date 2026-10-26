@@ -1,4 +1,7 @@
+using Core.Host.Supervision;
+using Core.Persistence.Connection;
 using Core.Platform.Configuration;
+using Core.Platform.Configuration.Sources;
 using ConfigurationSection = Core.Platform.Configuration.ConfigurationSection;
 
 namespace Core.Host;
@@ -29,4 +32,12 @@ internal static class HostConfiguration
                 ConfigurationKey.WithDefault(BundledFileKey, SettingsFile),
                 ConfigurationKey.Optional(LogFileKey),
             ]);
+
+    /// <summary>The closed configuration of the host: the file beside it, the process environment and the strict arguments.</summary>
+    internal static ConfigurationLoadResult Load(string[] args) =>
+        ClosedConfiguration.Load(
+            new ConfigurationSchema([Section, LanguageServiceConfiguration.Section, RecognizerConfiguration.Section, DatabaseConfiguration.Section]),
+            new JsonFileSource(SettingsPath),
+            EnvironmentSource.FromProcess(),
+            new StrictArgumentsSource(args));
 }

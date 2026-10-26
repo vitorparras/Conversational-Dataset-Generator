@@ -108,6 +108,22 @@ public sealed class SchemaVersionStartupTests
         Assert.DoesNotContain(password, string.Join('|', report.Results), StringComparison.Ordinal);
     }
 
+    [DatabaseFact]
+    public async Task RegistryTheApplicationRoleCannotReadIsRefusedNamingTheRegistryTable()
+    {
+        await using var database = await ScratchDatabase.CreateAsync();
+        var steps = EmbeddedMigrations.Load();
+        _ = await database.MigrateAsync(steps);
+        await database.RevokeRegistryReadAsync();
+
+        var result = await CheckAsync(database, steps);
+
+        Assert.Equal(CheckStatus.Failed, result.Status);
+        Assert.Contains("SQLSTATE 42501", result.Message, StringComparison.Ordinal);
+        Assert.Contains("public.schema_version", result.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("catálogo", result.Message, StringComparison.Ordinal);
+    }
+
     private static Task<CheckResult> CheckAsync(ScratchDatabase database, IReadOnlyList<MigrationStep> steps) =>
         AppStartup.CheckAsync(database, dataSource => new SchemaVersionCheck(dataSource, steps));
 }

@@ -45,9 +45,8 @@ internal static class CompositionRoot
         }
 
         var analyzeTimeout = LanguageServiceConfiguration.AnalyzeTimeout(loaded.Values);
-        return analyzeTimeout is null
-            ? HostLaunch.Refused([LanguageServiceConfiguration.AnalyzeTimeoutRefused(loaded.Values)])
-            : await LaunchAsync(loaded, database, analyzeTimeout.Value, target);
+        var refused = LanguageServiceConfiguration.Refusals(loaded.Values, analyzeTimeout);
+        return analyzeTimeout is { } timeout && refused.Count == 0 ? await LaunchAsync(loaded, database, timeout, target) : HostLaunch.Refused(refused);
     }
 
     /// <summary>The migration mode: the steps run once with the owner credential the configuration holds, the outcome is logged and nothing is served.</summary>

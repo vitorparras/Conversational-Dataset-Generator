@@ -114,18 +114,22 @@ dotnet restore --locked-mode core/Core.slnx
 dotnet build core/Core.slnx
 dotnet test core/Core.slnx
 PY="$(uv run --frozen --project language-service python -c 'import sys; print(sys.executable)')"
-dotnet run --project core/src/Core.Host -- --Host:Urls=http://127.0.0.1:5080 \
+DOTNET_ENVIRONMENT=Development dotnet run --project core/src/Core.Host -- --Host:Urls=http://127.0.0.1:5080 \
   --LanguageService:Executable="$PY"
 ```
 
 O núcleo inicia o serviço de linguagem e só abre a porta depois que ele responde. A chave
-`LanguageService:Executable` é opcional e serve ao desenvolvimento: é o interpretador do ambiente
+`LanguageService:Executable` é opcional e serve só ao desenvolvimento: vale apenas com
+`DOTNET_ENVIRONMENT=Development`, e fora desse ambiente a chave, se escrita, recusa a partida e é
+nomeada na recusa; nenhuma configuração dispensa a conferência da pasta. É o interpretador do ambiente
 virtual de `language-service/`, em caminho absoluto, porque `dotnet run` roda a partir da pasta do
 projeto; o `$(...)` acima o obtém, e o `uv run --frozen` já cria o ambiente a partir de `uv.lock`
-se ele não existir. Com a chave, o núcleo usa esse executável e não confere a pasta. Sem a chave,
+se ele não existir. Com a chave, em Development, o núcleo usa esse executável e não confere a pasta
+(o registro de inicialização diz que ela não foi conferida). Sem a chave,
 usa o interpretador da pasta `language-service/` ao lado do executável e, antes de iniciar, confere
 cada arquivo contra o `SHA256SUMS`; manifesto ausente, vazio ou ilegível, arquivo ausente ou soma
-divergente recusa a partida e nomeia o arquivo. Os testes do núcleo usam o mesmo comando para
+divergente recusa a partida e nomeia o arquivo. O núcleo inicia o interpretador em modo isolado (`-I`):
+`PYTHONHOME` e `PYTHONPATH` herdados do ambiente não alcançam o serviço. Os testes do núcleo usam o mesmo comando para
 achar o interpretador.
 `LanguageService:AnalyzeTimeoutSeconds` (padrão 10, de 1 a 3600 segundos) limita cada análise:
 vencido o prazo, o desfecho é serviço indisponível, nunca lista vazia; valor fora desse intervalo

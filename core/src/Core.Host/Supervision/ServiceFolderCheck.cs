@@ -3,7 +3,7 @@ using Core.Platform.Startup;
 
 namespace Core.Host.Supervision;
 
-/// <summary>Confirms the language service folder against its manifest before the service starts; an executable the configuration gave skips the folder.</summary>
+/// <summary>Confirms the language service folder against its manifest before the service starts; an executable given in development skips the folder.</summary>
 internal sealed class ServiceFolderCheck : IStartupCheck
 {
     private const int HashLength = 64;
@@ -28,7 +28,7 @@ internal sealed class ServiceFolderCheck : IStartupCheck
         {
             return CheckResult.Passed(
                 Name,
-                $"o executável veio de {LanguageServiceConfiguration.ExecutablePath}; a pasta language-service não foi conferida",
+                $"o executável veio de {LanguageServiceConfiguration.ExecutablePath}, que só vale no ambiente Development; a pasta language-service não foi conferida",
                 LanguageServiceConfiguration.ExecutablePath);
         }
 

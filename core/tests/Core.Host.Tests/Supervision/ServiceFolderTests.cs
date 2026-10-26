@@ -39,6 +39,6 @@ public sealed class ServiceFolderTests
             new ConfigurationSchema([LanguageServiceConfiguration.Section]));
 
         Assert.False(loaded.Refused);
-        Assert.Null(LanguageServiceConfiguration.GivenExecutable(loaded.Values));
+        Assert.Null(LanguageServiceConfiguration.GivenExecutable(loaded.Values, development: true));
     }
 }

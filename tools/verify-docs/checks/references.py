@@ -41,6 +41,10 @@ def _cited_path(snippet: str) -> str | None:
     candidate = snippet.strip().rstrip(":,.;")
     if " " in candidate or candidate.startswith(("-", "$", "http")):
         return None
+    # An absolute path (/usr/bin, /proc) names the host, not the repository:
+    # `root / cited` would discard the root, and the verdict would follow the OS.
+    if candidate.startswith("/"):
+        return None
     has_slash = "/" in candidate and not candidate.endswith("/")
     if not (candidate.endswith(FILE_EXTENSIONS) or has_slash):
         return None

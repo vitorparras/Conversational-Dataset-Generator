@@ -7,7 +7,7 @@ import json
 from steps import areas_doc
 
 POLICY = (
-    "## Mutação\n\n"
+    "# 017\n\n## Regras\n\n"
     "O teste de mutação roda sobre as áreas com `sim` em **Crítica**, que são a lista de módulos. "
     "Por\nmódulo, no máximo **20 % dos mutantes gerados** podem sobreviver. Teto de tempo: "
     "**20 minutos por\nlinguagem** dentro da verificação.\n\n## Depois\n"
@@ -24,7 +24,6 @@ DOCUMENT = "\n".join(
         "| Registro do serviço | `language_service.logging_` | 90 % | sim | registro |",
         "| Serviço | `language_service` | 80 % | não | demais módulos |",
         "",
-        POLICY,
     )
 )
 AUTH_TEST = "from language_service.auth import Verifier\n"

@@ -28,5 +28,6 @@ e por quem ela roda.
 | [014](014-modulos-criticos-e-pisos.md) | Módulos críticos e pisos de cobertura |
 | [015](015-medicao-do-modelo-de-linguagem.md) | Medição do modelo de linguagem |
 | [016](016-migracao-do-esquema.md) | A migração do esquema do banco |
+| [017](017-teste-de-mutacao.md) | O teste de mutação |
 
 Ver [regras de escrita](../regras-de-escrita.md).

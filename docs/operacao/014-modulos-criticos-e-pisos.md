@@ -48,20 +48,8 @@ prefixo mais longo que casar.
 fora da tabela reprova; piso ausente não é piso zero. Área com piso e sem linha a cobrir (`0 de 0`)
 aparece sem código e não reprova, salvo se o projeto ou pacote existe e nenhum relatório o leu.
 
-## Mutação
-
-Esta seção é lida pela verificação: a coluna Crítica e as duas frases em negrito; mudança nelas
-segue o mesmo formato. A mutação roda sobre as áreas com `sim` em Crítica. Cada arquivo pertence a
-uma só área, a de prefixo mais longo, como na cobertura: área aninhada sai da que a contém.
-
-Por módulo, no máximo **20 % dos mutantes gerados** podem sobreviver. Conta só a suíte do projeto
-do módulo: no núcleo, os projetos de teste que o referenciam; no serviço, os arquivos de teste que
-o importam diretamente (`import language_service.x`, `from language_service.x import ...`,
-`from language_service import x`), numa rodada do mutmut por módulo. Módulo sem teste assim
-reprova; o sobrevivente que só outro projeto mataria é do módulo. Teto de tempo: **20 minutos por
-linguagem**, somados entre os módulos, dentro da verificação de pull request. Exceder o teto é
-achado que reprova, nomeando o módulo e o tempo gasto, nunca lentidão tolerada. Mutação fora do
-bloqueio só por decisão escrita.
+O teste de mutação percorre as áreas com `sim` em Crítica; as regras dele estão na
+[017](017-teste-de-mutacao.md).
 
 ## Como um piso muda
 

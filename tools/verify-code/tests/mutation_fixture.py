@@ -12,11 +12,11 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from steps import areas_doc, mutation
+from steps import areas_doc, mutation, mutation_policy
 from steps.common import OUTPUT_DIRECTORY, CommandOutcome, Context, StepResult
 
 from . import support
-from .mutation_samples import AUTH_TEST, DOCUMENT, LOGGING_TEST, SHOWN, SOURCE
+from .mutation_samples import AUTH_TEST, DOCUMENT, LOGGING_TEST, POLICY, SHOWN, SOURCE
 
 STRYKER_REPORT = "reports/mutation-report.json"
 
@@ -61,6 +61,7 @@ class MutationFixture(unittest.TestCase):
         self.addCleanup(self._tmp.cleanup)
         self.root = Path(self._tmp.name).resolve()
         support.write(self.root, areas_doc.DOCUMENT, DOCUMENT)
+        support.write(self.root, mutation_policy.DOCUMENT, POLICY)
         reference = (
             '<ProjectReference Include="..\\..\\src\\Core.Platform\\Core.Platform.csproj" />'
         )

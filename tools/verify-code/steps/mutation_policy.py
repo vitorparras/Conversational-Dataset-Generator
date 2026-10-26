@@ -1,5 +1,5 @@
-"""Reads the mutation rules of docs/operacao/014: the share of survivors a module may keep and the
-time ceiling per language, and which areas are critical modules, by the Crítica column of the table.
+"""Reads the mutation rules of docs/operacao/017: the share of survivors a module may keep and the
+time ceiling per language; the critical modules are the Crítica column of the table of 014.
 No number lives here."""
 
 from __future__ import annotations
@@ -9,9 +9,10 @@ from dataclasses import dataclass
 from itertools import takewhile
 from pathlib import Path
 
-from steps.areas_doc import DOCUMENT, Area
+from steps.areas_doc import Area
 
-SECTION = "## Mutação"
+DOCUMENT = "docs/operacao/017-teste-de-mutacao.md"
+SECTION = "## Regras"
 PHRASES = (
     (
         re.compile(r"no máximo \*\*(\d{1,3}) % dos mutantes gerados\*\*"),

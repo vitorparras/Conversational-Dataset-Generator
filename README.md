@@ -83,10 +83,12 @@ Na CI, o mesmo job repete o passo sem rede, com o cache HTTP do NuGet vazio: a c
 pacotes já baixados. Por isso `core/Directory.Packages.props` deixa a auditoria do NuGet desligada:
 ela consulta a fonte quando o cache de vulnerabilidades vence, em cerca de 30 minutos.
 
-O passo `mutation` roda o teste de mutação sobre exatamente as áreas que a seção "Mutação" de
-`docs/operacao/014-modulos-criticos-e-pisos.md` declara críticas e julga, pelos números dela, a
-parcela de sobreviventes por módulo e o tempo por linguagem. Cada sobrevivente sai com arquivo,
-linha e alteração. No núcleo roda o Stryker.NET fixado em `core/dotnet-tools.json`; no serviço,
+O passo `mutation` roda o teste de mutação sobre exatamente as áreas que a coluna Crítica de
+`docs/operacao/014-modulos-criticos-e-pisos.md` marca `sim` e julga, pelos números de
+`docs/operacao/017-teste-de-mutacao.md`, a parcela de sobreviventes por módulo e o tempo por
+linguagem. Cada sobrevivente sai com arquivo, linha e alteração. A suíte que conta em cada módulo é
+a do projeto dele; no serviço, só os arquivos de teste que o importam. No núcleo roda o
+Stryker.NET fixado em `core/dotnet-tools.json`; no serviço,
 o mutmut de `language-service/uv.lock`, que exige o `uv` de
 `tools/verify-code/service-requirements.txt` e **só roda no Linux**: em outra plataforma o passo
 pula o serviço com aviso. A configuração das duas ferramentas é gerada a cada execução na pasta de

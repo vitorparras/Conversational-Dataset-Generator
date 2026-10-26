@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from unittest import mock
 
+from steps import mutation_policy
+
 from . import mutation_fixture as fixture
 from . import mutation_samples, support
 from .test_mutation import healthy
@@ -78,8 +80,8 @@ class MutationCeilingTests(fixture.MutationFixture):
         self.assertTrue(result.ok)
 
     def test_the_ceiling_comes_from_the_document(self) -> None:
-        document = mutation_samples.DOCUMENT.replace("**20 minutos por", "**30 minutos por")
-        support.write(self.root, "docs/operacao/014-modulos-criticos-e-pisos.md", document)
+        document = mutation_samples.POLICY.replace("**20 minutos por", "**30 minutos por")
+        support.write(self.root, mutation_policy.DOCUMENT, document)
 
         with mock.patch(CLOCK, side_effect=[0.0, OVER, 0.0, 1.0, 0.0, 1.0]):
             result = self.run_step(healthy())

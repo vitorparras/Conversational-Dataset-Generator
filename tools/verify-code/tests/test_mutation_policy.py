@@ -7,12 +7,12 @@ import unittest
 from dataclasses import replace
 from pathlib import Path
 
-from steps import areas_doc, mutation_policy
+from steps import mutation_policy
 from steps.areas_doc import Area
 from steps.mutation_policy import MutationPolicy
 
 from . import support
-from .mutation_samples import DOCUMENT
+from .mutation_samples import POLICY
 
 REPOSITORY = support.VERIFY_CODE.parents[1]
 LOGGING = Area("Registro", "Core.Platform.Logging", 90, critical=True)
@@ -27,40 +27,43 @@ class MutationPolicyTests(unittest.TestCase):
         self.root = Path(self._tmp.name)
 
     def read(self, text: str) -> MutationPolicy | tuple[str, ...]:
-        support.write(self.root, areas_doc.DOCUMENT, text)
+        support.write(self.root, mutation_policy.DOCUMENT, text)
         return mutation_policy.read_policy(self.root)
 
     def test_the_section_gives_the_survivor_ceiling_and_the_minutes(self) -> None:
-        policy = self.read(DOCUMENT)
+        policy = self.read(POLICY)
 
         self.assertEqual(policy, MutationPolicy(20, 20))
 
     def test_a_changed_survivor_ceiling_in_the_document_is_read(self) -> None:
-        policy = self.read(DOCUMENT.replace("**20 % dos", "**15 % dos"))
+        policy = self.read(POLICY.replace("**20 % dos", "**15 % dos"))
 
         self.assertEqual(policy, MutationPolicy(15, 20))
 
     def test_a_section_without_the_survivor_phrase_fails_naming_it(self) -> None:
-        policy = self.read(DOCUMENT.replace("**20 % dos mutantes gerados**", "poucos"))
+        policy = self.read(POLICY.replace("**20 % dos mutantes gerados**", "poucos"))
 
         self.assertEqual(
             policy,
             (
-                f"{areas_doc.DOCUMENT}: a seção `## Mutação` não diz "
+                f"{mutation_policy.DOCUMENT}: a seção `## Regras` não diz "
                 "`no máximo **N % dos mutantes gerados**`",
             ),
         )
 
     def test_a_document_without_the_section_fails(self) -> None:
-        policy = self.read(DOCUMENT.replace("## Mutação", "## Outra"))
+        policy = self.read(POLICY.replace("## Regras", "## Outra"))
 
         self.assertEqual(
             policy,
-            (f"{areas_doc.DOCUMENT}: seção `## Mutação` não encontrada; não há regra de mutação",),
+            (
+                f"{mutation_policy.DOCUMENT}: seção `## Regras` não encontrada; "
+                "não há regra de mutação",
+            ),
         )
 
     def test_a_phrase_after_the_next_heading_does_not_count(self) -> None:
-        moved = DOCUMENT.replace("## Mutação\n\n", "## Mutação\n\n## Outra\n\n")
+        moved = POLICY.replace("## Regras\n\n", "## Regras\n\n## Outra\n\n")
 
         policy = self.read(moved)
 

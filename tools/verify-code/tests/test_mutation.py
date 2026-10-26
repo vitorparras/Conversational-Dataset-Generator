@@ -5,10 +5,10 @@ from __future__ import annotations
 import json
 from unittest import mock
 
-from steps import areas_doc
+from steps import areas_doc, mutation_policy
 
 from . import mutation_fixture as fixture
-from . import mutation_samples, support
+from . import support
 from .mutation_fixture import ToolRunner
 from .mutation_samples import DOCUMENT, meta, stryker_report
 
@@ -170,7 +170,7 @@ class MutationStepTests(fixture.MutationFixture):
         self.assertIn("`tools`: nenhuma ferramenta de mutação o alcança", result.details)
 
     def test_a_document_without_the_mutation_rules_fails_before_any_tool_runs(self) -> None:
-        support.write(self.root, areas_doc.DOCUMENT, DOCUMENT.replace(mutation_samples.POLICY, ""))
+        support.write(self.root, mutation_policy.DOCUMENT, "# 017\n")
         runner = healthy()
 
         result = self.run_step(runner)

@@ -22,11 +22,11 @@ class BuildTests(unittest.TestCase):
         self.addCleanup(self._tmp.cleanup)
         self.output = Path(self._tmp.name)
 
-    def request(self) -> service_folder.Request:
-        return service_folder.Request(systems.LINUX_X64, "pt_core_news_md", self.output)
+    def job(self) -> service_folder.Job:
+        return service_folder.Job(systems.LINUX_X64, "pt_core_news_md", self.output)
 
     def test_group_of_the_model_is_named_as_uv_normalizes_it(self) -> None:
-        self.assertEqual("pt-core-news-md", self.request().group)
+        self.assertEqual("pt-core-news-md", self.job().group)
 
     def test_model_that_is_not_a_package_name_is_refused(self) -> None:
         arguments = ["--system", "linux-x64", "--model", "../x", "--output", str(self.output)]
@@ -66,7 +66,7 @@ class BuildTests(unittest.TestCase):
         (self.output / service_folder.SERVICE).mkdir()
 
         with self.assertRaises(service_folder.BuildError):
-            service_folder.assemble(self.request())
+            service_folder.assemble(self.job())
 
         self.assertTrue((self.output / service_folder.SERVICE).is_dir())
 

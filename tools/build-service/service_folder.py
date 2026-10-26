@@ -38,7 +38,7 @@ class BuildError(Exception):
 
 
 @dataclass(frozen=True)
-class Request:
+class Job:
     """What to build: the system, the model by its package name and where the folder goes."""
 
     system: systems.System
@@ -75,13 +75,13 @@ def install_interpreter(store: Path, target: Path) -> None:
         marker.unlink()
 
 
-def install_packages(request: Request, interpreter: Path, scratch: Path) -> None:
+def install_packages(job: Job, interpreter: Path, scratch: Path) -> None:
     """Installs the locked tree with its hashes, then the service itself, into the interpreter."""
     requirements = scratch / "requirements.txt"
     group = [
         "--no-dev",
         "--group",
-        request.group,
+        job.group,
         "--no-emit-project",
         "--format",
         "requirements-txt",
@@ -116,42 +116,42 @@ def compile_bytecode(interpreter: Path, python: Path) -> None:
     subprocess.run([str(interpreter), *flags, str(python)], capture_output=True, check=False)
 
 
-def smoke(request: Request, interpreter: Path, scratch: Path) -> None:
+def smoke(job: Job, interpreter: Path, scratch: Path) -> None:
     """Imports the service and loads the model, then proves that nothing in the manifest moved."""
-    program = f"import uvicorn, language_service.app, spacy; spacy.load('{request.model}')"
+    program = f"import uvicorn, language_service.app, spacy; spacy.load('{job.model}')"
     environment = {k: v for k, v in os.environ.items() if k not in UNSET_BYTECODE_VARIABLES}
     subprocess.run(  # the working directory is not the folder: nothing may be found by accident
         [str(interpreter), "-c", program], cwd=scratch, env=environment, check=False
     ).check_returncode()
-    moved = sums.problems(request.folder)
+    moved = sums.problems(job.folder)
     if moved:
         raise BuildError(
             "\n".join(["rodar o serviço alterou a pasta:", *moved[:OUTPUT_TAIL_LINES]])
         )
 
 
-def assemble(request: Request) -> int:
+def assemble(job: Job) -> int:
     """Builds the folder and returns how many files its manifest covers."""
-    if request.folder.exists():
-        raise BuildError(f"{request.folder} já existe: apague-a ou escolha outra saída")
-    interpreter = request.folder / request.system.interpreter
+    if job.folder.exists():
+        raise BuildError(f"{job.folder} já existe: apague-a ou escolha outra saída")
+    interpreter = job.folder / job.system.interpreter
     try:
         with tempfile.TemporaryDirectory(prefix="cdg-service-", ignore_cleanup_errors=True) as tmp:
             scratch = Path(tmp)
-            install_interpreter(scratch / "store", request.folder / "python")
+            install_interpreter(scratch / "store", job.folder / "python")
             if not interpreter.is_file():
-                raise BuildError(f"o interpretador não está em {request.system.interpreter}")
-            install_packages(request, interpreter, scratch)
-            compile_bytecode(interpreter, request.folder / "python")
-            count = sums.write(request.folder)
-            smoke(request, interpreter, scratch)
+                raise BuildError(f"o interpretador não está em {job.system.interpreter}")
+            install_packages(job, interpreter, scratch)
+            compile_bytecode(interpreter, job.folder / "python")
+            count = sums.write(job.folder)
+            smoke(job, interpreter, scratch)
     except (BuildError, OSError, ValueError, subprocess.CalledProcessError):
-        shutil.rmtree(request.folder, ignore_errors=True)
+        shutil.rmtree(job.folder, ignore_errors=True)
         raise
     return count
 
 
-def parse(argv: Sequence[str]) -> Request:
+def parse(argv: Sequence[str]) -> Job:
     parser = argparse.ArgumentParser(description="Monta a pasta do serviço de linguagem.")
     parser.add_argument("--system", required=True, choices=sorted(systems.SYSTEMS))
     parser.add_argument("--model", required=True, help="pacote do modelo, ex.: pt_core_news_md")
@@ -161,21 +161,21 @@ def parse(argv: Sequence[str]) -> Request:
     args = parser.parse_args(argv)
     if MODEL.fullmatch(args.model) is None:
         parser.error(f"modelo inválido: {args.model}")
-    return Request(systems.SYSTEMS[args.system], args.model, args.output.resolve())
+    return Job(systems.SYSTEMS[args.system], args.model, args.output.resolve())
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    request = parse(sys.argv[1:] if argv is None else argv)
-    if not request.system.is_host():
-        print(f"esta máquina não é {request.system.name}: o interpretador é o da máquina que monta")
+    job = parse(sys.argv[1:] if argv is None else argv)
+    if not job.system.is_host():
+        print(f"esta máquina não é {job.system.name}: o interpretador é o da máquina que monta")
         return 1
     try:
-        count = assemble(request)
+        count = assemble(job)
     except (BuildError, OSError, ValueError, subprocess.CalledProcessError) as error:
         print(f"a montagem falhou: {error}")
         return 1
-    print(f"{request.folder}: {count} arquivos no manifesto")
-    print(f"interpretador em {request.system.interpreter}")
+    print(f"{job.folder}: {count} arquivos no manifesto")
+    print(f"interpretador em {job.system.interpreter}")
     return 0
 
 

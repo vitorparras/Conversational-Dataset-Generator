@@ -2,10 +2,10 @@
 
 > Descrição. 2026-10-04.
 
-O sistema é distribuído como executável único e não instala nada no destino, então quase tudo o que
-o ambiente precisa oferecer está fora dele: um banco que imponha as garantias, um cofre de onde a
-chave venha, e um perímetro que contenha o serviço de linguagem. Aqui está o que precisa existir, e
-não como se instala — ferramenta muda, exigência não.
+O núcleo é distribuído como executável único e o serviço de linguagem numa pasta ao lado, pela
+[decisão 0041](../decisoes/0041-distribuicao-do-servico-de-linguagem.md); nada se instala no destino.
+Fora deles, o ambiente oferece a máquina, o banco, a chave e o [perímetro](011-servico-de-linguagem.md)
+do serviço. Aqui está o que precisa existir, e não como se instala — ferramenta muda, exigência não.
 
 ## O banco
 
@@ -35,11 +35,12 @@ alcançasse, o critério da [decisão 0003](../decisoes/0003-cifra-em-repouso.md
 A chave não está no repositório, na imagem, em arquivo ao lado do banco, em argumento de comando
 visível a outro processo, nem em log. A guarda está em [002](002-guarda-da-chave.md).
 
-## O serviço de linguagem
+## A máquina
 
-Texto ainda não sanitizado atravessa a fronteira de processo até ele, e o transporte é **restrito à
-máquina local** por decisão. O que o ambiente responde por, e o único ponto que segue aberto, está
-em [011](011-servico-de-linguagem.md).
+O núcleo carrega do sistema, no Linux, a glibc, a libgcc_s, a libstdc++ e a OpenSSL 3, e não sobe
+sem elas; no Windows, só o próprio sistema. A criptografia da biblioteca padrão da
+[decisão 0002](../decisoes/0002-stack.md) é a da plataforma: OpenSSL 3 no Linux, CNG no Windows. A
+lista vem do [histórico 002](../historico/002-medidas-do-artefato.md), que não mediu o `win-x64` nem a pasta do serviço.
 
 ## O resto
 

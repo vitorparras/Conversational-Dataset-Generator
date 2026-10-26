@@ -30,6 +30,7 @@ implementar.
 | O que acontece com a anotação quando a taxonomia muda | [0016](../decisoes/0016-mudanca-de-taxonomia-com-anotacao-existente.md) |
 | Chave de cifra por domínio | [0013](../decisoes/0013-chave-de-cifra-por-dominio.md) |
 | A guarda e a recuperação da chave-mestra | [0014](../decisoes/0014-custodia-da-chave-mestra.md) |
+| Como o serviço de linguagem acompanha a distribuição | [0041](../decisoes/0041-distribuicao-do-servico-de-linguagem.md) |
 
 ## As cinco ambiguidades da arquitetura
 

@@ -34,13 +34,12 @@ de trechos por tipo. É com isso que se diagnostica, e é de propósito que não
 texto em log, reproduzir um reconhecimento errado exige reexecutar sobre o material original, cuja
 decifragem é operação auditada.
 
-## O que fica aberto, e a regra que não depende disso
+## Onde o serviço mora, e a regra que não depende disso
 
-Como um serviço que exige interpretador e modelo no destino se concilia com a entrega por executável
-único é ponto aberto da [decisão 0002](../decisoes/0002-stack.md), e por isso a política de
-[texto fora do banco](../privacidade/003-texto-fora-do-banco.md) não afirma o que o serviço carrega
-para funcionar. Daqui também não sai exigência sobre volume somente leitura: dependeria da mesma
-decisão.
+O serviço vai numa pasta ao lado do núcleo, com interpretador, ambiente e modelo montados no build,
+pela [decisão 0041](../decisoes/0041-distribuicao-do-servico-de-linguagem.md). O que a pasta leva é
+instalação, não acervo, e a política de [texto fora do banco](../privacidade/003-texto-fora-do-banco.md)
+o trata assim. Exigência sobre volume somente leitura não sai daqui nem da 0041.
 
 A regra que vale de qualquer modo: **conteúdo do acervo gravado em disco fora da cifra é
 incidente**, não detalhe de implantação. Vale para arquivo temporário, cache, despejo de memória e

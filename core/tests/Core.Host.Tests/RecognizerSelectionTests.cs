@@ -73,27 +73,27 @@ public sealed class RecognizerSelectionTests : IDisposable
     }
 
     [Fact]
-    public void FakeKindReadsNoModelVersionFromAnyService()
+    public void FakeKindReadsNoVersionFromAnyService()
     {
         var values = RecognizerContainer.Loaded("--Recognizer:Kind=fake").Values;
         using var container = RecognizerContainer.Of(values, harness.SupervisorFor("zqx-missing-7731"), harness.Client);
 
-        _ = Assert.IsType<NoModelVersionReader>(container.GetRequiredService<IModelVersionReader>());
+        _ = Assert.IsType<NoServiceVersionReader>(container.GetRequiredService<IServiceVersionReader>());
     }
 
     [Fact]
-    public async Task HttpKindWithNoServiceRunningHasNoModelVersion()
+    public async Task HttpKindWithNoServiceRunningHasNoVersions()
     {
         var values = RecognizerContainer.Loaded("--Recognizer:Kind=http").Values;
         using var container = RecognizerContainer.Of(values, harness.SupervisorFor("zqx-missing-7731"), harness.Client);
 
-        var version = await container.GetRequiredService<IModelVersionReader>().ReadAsync(TestContext.Current.CancellationToken);
+        var versions = await container.GetRequiredService<IServiceVersionReader>().ReadAsync(TestContext.Current.CancellationToken);
 
-        Assert.Equal(VersionValue.Absent, version);
+        Assert.Equal(ServiceVersions.Absent, versions);
     }
 
     [Fact]
-    public async Task HttpKindWithTheServiceRunningReadsItsModelVersionAtItsPortWithItsSecret()
+    public async Task HttpKindWithTheServiceRunningReadsItsVersionsAtItsPortWithItsSecret()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         Assert.SkipWhen(LanguageServiceInterpreter.Available is null, "Real service route skipped: uv could not resolve the language-service environment.");
@@ -101,10 +101,13 @@ public sealed class RecognizerSelectionTests : IDisposable
         var values = RecognizerContainer.Loaded("--Recognizer:Kind=http").Values;
         using var container = RecognizerContainer.Of(values, supervisor, harness.Client);
 
-        var reader = container.GetRequiredService<IModelVersionReader>();
+        var reader = container.GetRequiredService<IServiceVersionReader>();
 
-        _ = Assert.IsType<HttpModelVersionReader>(reader);
-        Assert.Equal(VersionValue.Absent, await reader.ReadAsync(cancellationToken));
+        _ = Assert.IsType<HttpServiceVersionReader>(reader);
+        var versions = await reader.ReadAsync(cancellationToken);
+        Assert.Equal(VersionValue.Present(ContractVersion.Current), versions.Contract);
+        Assert.NotEqual(VersionValue.Absent, versions.Service);
+        Assert.Equal(VersionValue.Absent, versions.Model);
     }
 
     public void Dispose() => harness.Dispose();

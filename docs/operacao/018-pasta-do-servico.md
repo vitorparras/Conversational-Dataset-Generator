@@ -18,9 +18,13 @@ monta, porque o interpretador vem de `uv python install` e esse comando instala 
 roda. Pasta já existente não se sobrescreve: o script recusa. A rede é usada só aqui; a pasta pronta
 roda sem ela.
 
-**Provado:** `linux-x64`, num contêiner sem rede, com a pasta copiada para outro caminho. **Não
-provado:** `win-x64`. O script o declara, mas ninguém o rodou em Windows, e o contrato abaixo para
-ele é intenção.
+**Provado:** `linux-x64`, num contêiner sem rede, com a pasta copiada para outro caminho, e
+`win-x64` (Windows 11), montado pelo script sem ajuste. No Windows: pasta copiada para outro
+caminho, com data nova em todo arquivo; regra de saída do Firewall bloqueando o `python.exe` da
+cópia, com controle positivo (o da original conecta, o da cópia falha com WinError 10013);
+`PYTHONHOME` e `PYTHONPATH` com lixo; `python.exe -I` carrega o modelo e responde `/health` 200 em
+duas partidas; `sha256sum -c SHA256SUMS` passa e nada sobra fora do manifesto. A regra só serve à
+prova e se remove depois dela.
 
 ## O que entra
 

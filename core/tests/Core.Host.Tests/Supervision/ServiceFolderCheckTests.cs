@@ -42,6 +42,28 @@ public sealed class ServiceFolderCheckTests : IDisposable
     }
 
     [Fact]
+    public async Task ManifestWithoutLinesFailsNamingTheManifest()
+    {
+        mounted.Rewrite(string.Empty);
+
+        var result = await Check.RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(CheckStatus.Failed, result.Status);
+        Assert.Contains("language-service/SHA256SUMS", result.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ManifestThatCannotBeReadFailsNamingTheManifest()
+    {
+        using var held = new FileStream(mounted.Folder.Manifest, FileMode.Open, FileAccess.Read, FileShare.None);
+
+        var result = await Check.RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(CheckStatus.Failed, result.Status);
+        Assert.Contains("language-service/SHA256SUMS", result.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task FileThatIsMissingFailsNamingTheFile()
     {
         File.Delete(Path.Combine(mounted.Folder.Root, MountedServiceFolder.ModulePath));

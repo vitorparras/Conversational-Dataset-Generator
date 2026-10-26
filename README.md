@@ -119,10 +119,14 @@ dotnet run --project core/src/Core.Host -- --Host:Urls=http://127.0.0.1:5080 \
 ```
 
 O núcleo inicia o serviço de linguagem e só abre a porta depois que ele responde. A chave
-`LanguageService:Executable` é o interpretador do ambiente virtual de `language-service/`, em
-caminho absoluto, porque `dotnet run` roda a partir da pasta do projeto; o `$(...)` acima o obtém, e
-o `uv run --frozen` já cria o ambiente a partir de `uv.lock` se ele não existir. Sem a chave, o
-núcleo recusa a configuração. Os testes do núcleo usam o mesmo comando para achar o interpretador.
+`LanguageService:Executable` é opcional e serve ao desenvolvimento: é o interpretador do ambiente
+virtual de `language-service/`, em caminho absoluto, porque `dotnet run` roda a partir da pasta do
+projeto; o `$(...)` acima o obtém, e o `uv run --frozen` já cria o ambiente a partir de `uv.lock`
+se ele não existir. Com a chave, o núcleo usa esse executável e não confere a pasta. Sem a chave,
+usa o interpretador da pasta `language-service/` ao lado do executável e, antes de iniciar, confere
+cada arquivo contra o `SHA256SUMS`; manifesto ausente, vazio ou ilegível, arquivo ausente ou soma
+divergente recusa a partida e nomeia o arquivo. Os testes do núcleo usam o mesmo comando para
+achar o interpretador.
 `LanguageService:AnalyzeTimeoutSeconds` (padrão 10, de 1 a 3600 segundos) limita cada análise:
 vencido o prazo, o desfecho é serviço indisponível, nunca lista vazia; valor fora desse intervalo
 recusa a configuração.
@@ -131,9 +135,9 @@ recusa a configuração.
 Com `http`, o núcleo pergunta ao serviço de linguagem. Com `fake`, não inicia o serviço e decide
 pelo próprio texto: cada `ZQX-FAKE-PERSON` vira uma ocorrência; `ZQX-FAKE-NOTHING` dá análise sem
 ocorrência; qualquer outro texto fica sem análise, como serviço inalcançável. Com `fake`, a chave
-`LanguageService:Executable` continua exigida, mas não é usada. Os testes do núcleo sobem o host
-com `fake`; o ensaio contra o serviço real tem `Category=RealService` e é saltado com aviso quando
-o `uv` não resolve o ambiente do serviço.
+`LanguageService:Executable` e a pasta `language-service/` são dispensáveis. Os testes do núcleo
+sobem o host com `fake`; o ensaio contra o serviço real tem `Category=RealService` e é saltado
+com aviso quando o `uv` não resolve o ambiente do serviço.
 
 A chave opcional `Host:LogFile` grava o registro também no arquivo que ela nomeia, em caminho
 absoluto ou relativo à pasta do executável, com as linhas e a redação do console. Sem ela, o

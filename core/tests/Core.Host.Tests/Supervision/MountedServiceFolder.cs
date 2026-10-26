@@ -10,10 +10,24 @@ internal sealed class MountedServiceFolder : IDisposable
     private const string Interpreter = "python/bin/python3";
     private const string Module = "service/main.py";
 
-    private readonly TemporaryDirectory directory = new();
+    private readonly TemporaryDirectory? owned;
+    private readonly string baseDirectory;
 
     public MountedServiceFolder()
+        : this(new TemporaryDirectory())
     {
+    }
+
+    private MountedServiceFolder(TemporaryDirectory owned)
+        : this(owned.Path)
+    {
+        this.owned = owned;
+    }
+
+    /// <summary>The folder beside the base directory given, which the caller owns and removes.</summary>
+    public MountedServiceFolder(string baseDirectory)
+    {
+        this.baseDirectory = baseDirectory;
         Write(Interpreter, "interpreter");
         Write(Module, "module");
         File.WriteAllText(Folder.Manifest, Manifest(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
@@ -21,7 +35,7 @@ internal sealed class MountedServiceFolder : IDisposable
 
     public static string ModulePath => Module;
 
-    public ServiceFolder Folder => new(directory.Path, windows: false);
+    public ServiceFolder Folder => new(baseDirectory, windows: false);
 
     public void Write(string relative, string content)
     {
@@ -32,7 +46,7 @@ internal sealed class MountedServiceFolder : IDisposable
 
     public void Rewrite(string manifest) => File.WriteAllText(Folder.Manifest, manifest);
 
-    public void Dispose() => directory.Dispose();
+    public void Dispose() => owned?.Dispose();
 
     private string Manifest() =>
         string.Concat(new[] { Interpreter, Module }.Select(relative =>

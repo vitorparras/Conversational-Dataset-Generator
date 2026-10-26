@@ -59,6 +59,22 @@ public sealed class SupervisedHostTests
     }
 
     [Fact]
+    public async Task HostWithoutTheKeyChecksTheFolderBesideItsExecutableWhateverTheWorkingDirectory()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var copy = new HostCopy(/*lang=json*/ "{}");
+        using var mounted = new MountedServiceFolder(copy.Path);
+        using var elsewhere = new TemporaryDirectory();
+        var installation = new HostInstallation(copy.Path, elsewhere.Path, []) with { ProvidesLanguageService = false };
+
+        var exit = await HostProcess.RunToExitAsync(installation, HostProcess.StartupTimeout, cancellationToken);
+
+        Assert.Equal((int)ExitCode.StartupCheckFailed, exit.Code);
+        Assert.DoesNotContain("- LanguageServiceFolder:", exit.Error, StringComparison.Ordinal);
+        Assert.Contains("- LanguageService:", exit.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task HostWhoseInterpreterDoesNotExistEndsWithTheCheckCodeAndNamesWhereItComesFrom()
     {
         var cancellationToken = TestContext.Current.CancellationToken;

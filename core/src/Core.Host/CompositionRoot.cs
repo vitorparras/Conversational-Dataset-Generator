@@ -20,6 +20,9 @@ namespace Core.Host;
 /// <summary>The only place where the host is assembled: the target check first, then configuration, logging and services, then routes.</summary>
 internal static class CompositionRoot
 {
+    /// <summary>How long the versions route waits for the service to give its model version, so a service that hangs does not hang the route.</summary>
+    private static readonly TimeSpan ModelVersionTimeout = TimeSpan.FromSeconds(5);
+
     internal static async Task<HostLaunch> BuildAsync(string[] args)
     {
         var target = await new StartupRunner([TargetCheck()], TimeProvider.System).RunAsync(CancellationToken.None);
@@ -61,11 +64,11 @@ internal static class CompositionRoot
     private static async Task<HostLaunch> LaunchAsync(
         ConfigurationLoadResult loaded, DatabaseSettings database, TimeSpan analyzeTimeout, StartupReport target)
     {
-        var fileLog = LogFileDestination.Open(loaded);
+        var fileLog = HostLogFile.Open(loaded);
         var startup = StartupServices(loaded, fileLog, database);
         try
         {
-            IStartupCheck[] checks = [.. LogFileDestination.Checks(loaded, fileLog), .. StartupChecks.Of(loaded, startup)];
+            IStartupCheck[] checks = [.. HostLogFile.Checks(loaded, fileLog), .. StartupChecks.Of(loaded, startup)];
             var report = await new StartupRunner(checks, startup.GetRequiredService<TimeProvider>()).RunAsync(CancellationToken.None);
             if (!report.Ready)
             {
@@ -118,8 +121,9 @@ internal static class CompositionRoot
     internal static void AddAnalysis(IServiceCollection services, IReadOnlyDictionary<string, string> values, TimeSpan analyzeTimeout)
     {
         _ = RecognizerConfiguration.UsesFake(values)
-            ? services.AddSingleton<IRecognizer, FakeRecognizer>()
-            : services.AddTransient<IRecognizer>(provider => Recognizer(provider, analyzeTimeout));
+            ? services.AddSingleton<IRecognizer, FakeRecognizer>().AddSingleton<IModelVersionReader, NoModelVersionReader>()
+            : services.AddTransient<IRecognizer>(provider => Recognizer(provider, analyzeTimeout))
+                .AddTransient(ModelVersionReader);
         _ = services.AddTransient<MaterialAnalysis>();
     }
 
@@ -232,6 +236,16 @@ internal static class CompositionRoot
             startup.GetRequiredService<HttpClient>(),
             new HttpRecognizerSettings(port, supervisor.Secret, analyzeTimeout),
             host.GetRequiredService<ILogger<HttpRecognizer>>());
+    }
+
+    /// <summary>The reader of the model version of the service the supervisor has now; with no service running there is none to ask.</summary>
+    private static IModelVersionReader ModelVersionReader(IServiceProvider host)
+    {
+        var startup = host.GetRequiredService<ServiceProvider>();
+        var supervisor = startup.GetRequiredService<LanguageServiceSupervisor>();
+        return supervisor.Port is { } port && supervisor.Secret.Length > 0
+            ? new HttpModelVersionReader(startup.GetRequiredService<HttpClient>(), new HttpRecognizerSettings(port, supervisor.Secret, ModelVersionTimeout))
+            : new NoModelVersionReader();
     }
 
     /// <summary>A web host with no configuration source of its own, so nothing reaches it except what the closed configuration approved.</summary>

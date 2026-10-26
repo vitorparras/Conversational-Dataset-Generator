@@ -4,8 +4,8 @@ using Core.Platform.Startup;
 
 namespace Core.Host;
 
-/// <summary>The log file the configuration may name, beside the console: opened, checked and added to a logging pipeline.</summary>
-internal static class LogFileDestination
+/// <summary>The file destination of the log, when the configuration names one, and the check that it could be opened.</summary>
+internal static class HostLogFile
 {
     /// <summary>The file the configuration names, relative to the binary's directory; null when absent or when it cannot be opened.</summary>
     internal static FileLoggerProvider? Open(ConfigurationLoadResult loaded) =>

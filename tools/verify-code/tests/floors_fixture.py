@@ -18,13 +18,13 @@ DOCUMENT = "\n".join(
     (
         "# 014",
         areas_doc.HEADER,
-        "|---|---|---|---|",
-        "| Registro do núcleo | `Core.Platform.Logging` | 90 % | crítica |",
-        "| Plataforma | `Core.Platform` | 80 % | demais pastas |",
-        "| Contrato | `Core.Boundary.Contracts` | isento | só tipos |",
-        "| Texto | `Core.Boundary.Text` | 90 % | ainda sem código |",
-        "| Autenticação | `language_service.auth` | 90 % | segredo |",
-        "| Serviço | `language_service` | 80 % | demais módulos |",
+        "|---|---|---|---|---|",
+        "| Registro do núcleo | `Core.Platform.Logging` | 90 % | sim | crítica |",
+        "| Plataforma | `Core.Platform` | 80 % | não | demais pastas |",
+        "| Contrato | `Core.Boundary.Contracts` | isento | não | só tipos |",
+        "| Texto | `Core.Boundary.Text` | 90 % | sim | ainda sem código |",
+        "| Autenticação | `language_service.auth` | 90 % | sim | segredo |",
+        "| Serviço | `language_service` | 80 % | não | demais módulos |",
         "",
     )
 )

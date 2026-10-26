@@ -12,11 +12,11 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from steps import areas_doc, mutation
+from steps import areas_doc, mutation, mutation_policy
 from steps.common import OUTPUT_DIRECTORY, CommandOutcome, Context, StepResult
 
 from . import support
-from .mutation_samples import DOCUMENT, SHOWN, SOURCE
+from .mutation_samples import AUTH_TEST, DOCUMENT, LOGGING_TEST, POLICY, SHOWN, SOURCE
 
 STRYKER_REPORT = "reports/mutation-report.json"
 
@@ -61,6 +61,7 @@ class MutationFixture(unittest.TestCase):
         self.addCleanup(self._tmp.cleanup)
         self.root = Path(self._tmp.name).resolve()
         support.write(self.root, areas_doc.DOCUMENT, DOCUMENT)
+        support.write(self.root, mutation_policy.DOCUMENT, POLICY)
         reference = (
             '<ProjectReference Include="..\\..\\src\\Core.Platform\\Core.Platform.csproj" />'
         )
@@ -73,7 +74,8 @@ class MutationFixture(unittest.TestCase):
         service = "language-service/src/language_service"
         support.write(self.root, f"{service}/auth.py", SOURCE)
         support.write(self.root, f"{service}/logging_/__init__.py", "")
-        support.write(self.root, "language-service/tests/test_auth.py", "")
+        support.write(self.root, "language-service/tests/unit/test_auth.py", AUTH_TEST)
+        support.write(self.root, "language-service/tests/unit/test_logging.py", LOGGING_TEST)
         support.write(self.root, "language-service/pyproject.toml", "[project]\n")
 
     @property

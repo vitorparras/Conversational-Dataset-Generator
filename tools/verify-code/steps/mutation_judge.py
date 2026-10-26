@@ -4,7 +4,7 @@ and the time each language took against its ceiling; prints every survivor by pl
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from time import monotonic
 
 from steps.areas_doc import Area
@@ -64,6 +64,39 @@ def ceiling_problem(policy: MutationPolicy, prefixes: tuple[str, ...], seconds: 
     """The finding of a ceiling passed: the modules running when it happened and the time spent."""
     named = ", ".join(f"`{prefix}`" for prefix in prefixes)
     return f"teto de {policy.minutes} min excedido em {named}: {minutes(seconds)} gastos"
+
+
+def in_turn[T](
+    policy: MutationPolicy,
+    targets: tuple[T, ...],
+    area_of: Callable[[T], Area],
+    mutate: Callable[[T, float], ModuleResult],
+) -> tuple[tuple[ModuleResult, ...], tuple[str, ...], float]:
+    """Every target in turn, each cut at what is left of the ceiling; then the rest stops. The
+    results, the ceiling findings and the seconds spent."""
+    results: list[ModuleResult] = []
+    spent = 0.0
+    for target in targets:
+        left = policy.minutes * SECONDS_PER_MINUTE - spent
+        measured = timed(lambda target=target, left=left: mutate(target, left))
+        results.append(replace(measured.value, seconds=measured.seconds))
+        spent += measured.seconds
+        if over_ceiling(policy, spent):
+            break
+    areas = tuple(area_of(target) for target in targets)
+    return tuple(results), ceiling_findings(policy, areas, results), spent
+
+
+def ceiling_findings(
+    policy: MutationPolicy, areas: tuple[Area, ...], results: list[ModuleResult]
+) -> tuple[str, ...]:
+    """The ceiling finding naming the module that passed it, and the modules left unrun."""
+    spent = sum(result.seconds for result in results)
+    if not over_ceiling(policy, spent):
+        return ()
+    left = tuple(f"`{area.prefix}`" for area in areas[len(results) :])
+    passed = ceiling_problem(policy, (results[-1].area.prefix,), spent)
+    return (passed, f"não rodaram por causa do teto: {', '.join(left)}") if left else (passed,)
 
 
 def share(part: int, whole: int) -> str:

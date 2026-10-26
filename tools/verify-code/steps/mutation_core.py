@@ -4,14 +4,13 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from pathlib import Path
 
-from steps import mutation_judge
 from steps.areas_doc import Area, within
 from steps.common import Context, reset_directory, tail
 from steps.mutant import Mutant
-from steps.mutation_judge import LanguageRun, ModuleResult, ceiling_problem, over_ceiling, timed
+from steps.mutation_judge import LanguageRun, ModuleResult, in_turn
 from steps.mutation_policy import MutationPolicy
 from steps.stryker_report import read_stryker
 
@@ -111,27 +110,7 @@ def run_core(
     if not restore.ok:
         missing = "`dotnet tool restore` falhou em core/: o Stryker.NET de core/dotnet-tools.json"
         return LanguageRun(SIDE, problems=(f"{missing} não está disponível", *tail(restore.text)))
-    results: list[ModuleResult] = []
-    spent = 0.0
-    for core in targets:
-        left = policy.minutes * mutation_judge.SECONDS_PER_MINUTE - spent
-        measured = timed(lambda core=core, left=left: mutate(ctx, core, left))
-        results.append(replace(measured.value, seconds=measured.seconds))
-        spent += measured.seconds
-        if over_ceiling(policy, spent):
-            break
-    return LanguageRun(
-        SIDE, tuple(results), absent, ceiling(policy, targets, results), seconds=spent
+    results, findings, spent = in_turn(
+        policy, targets, lambda core: core.area, lambda core, seconds: mutate(ctx, core, seconds)
     )
-
-
-def ceiling(
-    policy: MutationPolicy, targets: tuple[CoreTarget, ...], results: list[ModuleResult]
-) -> tuple[str, ...]:
-    """The ceiling finding naming the module that passed it, and the modules left unrun."""
-    spent = sum(result.seconds for result in results)
-    if not over_ceiling(policy, spent):
-        return ()
-    left = tuple(f"`{core.area.prefix}`" for core in targets[len(results) :])
-    passed = ceiling_problem(policy, (results[-1].area.prefix,), spent)
-    return (passed, f"não rodaram por causa do teto: {', '.join(left)}") if left else (passed,)
+    return LanguageRun(SIDE, results, absent, findings, seconds=spent)

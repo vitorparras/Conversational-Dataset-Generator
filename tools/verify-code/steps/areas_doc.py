@@ -8,22 +8,26 @@ from itertools import takewhile
 from pathlib import Path
 
 DOCUMENT = "docs/operacao/014-modulos-criticos-e-pisos.md"
-HEADER = "| Área | Projeto/pacote | Piso | Motivo |"
+HEADER = "| Área | Projeto/pacote | Piso | Crítica | Motivo |"
 EXEMPT = "isento"
+YES = "sim"
+NO = "não"
 FLOOR = re.compile(r"(\d{1,3}) ?%")
 PREFIX = re.compile(r"`([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)`")
-SEPARATOR = re.compile(r"\|(?: *:?-+:? *\|){4}")
-CELLS = 4
+SEPARATOR = re.compile(r"\|(?: *:?-+:? *\|){5}")
+CELLS = 5
 WHOLE = 100
 
 
 @dataclass(frozen=True)
 class Area:
-    """One row of the table: a name, the prefix it owns and its floor, absent when exempt."""
+    """One row of the table: a name, the prefix it owns, its floor (absent when exempt) and
+    whether it is a critical module, the list the mutation test runs over."""
 
     name: str
     prefix: str
     floor: int | None
+    critical: bool = False
 
 
 @dataclass(frozen=True)
@@ -68,16 +72,19 @@ def parse_row(row: Row) -> Area | str:
     cells = [cell.strip() for cell in row.text.strip("|").split("|")]
     if len(cells) != CELLS:
         return f"{where}: a linha tem {len(cells)} colunas; o cabeçalho fixo tem {CELLS}"
-    name, prefix, floor, _ = cells
+    name, prefix, floor, critical, _ = cells
     owner = PREFIX.fullmatch(prefix)
     if not name or owner is None:
         return f"{where}: área sem nome ou projeto/pacote '{prefix}' fora da forma `A.B` com crases"
+    if critical not in (YES, NO):
+        return f"{where}: Crítica '{critical}' não é `{YES}` nem `{NO}`"
+    marked = critical == YES
     if floor == EXEMPT:
-        return Area(name, owner.group(1), None)
+        return Area(name, owner.group(1), None, marked)
     number = FLOOR.fullmatch(floor)
     if number is None or int(number.group(1)) > WHOLE:
         return f"{where}: piso '{floor}' não é porcentagem de 0 a 100 (`90 %`) nem `{EXEMPT}`"
-    return Area(name, owner.group(1), int(number.group(1)))
+    return Area(name, owner.group(1), int(number.group(1)), marked)
 
 
 def duplicates(rows: tuple[Row, ...], areas: list[Area]) -> list[str]:

@@ -77,7 +77,7 @@ class FloorsTests(fixture.FloorsFixture):
         self.assertIn("abaixo do piso de 80 %", result.details[0])
 
     def test_lowering_the_floor_in_the_document_changes_the_verdict(self) -> None:
-        document = DOCUMENT.replace("80 % | demais pastas", "70 % | demais pastas")
+        document = DOCUMENT.replace("80 % | não | demais pastas", "70 % | não | demais pastas")
         support.write(self.root, areas_doc.DOCUMENT, document)
         self.core((STARTUP, "S.cs", "1 1 1 0"))
 

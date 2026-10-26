@@ -5,15 +5,16 @@ from __future__ import annotations
 import json
 from unittest import mock
 
-from steps import areas_doc
+from steps import areas_doc, mutation_policy
 
 from . import mutation_fixture as fixture
-from . import mutation_samples, support
+from . import support
 from .mutation_fixture import ToolRunner
 from .mutation_samples import DOCUMENT, meta, stryker_report
 
 CORE_CONFIG = ".verify-code/mutation/core/Core.Platform.Logging/stryker-config.json"
-SERVICE_CONFIG = ".verify-code/mutation/service/setup.cfg"
+AUTH_CONFIG = ".verify-code/mutation/service/language_service.auth/setup.cfg"
+LOGGING_CONFIG = ".verify-code/mutation/service/language_service.logging_/setup.cfg"
 AUTH_META = "src/language_service/auth.py"
 LOGGING_META = "src/language_service/logging_/__init__.py"
 KILLED_AUTH = "language_service.auth.x_accepts__mutmut_1"
@@ -70,18 +71,33 @@ class MutationStepTests(fixture.MutationFixture):
 
         self.assertEqual(len(runner.called("stryker")), 1)
 
-    def test_mutmut_mutates_exactly_the_critical_service_modules(self) -> None:
+    def test_mutmut_mutates_one_critical_service_module_with_its_own_tests(self) -> None:
         self.run_step(healthy())
 
         expected = (
             "[mutmut]\nsource_paths = src\nonly_mutate =\n    src/language_service/auth.py\n"
-            "    src/language_service/logging_/*\npytest_add_cli_args =\n"
-            "    --ignore=tests/architecture\n"
+            "pytest_add_cli_args_test_selection =\n    tests/unit/test_auth.py\n"
         )
-        self.assertEqual((self.root / SERVICE_CONFIG).read_text(encoding="utf-8"), expected)
+        self.assertEqual((self.root / AUTH_CONFIG).read_text(encoding="utf-8"), expected)
 
-    def test_an_area_taken_off_the_floor_of_the_list_is_not_mutated(self) -> None:
-        document = DOCUMENT.replace("Logging` | 90 %", "Logging` | 80 %")
+    def test_the_package_module_is_mutated_with_the_tests_that_import_it(self) -> None:
+        self.run_step(healthy())
+
+        expected = (
+            "[mutmut]\nsource_paths = src\nonly_mutate =\n    src/language_service/logging_/*\n"
+            "pytest_add_cli_args_test_selection =\n    tests/unit/test_logging.py\n"
+        )
+        self.assertEqual((self.root / LOGGING_CONFIG).read_text(encoding="utf-8"), expected)
+
+    def test_mutmut_runs_once_per_critical_service_module(self) -> None:
+        runner = healthy()
+
+        self.run_step(runner)
+
+        self.assertEqual(len(runner.called("--max-children")), 2)
+
+    def test_an_area_not_marked_critical_is_not_mutated_whatever_its_floor(self) -> None:
+        document = DOCUMENT.replace("Logging` | 90 % | sim", "Logging` | 90 % | não")
         support.write(self.root, areas_doc.DOCUMENT, document)
         runner = healthy()
 
@@ -104,7 +120,7 @@ class MutationStepTests(fixture.MutationFixture):
         self.assertIn(expected, result.details)
 
     def test_an_area_whose_folder_is_absent_from_its_project_is_without_code(self) -> None:
-        row = "| Rede | `Core.Platform.Network` | 90 % | ZQX |\n"
+        row = "| Rede | `Core.Platform.Network` | 90 % | sim | ZQX |\n"
         document = DOCUMENT.replace("| Serviço |", f"{row}| Serviço |")
         support.write(self.root, areas_doc.DOCUMENT, document)
         runner = healthy()
@@ -144,7 +160,7 @@ class MutationStepTests(fixture.MutationFixture):
         self.assertIn(f"{expected} limite de 20 %", result.details)
 
     def test_a_critical_area_no_tool_reaches_fails_naming_it(self) -> None:
-        row = "| Ferramentas | `tools` | 90 % | ZQX |\n"
+        row = "| Ferramentas | `tools` | 90 % | sim | ZQX |\n"
         document = DOCUMENT.replace("| Serviço |", f"{row}| Serviço |")
         support.write(self.root, areas_doc.DOCUMENT, document)
 
@@ -154,7 +170,7 @@ class MutationStepTests(fixture.MutationFixture):
         self.assertIn("`tools`: nenhuma ferramenta de mutação o alcança", result.details)
 
     def test_a_document_without_the_mutation_rules_fails_before_any_tool_runs(self) -> None:
-        support.write(self.root, areas_doc.DOCUMENT, DOCUMENT.replace(mutation_samples.POLICY, ""))
+        support.write(self.root, mutation_policy.DOCUMENT, "# 017\n")
         runner = healthy()
 
         result = self.run_step(runner)
@@ -188,7 +204,8 @@ class MutationStepTests(fixture.MutationFixture):
 
         self.assertFalse(result.ok)
         install = "instale com `pip install -r tools/verify-code/service-requirements.txt`"
-        self.assertIn(f"serviço (Python): uv ausente? {install}", result.details)
+        module = "Autenticação (`language_service.auth`)"
+        self.assertIn(f"{module}: uv ausente? {install}", result.details)
 
     def test_outside_linux_the_service_side_is_skipped_with_a_warning(self) -> None:
         runner = healthy()

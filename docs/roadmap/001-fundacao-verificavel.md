@@ -13,7 +13,8 @@ documento operacional, e o arranjo que faz propriedade, mutação e cobertura ro
 
 Entra o esqueleto das duas partes da decisão [0002](../decisoes/0002-stack.md) — o núcleo e o
 serviço de linguagem como processo separado, ambos vazios de domínio — e a construção que empacota
-tudo num executável único. A verificação da documentação já existe em
+o núcleo num executável único e o serviço numa pasta ao lado dele, pela
+[decisão 0041](../decisoes/0041-distribuicao-do-servico-de-linguagem.md). A verificação da documentação já existe em
 `tools/verify-docs/verify.py`; esta fase estende a mesma régua ao código.
 
 Entra, por fim, a redação de campo sensível no próprio pipeline de log. É mecanismo de plataforma e
@@ -26,9 +27,9 @@ deve ser curta: quanto mais ela crescer, mais longe fica o primeiro material rea
 
 ## Critério de término
 
-1. A construção, a partir de uma cópia limpa do repositório, produz o executável único, e ele sobe
-   numa máquina recém-preparada sem que nada seja instalado nela — a parte de
-   [022](../requisitos/022-operacao-sem-servico-externo.md) que já se fecha aqui.
+1. A construção, a partir de uma cópia limpa do repositório, produz o executável único do núcleo e a
+   pasta do serviço, e os dois sobem numa máquina recém-preparada sem que nada seja instalado nela —
+   a parte de [022](../requisitos/022-operacao-sem-servico-externo.md) que já se fecha aqui.
 2. O núcleo conversa com o serviço de linguagem, e derrubar o serviço produz erro visível, não
    silêncio nem resultado parcial.
 3. [021](../requisitos/021-registro-sem-dado-pessoal.md) tem teste próprio, e esse teste reprova de

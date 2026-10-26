@@ -13,7 +13,7 @@ deliberada e justificada.
 | # | Decisão | Autoridade |
 |---|---|---|
 | [0001](0001-as-duas-contribuicoes.md) | As duas contribuições do projeto | Decisão vigente |
-| [0002](0002-stack.md) | A stack | Decisão vigente |
+| [0002](0002-stack.md) | A stack | Substituída por 0041 na distribuição do serviço |
 | [0003](0003-cifra-em-repouso.md) | Cifra em repouso | Substituída por 0030 na tabela |
 | [0004](0004-taxonomia-configuravel.md) | A taxonomia é configuração, não código | Decisão vigente |
 | [0005](0005-unidades-de-analise.md) | As unidades de análise | Decisão vigente |
@@ -22,7 +22,7 @@ deliberada e justificada.
 | [0008](0008-requisito-no-repositorio-tarefa-na-issue.md) | Requisito no repositório, tarefa na issue | Decisão vigente |
 | [0009](0009-licenca-do-software-e-dos-dados.md) | Licença do software e licença dos dados | Decisão vigente |
 | [0010](0010-tecnologia-da-interface.md) | A tecnologia da interface | Decisão vigente |
-| [0011](0011-protocolo-com-o-servico-de-linguagem.md) | O protocolo com o serviço de linguagem | Substituída por 0018 na resposta |
+| [0011](0011-protocolo-com-o-servico-de-linguagem.md) | O protocolo com o serviço de linguagem | Substituída por 0018 na resposta e por 0041 na distribuição |
 | [0012](0012-pseudonimizacao-reversivel.md) | Pseudonimização reversível, não anonimização | Decisão vigente |
 | [0013](0013-chave-de-cifra-por-dominio.md) | Chave de cifra por domínio | Decisão vigente |
 | [0014](0014-custodia-da-chave-mestra.md) | Custódia e recuperação da chave mestra | Decisão vigente |
@@ -52,7 +52,7 @@ deliberada e justificada.
 | [0038](0038-marca-da-entrega-no-manifesto.md) | A marca da entrega fica no manifesto | Decisão vigente |
 | [0039](0039-idioma-do-codigo-e-do-texto.md) | Idioma: código em inglês, texto em português | Decisão vigente |
 | [0040](0040-principios-de-codigo.md) | Princípios de código antes do código | Decisão vigente |
-| [0041](0041-distribuicao-do-servico-de-linguagem.md) | Distribuição do serviço de linguagem | Decisão pendente |
+| [0041](0041-distribuicao-do-servico-de-linguagem.md) | Distribuição do serviço de linguagem | Decisão vigente |
 | [0042](0042-supressao-de-analisador.md) | Nenhum analisador se suprime em `core/src` | Decisão vigente |
 
 ## Formato

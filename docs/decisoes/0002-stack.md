@@ -1,6 +1,6 @@
 # 0002 — A stack
 
-> Decisão vigente. 2026-10-04.
+> Decisão substituída por 0041 quanto à distribuição do serviço. 2026-10-04.
 
 | Camada | Escolha |
 |---|---|

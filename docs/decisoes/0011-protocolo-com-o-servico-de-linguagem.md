@@ -1,6 +1,6 @@
 # 0011 — O protocolo com o serviço de linguagem
 
-> Decisão substituída por 0018 quanto ao formato da resposta. 2026-10-04.
+> Decisão substituída por 0018 na resposta e por 0041 na distribuição. 2026-10-04.
 
 ## Contexto
 

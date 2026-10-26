@@ -138,7 +138,7 @@ internal static class CompositionRoot
         var services = new ServiceCollection();
         AddServerGuarantees(services, database);
         _ = services.AddSingleton(TimeProvider.System);
-        _ = services.AddLogging(logging => WithFile(logging, fileLog));
+        _ = services.AddLogging(logging => HostLogFile.WithFile(logging, fileLog));
         if (fileLog is not null)
         {
             _ = services.AddSingleton(fileLog);
@@ -157,16 +157,6 @@ internal static class CompositionRoot
         _ = services.AddSingleton(provider => new LanguageServiceStartupCheck(
             provider.GetRequiredService<LanguageServiceSupervisor>(), loaded.Values[LanguageServiceConfiguration.StartupTimeoutPath]));
         return services.BuildServiceProvider();
-    }
-
-    /// <summary>The platform's logging plus the file, registered as an instance so this container never closes it.</summary>
-    private static void WithFile(ILoggingBuilder logging, ILoggerProvider? fileLog)
-    {
-        PlatformLogging.Configure(logging);
-        if (fileLog is not null)
-        {
-            _ = logging.AddProvider(fileLog);
-        }
     }
 
     /// <summary>Redacted console logging alone: the migration mode has no host, no file destination and no language service.</summary>

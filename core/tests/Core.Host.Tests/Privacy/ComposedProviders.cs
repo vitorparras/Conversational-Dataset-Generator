@@ -43,14 +43,14 @@ internal static class ComposedProviders
         }
     }
 
-    /// <summary>The types the startup container's logging holds when <paramref name="further"/> adds to what the composition root's own method for it registers.</summary>
+    /// <summary>The types the startup container's logging holds when <paramref name="further"/> adds to what the host's own method for it registers.</summary>
     public static IReadOnlyList<Type> StartupTypesWith(Action<ILoggingBuilder> further)
     {
         using var file = new OpenedLogFile();
         var services = new ServiceCollection().AddSingleton(TimeProvider.System);
         _ = services.AddLogging(logging =>
         {
-            _ = Method("WithFile").Invoke(null, [logging, file.Provider]);
+            HostLogFile.WithFile(logging, file.Provider);
             further(logging);
         });
         using var provider = services.BuildServiceProvider();

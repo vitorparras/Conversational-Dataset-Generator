@@ -30,7 +30,7 @@ public sealed class SchemaVersionCheck : IStartupCheck
     public Task<CheckResult> RunAsync(CancellationToken cancellationToken) =>
         ServerProbe.RunAsync(
             dataSource,
-            new Guarantee(Name, $"o papel da aplicação precisa ler {SchemaRegistry.Table}, que a migração concede a PUBLIC", ReadAsync),
+            new Guarantee(Name, $"o papel da aplicação precisa ler {SchemaRegistry.Table}, que a migração concede a PUBLIC", ReadAsync, ReadsCatalog: false),
             cancellationToken);
 
     internal static Finding Judge(SchemaComparison comparison) => comparison.State switch

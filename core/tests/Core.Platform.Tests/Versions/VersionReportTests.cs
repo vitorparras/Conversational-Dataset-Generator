@@ -18,6 +18,26 @@ public sealed class VersionReportTests
     }
 
     [Fact]
+    public void ReportWithTheModelVersionGivenCarriesItAndKeepsTheRest()
+    {
+        var report = new VersionReport(Build).WithModelVersion(VersionValue.Present("pt-model-3.2"));
+
+        Assert.Equal(
+            (VersionValue.Present("pt-model-3.2"), Build),
+            (report.ModelVersion, new BuildInfo(report.CoreVersion, report.Commit, report.WorkingTree)));
+    }
+
+    [Fact]
+    public void ReportWithTheModelVersionGivenLeavesTheOriginalAsItWas()
+    {
+        var original = new VersionReport(Build);
+
+        _ = original.WithModelVersion(VersionValue.Present("pt-model-3.2"));
+
+        Assert.Equal(VersionValue.Absent, original.ModelVersion);
+    }
+
+    [Fact]
     public void VersionsTheCoreCannotObtainYetAreWrittenAsJsonNull()
     {
         var json = JsonSerializer.Serialize(new VersionReport(Build));

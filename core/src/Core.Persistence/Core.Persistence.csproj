@@ -8,6 +8,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Migrations\Sql\*.sql" LogicalName="Sql/%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="Core.Persistence.Tests" />
   </ItemGroup>
 </Project>

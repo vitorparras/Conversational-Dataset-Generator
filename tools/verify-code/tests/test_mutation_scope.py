@@ -115,6 +115,20 @@ class MutationScopeTests(fixture.MutationFixture):
         expected = "Registro do serviço (`language_service.logging_`): 1 `pragma: no mutate`"
         self.assertIn(f"{expected} fora da mutação", result.details)
 
+    def test_a_pragma_of_a_nested_critical_area_is_named_once_under_the_nested_area(self) -> None:
+        inner = INNER_ROW.replace("80 % | não", "90 % | sim")
+        self.replace_in_document("| Serviço |", f"{inner}| Serviço |")
+        source = "language-service/src/language_service/logging_/inner.py"
+        support.write(self.root, source, "x = 1  # pragma: no mutate\n")
+        test = "language-service/tests/unit/test_inner.py"
+        support.write(self.root, test, "import language_service.logging_.inner\n")
+
+        result = self.run_step(healthy())
+
+        lines = [line for line in result.details if "`pragma: no mutate` fora da mutação" in line]
+        self.assertEqual(len(lines), 1)
+        self.assertIn("Interno (`language_service.logging_.inner`)", lines[0])
+
     def test_a_survivor_whose_diff_could_not_be_shown_is_named_unplaced(self) -> None:
         runner = healthy()
         runner.metas[AUTH_META] = meta({KILLED_AUTH: 1, SURVIVOR_AUTH: 0})

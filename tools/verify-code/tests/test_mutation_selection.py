@@ -88,6 +88,12 @@ class SelectionTests(fixture.MutationFixture):
 
         self.assertEqual(self.select(AUTH), ("tests/unit/test_auth.py",))
 
+    def test_a_test_file_that_is_not_utf8_does_not_break_the_selection(self) -> None:
+        path = self.root / TESTS / "unit/test_latin.py"
+        path.write_bytes(b"# \xe9\nimport language_service.auth\n")
+
+        self.assertIn("tests/unit/test_latin.py", self.select(AUTH))
+
     def test_a_relative_import_does_not_select_the_file(self) -> None:
         self.write_test("unit/test_relative.py", "from ..src import auth\n")
 

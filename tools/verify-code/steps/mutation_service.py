@@ -9,6 +9,7 @@ import shutil
 import sys
 import tomllib
 from dataclasses import dataclass
+from fnmatch import fnmatch
 from pathlib import Path, PurePosixPath
 
 from steps.areas_doc import DOCUMENT, Area, area_of, within
@@ -82,7 +83,7 @@ def test_files(root: Path, area: Area, everything: tuple[Area, ...]) -> tuple[st
         if not name.startswith(f"{SOURCE_READING_TESTS}/")
         and any(
             within(unit, ROOT) and area_of(unit, everything) == area
-            for unit in imported(path.read_text(encoding="utf-8"))
+            for unit in imported(path.read_text(encoding="utf-8", errors="replace"))
         )
     )
     return tuple(kept)
@@ -113,15 +114,15 @@ def configuration(service: ServiceTarget) -> str:
     return header + only + skip + option("pytest_add_cli_args_test_selection", service.tests)
 
 
-def workspace(ctx: Context, service: ServiceTarget) -> Path:
+def workspace(ctx: Context, module: ServiceTarget) -> Path:
     """A fresh copy of the service with the generated configuration beside it."""
-    folder = ctx.out_dir / RESULTS / service.area.prefix
+    folder = ctx.out_dir / RESULTS / module.area.prefix
     reset_directory(folder)
-    source = ctx.root / SERVICE
-    shutil.copytree(source / SOURCES, folder / SOURCES, ignore=SKIPPED)
-    shutil.copytree(source / TESTS, folder / TESTS, ignore=SKIPPED)
-    shutil.copy2(source / PROJECT, folder / PROJECT)
-    (folder / CONFIG).write_text(configuration(service), encoding="utf-8")
+    service = ctx.root / SERVICE
+    shutil.copytree(service / SOURCES, folder / SOURCES, ignore=SKIPPED)
+    shutil.copytree(service / TESTS, folder / TESTS, ignore=SKIPPED)
+    shutil.copy2(service / PROJECT, folder / PROJECT)
+    (folder / CONFIG).write_text(configuration(module), encoding="utf-8")
     return folder
 
 
@@ -169,11 +170,17 @@ def own_configuration(root: Path) -> tuple[str, ...]:
     )
 
 
-def pragmas(root: Path, glob: str) -> int:
-    """Lines of the module that mutmut leaves out because of a `pragma: no mutate` comment."""
-    base = root / SERVICE / glob.removesuffix("/*")
-    files = (base,) if glob.endswith(".py") else tuple(base.rglob("*.py"))
-    return sum(path.read_text(encoding="utf-8").count(PRAGMA) for path in files)
+def pragmas(root: Path, service: ServiceTarget) -> int:
+    """Lines of the module, not of the areas nested in it, that mutmut leaves out because of a
+    `pragma: no mutate` comment."""
+    base = root / SERVICE / service.glob.removesuffix("/*")
+    files = (base,) if service.glob.endswith(".py") else tuple(base.rglob("*.py"))
+    own = (
+        path
+        for path in files
+        if not any(fnmatch(path.relative_to(root / SERVICE).as_posix(), g) for g in service.skip)
+    )
+    return sum(path.read_text(encoding="utf-8").count(PRAGMA) for path in own)
 
 
 def mutate(
@@ -210,6 +217,6 @@ def run_service(
     off = (
         f"{s.area.name} (`{s.area.prefix}`): {n} `{PRAGMA}` fora da mutação"
         for s in targets
-        if (n := pragmas(ctx.root, s.glob))
+        if (n := pragmas(ctx.root, s))
     )
     return LanguageRun(SIDE, results, absent, findings, tuple(off), spent)

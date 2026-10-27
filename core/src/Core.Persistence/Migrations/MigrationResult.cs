@@ -24,6 +24,9 @@ public sealed record MigrationResult
     /// <summary>The SQLSTATE the server answered with when a step or the connection failed, if it gave one.</summary>
     public string? SqlState { get; init; }
 
+    /// <summary>Whether the failure of the step was written to <c>schema_failure</c>; false when the table is not there yet or the insert failed.</summary>
+    public bool FailureRecorded { get; init; }
+
     /// <summary>The steps this run applied and registered, in order, also when a later one failed.</summary>
     public IReadOnlyList<string> Applied { get; init; } = [];
 }

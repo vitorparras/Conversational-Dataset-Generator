@@ -115,13 +115,15 @@ public sealed class MigrationRunner
             }
             catch (NpgsqlException exception)
             {
+                var sqlState = (exception as PostgresException)?.SqlState;
                 return new MigrationResult
                 {
                     Outcome = MigrationOutcome.StepFailed,
                     Found = found,
                     Expected = comparison.Expected,
                     Step = step.Name,
-                    SqlState = (exception as PostgresException)?.SqlState,
+                    SqlState = sqlState,
+                    FailureRecorded = await FailureRegistry.TryRecordAsync(connection, step, sqlState, cancellationToken).ConfigureAwait(false),
                     Applied = applied,
                 };
             }

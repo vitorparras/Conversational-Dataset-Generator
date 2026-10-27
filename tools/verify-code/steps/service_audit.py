@@ -26,6 +26,7 @@ REPORT_DIRECTORY = "dependencies"
 EXPORT_FILE = "requirements.txt"
 REPORT_FILE = "pip-audit.json"
 MARKER = re.compile(r" ; [^\\\n]*")
+URL_REQUIREMENT = re.compile(r"^\S+ @ \S+(?: \\\n\s+--hash=\S+)*\n", re.MULTILINE)
 
 
 def export_command(target: Path) -> list[str]:
@@ -39,6 +40,14 @@ def audit_command(requirements: Path, report: Path) -> list[str]:
     reading = ["--requirement", str(requirements), "--disable-pip", "--require-hashes", "--strict"]
     output = ["--progress-spinner", "off", "--format", "json", "--output", str(report)]
     return [sys.executable, "-m", "pip_audit", *reading, *output]
+
+
+def without_url_requirements(text: str) -> str:
+    """The export minus the requirements that name a URL, which pip-audit cannot pin or audit.
+
+    The language model is one: a data package outside any index, kept by hash in the lock.
+    """
+    return URL_REQUIREMENT.sub("", text)
 
 
 def read_report(report: Path) -> list[dict[str, Any]] | None:
@@ -92,7 +101,8 @@ def audit(ctx: Context, risks: tuple[Risk, ...]) -> StepResult:
         cause = "serviço: `uv export` falhou; não há árvore a auditar"
         return failed(NAME, cause, *tail(exported.text))
     export = folder / EXPORT_FILE
-    export.write_text(MARKER.sub("", export.read_text(encoding="utf-8")), encoding="utf-8")
+    text = without_url_requirements(MARKER.sub("", export.read_text(encoding="utf-8")))
+    export.write_text(text, encoding="utf-8")
     outcome = ctx.run(audit_command(export, folder / REPORT_FILE), ctx.root)
     dependencies = read_report(folder / REPORT_FILE)
     if dependencies is None:

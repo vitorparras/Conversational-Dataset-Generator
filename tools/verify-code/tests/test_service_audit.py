@@ -33,6 +33,17 @@ AUDIT_COMMAND = [
 ]
 
 
+class UrlRequirementTests(unittest.TestCase):
+    def test_requirement_by_url_leaves_the_export_with_its_hashes(self) -> None:
+        keep = ["alpha==1.0 \\", "    --hash=sha256:aa", "omega==2.0 \\", "    --hash=sha256:cc"]
+        url = ["model @ https://example.invalid/model.whl \\", "    --hash=sha256:bb"]
+        export = "\n".join([*keep[:2], *url, *keep[2:]]) + "\n"
+
+        kept = service_audit.without_url_requirements(export)
+
+        self.assertEqual("\n".join(keep) + "\n", kept)
+
+
 class ServiceAuditTests(unittest.TestCase):
     def setUp(self) -> None:
         self._tmp = tempfile.TemporaryDirectory()

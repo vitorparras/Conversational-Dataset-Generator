@@ -15,8 +15,9 @@ só para contrato sem estado. DDD entra na Fase 2, quando houver domínio a mode
 
 ## 2. Limites (impostos)
 
-Arquivo até 250 linhas; método até 40; até 4 parâmetros, senão objeto de parâmetros; aninhamento
-até 2 níveis; uma classe pública por arquivo; tipo nomeado em vez de tupla em assinatura pública.
+Arquivo até 250 linhas; método até 40; até 4 parâmetros, senão objeto de parâmetros, mas método que
+implementa explicitamente interface alheia herda a assinatura dela; aninhamento até 2 níveis; uma
+classe pública por arquivo; tipo nomeado em vez de tupla em assinatura pública.
 
 ## 3. Composição (imposta)
 
@@ -56,5 +57,4 @@ de uma frase. Comentário no corpo é raro, curto, diz o porquê e nunca cita re
 ## 9. Pull request
 
 Uma task por pull request; até 30 arquivos e 400 linhas de diff de produção; teste, lockfile e
-fixture fora da conta, mas listados. A descrição cita o princípio de cada escolha não óbvia. O
-revisor responde esta lista por escrito antes de o pull request abrir.
+fixture fora da conta, mas listados. A descrição cita o princípio de cada escolha não óbvia.

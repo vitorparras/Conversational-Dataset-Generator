@@ -5,7 +5,7 @@ using Npgsql;
 namespace Core.Tests.Integration.Migrations;
 
 /// <summary>
-/// The lock the runner takes belongs to the server session, and a pooled session outlives the run: the run must give the lock
+/// The lock the runner takes belongs to the server session, and a pooled session that is not reset outlives the run: the run must give the lock
 /// back, on every way it can end, or the next run through the same pool is the only one that can ever migrate.
 /// </summary>
 [Trait("Category", "Database")]
@@ -52,7 +52,7 @@ public sealed class MigrationRunnerLockTests
     }
 
     private static string Pooled(ScratchDatabase database) =>
-        new NpgsqlConnectionStringBuilder(database.OwnerConnectionString) { Pooling = true }.ConnectionString;
+        new NpgsqlConnectionStringBuilder(database.OwnerConnectionString) { Pooling = true, NoResetOnClose = true }.ConnectionString;
 
     /// <summary>How many advisory locks any session holds in this database; the pooled session that ran the migration is still open.</summary>
     private static async Task<long> HeldLocksAsync(NpgsqlDataSource dataSource)

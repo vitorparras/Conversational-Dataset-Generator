@@ -23,6 +23,17 @@ def logger_over(stream: io.StringIO, name: str) -> logging.Logger:
     return logger
 
 
+@pytest.fixture(autouse=True)
+def release_the_named_loggers() -> Iterator[None]:
+    """The two loggers a test gave a handler go back to having none, whatever ran after."""
+    yield
+    for name in (OWN, FOREIGN):
+        logger = logging.getLogger(name)
+        logger.handlers.clear()
+        logger.propagate = True
+        logger.setLevel(logging.NOTSET)
+
+
 @pytest.fixture
 def root_stream() -> Iterator[io.StringIO]:
     """The root log sent to a buffer, restored with the warnings hook after the test."""

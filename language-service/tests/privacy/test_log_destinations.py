@@ -67,8 +67,8 @@ def test_a_handler_beyond_the_fixed_one_is_reported_with_the_name_of_its_logger(
     assert strays == (f"{logger_name}: StreamHandler",)
 
 
-@pytest.mark.parametrize("logger_name", ["mutmut", "mutmut.child"])
-def test_a_handler_on_the_logger_of_the_mutation_tool_is_not_a_destination_of_the_service(
+@pytest.mark.parametrize("logger_name", ["mutmut", "py.warnings"])
+def test_a_null_handler_discards_what_it_receives_and_is_no_destination(
     process_log: TextIO, logger_name: str
 ) -> None:
     with attached(logger_name, logging.NullHandler()):

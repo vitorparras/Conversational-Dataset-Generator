@@ -12,6 +12,12 @@ internal sealed class HostProcess : IDisposable
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(100);
     private static readonly TimeSpan DrainTimeout = TimeSpan.FromSeconds(5);
 
+    /// <summary>
+    /// Where a mutation run collects which tests reach which code. The host built beside the tests is instrumented under
+    /// that run and would otherwise write to the test process's files and hold back its coverage until it times out.
+    /// </summary>
+    private static readonly string[] CoverageVariables = ["STRYKER_COVERAGE_FILE", "STRYKER_COVERAGE_EPOCH_FILE"];
+
     private readonly Process process;
     private readonly HttpClient client;
     private readonly Task<string> error;
@@ -160,6 +166,11 @@ internal sealed class HostProcess : IDisposable
             RedirectStandardError = true,
             UseShellExecute = false,
         };
+        foreach (var name in CoverageVariables)
+        {
+            _ = info.Environment.Remove(name);
+        }
+
         foreach (var variable in installation.Environment)
         {
             info.Environment[variable.Key] = variable.Value;

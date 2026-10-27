@@ -9,18 +9,20 @@ from language_service.logging_ import FixedFieldHandler
 
 ROOT_NAME: Final = logging.getLogger().name
 TEST_RUNNER_MODULE: Final = "_pytest."
+MUTATION_TOOL_LOGGER: Final = "mutmut"
 
 
 def handlers_by_logger() -> tuple[tuple[str, logging.Handler], ...]:
-    """Each handler of the root logger or of any created logger, but the test runner's own.
+    """Each handler of the root logger or of any created logger, but the tools' own.
 
-    The runner attaches its capture handlers to the root logger while a test runs; they are not
-    part of the service, which never has them.
+    The test runner attaches its capture handlers to the root logger while a test runs, and the
+    mutation tool puts a handler on its own logger when it is imported; they are not part of the
+    service, which never has them.
     """
     created = (
         logger
         for logger in logging.root.manager.loggerDict.values()
-        if isinstance(logger, logging.Logger)
+        if isinstance(logger, logging.Logger) and not _is_the_mutation_tool(logger.name)
     )
     return tuple(
         (logger.name, handler)
@@ -40,6 +42,10 @@ def stray_destinations(stream: TextIO) -> tuple[str, ...]:
         for name, handler in handlers_by_logger()
         if not _is_the_destination(name, handler, stream)
     )
+
+
+def _is_the_mutation_tool(name: str) -> bool:
+    return name == MUTATION_TOOL_LOGGER or name.startswith(f"{MUTATION_TOOL_LOGGER}.")
 
 
 def _is_the_destination(name: str, handler: logging.Handler, stream: TextIO) -> bool:

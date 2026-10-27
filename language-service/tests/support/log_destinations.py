@@ -17,7 +17,7 @@ def handlers_by_logger() -> tuple[tuple[str, logging.Handler], ...]:
     The test runner attaches its capture handlers to the root logger while a test runs; they are
     not part of the service, which never has them. A null handler, which the mutation tool puts on
     its own logger and the standard library on the warnings one, discards what it receives and is
-    no destination.
+    no destination; a subclass of it may write, so only the class itself is left out.
     """
     created = (
         logger
@@ -28,7 +28,7 @@ def handlers_by_logger() -> tuple[tuple[str, logging.Handler], ...]:
         (logger.name, handler)
         for logger in (logging.getLogger(), *created)
         for handler in logger.handlers
-        if not isinstance(handler, logging.NullHandler)
+        if type(handler) is not logging.NullHandler
         and not type(handler).__module__.startswith(TEST_RUNNER_MODULE)
     )
 

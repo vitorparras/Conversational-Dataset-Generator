@@ -79,6 +79,28 @@ def test_a_null_handler_discards_what_it_receives_and_is_no_destination(
     assert handlers == [("root", FixedFieldHandler)]
 
 
+class WritingNullHandler(logging.NullHandler):
+    """A subclass of the null handler that, unlike it, writes what it receives."""
+
+    def __init__(self, stream: TextIO) -> None:
+        super().__init__()
+        self.stream = stream
+
+    def handle(self, record: logging.LogRecord) -> bool:
+        self.stream.write(record.getMessage())
+        return True
+
+
+@pytest.mark.parametrize("logger_name", ["language_service.zqx_extra", "py.warnings", "root"])
+def test_a_subclass_of_the_null_handler_that_writes_is_reported(
+    process_log: TextIO, logger_name: str
+) -> None:
+    with attached(logger_name, WritingNullHandler(io.StringIO())):
+        strays = stray_destinations(process_log)
+
+    assert strays == (f"{logger_name}: WritingNullHandler",)
+
+
 def test_a_fixed_field_handler_on_another_stream_is_reported(process_log: TextIO) -> None:
     with attached("root", FixedFieldHandler(io.StringIO())):
         strays = stray_destinations(process_log)

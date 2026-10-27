@@ -36,11 +36,12 @@ aplicados em ordem numérica. Cada um roda numa transação própria, junto com 
 
 Passo que falha é desfeito por inteiro, linha do registro inclusive; os anteriores ficam.
 O modo grava, fora da transação, uma linha em `public.schema_failure`: versão, nome, SHA-256,
-SQLSTATE (se houver), quando e quem; sem mensagem, texto do passo ou dado de material. A tabela só
-recebe linhas, e a comparação lê só `public.schema_version`: falha repetida deixa outra linha, e o
-passo corrigido não apaga as anteriores. Não fica linha se a tabela não existe (falha no 0001 ou
-0002) ou se a inserção falha; o código segue 13. Migrações simultâneas não aplicam o mesmo passo: a
-segunda espera e termina com 10. Escreve só no console, sem `Host:LogFile`.
+SQLSTATE (se houver), quando e quem; sem mensagem, texto do passo nem dado de material. A tabela
+só recebe linhas, e a comparação lê só `public.schema_version`: falha repetida deixa outra linha,
+e o passo corrigido não apaga as anteriores. Não fica linha se a tabela não existe (0001 ou 0002)
+ou se a inserção falha; o código segue 13. Migrações simultâneas não aplicam o mesmo passo: a
+segunda espera e termina com 10. O modo escreve só no console, sem `Host:LogFile`: guarde a saída
+para o registro da janela.
 
 ## A partida normal
 
@@ -51,8 +52,7 @@ passo e os dois resumos; atrás manda rodar `migrate`, divergente manda não rod
 ## O cerco da credencial
 
 A janela segue [010](010-credencial-de-dono-do-banco.md) e [007](007-verificacao-da-custodia.md):
-custódia antes, rodar, verificar depois, registrar. `public.schema_version` responde ao "quem,
-quando, o quê" da janela; registro e log não levam a credencial.
+custódia antes, rodar, verificar depois, registrar. Registro e log não levam a credencial.
 
 ## Passo novo
 

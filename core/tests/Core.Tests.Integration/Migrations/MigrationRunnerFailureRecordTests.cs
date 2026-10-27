@@ -138,6 +138,24 @@ public sealed class MigrationRunnerFailureRecordTests
     }
 
     [DatabaseFact]
+    public async Task FailureWithoutAServerStateLeavesTheRowWithANullSqlState()
+    {
+        await using var database = await ScratchDatabase.CreateAsync();
+        var steps = TestSteps.OnTopOfTheEmbedded(("times-out", "SELECT pg_sleep(30)"));
+        var impatient = new NpgsqlConnectionStringBuilder(database.OwnerConnectionString) { CommandTimeout = 1 }.ConnectionString;
+        await using var dataSource = NpgsqlDataSource.Create(impatient);
+
+        var result = await new MigrationRunner(dataSource, steps).RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(MigrationOutcome.StepFailed, result.Outcome);
+        Assert.Null(result.SqlState);
+        Assert.True(result.FailureRecorded);
+        var failure = Assert.Single(await database.ReadFailuresAsync());
+        Assert.Equal(steps[^1].Name, failure.Name);
+        Assert.Null(failure.SqlState);
+    }
+
+    [DatabaseFact]
     public async Task InsertThatTheServerRefusesLeavesTheRunAsStepFailedWithTheFailureNotRecorded()
     {
         await using var database = await ScratchDatabase.CreateAsync();

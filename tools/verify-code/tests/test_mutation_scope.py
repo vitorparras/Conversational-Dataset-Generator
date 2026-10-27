@@ -8,7 +8,15 @@ from steps import areas_doc, mutation_policy
 
 from . import mutation_fixture as fixture
 from . import support
-from .mutation_samples import DOCUMENT, POLICY, meta, stryker_report
+from .mutation_samples import (
+    AWAITED,
+    DOCUMENT,
+    POLICY,
+    awaited_pair,
+    meta,
+    stryker_report,
+    stryker_with_source,
+)
 from .test_mutation import AUTH_META, KILLED_AUTH, SURVIVOR_AUTH, healthy
 
 LOGGING_CONFIG = ".verify-code/mutation/core/Core.Platform.Logging/stryker-config.json"
@@ -146,23 +154,32 @@ class MutationScopeTests(fixture.MutationFixture):
         options = config["stryker-config"]
         self.assertEqual((options["thresholds"]["break"], options["concurrency"]), (0, 1))
 
-    def test_every_core_module_ignores_the_method_the_document_names(self) -> None:
-        self.replace_in_document("`Core.Platform` | 80 % | não", "`Core.Platform` | 80 % | sim")
-        self.run_step(healthy())
-
-        for path in (LOGGING_CONFIG, PLATFORM_CONFIG):
-            config = json.loads((self.root / path).read_text(encoding="utf-8"))
-            self.assertEqual(config["stryker-config"]["ignore-methods"], ["ConfigureAwait"])
-
-    def test_the_ignored_method_follows_the_document(self) -> None:
-        support.write(
-            self.root, mutation_policy.DOCUMENT, POLICY.replace("`ConfigureAwait`", "`Outro`")
-        )
-
+    def test_stryker_gets_no_method_filter_that_would_hide_the_call_chain(self) -> None:
         self.run_step(healthy())
 
         config = json.loads((self.root / LOGGING_CONFIG).read_text(encoding="utf-8"))
-        self.assertEqual(config["stryker-config"]["ignore-methods"], ["Outro"])
+        self.assertNotIn("ignore-methods", config["stryker-config"])
+
+    def test_a_statement_mutation_on_a_configure_await_line_survives_in_the_step(self) -> None:
+        statement, argument = awaited_pair("Survived")
+        report = stryker_with_source(self.logging_file, AWAITED, statement, argument)
+
+        result = self.run_step(healthy(report))
+
+        place = "core/src/Core.Platform/Logging/Formatter.cs:1"
+        self.assertIn(f"  sobrevivente: {place} — Statement mutation: `;`", result.details)
+        self.assertNotIn(f"  sobrevivente: {place} — Boolean mutation: `true`", result.details)
+
+    def test_the_method_whose_argument_is_left_out_follows_the_document(self) -> None:
+        _, argument = awaited_pair("Survived")
+        report = stryker_with_source(self.logging_file, AWAITED, argument)
+        other = POLICY.replace("`ConfigureAwait`", "`Outro`")
+        support.write(self.root, mutation_policy.DOCUMENT, other)
+
+        result = self.run_step(healthy(report))
+
+        place = "core/src/Core.Platform/Logging/Formatter.cs:1"
+        self.assertIn(f"  sobrevivente: {place} — Boolean mutation: `true`", result.details)
 
     def test_a_test_project_of_a_project_with_a_longer_name_is_not_taken(self) -> None:
         other = '<ProjectReference Include="../../src/Other.Core.Platform.csproj" />'

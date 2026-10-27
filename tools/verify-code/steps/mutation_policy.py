@@ -1,6 +1,6 @@
 """Reads the mutation rules of docs/operacao/017: the share of survivors a module may keep, the
-time ceiling per language and the core method Stryker skips; the critical modules are the
-Crítica column of the table of 014. No number lives here."""
+time ceiling per language and the method whose `false` argument is left out; the critical modules
+are the Crítica column of the table of 014. No number lives here."""
 
 from __future__ import annotations
 
@@ -19,17 +19,21 @@ PHRASES = (
         "no máximo **N % dos mutantes gerados**",
     ),
     (re.compile(r"\*\*(\d{1,3}) minutos por linguagem\*\*"), "**N minutos por linguagem**"),
-    (re.compile(r"Stryker ignora as chamadas a `(\w+)`"), "Stryker ignora as chamadas a `Método`"),
+    (
+        re.compile(r"\*\*o mutante `false`→`true` do argumento de `(\w+)`\*\*"),
+        "**o mutante `false`→`true` do argumento de `Método`**",
+    ),
 )
 
 
 @dataclass(frozen=True)
 class MutationPolicy:
-    """The survivor ceiling in percent, the minutes per language and the method Stryker skips."""
+    """The survivor ceiling in percent, the minutes per language and the method whose `false`
+    argument is left out of the share."""
 
     survivor_ceiling: int
     minutes: int
-    ignored_method: str
+    skipped_argument_of: str
 
 
 def section(lines: list[str]) -> str | None:

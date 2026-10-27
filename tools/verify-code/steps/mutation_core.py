@@ -61,14 +61,14 @@ def test_projects(root: Path, project: str) -> tuple[Path, ...]:
     return tuple(p for p in candidates if reference.search(p.read_text(encoding="utf-8")))
 
 
-def configuration(core: CoreTarget, tests: tuple[Path, ...], policy: MutationPolicy) -> str:
-    """The Stryker configuration of one module; Stryker never reproves, the step judges. The method
-    it skips comes from the 017 through the policy, so the document and the configuration agree."""
+def configuration(core: CoreTarget, tests: tuple[Path, ...]) -> str:
+    """The Stryker configuration of one module; Stryker never reproves, the step judges. It sets
+    no method filter: that one hides the whole call chain, so what the 017 leaves out is filtered
+    from the report (`read_stryker`)."""
     options = {
         "project": f"{core.project}.csproj",
         "test-projects": [str(path) for path in tests],
         "mutate": list(core.patterns),
-        "ignore-methods": [policy.ignored_method],
         "test-runner": "mtp",
         "concurrency": CONCURRENCY,
         "reporters": ["json"],
@@ -87,7 +87,7 @@ def mutate(ctx: Context, core: CoreTarget, seconds: float, policy: MutationPolic
     output = ctx.out_dir / RESULTS / core.area.prefix
     reset_directory(output)
     config = output / CONFIG
-    config.write_text(configuration(core, tests, policy), encoding="utf-8")
+    config.write_text(configuration(core, tests), encoding="utf-8")
     command = [*STRYKER, "--config-file", str(config), "--output", str(output)]
     # Beside core/Core.slnx Stryker takes the whole solution and drops the configured test projects.
     outcome = ctx.run_for(command, tests[0].parent, seconds)
@@ -95,7 +95,9 @@ def mutate(ctx: Context, core: CoreTarget, seconds: float, policy: MutationPolic
     if not report.is_file():
         missing = ("o Stryker não escreveu relatório", *tail(outcome.text))
         return ModuleResult(core.area, (), missing)
-    mutants: tuple[Mutant, ...] = read_stryker(report, ctx.root.resolve())
+    mutants: tuple[Mutant, ...] = read_stryker(
+        report, ctx.root.resolve(), policy.skipped_argument_of
+    )
     problems = () if outcome.ok else ("o Stryker terminou com erro", *tail(outcome.text))
     return ModuleResult(core.area, mutants, problems)
 

@@ -23,6 +23,7 @@ SKIPPED_FOLDERS = frozenset(
 #: Platform names (.NET, MSBuild, analyzer options) the documents cite and no file here declares.
 PLATFORM_NAMES = frozenset(
     {
+        "ConfigureAwait",
         "DiagnosticSuppressor",
         "NoWarn",
         "ResourceManager",

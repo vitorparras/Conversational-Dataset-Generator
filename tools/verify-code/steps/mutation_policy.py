@@ -1,6 +1,6 @@
-"""Reads the mutation rules of docs/operacao/017: the share of survivors a module may keep and the
-time ceiling per language; the critical modules are the Crítica column of the table of 014.
-No number lives here."""
+"""Reads the mutation rules of docs/operacao/017: the share of survivors a module may keep, the
+time ceiling per language and the method whose `false` argument is left out; the critical modules
+are the Crítica column of the table of 014. No number lives here."""
 
 from __future__ import annotations
 
@@ -19,15 +19,21 @@ PHRASES = (
         "no máximo **N % dos mutantes gerados**",
     ),
     (re.compile(r"\*\*(\d{1,3}) minutos por linguagem\*\*"), "**N minutos por linguagem**"),
+    (
+        re.compile(r"\*\*o mutante `false`→`true` do argumento de `(\w+)`\*\*"),
+        "**o mutante `false`→`true` do argumento de `Método`**",
+    ),
 )
 
 
 @dataclass(frozen=True)
 class MutationPolicy:
-    """The survivor ceiling in percent and the minutes per language."""
+    """The survivor ceiling in percent, the minutes per language and the method whose `false`
+    argument is left out of the share."""
 
     survivor_ceiling: int
     minutes: int
+    skipped_argument_of: str
 
 
 def section(lines: list[str]) -> str | None:
@@ -49,7 +55,8 @@ def read_policy(root: Path) -> MutationPolicy | tuple[str, ...]:
     missing = [phrase for (_, phrase), match in zip(PHRASES, found, strict=True) if match is None]
     if missing:
         return tuple(f"{DOCUMENT}: a seção `{SECTION}` não diz `{phrase}`" for phrase in missing)
-    return MutationPolicy(*(int(match.group(1)) for match in found if match is not None))
+    ceiling, minutes, method = (match.group(1) for match in found if match is not None)
+    return MutationPolicy(int(ceiling), int(minutes), method)
 
 
 def critical(areas: tuple[Area, ...]) -> tuple[Area, ...]:

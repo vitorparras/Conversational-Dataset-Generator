@@ -11,7 +11,15 @@ from steps.mutant import Mutant, MutantStatus
 from steps.mutmut_report import Entry
 
 from . import support
-from .mutation_samples import SHOWN, SOURCE, meta
+from .mutation_samples import (
+    AWAITED,
+    SHOWN,
+    SOURCE,
+    awaited_pair,
+    meta,
+    stryker_span,
+    stryker_with_source,
+)
 from .mutation_samples import stryker_report as stryker_report_text
 
 SURVIVOR = Entry("language_service.auth.xǁVerifierǁaccepts__mutmut_2", "src/a/auth.py", 0)
@@ -60,6 +68,90 @@ class StrykerReportTests(unittest.TestCase):
         mutants = self.read("Pending")
 
         self.assertEqual(mutants[0].status, MutantStatus.UNCHECKED)
+
+    def read_source(
+        self, source: str, *mutants: dict[str, object], argument_of: str | None = "ConfigureAwait"
+    ) -> tuple[Mutant, ...]:
+        file = str(self.root / "core/src/P/F.cs")
+        support.write(self.root, "r.json", stryker_with_source(file, source, *mutants))
+        return stryker_report.read_stryker(self.root / "r.json", self.root, argument_of)
+
+    def test_the_false_argument_of_the_method_is_ignored_even_when_it_survived(self) -> None:
+        _, argument = awaited_pair("Survived")
+
+        mutants = self.read_source(AWAITED, argument)
+
+        self.assertEqual(mutants[0].status, MutantStatus.IGNORED)
+
+    def test_a_statement_mutation_on_the_line_of_the_call_still_counts(self) -> None:
+        statement, argument = awaited_pair("Survived")
+
+        mutants = self.read_source(AWAITED, statement, argument)
+
+        self.assertEqual([m.status for m in mutants], [MutantStatus.SURVIVED, MutantStatus.IGNORED])
+
+    def test_a_killed_statement_mutation_on_the_line_of_the_call_stays_killed(self) -> None:
+        statement, _ = awaited_pair("Killed")
+
+        mutants = self.read_source(AWAITED, statement)
+
+        self.assertEqual(mutants[0].status, MutantStatus.KILLED)
+
+    def test_the_argument_of_a_using_statement_is_ignored(self) -> None:
+        source = "        await using (connection.ConfigureAwait(false))\n"
+        column = source.index("false") + 1
+        argument = stryker_span("Boolean mutation", "true", (1, column, column + 5), "Survived")
+
+        mutants = self.read_source(source, argument)
+
+        self.assertEqual(mutants[0].status, MutantStatus.IGNORED)
+
+    def test_a_false_argument_of_another_method_counts(self) -> None:
+        source = "        Toggle(false);\n"
+        column = source.index("false") + 1
+        argument = stryker_span("Boolean mutation", "true", (1, column, column + 5), "Survived")
+
+        mutants = self.read_source(source, argument)
+
+        self.assertEqual(mutants[0].status, MutantStatus.SURVIVED)
+
+    def test_another_mutation_of_the_argument_span_counts(self) -> None:
+        column = AWAITED.index("false") + 1
+        other = stryker_span("String mutation", '""', (1, column, column + 5), "Survived")
+
+        mutants = self.read_source(AWAITED, other)
+
+        self.assertEqual(mutants[0].status, MutantStatus.SURVIVED)
+
+    def test_a_true_argument_counts(self) -> None:
+        source = AWAITED.replace("false", "true")
+        column = source.index("true") + 1
+        argument = stryker_span("Boolean mutation", "false", (1, column, column + 4), "Survived")
+
+        mutants = self.read_source(source, argument)
+
+        self.assertEqual(mutants[0].status, MutantStatus.SURVIVED)
+
+    def test_without_a_method_to_skip_the_false_argument_counts(self) -> None:
+        _, argument = awaited_pair("Survived")
+
+        mutants = self.read_source(AWAITED, argument, argument_of=None)
+
+        self.assertEqual(mutants[0].status, MutantStatus.SURVIVED)
+
+    def test_another_method_name_does_not_skip_the_argument(self) -> None:
+        _, argument = awaited_pair("Survived")
+
+        mutants = self.read_source(AWAITED, argument, argument_of="Other")
+
+        self.assertEqual(mutants[0].status, MutantStatus.SURVIVED)
+
+    def test_a_mutant_past_the_end_of_the_source_counts(self) -> None:
+        _, argument = awaited_pair("Survived")
+
+        mutants = self.read_source("", argument)
+
+        self.assertEqual(mutants[0].status, MutantStatus.SURVIVED)
 
 
 class MutmutReportTests(unittest.TestCase):

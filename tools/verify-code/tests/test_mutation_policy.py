@@ -33,12 +33,12 @@ class MutationPolicyTests(unittest.TestCase):
     def test_the_section_gives_the_survivor_ceiling_and_the_minutes(self) -> None:
         policy = self.read(POLICY)
 
-        self.assertEqual(policy, MutationPolicy(20, 20))
+        self.assertEqual(policy, MutationPolicy(20, 20, "ConfigureAwait"))
 
     def test_a_changed_survivor_ceiling_in_the_document_is_read(self) -> None:
         policy = self.read(POLICY.replace("**20 % dos", "**15 % dos"))
 
-        self.assertEqual(policy, MutationPolicy(15, 20))
+        self.assertEqual(policy, MutationPolicy(15, 20, "ConfigureAwait"))
 
     def test_a_section_without_the_survivor_phrase_fails_naming_it(self) -> None:
         policy = self.read(POLICY.replace("**20 % dos mutantes gerados**", "poucos"))
@@ -50,6 +50,30 @@ class MutationPolicyTests(unittest.TestCase):
                 "`no máximo **N % dos mutantes gerados**`",
             ),
         )
+
+    def test_a_changed_skipped_argument_of_in_the_document_is_read(self) -> None:
+        policy = self.read(POLICY.replace("`ConfigureAwait`", "`Outro`"))
+
+        self.assertEqual(policy, MutationPolicy(20, 20, "Outro"))
+
+    def test_a_section_without_the_skipped_argument_of_fails_naming_it(self) -> None:
+        policy = self.read(POLICY.replace("argumento de", "argumento em"))
+
+        self.assertEqual(
+            policy,
+            (
+                f"{mutation_policy.DOCUMENT}: a seção `## Regras` não diz "
+                "`**o mutante `false`→`true` do argumento de `Método`**`",
+            ),
+        )
+
+    def test_the_document_of_the_repository_skips_the_false_argument_of_configure_await(
+        self,
+    ) -> None:
+        policy = mutation_policy.read_policy(REPOSITORY)
+
+        assert isinstance(policy, MutationPolicy)
+        self.assertEqual(policy.skipped_argument_of, "ConfigureAwait")
 
     def test_a_document_without_the_section_fails(self) -> None:
         policy = self.read(POLICY.replace("## Regras", "## Outra"))

@@ -12,7 +12,7 @@ from steps.mutation_judge import LanguageRun, ModuleResult, judge_language, judg
 from steps.mutation_policy import MutationPolicy
 
 AREA = Area("Registro", "Core.Platform.Logging", 90)
-POLICY = MutationPolicy(20, 20)
+POLICY = MutationPolicy(20, 20, "ConfigureAwait")
 KILLED = Mutant("a.cs", 1, "", MutantStatus.KILLED)
 SURVIVED = Mutant("a.cs", 7, "Equality mutation: `a != b`", MutantStatus.SURVIVED)
 BROKEN = Mutant("a.cs", 3, "", MutantStatus.NOT_COUNTED)
@@ -45,7 +45,7 @@ class MutationJudgeTests(unittest.TestCase):
         self.assertEqual(verdict.failures, (f"Registro (`Core.Platform.Logging`): {expected}",))
 
     def test_the_ceiling_comes_from_the_policy(self) -> None:
-        verdict = judge_module(module(81, 19), MutationPolicy(10, 20))
+        verdict = judge_module(module(81, 19), MutationPolicy(10, 20, "ConfigureAwait"))
 
         self.assertEqual(len(verdict.failures), 1)
 
@@ -95,7 +95,8 @@ class MutationCeilingRuleTests(unittest.TestCase):
         self.assertTrue(mutation_judge.over_ceiling(POLICY, CEILING_SECONDS + 1))
 
     def test_the_ceiling_minutes_come_from_the_policy(self) -> None:
-        self.assertFalse(mutation_judge.over_ceiling(MutationPolicy(20, 30), CEILING_SECONDS + 1))
+        longer = MutationPolicy(20, 30, "ConfigureAwait")
+        self.assertFalse(mutation_judge.over_ceiling(longer, CEILING_SECONDS + 1))
 
     def test_the_ceiling_finding_names_the_modules_and_the_time(self) -> None:
         found = mutation_judge.ceiling_problem(POLICY, ("A.B", "C"), 1290.0)

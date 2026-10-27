@@ -62,7 +62,9 @@ def test_projects(root: Path, project: str) -> tuple[Path, ...]:
 
 
 def configuration(core: CoreTarget, tests: tuple[Path, ...]) -> str:
-    """The Stryker configuration of one module; Stryker never reproves, the step judges."""
+    """The Stryker configuration of one module; Stryker never reproves, the step judges. It sets
+    no method filter: that one hides the whole call chain, so what the 017 leaves out is filtered
+    from the report (`read_stryker`)."""
     options = {
         "project": f"{core.project}.csproj",
         "test-projects": [str(path) for path in tests],
@@ -75,7 +77,7 @@ def configuration(core: CoreTarget, tests: tuple[Path, ...]) -> str:
     return json.dumps({"stryker-config": options}, indent=2) + "\n"
 
 
-def mutate(ctx: Context, core: CoreTarget, seconds: float) -> ModuleResult:
+def mutate(ctx: Context, core: CoreTarget, seconds: float, policy: MutationPolicy) -> ModuleResult:
     """Writes the module's configuration, runs Stryker for at most ``seconds``, reads its report."""
     tests = test_projects(ctx.root, core.project)
     if not tests:
@@ -93,7 +95,9 @@ def mutate(ctx: Context, core: CoreTarget, seconds: float) -> ModuleResult:
     if not report.is_file():
         missing = ("o Stryker não escreveu relatório", *tail(outcome.text))
         return ModuleResult(core.area, (), missing)
-    mutants: tuple[Mutant, ...] = read_stryker(report, ctx.root.resolve())
+    mutants: tuple[Mutant, ...] = read_stryker(
+        report, ctx.root.resolve(), policy.skipped_argument_of
+    )
     problems = () if outcome.ok else ("o Stryker terminou com erro", *tail(outcome.text))
     return ModuleResult(core.area, mutants, problems)
 
@@ -111,6 +115,9 @@ def run_core(
         missing = "`dotnet tool restore` falhou em core/: o Stryker.NET de core/dotnet-tools.json"
         return LanguageRun(SIDE, problems=(f"{missing} não está disponível", *tail(restore.text)))
     results, findings, spent = in_turn(
-        policy, targets, lambda core: core.area, lambda core, seconds: mutate(ctx, core, seconds)
+        policy,
+        targets,
+        lambda core: core.area,
+        lambda core, seconds: mutate(ctx, core, seconds, policy),
     )
     return LanguageRun(SIDE, results, absent, findings, seconds=spent)

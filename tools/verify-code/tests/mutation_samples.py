@@ -10,7 +10,8 @@ POLICY = (
     "# 017\n\n## Regras\n\n"
     "O teste de mutação roda sobre as áreas com `sim` em **Crítica**, que são a lista de módulos. "
     "Por\nmódulo, no máximo **20 % dos mutantes gerados** podem sobreviver. Teto de tempo: "
-    "**20 minutos por\nlinguagem** dentro da verificação.\n\n## Depois\n"
+    "**20 minutos por\nlinguagem** dentro da verificação. No núcleo, a verificação não conta\n"
+    "**o mutante `false`→`true` do argumento de `ConfigureAwait`**.\n\n## Depois\n"
 )
 DOCUMENT = "\n".join(
     (
@@ -50,3 +51,36 @@ def stryker_report(file: str, *statuses: str) -> str:
 
 def meta(codes: dict[str, int | None]) -> str:
     return json.dumps({"exit_code_by_key": codes})
+
+
+AWAITED = "        await ReleaseAsync(connection).ConfigureAwait(false);\n"
+
+
+def stryker_span(
+    name: str, replacement: str, span: tuple[int, int, int], status: str
+) -> dict[str, object]:
+    """A Stryker mutant of one line; ``span`` is (line, first column, end column), from 1."""
+    line = span[0]
+    start, end = ({"line": line, "column": column} for column in span[1:])
+    location = {"start": start, "end": end}
+    return {
+        "id": f"{line}-{span[1]}",
+        "mutatorName": name,
+        "replacement": replacement,
+        "location": location,
+        "status": status,
+    }
+
+
+def stryker_with_source(file: str, source: str, *mutants: dict[str, object]) -> str:
+    """A report that carries the source of its file, as Stryker's JSON reporter does."""
+    files = {file: {"source": source, "mutants": mutants}}
+    return json.dumps({"schemaVersion": "2", "files": files})
+
+
+def awaited_pair(status: str) -> tuple[dict[str, object], dict[str, object]]:
+    """The Statement mutation of ``AWAITED`` and the Boolean one of its `false` argument."""
+    column = AWAITED.index("false") + 1
+    statement = stryker_span("Statement mutation", ";", (1, 9, len(AWAITED)), status)
+    argument = stryker_span("Boolean mutation", "true", (1, column, column + 5), status)
+    return statement, argument

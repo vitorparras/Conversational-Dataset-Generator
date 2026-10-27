@@ -71,6 +71,27 @@ public sealed class SchemaComparisonTests
         Assert.Equal("0001-first", comparison.Step);
     }
 
+    [Fact]
+    public void BuildWithoutStepsAndRegistryWithoutRowsIsUpToDateAtVersionZero()
+    {
+        var comparison = SchemaComparison.Compare([], []);
+
+        Assert.Equal(SchemaState.UpToDate, comparison.State);
+        Assert.Equal(0, comparison.Found);
+        Assert.Equal(0, comparison.Expected);
+        Assert.Equal(0, comparison.Applied);
+    }
+
+    [Fact]
+    public void RegistryHoldingAStepWhenTheBuildCarriesNoneIsAheadExpectingVersionZero()
+    {
+        var comparison = SchemaComparison.Compare([], [Applied(First)]);
+
+        Assert.Equal(SchemaState.Ahead, comparison.State);
+        Assert.Equal(1, comparison.Found);
+        Assert.Equal(0, comparison.Expected);
+    }
+
     private static MigrationStep Step(int version, string name, string sql) =>
         MigrationStep.Of(version, name, Encoding.UTF8.GetBytes(sql));
 

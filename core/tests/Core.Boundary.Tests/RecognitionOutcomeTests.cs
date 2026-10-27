@@ -40,6 +40,17 @@ public sealed class RecognitionOutcomeTests
     }
 
     [Fact]
+    public void ReasonOutsideTheEnumerationIsRefusedSayingSoAndShowingTheValue()
+    {
+        var unknown = (UnavailabilityReason)99;
+
+        var defect = Assert.Throws<ArgumentOutOfRangeException>(() => RecognitionOutcome.Unavailable(unknown));
+
+        Assert.Contains("The reason is not one of the enumeration.", defect.Message, StringComparison.Ordinal);
+        Assert.Equal(unknown, defect.ActualValue);
+    }
+
+    [Fact]
     public void AnalysisWithoutAResponseIsADefect()
     {
         AnalysisResponse? missing = null;

@@ -20,6 +20,10 @@ por linguagem** dentro da verificação de pull request, somados entre os módul
 Exceder o teto é achado que reprova, nomeando o módulo e o tempo gasto, nunca lentidão tolerada.
 Mutação fora do bloqueio só por decisão escrita.
 
+No núcleo, o Stryker ignora as chamadas a `ConfigureAwait` em todos os módulos: o host não tem
+contexto de sincronização, então os mutantes dessas chamadas são equivalentes por construção e não
+contam como gerados nem como sobreviventes. Nenhuma outra chamada é ignorada.
+
 ## Qual suíte conta
 
 Em cada módulo conta só a suíte do projeto dele, nas duas linguagens. Módulo sem teste assim

@@ -10,7 +10,8 @@ POLICY = (
     "# 017\n\n## Regras\n\n"
     "O teste de mutação roda sobre as áreas com `sim` em **Crítica**, que são a lista de módulos. "
     "Por\nmódulo, no máximo **20 % dos mutantes gerados** podem sobreviver. Teto de tempo: "
-    "**20 minutos por\nlinguagem** dentro da verificação.\n\n## Depois\n"
+    "**20 minutos por\nlinguagem** dentro da verificação. No núcleo, o Stryker ignora as\n"
+    "chamadas a `ConfigureAwait` em todos os módulos.\n\n## Depois\n"
 )
 DOCUMENT = "\n".join(
     (

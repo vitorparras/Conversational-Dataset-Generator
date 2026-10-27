@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import json
 
-from steps import areas_doc
+from steps import areas_doc, mutation_policy
 
 from . import mutation_fixture as fixture
 from . import support
-from .mutation_samples import DOCUMENT, meta, stryker_report
+from .mutation_samples import DOCUMENT, POLICY, meta, stryker_report
 from .test_mutation import AUTH_META, KILLED_AUTH, SURVIVOR_AUTH, healthy
 
 LOGGING_CONFIG = ".verify-code/mutation/core/Core.Platform.Logging/stryker-config.json"
@@ -145,6 +145,24 @@ class MutationScopeTests(fixture.MutationFixture):
         config = json.loads((self.root / LOGGING_CONFIG).read_text(encoding="utf-8"))
         options = config["stryker-config"]
         self.assertEqual((options["thresholds"]["break"], options["concurrency"]), (0, 1))
+
+    def test_every_core_module_ignores_the_method_the_document_names(self) -> None:
+        self.replace_in_document("`Core.Platform` | 80 % | não", "`Core.Platform` | 80 % | sim")
+        self.run_step(healthy())
+
+        for path in (LOGGING_CONFIG, PLATFORM_CONFIG):
+            config = json.loads((self.root / path).read_text(encoding="utf-8"))
+            self.assertEqual(config["stryker-config"]["ignore-methods"], ["ConfigureAwait"])
+
+    def test_the_ignored_method_follows_the_document(self) -> None:
+        support.write(
+            self.root, mutation_policy.DOCUMENT, POLICY.replace("`ConfigureAwait`", "`Outro`")
+        )
+
+        self.run_step(healthy())
+
+        config = json.loads((self.root / LOGGING_CONFIG).read_text(encoding="utf-8"))
+        self.assertEqual(config["stryker-config"]["ignore-methods"], ["Outro"])
 
     def test_a_test_project_of_a_project_with_a_longer_name_is_not_taken(self) -> None:
         other = '<ProjectReference Include="../../src/Other.Core.Platform.csproj" />'

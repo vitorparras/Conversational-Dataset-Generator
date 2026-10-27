@@ -45,9 +45,8 @@ internal static class CompositionRoot
         }
 
         var analyzeTimeout = LanguageServiceConfiguration.AnalyzeTimeout(loaded.Values);
-        return analyzeTimeout is null
-            ? HostLaunch.Refused([LanguageServiceConfiguration.AnalyzeTimeoutRefused(loaded.Values)])
-            : await LaunchAsync(loaded, database, analyzeTimeout.Value, target);
+        var refused = LanguageServiceConfiguration.Refusals(loaded.Values, analyzeTimeout);
+        return analyzeTimeout is { } timeout && refused.Count == 0 ? await LaunchAsync(loaded, database, timeout, target) : HostLaunch.Refused(refused);
     }
 
     /// <summary>The migration mode: the steps run once with the owner credential the configuration holds, the outcome is logged and nothing is served.</summary>
@@ -147,7 +146,7 @@ internal static class CompositionRoot
         _ = services.AddRedaction(PlatformLogging.EraseSensitiveData);
         _ = services.AddSingleton(_ => LoopbackHttpClient.Create());
         _ = services.AddSingleton(provider => new HealthWait(provider.GetRequiredService<HttpClient>()));
-        _ = services.AddSingleton(new ServiceProcessLauncher(loaded.Values[LanguageServiceConfiguration.ExecutablePath]));
+        _ = services.AddSingleton(new ServiceProcessLauncher(ServiceFolder.Beside().Executable(LanguageServiceConfiguration.GivenExecutable(loaded.Values))));
         _ = services.AddSingleton(new ServiceProcessWatch());
         _ = services.AddSingleton(provider => new LanguageServiceSupervisor(
             provider.GetRequiredService<ServiceProcessLauncher>(),

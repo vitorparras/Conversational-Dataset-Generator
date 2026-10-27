@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
+using Core.Host.Supervision;
 
 namespace Core.Host.Tests;
 
@@ -160,6 +161,7 @@ internal sealed class HostProcess : IDisposable
             RedirectStandardError = true,
             UseShellExecute = false,
         };
+        info.Environment[LanguageServiceConfiguration.EnvironmentVariable] = "Development";
         foreach (var variable in installation.Environment)
         {
             info.Environment[variable.Key] = variable.Value;

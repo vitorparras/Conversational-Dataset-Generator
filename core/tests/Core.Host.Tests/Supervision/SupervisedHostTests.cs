@@ -46,7 +46,7 @@ public sealed class SupervisedHostTests
     }
 
     [Fact]
-    public async Task HostWithoutTheInterpreterKeyEndsWithTheRefusalCodeAndNamesTheKey()
+    public async Task HostWithoutTheInterpreterKeyAndWithoutTheFolderEndsWithTheCheckCodeAndNamesTheManifest()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         using var copy = new HostCopy(/*lang=json*/ "{}");
@@ -54,8 +54,24 @@ public sealed class SupervisedHostTests
 
         var exit = await HostProcess.RunToExitAsync(installation, HostProcess.StartupTimeout, cancellationToken);
 
-        Assert.Equal((int)ExitCode.ConfigurationRefused, exit.Code);
-        Assert.Contains("'LanguageService:Executable'", exit.Error, StringComparison.Ordinal);
+        Assert.Equal((int)ExitCode.StartupCheckFailed, exit.Code);
+        Assert.Contains("language-service/SHA256SUMS", exit.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task HostWithoutTheKeyChecksTheFolderBesideItsExecutableWhateverTheWorkingDirectory()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var copy = new HostCopy(/*lang=json*/ "{}");
+        using var mounted = new MountedServiceFolder(copy.Path);
+        using var elsewhere = new TemporaryDirectory();
+        var installation = new HostInstallation(copy.Path, elsewhere.Path, []) with { ProvidesLanguageService = false };
+
+        var exit = await HostProcess.RunToExitAsync(installation, HostProcess.StartupTimeout, cancellationToken);
+
+        Assert.Equal((int)ExitCode.StartupCheckFailed, exit.Code);
+        Assert.DoesNotContain("- LanguageServiceFolder:", exit.Error, StringComparison.Ordinal);
+        Assert.Contains("- LanguageService:", exit.Error, StringComparison.Ordinal);
     }
 
     [Fact]

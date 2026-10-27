@@ -60,7 +60,7 @@ public sealed class ContractJsonOptionsTests
 
         var written = JsonSerializer.Serialize(request, Options(build));
 
-        Assert.True(ContractFixture.SameJson("""{"text":"texto","language":"pt","reference":"ZQX-REF-0002","contract_version":"1"}""", written), written);
+        Assert.True(ContractFixture.SameJson(/*lang=json,strict*/ """{"text":"texto","language":"pt","reference":"ZQX-REF-0002","contract_version":"1"}""", written), written);
     }
 
     [Theory]
@@ -71,7 +71,7 @@ public sealed class ContractJsonOptionsTests
 
         Assert.True(options.IsReadOnly);
         Assert.Equal(
-            """{"occurrences":[],"model_version":null}""",
+            /*lang=json,strict*/ """{"occurrences":[],"model_version":null}""",
             JsonSerializer.Serialize(new AnalysisResponse([], null), options));
     }
 

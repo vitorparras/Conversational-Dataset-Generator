@@ -15,7 +15,16 @@ public sealed class LogFileCheckTests
 
         Assert.Equal(CheckStatus.Passed, result.Status);
         Assert.Equal("Sample:LogFile", result.Name);
+        Assert.Equal("arquivo de registro aberto para escrita", result.Message);
+        Assert.Equal("Sample:LogFile", result.ExpectedSource);
     }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("  ")]
+    public void CheckWithoutAKeyToNameIsRefused(string? name) =>
+        Assert.ThrowsAny<ArgumentException>(() => new LogFileCheck(name!, opened: true));
 
     [Fact]
     public async Task FileThatCouldNotBeOpenedFailsNamingTheKeyAsItsSource()

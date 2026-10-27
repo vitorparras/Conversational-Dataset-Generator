@@ -72,6 +72,8 @@ public sealed class LineConsoleFormatterTests
     [InlineData(LogLevel.Warning, "WARN ")]
     [InlineData(LogLevel.Error, "ERROR")]
     [InlineData(LogLevel.Critical, "FATAL")]
+    [InlineData(LogLevel.None, "NONE ")]
+    [InlineData((LogLevel)42, "42")]
     public void LevelLabelIsFiveCharactersWide(LogLevel level, string label)
     {
         var entry = Entry(level, 3, [new("{OriginalFormat}", "m")], exception: null);
@@ -79,6 +81,34 @@ public sealed class LineConsoleFormatterTests
         var line = Written(entry);
 
         Assert.Matches($"^{Timestamp} {label} Sample", line);
+    }
+
+    [Fact]
+    public void StateThatIsNotAListOfTagsAddsNoTagToTheLine()
+    {
+        var entry = new LogEntry<string>(LogLevel.Information, "Sample", new EventId(4), "estado", exception: null, static (state, _) => state);
+        using var writer = new StringWriter();
+
+        Formatter.Write(entry, scopeProvider: null, writer);
+
+        Assert.Matches($"^{Timestamp} INFO  Sample\\[4\\] estado$", writer.ToString().TrimEnd('\r', '\n'));
+    }
+
+    [Fact]
+    public void FormatterIsKnownToTheConsoleProviderAsLine()
+    {
+        Assert.Equal("line", LineConsoleFormatter.FormatterName);
+        Assert.Equal("line", Formatter.Name);
+    }
+
+    [Fact]
+    public void WritingToNoWriterIsRefused()
+    {
+        var entry = Entry(LogLevel.Information, 7, [], exception: null);
+
+        var refused = Assert.Throws<ArgumentNullException>(() => Formatter.Write(entry, scopeProvider: null, textWriter: null!));
+
+        Assert.Equal("textWriter", refused.ParamName);
     }
 
     private static string Written(LogEntry<SampleTags> entry)

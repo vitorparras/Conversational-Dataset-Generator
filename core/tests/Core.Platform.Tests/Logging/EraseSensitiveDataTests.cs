@@ -27,6 +27,22 @@ public sealed class EraseSensitiveDataTests
     }
 
     [Fact]
+    public void ConfiguringNoLoggingBuilderIsRefused()
+    {
+        var refused = Assert.Throws<ArgumentNullException>(() => PlatformLogging.Configure(null!));
+
+        Assert.Equal("logging", refused.ParamName);
+    }
+
+    [Fact]
+    public void ErasingThroughNoRedactionBuilderIsRefused()
+    {
+        var refused = Assert.Throws<ArgumentNullException>(() => PlatformLogging.EraseSensitiveData(null!));
+
+        Assert.Equal("redaction", refused.ParamName);
+    }
+
+    [Fact]
     public void UnclassifiedValueFollowsTheFallbackNotThePlatform()
     {
         using var provider = new ServiceCollection()

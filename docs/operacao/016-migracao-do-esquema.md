@@ -2,9 +2,9 @@
 
 > Operacional. 2026-10-25.
 
-A migração é um **modo do mesmo executável**, pedido pelo operador com `migrate` como primeiro
-argumento. Roda uma vez, com a credencial de dono, e termina. A partida normal usa a credencial da
-aplicação e **só confere a versão**: nunca migra.
+A migração é um **modo do mesmo executável**, pedido com `migrate` como primeiro argumento: roda
+uma vez, com a credencial de dono, e termina. A partida normal usa a credencial da aplicação e
+**só confere a versão**: nunca migra.
 
 ## Como rodar
 
@@ -34,27 +34,27 @@ aplicados em ordem numérica. Cada um roda numa transação própria, junto com 
 | 14 | Sem conexão com o servidor | Conferir endereço, banco, papel e senha |
 | 78 | Configuração recusada | Declarar as quatro chaves de `Database` |
 
-Passo que falha é desfeito por inteiro, linha do registro inclusive: não fica registro de falha, só
-o log. Os passos anteriores a ele ficam aplicados. Duas migrações ao mesmo tempo não aplicam o mesmo
-passo: a segunda espera a primeira e termina com 10. O modo escreve só no console e ignora
-`Host:LogFile`: guarde a saída para o registro da janela.
+Passo que falha é desfeito por inteiro, linha do registro inclusive; os anteriores ficam.
+O modo grava, fora da transação, uma linha em `public.schema_failure`: versão, nome, SHA-256,
+SQLSTATE (se houver), quando e quem; sem mensagem, texto do passo ou dado de material. A tabela só
+recebe linhas, e a comparação lê só `public.schema_version`: falha repetida deixa outra linha, e o
+passo corrigido não apaga as anteriores. Não fica linha se a tabela não existe (falha no 0001 ou
+0002) ou se a inserção falha; o código segue 13. Migrações simultâneas não aplicam o mesmo passo: a
+segunda espera e termina com 10. Escreve só no console, sem `Host:LogFile`.
 
 ## A partida normal
 
-A conferência da versão do esquema é a última das garantias do servidor. Banco vazio conta como
-versão 0. Banco atrás, à frente ou com passo divergente impede a partida (código 69), nomeando a
-versão encontrada e a esperada, ou o passo e os dois resumos. Atrás, a mensagem manda rodar o modo
-`migrate`; divergente, manda não rodar.
+A conferência da versão é a última das garantias do servidor. Banco vazio conta como versão 0.
+Banco atrás, à frente ou com passo divergente impede a partida (código 69), nomeando as versões ou o
+passo e os dois resumos; atrás manda rodar `migrate`, divergente manda não rodar.
 
 ## O cerco da credencial
 
-A janela segue [010](010-credencial-de-dono-do-banco.md): verificar a custódia antes
-([007](007-verificacao-da-custodia.md)), rodar, verificar depois e registrar a janela. A tabela
-`public.schema_version` responde ao "quem, quando, o quê" da janela. Nem o registro nem o log levam
-a credencial.
+A janela segue [010](010-credencial-de-dono-do-banco.md) e [007](007-verificacao-da-custodia.md):
+custódia antes, rodar, verificar depois, registrar. `public.schema_version` responde ao "quem,
+quando, o quê" da janela; registro e log não levam a credencial.
 
 ## Passo novo
 
-Um arquivo `NNNN-nome.sql` a mais em `core/src/Core.Persistence/Migrations/Sql`, com o número
-seguinte. **Passo já aplicado nunca se edita**: o resumo muda e a partida passa a recusar o banco.
-Correção vai em passo novo.
+Um arquivo `NNNN-nome.sql` em `core/src/Core.Persistence/Migrations/Sql`, com o número seguinte.
+**Passo aplicado nunca se edita**: o resumo muda e a partida recusa o banco; corrija em passo novo.

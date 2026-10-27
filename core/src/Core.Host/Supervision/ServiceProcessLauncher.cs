@@ -19,6 +19,9 @@ internal sealed class ServiceProcessLauncher
         this.executable = executable;
     }
 
+    /// <summary>The arguments of the interpreter: isolated mode first, so that PYTHONHOME, PYTHONPATH and the user site the host inherited do not reach the service.</summary>
+    internal static IReadOnlyList<string> Arguments(int port) => ["-I", "-m", Module, "--port", port.ToString(CultureInfo.InvariantCulture)];
+
     /// <summary>The running service, or null when the system could not start the executable.</summary>
     internal RunningService? Start(string secret)
     {
@@ -29,7 +32,7 @@ internal sealed class ServiceProcessLauncher
             StandardInputEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
             UseShellExecute = false,
         };
-        foreach (var argument in (string[])["-m", Module, "--port", port.ToString(CultureInfo.InvariantCulture)])
+        foreach (var argument in Arguments(port))
         {
             info.ArgumentList.Add(argument);
         }

@@ -79,6 +79,40 @@ internal sealed class ScratchDatabase : IAsyncDisposable
         return rows;
     }
 
+    /// <summary>The rows of the failure table in order of id; the table must exist.</summary>
+    public async Task<IReadOnlyList<FailureRow>> ReadFailuresAsync()
+    {
+        await using var connection = await Sql.OpenAsync(OwnerConnectionString);
+        await using var command = new NpgsqlCommand("SELECT version, name, sha256, sqlstate, failed_at, failed_by FROM public.schema_failure ORDER BY id", connection);
+        await using var reader = await command.ExecuteReaderAsync(TestContext.Current.CancellationToken);
+        var rows = new List<FailureRow>();
+        while (await reader.ReadAsync(TestContext.Current.CancellationToken))
+        {
+            var failedAt = await reader.GetFieldValueAsync<DateTimeOffset>(4, TestContext.Current.CancellationToken);
+            var sqlState = await reader.IsDBNullAsync(3, TestContext.Current.CancellationToken) ? null : reader.GetString(3);
+            rows.Add(new FailureRow(reader.GetInt32(0), reader.GetString(1), reader.GetString(2), sqlState, failedAt, reader.GetString(5)));
+        }
+
+        return rows;
+    }
+
+    /// <summary>The column names of a table of the public schema, in order of position.</summary>
+    public async Task<IReadOnlyList<string>> ColumnsOfAsync(string table)
+    {
+        await using var connection = await Sql.OpenAsync(OwnerConnectionString);
+        await using var command = new NpgsqlCommand(
+            "SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = @table ORDER BY ordinal_position", connection);
+        _ = command.Parameters.AddWithValue("table", table);
+        await using var reader = await command.ExecuteReaderAsync(TestContext.Current.CancellationToken);
+        var columns = new List<string>();
+        while (await reader.ReadAsync(TestContext.Current.CancellationToken))
+        {
+            columns.Add(reader.GetString(0));
+        }
+
+        return columns;
+    }
+
     public async ValueTask DisposeAsync() =>
         await ExecuteAsync(superuserConnectionString, $"DROP DATABASE IF EXISTS {name} WITH (FORCE)");
 
@@ -96,6 +130,9 @@ internal sealed class ScratchDatabase : IAsyncDisposable
 
         _ = await batch.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
     }
+
+    /// <summary>One row of <c>public.schema_failure</c>, without its identity.</summary>
+    internal sealed record FailureRow(int Version, string Name, string Sha256, string? SqlState, DateTimeOffset FailedAt, string FailedBy);
 
     /// <summary>One row of <c>public.schema_version</c>.</summary>
     internal sealed record RegistryRow(int Version, string Name, string Sha256, DateTimeOffset AppliedAt, string AppliedBy);

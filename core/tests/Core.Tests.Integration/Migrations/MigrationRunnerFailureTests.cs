@@ -21,7 +21,7 @@ public sealed class MigrationRunnerFailureTests
         var result = await database.MigrateAsync(steps);
 
         Assert.Equal(MigrationOutcome.StepFailed, result.Outcome);
-        Assert.Equal(steps[2].Name, result.Step);
+        Assert.Equal(steps[^2].Name, result.Step);
         Assert.Equal("22012", result.SqlState);
     }
 
@@ -33,8 +33,8 @@ public sealed class MigrationRunnerFailureTests
 
         var result = await database.MigrateAsync(steps);
 
-        Assert.Equal(steps.Take(2).Select(step => step.Name), result.Applied);
-        Assert.Equal(steps[1].Version, result.Found);
+        Assert.Equal(steps.Take(steps.Count - 2).Select(step => step.Name), result.Applied);
+        Assert.Equal(steps[^3].Version, result.Found);
         Assert.Equal(steps[^1].Version, result.Expected);
     }
 
@@ -57,8 +57,8 @@ public sealed class MigrationRunnerFailureTests
         _ = await database.MigrateAsync(steps);
 
         var rows = await database.ReadRegistryAsync();
-        Assert.Equal(steps.Take(2).Select(step => step.Name), rows.Select(row => row.Name));
-        Assert.DoesNotContain(rows, row => row.Name == steps[2].Name);
+        Assert.Equal(steps.Take(steps.Count - 2).Select(step => step.Name), rows.Select(row => row.Name));
+        Assert.DoesNotContain(rows, row => row.Name == steps[^2].Name);
     }
 
     [DatabaseFact]
@@ -88,14 +88,14 @@ public sealed class MigrationRunnerFailureTests
         var failing = StepsWithAFailureInTheMiddle();
         _ = await database.MigrateAsync(failing);
         var corrected = TestSteps.Following(
-            [.. failing.Take(2)],
+            [.. failing.Take(failing.Count - 2)],
             ("fixed", "CREATE TABLE zqx_partial (a integer)"),
             ("creates-after", "CREATE TABLE zqx_after (a integer)"));
 
         var result = await database.MigrateAsync(corrected);
 
         Assert.Equal(MigrationOutcome.Applied, result.Outcome);
-        Assert.Equal(corrected.Skip(2).Select(step => step.Name), result.Applied);
+        Assert.Equal(corrected.Skip(failing.Count - 2).Select(step => step.Name), result.Applied);
         Assert.Equal(corrected.Select(step => step.Name), (await database.ReadRegistryAsync()).Select(row => row.Name));
     }
 }

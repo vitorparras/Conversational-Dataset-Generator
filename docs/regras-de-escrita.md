@@ -37,8 +37,8 @@ real. É a regra sem margem de discussão.
 
 ## 5. Só cite o que existe
 
-Arquivo, caminho, classe ou identificador citado em `código inline` precisa existir, e a verificação
-confere. O que ainda não existe se cita em prosa dizendo que não existe — aí nada confere por você.
+Arquivo, caminho, classe ou identificador citado em `código inline` precisa existir; a verificação
+confere caminho e nome composto, o resto fica com quem revisa. O que não existe se cita em prosa.
 
 ## 6. Nada de fora do repositório
 

@@ -137,8 +137,7 @@ class VerifyTests(unittest.TestCase):
         text = WORKFLOW.read_text(encoding="utf-8")
 
         self.assertEqual(text.count("verify.py --step package"), 2)
-        self.assertIn("HTTPS_PROXY: http://127.0.0.1:9", text)
-        self.assertIn("https_proxy: http://127.0.0.1:9", text)
+        self.assertIn("export HTTPS_PROXY=http://127.0.0.1:9 https_proxy=http://127.0.0.1:9", text)
         self.assertIn("NUGET_HTTP_CACHE_PATH:", text)
 
     def test_floors_runs_in_the_job_that_tests_the_core(self) -> None:

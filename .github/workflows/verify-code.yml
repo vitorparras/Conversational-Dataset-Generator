@@ -80,14 +80,13 @@ jobs:
         run: python tools/verify-code/verify.py --step package
       - name: Repetir sem rede, só com os pacotes já baixados e o cache HTTP do NuGet vazio
         env:
-          HTTPS_PROXY: http://127.0.0.1:9
-          HTTP_PROXY: http://127.0.0.1:9
-          https_proxy: http://127.0.0.1:9
-          http_proxy: http://127.0.0.1:9
-          NO_PROXY: ''
-          no_proxy: ''
           NUGET_HTTP_CACHE_PATH: ${{ runner.temp }}/nuget-http-cache-vazio
-        run: python tools/verify-code/verify.py --step package
+        # Both spellings go in the script: `env` keys are case-insensitive for GitHub, so declaring both is a workflow-file error.
+        run: |
+          export HTTPS_PROXY=http://127.0.0.1:9 https_proxy=http://127.0.0.1:9
+          export HTTP_PROXY=http://127.0.0.1:9 http_proxy=http://127.0.0.1:9
+          export NO_PROXY='' no_proxy=''
+          python tools/verify-code/verify.py --step package
 
   mutation:
     name: Mutação nos módulos críticos

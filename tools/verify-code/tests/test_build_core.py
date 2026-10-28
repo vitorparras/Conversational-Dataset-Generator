@@ -43,6 +43,13 @@ class BuildCoreTests(unittest.TestCase):
 
         self.assertEqual(runner.commands[0][:3], ["dotnet", "restore", build_core.SOLUTION])
         self.assertIn("--locked-mode", runner.commands[0])
+
+    def test_restore_resolves_again_so_an_old_obj_folder_cannot_hide_a_stale_lock(self) -> None:
+        runner = support.FakeRunner()
+
+        build_core.run(support.context(self.root, runner))
+
+        self.assertIn("--force", runner.commands[0])
         self.assertEqual(runner.commands[1][:2], ["dotnet", "build"])
 
     def test_restore_and_build_succeeding_passes(self) -> None:

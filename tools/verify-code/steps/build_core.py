@@ -1,4 +1,4 @@
-"""Restores the core in locked mode and builds it; an outdated lock file is a failure."""
+"""Restores the core in locked mode, resolving again, and builds it; a stale lock is a failure."""
 
 from __future__ import annotations
 
@@ -6,12 +6,15 @@ from steps.common import Context, StepResult, failed, passed, tail
 
 NAME = "build_core"
 SOLUTION = "core/Core.slnx"
+# `--force` resolves again even when an earlier restore left `obj/` up to date: without it the
+# locked restore is a no-op and never compares the lock file with the project.
+RESTORE = ["dotnet", "restore", SOLUTION, "--locked-mode", "--force"]
 
 
 def run(ctx: Context) -> StepResult:
     if not (ctx.root / SOLUTION).is_file():
         return failed(NAME, f"{SOLUTION} não existe: não há o que construir")
-    restore = ctx.run(["dotnet", "restore", SOLUTION, "--locked-mode"], ctx.root)
+    restore = ctx.run(RESTORE, ctx.root)
     if not restore.ok:
         return failed(
             NAME,

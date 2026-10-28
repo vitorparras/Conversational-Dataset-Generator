@@ -28,6 +28,7 @@ prefixo mais longo que casar.
 | Registro do núcleo | `Core.Platform.Logging` | 90 % | sim | Classifica e redige o que vai ao registro (requisito 021) |
 | Deslocamento de texto | `Core.Boundary.Text` | 90 % | sim | Única aritmética de índice sobre texto do serviço (requisito 009) |
 | Reconhecedor HTTP | `Core.Boundary.Http` | 90 % | sim | Texto não sanitizado cruza o processo e a resposta é validada aqui (decisão 0018) |
+| Reconhecedor falso | `Core.Boundary.Fake` | 90 % | não | Determinístico, selecionável por `Recognizer:Kind`; recusa texto sem marcador sintético (decisão 0011) |
 | Análise do material | `Core.Host.Analysis` | 90 % | sim | Leva o texto ao reconhecedor e decide o que a recusa registra e devolve (requisito 021) |
 | Contrato da fronteira | `Core.Boundary.Contracts` | 90 % | sim | A forma JSON recusa campo desconhecido ou nulo no texto que cruza o processo (decisão 0018) |
 | Migração do esquema | `Core.Persistence.Migrations` | 90 % | sim | Altera o esquema do banco; erro corrompe custódia (requisito 019) |
@@ -40,7 +41,6 @@ prefixo mais longo que casar.
 | Persistência, demais pastas | `Core.Persistence` | 80 % | não | Conexão com credencial da aplicação; sem consulta de domínio |
 | Fronteira, demais pastas | `Core.Boundary` | 80 % | não | Proposta de piso, sujeita à aprovação do dono: o código está nas subáreas acima, esta linha cobre o resto |
 | Serviço, demais módulos | `language_service` | 80 % | não | Rotas, contrato e reconhecedor vazio; sem segredo nem registro |
-| Reconhecedor falso | `Core.Boundary.Fake` | 60 % | não | Dublê determinístico de teste; nunca vê material real |
 | Executável | `Core.Host` | 60 % | não | Só composição, sem regra; coberto por teste de integração |
 | Ferramentas | `tools` | 60 % | não | Scripts da verificação; falha reprova o build, não vaza dado |
 

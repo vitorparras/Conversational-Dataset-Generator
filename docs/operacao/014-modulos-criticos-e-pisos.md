@@ -21,7 +21,7 @@ cabeçalho é fixo e lido pela verificação; linha nova segue o mesmo formato. 
 como **namespace e pasta**: o passo `floors` reprova o arquivo C# de `core/src` que cai numa área
 pelo namespace e noutra pela pasta, nomeando as duas. No serviço, módulo e arquivo coincidem por
 construção. Código fora de toda área listada conta na do projeto ou pacote que o contém, pelo
-prefixo mais longo que casar.
+prefixo mais longo que casar. Área ainda sem projeto entra na tabela pelo nome, por exceção declarada à [regra 5](../regras-de-escrita.md).
 
 | Área | Projeto/pacote | Piso | Crítica | Motivo |
 |---|---|---|---|---|

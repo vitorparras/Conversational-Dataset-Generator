@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import unittest
+from dataclasses import replace
 from unittest import mock
 
 from steps import mutation_judge
@@ -79,6 +80,20 @@ class MutationJudgeTests(unittest.TestCase):
             verdict.notes[1], "  fora da conta: 1 não compilam, 2 ignorados ou desligados"
         )
 
+    def test_static_mutants_are_named_and_stay_out_of_the_share(self) -> None:
+        static = Mutant("a.cs", 12, 'String mutation: `""`', MutantStatus.STATIC)
+
+        verdict = judge_module(module(4, 0, static, static), POLICY)
+
+        self.assertEqual(verdict.failures, ())
+        self.assertEqual(
+            verdict.notes[0],
+            "Registro (`Core.Platform.Logging`): 4 gerados, 4 mortos, 0 sobreviventes (0,0 %)",
+        )
+        self.assertEqual(
+            verdict.notes[1], "  fora da conta: 2 em inicializador estático (a.cs:12, a.cs:12)"
+        )
+
     def test_a_survivor_without_a_line_says_it_was_not_placed(self) -> None:
         verdict = judge_module(module(9, 0, UNPLACED), POLICY)
 
@@ -130,6 +145,14 @@ class MutationCeilingRuleTests(unittest.TestCase):
         verdict = judge_language(run, POLICY)
 
         self.assertEqual(verdict.notes[-1], "núcleo: 1,5 min de 20 min de teto")
+
+    def test_the_time_of_each_module_is_reported(self) -> None:
+        timed = replace(module(1, 0), seconds=75.0)
+        run = LanguageRun("núcleo", (timed,), seconds=75.0)
+
+        verdict = judge_language(run, POLICY)
+
+        self.assertEqual(verdict.notes[-2], "núcleo, por módulo: `Core.Platform.Logging` 1,2 min")
 
     def test_module_failures_reach_the_language_verdict(self) -> None:
         run = LanguageRun("núcleo", (module(1, 1),))

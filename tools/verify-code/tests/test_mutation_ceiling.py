@@ -101,7 +101,9 @@ class MutationCeilingTests(fixture.MutationFixture):
 
     def test_each_core_module_is_cut_at_what_is_left_of_the_ceiling(self) -> None:
         support.write(self.root, "core/src/Core.Boundary.Text/Core.Boundary.Text.csproj", "<P />")
-        support.write(self.root, "core/tests/T/T.csproj", TEXT_REFERENCE)
+        support.write(
+            self.root, "core/tests/Core.Boundary.Tests/Core.Boundary.Tests.csproj", TEXT_REFERENCE
+        )
         runner = healthy()
 
         with mock.patch(CLOCK, side_effect=[0.0, UNDER, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0]):

@@ -27,6 +27,13 @@ construção e não entra como gerado nem como sobrevivente. A regra vale só pa
 mutações de uma linha que chama `ConfigureAwait`, como a remoção da instrução ou do bloco que a
 contém, contam como quaisquer outras.
 
+No núcleo, o mutante de inicializador estático (o Stryker.NET o marca como `static` no relatório)
+não entra como gerado nem como sobrevivente: o valor se fixa quando o tipo é inicializado, e o
+veredito do Stryker.NET (runner `mtp`) depende do estado do processo de teste, então muda com o
+número de workers sem que nenhum teste mude. A verificação o nomeia, com o lugar, na linha "fora da
+conta" do módulo, para que continue visível. Mutante sem veredito, como o que não compila, segue
+fora da conta como antes.
+
 ## Qual suíte conta
 
 Em cada módulo conta só a suíte do projeto dele, nas duas linguagens. Módulo sem teste assim

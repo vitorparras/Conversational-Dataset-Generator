@@ -112,9 +112,14 @@ def place(mutant: Mutant) -> str:
 def outside(by: dict[MutantStatus, list[Mutant]]) -> tuple[str, ...]:
     """The mutants left out of the share, so a switch-off in the code stays visible."""
     broken, ignored = len(by[MutantStatus.NOT_COUNTED]), len(by[MutantStatus.IGNORED])
-    if not broken and not ignored:
-        return ()
-    return (f"  fora da conta: {broken} não compilam, {ignored} ignorados ou desligados",)
+    static = by[MutantStatus.STATIC]
+    notes: list[str] = []
+    if broken or ignored:
+        notes.append(f"  fora da conta: {broken} não compilam, {ignored} ignorados ou desligados")
+    if static:
+        places = ", ".join(place(m) for m in static)
+        notes.append(f"  fora da conta: {len(static)} em inicializador estático ({places})")
+    return tuple(notes)
 
 
 def judge_module(result: ModuleResult, policy: MutationPolicy) -> Verdict:
@@ -143,7 +148,9 @@ def judge_language(run: LanguageRun, policy: MutationPolicy) -> Verdict:
     absent = (
         f"{a.name} (`{a.prefix}`): sem código; a mutação vale quando houver" for a in run.absent
     )
-    spent = (f"{run.side}: {minutes(run.seconds)} de {policy.minutes} min de teto",)
+    each = ", ".join(f"`{r.area.prefix}` {minutes(r.seconds)}" for r in run.results)
+    total = f"{run.side}: {minutes(run.seconds)} de {policy.minutes} min de teto"
+    spent = (f"{run.side}, por módulo: {each}", total)
     own = (f"{run.side}: {problem}" for problem in run.problems)
     failures = (*own, *(failure for verdict in verdicts for failure in verdict.failures))
     notes = (*run.notes, *(n for v in verdicts for n in v.notes), *absent)

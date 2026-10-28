@@ -145,7 +145,7 @@ class MutationScopeTests(fixture.MutationFixture):
         result = self.run_step(runner)
 
         place = "language-service/src/language_service/auth.py (linha não localizada)"
-        self.assertIn(f"  sobrevivente: {place} — ", result.details[-3])
+        self.assertIn(f"  sobrevivente: {place} — ", result.details[-4])
 
     def test_stryker_itself_never_reproves(self) -> None:
         self.run_step(healthy())

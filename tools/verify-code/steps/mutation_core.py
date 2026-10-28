@@ -24,7 +24,7 @@ CONFIG = "stryker-config.json"
 REPORT = "reports/mutation-report.json"
 RESTORE = ("dotnet", "tool", "restore")
 STRYKER = ("dotnet", "stryker", "--skip-version-check")
-DATABASE = "Testcontainers"
+DATABASE = re.compile(r'<PackageReference\s+Include="Testcontainers"')
 PARALLEL = 2
 ALONE = 1
 
@@ -75,7 +75,7 @@ def test_projects(root: Path, project: str) -> tuple[Path, ...]:
 def concurrency(tests: tuple[Path, ...]) -> int:
     """One Stryker worker when a test project brings up the database, ``PARALLEL`` otherwise: each
     worker would start its own container and the runs would fight over the machine."""
-    uses_database = any(DATABASE in path.read_text(encoding="utf-8") for path in tests)
+    uses_database = any(DATABASE.search(path.read_text(encoding="utf-8")) for path in tests)
     return ALONE if uses_database else PARALLEL
 
 

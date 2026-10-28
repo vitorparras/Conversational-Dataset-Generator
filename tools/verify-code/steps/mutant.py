@@ -8,12 +8,15 @@ from enum import Enum
 
 class MutantStatus(Enum):
     """How a mutant ended. Out of the share: NOT_COUNTED never compiled into a runnable mutant;
-    IGNORED was switched off by a filter or by a comment in the code, and is shown as such."""
+    IGNORED was switched off by a filter or by a comment in the code, and is shown as such;
+    STATIC lives in a static initializer, which Stryker decides by the state of the test process
+    (the worker count flips it), so it is shown and not counted."""
 
     KILLED = "killed"
     SURVIVED = "survived"
     NOT_COUNTED = "not_counted"
     IGNORED = "ignored"
+    STATIC = "static"
     UNCHECKED = "unchecked"
 
 

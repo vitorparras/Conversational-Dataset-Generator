@@ -1,8 +1,9 @@
 using Core.Persistence.Migrations;
+using Core.Persistence.Tests.Fixtures;
 using Core.Tests.Integration.Fixtures;
 using Npgsql;
 
-namespace Core.Tests.Integration.Migrations;
+namespace Core.Persistence.Tests.Migrations;
 
 /// <summary>
 /// The failure of a step is written to <c>schema_failure</c> outside the transaction that was undone (#340): only the columns of the table,

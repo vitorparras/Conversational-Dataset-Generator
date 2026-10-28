@@ -1,7 +1,8 @@
 using Core.Persistence.Migrations;
+using Core.Persistence.Tests.Fixtures;
 using Core.Tests.Integration.Fixtures;
 
-namespace Core.Tests.Integration.Migrations;
+namespace Core.Persistence.Tests.Migrations;
 
 /// <summary>A registry that no longer matches the build (CA-4): a step applied with other content, or a step this build does not carry. Nothing runs.</summary>
 [Trait("Category", "Database")]

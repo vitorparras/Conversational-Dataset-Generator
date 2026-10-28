@@ -1,11 +1,12 @@
 using System.Globalization;
 using Core.Persistence.Migrations;
+using Core.Persistence.Tests.Fixtures;
 using Core.Platform.Startup;
 using Core.Platform.Versions;
 using Core.Tests.Integration.Fixtures;
 using Npgsql;
 
-namespace Core.Tests.Integration.Migrations;
+namespace Core.Persistence.Tests.Migrations;
 
 /// <summary>A normal start with the application's credential against a database behind, ahead or diverging from the build (CA-2): it refuses and repairs nothing.</summary>
 [Trait("Category", "Database")]

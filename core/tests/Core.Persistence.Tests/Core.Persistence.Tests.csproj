@@ -2,4 +2,20 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Core.Persistence\Core.Persistence.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql" />
+    <PackageReference Include="Testcontainers" />
+  </ItemGroup>
+
+  <!-- The database fixtures are shared with Core.Tests.Integration, which keeps the end-to-end tests: one source, two test assemblies. -->
+  <ItemGroup>
+    <Compile Include="..\Core.Tests.Integration\Fixtures\AppStartup.cs" Link="Fixtures\Shared\AppStartup.cs" />
+    <Compile Include="..\Core.Tests.Integration\Fixtures\DatabaseFactAttribute.cs" Link="Fixtures\Shared\DatabaseFactAttribute.cs" />
+    <Compile Include="..\Core.Tests.Integration\Fixtures\DatabaseTool.cs" Link="Fixtures\Shared\DatabaseTool.cs" />
+    <Compile Include="..\Core.Tests.Integration\Fixtures\DockerAvailability.cs" Link="Fixtures\Shared\DockerAvailability.cs" />
+    <Compile Include="..\Core.Tests.Integration\Fixtures\PostgresFixture.cs" Link="Fixtures\Shared\PostgresFixture.cs" />
+    <Compile Include="..\Core.Tests.Integration\Fixtures\ScratchDatabase.cs" Link="Fixtures\Shared\ScratchDatabase.cs" />
+    <Compile Include="..\Core.Tests.Integration\Fixtures\Sql.cs" Link="Fixtures\Shared\Sql.cs" />
+  </ItemGroup>
 </Project>

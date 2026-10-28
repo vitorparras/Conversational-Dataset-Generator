@@ -1,7 +1,7 @@
 using System.Text;
 using Core.Persistence.Migrations;
 
-namespace Core.Tests.Integration.Fixtures;
+namespace Core.Persistence.Tests.Fixtures;
 
 /// <summary>Steps a test injects into the runner: the ones this build carries, followed by steps of the test's own.</summary>
 internal static class TestSteps

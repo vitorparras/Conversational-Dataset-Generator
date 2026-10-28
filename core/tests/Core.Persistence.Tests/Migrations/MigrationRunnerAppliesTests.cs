@@ -1,8 +1,9 @@
 using Core.Persistence.Migrations;
+using Core.Persistence.Tests.Fixtures;
 using Core.Tests.Integration.Fixtures;
 using Npgsql;
 
-namespace Core.Tests.Integration.Migrations;
+namespace Core.Persistence.Tests.Migrations;
 
 /// <summary>The runner against an empty database and again at the current version (CA-1, CA-5), as the role owner.</summary>
 [Trait("Category", "Database")]

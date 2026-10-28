@@ -1,8 +1,9 @@
 using Core.Persistence.Migrations;
+using Core.Persistence.Tests.Fixtures;
 using Core.Tests.Integration.Fixtures;
 using Npgsql;
 
-namespace Core.Tests.Integration.Migrations;
+namespace Core.Persistence.Tests.Migrations;
 
 /// <summary>A library call never resumes on the caller's context: the runner is awaited by hosts that have one, and must not wait for it.</summary>
 [Trait("Category", "Database")]

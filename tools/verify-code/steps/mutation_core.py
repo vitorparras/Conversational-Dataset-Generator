@@ -24,7 +24,9 @@ CONFIG = "stryker-config.json"
 REPORT = "reports/mutation-report.json"
 RESTORE = ("dotnet", "tool", "restore")
 STRYKER = ("dotnet", "stryker", "--skip-version-check")
-CONCURRENCY = 1
+DATABASE = "Testcontainers"
+PARALLEL = 2
+ALONE = 1
 
 
 @dataclass(frozen=True)
@@ -55,10 +57,26 @@ def target(root: Path, area: Area, areas: tuple[Area, ...]) -> CoreTarget | None
 
 
 def test_projects(root: Path, project: str) -> tuple[Path, ...]:
-    """The test projects that reference ``project`` directly."""
+    """The test projects of ``project`` that reference it directly: ``<Project>.Tests``, or the one
+    of a project it is nested in (``Core.Boundary.Tests`` for ``Core.Boundary.Contracts``). The
+    cross-cutting suites (``Core.Tests.Integration``) are not the module's own and stay out."""
     reference = re.compile(rf'ProjectReference Include="[^"]*[\\/]{re.escape(project)}\.csproj"')
+
+    def owns(path: Path) -> bool:
+        stem = path.stem.removesuffix(".Tests")
+        return stem != path.stem and within(project, stem)
+
     candidates = sorted((root / TESTS).glob("*/*.csproj"))
-    return tuple(p for p in candidates if reference.search(p.read_text(encoding="utf-8")))
+    return tuple(
+        p for p in candidates if owns(p) and reference.search(p.read_text(encoding="utf-8"))
+    )
+
+
+def concurrency(tests: tuple[Path, ...]) -> int:
+    """One Stryker worker when a test project brings up the database, ``PARALLEL`` otherwise: each
+    worker would start its own container and the runs would fight over the machine."""
+    uses_database = any(DATABASE in path.read_text(encoding="utf-8") for path in tests)
+    return ALONE if uses_database else PARALLEL
 
 
 def configuration(core: CoreTarget, tests: tuple[Path, ...]) -> str:
@@ -70,7 +88,7 @@ def configuration(core: CoreTarget, tests: tuple[Path, ...]) -> str:
         "test-projects": [str(path) for path in tests],
         "mutate": list(core.patterns),
         "test-runner": "mtp",
-        "concurrency": CONCURRENCY,
+        "concurrency": concurrency(tests),
         "reporters": ["json"],
         "thresholds": {"high": 100, "low": 0, "break": 0},
     }

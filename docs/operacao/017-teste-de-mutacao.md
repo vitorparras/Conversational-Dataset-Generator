@@ -33,7 +33,12 @@ Em cada módulo conta só a suíte do projeto dele, nas duas linguagens. Módulo
 reprova. O sobrevivente que só teste de outro projeto mataria aparece como sobrevivente, e o módulo
 responde por ele com teste próprio.
 
-- **Núcleo:** os projetos de teste que referenciam o projeto do módulo.
+- **Núcleo:** o projeto de teste do projeto do módulo (`<Projeto>.Tests`, ou o do projeto em que ele
+  está aninhado, como `Core.Boundary.Tests` para `Core.Boundary.Contracts`), desde que o referencie.
+  As suítes transversais (`Core.Tests.Integration`, `Core.Tests.Properties`) não contam, mesmo
+  referenciando o módulo.
+  O Stryker.NET roda com dois workers no módulo cujo projeto de teste não sobe o banco, e com um
+  quando esse projeto usa Testcontainers: cada worker subiria o seu contêiner.
 - **Serviço:** os arquivos de teste que importam o módulo diretamente (`import language_service.x`,
   `from language_service.x import ...` ou `from language_service import x`), numa rodada do mutmut
   por módulo. Os testes que leem o texto do código-fonte ficam de fora: a mutação o reescreve.

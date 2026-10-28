@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from steps import areas_doc, mutation_policy
+from steps import areas_doc, mutation_core, mutation_policy
 
 from . import mutation_fixture as fixture
 from . import support
@@ -147,12 +147,11 @@ class MutationScopeTests(fixture.MutationFixture):
         place = "language-service/src/language_service/auth.py (linha não localizada)"
         self.assertIn(f"  sobrevivente: {place} — ", result.details[-3])
 
-    def test_stryker_itself_never_reproves_and_runs_one_session_at_a_time(self) -> None:
+    def test_stryker_itself_never_reproves(self) -> None:
         self.run_step(healthy())
 
         config = json.loads((self.root / LOGGING_CONFIG).read_text(encoding="utf-8"))
-        options = config["stryker-config"]
-        self.assertEqual((options["thresholds"]["break"], options["concurrency"]), (0, 1))
+        self.assertEqual(config["stryker-config"]["thresholds"]["break"], 0)
 
     def test_stryker_gets_no_method_filter_that_would_hide_the_call_chain(self) -> None:
         self.run_step(healthy())
@@ -189,3 +188,49 @@ class MutationScopeTests(fixture.MutationFixture):
 
         config = json.loads((self.root / LOGGING_CONFIG).read_text(encoding="utf-8"))
         self.assertEqual(len(config["stryker-config"]["test-projects"]), 1)
+
+    def test_a_cross_cutting_suite_that_references_the_module_is_not_taken(self) -> None:
+        reference = '<ProjectReference Include="../../src/Core.Platform/Core.Platform.csproj" />'
+        support.write(
+            self.root, "core/tests/Core.Tests.Integration/Core.Tests.Integration.csproj", reference
+        )
+
+        self.run_step(healthy())
+
+        config = json.loads((self.root / LOGGING_CONFIG).read_text(encoding="utf-8"))
+        expected = str(self.root / "core/tests/Core.Platform.Tests/Core.Platform.Tests.csproj")
+        self.assertEqual(config["stryker-config"]["test-projects"], [expected])
+
+    def test_a_project_nested_in_another_takes_the_suite_of_the_one_it_sits_in(self) -> None:
+        reference = '<ProjectReference Include="../../src/Core.Boundary.Contracts.csproj" />'
+        support.write(
+            self.root, "core/tests/Core.Boundary.Tests/Core.Boundary.Tests.csproj", reference
+        )
+        support.write(
+            self.root, "core/tests/Core.Tests.Properties/Core.Tests.Properties.csproj", reference
+        )
+
+        found = mutation_core.test_projects(self.root, "Core.Boundary.Contracts")
+
+        self.assertEqual([p.parent.name for p in found], ["Core.Boundary.Tests"])
+
+    def test_a_module_without_a_database_runs_stryker_in_parallel(self) -> None:
+        self.run_step(healthy())
+
+        config = json.loads((self.root / LOGGING_CONFIG).read_text(encoding="utf-8"))
+        self.assertEqual(config["stryker-config"]["concurrency"], mutation_core.PARALLEL)
+
+    def test_a_module_whose_test_project_starts_the_database_runs_stryker_alone(self) -> None:
+        tests = self.root / "core/tests/Core.Platform.Tests/Core.Platform.Tests.csproj"
+        reference = tests.read_text(encoding="utf-8")
+        database = '<PackageReference Include="Testcontainers" />'
+        support.write(
+            self.root,
+            "core/tests/Core.Platform.Tests/Core.Platform.Tests.csproj",
+            reference + database,
+        )
+
+        self.run_step(healthy())
+
+        config = json.loads((self.root / LOGGING_CONFIG).read_text(encoding="utf-8"))
+        self.assertEqual(config["stryker-config"]["concurrency"], mutation_core.ALONE)

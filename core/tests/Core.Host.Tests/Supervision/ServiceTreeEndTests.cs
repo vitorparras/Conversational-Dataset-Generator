@@ -10,6 +10,9 @@ namespace Core.Host.Tests.Supervision;
 /// </summary>
 public sealed class ServiceTreeEndTests : IDisposable
 {
+    /// <summary>What the tree of the venv holds: on Windows its interpreter is a launcher with the real one as a child, so a tree read without the child proves nothing about it.</summary>
+    private static readonly int VenvMembers = OperatingSystem.IsWindows() ? 2 : 1;
+
     private readonly SupervisionHarness harness = new();
 
     [Fact]
@@ -17,7 +20,7 @@ public sealed class ServiceTreeEndTests : IDisposable
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         var supervisor = await harness.StartedSupervisorAsync(new ServiceProcessWatch(), cancellationToken);
-        var tree = await TreeOfAsync(supervisor.ProcessId!.Value, cancellationToken);
+        var tree = await TreeOfAsync(supervisor.ProcessId!.Value, VenvMembers, cancellationToken);
         using var survivors = new Survivors(tree);
 
         StandInService.Kill(supervisor.ProcessId.Value);
@@ -30,7 +33,7 @@ public sealed class ServiceTreeEndTests : IDisposable
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         var supervisor = await harness.StartedSupervisorAsync(new ServiceProcessWatch(), cancellationToken);
-        var tree = await TreeOfAsync(supervisor.ProcessId!.Value, cancellationToken);
+        var tree = await TreeOfAsync(supervisor.ProcessId!.Value, VenvMembers, cancellationToken);
         using var survivors = new Survivors(tree);
 
         supervisor.Dispose();
@@ -43,7 +46,7 @@ public sealed class ServiceTreeEndTests : IDisposable
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         using var service = StandInService.Start(LanguageServiceInterpreter.Standalone);
-        var tree = await TreeOfAsync(service.ProcessId, cancellationToken);
+        var tree = await TreeOfAsync(service.ProcessId, 1, cancellationToken);
         using var survivors = new Survivors(tree);
 
         StandInService.Kill(service.ProcessId);
@@ -56,7 +59,7 @@ public sealed class ServiceTreeEndTests : IDisposable
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         var service = StandInService.Start(LanguageServiceInterpreter.Standalone);
-        var tree = await TreeOfAsync(service.ProcessId, cancellationToken);
+        var tree = await TreeOfAsync(service.ProcessId, 1, cancellationToken);
         using var survivors = new Survivors(tree);
 
         service.Dispose();
@@ -67,11 +70,12 @@ public sealed class ServiceTreeEndTests : IDisposable
     public void Dispose() => harness.Dispose();
 
     /// <summary>The process and everything below it, read while it is alive: once the parent is gone a child no longer shows under it.</summary>
-    private static async Task<IReadOnlyList<int>> TreeOfAsync(int rootId, CancellationToken cancellationToken)
+    private static async Task<IReadOnlyList<int>> TreeOfAsync(int rootId, int members, CancellationToken cancellationToken)
     {
         var lines = await ProcessTree.TreeOfAsync(rootId, cancellationToken);
         var ids = lines.Select(line => line.Id).ToList();
         Assert.Contains(rootId, ids);
+        Assert.True(ids.Count >= members, $"the tree read holds {ids.Count} process(es), fewer than the {members} the service starts");
         return ids;
     }
 

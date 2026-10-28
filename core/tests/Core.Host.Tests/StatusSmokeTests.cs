@@ -34,7 +34,7 @@ public sealed class StatusSmokeTests
     }
 
     [Fact]
-    public async Task KillingTheServiceProcessTurnsTheStatusNotReadyWithinFiveSeconds()
+    public async Task KillingTheServiceProcessTurnsTheStatusNotReady()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         using var host = await HostProcess.StartWithTheRealServiceAsync(cancellationToken);

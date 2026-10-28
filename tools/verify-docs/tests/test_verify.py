@@ -11,6 +11,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 _VERIFY_DIR = Path(__file__).resolve().parents[1]
 _VERIFY_PATH = _VERIFY_DIR / "verify.py"
@@ -317,6 +318,21 @@ class VerifyDocsTests(unittest.TestCase):
         code, output = run_verifier(self.root)
         self.assertEqual(code, 1, output)
         self.assertIn("other/note.md", output)
+
+    def test_a_legacy_console_still_prints_a_character_it_cannot_encode(self) -> None:
+        found = verify.Finding(Path("docs/001.md"), 3, "links", "vai de `a` → `b`")
+        raw = io.BytesIO()
+        console = io.TextIOWrapper(raw, encoding="cp1252")
+
+        with (
+            mock.patch("sys.stdout", console),
+            mock.patch.object(verify, "run", return_value=([], [found])),
+        ):
+            code = verify.main(["--root", str(self.root)])
+
+        self.assertEqual(code, 1)
+        console.flush()
+        self.assertIn("vai de `a` → `b`", raw.getvalue().decode("utf-8"))
 
 
 if __name__ == "__main__":

@@ -24,6 +24,7 @@ No external dependency: standard library only.
 from __future__ import annotations
 
 import argparse
+import io
 import sys
 from pathlib import Path
 
@@ -87,7 +88,15 @@ def _report(documents: list[Path], findings: list[Finding], chosen: list[str]) -
     return 1
 
 
+def _print_utf8() -> None:
+    """Prints UTF-8 whatever the console code page: cp1252 cannot encode every quoted text."""
+    for stream in (sys.stdout, sys.stderr):
+        if isinstance(stream, io.TextIOWrapper):
+            stream.reconfigure(encoding="utf-8")
+
+
 def main(argv: list[str] | None = None) -> int:
+    _print_utf8()
     args = _parser().parse_args(argv)
     if args.list:
         print("\n".join(NAMES))

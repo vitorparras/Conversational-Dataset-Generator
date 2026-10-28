@@ -11,8 +11,9 @@ import unittest
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
+from unittest import mock
 
-from steps import areas_doc, mutation, mutation_policy
+from steps import areas_doc, mutation, mutation_policy, mutation_service
 from steps.common import OUTPUT_DIRECTORY, CommandOutcome, Context, StepResult
 
 from . import support
@@ -57,6 +58,11 @@ class MutationFixture(unittest.TestCase):
     """A temporary repository with one critical core module and two service ones."""
 
     def setUp(self) -> None:
+        # the service side only runs on Linux; the fake runner needs no mutmut, so the tests
+        # play Linux wherever they run (the skip on other systems has its own test)
+        platform = mock.patch("steps.mutation_service.sys.platform", mutation_service.LINUX)
+        platform.start()
+        self.addCleanup(platform.stop)
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
         self.root = Path(self._tmp.name).resolve()

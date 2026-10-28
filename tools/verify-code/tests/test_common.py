@@ -144,7 +144,7 @@ class CommonTests(unittest.TestCase):
         self.assertIs(context.run_for, common.run_process)
 
     def test_finished_command_carries_its_exit_code(self) -> None:
-        outcome = common.run_process(["python3", "-c", "raise SystemExit(69)"], self.root)
+        outcome = common.run_process([sys.executable, "-c", "raise SystemExit(69)"], self.root)
 
         self.assertFalse(outcome.ok)
         self.assertEqual(outcome.code, 69)

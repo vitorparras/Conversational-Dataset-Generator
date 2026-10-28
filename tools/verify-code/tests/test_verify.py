@@ -184,6 +184,21 @@ class VerifyTests(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertIn("no_such_step", output)
 
+    def test_a_legacy_console_still_prints_a_character_it_cannot_encode(self) -> None:
+        change = failed("bad", "`a` → `b`")
+        raw = io.BytesIO()
+        console = io.TextIOWrapper(raw, encoding="cp1252")
+
+        with (
+            mock.patch("sys.stdout", console),
+            mock.patch.object(verify, "run_steps", return_value=(change,)),
+        ):
+            code = verify.main(["--step", "pr_size"])
+
+        self.assertEqual(code, 1)
+        console.flush()
+        self.assertIn("`a` → `b`", raw.getvalue().decode("utf-8"))
+
     def test_previous_reaches_the_context_of_the_steps(self) -> None:
         with mock.patch.object(verify, "run_steps", return_value=()) as run_steps:
             run_main("--step", "floors", "--previous", "earlier.md")

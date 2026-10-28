@@ -10,6 +10,7 @@ Standard library only; the steps run `dotnet`, `uv`, `git`, `gitleaks`, `trivy`,
 from __future__ import annotations
 
 import argparse
+import io
 import sys
 import time
 from collections.abc import Callable
@@ -108,7 +109,15 @@ def report(results: tuple[StepResult, ...]) -> int:
     return 0
 
 
+def _print_utf8() -> None:
+    """Prints UTF-8 whatever the console code page: cp1252 cannot encode every reported change."""
+    for stream in (sys.stdout, sys.stderr):
+        if isinstance(stream, io.TextIOWrapper):
+            stream.reconfigure(encoding="utf-8")
+
+
 def main(argv: list[str] | None = None) -> int:
+    _print_utf8()
     parser = argparse.ArgumentParser(description="Verifica o código do repositório.")
     parser.add_argument("--list", action="store_true", help="lista os passos, na ordem da CI")
     parser.add_argument("--step", nargs="+", default=[], metavar="NAME", help="passos a rodar")

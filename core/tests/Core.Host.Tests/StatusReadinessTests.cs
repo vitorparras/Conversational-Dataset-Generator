@@ -11,7 +11,6 @@ namespace Core.Host.Tests;
 /// </summary>
 public sealed class StatusReadinessTests : IDisposable
 {
-    private static readonly TimeSpan LossLimit = TimeSpan.FromSeconds(5);
     private static readonly StartupReport PassedReport =
         new([CheckResult.Passed("Sample:File", "recurso presente", "ZQX-MARKER-7731.bin")], DateTimeOffset.UnixEpoch);
 
@@ -60,7 +59,7 @@ public sealed class StatusReadinessTests : IDisposable
         await using var host = await StatusHost.StartAsync(PassedReport, watch, cancellationToken);
 
         StandInService.Kill(service.ProcessId);
-        var lost = await Poll.UntilAsync(() => Task.FromResult(watch.State == ServiceState.Unavailable), LossLimit, cancellationToken);
+        var lost = await Poll.UntilAsync(() => Task.FromResult(watch.State == ServiceState.Unavailable), Poll.LossLimit, cancellationToken);
         using var body = await host.StatusAsync(cancellationToken);
 
         Assert.True(lost, "the end of the service process was not seen");

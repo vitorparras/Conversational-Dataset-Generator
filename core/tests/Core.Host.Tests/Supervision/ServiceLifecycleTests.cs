@@ -7,7 +7,6 @@ namespace Core.Host.Tests.Supervision;
 public sealed class ServiceLifecycleTests : IDisposable
 {
     private static readonly RestartRequest Request = new(RestartRequester.Operator, Guid.NewGuid());
-    private static readonly TimeSpan LossLimit = TimeSpan.FromSeconds(5);
 
     private readonly SupervisionHarness harness = new();
     private readonly ServiceProcessWatch watch = new();
@@ -60,7 +59,7 @@ public sealed class ServiceLifecycleTests : IDisposable
         var cancellationToken = TestContext.Current.CancellationToken;
         var supervisor = await harness.StartedSupervisorAsync(watch, cancellationToken);
         StandInService.Kill(supervisor.ProcessId!.Value);
-        var lost = await Poll.UntilAsync(() => Task.FromResult(watch.State == ServiceState.Unavailable), LossLimit, cancellationToken);
+        var lost = await Poll.UntilAsync(() => Task.FromResult(watch.State == ServiceState.Unavailable), Poll.LossLimit, cancellationToken);
 
         var outcome = await supervisor.RestartAsync(Request, SupervisionHarness.Timeout, cancellationToken);
 

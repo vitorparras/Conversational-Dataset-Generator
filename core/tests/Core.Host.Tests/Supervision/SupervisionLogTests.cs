@@ -5,7 +5,6 @@ namespace Core.Host.Tests.Supervision;
 /// <summary>The supervision logs the loss of the service and each restart with what ties them together, and never the secret.</summary>
 public sealed class SupervisionLogTests : IDisposable
 {
-    private static readonly TimeSpan LossLimit = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan Margin = TimeSpan.FromSeconds(1);
 
     private readonly SupervisionHarness harness = new();
@@ -19,7 +18,7 @@ public sealed class SupervisionLogTests : IDisposable
         var id = supervisor.ProcessId!.Value;
 
         StandInService.Kill(id);
-        var lost = await Poll.UntilAsync(() => Task.FromResult(watch.State == ServiceState.Unavailable), LossLimit, cancellationToken);
+        var lost = await Poll.UntilAsync(() => Task.FromResult(watch.State == ServiceState.Unavailable), Poll.LossLimit, cancellationToken);
 
         Assert.True(lost, "the end of the service process was not seen");
         Assert.Contains(harness.Log.Lines, line => line.StartsWith($"Serviço de linguagem encerrou (processo {id},", StringComparison.Ordinal));
@@ -72,7 +71,8 @@ public sealed class SupervisionLogTests : IDisposable
         var supervisor = await harness.StartedSupervisorAsync(watch, cancellationToken);
         var first = supervisor.Secret;
         StandInService.Kill(supervisor.ProcessId!.Value);
-        _ = await Poll.UntilAsync(() => Task.FromResult(watch.State == ServiceState.Unavailable), LossLimit, cancellationToken);
+        var lost = await Poll.UntilAsync(() => Task.FromResult(watch.State == ServiceState.Unavailable), Poll.LossLimit, cancellationToken);
+        Assert.True(lost, "the end of the service process was not seen");
 
         _ = await supervisor.RestartAsync(new RestartRequest(RestartRequester.Operator, Guid.NewGuid()), SupervisionHarness.Timeout, cancellationToken);
 

@@ -5,7 +5,6 @@ namespace Core.Host.Tests.Supervision;
 /// <summary>The watch sees the end of the service process as it happens, and only the process it still watches counts as a loss.</summary>
 public sealed class ServiceProcessWatchTests : IDisposable
 {
-    private static readonly TimeSpan LossLimit = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan Margin = TimeSpan.FromSeconds(1);
 
     private readonly RunningService service = StandInService.Start();
@@ -26,7 +25,7 @@ public sealed class ServiceProcessWatchTests : IDisposable
         watch.Watch(service, ended => lost.TrySetResult(ended));
 
         StandInService.Kill(service.ProcessId);
-        var ended = await lost.Task.WaitAsync(LossLimit, TestContext.Current.CancellationToken);
+        var ended = await lost.Task.WaitAsync(Poll.LossLimit, TestContext.Current.CancellationToken);
 
         Assert.Same(service, ended);
         Assert.Equal(ServiceState.Unavailable, watch.State);
@@ -39,7 +38,7 @@ public sealed class ServiceProcessWatchTests : IDisposable
         watch.Watch(service, _ => throw new InvalidOperationException("The report failed."));
 
         StandInService.Kill(service.ProcessId);
-        var unavailable = await Poll.UntilAsync(() => Task.FromResult(watch.State == ServiceState.Unavailable), LossLimit, cancellationToken);
+        var unavailable = await Poll.UntilAsync(() => Task.FromResult(watch.State == ServiceState.Unavailable), Poll.LossLimit, cancellationToken);
 
         Assert.True(unavailable, "a report that threw left a dead process reading as available");
     }
@@ -52,7 +51,7 @@ public sealed class ServiceProcessWatchTests : IDisposable
         watch.Move(ServiceState.Restarting);
 
         StandInService.Kill(service.ProcessId);
-        await service.WaitForExitAsync().WaitAsync(LossLimit, cancellationToken);
+        await service.WaitForExitAsync().WaitAsync(Poll.LossLimit, cancellationToken);
         await Task.Delay(Margin, cancellationToken);
 
         Assert.False(lost.Task.IsCompleted);
@@ -67,7 +66,7 @@ public sealed class ServiceProcessWatchTests : IDisposable
         watch.Move(ServiceState.Stopped);
 
         StandInService.Kill(service.ProcessId);
-        await service.WaitForExitAsync().WaitAsync(LossLimit, cancellationToken);
+        await service.WaitForExitAsync().WaitAsync(Poll.LossLimit, cancellationToken);
         await Task.Delay(Margin, cancellationToken);
 
         Assert.False(lost.Task.IsCompleted);

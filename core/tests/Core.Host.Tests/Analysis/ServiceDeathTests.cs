@@ -15,7 +15,6 @@ namespace Core.Host.Tests.Analysis;
 /// </summary>
 public sealed class ServiceDeathTests : IDisposable
 {
-    private static readonly TimeSpan LossLimit = TimeSpan.FromSeconds(5);
     private static readonly AnalysisAsked Asked = new("falei com PESSOA_1 ontem ZQX-MARKER-0027-DEATH", "pt");
 
     private readonly SupervisionHarness harness = new();
@@ -43,7 +42,8 @@ public sealed class ServiceDeathTests : IDisposable
         using var container = HttpContainer(supervisor);
 
         StandInService.Kill(supervisor.ProcessId!.Value);
-        _ = await Poll.UntilAsync(() => Task.FromResult(watch.State == ServiceState.Unavailable), LossLimit, cancellationToken);
+        var lost = await Poll.UntilAsync(() => Task.FromResult(watch.State == ServiceState.Unavailable), Poll.LossLimit, cancellationToken);
+        Assert.True(lost, "the end of the service process was not seen");
         var result = await container.GetRequiredService<MaterialAnalysis>().AnalyzeAsync(Asked, cancellationToken);
 
         Assert.Null(result.Concluded);

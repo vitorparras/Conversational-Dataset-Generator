@@ -7,8 +7,6 @@ namespace Core.Host.Tests;
 /// <summary>The built host starts and answers the status route, which follows the language service it supervises.</summary>
 public sealed class StatusSmokeTests
 {
-    private static readonly TimeSpan LossLimit = TimeSpan.FromSeconds(5);
-
     [Fact]
     public async Task StatusReportsTheProcessAlive()
     {
@@ -44,10 +42,10 @@ public sealed class StatusSmokeTests
         var service = tree.First(line => line.CommandLine.Contains("language_service", StringComparison.Ordinal));
 
         StandInService.Kill(service.Id);
-        var notReady = await Poll.UntilAsync(async () => !await IsReadyAsync(host, cancellationToken), LossLimit, cancellationToken);
+        var notReady = await Poll.UntilAsync(async () => !await IsReadyAsync(host, cancellationToken), Poll.LossLimit, cancellationToken);
         using var body = await StatusAsync(host, cancellationToken);
 
-        Assert.True(notReady, "the status still said ready five seconds after the service process was killed");
+        Assert.True(notReady, "the status still said ready after the service process was killed");
         Assert.Equal("Unavailable", body.RootElement.GetProperty("languageService").GetString());
     }
 

@@ -13,7 +13,7 @@ from steps.semgrep_suppression import MIN_REASON_WORDS
 NOQA = re.compile(r"#\s*noqa:(?P<codes>(?:[\s,]*[A-Z]+\d+)+)(?P<reason>.*)", re.IGNORECASE)
 FILE_WIDE = re.compile(r"#\s*(?:ruff|flake8)\s*:\s*noqa", re.IGNORECASE)
 SECURITY_CODE = re.compile(r"(?<![A-Z])S\d")
-SOURCE_FOLDERS = ("src", "tests")
+SOURCE_FOLDERS = ("src", "tests", "tools")
 
 
 def unexplained_in(text: str, name: str) -> list[str]:
@@ -36,7 +36,7 @@ def unexplained_in(text: str, name: str) -> list[str]:
 
 
 def unexplained(root: Path, folder: str) -> list[str]:
-    """Every unexplained S `# noqa` in the sources and tests of ``folder``."""
+    """Every unexplained S `# noqa` in the sources, tests and tools of ``folder``."""
     problems: list[str] = []
     for sub in SOURCE_FOLDERS:
         for path in sorted((root / folder / sub).rglob("*.py")):

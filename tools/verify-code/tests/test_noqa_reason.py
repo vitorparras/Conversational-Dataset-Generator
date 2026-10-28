@@ -83,6 +83,12 @@ class NoqaReasonTests(unittest.TestCase):
 
         self.assertFalse(found.ok)
 
+    def test_the_tools_of_the_service_are_checked_too(self) -> None:
+        found = self.lint_with(f"{CALL}  # noqa: S603", "language-service/tools/zqx.py")
+
+        self.assertFalse(found.ok)
+        self.assertIn("language-service/tools/zqx.py:2:", found.details[0])
+
     def test_the_virtual_environment_is_not_checked(self) -> None:
         found = self.lint_with(f"{CALL}  # noqa: S603", f"{lint_service.VENV}/lib/zqx.py")
 

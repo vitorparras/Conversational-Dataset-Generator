@@ -182,8 +182,23 @@ class BuildTests(unittest.TestCase):
     def test_a_wheel_built_by_the_embedded_backend_and_not_the_pinned_one_is_refused(self) -> None:
         self.record(wheel=True, made_by="0.11.3")
 
-        with self.assertRaises(service_folder.BuildError):
+        with self.assertRaisesRegex(service_folder.BuildError, "language_service-0.1.0"):
             service_folder.build_wheel(Path("python"), self.output)
+
+    def test_a_wheel_that_is_not_a_zip_fails_naming_it_and_not_with_a_traceback(self) -> None:
+        wheel = self.output / "broken-0.1.0-py3-none-any.whl"
+        wheel.write_bytes(b"not a zip")
+
+        with self.assertRaisesRegex(service_folder.BuildError, wheel.name):
+            service_folder.generator(wheel)
+
+    def test_a_wheel_without_a_wheel_file_fails_naming_it_and_not_with_a_traceback(self) -> None:
+        wheel = self.output / "empty-0.1.0-py3-none-any.whl"
+        with zipfile.ZipFile(wheel, "w") as zipped:
+            zipped.writestr("empty-0.1.0.dist-info/METADATA", "Name: empty\n")
+
+        with self.assertRaisesRegex(service_folder.BuildError, wheel.name):
+            service_folder.generator(wheel)
 
     def test_bytecode_names_its_source_from_the_folder_and_not_from_where_it_was_built(
         self,

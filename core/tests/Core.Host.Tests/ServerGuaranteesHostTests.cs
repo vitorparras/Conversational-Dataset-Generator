@@ -1,8 +1,7 @@
 using System.Collections.ObjectModel;
-using System.Net;
-using System.Net.Sockets;
 using System.Text.Json;
 using Core.Platform.Startup;
+using Core.Tests.Support.Net;
 
 namespace Core.Host.Tests;
 
@@ -17,7 +16,8 @@ public sealed class ServerGuaranteesHostTests
     [Fact]
     public async Task DeclaredDatabaseThatDoesNotAnswerEndsTheProcessWithTheCheckCodeNamingTheCheck()
     {
-        var installation = HostInstallation.Built(HostProcess.FreeAddress()) with { Environment = Database($"127.0.0.1:{FreePort()}") };
+        using var closed = new ClosedPort();
+        var installation = HostInstallation.Built(HostProcess.FreeAddress()) with { Environment = Database($"127.0.0.1:{closed.Number}") };
 
         var exit = await HostProcess.RunToExitAsync(installation, HostProcess.StartupTimeout, TestContext.Current.CancellationToken);
 
@@ -73,11 +73,4 @@ public sealed class ServerGuaranteesHostTests
             ["CDG_Database__Username"] = "zqx_app",
             ["CDG_Database__Password"] = Password,
         });
-
-    private static int FreePort()
-    {
-        using var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        return ((IPEndPoint)listener.LocalEndpoint).Port;
-    }
 }

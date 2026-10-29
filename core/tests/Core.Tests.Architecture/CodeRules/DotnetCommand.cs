@@ -59,8 +59,8 @@ internal static class DotnetCommand
     private static CommandOutcome NotInitialized(CommandOutcome outcome, IReadOnlyList<string> arguments, string workingDirectory) =>
         outcome.ExitCode == DllInitFailed
             ? throw new InvalidOperationException(
-                $"dotnet {arguments[0]} in {Path.GetFileName(workingDirectory)} could not start: Windows ended it with 0xC0000142 (STATUS_DLL_INIT_FAILED) before its first line of code. " +
-                "The machine ran out of resources to start a process; the build under test was never run.")
+                $"dotnet {arguments[0]} in {Path.GetFileName(workingDirectory)} did not initialize: Windows ended it with 0xC0000142 (STATUS_DLL_INIT_FAILED) before its first line of code. " +
+                "The build under test was never run.")
             : outcome;
 
     private static ProcessStartInfo StartInfo(IReadOnlyList<string> arguments, string workingDirectory, IReadOnlyDictionary<string, string> environment)

@@ -23,9 +23,28 @@ VERSIONS = (
     "2026-01-01T00:00:00.000Z INFO  Core.Host[200] Versões em execução SchemaVersion=2 "
     "ModelVersion=<absent> LanguageServiceVersion=0.1.0 ContractVersion=1 CoreVersion=0.1.0\n"
 )
+BIND = (
+    'bind(173, {sa_family=AF_INET, sin_port=htons(5000), sin_addr=inet_addr("127.0.0.1")}, 16) = 0'
+)
+DATABASE_CONNECTION = (
+    'connect(137, {sa_family=AF_INET, sin_port=htons(5432), sin_addr=inet_addr("127.0.0.1")}, 16)'
+    " = -1 EINPROGRESS (Operation now in progress)"
+)
+EXTERNAL = (
+    'connect(9, {sa_family=AF_INET, sin_port=htons(443), sin_addr=inet_addr("192.0.2.7")}, 16) = -1'
+)
+QUERY = (
+    'sendto(9, "\\1", 1, 0, {sa_family=AF_INET, sin_port=htons(53), '
+    'sin_addr=inet_addr("192.0.2.53")}, 16) = 1'
+)
 FAILURE = CommandOutcome(False, "ZQX-MARKER-3318 failed", 1)
 COMMIT = "a" * 40
 NOT_READY = "a partida não chegou à linha de pronto (`Now listening on`)"
+
+
+def traced(*calls: str, process: str = "Core.Host") -> str:
+    """The calls as the trace of one process, one per line."""
+    return "".join(f"13<{process}> {call}\n" for call in calls)
 
 
 def codes(migrate: int = 0, serve: int = 0, ready: str = "yes") -> str:
@@ -37,7 +56,9 @@ def evidence(**changes: str) -> dict[str, str]:
     files = {
         "interfaces.txt": "lo\n",
         "migrate.log": "Esquema migrado até a versão 2\n",
+        "migrate.strace": traced(DATABASE_CONNECTION),
         "serve.log": VERSIONS + LISTENING,
+        "serve.strace": traced(BIND, DATABASE_CONNECTION),
         "result.txt": codes(),
     }
     return files | changes
@@ -99,6 +120,7 @@ class OfflineStartTests(unittest.TestCase):
 
         self.assertTrue(result.ok, result.details)
         self.assertIn("banco, pasta e serviço de pé", result.details[0])
+        self.assertIn("connect 127.0.0.1:5432", result.details[1])
 
     def test_the_server_has_no_network_and_the_host_joins_its_namespace(self) -> None:
         runner = DockerRunner(evidence())
@@ -170,6 +192,30 @@ class OfflineStartTests(unittest.TestCase):
         self.assertEqual(runner.commands[-1][:3], ["docker", "volume", "rm"])
         self.assertEqual(runner.docker("run", "--detach"), [])
 
+    def test_a_connection_outside_the_loopback_in_the_start_is_named_with_call_and_process(
+        self,
+    ) -> None:
+        details = self.fails_with(**{"serve.strace": traced(BIND, EXTERNAL, process="python3")})
+
+        self.assertIn(
+            "serve: conexão fora do loopback: connect para 192.0.2.7:443"
+            " (processo python3, pid 13)",
+            details,
+        )
+
+    def test_a_connection_outside_the_loopback_in_the_migration_is_named_with_its_run(self) -> None:
+        details = self.fails_with(**{"migrate.strace": traced(EXTERNAL)})
+
+        self.assertIn("migrate: conexão fora do loopback: connect para 192.0.2.7:443", details[0])
+
+    def test_a_dns_query_is_named_with_its_call(self) -> None:
+        details = self.fails_with(**{"serve.strace": traced(BIND, QUERY)})
+
+        self.assertIn(
+            "serve: consulta de DNS: sendto para 192.0.2.53:53 (processo Core.Host, pid 13)",
+            details,
+        )
+
     def test_a_start_that_never_printed_the_ready_line_fails(self) -> None:
         self.assertIn(NOT_READY, self.fails_with(**{"serve.log": VERSIONS}))
 
@@ -207,16 +253,21 @@ class OfflineStartTests(unittest.TestCase):
 
         self.assertIn("o namespace não ficou só com o loopback", details[0])
 
+    def test_an_empty_trace_fails_because_without_a_trace_nothing_is_proved(self) -> None:
+        details = self.fails_with(**{"serve.strace": ""})
+
+        self.assertIn("o rastreador não registrou nada em serve: sem rastro não há prova", details)
+
     def test_a_host_container_that_wrote_nothing_fails_with_every_reason(self) -> None:
         result = self.run_step(DockerRunner({}))
 
         self.assertFalse(result.ok)
-        self.assertEqual(len(result.details), 7, result.details)
+        self.assertEqual(len(result.details), 9, result.details)
 
     def test_every_problem_is_reported_not_only_the_first(self) -> None:
-        details = self.fails_with(**{"result.txt": codes(1, 2, "no"), "serve.log": ""})
+        details = self.fails_with(**{"serve.strace": traced(EXTERNAL, QUERY), "serve.log": ""})
 
-        self.assertGreaterEqual(len(details), 6)
+        self.assertGreaterEqual(len(details), 5)
 
     def test_a_failed_image_build_names_the_image_and_creates_no_container(self) -> None:
         runner = DockerRunner(evidence(), failing="build")

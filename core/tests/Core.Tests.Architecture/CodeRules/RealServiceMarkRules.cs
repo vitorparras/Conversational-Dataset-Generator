@@ -19,7 +19,7 @@ internal static class RealServiceMarkRules
         var helpers = RealServiceUse.HelperNames(files);
         return files.SelectMany(file => file.Root.DescendantNodes().OfType<MethodDeclarationSyntax>()
             .Where(RealServiceUse.IsTest)
-            .Where(method => RealServiceUse.Reaches(method, helpers))
+            .Where(method => RealServiceUse.Reaches(method, helpers) || RealServiceUse.SetupOf(EnclosingType(method)).Any(setup => RealServiceUse.Reaches(setup, helpers)))
             .Where(method => !IsMarked(method) && !pending.Contains(TypeOf(method)))
             .Select(method => new Violation(
                 file.Path, SourceFile.LineOf(method), $"{TypeOf(method)}.{method.Identifier.ValueText} starts the real service without [Trait(\"{Category}\", \"{Mark}\")]")));
@@ -35,6 +35,9 @@ internal static class RealServiceMarkRules
         ServiceTypeIndex.SimpleName(attribute.Name) is "Trait" or "TraitAttribute"
         && attribute.ArgumentList?.Arguments.Select(argument => (argument.Expression as LiteralExpressionSyntax)?.Token.ValueText)
             .SequenceEqual([Category, Mark]) == true;
+
+    private static TypeDeclarationSyntax EnclosingType(SyntaxNode method) =>
+        method.Ancestors().OfType<TypeDeclarationSyntax>().First();
 
     private static string TypeOf(SyntaxNode method) =>
         method.Ancestors().OfType<TypeDeclarationSyntax>().First().Identifier.ValueText;

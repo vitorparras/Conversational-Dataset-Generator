@@ -23,6 +23,8 @@ public sealed class RealServiceMarkTests
 
         Assert.Equal(
             [
+                "SetUpWithAStandInTests.FindsTheStandInStartedBeforeEveryTest",
+                "CreatesATypeThatHoldsTheInterpreterTests.CreatesIt",
                 "UnmarkedTests.StartsTheRealHostDirectly",
                 "UnmarkedTests.InstallsTheRealServiceInTheHost",
                 "UnmarkedTests.AsksTheLoggedHostForTheRealService",
@@ -58,7 +60,8 @@ public sealed class RealServiceMarkTests
     [Fact]
     public void TypeLeftPendingIsNotReproved()
     {
-        var violations = RealServiceMarkRules.Check(SourceTree.FixtureFiles("real-service-marks"), new HashSet<string> { "UnmarkedTests", "WrongMarkTests" });
+        var everyType = RealServiceMarkRules.Check(SourceTree.FixtureFiles("real-service-marks"), None).Select(violation => violation.Message.Split('.')[0]);
+        var violations = RealServiceMarkRules.Check(SourceTree.FixtureFiles("real-service-marks"), everyType.ToHashSet(StringComparer.Ordinal));
 
         Assert.Empty(violations);
     }

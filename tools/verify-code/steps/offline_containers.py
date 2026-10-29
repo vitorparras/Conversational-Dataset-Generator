@@ -25,11 +25,12 @@ HOST = "cdg-offline-host-run"
 VOLUME = "cdg-offline-service"
 CONTAINERS = (HOST, DATABASE, BUILD)
 READY_SECONDS = 120
+ASSEMBLE_SECONDS = 900
 ASSEMBLE = (
     "set -e; cp -r /input /home/build/repo; "
     "pip install -q --user -r /home/build/repo/tools/verify-code/service-requirements.txt; "
-    f"python /home/build/repo/tools/build-service/service_folder.py --system {SYSTEM} "
-    f"--model {MODEL} --output /out"
+    f"timeout {ASSEMBLE_SECONDS} python /home/build/repo/tools/build-service/service_folder.py "
+    f"--system {SYSTEM} --model {MODEL} --output /out"
 )
 WAIT_FOR_DATABASE = (
     f"i=0; until pg_isready -h 127.0.0.1 -q; do i=$((i+1)); [ $i -gt {READY_SECONDS} ] && exit 1; "

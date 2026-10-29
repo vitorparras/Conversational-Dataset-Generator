@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Sockets;
 using Core.Boundary.Contracts;
 using Core.Boundary.Http;
 using Core.Platform.Versions;
@@ -94,6 +96,21 @@ public sealed class ServiceProofTests : IDisposable
         var outcome = await recognition.AskAsync(service.Port);
 
         Assert.Equal(UnavailabilityReason.ConnectionRefused, outcome.Reason);
+    }
+
+    [Fact]
+    public async Task StrangerThatAcceptsTheConnectionAndNeverAnswersTheProofTimesOutAtTheLimitOfTheRequest()
+    {
+        using var stranger = new TcpListener(IPAddress.Loopback, 0);
+        stranger.Start();
+        var port = ((IPEndPoint)stranger.LocalEndpoint).Port;
+        var accepted = stranger.AcceptTcpClientAsync(TestContext.Current.CancellationToken).AsTask();
+
+        var asking = recognition.Of(port, TimeSpan.FromSeconds(1)).RecognizeAsync(Recognition.Request, TestContext.Current.CancellationToken);
+        var outcome = await asking.WaitAsync(Generous, TestContext.Current.CancellationToken);
+
+        using var connection = await accepted;
+        Assert.Equal(UnavailabilityReason.TimedOut, outcome.Reason);
     }
 
     [Fact]

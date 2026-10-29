@@ -34,6 +34,8 @@ PYTHON_VERSION = "3.12.13"
 MODEL = re.compile(r"[a-z]{2}_core_news_[a-z]+")
 BUILD_REQUIREMENTS = "build-requirements.txt"
 EXTERNALLY_MANAGED = "EXTERNALLY-MANAGED"
+SYSCONFIG_DATA = "_sysconfigdata_*.py"
+CONFIGURED_PREFIX = b"/install"  # where python-build-standalone is configured
 UNSET_BYTECODE_VARIABLES = ("PYTHONDONTWRITEBYTECODE", "PYTHONPATH", "PYTHONHOME")
 OUTPUT_TAIL_LINES = 15
 
@@ -81,6 +83,18 @@ def install_interpreter(store: Path, target: Path) -> None:
     shutil.copytree(installed[0], target, symlinks=True)
     for marker in target.rglob(EXTERNALLY_MANAGED):
         marker.unlink()
+    unset_install_dir(target, installed[0])
+
+
+def unset_install_dir(target: Path, store_copy: Path) -> None:
+    """Puts back, in the build data of the interpreter, the prefix it was configured with.
+
+    `uv python install` writes the install directory into `_sysconfigdata`; the one of this build
+    is a temporary folder, and no two builds have the same.
+    """
+    stored = store_copy.as_posix().encode("utf-8")
+    for data in target.rglob(SYSCONFIG_DATA):
+        data.write_bytes(data.read_bytes().replace(stored, CONFIGURED_PREFIX))
 
 
 def install_packages(job: Job, interpreter: Path, scratch: Path) -> None:

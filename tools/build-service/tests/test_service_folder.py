@@ -197,3 +197,15 @@ class BuildTests(unittest.TestCase):
         compiled = next((python / "__pycache__").glob("mod.*.pyc")).read_bytes()
         code = marshal.loads(compiled[PYC_HEADER_BYTES:])
         self.assertEqual(str(Path("python") / "mod.py"), code.co_filename)
+
+    def test_the_install_dir_uv_wrote_into_the_build_data_gives_way_to_the_configured_prefix(
+        self,
+    ) -> None:
+        store_copy = self.output / "store" / "cpython-3.12.13-linux-x86_64-gnu"
+        data = self.output / "python" / "lib" / "_sysconfigdata__linux_x86_64-linux-gnu.py"
+        data.parent.mkdir(parents=True)
+        data.write_text(f'{{"BINDIR": "{store_copy.as_posix()}/bin"}}', encoding="utf-8")
+
+        service_folder.unset_install_dir(self.output / "python", store_copy)
+
+        self.assertEqual('{"BINDIR": "/install/bin"}', data.read_text(encoding="utf-8"))

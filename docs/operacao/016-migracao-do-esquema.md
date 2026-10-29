@@ -34,14 +34,14 @@ aplicados em ordem numérica. Cada um roda numa transação própria, junto com 
 | 14 | Sem conexão com o servidor | Conferir endereço, banco, papel e senha |
 | 78 | Configuração recusada | Declarar as quatro chaves de `Database` |
 
-Passo que falha é desfeito por inteiro, linha do registro inclusive; os anteriores ficam.
-O modo grava, fora da transação, uma linha em `public.schema_failure`: versão, nome, SHA-256,
-SQLSTATE (se houver), quando e quem; sem mensagem, texto do passo nem dado de material. A tabela
-só recebe linhas, e a comparação lê só `public.schema_version`: falha repetida deixa outra linha,
-e o passo corrigido não apaga as anteriores. Não fica linha se a tabela não existe (0001 ou 0002)
-ou se a inserção falha; o código segue 13. Migrações simultâneas não aplicam o mesmo passo: a
-segunda espera e termina com 10. O modo escreve só no console, sem `Host:LogFile`: guarde a saída
-para o registro da janela.
+Passo que falha é desfeito por inteiro, linha do registro inclusive; os anteriores ficam. O modo
+grava, fora da transação, uma linha em `public.schema_failure`: versão, nome, SHA-256, SQLSTATE
+(se houver), quando e quem; sem mensagem, texto do passo nem dado de material. A tabela só recebe
+linhas, e a comparação lê só `public.schema_version`: falha repetida deixa outra linha, e o passo
+corrigido não apaga as anteriores. Não fica linha se a tabela não existe (0001 ou 0002), se a
+inserção falha ou se a sessão se perdeu no passo; o código segue 13. Linha gravada ganha uma linha
+no log. Migrações simultâneas não aplicam o mesmo passo: a segunda espera e termina com 10. O modo
+escreve só no console, sem `Host:LogFile`: guarde a saída para o registro da janela.
 
 ## A partida normal
 

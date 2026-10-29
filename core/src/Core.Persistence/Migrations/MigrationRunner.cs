@@ -82,6 +82,10 @@ public sealed class MigrationRunner
         {
             await ExecuteAsync(connection, transaction: null, new NpgsqlBatchCommand(Unlock), CancellationToken.None).ConfigureAwait(false);
         }
+        catch (InvalidOperationException) when (SessionLoss.Is(connection))
+        {
+            // The lock went with the lost session, which the connection already knows is gone.
+        }
         catch (NpgsqlException)
         {
             // The lock went with the lost session.

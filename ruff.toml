@@ -15,7 +15,7 @@ select = ["E", "F", "I", "B", "N", "UP", "RUF", "PL", "SIM", "S", "PGH004"]
 "language-service/tests/**" = ["S101"]
 
 [lint.isort]
-known-first-party = ["steps", "service_folder", "sums", "systems", "language_service", "support", "checks", "document", "finding", "registry"]
+known-first-party = ["steps", "service_folder", "sums", "systems", "origin", "language_service", "support", "checks", "document", "finding", "registry"]
 
 [lint.pylint]
 max-args = 4

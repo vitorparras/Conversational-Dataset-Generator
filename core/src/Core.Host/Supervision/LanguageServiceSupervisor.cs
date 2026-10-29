@@ -3,30 +3,29 @@ using System.Security.Cryptography;
 namespace Core.Host.Supervision;
 
 /// <summary>Owns the language service for as long as the core lives: its process, and the secret the core and the service share.</summary>
-internal sealed class LanguageServiceSupervisor : IDisposable
+/// <param name="launcher">Starts the process of the service.</param>
+/// <param name="health">Waits until the service answers.</param>
+/// <param name="watch">Holds the state of the service and watches its process.</param>
+/// <param name="logger">Where the start, the restart and the end of the service are written.</param>
+internal sealed class LanguageServiceSupervisor(
+    ServiceProcessLauncher launcher, HealthWait health, ServiceProcessWatch watch, ILogger<LanguageServiceSupervisor> logger) : IDisposable
 {
     private const int SecretBytes = 32;
 
-    private readonly ServiceProcessLauncher launcher;
-    private readonly HealthWait health;
-    private readonly ServiceProcessWatch watch;
-    private readonly ILogger<LanguageServiceSupervisor> logger;
     private RunningService? service;
+    private string startupSecret = string.Empty;
 
-    internal LanguageServiceSupervisor(
-        ServiceProcessLauncher launcher, HealthWait health, ServiceProcessWatch watch, ILogger<LanguageServiceSupervisor> logger)
-    {
-        this.launcher = launcher;
-        this.health = health;
-        this.watch = watch;
-        this.logger = logger;
-    }
+    /// <summary>The secret of the running service; empty until the service has answered and again as soon as it is gone.</summary>
+    internal string Secret => Endpoint?.Secret ?? string.Empty;
 
-    /// <summary>The secret of the running service; empty until the service has answered.</summary>
-    internal string Secret { get; private set; } = string.Empty;
+    /// <summary>The loopback port of the running service; null until the service has answered and again as soon as it is gone, so a port nobody answers for is never handed out.</summary>
+    internal int? Port => Endpoint?.Port;
 
-    /// <summary>The loopback port of the running service; null until the service has answered.</summary>
-    internal int? Port => service?.Port;
+    /// <summary>The port and the secret of the service alive now, read together so that one never comes from a service and the other from another; null when there is none.</summary>
+    internal ServiceEndpoint? Endpoint => Live is { } running ? new ServiceEndpoint(running.Port, startupSecret) : null;
+
+    /// <summary>The service while it is available and its process has not ended; the end is read from the process itself, not from the watch that only learns of it a moment later.</summary>
+    private RunningService? Live => watch.State == ServiceState.Available && service is { HasExited: false } running ? running : null;
 
     /// <summary>The process number of the running service; null until the service has answered.</summary>
     internal int? ProcessId => service?.ProcessId;
@@ -92,14 +91,18 @@ internal sealed class LanguageServiceSupervisor : IDisposable
                 return StartOutcome.NotStarted;
             }
 
-            logger.ServiceStarted(started.ProcessId, started.Port);
             var outcome = await health.UntilHealthyAsync(started, secret, timeout, cancellationToken);
+            if (started.Port != 0)
+            {
+                logger.ServiceStarted(started.ProcessId, started.Port);
+            }
+
             if (outcome == StartOutcome.Started)
             {
-                watch.Watch(started, Lost);
+                startupSecret = secret;
                 service = started;
                 started = null;
-                Secret = secret;
+                watch.Watch(service, Lost);
                 return outcome;
             }
 
@@ -118,7 +121,7 @@ internal sealed class LanguageServiceSupervisor : IDisposable
     {
         var previous = service;
         service = null;
-        Secret = string.Empty;
+        startupSecret = string.Empty;
         if (previous is null)
         {
             return;

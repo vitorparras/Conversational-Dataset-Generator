@@ -73,6 +73,28 @@ public sealed class MigrationReportTests
     }
 
     [Fact]
+    public void StepFailedWhoseFailureWasRecordedWritesTheRecordedEventRightAfterTheFailureNamingTheStep()
+    {
+        var log = new MigrationLog();
+
+        log.Write(new MigrationResult { Outcome = MigrationOutcome.StepFailed, Found = 1, Step = "0002-b", SqlState = "22012", FailureRecorded = true, Applied = ["0001-a"] });
+
+        Assert.Equal([300, 305, 307], log.Lines.Select(line => line.EventId));
+        Assert.Equal(LogLevel.Information, log.Lines[2].Level);
+        Assert.Contains("Falha do passo 0002-b gravada em schema_failure", log.Lines[2].Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void StepFailedWhoseFailureWasNotRecordedWritesNoRecordedEvent()
+    {
+        var log = new MigrationLog();
+
+        log.Write(new MigrationResult { Outcome = MigrationOutcome.StepFailed, Step = "0002-b", SqlState = "22012", FailureRecorded = false });
+
+        Assert.Equal([305], log.Lines.Select(line => line.EventId));
+    }
+
+    [Fact]
     public void StepFailedWithoutSqlStateSaysSo()
     {
         var log = new MigrationLog();
@@ -106,7 +128,7 @@ public sealed class MigrationReportTests
     {
         var log = new MigrationLog();
 
-        log.Write(new MigrationResult { Outcome = outcome, Step = "0001-a", Registered = "aaa", Current = "bbb", SqlState = "28P01", Applied = ["0001-a"] });
+        log.Write(new MigrationResult { Outcome = outcome, Step = "0001-a", Registered = "aaa", Current = "bbb", SqlState = "28P01", FailureRecorded = true, Applied = ["0001-a"] });
 
         Assert.NotEmpty(log.Lines);
         Assert.DoesNotContain(log.Lines, line => line.Message.Contains("Password", StringComparison.OrdinalIgnoreCase));

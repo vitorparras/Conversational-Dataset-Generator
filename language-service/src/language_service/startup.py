@@ -11,16 +11,18 @@ from typing import BinaryIO, Final, TextIO
 
 MIN_SECRET_BYTES: Final = 16
 MAX_SECRET_BYTES: Final = 1024
-MIN_PORT: Final = 1
+MIN_PORT: Final = 0
 MAX_PORT: Final = 65535
 PORT_OPTION: Final = "--port"
 PORT_DIGITS: Final = re.compile(r"[0-9]{1,5}")
 PORT_ARGUMENTS: Final = 2
 EXIT_USAGE: Final = 2
+EXIT_BIND: Final = 3
 USAGE: Final = (
     f"argumentos inválidos; uso: python -m language_service {PORT_OPTION} PORTA "
-    f"({MIN_PORT} a {MAX_PORT})"
+    f"({MIN_PORT} a {MAX_PORT}; {MIN_PORT} deixa o sistema escolher uma porta livre)"
 )
+BIND_FAILED_MESSAGE: Final = "a porta pedida não pôde ser aberta na interface local"
 MISSING_SECRET_MESSAGE: Final = (
     "a entrada padrão não trouxe o segredo de inicialização "
     f"(uma linha de {MIN_SECRET_BYTES} a {MAX_SECRET_BYTES} bytes)"
@@ -36,7 +38,7 @@ class Startup:
 
 
 def parse_port(argv: Sequence[str]) -> int | None:
-    """The port when ``argv`` is exactly ``--port N`` with N in range; None for anything else."""
+    """The port when ``argv`` is exactly ``--port N`` in range (0: any free port), else None."""
     if len(argv) != PORT_ARGUMENTS or argv[0] != PORT_OPTION or not PORT_DIGITS.fullmatch(argv[1]):
         return None
     port = int(argv[1])

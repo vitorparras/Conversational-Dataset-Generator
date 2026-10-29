@@ -177,7 +177,8 @@ csharp_style_expression_bodied_indexers = true
 csharp_style_expression_bodied_accessors = true
 csharp_style_expression_bodied_lambdas = true
 csharp_style_expression_bodied_local_functions = when_on_single_line
-csharp_style_prefer_primary_constructors = true:suggestion
+# Only S1312 (error) forces the primary constructor, and only for a logger; this preference does not force it on other classes.
+csharp_style_prefer_primary_constructors = false
 csharp_style_prefer_top_level_statements = true
 csharp_prefer_braces = true
 dotnet_style_prefer_conditional_expression_over_assignment = false

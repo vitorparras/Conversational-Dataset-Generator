@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -70,11 +70,12 @@ class DockerRunner:
 
     files: Mapping[str, str]
     failing: str = ""
+    breaks: Callable[[Sequence[str]], bool] = lambda command: False
     commands: list[list[str]] = field(default_factory=list[list[str]])
 
     def __call__(self, command: Sequence[str], cwd: Path) -> CommandOutcome:
         self.commands.append(list(command))
-        if self.failing in command:
+        if self.failing in command or self.breaks(command):
             return FAILURE
         if command[:2] == ["git", "rev-parse"]:
             return CommandOutcome(True, COMMIT + "\n")
@@ -268,6 +269,28 @@ class OfflineStartTests(unittest.TestCase):
         details = self.fails_with(**{"serve.strace": traced(EXTERNAL, QUERY), "serve.log": ""})
 
         self.assertGreaterEqual(len(details), 5)
+
+    def test_a_host_container_that_cannot_be_created_fails_with_the_output_of_docker(self) -> None:
+        runner = DockerRunner(evidence(), failing=f"container:{containers.DATABASE}")
+
+        result = self.run_step(runner)
+
+        self.assertEqual(result.details[0], "o contêiner do núcleo não rodou até o fim")
+        self.assertIn("  | ZQX-MARKER-3318 failed", result.details)
+
+    def test_a_host_container_that_cannot_be_started_fails_with_the_output_of_docker(self) -> None:
+        start = ["docker", "start", "--attach", containers.HOST]
+        runner = DockerRunner({}, breaks=lambda command: list(command) == start)
+
+        result = self.run_step(runner)
+
+        self.assertEqual(result.details[0], "o contêiner do núcleo não rodou até o fim")
+        self.assertNotIn("migrate saiu com código nenhum, esperado 0", result.details)
+
+    def test_a_migration_that_runs_past_its_deadline_is_named(self) -> None:
+        details = self.fails_with(**{"result.txt": codes(migrate=124)})
+
+        self.assertIn("migrate passou do prazo e foi interrompido", details)
 
     def test_a_failed_image_build_names_the_image_and_creates_no_container(self) -> None:
         runner = DockerRunner(evidence(), failing="build")

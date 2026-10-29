@@ -5,6 +5,8 @@
 # exit codes. Everything the checks read goes to /trace; the passwords come in the environment.
 set -u
 
+# The three deadlines add up to 210 s, far below the 30 min of the job that runs this.
+MIGRATE_SECONDS=${MIGRATE_SECONDS:-60}
 READY_SECONDS=${READY_SECONDS:-120}
 STOP_SECONDS=${STOP_SECONDS:-30}
 LISTENING='Now listening on: http://127.0.0.1:'
@@ -55,7 +57,7 @@ stopped() { ! kill -0 "$tracer" 2> /dev/null; }
 
 (
     export CDG_Database__Username=owner CDG_Database__Password="$OWNER_PASSWORD"
-    trace migrate ./Core.Host migrate
+    trace migrate timeout "$MIGRATE_SECONDS" ./Core.Host migrate
 )
 migrate=$?
 keep migrate

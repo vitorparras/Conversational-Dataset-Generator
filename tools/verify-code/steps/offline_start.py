@@ -28,6 +28,7 @@ READY = re.compile(r"Now listening on: http://127\.0\.0\.1:\d+")
 VERSIONS = re.compile(r"Versões em execução .*")
 MUST_BE_PRESENT = ("SchemaVersion", "ContractVersion", "LanguageServiceVersion")
 LOOPBACK_ONLY = ["lo"]
+TIMED_OUT = "124"
 PHASES = ("migrate", "serve")
 
 
@@ -67,6 +68,8 @@ def problems_of(evidence: Evidence) -> tuple[str, ...]:
             found.append(f"o rastreador não registrou nada em {phase}: sem rastro não há prova")
         if codes.get(phase) != "0":
             found.append(f"{phase} saiu com código {codes.get(phase, 'nenhum')}, esperado 0")
+        if codes.get(phase) == TIMED_OUT:
+            found.append(f"{phase} passou do prazo e foi interrompido")
     if codes.get("ready") != "yes" or READY.search(evidence.text("serve.log")) is None:
         found.append("a partida não chegou à linha de pronto (`Now listening on`)")
     found += [f"{name} ausente na linha de versões" for name in evidence.missing_versions()]
@@ -118,10 +121,12 @@ def serve(ctx: Context, scratch: Path) -> StepResult:
     problem = problem or containers.start_database(ctx, credentials)
     if problem:
         return problem
-    containers.run_host(ctx, scratch / "published", credentials)
+    started = containers.run_host(ctx, scratch / "published", credentials)
     results = ctx.out_dir / RESULTS
     reset_directory(results)
     containers.collect(ctx, results)
+    if not started.ok:
+        return failed(NAME, "o contêiner do núcleo não rodou até o fim", *tail(started.text))
     return judge(Evidence(results))
 
 

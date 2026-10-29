@@ -11,4 +11,9 @@
     <PackageReference Include="xunit.v3.extensibility.core" />
     <PackageReference Include="CsCheck" />
   </ItemGroup>
+
+  <!-- Test code is not measured: the library is no test assembly, so coverage would instrument it and no area of 014 owns it. -->
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute" />
+  </ItemGroup>
 </Project>

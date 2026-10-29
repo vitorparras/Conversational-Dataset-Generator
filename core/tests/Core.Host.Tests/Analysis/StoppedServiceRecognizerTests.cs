@@ -48,6 +48,16 @@ public sealed class StoppedServiceRecognizerTests
     }
 
     [Fact]
+    public async Task RefusalLineSaysTheCauseIsTheServiceNotRunningAndNothingWasSent()
+    {
+        _ = await new StoppedServiceRecognizer(log).RecognizeAsync(RequestOf("ref-0404-e"), TestContext.Current.CancellationToken);
+
+        var written = Assert.Single(log.Entries);
+        Assert.Contains("o serviço de linguagem não está em execução", written.Message, StringComparison.Ordinal);
+        Assert.Contains("recusada sem enviar nada", written.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task RefusalLineNeverCarriesTheTextOfTheRequest()
     {
         _ = await new StoppedServiceRecognizer(log).RecognizeAsync(RequestOf("ref-0404-d"), TestContext.Current.CancellationToken);

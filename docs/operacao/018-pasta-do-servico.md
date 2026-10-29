@@ -31,7 +31,8 @@ cópia bloqueado no Firewall (com controle positivo), `PYTHONHOME` e `PYTHONPATH
   Tudo vai para dentro do interpretador. Sem hash, a instalação recusa: nada se resolve na hora.
 - O próprio serviço, instalado de um wheel, nunca o código-fonte do repositório. O backend de
   construção (uv_build) vem do `language-service/build-requirements.txt`, com hash, e o wheel se
-  constrói sem isolamento: a faixa do projeto não se resolve na montagem.
+  constrói sem isolamento e com `--force-pep517` (o `uv` usaria o backend embutido): a faixa do
+  projeto não se resolve na montagem.
 - O ORIGIN.json: commit, estado da árvore (`clean` ou `dirty`), sistema e versões do interpretador,
   do serviço e do pacote do modelo. Mudança não registrada não é recusada: a pasta diz `dirty`.
   Lido antes de instalar, que pode sujar a árvore.

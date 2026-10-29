@@ -18,6 +18,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import zipfile
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -115,7 +116,8 @@ def build_wheel(interpreter: Path, scratch: Path) -> Path:
 
     The backend named in the project file is a range, resolved when the build runs and checked by
     no hash; building without isolation, in an environment that holds only the pinned one, is the
-    way to run the backend the file pins.
+    way to run the backend the file pins. Without `--force-pep517`, `uv` takes its own embedded
+    backend for a range it contains and the pinned one would go unused.
     """
     environment, wheels = scratch / "build-env", scratch / "wheels"
     run(["uv", "venv", "--quiet", "--python", interpreter, environment])
@@ -133,12 +135,23 @@ def build_wheel(interpreter: Path, scratch: Path) -> Path:
             pinned,
         ]
     )
-    build = ["uv", "build", "--wheel", "--no-build-isolation", "--python", environment]
+    build = ["uv", "build", "--wheel", "--force-pep517", "--no-build-isolation"]
+    build += ["--python", environment]
     run([*build, "--out-dir", wheels, ROOT / SERVICE])
     built = list(wheels.glob("*.whl"))
     if len(built) != 1:
         raise BuildError(f"a construção do serviço deixou {len(built)} wheels em {wheels}")
+    wanted = re.search(r"^uv-build==(\S+)", pinned.read_text(encoding="utf-8"), re.MULTILINE)
+    if wanted is None or f"Generator: uv {wanted.group(1)}" not in generator(built[0]):
+        raise BuildError(f"o wheel não saiu do backend fixado em {BUILD_REQUIREMENTS}")
     return built[0]
+
+
+def generator(wheel: Path) -> str:
+    """The WHEEL file of a wheel, where the builder writes its name and version."""
+    with zipfile.ZipFile(wheel) as archive:
+        name = next(n for n in archive.namelist() if n.endswith(".dist-info/WHEEL"))
+        return archive.read(name).decode("utf-8")
 
 
 def compile_bytecode(interpreter: Path, python: Path) -> None:

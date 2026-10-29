@@ -8,6 +8,7 @@ import re
 import sys
 import tempfile
 import unittest
+import zipfile
 from collections.abc import Sequence
 from pathlib import Path
 from unittest import mock
@@ -16,6 +17,17 @@ import service_folder
 import systems
 
 CHECKED_HASH = 0b11
+
+
+def pinned_version() -> str:
+    """The version of the backend that language-service/build-requirements.txt pins."""
+    text = (service_folder.ROOT / "language-service" / "build-requirements.txt").read_text("utf-8")
+    found = re.search(r"^uv-build==(\S+)", text, re.MULTILINE)
+    assert found is not None
+    return found.group(1)
+
+
+PINNED = pinned_version()
 
 
 class BuildTests(unittest.TestCase):
@@ -83,7 +95,7 @@ class BuildTests(unittest.TestCase):
         compiled = next((source / "__pycache__").glob("mod.*.pyc")).read_bytes()
         self.assertEqual(CHECKED_HASH, int.from_bytes(compiled[4:8], "little"))
 
-    def record(self, wheel: bool = False) -> list[list[str]]:
+    def record(self, wheel: bool = False, made_by: str = PINNED) -> list[list[str]]:
         """Plays ``run``: records each command and, for ``uv build``, leaves a wheel behind."""
         commands: list[list[str]] = []
 
@@ -93,7 +105,12 @@ class BuildTests(unittest.TestCase):
             if wheel and "build" in words:
                 out = Path(words[words.index("--out-dir") + 1])
                 out.mkdir(parents=True)
-                (out / "language_service-0.1.0-py3-none-any.whl").write_bytes(b"w")
+                with zipfile.ZipFile(
+                    out / "language_service-0.1.0-py3-none-any.whl", "w"
+                ) as zipped:
+                    zipped.writestr(
+                        "language_service-0.1.0.dist-info/WHEEL", f"Generator: uv {made_by}\n"
+                    )
 
         patched = mock.patch.object(service_folder, "run", side_effect=play)
         patched.start()
@@ -124,6 +141,7 @@ class BuildTests(unittest.TestCase):
             backend[backend.index("-r") + 1],
         )
         self.assertIn("--no-build-isolation", build)
+        self.assertIn("--force-pep517", build)
         self.assertEqual("language_service-0.1.0-py3-none-any.whl", wheel.name)
 
     def test_the_service_is_installed_from_the_wheel_and_not_from_its_source(self) -> None:
@@ -155,6 +173,12 @@ class BuildTests(unittest.TestCase):
 
     def test_build_fails_when_the_build_leaves_no_single_wheel(self) -> None:
         self.record(wheel=False)
+
+        with self.assertRaises(service_folder.BuildError):
+            service_folder.build_wheel(Path("python"), self.output)
+
+    def test_a_wheel_built_by_the_embedded_backend_and_not_the_pinned_one_is_refused(self) -> None:
+        self.record(wheel=True, made_by="0.11.3")
 
         with self.assertRaises(service_folder.BuildError):
             service_folder.build_wheel(Path("python"), self.output)

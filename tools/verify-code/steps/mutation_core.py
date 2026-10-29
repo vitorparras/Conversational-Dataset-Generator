@@ -10,7 +10,7 @@ from pathlib import Path
 from steps.areas_doc import Area, within
 from steps.common import Context, reset_directory, tail
 from steps.mutant import Mutant
-from steps.mutation_judge import LanguageRun, ModuleResult, in_turn
+from steps.mutation_judge import LanguageRun, ModuleResult, each
 from steps.mutation_policy import MutationPolicy
 from steps.stryker_report import read_stryker
 
@@ -55,16 +55,26 @@ def target(root: Path, area: Area, areas: tuple[Area, ...]) -> CoreTarget | None
 
 
 def test_projects(root: Path, project: str) -> tuple[Path, ...]:
-    """The test projects that reference ``project`` directly."""
+    """The test projects of ``project`` that reference it directly: ``<Project>.Tests``, or the one
+    of a project it is nested in (``Core.Boundary.Tests`` for ``Core.Boundary.Contracts``). The
+    cross-cutting suites (``Core.Tests.Integration``) are not the module's own and stay out."""
     reference = re.compile(rf'ProjectReference Include="[^"]*[\\/]{re.escape(project)}\.csproj"')
+
+    def owns(path: Path) -> bool:
+        stem = path.stem.removesuffix(".Tests")
+        return stem != path.stem and within(project, stem)
+
     candidates = sorted((root / TESTS).glob("*/*.csproj"))
-    return tuple(p for p in candidates if reference.search(p.read_text(encoding="utf-8")))
+    return tuple(
+        p for p in candidates if owns(p) and reference.search(p.read_text(encoding="utf-8"))
+    )
 
 
 def configuration(core: CoreTarget, tests: tuple[Path, ...]) -> str:
     """The Stryker configuration of one module; Stryker never reproves, the step judges. It sets
     no method filter: that one hides the whole call chain, so what the 017 leaves out is filtered
-    from the report (`read_stryker`)."""
+    from the report (`read_stryker`). One worker in every module keeps the verdicts the same from
+    one run to the next."""
     options = {
         "project": f"{core.project}.csproj",
         "test-projects": [str(path) for path in tests],
@@ -105,7 +115,7 @@ def mutate(ctx: Context, core: CoreTarget, seconds: float, policy: MutationPolic
 def run_core(
     ctx: Context, areas: tuple[Area, ...], everything: tuple[Area, ...], policy: MutationPolicy
 ) -> LanguageRun:
-    """Every core module in turn, each cut at what is left of the ceiling; then the rest stops."""
+    """Every core module in turn, each cut at the ceiling it has to itself."""
     targets = tuple(c for area in areas if (c := target(ctx.root, area, everything)) is not None)
     absent = tuple(area for area in areas if area not in {core.area for core in targets})
     if not targets:
@@ -114,10 +124,7 @@ def run_core(
     if not restore.ok:
         missing = "`dotnet tool restore` falhou em core/: o Stryker.NET de core/dotnet-tools.json"
         return LanguageRun(SIDE, problems=(f"{missing} não está disponível", *tail(restore.text)))
-    results, findings, spent = in_turn(
-        policy,
-        targets,
-        lambda core: core.area,
-        lambda core, seconds: mutate(ctx, core, seconds, policy),
+    results, findings = each(
+        policy, targets, lambda core, seconds: mutate(ctx, core, seconds, policy)
     )
-    return LanguageRun(SIDE, results, absent, findings, seconds=spent)
+    return LanguageRun(SIDE, results, absent, findings)

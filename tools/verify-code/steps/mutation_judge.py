@@ -1,5 +1,5 @@
-"""Judges the mutants of each critical module against the survivor ceiling of docs/operacao/014,
-and the time each language took against its ceiling; prints every survivor by place and change."""
+"""Judges the mutants of each critical module against the survivor ceiling of docs/operacao/017,
+and the time each module took against its own ceiling; prints every survivor by place and change."""
 
 from __future__ import annotations
 
@@ -35,7 +35,6 @@ class LanguageRun:
     absent: tuple[Area, ...] = ()
     problems: tuple[str, ...] = ()
     notes: tuple[str, ...] = ()
-    seconds: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -60,43 +59,28 @@ def over_ceiling(policy: MutationPolicy, seconds: float) -> bool:
     return seconds > policy.minutes * SECONDS_PER_MINUTE
 
 
-def ceiling_problem(policy: MutationPolicy, prefixes: tuple[str, ...], seconds: float) -> str:
-    """The finding of a ceiling passed: the modules running when it happened and the time spent."""
-    named = ", ".join(f"`{prefix}`" for prefix in prefixes)
-    return f"teto de {policy.minutes} min excedido em {named}: {minutes(seconds)} gastos"
+def ceiling_problem(policy: MutationPolicy, prefix: str, seconds: float) -> str:
+    """The finding of a ceiling passed: the module that passed it and the time spent."""
+    return f"teto de {policy.minutes} min excedido em `{prefix}`: {minutes(seconds)} gastos"
 
 
-def in_turn[T](
+def each[T](
     policy: MutationPolicy,
     targets: tuple[T, ...],
-    area_of: Callable[[T], Area],
     mutate: Callable[[T, float], ModuleResult],
-) -> tuple[tuple[ModuleResult, ...], tuple[str, ...], float]:
-    """Every target in turn, each cut at what is left of the ceiling; then the rest stops. The
-    results, the ceiling findings and the seconds spent."""
+) -> tuple[tuple[ModuleResult, ...], tuple[str, ...]]:
+    """Every target in turn, each with the whole ceiling to itself: the time is the module's, not
+    shared with the others. The results, with the seconds each took, and the ceiling findings."""
     results: list[ModuleResult] = []
-    spent = 0.0
     for target in targets:
-        left = policy.minutes * SECONDS_PER_MINUTE - spent
-        measured = timed(lambda target=target, left=left: mutate(target, left))
+        measured = timed(lambda target=target: mutate(target, policy.minutes * SECONDS_PER_MINUTE))
         results.append(replace(measured.value, seconds=measured.seconds))
-        spent += measured.seconds
-        if over_ceiling(policy, spent):
-            break
-    areas = tuple(area_of(target) for target in targets)
-    return tuple(results), ceiling_findings(policy, areas, results), spent
-
-
-def ceiling_findings(
-    policy: MutationPolicy, areas: tuple[Area, ...], results: list[ModuleResult]
-) -> tuple[str, ...]:
-    """The ceiling finding naming the module that passed it, and the modules left unrun."""
-    spent = sum(result.seconds for result in results)
-    if not over_ceiling(policy, spent):
-        return ()
-    left = tuple(f"`{area.prefix}`" for area in areas[len(results) :])
-    passed = ceiling_problem(policy, (results[-1].area.prefix,), spent)
-    return (passed, f"não rodaram por causa do teto: {', '.join(left)}") if left else (passed,)
+    findings = tuple(
+        ceiling_problem(policy, result.area.prefix, result.seconds)
+        for result in results
+        if over_ceiling(policy, result.seconds)
+    )
+    return tuple(results), findings
 
 
 def share(part: int, whole: int) -> str:
@@ -112,7 +96,7 @@ def place(mutant: Mutant) -> str:
 def outside(by: dict[MutantStatus, list[Mutant]]) -> tuple[str, ...]:
     """The mutants left out of the share, so a switch-off in the code stays visible."""
     broken, ignored = len(by[MutantStatus.NOT_COUNTED]), len(by[MutantStatus.IGNORED])
-    if not broken and not ignored:
+    if not (broken or ignored):
         return ()
     return (f"  fora da conta: {broken} não compilam, {ignored} ignorados ou desligados",)
 
@@ -125,7 +109,8 @@ def judge_module(result: ModuleResult, policy: MutationPolicy) -> Verdict:
     name = f"{result.area.name} (`{result.area.prefix}`)"
     counts = f"{generated} gerados, {len(killed)} mortos, {len(survived)} sobreviventes"
     places = (f"  sobrevivente: {place(m)} — {m.change}" for m in survived)
-    notes = (f"{name}: {counts} ({share(len(survived), generated)})", *places, *outside(by))
+    spent = f"  tempo: {minutes(result.seconds)} de {policy.minutes} min de teto"
+    notes = (f"{name}: {counts} ({share(len(survived), generated)})", *places, *outside(by), spent)
     failures = [f"{name}: {problem}" for problem in result.problems]
     if by[MutantStatus.UNCHECKED]:
         failures.append(f"{name}: {len(by[MutantStatus.UNCHECKED])} mutantes não verificados")
@@ -138,13 +123,12 @@ def judge_module(result: ModuleResult, policy: MutationPolicy) -> Verdict:
 
 
 def judge_language(run: LanguageRun, policy: MutationPolicy) -> Verdict:
-    """The verdicts of a language's modules, with its own problems, notes and time."""
+    """The verdicts of a language's modules, with its own problems and notes."""
     verdicts = [judge_module(result, policy) for result in run.results]
     absent = (
         f"{a.name} (`{a.prefix}`): sem código; a mutação vale quando houver" for a in run.absent
     )
-    spent = (f"{run.side}: {minutes(run.seconds)} de {policy.minutes} min de teto",)
     own = (f"{run.side}: {problem}" for problem in run.problems)
     failures = (*own, *(failure for verdict in verdicts for failure in verdict.failures))
     notes = (*run.notes, *(n for v in verdicts for n in v.notes), *absent)
-    return Verdict(failures, (*notes, *(spent if run.results else ())))
+    return Verdict(failures, notes)

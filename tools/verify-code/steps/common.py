@@ -34,7 +34,8 @@ RunFor = Callable[[Sequence[str], Path, float], CommandOutcome]
 
 @dataclass(frozen=True)
 class Context:
-    """Where a step runs: the repository root, the output directory and how it runs commands."""
+    """Where a step runs: the repository root, the output directory and how it runs commands;
+    ``module`` narrows the mutation step to one critical module."""
 
     root: Path
     out_dir: Path
@@ -42,6 +43,7 @@ class Context:
     base: str | None = None
     previous: Path | None = None
     run_for: RunFor = field(default_factory=lambda: run_process)
+    module: str | None = None
 
 
 @dataclass(frozen=True)

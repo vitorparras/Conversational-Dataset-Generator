@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -17,6 +18,7 @@ from .mutation_samples import (
     SOURCE,
     awaited_pair,
     meta,
+    stryker_mutant,
     stryker_span,
     stryker_with_source,
 )
@@ -63,6 +65,24 @@ class StrykerReportTests(unittest.TestCase):
         mutants = self.read("Ignored")
 
         self.assertEqual(mutants[0].status, MutantStatus.IGNORED)
+
+    def static_report(self, status: str) -> tuple[Mutant, ...]:
+        mutant = {**stryker_mutant(10, status), "static": True}
+        file = str(self.root / "core/src/P/Logging/F.cs")
+        report = json.dumps({"schemaVersion": "2", "files": {file: {"mutants": [mutant]}}})
+        support.write(self.root, "s.json", report)
+        return stryker_report.read_stryker(self.root / "s.json", self.root)
+
+    def test_a_static_mutant_counts_as_any_other(self) -> None:
+        expected = {
+            "Killed": MutantStatus.KILLED,
+            "Timeout": MutantStatus.KILLED,
+            "Survived": MutantStatus.SURVIVED,
+            "NoCoverage": MutantStatus.SURVIVED,
+        }
+        for status, outcome in expected.items():
+            with self.subTest(status):
+                self.assertEqual(self.static_report(status)[0].status, outcome)
 
     def test_a_pending_mutant_is_unchecked(self) -> None:
         mutants = self.read("Pending")

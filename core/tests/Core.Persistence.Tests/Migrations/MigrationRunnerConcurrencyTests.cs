@@ -1,7 +1,8 @@
 using Core.Persistence.Migrations;
+using Core.Persistence.Tests.Fixtures;
 using Core.Tests.Integration.Fixtures;
 
-namespace Core.Tests.Integration.Migrations;
+namespace Core.Persistence.Tests.Migrations;
 
 /// <summary>Several migrations started at once on an empty database: the first applies every step, the others find nothing to do.</summary>
 [Trait("Category", "Database")]

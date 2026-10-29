@@ -1,8 +1,9 @@
 using Core.Persistence.Migrations;
+using Core.Persistence.Tests.Fixtures;
 using Core.Tests.Integration.Fixtures;
 using Npgsql;
 
-namespace Core.Tests.Integration.Migrations;
+namespace Core.Persistence.Tests.Migrations;
 
 /// <summary>
 /// The lock the runner takes belongs to the server session, and a pooled session that is not reset outlives the run: the run must give the lock

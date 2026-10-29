@@ -1,7 +1,8 @@
 using Core.Persistence.Migrations;
+using Core.Persistence.Tests.Fixtures;
 using Core.Tests.Integration.Fixtures;
 
-namespace Core.Tests.Integration.Migrations;
+namespace Core.Persistence.Tests.Migrations;
 
 /// <summary>A step that fails in the middle of a set of test steps (CA-3): it leaves nothing, the steps before it stay, the ones after it do not run.</summary>
 [Trait("Category", "Database")]

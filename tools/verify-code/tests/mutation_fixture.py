@@ -88,6 +88,8 @@ class MutationFixture(unittest.TestCase):
     def logging_file(self) -> str:
         return str(self.root / "core/src/Core.Platform/Logging/Formatter.cs")
 
-    def run_step(self, runner: ToolRunner) -> StepResult:
-        context = Context(self.root, self.root / OUTPUT_DIRECTORY, runner, run_for=runner)
+    def run_step(self, runner: ToolRunner, module: str | None = None) -> StepResult:
+        context = Context(
+            self.root, self.root / OUTPUT_DIRECTORY, runner, run_for=runner, module=module
+        )
         return mutation.run(context)

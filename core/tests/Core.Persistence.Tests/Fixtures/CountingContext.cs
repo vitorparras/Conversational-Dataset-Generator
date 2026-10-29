@@ -1,4 +1,4 @@
-namespace Core.Tests.Integration.Fixtures;
+namespace Core.Persistence.Tests.Fixtures;
 
 /// <summary>
 /// A synchronization context that counts the continuations posted to it and still runs them on the pool, so that code which

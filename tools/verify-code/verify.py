@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import io
+import json
 import sys
 import time
 from collections.abc import Callable
@@ -116,22 +117,48 @@ def _print_utf8() -> None:
             stream.reconfigure(encoding="utf-8")
 
 
+def print_mutation_modules() -> int:
+    """The critical modules as a JSON list for the matrix of the CI; 1 when 014 gives none."""
+    modules, problems = mutation.names(ROOT)
+    if problems:
+        print("\n".join(problems))
+        return 1
+    print(json.dumps(modules, ensure_ascii=False))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     _print_utf8()
     parser = argparse.ArgumentParser(description="Verifica o código do repositório.")
     parser.add_argument("--list", action="store_true", help="lista os passos, na ordem da CI")
     parser.add_argument("--step", nargs="+", default=[], metavar="NAME", help="passos a rodar")
+    parser.add_argument("--module", help="módulo crítico que o passo mutation roda (um job de CI)")
+    parser.add_argument(
+        "--mutation-modules",
+        action="store_true",
+        help="imprime em JSON os módulos críticos de docs/operacao/014, a matriz do CI",
+    )
     parser.add_argument("--base", help="ref de comparação para pr_size (ex.: origin/main)")
     parser.add_argument("--previous", type=Path, help="by-area.md anterior: floors avisa queda")
     args = parser.parse_args(argv)
     if args.list:
         print("\n".join(s.name for s in STEPS))
         return 0
+    if args.mutation_modules:
+        return print_mutation_modules()
     unknown = [n for n in args.step if n not in {s.name for s in STEPS}]
     if unknown:
         print(f"passo desconhecido: {', '.join(unknown)} (veja --list)")
         return 2
-    ctx = Context(ROOT, ROOT / OUTPUT_DIRECTORY, run_process, args.base, args.previous, run_process)
+    ctx = Context(
+        ROOT,
+        ROOT / OUTPUT_DIRECTORY,
+        run_process,
+        args.base,
+        args.previous,
+        run_process,
+        args.module,
+    )
     try:
         return report(run_steps(select(args.step, args.base is not None), ctx))
     except Exception as error:  # last level: a defect must still print a readable line

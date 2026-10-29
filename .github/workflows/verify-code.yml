@@ -88,12 +88,34 @@ jobs:
           export NO_PROXY='' no_proxy=''
           python tools/verify-code/verify.py --step package
 
-  mutation:
-    name: Mutação nos módulos críticos
+  mutation_modules:
+    name: Módulos críticos da mutação
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
-    # The step cuts each language at the ceiling of docs/operacao/014; both in series, plus setup.
-    timeout-minutes: 60
+    outputs:
+      modules: ${{ steps.list.outputs.modules }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - id: list
+        name: Ler os módulos críticos de docs/operacao/014 (a matriz não tem lista própria)
+        run: |
+          modules=$(python tools/verify-code/verify.py --mutation-modules)
+          echo "modules=$modules" >> "$GITHUB_OUTPUT"
+
+  mutation_module:
+    name: Mutação (${{ matrix.module }})
+    needs: mutation_modules
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    # The step cuts the module at the ceiling of docs/operacao/017; the rest is setup and restore.
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJSON(needs.mutation_modules.outputs.modules) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
@@ -104,8 +126,26 @@ jobs:
           python-version: '3.12'
       - name: Instalar uv na versão fixada (o mutmut vem de language-service/uv.lock)
         run: pip install -r tools/verify-code/service-requirements.txt
-      - name: Mutar exatamente os módulos críticos de docs/operacao/014 (Stryker.NET e mutmut)
-        run: python tools/verify-code/verify.py --step mutation
+      - name: Mutar o módulo crítico da matriz (Stryker.NET ou mutmut, um worker)
+        env:
+          MODULE: ${{ matrix.module }}
+        run: python tools/verify-code/verify.py --step mutation --module "$MODULE"
+
+  # Aggregates the matrix under the name the check always had, so nothing that waits for it changes.
+  mutation:
+    name: Mutação nos módulos críticos
+    needs: [mutation_modules, mutation_module]
+    if: always() && github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Exigir a lista e todos os módulos da matriz verdes
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "resultados: $RESULTS"
+          for result in $RESULTS; do
+            [ "$result" = success ] || exit 1
+          done
 
   ruler_proof:
     name: Prova de que a régua reprova o que deve recusar

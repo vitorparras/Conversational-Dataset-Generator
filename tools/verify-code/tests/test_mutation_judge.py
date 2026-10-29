@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import unittest
+from dataclasses import replace
 from unittest import mock
 
 from steps import mutation_judge
@@ -99,9 +100,9 @@ class MutationCeilingRuleTests(unittest.TestCase):
         self.assertFalse(mutation_judge.over_ceiling(longer, CEILING_SECONDS + 1))
 
     def test_the_ceiling_finding_names_the_modules_and_the_time(self) -> None:
-        found = mutation_judge.ceiling_problem(POLICY, ("A.B", "C"), 1290.0)
+        found = mutation_judge.ceiling_problem(POLICY, "A.B", 1290.0)
 
-        self.assertEqual(found, "teto de 20 min excedido em `A.B`, `C`: 21,5 min gastos")
+        self.assertEqual(found, "teto de 20 min excedido em `A.B`: 21,5 min gastos")
 
     def test_timed_returns_the_value_and_the_seconds_between_two_readings(self) -> None:
         with mock.patch("steps.mutation_judge.monotonic", side_effect=[10.0, 70.0]):
@@ -124,12 +125,35 @@ class MutationCeilingRuleTests(unittest.TestCase):
         expected = "Texto (`Core.Boundary.Text`): sem código; a mutação vale quando houver"
         self.assertEqual((verdict.failures, verdict.notes), ((), (expected,)))
 
-    def test_the_time_spent_is_reported_against_the_ceiling(self) -> None:
-        run = LanguageRun("núcleo", (module(1, 0),), seconds=90.0)
+    def test_the_time_of_the_module_is_reported_against_the_ceiling(self) -> None:
+        timed = replace(module(1, 0), seconds=75.0)
 
-        verdict = judge_language(run, POLICY)
+        verdict = judge_module(timed, POLICY)
 
-        self.assertEqual(verdict.notes[-1], "núcleo: 1,5 min de 20 min de teto")
+        self.assertEqual(verdict.notes[-1], "  tempo: 1,2 min de 20 min de teto")
+
+    def test_each_target_has_the_whole_ceiling_to_itself(self) -> None:
+        cuts: list[float] = []
+
+        def mutate(_target: str, seconds: float) -> ModuleResult:
+            cuts.append(seconds)
+            return module(1, 0)
+
+        with mock.patch("steps.mutation_judge.monotonic", side_effect=[0.0, 900.0, 0.0, 900.0]):
+            results, findings = mutation_judge.each(POLICY, ("a", "b"), mutate)
+
+        self.assertEqual((cuts, findings), ([CEILING_SECONDS, CEILING_SECONDS], ()))
+        self.assertEqual([r.seconds for r in results], [900.0, 900.0])
+
+    def test_only_the_module_that_passed_its_ceiling_is_named(self) -> None:
+        with mock.patch("steps.mutation_judge.monotonic", side_effect=[0.0, 1300.0, 0.0, 60.0]):
+            _, findings = mutation_judge.each(
+                POLICY, (TEXT, AREA), lambda area, _s: ModuleResult(area, (KILLED,))
+            )
+
+        self.assertEqual(
+            findings, ("teto de 20 min excedido em `Core.Boundary.Text`: 21,7 min gastos",)
+        )
 
     def test_module_failures_reach_the_language_verdict(self) -> None:
         run = LanguageRun("núcleo", (module(1, 1),))

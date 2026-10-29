@@ -3,15 +3,12 @@ namespace Core.Tests.Architecture.CodeRules;
 /// <summary>Every test that starts the real language service says so with its category, with fixtures that break each way of reaching it.</summary>
 public sealed class RealServiceMarkTests
 {
-    /// <summary>Marked by the change of issue #407, which owns the file; the rule leaves it out until then.</summary>
-    private static readonly HashSet<string> Pending = ["RecognizerSelectionTests"];
-
     private static readonly HashSet<string> None = [];
 
     [Fact]
     public void EveryTestThatStartsTheRealServiceCarriesItsCategory()
     {
-        var violations = RealServiceMarkRules.Check(SourceTree.TestFiles(), Pending);
+        var violations = RealServiceMarkRules.Check(SourceTree.TestFiles(), None);
 
         Assert.Empty(violations);
     }

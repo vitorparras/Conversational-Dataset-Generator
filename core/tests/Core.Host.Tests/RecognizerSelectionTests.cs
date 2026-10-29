@@ -95,6 +95,7 @@ public sealed class RecognizerSelectionTests : IDisposable
         Assert.Equal(ServiceVersions.Absent, versions);
     }
 
+    [Trait("Category", "RealService")]
     [Fact]
     public async Task HttpKindWithTheServiceRunningReadsItsVersionsAtItsPortWithItsSecret()
     {

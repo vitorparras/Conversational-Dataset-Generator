@@ -1,6 +1,5 @@
 using Core.Persistence.Migrations;
 using Core.Persistence.Tests.Fixtures;
-using Core.Tests.Integration.Fixtures;
 using Npgsql;
 
 namespace Core.Persistence.Tests.Migrations;

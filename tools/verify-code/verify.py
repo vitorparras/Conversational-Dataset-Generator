@@ -127,6 +127,17 @@ def print_mutation_modules() -> int:
     return 0
 
 
+def usage_error(requested: list[str], module: str | None) -> str | None:
+    """Why the request cannot run: a step that does not exist, or a module for other steps."""
+    unknown = [n for n in requested if n not in {s.name for s in STEPS}]
+    if unknown:
+        return f"passo desconhecido: {', '.join(unknown)} (veja --list)"
+    if module and requested and mutation.NAME not in requested:
+        asked = ", ".join(requested)
+        return f"--module só vale para o passo {mutation.NAME}; passos pedidos: {asked}"
+    return None
+
+
 def main(argv: list[str] | None = None) -> int:
     _print_utf8()
     parser = argparse.ArgumentParser(description="Verifica o código do repositório.")
@@ -146,9 +157,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.mutation_modules:
         return print_mutation_modules()
-    unknown = [n for n in args.step if n not in {s.name for s in STEPS}]
-    if unknown:
-        print(f"passo desconhecido: {', '.join(unknown)} (veja --list)")
+    refusal = usage_error(args.step, args.module)
+    if refusal:
+        print(refusal)
         return 2
     ctx = Context(
         ROOT,

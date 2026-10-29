@@ -1,7 +1,7 @@
 using Core.Boundary.Contracts;
 using Core.Boundary.Text;
 
-namespace Core.Tests.Properties.Boundary;
+namespace Core.Boundary.Tests.Properties;
 
 /// <summary>The conversion as a property sees it: the production one, or one broken on purpose to show a property can fail.</summary>
 internal sealed record OffsetConversion(

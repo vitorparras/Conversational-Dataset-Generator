@@ -1,5 +1,5 @@
 using Core.Platform.Configuration;
-using Core.Tests.Properties.Harness;
+using Core.Tests.Support.Harness;
 using CsCheck;
 
 namespace Core.Tests.Properties.Configuration;

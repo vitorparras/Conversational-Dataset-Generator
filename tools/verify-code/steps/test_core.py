@@ -29,11 +29,23 @@ class TestRun:
 
 
 def test_projects(solution: Path) -> tuple[str, ...]:
-    """The test projects the solution lists, by project name."""
+    """The test projects the solution lists, by name; a library that is no test project is out."""
     text = solution.read_text(encoding="utf-8")
-    paths = re.findall(r'Path="([^"]+\.csproj)"', text)
-    normalized = (p.replace("\\", "/") for p in paths)
-    return tuple(sorted(Path(p).stem for p in normalized if p.startswith("tests/")))
+    paths = (p.replace("\\", "/") for p in re.findall(r'Path="([^"]+\.csproj)"', text))
+    return tuple(
+        sorted(
+            Path(p).stem
+            for p in paths
+            if p.startswith("tests/") and is_test_project(solution.parent / p)
+        )
+    )
+
+
+def is_test_project(project: Path) -> bool:
+    """A test project unless its file says `IsTestProject` is false; a missing file is one."""
+    if not project.is_file():
+        return True
+    return "<IsTestProject>false</IsTestProject>" not in project.read_text(encoding="utf-8")
 
 
 def read_trx(path: Path) -> TestRun:

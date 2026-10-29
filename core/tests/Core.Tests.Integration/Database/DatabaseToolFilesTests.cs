@@ -1,3 +1,4 @@
+using Core.Persistence.Tests.Fixtures;
 using Core.Tests.Integration.Fixtures;
 
 namespace Core.Tests.Integration.Database;

@@ -1,15 +1,15 @@
 using CsCheck;
 
-namespace Core.Tests.Properties.Harness;
+namespace Core.Tests.Support.Harness;
 
 /// <summary>Runs a property for the declared number of cases; a failure carries the seed, the seed variable replays it, a run past its deadline fails.</summary>
-internal sealed class PropertyRunner
+public sealed class PropertyRunner
 {
     /// <summary>The variable that fixes the seed; it is also the one the failure message names.</summary>
-    public const string SeedVariable = "CsCheck_Seed";
+    public static string SeedVariable { get; } = "CsCheck_Seed";
 
     /// <summary>The variable that trades the number of cases for a time; refused, since the cases are declared.</summary>
-    public const string TimeVariable = "CsCheck_Time";
+    public static string TimeVariable { get; } = "CsCheck_Time";
 
     private readonly Func<string, string?> environment;
     private readonly PropertyBudget budget;

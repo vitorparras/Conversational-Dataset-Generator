@@ -1,7 +1,7 @@
 using Core.Persistence.Migrations;
 using Npgsql;
 
-namespace Core.Tests.Integration.Fixtures;
+namespace Core.Persistence.Tests.Fixtures;
 
 /// <summary>
 /// A database of its own on the shared server, made the way tools/database makes cdg: owned by the role owner, open to app alone,

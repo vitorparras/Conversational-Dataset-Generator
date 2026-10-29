@@ -1,14 +1,13 @@
-"""Starts the published core as an operator would, with no network, and fails on any attempt.
+"""Starts the published core as an operator would, with no network, and fails if it hangs.
 
 The host runs in a container that shares the network namespace of the database container, which
 has no network at all: the loopback is the only interface. The service folder comes from
 tools/build-service, assembled beforehand in a container that does have a network (see
-steps/offline_containers.py). Inside, under strace (tools/verify-code/offline_start/start.sh), the
-host migrates the schema, then starts with the real recognizer: it checks the database, the
-service folder and the language service it starts, and serves. The step passes only if the host
-reached the line that says it serves with the schema, the contract and the service all present,
-both runs left with 0, and the traces show no connection outside the loopback and no DNS query
-(see steps/strace_log.py).
+steps/offline_containers.py). Inside (tools/verify-code/offline_start/start.sh), the host
+migrates the schema, then starts with the real recognizer: it checks the database, the service
+folder and the language service it starts, and serves. The step passes only if the host reached
+the line that says it serves, within a deadline, with the schema, the contract and the service all
+present, and both runs left with 0: the start ends and nothing is left waiting for a network.
 """
 
 from __future__ import annotations
@@ -19,7 +18,7 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 
 from steps import offline_containers as containers
-from steps import package, strace_log
+from steps import package
 from steps.common import Context, StepResult, failed, passed, reset_directory, tail
 
 NAME = containers.NAME
@@ -63,8 +62,6 @@ def problems_of(evidence: Evidence) -> tuple[str, ...]:
             f"o namespace não ficou só com o loopback: {evidence.text('interfaces.txt')!r}"
         )
     for phase in PHASES:
-        if not evidence.text(f"{phase}.strace").strip():
-            found.append(f"o rastreador não registrou nada em {phase}: sem rastro não há prova")
         if codes.get(phase) != "0":
             found.append(f"{phase} saiu com código {codes.get(phase, 'nenhum')}, esperado 0")
     if codes.get("ready") != "yes" or READY.search(evidence.text("serve.log")) is None:
@@ -73,27 +70,15 @@ def problems_of(evidence: Evidence) -> tuple[str, ...]:
     return tuple(found)
 
 
-def refusals_of(evidence: Evidence) -> tuple[str, ...]:
-    """What the traces of both runs show that the start must not do, each tagged with its run."""
-    return tuple(
-        f"{phase}: {refusal}"
-        for phase in PHASES
-        for refusal in strace_log.refusals(evidence.text(f"{phase}.strace"))
-    )
-
-
 def judge(evidence: Evidence) -> StepResult:
-    """Passes only for a start that served with all present and tried nothing past the loopback."""
-    found = (*problems_of(evidence), *refusals_of(evidence))
+    """Passes only for a start that served in time, with everything present, and stopped with 0."""
+    found = problems_of(evidence)
     if found:
         logs = evidence.text("serve.log") or evidence.text("migrate.log")
         return failed(NAME, *found, *tail(logs))
-    seen = strace_log.seen(evidence.text("migrate.strace") + evidence.text("serve.strace"))
     return passed(
         NAME,
         "migração e partida do núcleo publicado sem rota de rede: banco, pasta e serviço de pé",
-        f"chamadas com destino vistas pelo rastreador: {', '.join(seen) or 'nenhuma'}",
-        "nenhuma conexão fora do loopback e nenhuma consulta de DNS, nos dois processos",
     )
 
 

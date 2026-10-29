@@ -39,7 +39,9 @@ public sealed class HttpServiceVersionReaderTests : IDisposable
     [Fact]
     public async Task PortWithNoListenerHasNoVersions()
     {
-        var versions = await Reader(FakeService.FreePort(), Generous).ReadAsync(TestContext.Current.CancellationToken);
+        using var closed = new ClosedPort();
+
+        var versions = await Reader(closed.Number, Generous).ReadAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(ServiceVersions.Absent, versions);
     }

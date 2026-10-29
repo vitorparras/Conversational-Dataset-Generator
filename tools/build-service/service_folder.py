@@ -3,9 +3,10 @@
 
     python tools/build-service/service_folder.py --system S --model M --output DIR
 
-The folder lands in DIR/language-service with the interpreter of the contract and a SHA256SUMS
-manifest. The network is needed only here: the folder runs without it. The interpreter comes from
-`uv python install`, which installs for the machine it runs on, so the system must be this one.
+The folder lands in DIR/language-service with the interpreter of the contract, an ORIGIN.json
+that says where it came from and a SHA256SUMS manifest. The network is needed only here: the folder
+runs without it. The interpreter comes from `uv python install`, which installs for the machine it
+runs on, so the system must be this one.
 """
 
 from __future__ import annotations
@@ -17,10 +18,12 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import zipfile
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
+import origin
 import sums
 import systems
 
@@ -28,6 +31,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SERVICE = "language-service"
 PYTHON_VERSION = "3.12.13"
 MODEL = re.compile(r"[a-z]{2}_core_news_[a-z]+")
+BUILD_REQUIREMENTS = "build-requirements.txt"
 EXTERNALLY_MANAGED = "EXTERNALLY-MANAGED"
 UNSET_BYTECODE_VARIABLES = ("PYTHONDONTWRITEBYTECODE", "PYTHONPATH", "PYTHONHOME")
 OUTPUT_TAIL_LINES = 15
@@ -35,6 +39,9 @@ OUTPUT_TAIL_LINES = 15
 
 class BuildError(Exception):
     """A step of the build that failed, in words for whoever runs it."""
+
+
+FAILURES = (BuildError, origin.OriginError, OSError, ValueError, subprocess.CalledProcessError)
 
 
 @dataclass(frozen=True)
@@ -101,7 +108,50 @@ def install_packages(job: Job, interpreter: Path, scratch: Path) -> None:
     )
     install = ["uv", "pip", "install", "--python", interpreter, "--link-mode", "copy"]
     run([*install, "--require-hashes", "--no-deps", "--requirement", requirements])
-    run([*install, "--no-deps", ROOT / SERVICE])
+    run([*install, "--no-deps", build_wheel(interpreter, scratch)])
+
+
+def build_wheel(interpreter: Path, scratch: Path) -> Path:
+    """Builds the service into a wheel with the build backend of BUILD_REQUIREMENTS, by hash.
+
+    The backend named in the project file is a range, resolved when the build runs and checked by
+    no hash; building without isolation, in an environment that holds only the pinned one, is the
+    way to run the backend the file pins. Without `--force-pep517`, `uv` takes its own embedded
+    backend for a range it contains and the pinned one would go unused.
+    """
+    environment, wheels = scratch / "build-env", scratch / "wheels"
+    run(["uv", "venv", "--quiet", "--python", interpreter, environment])
+    pinned = ROOT / SERVICE / BUILD_REQUIREMENTS
+    run(
+        [
+            "uv",
+            "pip",
+            "install",
+            "--python",
+            environment,
+            "--require-hashes",
+            "--no-deps",
+            "-r",
+            pinned,
+        ]
+    )
+    build = ["uv", "build", "--wheel", "--force-pep517", "--no-build-isolation"]
+    build += ["--python", environment]
+    run([*build, "--out-dir", wheels, ROOT / SERVICE])
+    built = list(wheels.glob("*.whl"))
+    if len(built) != 1:
+        raise BuildError(f"a construção do serviço deixou {len(built)} wheels em {wheels}")
+    wanted = re.search(r"^uv-build==(\S+)", pinned.read_text(encoding="utf-8"), re.MULTILINE)
+    if wanted is None or f"Generator: uv {wanted.group(1)}" not in generator(built[0]):
+        raise BuildError(f"o wheel não saiu do backend fixado em {BUILD_REQUIREMENTS}")
+    return built[0]
+
+
+def generator(wheel: Path) -> str:
+    """The WHEEL file of a wheel, where the builder writes its name and version."""
+    with zipfile.ZipFile(wheel) as archive:
+        name = next(n for n in archive.namelist() if n.endswith(".dist-info/WHEEL"))
+        return archive.read(name).decode("utf-8")
 
 
 def compile_bytecode(interpreter: Path, python: Path) -> None:
@@ -133,11 +183,14 @@ def smoke(job: Job, interpreter: Path, scratch: Path) -> None:
 def fill(job: Job, scratch: Path) -> int:
     """Puts everything into the folder, proves it and returns the files its manifest covers."""
     interpreter = job.folder / job.system.interpreter
+    build = origin.Build(job.system.name, PYTHON_VERSION, job.model)
+    declared = origin.read(ROOT, ROOT / SERVICE, build)
     install_interpreter(scratch / "store", job.folder / "python")
     if not interpreter.is_file():
         raise BuildError(f"o interpretador não está em {job.system.interpreter}")
     install_packages(job, interpreter, scratch)
     compile_bytecode(interpreter, job.folder / "python")
+    origin.write(job.folder, declared)
     count = sums.write(job.folder)
     smoke(job, interpreter, scratch)
     return count
@@ -150,7 +203,7 @@ def assemble(job: Job) -> int:
     try:
         with tempfile.TemporaryDirectory(prefix="cdg-service-", ignore_cleanup_errors=True) as tmp:
             return fill(job, Path(tmp))
-    except (BuildError, OSError, ValueError, subprocess.CalledProcessError):
+    except FAILURES:
         shutil.rmtree(job.folder, ignore_errors=True)
         raise
 
@@ -175,7 +228,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
     try:
         count = assemble(job)
-    except (BuildError, OSError, ValueError, subprocess.CalledProcessError) as error:
+    except FAILURES as error:
         print(f"a montagem falhou: {error}")
         return 1
     print(f"{job.folder}: {count} arquivos no manifesto")

@@ -177,6 +177,7 @@ csharp_style_expression_bodied_indexers = true
 csharp_style_expression_bodied_accessors = true
 csharp_style_expression_bodied_lambdas = true
 csharp_style_expression_bodied_local_functions = when_on_single_line
+# Only S1312 (error) forces the primary constructor, and only for a logger; this preference does not force it on other classes.
 csharp_style_prefer_primary_constructors = false
 csharp_style_prefer_top_level_statements = true
 csharp_prefer_braces = true
@@ -199,9 +200,9 @@ dotnet_diagnostic.S6585.severity = none
 # The composition root depends on every service by definition, and rule 3 makes it the only place that builds them.
 dotnet_diagnostic.S1200.severity = none
 
-[core/src/Core.Host/Supervision/LanguageServiceSupervisor.cs]
-# The dependency injection container hands the logger over, so it cannot be a static field.
-dotnet_diagnostic.S1312.severity = none
+[core/src/Core.Host/HostLaunch.cs]
+# The one place that turns whatever stops the host into ExitCode.ServingFailed, so it catches every exception.
+dotnet_diagnostic.S2221.severity = none
 
 [core/src/Core.Persistence/Migrations/StepCommand.cs]
 # The text of a step comes from a resource embedded in the artifact and checked by SHA-256, never from input.

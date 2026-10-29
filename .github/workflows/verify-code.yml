@@ -92,6 +92,21 @@ jobs:
           export NO_PROXY='' no_proxy=''
           python tools/verify-code/verify.py --step package
 
+  offline_start:
+    name: Partida sem rota de rede (contêiner, strace)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Subir o núcleo publicado num contêiner só com o loopback e reprovar conexão externa e consulta de DNS
+        run: python tools/verify-code/verify.py --step offline_start
+
   service_folder:
     name: Pasta do serviço reproduzível (linux-x64)
     if: github.event_name != 'schedule'

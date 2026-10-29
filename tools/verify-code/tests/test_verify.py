@@ -35,6 +35,7 @@ WITHOUT_BASE = [
     "lint_service",
     "properties",
     "package",
+    "offline_start",
     "mutation",
     "ruler_proof",
     "dependencies",

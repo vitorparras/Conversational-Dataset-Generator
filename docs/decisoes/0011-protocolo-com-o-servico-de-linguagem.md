@@ -1,6 +1,7 @@
 # 0011 — O protocolo com o serviço de linguagem
 
 > Decisão substituída por 0018 na resposta e por 0041 na distribuição. 2026-10-04.
+> Emendada em 2026-10-29: quem escuta na porta prova ter o segredo.
 
 ## Contexto
 
@@ -29,6 +30,10 @@ tivesse nada a pseudonimizar, e o pipeline que devia falhar fechado falha aberto
 
 O formato é JSON — inspecionável, sem geração de código no build — sobre transporte **restrito à
 máquina local**: o serviço escuta só na interface local, com segredo gerado na inicialização.
+**Quem escuta na porta prova ter o segredo antes de recebê-lo** (emenda de 2026-10-29): `/version`
+não pede o segredo e, dado um nonce novo em `x-service-nonce`, responde em `x-service-proof` o
+HMAC-SHA256 do nonce chaveado pelo segredo. O núcleo confere a prova em cada conexão nova e só
+então manda segredo ou texto; prova ausente ou errada é serviço inalcançável.
 
 **Nunca entram em registro de log** o texto, qualquer trecho dele, e as posições: posição com tipo,
 somada ao texto que o núcleo tem, reconstrói o dado pessoal. O log recebe o identificador, o tempo,
@@ -44,11 +49,6 @@ a versão do modelo e a contagem de trechos por tipo; em falha, a exceção sem 
 | Transporte em interface de rede | Expõe texto anterior à sanitização a quem alcance a rede, e autenticar não reduz esse alcance |
 
 ## Consequências
-
-A distribuição do serviço fica em aberto, e a decisão 0002 não a cobre: ela recusa Python e Java no
-núcleo por exigirem interpretador ou máquina virtual no destino, e o serviço que ela mantém exige
-interpretador e modelo no destino. O tamanho do modelo precisa ser medido antes de a distribuição
-ser fechada: é ele que decide se o executável único vale para o conjunto ou só para o núcleo.
 
 O núcleo passa a supervisionar um processo que não é dele, e a indisponibilidade dele interrompe a
 ingestão por decisão, não por acidente. Sem texto em log, reproduzir reconhecimento errado exige

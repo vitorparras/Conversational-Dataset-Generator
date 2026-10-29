@@ -11,7 +11,7 @@ internal static class FailureRegistry
 
     private const string Exists = "SELECT to_regclass('" + Table + "') IS NOT NULL";
 
-    /// <summary>Whether the row was written; false when the table is not there yet or the server refused the insert.</summary>
+    /// <summary>Whether the row was written; false when the table is not there yet, the server refused the insert or the session is gone.</summary>
     internal static async Task<bool> TryRecordAsync(NpgsqlConnection connection, MigrationStep step, string? sqlState, CancellationToken cancellationToken)
     {
         try
@@ -25,6 +25,10 @@ internal static class FailureRegistry
             return true;
         }
         catch (NpgsqlException)
+        {
+            return false;
+        }
+        catch (InvalidOperationException) when (SessionLoss.Is(connection))
         {
             return false;
         }

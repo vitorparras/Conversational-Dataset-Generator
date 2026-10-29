@@ -3,6 +3,8 @@ with no row of its own that no `Absorve:` enumeration names fails, in both langu
 
 from __future__ import annotations
 
+import shutil
+
 from steps import areas_doc
 from steps.common import StepResult
 
@@ -36,6 +38,11 @@ class FloorsInnerTests(fixture.FloorsFixture):
         super().setUp()
         support.write(self.root, areas_doc.DOCUMENT, DOCUMENT)
         self.core((LOGGING, "L.cs", "1"))
+        self.project("Core.Platform")
+        for name in ("Versions", "Clock"):
+            self.source(f"core/src/Core.Platform/{name}/{name}.cs")
+        for name in ("app", "routes"):
+            self.source(f"{SERVICE}/{name}.py")
 
     def source(self, relative: str) -> None:
         support.write(self.root, relative, "namespace X;\n")
@@ -56,8 +63,6 @@ class FloorsInnerTests(fixture.FloorsFixture):
 
     def test_a_folder_the_row_of_its_project_enumerates_passes(self) -> None:
         self.project("Core.Platform")
-        self.source("core/src/Core.Platform/Versions/Reader.cs")
-        self.source("core/src/Core.Platform/Clock/Clock.cs")
 
         self.assertEqual(gaps(self.run_step()), [])
 
@@ -106,8 +111,6 @@ class FloorsInnerTests(fixture.FloorsFixture):
         self.assertIn(f"{SERVICE}/custody/: sem linha", gaps(result)[0])
 
     def test_modules_the_row_enumerates_or_that_have_a_row_of_their_own_pass(self) -> None:
-        for name in ("app", "routes", "auth"):
-            self.source(f"{SERVICE}/{name}.py")
         self.package("auth")
 
         self.assertEqual(gaps(self.run_step()), [])
@@ -128,3 +131,25 @@ class FloorsInnerTests(fixture.FloorsFixture):
         self.assertFalse(result.ok)
         self.assertEqual([d for d in result.details if "Custody" in d], [])
         self.assertEqual(result.details[0].split(":")[0], "core/src/Core.Vault/")
+
+    def test_a_folder_the_row_enumerates_that_is_gone_fails_naming_it(self) -> None:
+        shutil.rmtree(self.root / "core/src/Core.Platform/Clock")
+
+        result = self.run_step()
+
+        self.assertFalse(result.ok)
+        self.assertEqual(
+            gaps(result),
+            [
+                f"{areas_doc.DOCUMENT}: `Clock` em `Absorve:` de `Core.Platform` "
+                "e não existe mais; tire-o da lista"
+            ],
+        )
+
+    def test_a_module_the_row_enumerates_that_is_gone_fails_naming_it(self) -> None:
+        (self.root / SERVICE / "routes.py").unlink()
+
+        result = self.run_step()
+
+        self.assertFalse(result.ok)
+        self.assertIn("`routes` em `Absorve:` de `language_service`", gaps(result)[0])

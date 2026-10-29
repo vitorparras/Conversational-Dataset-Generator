@@ -21,7 +21,10 @@ cabeçalho é fixo e lido pela verificação; linha nova segue o mesmo formato. 
 como **namespace e pasta**: o passo `floors` reprova o arquivo C# de `core/src` que cai numa área
 pelo namespace e noutra pela pasta, nomeando as duas. No serviço, módulo e arquivo coincidem por
 construção. Código fora de toda área listada conta na do projeto ou pacote que o contém, pelo
-prefixo mais longo que casar. A linha "demais" lista no Motivo, após `Absorve:` e até o `;`, as pastas de primeiro nível (módulos, no serviço) que cobre; a que não tem linha própria nem consta ali reprova o `floors`, com o nome. Área ainda sem projeto entra na tabela pelo nome, por exceção declarada à [regra 5](../regras-de-escrita.md).
+prefixo mais longo que casar. O Motivo da linha "demais" lista após `Absorve:`, até o `;`, as
+pastas de primeiro nível (módulos, no serviço) que ela cobre. O que o `floors` reprova nisso e o
+que fica fora do julgamento está na [019](019-leitura-da-tabela-pelo-floors.md). Área ainda sem
+projeto entra na tabela pelo nome, por exceção declarada à [regra 5](../regras-de-escrita.md).
 
 | Área | Projeto/pacote | Piso | Crítica | Motivo |
 |---|---|---|---|---|
@@ -43,10 +46,6 @@ prefixo mais longo que casar. A linha "demais" lista no Motivo, após `Absorve:`
 | Serviço, demais módulos | `language_service` | 80 % | não | Absorve: `app`, `contract`, `gate`, `recognizers`, `routes`, `server`, `startup`; rotas, contrato e reconhecedor vazio, sem segredo nem registro |
 | Executável | `Core.Host` | 60 % | não | Absorve: `Endpoints`, `Migration`, `Supervision`; só composição, sem regra, coberto por teste de integração |
 | Ferramentas | `tools` | 60 % | não | Scripts da verificação; falha reprova o build, não vaza dado |
-
-`isento` é o único valor não numérico aceito: a área está declarada e nada se compara. Área medida
-fora da tabela reprova; piso ausente não é piso zero. Área com piso e sem linha a cobrir (`0 de 0`)
-aparece sem código e não reprova, salvo se a área tem projeto ou pacote e nenhum relatório o leu.
 
 O teste de mutação percorre as áreas com `sim` em Crítica; as regras dele estão na
 [017](017-teste-de-mutacao.md).

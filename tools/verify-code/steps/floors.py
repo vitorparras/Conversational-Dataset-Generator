@@ -168,22 +168,36 @@ def first_level(root: Path, tree: Tree) -> tuple[tuple[str, str], ...]:
 
 def unlisted(root: Path, areas: tuple[Area, ...]) -> Verdict:
     """A failure for each first-level folder or module that has no row of its own in the document
-    and that the row owning it does not enumerate after `Absorve:`."""
-    found = (
-        (path, unit, area_of(unit, areas))
-        for tree in TREES
-        for path, unit in first_level(root, tree)
-    )
+    and that the row owning it does not enumerate after `Absorve:`, and for each name a row
+    enumerates that is no longer on disk."""
+    found = tuple(item for tree in TREES for item in first_level(root, tree))
     # A project or package no row owns is named by `orphans`, not here.
+    owned = ((path, unit, area_of(unit, areas)) for path, unit in found)
     missing = (
         (path, owner)
-        for path, unit, owner in found
+        for path, unit, owner in owned
         if owner is not None
         and owner.prefix != unit
         and unit.rsplit(".", 1)[1] not in owner.absorbs
     )
     rule = f"sem linha em {DOCUMENT} nem enumerada em `Absorve:` na linha"
-    return Verdict(failures=tuple(f"{path}: {rule} `{owner.prefix}`" for path, owner in missing))
+    on_disk = {unit for _, unit in found}
+    gone = (
+        (name, area)
+        for area in areas
+        for name in area.absorbs
+        if f"{area.prefix}.{name}" not in on_disk
+    )
+    stale = "e não existe mais; tire-o da lista"
+    return Verdict(
+        failures=(
+            *(f"{path}: {rule} `{owner.prefix}`" for path, owner in missing),
+            *(
+                f"{DOCUMENT}: `{name}` em `Absorve:` de `{area.prefix}` {stale}"
+                for name, area in gone
+            ),
+        )
+    )
 
 
 def run(ctx: Context) -> StepResult:

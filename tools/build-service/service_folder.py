@@ -97,14 +97,7 @@ def unset_install_dir(target: Path, store_copy: Path) -> None:
 def install_packages(job: Job, interpreter: Path, scratch: Path) -> None:
     """Installs the locked tree with its hashes, then the service itself, into the interpreter."""
     requirements = scratch / "requirements.txt"
-    group = [
-        "--no-dev",
-        "--group",
-        job.group,
-        "--no-emit-project",
-        "--format",
-        "requirements-txt",
-    ]
+    group = ["--no-dev", "--group", job.group, "--no-emit-project", "--format", "requirements-txt"]
     run(
         [
             "uv",
@@ -150,9 +143,12 @@ def build_wheel(interpreter: Path, scratch: Path) -> Path:
 
 def generator(wheel: Path) -> str:
     """The WHEEL file of a wheel, where the builder writes its name and version."""
-    with zipfile.ZipFile(wheel) as archive:
-        name = next(n for n in archive.namelist() if n.endswith(".dist-info/WHEEL"))
-        return archive.read(name).decode("utf-8")
+    try:
+        with zipfile.ZipFile(wheel) as archive:
+            name = next(n for n in archive.namelist() if n.endswith(".dist-info/WHEEL"))
+            return archive.read(name).decode("utf-8")
+    except (zipfile.BadZipFile, StopIteration) as error:
+        raise BuildError(f"{wheel.name} sem WHEEL legível ({type(error).__name__})") from error
 
 
 def compile_bytecode(interpreter: Path, python: Path) -> None:

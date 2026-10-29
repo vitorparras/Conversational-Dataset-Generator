@@ -1,3 +1,4 @@
+using Core.Tests.Support.Harness;
 using CsCheck;
 
 namespace Core.Tests.Properties.Harness;

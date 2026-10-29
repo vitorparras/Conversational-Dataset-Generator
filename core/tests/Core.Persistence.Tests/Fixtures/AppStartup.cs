@@ -3,7 +3,7 @@ using Core.Persistence.ServerGuarantees;
 using Core.Platform.Startup;
 using Npgsql;
 
-namespace Core.Tests.Integration.Fixtures;
+namespace Core.Persistence.Tests.Fixtures;
 
 /// <summary>What a normal start does against the database, as the application's role: the server guarantees and then the version of the schema.</summary>
 internal static class AppStartup

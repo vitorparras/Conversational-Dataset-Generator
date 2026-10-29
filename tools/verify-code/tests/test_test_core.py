@@ -59,6 +59,29 @@ class TestCoreTests(unittest.TestCase):
         self.assertFalse(result.ok)
         self.assertIn("o projeto de teste Beta.Tests não executou nenhum teste", result.details)
 
+    def test_a_library_that_is_no_test_project_is_not_asked_to_run_tests(self) -> None:
+        solution = self.root / test_core.SOLUTION
+        solution.write_text(
+            solution.read_text(encoding="utf-8").replace(
+                "</Solution>", '  <Project Path="tests/Support/Support.csproj" />\n</Solution>'
+            ),
+            encoding="utf-8",
+        )
+        support.write(
+            self.root,
+            "core/tests/Support/Support.csproj",
+            "<Project><PropertyGroup><IsTestProject>false</IsTestProject></PropertyGroup></Project>",
+        )
+        files = {
+            "a.trx": support.trx("Alpha.Tests", 3, 0),
+            "b.trx": support.trx("Beta.Tests", 2, 0),
+            "c.cobertura.xml": "<coverage/>",
+        }
+
+        result = test_core.run(support.context(self.root, self.runner(files)))
+
+        self.assertTrue(result.ok, result.details)
+
     def test_a_failed_test_fails_the_step(self) -> None:
         files = {
             "a.trx": support.trx("Alpha.Tests", 3, 1),

@@ -28,4 +28,7 @@ internal static partial class MigrationLogMessages
     [LoggerMessage(EventId = 306, Level = LogLevel.Error, Message = "Migração não rodou: o servidor não aceitou a conexão ou a leitura do registro (SQLSTATE {SqlState}); "
         + "confira o endereço, o banco, o papel e a senha de dono")]
     internal static partial void NotConnected(this ILogger logger, string sqlState);
+
+    [LoggerMessage(EventId = 307, Level = LogLevel.Information, Message = "Falha do passo {Step} gravada em schema_failure (versão, nome, resumo e SQLSTATE; sem texto do passo)")]
+    internal static partial void FailureRecorded(this ILogger logger, string step);
 }

@@ -1,9 +1,14 @@
-"""Runs the property suites of both languages; a side that executed no property fails the step."""
+"""Runs the property suites of both languages; a side that executed no property fails the step.
+
+The core side runs the whole solution filtered by the trait, so a property is found wherever its
+module keeps it, in any test project; a project with none is no failure, only a side with none is.
+"""
 
 from __future__ import annotations
 
 from pathlib import Path
 
+from steps.build_core import SOLUTION
 from steps.build_service import LOCKED, UV
 from steps.common import CommandOutcome, Context, StepResult, failed, passed, reset_directory, tail
 from steps.property_evidence import NONE, PropertyEvidence, from_junit, from_trx
@@ -12,8 +17,9 @@ NAME = "properties"
 RESULTS = "properties"
 CORE_SIDE = "núcleo (.NET)"
 SERVICE_SIDE = "serviço (Python)"
-CORE_PROJECT = "core/tests/Core.Tests.Properties/Core.Tests.Properties.csproj"
 CORE_FILTER = ("--filter-trait", "Kind=Property")
+# a test project the filter leaves without a test exits with 8; the side as a whole must run one
+CORE_TOLERANCE = ("--ignore-exit-code", "8")
 SERVICE_FILTER = ("-m", "property")
 JUNIT = "pytest.xml"
 
@@ -46,11 +52,11 @@ def problems(side: str, evidence: PropertyEvidence, outcome: CommandOutcome) -> 
 
 
 def run(ctx: Context) -> StepResult:
-    if not (ctx.root / CORE_PROJECT).is_file():
-        return failed(NAME, f"{CORE_SIDE}: {CORE_PROJECT} não existe: não há propriedades")
+    if not (ctx.root / SOLUTION).is_file():
+        return failed(NAME, f"{CORE_SIDE}: {SOLUTION} não existe: não há propriedades")
     results = ctx.out_dir / RESULTS
     reset_directory(results)
-    dotnet = ["dotnet", "test", "--project", CORE_PROJECT, "--report-xunit-trx", *CORE_FILTER]
+    dotnet = ["dotnet", "test", SOLUTION, "--report-xunit-trx", *CORE_FILTER, *CORE_TOLERANCE]
     core = ctx.run([*dotnet, "--results-directory", str(results)], ctx.root)
     pytest = [*UV, "run", *LOCKED, "pytest", *SERVICE_FILTER, "--junitxml", str(results / JUNIT)]
     service = ctx.run(pytest, ctx.root)

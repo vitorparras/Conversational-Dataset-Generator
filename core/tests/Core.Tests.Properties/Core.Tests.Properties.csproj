@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Core.Boundary\Core.Boundary.csproj" />
     <ProjectReference Include="..\..\src\Core.Platform\Core.Platform.csproj" />
+    <ProjectReference Include="..\Core.Tests.Support\Core.Tests.Support.csproj" />
   </ItemGroup>
 
   <ItemGroup>

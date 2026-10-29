@@ -1,9 +1,9 @@
 using System.Text.Json;
 using Core.Boundary.Contracts;
 using Core.Boundary.Http;
-using Core.Tests.Properties.Harness;
+using Core.Tests.Support.Harness;
 
-namespace Core.Tests.Properties.Boundary;
+namespace Core.Boundary.Tests.Properties;
 
 /// <summary>
 /// The invariants of the answers the core accepts: decisão 0011 (docs/decisoes/0011-protocolo-com-o-servico-de-linguagem.md),

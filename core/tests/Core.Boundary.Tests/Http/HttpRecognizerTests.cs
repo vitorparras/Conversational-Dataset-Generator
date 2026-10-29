@@ -71,7 +71,9 @@ public sealed class HttpRecognizerTests : IDisposable
     [Fact]
     public async Task PortWithNoListenerIsConnectionRefused()
     {
-        var outcome = await recognition.AskAsync(FakeService.FreePort());
+        using var closed = new ClosedPort();
+
+        var outcome = await recognition.AskAsync(closed.Number);
 
         Assert.Equal(UnavailabilityReason.ConnectionRefused, outcome.Reason);
     }
@@ -233,7 +235,8 @@ public sealed class HttpRecognizerTests : IDisposable
     [Fact]
     public async Task MissingRequestIsADefect()
     {
-        var recognizer = recognition.Of(FakeService.FreePort(), Recognition.Generous);
+        using var closed = new ClosedPort();
+        var recognizer = recognition.Of(closed.Number, Recognition.Generous);
 
         _ = await Assert.ThrowsAsync<ArgumentNullException>(() => recognizer.RecognizeAsync(null!, TestContext.Current.CancellationToken));
     }

@@ -14,6 +14,9 @@ internal static class ChildProcessError
         using var child = Process.Start(info) ?? throw new InvalidOperationException("The child process did not start.");
         var error = child.StandardError.ReadToEnd();
         child.WaitForExit();
-        return error;
+        return child.ExitCode == 0
+            ? error
+            : throw new InvalidOperationException(
+                $"The child process ended with code 0x{child.ExitCode:X8} and wrote {error.Length} characters to its error stream: it did not run, so there is nothing to sweep.");
     }
 }

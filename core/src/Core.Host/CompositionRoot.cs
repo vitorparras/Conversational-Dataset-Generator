@@ -121,7 +121,7 @@ internal static class CompositionRoot
     {
         _ = RecognizerConfiguration.UsesFake(values)
             ? services.AddSingleton<IRecognizer, FakeRecognizer>().AddSingleton<IServiceVersionReader, NoServiceVersionReader>()
-            : services.AddTransient<IRecognizer>(provider => Recognizer(provider, analyzeTimeout))
+            : services.AddTransient(provider => Recognizer(provider, analyzeTimeout))
                 .AddTransient(ServiceVersionReader);
         _ = services.AddTransient<MaterialAnalysis>();
     }
@@ -215,25 +215,27 @@ internal static class CompositionRoot
         return app;
     }
 
-    /// <summary>The recognizer of the service the supervisor started, with its secret and the client that never goes through a proxy.</summary>
-    private static HttpRecognizer Recognizer(IServiceProvider host, TimeSpan analyzeTimeout)
+    /// <summary>
+    /// The recognizer of the service the supervisor has alive now, with its secret and the client that never goes through a proxy;
+    /// with no such service, one that refuses without connecting, so that nothing goes to the port a service that is gone once held.
+    /// </summary>
+    private static IRecognizer Recognizer(IServiceProvider host, TimeSpan analyzeTimeout)
     {
         var startup = host.GetRequiredService<ServiceProvider>();
-        var supervisor = startup.GetRequiredService<LanguageServiceSupervisor>();
-        var port = supervisor.Port ?? throw new InvalidOperationException("The language service has no port before it has answered.");
-        return new HttpRecognizer(
-            startup.GetRequiredService<HttpClient>(),
-            new HttpRecognizerSettings(port, supervisor.Secret, analyzeTimeout),
-            host.GetRequiredService<ILogger<HttpRecognizer>>());
+        return startup.GetRequiredService<LanguageServiceSupervisor>().Endpoint is { } endpoint
+            ? new HttpRecognizer(
+                startup.GetRequiredService<HttpClient>(),
+                new HttpRecognizerSettings(endpoint.Port, endpoint.Secret, analyzeTimeout),
+                host.GetRequiredService<ILogger<HttpRecognizer>>())
+            : new StoppedServiceRecognizer(host.GetRequiredService<ILogger<StoppedServiceRecognizer>>());
     }
 
     /// <summary>The reader of the versions of the service the supervisor has now; with no service running there is none to ask.</summary>
     private static IServiceVersionReader ServiceVersionReader(IServiceProvider host)
     {
         var startup = host.GetRequiredService<ServiceProvider>();
-        var supervisor = startup.GetRequiredService<LanguageServiceSupervisor>();
-        return supervisor.Port is { } port && supervisor.Secret.Length > 0
-            ? new HttpServiceVersionReader(startup.GetRequiredService<HttpClient>(), new HttpRecognizerSettings(port, supervisor.Secret, ServiceVersionTimeout))
+        return startup.GetRequiredService<LanguageServiceSupervisor>().Endpoint is { } endpoint
+            ? new HttpServiceVersionReader(startup.GetRequiredService<HttpClient>(), new HttpRecognizerSettings(endpoint.Port, endpoint.Secret, ServiceVersionTimeout))
             : new NoServiceVersionReader();
     }
 

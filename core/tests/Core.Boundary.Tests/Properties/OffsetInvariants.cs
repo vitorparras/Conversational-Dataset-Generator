@@ -1,7 +1,7 @@
 using Core.Boundary.Contracts;
-using Core.Tests.Properties.Harness;
+using Core.Tests.Support.Harness;
 
-namespace Core.Tests.Properties.Boundary;
+namespace Core.Boundary.Tests.Properties;
 
 /// <summary>
 /// The invariants of the offsets the language service sends: decisão 0011

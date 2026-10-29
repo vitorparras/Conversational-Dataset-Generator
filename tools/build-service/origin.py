@@ -2,7 +2,7 @@
 
 It names the commit the build ran on, whether the working tree held changes not committed, and the
 versions the folder carries: interpreter, service and model package. A dirty tree is not refused;
-the file says so, which is what lets whoever holds the folder tell it from one built from the commit.
+the file says so, which lets whoever holds the folder tell it from one built from the commit.
 The manifest covers the file, so changing what it declares is changing the folder.
 """
 
@@ -72,17 +72,26 @@ def service_version(service: Path) -> str:
     return str(project["project"]["version"])
 
 
-def read(root: Path, service: Path, system: str, python: str, model: str) -> Origin:
-    """The origin of a build of ``service`` for ``system``, as ``root`` holds it right now.
+@dataclass(frozen=True)
+class Build:
+    """What the build chose: the system, the interpreter version and the model by package name."""
 
-    It has to be read before anything is installed: building the service may leave files in the tree.
+    system: str
+    python: str
+    model: str
+
+
+def read(root: Path, service: Path, build: Build) -> Origin:
+    """The origin of a build of ``service``, as the tree at ``root`` holds it right now.
+
+    Read it before anything is installed: building the service may leave files in the tree.
     """
-    package = model.replace("_", "-")
+    package = build.model.replace("_", "-")
     return Origin(
         commit=git(root, "rev-parse", "HEAD").strip(),
         tree=tree_state(root),
-        system=system,
-        python=python,
+        system=build.system,
+        python=build.python,
         service=service_version(service),
         model=package,
         model_version=locked_version(service, package),

@@ -3,9 +3,10 @@
 
     python tools/build-service/service_folder.py --system S --model M --output DIR
 
-The folder lands in DIR/language-service with the interpreter of the contract, an ORIGIN.json that
-says where it came from and a SHA256SUMS manifest. The network is needed only here: the folder runs without it. The interpreter comes from
-`uv python install`, which installs for the machine it runs on, so the system must be this one.
+The folder lands in DIR/language-service with the interpreter of the contract, an ORIGIN.json
+that says where it came from and a SHA256SUMS manifest. The network is needed only here: the folder
+runs without it. The interpreter comes from `uv python install`, which installs for the machine it
+runs on, so the system must be this one.
 """
 
 from __future__ import annotations
@@ -21,6 +22,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
+import installs
 import origin
 import sums
 import systems
@@ -116,8 +118,12 @@ def compile_bytecode(interpreter: Path, python: Path) -> None:
     for cache in list(python.rglob("__pycache__")):
         shutil.rmtree(cache)
     flags = ["-m", "compileall", "-q", "-f", "-j0", "--invalidation-mode", "checked-hash"]
+    # Bytecode records the path of its source: relative to the folder, builds in two places agree.
+    paths = ["-s", str(python.parent)]
     # Sources with invalid syntax, test data of the standard library, make compileall exit 1.
-    subprocess.run([str(interpreter), *flags, str(python)], capture_output=True, check=False)
+    subprocess.run(
+        [str(interpreter), *flags, *paths, str(python)], capture_output=True, check=False
+    )
 
 
 def smoke(job: Job, interpreter: Path, scratch: Path) -> None:
@@ -137,11 +143,15 @@ def smoke(job: Job, interpreter: Path, scratch: Path) -> None:
 def fill(job: Job, scratch: Path) -> int:
     """Puts everything into the folder, proves it and returns the files its manifest covers."""
     interpreter = job.folder / job.system.interpreter
-    declared = origin.read(ROOT, ROOT / SERVICE, job.system.name, PYTHON_VERSION, job.model)
+    build = origin.Build(job.system.name, PYTHON_VERSION, job.model)
+    declared = origin.read(ROOT, ROOT / SERVICE, build)
     install_interpreter(scratch / "store", job.folder / "python")
     if not interpreter.is_file():
         raise BuildError(f"o interpretador não está em {job.system.interpreter}")
+    site_packages, scripts = job.folder / job.system.site_packages, job.folder / job.system.scripts
+    bundled = installs.installed(site_packages)
     install_packages(job, interpreter, scratch)
+    installs.scrub(site_packages, scripts, bundled)
     compile_bytecode(interpreter, job.folder / "python")
     origin.write(job.folder, declared)
     count = sums.write(job.folder)

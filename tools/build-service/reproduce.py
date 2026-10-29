@@ -123,7 +123,9 @@ def compare(first: Mapping[str, str], second: Mapping[str, str]) -> Comparison:
 
 def report(comparison: Comparison) -> list[str]:
     """The lines that say what the comparison found, one per item that differs."""
-    reason = (f"{name}: {JUSTIFIED.get(name, 'SEM justificativa')}" for name in comparison.different)
+    reason = (
+        f"{name}: {JUSTIFIED.get(name, 'SEM justificativa')}" for name in comparison.different
+    )
     lines = [f"{comparison.equal} arquivos iguais byte a byte nas duas pastas"]
     lines += [f"difere: {line}" for line in reason]
     lines += [f"só na primeira: {name}" for name in comparison.only_first]

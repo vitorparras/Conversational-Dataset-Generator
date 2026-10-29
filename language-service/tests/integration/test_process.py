@@ -1,11 +1,18 @@
 """The real process: it serves once it has the secret, and leaves when standard input ends."""
 
+import socket
 import subprocess
 from collections.abc import Iterator
 
 import pytest
 
-from language_service.startup import EXIT_USAGE, MISSING_SECRET_MESSAGE, USAGE
+from language_service.startup import (
+    BIND_FAILED_MESSAGE,
+    EXIT_BIND,
+    EXIT_USAGE,
+    MISSING_SECRET_MESSAGE,
+    USAGE,
+)
 from support import process
 from support.process import HEALTHY, STOP_TIMEOUT_SECONDS
 
@@ -50,3 +57,29 @@ def test_service_without_secret_exits_with_usage() -> None:
     exit = process.run("--port", str(process.free_port()))
 
     assert (exit.code, exit.stderr.strip()) == (EXIT_USAGE, MISSING_SECRET_MESSAGE)
+
+
+def test_service_started_on_port_zero_announces_the_port_it_holds() -> None:
+    service = process.start(0)
+    try:
+        port = process.announced_port(service)
+
+        assert port is not None
+        assert process.wait_for_health(port, service) == HEALTHY
+    finally:
+        process.stop(service)
+
+
+def test_service_on_a_port_someone_holds_leaves_with_the_bind_code_and_announces_nothing() -> None:
+    with socket.socket() as holder:
+        holder.bind((process.LOOPBACK, 0))
+        holder.listen()
+        service = process.start(holder.getsockname()[1])
+
+        output = process.finish(service)
+
+    assert (output.code, output.stdout, output.stderr.decode("utf-8").strip()) == (
+        EXIT_BIND,
+        b"",
+        BIND_FAILED_MESSAGE,
+    )

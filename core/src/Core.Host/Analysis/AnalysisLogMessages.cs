@@ -10,6 +10,9 @@ internal static partial class AnalysisLogMessages
     [LoggerMessage(EventId = 204, Level = LogLevel.Error, Message = "Análise {Reference} interrompida: {Reason}; nada foi gravado")]
     internal static partial void Interrupted(this ILogger logger, Guid reference, UnavailabilityReason reason);
 
+    [LoggerMessage(EventId = 206, Level = LogLevel.Error, Message = "Análise {Reference} recusada sem enviar nada: o serviço de linguagem não está em execução")]
+    internal static partial void NotSent(this ILogger logger, string reference);
+
     [LoggerMessage(EventId = 205, Level = LogLevel.Information, Message = "Análise {Reference} pedida para retomar a análise interrompida {Interrupted}")]
     internal static partial void Resumed(this ILogger logger, Guid reference, Guid interrupted);
 }

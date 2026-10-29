@@ -19,7 +19,7 @@ public sealed class ServiceLifecycleTests : IDisposable
         var previous = supervisor.Secret;
 
         _ = await supervisor.RestartAsync(Request, SupervisionHarness.Timeout, cancellationToken);
-        var status = await harness.HealthAsync(supervisor.ProcessId!.Value, previous, cancellationToken);
+        var status = await harness.HealthAsync(supervisor.Port!.Value, previous, cancellationToken);
 
         Assert.Equal(HttpStatusCode.Unauthorized, status);
     }
@@ -32,7 +32,7 @@ public sealed class ServiceLifecycleTests : IDisposable
         var previous = supervisor.Secret;
 
         var outcome = await supervisor.RestartAsync(Request, SupervisionHarness.Timeout, cancellationToken);
-        var status = await harness.HealthAsync(supervisor.ProcessId!.Value, supervisor.Secret, cancellationToken);
+        var status = await harness.HealthAsync(supervisor.Port!.Value, supervisor.Secret, cancellationToken);
 
         Assert.Equal(StartOutcome.Started, outcome);
         Assert.NotEqual(previous, supervisor.Secret);

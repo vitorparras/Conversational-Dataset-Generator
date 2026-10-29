@@ -53,7 +53,7 @@ def {MARKER}() -> int:
     sixth = fifth + 1
     return sixth
 '''
-WEAK_TEST = '''"""Planted by the ruler proof in a throwaway copy; it builds the verifier and asserts nothing."""
+WEAK_TEST = '''"""Planted by the ruler proof; it builds the verifier and asserts nothing."""
 
 from language_service import auth
 

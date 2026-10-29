@@ -3,8 +3,8 @@
 
     python tools/build-service/service_folder.py --system S --model M --output DIR
 
-The folder lands in DIR/language-service with the interpreter of the contract and a SHA256SUMS
-manifest. The network is needed only here: the folder runs without it. The interpreter comes from
+The folder lands in DIR/language-service with the interpreter of the contract, an ORIGIN.json that
+says where it came from and a SHA256SUMS manifest. The network is needed only here: the folder runs without it. The interpreter comes from
 `uv python install`, which installs for the machine it runs on, so the system must be this one.
 """
 
@@ -21,6 +21,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
+import origin
 import sums
 import systems
 
@@ -35,6 +36,9 @@ OUTPUT_TAIL_LINES = 15
 
 class BuildError(Exception):
     """A step of the build that failed, in words for whoever runs it."""
+
+
+FAILURES = (BuildError, origin.OriginError, OSError, ValueError, subprocess.CalledProcessError)
 
 
 @dataclass(frozen=True)
@@ -133,11 +137,13 @@ def smoke(job: Job, interpreter: Path, scratch: Path) -> None:
 def fill(job: Job, scratch: Path) -> int:
     """Puts everything into the folder, proves it and returns the files its manifest covers."""
     interpreter = job.folder / job.system.interpreter
+    declared = origin.read(ROOT, ROOT / SERVICE, job.system.name, PYTHON_VERSION, job.model)
     install_interpreter(scratch / "store", job.folder / "python")
     if not interpreter.is_file():
         raise BuildError(f"o interpretador não está em {job.system.interpreter}")
     install_packages(job, interpreter, scratch)
     compile_bytecode(interpreter, job.folder / "python")
+    origin.write(job.folder, declared)
     count = sums.write(job.folder)
     smoke(job, interpreter, scratch)
     return count
@@ -150,7 +156,7 @@ def assemble(job: Job) -> int:
     try:
         with tempfile.TemporaryDirectory(prefix="cdg-service-", ignore_cleanup_errors=True) as tmp:
             return fill(job, Path(tmp))
-    except (BuildError, OSError, ValueError, subprocess.CalledProcessError):
+    except FAILURES:
         shutil.rmtree(job.folder, ignore_errors=True)
         raise
 
@@ -175,7 +181,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
     try:
         count = assemble(job)
-    except (BuildError, OSError, ValueError, subprocess.CalledProcessError) as error:
+    except FAILURES as error:
         print(f"a montagem falhou: {error}")
         return 1
     print(f"{job.folder}: {count} arquivos no manifesto")

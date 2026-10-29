@@ -47,10 +47,6 @@ projeto entra na tabela pelo nome, por exceção declarada à [regra 5](../regra
 | Executável | `Core.Host` | 60 % | não | Absorve: `Endpoints`, `Migration`, `Supervision`; só composição, sem regra, coberto por teste de integração |
 | Ferramentas | `tools` | 60 % | não | Scripts da verificação; falha reprova o build, não vaza dado |
 
-`isento` é o único valor não numérico aceito: a área está declarada e nada se compara. Área medida
-fora da tabela reprova; piso ausente não é piso zero. Área com piso e sem linha a cobrir (`0 de 0`)
-aparece sem código e não reprova, salvo se a área tem projeto ou pacote e nenhum relatório o leu.
-
 O teste de mutação percorre as áreas com `sim` em Crítica; as regras dele estão na
 [017](017-teste-de-mutacao.md).
 

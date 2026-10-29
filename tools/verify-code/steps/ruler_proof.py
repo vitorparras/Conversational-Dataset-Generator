@@ -8,15 +8,19 @@ the ruler is what is broken, and the step fails.
 
 from __future__ import annotations
 
+import os
 import shutil
 import stat
+import sys
 import tempfile
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Generator, Mapping
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
-from steps import package, properties, test_service
+from steps import floors, mutation, package, properties, test_service
 from steps.common import Context, StepResult, failed, passed, tail
+from steps.coverage_by_area import SUMMARY
 from steps.ruler_seed import MARKER, SEEDS, Seed
 
 NAME = "ruler_proof"
@@ -31,11 +35,13 @@ Populate = Callable[[Context, Path], StepResult | None]
 
 @dataclass(frozen=True)
 class Kit:
-    """What the proof builds on: the mechanisms by name, how the copy is made and where it lives."""
+    """What the proof builds on: the mechanisms by name, how the copy is made, where it lives and
+    the system it runs on."""
 
     mechanisms: Mapping[str, Mechanism]
     populate: Populate
     make_parent: Callable[[], Path]
+    platform: str = sys.platform
 
 
 def clone_head(ctx: Context, parent: Path) -> StepResult | None:
@@ -52,7 +58,12 @@ def make_parent() -> Path:
 
 
 DEFAULT = Kit(
-    {"properties": properties.run, "test_service": test_service.run},
+    {
+        "properties": properties.run,
+        "test_service": test_service.run,
+        "floors": floors.run,
+        "mutation": mutation.run,
+    },
     clone_head,
     make_parent,
 )
@@ -70,7 +81,9 @@ def discard(parent: Path) -> None:
 
 def refusal(seed: Seed, copy: Path, ctx: Context, kit: Kit) -> tuple[str | None, list[str]]:
     """The mechanism that refused the planted defect with its line, or None, and what was tried."""
-    copy_ctx = Context(copy, copy / ".verify-code", ctx.run, ctx.base, ctx.previous, ctx.run_for)
+    copy_ctx = Context(
+        copy, copy / ".verify-code", ctx.run, ctx.base, ctx.previous, ctx.run_for, seed.module
+    )
     tried: list[str] = []
     for name in seed.mechanisms:
         result = kit.mechanisms[name](copy_ctx)
@@ -81,32 +94,52 @@ def refusal(seed: Seed, copy: Path, ctx: Context, kit: Kit) -> tuple[str | None,
     return None, tried
 
 
-def restore(target: Path, original: bytes | None) -> None:
-    """Puts ``target`` back as it was: its old bytes, or gone if the seed created it."""
-    if original is None:
-        target.unlink(missing_ok=True)
-    else:
-        target.write_bytes(original)
+def restore(copy: Path, originals: Mapping[str, bytes | None]) -> None:
+    """Puts each file back as it was: its old bytes, or gone if the seed created it."""
+    for name, original in originals.items():
+        if original is None:
+            (copy / name).unlink(missing_ok=True)
+        else:
+            (copy / name).write_bytes(original)
 
 
 def judge_seed(seed: Seed, copy: Path, ctx: Context, kit: Kit) -> tuple[bool, list[str]]:
     """Plants one defect in the copy, runs its mechanisms and reports in the format of the issue.
 
-    The file is put back afterwards, so the next defect meets the copy as the first one did.
+    The files it may change are put back afterwards, so the next defect meets the copy as the first
+    one did. A defect whose mechanism runs on another system is not planted: the proof says so.
     """
-    target = copy / seed.where
-    original = target.read_bytes() if target.is_file() else None
+    if seed.platform is not None and kit.platform != seed.platform:
+        skipped = f"AVISO — {seed.case} não provada: o mecanismo só roda no {seed.platform}"
+        return True, [skipped, f"  em {kit.platform}; a prova inteira roda no {seed.platform}"]
+    originals = {
+        name: (copy / name).read_bytes() if (copy / name).is_file() else None
+        for name in seed.touches(copy)
+    }
     problem = seed.plant(copy)
     if problem is not None:
+        restore(copy, originals)
         return False, [f"{seed.case}: a semente não pôde ser plantada: {problem}"]
     try:
         refused_by, tried = refusal(seed, copy, ctx, kit)
     finally:
-        restore(target, original)
+        restore(copy, originals)
     planted = f"semeado: {seed.what}, em {seed.where}"
     if refused_by is None:
         return False, [f"a régua aceitou {seed.case}", planted, *(f"  aceito: {t}" for t in tried)]
     return True, [seed.case, f"  {planted}", f"  recusado por: {refused_by}"]
+
+
+@contextmanager
+def without_summary() -> Generator[None]:
+    """Floors and mutation append their verdict to the job summary; a planted defect's refusal
+    must not read there as a finding of the run that proves the ruler."""
+    saved = os.environ.pop(SUMMARY, None)
+    try:
+        yield
+    finally:
+        if saved is not None:
+            os.environ[SUMMARY] = saved
 
 
 def traces(ctx: Context, before: str, parent: Path) -> list[str]:
@@ -127,8 +160,9 @@ def prove(ctx: Context, kit: Kit) -> StepResult:
         return failed(NAME, "não foi possível ler o estado da árvore", *tail(status.text))
     parent = kit.make_parent()
     try:
-        problem = kit.populate(ctx, parent)
-        verdicts = [] if problem else [judge_seed(s, parent / COPY, ctx, kit) for s in SEEDS]
+        with without_summary():
+            problem = kit.populate(ctx, parent)
+            verdicts = [] if problem else [judge_seed(s, parent / COPY, ctx, kit) for s in SEEDS]
     finally:
         discard(parent)
     left = traces(ctx, status.text, parent)

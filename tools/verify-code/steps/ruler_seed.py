@@ -2,8 +2,8 @@
 
 One is a false property added to the service's property suite; one flips the comparison of the
 startup secret in a critical module of docs/operacao/014; one adds code no test runs to that same
-module, which pulls its coverage under the floor; the last empties the tests that check it, so no
-test reaches its mutants and they survive. Each aims at the service because it costs least, and the
+module, which pulls its coverage under the floor; the last empties the tests that check it, so the
+mutants it leaves unchecked survive. Each aims at the service because it costs least, and the
 last at a single module so the proof does not pay for the whole mutation matrix. None is ever
 planted in the working tree: the callers hand these functions the root of a throwaway copy.
 """
@@ -53,13 +53,13 @@ def {MARKER}() -> int:
     sixth = fifth + 1
     return sixth
 '''
-WEAK_TEST = '''"""Planted by the ruler proof in a throwaway copy; it only imports the module."""
+WEAK_TEST = '''"""Planted by the ruler proof in a throwaway copy; it builds the verifier and asserts nothing."""
 
 from language_service import auth
 
 
-def test_imports_the_module() -> None:
-    auth.SecretVerifier
+def test_builds_the_verifier() -> None:
+    auth.SecretVerifier.from_secret(b"secret")
 '''
 
 Plant = Callable[[Path], str | None]
@@ -213,7 +213,7 @@ SEEDS: tuple[Seed, ...] = (
     ),
     Seed(
         "mutantes sobreviventes",
-        "testes de `language_service.auth` esvaziados: importam o módulo e não afirmam nada",
+        "testes de `language_service.auth` esvaziados: constroem o verificador e não afirmam nada",
         WEAK_TESTS,
         plant_weak_tests,
         weak_test_files,

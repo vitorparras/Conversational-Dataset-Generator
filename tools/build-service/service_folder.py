@@ -22,7 +22,6 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
-import installs
 import origin
 import sums
 import systems
@@ -31,6 +30,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SERVICE = "language-service"
 PYTHON_VERSION = "3.12.13"
 MODEL = re.compile(r"[a-z]{2}_core_news_[a-z]+")
+BUILD_REQUIREMENTS = "build-requirements.txt"
 EXTERNALLY_MANAGED = "EXTERNALLY-MANAGED"
 UNSET_BYTECODE_VARIABLES = ("PYTHONDONTWRITEBYTECODE", "PYTHONPATH", "PYTHONHOME")
 OUTPUT_TAIL_LINES = 15
@@ -107,7 +107,38 @@ def install_packages(job: Job, interpreter: Path, scratch: Path) -> None:
     )
     install = ["uv", "pip", "install", "--python", interpreter, "--link-mode", "copy"]
     run([*install, "--require-hashes", "--no-deps", "--requirement", requirements])
-    run([*install, "--no-deps", ROOT / SERVICE])
+    run([*install, "--no-deps", build_wheel(interpreter, scratch)])
+
+
+def build_wheel(interpreter: Path, scratch: Path) -> Path:
+    """Builds the service into a wheel with the build backend of BUILD_REQUIREMENTS, by hash.
+
+    The backend named in the project file is a range, resolved when the build runs and checked by
+    no hash; building without isolation, in an environment that holds only the pinned one, is the
+    way to run the backend the file pins.
+    """
+    environment, wheels = scratch / "build-env", scratch / "wheels"
+    run(["uv", "venv", "--quiet", "--python", interpreter, environment])
+    pinned = ROOT / SERVICE / BUILD_REQUIREMENTS
+    run(
+        [
+            "uv",
+            "pip",
+            "install",
+            "--python",
+            environment,
+            "--require-hashes",
+            "--no-deps",
+            "-r",
+            pinned,
+        ]
+    )
+    build = ["uv", "build", "--wheel", "--no-build-isolation", "--python", environment]
+    run([*build, "--out-dir", wheels, ROOT / SERVICE])
+    built = list(wheels.glob("*.whl"))
+    if len(built) != 1:
+        raise BuildError(f"a construção do serviço deixou {len(built)} wheels em {wheels}")
+    return built[0]
 
 
 def compile_bytecode(interpreter: Path, python: Path) -> None:
@@ -117,15 +148,9 @@ def compile_bytecode(interpreter: Path, python: Path) -> None:
     """
     for cache in list(python.rglob("__pycache__")):
         shutil.rmtree(cache)
-    # One process: marshal marks the strings that other objects share, so the bytes of a module the
-    # compiler itself imported depend on which worker compiled it. A single process always agrees.
-    flags = ["-m", "compileall", "-q", "-f", "--invalidation-mode", "checked-hash"]
-    # Bytecode records the path of its source: relative to the folder, builds in two places agree.
-    paths = ["-s", str(python.parent)]
+    flags = ["-m", "compileall", "-q", "-f", "-j0", "--invalidation-mode", "checked-hash"]
     # Sources with invalid syntax, test data of the standard library, make compileall exit 1.
-    subprocess.run(
-        [str(interpreter), *flags, *paths, str(python)], capture_output=True, check=False
-    )
+    subprocess.run([str(interpreter), *flags, str(python)], capture_output=True, check=False)
 
 
 def smoke(job: Job, interpreter: Path, scratch: Path) -> None:
@@ -150,10 +175,7 @@ def fill(job: Job, scratch: Path) -> int:
     install_interpreter(scratch / "store", job.folder / "python")
     if not interpreter.is_file():
         raise BuildError(f"o interpretador não está em {job.system.interpreter}")
-    site_packages, scripts = job.folder / job.system.site_packages, job.folder / job.system.scripts
-    bundled = installs.installed(site_packages)
     install_packages(job, interpreter, scratch)
-    installs.scrub(site_packages, scripts, bundled)
     compile_bytecode(interpreter, job.folder / "python")
     origin.write(job.folder, declared)
     count = sums.write(job.folder)

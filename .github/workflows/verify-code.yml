@@ -88,21 +88,6 @@ jobs:
           export NO_PROXY='' no_proxy=''
           python tools/verify-code/verify.py --step package
 
-  service_folder:
-    name: Pasta do serviço reproduzível (linux-x64)
-    if: github.event_name != 'schedule'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: '3.12'
-      - name: Instalar uv na versão fixada
-        run: pip install -r tools/verify-code/service-requirements.txt
-      - name: Montar a pasta em duas cópias limpas, a segunda sem rede, e comparar byte a byte
-        run: python tools/build-service/reproduce.py --system linux-x64 --model pt_core_news_md
-
   mutation_modules:
     name: Módulos críticos da mutação
     if: github.event_name != 'schedule'

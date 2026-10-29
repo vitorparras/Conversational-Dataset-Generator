@@ -1,0 +1,6 @@
+# Backend of build-system.requires in pyproject.toml, pinned: the range there is not hashed.
+# Only the wheels of the two systems the folder is built for (docs/operacao/018).
+uv-build==0.13.6 \
+    --hash=sha256:b23bbf1393acb47c1bd434f79daa91c158a14a504894485b5a9948f68d63170b \
+    --hash=sha256:aa801f10feb6e7b1f8c83ab7166864fa5f798bd79333b0648320ff12f0ea8824 \
+    --hash=sha256:2a2350fbea9a3cf578481b5efc2d333f0477f26696aa615d312866acd170acf6

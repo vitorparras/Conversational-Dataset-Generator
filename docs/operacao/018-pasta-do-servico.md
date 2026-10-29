@@ -29,7 +29,9 @@ cópia bloqueado no Firewall (com controle positivo), `PYTHONHOME` e `PYTHONPATH
 - As dependências do `language-service/uv.lock`, com hash, e o grupo do modelo (só o
   pt_core_news_md; outro entra pelo `language-service/pyproject.toml`, não por opção do script).
   Tudo vai para dentro do interpretador. Sem hash, a instalação recusa: nada se resolve na hora.
-- O próprio serviço, instalado, nunca o código-fonte do repositório.
+- O próprio serviço, instalado de um wheel, nunca o código-fonte do repositório. O backend de
+  construção (uv_build) vem do `language-service/build-requirements.txt`, com hash, e o wheel se
+  constrói sem isolamento: a faixa do projeto não se resolve na montagem.
 - O ORIGIN.json: commit, estado da árvore (`clean` ou `dirty`), sistema e versões do interpretador,
   do serviço e do pacote do modelo. Mudança não registrada não é recusada: a pasta diz `dirty`.
   Lido antes de instalar, que pode sujar a árvore.
@@ -42,16 +44,6 @@ O Python reescreve bytecode quando a cópia traz data nova. O script remove o ma
 `EXTERNALLY-MANAGED`, apaga todo `__pycache__` e recompila tudo, biblioteca padrão incluída, com
 `compileall -f --invalidation-mode checked-hash`. Antes de terminar, importa o serviço, carrega o
 modelo e confere o manifesto de novo; se algo mudou, a montagem falha nomeando o arquivo.
-
-## Reprodução
-
-`python tools/build-service/reproduce.py --system S --model M` clona o commit duas vezes, monta a
-pasta em cada clone e compara tudo byte a byte. A segunda montagem roda sem rede (`UV_OFFLINE=1` e
-proxy numa porta fechada), só com o que a primeira baixou. Para os bytes coincidirem, o bytecode
-grava o caminho do fonte relativo à pasta, e saem dos pacotes instalados os lançadores de comando
-(levam o caminho de quem montou e quebram ao mover a pasta; o serviço sobe por `-m`) e, do serviço,
-os dois metadados que nomeiam a pasta de origem, com as linhas deles no RECORD. Diferença que
-sobrar entra em `JUSTIFIED`, com o motivo, e aqui: hoje, nenhuma. O job `service_folder` a cada PR.
 
 ## Dois artefatos
 

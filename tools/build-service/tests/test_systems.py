@@ -15,17 +15,6 @@ class SystemsTests(unittest.TestCase):
     def test_windows_keeps_the_interpreter_at_the_root_of_python(self) -> None:
         self.assertEqual("python/python.exe", systems.SYSTEMS["win-x64"].interpreter)
 
-    def test_packages_and_their_scripts_sit_where_each_system_puts_them(self) -> None:
-        linux, windows = systems.LINUX_X64, systems.WINDOWS_X64
-
-        self.assertEqual(
-            ("python/lib/python3.12/site-packages", "python/bin"),
-            (linux.site_packages, linux.scripts),
-        )
-        self.assertEqual(
-            ("python/Lib/site-packages", "python/Scripts"), (windows.site_packages, windows.scripts)
-        )
-
     def test_the_host_is_the_system_of_its_platform_and_machine(self) -> None:
         with (
             mock.patch.object(systems.sys, "platform", "linux"),

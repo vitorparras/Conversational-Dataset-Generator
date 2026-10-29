@@ -33,6 +33,7 @@ SCRIPT = Path(__file__).resolve().with_name("service_folder.py")
 CLOSED_PORT_PROXY = "http://127.0.0.1:9"
 PROXIES = ("HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy")
 NO_PROXY = ("NO_PROXY", "no_proxy")
+ARCHIVES = "UV_PYTHON_CACHE_DIR"
 TAIL_LINES = 15
 # path of a file relative to the folder -> why it may differ; empty: every byte is reproduced
 JUSTIFIED: Mapping[str, str] = {}
@@ -136,12 +137,14 @@ def prove(job: service_folder.Job, environment: Mapping[str, str]) -> int:
     with tempfile.TemporaryDirectory(prefix="cdg-reproduce-", ignore_cleanup_errors=True) as tmp:
         scratch = Path(tmp)
         folders: list[Path] = []
+        # `uv python install` keeps no archive unless told where: the second build needs the first's
+        shared = {**environment, ARCHIVES: str(scratch / "python-archives")}
         for turn, network, world in (
-            ("primeira", "com rede", environment),
-            ("segunda", "sem rede", offline(environment)),
+            ("primeira", "com rede", shared),
+            ("segunda", "sem rede", offline(shared)),
         ):
             copy, output = scratch / f"copy-{turn}", scratch / f"out-{turn}"
-            clone(commit, copy, environment)
+            clone(commit, copy, shared)
             seconds = build(copy, service_folder.Job(job.system, job.model, output), world)
             print(f"{turn} montagem {network}: {seconds:.0f} s")
             folders.append(output / service_folder.SERVICE)

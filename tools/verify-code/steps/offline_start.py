@@ -1,106 +1,139 @@
-"""Starts the published core in a container with no network and fails on any attempt to reach one.
+"""Starts the published core as an operator would, with no network, and fails on any attempt.
 
-The container is created with `--network none`, so the loopback is the only interface it has, and
-the host runs under strace inside it (tools/verify-code/offline_start/start.sh). The host is the
-single executable `package` publishes, told to listen on the loopback with the fake recognizer: the
-published folder carries no language service, and no database is declared. The step passes only if
-the host printed the line that says it serves and left with 0 when stopped, and the trace shows no
-connection outside the loopback and no DNS query (see steps/strace_log.py).
+The host runs in a container that shares the network namespace of the database container, which
+has no network at all: the loopback is the only interface. The service folder comes from
+tools/build-service, assembled beforehand in a container that does have a network (see
+steps/offline_containers.py). Inside, under strace (tools/verify-code/offline_start/start.sh), the
+host migrates the schema, then starts with the real recognizer: it checks the database, the
+service folder and the language service it starts, and serves. The step passes only if the host
+reached the line that says it serves with the schema, the contract and the service all present,
+both runs left with 0, and the traces show no connection outside the loopback and no DNS query
+(see steps/strace_log.py).
 """
 
 from __future__ import annotations
 
 import re
 import tempfile
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 
+from steps import offline_containers as containers
 from steps import package, strace_log
-from steps.common import CommandOutcome, Context, StepResult, failed, passed, reset_directory, tail
+from steps.common import Context, StepResult, failed, passed, reset_directory, tail
 
-NAME = "offline_start"
-TARGET = "linux-x64"
-IMAGE_FOLDER = "tools/verify-code/offline_start"
-IMAGE = "cdg-offline-start:verify"
-CONTAINER = "cdg-offline-start-run"
+NAME = containers.NAME
 RESULTS = "offline-start"
 READY = re.compile(r"Now listening on: http://127\.0\.0\.1:\d+")
+VERSIONS = re.compile(r"Versões em execução .*")
+MUST_BE_PRESENT = ("SchemaVersion", "ContractVersion", "LanguageServiceVersion")
 LOOPBACK_ONLY = ["lo"]
+PHASES = ("migrate", "serve")
 
 
-def docker(ctx: Context, *arguments: str) -> CommandOutcome:
-    return ctx.run(["docker", *arguments], ctx.root)
+@dataclass(frozen=True)
+class Evidence:
+    """What the host container left under /trace, read from the folder it was copied into."""
+
+    results: Path
+
+    def text(self, name: str) -> str:
+        """The file ``name``; empty when the container never got to write it."""
+        path = self.results / name
+        return path.read_text(encoding="utf-8", errors="replace") if path.is_file() else ""
+
+    def codes(self) -> dict[str, str]:
+        """The `key=value` lines of result.txt: the exit codes and whether the host served."""
+        pairs = (line.split("=", 1) for line in self.text("result.txt").splitlines() if "=" in line)
+        return {key: value for key, value in pairs}
+
+    def missing_versions(self) -> list[str]:
+        """The versions the startup line should carry and shows absent; all of them if no line."""
+        line = VERSIONS.search(self.text("serve.log"))
+        shown = line.group(0) if line else ""
+        return [name for name in MUST_BE_PRESENT if f"{name}=<absent>" in shown or not shown]
 
 
-def start(ctx: Context, published: Path, results: Path) -> CommandOutcome:
-    """Runs the container with the published folder in it and copies its /trace into ``results``.
-
-    The container is removed on the way out, also when a command fails or the run is interrupted.
-    """
-    _ = docker(ctx, "rm", "--force", CONTAINER)
-    try:
-        create = docker(ctx, "create", "--name", CONTAINER, "--network", "none", IMAGE)
-        copy = create if not create.ok else docker(ctx, "cp", f"{published}/.", f"{CONTAINER}:/app")
-        if not copy.ok:
-            return copy
-        started = docker(ctx, "start", "--attach", CONTAINER)
-        _ = docker(ctx, "cp", f"{CONTAINER}:/trace/.", str(results))
-        return started
-    finally:
-        _ = docker(ctx, "rm", "--force", CONTAINER)
-
-
-def read(results: Path, name: str) -> str:
-    """What the container wrote under ``name``; empty when it never got to write it."""
-    path = results / name
-    return path.read_text(encoding="utf-8", errors="replace") if path.is_file() else ""
-
-
-def problems_of(started: CommandOutcome, results: Path) -> tuple[str, ...]:
-    """Everything wrong with the start, from the container's outcome and the files it left."""
-    interfaces, host, trace = (
-        read(results, name) for name in ("interfaces.txt", "host.log", "strace.txt")
-    )
+def problems_of(evidence: Evidence) -> tuple[str, ...]:
+    """Everything wrong with the start, from the files the container left."""
+    codes = evidence.codes()
     found: list[str] = []
-    if interfaces.split() != LOOPBACK_ONLY:
+    if evidence.text("interfaces.txt").split() != LOOPBACK_ONLY:
         found.append(
-            f"o contêiner não ficou só com o loopback; interfaces lidas: {interfaces.split()}"
+            f"o namespace não ficou só com o loopback: {evidence.text('interfaces.txt')!r}"
         )
-    if not trace.strip():
-        found.append("o rastreador não registrou nada: sem rastro não há prova")
-    if READY.search(host) is None:
+    for phase in PHASES:
+        if not evidence.text(f"{phase}.strace").strip():
+            found.append(f"o rastreador não registrou nada em {phase}: sem rastro não há prova")
+        if codes.get(phase) != "0":
+            found.append(f"{phase} saiu com código {codes.get(phase, 'nenhum')}, esperado 0")
+    if codes.get("ready") != "yes" or READY.search(evidence.text("serve.log")) is None:
         found.append("a partida não chegou à linha de pronto (`Now listening on`)")
-    if started.code != 0:
-        found.append(f"o núcleo saiu com código {started.code}, esperado 0")
-    return (*found, *strace_log.refusals(trace))
+    found += [f"{name} ausente na linha de versões" for name in evidence.missing_versions()]
+    return tuple(found)
 
 
-def judge(started: CommandOutcome, results: Path) -> StepResult:
-    """Passes only for a start that served, stopped with 0 and tried nothing past the loopback."""
-    found = problems_of(started, results)
-    host = read(results, "host.log")
+def refusals_of(evidence: Evidence) -> tuple[str, ...]:
+    """What the traces of both runs show that the start must not do, each tagged with its run."""
+    return tuple(
+        f"{phase}: {refusal}"
+        for phase in PHASES
+        for refusal in strace_log.refusals(evidence.text(f"{phase}.strace"))
+    )
+
+
+def judge(evidence: Evidence) -> StepResult:
+    """Passes only for a start that served with all present and tried nothing past the loopback."""
+    found = (*problems_of(evidence), *refusals_of(evidence))
     if found:
-        return failed(NAME, *found, *tail(host or started.text))
-    seen = strace_log.seen(read(results, "strace.txt"))
+        logs = evidence.text("serve.log") or evidence.text("migrate.log")
+        return failed(NAME, *found, *tail(logs))
+    seen = strace_log.seen(evidence.text("migrate.strace") + evidence.text("serve.strace"))
     return passed(
         NAME,
-        "o núcleo publicado subiu num contêiner só com o loopback, serviu e saiu com 0",
+        "migração e partida do núcleo publicado sem rota de rede: banco, pasta e serviço de pé",
         f"chamadas com destino vistas pelo rastreador: {', '.join(seen) or 'nenhuma'}",
-        "nenhuma conexão fora do loopback e nenhuma consulta de DNS",
+        "nenhuma conexão fora do loopback e nenhuma consulta de DNS, nos dois processos",
     )
+
+
+def prepare(ctx: Context, scratch: Path) -> StepResult | None:
+    """Publishes the host into ``scratch`` and clones HEAD there; None when both worked."""
+    head = ctx.run(["git", "rev-parse", "HEAD"], ctx.root)
+    if not head.ok:
+        return failed(NAME, "o commit de HEAD não foi lido", *tail(head.text))
+    published = scratch / "published"
+    published.mkdir()
+    revision = package.Revision(head.text.strip(), None)
+    problem = package.publish(ctx, ctx.root, published, containers.SYSTEM)
+    problem = problem or package.clone(ctx, revision, scratch / "clone")
+    return replace(problem, name=NAME) if problem else None
+
+
+def serve(ctx: Context, scratch: Path) -> StepResult:
+    """Assembles the service folder of the clone, starts the server and the host, and judges."""
+    problem = prepare(ctx, scratch)
+    credentials = containers.Credentials()
+    problem = problem or containers.assemble_service(ctx, scratch / "clone")
+    problem = problem or containers.start_database(ctx, credentials)
+    if problem:
+        return problem
+    containers.run_host(ctx, scratch / "published", credentials)
+    results = ctx.out_dir / RESULTS
+    reset_directory(results)
+    containers.collect(ctx, results)
+    return judge(Evidence(results))
 
 
 def run(ctx: Context) -> StepResult:
     if not (ctx.root / package.PROJECT).is_file():
         return failed(NAME, f"{package.PROJECT} não existe: não há o que subir")
-    image = docker(ctx, "build", "--quiet", "--tag", IMAGE, IMAGE_FOLDER)
-    if not image.ok:
-        return failed(NAME, "a imagem com o rastreador não foi construída", *tail(image.text))
-    results = ctx.out_dir / RESULTS
-    reset_directory(results)
-    with tempfile.TemporaryDirectory(prefix="cdg-offline-", ignore_cleanup_errors=True) as scratch:
-        published = Path(scratch)
-        problem = package.publish(ctx, ctx.root, published, TARGET)
-        if problem is not None:
-            return replace(problem, name=NAME)
-        return judge(start(ctx, published, results), results)
+    problem = containers.build_images(ctx)
+    if problem is not None:
+        return problem
+    containers.remove_all(ctx)
+    try:
+        with tempfile.TemporaryDirectory(prefix="cdg-offline-", ignore_cleanup_errors=True) as tmp:
+            return serve(ctx, Path(tmp))
+    finally:
+        containers.remove_all(ctx)

@@ -21,7 +21,7 @@ cabeçalho é fixo e lido pela verificação; linha nova segue o mesmo formato. 
 como **namespace e pasta**: o passo `floors` reprova o arquivo C# de `core/src` que cai numa área
 pelo namespace e noutra pela pasta, nomeando as duas. No serviço, módulo e arquivo coincidem por
 construção. Código fora de toda área listada conta na do projeto ou pacote que o contém, pelo
-prefixo mais longo que casar. Área ainda sem projeto entra na tabela pelo nome, por exceção declarada à [regra 5](../regras-de-escrita.md).
+prefixo mais longo que casar. A linha "demais" lista no Motivo, após `Absorve:` e até o `;`, as pastas de primeiro nível (módulos, no serviço) que cobre; a que não tem linha própria nem consta ali reprova o `floors`, com o nome. Área ainda sem projeto entra na tabela pelo nome, por exceção declarada à [regra 5](../regras-de-escrita.md).
 
 | Área | Projeto/pacote | Piso | Crítica | Motivo |
 |---|---|---|---|---|
@@ -36,12 +36,12 @@ prefixo mais longo que casar. Área ainda sem projeto entra na tabela pelo nome,
 | Registro do serviço | `language_service.logging_` | 90 % | sim | Decide o que o serviço escreve em registro (requisito 021) |
 | Configuração | `Core.Platform.Configuration` | 80 % | não | Falha fechada na partida (requisito 032); não toca material |
 | Partida | `Core.Platform.Startup` | 80 % | não | Conferências que impedem subir sem garantia; sem material |
-| Plataforma, demais pastas | `Core.Platform` | 80 % | não | Versões, relógio e fonte da chave: portas e metadado, sem material |
+| Plataforma, demais pastas | `Core.Platform` | 80 % | não | Absorve: `Versions`; versões, relógio e fonte da chave: portas e metadado, sem material |
 | Garantias do servidor | `Core.Persistence.ServerGuarantees` | 80 % | não | Confere o banco sem alterá-lo; falha é recusa de subir |
-| Persistência, demais pastas | `Core.Persistence` | 80 % | não | Conexão com credencial da aplicação; sem consulta de domínio |
+| Persistência, demais pastas | `Core.Persistence` | 80 % | não | Absorve: `Connection`; conexão com credencial da aplicação, sem consulta de domínio |
 | Fronteira, demais pastas | `Core.Boundary` | 80 % | não | O que fica fora de Text, Http, Fake e Contracts; sem material próprio |
-| Serviço, demais módulos | `language_service` | 80 % | não | Rotas, contrato e reconhecedor vazio; sem segredo nem registro |
-| Executável | `Core.Host` | 60 % | não | Só composição, sem regra; coberto por teste de integração |
+| Serviço, demais módulos | `language_service` | 80 % | não | Absorve: `app`, `contract`, `gate`, `recognizers`, `routes`, `server`, `startup`; rotas, contrato e reconhecedor vazio, sem segredo nem registro |
+| Executável | `Core.Host` | 60 % | não | Absorve: `Endpoints`, `Migration`, `Supervision`; só composição, sem regra, coberto por teste de integração |
 | Ferramentas | `tools` | 60 % | não | Scripts da verificação; falha reprova o build, não vaza dado |
 
 `isento` é o único valor não numérico aceito: a área está declarada e nada se compara. Área medida

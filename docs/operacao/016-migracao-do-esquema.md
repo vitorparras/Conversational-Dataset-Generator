@@ -39,9 +39,11 @@ O modo grava, fora da transação, uma linha em `public.schema_failure`: versão
 SQLSTATE (se houver), quando e quem; sem mensagem, texto do passo nem dado de material. A tabela
 só recebe linhas, e a comparação lê só `public.schema_version`: falha repetida deixa outra linha,
 e o passo corrigido não apaga as anteriores. Não fica linha se a tabela não existe (0001 ou 0002)
-ou se a inserção falha; o código segue 13. Migrações simultâneas não aplicam o mesmo passo: a
-segunda espera e termina com 10. O modo escreve só no console, sem `Host:LogFile`: guarde a saída
-para o registro da janela.
+ou se a inserção falha, e tampouco quando a sessão se perdeu no meio do passo (servidor reiniciado
+ou conexão derrubada): o passo sai nomeado e o código segue 13. Quando a linha é gravada, o log
+traz uma linha a mais, `Falha do passo … gravada em schema_failure`. Migrações simultâneas não
+aplicam o mesmo passo: a segunda espera e termina com 10. O modo escreve só no console, sem
+`Host:LogFile`: guarde a saída para o registro da janela.
 
 ## A partida normal
 

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net.Sockets;
 using Core.Host.Migration;
 using Core.Persistence.Migrations;
 using Core.Platform.Configuration;
@@ -46,9 +47,17 @@ internal sealed class HostLaunch
         _ => throw new UnreachableException(),
     };
 
+    /// <summary>Serves until stopped; a port already taken or an address Kestrel cannot bind ends it with its own code instead of an unhandled exception.</summary>
     private ExitCode Serve()
     {
-        app!.Run();
-        return ExitCode.Success;
+        try
+        {
+            app!.Run();
+            return ExitCode.Success;
+        }
+        catch (Exception exception) when (exception is IOException or InvalidOperationException or SocketException or UnauthorizedAccessException)
+        {
+            return ServingFailure.Report(Console.Error, exception);
+        }
     }
 }

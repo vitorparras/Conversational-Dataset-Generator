@@ -26,6 +26,7 @@ public sealed class LogWithoutContentTests
         Assert.Empty(LogSweep.Leaks(evidence));
     }
 
+    [Trait("Category", "RealService")]
     [Fact]
     public async Task TextCrossingTheBoundaryToTheRealServiceLeavesTheMarkerInNoDestination()
     {

@@ -6,12 +6,16 @@ internal static class SourceTree
     private static readonly Lazy<string> CoreDirectory = new(FindCoreDirectory);
     private static readonly char[] PathSeparators = [Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar];
     private static readonly Lazy<IReadOnlyList<SourceFile>> Production = new(ReadProductionFiles);
+    private static readonly Lazy<IReadOnlyList<SourceFile>> Tests = new(ReadTestFiles);
 
     public static string CoreRoot => CoreDirectory.Value;
 
     public static string FixturesDirectory => Path.Combine(CoreDirectory.Value, "tests", "fixtures", "code-rules");
 
     public static IReadOnlyList<SourceFile> ProductionFiles() => Production.Value;
+
+    /// <summary>The sources of every test project but this one; the fixtures are no test.</summary>
+    public static IReadOnlyList<SourceFile> TestFiles() => Tests.Value;
 
     public static IReadOnlyList<ProjectFile> ProductionProjects() =>
         [.. EnumerateSources(Path.Combine(CoreDirectory.Value, "src"), "*.csproj").Select(ProjectFile.Read)];
@@ -37,6 +41,14 @@ internal static class SourceTree
 
     private static IReadOnlyList<SourceFile> ReadProductionFiles() =>
         [.. ProductionProjects().SelectMany(project => CompilerInvocation.Of(project.Path).SourceFiles).DistinctBy(file => file.Path)];
+
+    private static IReadOnlyList<SourceFile> ReadTestFiles() =>
+        [.. EnumerateSources(Path.Combine(CoreDirectory.Value, "tests"), "*.cs")
+            .Where(path => !IsFixtureOrOwn(path))
+            .Select(SourceFile.Read)];
+
+    private static bool IsFixtureOrOwn(string path) =>
+        Parts(path).Skip(1).First() is "fixtures" or "Core.Tests.Architecture";
 
     private static IEnumerable<string> EnumerateSources(string directory, string pattern) =>
         Directory.EnumerateFiles(directory, pattern, SearchOption.AllDirectories)

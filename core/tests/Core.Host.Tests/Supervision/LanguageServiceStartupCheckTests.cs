@@ -23,6 +23,7 @@ public sealed class LanguageServiceStartupCheckTests : IDisposable
         Assert.Null(supervisor.ProcessId);
     }
 
+    [Trait("Category", "RealService")]
     [Fact]
     public async Task TimeLimitThatIsNotAPositiveWholeNumberFailsNamingTheKeyThatHoldsIt()
     {
@@ -36,6 +37,7 @@ public sealed class LanguageServiceStartupCheckTests : IDisposable
         Assert.Null(supervisor.ProcessId);
     }
 
+    [Trait("Category", "RealService")]
     [Fact]
     public async Task ServiceThatAnswersPassesTheCheckAndStaysRunning()
     {

@@ -20,6 +20,7 @@ public sealed class StatusSmokeTests
         Assert.True(body.RootElement.GetProperty("alive").GetBoolean());
     }
 
+    [Trait("Category", "RealService")]
     [Fact]
     public async Task StatusReportsTheServiceAvailableAndTheProcessReady()
     {
@@ -33,6 +34,7 @@ public sealed class StatusSmokeTests
         Assert.Equal("Available", body.RootElement.GetProperty("languageService").GetString());
     }
 
+    [Trait("Category", "RealService")]
     [Fact]
     public async Task KillingTheServiceProcessTurnsTheStatusNotReady()
     {

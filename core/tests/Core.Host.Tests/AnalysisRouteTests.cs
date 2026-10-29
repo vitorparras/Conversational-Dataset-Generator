@@ -13,6 +13,7 @@ public sealed class AnalysisRouteTests
     private const string Route = "/analysis";
     private const string Marker = "ZQX-MARKER-0027-ROUTE";
 
+    [Trait("Category", "RealService")]
     [Fact]
     public async Task HostAskingTheRealServiceAnalysesTheTextAndFindsNothing()
     {
@@ -106,6 +107,7 @@ public sealed class AnalysisRouteTests
         Assert.DoesNotContain("PESSOA_1", output, StringComparison.Ordinal);
     }
 
+    [Trait("Category", "RealService")]
     [Fact]
     public async Task NoLineTheHostAskingTheRealServiceWritesHoldsTheText()
     {

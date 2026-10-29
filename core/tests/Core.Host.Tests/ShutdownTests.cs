@@ -38,6 +38,7 @@ public sealed class ShutdownTests
     }
 
     /// <summary>Nothing of the service is left once the host is gone; the order of the two ends is proved on the supervisor alone.</summary>
+    [Trait("Category", "RealService")]
     [LinuxFact]
     public async Task TerminationSignalLeavesNoLanguageServiceRunning()
     {
@@ -54,6 +55,7 @@ public sealed class ShutdownTests
         Assert.DoesNotContain(service, ProcessTree.IsRunning);
     }
 
+    [Trait("Category", "RealService")]
     [LinuxFact]
     public async Task LineOfTheLanguageServiceStopReachesTheLogFileBeforeItCloses()
     {

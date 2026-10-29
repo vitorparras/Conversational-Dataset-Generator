@@ -8,6 +8,7 @@ public sealed class SupervisedHostTests
     private static readonly TimeSpan ServiceExitLimit = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(50);
 
+    [Trait("Category", "RealService")]
     [Fact]
     public async Task ServiceEndsWithinFiveSecondsWhenTheHostIsKilledWithoutWarning()
     {
@@ -26,6 +27,7 @@ public sealed class SupervisedHostTests
         Assert.True(ended, "the service outlived a host killed without warning");
     }
 
+    [Trait("Category", "RealService")]
     [Fact]
     public async Task HostWithTheFakeStartsNoLanguageServiceEvenWhenTheInterpreterWorks()
     {

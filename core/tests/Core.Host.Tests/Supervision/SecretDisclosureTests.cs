@@ -1,6 +1,7 @@
 namespace Core.Host.Tests.Supervision;
 
 /// <summary>The secret reaches the service through standard input and nowhere else another process on the machine could read it.</summary>
+[Trait("Category", "RealService")]
 public sealed class SecretDisclosureTests : IDisposable
 {
     private readonly SupervisionHarness harness = new();

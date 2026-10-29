@@ -7,6 +7,7 @@ namespace Core.Host.Tests.Privacy;
 /// analysis refused, the retry that names it and a body the route rejects all leave the marker in no destination, and
 /// each of them is shown to have run by the line it wrote (issue #251, CA-5; requirement 021).
 /// </summary>
+[Trait("Category", "RealService")]
 public sealed class KilledServiceLogTests
 {
     [Fact]

@@ -214,13 +214,15 @@ class MutationScopeTests(fixture.MutationFixture):
 
         self.assertEqual([p.parent.name for p in found], ["Core.Boundary.Tests"])
 
-    def test_a_module_without_a_database_runs_stryker_in_parallel(self) -> None:
+    def test_a_module_without_a_database_runs_stryker_with_one_worker(self) -> None:
         self.run_step(healthy())
 
         config = json.loads((self.root / LOGGING_CONFIG).read_text(encoding="utf-8"))
-        self.assertEqual(config["stryker-config"]["concurrency"], mutation_core.PARALLEL)
+        self.assertEqual(config["stryker-config"]["concurrency"], 1)
 
-    def test_a_module_whose_test_project_starts_the_database_runs_stryker_alone(self) -> None:
+    def test_a_module_whose_test_project_starts_the_database_runs_stryker_with_one_worker(
+        self,
+    ) -> None:
         tests = self.root / "core/tests/Core.Platform.Tests/Core.Platform.Tests.csproj"
         reference = tests.read_text(encoding="utf-8")
         database = '<PackageReference Include="Testcontainers" />'
@@ -233,4 +235,4 @@ class MutationScopeTests(fixture.MutationFixture):
         self.run_step(healthy())
 
         config = json.loads((self.root / LOGGING_CONFIG).read_text(encoding="utf-8"))
-        self.assertEqual(config["stryker-config"]["concurrency"], mutation_core.ALONE)
+        self.assertEqual(config["stryker-config"]["concurrency"], 1)

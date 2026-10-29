@@ -73,14 +73,16 @@ class StrykerReportTests(unittest.TestCase):
         support.write(self.root, "s.json", report)
         return stryker_report.read_stryker(self.root / "s.json", self.root)
 
-    def test_a_static_mutant_is_static_whether_stryker_killed_it_or_not(self) -> None:
-        for status in ("Killed", "Survived", "NoCoverage", "Timeout"):
+    def test_a_static_mutant_counts_as_any_other(self) -> None:
+        expected = {
+            "Killed": MutantStatus.KILLED,
+            "Timeout": MutantStatus.KILLED,
+            "Survived": MutantStatus.SURVIVED,
+            "NoCoverage": MutantStatus.SURVIVED,
+        }
+        for status, outcome in expected.items():
             with self.subTest(status):
-                self.assertEqual(self.static_report(status)[0].status, MutantStatus.STATIC)
-
-    def test_a_static_mutant_that_never_ran_keeps_its_status(self) -> None:
-        self.assertEqual(self.static_report("CompileError")[0].status, MutantStatus.NOT_COUNTED)
-        self.assertEqual(self.static_report("Ignored")[0].status, MutantStatus.IGNORED)
+                self.assertEqual(self.static_report(status)[0].status, outcome)
 
     def test_a_pending_mutant_is_unchecked(self) -> None:
         mutants = self.read("Pending")

@@ -17,7 +17,6 @@ STATUS = {
     "RuntimeError": MutantStatus.NOT_COUNTED,
     "Ignored": MutantStatus.IGNORED,
 }
-DECIDED = (MutantStatus.KILLED, MutantStatus.SURVIVED)
 BOOLEAN = "Boolean mutation"
 
 
@@ -43,8 +42,6 @@ def mutant(file: str, entry: dict[str, Any], skipped: bool = False) -> Mutant:
     line = int(entry["location"]["start"]["line"])
     change = f"{entry['mutatorName']}: `{entry.get('replacement', '')}`"
     status = STATUS.get(entry["status"], MutantStatus.UNCHECKED)
-    if entry.get("static") and status in DECIDED:
-        status = MutantStatus.STATIC
     return Mutant(file, line, change, MutantStatus.IGNORED if skipped else status)
 
 

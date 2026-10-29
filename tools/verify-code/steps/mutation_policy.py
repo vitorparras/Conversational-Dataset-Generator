@@ -1,5 +1,5 @@
 """Reads the mutation rules of docs/operacao/017: the share of survivors a module may keep, the
-time ceiling per language and the method whose `false` argument is left out; the critical modules
+time ceiling per module and the method whose `false` argument is left out; the critical modules
 are the Crítica column of the table of 014. No number lives here."""
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ PHRASES = (
         re.compile(r"no máximo \*\*(\d{1,3}) % dos mutantes gerados\*\*"),
         "no máximo **N % dos mutantes gerados**",
     ),
-    (re.compile(r"\*\*(\d{1,3}) minutos por linguagem\*\*"), "**N minutos por linguagem**"),
+    (re.compile(r"\*\*(\d{1,3}) minutos por módulo\*\*"), "**N minutos por módulo**"),
     (
         re.compile(r"\*\*o mutante `false`→`true` do argumento de `(\w+)`\*\*"),
         "**o mutante `false`→`true` do argumento de `Método`**",
@@ -28,7 +28,7 @@ PHRASES = (
 
 @dataclass(frozen=True)
 class MutationPolicy:
-    """The survivor ceiling in percent, the minutes per language and the method whose `false`
+    """The survivor ceiling in percent, the minutes per module and the method whose `false`
     argument is left out of the share."""
 
     survivor_ceiling: int

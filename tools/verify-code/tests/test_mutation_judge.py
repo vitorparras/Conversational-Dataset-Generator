@@ -80,20 +80,6 @@ class MutationJudgeTests(unittest.TestCase):
             verdict.notes[1], "  fora da conta: 1 não compilam, 2 ignorados ou desligados"
         )
 
-    def test_static_mutants_are_named_and_stay_out_of_the_share(self) -> None:
-        static = Mutant("a.cs", 12, 'String mutation: `""`', MutantStatus.STATIC)
-
-        verdict = judge_module(module(4, 0, static, static), POLICY)
-
-        self.assertEqual(verdict.failures, ())
-        self.assertEqual(
-            verdict.notes[0],
-            "Registro (`Core.Platform.Logging`): 4 gerados, 4 mortos, 0 sobreviventes (0,0 %)",
-        )
-        self.assertEqual(
-            verdict.notes[1], "  fora da conta: 2 em inicializador estático (a.cs:12, a.cs:12)"
-        )
-
     def test_a_survivor_without_a_line_says_it_was_not_placed(self) -> None:
         verdict = judge_module(module(9, 0, UNPLACED), POLICY)
 
@@ -114,9 +100,9 @@ class MutationCeilingRuleTests(unittest.TestCase):
         self.assertFalse(mutation_judge.over_ceiling(longer, CEILING_SECONDS + 1))
 
     def test_the_ceiling_finding_names_the_modules_and_the_time(self) -> None:
-        found = mutation_judge.ceiling_problem(POLICY, ("A.B", "C"), 1290.0)
+        found = mutation_judge.ceiling_problem(POLICY, "A.B", 1290.0)
 
-        self.assertEqual(found, "teto de 20 min excedido em `A.B`, `C`: 21,5 min gastos")
+        self.assertEqual(found, "teto de 20 min excedido em `A.B`: 21,5 min gastos")
 
     def test_timed_returns_the_value_and_the_seconds_between_two_readings(self) -> None:
         with mock.patch("steps.mutation_judge.monotonic", side_effect=[10.0, 70.0]):
@@ -139,20 +125,35 @@ class MutationCeilingRuleTests(unittest.TestCase):
         expected = "Texto (`Core.Boundary.Text`): sem código; a mutação vale quando houver"
         self.assertEqual((verdict.failures, verdict.notes), ((), (expected,)))
 
-    def test_the_time_spent_is_reported_against_the_ceiling(self) -> None:
-        run = LanguageRun("núcleo", (module(1, 0),), seconds=90.0)
-
-        verdict = judge_language(run, POLICY)
-
-        self.assertEqual(verdict.notes[-1], "núcleo: 1,5 min de 20 min de teto")
-
-    def test_the_time_of_each_module_is_reported(self) -> None:
+    def test_the_time_of_the_module_is_reported_against_the_ceiling(self) -> None:
         timed = replace(module(1, 0), seconds=75.0)
-        run = LanguageRun("núcleo", (timed,), seconds=75.0)
 
-        verdict = judge_language(run, POLICY)
+        verdict = judge_module(timed, POLICY)
 
-        self.assertEqual(verdict.notes[-2], "núcleo, por módulo: `Core.Platform.Logging` 1,2 min")
+        self.assertEqual(verdict.notes[-1], "  tempo: 1,2 min de 20 min de teto")
+
+    def test_each_target_has_the_whole_ceiling_to_itself(self) -> None:
+        cuts: list[float] = []
+
+        def mutate(_target: str, seconds: float) -> ModuleResult:
+            cuts.append(seconds)
+            return module(1, 0)
+
+        with mock.patch("steps.mutation_judge.monotonic", side_effect=[0.0, 900.0, 0.0, 900.0]):
+            results, findings = mutation_judge.each(POLICY, ("a", "b"), mutate)
+
+        self.assertEqual((cuts, findings), ([CEILING_SECONDS, CEILING_SECONDS], ()))
+        self.assertEqual([r.seconds for r in results], [900.0, 900.0])
+
+    def test_only_the_module_that_passed_its_ceiling_is_named(self) -> None:
+        with mock.patch("steps.mutation_judge.monotonic", side_effect=[0.0, 1300.0, 0.0, 60.0]):
+            _, findings = mutation_judge.each(
+                POLICY, (TEXT, AREA), lambda area, _s: ModuleResult(area, (KILLED,))
+            )
+
+        self.assertEqual(
+            findings, ("teto de 20 min excedido em `Core.Boundary.Text`: 21,7 min gastos",)
+        )
 
     def test_module_failures_reach_the_language_verdict(self) -> None:
         run = LanguageRun("núcleo", (module(1, 1),))

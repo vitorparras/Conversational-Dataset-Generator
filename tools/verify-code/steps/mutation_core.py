@@ -10,7 +10,7 @@ from pathlib import Path
 from steps.areas_doc import Area, within
 from steps.common import Context, reset_directory, tail
 from steps.mutant import Mutant
-from steps.mutation_judge import LanguageRun, ModuleResult, in_turn
+from steps.mutation_judge import LanguageRun, ModuleResult, each
 from steps.mutation_policy import MutationPolicy
 from steps.stryker_report import read_stryker
 
@@ -24,9 +24,7 @@ CONFIG = "stryker-config.json"
 REPORT = "reports/mutation-report.json"
 RESTORE = ("dotnet", "tool", "restore")
 STRYKER = ("dotnet", "stryker", "--skip-version-check")
-DATABASE = re.compile(r'<PackageReference\s+Include="Testcontainers"')
-PARALLEL = 2
-ALONE = 1
+CONCURRENCY = 1
 
 
 @dataclass(frozen=True)
@@ -72,23 +70,17 @@ def test_projects(root: Path, project: str) -> tuple[Path, ...]:
     )
 
 
-def concurrency(tests: tuple[Path, ...]) -> int:
-    """One Stryker worker when a test project brings up the database, ``PARALLEL`` otherwise: each
-    worker would start its own container and the runs would fight over the machine."""
-    uses_database = any(DATABASE.search(path.read_text(encoding="utf-8")) for path in tests)
-    return ALONE if uses_database else PARALLEL
-
-
 def configuration(core: CoreTarget, tests: tuple[Path, ...]) -> str:
     """The Stryker configuration of one module; Stryker never reproves, the step judges. It sets
     no method filter: that one hides the whole call chain, so what the 017 leaves out is filtered
-    from the report (`read_stryker`)."""
+    from the report (`read_stryker`). One worker in every module keeps the verdicts the same from
+    one run to the next."""
     options = {
         "project": f"{core.project}.csproj",
         "test-projects": [str(path) for path in tests],
         "mutate": list(core.patterns),
         "test-runner": "mtp",
-        "concurrency": concurrency(tests),
+        "concurrency": CONCURRENCY,
         "reporters": ["json"],
         "thresholds": {"high": 100, "low": 0, "break": 0},
     }
@@ -123,7 +115,7 @@ def mutate(ctx: Context, core: CoreTarget, seconds: float, policy: MutationPolic
 def run_core(
     ctx: Context, areas: tuple[Area, ...], everything: tuple[Area, ...], policy: MutationPolicy
 ) -> LanguageRun:
-    """Every core module in turn, each cut at what is left of the ceiling; then the rest stops."""
+    """Every core module in turn, each cut at the ceiling it has to itself."""
     targets = tuple(c for area in areas if (c := target(ctx.root, area, everything)) is not None)
     absent = tuple(area for area in areas if area not in {core.area for core in targets})
     if not targets:
@@ -132,10 +124,7 @@ def run_core(
     if not restore.ok:
         missing = "`dotnet tool restore` falhou em core/: o Stryker.NET de core/dotnet-tools.json"
         return LanguageRun(SIDE, problems=(f"{missing} não está disponível", *tail(restore.text)))
-    results, findings, spent = in_turn(
-        policy,
-        targets,
-        lambda core: core.area,
-        lambda core, seconds: mutate(ctx, core, seconds, policy),
+    results, findings = each(
+        policy, targets, lambda core, seconds: mutate(ctx, core, seconds, policy)
     )
-    return LanguageRun(SIDE, results, absent, findings, seconds=spent)
+    return LanguageRun(SIDE, results, absent, findings)

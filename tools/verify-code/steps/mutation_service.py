@@ -16,7 +16,7 @@ from steps.areas_doc import DOCUMENT, Area, area_of, within
 from steps.build_service import REQUIREMENTS, SERVICE, UV
 from steps.common import Context, reset_directory, tail
 from steps.mutant import Mutant, MutantStatus
-from steps.mutation_judge import LanguageRun, ModuleResult, in_turn
+from steps.mutation_judge import LanguageRun, ModuleResult, each
 from steps.mutation_policy import MutationPolicy
 from steps.mutmut_report import Entry, entries, status_of, survivor
 
@@ -201,7 +201,7 @@ def mutate(
 def run_service(
     ctx: Context, areas: tuple[Area, ...], everything: tuple[Area, ...], policy: MutationPolicy
 ) -> LanguageRun:
-    """Every service module with code in turn, each cut at what is left of the ceiling."""
+    """Every service module with code in turn, each cut at the ceiling it has to itself."""
     targets = tuple(s for area in areas if (s := target(ctx.root, area, everything)) is not None)
     absent = tuple(area for area in areas if area not in {s.area for s in targets})
     if not targets:
@@ -211,12 +211,12 @@ def run_service(
         return LanguageRun(SIDE, absent=absent, notes=(skip,))
     if refused := own_configuration(ctx.root):
         return LanguageRun(SIDE, absent=absent, problems=refused)
-    results, findings, spent = in_turn(
-        policy, targets, lambda s: s.area, lambda s, seconds: mutate(ctx, s, everything, seconds)
+    results, findings = each(
+        policy, targets, lambda s, seconds: mutate(ctx, s, everything, seconds)
     )
     off = (
         f"{s.area.name} (`{s.area.prefix}`): {n} `{PRAGMA}` fora da mutação"
         for s in targets
         if (n := pragmas(ctx.root, s))
     )
-    return LanguageRun(SIDE, results, absent, findings, tuple(off), spent)
+    return LanguageRun(SIDE, results, absent, findings, tuple(off))

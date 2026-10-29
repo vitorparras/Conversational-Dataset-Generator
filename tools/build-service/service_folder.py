@@ -137,7 +137,7 @@ def build_wheel(interpreter: Path, scratch: Path) -> Path:
         raise BuildError(f"a construção do serviço deixou {len(built)} wheels em {wheels}")
     wanted = re.search(r"^uv-build==(\S+)", pinned.read_text(encoding="utf-8"), re.MULTILINE)
     if wanted is None or f"Generator: uv {wanted.group(1)}" not in generator(built[0]):
-        raise BuildError(f"o wheel não saiu do backend fixado em {BUILD_REQUIREMENTS}")
+        raise BuildError(f"{built[0].name} não saiu do backend fixado em {BUILD_REQUIREMENTS}")
     return built[0]
 
 

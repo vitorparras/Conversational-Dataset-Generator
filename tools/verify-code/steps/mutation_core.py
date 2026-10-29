@@ -25,7 +25,7 @@ REPORT = "reports/mutation-report.json"
 RESTORE = ("dotnet", "tool", "restore")
 STRYKER = ("dotnet", "stryker", "--skip-version-check")
 DATABASE = re.compile(r'<PackageReference\s+Include="Testcontainers"')
-PARALLEL = 1
+PARALLEL = 2
 ALONE = 1
 
 

@@ -46,8 +46,9 @@ A ordem é única: `--step test_core` sozinho, em árvore limpa, falha porque te
 `ruff` e `pyright` nas versões de `tools/verify-code/lint-requirements.txt` (`pip install -r`).
 
 O passo `test_core` deixa de fora os testes que sobem o serviço real (trait `Category=RealService`)
-e passa sem `uv`; o passo `test_real_service` roda só esses, com `uv` instalado, e lista os testes
-pulados com o motivo. O passo `ai_attribution` lê as mensagens dos commits entre a base e o HEAD
+e passa sem `uv`; o passo `test_real_service` roda só esses, com `uv` instalado, lista os testes
+pulados com o motivo e escreve a cobertura que o `coverage` soma à do `test_core` antes do
+`floors`. O passo `ai_attribution` lê as mensagens dos commits entre a base e o HEAD
 (`--base origin/main`) e reprova o trailer `Co-authored-by` de assistente de IA e a linha "Generated
 with", nomeando o hash e a linha; co-autoria humana e `dependabot[bot]` passam.
 

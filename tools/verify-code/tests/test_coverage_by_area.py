@@ -8,7 +8,14 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from steps import areas_doc, coverage_by_area, test_core, test_service, test_tools
+from steps import (
+    areas_doc,
+    coverage_by_area,
+    test_core,
+    test_real_service,
+    test_service,
+    test_tools,
+)
 from steps.common import StepResult
 
 from . import support
@@ -31,6 +38,7 @@ LOGGING = "Core.Platform.Logging.Formatter"
 STARTUP = "Core.Platform.Startup.Runner"
 CORE_REPORT = f"{test_core.RESULTS}/a.cobertura.xml"
 SECOND_CORE_REPORT = f"{test_core.RESULTS}/b.cobertura.xml"
+REAL_SERVICE_REPORT = f"{test_real_service.RESULTS}/c.cobertura.xml"
 SERVICE_REPORT = f"{test_service.RESULTS}/{test_service.REPORT}"
 TOOLS_REPORT = f"{test_tools.RESULTS}/{test_tools.REPORT}"
 
@@ -110,6 +118,25 @@ class CoverageByAreaTests(unittest.TestCase):
         result = self.run_step()
 
         self.assertIn("| Registro do núcleo | 90 % | 100,0 % | 2 de 2 |", result.details)
+
+    def test_a_line_only_the_real_service_tests_run_counts_as_covered(self) -> None:
+        self.core((LOGGING, "L.cs", "0 1"))
+        self.report(
+            REAL_SERVICE_REPORT, support.cobertura("Core.Platform", (LOGGING, "L.cs", "1 0"))
+        )
+
+        result = self.run_step()
+
+        self.assertIn("| Registro do núcleo | 90 % | 100,0 % | 2 de 2 |", result.details)
+
+    def test_the_real_service_report_alone_still_measures_the_core(self) -> None:
+        self.report(
+            REAL_SERVICE_REPORT, support.cobertura("Core.Platform", (LOGGING, "L.cs", "1 0"))
+        )
+
+        result = self.run_step()
+
+        self.assertIn("### Cobertura por área — núcleo (.NET)", result.details)
 
     def test_only_the_areas_of_the_measured_language_are_listed(self) -> None:
         self.core((LOGGING, "L.cs", "1"))

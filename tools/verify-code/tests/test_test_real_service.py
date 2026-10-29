@@ -43,6 +43,15 @@ class TestRealServiceTests(unittest.TestCase):
         self.assertEqual("Category=RealService", command[command.index("--filter-trait") + 1])
         self.assertNotIn("--filter-not-trait", command)
 
+    def test_the_command_writes_cobertura_reports_for_the_coverage_step_to_merge(self) -> None:
+        runner = self.runner({})
+
+        test_real_service.run(support.context(self.root, runner))
+
+        command = runner.commands[0]
+        self.assertIn("--coverage", command)
+        self.assertEqual("cobertura", command[command.index("--coverage-output-format") + 1])
+
     def test_no_test_executed_fails_instead_of_passing_empty(self) -> None:
         files = {"a.trx": support.trx("Alpha.Tests", 0, 0, skipped="ZQX-SEM-UV")}
 
@@ -105,14 +114,11 @@ def job(name: str) -> str:
 
 
 class RealServiceWorkflowTests(unittest.TestCase):
-    def test_the_job_of_test_core_installs_no_uv(self) -> None:
+    def test_the_core_job_runs_both_suites_before_it_measures_and_judges_the_floors(self) -> None:
         dotnet = job("dotnet")
 
-        self.assertIn("--step build_core test_core", dotnet)
-        self.assertNotIn("service-requirements.txt", dotnet)
+        self.assertIn("--step build_core test_core test_real_service ", dotnet)
+        self.assertIn(" coverage floors", dotnet)
 
-    def test_the_real_service_job_builds_then_runs_the_step_with_uv_installed(self) -> None:
-        real = job("real_service")
-
-        self.assertIn("pip install -r tools/verify-code/service-requirements.txt", real)
-        self.assertIn("--step build_core test_real_service", real)
+    def test_the_core_job_installs_uv_for_the_tests_that_start_the_real_service(self) -> None:
+        self.assertIn("-r tools/verify-code/service-requirements.txt", job("dotnet"))

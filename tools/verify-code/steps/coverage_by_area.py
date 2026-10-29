@@ -13,7 +13,7 @@ from functools import partial
 from pathlib import Path
 from xml.etree import ElementTree
 
-from steps import test_core, test_service, test_tools
+from steps import test_core, test_real_service, test_service, test_tools
 from steps.areas_doc import EXEMPT, Area, area_of, read_areas, within
 from steps.common import OUTPUT_DIRECTORY, Context, StepResult, failed, passed
 from steps.coverage_report import MeasuredLine, cobertura, coverage_py
@@ -29,11 +29,12 @@ EMPTY = "rode antes test_core, test_service ou test_tools; o passo não passa va
 
 @dataclass(frozen=True)
 class Report:
-    """A language's coverage report: its name, the prefix root it owns, where and how to read it."""
+    """A language's coverage report: its name, the prefix root it owns, where and how to read it;
+    the patterns are the folders of the steps that wrote one, merged line by line."""
 
     language: str
     root: str
-    pattern: str
+    patterns: tuple[str, ...]
     read: Callable[[Path, Path], tuple[MeasuredLine, ...]]
 
 
@@ -69,19 +70,22 @@ REPORTS: tuple[Report, ...] = (
     Report(
         "núcleo (.NET)",
         "Core",
-        f"{test_core.RESULTS}/*.cobertura.xml",
+        (
+            f"{test_core.RESULTS}/*.cobertura.xml",
+            f"{test_real_service.RESULTS}/*.cobertura.xml",
+        ),
         lambda path, _root: cobertura(path),
     ),
     Report(
         "serviço (Python)",
         "language_service",
-        f"{test_service.RESULTS}/{test_service.REPORT}",
+        (f"{test_service.RESULTS}/{test_service.REPORT}",),
         partial(coverage_py, segment="language_service"),
     ),
     Report(
         "ferramentas",
         test_tools.TOOLS,
-        f"{test_tools.RESULTS}/{test_tools.REPORT}",
+        (f"{test_tools.RESULTS}/{test_tools.REPORT}",),
         partial(coverage_py, segment=test_tools.TOOLS),
     ),
 )
@@ -135,7 +139,10 @@ def summarize(text: str) -> None:
 
 def _present(ctx: Context) -> tuple[tuple[Report, tuple[Path, ...]], ...]:
     """The reports this run finds on disk, each with its files."""
-    found = ((report, tuple(sorted(ctx.out_dir.glob(report.pattern)))) for report in REPORTS)
+    found = (
+        (report, tuple(sorted(p for pattern in report.patterns for p in ctx.out_dir.glob(pattern))))
+        for report in REPORTS
+    )
     return tuple((report, paths) for report, paths in found if paths)
 
 

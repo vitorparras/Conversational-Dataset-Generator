@@ -19,6 +19,7 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 
 from steps import (
+    ai_attribution,
     build_core,
     build_service,
     coverage_by_area,
@@ -73,6 +74,7 @@ STEPS: tuple[StepSpec, ...] = (
     StepSpec(trivy.NAME, trivy.run),
     StepSpec(static_analysis.NAME, static_analysis.run),
     StepSpec(pr_size.NAME, pr_size.run, needs_base=True),
+    StepSpec(ai_attribution.NAME, ai_attribution.run, needs_base=True),
 )
 
 

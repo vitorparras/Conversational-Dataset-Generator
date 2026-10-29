@@ -116,6 +116,13 @@ def git(repo: Path, *args: str) -> None:
     subprocess.run(["git", *FIXTURE_IDENTITY, *args], cwd=repo, check=True, capture_output=True)
 
 
+def git_output(repo: Path, *args: str) -> str:
+    done = subprocess.run(
+        ["git", *FIXTURE_IDENTITY, *args], cwd=repo, check=True, capture_output=True, text=True
+    )
+    return done.stdout.strip()
+
+
 def git_repository(path: Path) -> Path:
     """A repository with one commit on `main` and a `change` branch checked out on top of it."""
     git(path, "init", "-q", "-b", "main")

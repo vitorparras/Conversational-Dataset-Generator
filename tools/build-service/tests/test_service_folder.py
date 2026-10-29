@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import contextlib
 import io
+import marshal
 import re
 import sys
 import tempfile
@@ -17,6 +18,7 @@ import service_folder
 import systems
 
 CHECKED_HASH = 0b11
+PYC_HEADER_BYTES = 16
 
 
 def pinned_version() -> str:
@@ -182,3 +184,16 @@ class BuildTests(unittest.TestCase):
 
         with self.assertRaises(service_folder.BuildError):
             service_folder.build_wheel(Path("python"), self.output)
+
+    def test_bytecode_names_its_source_from_the_folder_and_not_from_where_it_was_built(
+        self,
+    ) -> None:
+        python = self.output / "language-service" / "python"
+        python.mkdir(parents=True)
+        (python / "mod.py").write_text("VALUE = 1\n", encoding="utf-8")
+
+        service_folder.compile_bytecode(Path(sys.executable), python)
+
+        compiled = next((python / "__pycache__").glob("mod.*.pyc")).read_bytes()
+        code = marshal.loads(compiled[PYC_HEADER_BYTES:])
+        self.assertEqual(str(Path("python") / "mod.py"), code.co_filename)

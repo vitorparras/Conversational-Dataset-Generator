@@ -23,6 +23,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
+import installs
 import origin
 import sums
 import systems
@@ -161,9 +162,15 @@ def compile_bytecode(interpreter: Path, python: Path) -> None:
     """
     for cache in list(python.rglob("__pycache__")):
         shutil.rmtree(cache)
-    flags = ["-m", "compileall", "-q", "-f", "-j0", "--invalidation-mode", "checked-hash"]
+    # One process: marshal marks the strings that other objects share, so the bytes of a module the
+    # compiler itself imported depend on which worker compiled it. A single process always agrees.
+    flags = ["-m", "compileall", "-q", "-f", "--invalidation-mode", "checked-hash"]
+    # Bytecode records the path of its source: relative to the folder, builds in two places agree.
+    paths = ["-s", str(python.parent)]
     # Sources with invalid syntax, test data of the standard library, make compileall exit 1.
-    subprocess.run([str(interpreter), *flags, str(python)], capture_output=True, check=False)
+    subprocess.run(
+        [str(interpreter), *flags, *paths, str(python)], capture_output=True, check=False
+    )
 
 
 def smoke(job: Job, interpreter: Path, scratch: Path) -> None:
@@ -188,7 +195,10 @@ def fill(job: Job, scratch: Path) -> int:
     install_interpreter(scratch / "store", job.folder / "python")
     if not interpreter.is_file():
         raise BuildError(f"o interpretador não está em {job.system.interpreter}")
+    site_packages, scripts = job.folder / job.system.site_packages, job.folder / job.system.scripts
+    bundled = installs.installed(site_packages)
     install_packages(job, interpreter, scratch)
+    installs.scrub(site_packages, scripts, bundled)
     compile_bytecode(interpreter, job.folder / "python")
     origin.write(job.folder, declared)
     count = sums.write(job.folder)

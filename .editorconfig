@@ -203,6 +203,10 @@ dotnet_diagnostic.S1200.severity = none
 # The dependency injection container hands the logger over, so it cannot be a static field.
 dotnet_diagnostic.S1312.severity = none
 
+[core/src/Core.Host/HostLaunch.cs]
+# The one place that turns whatever stops the host into ExitCode.ServingFailed, so it catches every exception.
+dotnet_diagnostic.S2221.severity = none
+
 [core/src/Core.Persistence/Migrations/StepCommand.cs]
 # The text of a step comes from a resource embedded in the artifact and checked by SHA-256, never from input.
 dotnet_diagnostic.CA2100.severity = none

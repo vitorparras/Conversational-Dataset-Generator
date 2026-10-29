@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Runtime.ExceptionServices;
 using Core.Host.Migration;
 using Core.Persistence.Migrations;
 using Core.Platform.Configuration;
@@ -48,24 +47,19 @@ internal sealed class HostLaunch
     };
 
     /// <summary>
-    /// Serves until stopped; any failure not fatal to the process, such as a port already taken, ends it with its own code. The run is
-    /// awaited for its end and not for its result, so the process reports what stopped it without a catch of every exception.
+    /// Serves until stopped; any failure not fatal to the process, such as a port already taken, ends it with its own code. This is the
+    /// one place that turns whatever stops the host into <see cref="ExitCode.ServingFailed"/>, so it catches every exception.
     /// </summary>
     private async Task<ExitCode> ServeAsync()
     {
-        var run = app!.RunAsync();
-        _ = await Task.WhenAny(run).ConfigureAwait(false);
-        return run.IsCompletedSuccessfully ? ExitCode.Success : Ended(run);
-    }
-
-    private static ExitCode Ended(Task run)
-    {
-        var failure = run.Exception?.InnerExceptions[0] ?? new OperationCanceledException();
-        if (!ServingFailure.CanReport(failure))
+        try
         {
-            ExceptionDispatchInfo.Capture(failure).Throw();
+            await app!.RunAsync().ConfigureAwait(false);
+            return ExitCode.Success;
         }
-
-        return ServingFailure.Report(Console.Error, failure);
+        catch (Exception exception) when (ServingFailure.CanReport(exception))
+        {
+            return ServingFailure.Report(Console.Error, exception);
+        }
     }
 }

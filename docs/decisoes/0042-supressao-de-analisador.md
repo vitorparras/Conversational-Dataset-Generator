@@ -18,7 +18,7 @@ código gerado. A única exceção é RS0030 nas classes `*LogMessages`, com `Ju
 
 Uma regra de analisador só se desliga no `.editorconfig` da raiz, com o motivo escrito numa linha
 de comentário logo acima: S1309, S1451 e S4055 em todo `*.cs` (S4055 pede `ResourceManager`, mas a
-decisão 0039 fixa um idioma só); qualquer outra só numa seção que nomeia o arquivo. Hoje são quatro:
+decisão 0039 fixa um idioma só); qualquer outra só numa seção que nomeia o arquivo. Hoje são cinco:
 
 - S6585 em `core/src/Core.Platform/Logging/LineConsoleFormatter.cs`: o registro é lido por máquina,
   em formato fixo;
@@ -27,6 +27,8 @@ decisão 0039 fixa um idioma só); qualquer outra só numa seção que nomeia o 
 - S1312 em `core/src/Core.Host/Supervision/LanguageServiceSupervisor.cs`: a DI injeta o logger, que
   não pode ser estático;
 - CA2100 em `core/src/Core.Persistence/Migrations/StepCommand.cs`: o texto é recurso embutido.
+- S2221 em `core/src/Core.Host/HostLaunch.cs`: o único ponto que converte qualquer falha ao servir
+  no código de saída 70.
 
 O compilador recebe só o `.editorconfig` da raiz e os configs do SDK. Os arquivos que o SDK gera
 e os supressores que o SDK traz são exceções nomeadas, cada uma com o motivo, no teste.

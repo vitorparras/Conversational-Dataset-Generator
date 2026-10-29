@@ -24,6 +24,7 @@ DOCS_WORKFLOW = support.VERIFY_CODE.parents[1] / ".github" / "workflows" / "veri
 WITHOUT_BASE = [
     "build_core",
     "test_core",
+    "test_real_service",
     "format_core",
     "lint_tools",
     "test_tools",

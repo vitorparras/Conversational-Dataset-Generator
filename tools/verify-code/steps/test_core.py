@@ -1,7 +1,8 @@
 """Runs the core test suites with Cobertura coverage; a test project that executes nothing fails.
 
 Skipped tests do not fail the step, but each project that skipped some is named with the reasons,
-whether the step passes or fails."""
+whether the step passes or fails. The tests that start the real language service are left out
+(`Category=RealService`) so the step passes without `uv`; `test_real_service` runs them."""
 
 from __future__ import annotations
 
@@ -15,6 +16,8 @@ from steps.common import CommandOutcome, Context, StepResult, failed, passed, re
 
 NAME = "test_core"
 RESULTS = "core"
+REAL_SERVICE_TRAIT = "Category=RealService"
+WITHOUT_REAL_SERVICE = ("--filter-not-trait", REAL_SERVICE_TRAIT)
 
 
 @dataclass(frozen=True)
@@ -121,6 +124,7 @@ def run(ctx: Context) -> StepResult:
         "--coverage-output-format",
         "cobertura",
         "--report-xunit-trx",
+        *WITHOUT_REAL_SERVICE,
         "--results-directory",
         str(results),
     ]

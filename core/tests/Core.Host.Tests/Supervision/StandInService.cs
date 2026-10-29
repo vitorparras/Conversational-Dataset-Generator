@@ -6,9 +6,11 @@ namespace Core.Host.Tests.Supervision;
 /// <summary>A process that runs until its standard input closes, held the way the supervision holds the real service; it answers nothing.</summary>
 internal static class StandInService
 {
-    public static RunningService Start()
+    public static RunningService Start() => Start(LanguageServiceInterpreter.Path);
+
+    public static RunningService Start(string interpreter)
     {
-        var info = new ProcessStartInfo(LanguageServiceInterpreter.Path) { RedirectStandardInput = true, UseShellExecute = false };
+        var info = new ProcessStartInfo(interpreter) { RedirectStandardInput = true, UseShellExecute = false };
         foreach (var argument in (string[])["-c", "import sys; sys.stdin.read()"])
         {
             info.ArgumentList.Add(argument);

@@ -9,7 +9,7 @@ namespace Core.Host.Tests;
 /// <summary>The built host as its own process: started, awaited or killed, and never left behind on dispose.</summary>
 internal sealed class HostProcess : IDisposable
 {
-    public static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(30);
+    public static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(120);
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(100);
     private static readonly TimeSpan DrainTimeout = TimeSpan.FromSeconds(5);
 

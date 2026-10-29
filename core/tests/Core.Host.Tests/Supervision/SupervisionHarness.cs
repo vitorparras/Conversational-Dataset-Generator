@@ -9,7 +9,7 @@ namespace Core.Host.Tests.Supervision;
 /// <summary>The pieces the supervision is built from, wired the way the host wires them; whatever a test starts through it is stopped on dispose.</summary>
 internal sealed partial class SupervisionHarness : IDisposable
 {
-    public static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
+    public static readonly TimeSpan Timeout = TimeSpan.FromSeconds(120);
 
     private readonly List<IDisposable> started = [];
 

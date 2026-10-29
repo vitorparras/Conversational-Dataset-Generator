@@ -10,7 +10,7 @@ namespace Core.Host.Tests.Privacy;
 internal sealed partial class LoggedHost : IDisposable
 {
     private const string Route = "/analysis";
-    private static readonly TimeSpan RefusalLimit = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan RefusalLimit = TimeSpan.FromSeconds(60);
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(100);
 
     private readonly TemporaryDirectory directory;

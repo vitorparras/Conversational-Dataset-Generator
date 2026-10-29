@@ -7,9 +7,13 @@ namespace Core.Host.Tests;
 internal static class LanguageServiceInterpreter
 {
     private const string ServiceFolder = "language-service";
-    private static readonly Lazy<string> Resolved = new(Resolve);
+    private static readonly Lazy<string> Resolved = new(() => Resolve("sys.executable"));
+    private static readonly Lazy<string> Base = new(() => Resolve("sys._base_executable"));
 
     public static string Path => Resolved.Value;
+
+    /// <summary>The interpreter the environment is built on, which runs alone with no launcher in front of it, as the one in the service folder does.</summary>
+    public static string Standalone => Base.Value;
 
     /// <summary>The interpreter, or null when uv is missing or cannot resolve the environment, for a rehearsal that skips without it.</summary>
     public static string? Available
@@ -41,10 +45,10 @@ internal static class LanguageServiceInterpreter
             ServiceFolder);
     }
 
-    private static string Resolve()
+    private static string Resolve(string expression)
     {
         var info = new ProcessStartInfo("uv") { RedirectStandardOutput = true, UseShellExecute = false };
-        foreach (var argument in (string[])["run", "--frozen", "--project", ProjectFolder(), "python", "-c", "import sys; print(sys.executable)"])
+        foreach (var argument in (string[])["run", "--frozen", "--project", ProjectFolder(), "python", "-c", $"import sys; print({expression})"])
         {
             info.ArgumentList.Add(argument);
         }

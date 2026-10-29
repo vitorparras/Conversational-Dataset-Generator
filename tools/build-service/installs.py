@@ -29,7 +29,7 @@ def installed(site_packages: Path) -> frozenset[str]:
 
 
 def normal(path: Path) -> str:
-    """The path as written, made absolute-looking comparable: no `..`, one separator, one case."""
+    """The path normalized to compare as written: no `..`, one separator, one case."""
     return os.path.normcase(os.path.normpath(path))
 
 

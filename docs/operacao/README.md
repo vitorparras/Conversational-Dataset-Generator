@@ -30,5 +30,6 @@ e por quem ela roda.
 | [016](016-migracao-do-esquema.md) | A migração do esquema do banco |
 | [017](017-teste-de-mutacao.md) | O teste de mutação |
 | [018](018-pasta-do-servico.md) | A pasta do serviço de linguagem |
+| [019](019-leitura-da-tabela-pelo-floors.md) | O que o passo floors lê na tabela da 014 |
 
 Ver [regras de escrita](../regras-de-escrita.md).

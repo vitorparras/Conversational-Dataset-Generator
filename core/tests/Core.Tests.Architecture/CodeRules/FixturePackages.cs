@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Security.Cryptography;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -29,13 +30,17 @@ internal static class FixturePackages
         }
     }
 
+    /// <summary>
+    /// The assembly takes a name of its own from the package id and the source, because two fixtures that give one id to
+    /// different sources must not be one identity, which a single loader cannot hold twice. The file keeps the package id, and the build is deterministic so one source is one content.
+    /// </summary>
     private static byte[] Compile(string id, string source)
     {
         var compilation = CSharpCompilation.Create(
-            id,
+            $"{id}.{Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(source)))[..8]}",
             [CSharpSyntaxTree.ParseText(source)],
             References(),
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, deterministic: true));
         using var stream = new MemoryStream();
         var result = compilation.Emit(stream);
         return result.Success

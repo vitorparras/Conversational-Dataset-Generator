@@ -215,10 +215,8 @@ internal static class CompositionRoot
         return app;
     }
 
-    /// <summary>
-    /// The recognizer of the service the supervisor has alive now, with its secret and the client that never goes through a proxy;
-    /// with no such service, one that refuses without connecting, so that nothing goes to the port a service that is gone once held.
-    /// </summary>
+    /// <summary>The recognizer of the service the supervisor has alive now, with its secret and the client that never goes through a proxy;
+    /// with no such service, one that refuses without connecting, so that nothing goes to the port a service that is gone once held.</summary>
     private static IRecognizer Recognizer(IServiceProvider host, TimeSpan analyzeTimeout)
     {
         var startup = host.GetRequiredService<ServiceProvider>();

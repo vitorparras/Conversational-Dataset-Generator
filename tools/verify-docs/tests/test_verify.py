@@ -292,7 +292,7 @@ class VerifyDocsTests(unittest.TestCase):
         self.assertEqual(code, 0, output)
 
     def test_absolute_path_is_not_a_repository_path(self) -> None:
-        text = "\n`/no-such-root/bin/tool.py` `/no-such-root/lib/` `/no-such-root/dir/sub`\n"
+        text = "\n`/no-such-root/bin/tool.py` `/no-such-root/lib/a.md``/no-such-root/dir/sub`\n"
         self.write("docs/001-absolute.md", VALID_DOC + text)
         code, output = run_verifier(self.root, "--only", "references")
         self.assertEqual(code, 0, output)

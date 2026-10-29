@@ -193,7 +193,7 @@ jobs:
           python-version: '3.12'
       - name: Instalar uv na versão fixada
         run: pip install -r tools/verify-code/service-requirements.txt
-      - name: Semear uma propriedade falsa e um defeito crítico numa cópia descartável e exigir a recusa
+      - name: Semear numa cópia descartável uma propriedade falsa, um defeito em módulo crítico, código sem teste e testes fracos, e exigir a recusa de cada um
         run: python tools/verify-code/verify.py --step ruler_proof
 
   dependencies:

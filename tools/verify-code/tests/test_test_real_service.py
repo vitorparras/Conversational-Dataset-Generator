@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -105,20 +104,30 @@ class TestRealServiceTests(unittest.TestCase):
         self.assertFalse(result.ok)
 
 
-def job(name: str) -> str:
-    """The text of one job of the workflow, up to the next job."""
-    text = WORKFLOW.read_text(encoding="utf-8")
-    start = text.index(f"\n  {name}:\n") + 1
-    following = re.search(r"^  \w+:\n", text[start + 1 :], re.MULTILINE)
-    return text[start : start + 1 + following.start()] if following else text[start:]
-
-
 class RealServiceWorkflowTests(unittest.TestCase):
-    def test_the_core_job_runs_both_suites_before_it_measures_and_judges_the_floors(self) -> None:
-        dotnet = job("dotnet")
+    INSTALLS_UV = "pip install -r tools/verify-code/service-requirements.txt"
+    TEST_CORE = "--step build_core test_core\n"
 
-        self.assertIn("--step build_core test_core test_real_service ", dotnet)
-        self.assertIn(" coverage floors", dotnet)
+    def core_job(self) -> str:
+        return support.workflow_job(WORKFLOW.read_text(encoding="utf-8"), "dotnet")
 
-    def test_the_core_job_installs_uv_for_the_tests_that_start_the_real_service(self) -> None:
-        self.assertIn("-r tools/verify-code/service-requirements.txt", job("dotnet"))
+    def position(self, marker: str) -> int:
+        job = self.core_job()
+        self.assertIn(marker, job)
+        return job.index(marker)
+
+    def test_test_core_runs_before_uv_is_installed_so_the_ci_proves_it_needs_no_uv(self) -> None:
+        self.assertLess(self.position(self.TEST_CORE), self.position(self.INSTALLS_UV))
+
+    def test_the_real_service_runs_after_uv_is_installed(self) -> None:
+        self.assertLess(self.position(self.INSTALLS_UV), self.position("--step test_real_service "))
+
+    def test_the_coverage_of_both_suites_is_measured_and_judged_after_both_ran(self) -> None:
+        self.assertLess(
+            self.position("--step test_real_service "), self.position(" coverage floors")
+        )
+
+    def test_nothing_before_test_core_installs_uv(self) -> None:
+        before = self.core_job()[: self.position(self.TEST_CORE)]
+
+        self.assertNotIn("service-requirements.txt", before)

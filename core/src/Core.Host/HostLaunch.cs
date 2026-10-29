@@ -37,18 +37,29 @@ internal sealed class HostLaunch
         new(HostLaunchState.Migrated, app: null, [], report: null) { MigrationExit = MigrationMode.ExitOf(outcome) };
 
     /// <summary>Serves until stopped, or reports why the host was not assembled and ends at once.</summary>
-    internal ExitCode Run() => state switch
+    internal async Task<ExitCode> RunAsync() => state switch
     {
-        HostLaunchState.Ready => Serve(),
+        HostLaunchState.Ready => await ServeAsync().ConfigureAwait(false),
         HostLaunchState.Refused => ConfigurationRefusal.Report(Console.Error, problems),
         HostLaunchState.CheckFailed => StartupRefusal.Report(Console.Error, report!),
         HostLaunchState.Migrated => MigrationExit,
         _ => throw new UnreachableException(),
     };
 
-    private ExitCode Serve()
+    /// <summary>
+    /// Serves until stopped; any failure not fatal to the process, such as a port already taken, ends it with its own code. This is the
+    /// one place that turns whatever stops the host into <see cref="ExitCode.ServingFailed"/>, so it catches every exception.
+    /// </summary>
+    private async Task<ExitCode> ServeAsync()
     {
-        app!.Run();
-        return ExitCode.Success;
+        try
+        {
+            await app!.RunAsync().ConfigureAwait(false);
+            return ExitCode.Success;
+        }
+        catch (Exception exception) when (ServingFailure.CanReport(exception))
+        {
+            return ServingFailure.Report(Console.Error, exception);
+        }
     }
 }

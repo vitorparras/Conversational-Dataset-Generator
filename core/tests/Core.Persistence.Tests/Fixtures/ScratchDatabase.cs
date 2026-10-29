@@ -54,6 +54,28 @@ internal sealed class ScratchDatabase : IAsyncDisposable
     public Task RevokeRegistryReadAsync() =>
         ExecuteAsync(OwnerConnectionString, "REVOKE SELECT ON public.schema_version FROM PUBLIC");
 
+    /// <summary>Waits for a session of this database that is running the statement and ends it from the server, as a restart or an operator would.</summary>
+    public async Task TerminateSessionRunningAsync(string statement)
+    {
+        const string Terminate = "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = @name AND state = 'active' AND query LIKE @statement AND pid <> pg_backend_pid()";
+        await using var connection = await Sql.OpenAsync(superuserConnectionString);
+        await using var command = new NpgsqlCommand(Terminate, connection);
+        _ = command.Parameters.AddWithValue("name", name);
+        _ = command.Parameters.AddWithValue("statement", $"%{statement}%");
+        var deadline = DateTimeOffset.UtcNow.AddSeconds(60);
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            if (await command.ExecuteScalarAsync(TestContext.Current.CancellationToken) is true)
+            {
+                return;
+            }
+
+            await Task.Delay(TimeSpan.FromMilliseconds(100), TestContext.Current.CancellationToken);
+        }
+
+        throw new TimeoutException($"No session of {name} ran the statement within a minute.");
+    }
+
     /// <summary>Whether a table of that name exists in the public schema.</summary>
     public async Task<bool> TableExistsAsync(string table)
     {

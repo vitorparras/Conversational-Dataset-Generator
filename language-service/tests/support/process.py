@@ -13,7 +13,7 @@ import urllib.request
 from dataclasses import dataclass
 from http import HTTPStatus
 from pathlib import Path
-from typing import Final
+from typing import Final, cast
 
 from support.synthetic import SECRET, SECRET_HEADER
 
@@ -172,3 +172,17 @@ def _health_status(port: int) -> int | None:
 
 
 HEALTHY: Final = int(HTTPStatus.OK)
+
+
+def announced_port(service: subprocess.Popen[bytes]) -> int | None:
+    """The port in the first line the service wrote to stdout, or None without such a line."""
+    assert service.stdout is not None
+    try:
+        announcement: object = json.loads(service.stdout.readline())
+    except ValueError:
+        return None
+    if not isinstance(announcement, dict):
+        return None
+    fields = cast("dict[str, object]", announcement)
+    port = fields.get("port")
+    return port if fields.get("event") == "listening" and isinstance(port, int) else None

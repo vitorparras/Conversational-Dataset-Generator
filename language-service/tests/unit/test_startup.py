@@ -35,8 +35,8 @@ def test_port_above_the_range_is_refused() -> None:
     assert parse_port(["--port", "65536"]) is None
 
 
-def test_port_zero_is_refused() -> None:
-    assert parse_port(["--port", "0"]) is None
+def test_port_zero_asks_the_system_for_a_free_port() -> None:
+    assert parse_port(["--port", "0"]) == 0
 
 
 def test_secret_is_the_first_line_without_its_break() -> None:
@@ -82,7 +82,7 @@ def test_startup_without_port_tells_the_usage_and_yields_nothing() -> None:
 def test_startup_with_port_out_of_range_tells_the_usage_and_yields_nothing() -> None:
     errors = StringIO()
 
-    startup = read_startup(["--port", "0"], BytesIO(SECRET + b"\n"), errors)
+    startup = read_startup(["--port", "65536"], BytesIO(SECRET + b"\n"), errors)
 
     assert (startup, errors.getvalue()) == (None, USAGE + "\n")
 
@@ -90,7 +90,7 @@ def test_startup_with_port_out_of_range_tells_the_usage_and_yields_nothing() -> 
 def test_startup_with_port_out_of_range_leaves_the_secret_unread() -> None:
     stream = BytesIO(SECRET + b"\n")
 
-    read_startup(["--port", "0"], stream, StringIO())
+    read_startup(["--port", "65536"], stream, StringIO())
 
     assert stream.read() == SECRET + b"\n"
 

@@ -1,7 +1,7 @@
 using Core.Boundary.Contracts;
 using Core.Boundary.Http;
 
-namespace Core.Tests.Properties.Boundary;
+namespace Core.Boundary.Tests.Properties;
 
 /// <summary>The validator as a property sees it: the production one, or one that measures the text wrongly on purpose.</summary>
 internal sealed record AnswerValidation(Func<AnalysisRequest, ReadOnlyMemory<byte>, ResponseValidation> Validate)

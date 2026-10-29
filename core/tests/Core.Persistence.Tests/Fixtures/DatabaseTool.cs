@@ -1,4 +1,4 @@
-namespace Core.Tests.Integration.Fixtures;
+namespace Core.Persistence.Tests.Fixtures;
 
 /// <summary>The files of tools/database, found above the test binaries wherever the repository was cloned.</summary>
 internal static class DatabaseTool

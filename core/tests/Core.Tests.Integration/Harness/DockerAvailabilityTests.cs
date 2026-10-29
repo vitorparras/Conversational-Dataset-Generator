@@ -1,4 +1,4 @@
-using Core.Tests.Integration.Fixtures;
+using Core.Persistence.Tests.Fixtures;
 
 namespace Core.Tests.Integration.Harness;
 

@@ -1,3 +1,4 @@
+using Core.Persistence.Tests.Fixtures;
 using System.Diagnostics;
 using Npgsql;
 

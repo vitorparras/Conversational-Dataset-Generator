@@ -3,7 +3,6 @@ using Core.Persistence.Migrations;
 using Core.Persistence.Tests.Fixtures;
 using Core.Platform.Startup;
 using Core.Platform.Versions;
-using Core.Tests.Integration.Fixtures;
 using Npgsql;
 
 namespace Core.Persistence.Tests.Migrations;

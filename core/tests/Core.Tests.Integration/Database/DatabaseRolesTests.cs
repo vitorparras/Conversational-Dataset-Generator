@@ -1,4 +1,4 @@
-using Core.Tests.Integration.Fixtures;
+using Core.Persistence.Tests.Fixtures;
 using Npgsql;
 
 namespace Core.Tests.Integration.Database;

@@ -117,7 +117,9 @@ def compile_bytecode(interpreter: Path, python: Path) -> None:
     """
     for cache in list(python.rglob("__pycache__")):
         shutil.rmtree(cache)
-    flags = ["-m", "compileall", "-q", "-f", "-j0", "--invalidation-mode", "checked-hash"]
+    # One process: marshal marks the strings that other objects share, so the bytes of a module the
+    # compiler itself imported depend on which worker compiled it. A single process always agrees.
+    flags = ["-m", "compileall", "-q", "-f", "--invalidation-mode", "checked-hash"]
     # Bytecode records the path of its source: relative to the folder, builds in two places agree.
     paths = ["-s", str(python.parent)]
     # Sources with invalid syntax, test data of the standard library, make compileall exit 1.

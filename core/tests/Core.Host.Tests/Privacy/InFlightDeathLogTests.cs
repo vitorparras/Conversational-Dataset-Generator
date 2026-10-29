@@ -29,7 +29,7 @@ public sealed class InFlightDeathLogTests
 
         var file = await composed.TextWrittenByAsync(async services =>
         {
-            var settings = new HttpRecognizerSettings(service.Port, SupervisionHarness.NewSecret(), SupervisionHarness.Timeout);
+            var settings = new HttpRecognizerSettings(service.Port, service.Secret, SupervisionHarness.Timeout);
             var recognizer = new HttpRecognizer(harness.Client, settings, services.GetRequiredService<ILogger<HttpRecognizer>>());
             var analysis = new MaterialAnalysis(recognizer, services.GetRequiredService<ILogger<MaterialAnalysis>>());
             result = await analysis.AnalyzeAsync(new AnalysisAsked($"falei com PESSOA_1 {marker}", "pt"), TestContext.Current.CancellationToken);

@@ -12,8 +12,7 @@ internal sealed class LanguageServiceSupervisor(
 {
     private const int SecretBytes = 32;
 
-    private RunningService? service;
-    private string startupSecret = string.Empty;
+    private Published? current;
 
     /// <summary>The secret of the running service; empty until the service has answered and again as soon as it is gone.</summary>
     internal string Secret => Endpoint?.Secret ?? string.Empty;
@@ -21,14 +20,17 @@ internal sealed class LanguageServiceSupervisor(
     /// <summary>The loopback port of the running service; null until the service has answered and again as soon as it is gone, so a port nobody answers for is never handed out.</summary>
     internal int? Port => Endpoint?.Port;
 
-    /// <summary>The port and the secret of the service alive now, read together so that one never comes from a service and the other from another; null when there is none.</summary>
-    internal ServiceEndpoint? Endpoint => Live is { } running ? new ServiceEndpoint(running.Port, startupSecret) : null;
+    /// <summary>
+    /// The port and the secret of the service alive now. Both come from the one value published when the service answered, replaced whole at every start and
+    /// restart, so a reader never gets the port of one process with the secret of another; null when there is none or its process has ended.
+    /// </summary>
+    internal ServiceEndpoint? Endpoint => Live?.Endpoint;
 
-    /// <summary>The service while it is available and its process has not ended; the end is read from the process itself, not from the watch that only learns of it a moment later.</summary>
-    private RunningService? Live => watch.State == ServiceState.Available && service is { HasExited: false } running ? running : null;
+    /// <summary>What is published while the service is available and its process has not ended; the end is read from the process, not from the watch that learns of it later.</summary>
+    private Published? Live => Volatile.Read(ref current) is { } published && watch.State == ServiceState.Available && !published.Process.HasExited ? published : null;
 
     /// <summary>The process number of the running service; null until the service has answered.</summary>
-    internal int? ProcessId => service?.ProcessId;
+    internal int? ProcessId => Volatile.Read(ref current)?.Process.ProcessId;
 
     /// <summary>The exit code of the process when it ended before answering; null otherwise.</summary>
     internal int? ExitCode { get; private set; }
@@ -99,10 +101,10 @@ internal sealed class LanguageServiceSupervisor(
 
             if (outcome == StartOutcome.Started)
             {
-                startupSecret = secret;
-                service = started;
+                var running = new Published(started, new ServiceEndpoint(started.Port, secret));
+                Volatile.Write(ref current, running);
                 started = null;
-                watch.Watch(service, Lost);
+                watch.Watch(running.Process, Lost);
                 return outcome;
             }
 
@@ -119,18 +121,19 @@ internal sealed class LanguageServiceSupervisor(
     /// <summary>Closes the standard input of the service, which is how it learns the core is gone, and logs that it ended.</summary>
     private void Release()
     {
-        var previous = service;
-        service = null;
-        startupSecret = string.Empty;
+        var previous = Interlocked.Exchange(ref current, null);
         if (previous is null)
         {
             return;
         }
 
-        var processId = previous.ProcessId;
-        previous.Dispose();
+        var processId = previous.Process.ProcessId;
+        previous.Process.Dispose();
         logger.ServiceStopped(processId);
     }
 
     private void Lost(RunningService ended) => logger.ServiceLost(ended.ProcessId, ended.ExitCode);
+
+    /// <summary>The process of the service and the endpoint it answers at, born together and replaced together.</summary>
+    private sealed record Published(RunningService Process, ServiceEndpoint Endpoint);
 }

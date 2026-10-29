@@ -24,7 +24,7 @@ public sealed class ServiceDeathTests : IDisposable
     public async Task ServiceThatDiesWithTheRequestInFlightLeavesTheAnalysisRefusedWithTheCause()
     {
         using var service = new DyingService();
-        var settings = new HttpRecognizerSettings(service.Port, SupervisionHarness.NewSecret(), SupervisionHarness.Timeout);
+        var settings = new HttpRecognizerSettings(service.Port, service.Secret, SupervisionHarness.Timeout);
         var recognizer = new HttpRecognizer(harness.Client, settings, NullLogger<HttpRecognizer>.Instance);
 
         var result = await new MaterialAnalysis(recognizer, new AnalysisLog()).AnalyzeAsync(Asked, TestContext.Current.CancellationToken);

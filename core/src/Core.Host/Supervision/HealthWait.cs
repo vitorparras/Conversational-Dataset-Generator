@@ -1,4 +1,5 @@
 using System.Globalization;
+using Core.Boundary.Http;
 
 namespace Core.Host.Supervision;
 
@@ -70,7 +71,7 @@ internal sealed class HealthWait
     {
         var address = new Uri(string.Create(CultureInfo.InvariantCulture, $"http://127.0.0.1:{port}/health"));
         using var request = new HttpRequestMessage(HttpMethod.Get, address);
-        request.Headers.Add("x-service-secret", secret);
+        request.AddSecret(secret);
         try
         {
             using var response = await client.SendAsync(request, limit);

@@ -38,7 +38,7 @@ public sealed class HttpServiceVersionReader(HttpClient client, HttpRecognizerSe
     {
         using var request = new HttpRequestMessage(
             HttpMethod.Get, new Uri(string.Create(CultureInfo.InvariantCulture, $"http://127.0.0.1:{settings.Port}/version")));
-        request.Headers.Add(HttpRecognizer.SecretHeader, settings.Secret);
+        request.AddSecret(settings.Secret);
         using var response = await client.SendAsync(request, limit).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {

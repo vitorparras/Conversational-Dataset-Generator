@@ -16,8 +16,6 @@ namespace Core.Boundary.Http;
 /// <param name="logger">Where the outcome of each request is written, by its reference only.</param>
 public sealed class HttpRecognizer(HttpClient client, HttpRecognizerSettings settings, ILogger<HttpRecognizer> logger) : IRecognizer
 {
-    internal const string SecretHeader = "x-service-secret";
-
     /// <summary>A body that is not the answer the contract declares, whatever the reason, is never used.</summary>
     private const UnavailabilityReason NotTheContract = UnavailabilityReason.MalformedResponse;
 
@@ -87,7 +85,7 @@ public sealed class HttpRecognizer(HttpClient client, HttpRecognizerSettings set
     /// <summary>The body of an answer with a success status; null, with the status written, when the service refused the request.</summary>
     private async Task<byte[]?> ReceiveAsync(HttpRequestMessage message, string reference, long started, CancellationToken limit)
     {
-        message.Headers.Add(SecretHeader, settings.Secret);
+        message.AddSecret(settings.Secret);
         using var response = await client.SendAsync(message, limit).ConfigureAwait(false);
         if (response.IsSuccessStatusCode)
         {

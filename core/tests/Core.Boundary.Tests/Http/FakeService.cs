@@ -23,6 +23,8 @@ internal sealed class FakeService : IDisposable
     private readonly Reply? analysis;
     private readonly Task serving;
     private int versionCalls;
+    private readonly ConcurrentQueue<string> nonces = new();
+    private readonly ConcurrentQueue<string?> proofSecrets = new();
 
     private FakeService(IReadOnlyList<Reply> versions, Reply? analysis)
     {
@@ -36,6 +38,15 @@ internal sealed class FakeService : IDisposable
     public int Port { get; }
 
     public IReadOnlyList<SeenRequest> Seen => [.. seen];
+
+    /// <summary>What the service does when asked to prove it holds the secret; set before the first request.</summary>
+    public ProofMode Proof { get; set; } = ProofMode.Right;
+
+    /// <summary>The nonce of each proof asked of the service, in order; such a request is not among <see cref="Seen"/>.</summary>
+    public IReadOnlyList<string> Nonces => [.. nonces];
+
+    /// <summary>The secret header each proof request carried, null when it carried none, which is what it must do.</summary>
+    public IReadOnlyList<string?> ProofSecrets => [.. proofSecrets];
 
     public static FakeService Answering(Reply analysis) => new([Reply.Version("1")], analysis);
 
@@ -99,6 +110,12 @@ internal sealed class FakeService : IDisposable
 
     private async Task AnswerAsync(HttpListenerContext context)
     {
+        if (context.Request.Headers[TestProof.NonceHeader] is { } nonce)
+        {
+            await ProveAsync(context, nonce);
+            return;
+        }
+
         using var reader = new StreamReader(context.Request.InputStream, Encoding.UTF8);
         var body = await reader.ReadToEndAsync(stop.Token);
         var path = context.Request.Url!.AbsolutePath;
@@ -115,6 +132,23 @@ internal sealed class FakeService : IDisposable
         context.Response.StatusCode = reply.Status;
         context.Response.RedirectLocation = reply.Location;
         context.Response.ContentType = "application/json";
+        context.Response.ContentLength64 = bytes.Length;
+        await context.Response.OutputStream.WriteAsync(bytes, stop.Token);
+        context.Response.Close();
+    }
+
+    private async Task ProveAsync(HttpListenerContext context, string nonce)
+    {
+        nonces.Enqueue(nonce);
+        proofSecrets.Enqueue(context.Request.Headers["x-service-secret"]);
+        if (TestProof.Given(Proof, nonce) is { } proof)
+        {
+            context.Response.Headers[TestProof.ProofHeader] = proof;
+        }
+
+        var bytes = "{}"u8.ToArray();
+        context.Response.ContentType = "application/json";
+        context.Response.ContentLength64 = bytes.Length;
         await context.Response.OutputStream.WriteAsync(bytes, stop.Token);
         context.Response.Close();
     }

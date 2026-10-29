@@ -8,29 +8,29 @@ namespace Core.Host.Tests;
 public sealed class ServingFailureRunTests
 {
     [Fact]
-    public void ExceptionOfAnyKindFromTheHostEndsTheRunWithTheServingFailedCode()
+    public async Task ExceptionOfAnyKindFromTheHostEndsTheRunWithTheServingFailedCode()
     {
         using var app = HostThatFailsToStart(new FormatException("ZQX-MATERIAL-7731"));
 
-        var code = HostLaunch.Ready(app).Run();
+        var code = await HostLaunch.Ready(app).RunAsync();
 
         Assert.Equal(ExitCode.ServingFailed, code);
     }
 
     [Fact]
-    public void CancellationFromTheHostIsAlsoAFailureOfTheRun()
+    public async Task CancellationFromTheHostIsAlsoAFailureOfTheRun()
     {
         using var app = HostThatFailsToStart(new OperationCanceledException());
 
-        Assert.Equal(ExitCode.ServingFailed, HostLaunch.Ready(app).Run());
+        Assert.Equal(ExitCode.ServingFailed, await HostLaunch.Ready(app).RunAsync());
     }
 
     [Fact]
-    public void FailureTheProcessCannotReportIsNotReportedAndKeepsItsOwnEnd()
+    public async Task FailureTheProcessCannotReportIsNotReportedAndKeepsItsOwnEnd()
     {
         using var app = HostThatFailsToStart(new InsufficientExecutionStackException());
 
-        _ = Assert.Throws<InsufficientExecutionStackException>(() => HostLaunch.Ready(app).Run());
+        _ = await Assert.ThrowsAsync<InsufficientExecutionStackException>(() => HostLaunch.Ready(app).RunAsync());
     }
 
     [Theory]

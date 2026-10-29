@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+using System.Runtime.ExceptionServices;
 using Core.Host.Migration;
 using Core.Persistence.Migrations;
 using Core.Platform.Configuration;
@@ -38,27 +38,34 @@ internal sealed class HostLaunch
         new(HostLaunchState.Migrated, app: null, [], report: null) { MigrationExit = MigrationMode.ExitOf(outcome) };
 
     /// <summary>Serves until stopped, or reports why the host was not assembled and ends at once.</summary>
-    internal ExitCode Run() => state switch
+    internal async Task<ExitCode> RunAsync() => state switch
     {
-        HostLaunchState.Ready => Serve(),
+        HostLaunchState.Ready => await ServeAsync().ConfigureAwait(false),
         HostLaunchState.Refused => ConfigurationRefusal.Report(Console.Error, problems),
         HostLaunchState.CheckFailed => StartupRefusal.Report(Console.Error, report!),
         HostLaunchState.Migrated => MigrationExit,
         _ => throw new UnreachableException(),
     };
 
-    /// <summary>Serves until stopped; any failure not fatal to the process, such as a port already taken, ends it with its own code.</summary>
-    [SuppressMessage("Major Code Smell", "S2221", Justification = "The edge of the process: whatever stops the host leaves through a declared exit code; the fatal ones are left out by the filter.")]
-    private ExitCode Serve()
+    /// <summary>
+    /// Serves until stopped; any failure not fatal to the process, such as a port already taken, ends it with its own code. The run is
+    /// awaited for its end and not for its result, so the process reports what stopped it without a catch of every exception.
+    /// </summary>
+    private async Task<ExitCode> ServeAsync()
     {
-        try
+        var run = app!.RunAsync();
+        _ = await Task.WhenAny(run).ConfigureAwait(false);
+        return run.IsCompletedSuccessfully ? ExitCode.Success : Ended(run);
+    }
+
+    private static ExitCode Ended(Task run)
+    {
+        var failure = run.Exception?.InnerExceptions[0] ?? new OperationCanceledException();
+        if (!ServingFailure.CanReport(failure))
         {
-            app!.Run();
-            return ExitCode.Success;
+            ExceptionDispatchInfo.Capture(failure).Throw();
         }
-        catch (Exception exception) when (ServingFailure.CanReport(exception))
-        {
-            return ServingFailure.Report(Console.Error, exception);
-        }
+
+        return ServingFailure.Report(Console.Error, failure);
     }
 }

@@ -23,6 +23,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
+import installs
 import origin
 import sums
 import systems
@@ -33,6 +34,8 @@ PYTHON_VERSION = "3.12.13"
 MODEL = re.compile(r"[a-z]{2}_core_news_[a-z]+")
 BUILD_REQUIREMENTS = "build-requirements.txt"
 EXTERNALLY_MANAGED = "EXTERNALLY-MANAGED"
+SYSCONFIG_DATA = "_sysconfigdata_*.py"
+CONFIGURED_PREFIX = b"/install"  # where python-build-standalone is configured
 UNSET_BYTECODE_VARIABLES = ("PYTHONDONTWRITEBYTECODE", "PYTHONPATH", "PYTHONHOME")
 OUTPUT_TAIL_LINES = 15
 
@@ -80,6 +83,15 @@ def install_interpreter(store: Path, target: Path) -> None:
     shutil.copytree(installed[0], target, symlinks=True)
     for marker in target.rglob(EXTERNALLY_MANAGED):
         marker.unlink()
+    unset_install_dir(target, installed[0])
+
+
+def unset_install_dir(target: Path, store_copy: Path) -> None:
+    """Puts back, in the build data of the interpreter, the prefix it was configured with: `uv`
+    writes its install directory there, and that of each build is a temporary folder."""
+    stored = store_copy.as_posix().encode("utf-8")
+    for data in target.rglob(SYSCONFIG_DATA):
+        data.write_bytes(data.read_bytes().replace(stored, CONFIGURED_PREFIX))
 
 
 def install_packages(job: Job, interpreter: Path, scratch: Path) -> None:
@@ -122,19 +134,8 @@ def build_wheel(interpreter: Path, scratch: Path) -> Path:
     environment, wheels = scratch / "build-env", scratch / "wheels"
     run(["uv", "venv", "--quiet", "--python", interpreter, environment])
     pinned = ROOT / SERVICE / BUILD_REQUIREMENTS
-    run(
-        [
-            "uv",
-            "pip",
-            "install",
-            "--python",
-            environment,
-            "--require-hashes",
-            "--no-deps",
-            "-r",
-            pinned,
-        ]
-    )
+    backend = ["uv", "pip", "install", "--python", environment, "--require-hashes", "--no-deps"]
+    run([*backend, "-r", pinned])
     build = ["uv", "build", "--wheel", "--force-pep517", "--no-build-isolation"]
     build += ["--python", environment]
     run([*build, "--out-dir", wheels, ROOT / SERVICE])
@@ -161,9 +162,15 @@ def compile_bytecode(interpreter: Path, python: Path) -> None:
     """
     for cache in list(python.rglob("__pycache__")):
         shutil.rmtree(cache)
-    flags = ["-m", "compileall", "-q", "-f", "-j0", "--invalidation-mode", "checked-hash"]
+    # One process: marshal marks the strings that other objects share, so the bytes of a module the
+    # compiler itself imported depend on which worker compiled it. A single process always agrees.
+    flags = ["-m", "compileall", "-q", "-f", "--invalidation-mode", "checked-hash"]
+    # Bytecode records the path of its source: relative to the folder, builds in two places agree.
+    paths = ["-s", str(python.parent)]
     # Sources with invalid syntax, test data of the standard library, make compileall exit 1.
-    subprocess.run([str(interpreter), *flags, str(python)], capture_output=True, check=False)
+    subprocess.run(
+        [str(interpreter), *flags, *paths, str(python)], capture_output=True, check=False
+    )
 
 
 def smoke(job: Job, interpreter: Path, scratch: Path) -> None:
@@ -188,7 +195,10 @@ def fill(job: Job, scratch: Path) -> int:
     install_interpreter(scratch / "store", job.folder / "python")
     if not interpreter.is_file():
         raise BuildError(f"o interpretador não está em {job.system.interpreter}")
+    site_packages, scripts = job.folder / job.system.site_packages, job.folder / job.system.scripts
+    bundled = installs.installed(site_packages)
     install_packages(job, interpreter, scratch)
+    installs.scrub(site_packages, scripts, bundled)
     compile_bytecode(interpreter, job.folder / "python")
     origin.write(job.folder, declared)
     count = sums.write(job.folder)

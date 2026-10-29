@@ -17,10 +17,9 @@ A pasta nasce com o nome language-service dentro de SAIDA. O sistema tem de ser 
 monta, porque o interpretador vem de `uv python install`, que instala o do sistema em que roda.
 Pasta já existente não se sobrescreve. A rede é usada só aqui; a pasta pronta roda sem ela.
 
-**Provado:** `linux-x64`, num contêiner sem rede, e `win-x64` (Windows 11), ambos com a pasta
-copiada para outro caminho e data nova em todo arquivo; no Windows, também com o `python.exe` da
-cópia bloqueado no Firewall (com controle positivo), `PYTHONHOME` e `PYTHONPATH` com lixo e
-`python.exe -I` respondendo `/health` 200 em duas partidas.
+**Provado:** `linux-x64` (contêiner sem rede) e `win-x64` (Windows 11), com a pasta copiada para
+outro caminho e data nova em todo arquivo; no Windows, também `python.exe` bloqueado no Firewall,
+`PYTHONHOME` e `PYTHONPATH` com lixo, e `/health` 200 com `python.exe -I`.
 
 ## O que entra
 
@@ -46,8 +45,16 @@ O Python reescreve bytecode quando a cópia traz data nova. O script remove o ma
 `compileall -f --invalidation-mode checked-hash`. Antes de terminar, importa o serviço, carrega o
 modelo e confere o manifesto de novo; se algo mudou, a montagem falha nomeando o arquivo.
 
+## Reprodução
+
+`python tools/build-service/reproduce.py --system S --model M` clona o commit duas vezes, monta a
+pasta em cada clone e compara tudo byte a byte; a segunda montagem roda sem rede (`UV_OFFLINE=1`,
+proxy numa porta fechada). Sai o que leva o caminho de quem montou (lançadores de comando, metadados
+de instalação local, o diretório que o `uv` grava nos dados de build do Linux, que volta a
+`/install`), e o bytecode usa caminho relativo e compila num processo só. O que sobrar entra em
+`JUSTIFIED` e aqui: nada hoje. O job `service_folder` roda isso por PR.
+
 ## Dois artefatos
 
-O núcleo é um executável único; o serviço é a pasta, de algumas centenas de MiB, ao lado dele.
-Atualizar o serviço é trocar a pasta. O `.github/workflows/package.yml` publica, por alvo,
-`nucleo-<alvo>` e `servico-<alvo>`, a pasta montada num runner do próprio sistema.
+O núcleo é um executável; o serviço, a pasta ao lado dele: trocar a pasta atualiza o serviço. O
+`.github/workflows/package.yml` publica por alvo `nucleo-<alvo>` e `servico-<alvo>`.

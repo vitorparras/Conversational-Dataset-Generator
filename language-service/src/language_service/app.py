@@ -14,6 +14,7 @@ from language_service.auth import SecretVerifier
 from language_service.contract import AnalyzeResponse, HealthResponse, VersionResponse
 from language_service.gate import SecretGate
 from language_service.logging_ import RequestLog
+from language_service.proof import SecretProver
 from language_service.recognizers.empty import EmptyRecognizer
 from language_service.routes import Routes, refuse_invalid_request
 
@@ -32,5 +33,7 @@ def create_app(secret: bytes) -> FastAPI:
     app.add_api_route("/health", routes.health, methods=["GET"], response_model=HealthResponse)
     app.add_api_route("/version", routes.version, methods=["GET"], response_model=VersionResponse)
     app.add_api_route("/analyze", routes.analyze, methods=["POST"], response_model=AnalyzeResponse)
-    app.add_middleware(SecretGate, verifier=SecretVerifier.from_secret(secret))
+    app.add_middleware(
+        SecretGate, verifier=SecretVerifier.from_secret(secret), prover=SecretProver(secret)
+    )
     return app

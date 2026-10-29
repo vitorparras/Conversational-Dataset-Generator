@@ -9,8 +9,11 @@ from fastapi.testclient import TestClient
 
 from language_service.auth import SecretVerifier
 from language_service.gate import REFUSAL_MESSAGE, SecretGate
+from language_service.proof import SecretProver
 from support.asgi import Exchange
 from support.synthetic import MARKED_BODY, MARKER, SECRET, SECRET_HEADER
+
+PROVER = SecretProver(SECRET)
 
 
 def test_verifier_accepts_the_startup_secret() -> None:
@@ -77,7 +80,7 @@ def test_request_with_the_secret_passes_the_gate(client: TestClient) -> None:
 
 def test_gate_refuses_without_reading_the_body() -> None:
     exchange = Exchange()
-    gate = SecretGate(exchange.application, SecretVerifier.from_secret(SECRET))
+    gate = SecretGate(exchange.application, SecretVerifier.from_secret(SECRET), PROVER)
 
     asyncio.run(gate(Exchange.scope(), exchange.receive, exchange.send))
 
@@ -86,7 +89,7 @@ def test_gate_refuses_without_reading_the_body() -> None:
 
 def test_gate_refuses_before_the_application_is_reached() -> None:
     exchange = Exchange()
-    gate = SecretGate(exchange.application, SecretVerifier.from_secret(SECRET))
+    gate = SecretGate(exchange.application, SecretVerifier.from_secret(SECRET), PROVER)
 
     asyncio.run(gate(Exchange.scope(), exchange.receive, exchange.send))
 
@@ -95,7 +98,7 @@ def test_gate_refuses_before_the_application_is_reached() -> None:
 
 def test_gate_hands_a_request_with_the_secret_to_the_application() -> None:
     exchange = Exchange()
-    gate = SecretGate(exchange.application, SecretVerifier.from_secret(SECRET))
+    gate = SecretGate(exchange.application, SecretVerifier.from_secret(SECRET), PROVER)
 
     asyncio.run(
         gate(Exchange.scope(((b"x-service-secret", SECRET),)), exchange.receive, exchange.send)

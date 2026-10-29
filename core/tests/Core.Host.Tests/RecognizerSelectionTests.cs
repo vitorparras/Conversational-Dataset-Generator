@@ -1,6 +1,7 @@
 using Core.Boundary.Contracts;
 using Core.Boundary.Fake;
 using Core.Boundary.Http;
+using Core.Host.Analysis;
 using Core.Host.Supervision;
 using Core.Host.Tests.Supervision;
 using Core.Platform.Configuration;
@@ -64,12 +65,14 @@ public sealed class RecognizerSelectionTests : IDisposable
     }
 
     [Fact]
-    public void HttpKindAsksTheSupervisedServiceForItsPort()
+    public void HttpKindWithNoServiceRunningPutsTheRecognizerThatRefusesInTheContainer()
     {
         var values = RecognizerContainer.Loaded("--Recognizer:Kind=http").Values;
         using var container = RecognizerContainer.Of(values, harness.SupervisorFor("zqx-missing-7731"), harness.Client);
 
-        _ = Assert.Throws<InvalidOperationException>(container.GetRequiredService<IRecognizer>);
+        var recognizer = container.GetRequiredService<IRecognizer>();
+
+        _ = Assert.IsType<StoppedServiceRecognizer>(recognizer);
     }
 
     [Fact]

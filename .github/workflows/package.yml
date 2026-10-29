@@ -1,7 +1,9 @@
-name: Empacota o núcleo
+name: Empacota o núcleo e o serviço
 
 # Só sob demanda: o passo package prova a cada pull request que qualquer commit se reconstrói igual,
-# então guardar o artefato a cada push guardaria o que se regenera do commit.
+# então guardar o artefato a cada push guardaria o que se regenera do commit. A pasta do serviço
+# (decisão 0041) vem ao lado do executável, por alvo; o job do verify-code prova a dela a cada pull
+# request, em linux-x64.
 on:
   workflow_dispatch:
 
@@ -43,6 +45,34 @@ jobs:
         with:
           name: nucleo-win-x64
           path: publish/win-x64
+          if-no-files-found: error
+          # Quanto dura um ensaio; depois, o mesmo artefato se regenera do commit.
+          retention-days: 30
+
+  servico:
+    name: Pasta do serviço por alvo (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # A pasta leva o interpretador de `uv python install`, que instala o do sistema em que roda.
+        include:
+          - { target: linux-x64, os: ubuntu-latest }
+          - { target: win-x64, os: windows-latest }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Instalar uv na versão fixada
+        run: pip install -r tools/verify-code/service-requirements.txt
+      - name: Montar a pasta do serviço neste sistema, com o manifesto e a origem
+        run: python tools/build-service/service_folder.py --system ${{ matrix.target }} --model pt_core_news_md --output publish
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: servico-${{ matrix.target }}
+          path: publish/language-service
           if-no-files-found: error
           # Quanto dura um ensaio; depois, o mesmo artefato se regenera do commit.
           retention-days: 30

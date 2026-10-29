@@ -1,17 +1,22 @@
 using System.Collections.Concurrent;
 using System.Net;
-using System.Net.Sockets;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace Core.Boundary.Tests.Http;
 
 /// <summary>
-/// A stand-in for the language service on a free loopback port, answering each route what the test gives it; a route
-/// given no reply never answers. Version replies are used in order, the last one for every call after.
+/// A stand-in for the language service on a loopback port it holds from the moment it is chosen, answering each route
+/// what the test gives it; a route given no reply never answers. Version replies are used in order, the last one for
+/// every call after.
 /// </summary>
 internal sealed class FakeService : IDisposable
 {
-    private readonly HttpListener listener = new();
+    private const int FirstPort = 49152;
+    private const int LastPort = 65535;
+    private const int Attempts = 200;
+
+    private readonly HttpListener listener;
     private readonly CancellationTokenSource stop = new();
     private readonly ConcurrentQueue<SeenRequest> seen = new();
     private readonly IReadOnlyList<Reply> versions;
@@ -23,9 +28,8 @@ internal sealed class FakeService : IDisposable
     {
         this.versions = versions;
         this.analysis = analysis;
-        Port = FreePort();
-        listener.Prefixes.Add($"http://127.0.0.1:{Port}/");
-        listener.Start();
+        (listener, var port) = Listen();
+        Port = port;
         serving = ServeAsync();
     }
 
@@ -41,20 +45,40 @@ internal sealed class FakeService : IDisposable
 
     public static FakeService NeverAnalyzing() => new([Reply.Version("1")], analysis: null);
 
-    /// <summary>A port nothing listens on: taken from the system and released at once.</summary>
-    public static int FreePort()
-    {
-        using var probe = new TcpListener(IPAddress.Loopback, 0);
-        probe.Start();
-        return ((IPEndPoint)probe.LocalEndpoint).Port;
-    }
-
     public void Dispose()
     {
         stop.Cancel();
         listener.Close();
         serving.GetAwaiter().GetResult();
         stop.Dispose();
+    }
+
+    /// <summary>
+    /// A listener started on a port no one else holds. The listener cannot be given port 0, so the start itself is the
+    /// check: a port taken by another process fails it and the next one is tried; there is no moment in which the port
+    /// was chosen but not yet held.
+    /// </summary>
+    private static (HttpListener Listener, int Port) Listen()
+    {
+        HttpListenerException? taken = null;
+        for (var attempt = 0; attempt < Attempts; attempt++)
+        {
+            var port = RandomNumberGenerator.GetInt32(FirstPort, LastPort + 1);
+            var candidate = new HttpListener();
+            candidate.Prefixes.Add($"http://127.0.0.1:{port}/");
+            try
+            {
+                candidate.Start();
+                return (candidate, port);
+            }
+            catch (HttpListenerException refused)
+            {
+                taken = refused;
+                candidate.Close();
+            }
+        }
+
+        throw new InvalidOperationException($"No loopback port could be held in {Attempts} attempts.", taken);
     }
 
     private async Task ServeAsync()

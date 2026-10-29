@@ -87,11 +87,8 @@ def install_interpreter(store: Path, target: Path) -> None:
 
 
 def unset_install_dir(target: Path, store_copy: Path) -> None:
-    """Puts back, in the build data of the interpreter, the prefix it was configured with.
-
-    `uv python install` writes the install directory into `_sysconfigdata`; the one of this build
-    is a temporary folder, and no two builds have the same.
-    """
+    """Puts back, in the build data of the interpreter, the prefix it was configured with: `uv`
+    writes its install directory there, and that of each build is a temporary folder."""
     stored = store_copy.as_posix().encode("utf-8")
     for data in target.rglob(SYSCONFIG_DATA):
         data.write_bytes(data.read_bytes().replace(stored, CONFIGURED_PREFIX))
@@ -137,19 +134,8 @@ def build_wheel(interpreter: Path, scratch: Path) -> Path:
     environment, wheels = scratch / "build-env", scratch / "wheels"
     run(["uv", "venv", "--quiet", "--python", interpreter, environment])
     pinned = ROOT / SERVICE / BUILD_REQUIREMENTS
-    run(
-        [
-            "uv",
-            "pip",
-            "install",
-            "--python",
-            environment,
-            "--require-hashes",
-            "--no-deps",
-            "-r",
-            pinned,
-        ]
-    )
+    backend = ["uv", "pip", "install", "--python", environment, "--require-hashes", "--no-deps"]
+    run([*backend, "-r", pinned])
     build = ["uv", "build", "--wheel", "--force-pep517", "--no-build-isolation"]
     build += ["--python", environment]
     run([*build, "--out-dir", wheels, ROOT / SERVICE])

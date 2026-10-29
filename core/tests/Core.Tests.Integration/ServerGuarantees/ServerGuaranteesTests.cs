@@ -1,4 +1,5 @@
 using Core.Persistence.ServerGuarantees;
+using Core.Persistence.Tests.Fixtures;
 using Core.Platform.Startup;
 using Core.Tests.Integration.Fixtures;
 using Npgsql;

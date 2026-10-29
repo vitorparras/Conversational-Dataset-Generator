@@ -5,7 +5,7 @@ namespace Core.Boundary.Text;
 /// the core indexes its text. A surrogate pair is one code point; any other UTF-16 unit, a lone surrogate included,
 /// is one code point too.
 /// </summary>
-public static class OffsetConverter
+internal static class OffsetConverter
 {
     private const string OutsideText = "The offset is outside the text.";
     private const string InsidePair = "The offset falls between the two halves of a surrogate pair.";
@@ -16,7 +16,7 @@ public static class OffsetConverter
     /// <param name="codePointOffset">An offset in code points, from zero to the number of code points in the text.</param>
     /// <returns>The UTF-16 index of the same position.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The offset is negative or past the end of the text.</exception>
-    public static int ToUtf16Index(string text, int codePointOffset)
+    internal static int ToUtf16Index(string text, int codePointOffset)
     {
         ArgumentNullException.ThrowIfNull(text);
         if (codePointOffset < 0)
@@ -43,7 +43,7 @@ public static class OffsetConverter
     /// <param name="utf16Index">A UTF-16 index, from zero to the length of the text.</param>
     /// <returns>The number of code points before the index.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The index is outside the text or falls inside a surrogate pair.</exception>
-    public static int ToCodePointOffset(string text, int utf16Index)
+    internal static int ToCodePointOffset(string text, int utf16Index)
     {
         ArgumentNullException.ThrowIfNull(text);
         if (utf16Index < 0 || utf16Index > text.Length)

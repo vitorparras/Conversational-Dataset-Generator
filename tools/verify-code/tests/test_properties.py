@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 
 from steps import properties
+from steps.build_core import SOLUTION
 from steps.common import CommandOutcome
 
 from . import support
@@ -56,7 +57,7 @@ class PropertiesTests(unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
         self.root = Path(self._tmp.name)
-        support.write(self.root, properties.CORE_PROJECT, "<Project />")
+        support.write(self.root, SOLUTION, "<Solution />")
         self.results = self.root / ".verify-code" / properties.RESULTS
 
     def run_step(
@@ -78,7 +79,7 @@ class PropertiesTests(unittest.TestCase):
         self.assertIn("1 propriedades em serviço (Python)", details)
 
     def test_a_missing_core_project_fails(self) -> None:
-        (self.root / properties.CORE_PROJECT).unlink()
+        (self.root / SOLUTION).unlink()
 
         ok, details, _ = self.run_step(None, None)
 
@@ -157,8 +158,29 @@ class PropertiesTests(unittest.TestCase):
     def test_each_side_runs_only_what_is_marked_as_a_property(self) -> None:
         _, _, runner = self.run_step(trx((PROPERTY_CLASS, "Passed")), junit((SERVICE_PROPERTY, "")))
 
-        self.assertEqual(
-            runner.commands[0][:4], ["dotnet", "test", "--project", properties.CORE_PROJECT]
-        )
+        self.assertEqual(runner.commands[0][:3], ["dotnet", "test", SOLUTION])
         self.assertIn("Kind=Property", runner.commands[0])
         self.assertEqual(runner.commands[1][5:8], ["pytest", "-m", "property"])
+
+    def test_the_core_side_runs_the_solution_and_not_a_fixed_test_project(self) -> None:
+        _, _, runner = self.run_step(trx((PROPERTY_CLASS, "Passed")), junit((SERVICE_PROPERTY, "")))
+
+        self.assertNotIn("--project", runner.commands[0])
+
+    def test_a_test_project_without_a_property_does_not_fail_the_side(self) -> None:
+        _, _, runner = self.run_step(trx((PROPERTY_CLASS, "Passed")), junit((SERVICE_PROPERTY, "")))
+
+        command = runner.commands[0]
+        self.assertEqual(command[command.index("--ignore-exit-code") + 1], "8")
+
+    def test_properties_of_several_test_projects_count_together(self) -> None:
+        reports = {
+            "boundary.trx": trx(("Core.Boundary.Tests.AnswerInvariants", "Passed")),
+            CORE_REPORT: trx((PROPERTY_CLASS, "Passed")),
+            properties.JUNIT: junit((SERVICE_PROPERTY, "")),
+        }
+        runner = support.FakeRunner(CommandOutcome(True, "output"), reports, self.results)
+
+        result = properties.run(support.context(self.root, runner))
+
+        self.assertIn("2 propriedades em núcleo (.NET)", result.details)

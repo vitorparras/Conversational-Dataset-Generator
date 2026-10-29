@@ -1,7 +1,7 @@
 using Core.Boundary.Contracts;
 using CsCheck;
 
-namespace Core.Tests.Properties.Boundary;
+namespace Core.Boundary.Tests.Properties;
 
 /// <summary>Answers about generated texts: every occurrence inside the text, or all inside but one that falls outside it.</summary>
 internal static class AnswerGenerators

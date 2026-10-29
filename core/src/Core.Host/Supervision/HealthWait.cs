@@ -29,8 +29,30 @@ internal sealed class HealthWait
         }
     }
 
+    /// <summary>
+    /// Waits until the service has told its port; false when the process ended first, or when what it wrote is not the
+    /// announcement, in which case the wait goes on until the process ends or the limit passes, since there is no port to ask.
+    /// </summary>
+    private static async Task<bool> KnowsPortAsync(RunningService service, CancellationToken limit)
+    {
+        var announced = service.PortAnnouncedAsync();
+        _ = await Task.WhenAny(announced, service.WaitForExitAsync()).WaitAsync(limit);
+        if (announced.IsCompleted && await announced)
+        {
+            return true;
+        }
+
+        await service.WaitForExitAsync().WaitAsync(limit);
+        return false;
+    }
+
     private async Task<StartOutcome> PollAsync(RunningService service, string secret, CancellationToken limit)
     {
+        if (!await KnowsPortAsync(service, limit))
+        {
+            return StartOutcome.ProcessExited;
+        }
+
         while (!service.HasExited)
         {
             if (await AnswersAsync(service.Port, secret, limit))

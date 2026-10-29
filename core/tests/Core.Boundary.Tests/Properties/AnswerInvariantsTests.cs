@@ -1,7 +1,7 @@
-using Core.Tests.Properties.Harness;
+using Core.Tests.Support.Harness;
 using CsCheck;
 
-namespace Core.Tests.Properties.Boundary;
+namespace Core.Boundary.Tests.Properties;
 
 /// <summary>The validator keeps the invariants of decisão 0011 and requisito 009; a validator that measures the text wrongly falls to its property.</summary>
 public sealed class AnswerInvariantsTests

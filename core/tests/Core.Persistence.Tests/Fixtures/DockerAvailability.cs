@@ -1,6 +1,6 @@
 using DotNet.Testcontainers.Configurations;
 
-namespace Core.Tests.Integration.Fixtures;
+namespace Core.Persistence.Tests.Fixtures;
 
 /// <summary>Decides whether the database tests run: they skip, with a visible reason, only where Docker does not answer and CI does not demand them.</summary>
 internal static class DockerAvailability

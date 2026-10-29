@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-namespace Core.Tests.Integration.Fixtures;
+namespace Core.Persistence.Tests.Fixtures;
 
 /// <summary>A test that needs the database container: skipped with <see cref="DockerAvailability.SkipReason"/> when Docker is out of reach.</summary>
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]

@@ -1,7 +1,7 @@
 using Core.Persistence.Migrations;
 using Core.Persistence.ServerGuarantees;
+using Core.Persistence.Tests.Fixtures;
 using Core.Platform.Startup;
-using Core.Tests.Integration.Fixtures;
 using Npgsql;
 
 namespace Core.Tests.Integration.Migrations;

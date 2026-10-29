@@ -183,6 +183,21 @@ class VerifyTests(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertIn("no_such_step", output)
 
+    def test_a_module_with_a_step_other_than_mutation_is_a_usage_error(self) -> None:
+        with mock.patch.object(verify, "run_steps") as run_steps:
+            code, output = run_main("--step", "build_core", "--module", "Core.Boundary.Text")
+
+        self.assertEqual(code, 2)
+        self.assertIn("--module só vale para o passo mutation", output)
+        run_steps.assert_not_called()
+
+    def test_a_module_with_the_mutation_step_among_the_steps_is_accepted(self) -> None:
+        with mock.patch.object(verify, "run_steps", return_value=()) as run_steps:
+            code, _ = run_main("--step", "build_core", "mutation", "--module", "Core.Boundary.Text")
+
+        self.assertEqual(code, 0)
+        self.assertEqual(run_steps.call_args.args[1].module, "Core.Boundary.Text")
+
     def test_a_legacy_console_still_prints_a_character_it_cannot_encode(self) -> None:
         change = failed("bad", "`a` → `b`")
         raw = io.BytesIO()

@@ -1,6 +1,6 @@
 using CsCheck;
 
-namespace Core.Tests.Properties.Boundary;
+namespace Core.Boundary.Tests.Properties;
 
 /// <summary>Texts where code points and UTF-16 units part ways, the empty one included, and positions in them.</summary>
 internal static class TextGenerators

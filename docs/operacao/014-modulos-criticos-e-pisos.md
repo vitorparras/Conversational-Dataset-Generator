@@ -39,14 +39,14 @@ prefixo mais longo que casar. Área ainda sem projeto entra na tabela pelo nome,
 | Plataforma, demais pastas | `Core.Platform` | 80 % | não | Versões, relógio e fonte da chave: portas e metadado, sem material |
 | Garantias do servidor | `Core.Persistence.ServerGuarantees` | 80 % | não | Confere o banco sem alterá-lo; falha é recusa de subir |
 | Persistência, demais pastas | `Core.Persistence` | 80 % | não | Conexão com credencial da aplicação; sem consulta de domínio |
-| Fronteira, demais pastas | `Core.Boundary` | 80 % | não | Proposta de piso, sujeita à aprovação do dono: o código está nas subáreas acima, esta linha cobre o resto |
+| Fronteira, demais pastas | `Core.Boundary` | 80 % | não | O que fica fora de Text, Http, Fake e Contracts; sem material próprio |
 | Serviço, demais módulos | `language_service` | 80 % | não | Rotas, contrato e reconhecedor vazio; sem segredo nem registro |
 | Executável | `Core.Host` | 60 % | não | Só composição, sem regra; coberto por teste de integração |
 | Ferramentas | `tools` | 60 % | não | Scripts da verificação; falha reprova o build, não vaza dado |
 
 `isento` é o único valor não numérico aceito: a área está declarada e nada se compara. Área medida
 fora da tabela reprova; piso ausente não é piso zero. Área com piso e sem linha a cobrir (`0 de 0`)
-aparece sem código e não reprova, salvo se o projeto ou pacote existe e nenhum relatório o leu.
+aparece sem código e não reprova, salvo se a área tem projeto ou pacote e nenhum relatório o leu.
 
 O teste de mutação percorre as áreas com `sim` em Crítica; as regras dele estão na
 [017](017-teste-de-mutacao.md).

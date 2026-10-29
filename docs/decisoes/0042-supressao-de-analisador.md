@@ -1,6 +1,6 @@
 # 0042 — Nenhum analisador se suprime em `core/src`
 
-> Decisão vigente. 2026-10-16, decisão do operador; emendada em 2026-10-18 e 2026-10-25.
+> Decisão vigente. 2026-10-16, decisão do operador; emendada em 2026-10-18, 2026-10-25 e 2026-10-29.
 
 ## Contexto
 
@@ -18,13 +18,15 @@ código gerado. A única exceção é RS0030 nas classes `*LogMessages`, com `Ju
 
 Uma regra de analisador só se desliga no `.editorconfig` da raiz, com o motivo escrito numa linha
 de comentário logo acima: S1309, S1451 e S4055 em todo `*.cs` (S4055 pede `ResourceManager`, mas a
-decisão 0039 fixa um idioma só); qualquer outra só numa seção que nomeia o arquivo. Hoje são três:
+decisão 0039 fixa um idioma só); qualquer outra só numa seção que nomeia o arquivo. Hoje são quatro:
 
 - S6585 em `core/src/Core.Platform/Logging/LineConsoleFormatter.cs`: o registro é lido por máquina,
   em formato fixo;
 - S1200 em `core/src/Core.Host/CompositionRoot.cs`: a raiz depende de todos os serviços por
   definição, e a regra 3 a faz a única a construí-los;
-- CA2100 em `core/src/Core.Persistence/Migrations/StepCommand.cs`: o texto é recurso embutido.
+- CA2100 em `core/src/Core.Persistence/Migrations/StepCommand.cs`: o texto é recurso embutido;
+- S2221 em `core/src/Core.Host/HostLaunch.cs`: o único ponto que converte qualquer falha ao servir
+  no código de saída 70.
 
 O compilador recebe só o `.editorconfig` da raiz e os configs do SDK. Os arquivos que o SDK gera
 e os supressores que o SDK traz são exceções nomeadas, cada uma com o motivo, no teste.

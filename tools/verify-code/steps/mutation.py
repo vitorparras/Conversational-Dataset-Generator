@@ -12,7 +12,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from steps import mutation_core, mutation_service
-from steps.areas_doc import DOCUMENT, Area, read_areas, within
+from steps.areas_doc import DOCUMENT, Area, AreaTable, read_areas, within
 from steps.common import Context, StepResult, failed, passed
 from steps.coverage_by_area import summarize
 from steps.floors import Verdict
@@ -22,9 +22,8 @@ from steps.mutation_policy import critical, read_policy
 NAME = "mutation"
 
 
-def listed(root: Path) -> tuple[tuple[Area, ...], tuple[str, ...]]:
-    """The critical modules of 014, and what keeps the document from giving them."""
-    table = read_areas(root)
+def listed(table: AreaTable) -> tuple[tuple[Area, ...], tuple[str, ...]]:
+    """The critical modules of the table of 014, and what keeps the document from giving them."""
     if table.problems:
         return (), table.problems
     modules = critical(table.areas)
@@ -33,7 +32,7 @@ def listed(root: Path) -> tuple[tuple[Area, ...], tuple[str, ...]]:
 
 def names(root: Path) -> tuple[tuple[str, ...], tuple[str, ...]]:
     """The names CI hands to ``--module``, one job each, and the problems with the list."""
-    modules, problems = listed(root)
+    modules, problems = listed(read_areas(root))
     return tuple(area.prefix for area in modules), problems
 
 
@@ -41,14 +40,14 @@ def run(ctx: Context) -> StepResult:
     policy = read_policy(ctx.root)
     if isinstance(policy, tuple):
         return failed(NAME, *policy)
-    every, problems = listed(ctx.root)
+    table = read_areas(ctx.root)
+    every, problems = listed(table)
     if problems:
         return failed(NAME, *problems)
     modules = tuple(area for area in every if ctx.module in (None, area.prefix))
     if not modules:
         known = ", ".join(f"`{area.prefix}`" for area in every)
         return failed(NAME, f"`{ctx.module}` não é módulo crítico de {DOCUMENT}; são: {known}")
-    table = read_areas(ctx.root)
     core = tuple(area for area in modules if within(area.prefix, mutation_core.ROOT))
     service = tuple(area for area in modules if within(area.prefix, mutation_service.ROOT))
     stray = (

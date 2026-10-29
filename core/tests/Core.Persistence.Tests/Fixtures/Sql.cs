@@ -1,6 +1,6 @@
 using Npgsql;
 
-namespace Core.Tests.Integration.Fixtures;
+namespace Core.Persistence.Tests.Fixtures;
 
 /// <summary>Opens a connection for the test that is running.</summary>
 internal static class Sql

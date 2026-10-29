@@ -9,7 +9,7 @@ namespace Core.Boundary.Http;
 /// Checks an answer of the language service before the core uses any of it: the contract version, the JSON shape and
 /// every offset against the text sent. One problem refuses the whole answer; a refusal is a result, not an exception.
 /// </summary>
-public static class ResponseValidator
+internal static class ResponseValidator
 {
     private static readonly JsonDocumentOptions SingleValue = new() { AllowDuplicateProperties = false };
 
@@ -19,7 +19,7 @@ public static class ResponseValidator
     /// <param name="body">The body of the answer, as the bytes received, so that a broken encoding is refused rather than replaced.</param>
     /// <returns>The accepted answer, or the problem found first; an end before the start wins over an offset outside the text.</returns>
     /// <exception cref="ArgumentNullException">The request or the declared version is null.</exception>
-    public static ResponseValidation Validate(AnalysisRequest request, string declaredContractVersion, ReadOnlyMemory<byte> body)
+    internal static ResponseValidation Validate(AnalysisRequest request, string declaredContractVersion, ReadOnlyMemory<byte> body)
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(declaredContractVersion);

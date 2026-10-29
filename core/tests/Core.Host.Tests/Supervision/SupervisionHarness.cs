@@ -1,5 +1,4 @@
 using System.Net;
-using System.Text.RegularExpressions;
 using Core.Boundary.Http;
 using Core.Host.Supervision;
 using Microsoft.Extensions.Logging;
@@ -7,7 +6,7 @@ using Microsoft.Extensions.Logging;
 namespace Core.Host.Tests.Supervision;
 
 /// <summary>The pieces the supervision is built from, wired the way the host wires them; whatever a test starts through it is stopped on dispose.</summary>
-internal sealed partial class SupervisionHarness : IDisposable
+internal sealed class SupervisionHarness : IDisposable
 {
     public static readonly TimeSpan Timeout = TimeSpan.FromSeconds(120);
 
@@ -62,11 +61,9 @@ internal sealed partial class SupervisionHarness : IDisposable
             : throw new InvalidOperationException($"The language service did not become healthy: {outcome}.");
     }
 
-    /// <summary>How the service listening for the process answers the health route given the secret; the port is read from the command line of the process.</summary>
-    public async Task<HttpStatusCode> HealthAsync(int processId, string secret, CancellationToken cancellationToken)
+    /// <summary>How the service listening on the port answers the health route given the secret.</summary>
+    public async Task<HttpStatusCode> HealthAsync(int port, string secret, CancellationToken cancellationToken)
     {
-        var lines = await ProcessTree.TreeOfAsync(processId, cancellationToken);
-        var port = lines.Select(line => PortArgument().Match(line.CommandLine)).First(match => match.Success).Groups["port"].Value;
         using var request = new HttpRequestMessage(HttpMethod.Get, new Uri($"http://127.0.0.1:{port}/health"));
         request.Headers.Add("x-service-secret", secret);
         using var response = await Client.SendAsync(request, cancellationToken);
@@ -78,7 +75,4 @@ internal sealed partial class SupervisionHarness : IDisposable
         started.ForEach(item => item.Dispose());
         Client.Dispose();
     }
-
-    [GeneratedRegex(@"--port (?<port>\d+)")]
-    private static partial Regex PortArgument();
 }

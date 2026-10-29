@@ -85,7 +85,9 @@ public sealed class HttpRecognizerLogTests : IDisposable
     [Fact]
     public async Task UnreachableServiceIsWrittenOnceWithTheReferenceAndTheReason()
     {
-        _ = await recognition.AskAsync(FakeService.FreePort());
+        using var closed = new ClosedPort();
+
+        _ = await recognition.AskAsync(closed.Number);
 
         var line = Assert.Single(recognition.Log.Lines);
         Assert.Equal((Reference, "ConnectionRefused"), (line.Fields["Reference"], line.Fields["Reason"]));
@@ -115,7 +117,9 @@ public sealed class HttpRecognizerLogTests : IDisposable
     [Fact]
     public async Task NoLineCarriesTheTextOrTheSecretWhenTheServiceIsUnreachable()
     {
-        _ = await recognition.AskAsync(FakeService.FreePort());
+        using var closed = new ClosedPort();
+
+        _ = await recognition.AskAsync(closed.Number);
 
         Assert.DoesNotContain("ZQX-MARKER", recognition.Log.Everything, StringComparison.Ordinal);
     }

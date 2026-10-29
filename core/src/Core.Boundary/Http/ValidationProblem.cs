@@ -1,7 +1,7 @@
 namespace Core.Boundary.Http;
 
 /// <summary>Why an answer of the language service was refused whole; it names the problem, never the text or an offset.</summary>
-public enum ValidationProblem
+internal enum ValidationProblem
 {
     /// <summary>The service declared a version of the contract the core does not know.</summary>
     UnknownContractVersion = 0,

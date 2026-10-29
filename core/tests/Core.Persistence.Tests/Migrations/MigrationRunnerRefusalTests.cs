@@ -1,6 +1,5 @@
 using Core.Persistence.Migrations;
 using Core.Persistence.Tests.Fixtures;
-using Core.Tests.Integration.Fixtures;
 
 namespace Core.Persistence.Tests.Migrations;
 

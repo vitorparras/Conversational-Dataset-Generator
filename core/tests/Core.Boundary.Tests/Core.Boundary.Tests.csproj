@@ -2,5 +2,10 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Core.Boundary\Core.Boundary.csproj" />
     <ProjectReference Include="..\..\src\Core.Boundary.Contracts\Core.Boundary.Contracts.csproj" />
+    <ProjectReference Include="..\Core.Tests.Support\Core.Tests.Support.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CsCheck" />
   </ItemGroup>
 </Project>

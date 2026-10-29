@@ -51,6 +51,41 @@ public sealed class ServiceDeathTests : IDisposable
     }
 
     [Fact]
+    public async Task ServiceThatDiedWhileAnotherProcessHoldsItsPortLeavesTheAnalysisRefusedAndSendsNothingThere()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var supervisor = await harness.StartedSupervisorAsync(watch, cancellationToken);
+        var port = supervisor.Port!.Value;
+        using var container = HttpContainer(supervisor);
+        StandInService.Kill(supervisor.ProcessId!.Value);
+        var lost = await Poll.UntilAsync(() => Task.FromResult(watch.State == ServiceState.Unavailable), Poll.LossLimit, cancellationToken);
+        Assert.True(lost, "the end of the service process was not seen");
+        using var stranger = new StrangerOnThePort(port);
+
+        var result = await container.GetRequiredService<MaterialAnalysis>().AnalyzeAsync(Asked, cancellationToken);
+
+        Assert.Null(result.Concluded);
+        Assert.Equal(UnavailabilityReason.ConnectionRefused, result.Refused!.Reason);
+        Assert.Contains("não pôde ser alcançado", result.Refused.Cause, StringComparison.Ordinal);
+        Assert.Equal(0, stranger.Connections);
+    }
+
+    [Fact]
+    public async Task ServiceThatDiedIsNoLongerOfferedItsPortOrItsSecret()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var supervisor = await harness.StartedSupervisorAsync(watch, cancellationToken);
+
+        StandInService.Kill(supervisor.ProcessId!.Value);
+        var lost = await Poll.UntilAsync(() => Task.FromResult(watch.State == ServiceState.Unavailable), Poll.LossLimit, cancellationToken);
+
+        Assert.True(lost, "the end of the service process was not seen");
+        Assert.Null(supervisor.Endpoint);
+        Assert.Null(supervisor.Port);
+        Assert.Empty(supervisor.Secret);
+    }
+
+    [Fact]
     public async Task AnalysisAfterARestartAsksTheNewProcessAtItsPortWithItsSecret()
     {
         var cancellationToken = TestContext.Current.CancellationToken;

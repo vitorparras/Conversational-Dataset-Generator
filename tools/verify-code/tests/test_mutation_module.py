@@ -6,6 +6,7 @@ import contextlib
 import io
 import json
 import unittest
+from unittest import mock
 
 from steps import areas_doc, mutation
 
@@ -60,6 +61,12 @@ class MutationModuleTests(fixture.MutationFixture):
         self.assertEqual(runner.commands, [])
         self.assertIn("`Core.Platform` não é módulo crítico", result.details[0])
         self.assertTrue(result.details[0].endswith(f"são: {KNOWN}, `language_service.logging_`"))
+
+    def test_the_areas_document_is_read_once_per_run(self) -> None:
+        with mock.patch.object(mutation, "read_areas", wraps=areas_doc.read_areas) as read:
+            self.run_step(healthy(), "Core.Platform.Logging")
+
+        self.assertEqual(read.call_count, 1)
 
     def test_without_a_module_every_critical_module_runs(self) -> None:
         runner = healthy()

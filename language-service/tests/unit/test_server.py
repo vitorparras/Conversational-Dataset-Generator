@@ -1,7 +1,10 @@
 """The server binds the loopback interface by construction, and stops when standard input ends."""
 
 import inspect
+import io
+import json
 import os
+import socket
 import threading
 from collections.abc import Iterator
 from typing import BinaryIO
@@ -9,7 +12,14 @@ from typing import BinaryIO
 import pytest
 
 from language_service.app import create_app
-from language_service.server import LOOPBACK_HOST, build_config, serve, watch_stream
+from language_service.server import (
+    LOOPBACK_HOST,
+    announce,
+    build_config,
+    listen,
+    serve,
+    watch_stream,
+)
 from support.synthetic import SECRET
 
 PORT = 8123
@@ -63,3 +73,36 @@ def test_watch_signals_when_the_stream_ends(pipe: tuple[BinaryIO, int]) -> None:
     os.close(write_end)
 
     assert ended.wait(timeout=5)
+
+
+def test_listen_on_port_zero_holds_a_port_of_the_loopback_interface() -> None:
+    with listen(0) as listener:
+        host, port = listener.getsockname()
+
+        assert (host, port > 0) == (LOOPBACK_HOST, True)
+
+
+def test_listen_refuses_a_port_someone_else_holds() -> None:
+    with listen(0) as holder, pytest.raises(OSError):
+        listen(holder.getsockname()[1])
+
+
+def test_listen_leaves_the_port_with_its_owner_until_it_is_closed() -> None:
+    listener = listen(0)
+    port = listener.getsockname()[1]
+
+    with socket.create_connection((LOOPBACK_HOST, port), timeout=5):
+        pass
+
+    listener.close()
+
+
+def test_announce_writes_one_json_line_with_the_port_it_holds() -> None:
+    out = io.StringIO()
+
+    with listen(0) as listener:
+        announce(listener, out)
+        port = listener.getsockname()[1]
+
+    assert json.loads(out.getvalue()) == {"event": "listening", "port": port}
+    assert out.getvalue().count("\n") == 1

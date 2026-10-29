@@ -9,7 +9,7 @@ public enum ExitCode
     /// <summary>A startup check failed, so the process did not open its port; 69 is the unavailable service of the sysexits convention.</summary>
     StartupCheckFailed = 69,
 
-    /// <summary>A failure ended the process after it had begun to serve, such as a port already taken; 70 is the internal software error of the sysexits convention.</summary>
+    /// <summary>A failure ended the process once the host was assembled, when it opened its port or served, such as a port already taken; 70 is the software error of sysexits.</summary>
     ServingFailed = 70,
 
     /// <summary>The configuration was refused before anything else started; 78 is the configuration error of the sysexits convention.</summary>

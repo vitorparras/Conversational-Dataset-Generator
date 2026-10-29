@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using System.Net.Sockets;
+using System.Diagnostics.CodeAnalysis;
 using Core.Host.Migration;
 using Core.Persistence.Migrations;
 using Core.Platform.Configuration;
@@ -47,7 +47,8 @@ internal sealed class HostLaunch
         _ => throw new UnreachableException(),
     };
 
-    /// <summary>Serves until stopped; a port already taken or an address Kestrel cannot bind ends it with its own code instead of an unhandled exception.</summary>
+    /// <summary>Serves until stopped; any failure not fatal to the process, such as a port already taken, ends it with its own code.</summary>
+    [SuppressMessage("Major Code Smell", "S2221", Justification = "The edge of the process: whatever stops the host leaves through a declared exit code; the fatal ones are left out by the filter.")]
     private ExitCode Serve()
     {
         try
@@ -55,7 +56,7 @@ internal sealed class HostLaunch
             app!.Run();
             return ExitCode.Success;
         }
-        catch (Exception exception) when (exception is IOException or InvalidOperationException or SocketException or UnauthorizedAccessException)
+        catch (Exception exception) when (ServingFailure.CanReport(exception))
         {
             return ServingFailure.Report(Console.Error, exception);
         }

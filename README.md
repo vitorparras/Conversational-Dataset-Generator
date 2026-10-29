@@ -152,8 +152,9 @@ segue registrando só no console.
 
 SIGTERM ou CTRL+C encerra o núcleo: ele conclui as requisições em curso, encerra o serviço de
 linguagem, fecha o registro e sai com código 0. Uma conferência de inicialização que falha sai com
-69, e a configuração recusada, com 78. Uma falha que o encerra depois de começar a servir, como a
-porta já ocupada, sai com 70 e a saída de erro nomeia o tipo da falha, nunca a mensagem.
+69, e a configuração recusada, com 78. Uma falha que o encerra ao abrir a porta ou ao servir, como a
+porta já ocupada, sai com 70 (salvo memória esgotada ou corrompida, que o processo não relata) e a
+saída de erro nomeia o tipo da falha, nunca a mensagem.
 
 Com o núcleo de pé, `http://127.0.0.1:5080/status` responde `alive`, `ready`, `recognizer`,
 `languageService`, `checkedAt` e `checks[]`: o reconhecedor em vigor, o estado atual do serviço

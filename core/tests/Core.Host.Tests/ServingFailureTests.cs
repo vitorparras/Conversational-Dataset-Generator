@@ -19,7 +19,7 @@ public sealed class ServingFailureTests
         var exit = await HostProcess.RunToExitAsync(HostInstallation.Built(address), HostProcess.StartupTimeout, TestContext.Current.CancellationToken);
 
         Assert.Equal((int)ExitCode.ServingFailed, exit.Code);
-        Assert.Contains("O processo parou: uma falha o encerrou depois de começar a servir", exit.Error, StringComparison.Ordinal);
+        Assert.Contains("O processo parou: uma falha o encerrou ao abrir a porta ou ao servir", exit.Error, StringComparison.Ordinal);
         Assert.Contains("(System.IO.IOException)", exit.Error, StringComparison.Ordinal);
         Assert.DoesNotContain("Unhandled exception", exit.Error, StringComparison.Ordinal);
     }

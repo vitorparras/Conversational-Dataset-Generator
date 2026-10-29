@@ -21,6 +21,7 @@ internal static class HostPort
     private const int Attempts = 200;
     private const int SharingViolation = 32;
     private const int LockViolation = 33;
+    private const int WouldBlockOnLinux = 11;
 
     private static readonly string ClaimsDirectory = Path.Combine(Path.GetTempPath(), "cdg-test-host-ports");
     private static readonly List<FileStream> Claims = [];
@@ -85,8 +86,9 @@ internal static class HostPort
         }
     }
 
-    /// <summary>The way both systems report a file another handle holds without sharing it: a sharing or lock violation.</summary>
-    private static bool HeldByAnotherProcess(Exception failure) => (failure.HResult & 0xFFFF) is SharingViolation or LockViolation;
+    /// <summary>How each system reports a file another handle holds without sharing it: a sharing or lock violation on Windows, EWOULDBLOCK from the lock on Linux.</summary>
+    private static bool HeldByAnotherProcess(Exception failure) =>
+        OperatingSystem.IsWindows() ? (failure.HResult & 0xFFFF) is SharingViolation or LockViolation : failure.HResult == WouldBlockOnLinux;
 
     private static void Release()
     {

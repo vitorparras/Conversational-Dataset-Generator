@@ -1,6 +1,6 @@
 # 0042 — Nenhum analisador se suprime em `core/src`
 
-> Decisão vigente. 2026-10-16, decisão do operador; emendada em 2026-10-18 e 2026-10-25.
+> Decisão vigente. 2026-10-16, decisão do operador; emendada em 2026-10-18, 2026-10-25 e 2026-10-29.
 
 ## Contexto
 
@@ -26,7 +26,7 @@ decisão 0039 fixa um idioma só); qualquer outra só numa seção que nomeia o 
   definição, e a regra 3 a faz a única a construí-los;
 - S1312 em `core/src/Core.Host/Supervision/LanguageServiceSupervisor.cs`: a DI injeta o logger, que
   não pode ser estático;
-- CA2100 em `core/src/Core.Persistence/Migrations/StepCommand.cs`: o texto é recurso embutido.
+- CA2100 em `core/src/Core.Persistence/Migrations/StepCommand.cs`: o texto é recurso embutido;
 - S2221 em `core/src/Core.Host/HostLaunch.cs`: o único ponto que converte qualquer falha ao servir
   no código de saída 70.
 

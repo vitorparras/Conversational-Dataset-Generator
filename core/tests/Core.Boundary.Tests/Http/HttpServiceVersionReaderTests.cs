@@ -1,5 +1,6 @@
 using Core.Boundary.Http;
 using Core.Platform.Versions;
+using Core.Tests.Support.Net;
 
 namespace Core.Boundary.Tests.Http;
 

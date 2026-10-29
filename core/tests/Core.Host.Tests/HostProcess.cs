@@ -1,7 +1,5 @@
 using System.Diagnostics;
 using System.Globalization;
-using System.Net;
-using System.Net.Sockets;
 using Core.Host.Supervision;
 
 namespace Core.Host.Tests;
@@ -84,13 +82,8 @@ internal sealed class HostProcess : IDisposable
     public static HostProcess Launch(HostInstallation installation, Uri baseAddress) =>
         new(Process.Start(StartInfo(installation)) ?? throw new InvalidOperationException("The host process did not start."), baseAddress);
 
-    /// <summary>An address on a port the system hands out and releases at once.</summary>
-    public static Uri FreeAddress()
-    {
-        using var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        return new Uri($"http://127.0.0.1:{((IPEndPoint)listener.LocalEndpoint).Port}");
-    }
+    /// <summary>An address on a loopback port this test process claimed, so no other process of the run is given it.</summary>
+    public static Uri FreeAddress() => new($"http://127.0.0.1:{HostPort.Claim()}");
 
     /// <summary>Waits for the process to end by itself; past the timeout it is killed, its streams drained, and the wait fails.</summary>
     public async Task<HostExit> WaitForExitAsync(TimeSpan timeout, CancellationToken cancellationToken)

@@ -1,10 +1,10 @@
 using System.Net;
 using System.Net.Sockets;
 
-namespace Core.Boundary.Tests.Http;
+namespace Core.Tests.Support.Net;
 
 /// <summary>A loopback port the test holds without listening on it: a connection to it is refused, and no other listener can be given it.</summary>
-internal sealed class ClosedPort : IDisposable
+public sealed class ClosedPort : IDisposable
 {
     private readonly Socket socket = new(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 

@@ -358,6 +358,19 @@
           "Microsoft.Extensions.Telemetry": "[10.11.0, )"
         }
       },
+      "core.tests.support": {
+        "type": "Project",
+        "dependencies": {
+          "CsCheck": "[4.9.1, )",
+          "xunit.v3.extensibility.core": "[4.0.2, )"
+        }
+      },
+      "CsCheck": {
+        "type": "CentralTransitive",
+        "requested": "[4.9.1, )",
+        "resolved": "4.9.1",
+        "contentHash": "rEmuFiG19sF8U4Ef/S79cu9HW4pUGraoCTkmYs0z7SvsGqGAVO3wCjxQPS0KQvPa1g2/w1wBbnAP6cDZKBFEcA=="
+      },
       "Microsoft.Extensions.Compliance.Redaction": {
         "type": "CentralTransitive",
         "requested": "[10.11.0, )",

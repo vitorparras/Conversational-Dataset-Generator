@@ -1,20 +1,22 @@
 using System.Net;
-using System.Net.Sockets;
+using Core.Tests.Support.Net;
 using Npgsql;
 
 namespace Core.Persistence.Tests.ServerGuarantees;
 
-/// <summary>A data source that points at a loopback port the system handed out and nobody listens on, with a marked password.</summary>
+/// <summary>A data source that points at a loopback port the test holds without listening on it, with a marked password.</summary>
 internal sealed class UnreachableServer : IAsyncDisposable
 {
     public const string Password = "ZQX-SENHA-7731";
+
+    private readonly ClosedPort port = new();
 
     public UnreachableServer()
     {
         ConnectionString = new NpgsqlConnectionStringBuilder
         {
             Host = IPAddress.Loopback.ToString(),
-            Port = FreePort(),
+            Port = port.Number,
             Database = "zqx_database",
             Username = "zqx_app",
             Password = Password,
@@ -26,12 +28,9 @@ internal sealed class UnreachableServer : IAsyncDisposable
 
     public NpgsqlDataSource DataSource { get; }
 
-    public ValueTask DisposeAsync() => DataSource.DisposeAsync();
-
-    private static int FreePort()
+    public async ValueTask DisposeAsync()
     {
-        using var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        return ((IPEndPoint)listener.LocalEndpoint).Port;
+        await DataSource.DisposeAsync();
+        port.Dispose();
     }
 }

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Core.Boundary.Contracts;
+using Core.Tests.Support.Net;
 
 namespace Core.Boundary.Tests.Http;
 

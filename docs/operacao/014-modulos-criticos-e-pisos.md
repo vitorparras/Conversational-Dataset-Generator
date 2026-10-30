@@ -36,6 +36,7 @@ projeto entra na tabela pelo nome, por exceção declarada à [regra 5](../regra
 | Contrato da fronteira | `Core.Boundary.Contracts` | 90 % | sim | A forma JSON recusa campo desconhecido ou nulo no texto que cruza o processo (decisão 0018) |
 | Migração do esquema | `Core.Persistence.Migrations` | 90 % | sim | Altera o esquema do banco; erro corrompe custódia (requisito 019) |
 | Autenticação do serviço | `language_service.auth` | 90 % | sim | Guarda o segredo que protege texto não sanitizado (decisão 0011) |
+| Prova do segredo | `language_service.proof` | 90 % | sim | Prova que conhece o segredo pelo HMAC do nonce, sem revelá-lo (decisão 0043) |
 | Registro do serviço | `language_service.logging_` | 90 % | sim | Decide o que o serviço escreve em registro (requisito 021) |
 | Configuração | `Core.Platform.Configuration` | 80 % | não | Falha fechada na partida (requisito 032); não toca material |
 | Partida | `Core.Platform.Startup` | 80 % | não | Conferências que impedem subir sem garantia; sem material |

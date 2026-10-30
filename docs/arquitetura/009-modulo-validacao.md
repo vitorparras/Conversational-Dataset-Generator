@@ -1,6 +1,7 @@
 # 009 — Módulo de validação e métricas
 
 > Descrição. 2026-10-04.
+> Estado no código: o módulo não existe em `core/src`. Ver a [concordância](../roadmap/008-concordancia.md).
 
 Este módulo responde a uma pergunta: este recorte de anotação está bom o suficiente para sair? Ele
 não melhora nada — mede, aponta divergência, e deixa a decisão para quem tem autoridade sobre o

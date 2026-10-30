@@ -8,6 +8,10 @@ persistência.
 **Esta pasta descreve, não manda.** Se um documento aqui divergir do código, **o código ganha** — e
 a divergência é um achado que merece issue, não uma correção silenciosa.
 
+**Descreve o desenho-alvo, não só o que já existe.** Cada documento abre com uma linha "Estado no
+código" que diz, citando por caminho, o que dele existe; o que ainda não existe aponta a fase do
+[roadmap](../roadmap/README.md) que o instala.
+
 O que **autoriza** uma escolha de arquitetura vive em [`decisoes/`](../decisoes/); aqui está o
 resultado dela.
 

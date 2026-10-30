@@ -1,6 +1,7 @@
 # 006 — Módulo de sanitização
 
 > Descrição. 2026-10-04.
+> Estado no código: o módulo não existe em `core/src`. Ver a [sanitização](../roadmap/004-sanitizacao.md).
 
 A sanitização faz duas coisas que parecem opostas: tira o que a política manda tirar, e não toca em
 nada além disso. A dificuldade é que remover ruído e remover sinal se parecem no código e não se

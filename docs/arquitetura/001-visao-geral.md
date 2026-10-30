@@ -1,6 +1,7 @@
 # 001 — Visão geral
 
 > Descrição. 2026-10-04.
+> Estado no código: existem o núcleo (`core/src`) e o serviço (`language-service/src/language_service`), sem módulo da sequência; ver o [roadmap](../roadmap/README.md).
 
 O sistema é um pipeline com pessoas no meio. O material entra bruto, atravessa transformações
 automáticas que o deixam legível e sem identidade, chega a uma tela onde pessoas decidem o que ele

@@ -1,6 +1,7 @@
 # 008 — Módulo de anotação
 
 > Descrição. 2026-10-04.
+> Estado no código: o módulo não existe em `core/src`. Ver a [anotação](../roadmap/007-anotacao.md).
 
 A anotação é onde o trabalho humano acontece. O que o software faz aqui é tirar do caminho tudo o
 que não é decidir, e registrar com exatidão o que foi decidido — inclusive como foi decidido.
@@ -20,10 +21,9 @@ alcança qual domínio, e com a custódia.
 ## Assistida, e quem determina a origem do rótulo
 
 A anotação é assistida, e assistência acelera e enviesa pelo mesmo mecanismo: diante de uma sugestão
-plausível, concordar custa menos que examinar. Por isso o rótulo gravado distingue sugestão aceita
-sem alteração, sugestão corrigida e rótulo criado pela pessoa
-([requisito 010](../requisitos/010-sugestao-nao-e-anotacao.md)). Sugestão exibida e não acolhida não
-grava nada.
+plausível, concordar custa menos que examinar. Por isso o rótulo distingue sugestão aceita sem
+alteração, sugestão corrigida e rótulo criado pela pessoa
+([requisito 010](../requisitos/010-sugestao-nao-e-anotacao.md)). Sugestão recusada não grava nada.
 
 Essa origem é derivada no núcleo, confrontando o que foi submetido com a sugestão que o núcleo
 serviu — "aceita sem alteração" e "corrigida" não se distinguem olhando o rótulo final. Quem anota

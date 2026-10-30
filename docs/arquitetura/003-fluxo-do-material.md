@@ -1,14 +1,14 @@
 # 003 — O fluxo do material
 
 > Descrição. 2026-10-04.
+> Estado no código: nenhuma etapa existe; só a rota de análise (`core/src/Core.Host/Analysis`). Ver a [ingestão](../roadmap/003-ingestao.md) em diante.
 
 Do arquivo bruto ao dataset exportado há oito etapas. Cada uma tem um antes e um depois
 verificáveis, e nenhuma delas descarta o que a anterior produziu.
 
 **Recebimento.** Um arquivo chega e abre um lote de ingestão. O arquivo é identificado pelo
 conteúdo, não pelo nome, e o lote guarda de onde veio e em que estado está. Nada aqui é material
-oficial ainda: o lote existe justamente para que a rejeição seja possível sem deixar resíduo no
-acervo.
+oficial ainda: o lote existe para que a rejeição seja possível sem deixar resíduo no acervo.
 
 **Leitura.** O conteúdo é interpretado como uma das quatro formas
 ([0005](../decisoes/0005-unidades-de-analise.md)) e validado contra o que aquela forma exige —

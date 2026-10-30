@@ -1,6 +1,7 @@
 # 005 — Módulo de ingestão
 
 > Descrição. 2026-10-04.
+> Estado no código: o módulo não existe em `core/src`. Ver a [ingestão](../roadmap/003-ingestao.md).
 
 A ingestão transforma arquivo em material do acervo, ou recusa o arquivo. Não há terceiro resultado,
 e é essa recusa que faz dela um módulo em vez de um importador.

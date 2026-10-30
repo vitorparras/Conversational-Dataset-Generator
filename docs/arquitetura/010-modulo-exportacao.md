@@ -1,6 +1,7 @@
 # 010 — Módulo de exportação
 
 > Descrição. 2026-10-04.
+> Estado no código: o módulo não existe em `core/src`. Ver a [exportação](../roadmap/009-exportacao.md).
 
 A exportação é a única porta de saída, e o que ela produz não volta: ninguém corrige um dataset que
 já está em outra máquina. É o que torna este o módulo mais conservador do pipeline.
@@ -14,8 +15,7 @@ Garante também que nada sai sem passar por três recusas: rótulo fora da taxon
 ([0004](../decisoes/0004-taxonomia-configuravel.md)), recorte sem parecer de validação
 ([validação](009-modulo-validacao.md)) e auditoria de resíduo que encontre o que a sanitização
 deveria ter removido — ver [privacidade](../privacidade/). As três são recusas, não avisos. A
-auditoria está aqui porque o reconhecimento de nome é imperfeito por natureza, e esta é a última
-barreira.
+auditoria está aqui porque o reconhecimento de nome é imperfeito, e esta é a última barreira.
 
 Consome material pseudonimizado, anotações e medições. Produz o artefato de dataset e o registro de
 que ele existiu. Fala com a validação, com o controle de acesso — exportar é a operação de maior

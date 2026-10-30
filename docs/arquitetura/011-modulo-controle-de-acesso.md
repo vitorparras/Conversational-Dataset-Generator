@@ -1,6 +1,7 @@
 # 011 — Módulo de controle de acesso
 
 > Descrição. 2026-10-04.
+> Estado no código: o módulo não existe em `core/src`. Ver o [acesso](../roadmap/006-acesso.md).
 
 Controle de acesso não é etapa do pipeline: é condição de qualquer etapa. Por isso aparece em todos
 os outros documentos desta pasta e não tem lugar na sequência.

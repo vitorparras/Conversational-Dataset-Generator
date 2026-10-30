@@ -1,6 +1,7 @@
 # 007 — Módulo de pseudonimização
 
 > Descrição. 2026-10-04.
+> Estado no código: o módulo não existe em `core/src`. Ver a [pseudonimização](../roadmap/005-pseudonimizacao.md).
 
 Pseudonimizar aqui não é apagar. É trocar o que identifica uma pessoa por um rótulo que se mantém o
 mesmo em todo o escopo, de modo que a conversa continue fazendo sentido depois.

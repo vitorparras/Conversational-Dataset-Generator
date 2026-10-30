@@ -8,7 +8,7 @@ internal static class TextGenerators
     private const int MaxPieces = 24;
 
     /// <summary>Emoji, astral characters, a combining sequence, a ZWJ sequence, a flag, a skin tone and a variation selector, among plain text.</summary>
-    private static readonly Gen<string> Named = Gen.OneOfConst(
+    private static readonly Gen<string> Named = Gen.OneOf(
         "a",
         " ",
         "PESSOA_1",

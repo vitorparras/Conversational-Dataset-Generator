@@ -62,6 +62,7 @@ public sealed class ServiceDeathTests : IDisposable
         StandInService.Kill(supervisor.ProcessId!.Value);
         var lost = await Poll.UntilAsync(() => Task.FromResult(watch.State == ServiceState.Unavailable), Poll.LossLimit, cancellationToken);
         Assert.True(lost, "the end of the service process was not seen");
+        Assert.True(await PortReleased.UntilAsync(port, cancellationToken), "the port of the killed service was never let go");
         using var stranger = new StrangerOnThePort(port);
 
         var result = await container.GetRequiredService<MaterialAnalysis>().AnalyzeAsync(Asked, cancellationToken);

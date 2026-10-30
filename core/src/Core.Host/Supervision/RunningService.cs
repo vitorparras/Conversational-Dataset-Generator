@@ -24,6 +24,9 @@ internal sealed class RunningService : IDisposable
         this.process = process;
     }
 
+    /// <summary>The end of the standard error of the service, when a collector was asked for it; null otherwise.</summary>
+    internal ErrorTail? Errors { get; private set; }
+
     /// <summary>The port the service listens on, which the service itself told; 0 until it did.</summary>
     internal int Port => Volatile.Read(ref port);
 
@@ -37,12 +40,22 @@ internal sealed class RunningService : IDisposable
     /// A service that chose its own port and says which on its standard output: nobody else writes there, so the port
     /// comes from the process that holds it, never from a choice the core made and released.
     /// </summary>
-    internal static RunningService Announcing(Process process)
+    internal static RunningService Announcing(Process process, ErrorTail? errors = null)
     {
-        var service = new RunningService(process);
+        var service = new RunningService(process) { Errors = errors };
         _ = service.ReadAnnouncementAsync();
         return service;
     }
+
+    /// <summary>How far the start of the service got, in words: what it had done when the wait for its health ended without an answer.</summary>
+    internal string Reached => (Port, process.HasExited) switch
+    {
+        (0, true) => "o serviço saiu antes de anunciar a porta",
+        (0, false) when announced.Task.IsCompleted => "o que o serviço escreveu primeiro não é o anúncio da porta",
+        (0, false) => "o serviço iniciou e não anunciou a porta",
+        (var announcedPort, true) => $"o serviço saiu depois de anunciar a porta {announcedPort}",
+        (var announcedPort, false) => $"o serviço anunciou a porta {announcedPort} e a saúde não respondeu",
+    };
 
     /// <summary>Completes with true once the port is known and with false when the standard output ended or began with anything but the announcement.</summary>
     internal Task<bool> PortAnnouncedAsync() => announced.Task;

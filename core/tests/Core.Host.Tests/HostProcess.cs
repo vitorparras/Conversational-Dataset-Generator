@@ -207,7 +207,27 @@ internal sealed class HostProcess : IDisposable
             await Task.Delay(PollInterval, cancellationToken);
         }
 
-        throw new TimeoutException($"The host did not answer within {timeout}; exited: {process.HasExited}.");
+        throw new TimeoutException($"The host did not answer within {timeout}; {await EndOfHostAsync()}");
+    }
+
+    /// <summary>What the host left when it ended before answering: the code and the tail of its error stream; the code stays when the stream does not close.</summary>
+    private async Task<string> EndOfHostAsync()
+    {
+        const int Tail = 2000;
+        if (!process.HasExited)
+        {
+            return "it was still running.";
+        }
+
+        try
+        {
+            var written = await error.WaitAsync(DrainTimeout);
+            return $"it exited with code {process.ExitCode}; error stream: {written[Math.Max(0, written.Length - Tail)..]}";
+        }
+        catch (TimeoutException)
+        {
+            return $"it exited with code {process.ExitCode}; error stream still open after {DrainTimeout}.";
+        }
     }
 
     private async Task<bool> AnswersAsync(CancellationToken cancellationToken)

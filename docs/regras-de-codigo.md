@@ -38,11 +38,11 @@ Captura genérica só no último nível do executável. Mensagem a quem opera em
 exceção interna em inglês ([decisão 0039](decisoes/0039-idioma-do-codigo-e-do-texto.md)); uma
 classe não mistura as duas. Logger injetado: construtor primário, nunca campo; S1312 sem exclusão.
 
-## 6. Formatação (imposta)
+## 6. Formatação (imposta; imutabilidade e esquema, em revisão)
 
 `dotnet format` e `ruff` reprovam na CI; `.editorconfig` e o projeto Python são a única fonte de
-estilo. Python: tipo anotado em tudo, em modo estrito; dados imutáveis; esquema só na borda HTTP.
-Supressão de analisador: [decisão 0042](decisoes/0042-supressao-de-analisador.md).
+estilo. Python: tipo anotado em tudo, modo estrito (imposto); dados imutáveis e esquema só na borda
+HTTP (revisão). Supressão de analisador: [decisão 0042](decisoes/0042-supressao-de-analisador.md).
 
 ## 7. Testes (lista de revisão)
 

@@ -208,6 +208,14 @@ dotnet_diagnostic.S2221.severity = none
 # The text of a step comes from a resource embedded in the artifact and checked by SHA-256, never from input.
 dotnet_diagnostic.CA2100.severity = none
 
+[core/src/Core.Persistence/Content/ContentTransaction.cs]
+# The statement is written by the code that exposes a query over content, as a constant of its own; it never carries input, and the domain goes by parameter.
+dotnet_diagnostic.CA2100.severity = none
+
+[core/tests/Core.Persistence.Tests/Content/ContentDomainTests.cs]
+# The statements are the constants of ContentQueries, the system's own, and run here without a domain on purpose.
+dotnet_diagnostic.CA2100.severity = none
+
 [*.py]
 indent_size = 4
 

@@ -48,4 +48,24 @@ public sealed class RlsForceCheckTests
         Assert.Contains("ALTER TABLE zqx_table ENABLE ROW LEVEL SECURITY", finding.Message, StringComparison.Ordinal);
         Assert.Contains("ALTER TABLE zqx_table FORCE ROW LEVEL SECURITY", finding.Message, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void ContentTableWithoutTheDomainColumnFailsNamingTheTable()
+    {
+        var finding = RlsForceCheck.Judge(forcedTables: 3, unforcedTable: null, withoutDomain: "content.zqx_loose");
+
+        Assert.Equal(CheckStatus.Failed, finding.Status);
+        Assert.Contains("content.zqx_loose", finding.Message, StringComparison.Ordinal);
+        Assert.Contains("domain_id", finding.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ContentTableWithoutAPolicyFailsNamingTheTable()
+    {
+        var finding = RlsForceCheck.Judge(forcedTables: 3, unforcedTable: null, withoutPolicy: "content.zqx_open");
+
+        Assert.Equal(CheckStatus.Failed, finding.Status);
+        Assert.Contains("content.zqx_open", finding.Message, StringComparison.Ordinal);
+        Assert.Contains("política de linha", finding.Message, StringComparison.Ordinal);
+    }
 }

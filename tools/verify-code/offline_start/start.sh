@@ -1,5 +1,5 @@
 #!/bin/sh
-# Brings the host up as an operator would: migrates the schema with the owner
+# Brings the host up as an operator would, under strace: migrates the schema with the owner
 # credential, then serves with the application's, the language service folder beside the binary.
 # Waits for the line that says it serves, stops it the way a service manager does and records the
 # exit codes. Everything the checks read goes to /trace; the passwords come in the environment.
@@ -18,10 +18,16 @@ cp /app/Core.Host /app/appsettings.json /work/
 chmod +x /work/Core.Host
 cd /work || exit 125
 
-launch() {
+# The trace keeps the network calls and, of the files opened, only the resolver configuration.
+trace() {
     name=$1
     shift
-    "$@" > "/trace/$name.log" 2>&1
+    strace -f --seccomp-bpf -qq --decode-pids=comm -e trace=network,openat -o "/tmp/$name.full" "$@" \
+        > "/trace/$name.log" 2>&1
+}
+
+keep() {
+    awk '!/openat\(/ || /resolv\.conf/' "/tmp/$1.full" > "/trace/$1.strace"
 }
 
 host_pid() {
@@ -46,27 +52,29 @@ wait_for() {
     return 1
 }
 
-serving() { grep -qF "$LISTENING" /trace/serve.log || ! kill -0 "$runner" 2> /dev/null; }
-stopped() { ! kill -0 "$runner" 2> /dev/null; }
+serving() { grep -qF "$LISTENING" /trace/serve.log || ! kill -0 "$tracer" 2> /dev/null; }
+stopped() { ! kill -0 "$tracer" 2> /dev/null; }
 
 (
     export CDG_Database__Username=owner CDG_Database__Password="$OWNER_PASSWORD"
-    launch migrate timeout "$MIGRATE_SECONDS" ./Core.Host migrate
+    trace migrate timeout "$MIGRATE_SECONDS" ./Core.Host migrate
 )
 migrate=$?
+keep migrate
 
 (
     export CDG_Database__Username=app CDG_Database__Password="$APP_PASSWORD"
-    launch serve ./Core.Host
+    trace serve ./Core.Host
 ) &
-runner=$!
+tracer=$!
 
 wait_for "$READY_SECONDS" serving
 grep -qF "$LISTENING" /trace/serve.log && ready=yes || ready=no
 pid=$(host_pid)
 [ -n "$pid" ] && kill -TERM "$pid"
-wait_for "$STOP_SECONDS" stopped || kill -KILL "$pid" "$runner" 2> /dev/null
-wait "$runner"
+wait_for "$STOP_SECONDS" stopped || kill -KILL "$pid" "$tracer" 2> /dev/null
+wait "$tracer"
 serve=$?
+keep serve
 
 printf 'migrate=%s\nserve=%s\nready=%s\n' "$migrate" "$serve" "$ready" > /trace/result.txt

@@ -12,7 +12,7 @@ READY_SECONDS=${READY_SECONDS:-120}
 STOP_SECONDS=${STOP_SECONDS:-30}
 LISTENING='Now listening on: http://127.0.0.1:'
 
-export CDG_Database__Host=127.0.0.1:5432 CDG_Database__Name=cdg
+export CDG_Database__Host=127.0.0.1:5432 CDG_Database__Name=cdg CDG_Installation__Kind=demonstracao
 
 ls /sys/class/net > /trace/interfaces.txt
 cp /app/Core.Host /app/appsettings.json /work/

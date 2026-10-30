@@ -54,6 +54,15 @@ internal sealed class ScratchDatabase : IAsyncDisposable
     public Task RevokeRegistryReadAsync() =>
         ExecuteAsync(OwnerConnectionString, "REVOKE SELECT ON public.schema_version FROM PUBLIC");
 
+    /// <summary>Records the labels as already used, as the role owner, the only one that writes the table until the steps that encrypt grant it to another.</summary>
+    public async Task RecordLabelsAsync(IEnumerable<string> labels)
+    {
+        await using var connection = await Sql.OpenAsync(OwnerConnectionString);
+        await using var command = new NpgsqlCommand("INSERT INTO public.derivation_label (label) SELECT unnest(@labels)", connection);
+        _ = command.Parameters.AddWithValue("labels", labels.ToArray());
+        _ = await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+    }
+
     /// <summary>
     /// Waits for a session of this database that is running the statement and ends it from the server, as a restart or an operator would.
     /// The run in progress is what holds that session, so a run that ends first will never have one: that is a failure at once, not a minute of waiting.

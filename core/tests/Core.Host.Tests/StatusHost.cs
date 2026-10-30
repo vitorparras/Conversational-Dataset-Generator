@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Core.Host.Endpoints;
 using Core.Host.Supervision;
+using Core.Platform;
 using Core.Platform.Configuration;
 using Core.Platform.Startup;
 using Microsoft.AspNetCore.Builder;
@@ -23,16 +24,25 @@ internal sealed class StatusHost : IAsyncDisposable
     public static Task<StatusHost> StartAsync(StartupReport report, ServiceProcessWatch watch, CancellationToken cancellationToken) =>
         StartAsync(report, watch, RecognizerKind.Http, cancellationToken);
 
-    public static async Task<StatusHost> StartAsync(
-        StartupReport report, ServiceProcessWatch watch, RecognizerKind recognizer, CancellationToken cancellationToken)
+    public static Task<StatusHost> StartAsync(
+        StartupReport report, ServiceProcessWatch watch, RecognizerKind recognizer, CancellationToken cancellationToken) =>
+        StartAsync(report, watch, new Wiring(recognizer, new Installation(InstallationKind.Real)), cancellationToken);
+
+    public static Task<StatusHost> StartAsync(
+        StartupReport report, ServiceProcessWatch watch, Installation installation, CancellationToken cancellationToken) =>
+        StartAsync(report, watch, new Wiring(RecognizerKind.Http, installation), cancellationToken);
+
+    private static async Task<StatusHost> StartAsync(
+        StartupReport report, ServiceProcessWatch watch, Wiring wiring, CancellationToken cancellationToken)
     {
         var address = HostProcess.FreeAddress();
         var builder = CompositionRoot.ClosedBuilder(address.GetLeftPart(UriPartial.Authority));
         CompositionRoot.Compose(builder, ClosedConfiguration.Load(new ConfigurationSchema([HostConfiguration.Section])).View, fileLog: null);
         _ = builder.Services.AddSingleton(report);
         _ = builder.Services.AddSingleton(watch);
+        _ = builder.Services.AddSingleton(wiring.Installation);
         var app = builder.Build();
-        StatusEndpoint.Map(app, recognizer);
+        StatusEndpoint.Map(app, wiring.Recognizer);
         await app.StartAsync(cancellationToken);
         return new StatusHost(app, address);
     }
@@ -48,4 +58,6 @@ internal sealed class StatusHost : IAsyncDisposable
         client.Dispose();
         await app.DisposeAsync();
     }
+
+    private sealed record Wiring(RecognizerKind Recognizer, Installation Installation);
 }

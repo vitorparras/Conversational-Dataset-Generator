@@ -30,6 +30,13 @@ public sealed record VersionReport
         return this with { SchemaVersion = schema };
     }
 
+    /// <summary>This report with the installation the process declares; the report itself does not change.</summary>
+    public VersionReport WithInstallation(Installation installation)
+    {
+        ArgumentNullException.ThrowIfNull(installation);
+        return this with { Installation = installation };
+    }
+
     /// <summary>The package version of the core.</summary>
     public VersionValue CoreVersion { get; }
 
@@ -38,6 +45,9 @@ public sealed record VersionReport
 
     /// <summary>Whether the core was built from a working tree with changes not yet committed.</summary>
     public WorkingTree WorkingTree { get; }
+
+    /// <summary>What the installation declares itself to be; null while the report has not been given one.</summary>
+    public Installation? Installation { get; private init; }
 
     /// <summary>The version of the contract the language service declares, not the one the core speaks.</summary>
     public VersionValue ContractVersion { get; private init; } = VersionValue.Absent;

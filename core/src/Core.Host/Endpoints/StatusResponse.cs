@@ -1,4 +1,5 @@
 using Core.Host.Supervision;
+using Core.Platform;
 using Core.Platform.Startup;
 
 namespace Core.Host.Endpoints;
@@ -6,7 +7,7 @@ namespace Core.Host.Endpoints;
 /// <summary>
 /// What the process says about itself: alive is always true when it answers; ready only when every check passed and,
 /// with the http recognizer, the language service is available. With the fake no service is watched, and its state is
-/// null. It also says when the checks ended and what each one concluded.
+/// null. It also says when the checks ended and what each one concluded, and which kind of installation it is.
 /// </summary>
 internal sealed record StatusResponse(
     bool Alive,
@@ -14,4 +15,5 @@ internal sealed record StatusResponse(
     RecognizerKind Recognizer,
     ServiceState? LanguageService,
     DateTimeOffset CheckedAt,
-    IReadOnlyList<CheckResult> Checks);
+    IReadOnlyList<CheckResult> Checks,
+    Installation Installation);

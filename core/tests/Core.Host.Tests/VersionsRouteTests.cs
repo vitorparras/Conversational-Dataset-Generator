@@ -9,7 +9,7 @@ namespace Core.Host.Tests;
 public sealed class VersionsRouteTests
 {
     private static readonly string[] Fields =
-        ["coreVersion", "commit", "workingTree", "contractVersion", "languageServiceVersion", "modelVersion", "schemaVersion"];
+        ["coreVersion", "commit", "workingTree", "installation", "contractVersion", "languageServiceVersion", "modelVersion", "schemaVersion"];
 
     [Fact]
     public async Task VersionsTheServiceGaveAreAnsweredEachInItsOwnField()

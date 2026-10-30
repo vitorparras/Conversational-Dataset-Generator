@@ -192,7 +192,7 @@ internal static class CompositionRoot
         var builder = ClosedBuilder(loaded.Values[HostConfiguration.UrlsPath]);
         Compose(builder, loaded.View, fileLog);
         AddAnalysis(builder.Services, loaded.Values, analyzeTimeout);
-        _ = builder.Services.AddSingleton(StartupVersions.Of(checks));
+        InstallationConfiguration.Add(builder.Services, loaded.Values, checks);
         return builder;
     }
 
@@ -208,6 +208,7 @@ internal static class CompositionRoot
         _ = app.Services.GetRequiredService<ServiceProvider>();
         await StartupVersions.WriteAsync(
             app.Logger, app.Services.GetRequiredService<VersionReport>(), app.Services.GetRequiredService<IServiceVersionReader>(), CancellationToken.None);
+        InstallationConfiguration.Announce(app.Logger, app.Services);
         StatusEndpoint.Map(app, recognizer);
         ConfigurationEndpoint.Map(app);
         VersionsEndpoint.Map(app);

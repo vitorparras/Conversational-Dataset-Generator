@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Core.Boundary.Http;
 using Core.Host.Endpoints;
+using Core.Platform;
 using Core.Platform.Configuration;
 using Core.Platform.Versions;
 using Microsoft.AspNetCore.Builder;
@@ -27,12 +28,13 @@ internal sealed class VersionsHost : IAsyncDisposable
     public static readonly string[] ServiceFields = ["contractVersion", "languageServiceVersion", "modelVersion"];
 
     public static async Task<VersionsHost> StartAsync(
-        IServiceVersionReader reader, CancellationToken cancellationToken, VersionValue? schema = null)
+        IServiceVersionReader reader, CancellationToken cancellationToken, VersionValue? schema = null, Installation? installation = null)
     {
         var address = HostProcess.FreeAddress();
         var builder = CompositionRoot.ClosedBuilder(address.GetLeftPart(UriPartial.Authority));
         CompositionRoot.Compose(builder, ClosedConfiguration.Load(new ConfigurationSchema([HostConfiguration.Section])).View, fileLog: null);
-        _ = builder.Services.AddSingleton(new VersionReport(Build).WithSchemaVersion(schema ?? VersionValue.Absent));
+        var report = new VersionReport(Build).WithSchemaVersion(schema ?? VersionValue.Absent);
+        _ = builder.Services.AddSingleton(installation is null ? report : report.WithInstallation(installation));
         _ = builder.Services.AddSingleton(reader);
         var app = builder.Build();
         VersionsEndpoint.Map(app);

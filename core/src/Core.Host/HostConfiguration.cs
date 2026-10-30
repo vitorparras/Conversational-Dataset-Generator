@@ -36,7 +36,8 @@ internal static class HostConfiguration
     /// <summary>The closed configuration of the host: the file beside it, the process environment and the strict arguments.</summary>
     internal static ConfigurationLoadResult Load(string[] args) =>
         ClosedConfiguration.Load(
-            new ConfigurationSchema([Section, LanguageServiceConfiguration.Section, RecognizerConfiguration.Section, DatabaseConfiguration.Section]),
+            new ConfigurationSchema(
+                [Section, InstallationConfiguration.Section, LanguageServiceConfiguration.Section, RecognizerConfiguration.Section, DatabaseConfiguration.Section]),
             new JsonFileSource(SettingsPath),
             EnvironmentSource.FromProcess(),
             new StrictArgumentsSource(args));

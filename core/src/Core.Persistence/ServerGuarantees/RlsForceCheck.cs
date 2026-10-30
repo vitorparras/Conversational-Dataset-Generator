@@ -7,7 +7,7 @@ namespace Core.Persistence.ServerGuarantees;
 /// Checks that every table with a row policy applies it with FORCE, so that the policy holds even against the table's owner;
 /// a policy on a table whose row security is off counts as a policy that does not apply. The content schema is held to more, since
 /// a content table born wrong works and returns what is asked, and only this check can tell: every table there carries the domain
-/// column, a policy, and no permissive policy beyond the domain one (permissive policies add up, so one more that lets everything
+/// column tied by a foreign key to the domain registry, a policy, and no permissive policy beyond the domain one (permissive policies add up, so one more that lets everything
 /// through opens the table); and nothing there may be a view, which has no row policy of its own.
 /// </summary>
 public sealed class RlsForceCheck : IStartupCheck
@@ -21,6 +21,10 @@ public sealed class RlsForceCheck : IStartupCheck
             (SELECT min(t.oid::regclass::text) FROM content t WHERE t.relkind IN ('r', 'p')
                 AND NOT EXISTS (SELECT FROM pg_attribute a
                     WHERE a.attrelid = t.oid AND a.attname = 'domain_id' AND a.attnotnull AND NOT a.attisdropped)) AS without_domain,
+            (SELECT min(t.oid::regclass::text) FROM content t WHERE t.relkind IN ('r', 'p')
+                AND NOT EXISTS (SELECT FROM pg_constraint k JOIN pg_attribute a ON a.attrelid = k.conrelid AND a.attname = 'domain_id'
+                    WHERE k.conrelid = t.oid AND k.contype = 'f' AND k.confrelid = to_regclass('public.domain')
+                        AND k.conkey = ARRAY[a.attnum])) AS without_domain_key,
             (SELECT min(t.oid::regclass::text) FROM content t WHERE t.relkind IN ('r', 'p')
                 AND NOT EXISTS (SELECT FROM pg_policy p WHERE p.polrelid = t.oid)) AS without_policy,
             (SELECT min(t.oid::regclass::text) FROM content t WHERE t.relkind IN ('r', 'p')
@@ -64,6 +68,9 @@ public sealed class RlsForceCheck : IStartupCheck
                 + "o esquema content só guarda tabelas criadas com public.create_content_table"),
             ({ WithoutDomain: not null }, _) => Finding.Missing(
                 $"a tabela de conteúdo {content.WithoutDomain} não tem a coluna domain_id não nula: crie as tabelas do esquema content com public.create_content_table"),
+            ({ WithoutDomainKey: not null }, _) => Finding.Missing(
+                $"a tabela de conteúdo {content.WithoutDomainKey} tem domain_id sem chave estrangeira para public.domain: um domínio que não existe seria aceito; "
+                + "crie as tabelas do esquema content com public.create_content_table"),
             ({ WithoutPolicy: not null }, _) => Finding.Missing(
                 $"a tabela de conteúdo {content.WithoutPolicy} não tem política de linha por domínio: crie as tabelas do esquema content com public.create_content_table"),
             ({ OpenPolicy: not null }, _) => Finding.Missing(
@@ -83,9 +90,15 @@ public sealed class RlsForceCheck : IStartupCheck
             row => Judge(
                 (long)row["forced"],
                 row["unforced"] as string,
-                new ContentFindings(row["without_domain"] as string, row["without_policy"] as string, row["open_policy"] as string, row["not_a_table"] as string)),
+                new ContentFindings(
+                    row["without_domain"] as string,
+                    row["without_policy"] as string,
+                    row["open_policy"] as string,
+                    row["not_a_table"] as string,
+                    row["without_domain_key"] as string)),
             cancellationToken);
 
     /// <summary>The first content table or object, by name, that fails each rule of the content schema; null where none does.</summary>
-    internal sealed record ContentFindings(string? WithoutDomain = null, string? WithoutPolicy = null, string? OpenPolicy = null, string? NotATable = null);
+    internal sealed record ContentFindings(
+        string? WithoutDomain = null, string? WithoutPolicy = null, string? OpenPolicy = null, string? NotATable = null, string? WithoutDomainKey = null);
 }

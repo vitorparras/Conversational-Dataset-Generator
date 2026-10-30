@@ -19,10 +19,14 @@ internal sealed class RunningService : IDisposable
         _ = announced.TrySetResult(true);
     }
 
-    private RunningService(Process process)
+    private RunningService(Process process, ErrorTail? errors)
     {
         this.process = process;
+        Errors = errors;
     }
+
+    /// <summary>The end of the standard error of the service, when a collector was asked for it; null otherwise.</summary>
+    internal ErrorTail? Errors { get; }
 
     /// <summary>The port the service listens on, which the service itself told; 0 until it did.</summary>
     internal int Port => Volatile.Read(ref port);
@@ -37,9 +41,9 @@ internal sealed class RunningService : IDisposable
     /// A service that chose its own port and says which on its standard output: nobody else writes there, so the port
     /// comes from the process that holds it, never from a choice the core made and released.
     /// </summary>
-    internal static RunningService Announcing(Process process)
+    internal static RunningService Announcing(Process process, ErrorTail? errors = null)
     {
-        var service = new RunningService(process);
+        var service = new RunningService(process, errors);
         _ = service.ReadAnnouncementAsync();
         return service;
     }

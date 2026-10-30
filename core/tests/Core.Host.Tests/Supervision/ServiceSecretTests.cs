@@ -26,8 +26,8 @@ public sealed class ServiceSecretTests : IDisposable
         var first = harness.SupervisorFor(LanguageServiceInterpreter.Path);
         var second = harness.SupervisorFor(LanguageServiceInterpreter.Path);
 
-        _ = await first.StartAsync(SupervisionHarness.Timeout, cancellationToken);
-        _ = await second.StartAsync(SupervisionHarness.Timeout, cancellationToken);
+        await SupervisionHarness.StartedAsync(first, cancellationToken);
+        await SupervisionHarness.StartedAsync(second, cancellationToken);
 
         Assert.NotEqual(first.Secret, second.Secret);
     }
@@ -36,7 +36,7 @@ public sealed class ServiceSecretTests : IDisposable
     public async Task DisposingTheSupervisorEndsTheServiceProcess()
     {
         var supervisor = harness.SupervisorFor(LanguageServiceInterpreter.Path);
-        _ = await supervisor.StartAsync(SupervisionHarness.Timeout, TestContext.Current.CancellationToken);
+        await SupervisionHarness.StartedAsync(supervisor, TestContext.Current.CancellationToken);
         var id = supervisor.ProcessId!.Value;
 
         supervisor.Dispose();

@@ -44,10 +44,18 @@ internal sealed class SupervisionHarness : IDisposable
     public async Task<LanguageServiceSupervisor> StartedSupervisorAsync(ServiceProcessWatch watch, CancellationToken cancellationToken)
     {
         var supervisor = SupervisorFor(LanguageServiceInterpreter.Path, watch);
+        await StartedAsync(supervisor, cancellationToken);
+        return supervisor;
+    }
+
+    /// <summary>Starts the supervisor's service; one that does not answer fails the test that asked, saying how the start ended.</summary>
+    public static async Task StartedAsync(LanguageServiceSupervisor supervisor, CancellationToken cancellationToken)
+    {
         var outcome = await supervisor.StartAsync(Timeout, cancellationToken);
-        return outcome == StartOutcome.Started
-            ? supervisor
-            : throw new InvalidOperationException($"The language service did not become healthy: {outcome}.");
+        if (outcome != StartOutcome.Started)
+        {
+            throw new InvalidOperationException($"The language service did not become healthy: {outcome}.");
+        }
     }
 
     /// <summary>Starts the service and waits for it to answer; a service that does not answer is stopped and fails the test that asked.</summary>

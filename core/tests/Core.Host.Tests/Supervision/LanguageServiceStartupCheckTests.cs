@@ -46,7 +46,7 @@ public sealed class LanguageServiceStartupCheckTests : IDisposable
 
         var result = await check.RunAsync(TestContext.Current.CancellationToken);
 
-        Assert.Equal(CheckStatus.Passed, result.Status);
+        PassedCheck.Assert(result);
         Assert.True(ProcessTree.IsRunning(supervisor.ProcessId!.Value));
     }
 

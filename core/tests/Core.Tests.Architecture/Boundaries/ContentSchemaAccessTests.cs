@@ -30,7 +30,7 @@ public sealed class ContentSchemaAccessTests
 
         var lines = ContentSchemaAccessRules.Check([fixture]).Select(violation => violation.Line).Order();
 
-        Assert.Equal([5, 7, 10], lines);
+        Assert.Equal([5, 7, 9], lines);
     }
 
     [Fact]

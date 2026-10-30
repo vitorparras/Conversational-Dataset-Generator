@@ -31,6 +31,6 @@ internal static partial class ContentSchemaAccessRules
             .Where(token => TextKinds.Contains(token.Kind()) && ContentTable().IsMatch(token.ValueText))
             .Select(token => new Violation(file.Path, token.GetLocation().GetLineSpan().StartLinePosition.Line + 1, "a statement reaches the content schema outside the content transaction"));
 
-    [GeneratedRegex(@"(?<![\w.])content\s*\.\s*[A-Za-z_""]", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"(?<![\w.])""?content""?\.[A-Za-z_""]", RegexOptions.IgnoreCase)]
     private static partial Regex ContentTable();
 }

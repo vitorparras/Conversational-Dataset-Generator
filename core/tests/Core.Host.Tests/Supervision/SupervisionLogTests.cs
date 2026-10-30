@@ -55,7 +55,7 @@ public sealed class SupervisionLogTests : IDisposable
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         var supervisor = await harness.StartedSupervisorAsync(watch, cancellationToken);
-        var id = supervisor.ProcessId!.Value;
+        var id = ProcessIdentity.Required(supervisor.ProcessId!.Value);
 
         supervisor.Dispose();
         await Task.Delay(Margin, cancellationToken);

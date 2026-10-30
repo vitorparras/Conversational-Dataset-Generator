@@ -71,15 +71,15 @@ public sealed class ServiceTreeEndTests : IDisposable
     public void Dispose() => harness.Dispose();
 
     /// <summary>The process and everything below it, read while it is alive: once the parent is gone a child no longer shows under it.</summary>
-    private static async Task<IReadOnlyList<int>> TreeOfAsync(int rootId, int members, CancellationToken cancellationToken)
+    private static async Task<IReadOnlyList<ProcessIdentity>> TreeOfAsync(int rootId, int members, CancellationToken cancellationToken)
     {
         var lines = await ProcessTree.TreeOfAsync(rootId, cancellationToken);
         var ids = lines.Select(line => line.Id).ToList();
         Assert.Contains(rootId, ids);
         Assert.True(ids.Count >= members, $"the tree read holds {ids.Count} process(es), fewer than the {members} the service starts");
-        return ids;
+        return [.. ids.Select(ProcessIdentity.Of).OfType<ProcessIdentity>()];
     }
 
-    private static Task<bool> EndedAsync(IEnumerable<int> ids, CancellationToken cancellationToken) =>
+    private static Task<bool> EndedAsync(IEnumerable<ProcessIdentity> ids, CancellationToken cancellationToken) =>
         Poll.UntilAsync(() => Task.FromResult(!ids.Any(ProcessTree.IsRunning)), Poll.LossLimit, cancellationToken);
 }

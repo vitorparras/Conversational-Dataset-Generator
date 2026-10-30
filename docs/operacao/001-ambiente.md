@@ -2,7 +2,7 @@
 
 > Descrição. 2026-10-04.
 
-O núcleo é distribuído como executável único e o serviço de linguagem numa pasta ao lado, pela
+O núcleo é distribuído como executável único e o serviço de linguagem numa pasta dentro dele, pela
 [decisão 0041](../decisoes/0041-distribuicao-do-servico-de-linguagem.md); nada se instala no destino.
 Fora deles, o ambiente oferece a máquina, o banco, a chave e o [perímetro](011-servico-de-linguagem.md)
 do serviço. Aqui está o que precisa existir, e não como se instala — ferramenta muda, exigência não.
@@ -40,7 +40,7 @@ visível a outro processo, nem em log. A guarda está em [002](002-guarda-da-cha
 O núcleo carrega do sistema, no Linux, a glibc, a libgcc_s, a libstdc++ e a OpenSSL 3, e não sobe
 sem elas; no Windows, só o próprio sistema. A criptografia da biblioteca padrão da
 [decisão 0002](../decisoes/0002-stack.md) é a da plataforma: OpenSSL 3 no Linux, CNG no Windows. A
-lista vem do [histórico 002](../historico/002-medidas-do-artefato.md), que não mediu o `win-x64` nem a pasta do serviço.
+lista vem do [histórico 002](../historico/002-medidas-do-artefato.md), que não mediu o `win-x64` nem a pasta do serviço. A `debian:12-slim` não traz a `libssl3`. A `libgssapi_krb5.so.2` é opcional: sem ela sai o aviso de [023](023-iniciar-o-nucleo-publicado.md), e a conexão segue.
 
 ## O resto
 

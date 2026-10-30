@@ -165,3 +165,45 @@ quebra de linha, porque o corpo da resposta não a traz e a linha seguinte do te
 nele. Os blocos foram rodados de novo do jeito do operador, inteiros em `docker exec -i bash -s`,
 com a partida e a espera no mesmo bloco, o núcleo vivo na chamada seguinte, a linha `interrompida`
 lida pelo 022 e o encerramento com saída 0.
+
+## Rodada 6
+
+O operador foi o Backend, de novo sem memória do sistema, com os docs do commit `66b3381` sem este
+registro. Subida (CA-1), queda do serviço (CA-2) e encerramento com saída 0 passaram, com o
+`migrate` em 0 e **nenhum improviso**: cada comando veio de um bloco do texto, trocando só os
+marcadores `FICHA` e `CONTEINER` e pondo `MSYS_NO_PATHCONV=1`. Uma observação, sem improviso: o
+`pid` do 023 vem do `/tmp/f.sh` criado no 022, e quem encerrasse sem passar pelo 022 não o teria.
+
+**Ressalva.** "Nada parcial gravado" foi provado só pelo corpo do 503 e pela linha `interrompida` do
+registro, sem consulta SQL, porque a máquina do operador não tem cliente SQL. Na Fase 1 também não
+há tabela que receba análise, de modo que a consulta não teria o que mostrar.
+
+## Conclusão
+
+Passou sem improviso na rodada 6, por agente. Isso encerra o pré-ensaio: o texto de 021, 022 e 023
+basta a um agente sem memória do sistema para subir o núcleo publicado, ver a queda do serviço e
+encerrar, num contêiner Debian sem rede, com banco irmão. **Não é o ensaio da #50 nem da #264.** Foi
+um agente, num ambiente montado por quem escreveu o texto, e as rodadas 1 e 2 tiveram memória
+residual (a 2 pelo reset que não funcionava). O que vale daqui é o texto corrigido, não uma
+aprovação.
+
+## O que fica para o ensaio formal, por uma pessoa (#50 e #264)
+
+- **Uma pessoa**, que nunca viu o projeto, com o tempo dela medido; o pré-ensaio mediu agentes
+- **O artefato publicado** pelo fluxo de empacotamento, com os hashes dele, e não o construído
+  localmente do commit; e o mesmo para o destino `win-x64`, que não foi tocado
+- **Uma máquina**, e não um contêiner de rede interna: usuário do serviço, permissões da pasta,
+  como o núcleo é mantido de pé e reiniciado, e o isolamento de rede do ambiente de verdade
+- **Instalação real**, com a chave-mestra (decisão D1 da #53, que ficou de fora) e o cerco da
+  credencial de [010](../operacao/010-credencial-de-dono-do-banco.md): a verificação da cadeia antes
+  e depois do `migrate` e o registro da janela, que a demonstração dispensou
+- **Guarda da chave, backup e restauração** ([002](../operacao/002-guarda-da-chave.md),
+  [005](../operacao/005-backup.md), [006](../operacao/006-restauracao.md)), fora do pré-ensaio
+- **Conferência no banco** por quem opera o banco, com cliente SQL, de que a análise recusada não
+  deixou nada; só faz sentido quando houver tabela que receba análise
+- **Reconhecedor com modelo**: o da Fase 1 é o vazio, e `modelVersion` nulo e zero ocorrências não
+  provam o serviço de linguagem em uso real
+- **A mensagem de `LanguageServiceFolder`**, que não diz onde procurou (`ServiceFolderCheck.cs:37`),
+  fica para a issue e para o texto do ensaio, que hoje avisa disso
+- **O registro do ensaio formal** é o 001 de histórico, reservado a ele; este documento não o
+  substitui

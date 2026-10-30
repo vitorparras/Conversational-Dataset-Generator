@@ -46,7 +46,8 @@ possa consultar. Argumento que precisa de referência externa não se sustenta.
 ## Texto e código
 
 Texto: `docs/regras-de-escrita.md`, imposta por `tools/verify-docs/`; rode antes de propor mudança.
-Código: `docs/regras-de-codigo.md`; o mensurável reprova o build, o resto é lista de revisão.
+Código: `docs/regras-de-codigo.md`; o mensurável reprova o build, o resto é lista de revisão. O teto
+de pull request está na §9.
 Árvore (`core/`, `language-service/`, `tools/`), comandos, fronteiras e o que reprova o código:
 `docs/operacao/020-codigo-no-repositorio.md`. Rode `tools/verify-code/verify.py` antes de propor.
 

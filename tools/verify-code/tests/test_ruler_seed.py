@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -159,3 +160,23 @@ class FloorAndMutationSeedsTests(unittest.TestCase):
                 f"`{ruler_seed.CRITICAL_MODULE}`: 3 mutantes não verificados"
             )
         )
+
+
+class RulerProofStepNameTests(unittest.TestCase):
+    """The name of the CI step has to say what the proof plants, defect by defect."""
+
+    def step_name(self) -> str:
+        workflow = support.VERIFY_CODE.parents[1] / ".github" / "workflows" / "verify-code.yml"
+        text = workflow.read_text(encoding="utf-8")
+        found = re.search(r"- name: (.+)\n\s+run: .*--step ruler_proof", text)
+        assert found is not None
+        return found.group(1)
+
+    def test_it_names_each_of_the_four_planted_defects(self) -> None:
+        name = self.step_name()
+
+        for mention in ("propriedade falsa", "módulo crítico", "sem teste", "testes fracos"):
+            self.assertIn(mention, name)
+
+    def test_a_defect_added_to_the_proof_makes_this_test_ask_for_the_name_to_follow(self) -> None:
+        self.assertEqual(4, len(ruler_seed.SEEDS))

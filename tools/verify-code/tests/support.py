@@ -6,6 +6,7 @@ Every repository the tests build is synthetic and lives in a temporary directory
 from __future__ import annotations
 
 import importlib.util
+import re
 import subprocess
 import sys
 from collections.abc import Mapping, Sequence
@@ -114,6 +115,20 @@ def junit(tests: int, failures: int, skipped: int = 0) -> str:
 
 def git(repo: Path, *args: str) -> None:
     subprocess.run(["git", *FIXTURE_IDENTITY, *args], cwd=repo, check=True, capture_output=True)
+
+
+def workflow_job(text: str, name: str) -> str:
+    """The text of one job of a workflow, from its key up to the next job."""
+    start = text.index(f"\n  {name}:\n") + 1
+    following = re.search(r"^  \w+:\n", text[start + 1 :], re.MULTILINE)
+    return text[start : start + 1 + following.start()] if following else text[start:]
+
+
+def git_output(repo: Path, *args: str) -> str:
+    done = subprocess.run(
+        ["git", *FIXTURE_IDENTITY, *args], cwd=repo, check=True, capture_output=True, text=True
+    )
+    return done.stdout.strip()
 
 
 def git_repository(path: Path) -> Path:

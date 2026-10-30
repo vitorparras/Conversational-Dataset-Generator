@@ -19,6 +19,7 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 
 from steps import (
+    ai_attribution,
     build_core,
     build_service,
     coverage_by_area,
@@ -35,6 +36,7 @@ from steps import (
     secrets,
     static_analysis,
     test_core,
+    test_real_service,
     test_service,
     test_tools,
     trivy,
@@ -56,6 +58,7 @@ class StepSpec:
 STEPS: tuple[StepSpec, ...] = (
     StepSpec(build_core.NAME, build_core.run),
     StepSpec(test_core.NAME, test_core.run),
+    StepSpec(test_real_service.NAME, test_real_service.run),
     StepSpec(format_core.NAME, format_core.run),
     StepSpec(lint_tools.NAME, lint_tools.run),
     StepSpec(test_tools.NAME, test_tools.run),
@@ -73,6 +76,7 @@ STEPS: tuple[StepSpec, ...] = (
     StepSpec(trivy.NAME, trivy.run),
     StepSpec(static_analysis.NAME, static_analysis.run),
     StepSpec(pr_size.NAME, pr_size.run, needs_base=True),
+    StepSpec(ai_attribution.NAME, ai_attribution.run, needs_base=True),
 )
 
 

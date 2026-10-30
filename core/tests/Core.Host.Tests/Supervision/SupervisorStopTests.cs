@@ -1,6 +1,7 @@
 namespace Core.Host.Tests.Supervision;
 
 /// <summary>Disposing the supervisor ends the service before it returns, and writes the stop line only once the service has ended.</summary>
+[Trait("Category", "RealService")]
 public sealed class SupervisorStopTests : IDisposable
 {
     private readonly SupervisionHarness harness = new();

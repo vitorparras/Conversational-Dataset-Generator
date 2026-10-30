@@ -9,6 +9,7 @@ namespace Core.Host.Tests;
 /// The status route keeps "alive" apart from "ready", shows the recognizer in force and the language service with its
 /// state, and lists each startup check with its result; with the fake, readiness does not wait for a service it never asks.
 /// </summary>
+[Trait("Category", "RealService")]
 public sealed class StatusReadinessTests : IDisposable
 {
     private static readonly StartupReport PassedReport =

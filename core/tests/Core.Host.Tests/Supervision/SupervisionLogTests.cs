@@ -3,6 +3,7 @@ using Core.Host.Supervision;
 namespace Core.Host.Tests.Supervision;
 
 /// <summary>The supervision logs the loss of the service and each restart with what ties them together, and never the secret.</summary>
+[Trait("Category", "RealService")]
 public sealed class SupervisionLogTests : IDisposable
 {
     private static readonly TimeSpan Margin = TimeSpan.FromSeconds(1);

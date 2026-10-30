@@ -17,6 +17,7 @@ public sealed class ServiceProcessLauncherTests : IDisposable
         Assert.Equal(["-I", "-m", "language_service", "--port", "0"], arguments);
     }
 
+    [Trait("Category", "RealService")]
     [Fact]
     public async Task ServiceProcessRunsWithTheIsolatedModeFlagOnItsCommandLine()
     {
@@ -28,6 +29,7 @@ public sealed class ServiceProcessLauncherTests : IDisposable
         Assert.Contains(lines, line => line.CommandLine.Contains(" -I -m language_service ", StringComparison.Ordinal));
     }
 
+    [Trait("Category", "RealService")]
     [Fact]
     public async Task ServiceTellsThePortItHoldsAndNobodyElseCanTakeIt()
     {

@@ -11,6 +11,7 @@ public sealed class ServiceLifecycleTests : IDisposable
     private readonly SupervisionHarness harness = new();
     private readonly ServiceProcessWatch watch = new();
 
+    [Trait("Category", "RealService")]
     [Fact]
     public async Task ServiceAfterRestartRefusesTheSecretOfThePreviousProcess()
     {
@@ -24,6 +25,7 @@ public sealed class ServiceLifecycleTests : IDisposable
         Assert.Equal(HttpStatusCode.Unauthorized, status);
     }
 
+    [Trait("Category", "RealService")]
     [Fact]
     public async Task ServiceAfterRestartAcceptsItsNewSecret()
     {
@@ -39,6 +41,7 @@ public sealed class ServiceLifecycleTests : IDisposable
         Assert.Equal(HttpStatusCode.OK, status);
     }
 
+    [Trait("Category", "RealService")]
     [Fact]
     public async Task RestartEndsThePreviousProcessAndStartsAnother()
     {
@@ -53,6 +56,7 @@ public sealed class ServiceLifecycleTests : IDisposable
         Assert.Equal(ServiceState.Available, watch.State);
     }
 
+    [Trait("Category", "RealService")]
     [Fact]
     public async Task RestartMakesALostServiceAvailableAgain()
     {
@@ -68,6 +72,7 @@ public sealed class ServiceLifecycleTests : IDisposable
         Assert.Equal(ServiceState.Available, watch.State);
     }
 
+    [Trait("Category", "RealService")]
     [Fact]
     public async Task CanceledRestartLeavesTheServiceUnavailable()
     {
@@ -80,6 +85,7 @@ public sealed class ServiceLifecycleTests : IDisposable
         Assert.Null(supervisor.ProcessId);
     }
 
+    [Trait("Category", "RealService")]
     [Fact]
     public async Task RestartAfterACanceledOneStartsTheService()
     {
@@ -94,6 +100,7 @@ public sealed class ServiceLifecycleTests : IDisposable
         Assert.Equal(ServiceState.Available, watch.State);
     }
 
+    [Trait("Category", "RealService")]
     [Fact]
     public async Task RestartBeforeTheFirstStartIsADefect()
     {
@@ -113,6 +120,7 @@ public sealed class ServiceLifecycleTests : IDisposable
         Assert.Equal(ServiceState.Unavailable, watch.State);
     }
 
+    [Trait("Category", "RealService")]
     [Fact]
     public async Task DisposingTheSupervisorLeavesTheServiceStopped()
     {

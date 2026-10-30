@@ -8,6 +8,7 @@ namespace Core.Host.Tests.Supervision;
 /// a child on Windows; the standalone one, which is the form of the service folder (decision 0041), has none. The venv runs
 /// the real service; the standalone interpreter runs a stand-in, because the folder with its model is built apart from the tests.
 /// </summary>
+[Trait("Category", "RealService")]
 public sealed class ServiceTreeEndTests : IDisposable
 {
     /// <summary>What the tree of the venv holds: on Windows its interpreter is a launcher with the real one as a child, so a tree read without the child proves nothing about it.</summary>

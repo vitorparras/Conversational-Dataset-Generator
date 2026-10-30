@@ -22,6 +22,7 @@ public sealed class StartupCheckTests
         Assert.Contains($"origem esperada: {MissingFile}", exit.Error, StringComparison.Ordinal);
     }
 
+    [Trait("Category", "RealService")]
     [Fact]
     public async Task InstalledHostListsTheTargetAndTheBundledFileAsPassedAndIsReady()
     {

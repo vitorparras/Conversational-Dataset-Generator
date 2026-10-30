@@ -180,3 +180,13 @@ class TestCoreTests(unittest.TestCase):
 
         self.assertIn("--coverage-output-format", runner.commands[0])
         self.assertIn("--report-xunit-trx", runner.commands[0])
+
+    def test_the_tests_that_start_the_real_service_are_left_out(self) -> None:
+        runner = self.runner({})
+
+        test_core.run(support.context(self.root, runner))
+
+        command = runner.commands[0]
+        index = command.index("--filter-not-trait")
+        self.assertEqual("Category=RealService", command[index + 1])
+        self.assertNotIn("--filter-trait", command)

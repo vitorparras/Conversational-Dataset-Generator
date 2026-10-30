@@ -3,6 +3,7 @@ using Core.Host.Supervision;
 namespace Core.Host.Tests.Supervision;
 
 /// <summary>The wait ends in one of three ways, and only an authenticated success counts as healthy.</summary>
+[Trait("Category", "RealService")]
 public sealed class HealthWaitTests : IDisposable
 {
     private static readonly TimeSpan ShortLimit = TimeSpan.FromSeconds(3);

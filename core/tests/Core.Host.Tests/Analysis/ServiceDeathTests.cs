@@ -34,6 +34,7 @@ public sealed class ServiceDeathTests : IDisposable
         Assert.Contains("encerra com o pedido em curso", result.Refused.Cause, StringComparison.Ordinal);
     }
 
+    [Trait("Category", "RealService")]
     [Fact]
     public async Task KilledServiceLeavesTheNextAnalysisRefusedAsOutOfReach()
     {
@@ -50,6 +51,7 @@ public sealed class ServiceDeathTests : IDisposable
         Assert.Equal(UnavailabilityReason.ConnectionRefused, result.Refused!.Reason);
     }
 
+    [Trait("Category", "RealService")]
     [Fact]
     public async Task ServiceThatDiedWhileAnotherProcessHoldsItsPortLeavesTheAnalysisRefusedAndSendsNothingThere()
     {
@@ -70,6 +72,7 @@ public sealed class ServiceDeathTests : IDisposable
         Assert.Equal(0, stranger.Connections);
     }
 
+    [Trait("Category", "RealService")]
     [Fact]
     public async Task ServiceThatDiedIsNoLongerOfferedItsPortOrItsSecret()
     {
@@ -85,6 +88,7 @@ public sealed class ServiceDeathTests : IDisposable
         Assert.Empty(supervisor.Secret);
     }
 
+    [Trait("Category", "RealService")]
     [Fact]
     public async Task AnalysisAfterARestartAsksTheNewProcessAtItsPortWithItsSecret()
     {

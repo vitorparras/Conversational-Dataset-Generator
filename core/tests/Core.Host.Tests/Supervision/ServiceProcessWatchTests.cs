@@ -3,6 +3,7 @@ using Core.Host.Supervision;
 namespace Core.Host.Tests.Supervision;
 
 /// <summary>The watch sees the end of the service process as it happens, and only the process it still watches counts as a loss.</summary>
+[Trait("Category", "RealService")]
 public sealed class ServiceProcessWatchTests : IDisposable
 {
     private static readonly TimeSpan Margin = TimeSpan.FromSeconds(1);

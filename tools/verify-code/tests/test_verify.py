@@ -24,6 +24,7 @@ DOCS_WORKFLOW = support.VERIFY_CODE.parents[1] / ".github" / "workflows" / "veri
 WITHOUT_BASE = [
     "build_core",
     "test_core",
+    "test_real_service",
     "format_core",
     "lint_tools",
     "test_tools",
@@ -124,9 +125,9 @@ class VerifyTests(unittest.TestCase):
         self.assertEqual(set(chain.from_iterable(jobs)), set(output.split()))
 
     def test_coverage_runs_in_the_job_that_tests_the_core(self) -> None:
-        jobs = steps_per_job(WORKFLOW.read_text(encoding="utf-8"))
+        job = support.workflow_job(WORKFLOW.read_text(encoding="utf-8"), "dotnet")
 
-        self.assertIn("coverage", job_running("test_core", jobs))
+        self.assertIn("coverage", steps_per_job(job)[-1])
 
     def test_coverage_runs_in_the_job_that_tests_the_service(self) -> None:
         jobs = steps_per_job(WORKFLOW.read_text(encoding="utf-8"))
@@ -141,9 +142,9 @@ class VerifyTests(unittest.TestCase):
         self.assertIn("NUGET_HTTP_CACHE_PATH:", text)
 
     def test_floors_runs_in_the_job_that_tests_the_core(self) -> None:
-        jobs = steps_per_job(WORKFLOW.read_text(encoding="utf-8"))
+        job = support.workflow_job(WORKFLOW.read_text(encoding="utf-8"), "dotnet")
 
-        self.assertIn("floors", job_running("test_core", jobs))
+        self.assertIn("floors", steps_per_job(job)[-1])
 
     def test_floors_runs_in_the_job_that_tests_the_service(self) -> None:
         jobs = steps_per_job(WORKFLOW.read_text(encoding="utf-8"))

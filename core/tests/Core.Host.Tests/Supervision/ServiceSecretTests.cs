@@ -3,6 +3,7 @@ using Core.Host.Supervision;
 namespace Core.Host.Tests.Supervision;
 
 /// <summary>Every start of the service gets a new secret of 32 random bytes, and the supervisor is what keeps the service alive.</summary>
+[Trait("Category", "RealService")]
 public sealed class ServiceSecretTests : IDisposable
 {
     private readonly SupervisionHarness harness = new();

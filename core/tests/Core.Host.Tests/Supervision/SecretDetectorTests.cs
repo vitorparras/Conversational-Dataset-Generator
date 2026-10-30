@@ -5,6 +5,7 @@ public sealed class SecretDetectorTests
 {
     private const string Marker = "ZQX-MARKER-7731-leak";
 
+    [Trait("Category", "RealService")]
     [Fact]
     public async Task ProcessListingShowsASecretPassedAsAnArgument()
     {

@@ -41,6 +41,7 @@ public sealed class StartupLineTests
         Assert.Contains(" SchemaVersion=<absent>", line, StringComparison.Ordinal);
     }
 
+    [Trait("Category", "RealService")]
     [Fact]
     public async Task VersionsLineHasTheContractAndTheServiceVersionTheRealServiceDeclares()
     {

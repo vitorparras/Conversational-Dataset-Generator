@@ -28,10 +28,14 @@ jobs:
         with:
           python-version: '3.12'
       - uses: ./.github/actions/install-gitleaks
-      - name: Instalar ruff, pyright, coverage e uv nas versões fixadas (os testes do núcleo chamam `uv run --frozen`)
-        run: pip install -r tools/verify-code/lint-requirements.txt -r tools/verify-code/service-requirements.txt
-      - name: Construir, testar e formatar o núcleo; verificar e testar as ferramentas
-        run: python tools/verify-code/verify.py --step build_core test_core format_core lint_tools test_tools coverage floors
+      - name: Instalar ruff, pyright e coverage nas versões fixadas (ainda sem uv no PATH)
+        run: pip install -r tools/verify-code/lint-requirements.txt
+      - name: Construir e testar o núcleo sem o serviço real, e sem uv no PATH
+        run: python tools/verify-code/verify.py --step build_core test_core
+      - name: Instalar uv na versão fixada (test_real_service chama `uv run --frozen`)
+        run: pip install -r tools/verify-code/service-requirements.txt
+      - name: Testar com o serviço real, formatar, verificar as ferramentas e medir a cobertura das duas suítes juntas
+        run: python tools/verify-code/verify.py --step test_real_service format_core lint_tools test_tools coverage floors
 
   python:
     name: Serviço de linguagem (Python)
@@ -176,7 +180,7 @@ jobs:
           python-version: '3.12'
       - name: Instalar uv na versão fixada
         run: pip install -r tools/verify-code/service-requirements.txt
-      - name: Semear uma propriedade falsa e um defeito crítico numa cópia descartável e exigir a recusa
+      - name: Semear numa cópia descartável uma propriedade falsa, um defeito em módulo crítico, código sem teste e testes fracos, e exigir a recusa de cada um
         run: python tools/verify-code/verify.py --step ruler_proof
 
   dependencies:
@@ -253,3 +257,17 @@ jobs:
           python-version: '3.12'
       - name: Medir o diff de produção contra a base do pull request
         run: python tools/verify-code/verify.py --step pr_size --base origin/${{ github.base_ref }}
+
+  ai_attribution:
+    name: Commits sem atribuição a IA
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Reprovar commit do pull request que credita um assistente de IA
+        run: python tools/verify-code/verify.py --step ai_attribution --base origin/${{ github.base_ref }}

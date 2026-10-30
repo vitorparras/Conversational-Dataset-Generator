@@ -8,6 +8,7 @@ namespace Core.Host.Tests.Supervision;
 /// The recognizer against the real language service, started the way the supervisor starts it: the service reads the
 /// secret from its standard input, declares contract version 1 on its version route, and today finds nothing.
 /// </summary>
+[Trait("Category", "RealService")]
 public sealed class HttpRecognizerServiceTests : IDisposable
 {
     private static readonly AnalysisRequest Request =

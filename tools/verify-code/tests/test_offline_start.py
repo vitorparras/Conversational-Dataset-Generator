@@ -14,6 +14,7 @@ from steps.common import OUTPUT_DIRECTORY, CommandOutcome, Context, StepResult
 
 from . import support
 
+START_SCRIPT = support.VERIFY_CODE / "offline_start" / "start.sh"
 WORKFLOW = support.VERIFY_CODE.parents[1] / ".github" / "workflows" / "verify-code.yml"
 LISTENING = (
     "2026-01-01T00:00:00.000Z INFO  Microsoft.Hosting.Lifetime[14] "
@@ -39,6 +40,7 @@ QUERY = (
 )
 FAILURE = CommandOutcome(False, "ZQX-MARKER-3318 failed", 1)
 COMMIT = "a" * 40
+NOT_MEASURED = "o tempo da subida não foi medido: result.txt sem `ready_ms`"
 NOT_READY = "a partida não chegou à linha de pronto (`Now listening on`)"
 
 
@@ -47,8 +49,8 @@ def traced(*calls: str, process: str = "Core.Host") -> str:
     return "".join(f"13<{process}> {call}\n" for call in calls)
 
 
-def codes(migrate: int = 0, serve: int = 0, ready: str = "yes") -> str:
-    return f"migrate={migrate}\nserve={serve}\nready={ready}\n"
+def codes(migrate: int = 0, serve: int = 0, ready: str = "yes", ready_ms: int | str = 1800) -> str:
+    return f"migrate={migrate}\nserve={serve}\nready={ready}\nready_ms={ready_ms}\n"
 
 
 def evidence(**changes: str) -> dict[str, str]:
@@ -122,6 +124,55 @@ class OfflineStartTests(unittest.TestCase):
         self.assertTrue(result.ok, result.details)
         self.assertIn("banco, pasta e serviço de pé", result.details[0])
         self.assertIn("connect 127.0.0.1:5432", result.details[1])
+
+    def test_the_start_time_is_shown_when_the_step_passes(self) -> None:
+        result = self.run_step(DockerRunner(evidence()))
+
+        self.assertIn(
+            "subida sem rede: 1,8 s do início do host até o pronto (limite de 5 s)",
+            result.details,
+        )
+
+    def test_a_start_above_the_limit_fails_with_the_measured_time_in_the_message(self) -> None:
+        details = self.fails_with(**{"result.txt": codes(ready_ms=5100)})
+
+        self.assertEqual(details[0], "a subida sem rede levou 5,1 s, acima do limite de 5 s")
+
+    def test_a_start_of_exactly_the_limit_passes(self) -> None:
+        result = self.run_step(DockerRunner(evidence(**{"result.txt": codes(ready_ms=5000)})))
+
+        self.assertTrue(result.ok, result.details)
+
+    def test_a_start_just_below_the_limit_passes(self) -> None:
+        result = self.run_step(DockerRunner(evidence(**{"result.txt": codes(ready_ms=4999)})))
+
+        self.assertTrue(result.ok, result.details)
+
+    def test_a_start_that_took_the_whole_wait_is_named_with_its_time(self) -> None:
+        details = self.fails_with(**{"result.txt": codes(ready_ms=120_000)})
+
+        self.assertIn("a subida sem rede levou 120,0 s, acima do limite de 5 s", details)
+
+    def test_a_ready_start_without_a_measured_time_fails(self) -> None:
+        details = self.fails_with(**{"result.txt": "migrate=0\nserve=0\nready=yes\n"})
+
+        self.assertEqual(details[0], NOT_MEASURED)
+
+    def test_a_time_that_is_not_a_number_fails_as_not_measured(self) -> None:
+        details = self.fails_with(**{"result.txt": codes(ready_ms="muito")})
+
+        self.assertEqual(details[0], NOT_MEASURED)
+
+    def test_a_slow_start_that_never_got_ready_is_not_reported_twice(self) -> None:
+        details = self.fails_with(**{"result.txt": codes(ready="no", ready_ms=120_000)})
+
+        self.assertEqual([d for d in details if "subida sem rede" in d], [])
+
+    def test_the_script_keeps_waiting_up_to_120_seconds_and_records_the_time(self) -> None:
+        script = START_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertIn("READY_SECONDS=${READY_SECONDS:-120}", script)
+        self.assertIn("ready_ms=%s", script)
 
     def test_the_server_has_no_network_and_the_host_joins_its_namespace(self) -> None:
         runner = DockerRunner(evidence())

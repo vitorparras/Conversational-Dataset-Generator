@@ -7,8 +7,9 @@ steps/offline_containers.py). Inside, under strace (tools/verify-code/offline_st
 host migrates the schema, then starts with the real recognizer: it checks the database, the
 service folder and the language service it starts, and serves. The step passes only if the host
 reached the line that says it serves with the schema, the contract and the service all present,
-both runs left with 0, and the traces show no connection outside the loopback and no DNS query
-(see steps/strace_log.py).
+both runs left with 0, the traces show no connection outside the loopback and no DNS query
+(see steps/strace_log.py), and the start took at most START_LIMIT_SECONDS. The script measures it
+from launching the host to the line of readiness; its READY_SECONDS is only how long it waits.
 """
 
 from __future__ import annotations
@@ -29,6 +30,10 @@ VERSIONS = re.compile(r"Versões em execução .*")
 MUST_BE_PRESENT = ("SchemaVersion", "ContractVersion", "LanguageServiceVersion")
 LOOPBACK_ONLY = ["lo"]
 TIMED_OUT = "124"
+#: How long the serve run may take from launching the host to the line of readiness, measured in a
+#: clean container with no load. Above it the step fails; it is not loosened to pass.
+START_LIMIT_SECONDS = 5
+MILLISECONDS = 1000
 PHASES = ("migrate", "serve")
 
 
@@ -47,6 +52,13 @@ class Evidence:
         """The `key=value` lines of result.txt: the exit codes and whether the host served."""
         pairs = (line.split("=", 1) for line in self.text("result.txt").splitlines() if "=" in line)
         return {key: value for key, value in pairs}
+
+    def start_seconds(self) -> float | None:
+        """How long the serve run took to be ready; None when result.txt has no usable figure."""
+        try:
+            return int(self.codes().get("ready_ms", "")) / MILLISECONDS
+        except ValueError:
+            return None
 
     def missing_versions(self) -> list[str]:
         """The versions the startup line should carry and shows absent; all of them if no line."""
@@ -73,7 +85,26 @@ def problems_of(evidence: Evidence) -> tuple[str, ...]:
     if codes.get("ready") != "yes" or READY.search(evidence.text("serve.log")) is None:
         found.append("a partida não chegou à linha de pronto (`Now listening on`)")
     found += [f"{name} ausente na linha de versões" for name in evidence.missing_versions()]
+    if codes.get("ready") == "yes":
+        found += slow_start(evidence.start_seconds())
     return tuple(found)
+
+
+def seconds_text(seconds: float) -> str:
+    """The figure as the report writes it: one decimal, with the comma."""
+    return f"{seconds:.1f}".replace(".", ",")
+
+
+def slow_start(seconds: float | None) -> list[str]:
+    """The problem with how long the start took; nothing when it was within the limit."""
+    if seconds is None:
+        return ["o tempo da subida não foi medido: result.txt sem `ready_ms`"]
+    if seconds > START_LIMIT_SECONDS:
+        return [
+            f"a subida sem rede levou {seconds_text(seconds)} s, acima do limite de"
+            f" {START_LIMIT_SECONDS} s"
+        ]
+    return []
 
 
 def refusals_of(evidence: Evidence) -> tuple[str, ...]:
@@ -91,12 +122,15 @@ def judge(evidence: Evidence) -> StepResult:
     if found:
         logs = evidence.text("serve.log") or evidence.text("migrate.log")
         return failed(NAME, *found, *tail(logs))
+    seconds = evidence.start_seconds() or 0.0
     seen = strace_log.seen(evidence.text("migrate.strace") + evidence.text("serve.strace"))
     return passed(
         NAME,
         "migração e partida do núcleo publicado sem rota de rede: banco, pasta e serviço de pé",
         f"chamadas com destino vistas pelo rastreador: {', '.join(seen) or 'nenhuma'}",
         "nenhuma conexão fora do loopback e nenhuma consulta de DNS, nos dois processos",
+        f"subida sem rede: {seconds_text(seconds)} s do início do host até o pronto"
+        f" (limite de {START_LIMIT_SECONDS} s)",
     )
 
 

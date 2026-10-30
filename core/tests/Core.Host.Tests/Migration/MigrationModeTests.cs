@@ -71,7 +71,7 @@ public sealed class MigrationModeTests
     }
 
     [Fact]
-    public async Task ModeRefusesAKindOfInstallationOutsideTheTwoItAccepts()
+    public async Task ModeRefusesAKindOfInstallationOutsideTheTwoItAcceptsNamingThatKeyAndNeverTheDatabaseOnes()
     {
         var installation = Migrating(Database("127.0.0.1:1")) with { DeclaresInstallation = false, Arguments = ["migrate", "--Installation:Kind=Real"] };
 
@@ -79,6 +79,7 @@ public sealed class MigrationModeTests
 
         Assert.Equal((int)ExitCode.ConfigurationRefused, exit.Code);
         Assert.Contains("'Installation:Kind'", exit.Error, StringComparison.Ordinal);
+        Assert.DoesNotContain("Database:", exit.Error, StringComparison.Ordinal);
     }
 
     private static HostInstallation Migrating(ReadOnlyDictionary<string, string> environment)

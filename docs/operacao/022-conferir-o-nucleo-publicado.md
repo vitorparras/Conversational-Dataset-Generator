@@ -27,10 +27,8 @@ rota POST /analysis '{"text":"texto de teste","language":"pt"}'
 ```
 
 Sem `Content-Type: application/json`, a análise responde 415 sem corpo. `${#3}` conta caracteres, e
-com acento a conta de bytes é outra. `language` aceita qualquer texto não nulo: o
-núcleo o repassa, e o reconhecedor da Fase 1 o ignora. `resumes`, se presente, é a `reference` de
-uma recusa, em formato de GUID; outro valor, `"x"` por exemplo, recusa o pedido com 400 e **sem
-corpo**, como o campo desconhecido ou `text` e `language` ausentes.
+com acento a conta de bytes é outra. Os campos do pedido e as recusas com 400, sempre sem corpo,
+estão no README.
 
 ## Derrubar o serviço e ler a recusa
 

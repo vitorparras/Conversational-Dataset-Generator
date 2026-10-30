@@ -2,10 +2,10 @@
 
 > Descrição. 2026-10-04.
 
-O núcleo é distribuído como executável único e o serviço de linguagem numa pasta dentro dele, pela
-[decisão 0041](../decisoes/0041-distribuicao-do-servico-de-linguagem.md); nada se instala no destino.
-Fora deles, o ambiente oferece a máquina, o banco, a chave e o [perímetro](011-servico-de-linguagem.md)
-do serviço. Aqui está o que precisa existir, e não como se instala — ferramenta muda, exigência não.
+O núcleo é distribuído como executável único e o serviço de linguagem numa pasta dentro da do
+executável, pela [decisão 0041](../decisoes/0041-distribuicao-do-servico-de-linguagem.md); nada se
+instala no destino. Fora deles, o ambiente oferece a máquina, o banco, a chave e o
+[perímetro](011-servico-de-linguagem.md) do serviço. Aqui, o que precisa existir.
 
 ## O banco
 

@@ -76,6 +76,8 @@ public sealed class DerivationLabelsTests
     [InlineData("   ")]
     [InlineData(" dominio-a")]
     [InlineData("dominio-a ")]
+    [InlineData("\tdominio-a")]
+    [InlineData("dominio-a\n")]
     public void LabelEmptyOrWithSpacesAroundItIsADefect(string label)
     {
         _ = Assert.Throws<ArgumentException>(() => DerivationLabels.Of([label]));

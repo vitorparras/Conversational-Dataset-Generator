@@ -3,6 +3,7 @@ using Core.Persistence.ServerGuarantees;
 using Core.Persistence.Tests.Fixtures;
 using Core.Platform.Keys;
 using Core.Platform.Startup;
+using Npgsql;
 
 namespace Core.Persistence.Tests.ServerGuarantees;
 
@@ -60,34 +61,37 @@ public sealed class DerivationLabelTableTests
     }
 
     [DatabaseFact]
-    public async Task LabelWithSpacesAroundItIsRefusedByTheTable()
+    public async Task LabelWithWhiteSpaceAroundItIsRefusedByTheCheck()
     {
         await using var database = await MigratedAsync();
 
-        var padded = await Record.ExceptionAsync(() => database.RecordLabelsAsync([" dominio-a"]));
+        foreach (var label in new[] { " dominio-a", "dominio-a ", "\tdominio-a", "dominio-a\n" })
+        {
+            var padded = await Assert.ThrowsAsync<PostgresException>(() => database.RecordLabelsAsync([label]));
 
-        Assert.NotNull(padded);
+            Assert.Equal(PostgresErrorCodes.CheckViolation, padded.SqlState);
+        }
     }
 
     [DatabaseFact]
-    public async Task EmptyLabelIsRefusedByTheTable()
+    public async Task EmptyLabelIsRefusedByTheCheck()
     {
         await using var database = await MigratedAsync();
 
-        var empty = await Record.ExceptionAsync(() => database.RecordLabelsAsync([string.Empty]));
+        var empty = await Assert.ThrowsAsync<PostgresException>(() => database.RecordLabelsAsync([string.Empty]));
 
-        Assert.NotNull(empty);
+        Assert.Equal(PostgresErrorCodes.CheckViolation, empty.SqlState);
     }
 
     [DatabaseFact]
-    public async Task LabelRecordedTwiceIsRefusedByTheTable()
+    public async Task LabelRecordedTwiceIsRefusedByThePrimaryKey()
     {
         await using var database = await MigratedAsync();
         await database.RecordLabelsAsync(["dominio-a"]);
 
-        var again = await Record.ExceptionAsync(() => database.RecordLabelsAsync(["dominio-a"]));
+        var again = await Assert.ThrowsAsync<PostgresException>(() => database.RecordLabelsAsync(["dominio-a"]));
 
-        Assert.NotNull(again);
+        Assert.Equal(PostgresErrorCodes.UniqueViolation, again.SqlState);
     }
 
     private static async Task<ScratchDatabase> MigratedAsync()

@@ -68,7 +68,8 @@ public sealed class MigrationRunnerSessionLostTests
         _ = await database.MigrateAsync([.. steps.Take(steps.Count - 1)]);
         await using var holder = await Sql.OpenAsync(database.OwnerConnectionString);
         await using var transaction = await holder.BeginTransactionAsync(TestContext.Current.CancellationToken);
-        await using var hold = new NpgsqlCommand($"LOCK TABLE {SchemaRegistry.Table} IN ACCESS EXCLUSIVE MODE", holder, transaction);
+        Assert.Equal("public.schema_version", SchemaRegistry.Table);
+        await using var hold = new NpgsqlCommand("LOCK TABLE public.schema_version IN ACCESS EXCLUSIVE MODE", holder, transaction);
         _ = await hold.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
 
         var migrating = database.MigrateAsync(steps);

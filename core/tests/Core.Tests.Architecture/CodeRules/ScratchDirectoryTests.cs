@@ -12,7 +12,7 @@ public sealed class ScratchDirectoryTests
 
         var copy = File.ReadAllText(Path.Combine(scratch.Path, ScratchDirectory.GlobalJson));
 
-        Assert.Equal(File.ReadAllText(RootGlobalJson()), copy);
+        Assert.Equal(File.ReadAllText(ScratchDirectory.RootGlobalJson), copy);
     }
 
     [Fact]
@@ -25,12 +25,9 @@ public sealed class ScratchDirectoryTests
         Assert.Equal(PinnedSdk(), outcome.OutputOfSuccess("dotnet --version").Trim());
     }
 
-    private static string RootGlobalJson() =>
-        Path.Combine(Path.GetDirectoryName(SourceTree.CoreRoot)!, ScratchDirectory.GlobalJson);
-
     private static string PinnedSdk()
     {
-        using var document = JsonDocument.Parse(File.ReadAllText(RootGlobalJson()));
+        using var document = JsonDocument.Parse(File.ReadAllText(ScratchDirectory.RootGlobalJson));
         return document.RootElement.GetProperty("sdk").GetProperty("version").GetString()!;
     }
 }

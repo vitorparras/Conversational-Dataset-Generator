@@ -9,8 +9,11 @@ internal sealed class ScratchDirectory : IDisposable
     {
         Path = path;
         _ = Directory.CreateDirectory(path);
-        File.Copy(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(SourceTree.CoreRoot)!, GlobalJson), System.IO.Path.Combine(path, GlobalJson));
+        File.Copy(RootGlobalJson, System.IO.Path.Combine(path, GlobalJson));
     }
+
+    /// <summary>The <c>global.json</c> at the root of the repository, which every scratch directory is given a copy of.</summary>
+    public static string RootGlobalJson => System.IO.Path.Combine(System.IO.Path.GetDirectoryName(SourceTree.CoreRoot)!, GlobalJson);
 
     public string Path { get; }
 

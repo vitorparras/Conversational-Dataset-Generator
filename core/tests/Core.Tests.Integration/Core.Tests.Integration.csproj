@@ -12,6 +12,7 @@
   <ItemGroup>
     <Compile Include="..\Core.Persistence.Tests\Fixtures\AppStartup.cs" Link="Fixtures\Shared\AppStartup.cs" />
     <Compile Include="..\Core.Persistence.Tests\Fixtures\DatabaseFactAttribute.cs" Link="Fixtures\Shared\DatabaseFactAttribute.cs" />
+    <Compile Include="..\Core.Persistence.Tests\Fixtures\DatabaseReuse.cs" Link="Fixtures\Shared\DatabaseReuse.cs" />
     <Compile Include="..\Core.Persistence.Tests\Fixtures\DatabaseTool.cs" Link="Fixtures\Shared\DatabaseTool.cs" />
     <Compile Include="..\Core.Persistence.Tests\Fixtures\DockerAvailability.cs" Link="Fixtures\Shared\DockerAvailability.cs" />
     <Compile Include="..\Core.Persistence.Tests\Fixtures\PostgresFixture.cs" Link="Fixtures\Shared\PostgresFixture.cs" />

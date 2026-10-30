@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
+import os
 import re
+import secrets
+import shutil
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -25,6 +30,13 @@ REPORT = "reports/mutation-report.json"
 RESTORE = ("dotnet", "tool", "restore")
 STRYKER = ("dotnet", "stryker", "--skip-version-check")
 CONCURRENCY = 1
+# Stryker kills and restarts the test server after a mutant times out; a test project that starts
+# its own database container would start it again each time. The variable asks that project for
+# one container and image, named after the token, that outlive the server; the step removes both.
+REUSE_VARIABLE = "CDG_TEST_DATABASE_REUSE"
+DATABASE_PACKAGE = "Testcontainers"
+DOCKER = "docker"
+TOKEN_BYTES = 8
 
 
 @dataclass(frozen=True)
@@ -87,6 +99,38 @@ def configuration(core: CoreTarget, tests: tuple[Path, ...]) -> str:
     return json.dumps({"stryker-config": options}, indent=2) + "\n"
 
 
+def starts_database(tests: tuple[Path, ...]) -> bool:
+    """Whether a test project starts a database container of its own (references Testcontainers)."""
+    return any(DATABASE_PACKAGE in path.read_text(encoding="utf-8") for path in tests)
+
+
+@contextlib.contextmanager
+def reusing(token: str | None) -> Iterator[None]:
+    """The environment of the Stryker run: the reuse token set for its test servers, then back."""
+    if token is None:
+        yield
+        return
+    before = os.environ.get(REUSE_VARIABLE)
+    os.environ[REUSE_VARIABLE] = token
+    try:
+        yield
+    finally:
+        if before is None:
+            del os.environ[REUSE_VARIABLE]
+        else:
+            os.environ[REUSE_VARIABLE] = before
+
+
+def discard_database(ctx: Context, token: str) -> None:
+    """Removes the container and the image a run with ``token`` left; neither is there when no
+    test ran, so a failure to remove is no finding."""
+    for command in (
+        [DOCKER, "rm", "--force", "--volumes", f"cdg-test-database-{token}"],
+        [DOCKER, "rmi", "--force", f"cdg-test-database:{token}"],
+    ):
+        ctx.run(command, ctx.root)
+
+
 def mutate(ctx: Context, core: CoreTarget, seconds: float, policy: MutationPolicy) -> ModuleResult:
     """Writes the module's configuration, runs Stryker for at most ``seconds``, reads its report."""
     tests = test_projects(ctx.root, core.project)
@@ -99,8 +143,17 @@ def mutate(ctx: Context, core: CoreTarget, seconds: float, policy: MutationPolic
     config = output / CONFIG
     config.write_text(configuration(core, tests), encoding="utf-8")
     command = [*STRYKER, "--config-file", str(config), "--output", str(output)]
-    # Beside core/Core.slnx Stryker takes the whole solution and drops the configured test projects.
-    outcome = ctx.run_for(command, tests[0].parent, seconds)
+    # Without the docker CLI the step could not remove what the run leaves, so nothing is reused.
+    reuse = (
+        secrets.token_hex(TOKEN_BYTES) if starts_database(tests) and shutil.which(DOCKER) else None
+    )
+    try:
+        # Beside core/Core.slnx Stryker takes the whole solution and drops the configured tests.
+        with reusing(reuse):
+            outcome = ctx.run_for(command, tests[0].parent, seconds)
+    finally:
+        if reuse is not None:
+            discard_database(ctx, reuse)
     report = output / REPORT
     if not report.is_file():
         missing = ("o Stryker não escreveu relatório", *tail(outcome.text))

@@ -43,6 +43,13 @@ responde por ele com teste próprio.
   estático depende do estado do processo de teste e muda com o número de workers sem que nenhum
   teste mude, e o resultado de um módulo tem de ser o mesmo em duas rodadas. Nenhum mutante sai da
   conta por ser estático.
+  O Stryker.NET reinicia o servidor de teste a cada mutante que estoura o timeout dele. Quando o
+  projeto de teste sobe um Postgres próprio (referencia o Testcontainers), o passo entrega a ele um
+  token pela variável `CDG_TEST_DATABASE_REUSE`, e o projeto mantém uma imagem e um contêiner,
+  nomeados pelo token, que sobrevivem aos reinícios; o passo os remove ao fim, também quando o
+  Stryker falha ou passa do teto. Sem a variável, cada execução de teste sobe e descarta o seu
+  Postgres. Cada teste segue com o seu banco de rascunho; o que sobra de um mutante interrompido é
+  apagado na subida do servidor seguinte. Sem o `docker` no PATH o passo não reaproveita nada.
 - **Serviço:** os arquivos de teste que importam o módulo diretamente (`import language_service.x`,
   `from language_service.x import ...` ou `from language_service import x`), numa rodada do mutmut
   por módulo. Os testes que leem o texto do código-fonte ficam de fora: a mutação o reescreve.

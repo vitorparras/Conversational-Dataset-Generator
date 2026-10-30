@@ -19,7 +19,9 @@ esse disco. Quem constrói num disco que não distingue maiúsculas precisa diss
 ## O ambiente
 
 - Contêiner `debian:12-slim`, 2 GB de memória, em rede interna, sem rota nem DNS externos, sem
-  volume, porta nem socket. A prova de isolamento passou nos 7 itens
+  volume, porta nem socket. A prova de isolamento passou nos 7 itens: sem rota padrão; DNS externo
+  (`example.com`, `deb.debian.org`) sem resposta; TCP a `1.1.1.1:443` e `8.8.8.8:53` sem conexão;
+  DNS interno resolvendo o banco (`db`); TCP ao banco em `db:5432`
 - Banco PostgreSQL 17 (imagem de `tools/database`) como irmão na mesma rede, com os papéis `owner` e
   `app`. Endereço, porta e credenciais foram dados em ficha de texto, fora do contêiner
 - Chave-mestra ausente: espera a decisão D1 da #53
@@ -66,7 +68,8 @@ cerco da credencial numa demonstração sem cadeia (021 diz o que vale); o 400 s
 `resumes` que não é GUID (README e 022); `modelVersion` nulo e zero ocorrências, que é o esperado
 da Fase 1, cujo reconhecedor é o vazio (`EmptyRecognizer`) e não carrega o modelo (022). Um achado
 de código ficou fora do texto: a recusa `manifesto ausente` não diz onde procurou
-(`ServiceFolderCheck.cs:37`, `ServiceFolder.cs:19`); foi levado ao Arquiteto para issue.
+(`ServiceFolderCheck.cs:37`, `ServiceFolder.cs:19`); virou a issue
+[#447](https://github.com/vitorparras/Conversational-Dataset-Generator/issues/447).
 
 As correções acima mexem só em texto.
 
@@ -89,10 +92,10 @@ texto, nenhum passo acima de 15 minutos.
 | 3 | O 021 só tinha o arquivo de senha do papel da aplicação, e o `migrate` pede o do dono | 021 grava um arquivo por papel e dá o comando do `migrate` |
 | 4 | Sem `ps`, o PID do núcleo para o SIGTERM | 022 ganha a função `pid`, para o núcleo e para o serviço |
 
-As lacunas eram erros meus no texto da rodada 1, e o operador os achou: o laço de procura do
-022 tinha o `tr` sem o `\0`, e o bloco de partida do 021 vinha com as quebras de linha trocadas
-por espaços. A causa é do meu modo de escrever os arquivos (um script que interpretou as barras
-invertidas), e o 022 chegou a ter bytes nulos no meio dele. Os dois blocos foram reescritos,
+As lacunas eram erros do DEVOPS, autor do texto, na rodada 1, e o operador os achou: o laço de
+procura do 022 tinha o `tr` sem o `\0`, e o bloco de partida do 021 vinha com as quebras de linha
+trocadas por espaços. A causa foi o modo como o DEVOPS escreveu os arquivos (um script que interpretou as
+barras invertidas), e o 022 chegou a ter bytes nulos no meio dele. Os dois blocos foram reescritos,
 e cada comando corrigido foi rodado de fora do ambiente do operador, num contêiner descartável
 de mesma base: `migrate` (0 e depois 10), partida com `docker exec -d` e com `&` (saída 0 ao
 SIGTERM), `rota` com 200, 503 e 400, e `pid` achando o núcleo e o serviço. Nesse teste o `&` por
@@ -183,9 +186,9 @@ há tabela que receba análise, de modo que a consulta não teria o que mostrar.
 Passou sem improviso na rodada 6, por agente. Isso encerra o pré-ensaio: o texto de 021, 022 e 023
 basta a um agente sem memória do sistema para subir o núcleo publicado, ver a queda do serviço e
 encerrar, num contêiner Debian sem rede, com banco irmão. **Não é o ensaio da #50 nem da #264.** Foi
-um agente, num ambiente montado por quem escreveu o texto, e as rodadas 1 e 2 tiveram memória
-residual (a 2 pelo reset que não funcionava). O que vale daqui é o texto corrigido, não uma
-aprovação.
+um agente, num ambiente montado por quem escreveu o texto, e a rodada 2 teve memória residual da 1
+(o reset que não funcionava). O que vale daqui é o texto corrigido, não uma aprovação. Os commits
+citados (`e4ae18d` a `66b3381`) são desta branch; com squash, sobrevivem na referência do PR #450.
 
 ## O que fica para o ensaio formal, por uma pessoa (#50 e #264)
 
@@ -204,6 +207,6 @@ aprovação.
 - **Reconhecedor com modelo**: o da Fase 1 é o vazio, e `modelVersion` nulo e zero ocorrências não
   provam o serviço de linguagem em uso real
 - **A mensagem de `LanguageServiceFolder`**, que não diz onde procurou (`ServiceFolderCheck.cs:37`),
-  fica para a issue e para o texto do ensaio, que hoje avisa disso
+  fica para a issue #447 e para o texto do ensaio, que hoje avisa disso
 - **O registro do ensaio formal** é o 001 de histórico, reservado a ele; este documento não o
   substitui

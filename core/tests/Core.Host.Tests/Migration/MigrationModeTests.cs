@@ -58,6 +58,29 @@ public sealed class MigrationModeTests
         Assert.DoesNotContain(Password, exit.Error, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task ModeDoesNotNeedTheKindOfInstallationThatTheServingModeCannotStartWithout()
+    {
+        using var closed = new ClosedPort();
+        var installation = Migrating(Database($"127.0.0.1:{closed.Number}")) with { DeclaresInstallation = false };
+
+        var exit = await HostProcess.RunToExitAsync(installation, HostProcess.StartupTimeout, TestContext.Current.CancellationToken);
+
+        Assert.Equal((int)ExitCode.MigrationNotConnected, exit.Code);
+        Assert.DoesNotContain("Installation:Kind", exit.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ModeRefusesAKindOfInstallationOutsideTheTwoItAccepts()
+    {
+        var installation = Migrating(Database("127.0.0.1:1")) with { DeclaresInstallation = false, Arguments = ["migrate", "--Installation:Kind=Real"] };
+
+        var exit = await HostProcess.RunToExitAsync(installation, HostProcess.StartupTimeout, TestContext.Current.CancellationToken);
+
+        Assert.Equal((int)ExitCode.ConfigurationRefused, exit.Code);
+        Assert.Contains("'Installation:Kind'", exit.Error, StringComparison.Ordinal);
+    }
+
     private static HostInstallation Migrating(ReadOnlyDictionary<string, string> environment)
     {
         var installation = HostInstallation.Built(HostProcess.FreeAddress());

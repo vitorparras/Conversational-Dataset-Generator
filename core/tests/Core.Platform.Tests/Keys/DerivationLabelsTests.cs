@@ -76,6 +76,8 @@ public sealed class DerivationLabelsTests
     [InlineData("   ")]
     [InlineData(" dominio-a")]
     [InlineData("dominio-a ")]
+    [InlineData("\tdominio-a")]
+    [InlineData("dominio-a\n")]
     public void LabelEmptyOrWithSpacesAroundItIsADefect(string label)
     {
         _ = Assert.Throws<ArgumentException>(() => DerivationLabels.Of([label]));
@@ -87,5 +89,24 @@ public sealed class DerivationLabelsTests
     {
         _ = Assert.Throws<ArgumentNullException>(() => DerivationLabels.Of(null!));
         _ = Assert.Throws<ArgumentNullException>(() => DerivationLabels.None.Lacking(null!));
+    }
+
+    [Fact]
+    public void LabelsToCompareThatAreMissingNameTheArgumentThatWasMissing()
+    {
+        var defect = Assert.Throws<ArgumentNullException>(() => DerivationLabels.None.Lacking(null!));
+
+        Assert.Equal("used", defect.ParamName);
+    }
+
+    [Theory]
+    [InlineData(" dominio-a")]
+    [InlineData("dominio-a ")]
+    public void LabelWithSpacesAroundItSaysSoAndNamesTheLabel(string label)
+    {
+        var defect = Assert.Throws<ArgumentException>(() => DerivationLabels.None.With(label));
+
+        Assert.Equal("label", defect.ParamName);
+        Assert.Contains("no space around it", defect.Message, StringComparison.Ordinal);
     }
 }

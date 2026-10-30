@@ -45,7 +45,7 @@ public sealed class ShutdownTests
         var cancellationToken = TestContext.Current.CancellationToken;
         using var host = await StartWithRealServiceAsync(cancellationToken);
         var tree = await ProcessTree.TreeOfAsync(host.Id, cancellationToken);
-        var service = tree.Select(line => line.Id).Where(id => id != host.Id).ToList();
+        var service = tree.Where(line => line.Id != host.Id).Select(line => ProcessIdentity.Of(line.Id)).OfType<ProcessIdentity>().ToList();
         using var survivors = new Survivors(service);
 
         host.Terminate();

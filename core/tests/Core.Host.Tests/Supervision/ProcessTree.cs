@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 
@@ -27,14 +28,18 @@ internal static class ProcessTree
         return [.. table.Where(row => members.Contains(row.Id)).Select(row => new ProcessLine(row.Id, row.CommandLine))];
     }
 
-    public static bool IsRunning(int id)
+    /// <summary>Whether a process with this number runs now. The number may name a stranger that took it over, so a test that read the process earlier asks with its identity.</summary>
+    public static bool IsRunning(int id) => ProcessIdentity.Of(id) is { } identity && IsRunning(identity);
+
+    /// <summary>Whether the process that was read still runs; a different process with the same number does not count.</summary>
+    public static bool IsRunning(ProcessIdentity identity)
     {
+        using var process = identity.Open();
         try
         {
-            using var process = Process.GetProcessById(id);
-            return !process.HasExited && !IsZombie(id);
+            return process is not null && !process.HasExited && !IsZombie(identity.Id);
         }
-        catch (ArgumentException)
+        catch (Exception exception) when (exception is InvalidOperationException or Win32Exception)
         {
             return false;
         }

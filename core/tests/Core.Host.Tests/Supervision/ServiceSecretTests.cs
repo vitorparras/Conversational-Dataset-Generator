@@ -37,7 +37,7 @@ public sealed class ServiceSecretTests : IDisposable
     {
         var supervisor = harness.SupervisorFor(LanguageServiceInterpreter.Path);
         await SupervisionHarness.StartedAsync(supervisor, TestContext.Current.CancellationToken);
-        var id = supervisor.ProcessId!.Value;
+        var id = ProcessIdentity.Required(supervisor.ProcessId!.Value);
 
         supervisor.Dispose();
 

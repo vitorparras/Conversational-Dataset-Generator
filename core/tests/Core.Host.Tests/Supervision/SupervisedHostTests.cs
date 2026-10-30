@@ -17,7 +17,7 @@ public sealed class SupervisedHostTests
         var installation = HostInstallation.Built(address) with { UsesRealService = true };
         using var host = await HostProcess.StartAsync(installation, address, HostProcess.StartupTimeout, cancellationToken);
         var tree = await ProcessTree.TreeOfAsync(host.Id, cancellationToken);
-        var service = tree.Select(line => line.Id).Where(id => id != host.Id).ToList();
+        var service = tree.Where(line => line.Id != host.Id).Select(line => ProcessIdentity.Of(line.Id)).OfType<ProcessIdentity>().ToList();
         Assert.NotEmpty(service);
         using var survivors = new Survivors(service);
 
@@ -90,7 +90,7 @@ public sealed class SupervisedHostTests
         Assert.Contains("origem esperada: LanguageService:Executable", exit.Error, StringComparison.Ordinal);
     }
 
-    private static async Task<bool> EndedWithinAsync(IReadOnlyList<int> ids, TimeSpan limit, CancellationToken cancellationToken)
+    private static async Task<bool> EndedWithinAsync(IReadOnlyList<ProcessIdentity> ids, TimeSpan limit, CancellationToken cancellationToken)
     {
         var deadline = DateTimeOffset.UtcNow + limit;
         while (DateTimeOffset.UtcNow < deadline && ids.Any(ProcessTree.IsRunning))

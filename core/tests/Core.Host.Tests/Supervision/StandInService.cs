@@ -25,4 +25,7 @@ internal static class StandInService
         using var process = Process.GetProcessById(id);
         process.Kill();
     }
+
+    /// <summary>Ends the process that was read, from outside; a number that now belongs to another process is left alone. Whether it ended one.</summary>
+    public static bool Kill(ProcessIdentity identity) => identity.Kill();
 }

@@ -47,11 +47,11 @@ public sealed class ServiceLifecycleTests : IDisposable
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         var supervisor = await harness.StartedSupervisorAsync(watch, cancellationToken);
-        var previous = supervisor.ProcessId!.Value;
+        var previous = ProcessIdentity.Required(supervisor.ProcessId!.Value);
 
         _ = await supervisor.RestartAsync(Request, SupervisionHarness.Timeout, cancellationToken);
 
-        Assert.NotEqual(previous, supervisor.ProcessId);
+        Assert.NotEqual(previous.Id, supervisor.ProcessId);
         Assert.False(ProcessTree.IsRunning(previous));
         Assert.Equal(ServiceState.Available, watch.State);
     }

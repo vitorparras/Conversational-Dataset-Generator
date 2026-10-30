@@ -20,7 +20,7 @@ internal sealed class SupervisionHarness : IDisposable
     /// <summary>Every line the supervisors made here have written.</summary>
     public RecordingLogger Log { get; } = new();
 
-    public static ServiceProcessLauncher Launcher => new(LanguageServiceInterpreter.Path);
+    public static ServiceProcessLauncher Launcher => new(LanguageServiceInterpreter.Path, new ErrorCollector());
 
     /// <summary>A secret no file on the machine can hold before the test makes it.</summary>
     public static string NewSecret() => $"ZQX-MARKER-7731-{Guid.NewGuid():N}";
@@ -35,7 +35,7 @@ internal sealed class SupervisionHarness : IDisposable
 
     public LanguageServiceSupervisor SupervisorFor(string executable, ServiceProcessWatch watch, ILogger<LanguageServiceSupervisor> logger)
     {
-        var supervisor = new LanguageServiceSupervisor(new ServiceProcessLauncher(executable), Health, watch, logger);
+        var supervisor = new LanguageServiceSupervisor(new ServiceProcessLauncher(executable, new ErrorCollector()), Health, watch, logger);
         started.Add(supervisor);
         return supervisor;
     }
@@ -54,7 +54,7 @@ internal sealed class SupervisionHarness : IDisposable
         var outcome = await supervisor.StartAsync(Timeout, cancellationToken);
         if (outcome != StartOutcome.Started)
         {
-            throw new InvalidOperationException($"The language service did not become healthy: {outcome}.");
+            throw new InvalidOperationException($"The language service did not become healthy: {outcome}{Ended(supervisor.ExitCode, supervisor.ExitErrorTail)}.");
         }
     }
 
@@ -64,9 +64,31 @@ internal sealed class SupervisionHarness : IDisposable
         var service = Launcher.Start(secret) ?? throw new InvalidOperationException("The language service did not start.");
         started.Add(service);
         var outcome = await Health.UntilHealthyAsync(service, secret, Timeout, cancellationToken);
-        return outcome == StartOutcome.Started
-            ? service
-            : throw new InvalidOperationException($"The language service did not become healthy: {outcome}.");
+        if (outcome == StartOutcome.Started)
+        {
+            return service;
+        }
+
+        var ended = string.Empty;
+        if (outcome == StartOutcome.ProcessExited)
+        {
+            var tail = service.Errors is null ? null : await service.Errors.TextAsync(TimeSpan.FromSeconds(2));
+            ended = Ended(service.ExitCode, tail);
+        }
+
+        throw new InvalidOperationException($"The language service did not become healthy: {outcome}{ended}.");
+    }
+
+    /// <summary>How a process that ended before answering is told in the message of the test it failed: its exit code and the end of its standard error, which is why it left.</summary>
+    public static string Ended(int? exitCode, string? errorTail)
+    {
+        if (exitCode is null)
+        {
+            return string.Empty;
+        }
+
+        var written = string.IsNullOrWhiteSpace(errorTail) ? "none" : errorTail.Trim();
+        return $" (exit code {exitCode}; end of its standard error: {written})";
     }
 
     /// <summary>How the service listening on the port answers the health route given the secret, over a connection of its own, which the service must first prove to be its holder.</summary>

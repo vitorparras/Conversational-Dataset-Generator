@@ -12,7 +12,7 @@ public sealed class SupervisorStopTests : IDisposable
         var cancellationToken = TestContext.Current.CancellationToken;
         var supervisor = harness.SupervisorFor(LanguageServiceInterpreter.Path);
         await SupervisionHarness.StartedAsync(supervisor, cancellationToken);
-        var service = supervisor.ProcessId!.Value;
+        var service = ProcessIdentity.Required(supervisor.ProcessId!.Value);
 
         supervisor.Dispose();
 

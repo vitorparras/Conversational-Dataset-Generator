@@ -60,6 +60,14 @@ medido sem área e o projeto ou pacote sem linha na tabela ou que nenhum relató
 `--previous` apontando para uma cópia do by-area.md de outra execução, avisa a queda que não cruza
 o piso.
 
+Na CI, o push no `main` guarda o `by-area.md` dos jobs `dotnet` e `python` em cache
+(`cobertura-<job>-<sha>`) e como artefato (`cobertura-<job>-<sha>`, 90 dias), que é o registro do
+número medido. No pull request, cada job restaura o cache mais recente do `main` e roda o `floors`
+com `--previous`: a queda por área que não cruza o piso aparece no resumo do job e como aviso do
+pull request, sem reprovar. Sem cache (o `main` ainda não guardou, ou o cache expirou depois de 7
+dias sem uso), o `floors` roda sem `--previous`, diz no resumo que não há medição para comparar e
+não reprova; o artefato permanece, e a comparação volta no próximo push no `main`.
+
 O passo `secrets` roda o `gitleaks` na versão fixada em `tools/verify-code/steps/gitleaks_binary.py`
 e recusa um binário cuja soma SHA-256 não confira; sem `--base` varre o histórico inteiro. Os testes
 de `tools/` o usam. A única permissão são os marcadores sintéticos `ZQX-…`, em `.gitleaks.toml`.

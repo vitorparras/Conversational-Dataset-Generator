@@ -34,8 +34,39 @@ jobs:
         run: python tools/verify-code/verify.py --step build_core test_core
       - name: Instalar uv na versão fixada (test_real_service chama `uv run --frozen`)
         run: pip install -r tools/verify-code/service-requirements.txt
+      - name: Restaurar a cobertura por área que o main guardou (cache vazio: o passo compara sem ela)
+        if: github.event_name == 'pull_request'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/cobertura-main
+          key: cobertura-dotnet-${{ github.sha }}
+          restore-keys: cobertura-dotnet-
       - name: Testar com o serviço real, formatar, verificar as ferramentas e medir a cobertura das duas suítes juntas
-        run: python tools/verify-code/verify.py --step test_real_service format_core lint_tools test_tools coverage floors
+        run: |
+          previous=()
+          if [ -f "$RUNNER_TEMP/cobertura-main/by-area.md" ]; then
+            previous=(--previous "$RUNNER_TEMP/cobertura-main/by-area.md")
+          fi
+          python tools/verify-code/verify.py "${previous[@]}" --step test_real_service format_core lint_tools test_tools coverage floors
+      - name: Separar o by-area.md medido no main
+        if: github.event_name == 'push'
+        run: |
+          mkdir -p "$RUNNER_TEMP/cobertura-main"
+          cp .verify-code/coverage/by-area.md "$RUNNER_TEMP/cobertura-main/by-area.md"
+      - name: Guardar em cache a cobertura por área do main, que o pull request restaura
+        if: github.event_name == 'push'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/cobertura-main
+          key: cobertura-dotnet-${{ github.sha }}
+      - name: Guardar como artefato o número medido no main
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: cobertura-dotnet-${{ github.sha }}
+          path: .verify-code/coverage/by-area.md
+          retention-days: 90
+          if-no-files-found: error
 
   python:
     name: Serviço de linguagem (Python)
@@ -48,8 +79,39 @@ jobs:
           python-version: '3.12'
       - name: Instalar uv, ruff, pyright e coverage nas versões fixadas
         run: pip install -r tools/verify-code/service-requirements.txt -r tools/verify-code/lint-requirements.txt
+      - name: Restaurar a cobertura por área que o main guardou (cache vazio: o passo compara sem ela)
+        if: github.event_name == 'pull_request'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/cobertura-main
+          key: cobertura-python-${{ github.sha }}
+          restore-keys: cobertura-python-
       - name: Sincronizar, testar e verificar o serviço de linguagem
-        run: python tools/verify-code/verify.py --step build_service test_service coverage floors lint_service
+        run: |
+          previous=()
+          if [ -f "$RUNNER_TEMP/cobertura-main/by-area.md" ]; then
+            previous=(--previous "$RUNNER_TEMP/cobertura-main/by-area.md")
+          fi
+          python tools/verify-code/verify.py "${previous[@]}" --step build_service test_service coverage floors lint_service
+      - name: Separar o by-area.md medido no main
+        if: github.event_name == 'push'
+        run: |
+          mkdir -p "$RUNNER_TEMP/cobertura-main"
+          cp .verify-code/coverage/by-area.md "$RUNNER_TEMP/cobertura-main/by-area.md"
+      - name: Guardar em cache a cobertura por área do main, que o pull request restaura
+        if: github.event_name == 'push'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/cobertura-main
+          key: cobertura-python-${{ github.sha }}
+      - name: Guardar como artefato o número medido no main
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: cobertura-python-${{ github.sha }}
+          path: .verify-code/coverage/by-area.md
+          retention-days: 90
+          if-no-files-found: error
 
   properties:
     name: Propriedades nas duas linguagens

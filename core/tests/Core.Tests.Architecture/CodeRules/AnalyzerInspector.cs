@@ -10,22 +10,14 @@ internal static class AnalyzerInspector
 {
     public static AnalyzerFindings Inspect(IEnumerable<string> analyzerPaths, GeneratorInput input)
     {
-        var loader = new AnalyzerLoader();
         var failures = new List<string>();
-        try
-        {
-            var references = analyzerPaths.Select(path => Reference(path, loader, failures.Add)).ToList();
-            var suppressors = references.SelectMany(SuppressorsIn).ToList();
-            var generators = references.SelectMany(reference => reference.GetGenerators(LanguageNames.CSharp)).ToImmutableArray();
-            var diagnostics = references
-                .DistinctBy(reference => reference.FullPath, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(reference => reference.FullPath ?? string.Empty, ReportedIds, StringComparer.OrdinalIgnoreCase);
-            return new AnalyzerFindings(suppressors, Generate(generators, input, failures), failures, diagnostics);
-        }
-        finally
-        {
-            loader.Unload();
-        }
+        var references = analyzerPaths.Select(path => Reference(path, AnalyzerLoader.Shared, failures.Add)).ToList();
+        var suppressors = references.SelectMany(SuppressorsIn).ToList();
+        var generators = references.SelectMany(reference => reference.GetGenerators(LanguageNames.CSharp)).ToImmutableArray();
+        var diagnostics = references
+            .DistinctBy(reference => reference.FullPath, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(reference => reference.FullPath ?? string.Empty, ReportedIds, StringComparer.OrdinalIgnoreCase);
+        return new AnalyzerFindings(suppressors, Generate(generators, input, failures), failures, diagnostics);
     }
 
     private static AnalyzerFileReference Reference(string path, IAnalyzerAssemblyLoader loader, Action<string> fail)

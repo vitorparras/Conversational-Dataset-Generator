@@ -5,21 +5,18 @@ namespace Core.Platform.Keys;
 /// <summary>What a source gave: the key with the labels that travel with it, or the reason there is no key; the owner releases it.</summary>
 public sealed class MasterKeyReading : IDisposable
 {
-    private MasterKeyReading(MasterKey? key, DerivationLabels labels, MasterKeyFailure? failure)
+    private MasterKeyReading()
     {
-        Key = key;
-        Labels = labels;
-        Failure = failure;
     }
 
     /// <summary>The key; null when the source gave none.</summary>
-    public MasterKey? Key { get; }
+    public MasterKey? Key { get; private init; }
 
     /// <summary>The labels the source gave; none when it gave no key.</summary>
-    public DerivationLabels Labels { get; }
+    public DerivationLabels Labels { get; private init; } = DerivationLabels.None;
 
     /// <summary>Why there is no key; null when there is one.</summary>
-    public MasterKeyFailure? Failure { get; }
+    public MasterKeyFailure? Failure { get; private init; }
 
     /// <summary>The key of the bytes given, which are zeroed here so that no other copy stays behind; a size other than the key's is a failure that says the size found.</summary>
     public static MasterKeyReading FromBytes(byte[] bytes, DerivationLabels labels)
@@ -29,7 +26,7 @@ public sealed class MasterKeyReading : IDisposable
         try
         {
             return bytes.Length == MasterKey.Length
-                ? new MasterKeyReading(new MasterKey(bytes), labels, failure: null)
+                ? new MasterKeyReading { Key = new MasterKey(bytes), Labels = labels }
                 : Failed(MasterKeyFailureKind.WrongSize, $"{bytes.Length} bytes, esperados {MasterKey.Length}");
         }
         finally
@@ -50,6 +47,6 @@ public sealed class MasterKeyReading : IDisposable
     private static MasterKeyReading Failed(MasterKeyFailureKind kind, string found)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(found);
-        return new MasterKeyReading(key: null, DerivationLabels.None, new MasterKeyFailure(kind, found));
+        return new MasterKeyReading { Failure = new MasterKeyFailure(kind, found) };
     }
 }

@@ -49,7 +49,12 @@ responde por ele com teste próprio.
   nomeados pelo token, que sobrevivem aos reinícios; o passo os remove ao fim, também quando o
   Stryker falha ou passa do teto. Sem a variável, cada execução de teste sobe e descarta o seu
   Postgres. Cada teste segue com o seu banco de rascunho; o que sobra de um mutante interrompido é
-  apagado na subida do servidor seguinte. Sem o `docker` no PATH o passo não reaproveita nada.
+  apagado na subida do servidor seguinte. Sem o `docker` no PATH o passo não reaproveita nada. Se o
+  próprio `verify.py` for morto à força (kill, terminal fechado), o `finally` não roda: o contêiner
+  `cdg-test-database-<token>` fica de pé, com a porta publicada, e a imagem `cdg-test-database:<token>`
+  fica no disco, porque o reaper do Testcontainers não cuida de recurso reaproveitado. Remova-os à mão
+  com `docker rm --force --volumes` e `docker rmi --force`, achando-os por `docker ps -a --filter
+  name=cdg-test-database-`.
 - **Serviço:** os arquivos de teste que importam o módulo diretamente (`import language_service.x`,
   `from language_service.x import ...` ou `from language_service import x`), numa rodada do mutmut
   por módulo. Os testes que leem o texto do código-fonte ficam de fora: a mutação o reescreve.

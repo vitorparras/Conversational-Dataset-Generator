@@ -37,10 +37,12 @@ internal sealed class LanguageServiceStartupCheck : IStartupCheck
         {
             StartOutcome.Started => CheckResult.Passed(Name, "o serviço respondeu à conferência de saúde", ExecutablePath),
             StartOutcome.NotStarted => CheckResult.Failed(Name, "o executável configurado não pôde ser iniciado", ExecutablePath),
-            StartOutcome.ProcessExited => CheckResult.Failed(
-                Name, $"o serviço encerrou com código {supervisor.ExitCode} antes de responder", ExecutablePath),
-            StartOutcome.TimedOut => CheckResult.Failed(Name, $"o serviço não respondeu em {seconds} s", ExecutablePath),
+            StartOutcome.ProcessExited => Stopped($"o serviço encerrou com código {supervisor.ExitCode} antes de responder"),
+            StartOutcome.TimedOut => Stopped($"o serviço não respondeu em {seconds} s"),
             _ => throw new UnreachableException(),
         };
     }
+
+    /// <summary>A start that did not end with an answer, with how far it got where the failure says what was observed.</summary>
+    private CheckResult Stopped(string failure) => CheckResult.Failed(Name, failure, ExecutablePath) with { Observed = supervisor.StoppedAt };
 }

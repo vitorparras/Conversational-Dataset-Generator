@@ -11,7 +11,7 @@ public sealed class SupervisorStopTests : IDisposable
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         var supervisor = harness.SupervisorFor(LanguageServiceInterpreter.Path);
-        _ = await supervisor.StartAsync(SupervisionHarness.Timeout, cancellationToken);
+        await SupervisionHarness.StartedAsync(supervisor, cancellationToken);
         var service = supervisor.ProcessId!.Value;
 
         supervisor.Dispose();
@@ -25,7 +25,7 @@ public sealed class SupervisorStopTests : IDisposable
         var cancellationToken = TestContext.Current.CancellationToken;
         var witness = new StopLineWitness();
         var supervisor = harness.SupervisorFor(LanguageServiceInterpreter.Path, witness);
-        _ = await supervisor.StartAsync(SupervisionHarness.Timeout, cancellationToken);
+        await SupervisionHarness.StartedAsync(supervisor, cancellationToken);
 
         supervisor.Dispose();
 

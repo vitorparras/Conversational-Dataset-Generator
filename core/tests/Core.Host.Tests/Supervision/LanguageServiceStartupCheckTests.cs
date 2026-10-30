@@ -46,8 +46,31 @@ public sealed class LanguageServiceStartupCheckTests : IDisposable
 
         var result = await check.RunAsync(TestContext.Current.CancellationToken);
 
-        Assert.Equal(CheckStatus.Passed, result.Status);
+        PassedCheck.Assert(result);
         Assert.True(ProcessTree.IsRunning(supervisor.ProcessId!.Value));
+    }
+
+    [Trait("Category", "RealService")]
+    [Fact]
+    public async Task ServiceThatNeverAnswersHealthFailsSayingHowFarTheStartGot()
+    {
+        using var handler = new UnreachableHandler();
+        using var unreachable = new HttpClient(handler);
+        using var supervisor = new LanguageServiceSupervisor(
+            new ServiceProcessLauncher(LanguageServiceInterpreter.Path), new HealthWait(unreachable), new ServiceProcessWatch(), harness.Log);
+        var check = new LanguageServiceStartupCheck(supervisor, "3");
+
+        var result = await check.RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(CheckStatus.Failed, result.Status);
+        Assert.Equal("o serviço não respondeu em 3 s", result.Message);
+        Assert.Contains("porta", result.Observed, StringComparison.Ordinal);
+    }
+
+    private sealed class UnreachableHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromException<HttpResponseMessage>(new HttpRequestException("nobody answers"));
     }
 
     public void Dispose() => harness.Dispose();

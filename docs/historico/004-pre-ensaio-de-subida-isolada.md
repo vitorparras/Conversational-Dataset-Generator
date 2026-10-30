@@ -94,8 +94,9 @@ texto, nenhum passo acima de 15 minutos.
 
 As lacunas eram erros do DEVOPS, autor do texto, na rodada 1, e o operador os achou: o laço de
 procura do 022 tinha o `tr` sem o `\0`, e o bloco de partida do 021 vinha com as quebras de linha
-trocadas por espaços. A causa foi o modo como o DEVOPS escreveu os arquivos (um script que interpretou as
-barras invertidas), e o 022 chegou a ter bytes nulos no meio dele. Os dois blocos foram reescritos,
+trocadas por espaços. A causa foi o modo como o DEVOPS escreveu os arquivos (um script que
+interpretou as barras invertidas), e o 022 chegou a ter bytes nulos no meio dele. Os dois blocos
+foram reescritos,
 e cada comando corrigido foi rodado de fora do ambiente do operador, num contêiner descartável
 de mesma base: `migrate` (0 e depois 10), partida com `docker exec -d` e com `&` (saída 0 ao
 SIGTERM), `rota` com 200, 503 e 400, e `pid` achando o núcleo e o serviço. Nesse teste o `&` por

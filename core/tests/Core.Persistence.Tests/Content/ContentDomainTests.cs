@@ -160,6 +160,69 @@ public sealed class ContentDomainTests
     }
 
     [DatabaseFact]
+    public async Task ContentTableWithAPermissivePolicyThatLetsEverythingThroughIsNamed()
+    {
+        await using var database = await WithTwoDomainsAsync();
+        await database.RunAsOwnerAsync($"CREATE POLICY extra ON {Table} USING (true)");
+
+        var result = await CheckAsync(database);
+
+        Assert.Equal(CheckStatus.Failed, result.Status);
+        Assert.Contains(Table, result.Message, StringComparison.Ordinal);
+        Assert.Contains("permissiva", result.Message, StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
+    public async Task ContentTableWithAnInsertPolicyThatChecksNothingIsNamed()
+    {
+        await using var database = await WithTwoDomainsAsync();
+        await database.RunAsOwnerAsync($"CREATE POLICY ins ON {Table} FOR INSERT WITH CHECK (true)");
+
+        var result = await CheckAsync(database);
+
+        Assert.Equal(CheckStatus.Failed, result.Status);
+        Assert.Contains(Table, result.Message, StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
+    public async Task PolicyThatRepeatsTheDomainRuleOrOnlyRestrictsDoesNotOpenTheTable()
+    {
+        await using var database = await WithTwoDomainsAsync();
+        await database.RunAsOwnerAsync(
+            $"CREATE POLICY again ON {Table} FOR SELECT USING ((domain_id = public.declared_domain()))",
+            $"CREATE POLICY narrow ON {Table} AS RESTRICTIVE USING (true)");
+
+        var result = await CheckAsync(database);
+
+        Assert.Equal(CheckStatus.Passed, result.Status);
+    }
+
+    [DatabaseFact]
+    public async Task MaterializedViewInTheContentSchemaIsNamed()
+    {
+        await using var database = await WithTwoDomainsAsync();
+        await database.RunAsOwnerAsync($"CREATE MATERIALIZED VIEW content.zqx_snap AS SELECT * FROM {Table}");
+
+        var result = await CheckAsync(database);
+
+        Assert.Equal(CheckStatus.Failed, result.Status);
+        Assert.Contains("content.zqx_snap", result.Message, StringComparison.Ordinal);
+        Assert.Contains("não é tabela", result.Message, StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
+    public async Task ViewInTheContentSchemaIsNamed()
+    {
+        await using var database = await WithTwoDomainsAsync();
+        await database.RunAsOwnerAsync($"CREATE VIEW content.zqx_look AS SELECT * FROM {Table}");
+
+        var result = await CheckAsync(database);
+
+        Assert.Equal(CheckStatus.Failed, result.Status);
+        Assert.Contains("content.zqx_look", result.Message, StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
     public async Task NoQueryTheSystemExposesReturnsAnItemWithNoDomainDeclared()
     {
         await using var database = await WithTwoDomainsAsync();

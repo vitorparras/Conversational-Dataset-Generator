@@ -52,7 +52,7 @@ public sealed class RlsForceCheckTests
     [Fact]
     public void ContentTableWithoutTheDomainColumnFailsNamingTheTable()
     {
-        var finding = RlsForceCheck.Judge(forcedTables: 3, unforcedTable: null, withoutDomain: "content.zqx_loose");
+        var finding = RlsForceCheck.Judge(forcedTables: 3, unforcedTable: null, new RlsForceCheck.ContentFindings(WithoutDomain: "content.zqx_loose"));
 
         Assert.Equal(CheckStatus.Failed, finding.Status);
         Assert.Contains("content.zqx_loose", finding.Message, StringComparison.Ordinal);
@@ -62,10 +62,30 @@ public sealed class RlsForceCheckTests
     [Fact]
     public void ContentTableWithoutAPolicyFailsNamingTheTable()
     {
-        var finding = RlsForceCheck.Judge(forcedTables: 3, unforcedTable: null, withoutPolicy: "content.zqx_open");
+        var finding = RlsForceCheck.Judge(forcedTables: 3, unforcedTable: null, new RlsForceCheck.ContentFindings(WithoutPolicy: "content.zqx_open"));
 
         Assert.Equal(CheckStatus.Failed, finding.Status);
         Assert.Contains("content.zqx_open", finding.Message, StringComparison.Ordinal);
         Assert.Contains("política de linha", finding.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ContentTableWithAPermissivePolicyBeyondTheDomainOneFailsNamingTheTable()
+    {
+        var finding = RlsForceCheck.Judge(forcedTables: 3, unforcedTable: null, new RlsForceCheck.ContentFindings(OpenPolicy: "content.zqx_wide"));
+
+        Assert.Equal(CheckStatus.Failed, finding.Status);
+        Assert.Contains("content.zqx_wide", finding.Message, StringComparison.Ordinal);
+        Assert.Contains("DROP POLICY", finding.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ViewInTheContentSchemaFailsNamingIt()
+    {
+        var finding = RlsForceCheck.Judge(forcedTables: 3, unforcedTable: null, new RlsForceCheck.ContentFindings(NotATable: "content.zqx_snap"));
+
+        Assert.Equal(CheckStatus.Failed, finding.Status);
+        Assert.Contains("content.zqx_snap", finding.Message, StringComparison.Ordinal);
+        Assert.Contains("não é tabela", finding.Message, StringComparison.Ordinal);
     }
 }

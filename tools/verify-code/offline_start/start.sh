@@ -2,7 +2,8 @@
 # Brings the host up as an operator would, under strace: migrates the schema with the owner
 # credential, then serves with the application's, the language service folder beside the binary.
 # Waits for the line that says it serves, stops it the way a service manager does and records the
-# exit codes. Everything the checks read goes to /trace; the passwords come in the environment.
+# exit codes and how long the serve run took to say it serves (from launching the host to that
+# line). Everything the checks read goes to /trace; the passwords come in the environment.
 set -u
 
 # The three deadlines add up to 210 s, far below the 30 min of the job that runs this.
@@ -39,14 +40,17 @@ host_pid() {
     done
 }
 
-# Polls every fifth of a second until the command succeeds or the seconds run out.
+now_ms() { echo $(($(date +%s%N) / 1000000)); }
+
+# Polls every twentieth of a second until the command succeeds or the seconds run out; the pause
+# is what the start time is read with, so it stays well under the limit the step judges it by.
 wait_for() {
     seconds=$1
     shift
     waited=0
-    while [ "$waited" -lt $((seconds * 5)) ]; do
+    while [ "$waited" -lt $((seconds * 20)) ]; do
         "$@" && return 0
-        sleep 0.2
+        sleep 0.05
         waited=$((waited + 1))
     done
     return 1
@@ -62,6 +66,7 @@ stopped() { ! kill -0 "$tracer" 2> /dev/null; }
 migrate=$?
 keep migrate
 
+began=$(now_ms)
 (
     export CDG_Database__Username=app CDG_Database__Password="$APP_PASSWORD"
     trace serve ./Core.Host
@@ -69,6 +74,7 @@ keep migrate
 tracer=$!
 
 wait_for "$READY_SECONDS" serving
+ready_ms=$(($(now_ms) - began))
 grep -qF "$LISTENING" /trace/serve.log && ready=yes || ready=no
 pid=$(host_pid)
 [ -n "$pid" ] && kill -TERM "$pid"
@@ -77,4 +83,5 @@ wait "$tracer"
 serve=$?
 keep serve
 
-printf 'migrate=%s\nserve=%s\nready=%s\n' "$migrate" "$serve" "$ready" > /trace/result.txt
+printf 'migrate=%s\nserve=%s\nready=%s\nready_ms=%s\n' "$migrate" "$serve" "$ready" "$ready_ms" \
+    > /trace/result.txt

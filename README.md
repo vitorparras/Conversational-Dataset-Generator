@@ -11,8 +11,10 @@ brasileiro.
 
 ## Estado
 
-Repositório em fundação. Contém o aparato de verificação e revisão; a documentação entra em
-seguida, um pull request por documento.
+Fase 1 do [roadmap](docs/roadmap/001-fundacao-verificavel.md), a fundação verificável: o núcleo
+(.NET), o serviço de linguagem (Python), o banco de desenvolvimento e o aparato que os verifica.
+Não há ainda módulo de domínio nem material real; a árvore e os comandos estão em
+[020](docs/operacao/020-codigo-no-repositorio.md).
 
 ## Como isto funciona
 
@@ -60,7 +62,7 @@ medido sem área e o projeto ou pacote sem linha na tabela ou que nenhum relató
 `--previous` apontando para uma cópia do by-area.md de outra execução, avisa a queda que não cruza
 o piso.
 
-Na CI, o push no `main` guarda o `by-area.md` dos jobs `dotnet` e `python` em cache
+Na CI, o push no `main` guarda o by-area.md dos jobs `dotnet` e `python` em cache
 (`cobertura-<job>-<sha>`) e como artefato (`cobertura-<job>-<sha>`, 90 dias), que é o registro do
 número medido. No pull request, cada job restaura o cache mais recente do `main` e roda o `floors`
 com `--previous`: a queda por área que não cruza o piso aparece no resumo do job e como aviso do
@@ -111,6 +113,14 @@ saída do verificador, a partir da tabela; uma seção `[tool.mutmut]` em
 `language-service/pyproject.toml`, ou noutro arquivo igual do serviço, reprova, porque o mutmut a
 leria no lugar dela. Cada linguagem é cortada no teto. Com a máquina livre, o passo soma cerca de
 4 minutos à execução sem argumento.
+
+O passo `format_core` roda `dotnet format core/Core.slnx --verify-no-changes`: qualquer mudança que
+o `.editorconfig` exija reprova. O passo `properties` roda as propriedades das duas linguagens (no
+núcleo, a trait `Kind=Property`; no serviço, a marca `property`) e reprova o lado que não executou
+nenhuma. O passo `offline_start` sobe o núcleo publicado em contêineres, só com o loopback, sob
+`strace`, e reprova a conexão externa, a consulta de DNS e a partida que não chega à linha de
+pronto. O passo `ruler_proof` planta, numa cópia descartável, uma propriedade falsa, um defeito em
+módulo crítico, código sem teste e testes fracos, e exige que a régua recuse cada um.
 
 O passo `dependencies` audita a árvore completa das duas partes, transitivas inclusive, com a
 auditoria do NuGet e o `pip-audit` de `tools/verify-code/audit-requirements.txt`. Lock ausente ou
@@ -240,6 +250,9 @@ O pgaudit e os papéis só entram quando o volume nasce vazio. Um volume criado 
 fica como estava, e se recria com `docker compose -f tools/database/compose.yml down -v`, que apaga
 os dados.
 
+O esquema é aplicado pelo modo `migrate` do mesmo executável, com a credencial de dono, descrito em
+[016](docs/operacao/016-migracao-do-esquema.md); a partida normal só confere a versão.
+
 Os testes de banco de `core/tests/Core.Persistence.Tests` e de `core/tests/Core.Tests.Integration`
 constroem a mesma imagem com Testcontainers e senhas aleatórias. Sem Docker, os testes de banco
 saltam com o aviso "Docker indisponível: teste de banco saltado", e o passo `test_core` lista o
@@ -256,6 +269,9 @@ raiz. Ele escuta só em `127.0.0.1` e lê o segredo de inicialização da entrad
 uv sync --locked --directory language-service
 uv run --directory language-service pytest
 ```
+
+A pasta `language-service/` que o núcleo publicado confere ao lado do executável é montada por
+`tools/build-service`, como descreve [018](docs/operacao/018-pasta-do-servico.md).
 
 No comando único, são os passos `build_service`, `test_service` e `lint_service`: exigem `uv` na
 versão de `tools/verify-code/service-requirements.txt`; o segundo grava o relatório de testes e a

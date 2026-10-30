@@ -38,6 +38,17 @@ public sealed class MasterKeyTests
     }
 
     [Fact]
+    public void KeyOfOtherSizeIsRefusedSayingTheSizeItNeeds()
+    {
+        var bytes = SyntheticKey.OfLength(31);
+
+        var defect = Assert.Throws<ArgumentException>(() => new MasterKey(bytes));
+
+        Assert.Equal("value", defect.ParamName);
+        Assert.Contains("32 bytes", defect.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void TextOfTheKeyNamesTheTypeAndNothingOfTheValue()
     {
         var bytes = SyntheticKey.Valid();

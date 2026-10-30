@@ -38,6 +38,18 @@ internal sealed class ErrorTail
         return Text;
     }
 
+    private void Append(char[] buffer, int count)
+    {
+        lock (gate)
+        {
+            _ = text.Append(buffer, 0, count);
+            if (text.Length > limit)
+            {
+                _ = text.Remove(0, text.Length - limit);
+            }
+        }
+    }
+
     private async Task DrainAsync(TextReader reader)
     {
         var buffer = new char[1024];
@@ -46,14 +58,7 @@ internal sealed class ErrorTail
             int read;
             while ((read = await reader.ReadAsync(buffer)) > 0)
             {
-                lock (gate)
-                {
-                    _ = text.Append(buffer, 0, read);
-                    if (text.Length > limit)
-                    {
-                        _ = text.Remove(0, text.Length - limit);
-                    }
-                }
+                Append(buffer, read);
             }
         }
         catch (Exception ended) when (ended is IOException or ObjectDisposedException or InvalidOperationException)

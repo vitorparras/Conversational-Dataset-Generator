@@ -7,6 +7,7 @@ namespace Core.Host.Tests.Supervision;
 /// then says how, with the exit code and the end of what the service wrote. The text is the service's own and never goes to the log. The base interpreter of the environment
 /// stands for a service that ends at once: it does not have the module of the service, so it writes that to its standard error and leaves with a failure code.
 /// </summary>
+[Trait("Category", "RealService")]
 public sealed class ServiceErrorTailTests : IDisposable
 {
     private const string MissingModule = "No module named language_service";

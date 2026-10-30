@@ -5,6 +5,7 @@ namespace Core.Host.Tests.Supervision;
 /// process once the first ends, so a stranger holding the number must neither be killed nor be taken for the process that was read. The reuse is simulated
 /// by the pair of a running process with a start time that is not its own, which is what the number looks like once another process holds it.
 /// </summary>
+[Trait("Category", "RealService")]
 public sealed class ProcessIdentityTests
 {
     private static readonly TimeSpan Reuse = TimeSpan.FromHours(1);
@@ -42,7 +43,7 @@ public sealed class ProcessIdentityTests
     public async Task ProcessThatEndedIsNotRunningUnderTheIdentityRead()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        using var service = StandInService.Start(LanguageServiceInterpreter.Standalone);
+        var service = StandInService.Start(LanguageServiceInterpreter.Standalone);
         var identity = ProcessIdentity.Required(service.ProcessId);
 
         service.Dispose();

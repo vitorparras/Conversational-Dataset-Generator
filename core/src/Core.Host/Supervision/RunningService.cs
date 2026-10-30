@@ -19,14 +19,13 @@ internal sealed class RunningService : IDisposable
         _ = announced.TrySetResult(true);
     }
 
-    private RunningService(Process process, ErrorTail? errors)
+    private RunningService(Process process)
     {
         this.process = process;
-        Errors = errors;
     }
 
     /// <summary>The end of the standard error of the service, when a collector was asked for it; null otherwise.</summary>
-    internal ErrorTail? Errors { get; }
+    internal ErrorTail? Errors { get; private set; }
 
     /// <summary>The port the service listens on, which the service itself told; 0 until it did.</summary>
     internal int Port => Volatile.Read(ref port);
@@ -43,7 +42,7 @@ internal sealed class RunningService : IDisposable
     /// </summary>
     internal static RunningService Announcing(Process process, ErrorTail? errors = null)
     {
-        var service = new RunningService(process, errors);
+        var service = new RunningService(process) { Errors = errors };
         _ = service.ReadAnnouncementAsync();
         return service;
     }

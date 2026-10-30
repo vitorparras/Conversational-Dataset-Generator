@@ -61,12 +61,13 @@ internal sealed class SupervisionHarness : IDisposable
             : throw new InvalidOperationException($"The language service did not become healthy: {outcome}.");
     }
 
-    /// <summary>How the service listening on the port answers the health route given the secret.</summary>
-    public async Task<HttpStatusCode> HealthAsync(int port, string secret, CancellationToken cancellationToken)
+    /// <summary>How the service listening on the port answers the health route given the secret, over a connection of its own, which the service must first prove to be its holder.</summary>
+    public static async Task<HttpStatusCode> HealthAsync(int port, string secret, CancellationToken cancellationToken)
     {
+        using var client = LoopbackHttpClient.Create();
         using var request = new HttpRequestMessage(HttpMethod.Get, new Uri($"http://127.0.0.1:{port}/health"));
-        request.Headers.Add("x-service-secret", secret);
-        using var response = await Client.SendAsync(request, cancellationToken);
+        request.AddSecret(secret);
+        using var response = await client.SendAsync(request, cancellationToken);
         return response.StatusCode;
     }
 

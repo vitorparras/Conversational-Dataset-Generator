@@ -12,7 +12,7 @@ public static class LoopbackHttpClient
         SocketsHttpHandler? handler = null;
         try
         {
-            handler = new SocketsHttpHandler { UseProxy = false, AllowAutoRedirect = false };
+            handler = new SocketsHttpHandler { UseProxy = false, AllowAutoRedirect = false, ConnectCallback = ProvenConnection.OpenAsync };
             var client = new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan };
             handler = null;
             return client;

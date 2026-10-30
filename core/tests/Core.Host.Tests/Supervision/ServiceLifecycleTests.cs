@@ -13,16 +13,16 @@ public sealed class ServiceLifecycleTests : IDisposable
 
     [Trait("Category", "RealService")]
     [Fact]
-    public async Task ServiceAfterRestartRefusesTheSecretOfThePreviousProcess()
+    public async Task ServiceAfterRestartIsUnreachableWithTheSecretOfThePreviousProcess()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         var supervisor = await harness.StartedSupervisorAsync(watch, cancellationToken);
         var previous = supervisor.Secret;
 
         _ = await supervisor.RestartAsync(Request, SupervisionHarness.Timeout, cancellationToken);
-        var status = await harness.HealthAsync(supervisor.Port!.Value, previous, cancellationToken);
+        var refused = await Assert.ThrowsAsync<HttpRequestException>(() => SupervisionHarness.HealthAsync(supervisor.Port!.Value, previous, cancellationToken));
 
-        Assert.Equal(HttpStatusCode.Unauthorized, status);
+        Assert.Equal(HttpRequestError.ConnectionError, refused.HttpRequestError);
     }
 
     [Trait("Category", "RealService")]
@@ -34,7 +34,7 @@ public sealed class ServiceLifecycleTests : IDisposable
         var previous = supervisor.Secret;
 
         var outcome = await supervisor.RestartAsync(Request, SupervisionHarness.Timeout, cancellationToken);
-        var status = await harness.HealthAsync(supervisor.Port!.Value, supervisor.Secret, cancellationToken);
+        var status = await SupervisionHarness.HealthAsync(supervisor.Port!.Value, supervisor.Secret, cancellationToken);
 
         Assert.Equal(StartOutcome.Started, outcome);
         Assert.NotEqual(previous, supervisor.Secret);

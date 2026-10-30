@@ -22,7 +22,7 @@ deliberada e justificada.
 | [0008](0008-requisito-no-repositorio-tarefa-na-issue.md) | Requisito no repositório, tarefa na issue | Decisão vigente |
 | [0009](0009-licenca-do-software-e-dos-dados.md) | Licença do software e licença dos dados | Decisão vigente |
 | [0010](0010-tecnologia-da-interface.md) | A tecnologia da interface | Decisão vigente |
-| [0011](0011-protocolo-com-o-servico-de-linguagem.md) | O protocolo com o serviço de linguagem | Substituída por 0018 na resposta e por 0041 na distribuição |
+| [0011](0011-protocolo-com-o-servico-de-linguagem.md) | O protocolo com o serviço de linguagem | Substituída por 0018 na resposta, por 0041 na distribuição e por 0043 na autenticação |
 | [0012](0012-pseudonimizacao-reversivel.md) | Pseudonimização reversível, não anonimização | Decisão vigente |
 | [0013](0013-chave-de-cifra-por-dominio.md) | Chave de cifra por domínio | Decisão vigente |
 | [0014](0014-custodia-da-chave-mestra.md) | Custódia e recuperação da chave mestra | Decisão vigente |
@@ -54,6 +54,7 @@ deliberada e justificada.
 | [0040](0040-principios-de-codigo.md) | Princípios de código antes do código | Decisão vigente |
 | [0041](0041-distribuicao-do-servico-de-linguagem.md) | Distribuição do serviço de linguagem | Decisão vigente |
 | [0042](0042-supressao-de-analisador.md) | Nenhum analisador se suprime em `core/src` | Decisão vigente |
+| [0043](0043-quem-escuta-na-porta-prova-o-segredo.md) | Quem escuta na porta prova ter o segredo | Decisão vigente |
 
 ## Formato
 

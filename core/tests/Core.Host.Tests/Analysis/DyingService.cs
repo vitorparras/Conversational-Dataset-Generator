@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using Core.Host.Tests.Supervision;
 
 namespace Core.Host.Tests.Analysis;
 
@@ -30,6 +31,9 @@ internal sealed class DyingService : IDisposable
 
     public int Port { get; }
 
+    /// <summary>The secret the stand-in proves it holds; the recognizer under test is given the same one.</summary>
+    public string Secret { get; } = SupervisionHarness.NewSecret();
+
     public void Dispose()
     {
         stop.Cancel();
@@ -54,12 +58,17 @@ internal sealed class DyingService : IDisposable
         }
     }
 
-    /// <summary>The version route is answered; any other request is read and the connection closed with nothing written.</summary>
+    /// <summary>The proof is given first, as the service does; then the version route is answered, and any other request is read and the connection closed with nothing written.</summary>
     private async Task AnswerAsync(Stream stream)
     {
         var buffer = new byte[8192];
-        var read = await stream.ReadAsync(buffer, stop.Token);
-        var request = Encoding.ASCII.GetString(buffer, 0, read);
+        var request = Encoding.ASCII.GetString(buffer, 0, await stream.ReadAsync(buffer, stop.Token));
+        if (ProofAnswer.To(request, Secret) is { } proof)
+        {
+            await stream.WriteAsync(Encoding.ASCII.GetBytes(proof), stop.Token);
+            request = Encoding.ASCII.GetString(buffer, 0, await stream.ReadAsync(buffer, stop.Token));
+        }
+
         var answer = request.StartsWith("GET /version", StringComparison.Ordinal) ? VersionAnswer : string.Empty;
         await stream.WriteAsync(Encoding.ASCII.GetBytes(answer), stop.Token);
     }

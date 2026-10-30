@@ -4,9 +4,13 @@
 
 Para quem tem o executável, a pasta do serviço de [018](018-pasta-do-servico.md), um banco com o
 esquema de [016](016-migracao-do-esquema.md) e o que [001](001-ambiente.md) lista. Usa só o que o
-Linux traz (bash, `/proc`): cliente HTTP, `ps` e cliente SQL não são dependência do artefato, e a
-máquina de quem opera pode não os ter. Iniciar: [023](023-iniciar-o-nucleo-publicado.md);
-conferir o que subiu: [022](022-conferir-o-nucleo-publicado.md).
+Linux traz (bash, `/proc`): cliente HTTP, `ps` e cliente SQL não são dependência do artefato.
+Iniciar: [023](023-iniciar-o-nucleo-publicado.md); conferir: [022](022-conferir-o-nucleo-publicado.md).
+
+Os blocos de 021, 022 e 023 são comandos de um shell na máquina. Quando a máquina é um contêiner
+operado de fora, cada bloco vai inteiro em `docker exec -i <contêiner> bash -s <<'EOF'`, o bloco e
+um `EOF` sozinho na última linha, o que dispensa aspas aninhadas; no Git Bash do Windows, ponha
+`MSYS_NO_PATHCONV=1` antes do `docker`, ou ele reescreve caminhos como `/tmp/...`.
 
 ## A pasta do serviço fica dentro da pasta do executável
 
@@ -24,28 +28,25 @@ Chaves comuns vão por argumento, `--Seção:Chave=valor`. A porta do banco vai 
 distinguem maiúsculas: as grafias de 016 e do README são a mesma chave.
 
 A senha vai por variável de ambiente do processo, nunca por argumento, na partida normal e no modo
-`migrate`. Com terminal, `read -rs`, como em 016. Sem terminal (`ssh` sem tty, `docker exec`),
-grave-a por entrada padrão num arquivo de modo 600, um por papel, e leia-o no shell que inicia o
-processo; `docker exec -e` a poria na linha de comando do `docker`, visível na máquina que o roda.
-
-Dentro do contêiner, com terminal (a senha do papel da aplicação vai em `senha-app`, do mesmo modo):
+`migrate`. Os blocos a leem de um arquivo de modo 600 por papel, `/tmp/senha-owner` e
+`/tmp/senha-app`, gravado a partir da ficha (`FICHA`) sem digitar a senha; para a `senha-app`,
+o padrão do `sed` é `/^Papel da /`. Com a ficha na máquina:
 
 ```
-umask 077; cat > /tmp/senha-owner          # senha do papel dono, depois Ctrl-D
+( umask 077; sed -n '/^Papel dono/s/.*Credencial: //p' FICHA > /tmp/senha-owner )
 ```
 
-De fora, sem terminal, a senha vai pela entrada do `docker exec -i`. Guarde-a antes numa variável
-do seu shell (`read -rs SENHA_DONO`): o `printf` é interno ao shell e não a põe na lista de
-processos. Sem quebra de linha no fim, que o `$(cat ...)` do uso descartaria de qualquer forma.
+Com a ficha fora do contêiner, a senha vai pela entrada do `docker exec -i`, a única forma que não
+é o bloco inteiro, porque a entrada é a senha:
 
 ```
-printf '%s' "$SENHA_DONO" | docker exec -i CONTEINER bash -c 'umask 077; cat > /tmp/senha-owner'
+sed -n '/^Papel dono/s/.*Credencial: //p' FICHA \
+  | docker exec -i CONTEINER bash -c 'umask 077; cat > /tmp/senha-owner'
 ```
 
 ## Migrar o esquema
 
-A partida só confere o esquema; antes dela, o modo `migrate` com o papel dono, como em 016. Iniciar
-o núcleo está em [023](023-iniciar-o-nucleo-publicado.md).
+A partida só confere o esquema; antes dela, o modo `migrate` com o papel dono, como em 016.
 
 ```
 ( export CDG_Database__Password="$(cat /tmp/senha-owner)"; cd /opt/cdg/nucleo \
@@ -56,5 +57,4 @@ o núcleo está em [023](023-iniciar-o-nucleo-publicado.md).
 
 O cerco de [010](010-credencial-de-dono-do-banco.md) e 016 (verificar a cadeia antes e depois,
 registrar a janela) vale para instalação real. Na demonstração da Fase 1 não há cadeia a
-verificar, então a verificação não se aplica; registrar quem migrou, quando e o código de saída
-continua valendo, e a saída do modo `migrate` é o registro.
+verificar; vale registrar quem migrou, quando e o código de saída, e a saída do `migrate` o faz.

@@ -122,3 +122,26 @@ Os `/clear` dessa sessão não funcionavam: o Git Bash convertia o caminho do co
 memória da rodada 1 sobreviveu na rodada 2, o que o operador já declarara, e a rodada 2 vale menos
 que uma rodada limpa. A rodada 3 não teve esse problema, porque foi feita por outro agente. Com o
 caminho sem conversão, o reset passou a funcionar, e a rodada 4 conta com isso.
+
+## Rodada 4
+
+O operador foi o Backend, com o contexto zerado de verdade, e os docs do commit `6c81d4f`. Subida,
+queda do serviço e encerramento com saída 0 passaram, com quatro improvisos e quatro lacunas.
+
+| # | Improviso | Correção |
+|---|---|---|
+| 1 | `/tmp/...` reescrito pelo Git Bash do Windows em todo `docker exec` (ele sabia por uma nota de memória, não pelo texto) | 021 diz `MSYS_NO_PATHCONV=1` num parágrafo único |
+| 2 | Só a partida e as senhas tinham a forma de fora; as aspas aninhadas da espera não se copiavam | Todo bloco passa a ser comando de um shell na máquina, e a forma de fora é uma só: o bloco inteiro em `docker exec -i CONTEINER bash -s` com documento aqui |
+| 3 | Sem critério de que o núcleo sumiu depois do SIGTERM | 023: `/tmp/nucleo.saida` deixa de estar vazio, com limite de 30 s |
+| 4 | `sleep 2` chutado depois do `kill -9` | 022 consulta o `/status` até aparecer `Unavailable`, com limite de 30 s |
+
+Lacunas: a segunda linha `Error: libgssapi_krb5...`, que assusta, passou a constar do aviso (023);
+a senha vinha de um arquivo da ficha e foi digitada, e agora é lida dele com `sed` (021);
+as senhas não eram apagadas, e 023 as apaga no fim; e "nada gravado" continua provado só pelo corpo
+do 503 e pelo registro, pois o operador não tem cliente SQL.
+
+A decisão de forma foi do Arquiteto: o procedimento é escrito para um shell na máquina, com comandos
+simples. Os blocos foram rodados do jeito do operador, do Git Bash, cada um inteiro em `docker exec
+-i bash -s`, num banco novo: `migrate` (0), partida (volta em 4 s), espera (1 s), rotas, `kill -9`
+com espera pelo `Unavailable`, SIGTERM com saída 0, e senha recusada dando saída 69 em 1 s. Sem
+`MSYS_NO_PATHCONV=1`, o `ls /tmp` do contêiner vira um caminho do Windows, como o texto avisa.

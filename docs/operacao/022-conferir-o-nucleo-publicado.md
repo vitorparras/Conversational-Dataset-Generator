@@ -3,29 +3,28 @@
 > Operacional. 2026-10-30.
 
 Depois de [023](023-iniciar-o-nucleo-publicado.md): consultar as rotas, derrubar o serviço de
-linguagem e ler o resultado, sem cliente HTTP, `ps` nem cliente SQL na máquina. Cada `docker exec`
-abre um shell novo: grave as duas funções abaixo em `/tmp/f.sh`, de fora, pela entrada do
-`docker exec -i`, e leia-o com `. /tmp/f.sh` em cada chamada.
+linguagem e ler o resultado, sem cliente HTTP, `ps` nem cliente SQL na máquina. Cada bloco roda num
+shell novo, então as duas funções ficam em `/tmp/f.sh`, e os blocos as leem. Como rodar os blocos
+num contêiner operado de fora está em [021](021-subir-o-nucleo-publicado.md).
 
 ## Consultar as rotas
 
 ```
-docker exec -i CONTEINER bash -c 'cat > /tmp/f.sh' <<'EOF'
+cat > /tmp/f.sh <<'FIM'
 rota() { exec 3<>/dev/tcp/127.0.0.1/5080
   printf '%s %s HTTP/1.0\r\nHost: x\r\nContent-Type: application/json\r\nContent-Length: %s\r\n\r\n%s' \
     "$1" "$2" "${#3}" "$3" >&3; cat <&3; exec 3<&-; }
 pid() { for p in /proc/[0-9]*; do tr '\0' ' ' < $p/cmdline 2>/dev/null \
   | grep -q "$1" && echo ${p#/proc/}; done; true; }
-EOF
-docker exec -i CONTEINER bash <<'EOF'
+FIM
+```
+
+```
 . /tmp/f.sh
 rota GET /status
 rota GET /versions
 rota POST /analysis '{"text":"texto de teste","language":"pt"}'
-EOF
 ```
-
-Dentro do contêiner basta o conteúdo entre os `EOF`, num shell que leia o `/tmp/f.sh`.
 
 Sem o `Content-Type: application/json`, a rota de análise responde 415 sem corpo. `${#3}` conta
 caracteres, e com acento a conta de bytes é outra. `language` aceita qualquer texto não nulo: o
@@ -33,21 +32,25 @@ núcleo o repassa, e o reconhecedor da Fase 1 o ignora. `resumes`, se presente, 
 uma recusa, em formato de GUID; outro valor, `"x"` por exemplo, recusa o pedido com 400 e **sem
 corpo**. Também recusa com 400 o campo desconhecido, ou `text` e `language` ausentes.
 
-## Achar o processo e derrubar o serviço
+## Derrubar o serviço e ler a recusa
 
-`pid` imprime os PIDs cuja linha de comando casa com o padrão. O `[s]` e o `^` impedem que o
-próprio shell que procura case com o que procura:
+`pid` imprime os PIDs cuja linha de comando casa com o padrão; o `[s]` e o `^` impedem que o
+próprio shell que procura case com o que procura. O núcleo é `pid '^./Core[.]Host'` (SIGTERM, em
+023), e o serviço, `pid 'language_[s]ervice'`. O núcleo percebe a queda do serviço e muda o
+`/status`; espere por isso, sem prazo chutado, até 30 s:
 
 ```
-pid '^./Core[.]Host'        # o núcleo, para o SIGTERM de 023
-pid 'language_[s]ervice'    # o serviço de linguagem; depois: kill -9 N
+. /tmp/f.sh
+kill -9 $(pid 'language_[s]ervice')
+for i in $(seq 30); do rota GET /status | grep -q Unavailable && break; sleep 1; done
+rota GET /status
+rota POST /analysis '{"text":"texto de teste","language":"pt"}'
 ```
 
-O registro de partida também traz `Serviço de linguagem iniciado (processo N, ...)`. Derrubado o
-serviço, `/status` mostra `languageService` `Unavailable` e `ready` falso, e `/analysis` responde
-503 com `reason` e `cause`. Na Fase 1 nenhuma tabela recebe análise: "nada gravado" se lê no corpo
-do 503 e no registro (`interrompida`). Conferir o banco pede cliente SQL, na máquina de quem opera
-o banco.
+Então `/status` mostra `languageService` `Unavailable` e `ready` falso, e `/analysis` responde 503
+com `reason` e `cause`. Na Fase 1 nenhuma tabela recebe análise: "nada gravado" se lê no corpo do
+503 e no registro (`interrompida`). Conferir o banco pede cliente SQL, na máquina de quem opera o
+banco.
 
 ## O que parece erro e não é
 

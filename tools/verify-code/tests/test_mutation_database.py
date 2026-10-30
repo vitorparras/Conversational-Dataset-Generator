@@ -15,6 +15,9 @@ from . import mutation_fixture as fixture
 from . import support
 from .test_mutation import healthy
 
+REUSE_SOURCE = (
+    support.VERIFY_CODE.parents[1] / "core/tests/Core.Persistence.Tests/Fixtures/DatabaseReuse.cs"
+)
 PROJECT = "core/tests/Core.Platform.Tests/Core.Platform.Tests.csproj"
 REFERENCE = r'<ProjectReference Include="..\..\src\Core.Platform\Core.Platform.csproj" />'
 DATABASE_TESTS = f'<Project>{REFERENCE}<PackageReference Include="Testcontainers" /></Project>'
@@ -29,11 +32,15 @@ class Watched(fixture.ToolRunner):
         super().__init__(stryker=stryker)
         self.seen: list[str | None] = []
         self.raising = raising
+        self.cut = False
 
     def __call__(self, command: Sequence[str], cwd: Path, seconds: float = 0.0) -> CommandOutcome:
         self.seen.append(os.environ.get(VARIABLE))
         if self.raising is not None and "stryker" in command:
             raise self.raising
+        if self.cut and "stryker" in command:
+            super().__call__(command, cwd, seconds)
+            return CommandOutcome(False, f"'dotnet' passou de {seconds:.0f} s e foi interrompido")
         return super().__call__(command, cwd, seconds)
 
 
@@ -87,6 +94,21 @@ class MutationDatabaseTests(fixture.MutationFixture):
         self.run_watched(runner)
 
         self.assertEqual(len(self.removals(runner)), 2)
+
+    def test_they_are_removed_when_stryker_is_cut_at_the_ceiling(self) -> None:
+        runner = self.watched()
+        runner.cut = True
+
+        self.run_watched(runner)
+
+        self.assertEqual(len(self.removals(runner)), 2)
+
+    def test_the_names_are_the_ones_the_test_project_gives(self) -> None:
+        source = REUSE_SOURCE.read_text(encoding="utf-8")
+
+        self.assertIn(f'"{VARIABLE}"', source)
+        self.assertIn(f'$"{mutation_core.CONTAINER_NAME}"', source)
+        self.assertIn(f'$"{mutation_core.IMAGE_NAME}"', source)
 
     def test_they_are_removed_when_the_run_is_interrupted(self) -> None:
         runner = Watched(healthy().stryker, raising=KeyboardInterrupt())

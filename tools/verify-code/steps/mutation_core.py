@@ -8,7 +8,7 @@ import os
 import re
 import secrets
 import shutil
-from collections.abc import Iterator
+from collections.abc import Generator
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -36,6 +36,9 @@ CONCURRENCY = 1
 REUSE_VARIABLE = "CDG_TEST_DATABASE_REUSE"
 DATABASE_PACKAGE = "Testcontainers"
 DOCKER = "docker"
+# The names the test project gives the container and the image of a token (DatabaseReuse.cs).
+CONTAINER_NAME = "cdg-test-database-{token}"
+IMAGE_NAME = "cdg-test-database:{token}"
 TOKEN_BYTES = 8
 
 
@@ -105,7 +108,7 @@ def starts_database(tests: tuple[Path, ...]) -> bool:
 
 
 @contextlib.contextmanager
-def reusing(token: str | None) -> Iterator[None]:
+def reusing(token: str | None) -> Generator[None]:
     """The environment of the Stryker run: the reuse token set for its test servers, then back."""
     if token is None:
         yield
@@ -125,8 +128,8 @@ def discard_database(ctx: Context, token: str) -> None:
     """Removes the container and the image a run with ``token`` left; neither is there when no
     test ran, so a failure to remove is no finding."""
     for command in (
-        [DOCKER, "rm", "--force", "--volumes", f"cdg-test-database-{token}"],
-        [DOCKER, "rmi", "--force", f"cdg-test-database:{token}"],
+        [DOCKER, "rm", "--force", "--volumes", CONTAINER_NAME.format(token=token)],
+        [DOCKER, "rmi", "--force", IMAGE_NAME.format(token=token)],
     ):
         ctx.run(command, ctx.root)
 

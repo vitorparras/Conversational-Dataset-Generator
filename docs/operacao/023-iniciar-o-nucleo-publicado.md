@@ -7,9 +7,11 @@ contêiner operado de fora) e antes de [022](022-conferir-o-nucleo-publicado.md)
 
 ## Iniciar
 
-O registro vai ao console, e o redirecionamento o guarda. O núcleo roda em segundo plano e
-sobrevive ao fim do `docker exec` que o iniciou: a espera abaixo pode ir no mesmo bloco ou noutro.
-O subshell grava o código de saída em `/tmp/nucleo.saida`:
+Os valores são os do exemplo de 021 (banco, papel `app`, `demonstracao`), a trocar pelos do seu
+ambiente; numa instalação real, `--Installation:Kind=real`. O registro vai ao console, e o
+redirecionamento o guarda. O núcleo roda em segundo plano e sobrevive ao fim do `docker exec` que o
+iniciou: a espera abaixo pode ir no mesmo bloco ou noutro. O subshell grava o código de saída em
+`/tmp/nucleo.saida`:
 
 ```
 : > /tmp/nucleo.saida
@@ -37,15 +39,16 @@ grep -q 'Now listening on' /tmp/nucleo.log && echo pronto || tail -5 /tmp/nucleo
 
 ## Encerrar
 
-SIGTERM ao PID do núcleo (`pid`, de 022). O núcleo sumiu quando `/tmp/nucleo.saida` deixa de estar
-vazio, e o código nela deve ser 0. No fim da conferência, o bloco apaga as senhas do contêiner:
+SIGTERM ao PID do núcleo. O `pid` vem de `/tmp/f.sh`, que o primeiro bloco de 022 grava: sem
+passar por ele, o `. /tmp/f.sh` falha. O núcleo sumiu quando `/tmp/nucleo.saida` deixa de estar
+vazio, e o código nela deve ser 0. A senha do dono já foi apagada em 021; aqui sai a da aplicação:
 
 ```
 . /tmp/f.sh
 kill -TERM $(pid '^./Core[.]Host')
 for i in $(seq 30); do [ -s /tmp/nucleo.saida ] && break; sleep 1; done
 cat /tmp/nucleo.saida
-rm -f /tmp/senha-owner /tmp/senha-app
+rm -f /tmp/senha-app
 ```
 
 ## Os avisos da partida

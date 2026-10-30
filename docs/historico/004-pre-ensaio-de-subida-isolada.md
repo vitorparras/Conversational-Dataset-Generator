@@ -97,3 +97,28 @@ e cada comando corrigido foi rodado de fora do ambiente do operador, num contêi
 de mesma base: `migrate` (0 e depois 10), partida com `docker exec -d` e com `&` (saída 0 ao
 SIGTERM), `rota` com 200, 503 e 400, e `pid` achando o núcleo e o serviço. Nesse teste o `&` por
 `docker exec` sem terminal também sobreviveu; o texto passou a dizer que ele depende disso.
+
+## Rodada 3
+
+Ambiente novo de novo, com os docs do commit `34acefb`. O operador foi o Frontend, um agente que
+nunca operou o projeto. Ele disse não ter usado nada da memória de projeto do time, só os
+documentos permitidos. Subida e queda do serviço passaram, e nenhum passo passou de 15 minutos.
+Houve três improvisos e uma lacuna:
+
+| # | Improviso | Correção |
+|---|---|---|
+| 1 | Sem critério de pronto da partida; ele adivinhou um `sleep 15` | 023 manda esperar a linha `Now listening on`, ou a saída do núcleo, com limite de 60 s |
+| 2 | `cat > arquivo # Ctrl-D` supõe terminal, e não há com `docker exec` | 021 dá a forma de fora, `printf` na entrada do `docker exec -i`, sem quebra de linha no fim |
+| 3 | Sem como gravar `/tmp/f.sh` a partir de fora | 022 grava as funções por `docker exec -i` com documento aqui, e chama por outro |
+| 4 | (lacuna) O código de saída 0 do SIGTERM não se lia com `docker exec -d` | 023: o shell pai grava o código em `/tmp/nucleo.saida` |
+
+Cada comando corrigido foi rodado, extraído literalmente dos documentos, num contêiner descartável:
+`migrate` (10, esquema em dia), partida com `-d` pronta em 4 a 5 s, saída 0 ao SIGTERM lida no
+arquivo, e senha recusada dando saída 69 em 1 s, com a causa no registro.
+
+## O que se achou sobre os resets
+
+Os `/clear` dessa sessão não funcionavam: o Git Bash convertia o caminho do comando. Por isso a
+memória da rodada 1 sobreviveu na rodada 2, o que o operador já declarara, e a rodada 2 vale menos
+que uma rodada limpa. A rodada 3 não teve esse problema, porque foi feita por outro agente. Com o
+caminho sem conversão, o reset passou a funcionar, e a rodada 4 conta com isso.

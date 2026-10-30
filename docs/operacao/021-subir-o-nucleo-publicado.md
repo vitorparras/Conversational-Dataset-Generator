@@ -5,9 +5,8 @@
 Para quem tem o executável, a pasta do serviço de [018](018-pasta-do-servico.md), um banco com o
 esquema de [016](016-migracao-do-esquema.md) e o que [001](001-ambiente.md) lista. Usa só o que o
 Linux traz (bash, `/proc`): cliente HTTP, `ps` e cliente SQL não são dependência do artefato, e a
-máquina de quem opera pode não os ter. Iniciar está em
-[023](023-iniciar-o-nucleo-publicado.md), e conferir o que subiu em
-[022](022-conferir-o-nucleo-publicado.md).
+máquina de quem opera pode não os ter. Iniciar: [023](023-iniciar-o-nucleo-publicado.md);
+conferir o que subiu: [022](022-conferir-o-nucleo-publicado.md).
 
 ## A pasta do serviço fica dentro da pasta do executável
 
@@ -29,9 +28,18 @@ A senha vai por variável de ambiente do processo, nunca por argumento, na parti
 grave-a por entrada padrão num arquivo de modo 600, um por papel, e leia-o no shell que inicia o
 processo; `docker exec -e` a poria na linha de comando do `docker`, visível na máquina que o roda.
 
+Dentro do contêiner, com terminal (a senha do papel da aplicação vai em `senha-app`, do mesmo modo):
+
 ```
 umask 077; cat > /tmp/senha-owner          # senha do papel dono, depois Ctrl-D
-umask 077; cat > /tmp/senha-app            # senha do papel da aplicação, idem
+```
+
+De fora, sem terminal, a senha vai pela entrada do `docker exec -i`. Guarde-a antes numa variável
+do seu shell (`read -rs SENHA_DONO`): o `printf` é interno ao shell e não a põe na lista de
+processos. Sem quebra de linha no fim, que o `$(cat ...)` do uso descartaria de qualquer forma.
+
+```
+printf '%s' "$SENHA_DONO" | docker exec -i CONTEINER bash -c 'umask 077; cat > /tmp/senha-owner'
 ```
 
 ## Migrar o esquema

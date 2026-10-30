@@ -4,20 +4,28 @@
 
 Depois de [023](023-iniciar-o-nucleo-publicado.md): consultar as rotas, derrubar o serviço de
 linguagem e ler o resultado, sem cliente HTTP, `ps` nem cliente SQL na máquina. Cada `docker exec`
-abre um shell novo: grave as duas funções abaixo em `/tmp/f.sh` e leia-o com `. /tmp/f.sh`.
+abre um shell novo: grave as duas funções abaixo em `/tmp/f.sh`, de fora, pela entrada do
+`docker exec -i`, e leia-o com `. /tmp/f.sh` em cada chamada.
 
 ## Consultar as rotas
 
 ```
+docker exec -i CONTEINER bash -c 'cat > /tmp/f.sh' <<'EOF'
 rota() { exec 3<>/dev/tcp/127.0.0.1/5080
   printf '%s %s HTTP/1.0\r\nHost: x\r\nContent-Type: application/json\r\nContent-Length: %s\r\n\r\n%s' \
     "$1" "$2" "${#3}" "$3" >&3; cat <&3; exec 3<&-; }
 pid() { for p in /proc/[0-9]*; do tr '\0' ' ' < $p/cmdline 2>/dev/null \
   | grep -q "$1" && echo ${p#/proc/}; done; true; }
+EOF
+docker exec -i CONTEINER bash <<'EOF'
+. /tmp/f.sh
 rota GET /status
 rota GET /versions
 rota POST /analysis '{"text":"texto de teste","language":"pt"}'
+EOF
 ```
+
+Dentro do contêiner basta o conteúdo entre os `EOF`, num shell que leia o `/tmp/f.sh`.
 
 Sem o `Content-Type: application/json`, a rota de análise responde 415 sem corpo. `${#3}` conta
 caracteres, e com acento a conta de bytes é outra. `language` aceita qualquer texto não nulo: o

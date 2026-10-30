@@ -19,16 +19,34 @@ cd /opt/cdg/nucleo && CDG_Database__Password="$(cat /tmp/senha-app)" ./Core.Host
 ```
 
 Chegando por `docker exec`, o shell acaba com a chamada, e o `&` só sobrevive se ela não tiver
-terminal; para não depender disso, use `-d` e `exec`, que dispensam o `&`:
+terminal; para não depender disso, use `-d`, que dispensa o `&`. O shell que fica de pai grava o
+código de saída do núcleo em `/tmp/nucleo.saida`:
 
 ```
-docker exec -d CONTEINER bash -c 'cd /opt/cdg/nucleo \
+docker exec -d CONTEINER bash -c ': > /tmp/nucleo.saida; cd /opt/cdg/nucleo \
   && export CDG_Database__Password="$(cat /tmp/senha-app)" \
-  && exec ./Core.Host --Host:Urls=http://127.0.0.1:5080 --Installation:Kind=demonstracao \
-  --Database:Host=db:5432 --Database:Name=cdg --Database:Username=app > /tmp/nucleo.log 2>&1'
+  && ./Core.Host --Host:Urls=http://127.0.0.1:5080 --Installation:Kind=demonstracao \
+  --Database:Host=db:5432 --Database:Name=cdg --Database:Username=app > /tmp/nucleo.log 2>&1; \
+  echo $? > /tmp/nucleo.saida'
 ```
 
-Para encerrar, SIGTERM ao processo (`kill -TERM`, com o PID pela função `pid` de 022); a saída é 0.
+## Esperar o núcleo ficar pronto
+
+O núcleo só abre a porta depois que o serviço de linguagem responde e as conferências passam, e
+escreve então a linha `Now listening on`. Espere por ela, sem adivinhar um prazo. Se o núcleo sai
+antes, a recusa está no mesmo registro, e `/tmp/nucleo.saida` (modo `-d`) traz o código: 69 numa
+conferência que falha, como a senha recusada; 78, configuração recusada; 70, falha ao servir.
+
+```
+timeout 60 bash -c 'until grep -q "Now listening on" /tmp/nucleo.log 2>/dev/null \
+  || [ -s /tmp/nucleo.saida ]; do sleep 1; done'
+grep -q "Now listening on" /tmp/nucleo.log && echo pronto || tail -5 /tmp/nucleo.log
+```
+
+## Encerrar
+
+SIGTERM ao PID dado por `pid '^./Core[.]Host'` (022), por exemplo `kill -TERM $(pid ...)`. No
+modo `-d`, depois que o processo sumir, `cat /tmp/nucleo.saida` deve dar 0.
 
 ## Os avisos da partida
 

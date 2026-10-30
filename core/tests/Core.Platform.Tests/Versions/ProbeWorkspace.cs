@@ -56,20 +56,14 @@ internal sealed class ProbeWorkspace : IDisposable
     {
         var build = await ExternalProcess.RunAsync(BuildStartInfo(searchPath), Timeout, cancellationToken);
         Assert.True(build.ExitCode == 0, build.Output);
-        var context = new AssemblyLoadContext(ProjectName, isCollectible: true);
-        try
-        {
-            // Loaded from memory, so the file is not held open and the directory can be deleted on every platform.
-            using var image = new MemoryStream(await File.ReadAllBytesAsync(
-                Path.Combine(path, "bin", "Debug", "net10.0", ProjectName + ".dll"), cancellationToken));
-            var probe = context.LoadFromStream(image);
-            return new ProbeBuild(
-                BuildInfo.Of(probe), [.. probe.GetCustomAttributes<AssemblyMetadataAttribute>().Select(attribute => attribute.Key)]);
-        }
-        finally
-        {
-            context.Unload();
-        }
+        // Loaded from memory, so the file is not held open and the directory can be deleted on every platform. Every build
+        // is the same assembly name with another stamp, so each gets a context of its own; the contexts are not collectible,
+        // because unloading them while other tests allocate is what the runtime's collector did not survive.
+        using var image = new MemoryStream(await File.ReadAllBytesAsync(
+            Path.Combine(path, "bin", "Debug", "net10.0", ProjectName + ".dll"), cancellationToken));
+        var probe = new AssemblyLoadContext(ProjectName, isCollectible: false).LoadFromStream(image);
+        return new ProbeBuild(
+            BuildInfo.Of(probe), [.. probe.GetCustomAttributes<AssemblyMetadataAttribute>().Select(attribute => attribute.Key)]);
     }
 
     /// <summary>Deletes the directory, retrying while a file is still held or read-only, and gives up quietly after the last attempt.</summary>

@@ -17,6 +17,7 @@ from steps.areas_doc import DOCUMENT, EXEMPT, WHOLE, Area, area_of, within
 from steps.common import Context, StepResult, failed, passed
 from steps.coverage_by_area import UNOWNED, Measurement, Tally, measure, rows, summarize
 from steps.coverage_report import MeasuredLine
+from steps.namespace_folder import BUILD_OUTPUT
 
 NAME = "floors"
 ROW = re.compile(r"\| (.+?) \| (.+?) \| [\d,]+ % \| (\d+) de (\d+) \|")
@@ -33,16 +34,28 @@ class Verdict:
 
 @dataclass(frozen=True)
 class Tree:
-    """A folder of production projects or packages, their unit prefix and the file marking one."""
+    """A folder of production projects or packages, their unit prefix and the file marking one.
+
+    ``code`` is the glob of its source files; ``nested`` says the first-level units are the folders
+    of each project (C#), not the modules of the package itself (the service).
+    """
 
     folder: str
     prefix: str
     marker: str
+    code: str
+    nested: bool
 
 
 TREES = (
-    Tree("core/src", "", "*.csproj"),
-    Tree("language-service/src/language_service", "language_service.", "__init__.py"),
+    Tree("core/src", "", "*.csproj", "*.cs", nested=True),
+    Tree(
+        "language-service/src/language_service",
+        "language_service.",
+        "__init__.py",
+        "*.py",
+        nested=False,
+    ),
 )
 
 
@@ -127,6 +140,66 @@ def orphans(root: Path, areas: tuple[Area, ...]) -> Verdict:
     return Verdict(failures=tuple(f"{folder}: {rule}" for folder in missing))
 
 
+def holds_code(path: Path, tree: Tree) -> bool:
+    """Whether a first-level entry is a source module or a folder with source below it."""
+    if path.name in BUILD_OUTPUT or path.name.startswith("__"):
+        return False
+    return (
+        any(path.rglob(tree.code)) if path.is_dir() else not tree.nested and path.match(tree.code)
+    )
+
+
+def entries(folder: Path) -> list[Path]:
+    """The entries right under the folder, sorted; none when the folder does not exist."""
+    return sorted(folder.iterdir()) if folder.is_dir() else []
+
+
+def first_level(root: Path, tree: Tree) -> tuple[tuple[str, str], ...]:
+    """The (path, unit) of each folder or module right under a project, or under the package."""
+    parents = children(root, tree) if tree.nested else ("",)
+    return tuple(
+        (path.relative_to(root).as_posix() + "/" * path.is_dir(), f"{unit}.{path.stem}")
+        for parent in parents
+        for unit in (f"{tree.prefix}{parent}".rstrip("."),)
+        for path in entries(root / tree.folder / parent)
+        if holds_code(path, tree)
+    )
+
+
+def unlisted(root: Path, areas: tuple[Area, ...]) -> Verdict:
+    """A failure for each first-level folder or module that has no row of its own in the document
+    and that the row owning it does not enumerate after `Absorve:`, and for each name a row
+    enumerates that is no longer on disk."""
+    found = tuple(item for tree in TREES for item in first_level(root, tree))
+    # A project or package no row owns is named by `orphans`, not here.
+    owned = ((path, unit, area_of(unit, areas)) for path, unit in found)
+    missing = (
+        (path, owner)
+        for path, unit, owner in owned
+        if owner is not None
+        and owner.prefix != unit
+        and unit.rsplit(".", 1)[1] not in owner.absorbs
+    )
+    rule = f"sem linha em {DOCUMENT} nem enumerada em `Absorve:` na linha"
+    on_disk = {unit for _, unit in found}
+    gone = (
+        (name, area)
+        for area in areas
+        for name in area.absorbs
+        if f"{area.prefix}.{name}" not in on_disk
+    )
+    stale = "e não existe mais; tire-o da lista"
+    return Verdict(
+        failures=(
+            *(f"{path}: {rule} `{owner.prefix}`" for path, owner in missing),
+            *(
+                f"{DOCUMENT}: `{name}` em `Absorve:` de `{area.prefix}` {stale}"
+                for name, area in gone
+            ),
+        )
+    )
+
+
 def run(ctx: Context) -> StepResult:
     found = measure(ctx)
     misplaced = Verdict(namespace_folder.check(ctx.root))
@@ -142,6 +215,7 @@ def run(ctx: Context) -> StepResult:
         baseline(ctx.previous, before),
         unowned(found),
         orphans(ctx.root, found.areas),
+        unlisted(ctx.root, found.areas),
         misplaced,
     )
     failures = tuple(line for verdict in verdicts for line in verdict.failures)

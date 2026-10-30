@@ -21,14 +21,17 @@ cabeçalho é fixo e lido pela verificação; linha nova segue o mesmo formato. 
 como **namespace e pasta**: o passo `floors` reprova o arquivo C# de `core/src` que cai numa área
 pelo namespace e noutra pela pasta, nomeando as duas. No serviço, módulo e arquivo coincidem por
 construção. Código fora de toda área listada conta na do projeto ou pacote que o contém, pelo
-prefixo mais longo que casar. Área ainda sem projeto entra na tabela pelo nome, por exceção declarada à [regra 5](../regras-de-escrita.md).
+prefixo mais longo que casar. O Motivo da linha "demais" lista após `Absorve:`, até o `;`, as
+pastas de primeiro nível (módulos, no serviço) que ela cobre. O que o `floors` reprova nisso e o
+que fica fora do julgamento está na [019](019-leitura-da-tabela-pelo-floors.md). Área ainda sem
+projeto entra na tabela pelo nome, por exceção declarada à [regra 5](../regras-de-escrita.md).
 
 | Área | Projeto/pacote | Piso | Crítica | Motivo |
 |---|---|---|---|---|
 | Registro do núcleo | `Core.Platform.Logging` | 90 % | sim | Classifica e redige o que vai ao registro (requisito 021) |
 | Deslocamento de texto | `Core.Boundary.Text` | 90 % | sim | Única aritmética de índice sobre texto do serviço (requisito 009) |
 | Reconhecedor HTTP | `Core.Boundary.Http` | 90 % | sim | Texto não sanitizado cruza o processo e a resposta é validada aqui (decisão 0018) |
-| Reconhecedor falso | `Core.Boundary.Fake` | 90 % | não | Determinístico, selecionável por `Recognizer:Kind`; recusa texto sem marcador sintético (decisão 0011) |
+| Reconhecedor falso | `Core.Boundary.Fake` | 90 % | sim | Recebe o texto do material e devolve os deslocamentos; determinístico, selecionável por `Recognizer:Kind`; recusa texto sem marcador sintético (decisão 0011) |
 | Análise do material | `Core.Host.Analysis` | 90 % | sim | Leva o texto ao reconhecedor e decide o que a recusa registra e devolve (requisito 021) |
 | Contrato da fronteira | `Core.Boundary.Contracts` | 90 % | sim | A forma JSON recusa campo desconhecido ou nulo no texto que cruza o processo (decisão 0018) |
 | Migração do esquema | `Core.Persistence.Migrations` | 90 % | sim | Altera o esquema do banco; erro corrompe custódia (requisito 019) |
@@ -36,17 +39,13 @@ prefixo mais longo que casar. Área ainda sem projeto entra na tabela pelo nome,
 | Registro do serviço | `language_service.logging_` | 90 % | sim | Decide o que o serviço escreve em registro (requisito 021) |
 | Configuração | `Core.Platform.Configuration` | 80 % | não | Falha fechada na partida (requisito 032); não toca material |
 | Partida | `Core.Platform.Startup` | 80 % | não | Conferências que impedem subir sem garantia; sem material |
-| Plataforma, demais pastas | `Core.Platform` | 80 % | não | Versões, relógio e fonte da chave: portas e metadado, sem material |
+| Plataforma, demais pastas | `Core.Platform` | 80 % | não | Absorve: `Versions`; versões, relógio e fonte da chave: portas e metadado, sem material |
 | Garantias do servidor | `Core.Persistence.ServerGuarantees` | 80 % | não | Confere o banco sem alterá-lo; falha é recusa de subir |
-| Persistência, demais pastas | `Core.Persistence` | 80 % | não | Conexão com credencial da aplicação; sem consulta de domínio |
+| Persistência, demais pastas | `Core.Persistence` | 80 % | não | Absorve: `Connection`; conexão com credencial da aplicação, sem consulta de domínio |
 | Fronteira, demais pastas | `Core.Boundary` | 80 % | não | O que fica fora de Text, Http, Fake e Contracts; sem material próprio |
-| Serviço, demais módulos | `language_service` | 80 % | não | Rotas, contrato e reconhecedor vazio; sem segredo nem registro |
-| Executável | `Core.Host` | 60 % | não | Só composição, sem regra; coberto por teste de integração |
+| Serviço, demais módulos | `language_service` | 80 % | não | Absorve: `app`, `contract`, `gate`, `recognizers`, `routes`, `server`, `startup`; rotas, contrato e reconhecedor vazio, sem segredo nem registro |
+| Executável | `Core.Host` | 60 % | não | Absorve: `Endpoints`, `Migration`, `Supervision`; só composição, sem regra, coberto por teste de integração |
 | Ferramentas | `tools` | 60 % | não | Scripts da verificação; falha reprova o build, não vaza dado |
-
-`isento` é o único valor não numérico aceito: a área está declarada e nada se compara. Área medida
-fora da tabela reprova; piso ausente não é piso zero. Área com piso e sem linha a cobrir (`0 de 0`)
-aparece sem código e não reprova, salvo se a área tem projeto ou pacote e nenhum relatório o leu.
 
 O teste de mutação percorre as áreas com `sim` em Crítica; as regras dele estão na
 [017](017-teste-de-mutacao.md).

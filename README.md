@@ -144,9 +144,9 @@ dotnet run --project core/src/Core.Host -- --Host:Urls=http://127.0.0.1:5080 \
   --Installation:Kind=demonstracao --LanguageService:Executable="$PY"
 ```
 
-`Installation:Kind` é obrigatória, sem valor padrão, e só aceita `real` ou `demonstracao`, escritos assim.
-A demonstração roda sem cópia de guarda da chave e sem recuperação testada, e diz isso no nome da
-instalação (`(DEMONSTRAÇÃO)`), em `/status` e `/versions` e numa linha de aviso na partida.
+`Installation:Kind` é obrigatória, sem valor padrão, e só aceita `real` ou `demonstracao`, escritos
+assim. A demonstração roda sem cópia de guarda da chave e sem recuperação testada, e diz isso no
+nome da instalação (`(DEMONSTRAÇÃO)`), em `/status` e `/versions` e numa linha de aviso na partida.
 
 O núcleo inicia o serviço de linguagem e só abre a porta depois que ele responde. A chave
 `LanguageService:Executable` é opcional e serve só ao desenvolvimento: vale apenas com

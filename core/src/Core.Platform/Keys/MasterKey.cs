@@ -18,7 +18,8 @@ public sealed class MasterKey : IDisposable
             throw new ArgumentException($"A master key has {Length} bytes.", nameof(value));
         }
 
-        bytes = value.ToArray();
+        bytes = GC.AllocateArray<byte>(Length, pinned: true);
+        value.CopyTo(bytes);
     }
 
     /// <summary>The key's bytes, for the derivation that needs them; a released key has none to give.</summary>

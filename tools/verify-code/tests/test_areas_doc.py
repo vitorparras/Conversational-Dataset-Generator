@@ -46,6 +46,18 @@ class AreasDocTests(unittest.TestCase):
             ),
         )
 
+    def test_the_names_after_absorve_up_to_the_semicolon_are_what_the_area_absorbs(self) -> None:
+        row = PLATFORM.replace("demais pastas", "Absorve: `Versions`, `Clock`; sem `Outra`")
+
+        table = self.read(document(row))
+
+        self.assertEqual(table.areas[0].absorbs, ("Versions", "Clock"))
+
+    def test_a_reason_without_absorve_absorbs_nothing(self) -> None:
+        table = self.read(document(PLATFORM.replace("demais pastas", "usa `Versions`")))
+
+        self.assertEqual(table.areas[0].absorbs, ())
+
     def test_the_critical_column_marks_the_area_whatever_its_floor(self) -> None:
         raised = LOGGING.replace("90 %", "95 %")
         lowered = PLATFORM.replace("não", "sim")

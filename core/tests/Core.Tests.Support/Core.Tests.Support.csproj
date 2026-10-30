@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Support for the test projects that run properties; it holds no test, so it is a library and no test assembly. -->
+  <!-- Helpers shared by the test projects: the property runner and the ports that are closed; it holds no test, so it is a library and no test assembly. -->
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <IsTestProject>false</IsTestProject>

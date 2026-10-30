@@ -17,18 +17,18 @@ esquema do banco: a falha nele vaza dado ou corrompe custódia, em vez de produz
 
 O piso é a porcentagem de linhas cobertas pela suíte da linguagem da área. **Crítica** diz `sim` ou
 `não` em toda linha e é a única marca de módulo crítico: a mutação lê a coluna, não o piso. O
-cabeçalho é fixo e lido pela verificação; linha nova segue o mesmo formato. Projeto/pacote vale
-como **namespace e pasta**: o passo `floors` reprova o arquivo C# de `core/src` que cai numa área
-pelo namespace e noutra pela pasta, nomeando as duas. No serviço, módulo e arquivo coincidem por
-construção. Código fora de toda área listada conta na do projeto ou pacote que o contém, pelo
-prefixo mais longo que casar. O Motivo da linha "demais" lista após `Absorve:`, até o `;`, as
-pastas de primeiro nível (módulos, no serviço) que ela cobre. O que o `floors` reprova nisso e o
-que fica fora do julgamento está na [019](019-leitura-da-tabela-pelo-floors.md). Área ainda sem
-projeto entra na tabela pelo nome, por exceção declarada à [regra 5](../regras-de-escrita.md).
+cabeçalho é fixo e lido pela verificação. Projeto/pacote vale como **namespace e pasta**: o passo
+`floors` reprova o arquivo C# de `core/src` que cai numa área pelo namespace e noutra pela pasta,
+nomeando as duas. No serviço, módulo e arquivo coincidem por construção. Código fora de toda área
+listada conta na do projeto ou pacote que o contém, pelo prefixo mais longo que casar. O Motivo da
+linha "demais" lista após `Absorve:`, até o `;`, as pastas de primeiro nível (módulos, no serviço)
+que ela cobre. O julgamento do `floors` está na [019](019-leitura-da-tabela-pelo-floors.md). Área
+ainda sem projeto entra na tabela pelo nome, por exceção declarada à [regra 5](../regras-de-escrita.md).
 
 | Área | Projeto/pacote | Piso | Crítica | Motivo |
 |---|---|---|---|---|
 | Registro do núcleo | `Core.Platform.Logging` | 90 % | sim | Classifica e redige o que vai ao registro (requisito 021) |
+| Chave-mestra | `Core.Platform.Keys` | 90 % | sim | Guarda a chave em memória, recusa subir sem ela e carrega os rótulos de derivação (decisões 0003, 0013 e 0014) |
 | Deslocamento de texto | `Core.Boundary.Text` | 90 % | sim | Única aritmética de índice sobre texto do serviço (requisito 009) |
 | Reconhecedor HTTP | `Core.Boundary.Http` | 90 % | sim | Texto não sanitizado cruza o processo e a resposta é validada aqui (decisão 0018) |
 | Reconhecedor falso | `Core.Boundary.Fake` | 90 % | sim | Recebe o texto do material e devolve os deslocamentos; determinístico, selecionável por `Recognizer:Kind`; recusa texto sem marcador sintético (decisão 0011) |
@@ -40,7 +40,7 @@ projeto entra na tabela pelo nome, por exceção declarada à [regra 5](../regra
 | Registro do serviço | `language_service.logging_` | 90 % | sim | Decide o que o serviço escreve em registro (requisito 021) |
 | Configuração | `Core.Platform.Configuration` | 80 % | não | Falha fechada na partida (requisito 032); não toca material |
 | Partida | `Core.Platform.Startup` | 80 % | não | Conferências que impedem subir sem garantia; sem material |
-| Plataforma, demais pastas | `Core.Platform` | 80 % | não | Absorve: `Versions`; versões, relógio e fonte da chave: portas e metadado, sem material |
+| Plataforma, demais pastas | `Core.Platform` | 80 % | não | Absorve: `Versions`; versões e relógio: portas e metadado, sem material |
 | Garantias do servidor | `Core.Persistence.ServerGuarantees` | 80 % | não | Confere o banco sem alterá-lo; falha é recusa de subir |
 | Persistência, demais pastas | `Core.Persistence` | 80 % | não | Absorve: `Connection`; conexão com credencial da aplicação, sem consulta de domínio |
 | Fronteira, demais pastas | `Core.Boundary` | 80 % | não | O que fica fora de Text, Http, Fake e Contracts; sem material próprio |

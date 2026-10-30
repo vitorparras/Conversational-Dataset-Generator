@@ -42,6 +42,9 @@ internal sealed class LanguageServiceSupervisor(
     /// </summary>
     internal string? ExitErrorTail { get; private set; }
 
+    /// <summary>How far the last start got when it did not end with an answer, for the failure to say where it stopped; null after a start that answered or never launched.</summary>
+    internal string? StoppedAt { get; private set; }
+
     /// <summary>Starts the service with a new secret and waits for it to answer; a start that does not end with an answer, cancelled ones included, leaves the service unavailable.</summary>
     internal async Task<StartOutcome> StartAsync(TimeSpan timeout, CancellationToken cancellationToken)
     {
@@ -90,6 +93,7 @@ internal sealed class LanguageServiceSupervisor(
     /// <summary>One attempt: a new secret, a new process and the wait for its health; the process that answers is watched from then on.</summary>
     private async Task<StartOutcome> LaunchAsync(TimeSpan timeout, CancellationToken cancellationToken)
     {
+        StoppedAt = null;
         var secret = Convert.ToHexString(RandomNumberGenerator.GetBytes(SecretBytes));
         RunningService? started = null;
         try
@@ -118,6 +122,7 @@ internal sealed class LanguageServiceSupervisor(
             logger.ServiceNotReady(outcome);
             ExitCode = outcome == StartOutcome.ProcessExited ? started.ExitCode : null;
             ExitErrorTail = outcome == StartOutcome.ProcessExited && started.Errors is { } errors ? await errors.TextAsync(ErrorDrainWait) : null;
+            StoppedAt = started.Reached;
             return outcome;
         }
         finally

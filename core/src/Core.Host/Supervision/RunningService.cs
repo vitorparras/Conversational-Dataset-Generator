@@ -47,6 +47,16 @@ internal sealed class RunningService : IDisposable
         return service;
     }
 
+    /// <summary>How far the start of the service got, in words: what it had done when the wait for its health ended without an answer.</summary>
+    internal string Reached => (Port, process.HasExited) switch
+    {
+        (0, true) => "o serviço saiu antes de anunciar a porta",
+        (0, false) when announced.Task.IsCompleted => "o que o serviço escreveu primeiro não é o anúncio da porta",
+        (0, false) => "o serviço iniciou e não anunciou a porta",
+        (var announcedPort, true) => $"o serviço saiu depois de anunciar a porta {announcedPort}",
+        (var announcedPort, false) => $"o serviço anunciou a porta {announcedPort} e a saúde não respondeu",
+    };
+
     /// <summary>Completes with true once the port is known and with false when the standard output ended or began with anything but the announcement.</summary>
     internal Task<bool> PortAnnouncedAsync() => announced.Task;
 

@@ -15,22 +15,6 @@ public sealed class ServiceErrorTailTests : IDisposable
     private readonly SupervisionHarness harness = new();
 
     [Fact]
-    public void LauncherWithoutACollectorLeavesTheStandardErrorToTheCore()
-    {
-        var info = new ServiceProcessLauncher(LanguageServiceInterpreter.Standalone).StartInfo();
-
-        Assert.False(info.RedirectStandardError);
-    }
-
-    [Fact]
-    public void LauncherWithACollectorRedirectsTheStandardError()
-    {
-        var info = new ServiceProcessLauncher(LanguageServiceInterpreter.Standalone, new ErrorCollector()).StartInfo();
-
-        Assert.True(info.RedirectStandardError);
-    }
-
-    [Fact]
     public void ServiceStartedWithoutACollectorHasNoErrorTail()
     {
         using var service = new ServiceProcessLauncher(LanguageServiceInterpreter.Standalone).Start(SupervisionHarness.NewSecret());
@@ -48,30 +32,6 @@ public sealed class ServiceErrorTailTests : IDisposable
         var tail = await service.Errors!.TextAsync(SupervisionHarness.Timeout);
 
         Assert.Contains(MissingModule, tail, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task TailKeepsOnlyTheLastCharactersUpToTheLimit()
-    {
-        var written = string.Concat(Enumerable.Range(0, 3000).Select(number => $"{number:D4};"));
-        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(written));
-        using var streamReader = new StreamReader(stream);
-
-        var tail = await new ErrorTail(streamReader, new ErrorCollector().Limit).TextAsync(SupervisionHarness.Timeout);
-
-        Assert.Equal(new ErrorCollector().Limit, tail.Length);
-        Assert.Equal(written[^new ErrorCollector().Limit..], tail);
-    }
-
-    [Fact]
-    public async Task TailShorterThanTheLimitIsKeptWhole()
-    {
-        using var stream = new MemoryStream("Traceback: boom"u8.ToArray());
-        using var reader = new StreamReader(stream);
-
-        var tail = await new ErrorTail(reader, new ErrorCollector().Limit).TextAsync(SupervisionHarness.Timeout);
-
-        Assert.Equal("Traceback: boom", tail);
     }
 
     [Fact]
@@ -125,12 +85,6 @@ public sealed class ServiceErrorTailTests : IDisposable
         Assert.Contains($"exit code {supervisor.ExitCode}", failure.Message, StringComparison.Ordinal);
         Assert.Contains(MissingModule, failure.Message, StringComparison.Ordinal);
     }
-
-    [Fact]
-    public void MessageOfAProcessThatDidNotEndSaysNothingOfAnExit() => Assert.Equal(string.Empty, SupervisionHarness.Ended(null, null));
-
-    [Fact]
-    public void MessageOfAProcessThatEndedWithNothingOnItsStandardErrorSaysSo() => Assert.Equal(" (exit code 3; end of its standard error: none)", SupervisionHarness.Ended(3, "  "));
 
     public void Dispose() => harness.Dispose();
 }

@@ -1,13 +1,19 @@
 namespace Core.Tests.Architecture.CodeRules;
 
-/// <summary>A temporary directory that is deleted on disposal.</summary>
+/// <summary>A temporary directory that is deleted on disposal, holding the <c>global.json</c> of the repository so that a <c>dotnet</c> run inside it uses the SDK the repository pins.</summary>
 internal sealed class ScratchDirectory : IDisposable
 {
+    public const string GlobalJson = "global.json";
+
     private ScratchDirectory(string path)
     {
         Path = path;
         _ = Directory.CreateDirectory(path);
+        File.Copy(RootGlobalJson, System.IO.Path.Combine(path, GlobalJson));
     }
+
+    /// <summary>The <c>global.json</c> at the root of the repository, which every scratch directory is given a copy of.</summary>
+    public static string RootGlobalJson => System.IO.Path.Combine(System.IO.Path.GetDirectoryName(SourceTree.CoreRoot)!, GlobalJson);
 
     public string Path { get; }
 

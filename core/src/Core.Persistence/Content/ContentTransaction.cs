@@ -29,17 +29,18 @@ public sealed class ContentTransaction : IAsyncDisposable
     {
         ArgumentNullException.ThrowIfNull(dataSource);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(domainId);
-        return OpenAsync(dataSource, domainId, cancellationToken);
+        return OpenAsync(dataSource, domainId, Declare, cancellationToken);
     }
 
-    private static async Task<ContentTransaction> OpenAsync(NpgsqlDataSource dataSource, int domainId, CancellationToken cancellationToken)
+    /// <summary>The opening with the statement that declares the domain given, so that a test can make the declaration fail and see the connection released.</summary>
+    internal static async Task<ContentTransaction> OpenAsync(NpgsqlDataSource dataSource, int domainId, string declare, CancellationToken cancellationToken)
     {
         var connection = await dataSource.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
         var opened = false;
         try
         {
             var transaction = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
-            var declaration = new NpgsqlCommand(Declare, connection, transaction);
+            var declaration = new NpgsqlCommand(declare, connection, transaction);
             await using (declaration.ConfigureAwait(false))
             {
                 _ = declaration.Parameters.AddWithValue("domain", domainId.ToString(CultureInfo.InvariantCulture));

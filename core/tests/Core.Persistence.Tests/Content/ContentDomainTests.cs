@@ -182,6 +182,58 @@ public sealed class ContentDomainTests
             () => ContentTransaction.BeginAsync(dataSource, 0, TestContext.Current.CancellationToken));
     }
 
+    [Fact]
+    public async Task MissingDataSourceIsRefusedBeforeAnyConnectionOpens()
+    {
+        _ = await Assert.ThrowsAsync<ArgumentNullException>(
+            () => ContentTransaction.BeginAsync(null!, 1, TestContext.Current.CancellationToken));
+    }
+
+    [DatabaseFact]
+    public async Task ConnectionIsReleasedWhenTheDeclarationFails()
+    {
+        await using var database = await WithTwoDomainsAsync();
+        await using var dataSource = SingleConnectionSource(database.AppConnectionString);
+
+        _ = await Assert.ThrowsAsync<PostgresException>(
+            () => ContentTransaction.OpenAsync(dataSource, 1, "SELECT 1 / 0 WHERE @domain IS NOT NULL", TestContext.Current.CancellationToken));
+
+        await using var next = await ContentTransaction.BeginAsync(dataSource, 1, TestContext.Current.CancellationToken);
+        Assert.NotNull(next);
+    }
+
+    [DatabaseFact]
+    public async Task ConnectionIsReleasedWhenTheTransactionIsDisposed()
+    {
+        await using var database = await WithTwoDomainsAsync();
+        await using var dataSource = SingleConnectionSource(database.AppConnectionString);
+        var first = await ContentTransaction.BeginAsync(dataSource, 1, TestContext.Current.CancellationToken);
+        await first.DisposeAsync();
+
+        await using var next = await ContentTransaction.BeginAsync(dataSource, 1, TestContext.Current.CancellationToken);
+        Assert.NotNull(next);
+    }
+
+    [DatabaseFact]
+    public async Task WriteNotCommittedIsGoneWhenTheTransactionIsDisposed()
+    {
+        await using var database = await WithTwoDomainsAsync();
+        await using (var dataSource = NpgsqlDataSource.Create(database.OwnerConnectionString))
+        {
+            var writing = await ContentTransaction.BeginAsync(dataSource, 1, TestContext.Current.CancellationToken);
+            await using var insert = writing.CreateCommand($"INSERT INTO {Table} (domain_id, body) VALUES (1, 'a3')");
+            _ = await insert.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+            await writing.DisposeAsync();
+        }
+
+        var seen = await BodiesAsync(database.OwnerConnectionString, domain: 1);
+
+        Assert.Equal(["a1", "a2"], seen);
+    }
+
+    private static NpgsqlDataSource SingleConnectionSource(string connectionString) =>
+        NpgsqlDataSource.Create(new NpgsqlConnectionStringBuilder(connectionString) { Pooling = true, MaxPoolSize = 1, Timeout = 3 }.ConnectionString);
+
     private static async Task<ScratchDatabase> WithTwoDomainsAsync()
     {
         var database = await ScratchDatabase.CreateAsync();

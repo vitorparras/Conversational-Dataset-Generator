@@ -13,7 +13,7 @@ num contêiner operado de fora está em [021](021-subir-o-nucleo-publicado.md).
 cat > /tmp/f.sh <<'FIM'
 rota() { exec 3<>/dev/tcp/127.0.0.1/5080
   printf '%s %s HTTP/1.0\r\nHost: x\r\nContent-Type: application/json\r\nContent-Length: %s\r\n\r\n%s' \
-    "$1" "$2" "${#3}" "$3" >&3; cat <&3; exec 3<&-; }
+    "$1" "$2" "${#3}" "$3" >&3; cat <&3; echo; exec 3<&-; }
 pid() { for p in /proc/[0-9]*; do tr '\0' ' ' < $p/cmdline 2>/dev/null \
   | grep -q "$1" && echo ${p#/proc/}; done; true; }
 FIM
@@ -26,18 +26,18 @@ rota GET /versions
 rota POST /analysis '{"text":"texto de teste","language":"pt"}'
 ```
 
-Sem o `Content-Type: application/json`, a rota de análise responde 415 sem corpo. `${#3}` conta
-caracteres, e com acento a conta de bytes é outra. `language` aceita qualquer texto não nulo: o
+Sem `Content-Type: application/json`, a análise responde 415 sem corpo. `${#3}` conta caracteres, e
+com acento a conta de bytes é outra. `language` aceita qualquer texto não nulo: o
 núcleo o repassa, e o reconhecedor da Fase 1 o ignora. `resumes`, se presente, é a `reference` de
 uma recusa, em formato de GUID; outro valor, `"x"` por exemplo, recusa o pedido com 400 e **sem
-corpo**. Também recusa com 400 o campo desconhecido, ou `text` e `language` ausentes.
+corpo**, como o campo desconhecido ou `text` e `language` ausentes.
 
 ## Derrubar o serviço e ler a recusa
 
 `pid` imprime os PIDs cuja linha de comando casa com o padrão; o `[s]` e o `^` impedem que o
 próprio shell que procura case com o que procura. O núcleo é `pid '^./Core[.]Host'` (SIGTERM, em
-023), e o serviço, `pid 'language_[s]ervice'`. O núcleo percebe a queda do serviço e muda o
-`/status`; espere por isso, sem prazo chutado, até 30 s:
+023), e o serviço, `pid 'language_[s]ervice'`. O `/status` muda quando o núcleo percebe a queda;
+espere por isso, até 30 s:
 
 ```
 . /tmp/f.sh
@@ -45,15 +45,16 @@ kill -9 $(pid 'language_[s]ervice')
 for i in $(seq 30); do rota GET /status | grep -q Unavailable && break; sleep 1; done
 rota GET /status
 rota POST /analysis '{"text":"texto de teste","language":"pt"}'
+for i in $(seq 10); do grep -q interrompida /tmp/nucleo.log && break; sleep 1; done
+grep interrompida /tmp/nucleo.log | tail -3
 ```
 
 Então `/status` mostra `languageService` `Unavailable` e `ready` falso, e `/analysis` responde 503
 com `reason` e `cause`. Na Fase 1 nenhuma tabela recebe análise: "nada gravado" se lê no corpo do
-503 e no registro (`interrompida`). Conferir o banco pede cliente SQL, na máquina de quem opera o
-banco.
+503 e na linha `interrompida` do registro, que chega um instante depois da resposta (daí a espera).
+Conferir o banco pede cliente SQL, na máquina de quem opera o banco.
 
 ## O que parece erro e não é
 
-O reconhecedor da Fase 1 é o vazio, de propósito: `occurrences` é sempre 0, `kinds` vem vazio e
-`modelVersion` vem `null` (`ModelVersion=<absent>` no registro), mesmo com nome de pessoa no texto.
-A pasta já leva o modelo, mas nada o carrega até um reconhecedor com modelo substituir o vazio.
+O reconhecedor da Fase 1 é o vazio: `occurrences` é sempre 0 e `modelVersion` é `null`
+(`ModelVersion=<absent>` no registro), até com nome de pessoa no texto. A pasta leva o modelo.

@@ -145,3 +145,23 @@ simples. Os blocos foram rodados do jeito do operador, do Git Bash, cada um inte
 -i bash -s`, num banco novo: `migrate` (0), partida (volta em 4 s), espera (1 s), rotas, `kill -9`
 com espera pelo `Unavailable`, SIGTERM com saída 0, e senha recusada dando saída 69 em 1 s. Sem
 `MSYS_NO_PATHCONV=1`, o `ls /tmp` do contêiner vira um caminho do Windows, como o texto avisa.
+
+## Rodada 5
+
+O operador foi o Backend, sem memória do sistema (tinha só um índice de notas do projeto, que não
+ensina a operar), com os docs do commit `58282b2` sem este registro. Subida, queda do serviço,
+encerramento com saída 0 e `migrate` com 0 passaram, e nenhum valor foi adivinhado: banco, usuários,
+porta e senhas vieram da ficha, e o resto do texto. Houve três improvisos leves:
+
+| # | Improviso | Correção |
+|---|---|---|
+| 1 | O texto não dizia se o núcleo em segundo plano sobrevive ao fim do `docker exec` nem se a partida e a espera cabem num bloco | 023 diz que ele sobrevive e que a espera pode ir no mesmo bloco ou noutro |
+| 2 | Sem comando para ler a linha `interrompida` no registro | 022 acrescenta a leitura, com espera, porque a linha chega um instante depois da resposta |
+| 3 | Conferências a mais que o texto não pede (listar pastas, contar bytes das senhas) | Nada a corrigir |
+
+Também ficaram dois ajustes de texto: o 021 diz que `FICHA` e `CONTEINER` são marcadores a trocar,
+com exemplos de caminho no Git Bash, e a função `rota` do 022 passou a terminar a saída com uma
+quebra de linha, porque o corpo da resposta não a traz e a linha seguinte do terminal vinha colada
+nele. Os blocos foram rodados de novo do jeito do operador, inteiros em `docker exec -i bash -s`,
+com a partida e a espera no mesmo bloco, o núcleo vivo na chamada seguinte, a linha `interrompida`
+lida pelo 022 e o encerramento com saída 0.

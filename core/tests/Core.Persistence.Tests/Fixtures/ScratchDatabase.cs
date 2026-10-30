@@ -58,7 +58,7 @@ internal sealed class ScratchDatabase : IAsyncDisposable
     /// Waits for a session of this database that is running the statement and ends it from the server, as a restart or an operator would.
     /// The run in progress is what holds that session, so a run that ends first will never have one: that is a failure at once, not a minute of waiting.
     /// </summary>
-    public async Task TerminateSessionRunningAsync(string statement, Task running)
+    public async Task TerminateSessionRunningAsync(string statement, IAsyncResult running)
     {
         const string Terminate = "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = @name AND state = 'active' AND query LIKE @statement AND pid <> pg_backend_pid()";
         await using var connection = await Sql.OpenAsync(superuserConnectionString);

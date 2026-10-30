@@ -24,7 +24,7 @@ internal static partial class ContentSchemaAccessRules
         files.Where(file => !IsContentTransaction(file)).SelectMany(Findings);
 
     private static bool IsContentTransaction(SourceFile file) =>
-        file.Path.Replace(System.IO.Path.DirectorySeparatorChar, '/').Contains(AllowedFolder, StringComparison.Ordinal);
+        file.Path.Replace(Path.DirectorySeparatorChar, '/').Contains(AllowedFolder, StringComparison.Ordinal);
 
     private static IEnumerable<Violation> Findings(SourceFile file) =>
         file.Root.DescendantTokens()

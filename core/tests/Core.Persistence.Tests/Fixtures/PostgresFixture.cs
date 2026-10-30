@@ -37,26 +37,69 @@ internal sealed class PostgresFixture
 
     private static async Task<PostgresFixture> StartAsync()
     {
-        var image = new ImageFromDockerfileBuilder()
+        var reuse = DatabaseReuse.Token;
+        var imageBuilder = new ImageFromDockerfileBuilder()
             .WithDockerfileDirectory(DatabaseTool.Directory)
-            .WithDockerfile("Dockerfile")
-            .Build();
+            .WithDockerfile("Dockerfile");
+        if (reuse is not null)
+        {
+            imageBuilder = imageBuilder.WithName(DatabaseReuse.ImageName(reuse)).WithDeleteIfExists(false).WithImageBuildPolicy(found => string.IsNullOrEmpty(found?.ID));
+        }
+
+        var image = imageBuilder.Build();
         await image.CreateAsync();
-        var superuserPassword = NewPassword();
-        var ownerPassword = NewPassword();
-        var appPassword = NewPassword();
-        var container = new ContainerBuilder(image)
+        var superuserPassword = reuse is null ? NewPassword() : DatabaseReuse.Password(reuse, "postgres");
+        var ownerPassword = reuse is null ? NewPassword() : DatabaseReuse.Password(reuse, "owner");
+        var appPassword = reuse is null ? NewPassword() : DatabaseReuse.Password(reuse, "app");
+        var builder = new ContainerBuilder(image)
             .WithEnvironment("POSTGRES_PASSWORD", superuserPassword)
             .WithEnvironment("DATABASE_OWNER_PASSWORD", ownerPassword)
             .WithEnvironment("DATABASE_APP_PASSWORD", appPassword)
             .WithPortBinding(ServerPort, assignRandomHostPort: true)
-            .WithWaitStrategy(Wait.ForUnixContainer().UntilContainerIsHealthy(waitStrategyModifier: wait => wait.WithTimeout(HealthyWithin)))
-            .Build();
+            .WithWaitStrategy(Wait.ForUnixContainer().UntilContainerIsHealthy(waitStrategyModifier: wait => wait.WithTimeout(HealthyWithin)));
+        if (reuse is not null)
+        {
+            builder = builder.WithName(DatabaseReuse.ContainerName(reuse)).WithReuse(_ => reuse);
+        }
+
+        var container = builder.Build();
         await container.StartAsync();
-        return new PostgresFixture(
+        var fixture = new PostgresFixture(
             ConnectionString(container, "app", appPassword),
             ConnectionString(container, "owner", ownerPassword),
             ConnectionString(container, "postgres", superuserPassword));
+        if (reuse is not null)
+        {
+            await fixture.DropScratchDatabasesAsync();
+        }
+
+        return fixture;
+    }
+
+    /// <summary>
+    /// A server that outlives its test run keeps the scratch databases of the tests a restart cut short; each test makes its own,
+    /// so none of them is needed and none is left to the next run.
+    /// </summary>
+    private async Task DropScratchDatabasesAsync()
+    {
+        await using var connection = new NpgsqlConnection(SuperuserConnectionString);
+        await connection.OpenAsync();
+        var names = new List<string>();
+        await using (var list = new NpgsqlCommand("SELECT datname FROM pg_database WHERE datname LIKE 'zqx!_mig!_%' ESCAPE '!'", connection))
+        await using (var reader = await list.ExecuteReaderAsync())
+        {
+            while (await reader.ReadAsync())
+            {
+                names.Add(reader.GetString(0));
+            }
+        }
+
+        foreach (var name in names)
+        {
+            await using var drop = new NpgsqlBatch(connection);
+            drop.BatchCommands.Add(new NpgsqlBatchCommand($"DROP DATABASE IF EXISTS {name} WITH (FORCE)"));
+            _ = await drop.ExecuteNonQueryAsync();
+        }
     }
 
     private static string NewPassword() => Convert.ToHexString(RandomNumberGenerator.GetBytes(24));

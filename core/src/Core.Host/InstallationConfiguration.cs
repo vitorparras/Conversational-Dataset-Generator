@@ -18,6 +18,10 @@ internal static class InstallationConfiguration
     internal static ConfigurationSection Section { get; } =
         new(SectionName, [ConfigurationKey.Required(KindKey).Accepting(Real, Demonstration)]);
 
+    /// <summary>The same section for the migration mode, which serves nothing: the kind may be given, and is then checked, but is not required.</summary>
+    internal static ConfigurationSection SectionWhenMigrating { get; } =
+        new(SectionName, [ConfigurationKey.Optional(KindKey).Accepting(Real, Demonstration)]);
+
     /// <summary>The installation the approved value declares.</summary>
     internal static Installation Of(IReadOnlyDictionary<string, string> values) =>
         new(string.Equals(values[KindPath], Demonstration, StringComparison.Ordinal) ? InstallationKind.Demonstration : InstallationKind.Real);

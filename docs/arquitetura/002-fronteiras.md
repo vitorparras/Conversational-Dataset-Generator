@@ -1,6 +1,7 @@
 # 002 — Fronteiras e contratos
 
 > Descrição. 2026-10-04.
+> Estado no código: a fronteira com o serviço existe (`core/src/Core.Boundary`); do banco, só o esquema (`core/src/Core.Persistence/Migrations/Sql`). Ver a [fundação](../roadmap/001-fundacao-verificavel.md).
 
 Fronteira explícita é o que permite trocar uma parte sem reabrir as outras. Aqui ela tem quatro
 naturezas, e confundi-las é o jeito mais comum de perder a independência que o desenho pretende.
@@ -13,36 +14,35 @@ importa aqui é a forma dele.
 
 O serviço devolve apontamentos — onde começa e termina cada trecho reconhecido, de que tipo, e a
 classe gramatical e a função sintática do núcleo da ocorrência
-([0018](../decisoes/0018-contrato-da-fronteira.md)) —, nunca texto transformado. Quem substitui, pseudonimiza e guarda o mapa de reversão
-é o núcleo, porque é o lado que tem a chave. Um índice deslocado anonimiza o pedaço errado do texto,
-e por isso o núcleo confere que as posições recebidas caem dentro do trecho enviado.
+([0018](../decisoes/0018-contrato-da-fronteira.md)) —, nunca texto transformado. Quem substitui,
+pseudonimiza e guarda o mapa de reversão é o núcleo, porque é o lado que tem a chave. Um índice
+deslocado anonimiza o pedaço errado do texto, e por isso o núcleo confere que as posições recebidas
+caem dentro do trecho enviado. A unidade do deslocamento é ponto de código, e converte o lado que
+indexa diferente: o núcleo ([0011](../decisoes/0011-protocolo-com-o-servico-de-linguagem.md)).
 
-Atravessa o trecho, e nada que o situe: nem identificador de material, de domínio, de pessoa ou de
-anotador. O serviço não sabe de quem é o texto nem de onde veio, não grava e não guarda nada do
-acervo depois de responder — comprometê-lo rende texto sem procedência, ver
+Atravessam o trecho, o idioma, a versão do contrato e uma referência opaca, que só o núcleo mapeia
+ao material — e nada que o situe: nem identificador de material, de domínio, de pessoa ou de
+anotador ([0011](../decisoes/0011-protocolo-com-o-servico-de-linguagem.md)). O serviço não sabe de
+quem é o texto nem de onde veio, não grava e não guarda nada do acervo depois de responder —
+comprometê-lo rende texto sem procedência, ver
 [texto fora do banco](../privacidade/003-texto-fora-do-banco.md).
 
-Texto ainda não sanitizado atravessa aqui, e é o ponto mais frágil do desenho. Nem o texto nem os
-deslocamentos entram em registro: deslocamento com tipo, somado ao texto que o núcleo tem,
-reconstrói o dado pessoal ([requisito 021](../requisitos/021-registro-sem-dado-pessoal.md)). E o
-transporte é local por condição, não por conveniência — a cifra protege o que está em repouso, não o
-que trafega entre processos.
+Texto não sanitizado atravessa aqui, e é o ponto mais frágil do desenho. Nem texto nem deslocamentos
+entram em registro: deslocamento com tipo, somado ao texto do núcleo, reconstrói o dado pessoal
+([requisito 021](../requisitos/021-registro-sem-dado-pessoal.md)). O transporte é local por
+condição, não por conveniência — a cifra protege o repouso, não o que trafega entre processos.
 
-A unidade do deslocamento é ponto de código, e converte o lado que indexa diferente: o núcleo
-([0011](../decisoes/0011-protocolo-com-o-servico-de-linguagem.md)). Sem unidade única, a divergência
-cairia em emoji e caractere composto — sem erro, só no lugar errado.
-
-Resposta ausente ou malformada não é o mesmo que nenhuma ocorrência: na primeira a ingestão para,
-em vez de deixar passar texto como se estivesse limpo
-([0011](../decisoes/0011-protocolo-com-o-servico-de-linguagem.md)).
+Resposta ausente ou malformada não é o mesmo que nenhuma ocorrência: na primeira o material é
+recusado e a ingestão para, com a causa e a referência da recusa, em vez de deixar passar texto como
+se estivesse limpo ([0011](../decisoes/0011-protocolo-com-o-servico-de-linguagem.md)). Quem pede de
+novo cita essa referência para retomar, e o registro liga as duas.
 
 ## Entre módulos, dentro do núcleo
 
-Nenhum módulo lê a tabela interna de outro. O que atravessa é o material no estado em que o anterior
-o deixou, mais o registro do que foi feito com ele — e cada módulo declara três coisas, por onde se
-verifica se pode ser substituído: a condição de entrada que exige, a garantia que dá na saída, e o
-que registra. A exportação não sabe como a concordância foi calculada; sabe se o recorte atende ao
-critério.
+Nenhum módulo lê a tabela interna de outro. O que atravessa é o material como o anterior o deixou,
+mais o registro do que foi feito com ele — e cada módulo declara três coisas, por onde se verifica
+se é substituível: a condição de entrada que exige, a garantia que dá na saída, e o que registra. A
+exportação não sabe como a concordância foi calculada; sabe se o recorte atende ao critério.
 
 ## Com o banco
 

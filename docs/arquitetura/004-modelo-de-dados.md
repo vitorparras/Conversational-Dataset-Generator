@@ -1,6 +1,7 @@
 # 004 — O modelo de dados
 
 > Descrição. 2026-10-04.
+> Estado no código: nenhuma entidade existe; o banco só guarda a versão do esquema e as falhas de migração (`core/src/Core.Persistence/Migrations/Sql`). Ver [custódia e cifra](../roadmap/002-custodia-e-cifra.md).
 
 As entidades do sistema e o que as liga, em nível conceitual — sem tabela nem coluna.
 
@@ -28,10 +29,9 @@ está aqui; está no **mapa de reversão**, cifrado e separado, a única entidad
 revela identidade ([0003](../decisoes/0003-cifra-em-repouso.md)).
 
 A **anotação** liga uma pessoa, um item ou uma parte, um conjunto de categorias com uma marcada como
-principal, os valores das dimensões e um momento
-([0022](../decisoes/0022-forma-do-rotulo.md)). Guarda também a versão da taxonomia sob a qual foi
-feita — anotações de taxonomias diferentes não se somam
-([0004](../decisoes/0004-taxonomia-configuravel.md)) — e a origem do rótulo: sugestão aceita,
+principal, os valores das dimensões e um momento ([0022](../decisoes/0022-forma-do-rotulo.md)).
+Guarda também a versão da taxonomia sob a qual foi feita — anotações de taxonomias diferentes não se
+somam ([0004](../decisoes/0004-taxonomia-configuravel.md)) — e a origem do rótulo: sugestão aceita,
 corrigida, ou criada pela pessoa. Duas anotações do mesmo alvo que discordam produzem uma
 divergência, que pode ter resolução: outra anotação, com autoria própria, não um apagamento.
 

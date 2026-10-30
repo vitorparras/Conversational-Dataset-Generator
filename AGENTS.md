@@ -3,9 +3,6 @@
 Ponto de entrada único do repositório. Vale para pessoas e para agentes de IA. Arquivos específicos
 de ferramenta apenas redirecionam para cá e não contêm instruções próprias — duas cópias divergem.
 
-> Documentação e código vivem aqui. Texto segue `docs/regras-de-escrita.md`; código segue
-> `docs/regras-de-codigo.md`. Toda linha de código depende das decisões registradas aqui.
-
 ## O que é o projeto
 
 Uma ferramenta para construir bases conversacionais anotadas em português brasileiro: ingestão,
@@ -46,10 +43,12 @@ possa consultar. Argumento que precisa de referência externa não se sustenta.
 
 **Na dúvida entre assumir e perguntar, pergunte.** Silêncio não é aprovação.
 
-## Antes de escrever
+## Texto e código
 
 Texto: `docs/regras-de-escrita.md`, imposta por `tools/verify-docs/`; rode antes de propor mudança.
 Código: `docs/regras-de-codigo.md`; o mensurável reprova o build, o resto é lista de revisão.
+Árvore (`core/`, `language-service/`, `tools/`), comandos, fronteiras e o que reprova o código:
+`docs/operacao/020-codigo-no-repositorio.md`. Rode `tools/verify-code/verify.py` antes de propor.
 
 ## O que reprova um trabalho
 

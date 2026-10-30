@@ -3,10 +3,11 @@
 Leia [`AGENTS.md`](AGENTS.md) primeiro — ele define a hierarquia de autoridade entre os documentos
 e as regras que valem para qualquer contribuição, de pessoa ou de agente.
 
-## Estado atual
+## Antes de abrir o pull request
 
-Documentação e código vivem aqui. Texto segue [regras de escrita](docs/regras-de-escrita.md);
-código segue [regras de código](docs/regras-de-codigo.md), inclusive o teto de pull request.
+Texto: [regras de escrita](docs/regras-de-escrita.md), conferidas por `python tools/verify-docs/verify.py`.
+Código: [regras de código](docs/regras-de-codigo.md), conferidas por `python tools/verify-code/verify.py`;
+árvore e passos em [020](docs/operacao/020-codigo-no-repositorio.md).
 
 ## O fluxo
 

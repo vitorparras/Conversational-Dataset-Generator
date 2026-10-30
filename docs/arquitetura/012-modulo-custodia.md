@@ -1,6 +1,7 @@
 # 012 — Módulo de custódia
 
 > Descrição. 2026-10-04.
+> Estado no código: o módulo não existe em `core/src`. Ver [custódia e cifra](../roadmap/002-custodia-e-cifra.md).
 
 Custódia é a capacidade de dizer o que aconteceu com o material, em que ordem, e de demonstrar que o
 registro não foi mexido depois. Como o controle de acesso, não é etapa: é condição.

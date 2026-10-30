@@ -1,6 +1,7 @@
 # 010 — Módulo de exportação
 
 > Descrição. 2026-10-04.
+> Estado no código: o módulo não existe em `core/src`. Ver a [exportação](../roadmap/009-exportacao.md).
 
 A exportação é a única porta de saída, e o que ela produz não volta: ninguém corrige um dataset que
 já está em outra máquina. É o que torna este o módulo mais conservador do pipeline.
@@ -24,9 +25,8 @@ alcance do sistema — e com a custódia.
 ## O recorte é declarado, não inferido
 
 Quem exporta diz qual recorte quer, e o módulo confere que o que saiu é o que foi pedido. A
-diferença entre declarar e inferir aparece no caso ruim: um filtro que silenciosamente deixou de
-fora metade de um domínio produz dataset válido e errado, indistinguível de um correto pela
-aparência do arquivo.
+diferença aparece no caso ruim: um filtro que silenciosamente deixou de fora metade de um domínio
+produz dataset válido e errado, indistinguível de um correto pela aparência do arquivo.
 
 ## Nenhum texto bruto sai
 

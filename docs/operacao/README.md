@@ -31,5 +31,6 @@ e por quem ela roda.
 | [017](017-teste-de-mutacao.md) | O teste de mutação |
 | [018](018-pasta-do-servico.md) | A pasta do serviço de linguagem |
 | [019](019-leitura-da-tabela-pelo-floors.md) | O que o passo floors lê na tabela da 014 |
+| [020](020-codigo-no-repositorio.md) | O código no repositório: árvore, comandos e o que reprova |
 
 Ver [regras de escrita](../regras-de-escrita.md).

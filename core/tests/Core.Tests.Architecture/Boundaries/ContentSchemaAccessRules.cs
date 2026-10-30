@@ -8,7 +8,7 @@ namespace Core.Tests.Architecture.Boundaries;
 
 /// <summary>
 /// Content lives in the content schema, and the domain a session declares is what the database judges it by. A statement over that schema
-/// is a constant of <c>ContentQueries</c>, the list the test with no domain declared runs, so one written anywhere else, or built at run
+/// is a public constant of <c>ContentQueries</c>, the list the test with no domain declared runs, so one written anywhere else, or built at run
 /// time, would reach content outside that test. And no statement may move the search path: the schema is named in every statement, and
 /// naming it is what the rule above sees.
 /// </summary>
@@ -23,7 +23,7 @@ internal static partial class ContentSchemaAccessRules
         SyntaxKind.SingleLineRawStringLiteralToken, SyntaxKind.MultiLineRawStringLiteralToken,
     ];
 
-    /// <summary>Every string in the files that names a table of the content schema outside a constant of the list of queries, or that moves the search path.</summary>
+    /// <summary>Every string in the files that names a table of the content schema outside a public constant of the list of queries, or that moves the search path.</summary>
     public static IEnumerable<Violation> Check(IEnumerable<SourceFile> files) => files.SelectMany(Findings);
 
     private static IEnumerable<Violation> Findings(SourceFile file) =>
@@ -41,14 +41,14 @@ internal static partial class ContentSchemaAccessRules
         }
 
         return ContentTable().IsMatch(token.ValueText) && !IsQueryConstant(file, token)
-            ? "a statement reaches the content schema outside a constant of ContentQueries"
+            ? "a statement reaches the content schema outside a public constant of ContentQueries"
             : null;
     }
 
     private static bool IsQueryConstant(SourceFile file, SyntaxToken token) =>
         IsQueriesFile(file)
         && token.Parent?.FirstAncestorOrSelf<FieldDeclarationSyntax>() is { } field
-        && field.Modifiers.Any(SyntaxKind.ConstKeyword);
+        && field.Modifiers.Any(SyntaxKind.ConstKeyword) && field.Modifiers.Any(SyntaxKind.PublicKeyword);
 
     private static bool IsQueriesFile(SourceFile file) =>
         file.Path.Replace(System.IO.Path.DirectorySeparatorChar, '/').EndsWith(AllowedFolder + QueriesFile, StringComparison.Ordinal);

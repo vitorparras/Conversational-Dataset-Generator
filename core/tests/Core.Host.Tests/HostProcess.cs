@@ -210,7 +210,7 @@ internal sealed class HostProcess : IDisposable
         throw new TimeoutException($"The host did not answer within {timeout}; {await EndOfHostAsync()}");
     }
 
-    /// <summary>What the host left when it ended before answering: the code and the tail of its error stream, so that the failure says why it ended.</summary>
+    /// <summary>What the host left when it ended before answering: the code and the tail of its error stream; the code stays when the stream does not close.</summary>
     private async Task<string> EndOfHostAsync()
     {
         const int Tail = 2000;
@@ -219,8 +219,15 @@ internal sealed class HostProcess : IDisposable
             return "it was still running.";
         }
 
-        var written = await error.WaitAsync(DrainTimeout);
-        return $"it exited with code {process.ExitCode}; error stream: {written[Math.Max(0, written.Length - Tail)..]}";
+        try
+        {
+            var written = await error.WaitAsync(DrainTimeout);
+            return $"it exited with code {process.ExitCode}; error stream: {written[Math.Max(0, written.Length - Tail)..]}";
+        }
+        catch (TimeoutException)
+        {
+            return $"it exited with code {process.ExitCode}; error stream still open after {DrainTimeout}.";
+        }
     }
 
     private async Task<bool> AnswersAsync(CancellationToken cancellationToken)

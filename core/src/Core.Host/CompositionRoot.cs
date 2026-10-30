@@ -32,7 +32,7 @@ internal static class CompositionRoot
         }
 
         var migrating = MigrationMode.Requested(args);
-        var loaded = HostConfiguration.Load(MigrationMode.ConfigurationArguments(args));
+        var loaded = HostConfiguration.Load(MigrationMode.ConfigurationArguments(args), migrating);
         var database = migrating ? DatabaseConfiguration.ReadRequired(loaded.Values) : DatabaseConfiguration.Read(loaded.Values);
         if (loaded.Refused || database.State == DatabaseSettingsState.Refused)
         {
@@ -192,7 +192,7 @@ internal static class CompositionRoot
         var builder = ClosedBuilder(loaded.Values[HostConfiguration.UrlsPath]);
         Compose(builder, loaded.View, fileLog);
         AddAnalysis(builder.Services, loaded.Values, analyzeTimeout);
-        _ = builder.Services.AddSingleton(StartupVersions.Of(checks));
+        _ = builder.Services.AddSingleton(InstallationConfiguration.Of(loaded.Values)).AddSingleton(provider => InstallationConfiguration.Shown(StartupVersions.Of(checks), provider));
         return builder;
     }
 
@@ -208,6 +208,7 @@ internal static class CompositionRoot
         _ = app.Services.GetRequiredService<ServiceProvider>();
         await StartupVersions.WriteAsync(
             app.Logger, app.Services.GetRequiredService<VersionReport>(), app.Services.GetRequiredService<IServiceVersionReader>(), CancellationToken.None);
+        InstallationConfiguration.Announce(app.Logger, app.Services);
         StatusEndpoint.Map(app, recognizer);
         ConfigurationEndpoint.Map(app);
         VersionsEndpoint.Map(app);

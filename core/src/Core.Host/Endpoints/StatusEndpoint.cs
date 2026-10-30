@@ -1,4 +1,5 @@
 using Core.Host.Supervision;
+using Core.Platform;
 using Core.Platform.Startup;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,10 +12,12 @@ internal static class StatusEndpoint
 
     internal static void Map(IEndpointRouteBuilder endpoints, RecognizerKind recognizer) =>
         _ = endpoints.MapGet(
-            Route, ([FromServices] StartupReport report, [FromServices] ServiceProcessWatch watch) => Describe(report, watch, recognizer));
+            Route,
+            ([FromServices] StartupReport report, [FromServices] ServiceProcessWatch watch, [FromServices] Installation installation) =>
+                Describe(report, watch, recognizer, installation));
 
     /// <summary>The fake asks no service, so the watch, which no start ever moves, says nothing about it.</summary>
-    private static StatusResponse Describe(StartupReport report, ServiceProcessWatch watch, RecognizerKind recognizer)
+    private static StatusResponse Describe(StartupReport report, ServiceProcessWatch watch, RecognizerKind recognizer, Installation installation)
     {
         ServiceState? service = recognizer == RecognizerKind.Http ? watch.State : null;
         return new(
@@ -23,6 +26,7 @@ internal static class StatusEndpoint
             Recognizer: recognizer,
             LanguageService: service,
             CheckedAt: report.CheckedAt,
-            Checks: report.Results);
+            Checks: report.Results,
+            Installation: installation);
     }
 }

@@ -2,10 +2,9 @@
 
 > Operacional. Vale para todo código fora de `docs/`; autorizada pela [decisão 0040](decisoes/0040-principios-de-codigo.md).
 
-O que é mensurável é imposto por analisador, `.editorconfig` ou teste de arquitetura, e reprova o
-build. O resto é a lista que o revisor responde por escrito antes de o pull request abrir.
+**Imposta** reprova o build; **lista de revisão** o revisor responde por escrito antes do PR.
 
-## 1. Princípios
+## 1. Princípios (lista de revisão)
 
 SOLID inteiro: responsabilidade única e inversão de dependência em toda classe; aberto/fechado,
 substituição e segregação só nos pontos de extensão que a arquitetura declara substituíveis. Nome
@@ -13,24 +12,26 @@ diz o quê; função faz uma coisa, num só nível de abstração. DRY a partir 
 não antes. YAGNI: nada para necessidade sem requisito ou issue. Composição sobre herança: herança
 só para contrato sem estado. DDD entra na Fase 2, quando houver domínio a modelar.
 
-## 2. Limites (impostos)
+## 2. Limites (impostos: `Core.Tests.Architecture`, testes Python, `ruff`; dois itens em revisão)
 
 Arquivo até 250 linhas; método até 40; até 4 parâmetros, senão objeto de parâmetros, mas método que
 implementa explicitamente interface alheia herda a assinatura dela; aninhamento até 2 níveis; uma
-classe pública por arquivo; tipo nomeado em vez de tupla em assinatura pública.
+classe pública por arquivo; tipo nomeado em vez de tupla em assinatura pública. Os testes Python são
+`language-service/tests/architecture/` e `tools/tests/architecture/`. Em revisão: a tupla em Python
+e a classe pública única em `tools/`.
 
-## 3. Composição (imposta)
+## 3. Composição (imposta: `CompositionRootTests`, teste do serviço; interface, revisão)
 
 Uma raiz de composição por executável, com a injeção de dependência nativa da plataforma; o ponto
 de entrada só a chama, em até 20 linhas. Nenhum `new` de serviço fora da raiz. Interface só onde a
-arquitetura declara substituição; o resto é classe concreta injetada.
+arquitetura declara substituição (revisão); o resto é classe concreta injetada.
 
-## 4. Sem gancho de teste (imposto)
+## 4. Sem gancho de teste (imposto: `NoTestHookTests`, teste do serviço)
 
 Nenhum membro público existe para teste. O teste observa comportamento. Internos visíveis só ao
 projeto de teste do próprio módulo.
 
-## 5. Estado e erros
+## 5. Estado e erros (revisão; impostos no `.editorconfig`: logger, S1312; captura, S2221)
 
 Imutável por padrão. Máquina de estados por enumeração, nunca por texto. Concorrência confinada a
 um tipo pequeno, testado isolado. Falha esperada volta como tipo de resultado; exceção é defeito.
@@ -38,23 +39,22 @@ Captura genérica só no último nível do executável. Mensagem a quem opera em
 exceção interna em inglês ([decisão 0039](decisoes/0039-idioma-do-codigo-e-do-texto.md)); uma
 classe não mistura as duas. Logger injetado: construtor primário, nunca campo; S1312 sem exclusão.
 
-## 6. Formatação (imposta)
+## 6. Formatação (imposta; o resto, em revisão)
 
 `dotnet format` e `ruff` reprovam na CI; `.editorconfig` e o projeto Python são a única fonte de
-estilo. Python: tipo anotado em tudo, em modo estrito; dados imutáveis; esquema só na borda HTTP.
-Supressão de analisador: [decisão 0042](decisoes/0042-supressao-de-analisador.md).
+estilo. O `pyright` estrito impõe parâmetro anotado; revisão: retorno e variável anotados, dados
+imutáveis, esquema só na borda HTTP. Supressão: [decisão 0042](decisoes/0042-supressao-de-analisador.md).
 
-## 7. Testes
+## 7. Testes (lista de revisão)
 
-Arrange-Act-Assert; um comportamento por teste; o nome diz o comportamento; sem condicional no
-teste. Um teste de arquitetura impõe as regras 2, 3 e 4.
+Arrange-Act-Assert; um comportamento por teste, nomeado por ele; sem condicional no teste.
 
-## 8. Comentário
+## 8. Comentário (lista de revisão)
 
 Documentação de API só na fronteira pública entre módulos; nos outros métodos, no máximo um sumário
 de uma frase. Comentário no corpo é raro, curto, diz o porquê e nunca cita regra ou issue.
 
-## 9. Pull request
+## 9. Pull request (limite imposto por `pr_size`; task única e descrição, em revisão)
 
-Uma task por pull request; até 30 arquivos e 400 linhas de diff de produção; teste, lockfile e
-fixture fora da conta, mas listados. A descrição cita o princípio de cada escolha não óbvia.
+Até 30 arquivos e 400 linhas de diff de produção; teste, lockfile e fixture ficam fora da conta, mas
+listados. Uma task por pull request; a descrição cita o princípio de cada escolha não óbvia.

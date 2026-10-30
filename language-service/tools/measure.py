@@ -12,7 +12,6 @@ import importlib.util
 import json
 import os
 import platform
-import resource
 import statistics
 import subprocess
 import sys
@@ -24,10 +23,19 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import cast
 
+if sys.platform == "linux":
+    import resource  # absent on Windows: importing it there would stop the tool before its message
+
 SENTENCES = (
     "PESSOA_1 falou com PESSOA_2 em CIDADE_A na segunda-feira e levou o carro para a oficina.",
     "Depois da reunião, PESSOA_3 mandou uma mensagem dizendo que chegaria a CIDADE_B mais tarde.",
     "Ontem PESSOA_2 contou que a empresa ORGANIZACAO_A fechou o contrato com PESSOA_4.",
+)
+
+
+NOT_LINUX = (
+    "esta ferramenta mede só no Linux (lê /proc e usa getrusage); "
+    "rode-a no WSL ou em um contêiner Linux"
 )
 
 
@@ -79,6 +87,24 @@ class _Report:
     medians: Mapping[str, float]
 
 
+def _require_linux() -> None:
+    if sys.platform != "linux":
+        raise _MeasurementError(NOT_LINUX)
+
+
+def _peak_rss_kib() -> int:
+    # The platform test is what pyright narrows on: past it, the Unix-only calls are reachable.
+    if sys.platform != "linux":
+        raise _MeasurementError(NOT_LINUX)
+    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+
+
+def _load_average() -> tuple[float, float, float]:
+    if sys.platform != "linux":
+        raise _MeasurementError(NOT_LINUX)
+    return os.getloadavg()
+
+
 def _current_rss_kib() -> int:
     for line in Path("/proc/self/status").read_text(encoding="ascii").splitlines():
         if line.startswith("VmRSS:"):
@@ -115,7 +141,7 @@ def _probe(model: str, chars: int) -> _Probe:
         rss_imported_kib=rss_imported,
         rss_loaded_kib=rss_loaded,
         rss_analyzed_kib=_current_rss_kib(),
-        peak_rss_kib=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+        peak_rss_kib=_peak_rss_kib(),
         spacy_version=str(spacy.__version__),
         pipes=tuple(str(name) for name in nlp.pipe_names),
         text_chars=len(text),
@@ -182,7 +208,7 @@ def _machine_now(start: tuple[float, float, float]) -> _Machine:
         cores=os.cpu_count() or 0,
         memory_mib=int(Path("/proc/meminfo").read_text().split()[1]) // 1024,
         load_average_start=start,
-        load_average_end=os.getloadavg(),
+        load_average_end=_load_average(),
     )
 
 
@@ -192,7 +218,7 @@ def _medians(probes: tuple[_Probe, ...]) -> Mapping[str, float]:
 
 
 def _build_report(model: str, runs: int, chars: int) -> _Report:
-    start = os.getloadavg()
+    start = _load_average()
     root = _package_dir(model)
     disk = _measure_disk(root)
     probes = tuple(_run_child(model, chars) for _ in range(runs))
@@ -236,6 +262,7 @@ def _parse(argv: list[str]) -> argparse.Namespace:
 def main(argv: list[str]) -> int:
     options = _parse(argv)
     try:
+        _require_linux()
         if options.probe:
             print(json.dumps(asdict(_probe(options.model, options.chars))))
             return 0

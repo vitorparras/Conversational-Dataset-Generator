@@ -68,4 +68,32 @@ da Fase 1, cujo reconhecedor é o vazio (`EmptyRecognizer`) e não carrega o mod
 de código ficou fora do texto: a recusa `manifesto ausente` não diz onde procurou
 (`ServiceFolderCheck.cs:37`, `ServiceFolder.cs:19`); foi levado ao Arquiteto para issue.
 
-As correções acima mexem só em texto. A rodada 2 usa o texto corrigido, com quem ainda não o viu.
+As correções acima mexem só em texto.
+
+## Rodada 2
+
+Ambiente novo: contêiner e banco recriados do zero, o mesmo artefato de `ab91d09` conferido pelos
+mesmos sha256, ficha nova com outras senhas, e só o `README.md` e a pasta `docs/` do commit
+`e4ae18d` ao alcance. **Isenção declarada pelo operador:** o reset não apagou a memória da rodada
+1, e a rodada 2 foi feita pelo mesmo agente, lembrando dela. Ele diz que não abriu o arquivo da
+rodada 1 nem usou auxiliar dela, mas não garante que a lembrança não ajudou. Os resultados da
+rodada 2 valem menos que os de uma rodada limpa; a rodada 3 será de outro agente.
+
+Resultado: subida e queda do serviço passaram de novo, com quatro improvisos e duas lacunas de
+texto, nenhum passo acima de 15 minutos.
+
+| # | Improviso | Correção |
+|---|---|---|
+| 1 | A função `rota` não enviava `Content-Type`, e a análise respondeu 415 sem corpo | 022 envia o cabeçalho e cita o 415 |
+| 2 | O `&` do 021 (hoje 023, que ficou com a partida) supõe um shell que continua vivo; por `docker exec` não se sabia como manter o núcleo | 021 dá a forma com `docker exec -d` e `exec` |
+| 3 | O 021 só tinha o arquivo de senha do papel da aplicação, e o `migrate` pede o do dono | 021 grava um arquivo por papel e dá o comando do `migrate` |
+| 4 | Sem `ps`, o PID do núcleo para o SIGTERM | 022 ganha a função `pid`, para o núcleo e para o serviço |
+
+As lacunas eram erros meus no texto da rodada 1, e o operador os achou: o laço de procura do
+022 tinha o `tr` sem o `\0`, e o bloco de partida do 021 vinha com as quebras de linha trocadas
+por espaços. A causa é do meu modo de escrever os arquivos (um script que interpretou as barras
+invertidas), e o 022 chegou a ter bytes nulos no meio dele. Os dois blocos foram reescritos,
+e cada comando corrigido foi rodado de fora do ambiente do operador, num contêiner descartável
+de mesma base: `migrate` (0 e depois 10), partida com `docker exec -d` e com `&` (saída 0 ao
+SIGTERM), `rota` com 200, 503 e 400, e `pid` achando o núcleo e o serviço. Nesse teste o `&` por
+`docker exec` sem terminal também sobreviveu; o texto passou a dizer que ele depende disso.

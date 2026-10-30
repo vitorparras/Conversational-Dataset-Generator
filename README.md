@@ -213,8 +213,9 @@ reconhecedor o escreve) e `modelVersion`. Sem análise, responde 503 com `refere
 registro liga as duas pela referência; `resumes` que não seja um GUID recusa com 400, sem corpo.
 Campo desconhecido, ou `text` e `language` ausentes ou nulos, recusam o pedido com 400. `language`
 aceita qualquer texto: o núcleo o repassa, e o reconhecedor da Fase 1 o ignora. Como subir e
-conferir o núcleo publicado sem cliente HTTP: [021](docs/operacao/021-subir-o-nucleo-publicado.md)
-e [022](docs/operacao/022-conferir-o-nucleo-publicado.md).
+conferir o núcleo publicado sem cliente HTTP: [021](docs/operacao/021-subir-o-nucleo-publicado.md),
+[023](docs/operacao/023-iniciar-o-nucleo-publicado.md) e
+[022](docs/operacao/022-conferir-o-nucleo-publicado.md).
 
 Publicado para um alvo, o núcleo é um executável único, com a plataforma de execução dentro dele, e
 só o `core/src/Core.Host/appsettings.json` ao lado; o `.github/workflows/package.yml`, disparado à

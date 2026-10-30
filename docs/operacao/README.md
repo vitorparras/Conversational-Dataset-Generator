@@ -34,5 +34,6 @@ e por quem ela roda.
 | [020](020-codigo-no-repositorio.md) | O código no repositório: árvore, comandos e o que reprova |
 | [021](021-subir-o-nucleo-publicado.md) | Subir o núcleo publicado |
 | [022](022-conferir-o-nucleo-publicado.md) | Conferir o núcleo publicado |
+| [023](023-iniciar-o-nucleo-publicado.md) | Iniciar o núcleo publicado |
 
 Ver [regras de escrita](../regras-de-escrita.md).

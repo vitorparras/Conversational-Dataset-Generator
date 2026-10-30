@@ -36,25 +36,25 @@ internal static class ConfigurationGenerators
     public static readonly IReadOnlyList<string> DeclaredPaths =
         ["Sample:Name", "Sample:Threshold", "Sample:Mode", "Sample:Token", "Sample:Note"];
 
-    private static readonly Gen<ConfigurationOrigin> Origin = Gen.OneOfConst(ConfigurationOrigin.File, ConfigurationOrigin.Environment, ConfigurationOrigin.Argument);
+    private static readonly Gen<ConfigurationOrigin> Origin = Gen.OneOf(ConfigurationOrigin.File, ConfigurationOrigin.Environment, ConfigurationOrigin.Argument);
 
-    private static readonly Gen<string?> OptionalName = Gen.OneOfConst(null, "ZQX-MARKER-7731", "alpha", "beta gamma");
+    private static readonly Gen<string?> OptionalName = Gen.OneOf(null, "ZQX-MARKER-7731", "alpha", "beta gamma");
 
-    private static readonly Gen<string?> OptionalThreshold = Gen.OneOfConst(null, "3", "7", "0.5");
+    private static readonly Gen<string?> OptionalThreshold = Gen.OneOf(null, "3", "7", "0.5");
 
-    private static readonly Gen<string?> OptionalMode = Gen.OneOfConst(null, "strict", "lenient");
+    private static readonly Gen<string?> OptionalMode = Gen.OneOf(null, "strict", "lenient");
 
-    private static readonly Gen<string?> OptionalToken = Gen.OneOfConst(null, "ZQX-MARKER-7731", "other");
+    private static readonly Gen<string?> OptionalToken = Gen.OneOf(null, "ZQX-MARKER-7731", "other");
 
-    private static readonly Gen<string?> OptionalNote = Gen.OneOfConst(null, "ZQX-NOTE-7731", "delta");
+    private static readonly Gen<string?> OptionalNote = Gen.OneOf(null, "ZQX-NOTE-7731", "delta");
 
-    private static readonly Gen<string> RequiredName = Gen.OneOfConst("ZQX-MARKER-7731", "alpha", "beta gamma");
+    private static readonly Gen<string> RequiredName = Gen.OneOf("ZQX-MARKER-7731", "alpha", "beta gamma");
 
-    private static readonly Gen<string> RequiredThreshold = Gen.OneOfConst("3", "7", "0.5");
+    private static readonly Gen<string> RequiredThreshold = Gen.OneOf("3", "7", "0.5");
 
-    private static readonly Gen<string> UnknownKey = Gen.OneOfConst("Sample:Treshold", "Typo", "Other:Name", "sample:nmae");
+    private static readonly Gen<string> UnknownKey = Gen.OneOf("Sample:Treshold", "Typo", "Other:Name", "sample:nmae");
 
-    private static readonly Gen<string> RequiredPath = Gen.OneOfConst("Sample:Name", "Sample:Threshold");
+    private static readonly Gen<string> RequiredPath = Gen.OneOf("Sample:Name", "Sample:Threshold");
 
     /// <summary>One source that declares every required key, then up to two more overriding optional ones; always loads.</summary>
     public static readonly Gen<List<IConfigurationSource>> WellFormed =

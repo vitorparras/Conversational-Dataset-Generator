@@ -15,7 +15,8 @@ Garante também que nada sai sem passar por três recusas: rótulo fora da taxon
 ([0004](../decisoes/0004-taxonomia-configuravel.md)), recorte sem parecer de validação
 ([validação](009-modulo-validacao.md)) e auditoria de resíduo que encontre o que a sanitização
 deveria ter removido — ver [privacidade](../privacidade/). As três são recusas, não avisos. A
-auditoria está aqui porque o reconhecimento de nome é imperfeito, e esta é a última barreira.
+auditoria está aqui porque o reconhecimento de nome é imperfeito por natureza, e esta é a última
+barreira.
 
 Consome material pseudonimizado, anotações e medições. Produz o artefato de dataset e o registro de
 que ele existiu. Fala com a validação, com o controle de acesso — exportar é a operação de maior
@@ -24,9 +25,8 @@ alcance do sistema — e com a custódia.
 ## O recorte é declarado, não inferido
 
 Quem exporta diz qual recorte quer, e o módulo confere que o que saiu é o que foi pedido. A
-diferença entre declarar e inferir aparece no caso ruim: um filtro que silenciosamente deixou de
-fora metade de um domínio produz dataset válido e errado, indistinguível de um correto pela
-aparência do arquivo.
+diferença aparece no caso ruim: um filtro que silenciosamente deixou de fora metade de um domínio
+produz dataset válido e errado, indistinguível de um correto pela aparência do arquivo.
 
 ## Nenhum texto bruto sai
 

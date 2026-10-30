@@ -32,10 +32,10 @@ entram em registro: deslocamento com tipo, somado ao texto do núcleo, reconstr�
 ([requisito 021](../requisitos/021-registro-sem-dado-pessoal.md)). O transporte é local por
 condição, não por conveniência — a cifra protege o repouso, não o que trafega entre processos.
 
-Resposta ausente ou malformada não é o mesmo que nenhuma ocorrência: na primeira a análise é
-recusada, com a causa e a referência da recusa, em vez de deixar passar texto como se estivesse
-limpo ([0011](../decisoes/0011-protocolo-com-o-servico-de-linguagem.md)). Quem pede de novo cita
-essa referência para retomar, e o registro liga as duas.
+Resposta ausente ou malformada não é o mesmo que nenhuma ocorrência: na primeira o material é
+recusado e a ingestão para, com a causa e a referência da recusa, em vez de deixar passar texto como
+se estivesse limpo ([0011](../decisoes/0011-protocolo-com-o-servico-de-linguagem.md)). Quem pede de
+novo cita essa referência para retomar, e o registro liga as duas.
 
 ## Entre módulos, dentro do núcleo
 

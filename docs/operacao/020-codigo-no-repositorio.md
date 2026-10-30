@@ -16,8 +16,9 @@ Onde cada parte do código vive, os comandos que a verificam e o que reprova. Os
 O núcleo tem cinco projetos em `core/src`: `Core.Platform` (registro, configuração, partida),
 `Core.Boundary.Contracts` e `Core.Boundary` (a fronteira com o serviço), `Core.Persistence` (o
 banco) e `Core.Host`, o executável que os compõe. Cada um tem o projeto de teste de mesmo nome em
-`core/tests`, mais `Core.Tests.Architecture`, `Core.Tests.Integration`, `Core.Tests.Properties` e
-`Core.Tests.Support`. Os testes do serviço ficam em `language-service/tests`.
+`core/tests`, salvo o `Core.Boundary.Contracts`, testado em `Core.Boundary.Tests`; há ainda
+`Core.Tests.Architecture`, `Core.Tests.Integration`, `Core.Tests.Properties` e `Core.Tests.Support`.
+Os testes do serviço ficam em `language-service/tests`.
 
 ## Fronteiras
 

@@ -23,7 +23,7 @@ alcança qual domínio, e com a custódia.
 A anotação é assistida, e assistência acelera e enviesa pelo mesmo mecanismo: diante de uma sugestão
 plausível, concordar custa menos que examinar. Por isso o rótulo distingue sugestão aceita sem
 alteração, sugestão corrigida e rótulo criado pela pessoa
-([requisito 010](../requisitos/010-sugestao-nao-e-anotacao.md)). Sugestão recusada não grava nada.
+([requisito 010](../requisitos/010-sugestao-nao-e-anotacao.md)). Sugestão ignorada não grava nada.
 
 Essa origem é derivada no núcleo, confrontando o que foi submetido com a sugestão que o núcleo
 serviu — "aceita sem alteração" e "corrigida" não se distinguem olhando o rótulo final. Quem anota

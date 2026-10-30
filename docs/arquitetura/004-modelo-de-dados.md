@@ -1,7 +1,7 @@
 # 004 — O modelo de dados
 
 > Descrição. 2026-10-04.
-> Estado no código: nenhuma entidade existe; o banco só guarda a versão do esquema (`core/src/Core.Persistence/Migrations/Sql`). Ver [custódia e cifra](../roadmap/002-custodia-e-cifra.md).
+> Estado no código: nenhuma entidade existe; o banco só guarda a versão do esquema e as falhas de migração (`core/src/Core.Persistence/Migrations/Sql`). Ver [custódia e cifra](../roadmap/002-custodia-e-cifra.md).
 
 As entidades do sistema e o que as liga, em nível conceitual — sem tabela nem coluna.
 

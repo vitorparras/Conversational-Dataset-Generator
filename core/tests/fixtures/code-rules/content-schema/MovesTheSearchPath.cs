@@ -9,4 +9,8 @@ internal static class MovesTheSearchPath
     public const string Connection = "Host=zqx;Search Path=content";
 
     public const string Role = "ALTER ROLE app SET SEARCH_PATH TO content";
+
+    public static void Builder(NpgsqlConnectionStringBuilder builder) => builder.SearchPath = "content";
+
+    public static NpgsqlConnectionStringBuilder Initializer() => new() { SearchPath = "content" };
 }

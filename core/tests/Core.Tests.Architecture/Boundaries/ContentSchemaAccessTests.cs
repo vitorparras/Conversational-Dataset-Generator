@@ -47,7 +47,7 @@ public sealed class ContentSchemaAccessTests
     [Fact]
     public void ConstantOfTheListOfQueriesIsLeftAloneAndAStatementBuiltAtRunTimeThereIsNot()
     {
-        var text = SourceTree.FixtureText(Path.Combine(Fixtures, "ReachesContentDirectly.cs"));
+        var text = SourceTree.FixtureText(Path.Combine(Fixtures, "QueryList.cs"));
         var queries = SourceFile.FromText(QueriesPath, text);
 
         var lines = ContentSchemaAccessRules.Check([queries]).Select(violation => violation.Line);
@@ -64,6 +64,17 @@ public sealed class ContentSchemaAccessTests
         var lines = ContentSchemaAccessRules.Check([queries]).Select(violation => violation.Line).Order();
 
         Assert.Equal([7, 9, 11], lines);
+    }
+
+    [Fact]
+    public void ConstantOfANestedOrOtherClassInTheFileOfTheListIsRefusedBecauseTheListWouldNotSeeIt()
+    {
+        var text = SourceTree.FixtureText(Path.Combine(Fixtures, "BesideTheList.cs"));
+        var queries = SourceFile.FromText(QueriesPath, text);
+
+        var lines = ContentSchemaAccessRules.Check([queries]).Select(violation => violation.Line).Order();
+
+        Assert.Equal([9, 15], lines);
     }
 
     [Fact]
@@ -84,7 +95,7 @@ public sealed class ContentSchemaAccessTests
 
         var lines = ContentSchemaAccessRules.Check([fixture]).Select(violation => violation.Line).Order();
 
-        Assert.Equal([5, 7, 9, 11], lines);
+        Assert.Equal([5, 7, 9, 11, 13, 15], lines);
     }
 
     [Fact]
@@ -95,6 +106,6 @@ public sealed class ContentSchemaAccessTests
 
         var lines = ContentSchemaAccessRules.Check([queries]).Select(violation => violation.Line).Order();
 
-        Assert.Equal([5, 7, 9, 11], lines);
+        Assert.Equal([5, 7, 9, 11, 13, 15], lines);
     }
 }

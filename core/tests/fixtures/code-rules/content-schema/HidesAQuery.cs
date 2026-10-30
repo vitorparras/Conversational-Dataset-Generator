@@ -1,6 +1,6 @@
 namespace Fixture.ContentSchema;
 
-internal static class HidesAQuery
+internal static class ContentQueries
 {
     public const string Listed = "SELECT id FROM content.item";
 

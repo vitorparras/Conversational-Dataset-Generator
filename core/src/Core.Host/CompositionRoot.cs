@@ -192,7 +192,7 @@ internal static class CompositionRoot
         var builder = ClosedBuilder(loaded.Values[HostConfiguration.UrlsPath]);
         Compose(builder, loaded.View, fileLog);
         AddAnalysis(builder.Services, loaded.Values, analyzeTimeout);
-        InstallationConfiguration.Add(builder.Services, loaded.Values, checks);
+        _ = builder.Services.AddSingleton(InstallationConfiguration.Of(loaded.Values)).AddSingleton(provider => InstallationConfiguration.Shown(StartupVersions.Of(checks), provider));
         return builder;
     }
 

@@ -15,17 +15,4 @@ internal static partial class InstallationLogMessages
         Level = LogLevel.Warning,
         Message = "Instalação de demonstração: roda sem cópia de guarda da chave e sem recuperação testada; não ingira material real")]
     internal static partial void DemonstrationInstallation(this ILogger logger, [LogProperties(OmitReferenceName = true)] Installation installation);
-
-    /// <summary>Writes the line that matches the kind the installation declares.</summary>
-    internal static void Declared(this ILogger logger, Installation installation)
-    {
-        if (installation.Kind == InstallationKind.Demonstration)
-        {
-            logger.DemonstrationInstallation(installation);
-        }
-        else
-        {
-            logger.RealInstallation(installation);
-        }
-    }
 }

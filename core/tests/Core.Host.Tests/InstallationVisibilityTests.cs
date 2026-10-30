@@ -3,6 +3,8 @@ using Core.Host.Supervision;
 using Core.Host.Tests.Logging;
 using Core.Platform;
 using Core.Platform.Startup;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Core.Host.Tests;
 
@@ -58,7 +60,7 @@ public sealed class InstallationVisibilityTests
     [Fact]
     public void StartupLineOfADemonstrationWarnsThatNoRealMaterialBelongsThere()
     {
-        var line = ComposedConsole.LineWrittenBy(logger => logger.Declared(new Installation(InstallationKind.Demonstration)));
+        var line = ComposedConsole.LineWrittenBy(logger => Announced(logger, InstallationKind.Demonstration));
 
         Assert.Contains("warn", line, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Instalação de demonstração: roda sem cópia de guarda da chave e sem recuperação testada; não ingira material real", line, StringComparison.Ordinal);
@@ -67,7 +69,7 @@ public sealed class InstallationVisibilityTests
     [Fact]
     public void StartupLineOfADemonstrationCarriesTheMarkedName()
     {
-        var line = ComposedConsole.LineWrittenBy(logger => logger.Declared(new Installation(InstallationKind.Demonstration)));
+        var line = ComposedConsole.LineWrittenBy(logger => Announced(logger, InstallationKind.Demonstration));
 
         Assert.Contains(Mark, line, StringComparison.Ordinal);
     }
@@ -75,9 +77,12 @@ public sealed class InstallationVisibilityTests
     [Fact]
     public void StartupLineOfARealInstallationSaysSoAndDoesNotWarn()
     {
-        var line = ComposedConsole.LineWrittenBy(logger => logger.Declared(new Installation(InstallationKind.Real)));
+        var line = ComposedConsole.LineWrittenBy(logger => Announced(logger, InstallationKind.Real));
 
         Assert.Contains("Instalação real", line, StringComparison.Ordinal);
         Assert.DoesNotContain("demonstração", line, StringComparison.OrdinalIgnoreCase);
     }
+
+    private static void Announced(ILogger logger, InstallationKind kind) =>
+        InstallationConfiguration.Announce(logger, new ServiceCollection().AddSingleton(new Installation(kind)).BuildServiceProvider());
 }

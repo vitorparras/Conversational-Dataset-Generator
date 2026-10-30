@@ -1,6 +1,6 @@
-using System.Collections;
 using Core.Platform;
 using Core.Platform.Configuration;
+using Core.Platform.Versions;
 using ConfigurationSection = Core.Platform.Configuration.ConfigurationSection;
 
 namespace Core.Host;
@@ -22,14 +22,21 @@ internal static class InstallationConfiguration
     internal static Installation Of(IReadOnlyDictionary<string, string> values) =>
         new(string.Equals(values[KindPath], Demonstration, StringComparison.Ordinal) ? InstallationKind.Demonstration : InstallationKind.Real);
 
-    /// <summary>The installation the configuration declares, and the report of versions that shows it beside the versions the checks confirmed.</summary>
-    internal static void Add(IServiceCollection services, IReadOnlyDictionary<string, string> values, IEnumerable checks)
-    {
-        var installation = Of(values);
-        _ = services.AddSingleton(installation).AddSingleton(StartupVersions.Of(checks).WithInstallation(installation));
-    }
+    /// <summary>The report of versions with the installation the host declares beside the versions the checks confirmed.</summary>
+    internal static VersionReport Shown(VersionReport report, IServiceProvider services) =>
+        report.WithInstallation(services.GetRequiredService<Installation>());
 
     /// <summary>Writes, once, the line that says which kind of installation this is.</summary>
-    internal static void Announce(ILogger logger, IServiceProvider services) =>
-        logger.Declared(services.GetRequiredService<Installation>());
+    internal static void Announce(ILogger logger, IServiceProvider services)
+    {
+        var installation = services.GetRequiredService<Installation>();
+        if (installation.Kind == InstallationKind.Demonstration)
+        {
+            logger.DemonstrationInstallation(installation);
+        }
+        else
+        {
+            logger.RealInstallation(installation);
+        }
+    }
 }

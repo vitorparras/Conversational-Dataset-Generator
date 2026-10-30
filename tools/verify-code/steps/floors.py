@@ -7,6 +7,7 @@ or a `.cs` file whose namespace and folder fall in different areas.
 
 from __future__ import annotations
 
+import os
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -21,6 +22,8 @@ from steps.coverage_report import MeasuredLine
 NAME = "floors"
 ROW = re.compile(r"\| (.+?) \| (.+?) \| [\d,]+ % \| (\d+) de (\d+) \|")
 NO_PREVIOUS = "sem medição anterior para comparar (--previous <by-area.md de outra execução>)"
+WARNING = "AVISO — "
+ANNOTATION = "::warning title=Queda de cobertura::"
 
 
 @dataclass(frozen=True)
@@ -68,7 +71,16 @@ def judge(area: Area, now: Tally, before: Tally | None, unmeasured: bool) -> Ver
     if before is None or now.covered * before.coverable >= before.covered * now.coverable:
         return Verdict(notes=(met,))
     drop = f"caiu de {before.percent()} para {now.percent()} sem cruzar o piso de {area.floor} %"
-    return Verdict(notes=(met, f"AVISO — {area.name} {drop}"))
+    return Verdict(notes=(met, f"{WARNING}{area.name} {drop}"))
+
+
+def annotate(notes: tuple[str, ...]) -> None:
+    """Prints each drop as a GitHub warning, which the pull request shows; only under Actions."""
+    if os.environ.get("GITHUB_ACTIONS") != "true":
+        return
+    for note in notes:
+        if note.startswith(WARNING):
+            print(ANNOTATION + note.replace("%", "%25"))
 
 
 def earlier(path: Path | None) -> Mapping[str, Tally]:
@@ -148,4 +160,5 @@ def run(ctx: Context) -> StepResult:
     notes = tuple(line for verdict in verdicts for line in verdict.notes)
     title = f"### Pisos de cobertura — {found.languages}"
     summarize("\n".join((title, "", *(f"- {line}" for line in (*failures, *notes)), "")))
+    annotate(notes)
     return (failed if failures else passed)(NAME, *failures, *notes)

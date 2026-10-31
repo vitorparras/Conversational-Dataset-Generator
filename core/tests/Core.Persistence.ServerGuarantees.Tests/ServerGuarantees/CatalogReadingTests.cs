@@ -71,8 +71,8 @@ public sealed class CatalogReadingTests
         var result = await AppStartup.CheckAsync(database, dataSource => new ColumnRevokeCheck(dataSource));
 
         Assert.Equal(CheckStatus.Failed, result.Status);
-        Assert.Contains("o papel 'app' tem UPDATE na tabela zqx_voided inteira", result.Message, StringComparison.Ordinal);
-        Assert.Contains("REVOKE UPDATE ON zqx_voided FROM app", result.Message, StringComparison.Ordinal);
+        Assert.Contains("o papel 'app' tem UPDATE na tabela public.zqx_voided inteira", result.Message, StringComparison.Ordinal);
+        Assert.Contains("REVOKE UPDATE ON public.zqx_voided FROM app", result.Message, StringComparison.Ordinal);
     }
 
     [DatabaseFact]

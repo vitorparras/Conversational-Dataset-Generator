@@ -108,4 +108,14 @@ public sealed class ContentSchemaAccessTests
 
         Assert.Equal([5, 7, 9, 11, 13, 15], lines);
     }
+
+    [Fact]
+    public void OnlyTheLocalPinOfTheSearchPathToTheCatalogIsLetThrough()
+    {
+        var fixture = SourceTree.Fixture(Path.Combine(Fixtures, "PinsTheSearchPath.cs"));
+
+        var lines = ContentSchemaAccessRules.Check([fixture]).Select(violation => violation.Line).Order();
+
+        Assert.Equal([7, 9, 11, 13], lines);
+    }
 }

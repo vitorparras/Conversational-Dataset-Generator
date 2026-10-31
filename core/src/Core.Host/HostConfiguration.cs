@@ -30,7 +30,7 @@ internal static class HostConfiguration
             [
                 ConfigurationKey.WithDefault(UrlsKey, "http://127.0.0.1:5000"),
                 ConfigurationKey.WithDefault(BundledFileKey, SettingsFile),
-                ConfigurationKey.Optional(LogFileKey),
+                ConfigurationKey.Optional(LogFileKey)
             ]);
 
     /// <summary>The database section of a configuration that loaded; none from one that was refused, which has no values to read it from
@@ -56,7 +56,7 @@ internal static class HostConfiguration
                     CustodyConfiguration.Section,
                     LanguageServiceConfiguration.Section,
                     RecognizerConfiguration.Section,
-                    DatabaseConfiguration.Section,
+                    DatabaseConfiguration.Section
                 ]),
             new JsonFileSource(SettingsPath),
             EnvironmentSource.FromProcess(),

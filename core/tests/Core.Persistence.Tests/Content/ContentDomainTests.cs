@@ -56,6 +56,7 @@ public sealed class ContentDomainTests
         await using var database = await WithTwoDomainsAsync();
         await using var dataSource = NpgsqlDataSource.Create(database.AppConnectionString);
         await using var transaction = await ContentTransaction.BeginAsync(dataSource, 1, TestContext.Current.CancellationToken);
+        // nosemgrep: sql-concatenation-csharp interpolates only the name of the table this test creates, a constant.
         await using var insert = transaction.CreateCommand($"INSERT INTO {Table} (domain_id, body) VALUES (2, 'x')");
 
         var refused = await Assert.ThrowsAsync<PostgresException>(() => insert.ExecuteNonQueryAsync(TestContext.Current.CancellationToken));
@@ -351,6 +352,7 @@ public sealed class ContentDomainTests
         await using (var dataSource = NpgsqlDataSource.Create(database.OwnerConnectionString))
         {
             var writing = await ContentTransaction.BeginAsync(dataSource, 1, TestContext.Current.CancellationToken);
+            // nosemgrep: sql-concatenation-csharp interpolates only the name of the table this test creates, a constant.
             await using var insert = writing.CreateCommand($"INSERT INTO {Table} (domain_id, body) VALUES (1, 'a3')");
             _ = await insert.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
             await writing.DisposeAsync();
@@ -383,6 +385,7 @@ public sealed class ContentDomainTests
         await using var transaction = await ContentTransaction.BeginAsync(dataSource, domain, TestContext.Current.CancellationToken);
         foreach (var body in bodies)
         {
+            // nosemgrep: sql-concatenation-csharp interpolates a table constant and literals the test itself passes.
             await using var insert = transaction.CreateCommand($"INSERT INTO {Table} (domain_id, body) VALUES ({domain}, '{body}')");
             _ = await insert.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
         }
@@ -394,6 +397,7 @@ public sealed class ContentDomainTests
     {
         await using var dataSource = NpgsqlDataSource.Create(connectionString);
         await using var transaction = await ContentTransaction.BeginAsync(dataSource, domain, TestContext.Current.CancellationToken);
+        // nosemgrep: sql-concatenation-csharp interpolates only the name of the table this test creates, a constant.
         await using var select = transaction.CreateCommand($"SELECT body FROM {Table} ORDER BY body");
         await using var reader = await select.ExecuteReaderAsync(TestContext.Current.CancellationToken);
         var bodies = new List<string>();
@@ -408,6 +412,7 @@ public sealed class ContentDomainTests
     private static async Task<long> CountWithNoDomainAsync(string connectionString)
     {
         await using var connection = await Sql.OpenAsync(connectionString);
+        // nosemgrep: sql-concatenation-csharp interpolates only the name of the table this test creates, a constant.
         await using var command = new NpgsqlCommand($"SELECT count(*) FROM {Table}", connection);
         return (long)(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken))!;
     }

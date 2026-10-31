@@ -34,7 +34,7 @@ jobs:
         run: python tools/verify-code/verify.py --step build_core test_core
       - name: Instalar uv na versão fixada (test_real_service chama `uv run --frozen`)
         run: pip install -r tools/verify-code/service-requirements.txt
-      - name: Restaurar a cobertura por área que o main guardou (cache vazio: o passo compara sem ela)
+      - name: 'Restaurar a cobertura por área que o main guardou (cache vazio: o passo compara sem ela)'
         if: github.event_name == 'pull_request'
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -79,7 +79,7 @@ jobs:
           python-version: '3.12'
       - name: Instalar uv, ruff, pyright e coverage nas versões fixadas
         run: pip install -r tools/verify-code/service-requirements.txt -r tools/verify-code/lint-requirements.txt
-      - name: Restaurar a cobertura por área que o main guardou (cache vazio: o passo compara sem ela)
+      - name: 'Restaurar a cobertura por área que o main guardou (cache vazio: o passo compara sem ela)'
         if: github.event_name == 'pull_request'
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:

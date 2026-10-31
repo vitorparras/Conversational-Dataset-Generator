@@ -35,6 +35,7 @@ ainda sem projeto entra na tabela pelo nome, por exceção declarada à [regra 5
 | Análise do material | `Core.Host.Analysis` | 90 % | sim | Leva o texto ao reconhecedor e decide o que a recusa registra e devolve (requisito 021) |
 | Contrato da fronteira | `Core.Boundary.Contracts` | 90 % | sim | A forma JSON recusa campo desconhecido ou nulo no texto que cruza o processo (decisão 0018) |
 | Migração do esquema | `Core.Persistence.Migrations` | 90 % | sim | Altera o esquema do banco; erro corrompe custódia (requisito 019) |
+| Transação de conteúdo | `Core.Persistence.Content` | 90 % | sim | Declara o domínio que o banco usa para decidir o que uma consulta de conteúdo vê (decisão 0006) |
 | Autenticação do serviço | `language_service.auth` | 90 % | sim | Guarda o segredo que protege texto não sanitizado (decisão 0011) |
 | Prova do segredo | `language_service.proof` | 90 % | sim | Prova que conhece o segredo pelo HMAC do nonce, sem revelá-lo (decisão 0043) |
 | Registro do serviço | `language_service.logging_` | 90 % | sim | Decide o que o serviço escreve em registro (requisito 021) |
@@ -48,8 +49,7 @@ ainda sem projeto entra na tabela pelo nome, por exceção declarada à [regra 5
 | Executável | `Core.Host` | 60 % | não | Absorve: `Endpoints`, `Migration`, `Supervision`; só composição, sem regra, coberto por teste de integração |
 | Ferramentas | `tools` | 60 % | não | Scripts da verificação; falha reprova o build, não vaza dado |
 
-O teste de mutação percorre as áreas com `sim` em Crítica; as regras dele estão na
-[017](017-teste-de-mutacao.md).
+O teste de mutação percorre as áreas com `sim` em Crítica, pelas regras da [017](017-teste-de-mutacao.md).
 
 ## Como um piso muda
 

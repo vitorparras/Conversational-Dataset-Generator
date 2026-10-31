@@ -156,11 +156,12 @@ do ambiente virtual de `language-service/`, em caminho absoluto, porque `dotnet 
 da pasta do projeto; o `$(...)` acima o obtém, e o `uv run --frozen` já cria o ambiente a partir de
 `uv.lock` se ele não existir. Com a chave, em Development, o núcleo usa esse executável e não
 confere a pasta (o registro de inicialização diz que ela não foi conferida). Sem a chave, usa o
-interpretador da pasta `language-service/` ao lado do executável e, antes de iniciar, confere cada
-arquivo contra o `SHA256SUMS`; manifesto ausente, vazio ou ilegível, arquivo ausente ou soma
-divergente recusa a partida e nomeia o arquivo (o manifesto, pelo caminho absoluto). O núcleo
-inicia o interpretador em modo isolado (`-I`): `PYTHONHOME` e `PYTHONPATH` herdados do ambiente não
-alcançam o serviço. Os testes do núcleo usam o mesmo comando para achar o interpretador.
+interpretador da pasta `language-service/` dentro da pasta do executável (uma pasta irmã não vale)
+e, antes de iniciar, confere cada arquivo contra o `SHA256SUMS`; manifesto ausente, vazio ou
+ilegível, arquivo ausente ou soma divergente recusa a partida e nomeia o arquivo (o manifesto, pelo
+caminho absoluto). O núcleo inicia o interpretador em modo isolado (`-I`): `PYTHONHOME` e
+`PYTHONPATH` herdados do ambiente não alcançam o serviço. Os testes do núcleo usam o mesmo comando
+para achar o interpretador.
 `LanguageService:AnalyzeTimeoutSeconds` (padrão 10, de 1 a 3600 segundos) limita cada análise:
 vencido o prazo, o desfecho é serviço indisponível, nunca lista vazia; valor fora desse intervalo
 recusa a configuração.
@@ -210,8 +211,12 @@ o serviço tem porta e segredo, sem esperar além do limite de leitura; ausentes
 concluída responde 200 com `reference`, `occurrences`, `kinds` (contagem por tipo, escrito como o
 reconhecedor o escreve) e `modelVersion`. Sem análise, responde 503 com `reference`, `reason` e
 `cause`, e nada é gravado. Retomar é pedir de novo com `resumes` igual à `reference` da recusa, e o
-registro liga as duas pela referência. Campo desconhecido, ou `text` e `language` ausentes ou nulos,
-recusam o pedido com 400.
+registro liga as duas pela referência; `resumes` que não seja um GUID recusa com 400, sem corpo.
+Campo desconhecido, ou `text` e `language` ausentes ou nulos, recusam o pedido com 400. `language`
+aceita qualquer texto: o núcleo o repassa, e o reconhecedor da Fase 1 o ignora. Como subir e
+conferir o núcleo publicado sem cliente HTTP: [021](docs/operacao/021-subir-o-nucleo-publicado.md),
+[023](docs/operacao/023-iniciar-o-nucleo-publicado.md) e
+[022](docs/operacao/022-conferir-o-nucleo-publicado.md).
 
 Publicado para um alvo, o núcleo é um executável único, com a plataforma de execução dentro dele, e
 só o `core/src/Core.Host/appsettings.json` ao lado; o `.github/workflows/package.yml`, disparado à
@@ -233,9 +238,10 @@ construção; as fixtures que ele reprova de propósito ficam em `core/tests/fix
 de qualquer projeto.
 
 Com as chaves `Database:Host`, `Database:Name` e `Database:Username` e a senha em
-`CDG_DATABASE__PASSWORD`, o núcleo confere as garantias do banco com o papel `app` antes do serviço
-de linguagem e recusa iniciar se faltar alguma; sem `Database:Host`, a conferência `Database`
-aparece como `NotConfigured`.
+`CDG_DATABASE__PASSWORD` (a caixa não importa), o núcleo confere as garantias do banco com o papel
+`app` antes do serviço de linguagem e recusa iniciar se faltar alguma; sem `Database:Host`, a
+conferência `Database` aparece como `NotConfigured`. A porta vai junto, em `Database:Host`
+(`servidor:5432`).
 
 ## Banco de dados de desenvolvimento
 
@@ -274,8 +280,8 @@ uv sync --locked --directory language-service
 uv run --directory language-service pytest
 ```
 
-A pasta `language-service/` que o núcleo publicado confere ao lado do executável é montada por
-`tools/build-service`, como descreve [018](docs/operacao/018-pasta-do-servico.md).
+A pasta `language-service/` que o núcleo publicado confere dentro da pasta do executável é
+montada por `tools/build-service`, como descreve [018](docs/operacao/018-pasta-do-servico.md).
 
 No comando único, são os passos `build_service`, `test_service` e `lint_service`: exigem `uv` na
 versão de `tools/verify-code/service-requirements.txt`; o segundo grava o relatório de testes e a

@@ -31,6 +31,13 @@ Cada uso é cercado assim:
    voltaram ativos
 4. O resultado entra no registro de custódia, e a janela também
 
+## O dono também declara o domínio
+
+A política de linha das tabelas de conteúdo vale contra o dono
+([0006](../decisoes/0006-dominios-coexistem.md)): sem declarar um domínio, a credencial de dono não
+vê linha alguma. Ela pode declarar um, como a aplicação, para migrar ou restaurar dado de um
+domínio; cada uso é janela registrada, como qualquer outro.
+
 ## Por que a janela importa depois
 
 A [verificação da custódia](../privacidade/005-verificacao-da-custodia.md) distingue acidente de

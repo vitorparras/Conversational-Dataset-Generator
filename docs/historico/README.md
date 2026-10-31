@@ -17,5 +17,6 @@ falsificaria o registro.
 |---|---|
 | [002](002-medidas-do-artefato.md) | Medidas do executável único do núcleo |
 | [003](003-medicao-do-modelo.md) | Medição do modelo de linguagem |
+| [004](004-pre-ensaio-de-subida-isolada.md) | Pré-ensaio de subida isolada |
 
 Ver [regras de escrita](../regras-de-escrita.md).

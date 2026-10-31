@@ -1,4 +1,5 @@
 using Core.Platform.Keys;
+using Core.Platform.Startup;
 using Core.Tests.Support.Custody;
 
 namespace Core.Platform.Tests.Keys;
@@ -91,7 +92,7 @@ public sealed class FileMasterKeySourceTests : IDisposable
         using var reading = await source.ReadAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(MasterKeyFailureKind.WrongSize, reading.Failure!.Kind);
-        Assert.Equal("16 bytes, esperados 32", reading.Failure.Found);
+        Assert.Equal($"arquivo da chave em '{Path.Combine(files.Directory, "key")}': 16 bytes, esperados 32", reading.Failure.Found);
         Assert.All(SyntheticKey.Spellings(key), spelling => Assert.DoesNotContain(spelling, reading.Failure.Found, StringComparison.Ordinal));
     }
 
@@ -112,7 +113,7 @@ public sealed class FileMasterKeySourceTests : IDisposable
     [Fact]
     public async Task KeyFileWithMoreThanOneLineRefusesNamingTheCountAndNeverTheLines()
     {
-        var line = KeyLine(SyntheticKey.Valid()).TrimEnd();
+        var line = KeyLine(SyntheticKey.Valid()).TrimEnd()[..14];
         var source = Source($"{line}\n{line}\n{line}\n", string.Empty);
 
         using var reading = await source.ReadAsync(TestContext.Current.CancellationToken);
@@ -214,6 +215,62 @@ public sealed class FileMasterKeySourceTests : IDisposable
     }
 
     [Fact]
+    public async Task FileReachedThroughALinkedFolderThatPointsInsideTheArtifactFolderIsRefused()
+    {
+        using var artifact = new CustodyFiles();
+        _ = artifact.WriteText("key", KeyLine(SyntheticKey.Valid()));
+        var folder = Path.Combine(files.Directory, "current");
+        Assert.SkipUnless(TryFolderLink(folder, artifact.Directory), "a plataforma não deixou criar o elo de pasta");
+        var source = new FileMasterKeySource(Path.Combine(folder, "key"), files.WriteText("labels", string.Empty), artifact.Directory);
+
+        using var reading = await source.ReadAsync(TestContext.Current.CancellationToken);
+
+        Assert.Contains("dentro da pasta do artefato", reading.Failure!.Found, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task FileInsideTheArtifactFolderGivenAsALinkedFolderIsRefused()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), $"cdg-custody-link-{Guid.NewGuid():N}");
+        Assert.SkipUnless(TryFolderLink(folder, files.Directory), "a plataforma não deixou criar o elo de pasta");
+        try
+        {
+            var source = new FileMasterKeySource(files.WriteText("key", KeyLine(SyntheticKey.Valid())), files.WriteText("labels", string.Empty), folder);
+
+            using var reading = await source.ReadAsync(TestContext.Current.CancellationToken);
+
+            Assert.Contains("dentro da pasta do artefato", reading.Failure!.Found, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(folder);
+        }
+    }
+
+    [Fact]
+    public async Task PassedCheckShowsNoPathOfTheCustodyFiles()
+    {
+        var source = Source(KeyLine(SyntheticKey.Valid()), "dominio-a\n");
+
+        var result = await new MasterKeyCheck(source).RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(CheckStatus.Passed, result.Status);
+        Assert.DoesNotContain(files.Directory, result.Message + result.ExpectedSource + result.Observed, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task FailureOfTheSizeNamesTheKeyFileAndItsPath()
+    {
+        var source = Source(KeyLine(SyntheticKey.OfLength(16)), string.Empty);
+
+        var result = await new MasterKeyCheck(source).RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            $"chave-mestra de tamanho inválido: encontrado arquivo da chave em '{Path.Combine(files.Directory, "key")}': 16 bytes, esperados 32",
+            result.Message);
+    }
+
+    [Fact]
     public async Task FileThatCannotBeOpenedRefusesNamingTheKindOfFailureAndNoContent()
     {
         var source = Source(KeyLine(SyntheticKey.Valid()), string.Empty);
@@ -222,7 +279,7 @@ public sealed class FileMasterKeySourceTests : IDisposable
         using var reading = await source.ReadAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(MasterKeyFailureKind.Unreadable, reading.Failure!.Kind);
-        Assert.Contains("não pôde ser aberto (IOException)", reading.Failure.Found, StringComparison.Ordinal);
+        Assert.Contains($"arquivo da chave em '{Path.Combine(files.Directory, "key")}': não pôde ser aberto (IOException)", reading.Failure.Found, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -240,6 +297,19 @@ public sealed class FileMasterKeySourceTests : IDisposable
         try
         {
             _ = File.CreateSymbolicLink(link, target);
+            return true;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
+    private static bool TryFolderLink(string link, string target)
+    {
+        try
+        {
+            _ = Directory.CreateSymbolicLink(link, target);
             return true;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)

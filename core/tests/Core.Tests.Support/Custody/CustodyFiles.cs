@@ -34,7 +34,13 @@ public sealed class CustodyFiles : IDisposable
     public string Write(string name, byte[] content)
     {
         var path = Path.Combine(Directory, name);
-        using (var stream = new FileStream(path, new FileStreamOptions { Mode = FileMode.Create, Access = FileAccess.Write, UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite }))
+        var options = new FileStreamOptions { Mode = FileMode.Create, Access = FileAccess.Write };
+        if (!OperatingSystem.IsWindows())
+        {
+            options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+        }
+
+        using (var stream = new FileStream(path, options))
         {
             stream.Write(content);
         }

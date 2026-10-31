@@ -47,7 +47,7 @@ internal static class CompositionRoot
 
         var analyzeTimeout = LanguageServiceConfiguration.AnalyzeTimeout(loaded.Values);
         IReadOnlyList<ConfigurationProblem> refused =
-            [.. LanguageServiceConfiguration.Refusals(loaded.Values, analyzeTimeout), .. CustodyConfiguration.Refusals(loaded.Values, InstallationConfiguration.Of(loaded.Values).Kind)];
+            [.. LanguageServiceConfiguration.Refusals(loaded.Values, analyzeTimeout), .. SafekeepingConfiguration.Refusals(loaded.Values, InstallationConfiguration.Of(loaded.Values).Kind)];
         return analyzeTimeout is { } timeout && refused.Count == 0 ? await LaunchAsync(loaded, database, timeout, target) : HostLaunch.Refused(refused);
     }
 
@@ -55,7 +55,7 @@ internal static class CompositionRoot
     private static async Task<HostLaunch> MigrateAsync(DatabaseSettings database)
     {
         await using var dataSource = NpgsqlDataSource.Create(database.ConnectionString!);
-        await using var logging = MigrationServices();
+        await using var logging = MigrationLogging.Services();
         var result = await new MigrationRunner(dataSource, EmbeddedMigrations.Load()).RunAsync(CancellationToken.None);
         logging.GetRequiredService<ILogger<MigrationRunner>>().Write(result);
         return HostLaunch.Migrated(result.Outcome);
@@ -137,8 +137,7 @@ internal static class CompositionRoot
     private static ServiceProvider StartupServices(ConfigurationLoadResult loaded, FileLoggerProvider? fileLog, DatabaseSettings database)
     {
         var services = new ServiceCollection();
-        _ = services.AddSingleton<IMasterKeySource>(MasterKeyConfiguration.SourceOf(loaded.Values));
-        _ = services.AddSingleton<IStartupCheck>(provider => new MasterKeyCheck(provider.GetRequiredService<IMasterKeySource>()));
+        MasterKeyConfiguration.AddCheck(services, loaded.Values);
         AddServerGuarantees(services, database);
         _ = services.AddSingleton(TimeProvider.System);
         _ = services.AddLogging(logging => HostLogFile.WithFile(logging, fileLog));
@@ -159,16 +158,6 @@ internal static class CompositionRoot
             provider.GetRequiredService<ILogger<LanguageServiceSupervisor>>()));
         _ = services.AddSingleton(provider => new LanguageServiceStartupCheck(
             provider.GetRequiredService<LanguageServiceSupervisor>(), loaded.Values[LanguageServiceConfiguration.StartupTimeoutPath]));
-        return services.BuildServiceProvider();
-    }
-
-    /// <summary>Redacted console logging alone: the migration mode has no host, no file destination and no language service.</summary>
-    private static ServiceProvider MigrationServices()
-    {
-        var services = new ServiceCollection();
-        _ = services.AddSingleton(TimeProvider.System);
-        _ = services.AddLogging(PlatformLogging.Configure);
-        _ = services.AddRedaction(PlatformLogging.EraseSensitiveData);
         return services.BuildServiceProvider();
     }
 
@@ -198,11 +187,7 @@ internal static class CompositionRoot
         Compose(builder, loaded.View, fileLog);
         AddAnalysis(builder.Services, loaded.Values, analyzeTimeout);
         _ = builder.Services.AddSingleton(InstallationConfiguration.Of(loaded.Values)).AddSingleton(provider => InstallationConfiguration.Shown(StartupVersions.Of(checks), provider));
-        if (CustodyConfiguration.Declaration(loaded.Values) is { } custody)
-        {
-            _ = builder.Services.AddSingleton(custody);
-        }
-
+        SafekeepingConfiguration.Declare(builder.Services, loaded.Values);
         return builder;
     }
 

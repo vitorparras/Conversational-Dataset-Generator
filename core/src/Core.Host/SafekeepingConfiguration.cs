@@ -1,6 +1,7 @@
 using System.Globalization;
 using Core.Platform;
 using Core.Platform.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using ConfigurationSection = Core.Platform.Configuration.ConfigurationSection;
 
 namespace Core.Host;
@@ -9,7 +10,7 @@ namespace Core.Host;
 /// What a real installation declares about its safekeeping copy: when the recovery was last tested and who holds the copy.
 /// The system cannot check either, so it asks for the declaration and writes it down.
 /// </summary>
-internal static class CustodyConfiguration
+internal static class SafekeepingConfiguration
 {
     internal const string LastRecoveryTestPath = SectionName + ":" + LastRecoveryTestKey;
 
@@ -44,10 +45,19 @@ internal static class CustodyConfiguration
     }
 
     /// <summary>What the installation declared, once both keys are; null when it did not declare them.</summary>
-    internal static CustodyDeclaration? Declaration(IReadOnlyDictionary<string, string> values) =>
+    internal static SafekeepingDeclaration? Declaration(IReadOnlyDictionary<string, string> values) =>
         values.TryGetValue(LastRecoveryTestPath, out var date) && values.TryGetValue(HolderPath, out var holder)
-            ? new CustodyDeclaration(date, holder)
+            ? new SafekeepingDeclaration(date, holder)
             : null;
+
+    /// <summary>Gives the host the declaration, when the installation made one, for the startup line.</summary>
+    internal static void Declare(IServiceCollection services, IReadOnlyDictionary<string, string> values)
+    {
+        if (Declaration(values) is { } declaration)
+        {
+            _ = services.AddSingleton(declaration);
+        }
+    }
 
     private static bool IsIsoDate(string text) =>
         DateOnly.TryParseExact(text, DateFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out _);

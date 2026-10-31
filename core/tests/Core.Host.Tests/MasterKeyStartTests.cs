@@ -103,7 +103,7 @@ public sealed class MasterKeyStartTests : IDisposable
     }
 
     [Fact]
-    public async Task RealInstallationWithoutTheCustodyDeclarationEndsWithTheRefusalCodeAndNamesBothKeys()
+    public async Task RealInstallationWithoutTheSafekeepingDeclarationEndsWithTheRefusalCodeAndNamesBothKeys()
     {
         var installation = Installation(HostProcess.FreeAddress(), CustodyFiles.Shared.KeyPath, CustodyFiles.Shared.LabelsPath, "real");
 
@@ -131,7 +131,7 @@ public sealed class MasterKeyStartTests : IDisposable
     }
 
     [Fact]
-    public async Task DemonstrationStartsWithoutTheCustodyDeclaration()
+    public async Task DemonstrationStartsWithoutTheSafekeepingDeclaration()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         using var host = await HostProcess.StartAsync(cancellationToken);

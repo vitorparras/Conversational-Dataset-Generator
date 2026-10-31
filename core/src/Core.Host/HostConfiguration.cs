@@ -56,7 +56,7 @@ internal static class HostConfiguration
                     Section,
                     migrating ? InstallationConfiguration.SectionWhenMigrating : InstallationConfiguration.Section,
                     migrating ? MasterKeyConfiguration.SectionWhenMigrating : MasterKeyConfiguration.Section,
-                    CustodyConfiguration.Section,
+                    SafekeepingConfiguration.Section,
                     LanguageServiceConfiguration.Section,
                     RecognizerConfiguration.Section,
                     DatabaseConfiguration.Section,

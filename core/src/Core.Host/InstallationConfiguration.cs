@@ -40,7 +40,7 @@ internal static class InstallationConfiguration
         }
         else
         {
-            var declaration = services.GetRequiredService<CustodyDeclaration>();
+            var declaration = services.GetRequiredService<SafekeepingDeclaration>();
             logger.RealInstallation(installation, declaration);
         }
     }

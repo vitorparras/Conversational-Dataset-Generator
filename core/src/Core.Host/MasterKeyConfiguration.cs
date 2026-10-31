@@ -1,5 +1,7 @@
 using Core.Platform.Configuration;
 using Core.Platform.Keys;
+using Core.Platform.Startup;
+using Microsoft.Extensions.DependencyInjection;
 using ConfigurationSection = Core.Platform.Configuration.ConfigurationSection;
 
 namespace Core.Host;
@@ -28,4 +30,11 @@ internal static class MasterKeyConfiguration
     /// <summary>The source of the files the approved values name, which refuses any that lies in the folder the host runs from.</summary>
     internal static FileMasterKeySource SourceOf(IReadOnlyDictionary<string, string> values) =>
         new(values[FilePath], values[LabelsFilePath], AppContext.BaseDirectory);
+
+    /// <summary>The source of the approved values and the check that reads it, which refuses the start when the key is not what it must be.</summary>
+    internal static void AddCheck(IServiceCollection services, IReadOnlyDictionary<string, string> values)
+    {
+        _ = services.AddSingleton<IMasterKeySource>(SourceOf(values));
+        _ = services.AddSingleton<IStartupCheck>(provider => new MasterKeyCheck(provider.GetRequiredService<IMasterKeySource>()));
+    }
 }

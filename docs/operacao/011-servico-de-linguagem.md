@@ -36,8 +36,8 @@ decifragem é operação auditada.
 
 ## Onde o serviço mora, e a regra que não depende disso
 
-O serviço vai numa pasta ao lado do núcleo, com interpretador, ambiente e modelo montados no build,
-pela [decisão 0041](../decisoes/0041-distribuicao-do-servico-de-linguagem.md). O que a pasta leva é
+O serviço vai numa pasta dentro da do núcleo, com interpretador, ambiente e modelo montados no
+build, pela [decisão 0041](../decisoes/0041-distribuicao-do-servico-de-linguagem.md). O que a pasta leva é
 instalação, não acervo, e a política de [texto fora do banco](../privacidade/003-texto-fora-do-banco.md)
 o trata assim. Exigência sobre volume somente leitura não sai daqui nem da 0041.
 

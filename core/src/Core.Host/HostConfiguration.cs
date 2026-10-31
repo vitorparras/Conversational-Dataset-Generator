@@ -33,13 +33,15 @@ internal static class HostConfiguration
                 ConfigurationKey.Optional(LogFileKey),
             ]);
 
-    /// <summary>The closed configuration of the host: the file beside it, the process environment and the strict arguments; the migration mode does not require the kind of installation.</summary>
+    /// <summary>The closed configuration of the host: the file beside it, the process environment and the strict arguments; the migration mode requires neither the kind of installation nor the custody files.</summary>
     internal static ConfigurationLoadResult Load(string[] args, bool migrating) =>
         ClosedConfiguration.Load(
             new ConfigurationSchema(
                 [
                     Section,
                     migrating ? InstallationConfiguration.SectionWhenMigrating : InstallationConfiguration.Section,
+                    migrating ? MasterKeyConfiguration.SectionWhenMigrating : MasterKeyConfiguration.Section,
+                    CustodyConfiguration.Section,
                     LanguageServiceConfiguration.Section,
                     RecognizerConfiguration.Section,
                     DatabaseConfiguration.Section,

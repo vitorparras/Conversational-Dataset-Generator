@@ -8,7 +8,10 @@ namespace Core.Host;
 internal static partial class InstallationLogMessages
 {
     [LoggerMessage(EventId = 201, Level = LogLevel.Information, Message = "Instalação real")]
-    internal static partial void RealInstallation(this ILogger logger, [LogProperties(OmitReferenceName = true)] Installation installation);
+    internal static partial void RealInstallation(
+        this ILogger logger,
+        [LogProperties(OmitReferenceName = true)] Installation installation,
+        [LogProperties(OmitReferenceName = true)] CustodyDeclaration custody);
 
     [LoggerMessage(
         EventId = 202,

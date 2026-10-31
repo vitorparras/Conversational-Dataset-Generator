@@ -10,6 +10,7 @@ using Core.Persistence.Connection;
 using Core.Persistence.Migrations;
 using Core.Persistence.ServerGuarantees;
 using Core.Platform.Configuration;
+using Core.Platform.Keys;
 using Core.Platform.Logging;
 using Core.Platform.Startup;
 using Core.Platform.Versions;
@@ -45,7 +46,8 @@ internal static class CompositionRoot
         }
 
         var analyzeTimeout = LanguageServiceConfiguration.AnalyzeTimeout(loaded.Values);
-        var refused = LanguageServiceConfiguration.Refusals(loaded.Values, analyzeTimeout);
+        IReadOnlyList<ConfigurationProblem> refused =
+            [.. LanguageServiceConfiguration.Refusals(loaded.Values, analyzeTimeout), .. CustodyConfiguration.Refusals(loaded.Values, InstallationConfiguration.Of(loaded.Values).Kind)];
         return analyzeTimeout is { } timeout && refused.Count == 0 ? await LaunchAsync(loaded, database, timeout, target) : HostLaunch.Refused(refused);
     }
 
@@ -135,6 +137,8 @@ internal static class CompositionRoot
     private static ServiceProvider StartupServices(ConfigurationLoadResult loaded, FileLoggerProvider? fileLog, DatabaseSettings database)
     {
         var services = new ServiceCollection();
+        _ = services.AddSingleton<IMasterKeySource>(MasterKeyConfiguration.SourceOf(loaded.Values));
+        _ = services.AddSingleton<IStartupCheck>(provider => new MasterKeyCheck(provider.GetRequiredService<IMasterKeySource>()));
         AddServerGuarantees(services, database);
         _ = services.AddSingleton(TimeProvider.System);
         _ = services.AddLogging(logging => HostLogFile.WithFile(logging, fileLog));
@@ -168,7 +172,7 @@ internal static class CompositionRoot
         return services.BuildServiceProvider();
     }
 
-    /// <summary>The application's data source and the six server checks, privilege first and the schema version last, or the check that says no database is declared.</summary>
+    /// <summary>The application's data source and the seven server checks, privilege first and the derivation labels last, or the check that says no database is declared.</summary>
     private static void AddServerGuarantees(IServiceCollection services, DatabaseSettings database)
     {
         if (database.State != DatabaseSettingsState.Configured)
@@ -184,6 +188,7 @@ internal static class CompositionRoot
         _ = services.AddSingleton<IStartupCheck>(provider => new PgAuditCheck(provider.GetRequiredService<NpgsqlDataSource>()));
         _ = services.AddSingleton<IStartupCheck>(provider => new ColumnRevokeCheck(provider.GetRequiredService<NpgsqlDataSource>()));
         _ = services.AddSingleton<IStartupCheck>(provider => new SchemaVersionCheck(provider.GetRequiredService<NpgsqlDataSource>(), EmbeddedMigrations.Load()));
+        _ = services.AddSingleton<IStartupCheck>(provider => new DerivationLabelCheck(provider.GetRequiredService<NpgsqlDataSource>(), provider.GetRequiredService<IMasterKeySource>()));
     }
 
     /// <summary>The web host with everything the configuration decides: its address, logging, the file destination, the recognizer and the versions the checks confirmed.</summary>
@@ -193,6 +198,11 @@ internal static class CompositionRoot
         Compose(builder, loaded.View, fileLog);
         AddAnalysis(builder.Services, loaded.Values, analyzeTimeout);
         _ = builder.Services.AddSingleton(InstallationConfiguration.Of(loaded.Values)).AddSingleton(provider => InstallationConfiguration.Shown(StartupVersions.Of(checks), provider));
+        if (CustodyConfiguration.Declaration(loaded.Values) is { } custody)
+        {
+            _ = builder.Services.AddSingleton(custody);
+        }
+
         return builder;
     }
 

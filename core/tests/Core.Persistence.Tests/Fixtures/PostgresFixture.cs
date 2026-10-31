@@ -16,8 +16,11 @@ internal sealed class PostgresFixture
     private static readonly TimeSpan HealthyWithin = TimeSpan.FromMinutes(3);
     private static readonly Lazy<Task<PostgresFixture>> Shared = new(StartAsync);
 
-    private PostgresFixture(string appConnectionString, string ownerConnectionString, string superuserConnectionString)
+    private readonly IContainer container;
+
+    private PostgresFixture(IContainer container, string appConnectionString, string ownerConnectionString, string superuserConnectionString)
     {
+        this.container = container;
         AppConnectionString = appConnectionString;
         OwnerConnectionString = ownerConnectionString;
         SuperuserConnectionString = superuserConnectionString;
@@ -65,6 +68,7 @@ internal sealed class PostgresFixture
         var container = builder.Build();
         await container.StartAsync();
         var fixture = new PostgresFixture(
+            container,
             ConnectionString(container, "app", appPassword),
             ConnectionString(container, "owner", ownerPassword),
             ConnectionString(container, "postgres", superuserPassword));
@@ -74,6 +78,13 @@ internal sealed class PostgresFixture
         }
 
         return fixture;
+    }
+
+    /// <summary>What pg_dump, run inside the server as the superuser, writes for the database: schema, data and comments.</summary>
+    public async Task<string> DumpAsync(string database)
+    {
+        var dump = await container.ExecAsync(["pg_dump", "--username=postgres", $"--dbname={database}", "--inserts"], TestContext.Current.CancellationToken);
+        return dump.ExitCode == 0 ? dump.Stdout : throw new InvalidOperationException($"pg_dump exited with {dump.ExitCode}: {dump.Stderr}");
     }
 
     /// <summary>

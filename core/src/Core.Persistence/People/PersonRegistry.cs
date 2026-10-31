@@ -37,7 +37,7 @@ public sealed class PersonRegistry
 
         try
         {
-            var created = await WriteAsync(
+            var created = await dataSource.WriteAsync(
                 PersonStatements.Create,
                 command =>
                 {
@@ -46,15 +46,11 @@ public sealed class PersonRegistry
                     Add(command, "actor", NpgsqlDbType.Bigint, actorId);
                 },
                 cancellationToken).ConfigureAwait(false);
-            return PersonResult.Done(created!.Value);
+            return created is { } id ? PersonResult.Done(id) : await dataSource.ActorRefusalAsync(actorId, cancellationToken).ConfigureAwait(false) ?? PersonRefusals.ActorDeactivated();
         }
         catch (PostgresException refused) when (refused.SqlState == PostgresErrorCodes.UniqueViolation)
         {
             return PersonRefusals.NameTaken();
-        }
-        catch (PostgresException refused) when (refused.SqlState == PostgresErrorCodes.ForeignKeyViolation)
-        {
-            return PersonRefusals.ActorUnknown();
         }
     }
 
@@ -64,22 +60,15 @@ public sealed class PersonRegistry
     /// <param name="cancellationToken">Cancels the operation.</param>
     public async Task<PersonResult> DeactivateAsync(long personId, long? actorId, CancellationToken cancellationToken)
     {
-        try
-        {
-            var changed = await WriteAsync(
-                PersonStatements.Deactivate,
-                command =>
-                {
-                    Add(command, "id", NpgsqlDbType.Bigint, personId);
-                    Add(command, "actor", NpgsqlDbType.Bigint, actorId);
-                },
-                cancellationToken).ConfigureAwait(false);
-            return changed is { } id ? PersonResult.Done(id) : await WhyNotDeactivatedAsync(personId, cancellationToken).ConfigureAwait(false);
-        }
-        catch (PostgresException refused) when (refused.SqlState == PostgresErrorCodes.ForeignKeyViolation)
-        {
-            return PersonRefusals.ActorUnknown();
-        }
+        var changed = await dataSource.WriteAsync(
+            PersonStatements.Deactivate,
+            command =>
+            {
+                Add(command, "id", NpgsqlDbType.Bigint, personId);
+                Add(command, "actor", NpgsqlDbType.Bigint, actorId);
+            },
+            cancellationToken).ConfigureAwait(false);
+        return changed is { } id ? PersonResult.Done(id) : await WhyNotDeactivatedAsync(personId, actorId, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Gives an active person another function, keeping the previous one in the history; a function outside the policy writes nothing.</summary>
@@ -100,30 +89,23 @@ public sealed class PersonRegistry
             return refusal;
         }
 
-        try
-        {
-            var changed = await WriteAsync(
-                PersonStatements.ChangeFunction,
-                command =>
-                {
-                    Add(command, "id", NpgsqlDbType.Bigint, personId);
-                    Add(command, "function", NpgsqlDbType.Text, function);
-                    Add(command, "actor", NpgsqlDbType.Bigint, actorId);
-                },
-                cancellationToken).ConfigureAwait(false);
-            return changed is { } id ? PersonResult.Done(id) : await WhyNotChangedAsync(personId, cancellationToken).ConfigureAwait(false);
-        }
-        catch (PostgresException refused) when (refused.SqlState == PostgresErrorCodes.ForeignKeyViolation)
-        {
-            return PersonRefusals.ActorUnknown();
-        }
+        var changed = await dataSource.WriteAsync(
+            PersonStatements.ChangeFunction,
+            command =>
+            {
+                Add(command, "id", NpgsqlDbType.Bigint, personId);
+                Add(command, "function", NpgsqlDbType.Text, function);
+                Add(command, "actor", NpgsqlDbType.Bigint, actorId);
+            },
+            cancellationToken).ConfigureAwait(false);
+        return changed is { } id ? PersonResult.Done(id) : await WhyNotChangedAsync(personId, actorId, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Whether a person may enter: registered and active. It does not authenticate; it only answers for the state of the person.</summary>
     /// <param name="personId">The person who asks to enter.</param>
     /// <param name="cancellationToken">Cancels the reading.</param>
     public async Task<EntryStatus> AdmitAsync(long personId, CancellationToken cancellationToken) =>
-        await ReadActiveAsync(personId, cancellationToken).ConfigureAwait(false) switch
+        await dataSource.ReadActiveAsync(personId, cancellationToken).ConfigureAwait(false) switch
         {
             true => EntryStatus.Admitted,
             false => EntryStatus.Deactivated,
@@ -139,33 +121,15 @@ public sealed class PersonRegistry
     }
 
     private static void Add(NpgsqlCommand command, string name, NpgsqlDbType type, object? value) =>
-        _ = command.Parameters.AddWithValue(name, type, value ?? DBNull.Value);
+        PersonQueries.Add(command, name, type, value);
 
-    private async Task<long?> WriteAsync(string sql, Action<NpgsqlCommand> bind, CancellationToken cancellationToken)
-    {
-        var command = dataSource.CreateCommand(sql);
-        await using (command.ConfigureAwait(false))
-        {
-            bind(command);
-            return await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) as long?;
-        }
-    }
+    private async Task<PersonResult> WhyNotDeactivatedAsync(long personId, long? actorId, CancellationToken cancellationToken) =>
+        await dataSource.ActorRefusalAsync(actorId, cancellationToken).ConfigureAwait(false)
+        ?? (await dataSource.ReadActiveAsync(personId, cancellationToken).ConfigureAwait(false) is null ? PersonRefusals.NotFound() : PersonRefusals.Deactivated());
 
-    private async Task<bool?> ReadActiveAsync(long personId, CancellationToken cancellationToken)
-    {
-        var command = dataSource.CreateCommand(PersonStatements.IsActive);
-        await using (command.ConfigureAwait(false))
-        {
-            Add(command, "id", NpgsqlDbType.Bigint, personId);
-            return await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) as bool?;
-        }
-    }
-
-    private async Task<PersonResult> WhyNotDeactivatedAsync(long personId, CancellationToken cancellationToken) =>
-        await ReadActiveAsync(personId, cancellationToken).ConfigureAwait(false) is null ? PersonRefusals.NotFound() : PersonRefusals.Deactivated();
-
-    private async Task<PersonResult> WhyNotChangedAsync(long personId, CancellationToken cancellationToken) =>
-        await ReadActiveAsync(personId, cancellationToken).ConfigureAwait(false) switch
+    private async Task<PersonResult> WhyNotChangedAsync(long personId, long? actorId, CancellationToken cancellationToken) =>
+        await dataSource.ActorRefusalAsync(actorId, cancellationToken).ConfigureAwait(false)
+        ?? await dataSource.ReadActiveAsync(personId, cancellationToken).ConfigureAwait(false) switch
         {
             null => PersonRefusals.NotFound(),
             false => PersonRefusals.Deactivated(),

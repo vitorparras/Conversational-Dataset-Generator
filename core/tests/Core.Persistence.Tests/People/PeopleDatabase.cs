@@ -25,6 +25,35 @@ public sealed class PeopleDatabase : IAsyncDisposable
         return new PersonRegistry(application);
     }
 
+    /// <summary>The store of passwords, writing as the application's role and deriving with the work factor given.</summary>
+    internal async Task<PersonCredentials> CredentialsAsync(int workFactor)
+    {
+        var scratch = await ScratchAsync();
+        application ??= NpgsqlDataSource.Create(scratch.AppConnectionString);
+        return new PersonCredentials(application, new PasswordDerivation(workFactor));
+    }
+
+    /// <summary>The store of passwords over a data source of its own, whose driver logs every line to the log that comes with it.</summary>
+    internal async Task<LoggedCredentials> LoggedCredentialsAsync(int workFactor) =>
+        new((await ScratchAsync()).AppConnectionString, workFactor);
+
+    /// <summary>The credential as the table holds it, or null when the person has none.</summary>
+    internal async Task<CredentialRow?> CredentialOfAsync(long personId)
+    {
+        await using var connection = await Sql.OpenAsync((await ScratchAsync()).OwnerConnectionString);
+        await using var command = new NpgsqlCommand("SELECT algorithm, work_factor, salt, derived FROM public.person_credential WHERE person_id = @id", connection);
+        _ = command.Parameters.AddWithValue("id", personId);
+        await using var reader = await command.ExecuteReaderAsync(TestContext.Current.CancellationToken);
+        if (!await reader.ReadAsync(TestContext.Current.CancellationToken))
+        {
+            return null;
+        }
+
+        var salt = await reader.GetFieldValueAsync<byte[]>(2, TestContext.Current.CancellationToken);
+        var derived = await reader.GetFieldValueAsync<byte[]>(3, TestContext.Current.CancellationToken);
+        return new CredentialRow(reader.GetString(0), reader.GetInt32(1), salt, derived);
+    }
+
     /// <summary>A name of use no other test has.</summary>
     internal static string NewName() => $"zqx-pessoa-{Guid.NewGuid():N}";
 
@@ -133,6 +162,9 @@ public sealed class PeopleDatabase : IAsyncDisposable
 
     /// <summary>One row of <c>public.person</c>, without its identifier.</summary>
     internal sealed record PersonRow(string Name, string Function, bool Active, DateTimeOffset CreatedAt, string CreatedBy);
+
+    /// <summary>One row of <c>public.person_credential</c>, without its identifier.</summary>
+    internal sealed record CredentialRow(string Algorithm, int WorkFactor, byte[] Salt, byte[] Derived);
 
     /// <summary>One row of <c>public.person_change</c>, without its identifiers.</summary>
     internal sealed record ChangeRow(string Kind, string? PreviousFunction, string? NewFunction, long? ActorId, DateTimeOffset ChangedAt, string ChangedBy);

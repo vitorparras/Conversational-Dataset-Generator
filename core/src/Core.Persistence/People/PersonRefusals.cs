@@ -23,6 +23,12 @@ internal static class PersonRefusals
     internal static PersonResult ActorUnknown() =>
         PersonResult.Refused(PersonOutcome.ActorUnknown, "A pessoa que age não está cadastrada.");
 
+    internal static PersonResult ActorDeactivated() =>
+        PersonResult.Refused(PersonOutcome.ActorDeactivated, "A pessoa que age está desativada.");
+
+    internal static PersonResult PasswordInvalid() =>
+        PersonResult.Refused(PersonOutcome.PasswordInvalid, "A senha não pode ser vazia.");
+
     internal static PersonResult NotFound() =>
         PersonResult.Refused(PersonOutcome.NotFound, "Não há pessoa com esse identificador.");
 

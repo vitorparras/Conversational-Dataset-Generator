@@ -18,6 +18,12 @@ public enum PersonOutcome
     /// <summary>The person who acted is not registered.</summary>
     ActorUnknown,
 
+    /// <summary>The person who acted was deactivated.</summary>
+    ActorDeactivated,
+
+    /// <summary>The password is empty.</summary>
+    PasswordInvalid,
+
     /// <summary>No person has the identifier.</summary>
     NotFound,
 

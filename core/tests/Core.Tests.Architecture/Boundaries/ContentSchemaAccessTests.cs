@@ -110,12 +110,23 @@ public sealed class ContentSchemaAccessTests
     }
 
     [Fact]
-    public void OnlyTheLocalPinOfTheSearchPathToTheCatalogIsLetThrough()
+    public void OnlyTheLocalPinOfTheSearchPathToTheCatalogIsLetThroughInTheServerGuarantees()
+    {
+        var text = SourceTree.FixtureText(Path.Combine(Fixtures, "PinsTheSearchPath.cs"));
+        var probe = SourceFile.FromText("core/src/Core.Persistence/ServerGuarantees/ServerProbe.cs", text);
+
+        var lines = ContentSchemaAccessRules.Check([probe]).Select(violation => violation.Line).Order();
+
+        Assert.Equal([7, 9, 11, 13], lines);
+    }
+
+    [Fact]
+    public void ThePinOfTheSearchPathToTheCatalogIsRefusedOutsideTheServerGuarantees()
     {
         var fixture = SourceTree.Fixture(Path.Combine(Fixtures, "PinsTheSearchPath.cs"));
 
         var lines = ContentSchemaAccessRules.Check([fixture]).Select(violation => violation.Line).Order();
 
-        Assert.Equal([7, 9, 11, 13], lines);
+        Assert.Equal([5, 7, 9, 11, 13], lines);
     }
 }

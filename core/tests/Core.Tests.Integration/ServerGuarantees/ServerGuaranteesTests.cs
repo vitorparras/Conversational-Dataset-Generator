@@ -80,7 +80,7 @@ public sealed class ServerGuaranteesTests
         var result = await RunAsApplicationAsync(dataSource => new RlsForceCheck(dataSource));
 
         Assert.Equal(CheckStatus.Failed, result.Status);
-        Assert.Contains("ALTER TABLE zqx_unforced FORCE ROW LEVEL SECURITY", result.Message, StringComparison.Ordinal);
+        Assert.Contains("ALTER TABLE public.zqx_unforced FORCE ROW LEVEL SECURITY", result.Message, StringComparison.Ordinal);
     }
 
     [DatabaseFact]
@@ -92,7 +92,7 @@ public sealed class ServerGuaranteesTests
         var result = await RunAsApplicationAsync(dataSource => new RlsForceCheck(dataSource));
 
         Assert.Equal(CheckStatus.Failed, result.Status);
-        Assert.Contains("ALTER TABLE zqx_policy_off ENABLE ROW LEVEL SECURITY", result.Message, StringComparison.Ordinal);
+        Assert.Contains("ALTER TABLE public.zqx_policy_off ENABLE ROW LEVEL SECURITY", result.Message, StringComparison.Ordinal);
     }
 
     [DatabaseFact]
@@ -204,7 +204,7 @@ public sealed class ServerGuaranteesTests
         var result = await RunAsApplicationAsync(dataSource => new ColumnRevokeCheck(dataSource));
 
         Assert.Equal(CheckStatus.Failed, result.Status);
-        Assert.Contains("REVOKE UPDATE ON zqx_voided FROM app", result.Message, StringComparison.Ordinal);
+        Assert.Contains("REVOKE UPDATE ON public.zqx_voided FROM app", result.Message, StringComparison.Ordinal);
     }
 
     [DatabaseFact]

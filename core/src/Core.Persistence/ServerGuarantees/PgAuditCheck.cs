@@ -42,5 +42,5 @@ public sealed class PgAuditCheck : IStartupCheck
 
     private static Task<Finding> ReadAsync(NpgsqlConnection connection, CancellationToken cancellationToken) =>
         ServerProbe.ReadRowAsync(
-            connection, server => new NpgsqlCommand(Query, server), row => Judge(row["log"] as string, row["version"] as string), cancellationToken);
+            connection, Query, row => Judge(row["log"] as string, row["version"] as string), cancellationToken);
 }

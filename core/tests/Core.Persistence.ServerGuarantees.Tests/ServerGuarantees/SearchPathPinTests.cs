@@ -63,7 +63,7 @@ public sealed class SearchPathPinTests
     {
         var seen = string.Empty;
         _ = await ServerProbe.ReadRowAsync(
-            connection, server => new NpgsqlCommand(Setting, server), row => Capture(row, value => seen = value), TestContext.Current.CancellationToken);
+            connection, Setting, row => Capture(row, value => seen = value), TestContext.Current.CancellationToken);
         return seen;
     }
 

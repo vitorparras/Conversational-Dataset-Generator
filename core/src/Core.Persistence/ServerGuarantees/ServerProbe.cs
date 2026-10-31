@@ -54,18 +54,14 @@ internal static class ServerProbe
         }
     }
 
-    /// <summary>Runs the command, which answers one row, and hands the row to the judge; the search path is pinned to the catalog for the statement.</summary>
+    /// <summary>Runs the statement, which answers one row, and hands the row to the judge; the search path is pinned to the catalog for the statement.</summary>
     internal static async Task<Finding> ReadRowAsync(
-        NpgsqlConnection connection, Func<NpgsqlConnection, NpgsqlCommand> query, Func<IDataRecord, Finding> judge, CancellationToken cancellationToken)
+        NpgsqlConnection connection, string query, Func<IDataRecord, Finding> judge, CancellationToken cancellationToken)
     {
-        var command = query(connection);
-        await using (command.ConfigureAwait(false))
+        var batch = new NpgsqlBatch(connection) { BatchCommands = { new NpgsqlBatchCommand(PinSearchPath), new NpgsqlBatchCommand(query) } };
+        await using (batch.ConfigureAwait(false))
         {
-            var batch = new NpgsqlBatch(connection) { BatchCommands = { new NpgsqlBatchCommand(PinSearchPath), new NpgsqlBatchCommand(command.CommandText) } };
-            await using (batch.ConfigureAwait(false))
-            {
-                return await JudgeRowAsync(batch, judge, cancellationToken).ConfigureAwait(false);
-            }
+            return await JudgeRowAsync(batch, judge, cancellationToken).ConfigureAwait(false);
         }
     }
 

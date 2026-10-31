@@ -43,7 +43,7 @@ public sealed class SerializableCheck : IStartupCheck
         await using (transaction.ConfigureAwait(false))
         {
             return await ServerProbe.ReadRowAsync(
-                connection, server => new NpgsqlCommand(Query, server), row => Judge((string)row[0]), cancellationToken).ConfigureAwait(false);
+                connection, Query, row => Judge((string)row[0]), cancellationToken).ConfigureAwait(false);
         }
     }
 }

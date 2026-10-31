@@ -65,7 +65,7 @@ public sealed class PrivilegeCheck : IStartupCheck
             + $"ALTER {kind} {name} OWNER TO <papel dono>, ou revogue a pertença com REVOKE <papel dono> FROM {role}");
 
     private static Task<Finding> ReadAsync(NpgsqlConnection connection, CancellationToken cancellationToken) =>
-        ServerProbe.ReadRowAsync(connection, server => new NpgsqlCommand(Query, server), Read, cancellationToken);
+        ServerProbe.ReadRowAsync(connection, Query, Read, cancellationToken);
 
     private static Finding Read(IDataRecord row) =>
         Judge(new RoleReading(

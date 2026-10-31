@@ -57,5 +57,5 @@ public sealed class DerivationLabelCheck : IStartupCheck
             cancellationToken);
 
     private static Task<Finding> ReadAsync(NpgsqlConnection connection, DerivationLabels provided, CancellationToken cancellationToken) =>
-        ServerProbe.ReadRowAsync(connection, server => new NpgsqlCommand(Query, server), row => Judge(provided, (string[])row["labels"]), cancellationToken);
+        ServerProbe.ReadRowAsync(connection, Query, row => Judge(provided, (string[])row["labels"]), cancellationToken);
 }

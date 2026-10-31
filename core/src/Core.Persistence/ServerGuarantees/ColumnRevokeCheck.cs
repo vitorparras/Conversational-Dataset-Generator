@@ -54,7 +54,7 @@ public sealed class ColumnRevokeCheck : IStartupCheck
                 + "só nas colunas permitidas");
 
     private static Task<Finding> ReadAsync(NpgsqlConnection connection, CancellationToken cancellationToken) =>
-        ServerProbe.ReadRowAsync(connection, server => new NpgsqlCommand(Query, server), Read, cancellationToken);
+        ServerProbe.ReadRowAsync(connection, Query, Read, cancellationToken);
 
     private static Finding Read(IDataRecord row) =>
         Judge((string)row["role"], (long)row["tables"], row["privilege_type"] as string, row["relation"] as string);

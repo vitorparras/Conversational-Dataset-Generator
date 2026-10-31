@@ -86,7 +86,7 @@ public sealed class RlsForceCheck : IStartupCheck
     private static Task<Finding> ReadAsync(NpgsqlConnection connection, CancellationToken cancellationToken) =>
         ServerProbe.ReadRowAsync(
             connection,
-            server => new NpgsqlCommand(Query, server),
+            Query,
             row => Judge(
                 (long)row["forced"],
                 row["unforced"] as string,

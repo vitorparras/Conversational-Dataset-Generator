@@ -126,7 +126,7 @@ public sealed class CatalogReadingTests
         var shared = await PostgresFixture.SharedAsync();
         await using var dataSource = NpgsqlDataSource.Create(shared.AppConnectionString);
         var guarantee = new Guarantee("Zqx", "a exigência do teste", (connection, token) =>
-            ServerProbe.ReadRowAsync(connection, server => new NpgsqlCommand("SELECT 1 / 0", server), row => Finding.Holds("nunca"), token));
+            ServerProbe.ReadRowAsync(connection, "SELECT 1 / 0", row => Finding.Holds("nunca"), token));
 
         var result = await ServerProbe.RunAsync(dataSource, guarantee, TestContext.Current.CancellationToken);
 

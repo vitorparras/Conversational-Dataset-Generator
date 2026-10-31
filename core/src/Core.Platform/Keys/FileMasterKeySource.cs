@@ -49,7 +49,7 @@ public sealed class FileMasterKeySource : IMasterKeySource
         try
         {
             var real = RealPath.Of(file.Path);
-            if (InsideArtifact(real))
+            if (RealPath.IsWithin(real, artifactDirectory))
             {
                 return $"{file.Name} em '{file.Path}', dentro da pasta do artefato; ele fica fora dela";
             }
@@ -60,14 +60,6 @@ public sealed class FileMasterKeySource : IMasterKeySource
         {
             return Unopened(file, exception);
         }
-    }
-
-    /// <summary>Whether the file, given by its real path, lies in the artifact's folder once every link in that folder's path is followed too.</summary>
-    private bool InsideArtifact(string realPath)
-    {
-        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-        var root = Path.TrimEndingDirectorySeparator(RealPath.Of(artifactDirectory)) + Path.DirectorySeparatorChar;
-        return realPath.StartsWith(root, comparison);
     }
 
     private async Task<MasterKeyReading> ReadFilesAsync(CancellationToken cancellationToken)

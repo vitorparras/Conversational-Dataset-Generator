@@ -34,6 +34,14 @@ internal static class RealPath
         return current;
     }
 
+    /// <summary>Whether the real path lies in the folder, once every link in the folder's path is followed too.</summary>
+    internal static bool IsWithin(string realPath, string folder)
+    {
+        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        var root = Path.TrimEndingDirectorySeparator(Of(folder)) + Path.DirectorySeparatorChar;
+        return realPath.StartsWith(root, comparison);
+    }
+
     /// <summary>Where the link at the path points, one step; null when it is no link or when nothing is there, as for a folder not made yet.</summary>
     private static FileSystemInfo? LinkTarget(string path)
     {

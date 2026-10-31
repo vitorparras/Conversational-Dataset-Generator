@@ -33,7 +33,7 @@ rótulos já emitidos, porque nenhum se descarta. O servidor do banco não alcan
 alcançasse, o critério da [decisão 0003](../decisoes/0003-cifra-em-repouso.md) cairia.
 
 A chave não está no repositório, na imagem, em arquivo ao lado do banco, em argumento de comando
-visível a outro processo, nem em log. A guarda está em [002](002-guarda-da-chave.md).
+visível a outro processo, nem em log. A guarda está em [002](002-guarda-da-chave.md) e [024](024-arquivos-de-custodia-da-chave.md).
 
 ## A máquina
 

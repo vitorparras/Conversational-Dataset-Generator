@@ -71,6 +71,19 @@ public sealed class MigrationModeTests
     }
 
     [Fact]
+    public async Task ModeDoesNotNeedTheCustodyFilesThatTheServingModeCannotStartWithout()
+    {
+        using var closed = new ClosedPort();
+        var installation = Migrating(Database($"127.0.0.1:{closed.Number}")) with { DeclaresInstallation = false };
+
+        var exit = await HostProcess.RunToExitAsync(installation, HostProcess.StartupTimeout, TestContext.Current.CancellationToken);
+
+        Assert.Equal((int)ExitCode.MigrationNotConnected, exit.Code);
+        Assert.DoesNotContain("MasterKey", exit.Error, StringComparison.Ordinal);
+        Assert.DoesNotContain("Custody", exit.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task ModeRefusesAKindOfInstallationOutsideTheTwoItAcceptsNamingThatKeyAndNeverTheDatabaseOnes()
     {
         var installation = Migrating(Database("127.0.0.1:1")) with { DeclaresInstallation = false, Arguments = ["migrate", "--Installation:Kind=Real"] };

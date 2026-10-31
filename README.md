@@ -143,7 +143,7 @@ PY="$(uv run --frozen --project language-service python -c 'import sys; print(sy
 KEYS="$(mktemp -d)"; ( umask 077; head -c 32 /dev/urandom | base64 > "$KEYS/chave"; : > "$KEYS/rotulos" )
 export DOTNET_ENVIRONMENT=Development
 dotnet run --project core/src/Core.Host -- --Host:Urls=http://127.0.0.1:5080 \
-  --Installation:Kind=demonstracao --MasterKey:File="$KEYS/chave" \
+  --Installation:Kind=demonstracao --Passwords:WorkFactor=ITERACOES --MasterKey:File="$KEYS/chave" \
   --MasterKey:LabelsFile="$KEYS/rotulos" --LanguageService:Executable="$PY"
 ```
 
@@ -152,6 +152,10 @@ assim. A demonstração roda sem cópia de guarda da chave e sem recuperação t
 nome da instalação (`(DEMONSTRAÇÃO)`), em `/status` e `/versions` e numa linha de aviso na partida.
 A instalação real também declara `Custody:LastRecoveryTest` (data ISO) e `Custody:Holder`, e sem os
 dois a partida recusa.
+
+`Passwords:WorkFactor` é obrigatória ao servir, sem valor padrão, e leva o fator de trabalho da
+derivação das senhas, um número inteiro positivo de iterações que quem instala escolhe (`ITERACOES`
+acima é marcador). A recusa nomeia a chave; `/configuration` mostra o valor em vigor e de onde veio.
 
 `MasterKey:File` e `MasterKey:LabelsFile` são obrigatórias ao servir, sem valor padrão, e levam os
 caminhos dos arquivos da chave e dos rótulos, nunca a chave. O núcleo recusa arquivo ausente, com

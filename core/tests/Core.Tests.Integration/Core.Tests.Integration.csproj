@@ -10,9 +10,4 @@
     <PackageReference Include="Npgsql" />
     <PackageReference Include="Testcontainers" />
   </ItemGroup>
-
-  <!-- The test that starts the built host over a database reads the spellings of the key as the host's own tests do: one source, two test assemblies. -->
-  <ItemGroup>
-    <Compile Include="..\Core.Host.Tests\Privacy\KeySpellings.cs" Link="Privacy\Shared\KeySpellings.cs" />
-  </ItemGroup>
 </Project>

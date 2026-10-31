@@ -15,6 +15,9 @@ internal sealed record HostInstallation(string BinaryDirectory, string WorkingDi
     /// <summary>Whether the arguments the host receives also declare the installation a demonstration, which the host cannot start without declaring one.</summary>
     public bool DeclaresInstallation { get; init; } = true;
 
+    /// <summary>Whether the arguments the host receives also give the work factor of the derivation of passwords, which the serving mode cannot start without.</summary>
+    public bool DeclaresWorkFactor { get; init; } = true;
+
     /// <summary>Whether the arguments the host receives also name the custody files of a key and labels of the right form, which the serving mode cannot start without.</summary>
     public bool ProvidesMasterKey { get; init; } = true;
 
@@ -29,12 +32,18 @@ internal sealed record HostInstallation(string BinaryDirectory, string WorkingDi
     {
         get
         {
-            if (!DeclaresInstallation)
+            var arguments = new List<string>(ServiceArguments);
+            if (DeclaresWorkFactor)
             {
-                return ServiceArguments;
+                arguments.Add(WorkFactorArgument);
             }
 
-            var arguments = new List<string>([.. ServiceArguments, "--Installation:Kind=demonstracao"]);
+            if (!DeclaresInstallation)
+            {
+                return arguments;
+            }
+
+            arguments.Add("--Installation:Kind=demonstracao");
             if (ProvidesMasterKey)
             {
                 arguments.AddRange(MasterKeyArguments);
@@ -43,6 +52,9 @@ internal sealed record HostInstallation(string BinaryDirectory, string WorkingDi
             return arguments;
         }
     }
+
+    /// <summary>The argument that gives the work factor; the host takes any whole number above zero, and a test that does not hash a password wants the cheapest.</summary>
+    public static string WorkFactorArgument => "--Passwords:WorkFactor=1";
 
     /// <summary>The arguments that point the host at the shared key and labels files.</summary>
     public static IReadOnlyList<string> MasterKeyArguments =>

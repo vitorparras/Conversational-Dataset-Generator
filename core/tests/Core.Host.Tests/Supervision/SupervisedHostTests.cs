@@ -57,7 +57,7 @@ public sealed class SupervisedHostTests
         var exit = await HostProcess.RunToExitAsync(installation, HostProcess.StartupTimeout, cancellationToken);
 
         Assert.Equal((int)ExitCode.StartupCheckFailed, exit.Code);
-        Assert.Contains("language-service/SHA256SUMS", exit.Error, StringComparison.Ordinal);
+        Assert.Contains(Path.Combine(copy.Path, "language-service", "SHA256SUMS"), exit.Error, StringComparison.Ordinal);
     }
 
     [Fact]

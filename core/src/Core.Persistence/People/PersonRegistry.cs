@@ -112,6 +112,25 @@ public sealed class PersonRegistry
             null => EntryStatus.Unknown,
         };
 
+    /// <summary>The identifier of the person who goes by the name of use, active or not; null when nobody does. It does not authenticate.</summary>
+    /// <param name="name">The name of use the person gave to enter.</param>
+    /// <param name="cancellationToken">Cancels the reading.</param>
+    public Task<long?> IdOfAsync(string name, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+        return FindAsync(name, cancellationToken);
+    }
+
+    private async Task<long?> FindAsync(string name, CancellationToken cancellationToken)
+    {
+        var command = dataSource.CreateCommand(PersonStatements.IdOfName);
+        await using (command.ConfigureAwait(false))
+        {
+            Add(command, "name", NpgsqlDbType.Text, name);
+            return await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) as long?;
+        }
+    }
+
     /// <summary>What a person reaches. Concessions are not recorded yet, so everyone reaches nothing, and an empty reach is no error.</summary>
     /// <param name="personId">The person whose reach is asked.</param>
     public static PersonReach ReachOf(long personId)

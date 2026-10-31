@@ -36,11 +36,17 @@ public sealed class PeopleDatabase : IAsyncDisposable
     }
 
     /// <summary>The rows of the table, as the role owner.</summary>
-    [SuppressMessage("Security", "CA2100", Justification = "The table is a literal of the calling test, never input.")]
+    [SuppressMessage("Security", "CA2100", Justification = "Each statement is a literal chosen by the table name, never built from it.")]
     internal async Task<long> CountAsync(string table)
     {
+        var statement = table switch
+        {
+            "person" => "SELECT count(*) FROM public.person",
+            "person_change" => "SELECT count(*) FROM public.person_change",
+            _ => throw new ArgumentOutOfRangeException(nameof(table), table, "Only the tables of the registry of people are counted."),
+        };
         await using var connection = await Sql.OpenAsync((await ScratchAsync()).OwnerConnectionString);
-        await using var command = new NpgsqlCommand($"SELECT count(*) FROM public.{table}", connection);
+        await using var command = new NpgsqlCommand(statement, connection);
         return (long)(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken))!;
     }
 

@@ -42,10 +42,12 @@ public sealed class StartupCheckTests
         Assert.Equal("Passed", checks[1].GetProperty("status").GetString());
         Assert.Equal("MasterKey", checks[2].GetProperty("name").GetString());
         Assert.Equal("Passed", checks[2].GetProperty("status").GetString());
-        Assert.Equal("Database", checks[3].GetProperty("name").GetString());
-        Assert.Equal("LanguageServiceFolder", checks[4].GetProperty("name").GetString());
-        Assert.Equal("Passed", checks[4].GetProperty("status").GetString());
-        Assert.Equal("LanguageService", checks[5].GetProperty("name").GetString());
+        Assert.Equal("Tls", checks[3].GetProperty("name").GetString());
+        Assert.Equal("Passed", checks[3].GetProperty("status").GetString());
+        Assert.Equal("Database", checks[4].GetProperty("name").GetString());
+        Assert.Equal("LanguageServiceFolder", checks[5].GetProperty("name").GetString());
         Assert.Equal("Passed", checks[5].GetProperty("status").GetString());
+        Assert.Equal("LanguageService", checks[6].GetProperty("name").GetString());
+        Assert.Equal("Passed", checks[6].GetProperty("status").GetString());
     }
 }

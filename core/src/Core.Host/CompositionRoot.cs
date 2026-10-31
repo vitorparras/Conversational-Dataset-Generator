@@ -127,6 +127,8 @@ internal static class CompositionRoot
         var services = new ServiceCollection();
         _ = services.AddSingleton<IMasterKeySource>(MasterKeyConfiguration.SourceOf(loaded.Values));
         _ = services.AddSingleton<IStartupCheck>(provider => new MasterKeyCheck(provider.GetRequiredService<IMasterKeySource>()));
+        _ = services.AddSingleton(_ => new TlsMaterialCheck(TlsConfiguration.SourceOf(loaded.Values)))
+            .AddSingleton<IStartupCheck>(provider => provider.GetRequiredService<TlsMaterialCheck>());
         AddServerGuarantees(services, database);
         _ = services.AddSingleton(TimeProvider.System);
         _ = services.AddLogging(logging => HostLogFile.WithFile(logging, fileLog));
@@ -183,6 +185,7 @@ internal static class CompositionRoot
     private static WebApplicationBuilder Prepared(ConfigurationLoadResult loaded, ILoggerProvider? fileLog, TimeSpan analyzeTimeout, System.Collections.IEnumerable checks)
     {
         var builder = ClosedBuilder(loaded.Values[HostConfiguration.UrlsPath]);
+        _ = builder.Services.Configure<CookiePolicyOptions>(TransportSecurity.CookiePolicy);
         Compose(builder, loaded.View, fileLog);
         AddAnalysis(builder.Services, loaded.Values, analyzeTimeout);
         _ = builder.Services.AddSingleton(PasswordConfiguration.Derivation(loaded.Values));
@@ -203,15 +206,13 @@ internal static class CompositionRoot
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetRequiredService<ServiceProcessWatch>());
         _ = builder.Services.AddSingleton(_ => startup);
 
+        TlsConfiguration.Serve(builder, startup.GetRequiredService<TlsMaterialCheck>());
         var app = builder.Build();
         _ = app.Services.GetRequiredService<ServiceProvider>();
         await StartupVersions.WriteAsync(
             app.Logger, app.Services.GetRequiredService<VersionReport>(), app.Services.GetRequiredService<IServiceVersionReader>(), CancellationToken.None);
         InstallationConfiguration.Announce(app.Logger, app.Services);
-        StatusEndpoint.Map(app, recognizer);
-        ConfigurationEndpoint.Map(app);
-        VersionsEndpoint.Map(app);
-        AnalysisEndpoint.Map(app);
+        HostRoutes.Map(app, recognizer);
         return app;
     }
 

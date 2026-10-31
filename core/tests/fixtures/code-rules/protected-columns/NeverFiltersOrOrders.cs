@@ -21,4 +21,10 @@ internal static class NeverFiltersOrOrders
     public const string OtherColumns = "SELECT id FROM t WHERE pseudonymized_text = @text ORDER BY recorded_at";
 
     public static string Interpolated(int id) => $"SELECT raw_text FROM t WHERE id = {id}";
+
+    public const string Literals = "SELECT id FROM t WHERE id = 'raw_text' AND note = 'it''s where entries is'";
+
+    public const string Copy = "INSERT INTO t (id, raw_text) SELECT id, raw_text FROM u WHERE u.id > 1";
+
+    public const string Exists = "SELECT id FROM t WHERE EXISTS (SELECT 1 FROM u WHERE u.id = t.id)";
 }

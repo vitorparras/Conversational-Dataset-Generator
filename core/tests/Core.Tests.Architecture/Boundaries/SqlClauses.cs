@@ -19,7 +19,7 @@ internal sealed partial class SqlClauses
         "ON", "BY", "CONFLICT", "AND", "OR", "NOT", "IN", "IS", "NULL", "ASC", "DESC", "DO", "OVER", "LIKE", "AS",
     };
 
-    private static readonly HashSet<string> Filtering = new(StringComparer.OrdinalIgnoreCase) { "WHERE", "HAVING" };
+    private static readonly HashSet<string> Filtering = new(StringComparer.OrdinalIgnoreCase) { "WHERE", "HAVING", "USING" };
 
     private static readonly HashSet<string> FilteringBeforeBy = new(StringComparer.OrdinalIgnoreCase) { "ORDER", "GROUP", "PARTITION" };
 
@@ -52,6 +52,11 @@ internal sealed partial class SqlClauses
     private void Step(int index)
     {
         var word = words[index];
+        if (word[0] == '\'')
+        {
+            return;
+        }
+
         if (word == "(")
         {
             scopes.Push(selecting);
@@ -71,7 +76,10 @@ internal sealed partial class SqlClauses
         }
     }
 
-    private bool Moves(string word, string next) => Opens(word, next) || (!ClosesFilter(word, next) && selecting);
+    private bool Moves(string word, string next) =>
+        Opens(word, next) || SelectsForComparison(word) || (!ClosesFilter(word, next) && selecting);
+
+    private bool SelectsForComparison(string word) => IsWord(word, "SELECT") && scopes.Count > 0 && scopes.Peek();
 
     private static bool Opens(string word, string next) => Filtering.Contains(word) || OpensBeforeBy(word, next) || OpensOn(word, next);
 
@@ -88,7 +96,7 @@ internal sealed partial class SqlClauses
     private static bool IsKeyword(string word) =>
         Filtering.Contains(word) || FilteringBeforeBy.Contains(word) || Starting.Contains(word) || Others.Contains(word);
 
-    [GeneratedRegex(@"""[^""]*""|[@:$]?[A-Za-z_]\w*|[()]")]
+    [GeneratedRegex(@"'(?:[^']|'')*'|""[^""]*""|[@:$]?[A-Za-z_]\w*|[()]")]
     private static partial Regex Tokens();
 
     [GeneratedRegex(@"^\s*(SELECT|INSERT|UPDATE|DELETE|WITH|MERGE|WHERE|ORDER\s+BY|GROUP\s+BY|HAVING|JOIN)\b", RegexOptions.IgnoreCase)]

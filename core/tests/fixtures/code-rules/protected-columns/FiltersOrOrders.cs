@@ -31,4 +31,10 @@ internal static class FiltersOrOrders
     public const string Tail = " WHERE raw_text = @x";
 
     public const string Distinct = "SELECT DISTINCT ON (entries) id FROM t";
+
+    public const string Using = "SELECT t.id FROM t JOIN u USING (entries)";
+
+    public const string HiddenByALiteral = "SELECT id FROM t WHERE note = 'from' AND raw_text = @x";
+
+    public const string InSubselect = "SELECT id FROM t WHERE id IN (SELECT raw_text FROM u)";
 }

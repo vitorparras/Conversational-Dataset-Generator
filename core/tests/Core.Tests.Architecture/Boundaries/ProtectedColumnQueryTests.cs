@@ -32,7 +32,7 @@ public sealed class ProtectedColumnQueryTests
 
         var lines = ProtectedColumnQueryRules.Check([fixture], Columns).Select(violation => violation.Line).Order();
 
-        Assert.Equal([5, 7, 9, 11, 13, 15, 21, 23, 25, 27, 29, 31, 33], lines);
+        Assert.Equal([5, 7, 9, 11, 13, 15, 21, 23, 25, 27, 29, 31, 33, 35, 37, 39], lines);
     }
 
     [Fact]

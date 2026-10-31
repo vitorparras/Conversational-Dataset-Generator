@@ -3,9 +3,9 @@
 > Operacional. 2026-10-12.
 
 A [decisão 0007](../decisoes/0007-garantia-de-qualidade.md) manda a lista de módulos críticos e os
-pisos viverem aqui. A verificação lê os números **desta tabela**: não há segunda cópia em arquivo.
-
-**Os números abaixo são proposta e aguardam aprovação do operador no pull request que os introduz.**
+pisos de cobertura viverem aqui, porque mudam com o código. A verificação automática lê os números
+**desta tabela**: não existe segunda cópia em arquivo de configuração de ferramenta. **Os números
+abaixo são proposta e aguardam aprovação do operador no pull request que os introduz.**
 
 ## Critério de criticidade
 

@@ -12,7 +12,12 @@ READY_SECONDS=${READY_SECONDS:-120}
 STOP_SECONDS=${STOP_SECONDS:-30}
 LISTENING='Now listening on: http://127.0.0.1:'
 
-export CDG_Database__Host=127.0.0.1:5432 CDG_Database__Name=cdg CDG_Installation__Kind=demonstracao
+export CDG_Database__Host=127.0.0.1:5432 CDG_Database__Name=cdg CDG_Installation__Kind=demonstracao CDG_Passwords__WorkFactor=1
+
+# A throwaway key and no labels, in files outside the folder the host runs from and open to its user alone.
+custody=$(umask 077 && mktemp -d /tmp/custody.XXXXXX)
+(umask 077 && head -c 32 /dev/urandom | base64 > "$custody/key" && : > "$custody/labels")
+export CDG_MasterKey__File="$custody/key" CDG_MasterKey__LabelsFile="$custody/labels"
 
 ls /sys/class/net > /trace/interfaces.txt
 cp /app/Core.Host /app/appsettings.json /work/

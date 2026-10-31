@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\..\src\Core.Persistence\Core.Persistence.csproj" />
+    <ProjectReference Include="..\..\src\Core.Host\Core.Host.csproj" />
+    <ProjectReference Include="..\Core.Tests.Support\Core.Tests.Support.csproj" />
     <ProjectReference Include="..\Core.Tests.Database\Core.Tests.Database.csproj" />
   </ItemGroup>
 

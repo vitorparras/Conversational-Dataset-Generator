@@ -2,22 +2,23 @@
 
 > Operacional. 2026-10-30.
 
-Depois de [021](021-subir-o-nucleo-publicado.md) (senhas, `migrate` e como rodar os blocos num
-contêiner operado de fora) e antes de [022](022-conferir-o-nucleo-publicado.md).
+Depois de [021](021-subir-o-nucleo-publicado.md) (senhas, `migrate`, blocos num contêiner de fora)
+e de [024](024-arquivos-de-custodia-da-chave.md), e antes de [022](022-conferir-o-nucleo-publicado.md).
 
 ## Iniciar
 
 Os valores são os do exemplo de 021 (banco, papel `app`, `demonstracao`), a trocar pelos do seu
-ambiente; numa instalação real, `--Installation:Kind=real`. O registro vai ao console, e o
-redirecionamento o guarda. O núcleo roda em segundo plano e sobrevive ao fim do `docker exec` que o
-iniciou: a espera abaixo pode ir no mesmo bloco ou noutro. O subshell grava o código de saída em
-`/tmp/nucleo.saida`:
+ambiente (`ITERACOES` é o fator das senhas, `Passwords:WorkFactor`); numa instalação real,
+`--Installation:Kind=real`. O registro vai ao console, e o redirecionamento o guarda. O núcleo roda
+em segundo plano e sobrevive ao fim do `docker exec` que o iniciou: a espera abaixo pode ir no mesmo
+bloco ou noutro. O subshell grava o código de saída em `/tmp/nucleo.saida`:
 
 ```
 : > /tmp/nucleo.saida
 cd /opt/cdg/nucleo
 ( CDG_Database__Password="$(cat /tmp/senha-app)" ./Core.Host --Host:Urls=http://127.0.0.1:5080 \
-  --Installation:Kind=demonstracao --Database:Host=db:5432 --Database:Name=cdg \
+  --Installation:Kind=demonstracao --Passwords:WorkFactor=ITERACOES --MasterKey:File=/etc/cdg/custodia/chave \
+  --MasterKey:LabelsFile=/etc/cdg/custodia/rotulos --Database:Host=db:5432 --Database:Name=cdg \
   --Database:Username=app > /tmp/nucleo.log 2>&1; echo $? > /tmp/nucleo.saida ) &
 ```
 
@@ -26,7 +27,7 @@ cd /opt/cdg/nucleo
 O núcleo só abre a porta depois que o serviço de linguagem responde e as conferências passam, e
 escreve então a linha `Now listening on`. Espere por ela, ou pela saída do núcleo, sem adivinhar um
 prazo (limite de 60 s). Se ele sai antes, a recusa está no registro e `/tmp/nucleo.saida` traz o
-código: 69, conferência que falha (senha recusada); 78, configuração; 70, falha ao servir.
+código: 69, conferência que falha (senha recusada, chave); 78, configuração; 70, falha ao servir.
 
 ```
 for i in $(seq 60); do

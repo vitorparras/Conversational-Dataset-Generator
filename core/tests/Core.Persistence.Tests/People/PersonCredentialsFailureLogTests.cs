@@ -1,3 +1,4 @@
+using Core.Persistence.Custody;
 using Core.Persistence.Migrations;
 using Core.Persistence.People;
 using Core.Persistence.Tests.Fixtures;
@@ -27,7 +28,7 @@ public sealed class PersonCredentialsFailureLogTests
         await scratch.RunAsOwnerAsync("ALTER TABLE public.person_credential ADD CONSTRAINT zqx_factor_floor CHECK (work_factor > 1000)");
         await using var logged = new LoggedCredentials(scratch.AppConnectionString, LowFactor);
 
-        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() => logged.Store.SetPasswordAsync(id, Password, actorId: null, TestContext.Current.CancellationToken));
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() => logged.Store.SetPasswordAsync(id, Password, CustodyAuthor.System, TestContext.Current.CancellationToken));
 
         Assert.Contains(PostgresErrorCodes.CheckViolation, failure.Message, StringComparison.Ordinal);
         Assert.Contains("person_credential", logged.Log.Everything, StringComparison.Ordinal);
@@ -57,7 +58,7 @@ public sealed class PersonCredentialsFailureLogTests
         await using var server = new UnreachableServer();
         await using var logged = new LoggedCredentials(server.ConnectionString, LowFactor);
 
-        var whileSetting = await Assert.ThrowsAnyAsync<NpgsqlException>(() => logged.Store.SetPasswordAsync(1, Password, actorId: null, TestContext.Current.CancellationToken));
+        var whileSetting = await Assert.ThrowsAnyAsync<NpgsqlException>(() => logged.Store.SetPasswordAsync(1, Password, CustodyAuthor.System, TestContext.Current.CancellationToken));
         var whileVerifying = await Assert.ThrowsAnyAsync<NpgsqlException>(() => logged.Store.VerifyAsync(1, Password, TestContext.Current.CancellationToken));
 
         Assert.NotEmpty(logged.Log.Everything);
@@ -76,7 +77,7 @@ public sealed class PersonCredentialsFailureLogTests
     private static async Task<long> NewPersonAsync(ScratchDatabase scratch)
     {
         await using var source = NpgsqlDataSource.Create(scratch.AppConnectionString);
-        var created = await new PersonRegistry(source).CreateAsync(new NewPerson(PeopleDatabase.NewName(), Annotation), actorId: null, TestContext.Current.CancellationToken);
+        var created = await new PersonRegistry(source).CreateAsync(new NewPerson(PeopleDatabase.NewName(), Annotation), CustodyAuthor.System, TestContext.Current.CancellationToken);
         return PeopleDatabase.Id(created);
     }
 
@@ -84,7 +85,7 @@ public sealed class PersonCredentialsFailureLogTests
     private static async Task<PeopleDatabase.CredentialRow> StoredAsync(ScratchDatabase scratch, long id)
     {
         await using var source = NpgsqlDataSource.Create(scratch.AppConnectionString);
-        _ = await new PersonCredentials(source, new PasswordDerivation(LowFactor)).SetPasswordAsync(id, Password, actorId: null, TestContext.Current.CancellationToken);
+        _ = await new PersonCredentials(source, new PasswordDerivation(LowFactor)).SetPasswordAsync(id, Password, CustodyAuthor.System, TestContext.Current.CancellationToken);
         await using var connection = await Sql.OpenAsync(scratch.OwnerConnectionString);
         await using var command = new NpgsqlCommand("SELECT algorithm, work_factor, salt, derived FROM public.person_credential WHERE person_id = @id", connection);
         _ = command.Parameters.AddWithValue("id", id);

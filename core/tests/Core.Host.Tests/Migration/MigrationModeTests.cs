@@ -95,6 +95,29 @@ public sealed class MigrationModeTests
         Assert.DoesNotContain("Database:", exit.Error, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task ModeDoesNotNeedTheWorkFactorThatTheServingModeCannotStartWithout()
+    {
+        using var closed = new ClosedPort();
+        var installation = Migrating(Database($"127.0.0.1:{closed.Number}")) with { DeclaresWorkFactor = false };
+
+        var exit = await HostProcess.RunToExitAsync(installation, HostProcess.StartupTimeout, TestContext.Current.CancellationToken);
+
+        Assert.Equal((int)ExitCode.MigrationNotConnected, exit.Code);
+        Assert.DoesNotContain("Passwords:WorkFactor", exit.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ModeRefusesAWorkFactorGivenThatIsNotAWholeNumberAboveZeroNamingThatKey()
+    {
+        var installation = Migrating(Database("127.0.0.1:1")) with { DeclaresWorkFactor = false, Arguments = ["migrate", "--Passwords:WorkFactor=zqx"] };
+
+        var exit = await HostProcess.RunToExitAsync(installation, HostProcess.StartupTimeout, TestContext.Current.CancellationToken);
+
+        Assert.Equal((int)ExitCode.ConfigurationRefused, exit.Code);
+        Assert.Contains("Passwords:WorkFactor", exit.Error, StringComparison.Ordinal);
+    }
+
     private static HostInstallation Migrating(ReadOnlyDictionary<string, string> environment)
     {
         var installation = HostInstallation.Built(HostProcess.FreeAddress());

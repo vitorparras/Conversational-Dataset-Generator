@@ -16,18 +16,18 @@ internal static class PasswordConfiguration
 
     internal static ConfigurationSection Section { get; } = new(SectionName, [ConfigurationKey.Required(WorkFactorKey)]);
 
-    /// <summary>The same section for the migration mode, which derives no password: the factor may be given, and is then read, but is not required.</summary>
+    /// <summary>The same section for the migration mode, which derives no password: the factor may be given, and is then judged like any other start, but is not required.</summary>
     internal static ConfigurationSection SectionWhenMigrating { get; } = new(SectionName, [ConfigurationKey.Optional(WorkFactorKey)]);
 
-    /// <summary>The refusal of a work factor that is not a whole number above zero; none when it is one.</summary>
+    /// <summary>The refusal of a work factor declared that is not a whole number above zero; none when it is one, or when it is not declared and the mode does not require it.</summary>
     internal static IReadOnlyList<ConfigurationProblem> Refusals(IReadOnlyDictionary<string, string> values) =>
-        WorkFactor(values) is null
-            ? [new ConfigurationProblem(ConfigurationProblemKind.ValueNotAccepted, WorkFactorPath, values[WorkFactorPath], [Accepted])]
+        values.TryGetValue(WorkFactorPath, out var declared) && WorkFactor(declared) is null
+            ? [new ConfigurationProblem(ConfigurationProblemKind.ValueNotAccepted, WorkFactorPath, declared, [Accepted])]
             : [];
 
     /// <summary>The derivation that runs with the work factor the configuration gave; the configuration has been judged before.</summary>
-    internal static PasswordDerivation Derivation(IReadOnlyDictionary<string, string> values) => new(WorkFactor(values)!.Value);
+    internal static PasswordDerivation Derivation(IReadOnlyDictionary<string, string> values) => new(WorkFactor(values[WorkFactorPath])!.Value);
 
-    private static int? WorkFactor(IReadOnlyDictionary<string, string> values) =>
-        int.TryParse(values[WorkFactorPath], NumberStyles.None, CultureInfo.InvariantCulture, out var factor) && factor > 0 ? factor : null;
+    private static int? WorkFactor(string declared) =>
+        int.TryParse(declared, NumberStyles.None, CultureInfo.InvariantCulture, out var factor) && factor > 0 ? factor : null;
 }

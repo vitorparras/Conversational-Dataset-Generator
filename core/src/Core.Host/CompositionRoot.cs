@@ -41,7 +41,7 @@ internal static class CompositionRoot
 
         if (migrating)
         {
-            return await MigrateAsync(database);
+            return PasswordConfiguration.Refusals(loaded.Values) is { Count: > 0 } invalid ? HostLaunch.Refused(invalid) : await MigrateAsync(database);
         }
 
         var analyzeTimeout = LanguageServiceConfiguration.AnalyzeTimeout(loaded.Values);

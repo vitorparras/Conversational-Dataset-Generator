@@ -69,6 +69,19 @@ public sealed class PasswordConfigurationTests
     }
 
     [Fact]
+    public void FactorNotDeclaredWhereItIsNotRequiredIsNoRefusal() =>
+        Assert.Empty(PasswordConfiguration.Refusals(new Dictionary<string, string>()));
+
+    [Fact]
+    public void FactorDeclaredAndInvalidIsRefusedEvenWhereItIsNotRequired()
+    {
+        var loaded = ClosedConfiguration.Load(new ConfigurationSchema([PasswordConfiguration.SectionWhenMigrating]), new StrictArgumentsSource([$"--{Key}=zqx"]));
+
+        var problem = Assert.Single(PasswordConfiguration.Refusals(loaded.Values));
+        Assert.Equal(Key, problem.Key);
+    }
+
+    [Fact]
     public void TheHostRefusesAFactorThatIsNotPositiveTogetherWithTheOtherRefusals()
     {
         var loaded = ClosedConfiguration.Load(

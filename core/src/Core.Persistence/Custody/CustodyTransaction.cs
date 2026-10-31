@@ -111,12 +111,13 @@ internal static class CustodyTransaction
     }
 
     /// <summary>What the server's refusal means; one that is none of these is a defect, and its message names the item, the step and the reason and nothing else.</summary>
-    private static CustodyResult Refused(PostgresException failed, CustodyEvent pending) => (failed.SqlState, failed.ConstraintName) switch
+    internal static CustodyResult Refused(PostgresException failed, CustodyEvent pending) => (failed.SqlState, failed.ConstraintName) switch
     {
         (PostgresErrorCodes.UniqueViolation, _) or (PostgresErrorCodes.SerializationFailure, _) => CustodyRefusals.Conflict(),
         (PostgresErrorCodes.ForeignKeyViolation, CustodyStatements.ActorConstraint) => CustodyRefusals.ActorUnknown(),
         (PostgresErrorCodes.CheckViolation, CustodyStatements.ActorActiveConstraint) => CustodyRefusals.ActorDeactivated(),
         (PostgresErrorCodes.ForeignKeyViolation, CustodyStatements.CorrectsConstraint) => CustodyRefusals.CorrectedNotFound(),
+        (CustodyStatements.ImmutableSqlState, _) => CustodyRefusals.Immutable(),
         _ => throw new InvalidOperationException(Describe(failed.SqlState, pending)),
     };
 

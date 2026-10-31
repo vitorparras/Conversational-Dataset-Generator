@@ -76,6 +76,22 @@ public sealed class CatalogReadingTests
     }
 
     [DatabaseFact]
+    public async Task ImmutabilityCheckReadsTheTriggersOfAMigratedDatabaseAndAccusesTheOneDisabled()
+    {
+        await using var database = await ScratchDatabase.CreateAsync();
+        _ = await database.MigrateAsync(EmbeddedMigrations.Load());
+
+        var held = await AppStartup.CheckAsync(database, dataSource => new ImmutabilityCheck(dataSource));
+        await database.RunAsOwnerAsync("ALTER TABLE public.custody_event DISABLE TRIGGER custody_event_never_emptied");
+        var disabled = await AppStartup.CheckAsync(database, dataSource => new ImmutabilityCheck(dataSource));
+
+        AssertPassedOn("Immutability", held);
+        Assert.Equal(CheckStatus.Failed, disabled.Status);
+        Assert.Contains("custody_event_never_emptied de public.custody_event está desabilitado", disabled.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("custody_event_never_changed", disabled.Message, StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
     public async Task PgAuditCheckReadsTheSettingAndTheVersionOfTheInstalledExtension()
     {
         var result = await RunAsApplicationAsync(dataSource => new PgAuditCheck(dataSource));

@@ -4,7 +4,10 @@ using System.Text;
 
 namespace Core.Platform.Keys;
 
-/// <summary>How the two custody files are written, and what is said when they are not: the key is one line of base64, the labels one per line in UTF-8; the problems name what was found, never the value.</summary>
+/// <summary>
+/// How the two custody files are written, and what is said when they are not: the key is one line of base64, the labels one per
+/// line in UTF-8; the problems name what was found, never the value.
+/// </summary>
 internal static class CustodyFileFormat
 {
     /// <summary>The most the key file may hold: 44 characters of base64 with room for the line break.</summary>
@@ -66,12 +69,14 @@ internal static class CustodyFileFormat
     /// <summary>The content without the one line break that may end it.</summary>
     private static ReadOnlySpan<byte> WithoutLastBreak(ReadOnlySpan<byte> content)
     {
-        if (content.EndsWith("\r\n"u8))
+        ReadOnlySpan<byte> crLf = "\r\n"u8;
+        if (content.EndsWith(crLf))
         {
-            return content[..^2];
+            return content[..^crLf.Length];
         }
 
-        return content.EndsWith("\n"u8) ? content[..^1] : content;
+        ReadOnlySpan<byte> lf = "\n"u8;
+        return content.EndsWith(lf) ? content[..^lf.Length] : content;
     }
 
     private static (byte[]? Key, string? Problem) Decode(ReadOnlySpan<byte> text)

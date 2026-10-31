@@ -31,7 +31,7 @@ internal static class WindowsKeyFilePermission
     private static bool MayHold(SecurityIdentifier sid, SecurityIdentifier user) =>
         sid.Equals(user) || sid.IsWellKnown(WellKnownSidType.LocalSystemSid) || sid.IsWellKnown(WellKnownSidType.BuiltinAdministratorsSid);
 
-    private static string Named(SecurityIdentifier sid)
+    private static string Named(IdentityReference sid)
     {
         try
         {

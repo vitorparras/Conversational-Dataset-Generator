@@ -8,6 +8,8 @@ internal static class KeyFilePermission
         | UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
 
     private const int PermissionBits = 0x1FF;
+    private const int Octal = 8;
+    private const int OctalDigits = 3;
 
     /// <summary>What the file's permission grants beyond the process's owner; null when it grants nothing.</summary>
     internal static string? Excess(string path) =>
@@ -17,5 +19,5 @@ internal static class KeyFilePermission
     internal static string? Excess(UnixFileMode mode) =>
         (mode & GroupAndOthers) == UnixFileMode.None
             ? null
-            : $"permissão aberta a grupo ou outros (modo {Convert.ToString((int)mode & PermissionBits, 8).PadLeft(3, '0')}); só o dono do processo pode ter acesso, como no modo 600";
+            : $"permissão aberta a grupo ou outros (modo {Convert.ToString((int)mode & PermissionBits, Octal).PadLeft(OctalDigits, '0')}); só o dono do processo pode ter acesso, como no modo 600";
 }

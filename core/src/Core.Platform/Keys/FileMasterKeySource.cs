@@ -37,7 +37,12 @@ public sealed class FileMasterKeySource : IMasterKeySource
         try
         {
             var refusal = Refusal(key) ?? Refusal(labels);
-            return refusal is null ? await ReadFilesAsync(cancellationToken).ConfigureAwait(false) : MasterKeyReading.Unreadable(refusal);
+            if (refusal is not null)
+            {
+                return MasterKeyReading.Unreadable(refusal);
+            }
+
+            return await ReadFilesAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
@@ -90,15 +95,18 @@ public sealed class FileMasterKeySource : IMasterKeySource
     /// <summary>What the file holds, read through the one handle that also tells its size; null when it is larger than a file of its kind can be.</summary>
     private static async Task<byte[]?> ContentAsync(CustodyFile file, CancellationToken cancellationToken)
     {
-        await using var stream = new FileStream(file.Path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 1, useAsync: true);
-        if (stream.Length > file.Longest)
+        var stream = new FileStream(file.Path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 1, useAsync: true);
+        await using (stream.ConfigureAwait(false))
         {
-            return null;
-        }
+            if (stream.Length > file.Longest)
+            {
+                return null;
+            }
 
-        var content = new byte[stream.Length];
-        await stream.ReadExactlyAsync(content, cancellationToken).ConfigureAwait(false);
-        return content;
+            var content = new byte[stream.Length];
+            await stream.ReadExactlyAsync(content, cancellationToken).ConfigureAwait(false);
+            return content;
+        }
     }
 
     private static MasterKeyReading TooLong(CustodyFile file) =>

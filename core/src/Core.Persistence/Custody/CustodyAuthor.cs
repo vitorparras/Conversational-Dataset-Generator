@@ -21,8 +21,4 @@ public sealed record CustodyAuthor
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(personId);
         return new CustodyAuthor(personId);
     }
-
-    /// <summary>The person, or the system when nobody acts as a person.</summary>
-    /// <param name="personId">The identifier of the person, or null.</param>
-    public static CustodyAuthor Of(long? personId) => personId is { } id ? Person(id) : System;
 }

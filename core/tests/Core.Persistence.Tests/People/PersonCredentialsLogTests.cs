@@ -1,3 +1,4 @@
+using Core.Persistence.Custody;
 using Core.Persistence.People;
 using Core.Persistence.Tests.Fixtures;
 
@@ -31,7 +32,7 @@ public sealed class PersonCredentialsLogTests : IClassFixture<PeopleDatabase>
         var id = await NewPersonAsync();
         await using var logged = await database.LoggedCredentialsAsync(LowFactor);
 
-        var set = await logged.Store.SetPasswordAsync(id, Password, actorId: null, TestContext.Current.CancellationToken);
+        var set = await logged.Store.SetPasswordAsync(id, Password, CustodyAuthor.System, TestContext.Current.CancellationToken);
         var entry = await logged.Store.VerifyAsync(id, Password, TestContext.Current.CancellationToken);
 
         Assert.Equal(PasswordOutcome.Accepted, entry);
@@ -42,7 +43,7 @@ public sealed class PersonCredentialsLogTests : IClassFixture<PeopleDatabase>
     public async Task AcceptedEntryThatRecomputesLeavesNothingOfEitherDerivationInTheRecords()
     {
         var id = await NewPersonAsync();
-        _ = await (await database.CredentialsAsync(LowFactor)).SetPasswordAsync(id, Password, actorId: null, TestContext.Current.CancellationToken);
+        _ = await (await database.CredentialsAsync(LowFactor)).SetPasswordAsync(id, Password, CustodyAuthor.System, TestContext.Current.CancellationToken);
         var before = (await database.CredentialOfAsync(id))!;
         await using var logged = await database.LoggedCredentialsAsync(HighFactor);
 
@@ -59,7 +60,7 @@ public sealed class PersonCredentialsLogTests : IClassFixture<PeopleDatabase>
     {
         var id = await NewPersonAsync();
         await using var logged = await database.LoggedCredentialsAsync(LowFactor);
-        _ = await logged.Store.SetPasswordAsync(id, Password, actorId: null, TestContext.Current.CancellationToken);
+        _ = await logged.Store.SetPasswordAsync(id, Password, CustodyAuthor.System, TestContext.Current.CancellationToken);
 
         var entry = await logged.Store.VerifyAsync(id, WrongPassword, TestContext.Current.CancellationToken);
 
@@ -72,8 +73,8 @@ public sealed class PersonCredentialsLogTests : IClassFixture<PeopleDatabase>
     {
         var id = await NewPersonAsync();
         await using var logged = await database.LoggedCredentialsAsync(LowFactor);
-        _ = await logged.Store.SetPasswordAsync(id, Password, actorId: null, TestContext.Current.CancellationToken);
-        _ = await (await database.RegistryAsync()).DeactivateAsync(id, actorId: null, TestContext.Current.CancellationToken);
+        _ = await logged.Store.SetPasswordAsync(id, Password, CustodyAuthor.System, TestContext.Current.CancellationToken);
+        _ = await (await database.RegistryAsync()).DeactivateAsync(id, CustodyAuthor.System, TestContext.Current.CancellationToken);
 
         var entry = await logged.Store.VerifyAsync(id, Password, TestContext.Current.CancellationToken);
 
@@ -98,10 +99,10 @@ public sealed class PersonCredentialsLogTests : IClassFixture<PeopleDatabase>
     public async Task PasswordSetRefusedForADeactivatedPersonLeavesNothingInTheRecords()
     {
         var id = await NewPersonAsync();
-        _ = await (await database.RegistryAsync()).DeactivateAsync(id, actorId: null, TestContext.Current.CancellationToken);
+        _ = await (await database.RegistryAsync()).DeactivateAsync(id, CustodyAuthor.System, TestContext.Current.CancellationToken);
         await using var logged = await database.LoggedCredentialsAsync(LowFactor);
 
-        var set = await logged.Store.SetPasswordAsync(id, Password, actorId: null, TestContext.Current.CancellationToken);
+        var set = await logged.Store.SetPasswordAsync(id, Password, CustodyAuthor.System, TestContext.Current.CancellationToken);
 
         Assert.Equal(PersonOutcome.Deactivated, set.Outcome);
         await AssertNothingInTheRecordsAsync(id, logged.Log, $"{set.Outcome} {set.Refusal}");
@@ -121,5 +122,5 @@ public sealed class PersonCredentialsLogTests : IClassFixture<PeopleDatabase>
     }
 
     private async Task<long> NewPersonAsync() =>
-        PeopleDatabase.Id(await (await database.RegistryAsync()).CreateAsync(new NewPerson(PeopleDatabase.NewName(), Annotation), actorId: null, TestContext.Current.CancellationToken));
+        PeopleDatabase.Id(await (await database.RegistryAsync()).CreateAsync(new NewPerson(PeopleDatabase.NewName(), Annotation), CustodyAuthor.System, TestContext.Current.CancellationToken));
 }

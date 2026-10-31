@@ -1,3 +1,4 @@
+using Core.Persistence.Custody;
 using Core.Persistence.People;
 using Core.Persistence.Tests.Fixtures;
 
@@ -29,9 +30,9 @@ public sealed class CustodyContentTests : IClassFixture<CustodyDatabase>
     {
         var registry = await database.RegistryAsync();
         var (actorName, targetName) = (NewName(), NewName());
-        var actor = await registry.CreateAsync(new NewPerson(actorName, PersonFunctions.Accepted[1]), actorId: null, TestContext.Current.CancellationToken);
-        var target = await registry.CreateAsync(new NewPerson(targetName, PersonFunctions.Accepted[0]), actor.PersonId, TestContext.Current.CancellationToken);
-        _ = await registry.DeactivateAsync(target.PersonId!.Value, actor.PersonId, TestContext.Current.CancellationToken);
+        var actor = await registry.CreateAsync(new NewPerson(actorName, PersonFunctions.Accepted[1]), CustodyAuthor.System, TestContext.Current.CancellationToken);
+        var target = await registry.CreateAsync(new NewPerson(targetName, PersonFunctions.Accepted[0]), CustodyAuthor.Person(actor.PersonId!.Value), TestContext.Current.CancellationToken);
+        _ = await registry.DeactivateAsync(target.PersonId!.Value, CustodyAuthor.Person(actor.PersonId.Value), TestContext.Current.CancellationToken);
 
         var rows = (await database.EventsAsync()).Where(row => row.ItemId == target.PersonId || row.ActorPersonId == actor.PersonId);
 
@@ -43,7 +44,7 @@ public sealed class CustodyContentTests : IClassFixture<CustodyDatabase>
     public async Task EventAboutAPersonNamesThePersonOnlyByTheNumberOfTheItem()
     {
         var registry = await database.RegistryAsync();
-        var created = await registry.CreateAsync(new NewPerson(NewName(), PersonFunctions.Accepted[0]), actorId: null, TestContext.Current.CancellationToken);
+        var created = await registry.CreateAsync(new NewPerson(NewName(), PersonFunctions.Accepted[0]), CustodyAuthor.System, TestContext.Current.CancellationToken);
 
         var row = (await database.EventsAsync()).Single(candidate => candidate.ItemId == created.PersonId);
 

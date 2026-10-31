@@ -21,9 +21,10 @@ public sealed class CustodyAuthorRefusalTests : IClassFixture<CustodyDatabase>
     {
         var chain = await database.ChainAsync();
         var registry = await database.RegistryAsync();
-        var author = (await registry.CreateAsync(new NewPerson($"zqx-pessoa-{Guid.NewGuid():N}", PersonFunctions.Accepted[0]), actorId: null, TestContext.Current.CancellationToken)).PersonId!.Value;
+        var created = new NewPerson($"zqx-pessoa-{Guid.NewGuid():N}", PersonFunctions.Accepted[0]);
+        var author = (await registry.CreateAsync(created, CustodyAuthor.System, TestContext.Current.CancellationToken)).PersonId!.Value;
         var signed = await chain.AppendAsync(Event(CustodyAuthor.Person(author), 11101), TestContext.Current.CancellationToken);
-        _ = await registry.DeactivateAsync(author, actorId: null, TestContext.Current.CancellationToken);
+        _ = await registry.DeactivateAsync(author, CustodyAuthor.System, TestContext.Current.CancellationToken);
 
         var after = await chain.AppendAsync(Event(CustodyAuthor.Person(author), 11102), TestContext.Current.CancellationToken);
 

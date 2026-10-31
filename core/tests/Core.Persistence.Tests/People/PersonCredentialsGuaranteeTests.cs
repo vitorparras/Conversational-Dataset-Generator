@@ -1,4 +1,5 @@
 using System.Globalization;
+using Core.Persistence.Custody;
 using Core.Persistence.People;
 using Core.Persistence.Tests.Fixtures;
 using Npgsql;
@@ -73,13 +74,13 @@ public sealed class PersonCredentialsGuaranteeTests : IClassFixture<PeopleDataba
     private async Task<long> NewPersonAsync()
     {
         var person = new NewPerson(PeopleDatabase.NewName(), PersonFunctions.Accepted[0]);
-        return PeopleDatabase.Id(await (await database.RegistryAsync()).CreateAsync(person, actorId: null, TestContext.Current.CancellationToken));
+        return PeopleDatabase.Id(await (await database.RegistryAsync()).CreateAsync(person, CustodyAuthor.System, TestContext.Current.CancellationToken));
     }
 
     private async Task<long> NewPersonWithPasswordAsync()
     {
         var id = await NewPersonAsync();
-        _ = PeopleDatabase.Id(await (await database.CredentialsAsync(1)).SetPasswordAsync(id, Password, actorId: null, TestContext.Current.CancellationToken));
+        _ = PeopleDatabase.Id(await (await database.CredentialsAsync(1)).SetPasswordAsync(id, Password, CustodyAuthor.System, TestContext.Current.CancellationToken));
         return id;
     }
 }

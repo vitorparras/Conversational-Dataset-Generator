@@ -1,3 +1,4 @@
+using Core.Persistence.Custody;
 using Core.Persistence.People;
 using Core.Persistence.Tests.Fixtures;
 using Npgsql;
@@ -47,7 +48,7 @@ public sealed class PersonHistoryGuaranteeTests : IClassFixture<PeopleDatabase>
     {
         var registry = await database.RegistryAsync();
         var id = await NewPersonAsync();
-        _ = PeopleDatabase.Id(await registry.DeactivateAsync(id, actorId: null, TestContext.Current.CancellationToken));
+        _ = PeopleDatabase.Id(await registry.DeactivateAsync(id, CustodyAuthor.System, TestContext.Current.CancellationToken));
 
         var refused = await database.RefusedToAppAsync($"DELETE FROM public.person WHERE id = {id}");
 
@@ -169,6 +170,6 @@ public sealed class PersonHistoryGuaranteeTests : IClassFixture<PeopleDatabase>
     private async Task<long> NewPersonAsync()
     {
         var registry = await database.RegistryAsync();
-        return PeopleDatabase.Id(await registry.CreateAsync(new NewPerson(PeopleDatabase.NewName(), PersonFunctions.Accepted[0]), actorId: null, TestContext.Current.CancellationToken));
+        return PeopleDatabase.Id(await registry.CreateAsync(new NewPerson(PeopleDatabase.NewName(), PersonFunctions.Accepted[0]), CustodyAuthor.System, TestContext.Current.CancellationToken));
     }
 }

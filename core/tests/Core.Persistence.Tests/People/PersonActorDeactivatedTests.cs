@@ -1,3 +1,4 @@
+using Core.Persistence.Custody;
 using Core.Persistence.People;
 using Core.Persistence.Tests.Fixtures;
 
@@ -24,7 +25,7 @@ public sealed class PersonActorDeactivatedTests : IClassFixture<PeopleDatabase>
         var actor = await DeactivatedActorAsync(registry);
         var (people, changes) = (await database.CountAsync("person"), await database.CountAsync("person_change"));
 
-        var result = await registry.CreateAsync(new NewPerson(PeopleDatabase.NewName(), Annotation), actor, TestContext.Current.CancellationToken);
+        var result = await registry.CreateAsync(new NewPerson(PeopleDatabase.NewName(), Annotation), CustodyAuthor.Person(actor), TestContext.Current.CancellationToken);
 
         Assert.Equal(PersonOutcome.ActorDeactivated, result.Outcome);
         Assert.NotNull(result.Refusal);
@@ -38,7 +39,7 @@ public sealed class PersonActorDeactivatedTests : IClassFixture<PeopleDatabase>
         var actor = await DeactivatedActorAsync(registry);
         var id = await NewPersonAsync(registry);
 
-        var result = await registry.DeactivateAsync(id, actor, TestContext.Current.CancellationToken);
+        var result = await registry.DeactivateAsync(id, CustodyAuthor.Person(actor), TestContext.Current.CancellationToken);
 
         Assert.Equal(PersonOutcome.ActorDeactivated, result.Outcome);
         Assert.True((await database.PersonAsync(id))!.Active);
@@ -52,7 +53,7 @@ public sealed class PersonActorDeactivatedTests : IClassFixture<PeopleDatabase>
         var actor = await DeactivatedActorAsync(registry);
         var id = await NewPersonAsync(registry);
 
-        var result = await registry.ChangeFunctionAsync(id, Arbitration, actor, TestContext.Current.CancellationToken);
+        var result = await registry.ChangeFunctionAsync(id, Arbitration, CustodyAuthor.Person(actor), TestContext.Current.CancellationToken);
 
         Assert.Equal(PersonOutcome.ActorDeactivated, result.Outcome);
         Assert.Equal(Annotation, (await database.PersonAsync(id))!.Function);
@@ -65,7 +66,7 @@ public sealed class PersonActorDeactivatedTests : IClassFixture<PeopleDatabase>
         var registry = await database.RegistryAsync();
         var id = await NewPersonAsync(registry);
 
-        var result = await registry.ChangeFunctionAsync(id, Arbitration, long.MaxValue, TestContext.Current.CancellationToken);
+        var result = await registry.ChangeFunctionAsync(id, Arbitration, CustodyAuthor.Person(long.MaxValue), TestContext.Current.CancellationToken);
 
         Assert.Equal(PersonOutcome.ActorUnknown, result.Outcome);
     }
@@ -77,7 +78,7 @@ public sealed class PersonActorDeactivatedTests : IClassFixture<PeopleDatabase>
         var actor = await NewPersonAsync(registry);
         var id = await NewPersonAsync(registry);
 
-        var result = await registry.ChangeFunctionAsync(id, Arbitration, actor, TestContext.Current.CancellationToken);
+        var result = await registry.ChangeFunctionAsync(id, Arbitration, CustodyAuthor.Person(actor), TestContext.Current.CancellationToken);
 
         Assert.Equal(PersonOutcome.Done, result.Outcome);
         Assert.Equal(actor, (await database.ChangesOfAsync(id))[^1].ActorId);
@@ -89,7 +90,7 @@ public sealed class PersonActorDeactivatedTests : IClassFixture<PeopleDatabase>
         var registry = await database.RegistryAsync();
         var id = await NewPersonAsync(registry);
 
-        var result = await registry.DeactivateAsync(id, id, TestContext.Current.CancellationToken);
+        var result = await registry.DeactivateAsync(id, CustodyAuthor.Person(id), TestContext.Current.CancellationToken);
 
         Assert.Equal(PersonOutcome.Done, result.Outcome);
     }
@@ -97,10 +98,10 @@ public sealed class PersonActorDeactivatedTests : IClassFixture<PeopleDatabase>
     private static async Task<long> DeactivatedActorAsync(PersonRegistry registry)
     {
         var actor = await NewPersonAsync(registry);
-        _ = PeopleDatabase.Id(await registry.DeactivateAsync(actor, actorId: null, TestContext.Current.CancellationToken));
+        _ = PeopleDatabase.Id(await registry.DeactivateAsync(actor, CustodyAuthor.System, TestContext.Current.CancellationToken));
         return actor;
     }
 
     private static async Task<long> NewPersonAsync(PersonRegistry registry) =>
-        PeopleDatabase.Id(await registry.CreateAsync(new NewPerson(PeopleDatabase.NewName(), Annotation), actorId: null, TestContext.Current.CancellationToken));
+        PeopleDatabase.Id(await registry.CreateAsync(new NewPerson(PeopleDatabase.NewName(), Annotation), CustodyAuthor.System, TestContext.Current.CancellationToken));
 }

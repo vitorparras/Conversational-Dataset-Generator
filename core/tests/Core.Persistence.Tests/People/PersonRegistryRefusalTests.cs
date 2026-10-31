@@ -1,3 +1,4 @@
+using Core.Persistence.Custody;
 using Core.Persistence.People;
 using Core.Persistence.Tests.ServerGuarantees;
 
@@ -16,7 +17,7 @@ public sealed class PersonRegistryRefusalTests
     {
         await using var server = new UnreachableServer();
 
-        var result = await new PersonRegistry(server.DataSource).CreateAsync(new NewPerson(Name, "Zqx-Funcao"), actorId: null, TestContext.Current.CancellationToken);
+        var result = await new PersonRegistry(server.DataSource).CreateAsync(new NewPerson(Name, "Zqx-Funcao"), CustodyAuthor.System, TestContext.Current.CancellationToken);
 
         Assert.Equal(PersonOutcome.FunctionNotAccepted, result.Outcome);
         Assert.Contains("'Zqx-Funcao'", result.Refusal, StringComparison.Ordinal);
@@ -29,7 +30,7 @@ public sealed class PersonRegistryRefusalTests
     {
         await using var server = new UnreachableServer();
 
-        var result = await new PersonRegistry(server.DataSource).ChangeFunctionAsync(1, "Zqx-Funcao", actorId: null, TestContext.Current.CancellationToken);
+        var result = await new PersonRegistry(server.DataSource).ChangeFunctionAsync(1, "Zqx-Funcao", CustodyAuthor.System, TestContext.Current.CancellationToken);
 
         Assert.Equal(PersonOutcome.FunctionNotAccepted, result.Outcome);
         Assert.Contains("'Zqx-Funcao'", result.Refusal, StringComparison.Ordinal);
@@ -44,7 +45,7 @@ public sealed class PersonRegistryRefusalTests
     {
         await using var server = new UnreachableServer();
 
-        var result = await new PersonRegistry(server.DataSource).CreateAsync(new NewPerson(name, PersonFunctions.Accepted[0]), actorId: null, TestContext.Current.CancellationToken);
+        var result = await new PersonRegistry(server.DataSource).CreateAsync(new NewPerson(name, PersonFunctions.Accepted[0]), CustodyAuthor.System, TestContext.Current.CancellationToken);
 
         Assert.Equal(PersonOutcome.NameInvalid, result.Outcome);
         Assert.NotNull(result.Refusal);
@@ -55,7 +56,7 @@ public sealed class PersonRegistryRefusalTests
     {
         await using var server = new UnreachableServer();
 
-        var result = await new PersonRegistry(server.DataSource).CreateAsync(new NewPerson("", "Zqx-Funcao"), actorId: null, TestContext.Current.CancellationToken);
+        var result = await new PersonRegistry(server.DataSource).CreateAsync(new NewPerson("", "Zqx-Funcao"), CustodyAuthor.System, TestContext.Current.CancellationToken);
 
         Assert.Equal(PersonOutcome.NameInvalid, result.Outcome);
     }
@@ -66,7 +67,7 @@ public sealed class PersonRegistryRefusalTests
         await using var server = new UnreachableServer();
         var registry = new PersonRegistry(server.DataSource);
 
-        _ = await Assert.ThrowsAsync<ArgumentNullException>(() => registry.CreateAsync(null!, actorId: null, TestContext.Current.CancellationToken));
+        _ = await Assert.ThrowsAsync<ArgumentNullException>(() => registry.CreateAsync(null!, CustodyAuthor.System, TestContext.Current.CancellationToken));
     }
 
     [Fact]

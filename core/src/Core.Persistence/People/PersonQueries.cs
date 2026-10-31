@@ -23,11 +23,10 @@ internal static class PersonQueries
     /// <summary>
     /// Runs the statement and adds the custody event of that change in the same serializable transaction; null when the statement wrote nothing.
     /// For a person who exists the event goes first, so that someone who deactivates themselves is judged as they were when they acted.
-    /// An actor who is none signs as the system.
+    /// The author is a person or the system, said so by the caller and never deduced from a missing actor.
     /// </summary>
-    internal static async Task<PersonResult?> WriteChainedAsync(this NpgsqlDataSource dataSource, PersonStatement statement, long? actorId, CancellationToken cancellationToken)
+    internal static async Task<PersonResult?> WriteChainedAsync(this NpgsqlDataSource dataSource, PersonStatement statement, CustodyAuthor author, CancellationToken cancellationToken)
     {
-        var author = CustodyAuthor.Of(actorId);
         if (statement.PersonId is not { } personId)
         {
             return await CreateChainedAsync(dataSource, statement, author, cancellationToken).ConfigureAwait(false);

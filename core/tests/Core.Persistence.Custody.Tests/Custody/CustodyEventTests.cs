@@ -22,14 +22,6 @@ public sealed class CustodyEventTests
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => CustodyAuthor.Person(personId));
 
     [Fact]
-    public void NobodyActingSignsAsTheSystem() =>
-        Assert.Equal(CustodyAuthor.System, CustodyAuthor.Of(null));
-
-    [Fact]
-    public void SomeoneActingSignsAsThemselves() =>
-        Assert.Equal(CustodyAuthor.Person(9), CustodyAuthor.Of(9));
-
-    [Fact]
     public void EventCarriesWhatItWasGiven()
     {
         var custodyEvent = CustodyEvent.Of(CustodyAuthor.Person(3), Item, CustodyStep.PersonDeactivated, CustodyReason.AdministrativeAct);

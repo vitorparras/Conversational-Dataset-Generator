@@ -43,4 +43,41 @@ public sealed class CustodyChainGuardTests
     [Fact]
     public void OutcomeNobodyDefinedIsADefect() =>
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => PersonRefusals.Chained(CustodyResult.Refused((CustodyOutcome)int.MaxValue, "texto"), 3));
+
+    [Fact]
+    public async Task CreatingWithoutSayingWhoActsIsRefusedBeforeAnythingIsOpened()
+    {
+        await using var dataSource = Unreachable();
+
+        _ = await Assert.ThrowsAsync<ArgumentNullException>(() => new PersonRegistry(dataSource).CreateAsync(new NewPerson("zqx-pessoa", "Anotação"), null!, TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task DeactivatingWithoutSayingWhoActsIsRefusedBeforeAnythingIsOpened()
+    {
+        await using var dataSource = Unreachable();
+
+        _ = await Assert.ThrowsAsync<ArgumentNullException>(() => new PersonRegistry(dataSource).DeactivateAsync(1, null!, TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task ChangingTheFunctionWithoutSayingWhoActsIsRefusedBeforeAnythingIsOpened()
+    {
+        await using var dataSource = Unreachable();
+
+        _ = await Assert.ThrowsAsync<ArgumentNullException>(() => new PersonRegistry(dataSource).ChangeFunctionAsync(1, "Anotação", null!, TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task SettingAPasswordWithoutSayingWhoActsIsRefusedBeforeAnythingIsOpened()
+    {
+        await using var dataSource = Unreachable();
+
+        var credentials = new PersonCredentials(dataSource, new PasswordDerivation(2));
+
+        _ = await Assert.ThrowsAsync<ArgumentNullException>(() => credentials.SetPasswordAsync(1, "ZQX-SENHA-5820", null!, TestContext.Current.CancellationToken));
+    }
+
+    /// <summary>A data source nothing answers at: whatever reached it would fail on the connection, so a refusal of the argument proves nothing went further.</summary>
+    private static NpgsqlDataSource Unreachable() => NpgsqlDataSource.Create("Host=127.0.0.1;Port=1;Database=none;Timeout=1");
 }

@@ -99,27 +99,33 @@ public sealed class FileMasterKeySource : IMasterKeySource
         return MasterKeyReading.FromBytes(bytes, given, $"{key.Name} em '{key.Path}'");
     }
 
-    /// <summary>What the file holds, read through the one handle that also tells its size; otherwise why it was not read, naming the file.</summary>
+    /// <summary>What the file holds, or why it was not read, naming the file.</summary>
     private static async Task<(byte[]? Content, string? Problem)> ContentAsync(CustodyFile file, CancellationToken cancellationToken)
     {
         try
         {
-            var stream = new FileStream(file.Path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 1, useAsync: true);
-            await using (stream.ConfigureAwait(false))
-            {
-                if (stream.Length > file.Longest)
-                {
-                    return (null, $"{file.Name} em '{file.Path}': maior que {file.Longest} bytes, o que um arquivo desse tipo não é");
-                }
-
-                var content = new byte[stream.Length];
-                await stream.ReadExactlyAsync(content, cancellationToken).ConfigureAwait(false);
-                return (content, null);
-            }
+            return await ReadWithinLimitAsync(file, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             return (null, Unopened(file, exception));
+        }
+    }
+
+    /// <summary>The content, read through the one handle that also tells the size, unless the file is larger than its kind can be.</summary>
+    private static async Task<(byte[]? Content, string? Problem)> ReadWithinLimitAsync(CustodyFile file, CancellationToken cancellationToken)
+    {
+        var stream = new FileStream(file.Path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 1, useAsync: true);
+        await using (stream.ConfigureAwait(false))
+        {
+            if (stream.Length > file.Longest)
+            {
+                return (null, $"{file.Name} em '{file.Path}': maior que {file.Longest} bytes, o que um arquivo desse tipo não é");
+            }
+
+            var content = new byte[stream.Length];
+            await stream.ReadExactlyAsync(content, cancellationToken).ConfigureAwait(false);
+            return (content, null);
         }
     }
 

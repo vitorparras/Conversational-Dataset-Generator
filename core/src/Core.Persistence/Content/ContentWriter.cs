@@ -1,3 +1,4 @@
+using Core.Persistence.Custody;
 using Npgsql;
 using NpgsqlTypes;
 
@@ -58,6 +59,18 @@ public sealed class ContentWriter(NpgsqlDataSource dataSource, ProtectedContent 
         new(name, NpgsqlDbType.Text) { Value = (object?)value ?? DBNull.Value };
 
     private async Task<long> InsertAsync(int domainId, string statement, NpgsqlParameter[] parameters, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await InsertInTransactionAsync(domainId, statement, parameters, cancellationToken).ConfigureAwait(false);
+        }
+        catch (PostgresException refused) when (refused.SqlState == CustodyStatements.ChainBrokenSqlState)
+        {
+            throw new CustodyChainBrokenException();
+        }
+    }
+
+    private async Task<long> InsertInTransactionAsync(int domainId, string statement, NpgsqlParameter[] parameters, CancellationToken cancellationToken)
     {
         var transaction = await ContentTransaction.BeginAsync(dataSource, domainId, cancellationToken).ConfigureAwait(false);
         await using (transaction.ConfigureAwait(false))

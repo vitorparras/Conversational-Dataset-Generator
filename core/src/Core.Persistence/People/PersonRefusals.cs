@@ -37,9 +37,13 @@ internal static class PersonRefusals
         CustodyOutcome.ActorUnknown => ActorUnknown(),
         CustodyOutcome.ActorDeactivated => ActorDeactivated(),
         CustodyOutcome.CorrectedNotFound or CustodyOutcome.Conflict => ChainBusy(),
+        CustodyOutcome.ChainBroken => ChainBroken(),
         CustodyOutcome.Immutable => throw new ArgumentOutOfRangeException(nameof(custody), custody.Outcome, "A change of a person never asks the chain to change an event."),
         _ => throw new ArgumentOutOfRangeException(nameof(custody), custody.Outcome, "The outcome is not one a change of a person can meet."),
     };
+
+    internal static PersonResult ChainBroken() =>
+        PersonResult.Refused(PersonOutcome.ChainBroken, "A última verificação da cadeia de custódia falhou: nada é gravado até uma verificação passar; nada foi gravado.");
 
     internal static PersonResult ChainBusy() =>
         PersonResult.Refused(PersonOutcome.ChainBusy, "Outra gravação chegou ao mesmo elo da cadeia de custódia antes; nada foi gravado, e o pedido pode ser repetido.");

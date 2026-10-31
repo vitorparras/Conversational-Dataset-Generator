@@ -7,7 +7,8 @@ namespace Core.Persistence.ServerGuarantees;
 /// Checks that every table with a row policy applies it with FORCE, so that the policy holds even against the table's owner;
 /// a policy on a table whose row security is off counts as a policy that does not apply. The content schema is held to more, since
 /// a content table born wrong works and returns what is asked, and only this check can tell: every table there carries the domain
-/// column tied by a validated foreign key to the domain registry (one added NOT VALID leaves the rows already there unchecked), a policy, and no permissive policy beyond the domain one (permissive policies add up, so one more that lets everything
+/// column tied by a validated foreign key to the domain registry (one added NOT VALID leaves the rows already there unchecked),
+/// a policy, and no permissive policy beyond the domain one (permissive policies add up, so one more that lets everything
 /// through opens the table); and nothing there may be a view, which has no row policy of its own.
 /// </summary>
 public sealed class RlsForceCheck : IStartupCheck
@@ -69,8 +70,8 @@ public sealed class RlsForceCheck : IStartupCheck
             ({ WithoutDomain: not null }, _) => Finding.Missing(
                 $"a tabela de conteúdo {content.WithoutDomain} não tem a coluna domain_id não nula: crie as tabelas do esquema content com public.create_content_table"),
             ({ WithoutDomainKey: not null }, _) => Finding.Missing(
-                $"a tabela de conteúdo {content.WithoutDomainKey} tem domain_id sem chave estrangeira para public.domain, ou com ela ainda não validada (NOT VALID): um domínio que não existe seria aceito; "
-                + "valide-a com ALTER TABLE ... VALIDATE CONSTRAINT ou crie as tabelas do esquema content com public.create_content_table"),
+                $"a tabela de conteúdo {content.WithoutDomainKey} tem domain_id sem chave estrangeira para public.domain, ou com ela ainda não validada (NOT VALID): "
+                + "um domínio que não existe seria aceito; valide-a com ALTER TABLE ... VALIDATE CONSTRAINT ou crie as tabelas do esquema content com public.create_content_table"),
             ({ WithoutPolicy: not null }, _) => Finding.Missing(
                 $"a tabela de conteúdo {content.WithoutPolicy} não tem política de linha por domínio: crie as tabelas do esquema content com public.create_content_table"),
             ({ OpenPolicy: not null }, _) => Finding.Missing(

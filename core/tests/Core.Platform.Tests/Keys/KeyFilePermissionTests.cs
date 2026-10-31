@@ -65,57 +65,62 @@ public sealed class KeyFilePermissionTests : IDisposable
         Assert.Contains($"arquivo dos rótulos em '{labels}': permissão aberta a grupo ou outros (modo 604)", reading.Failure.Found, StringComparison.Ordinal);
     }
 
-    [Fact]
-    [SupportedOSPlatform("windows")]
-    public void EntryForTheUserOfTheProcessAloneGrantsNothingBeyondTheOwner()
-    {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "a lista de acesso é do Windows");
-        using var process = WindowsIdentity.GetCurrent();
+    private const string User = "S-1-5-21-1-2-3-1001";
+    private const string LocalSystem = "S-1-5-18";
+    private const string Administrators = "S-1-5-32-544";
+    private const string Users = "S-1-5-32-545";
+    private const int Read = 1;
+    private const int Write = 2;
 
-        Assert.Null(WindowsKeyFilePermission.Excess([process.User!], process.User!));
-    }
-
-    [Fact]
-    [SupportedOSPlatform("windows")]
-    public void EntriesForSystemAndAdministratorsGrantNothingBeyondTheOwner()
-    {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "a lista de acesso é do Windows");
-        using var process = WindowsIdentity.GetCurrent();
-        SecurityIdentifier[] granted =
-        [
-            process.User!,
-            new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null),
-            new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null),
-        ];
-
-        Assert.Null(WindowsKeyFilePermission.Excess(granted, process.User!));
-    }
+    private static AccessEntry Allow(string sid, string account, int rights = Read) => new(sid, account, Allows: true, rights);
 
     [Fact]
-    [SupportedOSPlatform("windows")]
+    public void EntryForTheUserOfTheProcessAloneGrantsNothingBeyondTheOwner() =>
+        Assert.Null(KeyFilePermission.Excess([Allow(User, "dono")], User));
+
+    [Fact]
+    public void SidOfTheUserIsComparedWithoutRegardToCase() =>
+        Assert.Null(KeyFilePermission.Excess([Allow("s-1-5-21-1-2-3-1001", "dono")], "S-1-5-21-1-2-3-1001"));
+
+    [Fact]
+    public void EntriesForSystemAndAdministratorsGrantNothingBeyondTheOwner() =>
+        Assert.Null(KeyFilePermission.Excess([Allow(User, "dono"), Allow(LocalSystem, "SYSTEM"), Allow(Administrators, "Administradores")], User));
+
+    [Fact]
     public void EntryForAnotherAccountIsRefusedNamingTheAccount()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "a lista de acesso é do Windows");
-        using var process = WindowsIdentity.GetCurrent();
-        SecurityIdentifier[] granted = [process.User!, new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null)];
+        var excess = KeyFilePermission.Excess([Allow(User, "dono"), Allow(Users, "Usuários")], User);
 
-        var excess = WindowsKeyFilePermission.Excess(granted, process.User!);
-
-        Assert.Equal($"permissão concedida a quem não é o usuário do processo, SYSTEM nem Administradores: {NameOf(WellKnownSidType.BuiltinUsersSid)}", excess);
+        Assert.Equal("permissão concedida a quem não é o usuário do processo, SYSTEM nem Administradores: Usuários", excess);
     }
 
     [Fact]
-    [SupportedOSPlatform("windows")]
+    public void AccountsAreToldOnceAndInOrder()
+    {
+        var excess = KeyFilePermission.Excess([Allow(Users, "Usuários"), Allow("S-1-1-0", "Todos"), Allow(Users, "Usuários", Write)], User);
+
+        Assert.EndsWith(": Todos, Usuários", excess, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void EntryThatDeniesIsNotAGrant() =>
+        Assert.Null(KeyFilePermission.Excess([new AccessEntry(Users, "Usuários", Allows: false, Read)], User));
+
+    [Fact]
+    public void EntryThatAllowsNoRightIsNotAGrant() =>
+        Assert.Null(KeyFilePermission.Excess([Allow(Users, "Usuários", 0)], User));
+
+    [Fact]
     public void AccountsThatCannotBeNamedAreToldBySid()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "a lista de acesso é do Windows");
-        using var process = WindowsIdentity.GetCurrent();
-        var unknown = new SecurityIdentifier("S-1-5-21-1-2-3-4242");
-
-        var excess = WindowsKeyFilePermission.Excess([unknown, unknown], process.User!);
+        var excess = KeyFilePermission.Excess([Allow("S-1-5-21-1-2-3-4242", "S-1-5-21-1-2-3-4242")], User);
 
         Assert.Equal("permissão concedida a quem não é o usuário do processo, SYSTEM nem Administradores: S-1-5-21-1-2-3-4242", excess);
     }
+
+    [Fact]
+    public void NoEntryAtAllGrantsNothing() =>
+        Assert.Null(KeyFilePermission.Excess([], User));
 
     [Fact]
     [SupportedOSPlatform("windows")]

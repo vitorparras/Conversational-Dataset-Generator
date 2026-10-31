@@ -61,7 +61,7 @@ internal static class HostConfiguration
                     SafekeepingConfiguration.Section,
                     LanguageServiceConfiguration.Section,
                     RecognizerConfiguration.Section,
-                    DatabaseConfiguration.Section
+                    migrating ? DatabaseConfiguration.SectionWhenMigrating : DatabaseConfiguration.Section
                 ]),
             new JsonFileSource(SettingsPath),
             EnvironmentSource.FromProcess(),

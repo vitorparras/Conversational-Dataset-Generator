@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using Core.Persistence.Custody;
 using Core.Persistence.Migrations;
 using Core.Persistence.ServerGuarantees;
@@ -21,6 +22,17 @@ public sealed class CustodyImmutableStartupTests
     private const string Wrong = "não dispara em toda sessão";
     private const string Disabled = "está desabilitado";
     private const string Absent = "não está em public.custody_event como a migração 0009 o declara";
+
+    private const string ChangedAgain = $"DROP TRIGGER {Changed} ON {Table} | CREATE TRIGGER {Changed} ";
+    private const string EmptiedAgain = $"DROP TRIGGER {Emptied} ON {Table} | CREATE TRIGGER {Emptied} ";
+    private const string ChangedCalls = "EXECUTE FUNCTION public.refuse_custody_event_change()";
+    private const string EmptiedCalls = "EXECUTE FUNCTION public.refuse_custody_event_emptying()";
+    private const string ChangedAlways = $" | ALTER TABLE {Table} ENABLE ALWAYS TRIGGER {Changed}";
+    private const string EmptiedAlways = $" | ALTER TABLE {Table} ENABLE ALWAYS TRIGGER {Emptied}";
+
+    private const string OnlyOneColumn = $"{ChangedAgain}BEFORE UPDATE OF reason OR DELETE ON {Table} FOR EACH ROW {ChangedCalls}{ChangedAlways}";
+    private const string OnlyWhenNegative = $"{ChangedAgain}BEFORE UPDATE OR DELETE ON {Table} FOR EACH ROW WHEN (OLD.sequence < 0) {ChangedCalls}{ChangedAlways}";
+    private const string EmptyingNever = $"{EmptiedAgain}BEFORE TRUNCATE ON {Table} FOR EACH STATEMENT WHEN (false) {EmptiedCalls}{EmptiedAlways}";
 
     private const string Allowing =
         "CREATE FUNCTION public.zqx_allows() RETURNS trigger LANGUAGE plpgsql AS $allow$ BEGIN RETURN OLD; END $allow$";
@@ -64,6 +76,14 @@ public sealed class CustodyImmutableStartupTests
         $"DROP TRIGGER {Emptied} ON {Table} | CREATE TRIGGER {Emptied} BEFORE UPDATE ON {Table} FOR EACH ROW EXECUTE FUNCTION public.refuse_custody_event_emptying() | "
         + $"ALTER TABLE {Table} ENABLE ALWAYS TRIGGER {Emptied}",
         Emptied,
+        Absent)]
+    [InlineData("put the trigger of the row back for UPDATE of one column", OnlyOneColumn, Changed, Absent)]
+    [InlineData("put the trigger of the row back with a condition that never holds", OnlyWhenNegative, Changed, Absent)]
+    [InlineData("put the trigger of the statement back with a condition that never holds", EmptyingNever, Emptied, Absent)]
+    [InlineData(
+        "put the trigger of the row back with an argument",
+        $"{ChangedAgain}BEFORE UPDATE OR DELETE ON {Table} FOR EACH ROW EXECUTE FUNCTION public.refuse_custody_event_change('x'){ChangedAlways}",
+        Changed,
         Absent)]
     [InlineData(
         "put the trigger of the row back with a function that allows",
@@ -119,9 +139,7 @@ public sealed class CustodyImmutableStartupTests
             "CREATE OR REPLACE FUNCTION public.refuse_custody_event_change() RETURNS trigger LANGUAGE plpgsql AS $allow$ BEGIN RETURN OLD; END $allow$");
         var tampered = await StartAsync(database);
         await database.RunAsOwnerAsync(
-            "CREATE OR REPLACE FUNCTION public.refuse_custody_event_change() RETURNS trigger LANGUAGE plpgsql AS $refuse$\n"
-            + "BEGIN\n    RAISE EXCEPTION 'public.custody_event: % refused for the event of sequence %', TG_OP, OLD.sequence\n"
-            + "        USING ERRCODE = 'CE001', SCHEMA = 'public', TABLE = 'custody_event';\nEND\n$refuse$");
+            $"CREATE OR REPLACE FUNCTION public.refuse_custody_event_change() RETURNS trigger LANGUAGE {ImmutabilityCheck.ExpectedLanguage} AS $refuse${ImmutabilityCheck.ChangedBody}$refuse$");
 
         var restored = await StartAsync(database);
 
@@ -145,6 +163,37 @@ public sealed class CustodyImmutableStartupTests
         var report = await StartAsync(database);
 
         Assert.Equal(1, changed);
+        Assert.Equal(CheckStatus.Failed, report.Results.Single(result => result.Name == "Immutability").Status);
+    }
+
+    [DatabaseTheory]
+    [InlineData(OnlyOneColumn, "UPDATE {0} SET step = step WHERE sequence = {1}", 3)]
+    [InlineData(OnlyWhenNegative, "UPDATE {0} SET step = step WHERE sequence = {1}", 3)]
+    [InlineData(EmptyingNever, "TRUNCATE {0}", 0)]
+    public Task TriggerPutBackNarrowerReallyLetsAnOwnerSessionChangeTheEventAndTheStartRefusesIt(string tampering, string change, int remaining)
+    {
+        ArgumentNullException.ThrowIfNull(tampering);
+        return NarrowerTriggerLetsTheChangeThroughAsync(tampering, change, remaining);
+    }
+
+    [SuppressMessage("Security", "CA2100", Justification = "The statements are literals of the calling test with the sequence it appended, never input.")]
+    private static async Task NarrowerTriggerLetsTheChangeThroughAsync(string tampering, string change, int remaining)
+    {
+        await using var database = new CustodyDatabase();
+        var sequence = await SeedAsync(database);
+        foreach (var statement in tampering.Split(" | "))
+        {
+            await database.RunAsOwnerAsync(statement);
+        }
+
+        await database.RunAsOwnerAsync($"GRANT UPDATE, TRUNCATE ON {Table} TO owner");
+        await using var connection = await Sql.OpenAsync(await database.OwnerConnectionStringAsync());
+        await using var command = new Npgsql.NpgsqlCommand(string.Format(CultureInfo.InvariantCulture, change, Table, sequence), connection);
+
+        _ = await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+        var report = await StartAsync(database);
+
+        Assert.Equal(remaining, (await database.EventsAsync()).Count);
         Assert.Equal(CheckStatus.Failed, report.Results.Single(result => result.Name == "Immutability").Status);
     }
 

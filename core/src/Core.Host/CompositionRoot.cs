@@ -176,6 +176,7 @@ internal static class CompositionRoot
         _ = services.AddSingleton<IStartupCheck>(provider => new PgAuditCheck(provider.GetRequiredService<NpgsqlDataSource>()));
         _ = services.AddSingleton<IStartupCheck>(provider => new ColumnRevokeCheck(provider.GetRequiredService<NpgsqlDataSource>()));
         _ = services.AddSingleton<IStartupCheck>(provider => new SchemaVersionCheck(provider.GetRequiredService<NpgsqlDataSource>(), EmbeddedMigrations.Load()));
+        _ = services.AddSingleton<IStartupCheck>(provider => new ProtectedColumnCheck(provider.GetRequiredService<NpgsqlDataSource>()));
         _ = services.AddSingleton<IStartupCheck>(provider => new DerivationLabelCheck(provider.GetRequiredService<NpgsqlDataSource>(), provider.GetRequiredService<IMasterKeySource>()));
     }
 

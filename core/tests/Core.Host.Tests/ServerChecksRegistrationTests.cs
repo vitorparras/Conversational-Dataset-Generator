@@ -24,7 +24,7 @@ public sealed class ServerChecksRegistrationTests
 
         var names = provider.GetServices<IStartupCheck>().Select(check => check.Name);
 
-        Assert.Equal(["Privilege", "RlsForce", "Serializable", "PgAudit", "ColumnRevoke", "SchemaVersion", "DerivationLabels"], names);
+        Assert.Equal(["Privilege", "RlsForce", "Serializable", "PgAudit", "ColumnRevoke", "SchemaVersion", "ProtectedColumns", "DerivationLabels"], names);
     }
 
     [Fact]

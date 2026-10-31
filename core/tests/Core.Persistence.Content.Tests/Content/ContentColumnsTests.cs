@@ -66,15 +66,23 @@ public sealed class ContentColumnsTests
                 new ClearColumn("item_text", "id", ClearKind.Identifier),
                 new ClearColumn("item_text", "domain_id", ClearKind.Domain),
                 new ClearColumn("item_text", "recorded_at", ClearKind.Moment),
+                new ClearColumn("item_text", "emptied_at", ClearKind.Moment),
                 new ClearColumn("item_text", "pseudonymized_text", ClearKind.PseudonymizedText),
                 new ClearColumn("reversal_map", "id", ClearKind.Identifier),
                 new ClearColumn("reversal_map", "domain_id", ClearKind.Domain),
                 new ClearColumn("reversal_map", "item_id", ClearKind.Identifier),
                 new ClearColumn("reversal_map", "recorded_at", ClearKind.Moment),
+                new ClearColumn("reversal_map", "emptied_at", ClearKind.Moment),
             ],
             ContentColumns.Clear);
 
     [Fact]
     public void TablesAreNamedWithoutTheSchema() =>
         Assert.Equal(["item_text", "reversal_map"], [ContentColumns.ItemText, ContentColumns.ReversalMap]);
+
+    [Fact]
+    public void MarkOfAColumnSaysTheLabelOfItsPurposeAndNothingOfTheDomain() =>
+        Assert.Equal(
+            ["protected:texto-bruto", "protected:texto-bruto", "protected:mapa-reversao"],
+            ContentColumns.Protected.Select(column => column.Mark));
 }

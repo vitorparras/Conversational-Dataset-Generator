@@ -32,10 +32,12 @@ public static class ContentColumns
         new(ItemText, "id", ClearKind.Identifier),
         new(ItemText, "domain_id", ClearKind.Domain),
         new(ItemText, "recorded_at", ClearKind.Moment),
+        new(ItemText, "emptied_at", ClearKind.Moment),
         new(ItemText, "pseudonymized_text", ClearKind.PseudonymizedText),
         new(ReversalMap, "id", ClearKind.Identifier),
         new(ReversalMap, "domain_id", ClearKind.Domain),
         new(ReversalMap, "item_id", ClearKind.Identifier),
         new(ReversalMap, "recorded_at", ClearKind.Moment),
+        new(ReversalMap, "emptied_at", ClearKind.Moment),
     ];
 }

@@ -40,6 +40,20 @@ public static class DatabaseConfiguration
             ]);
 
     /// <summary>
+    /// The same section for the mode that migrates the schema, which has nothing to run against without a database: all four keys
+    /// are required, so a refusal for any other key also names the ones of this section that are missing.
+    /// </summary>
+    public static ConfigurationSection SectionWhenMigrating { get; } =
+        new(
+            SectionName,
+            [
+                ConfigurationKey.Required(HostKey),
+                ConfigurationKey.Required(NameKey),
+                ConfigurationKey.Required(UsernameKey),
+                ConfigurationKey.Required(PasswordKey).AsSensitive(),
+            ]);
+
+    /// <summary>
     /// The settings the approved values make: not configured when no key is declared; refused, naming every key at fault, when
     /// only part of the section is, or when the host is not one server with an optional port of 1 to 65535; otherwise the
     /// connection string.

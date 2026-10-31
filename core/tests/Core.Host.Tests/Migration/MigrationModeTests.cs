@@ -95,6 +95,21 @@ public sealed class MigrationModeTests
         Assert.DoesNotContain("Database:", exit.Error, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task ModeRefusedForAnotherKeyAlsoNamesTheFourDatabaseKeysThatAreMissing()
+    {
+        var installation = Migrating(ReadOnlyDictionary<string, string>.Empty) with { DeclaresInstallation = false, Arguments = ["migrate", "--Installation:Kind=Real"] };
+
+        var exit = await HostProcess.RunToExitAsync(installation, HostProcess.StartupTimeout, TestContext.Current.CancellationToken);
+
+        Assert.Equal((int)ExitCode.ConfigurationRefused, exit.Code);
+        Assert.Contains("'Installation:Kind'", exit.Error, StringComparison.Ordinal);
+        Assert.Contains("'Database:Host'", exit.Error, StringComparison.Ordinal);
+        Assert.Contains("'Database:Name'", exit.Error, StringComparison.Ordinal);
+        Assert.Contains("'Database:Username'", exit.Error, StringComparison.Ordinal);
+        Assert.Contains("'Database:Password'", exit.Error, StringComparison.Ordinal);
+    }
+
     private static HostInstallation Migrating(ReadOnlyDictionary<string, string> environment)
     {
         var installation = HostInstallation.Built(HostProcess.FreeAddress());

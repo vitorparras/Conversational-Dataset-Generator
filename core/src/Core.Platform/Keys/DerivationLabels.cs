@@ -32,6 +32,9 @@ public sealed class DerivationLabels
         return new DerivationLabels(labels.Append(label));
     }
 
+    /// <summary>Whether this set holds the label, compared exactly.</summary>
+    public bool Holds(string label) => labels.Contains(label);
+
     /// <summary>The labels of those given that this set does not hold, in order and once each.</summary>
     public IReadOnlyList<string> Lacking(IEnumerable<string> used)
     {

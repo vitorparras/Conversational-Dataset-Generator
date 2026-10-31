@@ -7,7 +7,10 @@ using Npgsql;
 
 namespace Core.Persistence.Tests.ServerGuarantees;
 
-/// <summary>The labels in use live in a table that is born empty, is read with the application's role, and refuses a label that is empty, has spaces around it or is repeated.</summary>
+/// <summary>
+/// The labels in use live in a table that is born empty, is read with the application's role, and refuses a label that is empty,
+/// has spaces around it or is repeated; a label once recorded is never changed nor dropped, not even by the owner.
+/// </summary>
 [Trait("Category", "Database")]
 public sealed class DerivationLabelTableTests
 {
@@ -93,6 +96,91 @@ public sealed class DerivationLabelTableTests
 
         Assert.Equal(PostgresErrorCodes.UniqueViolation, again.SqlState);
     }
+
+    [DatabaseFact]
+    public async Task OwnerCannotDeleteALabelAndItStays()
+    {
+        await using var database = await MigratedAsync();
+        await database.RecordLabelsAsync(["dominio-a", "dominio-b"]);
+
+        var refused = await Assert.ThrowsAsync<PostgresException>(() => database.RunAsOwnerAsync("DELETE FROM public.derivation_label WHERE label = 'dominio-a'"));
+
+        Assert.Equal(PostgresErrorCodes.RestrictViolation, refused.SqlState);
+        Assert.Equal(["dominio-a", "dominio-b"], await LabelsAsync(database));
+    }
+
+    [DatabaseFact]
+    public async Task OwnerCannotDeleteEveryLabelAtOnce()
+    {
+        await using var database = await MigratedAsync();
+        await database.RecordLabelsAsync(["dominio-a"]);
+
+        var refused = await Assert.ThrowsAsync<PostgresException>(() => database.RunAsOwnerAsync("DELETE FROM public.derivation_label"));
+
+        Assert.Equal(PostgresErrorCodes.RestrictViolation, refused.SqlState);
+        Assert.Equal(["dominio-a"], await LabelsAsync(database));
+    }
+
+    [DatabaseFact]
+    public async Task OwnerCannotRenameALabelAndItStays()
+    {
+        await using var database = await MigratedAsync();
+        await database.RecordLabelsAsync(["dominio-a"]);
+
+        var refused = await Assert.ThrowsAsync<PostgresException>(() => database.RunAsOwnerAsync("UPDATE public.derivation_label SET label = 'dominio-z'"));
+
+        Assert.Equal(PostgresErrorCodes.RestrictViolation, refused.SqlState);
+        Assert.Equal(["dominio-a"], await LabelsAsync(database));
+    }
+
+    [DatabaseFact]
+    public async Task OwnerCannotTruncateTheTable()
+    {
+        await using var database = await MigratedAsync();
+        await database.RecordLabelsAsync(["dominio-a"]);
+
+        var refused = await Assert.ThrowsAsync<PostgresException>(() => database.RunAsOwnerAsync("TRUNCATE public.derivation_label"));
+
+        Assert.Equal(PostgresErrorCodes.RestrictViolation, refused.SqlState);
+        Assert.Equal(["dominio-a"], await LabelsAsync(database));
+    }
+
+    [DatabaseFact]
+    public async Task RefusalNamesTheOperationAndTheTableButNoLabel()
+    {
+        await using var database = await MigratedAsync();
+        await database.RecordLabelsAsync(["dominio-a"]);
+
+        var refused = await Assert.ThrowsAsync<PostgresException>(() => database.RunAsOwnerAsync("DELETE FROM public.derivation_label"));
+
+        Assert.Contains("DELETE on derivation_label", refused.MessageText, StringComparison.Ordinal);
+        Assert.DoesNotContain("dominio-a", refused.MessageText, StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
+    public async Task BothTriggersFireAlsoInASessionThatSkipsTheOrdinaryOnes()
+    {
+        await using var database = await MigratedAsync();
+
+        var modes = await database.TriggerModesAsOwnerAsync();
+
+        Assert.Equal(["A", "A"], modes);
+    }
+
+    [DatabaseFact]
+    public async Task LabelCanStillBeRecordedAfterTheRefusals()
+    {
+        await using var database = await MigratedAsync();
+        await database.RecordLabelsAsync(["dominio-a"]);
+        _ = await Assert.ThrowsAsync<PostgresException>(() => database.RunAsOwnerAsync("DELETE FROM public.derivation_label"));
+
+        await database.RecordLabelsAsync(["dominio-b"]);
+
+        Assert.Equal(["dominio-a", "dominio-b"], await LabelsAsync(database));
+    }
+
+    private static Task<IReadOnlyList<string>> LabelsAsync(ScratchDatabase database) =>
+        database.RecordedLabelsAsOwnerAsync();
 
     private static async Task<ScratchDatabase> MigratedAsync()
     {

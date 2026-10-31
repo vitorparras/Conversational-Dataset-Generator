@@ -62,7 +62,8 @@ internal static partial class ContentSchemaAccessRules
     private static bool IsQueriesFile(SourceFile file) =>
         file.Path.Replace(Path.DirectorySeparatorChar, '/').EndsWith(AllowedFolder + QueriesFile, StringComparison.Ordinal);
 
-    [GeneratedRegex(@"(?<![\w.])""?content""?\.[A-Za-z_""]", RegexOptions.IgnoreCase)]
+    // SQL lets blanks surround the dot; a blank only after it must lead into a lowercase word, so the sentence "the content. Then" is not a table.
+    [GeneratedRegex(@"(?<![\w.])""?content""?(?:\s*\.(?:[A-Za-z_""]|\s*(?-i:[a-z_""]))|\s+\.\s*[A-Za-z_""])", RegexOptions.IgnoreCase)]
     private static partial Regex ContentTable();
 
     [GeneratedRegex(@"^search_?path$", RegexOptions.IgnoreCase)]

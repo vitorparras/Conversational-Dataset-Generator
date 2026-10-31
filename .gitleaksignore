@@ -1,2 +1,4 @@
 # Synthetic hex constant in a test of the first-cycle reference branches; history is not rewritten.
 e23639b4972b0191179533d5001c6935ed501cfd:language-service/tests/conftest.py:generic-api-key:16
+# Test of the TLS material that frames 48 zero bytes as a password-protected key; the commit is kept, the later one builds the framing apart.
+ad8c0f31e88d1f44728a1c3247826c090a350181:core/tests/Core.Platform.Tests/Tls/TlsMaterialSourceTests.cs:private-key:133

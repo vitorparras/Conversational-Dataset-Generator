@@ -46,6 +46,17 @@ public sealed class DerivationLabelsTests
     }
 
     [Fact]
+    public void SetHoldsTheLabelsItWasGiven() =>
+        Assert.True(DerivationLabels.Of(["dominio-a"]).Holds("dominio-a"));
+
+    [Theory]
+    [InlineData("dominio-b")]
+    [InlineData("Dominio-a")]
+    [InlineData("dominio-a ")]
+    public void SetDoesNotHoldALabelItWasNotGivenExactly(string label) =>
+        Assert.False(DerivationLabels.Of(["dominio-a"]).Holds(label));
+
+    [Fact]
     public void LabelsInUseThatTheSetLacksAreNamedInOrderAndOnceEach()
     {
         var provided = DerivationLabels.Of(["dominio-a"]);

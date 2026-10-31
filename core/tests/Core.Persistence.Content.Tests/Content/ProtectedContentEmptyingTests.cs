@@ -1,5 +1,5 @@
-using Core.Persistence.Tests.Fixtures;
 using Core.Persistence.Content;
+using Core.Persistence.Tests.Fixtures;
 using Npgsql;
 
 namespace Core.Persistence.Tests.Content;

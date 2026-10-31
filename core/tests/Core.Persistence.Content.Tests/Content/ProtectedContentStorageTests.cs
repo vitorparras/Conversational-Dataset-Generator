@@ -1,6 +1,6 @@
-using Core.Persistence.Tests.Fixtures;
 using System.Text;
 using Core.Persistence.Content;
+using Core.Persistence.Tests.Fixtures;
 using Core.Platform.Keys;
 using Npgsql;
 

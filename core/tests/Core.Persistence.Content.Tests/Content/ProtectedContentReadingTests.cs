@@ -1,6 +1,7 @@
-using Core.Persistence.Tests.Fixtures;
 using Core.Persistence.Content;
 using Core.Persistence.Custody;
+using Core.Persistence.Tests.Fixtures;
+using Core.Platform.Keys;
 using Npgsql;
 
 namespace Core.Persistence.Tests.Content;
@@ -116,7 +117,7 @@ public sealed class ProtectedContentReadingTests
         await using var dataSource = NpgsqlDataSource.Create("Host=127.0.0.1;Port=1;Username=u;Password=p;Database=d");
         using var custody = SyntheticCustody.Holding("texto-bruto/1/v1");
         var reader = new ProtectedContentReader(dataSource, custody.Content, new CustodyChain(dataSource));
-        var foreign = new ProtectedColumn("item_text", "pseudonymized_text", Core.Platform.Keys.LabelPurpose.RawText);
+        var foreign = new ProtectedColumn("item_text", "pseudonymized_text", LabelPurpose.RawText);
 
         Assert.Equal(
             ["request", "request"],

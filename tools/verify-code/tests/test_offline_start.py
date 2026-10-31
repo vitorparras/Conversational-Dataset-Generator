@@ -174,6 +174,14 @@ class OfflineStartTests(unittest.TestCase):
         self.assertIn("READY_SECONDS=${READY_SECONDS:-120}", script)
         self.assertIn("ready_ms=%s", script)
 
+    def test_the_script_gives_the_host_a_throwaway_key_in_files_open_to_its_user_alone(self) -> None:
+        script = START_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertIn("umask 077 && mktemp -d /tmp/custody.", script)
+        self.assertIn("head -c 32 /dev/urandom | base64", script)
+        self.assertIn('export CDG_MasterKey__File="$custody/key"', script)
+        self.assertIn('CDG_MasterKey__LabelsFile="$custody/labels"', script)
+
     def test_the_server_has_no_network_and_the_host_joins_its_namespace(self) -> None:
         runner = DockerRunner(evidence())
 

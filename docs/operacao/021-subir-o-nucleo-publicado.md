@@ -6,7 +6,7 @@ Para quem tem o executável, a pasta do serviço de [018](018-pasta-do-servico.m
 esquema de [016](016-migracao-do-esquema.md) e o que [001](001-ambiente.md) lista. Usa só o que o
 Linux traz (bash, `/proc`): cliente HTTP, `ps` e cliente SQL não são dependência do artefato.
 
-Os blocos de 021, 022 e 023 são comandos de um shell na máquina. Se a máquina é um contêiner
+Os blocos de 021 a 024 são comandos de um shell na máquina. Se a máquina é um contêiner
 operado de fora, cada bloco vai inteiro em `docker exec -i <contêiner> bash -s <<'EOF'`, com um
 `EOF` sozinho na última linha; no Git Bash do Windows, ponha `MSYS_NO_PATHCONV=1` antes do
 `docker`, ou ele reescreve caminhos como `/tmp/...`.
@@ -15,8 +15,8 @@ operado de fora, cada bloco vai inteiro em `docker exec -i <contêiner> bash -s 
 pelos do seu (001): banco `cdg` em `db:5432`, papéis `owner` e `app`, artefato em `/opt/cdg`, núcleo
 em `127.0.0.1:5080`. `FICHA` e `CONTEINER` são marcadores: o arquivo da ficha (no Git Bash serve o
 caminho do Windows com barras normais) e o nome do contêiner. Numa instalação real, `real` troca
-`demonstracao` em `--Installation:Kind`, e valem a chave-mestra e o cerco de
-[010](010-credencial-de-dono-do-banco.md).
+`demonstracao` em `--Installation:Kind`, e valem [024](024-arquivos-de-custodia-da-chave.md) e o
+cerco de [010](010-credencial-de-dono-do-banco.md).
 
 ## A pasta do serviço fica dentro da pasta do executável
 

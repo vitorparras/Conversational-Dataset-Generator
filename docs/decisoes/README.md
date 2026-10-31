@@ -55,6 +55,7 @@ deliberada e justificada.
 | [0041](0041-distribuicao-do-servico-de-linguagem.md) | Distribuição do serviço de linguagem | Decisão vigente |
 | [0042](0042-supressao-de-analisador.md) | Nenhum analisador se suprime em `core/src` | Decisão vigente |
 | [0043](0043-quem-escuta-na-porta-prova-o-segredo.md) | Quem escuta na porta prova ter o segredo | Decisão vigente |
+| [0044](0044-arquivo-de-custodia-da-chave.md) | A chave chega por arquivo de custódia | Decisão vigente |
 
 ## Formato
 

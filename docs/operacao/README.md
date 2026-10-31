@@ -35,5 +35,6 @@ e por quem ela roda.
 | [021](021-subir-o-nucleo-publicado.md) | Subir o núcleo publicado |
 | [022](022-conferir-o-nucleo-publicado.md) | Conferir o núcleo publicado |
 | [023](023-iniciar-o-nucleo-publicado.md) | Iniciar o núcleo publicado |
+| [024](024-arquivos-de-custodia-da-chave.md) | Arquivos de custódia da chave |
 
 Ver [regras de escrita](../regras-de-escrita.md).

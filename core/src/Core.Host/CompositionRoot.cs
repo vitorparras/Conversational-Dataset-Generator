@@ -22,9 +22,6 @@ namespace Core.Host;
 /// <summary>The only place where the host is assembled: the target check first, then configuration, logging and services, then routes.</summary>
 internal static class CompositionRoot
 {
-    /// <summary>How long the versions route waits for the service to give its versions, so a service that hangs does not hang the route.</summary>
-    private static readonly TimeSpan ServiceVersionTimeout = TimeSpan.FromSeconds(5);
-
     internal static async Task<HostLaunch> BuildAsync(string[] args)
     {
         var target = await new StartupRunner([HostConfiguration.TargetCheck()], TimeProvider.System).RunAsync(CancellationToken.None);
@@ -95,7 +92,8 @@ internal static class CompositionRoot
         }
     }
 
-    /// <summary>Logging with redaction first, then every service the routes consume and a JSON that refuses a field unknown, missing or null; the host closes the file destination last.</summary>
+    /// <summary>Logging with redaction first, then every service the routes consume and a JSON that refuses a field unknown, missing or null;
+    /// the host's container owns the file destination and, since every logger depends on it, closes it after the last of them.</summary>
     internal static void Compose(IHostApplicationBuilder builder, EffectiveConfiguration configuration, ILoggerProvider? fileLog)
     {
         PlatformLogging.Configure(builder.Logging);
@@ -120,7 +118,8 @@ internal static class CompositionRoot
         _ = services.AddTransient<MaterialAnalysis>();
     }
 
-    /// <summary>What the checks need before the host container exists: logging, the server checks and the supervision of the language service, which the host adopts and so stops with it.</summary>
+    /// <summary>What the checks need before the host's own container exists: redacted logging, the server checks and the supervision of the
+    /// language service. The host's container adopts it, so the service stops with the host; it only borrows the file destination.</summary>
     private static ServiceProvider StartupServices(ConfigurationLoadResult loaded, FileLoggerProvider? fileLog, DatabaseSettings database)
     {
         var services = new ServiceCollection();
@@ -217,7 +216,8 @@ internal static class CompositionRoot
         return app;
     }
 
-    /// <summary>The recognizer of the service the supervisor has alive now; with none, one that refuses without connecting, so nothing goes to the port a gone service held.</summary>
+    /// <summary>The recognizer of the service the supervisor has alive now, with its secret and the client that never goes through a proxy;
+    /// with no such service, one that refuses without connecting, so that nothing goes to the port a service that is gone once held.</summary>
     private static IRecognizer Recognizer(IServiceProvider host, TimeSpan analyzeTimeout)
     {
         var startup = host.GetRequiredService<ServiceProvider>();
@@ -234,7 +234,7 @@ internal static class CompositionRoot
     {
         var startup = host.GetRequiredService<ServiceProvider>();
         return startup.GetRequiredService<LanguageServiceSupervisor>().Endpoint is { } endpoint
-            ? new HttpServiceVersionReader(startup.GetRequiredService<HttpClient>(), new HttpRecognizerSettings(endpoint.Port, endpoint.Secret, ServiceVersionTimeout))
+            ? new HttpServiceVersionReader(startup.GetRequiredService<HttpClient>(), new HttpRecognizerSettings(endpoint.Port, endpoint.Secret, LanguageServiceConfiguration.VersionsTimeout))
             : new NoServiceVersionReader();
     }
 

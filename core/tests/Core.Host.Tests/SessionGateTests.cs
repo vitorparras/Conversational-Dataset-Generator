@@ -61,7 +61,9 @@ public sealed class SessionGateTests
         var cancellationToken = TestContext.Current.CancellationToken;
         using var host = await HostProcess.StartAsync(cancellationToken);
 
-        using var response = await host.PostAsync("/session", JsonSerializer.Serialize(new { name = "zqx-pessoa", password = "zqx-senha" }), cancellationToken);
+        var password = Guid.NewGuid().ToString("N", System.Globalization.CultureInfo.InvariantCulture);
+
+        using var response = await host.PostAsync("/session", JsonSerializer.Serialize(new { name = "zqx-pessoa", password }), cancellationToken);
 
         Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
         Assert.False(response.Headers.Contains("Set-Cookie"));

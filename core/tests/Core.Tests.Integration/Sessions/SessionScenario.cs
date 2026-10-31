@@ -23,14 +23,16 @@ internal sealed class SessionScenario : IAsyncDisposable
     private readonly ScratchDatabase database;
     private readonly NpgsqlDataSource application;
     private readonly Process process;
-    private readonly Task streams;
+    private readonly Task<string[]> streams;
+    private readonly string logFile = Path.Combine(Path.GetTempPath(), $"zqx-sessao-{Guid.NewGuid():N}.log");
     private readonly HttpClient client;
 
-    private SessionScenario(ScratchDatabase database, NpgsqlDataSource application, Process process, Uri address)
+    private SessionScenario(ScratchDatabase database, NpgsqlDataSource application, Uri address, ProcessStartInfo start)
     {
         this.database = database;
         this.application = application;
-        this.process = process;
+        start.ArgumentList.Add($"--Host:LogFile={logFile}");
+        process = Process.Start(start) ?? throw new InvalidOperationException("The host process did not start.");
         streams = Task.WhenAll(process.StandardError.ReadToEndAsync(CancellationToken.None), process.StandardOutput.ReadToEndAsync(CancellationToken.None));
         var handler = SharedTlsMaterial.PinnedHandler();
         handler.UseCookies = false;
@@ -53,9 +55,7 @@ internal sealed class SessionScenario : IAsyncDisposable
         _ = await database.MigrateAsync(EmbeddedMigrations.Load());
         var application = NpgsqlDataSource.Create(database.AppConnectionString);
         var address = new Uri($"https://127.0.0.1:{KeyedHost.FreePort()}");
-        var process = Process.Start(KeyedHost.StartInfo(address, database.AppConnectionString, idleTimeout, workFactor))
-            ?? throw new InvalidOperationException("The host process did not start.");
-        var scenario = new SessionScenario(database, application, process, address);
+        var scenario = new SessionScenario(database, application, address, KeyedHost.StartInfo(address, database.AppConnectionString, idleTimeout, workFactor));
         try
         {
             await scenario.PrepareAsync(address, workFactor, cancellationToken);
@@ -77,6 +77,15 @@ internal sealed class SessionScenario : IAsyncDisposable
 
     public Task<HttpResponseMessage> LeaveAsync(string? identifier, CancellationToken cancellationToken) =>
         SendAsync(HttpMethod.Delete, identifier, json: null, cancellationToken);
+
+    /// <summary>Stops the host and hands over everything it wrote to its output streams and to its log file.</summary>
+    public async Task<string> StopAndReadEverythingAsync()
+    {
+        process.Kill(entireProcessTree: true);
+        var written = await streams.WaitAsync(DrainTimeout, CancellationToken.None);
+        var file = File.Exists(logFile) ? await File.ReadAllTextAsync(logFile, CancellationToken.None) : string.Empty;
+        return string.Concat(written) + file;
+    }
 
     /// <summary>The whole Set-Cookie line the entry answered with.</summary>
     public static string CookieLineOf(HttpResponseMessage response) =>
@@ -102,6 +111,7 @@ internal sealed class SessionScenario : IAsyncDisposable
         process.Dispose();
         await application.DisposeAsync();
         await database.DisposeAsync();
+        File.Delete(logFile);
     }
 
     private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string? identifier, string? json, CancellationToken cancellationToken)

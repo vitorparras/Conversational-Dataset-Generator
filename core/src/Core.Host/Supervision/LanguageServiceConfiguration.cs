@@ -23,6 +23,9 @@ internal static class LanguageServiceConfiguration
     private const string StartupTimeoutKey = "StartupTimeoutSeconds";
     private const string AnalyzeTimeoutKey = "AnalyzeTimeoutSeconds";
 
+    /// <summary>How long the versions route waits for the service to give its versions, so a service that hangs does not hang the route.</summary>
+    internal static readonly TimeSpan VersionsTimeout = TimeSpan.FromSeconds(5);
+
     private static readonly int LongestAnalyzeSeconds = (int)HttpRecognizerSettings.LongestTimeout.TotalSeconds;
     private static readonly string AcceptedSeconds = $"número inteiro de segundos de 1 a {LongestAnalyzeSeconds}";
 

@@ -1,10 +1,15 @@
 using System.Text;
+using System.Text.Json;
+using Core.Platform.Configuration;
 using Core.Platform.Startup;
 using Core.Tests.Support.Custody;
 
 namespace Core.Host.Tests;
 
-/// <summary>The built host starts only with the custody files in place: what the operator reads when it does not, what the real installation also declares, and that no spelling of the key ever reaches a stream.</summary>
+/// <summary>
+/// The built host starts only with the custody files in place: what the operator reads when it does not,
+/// what the real installation also declares, and that no spelling of the key ever reaches a stream.
+/// </summary>
 public sealed class MasterKeyStartTests : IDisposable
 {
     private static readonly byte[] Key = CustodyFiles.SyntheticKey();
@@ -41,10 +46,11 @@ public sealed class MasterKeyStartTests : IDisposable
     public async Task ProcessWhoseKeyIsOfTheWrongSizeNamesTheSizeAndShowsNoSpellingOfTheValue()
     {
         var short16 = Key[..16];
-        var exit = await RunAsync(files.Write("key", Base64Line(short16)), files.Write("labels", []));
+        var keyPath = files.Write("key", Base64Line(short16));
+        var exit = await RunAsync(keyPath, files.Write("labels", []));
 
         Assert.Equal((int)ExitCode.StartupCheckFailed, exit.Code);
-        Assert.Contains("chave-mestra de tamanho inválido: encontrado 16 bytes, esperados 32", exit.Error, StringComparison.Ordinal);
+        Assert.Contains($"chave-mestra de tamanho inválido: encontrado arquivo da chave em '{keyPath}': 16 bytes, esperados 32", exit.Error, StringComparison.Ordinal);
         AssertNoSpelling(short16, exit.Error + exit.Output);
     }
 
@@ -66,7 +72,7 @@ public sealed class MasterKeyStartTests : IDisposable
         var inside = Path.Combine(AppContext.BaseDirectory, $"zqx-chave-{Guid.NewGuid():N}");
         try
         {
-            File.WriteAllBytes(inside, Base64Line(Key));
+            await File.WriteAllBytesAsync(inside, Base64Line(Key), TestContext.Current.CancellationToken);
             CustodyFiles.Restrict(inside);
 
             var exit = await RunAsync(inside, files.Write("labels", []));
@@ -99,7 +105,7 @@ public sealed class MasterKeyStartTests : IDisposable
     }
 
     [Fact]
-    public async Task RealInstallationWithoutTheCustodyDeclarationEndsWithTheRefusalCodeAndNamesBothKeys()
+    public async Task RealInstallationWithoutTheSafekeepingDeclarationEndsWithTheRefusalCodeAndNamesBothKeys()
     {
         var installation = Installation(HostProcess.FreeAddress(), CustodyFiles.Shared.KeyPath, CustodyFiles.Shared.LabelsPath, "real");
 
@@ -127,7 +133,30 @@ public sealed class MasterKeyStartTests : IDisposable
     }
 
     [Fact]
-    public async Task DemonstrationStartsWithoutTheCustodyDeclaration()
+    public async Task ConfigurationOfARealInstallationHidesThePathsAndTheHolderAndShowsTheDate()
+    {
+        var baseAddress = HostProcess.FreeAddress();
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var real = Installation(baseAddress, CustodyFiles.Shared.KeyPath, CustodyFiles.Shared.LabelsPath, "real");
+        var installation = real with { Arguments = [.. real.Arguments, "--Custody:LastRecoveryTest=2026-10-01", "--Custody:Holder=PESSOA_1"] };
+        using var host = await HostProcess.StartAsync(installation, baseAddress, HostProcess.StartupTimeout, cancellationToken);
+
+        using var response = await host.GetAsync("/configuration", cancellationToken);
+        var text = await response.Content.ReadAsStringAsync(cancellationToken);
+        using var body = JsonDocument.Parse(text);
+
+        var values = body.RootElement.GetProperty("entries").EnumerateArray()
+            .ToDictionary(entry => entry.GetProperty("key").GetString()!, entry => entry.GetProperty("value").GetString(), StringComparer.Ordinal);
+        Assert.Equal(EffectiveConfiguration.Redacted, values["MasterKey:File"]);
+        Assert.Equal(EffectiveConfiguration.Redacted, values["MasterKey:LabelsFile"]);
+        Assert.Equal(EffectiveConfiguration.Redacted, values["Custody:Holder"]);
+        Assert.Equal("2026-10-01", values["Custody:LastRecoveryTest"]);
+        Assert.DoesNotContain(CustodyFiles.Shared.Directory, text, StringComparison.Ordinal);
+        Assert.DoesNotContain("PESSOA_1", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task DemonstrationStartsWithoutTheSafekeepingDeclaration()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         using var host = await HostProcess.StartAsync(cancellationToken);
@@ -141,7 +170,7 @@ public sealed class MasterKeyStartTests : IDisposable
 
     private static void AssertNoSpelling(byte[] key, string text) =>
         Assert.All(
-            new[] { Convert.ToHexString(key), Convert.ToHexStringLower(key), Convert.ToBase64String(key) },
+            [Convert.ToHexString(key), Convert.ToHexStringLower(key), Convert.ToBase64String(key)],
             spelling => Assert.DoesNotContain(spelling, text, StringComparison.Ordinal));
 
     private static HostInstallation Installation(Uri baseAddress, string keyPath, string labelsPath, string kind = "demonstracao")

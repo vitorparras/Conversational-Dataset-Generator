@@ -2,6 +2,8 @@ using Core.Host.Supervision;
 using Core.Persistence.Connection;
 using Core.Platform.Configuration;
 using Core.Platform.Configuration.Sources;
+using Core.Platform.Startup;
+using Core.Platform.Versions;
 using ConfigurationSection = Core.Platform.Configuration.ConfigurationSection;
 
 namespace Core.Host;
@@ -45,7 +47,10 @@ internal static class HostConfiguration
         return migrating ? DatabaseConfiguration.ReadRequired(loaded.Values) : DatabaseConfiguration.Read(loaded.Values);
     }
 
-    /// <summary>The closed configuration of the host: the file beside it, the process environment and the strict arguments; the migration mode requires neither the kind of installation nor the custody files.</summary>
+    /// <summary>
+    /// The closed configuration of the host: the file beside it, the process environment and the strict arguments;
+    /// the migration mode requires neither the kind of installation nor the custody files.
+    /// </summary>
     internal static ConfigurationLoadResult Load(string[] args, bool migrating) =>
         ClosedConfiguration.Load(
             new ConfigurationSchema(
@@ -53,7 +58,7 @@ internal static class HostConfiguration
                     Section,
                     migrating ? InstallationConfiguration.SectionWhenMigrating : InstallationConfiguration.Section,
                     migrating ? MasterKeyConfiguration.SectionWhenMigrating : MasterKeyConfiguration.Section,
-                    CustodyConfiguration.Section,
+                    SafekeepingConfiguration.Section,
                     LanguageServiceConfiguration.Section,
                     RecognizerConfiguration.Section,
                     DatabaseConfiguration.Section
@@ -61,4 +66,15 @@ internal static class HostConfiguration
             new JsonFileSource(SettingsPath),
             EnvironmentSource.FromProcess(),
             new StrictArgumentsSource(args));
+
+    /// <summary>Runs before the configuration is read: an executable built for another target is refused whatever it is configured with.</summary>
+    internal static RuntimeTargetCheck TargetCheck() =>
+        new(BuildInfo.Of(typeof(HostConfiguration).Assembly).RuntimeIdentifier, RuntimeTarget.Current);
+
+    /// <summary>What the values of the language service and of the safekeeping declaration refuse, together.</summary>
+    internal static IReadOnlyList<ConfigurationProblem> Refusals(IReadOnlyDictionary<string, string> values, TimeSpan? analyzeTimeout) =>
+    [
+        .. LanguageServiceConfiguration.Refusals(values, analyzeTimeout),
+        .. SafekeepingConfiguration.Refusals(values, InstallationConfiguration.Of(values).Kind),
+    ];
 }

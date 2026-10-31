@@ -7,7 +7,7 @@ namespace Core.Host.Tests;
 
 /// <summary>A real installation declares when its recovery was last tested and who holds the copy; a demonstration declares neither, and the real one's declaration reaches the startup line.</summary>
 [Collection("console")]
-public sealed class CustodyConfigurationTests
+public sealed class SafekeepingConfigurationTests
 {
     private const string Date = "2026-10-01";
     private const string Holder = "PESSOA_1";
@@ -15,26 +15,26 @@ public sealed class CustodyConfigurationTests
     [Fact]
     public void RealInstallationWithoutTheDeclarationIsRefusedNamingBothKeys()
     {
-        var refusals = CustodyConfiguration.Refusals(Values(), InstallationKind.Real);
+        var refusals = SafekeepingConfiguration.Refusals(Values(), InstallationKind.Real);
 
-        Assert.Equal([CustodyConfiguration.LastRecoveryTestPath, CustodyConfiguration.HolderPath], refusals.Select(problem => problem.Key));
+        Assert.Equal([SafekeepingConfiguration.LastRecoveryTestPath, SafekeepingConfiguration.HolderPath], refusals.Select(problem => problem.Key));
         Assert.All(refusals, problem => Assert.Equal(ConfigurationProblemKind.MissingKey, problem.Kind));
     }
 
     [Fact]
     public void RealInstallationWithoutTheDateIsRefusedNamingTheDateOnly()
     {
-        var refusals = CustodyConfiguration.Refusals(Values(holder: Holder), InstallationKind.Real);
+        var refusals = SafekeepingConfiguration.Refusals(Values(holder: Holder), InstallationKind.Real);
 
-        Assert.Equal(CustodyConfiguration.LastRecoveryTestPath, Assert.Single(refusals).Key);
+        Assert.Equal(SafekeepingConfiguration.LastRecoveryTestPath, Assert.Single(refusals).Key);
     }
 
     [Fact]
     public void RealInstallationWithoutTheHolderIsRefusedNamingTheHolderOnly()
     {
-        var refusals = CustodyConfiguration.Refusals(Values(date: Date), InstallationKind.Real);
+        var refusals = SafekeepingConfiguration.Refusals(Values(date: Date), InstallationKind.Real);
 
-        Assert.Equal(CustodyConfiguration.HolderPath, Assert.Single(refusals).Key);
+        Assert.Equal(SafekeepingConfiguration.HolderPath, Assert.Single(refusals).Key);
     }
 
     [Theory]
@@ -45,7 +45,7 @@ public sealed class CustodyConfigurationTests
     [InlineData("ontem")]
     public void RealInstallationWithADateThatIsNotIsoIsRefusedSayingWhatItFound(string date)
     {
-        var problem = Assert.Single(CustodyConfiguration.Refusals(Values(date, Holder), InstallationKind.Real));
+        var problem = Assert.Single(SafekeepingConfiguration.Refusals(Values(date, Holder), InstallationKind.Real));
 
         Assert.Equal(
             $"valor não aceito para 'Custody:LastRecoveryTest': encontrado '{date}'; aceitos: uma data ISO, yyyy-MM-dd",
@@ -54,25 +54,25 @@ public sealed class CustodyConfigurationTests
 
     [Fact]
     public void RealInstallationWithTheDeclarationIsNotRefused() =>
-        Assert.Empty(CustodyConfiguration.Refusals(Values(Date, Holder), InstallationKind.Real));
+        Assert.Empty(SafekeepingConfiguration.Refusals(Values(Date, Holder), InstallationKind.Real));
 
     [Fact]
     public void DemonstrationNeedsNoDeclaration() =>
-        Assert.Empty(CustodyConfiguration.Refusals(Values(), InstallationKind.Demonstration));
+        Assert.Empty(SafekeepingConfiguration.Refusals(Values(), InstallationKind.Demonstration));
 
     [Fact]
     public void DeclarationHoldsTheDateAndTheHolderAsWritten()
     {
-        var declaration = CustodyConfiguration.Declaration(Values(Date, Holder));
+        var declaration = SafekeepingConfiguration.Declaration(Values(Date, Holder));
 
-        Assert.Equal(new CustodyDeclaration(Date, Holder), declaration);
+        Assert.Equal(new SafekeepingDeclaration(Date, Holder), declaration);
     }
 
     [Fact]
     public void DeclarationIsNoneWhenOneOfTheKeysIsMissing()
     {
-        Assert.Null(CustodyConfiguration.Declaration(Values(date: Date)));
-        Assert.Null(CustodyConfiguration.Declaration(Values(holder: Holder)));
+        Assert.Null(SafekeepingConfiguration.Declaration(Values(date: Date)));
+        Assert.Null(SafekeepingConfiguration.Declaration(Values(holder: Holder)));
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public sealed class CustodyConfigurationTests
     {
         var line = ComposedConsole.LineWrittenBy(logger => InstallationConfiguration.Announce(
             logger,
-            new ServiceCollection().AddSingleton(new Installation(InstallationKind.Real)).AddSingleton(new CustodyDeclaration(Date, Holder)).BuildServiceProvider()));
+            new ServiceCollection().AddSingleton(new Installation(InstallationKind.Real)).AddSingleton(new SafekeepingDeclaration(Date, Holder)).BuildServiceProvider()));
 
         Assert.Contains("Instalação real", line, StringComparison.Ordinal);
         Assert.Contains($"LastRecoveryTest={Date}", line, StringComparison.Ordinal);
@@ -93,12 +93,12 @@ public sealed class CustodyConfigurationTests
         var values = new Dictionary<string, string>(StringComparer.Ordinal);
         if (date is not null)
         {
-            values[CustodyConfiguration.LastRecoveryTestPath] = date;
+            values[SafekeepingConfiguration.LastRecoveryTestPath] = date;
         }
 
         if (holder is not null)
         {
-            values[CustodyConfiguration.HolderPath] = holder;
+            values[SafekeepingConfiguration.HolderPath] = holder;
         }
 
         return values;

@@ -101,15 +101,42 @@ public sealed class CustodyFileFormatTests
     }
 
     [Theory]
-    [InlineData("AAAA AAAA")]
-    [InlineData("AAA")]
-    [InlineData("AAAA=AAA")]
-    public void KeyTextThatIsNotBase64NamesTheSizeOfTheTextOnly(string text)
+    [InlineData("AAA", 3)]
+    [InlineData("AAAA=AAA", 8)]
+    public void KeyTextThatIsNotBase64NamesTheSizeOfTheTextOnly(string text, int size)
     {
         var (key, problem) = CustodyFileFormat.ParseKey(Bytes(text + "\n"));
 
         Assert.Null(key);
-        Assert.Equal($"não é base64, {text.Length} bytes", problem);
+        Assert.Equal($"não é base64, {size} bytes", problem);
+    }
+
+    [Theory]
+    [InlineData(" {0}")]
+    [InlineData("{0} ")]
+    [InlineData("{0}\t")]
+    [InlineData("{0}\r\r")]
+    [InlineData("AAAA AAAA")]
+    public void KeyLineWithWhiteSpaceAnywhereIsRefusedEvenWhenTheBase64DecoderWouldIgnoreIt(string pattern)
+    {
+        var line = string.Format(System.Globalization.CultureInfo.InvariantCulture, pattern, Convert.ToBase64String(SyntheticKey.Valid()));
+
+        var (key, problem) = CustodyFileFormat.ParseKey(Bytes(line + "\n"));
+
+        Assert.Null(key);
+        Assert.Equal("espaço em branco ou caractere de controle na linha", problem);
+    }
+
+    [Fact]
+    public void KeyLineWithASpaceInTheMiddleIsRefusedAndItsValueIsNotShown()
+    {
+        var text = Convert.ToBase64String(SyntheticKey.Valid());
+        var spaced = $"{text[..10]} {text[10..]}";
+
+        var (key, problem) = CustodyFileFormat.ParseKey(Bytes(spaced));
+
+        Assert.Null(key);
+        Assert.DoesNotContain(text[..10], problem!, StringComparison.Ordinal);
     }
 
     [Fact]

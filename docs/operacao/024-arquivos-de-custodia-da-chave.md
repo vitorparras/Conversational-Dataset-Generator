@@ -22,7 +22,7 @@ exemplo de [021](021-subir-o-nucleo-publicado.md), a trocar pelos do seu ambient
 usados, o arquivo de rótulos nasce vazio:
 
 ```
-( umask 077; mkdir -p /opt/cdg/custodia; cd /opt/cdg/custodia \
+( umask 077; mkdir -p /etc/cdg/custodia; cd /etc/cdg/custodia \
   && head -c 32 /dev/urandom | base64 > chave && : > rotulos )
 ```
 
@@ -47,7 +47,8 @@ apagado dele. A demonstração não declara nada disso.
 
 - **`arquivo ... não encontrado`**: o caminho está errado ou o arquivo não foi criado
 - **`permissão aberta` ou `permissão concedida`**: feche o acesso como acima
-- **`dentro da pasta do artefato`**: mova o arquivo para fora da pasta do executável
+- **`dentro da pasta do artefato`**: mova o arquivo para fora da pasta do executável e de
+  `/opt/cdg`, senão atualizar o artefato troca a pasta e leva a chave junto
 - **`tamanho inválido`**: a chave decodificada não tem 32 bytes, e a recusa diz quantos tem
 - **`não é base64` ou `linhas`**: o arquivo da chave tem de ter uma linha só
 - **`linha N`**: o arquivo de rótulos tem um rótulo vazio ou com espaço em volta nessa linha

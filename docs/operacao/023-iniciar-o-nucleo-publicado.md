@@ -17,8 +17,8 @@ iniciou: a espera abaixo pode ir no mesmo bloco ou noutro. O subshell grava o cÃ
 : > /tmp/nucleo.saida
 cd /opt/cdg/nucleo
 ( CDG_Database__Password="$(cat /tmp/senha-app)" ./Core.Host --Host:Urls=http://127.0.0.1:5080 \
-  --Installation:Kind=demonstracao --MasterKey:File=/opt/cdg/custodia/chave \
-  --MasterKey:LabelsFile=/opt/cdg/custodia/rotulos --Database:Host=db:5432 --Database:Name=cdg \
+  --Installation:Kind=demonstracao --MasterKey:File=/etc/cdg/custodia/chave \
+  --MasterKey:LabelsFile=/etc/cdg/custodia/rotulos --Database:Host=db:5432 --Database:Name=cdg \
   --Database:Username=app > /tmp/nucleo.log 2>&1; echo $? > /tmp/nucleo.saida ) &
 ```
 

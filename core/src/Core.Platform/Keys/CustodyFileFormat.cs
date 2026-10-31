@@ -4,7 +4,10 @@ using System.Text;
 
 namespace Core.Platform.Keys;
 
-/// <summary>How the two custody files are written, and what is said when they are not: the key is one line of base64, the labels one per line in UTF-8; the problems name what was found, never the value.</summary>
+/// <summary>
+/// How the two custody files are written, and what is said when they are not: the key is one line of base64, the labels one per
+/// line in UTF-8; the problems name what was found, never the value.
+/// </summary>
 internal static class CustodyFileFormat
 {
     /// <summary>The most the key file may hold: 44 characters of base64 with room for the line break.</summary>
@@ -12,6 +15,8 @@ internal static class CustodyFileFormat
 
     /// <summary>The most the labels file may hold, so a file that is not one cannot fill the memory.</summary>
     internal const int LongestLabelsFile = 1_048_576;
+
+    private const byte Space = (byte)' ';
 
     private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
@@ -27,7 +32,12 @@ internal static class CustodyFileFormat
             }
 
             var lines = text.Count((byte)'\n') + 1;
-            return lines > 1 ? (null, $"{lines} linhas, esperada 1") : Decode(text);
+            if (lines > 1)
+            {
+                return (null, $"{lines} linhas, esperada 1");
+            }
+
+            return text.IndexOfAnyInRange(byte.MinValue, Space) >= 0 ? (null, "espaço em branco ou caractere de controle na linha") : Decode(text);
         }
         finally
         {
@@ -66,12 +76,14 @@ internal static class CustodyFileFormat
     /// <summary>The content without the one line break that may end it.</summary>
     private static ReadOnlySpan<byte> WithoutLastBreak(ReadOnlySpan<byte> content)
     {
-        if (content.EndsWith("\r\n"u8))
+        var crLf = "\r\n"u8;
+        if (content.EndsWith(crLf))
         {
-            return content[..^2];
+            return content[..^crLf.Length];
         }
 
-        return content.EndsWith("\n"u8) ? content[..^1] : content;
+        var lf = "\n"u8;
+        return content.EndsWith(lf) ? content[..^lf.Length] : content;
     }
 
     private static (byte[]? Key, string? Problem) Decode(ReadOnlySpan<byte> text)

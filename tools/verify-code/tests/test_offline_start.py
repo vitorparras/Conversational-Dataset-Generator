@@ -174,7 +174,9 @@ class OfflineStartTests(unittest.TestCase):
         self.assertIn("READY_SECONDS=${READY_SECONDS:-120}", script)
         self.assertIn("ready_ms=%s", script)
 
-    def test_the_script_gives_the_host_a_throwaway_key_in_files_open_to_its_user_alone(self) -> None:
+    def test_the_script_gives_the_host_a_throwaway_key_in_files_open_to_its_user_alone(
+        self,
+    ) -> None:
         script = START_SCRIPT.read_text(encoding="utf-8")
 
         self.assertIn("umask 077 && mktemp -d /tmp/custody.", script)

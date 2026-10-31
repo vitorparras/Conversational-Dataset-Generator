@@ -32,7 +32,7 @@ internal static class LanguageServiceConfiguration
             [
                 ConfigurationKey.Optional(ExecutableKey),
                 ConfigurationKey.WithDefault(StartupTimeoutKey, "30"),
-                ConfigurationKey.WithDefault(AnalyzeTimeoutKey, "10"),
+                ConfigurationKey.WithDefault(AnalyzeTimeoutKey, "10")
             ]);
 
     /// <summary>Whether the environment named is the development one; any other name, or none, is not.</summary>

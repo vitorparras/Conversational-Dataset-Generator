@@ -41,7 +41,7 @@ internal static class CompositionRoot
 
         if (migrating)
         {
-            return await MigrateAsync(database);
+            return PasswordConfiguration.Refusals(loaded.Values) is { Count: > 0 } invalid ? HostLaunch.Refused(invalid) : await MigrateAsync(database);
         }
 
         var analyzeTimeout = LanguageServiceConfiguration.AnalyzeTimeout(loaded.Values);
@@ -185,6 +185,7 @@ internal static class CompositionRoot
         var builder = ClosedBuilder(loaded.Values[HostConfiguration.UrlsPath]);
         Compose(builder, loaded.View, fileLog);
         AddAnalysis(builder.Services, loaded.Values, analyzeTimeout);
+        _ = builder.Services.AddSingleton(PasswordConfiguration.Derivation(loaded.Values));
         _ = builder.Services.AddSingleton(InstallationConfiguration.Of(loaded.Values)).AddSingleton(provider => InstallationConfiguration.Shown(StartupVersions.Of(checks), provider));
         if (SafekeepingConfiguration.Declaration(loaded.Values) is { } declaration)
         {

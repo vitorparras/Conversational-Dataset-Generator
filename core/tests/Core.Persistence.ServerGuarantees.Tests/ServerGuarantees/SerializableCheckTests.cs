@@ -23,7 +23,12 @@ public sealed class SerializableCheckTests
         var finding = SerializableCheck.Judge("serializable");
 
         Assert.Equal(CheckStatus.Passed, finding.Status);
+        Assert.Equal("o servidor abre transação SERIALIZABLE para o papel da aplicação", finding.Message);
     }
+
+    [Fact]
+    public void CheckWithoutADataSourceIsADefect() =>
+        _ = Assert.Throws<ArgumentNullException>(() => new SerializableCheck(null!));
 
     [Fact]
     public void OtherIsolationFailsNamingTheLevelFound()
@@ -32,5 +37,6 @@ public sealed class SerializableCheckTests
 
         Assert.Equal(CheckStatus.Failed, finding.Status);
         Assert.Contains("'read committed'", finding.Message, StringComparison.Ordinal);
+        Assert.EndsWith("conecte a aplicação direto ao servidor primário, sem intermediário que troque o isolamento", finding.Message, StringComparison.Ordinal);
     }
 }

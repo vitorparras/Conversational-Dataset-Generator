@@ -143,7 +143,7 @@ PY="$(uv run --frozen --project language-service python -c 'import sys; print(sy
 KEYS="$(mktemp -d)"; ( umask 077; head -c 32 /dev/urandom | base64 > "$KEYS/chave"; : > "$KEYS/rotulos" )
 export DOTNET_ENVIRONMENT=Development
 dotnet run --project core/src/Core.Host -- --Host:Urls=http://127.0.0.1:5080 \
-  --Installation:Kind=demonstracao --MasterKey:File="$KEYS/chave" \
+  --Installation:Kind=demonstracao --Passwords:WorkFactor=ITERACOES --MasterKey:File="$KEYS/chave" \
   --MasterKey:LabelsFile="$KEYS/rotulos" --LanguageService:Executable="$PY"
 ```
 
@@ -152,6 +152,10 @@ assim. A demonstração roda sem cópia de guarda da chave e sem recuperação t
 nome da instalação (`(DEMONSTRAÇÃO)`), em `/status` e `/versions` e numa linha de aviso na partida.
 A instalação real também declara `Custody:LastRecoveryTest` (data ISO) e `Custody:Holder`, e sem os
 dois a partida recusa.
+
+`Passwords:WorkFactor` é obrigatória ao servir, sem valor padrão, e leva o fator de trabalho da
+derivação das senhas, um número inteiro positivo de iterações que quem instala escolhe (`ITERACOES`
+acima é marcador). A recusa nomeia a chave; `/configuration` mostra o valor em vigor e de onde veio.
 
 `MasterKey:File` e `MasterKey:LabelsFile` são obrigatórias ao servir, sem valor padrão, e levam os
 caminhos dos arquivos da chave e dos rótulos, nunca a chave. O núcleo recusa arquivo ausente, com
@@ -274,11 +278,11 @@ os dados.
 O esquema é aplicado pelo modo `migrate` do mesmo executável, com a credencial de dono, descrito em
 [016](docs/operacao/016-migracao-do-esquema.md); a partida normal só confere a versão.
 
-Os testes de banco de `core/tests/Core.Persistence.Tests` e de `core/tests/Core.Tests.Integration`
-constroem a mesma imagem com Testcontainers e senhas aleatórias. Sem Docker, os testes de banco
-saltam com o aviso "Docker indisponível: teste de banco saltado", e o passo `test_core` lista o
-projeto e o motivo, passe ele ou não; com `CI=true`, como na verificação contínua, eles rodam
-sempre, e a falta de Docker reprova.
+Os testes de banco dos projetos `Core.Persistence*.Tests` de `core/tests`, um por área mais o da
+área-mãe, e de `core/tests/Core.Tests.Integration` constroem a mesma imagem com Testcontainers e
+senhas aleatórias. Sem Docker, os testes de banco saltam com o aviso "Docker indisponível: teste de
+banco saltado", e o passo `test_core` lista o projeto e o motivo, passe ele ou não; com `CI=true`,
+como na verificação contínua, eles rodam sempre, e a falta de Docker reprova.
 
 ## Serviço de linguagem
 

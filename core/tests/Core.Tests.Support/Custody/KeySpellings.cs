@@ -1,9 +1,9 @@
 using System.Text;
 
-namespace Core.Host.Tests.Privacy;
+namespace Core.Tests.Support.Custody;
 
 /// <summary>Every form in which the bytes of a key can be written down, and the search for them in files.</summary>
-internal static class KeySpellings
+public static class KeySpellings
 {
     /// <summary>The bytes as they are, the base64 text, and the hexadecimal text in both cases, each as the bytes a file would hold.</summary>
     public static IReadOnlyList<byte[]> Of(byte[] key) =>

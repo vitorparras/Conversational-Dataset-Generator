@@ -16,6 +16,8 @@ internal static class CustodyFileFormat
     /// <summary>The most the labels file may hold, so a file that is not one cannot fill the memory.</summary>
     internal const int LongestLabelsFile = 1_048_576;
 
+    private const byte Space = (byte)' ';
+
     private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
     /// <summary>The bytes the key file holds, or why it holds none; the content is zeroed here so that no copy of the text stays behind.</summary>
@@ -30,7 +32,12 @@ internal static class CustodyFileFormat
             }
 
             var lines = text.Count((byte)'\n') + 1;
-            return lines > 1 ? (null, $"{lines} linhas, esperada 1") : Decode(text);
+            if (lines > 1)
+            {
+                return (null, $"{lines} linhas, esperada 1");
+            }
+
+            return text.IndexOfAnyInRange(byte.MinValue, Space) >= 0 ? (null, "espaço em branco ou caractere de controle na linha") : Decode(text);
         }
         finally
         {
@@ -69,13 +76,13 @@ internal static class CustodyFileFormat
     /// <summary>The content without the one line break that may end it.</summary>
     private static ReadOnlySpan<byte> WithoutLastBreak(ReadOnlySpan<byte> content)
     {
-        ReadOnlySpan<byte> crLf = "\r\n"u8;
+        var crLf = "\r\n"u8;
         if (content.EndsWith(crLf))
         {
             return content[..^crLf.Length];
         }
 
-        ReadOnlySpan<byte> lf = "\n"u8;
+        var lf = "\n"u8;
         return content.EndsWith(lf) ? content[..^lf.Length] : content;
     }
 

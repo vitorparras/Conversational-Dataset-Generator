@@ -40,6 +40,7 @@ public sealed class KeyFilePermissionTests : IDisposable
         Assert.Null(KeyFilePermission.Excess(files.WriteText("so-dono", "x")));
 
     [Fact]
+    [UnsupportedOSPlatform("windows")]
     public void FileOnLinuxOpenToTheGroupIsRefusedNamingTheMode()
     {
         Assert.SkipUnless(OperatingSystem.IsLinux(), "o modo de arquivo é do Linux");
@@ -50,6 +51,7 @@ public sealed class KeyFilePermissionTests : IDisposable
     }
 
     [Fact]
+    [UnsupportedOSPlatform("windows")]
     public async Task FileOnLinuxOpenToOthersIsRefusedByTheSource()
     {
         Assert.SkipUnless(OperatingSystem.IsLinux(), "o modo de arquivo é do Linux");

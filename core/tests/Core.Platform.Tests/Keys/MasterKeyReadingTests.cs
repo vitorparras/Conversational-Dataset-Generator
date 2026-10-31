@@ -45,6 +45,26 @@ public sealed class MasterKeyReadingTests
     }
 
     [Fact]
+    public void BytesOfOtherSizeNameTheSourceTheyCameFromWhenItIsGiven()
+    {
+        using var reading = MasterKeyReading.FromBytes(SyntheticKey.OfLength(16), DerivationLabels.None, "arquivo da chave");
+
+        Assert.Equal(new MasterKeyFailure(MasterKeyFailureKind.WrongSize, "arquivo da chave: 16 bytes, esperados 32"), reading.Failure);
+    }
+
+    [Fact]
+    public void BytesOfTheRightSizeAreTakenWhateverTheSourceNamed()
+    {
+        using var reading = MasterKeyReading.FromBytes(SyntheticKey.Valid(), DerivationLabels.None, "arquivo da chave");
+
+        Assert.Null(reading.Failure);
+    }
+
+    [Fact]
+    public void BytesWithoutASourceAreADefect() =>
+        _ = Assert.Throws<ArgumentNullException>(() => MasterKeyReading.FromBytes(SyntheticKey.Valid(), DerivationLabels.None, null!));
+
+    [Fact]
     public void ReadingWithoutAKeyHoldsNoLabelEvenIfTheSourceHadSome()
     {
         using var reading = MasterKeyReading.FromBytes(SyntheticKey.OfLength(16), DerivationLabels.Of(["dominio-a"]));

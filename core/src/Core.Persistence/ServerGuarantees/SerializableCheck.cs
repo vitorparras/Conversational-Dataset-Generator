@@ -8,7 +8,7 @@ namespace Core.Persistence.ServerGuarantees;
 public sealed class SerializableCheck : IStartupCheck
 {
     private const string Serializable = "serializable";
-    private const string Query = "SELECT current_setting('transaction_isolation')";
+    private const string Query = "SELECT pg_catalog.current_setting('transaction_isolation')";
 
     private readonly NpgsqlDataSource dataSource;
 
@@ -43,7 +43,7 @@ public sealed class SerializableCheck : IStartupCheck
         await using (transaction.ConfigureAwait(false))
         {
             return await ServerProbe.ReadRowAsync(
-                connection, server => new NpgsqlCommand(Query, server), row => Judge((string)row[0]), cancellationToken).ConfigureAwait(false);
+                connection, Query, row => Judge((string)row[0]), cancellationToken).ConfigureAwait(false);
         }
     }
 }

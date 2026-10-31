@@ -16,28 +16,28 @@ public sealed class RlsForceCheck : IStartupCheck
     // A permissive policy is the domain one when its expressions, stripped of blanks, parentheses and the schema, read domain_id=declared_domain.
     private const string Query = """
         WITH content AS (
-            SELECT t.oid, t.relkind FROM pg_class t JOIN pg_namespace n ON n.oid = t.relnamespace WHERE n.nspname = 'content')
-        SELECT count(*) FILTER (WHERE c.relrowsecurity AND c.relforcerowsecurity) AS forced,
-            min(c.oid::regclass::text) FILTER (WHERE NOT (c.relrowsecurity AND c.relforcerowsecurity)) AS unforced,
-            (SELECT min(t.oid::regclass::text) FROM content t WHERE t.relkind IN ('r', 'p')
-                AND NOT EXISTS (SELECT FROM pg_attribute a
+            SELECT t.oid, t.relkind FROM pg_catalog.pg_class t JOIN pg_catalog.pg_namespace n ON n.oid = t.relnamespace WHERE n.nspname = 'content')
+        SELECT pg_catalog.count(*) FILTER (WHERE c.relrowsecurity AND c.relforcerowsecurity) AS forced,
+            pg_catalog.min(c.oid::regclass::text) FILTER (WHERE NOT (c.relrowsecurity AND c.relforcerowsecurity)) AS unforced,
+            (SELECT pg_catalog.min(t.oid::regclass::text) FROM content t WHERE t.relkind IN ('r', 'p')
+                AND NOT EXISTS (SELECT FROM pg_catalog.pg_attribute a
                     WHERE a.attrelid = t.oid AND a.attname = 'domain_id' AND a.attnotnull AND NOT a.attisdropped)) AS without_domain,
-            (SELECT min(t.oid::regclass::text) FROM content t WHERE t.relkind IN ('r', 'p')
-                AND NOT EXISTS (SELECT FROM pg_constraint k JOIN pg_attribute a ON a.attrelid = k.conrelid AND a.attname = 'domain_id'
-                    WHERE k.conrelid = t.oid AND k.contype = 'f' AND k.convalidated AND k.confrelid = to_regclass('public.domain')
+            (SELECT pg_catalog.min(t.oid::regclass::text) FROM content t WHERE t.relkind IN ('r', 'p')
+                AND NOT EXISTS (SELECT FROM pg_catalog.pg_constraint k JOIN pg_catalog.pg_attribute a ON a.attrelid = k.conrelid AND a.attname = 'domain_id'
+                    WHERE k.conrelid = t.oid AND k.contype = 'f' AND k.convalidated AND k.confrelid = pg_catalog.to_regclass('public.domain')
                         AND k.conkey = ARRAY[a.attnum])) AS without_domain_key,
-            (SELECT min(t.oid::regclass::text) FROM content t WHERE t.relkind IN ('r', 'p')
-                AND NOT EXISTS (SELECT FROM pg_policy p WHERE p.polrelid = t.oid)) AS without_policy,
-            (SELECT min(t.oid::regclass::text) FROM content t WHERE t.relkind IN ('r', 'p')
-                AND EXISTS (SELECT FROM pg_policy p WHERE p.polrelid = t.oid AND p.polpermissive AND (
-                    regexp_replace(coalesce(pg_get_expr(p.polqual, p.polrelid), 'domain_id=declared_domain'),
+            (SELECT pg_catalog.min(t.oid::regclass::text) FROM content t WHERE t.relkind IN ('r', 'p')
+                AND NOT EXISTS (SELECT FROM pg_catalog.pg_policy p WHERE p.polrelid = t.oid)) AS without_policy,
+            (SELECT pg_catalog.min(t.oid::regclass::text) FROM content t WHERE t.relkind IN ('r', 'p')
+                AND EXISTS (SELECT FROM pg_catalog.pg_policy p WHERE p.polrelid = t.oid AND p.polpermissive AND (
+                    pg_catalog.regexp_replace(coalesce(pg_catalog.pg_get_expr(p.polqual, p.polrelid), 'domain_id=declared_domain'),
                         '[\s()]|public\.', '', 'g') <> 'domain_id=declared_domain'
-                    OR regexp_replace(coalesce(pg_get_expr(p.polwithcheck, p.polrelid), 'domain_id=declared_domain'),
+                    OR pg_catalog.regexp_replace(coalesce(pg_catalog.pg_get_expr(p.polwithcheck, p.polrelid), 'domain_id=declared_domain'),
                         '[\s()]|public\.', '', 'g') <> 'domain_id=declared_domain'))) AS open_policy,
-            (SELECT min(t.oid::regclass::text) FROM content t WHERE t.relkind IN ('v', 'm', 'f')) AS not_a_table
-        FROM pg_class c
+            (SELECT pg_catalog.min(t.oid::regclass::text) FROM content t WHERE t.relkind IN ('v', 'm', 'f')) AS not_a_table
+        FROM pg_catalog.pg_class c
         WHERE c.relkind IN ('r', 'p')
-            AND (c.relrowsecurity OR EXISTS (SELECT FROM pg_policy p WHERE p.polrelid = c.oid))
+            AND (c.relrowsecurity OR EXISTS (SELECT FROM pg_catalog.pg_policy p WHERE p.polrelid = c.oid))
         """;
 
     private readonly NpgsqlDataSource dataSource;
@@ -87,7 +87,7 @@ public sealed class RlsForceCheck : IStartupCheck
     private static Task<Finding> ReadAsync(NpgsqlConnection connection, CancellationToken cancellationToken) =>
         ServerProbe.ReadRowAsync(
             connection,
-            server => new NpgsqlCommand(Query, server),
+            Query,
             row => Judge(
                 (long)row["forced"],
                 row["unforced"] as string,

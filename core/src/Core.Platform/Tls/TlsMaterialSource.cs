@@ -80,22 +80,28 @@ public sealed class TlsMaterialSource
 
         try
         {
-            var stream = new FileStream(file.Path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 1, useAsync: true);
-            await using (stream.ConfigureAwait(false))
-            {
-                if (stream.Length > file.Longest)
-                {
-                    return (null, $"{file.Name} em '{file.Path}': maior que {file.Longest} bytes, o que um arquivo desse tipo não é");
-                }
-
-                var content = new byte[stream.Length];
-                await stream.ReadExactlyAsync(content, cancellationToken).ConfigureAwait(false);
-                return (TextOf(content), null);
-            }
+            return await ReadWithinLimitAsync(file, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             return (null, Unopened(file, exception));
+        }
+    }
+
+    /// <summary>The text, read through the one handle that also tells the size, unless the file is larger than its kind can be.</summary>
+    private static async Task<(string? Text, string? Problem)> ReadWithinLimitAsync(PemFile file, CancellationToken cancellationToken)
+    {
+        var stream = new FileStream(file.Path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 1, useAsync: true);
+        await using (stream.ConfigureAwait(false))
+        {
+            if (stream.Length > file.Longest)
+            {
+                return (null, $"{file.Name} em '{file.Path}': maior que {file.Longest} bytes, o que um arquivo desse tipo não é");
+            }
+
+            var content = new byte[stream.Length];
+            await stream.ReadExactlyAsync(content, cancellationToken).ConfigureAwait(false);
+            return (TextOf(content), null);
         }
     }
 

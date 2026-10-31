@@ -107,6 +107,7 @@ internal static class KeyedHost
     [
         $"--Host:Urls={address.GetLeftPart(UriPartial.Authority)}",
         "--Installation:Kind=demonstracao",
+        "--Passwords:WorkFactor=1",
         "--Recognizer:Kind=fake",
         "--LanguageService:Executable=zqx-never-started-7731",
         $"--MasterKey:File={CustodyFiles.Shared.KeyPath}",

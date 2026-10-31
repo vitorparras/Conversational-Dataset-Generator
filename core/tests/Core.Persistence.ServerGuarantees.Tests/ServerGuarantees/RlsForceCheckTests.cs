@@ -47,7 +47,12 @@ public sealed class RlsForceCheckTests
         Assert.Equal(CheckStatus.Failed, finding.Status);
         Assert.Contains("ALTER TABLE zqx_table ENABLE ROW LEVEL SECURITY", finding.Message, StringComparison.Ordinal);
         Assert.Contains("ALTER TABLE zqx_table FORCE ROW LEVEL SECURITY", finding.Message, StringComparison.Ordinal);
+        Assert.StartsWith("a tabela zqx_table tem política de linha que não vale contra o dono: execute ", finding.Message, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void CheckWithoutADataSourceIsADefect() =>
+        _ = Assert.Throws<ArgumentNullException>(() => new RlsForceCheck(null!));
 
     [Fact]
     public void ContentTableWithoutTheDomainColumnFailsNamingTheTable()
@@ -67,6 +72,7 @@ public sealed class RlsForceCheckTests
         Assert.Equal(CheckStatus.Failed, finding.Status);
         Assert.Contains("content.zqx_untied", finding.Message, StringComparison.Ordinal);
         Assert.Contains("chave estrangeira para public.domain", finding.Message, StringComparison.Ordinal);
+        Assert.EndsWith("crie as tabelas do esquema content com public.create_content_table", finding.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -97,5 +103,6 @@ public sealed class RlsForceCheckTests
         Assert.Equal(CheckStatus.Failed, finding.Status);
         Assert.Contains("content.zqx_snap", finding.Message, StringComparison.Ordinal);
         Assert.Contains("não é tabela", finding.Message, StringComparison.Ordinal);
+        Assert.EndsWith("o esquema content só guarda tabelas criadas com public.create_content_table", finding.Message, StringComparison.Ordinal);
     }
 }

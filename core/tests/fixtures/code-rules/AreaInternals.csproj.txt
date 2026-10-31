@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <InternalsVisibleTo Include="Core.Sample.Tests" />
+    <InternalsVisibleTo Include="Core.Sample.Migrations.Tests" />
+    <InternalsVisibleTo Include="Core.Sample.Migrations.Helper" />
+    <InternalsVisibleTo Include="Other.Migrations.Tests" />
+  </ItemGroup>
+</Project>

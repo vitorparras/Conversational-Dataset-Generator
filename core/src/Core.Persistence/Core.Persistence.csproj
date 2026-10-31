@@ -13,5 +13,8 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Core.Persistence.Tests" />
+    <InternalsVisibleTo Include="Core.Persistence.Migrations.Tests" />
+    <InternalsVisibleTo Include="Core.Persistence.Content.Tests" />
+    <InternalsVisibleTo Include="Core.Persistence.ServerGuarantees.Tests" />
   </ItemGroup>
 </Project>

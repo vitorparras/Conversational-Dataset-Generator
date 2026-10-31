@@ -19,7 +19,8 @@ quem pode pedir. Guarda, junto da chave, **os rótulos de derivação** — a
 pelo rótulo, e rótulo perdido é dado ilegível com a chave em mãos.
 
 O conjunto de rótulos só cresce: acrescentar domínio cria rótulo, e o rótulo entra na custódia no
-mesmo ato. Cópia atualizada só quanto à chave fica desatualizada em silêncio.
+mesmo ato. Cópia atualizada só quanto à chave fica desatualizada em silêncio. Na máquina que serve,
+a chave e os rótulos moram em dois arquivos ([024](024-arquivos-de-custodia-da-chave.md)).
 
 Duas exigências se somam às da decisão, e nenhuma a contraria:
 

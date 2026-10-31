@@ -3,6 +3,7 @@ namespace Core.Persistence.Tests.Fixtures;
 /// <summary>What the mutation step and the test servers of a run agree on through the token: the names and the passwords.</summary>
 public sealed class DatabaseReuseTests
 {
+    // nosemgrep: secret-literal-csharp is a synthetic run token of this test, not a credential.
     private const string Token = "zqx-token-0001";
 
     [Fact]

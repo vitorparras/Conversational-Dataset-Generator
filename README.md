@@ -140,14 +140,24 @@ dotnet restore --locked-mode core/Core.slnx
 dotnet build core/Core.slnx
 dotnet test core/Core.slnx
 PY="$(uv run --frozen --project language-service python -c 'import sys; print(sys.executable)')"
+KEYS="$(mktemp -d)"; ( umask 077; head -c 32 /dev/urandom | base64 > "$KEYS/chave"; : > "$KEYS/rotulos" )
 export DOTNET_ENVIRONMENT=Development
 dotnet run --project core/src/Core.Host -- --Host:Urls=http://127.0.0.1:5080 \
-  --Installation:Kind=demonstracao --LanguageService:Executable="$PY"
+  --Installation:Kind=demonstracao --MasterKey:File="$KEYS/chave" \
+  --MasterKey:LabelsFile="$KEYS/rotulos" --LanguageService:Executable="$PY"
 ```
 
 `Installation:Kind` é obrigatória, sem valor padrão, e só aceita `real` ou `demonstracao`, escritos
 assim. A demonstração roda sem cópia de guarda da chave e sem recuperação testada, e diz isso no
 nome da instalação (`(DEMONSTRAÇÃO)`), em `/status` e `/versions` e numa linha de aviso na partida.
+A instalação real também declara `Custody:LastRecoveryTest` (data ISO) e `Custody:Holder`, e sem os
+dois a partida recusa.
+
+`MasterKey:File` e `MasterKey:LabelsFile` são obrigatórias ao servir, sem valor padrão, e levam os
+caminhos dos arquivos da chave e dos rótulos, nunca a chave. O núcleo recusa arquivo ausente, com
+permissão aberta a quem não é o dono do processo, dentro da pasta do executável, ou fora do
+formato, e a recusa não mostra o conteúdo. O `migrate` não os exige. Detalhes em
+[024](docs/operacao/024-arquivos-de-custodia-da-chave.md).
 
 O núcleo inicia o serviço de linguagem e só abre a porta depois que ele responde. A chave
 `LanguageService:Executable` é opcional e serve só ao desenvolvimento: vale apenas com

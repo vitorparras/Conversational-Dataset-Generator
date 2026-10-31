@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using Core.Tests.Support.Custody;
 
 namespace Core.Host.Tests;
 
@@ -14,6 +15,9 @@ internal sealed record HostInstallation(string BinaryDirectory, string WorkingDi
     /// <summary>Whether the arguments the host receives also declare the installation a demonstration, which the host cannot start without declaring one.</summary>
     public bool DeclaresInstallation { get; init; } = true;
 
+    /// <summary>Whether the arguments the host receives also name the custody files of a key and labels of the right form, which the serving mode cannot start without.</summary>
+    public bool ProvidesMasterKey { get; init; } = true;
+
     /// <summary>Whether the host asks the real language service, which it then starts, instead of the fake recognizer, which needs none.</summary>
     public bool UsesRealService { get; init; }
 
@@ -21,7 +25,28 @@ internal sealed record HostInstallation(string BinaryDirectory, string WorkingDi
     /// The arguments given plus, unless the test withholds them, the fake recognizer with an interpreter the host never
     /// starts, or the interpreter of the language service when the test asks for the real one.
     /// </summary>
-    public IReadOnlyList<string> LaunchArguments => DeclaresInstallation ? [.. ServiceArguments, "--Installation:Kind=demonstracao"] : ServiceArguments;
+    public IReadOnlyList<string> LaunchArguments
+    {
+        get
+        {
+            if (!DeclaresInstallation)
+            {
+                return ServiceArguments;
+            }
+
+            var arguments = new List<string>([.. ServiceArguments, "--Installation:Kind=demonstracao"]);
+            if (ProvidesMasterKey)
+            {
+                arguments.AddRange(MasterKeyArguments);
+            }
+
+            return arguments;
+        }
+    }
+
+    /// <summary>The arguments that point the host at the shared key and labels files.</summary>
+    public static IReadOnlyList<string> MasterKeyArguments =>
+        [$"--MasterKey:File={CustodyFiles.Shared.KeyPath}", $"--MasterKey:LabelsFile={CustodyFiles.Shared.LabelsPath}"];
 
     private IReadOnlyList<string> ServiceArguments => (ProvidesLanguageService, UsesRealService) switch
     {

@@ -16,9 +16,9 @@ custódia que não consegue verificar.
 - `MasterKey:File` aponta o arquivo da chave: uma linha com 32 bytes em base64, com ou sem quebra
   no fim. `MasterKey:LabelsFile` aponta o dos rótulos: UTF-8 sem BOM, um rótulo por linha. Os
   dois são obrigatórios ao servir, sem valor padrão, e o `migrate` não os exige.
-- Os arquivos ficam fora da pasta do artefato, e o núcleo recusa o que estiver dentro dela, também
-  por ligação de pasta. Ficar longe do diretório do banco é exigência de operação, porque o núcleo
-  não enxerga o disco do servidor ([001](../operacao/001-ambiente.md)).
+- Os arquivos ficam fora da pasta do artefato, e o núcleo recusa o que estiver dentro dela. Ficar
+  longe do diretório do banco é exigência de operação, porque o núcleo não enxerga o disco do
+  servidor ([001](../operacao/001-ambiente.md)).
 - O núcleo recusa permissão mais aberta que a do dono do processo. No Linux, qualquer bit de grupo
   ou de outros. No Windows, qualquer permissão concedida a quem não é o usuário do processo,
   SYSTEM ou Administradores. A recusa diz o que viu, nunca o conteúdo.

@@ -48,7 +48,7 @@ public sealed class FileMasterKeySource : IMasterKeySource
     {
         try
         {
-            var real = RealPath.Of(file.Path);
+            var real = new FileInfo(file.Path).ResolveLinkTarget(returnFinalTarget: true)?.FullName ?? file.Path;
             if (InsideArtifact(real))
             {
                 return $"{file.Name} em '{file.Path}', dentro da pasta do artefato; ele fica fora dela";
@@ -62,12 +62,12 @@ public sealed class FileMasterKeySource : IMasterKeySource
         }
     }
 
-    /// <summary>Whether the file, given by its real path, lies in the artifact's folder once every link in that folder's path is followed too.</summary>
-    private bool InsideArtifact(string realPath)
+    /// <summary>Whether the file, given by its full path with any link of the file followed, lies in the artifact's folder.</summary>
+    private bool InsideArtifact(string fullPath)
     {
         var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-        var root = Path.TrimEndingDirectorySeparator(RealPath.Of(artifactDirectory)) + Path.DirectorySeparatorChar;
-        return realPath.StartsWith(root, comparison);
+        var root = Path.TrimEndingDirectorySeparator(artifactDirectory) + Path.DirectorySeparatorChar;
+        return Path.GetFullPath(fullPath).StartsWith(root, comparison);
     }
 
     private async Task<MasterKeyReading> ReadFilesAsync(CancellationToken cancellationToken)

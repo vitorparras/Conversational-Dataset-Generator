@@ -19,6 +19,11 @@ custody=$(umask 077 && mktemp -d /tmp/custody.XXXXXX)
 (umask 077 && head -c 32 /dev/urandom | base64 > "$custody/key" && : > "$custody/labels")
 export CDG_MasterKey__File="$custody/key" CDG_MasterKey__LabelsFile="$custody/labels"
 
+# A throwaway key and no labels, in files outside the folder the host runs from and open to its user alone.
+custody=$(umask 077 && mktemp -d /tmp/custody.XXXXXX)
+(umask 077 && head -c 32 /dev/urandom | base64 > "$custody/key" && : > "$custody/labels")
+export CDG_MasterKey__File="$custody/key" CDG_MasterKey__LabelsFile="$custody/labels"
+
 ls /sys/class/net > /trace/interfaces.txt
 cp /app/Core.Host /app/appsettings.json /work/
 chmod +x /work/Core.Host

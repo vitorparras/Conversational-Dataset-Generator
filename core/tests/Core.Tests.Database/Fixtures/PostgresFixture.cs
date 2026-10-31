@@ -108,6 +108,7 @@ internal sealed class PostgresFixture
         foreach (var name in names)
         {
             await using var drop = new NpgsqlBatch(connection);
+            // nosemgrep: sql-concatenation-csharp interpolates the name of a throwaway test database read from pg_database, never input.
             drop.BatchCommands.Add(new NpgsqlBatchCommand($"DROP DATABASE IF EXISTS {name} WITH (FORCE)"));
             _ = await drop.ExecuteNonQueryAsync();
         }

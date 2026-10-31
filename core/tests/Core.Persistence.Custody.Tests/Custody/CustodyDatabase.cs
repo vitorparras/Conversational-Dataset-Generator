@@ -1,3 +1,5 @@
+using System.Data;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Core.Persistence.Custody;
 using Core.Persistence.Migrations;
@@ -48,6 +50,52 @@ public sealed class CustodyDatabase : IAsyncDisposable
         _ = command.Parameters.AddWithValue("name", $"zqx-pessoa-{Guid.NewGuid():N}");
         _ = command.Parameters.AddWithValue("active", active);
         return (long)(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken))!;
+    }
+
+    /// <summary>A writer of the application's role that has added an event in a transaction of the isolation given and holds it open, so that whoever reaches the same link waits for it.</summary>
+    internal async Task<HeldAppend> HoldAsync(long item, IsolationLevel isolation) =>
+        await HeldAppend.BeginAsync((await ScratchAsync()).AppConnectionString, item, isolation);
+
+    /// <summary>Waits until a writer of this database waits for a lock, which is what a writer does when it meets one that holds the link open; false when none came to wait.</summary>
+    internal async Task<bool> WaitForABlockedWriterAsync()
+    {
+        var name = new NpgsqlConnectionStringBuilder((await ScratchAsync()).AppConnectionString).Database;
+        await using var connection = await Sql.OpenAsync((await PostgresFixture.SharedAsync()).SuperuserConnectionString);
+        await using var command = new NpgsqlCommand("SELECT count(*) FROM pg_stat_activity WHERE datname = @name AND wait_event_type = 'Lock'", connection);
+        _ = command.Parameters.AddWithValue("name", name!);
+        var waited = Stopwatch.StartNew();
+        while (waited.Elapsed < TimeSpan.FromSeconds(30))
+        {
+            if ((long)(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken))! > 0)
+            {
+                return true;
+            }
+
+            await Task.Delay(TimeSpan.FromMilliseconds(20), TestContext.Current.CancellationToken);
+        }
+
+        return false;
+    }
+
+    /// <summary>Whether the query, run as the role owner, answers true.</summary>
+    internal async Task<bool> FlagAsOwnerAsync(string query, params (string Name, object Value)[] parameters) =>
+        (bool)(await ScalarAsOwnerAsync(query, parameters))!;
+
+    /// <summary>The number the query, run as the role owner, counts.</summary>
+    internal async Task<long> CountAsOwnerAsync(string query, params (string Name, object Value)[] parameters) =>
+        (long)(await ScalarAsOwnerAsync(query, parameters))!;
+
+    /// <summary>The text the query, run as the role owner, answers.</summary>
+    internal async Task<string> TextAsOwnerAsync(string query, params (string Name, object Value)[] parameters) =>
+        (string)(await ScalarAsOwnerAsync(query, parameters))!;
+
+    [SuppressMessage("Security", "CA2100", Justification = "The queries are literals of the calling tests, never input.")]
+    private async Task<object?> ScalarAsOwnerAsync(string query, (string Name, object Value)[] parameters)
+    {
+        await using var connection = await Sql.OpenAsync((await ScratchAsync()).OwnerConnectionString);
+        await using var command = new NpgsqlCommand(query, connection);
+        Array.ForEach(parameters, parameter => command.Parameters.AddWithValue(parameter.Name, parameter.Value));
+        return await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
     }
 
     /// <summary>Every event of the chain, as the table holds it, in the order of the sequence.</summary>

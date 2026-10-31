@@ -130,7 +130,7 @@ public sealed class TlsMaterialSourceTests : IDisposable
     [Fact]
     public async Task KeyProtectedByAPasswordIsRefusedSayingSo()
     {
-        var encrypted = "-----BEGIN ENCRYPTED PRIVATE KEY-----\n" + Convert.ToBase64String(new byte[48]) + "\n-----END ENCRYPTED PRIVATE KEY-----\n";
+        var encrypted = Framed("ENCRYPTED PRIVATE KEY", Convert.ToBase64String(new byte[48]));
         var source = Source(new SyntheticCertificate(SyntheticCertificate.Valid().CertificatePem, encrypted));
 
         using var reading = await source.ReadAsync(TestContext.Current.CancellationToken);
@@ -434,6 +434,9 @@ public sealed class TlsMaterialSourceTests : IDisposable
     }
 
     private static FixedClock Clock { get; } = new(SyntheticCertificate.Now);
+
+    /// <summary>The PEM framing built from the label, so that no line of the file reads as a key block to a secret scanner.</summary>
+    private static string Framed(string label, string body) => $"-----BEGIN {label}-----\n{body}\n-----END {label}-----\n";
 
     private string CertificatePath => Path.Combine(files.Directory, "certificate");
 

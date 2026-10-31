@@ -199,6 +199,41 @@ public sealed class ContentDomainTests
     }
 
     [DatabaseFact]
+    public async Task ContentTableWhoseForeignKeyToTheDomainRegistryWasNeverValidatedIsNamed()
+    {
+        await using var database = await WithTwoDomainsAsync();
+        await database.RunAsOwnerAsync(
+            "CREATE TABLE content.zqx_unchecked (id bigint PRIMARY KEY, domain_id integer NOT NULL, body text)",
+            "ALTER TABLE content.zqx_unchecked ADD CONSTRAINT zqx_unchecked_domain FOREIGN KEY (domain_id) REFERENCES public.domain (id) NOT VALID",
+            "ALTER TABLE content.zqx_unchecked ENABLE ROW LEVEL SECURITY",
+            "ALTER TABLE content.zqx_unchecked FORCE ROW LEVEL SECURITY",
+            "CREATE POLICY p ON content.zqx_unchecked USING (domain_id = public.declared_domain()) WITH CHECK (domain_id = public.declared_domain())");
+
+        var result = await CheckAsync(database);
+
+        Assert.Equal(CheckStatus.Failed, result.Status);
+        Assert.Contains("content.zqx_unchecked", result.Message, StringComparison.Ordinal);
+        Assert.Contains("VALIDATE CONSTRAINT", result.Message, StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
+    public async Task ContentTableWhoseForeignKeyToTheDomainRegistryIsValidatedAfterwardsPassesTheCheck()
+    {
+        await using var database = await WithTwoDomainsAsync();
+        await database.RunAsOwnerAsync(
+            "CREATE TABLE content.zqx_late (id bigint PRIMARY KEY, domain_id integer NOT NULL, body text)",
+            "ALTER TABLE content.zqx_late ADD CONSTRAINT zqx_late_domain FOREIGN KEY (domain_id) REFERENCES public.domain (id) NOT VALID",
+            "ALTER TABLE content.zqx_late VALIDATE CONSTRAINT zqx_late_domain",
+            "ALTER TABLE content.zqx_late ENABLE ROW LEVEL SECURITY",
+            "ALTER TABLE content.zqx_late FORCE ROW LEVEL SECURITY",
+            "CREATE POLICY p ON content.zqx_late USING (domain_id = public.declared_domain()) WITH CHECK (domain_id = public.declared_domain())");
+
+        var result = await CheckAsync(database);
+
+        Assert.Equal(CheckStatus.Passed, result.Status);
+    }
+
+    [DatabaseFact]
     public async Task ContentTableTiedToAnotherTableThanTheDomainRegistryIsNamed()
     {
         await using var database = await WithTwoDomainsAsync();

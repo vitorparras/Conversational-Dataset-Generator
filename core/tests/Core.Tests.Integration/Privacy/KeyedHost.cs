@@ -45,7 +45,7 @@ internal static class KeyedHost
             .Single(entry => entry.GetProperty("name").GetString() == check)
             .GetProperty("status").GetString()!;
 
-    private static async Task<JsonDocument> StatusAsync(Uri address, Process process, CancellationToken cancellationToken)
+    internal static async Task<JsonDocument> StatusAsync(Uri address, Process process, CancellationToken cancellationToken)
     {
         using var client = new HttpClient(SharedTlsMaterial.PinnedHandler()) { BaseAddress = address };
         var clock = Stopwatch.StartNew();
@@ -76,7 +76,7 @@ internal static class KeyedHost
         }
     }
 
-    private static ProcessStartInfo StartInfo(Uri address, string databaseConnectionString)
+    internal static ProcessStartInfo StartInfo(Uri address, string databaseConnectionString, string idleTimeout = "00:30:00")
     {
         var database = new NpgsqlConnectionStringBuilder(databaseConnectionString);
         var info = new ProcessStartInfo(Path.Combine(AppContext.BaseDirectory, OperatingSystem.IsWindows() ? "Core.Host.exe" : "Core.Host"))
@@ -96,7 +96,7 @@ internal static class KeyedHost
         info.Environment["CDG_Database__Name"] = database.Database;
         info.Environment["CDG_Database__Username"] = database.Username;
         info.Environment["CDG_Database__Password"] = database.Password;
-        foreach (var argument in Arguments(address))
+        foreach (var argument in Arguments(address, idleTimeout))
         {
             info.ArgumentList.Add(argument);
         }
@@ -104,11 +104,13 @@ internal static class KeyedHost
         return info;
     }
 
-    private static string[] Arguments(Uri address) =>
+    private static string[] Arguments(Uri address, string idleTimeout) =>
     [
         $"--Host:Urls={address.GetLeftPart(UriPartial.Authority)}",
         "--Installation:Kind=demonstracao",
         "--Passwords:WorkFactor=1",
+        $"--Session:IdleTimeout={idleTimeout}",
+        "--Session:AbsoluteTimeout=08:00:00",
         "--Recognizer:Kind=fake",
         "--LanguageService:Executable=zqx-never-started-7731",
         $"--Tls:CertificateFile={SharedTlsMaterial.CertificatePath}",
@@ -117,7 +119,7 @@ internal static class KeyedHost
         $"--MasterKey:LabelsFile={CustodyFiles.Shared.LabelsPath}",
     ];
 
-    private static int FreePort()
+    internal static int FreePort()
     {
         using var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();

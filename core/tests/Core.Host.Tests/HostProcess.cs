@@ -140,6 +140,9 @@ internal sealed class HostProcess : IDisposable
     public Task<HttpResponseMessage> GetAsync(string route, CancellationToken cancellationToken) =>
         client.GetAsync(new Uri(route, UriKind.Relative), cancellationToken);
 
+    /// <summary>Sends the request, which may carry headers such as a cookie.</summary>
+    public Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) => client.SendAsync(request, cancellationToken);
+
     /// <summary>Posts the JSON body to the route.</summary>
     public async Task<HttpResponseMessage> PostAsync(string route, string json, CancellationToken cancellationToken)
     {

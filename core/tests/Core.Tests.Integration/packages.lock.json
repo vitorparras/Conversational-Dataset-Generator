@@ -413,6 +413,26 @@
           "xunit.v3.runner.common": "[4.0.2]"
         }
       },
+      "core.boundary": {
+        "type": "Project",
+        "dependencies": {
+          "Core.Boundary.Contracts": "[0.1.0, )"
+        }
+      },
+      "core.boundary.contracts": {
+        "type": "Project",
+        "dependencies": {
+          "Core.Platform": "[0.1.0, )"
+        }
+      },
+      "core.host": {
+        "type": "Project",
+        "dependencies": {
+          "Core.Boundary": "[0.1.0, )",
+          "Core.Persistence": "[0.1.0, )",
+          "Core.Platform": "[0.1.0, )"
+        }
+      },
       "core.persistence": {
         "type": "Project",
         "dependencies": {
@@ -427,6 +447,19 @@
           "Microsoft.Extensions.Logging.Console": "[10.0.13, )",
           "Microsoft.Extensions.Telemetry": "[10.11.0, )"
         }
+      },
+      "core.tests.support": {
+        "type": "Project",
+        "dependencies": {
+          "CsCheck": "[5.0.0, )",
+          "xunit.v3.extensibility.core": "[4.0.2, )"
+        }
+      },
+      "CsCheck": {
+        "type": "CentralTransitive",
+        "requested": "[5.0.0, )",
+        "resolved": "5.0.0",
+        "contentHash": "8ZsMaq9jLGohuIKi8Eb6KdNEamwpFi67FaY6l+DMKXalb/hyFFyY1A/6vAo3rHDlwhsW5xTE6zgVfpPaqVe1ww=="
       },
       "Microsoft.Extensions.Compliance.Redaction": {
         "type": "CentralTransitive",

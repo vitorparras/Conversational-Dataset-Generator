@@ -44,8 +44,9 @@ python tools/verify-code/verify.py --step pr_size --base origin/main
 ```
 
 A ordem é única: `--step test_core` sozinho, em árvore limpa, falha porque testa com `--no-build`;
-`build_core` vem antes, e a execução sem argumento segue essa ordem. O passo `lint_tools` exige
-`ruff` e `pyright` nas versões de `tools/verify-code/lint-requirements.txt` (`pip install -r`).
+`build_core` vem antes, e a execução sem argumento segue essa ordem. Os passos `lint_tools` e
+`test_tools` exigem `ruff`, `pyright`, `coverage` e `pyyaml` nas versões de
+`tools/verify-code/lint-requirements.txt` (`pip install -r`).
 
 O passo `test_core` deixa de fora os testes que sobem o serviço real (trait `Category=RealService`)
 e passa sem `uv`; o passo `test_real_service` roda só esses, com `uv` instalado, lista os testes

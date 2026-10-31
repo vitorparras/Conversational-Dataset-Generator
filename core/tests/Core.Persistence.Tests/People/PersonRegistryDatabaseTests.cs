@@ -273,7 +273,9 @@ public sealed class PersonRegistryDatabaseTests : IClassFixture<PeopleDatabase>
             registry.DeactivateAsync(id, actorId: null, TestContext.Current.CancellationToken),
             registry.DeactivateAsync(id, actorId: null, TestContext.Current.CancellationToken));
 
-        Assert.Equal([PersonOutcome.Done, PersonOutcome.Deactivated], results.Select(result => result.Outcome).Order());
+        var outcomes = results.Select(result => result.Outcome).ToList();
+        Assert.Single(outcomes, PersonOutcome.Done);
+        Assert.Contains(outcomes.Single(outcome => outcome != PersonOutcome.Done), LosingOutcomes(PersonOutcome.Deactivated));
         Assert.Equal(["created", "deactivated"], (await database.ChangesOfAsync(id)).Select(change => change.Kind));
     }
 
@@ -337,7 +339,12 @@ public sealed class PersonRegistryDatabaseTests : IClassFixture<PeopleDatabase>
             registry.ChangeFunctionAsync(id, Audit, actorId: null, TestContext.Current.CancellationToken),
             registry.ChangeFunctionAsync(id, Audit, actorId: null, TestContext.Current.CancellationToken));
 
-        Assert.Equal([PersonOutcome.Done, PersonOutcome.FunctionUnchanged], results.Select(result => result.Outcome).Order());
+        var outcomes = results.Select(result => result.Outcome).ToList();
+        Assert.Single(outcomes, PersonOutcome.Done);
+        Assert.Contains(outcomes.Single(outcome => outcome != PersonOutcome.Done), LosingOutcomes(PersonOutcome.FunctionUnchanged));
         Assert.Equal(2, (await database.ChangesOfAsync(id)).Count);
     }
+
+    /// <summary>The second of two writers is told what the first left, or that it met the first at the same link of the chain of custody and may repeat.</summary>
+    private static PersonOutcome[] LosingOutcomes(PersonOutcome afterTheOther) => [afterTheOther, PersonOutcome.ChainBusy];
 }

@@ -1,3 +1,4 @@
+using Core.Persistence.Custody;
 using Npgsql;
 using NpgsqlTypes;
 
@@ -83,11 +84,11 @@ public sealed class PersonCredentials
     }
 
     /// <summary>A refusal of the server may carry the row that failed, which here is the salt and the result; only the code of the refusal leaves.</summary>
-    private static async Task<long?> WriteWithoutRowAsync(NpgsqlDataSource source, string sql, Action<NpgsqlCommand> bind, CancellationToken cancellationToken)
+    private static async Task<T> WithoutRowAsync<T>(Func<Task<T>> write)
     {
         try
         {
-            return await source.WriteAsync(sql, bind, cancellationToken).ConfigureAwait(false);
+            return await write().ConfigureAwait(false);
         }
         catch (PostgresException refused)
         {
@@ -112,16 +113,17 @@ public sealed class PersonCredentials
         }
 
         var credential = derivation.Derive(password);
-        var stored = await WriteWithoutRowAsync(
-            dataSource,
+        var statement = new PersonStatement(
             CredentialStatements.Set,
             command =>
             {
                 Bind(command, personId, credential);
                 PersonQueries.Add(command, "actor", NpgsqlDbType.Bigint, actorId);
             },
-            cancellationToken).ConfigureAwait(false);
-        return stored is { } id ? PersonResult.Done(id) : await WhyNotSetAsync(personId, actorId, cancellationToken).ConfigureAwait(false);
+            CustodyStep.PersonPasswordSet,
+            personId);
+        return await WithoutRowAsync(() => dataSource.WriteChainedAsync(statement, actorId, cancellationToken)).ConfigureAwait(false)
+            ?? await WhyNotSetAsync(personId, actorId, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<PersonResult> WhyNotSetAsync(long personId, long? actorId, CancellationToken cancellationToken) =>
@@ -144,14 +146,13 @@ public sealed class PersonCredentials
     private async Task RecomputeAsync(long personId, Credential previous, string password, CancellationToken cancellationToken)
     {
         var current = derivation.Derive(password);
-        _ = await WriteWithoutRowAsync(
-            dataSource,
+        _ = await WithoutRowAsync(() => dataSource.WriteAsync(
             CredentialStatements.Recompute,
             command =>
             {
                 Bind(command, personId, current);
                 PersonQueries.Add(command, "previous", NpgsqlDbType.Bytea, previous.Derived);
             },
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken)).ConfigureAwait(false);
     }
 }

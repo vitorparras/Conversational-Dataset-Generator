@@ -19,12 +19,11 @@ O piso é a porcentagem de linhas cobertas pela suíte da linguagem da área. **
 `não` em toda linha e é a única marca de módulo crítico: a mutação lê a coluna, não o piso. O
 cabeçalho é fixo e lido pela verificação. Projeto/pacote vale como **namespace e pasta**: o passo
 `floors` reprova o arquivo C# de `core/src` que cai numa área pelo namespace e noutra pela pasta,
-nomeando as duas. No serviço, módulo e arquivo coincidem por construção. Código fora de toda área
-listada conta na do projeto ou pacote que o contém, pelo prefixo mais longo que casar. O Motivo da
-linha "demais" lista após `Absorve:`, até o `;`, as pastas de primeiro nível (módulos, no serviço)
-que ela cobre. O julgamento do `floors` está na [019](019-leitura-da-tabela-pelo-floors.md). Área
-ainda sem projeto entra na tabela pelo nome, por exceção declarada à [regra 5](../regras-de-escrita.md).
-
+nomeando as duas. No serviço, módulo e arquivo coincidem. Código fora de toda área listada conta na
+do projeto ou pacote que o contém, pelo prefixo mais longo. O Motivo da linha "demais" lista após
+`Absorve:`, até o `;`, as pastas de primeiro nível (módulos, no serviço) que ela cobre. O julgamento
+do `floors` está na [019](019-leitura-da-tabela-pelo-floors.md). Área ainda sem projeto entra na
+tabela pelo nome, por exceção declarada à [regra 5](../regras-de-escrita.md).
 | Área | Projeto/pacote | Piso | Crítica | Motivo |
 |---|---|---|---|---|
 | Registro do núcleo | `Core.Platform.Logging` | 90 % | sim | Classifica e redige o que vai ao registro (requisito 021) |
@@ -36,6 +35,7 @@ ainda sem projeto entra na tabela pelo nome, por exceção declarada à [regra 5
 | Contrato da fronteira | `Core.Boundary.Contracts` | 90 % | sim | A forma JSON recusa campo desconhecido ou nulo no texto que cruza o processo (decisão 0018) |
 | Migração do esquema | `Core.Persistence.Migrations` | 90 % | sim | Altera o esquema do banco; erro corrompe custódia (requisito 019) |
 | Transação de conteúdo | `Core.Persistence.Content` | 90 % | sim | Declara o domínio que o banco usa para decidir o que uma consulta de conteúdo vê (decisão 0006) |
+| Cadeia de custódia | `Core.Persistence.Custody` | 90 % | sim | Acrescenta o evento que encadeia o acervo, em transação serializável, e recusa autor desativado ou inexistente (requisito 019) |
 | Registro de pessoas | `Core.Persistence.People` | 90 % | sim | Grava o histórico de quem fez o quê com cada pessoa e decide a entrada de quem foi desativada (política 006) |
 | Autenticação do serviço | `language_service.auth` | 90 % | sim | Guarda o segredo que protege texto não sanitizado (decisão 0011) |
 | Prova do segredo | `language_service.proof` | 90 % | sim | Prova que conhece o segredo pelo HMAC do nonce, sem revelá-lo (decisão 0043) |

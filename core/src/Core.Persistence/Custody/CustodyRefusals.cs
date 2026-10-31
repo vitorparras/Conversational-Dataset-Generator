@@ -1,0 +1,17 @@
+namespace Core.Persistence.Custody;
+
+/// <summary>The reasons the chain gives for a refusal, in the words of whoever operates.</summary>
+internal static class CustodyRefusals
+{
+    internal static CustodyResult ActorUnknown() =>
+        CustodyResult.Refused(CustodyOutcome.ActorUnknown, "A pessoa que age não está cadastrada.");
+
+    internal static CustodyResult ActorDeactivated() =>
+        CustodyResult.Refused(CustodyOutcome.ActorDeactivated, "A pessoa que age está desativada.");
+
+    internal static CustodyResult CorrectedNotFound() =>
+        CustodyResult.Refused(CustodyOutcome.CorrectedNotFound, "Não há evento com a sequência que se quer corrigir.");
+
+    internal static CustodyResult Conflict() =>
+        CustodyResult.Refused(CustodyOutcome.Conflict, "Outra gravação chegou ao mesmo elo da cadeia antes; nada foi gravado, e o pedido pode ser repetido.");
+}

@@ -4,9 +4,8 @@
 
 A [decisão 0007](../decisoes/0007-garantia-de-qualidade.md) manda a lista de módulos críticos e os
 pisos de cobertura viverem aqui, porque mudam com o código. A verificação automática lê os números
-**desta tabela**: não existe segunda cópia em arquivo de configuração de ferramenta.
-
-**Os números abaixo são proposta e aguardam aprovação do operador no pull request que os introduz.**
+**desta tabela**: não existe segunda cópia em arquivo de configuração de ferramenta. **Os números
+abaixo são proposta e aguardam aprovação do operador no pull request que os introduz.**
 
 ## Critério de criticidade
 
@@ -37,6 +36,7 @@ ainda sem projeto entra na tabela pelo nome, por exceção declarada à [regra 5
 | Contrato da fronteira | `Core.Boundary.Contracts` | 90 % | sim | A forma JSON recusa campo desconhecido ou nulo no texto que cruza o processo (decisão 0018) |
 | Migração do esquema | `Core.Persistence.Migrations` | 90 % | sim | Altera o esquema do banco; erro corrompe custódia (requisito 019) |
 | Transação de conteúdo | `Core.Persistence.Content` | 90 % | sim | Declara o domínio que o banco usa para decidir o que uma consulta de conteúdo vê (decisão 0006) |
+| Registro de pessoas | `Core.Persistence.People` | 90 % | sim | Grava o histórico de quem fez o quê com cada pessoa e decide a entrada de quem foi desativada (política 006) |
 | Autenticação do serviço | `language_service.auth` | 90 % | sim | Guarda o segredo que protege texto não sanitizado (decisão 0011) |
 | Prova do segredo | `language_service.proof` | 90 % | sim | Prova que conhece o segredo pelo HMAC do nonce, sem revelá-lo (decisão 0043) |
 | Registro do serviço | `language_service.logging_` | 90 % | sim | Decide o que o serviço escreve em registro (requisito 021) |

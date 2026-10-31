@@ -1,5 +1,7 @@
 using System.Runtime.Versioning;
 using System.Security.AccessControl;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Security.Principal;
 using System.Text;
 using Core.Platform.Tls;
@@ -10,6 +12,9 @@ namespace Core.Platform.Tests.Tls;
 /// <summary>The channel's material as the means of delivery: what the files give when they are right, and what each refusal says, which is never the key.</summary>
 public sealed class TlsMaterialSourceTests : IDisposable
 {
+    private const string NotPrivate =
+        "o PEM não traz uma chave privada (PRIVATE KEY, RSA PRIVATE KEY ou EC PRIVATE KEY), e uma chave pública ou um certificado não serve";
+
     private readonly CustodyFiles files = new();
 
     public void Dispose() => files.Dispose();
@@ -139,8 +144,39 @@ public sealed class TlsMaterialSourceTests : IDisposable
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PublicKeyOfTheCertificateInTheKeyFileIsRefusedNamingTheFile(bool rsa)
+    {
+        var made = SyntheticCertificate.Valid(rsa);
+        using var parsed = X509Certificate2.CreateFromPem(made.CertificatePem);
+        var publicKey = new string(PemEncoding.Write("PUBLIC KEY", parsed.PublicKey.ExportSubjectPublicKeyInfo()));
+        var source = Source(new SyntheticCertificate(made.CertificatePem, publicKey));
+
+        using var reading = await source.ReadAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            [$"arquivo da chave privada (Tls:KeyFile) em '{KeyPath}': {NotPrivate}"],
+            reading.Problems);
+    }
+
+    [Fact]
+    public async Task CertificateInTheKeyFileIsRefusedNamingTheFile()
+    {
+        var made = SyntheticCertificate.Valid();
+        var source = Source(new SyntheticCertificate(made.CertificatePem, made.CertificatePem));
+
+        using var reading = await source.ReadAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            [$"arquivo da chave privada (Tls:KeyFile) em '{KeyPath}': {NotPrivate}"],
+            reading.Problems);
+    }
+
+    [Theory]
     [InlineData("PRIVATE KEY")]
-    [InlineData("PUBLIC KEY")]
+    [InlineData("RSA PRIVATE KEY")]
+    [InlineData("EC PRIVATE KEY")]
     public async Task KeyWithPemFramingAndGarbageInsideIsUnreadable(string label)
     {
         var garbage = $"-----BEGIN {label}-----\n{Convert.ToBase64String(Encoding.ASCII.GetBytes("zqx não é uma chave"))}\n-----END {label}-----\n";

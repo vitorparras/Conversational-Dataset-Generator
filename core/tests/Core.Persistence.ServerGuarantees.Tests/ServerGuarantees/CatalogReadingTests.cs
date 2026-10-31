@@ -106,6 +106,25 @@ public sealed class CatalogReadingTests
         Assert.DoesNotContain("refuse_custody_event_emptying", result.Message, StringComparison.Ordinal);
     }
 
+    [DatabaseTheory]
+    [InlineData("BEFORE UPDATE OF reason OR DELETE ON public.custody_event FOR EACH ROW", "custody_event_never_changed", "refuse_custody_event_change")]
+    [InlineData("BEFORE UPDATE OR DELETE ON public.custody_event FOR EACH ROW WHEN (OLD.sequence < 0)", "custody_event_never_changed", "refuse_custody_event_change")]
+    [InlineData("BEFORE TRUNCATE ON public.custody_event FOR EACH STATEMENT WHEN (false)", "custody_event_never_emptied", "refuse_custody_event_emptying")]
+    public async Task ImmutabilityCheckAccusesTheTriggerRecreatedNarrower(string definition, string trigger, string function)
+    {
+        await using var database = await ScratchDatabase.CreateAsync();
+        _ = await database.MigrateAsync(EmbeddedMigrations.Load());
+        await database.RunAsOwnerAsync(
+            $"DROP TRIGGER {trigger} ON public.custody_event",
+            $"CREATE TRIGGER {trigger} {definition} EXECUTE FUNCTION public.{function}()",
+            $"ALTER TABLE public.custody_event ENABLE ALWAYS TRIGGER {trigger}");
+
+        var result = await AppStartup.CheckAsync(database, dataSource => new ImmutabilityCheck(dataSource));
+
+        Assert.Equal(CheckStatus.Failed, result.Status);
+        Assert.Contains($"o gatilho {trigger} não está em public.custody_event como a migração 0009 o declara", result.Message, StringComparison.Ordinal);
+    }
+
     [DatabaseFact]
     public async Task PgAuditCheckReadsTheSettingAndTheVersionOfTheInstalledExtension()
     {

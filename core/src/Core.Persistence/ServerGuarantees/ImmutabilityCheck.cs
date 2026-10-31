@@ -47,8 +47,11 @@ public sealed class ImmutabilityCheck : IStartupCheck
         WHERE t.tgrelid = pg_catalog.to_regclass('public.custody_event') AND NOT t.tgisinternal
         """;
 
-    private const string ChangedMatch = $"t.tgname = '{ChangedTrigger}' AND t.tgtype = 27 AND p.proname = '{ChangedFunction}'";
-    private const string EmptiedMatch = $"t.tgname = '{EmptiedTrigger}' AND t.tgtype = 34 AND p.proname = '{EmptiedFunction}'";
+    // The trigger as the migration wrote it: no WHEN condition, no column list after UPDATE OF and no arguments. One recreated with any of them fires on less than the migration made it fire on.
+    private const string Plain = "t.tgqual IS NULL AND t.tgattr::text = '' AND t.tgnargs = 0";
+
+    private const string ChangedMatch = $"t.tgname = '{ChangedTrigger}' AND t.tgtype = 27 AND {Plain} AND p.proname = '{ChangedFunction}'";
+    private const string EmptiedMatch = $"t.tgname = '{EmptiedTrigger}' AND t.tgtype = 34 AND {Plain} AND p.proname = '{EmptiedFunction}'";
 
     private readonly NpgsqlDataSource dataSource;
 

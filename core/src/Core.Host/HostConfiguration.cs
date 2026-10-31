@@ -45,7 +45,10 @@ internal static class HostConfiguration
         return migrating ? DatabaseConfiguration.ReadRequired(loaded.Values) : DatabaseConfiguration.Read(loaded.Values);
     }
 
-    /// <summary>The closed configuration of the host: the file beside it, the process environment and the strict arguments; the migration mode requires neither the kind of installation nor the custody files.</summary>
+    /// <summary>
+    /// The closed configuration of the host: the file beside it, the process environment and the strict arguments;
+    /// the migration mode requires neither the kind of installation nor the custody files.
+    /// </summary>
     internal static ConfigurationLoadResult Load(string[] args, bool migrating) =>
         ClosedConfiguration.Load(
             new ConfigurationSchema(

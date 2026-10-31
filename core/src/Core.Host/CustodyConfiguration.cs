@@ -5,7 +5,10 @@ using ConfigurationSection = Core.Platform.Configuration.ConfigurationSection;
 
 namespace Core.Host;
 
-/// <summary>What a real installation declares about its safekeeping copy: when the recovery was last tested and who holds the copy. The system cannot check either, so it asks for the declaration and writes it down.</summary>
+/// <summary>
+/// What a real installation declares about its safekeeping copy: when the recovery was last tested and who holds the copy.
+/// The system cannot check either, so it asks for the declaration and writes it down.
+/// </summary>
 internal static class CustodyConfiguration
 {
     internal const string LastRecoveryTestPath = SectionName + ":" + LastRecoveryTestKey;

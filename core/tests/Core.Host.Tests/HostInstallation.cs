@@ -25,8 +25,24 @@ internal sealed record HostInstallation(string BinaryDirectory, string WorkingDi
     /// The arguments given plus, unless the test withholds them, the fake recognizer with an interpreter the host never
     /// starts, or the interpreter of the language service when the test asks for the real one.
     /// </summary>
-    public IReadOnlyList<string> LaunchArguments =>
-        DeclaresInstallation ? [.. ServiceArguments, "--Installation:Kind=demonstracao", .. (ProvidesMasterKey ? MasterKeyArguments : [])] : ServiceArguments;
+    public IReadOnlyList<string> LaunchArguments
+    {
+        get
+        {
+            if (!DeclaresInstallation)
+            {
+                return ServiceArguments;
+            }
+
+            var arguments = new List<string>([.. ServiceArguments, "--Installation:Kind=demonstracao"]);
+            if (ProvidesMasterKey)
+            {
+                arguments.AddRange(MasterKeyArguments);
+            }
+
+            return arguments;
+        }
+    }
 
     /// <summary>The arguments that point the host at the shared key and labels files.</summary>
     public static IReadOnlyList<string> MasterKeyArguments =>

@@ -4,7 +4,10 @@ using ConfigurationSection = Core.Platform.Configuration.ConfigurationSection;
 
 namespace Core.Host;
 
-/// <summary>Where the custody files are: the paths of the file that holds the key and of the one that holds its labels, never the key; they have no default, because a default would put the key where nobody chose.</summary>
+/// <summary>
+/// Where the custody files are: the paths of the file that holds the key and of the one that holds its labels, never the key;
+/// they have no default, because a default would put the key where nobody chose.
+/// </summary>
 internal static class MasterKeyConfiguration
 {
     internal const string FilePath = SectionName + ":" + FileKey;

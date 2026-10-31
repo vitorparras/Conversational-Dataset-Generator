@@ -56,6 +56,7 @@ deliberada e justificada.
 | [0042](0042-supressao-de-analisador.md) | Nenhum analisador se suprime em `core/src` | Decisão vigente |
 | [0043](0043-quem-escuta-na-porta-prova-o-segredo.md) | Quem escuta na porta prova ter o segredo | Decisão vigente |
 | [0044](0044-arquivo-de-custodia-da-chave.md) | A chave chega por arquivo de custódia | Decisão vigente |
+| [0045](0045-formato-do-rotulo-de-derivacao.md) | Formato do rótulo de derivação | Decisão vigente |
 | [0046](0046-material-do-canal-cifrado.md) | O material do canal cifrado chega por arquivos PEM | Decisão vigente |
 
 ## Formato

@@ -6,6 +6,7 @@ namespace Core.Platform.Keys;
 /// <summary>
 /// Seals content in AES-256-GCM under the key of a label and opens it again. The envelope carries its label in clear and the
 /// cipher authenticates that header, so an envelope moved to another label, or with its header changed, is refused and not read as empty.
+/// The nonce is random, so a key seals no more than about 2^32 envelopes: a rotation moves to a new label before that.
 /// </summary>
 public sealed class EnvelopeCipher
 {
@@ -48,7 +49,7 @@ public sealed class EnvelopeCipher
 
         if (!string.Equals(layout.Label, label, StringComparison.Ordinal))
         {
-            throw new EnvelopeRefusedException($"The label in the header is '{layout.Label}', not '{label}'.");
+            throw new EnvelopeRefusedException($"The label in the header is not '{label}'.");
         }
 
         return Decrypt(label, layout);

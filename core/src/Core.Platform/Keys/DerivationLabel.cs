@@ -36,12 +36,13 @@ public sealed record DerivationLabel
     public static bool TryParse(string? text, [NotNullWhen(true)] out DerivationLabel? label)
     {
         label = null;
-        if (text?.Split(Separator) is not [var name, var domain, [VersionMark, .. var version]])
+        var parts = text?.Split(Separator);
+        if (parts is null || parts.Length != 3 || !parts[^1].StartsWith(VersionMark))
         {
             return false;
         }
 
-        if (!TryPurpose(name, out var purpose) || !TryNumber(domain, out var domainId) || !TryNumber(version, out var versionNumber))
+        if (!TryPurpose(parts[0], out var purpose) || !TryNumber(parts[1], out var domainId) || !TryNumber(parts[^1][1..], out var versionNumber))
         {
             return false;
         }
@@ -60,7 +61,7 @@ public sealed record DerivationLabel
     private static bool TryNumber(string digits, out int number)
     {
         number = 0;
-        return digits is [>= '1' and <= '9', ..] && digits.All(char.IsAsciiDigit) && int.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out number);
+        return digits.Length > 0 && digits[0] is >= '1' and <= '9' && digits.All(char.IsAsciiDigit) && int.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out number);
     }
 
     private static string Name(LabelPurpose purpose) => purpose switch

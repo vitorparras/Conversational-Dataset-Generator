@@ -65,14 +65,14 @@ public sealed class EnvelopeCipherTests : IDisposable
     }
 
     [Fact]
-    public void EnvelopeOfALabelIsRefusedUnderAnotherNamingBoth()
+    public void EnvelopeOfALabelIsRefusedUnderAnotherNamingOnlyTheOneAsked()
     {
         var envelope = Cipher.Seal(Label, Content);
 
         var refused = Assert.Throws<EnvelopeRefusedException>(() => Cipher.Open(Other, envelope));
 
-        Assert.Contains(Label, refused.Message, StringComparison.Ordinal);
         Assert.Contains(Other, refused.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain(Label, refused.Message, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -30,7 +30,7 @@ internal sealed class VersionsHost : IAsyncDisposable
     public static async Task<VersionsHost> StartAsync(
         IServiceVersionReader reader, CancellationToken cancellationToken, VersionValue? schema = null, Installation? installation = null)
     {
-        var address = HostProcess.FreeAddress();
+        var address = HostProcess.FreePlainAddress();
         var builder = CompositionRoot.ClosedBuilder(address.GetLeftPart(UriPartial.Authority));
         CompositionRoot.Compose(builder, ClosedConfiguration.Load(new ConfigurationSchema([HostConfiguration.Section])).View, fileLog: null);
         var report = new VersionReport(Build).WithSchemaVersion(schema ?? VersionValue.Absent);

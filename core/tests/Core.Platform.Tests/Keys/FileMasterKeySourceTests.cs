@@ -215,16 +215,36 @@ public sealed class FileMasterKeySourceTests : IDisposable
     }
 
     [Fact]
-    public async Task FileGivenWithDotDotSegmentsInsideTheArtifactFolderIsRefused()
+    public async Task FileReachedThroughALinkedFolderThatPointsInsideTheArtifactFolderIsRefused()
     {
         using var artifact = new CustodyFiles();
-        _ = Directory.CreateDirectory(Path.Combine(artifact.Directory, "sub"));
         _ = artifact.WriteText("key", KeyLine(SyntheticKey.Valid()));
-        var source = new FileMasterKeySource(Path.Combine(artifact.Directory, "sub", "..", "key"), files.WriteText("labels", string.Empty), artifact.Directory);
+        var folder = Path.Combine(files.Directory, "current");
+        Assert.SkipUnless(TryFolderLink(folder, artifact.Directory), "a plataforma não deixou criar o elo de pasta");
+        var source = new FileMasterKeySource(Path.Combine(folder, "key"), files.WriteText("labels", string.Empty), artifact.Directory);
 
         using var reading = await source.ReadAsync(TestContext.Current.CancellationToken);
 
         Assert.Contains("dentro da pasta do artefato", reading.Failure!.Found, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task FileInsideTheArtifactFolderGivenAsALinkedFolderIsRefused()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), $"cdg-custody-link-{Guid.NewGuid():N}");
+        Assert.SkipUnless(TryFolderLink(folder, files.Directory), "a plataforma não deixou criar o elo de pasta");
+        try
+        {
+            var source = new FileMasterKeySource(files.WriteText("key", KeyLine(SyntheticKey.Valid())), files.WriteText("labels", string.Empty), folder);
+
+            using var reading = await source.ReadAsync(TestContext.Current.CancellationToken);
+
+            Assert.Contains("dentro da pasta do artefato", reading.Failure!.Found, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(folder);
+        }
     }
 
     [Fact]
@@ -277,6 +297,19 @@ public sealed class FileMasterKeySourceTests : IDisposable
         try
         {
             _ = File.CreateSymbolicLink(link, target);
+            return true;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
+    private static bool TryFolderLink(string link, string target)
+    {
+        try
+        {
+            _ = Directory.CreateSymbolicLink(link, target);
             return true;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)

@@ -6,5 +6,18 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Telemetry.Abstractions" />
+    <PackageReference Include="Npgsql" />
+    <PackageReference Include="Testcontainers" />
+  </ItemGroup>
+
+  <!-- The database fixtures belong to Core.Persistence.Tests, the module's own project; the test that dumps the database consumes them: one source, three test assemblies. -->
+  <ItemGroup>
+    <Compile Include="..\Core.Persistence.Tests\Fixtures\DatabaseFactAttribute.cs" Link="Fixtures\Shared\DatabaseFactAttribute.cs" />
+    <Compile Include="..\Core.Persistence.Tests\Fixtures\DatabaseReuse.cs" Link="Fixtures\Shared\DatabaseReuse.cs" />
+    <Compile Include="..\Core.Persistence.Tests\Fixtures\DatabaseTool.cs" Link="Fixtures\Shared\DatabaseTool.cs" />
+    <Compile Include="..\Core.Persistence.Tests\Fixtures\DockerAvailability.cs" Link="Fixtures\Shared\DockerAvailability.cs" />
+    <Compile Include="..\Core.Persistence.Tests\Fixtures\PostgresFixture.cs" Link="Fixtures\Shared\PostgresFixture.cs" />
+    <Compile Include="..\Core.Persistence.Tests\Fixtures\ScratchDatabase.cs" Link="Fixtures\Shared\ScratchDatabase.cs" />
+    <Compile Include="..\Core.Persistence.Tests\Fixtures\Sql.cs" Link="Fixtures\Shared\Sql.cs" />
   </ItemGroup>
 </Project>

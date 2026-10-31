@@ -1,4 +1,3 @@
-using System.Text.Json.Serialization;
 using Core.Boundary.Contracts;
 using Core.Boundary.Fake;
 using Core.Boundary.Http;
@@ -10,6 +9,7 @@ using Core.Persistence.Connection;
 using Core.Persistence.Migrations;
 using Core.Persistence.ServerGuarantees;
 using Core.Platform.Configuration;
+using Core.Platform.Keys;
 using Core.Platform.Logging;
 using Core.Platform.Startup;
 using Core.Platform.Versions;
@@ -25,7 +25,7 @@ internal static class CompositionRoot
 
     internal static async Task<HostLaunch> BuildAsync(string[] args)
     {
-        var target = await new StartupRunner([TargetCheck()], TimeProvider.System).RunAsync(CancellationToken.None);
+        var target = await new StartupRunner([HostConfiguration.TargetCheck()], TimeProvider.System).RunAsync(CancellationToken.None);
         if (!target.Ready)
         {
             return HostLaunch.CheckFailed(target);
@@ -45,7 +45,7 @@ internal static class CompositionRoot
         }
 
         var analyzeTimeout = LanguageServiceConfiguration.AnalyzeTimeout(loaded.Values);
-        var refused = LanguageServiceConfiguration.Refusals(loaded.Values, analyzeTimeout);
+        var refused = HostConfiguration.Refusals(loaded.Values, analyzeTimeout);
         return analyzeTimeout is { } timeout && refused.Count == 0 ? await LaunchAsync(loaded, database, timeout, target) : HostLaunch.Refused(refused);
     }
 
@@ -107,13 +107,7 @@ internal static class CompositionRoot
         _ = builder.Services.AddSingleton(TimeProvider.System);
         _ = builder.Services.AddRedaction(PlatformLogging.EraseSensitiveData);
         _ = builder.Services.AddSingleton(configuration);
-        _ = builder.Services.ConfigureHttpJsonOptions(options =>
-        {
-            options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
-            options.SerializerOptions.UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow;
-            options.SerializerOptions.RespectRequiredConstructorParameters = true;
-            options.SerializerOptions.RespectNullableAnnotations = true;
-        });
+        _ = builder.Services.ConfigureHttpJsonOptions(HostJson.Strict);
     }
 
     /// <summary>The analysis and the recognizer the configuration chose: the fake by name, otherwise one per use, with the port and secret the supervisor has then.</summary>
@@ -126,15 +120,13 @@ internal static class CompositionRoot
         _ = services.AddTransient<MaterialAnalysis>();
     }
 
-    /// <summary>Runs before the configuration is read: an executable built for another target is refused whatever it is configured with.</summary>
-    private static RuntimeTargetCheck TargetCheck() =>
-        new(BuildInfo.Of(typeof(CompositionRoot).Assembly).RuntimeIdentifier, RuntimeTarget.Current);
-
     /// <summary>What the checks need before the host's own container exists: redacted logging, the server checks and the supervision of the
     /// language service. The host's container adopts it, so the service stops with the host; it only borrows the file destination.</summary>
     private static ServiceProvider StartupServices(ConfigurationLoadResult loaded, FileLoggerProvider? fileLog, DatabaseSettings database)
     {
         var services = new ServiceCollection();
+        _ = services.AddSingleton<IMasterKeySource>(MasterKeyConfiguration.SourceOf(loaded.Values));
+        _ = services.AddSingleton<IStartupCheck>(provider => new MasterKeyCheck(provider.GetRequiredService<IMasterKeySource>()));
         AddServerGuarantees(services, database);
         _ = services.AddSingleton(TimeProvider.System);
         _ = services.AddLogging(logging => HostLogFile.WithFile(logging, fileLog));
@@ -168,7 +160,7 @@ internal static class CompositionRoot
         return services.BuildServiceProvider();
     }
 
-    /// <summary>The application's data source and the six server checks, privilege first and the schema version last, or the check that says no database is declared.</summary>
+    /// <summary>The application's data source and the seven server checks, privilege first and the derivation labels last, or the check that says no database is declared.</summary>
     private static void AddServerGuarantees(IServiceCollection services, DatabaseSettings database)
     {
         if (database.State != DatabaseSettingsState.Configured)
@@ -184,6 +176,7 @@ internal static class CompositionRoot
         _ = services.AddSingleton<IStartupCheck>(provider => new PgAuditCheck(provider.GetRequiredService<NpgsqlDataSource>()));
         _ = services.AddSingleton<IStartupCheck>(provider => new ColumnRevokeCheck(provider.GetRequiredService<NpgsqlDataSource>()));
         _ = services.AddSingleton<IStartupCheck>(provider => new SchemaVersionCheck(provider.GetRequiredService<NpgsqlDataSource>(), EmbeddedMigrations.Load()));
+        _ = services.AddSingleton<IStartupCheck>(provider => new DerivationLabelCheck(provider.GetRequiredService<NpgsqlDataSource>(), provider.GetRequiredService<IMasterKeySource>()));
     }
 
     /// <summary>The web host with everything the configuration decides: its address, logging, the file destination, the recognizer and the versions the checks confirmed.</summary>
@@ -193,6 +186,11 @@ internal static class CompositionRoot
         Compose(builder, loaded.View, fileLog);
         AddAnalysis(builder.Services, loaded.Values, analyzeTimeout);
         _ = builder.Services.AddSingleton(InstallationConfiguration.Of(loaded.Values)).AddSingleton(provider => InstallationConfiguration.Shown(StartupVersions.Of(checks), provider));
+        if (SafekeepingConfiguration.Declaration(loaded.Values) is { } declaration)
+        {
+            _ = builder.Services.AddSingleton(declaration);
+        }
+
         return builder;
     }
 

@@ -92,6 +92,21 @@ public sealed class CatalogReadingTests
     }
 
     [DatabaseFact]
+    public async Task ImmutabilityCheckAccusesTheFunctionReplacedByOneThatLetsTheChangeThrough()
+    {
+        await using var database = await ScratchDatabase.CreateAsync();
+        _ = await database.MigrateAsync(EmbeddedMigrations.Load());
+        await database.RunAsOwnerAsync(
+            "CREATE OR REPLACE FUNCTION public.refuse_custody_event_change() RETURNS trigger LANGUAGE plpgsql AS $allow$ BEGIN RETURN OLD; END $allow$");
+
+        var result = await AppStartup.CheckAsync(database, dataSource => new ImmutabilityCheck(dataSource));
+
+        Assert.Equal(CheckStatus.Failed, result.Status);
+        Assert.Contains("a função public.refuse_custody_event_change, que o gatilho custody_event_never_changed chama", result.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("refuse_custody_event_emptying", result.Message, StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
     public async Task PgAuditCheckReadsTheSettingAndTheVersionOfTheInstalledExtension()
     {
         var result = await RunAsApplicationAsync(dataSource => new PgAuditCheck(dataSource));

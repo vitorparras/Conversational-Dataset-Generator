@@ -27,7 +27,7 @@ public sealed class RequirementNamingTests
     {
         var result = await RunWithTheSessionEndedAsync(dataSource => new ImmutabilityCheck(dataSource));
 
-        AssertRefusedNaming("Immutability", "o papel da aplicação precisa ler pg_trigger, pg_proc e pg_namespace, presentes em todo PostgreSQL", result);
+        AssertRefusedNaming("Immutability", "o papel da aplicação precisa ler pg_trigger, pg_proc, pg_language e pg_namespace, presentes em todo PostgreSQL", result);
     }
 
     [DatabaseFact]

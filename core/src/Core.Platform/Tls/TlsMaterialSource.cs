@@ -23,6 +23,11 @@ public sealed class TlsMaterialSource
     private const int LongestCertificateFile = 65536;
     private const int LongestKeyFile = 16384;
 
+    private const string NotPrivate =
+        "o PEM não traz uma chave privada (PRIVATE KEY, RSA PRIVATE KEY ou EC PRIVATE KEY), e uma chave pública ou um certificado não serve";
+
+    private static readonly string[] PrivateLabels = ["PRIVATE KEY", "RSA PRIVATE KEY", "EC PRIVATE KEY"];
+
     private readonly PemFile certificate;
     private readonly PemFile privateKey;
     private readonly string artifactDirectory;
@@ -217,6 +222,11 @@ public sealed class TlsMaterialSource
         if (text.AsSpan(fields.Label).SequenceEqual("ENCRYPTED PRIVATE KEY"))
         {
             return (null, $"{privateKey.Name} em '{privateKey.Path}': chave protegida por senha; a chave fica sem senha, só com permissão do dono");
+        }
+
+        if (!Array.Exists(PrivateLabels, label => text.AsSpan(fields.Label).SequenceEqual(label)))
+        {
+            return (null, $"{privateKey.Name} em '{privateKey.Path}': {NotPrivate}");
         }
 
         var key = Imported(text);

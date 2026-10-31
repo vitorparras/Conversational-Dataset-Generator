@@ -13,15 +13,15 @@ public sealed class ColumnRevokeCheck : IStartupCheck
     private const string Query = """
         WITH granted AS (
             SELECT DISTINCT c.oid, c.oid::regclass::text AS relation, acl.privilege_type
-            FROM pg_class c
-            JOIN pg_attribute a ON a.attrelid = c.oid AND a.attacl IS NOT NULL
-            CROSS JOIN LATERAL aclexplode(a.attacl) acl
+            FROM pg_catalog.pg_class c
+            JOIN pg_catalog.pg_attribute a ON a.attrelid = c.oid AND a.attacl IS NOT NULL
+            CROSS JOIN LATERAL pg_catalog.aclexplode(a.attacl) acl
             WHERE c.relkind IN ('r', 'p') AND acl.privilege_type IN ('INSERT', 'UPDATE'))
-        SELECT current_user::text AS role, (SELECT count(DISTINCT oid) FROM granted) AS tables, voided.privilege_type, voided.relation
+        SELECT current_user::text AS role, (SELECT pg_catalog.count(DISTINCT oid) FROM granted) AS tables, voided.privilege_type, voided.relation
         FROM (SELECT) AS answer
         LEFT JOIN LATERAL (
             SELECT g.privilege_type, g.relation FROM granted g
-            WHERE has_table_privilege(g.oid, g.privilege_type)
+            WHERE pg_catalog.has_table_privilege(g.oid, g.privilege_type)
             ORDER BY g.relation, g.privilege_type
             LIMIT 1) voided ON true
         """;

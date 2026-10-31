@@ -12,15 +12,15 @@ public sealed class PrivilegeCheck : IStartupCheck
 {
     private const string Query = """
         SELECT current_user::text AS role,
-            (SELECT s.rolname::text FROM pg_roles s WHERE s.rolsuper AND pg_has_role(s.oid, 'MEMBER')
+            (SELECT s.rolname::text FROM pg_catalog.pg_roles s WHERE s.rolsuper AND pg_catalog.pg_has_role(s.oid, 'MEMBER')
                 ORDER BY s.rolname <> current_user, s.rolname LIMIT 1) AS superuser_role,
-            (SELECT s.rolname::text FROM pg_roles s WHERE s.rolbypassrls AND pg_has_role(s.oid, 'MEMBER')
+            (SELECT s.rolname::text FROM pg_catalog.pg_roles s WHERE s.rolbypassrls AND pg_catalog.pg_has_role(s.oid, 'MEMBER')
                 ORDER BY s.rolname <> current_user, s.rolname LIMIT 1) AS bypass_role,
-            (SELECT d.datname::text FROM pg_database d
-                WHERE d.datname = current_database() AND pg_has_role(d.datdba, 'MEMBER')) AS owned_database,
-            (SELECT min(n.nspname::text) FROM pg_namespace n WHERE pg_has_role(n.nspowner, 'MEMBER')) AS owned_schema,
-            (SELECT min(c.oid::regclass::text) FROM pg_class c
-                WHERE c.relkind IN ('r', 'p') AND pg_has_role(c.relowner, 'MEMBER')) AS owned_table
+            (SELECT d.datname::text FROM pg_catalog.pg_database d
+                WHERE d.datname = pg_catalog.current_database() AND pg_catalog.pg_has_role(d.datdba, 'MEMBER')) AS owned_database,
+            (SELECT pg_catalog.min(n.nspname::text) FROM pg_catalog.pg_namespace n WHERE pg_catalog.pg_has_role(n.nspowner, 'MEMBER')) AS owned_schema,
+            (SELECT pg_catalog.min(c.oid::regclass::text) FROM pg_catalog.pg_class c
+                WHERE c.relkind IN ('r', 'p') AND pg_catalog.pg_has_role(c.relowner, 'MEMBER')) AS owned_table
         """;
 
     private readonly NpgsqlDataSource dataSource;

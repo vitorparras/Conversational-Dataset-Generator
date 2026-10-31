@@ -8,7 +8,7 @@ namespace Core.Persistence.ServerGuarantees;
 public sealed class SerializableCheck : IStartupCheck
 {
     private const string Serializable = "serializable";
-    private const string Query = "SELECT current_setting('transaction_isolation')";
+    private const string Query = "SELECT pg_catalog.current_setting('transaction_isolation')";
 
     private readonly NpgsqlDataSource dataSource;
 

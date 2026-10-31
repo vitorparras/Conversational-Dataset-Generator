@@ -10,7 +10,7 @@ namespace Core.Persistence.ServerGuarantees;
 /// </summary>
 public sealed class DerivationLabelCheck : IStartupCheck
 {
-    private const string Query = "SELECT coalesce(array_agg(label ORDER BY label), ARRAY[]::text[]) AS labels FROM public.derivation_label";
+    private const string Query = "SELECT coalesce(pg_catalog.array_agg(label ORDER BY label), ARRAY[]::text[]) AS labels FROM public.derivation_label";
 
     private readonly NpgsqlDataSource dataSource;
     private readonly IMasterKeySource source;

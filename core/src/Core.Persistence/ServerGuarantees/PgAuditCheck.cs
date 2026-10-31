@@ -11,8 +11,8 @@ public sealed class PgAuditCheck : IStartupCheck
 {
     /// <summary>A placeholder set by a connection option or a configuration file never shows in pg_settings; the library's setting does.</summary>
     private const string Query = """
-        SELECT (SELECT s.setting FROM pg_settings s WHERE s.name = 'pgaudit.log' AND s.context = 'superuser') AS log,
-            (SELECT e.extversion FROM pg_extension e WHERE e.extname = 'pgaudit') AS version
+        SELECT (SELECT s.setting FROM pg_catalog.pg_settings s WHERE s.name = 'pgaudit.log' AND s.context = 'superuser') AS log,
+            (SELECT e.extversion FROM pg_catalog.pg_extension e WHERE e.extname = 'pgaudit') AS version
         """;
 
     private readonly NpgsqlDataSource dataSource;

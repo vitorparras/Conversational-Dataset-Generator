@@ -11,7 +11,7 @@ internal static partial class InstallationLogMessages
     internal static partial void RealInstallation(
         this ILogger logger,
         [LogProperties(OmitReferenceName = true)] Installation installation,
-        [LogProperties(OmitReferenceName = true)] SafekeepingDeclaration custody);
+        [LogProperties(OmitReferenceName = true)] SafekeepingDeclaration declaration);
 
     [LoggerMessage(
         EventId = 202,

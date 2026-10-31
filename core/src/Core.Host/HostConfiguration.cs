@@ -2,6 +2,8 @@ using Core.Host.Supervision;
 using Core.Persistence.Connection;
 using Core.Platform.Configuration;
 using Core.Platform.Configuration.Sources;
+using Core.Platform.Startup;
+using Core.Platform.Versions;
 using ConfigurationSection = Core.Platform.Configuration.ConfigurationSection;
 
 namespace Core.Host;
@@ -64,4 +66,15 @@ internal static class HostConfiguration
             new JsonFileSource(SettingsPath),
             EnvironmentSource.FromProcess(),
             new StrictArgumentsSource(args));
+
+    /// <summary>Runs before the configuration is read: an executable built for another target is refused whatever it is configured with.</summary>
+    internal static RuntimeTargetCheck TargetCheck() =>
+        new(BuildInfo.Of(typeof(HostConfiguration).Assembly).RuntimeIdentifier, RuntimeTarget.Current);
+
+    /// <summary>What the values of the language service and of the safekeeping declaration refuse, together.</summary>
+    internal static IReadOnlyList<ConfigurationProblem> Refusals(IReadOnlyDictionary<string, string> values, TimeSpan? analyzeTimeout) =>
+    [
+        .. LanguageServiceConfiguration.Refusals(values, analyzeTimeout),
+        .. SafekeepingConfiguration.Refusals(values, InstallationConfiguration.Of(values).Kind),
+    ];
 }

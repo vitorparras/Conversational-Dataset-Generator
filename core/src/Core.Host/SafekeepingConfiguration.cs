@@ -49,15 +49,6 @@ internal static class SafekeepingConfiguration
             ? new SafekeepingDeclaration(date, holder)
             : null;
 
-    /// <summary>Gives the host the declaration, when the installation made one, for the startup line.</summary>
-    internal static void Declare(IServiceCollection services, IReadOnlyDictionary<string, string> values)
-    {
-        if (Declaration(values) is { } declaration)
-        {
-            _ = services.AddSingleton(declaration);
-        }
-    }
-
     private static bool IsIsoDate(string text) =>
         DateOnly.TryParseExact(text, DateFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
 }

@@ -264,11 +264,11 @@ os dados.
 O esquema é aplicado pelo modo `migrate` do mesmo executável, com a credencial de dono, descrito em
 [016](docs/operacao/016-migracao-do-esquema.md); a partida normal só confere a versão.
 
-Os testes de banco de `core/tests/Core.Persistence.Tests` e de `core/tests/Core.Tests.Integration`
-constroem a mesma imagem com Testcontainers e senhas aleatórias. Sem Docker, os testes de banco
-saltam com o aviso "Docker indisponível: teste de banco saltado", e o passo `test_core` lista o
-projeto e o motivo, passe ele ou não; com `CI=true`, como na verificação contínua, eles rodam
-sempre, e a falta de Docker reprova.
+Os testes de banco dos projetos `Core.Persistence*.Tests` de `core/tests`, um por área mais o da
+área-mãe, e de `core/tests/Core.Tests.Integration` constroem a mesma imagem com Testcontainers e
+senhas aleatórias. Sem Docker, os testes de banco saltam com o aviso "Docker indisponível: teste de
+banco saltado", e o passo `test_core` lista o projeto e o motivo, passe ele ou não; com `CI=true`,
+como na verificação contínua, eles rodam sempre, e a falta de Docker reprova.
 
 ## Serviço de linguagem
 

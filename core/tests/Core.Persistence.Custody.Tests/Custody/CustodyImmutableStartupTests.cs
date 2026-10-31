@@ -91,6 +91,63 @@ public sealed class CustodyImmutableStartupTests
         ChainIntegrity.Holds(await database.EventsAsync());
     }
 
+    [DatabaseTheory]
+    [InlineData("refuse_custody_event_change", Changed, "RETURN OLD;")]
+    [InlineData("refuse_custody_event_emptying", Emptied, "RETURN NULL;")]
+    public async Task FunctionReplacedByOneThatLetsTheChangeThroughIsAccusedAndTheStartIsRefusedWithTheChainWhole(string function, string trigger, string letThrough)
+    {
+        await using var database = new CustodyDatabase();
+        _ = await SeedAsync(database);
+        await database.RunAsOwnerAsync($"CREATE OR REPLACE FUNCTION public.{function}() RETURNS trigger LANGUAGE plpgsql AS $allow$ BEGIN {letThrough} END $allow$");
+
+        var report = await StartAsync(database);
+
+        var failure = Assert.Single(report.Results, result => result.Status == CheckStatus.Failed);
+        Assert.False(report.Ready);
+        Assert.Equal("Immutability", failure.Name);
+        Assert.Contains($"a função public.{function}, que o gatilho {trigger} chama", failure.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain(trigger == Changed ? Emptied : Changed, failure.Message, StringComparison.Ordinal);
+        ChainIntegrity.Holds(await database.EventsAsync());
+    }
+
+    [DatabaseFact]
+    public async Task FunctionRestoredToTheBodyOfTheMigrationIsNoLongerAccused()
+    {
+        await using var database = new CustodyDatabase();
+        _ = await SeedAsync(database);
+        await database.RunAsOwnerAsync(
+            "CREATE OR REPLACE FUNCTION public.refuse_custody_event_change() RETURNS trigger LANGUAGE plpgsql AS $allow$ BEGIN RETURN OLD; END $allow$");
+        var tampered = await StartAsync(database);
+        await database.RunAsOwnerAsync(
+            "CREATE OR REPLACE FUNCTION public.refuse_custody_event_change() RETURNS trigger LANGUAGE plpgsql AS $refuse$\n"
+            + "BEGIN\n    RAISE EXCEPTION 'public.custody_event: % refused for the event of sequence %', TG_OP, OLD.sequence\n"
+            + "        USING ERRCODE = 'CE001', SCHEMA = 'public', TABLE = 'custody_event';\nEND\n$refuse$");
+
+        var restored = await StartAsync(database);
+
+        Assert.False(tampered.Ready);
+        Assert.True(restored.Ready, restored.FirstFailure?.Message);
+    }
+
+    [DatabaseFact]
+    [SuppressMessage("Security", "CA2100", Justification = "The statement is a literal of this test with the sequence it appended, never input.")]
+    public async Task FunctionThatLetsTheChangeThroughReallyLetsAnOwnerSessionChangeTheEvent()
+    {
+        await using var database = new CustodyDatabase();
+        var sequence = await SeedAsync(database);
+        await database.RunAsOwnerAsync(
+            "CREATE OR REPLACE FUNCTION public.refuse_custody_event_change() RETURNS trigger LANGUAGE plpgsql AS $allow$ BEGIN RETURN NEW; END $allow$");
+        await database.RunAsOwnerAsync($"GRANT UPDATE ON {Table} TO owner");
+        await using var connection = await Sql.OpenAsync(await database.OwnerConnectionStringAsync());
+        await using var command = new Npgsql.NpgsqlCommand($"UPDATE {Table} SET item_id = item_id + 1 WHERE sequence = {sequence}", connection);
+
+        var changed = await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+        var report = await StartAsync(database);
+
+        Assert.Equal(1, changed);
+        Assert.Equal(CheckStatus.Failed, report.Results.Single(result => result.Name == "Immutability").Status);
+    }
+
     [DatabaseFact]
     public async Task BothTriggersGoneAreBothAccusedAndTheStartIsRefused()
     {

@@ -11,12 +11,12 @@ namespace Core.Persistence.Tests.Custody;
 [SuppressMessage("Security", "CA2100", Justification = "The statements are literals of this class with names it made itself, never input.")]
 internal sealed class ReplicaSession : IAsyncDisposable
 {
-    private readonly CustodyDatabase database;
+    private const long ParameterPrivilegeLock = 5_900_001;
+
     private readonly string role;
 
-    private ReplicaSession(CustodyDatabase database, string role, string connectionString)
+    private ReplicaSession(string role, string connectionString)
     {
-        this.database = database;
         this.role = role;
         ConnectionString = connectionString;
     }
@@ -29,14 +29,14 @@ internal sealed class ReplicaSession : IAsyncDisposable
     {
         var role = $"zqx_replica_{Guid.NewGuid():N}";
         var password = Guid.NewGuid().ToString("N", System.Globalization.CultureInfo.InvariantCulture);
-        await database.RunAsSuperuserAsync($"CREATE ROLE {role} LOGIN PASSWORD '{password}' IN ROLE {member}; GRANT SET ON PARAMETER session_replication_role TO {role}");
+        await RunSerialAsync($"CREATE ROLE {role} LOGIN PASSWORD '{password}' IN ROLE {member}; GRANT SET ON PARAMETER session_replication_role TO {role}");
         var connection = new NpgsqlConnectionStringBuilder(member == "owner" ? await database.OwnerConnectionStringAsync() : await database.AppConnectionStringAsync())
         {
             Username = role,
             Password = password,
             Options = "-c session_replication_role=replica",
         };
-        return new ReplicaSession(database, role, connection.ConnectionString);
+        return new ReplicaSession(role, connection.ConnectionString);
     }
 
     /// <summary>What a session of the connection string reports as its replication role, to prove that a refusal seen in it was met in a replica.</summary>
@@ -48,5 +48,19 @@ internal sealed class ReplicaSession : IAsyncDisposable
     }
 
     public async ValueTask DisposeAsync() =>
-        await database.RunAsSuperuserAsync($"REVOKE SET ON PARAMETER session_replication_role FROM {role}; DROP ROLE {role}");
+        await RunSerialAsync($"REVOKE SET ON PARAMETER session_replication_role FROM {role}; DROP ROLE {role}");
+
+    /// <summary>
+    /// Runs the statements as the superuser in one transaction that holds an advisory lock first. The privilege on a parameter is one row of the cluster,
+    /// made by the first grant and removed by the last revoke,
+    /// so two sessions that grant or revoke at once meet a duplicate key; the lock is taken in the shared database because an advisory lock belongs to
+    /// the database it is taken in, and the scratch databases
+    /// of the classes that run at once are many.
+    /// </summary>
+    private static async Task RunSerialAsync(string statements)
+    {
+        await using var connection = await Sql.OpenAsync((await PostgresFixture.SharedAsync()).SuperuserConnectionString);
+        await using var command = new NpgsqlCommand($"SELECT pg_catalog.pg_advisory_xact_lock({ParameterPrivilegeLock}); {statements}", connection);
+        _ = await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+    }
 }

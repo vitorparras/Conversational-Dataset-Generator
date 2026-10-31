@@ -35,7 +35,7 @@ Em cada módulo conta só a suíte do projeto dele, nas duas linguagens. Módulo
 reprova. O sobrevivente que só teste de outro projeto mataria aparece como sobrevivente, e o módulo
 responde por ele com teste próprio.
 
-- **Núcleo:** O projeto de teste da área, se ela tem um próprio (`<Área>.Tests`, como
+- **Núcleo:** o projeto de teste da área, se ela tem um próprio (`<Área>.Tests`, como
   `Core.Persistence.Migrations.Tests`), senão o do projeto do módulo (`<Projeto>.Tests`, ou o do
   projeto em que ele está aninhado, como `Core.Boundary.Tests` para `Core.Boundary.Contracts`),
   desde que referencie o projeto do módulo. As suítes transversais (`Core.Tests.Integration`,

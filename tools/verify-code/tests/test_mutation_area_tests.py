@@ -11,8 +11,8 @@ from steps import mutation_core
 from . import support
 
 SOURCE = "Core.Persistence"
-REFERENCE = '<ProjectReference Include="..\..\src\Core.Persistence\Core.Persistence.csproj" />'
-OTHER = '<ProjectReference Include="..\..\src\Core.Platform\Core.Platform.csproj" />'
+REFERENCE = r'<ProjectReference Include="..\..\src\Core.Persistence\Core.Persistence.csproj" />'
+OTHER = r'<ProjectReference Include="..\..\src\Core.Platform\Core.Platform.csproj" />'
 
 
 class AreaTestProjectTests(unittest.TestCase):

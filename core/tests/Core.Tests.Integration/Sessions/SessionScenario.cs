@@ -45,18 +45,20 @@ internal sealed class SessionScenario : IAsyncDisposable
 
     public string NameDeactivated { get; } = $"zqx-pessoa-{Guid.NewGuid():N}";
 
-    public static async Task<SessionScenario> StartAsync(string idleTimeout, CancellationToken cancellationToken)
+    public static Task<SessionScenario> StartAsync(string idleTimeout, CancellationToken cancellationToken) => StartAsync(idleTimeout, workFactor: 1, cancellationToken);
+
+    public static async Task<SessionScenario> StartAsync(string idleTimeout, int workFactor, CancellationToken cancellationToken)
     {
         var database = await ScratchDatabase.CreateAsync();
         _ = await database.MigrateAsync(EmbeddedMigrations.Load());
         var application = NpgsqlDataSource.Create(database.AppConnectionString);
         var address = new Uri($"https://127.0.0.1:{KeyedHost.FreePort()}");
-        var process = Process.Start(KeyedHost.StartInfo(address, database.AppConnectionString, idleTimeout))
+        var process = Process.Start(KeyedHost.StartInfo(address, database.AppConnectionString, idleTimeout, workFactor))
             ?? throw new InvalidOperationException("The host process did not start.");
         var scenario = new SessionScenario(database, application, process, address);
         try
         {
-            await scenario.PrepareAsync(address, cancellationToken);
+            await scenario.PrepareAsync(address, workFactor, cancellationToken);
             return scenario;
         }
         catch
@@ -118,10 +120,10 @@ internal sealed class SessionScenario : IAsyncDisposable
         return await client.SendAsync(request, cancellationToken);
     }
 
-    private async Task PrepareAsync(Uri address, CancellationToken cancellationToken)
+    private async Task PrepareAsync(Uri address, int workFactor, CancellationToken cancellationToken)
     {
         var registry = new PersonRegistry(application);
-        var credentials = new PersonCredentials(application, new PasswordDerivation(1));
+        var credentials = new PersonCredentials(application, new PasswordDerivation(workFactor));
         var function = PersonFunctions.Accepted[0];
         var active = (await registry.CreateAsync(new NewPerson(Name, function), actorId: null, cancellationToken)).PersonId!.Value;
         _ = await credentials.SetPasswordAsync(active, Password, actorId: null, cancellationToken);

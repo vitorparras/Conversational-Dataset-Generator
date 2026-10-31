@@ -12,7 +12,7 @@ READY_SECONDS=${READY_SECONDS:-120}
 STOP_SECONDS=${STOP_SECONDS:-30}
 LISTENING='Now listening on: http://127.0.0.1:'
 
-export CDG_Database__Host=127.0.0.1:5432 CDG_Database__Name=cdg CDG_Installation__Kind=demonstracao
+export CDG_Database__Host=127.0.0.1:5432 CDG_Database__Name=cdg CDG_Installation__Kind=demonstracao CDG_Passwords__WorkFactor=1
 
 # A throwaway key and no labels, in files outside the folder the host runs from and open to its user alone.
 custody=$(umask 077 && mktemp -d /tmp/custody.XXXXXX)

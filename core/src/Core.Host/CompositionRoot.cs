@@ -185,6 +185,7 @@ internal static class CompositionRoot
         var builder = ClosedBuilder(loaded.Values[HostConfiguration.UrlsPath]);
         Compose(builder, loaded.View, fileLog);
         AddAnalysis(builder.Services, loaded.Values, analyzeTimeout);
+        _ = builder.Services.AddSingleton(PasswordConfiguration.Derivation(loaded.Values));
         _ = builder.Services.AddSingleton(InstallationConfiguration.Of(loaded.Values)).AddSingleton(provider => InstallationConfiguration.Shown(StartupVersions.Of(checks), provider));
         if (SafekeepingConfiguration.Declaration(loaded.Values) is { } declaration)
         {

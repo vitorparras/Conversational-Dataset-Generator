@@ -59,6 +59,7 @@ internal static class HostConfiguration
                     migrating ? InstallationConfiguration.SectionWhenMigrating : InstallationConfiguration.Section,
                     migrating ? MasterKeyConfiguration.SectionWhenMigrating : MasterKeyConfiguration.Section,
                     SafekeepingConfiguration.Section,
+                    migrating ? PasswordConfiguration.SectionWhenMigrating : PasswordConfiguration.Section,
                     LanguageServiceConfiguration.Section,
                     RecognizerConfiguration.Section,
                     DatabaseConfiguration.Section,
@@ -71,10 +72,11 @@ internal static class HostConfiguration
     internal static RuntimeTargetCheck TargetCheck() =>
         new(BuildInfo.Of(typeof(HostConfiguration).Assembly).RuntimeIdentifier, RuntimeTarget.Current);
 
-    /// <summary>What the values of the language service and of the safekeeping declaration refuse, together.</summary>
+    /// <summary>What the values of the language service, of the safekeeping declaration and of the work factor refuse, together.</summary>
     internal static IReadOnlyList<ConfigurationProblem> Refusals(IReadOnlyDictionary<string, string> values, TimeSpan? analyzeTimeout) =>
     [
         .. LanguageServiceConfiguration.Refusals(values, analyzeTimeout),
         .. SafekeepingConfiguration.Refusals(values, InstallationConfiguration.Of(values).Kind),
+        .. PasswordConfiguration.Refusals(values),
     ];
 }

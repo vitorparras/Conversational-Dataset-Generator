@@ -7,17 +7,17 @@ e de [024](024-arquivos-de-custodia-da-chave.md), e antes de [022](022-conferir-
 
 ## Iniciar
 
-Os valores são os do exemplo de 021 (banco, papel `app`, `demonstracao`), a trocar pelos do seu
-ambiente; numa instalação real, `--Installation:Kind=real`. O registro vai ao console, e o
-redirecionamento o guarda. O núcleo roda em segundo plano e sobrevive ao fim do `docker exec` que o
-iniciou: a espera abaixo pode ir no mesmo bloco ou noutro. O subshell grava o código de saída em
+Os valores são os do exemplo de 021, a trocar pelos do seu ambiente (`ITERACOES` é o fator das
+senhas, `Passwords:WorkFactor`); numa instalação real, `--Installation:Kind=real`. O núcleo roda em
+segundo plano e sobrevive ao fim do `docker exec` que o iniciou: a espera abaixo pode ir no mesmo
+bloco ou noutro. O subshell grava o código de saída em
 `/tmp/nucleo.saida`:
 
 ```
 : > /tmp/nucleo.saida
 cd /opt/cdg/nucleo
 ( CDG_Database__Password="$(cat /tmp/senha-app)" ./Core.Host --Host:Urls=http://127.0.0.1:5080 \
-  --Installation:Kind=demonstracao --MasterKey:File=/etc/cdg/custodia/chave \
+  --Installation:Kind=demonstracao --Passwords:WorkFactor=ITERACOES --MasterKey:File=/etc/cdg/custodia/chave \
   --MasterKey:LabelsFile=/etc/cdg/custodia/rotulos --Database:Host=db:5432 --Database:Name=cdg \
   --Database:Username=app > /tmp/nucleo.log 2>&1; echo $? > /tmp/nucleo.saida ) &
 ```

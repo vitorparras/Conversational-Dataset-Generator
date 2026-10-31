@@ -158,9 +158,10 @@ da pasta do projeto; o `$(...)` acima o obtém, e o `uv run --frozen` já cria o
 confere a pasta (o registro de inicialização diz que ela não foi conferida). Sem a chave, usa o
 interpretador da pasta `language-service/` dentro da pasta do executável (uma pasta irmã não vale)
 e, antes de iniciar, confere cada arquivo contra o `SHA256SUMS`; manifesto ausente, vazio ou
-ilegível, arquivo ausente ou soma divergente recusa a partida e nomeia o arquivo. O núcleo inicia o
-interpretador em modo isolado (`-I`): `PYTHONHOME` e `PYTHONPATH` herdados do ambiente não alcançam
-o serviço. Os testes do núcleo usam o mesmo comando para achar o interpretador.
+ilegível, arquivo ausente ou soma divergente recusa a partida e nomeia o arquivo (o manifesto, pelo
+caminho absoluto). O núcleo inicia o interpretador em modo isolado (`-I`): `PYTHONHOME` e
+`PYTHONPATH` herdados do ambiente não alcançam o serviço. Os testes do núcleo usam o mesmo comando
+para achar o interpretador.
 `LanguageService:AnalyzeTimeoutSeconds` (padrão 10, de 1 a 3600 segundos) limita cada análise:
 vencido o prazo, o desfecho é serviço indisponível, nunca lista vazia; valor fora desse intervalo
 recusa a configuração.

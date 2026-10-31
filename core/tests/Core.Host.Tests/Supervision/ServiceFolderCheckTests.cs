@@ -31,36 +31,45 @@ public sealed class ServiceFolderCheckTests : IDisposable
     }
 
     [Fact]
-    public async Task ManifestThatIsMissingFailsNamingTheManifest()
+    public async Task ManifestThatIsMissingFailsNamingTheManifestByItsAbsolutePath()
     {
         File.Delete(mounted.Folder.Manifest);
 
         var result = await Check.RunAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(CheckStatus.Failed, result.Status);
-        Assert.Contains("language-service/SHA256SUMS", result.Message, StringComparison.Ordinal);
+        Assert.Contains(mounted.Folder.Manifest, result.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task ManifestWithoutLinesFailsNamingTheManifest()
+    public async Task ManifestWithoutLinesFailsNamingTheManifestByItsAbsolutePath()
     {
         mounted.Rewrite(string.Empty);
 
         var result = await Check.RunAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(CheckStatus.Failed, result.Status);
-        Assert.Contains("language-service/SHA256SUMS", result.Message, StringComparison.Ordinal);
+        Assert.Contains(mounted.Folder.Manifest, result.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task ManifestThatCannotBeReadFailsNamingTheManifest()
+    public async Task ManifestThatCannotBeReadFailsNamingTheManifestByItsAbsolutePath()
     {
         using var held = new FileStream(mounted.Folder.Manifest, FileMode.Open, FileAccess.Read, FileShare.None);
 
         var result = await Check.RunAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(CheckStatus.Failed, result.Status);
-        Assert.Contains("language-service/SHA256SUMS", result.Message, StringComparison.Ordinal);
+        Assert.Contains(mounted.Folder.Manifest, result.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task FolderThatPassesNamesTheManifestByItsAbsolutePath()
+    {
+        var result = await Check.RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(CheckStatus.Passed, result.Status);
+        Assert.Contains(mounted.Folder.Manifest, result.Message, StringComparison.Ordinal);
     }
 
     [Fact]

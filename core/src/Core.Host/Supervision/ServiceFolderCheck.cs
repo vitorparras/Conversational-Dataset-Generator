@@ -34,18 +34,18 @@ internal sealed class ServiceFolderCheck : IStartupCheck
 
         if (!File.Exists(folder.Manifest))
         {
-            return Refused($"manifesto ausente: {ServiceFolder.ManifestSource}");
+            return Refused($"manifesto ausente: {folder.Manifest}");
         }
 
         var lines = await LinesAsync(cancellationToken);
         if (lines is null)
         {
-            return Refused($"manifesto ilegível: {ServiceFolder.ManifestSource}");
+            return Refused($"manifesto ilegível: {folder.Manifest}");
         }
 
         if (lines.Count == 0)
         {
-            return Refused($"manifesto vazio: {ServiceFolder.ManifestSource}");
+            return Refused($"manifesto vazio: {folder.Manifest}");
         }
 
         for (var number = 0; number < lines.Count; number++)
@@ -57,7 +57,7 @@ internal sealed class ServiceFolderCheck : IStartupCheck
             }
         }
 
-        return CheckResult.Passed(Name, $"{lines.Count} arquivos conferidos contra {ServiceFolder.ManifestSource}", ServiceFolder.ManifestSource);
+        return CheckResult.Passed(Name, $"{lines.Count} arquivos conferidos contra {folder.Manifest}", ServiceFolder.ManifestSource);
     }
 
     /// <summary>The line in the format of sha256sum: the sum, a space, a space or the mark of binary mode, then the path.</summary>

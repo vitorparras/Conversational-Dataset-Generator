@@ -44,12 +44,12 @@ lista vem do [histórico 002](../historico/002-medidas-do-artefato.md), que não
 
 ## O resto
 
-- **Contas individuais.** O acesso é por domínio e o registro nomeia quem agiu; conta compartilhada
-  torna o registro inútil no dia em que ele importa
-- **Relógio confiável.** A ordem vem da cadeia, não do horário; mas evento com horário anterior ao
-  do antecessor é achado, não curiosidade
-- **Taxonomia de cada domínio** no lugar de onde a instalação a lê, versionada e válida: o sistema
-  não sobe com taxonomia inválida
+- **Contas individuais.** O registro nomeia quem agiu; conta compartilhada o torna inútil
+- **Relógio confiável.** A ordem vem da cadeia; horário anterior ao do antecessor é achado
+- **Taxonomia de cada domínio** versionada e válida onde a instalação a lê: sem ela, nada sobe
+- **Certificado e chave do canal cifrado**, em PEM e só do dono, fora da pasta do executável
+  ([0046](../decisoes/0046-material-do-canal-cifrado.md)). Conferir o núcleo pede um cliente TLS
+  (`openssl s_client` ou `curl`): proposta ao dono, que ainda confirma
 - **Lugar para backup** separado de onde vive a cópia de guarda da chave — ver [005](005-backup.md)
 
 ## O que não pode existir

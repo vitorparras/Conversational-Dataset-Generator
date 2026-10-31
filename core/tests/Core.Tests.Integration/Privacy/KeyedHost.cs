@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text.Json;
 using Core.Tests.Support.Custody;
+using Core.Tests.Support.Net;
 using Npgsql;
 
 namespace Core.Tests.Integration.Privacy;
@@ -23,7 +24,7 @@ internal static class KeyedHost
     /// <summary>Starts the host with the key and the database the connection string names, and returns what it answered at <c>/status</c>.</summary>
     public static async Task<JsonDocument> RunAsync(string databaseConnectionString, CancellationToken cancellationToken)
     {
-        var address = new Uri($"http://127.0.0.1:{FreePort()}");
+        var address = new Uri($"https://127.0.0.1:{FreePort()}");
         using var process = Process.Start(StartInfo(address, databaseConnectionString))
             ?? throw new InvalidOperationException("The host process did not start.");
         var streams = Task.WhenAll(process.StandardError.ReadToEndAsync(CancellationToken.None), process.StandardOutput.ReadToEndAsync(CancellationToken.None));
@@ -46,7 +47,7 @@ internal static class KeyedHost
 
     private static async Task<JsonDocument> StatusAsync(Uri address, Process process, CancellationToken cancellationToken)
     {
-        using var client = new HttpClient { BaseAddress = address };
+        using var client = new HttpClient(SharedTlsMaterial.PinnedHandler()) { BaseAddress = address };
         var clock = Stopwatch.StartNew();
         while (clock.Elapsed < StartupTimeout)
         {
@@ -110,6 +111,8 @@ internal static class KeyedHost
         "--Passwords:WorkFactor=1",
         "--Recognizer:Kind=fake",
         "--LanguageService:Executable=zqx-never-started-7731",
+        $"--Tls:CertificateFile={SharedTlsMaterial.CertificatePath}",
+        $"--Tls:KeyFile={SharedTlsMaterial.KeyPath}",
         $"--MasterKey:File={CustodyFiles.Shared.KeyPath}",
         $"--MasterKey:LabelsFile={CustodyFiles.Shared.LabelsPath}",
     ];

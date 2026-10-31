@@ -75,7 +75,7 @@ internal static class CompositionRoot
             }
 
             var launch = HostLaunch.Ready(await AssembleAsync(
-                Prepared(loaded, fileLog, analyzeTimeout, checks),
+                TlsConfiguration.Serve(Prepared(loaded, fileLog, analyzeTimeout, checks), startup),
                 new StartupReport([.. target.Results, .. report.Results], report.CheckedAt),
                 startup,
                 RecognizerConfiguration.KindOf(loaded.Values)));
@@ -206,7 +206,6 @@ internal static class CompositionRoot
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetRequiredService<ServiceProcessWatch>());
         _ = builder.Services.AddSingleton(_ => startup);
 
-        TlsConfiguration.Serve(builder, startup.GetRequiredService<TlsMaterialCheck>());
         var app = builder.Build();
         _ = app.Services.GetRequiredService<ServiceProvider>();
         await StartupVersions.WriteAsync(

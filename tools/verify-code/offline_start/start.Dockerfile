@@ -6,7 +6,7 @@ USER root
 
 RUN set -eux; \
     apt-get update; \
-    apt-get install -y --no-install-recommends strace=6.8-0ubuntu2 openssl=3.0.13-0ubuntu3; \
+    apt-get install -y --no-install-recommends strace=6.8-0ubuntu2 openssl=3.0.13-0ubuntu3.16; \
     rm -rf /var/lib/apt/lists/*; \
     mkdir /app /work /trace; \
     chown app:app /work /trace

@@ -39,16 +39,17 @@ internal static class TlsConfiguration
             ? [new ConfigurationProblem(ConfigurationProblemKind.ValueNotAccepted, HostConfiguration.UrlsPath, urls, [Accepted])]
             : [];
 
-    /// <summary>The server presents the certificate the check read.</summary>
-    internal static void Serve(WebApplicationBuilder builder, TlsMaterialCheck check)
+    /// <summary>The builder, whose server presents the certificate the check in the startup services read.</summary>
+    internal static WebApplicationBuilder Serve(WebApplicationBuilder builder, IServiceProvider startup)
     {
-        var certificate = Servable(check.Certificate!);
+        var certificate = Servable(startup.GetRequiredService<TlsMaterialCheck>());
         _ = builder.WebHost.ConfigureKestrel(options => options.ConfigureHttpsDefaults(https => https.ServerCertificate = certificate));
+        return builder;
     }
 
     /// <summary>On Windows a key made in memory is not one the system's channel can use, so the certificate goes through a file image first.</summary>
-    private static X509Certificate2 Servable(X509Certificate2 certificate) =>
-        OperatingSystem.IsWindows() ? X509CertificateLoader.LoadPkcs12(certificate.Export(X509ContentType.Pfx), password: null) : certificate;
+    private static X509Certificate2 Servable(TlsMaterialCheck check) =>
+        OperatingSystem.IsWindows() ? X509CertificateLoader.LoadPkcs12(check.Certificate!.Export(X509ContentType.Pfx), password: null) : check.Certificate!;
 
     private static string[] Addresses(string urls) => urls.Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 }

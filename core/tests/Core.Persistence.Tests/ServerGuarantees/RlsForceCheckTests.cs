@@ -48,4 +48,54 @@ public sealed class RlsForceCheckTests
         Assert.Contains("ALTER TABLE zqx_table ENABLE ROW LEVEL SECURITY", finding.Message, StringComparison.Ordinal);
         Assert.Contains("ALTER TABLE zqx_table FORCE ROW LEVEL SECURITY", finding.Message, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void ContentTableWithoutTheDomainColumnFailsNamingTheTable()
+    {
+        var finding = RlsForceCheck.Judge(forcedTables: 3, unforcedTable: null, new RlsForceCheck.ContentFindings(WithoutDomain: "content.zqx_loose"));
+
+        Assert.Equal(CheckStatus.Failed, finding.Status);
+        Assert.Contains("content.zqx_loose", finding.Message, StringComparison.Ordinal);
+        Assert.Contains("domain_id", finding.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ContentTableWhoseDomainColumnHasNoForeignKeyFailsNamingTheTable()
+    {
+        var finding = RlsForceCheck.Judge(forcedTables: 3, unforcedTable: null, new RlsForceCheck.ContentFindings(WithoutDomainKey: "content.zqx_untied"));
+
+        Assert.Equal(CheckStatus.Failed, finding.Status);
+        Assert.Contains("content.zqx_untied", finding.Message, StringComparison.Ordinal);
+        Assert.Contains("chave estrangeira para public.domain", finding.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ContentTableWithoutAPolicyFailsNamingTheTable()
+    {
+        var finding = RlsForceCheck.Judge(forcedTables: 3, unforcedTable: null, new RlsForceCheck.ContentFindings(WithoutPolicy: "content.zqx_open"));
+
+        Assert.Equal(CheckStatus.Failed, finding.Status);
+        Assert.Contains("content.zqx_open", finding.Message, StringComparison.Ordinal);
+        Assert.Contains("política de linha", finding.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ContentTableWithAPermissivePolicyBeyondTheDomainOneFailsNamingTheTable()
+    {
+        var finding = RlsForceCheck.Judge(forcedTables: 3, unforcedTable: null, new RlsForceCheck.ContentFindings(OpenPolicy: "content.zqx_wide"));
+
+        Assert.Equal(CheckStatus.Failed, finding.Status);
+        Assert.Contains("content.zqx_wide", finding.Message, StringComparison.Ordinal);
+        Assert.Contains("DROP POLICY", finding.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ViewInTheContentSchemaFailsNamingIt()
+    {
+        var finding = RlsForceCheck.Judge(forcedTables: 3, unforcedTable: null, new RlsForceCheck.ContentFindings(NotATable: "content.zqx_snap"));
+
+        Assert.Equal(CheckStatus.Failed, finding.Status);
+        Assert.Contains("content.zqx_snap", finding.Message, StringComparison.Ordinal);
+        Assert.Contains("não é tabela", finding.Message, StringComparison.Ordinal);
+    }
 }

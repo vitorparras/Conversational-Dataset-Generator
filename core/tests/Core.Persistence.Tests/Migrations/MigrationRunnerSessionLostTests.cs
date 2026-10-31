@@ -73,7 +73,7 @@ public sealed class MigrationRunnerSessionLostTests
         _ = await hold.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
 
         var migrating = database.MigrateAsync(steps);
-        await database.TerminateSessionRunningAsync(RegistryRead);
+        await database.TerminateSessionRunningAsync(RegistryRead, migrating);
         var result = await migrating;
 
         Assert.Equal(MigrationOutcome.NotConnected, result.Outcome);
@@ -84,7 +84,7 @@ public sealed class MigrationRunnerSessionLostTests
     private static async Task<MigrationResult> LosingTheSessionAsync(ScratchDatabase database, IReadOnlyList<MigrationStep> steps)
     {
         var migrating = database.MigrateAsync(steps);
-        await database.TerminateSessionRunningAsync(Sleeping);
+        await database.TerminateSessionRunningAsync(Sleeping, migrating);
         return await migrating;
     }
 }

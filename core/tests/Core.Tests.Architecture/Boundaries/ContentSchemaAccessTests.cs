@@ -2,13 +2,14 @@ using Core.Tests.Architecture.CodeRules;
 
 namespace Core.Tests.Architecture.Boundaries;
 
-/// <summary>Every statement over the content schema goes through the content transaction, which declares the domain; the fixtures reach it from outside.</summary>
+/// <summary>Every statement over the content schema is a constant of the list of queries, which the test with no domain declared runs, and none moves the search path.</summary>
 public sealed class ContentSchemaAccessTests
 {
     private const string Fixtures = "content-schema";
+    private const string QueriesPath = "core/src/Core.Persistence/Content/ContentQueries.cs";
 
     [Fact]
-    public void ProductionNamesNoContentTableOutsideTheContentTransaction()
+    public void ProductionNamesNoContentTableOutsideTheListOfQueriesAndNeverMovesTheSearchPath()
     {
         var violations = ContentSchemaAccessRules.Check(SourceTree.ProductionFiles());
 
@@ -16,11 +17,11 @@ public sealed class ContentSchemaAccessTests
     }
 
     [Fact]
-    public void ProductionIncludesTheContentTransactionTheRuleLeavesOut()
+    public void ProductionIncludesTheListOfQueriesTheRuleLeavesRoomFor()
     {
         var files = SourceTree.ProductionFiles();
 
-        Assert.Contains(files, file => file.FileName == "ContentTransaction.cs");
+        Assert.Contains(files, file => file.FileName == "ContentQueries.cs");
     }
 
     [Fact]
@@ -44,13 +45,67 @@ public sealed class ContentSchemaAccessTests
     }
 
     [Fact]
-    public void StatementInsideTheContentTransactionFolderIsLeftAlone()
+    public void ConstantOfTheListOfQueriesIsLeftAloneAndAStatementBuiltAtRunTimeThereIsNot()
+    {
+        var text = SourceTree.FixtureText(Path.Combine(Fixtures, "QueryList.cs"));
+        var queries = SourceFile.FromText(QueriesPath, text);
+
+        var lines = ContentSchemaAccessRules.Check([queries]).Select(violation => violation.Line);
+
+        Assert.Equal([7], lines);
+    }
+
+    [Fact]
+    public void QueryThatIsNotAPublicConstantIsRefusedBecauseTheListWouldNotSeeIt()
+    {
+        var text = SourceTree.FixtureText(Path.Combine(Fixtures, "HidesAQuery.cs"));
+        var queries = SourceFile.FromText(QueriesPath, text);
+
+        var lines = ContentSchemaAccessRules.Check([queries]).Select(violation => violation.Line).Order();
+
+        Assert.Equal([7, 9, 11], lines);
+    }
+
+    [Fact]
+    public void ConstantOfANestedOrOtherClassInTheFileOfTheListIsRefusedBecauseTheListWouldNotSeeIt()
+    {
+        var text = SourceTree.FixtureText(Path.Combine(Fixtures, "BesideTheList.cs"));
+        var queries = SourceFile.FromText(QueriesPath, text);
+
+        var lines = ContentSchemaAccessRules.Check([queries]).Select(violation => violation.Line).Order();
+
+        Assert.Equal([9, 15], lines);
+    }
+
+    [Fact]
+    public void StatementInAnotherFileOfTheContentFolderIsRefused()
     {
         var text = SourceTree.FixtureText(Path.Combine(Fixtures, "ReachesContentDirectly.cs"));
-        var inside = SourceFile.FromText("core/src/Core.Persistence/Content/Reaches.cs", text);
+        var beside = SourceFile.FromText("core/src/Core.Persistence/Content/ContentReport.cs", text);
 
-        var violations = ContentSchemaAccessRules.Check([inside]);
+        var lines = ContentSchemaAccessRules.Check([beside]).Select(violation => violation.Line).Order();
 
-        Assert.Empty(violations);
+        Assert.Equal([5, 7, 9], lines);
+    }
+
+    [Fact]
+    public void EveryWayOfMovingTheSearchPathIsRefused()
+    {
+        var fixture = SourceTree.Fixture(Path.Combine(Fixtures, "MovesTheSearchPath.cs"));
+
+        var lines = ContentSchemaAccessRules.Check([fixture]).Select(violation => violation.Line).Order();
+
+        Assert.Equal([5, 7, 9, 11, 13, 15], lines);
+    }
+
+    [Fact]
+    public void MovingTheSearchPathIsRefusedInsideTheListOfQueriesToo()
+    {
+        var text = SourceTree.FixtureText(Path.Combine(Fixtures, "MovesTheSearchPath.cs"));
+        var queries = SourceFile.FromText(QueriesPath, text);
+
+        var lines = ContentSchemaAccessRules.Check([queries]).Select(violation => violation.Line).Order();
+
+        Assert.Equal([5, 7, 9, 11, 13, 15], lines);
     }
 }

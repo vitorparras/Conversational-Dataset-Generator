@@ -33,6 +33,18 @@ internal static class HostConfiguration
                 ConfigurationKey.Optional(LogFileKey),
             ]);
 
+    /// <summary>The database section of a configuration that loaded; none from one that was refused, which has no values to read it from
+    /// and would otherwise report every key of the section as missing.</summary>
+    internal static DatabaseSettings? DatabaseOf(ConfigurationLoadResult loaded, bool migrating)
+    {
+        if (loaded.Refused)
+        {
+            return null;
+        }
+
+        return migrating ? DatabaseConfiguration.ReadRequired(loaded.Values) : DatabaseConfiguration.Read(loaded.Values);
+    }
+
     /// <summary>The closed configuration of the host: the file beside it, the process environment and the strict arguments; the migration mode does not require the kind of installation.</summary>
     internal static ConfigurationLoadResult Load(string[] args, bool migrating) =>
         ClosedConfiguration.Load(

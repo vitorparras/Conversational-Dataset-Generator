@@ -60,6 +60,16 @@ public sealed class RlsForceCheckTests
     }
 
     [Fact]
+    public void ContentTableWhoseDomainColumnHasNoForeignKeyFailsNamingTheTable()
+    {
+        var finding = RlsForceCheck.Judge(forcedTables: 3, unforcedTable: null, new RlsForceCheck.ContentFindings(WithoutDomainKey: "content.zqx_untied"));
+
+        Assert.Equal(CheckStatus.Failed, finding.Status);
+        Assert.Contains("content.zqx_untied", finding.Message, StringComparison.Ordinal);
+        Assert.Contains("chave estrangeira para public.domain", finding.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ContentTableWithoutAPolicyFailsNamingTheTable()
     {
         var finding = RlsForceCheck.Judge(forcedTables: 3, unforcedTable: null, new RlsForceCheck.ContentFindings(WithoutPolicy: "content.zqx_open"));

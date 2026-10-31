@@ -33,10 +33,10 @@ internal static class CompositionRoot
 
         var migrating = MigrationMode.Requested(args);
         var loaded = HostConfiguration.Load(MigrationMode.ConfigurationArguments(args), migrating);
-        var database = migrating ? DatabaseConfiguration.ReadRequired(loaded.Values) : DatabaseConfiguration.Read(loaded.Values);
-        if (loaded.Refused || database.State == DatabaseSettingsState.Refused)
+        var database = HostConfiguration.DatabaseOf(loaded, migrating);
+        if (database is null || database.State == DatabaseSettingsState.Refused)
         {
-            return HostLaunch.Refused([.. loaded.Problems, .. database.Problems]);
+            return HostLaunch.Refused(database?.Problems ?? loaded.Problems);
         }
 
         if (migrating)

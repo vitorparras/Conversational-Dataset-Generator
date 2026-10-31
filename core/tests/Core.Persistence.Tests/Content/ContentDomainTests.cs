@@ -64,6 +64,40 @@ public sealed class ContentDomainTests
     }
 
     [DatabaseFact]
+    public async Task ContentTableNamedWithoutItsSchemaIsRefusedForTheApplicationAndForTheOwner()
+    {
+        await using var database = await WithTwoDomainsAsync();
+
+        foreach (var connectionString in new[] { database.AppConnectionString, database.OwnerConnectionString })
+        {
+            await using var connection = await Sql.OpenAsync(connectionString);
+            await using var command = new NpgsqlCommand("SELECT count(*) FROM zqx_item", connection);
+
+            var refused = await Assert.ThrowsAsync<PostgresException>(() => command.ExecuteScalarAsync(TestContext.Current.CancellationToken));
+
+            Assert.Equal(PostgresErrorCodes.UndefinedTable, refused.SqlState);
+        }
+    }
+
+    [DatabaseFact]
+    public async Task NoSettingOfTheRoleOrOfTheDatabaseGivesTheContentSchemaAPlaceOnTheSearchPath()
+    {
+        await using var database = await WithTwoDomainsAsync();
+        await using var connection = await Sql.OpenAsync(database.AppConnectionString);
+        await using var command = new NpgsqlCommand(
+            """
+            SELECT count(*) FROM pg_db_role_setting s, unnest(s.setconfig) AS setting
+            WHERE s.setdatabase IN (0, (SELECT oid FROM pg_database WHERE datname = current_database()))
+                AND setting ILIKE 'search_path=%content%'
+            """,
+            connection);
+
+        var set = (long)(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken))!;
+
+        Assert.Equal(0, set);
+    }
+
+    [DatabaseFact]
     public async Task TheDeclarationEndsWithTheTransaction()
     {
         await using var database = await WithTwoDomainsAsync();
@@ -145,6 +179,39 @@ public sealed class ContentDomainTests
 
         Assert.Equal(CheckStatus.Failed, result.Status);
         Assert.Contains("content.zqx_nullable", result.Message, StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
+    public async Task ContentTableWhoseDomainColumnHasNoForeignKeyToTheDomainRegistryIsNamed()
+    {
+        await using var database = await WithTwoDomainsAsync();
+        await database.RunAsOwnerAsync(
+            "CREATE TABLE content.zqx_untied (id bigint PRIMARY KEY, domain_id integer NOT NULL, body text)",
+            "ALTER TABLE content.zqx_untied ENABLE ROW LEVEL SECURITY",
+            "ALTER TABLE content.zqx_untied FORCE ROW LEVEL SECURITY",
+            "CREATE POLICY p ON content.zqx_untied USING (domain_id = public.declared_domain()) WITH CHECK (domain_id = public.declared_domain())");
+
+        var result = await CheckAsync(database);
+
+        Assert.Equal(CheckStatus.Failed, result.Status);
+        Assert.Contains("content.zqx_untied", result.Message, StringComparison.Ordinal);
+        Assert.Contains("chave estrangeira", result.Message, StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
+    public async Task ContentTableTiedToAnotherTableThanTheDomainRegistryIsNamed()
+    {
+        await using var database = await WithTwoDomainsAsync();
+        await database.RunAsOwnerAsync(
+            "CREATE TABLE content.zqx_elsewhere (id bigint PRIMARY KEY, domain_id integer NOT NULL REFERENCES content.zqx_item (id), body text)",
+            "ALTER TABLE content.zqx_elsewhere ENABLE ROW LEVEL SECURITY",
+            "ALTER TABLE content.zqx_elsewhere FORCE ROW LEVEL SECURITY",
+            "CREATE POLICY p ON content.zqx_elsewhere USING (domain_id = public.declared_domain()) WITH CHECK (domain_id = public.declared_domain())");
+
+        var result = await CheckAsync(database);
+
+        Assert.Equal(CheckStatus.Failed, result.Status);
+        Assert.Contains("content.zqx_elsewhere", result.Message, StringComparison.Ordinal);
     }
 
     [DatabaseFact]

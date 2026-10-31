@@ -44,6 +44,15 @@ public sealed class CustodyEventTests
         _ = Assert.Throws<ArgumentException>(() => CustodyEvent.Of(CustodyAuthor.System, Item, CustodyStep.Correction, CustodyReason.CorrectionOfRecord));
 
     [Fact]
+    public void CorrectionStepAsAPlainEventIsRefusedWithTheWayToCorrectItAndTheParameterAtFault()
+    {
+        var refused = Assert.Throws<ArgumentException>(() => CustodyEvent.Of(CustodyAuthor.System, Item, CustodyStep.Correction, CustodyReason.CorrectionOfRecord));
+
+        Assert.Equal("step", refused.ParamName);
+        Assert.Contains("use Correction", refused.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void CorrectionNamesTheEventItCorrects()
     {
         var correction = CustodyEvent.Correction(CustodyAuthor.System, Item, 11);

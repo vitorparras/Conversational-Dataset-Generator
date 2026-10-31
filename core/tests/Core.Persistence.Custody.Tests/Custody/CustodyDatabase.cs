@@ -20,11 +20,14 @@ public sealed class CustodyDatabase : IAsyncDisposable
     private NpgsqlDataSource? application;
 
     /// <summary>The chain, writing as the application's role.</summary>
-    internal async Task<CustodyChain> ChainAsync()
+    internal async Task<CustodyChain> ChainAsync() => new(await DataSourceAsync());
+
+    /// <summary>The data source built with the application's credential.</summary>
+    internal async Task<NpgsqlDataSource> DataSourceAsync()
     {
         var scratch = await ScratchAsync();
         application ??= NpgsqlDataSource.Create(scratch.AppConnectionString);
-        return new CustodyChain(application);
+        return application;
     }
 
     /// <summary>The registry of people, writing as the application's role.</summary>

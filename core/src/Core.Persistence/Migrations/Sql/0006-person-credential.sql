@@ -1,5 +1,6 @@
 -- How a person proves to be who they are: what the derivation of the password left, never the password. One row per person, in a table of its own so that what the audit reads of a person
--- (public.person) never reaches the salt or the result. The algorithm and the work factor travel with the row, so that raising the factor or changing the algorithm is a recomputation at the person's next entry.
+-- (public.person) never reaches the salt or the result. The algorithm and the work factor travel with the row, so that raising the factor is a recomputation at the person's next entry.
+-- A record of an algorithm this build does not know is never accepted, and its person depends on a password set again.
 CREATE TABLE public.person_credential (
     person_id bigint PRIMARY KEY REFERENCES public.person (id),
     algorithm text NOT NULL CHECK (algorithm <> '' AND algorithm = btrim(algorithm)),

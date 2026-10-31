@@ -1,9 +1,10 @@
 using System.Text;
+using Core.Host.Tests.Privacy;
 using Core.Persistence.Migrations;
 using Core.Persistence.Tests.Fixtures;
 using Core.Tests.Support.Custody;
 
-namespace Core.Host.Tests.Privacy;
+namespace Core.Tests.Integration.Privacy;
 
 /// <summary>After the host has started with a key of the custody files over a migrated database, no spelling of that key is in what pg_dump writes for the database.</summary>
 [Trait("Category", "Database")]

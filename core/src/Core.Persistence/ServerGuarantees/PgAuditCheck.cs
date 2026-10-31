@@ -1,3 +1,4 @@
+using System.Data;
 using Core.Platform.Startup;
 using Npgsql;
 
@@ -5,13 +6,21 @@ namespace Core.Persistence.ServerGuarantees;
 
 /// <summary>
 /// Checks that the audit extension runs in the server: pgaudit loaded at startup, which only shared_preload_libraries can do,
-/// and installed in the database. Its own setting proves the load, since reading shared_preload_libraries takes a superuser.
+/// installed in the database, logging what the application's role reads and writes, and keeping out of the log the parameters of a statement,
+/// on error too, and the detail of an error. Its own setting proves the load, since reading shared_preload_libraries takes a superuser.
 /// </summary>
 public sealed class PgAuditCheck : IStartupCheck
 {
-    /// <summary>A placeholder set by a connection option or a configuration file never shows in pg_settings; the library's setting does.</summary>
+    /// <summary>
+    /// A placeholder set by a connection option or a configuration file never shows in pg_settings; the library's setting does. The
+    /// settings are read as the application's role sees them, so a setting made for that role counts.
+    /// </summary>
     private const string Query = """
         SELECT (SELECT s.setting FROM pg_catalog.pg_settings s WHERE s.name = 'pgaudit.log' AND s.context = 'superuser') AS log,
+            (SELECT s.setting FROM pg_catalog.pg_settings s WHERE s.name = 'pgaudit.log_parameter' AND s.context = 'superuser') AS log_parameter,
+            (SELECT s.setting FROM pg_catalog.pg_settings s WHERE s.name = 'log_parameter_max_length') AS parameter_max_length,
+            (SELECT s.setting FROM pg_catalog.pg_settings s WHERE s.name = 'log_parameter_max_length_on_error') AS parameter_max_length_on_error,
+            (SELECT s.setting FROM pg_catalog.pg_settings s WHERE s.name = 'log_min_messages') AS min_messages,
             (SELECT e.extversion FROM pg_catalog.pg_extension e WHERE e.extname = 'pgaudit') AS version
         """;
 
@@ -32,15 +41,32 @@ public sealed class PgAuditCheck : IStartupCheck
         ServerProbe.RunAsync(
             dataSource, new Guarantee(Name, "o papel da aplicação precisa ler pg_settings e pg_extension", ReadAsync), cancellationToken);
 
-    internal static Finding Judge(string? logSetting, string? extensionVersion) => (logSetting, extensionVersion) switch
+    internal static Finding Judge(AuditSettings settings, string? extensionVersion)
     {
-        (null, _) => Finding.Missing(
-            "o pgaudit não está carregado no servidor: acrescente pgaudit a shared_preload_libraries no postgresql.conf e reinicie o servidor"),
-        (_, null) => Finding.Missing("a extensão pgaudit não está instalada no banco: execute CREATE EXTENSION pgaudit no banco da aplicação"),
-        _ => Finding.Holds($"pgaudit {extensionVersion} carregado e instalado; pgaudit.log = '{logSetting}'"),
-    };
+        if (settings.Log is null)
+        {
+            return Finding.Missing(
+                "o pgaudit não está carregado no servidor: acrescente pgaudit a shared_preload_libraries no postgresql.conf e reinicie o servidor");
+        }
+
+        if (extensionVersion is null)
+        {
+            return Finding.Missing("a extensão pgaudit não está instalada no banco: execute CREATE EXTENSION pgaudit no banco da aplicação");
+        }
+
+        var gaps = settings.Gaps();
+        return gaps.Count > 0
+            ? Finding.Missing(string.Join("; ", gaps))
+            : Finding.Holds($"pgaudit {extensionVersion} carregado e instalado; pgaudit.log = '{settings.Log}', parâmetros fora do log");
+    }
 
     private static Task<Finding> ReadAsync(NpgsqlConnection connection, CancellationToken cancellationToken) =>
-        ServerProbe.ReadRowAsync(
-            connection, Query, row => Judge(row["log"] as string, row["version"] as string), cancellationToken);
+        ServerProbe.ReadRowAsync(connection, Query, Judged, cancellationToken);
+
+    private static Finding Judged(IDataRecord row) =>
+        Judge(
+            new AuditSettings(Text(row, "log"), Text(row, "log_parameter"), Text(row, "parameter_max_length"), Text(row, "parameter_max_length_on_error"), Text(row, "min_messages")),
+            Text(row, "version"));
+
+    private static string? Text(IDataRecord row, string column) => row[column] as string;
 }

@@ -88,6 +88,16 @@ internal sealed class PostgresFixture
     }
 
     /// <summary>
+    /// Everything the server wrote to its log directory so far, read inside the server: the csvlog files and the ones the collector keeps for
+    /// what reaches the error stream. The directory is outside the data directory, as the image sets it.
+    /// </summary>
+    public async Task<string> ServerLogAsync()
+    {
+        var log = await container.ExecAsync(["sh", "-c", "cat /var/log/postgresql/*"], TestContext.Current.CancellationToken);
+        return log.ExitCode == 0 ? log.Stdout : throw new InvalidOperationException($"reading the server log exited with {log.ExitCode}: {log.Stderr}");
+    }
+
+    /// <summary>
     /// A server that outlives its test run keeps the scratch databases of the tests a restart cut short; each test makes its own,
     /// so none of them is needed and none is left to the next run.
     /// </summary>

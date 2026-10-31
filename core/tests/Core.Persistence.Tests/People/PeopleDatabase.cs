@@ -1,0 +1,133 @@
+using System.Diagnostics.CodeAnalysis;
+using Core.Persistence.Migrations;
+using Core.Persistence.People;
+using Core.Persistence.Tests.Fixtures;
+using Npgsql;
+
+namespace Core.Persistence.Tests.People;
+
+/// <summary>
+/// One database of its own, migrated to the last version, for all the tests of a class: a test names its people with a name
+/// nobody else uses and counts the rows before and after when it asserts that nothing was written. The database is made on
+/// first use, so a class whose tests are skipped for want of Docker never asks for one.
+/// </summary>
+[SuppressMessage("Design", "CA1515", Justification = "xunit builds the class fixture and the public test classes take it in their constructors.")]
+public sealed class PeopleDatabase : IAsyncDisposable
+{
+    private ScratchDatabase? database;
+    private NpgsqlDataSource? application;
+
+    /// <summary>The registry, writing as the application's role.</summary>
+    internal async Task<PersonRegistry> RegistryAsync()
+    {
+        var scratch = await ScratchAsync();
+        application ??= NpgsqlDataSource.Create(scratch.AppConnectionString);
+        return new PersonRegistry(application);
+    }
+
+    /// <summary>A name of use no other test has.</summary>
+    internal static string NewName() => $"zqx-pessoa-{Guid.NewGuid():N}";
+
+    /// <summary>The identifier of the person the operation wrote or changed.</summary>
+    internal static long Id(PersonResult result)
+    {
+        Assert.Equal(PersonOutcome.Done, result.Outcome);
+        return result.PersonId!.Value;
+    }
+
+    /// <summary>The rows of the table, as the role owner.</summary>
+    [SuppressMessage("Security", "CA2100", Justification = "The table is a literal of the calling test, never input.")]
+    internal async Task<long> CountAsync(string table)
+    {
+        await using var connection = await Sql.OpenAsync((await ScratchAsync()).OwnerConnectionString);
+        await using var command = new NpgsqlCommand($"SELECT count(*) FROM public.{table}", connection);
+        return (long)(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken))!;
+    }
+
+    /// <summary>The person as the table holds it, or null when no row has the identifier.</summary>
+    internal async Task<PersonRow?> PersonAsync(long personId)
+    {
+        await using var connection = await Sql.OpenAsync((await ScratchAsync()).OwnerConnectionString);
+        await using var command = new NpgsqlCommand("SELECT name, function_name, active, created_at, created_by FROM public.person WHERE id = @id", connection);
+        _ = command.Parameters.AddWithValue("id", personId);
+        await using var reader = await command.ExecuteReaderAsync(TestContext.Current.CancellationToken);
+        if (!await reader.ReadAsync(TestContext.Current.CancellationToken))
+        {
+            return null;
+        }
+
+        var createdAt = await reader.GetFieldValueAsync<DateTimeOffset>(3, TestContext.Current.CancellationToken);
+        return new PersonRow(reader.GetString(0), reader.GetString(1), reader.GetBoolean(2), createdAt, reader.GetString(4));
+    }
+
+    /// <summary>What was done to the person, oldest first.</summary>
+    internal async Task<IReadOnlyList<ChangeRow>> ChangesOfAsync(long personId)
+    {
+        await using var connection = await Sql.OpenAsync((await ScratchAsync()).OwnerConnectionString);
+        await using var command = new NpgsqlCommand(
+            "SELECT kind, previous_function, new_function, actor_id, changed_at, changed_by FROM public.person_change WHERE person_id = @id ORDER BY id", connection);
+        _ = command.Parameters.AddWithValue("id", personId);
+        await using var reader = await command.ExecuteReaderAsync(TestContext.Current.CancellationToken);
+        var rows = new List<ChangeRow>();
+        while (await reader.ReadAsync(TestContext.Current.CancellationToken))
+        {
+            var changedAt = await reader.GetFieldValueAsync<DateTimeOffset>(4, TestContext.Current.CancellationToken);
+            rows.Add(new ChangeRow(
+                reader.GetString(0),
+                await reader.IsDBNullAsync(1, TestContext.Current.CancellationToken) ? null : reader.GetString(1),
+                await reader.IsDBNullAsync(2, TestContext.Current.CancellationToken) ? null : reader.GetString(2),
+                await reader.IsDBNullAsync(3, TestContext.Current.CancellationToken) ? null : reader.GetInt64(3),
+                changedAt,
+                reader.GetString(5)));
+        }
+
+        return rows;
+    }
+
+    /// <summary>What the server answers to a statement run as the application's role.</summary>
+    internal async Task<PostgresException> RefusedToAppAsync(string statement) =>
+        await RefusedAsync((await ScratchAsync()).AppConnectionString, statement);
+
+    /// <summary>What the server answers to a statement run as the role that owns the database.</summary>
+    internal async Task<PostgresException> RefusedToOwnerAsync(string statement) =>
+        await RefusedAsync((await ScratchAsync()).OwnerConnectionString, statement);
+
+    public async ValueTask DisposeAsync()
+    {
+        if (application is not null)
+        {
+            await application.DisposeAsync();
+        }
+
+        if (database is not null)
+        {
+            await database.DisposeAsync();
+        }
+    }
+
+    [SuppressMessage("Security", "CA2100", Justification = "The statement is a literal of the calling test, never input.")]
+    private static async Task<PostgresException> RefusedAsync(string connectionString, string statement)
+    {
+        await using var connection = await Sql.OpenAsync(connectionString);
+        await using var command = new NpgsqlCommand(statement, connection);
+        return await Assert.ThrowsAsync<PostgresException>(() => command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken));
+    }
+
+    private async Task<ScratchDatabase> ScratchAsync()
+    {
+        if (database is null)
+        {
+            var made = await ScratchDatabase.CreateAsync();
+            _ = await made.MigrateAsync(EmbeddedMigrations.Load());
+            database = made;
+        }
+
+        return database;
+    }
+
+    /// <summary>One row of <c>public.person</c>, without its identifier.</summary>
+    internal sealed record PersonRow(string Name, string Function, bool Active, DateTimeOffset CreatedAt, string CreatedBy);
+
+    /// <summary>One row of <c>public.person_change</c>, without its identifiers.</summary>
+    internal sealed record ChangeRow(string Kind, string? PreviousFunction, string? NewFunction, long? ActorId, DateTimeOffset ChangedAt, string ChangedBy);
+}

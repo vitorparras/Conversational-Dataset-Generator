@@ -53,6 +53,14 @@ internal sealed class ScratchDatabase : IAsyncDisposable
     /// <summary>Runs the statements as the role owner, in one batch.</summary>
     public Task RunAsOwnerAsync(params string[] statements) => ExecuteAsync(OwnerConnectionString, statements);
 
+    /// <summary>The labels recorded as used, in order, as the role owner.</summary>
+    public Task<IReadOnlyList<string>> RecordedLabelsAsOwnerAsync() =>
+        ReadFirstColumnAsync(new NpgsqlCommand("SELECT label FROM public.derivation_label ORDER BY label"));
+
+    /// <summary>How the triggers of the label table are enabled (O origin, A always), as the role owner.</summary>
+    public Task<IReadOnlyList<string>> TriggerModesAsOwnerAsync() =>
+        ReadFirstColumnAsync(new NpgsqlCommand("SELECT tgenabled::text FROM pg_trigger WHERE tgrelid = 'public.derivation_label'::regclass AND NOT tgisinternal"));
+
     /// <summary>Takes back the read the migration gave PUBLIC on the registry, as the role owner.</summary>
     public Task RevokeRegistryReadAsync() =>
         ExecuteAsync(OwnerConnectionString, "REVOKE SELECT ON public.schema_version FROM PUBLIC");
@@ -153,6 +161,21 @@ internal sealed class ScratchDatabase : IAsyncDisposable
         }
 
         return columns;
+    }
+
+    private async Task<IReadOnlyList<string>> ReadFirstColumnAsync(NpgsqlCommand command)
+    {
+        await using var connection = await Sql.OpenAsync(OwnerConnectionString);
+        command.Connection = connection;
+        await using var reader = await command.ExecuteReaderAsync(TestContext.Current.CancellationToken);
+        var values = new List<string>();
+        while (await reader.ReadAsync(TestContext.Current.CancellationToken))
+        {
+            values.Add(reader.GetString(0));
+        }
+
+        await command.DisposeAsync();
+        return values;
     }
 
     public async ValueTask DisposeAsync() =>

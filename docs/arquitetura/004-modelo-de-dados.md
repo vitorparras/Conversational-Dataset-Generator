@@ -1,7 +1,7 @@
 # 004 — O modelo de dados
 
 > Descrição. 2026-10-04.
-> Estado no código: o banco guarda o domínio, os rótulos de derivação, a versão do esquema e as falhas de migração (`core/src/Core.Persistence/Migrations/Sql`), e o molde das tabelas de conteúdo; as entidades de conteúdo ainda não existem. Ver [custódia e cifra](../roadmap/002-custodia-e-cifra.md).
+> Estado no código: o banco guarda o domínio, os rótulos de derivação, a versão do esquema, as falhas de migração, a pessoa e o histórico do que se fez com ela (`core/src/Core.Persistence/Migrations/Sql`), e o molde das tabelas de conteúdo; as entidades de conteúdo ainda não existem. Ver [custódia e cifra](../roadmap/002-custodia-e-cifra.md).
 
 As entidades do sistema e o que as liga, em nível conceitual — sem tabela nem coluna.
 

@@ -17,6 +17,10 @@ internal static class ServerProbe
     private const string CatalogUnreadable =
         "o papel da aplicação não pode ler o catálogo do sistema que a conferência consulta: devolva a leitura do catálogo a PUBLIC";
 
+    // Operators and types resolve through the search path, and qualifying an operator in the text is not reasonable: the statement runs with the path
+    // set to the catalog, whatever the role or the database set, on top of the qualified names in the text. LOCAL ends with the statement or the transaction around it.
+    private const string PinSearchPath = "SET LOCAL search_path = pg_catalog, pg_temp";
+
     internal static async Task<CheckResult> RunAsync(NpgsqlDataSource dataSource, Guarantee guarantee, CancellationToken cancellationToken)
     {
         NpgsqlConnection connection;
@@ -50,19 +54,24 @@ internal static class ServerProbe
         }
     }
 
-    /// <summary>Runs the command, which answers one row, and hands the row to the judge.</summary>
+    /// <summary>Runs the statement, which answers one row, and hands the row to the judge; the search path is pinned to the catalog for the statement.</summary>
     internal static async Task<Finding> ReadRowAsync(
-        NpgsqlConnection connection, Func<NpgsqlConnection, NpgsqlCommand> query, Func<IDataRecord, Finding> judge, CancellationToken cancellationToken)
+        NpgsqlConnection connection, string query, Func<IDataRecord, Finding> judge, CancellationToken cancellationToken)
     {
-        var command = query(connection);
-        await using (command.ConfigureAwait(false))
+        var batch = new NpgsqlBatch(connection) { BatchCommands = { new NpgsqlBatchCommand(PinSearchPath), new NpgsqlBatchCommand(query) } };
+        await using (batch.ConfigureAwait(false))
         {
-            var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-            await using (reader.ConfigureAwait(false))
-            {
-                _ = await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
-                return judge(reader);
-            }
+            return await JudgeRowAsync(batch, judge, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static async Task<Finding> JudgeRowAsync(NpgsqlBatch batch, Func<IDataRecord, Finding> judge, CancellationToken cancellationToken)
+    {
+        var reader = await batch.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        await using (reader.ConfigureAwait(false))
+        {
+            _ = await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+            return judge(reader);
         }
     }
 

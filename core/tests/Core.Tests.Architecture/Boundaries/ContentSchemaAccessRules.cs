@@ -17,6 +17,7 @@ internal static partial class ContentSchemaAccessRules
     private const string ListName = "ContentQueries";
     private const string QueriesFile = ListName + ".cs";
     private const string AllowedFolder = "/Core.Persistence/Content/";
+    private const string GuaranteesFolder = "/Core.Persistence/ServerGuarantees/";
 
     private static readonly SyntaxKind[] TextKinds =
     [
@@ -36,7 +37,7 @@ internal static partial class ContentSchemaAccessRules
 
     private static string? ReasonOf(SourceFile file, SyntaxToken token)
     {
-        if (token.IsKind(SyntaxKind.IdentifierToken) ? SearchPathMember().IsMatch(token.ValueText) : SearchPath().IsMatch(token.ValueText))
+        if (token.IsKind(SyntaxKind.IdentifierToken) ? SearchPathMember().IsMatch(token.ValueText) : MovesSearchPath(file, token.ValueText))
         {
             return "a statement moves the search path, so a table of the content schema could be reached without naming the schema";
         }
@@ -45,6 +46,13 @@ internal static partial class ContentSchemaAccessRules
             ? "a statement reaches the content schema outside a public constant of ContentQueries"
             : null;
     }
+
+    /// <summary>The one statement that names the search path and is let through, in the server guarantees only, pins it to the catalog, where no table of the content schema can be reached.</summary>
+    private static bool MovesSearchPath(SourceFile file, string text) =>
+        SearchPath().IsMatch(text) && !(IsServerGuarantee(file) && CatalogOnly().IsMatch(text));
+
+    private static bool IsServerGuarantee(SourceFile file) =>
+        file.Path.Replace(Path.DirectorySeparatorChar, '/').Contains(GuaranteesFolder, StringComparison.Ordinal);
 
     private static bool IsQueryConstant(SourceFile file, SyntaxToken token) =>
         IsQueriesFile(file)
@@ -59,6 +67,9 @@ internal static partial class ContentSchemaAccessRules
 
     [GeneratedRegex(@"^search_?path$", RegexOptions.IgnoreCase)]
     private static partial Regex SearchPathMember();
+
+    [GeneratedRegex(@"^SET\s+LOCAL\s+search_path\s*(=|TO)\s*pg_catalog\s*,\s*pg_temp$", RegexOptions.IgnoreCase)]
+    private static partial Regex CatalogOnly();
 
     [GeneratedRegex(@"search[_ ]?path", RegexOptions.IgnoreCase)]
     private static partial Regex SearchPath();

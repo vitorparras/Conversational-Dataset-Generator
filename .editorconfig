@@ -192,6 +192,10 @@ dotnet_code_quality.CA2007.output_kind = DynamicallyLinkedLibrary
 # A banned symbol (core/BannedSymbols.txt) fails the build on its own, whatever the warning policy.
 dotnet_diagnostic.RS0030.severity = error
 
+# The database fixtures are a library of test code, loaded by test executables, which have no synchronization context.
+[core/tests/Core.Tests.Database/**.cs]
+dotnet_diagnostic.CA2007.severity = none
+
 [core/src/Core.Platform/Logging/LineConsoleFormatter.cs]
 # The log line is read by machines; ISO 8601 with a fixed format and the invariant culture is the contract.
 dotnet_diagnostic.S6585.severity = none
@@ -212,7 +216,7 @@ dotnet_diagnostic.CA2100.severity = none
 # The statement is written by the code that exposes a query over content, as a constant of its own; it never carries input, and the domain goes by parameter.
 dotnet_diagnostic.CA2100.severity = none
 
-[core/tests/Core.Persistence.Tests/Content/ContentDomainTests.cs]
+[core/tests/Core.Persistence.Content.Tests/Content/ContentDomainTests.cs]
 # The statements are the constants of ContentQueries, the system's own, and run here without a domain on purpose.
 dotnet_diagnostic.CA2100.severity = none
 

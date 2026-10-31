@@ -44,8 +44,9 @@ python tools/verify-code/verify.py --step pr_size --base origin/main
 ```
 
 A ordem é única: `--step test_core` sozinho, em árvore limpa, falha porque testa com `--no-build`;
-`build_core` vem antes, e a execução sem argumento segue essa ordem. O passo `lint_tools` exige
-`ruff` e `pyright` nas versões de `tools/verify-code/lint-requirements.txt` (`pip install -r`).
+`build_core` vem antes, e a execução sem argumento segue essa ordem. Os passos `lint_tools` e
+`test_tools` exigem `ruff`, `pyright`, `coverage` e `pyyaml` nas versões de
+`tools/verify-code/lint-requirements.txt` (`pip install -r`).
 
 O passo `test_core` deixa de fora os testes que sobem o serviço real (trait `Category=RealService`)
 e passa sem `uv`; o passo `test_real_service` roda só esses, com `uv` instalado, lista os testes
@@ -263,11 +264,11 @@ os dados.
 O esquema é aplicado pelo modo `migrate` do mesmo executável, com a credencial de dono, descrito em
 [016](docs/operacao/016-migracao-do-esquema.md); a partida normal só confere a versão.
 
-Os testes de banco de `core/tests/Core.Persistence.Tests` e de `core/tests/Core.Tests.Integration`
-constroem a mesma imagem com Testcontainers e senhas aleatórias. Sem Docker, os testes de banco
-saltam com o aviso "Docker indisponível: teste de banco saltado", e o passo `test_core` lista o
-projeto e o motivo, passe ele ou não; com `CI=true`, como na verificação contínua, eles rodam
-sempre, e a falta de Docker reprova.
+Os testes de banco dos projetos `Core.Persistence*.Tests` de `core/tests`, um por área mais o da
+área-mãe, e de `core/tests/Core.Tests.Integration` constroem a mesma imagem com Testcontainers e
+senhas aleatórias. Sem Docker, os testes de banco saltam com o aviso "Docker indisponível: teste de
+banco saltado", e o passo `test_core` lista o projeto e o motivo, passe ele ou não; com `CI=true`,
+como na verificação contínua, eles rodam sempre, e a falta de Docker reprova.
 
 ## Serviço de linguagem
 

@@ -23,8 +23,7 @@ public sealed class TlsMaterialSource
     private const int LongestCertificateFile = 65536;
     private const int LongestKeyFile = 16384;
 
-    private const string NotPrivate =
-        "o PEM não traz uma chave privada (PRIVATE KEY, RSA PRIVATE KEY ou EC PRIVATE KEY), e uma chave pública ou um certificado não serve";
+    private const string NotPrivate = "o PEM não traz uma chave privada (PRIVATE KEY, RSA PRIVATE KEY ou EC PRIVATE KEY), e uma chave pública ou um certificado não serve";
 
     private static readonly string[] PrivateLabels = ["PRIVATE KEY", "RSA PRIVATE KEY", "EC PRIVATE KEY"];
 

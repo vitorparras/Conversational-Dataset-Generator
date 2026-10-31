@@ -9,8 +9,9 @@ CREATE TABLE public.person (
     created_by text NOT NULL DEFAULT session_user
 );
 
--- The application reads and adds people and changes only the function and the state; nobody deletes, the owner included.
-GRANT SELECT, INSERT ON public.person TO PUBLIC;
+-- The application reads people, adds them with the name and the function only, and changes only the function and the state, so that who and when are always the server's; nobody deletes, the owner included.
+GRANT SELECT ON public.person TO PUBLIC;
+GRANT INSERT (name, function_name) ON public.person TO PUBLIC;
 GRANT UPDATE (function_name, active) ON public.person TO PUBLIC;
 REVOKE DELETE, TRUNCATE ON public.person FROM PUBLIC, CURRENT_USER;
 
@@ -26,5 +27,6 @@ CREATE TABLE public.person_change (
     changed_by text NOT NULL DEFAULT session_user
 );
 
-GRANT SELECT, INSERT ON public.person_change TO PUBLIC;
+GRANT SELECT ON public.person_change TO PUBLIC;
+GRANT INSERT (person_id, kind, previous_function, new_function, actor_id) ON public.person_change TO PUBLIC;
 REVOKE UPDATE, DELETE, TRUNCATE ON public.person_change FROM PUBLIC, CURRENT_USER;

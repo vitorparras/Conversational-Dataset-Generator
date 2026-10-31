@@ -81,6 +81,27 @@ public sealed class PersonHistoryGuaranteeTests : IClassFixture<PeopleDatabase>
     }
 
     [DatabaseFact]
+    public async Task ApplicationCannotWriteWhoOrWhenOfAPersonOrOfAChange()
+    {
+        var id = await NewPersonAsync();
+
+        foreach (var statement in new[]
+        {
+            "INSERT INTO public.person (name, function_name, created_by) VALUES ('zqx-forjada-1', 'Anotação', 'zqx')",
+            "INSERT INTO public.person (name, function_name, created_at) VALUES ('zqx-forjada-2', 'Anotação', now())",
+            $"INSERT INTO public.person_change (person_id, kind, changed_by) VALUES ({id}, 'deactivated', 'zqx')",
+            $"INSERT INTO public.person_change (person_id, kind, changed_at) VALUES ({id}, 'deactivated', now())",
+        })
+        {
+            var refused = await database.RefusedToAppAsync(statement);
+
+            Assert.Equal(InsufficientPrivilege, refused.SqlState);
+        }
+
+        _ = Assert.Single(await database.ChangesOfAsync(id));
+    }
+
+    [DatabaseFact]
     public async Task UpdatingAChangeRecordIsRefusedToTheApplicationAndToTheOwner()
     {
         var id = await NewPersonAsync();

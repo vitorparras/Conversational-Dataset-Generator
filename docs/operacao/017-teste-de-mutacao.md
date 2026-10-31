@@ -35,26 +35,26 @@ Em cada módulo conta só a suíte do projeto dele, nas duas linguagens. Módulo
 reprova. O sobrevivente que só teste de outro projeto mataria aparece como sobrevivente, e o módulo
 responde por ele com teste próprio.
 
-- **Núcleo:** o projeto de teste do projeto do módulo (`<Projeto>.Tests`, ou o do projeto em que ele
-  está aninhado, como `Core.Boundary.Tests` para `Core.Boundary.Contracts`), desde que o referencie.
-  As suítes transversais (`Core.Tests.Integration`, `Core.Tests.Properties`) não contam, mesmo
-  referenciando o módulo.
+- **Núcleo:** o projeto de teste da área, se ela tem um próprio (`<Área>.Tests`, como
+  `Core.Persistence.Migrations.Tests`), senão o do projeto do módulo (`<Projeto>.Tests`, ou o do
+  projeto em que ele está aninhado, como `Core.Boundary.Tests` para `Core.Boundary.Contracts`),
+  desde que referencie o projeto do módulo. As suítes transversais (`Core.Tests.Integration`,
+  `Core.Tests.Properties`) não contam. Teste novo de banco entra no projeto da área que ele
+  exercita (`Core.Persistence.Migrations.Tests`, `.Content.Tests` ou `.ServerGuarantees.Tests`); o
+  resto de `Core.Persistence` fica em `Core.Persistence.Tests`. O apoio comum (contêiner,
+  `ScratchDatabase`) mora em `Core.Tests.Database`, que não é projeto de teste.
   O Stryker.NET roda com um worker em todos os módulos: o veredito de um mutante em inicializador
-  estático depende do estado do processo de teste e muda com o número de workers sem que nenhum
-  teste mude, e o resultado de um módulo tem de ser o mesmo em duas rodadas. Nenhum mutante sai da
-  conta por ser estático.
-  O Stryker.NET reinicia o servidor de teste a cada mutante que estoura o timeout dele. Quando o
-  projeto de teste sobe um Postgres próprio (referencia o Testcontainers), o passo entrega a ele um
-  token pela variável `CDG_TEST_DATABASE_REUSE`, e o projeto mantém uma imagem e um contêiner,
-  nomeados pelo token, que sobrevivem aos reinícios; o passo os remove ao fim, também quando o
-  Stryker falha ou passa do teto. Sem a variável, cada execução de teste sobe e descarta o seu
-  Postgres. Cada teste segue com o seu banco de rascunho; o que sobra de um mutante interrompido é
-  apagado na subida do servidor seguinte. Sem o `docker` no PATH o passo não reaproveita nada.
-  Se o próprio processo da verificação for morto à força (kill, terminal fechado), o `finally`
-  não roda: o contêiner `cdg-test-database-<token>` fica de pé, com a porta publicada, e a imagem
-  `cdg-test-database:<token>` fica no disco, porque o reaper do Testcontainers não cuida de
-  recurso reaproveitado. Ache-os com `docker ps -a --filter name=cdg-test-database-` e remova com
-  `docker rm --force --volumes` e `docker rmi --force`.
+  estático muda com o número de workers, e o resultado tem de ser o mesmo em duas rodadas. Nenhum
+  mutante sai da conta por ser estático.
+  O Stryker.NET reinicia o servidor de teste a cada mutante que estoura o timeout. Quando o projeto
+  de teste referencia o Testcontainers, o passo entrega o token na variável
+  `CDG_TEST_DATABASE_REUSE` e o projeto mantém uma imagem e um contêiner nomeados por ele, que
+  sobrevivem aos reinícios; o passo os remove ao fim, também se o Stryker falha ou passa do teto.
+  Sem a variável, cada execução sobe e descarta o seu Postgres; sem o `docker` no PATH, nada é
+  reaproveitado. Se o processo da verificação morrer à força, o `finally` não roda e o contêiner
+  `cdg-test-database-<token>` e a imagem `cdg-test-database:<token>` ficam: ache-os com
+  `docker ps -a --filter name=cdg-test-database-` e remova com `docker rm --force --volumes` e
+  `docker rmi --force`.
 - **Serviço:** os arquivos de teste que importam o módulo diretamente (`import language_service.x`,
   `from language_service.x import ...` ou `from language_service import x`), numa rodada do mutmut
   por módulo. Os testes que leem o texto do código-fonte ficam de fora: a mutação o reescreve.

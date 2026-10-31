@@ -41,6 +41,16 @@ public sealed class NoTestHookTests
     }
 
     [Fact]
+    public void ProjectFileExposingInternalsToTheTestProjectOfAnAreaOfTheModuleIsAcceptedAndToAnythingElseRefused()
+    {
+        var project = ProjectFile.FromText("Core.Sample.csproj", SourceTree.FixtureText("AreaInternals.csproj.txt"));
+
+        var violations = NoTestHookRules.CheckInternalsVisibleTo(project).ToList();
+
+        Assert.Equal([5, 6], violations.Select(violation => violation.Line));
+    }
+
+    [Fact]
     public void AttributeExposingInternalsToAForeignAssemblyIsRefused()
     {
         var fixture = SourceTree.Fixture("InternalsVisibleToForeign.cs");

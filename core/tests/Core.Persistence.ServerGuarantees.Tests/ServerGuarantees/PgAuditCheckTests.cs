@@ -44,4 +44,8 @@ public sealed class PgAuditCheckTests
         Assert.Equal(CheckStatus.Failed, finding.Status);
         Assert.Contains("CREATE EXTENSION pgaudit", finding.Message, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void CheckWithoutADataSourceIsADefect() =>
+        _ = Assert.Throws<ArgumentNullException>(() => new PgAuditCheck(null!));
 }

@@ -69,20 +69,24 @@ def target(root: Path, area: Area, areas: tuple[Area, ...]) -> CoreTarget | None
     return CoreTarget(area, owner, tuple(globs))
 
 
-def test_projects(root: Path, project: str) -> tuple[Path, ...]:
-    """The test projects of ``project`` that reference it directly: ``<Project>.Tests``, or the one
-    of a project it is nested in (``Core.Boundary.Tests`` for ``Core.Boundary.Contracts``). The
-    cross-cutting suites (``Core.Tests.Integration``) are not the module's own and stay out."""
+def test_projects(root: Path, project: str, area: str | None = None) -> tuple[Path, ...]:
+    """The test projects of ``project`` that reference it directly. An area that has a project of
+    its own (``Core.Persistence.Migrations.Tests`` for ``Core.Persistence.Migrations``) gets that
+    one alone; otherwise the project of what holds it: ``<Project>.Tests``, or the one of a project
+    it is nested in (``Core.Boundary.Tests`` for ``Core.Boundary.Contracts``). The cross-cutting
+    suites (``Core.Tests.Integration``) are not the module's own and stay out."""
     reference = re.compile(rf'ProjectReference Include="[^"]*[\\/]{re.escape(project)}\.csproj"')
 
     def owns(path: Path) -> bool:
         stem = path.stem.removesuffix(".Tests")
         return stem != path.stem and within(project, stem)
 
+    def references(path: Path) -> bool:
+        return reference.search(path.read_text(encoding="utf-8")) is not None
+
     candidates = sorted((root / TESTS).glob("*/*.csproj"))
-    return tuple(
-        p for p in candidates if owns(p) and reference.search(p.read_text(encoding="utf-8"))
-    )
+    own = tuple(p for p in candidates if p.stem == f"{area or project}.Tests" and references(p))
+    return own or tuple(p for p in candidates if owns(p) and references(p))
 
 
 def configuration(core: CoreTarget, tests: tuple[Path, ...]) -> str:
@@ -136,7 +140,7 @@ def discard_database(ctx: Context, token: str) -> None:
 
 def mutate(ctx: Context, core: CoreTarget, seconds: float, policy: MutationPolicy) -> ModuleResult:
     """Writes the module's configuration, runs Stryker for at most ``seconds``, reads its report."""
-    tests = test_projects(ctx.root, core.project)
+    tests = test_projects(ctx.root, core.project, core.area.prefix)
     if not tests:
         return ModuleResult(
             core.area, (), (f"nenhum projeto de {TESTS}/ referencia {core.project}",)

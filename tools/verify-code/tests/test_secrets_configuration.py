@@ -14,9 +14,10 @@ ROOT = support.VERIFY_CODE.parents[1]
 WORKFLOW = ROOT / ".github" / "workflows" / "verify-code.yml"
 REPO_CONFIG = (ROOT / secrets.CONFIG).read_text(encoding="utf-8")
 IGNORE_FILE = ROOT / ".gitleaksignore"
-ACCEPTED_FINGERPRINT = (
-    "e23639b4972b0191179533d5001c6935ed501cfd:language-service/tests/conftest.py:generic-api-key:16"
-)
+ACCEPTED_FINGERPRINTS = [
+    "e23639b4972b0191179533d5001c6935ed501cfd:language-service/tests/conftest.py:generic-api-key:16",
+    "ad8c0f31e88d1f44728a1c3247826c090a350181:core/tests/Core.Platform.Tests/Tls/TlsMaterialSourceTests.cs:private-key:133",
+]
 FINGERPRINT = re.compile(r"^[0-9a-f]{40}:[^:]+:[a-z0-9-]+:[0-9]+$")
 ALLOWANCE_KEYS = {"description", "regexes"}
 TOP_LEVEL_KEYS = {"title", "extend", "allowlists"}
@@ -67,8 +68,8 @@ class IgnoreFileTests(unittest.TestCase):
     def test_every_entry_is_a_full_fingerprint_with_its_commit(self) -> None:
         self.assertEqual(malformed(self.entries), [])
 
-    def test_the_only_entry_is_the_accepted_one(self) -> None:
-        self.assertEqual(self.entries, [ACCEPTED_FINGERPRINT])
+    def test_the_only_entries_are_the_accepted_ones(self) -> None:
+        self.assertEqual(self.entries, ACCEPTED_FINGERPRINTS)
 
 
 class WorkflowTests(unittest.TestCase):

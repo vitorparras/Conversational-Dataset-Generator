@@ -48,4 +48,33 @@ public sealed class ContentColumnsTests
 
         Assert.All(tables, table => Assert.Contains(ContentColumns.Clear, column => column.Table == table && column.Kind == ClearKind.Domain));
     }
+
+    [Fact]
+    public void ProtectedColumnsAreExactlyTheOnesTheMigrationAndTheRuleNameByTable() =>
+        Assert.Equal(
+            [
+                new ProtectedColumn("item_text", "raw_text", LabelPurpose.RawText),
+                new ProtectedColumn("item_text", "sanitized_text", LabelPurpose.RawText),
+                new ProtectedColumn("reversal_map", "entries", LabelPurpose.ReversalMap),
+            ],
+            ContentColumns.Protected);
+
+    [Fact]
+    public void ClearColumnsAreExactlyTheOnesTheMigrationAndTheRuleNameByTable() =>
+        Assert.Equal(
+            [
+                new ClearColumn("item_text", "id", ClearKind.Identifier),
+                new ClearColumn("item_text", "domain_id", ClearKind.Domain),
+                new ClearColumn("item_text", "recorded_at", ClearKind.Moment),
+                new ClearColumn("item_text", "pseudonymized_text", ClearKind.PseudonymizedText),
+                new ClearColumn("reversal_map", "id", ClearKind.Identifier),
+                new ClearColumn("reversal_map", "domain_id", ClearKind.Domain),
+                new ClearColumn("reversal_map", "item_id", ClearKind.Identifier),
+                new ClearColumn("reversal_map", "recorded_at", ClearKind.Moment),
+            ],
+            ContentColumns.Clear);
+
+    [Fact]
+    public void TablesAreNamedWithoutTheSchema() =>
+        Assert.Equal(["item_text", "reversal_map"], [ContentColumns.ItemText, ContentColumns.ReversalMap]);
 }

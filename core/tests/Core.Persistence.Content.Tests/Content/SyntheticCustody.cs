@@ -11,8 +11,11 @@ internal sealed class SyntheticCustody : IDisposable
     private SyntheticCustody(MasterKeyReading reading, DerivationLabels labels)
     {
         this.reading = reading;
-        Content = new ProtectedContent(new EnvelopeCipher(new KeyDerivation(reading.Key!, labels)), labels);
+        Cipher = new EnvelopeCipher(new KeyDerivation(reading.Key!, labels));
+        Content = new ProtectedContent(Cipher, labels);
     }
+
+    public EnvelopeCipher Cipher { get; }
 
     public ProtectedContent Content { get; }
 

@@ -139,4 +139,70 @@ public sealed class ProtectedContentTests
 
         _ = Assert.Throws<InvalidOperationException>(() => custody.Content.Seal(ContentColumns.RawText, 7, Text));
     }
+
+    [Fact]
+    public void NullArgumentsAreRefusedByName()
+    {
+        using var custody = SyntheticCustody.Holding("texto-bruto/7/v1");
+        var cipher = custody.Cipher;
+        var labels = DerivationLabels.None;
+        var content = custody.Content;
+
+        Assert.Equal(
+            ["cipher", "loaded", "column", "text", "column"],
+            [
+                Assert.Throws<ArgumentNullException>(() => new ProtectedContent(null!, labels)).ParamName,
+                Assert.Throws<ArgumentNullException>(() => new ProtectedContent(cipher, null!)).ParamName,
+                Assert.Throws<ArgumentNullException>(() => content.Seal(null!, 7, Text)).ParamName,
+                Assert.Throws<ArgumentNullException>(() => content.Seal(ContentColumns.RawText, 7, null!)).ParamName,
+                Assert.Throws<ArgumentNullException>(() => content.Open(null!, 7, [])).ParamName,
+            ]);
+    }
+
+    [Fact]
+    public void RefusalOfAnotherColumnNamesTheColumn()
+    {
+        using var custody = SyntheticCustody.Holding("texto-bruto/7/v1", "mapa-reversao/7/v1");
+        var envelope = custody.Content.Seal(ContentColumns.Entries, 7, Text).Envelope.ToArray();
+
+        var refused = Assert.Throws<EnvelopeRefusedException>(() => custody.Content.Open(ContentColumns.RawText, 7, envelope));
+
+        Assert.Equal("The envelope was not sealed for the purpose and the domain of item_text.raw_text.", refused.Message);
+    }
+
+    [Fact]
+    public void SealingWithNoLabelSaysThePurposeAndTheDomain()
+    {
+        using var custody = SyntheticCustody.Holding("texto-bruto/7/v1");
+
+        var refused = Assert.Throws<InvalidOperationException>(() => custody.Content.Seal(ContentColumns.RawText, 8, Text));
+
+        Assert.Equal("No derivation label is loaded for the purpose RawText and the domain 8.", refused.Message);
+    }
+
+    [Fact]
+    public void EnvelopeWhoseLabelIsNotALabelIsRefusedAsSuch()
+    {
+        using var custody = SyntheticCustody.Holding("not-a-label");
+        var envelope = custody.Cipher.Seal("not-a-label", "x"u8);
+
+        var refused = Assert.Throws<EnvelopeRefusedException>(() => custody.Content.Open(ContentColumns.RawText, 7, envelope));
+
+        Assert.Equal("The label in the header is not a derivation label.", refused.Message);
+    }
+
+    [Fact]
+    public void EnvelopeOfAGenerationNotLoadedIsRefusedNotFailedAsADefect()
+    {
+        byte[] future;
+        using (var rotated = SyntheticCustody.Holding("texto-bruto/7/v1", "texto-bruto/7/v2"))
+        {
+            future = rotated.Content.Seal(ContentColumns.RawText, 7, Text).Envelope.ToArray();
+        }
+
+        using var custody = SyntheticCustody.Holding("texto-bruto/7/v1");
+        var refused = Assert.Throws<EnvelopeRefusedException>(() => custody.Content.Open(ContentColumns.RawText, 7, future));
+
+        Assert.Equal("The label 'texto-bruto/7/v2' of the envelope is not among the loaded ones.", refused.Message);
+    }
 }

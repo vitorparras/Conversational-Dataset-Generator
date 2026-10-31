@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using System.Text;
 using Core.Platform.Keys;
 
@@ -29,15 +28,7 @@ public sealed class ProtectedContent
         ArgumentNullException.ThrowIfNull(column);
         ArgumentNullException.ThrowIfNull(text);
         var label = NewestLabel(column.Purpose, domainId);
-        var bytes = Encoding.UTF8.GetBytes(text);
-        try
-        {
-            return new SealedContent(column, domainId, cipher.Seal(label.Text, bytes));
-        }
-        finally
-        {
-            CryptographicOperations.ZeroMemory(bytes);
-        }
+        return new SealedContent(column, domainId, cipher.Seal(label.Text, Encoding.UTF8.GetBytes(text)));
     }
 
     /// <summary>The text of a value read from the column of the domain; a value that is not an envelope of this purpose and domain is refused, never read as empty.</summary>
@@ -50,15 +41,12 @@ public sealed class ProtectedContent
             throw new EnvelopeRefusedException($"The envelope was not sealed for the purpose and the domain of {column.Table}.{column.Name}.");
         }
 
-        var bytes = cipher.Open(label.Text, stored);
-        try
+        if (!loaded.Holds(label.Text))
         {
-            return Encoding.UTF8.GetString(bytes);
+            throw new EnvelopeRefusedException($"The label '{label.Text}' of the envelope is not among the loaded ones.");
         }
-        finally
-        {
-            CryptographicOperations.ZeroMemory(bytes);
-        }
+
+        return Encoding.UTF8.GetString(cipher.Open(label.Text, stored));
     }
 
     private static DerivationLabel LabelOf(ReadOnlySpan<byte> stored) =>

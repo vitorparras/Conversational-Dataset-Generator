@@ -1,7 +1,6 @@
 using Core.Platform.Configuration;
 using Core.Platform.Keys;
 using Core.Platform.Startup;
-using Microsoft.Extensions.DependencyInjection;
 using ConfigurationSection = Core.Platform.Configuration.ConfigurationSection;
 
 namespace Core.Host;

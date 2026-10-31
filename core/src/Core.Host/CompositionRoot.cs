@@ -120,8 +120,7 @@ internal static class CompositionRoot
         _ = services.AddTransient<MaterialAnalysis>();
     }
 
-    /// <summary>What the checks need before the host's own container exists: redacted logging, the server checks and the supervision of the
-    /// language service. The host's container adopts it, so the service stops with the host; it only borrows the file destination.</summary>
+    /// <summary>What the checks need before the host's container exists: redacted logging, the server checks and the language service's supervision, which the host then adopts.</summary>
     private static ServiceProvider StartupServices(ConfigurationLoadResult loaded, FileLoggerProvider? fileLog, DatabaseSettings database)
     {
         var services = new ServiceCollection();

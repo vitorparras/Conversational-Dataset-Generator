@@ -21,6 +21,9 @@ public enum PersonOutcome
     /// <summary>The person who acted was deactivated.</summary>
     ActorDeactivated,
 
+    /// <summary>Another writer reached the same link of the chain of custody first; nothing was written, and the request may be repeated.</summary>
+    ChainBusy,
+
     /// <summary>The password is empty.</summary>
     PasswordInvalid,
 

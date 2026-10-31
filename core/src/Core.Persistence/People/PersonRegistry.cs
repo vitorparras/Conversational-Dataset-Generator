@@ -1,11 +1,12 @@
+using Core.Persistence.Custody;
 using Npgsql;
 using NpgsqlTypes;
 
 namespace Core.Persistence.People;
 
 /// <summary>
-/// The people who operate the system. Each operation writes the person and the record of what was done in one command, so that the history
-/// never lacks a change nor holds one that did not happen. A person is deactivated and never deleted; what they reach comes from grants.
+/// The people who operate the system. Each operation writes the person, the record of what was done and the event of the chain of custody in one transaction, so that
+/// the history never lacks a change nor holds one that did not happen. A person is deactivated and never deleted; what they reach comes from grants.
 /// </summary>
 public sealed class PersonRegistry
 {
@@ -20,15 +21,16 @@ public sealed class PersonRegistry
 
     /// <summary>Adds a person, active, with the function given; a refusal writes nothing.</summary>
     /// <param name="person">The name of use and the function.</param>
-    /// <param name="actorId">The person who acts, or null when nobody acts as a person.</param>
+    /// <param name="author">Who acts: a person of the registry, or the system declared as such; never left out.</param>
     /// <param name="cancellationToken">Cancels the operation.</param>
-    public Task<PersonResult> CreateAsync(NewPerson person, long? actorId, CancellationToken cancellationToken)
+    public Task<PersonResult> CreateAsync(NewPerson person, CustodyAuthor author, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(person);
-        return AddAsync(person, actorId, cancellationToken);
+        ArgumentNullException.ThrowIfNull(author);
+        return AddAsync(person, author, cancellationToken);
     }
 
-    private async Task<PersonResult> AddAsync(NewPerson person, long? actorId, CancellationToken cancellationToken)
+    private async Task<PersonResult> AddAsync(NewPerson person, CustodyAuthor author, CancellationToken cancellationToken)
     {
         if (PersonRefusals.Judge(person) is { } refusal)
         {
@@ -37,16 +39,18 @@ public sealed class PersonRegistry
 
         try
         {
-            var created = await dataSource.WriteAsync(
+            var statement = new PersonStatement(
                 PersonStatements.Create,
                 command =>
                 {
                     Add(command, "name", NpgsqlDbType.Text, person.Name);
                     Add(command, "function", NpgsqlDbType.Text, person.Function);
-                    Add(command, "actor", NpgsqlDbType.Bigint, actorId);
+                    Add(command, "actor", NpgsqlDbType.Bigint, author.PersonId);
                 },
-                cancellationToken).ConfigureAwait(false);
-            return created is { } id ? PersonResult.Done(id) : await dataSource.ActorRefusalAsync(actorId, cancellationToken).ConfigureAwait(false) ?? PersonRefusals.ActorDeactivated();
+                CustodyStep.PersonCreated);
+            return await dataSource.WriteChainedAsync(statement, author, cancellationToken).ConfigureAwait(false)
+                ?? await dataSource.ActorRefusalAsync(author.PersonId, cancellationToken).ConfigureAwait(false)
+                ?? PersonRefusals.ActorDeactivated();
         }
         catch (PostgresException refused) when (refused.SqlState == PostgresErrorCodes.UniqueViolation)
         {
@@ -56,49 +60,60 @@ public sealed class PersonRegistry
 
     /// <summary>Deactivates a person; the person stays in the registry and in the history.</summary>
     /// <param name="personId">The person to deactivate.</param>
-    /// <param name="actorId">The person who acts, or null when nobody acts as a person.</param>
+    /// <param name="author">Who acts: a person of the registry, or the system declared as such; never left out.</param>
     /// <param name="cancellationToken">Cancels the operation.</param>
-    public async Task<PersonResult> DeactivateAsync(long personId, long? actorId, CancellationToken cancellationToken)
+    public Task<PersonResult> DeactivateAsync(long personId, CustodyAuthor author, CancellationToken cancellationToken)
     {
-        var changed = await dataSource.WriteAsync(
+        ArgumentNullException.ThrowIfNull(author);
+        return RemoveAsync(personId, author, cancellationToken);
+    }
+
+    private async Task<PersonResult> RemoveAsync(long personId, CustodyAuthor author, CancellationToken cancellationToken)
+    {
+        var statement = new PersonStatement(
             PersonStatements.Deactivate,
             command =>
             {
                 Add(command, "id", NpgsqlDbType.Bigint, personId);
-                Add(command, "actor", NpgsqlDbType.Bigint, actorId);
+                Add(command, "actor", NpgsqlDbType.Bigint, author.PersonId);
             },
-            cancellationToken).ConfigureAwait(false);
-        return changed is { } id ? PersonResult.Done(id) : await WhyNotDeactivatedAsync(personId, actorId, cancellationToken).ConfigureAwait(false);
+            CustodyStep.PersonDeactivated,
+            personId);
+        return await dataSource.WriteChainedAsync(statement, author, cancellationToken).ConfigureAwait(false)
+            ?? await WhyNotDeactivatedAsync(personId, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Gives an active person another function, keeping the previous one in the history; a function outside the policy writes nothing.</summary>
     /// <param name="personId">The person whose function changes.</param>
     /// <param name="function">One of <see cref="PersonFunctions.Accepted" />.</param>
-    /// <param name="actorId">The person who acts, or null when nobody acts as a person.</param>
+    /// <param name="author">Who acts: a person of the registry, or the system declared as such; never left out.</param>
     /// <param name="cancellationToken">Cancels the operation.</param>
-    public Task<PersonResult> ChangeFunctionAsync(long personId, string function, long? actorId, CancellationToken cancellationToken)
+    public Task<PersonResult> ChangeFunctionAsync(long personId, string function, CustodyAuthor author, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(function);
-        return ReplaceFunctionAsync(personId, function, actorId, cancellationToken);
+        ArgumentNullException.ThrowIfNull(author);
+        return ReplaceFunctionAsync(personId, function, author, cancellationToken);
     }
 
-    private async Task<PersonResult> ReplaceFunctionAsync(long personId, string function, long? actorId, CancellationToken cancellationToken)
+    private async Task<PersonResult> ReplaceFunctionAsync(long personId, string function, CustodyAuthor author, CancellationToken cancellationToken)
     {
         if (PersonRefusals.NotAccepted(function) is { } refusal)
         {
             return refusal;
         }
 
-        var changed = await dataSource.WriteAsync(
+        var statement = new PersonStatement(
             PersonStatements.ChangeFunction,
             command =>
             {
                 Add(command, "id", NpgsqlDbType.Bigint, personId);
                 Add(command, "function", NpgsqlDbType.Text, function);
-                Add(command, "actor", NpgsqlDbType.Bigint, actorId);
+                Add(command, "actor", NpgsqlDbType.Bigint, author.PersonId);
             },
-            cancellationToken).ConfigureAwait(false);
-        return changed is { } id ? PersonResult.Done(id) : await WhyNotChangedAsync(personId, actorId, cancellationToken).ConfigureAwait(false);
+            CustodyStep.PersonFunctionChanged,
+            personId);
+        return await dataSource.WriteChainedAsync(statement, author, cancellationToken).ConfigureAwait(false)
+            ?? await WhyNotChangedAsync(personId, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Whether a person may enter: registered and active. It does not authenticate; it only answers for the state of the person.</summary>
@@ -123,13 +138,11 @@ public sealed class PersonRegistry
     private static void Add(NpgsqlCommand command, string name, NpgsqlDbType type, object? value) =>
         PersonQueries.Add(command, name, type, value);
 
-    private async Task<PersonResult> WhyNotDeactivatedAsync(long personId, long? actorId, CancellationToken cancellationToken) =>
-        await dataSource.ActorRefusalAsync(actorId, cancellationToken).ConfigureAwait(false)
-        ?? (await dataSource.ReadActiveAsync(personId, cancellationToken).ConfigureAwait(false) is null ? PersonRefusals.NotFound() : PersonRefusals.Deactivated());
+    private async Task<PersonResult> WhyNotDeactivatedAsync(long personId, CancellationToken cancellationToken) =>
+        await dataSource.ReadActiveAsync(personId, cancellationToken).ConfigureAwait(false) is null ? PersonRefusals.NotFound() : PersonRefusals.Deactivated();
 
-    private async Task<PersonResult> WhyNotChangedAsync(long personId, long? actorId, CancellationToken cancellationToken) =>
-        await dataSource.ActorRefusalAsync(actorId, cancellationToken).ConfigureAwait(false)
-        ?? await dataSource.ReadActiveAsync(personId, cancellationToken).ConfigureAwait(false) switch
+    private async Task<PersonResult> WhyNotChangedAsync(long personId, CancellationToken cancellationToken) =>
+        await dataSource.ReadActiveAsync(personId, cancellationToken).ConfigureAwait(false) switch
         {
             null => PersonRefusals.NotFound(),
             false => PersonRefusals.Deactivated(),

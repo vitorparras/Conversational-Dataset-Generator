@@ -1,4 +1,5 @@
 using System.Globalization;
+using Core.Persistence.Custody;
 
 namespace Core.Persistence.People;
 
@@ -28,6 +29,19 @@ internal static class PersonRefusals
 
     internal static PersonResult PasswordInvalid() =>
         PersonResult.Refused(PersonOutcome.PasswordInvalid, "A senha não pode ser vazia.");
+
+    /// <summary>The answer for a change whose custody event was attempted: done when the event is in the chain, otherwise the reason it was not.</summary>
+    internal static PersonResult Chained(CustodyResult custody, long personId) => custody.Outcome switch
+    {
+        CustodyOutcome.Appended => PersonResult.Done(personId),
+        CustodyOutcome.ActorUnknown => ActorUnknown(),
+        CustodyOutcome.ActorDeactivated => ActorDeactivated(),
+        CustodyOutcome.CorrectedNotFound or CustodyOutcome.Conflict => ChainBusy(),
+        _ => throw new ArgumentOutOfRangeException(nameof(custody), custody.Outcome, "The outcome is not one a change of a person can meet."),
+    };
+
+    internal static PersonResult ChainBusy() =>
+        PersonResult.Refused(PersonOutcome.ChainBusy, "Outra gravação chegou ao mesmo elo da cadeia de custódia antes; nada foi gravado, e o pedido pode ser repetido.");
 
     internal static PersonResult NotFound() =>
         PersonResult.Refused(PersonOutcome.NotFound, "Não há pessoa com esse identificador.");

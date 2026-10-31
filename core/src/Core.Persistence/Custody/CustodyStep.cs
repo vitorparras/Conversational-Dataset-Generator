@@ -17,4 +17,13 @@ public enum CustodyStep
 
     /// <summary>An earlier event was corrected; the correction is an event of its own.</summary>
     Correction,
+
+    /// <summary>The raw text of an item was read.</summary>
+    RawTextRead,
+
+    /// <summary>The sanitized text of an item was read.</summary>
+    SanitizedTextRead,
+
+    /// <summary>The map that reverses the pseudonyms of an item was read.</summary>
+    ReversalEntriesRead,
 }

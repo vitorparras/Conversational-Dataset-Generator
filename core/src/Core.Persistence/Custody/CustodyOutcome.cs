@@ -17,4 +17,7 @@ public enum CustodyOutcome
 
     /// <summary>Another writer reached the same link first; nothing was written, and whoever asked may ask again.</summary>
     Conflict,
+
+    /// <summary>The server refused to change, remove or empty away an event of the chain; nothing was written, and the refusal carries no content of any event.</summary>
+    Immutable,
 }

@@ -35,6 +35,16 @@ public sealed class ContentSchemaAccessTests
     }
 
     [Fact]
+    public void QualifiedNameWithBlanksAroundTheDotIsStillAnAccess()
+    {
+        var fixture = SourceTree.Fixture(Path.Combine(Fixtures, "BlanksAroundTheDot.cs"));
+
+        var lines = ContentSchemaAccessRules.Check([fixture]).Select(violation => violation.Line).Order();
+
+        Assert.Equal([5, 7, 9, 11, 13, 19], lines);
+    }
+
+    [Fact]
     public void SchemaNameMoldAndOrdinaryWordsAreNotAnAccess()
     {
         var fixture = SourceTree.Fixture(Path.Combine(Fixtures, "NamesNoContentTable.cs"));

@@ -16,7 +16,7 @@ from . import support
 from .test_mutation import healthy
 
 REUSE_SOURCE = (
-    support.VERIFY_CODE.parents[1] / "core/tests/Core.Persistence.Tests/Fixtures/DatabaseReuse.cs"
+    support.VERIFY_CODE.parents[1] / "core/tests/Core.Tests.Database/Fixtures/DatabaseReuse.cs"
 )
 PROJECT = "core/tests/Core.Platform.Tests/Core.Platform.Tests.csproj"
 REFERENCE = r'<ProjectReference Include="..\..\src\Core.Platform\Core.Platform.csproj" />'

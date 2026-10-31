@@ -81,8 +81,13 @@ public sealed class PrivilegeCheckTests
         var finding = PrivilegeCheck.Judge(Role() with { Schema = "zqx_schema", Table = "zqx_table" });
 
         Assert.Equal(CheckStatus.Failed, finding.Status);
+        Assert.Contains("responde como dono do esquema zqx_schema,", finding.Message, StringComparison.Ordinal);
         Assert.Contains("ALTER SCHEMA zqx_schema OWNER TO", finding.Message, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void CheckWithoutADataSourceIsADefect() =>
+        _ = Assert.Throws<ArgumentNullException>(() => new PrivilegeCheck(null!));
 
     [Fact]
     public void OwnerOfATableFailsNamingTheTableAndTheMembershipToRevoke()
@@ -90,6 +95,7 @@ public sealed class PrivilegeCheckTests
         var finding = PrivilegeCheck.Judge(Role() with { Table = "zqx_table" });
 
         Assert.Equal(CheckStatus.Failed, finding.Status);
+        Assert.Contains("responde como dono da tabela zqx_table,", finding.Message, StringComparison.Ordinal);
         Assert.Contains("ALTER TABLE zqx_table OWNER TO", finding.Message, StringComparison.Ordinal);
         Assert.Contains("FROM zqx_app", finding.Message, StringComparison.Ordinal);
     }

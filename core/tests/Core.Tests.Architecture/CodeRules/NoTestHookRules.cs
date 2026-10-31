@@ -32,9 +32,14 @@ internal static class NoTestHookRules
             .Select(entry => new Violation(
                 file.Path, SourceFile.LineOf(entry.Member), $"public member {entry.Identifier.ValueText} is named for a test"));
 
-    /// <summary>Only <c>&lt;Module&gt;.Tests</c>, with an optional <c>.Suffix</c>, may see the module's internals.</summary>
+    /// <summary>
+    /// Only <c>&lt;Module&gt;.Tests</c>, with an optional <c>.Suffix</c>, or the test project of one area of the module,
+    /// <c>&lt;Module&gt;.&lt;Area&gt;.Tests</c>, may see the module's internals.
+    /// </summary>
     private static bool IsOwnTestProject(string moduleName, string target) =>
-        target == moduleName + ".Tests" || target.StartsWith(moduleName + ".Tests.", StringComparison.Ordinal);
+        target == moduleName + ".Tests"
+        || target.StartsWith(moduleName + ".Tests.", StringComparison.Ordinal)
+        || (target.StartsWith(moduleName + ".", StringComparison.Ordinal) && target.EndsWith(".Tests", StringComparison.Ordinal));
 
     private static bool IsInternalsVisibleTo(AttributeSyntax attribute) =>
         ServiceTypeIndex.SimpleName(attribute.Name) is Attribute or Attribute + "Attribute";

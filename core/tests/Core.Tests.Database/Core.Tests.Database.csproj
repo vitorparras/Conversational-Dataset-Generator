@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Core.Persistence.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <!-- The database fixtures shared by the test projects of Core.Persistence and by Core.Tests.Integration; it holds no test, so it is a library and no test assembly. -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <IsTestProject>false</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Core.Persistence\Core.Persistence.csproj" />
+    <ProjectReference Include="..\Core.Tests.Support\Core.Tests.Support.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Remove="xunit.v3" />
+    <PackageReference Remove="Microsoft.Testing.Extensions.CodeCoverage" />
+    <PackageReference Include="xunit.v3.extensibility.core" />
+    <PackageReference Include="xunit.v3.assert" />
+    <PackageReference Include="Npgsql" />
+    <PackageReference Include="Testcontainers" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Core.Persistence.Tests" />
+    <InternalsVisibleTo Include="Core.Persistence.Migrations.Tests" />
+    <InternalsVisibleTo Include="Core.Persistence.Content.Tests" />
+    <InternalsVisibleTo Include="Core.Persistence.ServerGuarantees.Tests" />
+    <InternalsVisibleTo Include="Core.Tests.Integration" />
+  </ItemGroup>
+
+  <!-- Test code is not measured: the library is no test assembly, so coverage would instrument it and no area of 014 owns it. -->
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute" />
+  </ItemGroup>
+</Project>

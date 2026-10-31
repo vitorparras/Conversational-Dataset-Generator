@@ -2,24 +2,13 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Core.Persistence\Core.Persistence.csproj" />
     <ProjectReference Include="..\..\src\Core.Host\Core.Host.csproj" />
+    <ProjectReference Include="..\Core.Tests.Database\Core.Tests.Database.csproj" />
     <ProjectReference Include="..\Core.Tests.Support\Core.Tests.Support.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Npgsql" />
     <PackageReference Include="Testcontainers" />
-  </ItemGroup>
-
-  <!-- The database fixtures belong to Core.Persistence.Tests, the module's own project; this suite consumes them: one source, two test assemblies. -->
-  <ItemGroup>
-    <Compile Include="..\Core.Persistence.Tests\Fixtures\AppStartup.cs" Link="Fixtures\Shared\AppStartup.cs" />
-    <Compile Include="..\Core.Persistence.Tests\Fixtures\DatabaseFactAttribute.cs" Link="Fixtures\Shared\DatabaseFactAttribute.cs" />
-    <Compile Include="..\Core.Persistence.Tests\Fixtures\DatabaseReuse.cs" Link="Fixtures\Shared\DatabaseReuse.cs" />
-    <Compile Include="..\Core.Persistence.Tests\Fixtures\DatabaseTool.cs" Link="Fixtures\Shared\DatabaseTool.cs" />
-    <Compile Include="..\Core.Persistence.Tests\Fixtures\DockerAvailability.cs" Link="Fixtures\Shared\DockerAvailability.cs" />
-    <Compile Include="..\Core.Persistence.Tests\Fixtures\PostgresFixture.cs" Link="Fixtures\Shared\PostgresFixture.cs" />
-    <Compile Include="..\Core.Persistence.Tests\Fixtures\ScratchDatabase.cs" Link="Fixtures\Shared\ScratchDatabase.cs" />
-    <Compile Include="..\Core.Persistence.Tests\Fixtures\Sql.cs" Link="Fixtures\Shared\Sql.cs" />
   </ItemGroup>
 
   <!-- The test that starts the built host over a database reads the spellings of the key as the host's own tests do: one source, two test assemblies. -->

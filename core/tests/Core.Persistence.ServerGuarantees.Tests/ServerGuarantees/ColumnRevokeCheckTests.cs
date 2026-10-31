@@ -34,5 +34,10 @@ public sealed class ColumnRevokeCheckTests
         Assert.Equal(CheckStatus.Failed, finding.Status);
         Assert.Contains("UPDATE na tabela zqx_table inteira", finding.Message, StringComparison.Ordinal);
         Assert.Contains("REVOKE UPDATE ON zqx_table FROM zqx_app", finding.Message, StringComparison.Ordinal);
+        Assert.EndsWith("e conceda UPDATE só nas colunas permitidas", finding.Message, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void CheckWithoutADataSourceIsADefect() =>
+        _ = Assert.Throws<ArgumentNullException>(() => new ColumnRevokeCheck(null!));
 }

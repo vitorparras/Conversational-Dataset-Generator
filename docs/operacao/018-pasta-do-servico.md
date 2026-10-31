@@ -3,7 +3,7 @@
 > Operacional. 2026-10-29.
 
 A [decisão 0041](../decisoes/0041-distribuicao-do-servico-de-linguagem.md) entrega o serviço numa
-pasta ao lado do núcleo. Este documento é como a pasta se monta e o que ela garante. Quem a localiza
+pasta dentro da do núcleo. Aqui está como a pasta se monta e o que garante. Quem a localiza
 e confere ao iniciar é o núcleo, e isso não está aqui.
 
 ## Montar
@@ -56,5 +56,5 @@ de instalação local, o diretório que o `uv` grava nos dados de build do Linux
 
 ## Dois artefatos
 
-O núcleo é um executável; o serviço, a pasta ao lado dele: trocar a pasta atualiza o serviço. O
+O núcleo é um executável; o serviço, a pasta dentro da dele: trocar a pasta atualiza o serviço. O
 `.github/workflows/package.yml` publica por alvo `nucleo-<alvo>` e `servico-<alvo>`.

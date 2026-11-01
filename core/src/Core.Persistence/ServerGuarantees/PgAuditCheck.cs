@@ -7,7 +7,8 @@ namespace Core.Persistence.ServerGuarantees;
 /// <summary>
 /// Checks that the audit extension runs in the server: pgaudit loaded at startup, which only shared_preload_libraries can do,
 /// installed in the database, logging what the application's role reads and writes, and keeping out of the log the parameters of a statement,
-/// on error too, the detail of an error and the text of a query, with the audit lines kept where the server log holds them.
+/// on error too, the detail of an error and the text of a query that is not a statement of change, with the audit lines kept where the server log holds them,
+/// every statement of change written as text before it runs, and the time of the log in UTC, the only zone the reader of the log takes.
 /// Its own setting proves the load, since reading shared_preload_libraries takes a superuser.
 /// </summary>
 public sealed class PgAuditCheck : IStartupCheck
@@ -24,6 +25,8 @@ public sealed class PgAuditCheck : IStartupCheck
             (SELECT s.setting FROM pg_catalog.pg_settings s WHERE s.name = 'log_min_messages') AS min_messages,
             (SELECT s.setting FROM pg_catalog.pg_settings s WHERE s.name = 'pgaudit.log_client') AS log_client,
             (SELECT s.setting FROM pg_catalog.pg_settings s WHERE s.name = 'pgaudit.log_level') AS log_level,
+            (SELECT s.setting FROM pg_catalog.pg_settings s WHERE s.name = 'log_statement') AS log_statement,
+            (SELECT s.setting FROM pg_catalog.pg_settings s WHERE s.name = 'log_timezone') AS log_timezone,
             (SELECT pg_catalog.string_agg(s.name, ', ' ORDER BY s.name) FROM pg_catalog.pg_settings s
                 WHERE s.name IN ('debug_print_parse', 'debug_print_rewritten', 'debug_print_plan') AND s.setting = 'on') AS debug_prints,
             (SELECT e.extversion FROM pg_catalog.pg_extension e WHERE e.extname = 'pgaudit') AS version
@@ -78,7 +81,9 @@ public sealed class PgAuditCheck : IStartupCheck
                 Text(row, "min_messages"),
                 Text(row, "log_client"),
                 Text(row, "log_level"),
-                Text(row, "debug_prints")),
+                Text(row, "debug_prints"),
+                Text(row, "log_statement"),
+                Text(row, "log_timezone")),
             Text(row, "version"));
 
     private static string? Text(IDataRecord row, string column) => row[column] as string;

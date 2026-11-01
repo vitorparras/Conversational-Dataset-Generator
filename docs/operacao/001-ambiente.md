@@ -9,12 +9,13 @@ instala no destino. Fora deles, o ambiente oferece a máquina, o banco, a chave 
 
 ## O banco
 
-Um servidor PostgreSQL onde as garantias sejam do servidor, e não da aplicação, conforme a
-[decisão 0002](../decisoes/0002-stack.md):
+Um servidor PostgreSQL onde as garantias sejam do servidor, e não da aplicação ([decisão 0002](../decisoes/0002-stack.md)):
 
 - Política de linha aplicável com `FORCE`, para que o isolamento entre domínios valha até contra o
   dono da tabela, como a [decisão 0006](../decisoes/0006-dominios-coexistem.md) exige
-- Registro de auditoria por extensão, no servidor, fora do alcance da aplicação que ele audita
+- Registro de auditoria por extensão, no servidor, fora do alcance da aplicação que ele audita, em
+  `csvlog` fora do diretório de dados: o servidor escreve (`0640`) e o usuário do processo da
+  aplicação só lê, pelo grupo `postgres`; a retenção é a da cadeia, sem apagar nem sobrescrever
 - Isolamento serializável, sem o qual duas gravações simultâneas corrompem a cadeia em silêncio
 - Permissão de escrita revogável por coluna, e gatilhos, para que a tabela acrescentável não dependa
   de a aplicação lembrar
@@ -22,8 +23,7 @@ Um servidor PostgreSQL onde as garantias sejam do servidor, e não da aplicaçã
 
 O papel que a aplicação usa não é dono de tabela nem superusuário: com esse privilégio o gatilho de
 imutabilidade se desabilita, e a [cadeia de custódia](../privacidade/004-cadeia-de-custodia.md)
-aponta isso como seu elo mais fraco. A credencial de dono tem guarda própria, em
-[010](010-credencial-de-dono-do-banco.md).
+aponta isso como seu elo mais fraco. A credencial de dono tem guarda própria, em [010](010-credencial-de-dono-do-banco.md).
 
 ## A chave
 

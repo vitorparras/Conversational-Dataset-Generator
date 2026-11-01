@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text.RegularExpressions;
 using Core.Persistence.Custody;
 using Core.Persistence.Tests.Fixtures;
 using Npgsql;
@@ -8,8 +7,9 @@ namespace Core.Persistence.Tests.Custody;
 
 /// <summary>
 /// What the triggers of the server hold of an event once the privileges are no longer in the way (#59, CA-1 to CA-3): whoever is given UPDATE, DELETE or TRUNCATE back, the application's role
-/// or the owner's, in an ordinary session or in one that skips ordinary triggers, meets the SQLSTATE of the refusal, the chain is left as it was, and the server's own log says what was
-/// refused without a value of the event. The refusal by privilege that comes first is the subject of <see cref="CustodyChainGuaranteeTests"/>.
+/// or the owner's, in an ordinary session or in one that skips ordinary triggers, meets the SQLSTATE of the refusal, the chain is left as it
+/// was, and the server's own log has the audit line of what was attempted without a value of the event. The refusal by privilege that comes
+/// first is the subject of <see cref="CustodyChainGuaranteeTests"/>.
 /// </summary>
 [Trait("Category", "Database")]
 public sealed class CustodyImmutableServerTests : IClassFixture<CustodyDatabase>
@@ -100,25 +100,53 @@ public sealed class CustodyImmutableServerTests : IClassFixture<CustodyDatabase>
     [DatabaseTheory]
     [InlineData("UPDATE")]
     [InlineData("DELETE")]
-    [InlineData("TRUNCATE")]
     public async Task RefusedAttemptIsInTheServerLogWithTheOperationAndTheSequenceAndNoValueOfTheEvent(string operation)
     {
         var sequence = await AppendOneAsync();
+        var before = await ChainAsync();
         var kept = (await database.EventsAsync()).Single(row => row.Sequence == sequence);
         await database.RunAsOwnerAsync($"GRANT {Privileges} ON public.custody_event TO app");
         var tag = $"zqx-{Guid.NewGuid():N}";
 
         var refused = await RefusedAsync(await database.AppConnectionStringAsync(), operation, sequence, tag);
-        var block = await LoggedRefusalAsync(tag);
+        var line = await LoggedAttemptAsync(tag);
 
         AssertRefusal(refused, operation, sequence);
-        var logged = string.Join('\n', block);
-        Assert.Contains($"ERROR:  public.custody_event: {operation} refused", logged, StringComparison.Ordinal);
-        Assert.Equal(operation != "TRUNCATE", logged.Contains($"for the event of sequence {sequence}", StringComparison.Ordinal));
+        Assert.Equal(before, await ChainAsync());
+        Assert.Contains(",\"app\",", line, StringComparison.Ordinal);
+        Assert.Contains($",WRITE,{operation},", line, StringComparison.Ordinal);
+        Assert.Contains("public.custody_event", line, StringComparison.Ordinal);
+        Assert.Contains($"sequence = {sequence}", line, StringComparison.Ordinal);
+        var statement = line[line.IndexOf("AUDIT: SESSION,", StringComparison.Ordinal)..];
         foreach (var value in ValuesOf(kept))
         {
-            Assert.DoesNotContain(value, logged, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain(value, statement, StringComparison.OrdinalIgnoreCase);
         }
+    }
+
+    /// <summary>
+    /// pgaudit logs a utility statement such as TRUNCATE after it ran, so a TRUNCATE the trigger refuses is not in the audit log: the
+    /// refusal is proved by the SQLSTATE and the chain left as it was, and the log holds no line of the attempt, nor a value of the event.
+    /// The audited attempt that follows is in the log, which is written in order, so that the absence is read from a log that has caught up.
+    /// </summary>
+    [DatabaseFact]
+    public async Task RefusedTruncateIsNotInTheAuditLogThatLogsAUtilityStatementAfterItRan()
+    {
+        var sequence = await AppendOneAsync();
+        var before = await ChainAsync();
+        await database.RunAsOwnerAsync($"GRANT {Privileges} ON public.custody_event TO app");
+        var tag = $"zqx-{Guid.NewGuid():N}";
+        var lastTag = $"zqx-{Guid.NewGuid():N}";
+        var connectionString = await database.AppConnectionStringAsync();
+
+        var refused = await RefusedAsync(connectionString, "TRUNCATE", sequence, tag);
+        _ = await RefusedAsync(connectionString, "UPDATE", sequence, lastTag);
+        _ = await LoggedAttemptAsync(lastTag);
+
+        AssertRefusal(refused, "TRUNCATE", sequence);
+        Assert.Equal(before, await ChainAsync());
+        var shared = await PostgresFixture.SharedAsync();
+        Assert.DoesNotContain(tag, await shared.ServerLogAsync(), StringComparison.Ordinal);
     }
 
     private static IEnumerable<string> ValuesOf(EventRow row) =>
@@ -148,24 +176,24 @@ public sealed class CustodyImmutableServerTests : IClassFixture<CustodyDatabase>
     private static Task<PostgresException> RefusedAsync(string connectionString, string operation, long sequence, string tag = "zqx") =>
         CustodyDatabase.RefusedOnAsync(connectionString, Statement(operation, sequence, tag));
 
-    /// <summary>The lines the server wrote for the refusal of the statement tagged, from its ERROR to the STATEMENT that repeats it, of one session; the log of the container can lag.</summary>
-    private static async Task<IReadOnlyList<string>> LoggedRefusalAsync(string tag)
+    /// <summary>
+    /// The line of the server log that audits the statement tagged: the server logs a statement before its triggers run, so the attempt is
+    /// there although the refusal is not (the log keeps no error text, issue #60); the log can lag the statement.
+    /// </summary>
+    private static async Task<string> LoggedAttemptAsync(string tag)
     {
         var shared = await PostgresFixture.SharedAsync();
         var deadline = DateTimeOffset.UtcNow.AddSeconds(30);
         while (true)
         {
             var lines = (await shared.ServerLogAsync()).Split('\n');
-            var statement = Array.FindIndex(lines, line => line.Contains("STATEMENT:", StringComparison.Ordinal) && line.Contains(tag, StringComparison.Ordinal));
-            if (statement >= 0)
+            var line = Array.Find(lines, candidate => candidate.Contains("AUDIT: SESSION,", StringComparison.Ordinal) && candidate.Contains(tag, StringComparison.Ordinal));
+            if (line is not null)
             {
-                var session = Regex.Match(lines[statement], @"\[\d+\] ").Value;
-                var error = Array.FindLastIndex(lines, statement, line => line.Contains(session, StringComparison.Ordinal) && line.Contains("ERROR:", StringComparison.Ordinal));
-                Assert.True(error >= 0, "The STATEMENT of the refusal has no ERROR of the same session before it.");
-                return lines[error..(statement + 1)];
+                return line;
             }
 
-            Assert.True(DateTimeOffset.UtcNow < deadline, $"The server log has no refused statement tagged {tag} after 30 seconds.");
+            Assert.True(DateTimeOffset.UtcNow < deadline, $"The server log has no audit line for the statement tagged {tag} after 30 seconds.");
             await Task.Delay(TimeSpan.FromMilliseconds(250), TestContext.Current.CancellationToken);
         }
     }

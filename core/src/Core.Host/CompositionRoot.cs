@@ -209,8 +209,7 @@ internal static class CompositionRoot
 
         var app = builder.Build();
         _ = app.Services.GetRequiredService<ServiceProvider>();
-        await StartupVersions.WriteAsync(
-            app.Logger, app.Services.GetRequiredService<VersionReport>(), app.Services.GetRequiredService<IServiceVersionReader>(), CancellationToken.None);
+        await StartupVersions.WriteAsync(app.Logger, app.Services.GetRequiredService<VersionReport>(), app.Services.GetRequiredService<IServiceVersionReader>(), CancellationToken.None);
         InstallationConfiguration.Announce(app.Logger, app.Services);
         HostRoutes.Map(app, recognizer);
         return app;

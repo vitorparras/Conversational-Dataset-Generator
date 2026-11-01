@@ -59,26 +59,33 @@ def area_of(unit: str, areas: tuple[Area, ...]) -> Area | None:
     return max(owners, key=lambda area: len(area.prefix), default=None)
 
 
+def field_lines(lines: list[str]) -> list[tuple[int, str, str]]:
+    """The (line number, field, value) of each field line; a line indented by two spaces right
+    below a field, or below another such line, goes on with the value of that field."""
+    found: list[tuple[int, str, str]] = []
+    open_value = False
+    for number, line in enumerate(lines, start=1):
+        field = FIELD.fullmatch(line)
+        goes_on = open_value and CONTINUATION.fullmatch(line) is not None
+        if field is not None:
+            found.append((number, field[1], field[2].strip()))
+        elif goes_on:
+            first, name, value = found[-1]
+            found[-1] = (first, name, f"{value} {line.strip()}")
+        open_value = field is not None or goes_on
+    return found
+
+
 def fields_of(path: str, lines: list[str]) -> tuple[dict[str, str], list[str]]:
     """The value of each fixed field of one file and the problems of its title and fields."""
     found: dict[str, str] = {}
     problems: list[str] = []
     if not lines or TITLE.fullmatch(lines[0]) is None:
         problems.append(f"{path}:1: falta o título `# Nome da área` na primeira linha")
-    current = ""
-    for number, line in enumerate(lines, start=1):
-        field = FIELD.fullmatch(line)
-        if field is None:
-            # A line indented by two spaces goes on with the value of the field above it.
-            if current and CONTINUATION.fullmatch(line):
-                found[current] = f"{found[current]} {line.strip()}"
-            else:
-                current = ""
-            continue
-        current = field[1]
-        if current in found:
-            problems.append(f"{path}:{number}: o campo `{current}` já aparece antes")
-        found.setdefault(current, field[2].strip())
+    for number, name, value in field_lines(lines):
+        if name in found:
+            problems.append(f"{path}:{number}: o campo `{name}` já aparece antes")
+        found.setdefault(name, value)
     problems.extend(f"{path}: falta o campo `{name}`" for name in FIELDS if name not in found)
     return found, problems
 
@@ -116,15 +123,23 @@ def misnamed(path: str, area: Area) -> list[str]:
     )
 
 
+def declarations(declared: list[tuple[str, Area]]) -> list[tuple[tuple[str, str], str]]:
+    """The (kind, value) each file declares, its area name and its project or package, by file."""
+    return [
+        ((kind, value), path)
+        for path, area in declared
+        for kind, value in (("name", area.name), ("prefix", area.prefix))
+    ]
+
+
 def duplicates(declared: list[tuple[str, Area]]) -> list[str]:
     """A problem for each file whose area name or project/package an earlier file declared."""
     first: dict[tuple[str, str], str] = {}
     found: list[str] = []
-    for path, area in declared:
-        for key in (("name", area.name), ("prefix", area.prefix)):
-            if key in first:
-                found.append(f"{path}: `{key[1]}` já aparece em {first[key]}")
-            first.setdefault(key, path)
+    for key, path in declarations(declared):
+        if key in first:
+            found.append(f"{path}: `{key[1]}` já aparece em {first[key]}")
+        first.setdefault(key, path)
     return found
 
 

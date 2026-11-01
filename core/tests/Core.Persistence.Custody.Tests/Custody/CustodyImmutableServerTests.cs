@@ -162,8 +162,8 @@ public sealed class CustodyImmutableServerTests : IClassFixture<CustodyDatabase>
         var deadline = DateTimeOffset.UtcNow.AddSeconds(30);
         while (true)
         {
-            var line = (await shared.ServerLogAsync()).Split('\n')
-                .FirstOrDefault(candidate => candidate.Contains("AUDIT: SESSION,", StringComparison.Ordinal) && candidate.Contains(tag, StringComparison.Ordinal));
+            var lines = (await shared.ServerLogAsync()).Split('\n');
+            var line = Array.Find(lines, candidate => candidate.Contains("AUDIT: SESSION,", StringComparison.Ordinal) && candidate.Contains(tag, StringComparison.Ordinal));
             if (line is not null)
             {
                 return line;

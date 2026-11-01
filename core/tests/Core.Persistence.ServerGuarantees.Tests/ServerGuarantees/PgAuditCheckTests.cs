@@ -167,7 +167,7 @@ public sealed class PgAuditCheckTests
     [Fact]
     public void QueryTextPrintedByTheServerFailsNamingTheSettings()
     {
-        var finding = PgAuditCheck.Judge(Settings(debugPrints: "debug_print_parse, debug_print_plan"), extensionVersion: "17.0");
+        var finding = PgAuditCheck.Judge(Settings() with { DebugPrints = "debug_print_parse, debug_print_plan" }, extensionVersion: "17.0");
 
         Assert.Equal(CheckStatus.Failed, finding.Status);
         Assert.Contains("debug_print_parse, debug_print_plan = on", finding.Message, StringComparison.Ordinal);
@@ -193,7 +193,6 @@ public sealed class PgAuditCheckTests
         string? parameterMaxLengthOnError = "0",
         string? minMessages = "log",
         string? logClient = "off",
-        string? logLevel = "log",
-        string? debugPrints = null) =>
-        new(log, logParameter, parameterMaxLength, parameterMaxLengthOnError, minMessages, logClient, logLevel, debugPrints);
+        string? logLevel = "log") =>
+        new(log, logParameter, parameterMaxLength, parameterMaxLengthOnError, minMessages, logClient, logLevel);
 }

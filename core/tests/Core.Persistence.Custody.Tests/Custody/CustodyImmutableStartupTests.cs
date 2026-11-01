@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using Core.Persistence.Custody;
 using Core.Persistence.Migrations;
 using Core.Persistence.ServerGuarantees;
@@ -173,6 +172,7 @@ public sealed class CustodyImmutableStartupTests
     public Task TriggerPutBackNarrowerReallyLetsAnOwnerSessionChangeTheEventAndTheStartRefusesIt(string tampering, string change, int remaining)
     {
         ArgumentNullException.ThrowIfNull(tampering);
+        ArgumentNullException.ThrowIfNull(change);
         return NarrowerTriggerLetsTheChangeThroughAsync(tampering, change, remaining);
     }
 

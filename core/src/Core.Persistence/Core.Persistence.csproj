@@ -16,6 +16,7 @@
     <InternalsVisibleTo Include="Core.Persistence.Migrations.Tests" />
     <InternalsVisibleTo Include="Core.Persistence.Content.Tests" />
     <InternalsVisibleTo Include="Core.Persistence.Custody.Tests" />
+    <InternalsVisibleTo Include="Core.Persistence.Custody.Verification.Tests" />
     <InternalsVisibleTo Include="Core.Persistence.ServerGuarantees.Tests" />
   </ItemGroup>
 </Project>

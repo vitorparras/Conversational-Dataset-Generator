@@ -7,8 +7,9 @@ namespace Core.Persistence.Tests.Custody;
 
 /// <summary>
 /// What the triggers of the server hold of an event once the privileges are no longer in the way (#59, CA-1 to CA-3): whoever is given UPDATE, DELETE or TRUNCATE back, the application's role
-/// or the owner's, in an ordinary session or in one that skips ordinary triggers, meets the SQLSTATE of the refusal, the chain is left as it was, and the server's own log has the audit line of what was
-/// attempted without a value of the event. The refusal by privilege that comes first is the subject of <see cref="CustodyChainGuaranteeTests"/>.
+/// or the owner's, in an ordinary session or in one that skips ordinary triggers, meets the SQLSTATE of the refusal, the chain is left as it
+/// was, and the server's own log has the audit line of what was attempted without a value of the event. The refusal by privilege that comes
+/// first is the subject of <see cref="CustodyChainGuaranteeTests"/>.
 /// </summary>
 [Trait("Category", "Database")]
 public sealed class CustodyImmutableServerTests : IClassFixture<CustodyDatabase>

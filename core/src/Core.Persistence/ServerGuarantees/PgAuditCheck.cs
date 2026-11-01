@@ -7,7 +7,8 @@ namespace Core.Persistence.ServerGuarantees;
 /// <summary>
 /// Checks that the audit extension runs in the server: pgaudit loaded at startup, which only shared_preload_libraries can do,
 /// installed in the database, logging what the application's role reads and writes, and keeping out of the log the parameters of a statement,
-/// on error too, the detail of an error and the text of a query, with the audit lines kept where the server log holds them. Its own setting proves the load, since reading shared_preload_libraries takes a superuser.
+/// on error too, the detail of an error and the text of a query, with the audit lines kept where the server log holds them.
+/// Its own setting proves the load, since reading shared_preload_libraries takes a superuser.
 /// </summary>
 public sealed class PgAuditCheck : IStartupCheck
 {
@@ -69,7 +70,15 @@ public sealed class PgAuditCheck : IStartupCheck
 
     private static Finding Judged(IDataRecord row) =>
         Judge(
-            new AuditSettings(Text(row, "log"), Text(row, "log_parameter"), Text(row, "parameter_max_length"), Text(row, "parameter_max_length_on_error"), Text(row, "min_messages"), Text(row, "log_client"), Text(row, "log_level"), Text(row, "debug_prints")),
+            new AuditSettings(
+                Text(row, "log"),
+                Text(row, "log_parameter"),
+                Text(row, "parameter_max_length"),
+                Text(row, "parameter_max_length_on_error"),
+                Text(row, "min_messages"),
+                Text(row, "log_client"),
+                Text(row, "log_level"),
+                Text(row, "debug_prints")),
             Text(row, "version"));
 
     private static string? Text(IDataRecord row, string column) => row[column] as string;

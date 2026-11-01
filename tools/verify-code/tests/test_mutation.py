@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from unittest import mock
 
-from steps import areas_doc, mutation_policy
+from steps import mutation_policy
 
 from . import mutation_fixture as fixture
 from . import support
@@ -98,7 +98,7 @@ class MutationStepTests(fixture.MutationFixture):
 
     def test_an_area_not_marked_critical_is_not_mutated_whatever_its_floor(self) -> None:
         document = DOCUMENT.replace("Logging` | 90 % | sim", "Logging` | 90 % | não")
-        support.write(self.root, areas_doc.DOCUMENT, document)
+        support.write_areas(self.root, document)
         runner = healthy()
 
         self.run_step(runner)
@@ -122,7 +122,7 @@ class MutationStepTests(fixture.MutationFixture):
     def test_an_area_whose_folder_is_absent_from_its_project_is_without_code(self) -> None:
         row = "| Rede | `Core.Platform.Network` | 90 % | sim | ZQX |\n"
         document = DOCUMENT.replace("| Serviço |", f"{row}| Serviço |")
-        support.write(self.root, areas_doc.DOCUMENT, document)
+        support.write_areas(self.root, document)
         runner = healthy()
 
         result = self.run_step(runner)
@@ -162,7 +162,7 @@ class MutationStepTests(fixture.MutationFixture):
     def test_a_critical_area_no_tool_reaches_fails_naming_it(self) -> None:
         row = "| Ferramentas | `tools` | 90 % | sim | ZQX |\n"
         document = DOCUMENT.replace("| Serviço |", f"{row}| Serviço |")
-        support.write(self.root, areas_doc.DOCUMENT, document)
+        support.write_areas(self.root, document)
 
         result = self.run_step(healthy())
 

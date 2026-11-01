@@ -194,6 +194,15 @@ O servidor de banco precisa registrar `log_statement = mod`, `log_timezone = UTC
 sem o último a linha de auditoria não diz a tabela, e sem os outros o comando recusado, o DDL e o
 `TRUNCATE`, não ficam em camada nenhuma, ou o registro não é lido.
 
+`audit-compare` compara esse registro com a cadeia de custódia, sem servir nada:
+`nucleo audit-compare --Audit:From=... --Audit:To=... --Audit:ServerLogDirectory=... --Database:...`
+(a credencial é a da aplicação). Para cada papel, tabela e comando, confere quantas vezes o
+servidor viu o que a cadeia registrou, pelo mapa de `AuditMap` (passo da cadeia ↔ tabela e
+comando), e imprime cada diferença com os passos envolvidos. Sai com 0 quando não há diferença
+nova e com 20 quando há;
+a diferença conhecida, o recálculo da senha na entrada (#69), que grava a credencial sem evento até
+a #71, sai com o motivo e não reprova.
+
 `MasterKey:File` e `MasterKey:LabelsFile` são obrigatórias ao servir, sem valor padrão, e levam os
 caminhos dos arquivos da chave e dos rótulos, nunca a chave. O núcleo recusa arquivo ausente, com
 permissão aberta a quem não é o dono do processo, dentro da pasta do executável, ou fora do

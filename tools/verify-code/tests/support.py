@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import importlib.util
 import re
+import shutil
 import subprocess
 import sys
 from collections.abc import Mapping, Sequence
@@ -14,6 +15,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from types import ModuleType
 
+from steps import areas_doc
 from steps.common import OUTPUT_DIRECTORY, CommandOutcome, Context, RunCommand, run_process
 
 VERIFY_CODE = Path(__file__).resolve().parents[1]
@@ -81,6 +83,26 @@ def write(root: Path, relative: str, content: str) -> None:
     target = root / relative
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(content, encoding="utf-8", newline="\n")
+
+
+TABLE_HEADER = "| Área | Projeto/pacote | Piso | Crítica | Motivo |"
+
+
+def write_areas(root: Path, table: str) -> None:
+    """Replaces the area folder of ``root`` by one file per row of a table with ``TABLE_HEADER``,
+    so a test can keep its areas as the rows of one text."""
+    folder = root / areas_doc.FOLDER
+    shutil.rmtree(folder, ignore_errors=True)
+    for line in table.splitlines():
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if not line.startswith("| ") or len(cells) != len(areas_doc.FIELDS) + 1:
+            continue
+        if line == TABLE_HEADER:
+            continue
+        name, prefix, floor, critical, reason = cells
+        lines = (f"# {name}", "", "> Operacional.", "", f"- Projeto/pacote: {prefix}")
+        fields = (f"- Piso: {floor}", f"- Crítica: {critical}", f"- Motivo: {reason}")
+        write(folder, f"{prefix.strip('`')}.md", "\n".join((*lines, *fields, "")))
 
 
 def trx(project: str, executed: int, failed: int, skipped: str = "") -> str:

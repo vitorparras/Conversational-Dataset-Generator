@@ -1,7 +1,7 @@
 """The defects the ruler proof plants in a disposable copy, and how each refusal is recognised.
 
 One is a false property added to the service's property suite; one flips the comparison of the
-startup secret in a critical module of docs/operacao/014; one adds code no test runs to that same
+startup secret in a critical module of docs/operacao/areas; one adds code no test runs to that same
 module, which pulls its coverage under the floor; the last empties the tests that check it, so the
 mutants it leaves unchecked survive. Each aims at the service because it costs least, and the
 last at a single module so the proof does not pay for the whole mutation matrix. None is ever
@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from steps import mutation_service
-from steps.areas_doc import DOCUMENT, Area, read_areas
+from steps.areas_doc import FOLDER, Area, read_areas
 from steps.build_service import SERVICE
 
 MARKER = "semeada_pela_prova_da_regua"
@@ -92,10 +92,10 @@ def critical_area(copy: Path) -> Area | str:
     table = read_areas(copy)
     area = next((a for a in table.areas if a.prefix == CRITICAL_MODULE), None)
     if table.problems or area is None:
-        return f"`{CRITICAL_MODULE}` não é uma área de {DOCUMENT}"
+        return f"`{CRITICAL_MODULE}` não é uma área de {FOLDER}"
     if area.name != CRITICAL_AREA or area.floor is None or not area.critical:
         return (
-            f"{DOCUMENT}: `{CRITICAL_MODULE}` não é mais crítica e com piso, como `{CRITICAL_AREA}`"
+            f"{FOLDER}: `{CRITICAL_MODULE}` não é mais crítica e com piso, como `{CRITICAL_AREA}`"
         )
     return area
 

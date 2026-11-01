@@ -2,7 +2,7 @@ using Core.Tests.Architecture.CodeRules;
 
 namespace Core.Tests.Architecture.Boundaries;
 
-/// <summary>The host holds composition, endpoints and supervision only, as docs/operacao/014-modulos-criticos-e-pisos.md describes it, with fixtures that name the domain.</summary>
+/// <summary>The host holds composition, endpoints and supervision only, as docs/operacao/areas/Core.Host.md describes it, with fixtures that name the domain.</summary>
 public sealed class NoDomainRuleInHostTests
 {
     private const string Fixtures = "host-domain";

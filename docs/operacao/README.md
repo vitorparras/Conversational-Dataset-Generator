@@ -30,7 +30,7 @@ e por quem ela roda.
 | [016](016-migracao-do-esquema.md) | A migração do esquema do banco |
 | [017](017-teste-de-mutacao.md) | O teste de mutação |
 | [018](018-pasta-do-servico.md) | A pasta do serviço de linguagem |
-| [019](019-leitura-da-tabela-pelo-floors.md) | O que o passo floors lê na tabela da 014 |
+| [019](019-leitura-da-tabela-pelo-floors.md) | O que o passo floors lê nos arquivos de áreas |
 | [020](020-codigo-no-repositorio.md) | O código no repositório: árvore, comandos e o que reprova |
 | [021](021-subir-o-nucleo-publicado.md) | Subir o núcleo publicado |
 | [022](022-conferir-o-nucleo-publicado.md) | Conferir o núcleo publicado |

@@ -27,7 +27,7 @@ INNER_ROW = "| Interno | `language_service.logging_.inner` | 80 % | não | ZQX |
 
 class MutationScopeTests(fixture.MutationFixture):
     def replace_in_document(self, old: str, new: str) -> None:
-        support.write(self.root, areas_doc.DOCUMENT, DOCUMENT.replace(old, new))
+        support.write_areas(self.root, DOCUMENT.replace(old, new))
 
     def test_a_tool_configuration_in_the_service_project_fails_before_mutmut_runs(self) -> None:
         support.write(self.root, "language-service/pyproject.toml", "[tool.mutmut]\nx = 1\n")
@@ -38,7 +38,7 @@ class MutationScopeTests(fixture.MutationFixture):
         self.assertFalse(result.ok)
         self.assertEqual(runner.called("--max-children"), [])
         expected = "language-service/pyproject.toml tem `[tool.mutmut]`; o escopo vem de"
-        self.assertIn(f"serviço (Python): {expected} {areas_doc.DOCUMENT}", result.details)
+        self.assertIn(f"serviço (Python): {expected} {areas_doc.FOLDER}", result.details)
 
     def test_a_tool_configuration_in_a_nested_project_of_the_service_fails(self) -> None:
         support.write(self.root, "language-service/tests/sub/pyproject.toml", "[tool.mutmut]\n")
@@ -48,12 +48,12 @@ class MutationScopeTests(fixture.MutationFixture):
         self.assertFalse(result.ok)
 
     def test_a_document_with_no_critical_area_fails_before_any_tool_runs(self) -> None:
-        support.write(self.root, areas_doc.DOCUMENT, DOCUMENT.replace("| sim |", "| não |"))
+        support.write_areas(self.root, DOCUMENT.replace("| sim |", "| não |"))
         runner = healthy()
 
         result = self.run_step(runner)
 
-        self.assertEqual(result.details, (f"{areas_doc.DOCUMENT}: nenhuma área com Crítica `sim`",))
+        self.assertEqual(result.details, (f"{areas_doc.FOLDER}: nenhuma área com Crítica `sim`",))
         self.assertEqual(runner.commands, [])
 
     def test_a_critical_area_with_a_floor_of_95_is_mutated_and_does_not_fail(self) -> None:

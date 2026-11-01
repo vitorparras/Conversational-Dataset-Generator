@@ -25,9 +25,10 @@ FAMILIES = ("secret-literal", "sql-concatenation", "path-from-input", "weak-cryp
 REQUIRED_RULES = tuple(f"{family}-{lang}" for family in FAMILIES for lang in ("python", "csharp"))
 QUIET = ("--metrics=off", "--disable-version-check", "--quiet")
 RULE_TESTS = f"{TOOL} --test --config {RULES} {EXAMPLES}"
-# Lines of core/src the C# parser of the pinned semgrep cannot read (C# 12 collection expressions).
+# Lines of core/src the C# parser of the pinned semgrep cannot read: the declaration line of
+# C# 12 primary constructors (the body is analysed).
 # Raise it only with the reason in the pull request; lower it when the code or semgrep allows.
-UNPARSED_CORE_SRC_LINES = 14
+UNPARSED_CORE_SRC_LINES = 11
 DISPENSING = "não sendo defeito: `nosemgrep: <regra> <motivo>` na linha ou acima, fora de core/src"
 
 

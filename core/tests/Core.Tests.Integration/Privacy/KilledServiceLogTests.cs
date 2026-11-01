@@ -1,6 +1,7 @@
+using Core.Persistence.Tests.Fixtures;
 using System.Net;
 
-namespace Core.Host.Tests.Privacy;
+namespace Core.Tests.Integration.Privacy;
 
 /// <summary>
 /// The error path writes no more content than the normal one: a language service killed by its process number, the
@@ -10,7 +11,7 @@ namespace Core.Host.Tests.Privacy;
 [Trait("Category", "RealService")]
 public sealed class KilledServiceLogTests
 {
-    [Fact]
+    [DatabaseFact]
     public async Task AnalysisAfterTheServiceWasKilledIsRefused()
     {
         var outcome = await KilledServiceRun.OutcomeAsync();
@@ -18,7 +19,7 @@ public sealed class KilledServiceLogTests
         Assert.Equal(HttpStatusCode.ServiceUnavailable, outcome.Refused);
     }
 
-    [Fact]
+    [DatabaseFact]
     public async Task RefusedAnalysisIsLoggedAsInterruptedWithItsReference()
     {
         var outcome = await KilledServiceRun.OutcomeAsync();
@@ -27,7 +28,7 @@ public sealed class KilledServiceLogTests
         Assert.Contains($"[204] Análise {outcome.Interrupted} interrompida: ", outcome.Stdout, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [DatabaseFact]
     public async Task RetryNamingTheInterruptedAnalysisIsLoggedWithBothReferences()
     {
         var outcome = await KilledServiceRun.OutcomeAsync();
@@ -37,7 +38,7 @@ public sealed class KilledServiceLogTests
         Assert.Contains($"pedida para retomar a análise interrompida {outcome.Interrupted}", outcome.LogText, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [DatabaseFact]
     public async Task BodyOutsideTheShapeOfTheRouteIsRejected()
     {
         var outcome = await KilledServiceRun.OutcomeAsync();
@@ -45,7 +46,7 @@ public sealed class KilledServiceLogTests
         Assert.Equal(HttpStatusCode.BadRequest, outcome.Rejected);
     }
 
-    [Fact]
+    [DatabaseFact]
     public async Task ServiceKilledFromOutsideIsLoggedAsLost()
     {
         var outcome = await KilledServiceRun.OutcomeAsync();
@@ -53,7 +54,7 @@ public sealed class KilledServiceLogTests
         Assert.Contains("[102] Serviço de linguagem encerrou", outcome.LogText, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [DatabaseFact]
     public async Task MarkerSeededInTheErrorPathReachesNoDestination()
     {
         var outcome = await KilledServiceRun.OutcomeAsync();

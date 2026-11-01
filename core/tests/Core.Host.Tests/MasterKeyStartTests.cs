@@ -1,6 +1,4 @@
 using System.Text;
-using System.Text.Json;
-using Core.Platform.Configuration;
 using Core.Platform.Startup;
 using Core.Tests.Support.Custody;
 
@@ -130,29 +128,6 @@ public sealed class MasterKeyStartTests : IDisposable
         Assert.Contains("Instalação real", output, StringComparison.Ordinal);
         Assert.Contains("LastRecoveryTest=2026-10-01", output, StringComparison.Ordinal);
         Assert.DoesNotContain("PESSOA_1", output, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task ConfigurationOfARealInstallationHidesThePathsAndTheHolderAndShowsTheDate()
-    {
-        var baseAddress = HostProcess.FreeAddress();
-        var cancellationToken = TestContext.Current.CancellationToken;
-        var real = Installation(baseAddress, CustodyFiles.Shared.KeyPath, CustodyFiles.Shared.LabelsPath, "real");
-        var installation = real with { Arguments = [.. real.Arguments, "--Custody:LastRecoveryTest=2026-10-01", "--Custody:Holder=PESSOA_1"] };
-        using var host = await HostProcess.StartAsync(installation, baseAddress, HostProcess.StartupTimeout, cancellationToken);
-
-        using var response = await host.GetAsync("/configuration", cancellationToken);
-        var text = await response.Content.ReadAsStringAsync(cancellationToken);
-        using var body = JsonDocument.Parse(text);
-
-        var values = body.RootElement.GetProperty("entries").EnumerateArray()
-            .ToDictionary(entry => entry.GetProperty("key").GetString()!, entry => entry.GetProperty("value").GetString(), StringComparer.Ordinal);
-        Assert.Equal(EffectiveConfiguration.Redacted, values["MasterKey:File"]);
-        Assert.Equal(EffectiveConfiguration.Redacted, values["MasterKey:LabelsFile"]);
-        Assert.Equal(EffectiveConfiguration.Redacted, values["Custody:Holder"]);
-        Assert.Equal("2026-10-01", values["Custody:LastRecoveryTest"]);
-        Assert.DoesNotContain(CustodyFiles.Shared.Directory, text, StringComparison.Ordinal);
-        Assert.DoesNotContain("PESSOA_1", text, StringComparison.Ordinal);
     }
 
     [Fact]

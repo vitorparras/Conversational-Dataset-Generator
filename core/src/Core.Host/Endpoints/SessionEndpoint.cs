@@ -10,9 +10,9 @@ internal static class SessionEndpoint
 
     internal static void Map(IEndpointRouteBuilder endpoints)
     {
-        _ = endpoints.MapPost(Route, EnterAsync);
+        _ = endpoints.MapPost(Route, EnterAsync).WithMetadata(new SessionOpen());
         _ = endpoints.MapDelete(Route, Leave);
-        _ = endpoints.MapGet(Route, () => Results.NoContent()).WithMetadata(new SessionRequired(Route));
+        _ = endpoints.MapGet(Route, () => Results.NoContent());
     }
 
     /// <summary>A refusal says the same whatever its cause; with no database declared there is nobody to enter, and the answer says it is the host that cannot.</summary>

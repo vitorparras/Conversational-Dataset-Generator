@@ -9,12 +9,6 @@ namespace Core.Persistence.ServerGuarantees;
 /// </summary>
 public static class AuditMap
 {
-    /// <summary>
-    /// The schema of the content, named apart from its tables: a name here is how the server's log names an object and not a statement over the
-    /// schema, which the rule on the content schema keeps in the list of queries.
-    /// </summary>
-    private const string ContentSchema = "content";
-
     /// <summary>Why the recomputation of a password at sign-in is the one known difference: it writes the credential without an event until issue #71 gives it one.</summary>
     public static string RecomputeWithoutEvent { get; } = "recálculo da senha na entrada (#69) grava a credencial sem evento até a #71";
 
@@ -28,11 +22,9 @@ public static class AuditMap
             "public.person_change",
             ["INSERT"],
             [CustodyStep.PersonCreated, CustodyStep.PersonDeactivated, CustodyStep.PersonFunctionChanged, CustodyStep.PersonPasswordSet]),
-        new(Qualified(ContentSchema, "item_text"), ["SELECT"], [CustodyStep.RawTextRead, CustodyStep.SanitizedTextRead]),
-        new(Qualified(ContentSchema, "reversal_map"), ["SELECT"], [CustodyStep.ReversalEntriesRead]),
+        new("content.item_text", ["SELECT"], [CustodyStep.RawTextRead, CustodyStep.SanitizedTextRead]),
+        new("content.reversal_map", ["SELECT"], [CustodyStep.ReversalEntriesRead]),
     ];
-
-    private static string Qualified(string schema, string table) => schema + "." + table;
 
     /// <summary>The steps that touch no table, each with the reason.</summary>
     public static IReadOnlyDictionary<CustodyStep, string> StepsWithoutTable { get; } = new Dictionary<CustodyStep, string>

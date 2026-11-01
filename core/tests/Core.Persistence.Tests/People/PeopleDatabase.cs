@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Core.Persistence.Custody;
 using Core.Persistence.Migrations;
 using Core.Persistence.People;
 using Core.Persistence.Tests.Fixtures;
@@ -23,6 +24,14 @@ public sealed class PeopleDatabase : IAsyncDisposable
         var scratch = await ScratchAsync();
         application ??= NpgsqlDataSource.Create(scratch.AppConnectionString);
         return new PersonRegistry(application);
+    }
+
+    /// <summary>Appends an event to the chain as the application's role.</summary>
+    internal async Task<CustodyResult> AppendToChainAsync(CustodyEvent custodyEvent)
+    {
+        var scratch = await ScratchAsync();
+        application ??= NpgsqlDataSource.Create(scratch.AppConnectionString);
+        return await new CustodyChain(application).AppendAsync(custodyEvent, TestContext.Current.CancellationToken);
     }
 
     /// <summary>The store of passwords, writing as the application's role and deriving with the work factor given.</summary>

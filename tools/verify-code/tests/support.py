@@ -105,14 +105,22 @@ def write_areas(root: Path, table: str) -> None:
         write(folder, f"{prefix.strip('`')}.md", "\n".join((*lines, *fields, "")))
 
 
-def trx(project: str, executed: int, failed: int, skipped: str = "") -> str:
-    """A TRX report reduced to what the step reads: counters, one assembly, one skip reason."""
+def trx(
+    project: str, executed: int, failed: int, skipped: str = "", failure: str = ""
+) -> str:
+    """A TRX report reduced to what the step reads: counters, one assembly, a skip, a failure."""
     skip = (
         '  <Results><UnitTestResult testName="s" outcome="NotExecuted">'
         f"<Output><StdOut>{skipped}</StdOut></Output></UnitTestResult></Results>\n"
         if skipped
         else ""
     )
+    if failure:
+        name, message = failure.split("|", 1)
+        skip += (
+            f'  <Results><UnitTestResult testName="{name}" outcome="Failed"><Output><ErrorInfo>'
+            f"<Message>{message}</Message></ErrorInfo></Output></UnitTestResult></Results>\n"
+        )
     return (
         '<?xml version="1.0" encoding="utf-8"?>\n'
         '<TestRun xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">\n'

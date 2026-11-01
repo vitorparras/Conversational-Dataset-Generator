@@ -12,6 +12,7 @@ namespace Core.Persistence.Tests.People;
 [Trait("Category", "Database")]
 public sealed class PeopleAuditFidelityTests : IClassFixture<PeopleDatabase>
 {
+    // nosemgrep: secret-literal-csharp a synthetic password of this test, which hashes it into a throwaway database.
     private const string Password = "zqx-senha-sintetica";
     private readonly PeopleDatabase database;
 

@@ -15,7 +15,8 @@ Um servidor PostgreSQL onde as garantias sejam do servidor, e não da aplicaçã
   dono da tabela, como a [decisão 0006](../decisoes/0006-dominios-coexistem.md) exige
 - Registro de auditoria por extensão, no servidor, fora do alcance da aplicação, uma linha por
   tabela tocada (`pgaudit.log_relation`), em `csvlog` em UTC fora do diretório de dados (`0640`;
-  a aplicação só lê, pelo grupo `postgres`) e o texto do comando que altera (`log_statement = mod`)
+  a aplicação só lê, pelo grupo `postgres`) e o texto do comando que altera (`log_statement = mod`),
+  sem valor; retenção da cadeia, sem apagar
 - Isolamento serializável, sem o qual duas gravações simultâneas corrompem a cadeia em silêncio
 - Permissão de escrita revogável por coluna, e gatilhos, para que a tabela acrescentável não dependa
   de a aplicação lembrar

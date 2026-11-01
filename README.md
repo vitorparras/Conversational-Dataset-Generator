@@ -167,8 +167,10 @@ A instalação real também declara `Custody:LastRecoveryTest` (data ISO) e `Cus
 dois a partida recusa.
 
 `Passwords:WorkFactor` é obrigatória ao servir, sem valor padrão, e leva o fator de trabalho da
-derivação das senhas, um número inteiro positivo de iterações que quem instala escolhe (`ITERACOES`
-acima é marcador). A recusa nomeia a chave; `/configuration` mostra o valor em vigor e de onde veio.
+derivação das senhas, um número inteiro de iterações que quem instala escolhe: de 600000 a 10000000
+na instalação real e de 1 a 10000000 na demonstração ([0047](docs/decisoes/0047-fator-de-trabalho-das-senhas.md)).
+`ITERACOES` acima é marcador. A recusa nomeia a chave e o limite; `/configuration` mostra o valor em
+vigor e de onde veio.
 
 `Session:IdleTimeout` e `Session:AbsoluteTimeout` são obrigatórias ao servir, sem valor padrão, e
 levam cada uma uma duração maior que zero (`00:30:00`, horas:minutos:segundos, ou `1.00:00:00`, com

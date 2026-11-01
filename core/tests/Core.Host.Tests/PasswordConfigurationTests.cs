@@ -6,11 +6,14 @@ namespace Core.Host.Tests;
 
 /// <summary>
 /// The work factor of the derivation of passwords (#69): every installation declares it, it has no default anywhere,
-/// and a value that is not a whole number above zero is refused naming the key.
+/// and a value outside the interval of the installation is refused naming the key and the limit crossed (#494, decision 0047): a real installation takes
+/// from 600000 to 10000000, a demonstration from 1 to 10000000.
 /// </summary>
 public sealed class PasswordConfigurationTests
 {
     private const string Key = "Passwords:WorkFactor";
+    private const string Demonstration = "--Installation:Kind=demonstracao";
+    private const string Real = "--Installation:Kind=real";
 
     [Fact]
     public void FactorNotDeclaredIsRefusedAsMissingAndNamesTheKey()
@@ -26,7 +29,7 @@ public sealed class PasswordConfigurationTests
     [Fact]
     public void FactorDeclaredIsTheOneTheDerivationRunsWith()
     {
-        var loaded = Loaded($"--{Key}=7");
+        var loaded = Loaded($"--{Key}=7", Demonstration);
 
         Assert.Empty(PasswordConfiguration.Refusals(loaded.Values));
         Assert.Equal(7, PasswordConfiguration.Derivation(loaded.Values).WorkFactor);
@@ -49,6 +52,60 @@ public sealed class PasswordConfigurationTests
         Assert.Equal(Key, problem.Key);
         Assert.Contains($"'{declared}'", problem.Describe(), StringComparison.Ordinal);
     }
+
+    [Theory]
+    [InlineData(Real, "600000")]
+    [InlineData(Real, "10000000")]
+    [InlineData(Real, "1000000")]
+    [InlineData(Demonstration, "1")]
+    [InlineData(Demonstration, "600000")]
+    [InlineData(Demonstration, "10000000")]
+    public void FactorOnOrInsideTheLimitsOfTheInstallationIsAccepted(string kind, string declared)
+    {
+        var loaded = Loaded($"--{Key}={declared}", kind);
+
+        Assert.Empty(PasswordConfiguration.Refusals(loaded.Values));
+    }
+
+    [Theory]
+    [InlineData(Real)]
+    [InlineData("")]
+    public void FactorBelowTheFloorOfARealInstallationIsRefusedNamingTheKeyTheMinimumAndTheKindOfInstallation(string kind)
+    {
+        var loaded = Loaded($"--{Key}=599999", kind);
+
+        var problem = Assert.Single(PasswordConfiguration.Refusals(loaded.Values));
+        var text = problem.Describe();
+        Assert.Equal((ConfigurationProblemKind.ValueNotAccepted, Key), (problem.Kind, problem.Key));
+        Assert.Contains("'599999'", text, StringComparison.Ordinal);
+        Assert.Contains("no mínimo 600000 na instalação real", text, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(Real)]
+    [InlineData(Demonstration)]
+    public void FactorAboveTheCeilingIsRefusedNamingTheKeyAndTheMaximumInEveryKindOfInstallation(string kind)
+    {
+        var loaded = Loaded($"--{Key}=10000001", kind);
+
+        var problem = Assert.Single(PasswordConfiguration.Refusals(loaded.Values));
+        Assert.Equal(Key, problem.Key);
+        Assert.Contains("no máximo 10000000", problem.Describe(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FactorOfZeroIsRefusedInADemonstrationNamingTheMinimumOfOne()
+    {
+        var loaded = Loaded($"--{Key}=0", Demonstration);
+
+        var problem = Assert.Single(PasswordConfiguration.Refusals(loaded.Values));
+        Assert.Contains("no mínimo 1", problem.Describe(), StringComparison.Ordinal);
+        Assert.DoesNotContain("instalação real", problem.Describe(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheThreeLimitsAreTheOnesTheDecisionRegisters() =>
+        Assert.Equal((600_000, 1, 10_000_000), (PasswordConfiguration.RealFloor, PasswordConfiguration.DemonstrationFloor, PasswordConfiguration.Ceiling));
 
     [Fact]
     public void FactorDeclaredWithoutValueIsRefused()
@@ -105,6 +162,6 @@ public sealed class PasswordConfigurationTests
 
     private static ConfigurationLoadResult Loaded(params string[] arguments) =>
         ClosedConfiguration.Load(
-            new ConfigurationSchema([PasswordConfiguration.Section]),
-            new StrictArgumentsSource(arguments));
+            new ConfigurationSchema([PasswordConfiguration.Section, InstallationConfiguration.SectionWhenMigrating]),
+            new StrictArgumentsSource([.. arguments.Where(argument => argument.Length > 0)]));
 }

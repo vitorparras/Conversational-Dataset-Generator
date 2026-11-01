@@ -8,9 +8,9 @@ Depois de [021](021-subir-o-nucleo-publicado.md), [024](024-arquivos-de-custodia
 ## Iniciar
 
 Os valores são os do exemplo de 021 (banco, papel `app`, `demonstracao`), a trocar pelos do seu
-ambiente (`ITERACOES` é o fator das senhas; os prazos são `Session:*`); numa instalação real,
-`--Installation:Kind=real`. O núcleo roda em segundo plano e sobrevive ao fim do `docker exec` que
-o iniciou: a espera pode ir no mesmo bloco ou noutro. O código de saída vai a `/tmp/nucleo.saida`:
+ambiente: `ITERACOES` é o fator das senhas, de 600000 a 10000000 com `Installation:Kind=real` e
+de 1 a 10000000 com `demonstracao` ([0047](../decisoes/0047-fator-de-trabalho-das-senhas.md));
+prazos: `Session:*`. Roda em segundo plano; a saída vai a `/tmp/nucleo.saida`:
 
 ```
 : > /tmp/nucleo.saida
@@ -25,7 +25,7 @@ cd /opt/cdg/nucleo
 ## Esperar o núcleo ficar pronto
 
 O núcleo só abre a porta depois que o serviço de linguagem responde e as conferências passam, e
-escreve então a linha `Now listening on`. Espere por ela, ou pela saída do núcleo, sem adivinhar um
+escreve então `Now listening on`. Espere por essa linha, ou pela saída do núcleo, sem adivinhar um
 prazo (limite de 60 s). Se ele sai antes, a recusa está no registro e `/tmp/nucleo.saida` traz o
 código: 69, conferência que falha (senha recusada, chave); 78, configuração; 70, falha ao servir.
 
@@ -40,9 +40,9 @@ grep -q 'Now listening on' /tmp/nucleo.log && echo pronto || tail -5 /tmp/nucleo
 
 ## Encerrar
 
-SIGTERM ao PID do núcleo. O `pid` vem de `/tmp/f.sh`, que o primeiro bloco de 022 grava: sem
-passar por ele, o `. /tmp/f.sh` falha. O núcleo sumiu quando `/tmp/nucleo.saida` deixa de estar
-vazio, e o código nela deve ser 0. A senha do dono já foi apagada em 021; aqui sai a da aplicação:
+SIGTERM ao PID do núcleo. O `pid` vem de `/tmp/f.sh`, que o primeiro bloco de 022 grava (sem ele,
+o `. /tmp/f.sh` falha). O núcleo sumiu quando `/tmp/nucleo.saida` deixa de estar vazio, com código
+0. Aqui sai a senha da aplicação (a do dono saiu em 021):
 
 ```
 . /tmp/f.sh

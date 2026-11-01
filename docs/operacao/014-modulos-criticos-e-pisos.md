@@ -28,6 +28,7 @@ tabela pelo nome, por exceção declarada à [regra 5](../regras-de-escrita.md).
 | Registro do núcleo | `Core.Platform.Logging` | 90 % | sim | Classifica e redige o que vai ao registro (requisito 021) |
 | Chave-mestra | `Core.Platform.Keys` | 90 % | sim | Guarda a chave em memória, recusa subir sem ela e carrega os rótulos de derivação (decisões 0003, 0013 e 0014) |
 | Material do canal | `Core.Platform.Tls` | 90 % | sim | Lê a chave privada do canal cifrado e recusa permissão aberta, chave fora do par e certificado fora da validade (decisões 0029 e 0046) |
+| Sessões | `Core.Platform.Sessions` | 90 % | sim | Guarda em memória o identificador que prova quem entrou e decide quando a sessão acaba, por inatividade ou por prazo absoluto (decisão 0029) |
 | Deslocamento de texto | `Core.Boundary.Text` | 90 % | sim | Única aritmética de índice sobre texto do serviço (requisito 009) |
 | Reconhecedor HTTP | `Core.Boundary.Http` | 90 % | sim | Texto não sanitizado cruza o processo e a resposta é validada aqui (decisão 0018) |
 | Reconhecedor falso | `Core.Boundary.Fake` | 90 % | sim | Recebe o texto do material e devolve os deslocamentos; determinístico, selecionável por `Recognizer:Kind`; recusa texto sem marcador sintético (decisão 0011) |
@@ -54,7 +55,6 @@ O teste de mutação percorre as áreas com `sim` em Crítica, pelas regras da [
 
 ## Como um piso muda
 
-Subir um piso ou acrescentar área muda este documento. Módulo novo que atende ao critério entra na
-tabela no mesmo pull request que o cria. Baixar um piso exige decisão escrita em `docs/decisoes/`,
-com a justificativa e o que mudou para que o valor anterior não valha mais. A decisão entra antes,
-em pull request próprio, nunca no mesmo que faz a cobertura cruzar o piso para baixo.
+Subir piso ou acrescentar área muda este documento; módulo novo que atende ao critério entra no
+pull request que o cria. Baixar piso exige decisão em `docs/decisoes/` que diga o que mudou para o
+valor anterior não valer, em pull request próprio e anterior ao que faz a cobertura cruzar o piso.

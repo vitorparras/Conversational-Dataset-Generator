@@ -18,7 +18,7 @@ START_SCRIPT = support.VERIFY_CODE / "offline_start" / "start.sh"
 WORKFLOW = support.VERIFY_CODE.parents[1] / ".github" / "workflows" / "verify-code.yml"
 LISTENING = (
     "2026-01-01T00:00:00.000Z INFO  Microsoft.Hosting.Lifetime[14] "
-    "Now listening on: http://127.0.0.1:5000 address=http://127.0.0.1:5000\n"
+    "Now listening on: https://127.0.0.1:5000 address=https://127.0.0.1:5000\n"
 )
 VERSIONS = (
     "2026-01-01T00:00:00.000Z INFO  Core.Host[200] Versões em execução SchemaVersion=2 "
@@ -183,6 +183,14 @@ class OfflineStartTests(unittest.TestCase):
         self.assertIn("head -c 32 /dev/urandom | base64", script)
         self.assertIn('export CDG_MasterKey__File="$custody/key"', script)
         self.assertIn('CDG_MasterKey__LabelsFile="$custody/labels"', script)
+
+    def test_the_script_gives_the_host_a_throwaway_certificate_beside_the_key(self) -> None:
+        script = START_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertIn('-keyout "$custody/tls.key" -out "$custody/tls.crt"', script)
+        self.assertIn('export CDG_Tls__CertificateFile="$custody/tls.crt"', script)
+        self.assertIn('CDG_Tls__KeyFile="$custody/tls.key"', script)
+        self.assertIn("Now listening on: https://127.0.0.1:", script)
 
     def test_the_server_has_no_network_and_the_host_joins_its_namespace(self) -> None:
         runner = DockerRunner(evidence())

@@ -131,7 +131,7 @@ public sealed class CatalogReadingTests
         var result = await RunAsApplicationAsync(dataSource => new PgAuditCheck(dataSource));
 
         AssertPassedOn("PgAudit", result);
-        Assert.Matches(@"^pgaudit \d+(\.\d+)* carregado e instalado; pgaudit\.log = '[^']+'$", result.Message);
+        Assert.Matches(@"^pgaudit \d+(\.\d+)* carregado e instalado; pgaudit\.log = '[^']+', parâmetros fora do log$", result.Message);
     }
 
     [DatabaseFact]

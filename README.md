@@ -289,6 +289,10 @@ a porta só em `127.0.0.1` e exige três senhas no ambiente, sem valor em arquiv
 `POSTGRES_PASSWORD` (superusuário), `DATABASE_OWNER_PASSWORD` e `DATABASE_APP_PASSWORD`, fora do
 prefixo `CDG_`, que o núcleo lê do ambiente e recusa quando não reconhece.
 
+O servidor registra em `csvlog`, no volume `database-log` (`/var/log/postgresql`, fora do volume
+de dados), o que o papel `app` lê e escreve, sem parâmetro de comando nem detalhe de erro. A
+partida do núcleo recusa um servidor que registre de outro modo.
+
 ```
 docker compose -f tools/database/compose.yml up
 ```

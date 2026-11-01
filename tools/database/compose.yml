@@ -16,6 +16,8 @@ services:
       - "127.0.0.1:5432:5432"
     volumes:
       - database-data:/var/lib/postgresql/data
+      - database-log:/var/log/postgresql
 
 volumes:
   database-data:
+  database-log:

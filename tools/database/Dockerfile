@@ -14,6 +14,23 @@ RUN set -eux; \
         /usr/share/postgresql/postgresql.conf.sample; \
     grep -F "shared_preload_libraries = 'pgaudit'" /usr/share/postgresql/postgresql.conf.sample
 
+# The server's own record of what the application does: reads and writes, as csvlog in a directory outside the data directory, which
+# the server writes and its group reads, and never a parameter of a statement, nor an error with its detail, which names the row. Rotation never deletes.
+RUN set -eux; \
+    install -d -o postgres -g postgres -m 0750 /var/log/postgresql; \
+    printf '%s\n' \
+        "logging_collector = on" \
+        "log_destination = 'csvlog'" \
+        "log_directory = '/var/log/postgresql'" \
+        "log_file_mode = 0640" \
+        "log_truncate_on_rotation = off" \
+        "pgaudit.log = 'read, write'" \
+        "pgaudit.log_parameter = off" \
+        "log_parameter_max_length = 0" \
+        "log_parameter_max_length_on_error = 0" \
+        "log_min_messages = log" \
+        >> /usr/share/postgresql/postgresql.conf.sample
+
 COPY --chown=postgres:postgres init/ /docker-entrypoint-initdb.d/
 
 USER postgres

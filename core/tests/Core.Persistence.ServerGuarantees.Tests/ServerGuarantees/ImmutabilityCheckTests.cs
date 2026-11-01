@@ -104,7 +104,7 @@ public sealed class ImmutabilityCheckTests
 
         Assert.Equal(CheckStatus.Failed, finding.Status);
         Assert.Contains(
-            $"a função public.{function}, que o gatilho {trigger} chama, não tem o corpo nem a linguagem que a migração 0009 escreveu", finding.Message, StringComparison.Ordinal);
+            $"a função public.{function}, que o gatilho {trigger} chama, não tem o corpo nem a linguagem que a migração 0014 escreveu", finding.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("RETURN OLD", finding.Message, StringComparison.Ordinal);
     }
 

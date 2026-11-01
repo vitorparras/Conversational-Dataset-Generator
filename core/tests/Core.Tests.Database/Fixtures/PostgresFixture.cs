@@ -80,13 +80,6 @@ internal sealed class PostgresFixture
         return fixture;
     }
 
-    /// <summary>What the server has written to its log since the container started, as the container holds it: the registry of the server, not of any client.</summary>
-    public async Task<string> ServerLogAsync()
-    {
-        var (stdout, stderr) = await container.GetLogsAsync(timestampsEnabled: false, ct: TestContext.Current.CancellationToken);
-        return stdout + "\n" + stderr;
-    }
-
     /// <summary>What pg_dump, run inside the server as the superuser, writes for the database: schema, data and comments.</summary>
     public async Task<string> DumpAsync(string database)
     {

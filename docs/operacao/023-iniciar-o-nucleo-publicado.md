@@ -2,23 +2,23 @@
 
 > Operacional. 2026-10-30.
 
-Depois de [021](021-subir-o-nucleo-publicado.md) (senhas, `migrate`, blocos num contêiner de fora)
-e de [024](024-arquivos-de-custodia-da-chave.md), e antes de [022](022-conferir-o-nucleo-publicado.md).
+Depois de [021](021-subir-o-nucleo-publicado.md), [024](024-arquivos-de-custodia-da-chave.md) e
+[025](025-certificado-do-canal-cifrado.md), e antes de [022](022-conferir-o-nucleo-publicado.md).
 
 ## Iniciar
 
 Os valores são os do exemplo de 021 (banco, papel `app`, `demonstracao`), a trocar pelos do seu
 ambiente (`ITERACOES` é o fator das senhas, `Passwords:WorkFactor`); numa instalação real,
-`--Installation:Kind=real`. O registro vai ao console, e o redirecionamento o guarda. O núcleo roda
-em segundo plano e sobrevive ao fim do `docker exec` que o iniciou: a espera abaixo pode ir no mesmo
-bloco ou noutro. O subshell grava o código de saída em `/tmp/nucleo.saida`:
+`--Installation:Kind=real`. O núcleo roda em segundo plano e sobrevive ao fim do `docker exec` que
+o iniciou: a espera pode ir no mesmo bloco ou noutro. O código de saída vai a `/tmp/nucleo.saida`:
 
 ```
 : > /tmp/nucleo.saida
 cd /opt/cdg/nucleo
-( CDG_Database__Password="$(cat /tmp/senha-app)" ./Core.Host --Host:Urls=http://127.0.0.1:5080 \
+( CDG_Database__Password="$(cat /tmp/senha-app)" ./Core.Host --Host:Urls=https://127.0.0.1:5080 \
   --Installation:Kind=demonstracao --Passwords:WorkFactor=ITERACOES --MasterKey:File=/etc/cdg/custodia/chave \
-  --MasterKey:LabelsFile=/etc/cdg/custodia/rotulos --Database:Host=db:5432 --Database:Name=cdg \
+  --MasterKey:LabelsFile=/etc/cdg/custodia/rotulos --Tls:CertificateFile=/etc/cdg/tls/certificado.pem \
+  --Tls:KeyFile=/etc/cdg/tls/chave.pem --Database:Host=db:5432 --Database:Name=cdg \
   --Database:Username=app > /tmp/nucleo.log 2>&1; echo $? > /tmp/nucleo.saida ) &
 ```
 

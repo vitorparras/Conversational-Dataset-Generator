@@ -3,17 +3,17 @@
 > Operacional. 2026-10-30.
 
 Depois de [023](023-iniciar-o-nucleo-publicado.md): consultar as rotas, derrubar o serviço de
-linguagem e ler o resultado, sem cliente HTTP, `ps` nem cliente SQL na máquina. Cada bloco roda num
-shell novo, então as duas funções ficam em `/tmp/f.sh`, e os blocos as leem. Como rodar os blocos
-num contêiner operado de fora está em [021](021-subir-o-nucleo-publicado.md).
+linguagem e ler o resultado, com `openssl s_client` como cliente TLS (o canal é cifrado também no
+loopback; **proposta ao dono**, ver [001](001-ambiente.md)), sem `ps` nem cliente SQL na máquina.
+Cada bloco roda num shell novo, então as duas funções ficam em `/tmp/f.sh`, e os blocos as leem.
+Como rodar os blocos num contêiner operado de fora está em [021](021-subir-o-nucleo-publicado.md).
 
 ## Consultar as rotas
 
 ```
 cat > /tmp/f.sh <<'FIM'
-rota() { exec 3<>/dev/tcp/127.0.0.1/5080
-  printf '%s %s HTTP/1.0\r\nHost: x\r\nContent-Type: application/json\r\nContent-Length: %s\r\n\r\n%s' \
-    "$1" "$2" "${#3}" "$3" >&3; cat <&3; echo; exec 3<&-; }
+rota() { printf '%s %s HTTP/1.0\r\nHost: x\r\nContent-Type: application/json\r\nContent-Length: %s\r\n\r\n%s' \
+    "$1" "$2" "${#3}" "$3" | openssl s_client -quiet -connect 127.0.0.1:5080 2> /dev/null; echo; }
 pid() { for p in /proc/[0-9]*; do tr '\0' ' ' < $p/cmdline 2>/dev/null \
   | grep -q "$1" && echo ${p#/proc/}; done; true; }
 FIM

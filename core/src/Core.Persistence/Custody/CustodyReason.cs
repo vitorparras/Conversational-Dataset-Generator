@@ -8,4 +8,7 @@ public enum CustodyReason
 
     /// <summary>The correction of what an earlier event recorded.</summary>
     CorrectionOfRecord,
+
+    /// <summary>Protected content was opened by whoever the event names.</summary>
+    ContentRead,
 }

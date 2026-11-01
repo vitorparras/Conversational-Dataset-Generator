@@ -66,14 +66,14 @@ public sealed class ContentSchemaAccessTests
     }
 
     [Fact]
-    public void QueryThatIsNotAPublicConstantIsRefusedBecauseTheListWouldNotSeeIt()
+    public void QueryThatIsNotAPublicOrInternalConstantIsRefusedBecauseTheListWouldNotSeeIt()
     {
         var text = SourceTree.FixtureText(Path.Combine(Fixtures, "HidesAQuery.cs"));
         var queries = SourceFile.FromText(QueriesPath, text);
 
         var lines = ContentSchemaAccessRules.Check([queries]).Select(violation => violation.Line).Order();
 
-        Assert.Equal([7, 9, 11], lines);
+        Assert.Equal([7, 11], lines);
     }
 
     [Fact]

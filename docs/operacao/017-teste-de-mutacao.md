@@ -3,7 +3,7 @@
 > Operacional. 2026-10-26.
 
 O teste de mutação altera o código de um módulo crítico e verifica se algum teste reclama. A lista
-de módulos críticos é a coluna **Crítica** da tabela da
+de módulos críticos é o campo **Crítica** dos arquivos de áreas da
 [014](014-modulos-criticos-e-pisos.md); o piso de cobertura não a define.
 
 ## Regras
@@ -18,7 +18,7 @@ nenhum arquivo conta duas vezes.
 
 Por módulo, no máximo **20 % dos mutantes gerados** podem sobreviver. Teto de tempo: **20 minutos
 por módulo**, cada módulo no seu job da verificação de pull request, sem somar com os outros: a
-matriz do fluxo lê a lista da 014 e abre um job por módulo crítico, e um job agregado, com o nome
+matriz do fluxo lê as áreas da 014 e abre um job por módulo crítico, e um job agregado, com o nome
 "Mutação nos módulos críticos", só passa se todos eles passarem. Exceder o teto é achado que
 reprova, nomeando o módulo e o tempo gasto, nunca lentidão tolerada. O tempo de cada módulo sai no
 relatório do passo. Mutação fora do bloqueio só por decisão escrita.

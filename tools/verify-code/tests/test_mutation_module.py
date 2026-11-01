@@ -12,11 +12,12 @@ from steps import areas_doc, mutation
 
 from . import mutation_fixture as fixture
 from . import support
+from .mutation_samples import DOCUMENT
 from .test_mutation import healthy
 
 verify = support.load_verify()
 ROOT = support.VERIFY_CODE.parents[1]
-KNOWN = "`Core.Platform.Logging`, `Core.Boundary.Text`, `language_service.auth`"
+KNOWN = "`Core.Boundary.Text`, `Core.Platform.Logging`, `language_service.auth`"
 
 
 class MutationModuleTests(fixture.MutationFixture):
@@ -77,23 +78,23 @@ class MutationModuleTests(fixture.MutationFixture):
             (len(runner.called("stryker")), len(runner.called("--max-children"))), (1, 2)
         )
 
-    def test_the_names_of_the_matrix_follow_the_critical_column_in_order(self) -> None:
+    def test_the_names_of_the_matrix_follow_the_critical_field_by_file(self) -> None:
         names, problems = mutation.names(self.root)
 
         self.assertEqual(problems, ())
         self.assertEqual(
             names,
             (
-                "Core.Platform.Logging",
                 "Core.Boundary.Text",
+                "Core.Platform.Logging",
                 "language_service.auth",
                 "language_service.logging_",
             ),
         )
 
     def test_a_document_with_no_critical_module_gives_no_names_and_a_problem(self) -> None:
-        document = (self.root / areas_doc.DOCUMENT).read_text(encoding="utf-8")
-        support.write(self.root, areas_doc.DOCUMENT, document.replace("| sim |", "| não |"))
+        document = DOCUMENT
+        support.write_areas(self.root, document.replace("| sim |", "| não |"))
 
         names, problems = mutation.names(self.root)
 

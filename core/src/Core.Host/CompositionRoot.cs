@@ -92,8 +92,7 @@ internal static class CompositionRoot
         }
     }
 
-    /// <summary>Logging with redaction first, then every service the routes consume and a JSON that refuses a field unknown, missing or null;
-    /// the host's container owns the file destination and, since every logger depends on it, closes it after the last of them.</summary>
+    /// <summary>Logging with redaction first, then the services the routes consume and a JSON that refuses a field unknown, missing or null; the container owns the file destination.</summary>
     internal static void Compose(IHostApplicationBuilder builder, EffectiveConfiguration configuration, ILoggerProvider? fileLog)
     {
         PlatformLogging.Configure(builder.Logging);
@@ -118,8 +117,7 @@ internal static class CompositionRoot
         _ = services.AddTransient<MaterialAnalysis>();
     }
 
-    /// <summary>What the checks need before the host's own container exists: redacted logging, the server checks and the supervision of the
-    /// language service. The host's container adopts it, so the service stops with the host; it only borrows the file destination.</summary>
+    /// <summary>What the checks need before the host's container exists: redacted logging, the server checks and the language service's supervision, which the host then adopts.</summary>
     private static ServiceProvider StartupServices(ConfigurationLoadResult loaded, FileLoggerProvider? fileLog, DatabaseSettings database)
     {
         var services = new ServiceCollection();
@@ -159,7 +157,7 @@ internal static class CompositionRoot
         return services.BuildServiceProvider();
     }
 
-    /// <summary>The application's data source and the eight server checks, privilege first and the derivation labels last, or the check that says no database is declared.</summary>
+    /// <summary>The application's data source and the nine server checks, privilege first and the derivation labels last, or the check that says no database is declared.</summary>
     private static void AddServerGuarantees(IServiceCollection services, DatabaseSettings database)
     {
         if (database.State != DatabaseSettingsState.Configured)
@@ -176,6 +174,7 @@ internal static class CompositionRoot
         _ = services.AddSingleton<IStartupCheck>(provider => new ColumnRevokeCheck(provider.GetRequiredService<NpgsqlDataSource>()));
         _ = services.AddSingleton<IStartupCheck>(provider => new SchemaVersionCheck(provider.GetRequiredService<NpgsqlDataSource>(), EmbeddedMigrations.Load()));
         _ = services.AddSingleton<IStartupCheck>(provider => new ImmutabilityCheck(provider.GetRequiredService<NpgsqlDataSource>()));
+        _ = services.AddSingleton<IStartupCheck>(provider => new ProtectedColumnCheck(provider.GetRequiredService<NpgsqlDataSource>()));
         _ = services.AddSingleton<IStartupCheck>(provider => new DerivationLabelCheck(provider.GetRequiredService<NpgsqlDataSource>(), provider.GetRequiredService<IMasterKeySource>()));
     }
 

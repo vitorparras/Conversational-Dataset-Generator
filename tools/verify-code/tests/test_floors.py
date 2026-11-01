@@ -58,7 +58,7 @@ class FloorsTests(fixture.FloorsFixture):
         result = self.run_step()
 
         self.assertFalse(result.ok)
-        expected = f"(sem área): nenhuma área de {areas_doc.DOCUMENT} possui `Other.Lib.Thing`"
+        expected = f"(sem área): nenhuma área de {areas_doc.FOLDER} possui `Other.Lib.Thing`"
         self.assertEqual(result.details[0], expected)
 
     def test_a_share_just_under_the_floor_is_cut_not_rounded_up_to_it(self) -> None:
@@ -78,7 +78,7 @@ class FloorsTests(fixture.FloorsFixture):
 
     def test_lowering_the_floor_in_the_document_changes_the_verdict(self) -> None:
         document = DOCUMENT.replace("80 % | não | demais pastas", "70 % | não | demais pastas")
-        support.write(self.root, areas_doc.DOCUMENT, document)
+        support.write_areas(self.root, document)
         self.core((STARTUP, "S.cs", "1 1 1 0"))
 
         result = self.run_step()

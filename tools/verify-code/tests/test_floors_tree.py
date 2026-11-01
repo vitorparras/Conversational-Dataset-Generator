@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from steps import areas_doc, floors
+from steps import floors
 
 from . import floors_fixture as fixture
 from . import support
@@ -28,7 +28,7 @@ class FloorsTreeAndPreviousTests(fixture.FloorsFixture):
         self.assertEqual(result.details[0].split(":")[0], "core/src/Core.Vault/")
 
     def test_a_service_package_no_area_owns_fails_naming_it(self) -> None:
-        support.write(self.root, areas_doc.DOCUMENT, WITHOUT_SERVICE_ROOT)
+        support.write_areas(self.root, WITHOUT_SERVICE_ROOT)
         self.package("vault")
         self.core((LOGGING, "L.cs", "1"))
 
@@ -39,7 +39,7 @@ class FloorsTreeAndPreviousTests(fixture.FloorsFixture):
         self.assertEqual(result.details[0].split(":")[0], folder)
 
     def test_projects_and_packages_an_area_owns_pass(self) -> None:
-        support.write(self.root, areas_doc.DOCUMENT, WITHOUT_SERVICE_ROOT)
+        support.write_areas(self.root, WITHOUT_SERVICE_ROOT)
         self.project("Core.Platform")
         self.package("auth")
         self.core((LOGGING, "L.cs", "1"))
@@ -49,7 +49,7 @@ class FloorsTreeAndPreviousTests(fixture.FloorsFixture):
         self.assertTrue(result.ok)
 
     def test_folders_without_a_project_or_package_file_are_not_judged(self) -> None:
-        support.write(self.root, areas_doc.DOCUMENT, WITHOUT_SERVICE_ROOT)
+        support.write_areas(self.root, WITHOUT_SERVICE_ROOT)
         self.folder("core/src/Core.Vault/obj")
         self.folder("language-service/src/language_service/__pycache__")
         self.core((LOGGING, "L.cs", "1"))

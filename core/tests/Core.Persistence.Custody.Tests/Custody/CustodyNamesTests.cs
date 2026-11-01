@@ -47,8 +47,13 @@ public sealed partial class CustodyNamesTests
     public void NamesAreTheOnesTheStoredEventsAreRecordedUnder()
     {
         Assert.Equal(
-            ["person", "person_created", "person_deactivated", "person_function_changed", "person_password_set", "correction", "administrative_act", "correction_of_record"],
-            [CustodyNames.Of(CustodyItemKind.Person), .. Enum.GetValues<CustodyStep>().Select(CustodyNames.Of), .. Enum.GetValues<CustodyReason>().Select(CustodyNames.Of)]);
+            [
+                "person", "item_text", "reversal_map",
+                "person_created", "person_deactivated", "person_function_changed", "person_password_set", "correction",
+                "raw_text_read", "sanitized_text_read", "reversal_entries_read",
+                "administrative_act", "correction_of_record", "content_read",
+            ],
+            [.. Enum.GetValues<CustodyItemKind>().Select(CustodyNames.Of), .. Enum.GetValues<CustodyStep>().Select(CustodyNames.Of), .. Enum.GetValues<CustodyReason>().Select(CustodyNames.Of)]);
     }
 
     [GeneratedRegex("^[a-z]+(_[a-z]+)*$", RegexOptions.None, matchTimeoutMilliseconds: 1000)]

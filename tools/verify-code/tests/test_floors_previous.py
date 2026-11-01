@@ -15,6 +15,16 @@ from .floors_fixture import LOGGING, PREVIOUS, STARTUP
 MAIN = "\n".join(
     (
         *coverage_by_area.HEADER,
+        "| Registro do núcleo | `Core.Platform.Logging` | 90 % | sim | 100,0 % | 2 de 2 |",
+        "| Plataforma | `Core.Platform` | 80 % | não | 100,0 % | 3 de 3 |",
+        "",
+    )
+)
+#: The table as the runs before the project/package and critical columns wrote it.
+OLDER_MAIN = chr(10).join(
+    (
+        "| Área | Piso | Medido | Linhas |",
+        "|---|---|---|---|",
         "| Registro do núcleo | 90 % | 100,0 % | 2 de 2 |",
         "| Plataforma | 80 % | 100,0 % | 3 de 3 |",
         "",
@@ -24,17 +34,22 @@ DROP = "AVISO — Plataforma caiu de 100,0 % para 80,0 % sem cruzar o piso de 80
 
 
 class FloorsPreviousTests(fixture.FloorsFixture):
-    def measure_and_compare(self) -> str:
+    def measure_and_compare(self, previous: str = MAIN) -> str:
         """Runs the step against the main's table and returns the job summary it wrote."""
         summary = self.root / "summary.md"
         os.environ[coverage_by_area.SUMMARY] = str(summary)
-        support.write(self.root, PREVIOUS, MAIN)
+        support.write(self.root, PREVIOUS, previous)
         self.core((LOGGING, "L.cs", "1 1"), (STARTUP, "S.cs", "1 1 1 1 0"))
 
         result = self.run_step(self.root / PREVIOUS)
 
         self.assertTrue(result.ok)
         return summary.read_text(encoding="utf-8")
+
+    def test_a_table_from_a_run_before_the_new_columns_is_still_compared(self) -> None:
+        written = self.measure_and_compare(OLDER_MAIN)
+
+        self.assertIn(DROP, written)
 
     def test_the_summary_lists_the_area_that_dropped_and_only_that_one(self) -> None:
         written = self.measure_and_compare()

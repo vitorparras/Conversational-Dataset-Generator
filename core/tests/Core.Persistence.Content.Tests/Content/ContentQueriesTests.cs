@@ -11,18 +11,18 @@ public sealed class ContentQueriesTests
         var declared = ContentQueries.Declared(typeof(DeclaresQueries));
 
         Assert.Equal(
-            new Dictionary<string, string> { ["Open"] = "SELECT 1", ["Second"] = "SELECT 2" },
+            new Dictionary<string, string> { ["Open"] = "SELECT 1", ["Second"] = "SELECT 2", ["Internal"] = "SELECT 3" },
             declared.ToDictionary());
     }
 
     [Fact]
-    public void FieldsThatAreNotPublicStringConstantsAreNotQueries()
+    public void FieldsThatAreNotPublicOrInternalStringConstantsAreNotQueries()
     {
         var names = ContentQueries.Declared(typeof(DeclaresQueries)).Keys;
 
         Assert.DoesNotContain(nameof(DeclaresQueries.NotConstant), names);
         Assert.DoesNotContain(nameof(DeclaresQueries.Number), names);
-        Assert.DoesNotContain("Internal", names);
+        Assert.DoesNotContain("Hidden", names);
     }
 
     [Fact]
@@ -41,5 +41,7 @@ internal static class DeclaresQueries
 
     internal const string Internal = "SELECT 3";
 
-    public static readonly string NotConstant = string.Concat("SELECT", " 4");
+    private const string Hidden = "SELECT 5";
+
+    public static readonly string NotConstant = string.Concat("SELECT", " 4", Hidden);
 }

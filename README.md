@@ -55,10 +55,10 @@ pulados com o motivo e escreve a cobertura que o `coverage` soma à do `test_cor
 (`--base origin/main`) e reprova o trailer `Co-authored-by` de assistente de IA e a linha "Generated
 with", nomeando o hash e a linha; co-autoria humana e `dependabot[bot]` passam.
 
-O passo `coverage` publica a cobertura por área de `docs/operacao/014-modulos-criticos-e-pisos.md`
+O passo `coverage` publica a cobertura por área de `docs/operacao/areas/`
 a partir dos relatórios presentes em `.verify-code/`; `test_tools` só mede com o `coverage` do
 mesmo arquivo de requisitos instalado. O passo `floors` reprova a área abaixo do piso, o código
-medido sem área e o projeto ou pacote sem linha na tabela ou que nenhum relatório leu, como em
+medido sem área e o projeto ou pacote sem arquivo de área ou que nenhum relatório leu, como em
 `python tools/verify-code/verify.py --step build_service test_service coverage floors`; com
 `--previous` apontando para uma cópia do by-area.md de outra execução, avisa a queda que não cruza
 o piso.
@@ -101,8 +101,8 @@ Na CI, o mesmo job repete o passo sem rede, com o cache HTTP do NuGet vazio: a c
 pacotes já baixados. Por isso `core/Directory.Packages.props` deixa a auditoria do NuGet desligada:
 ela consulta a fonte quando o cache de vulnerabilidades vence, em cerca de 30 minutos.
 
-O passo `mutation` roda o teste de mutação sobre exatamente as áreas que a coluna Crítica de
-`docs/operacao/014-modulos-criticos-e-pisos.md` marca `sim` e julga, pelos números de
+O passo `mutation` roda o teste de mutação sobre exatamente as áreas que o campo Crítica de
+`docs/operacao/areas/` marca `sim` e julga, pelos números de
 `docs/operacao/017-teste-de-mutacao.md`, a parcela de sobreviventes por módulo e o tempo por
 linguagem. Cada sobrevivente sai com arquivo, linha e alteração. A suíte que conta em cada módulo é
 a do projeto dele; no serviço, só os arquivos de teste que o importam. No núcleo roda o

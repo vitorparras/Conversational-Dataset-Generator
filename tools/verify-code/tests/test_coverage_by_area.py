@@ -23,7 +23,7 @@ from . import support
 DOCUMENT = "\n".join(
     (
         "# 014",
-        areas_doc.HEADER,
+        support.TABLE_HEADER,
         "|---|---|---|---|---|",
         "| Registro do núcleo | `Core.Platform.Logging` | 90 % | sim | crítica |",
         "| Plataforma | `Core.Platform` | 80 % | não | demais pastas |",
@@ -49,7 +49,7 @@ class CoverageByAreaTests(unittest.TestCase):
         self.addCleanup(self._tmp.cleanup)
         self.root = Path(self._tmp.name)
         self.out = self.root / ".verify-code"
-        support.write(self.root, areas_doc.DOCUMENT, DOCUMENT)
+        support.write_areas(self.root, DOCUMENT)
         self.environment = mock.patch.dict(os.environ, clear=False)
         self.environment.start()
         self.addCleanup(self.environment.stop)
@@ -71,13 +71,13 @@ class CoverageByAreaTests(unittest.TestCase):
         self.assertIn("o passo não passa vazio", result.details[0])
 
     def test_a_malformed_document_fails_naming_the_line(self) -> None:
-        support.write(self.root, areas_doc.DOCUMENT, DOCUMENT.replace("60 %", "60"))
+        support.write_areas(self.root, DOCUMENT.replace("60 %", "60"))
         self.core((LOGGING, "L.cs", "1"))
 
         result = self.run_step()
 
         self.assertFalse(result.ok)
-        self.assertIn(f"{areas_doc.DOCUMENT}:9: piso '60'", result.details[0])
+        self.assertIn(f"{areas_doc.FOLDER}/tools.md: piso '60'", result.details[0])
 
     def test_an_unreadable_report_fails(self) -> None:
         self.report(CORE_REPORT, "<coverage><packages>")
@@ -92,22 +92,33 @@ class CoverageByAreaTests(unittest.TestCase):
 
         result = self.run_step()
 
-        self.assertIn("| Registro do núcleo | 90 % | 50,0 % | 1 de 2 |", result.details)
-        self.assertIn("| Plataforma | 80 % | 100,0 % | 3 de 3 |", result.details)
+        self.assertIn(
+            "| Registro do núcleo | `Core.Platform.Logging` | 90 % | sim | 50,0 % | 1 de 2 |",
+            result.details,
+        )
+        self.assertIn(
+            "| Plataforma | `Core.Platform` | 80 % | não | 100,0 % | 3 de 3 |", result.details
+        )
 
     def test_an_area_no_line_reaches_appears_with_zero(self) -> None:
         self.core((LOGGING, "L.cs", "1"))
 
         result = self.run_step()
 
-        self.assertIn("| Contrato | isento | 0,0 % | 0 de 0 |", result.details)
+        self.assertIn(
+            "| Contrato | `Core.Boundary.Contracts` | isento | não | 0,0 % | 0 de 0 |",
+            result.details,
+        )
 
     def test_an_area_whose_lines_never_ran_appears_with_zero(self) -> None:
         self.core((LOGGING, "L.cs", "0 0 0"))
 
         result = self.run_step()
 
-        self.assertIn("| Registro do núcleo | 90 % | 0,0 % | 0 de 3 |", result.details)
+        self.assertIn(
+            "| Registro do núcleo | `Core.Platform.Logging` | 90 % | sim | 0,0 % | 0 de 3 |",
+            result.details,
+        )
 
     def test_a_line_run_in_any_report_counts_as_covered_once(self) -> None:
         self.core((LOGGING, "L.cs", "0 1"))
@@ -117,7 +128,10 @@ class CoverageByAreaTests(unittest.TestCase):
 
         result = self.run_step()
 
-        self.assertIn("| Registro do núcleo | 90 % | 100,0 % | 2 de 2 |", result.details)
+        self.assertIn(
+            "| Registro do núcleo | `Core.Platform.Logging` | 90 % | sim | 100,0 % | 2 de 2 |",
+            result.details,
+        )
 
     def test_a_line_only_the_real_service_tests_run_counts_as_covered(self) -> None:
         self.core((LOGGING, "L.cs", "0 1"))
@@ -127,7 +141,10 @@ class CoverageByAreaTests(unittest.TestCase):
 
         result = self.run_step()
 
-        self.assertIn("| Registro do núcleo | 90 % | 100,0 % | 2 de 2 |", result.details)
+        self.assertIn(
+            "| Registro do núcleo | `Core.Platform.Logging` | 90 % | sim | 100,0 % | 2 de 2 |",
+            result.details,
+        )
 
     def test_the_real_service_report_alone_still_measures_the_core(self) -> None:
         self.report(
@@ -143,7 +160,9 @@ class CoverageByAreaTests(unittest.TestCase):
 
         result = self.run_step()
 
-        self.assertNotIn("| Serviço | 80 % | 0,0 % | 0 de 0 |", result.details)
+        self.assertNotIn(
+            "| Serviço | `language_service` | 80 % | não | 0,0 % | 0 de 0 |", result.details
+        )
         self.assertEqual(result.details[0], "### Cobertura por área — núcleo (.NET)")
 
     def test_code_outside_every_area_is_listed_without_area(self) -> None:
@@ -151,7 +170,7 @@ class CoverageByAreaTests(unittest.TestCase):
 
         result = self.run_step()
 
-        self.assertIn("| (sem área) | — | 50,0 % | 1 de 2 |", result.details)
+        self.assertIn("| (sem área) | — | — | — | 50,0 % | 1 de 2 |", result.details)
 
     def test_the_service_report_fills_the_service_areas(self) -> None:
         source = self.root / "language-service"
@@ -160,8 +179,13 @@ class CoverageByAreaTests(unittest.TestCase):
 
         result = self.run_step()
 
-        self.assertIn("| Autenticação | 90 % | 100,0 % | 2 de 2 |", result.details)
-        self.assertIn("| Serviço | 80 % | 50,0 % | 1 de 2 |", result.details)
+        self.assertIn(
+            "| Autenticação | `language_service.auth` | 90 % | sim | 100,0 % | 2 de 2 |",
+            result.details,
+        )
+        self.assertIn(
+            "| Serviço | `language_service` | 80 % | não | 50,0 % | 1 de 2 |", result.details
+        )
 
     def test_the_tools_report_fills_the_tools_area(self) -> None:
         source = self.root / test_tools.TOOLS
@@ -169,7 +193,7 @@ class CoverageByAreaTests(unittest.TestCase):
 
         result = self.run_step()
 
-        self.assertIn("| Ferramentas | 60 % | 33,3 % | 1 de 3 |", result.details)
+        self.assertIn("| Ferramentas | `tools` | 60 % | não | 33,3 % | 1 de 3 |", result.details)
 
     def test_the_table_is_written_under_the_output_directory(self) -> None:
         self.core((LOGGING, "L.cs", "1"))

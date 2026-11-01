@@ -2,7 +2,7 @@ using Core.Persistence.Content;
 using Core.Persistence.Custody;
 using Core.Persistence.Tests.Fixtures;
 
-namespace Core.Persistence.Tests.Content;
+namespace Core.Persistence.Tests.ServerGuarantees;
 
 /// <summary>
 /// The map of the content tables against the real server (#60, part 2): each read of protected content is seen by the server and recorded in the
@@ -16,7 +16,7 @@ public sealed class ContentAuditFidelityTests
     {
         var from = DateTimeOffset.UtcNow.AddMinutes(-1);
         var token = TestContext.Current.CancellationToken;
-        await using var world = await ContentWorld.CreateAsync();
+        await using var world = await FidelityWorld.CreateAsync();
         var item = await world.Writer.AddItemTextAsync(1, new NewItemText("texto bruto sintetico zqx", "texto sanitizado sintetico zqx"), token);
         var map = await world.Writer.AddReversalMapAsync(1, item, "mapa sintetico zqx", token);
         _ = await world.Reader.ReadAsync(new ContentRead(CustodyAuthor.System, ContentColumns.RawText, 1, item), token);
@@ -33,7 +33,7 @@ public sealed class ContentAuditFidelityTests
     {
         var from = DateTimeOffset.UtcNow.AddMinutes(-1);
         var token = TestContext.Current.CancellationToken;
-        await using var world = await ContentWorld.CreateAsync();
+        await using var world = await FidelityWorld.CreateAsync();
         var item = await world.Writer.AddItemTextAsync(1, new NewItemText("texto bruto sintetico zqx"), token);
         _ = await world.Reader.ReadAsync(new ContentRead(CustodyAuthor.System, ContentColumns.RawText, 1, item), token);
         _ = await world.InDomainAsync(1, "SELECT raw_text FROM content.item_text WHERE id = @id", ("id", item));

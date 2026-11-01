@@ -10,6 +10,12 @@ internal static class CustodyStatements
     /// <summary>The SQLSTATE the triggers of the table raise when a change, a removal or an emptying is attempted (migration 0009).</summary>
     internal const string ImmutableSqlState = "CE001";
 
+    /// <summary>The SQLSTATE raised by the append, and by a write of content, while the last verification of the chain failed (migration 0013).</summary>
+    internal const string ChainBrokenSqlState = "CE002";
+
+    /// <summary>The SQLSTATE raised by the append of a verdict that passed while the last verdict recorded is a failure (migration 0013).</summary>
+    internal const string PassedAfterFailureSqlState = "CE003";
+
     /// <summary>Every field of every event that the digest covers, with the two digests, in the order of the sequence: what the verification reads.</summary>
     internal const string ReadChain = """
         SELECT sequence, pg_catalog.timestamptz_send(occurred_at) AS occurred_at_send, actor_person_id, actor_system, item_kind, item_id, step, reason, corrects, previous_digest, digest, recorded_by

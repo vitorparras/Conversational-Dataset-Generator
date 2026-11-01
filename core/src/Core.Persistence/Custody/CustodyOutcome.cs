@@ -20,4 +20,10 @@ public enum CustodyOutcome
 
     /// <summary>The server refused to change, remove or empty away an event of the chain; nothing was written, and the refusal carries no content of any event.</summary>
     Immutable,
+
+    /// <summary>The last verification of the chain failed, so no event is added but a verification or the reading of content until the chain is restored; nothing was written.</summary>
+    ChainBroken,
+
+    /// <summary>A verdict that passed was refused because the last verdict recorded is a failure: only a restoration closes the chain again, so nothing was written and the refusal stays.</summary>
+    PassedAfterFailure,
 }

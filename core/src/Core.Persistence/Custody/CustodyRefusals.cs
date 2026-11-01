@@ -17,4 +17,10 @@ internal static class CustodyRefusals
 
     internal static CustodyResult Immutable() =>
         CustodyResult.Refused(CustodyOutcome.Immutable, "A cadeia de custódia não aceita alterar, remover nem esvaziar um evento; nada foi alterado.");
+
+    internal static CustodyResult PassedAfterFailure() =>
+        CustodyResult.Refused(CustodyOutcome.PassedAfterFailure, "Veredito de que a cadeia passou não é gravado enquanto o último for uma falha; só a restauração fecha a cadeia; nada foi gravado.");
+
+    internal static CustodyResult ChainBroken() =>
+        CustodyResult.Refused(CustodyOutcome.ChainBroken, "A última verificação da cadeia de custódia falhou: só verificação e leitura são gravadas até a cadeia ser restaurada; nada foi gravado.");
 }

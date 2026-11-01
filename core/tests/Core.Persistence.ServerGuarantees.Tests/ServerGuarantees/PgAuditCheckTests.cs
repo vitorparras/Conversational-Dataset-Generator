@@ -179,7 +179,19 @@ public sealed class PgAuditCheckTests
     {
         var finding = PgAuditCheck.Judge(new AuditSettings("ddl", "on", "-1", "-1", "warning", "on", "notice", "debug_print_plan"), extensionVersion: "17.0");
 
-        Assert.Equal(7, finding.Message.Split("; ").Length);
+        Assert.Equal(8, finding.Message.Split("; ").Length);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("off")]
+    public void LineThatDoesNotNameTheTableFailsNamingTheSetting(string? logRelation)
+    {
+        var finding = PgAuditCheck.Judge(Settings() with { LogRelation = logRelation }, extensionVersion: "17.0");
+
+        Assert.Equal(CheckStatus.Failed, finding.Status);
+        Assert.Contains("pgaudit.log_relation", finding.Message, StringComparison.Ordinal);
+        Assert.Contains("defina pgaudit.log_relation = on", finding.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -194,5 +206,5 @@ public sealed class PgAuditCheckTests
         string? minMessages = "log",
         string? logClient = "off",
         string? logLevel = "log") =>
-        new(log, logParameter, parameterMaxLength, parameterMaxLengthOnError, minMessages, logClient, logLevel);
+        new(log, logParameter, parameterMaxLength, parameterMaxLengthOnError, minMessages, logClient, logLevel) { LogRelation = "on" };
 }

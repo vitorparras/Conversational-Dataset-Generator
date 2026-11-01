@@ -49,23 +49,23 @@ internal static class HostConfiguration
 
     /// <summary>
     /// The closed configuration of the host: the file beside it, the process environment and the strict arguments;
-    /// the migration mode requires neither the kind of installation nor the custody files.
+    /// the migration and comparison modes serve nothing and require neither the kind of installation nor the custody files.
     /// </summary>
-    internal static ConfigurationLoadResult Load(string[] args, bool migrating) =>
+    internal static ConfigurationLoadResult Load(string[] args, bool offline, bool comparing = false) =>
         ClosedConfiguration.Load(
             new ConfigurationSchema(
                 [
                     Section,
-                    migrating ? InstallationConfiguration.SectionWhenMigrating : InstallationConfiguration.Section,
-                    migrating ? MasterKeyConfiguration.SectionWhenMigrating : MasterKeyConfiguration.Section,
-                    migrating ? TlsConfiguration.SectionWhenMigrating : TlsConfiguration.Section,
+                    offline ? InstallationConfiguration.SectionWhenMigrating : InstallationConfiguration.Section,
+                    offline ? MasterKeyConfiguration.SectionWhenMigrating : MasterKeyConfiguration.Section,
+                    offline ? TlsConfiguration.SectionWhenMigrating : TlsConfiguration.Section,
                     SafekeepingConfiguration.Section,
-                    migrating ? PasswordConfiguration.SectionWhenMigrating : PasswordConfiguration.Section,
-                    migrating ? SessionConfiguration.SectionWhenMigrating : SessionConfiguration.Section,
-                    migrating ? AuditConfiguration.SectionWhenMigrating : AuditConfiguration.Section,
+                    offline ? PasswordConfiguration.SectionWhenMigrating : PasswordConfiguration.Section,
+                    offline ? SessionConfiguration.SectionWhenMigrating : SessionConfiguration.Section,
+                    AuditSection(offline, comparing),
                     LanguageServiceConfiguration.Section,
                     RecognizerConfiguration.Section,
-                    migrating ? DatabaseConfiguration.SectionWhenMigrating : DatabaseConfiguration.Section
+                    offline ? DatabaseConfiguration.SectionWhenMigrating : DatabaseConfiguration.Section
                 ]),
             new JsonFileSource(SettingsPath),
             EnvironmentSource.FromProcess(),
@@ -85,4 +85,14 @@ internal static class HostConfiguration
         .. TlsConfiguration.Refusals(values),
         .. AuditConfiguration.Refusals(values),
     ];
+
+    private static ConfigurationSection AuditSection(bool offline, bool comparing)
+    {
+        if (comparing)
+        {
+            return AuditConfiguration.SectionWhenComparing;
+        }
+
+        return offline ? AuditConfiguration.SectionWhenMigrating : AuditConfiguration.Section;
+    }
 }

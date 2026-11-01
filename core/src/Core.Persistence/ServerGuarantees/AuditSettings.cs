@@ -10,6 +10,7 @@ namespace Core.Persistence.ServerGuarantees;
 /// <param name="MinMessages">log_min_messages: the lowest level the server writes. An error's DETAIL names the offending key or the whole failing row.</param>
 /// <param name="LogClient">pgaudit.log_client: whether the audit lines go to the client; only then does pgaudit.log_level apply.</param>
 /// <param name="LogLevel">pgaudit.log_level: the level the audit lines are written at when they go to the client.</param>
+/// <param name="LogRelation">pgaudit.log_relation: whether the audit line names the table each command touched, one line for each table.</param>
 /// <param name="DebugPrints">The debug_print_* settings that are on, by name, or null when none is: each writes the text of the query into the log.</param>
 internal sealed record AuditSettings(
     string? Log,
@@ -19,9 +20,11 @@ internal sealed record AuditSettings(
     string? MinMessages,
     string? LogClient = null,
     string? LogLevel = null,
-    string? DebugPrints = null)
+    string? DebugPrints = null,
+    string? LogRelation = null)
 {
     private const string Off = "off";
+    private const string On = "on";
     private const string Zero = "0";
 
     /// <summary>The classes of statement the application's role must have in the log; without both, an operation of its own goes by unseen.</summary>
@@ -46,12 +49,19 @@ internal sealed record AuditSettings(
             ErrorsGap(),
             ClientGap(),
             DebugPrintsGap(),
+            RelationGap(),
         }.OfType<string>()];
 
     private static string? GapUnlessEqual(string? value, string expected, string setting) =>
         string.Equals(value, expected, StringComparison.OrdinalIgnoreCase)
             ? null
             : $"{setting} = '{value ?? "indefinido"}' deixa parâmetro no log do servidor: defina {setting} = {expected}";
+
+    private string? RelationGap() =>
+        string.Equals(LogRelation, On, StringComparison.OrdinalIgnoreCase)
+            ? null
+            : $"pgaudit.log_relation = '{LogRelation ?? "indefinido"}' deixa a linha de auditoria sem a tabela que o comando tocou, "
+                + $"e sem ela o servidor não se compara à cadeia: defina pgaudit.log_relation = {On}";
 
     private string? ClassesGap()
     {

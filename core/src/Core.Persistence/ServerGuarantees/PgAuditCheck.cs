@@ -19,6 +19,7 @@ public sealed class PgAuditCheck : IStartupCheck
     private const string Query = """
         SELECT (SELECT s.setting FROM pg_catalog.pg_settings s WHERE s.name = 'pgaudit.log' AND s.context = 'superuser') AS log,
             (SELECT s.setting FROM pg_catalog.pg_settings s WHERE s.name = 'pgaudit.log_parameter' AND s.context = 'superuser') AS log_parameter,
+            (SELECT s.setting FROM pg_catalog.pg_settings s WHERE s.name = 'pgaudit.log_relation' AND s.context = 'superuser') AS log_relation,
             (SELECT s.setting FROM pg_catalog.pg_settings s WHERE s.name = 'log_parameter_max_length') AS parameter_max_length,
             (SELECT s.setting FROM pg_catalog.pg_settings s WHERE s.name = 'log_parameter_max_length_on_error') AS parameter_max_length_on_error,
             (SELECT s.setting FROM pg_catalog.pg_settings s WHERE s.name = 'log_min_messages') AS min_messages,
@@ -78,7 +79,8 @@ public sealed class PgAuditCheck : IStartupCheck
                 Text(row, "min_messages"),
                 Text(row, "log_client"),
                 Text(row, "log_level"),
-                Text(row, "debug_prints")),
+                Text(row, "debug_prints"),
+                Text(row, "log_relation")),
             Text(row, "version"));
 
     private static string? Text(IDataRecord row, string column) => row[column] as string;

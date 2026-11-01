@@ -14,4 +14,6 @@ internal enum HostLaunchState
 
     /// <summary>The migration mode ran and ended; there is no host to serve.</summary>
     Migrated = 3,
+
+    Compared = 4,
 }

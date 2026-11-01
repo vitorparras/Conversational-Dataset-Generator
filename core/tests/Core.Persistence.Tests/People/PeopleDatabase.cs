@@ -25,6 +25,13 @@ public sealed class PeopleDatabase : IAsyncDisposable
         return new PersonRegistry(application);
     }
 
+    /// <summary>The data source of the application's role, which the comparison of the server's log with the chain connects through.</summary>
+    internal async Task<NpgsqlDataSource> ApplicationAsync()
+    {
+        var scratch = await ScratchAsync();
+        return application ??= NpgsqlDataSource.Create(scratch.AppConnectionString);
+    }
+
     /// <summary>The store of passwords, writing as the application's role and deriving with the work factor given.</summary>
     internal async Task<PersonCredentials> CredentialsAsync(int workFactor)
     {

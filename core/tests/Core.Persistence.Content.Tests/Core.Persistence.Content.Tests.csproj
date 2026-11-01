@@ -17,5 +17,6 @@
   <!-- The warm-up is an assembly fixture, which each test assembly must declare for itself; the one source is the module's own project. -->
   <ItemGroup>
     <Compile Include="..\Core.Persistence.Tests\Fixtures\DatabaseWarmup.cs" Link="Fixtures\DatabaseWarmup.cs" />
+    <Compile Include="..\Core.Persistence.Tests\Fixtures\AuditFidelity.cs" Link="Fixtures\AuditFidelity.cs" />
   </ItemGroup>
 </Project>

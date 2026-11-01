@@ -8,7 +8,7 @@ namespace Core.Tests.Architecture.Boundaries;
 
 /// <summary>
 /// Content lives in the content schema, and the domain a session declares is what the database judges it by. A statement over that schema
-/// is a public constant of the top-level <c>ContentQueries</c>, the list the test with no domain declared runs, so one written anywhere else, or built at run
+/// is a public or internal constant of the top-level <c>ContentQueries</c>, the list the test with no domain declared runs, so one written anywhere else, or built at run
 /// time, would reach content outside that test. And no statement may move the search path: the schema is named in every statement, and
 /// naming it is what the rule above sees. The member that sets it on a connection string builder is refused by name.
 /// </summary>
@@ -57,7 +57,10 @@ internal static partial class ContentSchemaAccessRules
     private static bool IsQueryConstant(SourceFile file, SyntaxToken token) =>
         IsQueriesFile(file)
         && token.Parent?.FirstAncestorOrSelf<FieldDeclarationSyntax>() is { Parent: ClassDeclarationSyntax { Identifier.Text: ListName, Parent: not TypeDeclarationSyntax } } field
-        && field.Modifiers.Any(SyntaxKind.ConstKeyword) && field.Modifiers.Any(SyntaxKind.PublicKeyword);
+        && IsSeenByTheList(field);
+
+    private static bool IsSeenByTheList(MemberDeclarationSyntax field) =>
+        field.Modifiers.Any(SyntaxKind.ConstKeyword) && field.Modifiers.Any(modifier => modifier.IsKind(SyntaxKind.PublicKeyword) || modifier.IsKind(SyntaxKind.InternalKeyword));
 
     private static bool IsQueriesFile(SourceFile file) =>
         file.Path.Replace(Path.DirectorySeparatorChar, '/').EndsWith(AllowedFolder + QueriesFile, StringComparison.Ordinal);

@@ -5,4 +5,10 @@ public enum CustodyItemKind
 {
     /// <summary>A person of the registry.</summary>
     Person,
+
+    /// <summary>An item of the content, which holds the raw and the sanitized text.</summary>
+    ItemText,
+
+    /// <summary>The map that reverses the pseudonyms of an item.</summary>
+    ReversalMap,
 }

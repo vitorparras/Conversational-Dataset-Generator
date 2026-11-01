@@ -1,3 +1,4 @@
+using Core.Persistence.Custody;
 using Core.Persistence.People;
 using Core.Persistence.Tests.Fixtures;
 using Core.Persistence.Tests.ServerGuarantees;
@@ -22,7 +23,7 @@ public sealed class PersonRegistryNameLookupTests : IClassFixture<PeopleDatabase
     {
         var registry = await database.RegistryAsync();
         var name = PeopleDatabase.NewName();
-        var id = PeopleDatabase.Id(await registry.CreateAsync(new NewPerson(name, Annotation), actorId: null, TestContext.Current.CancellationToken));
+        var id = PeopleDatabase.Id(await registry.CreateAsync(new NewPerson(name, Annotation), CustodyAuthor.System, TestContext.Current.CancellationToken));
 
         var found = await registry.IdOfAsync(name, TestContext.Current.CancellationToken);
 
@@ -34,8 +35,8 @@ public sealed class PersonRegistryNameLookupTests : IClassFixture<PeopleDatabase
     {
         var registry = await database.RegistryAsync();
         var name = PeopleDatabase.NewName();
-        var id = PeopleDatabase.Id(await registry.CreateAsync(new NewPerson(name, Annotation), actorId: null, TestContext.Current.CancellationToken));
-        _ = await registry.DeactivateAsync(id, actorId: null, TestContext.Current.CancellationToken);
+        var id = PeopleDatabase.Id(await registry.CreateAsync(new NewPerson(name, Annotation), CustodyAuthor.System, TestContext.Current.CancellationToken));
+        _ = await registry.DeactivateAsync(id, CustodyAuthor.System, TestContext.Current.CancellationToken);
 
         var found = await registry.IdOfAsync(name, TestContext.Current.CancellationToken);
 
@@ -57,7 +58,7 @@ public sealed class PersonRegistryNameLookupTests : IClassFixture<PeopleDatabase
     {
         var registry = await database.RegistryAsync();
         var name = PeopleDatabase.NewName();
-        _ = await registry.CreateAsync(new NewPerson(name, Annotation), actorId: null, TestContext.Current.CancellationToken);
+        _ = await registry.CreateAsync(new NewPerson(name, Annotation), CustodyAuthor.System, TestContext.Current.CancellationToken);
 
         var found = await registry.IdOfAsync(name.ToUpperInvariant(), TestContext.Current.CancellationToken);
 

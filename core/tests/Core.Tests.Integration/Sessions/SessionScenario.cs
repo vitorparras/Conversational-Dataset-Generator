@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Text;
+using Core.Persistence.Custody;
 using Core.Persistence.Migrations;
 using Core.Persistence.People;
 using Core.Persistence.Tests.Fixtures;
@@ -135,12 +136,12 @@ internal sealed class SessionScenario : IAsyncDisposable
         var registry = new PersonRegistry(application);
         var credentials = new PersonCredentials(application, new PasswordDerivation(workFactor));
         var function = PersonFunctions.Accepted[0];
-        var active = (await registry.CreateAsync(new NewPerson(Name, function), actorId: null, cancellationToken)).PersonId!.Value;
-        _ = await credentials.SetPasswordAsync(active, Password, actorId: null, cancellationToken);
-        _ = await registry.CreateAsync(new NewPerson(NameWithoutPassword, function), actorId: null, cancellationToken);
-        var deactivated = (await registry.CreateAsync(new NewPerson(NameDeactivated, function), actorId: null, cancellationToken)).PersonId!.Value;
-        _ = await credentials.SetPasswordAsync(deactivated, Password, actorId: null, cancellationToken);
-        _ = await registry.DeactivateAsync(deactivated, actorId: null, cancellationToken);
+        var active = (await registry.CreateAsync(new NewPerson(Name, function), CustodyAuthor.System, cancellationToken)).PersonId!.Value;
+        _ = await credentials.SetPasswordAsync(active, Password, CustodyAuthor.System, cancellationToken);
+        _ = await registry.CreateAsync(new NewPerson(NameWithoutPassword, function), CustodyAuthor.System, cancellationToken);
+        var deactivated = (await registry.CreateAsync(new NewPerson(NameDeactivated, function), CustodyAuthor.System, cancellationToken)).PersonId!.Value;
+        _ = await credentials.SetPasswordAsync(deactivated, Password, CustodyAuthor.System, cancellationToken);
+        _ = await registry.DeactivateAsync(deactivated, CustodyAuthor.System, cancellationToken);
         _ = await KeyedHost.StatusAsync(address, process, cancellationToken);
     }
 }

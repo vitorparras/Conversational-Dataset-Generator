@@ -12,5 +12,6 @@ internal static class HostRoutes
         VersionsEndpoint.Map(app);
         AnalysisEndpoint.Map(app);
         SessionEndpoint.Map(app);
+        AuditEndpoint.Map(app);
     }
 }

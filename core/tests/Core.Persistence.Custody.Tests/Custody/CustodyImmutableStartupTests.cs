@@ -173,6 +173,7 @@ public sealed class CustodyImmutableStartupTests
     public Task TriggerPutBackNarrowerReallyLetsAnOwnerSessionChangeTheEventAndTheStartRefusesIt(string tampering, string change, int remaining)
     {
         ArgumentNullException.ThrowIfNull(tampering);
+        ArgumentNullException.ThrowIfNull(change);
         return NarrowerTriggerLetsTheChangeThroughAsync(tampering, change, remaining);
     }
 

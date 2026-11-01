@@ -61,6 +61,42 @@ public sealed class AuditRouteTests
     }
 
     [Fact]
+    public async Task IntervalWiderThanAWeekIsRefusedWith400AndTheMostItAccepts()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var host = await AuditHost.StartAsync(cancellationToken);
+
+        using var response = await host.GetAsync("?from=2026-11-01T12:00:00Z&to=2026-11-08T12:00:01Z", withSession: true, cancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Contains("7 dias", await response.Content.ReadAsStringAsync(cancellationToken), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task IntervalOfExactlyAWeekIsAccepted()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var host = await AuditHost.StartAsync(cancellationToken);
+
+        using var response = await host.GetAsync("?from=2026-11-01T12:00:00Z&to=2026-11-08T12:00:00Z", withSession: true, cancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task IntervalWithMoreLinesThanAnAnswerCarriesIsRefusedWith400AndTheMostItAccepts()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var host = await AuditHost.StartAsync(cancellationToken);
+        host.WriteLog(Noon.AddMinutes(1), [.. Enumerable.Repeat("INSERT", 10_001)]);
+
+        using var response = await host.GetAsync("?from=2026-11-01T12:00:00Z&to=2026-11-03T12:00:00Z", withSession: true, cancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Contains("10000 linhas", await response.Content.ReadAsStringAsync(cancellationToken), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task LogThatCannotBeReadAnswers503WithoutSayingWhy()
     {
         var cancellationToken = TestContext.Current.CancellationToken;

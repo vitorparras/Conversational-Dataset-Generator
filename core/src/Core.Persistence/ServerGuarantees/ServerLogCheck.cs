@@ -6,9 +6,17 @@ namespace Core.Persistence.ServerGuarantees;
 /// Checks that the folder named for the server's audit log is one the application can read and that holds a log file: without it the
 /// comparison of what the server saw with what the application wrote has nothing to read, and the diferença would go unseen.
 /// </summary>
-public sealed class ServerLogCheck(string directory) : IStartupCheck
+public sealed class ServerLogCheck : IStartupCheck
 {
     private const string Origin = "pasta nomeada por Audit:ServerLogDirectory";
+
+    private readonly string directory;
+
+    /// <summary>The check reads the folder the configuration named.</summary>
+    public ServerLogCheck(string directory)
+    {
+        this.directory = directory;
+    }
 
     /// <inheritdoc />
     public string Name => "ServerLog";

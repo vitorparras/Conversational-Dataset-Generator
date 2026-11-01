@@ -46,6 +46,9 @@ internal sealed class ScratchDatabase : IAsyncDisposable
         return new ScratchDatabase(shared.SuperuserConnectionString, name, Unpooled(shared.OwnerConnectionString, name), Unpooled(shared.AppConnectionString, name));
     }
 
+    /// <summary>A role that can connect and use the public schema and holds no grant on any table, dropped on dispose.</summary>
+    public Task<ScratchRole> CreateBareRoleAsync() => ScratchRole.CreateAsync(superuserConnectionString, name);
+
     /// <summary>One run of the migration over these steps, as the role owner.</summary>
     public async Task<MigrationResult> MigrateAsync(IReadOnlyList<MigrationStep> steps)
     {

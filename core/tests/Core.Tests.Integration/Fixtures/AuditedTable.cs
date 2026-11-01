@@ -13,6 +13,7 @@ internal sealed class AuditedTable : IAsyncDisposable
 {
     private const string UniqueViolation = "23505";
     private const string NotNullViolation = "23502";
+    private const string InvalidText = "22P02";
     private readonly ScratchDatabase database;
     private readonly string suffix = $"{Guid.NewGuid():N}";
 
@@ -56,6 +57,10 @@ internal sealed class AuditedTable : IAsyncDisposable
     /// <summary>The application stores a row without the material and the server refuses: the error names the row.</summary>
     public async Task InsertRefusedAsNullAsync(int id) =>
         Assert.Equal(NotNullViolation, (await Assert.ThrowsAsync<PostgresException>(() => RunAsync(InsertSql, IdParameter(id), BodyParameter(null)))).SqlState);
+
+    /// <summary>The application sends the material where a number is due, in a statement of its own that names no table, and the server refuses: the error quotes the text.</summary>
+    public async Task CastRefusedAsNotANumberAsync() =>
+        Assert.Equal(InvalidText, (await Assert.ThrowsAsync<PostgresException>(() => RunAsync("SELECT CAST(@body AS integer)", BodyParameter(Marker)))).SqlState);
 
     /// <summary>The application ends the run with the last read.</summary>
     public Task ReadTheEndAsync() => RunAsync($"SELECT id FROM {EndName} WHERE id = @id", IdParameter(0));

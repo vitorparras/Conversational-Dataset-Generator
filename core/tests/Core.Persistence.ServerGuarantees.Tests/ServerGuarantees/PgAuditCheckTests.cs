@@ -4,8 +4,8 @@ using Core.Platform.Startup;
 namespace Core.Persistence.Tests.ServerGuarantees;
 
 /// <summary>
-/// pgaudit must be loaded by the server, installed in the database, log what the application reads and writes, and keep parameters
-/// and error detail out of the log; each absence says where it is fixed.
+/// pgaudit must be loaded by the server, installed in the database, log what the application reads and writes, and keep parameters,
+/// error detail and query text out of the log without dropping the audit lines; each absence says where it is fixed.
 /// </summary>
 public sealed class PgAuditCheckTests
 {
@@ -117,23 +117,69 @@ public sealed class PgAuditCheckTests
         Assert.Contains("defina log_min_messages = log", finding.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void LevelLogKeepsTheAuditAndDropsTheErrorsAndPasses()
+    {
+        var finding = PgAuditCheck.Judge(Settings(minMessages: "LOG"), extensionVersion: "17.0");
+
+        Assert.Equal(CheckStatus.Passed, finding.Status);
+    }
+
     [Theory]
-    [InlineData("log")]
+    [InlineData("fatal")]
     [InlineData("FATAL")]
     [InlineData("panic")]
-    public void LevelAboveErrorKeepsTheAuditAndPasses(string level)
+    public void LevelAboveLogFailsSayingItDropsTheAudit(string level)
     {
         var finding = PgAuditCheck.Judge(Settings(minMessages: level), extensionVersion: "17.0");
+
+        Assert.Equal(CheckStatus.Failed, finding.Status);
+        Assert.Contains("descarta as linhas LOG", finding.Message, StringComparison.Ordinal);
+        Assert.Contains("defina log_min_messages = log", finding.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("debug1")]
+    [InlineData("info")]
+    [InlineData("notice")]
+    [InlineData("WARNING")]
+    public void AuditLinesSentToTheClientBelowLogFailNamingTheSetting(string level)
+    {
+        var finding = PgAuditCheck.Judge(Settings(logClient: "on", logLevel: level), extensionVersion: "17.0");
+
+        Assert.Equal(CheckStatus.Failed, finding.Status);
+        Assert.Contains($"pgaudit.log_level = '{level}'", finding.Message, StringComparison.Ordinal);
+        Assert.Contains("defina pgaudit.log_client = off", finding.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("on", "log")]
+    [InlineData("on", null)]
+    [InlineData("off", "debug1")]
+    [InlineData(null, "warning")]
+    public void ClientSettingsThatKeepTheAuditAtLogPass(string? logClient, string? logLevel)
+    {
+        var finding = PgAuditCheck.Judge(Settings(logClient: logClient, logLevel: logLevel), extensionVersion: "17.0");
 
         Assert.Equal(CheckStatus.Passed, finding.Status);
     }
 
     [Fact]
+    public void QueryTextPrintedByTheServerFailsNamingTheSettings()
+    {
+        var finding = PgAuditCheck.Judge(Settings(debugPrints: "debug_print_parse, debug_print_plan"), extensionVersion: "17.0");
+
+        Assert.Equal(CheckStatus.Failed, finding.Status);
+        Assert.Contains("debug_print_parse, debug_print_plan = on", finding.Message, StringComparison.Ordinal);
+        Assert.Contains("defina cada uma como off", finding.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void EveryGapIsNamedInTheSameRefusal()
     {
-        var finding = PgAuditCheck.Judge(new AuditSettings("ddl", "on", "-1", "-1", "warning"), extensionVersion: "17.0");
+        var finding = PgAuditCheck.Judge(new AuditSettings("ddl", "on", "-1", "-1", "warning", "on", "notice", "debug_print_plan"), extensionVersion: "17.0");
 
-        Assert.Equal(5, finding.Message.Split("; ").Length);
+        Assert.Equal(7, finding.Message.Split("; ").Length);
     }
 
     [Fact]
@@ -145,6 +191,9 @@ public sealed class PgAuditCheckTests
         string? logParameter = "off",
         string? parameterMaxLength = "0",
         string? parameterMaxLengthOnError = "0",
-        string? minMessages = "log") =>
-        new(log, logParameter, parameterMaxLength, parameterMaxLengthOnError, minMessages);
+        string? minMessages = "log",
+        string? logClient = "off",
+        string? logLevel = "log",
+        string? debugPrints = null) =>
+        new(log, logParameter, parameterMaxLength, parameterMaxLengthOnError, minMessages, logClient, logLevel, debugPrints);
 }

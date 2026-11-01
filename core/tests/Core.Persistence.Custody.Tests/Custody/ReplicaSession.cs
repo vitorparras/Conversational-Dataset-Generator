@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Core.Persistence.Tests.Fixtures;
 using Npgsql;
 
@@ -8,10 +7,26 @@ namespace Core.Persistence.Tests.Custody;
 /// A login of its own that is a member of the application's role or of the role owner and may set <c>session_replication_role</c>, so that a session of either credential
 /// can run as a replica, which skips every trigger not enabled ALWAYS. The login lives on the server, not in the database, and is taken back on dispose.
 /// </summary>
-[SuppressMessage("Security", "CA2100", Justification = "The statements are literals of this class with names it made itself, never input.")]
 internal sealed class ReplicaSession : IAsyncDisposable
 {
     private const long ParameterPrivilegeLock = 5_900_001;
+
+    private const string TakeLock = "SELECT pg_catalog.pg_advisory_xact_lock(@key)";
+    private const string Declare = "SELECT set_config('zqx.role', @role, true), set_config('zqx.password', @password, true), set_config('zqx.member', @member, true)";
+
+    private const string CreateRole = """
+        DO $do$ BEGIN
+            EXECUTE format('CREATE ROLE %I LOGIN PASSWORD %L IN ROLE %I', current_setting('zqx.role'), current_setting('zqx.password'), current_setting('zqx.member'));
+            EXECUTE format('GRANT SET ON PARAMETER session_replication_role TO %I', current_setting('zqx.role'));
+        END $do$
+        """;
+
+    private const string DropRole = """
+        DO $do$ BEGIN
+            EXECUTE format('REVOKE SET ON PARAMETER session_replication_role FROM %I', current_setting('zqx.role'));
+            EXECUTE format('DROP ROLE %I', current_setting('zqx.role'));
+        END $do$
+        """;
 
     private readonly string role;
 
@@ -29,7 +44,7 @@ internal sealed class ReplicaSession : IAsyncDisposable
     {
         var role = $"zqx_replica_{Guid.NewGuid():N}";
         var password = Guid.NewGuid().ToString("N", System.Globalization.CultureInfo.InvariantCulture);
-        await RunSerialAsync($"CREATE ROLE {role} LOGIN PASSWORD '{password}' IN ROLE {member}; GRANT SET ON PARAMETER session_replication_role TO {role}");
+        await RunSerialAsync(CreateRole, role, password, member);
         var connection = new NpgsqlConnectionStringBuilder(member == "owner" ? await database.OwnerConnectionStringAsync() : await database.AppConnectionStringAsync())
         {
             Username = role,
@@ -48,19 +63,28 @@ internal sealed class ReplicaSession : IAsyncDisposable
     }
 
     public async ValueTask DisposeAsync() =>
-        await RunSerialAsync($"REVOKE SET ON PARAMETER session_replication_role FROM {role}; DROP ROLE {role}");
+        await RunSerialAsync(DropRole, role, string.Empty, string.Empty);
 
     /// <summary>
-    /// Runs the statements as the superuser in one transaction that holds an advisory lock first. The privilege on a parameter is one row of the cluster,
-    /// made by the first grant and removed by the last revoke,
-    /// so two sessions that grant or revoke at once meet a duplicate key; the lock is taken in the shared database because an advisory lock belongs to
-    /// the database it is taken in, and the scratch databases
-    /// of the classes that run at once are many.
+    /// Runs the script as the superuser in one transaction that holds an advisory lock first. The privilege on a parameter is one row of the cluster,
+    /// made by the first grant and removed by the last revoke, so two sessions that grant or revoke at once meet a duplicate key; the lock is taken
+    /// in the shared database because an advisory lock belongs to the database it is taken in, and the scratch databases of the classes that run at once are many.
+    /// The names and the password reach the script as settings of the transaction and are quoted by the server, never written into the text of a statement.
     /// </summary>
-    private static async Task RunSerialAsync(string statements)
+    private static async Task RunSerialAsync(string script, string role, string password, string member)
     {
         await using var connection = await Sql.OpenAsync((await PostgresFixture.SharedAsync()).SuperuserConnectionString);
-        await using var command = new NpgsqlCommand($"SELECT pg_catalog.pg_advisory_xact_lock({ParameterPrivilegeLock}); {statements}", connection);
-        _ = await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+        var batch = new NpgsqlBatch(connection)
+        {
+            BatchCommands = { new NpgsqlBatchCommand(TakeLock), new NpgsqlBatchCommand(Declare), new NpgsqlBatchCommand(script) },
+        };
+        await using (batch.ConfigureAwait(false))
+        {
+            _ = batch.BatchCommands[0].Parameters.AddWithValue("key", ParameterPrivilegeLock);
+            _ = batch.BatchCommands[1].Parameters.AddWithValue("role", role);
+            _ = batch.BatchCommands[1].Parameters.AddWithValue("password", password);
+            _ = batch.BatchCommands[1].Parameters.AddWithValue("member", member);
+            _ = await batch.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+        }
     }
 }

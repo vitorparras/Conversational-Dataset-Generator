@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using Core.Persistence.Custody;
 using Core.Persistence.Migrations;
 using Core.Persistence.ServerGuarantees;
@@ -148,7 +147,6 @@ public sealed class CustodyImmutableStartupTests
     }
 
     [DatabaseFact]
-    [SuppressMessage("Security", "CA2100", Justification = "The statement is a literal of this test with the sequence it appended, never input.")]
     public async Task FunctionThatLetsTheChangeThroughReallyLetsAnOwnerSessionChangeTheEvent()
     {
         await using var database = new CustodyDatabase();
@@ -157,7 +155,8 @@ public sealed class CustodyImmutableStartupTests
             "CREATE OR REPLACE FUNCTION public.refuse_custody_event_change() RETURNS trigger LANGUAGE plpgsql AS $allow$ BEGIN RETURN NEW; END $allow$");
         await database.RunAsOwnerAsync($"GRANT UPDATE ON {Table} TO owner");
         await using var connection = await Sql.OpenAsync(await database.OwnerConnectionStringAsync());
-        await using var command = new Npgsql.NpgsqlCommand($"UPDATE {Table} SET item_id = item_id + 1 WHERE sequence = {sequence}", connection);
+        await using var command = new Npgsql.NpgsqlCommand("UPDATE public.custody_event SET item_id = item_id + 1 WHERE sequence = @sequence", connection);
+        _ = command.Parameters.AddWithValue("sequence", sequence);
 
         var changed = await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
         var report = await StartAsync(database);
@@ -167,12 +166,13 @@ public sealed class CustodyImmutableStartupTests
     }
 
     [DatabaseTheory]
-    [InlineData(OnlyOneColumn, "UPDATE {0} SET step = step WHERE sequence = {1}", 3)]
-    [InlineData(OnlyWhenNegative, "UPDATE {0} SET step = step WHERE sequence = {1}", 3)]
-    [InlineData(EmptyingNever, "TRUNCATE {0}", 0)]
+    [InlineData(OnlyOneColumn, "UPDATE public.custody_event SET step = step WHERE sequence = @sequence", 3)]
+    [InlineData(OnlyWhenNegative, "UPDATE public.custody_event SET step = step WHERE sequence = @sequence", 3)]
+    [InlineData(EmptyingNever, "TRUNCATE public.custody_event", 0)]
     public Task TriggerPutBackNarrowerReallyLetsAnOwnerSessionChangeTheEventAndTheStartRefusesIt(string tampering, string change, int remaining)
     {
         ArgumentNullException.ThrowIfNull(tampering);
+        ArgumentNullException.ThrowIfNull(change);
         return NarrowerTriggerLetsTheChangeThroughAsync(tampering, change, remaining);
     }
 
@@ -188,7 +188,12 @@ public sealed class CustodyImmutableStartupTests
 
         await database.RunAsOwnerAsync($"GRANT UPDATE, TRUNCATE ON {Table} TO owner");
         await using var connection = await Sql.OpenAsync(await database.OwnerConnectionStringAsync());
-        await using var command = new Npgsql.NpgsqlCommand(string.Format(CultureInfo.InvariantCulture, change, Table, sequence), connection);
+        await using var command = new Npgsql.NpgsqlCommand(change, connection);
+        if (change.Contains("@sequence", StringComparison.Ordinal))
+        {
+            _ = command.Parameters.AddWithValue("sequence", sequence);
+        }
+
 
         _ = await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
         var report = await StartAsync(database);
@@ -215,7 +220,6 @@ public sealed class CustodyImmutableStartupTests
     }
 
     [DatabaseFact]
-    [SuppressMessage("Security", "CA2100", Justification = "The statement is a literal of this test with the sequence it appended, never input.")]
     public async Task TriggerBroughtBackInTheOrdinaryModeLetsAnOwnerSessionThatSkipsOrdinaryTriggersThrough()
     {
         await using var database = new CustodyDatabase();
@@ -224,7 +228,8 @@ public sealed class CustodyImmutableStartupTests
         await database.RunAsOwnerAsync($"GRANT UPDATE ON {Table} TO owner");
         await using var session = await ReplicaSession.OfAsync(database, "owner");
         await using var connection = await Sql.OpenAsync(session.ConnectionString);
-        await using var command = new Npgsql.NpgsqlCommand($"UPDATE {Table} SET step = step WHERE sequence = {sequence}", connection);
+        await using var command = new Npgsql.NpgsqlCommand("UPDATE public.custody_event SET step = step WHERE sequence = @sequence", connection);
+        _ = command.Parameters.AddWithValue("sequence", sequence);
 
         var changed = await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
         var report = await StartAsync(database);

@@ -56,6 +56,18 @@ public sealed class ServerAuditLogTests
     }
 
     [DatabaseFact]
+    public async Task SeededMaterialQuotedByAnErrorOutsideAKeyIsInNoLineOfTheServerLog()
+    {
+        await using var table = await AuditedTable.CreateAsync();
+
+        await table.CastRefusedAsNotANumberAsync();
+        await table.ReadTheEndAsync();
+        var log = await ServerLog.UntilContainsAsync(table.EndName);
+
+        Assert.DoesNotContain(table.Marker, log, StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
     public async Task ParametersWouldBeInTheServerLogIfTheAuditLoggedThem()
     {
         var marker = $"ZQX-SEED-{Guid.NewGuid():N}";
@@ -79,6 +91,19 @@ public sealed class ServerAuditLogTests
 
         _ = await Assert.ThrowsAsync<PostgresException>(() => RunAsync(connection, "INSERT INTO zqx_seed VALUES (@marker)", marker));
         var log = await ServerLog.UntilContainsAsync($"Key (body)=({marker}) already exists");
+
+        Assert.Contains(marker, log, StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
+    public async Task TextQuotedByAnErrorWouldBeInTheServerLogIfErrorsWereLogged()
+    {
+        var marker = $"ZQX-SEED-{Guid.NewGuid():N}";
+        await using var connection = await OpenUnpooledAsSuperuserAsync();
+        await RunAsync(connection, "SET log_min_messages = warning");
+
+        _ = await Assert.ThrowsAsync<PostgresException>(() => RunAsync(connection, "SELECT CAST(@marker AS integer)", marker));
+        var log = await ServerLog.UntilContainsAsync(marker);
 
         Assert.Contains(marker, log, StringComparison.Ordinal);
     }

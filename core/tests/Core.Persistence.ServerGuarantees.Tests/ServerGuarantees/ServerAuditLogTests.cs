@@ -92,6 +92,37 @@ public sealed class ServerAuditLogTests : IDisposable
         _ = await Assert.ThrowsAsync<InvalidDataException>(() => ReadAsync(Noon, Noon.AddHours(1)));
     }
 
+    [Fact]
+    public async Task ReadingStopsAtTheLimitAndKeepsTheOldestLines()
+    {
+        _ = folder.Write(
+            "postgresql-a.csv",
+            Noon.AddHours(2),
+            ServerLogFolder.AuditLine(Noon.AddSeconds(1), "app", "INSERT", "public.person"),
+            ServerLogFolder.AuditLine(Noon.AddSeconds(2), "app", "UPDATE", "public.person"),
+            ServerLogFolder.AuditLine(Noon.AddSeconds(3), "app", "DELETE", "public.person"));
+
+        var entries = await new ServerAuditLog(folder.Path).ReadAsync(Noon, Noon.AddHours(1), 2, TestContext.Current.CancellationToken);
+
+        Assert.Equal(["INSERT", "UPDATE"], entries.Select(entry => entry.Command));
+    }
+
+    [Fact]
+    public async Task FileAfterTheIntervalIsNotOpenedOnceALineLaterThanTheIntervalHasBeenSeen()
+    {
+        var unreadable = ServerLogFolder.AuditLine(Noon.AddHours(5), "app", "INSERT", null).Replace("WRITE,INSERT", "WRITE", StringComparison.Ordinal);
+        _ = folder.Write(
+            "postgresql-a.csv",
+            Noon.AddHours(3),
+            ServerLogFolder.AuditLine(Noon.AddMinutes(1), "app", "INSERT", "public.person"),
+            ServerLogFolder.AuditLine(Noon.AddHours(2), "app", "UPDATE", "public.person"));
+        _ = folder.Write("postgresql-b.csv", Noon.AddHours(6), unreadable);
+
+        var entries = await ReadAsync(Noon, Noon.AddHours(1));
+
+        Assert.Equal(["INSERT"], entries.Select(entry => entry.Command));
+    }
+
     public void Dispose() => folder.Dispose();
 
     private Task<IReadOnlyList<ServerAuditEntry>> ReadAsync(DateTimeOffset from, DateTimeOffset to) =>

@@ -44,10 +44,35 @@ public sealed class CsvRecordReaderTests
         Assert.Empty(await ReadAllAsync(string.Empty));
     }
 
-    private static async Task<List<string[]>> ReadAllAsync(string text)
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(5)]
+    [InlineData(64)]
+    public async Task RecordsAreTheSameWhereverTheBufferEndsEvenBetweenTheTwoQuotesOfADoubledOne(int bufferSize)
+    {
+        var records = await ReadAllAsync("a,\"say \"\"x\"\",\nz\",c\r\nd,e\n", bufferSize);
+
+        Assert.Equal([["a", "say \"x\",\nz", "c"], ["d", "e"]], records);
+    }
+
+    [Fact]
+    public async Task RecordLongerThanTheBufferIsReadWhole()
+    {
+        var field = new string('x', (CsvRecordReader.DefaultBufferSize * 3) + 7);
+
+        var records = await ReadAllAsync($"{field},y\n{field}\n");
+
+        Assert.Equal([[field, "y"], [field]], records);
+    }
+
+    private static Task<List<string[]>> ReadAllAsync(string text) => ReadAllAsync(text, CsvRecordReader.DefaultBufferSize);
+
+    private static async Task<List<string[]>> ReadAllAsync(string text, int bufferSize)
     {
         using var reader = new StringReader(text);
-        var records = new CsvRecordReader(reader);
+        var records = new CsvRecordReader(reader, bufferSize);
         var all = new List<string[]>();
         while (await records.ReadAsync(TestContext.Current.CancellationToken) is { } record)
         {

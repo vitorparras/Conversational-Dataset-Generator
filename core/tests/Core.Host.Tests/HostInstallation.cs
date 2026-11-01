@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using Core.Tests.Support.Audit;
 using Core.Tests.Support.Custody;
 using Core.Tests.Support.Net;
 
@@ -24,6 +25,9 @@ internal sealed record HostInstallation(string BinaryDirectory, string WorkingDi
 
     /// <summary>Whether the arguments the host receives also name the certificate and the private key of the encrypted channel, which the serving mode cannot start without.</summary>
     public bool ProvidesTlsMaterial { get; init; } = true;
+
+    /// <summary>Whether the arguments the host receives also name the folder of the database server's log, which the serving mode cannot start without.</summary>
+    public bool ProvidesServerLog { get; init; } = true;
 
     /// <summary>Whether the arguments the host receives also name the custody files of a key and labels of the right form, which the serving mode cannot start without.</summary>
     public bool ProvidesMasterKey { get; init; } = true;
@@ -55,6 +59,11 @@ internal sealed record HostInstallation(string BinaryDirectory, string WorkingDi
                 arguments.AddRange(TlsArguments);
             }
 
+            if (ProvidesServerLog)
+            {
+                arguments.Add(ServerLogArgument);
+            }
+
             if (!DeclaresInstallation)
             {
                 return arguments;
@@ -75,6 +84,9 @@ internal sealed record HostInstallation(string BinaryDirectory, string WorkingDi
 
     /// <summary>The limits of a session a test that does not wait for one to pass wants: long enough that none passes while it runs.</summary>
     public static IReadOnlyList<string> SessionArguments => ["--Session:IdleTimeout=00:30:00", "--Session:AbsoluteTimeout=08:00:00"];
+
+    /// <summary>The argument that points the host at the folder of a server log it can read.</summary>
+    public static string ServerLogArgument => $"--Audit:ServerLogDirectory={ServerLogFiles.Shared}";
 
     /// <summary>The arguments that point the host at the shared certificate and private key.</summary>
     public static IReadOnlyList<string> TlsArguments =>

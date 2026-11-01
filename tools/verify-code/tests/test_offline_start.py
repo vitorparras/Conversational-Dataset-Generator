@@ -192,6 +192,12 @@ class OfflineStartTests(unittest.TestCase):
         self.assertIn('CDG_Tls__KeyFile="$custody/tls.key"', script)
         self.assertIn("Now listening on: https://127.0.0.1:", script)
 
+    def test_the_script_gives_the_host_a_folder_with_a_server_log_file(self) -> None:
+        script = START_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertIn(': > "$custody/serverlog/postgresql.csv"', script)
+        self.assertIn('export CDG_Audit__ServerLogDirectory="$custody/serverlog"', script)
+
     def test_the_server_has_no_network_and_the_host_joins_its_namespace(self) -> None:
         runner = DockerRunner(evidence())
 

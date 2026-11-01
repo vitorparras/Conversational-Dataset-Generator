@@ -128,8 +128,8 @@ internal static class CompositionRoot
         _ = services.AddSingleton(_ => new TlsMaterialCheck(TlsConfiguration.SourceOf(loaded.Values)))
             .AddSingleton<IStartupCheck>(provider => provider.GetRequiredService<TlsMaterialCheck>());
         AddServerGuarantees(services, database);
-        _ = services.AddSingleton(TimeProvider.System);
-        _ = services.AddLogging(logging => HostLogFile.WithFile(logging, fileLog));
+        _ = services.AddSingleton<IStartupCheck>(_ => new ServerLogCheck(AuditConfiguration.ServerLogDirectory(loaded.Values)));
+        _ = services.AddSingleton(TimeProvider.System).AddLogging(logging => HostLogFile.WithFile(logging, fileLog));
         if (fileLog is not null)
         {
             _ = services.AddSingleton(fileLog);
@@ -154,8 +154,7 @@ internal static class CompositionRoot
     private static ServiceProvider MigrationServices()
     {
         var services = new ServiceCollection();
-        _ = services.AddSingleton(TimeProvider.System);
-        _ = services.AddLogging(PlatformLogging.Configure);
+        _ = services.AddSingleton(TimeProvider.System).AddLogging(PlatformLogging.Configure);
         _ = services.AddRedaction(PlatformLogging.EraseSensitiveData);
         return services.BuildServiceProvider();
     }
@@ -188,6 +187,7 @@ internal static class CompositionRoot
         Compose(builder, loaded.View, fileLog);
         AddAnalysis(builder.Services, loaded.Values, analyzeTimeout);
         _ = builder.Services.AddSingleton(PasswordConfiguration.Derivation(loaded.Values));
+        _ = builder.Services.AddSingleton(_ => new ServerAuditLog(AuditConfiguration.ServerLogDirectory(loaded.Values)));
         _ = builder.Services.AddSingleton(provider => new SessionStore(SessionConfiguration.Lifetimes(loaded.Values), provider.GetRequiredService<TimeProvider>()));
         _ = builder.Services.AddSingleton(InstallationConfiguration.Of(loaded.Values)).AddSingleton(provider => InstallationConfiguration.Shown(StartupVersions.Of(checks), provider));
         if (SafekeepingConfiguration.Declaration(loaded.Values) is { } declaration)

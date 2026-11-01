@@ -196,7 +196,7 @@ jobs:
         with:
           python-version: '3.12'
       - id: list
-        name: Ler os módulos críticos de docs/operacao/014 (a matriz não tem lista própria)
+        name: Ler os módulos críticos de docs/operacao/areas (a matriz não tem lista própria)
         run: |
           modules=$(python tools/verify-code/verify.py --mutation-modules)
           echo "modules=$modules" >> "$GITHUB_OUTPUT"

@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from unittest import mock
 
-from steps import areas_doc, mutation, mutation_policy, mutation_service
+from steps import mutation, mutation_policy, mutation_service
 from steps.common import OUTPUT_DIRECTORY, CommandOutcome, Context, StepResult
 
 from . import support
@@ -66,7 +66,7 @@ class MutationFixture(unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
         self.root = Path(self._tmp.name).resolve()
-        support.write(self.root, areas_doc.DOCUMENT, DOCUMENT)
+        support.write_areas(self.root, DOCUMENT)
         support.write(self.root, mutation_policy.DOCUMENT, POLICY)
         reference = (
             '<ProjectReference Include="..\\..\\src\\Core.Platform\\Core.Platform.csproj" />'

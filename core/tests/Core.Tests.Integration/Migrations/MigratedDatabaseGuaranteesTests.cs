@@ -63,7 +63,7 @@ public sealed class MigratedDatabaseGuaranteesTests
         var report = await AppStartup.RunAsync(database, steps);
 
         Assert.True(report.Ready, report.FirstFailure?.Message);
-        Assert.Equal(["Privilege", "RlsForce", "Serializable", "PgAudit", "ColumnRevoke", "SchemaVersion"], report.Results.Select(result => result.Name));
+        Assert.Equal(["Privilege", "RlsForce", "Serializable", "PgAudit", "ColumnRevoke", "SchemaVersion", "ProtectedColumns"], report.Results.Select(result => result.Name));
     }
 
     private static async Task<CheckResult> RunOnTheMigratedDatabaseAsync(Func<NpgsqlDataSource, IStartupCheck> check)

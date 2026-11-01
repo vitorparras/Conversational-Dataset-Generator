@@ -17,6 +17,7 @@ internal static class AppStartup
         new PgAuditCheck(dataSource),
         new ColumnRevokeCheck(dataSource),
         new SchemaVersionCheck(dataSource, steps),
+        new ProtectedColumnCheck(dataSource),
     ];
 
     /// <summary>The report of a start against the database, as the application's role, with the steps this build is meant to carry.</summary>

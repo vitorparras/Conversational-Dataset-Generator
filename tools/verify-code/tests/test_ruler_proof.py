@@ -10,7 +10,6 @@ from pathlib import Path
 from unittest import mock
 
 from steps import (
-    areas_doc,
     floors,
     mutation_judge,
     mutation_service,
@@ -71,7 +70,7 @@ def accepted(name: str) -> StepResult:
 def synthetic_copy(_ctx: Context, parent: Path) -> StepResult | None:
     """A copy with the document, the module the defects need and the folders the seeds go in."""
     copy = parent / ruler_proof.COPY
-    support.write(copy, areas_doc.DOCUMENT, DOCUMENT)
+    support.write_areas(copy, DOCUMENT)
     support.write(copy, ruler_seed.DEFECT_FILE, AUTH)
     support.write(copy, WEAK_TARGET, STRONG_TEST)
     support.write(copy, "language-service/tests/unit/test_other.py", "import os\n")

@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from steps import areas_doc, coverage_by_area, floors, test_core, test_service
+from steps import coverage_by_area, floors, test_core, test_service
 from steps.common import StepResult
 
 from . import support
@@ -17,7 +17,7 @@ from . import support
 DOCUMENT = "\n".join(
     (
         "# 014",
-        areas_doc.HEADER,
+        support.TABLE_HEADER,
         "|---|---|---|---|---|",
         "| Registro do núcleo | `Core.Platform.Logging` | 90 % | sim | crítica |",
         "| Plataforma | `Core.Platform` | 80 % | não | demais pastas |",
@@ -34,10 +34,26 @@ STARTUP = "Core.Platform.Startup.Runner"
 CORE_REPORT = f"{test_core.RESULTS}/a.cobertura.xml"
 SERVICE_REPORT = f"{test_service.RESULTS}/{test_service.REPORT}"
 PREVIOUS = "previous/by-area.md"
-LOWER_BEFORE = "\n".join((*coverage_by_area.HEADER, "| Plataforma | 80 % | 75,0 % | 3 de 4 |", ""))
-SAME_BEFORE = "\n".join((*coverage_by_area.HEADER, "| Plataforma | 80 % | 80,0 % | 8 de 10 |", ""))
+LOWER_BEFORE = "\n".join(
+    (
+        *coverage_by_area.HEADER,
+        "| Plataforma | `Core.Platform` | 80 % | não | 75,0 % | 3 de 4 |",
+        "",
+    )
+)
+SAME_BEFORE = "\n".join(
+    (
+        *coverage_by_area.HEADER,
+        "| Plataforma | `Core.Platform` | 80 % | não | 80,0 % | 8 de 10 |",
+        "",
+    )
+)
 HIGHER_BEFORE = "\n".join(
-    (*coverage_by_area.HEADER, "| Plataforma | 80 % | 100,0 % | 3 de 3 |", "")
+    (
+        *coverage_by_area.HEADER,
+        "| Plataforma | `Core.Platform` | 80 % | não | 100,0 % | 3 de 3 |",
+        "",
+    )
 )
 
 
@@ -48,7 +64,7 @@ class FloorsFixture(unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
         self.root = Path(self._tmp.name)
-        support.write(self.root, areas_doc.DOCUMENT, DOCUMENT)
+        support.write_areas(self.root, DOCUMENT)
         self.environment = mock.patch.dict(os.environ, clear=False)
         self.environment.start()
         self.addCleanup(self.environment.stop)

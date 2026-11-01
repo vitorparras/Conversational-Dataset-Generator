@@ -124,7 +124,7 @@ def _print_utf8() -> None:
 
 
 def print_mutation_modules() -> int:
-    """The critical modules as a JSON list for the matrix of the CI; 1 when 014 gives none."""
+    """The critical modules as a JSON list for the matrix of the CI; 1 when the areas give none."""
     modules, problems = mutation.names(ROOT)
     if problems:
         print("\n".join(problems))
@@ -153,7 +153,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--mutation-modules",
         action="store_true",
-        help="imprime em JSON os módulos críticos de docs/operacao/014, a matriz do CI",
+        help="imprime em JSON os módulos críticos de docs/operacao/areas, a matriz do CI",
     )
     parser.add_argument("--base", help="ref de comparação para pr_size (ex.: origin/main)")
     parser.add_argument("--previous", type=Path, help="by-area.md anterior: floors avisa queda")

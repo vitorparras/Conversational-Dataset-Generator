@@ -14,9 +14,10 @@ public sealed class CustodyNamesFreshLoadTests
 
     private static readonly string[] Declared =
     [
-        "person",
+        "person", "item_text", "reversal_map",
         "person_created", "person_deactivated", "person_function_changed", "person_password_set", "correction",
-        "administrative_act", "correction_of_record",
+        "raw_text_read", "sanitized_text_read", "reversal_entries_read",
+        "administrative_act", "correction_of_record", "content_read",
     ];
 
     [Fact]

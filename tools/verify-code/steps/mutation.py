@@ -1,4 +1,5 @@
-"""Runs mutation testing over exactly the critical modules of docs/operacao/014, in both languages.
+"""Runs mutation testing over exactly the critical modules of docs/operacao/areas, in both
+languages.
 
 The list of modules, the survivor ceiling and the time ceiling are read from the document on every
 run; the configurations of Stryker.NET and of mutmut are generated from that list into the output
@@ -12,7 +13,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from steps import mutation_core, mutation_service
-from steps.areas_doc import DOCUMENT, Area, AreaTable, read_areas, within
+from steps.areas_doc import FOLDER, Area, AreaTable, read_areas, within
 from steps.common import Context, StepResult, failed, passed
 from steps.coverage_by_area import summarize
 from steps.floors import Verdict
@@ -23,11 +24,11 @@ NAME = "mutation"
 
 
 def listed(table: AreaTable) -> tuple[tuple[Area, ...], tuple[str, ...]]:
-    """The critical modules of the table of 014, and what keeps the document from giving them."""
+    """The critical modules of the area files, and what keeps the folder from giving them."""
     if table.problems:
         return (), table.problems
     modules = critical(table.areas)
-    return modules, () if modules else (f"{DOCUMENT}: nenhuma área com Crítica `sim`",)
+    return modules, () if modules else (f"{FOLDER}: nenhuma área com Crítica `sim`",)
 
 
 def names(root: Path) -> tuple[tuple[str, ...], tuple[str, ...]]:
@@ -47,7 +48,7 @@ def run(ctx: Context) -> StepResult:
     modules = tuple(area for area in every if ctx.module in (None, area.prefix))
     if not modules:
         known = ", ".join(f"`{area.prefix}`" for area in every)
-        return failed(NAME, f"`{ctx.module}` não é módulo crítico de {DOCUMENT}; são: {known}")
+        return failed(NAME, f"`{ctx.module}` não é módulo crítico de {FOLDER}; são: {known}")
     core = tuple(area for area in modules if within(area.prefix, mutation_core.ROOT))
     service = tuple(area for area in modules if within(area.prefix, mutation_service.ROOT))
     stray = (

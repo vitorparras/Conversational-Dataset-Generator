@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Core.Persistence.Content;
 using Core.Persistence.Migrations;
 using Core.Persistence.ServerGuarantees;
@@ -12,7 +13,7 @@ namespace Core.Persistence.Tests.Content;
 /// a domain sees that domain only, and the owner of the table is no exception. The table is made by the mold, in a database of its own.
 /// </summary>
 [Trait("Category", "Database")]
-public sealed class ContentDomainTests
+public sealed partial class ContentDomainTests
 {
     private const string Table = "content.zqx_item";
 
@@ -331,13 +332,31 @@ public sealed class ContentDomainTests
         await using var database = await WithTwoDomainsAsync();
         await using var connection = await Sql.OpenAsync(database.AppConnectionString);
 
-        foreach (var (name, statement) in ContentQueries.All)
+        foreach (var (name, statement) in ContentQueries.All.Where(query => query.Key.StartsWith("Read", StringComparison.Ordinal)))
         {
-            await using var command = new NpgsqlCommand(statement, connection);
+            await using var command = Unbound(statement, connection);
             await using var reader = await command.ExecuteReaderAsync(TestContext.Current.CancellationToken);
             Assert.False(await reader.ReadAsync(TestContext.Current.CancellationToken), $"the query {name} returned an item with no domain declared");
         }
     }
+
+    [DatabaseFact]
+    public async Task NoStatementTheSystemExposesAddsAnItemWithNoDomainDeclared()
+    {
+        await using var database = await WithTwoDomainsAsync();
+        await using var connection = await Sql.OpenAsync(database.AppConnectionString);
+
+        foreach (var (name, statement) in ContentQueries.All.Where(query => query.Key.StartsWith("Insert", StringComparison.Ordinal)))
+        {
+            await using var command = Unbound(statement, connection);
+            var refused = await Assert.ThrowsAsync<PostgresException>(() => command.ExecuteScalarAsync(TestContext.Current.CancellationToken));
+            Assert.True(refused.SqlState == PostgresErrorCodes.InsufficientPrivilege, $"the statement {name} was not refused by the row policy: {refused.SqlState}");
+        }
+    }
+
+    [Fact]
+    public void EveryStatementOfTheListIsAReadingOrAnInsert() =>
+        Assert.All(ContentQueries.All.Keys, name => Assert.Matches("^(Read|Insert)", name));
 
     [Fact]
     public async Task DomainThatIsNotPositiveIsRefusedBeforeAnyConnectionOpens()
@@ -398,6 +417,17 @@ public sealed class ContentDomainTests
         Assert.Equal(["a1", "a2"], seen);
     }
 
+    private static NpgsqlCommand Unbound(string statement, NpgsqlConnection connection)
+    {
+        var command = new NpgsqlCommand(statement, connection);
+        foreach (var parameter in Placeholder().Matches(statement).Select(match => match.Groups[1].Value).Distinct(StringComparer.Ordinal))
+        {
+            _ = command.Parameters.AddWithValue(parameter, DBNull.Value);
+        }
+
+        return command;
+    }
+
     private static NpgsqlDataSource SingleConnectionSource(string connectionString) =>
         NpgsqlDataSource.Create(new NpgsqlConnectionStringBuilder(connectionString) { Pooling = true, MaxPoolSize = 1, Timeout = 3 }.ConnectionString);
 
@@ -454,4 +484,7 @@ public sealed class ContentDomainTests
 
     private static Task<CheckResult> CheckAsync(ScratchDatabase database) =>
         AppStartup.CheckAsync(database, dataSource => new RlsForceCheck(dataSource));
+
+    [GeneratedRegex(@"@(\w+)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex Placeholder();
 }

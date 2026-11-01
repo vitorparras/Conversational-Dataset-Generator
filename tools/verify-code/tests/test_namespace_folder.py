@@ -37,7 +37,7 @@ class NamespaceFolderTests(fixture.FloorsFixture):
         expected = (
             f"core/src/Core.Platform/Logging/Formatter.cs: o namespace `Core.Platform` cai em "
             "Plataforma (`Core.Platform`) e a pasta em Registro do núcleo "
-            f"(`Core.Platform.Logging`); Projeto/pacote de {areas_doc.DOCUMENT} vale como "
+            f"(`Core.Platform.Logging`); Projeto/pacote de {areas_doc.FOLDER} vale como "
             "namespace e pasta"
         )
         self.assertEqual(found, (expected,))
@@ -79,7 +79,7 @@ class NamespaceFolderTests(fixture.FloorsFixture):
         self.assertEqual(namespace_folder.check(self.root), ())
 
     def test_a_document_that_does_not_read_checks_nothing(self) -> None:
-        support.write(self.root, areas_doc.DOCUMENT, "# 014\n")
+        support.write_areas(self.root, "# 014\n")
         self.source(PLATFORM_FILE, "namespace Core.Platform;\n")
 
         self.assertEqual(namespace_folder.check(self.root), ())

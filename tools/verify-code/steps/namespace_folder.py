@@ -1,4 +1,4 @@
-"""Confers that the project/package of docs/operacao/014 holds as namespace and as folder: a `.cs`
+"""Confers that the project/package of docs/operacao/areas holds as namespace and as folder: a `.cs`
 file of core/src falls in one area by its namespace and must fall in the same one by its folder.
 
 The service needs no such check: its module is its file path, so the two coincide by construction.
@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from steps.areas_doc import DOCUMENT, Area, area_of, read_areas
+from steps.areas_doc import FOLDER, Area, area_of, read_areas
 
 SOURCES = "core/src"
 NAMESPACE = re.compile(r"^\s*namespace\s+([A-Za-z_][\w.]*)", re.MULTILINE)
@@ -33,7 +33,7 @@ def in_file(base: Path, path: Path, areas: tuple[Area, ...]) -> tuple[str, ...]:
     wrong = (ns for ns in dict.fromkeys(NAMESPACE.findall(text)) if area_of(ns, areas) != by_folder)
     return tuple(
         f"{SOURCES}/{relative.as_posix()}: o namespace `{ns}` cai em {named(area_of(ns, areas))} e "
-        f"a pasta em {named(by_folder)}; Projeto/pacote de {DOCUMENT} vale como namespace e pasta"
+        f"a pasta em {named(by_folder)}; Projeto/pacote de {FOLDER} vale como namespace e pasta"
         for ns in wrong
     )
 

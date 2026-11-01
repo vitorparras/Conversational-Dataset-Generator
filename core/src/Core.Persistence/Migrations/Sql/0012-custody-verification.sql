@@ -44,7 +44,7 @@ BEGIN
     END IF;
 
     IF NEW.step NOT IN ('verify_chain', 'raw_text_read', 'sanitized_text_read', 'reversal_entries_read') AND public.custody_chain_broken() THEN
-        RAISE EXCEPTION 'the custody chain failed its last verification: only a verification or a reading is added until one passes'
+        RAISE EXCEPTION 'the custody chain failed its last verification: only a verification or a reading is added until the chain is restored'
             USING ERRCODE = 'CE002', SCHEMA = 'public', TABLE = 'custody_event';
     END IF;
 
@@ -80,7 +80,7 @@ LANGUAGE plpgsql
 AS $refuse$
 BEGIN
     IF public.custody_chain_broken() THEN
-        RAISE EXCEPTION 'the custody chain failed its last verification: no content is written until a verification passes'
+        RAISE EXCEPTION 'the custody chain failed its last verification: no content is written until the chain is restored'
             USING ERRCODE = 'CE002', SCHEMA = TG_TABLE_SCHEMA, TABLE = TG_TABLE_NAME;
     END IF;
 

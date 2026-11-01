@@ -22,5 +22,5 @@ internal static class CustodyRefusals
         CustodyResult.Refused(CustodyOutcome.PassedAfterFailure, "Veredito de que a cadeia passou não é gravado enquanto o último for uma falha; só a restauração fecha a cadeia; nada foi gravado.");
 
     internal static CustodyResult ChainBroken() =>
-        CustodyResult.Refused(CustodyOutcome.ChainBroken, "A última verificação da cadeia de custódia falhou: só verificação e leitura são gravadas até uma verificação passar; nada foi gravado.");
+        CustodyResult.Refused(CustodyOutcome.ChainBroken, "A última verificação da cadeia de custódia falhou: só verificação e leitura são gravadas até a cadeia ser restaurada; nada foi gravado.");
 }

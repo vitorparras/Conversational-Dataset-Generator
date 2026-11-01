@@ -41,7 +41,7 @@ public sealed class CustodyVerificationEventTests
     [Fact]
     public void RefusalWhileTheLastVerificationFailedIsTheNamedResultAndNotTheServersText()
     {
-        var failed = new PostgresException("the custody chain failed its last verification: no event is added until a verification passes", "ERROR", "ERROR", "CE002");
+        var failed = new PostgresException("the custody chain failed its last verification: only a verification or a reading is added until the chain is restored", "ERROR", "ERROR", "CE002");
         var pending = CustodyEvent.Of(CustodyAuthor.System, new CustodyItem(CustodyItemKind.Person, 1), CustodyStep.PersonCreated, CustodyReason.AdministrativeAct);
 
         var result = CustodyTransaction.Refused(failed, pending);
@@ -61,7 +61,7 @@ public sealed class CustodyVerificationEventTests
     {
         var refusal = new CustodyChainBrokenException();
 
-        Assert.Contains("nenhum conteúdo é gravado", refusal.Message, StringComparison.Ordinal);
+        Assert.Contains("nenhum conteúdo é gravado até a cadeia ser restaurada", refusal.Message, StringComparison.Ordinal);
     }
 
     [Fact]

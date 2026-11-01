@@ -44,7 +44,7 @@ internal static class PersonRefusals
     };
 
     internal static PersonResult ChainBroken() =>
-        PersonResult.Refused(PersonOutcome.ChainBroken, "A última verificação da cadeia de custódia falhou: nada é gravado até uma verificação passar; nada foi gravado.");
+        PersonResult.Refused(PersonOutcome.ChainBroken, "A última verificação da cadeia de custódia falhou: nada é gravado até a cadeia ser restaurada; nada foi gravado.");
 
     internal static PersonResult ChainBusy() =>
         PersonResult.Refused(PersonOutcome.ChainBusy, "Outra gravação chegou ao mesmo elo da cadeia de custódia antes; nada foi gravado, e o pedido pode ser repetido.");

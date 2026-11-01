@@ -36,6 +36,6 @@ public enum PersonOutcome
     /// <summary>The person already holds the function asked for.</summary>
     FunctionUnchanged,
 
-    /// <summary>The last verification of the chain of custody failed, so nothing is written until a verification passes; nothing was written.</summary>
+    /// <summary>The last verification of the chain of custody failed, so nothing is written until the chain is restored; nothing was written.</summary>
     ChainBroken,
 }

@@ -57,4 +57,12 @@ public sealed class PersonRefusalsTextTests
 
         Assert.Contains("The outcome is not one a change of a person can meet.", defect.Message, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void RefusalOfTheChainToChangeAnEventIsADefectThatSaysSoForAChangeOfAPerson()
+    {
+        var defect = Assert.Throws<ArgumentOutOfRangeException>(() => PersonRefusals.Chained(CustodyResult.Refused(CustodyOutcome.Immutable, "texto"), 3));
+
+        Assert.Contains("A change of a person never asks the chain to change an event.", defect.Message, StringComparison.Ordinal);
+    }
 }

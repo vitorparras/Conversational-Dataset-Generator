@@ -145,8 +145,9 @@ openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -subj 
   -keyout "$KEYS/tls.key" -out "$KEYS/tls.crt" 2> /dev/null
 export DOTNET_ENVIRONMENT=Development
 dotnet run --project core/src/Core.Host -- --Host:Urls=https://127.0.0.1:5080 \
-  --Installation:Kind=demonstracao --Passwords:WorkFactor=ITERACOES --MasterKey:File="$KEYS/chave" \
-  --MasterKey:LabelsFile="$KEYS/rotulos" --Tls:CertificateFile="$KEYS/tls.crt" --Tls:KeyFile="$KEYS/tls.key" \
+  --Installation:Kind=demonstracao --Passwords:WorkFactor=ITERACOES --Session:IdleTimeout=00:30:00 \
+  --Session:AbsoluteTimeout=08:00:00 --MasterKey:File="$KEYS/chave" --MasterKey:LabelsFile="$KEYS/rotulos" \
+  --Tls:CertificateFile="$KEYS/tls.crt" --Tls:KeyFile="$KEYS/tls.key" \
   --LanguageService:Executable="$PY"
 ```
 
@@ -168,6 +169,15 @@ dois a partida recusa.
 `Passwords:WorkFactor` é obrigatória ao servir, sem valor padrão, e leva o fator de trabalho da
 derivação das senhas, um número inteiro positivo de iterações que quem instala escolhe (`ITERACOES`
 acima é marcador). A recusa nomeia a chave; `/configuration` mostra o valor em vigor e de onde veio.
+
+`Session:IdleTimeout` e `Session:AbsoluteTimeout` são obrigatórias ao servir, sem valor padrão, e
+levam cada uma uma duração maior que zero (`00:30:00`, horas:minutos:segundos, ou `1.00:00:00`, com
+dias). A primeira conta o tempo sem atividade e cada pedido a renova; a segunda conta desde a
+entrada e nada a renova. Faltando uma, a partida recusa e a nomeia. A sessão vive só na memória do
+núcleo: reiniciar encerra todas. `POST /session` entra (`name` e `password`) e entrega o cookie
+`__Host-sessao`, com Secure, HttpOnly e SameSite=Strict; `DELETE /session` encerra; `GET /session`
+confere. Pedido sem sessão viva recebe 401 com `signIn`, a rota da entrada; levar a pessoa até lá
+sem perder o que submeteu espera a interface.
 
 `MasterKey:File` e `MasterKey:LabelsFile` são obrigatórias ao servir, sem valor padrão, e levam os
 caminhos dos arquivos da chave e dos rótulos, nunca a chave. O núcleo recusa arquivo ausente, com
@@ -278,6 +288,10 @@ dono do banco e do esquema, e o papel `app`, que só conecta e não é dono de n
 a porta só em `127.0.0.1` e exige três senhas no ambiente, sem valor em arquivo algum:
 `POSTGRES_PASSWORD` (superusuário), `DATABASE_OWNER_PASSWORD` e `DATABASE_APP_PASSWORD`, fora do
 prefixo `CDG_`, que o núcleo lê do ambiente e recusa quando não reconhece.
+
+O servidor registra em `csvlog`, no volume `database-log` (`/var/log/postgresql`, fora do volume
+de dados), o que o papel `app` lê e escreve, sem parâmetro de comando nem detalhe de erro. A
+partida do núcleo recusa um servidor que registre de outro modo.
 
 ```
 docker compose -f tools/database/compose.yml up

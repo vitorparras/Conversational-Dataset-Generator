@@ -37,6 +37,7 @@ internal static class PersonRefusals
         CustodyOutcome.ActorUnknown => ActorUnknown(),
         CustodyOutcome.ActorDeactivated => ActorDeactivated(),
         CustodyOutcome.CorrectedNotFound or CustodyOutcome.Conflict => ChainBusy(),
+        CustodyOutcome.Immutable => throw new ArgumentOutOfRangeException(nameof(custody), custody.Outcome, "A change of a person never asks the chain to change an event."),
         _ => throw new ArgumentOutOfRangeException(nameof(custody), custody.Outcome, "The outcome is not one a change of a person can meet."),
     };
 

@@ -7,10 +7,12 @@ using Core.Host.Migration;
 using Core.Host.Supervision;
 using Core.Persistence.Connection;
 using Core.Persistence.Migrations;
+using Core.Persistence.People;
 using Core.Persistence.ServerGuarantees;
 using Core.Platform.Configuration;
 using Core.Platform.Keys;
 using Core.Platform.Logging;
+using Core.Platform.Sessions;
 using Core.Platform.Startup;
 using Core.Platform.Versions;
 using Npgsql;
@@ -20,9 +22,6 @@ namespace Core.Host;
 /// <summary>The only place where the host is assembled: the target check first, then configuration, logging and services, then routes.</summary>
 internal static class CompositionRoot
 {
-    /// <summary>How long the versions route waits for the service to give its versions, so a service that hangs does not hang the route.</summary>
-    private static readonly TimeSpan ServiceVersionTimeout = TimeSpan.FromSeconds(5);
-
     internal static async Task<HostLaunch> BuildAsync(string[] args)
     {
         var target = await new StartupRunner([HostConfiguration.TargetCheck()], TimeProvider.System).RunAsync(CancellationToken.None);
@@ -60,8 +59,7 @@ internal static class CompositionRoot
     }
 
     /// <summary>Opens the file destination and the startup container, runs the checks and hands both to the host when every one passed; otherwise closes them here.</summary>
-    private static async Task<HostLaunch> LaunchAsync(
-        ConfigurationLoadResult loaded, DatabaseSettings database, TimeSpan analyzeTimeout, StartupReport target)
+    private static async Task<HostLaunch> LaunchAsync(ConfigurationLoadResult loaded, DatabaseSettings database, TimeSpan analyzeTimeout, StartupReport target)
     {
         var fileLog = HostLogFile.Open(loaded);
         var startup = StartupServices(loaded, fileLog, database);
@@ -162,7 +160,7 @@ internal static class CompositionRoot
         return services.BuildServiceProvider();
     }
 
-    /// <summary>The application's data source and the seven server checks, privilege first and the derivation labels last, or the check that says no database is declared.</summary>
+    /// <summary>The application's data source and the eight server checks, privilege first and the derivation labels last, or the check that says no database is declared.</summary>
     private static void AddServerGuarantees(IServiceCollection services, DatabaseSettings database)
     {
         if (database.State != DatabaseSettingsState.Configured)
@@ -178,6 +176,7 @@ internal static class CompositionRoot
         _ = services.AddSingleton<IStartupCheck>(provider => new PgAuditCheck(provider.GetRequiredService<NpgsqlDataSource>()));
         _ = services.AddSingleton<IStartupCheck>(provider => new ColumnRevokeCheck(provider.GetRequiredService<NpgsqlDataSource>()));
         _ = services.AddSingleton<IStartupCheck>(provider => new SchemaVersionCheck(provider.GetRequiredService<NpgsqlDataSource>(), EmbeddedMigrations.Load()));
+        _ = services.AddSingleton<IStartupCheck>(provider => new ImmutabilityCheck(provider.GetRequiredService<NpgsqlDataSource>()));
         _ = services.AddSingleton<IStartupCheck>(provider => new DerivationLabelCheck(provider.GetRequiredService<NpgsqlDataSource>(), provider.GetRequiredService<IMasterKeySource>()));
     }
 
@@ -189,6 +188,7 @@ internal static class CompositionRoot
         Compose(builder, loaded.View, fileLog);
         AddAnalysis(builder.Services, loaded.Values, analyzeTimeout);
         _ = builder.Services.AddSingleton(PasswordConfiguration.Derivation(loaded.Values));
+        _ = builder.Services.AddSingleton(provider => new SessionStore(SessionConfiguration.Lifetimes(loaded.Values), provider.GetRequiredService<TimeProvider>()));
         _ = builder.Services.AddSingleton(InstallationConfiguration.Of(loaded.Values)).AddSingleton(provider => InstallationConfiguration.Shown(StartupVersions.Of(checks), provider));
         if (SafekeepingConfiguration.Declaration(loaded.Values) is { } declaration)
         {
@@ -199,12 +199,14 @@ internal static class CompositionRoot
     }
 
     /// <summary>What the checks produced, adopted by the host: the report, the startup container, the recognizer in force and, once, the service's versions for the startup line.</summary>
-    private static async Task<WebApplication> AssembleAsync(
-        WebApplicationBuilder builder, StartupReport report, ServiceProvider startup, RecognizerKind recognizer)
+    private static async Task<WebApplication> AssembleAsync(WebApplicationBuilder builder, StartupReport report, ServiceProvider startup, RecognizerKind recognizer)
     {
         _ = builder.Services.AddSingleton(report);
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetRequiredService<ServiceProcessWatch>());
         _ = builder.Services.AddSingleton(_ => startup);
+        _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source
+            ? new SignIn(new PersonRegistry(source), new PersonCredentials(source, provider.GetRequiredService<PasswordDerivation>()), provider.GetRequiredService<SessionStore>())
+            : null!);
 
         var app = builder.Build();
         _ = app.Services.GetRequiredService<ServiceProvider>();
@@ -233,7 +235,7 @@ internal static class CompositionRoot
     {
         var startup = host.GetRequiredService<ServiceProvider>();
         return startup.GetRequiredService<LanguageServiceSupervisor>().Endpoint is { } endpoint
-            ? new HttpServiceVersionReader(startup.GetRequiredService<HttpClient>(), new HttpRecognizerSettings(endpoint.Port, endpoint.Secret, ServiceVersionTimeout))
+            ? new HttpServiceVersionReader(startup.GetRequiredService<HttpClient>(), new HttpRecognizerSettings(endpoint.Port, endpoint.Secret, LanguageServiceConfiguration.VersionsTimeout))
             : new NoServiceVersionReader();
     }
 

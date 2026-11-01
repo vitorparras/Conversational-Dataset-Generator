@@ -31,4 +31,6 @@ internal static class PersonStatements
         """;
 
     internal const string IsActive = "SELECT active FROM public.person WHERE id = @id";
+
+    internal const string IdOfName = "SELECT id FROM public.person WHERE name = @name";
 }

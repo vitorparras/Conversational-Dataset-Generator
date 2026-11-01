@@ -94,10 +94,10 @@ public sealed class SessionGateTests
         Assert.Equal("/session", await SignInOfAsync(response, cancellationToken));
     }
 
+    public static TheoryData<string, string> RoutesBehindTheGate => MappedRoutes.Gated();
+
     [Theory]
-    [InlineData("GET", "/configuration")]
-    [InlineData("GET", "/versions")]
-    [InlineData("POST", "/analysis")]
+    [MemberData(nameof(RoutesBehindTheGate))]
     public async Task EveryRouteBehindTheGateAnswers401PointingAtTheEntryWhenThereIsNoSession(string method, string route)
     {
         var cancellationToken = TestContext.Current.CancellationToken;

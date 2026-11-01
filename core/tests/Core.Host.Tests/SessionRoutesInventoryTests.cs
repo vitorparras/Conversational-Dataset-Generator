@@ -1,13 +1,12 @@
-using Core.Host.Endpoints;
-using Core.Platform.Configuration;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.Http;
 
 namespace Core.Host.Tests;
 
 /// <summary>
 /// Every route the host maps asks for a session except the explicit exceptions (issue #495, CA-3): the inventory is read from the routes the composition
-/// maps, so a route added later that answers with no session, and is not on the list, fails here.
+/// maps, so a route added later that answers with no session, and is not on the list, fails here. What the inventory cannot see, a branch of the pipeline
+/// or a terminal middleware and who may mark a route open, is judged by the architecture rule.
 /// </summary>
 public sealed class SessionRoutesInventoryTests
 {
@@ -15,37 +14,35 @@ public sealed class SessionRoutesInventoryTests
     private static readonly string[] Exceptions = ["POST /session", "GET /status"];
 
     [Fact]
-    public async Task OnlyTheEntryAndTheStatusAnswerWithNoSession()
+    public void OnlyTheEntryAndTheStatusAnswerWithNoSession()
     {
-        await using var app = Mapped();
-
-        var open = Routes(app).Where(route => route.Metadata.GetMetadata<SessionOpen>() is not null).Select(Described);
+        var open = MappedRoutes.Read().Where(route => route.Open).Select(route => route.ToString());
 
         Assert.Equal(Exceptions.Order(StringComparer.Ordinal), open.Order(StringComparer.Ordinal));
     }
 
     [Fact]
-    public async Task EveryOtherRouteTheHostMapsIsBehindTheGate()
+    public void EveryOtherRouteTheHostMapsIsBehindTheGate()
     {
-        await using var app = Mapped();
-
-        var gated = Routes(app).Where(route => route.Metadata.GetMetadata<SessionOpen>() is null).Select(Described).Order(StringComparer.Ordinal).ToList();
+        var gated = MappedRoutes.Read().Where(route => !route.Open).Select(route => route.ToString()).Order(StringComparer.Ordinal).ToList();
 
         Assert.Equal(["DELETE /session", "GET /configuration", "GET /session", "GET /versions", "POST /analysis"], gated);
     }
 
-    private static string Described(RouteEndpoint route) =>
-        $"{route.Metadata.GetMetadata<HttpMethodMetadata>()!.HttpMethods.Single()} {route.RoutePattern.RawText}";
-
-    private static IEnumerable<RouteEndpoint> Routes(WebApplication app) =>
-        ((IEndpointRouteBuilder)app).DataSources.SelectMany(source => source.Endpoints).OfType<RouteEndpoint>();
-
-    private static WebApplication Mapped()
+    [Fact]
+    public void NoRouteIsShortCircuitedPastTheGate()
     {
-        var builder = CompositionRoot.ClosedBuilder(HostProcess.FreePlainAddress().GetLeftPart(UriPartial.Authority));
-        CompositionRoot.Compose(builder, ClosedConfiguration.Load(new ConfigurationSchema([HostConfiguration.Section])).View, fileLog: null);
-        var app = builder.Build();
-        HostRoutes.Map(app, RecognizerKind.Fake);
-        return app;
+        var skipping = MappedRoutes.Read().Where(route => route.ShortCircuited).Select(route => route.ToString());
+
+        Assert.Empty(skipping);
+    }
+
+    [Fact]
+    public void ShortCircuitedRouteIsSeenByTheInventory()
+    {
+        var seen = MappedRoutes.Read(app => _ = app.MapGet("/zqx-skipping-7731", () => Results.NoContent()).ShortCircuit());
+
+        var skipping = Assert.Single(seen, route => route.ShortCircuited);
+        Assert.Equal("GET /zqx-skipping-7731", skipping.ToString());
     }
 }

@@ -7,10 +7,12 @@ using Core.Host.Migration;
 using Core.Host.Supervision;
 using Core.Persistence.Connection;
 using Core.Persistence.Migrations;
+using Core.Persistence.People;
 using Core.Persistence.ServerGuarantees;
 using Core.Platform.Configuration;
 using Core.Platform.Keys;
 using Core.Platform.Logging;
+using Core.Platform.Sessions;
 using Core.Platform.Startup;
 using Core.Platform.Versions;
 using Npgsql;
@@ -20,9 +22,6 @@ namespace Core.Host;
 /// <summary>The only place where the host is assembled: the target check first, then configuration, logging and services, then routes.</summary>
 internal static class CompositionRoot
 {
-    /// <summary>How long the versions route waits for the service to give its versions, so a service that hangs does not hang the route.</summary>
-    private static readonly TimeSpan ServiceVersionTimeout = TimeSpan.FromSeconds(5);
-
     internal static async Task<HostLaunch> BuildAsync(string[] args)
     {
         var target = await new StartupRunner([HostConfiguration.TargetCheck()], TimeProvider.System).RunAsync(CancellationToken.None);
@@ -60,8 +59,7 @@ internal static class CompositionRoot
     }
 
     /// <summary>Opens the file destination and the startup container, runs the checks and hands both to the host when every one passed; otherwise closes them here.</summary>
-    private static async Task<HostLaunch> LaunchAsync(
-        ConfigurationLoadResult loaded, DatabaseSettings database, TimeSpan analyzeTimeout, StartupReport target)
+    private static async Task<HostLaunch> LaunchAsync(ConfigurationLoadResult loaded, DatabaseSettings database, TimeSpan analyzeTimeout, StartupReport target)
     {
         var fileLog = HostLogFile.Open(loaded);
         var startup = StartupServices(loaded, fileLog, database);
@@ -94,8 +92,7 @@ internal static class CompositionRoot
         }
     }
 
-    /// <summary>Logging with redaction first, then every service the routes consume and a JSON that refuses a field unknown, missing or null;
-    /// the host's container owns the file destination and, since every logger depends on it, closes it after the last of them.</summary>
+    /// <summary>Logging with redaction first, then the services the routes consume and a JSON that refuses a field unknown, missing or null; the container owns the file destination.</summary>
     internal static void Compose(IHostApplicationBuilder builder, EffectiveConfiguration configuration, ILoggerProvider? fileLog)
     {
         PlatformLogging.Configure(builder.Logging);
@@ -190,6 +187,7 @@ internal static class CompositionRoot
         Compose(builder, loaded.View, fileLog);
         AddAnalysis(builder.Services, loaded.Values, analyzeTimeout);
         _ = builder.Services.AddSingleton(PasswordConfiguration.Derivation(loaded.Values));
+        _ = builder.Services.AddSingleton(provider => new SessionStore(SessionConfiguration.Lifetimes(loaded.Values), provider.GetRequiredService<TimeProvider>()));
         _ = builder.Services.AddSingleton(InstallationConfiguration.Of(loaded.Values)).AddSingleton(provider => InstallationConfiguration.Shown(StartupVersions.Of(checks), provider));
         if (SafekeepingConfiguration.Declaration(loaded.Values) is { } declaration)
         {
@@ -200,12 +198,14 @@ internal static class CompositionRoot
     }
 
     /// <summary>What the checks produced, adopted by the host: the report, the startup container, the recognizer in force and, once, the service's versions for the startup line.</summary>
-    private static async Task<WebApplication> AssembleAsync(
-        WebApplicationBuilder builder, StartupReport report, ServiceProvider startup, RecognizerKind recognizer)
+    private static async Task<WebApplication> AssembleAsync(WebApplicationBuilder builder, StartupReport report, ServiceProvider startup, RecognizerKind recognizer)
     {
         _ = builder.Services.AddSingleton(report);
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetRequiredService<ServiceProcessWatch>());
         _ = builder.Services.AddSingleton(_ => startup);
+        _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source
+            ? new SignIn(new PersonRegistry(source), new PersonCredentials(source, provider.GetRequiredService<PasswordDerivation>()), provider.GetRequiredService<SessionStore>())
+            : null!);
 
         var app = builder.Build();
         _ = app.Services.GetRequiredService<ServiceProvider>();
@@ -234,7 +234,7 @@ internal static class CompositionRoot
     {
         var startup = host.GetRequiredService<ServiceProvider>();
         return startup.GetRequiredService<LanguageServiceSupervisor>().Endpoint is { } endpoint
-            ? new HttpServiceVersionReader(startup.GetRequiredService<HttpClient>(), new HttpRecognizerSettings(endpoint.Port, endpoint.Secret, ServiceVersionTimeout))
+            ? new HttpServiceVersionReader(startup.GetRequiredService<HttpClient>(), new HttpRecognizerSettings(endpoint.Port, endpoint.Secret, LanguageServiceConfiguration.VersionsTimeout))
             : new NoServiceVersionReader();
     }
 

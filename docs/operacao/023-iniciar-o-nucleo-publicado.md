@@ -8,14 +8,14 @@ Depois de [021](021-subir-o-nucleo-publicado.md), [024](024-arquivos-de-custodia
 ## Iniciar
 
 Os valores são os do exemplo de 021 (banco, papel `app`, `demonstracao`), a trocar pelos do seu
-ambiente (`ITERACOES` é o fator das senhas, `Passwords:WorkFactor`); numa instalação real,
+ambiente (`ITERACOES` é o fator das senhas; os prazos são `Session:*`); numa instalação real,
 `--Installation:Kind=real`. O núcleo roda em segundo plano e sobrevive ao fim do `docker exec` que
 o iniciou: a espera pode ir no mesmo bloco ou noutro. O código de saída vai a `/tmp/nucleo.saida`:
 
 ```
 : > /tmp/nucleo.saida
 cd /opt/cdg/nucleo
-( CDG_Database__Password="$(cat /tmp/senha-app)" ./Core.Host --Host:Urls=https://127.0.0.1:5080 \
+( CDG_Database__Password="$(cat /tmp/senha-app)" CDG_Session__IdleTimeout=00:30:00 CDG_Session__AbsoluteTimeout=08:00:00 ./Core.Host --Host:Urls=https://127.0.0.1:5080 \
   --Installation:Kind=demonstracao --Passwords:WorkFactor=ITERACOES --MasterKey:File=/etc/cdg/custodia/chave \
   --MasterKey:LabelsFile=/etc/cdg/custodia/rotulos --Tls:CertificateFile=/etc/cdg/tls/certificado.pem \
   --Tls:KeyFile=/etc/cdg/tls/chave.pem --Database:Host=db:5432 --Database:Name=cdg \

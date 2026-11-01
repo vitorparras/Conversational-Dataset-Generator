@@ -61,6 +61,7 @@ internal static class HostConfiguration
                     migrating ? TlsConfiguration.SectionWhenMigrating : TlsConfiguration.Section,
                     SafekeepingConfiguration.Section,
                     migrating ? PasswordConfiguration.SectionWhenMigrating : PasswordConfiguration.Section,
+                    migrating ? SessionConfiguration.SectionWhenMigrating : SessionConfiguration.Section,
                     LanguageServiceConfiguration.Section,
                     RecognizerConfiguration.Section,
                     migrating ? DatabaseConfiguration.SectionWhenMigrating : DatabaseConfiguration.Section
@@ -79,6 +80,7 @@ internal static class HostConfiguration
         .. LanguageServiceConfiguration.Refusals(values, analyzeTimeout),
         .. SafekeepingConfiguration.Refusals(values, InstallationConfiguration.Of(values).Kind),
         .. PasswordConfiguration.Refusals(values),
+        .. SessionConfiguration.Refusals(values),
         .. TlsConfiguration.Refusals(values),
     ];
 }

@@ -3,7 +3,7 @@ import the module, one mutmut run per module, and every file in one area only (d
 
 from __future__ import annotations
 
-from steps import areas_doc, mutation_service
+from steps import mutation_service
 from steps.areas_doc import Area
 
 from . import mutation_fixture as fixture
@@ -102,7 +102,7 @@ class SelectionTests(fixture.MutationFixture):
 
 class ModuleRunTests(fixture.MutationFixture):
     def replace_in_document(self, old: str, new: str) -> None:
-        support.write(self.root, areas_doc.DOCUMENT, DOCUMENT.replace(old, new))
+        support.write_areas(self.root, DOCUMENT.replace(old, new))
 
     def test_mutmut_runs_each_module_with_the_tests_of_that_module_only(self) -> None:
         runner = healthy()

@@ -16,7 +16,7 @@ SERVICE = "language-service/src/language_service"
 DOCUMENT = "\n".join(
     (
         "# 014",
-        areas_doc.HEADER,
+        support.TABLE_HEADER,
         "|---|---|---|---|---|",
         "| Registro | `Core.Platform.Logging` | 90 % | sim | crítica |",
         "| Plataforma | `Core.Platform` | 80 % | não | Absorve: `Versions`, `Clock`; portas |",
@@ -36,7 +36,7 @@ def gaps(result: StepResult) -> list[str]:
 class FloorsInnerTests(fixture.FloorsFixture):
     def setUp(self) -> None:
         super().setUp()
-        support.write(self.root, areas_doc.DOCUMENT, DOCUMENT)
+        support.write_areas(self.root, DOCUMENT)
         self.core((LOGGING, "L.cs", "1"))
         self.project("Core.Platform")
         for name in ("Versions", "Clock"):
@@ -57,8 +57,8 @@ class FloorsInnerTests(fixture.FloorsFixture):
         folder = "core/src/Core.Persistence/Custody/"
         self.assertEqual(
             gaps(result)[0],
-            f"{folder}: sem linha em {areas_doc.DOCUMENT} nem enumerada em `Absorve:` na linha "
-            "`Core.Persistence`",
+            f"{folder}: sem arquivo em {areas_doc.FOLDER} nem enumerada em `Absorve:` "
+            "no arquivo de `Core.Persistence`",
         )
 
     def test_a_folder_the_row_of_its_project_enumerates_passes(self) -> None:
@@ -98,8 +98,8 @@ class FloorsInnerTests(fixture.FloorsFixture):
         self.assertFalse(result.ok)
         self.assertEqual(
             gaps(result)[0],
-            f"{SERVICE}/custody.py: sem linha em {areas_doc.DOCUMENT} nem enumerada em "
-            "`Absorve:` na linha `language_service`",
+            f"{SERVICE}/custody.py: sem arquivo em {areas_doc.FOLDER} nem enumerada em "
+            "`Absorve:` no arquivo de `language_service`",
         )
 
     def test_a_new_package_of_the_service_fails_naming_it(self) -> None:
@@ -108,7 +108,7 @@ class FloorsInnerTests(fixture.FloorsFixture):
         result = self.run_step()
 
         self.assertFalse(result.ok)
-        self.assertIn(f"{SERVICE}/custody/: sem linha", gaps(result)[0])
+        self.assertIn(f"{SERVICE}/custody/: sem arquivo", gaps(result)[0])
 
     def test_modules_the_row_enumerates_or_that_have_a_row_of_their_own_pass(self) -> None:
         self.package("auth")
@@ -141,7 +141,7 @@ class FloorsInnerTests(fixture.FloorsFixture):
         self.assertEqual(
             gaps(result),
             [
-                f"{areas_doc.DOCUMENT}: `Clock` em `Absorve:` de `Core.Platform` "
+                f"{areas_doc.FOLDER}/Core.Platform.md: `Clock` em `Absorve:` "
                 "e não existe mais; tire-o da lista"
             ],
         )
@@ -152,4 +152,4 @@ class FloorsInnerTests(fixture.FloorsFixture):
         result = self.run_step()
 
         self.assertFalse(result.ok)
-        self.assertIn("`routes` em `Absorve:` de `language_service`", gaps(result)[0])
+        self.assertIn("`routes` em `Absorve:` e não existe mais", gaps(result)[0])

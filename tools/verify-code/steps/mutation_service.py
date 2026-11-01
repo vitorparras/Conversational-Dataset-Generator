@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from fnmatch import fnmatch
 from pathlib import Path, PurePosixPath
 
-from steps.areas_doc import DOCUMENT, Area, area_of, within
+from steps.areas_doc import FOLDER, Area, area_of, within
 from steps.build_service import REQUIREMENTS, SERVICE, UV
 from steps.common import Context, reset_directory, tail
 from steps.mutant import Mutant, MutantStatus
@@ -163,7 +163,7 @@ def own_configuration(root: Path) -> tuple[str, ...]:
         *service.glob(f"{TESTS}/**/{PROJECT}"),
     )
     return tuple(
-        f"{path.relative_to(root).as_posix()} tem `[tool.mutmut]`; o escopo vem de {DOCUMENT}"
+        f"{path.relative_to(root).as_posix()} tem `[tool.mutmut]`; o escopo vem de {FOLDER}"
         for path in found
         if path.is_file()
         and "mutmut" in tomllib.loads(path.read_text(encoding="utf-8")).get("tool", {})

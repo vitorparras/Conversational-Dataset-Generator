@@ -1,30 +1,36 @@
-"""Reads the coverage areas from the table of docs/operacao/014, the only copy of the floors."""
+"""Reads the coverage areas from the folder docs/operacao/areas, the only copy of the floors.
+
+Each area is one file named by its project or package, with the title as the area name and four
+fixed fields, one per line: `- Projeto/pacote: `A.B``, `- Piso: 90 %` (or `isento`),
+`- Crítica: sim` (or `não`) and `- Motivo: ...`, which goes on in lines indented by two spaces.
+"""
 
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from itertools import takewhile
 from pathlib import Path
 
-DOCUMENT = "docs/operacao/014-modulos-criticos-e-pisos.md"
-HEADER = "| Área | Projeto/pacote | Piso | Crítica | Motivo |"
+FOLDER = "docs/operacao/areas"
+OWNER = "Projeto/pacote"
+FIELDS = (OWNER, "Piso", "Crítica", "Motivo")
 EXEMPT = "isento"
 YES = "sim"
 NO = "não"
+TITLE = re.compile(r"# (.+)")
+CONTINUATION = re.compile(r"  \S.*")
+FIELD = re.compile(r"- (Projeto/pacote|Piso|Crítica|Motivo): (.*)")
 FLOOR = re.compile(r"(\d{1,3}) ?%")
 PREFIX = re.compile(r"`([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)`")
 ABSORBS = re.compile(r"Absorve: ([^;]*)")
 NAME = re.compile(r"`([A-Za-z_]\w*)`")
-SEPARATOR = re.compile(r"\|(?: *:?-+:? *\|){5}")
-CELLS = 5
 WHOLE = 100
 
 
 @dataclass(frozen=True)
 class Area:
-    """One row of the table: a name, the prefix it owns, its floor (absent when exempt), whether it
-    is a critical module, the list the mutation test runs over, and the first-level folders or
+    """One file of the folder: a name, the prefix it owns, its floor (absent when exempt), whether
+    it is a critical module, the list the mutation test runs over, and the first-level folders or
     modules it absorbs, which its reason enumerates after `Absorve:` up to the next `;`."""
 
     name: str
@@ -36,18 +42,10 @@ class Area:
 
 @dataclass(frozen=True)
 class AreaTable:
-    """The areas of the document, or the problems that keep it from being read."""
+    """The areas of the folder, or the problems that keep it from being read."""
 
     areas: tuple[Area, ...]
     problems: tuple[str, ...]
-
-
-@dataclass(frozen=True)
-class Row:
-    """A table line of the document and its 1-based number."""
-
-    number: int
-    text: str
 
 
 def within(unit: str, prefix: str) -> bool:
@@ -61,66 +59,94 @@ def area_of(unit: str, areas: tuple[Area, ...]) -> Area | None:
     return max(owners, key=lambda area: len(area.prefix), default=None)
 
 
-def table_rows(lines: list[str]) -> tuple[Row, ...] | None:
-    """The lines of the table under the fixed header, or None when the header is absent."""
-    stripped = [line.strip() for line in lines]
-    if HEADER not in stripped:
-        return None
-    after = (Row(n + 1, stripped[n]) for n in range(stripped.index(HEADER) + 1, len(stripped)))
-    return tuple(takewhile(lambda row: row.text.startswith("|"), after))
+def fields_of(path: str, lines: list[str]) -> tuple[dict[str, str], list[str]]:
+    """The value of each fixed field of one file and the problems of its title and fields."""
+    found: dict[str, str] = {}
+    problems: list[str] = []
+    if not lines or TITLE.fullmatch(lines[0]) is None:
+        problems.append(f"{path}:1: falta o título `# Nome da área` na primeira linha")
+    current = ""
+    for number, line in enumerate(lines, start=1):
+        field = FIELD.fullmatch(line)
+        if field is None:
+            # A line indented by two spaces goes on with the value of the field above it.
+            if current and CONTINUATION.fullmatch(line):
+                found[current] = f"{found[current]} {line.strip()}"
+            else:
+                current = ""
+            continue
+        current = field[1]
+        if current in found:
+            problems.append(f"{path}:{number}: o campo `{current}` já aparece antes")
+        found.setdefault(current, field[2].strip())
+    problems.extend(f"{path}: falta o campo `{name}`" for name in FIELDS if name not in found)
+    return found, problems
 
 
-def parse_row(row: Row) -> Area | str:
-    """The area a row declares, or the problem with it, naming the line."""
-    where = f"{DOCUMENT}:{row.number}"
-    cells = [cell.strip() for cell in row.text.strip("|").split("|")]
-    if len(cells) != CELLS:
-        return f"{where}: a linha tem {len(cells)} colunas; o cabeçalho fixo tem {CELLS}"
-    name, prefix, floor, critical, reason = cells
-    owner = PREFIX.fullmatch(prefix)
-    if not name or owner is None:
-        return f"{where}: área sem nome ou projeto/pacote '{prefix}' fora da forma `A.B` com crases"
+def parse_file(path: str, lines: list[str]) -> tuple[Area | None, list[str]]:
+    """The area one file declares, or none, and the problems with it, each naming the file."""
+    found, problems = fields_of(path, lines)
+    if problems:
+        return None, problems
+    name = lines[0].removeprefix("# ").strip()
+    owner = PREFIX.fullmatch(found[OWNER])
+    if owner is None:
+        return None, [f"{path}: projeto/pacote '{found[OWNER]}' fora da forma `A.B` com crases"]
+    floor, critical, reason = found["Piso"], found["Crítica"], found["Motivo"]
     if critical not in (YES, NO):
-        return f"{where}: Crítica '{critical}' não é `{YES}` nem `{NO}`"
-    marked = critical == YES
+        return None, [f"{path}: Crítica '{critical}' não é `{YES}` nem `{NO}`"]
     listed = ABSORBS.search(reason)
     absorbs = tuple(NAME.findall(listed.group(1))) if listed else ()
-    if floor == EXEMPT:
-        return Area(name, owner.group(1), None, marked, absorbs)
     number = FLOOR.fullmatch(floor)
-    if number is None or int(number.group(1)) > WHOLE:
-        return f"{where}: piso '{floor}' não é porcentagem de 0 a 100 (`90 %`) nem `{EXEMPT}`"
-    return Area(name, owner.group(1), int(number.group(1)), marked, absorbs)
+    if floor != EXEMPT and (number is None or int(number.group(1)) > WHOLE):
+        return None, [
+            f"{path}: piso '{floor}' não é porcentagem de 0 a 100 (`90 %`) nem `{EXEMPT}`"
+        ]
+    value = None if number is None else int(number.group(1))
+    return Area(name, owner.group(1), value, critical == YES, absorbs), []
 
 
-def duplicates(rows: tuple[Row, ...], areas: list[Area]) -> list[str]:
-    """A problem for each row whose area name or project/package an earlier row declared."""
-    first: dict[tuple[int, str], int] = {}
+def misnamed(path: str, area: Area) -> list[str]:
+    """A problem when the file is not named by the project or package it declares."""
+    expected = f"{FOLDER}/{area.prefix}.md"
+    return (
+        []
+        if path == expected
+        else [f"{path}: o arquivo se chama {expected.rsplit('/', maxsplit=1)[-1]}"]
+    )
+
+
+def duplicates(declared: list[tuple[str, Area]]) -> list[str]:
+    """A problem for each file whose area name or project/package an earlier file declared."""
+    first: dict[tuple[str, str], str] = {}
     found: list[str] = []
-    keys = (enumerate((area.name, area.prefix)) for area in areas)
-    for row, key in ((r, k) for r, ks in zip(rows, keys, strict=True) for k in ks):
-        if key in first:
-            found.append(f"{DOCUMENT}:{row.number}: `{key[1]}` já aparece na linha {first[key]}")
-        first.setdefault(key, row.number)
+    for path, area in declared:
+        for key in (("name", area.name), ("prefix", area.prefix)):
+            if key in first:
+                found.append(f"{path}: `{key[1]}` já aparece em {first[key]}")
+            first.setdefault(key, path)
     return found
 
 
 def read_areas(root: Path) -> AreaTable:
-    """The area table of the document under ``root``; any malformed line fails the whole read."""
-    path = root / DOCUMENT
-    if not path.is_file():
-        return AreaTable((), (f"{DOCUMENT} não existe: não há áreas para medir",))
-    rows = table_rows(path.read_text(encoding="utf-8").splitlines())
-    if rows is None:
-        return AreaTable((), (f"{DOCUMENT}: cabeçalho fixo `{HEADER}` não encontrado",))
-    if not rows or SEPARATOR.fullmatch(rows[0].text) is None:
-        return AreaTable((), (f"{DOCUMENT}: falta a linha `|---|` logo abaixo do cabeçalho",))
-    if len(rows) == 1:
-        return AreaTable((), (f"{DOCUMENT}: a tabela de áreas não tem nenhuma linha",))
-    parsed = [parse_row(row) for row in rows[1:]]
-    problems = [p for p in parsed if isinstance(p, str)]
-    if problems:
-        return AreaTable((), tuple(problems))
-    areas = [a for a in parsed if isinstance(a, Area)]
-    repeated = duplicates(rows[1:], areas)
-    return AreaTable(() if repeated else tuple(areas), tuple(repeated))
+    """The areas of the folder under ``root``; any malformed file fails the whole read."""
+    folder = root / FOLDER
+    if not folder.is_dir():
+        return AreaTable((), (f"{FOLDER} não existe: não há áreas para medir",))
+    entries = sorted(folder.iterdir())
+    if not entries:
+        return AreaTable((), (f"{FOLDER}: a pasta não tem nenhum arquivo de área",))
+    problems: list[str] = []
+    declared: list[tuple[str, Area]] = []
+    for entry in entries:
+        path = f"{FOLDER}/{entry.name}"
+        if not entry.is_file() or entry.suffix != ".md":
+            problems.append(f"{path}: não é um arquivo `.md` de área")
+            continue
+        area, found = parse_file(path, entry.read_text(encoding="utf-8").splitlines())
+        problems.extend(found)
+        if area is not None:
+            declared.append((path, area))
+            problems.extend(misnamed(path, area))
+    problems.extend(duplicates(declared))
+    return AreaTable(() if problems else tuple(a for _, a in declared), tuple(problems))

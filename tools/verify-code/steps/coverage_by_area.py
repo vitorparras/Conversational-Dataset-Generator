@@ -1,4 +1,4 @@
-"""Publishes line coverage per area of docs/operacao/014 from the reports the test steps wrote.
+"""Publishes line coverage per area of docs/operacao/areas from the reports the test steps wrote.
 
 Only the languages whose report exists are listed, so each CI job runs it after its own suite.
 No floor is judged here: code no area owns is listed under its own row for the step that does.

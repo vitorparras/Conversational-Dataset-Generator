@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from steps import areas_doc
+from . import support
 
 POLICY = (
     "# 017\n\n## Regras\n\n"
@@ -16,7 +16,7 @@ POLICY = (
 DOCUMENT = "\n".join(
     (
         "# 014",
-        areas_doc.HEADER,
+        support.TABLE_HEADER,
         "|---|---|---|---|---|",
         "| Registro do núcleo | `Core.Platform.Logging` | 90 % | sim | crítica |",
         "| Plataforma | `Core.Platform` | 80 % | não | demais pastas |",

@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from steps import areas_doc, ruler_seed
+from steps import ruler_seed
 
 from . import floors_fixture, support
 
@@ -56,7 +56,7 @@ class FloorAndMutationSeedsTests(unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
         self.copy = Path(self._tmp.name)
-        support.write(self.copy, areas_doc.DOCUMENT, DOCUMENT)
+        support.write_areas(self.copy, DOCUMENT)
         support.write(self.copy, ruler_seed.DEFECT_FILE, AUTH_MODULE)
         support.write(self.copy, "language-service/tests/unit/test_auth.py", IMPORTS_AUTH)
         support.write(self.copy, "language-service/tests/unit/test_app.py", IMPORTS_APP)
@@ -80,7 +80,7 @@ class FloorAndMutationSeedsTests(unittest.TestCase):
 
     def test_a_module_that_is_no_longer_the_area_the_seed_names_is_not_planted(self) -> None:
         renamed = DOCUMENT.replace(ruler_seed.CRITICAL_AREA, "Outra")
-        support.write(self.copy, areas_doc.DOCUMENT, renamed)
+        support.write_areas(self.copy, renamed)
 
         self.assertIsNotNone(ruler_seed.plant_uncovered(self.copy))
         self.assertIsNotNone(ruler_seed.plant_weak_tests(self.copy))
@@ -88,7 +88,7 @@ class FloorAndMutationSeedsTests(unittest.TestCase):
     def test_a_module_without_a_floor_or_no_longer_critical_is_not_planted(self) -> None:
         for row in (EXEMPT_ROW, NOT_CRITICAL_ROW):
             with self.subTest(row):
-                support.write(self.copy, areas_doc.DOCUMENT, DOCUMENT.replace(AUTH_ROW, row))
+                support.write_areas(self.copy, DOCUMENT.replace(AUTH_ROW, row))
 
                 self.assertIsNotNone(ruler_seed.plant_uncovered(self.copy))
 

@@ -1,6 +1,6 @@
 """Reads the mutation rules of docs/operacao/017: the share of survivors a module may keep, the
 time ceiling per module and the method whose `false` argument is left out; the critical modules
-are the Crítica column of the table of 014. No number lives here."""
+are the Crítica column of the files of docs/operacao/areas. No number lives here."""
 
 from __future__ import annotations
 

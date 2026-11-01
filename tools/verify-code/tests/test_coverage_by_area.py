@@ -23,7 +23,7 @@ from . import support
 DOCUMENT = "\n".join(
     (
         "# 014",
-        areas_doc.HEADER,
+        support.TABLE_HEADER,
         "|---|---|---|---|---|",
         "| Registro do núcleo | `Core.Platform.Logging` | 90 % | sim | crítica |",
         "| Plataforma | `Core.Platform` | 80 % | não | demais pastas |",
@@ -49,7 +49,7 @@ class CoverageByAreaTests(unittest.TestCase):
         self.addCleanup(self._tmp.cleanup)
         self.root = Path(self._tmp.name)
         self.out = self.root / ".verify-code"
-        support.write(self.root, areas_doc.DOCUMENT, DOCUMENT)
+        support.write_areas(self.root, DOCUMENT)
         self.environment = mock.patch.dict(os.environ, clear=False)
         self.environment.start()
         self.addCleanup(self.environment.stop)
@@ -71,13 +71,13 @@ class CoverageByAreaTests(unittest.TestCase):
         self.assertIn("o passo não passa vazio", result.details[0])
 
     def test_a_malformed_document_fails_naming_the_line(self) -> None:
-        support.write(self.root, areas_doc.DOCUMENT, DOCUMENT.replace("60 %", "60"))
+        support.write_areas(self.root, DOCUMENT.replace("60 %", "60"))
         self.core((LOGGING, "L.cs", "1"))
 
         result = self.run_step()
 
         self.assertFalse(result.ok)
-        self.assertIn(f"{areas_doc.DOCUMENT}:9: piso '60'", result.details[0])
+        self.assertIn(f"{areas_doc.FOLDER}/tools.md: piso '60'", result.details[0])
 
     def test_an_unreadable_report_fails(self) -> None:
         self.report(CORE_REPORT, "<coverage><packages>")

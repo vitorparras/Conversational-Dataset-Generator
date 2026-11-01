@@ -1,4 +1,4 @@
-"""Judges the coverage of each measured area against its floor in docs/operacao/014.
+"""Judges the coverage of each measured area against its floor in docs/operacao/areas.
 
 The floors are read from the document on every run; no number lives here. Code that no area owns
 fails, and so does a production project or package of the tree that no area owns or no report read,
@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from steps import namespace_folder
-from steps.areas_doc import DOCUMENT, EXEMPT, WHOLE, Area, area_of, within
+from steps.areas_doc import EXEMPT, FOLDER, WHOLE, Area, area_of, within
 from steps.common import Context, StepResult, failed, passed
 from steps.coverage_by_area import UNOWNED, Measurement, Tally, measure, rows, summarize
 from steps.coverage_report import MeasuredLine
@@ -120,7 +120,7 @@ def unowned(found: Measurement) -> Verdict:
     if not units:
         return Verdict()
     named = ", ".join(f"`{unit}`" for unit in units)
-    return Verdict(failures=(f"{UNOWNED}: nenhuma área de {DOCUMENT} possui {named}",))
+    return Verdict(failures=(f"{UNOWNED}: nenhuma área de {FOLDER} possui {named}",))
 
 
 def children(root: Path, tree: Tree) -> tuple[str, ...]:
@@ -148,7 +148,7 @@ def orphans(root: Path, areas: tuple[Area, ...]) -> Verdict:
         for name in children(root, tree)
         if area_of(f"{tree.prefix}{name}", areas) is None
     )
-    rule = f"sem área em {DOCUMENT}; a linha entra no mesmo pull request que o cria"
+    rule = f"sem área em {FOLDER}; o arquivo da área entra no mesmo pull request que o cria"
     return Verdict(failures=tuple(f"{folder}: {rule}" for folder in missing))
 
 
@@ -192,7 +192,7 @@ def unlisted(root: Path, areas: tuple[Area, ...]) -> Verdict:
         and owner.prefix != unit
         and unit.rsplit(".", 1)[1] not in owner.absorbs
     )
-    rule = f"sem linha em {DOCUMENT} nem enumerada em `Absorve:` na linha"
+    rule = f"sem arquivo em {FOLDER} nem enumerada em `Absorve:` no arquivo de"
     on_disk = {unit for _, unit in found}
     gone = (
         (name, area)
@@ -204,10 +204,7 @@ def unlisted(root: Path, areas: tuple[Area, ...]) -> Verdict:
     return Verdict(
         failures=(
             *(f"{path}: {rule} `{owner.prefix}`" for path, owner in missing),
-            *(
-                f"{DOCUMENT}: `{name}` em `Absorve:` de `{area.prefix}` {stale}"
-                for name, area in gone
-            ),
+            *(f"{FOLDER}/{area.prefix}.md: `{name}` em `Absorve:` {stale}" for name, area in gone),
         )
     )
 

@@ -10,6 +10,7 @@ internal static class CustodyNames
         [CustodyItemKind.Person] = "person",
         [CustodyItemKind.ItemText] = "item_text",
         [CustodyItemKind.ReversalMap] = "reversal_map",
+        [CustodyItemKind.CustodyChain] = "custody_chain",
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<CustodyStep, string> Steps = new Dictionary<CustodyStep, string>
@@ -22,6 +23,7 @@ internal static class CustodyNames
         [CustodyStep.RawTextRead] = "raw_text_read",
         [CustodyStep.SanitizedTextRead] = "sanitized_text_read",
         [CustodyStep.ReversalEntriesRead] = "reversal_entries_read",
+        [CustodyStep.VerifyChain] = "verify_chain",
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<CustodyReason, string> Reasons = new Dictionary<CustodyReason, string>
@@ -29,6 +31,8 @@ internal static class CustodyNames
         [CustodyReason.AdministrativeAct] = "administrative_act",
         [CustodyReason.CorrectionOfRecord] = "correction_of_record",
         [CustodyReason.ContentRead] = "content_read",
+        [CustodyReason.VerificationPassed] = "verification_passed",
+        [CustodyReason.VerificationFailed] = "verification_failed",
     }.ToFrozenDictionary();
 
     internal static string Of(CustodyItemKind kind) => Kinds[kind];

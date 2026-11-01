@@ -11,4 +11,10 @@ public enum CustodyReason
 
     /// <summary>Protected content was opened by whoever the event names.</summary>
     ContentRead,
+
+    /// <summary>The verification of the chain found every link whole.</summary>
+    VerificationPassed,
+
+    /// <summary>The verification of the chain found an event that does not hold.</summary>
+    VerificationFailed,
 }

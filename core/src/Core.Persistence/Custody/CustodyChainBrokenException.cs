@@ -8,7 +8,7 @@ public sealed class CustodyChainBrokenException : InvalidOperationException
 {
     /// <summary>The refusal, with the words of whoever operates.</summary>
     public CustodyChainBrokenException()
-        : base("A última verificação da cadeia de custódia falhou: nenhum conteúdo é gravado até uma verificação passar; nada foi gravado.")
+        : base("A última verificação da cadeia de custódia falhou: nenhum conteúdo é gravado até a cadeia ser restaurada; nada foi gravado.")
     {
     }
 

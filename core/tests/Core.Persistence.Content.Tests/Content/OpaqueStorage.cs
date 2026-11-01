@@ -68,7 +68,29 @@ internal static class OpaqueStorage
         var pseudonymized = $"zqx-{Guid.NewGuid():N}";
         var item = await world.Writer.AddItemTextAsync(1, new NewItemText(texts[RawText], texts[SanitizedText], pseudonymized), TestContext.Current.CancellationToken);
         _ = await world.Writer.AddReversalMapAsync(1, item, texts[Entries], TestContext.Current.CancellationToken);
+        await AssertEveryMarkedColumnHoldsSomethingAsync(world, marked);
         return new Material(texts, pseudonymized);
+    }
+
+    /// <summary>
+    /// The positive control of the seeding: a marked column the writer did not fill would be read as hidden by a search that had nothing to find in it,
+    /// so each marked column must hold a value, and the one that does not fails the test by name.
+    /// </summary>
+    private static async Task AssertEveryMarkedColumnHoldsSomethingAsync(ContentWorld world, IReadOnlyList<string> marked)
+    {
+        var empty = new List<string>();
+        foreach (var column in marked)
+        {
+            var parts = column.Split('.');
+            // nosemgrep: sql-concatenation-csharp interpolates the names of a column read from the catalog of a throwaway database, never input.
+            var filled = await world.OwnerInDomainAsync(1, $"SELECT count(*) FROM {parts[0]}.{parts[1]} WHERE {parts[2]} IS NOT NULL");
+            if ((long)filled! == 0)
+            {
+                empty.Add(column);
+            }
+        }
+
+        Assert.Empty(empty);
     }
 
     /// <summary>The dump of the database and the places in the files of the server where any of the texts or of the extra needles are, with the files forced to disk first.</summary>

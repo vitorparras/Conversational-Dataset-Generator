@@ -19,7 +19,8 @@ public sealed class OpaqueStorageTests
 
         var observation = await OpaqueStorage.ObserveAsync(world, material);
 
-        Assert.Empty(OpaqueStorage.ColumnsShown(observation, material, OpaqueStorage.RawText, OpaqueStorage.Entries));
+        // Every marked column but the sanitized text, which is CA-2: the two named by the criterion and any a later migration marks.
+        Assert.Empty(OpaqueStorage.ColumnsShown(observation, material, [.. material.Texts.Keys.Where(column => column != OpaqueStorage.SanitizedText)]));
     }
 
     [DatabaseFact]

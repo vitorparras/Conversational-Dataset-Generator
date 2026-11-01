@@ -61,7 +61,7 @@ internal sealed class ScratchDatabase : IAsyncDisposable
     /// Runs the statement as the superuser, over this database: what neither the application nor the owner may do, for a test that arranges a defect.
     /// The superuser is not held to the row policy.
     /// </summary>
-    [SuppressMessage("Security", "CA2100", Justification = "The statement is a literal of the calling test, never input.")]
+    [SuppressMessage("Security", "CA2100", Justification = "The calling test builds the statement by interpolating names read from the catalog of its own database, never input.")]
     public async Task ExecuteAsSuperuserAsync(string statement, params (string Name, object Value)[] parameters)
     {
         await using var connection = await Sql.OpenAsync(Unpooled(superuserConnectionString, name));

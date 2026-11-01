@@ -1,5 +1,5 @@
-using Core.Boundary.Fake;
 using Core.Boundary.Contracts;
+using Core.Boundary.Fake;
 using Core.Host.Endpoints;
 using Core.Platform.Configuration;
 using Core.Platform.Sessions;
@@ -34,7 +34,7 @@ internal sealed class SessionedHost : IAsyncDisposable
 
     /// <summary>The host with the fake recognizer and the analysis route, behind the gate.</summary>
     public static Task<SessionedHost> StartWithAnalysisAsync(CancellationToken cancellationToken) =>
-        StartAsync(services => services.AddSingleton<IRecognizer, FakeRecognizer>().AddTransient<Core.Host.Analysis.MaterialAnalysis>(), AnalysisEndpoint.Map, cancellationToken);
+        StartAsync(services => services.AddSingleton<IRecognizer, FakeRecognizer>().AddTransient<Host.Analysis.MaterialAnalysis>(), AnalysisEndpoint.Map, cancellationToken);
 
     public static async Task<SessionedHost> StartAsync(
         Func<IServiceCollection, IServiceCollection> services, Action<IEndpointRouteBuilder> routes, CancellationToken cancellationToken)

@@ -1,5 +1,5 @@
-using Core.Host.Tests.Privacy;
 using System.Net;
+using Core.Host.Tests.Privacy;
 
 namespace Core.Tests.Integration.Privacy;
 

@@ -1,6 +1,6 @@
-using Core.Persistence.Tests.Fixtures;
 using System.Net;
 using System.Text.Json;
+using Core.Persistence.Tests.Fixtures;
 using Core.Platform.Configuration;
 
 namespace Core.Tests.Integration.Hosts;
@@ -124,7 +124,7 @@ public sealed class ConfigurationInForceTests(DefaultHostFixture fixture) : ICla
         Assert.Equal(EffectiveConfiguration.Redacted, values["MasterKey:LabelsFile"]);
         Assert.Equal(EffectiveConfiguration.Redacted, values["Custody:Holder"]);
         Assert.Equal("2026-10-01", values["Custody:LastRecoveryTest"]);
-        Assert.DoesNotContain(Core.Tests.Support.Custody.CustodyFiles.Shared.Directory, text, StringComparison.Ordinal);
+        Assert.DoesNotContain(Support.Custody.CustodyFiles.Shared.Directory, text, StringComparison.Ordinal);
         Assert.DoesNotContain("PESSOA_1", text, StringComparison.Ordinal);
     }
 

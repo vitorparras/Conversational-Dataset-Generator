@@ -1,6 +1,6 @@
-using Core.Persistence.Tests.Fixtures;
 using System.Text.Json;
 using Core.Host.Tests;
+using Core.Persistence.Tests.Fixtures;
 
 namespace Core.Tests.Integration.Hosts;
 

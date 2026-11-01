@@ -1,6 +1,6 @@
-using Core.Persistence.Tests.Fixtures;
-using Core.Host.Tests.Privacy;
 using System.Net;
+using Core.Host.Tests.Privacy;
+using Core.Persistence.Tests.Fixtures;
 
 namespace Core.Tests.Integration.Privacy;
 

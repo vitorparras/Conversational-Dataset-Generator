@@ -11,11 +11,8 @@ namespace Core.Host;
 internal static class AuditConfiguration
 {
     internal const string ServerLogDirectoryPath = SectionName + ":" + ServerLogDirectoryKey;
-
     internal const string FromPath = SectionName + ":" + FromKey;
-
     internal const string ToPath = SectionName + ":" + ToKey;
-
     private const string SectionName = "Audit";
     private const string FromKey = "From";
     private const string ToKey = "To";

@@ -186,7 +186,6 @@ internal static class CompositionRoot
         Compose(builder, loaded.View, fileLog);
         AddAnalysis(builder.Services, loaded.Values, analyzeTimeout);
         _ = builder.Services.AddSingleton(PasswordConfiguration.Derivation(loaded.Values));
-        _ = builder.Services.AddSingleton(_ => new ServerAuditLog(AuditConfiguration.ServerLogDirectory(loaded.Values)));
         _ = builder.Services.AddSingleton(provider => new SessionStore(SessionConfiguration.Lifetimes(loaded.Values), provider.GetRequiredService<TimeProvider>()));
         _ = builder.Services.AddSingleton(InstallationConfiguration.Of(loaded.Values)).AddSingleton(provider => InstallationConfiguration.Shown(StartupVersions.Of(checks), provider));
         if (SafekeepingConfiguration.Declaration(loaded.Values) is { } declaration)

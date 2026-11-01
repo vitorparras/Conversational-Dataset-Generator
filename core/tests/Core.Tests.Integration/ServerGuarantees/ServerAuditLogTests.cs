@@ -27,21 +27,6 @@ public sealed class ServerAuditLogTests
     }
 
     [DatabaseFact]
-    public async Task RealCsvlogOfTheImageIsReadByTheHostsReaderAndHoldsTheWriteOfTheApplication()
-    {
-        var from = DateTimeOffset.UtcNow.AddMinutes(-1);
-        await using var table = await AuditedTable.CreateAsync();
-
-        await table.InsertAsync(id: 1);
-        await table.ReadTheEndAsync();
-        _ = await ServerLog.UntilContainsAsync(table.EndName);
-        var entries = await ServerLog.EntriesAsync(from);
-
-        var written = Assert.Single(entries, entry => entry.Database == table.DatabaseName && entry.Role == "app" && entry.Class == "WRITE");
-        Assert.Equal("INSERT", written.Command);
-    }
-
-    [DatabaseFact]
     public async Task CommandTheServerRefusesIsInTheLogAsTextWithItsMarkersAndNoValue()
     {
         await using var table = await AuditedTable.CreateAsync();

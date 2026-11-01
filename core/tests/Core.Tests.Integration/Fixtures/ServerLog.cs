@@ -1,4 +1,3 @@
-using Core.Persistence.ServerGuarantees;
 using Core.Persistence.Tests.Fixtures;
 
 namespace Core.Tests.Integration.Fixtures;
@@ -23,26 +22,6 @@ internal static class ServerLog
 
             Assert.True(DateTimeOffset.UtcNow < deadline, $"The server log does not hold '{text}' after {WrittenWithin.TotalSeconds:0} seconds.");
             await Task.Delay(TimeSpan.FromMilliseconds(200), TestContext.Current.CancellationToken);
-        }
-    }
-
-    /// <summary>
-    /// The audit lines the server's own csvlog holds from the instant on, read the way the host reads them: the log is copied into a folder of its
-    /// own and read by <see cref="ServerAuditLog"/>, so what is judged is the file the image writes and not a line made up for a test.
-    /// </summary>
-    public static async Task<IReadOnlyList<ServerAuditEntry>> EntriesAsync(DateTimeOffset from)
-    {
-        var database = await PostgresFixture.SharedAsync();
-        var directory = Path.Combine(Path.GetTempPath(), $"cdg-realcsv-{Guid.NewGuid():N}");
-        _ = Directory.CreateDirectory(directory);
-        try
-        {
-            await File.WriteAllTextAsync(Path.Combine(directory, "copy.csv"), await database.ServerLogAsync(), TestContext.Current.CancellationToken);
-            return await new ServerAuditLog(directory).ReadAsync(from, DateTimeOffset.UtcNow.AddMinutes(1), TestContext.Current.CancellationToken);
-        }
-        finally
-        {
-            Directory.Delete(directory, recursive: true);
         }
     }
 

@@ -1,4 +1,5 @@
 using System.Text;
+using Core.Persistence.Custody;
 using Core.Persistence.People;
 using Core.Persistence.Tests.ServerGuarantees;
 using Npgsql;
@@ -18,7 +19,7 @@ public sealed class PersonCredentialsRefusalTests
     {
         await using var server = new UnreachableServer();
 
-        var result = await Store(server).SetPasswordAsync(1, string.Empty, actorId: null, TestContext.Current.CancellationToken);
+        var result = await Store(server).SetPasswordAsync(1, string.Empty, CustodyAuthor.System, TestContext.Current.CancellationToken);
 
         Assert.Equal(PersonOutcome.PasswordInvalid, result.Outcome);
         Assert.NotNull(result.Refusal);
@@ -30,7 +31,7 @@ public sealed class PersonCredentialsRefusalTests
     {
         await using var server = new UnreachableServer();
 
-        _ = await Assert.ThrowsAsync<ArgumentNullException>(() => Store(server).SetPasswordAsync(1, null!, actorId: null, TestContext.Current.CancellationToken));
+        _ = await Assert.ThrowsAsync<ArgumentNullException>(() => Store(server).SetPasswordAsync(1, null!, CustodyAuthor.System, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -58,7 +59,7 @@ public sealed class PersonCredentialsRefusalTests
     {
         await using var server = new UnreachableServer();
 
-        var failure = await Assert.ThrowsAnyAsync<NpgsqlException>(() => Store(server).SetPasswordAsync(1, Password, actorId: null, TestContext.Current.CancellationToken));
+        var failure = await Assert.ThrowsAnyAsync<NpgsqlException>(() => Store(server).SetPasswordAsync(1, Password, CustodyAuthor.System, TestContext.Current.CancellationToken));
 
         AssertNothingOf(failure.ToString());
     }

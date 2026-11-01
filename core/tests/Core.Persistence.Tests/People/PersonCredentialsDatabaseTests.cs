@@ -1,3 +1,4 @@
+using Core.Persistence.Custody;
 using Core.Persistence.People;
 using Core.Persistence.Tests.Fixtures;
 
@@ -28,7 +29,7 @@ public sealed class PersonCredentialsDatabaseTests : IClassFixture<PeopleDatabas
     {
         var id = await NewPersonAsync();
 
-        _ = PeopleDatabase.Id(await (await database.CredentialsAsync(LowFactor)).SetPasswordAsync(id, Password, actorId: null, TestContext.Current.CancellationToken));
+        _ = PeopleDatabase.Id(await (await database.CredentialsAsync(LowFactor)).SetPasswordAsync(id, Password, CustodyAuthor.System, TestContext.Current.CancellationToken));
 
         var row = (await database.CredentialOfAsync(id))!;
         Assert.Equal(("PBKDF2-HMAC-SHA256", LowFactor), (row.Algorithm, row.WorkFactor));
@@ -43,8 +44,8 @@ public sealed class PersonCredentialsDatabaseTests : IClassFixture<PeopleDatabas
         var first = await NewPersonAsync();
         var second = await NewPersonAsync();
 
-        _ = await credentials.SetPasswordAsync(first, Password, actorId: null, TestContext.Current.CancellationToken);
-        _ = await credentials.SetPasswordAsync(second, Password, actorId: null, TestContext.Current.CancellationToken);
+        _ = await credentials.SetPasswordAsync(first, Password, CustodyAuthor.System, TestContext.Current.CancellationToken);
+        _ = await credentials.SetPasswordAsync(second, Password, CustodyAuthor.System, TestContext.Current.CancellationToken);
 
         var (one, other) = ((await database.CredentialOfAsync(first))!, (await database.CredentialOfAsync(second))!);
         Assert.NotEqual(one.Salt, other.Salt);
@@ -57,7 +58,7 @@ public sealed class PersonCredentialsDatabaseTests : IClassFixture<PeopleDatabas
         var actor = await NewPersonAsync();
         var id = await NewPersonAsync();
 
-        _ = await (await database.CredentialsAsync(LowFactor)).SetPasswordAsync(id, Password, actor, TestContext.Current.CancellationToken);
+        _ = await (await database.CredentialsAsync(LowFactor)).SetPasswordAsync(id, Password, CustodyAuthor.Person(actor), TestContext.Current.CancellationToken);
 
         var change = (await database.ChangesOfAsync(id)).Single(row => row.Kind == "password_set");
         Assert.Equal(actor, change.ActorId);
@@ -70,10 +71,10 @@ public sealed class PersonCredentialsDatabaseTests : IClassFixture<PeopleDatabas
     {
         var credentials = await database.CredentialsAsync(LowFactor);
         var id = await NewPersonAsync();
-        _ = await credentials.SetPasswordAsync(id, Password, actorId: null, TestContext.Current.CancellationToken);
+        _ = await credentials.SetPasswordAsync(id, Password, CustodyAuthor.System, TestContext.Current.CancellationToken);
         var before = (await database.CredentialOfAsync(id))!;
 
-        _ = await credentials.SetPasswordAsync(id, Password + "x", actorId: null, TestContext.Current.CancellationToken);
+        _ = await credentials.SetPasswordAsync(id, Password + "x", CustodyAuthor.System, TestContext.Current.CancellationToken);
 
         var after = (await database.CredentialOfAsync(id))!;
         Assert.NotEqual(before.Derived, after.Derived);
@@ -86,9 +87,9 @@ public sealed class PersonCredentialsDatabaseTests : IClassFixture<PeopleDatabas
     {
         var registry = await database.RegistryAsync();
         var id = await NewPersonAsync();
-        _ = await registry.DeactivateAsync(id, actorId: null, TestContext.Current.CancellationToken);
+        _ = await registry.DeactivateAsync(id, CustodyAuthor.System, TestContext.Current.CancellationToken);
 
-        var result = await (await database.CredentialsAsync(LowFactor)).SetPasswordAsync(id, Password, actorId: null, TestContext.Current.CancellationToken);
+        var result = await (await database.CredentialsAsync(LowFactor)).SetPasswordAsync(id, Password, CustodyAuthor.System, TestContext.Current.CancellationToken);
 
         Assert.Equal(PersonOutcome.Deactivated, result.Outcome);
         Assert.Null(await database.CredentialOfAsync(id));
@@ -97,7 +98,7 @@ public sealed class PersonCredentialsDatabaseTests : IClassFixture<PeopleDatabas
     [DatabaseFact]
     public async Task PasswordOfAPersonWhoDoesNotExistIsRefused()
     {
-        var result = await (await database.CredentialsAsync(LowFactor)).SetPasswordAsync(long.MaxValue, Password, actorId: null, TestContext.Current.CancellationToken);
+        var result = await (await database.CredentialsAsync(LowFactor)).SetPasswordAsync(long.MaxValue, Password, CustodyAuthor.System, TestContext.Current.CancellationToken);
 
         Assert.Equal(PersonOutcome.NotFound, result.Outcome);
     }
@@ -108,9 +109,9 @@ public sealed class PersonCredentialsDatabaseTests : IClassFixture<PeopleDatabas
         var registry = await database.RegistryAsync();
         var actor = await NewPersonAsync();
         var id = await NewPersonAsync();
-        _ = await registry.DeactivateAsync(actor, actorId: null, TestContext.Current.CancellationToken);
+        _ = await registry.DeactivateAsync(actor, CustodyAuthor.System, TestContext.Current.CancellationToken);
 
-        var result = await (await database.CredentialsAsync(LowFactor)).SetPasswordAsync(id, Password, actor, TestContext.Current.CancellationToken);
+        var result = await (await database.CredentialsAsync(LowFactor)).SetPasswordAsync(id, Password, CustodyAuthor.Person(actor), TestContext.Current.CancellationToken);
 
         Assert.Equal(PersonOutcome.ActorDeactivated, result.Outcome);
         Assert.Null(await database.CredentialOfAsync(id));
@@ -121,7 +122,7 @@ public sealed class PersonCredentialsDatabaseTests : IClassFixture<PeopleDatabas
     {
         var credentials = await database.CredentialsAsync(LowFactor);
         var id = await NewPersonAsync();
-        _ = await credentials.SetPasswordAsync(id, Password, actorId: null, TestContext.Current.CancellationToken);
+        _ = await credentials.SetPasswordAsync(id, Password, CustodyAuthor.System, TestContext.Current.CancellationToken);
 
         Assert.Equal(PasswordOutcome.Accepted, await credentials.VerifyAsync(id, Password, TestContext.Current.CancellationToken));
         Assert.Equal(PasswordOutcome.Wrong, await credentials.VerifyAsync(id, Password + "x", TestContext.Current.CancellationToken));
@@ -143,8 +144,8 @@ public sealed class PersonCredentialsDatabaseTests : IClassFixture<PeopleDatabas
         var registry = await database.RegistryAsync();
         var credentials = await database.CredentialsAsync(LowFactor);
         var id = await NewPersonAsync();
-        _ = await credentials.SetPasswordAsync(id, Password, actorId: null, TestContext.Current.CancellationToken);
-        _ = await registry.DeactivateAsync(id, actorId: null, TestContext.Current.CancellationToken);
+        _ = await credentials.SetPasswordAsync(id, Password, CustodyAuthor.System, TestContext.Current.CancellationToken);
+        _ = await registry.DeactivateAsync(id, CustodyAuthor.System, TestContext.Current.CancellationToken);
 
         Assert.Equal(PasswordOutcome.Deactivated, await credentials.VerifyAsync(id, Password, TestContext.Current.CancellationToken));
     }
@@ -153,7 +154,7 @@ public sealed class PersonCredentialsDatabaseTests : IClassFixture<PeopleDatabas
     public async Task RightPasswordWithALowerStoredFactorIsAcceptedAndTheRowTakesTheCurrentFactor()
     {
         var id = await NewPersonAsync();
-        _ = await (await database.CredentialsAsync(LowFactor)).SetPasswordAsync(id, Password, actorId: null, TestContext.Current.CancellationToken);
+        _ = await (await database.CredentialsAsync(LowFactor)).SetPasswordAsync(id, Password, CustodyAuthor.System, TestContext.Current.CancellationToken);
         var before = (await database.CredentialOfAsync(id))!;
 
         var outcome = await (await database.CredentialsAsync(HighFactor)).VerifyAsync(id, Password, TestContext.Current.CancellationToken);
@@ -169,7 +170,7 @@ public sealed class PersonCredentialsDatabaseTests : IClassFixture<PeopleDatabas
     public async Task WrongPasswordWithALowerStoredFactorDoesNotRecompute()
     {
         var id = await NewPersonAsync();
-        _ = await (await database.CredentialsAsync(LowFactor)).SetPasswordAsync(id, Password, actorId: null, TestContext.Current.CancellationToken);
+        _ = await (await database.CredentialsAsync(LowFactor)).SetPasswordAsync(id, Password, CustodyAuthor.System, TestContext.Current.CancellationToken);
         var before = (await database.CredentialOfAsync(id))!;
 
         var outcome = await (await database.CredentialsAsync(HighFactor)).VerifyAsync(id, Password + "x", TestContext.Current.CancellationToken);
@@ -184,7 +185,7 @@ public sealed class PersonCredentialsDatabaseTests : IClassFixture<PeopleDatabas
     public async Task RightPasswordWithAHigherStoredFactorKeepsTheRow()
     {
         var id = await NewPersonAsync();
-        _ = await (await database.CredentialsAsync(HighFactor)).SetPasswordAsync(id, Password, actorId: null, TestContext.Current.CancellationToken);
+        _ = await (await database.CredentialsAsync(HighFactor)).SetPasswordAsync(id, Password, CustodyAuthor.System, TestContext.Current.CancellationToken);
         var before = (await database.CredentialOfAsync(id))!;
 
         var outcome = await (await database.CredentialsAsync(LowFactor)).VerifyAsync(id, Password, TestContext.Current.CancellationToken);
@@ -199,7 +200,7 @@ public sealed class PersonCredentialsDatabaseTests : IClassFixture<PeopleDatabas
     public async Task DeletingACredentialIsRefusedToTheApplicationAndToTheOwner()
     {
         var id = await NewPersonAsync();
-        _ = await (await database.CredentialsAsync(LowFactor)).SetPasswordAsync(id, Password, actorId: null, TestContext.Current.CancellationToken);
+        _ = await (await database.CredentialsAsync(LowFactor)).SetPasswordAsync(id, Password, CustodyAuthor.System, TestContext.Current.CancellationToken);
 
         var app = await database.RefusedToAppAsync($"DELETE FROM public.person_credential WHERE person_id = {id}");
         var owner = await database.RefusedToOwnerAsync($"DELETE FROM public.person_credential WHERE person_id = {id}");
@@ -210,5 +211,5 @@ public sealed class PersonCredentialsDatabaseTests : IClassFixture<PeopleDatabas
     }
 
     private async Task<long> NewPersonAsync() =>
-        PeopleDatabase.Id(await (await database.RegistryAsync()).CreateAsync(new NewPerson(PeopleDatabase.NewName(), Annotation), actorId: null, TestContext.Current.CancellationToken));
+        PeopleDatabase.Id(await (await database.RegistryAsync()).CreateAsync(new NewPerson(PeopleDatabase.NewName(), Annotation), CustodyAuthor.System, TestContext.Current.CancellationToken));
 }

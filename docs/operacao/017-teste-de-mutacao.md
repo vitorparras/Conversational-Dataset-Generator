@@ -39,9 +39,9 @@ responde por ele com teste próprio.
   `Core.Persistence.Migrations.Tests`), senão o do projeto do módulo (`<Projeto>.Tests`, ou o do
   projeto em que ele está aninhado, como `Core.Boundary.Tests` para `Core.Boundary.Contracts`),
   desde que referencie o projeto do módulo. As suítes transversais (`Core.Tests.Integration`,
-  `Core.Tests.Properties`) não contam. Teste novo de banco entra no projeto da área que ele
-  exercita (`Core.Persistence.Migrations.Tests`, `.Content.Tests` ou `.ServerGuarantees.Tests`); o
-  resto de `Core.Persistence` fica em `Core.Persistence.Tests`. O apoio comum (contêiner,
+  `Core.Tests.Properties`) não contam. Teste novo de banco entra no projeto da área que ele exercita
+  (`Core.Persistence.Migrations.Tests`, `.Content.Tests`, `.Custody.Tests` ou
+  `.ServerGuarantees.Tests`); o resto fica em `Core.Persistence.Tests`. O apoio comum (contêiner,
   `ScratchDatabase`) mora em `Core.Tests.Database`, que não é projeto de teste.
   O Stryker.NET roda com um worker em todos os módulos: o veredito de um mutante em inicializador
   estático muda com o número de workers, e o resultado tem de ser o mesmo em duas rodadas. Nenhum

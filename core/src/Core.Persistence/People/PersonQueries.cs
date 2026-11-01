@@ -1,3 +1,4 @@
+using Core.Persistence.Custody;
 using Npgsql;
 using NpgsqlTypes;
 
@@ -15,6 +16,51 @@ internal static class PersonQueries
         await using (command.ConfigureAwait(false))
         {
             bind(command);
+            return await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) as long?;
+        }
+    }
+
+    /// <summary>
+    /// Runs the statement and adds the custody event of that change in the same serializable transaction; null when the statement wrote nothing.
+    /// For a person who exists the event goes first, so that someone who deactivates themselves is judged as they were when they acted.
+    /// The author is a person or the system, said so by the caller and never deduced from a missing actor.
+    /// </summary>
+    internal static async Task<PersonResult?> WriteChainedAsync(this NpgsqlDataSource dataSource, PersonStatement statement, CustodyAuthor author, CancellationToken cancellationToken)
+    {
+        if (statement.PersonId is not { } personId)
+        {
+            return await CreateChainedAsync(dataSource, statement, author, cancellationToken).ConfigureAwait(false);
+        }
+
+        var pending = CustodyEvent.Of(author, new CustodyItem(CustodyItemKind.Person, personId), statement.Step, CustodyReason.AdministrativeAct);
+        var result = await CustodyTransaction.AppendBeforeAsync(
+            dataSource,
+            pending,
+            async scope => await ScalarAsync(scope, statement, cancellationToken).ConfigureAwait(false) is not null,
+            cancellationToken).ConfigureAwait(false);
+        return result is null ? null : PersonRefusals.Chained(result, personId);
+    }
+
+    private static async Task<PersonResult?> CreateChainedAsync(NpgsqlDataSource dataSource, PersonStatement statement, CustodyAuthor author, CancellationToken cancellationToken)
+    {
+        long created = 0;
+        var result = await CustodyTransaction.AppendAfterAsync(
+            dataSource,
+            async scope =>
+            {
+                created = await ScalarAsync(scope, statement, cancellationToken).ConfigureAwait(false) ?? 0;
+                return created == 0 ? null : CustodyEvent.Of(author, new CustodyItem(CustodyItemKind.Person, created), statement.Step, CustodyReason.AdministrativeAct);
+            },
+            cancellationToken).ConfigureAwait(false);
+        return result is null ? null : PersonRefusals.Chained(result, created);
+    }
+
+    private static async Task<long?> ScalarAsync(CustodyScope scope, PersonStatement statement, CancellationToken cancellationToken)
+    {
+        var command = scope.CreateCommand(statement.Sql);
+        await using (command.ConfigureAwait(false))
+        {
+            statement.Bind(command);
             return await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) as long?;
         }
     }

@@ -80,18 +80,21 @@ internal sealed class PostgresFixture
         return fixture;
     }
 
-    /// <summary>What the server has written to its log since the container started, as the container holds it: the registry of the server, not of any client.</summary>
-    public async Task<string> ServerLogAsync()
-    {
-        var (stdout, stderr) = await container.GetLogsAsync(timestampsEnabled: false, ct: TestContext.Current.CancellationToken);
-        return stdout + "\n" + stderr;
-    }
-
     /// <summary>What pg_dump, run inside the server as the superuser, writes for the database: schema, data and comments.</summary>
     public async Task<string> DumpAsync(string database)
     {
         var dump = await container.ExecAsync(["pg_dump", "--username=postgres", $"--dbname={database}", "--inserts"], TestContext.Current.CancellationToken);
         return dump.ExitCode == 0 ? dump.Stdout : throw new InvalidOperationException($"pg_dump exited with {dump.ExitCode}: {dump.Stderr}");
+    }
+
+    /// <summary>
+    /// Everything the server wrote to its log directory so far, read inside the server: the csvlog files and the ones the collector keeps for
+    /// what reaches the error stream. The directory is outside the data directory, as the image sets it.
+    /// </summary>
+    public async Task<string> ServerLogAsync()
+    {
+        var log = await container.ExecAsync(["sh", "-c", "cat /var/log/postgresql/*"], TestContext.Current.CancellationToken);
+        return log.ExitCode == 0 ? log.Stdout : throw new InvalidOperationException($"reading the server log exited with {log.ExitCode}: {log.Stderr}");
     }
 
     /// <summary>

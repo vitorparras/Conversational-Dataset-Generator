@@ -25,6 +25,36 @@ public sealed class DatabaseToolFilesTests
     }
 
     [Fact]
+    public void DockerfileSetsTheAuditToReadAndWriteWithoutParametersOrErrorDetail()
+    {
+        var dockerfile = DatabaseTool.ReadText("Dockerfile");
+
+        Assert.Contains("\"pgaudit.log = 'read, write'\"", dockerfile, StringComparison.Ordinal);
+        Assert.Contains("\"pgaudit.log_parameter = off\"", dockerfile, StringComparison.Ordinal);
+        Assert.Contains("\"log_parameter_max_length = 0\"", dockerfile, StringComparison.Ordinal);
+        Assert.Contains("\"log_parameter_max_length_on_error = 0\"", dockerfile, StringComparison.Ordinal);
+        Assert.Contains("\"log_min_messages = log\"", dockerfile, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DockerfileWritesTheServerLogAsCsvlogOutsideTheDataDirectory()
+    {
+        var dockerfile = DatabaseTool.ReadText("Dockerfile");
+
+        Assert.Contains("\"log_destination = 'csvlog'\"", dockerfile, StringComparison.Ordinal);
+        Assert.Contains("\"log_directory = '/var/log/postgresql'\"", dockerfile, StringComparison.Ordinal);
+        Assert.Contains("\"log_truncate_on_rotation = off\"", dockerfile, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ComposeKeepsTheServerLogOnAVolumeOfItsOwn()
+    {
+        var compose = DatabaseTool.ReadText("compose.yml");
+
+        Assert.Contains("- database-log:/var/log/postgresql", compose, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ComposePublishesTheServerOnLoopbackOnly()
     {
         var ports = ComposeEntries.Under(DatabaseTool.ReadLines("compose.yml"), "ports");

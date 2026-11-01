@@ -13,6 +13,7 @@ internal sealed class PostgresFixture
 {
     private const int ServerPort = 5432;
     private const string DatabaseName = "cdg";
+    private const string SearchScript = "find / \\( -path /proc -o -path /sys -o -path /dev \\) -prune -o -type f -readable -print0 2>/dev/null | xargs -0 -r grep -saoHP -e \"$1\"; true";
     private static readonly TimeSpan HealthyWithin = TimeSpan.FromMinutes(3);
     private static readonly Lazy<Task<PostgresFixture>> Shared = new(StartAsync);
 
@@ -88,6 +89,40 @@ internal sealed class PostgresFixture
     }
 
     /// <summary>
+    /// Every place in the file system of the server where the needles appear, read from inside it and by bytes, after a CHECKPOINT that forces the data files to disk:
+    /// the data directory with the write-ahead log, the log directory and the rest of the container, but for the kernel's own trees. Exec runs as the user of the server,
+    /// so files it may not read are left out of the search, as they would be to whoever stole only that user. An error of grep itself fails the search,
+    /// so that an empty answer cannot be a search that did not run.
+    /// </summary>
+    public Task<IReadOnlyList<FileMatch>> ServerFilesHoldingAsync(IReadOnlyList<byte[]> needles)
+    {
+        ArgumentNullException.ThrowIfNull(needles);
+        return SearchServerFilesAsync(needles);
+    }
+
+    private async Task<IReadOnlyList<FileMatch>> SearchServerFilesAsync(IEnumerable<byte[]> needles)
+    {
+        await using (var connection = new NpgsqlConnection(SuperuserConnectionString))
+        {
+            await connection.OpenAsync(TestContext.Current.CancellationToken);
+            await using var checkpoint = new NpgsqlCommand("CHECKPOINT", connection);
+            _ = await checkpoint.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+        }
+
+        var pattern = "(?:" + string.Join('|', needles.Select(needle => string.Concat(needle.Select(value => $"\\x{value:x2}")))) + ")";
+        var search = await container.ExecAsync(["env", "LC_ALL=C", "sh", "-c", SearchScript, "sh", pattern], TestContext.Current.CancellationToken);
+        return search.Stderr.Length == 0
+            ? [.. search.Stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(MatchOf).OfType<FileMatch>()]
+            : throw new InvalidOperationException($"the search of the server files failed: {search.Stderr}");
+    }
+
+    private static FileMatch? MatchOf(string line)
+    {
+        var colon = line.IndexOf(':', StringComparison.Ordinal);
+        return colon < 0 ? null : new FileMatch(line[..colon], line[(colon + 1)..]);
+    }
+
+    /// <summary>
     /// Everything the server wrote to its log directory so far, read inside the server: the csvlog files and the ones the collector keeps for
     /// what reaches the error stream. The directory is outside the data directory, as the image sets it.
     /// </summary>
@@ -123,6 +158,9 @@ internal sealed class PostgresFixture
             _ = await drop.ExecuteNonQueryAsync();
         }
     }
+
+    /// <summary>One place a search of the server files found, and the bytes it matched there, as text.</summary>
+    internal sealed record FileMatch(string Path, string Text);
 
     private static string NewPassword() => Convert.ToHexString(RandomNumberGenerator.GetBytes(24));
 

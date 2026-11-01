@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Core.Persistence.Migrations;
 using Npgsql;
 
@@ -55,6 +56,23 @@ internal sealed class ScratchDatabase : IAsyncDisposable
 
     /// <summary>Runs the statements as the role owner, in one batch.</summary>
     public Task RunAsOwnerAsync(params string[] statements) => ExecuteAsync(OwnerConnectionString, statements);
+
+    /// <summary>
+    /// Runs the statement as the superuser, over this database: what neither the application nor the owner may do, for a test that arranges a defect.
+    /// The superuser is not held to the row policy.
+    /// </summary>
+    [SuppressMessage("Security", "CA2100", Justification = "The statement is a literal of the calling test, never input.")]
+    public async Task ExecuteAsSuperuserAsync(string statement, params (string Name, object Value)[] parameters)
+    {
+        await using var connection = await Sql.OpenAsync(Unpooled(superuserConnectionString, name));
+        await using var command = new NpgsqlCommand(statement, connection);
+        foreach (var (parameterName, value) in parameters)
+        {
+            _ = command.Parameters.AddWithValue(parameterName, value);
+        }
+
+        _ = await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+    }
 
     /// <summary>The labels recorded as used, in order, as the role owner.</summary>
     public Task<IReadOnlyList<string>> RecordedLabelsAsOwnerAsync() =>

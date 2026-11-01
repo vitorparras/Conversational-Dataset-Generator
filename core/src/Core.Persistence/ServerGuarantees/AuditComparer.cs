@@ -54,7 +54,7 @@ public sealed class AuditComparer
         }
     }
 
-    private static async Task<Dictionary<CustodyStep, int>> CountsAsync(NpgsqlDataReader reader, CancellationToken cancellationToken)
+    private static async Task<Dictionary<CustodyStep, int>> CountsAsync(System.Data.Common.DbDataReader reader, CancellationToken cancellationToken)
     {
         var byName = Enum.GetValues<CustodyStep>().ToDictionary(CustodyNames.Of, StringComparer.Ordinal);
         var recorded = new Dictionary<CustodyStep, int>();

@@ -19,6 +19,13 @@ public sealed class CustodyVerifierPropertyTests : IClassFixture<CustodyDatabase
     private static readonly Lock Turn = new();
     private const int FieldsOfAnEvent = 8;
     private const int FieldsOfAVerdict = 5;
+
+    // A failure recorded closes the chain to a verdict that passes until a restoration, which brings the state of a copy without it; each case ends the way a restoration does.
+    private const string ForgetTheFailure =
+        "ALTER TABLE public.custody_event DISABLE TRIGGER custody_event_never_changed; "
+        + "DELETE FROM public.custody_event WHERE step = 'verify_chain' AND reason = 'verification_failed'; "
+        + "ALTER TABLE public.custody_event ENABLE ALWAYS TRIGGER custody_event_never_changed";
+
     private static readonly PropertyBudget Budget = new(Cases: 15, Deadline: TimeSpan.FromMinutes(4));
 
     private static readonly Gen<CasePlan> Plans = Gen.Select(
@@ -76,6 +83,7 @@ public sealed class CustodyVerifierPropertyTests : IClassFixture<CustodyDatabase
         finally
         {
             await database.RunAsSuperuserAsync(tampered.Restore);
+            await database.RunAsSuperuserAsync(ForgetTheFailure);
         }
 
         var restored = await verifier.VerifyAsync(TestContext.Current.CancellationToken);

@@ -9,7 +9,8 @@ namespace Core.Persistence.Tests.Content;
 
 /// <summary>
 /// While the last verification of the chain failed (#61, CA-5), content is not written through the one way that writes it, the refusal is visible and nothing is left of it, reading what needs
-/// no event goes on, reading protected content goes on too and is recorded in the chain (the reading is a defect to stop, not to hide), and a verification that passes again lifts the refusal.
+/// no event goes on, reading protected content goes on too and is recorded in the chain (the reading is a defect to stop, not to hide),
+/// and a restoration, which brings the state of a copy without the failure, followed by a verification that passes lifts the refusal.
 /// </summary>
 [Trait("Category", "Database")]
 public sealed class ProtectedContentBrokenChainTests
@@ -65,12 +66,15 @@ public sealed class ProtectedContentBrokenChainTests
     }
 
     [DatabaseFact]
-    public async Task VerificationThatPassesAgainLetsContentBeWrittenAndReadAgain()
+    public async Task ChainRestoredWithoutTheFailureAndVerifiedAgainLetsContentBeWrittenAndReadAgain()
     {
         await using var world = await ContentWorld.CreateAsync();
         var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw), TestContext.Current.CancellationToken);
         await BreakAsync(world);
-        await RunAsSuperuserAsync(world, $"{Untrusted}UPDATE public.custody_event SET item_id = item_id - 1 WHERE sequence = 1{Trusted}");
+        await RunAsSuperuserAsync(
+            world,
+            $"{Untrusted}UPDATE public.custody_event SET item_id = item_id - 1 WHERE sequence = 1; "
+            + $"DELETE FROM public.custody_event WHERE step = 'verify_chain' AND reason = 'verification_failed'{Trusted}");
 
         var passed = await new CustodyVerifier(world.DataSource, TimeProvider.System).VerifyAsync(TestContext.Current.CancellationToken);
         var added = await world.Writer.AddItemTextAsync(1, new NewItemText("outro texto sintetico zqx"), TestContext.Current.CancellationToken);

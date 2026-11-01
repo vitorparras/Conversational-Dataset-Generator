@@ -36,11 +36,10 @@ DECLARE
     tip_digest bytea;
     author_active boolean;
 BEGIN
-    -- A verdict that passed was made on a view of the chain: one that read fewer events than the sequence of the last failure recorded was made before that failure, and lifting the refusal with it
-    -- would hide a break that is still there. A verification made after the failure reads the failure itself, so it is never refused here.
-    IF NEW.step = 'verify_chain' AND NEW.reason = 'verification_passed'
-        AND NEW.item_id < COALESCE((SELECT e.sequence FROM public.custody_event e WHERE e.step = 'verify_chain' AND e.reason = 'verification_failed' ORDER BY e.sequence DESC LIMIT 1), 0) THEN
-        RAISE EXCEPTION 'the verification passed was made on a view older than the last failure recorded: it is not added'
+    -- After a failure the chain does not close again without a restoration: there is no way to rewrite it (requirement 019), so a verdict that passed after a verdict that failed is necessarily false.
+    -- It is refused whoever inserts it, the application included, and whatever view it was made on; the way out of a break is the restoration, which brings the state of the copy. SQLSTATE CE003.
+    IF NEW.step = 'verify_chain' AND NEW.reason = 'verification_passed' AND public.custody_chain_broken() THEN
+        RAISE EXCEPTION 'the custody chain failed its last verification: a verdict that passed is not added until the chain is restored'
             USING ERRCODE = 'CE003', SCHEMA = 'public', TABLE = 'custody_event';
     END IF;
 

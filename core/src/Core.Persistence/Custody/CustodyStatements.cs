@@ -13,8 +13,8 @@ internal static class CustodyStatements
     /// <summary>The SQLSTATE raised by the append, and by a write of content, while the last verification of the chain failed (migration 0012).</summary>
     internal const string ChainBrokenSqlState = "CE002";
 
-    /// <summary>The SQLSTATE raised by the append of a verdict that passed on a view older than the last failure recorded (migration 0012).</summary>
-    internal const string StaleVerdictSqlState = "CE003";
+    /// <summary>The SQLSTATE raised by the append of a verdict that passed while the last verdict recorded is a failure (migration 0012).</summary>
+    internal const string PassedAfterFailureSqlState = "CE003";
 
     /// <summary>Every field of every event that the digest covers, with the two digests, in the order of the sequence: what the verification reads.</summary>
     internal const string ReadChain = """

@@ -20,6 +20,9 @@ public sealed class CustodyVerifierTests
     private const string Trusted = "; ALTER TABLE public.custody_event ENABLE ALWAYS TRIGGER custody_event_never_changed";
     private const string RefusedByTheBrokenChain = "CE002";
 
+    // What the restoration brings: the state of a copy, which never had the verdict of the failure.
+    private const string Forgotten = "DELETE FROM public.custody_event WHERE step = 'verify_chain' AND reason = 'verification_failed'";
+
     private static readonly DateTimeOffset Moment = new(2031, 3, 4, 5, 6, 7, TimeSpan.Zero);
 
     [DatabaseFact]
@@ -124,15 +127,15 @@ public sealed class CustodyVerifierTests
         await BreakAsync(database);
         var chain = await database.ChainAsync();
 
-        var stale = await chain.AppendAsync(CustodyEvent.Verification(3, null), TestContext.Current.CancellationToken);
+        var late = await chain.AppendAsync(CustodyEvent.Verification(3, null), TestContext.Current.CancellationToken);
         var ordinary = await chain.AppendAsync(Ordinary(), TestContext.Current.CancellationToken);
 
-        Assert.Equal((CustodyOutcome.StaleVerdict, null, CustodyOutcome.ChainBroken), (stale.Outcome, stale.Sequence, ordinary.Outcome));
+        Assert.Equal((CustodyOutcome.PassedAfterFailure, null, CustodyOutcome.ChainBroken), (late.Outcome, late.Sequence, ordinary.Outcome));
         Assert.Equal(4, (await database.EventsAsync()).Count);
     }
 
     [DatabaseFact]
-    public async Task StaleVerdictIsRefusedByTheServerWithItsOwnStateAndNamingNoEvent()
+    public async Task PassedAfterFailureIsRefusedByTheServerWithItsOwnStateAndNamingNoEvent()
     {
         await using var database = new CustodyDatabase();
         await BreakAsync(database);
@@ -144,7 +147,7 @@ public sealed class CustodyVerifierTests
     }
 
     [DatabaseFact]
-    public async Task VerdictThatPassedOnAViewThatReadTheFailureLiftsTheRefusal()
+    public async Task VerdictThatPassedAfterTheFailureIsRefusedWhateverViewItWasMadeOnAndWritingStaysBlocked()
     {
         await using var database = new CustodyDatabase();
         await BreakAsync(database);
@@ -153,7 +156,20 @@ public sealed class CustodyVerifierTests
         var fresh = await chain.AppendAsync(CustodyEvent.Verification(4, null), TestContext.Current.CancellationToken);
         var ordinary = await chain.AppendAsync(Ordinary(), TestContext.Current.CancellationToken);
 
-        Assert.Equal((CustodyOutcome.Appended, CustodyOutcome.Appended), (fresh.Outcome, ordinary.Outcome));
+        Assert.Equal((CustodyOutcome.PassedAfterFailure, CustodyOutcome.ChainBroken, 4), (fresh.Outcome, ordinary.Outcome, (await database.EventsAsync()).Count));
+    }
+
+    [DatabaseFact]
+    public async Task ChainPutBackButWithTheFailureStillOnItPassesTheCheckButIsNotRecordedAsPassedSoWritingStaysBlocked()
+    {
+        await using var database = new CustodyDatabase();
+        await BreakAsync(database);
+        await database.RunAsSuperuserAsync($"{Untrusted}UPDATE public.custody_event SET item_id = item_id - 1 WHERE sequence = 2{Trusted}");
+
+        var verification = await (await VerifierAsync(database)).VerifyAsync(TestContext.Current.CancellationToken);
+        var ordinary = await (await database.ChainAsync()).AppendAsync(Ordinary(), TestContext.Current.CancellationToken);
+
+        Assert.Equal((true, CustodyOutcome.PassedAfterFailure, CustodyOutcome.ChainBroken), (verification.Passed, verification.Recorded.Outcome, ordinary.Outcome));
     }
 
     [DatabaseFact]
@@ -235,19 +251,19 @@ public sealed class CustodyVerifierTests
     }
 
     [DatabaseFact]
-    public async Task VerificationThatPassesAgainLiftsTheRefusal()
+    public async Task ChainRestoredWithoutTheFailureAndVerifiedAgainLiftsTheRefusal()
     {
         await using var database = new CustodyDatabase();
         await AppendEventsAsync(database, 3);
         await database.RunAsSuperuserAsync($"{Untrusted}UPDATE public.custody_event SET item_id = item_id + 1 WHERE sequence = 2{Trusted}");
         var verifier = await VerifierAsync(database);
         _ = await verifier.VerifyAsync(TestContext.Current.CancellationToken);
-        await database.RunAsSuperuserAsync($"{Untrusted}UPDATE public.custody_event SET item_id = item_id - 1 WHERE sequence = 2{Trusted}");
+        await database.RunAsSuperuserAsync($"{Untrusted}UPDATE public.custody_event SET item_id = item_id - 1 WHERE sequence = 2; {Forgotten}{Trusted}");
 
         var passed = await verifier.VerifyAsync(TestContext.Current.CancellationToken);
         var appended = await (await database.ChainAsync()).AppendAsync(Ordinary(), TestContext.Current.CancellationToken);
 
-        Assert.Equal((true, 4L), (passed.Passed, passed.EventsRead));
+        Assert.Equal((true, 3L), (passed.Passed, passed.EventsRead));
         Assert.Equal(CustodyOutcome.Appended, appended.Outcome);
     }
 

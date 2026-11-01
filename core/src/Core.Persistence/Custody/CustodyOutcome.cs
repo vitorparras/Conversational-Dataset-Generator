@@ -24,6 +24,6 @@ public enum CustodyOutcome
     /// <summary>The last verification of the chain failed, so no event is added but a verification or the reading of content until one passes; nothing was written.</summary>
     ChainBroken,
 
-    /// <summary>A verdict that passed was made on a view of the chain older than the last failure recorded, so it was not added and the refusal stays; a new verification may be asked for.</summary>
-    StaleVerdict,
+    /// <summary>A verdict that passed was refused because the last verdict recorded is a failure: only a restoration closes the chain again, so nothing was written and the refusal stays.</summary>
+    PassedAfterFailure,
 }

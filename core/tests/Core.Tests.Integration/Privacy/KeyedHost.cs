@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text.Json;
 using Core.Tests.Support.Custody;
+using Core.Tests.Support.Net;
 using Npgsql;
 
 namespace Core.Tests.Integration.Privacy;
@@ -23,7 +24,7 @@ internal static class KeyedHost
     /// <summary>Starts the host with the key and the database the connection string names, and returns what it answered at <c>/status</c>.</summary>
     public static async Task<JsonDocument> RunAsync(string databaseConnectionString, CancellationToken cancellationToken)
     {
-        var address = new Uri($"http://127.0.0.1:{FreePort()}");
+        var address = new Uri($"https://127.0.0.1:{FreePort()}");
         using var process = Process.Start(StartInfo(address, databaseConnectionString))
             ?? throw new InvalidOperationException("The host process did not start.");
         var streams = Task.WhenAll(process.StandardError.ReadToEndAsync(CancellationToken.None), process.StandardOutput.ReadToEndAsync(CancellationToken.None));
@@ -44,9 +45,9 @@ internal static class KeyedHost
             .Single(entry => entry.GetProperty("name").GetString() == check)
             .GetProperty("status").GetString()!;
 
-    private static async Task<JsonDocument> StatusAsync(Uri address, Process process, CancellationToken cancellationToken)
+    internal static async Task<JsonDocument> StatusAsync(Uri address, Process process, CancellationToken cancellationToken)
     {
-        using var client = new HttpClient { BaseAddress = address };
+        using var client = new HttpClient(SharedTlsMaterial.PinnedHandler()) { BaseAddress = address };
         var clock = Stopwatch.StartNew();
         while (clock.Elapsed < StartupTimeout)
         {
@@ -75,7 +76,7 @@ internal static class KeyedHost
         }
     }
 
-    private static ProcessStartInfo StartInfo(Uri address, string databaseConnectionString)
+    internal static ProcessStartInfo StartInfo(Uri address, string databaseConnectionString, string idleTimeout = "00:30:00", int workFactor = 1)
     {
         var database = new NpgsqlConnectionStringBuilder(databaseConnectionString);
         var info = new ProcessStartInfo(Path.Combine(AppContext.BaseDirectory, OperatingSystem.IsWindows() ? "Core.Host.exe" : "Core.Host"))
@@ -95,7 +96,7 @@ internal static class KeyedHost
         info.Environment["CDG_Database__Name"] = database.Database;
         info.Environment["CDG_Database__Username"] = database.Username;
         info.Environment["CDG_Database__Password"] = database.Password;
-        foreach (var argument in Arguments(address))
+        foreach (var argument in Arguments(address, idleTimeout, workFactor))
         {
             info.ArgumentList.Add(argument);
         }
@@ -103,18 +104,22 @@ internal static class KeyedHost
         return info;
     }
 
-    private static string[] Arguments(Uri address) =>
+    private static string[] Arguments(Uri address, string idleTimeout, int workFactor) =>
     [
         $"--Host:Urls={address.GetLeftPart(UriPartial.Authority)}",
         "--Installation:Kind=demonstracao",
-        "--Passwords:WorkFactor=1",
+        $"--Passwords:WorkFactor={workFactor}",
+        $"--Session:IdleTimeout={idleTimeout}",
+        "--Session:AbsoluteTimeout=08:00:00",
         "--Recognizer:Kind=fake",
         "--LanguageService:Executable=zqx-never-started-7731",
+        $"--Tls:CertificateFile={SharedTlsMaterial.CertificatePath}",
+        $"--Tls:KeyFile={SharedTlsMaterial.KeyPath}",
         $"--MasterKey:File={CustodyFiles.Shared.KeyPath}",
         $"--MasterKey:LabelsFile={CustodyFiles.Shared.LabelsPath}",
     ];
 
-    private static int FreePort()
+    internal static int FreePort()
     {
         using var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();

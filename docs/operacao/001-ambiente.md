@@ -9,12 +9,13 @@ instala no destino. Fora deles, o ambiente oferece a máquina, o banco, a chave 
 
 ## O banco
 
-Um servidor PostgreSQL onde as garantias sejam do servidor, e não da aplicação, conforme a
-[decisão 0002](../decisoes/0002-stack.md):
+Um servidor PostgreSQL onde as garantias sejam do servidor, e não da aplicação ([decisão 0002](../decisoes/0002-stack.md)):
 
 - Política de linha aplicável com `FORCE`, para que o isolamento entre domínios valha até contra o
   dono da tabela, como a [decisão 0006](../decisoes/0006-dominios-coexistem.md) exige
-- Registro de auditoria por extensão, no servidor, fora do alcance da aplicação que ele audita
+- Registro de auditoria por extensão, no servidor, fora do alcance da aplicação que ele audita, em
+  `csvlog` fora do diretório de dados: o servidor escreve (`0640`) e o usuário do processo da
+  aplicação só lê, pelo grupo `postgres`; a retenção é a da cadeia, sem apagar nem sobrescrever
 - Isolamento serializável, sem o qual duas gravações simultâneas corrompem a cadeia em silêncio
 - Permissão de escrita revogável por coluna, e gatilhos, para que a tabela acrescentável não dependa
   de a aplicação lembrar
@@ -22,8 +23,7 @@ Um servidor PostgreSQL onde as garantias sejam do servidor, e não da aplicaçã
 
 O papel que a aplicação usa não é dono de tabela nem superusuário: com esse privilégio o gatilho de
 imutabilidade se desabilita, e a [cadeia de custódia](../privacidade/004-cadeia-de-custodia.md)
-aponta isso como seu elo mais fraco. A credencial de dono tem guarda própria, em
-[010](010-credencial-de-dono-do-banco.md).
+aponta isso como seu elo mais fraco. A credencial de dono tem guarda própria, em [010](010-credencial-de-dono-do-banco.md).
 
 ## A chave
 
@@ -44,12 +44,12 @@ lista vem do [histórico 002](../historico/002-medidas-do-artefato.md), que não
 
 ## O resto
 
-- **Contas individuais.** O acesso é por domínio e o registro nomeia quem agiu; conta compartilhada
-  torna o registro inútil no dia em que ele importa
-- **Relógio confiável.** A ordem vem da cadeia, não do horário; mas evento com horário anterior ao
-  do antecessor é achado, não curiosidade
-- **Taxonomia de cada domínio** no lugar de onde a instalação a lê, versionada e válida: o sistema
-  não sobe com taxonomia inválida
+- **Contas individuais.** O registro nomeia quem agiu; conta compartilhada o torna inútil
+- **Relógio confiável.** A ordem vem da cadeia; horário anterior ao do antecessor é achado
+- **Taxonomia de cada domínio** versionada e válida onde a instalação a lê: sem ela, nada sobe
+- **Certificado e chave do canal cifrado**, em PEM e só do dono, fora da pasta do executável
+  ([0046](../decisoes/0046-material-do-canal-cifrado.md)). Conferir o núcleo pede um cliente TLS
+  (`openssl s_client` ou `curl`): proposta ao dono, que ainda confirma
 - **Lugar para backup** separado de onde vive a cópia de guarda da chave — ver [005](005-backup.md)
 
 ## O que não pode existir

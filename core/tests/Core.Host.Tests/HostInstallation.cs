@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using Core.Tests.Support.Custody;
+using Core.Tests.Support.Net;
 
 namespace Core.Host.Tests;
 
@@ -17,6 +18,12 @@ internal sealed record HostInstallation(string BinaryDirectory, string WorkingDi
 
     /// <summary>Whether the arguments the host receives also give the work factor of the derivation of passwords, which the serving mode cannot start without.</summary>
     public bool DeclaresWorkFactor { get; init; } = true;
+
+    /// <summary>Whether the arguments the host receives also give the two limits of a session, which the serving mode cannot start without.</summary>
+    public bool DeclaresSessionLimits { get; init; } = true;
+
+    /// <summary>Whether the arguments the host receives also name the certificate and the private key of the encrypted channel, which the serving mode cannot start without.</summary>
+    public bool ProvidesTlsMaterial { get; init; } = true;
 
     /// <summary>Whether the arguments the host receives also name the custody files of a key and labels of the right form, which the serving mode cannot start without.</summary>
     public bool ProvidesMasterKey { get; init; } = true;
@@ -38,6 +45,16 @@ internal sealed record HostInstallation(string BinaryDirectory, string WorkingDi
                 arguments.Add(WorkFactorArgument);
             }
 
+            if (DeclaresSessionLimits)
+            {
+                arguments.AddRange(SessionArguments);
+            }
+
+            if (ProvidesTlsMaterial)
+            {
+                arguments.AddRange(TlsArguments);
+            }
+
             if (!DeclaresInstallation)
             {
                 return arguments;
@@ -55,6 +72,13 @@ internal sealed record HostInstallation(string BinaryDirectory, string WorkingDi
 
     /// <summary>The argument that gives the work factor; the host takes any whole number above zero, and a test that does not hash a password wants the cheapest.</summary>
     public static string WorkFactorArgument => "--Passwords:WorkFactor=1";
+
+    /// <summary>The limits of a session a test that does not wait for one to pass wants: long enough that none passes while it runs.</summary>
+    public static IReadOnlyList<string> SessionArguments => ["--Session:IdleTimeout=00:30:00", "--Session:AbsoluteTimeout=08:00:00"];
+
+    /// <summary>The arguments that point the host at the shared certificate and private key.</summary>
+    public static IReadOnlyList<string> TlsArguments =>
+        [$"--Tls:CertificateFile={SharedTlsMaterial.CertificatePath}", $"--Tls:KeyFile={SharedTlsMaterial.KeyPath}"];
 
     /// <summary>The arguments that point the host at the shared key and labels files.</summary>
     public static IReadOnlyList<string> MasterKeyArguments =>

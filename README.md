@@ -141,11 +141,24 @@ dotnet build core/Core.slnx
 dotnet test core/Core.slnx
 PY="$(uv run --frozen --project language-service python -c 'import sys; print(sys.executable)')"
 KEYS="$(mktemp -d)"; ( umask 077; head -c 32 /dev/urandom | base64 > "$KEYS/chave"; : > "$KEYS/rotulos" )
+openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -subj /CN=localhost -days 30 \
+  -keyout "$KEYS/tls.key" -out "$KEYS/tls.crt" 2> /dev/null
 export DOTNET_ENVIRONMENT=Development
-dotnet run --project core/src/Core.Host -- --Host:Urls=http://127.0.0.1:5080 \
-  --Installation:Kind=demonstracao --Passwords:WorkFactor=ITERACOES --MasterKey:File="$KEYS/chave" \
-  --MasterKey:LabelsFile="$KEYS/rotulos" --LanguageService:Executable="$PY"
+dotnet run --project core/src/Core.Host -- --Host:Urls=https://127.0.0.1:5080 \
+  --Installation:Kind=demonstracao --Passwords:WorkFactor=ITERACOES --Session:IdleTimeout=00:30:00 \
+  --Session:AbsoluteTimeout=08:00:00 --MasterKey:File="$KEYS/chave" --MasterKey:LabelsFile="$KEYS/rotulos" \
+  --Tls:CertificateFile="$KEYS/tls.crt" --Tls:KeyFile="$KEYS/tls.key" \
+  --LanguageService:Executable="$PY"
 ```
+
+`Tls:CertificateFile` e `Tls:KeyFile` são obrigatórias ao servir, sem valor padrão, e levam os
+caminhos do certificado e da chave privada, ambos em PEM e a chave sem senha. O núcleo só escuta em
+`https://`, também no loopback: não há porta em claro, e um pedido em claro não recebe conteúdo. Um
+`Host:Urls` com `http://` recusa a configuração. A partida recusa, nomeando o que viu, arquivo
+ausente, PEM ilegível, certificado e chave que não formam par, certificado vencido ou ainda não
+válido, e a chave com permissão aberta a quem não é o dono ou dentro da pasta do executável. O
+certificado autoassinado serve à instalação local. O `migrate` não os exige. Resposta traz
+`Strict-Transport-Security` (suposição, ver [0046](docs/decisoes/0046-material-do-canal-cifrado.md)).
 
 `Installation:Kind` é obrigatória, sem valor padrão, e só aceita `real` ou `demonstracao`, escritos
 assim. A demonstração roda sem cópia de guarda da chave e sem recuperação testada, e diz isso no
@@ -156,6 +169,15 @@ dois a partida recusa.
 `Passwords:WorkFactor` é obrigatória ao servir, sem valor padrão, e leva o fator de trabalho da
 derivação das senhas, um número inteiro positivo de iterações que quem instala escolhe (`ITERACOES`
 acima é marcador). A recusa nomeia a chave; `/configuration` mostra o valor em vigor e de onde veio.
+
+`Session:IdleTimeout` e `Session:AbsoluteTimeout` são obrigatórias ao servir, sem valor padrão, e
+levam cada uma uma duração maior que zero (`00:30:00`, horas:minutos:segundos, ou `1.00:00:00`, com
+dias). A primeira conta o tempo sem atividade e cada pedido a renova; a segunda conta desde a
+entrada e nada a renova. Faltando uma, a partida recusa e a nomeia. A sessão vive só na memória do
+núcleo: reiniciar encerra todas. `POST /session` entra (`name` e `password`) e entrega o cookie
+`__Host-sessao`, com Secure, HttpOnly e SameSite=Strict; `DELETE /session` encerra; `GET /session`
+confere. Pedido sem sessão viva recebe 401 com `signIn`, a rota da entrada; levar a pessoa até lá
+sem perder o que submeteu espera a interface.
 
 `MasterKey:File` e `MasterKey:LabelsFile` são obrigatórias ao servir, sem valor padrão, e levam os
 caminhos dos arquivos da chave e dos rótulos, nunca a chave. O núcleo recusa arquivo ausente, com
@@ -201,13 +223,13 @@ linguagem, fecha o registro e sai com código 0. Uma conferência de inicializa�
 porta já ocupada, sai com 70 (salvo memória esgotada ou corrompida, que o processo não relata) e a
 saída de erro nomeia o tipo da falha, nunca a mensagem.
 
-Com o núcleo de pé, `http://127.0.0.1:5080/status` responde `alive`, `ready`, `recognizer`,
+Com o núcleo de pé, `https://127.0.0.1:5080/status` responde `alive`, `ready`, `recognizer`,
 `languageService`, `checkedAt` e `checks[]`: o reconhecedor em vigor, o estado atual do serviço
 de linguagem, quando as conferências terminaram e o resultado de cada conferência de
 inicialização. Se o processo do serviço termina, `languageService` passa a `Unavailable` e `ready`
 a falso, e o núcleo não o reinicia sozinho. Com `fake`, nenhum serviço é vigiado: `languageService`
 é `null`, e `ready` depende só das conferências.
-`http://127.0.0.1:5080/versions` responde a versão do núcleo, o commit de que ele foi construído e
+`https://127.0.0.1:5080/versions` responde a versão do núcleo, o commit de que ele foi construído e
 se a árvore tinha mudança não registrada (`workingTree`, que vale `Unknown` se a construção não
 conseguiu perguntar ao `git`); versão que o núcleo não obteve vem `null`, nunca vazia. A
 `contractVersion`, a `languageServiceVersion` e a `modelVersion` são as que o serviço de linguagem
@@ -266,6 +288,10 @@ dono do banco e do esquema, e o papel `app`, que só conecta e não é dono de n
 a porta só em `127.0.0.1` e exige três senhas no ambiente, sem valor em arquivo algum:
 `POSTGRES_PASSWORD` (superusuário), `DATABASE_OWNER_PASSWORD` e `DATABASE_APP_PASSWORD`, fora do
 prefixo `CDG_`, que o núcleo lê do ambiente e recusa quando não reconhece.
+
+O servidor registra em `csvlog`, no volume `database-log` (`/var/log/postgresql`, fora do volume
+de dados), o que o papel `app` lê e escreve, sem parâmetro de comando nem detalhe de erro. A
+partida do núcleo recusa um servidor que registre de outro modo.
 
 ```
 docker compose -f tools/database/compose.yml up

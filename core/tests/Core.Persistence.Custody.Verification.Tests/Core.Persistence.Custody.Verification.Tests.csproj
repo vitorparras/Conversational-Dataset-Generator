@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Core.Persistence.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Core.Persistence\Core.Persistence.csproj" />
+    <ProjectReference Include="..\Core.Tests.Support\Core.Tests.Support.csproj" />
+    <ProjectReference Include="..\Core.Tests.Database\Core.Tests.Database.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql" />
+    <PackageReference Include="Testcontainers" />
+  </ItemGroup>
+
+  <!-- The warm-up is an assembly fixture, which each test assembly must declare for itself; the one source is the module's own project. -->
+  <ItemGroup>
+    <Compile Include="..\Core.Persistence.Tests\Fixtures\DatabaseWarmup.cs" Link="Fixtures\DatabaseWarmup.cs" />
+  </ItemGroup>
+
+  <!-- The database of the custody tests and the row it reads are one source, in the project of the area that holds the chain; the verification is tested against the same ones. -->
+  <ItemGroup>
+    <Compile Include="..\Core.Persistence.Custody.Tests\Custody\CustodyDatabase.cs" Link="Custody\CustodyDatabase.cs" />
+    <Compile Include="..\Core.Persistence.Custody.Tests\Custody\EventRow.cs" Link="Custody\EventRow.cs" />
+    <Compile Include="..\Core.Persistence.Custody.Tests\Custody\HeldAppend.cs" Link="Custody\HeldAppend.cs" />
+  </ItemGroup>
+</Project>

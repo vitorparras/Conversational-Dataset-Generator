@@ -1,4 +1,4 @@
-namespace Core.Persistence.Custody;
+namespace Core.Persistence.Custody.Verification;
 
 /// <summary>The way an event of the chain does not hold; the three ways are checked in this order, and the first that fails is the one told.</summary>
 public enum ChainInconsistency

@@ -1,8 +1,9 @@
 using System.Globalization;
-using Core.Persistence.Custody;
+using Core.Persistence.Custody.Verification;
+using Core.Persistence.Tests.Custody;
 using Core.Persistence.Tests.Fixtures;
 
-namespace Core.Persistence.Tests.Custody;
+namespace Core.Persistence.Tests.Verification;
 
 /// <summary>
 /// The anchor of the verification (#61, CA-4): synthetic events whose digests were worked out apart from this repository, from the encoding the migration 0008 declares, byte by byte.

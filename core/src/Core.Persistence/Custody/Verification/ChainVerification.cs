@@ -1,4 +1,4 @@
-namespace Core.Persistence.Custody;
+namespace Core.Persistence.Custody.Verification;
 
 /// <summary>
 /// What a verification of the chain concluded and declared: what it covered, how many events it read, when, whether the chain held and, when it did not, the first event that does not.

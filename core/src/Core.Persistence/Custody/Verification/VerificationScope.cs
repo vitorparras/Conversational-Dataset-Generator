@@ -1,4 +1,4 @@
-namespace Core.Persistence.Custody;
+namespace Core.Persistence.Custody.Verification;
 
 /// <summary>What a verification covered.</summary>
 public enum VerificationScope

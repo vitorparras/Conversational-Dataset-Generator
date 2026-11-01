@@ -1,6 +1,6 @@
-using Core.Persistence.Custody;
+using Core.Persistence.Custody.Verification;
 
-namespace Core.Persistence.Tests.Custody;
+namespace Core.Persistence.Tests.Verification;
 
 /// <summary>The judge of the verification: a chain whose every link holds is told whole, and the first event that does not is told with how, whatever follows it.</summary>
 public sealed class ChainJudgeTests

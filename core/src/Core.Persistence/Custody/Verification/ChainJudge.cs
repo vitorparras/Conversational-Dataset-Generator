@@ -1,4 +1,4 @@
-namespace Core.Persistence.Custody;
+namespace Core.Persistence.Custody.Verification;
 
 /// <summary>
 /// Judges the events of the chain one after another, in the order of their sequence: each must come right after the one before, point to its digest and hold the digest

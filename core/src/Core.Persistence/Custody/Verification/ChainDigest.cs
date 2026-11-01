@@ -2,7 +2,7 @@ using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Core.Persistence.Custody;
+namespace Core.Persistence.Custody.Verification;
 
 /// <summary>
 /// The digest of an event, computed here and not by the database: the verification must not ask the function that wrote the digest whether the digest is right.

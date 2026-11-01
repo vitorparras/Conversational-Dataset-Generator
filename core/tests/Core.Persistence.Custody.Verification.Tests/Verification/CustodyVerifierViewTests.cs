@@ -1,9 +1,11 @@
 using System.Data;
 using Core.Persistence.Custody;
+using Core.Persistence.Custody.Verification;
+using Core.Persistence.Tests.Custody;
 using Core.Persistence.Tests.Fixtures;
 using Npgsql;
 
-namespace Core.Persistence.Tests.Custody;
+namespace Core.Persistence.Tests.Verification;
 
 /// <summary>The verifier asks for what it needs (#61): a source of connections and a clock, and the view it reads the chain in is read-only, which the server itself tells it.</summary>
 [Trait("Category", "Database")]

@@ -1,10 +1,12 @@
 using System.Globalization;
 using Core.Persistence.Custody;
+using Core.Persistence.Custody.Verification;
+using Core.Persistence.Tests.Custody;
 using Core.Persistence.Tests.Fixtures;
 using Core.Tests.Support.Harness;
 using CsCheck;
 
-namespace Core.Persistence.Tests.Custody;
+namespace Core.Persistence.Tests.Verification;
 
 /// <summary>
 /// The invariant of the verification (requisito 020, decisão 0007, #61 CA-4): whatever chain is written and whichever event is changed from outside the system, in whichever field the digest

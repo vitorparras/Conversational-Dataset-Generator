@@ -1,7 +1,9 @@
 using Core.Persistence.Custody;
+using Core.Persistence.Custody.Verification;
+using Core.Persistence.Tests.Custody;
 using Core.Persistence.Tests.Fixtures;
 
-namespace Core.Persistence.Tests.Custody;
+namespace Core.Persistence.Tests.Verification;
 
 /// <summary>
 /// The verification does not ask the function that wrote the digests whether they are right (#61, plano): an owner who replaces <c>custody_digest</c> writes links that a check by that same

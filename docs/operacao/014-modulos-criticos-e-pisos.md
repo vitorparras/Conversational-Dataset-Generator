@@ -9,7 +9,6 @@ pisos de cobertura viverem aqui, porque mudam com o código. A verificação aut
 **Os números abaixo são proposta e aguardam aprovação do operador no pull request que os introduz.**
 
 ## Critério de criticidade
-
 Um módulo é crítico quando toca material, segredo, registro de operação, deslocamento de texto ou
 esquema do banco: a falha nele vaza dado ou corrompe custódia, em vez de produzir tela torta.
 
@@ -36,6 +35,7 @@ tabela pelo nome, por exceção declarada à [regra 5](../regras-de-escrita.md).
 | Migração do esquema | `Core.Persistence.Migrations` | 90 % | sim | Altera o esquema do banco; erro corrompe custódia (requisito 019) |
 | Transação de conteúdo | `Core.Persistence.Content` | 90 % | sim | Declara o domínio que o banco usa para decidir o que uma consulta de conteúdo vê (decisão 0006) |
 | Cadeia de custódia | `Core.Persistence.Custody` | 90 % | sim | Acrescenta o evento que encadeia o acervo, em transação serializável, e recusa autor desativado ou inexistente (requisito 019) |
+| Verificação da cadeia | `Core.Persistence.Custody.Verification` | 90 % | sim | Recalcula cada elo da cadeia com a própria codificação, numa leitura isolada, e registra o veredito como evento do sistema (requisito 020) |
 | Registro de pessoas | `Core.Persistence.People` | 90 % | sim | Grava o histórico de quem fez o quê com cada pessoa e decide a entrada de quem foi desativada (política 006) |
 | Autenticação do serviço | `language_service.auth` | 90 % | sim | Guarda o segredo que protege texto não sanitizado (decisão 0011) |
 | Prova do segredo | `language_service.proof` | 90 % | sim | Prova que conhece o segredo pelo HMAC do nonce, sem revelá-lo (decisão 0043) |

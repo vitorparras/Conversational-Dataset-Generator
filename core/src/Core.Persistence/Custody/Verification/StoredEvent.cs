@@ -1,4 +1,4 @@
-namespace Core.Persistence.Custody;
+namespace Core.Persistence.Custody.Verification;
 
 /// <summary>One event as the table holds it, read for the verification: every field the digest covers, and the two digests the table holds.</summary>
 internal sealed record StoredEvent(

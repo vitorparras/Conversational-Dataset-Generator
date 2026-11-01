@@ -14,7 +14,7 @@ public sealed class ServingFailureTests
     {
         using var taken = new TcpListener(IPAddress.Loopback, 0);
         taken.Start();
-        var address = new Uri($"http://127.0.0.1:{((IPEndPoint)taken.LocalEndpoint).Port}");
+        var address = new Uri($"https://127.0.0.1:{((IPEndPoint)taken.LocalEndpoint).Port}");
 
         var exit = await HostProcess.RunToExitAsync(HostInstallation.Built(address), HostProcess.StartupTimeout, TestContext.Current.CancellationToken);
 

@@ -7,7 +7,7 @@ namespace Core.Host.Tests;
 public sealed class StartupLineTests
 {
     private static readonly Regex ListeningLine = new(
-        @"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z INFO  Microsoft\.Hosting\.Lifetime\[14\] Now listening on: http://127\.0\.0\.1:\d+ address=",
+        @"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z INFO  Microsoft\.Hosting\.Lifetime\[14\] Now listening on: https://127\.0\.0\.1:\d+ address=",
         RegexOptions.Multiline);
 
     private static readonly Regex VersionsLine = new(

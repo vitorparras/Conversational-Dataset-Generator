@@ -30,7 +30,7 @@ internal static class HostConfiguration
         new(
             SectionName,
             [
-                ConfigurationKey.WithDefault(UrlsKey, "http://127.0.0.1:5000"),
+                ConfigurationKey.WithDefault(UrlsKey, "https://127.0.0.1:5000"),
                 ConfigurationKey.WithDefault(BundledFileKey, SettingsFile),
                 ConfigurationKey.Optional(LogFileKey)
             ]);
@@ -58,6 +58,7 @@ internal static class HostConfiguration
                     Section,
                     migrating ? InstallationConfiguration.SectionWhenMigrating : InstallationConfiguration.Section,
                     migrating ? MasterKeyConfiguration.SectionWhenMigrating : MasterKeyConfiguration.Section,
+                    migrating ? TlsConfiguration.SectionWhenMigrating : TlsConfiguration.Section,
                     SafekeepingConfiguration.Section,
                     migrating ? PasswordConfiguration.SectionWhenMigrating : PasswordConfiguration.Section,
                     LanguageServiceConfiguration.Section,
@@ -72,11 +73,12 @@ internal static class HostConfiguration
     internal static RuntimeTargetCheck TargetCheck() =>
         new(BuildInfo.Of(typeof(HostConfiguration).Assembly).RuntimeIdentifier, RuntimeTarget.Current);
 
-    /// <summary>What the values of the language service, of the safekeeping declaration and of the work factor refuse, together.</summary>
+    /// <summary>What the values of the language service, of the safekeeping declaration, of the work factor and of the addresses refuse, together.</summary>
     internal static IReadOnlyList<ConfigurationProblem> Refusals(IReadOnlyDictionary<string, string> values, TimeSpan? analyzeTimeout) =>
     [
         .. LanguageServiceConfiguration.Refusals(values, analyzeTimeout),
         .. SafekeepingConfiguration.Refusals(values, InstallationConfiguration.Of(values).Kind),
         .. PasswordConfiguration.Refusals(values),
+        .. TlsConfiguration.Refusals(values),
     ];
 }

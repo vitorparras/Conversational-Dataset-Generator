@@ -25,7 +25,7 @@ from steps.common import Context, StepResult, failed, passed, reset_directory, t
 
 NAME = containers.NAME
 RESULTS = "offline-start"
-READY = re.compile(r"Now listening on: http://127\.0\.0\.1:\d+")
+READY = re.compile(r"Now listening on: https://127\.0\.0\.1:\d+")
 VERSIONS = re.compile(r"Versões em execução .*")
 MUST_BE_PRESENT = ("SchemaVersion", "ContractVersion", "LanguageServiceVersion")
 LOOPBACK_ONLY = ["lo"]

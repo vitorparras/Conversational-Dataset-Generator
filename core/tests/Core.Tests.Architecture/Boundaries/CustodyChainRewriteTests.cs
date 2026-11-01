@@ -34,7 +34,17 @@ public sealed class CustodyChainRewriteTests
     }
 
     [Fact]
-    public void AppendReadTriggerRepairAnotherTableAndASentenceAreNotARewrite()
+    public void StatementJoinedOrInterpolatedFromConstantsIsReadAsTheWholeTextItIs()
+    {
+        var fixture = SourceTree.Fixture(Path.Combine(Fixtures, "RewritesThroughConstants.cs"));
+
+        var lines = CustodyChainRewriteRules.Check([fixture]).Select(violation => violation.Line).Order();
+
+        Assert.Equal([8, 10, 12, 14, 16], lines);
+    }
+
+    [Fact]
+    public void AppendReadTriggerRepairAnotherTableASentenceAndAReadJoinedFromConstantsAreNotARewrite()
     {
         var fixture = SourceTree.Fixture(Path.Combine(Fixtures, "OnlyReadsAndAppends.cs"));
 

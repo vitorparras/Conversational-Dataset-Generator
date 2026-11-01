@@ -7,7 +7,7 @@ namespace Core.Persistence.ServerGuarantees;
 /// <summary>
 /// Checks that the audit extension runs in the server: pgaudit loaded at startup, which only shared_preload_libraries can do,
 /// installed in the database, logging what the application's role reads and writes, and keeping out of the log the parameters of a statement,
-/// on error too, and the detail of an error. Its own setting proves the load, since reading shared_preload_libraries takes a superuser.
+/// on error too, the detail of an error and the text of a query, with the audit lines kept where the server log holds them. Its own setting proves the load, since reading shared_preload_libraries takes a superuser.
 /// </summary>
 public sealed class PgAuditCheck : IStartupCheck
 {
@@ -21,6 +21,10 @@ public sealed class PgAuditCheck : IStartupCheck
             (SELECT s.setting FROM pg_catalog.pg_settings s WHERE s.name = 'log_parameter_max_length') AS parameter_max_length,
             (SELECT s.setting FROM pg_catalog.pg_settings s WHERE s.name = 'log_parameter_max_length_on_error') AS parameter_max_length_on_error,
             (SELECT s.setting FROM pg_catalog.pg_settings s WHERE s.name = 'log_min_messages') AS min_messages,
+            (SELECT s.setting FROM pg_catalog.pg_settings s WHERE s.name = 'pgaudit.log_client') AS log_client,
+            (SELECT s.setting FROM pg_catalog.pg_settings s WHERE s.name = 'pgaudit.log_level') AS log_level,
+            (SELECT string_agg(s.name, ', ' ORDER BY s.name) FROM pg_catalog.pg_settings s
+                WHERE s.name IN ('debug_print_parse', 'debug_print_rewritten', 'debug_print_plan') AND s.setting = 'on') AS debug_prints,
             (SELECT e.extversion FROM pg_catalog.pg_extension e WHERE e.extname = 'pgaudit') AS version
         """;
 
@@ -65,7 +69,7 @@ public sealed class PgAuditCheck : IStartupCheck
 
     private static Finding Judged(IDataRecord row) =>
         Judge(
-            new AuditSettings(Text(row, "log"), Text(row, "log_parameter"), Text(row, "parameter_max_length"), Text(row, "parameter_max_length_on_error"), Text(row, "min_messages")),
+            new AuditSettings(Text(row, "log"), Text(row, "log_parameter"), Text(row, "parameter_max_length"), Text(row, "parameter_max_length_on_error"), Text(row, "min_messages"), Text(row, "log_client"), Text(row, "log_level"), Text(row, "debug_prints")),
             Text(row, "version"));
 
     private static string? Text(IDataRecord row, string column) => row[column] as string;

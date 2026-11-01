@@ -34,10 +34,26 @@ STARTUP = "Core.Platform.Startup.Runner"
 CORE_REPORT = f"{test_core.RESULTS}/a.cobertura.xml"
 SERVICE_REPORT = f"{test_service.RESULTS}/{test_service.REPORT}"
 PREVIOUS = "previous/by-area.md"
-LOWER_BEFORE = "\n".join((*coverage_by_area.HEADER, "| Plataforma | 80 % | 75,0 % | 3 de 4 |", ""))
-SAME_BEFORE = "\n".join((*coverage_by_area.HEADER, "| Plataforma | 80 % | 80,0 % | 8 de 10 |", ""))
+LOWER_BEFORE = "\n".join(
+    (
+        *coverage_by_area.HEADER,
+        "| Plataforma | `Core.Platform` | 80 % | não | 75,0 % | 3 de 4 |",
+        "",
+    )
+)
+SAME_BEFORE = "\n".join(
+    (
+        *coverage_by_area.HEADER,
+        "| Plataforma | `Core.Platform` | 80 % | não | 80,0 % | 8 de 10 |",
+        "",
+    )
+)
 HIGHER_BEFORE = "\n".join(
-    (*coverage_by_area.HEADER, "| Plataforma | 80 % | 100,0 % | 3 de 3 |", "")
+    (
+        *coverage_by_area.HEADER,
+        "| Plataforma | `Core.Platform` | 80 % | não | 100,0 % | 3 de 3 |",
+        "",
+    )
 )
 
 

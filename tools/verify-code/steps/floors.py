@@ -21,7 +21,12 @@ from steps.coverage_report import MeasuredLine
 from steps.namespace_folder import BUILD_OUTPUT
 
 NAME = "floors"
-ROW = re.compile(r"\| (.+?) \| (.+?) \| [\d,]+ % \| (\d+) de (\d+) \|")
+# A row of the table of a run: the area, the project or package and the critical mark (absent in the
+# tables of older runs), the floor, the share measured, and the lines run of those that could.
+ROW = re.compile(
+    r"\| (.+?) \| (?:(?:`[^`|]+`|—) \| )?(.+?) \| (?:(?:sim|não|—) \| )?"
+    r"[\d,]+ % \| (\d+) de (\d+) \|"
+)
 NO_PREVIOUS = "sem medição anterior para comparar (--previous <by-area.md de outra execução>)"
 WARNING = "AVISO — "
 ANNOTATION = "::warning title=Queda de cobertura::"

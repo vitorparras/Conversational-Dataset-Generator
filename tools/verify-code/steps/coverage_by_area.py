@@ -14,7 +14,7 @@ from pathlib import Path
 from xml.etree import ElementTree
 
 from steps import test_core, test_real_service, test_service, test_tools
-from steps.areas_doc import EXEMPT, Area, area_of, read_areas, within
+from steps.areas_doc import EXEMPT, NO, YES, Area, area_of, read_areas, within
 from steps.common import OUTPUT_DIRECTORY, Context, StepResult, failed, passed
 from steps.coverage_report import MeasuredLine, cobertura, coverage_py
 
@@ -23,7 +23,11 @@ RESULTS = "coverage"
 TABLE = "by-area.md"
 SUMMARY = "GITHUB_STEP_SUMMARY"
 UNOWNED = "(sem área)"
-HEADER = ("| Área | Piso | Medido | Linhas |", "|---|---|---|---|")
+HEADER = (
+    "| Área | Projeto/pacote | Piso | Crítica | Medido | Linhas |",
+    "|---|---|---|---|---|---|",
+)
+NONE = "—"
 EMPTY = "rode antes test_core, test_service ou test_tools; o passo não passa vazio"
 
 
@@ -46,6 +50,8 @@ class Tally:
     floor: str
     covered: int
     coverable: int
+    prefix: str = NONE
+    critical: str = NONE
 
     def percent(self) -> str:
         share = 100 * self.covered / self.coverable if self.coverable else 0.0
@@ -53,7 +59,9 @@ class Tally:
 
     def line(self) -> str:
         lines = f"{self.covered} de {self.coverable}"
-        return f"| {self.label} | {self.floor} | {self.percent()} | {lines} |"
+        owner = self.prefix if self.prefix == NONE else f"`{self.prefix}`"
+        left = f"| {self.label} | {owner} | {self.floor} | {self.critical}"
+        return f"{left} | {self.percent()} | {lines} |"
 
 
 @dataclass(frozen=True)
@@ -104,8 +112,13 @@ def floor_of(area: Area) -> str:
     return EXEMPT if area.floor is None else f"{area.floor} %"
 
 
-def tally(label: str, floor: str, lines: list[MeasuredLine]) -> Tally:
-    return Tally(label, floor, sum(line.hit for line in lines), len(lines))
+def tally(area: Area | None, lines: list[MeasuredLine]) -> Tally:
+    """The row of one area, or of the unowned code when there is none."""
+    hit, total = sum(line.hit for line in lines), len(lines)
+    if area is None:
+        return Tally(UNOWNED, NONE, hit, total)
+    mark = YES if area.critical else NO
+    return Tally(area.name, floor_of(area), hit, total, area.prefix, mark)
 
 
 def rows(
@@ -113,12 +126,9 @@ def rows(
 ) -> tuple[Tally, ...]:
     """A row per area of a measured language, zero when nothing reached it, then unowned code."""
     owner = {line: area_of(line.unit, areas) for line in lines}
-    found = [
-        tally(area.name, floor_of(area), [line for line in lines if owner[line] == area])
-        for area in measured
-    ]
+    found = [tally(area, [line for line in lines if owner[line] == area]) for area in measured]
     unowned = [line for line in lines if owner[line] is None]
-    return (*found, tally(UNOWNED, "—", unowned)) if unowned else tuple(found)
+    return (*found, tally(None, unowned)) if unowned else tuple(found)
 
 
 def publish(ctx: Context, text: str) -> None:

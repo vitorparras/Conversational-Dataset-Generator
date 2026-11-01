@@ -35,8 +35,8 @@ mais longo. O Motivo da área "demais" lista após `Absorve:`, até o `;`, as pa
 [019](019-leitura-da-tabela-pelo-floors.md). Área ainda sem projeto entra pelo nome, por exceção
 declarada à [regra 5](../regras-de-escrita.md).
 
-A visão de conjunto não é escrita à mão: o `floors` grava a tabela de todas as áreas, com piso e
-medição, no resumo `by-area` da execução.
+A visão de conjunto não é escrita à mão: o `floors` grava a tabela de todas as áreas, com projeto ou
+pacote, piso, marca de crítica e medição, no resumo `by-area` da execução.
 
 O teste de mutação percorre as áreas com `sim` em Crítica, pelas regras da
 [017](017-teste-de-mutacao.md).

@@ -32,7 +32,7 @@ internal static class HostConfiguration
             [
                 ConfigurationKey.WithDefault(UrlsKey, "https://127.0.0.1:5000"),
                 ConfigurationKey.WithDefault(BundledFileKey, SettingsFile),
-                ConfigurationKey.Optional(LogFileKey),
+                ConfigurationKey.Optional(LogFileKey)
             ]);
 
     /// <summary>The database section of a configuration that loaded; none from one that was refused, which has no values to read it from

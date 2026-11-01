@@ -1,4 +1,3 @@
-using System.Text;
 using Core.Persistence.Content;
 using Core.Persistence.Tests.Fixtures;
 using Core.Platform.Keys;
@@ -6,28 +5,13 @@ using Npgsql;
 
 namespace Core.Persistence.Tests.Content;
 
-/// <summary>What the database holds of protected content: bytes that mean nothing without the key, under the label of the purpose and the domain, and the pseudonymized text in clear.</summary>
+/// <summary>How the database holds protected content: under the label of the purpose and the domain. That a copy shows none of it is proved by <see cref="OpaqueStorageTests"/>.</summary>
 [Trait("Category", "Database")]
 public sealed class ProtectedContentStorageTests
 {
     private const string Raw = "texto bruto sintetico zqx";
     private const string Sanitized = "texto sanitizado sintetico zqx";
-    private const string Pseudonymized = "texto pseudonimizado sintetico zqx";
     private const string Entries = "mapa de reversao sintetico zqx";
-
-    [DatabaseFact]
-    public async Task DumpOfTheDatabaseHoldsNeitherTheRawNorTheSanitizedNorTheMapButKeepsThePseudonymizedText()
-    {
-        await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, Sanitized, Pseudonymized), TestContext.Current.CancellationToken);
-        _ = await world.Writer.AddReversalMapAsync(1, item, Entries, TestContext.Current.CancellationToken);
-
-        var dump = await world.Database.DumpAsync();
-
-        Assert.Equal(
-            [false, false, false, true],
-            [Holds(dump, Raw), Holds(dump, Sanitized), Holds(dump, Entries), Holds(dump, Pseudonymized)]);
-    }
 
     [DatabaseFact]
     public async Task RawAndSanitizedTextAreStoredUnderTheSameLabelOfTheDomain()
@@ -54,17 +38,6 @@ public sealed class ProtectedContentStorageTests
         var stored = await world.StoredAsync(1, ContentQueries.ReadReversalEntries, map);
 
         Assert.Equal("mapa-reversao/1/v1", EnvelopeCipher.LabelOf(stored));
-    }
-
-    [DatabaseFact]
-    public async Task StoredBytesCarryNoTraceOfTheText()
-    {
-        await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw), TestContext.Current.CancellationToken);
-
-        var stored = await world.StoredAsync(1, ContentQueries.ReadRawText, item);
-
-        Assert.DoesNotContain(Raw, Encoding.Latin1.GetString(stored), StringComparison.Ordinal);
     }
 
     [DatabaseFact]
@@ -103,6 +76,4 @@ public sealed class ProtectedContentStorageTests
                 (await Assert.ThrowsAsync<ArgumentNullException>(() => writer.AddReversalMapAsync(1, 1, null!, TestContext.Current.CancellationToken))).ParamName,
             ]);
     }
-
-    private static bool Holds(string dump, string text) => dump.Contains(text, StringComparison.Ordinal);
 }

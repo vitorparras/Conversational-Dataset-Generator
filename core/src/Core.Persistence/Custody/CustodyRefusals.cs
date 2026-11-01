@@ -14,4 +14,7 @@ internal static class CustodyRefusals
 
     internal static CustodyResult Conflict() =>
         CustodyResult.Refused(CustodyOutcome.Conflict, "Outra gravação chegou ao mesmo elo da cadeia antes; nada foi gravado, e o pedido pode ser repetido.");
+
+    internal static CustodyResult Immutable() =>
+        CustodyResult.Refused(CustodyOutcome.Immutable, "A cadeia de custódia não aceita alterar, remover nem esvaziar um evento; nada foi alterado.");
 }

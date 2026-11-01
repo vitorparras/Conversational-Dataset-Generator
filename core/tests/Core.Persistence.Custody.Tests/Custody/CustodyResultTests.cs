@@ -31,6 +31,7 @@ public sealed class CustodyResultTests
             (CustodyOutcome.CorrectedNotFound, CustodyRefusals.CorrectedNotFound()),
             (CustodyOutcome.Conflict, CustodyRefusals.Conflict()),
             (CustodyOutcome.Immutable, CustodyRefusals.Immutable()),
+            (CustodyOutcome.StaleVerdict, CustodyRefusals.StaleVerdict()),
         };
 
         Assert.All(refusals, refusal => Assert.Equal(refusal.Item1, refusal.Item2.Outcome));

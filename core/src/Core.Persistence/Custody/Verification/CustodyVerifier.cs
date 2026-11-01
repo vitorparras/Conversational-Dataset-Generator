@@ -1,4 +1,6 @@
+using System.Buffers.Binary;
 using System.Data;
+using System.Data.Common;
 using Npgsql;
 
 namespace Core.Persistence.Custody.Verification;
@@ -10,10 +12,6 @@ namespace Core.Persistence.Custody.Verification;
 /// </summary>
 public sealed class CustodyVerifier
 {
-    // The moment of an event is kept in microseconds since 2000-01-01 UTC; a tick is a tenth of a microsecond.
-    private const long TicksPerMicrosecond = TimeSpan.TicksPerMillisecond / 1000;
-    private static readonly long EpochTicks = new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.Zero).UtcTicks;
-
     private readonly NpgsqlDataSource dataSource;
     private readonly TimeProvider time;
     private readonly CustodyChain chain;
@@ -85,27 +83,25 @@ public sealed class CustodyVerifier
         }
     }
 
-    private static async Task JudgeRowsAsync(ChainJudge judge, NpgsqlDataReader reader, CancellationToken cancellationToken)
+    private static async Task JudgeRowsAsync(ChainJudge judge, DbDataReader reader, CancellationToken cancellationToken)
     {
         while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
-            judge.Accept(Stored(reader));
+            judge.Accept(new StoredEvent(
+                (long)reader["sequence"],
+                BinaryPrimitives.ReadInt64BigEndian((byte[])reader["occurred_at_send"]),
+                Optional(reader["actor_person_id"]),
+                (bool)reader["actor_system"],
+                (string)reader["item_kind"],
+                (long)reader["item_id"],
+                (string)reader["step"],
+                (string)reader["reason"],
+                Optional(reader["corrects"]),
+                (byte[])reader["previous_digest"],
+                (byte[])reader["digest"],
+                (string)reader["recorded_by"]));
         }
     }
-
-    private static StoredEvent Stored(NpgsqlDataReader row) => new(
-        (long)row["sequence"],
-        (row.GetFieldValue<DateTimeOffset>(row.GetOrdinal("occurred_at")).UtcTicks - EpochTicks) / TicksPerMicrosecond,
-        Optional(row["actor_person_id"]),
-        (bool)row["actor_system"],
-        (string)row["item_kind"],
-        (long)row["item_id"],
-        (string)row["step"],
-        (string)row["reason"],
-        Optional(row["corrects"]),
-        (byte[])row["previous_digest"],
-        (byte[])row["digest"],
-        (string)row["recorded_by"]);
 
     private static long? Optional(object value) => value is long present ? present : null;
 }

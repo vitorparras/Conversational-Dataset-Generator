@@ -119,6 +119,7 @@ internal static class CustodyTransaction
         (PostgresErrorCodes.ForeignKeyViolation, CustodyStatements.CorrectsConstraint) => CustodyRefusals.CorrectedNotFound(),
         (CustodyStatements.ImmutableSqlState, _) => CustodyRefusals.Immutable(),
         (CustodyStatements.ChainBrokenSqlState, _) => CustodyRefusals.ChainBroken(),
+        (CustodyStatements.StaleVerdictSqlState, _) => CustodyRefusals.StaleVerdict(),
         _ => throw new InvalidOperationException(Describe(failed.SqlState, pending)),
     };
 

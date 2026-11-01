@@ -117,6 +117,58 @@ public sealed class CustodyVerifierTests
         Assert.Equal(5, (await database.EventsAsync()).Count);
     }
 
+    [DatabaseFact]
+    public async Task VerdictThatPassedOnAViewOlderThanTheLastFailureIsRefusedAndTheRefusalStays()
+    {
+        await using var database = new CustodyDatabase();
+        await BreakAsync(database);
+        var chain = await database.ChainAsync();
+
+        var stale = await chain.AppendAsync(CustodyEvent.Verification(3, null), TestContext.Current.CancellationToken);
+        var ordinary = await chain.AppendAsync(Ordinary(), TestContext.Current.CancellationToken);
+
+        Assert.Equal((CustodyOutcome.StaleVerdict, null, CustodyOutcome.ChainBroken), (stale.Outcome, stale.Sequence, ordinary.Outcome));
+        Assert.Equal(4, (await database.EventsAsync()).Count);
+    }
+
+    [DatabaseFact]
+    public async Task StaleVerdictIsRefusedByTheServerWithItsOwnStateAndNamingNoEvent()
+    {
+        await using var database = new CustodyDatabase();
+        await BreakAsync(database);
+
+        var refused = await database.RefusedToAppAsync(
+            "INSERT INTO public.custody_event (actor_system, item_kind, item_id, step, reason) VALUES (true, 'custody_chain', 3, 'verify_chain', 'verification_passed')");
+
+        Assert.Equal(("CE003", false), (refused.SqlState, refused.MessageText.Contains('3', StringComparison.Ordinal)));
+    }
+
+    [DatabaseFact]
+    public async Task VerdictThatPassedOnAViewThatReadTheFailureLiftsTheRefusal()
+    {
+        await using var database = new CustodyDatabase();
+        await BreakAsync(database);
+        var chain = await database.ChainAsync();
+
+        var fresh = await chain.AppendAsync(CustodyEvent.Verification(4, null), TestContext.Current.CancellationToken);
+        var ordinary = await chain.AppendAsync(Ordinary(), TestContext.Current.CancellationToken);
+
+        Assert.Equal((CustodyOutcome.Appended, CustodyOutcome.Appended), (fresh.Outcome, ordinary.Outcome));
+    }
+
+    [DatabaseFact]
+    public async Task MomentOutOfTheRangeOfADateIsReadAsTheNumberItIsAndTheVerificationGoesOn()
+    {
+        await using var database = new CustodyDatabase();
+        await AppendEventsAsync(database, 2);
+        await database.RunAsSuperuserAsync(
+            "INSERT INTO public.custody_event (occurred_at, actor_system, item_kind, item_id, step, reason) VALUES ('infinity', true, 'person', 9, 'person_created', 'administrative_act')");
+
+        var verification = await (await VerifierAsync(database)).VerifyAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal((true, 3L), (verification.Passed, verification.EventsRead));
+    }
+
     [DatabaseTheory]
     [InlineData(CustodyStep.RawTextRead)]
     [InlineData(CustodyStep.SanitizedTextRead)]

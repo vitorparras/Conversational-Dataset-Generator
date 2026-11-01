@@ -36,6 +36,14 @@ DECLARE
     tip_digest bytea;
     author_active boolean;
 BEGIN
+    -- A verdict that passed was made on a view of the chain: one that read fewer events than the sequence of the last failure recorded was made before that failure, and lifting the refusal with it
+    -- would hide a break that is still there. A verification made after the failure reads the failure itself, so it is never refused here.
+    IF NEW.step = 'verify_chain' AND NEW.reason = 'verification_passed'
+        AND NEW.item_id < COALESCE((SELECT e.sequence FROM public.custody_event e WHERE e.step = 'verify_chain' AND e.reason = 'verification_failed' ORDER BY e.sequence DESC LIMIT 1), 0) THEN
+        RAISE EXCEPTION 'the verification passed was made on a view older than the last failure recorded: it is not added'
+            USING ERRCODE = 'CE003', SCHEMA = 'public', TABLE = 'custody_event';
+    END IF;
+
     IF NEW.step NOT IN ('verify_chain', 'raw_text_read', 'sanitized_text_read', 'reversal_entries_read') AND public.custody_chain_broken() THEN
         RAISE EXCEPTION 'the custody chain failed its last verification: only a verification or a reading is added until one passes'
             USING ERRCODE = 'CE002', SCHEMA = 'public', TABLE = 'custody_event';

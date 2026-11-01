@@ -40,7 +40,7 @@ public sealed class CustodyChainRewriteTests
 
         var lines = CustodyChainRewriteRules.Check([fixture]).Select(violation => violation.Line).Order();
 
-        Assert.Equal([8, 10, 12, 14, 16], lines);
+        Assert.Equal([8, 10, 12, 14, 16, 19, 21], lines);
     }
 
     [Fact]

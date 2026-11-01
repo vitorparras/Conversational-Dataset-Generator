@@ -15,4 +15,8 @@ internal static class RewritesThroughConstants
 
     public const string Lines = "TRUNCATE " +
         "public.custody_event";
+
+    public const string List = "TRUNCATE TABLE public.person, ONLY public.custody_event";
+
+    public static ReadOnlySpan<byte> Bytes => "UPDATE public.custody_event SET step = 'correction'"u8;
 }

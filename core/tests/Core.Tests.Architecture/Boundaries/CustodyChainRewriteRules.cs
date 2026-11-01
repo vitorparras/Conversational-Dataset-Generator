@@ -13,6 +13,12 @@ namespace Core.Tests.Architecture.Boundaries;
 /// </summary>
 internal static partial class CustodyChainRewriteRules
 {
+    private static readonly SyntaxKind[] TextKinds =
+    [
+        SyntaxKind.StringLiteralExpression, SyntaxKind.Utf8StringLiteralExpression, SyntaxKind.InterpolatedStringExpression,
+        SyntaxKind.AddExpression, SyntaxKind.ParenthesizedExpression,
+    ];
+
     // What stands for a part of the text that is only known when the code runs; no word of a statement matches it.
     private const string Unknown = "\u0001";
 
@@ -35,9 +41,7 @@ internal static partial class CustodyChainRewriteRules
     // The outermost expression of a text: a literal, an interpolation, a sum or a parenthesis that no other sum, parenthesis or interpolation holds.
     private static bool IsWholeText(SyntaxNode expression) => IsText(expression) && !IsPartOfText(expression.Parent);
 
-    private static bool IsText(SyntaxNode expression) =>
-        expression.IsKind(SyntaxKind.StringLiteralExpression) || expression.IsKind(SyntaxKind.InterpolatedStringExpression)
-        || expression.IsKind(SyntaxKind.AddExpression) || expression.IsKind(SyntaxKind.ParenthesizedExpression);
+    private static bool IsText(SyntaxNode expression) => TextKinds.Contains(expression.Kind());
 
     private static bool IsPartOfText(SyntaxNode? parent) =>
         parent is InterpolationSyntax or ParenthesizedExpressionSyntax || (parent is not null && parent.IsKind(SyntaxKind.AddExpression));
@@ -53,6 +57,7 @@ internal static partial class CustodyChainRewriteRules
 
         return expression switch
         {
+            LiteralExpressionSyntax utf8 when utf8.IsKind(SyntaxKind.Utf8StringLiteralExpression) => utf8.Token.ValueText,
             ParenthesizedExpressionSyntax parenthesized => TextOf(parenthesized.Expression, model),
             BinaryExpressionSyntax sum when sum.IsKind(SyntaxKind.AddExpression) => TextOf(sum.Left, model) + TextOf(sum.Right, model),
             InterpolatedStringExpressionSyntax interpolated => string.Concat(interpolated.Contents.Select(part => PartOf(part, model))),
@@ -67,7 +72,7 @@ internal static partial class CustodyChainRewriteRules
         _ => Unknown,
     };
 
-    private static bool Rewrites(string text) => Changing().IsMatch(text) || (Table().IsMatch(text) && Upserting().IsMatch(text));
+    private static bool Rewrites(string text) => Changing().IsMatch(text) || Truncating().IsMatch(text) || (Table().IsMatch(text) && Upserting().IsMatch(text));
 
     // SQL lets blanks surround the dot and quotes surround the names; the table is named with or without the schema.
     [GeneratedRegex(
@@ -75,6 +80,13 @@ internal static partial class CustodyChainRewriteRules
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant,
         matchTimeoutMilliseconds: 2000)]
     private static partial Regex Changing();
+
+    // TRUNCATE takes a list of tables, and the table of the events may come after others.
+    [GeneratedRegex(
+        @"\bTRUNCATE(?:\s+TABLE)?\s+(?:[^;,]+,\s*)+(?:ONLY\s+)?(?:""?public""?\s*\.\s*)?""?custody_event""?(?![\w])",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant,
+        matchTimeoutMilliseconds: 2000)]
+    private static partial Regex Truncating();
 
     [GeneratedRegex(@"(?<![\w])""?custody_event""?(?![\w])", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 2000)]
     private static partial Regex Table();

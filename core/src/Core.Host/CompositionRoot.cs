@@ -75,7 +75,7 @@ internal static class CompositionRoot
             }
 
             var launch = HostLaunch.Ready(await AssembleAsync(
-                Prepared(loaded, fileLog, analyzeTimeout, checks),
+                TlsConfiguration.Serve(Prepared(loaded, fileLog, analyzeTimeout, checks), startup),
                 new StartupReport([.. target.Results, .. report.Results], report.CheckedAt),
                 startup,
                 RecognizerConfiguration.KindOf(loaded.Values)));
@@ -120,13 +120,14 @@ internal static class CompositionRoot
         _ = services.AddTransient<MaterialAnalysis>();
     }
 
-    /// <summary>What the checks need before the host's own container exists: redacted logging, the server checks and the supervision of the
-    /// language service. The host's container adopts it, so the service stops with the host; it only borrows the file destination.</summary>
+    /// <summary>What the checks need before the host's container exists: redacted logging, the server checks and the language service's supervision, which the host then adopts.</summary>
     private static ServiceProvider StartupServices(ConfigurationLoadResult loaded, FileLoggerProvider? fileLog, DatabaseSettings database)
     {
         var services = new ServiceCollection();
         _ = services.AddSingleton<IMasterKeySource>(MasterKeyConfiguration.SourceOf(loaded.Values));
         _ = services.AddSingleton<IStartupCheck>(provider => new MasterKeyCheck(provider.GetRequiredService<IMasterKeySource>()));
+        _ = services.AddSingleton(_ => new TlsMaterialCheck(TlsConfiguration.SourceOf(loaded.Values)))
+            .AddSingleton<IStartupCheck>(provider => provider.GetRequiredService<TlsMaterialCheck>());
         AddServerGuarantees(services, database);
         _ = services.AddSingleton(TimeProvider.System);
         _ = services.AddLogging(logging => HostLogFile.WithFile(logging, fileLog));
@@ -160,7 +161,7 @@ internal static class CompositionRoot
         return services.BuildServiceProvider();
     }
 
-    /// <summary>The application's data source and the seven server checks, privilege first and the derivation labels last, or the check that says no database is declared.</summary>
+    /// <summary>The application's data source and the nine server checks, privilege first and the derivation labels last, or the check that says no database is declared.</summary>
     private static void AddServerGuarantees(IServiceCollection services, DatabaseSettings database)
     {
         if (database.State != DatabaseSettingsState.Configured)
@@ -176,6 +177,7 @@ internal static class CompositionRoot
         _ = services.AddSingleton<IStartupCheck>(provider => new PgAuditCheck(provider.GetRequiredService<NpgsqlDataSource>()));
         _ = services.AddSingleton<IStartupCheck>(provider => new ColumnRevokeCheck(provider.GetRequiredService<NpgsqlDataSource>()));
         _ = services.AddSingleton<IStartupCheck>(provider => new SchemaVersionCheck(provider.GetRequiredService<NpgsqlDataSource>(), EmbeddedMigrations.Load()));
+        _ = services.AddSingleton<IStartupCheck>(provider => new ImmutabilityCheck(provider.GetRequiredService<NpgsqlDataSource>()));
         _ = services.AddSingleton<IStartupCheck>(provider => new ProtectedColumnCheck(provider.GetRequiredService<NpgsqlDataSource>()));
         _ = services.AddSingleton<IStartupCheck>(provider => new DerivationLabelCheck(provider.GetRequiredService<NpgsqlDataSource>(), provider.GetRequiredService<IMasterKeySource>()));
     }
@@ -184,6 +186,7 @@ internal static class CompositionRoot
     private static WebApplicationBuilder Prepared(ConfigurationLoadResult loaded, ILoggerProvider? fileLog, TimeSpan analyzeTimeout, System.Collections.IEnumerable checks)
     {
         var builder = ClosedBuilder(loaded.Values[HostConfiguration.UrlsPath]);
+        _ = builder.Services.Configure<CookiePolicyOptions>(TransportSecurity.CookiePolicy);
         Compose(builder, loaded.View, fileLog);
         AddAnalysis(builder.Services, loaded.Values, analyzeTimeout);
         _ = builder.Services.AddSingleton(PasswordConfiguration.Derivation(loaded.Values));
@@ -209,10 +212,7 @@ internal static class CompositionRoot
         await StartupVersions.WriteAsync(
             app.Logger, app.Services.GetRequiredService<VersionReport>(), app.Services.GetRequiredService<IServiceVersionReader>(), CancellationToken.None);
         InstallationConfiguration.Announce(app.Logger, app.Services);
-        StatusEndpoint.Map(app, recognizer);
-        ConfigurationEndpoint.Map(app);
-        VersionsEndpoint.Map(app);
-        AnalysisEndpoint.Map(app);
+        HostRoutes.Map(app, recognizer);
         return app;
     }
 

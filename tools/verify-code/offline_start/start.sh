@@ -10,7 +10,7 @@ set -u
 MIGRATE_SECONDS=${MIGRATE_SECONDS:-60}
 READY_SECONDS=${READY_SECONDS:-120}
 STOP_SECONDS=${STOP_SECONDS:-30}
-LISTENING='Now listening on: http://127.0.0.1:'
+LISTENING='Now listening on: https://127.0.0.1:'
 
 export CDG_Database__Host=127.0.0.1:5432 CDG_Database__Name=cdg CDG_Installation__Kind=demonstracao CDG_Passwords__WorkFactor=1
 
@@ -18,6 +18,11 @@ export CDG_Database__Host=127.0.0.1:5432 CDG_Database__Name=cdg CDG_Installation
 custody=$(umask 077 && mktemp -d /tmp/custody.XXXXXX)
 (umask 077 && head -c 32 /dev/urandom | base64 > "$custody/key" && : > "$custody/labels")
 export CDG_MasterKey__File="$custody/key" CDG_MasterKey__LabelsFile="$custody/labels"
+
+# A throwaway certificate for the channel, which is encrypted also on the loopback; the key stays in the same private folder.
+openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -subj /CN=localhost -days 1 \
+    -keyout "$custody/tls.key" -out "$custody/tls.crt" 2> /dev/null || exit 125
+export CDG_Tls__CertificateFile="$custody/tls.crt" CDG_Tls__KeyFile="$custody/tls.key"
 
 ls /sys/class/net > /trace/interfaces.txt
 cp /app/Core.Host /app/appsettings.json /work/

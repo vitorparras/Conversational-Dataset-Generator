@@ -80,6 +80,13 @@ internal sealed class PostgresFixture
         return fixture;
     }
 
+    /// <summary>What the server has written to its log since the container started, as the container holds it: the registry of the server, not of any client.</summary>
+    public async Task<string> ServerLogAsync()
+    {
+        var (stdout, stderr) = await container.GetLogsAsync(timestampsEnabled: false, ct: TestContext.Current.CancellationToken);
+        return stdout + "\n" + stderr;
+    }
+
     /// <summary>What pg_dump, run inside the server as the superuser, writes for the database: schema, data and comments.</summary>
     public async Task<string> DumpAsync(string database)
     {
@@ -108,6 +115,7 @@ internal sealed class PostgresFixture
         foreach (var name in names)
         {
             await using var drop = new NpgsqlBatch(connection);
+            // nosemgrep: sql-concatenation-csharp interpolates the name of a throwaway test database read from pg_database, never input.
             drop.BatchCommands.Add(new NpgsqlBatchCommand($"DROP DATABASE IF EXISTS {name} WITH (FORCE)"));
             _ = await drop.ExecuteNonQueryAsync();
         }

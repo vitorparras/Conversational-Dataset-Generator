@@ -28,7 +28,7 @@ internal sealed class HeldRouteHost : IAsyncDisposable
 
     public static async Task<HeldRouteHost> StartAsync(CancellationToken cancellationToken)
     {
-        var address = HostProcess.FreeAddress();
+        var address = HostProcess.FreePlainAddress();
         var builder = CompositionRoot.ClosedBuilder(address.GetLeftPart(UriPartial.Authority));
         CompositionRoot.Compose(builder, ClosedConfiguration.Load(new ConfigurationSchema([HostConfiguration.Section])).View, fileLog: null);
         var host = new HeldRouteHost(builder.Build(), address);

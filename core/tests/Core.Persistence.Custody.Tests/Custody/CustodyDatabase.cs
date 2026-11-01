@@ -129,6 +129,32 @@ public sealed class CustodyDatabase : IAsyncDisposable
     internal async Task<PostgresException> RefusedToOwnerAsync(string statement) =>
         await RefusedAsync((await ScratchAsync()).OwnerConnectionString, statement);
 
+    /// <summary>What the server answers to a statement run on a connection the caller built, to this database or not.</summary>
+    internal static async Task<PostgresException> RefusedOnAsync(string connectionString, string statement) =>
+        await RefusedAsync(connectionString, statement);
+
+    /// <summary>The connection string of the application's role to this database.</summary>
+    internal async Task<string> AppConnectionStringAsync() => (await ScratchAsync()).AppConnectionString;
+
+    /// <summary>The connection string of the role that owns this database.</summary>
+    internal async Task<string> OwnerConnectionStringAsync() => (await ScratchAsync()).OwnerConnectionString;
+
+    /// <summary>The connection string of the server's superuser to this database, for what neither the application nor the owner may arrange.</summary>
+    internal async Task<string> SuperuserConnectionStringAsync()
+    {
+        var name = new NpgsqlConnectionStringBuilder((await ScratchAsync()).AppConnectionString).Database;
+        return new NpgsqlConnectionStringBuilder((await PostgresFixture.SharedAsync()).SuperuserConnectionString) { Database = name, Pooling = false }.ConnectionString;
+    }
+
+    /// <summary>Runs the statement as the server's superuser, connected to this database.</summary>
+    [SuppressMessage("Security", "CA2100", Justification = "The statements are literals of the calling tests, never input.")]
+    internal async Task RunAsSuperuserAsync(string statement)
+    {
+        await using var connection = await Sql.OpenAsync(await SuperuserConnectionStringAsync());
+        await using var command = new NpgsqlCommand(statement, connection);
+        _ = await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+    }
+
     /// <summary>A database migrated only to the version before the chain exists, so that adding an event fails at the server.</summary>
     internal static async Task<(ScratchDatabase Database, NpgsqlDataSource DataSource)> DatabaseWithoutTableAsync()
     {

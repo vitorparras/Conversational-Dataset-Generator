@@ -35,7 +35,7 @@ internal sealed class StatusHost : IAsyncDisposable
     private static async Task<StatusHost> StartAsync(
         StartupReport report, ServiceProcessWatch watch, Wiring wiring, CancellationToken cancellationToken)
     {
-        var address = HostProcess.FreeAddress();
+        var address = HostProcess.FreePlainAddress();
         var builder = CompositionRoot.ClosedBuilder(address.GetLeftPart(UriPartial.Authority));
         CompositionRoot.Compose(builder, ClosedConfiguration.Load(new ConfigurationSchema([HostConfiguration.Section])).View, fileLog: null);
         _ = builder.Services.AddSingleton(report);

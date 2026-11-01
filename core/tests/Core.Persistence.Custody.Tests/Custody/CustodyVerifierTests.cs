@@ -1,3 +1,4 @@
+using Core.Persistence.Content;
 using Core.Persistence.Custody;
 using Core.Persistence.Tests.Fixtures;
 using Npgsql;
@@ -137,7 +138,7 @@ public sealed class CustodyVerifierTests
 
         var refused = await Assert.ThrowsAsync<PostgresException>(async () =>
         {
-            await using var transaction = await Core.Persistence.Content.ContentTransaction.BeginAsync(source, 1, TestContext.Current.CancellationToken);
+            await using var transaction = await ContentTransaction.BeginAsync(source, 1, TestContext.Current.CancellationToken);
             await using var command = transaction.CreateCommand("INSERT INTO content.item_text (domain_id, raw_text) VALUES (1, '\\x00')");
             _ = await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
         });

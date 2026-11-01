@@ -1,13 +1,16 @@
 using Core.Persistence.Content;
 using Core.Persistence.Custody;
+using Core.Persistence.Custody.Verification;
+using Core.Persistence.Tests.Custody;
 using Core.Persistence.Tests.Fixtures;
 using Npgsql;
 
-namespace Core.Persistence.Tests.Custody;
+namespace Core.Persistence.Tests.Verification;
 
 /// <summary>
 /// The verification of the chain against a server (#61): a whole chain passes with what it declares and the verdict is an event of the chain; an event changed outside the system, a
-/// link swapped or an event taken from the middle fails pointing at the first that does not hold; and while the last verdict is a failure nothing is added but a verification.
+/// link swapped or an event taken from the middle fails pointing at the first that does not hold; and while the last verdict is a failure
+/// nothing is added but a verification and the reading of content.
 /// Each test has a database of its own, because the failing ones leave the chain broken.
 /// </summary>
 [Trait("Category", "Database")]
@@ -112,6 +115,39 @@ public sealed class CustodyVerifierTests
         Assert.Equal((CustodyOutcome.ChainBroken, null), (refused.Outcome, refused.Sequence));
         Assert.Equal((false, CustodyOutcome.Appended), (again.Passed, again.Recorded.Outcome));
         Assert.Equal(5, (await database.EventsAsync()).Count);
+    }
+
+    [DatabaseTheory]
+    [InlineData(CustodyStep.RawTextRead)]
+    [InlineData(CustodyStep.SanitizedTextRead)]
+    [InlineData(CustodyStep.ReversalEntriesRead)]
+    public async Task AfterAFailureTheReadingOfContentIsStillRecordedBecauseTheReadingIsADefectToStopAndNotToHide(CustodyStep step)
+    {
+        await using var database = new CustodyDatabase();
+        await BreakAsync(database);
+        var chain = await database.ChainAsync();
+        var reading = CustodyEvent.Of(CustodyAuthor.System, new CustodyItem(CustodyItemKind.ItemText, 9), step, CustodyReason.ContentRead);
+
+        var recorded = await chain.AppendAsync(reading, TestContext.Current.CancellationToken);
+
+        Assert.Equal((CustodyOutcome.Appended, 5L), (recorded.Outcome, recorded.Sequence));
+    }
+
+    [DatabaseTheory]
+    [InlineData(CustodyStep.PersonCreated)]
+    [InlineData(CustodyStep.PersonDeactivated)]
+    [InlineData(CustodyStep.PersonFunctionChanged)]
+    [InlineData(CustodyStep.PersonPasswordSet)]
+    public async Task AfterAFailureEveryOtherStepIsStillRefusedAndOnlyTheReadingsAreLetIn(CustodyStep step)
+    {
+        await using var database = new CustodyDatabase();
+        await BreakAsync(database);
+        var chain = await database.ChainAsync();
+        var other = CustodyEvent.Of(CustodyAuthor.System, new CustodyItem(CustodyItemKind.Person, 7403), step, CustodyReason.AdministrativeAct);
+
+        var refused = await chain.AppendAsync(other, TestContext.Current.CancellationToken);
+
+        Assert.Equal((CustodyOutcome.ChainBroken, 4), (refused.Outcome, (await database.EventsAsync()).Count));
     }
 
     [DatabaseFact]

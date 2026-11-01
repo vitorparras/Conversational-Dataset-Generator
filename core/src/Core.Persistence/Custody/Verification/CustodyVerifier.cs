@@ -1,12 +1,12 @@
 using System.Data;
 using Npgsql;
 
-namespace Core.Persistence.Custody;
+namespace Core.Persistence.Custody.Verification;
 
 /// <summary>
 /// Verifies the whole chain of custody on demand: reads every event in one consistent, read-only view, recomputes each digest here with its own encoding and not through
 /// the function the database writes them with, tells the first event that does not hold, and records the verdict as an event of the chain written by the system.
-/// While the last verdict recorded is a failure the chain accepts no event but a verification, and nothing here rebuilds a link.
+/// While the last verdict recorded is a failure the chain accepts no event but a verification and the reading of content, and nothing here rebuilds a link.
 /// </summary>
 public sealed class CustodyVerifier
 {

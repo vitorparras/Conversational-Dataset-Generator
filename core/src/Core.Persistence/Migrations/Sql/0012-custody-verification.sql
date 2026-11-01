@@ -27,7 +27,7 @@ AS $broken$
     SELECT COALESCE((SELECT e.reason = 'verification_failed' FROM public.custody_event e WHERE e.step = 'verify_chain' ORDER BY e.sequence DESC LIMIT 1), false)
 $broken$;
 
--- The step before, with one refusal added: while the last verification failed, only a new verification is added. SQLSTATE CE002, a message that names no event.
+-- The step before, with one refusal added: while the last verification failed, only a new verification and the reading of content are added; every other event is refused. SQLSTATE CE002, a message that names no event.
 CREATE OR REPLACE FUNCTION public.custody_event_link() RETURNS trigger
 LANGUAGE plpgsql
 AS $$
@@ -36,8 +36,8 @@ DECLARE
     tip_digest bytea;
     author_active boolean;
 BEGIN
-    IF NEW.step <> 'verify_chain' AND public.custody_chain_broken() THEN
-        RAISE EXCEPTION 'the custody chain failed its last verification: no event is added until a verification passes'
+    IF NEW.step NOT IN ('verify_chain', 'raw_text_read', 'sanitized_text_read', 'reversal_entries_read') AND public.custody_chain_broken() THEN
+        RAISE EXCEPTION 'the custody chain failed its last verification: only a verification or a reading is added until one passes'
             USING ERRCODE = 'CE002', SCHEMA = 'public', TABLE = 'custody_event';
     END IF;
 

@@ -24,7 +24,7 @@ public sealed class PgAuditCheck : IStartupCheck
             (SELECT s.setting FROM pg_catalog.pg_settings s WHERE s.name = 'log_min_messages') AS min_messages,
             (SELECT s.setting FROM pg_catalog.pg_settings s WHERE s.name = 'pgaudit.log_client') AS log_client,
             (SELECT s.setting FROM pg_catalog.pg_settings s WHERE s.name = 'pgaudit.log_level') AS log_level,
-            (SELECT string_agg(s.name, ', ' ORDER BY s.name) FROM pg_catalog.pg_settings s
+            (SELECT pg_catalog.string_agg(s.name, ', ' ORDER BY s.name) FROM pg_catalog.pg_settings s
                 WHERE s.name IN ('debug_print_parse', 'debug_print_rewritten', 'debug_print_plan') AND s.setting = 'on') AS debug_prints,
             (SELECT e.extversion FROM pg_catalog.pg_extension e WHERE e.extname = 'pgaudit') AS version
         """;

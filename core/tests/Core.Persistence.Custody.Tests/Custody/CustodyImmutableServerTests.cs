@@ -100,7 +100,6 @@ public sealed class CustodyImmutableServerTests : IClassFixture<CustodyDatabase>
     [DatabaseTheory]
     [InlineData("UPDATE")]
     [InlineData("DELETE")]
-    [InlineData("TRUNCATE")]
     public async Task RefusedAttemptIsInTheServerLogWithTheOperationAndTheSequenceAndNoValueOfTheEvent(string operation)
     {
         var sequence = await AppendOneAsync();
@@ -115,14 +114,39 @@ public sealed class CustodyImmutableServerTests : IClassFixture<CustodyDatabase>
         AssertRefusal(refused, operation, sequence);
         Assert.Equal(before, await ChainAsync());
         Assert.Contains(",\"app\",", line, StringComparison.Ordinal);
-        Assert.Contains($",WRITE,{operation}", line, StringComparison.Ordinal);
+        Assert.Contains($",WRITE,{operation},", line, StringComparison.Ordinal);
         Assert.Contains("public.custody_event", line, StringComparison.Ordinal);
-        Assert.Equal(operation != "TRUNCATE", line.Contains($"sequence = {sequence}", StringComparison.Ordinal));
+        Assert.Contains($"sequence = {sequence}", line, StringComparison.Ordinal);
         var statement = line[line.IndexOf("AUDIT: SESSION,", StringComparison.Ordinal)..];
         foreach (var value in ValuesOf(kept))
         {
             Assert.DoesNotContain(value, statement, StringComparison.OrdinalIgnoreCase);
         }
+    }
+
+    /// <summary>
+    /// pgaudit logs a utility statement such as TRUNCATE after it ran, so a TRUNCATE the trigger refuses is not in the audit log: the
+    /// refusal is proved by the SQLSTATE and the chain left as it was, and the log holds no line of the attempt, nor a value of the event.
+    /// The audited attempt that follows is in the log, which is written in order, so that the absence is read from a log that has caught up.
+    /// </summary>
+    [DatabaseFact]
+    public async Task RefusedTruncateIsNotInTheAuditLogThatLogsAUtilityStatementAfterItRan()
+    {
+        var sequence = await AppendOneAsync();
+        var before = await ChainAsync();
+        await database.RunAsOwnerAsync($"GRANT {Privileges} ON public.custody_event TO app");
+        var tag = $"zqx-{Guid.NewGuid():N}";
+        var lastTag = $"zqx-{Guid.NewGuid():N}";
+        var connectionString = await database.AppConnectionStringAsync();
+
+        var refused = await RefusedAsync(connectionString, "TRUNCATE", sequence, tag);
+        _ = await RefusedAsync(connectionString, "UPDATE", sequence, lastTag);
+        _ = await LoggedAttemptAsync(lastTag);
+
+        AssertRefusal(refused, "TRUNCATE", sequence);
+        Assert.Equal(before, await ChainAsync());
+        var shared = await PostgresFixture.SharedAsync();
+        Assert.DoesNotContain(tag, await shared.ServerLogAsync(), StringComparison.Ordinal);
     }
 
     private static IEnumerable<string> ValuesOf(EventRow row) =>

@@ -49,9 +49,9 @@ internal static class HostConfiguration
 
     /// <summary>
     /// The closed configuration of the host: the file beside it, the process environment and the strict arguments;
-    /// the migration mode, and the comparison mode that loads as one, require neither the kind of installation nor the custody files.
+    /// the migration mode requires neither the kind of installation nor the custody files.
     /// </summary>
-    internal static ConfigurationLoadResult Load(string[] args, bool migrating, bool comparing = false) =>
+    internal static ConfigurationLoadResult Load(string[] args, bool migrating) =>
         ClosedConfiguration.Load(
             new ConfigurationSchema(
                 [
@@ -62,7 +62,7 @@ internal static class HostConfiguration
                     SafekeepingConfiguration.Section,
                     migrating ? PasswordConfiguration.SectionWhenMigrating : PasswordConfiguration.Section,
                     migrating ? SessionConfiguration.SectionWhenMigrating : SessionConfiguration.Section,
-                    AuditSection(migrating, comparing),
+                    migrating ? AuditConfiguration.SectionWhenMigrating : AuditConfiguration.Section,
                     LanguageServiceConfiguration.Section,
                     RecognizerConfiguration.Section,
                     migrating ? DatabaseConfiguration.SectionWhenMigrating : DatabaseConfiguration.Section
@@ -85,14 +85,4 @@ internal static class HostConfiguration
         .. TlsConfiguration.Refusals(values),
         .. AuditConfiguration.Refusals(values),
     ];
-
-    private static ConfigurationSection AuditSection(bool migrating, bool comparing)
-    {
-        if (comparing)
-        {
-            return AuditConfiguration.SectionWhenComparing;
-        }
-
-        return migrating ? AuditConfiguration.SectionWhenMigrating : AuditConfiguration.Section;
-    }
 }

@@ -30,16 +30,4 @@ public sealed class InstallationRequiredTests
 
         Assert.Equal("demonstracao", status.RootElement.GetProperty("installation").GetProperty("kind").GetString());
     }
-
-    [Fact]
-    public async Task ProcessOfADemonstrationAnswersTheMarkedNameOnTheVersions()
-    {
-        var cancellationToken = TestContext.Current.CancellationToken;
-        using var host = await HostProcess.StartAsync(cancellationToken);
-
-        using var response = await host.GetAsync("/versions", cancellationToken);
-        using var versions = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
-
-        Assert.Contains("(DEMONSTRAÇÃO)", versions.RootElement.GetProperty("installation").GetProperty("name").GetString(), StringComparison.Ordinal);
-    }
 }

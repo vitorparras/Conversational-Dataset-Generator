@@ -63,7 +63,7 @@ public sealed class TransportEncryptionTests
         _ = await response.Content.ReadAsStringAsync(cancellationToken);
         var seen = await relay.StopAsync();
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode); // the identifier is not a session of the host; what is proved here is the wire, not the gate
         Assert.True(seen.Length > 0);
         Assert.Equal(0x16, seen[0]);
         Assert.False(seen.AsSpan().IndexOf(Encoding.ASCII.GetBytes(Material)) >= 0, "The material crossed the wire in clear.");

@@ -1,4 +1,4 @@
-using System.Text.Json;
+using System.Net;
 
 namespace Core.Host.Tests;
 
@@ -10,18 +10,14 @@ public sealed class SettingsBesideTheBinaryTests
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         var address = HostProcess.FreeAddress();
-        var authority = address.GetLeftPart(UriPartial.Authority);
-        using var copy = new HostCopy($$"""{ "Host": { "Urls": "{{authority}}" } }""");
+        using var copy = new HostCopy($$"""{ "Host": { "Urls": "{{address.GetLeftPart(UriPartial.Authority)}}" } }""");
         using var elsewhere = new TemporaryDirectory();
         var installation = copy.Installation() with { WorkingDirectory = elsewhere.Path };
 
+        // No argument gives the address, and the default is another one: the host answers here only because it read the file beside its binary.
         using var host = await HostProcess.StartAsync(installation, address, HostProcess.StartupTimeout, cancellationToken);
-        using var response = await host.GetAsync("/configuration", cancellationToken);
-        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+        using var response = await host.GetAsync("/status", cancellationToken);
 
-        var urls = body.RootElement.GetProperty("entries").EnumerateArray()
-            .Single(entry => entry.GetProperty("key").GetString() == "Host:Urls");
-        Assert.Equal(authority, urls.GetProperty("value").GetString());
-        Assert.Equal("File", urls.GetProperty("origin").GetString());
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 }

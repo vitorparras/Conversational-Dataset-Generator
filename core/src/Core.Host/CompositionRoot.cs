@@ -31,21 +31,34 @@ internal static class CompositionRoot
         }
 
         var migrating = MigrationMode.Requested(args);
-        var loaded = HostConfiguration.Load(MigrationMode.ConfigurationArguments(args), migrating);
-        var database = HostConfiguration.DatabaseOf(loaded, migrating);
+        var comparing = AuditCompareMode.Requested(args);
+        var offline = migrating || comparing;
+        var loaded = HostConfiguration.Load(AuditCompareMode.ConfigurationArguments(MigrationMode.ConfigurationArguments(args)), offline, comparing);
+        var database = HostConfiguration.DatabaseOf(loaded, offline);
         if (database is null || database.State == DatabaseSettingsState.Refused)
         {
             return HostLaunch.Refused(database?.Problems ?? loaded.Problems);
         }
 
-        if (migrating)
+        if (offline)
         {
-            return PasswordConfiguration.Refusals(loaded.Values) is { Count: > 0 } invalid ? HostLaunch.Refused(invalid) : await MigrateAsync(database);
+            return await OfflineAsync(loaded, database, comparing);
         }
 
         var analyzeTimeout = LanguageServiceConfiguration.AnalyzeTimeout(loaded.Values);
         var refused = HostConfiguration.Refusals(loaded.Values, analyzeTimeout);
         return analyzeTimeout is { } timeout && refused.Count == 0 ? await LaunchAsync(loaded, database, timeout, target) : HostLaunch.Refused(refused);
+    }
+
+    /// <summary>The modes that serve nothing: the comparison of the server's log with the chain, or the migration, which first judges the factor of the passwords.</summary>
+    private static async Task<HostLaunch> OfflineAsync(ConfigurationLoadResult loaded, DatabaseSettings database, bool comparing)
+    {
+        if (comparing)
+        {
+            return await AuditCompareMode.LaunchAsync(loaded, database);
+        }
+
+        return PasswordConfiguration.Refusals(loaded.Values) is { Count: > 0 } invalid ? HostLaunch.Refused(invalid) : await MigrateAsync(database);
     }
 
     /// <summary>The migration mode: the steps run once with the owner credential the configuration holds, the outcome is logged and nothing is served.</summary>
@@ -96,11 +109,7 @@ internal static class CompositionRoot
     internal static void Compose(IHostApplicationBuilder builder, EffectiveConfiguration configuration, ILoggerProvider? fileLog)
     {
         PlatformLogging.Configure(builder.Logging);
-        if (fileLog is not null)
-        {
-            _ = builder.Services.AddSingleton(_ => fileLog);
-        }
-
+        _ = fileLog is null ? builder.Services : builder.Services.AddSingleton(_ => fileLog);
         _ = builder.Services.AddSingleton(TimeProvider.System);
         _ = builder.Services.AddRedaction(PlatformLogging.EraseSensitiveData);
         _ = builder.Services.AddSingleton(configuration);
@@ -128,10 +137,7 @@ internal static class CompositionRoot
         AddServerGuarantees(services, database);
         _ = services.AddSingleton<IStartupCheck>(_ => new ServerLogCheck(AuditConfiguration.ServerLogDirectory(loaded.Values)));
         _ = services.AddSingleton(TimeProvider.System).AddLogging(logging => HostLogFile.WithFile(logging, fileLog));
-        if (fileLog is not null)
-        {
-            _ = services.AddSingleton(fileLog);
-        }
+        _ = fileLog is null ? services : services.AddSingleton(fileLog);
 
         _ = services.AddRedaction(PlatformLogging.EraseSensitiveData);
         _ = services.AddSingleton(_ => LoopbackHttpClient.Create());
@@ -152,8 +158,7 @@ internal static class CompositionRoot
     private static ServiceProvider MigrationServices()
     {
         var services = new ServiceCollection();
-        _ = services.AddSingleton(TimeProvider.System).AddLogging(PlatformLogging.Configure);
-        _ = services.AddRedaction(PlatformLogging.EraseSensitiveData);
+        _ = services.AddSingleton(TimeProvider.System).AddLogging(PlatformLogging.Configure).AddRedaction(PlatformLogging.EraseSensitiveData);
         return services.BuildServiceProvider();
     }
 
@@ -189,11 +194,7 @@ internal static class CompositionRoot
         _ = builder.Services.AddSingleton(_ => new ServerAuditLog(AuditConfiguration.ServerLogDirectory(loaded.Values)));
         _ = builder.Services.AddSingleton(provider => new SessionStore(SessionConfiguration.Lifetimes(loaded.Values), provider.GetRequiredService<TimeProvider>()));
         _ = builder.Services.AddSingleton(InstallationConfiguration.Of(loaded.Values)).AddSingleton(provider => InstallationConfiguration.Shown(StartupVersions.Of(checks), provider));
-        if (SafekeepingConfiguration.Declaration(loaded.Values) is { } declaration)
-        {
-            _ = builder.Services.AddSingleton(declaration);
-        }
-
+        _ = SafekeepingConfiguration.Declaration(loaded.Values) is { } declaration ? builder.Services.AddSingleton(declaration) : builder.Services;
         return builder;
     }
 

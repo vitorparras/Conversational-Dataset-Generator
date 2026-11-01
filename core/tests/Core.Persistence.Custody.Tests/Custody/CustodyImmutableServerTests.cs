@@ -125,15 +125,16 @@ public sealed class CustodyImmutableServerTests : IClassFixture<CustodyDatabase>
     }
 
     /// <summary>
-    /// pgaudit logs a utility statement such as TRUNCATE after it ran, so a TRUNCATE the trigger refuses is not in the audit log: the
-    /// refusal is proved by the SQLSTATE and the chain left as it was, and the log holds no line of the attempt, nor a value of the event.
-    /// The audited attempt that follows is in the log, which is written in order, so that the absence is read from a log that has caught up.
+    /// pgaudit logs a utility statement such as TRUNCATE after it ran, so a TRUNCATE the trigger refuses has no audit line; log_statement = mod
+    /// writes the text of the statement before it runs, so the attempt is in the log as that text, as the owner decided (#60), and no value of
+    /// the event is in it. The audited attempt that follows is in the log, which is written in order, so that the reading is of a log that has caught up.
     /// </summary>
     [DatabaseFact]
-    public async Task RefusedTruncateIsNotInTheAuditLogThatLogsAUtilityStatementAfterItRan()
+    public async Task RefusedTruncateIsInTheLogAsTheTextOfTheStatementAndNotAsAnAuditLine()
     {
         var sequence = await AppendOneAsync();
         var before = await ChainAsync();
+        var kept = (await database.EventsAsync()).Single(row => row.Sequence == sequence);
         await database.RunAsOwnerAsync($"GRANT {Privileges} ON public.custody_event TO app");
         var tag = $"zqx-{Guid.NewGuid():N}";
         var lastTag = $"zqx-{Guid.NewGuid():N}";
@@ -146,7 +147,13 @@ public sealed class CustodyImmutableServerTests : IClassFixture<CustodyDatabase>
         AssertRefusal(refused, "TRUNCATE", sequence);
         Assert.Equal(before, await ChainAsync());
         var shared = await PostgresFixture.SharedAsync();
-        Assert.DoesNotContain(tag, await shared.ServerLogAsync(), StringComparison.Ordinal);
+        var lines = (await shared.ServerLogAsync()).Split('\n').Where(line => line.Contains(tag, StringComparison.Ordinal)).ToArray();
+        Assert.Contains(lines, line => line.Contains("TRUNCATE", StringComparison.Ordinal));
+        Assert.DoesNotContain(lines, line => line.Contains("AUDIT: SESSION,", StringComparison.Ordinal));
+        foreach (var value in ValuesOf(kept))
+        {
+            Assert.DoesNotContain(lines, line => line.Contains(value, StringComparison.OrdinalIgnoreCase));
+        }
     }
 
     private static IEnumerable<string> ValuesOf(EventRow row) =>

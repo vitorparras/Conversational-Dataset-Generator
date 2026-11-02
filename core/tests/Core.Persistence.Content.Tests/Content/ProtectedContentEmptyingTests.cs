@@ -72,12 +72,12 @@ public sealed class ProtectedContentEmptyingTests
     }
 
     [DatabaseFact]
-    public async Task ApplicationRoleCannotChangeContentOnceItIsWritten()
+    public async Task ApplicationRoleChangesNothingOfAnItemButTheMarkerAndTheContentColumns()
     {
         await using var world = await ContentWorld.CreateAsync();
         var item = await world.Writer.AddItemTextAsync(1, new NewItemText("bruto"), TestContext.Current.CancellationToken);
 
-        var refused = await Assert.ThrowsAsync<PostgresException>(() => world.InDomainAsync(1, Empty, ("id", item)));
+        var refused = await Assert.ThrowsAsync<PostgresException>(() => world.InDomainAsync(1, "UPDATE content.item_text SET recorded_at = now() WHERE id = @id", ("id", item)));
 
         Assert.Equal(PostgresErrorCodes.InsufficientPrivilege, refused.SqlState);
     }

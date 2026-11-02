@@ -111,6 +111,7 @@ public sealed class ConfigurationInForceTests(DefaultHostFixture fixture) : ICla
         var setup = new HostSetup
         {
             Arguments = ["--Installation:Kind=real", "--Custody:LastRecoveryTest=2026-10-01", "--Custody:Holder=PESSOA_1"],
+            WorkFactor = 600_000,
         };
         await using var host = await AuthenticatedHost.StartAsync(setup, TestContext.Current.CancellationToken);
 

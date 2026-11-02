@@ -148,4 +148,53 @@ public sealed class CustodyFileFormatTests
         Assert.Equal("2 linhas, esperada 1", CustodyFileFormat.ParseKey(Bytes("AAAA\nAAAA\n")).Problem);
 
     private static byte[] Bytes(string text) => new UTF8Encoding(false).GetBytes(text);
+
+    [Fact]
+    public void EpochsOnePerLineAreReadWithTheirNumbersAndSecrets()
+    {
+        var (epochs, problem) = CustodyFileFormat.ParseEpochs(Bytes($"2:{Secret(2)}\n1:{Secret(1)}\n"));
+
+        Assert.Null(problem);
+        Assert.Equal<IEnumerable<int>>([1, 2], epochs!.Numbers());
+        Assert.Equal((2, true), (epochs.Newest, epochs.Holds(1) && epochs.Holds(2)));
+    }
+
+    [Theory]
+    [InlineData("\r\n")]
+    [InlineData("")]
+    public void EpochsWithAnyOrNoLastBreakAreTheSame(string ending) =>
+        Assert.Equal<IEnumerable<int>>([1, 2], CustodyFileFormat.ParseEpochs(Bytes($"1:{Secret(1)}\r\n2:{Secret(2)}{ending}")).Epochs!.Numbers());
+
+    [Theory]
+    [InlineData("", "arquivo vazio: ao menos uma época é necessária")]
+    [InlineData("\n", "arquivo vazio: ao menos uma época é necessária")]
+    [InlineData("1\n", "linha 1: esperado número da época, dois-pontos e o segredo em base64")]
+    [InlineData("0:AAAA\n", "linha 1: esperado número da época, dois-pontos e o segredo em base64")]
+    [InlineData("01:AAAA\n", "linha 1: esperado número da época, dois-pontos e o segredo em base64")]
+    [InlineData("-1:AAAA\n", "linha 1: esperado número da época, dois-pontos e o segredo em base64")]
+    [InlineData("1:2:3\n", "linha 1: esperado número da época, dois-pontos e o segredo em base64")]
+    [InlineData("1:isto-nao-e-base64!\n", "linha 1: não é base64, 18 bytes")]
+    [InlineData("1:AAAA\n", "linha 1: o segredo tem 3 bytes, esperados 32")]
+    public void EpochsFileOfAnyOtherFormIsRefusedNamingTheLineAndNeverTheValue(string text, string problem) =>
+        Assert.Equal((null, problem), (CustodyFileFormat.ParseEpochs(Bytes(text)).Epochs, CustodyFileFormat.ParseEpochs(Bytes(text)).Problem));
+
+    [Fact]
+    public void EpochRepeatedIsRefusedNamingItsNumber()
+    {
+        var (epochs, problem) = CustodyFileFormat.ParseEpochs(Bytes($"1:{Secret(1)}\n1:{Secret(2)}\n"));
+
+        Assert.Equal((null, "linha 2: época 1 repetida"), (epochs, problem));
+    }
+
+    [Fact]
+    public void EpochsContentIsZeroedAfterTheReading()
+    {
+        var content = Bytes($"1:{Secret(1)}\n");
+
+        _ = CustodyFileFormat.ParseEpochs(content);
+
+        Assert.All(content, value => Assert.Equal(0, value));
+    }
+
+    private static string Secret(int seed) => Convert.ToBase64String(Enumerable.Range(0, 32).Select(index => (byte)(index + seed)).ToArray());
 }

@@ -122,6 +122,7 @@ public sealed class ConfigurationInForceTests(DefaultHostFixture fixture) : ICla
             .ToDictionary(entry => entry.GetProperty("key").GetString()!, entry => entry.GetProperty("value").GetString(), StringComparer.Ordinal);
         Assert.Equal(EffectiveConfiguration.Redacted, values["MasterKey:File"]);
         Assert.Equal(EffectiveConfiguration.Redacted, values["MasterKey:LabelsFile"]);
+        Assert.Equal(EffectiveConfiguration.Redacted, values["MasterKey:EpochsFile"]);
         Assert.Equal(EffectiveConfiguration.Redacted, values["Custody:Holder"]);
         Assert.Equal("2026-10-01", values["Custody:LastRecoveryTest"]);
         Assert.DoesNotContain(Support.Custody.CustodyFiles.Shared.Directory, text, StringComparison.Ordinal);

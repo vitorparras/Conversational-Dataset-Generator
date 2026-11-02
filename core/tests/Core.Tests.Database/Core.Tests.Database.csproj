@@ -28,6 +28,7 @@
     <InternalsVisibleTo Include="Core.Persistence.Migrations.Tests" />
     <InternalsVisibleTo Include="Core.Persistence.Content.Tests" />
     <InternalsVisibleTo Include="Core.Persistence.Custody.Tests" />
+    <InternalsVisibleTo Include="Core.Persistence.Custody.Chain.Tests" />
     <InternalsVisibleTo Include="Core.Persistence.ServerGuarantees.Tests" />
     <InternalsVisibleTo Include="Core.Tests.Integration" />
   </ItemGroup>

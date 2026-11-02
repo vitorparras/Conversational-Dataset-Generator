@@ -1,5 +1,6 @@
 using System.Data;
 using Core.Persistence.Custody;
+using Core.Persistence.Custody.Chain;
 using Core.Persistence.Tests.Fixtures;
 
 namespace Core.Persistence.Tests.Custody;

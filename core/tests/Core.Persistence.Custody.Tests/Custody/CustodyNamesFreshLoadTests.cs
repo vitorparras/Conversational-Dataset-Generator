@@ -1,6 +1,6 @@
 using System.Reflection;
 using System.Runtime.Loader;
-using Core.Persistence.Custody;
+using Core.Persistence.Custody.Chain;
 
 namespace Core.Persistence.Tests.Custody;
 

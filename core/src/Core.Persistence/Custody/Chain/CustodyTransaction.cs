@@ -3,7 +3,7 @@ using System.Globalization;
 using Npgsql;
 using NpgsqlTypes;
 
-namespace Core.Persistence.Custody;
+namespace Core.Persistence.Custody.Chain;
 
 /// <summary>
 /// The only place that adds an event to the chain, and always in a serializable transaction: the change the event is about is written in it too, and either both exist or neither does.

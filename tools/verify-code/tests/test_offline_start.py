@@ -196,10 +196,8 @@ class OfflineStartTests(unittest.TestCase):
         script = START_SCRIPT.read_text(encoding="utf-8")
 
         self.assertIn(': > "$custody/serverlog/postgresql.csv"', script)
-        self.assertIn(
-            'export CDG_Audit__ServerLogDirectory="$custody/serverlog" CDG_Audit__CompareInterval=01:00:00',
-            script,
-        )
+        self.assertIn('export CDG_Audit__ServerLogDirectory="$custody/serverlog"', script)
+        self.assertIn("CDG_Audit__CompareInterval=01:00:00", script)
 
     def test_the_server_has_no_network_and_the_host_joins_its_namespace(self) -> None:
         runner = DockerRunner(evidence())

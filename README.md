@@ -205,10 +205,10 @@ a #71, sai com o motivo e não reprova.
 
 `Audit:CompareInterval` é obrigatória ao servir, sem valor padrão, e leva a duração (de `00:01:00`
 a `49.00:00:00`, como `01:00:00`) entre duas comparações, feitas pelo próprio núcleo sobre o que
-passou desde a anterior, com um minuto de folga para o registro alcançar. Diferença nova vira aviso no log
-do núcleo (papel, tabela, comandos, contagens e passos, nunca um comando ou valor), e `GET /status`
-traz em `auditComparison` o resultado da última (`Pending`, `Agreed`, `Different` ou `Failed`),
-quando terminou e quantas diferenças novas e conhecidas achou. O `migrate` não a exige.
+passou desde a anterior, com um minuto de folga para o registro alcançar. Diferença nova vira aviso
+no log do núcleo (papel, tabela, comandos, contagens e passos, nunca um comando ou valor), e
+`GET /status` traz em `auditComparison` o resultado da última (`Pending`, `Agreed`, `Different` ou
+`Failed`), quando terminou e quantas diferenças novas e conhecidas achou. O `migrate` não a exige.
 
 `MasterKey:File` e `MasterKey:LabelsFile` são obrigatórias ao servir, sem valor padrão, e levam os
 caminhos dos arquivos da chave e dos rótulos, nunca a chave. O núcleo recusa arquivo ausente, com

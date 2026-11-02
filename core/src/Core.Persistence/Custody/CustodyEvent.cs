@@ -26,6 +26,9 @@ public sealed record CustodyEvent
     /// <summary>The sequence of the event this one corrects; null when it corrects none.</summary>
     public long? Corrects { get; private init; }
 
+    /// <summary>The protocol outside the system that asked for what the event records; only an emptying, or the refusal of one, carries it.</summary>
+    public string? Reference { get; private init; }
+
     /// <summary>An event that records a step; the correction of an event has its own constructor.</summary>
     /// <param name="author">Who did it.</param>
     /// <param name="item">What it was about.</param>
@@ -35,9 +38,43 @@ public sealed record CustodyEvent
     {
         ArgumentNullException.ThrowIfNull(author);
         ArgumentNullException.ThrowIfNull(item);
-        return step is CustodyStep.Correction or CustodyStep.VerifyChain
-            ? throw new ArgumentException("A correction names the event it corrects, and a verification is written by the system; use Correction or Verification.", nameof(step))
+        return step is CustodyStep.Correction or CustodyStep.VerifyChain or CustodyStep.ItemEmptied or CustodyStep.ItemEmptyingRefused
+            ? throw new ArgumentException("A correction, a verification and an emptying have an event of their own; use Correction, Verification, Emptied or EmptyingRefused.", nameof(step))
             : new CustodyEvent(author, item, step, reason);
+    }
+
+    /// <summary>The event of an item emptied: a person did it, for one of the two reasons an emptying may be asked for, and the protocol that asked is the reference.</summary>
+    /// <param name="author">The person who emptied; the system cannot.</param>
+    /// <param name="itemId">The item of the content that was emptied.</param>
+    /// <param name="reason">Either <see cref="CustodyReason.RemovalRequestedBySubject" /> or <see cref="CustodyReason.ContractRequirement" />.</param>
+    /// <param name="reference">The number of the protocol outside the system; see <see cref="Reference" />.</param>
+    public static CustodyEvent Emptied(CustodyAuthor author, long itemId, CustodyReason reason, string reference)
+    {
+        ArgumentNullException.ThrowIfNull(author);
+        return reason is CustodyReason.RemovalRequestedBySubject or CustodyReason.ContractRequirement && author.PersonId is not null
+            ? OfEmptying(author, itemId, CustodyStep.ItemEmptied, reason, reference)
+            : throw new ArgumentException("An emptying is done by a person, for the request of the subject or for a requirement of the contract.", nameof(reason));
+    }
+
+    /// <summary>The event of an emptying that was refused, about the same item, with the reason it was refused for.</summary>
+    /// <param name="author">Who tried to empty.</param>
+    /// <param name="itemId">The item of the content that stays as it was.</param>
+    /// <param name="reason">Either <see cref="CustodyReason.AuthorWithoutFunction" /> or <see cref="CustodyReason.ItemAlreadyEmptied" />.</param>
+    /// <param name="reference">The number of the protocol outside the system that asked.</param>
+    public static CustodyEvent EmptyingRefused(CustodyAuthor author, long itemId, CustodyReason reason, string reference)
+    {
+        ArgumentNullException.ThrowIfNull(author);
+        return reason is CustodyReason.AuthorWithoutFunction or CustodyReason.ItemAlreadyEmptied
+            ? OfEmptying(author, itemId, CustodyStep.ItemEmptyingRefused, reason, reference)
+            : throw new ArgumentException("An emptying is refused because its author does not hold the function or because the item was emptied already.", nameof(reason));
+    }
+
+    private static CustodyEvent OfEmptying(CustodyAuthor author, long itemId, CustodyStep step, CustodyReason reason, string reference)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(itemId);
+        return ProtocolReference.IsValid(reference)
+            ? new CustodyEvent(author, new CustodyItem(CustodyItemKind.ItemText, itemId), step, reason) { Reference = reference }
+            : throw new ArgumentException("The reference is a protocol number of letters, digits and . _ / - only, up to 64 characters.", nameof(reference));
     }
 
     /// <summary>

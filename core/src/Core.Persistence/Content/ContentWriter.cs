@@ -68,6 +68,10 @@ public sealed class ContentWriter(NpgsqlDataSource dataSource, ProtectedContent 
         {
             throw new CustodyChainBrokenException();
         }
+        catch (PostgresException refused) when (refused.SqlState == CustodyStatements.EmptiedSqlState)
+        {
+            throw new ItemEmptiedException();
+        }
     }
 
     private async Task<long> InsertInTransactionAsync(int domainId, string statement, NpgsqlParameter[] parameters, CancellationToken cancellationToken)

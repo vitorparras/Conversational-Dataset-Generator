@@ -22,7 +22,7 @@ internal static class CustodyTransaction
     internal static Task<CustodyResult?> AppendBeforeAsync(NpgsqlDataSource dataSource, CustodyEvent pending, Func<CustodyScope, Task<bool>> change, CancellationToken cancellationToken) =>
         RunAsync(dataSource, scope => BeforeAsync(scope, pending, change, cancellationToken), cancellationToken);
 
-    private static async Task<CustodyResult?> RunAsync(NpgsqlDataSource dataSource, Func<CustodyScope, Task<CustodyResult?>> body, CancellationToken cancellationToken)
+    internal static async Task<CustodyResult?> RunAsync(NpgsqlDataSource dataSource, Func<CustodyScope, Task<CustodyResult?>> body, CancellationToken cancellationToken)
     {
         try
         {
@@ -72,7 +72,7 @@ internal static class CustodyTransaction
             : null;
     }
 
-    private static async Task<CustodyResult> CommitIfAppendedAsync(CustodyScope scope, CustodyResult result, CancellationToken cancellationToken)
+    internal static async Task<CustodyResult> CommitIfAppendedAsync(CustodyScope scope, CustodyResult result, CancellationToken cancellationToken)
     {
         if (result.Outcome == CustodyOutcome.Appended)
         {
@@ -82,7 +82,7 @@ internal static class CustodyTransaction
         return result;
     }
 
-    private static async Task<CustodyResult> AppendAsync(CustodyScope scope, CustodyEvent pending, CancellationToken cancellationToken)
+    internal static async Task<CustodyResult> AppendAsync(CustodyScope scope, CustodyEvent pending, CancellationToken cancellationToken)
     {
         var command = scope.CreateCommand(CustodyStatements.Append);
         await using (command.ConfigureAwait(false))
@@ -108,6 +108,7 @@ internal static class CustodyTransaction
         _ = command.Parameters.AddWithValue("step", NpgsqlDbType.Text, CustodyNames.Of(pending.Step));
         _ = command.Parameters.AddWithValue("reason", NpgsqlDbType.Text, CustodyNames.Of(pending.Reason));
         _ = command.Parameters.AddWithValue("corrects", NpgsqlDbType.Bigint, Optional(pending.Corrects));
+        _ = command.Parameters.AddWithValue("reference", NpgsqlDbType.Text, (object?)pending.Reference ?? DBNull.Value);
     }
 
     /// <summary>What the server's refusal means; one that is none of these is a defect, and its message names the item, the step and the reason and nothing else.</summary>

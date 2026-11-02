@@ -179,6 +179,24 @@ public sealed class CustodyFileFormatTests
         Assert.Equal((null, problem), (CustodyFileFormat.ParseEpochs(Bytes(text)).Epochs, CustodyFileFormat.ParseEpochs(Bytes(text)).Problem));
 
     [Fact]
+    public void EpochsOfSeveralLinesWithCarriageReturnsKeepEachSecretOfItsOwn()
+    {
+        var (epochs, problem) = CustodyFileFormat.ParseEpochs(Bytes($"10:{Secret(10)}\r\n2:{Secret(2)}\r\n3:{Secret(3)}\r\n"));
+
+        Assert.Null(problem);
+        Assert.Equal<IEnumerable<int>>([2, 3, 10], epochs!.Numbers());
+        Assert.Equal(10, epochs.Newest);
+    }
+
+    [Fact]
+    public void SecretOfALaterLineThatIsFlawedIsRefusedNamingThatLine()
+    {
+        var (epochs, problem) = CustodyFileFormat.ParseEpochs(Bytes($"1:{Secret(1)}\n2:{Secret(2)}\n3:AAAA\n"));
+
+        Assert.Equal((null, "linha 3: o segredo tem 3 bytes, esperados 32"), (epochs, problem));
+    }
+
+    [Fact]
     public void EpochRepeatedIsRefusedNamingItsNumber()
     {
         var (epochs, problem) = CustodyFileFormat.ParseEpochs(Bytes($"1:{Secret(1)}\n1:{Secret(2)}\n"));

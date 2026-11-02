@@ -73,6 +73,16 @@ public sealed class CustodyEpochsTests
             ]);
     }
 
+    [Fact]
+    public void ReadingWithoutEpochsDoesNotReleaseTheSharedEmptySet()
+    {
+        MasterKeyReading.Absent("sem arquivo").Dispose();
+        using var reading = MasterKeyReading.FromBytes(new byte[MasterKey.Length], DerivationLabels.None, "teste");
+        reading.Dispose();
+
+        Assert.Equal((false, true), (CustodyEpochs.None.Holds(1), CustodyEpochs.None.Lacking([7]).SequenceEqual([7])));
+    }
+
     private static CustodyEpochs Of(params int[] numbers) =>
         CustodyEpochs.Of(numbers.ToDictionary(number => number, number => Enumerable.Repeat((byte)number, MasterKey.Length).ToArray()));
 }

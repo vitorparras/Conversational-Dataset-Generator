@@ -67,7 +67,7 @@ public sealed class CustodyEmptyingShapeTests : IClassFixture<CustodyDatabase>
     private async Task<long> PersonAsync()
     {
         var registry = await database.RegistryAsync();
-        var created = await registry.CreateAsync(new NewPerson($"zqx-pessoa-{Guid.NewGuid():N}", PersonFunctions.Curation), CustodyAuthor.System, TestContext.Current.CancellationToken);
+        var created = await registry.CreateAsync(new NewPerson($"zqx-pessoa-{Guid.NewGuid():N}", PersonFunctions.Accepted[2]), CustodyAuthor.System, TestContext.Current.CancellationToken);
         return created.PersonId!.Value;
     }
 }

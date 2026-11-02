@@ -114,6 +114,35 @@ public sealed class ContentEmptierTests
         Assert.Equal((EmptyingOutcome.NotFound, string.Empty, Intact), (result.Outcome, await world.ScalarAsync(Events), await world.OwnerInDomainAsync(1, ItemCleared, ("id", item))));
     }
 
+    [DatabaseTheory]
+    [InlineData(2, false)]
+    [InlineData(1, true)]
+    public async Task AttemptWithoutTheFunctionIsInTheChainWhateverTheItemIs(int domain, bool missing)
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        var (_, item) = await ItemWithMapAsync(world);
+        var annotator = await world.PersonAsync("zqx-active");
+        var target = missing ? item + 1000 : item;
+
+        var result = await world.Emptier.EmptyAsync(
+            new ItemEmptying(CustodyAuthor.Person(annotator), domain, target, EmptyingMotive.ContractRequirement, Protocol), TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            (EmptyingOutcome.AuthorWithoutFunction, $"item_text,{target},item_emptying_refused,author_without_function,{annotator},{Protocol}", Intact),
+            (result.Outcome, await world.ScalarAsync(Events), await world.OwnerInDomainAsync(1, ItemCleared, ("id", item))));
+    }
+
+    [DatabaseTheory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public async Task ItemWithoutAPositiveIdentifierIsRefusedAtTheDoor(long item)
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        var curator = await world.PersonAsync("zqx-curator");
+
+        _ = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => EmptyAsync(world, curator, item));
+    }
+
     [DatabaseFact]
     public async Task ReferenceThatIsNotAProtocolNumberIsRefusedBeforeAnythingIsDone()
     {

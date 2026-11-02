@@ -31,6 +31,7 @@ public sealed class ContentEmptier
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(request.DomainId);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(request.ItemId);
         return ProtocolReference.IsValid(request.Reference)
             ? EmptyingAsync(request, cancellationToken)
             : Task.FromResult(new EmptyingResult { Outcome = EmptyingOutcome.ReferenceRefused });
@@ -46,13 +47,6 @@ public sealed class ContentEmptier
         var refusal = outcome == EmptyingOutcome.AuthorWithoutFunction ? CustodyReason.AuthorWithoutFunction : CustodyReason.ItemAlreadyEmptied;
         return CustodyEvent.EmptyingRefused(request.Author, request.ItemId, refusal, request.Reference);
     }
-
-    private static EmptyingOutcome Judged(bool holdsTheFunction, bool alreadyEmptied) => (holdsTheFunction, alreadyEmptied) switch
-    {
-        (false, _) => EmptyingOutcome.AuthorWithoutFunction,
-        (true, true) => EmptyingOutcome.AlreadyEmptied,
-        (true, false) => EmptyingOutcome.Emptied,
-    };
 
     private static CustodyReason ReasonOf(EmptyingMotive motive) => motive switch
     {
@@ -109,13 +103,12 @@ public sealed class ContentEmptier
     private static async Task<CustodyResult?> EmptyInAsync(CustodyScope scope, ItemEmptying request, Judgment judgment, CancellationToken cancellationToken)
     {
         await DeclareDomainAsync(scope, request.DomainId, cancellationToken).ConfigureAwait(false);
-        if (await ScalarAsync(scope, ContentQueries.ReadItemEmptied, request.ItemId, cancellationToken).ConfigureAwait(false) is not bool alreadyEmptied)
+        judgment.Outcome = await JudgedAsync(scope, request, cancellationToken).ConfigureAwait(false);
+        if (judgment.Outcome == EmptyingOutcome.NotFound)
         {
-            judgment.Outcome = EmptyingOutcome.NotFound;
             return null;
         }
 
-        judgment.Outcome = Judged(await HoldsTheFunctionAsync(scope, request.Author, cancellationToken).ConfigureAwait(false), alreadyEmptied);
         var appended = await CustodyTransaction.AppendAsync(scope, EventOf(request, judgment.Outcome), cancellationToken).ConfigureAwait(false);
         if (appended.Outcome == CustodyOutcome.Appended && judgment.Outcome == EmptyingOutcome.Emptied)
         {
@@ -123,6 +116,23 @@ public sealed class ContentEmptier
         }
 
         return await CustodyTransaction.CommitIfAppendedAsync(scope, appended, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>The function comes first, so that an attempt without it is recorded whatever the item is; the item is looked for only for someone who may empty.</summary>
+    private static async Task<EmptyingOutcome> JudgedAsync(CustodyScope scope, ItemEmptying request, CancellationToken cancellationToken)
+    {
+        if (!await HoldsTheFunctionAsync(scope, request.Author, cancellationToken).ConfigureAwait(false))
+        {
+            return EmptyingOutcome.AuthorWithoutFunction;
+        }
+
+        var alreadyEmptied = await ScalarAsync(scope, ContentQueries.ReadItemEmptied, request.ItemId, cancellationToken).ConfigureAwait(false);
+        if (alreadyEmptied is not bool emptied)
+        {
+            return EmptyingOutcome.NotFound;
+        }
+
+        return emptied ? EmptyingOutcome.AlreadyEmptied : EmptyingOutcome.Emptied;
     }
 
     private static async Task<bool> HoldsTheFunctionAsync(CustodyScope scope, CustodyAuthor author, CancellationToken cancellationToken) =>

@@ -22,8 +22,7 @@ internal static class AuditEndpoint
 
     private const string TooMany = "o intervalo tem mais de 10000 linhas de auditoria: peça um intervalo menor, de no máximo 7 dias";
 
-    internal static void Map(IEndpointRouteBuilder endpoints) =>
-        _ = endpoints.MapGet(Route, ListAsync);
+    internal static void Map(IEndpointRouteBuilder endpoints) => _ = endpoints.MapGet(Route, ListAsync);
 
     /// <summary>
     /// An interval that is not two instants in order, or is wider than a week, or holds more lines than an answer carries, is a request refused

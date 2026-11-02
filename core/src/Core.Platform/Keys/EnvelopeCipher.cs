@@ -26,6 +26,13 @@ public sealed class EnvelopeCipher
     /// <summary>The content sealed under the label, with a nonce drawn for this seal alone; the same content sealed twice gives two envelopes.</summary>
     public byte[] Seal(string label, ReadOnlySpan<byte> content)
     {
+        using var key = derivation.Derive(label);
+        return SealWith(key.AsSpan(), label, content);
+    }
+
+    /// <summary>The content sealed under the key given, which carries <paramref name="label"/> in its header as the label it belongs to; a key that is no label's, such as that of an item.</summary>
+    public static byte[] SealWith(ReadOnlySpan<byte> key, string label, ReadOnlySpan<byte> content)
+    {
         var labelBytes = Encoding.UTF8.GetBytes(label);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(labelBytes.Length, ushort.MaxValue);
         var envelope = new byte[EnvelopeLayout.SizeFor(labelBytes.Length, content.Length)];
@@ -33,14 +40,20 @@ public sealed class EnvelopeCipher
         var headerLength = envelope.Length - EnvelopeLayout.NonceLength - content.Length - EnvelopeLayout.TagLength;
         var nonce = envelope.AsSpan(headerLength, EnvelopeLayout.NonceLength);
         RandomNumberGenerator.Fill(nonce);
-        using var key = derivation.Derive(label);
-        using var aes = new AesGcm(key.AsSpan(), EnvelopeLayout.TagLength);
+        using var aes = new AesGcm(key, EnvelopeLayout.TagLength);
         aes.Encrypt(nonce, content, envelope.AsSpan(headerLength + EnvelopeLayout.NonceLength, content.Length), envelope.AsSpan(^EnvelopeLayout.TagLength..), envelope.AsSpan(..headerLength));
         return envelope;
     }
 
     /// <summary>The content of an envelope sealed under the label; any other envelope is refused with <see cref="EnvelopeRefusedException"/>.</summary>
     public byte[] Open(string label, ReadOnlySpan<byte> envelope)
+    {
+        using var key = derivation.Derive(label);
+        return OpenWith(key.AsSpan(), label, envelope);
+    }
+
+    /// <summary>The content of an envelope sealed under the key given with the label given; any other envelope is refused with <see cref="EnvelopeRefusedException"/>.</summary>
+    public static byte[] OpenWith(ReadOnlySpan<byte> key, string label, ReadOnlySpan<byte> envelope)
     {
         if (!EnvelopeLayout.TryRead(envelope, out var layout, out var reason))
         {
@@ -52,14 +65,13 @@ public sealed class EnvelopeCipher
             throw new EnvelopeRefusedException($"The label in the header is not '{label}'.");
         }
 
-        return Decrypt(label, layout);
+        return Decrypt(key, layout);
     }
 
-    private byte[] Decrypt(string label, EnvelopeLayout layout)
+    private static byte[] Decrypt(ReadOnlySpan<byte> key, EnvelopeLayout layout)
     {
         var content = new byte[layout.Content.Length];
-        using var key = derivation.Derive(label);
-        using var aes = new AesGcm(key.AsSpan(), EnvelopeLayout.TagLength);
+        using var aes = new AesGcm(key, EnvelopeLayout.TagLength);
         try
         {
             aes.Decrypt(layout.Nonce, layout.Content, layout.Tag, content, layout.Header);

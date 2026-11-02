@@ -59,6 +59,26 @@ public sealed class ContentEmptiedTriggerTests
         Assert.NotNull(emptiedMap);
     }
 
+    [DatabaseTheory]
+    [InlineData("UPDATE content.item_text SET raw_text = '\\x01' WHERE id = @id")]
+    [InlineData("UPDATE content.item_text SET sanitized_text = '\\x01' WHERE id = @id")]
+    [InlineData("UPDATE content.item_text SET pseudonymized_text = 'outro texto' WHERE id = @id")]
+    [InlineData("UPDATE content.item_text SET raw_text = NULL WHERE id = @id")]
+    [InlineData("UPDATE content.reversal_map SET entries = '\\x01' WHERE item_id = @id")]
+    [InlineData("UPDATE content.reversal_map SET entries = NULL WHERE item_id = @id")]
+    [InlineData("UPDATE content.reversal_map SET emptied_at = now(), entries = NULL WHERE item_id = @id")]
+    public async Task ContentOfARowThatWasNotEmptiedIsNotChangedByTheApplicationRoleNorByTheOwner(string change)
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        var item = await world.Writer.AddItemTextAsync(1, new NewItemText("bruto", "sanitizado", "pseudonimizado"), TestContext.Current.CancellationToken);
+        _ = await world.Writer.AddReversalMapAsync(1, item, "mapa", TestContext.Current.CancellationToken);
+
+        var byApplication = await Assert.ThrowsAsync<PostgresException>(() => world.InDomainAsync(1, change, ("id", item)));
+        var byOwner = await Assert.ThrowsAsync<PostgresException>(() => world.OwnerInDomainAsync(1, change, ("id", item)));
+
+        Assert.Equal((Emptied, Emptied), (byApplication.SqlState, byOwner.SqlState));
+    }
+
     [DatabaseFact]
     public async Task ApplicationRoleStillChangesNothingOfTheMapButItsMarkerAndEntries()
     {
@@ -75,8 +95,8 @@ public sealed class ContentEmptiedTriggerTests
     {
         var item = await world.Writer.AddItemTextAsync(1, new NewItemText("bruto", "sanitizado", "pseudonimizado"), TestContext.Current.CancellationToken);
         _ = await world.Writer.AddReversalMapAsync(1, item, "mapa de reversao zqx", TestContext.Current.CancellationToken);
-        _ = await world.InDomainAsync(1, EmptyMap, ("id", item));
         _ = await world.InDomainAsync(1, EmptyItem, ("id", item));
+        _ = await world.InDomainAsync(1, EmptyMap, ("id", item));
         return item;
     }
 }

@@ -95,8 +95,8 @@ class TestCoreTests(unittest.TestCase):
 
     def test_a_failed_test_is_named_with_the_first_line_of_its_message(self) -> None:
         files = {
-            "a.trx": support.trx(
-                "Alpha.Tests", 3, 1, failure="Ns.Classe.Metodo|Esperado 1\nmas foi 2\n  em x.cs:9"
+            "a.trx": support.trx_failing(
+                "Alpha.Tests", 3, "Ns.Classe.Metodo", "Esperado 1\nmas foi 2\n  em x.cs:9"
             ),
             "b.trx": support.trx("Beta.Tests", 2, 0),
         }
@@ -108,7 +108,7 @@ class TestCoreTests(unittest.TestCase):
 
     def test_a_failed_test_without_message_is_still_named(self) -> None:
         files = {
-            "a.trx": support.trx("Alpha.Tests", 3, 1, failure="Ns.Classe.Metodo|"),
+            "a.trx": support.trx_failing("Alpha.Tests", 3, "Ns.Classe.Metodo", ""),
             "b.trx": support.trx("Beta.Tests", 2, 0),
         }
 

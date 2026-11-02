@@ -105,29 +105,42 @@ def write_areas(root: Path, table: str) -> None:
         write(folder, f"{prefix.strip('`')}.md", "\n".join((*lines, *fields, "")))
 
 
-def trx(project: str, executed: int, failed: int, skipped: str = "", failure: str = "") -> str:
-    """A TRX report reduced to what the step reads: counters, one assembly, a skip, a failure."""
+def trx(project: str, executed: int, failed: int, skipped: str = "") -> str:
+    """A TRX report reduced to what the step reads: counters, one assembly, one skip reason."""
     skip = (
         '  <Results><UnitTestResult testName="s" outcome="NotExecuted">'
         f"<Output><StdOut>{skipped}</StdOut></Output></UnitTestResult></Results>\n"
         if skipped
         else ""
     )
-    if failure:
-        name, message = failure.split("|", 1)
-        skip += (
-            f'  <Results><UnitTestResult testName="{name}" outcome="Failed"><Output><ErrorInfo>'
-            f"<Message>{message}</Message></ErrorInfo></Output></UnitTestResult></Results>\n"
-        )
+    return _trx_document(project, _counters(executed, failed, 1 if skipped else 0), skip)
+
+
+def trx_failing(project: str, executed: int, name: str, message: str) -> str:
+    """A TRX report with one failed test, which has the name and the message given."""
+    failure = (
+        f'  <Results><UnitTestResult testName="{name}" outcome="Failed"><Output><ErrorInfo>'
+        f"<Message>{message}</Message></ErrorInfo></Output></UnitTestResult></Results>\n"
+    )
+    return _trx_document(project, _counters(executed, 1, 0), failure)
+
+
+def _counters(executed: int, failed: int, not_executed: int) -> str:
+    return (
+        f'  <ResultSummary><Counters total="{executed}" executed="{executed}" '
+        f'passed="{executed - failed}" failed="{failed}" notExecuted="{not_executed}" />'
+        "</ResultSummary>\n"
+    )
+
+
+def _trx_document(project: str, counters: str, results: str) -> str:
     return (
         '<?xml version="1.0" encoding="utf-8"?>\n'
         '<TestRun xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">\n'
-        f'  <ResultSummary><Counters total="{executed}" executed="{executed}" '
-        f'passed="{executed - failed}" failed="{failed}" notExecuted="{1 if skipped else 0}" />'
-        "</ResultSummary>\n"
+        f"{counters}"
         f'  <TestDefinitions><UnitTest name="t" id="1"><TestMethod codeBase="bin/{project}.dll" '
         'className="c" name="t" /></UnitTest></TestDefinitions>\n'
-        f"{skip}"
+        f"{results}"
         "</TestRun>\n"
     )
 

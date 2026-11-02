@@ -76,7 +76,7 @@ def read_trx(path: Path) -> TestRun:
 
 def failed_tests(root: ElementTree.Element) -> tuple[str, ...]:
     """Each failed test as `name: first line of its message`, in the order the report lists them."""
-    found = []
+    found: list[str] = []
     for result in root.iter():
         if not result.tag.endswith("}UnitTestResult") or result.get("outcome") != "Failed":
             continue

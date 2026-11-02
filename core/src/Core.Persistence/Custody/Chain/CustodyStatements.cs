@@ -1,4 +1,4 @@
-namespace Core.Persistence.Custody;
+namespace Core.Persistence.Custody.Chain;
 
 /// <summary>The one statement that adds an event: only what the caller knows is named; the sequence, the moment and both digests are the server's.</summary>
 internal static class CustodyStatements

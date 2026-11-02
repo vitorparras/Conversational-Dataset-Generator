@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using Core.Persistence.Custody;
+using Core.Persistence.Custody.Chain;
 
 namespace Core.Persistence.Tests.Custody;
 

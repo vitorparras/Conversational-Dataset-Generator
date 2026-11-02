@@ -1,6 +1,6 @@
 using Npgsql;
 
-namespace Core.Persistence.Custody;
+namespace Core.Persistence.Custody.Chain;
 
 /// <summary>The serializable transaction in which a change and its custody event are written together; its commands run in it.</summary>
 internal sealed class CustodyScope

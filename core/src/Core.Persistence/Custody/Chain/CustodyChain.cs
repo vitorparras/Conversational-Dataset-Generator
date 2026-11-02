@@ -1,6 +1,6 @@
 using Npgsql;
 
-namespace Core.Persistence.Custody;
+namespace Core.Persistence.Custody.Chain;
 
 /// <summary>
 /// The chain of custody of the installation: events added one after another, each carrying the digest of the one before and its own, both computed by the server.

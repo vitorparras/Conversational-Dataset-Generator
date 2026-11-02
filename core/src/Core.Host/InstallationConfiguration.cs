@@ -22,9 +22,9 @@ internal static class InstallationConfiguration
     internal static ConfigurationSection SectionWhenMigrating { get; } =
         new(SectionName, [ConfigurationKey.Optional(KindKey).Accepting(Real, Demonstration)]);
 
-    /// <summary>The installation the approved value declares.</summary>
+    /// <summary>The installation the approved value declares; one that declared none (the migration mode) is held to the real one.</summary>
     internal static Installation Of(IReadOnlyDictionary<string, string> values) =>
-        new(string.Equals(values[KindPath], Demonstration, StringComparison.Ordinal) ? InstallationKind.Demonstration : InstallationKind.Real);
+        new(values.TryGetValue(KindPath, out var kind) && string.Equals(kind, Demonstration, StringComparison.Ordinal) ? InstallationKind.Demonstration : InstallationKind.Real);
 
     /// <summary>The report of versions with the installation the host declares beside the versions the checks confirmed.</summary>
     internal static VersionReport Shown(VersionReport report, IServiceProvider services) =>

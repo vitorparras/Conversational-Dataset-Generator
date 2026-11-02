@@ -133,22 +133,6 @@ public sealed class PeopleDatabase : IAsyncDisposable
     /// <summary>What the server answers to a statement run over the connection string given.</summary>
     internal static Task<PostgresException> RefusedOverAsync(string connectionString, string statement) => RefusedAsync(connectionString, statement);
 
-    /// <summary>The first column of the rows the query returns, as the role owner, in the order the query gives.</summary>
-    [SuppressMessage("Security", "CA2100", Justification = "The queries are literals of the calling tests, never input.")]
-    internal async Task<IReadOnlyList<string>> OwnerColumnAsync(string query)
-    {
-        await using var connection = await Sql.OpenAsync((await ScratchAsync()).OwnerConnectionString);
-        await using var command = new NpgsqlCommand(query, connection);
-        await using var reader = await command.ExecuteReaderAsync(TestContext.Current.CancellationToken);
-        var values = new List<string>();
-        while (await reader.ReadAsync(TestContext.Current.CancellationToken))
-        {
-            values.Add(reader.GetString(0));
-        }
-
-        return values;
-    }
-
     public async ValueTask DisposeAsync()
     {
         if (application is not null)
@@ -170,7 +154,7 @@ public sealed class PeopleDatabase : IAsyncDisposable
         return await Assert.ThrowsAsync<PostgresException>(() => command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken));
     }
 
-    private async Task<ScratchDatabase> ScratchAsync()
+    internal async Task<ScratchDatabase> ScratchAsync()
     {
         if (database is null)
         {

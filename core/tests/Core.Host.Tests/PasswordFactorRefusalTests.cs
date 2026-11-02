@@ -62,6 +62,31 @@ public sealed class PasswordFactorRefusalTests
         Assert.Contains(Key, exit.Error, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task RealHostThatDeclaresAFactorBelowTheFloorEndsWithTheRefusalCodeAndNamesTheKindOfInstallationAndTheFloor()
+    {
+        var built = HostInstallation.Built(HostProcess.FreeAddress());
+        var installation = built with
+        {
+            DeclaresInstallation = false,
+            DeclaresWorkFactor = false,
+            Arguments =
+            [
+                .. built.Arguments,
+                "--Installation:Kind=real",
+                .. HostInstallation.MasterKeyArguments,
+                "--Passwords:WorkFactor=599999",
+            ],
+        };
+
+        var exit = await HostProcess.RunToExitAsync(installation, HostProcess.StartupTimeout, TestContext.Current.CancellationToken);
+
+        Assert.Equal((int)ExitCode.ConfigurationRefused, exit.Code);
+        Assert.Contains(Key, exit.Error, StringComparison.Ordinal);
+        Assert.Contains("'599999'", exit.Error, StringComparison.Ordinal);
+        Assert.Contains("no mínimo 600000 na instalação real", exit.Error, StringComparison.Ordinal);
+    }
+
     private static Task<HostExit> RefusedWithAsync(string declared)
     {
         var installation = HostInstallation.Built(HostProcess.FreeAddress()) with { DeclaresWorkFactor = false };

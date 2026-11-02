@@ -77,6 +77,20 @@ public sealed class ContentTransaction : IAsyncDisposable
         }
     }
 
+    /// <summary>Declares another domain for the rest of the transaction, so that one transaction can go through the domains one after the other.</summary>
+    /// <param name="domainId">The identifier of the domain; a value that is not positive is refused.</param>
+    /// <param name="cancellationToken">Cancels the declaration.</param>
+    internal async Task ChangeDomainAsync(int domainId, CancellationToken cancellationToken)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(domainId);
+        var declaration = CreateCommand(Declare);
+        await using (declaration.ConfigureAwait(false))
+        {
+            _ = declaration.Parameters.AddWithValue("domain", domainId.ToString(CultureInfo.InvariantCulture));
+            _ = await declaration.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+        }
+    }
+
     /// <summary>A command that runs inside this transaction, under the domain it declared.</summary>
     /// <param name="sql">The statement; it never filters by domain.</param>
     public NpgsqlCommand CreateCommand(string sql) => new(sql, connection, transaction);

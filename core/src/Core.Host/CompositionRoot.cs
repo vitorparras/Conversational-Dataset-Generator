@@ -176,6 +176,7 @@ internal static class CompositionRoot
         _ = services.AddSingleton<IStartupCheck>(provider => new ImmutabilityCheck(provider.GetRequiredService<NpgsqlDataSource>()));
         _ = services.AddSingleton<IStartupCheck>(provider => new ProtectedColumnCheck(provider.GetRequiredService<NpgsqlDataSource>()));
         _ = services.AddSingleton<IStartupCheck>(provider => new DerivationLabelCheck(provider.GetRequiredService<NpgsqlDataSource>(), provider.GetRequiredService<IMasterKeySource>()));
+        _ = services.AddSingleton<IStartupCheck>(provider => new ContentEpochCheck(provider.GetRequiredService<NpgsqlDataSource>(), provider.GetRequiredService<IMasterKeySource>()));
     }
 
     /// <summary>The web host with everything the configuration decides: its address, logging, the file destination, the recognizer and the versions the checks confirmed.</summary>

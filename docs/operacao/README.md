@@ -37,5 +37,6 @@ e por quem ela roda.
 | [023](023-iniciar-o-nucleo-publicado.md) | Iniciar o núcleo publicado |
 | [024](024-arquivos-de-custodia-da-chave.md) | Arquivos de custódia da chave |
 | [025](025-certificado-do-canal-cifrado.md) | Certificado e chave do canal cifrado |
+| [026](026-rotacao-da-epoca.md) | Rotação mensal da época das chaves de item |
 
 Ver [regras de escrita](../regras-de-escrita.md).

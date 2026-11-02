@@ -1,8 +1,13 @@
+using System.Collections.Frozen;
+
 namespace Core.Persistence.Custody;
 
 /// <summary>One event to add to the chain: who, about which item, which step and which reason, and the earlier event it corrects when it is a correction.</summary>
 public sealed record CustodyEvent
 {
+    private static readonly FrozenSet<CustodyStep> OfTheirOwn = Enumerable.Repeat(CustodyStep.Correction, 1)
+        .Append(CustodyStep.VerifyChain).Append(CustodyStep.ItemEmptied).Append(CustodyStep.ItemEmptyingRefused).Append(CustodyStep.EpochRotated).ToFrozenSet();
+
     private CustodyEvent(CustodyAuthor author, CustodyItem item, CustodyStep step, CustodyReason reason)
     {
         Author = author;
@@ -38,10 +43,13 @@ public sealed record CustodyEvent
     {
         ArgumentNullException.ThrowIfNull(author);
         ArgumentNullException.ThrowIfNull(item);
-        return step is CustodyStep.Correction or CustodyStep.VerifyChain or CustodyStep.ItemEmptied or CustodyStep.ItemEmptyingRefused
-            ? throw new ArgumentException("A correction, a verification and an emptying have an event of their own; use Correction, Verification, Emptied or EmptyingRefused.", nameof(step))
+        return HasEventOfItsOwn(step)
+            ? throw new ArgumentException(
+                "A correction, a verification, an emptying and a rotation have an event of their own; use Correction, Verification, Emptied, EmptyingRefused or EpochRotated.", nameof(step))
             : new CustodyEvent(author, item, step, reason);
     }
+
+    private static bool HasEventOfItsOwn(CustodyStep step) => OfTheirOwn.Contains(step);
 
     /// <summary>The event of an item emptied: a person did it, for one of the two reasons an emptying may be asked for, and the protocol that asked is the reference.</summary>
     /// <param name="author">The person who emptied; the system cannot.</param>
@@ -93,6 +101,14 @@ public sealed record CustodyEvent
 
         var reason = firstInconsistent is null ? CustodyReason.VerificationPassed : CustodyReason.VerificationFailed;
         return new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.CustodyChain, eventsRead), CustodyStep.VerifyChain, reason) { Corrects = firstInconsistent };
+    }
+
+    /// <summary>The event of a rotation of the epoch, written by the system: the keys of the content were wrapped again under the epoch given.</summary>
+    /// <param name="epoch">The number of the epoch the keys are wrapped under now.</param>
+    public static CustodyEvent EpochRotated(int epoch)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(epoch);
+        return new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.ContentEpoch, epoch), CustodyStep.EpochRotated, CustodyReason.AdministrativeAct);
     }
 
     /// <summary>A new event that corrects an earlier one, which stays in the sequence as it was.</summary>

@@ -35,4 +35,7 @@ public enum CustodyStep
 
     /// <summary>The emptying of an item was refused; the reason says why, and the item stays as it was.</summary>
     ItemEmptyingRefused,
+
+    /// <summary>The keys of the content were wrapped again under a newer epoch; the item is that epoch.</summary>
+    EpochRotated,
 }

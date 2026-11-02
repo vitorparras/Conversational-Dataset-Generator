@@ -11,6 +11,7 @@ internal static class CustodyNames
         [CustodyItemKind.ItemText] = "item_text",
         [CustodyItemKind.ReversalMap] = "reversal_map",
         [CustodyItemKind.CustodyChain] = "custody_chain",
+        [CustodyItemKind.ContentEpoch] = "content_epoch",
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<CustodyStep, string> Steps = new Dictionary<CustodyStep, string>
@@ -26,6 +27,7 @@ internal static class CustodyNames
         [CustodyStep.VerifyChain] = "verify_chain",
         [CustodyStep.ItemEmptied] = "item_emptied",
         [CustodyStep.ItemEmptyingRefused] = "item_emptying_refused",
+        [CustodyStep.EpochRotated] = "epoch_rotated",
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<CustodyReason, string> Reasons = new Dictionary<CustodyReason, string>

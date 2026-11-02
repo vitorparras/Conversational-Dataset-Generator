@@ -75,7 +75,6 @@ internal sealed class SignInDelay
         }
     }
 
-
     /// <summary>An accepted entry zeroes the counters of its name and its origin.</summary>
     internal void Accepted(string name, IPAddress? origin)
     {

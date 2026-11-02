@@ -11,6 +11,7 @@ namespace Core.Host.Tests;
 /// </summary>
 public sealed class SignInDelayTests
 {
+    private const int TestDeadlineMilliseconds = 15_000;
     private static readonly IPAddress Here = IPAddress.Parse("203.0.113.7");
     private static readonly int[] CurveSeconds = [0, 1, 2, 4, 8, 16, 30, 30, 30];
     private static readonly int[] Refusals = [0, 1, 2, 3, 4, 5, 6, 7, 8, 100, int.MaxValue];
@@ -30,7 +31,7 @@ public sealed class SignInDelayTests
         Assert.Equal(CurveSeconds.Select(seconds => TimeSpan.FromSeconds(seconds)), waited);
     }
 
-    [Fact]
+    [Fact(Timeout = TestDeadlineMilliseconds)]
     public async Task ADelayDoesNotEndBeforeItsTimeHasPassed()
     {
         var (clock, delay) = Made();
@@ -138,7 +139,7 @@ public sealed class SignInDelayTests
         Assert.Equal((SignInDelay.MaxCounters, SignInDelay.MaxCounters), (KeysIn(delay, "typed").Count, KeysIn(delay, "origins").Count));
     }
 
-    [Fact]
+    [Fact(Timeout = TestDeadlineMilliseconds)]
     public async Task ACancelledWaitFreesItsPlaceAmongTheAnswersThatWait()
     {
         var (clock, delay) = Made();

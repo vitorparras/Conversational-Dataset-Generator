@@ -15,6 +15,11 @@ namespace Core.Host.Tests;
 public sealed class SignInSaturationTests
 {
     private const int Parallel = 8;
+    private const int TestDeadlineMilliseconds = 15_000;
+
+    /// <summary>Every wait on the database that does not answer ends by itself in this time, so a mutant that breaks the limit fails fast instead of hanging the suite.</summary>
+    private static readonly TimeSpan DeadlineOfAWait = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan Settling = TimeSpan.FromMilliseconds(200);
     private static readonly IPAddress Here = SignInDelayTests.NetworkNumber(1);
 
     [Fact]
@@ -60,23 +65,24 @@ public sealed class SignInSaturationTests
         Assert.False(delay.RefusedAsync("ana", Here, TestContext.Current.CancellationToken).IsCompleted);
     }
 
-    [Fact]
+    [Fact(Timeout = TestDeadlineMilliseconds)]
     public async Task EightEntriesInParallelFromOneOriginWithTheCheckBlockedLetNoMoreThanFourReachIt()
     {
         var clock = new ManualClock();
         var delay = new SignInDelay(clock);
         using var database = new SilentDatabase();
         var signIn = Entry(database.ConnectionString, clock, delay);
-        using var cancel = new CancellationTokenSource();
+        using var cancel = new CancellationTokenSource(DeadlineOfAWait);
 
         var entries = Enumerable.Range(0, Parallel)
             .Select(index => signIn.OpenAsync($"ana-{index}", "a senha certa ou errada", Here, cancel.Token)).ToList();
         await database.WaitForAsync(SignInDelay.MaxWaitingPerOrigin, TestContext.Current.CancellationToken);
-        await Task.Delay(500, TestContext.Current.CancellationToken);
+        await Task.Delay(Settling, TestContext.Current.CancellationToken);
 
         var refusedAtOnce = entries.Where(entry => entry.IsCompletedSuccessfully).ToList();
         Assert.Equal((SignInDelay.MaxWaitingPerOrigin, Parallel - SignInDelay.MaxWaitingPerOrigin), (database.Connections, refusedAtOnce.Count));
         Assert.All(refusedAtOnce, entry => Assert.Null(entry.Result));
+        database.Dispose();
         await cancel.CancelAsync();
         foreach (var blocked in entries.Except(refusedAtOnce))
         {
@@ -100,12 +106,13 @@ public sealed class SignInSaturationTests
         places.ForEach(place => place!.Dispose());
     }
 
-    [Fact]
+    [Fact(Timeout = TestDeadlineMilliseconds)]
     public async Task WithPlacesLeftTheEntryReachesTheCheckOfThePasswordAndGivesItsPlaceBack()
     {
         var clock = new ManualClock();
         var delay = new SignInDelay(clock);
-        var signIn = Entry("Host=127.0.0.1;Port=1;Database=none;Username=none;Password=none;Timeout=1;Pooling=false", clock, delay);
+        using var database = new SilentDatabase(hangUp: true);
+        var signIn = Entry(database.ConnectionString, clock, delay);
 
         for (var attempt = 0; attempt < SignInDelay.MaxWaitingPerOrigin + 1; attempt++)
         {
@@ -126,10 +133,12 @@ public sealed class SignInSaturationTests
     {
         private readonly TcpListener listener = new(IPAddress.Loopback, 0);
         private readonly List<TcpClient> held = [];
+        private readonly bool hangUp;
         private int connections;
 
-        public SilentDatabase()
+        public SilentDatabase(bool hangUp = false)
         {
+            this.hangUp = hangUp;
             listener.Start();
             _ = Task.Run(AcceptAsync);
         }
@@ -137,12 +146,12 @@ public sealed class SignInSaturationTests
         public int Connections => Volatile.Read(ref connections);
 
         public string ConnectionString =>
-            $"Host=127.0.0.1;Port={((IPEndPoint)listener.LocalEndpoint).Port};Database=none;Username=none;Password=none;Timeout=60;Command Timeout=60;Pooling=false";
+            $"Host=127.0.0.1;Port={((IPEndPoint)listener.LocalEndpoint).Port};Database=none;Username=none;Password=none;Timeout=5;Command Timeout=5;Pooling=false";
 
         public async Task WaitForAsync(int expected, CancellationToken cancellationToken)
         {
             using var limit = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            limit.CancelAfter(TimeSpan.FromSeconds(20));
+            limit.CancelAfter(DeadlineOfAWait);
             while (Connections < expected)
             {
                 await Task.Delay(20, limit.Token);
@@ -165,6 +174,13 @@ public sealed class SignInSaturationTests
                 while (true)
                 {
                     var client = await listener.AcceptTcpClientAsync();
+                    if (hangUp)
+                    {
+                        client.Dispose();
+                        _ = Interlocked.Increment(ref connections);
+                        continue;
+                    }
+
                     lock (held)
                     {
                         held.Add(client);

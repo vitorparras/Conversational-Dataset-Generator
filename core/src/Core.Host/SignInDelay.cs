@@ -11,6 +11,7 @@ namespace Core.Host;
 internal sealed class SignInDelay
 {
     internal const int MaxWaiting = 64;
+    internal const int MaxWaitingPerOrigin = 4;
     internal const int MaxCounters = 10_000;
     internal static readonly TimeSpan First = TimeSpan.FromSeconds(1);
     internal static readonly TimeSpan Ceiling = TimeSpan.FromSeconds(30);
@@ -29,6 +30,7 @@ internal sealed class SignInDelay
     private readonly Dictionary<string, Streak> typed = new(StringComparer.Ordinal);
     private readonly Dictionary<string, Streak> origins = new(StringComparer.Ordinal);
     private DateTimeOffset swept;
+    private readonly Dictionary<string, int> waitingByOrigin = new(StringComparer.Ordinal);
     private int waiting;
 
     internal SignInDelay(TimeProvider clock)
@@ -37,11 +39,27 @@ internal sealed class SignInDelay
         swept = clock.GetUtcNow();
     }
 
-    /// <summary>Counts the refusal against the name and the origin and waits the delay the greater counter asks, unless too many answers already wait; then it returns at once.</summary>
+    /// <summary>
+    /// True when the answers already waiting are at the limit of the whole host or of this network prefix: the entry is then refused without the password being checked,
+    /// with the answer of any refusal, so that whoever fills the limits gets neither a cheap attempt nor a verdict.
+    /// </summary>
+    internal bool Saturated(IPAddress? origin)
+    {
+        lock (gate)
+        {
+            return waiting >= MaxWaiting || (waitingByOrigin.TryGetValue(OriginKey(origin), out var byOrigin) && byOrigin >= MaxWaitingPerOrigin);
+        }
+    }
+
+    /// <summary>Counts a refusal against the name and the origin and answers at once: the entry that was not even checked.</summary>
+    internal void Counted(string name, IPAddress? origin) => _ = Register(name, origin);
+
+    /// <summary>Counts the refusal against the name and the origin and waits the delay the greater counter asks; if the limits filled meanwhile, it returns at once.</summary>
     internal async Task RefusedAsync(string name, IPAddress? origin, CancellationToken cancellationToken)
     {
         var delay = Register(name, origin);
-        if (delay <= TimeSpan.Zero || !TryEnter())
+        var prefix = OriginKey(origin);
+        if (delay <= TimeSpan.Zero || !TryEnter(prefix))
         {
             return;
         }
@@ -52,7 +70,7 @@ internal sealed class SignInDelay
         }
         finally
         {
-            _ = Interlocked.Decrement(ref waiting);
+            Leave(prefix);
         }
     }
 
@@ -140,15 +158,35 @@ internal sealed class SignInDelay
         }
     }
 
-    private bool TryEnter()
+    private bool TryEnter(string prefix)
     {
-        if (Interlocked.Increment(ref waiting) <= MaxWaiting)
+        lock (gate)
         {
+            var byOrigin = waitingByOrigin.GetValueOrDefault(prefix);
+            if (waiting >= MaxWaiting || byOrigin >= MaxWaitingPerOrigin)
+            {
+                return false;
+            }
+
+            waiting++;
+            waitingByOrigin[prefix] = byOrigin + 1;
             return true;
         }
+    }
 
-        _ = Interlocked.Decrement(ref waiting);
-        return false;
+    private void Leave(string prefix)
+    {
+        lock (gate)
+        {
+            waiting--;
+            if (waitingByOrigin[prefix] <= 1)
+            {
+                _ = waitingByOrigin.Remove(prefix);
+                return;
+            }
+
+            waitingByOrigin[prefix]--;
+        }
     }
 
     private readonly record struct Streak(int Refusals, DateTimeOffset Last);

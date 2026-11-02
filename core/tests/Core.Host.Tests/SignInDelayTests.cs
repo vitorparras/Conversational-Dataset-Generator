@@ -118,24 +118,6 @@ public sealed class SignInDelayTests
     }
 
     [Fact]
-    public async Task AboveTheLimitOfAnswersThatWaitTheRefusalReturnsAtOnceAndTheCounterKeepsRising()
-    {
-        var (clock, delay) = Made();
-        _ = await RefusedAsync(clock, delay, "ana", Here);
-        var waiting = Enumerable.Range(0, SignInDelay.MaxWaiting)
-            .Select(_ => delay.RefusedAsync("ana", Here, TestContext.Current.CancellationToken)).ToList();
-        Assert.Equal(SignInDelay.MaxWaiting, clock.Waiting);
-
-        var beyond = delay.RefusedAsync("ana", Here, TestContext.Current.CancellationToken);
-
-        Assert.True(beyond.IsCompletedSuccessfully);
-        Assert.Equal(SignInDelay.MaxWaiting, clock.Waiting);
-        clock.Advance(SignInDelay.Ceiling);
-        await Task.WhenAll(waiting);
-        Assert.Equal(SignInDelay.Ceiling, await RefusedAsync(clock, delay, "ana", Here));
-    }
-
-    [Fact]
     public async Task WithTheTablesFullAKnownNameAndOriginKeepCountingAndANewOneOfEachGetsNoCounterAndNoDelay()
     {
         var (clock, delay) = Made();
@@ -239,7 +221,7 @@ public sealed class SignInDelayTests
     }
 
     /// <summary>The address 10.x.y.1 of the network that number stands for, one /24 apart from every other number.</summary>
-    private static IPAddress NetworkNumber(int number) => new([10, (byte)(number >> 8), (byte)(number & 0xFF), 1]);
+    internal static IPAddress NetworkNumber(int number) => new([10, (byte)(number >> 8), (byte)(number & 0xFF), 1]);
 
     private static (ManualClock Clock, SignInDelay Delay) Made()
     {

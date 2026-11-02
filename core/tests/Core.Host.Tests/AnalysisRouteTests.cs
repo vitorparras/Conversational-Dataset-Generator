@@ -4,38 +4,22 @@ using System.Text.Json;
 namespace Core.Host.Tests;
 
 /// <summary>
-/// The built host analyses a text through the recognizer the configuration chose: a concluded analysis answers with the
-/// count of each kind; a refusal answers 503 with the reason, the cause and no analysis; a body the route does not know
-/// is refused; no line the host writes holds the text (issue #32, CA-2 and CA-5; requirement 021).
+/// The host analyses a text through the recognizer the configuration chose, behind the session gate: a concluded analysis answers with the count of each kind;
+/// a refusal answers 503 with the reason, the cause and no analysis; a body the route does not know is refused (issue #32, CA-2 and CA-5). The host here runs in
+/// process with a session seeded into its store; what the whole process writes to its log is read in Core.Tests.Integration.
 /// </summary>
 public sealed class AnalysisRouteTests
 {
     private const string Route = "/analysis";
     private const string Marker = "ZQX-MARKER-0027-ROUTE";
 
-    [Trait("Category", "RealService")]
-    [Fact]
-    public async Task HostAskingTheRealServiceAnalysesTheTextAndFindsNothing()
-    {
-        var cancellationToken = TestContext.Current.CancellationToken;
-        Assert.SkipWhen(LanguageServiceInterpreter.Available is null, "Real service route skipped: uv could not resolve the language-service environment.");
-        using var host = await HostProcess.StartWithTheRealServiceAsync(cancellationToken);
-
-        using var response = await host.PostAsync(Route, Body($"falei com PESSOA_1 ontem {Marker}"), cancellationToken);
-        using var body = await ReadAsync(response, cancellationToken);
-
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal(0, body.RootElement.GetProperty("occurrences").GetInt32());
-        Assert.Empty(body.RootElement.GetProperty("kinds").EnumerateObject());
-    }
-
     [Fact]
     public async Task HostWithTheFakeAnswersTheCountOfEachKind()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        using var host = await HostProcess.StartAsync(cancellationToken);
+        await using var host = await SessionedHost.StartWithAnalysisAsync(cancellationToken);
 
-        using var response = await host.PostAsync(Route, Body("ZQX-FAKE-PERSON falou com ZQX-FAKE-PERSON"), cancellationToken);
+        using var response = await host.PostAsync(Route, Body("ZQX-FAKE-PERSON falou com ZQX-FAKE-PERSON"), host.SeedSession(), cancellationToken);
         using var body = await ReadAsync(response, cancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -48,9 +32,9 @@ public sealed class AnalysisRouteTests
     public async Task RefusalAnswersServiceUnavailableWithTheReasonTheCauseAndNoAnalysis()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        using var host = await HostProcess.StartAsync(cancellationToken);
+        await using var host = await SessionedHost.StartWithAnalysisAsync(cancellationToken);
 
-        using var response = await host.PostAsync(Route, Body(Marker), cancellationToken);
+        using var response = await host.PostAsync(Route, Body(Marker), host.SeedSession(), cancellationToken);
         using var body = await ReadAsync(response, cancellationToken);
 
         Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
@@ -70,69 +54,27 @@ public sealed class AnalysisRouteTests
     public async Task BodyOutsideTheShapeOfTheRouteIsRefusedWithoutAnalysis(string json)
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        using var host = await HostProcess.StartAsync(cancellationToken);
+        await using var host = await SessionedHost.StartWithAnalysisAsync(cancellationToken);
 
-        using var response = await host.PostAsync(Route, json, cancellationToken);
+        using var response = await host.PostAsync(Route, json, host.SeedSession(), cancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     [Fact]
-    public async Task RetryNamingTheInterruptedAnalysisIsLoggedWithBothReferences()
+    public async Task RequestWithNoSessionIsNotAnalysed()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        using var host = await HostProcess.StartAsync(cancellationToken);
-        var interrupted = await ReferenceOfAsync(host, Body(Marker), cancellationToken);
+        await using var host = await SessionedHost.StartWithAnalysisAsync(cancellationToken);
 
-        var resumed = await ReferenceOfAsync(host, Body("ZQX-FAKE-NOTHING", interrupted), cancellationToken);
-        var output = await host.StopAsync();
+        using var response = await host.PostAsync(Route, Body("ZQX-FAKE-PERSON"), identifier: null, cancellationToken);
 
-        Assert.Contains($"Análise {interrupted} interrompida: ConnectionRefused; nada foi gravado", output, StringComparison.Ordinal);
-        Assert.Contains($"Análise {resumed} pedida para retomar a análise interrompida {interrupted}", output, StringComparison.Ordinal);
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
-    [Fact]
-    public async Task NoLineTheHostWritesHoldsTheTextItAnalysedRefusedOrRejected()
-    {
-        var cancellationToken = TestContext.Current.CancellationToken;
-        using var host = await HostProcess.StartAsync(cancellationToken);
-        var interrupted = await ReferenceOfAsync(host, Body($"PESSOA_1 {Marker}"), cancellationToken);
-        _ = await ReferenceOfAsync(host, Body($"ZQX-FAKE-PERSON PESSOA_1 {Marker}", interrupted), cancellationToken);
-        using var rejected = await host.PostAsync(Route, $$"""{"text":"PESSOA_1 {{Marker}}","language":"pt","zqx":1}""", cancellationToken);
-
-        var output = await host.StopAsync();
-
-        Assert.Contains("interrompida", output, StringComparison.Ordinal);
-        Assert.DoesNotContain(Marker, output, StringComparison.Ordinal);
-        Assert.DoesNotContain("PESSOA_1", output, StringComparison.Ordinal);
-    }
-
-    [Trait("Category", "RealService")]
-    [Fact]
-    public async Task NoLineTheHostAskingTheRealServiceWritesHoldsTheText()
-    {
-        var cancellationToken = TestContext.Current.CancellationToken;
-        Assert.SkipWhen(LanguageServiceInterpreter.Available is null, "Real service route skipped: uv could not resolve the language-service environment.");
-        using var host = await HostProcess.StartWithTheRealServiceAsync(cancellationToken);
-        _ = await ReferenceOfAsync(host, Body($"falei com PESSOA_1 ontem {Marker}"), cancellationToken);
-
-        var output = await host.StopAsync();
-
-        Assert.Contains("Pedido analisado pelo serviço de linguagem", output, StringComparison.Ordinal);
-        Assert.DoesNotContain(Marker, output, StringComparison.Ordinal);
-        Assert.DoesNotContain("PESSOA_1", output, StringComparison.Ordinal);
-    }
-
-    private static string Body(string text, string? resumes = null) =>
-        JsonSerializer.Serialize(new Dictionary<string, string?> { ["text"] = text, ["language"] = "pt", ["resumes"] = resumes });
+    private static string Body(string text) =>
+        JsonSerializer.Serialize(new Dictionary<string, string?> { ["text"] = text, ["language"] = "pt", ["resumes"] = null });
 
     private static async Task<JsonDocument> ReadAsync(HttpResponseMessage response, CancellationToken cancellationToken) =>
         JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
-
-    private static async Task<string> ReferenceOfAsync(HostProcess host, string json, CancellationToken cancellationToken)
-    {
-        using var response = await host.PostAsync(Route, json, cancellationToken);
-        using var body = await ReadAsync(response, cancellationToken);
-        return body.RootElement.GetProperty("reference").GetString()!;
-    }
 }

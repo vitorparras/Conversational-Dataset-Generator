@@ -216,7 +216,7 @@ dotnet_diagnostic.CA2100.severity = none
 # The statement is written by the code that exposes a query over content, as a constant of its own; it never carries input, and the domain goes by parameter.
 dotnet_diagnostic.CA2100.severity = none
 
-[core/src/Core.Persistence/Custody/CustodyScope.cs]
+[core/src/Core.Persistence/Custody/Chain/CustodyScope.cs]
 # The statement is the constant of CustodyStatements or the one a person statement declares, the system's own; it never carries input.
 dotnet_diagnostic.CA2100.severity = none
 

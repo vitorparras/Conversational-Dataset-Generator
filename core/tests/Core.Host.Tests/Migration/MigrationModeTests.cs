@@ -62,7 +62,7 @@ public sealed class MigrationModeTests
     public async Task ModeDoesNotNeedTheKindOfInstallationThatTheServingModeCannotStartWithout()
     {
         using var closed = new ClosedPort();
-        var installation = Migrating(Database($"127.0.0.1:{closed.Number}")) with { DeclaresInstallation = false };
+        var installation = Migrating(Database($"127.0.0.1:{closed.Number}")) with { DeclaresInstallation = false, DeclaresWorkFactor = false };
 
         var exit = await HostProcess.RunToExitAsync(installation, HostProcess.StartupTimeout, TestContext.Current.CancellationToken);
 
@@ -74,7 +74,7 @@ public sealed class MigrationModeTests
     public async Task ModeDoesNotNeedTheCustodyFilesThatTheServingModeCannotStartWithout()
     {
         using var closed = new ClosedPort();
-        var installation = Migrating(Database($"127.0.0.1:{closed.Number}")) with { DeclaresInstallation = false };
+        var installation = Migrating(Database($"127.0.0.1:{closed.Number}")) with { DeclaresInstallation = false, DeclaresWorkFactor = false };
 
         var exit = await HostProcess.RunToExitAsync(installation, HostProcess.StartupTimeout, TestContext.Current.CancellationToken);
 
@@ -116,6 +116,18 @@ public sealed class MigrationModeTests
 
         Assert.Equal((int)ExitCode.ConfigurationRefused, exit.Code);
         Assert.Contains("Passwords:WorkFactor", exit.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ModeHoldsAWorkFactorGivenWithoutAKindOfInstallationToTheFloorOfARealOneNamingTheKeyAndTheMinimum()
+    {
+        var installation = Migrating(Database("127.0.0.1:1")) with { DeclaresInstallation = false, DeclaresWorkFactor = false, Arguments = ["migrate", "--Passwords:WorkFactor=599999"] };
+
+        var exit = await HostProcess.RunToExitAsync(installation, HostProcess.StartupTimeout, TestContext.Current.CancellationToken);
+
+        Assert.Equal((int)ExitCode.ConfigurationRefused, exit.Code);
+        Assert.Contains("Passwords:WorkFactor", exit.Error, StringComparison.Ordinal);
+        Assert.Contains("600000", exit.Error, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -31,6 +31,19 @@ public sealed class EnvelopeCipherTests : IDisposable
         Assert.Empty(Cipher.Open(Label, Cipher.Seal(Label, [])));
 
     [Fact]
+    public void ContentSealedUnderAKeyOpensUnderTheSameKeyAndLabelOnly()
+    {
+        var key = SyntheticKey.Valid();
+        var envelope = EnvelopeCipher.SealWith(key, Label, Content);
+        var otherKey = SyntheticKey.Valid();
+        otherKey[0] ^= 0xFF;
+
+        Assert.Equal(Content, EnvelopeCipher.OpenWith(key, Label, envelope));
+        Assert.True(Throws(() => EnvelopeCipher.OpenWith(otherKey, Label, envelope)));
+        Assert.True(Throws(() => EnvelopeCipher.OpenWith(key, Other, envelope)));
+    }
+
+    [Fact]
     public void FirstByteIsTheFormatVersion() =>
         Assert.Equal(1, Cipher.Seal(Label, Content)[0]);
 
@@ -205,4 +218,6 @@ public sealed class EnvelopeCipherTests : IDisposable
     [Fact]
     public void NoCipherWithoutDerivationIsADefect() =>
         _ = Assert.Throws<ArgumentNullException>(() => new EnvelopeCipher(null!));
+
+    private static bool Throws(Action open) => Assert.Throws<EnvelopeRefusedException>(open) is not null;
 }

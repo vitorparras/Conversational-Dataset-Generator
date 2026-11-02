@@ -79,6 +79,47 @@ public sealed class FileMasterKeySourceTests : IDisposable
     }
 
     [Fact]
+    public async Task EpochsFileAbsentRefusesNamingTheFileAndItsPath()
+    {
+        var source = new FileMasterKeySource(
+            files.WriteText("key", KeyLine(SyntheticKey.Valid())),
+            files.WriteText("labels", string.Empty),
+            Path.Combine(files.Directory, "sem-epocas"),
+            AppContext.BaseDirectory);
+
+        using var reading = await source.ReadAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(MasterKeyFailureKind.Absent, reading.Failure!.Kind);
+        Assert.Contains($"arquivo das épocas não encontrado em '{Path.Combine(files.Directory, "sem-epocas")}'", reading.Failure.Found, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task EpochsFileOfTheWrongFormRefusesNamingTheLineAndNotTheSecret()
+    {
+        var source = new FileMasterKeySource(
+            files.WriteText("key", KeyLine(SyntheticKey.Valid())),
+            files.WriteText("labels", string.Empty),
+            files.WriteText("epochs", "1:AAAA\n"),
+            AppContext.BaseDirectory);
+
+        using var reading = await source.ReadAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(MasterKeyFailureKind.Unreadable, reading.Failure!.Kind);
+        Assert.Equal($"arquivo das épocas em '{Path.Combine(files.Directory, "epochs")}': linha 1: o segredo tem 3 bytes, esperados 32", reading.Failure.Found);
+    }
+
+    [Fact]
+    public async Task EpochsFileGivesTheEpochsWithTheKeyAndTheLabels()
+    {
+        var source = Source(KeyLine(SyntheticKey.Valid()), string.Empty);
+
+        using var reading = await source.ReadAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal<IEnumerable<int>>([1], reading.Epochs.Numbers());
+        Assert.Equal(1, reading.Epochs.Newest);
+    }
+
+    [Fact]
     public async Task BothFilesAbsentRefuseNamingBoth()
     {
         var source = new FileMasterKeySource(

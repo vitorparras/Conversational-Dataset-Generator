@@ -70,6 +70,23 @@ public sealed class ItemKeys
         }
     }
 
+    /// <summary>
+    /// The key of a row wrapped again under another epoch, and under another label if one is given, without the key or the content changing; this is what the rotation of an epoch
+    /// and the rotation of a label do to a row. The key is zeroed before this returns.
+    /// </summary>
+    public byte[] Rewrap(int epoch, ReadOnlySpan<byte> wrapped, int toEpoch, string toLabel)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(toLabel);
+        using var key = Unwrap(epoch, wrapped);
+        return Wrap(key, toLabel, toEpoch);
+    }
+
+    /// <summary>As <see cref="Rewrap(int, ReadOnlySpan{byte}, int, string)"/>, under the label the key already has.</summary>
+    public byte[] Rewrap(int epoch, ReadOnlySpan<byte> wrapped, int toEpoch) => Rewrap(epoch, wrapped, toEpoch, EnvelopeCipher.LabelOf(wrapped));
+
+    /// <summary>The epoch that wraps what is written now.</summary>
+    public int Newest => epochs.Newest;
+
     private byte[] Wrap(ItemKey key, string label, int epoch)
     {
         var kek = Kek(label, epoch);

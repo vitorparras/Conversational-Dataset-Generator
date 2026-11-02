@@ -37,6 +37,14 @@ internal sealed class SyntheticCustody : IDisposable
         return new SyntheticCustody(MasterKeyReading.FromBytes(key, set, CustodyEpochs.Of(secrets), "synthetic"), set);
     }
 
+    /// <summary>The custody holding the labels and the epochs given as number and secret, such as an epoch number that holds the secret of another.</summary>
+    public static SyntheticCustody HoldingSecrets(IReadOnlyDictionary<int, byte[]> epochs, IEnumerable<string> labels)
+    {
+        var set = DerivationLabels.Of(labels);
+        var key = Enumerable.Range(0, MasterKey.Length).Select(index => (byte)(0x5A ^ ((index * 29) + 3))).ToArray();
+        return new SyntheticCustody(MasterKeyReading.FromBytes(key, set, CustodyEpochs.Of(epochs), "synthetic"), set);
+    }
+
     /// <summary>The secret of the synthetic epoch of the number, the same whenever it is asked.</summary>
     public static byte[] SecretOf(int epoch) => [.. Enumerable.Range(0, MasterKey.Length).Select(index => (byte)(0xA7 ^ ((index * 31) + (epoch * 11))))];
 

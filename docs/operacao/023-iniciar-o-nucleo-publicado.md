@@ -19,7 +19,7 @@ cd /opt/cdg/nucleo
   --Installation:Kind=demonstracao --Passwords:WorkFactor=ITERACOES --MasterKey:File=/etc/cdg/custodia/chave \
   --MasterKey:LabelsFile=/etc/cdg/custodia/rotulos --Tls:CertificateFile=/etc/cdg/tls/certificado.pem \
   --Tls:KeyFile=/etc/cdg/tls/chave.pem --Database:Host=db:5432 --Database:Name=cdg \
-  --Database:Username=app --Audit:ServerLogDirectory=/var/log/postgresql > /tmp/nucleo.log 2>&1; echo $? > /tmp/nucleo.saida ) &
+  --Database:Username=app --Audit:ServerLogDirectory=/var/log/postgresql --Audit:CompareInterval=01:00:00 > /tmp/nucleo.log 2>&1; echo $? > /tmp/nucleo.saida ) &
 ```
 
 ## Esperar o núcleo ficar pronto

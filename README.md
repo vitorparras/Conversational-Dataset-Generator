@@ -149,7 +149,7 @@ dotnet run --project core/src/Core.Host -- --Host:Urls=https://127.0.0.1:5080 \
   --Installation:Kind=demonstracao --Passwords:WorkFactor=ITERACOES --Session:IdleTimeout=00:30:00 \
   --Session:AbsoluteTimeout=08:00:00 --MasterKey:File="$KEYS/chave" --MasterKey:LabelsFile="$KEYS/rotulos" \
   --Tls:CertificateFile="$KEYS/tls.crt" --Tls:KeyFile="$KEYS/tls.key" \
-  --Audit:ServerLogDirectory="$SERVERLOG" --LanguageService:Executable="$PY"
+  --Audit:ServerLogDirectory="$SERVERLOG" --Audit:CompareInterval=01:00:00 --LanguageService:Executable="$PY"
 ```
 
 `Tls:CertificateFile` e `Tls:KeyFile` são obrigatórias ao servir, sem valor padrão, e levam os
@@ -202,6 +202,13 @@ comando), e imprime cada diferença com os passos envolvidos. Sai com 0 quando n
 nova e com 20 quando há;
 a diferença conhecida, o recálculo da senha na entrada (#69), que grava a credencial sem evento até
 a #71, sai com o motivo e não reprova.
+
+`Audit:CompareInterval` é obrigatória ao servir, sem valor padrão, e leva a duração (no mínimo
+`00:01:00`, como `01:00:00`) entre duas comparações, feitas pelo próprio núcleo sobre o que passou
+desde a anterior, com um minuto de folga para o registro alcançar. Diferença nova vira aviso no log
+do núcleo (papel, tabela, comandos, contagens e passos, nunca um comando ou valor), e `GET /status`
+traz em `auditComparison` o resultado da última (`Pending`, `Agreed`, `Different` ou `Failed`),
+quando terminou e quantas diferenças novas e conhecidas achou. O `migrate` não a exige.
 
 `MasterKey:File` e `MasterKey:LabelsFile` são obrigatórias ao servir, sem valor padrão, e levam os
 caminhos dos arquivos da chave e dos rótulos, nunca a chave. O núcleo recusa arquivo ausente, com

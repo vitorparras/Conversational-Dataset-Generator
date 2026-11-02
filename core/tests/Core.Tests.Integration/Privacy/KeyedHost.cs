@@ -117,6 +117,7 @@ internal static class KeyedHost
         $"--Tls:CertificateFile={SharedTlsMaterial.CertificatePath}",
         $"--Tls:KeyFile={SharedTlsMaterial.KeyPath}",
         $"--Audit:ServerLogDirectory={ServerLogFiles.Shared}",
+        "--Audit:CompareInterval=01:00:00",
         $"--MasterKey:File={CustodyFiles.Shared.KeyPath}",
         $"--MasterKey:LabelsFile={CustodyFiles.Shared.LabelsPath}",
     ];

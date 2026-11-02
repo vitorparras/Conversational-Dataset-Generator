@@ -136,6 +136,27 @@ public sealed class SignInDelayTests
     }
 
     [Fact]
+    public async Task WithTheTablesFullAKnownNameAndOriginKeepCountingAndANewOneOfEachGetsNoCounterAndNoDelay()
+    {
+        var (clock, delay) = Made();
+        for (var index = 0; index < SignInDelay.MaxCounters; index++)
+        {
+            Assert.Equal(TimeSpan.Zero, await RefusedAsync(clock, delay, $"nome-{index}", NetworkNumber(index)));
+        }
+
+        Assert.Equal((SignInDelay.MaxCounters, SignInDelay.MaxCounters), (KeysIn(delay, "typed").Count, KeysIn(delay, "origins").Count));
+
+        var knownName = await RefusedAsync(clock, delay, "nome-0", NetworkNumber(SignInDelay.MaxCounters));
+        var knownOrigin = await RefusedAsync(clock, delay, "nome-novo-a", NetworkNumber(1));
+        var newNameInANewOriginTwice = (
+            await RefusedAsync(clock, delay, "nome-novo-b", NetworkNumber(SignInDelay.MaxCounters + 1)),
+            await RefusedAsync(clock, delay, "nome-novo-b", NetworkNumber(SignInDelay.MaxCounters + 1)));
+
+        Assert.Equal((SignInDelay.First, SignInDelay.First, (TimeSpan.Zero, TimeSpan.Zero)), (knownName, knownOrigin, newNameInANewOriginTwice));
+        Assert.Equal((SignInDelay.MaxCounters, SignInDelay.MaxCounters), (KeysIn(delay, "typed").Count, KeysIn(delay, "origins").Count));
+    }
+
+    [Fact]
     public async Task ACancelledWaitFreesItsPlaceAmongTheAnswersThatWait()
     {
         var (clock, delay) = Made();
@@ -216,6 +237,9 @@ public sealed class SignInDelayTests
             }
         }
     }
+
+    /// <summary>The address 10.x.y.1 of the network that number stands for, one /24 apart from every other number.</summary>
+    private static IPAddress NetworkNumber(int number) => new([10, (byte)(number >> 8), (byte)(number & 0xFF), 1]);
 
     private static (ManualClock Clock, SignInDelay Delay) Made()
     {

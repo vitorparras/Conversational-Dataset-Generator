@@ -31,8 +31,10 @@ quem opera o servidor, não de quem tenta entrar.
 
 **O retardo atrasa a própria resposta**, com no máximo 64 respostas retardadas ao mesmo tempo.
 Acima disso a recusa sai sem esperar e o contador continua subindo: o retardo não vira meio de
-esgotar o servidor. Cada tabela guarda no máximo 10000 contadores e esquece o que passou de 15 min;
-cheia, um nome novo não ganha contador próprio e fica sob o da origem.
+esgotar o servidor. Cada tabela guarda no máximo 10000 contadores e esquece o que passou de 15 min.
+Com a tabela cheia, um nome ou uma origem novos não ganham contador: o nome fica sob o da origem, e
+uma origem nova, com a tabela de origens cheia, fica sem retardo até que algo seja esquecido;
+encher a tabela custa 10000 redes de origem diferentes em 15 min.
 
 ## Alternativas recusadas
 

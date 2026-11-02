@@ -1,7 +1,6 @@
 using System.Net;
 using Core.Persistence.People;
 using Core.Platform.Sessions;
-using Npgsql;
 
 namespace Core.Host;
 
@@ -13,10 +12,6 @@ namespace Core.Host;
 internal sealed class SignIn(PersonRegistry registry, PersonCredentials credentials, SessionStore sessions, SignInDelay delay)
 {
     private const long Nobody = 0;
-
-    /// <summary>The entry over the database the source reaches, with the delay counting on the clock.</summary>
-    internal static SignIn Of(NpgsqlDataSource source, PasswordDerivation derivation, SessionStore sessions, TimeProvider clock) =>
-        new(new PersonRegistry(source), new PersonCredentials(source, derivation), sessions, new SignInDelay(clock));
 
     /// <summary>The identifier of the session that was opened; null when the entry is refused, whatever the reason.</summary>
     internal async Task<string?> OpenAsync(string name, string password, IPAddress? origin, CancellationToken cancellationToken)

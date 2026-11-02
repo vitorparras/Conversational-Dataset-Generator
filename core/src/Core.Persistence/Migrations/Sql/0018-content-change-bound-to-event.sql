@@ -14,15 +14,22 @@ ALTER TABLE public.custody_event
         (step = 'epoch_rotated') = (item_kind = 'content_epoch')
         AND (step <> 'epoch_rotated' OR (actor_system AND reason = 'administrative_act' AND reference IS NULL)));
 
+-- The trigger looks for the event once per row it lets through, and the rotation changes every key: without an index of its own the chain is read from end to end for each key wrapped again, and
+-- the event of the rotation holds the tip of the chain (previous_digest is unique) until the commit, so every other writer of an event waits for as long as that takes.
+CREATE INDEX custody_event_item_step_idx ON public.custody_event (item_kind, item_id, step);
+
 -- Whether the event is in the chain and was written by this very transaction. The row carries the transaction that wrote it (xmin), and the server's own is compared with it: an event that
 -- another transaction wrote, committed or not, never matches, so no concurrent writer can release a change that is not its own. An event written inside a savepoint carries the number of
 -- the savepoint and does not match either; the refusal fails closed.
+-- The transaction number (xmin) is 32 bits and a frozen row keeps the raw one, so a turn of the counter could make an old event of the same item, kind and step match; an event written in this
+-- transaction is never older than its start, and an older one does not match. A clock set back between the start and the event fails closed, with the same refusal, and repeating clears it.
 CREATE FUNCTION public.custody_event_of_this_transaction(of_kind text, of_item bigint, of_step text) RETURNS boolean
 LANGUAGE sql
 STABLE
 RETURN EXISTS (
     SELECT 1 FROM public.custody_event e
-    WHERE e.item_kind = of_kind AND e.item_id = of_item AND e.step = of_step AND e.xmin = pg_catalog.pg_current_xact_id()::pg_catalog.xid);
+    WHERE e.item_kind = of_kind AND e.item_id = of_item AND e.step = of_step AND e.xmin = pg_catalog.pg_current_xact_id()::pg_catalog.xid
+      AND e.occurred_at >= pg_catalog.transaction_timestamp());
 
 -- The refusal carries an SQLSTATE of its own (CE005) and a message that names the table and no value. It holds for every role, the owner included, and in a session that set
 -- session_replication_role to replica, as the triggers of the step 0016 do.

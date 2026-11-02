@@ -27,6 +27,9 @@ internal sealed class ScratchDatabase : IAsyncDisposable
     /// <summary>The connection string of the application role, pointing at the scratch database.</summary>
     public string AppConnectionString { get; }
 
+    /// <summary>The connection string of the superuser, pointing at the scratch database, for a test that needs a session the owner and the application cannot have.</summary>
+    public string SuperuserConnectionString => Unpooled(superuserConnectionString, name);
+
     /// <summary>The dump pg_dump writes for this database, run as the superuser.</summary>
     public async Task<string> DumpAsync() => await (await PostgresFixture.SharedAsync()).DumpAsync(name);
 

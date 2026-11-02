@@ -26,7 +26,9 @@ não terminou.
    ([0050](../decisoes/0050-banco-amarra-a-mudanca-do-conteudo-a-um-evento.md)). Sai com 0 e diz
    quantas; com 15 se o custodiante não foi lido, uma chave não abriu ou a cadeia recusou o evento
    (nada muda, e a recusa nomeia a causa); com 16 se o banco não respondeu; com 78 se faltou um
-   dos caminhos.
+   dos caminhos. Enquanto reembrulha, o evento do giro segura o elo da cadeia até o commit: quem
+   grava evento no servidor (leitura de conteúdo protegido) espera e pode ser recusado por
+   conflito. Saída 15 por conflito na cadeia se resolve repetindo o comando.
 3. **Conferir.** Rode `rotate-epoch` de novo, com o servidor já reiniciado: tem de sair com 0 e
    dizer 0 chaves. Se disser mais, algo gravou sob a época antiga no meio: reinicie e repita.
    Sem 0 chaves, não se segue.

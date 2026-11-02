@@ -6,7 +6,9 @@ using NpgsqlTypes;
 namespace Core.Persistence.Custody.Chain;
 
 /// <summary>
-/// The only place that adds an event to the chain, and always in a serializable transaction: the change the event is about is written in it too, and either both exist or neither does.
+/// The only place that adds an event to the chain: the change the event is about is written in the same transaction, and either both exist or neither does.
+/// The transaction it opens itself is serializable; a caller that brings its own (the rotation of the epoch, read committed) is left its isolation,
+/// and there the unique previous digest is what refuses the second writer at the same link.
 /// A writer that meets another at the same link of the chain is refused visibly, and never both are accepted.
 /// </summary>
 internal static class CustodyTransaction

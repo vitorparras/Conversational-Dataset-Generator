@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Core.Persistence.Content;
 using Core.Persistence.Tests.Fixtures;
 using Npgsql;
@@ -161,6 +162,33 @@ public sealed class ContentChangeNeedsEventTests
         var aboutAnItem = await Assert.ThrowsAsync<PostgresException>(() => world.ScalarAsync(AboutAnItem));
 
         Assert.Equal(("custody_event_rotation_shape", "custody_event_rotation_shape"), (byAPerson.ConstraintName, aboutAnItem.ConstraintName));
+    }
+
+    [DatabaseFact]
+    public async Task TheRefusalHoldsInASessionThatTurnedTheTriggersOffAsAReplica()
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        var item = await ItemWithMapAsync(world);
+        await using var connection = await Sql.OpenAsync(world.Database.SuperuserConnectionString);
+        await using (var replica = new NpgsqlCommand("SET session_replication_role = replica", connection))
+        {
+            _ = await replica.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+        }
+
+        await using var show = new NpgsqlCommand("SHOW session_replication_role", connection);
+        var mode = (string?)await show.ExecuteScalarAsync(TestContext.Current.CancellationToken);
+        var onItem = await Assert.ThrowsAsync<PostgresException>(() => ChangeAsync(connection, Empty, item));
+        var onMap = await Assert.ThrowsAsync<PostgresException>(() => ChangeAsync(connection, RewrapMap, item));
+
+        Assert.Equal(("replica", Unbound, Unbound, 1L), (mode, onItem.SqlState, onMap.SqlState, await world.OwnerInDomainAsync(1, Intact, ("id", item))));
+    }
+
+    [SuppressMessage("Security", "CA2100", Justification = "The statements are literals of the tests, never input.")]
+    private static async Task<object?> ChangeAsync(NpgsqlConnection connection, string statement, long item)
+    {
+        await using var command = new NpgsqlCommand(statement, connection);
+        _ = command.Parameters.AddWithValue("id", item);
+        return await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
     }
 
     private static Task<object?> InDomainAsync(ContentWorld world, bool byOwner, string statement, long item) =>

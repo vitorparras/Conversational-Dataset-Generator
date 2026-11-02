@@ -27,7 +27,10 @@ de uma linha sem que o evento dessa mudança já esteja na cadeia, escrito na me
 A linha do evento guarda o número da transação que a escreveu (xmin), e o banco o compara com o
 da transação corrente. Evento de outra transação, confirmada ou não, nunca casa, então um escritor
 concorrente não libera mudança que não é dele. Evento escrito dentro de um ponto de salvamento
-carrega o número do ponto e também não casa: a recusa falha fechada.
+carrega o número do ponto e também não casa: a recusa falha fechada. O número tem 32 bits, então o
+evento também não pode ser mais antigo que o início da transação (`occurred_at`); um relógio
+recuado no meio recusa do mesmo jeito, e repetir resolve. O gatilho roda por linha, por isso a
+procura do evento tem índice próprio (`item_kind`, `item_id`, `step`).
 
 ## Alternativas recusadas
 
@@ -39,7 +42,8 @@ carrega o número do ponto e também não casa: a recusa falha fechada.
 
 O esvaziamento e o giro passam a depender de a cadeia aceitar o evento: cadeia quebrada ou
 concorrente no mesmo elo recusa a mudança, e o giro repete. Quem edita o banco à mão precisa
-escrever o evento antes. Piora: o giro compete pelo elo da cadeia com quem grava eventos.
+escrever o evento antes. Piora: o giro compete pelo elo da cadeia com quem grava eventos, e o evento dele o segura até o
+commit.
 
 ## O que reabre esta decisão
 

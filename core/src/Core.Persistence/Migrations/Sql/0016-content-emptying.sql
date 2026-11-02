@@ -115,20 +115,21 @@ ALTER TABLE public.custody_event
 GRANT UPDATE (emptied_at, raw_text, sanitized_text, pseudonymized_text) ON content.item_text TO app;
 GRANT UPDATE (emptied_at, entries) ON content.reversal_map TO app;
 
--- An emptied row is final: nothing in it changes again, so that the columns cleared do not come back and the marker does not go away. SQLSTATE CE004, a message that names no content.
+-- The one change of a row of content is the emptying: the marker set and the columns cleared, once. A row that was not emptied keeps its content whoever writes (an update that leaves the marker
+-- unset is refused), and a row that was emptied is final, so that the columns cleared do not come back and the marker does not go away. SQLSTATE CE004, a message that names no content.
 CREATE FUNCTION public.refuse_change_of_emptied_content() RETURNS trigger
 LANGUAGE plpgsql
 AS $refuse$
 BEGIN
-    RAISE EXCEPTION 'the content was emptied: a row emptied does not change again'
+    RAISE EXCEPTION 'the content changes only by the emptying, and a row emptied does not change again'
         USING ERRCODE = 'CE004', SCHEMA = TG_TABLE_SCHEMA, TABLE = TG_TABLE_NAME;
 END
 $refuse$;
 
 CREATE TRIGGER emptied_content_is_final BEFORE UPDATE ON content.item_text
-    FOR EACH ROW WHEN (OLD.emptied_at IS NOT NULL) EXECUTE FUNCTION public.refuse_change_of_emptied_content();
+    FOR EACH ROW WHEN (OLD.emptied_at IS NOT NULL OR NEW.emptied_at IS NULL) EXECUTE FUNCTION public.refuse_change_of_emptied_content();
 CREATE TRIGGER emptied_content_is_final BEFORE UPDATE ON content.reversal_map
-    FOR EACH ROW WHEN (OLD.emptied_at IS NOT NULL) EXECUTE FUNCTION public.refuse_change_of_emptied_content();
+    FOR EACH ROW WHEN (OLD.emptied_at IS NOT NULL OR NEW.emptied_at IS NULL) EXECUTE FUNCTION public.refuse_change_of_emptied_content();
 ALTER TABLE content.item_text ENABLE ALWAYS TRIGGER emptied_content_is_final;
 ALTER TABLE content.reversal_map ENABLE ALWAYS TRIGGER emptied_content_is_final;
 
@@ -149,3 +150,21 @@ $refuse$;
 CREATE TRIGGER map_needs_item_not_emptied BEFORE INSERT ON content.reversal_map
     FOR EACH ROW EXECUTE FUNCTION public.refuse_map_of_emptied_item();
 ALTER TABLE content.reversal_map ENABLE ALWAYS TRIGGER map_needs_item_not_emptied;
+
+-- A map is emptied with its item and not before: the item was emptied already, in the same transaction, when the map is. The item is seen through the row policy, which is the one of the map's domain.
+CREATE FUNCTION public.refuse_map_emptied_before_item() RETURNS trigger
+LANGUAGE plpgsql
+AS $refuse$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM content.item_text i WHERE i.id = NEW.item_id AND i.domain_id = NEW.domain_id AND i.emptied_at IS NOT NULL) THEN
+        RAISE EXCEPTION 'a map is emptied with its item, not before'
+            USING ERRCODE = 'CE004', SCHEMA = TG_TABLE_SCHEMA, TABLE = TG_TABLE_NAME;
+    END IF;
+
+    RETURN NEW;
+END
+$refuse$;
+
+CREATE TRIGGER map_emptied_with_item BEFORE UPDATE ON content.reversal_map
+    FOR EACH ROW WHEN (OLD.emptied_at IS NULL AND NEW.emptied_at IS NOT NULL) EXECUTE FUNCTION public.refuse_map_emptied_before_item();
+ALTER TABLE content.reversal_map ENABLE ALWAYS TRIGGER map_emptied_with_item;

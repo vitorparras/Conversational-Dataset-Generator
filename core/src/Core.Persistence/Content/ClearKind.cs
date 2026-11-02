@@ -14,4 +14,7 @@ public enum ClearKind
 
     /// <summary>The pseudonymized text, the one text that decision 0030 leaves in clear.</summary>
     PseudonymizedText = 3,
+
+    /// <summary>The number of the epoch whose secret wraps the key of a row (decision 0049).</summary>
+    Epoch = 4,
 }

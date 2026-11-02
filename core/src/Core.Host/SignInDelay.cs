@@ -40,39 +40,41 @@ internal sealed class SignInDelay
     }
 
     /// <summary>
-    /// True when the answers already waiting are at the limit of the whole host or of this network prefix: the entry is then refused without the password being checked,
-    /// with the answer of any refusal, so that whoever fills the limits gets neither a cheap attempt nor a verdict.
+    /// Reserves, in one step, a place among the entries in progress: 4 for the network prefix and 64 for the host. The place is kept until the admission is disposed, after the
+    /// answer, so that the entries in parallel cannot all pass before the first one is counted. Null when a limit is full: the entry is then refused without the password being
+    /// checked, with the answer of any refusal, so that whoever fills the limits gets neither a cheap attempt nor a verdict.
     /// </summary>
-    internal bool Saturated(IPAddress? origin)
+    internal Admission? Admit(IPAddress? origin)
     {
+        var prefix = OriginKey(origin);
         lock (gate)
         {
-            return waiting >= MaxWaiting || (waitingByOrigin.TryGetValue(OriginKey(origin), out var byOrigin) && byOrigin >= MaxWaitingPerOrigin);
+            var byOrigin = waitingByOrigin.GetValueOrDefault(prefix);
+            if (waiting >= MaxWaiting || byOrigin >= MaxWaitingPerOrigin)
+            {
+                return null;
+            }
+
+            waiting++;
+            waitingByOrigin[prefix] = byOrigin + 1;
         }
+
+        return new Admission(() => Leave(prefix));
     }
 
     /// <summary>Counts a refusal against the name and the origin and answers at once: the entry that was not even checked.</summary>
     internal void Counted(string name, IPAddress? origin) => _ = Register(name, origin);
 
-    /// <summary>Counts the refusal against the name and the origin and waits the delay the greater counter asks; if the limits filled meanwhile, it returns at once.</summary>
+    /// <summary>Counts the refusal against the name and the origin and waits the delay the greater counter asks, holding the place the entry was admitted to.</summary>
     internal async Task RefusedAsync(string name, IPAddress? origin, CancellationToken cancellationToken)
     {
         var delay = Register(name, origin);
-        var prefix = OriginKey(origin);
-        if (delay <= TimeSpan.Zero || !TryEnter(prefix))
-        {
-            return;
-        }
-
-        try
+        if (delay > TimeSpan.Zero)
         {
             await Task.Delay(delay, clock, cancellationToken).ConfigureAwait(false);
         }
-        finally
-        {
-            Leave(prefix);
-        }
     }
+
 
     /// <summary>An accepted entry zeroes the counters of its name and its origin.</summary>
     internal void Accepted(string name, IPAddress? origin)
@@ -158,22 +160,6 @@ internal sealed class SignInDelay
         }
     }
 
-    private bool TryEnter(string prefix)
-    {
-        lock (gate)
-        {
-            var byOrigin = waitingByOrigin.GetValueOrDefault(prefix);
-            if (waiting >= MaxWaiting || byOrigin >= MaxWaitingPerOrigin)
-            {
-                return false;
-            }
-
-            waiting++;
-            waitingByOrigin[prefix] = byOrigin + 1;
-            return true;
-        }
-    }
-
     private void Leave(string prefix)
     {
         lock (gate)
@@ -190,4 +176,24 @@ internal sealed class SignInDelay
     }
 
     private readonly record struct Streak(int Refusals, DateTimeOffset Last);
+
+    /// <summary>The place of an entry in progress; disposing it, once, gives the place back.</summary>
+    internal sealed class Admission : IDisposable
+    {
+        private readonly Action release;
+        private int released;
+
+        internal Admission(Action release)
+        {
+            this.release = release;
+        }
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref released, 1) == 0)
+            {
+                release();
+            }
+        }
+    }
 }

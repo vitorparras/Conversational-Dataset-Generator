@@ -17,7 +17,8 @@ internal sealed class SignIn(PersonRegistry registry, PersonCredentials credenti
     /// <summary>The identifier of the session that was opened; null when the entry is refused, whatever the reason.</summary>
     internal async Task<string?> OpenAsync(string name, string password, IPAddress? origin, CancellationToken cancellationToken)
     {
-        if (delay.Saturated(origin))
+        using var admission = delay.Admit(origin);
+        if (admission is null)
         {
             delay.Counted(name, origin);
             return null;

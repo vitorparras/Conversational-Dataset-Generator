@@ -14,6 +14,7 @@ internal sealed class AuditedTable : IAsyncDisposable
     private const string UniqueViolation = "23505";
     private const string NotNullViolation = "23502";
     private const string InvalidText = "22P02";
+    private const string NotAllowed = "42501";
     private readonly ScratchDatabase database;
     private readonly string suffix = $"{Guid.NewGuid():N}";
 
@@ -32,6 +33,9 @@ internal sealed class AuditedTable : IAsyncDisposable
 
     /// <summary>The material the test seeds: it must reach the table and no line of the server log.</summary>
     public string Marker { get; }
+
+    /// <summary>The database the table is in, as the server's log names it.</summary>
+    public string DatabaseName => new NpgsqlConnectionStringBuilder(database.AppConnectionString).Database!;
 
     public static async Task<AuditedTable> CreateAsync()
     {
@@ -63,6 +67,12 @@ internal sealed class AuditedTable : IAsyncDisposable
         Assert.Equal(InvalidText, (await Assert.ThrowsAsync<PostgresException>(() => RunAsync("SELECT CAST(@body AS integer)", BodyParameter(Marker)))).SqlState);
 
     /// <summary>The application ends the run with the last read.</summary>
+    public async Task TruncateRefusedAsNotAllowedAsync() =>
+        Assert.Equal(NotAllowed, (await Assert.ThrowsAsync<PostgresException>(() => RunAsync($"TRUNCATE {Name}"))).SqlState);
+
+    public async Task AlterRefusedAsNotTheOwnerAsync() =>
+        Assert.Equal(NotAllowed, (await Assert.ThrowsAsync<PostgresException>(() => RunAsync($"ALTER TABLE {Name} ADD COLUMN zqx_extra integer"))).SqlState);
+
     public Task ReadTheEndAsync() => RunAsync($"SELECT id FROM {EndName} WHERE id = @id", IdParameter(0));
 
     public async ValueTask DisposeAsync() => await database.DisposeAsync();

@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Data;
 using System.Data.Common;
+using Core.Persistence.Custody.Chain;
 using Npgsql;
 
 namespace Core.Persistence.Custody.Verification;

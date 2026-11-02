@@ -11,7 +11,9 @@ internal static class AnalyzerInspector
     public static AnalyzerFindings Inspect(IEnumerable<string> analyzerPaths, GeneratorInput input)
     {
         var failures = new List<string>();
-        var references = analyzerPaths.Select(path => Reference(path, AnalyzerLoader.Shared, failures.Add)).ToList();
+        var paths = analyzerPaths.ToList();
+        var loader = AnalyzerLoader.For(paths);
+        var references = paths.Select(path => Reference(path, loader, failures.Add)).ToList();
         var suppressors = references.SelectMany(SuppressorsIn).ToList();
         var generators = references.SelectMany(reference => reference.GetGenerators(LanguageNames.CSharp)).ToImmutableArray();
         var diagnostics = references

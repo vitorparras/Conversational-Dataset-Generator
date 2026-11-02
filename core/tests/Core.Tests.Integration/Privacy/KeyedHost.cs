@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text.Json;
+using Core.Tests.Support.Audit;
 using Core.Tests.Support.Custody;
 using Core.Tests.Support.Net;
 using Npgsql;
@@ -115,6 +116,7 @@ internal static class KeyedHost
         "--LanguageService:Executable=zqx-never-started-7731",
         $"--Tls:CertificateFile={SharedTlsMaterial.CertificatePath}",
         $"--Tls:KeyFile={SharedTlsMaterial.KeyPath}",
+        $"--Audit:ServerLogDirectory={ServerLogFiles.Shared}",
         $"--MasterKey:File={CustodyFiles.Shared.KeyPath}",
         $"--MasterKey:LabelsFile={CustodyFiles.Shared.LabelsPath}",
     ];

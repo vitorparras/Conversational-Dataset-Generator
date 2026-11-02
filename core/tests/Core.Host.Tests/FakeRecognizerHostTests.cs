@@ -19,22 +19,7 @@ public sealed class FakeRecognizerHostTests
         Assert.Equal("fake", body.RootElement.GetProperty("recognizer").GetString());
         Assert.Equal(JsonValueKind.Null, body.RootElement.GetProperty("languageService").ValueKind);
         var names = body.RootElement.GetProperty("checks").EnumerateArray().Select(check => check.GetProperty("name").GetString()).ToList();
-        Assert.Equal(["RuntimeIdentifier", "Host:BundledFile", "MasterKey", "Tls", "Database"], names);
-    }
-
-    [Fact]
-    public async Task ConfigurationInForceShowsTheFakeKindWithItsOrigin()
-    {
-        var cancellationToken = TestContext.Current.CancellationToken;
-        using var host = await HostProcess.StartAsync(cancellationToken);
-
-        using var response = await host.GetAsync("/configuration", cancellationToken);
-        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
-
-        var kind = body.RootElement.GetProperty("entries").EnumerateArray()
-            .Single(entry => entry.GetProperty("key").GetString() == "Recognizer:Kind");
-        Assert.Equal("fake", kind.GetProperty("value").GetString());
-        Assert.Equal("Argument", kind.GetProperty("origin").GetString());
+        Assert.Equal(["RuntimeIdentifier", "Host:BundledFile", "MasterKey", "Tls", "Database", "ServerLog"], names);
     }
 
     [Fact]

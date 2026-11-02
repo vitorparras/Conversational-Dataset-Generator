@@ -14,8 +14,8 @@ Um servidor PostgreSQL onde as garantias sejam do servidor, e não da aplicaçã
 - Política de linha aplicável com `FORCE`, para que o isolamento entre domínios valha até contra o
   dono da tabela, como a [decisão 0006](../decisoes/0006-dominios-coexistem.md) exige
 - Registro de auditoria por extensão, no servidor, fora do alcance da aplicação que ele audita, em
-  `csvlog` fora do diretório de dados: o servidor escreve (`0640`) e o usuário do processo da
-  aplicação só lê, pelo grupo `postgres`; a retenção é a da cadeia, sem apagar nem sobrescrever
+  `csvlog` em UTC fora do diretório de dados (`0640`; a aplicação só lê, pelo grupo `postgres`) e
+  o texto do comando que altera (`log_statement = mod`), sem valor; retenção da cadeia, sem apagar
 - Isolamento serializável, sem o qual duas gravações simultâneas corrompem a cadeia em silêncio
 - Permissão de escrita revogável por coluna, e gatilhos, para que a tabela acrescentável não dependa
   de a aplicação lembrar

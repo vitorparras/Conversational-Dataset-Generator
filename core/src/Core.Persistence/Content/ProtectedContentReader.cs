@@ -1,6 +1,7 @@
 using System.Collections.Frozen;
 using System.Data.Common;
 using Core.Persistence.Custody;
+using Core.Persistence.Custody.Chain;
 using Npgsql;
 using NpgsqlTypes;
 

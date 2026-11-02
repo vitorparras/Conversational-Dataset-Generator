@@ -1,6 +1,7 @@
 using System.Data;
 using System.Diagnostics;
 using Core.Persistence.Custody;
+using Core.Persistence.Custody.Chain;
 using Npgsql;
 using NpgsqlTypes;
 

@@ -2,10 +2,11 @@
 
 > Operacional. 2026-10-30.
 
-Os dois arquivos que a [decisão 0044](../decisoes/0044-arquivo-de-custodia-da-chave.md) manda o
-núcleo ler na partida: `MasterKey:File` (a chave, uma linha com 32 bytes em base64) e
-`MasterKey:LabelsFile` (os rótulos de derivação, UTF-8 sem BOM, um por linha). A configuração leva
-os caminhos, nunca a chave. Vem antes de [023](023-iniciar-o-nucleo-publicado.md).
+Os três arquivos que a [decisão 0044](../decisoes/0044-arquivo-de-custodia-da-chave.md) manda o
+núcleo ler na partida: `MasterKey:File` (a chave, uma linha com 32 bytes em base64),
+`MasterKey:LabelsFile` (os rótulos de derivação, UTF-8 sem BOM, um por linha) e
+`MasterKey:EpochsFile` (as épocas da [0049](../decisoes/0049-chave-por-item-e-epoca.md), uma por
+linha como `n:base64 de 32 bytes`). A configuração leva os caminhos, nunca a chave. Vem antes de [023](023-iniciar-o-nucleo-publicado.md).
 
 ## Onde moram
 
@@ -19,11 +20,12 @@ mais aberta recusa a partida, e a recusa diz o que viu.
 
 A demonstração não tem cópia de guarda, então a chave pode ser descartável. Os valores são os do
 exemplo de [021](021-subir-o-nucleo-publicado.md), a trocar pelos do seu ambiente. Sem rótulos
-usados, o arquivo de rótulos nasce vazio:
+usados, o arquivo de rótulos nasce vazio, e o das épocas nasce com a época 1:
 
 ```
 ( umask 077; mkdir -p /etc/cdg/custodia; cd /etc/cdg/custodia \
-  && head -c 32 /dev/urandom | base64 > chave && : > rotulos )
+  && head -c 32 /dev/urandom | base64 > chave && : > rotulos \
+  && printf '1:%s\n' "$(head -c 32 /dev/urandom | base64)" > epocas )
 ```
 
 No Windows, tire a herança do arquivo e deixe só o usuário (`icacls ARQUIVO /inheritance:r
@@ -33,8 +35,9 @@ No Windows, tire a herança do arquivo e deixe só o usuário (`icacls ARQUIVO /
 
 A chave e os rótulos vêm da cópia de guarda ([002](002-guarda-da-chave.md)), nunca de um sorteio
 novo: chave nova sem os rótulos antigos deixa o dado antigo ilegível, e o arquivo de rótulos leva o
-conjunto completo. Além dos arquivos, a instalação real declara quando a recuperação foi testada
-pela última vez e quem detém a cópia, e sem isso a partida recusa e nomeia o que falta:
+conjunto completo. As épocas vêm da cópia do custodiante ([026](026-rotacao-da-epoca.md)). Além dos
+arquivos, a instalação real declara quando a recuperação foi testada pela última vez e quem detém a
+cópia, e sem isso a partida recusa e nomeia o que falta:
 
 ```
 --Custody:LastRecoveryTest=AAAA-MM-DD --Custody:Holder=QUEM_DETEM
@@ -51,4 +54,7 @@ apagado dele. A demonstração não declara nada disso.
   `/opt/cdg`, senão atualizar o artefato troca a pasta e leva a chave junto
 - **`tamanho inválido`**: a chave decodificada não tem 32 bytes, e a recusa diz quantos tem
 - **`não é base64` ou `linhas`**: o arquivo da chave tem de ter uma linha só
-- **`linha N`**: o arquivo de rótulos tem um rótulo vazio ou com espaço em volta nessa linha
+- **`linha N`**: o arquivo de rótulos tem um rótulo vazio ou com espaço em volta nessa linha, ou
+  o das épocas tem uma linha que não é `n:base64`, ou repete a época
+- **`época ... ausente`**: o banco tem linha embrulhada por uma época que o arquivo não tem; veja a
+  [026](026-rotacao-da-epoca.md)

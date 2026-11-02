@@ -17,6 +17,7 @@ internal sealed class SignInDelay
     internal static readonly TimeSpan Forgetting = TimeSpan.FromMinutes(15);
 
     private const string Unknown = "none";
+    private const int FirstDelayed = 2;
     private const int Doublings = 5;
     private const int Ipv4PrefixBytes = 3;
     private const int Ipv6PrefixBytes = 6;
@@ -66,8 +67,16 @@ internal sealed class SignInDelay
     }
 
     /// <summary>The delay the n-th refusal in a row waits: none for the first, then 1 s doubling to the ceiling.</summary>
-    internal static TimeSpan DelayOf(int refusals) =>
-        refusals < 2 ? TimeSpan.Zero : refusals - 2 >= Doublings ? Ceiling : TimeSpan.FromTicks(Math.Min(First.Ticks << (refusals - 2), Ceiling.Ticks));
+    internal static TimeSpan DelayOf(int refusals)
+    {
+        var doublings = refusals - FirstDelayed;
+        if (doublings < 0)
+        {
+            return TimeSpan.Zero;
+        }
+
+        return doublings >= Doublings ? Ceiling : TimeSpan.FromTicks(Math.Min(First.Ticks << doublings, Ceiling.Ticks));
+    }
 
     /// <summary>The network prefix of the address that is kept: /24 for IPv4 and /48 for IPv6, never the whole address.</summary>
     internal static string OriginKey(IPAddress? origin)
@@ -98,7 +107,7 @@ internal sealed class SignInDelay
         }
     }
 
-    private static int Count(Dictionary<string, Streak> counters, string counted, DateTimeOffset now)
+    private static int Count(IDictionary<string, Streak> counters, string counted, DateTimeOffset now)
     {
         var known = counters.TryGetValue(counted, out var streak) && now - streak.Last < Forgetting;
         if (!known && counters.Count >= MaxCounters)
@@ -123,7 +132,7 @@ internal sealed class SignInDelay
         Forget(origins, now);
     }
 
-    private static void Forget(Dictionary<string, Streak> counters, DateTimeOffset now)
+    private static void Forget(IDictionary<string, Streak> counters, DateTimeOffset now)
     {
         foreach (var old in counters.Where(entry => now - entry.Value.Last >= Forgetting).Select(entry => entry.Key).ToList())
         {

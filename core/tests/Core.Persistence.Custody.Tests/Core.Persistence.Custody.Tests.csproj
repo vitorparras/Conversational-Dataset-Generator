@@ -6,16 +6,5 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Core.Persistence\Core.Persistence.csproj" />
     <ProjectReference Include="..\Core.Tests.Support\Core.Tests.Support.csproj" />
-    <ProjectReference Include="..\Core.Tests.Database\Core.Tests.Database.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Npgsql" />
-    <PackageReference Include="Testcontainers" />
-  </ItemGroup>
-
-  <!-- The warm-up is an assembly fixture, which each test assembly must declare for itself; the one source is the module's own project. -->
-  <ItemGroup>
-    <Compile Include="..\Core.Persistence.Tests\Fixtures\DatabaseWarmup.cs" Link="Fixtures\DatabaseWarmup.cs" />
   </ItemGroup>
 </Project>

@@ -10,4 +10,18 @@
     <PackageReference Include="Npgsql" />
     <PackageReference Include="Testcontainers" />
   </ItemGroup>
+
+  <!-- The helpers the host's process tests share with Core.Host.Tests, read from where they live so there is one of each. -->
+  <ItemGroup>
+    <Compile Include="..\Core.Host.Tests\LanguageServiceInterpreter.cs" Link="Hosts\Shared\LanguageServiceInterpreter.cs" />
+    <Compile Include="..\Core.Host.Tests\WorkingCopy.cs" Link="Hosts\Shared\WorkingCopy.cs" />
+    <Compile Include="..\Core.Host.Tests\Supervision\SweepMarker.cs" Link="Hosts\Shared\SweepMarker.cs" />
+    <Compile Include="..\Core.Host.Tests\Supervision\SecretSweep.cs" Link="Hosts\Shared\SecretSweep.cs" />
+    <Compile Include="..\Core.Host.Tests\Privacy\LogSweep.cs" Link="Hosts\Shared\LogSweep.cs" />
+    <Compile Include="..\Core.Host.Tests\Privacy\LogEvidence.cs" Link="Hosts\Shared\LogEvidence.cs" />
+    <Compile Include="..\Core.Host.Tests\Privacy\LogMarker.cs" Link="Hosts\Shared\LogMarker.cs" />
+    <Compile Include="..\Core.Host.Tests\Privacy\LogDestinations.cs" Link="Hosts\Shared\LogDestinations.cs" />
+    <Compile Include="..\Core.Host.Tests\Privacy\LogLeak.cs" Link="Hosts\Shared\LogLeak.cs" />
+    <Compile Include="..\Core.Host.Tests\Privacy\RealServiceGuard.cs" Link="Hosts\Shared\RealServiceGuard.cs" />
+  </ItemGroup>
 </Project>

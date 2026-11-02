@@ -14,6 +14,9 @@ namespace Core.Persistence.Content;
 /// </summary>
 public sealed class ProtectedContentReader(NpgsqlDataSource dataSource, ProtectedContent protectedContent, CustodyChain chain)
 {
+    private const int EpochColumn = 2;
+    private const int WrappedColumn = 3;
+
     private static readonly FrozenDictionary<ProtectedColumn, ColumnReading> Readings = new Dictionary<ProtectedColumn, ColumnReading>
     {
         [ContentColumns.RawText] = new(CustodyItemKind.ItemText, CustodyStep.RawTextRead, ContentQueries.ReadRawText),
@@ -42,7 +45,7 @@ public sealed class ProtectedContentReader(NpgsqlDataSource dataSource, Protecte
         var recorded = await chain.AppendAsync(CustodyEvent.Of(request.Author, new CustodyItem(reading.Kind, request.RowId), reading.Step, CustodyReason.ContentRead), cancellationToken)
             .ConfigureAwait(false);
         return recorded.Outcome == CustodyOutcome.Appended
-            ? new ContentReadResult { Outcome = ContentReadOutcome.Read, Text = protectedContent.Open(request.Column, request.DomainId, stored.Envelope) }
+            ? new ContentReadResult { Outcome = ContentReadOutcome.Read, Text = protectedContent.Open(request.Column, request.DomainId, stored.Envelope, stored.Key!) }
             : new ContentReadResult { Outcome = ContentReadOutcome.NotRecorded, Refusal = recorded };
     }
 
@@ -71,8 +74,12 @@ public sealed class ProtectedContentReader(NpgsqlDataSource dataSource, Protecte
             return new StoredValue(Found: false, null, Emptied: false);
         }
 
-        var envelope = await reader.IsDBNullAsync(0, cancellationToken).ConfigureAwait(false) ? null : (byte[])reader.GetValue(0);
-        return new StoredValue(Found: true, envelope, Emptied: reader.GetBoolean(1));
+        var held = !await reader.IsDBNullAsync(0, cancellationToken).ConfigureAwait(false);
+        return new StoredValue(
+            Found: true,
+            held ? (byte[])reader.GetValue(0) : null,
+            Emptied: reader.GetBoolean(1),
+            held ? new ContentKey(reader.GetInt32(EpochColumn), (byte[])reader.GetValue(WrappedColumn)) : null);
     }
 
     private static ContentReadOutcome Unread(StoredValue stored) => stored switch
@@ -84,5 +91,5 @@ public sealed class ProtectedContentReader(NpgsqlDataSource dataSource, Protecte
 
     private sealed record ColumnReading(CustodyItemKind Kind, CustodyStep Step, string Query);
 
-    private sealed record StoredValue(bool Found, byte[]? Envelope, bool Emptied);
+    private sealed record StoredValue(bool Found, byte[]? Envelope, bool Emptied, ContentKey? Key = null);
 }

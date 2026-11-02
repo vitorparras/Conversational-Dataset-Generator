@@ -52,7 +52,10 @@ public sealed class FileMasterKeySourceTests : IDisposable
     [Fact]
     public async Task KeyFileAbsentRefusesNamingTheFileAndItsPath()
     {
-        var source = new FileMasterKeySource(Path.Combine(files.Directory, "sem-chave"), files.WriteText("labels", string.Empty), AppContext.BaseDirectory);
+        var source = new FileMasterKeySource(
+            Path.Combine(files.Directory, "sem-chave"), files.WriteText("labels", string.Empty),
+            files.WriteText("epochs", CustodyFiles.EpochLine),
+            AppContext.BaseDirectory);
 
         using var reading = await source.ReadAsync(TestContext.Current.CancellationToken);
 
@@ -64,7 +67,10 @@ public sealed class FileMasterKeySourceTests : IDisposable
     [Fact]
     public async Task LabelsFileAbsentRefusesNamingTheFileAndItsPath()
     {
-        var source = new FileMasterKeySource(files.WriteText("key", KeyLine(SyntheticKey.Valid())), Path.Combine(files.Directory, "sem-rotulos"), AppContext.BaseDirectory);
+        var source = new FileMasterKeySource(
+            files.WriteText("key", KeyLine(SyntheticKey.Valid())), Path.Combine(files.Directory, "sem-rotulos"),
+            files.WriteText("epochs", CustodyFiles.EpochLine),
+            AppContext.BaseDirectory);
 
         using var reading = await source.ReadAsync(TestContext.Current.CancellationToken);
 
@@ -75,7 +81,10 @@ public sealed class FileMasterKeySourceTests : IDisposable
     [Fact]
     public async Task BothFilesAbsentRefuseNamingBoth()
     {
-        var source = new FileMasterKeySource(Path.Combine(files.Directory, "a"), Path.Combine(files.Directory, "b"), AppContext.BaseDirectory);
+        var source = new FileMasterKeySource(
+            Path.Combine(files.Directory, "a"), Path.Combine(files.Directory, "b"),
+            files.WriteText("epochs", CustodyFiles.EpochLine),
+            AppContext.BaseDirectory);
 
         using var reading = await source.ReadAsync(TestContext.Current.CancellationToken);
 
@@ -159,7 +168,10 @@ public sealed class FileMasterKeySourceTests : IDisposable
     [Fact]
     public async Task KeyFileInsideTheArtifactFolderRefusesNamingTheFileAndTheFolder()
     {
-        var source = new FileMasterKeySource(files.WriteText("key", KeyLine(SyntheticKey.Valid())), files.WriteText("labels", string.Empty), files.Directory);
+        var source = new FileMasterKeySource(
+            files.WriteText("key", KeyLine(SyntheticKey.Valid())), files.WriteText("labels", string.Empty),
+            files.WriteText("epochs", CustodyFiles.EpochLine),
+            files.Directory);
 
         using var reading = await source.ReadAsync(TestContext.Current.CancellationToken);
 
@@ -171,7 +183,10 @@ public sealed class FileMasterKeySourceTests : IDisposable
     public async Task LabelsFileInsideTheArtifactFolderRefusesToo()
     {
         using var elsewhere = new CustodyFiles();
-        var source = new FileMasterKeySource(elsewhere.WriteText("key", KeyLine(SyntheticKey.Valid())), files.WriteText("labels", string.Empty), files.Directory);
+        var source = new FileMasterKeySource(
+            elsewhere.WriteText("key", KeyLine(SyntheticKey.Valid())), files.WriteText("labels", string.Empty),
+            files.WriteText("epochs", CustodyFiles.EpochLine),
+            files.Directory);
 
         using var reading = await source.ReadAsync(TestContext.Current.CancellationToken);
 
@@ -181,7 +196,10 @@ public sealed class FileMasterKeySourceTests : IDisposable
     [Fact]
     public async Task FileInASiblingFolderWithTheSamePrefixIsNotInsideTheArtifactFolder()
     {
-        var source = new FileMasterKeySource(files.WriteText("key", KeyLine(SyntheticKey.Valid())), files.WriteText("labels", string.Empty), files.Directory + "-irmao");
+        var source = new FileMasterKeySource(
+            files.WriteText("key", KeyLine(SyntheticKey.Valid())), files.WriteText("labels", string.Empty),
+            files.WriteText("epochs", CustodyFiles.EpochLine),
+            files.Directory + "-irmao");
 
         using var reading = await source.ReadAsync(TestContext.Current.CancellationToken);
 
@@ -194,7 +212,7 @@ public sealed class FileMasterKeySourceTests : IDisposable
         using var artifact = new CustodyFiles();
         var link = Path.Combine(artifact.Directory, "elo");
         Assert.SkipUnless(TryLink(link, files.WriteText("key", KeyLine(SyntheticKey.Valid()))), "a plataforma não deixou criar o elo simbólico");
-        var source = new FileMasterKeySource(link, files.WriteText("labels", string.Empty), artifact.Directory);
+        var source = new FileMasterKeySource(link, files.WriteText("labels", string.Empty), files.WriteText("epochs", CustodyFiles.EpochLine), artifact.Directory);
 
         using var reading = await source.ReadAsync(TestContext.Current.CancellationToken);
 
@@ -207,7 +225,7 @@ public sealed class FileMasterKeySourceTests : IDisposable
         using var artifact = new CustodyFiles();
         var link = Path.Combine(files.Directory, "elo");
         Assert.SkipUnless(TryLink(link, artifact.WriteText("key", KeyLine(SyntheticKey.Valid()))), "a plataforma não deixou criar o elo simbólico");
-        var source = new FileMasterKeySource(link, files.WriteText("labels", string.Empty), artifact.Directory);
+        var source = new FileMasterKeySource(link, files.WriteText("labels", string.Empty), files.WriteText("epochs", CustodyFiles.EpochLine), artifact.Directory);
 
         using var reading = await source.ReadAsync(TestContext.Current.CancellationToken);
 
@@ -221,7 +239,7 @@ public sealed class FileMasterKeySourceTests : IDisposable
         _ = artifact.WriteText("key", KeyLine(SyntheticKey.Valid()));
         var folder = Path.Combine(files.Directory, "current");
         Assert.SkipUnless(TryFolderLink(folder, artifact.Directory), "a plataforma não deixou criar o elo de pasta");
-        var source = new FileMasterKeySource(Path.Combine(folder, "key"), files.WriteText("labels", string.Empty), artifact.Directory);
+        var source = new FileMasterKeySource(Path.Combine(folder, "key"), files.WriteText("labels", string.Empty), files.WriteText("epochs", CustodyFiles.EpochLine), artifact.Directory);
 
         using var reading = await source.ReadAsync(TestContext.Current.CancellationToken);
 
@@ -235,7 +253,10 @@ public sealed class FileMasterKeySourceTests : IDisposable
         Assert.SkipUnless(TryFolderLink(folder, files.Directory), "a plataforma não deixou criar o elo de pasta");
         try
         {
-            var source = new FileMasterKeySource(files.WriteText("key", KeyLine(SyntheticKey.Valid())), files.WriteText("labels", string.Empty), folder);
+            var source = new FileMasterKeySource(
+                files.WriteText("key", KeyLine(SyntheticKey.Valid())), files.WriteText("labels", string.Empty),
+                files.WriteText("epochs", CustodyFiles.EpochLine),
+                folder);
 
             using var reading = await source.ReadAsync(TestContext.Current.CancellationToken);
 
@@ -285,9 +306,9 @@ public sealed class FileMasterKeySourceTests : IDisposable
     [Fact]
     public void SourceWithoutAPathIsADefect()
     {
-        _ = Assert.Throws<ArgumentException>(() => new FileMasterKeySource(" ", "b", "c"));
-        _ = Assert.Throws<ArgumentException>(() => new FileMasterKeySource("a", " ", "c"));
-        _ = Assert.Throws<ArgumentException>(() => new FileMasterKeySource("a", "b", " "));
+        _ = Assert.Throws<ArgumentException>(() => new FileMasterKeySource(" ", "b", "c", "d"));
+        _ = Assert.Throws<ArgumentException>(() => new FileMasterKeySource("a", " ", "c", "d"));
+        _ = Assert.Throws<ArgumentException>(() => new FileMasterKeySource("a", "b", " ", "d"));
     }
 
     private static string KeyLine(byte[] key) => Convert.ToBase64String(key) + "\n";
@@ -319,5 +340,5 @@ public sealed class FileMasterKeySourceTests : IDisposable
     }
 
     private FileMasterKeySource Source(string key, string labels) =>
-        new(files.WriteText("key", key), files.WriteText("labels", labels), AppContext.BaseDirectory);
+        new(files.WriteText("key", key), files.WriteText("labels", labels), files.WriteText("epochs", CustodyFiles.EpochLine), AppContext.BaseDirectory);
 }

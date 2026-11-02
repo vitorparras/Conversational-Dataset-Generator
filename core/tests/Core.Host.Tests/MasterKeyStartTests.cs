@@ -28,6 +28,7 @@ public sealed class MasterKeyStartTests : IDisposable
         Assert.Equal((int)ExitCode.ConfigurationRefused, exit.Code);
         Assert.Contains("'MasterKey:File'", exit.Error, StringComparison.Ordinal);
         Assert.Contains("'MasterKey:LabelsFile'", exit.Error, StringComparison.Ordinal);
+        Assert.Contains("'MasterKey:EpochsFile'", exit.Error, StringComparison.Ordinal);
         Assert.Contains("não tem valor padrão", exit.Error, StringComparison.Ordinal);
     }
 
@@ -164,6 +165,7 @@ public sealed class MasterKeyStartTests : IDisposable
                 $"--Installation:Kind={kind}",
                 $"--MasterKey:File={keyPath}",
                 $"--MasterKey:LabelsFile={labelsPath}",
+                $"--MasterKey:EpochsFile={CustodyFiles.Shared.EpochsPath}",
                 .. real ? new[] { $"--Passwords:WorkFactor={RealWorkFactor}" } : [],
             ],
         };

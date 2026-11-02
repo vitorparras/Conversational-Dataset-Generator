@@ -15,6 +15,9 @@ public sealed class MasterKeyReading : IDisposable
     /// <summary>The labels the source gave; none when it gave no key.</summary>
     public DerivationLabels Labels { get; private init; } = DerivationLabels.None;
 
+    /// <summary>The epochs the source gave (decision 0049); none when it gave none, as a source that holds no third file.</summary>
+    public CustodyEpochs Epochs { get; private init; } = CustodyEpochs.None;
+
     /// <summary>Why there is no key; null when there is one.</summary>
     public MasterKeyFailure? Failure { get; private init; }
 
@@ -22,16 +25,20 @@ public sealed class MasterKeyReading : IDisposable
     public static MasterKeyReading FromBytes(byte[] bytes, DerivationLabels labels) => FromBytes(bytes, labels, source: string.Empty);
 
     /// <summary>As <see cref="FromBytes(byte[], DerivationLabels)"/>, a failure of size naming <paramref name="source"/>, where the bytes came from.</summary>
-    public static MasterKeyReading FromBytes(byte[] bytes, DerivationLabels labels, string source)
+    public static MasterKeyReading FromBytes(byte[] bytes, DerivationLabels labels, string source) => FromBytes(bytes, labels, CustodyEpochs.None, source);
+
+    /// <summary>As <see cref="FromBytes(byte[], DerivationLabels, string)"/>, with the epochs the source gave, which the reading releases with the key.</summary>
+    public static MasterKeyReading FromBytes(byte[] bytes, DerivationLabels labels, CustodyEpochs epochs, string source)
     {
         ArgumentNullException.ThrowIfNull(bytes);
         ArgumentNullException.ThrowIfNull(labels);
+        ArgumentNullException.ThrowIfNull(epochs);
         ArgumentNullException.ThrowIfNull(source);
         var origin = source.Length == 0 ? string.Empty : source + ": ";
         try
         {
             return bytes.Length == MasterKey.Length
-                ? new MasterKeyReading { Key = new MasterKey(bytes), Labels = labels }
+                ? new MasterKeyReading { Key = new MasterKey(bytes), Labels = labels, Epochs = epochs }
                 : Failed(MasterKeyFailureKind.WrongSize, $"{origin}{bytes.Length} bytes, esperados {MasterKey.Length}");
         }
         finally
@@ -46,8 +53,12 @@ public sealed class MasterKeyReading : IDisposable
     /// <summary>Something was provided and could not be read as a key; <paramref name="found"/> says what it was, never its value.</summary>
     public static MasterKeyReading Unreadable(string found) => Failed(MasterKeyFailureKind.Unreadable, found);
 
-    /// <summary>Releases the key, if any.</summary>
-    public void Dispose() => Key?.Dispose();
+    /// <summary>Releases the key and the epochs, if any.</summary>
+    public void Dispose()
+    {
+        Key?.Dispose();
+        Epochs.Dispose();
+    }
 
     private static MasterKeyReading Failed(MasterKeyFailureKind kind, string found)
     {

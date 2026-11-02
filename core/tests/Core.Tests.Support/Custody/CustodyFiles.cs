@@ -16,7 +16,7 @@ public sealed class CustodyFiles : IDisposable
         _ = System.IO.Directory.CreateDirectory(Directory);
     }
 
-    /// <summary>A key and a labels file of the right form, for the tests that start the host and need only that it starts; they live until the process ends.</summary>
+    /// <summary>A key, a labels file and an epochs file of the right form, for the tests that start the host and need only that it starts; they live until the process ends.</summary>
     public static CustodyFiles Shared => SharedFiles.Value;
 
     public string Directory { get; }
@@ -26,6 +26,15 @@ public sealed class CustodyFiles : IDisposable
 
     /// <summary>The labels file of <see cref="Shared"/>.</summary>
     public string LabelsPath => Path.Combine(Directory, "labels");
+
+    /// <summary>The epochs file of <see cref="Shared"/>.</summary>
+    public string EpochsPath => Path.Combine(Directory, "epochs");
+
+    /// <summary>The content of an epochs file of the right form: the epoch 1 with a secret nobody would pick by chance.</summary>
+    public static string EpochLine => "1:" + Convert.ToBase64String(SyntheticEpoch(1)) + "\n";
+
+    /// <summary>The secret that the synthetic epoch of the number holds.</summary>
+    public static byte[] SyntheticEpoch(int epoch) => [.. Enumerable.Range(0, 32).Select(index => (byte)(0xA7 ^ ((index * 31) + (epoch * 11))))];
 
     /// <summary>The bytes nobody would pick by chance that the key of <see cref="Shared"/> holds.</summary>
     public static byte[] SyntheticKey() => [.. Enumerable.Range(0, 32).Select(index => (byte)(0x5A ^ ((index * 41) + 3)))];
@@ -71,6 +80,7 @@ public sealed class CustodyFiles : IDisposable
         var files = new CustodyFiles();
         _ = files.Write("key", Encoding.ASCII.GetBytes(Convert.ToBase64String(SyntheticKey()) + "\n"));
         _ = files.Write("labels", []);
+        _ = files.WriteText("epochs", EpochLine);
         AppDomain.CurrentDomain.ProcessExit += (_, _) => files.Dispose();
         return files;
     }

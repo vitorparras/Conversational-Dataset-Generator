@@ -1,4 +1,5 @@
 using System.Buffers.Text;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -15,6 +16,9 @@ internal static class CustodyFileFormat
 
     /// <summary>The most the labels file may hold, so a file that is not one cannot fill the memory.</summary>
     internal const int LongestLabelsFile = 1_048_576;
+
+    /// <summary>The most the epochs file may hold: one line of a number and 44 characters of base64 per epoch, and no installation keeps as many as the room allows.</summary>
+    internal const int LongestEpochsFile = 65_536;
 
     private const byte Space = (byte)' ';
 
@@ -71,6 +75,69 @@ internal static class CustodyFileFormat
         var lines = text.Split('\n').Select(line => line.EndsWith('\r') ? line[..^1] : line).ToList();
         var flawed = lines.FindIndex(line => line.Length == 0 || line != line.Trim() || line.Any(char.IsControl));
         return flawed < 0 ? (DerivationLabels.Of(lines), null) : (null, $"linha {flawed + 1}: rótulo vazio, com espaço em volta ou com caractere de controle");
+    }
+
+    /// <summary>The epochs the epochs file holds, one per line as <c>number:secret in base64</c>, or why they cannot be taken from it; the content is zeroed here.</summary>
+    internal static (CustodyEpochs? Epochs, string? Problem) ParseEpochs(byte[] content)
+    {
+        var found = new Dictionary<int, byte[]>();
+        try
+        {
+            var problem = ReadEpochLines(WithoutLastBreak(content), found);
+            return problem is null ? (CustodyEpochs.Of(found), null) : (null, problem);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(content);
+            foreach (var secret in found.Values)
+            {
+                CryptographicOperations.ZeroMemory(secret);
+            }
+        }
+    }
+
+    private static string? ReadEpochLines(ReadOnlySpan<byte> text, IDictionary<int, byte[]> found)
+    {
+        if (text.Length == 0)
+        {
+            return "arquivo vazio: ao menos uma época é necessária";
+        }
+
+        var number = 0;
+        foreach (var line in Encoding.ASCII.GetString(text).Split('\n'))
+        {
+            number++;
+            var problem = ReadEpochLine(line.EndsWith('\r') ? line[..^1] : line, found);
+            if (problem is not null)
+            {
+                return $"linha {number}: {problem}";
+            }
+        }
+
+        return null;
+    }
+
+    private static string? ReadEpochLine(string line, IDictionary<int, byte[]> found)
+    {
+        var parts = line.Split(':');
+        if (parts.Length != 2 || !int.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out var epoch) || epoch < 1 || parts[0] != epoch.ToString(CultureInfo.InvariantCulture))
+        {
+            return "esperado número da época, dois-pontos e o segredo em base64";
+        }
+
+        if (found.ContainsKey(epoch))
+        {
+            return $"época {epoch} repetida";
+        }
+
+        var (secret, problem) = Decode(Encoding.ASCII.GetBytes(parts[1]));
+        if (secret is null || secret.Length != MasterKey.Length)
+        {
+            return secret is null ? problem : $"o segredo tem {secret.Length} bytes, esperados {MasterKey.Length}";
+        }
+
+        found[epoch] = secret;
+        return null;
     }
 
     /// <summary>The content without the one line break that may end it.</summary>

@@ -71,6 +71,15 @@ internal sealed class AuditComparisonRun : IAsyncDisposable
         return State.Current;
     }
 
+    /// <summary>Lets one interval pass and waits for the service to end with the exception its comparison threw, which is not a round that failed.</summary>
+    public async Task<Exception?> DefectAfterNextIntervalAsync()
+    {
+        Clock.Advance(Interval);
+        var ended = await Task.WhenAny(service.ExecuteTask!, Task.Delay(WaitFor, TestContext.Current.CancellationToken));
+        Assert.Same(service.ExecuteTask, ended);
+        return service.ExecuteTask!.Exception?.InnerException;
+    }
+
     public async ValueTask DisposeAsync()
     {
         await service.StopAsync(CancellationToken.None);

@@ -2,6 +2,7 @@ using System.Text.Json;
 using Core.Persistence.Custody;
 using Core.Persistence.ServerGuarantees;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 
 namespace Core.Host.Tests;
 
@@ -79,4 +80,45 @@ public sealed class AuditComparisonServiceTests
         Assert.Contains("System.IO.IOException", line, StringComparison.Ordinal);
         Assert.DoesNotContain(marker, line + statusText, StringComparison.Ordinal);
     }
+
+
+    [Theory]
+    [InlineData("database")]
+    [InlineData("unreadable-line")]
+    [InlineData("file-denied")]
+    public async Task EveryFailureOfReadingTheLogOrAskingTheDatabaseIsAFailedRound(string kind)
+    {
+        var failure = Failure(kind);
+        await using var run = await AuditComparisonRun.StartAsync(call => call == 0 ? throw failure : []);
+
+        var status = await run.NextRoundAsync();
+
+        Assert.Equal(AuditComparisonResult.Failed, status.Result);
+        Assert.Contains(failure.GetType().FullName!, Assert.Single(run.Log.Lines, entry => entry.Level == LogLevel.Error).Line, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("invalid-operation")]
+    [InlineData("disposed")]
+    [InlineData("argument")]
+    public async Task AnyOtherExceptionIsADefectThatEndsTheServiceAndRecordsNoRound(string kind)
+    {
+        var defect = Failure(kind);
+        await using var run = await AuditComparisonRun.StartAsync(_ => throw defect);
+
+        var thrown = await run.DefectAfterNextIntervalAsync();
+
+        Assert.Same(defect, thrown);
+        Assert.Equal(AuditComparisonResult.Pending, run.State.Current.Result);
+    }
+
+    private static Exception Failure(string kind) => kind switch
+    {
+        "database" => new NpgsqlException("zqx-detalhe"),
+        "unreadable-line" => new InvalidDataException("zqx-detalhe"),
+        "file-denied" => new UnauthorizedAccessException("zqx-detalhe"),
+        "invalid-operation" => new InvalidOperationException("zqx-detalhe"),
+        "disposed" => new ObjectDisposedException("zqx-detalhe"),
+        _ => new ArgumentException("zqx-detalhe"),
+    };
 }

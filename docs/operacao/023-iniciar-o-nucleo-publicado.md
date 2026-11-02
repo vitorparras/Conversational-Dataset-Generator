@@ -8,8 +8,9 @@ Depois de [021](021-subir-o-nucleo-publicado.md), [024](024-arquivos-de-custodia
 ## Iniciar
 
 Os valores são os do exemplo de 021 (banco, papel `app`, `demonstracao`), a trocar pelos do seu
-ambiente (`ITERACOES`: fator das senhas; `Session:*`: prazos; `Audit:*`: log); numa instalação real,
-`--Installation:Kind=real`. O núcleo roda em segundo plano e sobrevive ao fim do `docker exec` que
+ambiente (`ITERACOES`: fator das senhas; `Session:*`: prazos; `Audit:*`: pasta do log e intervalo da
+comparação); numa instalação real, `--Installation:Kind=real`. O núcleo roda em segundo plano e
+sobrevive ao fim do `docker exec` que
 o iniciou: a espera pode ir no mesmo bloco ou noutro. O código de saída vai a `/tmp/nucleo.saida`:
 
 ```

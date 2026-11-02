@@ -18,10 +18,13 @@ internal static class AuditConfiguration
     private const string FromKey = "From";
     private const string ToKey = "To";
     private const string CompareIntervalKey = "CompareInterval";
-    private const string AcceptedPeriod = "duração de no mínimo 00:01:00, como 01:00:00 (horas:minutos:segundos) ou 1.00:00:00 (dias.horas:minutos:segundos)";
+    private const string AcceptedPeriod = "duração de 00:01:00 a 49.00:00:00, como 01:00:00 (horas:minutos:segundos) ou 1.00:00:00 (dias.horas:minutos:segundos)";
     private const string AcceptedInstant = "instante com fuso, como 2026-11-01T12:00:00Z, e From vem antes de To";
     private const string ServerLogDirectoryKey = "ServerLogDirectory";
     private const string Accepted = "caminho absoluto da pasta onde o servidor de banco escreve o registro csv, como /var/log/postgresql";
+
+    /// <summary>The timer that waits for the period takes its milliseconds in an unsigned integer, so it refuses one past 49.7 days; this is the longest whole day under that.</summary>
+    private static readonly TimeSpan LongestPeriod = TimeSpan.FromDays(49);
 
     internal static ConfigurationSection Section { get; } =
         new(SectionName, Listed(ConfigurationKey.Required(ServerLogDirectoryKey), ConfigurationKey.Required(CompareIntervalKey)));
@@ -32,8 +35,7 @@ internal static class AuditConfiguration
     /// <summary>The section of the comparison mode, which serves nothing and compares an interval: the folder and both ends of the interval are required.</summary>
     internal static ConfigurationSection SectionWhenComparing { get; } =
         new(SectionName, Listed(ConfigurationKey.Required(ServerLogDirectoryKey), ConfigurationKey.Required(FromKey), ConfigurationKey.Required(ToKey), ConfigurationKey.Optional(CompareIntervalKey)));
-
-    /// <summary>The refusal of a folder declared that is not an absolute path; none for one not declared, which the mode requires or not.</summary>
+    /// <summary>The refusals of what was declared: the folder, the ends of the interval and the period; none for what was not declared.</summary>
     internal static IReadOnlyList<ConfigurationProblem> Refusals(IReadOnlyDictionary<string, string> values)
     {
         var found = new[] { FolderRefusals(values), IntervalRefusals(values), PeriodRefusals(values) }.SelectMany(refusals => refusals).ToArray();
@@ -83,9 +85,11 @@ internal static class AuditConfiguration
     }
 
     private static TimeSpan? Period(string declared) =>
-        (TimeSpan.TryParseExact(declared, @"h\:mm\:ss", CultureInfo.InvariantCulture, out var period)
-            || TimeSpan.TryParseExact(declared, @"d\.h\:mm\:ss", CultureInfo.InvariantCulture, out period))
-        && period >= TimeSpan.FromMinutes(1)
+        Parsed(declared) is { } period && period >= TimeSpan.FromMinutes(1) && period <= LongestPeriod ? period : null;
+
+    private static TimeSpan? Parsed(string declared) =>
+        TimeSpan.TryParseExact(declared, @"h\:mm\:ss", CultureInfo.InvariantCulture, out var period)
+            || TimeSpan.TryParseExact(declared, @"d\.h\:mm\:ss", CultureInfo.InvariantCulture, out period)
             ? period
             : null;
 

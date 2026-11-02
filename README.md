@@ -203,9 +203,9 @@ nova e com 20 quando há;
 a diferença conhecida, o recálculo da senha na entrada (#69), que grava a credencial sem evento até
 a #71, sai com o motivo e não reprova.
 
-`Audit:CompareInterval` é obrigatória ao servir, sem valor padrão, e leva a duração (no mínimo
-`00:01:00`, como `01:00:00`) entre duas comparações, feitas pelo próprio núcleo sobre o que passou
-desde a anterior, com um minuto de folga para o registro alcançar. Diferença nova vira aviso no log
+`Audit:CompareInterval` é obrigatória ao servir, sem valor padrão, e leva a duração (de `00:01:00`
+a `49.00:00:00`, como `01:00:00`) entre duas comparações, feitas pelo próprio núcleo sobre o que
+passou desde a anterior, com um minuto de folga para o registro alcançar. Diferença nova vira aviso no log
 do núcleo (papel, tabela, comandos, contagens e passos, nunca um comando ou valor), e `GET /status`
 traz em `auditComparison` o resultado da última (`Pending`, `Agreed`, `Different` ou `Failed`),
 quando terminou e quantas diferenças novas e conhecidas achou. O `migrate` não a exige.

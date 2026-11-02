@@ -1,10 +1,12 @@
+using Core.Host.Supervision;
+using Core.Platform.Configuration;
 using Core.Platform.Startup;
 
 namespace Core.Host.Tests;
 
 /// <summary>
 /// The serving host does not start without the period of the comparison of the server's log with the chain, and refuses one that is not a
-/// duration of at least a minute; the status route says how the last comparison ended (issue #60, part 2).
+/// duration of a minute to 49 days; the status route says how the last comparison ended (issue #60, part 2).
 /// </summary>
 public sealed class AuditCompareIntervalTests
 {
@@ -12,18 +14,42 @@ public sealed class AuditCompareIntervalTests
     [InlineData("00:01:00", true)]
     [InlineData("01:00:00", true)]
     [InlineData("1.00:00:00", true)]
+    [InlineData("49.00:00:00", true)]
+    [InlineData("49.00:00:01", false)]
+    [InlineData("50.00:00:00", false)]
+    [InlineData("9999.00:00:00", false)]
     [InlineData("00:00:59", false)]
     [InlineData("00:00:00", false)]
     [InlineData("uma hora", false)]
     [InlineData("1h", false)]
-    public void PeriodIsADurationOfAtLeastAMinute(string declared, bool accepted)
+    public void PeriodIsADurationFromAMinuteToFortyNineDays(string declared, bool accepted)
     {
         var values = new Dictionary<string, string> { [AuditConfiguration.CompareIntervalPath] = declared };
 
         var refusals = AuditConfiguration.Refusals(values);
 
         Assert.Equal(accepted, refusals.Count == 0);
-        Assert.Equal(accepted, !refusals.Any() && AuditConfiguration.CompareInterval(values) >= TimeSpan.FromMinutes(1));
+        if (accepted)
+        {
+            using var timer = new PeriodicTimer(AuditConfiguration.CompareInterval(values));
+        }
+    }
+
+    [Theory]
+    [InlineData("50.00:00:00")]
+    [InlineData("00:00:30")]
+    [InlineData("uma hora")]
+    public void RefusalNamesTheKeyTheValueAndWhatIsAccepted(string declared)
+    {
+        var values = new Dictionary<string, string> { [AuditConfiguration.CompareIntervalPath] = declared };
+
+        var refusal = Assert.Single(AuditConfiguration.Refusals(values));
+
+        Assert.Equal(ConfigurationProblemKind.ValueNotAccepted, refusal.Kind);
+        var text = refusal.Describe();
+        Assert.Contains("'Audit:CompareInterval'", text, StringComparison.Ordinal);
+        Assert.Contains($"'{declared}'", text, StringComparison.Ordinal);
+        Assert.Contains("duração de 00:01:00 a 49.00:00:00", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -43,7 +69,7 @@ public sealed class AuditCompareIntervalTests
     public async Task StatusSaysPendingBeforeAnyComparisonAndThenHowTheLastOneEnded()
     {
         var ct = TestContext.Current.CancellationToken;
-        await using var host = await StatusHost.StartAsync(new StartupReport([], DateTimeOffset.UtcNow), new Core.Host.Supervision.ServiceProcessWatch(), ct);
+        await using var host = await StatusHost.StartAsync(new StartupReport([], DateTimeOffset.UtcNow), new ServiceProcessWatch(), ct);
 
         using var before = await host.StatusAsync(ct);
         host.Comparison.Record(new AuditComparisonStatus(AuditComparisonResult.Different, DateTimeOffset.UtcNow, 2, 1));

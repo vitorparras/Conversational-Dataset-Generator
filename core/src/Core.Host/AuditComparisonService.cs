@@ -59,15 +59,7 @@ internal sealed class AuditComparisonService : BackgroundService
     }
 
     /// <summary>The failures of reading the log or asking the database, which the next interval may find gone; any other is a defect and stops the host.</summary>
-    private static bool CannotRun(Exception failure)
-    {
-        if (failure is NpgsqlException or IOException or UnauthorizedAccessException)
-        {
-            return true;
-        }
-
-        return failure is InvalidDataException or InvalidOperationException;
-    }
+    private static bool CannotRun(Exception failure) => failure is NpgsqlException or IOException or UnauthorizedAccessException or InvalidDataException;
 
     private static string Detail(AuditDifference difference) =>
         $"comandos {string.Join('|', difference.Commands)}, visto {difference.Seen}, gravado {difference.Recorded}, passos {string.Join('|', difference.Steps)}";

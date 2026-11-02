@@ -14,7 +14,7 @@ internal static class StatusEndpoint
         _ = endpoints.MapGet(
             Route,
             ([FromServices] StartupReport report, [FromServices] ServiceProcessWatch watch, [FromServices] Installation installation) =>
-                Describe(report, watch, recognizer, installation));
+                Describe(report, watch, recognizer, installation)).WithMetadata(new SessionOpen());
 
     /// <summary>The fake asks no service, so the watch, which no start ever moves, says nothing about it.</summary>
     private static StatusResponse Describe(StartupReport report, ServiceProcessWatch watch, RecognizerKind recognizer, Installation installation)

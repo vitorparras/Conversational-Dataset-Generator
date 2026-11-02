@@ -1,7 +1,7 @@
 using System.Data;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using Core.Persistence.Custody;
+using Core.Persistence.Custody.Chain;
 using Core.Persistence.Migrations;
 using Core.Persistence.People;
 using Core.Persistence.Tests.Fixtures;

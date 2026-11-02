@@ -17,6 +17,7 @@ internal static class BuildOutputRules
     [
         ("Microsoft.AspNetCore.SourceGenerators.PublicProgramSourceGenerator", "PublicTopLevelProgram.Generated.g.cs"),
         ("Microsoft.Gen.Logging.LoggingGenerator", "Logging.g.cs"),
+        ("Microsoft.Interop.LibraryImportGenerator", "LibraryImports.g.cs"),
     ];
 
     /// <summary>The suppressors the SDK itself carries, each with the reason it is accepted.</summary>

@@ -8,7 +8,7 @@ namespace Core.Host.Tests.Rotation;
 /// <summary>The rotate-epoch mode refuses without touching the database when the custody was not read, and says what happened without a key or an epoch in the words.</summary>
 public sealed class EpochRotationModeTests
 {
-    private const string Unreachable = "Host=127.0.0.1;Port=1;Username=u;Password=zqx-never-printed-7731;Database=d;Timeout=2;Pooling=false";
+    private const string Unreachable = "Host=127.0.0.1;Port=1;Username=u;Password=ZQX-never-printed-7731;Database=d;Timeout=2;Pooling=false";
 
     [Theory]
     [InlineData("rotate-epoch", true)]
@@ -63,7 +63,7 @@ public sealed class EpochRotationModeTests
         var exit = await EpochRotationMode.RotateAsync(dataSource, reading, output, error);
 
         Assert.Equal(ExitCode.EpochRotationFailed, exit);
-        Assert.DoesNotContain("zqx-never-printed-7731", error.ToString() + output, StringComparison.Ordinal);
+        Assert.DoesNotContain("ZQX-never-printed-7731", error.ToString() + output, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -141,6 +141,7 @@ dotnet build core/Core.slnx
 dotnet test core/Core.slnx
 PY="$(uv run --frozen --project language-service python -c 'import sys; print(sys.executable)')"
 KEYS="$(mktemp -d)"; ( umask 077; head -c 32 /dev/urandom | base64 > "$KEYS/chave"; : > "$KEYS/rotulos" )
+SERVERLOG="$(mktemp -d)"; : > "$SERVERLOG/postgresql.csv"
 openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -subj /CN=localhost -days 30 \
   -keyout "$KEYS/tls.key" -out "$KEYS/tls.crt" 2> /dev/null
 export DOTNET_ENVIRONMENT=Development
@@ -148,7 +149,7 @@ dotnet run --project core/src/Core.Host -- --Host:Urls=https://127.0.0.1:5080 \
   --Installation:Kind=demonstracao --Passwords:WorkFactor=ITERACOES --Session:IdleTimeout=00:30:00 \
   --Session:AbsoluteTimeout=08:00:00 --MasterKey:File="$KEYS/chave" --MasterKey:LabelsFile="$KEYS/rotulos" \
   --Tls:CertificateFile="$KEYS/tls.crt" --Tls:KeyFile="$KEYS/tls.key" \
-  --LanguageService:Executable="$PY"
+  --Audit:ServerLogDirectory="$SERVERLOG" --LanguageService:Executable="$PY"
 ```
 
 `Tls:CertificateFile` e `Tls:KeyFile` são obrigatórias ao servir, sem valor padrão, e levam os
@@ -178,6 +179,11 @@ núcleo: reiniciar encerra todas. `POST /session` entra (`name` e `password`) e 
 `__Host-sessao`, com Secure, HttpOnly e SameSite=Strict; `DELETE /session` encerra; `GET /session`
 confere. Pedido sem sessão viva recebe 401 com `signIn`, a rota da entrada; levar a pessoa até lá
 sem perder o que submeteu espera a interface.
+
+`Audit:ServerLogDirectory` é obrigatória ao servir, sem valor padrão, e leva o caminho absoluto da
+pasta onde o servidor de banco escreve o registro `csv` (o `/var/log/postgresql` da imagem de
+`tools/database`). A partida recusa pasta ausente, sem arquivo `.csv` ou ilegível ao processo, e o
+`migrate` não a exige. O núcleo só lê essa pasta.
 
 `MasterKey:File` e `MasterKey:LabelsFile` são obrigatórias ao servir, sem valor padrão, e levam os
 caminhos dos arquivos da chave e dos rótulos, nunca a chave. O núcleo recusa arquivo ausente, com

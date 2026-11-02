@@ -46,6 +46,12 @@ internal static class EpochRotationMode
             return ExitCode.EpochRotationRefused;
         }
 
+        if (!reading.Epochs.Numbers().Any())
+        {
+            await error.WriteLineAsync("rotate-epoch recusado: o arquivo de épocas não trouxe nenhuma").ConfigureAwait(false);
+            return ExitCode.EpochRotationRefused;
+        }
+
         try
         {
             var keys = new ItemKeys(new KeyDerivation(reading.Key!, reading.Labels), reading.Epochs);
@@ -56,6 +62,11 @@ internal static class EpochRotationMode
         catch (EnvelopeRefusedException refusal)
         {
             await error.WriteLineAsync($"rotate-epoch recusado, nada foi alterado: {refusal.Message}").ConfigureAwait(false);
+            return ExitCode.EpochRotationRefused;
+        }
+        catch (InvalidOperationException lacking)
+        {
+            await error.WriteLineAsync($"rotate-epoch recusado, nada foi alterado: {lacking.Message}").ConfigureAwait(false);
             return ExitCode.EpochRotationRefused;
         }
         catch (NpgsqlException)

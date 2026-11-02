@@ -17,19 +17,24 @@ não terminou.
 
 1. **Época nova.** Acrescente ao arquivo de épocas uma linha `n:base64` com `n` maior que todos os
    outros e 32 bytes aleatórios (`head -c 32 /dev/urandom | base64`). O arquivo passa a ter as duas.
+   **Reinicie o servidor** (ou mantenha-o parado até o passo 3): ele lê as épocas só na partida e,
+   sem reinício, segue embrulhando o que grava sob a época antiga.
 2. **Reembrulhar.** Rode `./Core.Host rotate-epoch`, com a configuração de `migrate`
    ([016](016-migracao-do-esquema.md)) e os três caminhos `MasterKey:`, o arquivo de duas épocas
    entre eles: em uma transação, cada chave de linha não esvaziada passa para a época nova, sem
    tocar no conteúdo. Sai com 0 e diz quantas; com 15 se o custodiante não foi lido ou uma chave
    não abriu (nada muda, e a recusa nomeia a época que falta); com 16 se o banco não respondeu;
    com 78 se faltou um dos caminhos.
-3. **Novo backup do banco** ([005](005-backup.md)), já com todas as linhas na época nova.
-4. **Nova cópia de custódia** do arquivo de épocas, com as duas linhas, no lugar da guarda.
-5. **Destruir a antiga.** O custodiante destrói a cópia anterior da época e a dos backups do banco
-   anteriores ao passo 3 deixa de abrir. Só então se tira a linha da época antiga do arquivo.
+3. **Conferir.** Rode `rotate-epoch` de novo, com o servidor já reiniciado: tem de sair com 0 e
+   dizer 0 chaves. Se disser mais, algo gravou sob a época antiga no meio: reinicie e repita.
+   Sem 0 chaves, não se segue.
+4. **Novo backup do banco** ([005](005-backup.md)), já com todas as linhas na época nova.
+5. **Nova cópia de custódia** do arquivo de épocas, com as duas linhas, no lugar da guarda.
+6. **Destruir a antiga.** O custodiante destrói a cópia anterior da época e a dos backups do banco
+   anteriores ao passo 4 deixa de abrir. Só então se tira a linha da época antiga do arquivo.
 
-Trocar a ordem perde dado: destruir antes do passo 3 deixa o único backup sem a época que o abre, e
-reembrulhar depois de destruir não tem como abrir a chave.
+Trocar a ordem perde dado: destruir antes do passo 4 deixa o único backup sem a época que o abre, e
+destruir com chaves ainda na época antiga (passo 3 sem 0 chaves) perde o conteúdo vivo delas.
 
 ## O que o prazo significa
 
@@ -39,8 +44,8 @@ WAL anteriores à rotação continuam com a chave embrulhada até a destruição
 
 ## Backup anterior a uma rotação
 
-Não restaura mais depois do passo 5: a partida recusa o banco com `época ... ausente` e nomeia a
-época. Para restaurar um backup velho antes do passo 5, a cópia antiga da época tem de existir
+Não restaura mais depois do passo 6: a partida recusa o banco com `época ... ausente` e nomeia a
+época. Para restaurar um backup velho antes do passo 6, a cópia antiga da época tem de existir
 ainda; depois, o backup só serve para estrutura, nunca para conteúdo ([006](006-restauracao.md)).
 
 ## Limites

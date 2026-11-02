@@ -38,6 +38,20 @@ public sealed class EpochRotationModeTests
     }
 
     [Fact]
+    public async Task ReadingWithoutAnyEpochRefusesBeforeTouchingTheDatabase()
+    {
+        await using var dataSource = NpgsqlDataSource.Create(Unreachable);
+        using var reading = MasterKeyReading.FromBytes(new byte[MasterKey.Length], DerivationLabels.None, "teste");
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        var exit = await EpochRotationMode.RotateAsync(dataSource, reading, output, error);
+
+        Assert.Equal((ExitCode.EpochRotationRefused, string.Empty), (exit, output.ToString()));
+        Assert.Contains("nenhuma", error.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task DatabaseThatCannotBeReachedFailsWithItsOwnCodeAndNeverPrintsTheCredential()
     {
         await using var dataSource = NpgsqlDataSource.Create(Unreachable);

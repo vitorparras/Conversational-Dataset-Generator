@@ -12,6 +12,8 @@ namespace Core.Host.Tests;
 /// </summary>
 public sealed class MasterKeyStartTests : IDisposable
 {
+    private const int RealWorkFactor = 600000;
+
     private static readonly byte[] Key = CustodyFiles.SyntheticKey();
 
     private readonly CustodyFiles files = new();
@@ -176,10 +178,19 @@ public sealed class MasterKeyStartTests : IDisposable
     private static HostInstallation Installation(Uri baseAddress, string keyPath, string labelsPath, string kind = "demonstracao")
     {
         var built = HostInstallation.Built(baseAddress);
+        var real = string.Equals(kind, "real", StringComparison.Ordinal);
         return built with
         {
             DeclaresInstallation = false,
-            Arguments = [.. built.Arguments, $"--Installation:Kind={kind}", $"--MasterKey:File={keyPath}", $"--MasterKey:LabelsFile={labelsPath}"],
+            DeclaresWorkFactor = !real,
+            Arguments =
+            [
+                .. built.Arguments,
+                $"--Installation:Kind={kind}",
+                $"--MasterKey:File={keyPath}",
+                $"--MasterKey:LabelsFile={labelsPath}",
+                .. real ? new[] { $"--Passwords:WorkFactor={RealWorkFactor}" } : [],
+            ],
         };
     }
 

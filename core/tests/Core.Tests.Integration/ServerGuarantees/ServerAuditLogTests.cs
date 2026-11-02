@@ -27,6 +27,24 @@ public sealed class ServerAuditLogTests
     }
 
     [DatabaseFact]
+    public async Task CommandTheServerRefusesIsInTheLogAsTextWithItsMarkersAndNoValue()
+    {
+        await using var table = await AuditedTable.CreateAsync();
+
+        await table.TruncateRefusedAsNotAllowedAsync();
+        await table.AlterRefusedAsNotTheOwnerAsync();
+        await table.InsertAsync(id: 1);
+        await table.InsertRefusedAsUniqueAsync(id: 2);
+        await table.ReadTheEndAsync();
+        var log = await ServerLog.UntilContainsAsync(table.EndName);
+
+        Assert.Contains($"execute <unnamed>: TRUNCATE {table.Name}", log, StringComparison.Ordinal);
+        Assert.Contains($"execute <unnamed>: ALTER TABLE {table.Name} ADD COLUMN zqx_extra integer", log, StringComparison.Ordinal);
+        Assert.Equal(2, log.Split($"execute <unnamed>: INSERT INTO {table.Name} (id, body) VALUES ($1, $2)").Length - 1);
+        Assert.DoesNotContain(table.Marker, log, StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
     public async Task StatementTheServerRefusesIsInTheServerLogToo()
     {
         await using var table = await AuditedTable.CreateAsync();

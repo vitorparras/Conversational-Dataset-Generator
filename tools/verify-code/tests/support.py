@@ -105,9 +105,7 @@ def write_areas(root: Path, table: str) -> None:
         write(folder, f"{prefix.strip('`')}.md", "\n".join((*lines, *fields, "")))
 
 
-def trx(
-    project: str, executed: int, failed: int, skipped: str = "", failure: str = ""
-) -> str:
+def trx(project: str, executed: int, failed: int, skipped: str = "", failure: str = "") -> str:
     """A TRX report reduced to what the step reads: counters, one assembly, a skip, a failure."""
     skip = (
         '  <Results><UnitTestResult testName="s" outcome="NotExecuted">'

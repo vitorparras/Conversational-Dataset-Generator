@@ -35,16 +35,4 @@ public enum ExitCode
 
     /// <summary>The rotation of the epoch could not talk to the database and changed nothing.</summary>
     EpochRotationFailed = 16,
-
-    /// <summary>The creation of a domain refused and wrote nothing: the derivation label of a purpose is missing from the custody file.</summary>
-    DomainLabelsMissing = 17,
-
-    /// <summary>The creation of a domain refused and wrote nothing: a domain of that name exists already.</summary>
-    DomainNameTaken = 18,
-
-    /// <summary>The creation of a domain refused and wrote nothing, for another reason: a custody file was not read, the name is not valid, the chain refused or another writer was first.</summary>
-    DomainCreationRefused = 19,
-
-    /// <summary>The creation of a domain could not talk to the database and wrote nothing.</summary>
-    DomainCreationFailed = 20,
 }

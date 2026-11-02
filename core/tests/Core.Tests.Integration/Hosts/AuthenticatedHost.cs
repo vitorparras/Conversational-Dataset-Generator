@@ -7,6 +7,7 @@ using Core.Persistence.Migrations;
 using Core.Persistence.People;
 using Core.Persistence.Tests.Fixtures;
 using Core.Tests.Integration.Privacy;
+using Core.Tests.Support.Audit;
 using Core.Tests.Support.Custody;
 using Core.Tests.Support.Net;
 using Npgsql;
@@ -180,6 +181,7 @@ internal sealed class AuthenticatedHost : IAsyncDisposable
             ["Session:AbsoluteTimeout"] = "08:00:00",
             ["Tls:CertificateFile"] = SharedTlsMaterial.CertificatePath,
             ["Tls:KeyFile"] = SharedTlsMaterial.KeyPath,
+            ["Audit:ServerLogDirectory"] = ServerLogFiles.Shared,
             ["MasterKey:File"] = CustodyFiles.Shared.KeyPath,
             ["MasterKey:LabelsFile"] = CustodyFiles.Shared.LabelsPath,
         };

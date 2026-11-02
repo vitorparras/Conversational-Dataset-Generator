@@ -107,7 +107,7 @@ internal static class CustodyFileFormat
         foreach (var line in Encoding.ASCII.GetString(text).Split('\n'))
         {
             number++;
-            var problem = ReadEpochLine(line.EndsWith('\r') ? line.Remove(line.Length - 1) : line, found);
+            var problem = ReadEpochLine(line.TrimEnd('\r'), found);
             if (problem is not null)
             {
                 return $"linha {number}: {problem}";

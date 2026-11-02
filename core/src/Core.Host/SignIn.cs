@@ -1,21 +1,35 @@
+using System.Net;
 using Core.Persistence.People;
 using Core.Platform.Sessions;
+using Npgsql;
 
 namespace Core.Host;
 
 /// <summary>
 /// The one place where a name of use and a password become a session: the password is checked by the store of credentials and nowhere else,
 /// so whatever else must happen at the entry hangs here. A name nobody goes by is checked all the same, against nobody, so that it costs what a wrong password costs.
+/// A refusal waits the delay of <see cref="SignInDelay"/> before it is answered, the same for a wrong password and for a name nobody goes by.
 /// </summary>
-internal sealed class SignIn(PersonRegistry registry, PersonCredentials credentials, SessionStore sessions)
+internal sealed class SignIn(PersonRegistry registry, PersonCredentials credentials, SessionStore sessions, SignInDelay delay)
 {
     private const long Nobody = 0;
 
+    /// <summary>The entry over the database the source reaches, with the delay counting on the clock.</summary>
+    internal static SignIn Of(NpgsqlDataSource source, PasswordDerivation derivation, SessionStore sessions, TimeProvider clock) =>
+        new(new PersonRegistry(source), new PersonCredentials(source, derivation), sessions, new SignInDelay(clock));
+
     /// <summary>The identifier of the session that was opened; null when the entry is refused, whatever the reason.</summary>
-    internal async Task<string?> OpenAsync(string name, string password, CancellationToken cancellationToken)
+    internal async Task<string?> OpenAsync(string name, string password, IPAddress? origin, CancellationToken cancellationToken)
     {
         var identity = await registry.IdOfAsync(name, cancellationToken).ConfigureAwait(false);
         var outcome = await credentials.VerifyAsync(identity ?? Nobody, password, cancellationToken).ConfigureAwait(false);
-        return outcome == PasswordOutcome.Accepted && identity is { } admitted ? sessions.Open(admitted) : null;
+        if (outcome == PasswordOutcome.Accepted && identity is { } admitted)
+        {
+            delay.Accepted(name, origin);
+            return sessions.Open(admitted);
+        }
+
+        await delay.RefusedAsync(name, origin, cancellationToken).ConfigureAwait(false);
+        return null;
     }
 }

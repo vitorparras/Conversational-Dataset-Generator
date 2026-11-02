@@ -1,0 +1,146 @@
+using System.Net;
+using System.Security.Cryptography;
+using System.Text;
+
+namespace Core.Host;
+
+/// <summary>
+/// The delay of a refused entry (decision 0048): from the second refusal on, the answer waits 1 s, doubling up to 30 s, by the greater of two counters,
+/// the one of the name typed and the one of the network prefix it came from. Both live in memory only; the name is kept as an HMAC under a key made at start, never as typed.
+/// </summary>
+internal sealed class SignInDelay
+{
+    internal const int MaxWaiting = 64;
+    internal const int MaxCounters = 10_000;
+    internal static readonly TimeSpan First = TimeSpan.FromSeconds(1);
+    internal static readonly TimeSpan Ceiling = TimeSpan.FromSeconds(30);
+    internal static readonly TimeSpan Forgetting = TimeSpan.FromMinutes(15);
+
+    private const string Unknown = "none";
+    private const int Doublings = 5;
+    private const int Ipv4PrefixBytes = 3;
+    private const int Ipv6PrefixBytes = 6;
+    private static readonly TimeSpan SweepEvery = TimeSpan.FromMinutes(1);
+
+    private readonly TimeProvider clock;
+    private readonly byte[] key = RandomNumberGenerator.GetBytes(32);
+    private readonly Lock gate = new();
+    private readonly Dictionary<string, Streak> typed = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, Streak> origins = new(StringComparer.Ordinal);
+    private DateTimeOffset swept;
+    private int waiting;
+
+    internal SignInDelay(TimeProvider clock)
+    {
+        this.clock = clock;
+        swept = clock.GetUtcNow();
+    }
+
+    /// <summary>Counts the refusal against the name and the origin and waits the delay the greater counter asks, unless too many answers already wait; then it returns at once.</summary>
+    internal async Task RefusedAsync(string name, IPAddress? origin, CancellationToken cancellationToken)
+    {
+        var delay = Register(name, origin);
+        if (delay <= TimeSpan.Zero || !TryEnter())
+        {
+            return;
+        }
+
+        try
+        {
+            await Task.Delay(delay, clock, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _ = Interlocked.Decrement(ref waiting);
+        }
+    }
+
+    /// <summary>An accepted entry zeroes the counters of its name and its origin.</summary>
+    internal void Accepted(string name, IPAddress? origin)
+    {
+        lock (gate)
+        {
+            _ = typed.Remove(NameKey(name));
+            _ = origins.Remove(OriginKey(origin));
+        }
+    }
+
+    /// <summary>The delay the n-th refusal in a row waits: none for the first, then 1 s doubling to the ceiling.</summary>
+    internal static TimeSpan DelayOf(int refusals) =>
+        refusals < 2 ? TimeSpan.Zero : refusals - 2 >= Doublings ? Ceiling : TimeSpan.FromTicks(Math.Min(First.Ticks << (refusals - 2), Ceiling.Ticks));
+
+    /// <summary>The network prefix of the address that is kept: /24 for IPv4 and /48 for IPv6, never the whole address.</summary>
+    internal static string OriginKey(IPAddress? origin)
+    {
+        if (origin is null)
+        {
+            return Unknown;
+        }
+
+        var address = origin.IsIPv4MappedToIPv6 ? origin.MapToIPv4() : origin;
+        var bytes = address.GetAddressBytes();
+        return address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork
+            ? $"v4:{Convert.ToHexString(bytes, 0, Ipv4PrefixBytes)}"
+            : $"v6:{Convert.ToHexString(bytes, 0, Ipv6PrefixBytes)}";
+    }
+
+    private string NameKey(string name) => Convert.ToHexString(HMACSHA256.HashData(key, Encoding.UTF8.GetBytes(name)));
+
+    private TimeSpan Register(string name, IPAddress? origin)
+    {
+        var now = clock.GetUtcNow();
+        lock (gate)
+        {
+            Forget(now);
+            var byName = Count(typed, NameKey(name), now);
+            var byOrigin = Count(origins, OriginKey(origin), now);
+            return DelayOf(Math.Max(byName, byOrigin));
+        }
+    }
+
+    private static int Count(Dictionary<string, Streak> counters, string counted, DateTimeOffset now)
+    {
+        var known = counters.TryGetValue(counted, out var streak) && now - streak.Last < Forgetting;
+        if (!known && counters.Count >= MaxCounters)
+        {
+            return 1;
+        }
+
+        var refusals = (known ? streak.Refusals : 0) + 1;
+        counters[counted] = new Streak(refusals, now);
+        return refusals;
+    }
+
+    private void Forget(DateTimeOffset now)
+    {
+        if (now - swept < SweepEvery)
+        {
+            return;
+        }
+
+        swept = now;
+        Forget(typed, now);
+        Forget(origins, now);
+    }
+
+    private static void Forget(Dictionary<string, Streak> counters, DateTimeOffset now)
+    {
+        foreach (var old in counters.Where(entry => now - entry.Value.Last >= Forgetting).Select(entry => entry.Key).ToList())
+        {
+            _ = counters.Remove(old);
+        }
+    }
+
+    private bool TryEnter()
+    {
+        if (Interlocked.Increment(ref waiting) <= MaxWaiting)
+        {
+            return true;
+        }
+
+        _ = Interlocked.Decrement(ref waiting);
+        return false;
+    }
+
+    private readonly record struct Streak(int Refusals, DateTimeOffset Last);
+}

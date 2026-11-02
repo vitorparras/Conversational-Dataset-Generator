@@ -58,6 +58,7 @@ deliberada e justificada.
 | [0044](0044-arquivo-de-custodia-da-chave.md) | A chave chega por arquivo de custódia | Decisão vigente |
 | [0045](0045-formato-do-rotulo-de-derivacao.md) | Formato do rótulo de derivação | Decisão vigente |
 | [0046](0046-material-do-canal-cifrado.md) | O material do canal cifrado chega por arquivos PEM | Decisão vigente |
+| [0048](0048-retardo-da-entrada.md) | Retardo da entrada | Decisão vigente |
 
 ## Formato
 

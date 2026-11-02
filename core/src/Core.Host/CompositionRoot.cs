@@ -204,7 +204,7 @@ internal static class CompositionRoot
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetRequiredService<ServiceProcessWatch>());
         _ = builder.Services.AddSingleton(_ => startup);
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source
-            ? new SignIn(new PersonRegistry(source), new PersonCredentials(source, provider.GetRequiredService<PasswordDerivation>()), provider.GetRequiredService<SessionStore>())
+            ? SignIn.Of(source, provider.GetRequiredService<PasswordDerivation>(), provider.GetRequiredService<SessionStore>(), provider.GetRequiredService<TimeProvider>())
             : null!);
 
         var app = builder.Build();

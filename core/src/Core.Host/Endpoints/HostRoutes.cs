@@ -1,6 +1,6 @@
 namespace Core.Host.Endpoints;
 
-/// <summary>Every route the host serves, behind what it asks of the browser on the encrypted channel and, for the routes that require one, behind a session.</summary>
+/// <summary>Every route the host serves, behind what it asks of the browser on the encrypted channel and behind a session, except the entry and the status.</summary>
 internal static class HostRoutes
 {
     internal static void Map(WebApplication app, RecognizerKind recognizer)
@@ -12,5 +12,6 @@ internal static class HostRoutes
         VersionsEndpoint.Map(app);
         AnalysisEndpoint.Map(app);
         SessionEndpoint.Map(app);
+        AuditEndpoint.Map(app);
     }
 }

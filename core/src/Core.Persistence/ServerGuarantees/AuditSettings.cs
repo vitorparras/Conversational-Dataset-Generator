@@ -11,6 +11,8 @@ namespace Core.Persistence.ServerGuarantees;
 /// <param name="LogClient">pgaudit.log_client: whether the audit lines go to the client; only then does pgaudit.log_level apply.</param>
 /// <param name="LogLevel">pgaudit.log_level: the level the audit lines are written at when they go to the client.</param>
 /// <param name="DebugPrints">The debug_print_* settings that are on, by name, or null when none is: each writes the text of the query into the log.</param>
+/// <param name="LogStatement">log_statement: which statements the server writes as text before it runs them, a refused one included.</param>
+/// <param name="LogTimezone">log_timezone: the zone of the time the server writes on each line; the reader of the log accepts UTC only.</param>
 internal sealed record AuditSettings(
     string? Log,
     string? LogParameter,
@@ -19,10 +21,14 @@ internal sealed record AuditSettings(
     string? MinMessages,
     string? LogClient = null,
     string? LogLevel = null,
-    string? DebugPrints = null)
+    string? DebugPrints = null,
+    string? LogStatement = null,
+    string? LogTimezone = null)
 {
     private const string Off = "off";
     private const string Zero = "0";
+    private const string Utc = "UTC";
+    private const string Undefined = "indefinido";
 
     /// <summary>The classes of statement the application's role must have in the log; without both, an operation of its own goes by unseen.</summary>
     private static readonly string[] RequiredClasses = ["read", "write"];
@@ -46,12 +52,14 @@ internal sealed record AuditSettings(
             ErrorsGap(),
             ClientGap(),
             DebugPrintsGap(),
+            StatementGap(),
+            TimezoneGap(),
         }.OfType<string>()];
 
     private static string? GapUnlessEqual(string? value, string expected, string setting) =>
         string.Equals(value, expected, StringComparison.OrdinalIgnoreCase)
             ? null
-            : $"{setting} = '{value ?? "indefinido"}' deixa parâmetro no log do servidor: defina {setting} = {expected}";
+            : $"{setting} = '{value ?? Undefined}' deixa parâmetro no log do servidor: defina {setting} = {expected}";
 
     private string? ClassesGap()
     {
@@ -70,7 +78,7 @@ internal sealed record AuditSettings(
 
         return LevelsThatDropTheAudit.Contains(MinMessages, StringComparer.OrdinalIgnoreCase)
             ? $"log_min_messages = '{MinMessages}' descarta as linhas LOG, e com elas a auditoria do pgaudit: defina log_min_messages = log"
-            : $"log_min_messages = '{MinMessages ?? "indefinido"}' deixa no log do servidor o detalhe de um erro, que cita a chave ou a linha inteira: defina log_min_messages = log";
+            : $"log_min_messages = '{MinMessages ?? Undefined}' deixa no log do servidor o detalhe de um erro, que cita a chave ou a linha inteira: defina log_min_messages = log";
     }
 
     /// <summary>With the lines sent to the client, pgaudit writes them at pgaudit.log_level; below LOG they never reach the server log.</summary>
@@ -78,6 +86,18 @@ internal sealed record AuditSettings(
         string.Equals(LogClient, "on", StringComparison.OrdinalIgnoreCase) && !string.Equals(LogLevel ?? KeepsAuditWithoutErrors, KeepsAuditWithoutErrors, StringComparison.OrdinalIgnoreCase)
             ? $"pgaudit.log_client = on com pgaudit.log_level = '{LogLevel}' escreve a auditoria abaixo de LOG, e ela some do log do servidor: defina pgaudit.log_client = off"
             : null;
+
+    /// <summary>A statement the server refuses is not in the audit of reads and writes: only its text, written before it runs, keeps a refused DDL or TRUNCATE.</summary>
+    private string? StatementGap() =>
+        string.Equals(LogStatement, "mod", StringComparison.OrdinalIgnoreCase)
+            ? null
+            : $"log_statement = '{LogStatement ?? Undefined}' deixa sem registro o comando recusado, o DDL e o TRUNCATE entre eles: defina log_statement = mod";
+
+    /// <summary>The server writes the time of a line in this zone, and the reader of the log takes UTC only, so a line in another zone would make the log unreadable.</summary>
+    private string? TimezoneGap() =>
+        string.Equals(LogTimezone, Utc, StringComparison.OrdinalIgnoreCase) || string.Equals(LogTimezone, "Etc/UTC", StringComparison.OrdinalIgnoreCase)
+            ? null
+            : $"log_timezone = '{LogTimezone ?? Undefined}' escreve a hora do registro fora de UTC, e o registro só é lido em UTC: defina log_timezone = UTC";
 
     private string? DebugPrintsGap() =>
         string.IsNullOrEmpty(DebugPrints)

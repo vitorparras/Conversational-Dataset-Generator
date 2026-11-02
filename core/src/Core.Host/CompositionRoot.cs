@@ -4,6 +4,7 @@ using Core.Boundary.Http;
 using Core.Host.Analysis;
 using Core.Host.Endpoints;
 using Core.Host.Migration;
+using Core.Host.Rotation;
 using Core.Host.Supervision;
 using Core.Persistence.Connection;
 using Core.Persistence.Migrations;
@@ -30,6 +31,11 @@ internal static class CompositionRoot
             return HostLaunch.CheckFailed(target);
         }
 
+        if (EpochRotationMode.Requested(args))
+        {
+            return await EpochRotationMode.RunAsync(args, Console.Out, Console.Error);
+        }
+
         var migrating = MigrationMode.Requested(args);
         var loaded = HostConfiguration.Load(MigrationMode.ConfigurationArguments(args), migrating);
         var database = HostConfiguration.DatabaseOf(loaded, migrating);
@@ -40,7 +46,7 @@ internal static class CompositionRoot
 
         if (migrating)
         {
-            return PasswordConfiguration.Refusals(loaded.Values) is { Count: > 0 } invalid ? HostLaunch.Refused(invalid) : await MigrateAsync(database);
+            return await MigrateAsync(loaded, database);
         }
 
         var analyzeTimeout = LanguageServiceConfiguration.AnalyzeTimeout(loaded.Values);
@@ -49,10 +55,15 @@ internal static class CompositionRoot
     }
 
     /// <summary>The migration mode: the steps run once with the owner credential the configuration holds, the outcome is logged and nothing is served.</summary>
-    private static async Task<HostLaunch> MigrateAsync(DatabaseSettings database)
+    private static async Task<HostLaunch> MigrateAsync(ConfigurationLoadResult loaded, DatabaseSettings database)
     {
+        if (PasswordConfiguration.Refusals(loaded.Values) is { Count: > 0 } invalid)
+        {
+            return HostLaunch.Refused(invalid);
+        }
+
         await using var dataSource = NpgsqlDataSource.Create(database.ConnectionString!);
-        await using var logging = MigrationServices();
+        await using var logging = MigrationMode.LoggingServices();
         var result = await new MigrationRunner(dataSource, EmbeddedMigrations.Load()).RunAsync(CancellationToken.None);
         logging.GetRequiredService<ILogger<MigrationRunner>>().Write(result);
         return HostLaunch.Migrated(result.Outcome);
@@ -145,15 +156,6 @@ internal static class CompositionRoot
             provider.GetRequiredService<ILogger<LanguageServiceSupervisor>>()));
         _ = services.AddSingleton(provider => new LanguageServiceStartupCheck(
             provider.GetRequiredService<LanguageServiceSupervisor>(), loaded.Values[LanguageServiceConfiguration.StartupTimeoutPath]));
-        return services.BuildServiceProvider();
-    }
-
-    /// <summary>Redacted console logging alone: the migration mode has no host, no file destination and no language service.</summary>
-    private static ServiceProvider MigrationServices()
-    {
-        var services = new ServiceCollection();
-        _ = services.AddSingleton(TimeProvider.System).AddLogging(PlatformLogging.Configure);
-        _ = services.AddRedaction(PlatformLogging.EraseSensitiveData);
         return services.BuildServiceProvider();
     }
 

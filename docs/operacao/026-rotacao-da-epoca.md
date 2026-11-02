@@ -17,10 +17,12 @@ não terminou.
 
 1. **Época nova.** Acrescente ao arquivo de épocas uma linha `n:base64` com `n` maior que todos os
    outros e 32 bytes aleatórios (`head -c 32 /dev/urandom | base64`). O arquivo passa a ter as duas.
-2. **Reembrulhar.** Rode a rotação (`EpochRotation`) com o arquivo de duas épocas: em uma transação,
-   cada chave de linha não esvaziada passa para a época nova, sem tocar no conteúdo. Se uma chave
-   não abrir, nada muda, e a recusa nomeia a época que falta. O executável ainda não tem comando
-   para isso, e até que tenha este passo não se faz.
+2. **Reembrulhar.** Rode `./Core.Host rotate-epoch`, com a configuração de `migrate`
+   ([016](016-migracao-do-esquema.md)) e os três caminhos `MasterKey:`, o arquivo de duas épocas
+   entre eles: em uma transação, cada chave de linha não esvaziada passa para a época nova, sem
+   tocar no conteúdo. Sai com 0 e diz quantas; com 15 se o custodiante não foi lido ou uma chave
+   não abriu (nada muda, e a recusa nomeia a época que falta); com 16 se o banco não respondeu;
+   com 78 se faltou um dos caminhos.
 3. **Novo backup do banco** ([005](005-backup.md)), já com todas as linhas na época nova.
 4. **Nova cópia de custódia** do arquivo de épocas, com as duas linhas, no lugar da guarda.
 5. **Destruir a antiga.** O custodiante destrói a cópia anterior da época e a dos backups do banco

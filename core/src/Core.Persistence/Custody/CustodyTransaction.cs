@@ -108,6 +108,7 @@ internal static class CustodyTransaction
         _ = command.Parameters.AddWithValue("step", NpgsqlDbType.Text, CustodyNames.Of(pending.Step));
         _ = command.Parameters.AddWithValue("reason", NpgsqlDbType.Text, CustodyNames.Of(pending.Reason));
         _ = command.Parameters.AddWithValue("corrects", NpgsqlDbType.Bigint, Optional(pending.Corrects));
+        _ = command.Parameters.AddWithValue("reference", NpgsqlDbType.Text, (object?)pending.Reference ?? DBNull.Value);
     }
 
     /// <summary>What the server's refusal means; one that is none of these is a defect, and its message names the item, the step and the reason and nothing else.</summary>

@@ -27,7 +27,7 @@ public sealed class ProtectedColumnCheckTests
     {
         var finding = ProtectedColumnCheck.Judge(Described());
 
-        Assert.Equal((CheckStatus.Passed, "13 coluna(s) de conteúdo, todas protegidas com a marca da finalidade ou listadas em claro"), (finding.Status, finding.Message));
+        Assert.Equal((CheckStatus.Passed, "17 coluna(s) de conteúdo, todas protegidas com a marca da finalidade ou listadas em claro"), (finding.Status, finding.Message));
     }
 
     [Fact]

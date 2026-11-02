@@ -23,21 +23,22 @@ internal static class AuditConfiguration
     private const string ServerLogDirectoryKey = "ServerLogDirectory";
     private const string Accepted = "caminho absoluto da pasta onde o servidor de banco escreve o registro csv, como /var/log/postgresql";
 
-    private static readonly string[] PeriodFormats = [@"h\:mm\:ss", @"d\.h\:mm\:ss"];
-
     internal static ConfigurationSection Section { get; } =
-        new(SectionName, [ConfigurationKey.Required(ServerLogDirectoryKey), ConfigurationKey.Required(CompareIntervalKey)]);
+        new(SectionName, Listed(ConfigurationKey.Required(ServerLogDirectoryKey), ConfigurationKey.Required(CompareIntervalKey)));
 
     /// <summary>The same section for the migration mode, which reads no log: the folder may be given, and is then judged like any other start, but is not required.</summary>
-    internal static ConfigurationSection SectionWhenMigrating { get; } = new(SectionName, [ConfigurationKey.Optional(ServerLogDirectoryKey), ConfigurationKey.Optional(CompareIntervalKey)]);
+    internal static ConfigurationSection SectionWhenMigrating { get; } = new(SectionName, Listed(ConfigurationKey.Optional(ServerLogDirectoryKey), ConfigurationKey.Optional(CompareIntervalKey)));
 
     /// <summary>The section of the comparison mode, which serves nothing and compares an interval: the folder and both ends of the interval are required.</summary>
     internal static ConfigurationSection SectionWhenComparing { get; } =
-        new(SectionName, [ConfigurationKey.Required(ServerLogDirectoryKey), ConfigurationKey.Required(FromKey), ConfigurationKey.Required(ToKey), ConfigurationKey.Optional(CompareIntervalKey)]);
+        new(SectionName, Listed(ConfigurationKey.Required(ServerLogDirectoryKey), ConfigurationKey.Required(FromKey), ConfigurationKey.Required(ToKey), ConfigurationKey.Optional(CompareIntervalKey)));
 
     /// <summary>The refusal of a folder declared that is not an absolute path; none for one not declared, which the mode requires or not.</summary>
-    internal static IReadOnlyList<ConfigurationProblem> Refusals(IReadOnlyDictionary<string, string> values) =>
-        [.. FolderRefusals(values), .. IntervalRefusals(values), .. PeriodRefusals(values)];
+    internal static IReadOnlyList<ConfigurationProblem> Refusals(IReadOnlyDictionary<string, string> values)
+    {
+        var found = new[] { FolderRefusals(values), IntervalRefusals(values), PeriodRefusals(values) }.SelectMany(refusals => refusals).ToArray();
+        return found;
+    }
 
     /// <summary>An instant with a zone, in UTC; none for text that has no zone, because a time read in the zone of whoever runs it names another instant elsewhere.</summary>
     internal static DateTimeOffset? Instant(string? text) =>
@@ -73,13 +74,23 @@ internal static class AuditConfiguration
         return Instant(values[FromPath]) < Instant(values[ToPath]) ? [] : [Refused(ToPath, values[ToPath])];
     }
 
-    private static IEnumerable<ConfigurationProblem> PeriodRefusals(IReadOnlyDictionary<string, string> values) =>
-        values.TryGetValue(CompareIntervalPath, out var declared) && Period(declared) is null
-            ? [new ConfigurationProblem(ConfigurationProblemKind.ValueNotAccepted, CompareIntervalPath, declared, [AcceptedPeriod])]
-            : [];
+    private static IEnumerable<ConfigurationProblem> PeriodRefusals(IReadOnlyDictionary<string, string> values)
+    {
+        if (values.TryGetValue(CompareIntervalPath, out var declared) && Period(declared) is null)
+        {
+            yield return new ConfigurationProblem(ConfigurationProblemKind.ValueNotAccepted, CompareIntervalPath, declared, Listed(AcceptedPeriod));
+        }
+    }
 
     private static TimeSpan? Period(string declared) =>
-        TimeSpan.TryParseExact(declared, PeriodFormats, CultureInfo.InvariantCulture, TimeSpanStyles.None, out var period) && period >= TimeSpan.FromMinutes(1) ? period : null;
+        (TimeSpan.TryParseExact(declared, @"h\:mm\:ss", CultureInfo.InvariantCulture, out var period)
+            || TimeSpan.TryParseExact(declared, @"d\.h\:mm\:ss", CultureInfo.InvariantCulture, out period))
+        && period >= TimeSpan.FromMinutes(1)
+            ? period
+            : null;
+
+    /// <summary>The items as a list, written without a collection expression.</summary>
+    private static T[] Listed<T>(params T[] items) => items;
 
     private static ConfigurationProblem Refused(string path, string declared) =>
         new(ConfigurationProblemKind.ValueNotAccepted, path, declared, [AcceptedInstant]);

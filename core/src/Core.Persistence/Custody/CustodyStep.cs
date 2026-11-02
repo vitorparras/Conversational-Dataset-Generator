@@ -26,4 +26,7 @@ public enum CustodyStep
 
     /// <summary>The map that reverses the pseudonyms of an item was read.</summary>
     ReversalEntriesRead,
+
+    /// <summary>The chain was verified end to end; the reason says whether it held.</summary>
+    VerifyChain,
 }

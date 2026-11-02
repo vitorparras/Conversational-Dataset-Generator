@@ -57,7 +57,10 @@ public sealed class MasterKeyReading : IDisposable
     public void Dispose()
     {
         Key?.Dispose();
-        Epochs.Dispose();
+        if (!ReferenceEquals(Epochs, CustodyEpochs.None))
+        {
+            Epochs.Dispose();
+        }
     }
 
     private static MasterKeyReading Failed(MasterKeyFailureKind kind, string found)

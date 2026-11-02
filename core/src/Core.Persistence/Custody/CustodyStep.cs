@@ -38,4 +38,7 @@ public enum CustodyStep
 
     /// <summary>The keys of the content were wrapped again under a newer epoch; the item is that epoch.</summary>
     EpochRotated,
+
+    /// <summary>A domain was created, with the keys of its two purposes named in the custody; the item is the domain.</summary>
+    DomainCreated,
 }

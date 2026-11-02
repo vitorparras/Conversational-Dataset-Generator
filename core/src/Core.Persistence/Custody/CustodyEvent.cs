@@ -6,7 +6,7 @@ namespace Core.Persistence.Custody;
 public sealed record CustodyEvent
 {
     private static readonly FrozenSet<CustodyStep> OfTheirOwn = Enumerable.Repeat(CustodyStep.Correction, 1)
-        .Append(CustodyStep.VerifyChain).Append(CustodyStep.ItemEmptied).Append(CustodyStep.ItemEmptyingRefused).Append(CustodyStep.EpochRotated).ToFrozenSet();
+        .Append(CustodyStep.VerifyChain).Append(CustodyStep.ItemEmptied).Append(CustodyStep.ItemEmptyingRefused).Append(CustodyStep.EpochRotated).Append(CustodyStep.DomainCreated).ToFrozenSet();
 
     private CustodyEvent(CustodyAuthor author, CustodyItem item, CustodyStep step, CustodyReason reason)
     {
@@ -45,7 +45,8 @@ public sealed record CustodyEvent
         ArgumentNullException.ThrowIfNull(item);
         return HasEventOfItsOwn(step)
             ? throw new ArgumentException(
-                "A correction, a verification, an emptying and a rotation have an event of their own; use Correction, Verification, Emptied, EmptyingRefused or EpochRotated.", nameof(step))
+                "A correction, a verification, an emptying, a rotation and the creation of a domain have an event of their own; "
+                + "use Correction, Verification, Emptied, EmptyingRefused, EpochRotated or DomainCreated.", nameof(step))
             : new CustodyEvent(author, item, step, reason);
     }
 
@@ -109,6 +110,14 @@ public sealed record CustodyEvent
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(epoch);
         return new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.ContentEpoch, epoch), CustodyStep.EpochRotated, CustodyReason.AdministrativeAct);
+    }
+
+    /// <summary>The event of a domain created, written by the system: the item is the domain, by its number, and the name of the domain is not in the event.</summary>
+    /// <param name="domainId">The identifier the domain took in the registry.</param>
+    public static CustodyEvent DomainCreated(int domainId)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(domainId);
+        return new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.Domain, domainId), CustodyStep.DomainCreated, CustodyReason.AdministrativeAct);
     }
 
     /// <summary>A new event that corrects an earlier one, which stays in the sequence as it was.</summary>

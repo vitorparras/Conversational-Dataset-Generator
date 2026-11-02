@@ -4,7 +4,6 @@ using Core.Boundary.Http;
 using Core.Host.Analysis;
 using Core.Host.Endpoints;
 using Core.Host.Migration;
-using Core.Host.Rotation;
 using Core.Host.Supervision;
 using Core.Persistence.Connection;
 using Core.Persistence.Migrations;
@@ -31,9 +30,9 @@ internal static class CompositionRoot
             return HostLaunch.CheckFailed(target);
         }
 
-        if (EpochRotationMode.Requested(args))
+        if (OneShotModes.RunAsync(args) is { } oneShot)
         {
-            return await EpochRotationMode.RunAsync(args, Console.Out, Console.Error);
+            return await oneShot;
         }
 
         var migrating = MigrationMode.Requested(args);

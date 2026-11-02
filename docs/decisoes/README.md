@@ -59,6 +59,7 @@ deliberada e justificada.
 | [0045](0045-formato-do-rotulo-de-derivacao.md) | Formato do rótulo de derivação | Decisão vigente |
 | [0046](0046-material-do-canal-cifrado.md) | O material do canal cifrado chega por arquivos PEM | Decisão vigente |
 | [0047](0047-fator-de-trabalho-das-senhas.md) | O fator de trabalho das senhas: piso e teto, com a exceção da demonstração | Decisão vigente |
+| [0048](0048-retardo-da-entrada.md) | Retardo da entrada | Decisão vigente |
 | [0049](0049-chave-por-item-e-epoca.md) | Cada item tem a chave dele, e uma época a embrulha | Decisão vigente |
 | [0050](0050-banco-amarra-a-mudanca-do-conteudo-a-um-evento.md) | O banco amarra a mudança do conteúdo a um evento da cadeia | Decisão vigente |
 

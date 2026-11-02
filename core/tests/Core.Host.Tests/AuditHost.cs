@@ -36,6 +36,11 @@ internal sealed class AuditHost : IAsyncDisposable
         var sessions = new SessionStore(new SessionLifetimes(TimeSpan.FromMinutes(30), TimeSpan.FromHours(8)), TimeProvider.System);
         _ = builder.Services.AddSingleton(sessions).AddSingleton(new ServerAuditLog(directory));
         var app = builder.Build();
+        _ = app.Use(async (context, next) =>
+        {
+            context.Request.Scheme = context.Request.Headers.ContainsKey(SessionedHost.EncryptedMarker) ? "https" : context.Request.Scheme;
+            await next(context);
+        });
         SessionGate.Use(app);
         AuditEndpoint.Map(app);
         await app.StartAsync(cancellationToken);
@@ -63,6 +68,7 @@ internal sealed class AuditHost : IAsyncDisposable
         if (withSession)
         {
             request.Headers.Add("Cookie", $"{SessionCookie.Name}={Session}");
+            request.Headers.Add(SessionedHost.EncryptedMarker, "1");
         }
 
         return await client.SendAsync(request, cancellationToken);

@@ -99,7 +99,7 @@ public sealed class PasswordConfigurationTests
         var loaded = Loaded($"--{Key}=0", Demonstration);
 
         var problem = Assert.Single(PasswordConfiguration.Refusals(loaded.Values));
-        Assert.Contains("no mínimo 1", problem.Describe(), StringComparison.Ordinal);
+        Assert.Contains("no mínimo 1 na instalação de demonstração", problem.Describe(), StringComparison.Ordinal);
         Assert.DoesNotContain("instalação real", problem.Describe(), StringComparison.Ordinal);
     }
 

@@ -38,5 +38,6 @@ e por quem ela roda.
 | [024](024-arquivos-de-custodia-da-chave.md) | Arquivos de custódia da chave |
 | [025](025-certificado-do-canal-cifrado.md) | Certificado e chave do canal cifrado |
 | [026](026-rotacao-da-epoca.md) | Rotação mensal da época das chaves de item |
+| [027](027-criar-dominio.md) | Criar domínio: rótulos no arquivo de custódia, depois o banco |
 
 Ver [regras de escrita](../regras-de-escrita.md).

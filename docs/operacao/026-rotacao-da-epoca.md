@@ -22,9 +22,11 @@ não terminou.
 2. **Reembrulhar.** Rode `./Core.Host rotate-epoch`, com a configuração de `migrate`
    ([016](016-migracao-do-esquema.md)) e os três caminhos `MasterKey:`, o arquivo de duas épocas
    entre eles: em uma transação, cada chave de linha não esvaziada passa para a época nova, sem
-   tocar no conteúdo. Sai com 0 e diz quantas; com 15 se o custodiante não foi lido ou uma chave
-   não abriu (nada muda, e a recusa nomeia a época que falta); com 16 se o banco não respondeu;
-   com 78 se faltou um dos caminhos.
+   tocar no conteúdo, e grava na cadeia o evento do giro, sem o qual o banco recusa a troca
+   ([0050](../decisoes/0050-banco-amarra-a-mudanca-do-conteudo-a-um-evento.md)). Sai com 0 e diz
+   quantas; com 15 se o custodiante não foi lido, uma chave não abriu ou a cadeia recusou o evento
+   (nada muda, e a recusa nomeia a causa); com 16 se o banco não respondeu; com 78 se faltou um
+   dos caminhos.
 3. **Conferir.** Rode `rotate-epoch` de novo, com o servidor já reiniciado: tem de sair com 0 e
    dizer 0 chaves. Se disser mais, algo gravou sob a época antiga no meio: reinicie e repita.
    Sem 0 chaves, não se segue.

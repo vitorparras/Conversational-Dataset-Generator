@@ -51,8 +51,24 @@ public sealed class CustodyEmptyingEventTests
     [Theory]
     [InlineData(CustodyStep.ItemEmptied)]
     [InlineData(CustodyStep.ItemEmptyingRefused)]
-    public void EmptyingStepsAsAPlainEventAreRefused(CustodyStep step) =>
+    [InlineData(CustodyStep.EpochRotated)]
+    public void EmptyingStepsAndTheRotationAsAPlainEventAreRefused(CustodyStep step) =>
         _ = Assert.Throws<ArgumentException>(() => CustodyEvent.Of(CustodyAuthor.Person(5), new CustodyItem(CustodyItemKind.ItemText, 9), step, CustodyReason.ContentRead));
+
+    [Fact]
+    public void RotationOfTheEpochIsTheSystemsAboutThatEpochForAnAdministrativeAct()
+    {
+        var custodyEvent = CustodyEvent.EpochRotated(7);
+
+        Assert.Equal((CustodyAuthor.System, new CustodyItem(CustodyItemKind.ContentEpoch, 7), CustodyStep.EpochRotated, CustodyReason.AdministrativeAct, null),
+            (custodyEvent.Author, custodyEvent.Item, custodyEvent.Step, custodyEvent.Reason, custodyEvent.Reference));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void RotationOfAnEpochThatIsNotPositiveIsRefused(int epoch) =>
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => CustodyEvent.EpochRotated(epoch));
 
     [Theory]
     [InlineData(0)]

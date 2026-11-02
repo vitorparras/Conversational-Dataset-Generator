@@ -50,6 +50,7 @@ public sealed class ContentEmptyingRaceTests
             var writing = world.Writer.AddReversalMapAsync(1, item, "mapa zqx", TestContext.Current.CancellationToken);
             await WaitForTheWriterToBlockAsync(world);
 
+            _ = await ScalarAsync(emptying, ContentWorld.EmptiedEvent, item);
             _ = await ScalarAsync(emptying, ContentQueries.EmptyItemText, item);
             _ = await ScalarAsync(emptying, ContentQueries.EmptyReversalMaps, item);
             await emptying.CommitAsync(TestContext.Current.CancellationToken);

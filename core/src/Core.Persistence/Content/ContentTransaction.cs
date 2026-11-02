@@ -10,7 +10,7 @@ namespace Core.Persistence.Content;
 /// </summary>
 public sealed class ContentTransaction : IAsyncDisposable
 {
-    private const string Declare = "SELECT set_config('app.domain', @domain, true)";
+    internal const string Declare = "SELECT set_config('app.domain', @domain, true)";
 
     private readonly NpgsqlConnection connection;
     private readonly NpgsqlTransaction transaction;

@@ -10,6 +10,13 @@ internal static class CustodyStatements
     /// <summary>The SQLSTATE the triggers of the table raise when a change, a removal or an emptying is attempted (migration 0009).</summary>
     internal const string ImmutableSqlState = "CE001";
 
+    /// <summary>Every field of every event that the digest covers, with the two digests, in the order of the sequence: what the verification reads.</summary>
+    internal const string ReadChain = """
+        SELECT sequence, pg_catalog.timestamptz_send(occurred_at) AS occurred_at_send, actor_person_id, actor_system, item_kind, item_id, step, reason, corrects, previous_digest, digest, recorded_by
+        FROM public.custody_event
+        ORDER BY sequence
+        """;
+
     internal const string Append = """
         INSERT INTO public.custody_event (actor_person_id, actor_system, item_kind, item_id, step, reason, corrects)
         VALUES (@actor, @system, @kind, @item, @step, @reason, @corrects)

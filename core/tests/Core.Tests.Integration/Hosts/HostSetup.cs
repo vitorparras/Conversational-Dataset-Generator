@@ -1,3 +1,5 @@
+using Core.Persistence.People;
+
 namespace Core.Tests.Integration.Hosts;
 
 /// <summary>
@@ -28,5 +30,5 @@ internal sealed record HostSetup
     public int WorkFactor { get; init; } = 1;
 
     /// <summary>The function of the person the host starts with; the first of the policy unless the test asks for another.</summary>
-    public string Function { get; init; } = Core.Persistence.People.PersonFunctions.Accepted[0];
+    public string Function { get; init; } = PersonFunctions.Accepted[0];
 }

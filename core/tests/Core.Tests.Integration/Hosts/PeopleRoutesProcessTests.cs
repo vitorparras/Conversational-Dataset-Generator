@@ -183,6 +183,32 @@ public sealed class PeopleRoutesProcessTests
         Assert.DoesNotContain(Secret, body, StringComparison.Ordinal);
     }
 
+    [DatabaseFact]
+    public async Task Ca7APasswordNotStoredAfterThePersonWasMadeAnswers500WithTheIdAndTheRouteAndThePasswordSetAgainOpens()
+    {
+        await using var host = await AdministratorAsync();
+        _ = await ScalarAsync(
+            host,
+            """
+            CREATE FUNCTION public.zqx_skip_credential() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RETURN NULL; END $$;
+            CREATE TRIGGER zqx_skip BEFORE INSERT ON public.person_credential FOR EACH ROW EXECUTE FUNCTION public.zqx_skip_credential();
+            """);
+
+        using var unfinished = await host.PostAsync("/people", Person("zqx-unfinished", Auditing, Secret), Token);
+
+        var body = await unfinished.Content.ReadAsStringAsync(Token);
+        var id = await IdOfAsync(host, "zqx-unfinished");
+        Assert.Equal(HttpStatusCode.InternalServerError, unfinished.StatusCode);
+        Assert.Contains($"id {id} e a senha não foi definida; defina-a pela rota PUT /people/{id}/password", body, StringComparison.Ordinal);
+        Assert.DoesNotContain(Secret, body, StringComparison.Ordinal);
+        Assert.Equal(0L, await CountAsync(host, $"public.person_credential WHERE person_id = {id}"));
+
+        _ = await ScalarAsync(host, "DROP TRIGGER zqx_skip ON public.person_credential");
+        using var set = await host.SendAsAsync(HttpMethod.Put, $"/people/{id}/password", PasswordBody(Secret), host.Identifier, Token);
+        Assert.Equal(HttpStatusCode.OK, set.StatusCode);
+        Assert.NotNull(await host.EnterAsync("zqx-unfinished", Secret, Token));
+    }
+
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     private static Task<AuthenticatedHost> AdministratorAsync() =>

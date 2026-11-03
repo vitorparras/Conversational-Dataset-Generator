@@ -31,7 +31,9 @@ public sealed class SealProtectionTests
     {
         var words = SealProtection.Of(SealSituation.Manual, Moment);
 
-        Assert.All(["Até o último selo, em 2031-03-04T08:06:07Z", "Desde essa data", "só a coerência dos elos", "e não a integridade"], part => Assert.Contains(part, words, StringComparison.Ordinal));
+        Assert.All(
+            ["A comparação com o selo de 2031-03-04T08:06:07Z cobre a cadeia até essa data", "Desde ela", "só a coerência dos elos", "e não a integridade"],
+            part => Assert.Contains(part, words, StringComparison.Ordinal));
         Assert.DoesNotContain("não foi conferido", words, StringComparison.Ordinal);
     }
 
@@ -62,6 +64,14 @@ public sealed class SealProtectionTests
     [Fact]
     public void ManualSituationDoesNotSayTheLinksSinceTheSealWereNotChecked() =>
         Assert.DoesNotContain("não foi conferido", SealProtection.Of(SealSituation.Manual, Moment), StringComparison.Ordinal);
+
+    [Fact]
+    public void NoSituationSaysTheChainMatchesTheSealSinceTheWordsSayWhatIsCoveredAndNotTheResult()
+    {
+        var all = Enum.GetValues<SealSituation>().Select(situation => SealProtection.Of(situation, Moment));
+
+        Assert.All(all, words => Assert.DoesNotContain("confere com", words, StringComparison.OrdinalIgnoreCase));
+    }
 
     [Fact]
     public void NoSituationAffirmsIntegrityWithoutQualifyingIt()

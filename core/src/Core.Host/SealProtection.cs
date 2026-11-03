@@ -30,7 +30,7 @@ internal static class SealProtection
 
     private static string ManualWords(DateTimeOffset? lastSeal) =>
         lastSeal is { } moment
-            ? "Até o último selo, em " + InWholeSeconds(moment) + ", a cadeia confere com ele. Desde essa data, a verificação atesta só a coerência dos elos, e não a integridade: "
+            ? "A comparação com o selo de " + InWholeSeconds(moment) + " cobre a cadeia até essa data. Desde ela, a verificação atesta só a coerência dos elos, e não a integridade: "
               + "nenhum selo confirma o que entrou depois."
             : "Nenhum selo foi registrado ainda: sem ele, a verificação só diz que os elos da cadeia se fecham, e não atesta integridade.";
 

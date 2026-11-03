@@ -115,6 +115,25 @@ public sealed class SealVerificationHostTests
         Assert.Contains(moment, with, StringComparison.Ordinal);
     }
 
+    [DatabaseFact]
+    public async Task Ca5ASealThatDoesNotMatchIsNeverToldInTheProtectionAsAChainThatMatchesIt()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var host = await StartedAsync(new HostSetup(), cancellationToken);
+        await host.RunAsSuperuserAsync(
+            "INSERT INTO public.custody_event (actor_system, item_kind, item_id, step, reason) "
+            + "SELECT true, 'custody_chain', max(sequence), 'seal_recorded', 'administrative_act' FROM public.custody_event",
+            cancellationToken);
+        var last = await host.NumberAsSuperuserAsync(LastEvent, cancellationToken);
+
+        var shown = await VerifyAsync(host, ChainSeal.Of(DateTimeOffset.UtcNow, last, new byte[32]).ToText(), cancellationToken);
+
+        var protection = shown.GetProperty("protection").GetString();
+        Assert.False(shown.GetProperty("seal").GetProperty("holds").GetBoolean());
+        Assert.Contains("A comparação com o selo de", protection, StringComparison.Ordinal);
+        Assert.DoesNotContain("confere com", protection, StringComparison.Ordinal);
+    }
+
     [DatabaseTheory]
     [InlineData("External")]
     [InlineData("Internal")]

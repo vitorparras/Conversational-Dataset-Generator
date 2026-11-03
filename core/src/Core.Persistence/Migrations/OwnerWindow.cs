@@ -1,5 +1,3 @@
-using System.Data.Common;
-using System.Globalization;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
 using Core.Persistence.Custody.Verification;
@@ -13,14 +11,13 @@ namespace Core.Persistence.Migrations;
 /// </summary>
 internal sealed class OwnerWindow
 {
-    private const string Tip = "SELECT sequence, digest FROM public.custody_event ORDER BY sequence DESC LIMIT 1";
+    private const string Tip = "SELECT 'tip=' || sequence || ';digest=' || encode(digest, 'hex') FROM public.custody_event ORDER BY sequence DESC LIMIT 1";
 
     private readonly NpgsqlDataSource dataSource;
     private readonly int creating;
     private readonly int found;
     private readonly int arrival;
-    private long tipSequence;
-    private byte[]? tipDigest;
+    private string tip = "tip=0";
 
     private OwnerWindow(NpgsqlDataSource dataSource, int creating, int found, int arrival)
     {
@@ -60,40 +57,23 @@ internal sealed class OwnerWindow
 
     private async Task KeepTipAsync(NpgsqlConnection connection, CancellationToken cancellationToken)
     {
-        try
-        {
-            await ReadTipFromAsync(connection, cancellationToken).ConfigureAwait(false);
-        }
-        catch (PostgresException noChain) when (noChain.SqlState == PostgresErrorCodes.UndefinedTable)
-        {
-            // A database older than the chain has no tip to keep.
-        }
-    }
-
-    private async Task ReadTipFromAsync(NpgsqlConnection connection, CancellationToken cancellationToken)
-    {
         var command = new NpgsqlCommand(Tip, connection);
         await using (command.ConfigureAwait(false))
         {
-            var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-            await using (reader.ConfigureAwait(false))
+            try
             {
-                await ReadTipAsync(reader, cancellationToken).ConfigureAwait(false);
+                tip = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) as string ?? tip;
+            }
+            catch (PostgresException noChain) when (noChain.SqlState == PostgresErrorCodes.UndefinedTable)
+            {
+                // A database older than the chain has no tip to keep.
             }
         }
     }
 
-    private async Task ReadTipAsync(DbDataReader reader, CancellationToken cancellationToken)
-    {
-        var read = await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
-        tipSequence = read ? reader.GetInt64(0) : 0;
-        tipDigest = read ? reader[1] as byte[] : null;
-    }
-
     private async Task<bool> WriteAsync(bool afterTheStep, CancellationToken cancellationToken)
     {
-        var digest = tipDigest is null ? string.Empty : $";digest={Convert.ToHexStringLower(tipDigest)}";
-        var reference = string.Create(CultureInfo.InvariantCulture, $"from={found};to={arrival};tip={tipSequence}{digest}{(afterTheStep ? ";late=1" : string.Empty)}");
+        var reference = $"from={found};to={arrival};{tip}{(afterTheStep ? ";late=1" : string.Empty)}";
         var result = await new CustodyChain(dataSource).AppendAsync(CustodyEvent.OwnerWindowOpened(arrival, reference), cancellationToken).ConfigureAwait(false);
         if (result.Outcome != CustodyOutcome.Appended)
         {

@@ -6,7 +6,7 @@ using Core.Persistence.People;
 using Npgsql;
 using NpgsqlTypes;
 
-namespace Core.Persistence.Content;
+namespace Core.Persistence.Content.Emptying;
 
 /// <summary>
 /// The one way an item is emptied: in one serializable transaction the chain records the emptying or its refusal, and only if the event of the emptying entered are the item

@@ -1,4 +1,4 @@
-namespace Core.Persistence.Content;
+namespace Core.Persistence.Content.Emptying;
 
 /// <summary>How a request to empty an item ended; only <see cref="Emptied" /> changes content.</summary>
 public enum EmptyingOutcome

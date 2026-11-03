@@ -75,15 +75,16 @@ public sealed class CustodyVerificationHostTests
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         await using var host = await AuthenticatedHost.StartAsync(new HostSetup { Arguments = [OneSecond], WithLogFile = true }, cancellationToken);
-        var first = await UntilAsync(host, body => body.GetProperty("last").ValueKind == JsonValueKind.Object, cancellationToken);
-        var stoppedAt = first.GetProperty("last").GetProperty("recordedAt").GetDateTimeOffset();
+        _ = await UntilAsync(host, body => body.GetProperty("last").ValueKind == JsonValueKind.Object, cancellationToken);
 
         await host.RunAsSuperuserAsync(
             "CREATE FUNCTION public.zqx_refuse() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'zqx'; END $$; "
             + "CREATE TRIGGER zqx_refuse BEFORE INSERT ON public.custody_event FOR EACH ROW EXECUTE FUNCTION public.zqx_refuse()",
             cancellationToken);
-        var late = await UntilAsync(host, body => body.GetProperty("overdue").GetBoolean(), cancellationToken);
         await LogHasAsync(host, "não chegou ao fim: InvalidOperationException", cancellationToken);
+        var stopped = await UntilAsync(host, body => body.GetProperty("last").ValueKind == JsonValueKind.Object, cancellationToken);
+        var stoppedAt = stopped.GetProperty("last").GetProperty("recordedAt").GetDateTimeOffset();
+        var late = await UntilAsync(host, body => body.GetProperty("overdue").GetBoolean(), cancellationToken);
         using var alive = await host.GetAsync("/status", cancellationToken);
         await host.RunAsSuperuserAsync("DROP TRIGGER zqx_refuse ON public.custody_event; DROP FUNCTION public.zqx_refuse()", cancellationToken);
         var caughtUp = await UntilAsync(host, body => body.GetProperty("last").GetProperty("recordedAt").GetDateTimeOffset() > stoppedAt, cancellationToken);

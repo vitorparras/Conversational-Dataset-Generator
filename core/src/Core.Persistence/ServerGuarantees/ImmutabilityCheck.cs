@@ -18,15 +18,17 @@ public sealed class ImmutabilityCheck : IStartupCheck
     internal const string EmptiedFunction = "refuse_custody_event_emptying";
 
     /// <summary>
-    /// The text of the body of each function, as the migration 0009 writes it between its dollar quotes and as the catalog keeps it in prosrc. The one place this text lives besides the migration:
-    /// a test derives it from the embedded migration and fails when the two differ.
+    /// The text of the body of each function, as the latest migration that declares it (0014) writes it between its dollar quotes and as the catalog keeps it in prosrc.
+    /// The one place this text lives besides the migration: a test derives it from the embedded migrations and fails when the two differ.
     /// </summary>
     internal const string ChangedBody =
-        "\nBEGIN\n    RAISE EXCEPTION 'public.custody_event: % refused for the event of sequence %', TG_OP, OLD.sequence\n"
+        "\nBEGIN\n    RAISE LOG 'public.custody_event: % refused for the role %', TG_OP, session_user;\n"
+        + "    RAISE EXCEPTION 'public.custody_event: % refused for the event of sequence %', TG_OP, OLD.sequence\n"
         + "        USING ERRCODE = 'CE001', SCHEMA = 'public', TABLE = 'custody_event';\nEND\n";
 
     internal const string EmptiedBody =
-        "\nBEGIN\n    RAISE EXCEPTION 'public.custody_event: % refused', TG_OP\n"
+        "\nBEGIN\n    RAISE LOG 'public.custody_event: % refused for the role %', TG_OP, session_user;\n"
+        + "    RAISE EXCEPTION 'public.custody_event: % refused', TG_OP\n"
         + "        USING ERRCODE = 'CE001', SCHEMA = 'public', TABLE = 'custody_event';\nEND\n";
 
     internal const string ExpectedLanguage = "plpgsql";
@@ -98,7 +100,7 @@ public sealed class ImmutabilityCheck : IStartupCheck
 
         if (!string.Equals(reading.Body, expectedBody, StringComparison.Ordinal) || !string.Equals(reading.Language, ExpectedLanguage, StringComparison.Ordinal))
         {
-            yield return $"a função public.{function}, que o gatilho {trigger} chama, não tem o corpo nem a linguagem que a migração 0009 escreveu: "
+            yield return $"a função public.{function}, que o gatilho {trigger} chama, não tem o corpo nem a linguagem que a migração 0014 escreveu: "
                 + "restaure-a com a definição dela (CREATE OR REPLACE FUNCTION), porque uma função diferente pode deixar a mudança passar";
         }
     }

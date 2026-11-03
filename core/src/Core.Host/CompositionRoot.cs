@@ -6,7 +6,7 @@ using Core.Host.Endpoints;
 using Core.Host.Migration;
 using Core.Host.Supervision;
 using Core.Persistence.Connection;
-using Core.Persistence.Content;
+using Core.Persistence.Content.Rotation;
 using Core.Persistence.Migrations;
 using Core.Persistence.People;
 using Core.Persistence.ServerGuarantees;

@@ -1,4 +1,4 @@
-namespace Core.Persistence.Content;
+namespace Core.Persistence.Content.Emptying;
 
 /// <summary>A map was added to an item that was emptied: what it would hold is what the emptying took away. Nothing was written, and the message carries nothing of the content.</summary>
 public sealed class ItemEmptiedException : InvalidOperationException

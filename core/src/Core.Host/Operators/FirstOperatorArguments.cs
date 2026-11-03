@@ -1,7 +1,7 @@
-namespace Core.Host.People;
+namespace Core.Host.Operators;
 
 /// <summary>What <c>create-person</c> takes from its arguments: the name and the function, once each, and the rest for the configuration; the password is never among them.</summary>
-internal sealed class PersonCreationArguments
+internal sealed class FirstOperatorArguments
 {
     private const string NameOption = "--name";
     private const string FunctionOption = "--function";
@@ -20,14 +20,14 @@ internal sealed class PersonCreationArguments
     internal required string[] Remaining { get; init; }
 
     /// <summary>Takes the options out of the arguments that follow the mode word; each is written <c>--option value</c> or <c>--option=value</c>.</summary>
-    internal static PersonCreationArguments Split(string[] args)
+    internal static FirstOperatorArguments Split(string[] args)
     {
         var (names, afterName) = Take(args.Skip(1), NameOption);
         var (functions, afterFunction) = Take(afterName, FunctionOption);
         var (passwords, rest) = Take(afterFunction, PasswordOption);
         var remaining = new string[rest.Count];
         rest.CopyTo(remaining);
-        return new PersonCreationArguments
+        return new FirstOperatorArguments
         {
             Name = names.Count == 1 ? names[0] : null,
             Function = functions.Count == 1 ? functions[0] : null,

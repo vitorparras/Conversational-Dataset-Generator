@@ -3,7 +3,7 @@ using Core.Persistence.People;
 namespace Core.Host.Endpoints;
 
 /// <summary>How a refusal of the registry is answered: the status that fits it, the field at fault when one is, and the reason the registry gave in words.</summary>
-internal static class PersonAnswer
+internal static class OperatorAnswer
 {
     private static readonly Dictionary<PersonOutcome, string> Fields = new()
     {
@@ -27,10 +27,10 @@ internal static class PersonAnswer
 
     internal static IResult Of(PersonResult refused) =>
         Results.Json(
-            new PersonRefused(Fields.GetValueOrDefault(refused.Outcome), refused.Refusal ?? refused.Outcome.ToString()),
+            new OperatorRefused(Fields.GetValueOrDefault(refused.Outcome), refused.Refusal ?? refused.Outcome.ToString()),
             statusCode: Statuses.GetValueOrDefault(refused.Outcome, StatusCodes.Status409Conflict));
 
-    internal static IResult AtField(string name, string reason) => Results.Json(new PersonRefused(name, reason), statusCode: StatusCodes.Status400BadRequest);
+    internal static IResult AtField(string name, string reason) => Results.Json(new OperatorRefused(name, reason), statusCode: StatusCodes.Status400BadRequest);
 
-    internal static IResult Forbidden(string reason) => Results.Json(new PersonRefused(null, reason), statusCode: StatusCodes.Status403Forbidden);
+    internal static IResult Forbidden(string reason) => Results.Json(new OperatorRefused(null, reason), statusCode: StatusCodes.Status403Forbidden);
 }

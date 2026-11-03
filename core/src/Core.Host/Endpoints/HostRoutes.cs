@@ -13,7 +13,7 @@ internal static class HostRoutes
         AnalysisEndpoint.Map(app);
         SessionEndpoint.Map(app);
         AuditEndpoint.Map(app);
-        PeopleEndpoint.Map(app);
+        OperatorsEndpoint.Map(app);
         ChainVerificationEndpoint.Map(app);
     }
 }

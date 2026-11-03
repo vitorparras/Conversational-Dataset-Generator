@@ -52,7 +52,11 @@ internal static class KeyedHost
         var clock = Stopwatch.StartNew();
         while (clock.Elapsed < StartupTimeout)
         {
-            Assert.False(process.HasExited, "The host exited before it answered.");
+            if (process.HasExited)
+            {
+                Assert.Fail($"The host exited with code {process.ExitCode} before it answered.");
+            }
+
             if (await TryStatusAsync(client, cancellationToken) is { } status)
             {
                 return status;

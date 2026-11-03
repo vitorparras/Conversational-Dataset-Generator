@@ -3,8 +3,7 @@
 > Operacional. 2026-10-25.
 
 A migração é um **modo do mesmo executável**, pedido com `migrate` como primeiro argumento: roda
-uma vez, com a credencial de dono, e termina. A partida normal usa a credencial da aplicação e
-**só confere a versão**: nunca migra.
+uma vez, com a credencial de dono, e termina. A partida normal **só confere a versão**: nunca migra.
 
 ## Como rodar
 
@@ -19,8 +18,8 @@ unset CDG_Database__Host CDG_Database__Name CDG_Database__Username CDG_Database_
 ```
 
 Os passos são os arquivos de `core/src/Core.Persistence/Migrations/Sql`, embutidos no executável e
-aplicados em ordem numérica. Cada um roda numa transação própria, junto com a sua linha na tabela
-`public.schema_version`: versão, nome, SHA-256 do conteúdo, quando e quem (o usuário da sessão).
+aplicados em ordem numérica, cada um em transação própria com a sua linha em `public.schema_version`
+(versão, nome, SHA-256, quando e quem).
 
 ## Como termina
 
@@ -37,22 +36,23 @@ aplicados em ordem numérica. Cada um roda numa transação própria, junto com 
 Passo que falha é desfeito por inteiro, linha do registro inclusive; os anteriores ficam. O modo
 grava, fora da transação, uma linha em `public.schema_failure`: versão, nome, SHA-256, SQLSTATE
 (se houver), quando e quem; sem mensagem, texto do passo nem dado de material. A tabela só recebe
-linhas, e a comparação lê só `public.schema_version`: falha repetida deixa outra linha, e o passo
-corrigido não apaga as anteriores. Não fica linha se a tabela não existe (0001 ou 0002), se a
-inserção falha ou se a sessão se perdeu no passo; o código segue 13. Linha gravada ganha uma linha
-no log. Migrações simultâneas não aplicam o mesmo passo: a segunda espera e termina com 10. O modo
-escreve só no console, sem `Host:LogFile`: guarde a saída para o registro da janela.
+linhas: falha repetida deixa outra, e o passo corrigido não apaga as anteriores. Não fica linha se
+a tabela não existe (0001 ou 0002), se a inserção falha ou se a sessão se perdeu; o código segue 13.
+Migrações simultâneas não aplicam o mesmo passo: a segunda espera e termina com 10. O modo escreve
+só no console, sem `Host:LogFile`: guarde a saída para o registro da janela.
 
 ## A partida normal
 
-A conferência da versão é a última das garantias do servidor. Banco vazio conta como versão 0.
-Banco atrás, à frente ou com passo divergente impede a partida (código 69), nomeando as versões ou o
-passo e os dois resumos; atrás manda rodar `migrate`, divergente manda não rodar.
+A versão é a última das garantias do servidor; banco vazio conta como 0. Banco atrás, à frente
+ou com passo divergente impede a partida (69); atrás manda rodar `migrate`, divergente, não.
 
 ## O cerco da credencial
 
 A janela segue [010](010-credencial-de-dono-do-banco.md): o `migrate` com passo pendente a abre na
 cadeia antes do primeiro passo e a partida seguinte a fecha. Registro e log não levam a credencial.
+Antes do primeiro passo o `migrate` verifica a cadeia, de onde o verificador a lê (versão 16 em
+diante; abaixo só guarda o topo). Cadeia quebrada recusa os eventos da janela (CE002): o `migrate`
+aborta sem aplicar passo, a partida é recusada e nada é reconstruído ([006](006-restauracao.md)).
 
 ## Passo novo
 

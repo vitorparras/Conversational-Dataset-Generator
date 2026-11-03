@@ -17,7 +17,7 @@ internal static class AuditFidelity
         var deadline = DateTimeOffset.UtcNow + Wait;
         while (true)
         {
-            var differences = await CompareOnceAsync(application, from);
+            var differences = (await CompareOnceAsync(application, from)).Differences;
             if (!differences.Any(difference => difference.Seen < difference.Recorded) || DateTimeOffset.UtcNow > deadline)
             {
                 return differences;
@@ -27,7 +27,7 @@ internal static class AuditFidelity
         }
     }
 
-    private static async Task<IReadOnlyList<AuditDifference>> CompareOnceAsync(NpgsqlDataSource application, DateTimeOffset from)
+    private static async Task<AuditCompared> CompareOnceAsync(NpgsqlDataSource application, DateTimeOffset from)
     {
         var directory = Path.Combine(Path.GetTempPath(), $"cdg-fidelity-{Guid.NewGuid():N}");
         _ = Directory.CreateDirectory(directory);

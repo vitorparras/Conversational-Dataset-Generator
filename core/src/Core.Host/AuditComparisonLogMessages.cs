@@ -12,6 +12,12 @@ internal static partial class AuditComparisonLogMessages
         Message = "Diferença nova entre o registro do servidor e a cadeia: papel {Role}, tabela {Table}, {Detail}")]
     internal static partial void NewDifference(this ILogger logger, string role, string table, string detail);
 
+    [LoggerMessage(
+        EventId = 202,
+        Level = LogLevel.Warning,
+        Message = "O arquivo {File} do registro do servidor termina numa linha cortada, o servidor caiu ao gravá-la: a linha ficou de fora da comparação e o arquivo não deve ser mexido")]
+    internal static partial void CutOffFile(this ILogger logger, string file);
+
     [LoggerMessage(EventId = 201, Level = LogLevel.Error, Message = "A comparação do registro do servidor com a cadeia não pôde rodar: {Failure}")]
     internal static partial void ComparisonFailed(this ILogger logger, string failure);
 }

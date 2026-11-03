@@ -5,11 +5,13 @@ using Npgsql;
 
 namespace Core.Persistence.Migrations;
 
-/// <summary>The window of the owner credential in the chain of custody (#64): before the first pending step the chain is verified, its tip kept and the window opened; an older database gets the event right after the step that creates it.</summary>
+/// <summary>
+/// The window of the owner credential in the chain of custody (#64): before the first pending step the chain is verified, its tip kept and the window opened;
+/// an older database gets the event right after the step that creates it.
+/// </summary>
 internal sealed class OwnerWindow
 {
-    /// <summary>The first version whose chain the verifier reads: the one that adds the column of the reference (0016).</summary>
-    private const int FirstReadable = 16;
+    private const int FirstReadable = 16; // the version that adds the column of the reference (0016), from which the verifier reads the chain
 
     private const string Tip = "SELECT 'tip=' || sequence || ';digest=' || encode(digest, 'hex') FROM public.custody_event ORDER BY sequence DESC LIMIT 1";
 

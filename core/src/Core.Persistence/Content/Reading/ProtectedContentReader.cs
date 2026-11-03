@@ -32,10 +32,6 @@ public sealed class ProtectedContentReader(NpgsqlDataSource dataSource, Protecte
     }
 
     /// <summary>Reads the column of the first row of the domain that holds a value, in one statement and one event, so that the server's log and the chain count it alike.</summary>
-    /// <param name="author">Who reads; the event of the reading names them.</param>
-    /// <param name="column">The protected column.</param>
-    /// <param name="domainId">The domain whose first row is read.</param>
-    /// <param name="cancellationToken">Cancels the reading.</param>
     public Task<ContentReadResult> ReadFirstAsync(CustodyAuthor author, ProtectedColumn column, int domainId, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(author);

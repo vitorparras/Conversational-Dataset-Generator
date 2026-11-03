@@ -205,7 +205,7 @@ internal sealed class AuthenticatedHost : IAsyncDisposable
         {
             ["Host:Urls"] = address.GetLeftPart(UriPartial.Authority),
             ["Installation:Kind"] = "demonstracao",
-            ["Passwords:WorkFactor"] = setup.WorkFactor.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["Passwords:WorkFactor"] = setup.WorkFactor.ToString(CultureInfo.InvariantCulture),
             ["Session:IdleTimeout"] = "00:30:00",
             ["Session:AbsoluteTimeout"] = "08:00:00",
             ["Custody:VerificationInterval"] = "00:05:00",

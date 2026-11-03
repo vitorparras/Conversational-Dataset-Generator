@@ -51,8 +51,8 @@ passo e os dois resumos; atrás manda rodar `migrate`, divergente manda não rod
 
 ## O cerco da credencial
 
-A janela segue [010](010-credencial-de-dono-do-banco.md) e [007](007-verificacao-da-custodia.md):
-custódia antes, rodar, verificar depois, registrar. Registro e log não levam a credencial.
+A janela segue [010](010-credencial-de-dono-do-banco.md): o `migrate` com passo pendente a abre na
+cadeia antes do primeiro passo e a partida seguinte a fecha. Registro e log não levam a credencial.
 
 ## Passo novo
 

@@ -16,7 +16,11 @@ internal static class MigrationReport
         switch (result.Outcome)
         {
             case MigrationOutcome.Applied:
-                logger.WriteWindow(result.OwnerWindow);
+                if (result.OwnerWindow != OwnerWindowOpening.None)
+                {
+                    logger.OwnerWindowOpened(result.OwnerWindow);
+                }
+
                 logger.SchemaMigrated(result.Found);
                 break;
             case MigrationOutcome.NothingToDo:
@@ -36,22 +40,6 @@ internal static class MigrationReport
                 break;
             default:
                 throw new UnreachableException();
-        }
-    }
-
-    private static void WriteWindow(this ILogger logger, OwnerWindowOpening opening)
-    {
-        if (opening == OwnerWindowOpening.Opened)
-        {
-            logger.OwnerWindowOpened();
-        }
-        else if (opening == OwnerWindowOpening.OpenedAfterTheStep)
-        {
-            logger.OwnerWindowOpenedAfterTheStep();
-        }
-        else
-        {
-            // No window was opened by this run: there is nothing to tell.
         }
     }
 

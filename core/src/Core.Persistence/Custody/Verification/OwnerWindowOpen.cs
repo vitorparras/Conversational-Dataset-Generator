@@ -1,9 +1,6 @@
 namespace Core.Persistence.Custody.Verification;
 
-/// <summary>
-/// A window of the owner credential that is still open, as the chain records it: when it opened, what it was for, the tip of the chain it found, and whether a closing was tried and failed.
-/// It carries no content of any event.
-/// </summary>
+/// <summary>A window of the owner credential that is still open, as the chain records it; it carries no content of any event.</summary>
 /// <param name="OpenedSequence">The sequence of the event that opened the window.</param>
 /// <param name="OpenedAt">The moment the server recorded the opening.</param>
 /// <param name="From">The version of the schema the migration left.</param>

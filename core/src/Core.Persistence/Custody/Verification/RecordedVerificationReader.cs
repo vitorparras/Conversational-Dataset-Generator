@@ -31,62 +31,37 @@ public sealed class RecordedVerificationReader
         return last is null ? null : new RecordedGuarantees(last.RecordedAt, last.Passed, last.EventsRead);
     }
 
-    /// <summary>The window of the owner credential that is open, or null when the last event of the window closed it with every guarantee held, or no window was ever opened.</summary>
+    /// <summary>The window of the owner credential that is open, or null when none is or the last event of the window closed it with every guarantee held.</summary>
     /// <param name="cancellationToken">Cancels the reading.</param>
     public async Task<OwnerWindowOpen?> OwnerWindowAsync(CancellationToken cancellationToken)
     {
-        var last = await LastWindowEventAsync(cancellationToken).ConfigureAwait(false);
-        if (last is not { } latest)
-        {
-            return null;
-        }
-
-        var closingFailed = latest.Reason == CustodyNames.Of(CustodyReason.VerificationFailed);
-        return latest.Step == CustodyNames.Of(CustodyStep.OwnerWindowClosed) && !closingFailed
-            ? null
-            : await OpenedAsync(closingFailed, cancellationToken).ConfigureAwait(false);
-    }
-
-    private async Task<(string Step, string Reason)?> LastWindowEventAsync(CancellationToken cancellationToken)
-    {
-        var command = dataSource.CreateCommand(CustodyStatements.ReadLastOwnerWindowEvent);
+        var command = dataSource.CreateCommand(CustodyStatements.ReadOpenOwnerWindow);
         await using (command.ConfigureAwait(false))
         {
             var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             await using (reader.ConfigureAwait(false))
             {
-                return await reader.ReadAsync(cancellationToken).ConfigureAwait(false) ? ((string)reader["step"], (string)reader["reason"]) : null;
+                return await OpenedFromAsync(reader, cancellationToken).ConfigureAwait(false);
             }
         }
     }
 
-    private async Task<OwnerWindowOpen?> OpenedAsync(bool closingFailed, CancellationToken cancellationToken)
-    {
-        var command = dataSource.CreateCommand(CustodyStatements.ReadLastOwnerWindowOpened);
-        await using (command.ConfigureAwait(false))
-        {
-            var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-            await using (reader.ConfigureAwait(false))
-            {
-                return await OpenedFromAsync(reader, closingFailed, cancellationToken).ConfigureAwait(false);
-            }
-        }
-    }
-
-    private static async Task<OwnerWindowOpen?> OpenedFromAsync(DbDataReader reader, bool closingFailed, CancellationToken cancellationToken)
+    private static async Task<OwnerWindowOpen?> OpenedFromAsync(DbDataReader reader, CancellationToken cancellationToken)
     {
         if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
             return null;
         }
 
-        var fields = OwnerWindowReference.Fields((string)reader["reference"]);
+        var reference = (string)reader["reference"];
         var openedAt = await reader.GetFieldValueAsync<DateTimeOffset>(1, cancellationToken).ConfigureAwait(false);
-        return new OwnerWindowOpen((long)reader["sequence"], openedAt, (int)Number(fields, "from"), (int)Number(fields, "to"), Number(fields, "tip"), fields.ContainsKey("late"), closingFailed);
+        var (from, to, tip) = ((int)Number(reference, "from"), (int)Number(reference, "to"), Number(reference, "tip"));
+        return new OwnerWindowOpen((long)reader["sequence"], openedAt, from, to, tip, reference.Contains(";late=1", StringComparison.Ordinal), (bool)reader["closing_failed"]);
     }
 
-    private static long Number(IDictionary<string, string> fields, string name) =>
-        fields.TryGetValue(name, out var value) && long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var number) ? number : 0L;
+    private static long Number(string reference, string name) =>
+        reference.Split(';').Select(piece => piece.Split('=')).Where(pair => pair.Length == 2 && pair[0] == name)
+            .Select(pair => long.TryParse(pair[1], NumberStyles.None, CultureInfo.InvariantCulture, out var number) ? number : 0L).FirstOrDefault();
 
     private async Task<RecordedVerification?> LastOfAsync(CustodyStep step, CancellationToken cancellationToken)
     {

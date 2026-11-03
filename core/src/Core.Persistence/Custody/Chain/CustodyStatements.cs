@@ -33,22 +33,12 @@ internal static class CustodyStatements
         LIMIT 1
         """;
 
-    /// <summary>The last event of the window of the owner credential, opening or closing: the step and the reason.</summary>
-    internal const string ReadLastOwnerWindowEvent = """
-        SELECT step, reason
-        FROM public.custody_event
-        WHERE step IN ('owner_window_opened', 'owner_window_closed')
-        ORDER BY sequence DESC
-        LIMIT 1
-        """;
-
-    /// <summary>The last opening of the window: its sequence, the moment and the reference that says what it was for.</summary>
-    internal const string ReadLastOwnerWindowOpened = """
-        SELECT sequence, occurred_at, reference
-        FROM public.custody_event
-        WHERE step = 'owner_window_opened'
-        ORDER BY sequence DESC
-        LIMIT 1
+    /// <summary>The last opening of the window of the owner credential, when it is still open: not closed, or whose last closing failed.</summary>
+    internal const string ReadOpenOwnerWindow = """
+        SELECT o.sequence, o.occurred_at, o.reference, l.reason = 'verification_failed' AS closing_failed
+        FROM (SELECT step, reason FROM public.custody_event WHERE step IN ('owner_window_opened', 'owner_window_closed') ORDER BY sequence DESC LIMIT 1) l
+        CROSS JOIN LATERAL (SELECT sequence, occurred_at, reference FROM public.custody_event WHERE step = 'owner_window_opened' ORDER BY sequence DESC LIMIT 1) o
+        WHERE l.step = 'owner_window_opened' OR l.reason = 'verification_failed'
         """;
 
     internal const string Append = """

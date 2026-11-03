@@ -101,6 +101,20 @@ public sealed class ChainSealerTests
         Assert.Equal((CustodyOutcome.ChainBroken, null, 4), (recording.Recorded.Outcome, recording.Seal, (await database.EventsAsync()).Count));
     }
 
+    [DatabaseFact]
+    public async Task WriterThatReachedTheSameLinkFirstMakesTheRecordAConflictWithNoSealAndNothingWritten()
+    {
+        await using var database = new CustodyDatabase();
+        await AppendEventsAsync(database, 3);
+        await database.RunAsSuperuserAsync(
+            "CREATE FUNCTION public.zqx_first() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'could not serialize' USING ERRCODE = '40001'; END $$; "
+            + "CREATE TRIGGER aaa_zqx_first BEFORE INSERT ON public.custody_event FOR EACH ROW WHEN (NEW.step = 'seal_recorded') EXECUTE FUNCTION public.zqx_first()");
+
+        var recording = await (await SealerAsync(database)).RecordAsync(CustodyAuthor.System, TestContext.Current.CancellationToken);
+
+        Assert.Equal((CustodyOutcome.Conflict, null, 3), (recording.Recorded.Outcome, recording.Seal, (await database.EventsAsync()).Count));
+    }
+
     private static async Task AppendEventsAsync(CustodyDatabase database, int count)
     {
         var chain = await database.ChainAsync();

@@ -228,6 +228,15 @@ registrada ou quando a última é mais velha que duas vezes o intervalo: "nunca 
 rodar" não se confundem com "passou". Sem nenhuma registrada, `last` vem nulo. O intervalo também
 aparece em `/configuration`.
 
+`Custody:SealSituation` é obrigatória ao servir, sem valor padrão, e declara onde a instalação
+guarda o selo da cadeia: `External`, `Internal` ou `Manual`; o `migrate` não a exige. As duas
+primeiras exigem `Custody:SealDestination`, um endereço `https`; a manual não tem destino e o
+recusa. O núcleo não vê o destino, e a recusa pega só o que a configuração deixa reconhecer como
+sob o mesmo controle da base: esquema que não é `https`, caminho de arquivo, `localhost` ou
+loopback, o nome ou o endereço da própria máquina, o mesmo servidor do banco e endereço com
+usuário (que não aparece na mensagem); a recusa diz qual regra pegou. Qualquer outro destino é
+declaração da instalação.
+
 `MasterKey:File` e `MasterKey:LabelsFile` são obrigatórias ao servir, sem valor padrão, e levam os
 caminhos dos arquivos da chave e dos rótulos, nunca a chave. O núcleo recusa arquivo ausente, com
 permissão aberta a quem não é o dono do processo, dentro da pasta do executável, ou fora do

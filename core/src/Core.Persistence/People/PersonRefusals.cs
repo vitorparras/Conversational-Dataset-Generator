@@ -58,6 +58,9 @@ internal static class PersonRefusals
     internal static PersonResult Deactivated() =>
         PersonResult.Refused(PersonOutcome.Deactivated, "A pessoa está desativada.");
 
+    internal static PersonResult LastAdministrator() =>
+        PersonResult.Refused(PersonOutcome.LastAdministrator, "Última pessoa ativa com a função Administração técnica: desativá-la deixaria a instalação sem quem cria ou repõe pessoas.");
+
     internal static PersonResult FunctionUnchanged() =>
         PersonResult.Refused(PersonOutcome.FunctionUnchanged, "A pessoa já tem essa função.");
 

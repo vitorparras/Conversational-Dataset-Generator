@@ -28,6 +28,16 @@ internal static class OneShotModes
             return KeyLossMode.RunAsync(args, Console.Out, Console.Error);
         }
 
+        if (RecoveryRehearsalMode.Requested(args))
+        {
+            return RecoveryRehearsalMode.RunAsync(args, Console.Out, Console.Error);
+        }
+
+        if (RecoveryRecordMode.Requested(args))
+        {
+            return RecoveryRecordMode.RunAsync(args, Console.Out, Console.Error);
+        }
+
         return DomainCreationMode.Requested(args) ? DomainCreationMode.RunAsync(args, Console.Out, Console.Error) : null;
     }
 }

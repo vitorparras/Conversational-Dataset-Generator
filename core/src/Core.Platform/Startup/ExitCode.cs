@@ -62,4 +62,13 @@ public enum ExitCode
 
     /// <summary>The database did not answer the declaration of the loss of a key, and nothing was written.</summary>
     KeyLossFailed = 28,
+
+    /// <summary>
+    /// The rehearsal of the recovery, or its record, was refused and nothing was written: a sample did not open,
+    /// the receipt did not hold or the chain or the key did not confirm it.
+    /// </summary>
+    RecoveryRefused = 29,
+
+    /// <summary>The database did not answer the rehearsal of the recovery or its record.</summary>
+    RecoveryFailed = 30,
 }

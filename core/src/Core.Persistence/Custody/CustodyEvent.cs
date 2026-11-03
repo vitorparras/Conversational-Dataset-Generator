@@ -124,8 +124,6 @@ public sealed record CustodyEvent
     }
 
     /// <summary>The event of a domain that passed to write under the next generation of its labels, by the system; the reference is the generation, as <c>v2</c>.</summary>
-    /// <param name="domainId">The domain rotated.</param>
-    /// <param name="version">The generation the domain writes under from now on, from 2.</param>
     public static CustodyEvent DomainLabelRotated(int domainId, int version)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(domainId);

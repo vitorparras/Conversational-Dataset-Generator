@@ -1,9 +1,5 @@
--- The rotation of the label of a domain (issue 56, part 1): the next generation of the two labels of a domain is written to derivation_label as the creation writes the first. derivation_label stays
--- as the decision 0045 left it: a label is never changed nor dropped, and nothing here touches it.
-
--- The event is about a domain, by its number, as the creation is, and is the system's for an administrative act: the owner credential that rotates is no person of the registry.
--- The reference carries the generation the domain passes to write under (v2), from which the two labels follow, since the purposes are closed and the domain is the item. It keeps the character
--- set of the protocol number, and the name of the domain is not in it.
+-- The rotation of the label of a domain (issue 56): the next generation of its two labels is written to derivation_label, which stays as the decision 0045 left it, never changed nor dropped.
+-- The event is about a domain, as the creation is, and is the system's for an administrative act. Its reference is the generation the domain passes to (v2), from which the two labels follow.
 ALTER TABLE public.custody_event
     DROP CONSTRAINT custody_event_step_listed,
     DROP CONSTRAINT custody_event_domain_shape,

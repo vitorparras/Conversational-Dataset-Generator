@@ -34,9 +34,6 @@ public sealed class DomainLabelRotation
     }
 
     /// <summary>Passes the domain to the next generation of its labels if the custody holds them; a refusal writes nothing, and a missing label is named.</summary>
-    /// <param name="domainId">The domain to rotate.</param>
-    /// <param name="custody">The derivation labels the custody file holds.</param>
-    /// <param name="cancellationToken">Cancels the operation.</param>
     public Task<DomainLabelResult> RotateAsync(int domainId, DerivationLabels custody, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(custody);

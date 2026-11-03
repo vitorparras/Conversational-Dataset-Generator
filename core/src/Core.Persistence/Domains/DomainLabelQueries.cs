@@ -13,7 +13,7 @@ internal static class DomainLabelQueries
 
     private const string InsertLabel = "INSERT INTO public.derivation_label (label) VALUES (@label)";
 
-    /// <summary>The newest generation of the labels of the domain; 0 when it has none, as a domain that does not exist, since the creation writes the first generation with the domain.</summary>
+    /// <summary>The newest generation of the domain labels; 0 when it has none, as a domain that does not exist.</summary>
     internal static async Task<int> NewestVersionAsync(CustodyScope scope, int domainId, CancellationToken cancellationToken)
     {
         var command = scope.CreateCommand(NewestVersion);
@@ -24,7 +24,6 @@ internal static class DomainLabelQueries
         }
     }
 
-    /// <summary>Registers a label of a generation the domain passes to.</summary>
     internal static async Task AddLabelAsync(CustodyScope scope, string label, CancellationToken cancellationToken)
     {
         var command = scope.CreateCommand(InsertLabel);

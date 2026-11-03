@@ -1,0 +1,28 @@
+using Npgsql;
+
+namespace Core.Persistence.Domains;
+
+/// <summary>The labels registered in derivation_label, which the rotation grows: new content is sealed under the newest generation of its domain among them.</summary>
+public static class RegisteredLabels
+{
+    /// <summary>The text of every label registered, as of this reading: a rotation made afterwards is seen only by a host that reads again, or restarts.</summary>
+    public static async Task<IReadOnlySet<string>> ReadAsync(NpgsqlDataSource dataSource, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(dataSource);
+        var registered = new HashSet<string>(StringComparer.Ordinal);
+        var command = dataSource.CreateCommand("SELECT label FROM public.derivation_label");
+        await using (command.ConfigureAwait(false))
+        {
+            var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            await using (reader.ConfigureAwait(false))
+            {
+                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    _ = registered.Add(reader.GetString(0));
+                }
+            }
+        }
+
+        return registered;
+    }
+}

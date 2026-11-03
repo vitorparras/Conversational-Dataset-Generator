@@ -13,7 +13,8 @@ internal sealed class SyntheticCustody : IDisposable
         this.reading = reading;
         Cipher = new EnvelopeCipher(new KeyDerivation(reading.Key!, labels));
         Keys = new ItemKeys(new KeyDerivation(reading.Key!, labels), reading.Epochs);
-        Content = new ProtectedContent(labels, Keys);
+        Labels = labels;
+        Content = ContentRegistering(labels.All);
     }
 
     public EnvelopeCipher Cipher { get; }
@@ -21,6 +22,9 @@ internal sealed class SyntheticCustody : IDisposable
     public ItemKeys Keys { get; }
 
     public ProtectedContent Content { get; }
+
+    /// <summary>The labels the custody holds.</summary>
+    public DerivationLabels Labels { get; }
 
     /// <summary>The custody holding the labels and the epoch 1.</summary>
     public static SyntheticCustody Holding(params IEnumerable<string> labels) => Holding(1, labels);
@@ -47,6 +51,9 @@ internal sealed class SyntheticCustody : IDisposable
 
     /// <summary>The secret of the synthetic epoch of the number, the same whenever it is asked.</summary>
     public static byte[] SecretOf(int epoch) => [.. Enumerable.Range(0, MasterKey.Length).Select(index => (byte)(0xA7 ^ ((index * 31) + (epoch * 11))))];
+
+    /// <summary>The path of protected content over this custody when the database registers only the labels given.</summary>
+    public ProtectedContent ContentRegistering(IEnumerable<string> registered) => new(Labels, Keys, new HashSet<string>(registered, StringComparer.Ordinal));
 
     /// <summary>The text sealed for the column in a row of its own, with the key the row would store.</summary>
     public SealedRow Seal(ProtectedColumn column, int domainId, string text)

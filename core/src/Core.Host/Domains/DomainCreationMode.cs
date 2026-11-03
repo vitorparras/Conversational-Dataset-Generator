@@ -16,26 +16,26 @@ internal static class DomainCreationMode
 {
     private const string Argument = "create-domain";
     private const string NameOption = "--name";
-    private const string NamePrefix = NameOption + "=";
 
     internal static bool Requested(string[] args) => args is [Argument, ..];
 
     /// <summary>Takes the name out of the arguments that follow the mode word: <c>--name &lt;name&gt;</c> or <c>--name=&lt;name&gt;</c>, once; the rest goes to the configuration.</summary>
     /// <returns>The name and the arguments left, or a null name when it was not given exactly once.</returns>
-    internal static (string? Name, string[] Remaining) Split(string[] args)
+    internal static (string? Name, string[] Remaining) Split(string[] args, string option = NameOption)
     {
+        var prefix = option + "=";
         var rest = new List<string>();
         var names = new List<string>();
         var pending = new Queue<string>(args.Skip(1));
         while (pending.TryDequeue(out var current))
         {
-            if (current == NameOption)
+            if (current == option)
             {
                 names.Add(pending.TryDequeue(out var value) ? value : string.Empty);
             }
-            else if (current.StartsWith(NamePrefix, StringComparison.Ordinal))
+            else if (current.StartsWith(prefix, StringComparison.Ordinal))
             {
-                names.Add(current[NamePrefix.Length..]);
+                names.Add(current[prefix.Length..]);
             }
             else
             {

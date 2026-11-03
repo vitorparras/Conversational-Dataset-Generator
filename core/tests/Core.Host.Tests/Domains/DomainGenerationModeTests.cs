@@ -37,7 +37,7 @@ public sealed class DomainGenerationModeTests
     {
         ArgumentNullException.ThrowIfNull(line);
 
-        var (found, remaining) = OptionArguments.Once(line.Split(' ', StringSplitOptions.RemoveEmptyEntries), "--domain");
+        var (found, remaining) = DomainCreationMode.Split(line.Split(' ', StringSplitOptions.RemoveEmptyEntries), "--domain");
 
         Assert.Equal((value, rest), (found, string.Join(' ', remaining)));
     }

@@ -7,10 +7,7 @@ using Npgsql;
 
 namespace Core.Host.Domains;
 
-/// <summary>
-/// The mode the operator asks for with <c>rotate-domain-label --domain &lt;id&gt;</c> (issue 56, decision 0045): run once with the owner credential, it passes the domain to the next generation
-/// of its two labels if the custody file already holds them, and otherwise names the labels to add. It serves nothing and says nothing of a key.
-/// </summary>
+/// <summary>The mode asked for with <c>rotate-domain-label --domain &lt;id&gt;</c> (issue 56): it passes the domain to the next generation of its labels if the custody file holds them, or names them.</summary>
 internal static class DomainGenerationMode
 {
     private const string RotateWord = "rotate-domain-label";
@@ -21,7 +18,7 @@ internal static class DomainGenerationMode
 
     internal static async Task<HostLaunch> RunAsync(string[] args, TextWriter output, TextWriter error)
     {
-        var (value, rest) = OptionArguments.Once(args, DomainOption);
+        var (value, rest) = DomainCreationMode.Split(args, DomainOption);
         if (value is null)
         {
             await error.WriteLineAsync($"{RotateWord} recusado: informe {DomainOption} uma vez, com o valor").ConfigureAwait(false);

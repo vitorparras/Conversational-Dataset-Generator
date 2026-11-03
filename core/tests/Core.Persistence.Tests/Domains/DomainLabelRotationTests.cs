@@ -42,6 +42,18 @@ public sealed class DomainLabelRotationTests
     }
 
     [DatabaseFact]
+    public async Task Ca1TheRegisterTheWriteReadsHoldsTheNewGenerationOnlyAfterTheRotationAndOnlyForItsDomain()
+    {
+        await using var world = await World.CreateAsync();
+        var before = await RegisteredLabels.ReadAsync(world.DataSource, TestContext.Current.CancellationToken);
+
+        _ = await world.Rotation.RotateAsync(1, DerivationLabels.Of(AllOfBoth), TestContext.Current.CancellationToken);
+        var after = await RegisteredLabels.ReadAsync(world.DataSource, TestContext.Current.CancellationToken);
+
+        Assert.Equal((false, true, false, true), (before.Contains("texto-bruto/1/v2"), after.Contains("texto-bruto/1/v2"), after.Contains("texto-bruto/2/v2"), after.Contains("texto-bruto/1/v1")));
+    }
+
+    [DatabaseFact]
     public async Task Ca1RotatingAgainTakesTheGenerationAfterTheLastOne()
     {
         await using var world = await World.CreateAsync();

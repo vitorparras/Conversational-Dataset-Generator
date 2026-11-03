@@ -30,6 +30,7 @@ public sealed class OwnerWindowOpeningTests
     private const string HighestVersion = "SELECT coalesce(max(version), 0)::text FROM public.schema_version";
 
     private static int Creating => EmbeddedMigrations.Load().Single(step => step.Name == WindowStep).Version;
+    private static int Last => EmbeddedMigrations.Load()[^1].Version;
 
     [DatabaseFact]
     public async Task DatabaseBelowSixteenKeepsTheTipWithoutVerifyingAndGetsTheWindowRightAfterTheStep()
@@ -96,7 +97,7 @@ public sealed class OwnerWindowOpeningTests
 
         var result = await database.MigrateAsync(WithSynthetic());
 
-        await AssertRefusedAsync(database, result, Creating);
+        await AssertRefusedAsync(database, result, Last);
         Assert.False(await database.TableExistsAsync("zqx_after"));
     }
 
@@ -110,7 +111,7 @@ public sealed class OwnerWindowOpeningTests
         var result = await database.MigrateAsync(WithSynthetic());
 
         Assert.Equal((MigrationOutcome.Applied, OwnerWindowOpening.Opened), (result.Outcome, result.OwnerWindow));
-        Assert.Equal([$"from={Creating};to={Creating + 1};tip=2;digest={await DigestAsync(database, 2)}"], await database.FirstColumnAsOwnerAsync(Opened));
+        Assert.Equal([$"from={Last};to={Last + 1};tip=2;digest={await DigestAsync(database, 2)}"], await database.FirstColumnAsOwnerAsync(Opened));
         Assert.True(await database.TableExistsAsync("zqx_after"));
     }
 
@@ -125,7 +126,7 @@ public sealed class OwnerWindowOpeningTests
         var result = await database.MigrateAsync(steps);
 
         Assert.Equal((MigrationOutcome.StepFailed, WindowStep, ChainBroken, OwnerWindowOpening.None), (result.Outcome, result.Step, result.SqlState, result.OwnerWindow));
-        Assert.Equal(steps.Skip(15).Select(step => step.Name), result.Applied);
+        Assert.Equal(steps.Skip(15).Take(Creating - 15).Select(step => step.Name), result.Applied);
         Assert.Equal((Creating, steps[^1].Version), (result.Found, result.Expected));
         Assert.Equal(["0"], await database.FirstColumnAsOwnerAsync(Windows));
     }

@@ -78,8 +78,10 @@ public sealed class OpaqueStorageTests
     private static async Task WriteInClearAsync(ContentWorld world, string column, string text)
     {
         var parts = column.Split('.');
+        // The content changes only by the emptying (CE004, trigger that fires for the owner too): whoever writes in clear sets it aside for the one statement, as an owner would.
+        var table = $"{parts[0]}.{parts[1]}";
         // nosemgrep: sql-concatenation-csharp interpolates the names of a column read from the catalog of a throwaway database, never input.
-        var statement = $"UPDATE {parts[0]}.{parts[1]} SET {parts[2]} = @text";
+        var statement = $"ALTER TABLE {table} DISABLE TRIGGER emptied_content_is_final; UPDATE {table} SET {parts[2]} = @text; ALTER TABLE {table} ENABLE ALWAYS TRIGGER emptied_content_is_final";
         await world.Database.ExecuteAsSuperuserAsync(statement, ("text", Encoding.UTF8.GetBytes(text)));
     }
 }

@@ -20,7 +20,7 @@ versão correspondente. Abra a janela antes de começar: quem restaura, de qual 
 
 ## O procedimento
 
-1. Restaure o banco inteiro, em uma operação, com o sistema sem escrever
+1. Crie o banco novo pelo `migrate` e, com o sistema sem escrever, carregue a cópia
 2. Confira que cada evento conserva o número de sequência e o resumo do antecessor que tinha na
    cópia. A ordem a preservar é a **registrada** — nem a de inserção física, nem a do horário
 3. Percorra a sequência da origem ao topo e compare o valor obtido com o anotado fora
@@ -30,6 +30,12 @@ versão correspondente. Abra a janela antes de começar: quem restaura, de qual 
    garantia, e é a falha mais silenciosa deste procedimento
 6. Carregue a taxonomia e confira que todo rótulo gravado existe nela
 7. Só então libere a escrita, e feche a janela com o resultado
+
+O `restore-load <pasta> <sequência> <digest>` faz o 1, o 2, o 3 e o 5 por você, em banco novo e
+com a credencial da aplicação: `<sequência>` e `<digest>` são o topo anotado fora. Sai com 0 só se
+tudo fechou, grava o evento `restored` (resumo da cópia, topo antes e depois) e, se algo recusar,
+diz qual versão, tabela, evento ou garantia divergiu, sem valor algum. Banco recusado se descarta
+e se refaz com `migrate`. Os passos 4, 6 e 7 seguem sendo seus.
 
 ## O que nunca se faz
 

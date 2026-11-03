@@ -32,4 +32,7 @@ public enum ExitCode
 
     /// <summary>The comparison of the server's audit log with the chain found a difference that is new.</summary>
     AuditDifferent = 20,
+
+    /// <summary>The load of a copy in a new database did not restore it: the copy, the database or a check of the result refused.</summary>
+    RestoreRefused = 21,
 }

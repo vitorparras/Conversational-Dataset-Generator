@@ -42,12 +42,14 @@ internal sealed class HostLaunch
     internal static HostLaunch Compared(AuditCompareOutcome outcome) =>
         new(HostLaunchState.Compared, app: null, [], report: null) { Comparison = outcome };
 
+    internal static HostLaunch Loaded(ExitCode exit) => new(HostLaunchState.Loaded, app: null, [], report: null) { MigrationExit = exit };
+
     internal async Task<ExitCode> RunAsync() => state switch
     {
         HostLaunchState.Ready => await ServeAsync().ConfigureAwait(false),
         HostLaunchState.Refused => ConfigurationRefusal.Report(Console.Error, problems),
         HostLaunchState.CheckFailed => StartupRefusal.Report(Console.Error, report!),
-        HostLaunchState.Migrated => MigrationExit,
+        HostLaunchState.Migrated or HostLaunchState.Loaded => MigrationExit,
         HostLaunchState.Compared => AuditCompareReport.Write(Console.Out, Console.Error, Comparison!),
         _ => throw new UnreachableException(),
     };

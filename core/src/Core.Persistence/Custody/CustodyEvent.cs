@@ -70,7 +70,7 @@ public sealed record CustodyEvent
             : throw new ArgumentException("An emptying is refused because its author does not hold the function or because the item was emptied already.", nameof(reason));
     }
 
-    private static bool IsVerification(CustodyStep step) => step is CustodyStep.VerifyChain or CustodyStep.VerifyGuarantees or CustodyStep.OwnerWindowOpened or CustodyStep.OwnerWindowClosed;
+    private static bool IsVerification(CustodyStep step) => step is CustodyStep.VerifyChain or CustodyStep.VerifyGuarantees or CustodyStep.OwnerWindowOpened or CustodyStep.OwnerWindowClosed or CustodyStep.Restored;
 
     internal static CustodyEvent OwnerWindowOpened(int to, string reference) =>
         new(CustodyAuthor.System, new CustodyItem(CustodyItemKind.CustodyChain, to), CustodyStep.OwnerWindowOpened, CustodyReason.AdministrativeAct) { Reference = reference };
@@ -80,6 +80,13 @@ public sealed record CustodyEvent
         ArgumentOutOfRangeException.ThrowIfNegative(missing);
         var reason = missing == 0 ? CustodyReason.VerificationPassed : CustodyReason.VerificationFailed;
         return new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.CustodyChain, missing), CustodyStep.OwnerWindowClosed, reason) { Reference = reference };
+    }
+
+    internal static CustodyEvent Restored(long rows, bool held, string reference)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(rows);
+        var reason = held ? CustodyReason.VerificationPassed : CustodyReason.VerificationFailed;
+        return new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.CustodyChain, rows), CustodyStep.Restored, reason) { Reference = reference };
     }
 
     private static CustodyItem EmptyingItem(long itemId)

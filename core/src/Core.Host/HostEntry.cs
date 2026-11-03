@@ -1,4 +1,5 @@
 using Core.Host.Migration;
+using Core.Host.Restore;
 using Core.Host.Supervision;
 using Core.Persistence.Connection;
 using Core.Platform.Configuration;
@@ -19,8 +20,9 @@ internal static class HostEntry
 
         var migrating = MigrationMode.Requested(args);
         var comparing = AuditCompareMode.Requested(args);
-        var offline = migrating || comparing;
-        var loaded = HostConfiguration.Load(AuditCompareMode.ConfigurationArguments(MigrationMode.ConfigurationArguments(args)), offline, comparing);
+        var restoring = RestoreLoadMode.Requested(args);
+        var offline = migrating || comparing || restoring;
+        var loaded = HostConfiguration.Load(RestoreLoadMode.ConfigurationArguments(AuditCompareMode.ConfigurationArguments(MigrationMode.ConfigurationArguments(args))), offline, comparing);
         var database = HostConfiguration.DatabaseOf(loaded, offline);
         if (database is null || database.State == DatabaseSettingsState.Refused)
         {
@@ -29,7 +31,7 @@ internal static class HostEntry
 
         if (offline)
         {
-            return await OfflineAsync(loaded, database, comparing);
+            return restoring ? await RestoreLoadMode.LaunchAsync(args, loaded, database) : await OfflineAsync(loaded, database, comparing);
         }
 
         var analyzeTimeout = LanguageServiceConfiguration.AnalyzeTimeout(loaded.Values);

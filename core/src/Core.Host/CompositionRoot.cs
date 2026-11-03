@@ -198,7 +198,7 @@ internal static class CompositionRoot
     }
 
     /// <summary>The path that reads protected content over the key a reading holds, which the conference of the guarantees opens its sample with and lets go of.</summary>
-    private static ProtectedContentReader ContentReader(NpgsqlDataSource source, MasterKeyReading reading) =>
+    internal static ProtectedContentReader ContentReader(NpgsqlDataSource source, MasterKeyReading reading) =>
         new(source, new ProtectedContent(new EnvelopeCipher(new KeyDerivation(reading.Key!, reading.Labels)), reading.Labels), new CustodyChain(source));
 
     /// <summary>The recognizer of the service the supervisor has alive now, with its secret and the client that never goes through a proxy;

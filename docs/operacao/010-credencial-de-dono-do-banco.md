@@ -25,15 +25,13 @@ restaurar é sinal de que o procedimento está errado, não de que a regra deve 
 
 Cada uso é cercado assim, e o sistema grava sozinho o que está marcado:
 
-1. Antes: o `migrate` com passo pendente verifica a cadeia, guarda o topo (sequência e resumo do
-   último evento) e grava o evento de abertura, com a versão de partida, a de chegada e o topo; o
-   papel da sessão é o "quem". Sem passo pendente, ou com o banco vazio, não há janela. Banco
-   anterior ao passo 0018 recebe o evento logo depois dele, e a saída do modo diz isso
+1. Antes: o `migrate` com passo pendente verifica a cadeia, guarda o topo e grava o evento de
+   abertura (versão de partida, de chegada e topo; o papel da sessão é o "quem"). Sem passo
+   pendente ou com o banco vazio não há janela; banco anterior ao 0018 recebe o evento depois dele
 2. Durante: o que foi executado fica no registro de versões e no de falhas da migração
 3. Depois: a partida seguinte, só com a credencial da aplicação, verifica a cadeia, confere as
-   garantias da [007](007-verificacao-da-custodia.md) e grava o evento de fechamento. Faltando
-   garantia, ou não valendo a cadeia, o fechamento fica reprovado ou a cadeia o recusa, a partida é
-   recusada nomeando a causa e a janela segue aberta, visível em `/custody/verification`
+   garantias da [007](007-verificacao-da-custodia.md) e grava o fechamento. Se algo faltar ou a
+   cadeia recusar o evento, a partida é recusada nomeando a causa e a janela segue aberta
 4. Continua sendo processo humano: guardar a credencial, decidir quem a usa e conferir o motivo
 
 ## O dono também declara o domínio

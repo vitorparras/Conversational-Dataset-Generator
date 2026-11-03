@@ -31,7 +31,7 @@ internal static class HostEntry
 
         if (offline)
         {
-            return restoring ? await RestoreLoadMode.LaunchAsync(args, loaded, database) : await OfflineAsync(loaded, database, comparing);
+            return restoring ? await RestoreLoadMode.LaunchAsync(args, database) : await OfflineAsync(loaded, database, comparing);
         }
 
         var analyzeTimeout = LanguageServiceConfiguration.AnalyzeTimeout(loaded.Values);

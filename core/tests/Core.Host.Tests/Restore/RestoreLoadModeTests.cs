@@ -25,7 +25,7 @@ public sealed class RestoreLoadModeTests
     }
 
     [Fact]
-    public async Task ModeWithoutTheCopyTheTipAndTheMasterKeyIsRefusedWithTheConfigurationCodeAndSaysWhatItNeeds()
+    public async Task ModeWithoutTheCopyAndTheTipIsRefusedWithTheConfigurationCodeAndSaysWhatItNeeds()
     {
         var installation = HostInstallation.Built(HostProcess.FreeAddress());
         installation = installation with { Arguments = ["restore-load", .. installation.Arguments], Environment = Database() };
@@ -33,7 +33,7 @@ public sealed class RestoreLoadModeTests
         var exit = await HostProcess.RunToExitAsync(installation, HostProcess.StartupTimeout, TestContext.Current.CancellationToken);
 
         Assert.Equal((int)ExitCode.ConfigurationRefused, exit.Code);
-        Assert.Contains("restore-load pede a pasta da cópia", exit.Error, StringComparison.Ordinal);
+        Assert.Contains("restore-load pede a pasta da cópia e o topo anotado fora dela", exit.Error, StringComparison.Ordinal);
     }
 
     [Fact]

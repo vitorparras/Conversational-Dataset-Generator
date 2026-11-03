@@ -5,7 +5,8 @@ using Core.Persistence.Tests.Fixtures;
 namespace Core.Persistence.Tests.Migrations;
 
 /// <summary>
-/// The opening of the window of the owner credential by the runner (#64): where the chain is verified (from the version that adds the column of its reference, 0016), what a chain that does not hold stops,
+/// The opening of the window of the owner credential by the runner (#64): where the chain is verified (from the version that adds the column of its reference, 0016),
+/// what a chain that does not hold stops,
 /// when the event is written (before the first step, or right after the step that creates it in an older database) and when there is no window at all.
 /// </summary>
 [Trait("Category", "Database")]

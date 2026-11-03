@@ -63,10 +63,21 @@ internal sealed class RunningService : IDisposable
     /// <summary>Completes when the process ends, whoever ends it.</summary>
     internal Task WaitForExitAsync() => process.WaitForExitAsync();
 
-    /// <summary>Closes the standard input, which tells the service its parent is gone, and kills it if it does not leave.</summary>
+    /// <summary>
+    /// Closes the standard input, which tells the service its parent is gone, and kills it if it does not leave. A service that ended before the secret reached it left the pipe broken,
+    /// and closing the input flushes it once more and fails; the input is closed all the same and there is nothing more to tell, so that error does not leave here.
+    /// </summary>
     public void Dispose()
     {
-        process.StandardInput.Close();
+        try
+        {
+            process.StandardInput.Close();
+        }
+        catch (IOException)
+        {
+            // The pipe of a process that is already gone: the input is closed and the wait below sees the process out.
+        }
+
         if (!process.WaitForExit(StopGrace))
         {
             process.Kill(entireProcessTree: true);

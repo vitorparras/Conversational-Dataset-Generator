@@ -1,6 +1,6 @@
 using Core.Persistence.Custody;
 
-namespace Core.Persistence.Content;
+namespace Core.Persistence.Content.Reading;
 
 /// <summary>The answer of a reading: how it ended, the text when it was read, and what the chain said when it did not record the event.</summary>
 public sealed record ContentReadResult

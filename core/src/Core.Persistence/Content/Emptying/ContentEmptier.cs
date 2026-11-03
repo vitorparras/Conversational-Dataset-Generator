@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
 using Core.Persistence.Custody.Chain.Append;
@@ -9,9 +10,8 @@ using NpgsqlTypes;
 namespace Core.Persistence.Content.Emptying;
 
 /// <summary>
-/// The one way an item is emptied: in one serializable transaction the chain records the emptying or its refusal, and only if the event of the emptying entered are the item
-/// and its maps cleared, with the marker set. Only a person who holds the function of curation of the collection empties; the domain is the one the row policy shows, so an item
-/// of another domain is not found. A refusal to empty is an event too, and the content stays as it was.
+/// The one way an item is emptied: in one serializable transaction the chain records the emptying or its refusal, and only if the event entered are the item and its maps cleared.
+/// Only a person who holds the function of curation empties; an item of another domain is not found, and a refusal to empty is an event too.
 /// </summary>
 public sealed class ContentEmptier
 {
@@ -81,38 +81,32 @@ public sealed class ContentEmptier
     private static async Task<bool> ClearAsync(CustodyScope scope, long itemId, CancellationToken cancellationToken)
     {
         var found = await ScalarAsync(scope, ContentQueries.EmptyItemText, itemId, cancellationToken).ConfigureAwait(false) is not null;
-        var maps = scope.CreateCommand(ContentQueries.EmptyReversalMaps);
-        await using (maps.ConfigureAwait(false))
-        {
-            _ = maps.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Bigint) { Value = itemId });
-            _ = await maps.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-        }
-
+        _ = await ScalarAsync(scope, ContentQueries.EmptyReversalMaps, itemId, cancellationToken).ConfigureAwait(false);
         return found;
     }
 
     private async Task<EmptyingResult> EmptyingAsync(ItemEmptying request, CancellationToken cancellationToken)
     {
-        var judgment = new Judgment();
+        var judgment = new StrongBox<EmptyingOutcome>();
         var recorded = await CustodyTransaction.RunAsync(dataSource, scope => EmptyInAsync(scope, request, judgment, cancellationToken), cancellationToken).ConfigureAwait(false);
-        if (judgment.Outcome == EmptyingOutcome.NotFound)
+        if (judgment.Value == EmptyingOutcome.NotFound)
         {
             return new EmptyingResult { Outcome = EmptyingOutcome.NotFound };
         }
 
         return recorded?.Outcome == CustodyOutcome.Appended
-            ? new EmptyingResult { Outcome = judgment.Outcome, Sequence = recorded.Sequence }
+            ? new EmptyingResult { Outcome = judgment.Value, Sequence = recorded.Sequence }
             : new EmptyingResult { Outcome = EmptyingOutcome.NotRecorded, Refusal = recorded };
     }
 
-    private static async Task<CustodyResult?> EmptyInAsync(CustodyScope scope, ItemEmptying request, Judgment judgment, CancellationToken cancellationToken)
+    private static async Task<CustodyResult?> EmptyInAsync(CustodyScope scope, ItemEmptying request, StrongBox<EmptyingOutcome> judgment, CancellationToken cancellationToken)
     {
         await DeclareDomainAsync(scope, request.DomainId, cancellationToken).ConfigureAwait(false);
-        judgment.Outcome = await JudgedAsync(scope, request, cancellationToken).ConfigureAwait(false);
-        var appended = await CustodyAppend.AppendAsync(scope, EventOf(request, judgment.Outcome), cancellationToken).ConfigureAwait(false);
-        if (appended.Outcome == CustodyOutcome.Appended && judgment.Outcome == EmptyingOutcome.Emptied && !await ClearAsync(scope, request.ItemId, cancellationToken).ConfigureAwait(false))
+        judgment.Value = await JudgedAsync(scope, request, cancellationToken).ConfigureAwait(false);
+        var appended = await CustodyAppend.AppendAsync(scope, EventOf(request, judgment.Value), cancellationToken).ConfigureAwait(false);
+        if (appended.Outcome == CustodyOutcome.Appended && judgment.Value == EmptyingOutcome.Emptied && !await ClearAsync(scope, request.ItemId, cancellationToken).ConfigureAwait(false))
         {
-            judgment.Outcome = EmptyingOutcome.NotFound;
+            judgment.Value = EmptyingOutcome.NotFound;
             return null;
         }
 
@@ -135,9 +129,4 @@ public sealed class ContentEmptier
         author.PersonId is { } person
         && await ScalarAsync(scope, FunctionOfPerson, person, cancellationToken).ConfigureAwait(false) is string function
         && string.Equals(function, PersonFunctions.Curation, StringComparison.Ordinal);
-
-    private sealed class Judgment
-    {
-        internal EmptyingOutcome Outcome { get; set; }
-    }
 }

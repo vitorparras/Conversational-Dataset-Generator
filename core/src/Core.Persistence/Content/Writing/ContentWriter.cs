@@ -1,9 +1,13 @@
+using System.Data;
+using System.Diagnostics;
+using Core.Persistence.Content.Emptying;
+using Core.Persistence.Content.Sealing;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
 using Npgsql;
 using NpgsqlTypes;
 
-namespace Core.Persistence.Content;
+namespace Core.Persistence.Content.Writing;
 
 /// <summary>
 /// Adds content to the database, and is the only way to: what a protected column receives is sealed here for the domain of the row, so the
@@ -11,6 +15,9 @@ namespace Core.Persistence.Content;
 /// </summary>
 public sealed class ContentWriter(NpgsqlDataSource dataSource, ProtectedContent protectedContent)
 {
+    /// <summary>How many times a map is written when the database serializes it behind an emptying that committed first; the next attempt finds the item emptied and is refused.</summary>
+    private const int MapAttempts = 3;
+
     /// <summary>Adds an item to the domain and answers its identifier.</summary>
     /// <param name="domainId">The domain the item belongs to.</param>
     /// <param name="item">The texts of the item.</param>
@@ -38,19 +45,18 @@ public sealed class ContentWriter(NpgsqlDataSource dataSource, ProtectedContent 
         var sanitized = item.Sanitized is null ? null : protectedContent.Seal(ContentColumns.SanitizedText, domainId, item.Sanitized);
         return await InsertAsync(
             domainId,
-            ContentQueries.InsertItemText,
-            [Bytes("raw", raw), Bytes("sanitized", sanitized), Text("pseudonymized", item.Pseudonymized)],
+            new Insertion(ContentQueries.InsertItemText, () => [Bytes("raw", raw), Bytes("sanitized", sanitized), Text("pseudonymized", item.Pseudonymized)], IsolationLevel.ReadCommitted),
             cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<long> AddMapAsync(int domainId, long itemId, string entries, CancellationToken cancellationToken)
     {
         var sealedEntries = protectedContent.Seal(ContentColumns.Entries, domainId, entries);
-        return await InsertAsync(
-            domainId,
+        var insertion = new Insertion(
             ContentQueries.InsertReversalMap,
-            [new NpgsqlParameter("item", NpgsqlDbType.Bigint) { Value = itemId }, Bytes("entries", sealedEntries)],
-            cancellationToken).ConfigureAwait(false);
+            () => [new NpgsqlParameter("item", NpgsqlDbType.Bigint) { Value = itemId }, Bytes("entries", sealedEntries)],
+            IsolationLevel.Serializable);
+        return await InsertAsync(domainId, insertion, cancellationToken).ConfigureAwait(false);
     }
 
     private static NpgsqlParameter Bytes(string name, SealedContent? content) =>
@@ -59,32 +65,48 @@ public sealed class ContentWriter(NpgsqlDataSource dataSource, ProtectedContent 
     private static NpgsqlParameter Text(string name, string? value) =>
         new(name, NpgsqlDbType.Text) { Value = (object?)value ?? DBNull.Value };
 
-    private async Task<long> InsertAsync(int domainId, string statement, NpgsqlParameter[] parameters, CancellationToken cancellationToken)
+    /// <summary>A map is written serializable, like the emptying that reads it: the database stops one of the two, and the map is written again, finding the item emptied.</summary>
+    private async Task<long> InsertAsync(int domainId, Insertion insertion, CancellationToken cancellationToken)
     {
-        try
+        for (var attempt = 1; attempt <= MapAttempts; attempt++)
         {
-            return await InsertInTransactionAsync(domainId, statement, parameters, cancellationToken).ConfigureAwait(false);
+            try
+            {
+                return await InsertInTransactionAsync(domainId, insertion, cancellationToken).ConfigureAwait(false);
+            }
+            catch (PostgresException refused) when (refused.SqlState == CustodyStatements.ChainBrokenSqlState)
+            {
+                throw new CustodyChainBrokenException();
+            }
+            catch (PostgresException refused) when (refused.SqlState == CustodyStatements.EmptiedSqlState)
+            {
+                throw new ItemEmptiedException();
+            }
+            catch (PostgresException refused) when (refused.SqlState == PostgresErrorCodes.SerializationFailure && attempt < MapAttempts)
+            {
+                // The database serialized this write behind another; the attempt that follows sees what the other committed.
+            }
         }
-        catch (PostgresException refused) when (refused.SqlState == CustodyStatements.ChainBrokenSqlState)
-        {
-            throw new CustodyChainBrokenException();
-        }
+
+        throw new UnreachableException();
     }
 
-    private async Task<long> InsertInTransactionAsync(int domainId, string statement, NpgsqlParameter[] parameters, CancellationToken cancellationToken)
+    private async Task<long> InsertInTransactionAsync(int domainId, Insertion insertion, CancellationToken cancellationToken)
     {
-        var transaction = await ContentTransaction.BeginAsync(dataSource, domainId, cancellationToken).ConfigureAwait(false);
+        var transaction = await ContentTransaction.BeginAsync(dataSource, domainId, insertion.Isolation, cancellationToken).ConfigureAwait(false);
         await using (transaction.ConfigureAwait(false))
         {
-            var command = transaction.CreateCommand(statement);
+            var command = transaction.CreateCommand(insertion.Statement);
             await using (command.ConfigureAwait(false))
             {
                 _ = command.Parameters.Add(new NpgsqlParameter("domain", NpgsqlDbType.Integer) { Value = domainId });
-                command.Parameters.AddRange(parameters);
+                command.Parameters.AddRange(insertion.Parameters());
                 var id = (long)(await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false))!;
                 await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
                 return id;
             }
         }
     }
+
+    private sealed record Insertion(string Statement, Func<NpgsqlParameter[]> Parameters, IsolationLevel Isolation);
 }

@@ -354,9 +354,22 @@ public sealed partial class ContentDomainTests
         }
     }
 
+    [DatabaseFact]
+    public async Task NoStatementTheSystemExposesEmptiesAnItemWithNoDomainDeclared()
+    {
+        await using var database = await WithTwoDomainsAsync();
+        await using var connection = await Sql.OpenAsync(database.AppConnectionString);
+
+        foreach (var (name, statement) in ContentQueries.All.Where(query => query.Key.StartsWith("Empty", StringComparison.Ordinal)))
+        {
+            await using var command = Unbound(statement, connection);
+            Assert.True(await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken) == 0, $"the statement {name} emptied a row with no domain declared");
+        }
+    }
+
     [Fact]
-    public void EveryStatementOfTheListIsAReadingOrAnInsert() =>
-        Assert.All(ContentQueries.All.Keys, name => Assert.Matches("^(Read|Insert)", name));
+    public void EveryStatementOfTheListIsAReadingAnInsertOrAnEmptying() =>
+        Assert.All(ContentQueries.All.Keys, name => Assert.Matches("^(Read|Insert|Empty)", name));
 
     [Fact]
     public async Task DomainThatIsNotPositiveIsRefusedBeforeAnyConnectionOpens()

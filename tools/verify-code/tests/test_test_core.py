@@ -93,6 +93,15 @@ class TestCoreTests(unittest.TestCase):
         self.assertFalse(result.ok)
         self.assertIn("1 teste(s) do núcleo falharam", result.details)
 
+    def test_a_failed_test_is_named_with_its_project(self) -> None:
+        entry = '<Results><UnitTestResult testName="Ns.Class.Method" outcome="Failed" /></Results>'
+        failing = support.trx("Alpha.Tests", 3, 1).replace("</TestRun>", f"{entry}</TestRun>")
+        files = {"a.trx": failing, "b.trx": support.trx("Beta.Tests", 2, 0)}
+
+        result = test_core.run(support.context(self.root, self.runner(files, ok=False)))
+
+        self.assertIn("Alpha.Tests: Ns.Class.Method", result.details)
+
     def test_every_project_ran_and_coverage_was_written_passes(self) -> None:
         files = {
             "a.trx": support.trx("Alpha.Tests", 3, 0),

@@ -1,6 +1,6 @@
 using Core.Persistence.Custody;
 
-namespace Core.Persistence.Content;
+namespace Core.Persistence.Content.Emptying;
 
 /// <summary>The answer of a request to empty an item: how it ended, the sequence of the event it left in the chain, and what the chain said when it did not accept the event.</summary>
 public sealed record EmptyingResult

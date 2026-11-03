@@ -7,12 +7,10 @@ Depois de [021](021-subir-o-nucleo-publicado.md), [024](024-arquivos-de-custodia
 
 ## Iniciar
 
-Os valores são os do exemplo de 021 (banco, papel `app`, `demonstracao`), a trocar pelos do seu
-ambiente: `ITERACOES` é o fator das senhas, de 600000 a 10000000 com `Installation:Kind=real` e
-de 1 a 10000000 com `demonstracao` ([0047](../decisoes/0047-fator-de-trabalho-das-senhas.md));
-prazos: `Session:*`; log: `Audit:*` (pasta do log e intervalo da comparação). O núcleo roda em
-segundo plano e sobrevive ao fim do `docker exec` que o iniciou: a espera pode ir no mesmo bloco ou
-noutro. O código de saída vai a `/tmp/nucleo.saida`:
+Valores do exemplo de 021, a trocar pelos do seu ambiente: `ITERACOES` é o fator das senhas, de
+600000 a 10000000 com `Installation:Kind=real` e de 1 a 10000000 com `demonstracao`
+([0047](../decisoes/0047-fator-de-trabalho-das-senhas.md)); `Session:*`, prazos; `Audit:*`, pasta e
+intervalo. Roda em segundo plano, sobrevive ao `docker exec`; a saída vai a `/tmp/nucleo.saida`:
 
 ```
 : > /tmp/nucleo.saida

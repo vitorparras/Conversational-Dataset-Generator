@@ -36,9 +36,6 @@ public enum ExitCode
     /// <summary>The rotation of the epoch could not talk to the database and changed nothing.</summary>
     EpochRotationFailed = 16,
 
-    /// <summary>The comparison of the server's audit log with the chain found a difference that is new.</summary>
-    AuditDifferent = 20,
-
     /// <summary>The creation of a domain refused and wrote nothing: the derivation label of a purpose is missing from the custody file.</summary>
     DomainLabelsMissing = 17,
 
@@ -56,4 +53,7 @@ public enum ExitCode
 
     /// <summary>The database did not answer the rotation of a domain label, and nothing was written.</summary>
     DomainLabelFailed = 25,
+
+    /// <summary>The comparison of the server's audit log with the chain found a difference that is new.</summary>
+    AuditDifferent = 20,
 }

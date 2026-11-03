@@ -12,7 +12,7 @@ READY_SECONDS=${READY_SECONDS:-120}
 STOP_SECONDS=${STOP_SECONDS:-30}
 LISTENING='Now listening on: https://127.0.0.1:'
 
-export CDG_Database__Host=127.0.0.1:5432 CDG_Database__Name=cdg CDG_Installation__Kind=demonstracao CDG_Passwords__WorkFactor=1 CDG_Session__IdleTimeout=00:30:00 CDG_Session__AbsoluteTimeout=08:00:00
+export CDG_Database__Host=127.0.0.1:5432 CDG_Database__Name=cdg CDG_Installation__Kind=demonstracao CDG_Passwords__WorkFactor=1 CDG_Session__IdleTimeout=00:30:00 CDG_Session__AbsoluteTimeout=08:00:00 CDG_Custody__VerificationInterval=00:05:00
 
 # A throwaway key and no labels, in files outside the folder the host runs from and open to its user alone.
 custody=$(umask 077 && mktemp -d /tmp/custody.XXXXXX)
@@ -26,7 +26,7 @@ export CDG_Tls__CertificateFile="$custody/tls.crt" CDG_Tls__KeyFile="$custody/tl
 
 # A folder with a log file, as the one the database server writes, for the host to read; the host checks that the folder is there and that it cannot write in it.
 mkdir "$custody/serverlog" && : > "$custody/serverlog/postgresql.csv" && chmod 555 "$custody/serverlog"
-export CDG_Audit__ServerLogDirectory="$custody/serverlog"
+export CDG_Audit__ServerLogDirectory="$custody/serverlog" CDG_Audit__CompareInterval=01:00:00
 
 ls /sys/class/net > /trace/interfaces.txt
 cp /app/Core.Host /app/appsettings.json /work/

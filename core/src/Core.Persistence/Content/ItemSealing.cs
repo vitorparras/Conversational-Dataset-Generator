@@ -1,4 +1,5 @@
 using System.Text;
+using Core.Persistence.Content.Sealing;
 using Core.Platform.Keys;
 
 namespace Core.Persistence.Content;

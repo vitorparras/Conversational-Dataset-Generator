@@ -22,47 +22,8 @@ namespace Core.Host;
 /// <summary>The only place where the host is assembled: the target check first, then configuration, logging and services, then routes.</summary>
 internal static class CompositionRoot
 {
-    internal static async Task<HostLaunch> BuildAsync(string[] args)
-    {
-        var target = await new StartupRunner([HostConfiguration.TargetCheck()], TimeProvider.System).RunAsync(CancellationToken.None);
-        if (!target.Ready)
-        {
-            return HostLaunch.CheckFailed(target);
-        }
-
-        var migrating = MigrationMode.Requested(args);
-        var comparing = AuditCompareMode.Requested(args);
-        var offline = migrating || comparing;
-        var loaded = HostConfiguration.Load(AuditCompareMode.ConfigurationArguments(MigrationMode.ConfigurationArguments(args)), offline, comparing);
-        var database = HostConfiguration.DatabaseOf(loaded, offline);
-        if (database is null || database.State == DatabaseSettingsState.Refused)
-        {
-            return HostLaunch.Refused(database?.Problems ?? loaded.Problems);
-        }
-
-        if (offline)
-        {
-            return await OfflineAsync(loaded, database, comparing);
-        }
-
-        var analyzeTimeout = LanguageServiceConfiguration.AnalyzeTimeout(loaded.Values);
-        var refused = HostConfiguration.Refusals(loaded.Values, analyzeTimeout);
-        return analyzeTimeout is { } timeout && refused.Count == 0 ? await LaunchAsync(loaded, database, timeout, target) : HostLaunch.Refused(refused);
-    }
-
-    /// <summary>The modes that serve nothing: the comparison of the server's log with the chain, or the migration, which first judges the factor of the passwords.</summary>
-    private static async Task<HostLaunch> OfflineAsync(ConfigurationLoadResult loaded, DatabaseSettings database, bool comparing)
-    {
-        if (comparing)
-        {
-            return await AuditCompareMode.LaunchAsync(loaded, database);
-        }
-
-        return PasswordConfiguration.Refusals(loaded.Values) is { Count: > 0 } invalid ? HostLaunch.Refused(invalid) : await MigrateAsync(database);
-    }
-
     /// <summary>The migration mode: the steps run once with the owner credential the configuration holds, the outcome is logged and nothing is served.</summary>
-    private static async Task<HostLaunch> MigrateAsync(DatabaseSettings database)
+    internal static async Task<HostLaunch> MigrateAsync(DatabaseSettings database)
     {
         await using var dataSource = NpgsqlDataSource.Create(database.ConnectionString!);
         await using var logging = MigrationServices();
@@ -72,7 +33,7 @@ internal static class CompositionRoot
     }
 
     /// <summary>Opens the file destination and the startup container, runs the checks and hands both to the host when every one passed; otherwise closes them here.</summary>
-    private static async Task<HostLaunch> LaunchAsync(ConfigurationLoadResult loaded, DatabaseSettings database, TimeSpan analyzeTimeout, StartupReport target)
+    internal static async Task<HostLaunch> LaunchAsync(ConfigurationLoadResult loaded, DatabaseSettings database, TimeSpan analyzeTimeout, StartupReport target)
     {
         var fileLog = HostLogFile.Open(loaded);
         var startup = StartupServices(loaded, fileLog, database);
@@ -191,7 +152,16 @@ internal static class CompositionRoot
         Compose(builder, loaded.View, fileLog);
         AddAnalysis(builder.Services, loaded.Values, analyzeTimeout);
         _ = builder.Services.AddSingleton(PasswordConfiguration.Derivation(loaded.Values));
-        _ = builder.Services.AddSingleton(_ => new ServerAuditLog(AuditConfiguration.ServerLogDirectory(loaded.Values)));
+        _ = builder.Services.AddSingleton(_ => new ServerAuditLog(AuditConfiguration.ServerLogDirectory(loaded.Values))).AddSingleton<AuditComparisonState>();
+        _ = builder.Services.AddHostedService(provider => new AuditComparisonService(
+            new AuditComparisonPlan(
+                AuditConfiguration.CompareInterval(loaded.Values),
+                (from, to, token) => new AuditComparer(
+                    provider.GetRequiredService<ServiceProvider>().GetRequiredService<NpgsqlDataSource>(), AuditConfiguration.ServerLogDirectory(loaded.Values))
+                    .CompareAsync(from, to, token),
+                provider.GetRequiredService<ILogger<AuditComparisonService>>()),
+            provider.GetRequiredService<AuditComparisonState>(),
+            provider.GetRequiredService<TimeProvider>()));
         _ = builder.Services.AddSingleton(provider => new SessionStore(SessionConfiguration.Lifetimes(loaded.Values), provider.GetRequiredService<TimeProvider>()));
         _ = builder.Services.AddSingleton(InstallationConfiguration.Of(loaded.Values)).AddSingleton(provider => InstallationConfiguration.Shown(StartupVersions.Of(checks), provider));
         _ = SafekeepingConfiguration.Declaration(loaded.Values) is { } declaration ? builder.Services.AddSingleton(declaration) : builder.Services;

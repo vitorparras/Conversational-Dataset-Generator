@@ -26,7 +26,7 @@ export CDG_Tls__CertificateFile="$custody/tls.crt" CDG_Tls__KeyFile="$custody/tl
 
 # A folder with a log file, as the one the database server writes, for the host to read; the host checks that the folder is there and that it cannot write in it.
 mkdir "$custody/serverlog" && : > "$custody/serverlog/postgresql.csv" && chmod 555 "$custody/serverlog"
-export CDG_Audit__ServerLogDirectory="$custody/serverlog"
+export CDG_Audit__ServerLogDirectory="$custody/serverlog" CDG_Audit__CompareInterval=01:00:00
 
 ls /sys/class/net > /trace/interfaces.txt
 cp /app/Core.Host /app/appsettings.json /work/

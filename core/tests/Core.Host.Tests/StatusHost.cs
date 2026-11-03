@@ -15,11 +15,15 @@ internal sealed class StatusHost : IAsyncDisposable
     private readonly WebApplication app;
     private readonly HttpClient client;
 
-    private StatusHost(WebApplication app, Uri address)
+    private StatusHost(WebApplication app, Uri address, AuditComparisonState comparison)
     {
         this.app = app;
+        Comparison = comparison;
         client = new HttpClient { BaseAddress = address };
     }
+
+    /// <summary>The state of the last periodic comparison the status route reports; a test records one to see it said.</summary>
+    public AuditComparisonState Comparison { get; }
 
     public static Task<StatusHost> StartAsync(StartupReport report, ServiceProcessWatch watch, CancellationToken cancellationToken) =>
         StartAsync(report, watch, RecognizerKind.Http, cancellationToken);
@@ -41,10 +45,12 @@ internal sealed class StatusHost : IAsyncDisposable
         _ = builder.Services.AddSingleton(report);
         _ = builder.Services.AddSingleton(watch);
         _ = builder.Services.AddSingleton(wiring.Installation);
+        var comparison = new AuditComparisonState();
+        _ = builder.Services.AddSingleton(comparison);
         var app = builder.Build();
         StatusEndpoint.Map(app, wiring.Recognizer);
         await app.StartAsync(cancellationToken);
-        return new StatusHost(app, address);
+        return new StatusHost(app, address, comparison);
     }
 
     public async Task<JsonDocument> StatusAsync(CancellationToken cancellationToken)

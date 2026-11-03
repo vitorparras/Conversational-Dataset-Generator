@@ -1,6 +1,7 @@
+using Core.Persistence.Content.Sealing;
 using Core.Persistence.Custody;
 
-namespace Core.Persistence.Content;
+namespace Core.Persistence.Content.Reading;
 
 /// <summary>A reading of one protected column of one row, by someone.</summary>
 /// <param name="Author">Who reads; the event of the reading names them.</param>

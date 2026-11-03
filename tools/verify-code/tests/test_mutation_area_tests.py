@@ -59,3 +59,49 @@ class AreaTestProjectTests(unittest.TestCase):
         self.assertNotIn(
             "Core.Persistence.Migrations.Tests", self.names("Core.Persistence.Content")
         )
+
+    def test_an_area_nested_in_one_that_has_a_project_gets_the_project_of_the_one_that_holds_it(
+        self,
+    ) -> None:
+        self.project("Core.Persistence.Custody.Chain.Tests", REFERENCE)
+
+        self.assertEqual(
+            self.names("Core.Persistence.Custody.Chain.Append"),
+            ["Core.Persistence.Custody.Chain.Tests"],
+        )
+
+    def test_an_area_nested_two_deep_takes_the_nearest_project_of_the_ones_that_hold_it(
+        self,
+    ) -> None:
+        self.project("Core.Persistence.Custody.Tests", REFERENCE)
+        self.project("Core.Persistence.Custody.Chain.Tests", REFERENCE)
+
+        self.assertEqual(
+            self.names("Core.Persistence.Custody.Chain.Append.Bind"),
+            ["Core.Persistence.Custody.Chain.Tests"],
+        )
+
+    def test_a_nested_area_gets_the_project_of_the_one_that_holds_it_and_of_no_other_area(
+        self,
+    ) -> None:
+        self.project("Core.Persistence.Custody.Chain.Tests", REFERENCE)
+        self.project("Core.Persistence.Custody.Verification.Tests", REFERENCE)
+
+        self.assertEqual(
+            self.names("Core.Persistence.Custody.Chain.Append"),
+            ["Core.Persistence.Custody.Chain.Tests"],
+        )
+
+    def test_a_nested_area_whose_holder_has_no_project_gets_the_one_of_what_holds_that(
+        self,
+    ) -> None:
+        self.assertEqual(
+            self.names("Core.Persistence.Custody.Chain.Append"), ["Core.Persistence.Tests"]
+        )
+
+    def test_a_project_of_the_holder_that_does_not_reference_the_module_is_not_taken(self) -> None:
+        self.project("Core.Persistence.Custody.Chain.Tests", OTHER)
+
+        self.assertEqual(
+            self.names("Core.Persistence.Custody.Chain.Append"), ["Core.Persistence.Tests"]
+        )

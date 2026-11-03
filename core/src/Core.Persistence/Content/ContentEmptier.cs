@@ -76,15 +76,18 @@ public sealed class ContentEmptier
         }
     }
 
-    private static async Task ClearAsync(CustodyScope scope, long itemId, CancellationToken cancellationToken)
+    /// <summary>False when the domain holds no such item: the statement that empties it finds no row.</summary>
+    private static async Task<bool> ClearAsync(CustodyScope scope, long itemId, CancellationToken cancellationToken)
     {
-        _ = await ScalarAsync(scope, ContentQueries.EmptyItemText, itemId, cancellationToken).ConfigureAwait(false);
+        var found = await ScalarAsync(scope, ContentQueries.EmptyItemText, itemId, cancellationToken).ConfigureAwait(false) is not null;
         var maps = scope.CreateCommand(ContentQueries.EmptyReversalMaps);
         await using (maps.ConfigureAwait(false))
         {
             _ = maps.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Bigint) { Value = itemId });
             _ = await maps.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
+
+        return found;
     }
 
     private async Task<EmptyingResult> EmptyingAsync(ItemEmptying request, CancellationToken cancellationToken)
@@ -105,18 +108,14 @@ public sealed class ContentEmptier
     {
         await DeclareDomainAsync(scope, request.DomainId, cancellationToken).ConfigureAwait(false);
         judgment.Outcome = await JudgedAsync(scope, request, cancellationToken).ConfigureAwait(false);
-        if (judgment.Outcome == EmptyingOutcome.NotFound)
+        var appended = await CustodyAppend.AppendAsync(scope, EventOf(request, judgment.Outcome), cancellationToken).ConfigureAwait(false);
+        if (appended.Outcome == CustodyOutcome.Appended && judgment.Outcome == EmptyingOutcome.Emptied && !await ClearAsync(scope, request.ItemId, cancellationToken).ConfigureAwait(false))
         {
+            judgment.Outcome = EmptyingOutcome.NotFound;
             return null;
         }
 
-        var appended = await CustodyTransaction.AppendAsync(scope, EventOf(request, judgment.Outcome), cancellationToken).ConfigureAwait(false);
-        if (appended.Outcome == CustodyOutcome.Appended && judgment.Outcome == EmptyingOutcome.Emptied)
-        {
-            await ClearAsync(scope, request.ItemId, cancellationToken).ConfigureAwait(false);
-        }
-
-        return await CustodyTransaction.CommitIfAppendedAsync(scope, appended, cancellationToken).ConfigureAwait(false);
+        return await CustodyAppend.CommitIfAppendedAsync(scope, appended, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>The function comes first, so that an attempt without it is recorded whatever the item is; the item is looked for only for someone who may empty.</summary>
@@ -128,12 +127,7 @@ public sealed class ContentEmptier
         }
 
         var alreadyEmptied = await ScalarAsync(scope, ContentQueries.ReadItemEmptied, request.ItemId, cancellationToken).ConfigureAwait(false);
-        if (alreadyEmptied is not bool emptied)
-        {
-            return EmptyingOutcome.NotFound;
-        }
-
-        return emptied ? EmptyingOutcome.AlreadyEmptied : EmptyingOutcome.Emptied;
+        return alreadyEmptied is true ? EmptyingOutcome.AlreadyEmptied : EmptyingOutcome.Emptied;
     }
 
     private static async Task<bool> HoldsTheFunctionAsync(CustodyScope scope, CustodyAuthor author, CancellationToken cancellationToken) =>

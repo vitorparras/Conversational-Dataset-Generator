@@ -1,4 +1,5 @@
 using Core.Persistence.Content;
+using Core.Persistence.Content.Emptying;
 using Core.Persistence.Content.Reading;
 using Core.Persistence.Content.Writing;
 using Core.Persistence.Custody;
@@ -28,6 +29,23 @@ public sealed class ContentAuditFidelityTests
         var differences = await AuditFidelity.DifferencesAsync(world.DataSource, from);
 
         Assert.DoesNotContain(differences, difference => difference.Role == "app");
+    }
+
+    [DatabaseFact]
+    public async Task EmptyingIsSeenAsOneUpdateOfTheItemAndOneOfItsMapAndNoReadOfATextWhenTheChainRecordsIt()
+    {
+        var from = DateTimeOffset.UtcNow.AddMinutes(-1);
+        var token = TestContext.Current.CancellationToken;
+        await using var world = await FidelityWorld.CreateAsync();
+        await world.MakeCuratorAsync();
+        var item = await world.Writer.AddItemTextAsync(1, new NewItemText("texto bruto sintetico zqx", "texto sanitizado sintetico zqx"), token);
+        _ = await world.Writer.AddReversalMapAsync(1, item, "mapa sintetico zqx", token);
+        var person = (long)(await world.InDomainAsync(1, "SELECT id FROM public.person WHERE name = 'zqx-active'"))!;
+
+        var emptied = await new ContentEmptier(world.DataSource).EmptyAsync(new ItemEmptying(CustodyAuthor.Person(person), 1, item, EmptyingMotive.ContractRequirement, "PROT-2026/0042"), token);
+
+        var differences = await AuditFidelity.DifferencesAsync(world.DataSource, from);
+        Assert.Equal((EmptyingOutcome.Emptied, 0), (emptied.Outcome, differences.Count(difference => difference.Role == "app")));
     }
 
     [DatabaseFact]

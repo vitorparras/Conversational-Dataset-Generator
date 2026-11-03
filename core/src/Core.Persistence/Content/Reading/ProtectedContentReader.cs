@@ -1,4 +1,5 @@
 using System.Collections.Frozen;
+using System.Data.Common;
 using Core.Persistence.Content.Sealing;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
@@ -36,7 +37,7 @@ public sealed class ProtectedContentReader(NpgsqlDataSource dataSource, Protecte
         var stored = await FetchAsync(request, reading.Query, cancellationToken).ConfigureAwait(false);
         if (!stored.Found || stored.Envelope is null)
         {
-            return new ContentReadResult { Outcome = stored.Found ? ContentReadOutcome.Empty : ContentReadOutcome.NotFound };
+            return new ContentReadResult { Outcome = Unread(stored) };
         }
 
         var recorded = await chain.AppendAsync(CustodyEvent.Of(request.Author, new CustodyItem(reading.Kind, request.RowId), reading.Step, CustodyReason.ContentRead), cancellationToken)
@@ -51,17 +52,43 @@ public sealed class ProtectedContentReader(NpgsqlDataSource dataSource, Protecte
         var transaction = await ContentTransaction.BeginAsync(dataSource, request.DomainId, cancellationToken).ConfigureAwait(false);
         await using (transaction.ConfigureAwait(false))
         {
-            var command = transaction.CreateCommand(statement);
-            await using (command.ConfigureAwait(false))
+            return await ReadStoredAsync(transaction, statement, request.RowId, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static async Task<StoredValue> ReadStoredAsync(ContentTransaction transaction, string statement, long rowId, CancellationToken cancellationToken)
+    {
+        var command = transaction.CreateCommand(statement);
+        await using (command.ConfigureAwait(false))
+        {
+            _ = command.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Bigint) { Value = rowId });
+            var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            await using (reader.ConfigureAwait(false))
             {
-                _ = command.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Bigint) { Value = request.RowId });
-                var value = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
-                return new StoredValue(value is not null, value as byte[]);
+                return await StoredOfAsync(reader, cancellationToken).ConfigureAwait(false);
             }
         }
     }
 
+    private static async Task<StoredValue> StoredOfAsync(DbDataReader reader, CancellationToken cancellationToken)
+    {
+        if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            return new StoredValue(Found: false, null, Emptied: false);
+        }
+
+        var envelope = await reader.IsDBNullAsync(0, cancellationToken).ConfigureAwait(false) ? null : (byte[])reader.GetValue(0);
+        return new StoredValue(Found: true, envelope, Emptied: reader.GetBoolean(1));
+    }
+
+    private static ContentReadOutcome Unread(StoredValue stored) => stored switch
+    {
+        { Found: false } => ContentReadOutcome.NotFound,
+        { Emptied: true } => ContentReadOutcome.Emptied,
+        _ => ContentReadOutcome.Empty,
+    };
+
     private sealed record ColumnReading(CustodyItemKind Kind, CustodyStep Step, string Query);
 
-    private sealed record StoredValue(bool Found, byte[]? Envelope);
+    private sealed record StoredValue(bool Found, byte[]? Envelope, bool Emptied);
 }

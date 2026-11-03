@@ -1,0 +1,132 @@
+using System.Globalization;
+using System.Runtime.CompilerServices;
+using Core.Persistence.Custody;
+using Core.Persistence.Custody.Chain;
+using Core.Persistence.Custody.Chain.Append;
+using Core.Persistence.People;
+using Npgsql;
+using NpgsqlTypes;
+
+namespace Core.Persistence.Content.Emptying;
+
+/// <summary>
+/// The one way an item is emptied: in one serializable transaction the chain records the emptying or its refusal, and only if the event entered are the item and its maps cleared.
+/// Only a person who holds the function of curation empties; an item of another domain is not found, and a refusal to empty is an event too.
+/// </summary>
+public sealed class ContentEmptier
+{
+    private const string FunctionOfPerson = "SELECT function_name FROM public.person WHERE id = @id";
+
+    private readonly NpgsqlDataSource dataSource;
+
+    /// <summary>The emptier writes through the data source built with the application's credential.</summary>
+    public ContentEmptier(NpgsqlDataSource dataSource)
+    {
+        ArgumentNullException.ThrowIfNull(dataSource);
+        this.dataSource = dataSource;
+    }
+
+    /// <summary>Empties the item, or records why it was not emptied.</summary>
+    /// <param name="request">Who asks, which item of which domain, why, and the protocol that asked.</param>
+    /// <param name="cancellationToken">Cancels the emptying.</param>
+    public Task<EmptyingResult> EmptyAsync(ItemEmptying request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(request.DomainId);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(request.ItemId);
+        return ProtocolReference.IsValid(request.Reference)
+            ? EmptyingAsync(request, cancellationToken)
+            : Task.FromResult(new EmptyingResult { Outcome = EmptyingOutcome.ReferenceRefused });
+    }
+
+    private static CustodyEvent EventOf(ItemEmptying request, EmptyingOutcome outcome)
+    {
+        if (outcome == EmptyingOutcome.Emptied)
+        {
+            return CustodyEvent.Emptied(request.Author, request.ItemId, ReasonOf(request.Motive), request.Reference);
+        }
+
+        var refusal = outcome == EmptyingOutcome.AuthorWithoutFunction ? CustodyReason.AuthorWithoutFunction : CustodyReason.ItemAlreadyEmptied;
+        return CustodyEvent.EmptyingRefused(request.Author, request.ItemId, refusal, request.Reference);
+    }
+
+    private static CustodyReason ReasonOf(EmptyingMotive motive) => motive switch
+    {
+        EmptyingMotive.RemovalRequestedBySubject => CustodyReason.RemovalRequestedBySubject,
+        EmptyingMotive.ContractRequirement => CustodyReason.ContractRequirement,
+        _ => throw new ArgumentOutOfRangeException(nameof(motive), motive, "The motive is not one an emptying may give."),
+    };
+
+    private static async Task DeclareDomainAsync(CustodyScope scope, int domainId, CancellationToken cancellationToken)
+    {
+        var command = scope.CreateCommand(ContentTransaction.Declare);
+        await using (command.ConfigureAwait(false))
+        {
+            _ = command.Parameters.AddWithValue("domain", domainId.ToString(CultureInfo.InvariantCulture));
+            _ = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static async Task<object?> ScalarAsync(CustodyScope scope, string statement, long id, CancellationToken cancellationToken)
+    {
+        var command = scope.CreateCommand(statement);
+        await using (command.ConfigureAwait(false))
+        {
+            _ = command.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Bigint) { Value = id });
+            return await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>False when the domain holds no such item: the statement that empties it finds no row.</summary>
+    private static async Task<bool> ClearAsync(CustodyScope scope, long itemId, CancellationToken cancellationToken)
+    {
+        var found = await ScalarAsync(scope, ContentQueries.EmptyItemText, itemId, cancellationToken).ConfigureAwait(false) is not null;
+        _ = await ScalarAsync(scope, ContentQueries.EmptyReversalMaps, itemId, cancellationToken).ConfigureAwait(false);
+        return found;
+    }
+
+    private async Task<EmptyingResult> EmptyingAsync(ItemEmptying request, CancellationToken cancellationToken)
+    {
+        var judgment = new StrongBox<EmptyingOutcome>();
+        var recorded = await CustodyTransaction.RunAsync(dataSource, scope => EmptyInAsync(scope, request, judgment, cancellationToken), cancellationToken).ConfigureAwait(false);
+        if (judgment.Value == EmptyingOutcome.NotFound)
+        {
+            return new EmptyingResult { Outcome = EmptyingOutcome.NotFound };
+        }
+
+        return recorded?.Outcome == CustodyOutcome.Appended
+            ? new EmptyingResult { Outcome = judgment.Value, Sequence = recorded.Sequence }
+            : new EmptyingResult { Outcome = EmptyingOutcome.NotRecorded, Refusal = recorded };
+    }
+
+    private static async Task<CustodyResult?> EmptyInAsync(CustodyScope scope, ItemEmptying request, StrongBox<EmptyingOutcome> judgment, CancellationToken cancellationToken)
+    {
+        await DeclareDomainAsync(scope, request.DomainId, cancellationToken).ConfigureAwait(false);
+        judgment.Value = await JudgedAsync(scope, request, cancellationToken).ConfigureAwait(false);
+        var appended = await CustodyAppend.AppendAsync(scope, EventOf(request, judgment.Value), cancellationToken).ConfigureAwait(false);
+        if (appended.Outcome == CustodyOutcome.Appended && judgment.Value == EmptyingOutcome.Emptied && !await ClearAsync(scope, request.ItemId, cancellationToken).ConfigureAwait(false))
+        {
+            judgment.Value = EmptyingOutcome.NotFound;
+            return null;
+        }
+
+        return await CustodyAppend.CommitIfAppendedAsync(scope, appended, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>The function comes first, so that an attempt without it is recorded whatever the item is; the item is looked for only for someone who may empty.</summary>
+    private static async Task<EmptyingOutcome> JudgedAsync(CustodyScope scope, ItemEmptying request, CancellationToken cancellationToken)
+    {
+        if (!await HoldsTheFunctionAsync(scope, request.Author, cancellationToken).ConfigureAwait(false))
+        {
+            return EmptyingOutcome.AuthorWithoutFunction;
+        }
+
+        var alreadyEmptied = await ScalarAsync(scope, ContentQueries.ReadItemEmptied, request.ItemId, cancellationToken).ConfigureAwait(false);
+        return alreadyEmptied is true ? EmptyingOutcome.AlreadyEmptied : EmptyingOutcome.Emptied;
+    }
+
+    private static async Task<bool> HoldsTheFunctionAsync(CustodyScope scope, CustodyAuthor author, CancellationToken cancellationToken) =>
+        author.PersonId is { } person
+        && await ScalarAsync(scope, FunctionOfPerson, person, cancellationToken).ConfigureAwait(false) is string function
+        && string.Equals(function, PersonFunctions.Curation, StringComparison.Ordinal);
+}

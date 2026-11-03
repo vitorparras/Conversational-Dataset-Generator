@@ -1,8 +1,11 @@
 using System.Diagnostics.CodeAnalysis;
 using Core.Persistence.Content;
+using Core.Persistence.Content.Emptying;
 using Core.Persistence.Content.Reading;
 using Core.Persistence.Content.Writing;
+using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
+using Core.Persistence.Custody.Verification;
 using Core.Persistence.Migrations;
 using Core.Persistence.Tests.Fixtures;
 using Npgsql;
@@ -31,16 +34,44 @@ internal sealed class ContentWorld : IAsyncDisposable
 
     public ProtectedContentReader Reader { get; }
 
+    public ContentEmptier Emptier => new(DataSource);
+
     public static async Task<ContentWorld> CreateAsync()
     {
         var database = await ScratchDatabase.CreateAsync();
         _ = await database.MigrateAsync(EmbeddedMigrations.Load());
         await database.RunAsOwnerAsync(
             "INSERT INTO public.domain (name) VALUES ('zqx-domain-a'), ('zqx-domain-b')",
-            "INSERT INTO public.person (name, function_name) VALUES ('zqx-active', 'Anotação'), ('zqx-gone', 'Anotação')",
+            "INSERT INTO public.person (name, function_name) VALUES ('zqx-active', 'Anotação'), ('zqx-gone', 'Anotação'), ('zqx-curator', 'Curadoria do acervo')",
             "UPDATE public.person SET active = false WHERE name = 'zqx-gone'");
         var custody = SyntheticCustody.Holding("texto-bruto/1/v1", "mapa-reversao/1/v1", "texto-bruto/2/v1", "mapa-reversao/2/v1");
         return new ContentWorld(database, NpgsqlDataSource.Create(database.AppConnectionString), custody);
+    }
+
+    /// <summary>Two events in the chain, one of them changed outside the system, and a verification that failed and was recorded: from then on the chain is broken.</summary>
+    [SuppressMessage("Security", "CA2100", Justification = "The statement is a literal, never input.")]
+    public async Task BreakTheChainAsync()
+    {
+        var chain = new CustodyChain(DataSource);
+        foreach (var item in new long[] { 1, 2 })
+        {
+            var added = CustodyEvent.Of(CustodyAuthor.System, new CustodyItem(CustodyItemKind.Person, item), CustodyStep.PersonCreated, CustodyReason.AdministrativeAct);
+            Assert.Equal(CustodyOutcome.Appended, (await chain.AppendAsync(added, TestContext.Current.CancellationToken)).Outcome);
+        }
+
+        var name = new NpgsqlConnectionStringBuilder(Database.AppConnectionString).Database;
+        var connectionString = new NpgsqlConnectionStringBuilder((await PostgresFixture.SharedAsync()).SuperuserConnectionString) { Database = name, Pooling = false }.ConnectionString;
+        await using (var connection = await Sql.OpenAsync(connectionString))
+        {
+            await using var command = new NpgsqlCommand(
+                "ALTER TABLE public.custody_event DISABLE TRIGGER custody_event_never_changed; UPDATE public.custody_event SET item_id = item_id + 1 WHERE sequence = 1; "
+                + "ALTER TABLE public.custody_event ENABLE ALWAYS TRIGGER custody_event_never_changed",
+                connection);
+            _ = await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+        }
+
+        var failed = await new CustodyVerifier(DataSource, TimeProvider.System).VerifyAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(1, failed.FirstInconsistent?.Sequence);
     }
 
     /// <summary>The identifier of the person with the name given, as the owner.</summary>

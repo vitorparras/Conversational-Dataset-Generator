@@ -76,6 +76,7 @@ public sealed class RecoveryReceiptTests
     [InlineData("CDG-ENSAIO-1|2031-03-04T08:06:07Z|42|{0}|{1}|x|3|0")]
     public void AFieldThatIsNotValidIsRefusedEvenWhenTheCheckCodeOfTheTextCloses(string body)
     {
+        ArgumentNullException.ThrowIfNull(body);
         var text = body.Replace("{0}", Digest, StringComparison.Ordinal).Replace("{1}", Proof, StringComparison.Ordinal);
         var check = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text)).AsSpan(0, 4));
 

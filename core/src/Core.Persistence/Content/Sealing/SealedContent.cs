@@ -1,4 +1,4 @@
-namespace Core.Persistence.Content;
+namespace Core.Persistence.Content.Sealing;
 
 /// <summary>
 /// The envelope of a protected column's value, ready to be stored. Only <see cref="ProtectedContent"/> makes one, so a statement that

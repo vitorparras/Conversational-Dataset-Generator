@@ -6,9 +6,14 @@ namespace Core.Persistence.Domains;
 public static class RegisteredLabels
 {
     /// <summary>The text of every label registered, as of this reading: a rotation made afterwards is seen only by a host that reads again, or restarts.</summary>
-    public static async Task<IReadOnlySet<string>> ReadAsync(NpgsqlDataSource dataSource, CancellationToken cancellationToken)
+    public static Task<IReadOnlySet<string>> ReadAsync(NpgsqlDataSource dataSource, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(dataSource);
+        return ReadAllAsync(dataSource, cancellationToken);
+    }
+
+    private static async Task<IReadOnlySet<string>> ReadAllAsync(NpgsqlDataSource dataSource, CancellationToken cancellationToken)
+    {
         var registered = new HashSet<string>(StringComparer.Ordinal);
         var command = dataSource.CreateCommand("SELECT label FROM public.derivation_label");
         await using (command.ConfigureAwait(false))

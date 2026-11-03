@@ -1,5 +1,6 @@
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
+using Core.Persistence.Custody.Chain.Append;
 using Core.Platform.Keys;
 using Npgsql;
 
@@ -84,7 +85,7 @@ public sealed class DomainLabelRotation
             return null;
         }
 
-        var chain = await CustodyTransaction.AppendAsync(scope, change.Pending, cancellationToken).ConfigureAwait(false);
+        var chain = await CustodyAppend.AppendAsync(scope, change.Pending, cancellationToken).ConfigureAwait(false);
         if (chain.Outcome != CustodyOutcome.Appended)
         {
             var outcome = chain.Outcome == CustodyOutcome.Conflict ? DomainLabelOutcome.Conflict : DomainLabelOutcome.ChainRefused;

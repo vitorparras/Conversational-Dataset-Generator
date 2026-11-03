@@ -5,8 +5,9 @@ namespace Core.Persistence.Content;
 
 /// <summary>
 /// The one way protected content reaches the database and comes back: each row has a key of its own, drawn for it and wrapped under the label <c>&lt;purpose&gt;/&lt;domain&gt;/v&lt;n&gt;</c>
-/// of the newest generation of the domain that the database registered and the installation loaded, and under the epoch of its custody file, and what the row holds sealed is sealed by that key. It is opened only if the labels the
-/// envelopes carry are the purpose of the column and the domain of the row. Anything stored in a protected column that this path did not seal is refused when read.
+/// of the newest generation of the domain that the database registered and the installation loaded, and under the epoch of its custody file, and what the row holds sealed is sealed by
+/// that key. It is opened only if the labels the envelopes carry are the purpose of the column and the domain of the row. Anything stored in a protected column that this path did not seal
+/// is refused when read.
 /// </summary>
 public sealed class ProtectedContent
 {
@@ -14,7 +15,7 @@ public sealed class ProtectedContent
     private readonly ItemKeys keys;
     private readonly IReadOnlySet<string> registered;
 
-    /// <summary>The path draws the keys of the rows with <paramref name="keys"/>, under the labels the installation loaded with its master key, among those <paramref name="registered"/> in the database.</summary>
+    /// <summary>The path draws the keys of the rows with <paramref name="keys"/>, under the labels the installation loaded, among those <paramref name="registered"/> in the database.</summary>
     public ProtectedContent(DerivationLabels loaded, ItemKeys keys, IReadOnlySet<string> registered)
     {
         ArgumentNullException.ThrowIfNull(loaded);

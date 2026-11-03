@@ -7,7 +7,7 @@ using Npgsql;
 
 namespace Core.Host.Domains;
 
-/// <summary>The mode asked for with <c>rotate-domain-label --domain &lt;id&gt;</c> (issue 56): it passes the domain to the next generation of its labels if the custody file holds them, or names them.</summary>
+/// <summary>The mode asked for with <c>rotate-domain-label --domain &lt;id&gt;</c> (issue 56): it passes the domain to the next generation of its labels if the custody file holds them.</summary>
 internal static class DomainGenerationMode
 {
     private const string RotateWord = "rotate-domain-label";

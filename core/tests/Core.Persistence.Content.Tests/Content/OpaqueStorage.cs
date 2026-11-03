@@ -26,7 +26,15 @@ internal static class OpaqueStorage
     /// <summary>The column of the entries of the reversal map.</summary>
     public const string Entries = "content.reversal_map.entries";
 
+    /// <summary>The column of the key of the item, wrapped: what it protects is the key in clear, which no copy of the storage may show.</summary>
+    public const string ItemKey = "content.item_text.dek_wrapped";
+
+    /// <summary>The column of the key of the map, wrapped.</summary>
+    public const string MapKey = "content.reversal_map.dek_wrapped";
+
     private static readonly string[] Seedable = [RawText, SanitizedText, Entries];
+
+    private static readonly string[] KeyColumns = [ItemKey, MapKey];
 
     /// <summary>The columns the catalog marks as protected, as schema.table.column; the marks are the ones the migrations write.</summary>
     public static Task<IReadOnlyList<string>> MarkedColumnsAsync(ContentWorld world)
@@ -62,14 +70,15 @@ internal static class OpaqueStorage
     private static async Task<Material> SeedMarkedAsync(ContentWorld world)
     {
         var marked = await MarkedColumnsAsync(world);
-        Assert.Empty(marked.Except(Seedable, StringComparer.Ordinal));
-        Assert.Empty(Seedable.Except(marked, StringComparer.Ordinal));
-        var texts = marked.ToDictionary(column => column, column => $"zqx-{Guid.NewGuid():N}", StringComparer.Ordinal);
+        string[] known = [.. Seedable, .. KeyColumns];
+        Assert.Empty(marked.Except(known, StringComparer.Ordinal));
+        Assert.Empty(known.Except(marked, StringComparer.Ordinal));
+        var texts = Seedable.ToDictionary(column => column, column => $"zqx-{Guid.NewGuid():N}", StringComparer.Ordinal);
         var pseudonymized = $"zqx-{Guid.NewGuid():N}";
         var item = await world.Writer.AddItemTextAsync(1, new NewItemText(texts[RawText], texts[SanitizedText], pseudonymized), TestContext.Current.CancellationToken);
         _ = await world.Writer.AddReversalMapAsync(1, item, texts[Entries], TestContext.Current.CancellationToken);
         await AssertEveryMarkedColumnHoldsSomethingAsync(world, marked);
-        return new Material(texts, pseudonymized);
+        return new Material(texts, pseudonymized) { Keys = await KeysInClearAsync(world) };
     }
 
     /// <summary>
@@ -99,7 +108,26 @@ internal static class OpaqueStorage
         ArgumentNullException.ThrowIfNull(world);
         ArgumentNullException.ThrowIfNull(material);
         var texts = material.Texts.Values.Append(material.Pseudonymized);
-        return ObserveNeedlesAsync(world, [.. texts.Select(Encoding.UTF8.GetBytes), .. extraNeedles]);
+        var keys = material.Keys.Values.SelectMany(key => new[] { key, Encoding.ASCII.GetBytes(Convert.ToHexStringLower(key)), Encoding.ASCII.GetBytes(Convert.ToHexString(key)) });
+        return ObserveNeedlesAsync(world, [.. texts.Select(Encoding.UTF8.GetBytes), .. keys, .. extraNeedles]);
+    }
+
+    /// <summary>The key of the row of each table in clear, unwrapped the way the path of the application does: this is what a copy of the storage must never show.</summary>
+    private static async Task<IReadOnlyDictionary<string, byte[]>> KeysInClearAsync(ContentWorld world)
+    {
+        var keys = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+        foreach (var column in KeyColumns)
+        {
+            var table = column[..column.LastIndexOf('.')];
+            // nosemgrep: sql-concatenation-csharp interpolates the name of a table fixed above, never input.
+            var epoch = (int)(await world.OwnerInDomainAsync(1, $"SELECT dek_epoch FROM {table} ORDER BY id DESC LIMIT 1"))!;
+            // nosemgrep: sql-concatenation-csharp interpolates the name of a table fixed above, never input.
+            var wrapped = (byte[])(await world.OwnerInDomainAsync(1, $"SELECT dek_wrapped FROM {table} ORDER BY id DESC LIMIT 1"))!;
+            using var key = world.Keys.Unwrap(epoch, wrapped);
+            keys[column] = key.AsSpan().ToArray();
+        }
+
+        return keys;
     }
 
     private static async Task<Observation> ObserveNeedlesAsync(ContentWorld world, byte[][] needles)
@@ -113,8 +141,13 @@ internal static class OpaqueStorage
     {
         ArgumentNullException.ThrowIfNull(observation);
         ArgumentNullException.ThrowIfNull(material);
-        return [.. columns.Where(column => observation.ShowsInDump(material.Texts[column]) || observation.ShowsInFiles(material.Texts[column])).Order(StringComparer.Ordinal)];
+        return [.. columns.Where(column => ShownBy(observation, material, column)).Order(StringComparer.Ordinal)];
     }
+
+    private static bool ShownBy(Observation observation, Material material, string column) =>
+        material.Keys.TryGetValue(column, out var key)
+            ? observation.Dump.Contains(Convert.ToHexStringLower(key), StringComparison.Ordinal)
+            : observation.ShowsInDump(material.Texts[column]) || observation.ShowsInFiles(material.Texts[column]);
 
     /// <summary>The synthetic key in the ways a dump or a record writes bytes: hex in both cases, with dashes, and base64 with or without padding and in its URL form.</summary>
     public static IReadOnlyList<string> KeyAsText()
@@ -147,7 +180,17 @@ internal static class OpaqueStorage
     /// <summary>The texts seeded: one per marked column, by the name of the column, and the one left in clear.</summary>
     /// <param name="Texts">The text of each protected column.</param>
     /// <param name="Pseudonymized">The text of the column kept in clear on purpose.</param>
-    internal sealed record Material(IReadOnlyDictionary<string, string> Texts, string Pseudonymized);
+    internal sealed record Material(IReadOnlyDictionary<string, string> Texts, string Pseudonymized)
+    {
+        /// <summary>The key of each row in clear, by the column that wraps it.</summary>
+        public IReadOnlyDictionary<string, byte[]> Keys { get; init; } = new Dictionary<string, byte[]>();
+
+        /// <summary>Every marked column the seeding filled.</summary>
+        public IEnumerable<string> Columns => Texts.Keys.Concat(Keys.Keys);
+
+        /// <summary>What the column would hold if it were written in clear.</summary>
+        public byte[] InClear(string column) => Keys.TryGetValue(column, out var key) ? key : Encoding.UTF8.GetBytes(Texts[column]);
+    }
 
     /// <summary>What the copy of the storage shows: the dump of the database and the matches in the files of the server.</summary>
     /// <param name="Dump">What pg_dump wrote, with the data as inserts.</param>

@@ -52,7 +52,7 @@ public sealed record CustodyEvent
     {
         ArgumentNullException.ThrowIfNull(author);
         return reason is CustodyReason.RemovalRequestedBySubject or CustodyReason.ContractRequirement && author.PersonId is not null
-            ? OfEmptying(author, itemId, CustodyStep.ItemEmptied, reason, reference)
+            ? WithReference(new CustodyEvent(author, EmptyingItem(itemId), CustodyStep.ItemEmptied, reason), reference)
             : throw new ArgumentException("An emptying is done by a person, for the request of the subject or for a requirement of the contract.", nameof(reason));
     }
 
@@ -65,17 +65,20 @@ public sealed record CustodyEvent
     {
         ArgumentNullException.ThrowIfNull(author);
         return reason is CustodyReason.AuthorWithoutFunction or CustodyReason.ItemAlreadyEmptied
-            ? OfEmptying(author, itemId, CustodyStep.ItemEmptyingRefused, reason, reference)
+            ? WithReference(new CustodyEvent(author, EmptyingItem(itemId), CustodyStep.ItemEmptyingRefused, reason), reference)
             : throw new ArgumentException("An emptying is refused because its author does not hold the function or because the item was emptied already.", nameof(reason));
     }
 
-    private static CustodyEvent OfEmptying(CustodyAuthor author, long itemId, CustodyStep step, CustodyReason reason, string reference)
+    private static CustodyItem EmptyingItem(long itemId)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(itemId);
-        return ProtocolReference.IsValid(reference)
-            ? new CustodyEvent(author, new CustodyItem(CustodyItemKind.ItemText, itemId), step, reason) { Reference = reference }
-            : throw new ArgumentException("The reference is a protocol number of letters, digits and . _ / - only, up to 64 characters.", nameof(reference));
+        return new CustodyItem(CustodyItemKind.ItemText, itemId);
     }
+
+    private static CustodyEvent WithReference(CustodyEvent custodyEvent, string reference) =>
+        ProtocolReference.IsValid(reference)
+            ? custodyEvent with { Reference = reference }
+            : throw new ArgumentException("The reference is a protocol number of letters, digits and . _ / - only, up to 64 characters.", nameof(reference));
 
     /// <summary>
     /// The event that records the verdict of a verification of the chain, written by the system: the item is the chain, its id is the number of events the verification read,

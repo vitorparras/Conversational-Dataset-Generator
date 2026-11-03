@@ -92,6 +92,33 @@ public sealed class ContentEmptiedTriggerTests
         Assert.Equal(PostgresErrorCodes.InsufficientPrivilege, refused.SqlState);
     }
 
+    [DatabaseFact]
+    public async Task EmptyingRecordsTheItemOnceAndAnItemNotEmptiedIsNotRecorded()
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        var emptied = await EmptiedItemAsync(world);
+        var kept = await world.Writer.AddItemTextAsync(1, new NewItemText("bruto"), TestContext.Current.CancellationToken);
+
+        var recorded = await world.InDomainAsync(1, "SELECT array_agg(item_id ORDER BY item_id) FROM content.item_emptied");
+
+        Assert.Equal(new[] { emptied }, (long[])recorded!);
+        Assert.DoesNotContain(kept, (long[])recorded!);
+    }
+
+    [DatabaseTheory]
+    [InlineData("INSERT INTO content.item_emptied (domain_id, item_id) VALUES (1, @id)")]
+    [InlineData("UPDATE content.item_emptied SET item_id = item_id + 1 WHERE item_id = @id")]
+    [InlineData("DELETE FROM content.item_emptied WHERE item_id = @id")]
+    public async Task ApplicationRoleReadsTheItemsEmptiedAndNeverWritesThem(string change)
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        var item = await EmptiedItemAsync(world);
+
+        var refused = await Assert.ThrowsAsync<PostgresException>(() => world.InDomainAsync(1, change, ("id", item)));
+
+        Assert.Equal(PostgresErrorCodes.InsufficientPrivilege, refused.SqlState);
+    }
+
     private static async Task<long> EmptiedItemAsync(ContentWorld world)
     {
         var item = await world.Writer.AddItemTextAsync(1, new NewItemText("bruto", "sanitizado", "pseudonimizado"), TestContext.Current.CancellationToken);

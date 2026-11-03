@@ -31,12 +31,13 @@ public sealed class AuditComparer
         database = connection.Database ?? throw new ArgumentException("A fonte de dados não nomeia o banco.", nameof(dataSource));
     }
 
-    /// <summary>The differences between the layers from <paramref name="from"/> (inclusive) to <paramref name="to"/> (exclusive).</summary>
-    public async Task<IReadOnlyList<AuditDifference>> CompareAsync(DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken)
+    /// <summary>The differences between the layers from <paramref name="from"/> (inclusive) to <paramref name="to"/> (exclusive), and the log files cut short by the server's fall.</summary>
+    public async Task<AuditCompared> CompareAsync(DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken)
     {
-        var seen = (await log.ReadAsync(from, to, cancellationToken).ConfigureAwait(false)).Where(entry => entry.Database == database).ToList();
+        var reading = await log.ReadAsync(from, to, cancellationToken).ConfigureAwait(false);
+        var seen = reading.Entries.Where(entry => entry.Database == database).ToList();
         var recorded = await RecordedAsync(from, to, cancellationToken).ConfigureAwait(false);
-        return AuditComparison.Compare(seen, applicationRole, recorded);
+        return new AuditCompared(AuditComparison.Compare(seen, applicationRole, recorded), reading.CutOffFiles);
     }
 
     private async Task<Dictionary<CustodyStep, int>> RecordedAsync(DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken)

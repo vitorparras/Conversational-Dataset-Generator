@@ -5,5 +5,6 @@
 - Projeto/pacote: `Core.Persistence.Custody`
 - Piso: 90 %
 - Crítica: sim
-- Motivo: Acrescenta o evento que encadeia o acervo, em transação serializável, e recusa autor
-  desativado ou inexistente (requisito 019)
+- Motivo: Dá nome ao evento que encadeia o acervo (autor, item, passo, motivo, resultado e recusas)
+  e recusa autor desativado ou inexistente (requisito 019); a transação que o grava é a área
+  `Core.Persistence.Custody.Chain`

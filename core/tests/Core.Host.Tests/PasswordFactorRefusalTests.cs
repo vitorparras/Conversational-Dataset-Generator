@@ -4,7 +4,7 @@ namespace Core.Host.Tests;
 
 /// <summary>
 /// The serving host does not start without a work factor it can use (#69, CA-2): the process ends with the refusal code, and the refusal names Passwords:WorkFactor,
-/// whether the key is missing, empty, not a number or not above zero. The reading of the key in isolation is in PasswordConfigurationTests.
+/// whether the key is missing, empty, not a number or outside the limits (a demonstration takes from 1 to 10000000; the floor of a real installation is in PasswordConfigurationTests).
 /// </summary>
 public sealed class PasswordFactorRefusalTests
 {
@@ -37,7 +37,8 @@ public sealed class PasswordFactorRefusalTests
     [InlineData("0")]
     [InlineData("-1")]
     [InlineData("99999999999")]
-    public async Task HostThatDeclaresAFactorThatIsNotAWholeNumberAboveZeroEndsWithTheRefusalCodeAndNamesTheKeyAndTheValue(string declared)
+    [InlineData("10000001")]
+    public async Task HostThatDeclaresAFactorThatIsNotAWholeNumberInsideTheLimitsEndsWithTheRefusalCodeAndNamesTheKeyAndTheValue(string declared)
     {
         var exit = await RefusedWithAsync(declared);
 
@@ -59,6 +60,31 @@ public sealed class PasswordFactorRefusalTests
 
         Assert.Equal((int)ExitCode.ConfigurationRefused, exit.Code);
         Assert.Contains(Key, exit.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task RealHostThatDeclaresAFactorBelowTheFloorEndsWithTheRefusalCodeAndNamesTheKindOfInstallationAndTheFloor()
+    {
+        var built = HostInstallation.Built(HostProcess.FreeAddress());
+        var installation = built with
+        {
+            DeclaresInstallation = false,
+            DeclaresWorkFactor = false,
+            Arguments =
+            [
+                .. built.Arguments,
+                "--Installation:Kind=real",
+                .. HostInstallation.MasterKeyArguments,
+                "--Passwords:WorkFactor=599999",
+            ],
+        };
+
+        var exit = await HostProcess.RunToExitAsync(installation, HostProcess.StartupTimeout, TestContext.Current.CancellationToken);
+
+        Assert.Equal((int)ExitCode.ConfigurationRefused, exit.Code);
+        Assert.Contains(Key, exit.Error, StringComparison.Ordinal);
+        Assert.Contains("'599999'", exit.Error, StringComparison.Ordinal);
+        Assert.Contains("no mínimo 600000 na instalação real", exit.Error, StringComparison.Ordinal);
     }
 
     private static Task<HostExit> RefusedWithAsync(string declared)

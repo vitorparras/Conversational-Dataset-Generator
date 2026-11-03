@@ -228,6 +228,21 @@ registrada ou quando a última é mais velha que duas vezes o intervalo: "nunca 
 rodar" não se confundem com "passou". Sem nenhuma registrada, `last` vem nulo. O intervalo também
 aparece em `/configuration`.
 
+Se o servidor de banco cai enquanto grava, o arquivo `csv` que ele escrevia fica terminado numa
+linha cortada, sem a quebra de linha, e o servidor segue em outro arquivo. Essa última linha de um
+arquivo que já não é o mais recente não vira entrada nem erro: a leitura a deixa de fora e nomeia o
+arquivo, em `cutOffFiles` na resposta de `GET /audit/server`, em uma linha `aviso:` do
+`audit-compare`, em `auditComparison.cutOffFiles` de `GET /status` e em um aviso no log do núcleo.
+Na resposta de `GET /audit/server` e no `audit-compare`, o nome aparece enquanto o arquivo estiver
+na janela lida. No `/status`, os nomes ficam até o núcleo reiniciar, cada um uma vez só, na ordem em
+que foram vistos, e uma rodada que falha não os apaga; a lista vive só na memória do processo e
+volta vazia quando o núcleo sobe de novo. O log tem um aviso por arquivo, na rodada que o lê pela
+primeira vez. É só um aviso, e o código de saída do `audit-compare` não muda por causa dele. Não se
+mexe no arquivo: o núcleo nunca o escreve, renomeia nem remove, e o que se queira fazer com ele é
+decisão de quem opera o servidor. Uma linha ilegível no meio de um
+arquivo continua sendo erro, e a última linha do arquivo mais recente, que o servidor ainda pode
+estar escrevendo, é lida inteira na leitura seguinte, sem aviso.
+
 `MasterKey:File` e `MasterKey:LabelsFile` são obrigatórias ao servir, sem valor padrão, e levam os
 caminhos dos arquivos da chave e dos rótulos, nunca a chave. O núcleo recusa arquivo ausente, com
 permissão aberta a quem não é o dono do processo, dentro da pasta do executável, ou fora do

@@ -1,10 +1,12 @@
 using System.Diagnostics.CodeAnalysis;
 using Core.Persistence.Content;
+using Core.Persistence.Content.Emptying;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
 using Core.Persistence.Custody.Verification;
 using Core.Persistence.Migrations;
 using Core.Persistence.Tests.Fixtures;
+using Core.Platform.Keys;
 using Npgsql;
 
 namespace Core.Persistence.Tests.Content;
@@ -47,6 +49,9 @@ internal sealed class ContentWorld : IAsyncDisposable
 
     /// <summary>The labels the world holds, which a custody of other epochs shares.</summary>
     public static IReadOnlyList<string> Labels { get; } = ["texto-bruto/1/v1", "mapa-reversao/1/v1", "texto-bruto/2/v1", "mapa-reversao/2/v1"];
+
+    /// <summary>The keys of the rows, to unwrap what the world stored.</summary>
+    public ItemKeys Keys => custody.Keys;
 
     /// <summary>A reader of the world's database that opens content with the custody given instead of the world's own.</summary>
     public ProtectedContentReader ReaderWith(SyntheticCustody other) => new(DataSource, other.Content, new CustodyChain(DataSource));

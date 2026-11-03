@@ -360,7 +360,7 @@ public sealed partial class ContentDomainTests
         await using var database = await WithTwoDomainsAsync();
         await using var connection = await Sql.OpenAsync(database.AppConnectionString);
 
-        foreach (var (name, statement) in ContentQueries.All.Where(query => query.Key.StartsWith("Empty", StringComparison.Ordinal)))
+        foreach (var (name, statement) in ContentQueries.All.Where(query => IsEmptyingOrRewrap(query.Key)))
         {
             await using var command = Unbound(statement, connection);
             Assert.True(await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken) == 0, $"the statement {name} emptied a row with no domain declared");
@@ -368,8 +368,8 @@ public sealed partial class ContentDomainTests
     }
 
     [Fact]
-    public void EveryStatementOfTheListIsAReadingAnInsertOrAnEmptying() =>
-        Assert.All(ContentQueries.All.Keys, name => Assert.Matches("^(Read|Insert|Empty)", name));
+    public void EveryStatementOfTheListIsAReadingAnInsertAnEmptyingOrARewrap() =>
+        Assert.All(ContentQueries.All.Keys, name => Assert.Matches("^(Read|Insert|Empty|Rewrap)", name));
 
     [Fact]
     public async Task DomainThatIsNotPositiveIsRefusedBeforeAnyConnectionOpens()
@@ -429,6 +429,8 @@ public sealed partial class ContentDomainTests
 
         Assert.Equal(["a1", "a2"], seen);
     }
+
+    private static bool IsEmptyingOrRewrap(string name) => name.StartsWith("Empty", StringComparison.Ordinal) || name.StartsWith("Rewrap", StringComparison.Ordinal);
 
     private static NpgsqlCommand Unbound(string statement, NpgsqlConnection connection)
     {

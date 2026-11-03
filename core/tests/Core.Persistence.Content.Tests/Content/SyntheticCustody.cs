@@ -26,6 +26,9 @@ internal sealed class SyntheticCustody : IDisposable
     /// <summary>The labels the custody holds.</summary>
     public DerivationLabels Labels { get; }
 
+    /// <summary>The bytes of the synthetic key, a copy each time: the reading that holds the key wipes the one it receives.</summary>
+    public static byte[] KeyBytes() => [.. Enumerable.Range(0, MasterKey.Length).Select(index => (byte)(0x5A ^ ((index * 29) + 3)))];
+
     /// <summary>The custody holding the labels and the epoch 1.</summary>
     public static SyntheticCustody Holding(params IEnumerable<string> labels) => Holding(1, labels);
 
@@ -36,7 +39,7 @@ internal sealed class SyntheticCustody : IDisposable
     public static SyntheticCustody HoldingEpochs(IEnumerable<int> epochs, IEnumerable<string> labels)
     {
         var set = DerivationLabels.Of(labels);
-        var key = Enumerable.Range(0, MasterKey.Length).Select(index => (byte)(0x5A ^ ((index * 29) + 3))).ToArray();
+        var key = KeyBytes();
         var secrets = epochs.ToDictionary(number => number, number => SecretOf(number));
         return new SyntheticCustody(MasterKeyReading.FromBytes(key, set, CustodyEpochs.Of(secrets), "synthetic"), set);
     }
@@ -45,7 +48,7 @@ internal sealed class SyntheticCustody : IDisposable
     public static SyntheticCustody HoldingSecrets(IReadOnlyDictionary<int, byte[]> epochs, IEnumerable<string> labels)
     {
         var set = DerivationLabels.Of(labels);
-        var key = Enumerable.Range(0, MasterKey.Length).Select(index => (byte)(0x5A ^ ((index * 29) + 3))).ToArray();
+        var key = KeyBytes();
         return new SyntheticCustody(MasterKeyReading.FromBytes(key, set, CustodyEpochs.Of(epochs), "synthetic"), set);
     }
 

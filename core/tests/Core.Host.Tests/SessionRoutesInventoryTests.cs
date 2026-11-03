@@ -26,7 +26,7 @@ public sealed class SessionRoutesInventoryTests
     {
         var gated = MappedRoutes.Read().Where(route => !route.Open).Select(route => route.ToString()).Order(StringComparer.Ordinal).ToList();
 
-        Assert.Equal(["DELETE /session", "GET /audit/server", "GET /configuration", "GET /session", "GET /versions", "POST /analysis"], gated);
+        Assert.Equal(["DELETE /session", "GET /audit/server", "GET /configuration", "GET /custody/verification", "GET /session", "GET /versions", "POST /analysis"], gated);
     }
 
     [Fact]

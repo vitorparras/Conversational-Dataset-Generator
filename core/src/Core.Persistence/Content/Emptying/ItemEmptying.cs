@@ -1,6 +1,6 @@
 using Core.Persistence.Custody;
 
-namespace Core.Persistence.Content;
+namespace Core.Persistence.Content.Emptying;
 
 /// <summary>The request to empty an item: who asks, which item of which domain, why, and the protocol outside the system that asked, by number and by nothing else.</summary>
 /// <param name="Author">Who empties; the chain records them, and only a person who holds the function of curation of the collection may.</param>

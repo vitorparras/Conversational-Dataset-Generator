@@ -30,7 +30,7 @@ public sealed class ProtectedContent
     {
         ArgumentNullException.ThrowIfNull(column);
         var label = NewestLabel(column.Purpose, domainId);
-        return new ItemSealing(keys.Create(label.Text), label);
+        return new ItemSealing { Created = keys.Create(label.Text), Label = label };
     }
 
     /// <summary>

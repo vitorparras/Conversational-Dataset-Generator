@@ -74,7 +74,8 @@ internal sealed class ServiceProcessLauncher
         }
     }
 
-    private static void Deliver(Process process, string secret)
+    /// <summary>Writes the secret to the standard input of the process; a process that is already gone is not an error here, and its wait for health says how it ended.</summary>
+    internal static void Deliver(Process process, string secret)
     {
         try
         {

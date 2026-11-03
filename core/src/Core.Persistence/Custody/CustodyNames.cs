@@ -34,6 +34,7 @@ internal static class CustodyNames
         [CustodyStep.SealRecorded] = "seal_recorded",
         [CustodyStep.DomainLabelRotated] = "domain_label_rotated",
         [CustodyStep.KeyLossDeclared] = "key_loss_declared",
+        [CustodyStep.RecoveryTested] = "recovery_tested",
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<CustodyReason, string> Reasons = new Dictionary<CustodyReason, string>

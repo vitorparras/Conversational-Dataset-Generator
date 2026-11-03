@@ -80,6 +80,6 @@ public sealed class PersonRegistryFirstPersonTests
             await OwnerCredentialCheck.HoldsTheSchemaAsync(application, TestContext.Current.CancellationToken),
             await OwnerCredentialCheck.HoldsTheSchemaAsync(unmigrated, TestContext.Current.CancellationToken));
 
-        Assert.Equal<(bool?, bool?, bool?)>((true, false, null), answers);
+        Assert.Equal((true, false, null), answers);
     }
 }

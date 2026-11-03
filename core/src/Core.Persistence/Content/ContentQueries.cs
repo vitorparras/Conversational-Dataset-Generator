@@ -28,8 +28,8 @@ public static class ContentQueries
     internal const string InsertReversalMap =
         "INSERT INTO content.reversal_map (domain_id, item_id, entries, dek_epoch, dek_wrapped) VALUES (@domain, @item, @entries, @epoch, @wrapped) RETURNING id";
 
-    /// <summary>Whether an item of the domain was emptied; no row when the domain holds no such item.</summary>
-    internal const string ReadItemEmptied = "SELECT emptied_at IS NOT NULL FROM content.item_text WHERE id = @id";
+    /// <summary>The row of an item of the domain that was emptied, none when it was not; asked of the table of the items emptied, so that the audit sees no read of a text.</summary>
+    internal const string ReadItemEmptied = "SELECT true FROM content.item_emptied WHERE item_id = @id";
 
     /// <summary>
     /// Empties an item: the marker is set and every column of content is cleared, the key of the item with them, in one statement; an item emptied already is left as it is.
@@ -40,6 +40,24 @@ public static class ContentQueries
 
     /// <summary>Empties the maps of an item, with the item: the marker is set and the entries and the key of the map are cleared.</summary>
     internal const string EmptyReversalMaps = "UPDATE content.reversal_map SET emptied_at = now(), entries = NULL, dek_epoch = NULL, dek_wrapped = NULL WHERE item_id = @id AND emptied_at IS NULL";
+
+    /// <summary>The keys, wrapped, that an epoch older than the newest wraps, among the items not emptied; a page of them.</summary>
+    internal const string ReadOlderItemKeys =
+        "SELECT id, dek_epoch, dek_wrapped FROM content.item_text WHERE emptied_at IS NULL AND dek_epoch < @newest ORDER BY id LIMIT 500";
+
+    /// <summary>The keys, wrapped, that an epoch older than the newest wraps, among the maps not emptied; a page of them.</summary>
+    internal const string ReadOlderMapKeys =
+        "SELECT id, dek_epoch, dek_wrapped FROM content.reversal_map WHERE emptied_at IS NULL AND dek_epoch < @newest ORDER BY id LIMIT 500";
+
+    /// <summary>Wraps again the key of an item not emptied; only the wrapped key and its epoch change.</summary>
+    internal const string RewrapItemKey = "UPDATE content.item_text SET dek_epoch = @epoch, dek_wrapped = @wrapped WHERE id = @id AND emptied_at IS NULL";
+
+    /// <summary>Wraps again the key of a map not emptied; only the wrapped key and its epoch change.</summary>
+    internal const string RewrapMapKey = "UPDATE content.reversal_map SET dek_epoch = @epoch, dek_wrapped = @wrapped WHERE id = @id AND emptied_at IS NULL";
+
+    /// <summary>The epochs that the keys of the rows not emptied name, in the domain declared.</summary>
+    internal const string ReadEpochsInUse =
+        "SELECT dek_epoch FROM content.item_text WHERE emptied_at IS NULL UNION SELECT dek_epoch FROM content.reversal_map WHERE emptied_at IS NULL";
 
     /// <summary>The queries over content, as the statement each one runs, by the name of its constant.</summary>
     public static IReadOnlyDictionary<string, string> All { get; } = Declared(typeof(ContentQueries));

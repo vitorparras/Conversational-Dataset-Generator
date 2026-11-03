@@ -1,5 +1,6 @@
+using System.Data.Common;
 using Core.Persistence.Custody;
-using Core.Persistence.Custody.Chain;
+using Core.Persistence.Custody.Chain.Append;
 using Core.Platform.Keys;
 using Npgsql;
 using NpgsqlTypes;
@@ -15,15 +16,8 @@ public sealed class EpochRotation
 {
     private const int WrappedColumn = 2;
     private const string Domains = "SELECT id FROM public.domain ORDER BY id";
-    private const string OlderItems =
-        "SELECT id, dek_epoch, dek_wrapped FROM content.item_text WHERE emptied_at IS NULL AND dek_epoch < @newest ORDER BY id LIMIT 500";
-    private const string OlderMaps =
-        "SELECT id, dek_epoch, dek_wrapped FROM content.reversal_map WHERE emptied_at IS NULL AND dek_epoch < @newest ORDER BY id LIMIT 500";
-    private const string ReplaceItem = "UPDATE content.item_text SET dek_epoch = @epoch, dek_wrapped = @wrapped WHERE id = @id AND emptied_at IS NULL";
-    private const string ReplaceMap = "UPDATE content.reversal_map SET dek_epoch = @epoch, dek_wrapped = @wrapped WHERE id = @id AND emptied_at IS NULL";
-
-    private static readonly Table Items = new(OlderItems, ReplaceItem);
-    private static readonly Table Maps = new(OlderMaps, ReplaceMap);
+    private static readonly Table Items = new(ContentQueries.ReadOlderItemKeys, ContentQueries.RewrapItemKey);
+    private static readonly Table Maps = new(ContentQueries.ReadOlderMapKeys, ContentQueries.RewrapMapKey);
 
     private readonly NpgsqlDataSource dataSource;
     private readonly ItemKeys keys;
@@ -65,21 +59,16 @@ public sealed class EpochRotation
 
     private async Task<List<int>> ListDomainsAsync(CancellationToken cancellationToken)
     {
-        var domains = new List<int>();
         var command = dataSource.CreateCommand(Domains);
         await using (command.ConfigureAwait(false))
         {
             var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             await using (reader.ConfigureAwait(false))
             {
-                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-                {
-                    domains.Add(reader.GetInt32(0));
-                }
+                return await CollectDomainsAsync(reader, cancellationToken).ConfigureAwait(false);
             }
         }
 
-        return domains;
     }
 
     private async Task<int> RewrapAsync(ContentTransaction transaction, Table table, Recorded recorded, CancellationToken cancellationToken)
@@ -110,7 +99,7 @@ public sealed class EpochRotation
             return;
         }
 
-        var result = await CustodyTransaction.AppendAsync(transaction.AsCustodyScope(), CustodyEvent.EpochRotated(keys.Newest), cancellationToken).ConfigureAwait(false);
+        var result = await CustodyAppend.AppendAsync(transaction.AsCustodyScope(), CustodyEvent.EpochRotated(keys.Newest), cancellationToken).ConfigureAwait(false);
         recorded.Done = result.Outcome == CustodyOutcome.Appended
             ? true
             : throw new InvalidOperationException($"The custody chain did not take the event of the rotation: {result.Outcome}.");
@@ -118,7 +107,6 @@ public sealed class EpochRotation
 
     private async Task<List<(long Id, int Epoch, byte[] Wrapped)>> OlderAsync(ContentTransaction transaction, Table table, CancellationToken cancellationToken)
     {
-        var older = new List<(long, int, byte[])>();
         var command = transaction.CreateCommand(table.Older);
         await using (command.ConfigureAwait(false))
         {
@@ -126,11 +114,28 @@ public sealed class EpochRotation
             var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             await using (reader.ConfigureAwait(false))
             {
-                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-                {
-                    older.Add((reader.GetInt64(0), reader.GetInt32(1), (byte[])reader.GetValue(WrappedColumn)));
-                }
+                return await CollectOlderAsync(reader, cancellationToken).ConfigureAwait(false);
             }
+        }
+    }
+
+    private static async Task<List<int>> CollectDomainsAsync(DbDataReader reader, CancellationToken cancellationToken)
+    {
+        var domains = new List<int>();
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            domains.Add(reader.GetInt32(0));
+        }
+
+        return domains;
+    }
+
+    private static async Task<List<(long Id, int Epoch, byte[] Wrapped)>> CollectOlderAsync(DbDataReader reader, CancellationToken cancellationToken)
+    {
+        var older = new List<(long Id, int Epoch, byte[] Wrapped)>();
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            older.Add((reader.GetInt64(0), reader.GetInt32(1), (byte[])reader.GetValue(WrappedColumn)));
         }
 
         return older;

@@ -1,4 +1,4 @@
-namespace Core.Persistence.Content;
+namespace Core.Persistence.Content.Emptying;
 
 /// <summary>Why an emptying is asked for; the list lives here only, so that no free text reaches the chain.</summary>
 public enum EmptyingMotive

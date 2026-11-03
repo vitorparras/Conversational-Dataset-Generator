@@ -65,7 +65,6 @@ public sealed class EpochRotation
                 return await CollectDomainsAsync(reader, cancellationToken).ConfigureAwait(false);
             }
         }
-
     }
 
     private async Task<int> RewrapAsync(ContentTransaction transaction, Table table, CancellationToken cancellationToken)

@@ -43,7 +43,7 @@ public sealed class AuditServerLogRefusalTests
     private static Task<HostExit> RunWithAsync(params string[] arguments)
     {
         var installation = HostInstallation.Built(HostProcess.FreeAddress()) with { ProvidesServerLog = false };
-        installation = installation with { Arguments = [.. installation.Arguments, .. arguments] };
+        installation = installation with { Arguments = [.. installation.Arguments, HostInstallation.CompareIntervalArgument, .. arguments] };
         return HostProcess.RunToExitAsync(installation, HostProcess.StartupTimeout, TestContext.Current.CancellationToken);
     }
 }

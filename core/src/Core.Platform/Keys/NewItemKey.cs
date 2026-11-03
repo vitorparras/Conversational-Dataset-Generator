@@ -8,13 +8,13 @@ public sealed class NewItemKey : IDisposable
     }
 
     /// <summary>The key, to seal the content of the row with.</summary>
-    public required ItemKey Key { get; init; }
+    public ItemKey Key { get; internal init; } = null!;
 
     /// <summary>The epoch whose secret wrapped the key.</summary>
-    public required int Epoch { get; init; }
+    public int Epoch { get; internal init; }
 
     /// <summary>The key wrapped, which is what the row stores.</summary>
-    public required ReadOnlyMemory<byte> Wrapped { get; init; }
+    public ReadOnlyMemory<byte> Wrapped { get; internal init; }
 
     /// <summary>Releases the key.</summary>
     public void Dispose() => Key.Dispose();

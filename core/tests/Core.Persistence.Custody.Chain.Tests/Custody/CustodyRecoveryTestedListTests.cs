@@ -33,7 +33,11 @@ public sealed class CustodyRecoveryTestedListTests : IClassFixture<CustodyDataba
     [InlineData("NULL, true, 'master_key', 0, 'recovery_tested', 'administrative_act', NULL, NULL")]
     [InlineData("NULL, true, 'master_key', 18006, 'recovery_tested', 'administrative_act', 1, NULL")]
     [InlineData("NULL, true, 'master_key', 18007, 'recovery_tested', 'administrative_act', NULL, 'master'")]
-    public async Task Ca5TheNewStepHasTheShapeOfTheRecoveryAndNoOther(string values)
+    [InlineData("NULL, true, 'master_key', 18010, 'key_loss_declared', 'administrative_act', NULL, NULL")]
+    [InlineData("NULL, true, 'master_key', 8, 'key_loss_declared', 'administrative_act', NULL, 'master'")]
+    [InlineData("NULL, true, 'master_key', 18011, 'key_loss_declared', 'administrative_act', NULL, 'segredo/1/v1'")]
+    [InlineData("NULL, true, 'domain', 18012, 'key_loss_declared', 'administrative_act', NULL, 'master'")]
+    public async Task Ca5TheClausesOfTheStepsRefuseWhatIsNotTheirShape(string values)
     {
         var refused = await database.RefusedToOwnerAsync(Row(values));
 
@@ -48,18 +52,6 @@ public sealed class CustodyRecoveryTestedListTests : IClassFixture<CustodyDataba
         var refused = await database.RefusedToOwnerAsync(Row($"{person}, false, 'master_key', 18009, 'recovery_tested', 'administrative_act', NULL, NULL"));
 
         Assert.Equal((PostgresErrorCodes.CheckViolation, "custody_event_key_loss_shape"), (refused.SqlState, refused.ConstraintName));
-    }
-
-    [DatabaseTheory]
-    [InlineData("NULL, true, 'master_key', 18010, 'key_loss_declared', 'administrative_act', NULL, NULL")]
-    [InlineData("NULL, true, 'master_key', 8, 'key_loss_declared', 'administrative_act', NULL, 'master'")]
-    [InlineData("NULL, true, 'master_key', 18011, 'key_loss_declared', 'administrative_act', NULL, 'segredo/1/v1'")]
-    [InlineData("NULL, true, 'domain', 18012, 'key_loss_declared', 'administrative_act', NULL, 'master'")]
-    public async Task Ca5TheClausesOfTheLossOfAKeyHoldAsTheMigrationBeforeLeftThem(string values)
-    {
-        var refused = await database.RefusedToOwnerAsync(Row(values));
-
-        Assert.Equal(PostgresErrorCodes.CheckViolation, refused.SqlState);
     }
 
     [DatabaseFact]

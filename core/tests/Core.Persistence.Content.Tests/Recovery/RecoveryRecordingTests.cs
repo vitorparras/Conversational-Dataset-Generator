@@ -3,6 +3,7 @@ using Core.Persistence.Custody.Chain;
 using Core.Persistence.Custody.Verification;
 using Core.Persistence.Recovery;
 using Core.Persistence.Tests.Content;
+using Core.Persistence.Tests.Fixtures;
 using Npgsql;
 
 namespace Core.Persistence.Tests.Recovery;

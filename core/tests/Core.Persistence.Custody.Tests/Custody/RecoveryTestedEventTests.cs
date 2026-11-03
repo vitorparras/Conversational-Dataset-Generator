@@ -2,7 +2,10 @@ using Core.Persistence.Custody;
 
 namespace Core.Persistence.Tests.Custody;
 
-/// <summary>The event of a recovery rehearsed and checked (issue 67, part 2): the system's, about the master key, with the top of the copy as the id, for an administrative act and with no reference.</summary>
+/// <summary>
+/// The event of a recovery rehearsed and checked (issue 67, part 2): the system's, about the master key,
+/// with the top of the copy as the id, for an administrative act and with no reference.
+/// </summary>
 public sealed class RecoveryTestedEventTests
 {
     [Fact]

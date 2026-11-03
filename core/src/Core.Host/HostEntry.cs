@@ -17,12 +17,7 @@ internal static class HostEntry
             return HostLaunch.CheckFailed(target);
         }
 
-        if (OneShotModes.RunAsync(args) is { } oneShot)
-        {
-            return await oneShot;
-        }
-
-        return await ConfiguredAsync(args, target);
+        return OneShotModes.RunAsync(args) is { } oneShot ? await oneShot : await ConfiguredAsync(args, target);
     }
 
     /// <summary>The modes that read the configuration of the host: the migration, the comparison of the log, or the service itself.</summary>

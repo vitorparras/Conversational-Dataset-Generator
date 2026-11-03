@@ -1,4 +1,4 @@
-namespace Core.Persistence.Content;
+namespace Core.Persistence.Content.Reading;
 
 /// <summary>How a reading of protected content ended; the text exists only when it was read.</summary>
 public enum ContentReadOutcome

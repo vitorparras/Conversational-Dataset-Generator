@@ -1,4 +1,4 @@
-namespace Core.Persistence.Content;
+namespace Core.Persistence.Content.Writing;
 
 /// <summary>The texts of an item as they are when it is added: the raw text always, the others once the stage that makes them has run.</summary>
 /// <param name="Raw">The text as it arrived; sealed on its way to the database.</param>

@@ -36,6 +36,15 @@ internal static class CustodyStatements
         LIMIT 1
         """;
 
+    /// <summary>The moment of the last event that records a seal.</summary>
+    internal const string ReadLastSeal = """
+        SELECT occurred_at
+        FROM public.custody_event
+        WHERE step = @step
+        ORDER BY sequence DESC
+        LIMIT 1
+        """;
+
     internal const string Append = """
         INSERT INTO public.custody_event (actor_person_id, actor_system, item_kind, item_id, step, reason, corrects, reference)
         VALUES (@actor, @system, @kind, @item, @step, @reason, @corrects, @reference)

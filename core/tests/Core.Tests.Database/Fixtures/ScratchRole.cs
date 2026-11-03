@@ -9,19 +9,24 @@ namespace Core.Persistence.Tests.Fixtures;
 internal sealed class ScratchRole : IAsyncDisposable
 {
     private readonly string superuserConnectionString;
-    private readonly string role;
     private readonly string database;
 
     private ScratchRole(string superuserConnectionString, string role, string database, string connectionString)
     {
         this.superuserConnectionString = superuserConnectionString;
-        this.role = role;
+        Name = role;
         this.database = database;
         ConnectionString = connectionString;
     }
 
     /// <summary>The connection string of the role, pointing at the scratch database.</summary>
     public string ConnectionString { get; }
+
+    /// <summary>The name of the role, for the owner to grant it something.</summary>
+    public string Name { get; }
+
+    /// <summary>Runs the statements as this role, in one batch.</summary>
+    public Task RunAsync(params string[] statements) => ExecuteAsync(ConnectionString, statements);
 
     /// <summary>Makes the role over the database and gives it the right to connect and to use the public schema, and nothing more.</summary>
     internal static async Task<ScratchRole> CreateAsync(string superuserConnectionString, string database)
@@ -39,8 +44,8 @@ internal sealed class ScratchRole : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        await ExecuteAsync(InDatabase(superuserConnectionString, database), $"DROP OWNED BY {role}");
-        await ExecuteAsync(superuserConnectionString, $"DROP ROLE {role}");
+        await ExecuteAsync(InDatabase(superuserConnectionString, database), $"DROP OWNED BY {Name}");
+        await ExecuteAsync(superuserConnectionString, $"DROP ROLE {Name}");
     }
 
     private static string InDatabase(string connectionString, string database) =>

@@ -85,6 +85,10 @@ internal sealed class ScratchDatabase : IAsyncDisposable
     public Task<IReadOnlyList<string>> TriggerModesAsOwnerAsync() =>
         ReadFirstColumnAsync(new NpgsqlCommand("SELECT tgenabled::text FROM pg_trigger WHERE tgrelid = 'public.derivation_label'::regclass AND NOT tgisinternal"));
 
+    /// <summary>The first column of the rows the query returns, as the role owner, in the order the query gives.</summary>
+    [SuppressMessage("Security", "CA2100", Justification = "The queries are literals of the calling tests, never input.")]
+    public Task<IReadOnlyList<string>> FirstColumnAsOwnerAsync(string query) => ReadFirstColumnAsync(new NpgsqlCommand(query));
+
     /// <summary>Takes back the read the migration gave PUBLIC on the registry, as the role owner.</summary>
     public Task RevokeRegistryReadAsync() =>
         ExecuteAsync(OwnerConnectionString, "REVOKE SELECT ON public.schema_version FROM PUBLIC");

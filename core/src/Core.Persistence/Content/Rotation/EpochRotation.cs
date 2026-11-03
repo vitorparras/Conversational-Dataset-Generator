@@ -3,7 +3,7 @@ using Core.Platform.Keys;
 using Npgsql;
 using NpgsqlTypes;
 
-namespace Core.Persistence.Content;
+namespace Core.Persistence.Content.Rotation;
 
 /// <summary>
 /// The rotation of the epoch (decision 0049): every key of a row not emptied that an older epoch wraps is wrapped again under the newest one, in one transaction that goes through

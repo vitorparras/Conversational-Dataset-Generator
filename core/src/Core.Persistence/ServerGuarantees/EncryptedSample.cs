@@ -1,5 +1,7 @@
 using System.Security.Cryptography;
 using Core.Persistence.Content;
+using Core.Persistence.Content.Reading;
+using Core.Persistence.Content.Sealing;
 using Core.Persistence.Custody;
 using Core.Platform.Keys;
 using Npgsql;

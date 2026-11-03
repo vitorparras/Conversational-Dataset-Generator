@@ -10,9 +10,9 @@ using Npgsql;
 namespace Core.Tests.Integration.Hosts;
 
 /// <summary>
-/// The built host asked to rotate or to revoke the label of a domain (issue 56, part 1), as its own process over a database of its own and with the owner credential: with the labels of the
-/// next generation in the custody file it passes the domain to them and writes the event; with one missing it names it and exits with the code of the missing label; a revocation of the generation
-/// in use is refused with its own code. Only the exit code, the words and the rows are looked at, never a key.
+/// The built host asked to rotate the label of a domain (issue 56, part 1), as its own process over a database of its own and with the owner credential: with the labels of the
+/// next generation in the custody file it passes the domain to them and writes the event; with one missing it names it and exits with the code of the missing label.
+/// Only the exit code, the words and the rows are looked at, never a key.
 /// </summary>
 [Trait("Category", "Database")]
 public sealed class DomainLabelProcessTests
@@ -62,23 +62,6 @@ public sealed class DomainLabelProcessTests
 
         Assert.Equal((24, true), (exit, words.Contains("não há domínio", StringComparison.Ordinal)));
         Assert.Equal(4L, await ScalarAsync(database, "SELECT count(*) FROM public.derivation_label"));
-    }
-
-    [DatabaseFact]
-    public async Task Ca4TheCommandRevokesAnOlderGenerationAndRefusesTheGenerationInUse()
-    {
-        await using var database = await WithTwoDomainsAsync();
-        using var files = new CustodyFiles();
-        _ = await RunAsync(database, Arguments(files, "rotate-domain-label", "--domain=1", Everything));
-
-        var (revoked, saidRevoked) = await RunAsync(database, Arguments(files, "revoke-domain-label", "--label=texto-bruto/1/v1", Everything));
-        var (inUse, saidInUse) = await RunAsync(database, Arguments(files, "revoke-domain-label", "--label=texto-bruto/1/v2", Everything));
-
-        Assert.Equal((0, true, 24, true), (revoked, saidRevoked.Contains("revogada a geração v1", StringComparison.Ordinal), inUse, saidInUse.Contains("rotacione antes", StringComparison.Ordinal)));
-        Assert.Equal(
-            (1L, 1L),
-            (await ScalarAsync(database, "SELECT count(*) FROM public.derivation_label_revocation"),
-             await ScalarAsync(database, "SELECT count(*) FROM public.custody_event WHERE step = 'domain_label_revoked' AND reference = 'texto-bruto/1/v1'")));
     }
 
     [DatabaseFact]

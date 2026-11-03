@@ -12,23 +12,14 @@ public sealed class ProtectedContent
 {
     private readonly DerivationLabels loaded;
     private readonly ItemKeys keys;
-    private readonly IReadOnlySet<string> revoked;
 
-    /// <summary>The path draws the keys of the rows with <paramref name="keys"/>, under the labels the installation loaded with its master key, none of them revoked.</summary>
+    /// <summary>The path draws the keys of the rows with <paramref name="keys"/>, under the labels the installation loaded with its master key.</summary>
     public ProtectedContent(DerivationLabels loaded, ItemKeys keys)
-        : this(loaded, keys, new HashSet<string>(StringComparer.Ordinal))
-    {
-    }
-
-    /// <summary>As above, except that a label in <paramref name="revoked"/> seals nothing new: the newest generation not revoked is used, and what it sealed is opened all the same.</summary>
-    public ProtectedContent(DerivationLabels loaded, ItemKeys keys, IReadOnlySet<string> revoked)
     {
         ArgumentNullException.ThrowIfNull(loaded);
         ArgumentNullException.ThrowIfNull(keys);
-        ArgumentNullException.ThrowIfNull(revoked);
         this.loaded = loaded;
         this.keys = keys;
-        this.revoked = revoked;
     }
 
     /// <summary>The key of a new row of the domain, for the purpose of the column; a domain with no label loaded for the purpose is a defect of the caller.</summary>
@@ -73,7 +64,7 @@ public sealed class ProtectedContent
         loaded.All
             .Select(text => DerivationLabel.TryParse(text, out var label) ? label : null)
             .OfType<DerivationLabel>()
-            .Where(label => label.Purpose == purpose && label.DomainId == domainId && !revoked.Contains(label.Text))
+            .Where(label => label.Purpose == purpose && label.DomainId == domainId)
             .MaxBy(label => label.Version)
         ?? throw new InvalidOperationException($"No derivation label is loaded for the purpose {purpose} and the domain {domainId}.");
 }

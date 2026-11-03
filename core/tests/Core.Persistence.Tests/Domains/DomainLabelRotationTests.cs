@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Core.Persistence.Custody.Verification;
 using Core.Persistence.Domains;
 using Core.Persistence.Migrations;
@@ -9,14 +8,14 @@ using Npgsql;
 namespace Core.Persistence.Tests.Domains;
 
 /// <summary>
-/// The rotation and the revocation of the label of a domain (issue 56, part 1), over a migrated database of its own and the credential of the owner: the labels of the next generation or the
-/// revocation and the event of the chain exist together or not at all, another domain is never touched, and no label is changed or removed (CA-1 to CA-6).
+/// The rotation of the label of a domain (issue 56, part 1), over a migrated database of its own and the credential of the owner: the labels of the next generation and the event
+/// of the chain exist together or not at all, another domain is never touched, and no label is changed or removed (CA-1, CA-2, CA-3, CA-5).
+/// and no label is changed or removed (CA-1, CA-2, CA-3, CA-5).
 /// </summary>
 [Trait("Category", "Database")]
 public sealed class DomainLabelRotationTests
 {
     private const string Labels = "SELECT count(*) FROM public.derivation_label";
-    private const string Revocations = "SELECT count(*) FROM public.derivation_label_revocation";
     private const string Events = "SELECT count(*) FROM public.custody_event";
 
     private const string EventOfTheRotation =
@@ -95,76 +94,6 @@ public sealed class DomainLabelRotationTests
     }
 
     [DatabaseFact]
-    public async Task Ca4ALabelRevokedAfterARotationIsRecordedWithItsEventAndTheLabelStaysRegistered()
-    {
-        await using var world = await World.CreateAsync();
-        _ = await world.Rotation.RotateAsync(1, DerivationLabels.Of(AllOfBoth), TestContext.Current.CancellationToken);
-
-        var result = await world.Rotation.RevokeAsync("texto-bruto/1/v1", TestContext.Current.CancellationToken);
-
-        Assert.Equal((DomainLabelOutcome.Revoked, 1, 1), (result.Outcome, result.DomainId, result.Version));
-        var revoked = await LabelRevocations.ReadAsync(world.DataSource, TestContext.Current.CancellationToken);
-        Assert.Equal("texto-bruto/1/v1", Assert.Single(revoked));
-        Assert.Equal(6L, await world.CountAsync(Labels));
-        Assert.Equal(
-            "texto-bruto/1/v1",
-            await world.TextAsync("SELECT reference FROM public.custody_event WHERE step = 'domain_label_revoked' AND item_kind = 'domain' AND item_id = 1 AND actor_system"));
-    }
-
-    [DatabaseFact]
-    public async Task Ca4TheNewestGenerationNotRevokedIsNotRevokedAndNothingIsWritten()
-    {
-        await using var world = await World.CreateAsync();
-        var before = (await world.CountAsync(Revocations), await world.CountAsync(Events));
-
-        var result = await world.Rotation.RevokeAsync("texto-bruto/1/v1", TestContext.Current.CancellationToken);
-
-        Assert.Equal(DomainLabelOutcome.LastGeneration, result.Outcome);
-        Assert.Equal(before, (await world.CountAsync(Revocations), await world.CountAsync(Events)));
-    }
-
-    [DatabaseFact]
-    public async Task Ca4RevokingTheNewestAfterTheOlderIsStillRefusedUntilARotationAddsAnother()
-    {
-        await using var world = await World.CreateAsync();
-        var custody = DerivationLabels.Of(AllOfBoth);
-        _ = await world.Rotation.RotateAsync(1, custody, TestContext.Current.CancellationToken);
-
-        var newest = await world.Rotation.RevokeAsync("texto-bruto/1/v2", TestContext.Current.CancellationToken);
-        _ = await world.Rotation.RotateAsync(1, custody, TestContext.Current.CancellationToken);
-        var afterwards = await world.Rotation.RevokeAsync("texto-bruto/1/v2", TestContext.Current.CancellationToken);
-
-        Assert.Equal((DomainLabelOutcome.LastGeneration, DomainLabelOutcome.Revoked), (newest.Outcome, afterwards.Outcome));
-    }
-
-    [DatabaseTheory]
-    [InlineData("texto-bruto/1/v7", DomainLabelOutcome.LabelUnknown)]
-    [InlineData("texto-bruto/5/v1", DomainLabelOutcome.LabelUnknown)]
-    [InlineData("nome-do-domínio", DomainLabelOutcome.LabelInvalid)]
-    [InlineData("texto-bruto/01/v1", DomainLabelOutcome.LabelInvalid)]
-    [InlineData("", DomainLabelOutcome.LabelInvalid)]
-    public async Task Ca4ALabelThatIsNotRegisteredOrNotALabelIsRefusedAndNothingIsWritten(string label, DomainLabelOutcome expected)
-    {
-        await using var world = await World.CreateAsync();
-
-        var result = await world.Rotation.RevokeAsync(label, TestContext.Current.CancellationToken);
-
-        Assert.Equal((expected, 0L), (result.Outcome, await world.CountAsync(Revocations)));
-    }
-
-    [DatabaseFact]
-    public async Task Ca4ALabelRevokedTwiceIsRefusedTheSecondTimeWithNoSecondEvent()
-    {
-        await using var world = await World.CreateAsync();
-        _ = await world.Rotation.RotateAsync(1, DerivationLabels.Of(AllOfBoth), TestContext.Current.CancellationToken);
-        _ = await world.Rotation.RevokeAsync("mapa-reversao/1/v1", TestContext.Current.CancellationToken);
-
-        var again = await world.Rotation.RevokeAsync("mapa-reversao/1/v1", TestContext.Current.CancellationToken);
-
-        Assert.Equal((DomainLabelOutcome.AlreadyRevoked, 1L), (again.Outcome, await world.CountAsync("SELECT count(*) FROM public.custody_event WHERE step = 'domain_label_revoked'")));
-    }
-
-    [DatabaseFact]
     public async Task Ca5TheEventOfARotationSaysWhoWhenWhichDomainAndTheGenerationItPassedToAndTheChainVerifies()
     {
         await using var world = await World.CreateAsync();
@@ -176,39 +105,6 @@ public sealed class DomainLabelRotationTests
         Assert.Equal((long)result.Sequence!, await world.CountAsync("SELECT sequence FROM public.custody_event WHERE step = 'domain_label_rotated'"));
         Assert.True((await new CustodyVerifier(world.DataSource, TimeProvider.System).VerifyAsync(TestContext.Current.CancellationToken)).Passed);
     }
-
-    [DatabaseFact]
-    public async Task Ca6NoRoleChangesOrRemovesARevocationAndTheApplicationCannotWriteOne()
-    {
-        await using var world = await World.CreateAsync();
-        _ = await world.Rotation.RotateAsync(1, DerivationLabels.Of(AllOfBoth), TestContext.Current.CancellationToken);
-        _ = await world.Rotation.RevokeAsync("texto-bruto/1/v1", TestContext.Current.CancellationToken);
-
-        var update = await World.RefusedAsync(world.Database.OwnerConnectionString, "UPDATE public.derivation_label_revocation SET revoked_by = 'x'");
-        var delete = await World.RefusedAsync(world.Database.OwnerConnectionString, "DELETE FROM public.derivation_label_revocation");
-        var truncate = await World.RefusedAsync(world.Database.OwnerConnectionString, "TRUNCATE public.derivation_label_revocation");
-        var insert = await World.RefusedAsync(world.Database.AppConnectionString, "INSERT INTO public.derivation_label_revocation (label) VALUES ('texto-bruto/2/v1')");
-
-        Assert.Equal(
-            (PostgresErrorCodes.RestrictViolation, PostgresErrorCodes.RestrictViolation, PostgresErrorCodes.RestrictViolation, PostgresErrorCodes.InsufficientPrivilege),
-            (update.SqlState, delete.SqlState, truncate.SqlState, insert.SqlState));
-        Assert.Equal(1L, await world.CountAsync(Revocations));
-    }
-
-    [DatabaseFact]
-    public async Task Ca6TheApplicationReadsTheRevocationsAndALabelRevokedMustBeARegisteredOne()
-    {
-        await using var world = await World.CreateAsync();
-        _ = await world.Rotation.RotateAsync(1, DerivationLabels.Of(AllOfBoth), TestContext.Current.CancellationToken);
-        _ = await world.Rotation.RevokeAsync("texto-bruto/1/v1", TestContext.Current.CancellationToken);
-        await using var application = NpgsqlDataSource.Create(world.Database.AppConnectionString);
-
-        var seen = await LabelRevocations.ReadAsync(application, TestContext.Current.CancellationToken);
-        var unregistered = await World.RefusedAsync(world.Database.OwnerConnectionString, "INSERT INTO public.derivation_label_revocation (label) VALUES ('texto-bruto/9/v1')");
-
-        Assert.Equal((true, PostgresErrorCodes.ForeignKeyViolation), (seen.Contains("texto-bruto/1/v1"), unregistered.SqlState));
-    }
-
     [DatabaseFact]
     public async Task RotationsAtOnceNeverLeaveAGapOrARepeatInTheGenerations()
     {
@@ -255,14 +151,6 @@ public sealed class DomainLabelRotationTests
         {
             await using var command = DataSource.CreateCommand(statement);
             return Convert.ToInt64(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken), System.Globalization.CultureInfo.InvariantCulture);
-        }
-
-        [SuppressMessage("Security", "CA2100", Justification = "The statements are literals of the tests, never input.")]
-        internal static async Task<PostgresException> RefusedAsync(string connectionString, string statement)
-        {
-            await using var connection = await Sql.OpenAsync(connectionString);
-            await using var command = new NpgsqlCommand(statement, connection);
-            return await Assert.ThrowsAsync<PostgresException>(() => command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken));
         }
 
         internal async Task<string> TextAsync(string statement)

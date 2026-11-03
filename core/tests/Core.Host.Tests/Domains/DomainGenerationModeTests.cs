@@ -6,8 +6,8 @@ using Npgsql;
 namespace Core.Host.Tests.Domains;
 
 /// <summary>
-/// The rotate-domain-label and revoke-domain-label modes (issue 56) are asked for by the first argument alone, take their option once, refuse without touching the database when they cannot go
-/// on, fail with a code of their own when the database does not answer, and never print the credential.
+/// The rotate-domain-label mode (issue 56) is asked for by the first argument alone, takes its option once, refuses without touching the database when it cannot go on,
+/// fails with a code of its own when the database does not answer, and never prints the credential.
 /// </summary>
 public sealed class DomainGenerationModeTests
 {
@@ -15,7 +15,6 @@ public sealed class DomainGenerationModeTests
 
     [Theory]
     [InlineData("rotate-domain-label --domain 1", true)]
-    [InlineData("revoke-domain-label --label texto-bruto/1/v1", true)]
     [InlineData("rotate-domain-label", true)]
     [InlineData("create-domain --name x", false)]
     [InlineData("--domain 1 rotate-domain-label", false)]
@@ -76,23 +75,6 @@ public sealed class DomainGenerationModeTests
         Assert.Contains("o arquivo da chave não foi encontrado", error.ToString(), StringComparison.Ordinal);
     }
 
-    [Theory]
-    [InlineData("")]
-    [InlineData("nome-do-domínio")]
-    [InlineData("texto-bruto/1")]
-    [InlineData("texto-bruto/01/v1")]
-    public async Task ATextThatIsNotALabelRefusesBeforeTouchingTheDatabase(string label)
-    {
-        await using var dataSource = NpgsqlDataSource.Create(Unreachable);
-        using var output = new StringWriter();
-        using var error = new StringWriter();
-
-        var exit = await DomainGenerationMode.RevokeAsync(dataSource, label, new DomainGenerationMode.Words(output, error));
-
-        Assert.Equal((ExitCode.DomainLabelRefused, string.Empty), (exit, output.ToString()));
-        Assert.Contains("não é um rótulo", error.ToString(), StringComparison.Ordinal);
-    }
-
     [Fact]
     public async Task DatabaseThatCannotBeReachedFailsWithItsOwnCodeAndNeverPrintsTheCredential()
     {
@@ -103,9 +85,8 @@ public sealed class DomainGenerationModeTests
         var words = new DomainGenerationMode.Words(output, error);
 
         var rotating = await DomainGenerationMode.RotateAsync(dataSource, reading, "1", words);
-        var revoking = await DomainGenerationMode.RevokeAsync(dataSource, "texto-bruto/1/v1", words);
 
-        Assert.Equal((ExitCode.DomainLabelFailed, ExitCode.DomainLabelFailed), (rotating, revoking));
+        Assert.Equal(ExitCode.DomainLabelFailed, rotating);
         Assert.DoesNotContain("ZQX-never-printed-7731", error.ToString() + output, StringComparison.Ordinal);
     }
 

@@ -8,38 +8,23 @@ using Npgsql;
 namespace Core.Host.Domains;
 
 /// <summary>
-/// The modes the operator asks for with <c>rotate-domain-label --domain &lt;id&gt;</c> or <c>revoke-domain-label --label &lt;label&gt;</c> as the first arguments (issue 56, decision 0045): the same
-/// executable, run once with the owner credential as the creation of a domain is. The rotation passes the domain to the next generation of its two labels if the custody file already holds them,
-/// and otherwise names the labels to add; the revocation stops a label from encrypting anything new. Neither serves anything, has an endpoint, or says a key's content.
+/// The mode the operator asks for with <c>rotate-domain-label --domain &lt;id&gt;</c> (issue 56, decision 0045): run once with the owner credential, it passes the domain to the next generation
+/// of its two labels if the custody file already holds them, and otherwise names the labels to add. It serves nothing and says nothing of a key.
 /// </summary>
 internal static class DomainGenerationMode
 {
     private const string RotateWord = "rotate-domain-label";
-    private const string RevokeWord = "revoke-domain-label";
     private const string DomainOption = "--domain";
-    private const string RevokedOption = "--label";
     private const string Refused = "recusado, nada foi gravado";
 
-    private static readonly Dictionary<DomainLabelOutcome, string> Reasons = new()
-    {
-        { DomainLabelOutcome.DomainNotFound, "não há domínio com esse id" },
-        { DomainLabelOutcome.LabelInvalid, "o texto não é um rótulo de derivação, que se escreve <finalidade>/<id do domínio>/v<n>" },
-        { DomainLabelOutcome.LabelUnknown, "nenhum rótulo registrado tem esse texto" },
-        { DomainLabelOutcome.AlreadyRevoked, "o rótulo já foi revogado" },
-        { DomainLabelOutcome.LastGeneration, "é a geração mais nova não revogada da finalidade, e o domínio ficaria sem rótulo para cifrar; rotacione antes, com rotate-domain-label" },
-        { DomainLabelOutcome.Conflict, "outra gravação chegou antes; repita o comando" },
-        { DomainLabelOutcome.ChainRefused, "a cadeia recusou o evento" },
-    };
-
-    internal static bool Requested(string[] args) => args is [RotateWord or RevokeWord, ..];
+    internal static bool Requested(string[] args) => args is [RotateWord, ..];
 
     internal static async Task<HostLaunch> RunAsync(string[] args, TextWriter output, TextWriter error)
     {
-        var revoking = args[0] == RevokeWord;
-        var (value, rest) = OptionArguments.Once(args, revoking ? RevokedOption : DomainOption);
+        var (value, rest) = OptionArguments.Once(args, DomainOption);
         if (value is null)
         {
-            await error.WriteLineAsync($"{args[0]} recusado: informe {(revoking ? RevokedOption : DomainOption)} uma vez, com o valor").ConfigureAwait(false);
+            await error.WriteLineAsync($"{RotateWord} recusado: informe {DomainOption} uma vez, com o valor").ConfigureAwait(false);
             return HostLaunch.Ended(ExitCode.ConfigurationRefused);
         }
 
@@ -50,13 +35,6 @@ internal static class DomainGenerationMode
             return HostLaunch.Refused(database?.Problems ?? loaded.Problems);
         }
 
-        await using var dataSource = NpgsqlDataSource.Create(database.ConnectionString!);
-        var words = new Words(output, error);
-        if (revoking)
-        {
-            return HostLaunch.Ended(await RevokeAsync(dataSource, value, words).ConfigureAwait(false));
-        }
-
         var missing = MasterKeyConfiguration.Missing(loaded.Values).ToList();
         if (missing.Count > 0)
         {
@@ -64,8 +42,9 @@ internal static class DomainGenerationMode
             return HostLaunch.Ended(ExitCode.ConfigurationRefused);
         }
 
+        await using var dataSource = NpgsqlDataSource.Create(database.ConnectionString!);
         using var reading = await MasterKeyConfiguration.SourceOf(loaded.Values).ReadAsync(CancellationToken.None).ConfigureAwait(false);
-        return HostLaunch.Ended(await RotateAsync(dataSource, reading, value, words).ConfigureAwait(false));
+        return HostLaunch.Ended(await RotateAsync(dataSource, reading, value, new Words(output, error)).ConfigureAwait(false));
     }
 
     /// <summary>The rotation itself, over a source that was read: the key is not read again, and nothing of it is written.</summary>
@@ -83,65 +62,47 @@ internal static class DomainGenerationMode
             return ExitCode.DomainLabelRefused;
         }
 
-        var rotation = new DomainLabelRotation(dataSource);
-        return await GuardedAsync(RotateWord, words, () => rotation.RotateAsync(id, reading.Labels, CancellationToken.None)).ConfigureAwait(false);
-    }
-
-    /// <summary>The revocation itself.</summary>
-    internal static Task<ExitCode> RevokeAsync(NpgsqlDataSource dataSource, string target, Words words) =>
-        GuardedAsync(RevokeWord, words, () => new DomainLabelRotation(dataSource).RevokeAsync(target, CancellationToken.None));
-
-    private static async Task<ExitCode> GuardedAsync(string word, Words words, Func<Task<DomainLabelResult>> act)
-    {
         try
         {
-            return await ReportAsync(word, await act().ConfigureAwait(false), words).ConfigureAwait(false);
-        }
-        catch (InvalidOperationException defect)
-        {
-            await words.Error.WriteLineAsync($"{word} {Refused}: {defect.Message}").ConfigureAwait(false);
-            return ExitCode.DomainLabelRefused;
+            var result = await new DomainLabelRotation(dataSource).RotateAsync(id, reading.Labels, CancellationToken.None).ConfigureAwait(false);
+            return await ReportAsync(result, words).ConfigureAwait(false);
         }
         catch (NpgsqlException)
         {
-            await words.Error.WriteLineAsync($"{word} falhou ao falar com o banco, nada foi gravado").ConfigureAwait(false);
+            await words.Error.WriteLineAsync($"{RotateWord} falhou ao falar com o banco, nada foi gravado").ConfigureAwait(false);
             return ExitCode.DomainLabelFailed;
         }
     }
 
-    private static async Task<ExitCode> ReportAsync(string word, DomainLabelResult result, Words words)
+    private static async Task<ExitCode> ReportAsync(DomainLabelResult result, Words words)
     {
-        if (result.Outcome is DomainLabelOutcome.Rotated or DomainLabelOutcome.Revoked)
+        if (result.Outcome == DomainLabelOutcome.Rotated)
         {
-            var said = result.Outcome == DomainLabelOutcome.Rotated
-                ? $"{word}: o domínio {result.DomainId} cifra sob a geração v{result.Version} desde a sequência {result.Sequence} da cadeia"
-                : $"{word}: revogada a geração v{result.Version} no domínio {result.DomainId}, na sequência {result.Sequence} da cadeia";
-            await words.Output.WriteLineAsync(said).ConfigureAwait(false);
+            await words.Output.WriteLineAsync(
+                $"{RotateWord}: o domínio {result.DomainId} cifra sob a geração v{result.Version} desde a sequência {result.Sequence} da cadeia").ConfigureAwait(false);
             return ExitCode.Success;
         }
 
         if (result.Outcome == DomainLabelOutcome.LabelsMissing)
         {
-            await ReportMissingAsync(word, result, words).ConfigureAwait(false);
+            await ReportMissingAsync(result, words).ConfigureAwait(false);
             return ExitCode.DomainLabelsMissing;
         }
 
-        await words.Error.WriteLineAsync($"{word} {Refused}: {Reasons[result.Outcome]}").ConfigureAwait(false);
+        var reason = result.Outcome == DomainLabelOutcome.DomainNotFound
+            ? "não há domínio com esse id"
+            : "a gravação não se completou: outra chegou antes, ou a cadeia recusou o evento; repita o comando";
+        await words.Error.WriteLineAsync($"{RotateWord} {Refused}: {reason}").ConfigureAwait(false);
         return ExitCode.DomainLabelRefused;
     }
 
-    private static async Task ReportMissingAsync(string word, DomainLabelResult result, Words words)
+    private static async Task ReportMissingAsync(DomainLabelResult result, Words words)
     {
+        var named = string.Join(Environment.NewLine + "  ", result.MissingLabels);
         await words.Error.WriteLineAsync(
-            $"{word} {Refused}: o domínio {result.DomainId} passaria à geração v{result.Version} e o arquivo de rótulos não traz, de rótulo de derivação:").ConfigureAwait(false);
-        foreach (var label in result.MissingLabels)
-        {
-            await words.Error.WriteLineAsync($"  {label}").ConfigureAwait(false);
-        }
-
-        await words.Error.WriteLineAsync("acrescente-os ao arquivo e à cópia de guarda (operacao/002) e rode de novo").ConfigureAwait(false);
+            $"{RotateWord} {Refused}: o domínio {result.DomainId} passaria à geração v{result.Version} e o arquivo de rótulos não traz, de rótulo de derivação:{Environment.NewLine}  {named}"
+            + $"{Environment.NewLine}acrescente-os ao arquivo e à cópia de guarda (operacao/002) e rode de novo").ConfigureAwait(false);
     }
 
-    /// <summary>Where the mode says what it did: the output for the success and the error for every refusal.</summary>
     internal readonly record struct Words(TextWriter Output, TextWriter Error);
 }

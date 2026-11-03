@@ -3,7 +3,7 @@ using Core.Host.Rotation;
 
 namespace Core.Host;
 
-/// <summary>The modes that run once with the owner credential and serve nothing, other than the migration: the rotation of the epoch and the work on domains and their labels.</summary>
+/// <summary>The modes that run once with the owner credential and serve nothing, other than the migration: the rotation of the epoch, the creation of a domain and the rotation of its label.</summary>
 internal static class OneShotModes
 {
     /// <summary>The run of the mode the first argument asks for; null when it asks for none of them.</summary>

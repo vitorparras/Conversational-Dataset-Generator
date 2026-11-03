@@ -27,21 +27,14 @@ a primeira não protege o material dos outros domínios.
 Recifrar o acervo sob o rótulo novo é opcional e, quando feito, é operação registrada: lê sob o
 rótulo antigo e grava sob o novo, item por item, deixando rastro de quantos itens mudaram.
 
-## Os comandos
+## O comando
 
-Dois comandos de execução única, como o `create-domain`, com a credencial do dono do banco. Antes,
+`rotate-domain-label --domain <id>` roda uma vez, com a credencial do dono do banco. Antes,
 acrescente ao arquivo de rótulos os dois da geração nova (`texto-bruto/<id>/v<n>` e
-`mapa-reversao/<id>/v<n>`): o comando confere, não cria. A cadeia registra quem, quando, qual
-domínio e qual rótulo (`DomainLabelRotated`, `DomainLabelRevoked`).
-
-- `rotate-domain-label --domain <id>` passa o domínio à geração seguinte. O já cifrado segue legível
-  pelo rótulo que carrega e o gravado depois usa o novo. Não recifra nada
-- `revoke-domain-label --label <rótulo>` impede que o rótulo sele algo novo; ele segue registrado,
-  na cópia de guarda e decifrando o que selou. Revogar a única geração em uso é recusado
-
-Saída 0: feito. 17: rótulo novo ausente do arquivo (nomeado, nada gravado). 24: recusa sem gravar.
-25: banco sem resposta. A revogação é lida ao subir; um processo no ar só a respeita depois de
-reiniciado.
+`mapa-reversao/<id>/v<n>`): o comando confere, não cria. O já cifrado segue legível pelo rótulo que
+carrega, o gravado depois usa o novo, e nada é recifrado. A cadeia registra quem, quando, qual
+domínio e a geração (`DomainLabelRotated`). Saída 0: feito. 17: rótulo novo ausente do arquivo,
+nomeado e nada gravado. 24: recusa sem gravar. 25: banco sem resposta.
 
 ## Rótulo não se descarta
 

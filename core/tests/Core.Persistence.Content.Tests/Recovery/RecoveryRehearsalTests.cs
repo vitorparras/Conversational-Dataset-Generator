@@ -1,4 +1,3 @@
-using Core.Persistence.Content;
 using Core.Persistence.Content.Writing;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
@@ -117,7 +116,8 @@ public sealed class RecoveryRehearsalTests
                 Assert.Throws<ArgumentNullException>(() => new RecoveryRehearsal(null!, custody.Content, TimeProvider.System)).ParamName,
                 Assert.Throws<ArgumentNullException>(() => new RecoveryRehearsal(source, null!, TimeProvider.System)).ParamName,
                 Assert.Throws<ArgumentNullException>(() => new RecoveryRehearsal(source, custody.Content, null!)).ParamName,
-                (await Assert.ThrowsAsync<ArgumentException>(() => new RecoveryRehearsal(source, custody.Content, TimeProvider.System).RehearseAsync(string.Empty, TestContext.Current.CancellationToken))).ParamName,
+                (await Assert.ThrowsAsync<ArgumentException>(
+                    () => new RecoveryRehearsal(source, custody.Content, TimeProvider.System).RehearseAsync(string.Empty, TestContext.Current.CancellationToken))).ParamName,
             ]);
     }
 

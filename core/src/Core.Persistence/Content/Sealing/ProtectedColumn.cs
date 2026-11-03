@@ -1,6 +1,6 @@
 using Core.Platform.Keys;
 
-namespace Core.Persistence.Content;
+namespace Core.Persistence.Content.Sealing;
 
 /// <summary>A column of the content schema whose value is stored sealed, and the purpose whose key seals it.</summary>
 /// <param name="Table">The table, without the schema.</param>

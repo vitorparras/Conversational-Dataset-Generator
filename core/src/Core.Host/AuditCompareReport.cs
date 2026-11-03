@@ -2,7 +2,10 @@ using Core.Platform.Startup;
 
 namespace Core.Host;
 
-/// <summary>Writes what the comparison mode found, one line for each difference with the counts and the steps, never a value: the exit code is the verdict.</summary>
+/// <summary>
+/// Writes what the comparison mode found, one line for each difference with the counts and the steps, never a value: the exit code is the verdict.
+/// A log file the server's fall cut short is one warning line with its name and does not change the verdict.
+/// </summary>
 internal static class AuditCompareReport
 {
     /// <summary>
@@ -23,6 +26,11 @@ internal static class AuditCompareReport
             output.WriteLine(
                 $"diferença: papel={difference.Role} tabela={difference.Table} comandos={string.Join('|', difference.Commands)} "
                 + $"visto={difference.Seen} gravado={difference.Recorded} passos={string.Join('|', difference.Steps)}{known}");
+        }
+
+        foreach (var file in outcome.CutOffFiles)
+        {
+            output.WriteLine($"aviso: o arquivo {file} do registro do servidor termina numa linha cortada pela queda do servidor; a linha ficou de fora e o arquivo não deve ser mexido");
         }
 
         var added = outcome.Differences.Count(difference => difference.KnownGap is null);

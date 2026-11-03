@@ -51,7 +51,7 @@ public sealed class AuditCompareTests
     {
         using var output = new StringWriter();
 
-        var exit = AuditCompareReport.Write(output, TextWriter.Null, new AuditCompareOutcome([], Failure: null));
+        var exit = AuditCompareReport.Write(output, TextWriter.Null, new AuditCompareOutcome([], [], Failure: null));
 
         Assert.Equal(ExitCode.Success, exit);
         Assert.Contains("sem diferença nova", output.ToString(), StringComparison.Ordinal);
@@ -62,7 +62,7 @@ public sealed class AuditCompareTests
     {
         using var output = new StringWriter();
 
-        var exit = AuditCompareReport.Write(output, TextWriter.Null, new AuditCompareOutcome([NewOne], Failure: null));
+        var exit = AuditCompareReport.Write(output, TextWriter.Null, new AuditCompareOutcome([NewOne], [], Failure: null));
 
         Assert.Equal(ExitCode.AuditDifferent, exit);
         Assert.Contains("papel=app tabela=public.person comandos=UPDATE visto=2 gravado=1 passos=PersonDeactivated|PersonFunctionChanged", output.ToString(), StringComparison.Ordinal);
@@ -73,10 +73,46 @@ public sealed class AuditCompareTests
     {
         using var output = new StringWriter();
 
-        var exit = AuditCompareReport.Write(output, TextWriter.Null, new AuditCompareOutcome([KnownOne], Failure: null));
+        var exit = AuditCompareReport.Write(output, TextWriter.Null, new AuditCompareOutcome([KnownOne], [], Failure: null));
 
         Assert.Equal(ExitCode.Success, exit);
         Assert.Contains($"[conhecida: {KnownReason}]", output.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ReportOfACutFileNamesItAsAWarningAndKeepsTheSuccessCodeWhenNothingIsNew()
+    {
+        using var output = new StringWriter();
+
+        var exit = AuditCompareReport.Write(output, TextWriter.Null, new AuditCompareOutcome([], ["postgresql-a.csv"], Failure: null));
+
+        Assert.Equal(ExitCode.Success, exit);
+        var warning = Assert.Single(output.ToString().Split('\n'), line => line.StartsWith("aviso:", StringComparison.Ordinal));
+        Assert.Contains("postgresql-a.csv", warning, StringComparison.Ordinal);
+        Assert.Contains("sem diferença nova", output.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ReportOfACutFileAndANewDifferenceEndsInTheSameDifferentCodeAsWithoutTheCutFile()
+    {
+        using var withCut = new StringWriter();
+        using var without = new StringWriter();
+
+        var exitWithCut = AuditCompareReport.Write(withCut, TextWriter.Null, new AuditCompareOutcome([NewOne], ["postgresql-a.csv"], Failure: null));
+        var exitWithout = AuditCompareReport.Write(without, TextWriter.Null, new AuditCompareOutcome([NewOne], [], Failure: null));
+
+        Assert.Equal(ExitCode.AuditDifferent, exitWithCut);
+        Assert.Equal(exitWithout, exitWithCut);
+    }
+
+    [Fact]
+    public void ReportWithNoCutFileHasNoWarningLine()
+    {
+        using var output = new StringWriter();
+
+        _ = AuditCompareReport.Write(output, TextWriter.Null, new AuditCompareOutcome([NewOne], [], Failure: null));
+
+        Assert.DoesNotContain("aviso:", output.ToString(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -84,7 +120,7 @@ public sealed class AuditCompareTests
     {
         using var errors = new StringWriter();
 
-        var exit = AuditCompareReport.Write(TextWriter.Null, errors, new AuditCompareOutcome([], "Npgsql.NpgsqlException"));
+        var exit = AuditCompareReport.Write(TextWriter.Null, errors, new AuditCompareOutcome([], [], "Npgsql.NpgsqlException"));
 
         Assert.Equal(ExitCode.ServingFailed, exit);
         Assert.Contains("Npgsql.NpgsqlException", errors.ToString(), StringComparison.Ordinal);

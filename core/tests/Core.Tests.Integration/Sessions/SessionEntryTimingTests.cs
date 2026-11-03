@@ -9,12 +9,17 @@ namespace Core.Tests.Integration.Sessions;
 /// The property is tested coarsely, with a work factor high enough for the derivation to be most of the time of an entry; the sameness of the answer is in SessionRoutesTests.
 /// The two entries are timed side by side, one pair after the other with the order alternating, so that both of a pair meet the same load: timed in two blocks, a load that
 /// changes between them (other test projects starting and ending on the same cores) moves one side by more than the half the property allows, with the property unchanged.
+/// Load only adds time, so the fastest entry of each side is the best reading of what it costs; but each side needs a quiet moment to show it, and on a busy machine one side may not
+/// get one in five pairs while the other does (#566: a name nobody goes by at 0.20 s and a wrong password at 0.53 s and at 0.72 s, in two runs). The pairs go on, up to a limit, until the fastest
+/// of each side agree within the same margin; a derivation skipped never agrees, because the entry that skips it costs milliseconds against the hundreds of the one that derives.
 /// </summary>
 [Trait("Category", "Database")]
 public sealed class SessionEntryTimingTests
 {
     private const int HeavyFactor = 600_000;
-    private const int Pairs = 5;
+    private const int MinPairs = 3;
+    private const int MaxPairs = 20;
+    private static readonly TimeSpan Floor = TimeSpan.FromMilliseconds(20);
 
     [DatabaseFact]
     public async Task NameNobodyGoesByTakesAboutAsLongAsAWrongPasswordBecauseTheDerivationIsMadeAllTheSame()
@@ -27,9 +32,11 @@ public sealed class SessionEntryTimingTests
 
         var (wrong, unknown) = await FastestPairsAsync(scenario, WrongName, cancellationToken);
 
-        Assert.True(wrong > TimeSpan.FromMilliseconds(20), $"The derivation is not most of the time of an entry ({wrong}); the property cannot be judged.");
-        Assert.True(unknown > wrong / 2, $"A name nobody goes by took {unknown}, a wrong password {wrong}.");
+        Assert.True(wrong > Floor, $"The derivation is not most of the time of an entry ({wrong}); the property cannot be judged.");
+        Assert.True(unknown > wrong / 2, $"A name nobody goes by took {unknown}, a wrong password {wrong}, after {MaxPairs} pairs.");
     }
+
+    private static bool Indistinguishable(TimeSpan wrong, TimeSpan unknown) => wrong > Floor && unknown > wrong / 2;
 
     private static string UnknownName() => $"zqx-ninguem-{Guid.NewGuid():N}";
 
@@ -37,7 +44,7 @@ public sealed class SessionEntryTimingTests
     {
         var wrong = TimeSpan.MaxValue;
         var unknown = TimeSpan.MaxValue;
-        for (var pair = 0; pair < Pairs; pair++)
+        for (var pair = 0; pair < MaxPairs && !(pair >= MinPairs && Indistinguishable(wrong, unknown)); pair++)
         {
             var unknownFirst = (pair & 1) == 1;
             var first = await TimeAsync(scenario, unknownFirst ? UnknownName : wrongName, cancellationToken);

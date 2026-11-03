@@ -1,4 +1,6 @@
+using System.Data.Common;
 using System.Globalization;
+using Core.Persistence.Content;
 using Core.Platform.Keys;
 using Core.Platform.Startup;
 using Npgsql;
@@ -12,9 +14,7 @@ namespace Core.Persistence.ServerGuarantees;
 public sealed class ContentEpochCheck : IStartupCheck
 {
     private const string Domains = "SELECT id FROM public.domain ORDER BY id";
-    private const string Declare = "SELECT set_config('app.domain', @domain, true)";
-    private const string Used =
-        "SELECT dek_epoch FROM content.item_text WHERE emptied_at IS NULL UNION SELECT dek_epoch FROM content.reversal_map WHERE emptied_at IS NULL";
+    private const string Declare = "SELECT pg_catalog.set_config('app.domain', @domain, true)";
 
     private readonly NpgsqlDataSource dataSource;
     private readonly IMasterKeySource source;
@@ -68,13 +68,7 @@ public sealed class ContentEpochCheck : IStartupCheck
         {
             foreach (var domain in await DomainsAsync(connection, cancellationToken).ConfigureAwait(false))
             {
-                var declare = new NpgsqlCommand(Declare, connection);
-                await using (declare.ConfigureAwait(false))
-                {
-                    _ = declare.Parameters.AddWithValue("domain", domain.ToString(CultureInfo.InvariantCulture));
-                    _ = await declare.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
-                }
-
+                await DeclareAsync(connection, domain, cancellationToken).ConfigureAwait(false);
                 used.UnionWith(await ReadUsedAsync(connection, cancellationToken).ConfigureAwait(false));
             }
         }
@@ -82,41 +76,51 @@ public sealed class ContentEpochCheck : IStartupCheck
         return used;
     }
 
+    private static async Task DeclareAsync(NpgsqlConnection connection, int domain, CancellationToken cancellationToken)
+    {
+        var declare = new NpgsqlCommand(Declare, connection);
+        await using (declare.ConfigureAwait(false))
+        {
+            _ = declare.Parameters.AddWithValue("domain", domain.ToString(CultureInfo.InvariantCulture));
+            _ = await declare.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+        }
+    }
+
     private static async Task<List<int>> DomainsAsync(NpgsqlConnection connection, CancellationToken cancellationToken)
     {
-        var domains = new List<int>();
         var command = new NpgsqlCommand(Domains, connection);
         await using (command.ConfigureAwait(false))
         {
-            var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-            await using (reader.ConfigureAwait(false))
-            {
-                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-                {
-                    domains.Add(reader.GetInt32(0));
-                }
-            }
+            return await IntegersAsync(command, cancellationToken).ConfigureAwait(false);
         }
-
-        return domains;
     }
 
     private static async Task<List<int>> ReadUsedAsync(NpgsqlConnection connection, CancellationToken cancellationToken)
     {
-        var used = new List<int>();
-        var command = new NpgsqlCommand(Used, connection);
+        var command = new NpgsqlCommand(ContentQueries.ReadEpochsInUse, connection);
         await using (command.ConfigureAwait(false))
         {
-            var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-            await using (reader.ConfigureAwait(false))
-            {
-                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-                {
-                    used.Add(reader.GetInt32(0));
-                }
-            }
+            return await IntegersAsync(command, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static async Task<List<int>> IntegersAsync(NpgsqlCommand command, CancellationToken cancellationToken)
+    {
+        var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        await using (reader.ConfigureAwait(false))
+        {
+            return await CollectAsync(reader, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static async Task<List<int>> CollectAsync(DbDataReader reader, CancellationToken cancellationToken)
+    {
+        var found = new List<int>();
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            found.Add(reader.GetInt32(0));
         }
 
-        return used;
+        return found;
     }
 }

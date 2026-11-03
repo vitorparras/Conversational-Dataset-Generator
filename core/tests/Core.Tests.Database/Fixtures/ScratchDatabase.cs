@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Core.Persistence.Migrations;
 using Npgsql;
 
@@ -62,6 +63,23 @@ internal sealed class ScratchDatabase : IAsyncDisposable
     /// <summary>Runs the statements as the role owner, in one batch.</summary>
     public Task RunAsOwnerAsync(params string[] statements) => ExecuteAsync(OwnerConnectionString, statements);
 
+    /// <summary>
+    /// Runs the statement as the superuser, over this database: what neither the application nor the owner may do, for a test that arranges a defect.
+    /// The superuser is not held to the row policy.
+    /// </summary>
+    [SuppressMessage("Security", "CA2100", Justification = "The calling test builds the statement by interpolating names read from the catalog of its own database, never input.")]
+    public async Task ExecuteAsSuperuserAsync(string statement, params (string Name, object Value)[] parameters)
+    {
+        await using var connection = await Sql.OpenAsync(Unpooled(superuserConnectionString, name));
+        await using var command = new NpgsqlCommand(statement, connection);
+        foreach (var (parameterName, value) in parameters)
+        {
+            _ = command.Parameters.AddWithValue(parameterName, value);
+        }
+
+        _ = await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+    }
+
     /// <summary>The labels recorded as used, in order, as the role owner.</summary>
     public Task<IReadOnlyList<string>> RecordedLabelsAsOwnerAsync() =>
         ReadFirstColumnAsync(new NpgsqlCommand("SELECT label FROM public.derivation_label ORDER BY label"));
@@ -69,6 +87,10 @@ internal sealed class ScratchDatabase : IAsyncDisposable
     /// <summary>How the triggers of the label table are enabled (O origin, A always), as the role owner.</summary>
     public Task<IReadOnlyList<string>> TriggerModesAsOwnerAsync() =>
         ReadFirstColumnAsync(new NpgsqlCommand("SELECT tgenabled::text FROM pg_trigger WHERE tgrelid = 'public.derivation_label'::regclass AND NOT tgisinternal"));
+
+    /// <summary>The first column of the rows the query returns, as the role owner, in the order the query gives.</summary>
+    [SuppressMessage("Security", "CA2100", Justification = "The queries are literals of the calling tests, never input.")]
+    public Task<IReadOnlyList<string>> FirstColumnAsOwnerAsync(string query) => ReadFirstColumnAsync(new NpgsqlCommand(query));
 
     /// <summary>Takes back the read the migration gave PUBLIC on the registry, as the role owner.</summary>
     public Task RevokeRegistryReadAsync() =>

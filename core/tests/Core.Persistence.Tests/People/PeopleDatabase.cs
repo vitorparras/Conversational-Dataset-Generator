@@ -1,4 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
+using Core.Persistence.Custody;
+using Core.Persistence.Custody.Chain;
 using Core.Persistence.Migrations;
 using Core.Persistence.People;
 using Core.Persistence.Tests.Fixtures;
@@ -23,6 +25,21 @@ public sealed class PeopleDatabase : IAsyncDisposable
         var scratch = await ScratchAsync();
         application ??= NpgsqlDataSource.Create(scratch.AppConnectionString);
         return new PersonRegistry(application);
+    }
+
+    /// <summary>The data source of the application's role, which the comparison of the server's log with the chain connects through.</summary>
+    internal async Task<NpgsqlDataSource> ApplicationAsync()
+    {
+        var scratch = await ScratchAsync();
+        return application ??= NpgsqlDataSource.Create(scratch.AppConnectionString);
+    }
+
+    /// <summary>Appends an event to the chain as the application's role.</summary>
+    internal async Task<CustodyResult> AppendToChainAsync(CustodyEvent custodyEvent)
+    {
+        var scratch = await ScratchAsync();
+        application ??= NpgsqlDataSource.Create(scratch.AppConnectionString);
+        return await new CustodyChain(application).AppendAsync(custodyEvent, TestContext.Current.CancellationToken);
     }
 
     /// <summary>The store of passwords, writing as the application's role and deriving with the work factor given.</summary>
@@ -133,22 +150,6 @@ public sealed class PeopleDatabase : IAsyncDisposable
     /// <summary>What the server answers to a statement run over the connection string given.</summary>
     internal static Task<PostgresException> RefusedOverAsync(string connectionString, string statement) => RefusedAsync(connectionString, statement);
 
-    /// <summary>The first column of the rows the query returns, as the role owner, in the order the query gives.</summary>
-    [SuppressMessage("Security", "CA2100", Justification = "The queries are literals of the calling tests, never input.")]
-    internal async Task<IReadOnlyList<string>> OwnerColumnAsync(string query)
-    {
-        await using var connection = await Sql.OpenAsync((await ScratchAsync()).OwnerConnectionString);
-        await using var command = new NpgsqlCommand(query, connection);
-        await using var reader = await command.ExecuteReaderAsync(TestContext.Current.CancellationToken);
-        var values = new List<string>();
-        while (await reader.ReadAsync(TestContext.Current.CancellationToken))
-        {
-            values.Add(reader.GetString(0));
-        }
-
-        return values;
-    }
-
     public async ValueTask DisposeAsync()
     {
         if (application is not null)
@@ -170,7 +171,7 @@ public sealed class PeopleDatabase : IAsyncDisposable
         return await Assert.ThrowsAsync<PostgresException>(() => command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken));
     }
 
-    private async Task<ScratchDatabase> ScratchAsync()
+    internal async Task<ScratchDatabase> ScratchAsync()
     {
         if (database is null)
         {

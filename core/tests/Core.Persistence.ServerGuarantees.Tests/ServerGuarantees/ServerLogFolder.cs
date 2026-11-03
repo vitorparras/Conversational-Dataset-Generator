@@ -37,5 +37,9 @@ internal sealed class ServerLogFolder : IDisposable
         return file;
     }
 
-    public void Dispose() => Directory.Delete(Path, recursive: true);
+    public void Dispose()
+    {
+        Core.Tests.Support.Audit.ServerLogFiles.Unseal(Path);
+        Directory.Delete(Path, recursive: true);
+    }
 }

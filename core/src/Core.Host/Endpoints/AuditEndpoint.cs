@@ -1,4 +1,3 @@
-using System.Globalization;
 using Core.Persistence.ServerGuarantees;
 using Microsoft.AspNetCore.Mvc;
 
@@ -26,12 +25,13 @@ internal static class AuditEndpoint
 
     /// <summary>
     /// An interval that is not two instants in order, or is wider than a week, or holds more lines than an answer carries, is a request refused
-    /// with what is accepted; a log the host cannot read answers 503, since what failed is the log and not the request.
+    /// with what is accepted; a log the host cannot read answers 503, since what failed is the log and not the request, and is written to the host's log
+    /// with the file and the type of the failure.
     /// </summary>
     private static async Task<IResult> ListAsync(
-        [FromQuery] string? from, [FromQuery] string? to, [FromServices] ServerAuditLog log, CancellationToken cancellationToken)
+        [AsParameters] Asked asked, [FromServices] ServerAuditLog log, [FromServices] ILoggerFactory loggers, CancellationToken cancellationToken)
     {
-        if (Instant(from) is not { } start || Instant(to) is not { } end || start >= end || end - start > MaxSpan)
+        if (AuditConfiguration.Instant(asked.From) is not { } start || AuditConfiguration.Instant(asked.To) is not { } end || start >= end || end - start > MaxSpan)
         {
             return Refused(Accepted);
         }
@@ -43,14 +43,13 @@ internal static class AuditEndpoint
         }
         catch (Exception unreadable) when (unreadable is IOException or UnauthorizedAccessException or InvalidDataException)
         {
+            loggers.CreateLogger(nameof(AuditEndpoint)).Unreadable(unreadable.Data[ServerAuditLog.FileKey] as string ?? "(desconhecido)", unreadable.GetType().Name);
             return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
     }
 
-    private static IResult Refused(string accepted) => Results.Json(new AuditRefused(accepted), statusCode: StatusCodes.Status400BadRequest);
+    /// <summary>The two ends of the interval as the query carries them, still text.</summary>
+    private readonly record struct Asked([FromQuery] string? From, [FromQuery] string? To);
 
-    private static DateTimeOffset? Instant(string? text) =>
-        DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var instant) && instant.Kind != DateTimeKind.Unspecified
-            ? new DateTimeOffset(instant.ToUniversalTime())
-            : null;
+    private static IResult Refused(string accepted) => Results.Json(new AuditRefused(accepted), statusCode: StatusCodes.Status400BadRequest);
 }

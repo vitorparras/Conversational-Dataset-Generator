@@ -1,3 +1,4 @@
+using System.Data.Common;
 using System.Globalization;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
@@ -59,24 +60,34 @@ internal sealed class OwnerWindow
 
     private async Task KeepTipAsync(NpgsqlConnection connection, CancellationToken cancellationToken)
     {
+        try
+        {
+            await ReadTipFromAsync(connection, cancellationToken).ConfigureAwait(false);
+        }
+        catch (PostgresException noChain) when (noChain.SqlState == PostgresErrorCodes.UndefinedTable)
+        {
+            // A database older than the chain has no tip to keep.
+        }
+    }
+
+    private async Task ReadTipFromAsync(NpgsqlConnection connection, CancellationToken cancellationToken)
+    {
         var command = new NpgsqlCommand(Tip, connection);
         await using (command.ConfigureAwait(false))
         {
-            try
+            var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            await using (reader.ConfigureAwait(false))
             {
-                var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-                await using (reader.ConfigureAwait(false))
-                {
-                    var read = await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
-                    tipSequence = read ? reader.GetInt64(0) : 0;
-                    tipDigest = read ? reader[1] as byte[] : null;
-                }
-            }
-            catch (PostgresException noChain) when (noChain.SqlState == PostgresErrorCodes.UndefinedTable)
-            {
-                // A database older than the chain has no tip to keep.
+                await ReadTipAsync(reader, cancellationToken).ConfigureAwait(false);
             }
         }
+    }
+
+    private async Task ReadTipAsync(DbDataReader reader, CancellationToken cancellationToken)
+    {
+        var read = await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+        tipSequence = read ? reader.GetInt64(0) : 0;
+        tipDigest = read ? reader[1] as byte[] : null;
     }
 
     private async Task<bool> WriteAsync(bool afterTheStep, CancellationToken cancellationToken)

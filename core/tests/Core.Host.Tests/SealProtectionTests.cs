@@ -42,7 +42,7 @@ public sealed class SealProtectionTests
     {
         var words = SealProtection.Of(SealSituation.Manual, Moment.AddTicks(1_234_567));
 
-        Assert.Contains("2031-03-04T08:06:07Z,", words, StringComparison.Ordinal);
+        Assert.Contains("2031-03-04T08:06:07Z cobre", words, StringComparison.Ordinal);
     }
 
     [Fact]

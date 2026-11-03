@@ -102,8 +102,10 @@ public sealed class GuaranteeVerifierTests
         await using var world = await FidelityWorld.CreateAsync();
         var item = await world.Writer.AddItemTextAsync(1, new NewItemText("texto bruto sintetico zqx"), token);
         _ = await world.Writer.AddReversalMapAsync(1, item, "mapa sintetico zqx", token);
-        await world.RunAsSuperuserAsync("UPDATE content.reversal_map SET emptied_at = now(), entries = NULL");
-        await world.RunAsSuperuserAsync("UPDATE content.item_text SET emptied_at = now(), raw_text = NULL, sanitized_text = NULL, pseudonymized_text = NULL");
+        await world.RunAsSuperuserAsync(
+            "SELECT set_config('app.domain', '1', true); "
+            + "UPDATE content.item_text SET emptied_at = now(), raw_text = NULL, sanitized_text = NULL, pseudonymized_text = NULL; "
+            + "UPDATE content.reversal_map SET emptied_at = now(), entries = NULL");
 
         var verification = await world.Verifier().VerifyAsync(token);
         var differences = await AuditFidelity.DifferencesAsync(world.DataSource, from);

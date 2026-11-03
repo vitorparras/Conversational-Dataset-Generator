@@ -6,16 +6,21 @@ ALTER TABLE public.custody_event
     ADD CONSTRAINT custody_event_step_listed CHECK (step IN
         ('person_created', 'person_deactivated', 'person_function_changed', 'person_password_set', 'correction',
          'raw_text_read', 'sanitized_text_read', 'reversal_entries_read', 'verify_chain', 'item_emptied', 'item_emptying_refused', 'verify_guarantees')),
+    -- The verdict is the mask: passed when nothing is missing, failed when something is, and a conference corrects no event.
     ADD CONSTRAINT custody_event_verification_shape CHECK (
         (step IN ('verify_chain', 'verify_guarantees')) = (item_kind = 'custody_chain')
         AND (step IN ('verify_chain', 'verify_guarantees')) = (reason IN ('verification_passed', 'verification_failed'))
         AND (step NOT IN ('verify_chain', 'verify_guarantees') OR actor_system)
         AND (step <> 'verify_guarantees' OR (corrects IS NULL AND item_id BETWEEN 0 AND 63 AND (reason = 'verification_passed') = (item_id = 0))));
 
--- The domains that still hold something to sample: a read that finds nothing leaves no event but the server's audit counts it. The database keeps the count, as its owner.
+-- The last conference is found without reading the chain, as the last verification is (0013).
+CREATE INDEX custody_event_guarantees_idx ON public.custody_event (sequence DESC) WHERE step = 'verify_guarantees';
+
+-- The domains that still hold something to sample, so that the conference reads, with an event each, only what is there: a read that finds nothing leaves no event, and the audit of the server
+-- counts it as a read without one. The database keeps the count of what is not emptied, as its owner. Only the role of the application reads it: it is the role that runs the conference.
 CREATE TABLE public.content_domain (domain_id integer NOT NULL REFERENCES public.domain (id), table_name text NOT NULL CHECK (table_name IN ('item_text', 'reversal_map')),
     live bigint NOT NULL CHECK (live >= 0), PRIMARY KEY (domain_id, table_name));
-GRANT SELECT ON public.content_domain TO PUBLIC;
+GRANT SELECT ON public.content_domain TO app;
 
 CREATE FUNCTION public.count_content_domain() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog
@@ -36,6 +41,7 @@ CREATE TRIGGER content_domain_is_counted AFTER INSERT OR UPDATE ON content.rever
 ALTER TABLE content.item_text ENABLE ALWAYS TRIGGER content_domain_is_counted;
 ALTER TABLE content.reversal_map ENABLE ALWAYS TRIGGER content_domain_is_counted;
 
+-- What was added before, domain by domain: the owner is held to the row policy too, so each domain is declared in turn.
 DO $fill$
 DECLARE declared integer;
 BEGIN

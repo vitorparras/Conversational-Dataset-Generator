@@ -115,6 +115,46 @@ public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<Resto
         await destination.RefusedAsync("restore_load", table, "[]");
     }
 
+    [DatabaseFact]
+    public async Task OnlyTheApplicationRoleExecutesTheFunctionsOfTheLoad()
+    {
+        await using var destination = await Destination.CreateAsync();
+        await using var bare = await destination.Database.CreateBareRoleAsync();
+
+        var refusal = await Assert.ThrowsAsync<PostgresException>(() => bare.RunAsync("SELECT public.restore_open()"));
+
+        Assert.Equal(PostgresErrorCodes.InsufficientPrivilege, refusal.SqlState);
+        Assert.Empty(await destination.Database.FirstColumnAsOwnerAsync("SELECT state FROM public.restore_window"));
+    }
+
+    [DatabaseTheory]
+    [InlineData("DELETE FROM public.restore_window")]
+    [InlineData("UPDATE public.restore_window SET state = 'closed', approved = true")]
+    [InlineData("TRUNCATE public.restore_window")]
+    public async Task WindowIsChangedByNobodyNotEvenTheOwner(string statement)
+    {
+        await using var destination = await Destination.CreateAsync();
+        await destination.OpenAsync();
+
+        var refusal = await Assert.ThrowsAsync<PostgresException>(() => destination.Database.RunAsOwnerAsync(statement));
+
+        Assert.Equal(PostgresErrorCodes.InsufficientPrivilege, refusal.SqlState);
+        Assert.Equal(["opened:-"], await destination.Database.FirstColumnAsOwnerAsync(Window));
+    }
+
+    [DatabaseTheory]
+    [InlineData("INSERT INTO public.restore_window (state) VALUES ('opened')")]
+    [InlineData("INSERT INTO public.domain (name) VALUES ('zqx')")]
+    public async Task ApplicationCannotOpenTheWindowOrPutRowsBackByItself(string statement)
+    {
+        await using var destination = await Destination.CreateAsync();
+        await using var command = destination.App.CreateCommand(statement);
+
+        var refusal = await Assert.ThrowsAsync<PostgresException>(() => command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken));
+
+        Assert.Equal(PostgresErrorCodes.InsufficientPrivilege, refusal.SqlState);
+    }
+
     [DatabaseTheory]
     [InlineData("digest")]
     [InlineData("field")]

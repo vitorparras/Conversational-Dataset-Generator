@@ -20,7 +20,7 @@ e o embrulho depende de um segredo de época que vive fora do banco.**
   `kek/<época>` como info. A coluna da época guarda o número dela em claro.
 - A época é um segredo global de 32 bytes num terceiro arquivo de custódia, `<n>:<base64>` por
   linha, que emenda a [0044](0044-arquivo-de-custodia-da-chave.md). A mais nova embrulha o que se
-  grava. O [procedimento 026](../operacao/026-rotacao-da-epoca.md) a rotaciona todo mês.
+  grava. O procedimento de rotação a rotaciona todo mês.
 - Esvaziar apaga o conteúdo e a chave embrulhada no mesmo comando, e o banco recusa a linha
   esvaziada que ainda guarde chave (a restrição de chave da tabela).
 - A partida recusa a linha embrulhada por época que o arquivo não tem, e nomeia a época.

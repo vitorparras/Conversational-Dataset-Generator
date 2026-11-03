@@ -144,6 +144,12 @@ public sealed class PeopleDatabase : IAsyncDisposable
     internal async Task<PostgresException> RefusedToOwnerAsync(string statement) =>
         await RefusedAsync((await ScratchAsync()).OwnerConnectionString, statement);
 
+    /// <summary>A role that can connect and use the public schema and holds no grant on any table, dropped on dispose.</summary>
+    internal async Task<ScratchRole> BareRoleAsync() => await (await ScratchAsync()).CreateBareRoleAsync();
+
+    /// <summary>What the server answers to a statement run over the connection string given.</summary>
+    internal static Task<PostgresException> RefusedOverAsync(string connectionString, string statement) => RefusedAsync(connectionString, statement);
+
     public async ValueTask DisposeAsync()
     {
         if (application is not null)
@@ -165,7 +171,7 @@ public sealed class PeopleDatabase : IAsyncDisposable
         return await Assert.ThrowsAsync<PostgresException>(() => command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken));
     }
 
-    private async Task<ScratchDatabase> ScratchAsync()
+    internal async Task<ScratchDatabase> ScratchAsync()
     {
         if (database is null)
         {

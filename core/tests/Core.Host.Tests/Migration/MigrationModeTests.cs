@@ -84,6 +84,18 @@ public sealed class MigrationModeTests
     }
 
     [Fact]
+    public async Task ModeDoesNotNeedTheVerificationIntervalThatTheServingModeCannotStartWithout()
+    {
+        using var closed = new ClosedPort();
+        var installation = Migrating(Database($"127.0.0.1:{closed.Number}")) with { DeclaresVerificationInterval = false };
+
+        var exit = await HostProcess.RunToExitAsync(installation, HostProcess.StartupTimeout, TestContext.Current.CancellationToken);
+
+        Assert.Equal((int)ExitCode.MigrationNotConnected, exit.Code);
+        Assert.DoesNotContain("Custody:VerificationInterval", exit.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task ModeRefusesAKindOfInstallationOutsideTheTwoItAcceptsNamingThatKeyAndNeverTheDatabaseOnes()
     {
         var installation = Migrating(Database("127.0.0.1:1")) with { DeclaresInstallation = false, Arguments = ["migrate", "--Installation:Kind=Real"] };

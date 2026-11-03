@@ -15,6 +15,7 @@ internal static class CustodyParameters
         _ = command.Parameters.AddWithValue("step", NpgsqlDbType.Text, CustodyNames.Of(pending.Step));
         _ = command.Parameters.AddWithValue("reason", NpgsqlDbType.Text, CustodyNames.Of(pending.Reason));
         _ = command.Parameters.AddWithValue("corrects", NpgsqlDbType.Bigint, Optional(pending.Corrects));
+        _ = command.Parameters.AddWithValue("reference", NpgsqlDbType.Text, (object?)pending.Reference ?? DBNull.Value);
     }
 
     private static object Optional(long? value) => value is { } present ? present : DBNull.Value;

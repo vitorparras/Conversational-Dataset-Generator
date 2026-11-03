@@ -18,14 +18,24 @@ internal static class CustodyStatements
 
     /// <summary>Every field of every event that the digest covers, with the two digests, in the order of the sequence: what the verification reads.</summary>
     internal const string ReadChain = """
-        SELECT sequence, pg_catalog.timestamptz_send(occurred_at) AS occurred_at_send, actor_person_id, actor_system, item_kind, item_id, step, reason, corrects, previous_digest, digest, recorded_by
+        SELECT sequence, pg_catalog.timestamptz_send(occurred_at) AS occurred_at_send, actor_person_id, actor_system, item_kind, item_id, step, reason, corrects,
+               previous_digest, digest, recorded_by, reference
         FROM public.custody_event
         ORDER BY sequence
         """;
 
+    /// <summary>The last event that records a verification: the moment, the reason that says whether it held, how many events it read and, when it failed, the first inconsistent one.</summary>
+    internal const string ReadLastVerification = """
+        SELECT occurred_at, reason, item_id, corrects
+        FROM public.custody_event
+        WHERE step = @step
+        ORDER BY sequence DESC
+        LIMIT 1
+        """;
+
     internal const string Append = """
-        INSERT INTO public.custody_event (actor_person_id, actor_system, item_kind, item_id, step, reason, corrects)
-        VALUES (@actor, @system, @kind, @item, @step, @reason, @corrects)
+        INSERT INTO public.custody_event (actor_person_id, actor_system, item_kind, item_id, step, reason, corrects, reference)
+        VALUES (@actor, @system, @kind, @item, @step, @reason, @corrects, @reference)
         RETURNING sequence
         """;
 }

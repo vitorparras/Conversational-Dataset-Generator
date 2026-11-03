@@ -100,7 +100,8 @@ public sealed class CustodyVerifier
                 Optional(reader["corrects"]),
                 (byte[])reader["previous_digest"],
                 (byte[])reader["digest"],
-                (string)reader["recorded_by"]));
+                (string)reader["recorded_by"],
+                reader["reference"] as string));
         }
     }
 

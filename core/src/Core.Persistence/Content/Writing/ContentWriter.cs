@@ -74,10 +74,7 @@ public sealed class ContentWriter(NpgsqlDataSource dataSource, ProtectedContent 
     private static NpgsqlParameter Text(string name, string? value) =>
         new(name, NpgsqlDbType.Text) { Value = (object?)value ?? DBNull.Value };
 
-    /// <summary>
-    /// A map is written serializable, like the emptying that reads it: a map committed while an item is being emptied would stay whole in an item that was emptied, and the database
-    /// stops one of the two. The map is written again, and then it finds the item emptied.
-    /// </summary>
+    /// <summary>A map is written serializable, like the emptying that reads it: the database stops one of the two, and the map is written again, finding the item emptied.</summary>
     private async Task<long> InsertAsync(int domainId, Insertion insertion, CancellationToken cancellationToken)
     {
         for (var attempt = 1; attempt <= MapAttempts; attempt++)

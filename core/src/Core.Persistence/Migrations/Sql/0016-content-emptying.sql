@@ -133,12 +133,35 @@ CREATE TRIGGER emptied_content_is_final BEFORE UPDATE ON content.reversal_map
 ALTER TABLE content.item_text ENABLE ALWAYS TRIGGER emptied_content_is_final;
 ALTER TABLE content.reversal_map ENABLE ALWAYS TRIGGER emptied_content_is_final;
 
--- A map is not added to an item that was emptied: what it would hold is what the emptying took away. The item is seen through the row policy, which is the one of the map's domain.
+-- The items emptied, one row each, so that the two refusals below do not read the table of the texts: a read of content.item_text by the application means a read of a text, and the audit of the server
+-- (#60) counts it as that. The row is written by the database when an item is emptied (the function runs as its owner, so that the application has no INSERT, UPDATE or DELETE on the table) and is never changed.
+SELECT public.create_content_table('item_emptied',
+    'item_id bigint NOT NULL,
+     CONSTRAINT item_emptied_item UNIQUE (item_id),
+     CONSTRAINT item_emptied_item_fkey FOREIGN KEY (item_id, domain_id) REFERENCES content.item_text (id, domain_id)');
+GRANT SELECT ON content.item_emptied TO PUBLIC;
+
+CREATE FUNCTION public.record_item_emptied() RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog
+AS $record$
+BEGIN
+    INSERT INTO content.item_emptied (domain_id, item_id) VALUES (NEW.domain_id, NEW.id);
+    RETURN NULL;
+END
+$record$;
+
+CREATE TRIGGER item_emptied_is_recorded AFTER UPDATE ON content.item_text
+    FOR EACH ROW WHEN (OLD.emptied_at IS NULL AND NEW.emptied_at IS NOT NULL) EXECUTE FUNCTION public.record_item_emptied();
+ALTER TABLE content.item_text ENABLE ALWAYS TRIGGER item_emptied_is_recorded;
+
+-- A map is not added to an item that was emptied: what it would hold is what the emptying took away. The item is found in the table of the items emptied, through the row policy, which is the one of the map's domain.
 CREATE FUNCTION public.refuse_map_of_emptied_item() RETURNS trigger
 LANGUAGE plpgsql
 AS $refuse$
 BEGIN
-    IF EXISTS (SELECT 1 FROM content.item_text i WHERE i.id = NEW.item_id AND i.domain_id = NEW.domain_id AND i.emptied_at IS NOT NULL) THEN
+    IF EXISTS (SELECT 1 FROM content.item_emptied e WHERE e.item_id = NEW.item_id AND e.domain_id = NEW.domain_id) THEN
         RAISE EXCEPTION 'the item was emptied: no map is added to it'
             USING ERRCODE = 'CE004', SCHEMA = TG_TABLE_SCHEMA, TABLE = TG_TABLE_NAME;
     END IF;
@@ -151,12 +174,12 @@ CREATE TRIGGER map_needs_item_not_emptied BEFORE INSERT ON content.reversal_map
     FOR EACH ROW EXECUTE FUNCTION public.refuse_map_of_emptied_item();
 ALTER TABLE content.reversal_map ENABLE ALWAYS TRIGGER map_needs_item_not_emptied;
 
--- A map is emptied with its item and not before: the item was emptied already, in the same transaction, when the map is. The item is seen through the row policy, which is the one of the map's domain.
+-- A map is emptied with its item and not before: the item was emptied already, in the same transaction, when the map is. The item is found in the table of the items emptied, through the row policy, which is the one of the map's domain.
 CREATE FUNCTION public.refuse_map_emptied_before_item() RETURNS trigger
 LANGUAGE plpgsql
 AS $refuse$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM content.item_text i WHERE i.id = NEW.item_id AND i.domain_id = NEW.domain_id AND i.emptied_at IS NOT NULL) THEN
+    IF NOT EXISTS (SELECT 1 FROM content.item_emptied e WHERE e.item_id = NEW.item_id AND e.domain_id = NEW.domain_id) THEN
         RAISE EXCEPTION 'a map is emptied with its item, not before'
             USING ERRCODE = 'CE004', SCHEMA = TG_TABLE_SCHEMA, TABLE = TG_TABLE_NAME;
     END IF;

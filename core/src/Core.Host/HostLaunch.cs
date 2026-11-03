@@ -40,12 +40,18 @@ internal sealed class HostLaunch
     internal static HostLaunch Ended(ExitCode exit) => new(HostLaunchState.Migrated, app: null, [], report: null) { MigrationExit = exit };
 
     /// <summary>Serves until stopped, or reports why the host was not assembled and ends at once.</summary>
+    private AuditCompareOutcome? Comparison { get; init; }
+
+    internal static HostLaunch Compared(AuditCompareOutcome outcome) =>
+        new(HostLaunchState.Compared, app: null, [], report: null) { Comparison = outcome };
+
     internal async Task<ExitCode> RunAsync() => state switch
     {
         HostLaunchState.Ready => await ServeAsync().ConfigureAwait(false),
         HostLaunchState.Refused => ConfigurationRefusal.Report(Console.Error, problems),
         HostLaunchState.CheckFailed => StartupRefusal.Report(Console.Error, report!),
         HostLaunchState.Migrated => MigrationExit,
+        HostLaunchState.Compared => AuditCompareReport.Write(Console.Out, Console.Error, Comparison!),
         _ => throw new UnreachableException(),
     };
 

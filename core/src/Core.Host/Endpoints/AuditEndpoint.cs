@@ -1,4 +1,3 @@
-using System.Globalization;
 using Core.Persistence.ServerGuarantees;
 using Microsoft.AspNetCore.Mvc;
 
@@ -32,7 +31,7 @@ internal static class AuditEndpoint
     private static async Task<IResult> ListAsync(
         [AsParameters] Asked asked, [FromServices] ServerAuditLog log, [FromServices] ILoggerFactory loggers, CancellationToken cancellationToken)
     {
-        if (Instant(asked.From) is not { } start || Instant(asked.To) is not { } end || start >= end || end - start > MaxSpan)
+        if (AuditConfiguration.Instant(asked.From) is not { } start || AuditConfiguration.Instant(asked.To) is not { } end || start >= end || end - start > MaxSpan)
         {
             return Refused(Accepted);
         }
@@ -53,9 +52,4 @@ internal static class AuditEndpoint
     private readonly record struct Asked([FromQuery] string? From, [FromQuery] string? To);
 
     private static IResult Refused(string accepted) => Results.Json(new AuditRefused(accepted), statusCode: StatusCodes.Status400BadRequest);
-
-    private static DateTimeOffset? Instant(string? text) =>
-        DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var instant) && instant.Kind != DateTimeKind.Unspecified
-            ? new DateTimeOffset(instant.ToUniversalTime())
-            : null;
 }

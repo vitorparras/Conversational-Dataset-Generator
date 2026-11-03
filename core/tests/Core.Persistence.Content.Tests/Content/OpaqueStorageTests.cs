@@ -57,6 +57,8 @@ public sealed class OpaqueStorageTests
             tampered.Add(column);
             var observation = await OpaqueStorage.ObserveAsync(world, material);
             Assert.Equal(tampered, OpaqueStorage.ColumnsShown(observation, material, [.. material.Columns]));
+            // The files of the server hold the key written in clear, raw as a bytea is stored: a search that never matched raw bytes would let a key through while the dump alone caught it.
+            Assert.Equal(tampered.Where(material.Keys.ContainsKey).Order(StringComparer.Ordinal), observation.KeysInFiles.Order(StringComparer.Ordinal));
         }
     }
 

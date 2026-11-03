@@ -4,7 +4,6 @@ using Core.Boundary.Http;
 using Core.Host.Analysis;
 using Core.Host.Endpoints;
 using Core.Host.Migration;
-using Core.Host.Rotation;
 using Core.Host.Supervision;
 using Core.Persistence.Connection;
 using Core.Persistence.Content;
@@ -24,54 +23,9 @@ namespace Core.Host;
 /// <summary>The only place where the host is assembled: the target check first, then configuration, logging and services, then routes.</summary>
 internal static class CompositionRoot
 {
-    internal static async Task<HostLaunch> BuildAsync(string[] args)
-    {
-        var target = await new StartupRunner([HostConfiguration.TargetCheck()], TimeProvider.System).RunAsync(CancellationToken.None);
-        if (!target.Ready)
-        {
-            return HostLaunch.CheckFailed(target);
-        }
-
-        if (EpochRotationMode.Requested(args))
-        {
-            return await EpochRotationMode.RunAsync(args, Console.Out, Console.Error);
-        }
-
-        var migrating = MigrationMode.Requested(args);
-        var loaded = HostConfiguration.Load(MigrationMode.ConfigurationArguments(args), migrating);
-        var database = HostConfiguration.DatabaseOf(loaded, migrating);
-        if (database is null || database.State == DatabaseSettingsState.Refused)
-        {
-            return HostLaunch.Refused(database?.Problems ?? loaded.Problems);
-        }
-
-        if (migrating)
-        {
-            return await MigrateAsync(loaded, database);
-        }
-
-        var analyzeTimeout = LanguageServiceConfiguration.AnalyzeTimeout(loaded.Values);
-        var refused = HostConfiguration.Refusals(loaded.Values, analyzeTimeout);
-        return analyzeTimeout is { } timeout && refused.Count == 0 ? await LaunchAsync(loaded, database, timeout, target) : HostLaunch.Refused(refused);
-    }
-
-    /// <summary>The keys of the epochs file over a source that was read, and the rotation of the rows over them: the mode that rotates is not a root, and the services come from here.</summary>
-    internal static ItemKeys KeysOf(MasterKeyReading reading) => new(new KeyDerivation(reading.Key!, reading.Labels), reading.Epochs);
-
-    internal static EpochRotation RotationOf(NpgsqlDataSource dataSource, ItemKeys keys) => new(dataSource, keys);
-
-    /// <summary>Redacted console logging alone: the modes that migrate or rotate have no host, no file destination and no language service.</summary>
-    internal static ServiceProvider LoggingServices() =>
-        new ServiceCollection().AddSingleton(TimeProvider.System).AddLogging(PlatformLogging.Configure).AddRedaction(PlatformLogging.EraseSensitiveData).BuildServiceProvider();
-
     /// <summary>The migration mode: the steps run once with the owner credential the configuration holds, the outcome is logged and nothing is served.</summary>
-    private static async Task<HostLaunch> MigrateAsync(ConfigurationLoadResult loaded, DatabaseSettings database)
+    internal static async Task<HostLaunch> MigrateAsync(DatabaseSettings database)
     {
-        if (PasswordConfiguration.Refusals(loaded.Values) is { Count: > 0 } invalid)
-        {
-            return HostLaunch.Refused(invalid);
-        }
-
         await using var dataSource = NpgsqlDataSource.Create(database.ConnectionString!);
         await using var logging = LoggingServices();
         var result = await new MigrationRunner(dataSource, EmbeddedMigrations.Load()).RunAsync(CancellationToken.None);
@@ -80,7 +34,7 @@ internal static class CompositionRoot
     }
 
     /// <summary>Opens the file destination and the startup container, runs the checks and hands both to the host when every one passed; otherwise closes them here.</summary>
-    private static async Task<HostLaunch> LaunchAsync(ConfigurationLoadResult loaded, DatabaseSettings database, TimeSpan analyzeTimeout, StartupReport target)
+    internal static async Task<HostLaunch> LaunchAsync(ConfigurationLoadResult loaded, DatabaseSettings database, TimeSpan analyzeTimeout, StartupReport target)
     {
         var fileLog = HostLogFile.Open(loaded);
         var startup = StartupServices(loaded, fileLog, database);
@@ -160,6 +114,15 @@ internal static class CompositionRoot
         return services.BuildServiceProvider();
     }
 
+    /// <summary>The keys of the epochs file over a source that was read, and the rotation of the rows over them: the mode that rotates is not a root, and the services come from here.</summary>
+    internal static ItemKeys KeysOf(MasterKeyReading reading) => new(new KeyDerivation(reading.Key!, reading.Labels), reading.Epochs);
+
+    internal static EpochRotation RotationOf(NpgsqlDataSource dataSource, ItemKeys keys) => new(dataSource, keys);
+
+    /// <summary>Redacted console logging alone: the modes that migrate or rotate have no host, no file destination and no language service.</summary>
+    internal static ServiceProvider LoggingServices() =>
+        new ServiceCollection().AddSingleton(TimeProvider.System).AddLogging(PlatformLogging.Configure).AddRedaction(PlatformLogging.EraseSensitiveData).BuildServiceProvider();
+
     /// <summary>The application's data source and the nine server checks, privilege first and the derivation labels last, or the check that says no database is declared.</summary>
     private static void AddServerGuarantees(IServiceCollection services, DatabaseSettings database)
     {
@@ -189,8 +152,17 @@ internal static class CompositionRoot
         _ = builder.Services.Configure<CookiePolicyOptions>(TransportSecurity.CookiePolicy);
         Compose(builder, loaded.View, fileLog);
         AddAnalysis(builder.Services, loaded.Values, analyzeTimeout);
-        _ = builder.Services.AddSingleton(PasswordConfiguration.Derivation(loaded.Values));
-        _ = builder.Services.AddSingleton(_ => new ServerAuditLog(AuditConfiguration.ServerLogDirectory(loaded.Values)));
+        _ = builder.Services.AddSingleton(PasswordConfiguration.Derivation(loaded.Values)).AddSingleton(VerificationConfiguration.Schedule(loaded.Values));
+        _ = builder.Services.AddSingleton(_ => new ServerAuditLog(AuditConfiguration.ServerLogDirectory(loaded.Values))).AddSingleton<AuditComparisonState>();
+        _ = builder.Services.AddHostedService(provider => new AuditComparisonService(
+            new AuditComparisonPlan(
+                AuditConfiguration.CompareInterval(loaded.Values),
+                (from, to, token) => new AuditComparer(
+                    provider.GetRequiredService<ServiceProvider>().GetRequiredService<NpgsqlDataSource>(), AuditConfiguration.ServerLogDirectory(loaded.Values))
+                    .CompareAsync(from, to, token),
+                provider.GetRequiredService<ILogger<AuditComparisonService>>()),
+            provider.GetRequiredService<AuditComparisonState>(),
+            provider.GetRequiredService<TimeProvider>()));
         _ = builder.Services.AddSingleton(provider => new SessionStore(SessionConfiguration.Lifetimes(loaded.Values), provider.GetRequiredService<TimeProvider>()));
         _ = builder.Services.AddSingleton(InstallationConfiguration.Of(loaded.Values)).AddSingleton(provider => InstallationConfiguration.Shown(StartupVersions.Of(checks), provider));
         _ = SafekeepingConfiguration.Declaration(loaded.Values) is { } declaration ? builder.Services.AddSingleton(declaration) : builder.Services;
@@ -200,9 +172,9 @@ internal static class CompositionRoot
     /// <summary>What the checks produced, adopted by the host: the report, the startup container, the recognizer in force and, once, the service's versions for the startup line.</summary>
     private static async Task<WebApplication> AssembleAsync(WebApplicationBuilder builder, StartupReport report, ServiceProvider startup, RecognizerKind recognizer)
     {
-        _ = builder.Services.AddSingleton(report);
+        _ = builder.Services.AddSingleton(report).AddSingleton(_ => startup);
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetRequiredService<ServiceProcessWatch>());
-        _ = builder.Services.AddSingleton(_ => startup);
+        _ = builder.Services.AddSingleton(provider => new ChainVerificationService(provider)).AddHostedService(provider => provider.GetRequiredService<ChainVerificationService>());
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source
             ? new SignIn(new PersonRegistry(source), new PersonCredentials(source, provider.GetRequiredService<PasswordDerivation>()),
                 provider.GetRequiredService<SessionStore>(), new SignInDelay(provider.GetRequiredService<TimeProvider>()))

@@ -36,13 +36,13 @@ reprova. O sobrevivente que só teste de outro projeto mataria aparece como sobr
 responde por ele com teste próprio.
 
 - **Núcleo:** o projeto de teste da área, se ela tem um próprio (`<Área>.Tests`, como
-  `Core.Persistence.Migrations.Tests`), senão o do projeto do módulo (`<Projeto>.Tests`, ou o do
-  projeto em que ele está aninhado, como `Core.Boundary.Tests` para `Core.Boundary.Contracts`),
-  desde que referencie o projeto do módulo. As suítes transversais (`Core.Tests.Integration`,
-  `Core.Tests.Properties`) não contam. Teste novo de banco entra no projeto da área que ele exercita
-  (`Core.Persistence.Migrations.Tests`, `.Content.Tests`, `.Custody.Chain.Tests` ou
-  `.ServerGuarantees.Tests`); o resto fica em `Core.Persistence.Tests`. O apoio comum (contêiner,
-  `ScratchDatabase`) mora em `Core.Tests.Database`, que não é projeto de teste.
+  `Core.Persistence.Migrations.Tests`), senão o da área mais próxima que a contém
+  (`.Custody.Chain.Tests` para `.Custody.Chain.Append`), senão o do projeto do módulo
+  (`<Projeto>.Tests`, ou o do projeto em que ele está aninhado), desde que referencie o módulo. As
+  suítes transversais (`Core.Tests.Integration`, `Core.Tests.Properties`) não contam. Teste novo de
+  banco entra no projeto da área que ele exercita (`.Migrations.Tests`, `.Content.Tests`,
+  `.Custody.Chain.Tests` ou `.ServerGuarantees.Tests`); o resto fica em `Core.Persistence.Tests`.
+  O apoio comum (contêiner, `ScratchDatabase`) mora em `Core.Tests.Database`, que não é de teste.
   O Stryker.NET roda com um worker em todos os módulos: o veredito de um mutante em inicializador
   estático muda com o número de workers, e o resultado tem de ser o mesmo em duas rodadas. Nenhum
   mutante sai da conta por ser estático.

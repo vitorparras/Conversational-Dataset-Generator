@@ -212,6 +212,17 @@ no log do núcleo (papel, tabela, comandos, contagens e passos, nunca um comando
 `GET /status` traz em `auditComparison` o resultado da última (`Pending`, `Agreed`, `Different` ou
 `Failed`), quando terminou e quantas diferenças novas e conhecidas achou. O `migrate` não a exige.
 
+Se o servidor de banco cai enquanto grava, o arquivo `csv` que ele escrevia fica terminado numa
+linha cortada, sem a quebra de linha, e o servidor segue em outro arquivo. Essa última linha de um
+arquivo que já não é o mais recente não vira entrada nem erro: a leitura a deixa de fora e nomeia o
+arquivo, em `cutOffFiles` na resposta de `GET /audit/server`, em `auditComparison.cutOffFiles` de
+`GET /status`, em uma linha `aviso:` do `audit-compare` e em um aviso no log do núcleo. É só um
+aviso, visível enquanto o arquivo estiver na janela lida, e o código de saída do `audit-compare`
+não muda por causa dele. Não se mexe no arquivo: o núcleo nunca o escreve, renomeia nem remove, e
+o que se queira fazer com ele é decisão de quem opera o servidor. Uma linha ilegível no meio de um
+arquivo continua sendo erro, e a última linha do arquivo mais recente, que o servidor ainda pode
+estar escrevendo, é lida inteira na leitura seguinte, sem aviso.
+
 `MasterKey:File` e `MasterKey:LabelsFile` são obrigatórias ao servir, sem valor padrão, e levam os
 caminhos dos arquivos da chave e dos rótulos, nunca a chave. O núcleo recusa arquivo ausente, com
 permissão aberta a quem não é o dono do processo, dentro da pasta do executável, ou fora do

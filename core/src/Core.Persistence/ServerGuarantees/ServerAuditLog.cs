@@ -42,15 +42,17 @@ public sealed class ServerAuditLog
     /// <summary>
     /// The lines written from <paramref name="from"/> (inclusive) to <paramref name="to"/> (exclusive), oldest first.
     /// A line that cannot be read as the server writes it is an error, not a line left out; the error carries the file in <see cref="FileKey"/>.
+    /// The one exception is the last line of a file that is not the newest and has no line break: the server fell while writing it, and it is neither an entry
+    /// nor an error but a notice that names the file.
     /// </summary>
-    public Task<IReadOnlyList<ServerAuditEntry>> ReadAsync(DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken) =>
+    public Task<ServerAuditReading> ReadAsync(DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken) =>
         ReadAsync(from, to, int.MaxValue, cancellationToken);
 
     /// <summary>
     /// The same lines, at most <paramref name="limit"/> of them: the reading stops there, so that an interval wider than the caller means to take
     /// costs the memory of the limit and not of the log. It also stops at the first line later than the interval, and opens no file after it.
     /// </summary>
-    public async Task<IReadOnlyList<ServerAuditEntry>> ReadAsync(DateTimeOffset from, DateTimeOffset to, int limit, CancellationToken cancellationToken)
+    public async Task<ServerAuditReading> ReadAsync(DateTimeOffset from, DateTimeOffset to, int limit, CancellationToken cancellationToken)
     {
         var window = new Window(from, to, limit);
         var failing = directory;
@@ -70,13 +72,14 @@ public sealed class ServerAuditLog
             throw;
         }
 
-        return window.Entries;
+        return new ServerAuditReading(window.Entries, window.CutOffFiles);
     }
 
     /// <summary>
     /// Reads the file into the entries; true when nothing after it is needed, because the limit is reached or the lines are past the interval.
     /// A last line of the newest file that ends with the file and not with a line break is a line the server is still writing: the reading stops
-    /// before it and the next reading takes it whole.
+    /// before it and the next reading takes it whole. The same last line of a file that is not the newest is one the server's fall cut short: it is
+    /// left out, the file is named in the reading, and the reading goes on.
     /// </summary>
     private static async Task<bool> ReadFileAsync(FileSystemInfo file, Window window, bool newest, CancellationToken cancellationToken)
     {
@@ -86,33 +89,45 @@ public sealed class ServerAuditLog
         var records = new CsvRecordReader(text);
         while (await records.ReadAsync(cancellationToken).ConfigureAwait(false) is { } record)
         {
-            if (newest && records.CutOff)
+            if (records.CutOff && newest)
             {
                 return true;
             }
 
-            if (await EntryAsync(record, file.Name, cancellationToken).ConfigureAwait(false) is not { } entry)
+            if (records.CutOff)
             {
+                window.CutOffFiles.Add(file.Name);
                 continue;
             }
 
-            if (entry.At >= window.To + Slack)
-            {
-                return true;
-            }
-
-            if (entry.At >= window.From && entry.At < window.To)
-            {
-                window.Entries.Add(entry);
-            }
-
-            if (window.Entries.Count >= window.Limit)
+            if (await TakeAsync(record, file.Name, window, cancellationToken).ConfigureAwait(false))
             {
                 return true;
             }
         }
 
         return false;
+    }
+
+    /// <summary>Takes the line into the window if it is an audit line in the interval; true when nothing after it is needed, because it is past the interval or the limit is reached.</summary>
+    private static async Task<bool> TakeAsync(IReadOnlyList<string> record, string file, Window window, CancellationToken cancellationToken)
+    {
+        if (await EntryAsync(record, file, cancellationToken).ConfigureAwait(false) is not { } entry)
+        {
+            return false;
+        }
+
+        if (entry.At >= window.To + Slack)
+        {
+            return true;
+        }
+
+        if (entry.At >= window.From && entry.At < window.To)
+        {
+            window.Entries.Add(entry);
+        }
+
+        return window.Entries.Count >= window.Limit;
     }
 
     /// <summary>The csv files of the folder in the order the server wrote them, without the ones that stopped being written before the interval began.</summary>
@@ -147,5 +162,7 @@ public sealed class ServerAuditLog
     private sealed record Window(DateTimeOffset From, DateTimeOffset To, int Limit)
     {
         internal List<ServerAuditEntry> Entries { get; } = [];
+
+        internal List<string> CutOffFiles { get; } = [];
     }
 }

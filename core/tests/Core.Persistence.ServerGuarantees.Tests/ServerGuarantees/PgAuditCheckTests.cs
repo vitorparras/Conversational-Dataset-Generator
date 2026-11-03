@@ -177,9 +177,34 @@ public sealed class PgAuditCheckTests
     [Fact]
     public void EveryGapIsNamedInTheSameRefusal()
     {
-        var finding = PgAuditCheck.Judge(new AuditSettings("ddl", "on", "-1", "-1", "warning", "on", "notice", "debug_print_plan"), extensionVersion: "17.0");
+        var finding = PgAuditCheck.Judge(new AuditSettings("ddl", "on", "-1", "-1", "warning", "on", "notice", "debug_print_plan", "none", "Europe/Lisbon"), extensionVersion: "17.0");
 
-        Assert.Equal(7, finding.Message.Split("; ").Length);
+        Assert.Equal(9, finding.Message.Split("; ").Length);
+    }
+
+    [Theory]
+    [InlineData("none")]
+    [InlineData("ddl")]
+    [InlineData(null)]
+    public void StatementLogThatIsNotModFailsNamingTheSetting(string? logStatement)
+    {
+        var finding = PgAuditCheck.Judge(Settings() with { LogStatement = logStatement }, extensionVersion: "17.0");
+
+        Assert.Equal(CheckStatus.Failed, finding.Status);
+        Assert.Contains("defina log_statement = mod", finding.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("UTC", true)]
+    [InlineData("Etc/UTC", true)]
+    [InlineData("America/Sao_Paulo", false)]
+    [InlineData(null, false)]
+    public void LogTimezoneMustBeUtcBecauseTheReaderOfTheLogTakesNoOther(string? zone, bool passes)
+    {
+        var finding = PgAuditCheck.Judge(Settings() with { LogTimezone = zone }, extensionVersion: "17.0");
+
+        Assert.Equal(passes, finding.Status == CheckStatus.Passed);
+        Assert.Equal(passes, !finding.Message.Contains("defina log_timezone = UTC", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -194,5 +219,5 @@ public sealed class PgAuditCheckTests
         string? minMessages = "log",
         string? logClient = "off",
         string? logLevel = "log") =>
-        new(log, logParameter, parameterMaxLength, parameterMaxLengthOnError, minMessages, logClient, logLevel);
+        new(log, logParameter, parameterMaxLength, parameterMaxLengthOnError, minMessages, logClient, logLevel, LogStatement: "mod", LogTimezone: "UTC");
 }

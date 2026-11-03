@@ -1,4 +1,5 @@
 using Core.Persistence.Custody;
+using Core.Persistence.Custody.Chain;
 using Npgsql;
 using NpgsqlTypes;
 

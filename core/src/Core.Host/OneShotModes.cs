@@ -1,5 +1,5 @@
 using Core.Host.Domains;
-using Core.Host.KeyLoss;
+using Core.Host.Loss;
 using Core.Host.Rotation;
 
 namespace Core.Host;

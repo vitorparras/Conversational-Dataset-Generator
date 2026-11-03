@@ -1,8 +1,8 @@
-using Core.Host.KeyLoss;
+using Core.Host.Loss;
 using Core.Platform.Startup;
 using Npgsql;
 
-namespace Core.Host.Tests.KeyLoss;
+namespace Core.Host.Tests.Loss;
 
 /// <summary>
 /// The declare-key-loss mode (issue 67) is asked for by the first argument alone, refuses a scope or a list of what was tried that is outside the fixed lists before touching the database,

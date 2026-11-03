@@ -4,7 +4,7 @@ using Core.Persistence.Custody.Chain;
 using Core.Platform.Startup;
 using Npgsql;
 
-namespace Core.Host.KeyLoss;
+namespace Core.Host.Loss;
 
 /// <summary>
 /// The mode asked for with <c>declare-key-loss --scope &lt;master|label&gt; --tried &lt;list&gt;</c> (issue 67, decision 0014): the same executable, run once,

@@ -23,6 +23,15 @@ internal static class CustodyStatements
         ORDER BY sequence
         """;
 
+    /// <summary>The last event that records a verification: the moment, the reason that says whether it held, how many events it read and, when it failed, the first inconsistent one.</summary>
+    internal const string ReadLastVerification = """
+        SELECT occurred_at, reason, item_id, corrects
+        FROM public.custody_event
+        WHERE step = @step
+        ORDER BY sequence DESC
+        LIMIT 1
+        """;
+
     internal const string Append = """
         INSERT INTO public.custody_event (actor_person_id, actor_system, item_kind, item_id, step, reason, corrects)
         VALUES (@actor, @system, @kind, @item, @step, @reason, @corrects)

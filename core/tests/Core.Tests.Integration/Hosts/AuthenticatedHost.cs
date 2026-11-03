@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Headers;
 using System.Text;
 using Core.Host.Tests;
@@ -96,6 +97,18 @@ internal sealed class AuthenticatedHost : IAsyncDisposable
     public Task<HttpResponseMessage> PostAsync(string route, string json, CancellationToken cancellationToken) =>
         SendAsync(HttpMethod.Post, route, json, cancellationToken);
 
+    /// <summary>Runs the statement as the server's superuser connected to this host's database, for what neither the application nor the owner may arrange.</summary>
+    [SuppressMessage("Security", "CA2100", Justification = "The statements are literals of the calling tests, never input.")]
+    public async Task RunAsSuperuserAsync(string statement, CancellationToken cancellationToken)
+    {
+        var shared = await PostgresFixture.SharedAsync();
+        var name = new NpgsqlConnectionStringBuilder(database.AppConnectionString).Database;
+        await using var connection = new NpgsqlConnection(new NpgsqlConnectionStringBuilder(shared.SuperuserConnectionString) { Database = name, Pooling = false }.ConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = new NpgsqlCommand(statement, connection);
+        _ = await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
     /// <summary>Kills the host and its tree and hands over what it wrote to its output and error streams.</summary>
     public async Task<(string Stdout, string Stderr)> StopAsync()
     {
@@ -179,6 +192,7 @@ internal sealed class AuthenticatedHost : IAsyncDisposable
             ["Passwords:WorkFactor"] = setup.WorkFactor.ToString(System.Globalization.CultureInfo.InvariantCulture),
             ["Session:IdleTimeout"] = "00:30:00",
             ["Session:AbsoluteTimeout"] = "08:00:00",
+            ["Custody:VerificationInterval"] = "00:05:00",
             ["Tls:CertificateFile"] = SharedTlsMaterial.CertificatePath,
             ["Tls:KeyFile"] = SharedTlsMaterial.KeyPath,
             ["Audit:ServerLogDirectory"] = ServerLogFiles.Shared,

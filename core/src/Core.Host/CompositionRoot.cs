@@ -185,7 +185,7 @@ internal static class CompositionRoot
         _ = builder.Services.Configure<CookiePolicyOptions>(TransportSecurity.CookiePolicy);
         Compose(builder, loaded.View, fileLog);
         AddAnalysis(builder.Services, loaded.Values, analyzeTimeout);
-        _ = builder.Services.AddSingleton(PasswordConfiguration.Derivation(loaded.Values));
+        _ = builder.Services.AddSingleton(PasswordConfiguration.Derivation(loaded.Values)).AddSingleton(VerificationConfiguration.Schedule(loaded.Values));
         _ = builder.Services.AddSingleton(_ => new ServerAuditLog(AuditConfiguration.ServerLogDirectory(loaded.Values)));
         _ = builder.Services.AddSingleton(provider => new SessionStore(SessionConfiguration.Lifetimes(loaded.Values), provider.GetRequiredService<TimeProvider>()));
         _ = builder.Services.AddSingleton(InstallationConfiguration.Of(loaded.Values)).AddSingleton(provider => InstallationConfiguration.Shown(StartupVersions.Of(checks), provider));
@@ -200,9 +200,9 @@ internal static class CompositionRoot
     /// <summary>What the checks produced, adopted by the host: the report, the startup container, the recognizer in force and, once, the service's versions for the startup line.</summary>
     private static async Task<WebApplication> AssembleAsync(WebApplicationBuilder builder, StartupReport report, ServiceProvider startup, RecognizerKind recognizer)
     {
-        _ = builder.Services.AddSingleton(report);
+        _ = builder.Services.AddSingleton(report).AddSingleton(_ => startup);
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetRequiredService<ServiceProcessWatch>());
-        _ = builder.Services.AddSingleton(_ => startup);
+        _ = builder.Services.AddSingleton<ChainVerificationService>().AddHostedService(provider => provider.GetRequiredService<ChainVerificationService>());
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source
             ? new SignIn(new PersonRegistry(source), new PersonCredentials(source, provider.GetRequiredService<PasswordDerivation>()),
                 provider.GetRequiredService<SessionStore>(), new SignInDelay(provider.GetRequiredService<TimeProvider>()))

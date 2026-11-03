@@ -47,4 +47,13 @@ public enum ExitCode
 
     /// <summary>The creation of a domain could not talk to the database and wrote nothing.</summary>
     DomainCreationFailed = 20,
+
+    /// <summary>The creation of the first person refused and wrote nothing: the registry already holds someone.</summary>
+    PersonRegistryNotEmpty = 21,
+
+    /// <summary>The creation of the first person refused and wrote nothing, for another reason: a field is not accepted, the credential is the owner one, or the chain refused.</summary>
+    PersonCreationRefused = 22,
+
+    /// <summary>The creation of the first person could not talk to the database, or stopped between the person and the password.</summary>
+    PersonCreationFailed = 23,
 }

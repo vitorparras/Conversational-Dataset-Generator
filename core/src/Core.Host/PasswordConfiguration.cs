@@ -57,6 +57,18 @@ internal static class PasswordConfiguration
         return accepted is null ? [] : [new ConfigurationProblem(ConfigurationProblemKind.ValueNotAccepted, WorkFactorPath, declared, [accepted])];
     }
 
+    /// <summary>The refusals of a mode that derives a password: the factor is required there, so a missing one is refused as well as one that is not accepted.</summary>
+    internal static IReadOnlyList<ConfigurationProblem> RefusalsWhenRequired(IReadOnlyDictionary<string, string> values)
+    {
+        if (values.ContainsKey(WorkFactorPath))
+        {
+            return Refusals(values);
+        }
+
+        var missing = new ConfigurationProblem(ConfigurationProblemKind.MissingKey, WorkFactorPath, Found: null, Accepted: null);
+        return [missing];
+    }
+
     /// <summary>The derivation that runs with the work factor the configuration gave; the configuration has been judged before.</summary>
     internal static PasswordDerivation Derivation(IReadOnlyDictionary<string, string> values) => new(WorkFactor(values[WorkFactorPath])!.Value);
 

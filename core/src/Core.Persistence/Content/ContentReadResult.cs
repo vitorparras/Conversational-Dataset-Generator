@@ -13,4 +13,7 @@ public sealed record ContentReadResult
 
     /// <summary>The refusal of the chain, only when <see cref="ContentReadOutcome.NotRecorded"/>.</summary>
     public CustodyResult? Refusal { get; init; }
+
+    /// <summary>The label that is missing, for <see cref="ContentReadOutcome.LabelMissing"/>, or the scope of the loss declared, for <see cref="ContentReadOutcome.KeyLossDeclared"/>.</summary>
+    public string? Label { get; init; }
 }

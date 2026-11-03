@@ -9,7 +9,7 @@ public sealed record CustodyEvent
 
     private static readonly FrozenSet<CustodyStep> OfTheirOwn = Enumerable.Repeat(CustodyStep.Correction, 1)
         .Append(CustodyStep.VerifyChain).Append(CustodyStep.ItemEmptied).Append(CustodyStep.ItemEmptyingRefused).Append(CustodyStep.EpochRotated).Append(CustodyStep.DomainCreated)
-        .Append(CustodyStep.SealRecorded).Append(CustodyStep.DomainLabelRotated).ToFrozenSet();
+        .Append(CustodyStep.SealRecorded).Append(CustodyStep.DomainLabelRotated).Append(CustodyStep.KeyLossDeclared).ToFrozenSet();
 
     private CustodyEvent(CustodyAuthor author, CustodyItem item, CustodyStep step, CustodyReason reason)
     {
@@ -142,6 +142,22 @@ public sealed record CustodyEvent
         ArgumentNullException.ThrowIfNull(author);
         ArgumentOutOfRangeException.ThrowIfNegative(sealedSequence);
         return new CustodyEvent(author, new CustodyItem(CustodyItemKind.CustodyChain, sealedSequence), CustodyStep.SealRecorded, CustodyReason.AdministrativeAct);
+    }
+
+    /// <summary>
+    /// The event of the loss of a key declared by whoever operates, written by the system: the item is the master key, its id is what was tried (the sum of <see cref="KeyLossAttempts" />),
+    /// and the reference is the scope. There is no way back: what was sealed under the scope stays unreadable.
+    /// </summary>
+    /// <param name="scope">The whole master key, or one label.</param>
+    /// <param name="attempts">What was tried to recover it; at least one.</param>
+    public static CustodyEvent KeyLossDeclared(KeyLossScope scope, KeyLossAttempts attempts)
+    {
+        ArgumentNullException.ThrowIfNull(scope);
+        ArgumentOutOfRangeException.ThrowIfEqual((int)attempts, 0);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan((int)attempts, (int)KeyLossAttempts.All);
+        return WithReference(
+            new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.MasterKey, (long)attempts), CustodyStep.KeyLossDeclared, CustodyReason.AdministrativeAct),
+            scope.Text);
     }
 
     /// <summary>A new event that corrects an earlier one, which stays in the sequence as it was.</summary>

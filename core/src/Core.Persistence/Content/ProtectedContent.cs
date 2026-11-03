@@ -48,6 +48,19 @@ public sealed class ProtectedContent
         return Encoding.UTF8.GetString(EnvelopeCipher.OpenWith(item.AsSpan(), label.Text, stored));
     }
 
+    /// <summary>The labels an envelope and the wrapped key of its row say they were sealed under, which nothing yet proves: what a reading asks before it records anything.</summary>
+    public static IReadOnlyList<string> LabelsCarried(ReadOnlySpan<byte> stored, ContentKey key)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        var labels = new string[2];
+        labels[0] = EnvelopeCipher.LabelOf(stored);
+        labels[1] = EnvelopeCipher.LabelOf(key.Wrapped.Span);
+        return labels;
+    }
+
+    /// <summary>Whether the installation loaded the label, so that what is sealed under it can be opened.</summary>
+    public bool IsLoaded(string label) => loaded.Holds(label);
+
     private DerivationLabel Checked(ProtectedColumn column, int domainId, ReadOnlySpan<byte> bytes)
     {
         var label = LabelOf(bytes);

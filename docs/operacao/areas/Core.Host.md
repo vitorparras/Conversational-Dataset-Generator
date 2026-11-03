@@ -5,5 +5,5 @@
 - Projeto/pacote: `Core.Host`
 - Piso: 60 %
 - Crítica: não
-- Motivo: Absorve: `Domains`, `Endpoints`, `Migration`, `Rotation`, `Supervision`; só composição,
+- Motivo: Absorve: `Domains`, `Endpoints`, `KeyLoss`, `Migration`, `Rotation`, `Supervision`; só composição,
   sem regra, coberto por teste de integração

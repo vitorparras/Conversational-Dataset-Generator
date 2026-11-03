@@ -20,4 +20,7 @@ public enum CustodyItemKind
 
     /// <summary>A domain of the installation, by its identifier: what the creation of a domain is about.</summary>
     Domain,
+
+    /// <summary>The master key of the installation: what the declaration of its loss is about; the id is the set of what was tried to recover it.</summary>
+    MasterKey,
 }

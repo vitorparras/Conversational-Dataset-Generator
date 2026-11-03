@@ -47,4 +47,10 @@ public enum CustodyStep
 
     /// <summary>A domain passed to write under the next generation of its labels; the item is the domain and the reference is the generation.</summary>
     DomainLabelRotated,
+
+    /// <summary>
+    /// The loss of the master key, or of one label, was declared by whoever operates: the item is the key, its id is what was tried, and the reference is the scope.
+    /// There is no way back.
+    /// </summary>
+    KeyLossDeclared,
 }

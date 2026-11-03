@@ -10,7 +10,7 @@ namespace Core.Persistence.Content;
 /// <summary>
 /// The one way protected content is read: the chain records who read which item, at which step, and only then is the content opened.
 /// A reading the chain does not record returns no text, and a reading that finds nothing records nothing, because nothing was read.
-/// The event names the item and the step and never the content.
+/// The event names the item and the step and never the content. A reading of what is sealed under a key whose loss was declared, or under a label not loaded, is refused first and records nothing.
 /// </summary>
 public sealed class ProtectedContentReader(NpgsqlDataSource dataSource, ProtectedContent protectedContent, CustodyChain chain)
 {
@@ -42,11 +42,31 @@ public sealed class ProtectedContentReader(NpgsqlDataSource dataSource, Protecte
             return new ContentReadResult { Outcome = Unread(stored) };
         }
 
+        if (await RefusedBeforeRecordingAsync(stored, cancellationToken).ConfigureAwait(false) is { } refused)
+        {
+            return refused;
+        }
+
         var recorded = await chain.AppendAsync(CustodyEvent.Of(request.Author, new CustodyItem(reading.Kind, request.RowId), reading.Step, CustodyReason.ContentRead), cancellationToken)
             .ConfigureAwait(false);
         return recorded.Outcome == CustodyOutcome.Appended
             ? new ContentReadResult { Outcome = ContentReadOutcome.Read, Text = protectedContent.Open(request.Column, request.DomainId, stored.Envelope, stored.Key!) }
             : new ContentReadResult { Outcome = ContentReadOutcome.NotRecorded, Refusal = recorded };
+    }
+
+    /// <summary>What a reading is told before anything is recorded: the loss of the key it is sealed under, which was declared, or a label the installation does not hold.</summary>
+    private async Task<ContentReadResult?> RefusedBeforeRecordingAsync(StoredValue stored, CancellationToken cancellationToken)
+    {
+        var lost = await DeclaredKeyLoss.ScopesAsync(dataSource, cancellationToken).ConfigureAwait(false);
+        var carried = ProtectedContent.LabelsCarried(stored.Envelope!, stored.Key!);
+        var scope = lost.Contains(KeyLossScope.MasterText) ? KeyLossScope.MasterText : carried.FirstOrDefault(lost.Contains);
+        if (scope is not null)
+        {
+            return new ContentReadResult { Outcome = ContentReadOutcome.KeyLossDeclared, Label = scope };
+        }
+
+        var missing = carried.FirstOrDefault(label => !protectedContent.IsLoaded(label));
+        return missing is null ? null : new ContentReadResult { Outcome = ContentReadOutcome.LabelMissing, Label = missing };
     }
 
     private async Task<StoredValue> FetchAsync(ContentRead request, string statement, CancellationToken cancellationToken)

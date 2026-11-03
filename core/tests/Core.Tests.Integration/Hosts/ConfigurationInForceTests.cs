@@ -12,6 +12,9 @@ public sealed class ConfigurationInForceTests(DefaultHostFixture fixture) : ICla
     private const string Key = "Passwords:WorkFactor";
     private const string Factor = "7";
 
+    /// <summary>The least work factor a real installation accepts (decision 0047); the others here are demonstrations.</summary>
+    private const int RealInstallationFloor = 600_000;
+
     [DatabaseFact]
     public async Task ConfigurationInForceShowsTheKeyWithTheValueAndOriginThatWon()
     {
@@ -111,7 +114,7 @@ public sealed class ConfigurationInForceTests(DefaultHostFixture fixture) : ICla
         var setup = new HostSetup
         {
             Arguments = ["--Installation:Kind=real", "--Custody:LastRecoveryTest=2026-10-01", "--Custody:Holder=PESSOA_1"],
-            WorkFactor = 600_000,
+            WorkFactor = RealInstallationFloor,
         };
         await using var host = await AuthenticatedHost.StartAsync(setup, TestContext.Current.CancellationToken);
 

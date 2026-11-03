@@ -27,7 +27,11 @@ o conjunto, lê-se sem o segredo, e procura-se qualquer trecho do que foi submet
   recusada ou acontece após decifrar, nunca por leitura direta do que está guardado.
 
 A prova é um teste que lê o armazenamento sem o segredo e falha se encontrar qualquer trecho do
-texto submetido, previsto em testes/privacidade/armazenamento-opaco e ainda inexistente.
+texto submetido. Ele existe em
+`core/tests/Core.Persistence.Content.Tests/Content/OpaqueStorageTests.cs`, com um teste por critério
+da issue #57: lê o despejo do banco e os arquivos do servidor (diretório de dados, WAL após
+`CHECKPOINT` e o resto do contêiner), acha as colunas protegidas pelo catálogo e prova que o que
+fica em claro de propósito é achado.
 
 ## O que não exige
 

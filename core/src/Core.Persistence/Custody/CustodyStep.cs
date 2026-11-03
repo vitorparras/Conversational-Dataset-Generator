@@ -44,4 +44,10 @@ public enum CustodyStep
 
     /// <summary>The seal of the chain was recorded: the item is the chain, its id is the sequence of the event sealed, which is also the number of events the seal counts.</summary>
     SealRecorded,
+
+    /// <summary>A domain passed to write under the next generation of its labels; the item is the domain and the reference is the generation.</summary>
+    DomainLabelRotated,
+
+    /// <summary>A label of a domain was revoked, so that it encrypts nothing new and still decrypts; the item is the domain and the reference is the label.</summary>
+    DomainLabelRevoked,
 }

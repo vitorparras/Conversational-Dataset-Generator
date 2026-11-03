@@ -47,4 +47,10 @@ public enum ExitCode
 
     /// <summary>The creation of a domain could not talk to the database and wrote nothing.</summary>
     DomainCreationFailed = 20,
+
+    /// <summary>The rotation or the revocation of a domain label was refused and nothing was written: the domain or the label is not accepted, or no label would be left to encrypt under.</summary>
+    DomainLabelRefused = 24,
+
+    /// <summary>The database did not answer the rotation or the revocation of a domain label, and nothing was written.</summary>
+    DomainLabelFailed = 25,
 }

@@ -14,6 +14,7 @@ internal sealed class SyntheticCustody : IDisposable
         Cipher = new EnvelopeCipher(new KeyDerivation(reading.Key!, labels));
         Keys = new ItemKeys(new KeyDerivation(reading.Key!, labels), reading.Epochs);
         Content = new ProtectedContent(labels, Keys);
+        Labels = labels;
     }
 
     public EnvelopeCipher Cipher { get; }
@@ -21,6 +22,9 @@ internal sealed class SyntheticCustody : IDisposable
     public ItemKeys Keys { get; }
 
     public ProtectedContent Content { get; }
+
+    /// <summary>The labels the custody holds.</summary>
+    public DerivationLabels Labels { get; }
 
     /// <summary>The custody holding the labels and the epoch 1.</summary>
     public static SyntheticCustody Holding(params IEnumerable<string> labels) => Holding(1, labels);

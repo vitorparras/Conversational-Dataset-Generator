@@ -24,8 +24,12 @@ além da cadeia.
 As duas primeiras linhas cobrem o ponto cego da cadeia: ela detecta alteração nos eventos, não a
 remoção da garantia que impedia a alteração. Garantia desativada não quebra elo nenhum.
 
-A amostra de registros cifrados é amostra de propósito: decifrar tudo expõe dado pessoal sem
-necessidade, e a leitura em si é acesso registrado.
+## Onde fica o resultado
+
+Na subida e a cada `Custody:VerificationInterval`, cada execução vira um evento da cadeia: passo
+`verify_guarantees`, veredito e, no item, a máscara do que faltou. A rota `/custody/verification`,
+com sessão aberta, mostra em `guarantees` quando rodou, o que conferiu e o que faltou; `overdue`
+verdadeiro, sem resultado ou com o último mais velho que dois intervalos, é falha.
 
 ## Por quem, e com qual credencial
 

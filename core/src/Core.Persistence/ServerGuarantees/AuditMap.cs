@@ -36,5 +36,6 @@ public static class AuditMap
         [CustodyStep.Correction] = "é o evento que corrige outro evento: grava só na cadeia e não altera tabela de domínio",
         [CustodyStep.VerifyChain] = "o verificador só lê a cadeia (CustodyStatements.ReadChain) e grava o veredito nela: não toca tabela de domínio",
         [CustodyStep.ItemEmptyingRefused] = "a recusa de esvaziar não altera o conteúdo (o item fica como estava): grava só o evento na cadeia",
+        [CustodyStep.VerifyGuarantees] = "a conferência lê o catálogo e a amostra pelos passos de leitura e grava o veredito na cadeia: não toca tabela de domínio",
     };
 }

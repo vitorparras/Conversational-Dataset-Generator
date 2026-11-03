@@ -15,9 +15,9 @@ public sealed class ProtectedContentReader(NpgsqlDataSource dataSource, Protecte
 {
     private static readonly FrozenDictionary<ProtectedColumn, ColumnReading> Readings = new Dictionary<ProtectedColumn, ColumnReading>
     {
-        [ContentColumns.RawText] = new(CustodyItemKind.ItemText, CustodyStep.RawTextRead, ContentQueries.ReadRawText),
+        [ContentColumns.RawText] = new(CustodyItemKind.ItemText, CustodyStep.RawTextRead, ContentQueries.ReadRawText, ContentQueries.ReadFirstRawText),
         [ContentColumns.SanitizedText] = new(CustodyItemKind.ItemText, CustodyStep.SanitizedTextRead, ContentQueries.ReadSanitizedText),
-        [ContentColumns.Entries] = new(CustodyItemKind.ReversalMap, CustodyStep.ReversalEntriesRead, ContentQueries.ReadReversalEntries),
+        [ContentColumns.Entries] = new(CustodyItemKind.ReversalMap, CustodyStep.ReversalEntriesRead, ContentQueries.ReadReversalEntries, ContentQueries.ReadFirstEntries),
     }.ToFrozenDictionary();
 
     /// <summary>Reads the column of the row under the domain, recording the reading before the content is opened.</summary>
@@ -26,19 +26,31 @@ public sealed class ProtectedContentReader(NpgsqlDataSource dataSource, Protecte
     public Task<ContentReadResult> ReadAsync(ContentRead request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return ReadingAsync(request, cancellationToken);
+        return ReadingAsync(request, first: false, cancellationToken);
     }
 
-    private async Task<ContentReadResult> ReadingAsync(ContentRead request, CancellationToken cancellationToken)
+    /// <summary>Reads the column of the first row of the domain that holds a value, in one statement and one event, so that the server's log and the chain count it alike.</summary>
+    /// <param name="author">Who reads; the event of the reading names them.</param>
+    /// <param name="column">The protected column.</param>
+    /// <param name="domainId">The domain whose first row is read.</param>
+    /// <param name="cancellationToken">Cancels the reading.</param>
+    public Task<ContentReadResult> ReadFirstAsync(CustodyAuthor author, ProtectedColumn column, int domainId, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(author);
+        return ReadingAsync(new ContentRead(author, column, domainId, RowId: 0), first: true, cancellationToken);
+    }
+
+    private async Task<ContentReadResult> ReadingAsync(ContentRead request, bool first, CancellationToken cancellationToken)
     {
         var reading = Readings.GetValueOrDefault(request.Column) ?? throw new ArgumentException("The column is not a protected column of the content.", nameof(request));
-        var stored = await FetchAsync(request, reading.Query, cancellationToken).ConfigureAwait(false);
+        var statement = first ? reading.First ?? throw new ArgumentException("The column has no first reading.", nameof(request)) : reading.Query;
+        var stored = await FetchAsync(request, statement, cancellationToken).ConfigureAwait(false);
         if (!stored.Found || stored.Envelope is null)
         {
             return new ContentReadResult { Outcome = stored.Found ? ContentReadOutcome.Empty : ContentReadOutcome.NotFound };
         }
 
-        var recorded = await chain.AppendAsync(CustodyEvent.Of(request.Author, new CustodyItem(reading.Kind, request.RowId), reading.Step, CustodyReason.ContentRead), cancellationToken)
+        var recorded = await chain.AppendAsync(CustodyEvent.Of(request.Author, new CustodyItem(reading.Kind, stored.RowId), reading.Step, CustodyReason.ContentRead), cancellationToken)
             .ConfigureAwait(false);
         return recorded.Outcome == CustodyOutcome.Appended
             ? new ContentReadResult { Outcome = ContentReadOutcome.Read, Text = protectedContent.Open(request.Column, request.DomainId, stored.Envelope) }
@@ -50,17 +62,38 @@ public sealed class ProtectedContentReader(NpgsqlDataSource dataSource, Protecte
         var transaction = await ContentTransaction.BeginAsync(dataSource, request.DomainId, cancellationToken).ConfigureAwait(false);
         await using (transaction.ConfigureAwait(false))
         {
-            var command = transaction.CreateCommand(statement);
+            var command = Command(transaction, statement, request.RowId);
             await using (command.ConfigureAwait(false))
             {
-                _ = command.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Bigint) { Value = request.RowId });
-                var value = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
-                return new StoredValue(value is not null, value as byte[]);
+                return await FirstRowAsync(command, request.RowId, cancellationToken).ConfigureAwait(false);
             }
         }
     }
 
-    private sealed record ColumnReading(CustodyItemKind Kind, CustodyStep Step, string Query);
+    private static NpgsqlCommand Command(ContentTransaction transaction, string statement, long rowId)
+    {
+        var command = transaction.CreateCommand(statement);
+        _ = rowId > 0 ? command.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Bigint) { Value = rowId }) : null;
+        return command;
+    }
 
-    private sealed record StoredValue(bool Found, byte[]? Envelope);
+    private static async Task<StoredValue> FirstRowAsync(NpgsqlCommand command, long requested, CancellationToken cancellationToken)
+    {
+        var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        await using (reader.ConfigureAwait(false))
+        {
+            if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                return new StoredValue(Found: false, 0, null);
+            }
+
+            var last = reader.FieldCount - 1;
+            var sealedValue = await reader.IsDBNullAsync(last, cancellationToken).ConfigureAwait(false) ? null : (byte[])reader.GetValue(last);
+            return new StoredValue(Found: true, last == 0 ? requested : reader.GetInt64(0), sealedValue);
+        }
+    }
+
+    private sealed record ColumnReading(CustodyItemKind Kind, CustodyStep Step, string Query, string? First = null);
+
+    private sealed record StoredValue(bool Found, long RowId, byte[]? Envelope);
 }

@@ -19,6 +19,12 @@ public static class ContentQueries
     /// <summary>The sealed map of a reversal.</summary>
     internal const string ReadReversalEntries = "SELECT entries FROM content.reversal_map WHERE id = @id";
 
+    /// <summary>The id and the sealed raw text of the first item of the domain that was not emptied.</summary>
+    internal const string ReadFirstRawText = "SELECT id, raw_text FROM content.item_text WHERE emptied_at IS NULL ORDER BY id LIMIT 1";
+
+    /// <summary>The id and the sealed map of the first reversal of the domain that was not emptied.</summary>
+    internal const string ReadFirstEntries = "SELECT id, entries FROM content.reversal_map WHERE emptied_at IS NULL ORDER BY id LIMIT 1";
+
     /// <summary>Adds an item; the texts that are sealed arrive sealed.</summary>
     internal const string InsertItemText =
         "INSERT INTO content.item_text (domain_id, raw_text, sanitized_text, pseudonymized_text) VALUES (@domain, @raw, @sanitized, @pseudonymized) RETURNING id";

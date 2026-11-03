@@ -38,8 +38,9 @@ public sealed record CustodyEvent
     {
         ArgumentNullException.ThrowIfNull(author);
         ArgumentNullException.ThrowIfNull(item);
-        return step is CustodyStep.Correction or CustodyStep.VerifyChain or CustodyStep.ItemEmptied or CustodyStep.ItemEmptyingRefused
-            ? throw new ArgumentException("A correction, a verification and an emptying have an event of their own; use Correction, Verification, Emptied or EmptyingRefused.", nameof(step))
+        return step is CustodyStep.Correction or CustodyStep.ItemEmptied or CustodyStep.ItemEmptyingRefused || IsVerification(step)
+            ? throw new ArgumentException(
+                "A correction, a verification and an emptying have an event of their own; use Correction, Verification, GuaranteesVerified, Emptied or EmptyingRefused.", nameof(step))
             : new CustodyEvent(author, item, step, reason);
     }
 
@@ -69,6 +70,8 @@ public sealed record CustodyEvent
             : throw new ArgumentException("An emptying is refused because its author does not hold the function or because the item was emptied already.", nameof(reason));
     }
 
+    private static bool IsVerification(CustodyStep step) => step is CustodyStep.VerifyChain or CustodyStep.VerifyGuarantees;
+
     private static CustodyItem EmptyingItem(long itemId)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(itemId);
@@ -96,6 +99,15 @@ public sealed record CustodyEvent
 
         var reason = firstInconsistent is null ? CustodyReason.VerificationPassed : CustodyReason.VerificationFailed;
         return new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.CustodyChain, eventsRead), CustodyStep.VerifyChain, reason) { Corrects = firstInconsistent };
+    }
+
+    /// <summary>The event that records the verdict of a conference of the guarantees of the server, by the system: the item is the chain and its id is the mask of the guarantees missing.</summary>
+    /// <param name="missing">The mask of the guarantees missing, between 0 (every one held) and 63.</param>
+    public static CustodyEvent GuaranteesVerified(long missing)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(missing);
+        var reason = missing == 0 ? CustodyReason.VerificationPassed : CustodyReason.VerificationFailed;
+        return new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.CustodyChain, missing), CustodyStep.VerifyGuarantees, reason);
     }
 
     /// <summary>A new event that corrects an earlier one, which stays in the sequence as it was.</summary>

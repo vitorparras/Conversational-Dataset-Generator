@@ -20,12 +20,22 @@ public sealed class RecordedVerificationReader
 
     /// <summary>The last event of the chain that records a verification; null when the chain holds none.</summary>
     /// <param name="cancellationToken">Cancels the reading.</param>
-    public async Task<RecordedVerification?> LastAsync(CancellationToken cancellationToken)
+    public Task<RecordedVerification?> LastAsync(CancellationToken cancellationToken) => LastOfAsync(CustodyStep.VerifyChain, cancellationToken);
+
+    /// <summary>The last event of the chain that records a conference of the guarantees; null when the chain holds none.</summary>
+    /// <param name="cancellationToken">Cancels the reading.</param>
+    public async Task<RecordedGuarantees?> LastGuaranteesAsync(CancellationToken cancellationToken)
+    {
+        var last = await LastOfAsync(CustodyStep.VerifyGuarantees, cancellationToken).ConfigureAwait(false);
+        return last is null ? null : new RecordedGuarantees(last.RecordedAt, last.Passed, last.EventsRead);
+    }
+
+    private async Task<RecordedVerification?> LastOfAsync(CustodyStep step, CancellationToken cancellationToken)
     {
         var command = dataSource.CreateCommand(CustodyStatements.ReadLastVerification);
         await using (command.ConfigureAwait(false))
         {
-            _ = command.Parameters.AddWithValue("step", NpgsqlDbType.Text, CustodyNames.Of(CustodyStep.VerifyChain));
+            _ = command.Parameters.AddWithValue("step", NpgsqlDbType.Text, CustodyNames.Of(step));
             var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             await using (reader.ConfigureAwait(false))
             {

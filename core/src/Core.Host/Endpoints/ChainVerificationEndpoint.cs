@@ -25,8 +25,11 @@ internal static class ChainVerificationEndpoint
         try
         {
             var last = await reader.LastAsync(cancellationToken);
+            var guarantees = await reader.LastGuaranteesAsync(cancellationToken);
             var schedule = verification.Schedule;
-            return Results.Ok(new ChainVerificationShown(last, schedule.Interval, schedule.Overdue(last?.RecordedAt, time.GetUtcNow())));
+            var now = time.GetUtcNow();
+            var shown = GuaranteesShown.Of(guarantees, schedule.Overdue(guarantees?.RecordedAt, now));
+            return Results.Ok(new ChainVerificationShown(last, schedule.Interval, schedule.Overdue(last?.RecordedAt, now), shown));
         }
         catch (Exception unreadable) when (unreadable is NpgsqlException or InvalidOperationException or TimeoutException)
         {

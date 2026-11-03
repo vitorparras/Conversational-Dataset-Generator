@@ -35,4 +35,7 @@ public enum CustodyStep
 
     /// <summary>The emptying of an item was refused; the reason says why, and the item stays as it was.</summary>
     ItemEmptyingRefused,
+
+    /// <summary>The guarantees of the server were conferred; the reason says whether every one held, and the item says which did not.</summary>
+    VerifyGuarantees,
 }

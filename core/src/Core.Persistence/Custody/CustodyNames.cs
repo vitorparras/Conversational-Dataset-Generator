@@ -26,6 +26,7 @@ internal static class CustodyNames
         [CustodyStep.VerifyChain] = "verify_chain",
         [CustodyStep.ItemEmptied] = "item_emptied",
         [CustodyStep.ItemEmptyingRefused] = "item_emptying_refused",
+        [CustodyStep.VerifyGuarantees] = "verify_guarantees",
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<CustodyReason, string> Reasons = new Dictionary<CustodyReason, string>

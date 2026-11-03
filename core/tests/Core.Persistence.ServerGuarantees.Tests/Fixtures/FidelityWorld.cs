@@ -3,7 +3,9 @@ using Core.Persistence.Content;
 using Core.Persistence.Custody.Chain;
 using Core.Persistence.Migrations;
 using Core.Persistence.People;
+using Core.Persistence.ServerGuarantees;
 using Core.Persistence.Tests.Content;
+using Core.Platform.Keys;
 using Npgsql;
 
 namespace Core.Persistence.Tests.Fixtures;
@@ -34,7 +36,10 @@ internal sealed class FidelityWorld : IAsyncDisposable
 
     public ProtectedContentReader Reader { get; }
 
+
     public PersonRegistry Registry { get; }
+
+    private static readonly string[] Labels = ["texto-bruto/1/v1", "mapa-reversao/1/v1", "texto-bruto/2/v1", "mapa-reversao/2/v1"];
 
     public static async Task<FidelityWorld> CreateAsync()
     {
@@ -44,9 +49,26 @@ internal sealed class FidelityWorld : IAsyncDisposable
             "INSERT INTO public.domain (name) VALUES ('zqx-domain-a'), ('zqx-domain-b')",
             "INSERT INTO public.person (name, function_name) VALUES ('zqx-active', 'Anotação'), ('zqx-gone', 'Anotação')",
             "UPDATE public.person SET active = false WHERE name = 'zqx-gone'");
-        var custody = SyntheticCustody.Holding("texto-bruto/1/v1", "mapa-reversao/1/v1", "texto-bruto/2/v1", "mapa-reversao/2/v1");
+        var custody = SyntheticCustody.Holding(Labels);
         return new FidelityWorld(database, NpgsqlDataSource.Create(database.AppConnectionString), custody);
     }
+
+    /// <summary>The conference of the guarantees over the key the content is sealed with.</summary>
+    public GuaranteeVerifier Verifier() => VerifierOver(new SyntheticKeySource(Labels));
+
+    /// <summary>The conference of the guarantees over the source of the key given, wired as the composition root wires it.</summary>
+    public GuaranteeVerifier VerifierOver(IMasterKeySource source) =>
+        new(DataSource, source.ReadAsync, reading => new ProtectedContentReader(
+            DataSource, new ProtectedContent(new EnvelopeCipher(new KeyDerivation(reading.Key!, reading.Labels)), reading.Labels), new CustodyChain(DataSource)));
+
+    /// <summary>Runs the statements as the owner of the database.</summary>
+    public Task RunAsOwnerAsync(params string[] statements) => database.RunAsOwnerAsync(statements);
+
+    /// <summary>Runs the statement as the superuser of the server, which no row policy holds.</summary>
+    public Task RunAsSuperuserAsync(string statement) => database.ExecuteAsSuperuserAsync(statement);
+
+    /// <summary>The first column of the query, read as the owner.</summary>
+    public Task<IReadOnlyList<string>> OwnerColumnAsync(string query) => database.FirstColumnAsOwnerAsync(query);
 
     /// <summary>The store of passwords, writing as the application's role and deriving with the work factor given.</summary>
     public PersonCredentials Credentials(int workFactor) => new(DataSource, new PasswordDerivation(workFactor));

@@ -22,12 +22,15 @@ internal sealed record CaseRun(long FirstItem, long Seed, IReadOnlyList<Answered
 /// </summary>
 internal sealed class ConcurrentWriters
 {
+    /// <summary>The appends in flight at once, which is also the capacity of the pool the writers go through.</summary>
+    internal const int MostInFlight = 12;
+
     private const int ItemsPerCase = 100;
     private static readonly TimeSpan Patience = TimeSpan.FromSeconds(30);
 
     private readonly CustodyChain chain;
     private readonly PlannedPeople people;
-    private static readonly SemaphoreSlim InFlight = new(12);
+    private static readonly SemaphoreSlim InFlight = new(MostInFlight);
 
     private long nextItem = 20_000_000;
 
@@ -36,6 +39,10 @@ internal sealed class ConcurrentWriters
         this.chain = chain;
         this.people = people;
     }
+
+    /// <summary>The writers of the chain through a pool of the capacity they may have in flight, so that no append opens a connection of its own.</summary>
+    internal static async Task<ConcurrentWriters> PooledAsync(CustodyDatabase database, PlannedPeople people) =>
+        new(await database.PooledChainAsync(MostInFlight), people);
 
     internal static bool Owns(CaseRun run, long item) => item >= run.FirstItem && item < run.FirstItem + ItemsPerCase;
 

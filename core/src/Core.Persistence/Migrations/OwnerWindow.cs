@@ -5,10 +5,7 @@ using Npgsql;
 
 namespace Core.Persistence.Migrations;
 
-/// <summary>
-/// The window of the owner credential in the chain of custody (#64): before the first pending step the chain is verified, its tip is kept and the system writes that the window opened.
-/// A database older than the step that creates the events gets the event right after that step, with the tip read before it; an empty database has no chain, so no window.
-/// </summary>
+/// <summary>The window of the owner credential in the chain of custody (#64): before the first pending step the chain is verified, its tip kept and the window opened; an older database gets the event right after the step that creates it.</summary>
 internal sealed class OwnerWindow
 {
     /// <summary>The first version whose chain the verifier reads: the one that adds the column of the reference (0016).</summary>
@@ -30,20 +27,14 @@ internal sealed class OwnerWindow
         this.arrival = arrival;
     }
 
-    /// <summary>The name of the step that creates the events of the window.</summary>
     internal static string StepName => "0018-owner-window";
 
-    /// <summary>What the run did with the window.</summary>
     internal OwnerWindowOpening Opening { get; private set; }
 
-    /// <summary>The window of a run that leaves <paramref name="found" />; null when the build has no step that creates it or the database is empty.</summary>
     internal static OwnerWindow? Of(NpgsqlDataSource dataSource, IReadOnlyList<MigrationStep> steps, int found) =>
         found > 0 && steps.FirstOrDefault(step => step.Name == StepName) is { } creating ? new OwnerWindow(dataSource, creating.Version, found, steps[^1].Version) : null;
 
-    /// <summary>
-    /// Before the first step: verifies the chain where it can be read and refuses to go on if it does not hold, keeps the tip and opens the window now when the events exist.
-    /// False when it did not go on.
-    /// </summary>
+    /// <summary>Before the first step: verifies the chain where it can be read, keeps the tip and opens the window now when the events exist; false when the chain does not hold.</summary>
     internal async Task<bool> BeforeTheStepsAsync(NpgsqlConnection connection, CancellationToken cancellationToken)
     {
         if (found >= FirstReadable && !await ChainHoldsAsync(cancellationToken).ConfigureAwait(false))
@@ -61,7 +52,6 @@ internal sealed class OwnerWindow
         return verified.Passed && verified.Recorded.Outcome == CustodyOutcome.Appended;
     }
 
-    /// <summary>After a step is applied: writes the event right after the step that creates it. False when the chain did not take the event.</summary>
     internal Task<bool> AfterAsync(MigrationStep applied, CancellationToken cancellationToken) =>
         applied.Version == creating ? WriteAsync(afterTheStep: true, cancellationToken) : Task.FromResult(true);
 

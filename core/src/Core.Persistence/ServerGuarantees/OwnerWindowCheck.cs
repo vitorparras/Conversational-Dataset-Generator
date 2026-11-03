@@ -8,14 +8,11 @@ using Npgsql;
 namespace Core.Persistence.ServerGuarantees;
 
 /// <summary>
-/// Closes the window of the owner credential that a migration opened (#64), and runs only when one is open: the chain is verified, the guarantees are conferred and the system records the verdict
-/// as the closing, with the application's credential. A guarantee missing, or a chain that does not hold and so does not take the event, records the closing as failed or not at all, refuses the
-/// start naming the cause, and leaves the window open for the next start. It goes right after the privilege check, so that a start with the owner credential is refused first.
+/// Closes the window of the owner credential that a migration opened (#64), and runs only when one is open: verifies the chain, confers the guarantees and records the verdict as the closing.
+/// A guarantee missing, or a chain that takes no event, refuses the start naming the cause and leaves the window open. It goes right after the privilege check.
 /// </summary>
 public sealed class OwnerWindowCheck : IStartupCheck
 {
-    private const string NoTable = "42P01";
-
     private readonly NpgsqlDataSource dataSource;
     private readonly GuaranteeVerifier guarantees;
     private readonly TimeProvider time;
@@ -52,7 +49,7 @@ public sealed class OwnerWindowCheck : IStartupCheck
         {
             open = await new RecordedVerificationReader(dataSource).OwnerWindowAsync(cancellationToken).ConfigureAwait(false);
         }
-        catch (PostgresException noChain) when (noChain.SqlState == NoTable)
+        catch (PostgresException noChain) when (noChain.SqlState == PostgresErrorCodes.UndefinedTable)
         {
             return Finding.Holds("o banco ainda não tem a cadeia de custódia, e sem ela não há janela da credencial de dono");
         }

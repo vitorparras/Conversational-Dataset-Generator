@@ -16,7 +16,7 @@ env:
 
 jobs:
   antes:
-    name: 15 repetições do teste do main, com a máquina ocupada (só conta)
+    name: 15 repetições do teste do main, com a solução ao lado (só conta)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -27,10 +27,10 @@ jobs:
           global-json-file: global.json
       - name: O teste como está no main
         run: git show origin/main:core/tests/Core.Tests.Integration/Sessions/SessionEntryTimingTests.cs > core/tests/Core.Tests.Integration/Sessions/SessionEntryTimingTests.cs
-      - run: dotnet build core/tests/Core.Tests.Integration/Core.Tests.Integration.csproj --nologo
-      - name: Repetir 15 vezes com um laço de CPU por núcleo
+      - run: dotnet build core/Core.slnx --nologo
+      - name: Repetir 15 vezes com o resto da solução rodando ao lado
         run: |
-          for i in $(seq "$(nproc)"); do (while :; do :; done) & done
+          (while :; do dotnet test core/Core.slnx --no-build --filter-not-class "Core.Tests.Integration.Sessions.SessionEntryTimingTests" >/dev/null 2>&1; done) &
           failures=0
           for i in $(seq 1 15); do
             echo "::group::repetição $i de 15"
@@ -42,17 +42,17 @@ jobs:
           kill $(jobs -p) || true
 
   depois:
-    name: 15 repetições do teste da branch, com a máquina ocupada
+    name: 15 repetições do teste da branch, com a solução ao lado
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
-      - run: dotnet build core/tests/Core.Tests.Integration/Core.Tests.Integration.csproj --nologo
-      - name: Repetir 15 vezes com um laço de CPU por núcleo
+      - run: dotnet build core/Core.slnx --nologo
+      - name: Repetir 15 vezes com o resto da solução rodando ao lado
         run: |
-          for i in $(seq "$(nproc)"); do (while :; do :; done) & done
+          (while :; do dotnet test core/Core.slnx --no-build --filter-not-class "Core.Tests.Integration.Sessions.SessionEntryTimingTests" >/dev/null 2>&1; done) &
           for i in $(seq 1 15); do
             echo "::group::repetição $i de 15"
             dotnet test core/tests/Core.Tests.Integration/Core.Tests.Integration.csproj --no-build \

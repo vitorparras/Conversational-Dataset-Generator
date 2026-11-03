@@ -26,10 +26,10 @@ remoção da garantia que impedia a alteração. Garantia desativada não quebra
 
 ## Onde fica o resultado
 
-Na subida e a cada `Custody:VerificationInterval`, cada execução vira um evento da cadeia: passo
-`CustodyStep.VerifyGuarantees`, veredito e, no item, a máscara do que faltou. A rota `/custody/verification`,
-com sessão aberta, mostra em `guarantees` quando rodou, o que conferiu e o que faltou; `overdue`
-verdadeiro, sem resultado ou com o último mais velho que dois intervalos, é falha.
+Na subida e a cada `Custody:VerificationInterval`, cada execução vira um evento da cadeia (passo
+`CustodyStep.VerifyGuarantees`, veredito e, no item, a máscara do que faltou). A rota
+`/custody/verification`, com sessão aberta, mostra em `guarantees` quando rodou, o que conferiu e
+o que faltou; `overdue` verdadeiro, sem resultado ou com o último velho demais, é falha.
 
 ## Por quem, e com qual credencial
 

@@ -87,7 +87,7 @@ def failed_tests(root: ElementTree.Element) -> tuple[str, ...]:
 
 
 def describe_failures(runs: tuple[TestRun, ...]) -> tuple[str, ...]:
-    """One line per failed test: `  project: name: first line of its message`; none if all passed."""
+    """One line per failed test: `  project: name: first line of its message`; none if green."""
     return tuple(f"  {run.project}: {test}" for run in runs for test in run.failures)
 
 

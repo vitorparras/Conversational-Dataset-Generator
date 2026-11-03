@@ -85,15 +85,81 @@ public sealed class AuditComparisonServiceTests
     }
 
     [Fact]
-    public async Task RoundWithoutACutFileSaysNoneAndTheNextRoundForgetsTheOneBefore()
+    public async Task CutFileSeenInARoundStaysListedInTheRoundsThatNoLongerReadIt()
     {
         await using var run = await AuditComparisonRun.StartWithAsync(call => call == 0 ? new AuditCompared([], ["postgresql-a.csv"]) : new AuditCompared([], []));
 
         var first = await run.NextRoundAsync();
         var second = await run.NextRoundAsync();
+        var third = await run.NextRoundAsync();
 
         Assert.Equal(["postgresql-a.csv"], first.CutOffFiles);
-        Assert.Empty(second.CutOffFiles);
+        Assert.Equal(["postgresql-a.csv"], second.CutOffFiles);
+        Assert.Equal(["postgresql-a.csv"], third.CutOffFiles);
+        Assert.Equal((AuditComparisonResult.Agreed, 0, 0), (third.Result, third.NewDifferences, third.KnownDifferences));
+    }
+
+    [Fact]
+    public async Task TwoCutFilesSeenInDifferentRoundsAreBothListedOnceEachInTheOrderSeen()
+    {
+        await using var run = await AuditComparisonRun.StartWithAsync(call => call switch
+        {
+            0 => new AuditCompared([], ["postgresql-a.csv"]),
+            1 => new AuditCompared([], ["postgresql-b.csv", "postgresql-a.csv"]),
+            _ => new AuditCompared([], ["postgresql-b.csv"]),
+        });
+
+        _ = await run.NextRoundAsync();
+        var second = await run.NextRoundAsync();
+        var third = await run.NextRoundAsync();
+
+        Assert.Equal(["postgresql-a.csv", "postgresql-b.csv"], second.CutOffFiles);
+        Assert.Equal(["postgresql-a.csv", "postgresql-b.csv"], third.CutOffFiles);
+    }
+
+    [Fact]
+    public async Task FailedRoundKeepsTheCutFilesAlreadyListed()
+    {
+        await using var run = await AuditComparisonRun.StartWithAsync(call => call switch
+        {
+            0 => new AuditCompared([], ["postgresql-a.csv"]),
+            1 => throw new IOException("zqx"),
+            _ => new AuditCompared([], []),
+        });
+
+        _ = await run.NextRoundAsync();
+        var failed = await run.NextRoundAsync();
+        var retried = await run.NextRoundAsync();
+
+        Assert.Equal(AuditComparisonResult.Failed, failed.Result);
+        Assert.Equal(["postgresql-a.csv"], failed.CutOffFiles);
+        Assert.Equal(["postgresql-a.csv"], retried.CutOffFiles);
+    }
+
+    [Fact]
+    public async Task HostStartedAnewStartsWithNoCutFileListed()
+    {
+        await using (var before = await AuditComparisonRun.StartWithAsync(_ => new AuditCompared([], ["postgresql-a.csv"])))
+        {
+            Assert.Equal(["postgresql-a.csv"], (await before.NextRoundAsync()).CutOffFiles);
+        }
+
+        await using var restarted = await AuditComparisonRun.StartWithAsync(_ => new AuditCompared([], []));
+
+        Assert.Empty(restarted.State.Current.CutOffFiles);
+        Assert.Empty((await restarted.NextRoundAsync()).CutOffFiles);
+    }
+
+    [Fact]
+    public async Task CutFileIsWarnedOnceInTheRoundThatReadsItAndNotAgainWhenAnotherRoundReadsItToo()
+    {
+        await using var run = await AuditComparisonRun.StartWithAsync(call => call < 2 ? new AuditCompared([], ["postgresql-a.csv"]) : new AuditCompared([], []));
+
+        _ = await run.NextRoundAsync();
+        _ = await run.NextRoundAsync();
+        _ = await run.NextRoundAsync();
+
+        _ = Assert.Single(run.Log.Lines, entry => entry.Level == LogLevel.Warning && entry.Line.Contains("postgresql-a.csv", StringComparison.Ordinal));
     }
 
     [Fact]

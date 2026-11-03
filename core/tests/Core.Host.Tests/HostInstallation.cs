@@ -29,7 +29,7 @@ internal sealed record HostInstallation(string BinaryDirectory, string WorkingDi
     /// <summary>Whether the arguments the host receives also name the certificate and the private key of the encrypted channel, which the serving mode cannot start without.</summary>
     public bool ProvidesTlsMaterial { get; init; } = true;
 
-    /// <summary>Whether the arguments the host receives also name the folder of the database server's log, which the serving mode cannot start without.</summary>
+    /// <summary>Whether the arguments the host receives also name the folder of the server's log and the period of its comparison, which serving requires.</summary>
     public bool ProvidesServerLog { get; init; } = true;
 
     /// <summary>Whether the arguments the host receives also name the custody files of a key and labels of the right form, which the serving mode cannot start without.</summary>
@@ -70,6 +70,7 @@ internal sealed record HostInstallation(string BinaryDirectory, string WorkingDi
             if (ProvidesServerLog)
             {
                 arguments.Add(ServerLogArgument);
+                arguments.Add(CompareIntervalArgument);
             }
 
             if (!DeclaresInstallation)
@@ -98,6 +99,9 @@ internal sealed record HostInstallation(string BinaryDirectory, string WorkingDi
 
     /// <summary>The argument that points the host at the folder of a server log it can read.</summary>
     public static string ServerLogArgument => $"--Audit:ServerLogDirectory={ServerLogFiles.Shared}";
+
+    /// <summary>The argument that gives the period of the comparison of the server log with the chain, long enough that none runs while a test does.</summary>
+    public static string CompareIntervalArgument => "--Audit:CompareInterval=01:00:00";
 
     /// <summary>The arguments that point the host at the shared certificate and private key.</summary>
     public static IReadOnlyList<string> TlsArguments =>

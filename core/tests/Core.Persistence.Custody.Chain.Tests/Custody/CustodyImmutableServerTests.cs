@@ -129,7 +129,8 @@ public sealed class CustodyImmutableServerTests : IClassFixture<CustodyDatabase>
 
     /// <summary>
     /// pgaudit logs a utility statement such as TRUNCATE after it ran, so a TRUNCATE the trigger refuses is not in the audit log; the refusal is proved by the SQLSTATE and the chain left as it
-    /// was, and the attempt is in the log by the line the refusing function writes (#491), with the table, the operation and the role, and no value of the event.
+    /// was, and the attempt is in the log by the line the refusing function writes (#491), with the table, the operation and the role, and no value of the event; log_statement = mod also
+    /// writes the text of the statement before it runs, as the owner decided (#60), and no value of the event is in it.
     /// The audited attempt that follows is in the log, which is written in order, so that the absence from the audit log is read from a log that has caught up.
     /// </summary>
     [DatabaseFact]
@@ -153,8 +154,8 @@ public sealed class CustodyImmutableServerTests : IClassFixture<CustodyDatabase>
         Assert.Equal(before, await ChainAsync());
         AssertRefusalLine(refusal, "TRUNCATE", kept);
         var shared = await PostgresFixture.SharedAsync();
-        var lines = (await shared.ServerLogAsync()).Split('\n').Where(line => line.Contains(tag, StringComparison.Ordinal)).ToArray();
         Assert.Contains(tag, refusal, StringComparison.Ordinal);
+        var lines = (await shared.ServerLogAsync()).Split('\n').Where(line => line.Contains(tag, StringComparison.Ordinal)).ToArray();
         Assert.Contains(lines, line => line.Contains("TRUNCATE", StringComparison.Ordinal));
         Assert.DoesNotContain(lines, line => line.Contains("AUDIT: SESSION,", StringComparison.Ordinal));
         foreach (var value in ValuesOf(kept))

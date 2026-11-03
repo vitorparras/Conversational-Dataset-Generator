@@ -150,7 +150,7 @@ dotnet run --project core/src/Core.Host -- --Host:Urls=https://127.0.0.1:5080 \
   --Session:AbsoluteTimeout=08:00:00 --Custody:VerificationInterval=00:05:00 \
   --MasterKey:File="$KEYS/chave" --MasterKey:LabelsFile="$KEYS/rotulos" \
   --Tls:CertificateFile="$KEYS/tls.crt" --Tls:KeyFile="$KEYS/tls.key" \
-  --Audit:ServerLogDirectory="$SERVERLOG" --LanguageService:Executable="$PY"
+  --Audit:ServerLogDirectory="$SERVERLOG" --Audit:CompareInterval=01:00:00 --LanguageService:Executable="$PY"
 ```
 
 `Tls:CertificateFile` e `Tls:KeyFile` são obrigatórias ao servir, sem valor padrão, e levam os
@@ -196,6 +196,22 @@ O servidor de banco precisa registrar `log_statement = mod`, `log_timezone = UTC
 `pgaudit.log_relation = on` (a imagem de `tools/database` já faz), e a partida recusa o que falta:
 sem o último a linha de auditoria não diz a tabela, e sem os outros o comando recusado, o DDL e o
 `TRUNCATE`, não ficam em camada nenhuma, ou o registro não é lido.
+
+`audit-compare` compara esse registro com a cadeia de custódia, sem servir nada:
+`nucleo audit-compare --Audit:From=... --Audit:To=... --Audit:ServerLogDirectory=... --Database:...`
+(a credencial é a da aplicação). Para cada papel, tabela e comando, confere quantas vezes o
+servidor viu o que a cadeia registrou, pelo mapa de `AuditMap` (passo da cadeia ↔ tabela e
+comando), e imprime cada diferença com os passos envolvidos. Sai com 0 quando não há diferença
+nova e com 20 quando há;
+a diferença conhecida, o recálculo da senha na entrada (#69), que grava a credencial sem evento até
+a #71, sai com o motivo e não reprova.
+
+`Audit:CompareInterval` é obrigatória ao servir, sem valor padrão, e leva a duração (de `00:01:00`
+a `49.00:00:00`, como `01:00:00`) entre duas comparações, feitas pelo próprio núcleo sobre o que
+passou desde a anterior, com um minuto de folga para o registro alcançar. Diferença nova vira aviso
+no log do núcleo (papel, tabela, comandos, contagens e passos, nunca um comando ou valor), e
+`GET /status` traz em `auditComparison` o resultado da última (`Pending`, `Agreed`, `Different` ou
+`Failed`), quando terminou e quantas diferenças novas e conhecidas achou. O `migrate` não a exige.
 
 `Custody:VerificationInterval` é obrigatória ao servir, sem valor padrão, e leva uma duração maior
 que zero, no mesmo formato dos prazos da sessão (`00:05:00`, ou `1.00:00:00`, com dias); o `migrate`

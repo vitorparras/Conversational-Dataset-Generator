@@ -8,7 +8,8 @@ namespace Core.Persistence.Custody.Verification;
 /// The digest of an event, computed here and not by the database: the verification must not ask the function that wrote the digest whether the digest is right.
 /// The encoding is the one the chain declares, field by field in a fixed order: the digest of the event before, the sequence, the moment in microseconds since
 /// 2000-01-01 UTC, the author (a marker and the person, when there is one), whether the author is the system, the kind, the item, the step and the reason
-/// (each text with its length in four bytes in front), the event corrected (a marker and the sequence, when there is one) and who recorded. Numbers are big-endian.
+/// (each text with its length in four bytes in front), the event corrected (a marker and the sequence, when there is one), who recorded and, when there is one, the reference
+/// (a marker and the text). Numbers are big-endian.
 /// </summary>
 internal static class ChainDigest
 {
@@ -36,6 +37,7 @@ internal static class ChainDigest
         AppendText(hash, stored.Reason);
         AppendOptional(hash, stored.Corrects);
         AppendText(hash, stored.RecordedBy);
+        AppendOptionalText(hash, stored.Reference);
         return hash.GetHashAndReset();
     }
 
@@ -56,6 +58,17 @@ internal static class ChainDigest
 
         hash.AppendData([Present]);
         AppendNumber(hash, value.Value);
+    }
+
+    private static void AppendOptionalText(IncrementalHash hash, string? text)
+    {
+        if (text is null)
+        {
+            return;
+        }
+
+        hash.AppendData("\u0001"u8);
+        AppendText(hash, text);
     }
 
     private static void AppendText(IncrementalHash hash, string text)

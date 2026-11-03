@@ -29,4 +29,10 @@ public enum CustodyStep
 
     /// <summary>The chain was verified end to end; the reason says whether it held.</summary>
     VerifyChain,
+
+    /// <summary>An item of the content was emptied, with the map that reverses its pseudonyms; the reason says why it was asked for.</summary>
+    ItemEmptied,
+
+    /// <summary>The emptying of an item was refused; the reason says why, and the item stays as it was.</summary>
+    ItemEmptyingRefused,
 }

@@ -79,7 +79,7 @@ public sealed class OwnerWindowTests
     {
         await using var database = await ScratchDatabase.CreateAsync();
         var steps = EmbeddedMigrations.Load();
-        var older = steps.Where(step => step.Name != OwnerWindowStep).ToList();
+        var older = steps.TakeWhile(step => step.Name != OwnerWindowStep).ToList();
         _ = await database.MigrateAsync(older);
         await database.RunAsOwnerAsync(
             "INSERT INTO public.custody_event (actor_system, item_kind, item_id, step, reason) VALUES (true, 'custody_chain', 0, 'verify_chain', 'verification_passed')");

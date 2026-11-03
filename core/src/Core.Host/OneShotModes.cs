@@ -1,5 +1,5 @@
 using Core.Host.Domains;
-using Core.Host.People;
+using Core.Host.Operators;
 using Core.Host.Rotation;
 
 namespace Core.Host;
@@ -15,9 +15,9 @@ internal static class OneShotModes
             return EpochRotationMode.RunAsync(args, Console.Out, Console.Error);
         }
 
-        if (PersonCreationMode.Requested(args))
+        if (FirstOperatorMode.Requested(args))
         {
-            return PersonCreationMode.RunAsync(args, Console.In, Console.Out, Console.Error);
+            return FirstOperatorMode.RunAsync(args, Console.In, Console.Out, Console.Error);
         }
 
         return DomainCreationMode.Requested(args) ? DomainCreationMode.RunAsync(args, Console.Out, Console.Error) : null;

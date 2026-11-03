@@ -1,15 +1,15 @@
-using Core.Host.People;
+using Core.Host.Operators;
 using Core.Persistence.People;
 using Core.Platform.Startup;
 using Npgsql;
 
-namespace Core.Host.Tests.People;
+namespace Core.Host.Tests.Operators;
 
 /// <summary>
 /// The create-person mode (issue 65) is asked for by the first argument alone, takes the name and the function once each and never a password, refuses a field it does not accept
 /// before touching the database, and never prints the credential, the name or the password.
 /// </summary>
-public sealed class PersonCreationModeTests
+public sealed class FirstOperatorModeTests
 {
     private const string Unreachable = "Host=127.0.0.1;Port=1;Username=u;Password=ZQX-never-printed-7731;Database=d;Timeout=2;Pooling=false";
     private const string Password = "ZQX-password-never-printed-4408";
@@ -25,7 +25,7 @@ public sealed class PersonCreationModeTests
     {
         ArgumentNullException.ThrowIfNull(line);
 
-        Assert.Equal(requested, PersonCreationMode.Requested(line.Split(' ', StringSplitOptions.RemoveEmptyEntries)));
+        Assert.Equal(requested, FirstOperatorMode.Requested(line.Split(' ', StringSplitOptions.RemoveEmptyEntries)));
     }
 
     [Theory]
@@ -39,7 +39,7 @@ public sealed class PersonCreationModeTests
     {
         ArgumentNullException.ThrowIfNull(line);
 
-        var asked = PersonCreationArguments.Split(line.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+        var asked = FirstOperatorArguments.Split(line.Split(' ', StringSplitOptions.RemoveEmptyEntries));
 
         Assert.Equal((name, function, rest), (asked.Name, asked.Function, string.Join(' ', asked.Remaining)));
     }
@@ -51,7 +51,7 @@ public sealed class PersonCreationModeTests
     {
         var args = new[] { "create-person", "--name", "zqx-a", option, value }.Where(argument => argument.Length > 0).ToArray();
 
-        var asked = PersonCreationArguments.Split(args);
+        var asked = FirstOperatorArguments.Split(args);
 
         Assert.Equal((true, string.Empty), (asked.PasswordOffered, string.Join(' ', asked.Remaining)));
     }
@@ -65,7 +65,7 @@ public sealed class PersonCreationModeTests
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        var launch = await PersonCreationMode.RunAsync(["create-person", "--name", Name, "--function", "Auditoria", option, Password], input, output, error);
+        var launch = await FirstOperatorMode.RunAsync(["create-person", "--name", Name, "--function", "Auditoria", option, Password], input, output, error);
 
         Assert.Equal((ExitCode.ConfigurationRefused, string.Empty), (await launch.RunAsync(), output.ToString()));
         Assert.Contains("entrada padrão", error.ToString(), StringComparison.Ordinal);
@@ -84,7 +84,7 @@ public sealed class PersonCreationModeTests
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        var exit = await PersonCreationMode.CreateAsync(dataSource, new PasswordDerivation(1), new FirstPerson(name, function, Password), new PersonCreationMode.Words(output, error));
+        var exit = await FirstOperatorMode.CreateAsync(dataSource, new PasswordDerivation(1), new FirstOperator(name, function, Password), new FirstOperatorMode.Words(output, error));
 
         Assert.Equal((ExitCode.PersonCreationRefused, string.Empty), (exit, output.ToString()));
         Assert.Contains($"o campo '{field}'", error.ToString(), StringComparison.Ordinal);
@@ -98,7 +98,7 @@ public sealed class PersonCreationModeTests
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        var exit = await PersonCreationMode.CreateAsync(dataSource, new PasswordDerivation(1), new FirstPerson(Name, "Auditoria", string.Empty), new PersonCreationMode.Words(output, error));
+        var exit = await FirstOperatorMode.CreateAsync(dataSource, new PasswordDerivation(1), new FirstOperator(Name, "Auditoria", string.Empty), new FirstOperatorMode.Words(output, error));
 
         Assert.Equal(ExitCode.PersonCreationRefused, exit);
         Assert.Contains("o campo 'senha'", error.ToString(), StringComparison.Ordinal);
@@ -111,7 +111,7 @@ public sealed class PersonCreationModeTests
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        _ = await PersonCreationMode.CreateAsync(dataSource, new PasswordDerivation(1), new FirstPerson(string.Empty, "x", string.Empty), new PersonCreationMode.Words(output, error));
+        _ = await FirstOperatorMode.CreateAsync(dataSource, new PasswordDerivation(1), new FirstOperator(string.Empty, "x", string.Empty), new FirstOperatorMode.Words(output, error));
 
         Assert.All(["'nome'", "'função'", "'senha'"], field => Assert.Contains(field, error.ToString(), StringComparison.Ordinal));
     }
@@ -123,7 +123,7 @@ public sealed class PersonCreationModeTests
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        var exit = await PersonCreationMode.CreateAsync(dataSource, new PasswordDerivation(1), new FirstPerson(Name, "Auditoria", Password), new PersonCreationMode.Words(output, error));
+        var exit = await FirstOperatorMode.CreateAsync(dataSource, new PasswordDerivation(1), new FirstOperator(Name, "Auditoria", Password), new FirstOperatorMode.Words(output, error));
 
         var words = error.ToString() + output;
         Assert.Equal(ExitCode.PersonCreationFailed, exit);
@@ -132,10 +132,10 @@ public sealed class PersonCreationModeTests
 
     [Fact]
     public void ThePasswordIsNotInTheTextFormOfWhatWasAsked() =>
-        Assert.DoesNotContain(Password, new FirstPerson(Name, "Auditoria", Password).ToString(), StringComparison.Ordinal);
+        Assert.DoesNotContain(Password, new FirstOperator(Name, "Auditoria", Password).ToString(), StringComparison.Ordinal);
 
     [Fact]
-    public void TheExitCodesOfTheFirstPersonAreDistinctFromEachOtherAndFromTheDomain() =>
+    public void TheExitCodesOfTheFirstOperatorAreDistinctFromEachOtherAndFromTheDomain() =>
         Assert.Equal(
             6,
             new[]

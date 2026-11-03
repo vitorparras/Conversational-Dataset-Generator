@@ -1,9 +1,9 @@
-namespace Core.Host.People;
+namespace Core.Host.Operators;
 
 /// <summary>What <c>create-person</c> was asked to make: the name, the function and the password from the standard input. It has no text form, so the password is never printed.</summary>
-internal sealed class FirstPerson
+internal sealed class FirstOperator
 {
-    internal FirstPerson(string name, string function, string password)
+    internal FirstOperator(string name, string function, string password)
     {
         Name = name;
         Function = function;
@@ -19,5 +19,5 @@ internal sealed class FirstPerson
     /// <summary>The identifier the person took once it was made; null until then.</summary>
     internal long? Id { get; set; }
 
-    public override string ToString() => nameof(FirstPerson);
+    public override string ToString() => nameof(FirstOperator);
 }

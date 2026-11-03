@@ -116,6 +116,44 @@ public sealed class PersonCreationProcessTests
         Assert.Equal(0L, await CountAsync(database, "public.person WHERE active"));
     }
 
+    [DatabaseFact]
+    public async Task Ca7APasswordTheServerRefusesAfterThePersonWasMadeLeavesThePersonWithoutPasswordNamesTheIdAndNeverPrintsThePassword()
+    {
+        await using var database = await MigratedAsync();
+        _ = await ScalarAsync(
+            database,
+            """
+            CREATE FUNCTION public.zqx_refuse_credential() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'zqx refused'; END $$;
+            CREATE TRIGGER zqx_refuse BEFORE INSERT ON public.person_credential FOR EACH ROW EXECUTE FUNCTION public.zqx_refuse_credential();
+            """);
+
+        var (exit, words) = await RunAsync(database.AppConnectionString, Arguments(Name, Function), Password);
+
+        var id = (long)(await ScalarAsync(database, "SELECT id FROM public.person"))!;
+        Assert.Equal((22, true), (exit, words.Contains($"a pessoa foi criada com o id {id} e a senha não foi definida", StringComparison.Ordinal)));
+        Assert.Equal((1L, 0L), (await CountAsync(database, "public.person"), await CountAsync(database, "public.person_credential")));
+        Assert.All([Password, Name], secret => Assert.DoesNotContain(secret, words, StringComparison.Ordinal));
+    }
+
+    [DatabaseFact]
+    public async Task Ca8APasswordThatTheRegistryDoesNotStoreAfterThePersonWasMadeFailsWithItsCodeNamingTheId()
+    {
+        await using var database = await MigratedAsync();
+        _ = await ScalarAsync(
+            database,
+            """
+            CREATE FUNCTION public.zqx_skip_credential() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RETURN NULL; END $$;
+            CREATE TRIGGER zqx_skip BEFORE INSERT ON public.person_credential FOR EACH ROW EXECUTE FUNCTION public.zqx_skip_credential();
+            """);
+
+        var (exit, words) = await RunAsync(database.AppConnectionString, Arguments(Name, Function), Password);
+
+        var id = (long)(await ScalarAsync(database, "SELECT id FROM public.person"))!;
+        Assert.Equal((23, true), (exit, words.Contains($"a pessoa foi criada com o id {id} e a senha não foi definida", StringComparison.Ordinal)));
+        Assert.Equal(0L, await CountAsync(database, "public.person_credential"));
+        Assert.All([Password, Name], secret => Assert.DoesNotContain(secret, words, StringComparison.Ordinal));
+    }
+
     private static string[] Arguments(string name, string function) =>
     [
         "create-person",

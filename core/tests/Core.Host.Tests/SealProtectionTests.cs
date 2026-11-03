@@ -13,7 +13,9 @@ public sealed class SealProtectionTests
     {
         var words = SealProtection.Of(SealSituation.External, null);
 
-        Assert.All(["base substituída", "remoção do fim", "Não protege contra quem controla também esse destino"], part => Assert.Contains(part, words, StringComparison.Ordinal));
+        Assert.All(
+            ["base substituída", "remoção do fim", "Não protege contra quem controla também esse destino", "declaração da instalação"],
+            part => Assert.Contains(part, words, StringComparison.Ordinal));
     }
 
     [Fact]
@@ -21,7 +23,7 @@ public sealed class SealProtectionTests
     {
         var words = SealProtection.Of(SealSituation.Internal, Moment);
 
-        Assert.All(["restauração equivocada", "só o banco", "Não protege contra quem controla a rede"], part => Assert.Contains(part, words, StringComparison.Ordinal));
+        Assert.All(["restauração equivocada", "só o banco", "Não protege contra quem controla a rede", "declaração da instalação"], part => Assert.Contains(part, words, StringComparison.Ordinal));
     }
 
     [Fact]
@@ -29,7 +31,8 @@ public sealed class SealProtectionTests
     {
         var words = SealProtection.Of(SealSituation.Manual, Moment);
 
-        Assert.All(["coerência", "e não a sua integridade", "2031-03-04T08:06:07Z", "não foi conferido"], part => Assert.Contains(part, words, StringComparison.Ordinal));
+        Assert.All(["Até o último selo, em 2031-03-04T08:06:07Z", "Desde essa data", "só a coerência dos elos", "e não a integridade"], part => Assert.Contains(part, words, StringComparison.Ordinal));
+        Assert.DoesNotContain("não foi conferido", words, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -37,7 +40,7 @@ public sealed class SealProtectionTests
     {
         var words = SealProtection.Of(SealSituation.Manual, Moment.AddTicks(1_234_567));
 
-        Assert.Contains("2031-03-04T08:06:07Z;", words, StringComparison.Ordinal);
+        Assert.Contains("2031-03-04T08:06:07Z,", words, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -47,6 +50,18 @@ public sealed class SealProtectionTests
 
         Assert.All(["Nenhum selo foi registrado ainda", "não atesta integridade"], part => Assert.Contains(part, words, StringComparison.Ordinal));
     }
+
+    [Fact]
+    public void ExternalAndInternalSituationsSayTheCoreDoesNotCheckTheDestinationAndThatItIsTheInstallationsDeclaration()
+    {
+        var words = new[] { SealSituation.External, SealSituation.Internal }.Select(situation => SealProtection.Of(situation, null));
+
+        Assert.All(words, text => Assert.Contains("O núcleo não confere se o destino está fora do controle da base", text, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ManualSituationDoesNotSayTheLinksSinceTheSealWereNotChecked() =>
+        Assert.DoesNotContain("não foi conferido", SealProtection.Of(SealSituation.Manual, Moment), StringComparison.Ordinal);
 
     [Fact]
     public void NoSituationAffirmsIntegrityWithoutQualifyingIt()

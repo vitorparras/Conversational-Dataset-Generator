@@ -25,8 +25,9 @@ internal sealed class ChainVerificationService : BackgroundService
         : this(verifier is null ? null : verifier.VerifyAsync, host.GetRequiredService<VerificationSchedule>(), host.GetRequiredService<TimeProvider>(), host.GetRequiredService<ILoggerFactory>())
     {
         Verifier = verifier;
-        Reader = DataSourceOf(host) is { } source ? new RecordedVerificationReader(source) : null;
-        SealReader = DataSourceOf(host) is { } sealSource ? new RecordedSealReader(sealSource) : null;
+        var source = DataSourceOf(host);
+        Reader = source is null ? null : new RecordedVerificationReader(source);
+        SealReader = source is null ? null : new RecordedSealReader(source);
     }
 
     /// <summary>The service over the verification it is given, with the clock and the log of its caller.</summary>

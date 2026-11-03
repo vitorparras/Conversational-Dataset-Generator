@@ -14,12 +14,21 @@ namespace Core.Persistence.Domains;
 public sealed class DomainLabelRotation
 {
     private readonly NpgsqlDataSource dataSource;
+    private readonly Func<CustodyScope, CustodyEvent, CancellationToken, Task<CustodyResult>> append;
 
     /// <summary>The rotation writes through the data source built with the credential of the owner, which is the one allowed to add a label.</summary>
     public DomainLabelRotation(NpgsqlDataSource dataSource)
+        : this(dataSource, CustodyAppend.AppendAsync)
+    {
+    }
+
+    /// <summary>The rotation with the way of adding the event given, so that a test can make the chain answer as it does when another writer was first.</summary>
+    internal DomainLabelRotation(NpgsqlDataSource dataSource, Func<CustodyScope, CustodyEvent, CancellationToken, Task<CustodyResult>> append)
     {
         ArgumentNullException.ThrowIfNull(dataSource);
+        ArgumentNullException.ThrowIfNull(append);
         this.dataSource = dataSource;
+        this.append = append;
     }
 
     /// <summary>The labels of derivation a domain takes in the generation given, one for each purpose, in the order of the purposes.</summary>
@@ -48,7 +57,7 @@ public sealed class DomainLabelRotation
         return answer.Result ?? new DomainLabelResult { Outcome = DomainLabelOutcome.Conflict };
     }
 
-    private static async Task<CustodyResult?> RotateInScopeAsync(CustodyScope scope, (int Domain, DerivationLabels Custody) request, Answer answer, CancellationToken cancellationToken)
+    private async Task<CustodyResult?> RotateInScopeAsync(CustodyScope scope, (int Domain, DerivationLabels Custody) request, Answer answer, CancellationToken cancellationToken)
     {
         var newest = await DomainLabelQueries.NewestVersionAsync(scope, request.Domain, cancellationToken).ConfigureAwait(false);
         if (newest == 0)
@@ -71,7 +80,7 @@ public sealed class DomainLabelRotation
     }
 
     /// <summary>Writes the labels and then the event, and commits only if the chain took the event.</summary>
-    private static async Task<CustodyResult?> WriteAsync(CustodyScope scope, Change change, Answer answer, CancellationToken cancellationToken)
+    private async Task<CustodyResult?> WriteAsync(CustodyScope scope, Change change, Answer answer, CancellationToken cancellationToken)
     {
         try
         {
@@ -85,7 +94,7 @@ public sealed class DomainLabelRotation
             return null;
         }
 
-        var chain = await CustodyAppend.AppendAsync(scope, change.Pending, cancellationToken).ConfigureAwait(false);
+        var chain = await append(scope, change.Pending, cancellationToken).ConfigureAwait(false);
         if (chain.Outcome != CustodyOutcome.Appended)
         {
             var outcome = chain.Outcome == CustodyOutcome.Conflict ? DomainLabelOutcome.Conflict : DomainLabelOutcome.ChainRefused;

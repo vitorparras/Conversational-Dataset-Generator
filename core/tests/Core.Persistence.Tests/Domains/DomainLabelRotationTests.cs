@@ -1,3 +1,5 @@
+using Core.Persistence.Custody;
+using Core.Persistence.Custody.Chain;
 using Core.Persistence.Custody.Verification;
 using Core.Persistence.Domains;
 using Core.Persistence.Migrations;
@@ -129,6 +131,84 @@ public sealed class DomainLabelRotationTests
         Assert.InRange(rotated, 1, 2);
         Assert.Equal(2L + (2 * rotated), await world.CountAsync("SELECT count(*) FROM public.derivation_label WHERE label LIKE '%/1/v%'"));
         Assert.Equal(rotated, await world.CountAsync("SELECT count(*) FROM public.custody_event WHERE step = 'domain_label_rotated'"));
+    }
+
+    [DatabaseFact]
+    public async Task Ca4aALabelThatAnotherRotationWroteFirstIsAConflictAndNothingOfThisOneIsKept()
+    {
+        await using var world = await World.CreateAsync();
+        await TakeTheLabelAsync(world, "unique_violation");
+
+        var result = await world.Rotation.RotateAsync(1, DerivationLabels.Of(AllOfBoth), TestContext.Current.CancellationToken);
+
+        Assert.Equal(DomainLabelOutcome.Conflict, result.Outcome);
+        Assert.Equal((4L, 2L), (await world.CountAsync(Labels), await world.CountAsync(Events)));
+    }
+
+    [DatabaseFact]
+    public async Task Ca4bAFailureOfTheLabelThatIsNotAClashIsNotTakenForAConflict()
+    {
+        await using var world = await World.CreateAsync();
+        await TakeTheLabelAsync(world, "raise_exception");
+
+        _ = await Assert.ThrowsAnyAsync<Exception>(() => world.Rotation.RotateAsync(1, DerivationLabels.Of(AllOfBoth), TestContext.Current.CancellationToken));
+
+        Assert.Equal((4L, 2L), (await world.CountAsync(Labels), await world.CountAsync(Events)));
+    }
+
+    [DatabaseFact]
+    public async Task Ca4cAChainThatRefusesTheEventLeavesNoLabelAndTheRefusalIsTheChains()
+    {
+        await using var world = await World.CreateAsync();
+        var failed = CustodyEvent.Verification(eventsRead: 1, firstInconsistent: 1);
+        Assert.Equal(CustodyOutcome.Appended, (await new CustodyChain(world.DataSource).AppendAsync(failed, TestContext.Current.CancellationToken)).Outcome);
+
+        var result = await world.Rotation.RotateAsync(1, DerivationLabels.Of(AllOfBoth), TestContext.Current.CancellationToken);
+
+        Assert.Equal((DomainLabelOutcome.ChainRefused, 4L), (result.Outcome, await world.CountAsync(Labels)));
+    }
+
+    [DatabaseFact]
+    public async Task Ca4dAWriterThatMetAnotherAtTheSameLinkOfTheChainIsAConflictAndLeavesNoLabel()
+    {
+        await using var world = await World.CreateAsync();
+        var meeting = new DomainLabelRotation(world.DataSource, (_, _, _) => Task.FromResult(new CustodyResult { Outcome = CustodyOutcome.Conflict }));
+
+        var result = await meeting.RotateAsync(1, DerivationLabels.Of(AllOfBoth), TestContext.Current.CancellationToken);
+
+        Assert.Equal((DomainLabelOutcome.Conflict, 4L), (result.Outcome, await world.CountAsync(Labels)));
+    }
+
+    [Fact]
+    public async Task TheRotationNeedsItsDataSourceItsWayOfAddingAndTheLabelsOfTheCustody()
+    {
+        await using var source = NpgsqlDataSource.Create("Host=zqx-never-connected");
+        var rotation = new DomainLabelRotation(source);
+
+        Assert.Equal(
+            ["dataSource", "dataSource", "append", "custody"],
+            [
+                Assert.Throws<ArgumentNullException>(() => new DomainLabelRotation(null!)).ParamName,
+                Assert.Throws<ArgumentNullException>(() => new DomainLabelRotation(null!, (_, _, _) => throw new TimeoutException())).ParamName,
+                Assert.Throws<ArgumentNullException>(() => new DomainLabelRotation(source, null!)).ParamName,
+                (await Assert.ThrowsAsync<ArgumentNullException>(() => rotation.RotateAsync(1, null!, TestContext.Current.CancellationToken))).ParamName,
+            ]);
+    }
+
+    [Fact]
+    public void TheLabelsOfAGenerationAreOneForEachPurposeInTheOrderOfThePurposes() =>
+        Assert.Equal(["texto-bruto/7/v3", "mapa-reversao/7/v3"], DomainLabelRotation.LabelsOf(7, 3));
+
+    [Fact]
+    public async Task TheRegisterOfLabelsIsReadOnlyFromADataSource() =>
+        Assert.Equal("dataSource", (await Assert.ThrowsAsync<ArgumentNullException>(() => RegisteredLabels.ReadAsync(null!, TestContext.Current.CancellationToken))).ParamName);
+
+    /// <summary>Makes the registration of one label fail with the error given, as it does for the rotation that came second.</summary>
+    private static async Task TakeTheLabelAsync(World world, string errorCode)
+    {
+        await world.Database.RunAsOwnerAsync("CREATE FUNCTION public.zqx_taken() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'zqx' USING ERRCODE = '" + errorCode + "'; END $$");
+        await world.Database.RunAsOwnerAsync(
+            "CREATE TRIGGER zqx_taken BEFORE INSERT ON public.derivation_label FOR EACH ROW WHEN (NEW.label = 'mapa-reversao/1/v2') EXECUTE FUNCTION public.zqx_taken()");
     }
 
     private sealed class World : IAsyncDisposable

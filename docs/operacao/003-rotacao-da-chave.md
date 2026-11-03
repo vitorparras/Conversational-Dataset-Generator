@@ -33,8 +33,9 @@ rótulo antigo e grava sob o novo, item por item, deixando rastro de quantos ite
 acrescente ao arquivo de rótulos os dois da geração nova (`texto-bruto/<id>/v<n>` e
 `mapa-reversao/<id>/v<n>`): o comando confere, não cria. O já cifrado segue legível pelo rótulo
 que carrega; o gravado depois só usa o novo quando o núcleo lê os rótulos registrados, ao subir:
-reinicie o núcleo. Nada é recifrado. A cadeia registra quem, quando, o domínio e a geração
-(`domain_label_rotated`). Saída 0: feito. 17: rótulo ausente, nomeado. 24: recusa. 25: banco mudo.
+reinicie o núcleo. Nada é recifrado. A cadeia registra quem, quando, o domínio e a geração, no
+passo de rotação do rótulo. Saída 0: feito. 17: rótulo ausente, nomeado. 24: recusa. 25: banco
+mudo.
 
 ## Rótulo não se descarta
 

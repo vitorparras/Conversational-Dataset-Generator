@@ -14,17 +14,22 @@ public static class RegisteredLabels
 
     private static async Task<IReadOnlySet<string>> ReadAllAsync(NpgsqlDataSource dataSource, CancellationToken cancellationToken)
     {
-        var registered = new HashSet<string>(StringComparer.Ordinal);
         var command = dataSource.CreateCommand("SELECT label FROM public.derivation_label");
         await using (command.ConfigureAwait(false))
         {
-            var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-            await using (reader.ConfigureAwait(false))
+            return await TextsOfAsync(command, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static async Task<IReadOnlySet<string>> TextsOfAsync(NpgsqlCommand command, CancellationToken cancellationToken)
+    {
+        var registered = new HashSet<string>(StringComparer.Ordinal);
+        var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        await using (reader.ConfigureAwait(false))
+        {
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
             {
-                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-                {
-                    _ = registered.Add(reader.GetString(0));
-                }
+                _ = registered.Add(reader.GetString(0));
             }
         }
 

@@ -26,8 +26,8 @@ public static class ContentQueries
     /// <summary>Adds the map that reverses the pseudonyms of an item.</summary>
     internal const string InsertReversalMap = "INSERT INTO content.reversal_map (domain_id, item_id, entries) VALUES (@domain, @item, @entries) RETURNING id";
 
-    /// <summary>Whether an item of the domain was emptied; no row when the domain holds no such item.</summary>
-    internal const string ReadItemEmptied = "SELECT emptied_at IS NOT NULL FROM content.item_text WHERE id = @id";
+    /// <summary>The row of an item of the domain that was emptied, none when it was not; asked of the table of the items emptied, so that the audit sees no read of a text.</summary>
+    internal const string ReadItemEmptied = "SELECT true FROM content.item_emptied WHERE item_id = @id";
 
     /// <summary>Empties an item: the marker is set and every column of content is cleared, in one statement; an item emptied already is left as it is.</summary>
     internal const string EmptyItemText =

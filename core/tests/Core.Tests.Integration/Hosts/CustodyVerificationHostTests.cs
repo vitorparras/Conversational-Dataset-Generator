@@ -75,20 +75,22 @@ public sealed class CustodyVerificationHostTests
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         await using var host = await AuthenticatedHost.StartAsync(new HostSetup { Arguments = [OneSecond], WithLogFile = true }, cancellationToken);
-        var first = await UntilAsync(host, body => body.GetProperty("last").ValueKind == JsonValueKind.Object, cancellationToken);
-        var stoppedAt = first.GetProperty("last").GetProperty("recordedAt").GetDateTimeOffset();
+        _ = await UntilAsync(host, body => body.GetProperty("last").ValueKind == JsonValueKind.Object, cancellationToken);
 
         await host.RunAsSuperuserAsync(
             "CREATE FUNCTION public.zqx_refuse() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'zqx'; END $$; "
             + "CREATE TRIGGER zqx_refuse BEFORE INSERT ON public.custody_event FOR EACH ROW EXECUTE FUNCTION public.zqx_refuse()",
             cancellationToken);
         var late = await UntilAsync(host, body => body.GetProperty("overdue").GetBoolean(), cancellationToken);
+        var stoppedAt = late.GetProperty("last").GetProperty("recordedAt").GetDateTimeOffset();
         await LogHasAsync(host, "não chegou ao fim: InvalidOperationException", cancellationToken);
         using var alive = await host.GetAsync("/status", cancellationToken);
+        var stillLate = await UntilAsync(host, _ => true, cancellationToken);
         await host.RunAsSuperuserAsync("DROP TRIGGER zqx_refuse ON public.custody_event; DROP FUNCTION public.zqx_refuse()", cancellationToken);
         var caughtUp = await UntilAsync(host, body => body.GetProperty("last").GetProperty("recordedAt").GetDateTimeOffset() > stoppedAt, cancellationToken);
 
-        Assert.Equal(stoppedAt, late.GetProperty("last").GetProperty("recordedAt").GetDateTimeOffset());
+        Assert.Equal(stoppedAt, stillLate.GetProperty("last").GetProperty("recordedAt").GetDateTimeOffset());
+        Assert.True(stillLate.GetProperty("overdue").GetBoolean());
         Assert.Equal(HttpStatusCode.OK, alive.StatusCode);
         Assert.True(caughtUp.GetProperty("last").GetProperty("passed").GetBoolean());
     }

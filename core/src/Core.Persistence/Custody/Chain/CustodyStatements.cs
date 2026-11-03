@@ -36,7 +36,6 @@ internal static class CustodyStatements
         LIMIT 1
         """;
 
-    /// <summary>The last opening of the window of the owner credential, when it is still open: not closed, or whose last closing failed.</summary>
     internal const string ReadOpenOwnerWindow = """
         SELECT o.sequence, o.occurred_at, o.reference, l.reason = 'verification_failed' AS closing_failed
         FROM (SELECT step, reason FROM public.custody_event WHERE step IN ('owner_window_opened', 'owner_window_closed') ORDER BY sequence DESC LIMIT 1) l

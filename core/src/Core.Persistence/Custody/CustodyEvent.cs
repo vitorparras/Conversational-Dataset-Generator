@@ -72,11 +72,9 @@ public sealed record CustodyEvent
 
     private static bool IsVerification(CustodyStep step) => step is CustodyStep.VerifyChain or CustodyStep.VerifyGuarantees or CustodyStep.OwnerWindowOpened or CustodyStep.OwnerWindowClosed;
 
-    /// <summary>The opening of the window of the owner credential, by the system: the item is the chain and its id the version the migration reaches; the reference says what it is for.</summary>
     internal static CustodyEvent OwnerWindowOpened(int to, string reference) =>
         new(CustodyAuthor.System, new CustodyItem(CustodyItemKind.CustodyChain, to), CustodyStep.OwnerWindowOpened, CustodyReason.AdministrativeAct) { Reference = reference };
 
-    /// <summary>The closing of the window, by the system: the item is the chain and its id the mask of the guarantees missing, zero when every one held.</summary>
     internal static CustodyEvent OwnerWindowClosed(long missing, string reference)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(missing);

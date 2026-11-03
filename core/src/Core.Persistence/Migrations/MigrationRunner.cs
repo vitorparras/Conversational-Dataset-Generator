@@ -137,28 +137,16 @@ public sealed class MigrationRunner
             }
         }
 
-        return new MigrationResult
-        {
-            Outcome = MigrationOutcome.Applied,
-            Found = found,
-            Expected = comparison.Expected,
-            Applied = applied,
-            OwnerWindow = window?.Opening ?? OwnerWindowOpening.None,
-        };
+        return new MigrationResult { Outcome = MigrationOutcome.Applied, Found = found, Expected = comparison.Expected, Applied = applied, OwnerWindow = window?.Opening ?? OwnerWindowOpening.None };
     }
 
     private static async Task<MigrationResult> FailedAsync(NpgsqlConnection connection, MigrationStep step, NpgsqlException exception, CancellationToken cancellationToken)
     {
         var sqlState = (exception as PostgresException)?.SqlState;
-        return new MigrationResult
-        {
-            Outcome = MigrationOutcome.StepFailed,
-            Step = step.Name,
-            SqlState = sqlState,
-            FailureRecorded = await FailureRegistry.TryRecordAsync(connection, step, sqlState, cancellationToken).ConfigureAwait(false),
-        };
+        var recorded = await FailureRegistry.TryRecordAsync(connection, step, sqlState, cancellationToken).ConfigureAwait(false);
+        return new MigrationResult { Outcome = MigrationOutcome.StepFailed, Step = step.Name, SqlState = sqlState, FailureRecorded = recorded };
     }
 
     private static MigrationResult WindowRefused(SchemaComparison comparison, List<string> applied) =>
-        new() { Outcome = MigrationOutcome.StepFailed, Found = comparison.Found, Expected = comparison.Expected, Step = OwnerWindow.StepName, Applied = applied };
+        new() { Outcome = MigrationOutcome.StepFailed, Found = comparison.Found, Expected = comparison.Expected, Step = OwnerWindow.StepName, SqlState = Custody.Chain.CustodyStatements.ChainBrokenSqlState, Applied = applied };
 }

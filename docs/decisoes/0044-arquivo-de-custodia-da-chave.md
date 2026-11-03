@@ -1,6 +1,7 @@
 # 0044 — A chave chega por arquivo de custódia
 
-> Decisão vigente. 2026-10-30, decisões D1, D2 e D3 do dono na issue #53.
+> Decisão vigente. 2026-10-30, decisões D1, D2 e D3 do dono na issue #53. Emendada em 2026-11-01
+> pela [0049](0049-chave-por-item-e-epoca.md): o terceiro arquivo.
 
 ## Contexto
 
@@ -11,11 +12,14 @@ custódia que não consegue verificar.
 
 ## Decisão
 
-**A chave e os rótulos vêm de dois arquivos, e a configuração leva os caminhos, nunca a chave.**
+**A chave, os rótulos e as épocas vêm de três arquivos, e a configuração leva os caminhos, não a
+chave.**
 
 - `MasterKey:File` aponta o arquivo da chave: uma linha com 32 bytes em base64, com ou sem quebra
-  no fim. `MasterKey:LabelsFile` aponta o dos rótulos: UTF-8 sem BOM, um rótulo por linha. Os
-  dois são obrigatórios ao servir, sem valor padrão, e o `migrate` não os exige.
+  no fim. `MasterKey:LabelsFile` aponta o dos rótulos: UTF-8 sem BOM, um rótulo por linha.
+  `MasterKey:EpochsFile` aponta o das épocas: uma por linha, `<n>:<base64 de 32 bytes>`, com `n`
+  inteiro positivo e único. Os três são obrigatórios ao servir, sem valor padrão, e o `migrate`
+  não os exige. O terceiro segue as regras de lugar e de permissão dos outros dois.
 - Os arquivos ficam fora da pasta do artefato, e o núcleo recusa o que estiver dentro dela, também
   por ligação de pasta. Ficar longe do diretório do banco é exigência de operação, porque o núcleo
   não enxerga o disco do servidor ([001](../operacao/001-ambiente.md)).
@@ -33,7 +37,7 @@ custódia que não consegue verificar.
   o ambiente, e ela apareceria na leitura do ambiente do processo.
 - **Cofre do sistema operacional.** Traz uma dependência diferente em cada plataforma nesta fase.
 - **Um arquivo só, com chave e rótulos.** Foi a recomendação inicial; o dono escolheu dois
-  arquivos.
+  arquivos, e a época, que se destrói todo mês, ganhou o terceiro.
 
 ## Consequências
 

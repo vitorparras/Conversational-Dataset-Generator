@@ -1,5 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Core.Persistence.Content;
+using Core.Persistence.Content.Reading;
+using Core.Persistence.Content.Writing;
 using Core.Persistence.Custody.Chain;
 using Core.Persistence.Migrations;
 using Core.Persistence.People;
@@ -71,6 +73,9 @@ internal sealed class FidelityWorld : IAsyncDisposable
 
     /// <summary>The first column of the query, read as the owner.</summary>
     public Task<IReadOnlyList<string>> OwnerColumnAsync(string query) => database.FirstColumnAsOwnerAsync(query);
+
+    /// <summary>Makes the first person the curator of the collection, as the owner would; the owner is not the role the comparison looks at.</summary>
+    public Task MakeCuratorAsync() => database.RunAsOwnerAsync("UPDATE public.person SET function_name = '" + PersonFunctions.Curation + "' WHERE name = 'zqx-active'");
 
     /// <summary>The store of passwords, writing as the application's role and deriving with the work factor given.</summary>
     public PersonCredentials Credentials(int workFactor) => new(DataSource, new PasswordDerivation(workFactor));

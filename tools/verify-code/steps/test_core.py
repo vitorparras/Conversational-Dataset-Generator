@@ -29,6 +29,7 @@ class TestRun:
     failed: int
     skipped: int
     skip_reasons: tuple[str, ...]
+    failures: tuple[str, ...] = ()
 
 
 def test_projects(solution: Path) -> tuple[str, ...]:
@@ -69,7 +70,25 @@ def read_trx(path: Path) -> TestRun:
         int(counters.get("failed", "0")),
         int(counters.get("notExecuted", "0")),
         tuple(sorted(reason for reason in reasons if reason)),
+        failed_tests(root),
     )
+
+
+def failed_tests(root: ElementTree.Element) -> tuple[str, ...]:
+    """Each failed test as `name: first line of its message`, in the order the report lists them."""
+    found: list[str] = []
+    for result in root.iter():
+        if not result.tag.endswith("}UnitTestResult") or result.get("outcome") != "Failed":
+            continue
+        message = (result.findtext("*/{*}ErrorInfo/{*}Message") or "").strip()
+        first_line = message.splitlines()[0].strip() if message else "sem mensagem"
+        found.append(f"{result.get('testName', '?')}: {first_line}")
+    return tuple(found)
+
+
+def describe_failures(runs: tuple[TestRun, ...]) -> tuple[str, ...]:
+    """One line per failed test: `  project: name: first line of its message`; none if green."""
+    return tuple(f"  {run.project}: {test}" for run in runs for test in run.failures)
 
 
 def describe_skips(run: TestRun) -> str:
@@ -101,7 +120,8 @@ def verdict(
         )
     failures = sum(run.failed for run in runs)
     if failures > 0:
-        return failed(NAME, f"{failures} teste(s) do núcleo falharam", *tail(dotnet.text))
+        named = describe_failures(runs)
+        return failed(NAME, f"{failures} teste(s) do núcleo falharam", *named, *tail(dotnet.text))
     if not dotnet.ok:
         return failed(
             NAME, "`dotnet test` terminou com erro sem teste reprovado", *tail(dotnet.text)

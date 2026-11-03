@@ -215,6 +215,7 @@ internal sealed class AuthenticatedHost : IAsyncDisposable
             ["Audit:CompareInterval"] = "01:00:00",
             ["MasterKey:File"] = CustodyFiles.Shared.KeyPath,
             ["MasterKey:LabelsFile"] = CustodyFiles.Shared.LabelsPath,
+            ["MasterKey:EpochsFile"] = CustodyFiles.Shared.EpochsPath,
         };
         if (setup.RealService)
         {

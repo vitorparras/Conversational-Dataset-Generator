@@ -45,7 +45,7 @@ public sealed class ServerChecksRegistrationTests
             ?? throw new InvalidOperationException("CompositionRoot.AddServerGuarantees was not found; the registration test must follow it.");
         var services = new ServiceCollection();
         _ = services.AddSingleton(TimeProvider.System);
-        _ = services.AddSingleton<IMasterKeySource>(new FileMasterKeySource("zqx-never-read-7731", "zqx-never-read-7732", AppContext.BaseDirectory));
+        _ = services.AddSingleton<IMasterKeySource>(new FileMasterKeySource("zqx-never-read-7731", "zqx-never-read-7732", "zqx-never-read-7733", AppContext.BaseDirectory));
         _ = method.Invoke(null, [services, database]);
         return services.BuildServiceProvider();
     }

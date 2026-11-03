@@ -42,7 +42,11 @@ def problems(side: str, evidence: PropertyEvidence, outcome: CommandOutcome) -> 
             *tail(outcome.text),
         ]
     if evidence.failed > 0:
-        return [f"{side}: {evidence.failed} propriedade(s) falharam", *tail(outcome.text)]
+        return [
+            f"{side}: {evidence.failed} propriedade(s) falharam",
+            *evidence.failures,
+            *tail(outcome.text),
+        ]
     if not outcome.ok:
         return [
             f"{side}: o comando terminou com erro sem propriedade reprovada",

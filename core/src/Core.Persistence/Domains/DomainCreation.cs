@@ -2,6 +2,7 @@ using System.Data.Common;
 using System.Globalization;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
+using Core.Persistence.Custody.Chain.Append;
 using Core.Platform.Keys;
 using Npgsql;
 using NpgsqlTypes;
@@ -32,7 +33,7 @@ public sealed class DomainCreation
 
     /// <summary>The creation writes through the data source built with the credential of the owner, which is the one allowed to add a domain.</summary>
     public DomainCreation(NpgsqlDataSource dataSource)
-        : this(dataSource, CustodyTransaction.AppendAsync)
+        : this(dataSource, CustodyAppend.AppendAsync)
     {
     }
 

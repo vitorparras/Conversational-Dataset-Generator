@@ -22,7 +22,7 @@ public sealed class CustodyChainPropertyTests : IClassFixture<CustodyDatabase>
     {
         var people = new PlannedPeople(await database.PersonAsync(active: true), await database.PersonAsync(active: false));
         var runner = new PropertyRunner(Environment.GetEnvironmentVariable, Budget, TestContext.Current.SendDiagnosticMessage);
-        var invariants = new CustodyChainInvariants(runner, new ConcurrentWriters(await database.ChainAsync(), people), database.EventsAsync, people);
+        var invariants = new CustodyChainInvariants(runner, await ConcurrentWriters.PooledAsync(database, people), database.EventsAsync, people);
 
         invariants.NoLinkEndsWithTwoSuccessorsAndEveryAnswerIsTheChain();
     }

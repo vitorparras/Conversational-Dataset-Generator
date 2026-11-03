@@ -12,7 +12,7 @@ from pathlib import Path
 
 from steps.build_core import SOLUTION
 from steps.common import Context, StepResult, failed, passed, reset_directory, tail
-from steps.test_core import REAL_SERVICE_TRAIT, describe_skips, read_trx
+from steps.test_core import REAL_SERVICE_TRAIT, describe_failures, describe_skips, read_trx
 
 NAME = "test_real_service"
 RESULTS = "real-service"
@@ -59,7 +59,11 @@ def run(ctx: Context) -> StepResult:
         )
     if failures > 0:
         return failed(
-            NAME, f"{failures} teste(s) do serviço real falharam", *skips, *tail(outcome.text)
+            NAME,
+            f"{failures} teste(s) do serviço real falharam",
+            *describe_failures(runs),
+            *skips,
+            *tail(outcome.text),
         )
     if not outcome.ok:
         return failed(

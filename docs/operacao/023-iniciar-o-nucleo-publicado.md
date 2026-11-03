@@ -7,19 +7,19 @@ Depois de [021](021-subir-o-nucleo-publicado.md), [024](024-arquivos-de-custodia
 
 ## Iniciar
 
-Os valores são os do exemplo de 021 (banco, papel `app`, `demonstracao`), a trocar pelos do seu
-ambiente: `ITERACOES` é o fator das senhas, de 600000 a 10000000 com `Installation:Kind=real` e
-de 1 a 10000000 com `demonstracao` ([0047](../decisoes/0047-fator-de-trabalho-das-senhas.md));
-prazos: `Session:*`; log: `Audit:*`. Roda em segundo plano; a saída vai a `/tmp/nucleo.saida`:
+Valores de 021, a trocar: `ITERACOES` ([0047](../decisoes/0047-fator-de-trabalho-das-senhas.md)),
+fator das senhas, de 600000 a 10000000 com `Installation:Kind=real` e de 1 a 10000000 com
+`demonstracao`; `Session:*`, prazos; `Custody:VerificationInterval`, a cadeia; `Audit:*`, pasta,
+intervalo. Roda em segundo plano, sobrevive ao `docker exec`; saída em `/tmp/nucleo.saida`:
 
 ```
 : > /tmp/nucleo.saida
 cd /opt/cdg/nucleo
-( CDG_Database__Password="$(cat /tmp/senha-app)" CDG_Session__IdleTimeout=00:30:00 CDG_Session__AbsoluteTimeout=08:00:00 ./Core.Host --Host:Urls=https://127.0.0.1:5080 \
+( CDG_Database__Password="$(cat /tmp/senha-app)" CDG_Session__IdleTimeout=00:30:00 CDG_Session__AbsoluteTimeout=08:00:00 CDG_Custody__VerificationInterval=00:05:00 ./Core.Host --Host:Urls=https://127.0.0.1:5080 \
   --Installation:Kind=demonstracao --Passwords:WorkFactor=ITERACOES --MasterKey:File=/etc/cdg/custodia/chave \
   --MasterKey:LabelsFile=/etc/cdg/custodia/rotulos --Tls:CertificateFile=/etc/cdg/tls/certificado.pem \
   --Tls:KeyFile=/etc/cdg/tls/chave.pem --Database:Host=db:5432 --Database:Name=cdg \
-  --Database:Username=app --Audit:ServerLogDirectory=/var/log/postgresql > /tmp/nucleo.log 2>&1; echo $? > /tmp/nucleo.saida ) &
+  --Database:Username=app --Audit:ServerLogDirectory=/var/log/postgresql --Audit:CompareInterval=01:00:00 > /tmp/nucleo.log 2>&1; echo $? > /tmp/nucleo.saida ) &
 ```
 
 ## Esperar o núcleo ficar pronto

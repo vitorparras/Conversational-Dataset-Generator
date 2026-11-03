@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using Core.Persistence.Migrations;
-using Core.Platform.Logging;
 using Core.Platform.Startup;
 
 namespace Core.Host.Migration;
@@ -26,13 +25,4 @@ internal static class MigrationMode
         MigrationOutcome.NotConnected => ExitCode.MigrationNotConnected,
         _ => throw new UnreachableException(),
     };
-
-    /// <summary>Redacted console logging alone: the modes that migrate or rotate have no host, no file destination and no language service.</summary>
-    internal static ServiceProvider LoggingServices()
-    {
-        var services = new ServiceCollection();
-        _ = services.AddSingleton(TimeProvider.System).AddLogging(PlatformLogging.Configure);
-        _ = services.AddRedaction(PlatformLogging.EraseSensitiveData);
-        return services.BuildServiceProvider();
-    }
 }

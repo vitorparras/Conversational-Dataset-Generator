@@ -30,5 +30,6 @@ public static class AuditMap
     public static IReadOnlyDictionary<CustodyStep, string> StepsWithoutTable { get; } = new Dictionary<CustodyStep, string>
     {
         [CustodyStep.Correction] = "é o evento que corrige outro evento: grava só na cadeia e não altera tabela de domínio",
+        [CustodyStep.VerifyChain] = "o verificador só lê a cadeia (CustodyStatements.ReadChain) e grava o veredito nela: não toca tabela de domínio",
     };
 }

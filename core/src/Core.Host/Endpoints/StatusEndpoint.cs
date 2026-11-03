@@ -10,7 +10,7 @@ internal static class StatusEndpoint
     internal static void Map(IEndpointRouteBuilder endpoints, RecognizerKind recognizer) =>
         _ = endpoints.MapGet(
             Route,
-            ([AsParameters] StatusSources sources) => Describe(sources, recognizer));
+            ([AsParameters] StatusSources sources) => Describe(sources, recognizer)).WithMetadata(new SessionOpen());
 
     /// <summary>The fake asks no service, so the watch, which no start ever moves, says nothing about it.</summary>
     private static StatusResponse Describe(StatusSources sources, RecognizerKind recognizer)

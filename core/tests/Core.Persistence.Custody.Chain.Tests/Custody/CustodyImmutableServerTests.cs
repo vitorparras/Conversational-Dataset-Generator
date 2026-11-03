@@ -107,12 +107,15 @@ public sealed class CustodyImmutableServerTests : IClassFixture<CustodyDatabase>
         var kept = (await database.EventsAsync()).Single(row => row.Sequence == sequence);
         await database.RunAsOwnerAsync($"GRANT {Privileges} ON public.custody_event TO app");
         var tag = $"zqx-{Guid.NewGuid():N}";
+        var loggedBefore = await LoggedRefusalsAsync(operation);
 
         var refused = await RefusedAsync(await database.AppConnectionStringAsync(), operation, sequence, tag);
         var line = await LoggedAttemptAsync(tag);
+        var refusal = await LoggedRefusalAsync(operation, loggedBefore);
 
         AssertRefusal(refused, operation, sequence);
         Assert.Equal(before, await ChainAsync());
+        AssertRefusalLine(refusal, operation, kept);
         Assert.Contains(",\"app\",", line, StringComparison.Ordinal);
         Assert.Contains($",WRITE,{operation},", line, StringComparison.Ordinal);
         Assert.Contains("public.custody_event", line, StringComparison.Ordinal);
@@ -125,12 +128,12 @@ public sealed class CustodyImmutableServerTests : IClassFixture<CustodyDatabase>
     }
 
     /// <summary>
-    /// pgaudit logs a utility statement such as TRUNCATE after it ran, so a TRUNCATE the trigger refuses has no audit line; log_statement = mod
-    /// writes the text of the statement before it runs, so the attempt is in the log as that text, as the owner decided (#60), and no value of
-    /// the event is in it. The audited attempt that follows is in the log, which is written in order, so that the reading is of a log that has caught up.
+    /// pgaudit logs a utility statement such as TRUNCATE after it ran, so a TRUNCATE the trigger refuses is not in the audit log; the refusal is proved by the SQLSTATE and the chain left as it
+    /// was, and the attempt is in the log by the line the refusing function writes (#491), with the table, the operation and the role, and no value of the event.
+    /// The audited attempt that follows is in the log, which is written in order, so that the absence from the audit log is read from a log that has caught up.
     /// </summary>
     [DatabaseFact]
-    public async Task RefusedTruncateIsInTheLogAsTheTextOfTheStatementAndNotAsAnAuditLine()
+    public async Task RefusedTruncateIsNotInTheAuditLogButLeavesTheLineOfTheRefusalInTheServerLog()
     {
         var sequence = await AppendOneAsync();
         var before = await ChainAsync();
@@ -139,15 +142,19 @@ public sealed class CustodyImmutableServerTests : IClassFixture<CustodyDatabase>
         var tag = $"zqx-{Guid.NewGuid():N}";
         var lastTag = $"zqx-{Guid.NewGuid():N}";
         var connectionString = await database.AppConnectionStringAsync();
+        var loggedBefore = await LoggedRefusalsAsync("TRUNCATE");
 
         var refused = await RefusedAsync(connectionString, "TRUNCATE", sequence, tag);
         _ = await RefusedAsync(connectionString, "UPDATE", sequence, lastTag);
         _ = await LoggedAttemptAsync(lastTag);
+        var refusal = await LoggedRefusalAsync("TRUNCATE", loggedBefore);
 
         AssertRefusal(refused, "TRUNCATE", sequence);
         Assert.Equal(before, await ChainAsync());
+        AssertRefusalLine(refusal, "TRUNCATE", kept);
         var shared = await PostgresFixture.SharedAsync();
         var lines = (await shared.ServerLogAsync()).Split('\n').Where(line => line.Contains(tag, StringComparison.Ordinal)).ToArray();
+        Assert.Contains(tag, refusal, StringComparison.Ordinal);
         Assert.Contains(lines, line => line.Contains("TRUNCATE", StringComparison.Ordinal));
         Assert.DoesNotContain(lines, line => line.Contains("AUDIT: SESSION,", StringComparison.Ordinal));
         foreach (var value in ValuesOf(kept))
@@ -202,6 +209,50 @@ public sealed class CustodyImmutableServerTests : IClassFixture<CustodyDatabase>
 
             Assert.True(DateTimeOffset.UtcNow < deadline, $"The server log has no audit line for the statement tagged {tag} after 30 seconds.");
             await Task.Delay(TimeSpan.FromMilliseconds(250), TestContext.Current.CancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// The lines of the server log that the refusing function wrote for the operation, for the application's role and in this database: the database is the class's own, so no other test
+    /// writes into it. The line is a LOG, not an audit, and it stays when the transaction is rolled back.
+    /// </summary>
+    private async Task<IReadOnlyList<string>> LoggedRefusalsAsync(string operation)
+    {
+        var databaseName = new NpgsqlConnectionStringBuilder(await database.AppConnectionStringAsync()).Database;
+        var shared = await PostgresFixture.SharedAsync();
+        return
+        [
+            .. (await shared.ServerLogAsync()).Split('\n').Where(candidate =>
+                candidate.Contains($"\"public.custody_event: {operation} refused for the role app\"", StringComparison.Ordinal)
+                && candidate.Contains($",\"{databaseName}\",", StringComparison.Ordinal)),
+        ];
+    }
+
+    /// <summary>The line of the refusal the statement left, which is the only one that came after the ones counted; the log can lag the statement.</summary>
+    private async Task<string> LoggedRefusalAsync(string operation, IReadOnlyCollection<string> before)
+    {
+        var deadline = DateTimeOffset.UtcNow.AddSeconds(30);
+        while (true)
+        {
+            var lines = await LoggedRefusalsAsync(operation);
+            if (lines.Count > before.Count)
+            {
+                Assert.Equal(before.Count + 1, lines.Count);
+                return lines[^1];
+            }
+
+            Assert.True(DateTimeOffset.UtcNow < deadline, $"The server log has no line of the refusal of {operation} after 30 seconds.");
+            await Task.Delay(TimeSpan.FromMilliseconds(250), TestContext.Current.CancellationToken);
+        }
+    }
+
+    private static void AssertRefusalLine(string line, string operation, EventRow kept)
+    {
+        Assert.Contains(",LOG,", line, StringComparison.Ordinal);
+        Assert.Contains($"public.custody_event: {operation} refused for the role app", line, StringComparison.Ordinal);
+        foreach (var value in ValuesOf(kept))
+        {
+            Assert.DoesNotContain(value, line, StringComparison.OrdinalIgnoreCase);
         }
     }
 

@@ -23,8 +23,9 @@ sessão invalida o que a identificava do lado do servidor: não basta o navegado
 **Toda troca com o sistema é cifrada em trânsito**, inclusive em rede local. Rede interna não é rede
 confiável, e material sensível não trafega em claro por conveniência de instalação.
 
-**Tentativa repetida de entrada é retardada e registrada.** O retardo cresce com as tentativas, e o
-registro é de auditoria — quem tentou e quando, nunca a senha tentada.
+**Tentativa repetida de entrada é retardada e registrada.** O retardo cresce com as tentativas
+([0048](0048-retardo-da-entrada.md)), e o registro é de auditoria — quem tentou e quando, nunca a
+senha tentada.
 
 Autenticação de dois fatores não é exigida, e a decisão é consciente: o sistema roda em instalação
 controlada, com acesso por concessão nominal, e o custo operacional de um segundo fator numa equipe

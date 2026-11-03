@@ -18,9 +18,28 @@ public sealed class CustodyDatabase : IAsyncDisposable
 {
     private ScratchDatabase? database;
     private NpgsqlDataSource? application;
+    private NpgsqlDataSource? pooled;
+    private int physicalConnections;
 
     /// <summary>The chain, writing as the application's role.</summary>
     internal async Task<CustodyChain> ChainAsync() => new(await DataSourceAsync());
+
+    /// <summary>How many physical connections the pooled chain has opened; a pool never opens more than its capacity, a data source without one opens a connection for every append.</summary>
+    internal int PhysicalConnections => Volatile.Read(ref physicalConnections);
+
+    /// <summary>
+    /// The chain, writing as the application's role through a pool of at most the capacity given, and counting each physical connection it opens. The scratch databases open a connection for each use,
+    /// which a property that appends hundreds of events under the load of a CI run cannot afford: the opening of one then outlasts the time Npgsql allows (#529).
+    /// </summary>
+    internal async Task<CustodyChain> PooledChainAsync(int capacity)
+    {
+        var scratch = await ScratchAsync();
+        var connection = new NpgsqlConnectionStringBuilder(scratch.AppConnectionString) { Pooling = true, MaxPoolSize = capacity };
+        var builder = new NpgsqlDataSourceBuilder(connection.ConnectionString);
+        _ = builder.UsePhysicalConnectionInitializer(CountConnection, CountConnectionAsync);
+        pooled ??= builder.Build();
+        return new CustodyChain(pooled);
+    }
 
     /// <summary>The data source built with the application's credential.</summary>
     internal async Task<NpgsqlDataSource> DataSourceAsync()
@@ -163,8 +182,21 @@ public sealed class CustodyDatabase : IAsyncDisposable
         return (made, NpgsqlDataSource.Create(made.AppConnectionString));
     }
 
+    private void CountConnection(NpgsqlConnection opened) => _ = Interlocked.Increment(ref physicalConnections);
+
+    private Task CountConnectionAsync(NpgsqlConnection opened)
+    {
+        CountConnection(opened);
+        return Task.CompletedTask;
+    }
+
     public async ValueTask DisposeAsync()
     {
+        if (pooled is not null)
+        {
+            await pooled.DisposeAsync();
+        }
+
         if (application is not null)
         {
             await application.DisposeAsync();

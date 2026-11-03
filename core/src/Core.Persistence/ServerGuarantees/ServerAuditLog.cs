@@ -22,6 +22,9 @@ public sealed class ServerAuditLog
     private const int NestedBufferSize = 256;
     private const int FileBufferSize = 4096;
 
+    /// <summary>The key, in the <see cref="Exception.Data"/> of a reading that failed, of the name of the file (or the folder) it failed on.</summary>
+    public static string FileKey => "File";
+
     /// <summary>
     /// The lines of a file come in the order the server wrote them, which is by the time they were stamped to within a moment; a line this much later
     /// than the end of the interval is the sign that the rest of the log is later than the interval.
@@ -38,7 +41,7 @@ public sealed class ServerAuditLog
 
     /// <summary>
     /// The lines written from <paramref name="from"/> (inclusive) to <paramref name="to"/> (exclusive), oldest first.
-    /// A line that cannot be read as the server writes it is an error, not a line left out.
+    /// A line that cannot be read as the server writes it is an error, not a line left out; the error carries the file in <see cref="FileKey"/>.
     /// </summary>
     public Task<IReadOnlyList<ServerAuditEntry>> ReadAsync(DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken) =>
         ReadAsync(from, to, int.MaxValue, cancellationToken);
@@ -50,18 +53,32 @@ public sealed class ServerAuditLog
     public async Task<IReadOnlyList<ServerAuditEntry>> ReadAsync(DateTimeOffset from, DateTimeOffset to, int limit, CancellationToken cancellationToken)
     {
         var window = new Window(from, to, limit);
-        var done = false;
-        using var files = LogFilesSince(from).GetEnumerator();
-        while (!done && files.MoveNext())
+        var failing = directory;
+        try
         {
-            done = await ReadFileAsync(files.Current, window, cancellationToken).ConfigureAwait(false);
+            var files = LogFilesSince(from).ToList();
+            var done = false;
+            for (var index = 0; index < files.Count && !done; index++)
+            {
+                failing = files[index].Name;
+                done = await ReadFileAsync(files[index], window, index == files.Count - 1, cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (Exception unreadable) when (unreadable is IOException or UnauthorizedAccessException or InvalidDataException)
+        {
+            unreadable.Data[FileKey] = failing;
+            throw;
         }
 
         return window.Entries;
     }
 
-    /// <summary>Reads the file into the entries; true when nothing after it is needed, because the limit is reached or the lines are past the interval.</summary>
-    private static async Task<bool> ReadFileAsync(FileSystemInfo file, Window window, CancellationToken cancellationToken)
+    /// <summary>
+    /// Reads the file into the entries; true when nothing after it is needed, because the limit is reached or the lines are past the interval.
+    /// A last line of the newest file that ends with the file and not with a line break is a line the server is still writing: the reading stops
+    /// before it and the next reading takes it whole.
+    /// </summary>
+    private static async Task<bool> ReadFileAsync(FileSystemInfo file, Window window, bool newest, CancellationToken cancellationToken)
     {
         using var stream = new FileStream(
             file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, FileBufferSize, FileOptions.Asynchronous | FileOptions.SequentialScan);
@@ -69,6 +86,11 @@ public sealed class ServerAuditLog
         var records = new CsvRecordReader(text);
         while (await records.ReadAsync(cancellationToken).ConfigureAwait(false) is { } record)
         {
+            if (newest && records.CutOff)
+            {
+                return true;
+            }
+
             if (await EntryAsync(record, file.Name, cancellationToken).ConfigureAwait(false) is not { } entry)
             {
                 continue;

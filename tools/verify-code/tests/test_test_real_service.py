@@ -79,6 +79,39 @@ class TestRealServiceTests(unittest.TestCase):
         self.assertFalse(result.ok)
         self.assertIn("1 teste(s) do serviço real falharam", result.details)
 
+    def test_a_failed_test_is_named_with_the_first_line_of_its_message(self) -> None:
+        files = {
+            "a.trx": support.trx_failing(
+                "Alpha.Tests", 3, "Ns.Classe.Metodo", "Esperado 1\nmas foi 2\n  em x.cs:9"
+            ),
+            "b.trx": support.trx("Beta.Tests", 2, 0),
+        }
+
+        result = test_real_service.run(support.context(self.root, self.runner(files, ok=False)))
+
+        self.assertFalse(result.ok)
+        self.assertIn("  Alpha.Tests: Ns.Classe.Metodo: Esperado 1", result.details)
+        self.assertNotIn("mas foi 2", "".join(result.details))
+
+    def test_a_failed_test_without_message_is_still_named(self) -> None:
+        files = {"a.trx": support.trx_failing("Alpha.Tests", 3, "Ns.Classe.Metodo", "")}
+
+        result = test_real_service.run(support.context(self.root, self.runner(files, ok=False)))
+
+        self.assertIn("  Alpha.Tests: Ns.Classe.Metodo: sem mensagem", result.details)
+
+    def test_every_failed_test_of_every_project_is_named(self) -> None:
+        files = {
+            "a.trx": support.trx_failing("Alpha.Tests", 3, "Ns.A.Primeiro", "erro um"),
+            "b.trx": support.trx_failing("Beta.Tests", 2, "Ns.B.Segundo", "erro dois"),
+        }
+
+        result = test_real_service.run(support.context(self.root, self.runner(files, ok=False)))
+
+        self.assertIn("2 teste(s) do serviço real falharam", result.details)
+        self.assertIn("  Alpha.Tests: Ns.A.Primeiro: erro um", result.details)
+        self.assertIn("  Beta.Tests: Ns.B.Segundo: erro dois", result.details)
+
     def test_skipped_tests_are_listed_with_their_reason_when_the_step_passes(self) -> None:
         files = {"a.trx": support.trx("Alpha.Tests", 3, 0, skipped="ZQX-MOTIVO")}
 

@@ -93,14 +93,28 @@ class TestCoreTests(unittest.TestCase):
         self.assertFalse(result.ok)
         self.assertIn("1 teste(s) do núcleo falharam", result.details)
 
-    def test_a_failed_test_is_named_with_its_project(self) -> None:
-        entry = '<Results><UnitTestResult testName="Ns.Class.Method" outcome="Failed" /></Results>'
-        failing = support.trx("Alpha.Tests", 3, 1).replace("</TestRun>", f"{entry}</TestRun>")
-        files = {"a.trx": failing, "b.trx": support.trx("Beta.Tests", 2, 0)}
+    def test_a_failed_test_is_named_with_the_first_line_of_its_message(self) -> None:
+        files = {
+            "a.trx": support.trx_failing(
+                "Alpha.Tests", 3, "Ns.Classe.Metodo", "Esperado 1\nmas foi 2\n  em x.cs:9"
+            ),
+            "b.trx": support.trx("Beta.Tests", 2, 0),
+        }
 
         result = test_core.run(support.context(self.root, self.runner(files, ok=False)))
 
-        self.assertIn("Alpha.Tests: Ns.Class.Method", result.details)
+        self.assertIn("  Alpha.Tests: Ns.Classe.Metodo: Esperado 1", result.details)
+        self.assertNotIn("mas foi 2", "".join(result.details))
+
+    def test_a_failed_test_without_message_is_still_named(self) -> None:
+        files = {
+            "a.trx": support.trx_failing("Alpha.Tests", 3, "Ns.Classe.Metodo", ""),
+            "b.trx": support.trx("Beta.Tests", 2, 0),
+        }
+
+        result = test_core.run(support.context(self.root, self.runner(files, ok=False)))
+
+        self.assertIn("  Alpha.Tests: Ns.Classe.Metodo: sem mensagem", result.details)
 
     def test_every_project_ran_and_coverage_was_written_passes(self) -> None:
         files = {

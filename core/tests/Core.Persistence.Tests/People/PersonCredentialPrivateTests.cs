@@ -13,10 +13,18 @@ public sealed class PersonCredentialPrivateTests : IClassFixture<PeopleDatabase>
     private const string Insert =
         "INSERT INTO public.person_credential (person_id, algorithm, work_factor, salt, derived) "
         + "VALUES (1, 'zqx', 1, decode('00000000000000000000000000000000', 'hex'), decode('00', 'hex'))";
-    private const string TableGrantees =
-        "SELECT DISTINCT grantee FROM information_schema.role_table_grants WHERE table_schema = 'public' AND table_name = 'person_credential'";
-    private const string ColumnGrantees =
-        "SELECT DISTINCT grantee FROM information_schema.role_column_grants WHERE table_schema = 'public' AND table_name = 'person_credential'";
+    private const string TableGrantees = """
+        SELECT DISTINCT CASE WHEN acl.grantee = 0 THEN 'PUBLIC' ELSE pg_catalog.pg_get_userbyid(acl.grantee) END
+        FROM pg_catalog.pg_class c
+        CROSS JOIN LATERAL pg_catalog.aclexplode(c.relacl) acl
+        WHERE c.oid = 'public.person_credential'::pg_catalog.regclass
+        """;
+    private const string ColumnGrantees = """
+        SELECT DISTINCT CASE WHEN acl.grantee = 0 THEN 'PUBLIC' ELSE pg_catalog.pg_get_userbyid(acl.grantee) END
+        FROM pg_catalog.pg_attribute a
+        CROSS JOIN LATERAL pg_catalog.aclexplode(a.attacl) acl
+        WHERE a.attrelid = 'public.person_credential'::pg_catalog.regclass AND a.attacl IS NOT NULL
+        """;
 
     private static readonly string[] Statements =
     [
@@ -50,11 +58,42 @@ public sealed class PersonCredentialPrivateTests : IClassFixture<PeopleDatabase>
     [DatabaseFact]
     public async Task PublicHoldsNothingOnTheTableNorOnAnyColumnAndTheApplicationIsStillGranted()
     {
-        var onTable = await database.OwnerColumnAsync(TableGrantees);
-        var onColumns = await database.OwnerColumnAsync(ColumnGrantees);
+        var scratch = await database.ScratchAsync();
+        var onTable = await scratch.FirstColumnAsOwnerAsync(TableGrantees);
+        var onColumns = await scratch.FirstColumnAsOwnerAsync(ColumnGrantees);
 
         Assert.DoesNotContain("PUBLIC", onTable.Concat(onColumns), StringComparer.Ordinal);
         Assert.Contains("app", onTable);
         Assert.Contains("app", onColumns);
+    }
+
+    [DatabaseFact]
+    public async Task APublicGrantOnTheTableIsSeenWhoeverMadeIt()
+    {
+        var scratch = await database.ScratchAsync();
+        await using (var granter = await database.BareRoleAsync())
+        {
+            await scratch.RunAsOwnerAsync($"GRANT SELECT ON public.person_credential TO {granter.Name} WITH GRANT OPTION");
+            await granter.RunAsync("GRANT SELECT ON public.person_credential TO PUBLIC");
+
+            Assert.Contains("PUBLIC", await scratch.FirstColumnAsOwnerAsync(TableGrantees), StringComparer.Ordinal);
+        }
+
+        Assert.DoesNotContain("PUBLIC", await scratch.FirstColumnAsOwnerAsync(TableGrantees), StringComparer.Ordinal);
+    }
+
+    [DatabaseFact]
+    public async Task APublicGrantOnAColumnIsSeenWhoeverMadeIt()
+    {
+        var scratch = await database.ScratchAsync();
+        await using (var granter = await database.BareRoleAsync())
+        {
+            await scratch.RunAsOwnerAsync($"GRANT SELECT (salt) ON public.person_credential TO {granter.Name} WITH GRANT OPTION");
+            await granter.RunAsync("GRANT SELECT (salt) ON public.person_credential TO PUBLIC");
+
+            Assert.Contains("PUBLIC", await scratch.FirstColumnAsOwnerAsync(ColumnGrantees), StringComparer.Ordinal);
+        }
+
+        Assert.DoesNotContain("PUBLIC", await scratch.FirstColumnAsOwnerAsync(ColumnGrantees), StringComparer.Ordinal);
     }
 }

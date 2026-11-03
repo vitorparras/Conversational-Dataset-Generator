@@ -13,11 +13,9 @@ public sealed class ItemSealing : IDisposable
     {
     }
 
-    /// <summary>The key drawn for the row, wrapped.</summary>
-    public required NewItemKey Created { get; init; }
+    internal NewItemKey Created { get; init; } = null!;
 
-    /// <summary>The label whose purpose and domain the key was drawn for.</summary>
-    public required DerivationLabel Label { get; init; }
+    internal DerivationLabel Label { get; init; } = null!;
 
     /// <summary>The key to store with the row.</summary>
     public ContentKey Stored => new(Created.Epoch, Created.Wrapped);

@@ -29,7 +29,7 @@ finalidades no arquivo de custódia antes do registro no banco, e a
 - **18**: já existe domínio com o nome.
 - **19**: arquivo de custódia não lido, nome vazio ou com espaço nas pontas, cadeia que recusou
   o evento, ou outra gravação que chegou antes. Neste último caso, repetir o comando resolve.
-- **20**: o banco não respondeu.
+- **21**: o banco não respondeu.
 - **78**: faltou o nome ou um dos caminhos.
 
 Só o 0 grava algo. Dois comandos ao mesmo tempo: um cria e o outro é recusado, e a cadeia fica

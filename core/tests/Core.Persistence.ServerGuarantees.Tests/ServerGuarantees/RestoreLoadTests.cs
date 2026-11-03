@@ -27,7 +27,7 @@ public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<Resto
         await using var destination = await Destination.CreateAsync();
 
         await destination.OpenAsync();
-        foreach (var table in new[] { "public.domain", "public.person" })
+        foreach (var table in new[] { "public.domain", "public.derivation_label", "public.person", "public.person_credential", "public.person_change" })
         {
             _ = await destination.LoadAsync(table, source.Copy[table]);
         }
@@ -40,9 +40,14 @@ public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<Resto
 
         await destination.CloseAsync(approved: true);
         Assert.Equal(await source.World.OwnerColumnAsync(Chain), await destination.Database.FirstColumnAsOwnerAsync(Chain));
-        Assert.Equal((await source.World.OwnerColumnAsync(People)).Single().Replace("false", "true", StringComparison.Ordinal), Assert.Single(await destination.Database.FirstColumnAsOwnerAsync(People)));
+        Assert.Equal(await source.World.OwnerColumnAsync(People), await destination.Database.FirstColumnAsOwnerAsync(People));
         Assert.True((await new CustodyVerifier(destination.App, TimeProvider.System).VerifyAsync(TestContext.Current.CancellationToken)).Passed);
         Assert.Equal(["closed:true,opened:-"], await destination.Database.FirstColumnAsOwnerAsync(Window));
+        foreach (var (table, key) in new[] { ("public.domain", "id"), ("public.derivation_label", "label"), ("public.person", "id"), ("public.person_credential", "person_id"), ("public.person_change", "id") })
+        {
+            Assert.Equal(source.Copy[table], Assert.Single(await destination.Database.FirstColumnAsOwnerAsync($"SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY {key}), '[]') FROM {table} t")));
+        }
+
         Assert.Equal(["1:item_text:1,1:reversal_map:1"], await destination.Database.FirstColumnAsOwnerAsync("SELECT string_agg(domain_id || ':' || table_name || ':' || live, ',' ORDER BY domain_id, table_name) FROM public.content_domain"));
         Assert.Equal(["2", "2"], await destination.Database.FirstColumnAsOwnerAsync("SELECT last_value::text FROM content.item_text_id_seq UNION ALL SELECT last_value::text FROM public.person_id_seq"));
         Assert.Equal("1,0", (string?)await destination.InDomainAsync(1, "SELECT count(*) || ',' || (SELECT count(*) FROM content.item_emptied) FROM content.item_text"));
@@ -107,12 +112,62 @@ public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<Resto
     [InlineData("public.schema_version")]
     [InlineData("public.restore_window")]
     [InlineData("public.content_domain")]
-    public async Task TableThatTheLoadDoesNotPutBackIsRefused(string table)
+    public async Task TableThatTheLoadDoesNotPutBackIsRefusedAndTheWindowClosesAsFailed(string table)
     {
         await using var destination = await Destination.CreateAsync();
         await destination.OpenAsync();
 
-        await destination.RefusedAsync("restore_load", table, "[]");
+        Assert.Equal(-1, await destination.LoadAsync(table, "[]"));
+
+        await AssertClosedAsFailedAsync(destination);
+    }
+
+    [DatabaseFact]
+    public async Task RowThatTheTableRefusesUndoesTheCallAndClosesTheWindowAsFailed()
+    {
+        await using var destination = await Destination.CreateAsync();
+        await destination.OpenAsync();
+        Assert.Equal(2, await destination.LoadAsync("public.domain", source.Copy["public.domain"]));
+
+        Assert.Equal(-1, await destination.LoadAsync("public.domain", source.Copy["public.domain"]));
+
+        Assert.Equal(["2"], await destination.Database.FirstColumnAsOwnerAsync("SELECT count(*)::text FROM public.domain"));
+        await AssertClosedAsFailedAsync(destination);
+    }
+
+    [DatabaseFact]
+    public async Task PersonInactiveInTheCopyIsActiveWhileTheChainComesBackAndInactiveWhenTheWindowClosesApproved()
+    {
+        const string State = "SELECT string_agg(name || ':' || active, ',' ORDER BY id) FROM public.person";
+        await using var destination = await Destination.CreateAsync();
+        await destination.OpenAsync();
+        _ = await destination.LoadAsync("public.domain", source.Copy["public.domain"]);
+        _ = await destination.LoadAsync("public.person", source.Copy["public.person"]);
+        Assert.Equal(["zqx-active:true,zqx-gone:true"], await destination.Database.FirstColumnAsOwnerAsync(State));
+
+        await destination.CloseAsync(approved: true);
+
+        Assert.Equal(["zqx-active:true,zqx-gone:false"], await destination.Database.FirstColumnAsOwnerAsync(State));
+    }
+
+    [DatabaseFact]
+    public async Task TwoSessionsOpeningTheWindowAtOnceLeaveOneOpenedAndTheOtherRefused()
+    {
+        await using var destination = await Destination.CreateAsync();
+
+        var answers = await Task.WhenAll(destination.OpenOrRefusedAsync(), destination.OpenOrRefusedAsync());
+
+        Assert.Equal([string.Empty, Refused], answers.OrderBy(answer => answer, StringComparer.Ordinal));
+        Assert.Equal(["opened:-"], await destination.Database.FirstColumnAsOwnerAsync(Window));
+    }
+
+    private static async Task AssertClosedAsFailedAsync(Destination destination)
+    {
+        Assert.Equal(["closed:false,opened:-"], await destination.Database.FirstColumnAsOwnerAsync(Window));
+        await destination.RefusedAsync("restore_open");
+        await destination.RefusedAsync("restore_close", true);
+        await destination.RefusedAsync("restore_load", "public.domain", "[]");
+        await destination.RefusedAsync("restore_events", "[]");
     }
 
     [DatabaseFact]
@@ -156,20 +211,21 @@ public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<Resto
     }
 
     [DatabaseTheory]
-    [InlineData("digest")]
-    [InlineData("field")]
-    [InlineData("order")]
-    [InlineData("first-missing")]
-    [InlineData("gap")]
-    public async Task EventThatDoesNotComeBackAsTheCopyHasItStopsTheLoadAndNothingOfTheCallStays(string defect)
+    [InlineData("digest", -3)]
+    [InlineData("field", -3)]
+    [InlineData("order", -2)]
+    [InlineData("first-missing", -2)]
+    [InlineData("gap", -4)]
+    public async Task EventThatDoesNotComeBackAsTheCopyHasItIsNamedByItsSequenceNothingOfTheCallStaysAndTheWindowClosesAsFailed(string defect, long answer)
     {
         await using var destination = await Destination.CreateAsync();
         await destination.OpenAsync();
         _ = await destination.LoadAsync("public.domain", source.Copy["public.domain"]);
         _ = await destination.LoadAsync("public.person", source.Copy["public.person"]);
 
-        await destination.RefusedAsync("restore_events", Spoil(source.Copy["public.custody_event"], defect));
+        Assert.Equal(answer, await destination.EventsAsync(Spoil(source.Copy["public.custody_event"], defect)));
 
+        await AssertClosedAsFailedAsync(destination);
         Assert.Equal(["0"], await destination.Database.FirstColumnAsOwnerAsync("SELECT count(*)::text FROM public.custody_event"));
     }
 
@@ -216,6 +272,19 @@ public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<Resto
         internal Task OpenAsync() => CallAsync("restore_open");
 
         internal Task CloseAsync(bool approved) => CallAsync("restore_close", approved);
+
+        internal async Task<string> OpenOrRefusedAsync()
+        {
+            try
+            {
+                _ = await CallAsync("restore_open");
+                return string.Empty;
+            }
+            catch (PostgresException refusal)
+            {
+                return refusal.SqlState;
+            }
+        }
 
         internal async Task<long> LoadAsync(string table, string rows) => (long)(await CallAsync("restore_load", table, rows))!;
 

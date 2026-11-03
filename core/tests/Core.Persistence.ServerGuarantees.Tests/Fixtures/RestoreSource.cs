@@ -33,10 +33,18 @@ public sealed class RestoreSource : IAsyncLifetime
         await world.RunAsOwnerAsync(
             "INSERT INTO public.custody_event (actor_person_id, item_kind, item_id, step, reason, reference) VALUES (1, 'item_text', 2, 'item_emptied', 'removal_requested_by_subject', 'zqx-1')");
         _ = await world.InDomainAsync(2, "UPDATE content.item_text SET emptied_at = clock_timestamp(), raw_text = NULL WHERE id = 2");
+        await world.RunAsOwnerAsync(
+            "INSERT INTO public.derivation_label (label) VALUES ('zqx-label/1/v1')",
+            "INSERT INTO public.person_credential (person_id, algorithm, work_factor, salt, derived) VALUES (1, 'zqx-algorithm', 1, decode('00112233445566778899aabbccddeeff', 'hex'), '\x0102')",
+            "INSERT INTO public.person_change (person_id, kind, new_function, actor_id) VALUES (1, 'created', 'Anotação', NULL)",
+            "INSERT INTO public.person_change (person_id, kind, actor_id) VALUES (2, 'deactivated', 1)");
         Copy = new Dictionary<string, string>
         {
             ["public.domain"] = await OwnerRowsAsync("public.domain", "id"),
             ["public.person"] = await OwnerRowsAsync("public.person", "id"),
+            ["public.derivation_label"] = await OwnerRowsAsync("public.derivation_label", "label"),
+            ["public.person_credential"] = await OwnerRowsAsync("public.person_credential", "person_id"),
+            ["public.person_change"] = await OwnerRowsAsync("public.person_change", "id"),
             ["public.custody_event"] = await OwnerRowsAsync("public.custody_event", "sequence"),
             ["content.item_text"] = await ContentRowsAsync("content.item_text"),
             ["content.reversal_map"] = await ContentRowsAsync("content.reversal_map"),

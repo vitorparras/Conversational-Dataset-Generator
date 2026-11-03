@@ -24,10 +24,10 @@ quem levar o conjunto leva dado e chave na mesma caixa.
 Os dados saem numa pasta: um manifesto (formato 1, versão do esquema de onde saiu e a lista dos
 arquivos) e um arquivo por tabela, esquema.tabela.jsonl, com um registro por linha, escrito pelo
 to_jsonb sem mudança, na ordem da chave (sequence na cadeia, id nas demais). A carga segue a ordem
-do manifesto: domínios, etiquetas, pessoas, credenciais, mudanças, cadeia, textos, mapas e
-esvaziados.
-Ficam de fora versões e falhas da migração, contagem de conteúdo e janela de carga: o migrate as
-cria. A carga recusa a cópia de versão diferente da do banco criado ([006](006-restauracao.md)).
+fixa do código: domínios, etiquetas, pessoas, credenciais, mudanças, cadeia, textos, mapas e
+esvaziados. Ficam de fora versões, falhas, contagem e janelas: o migrate as cria. A carga recusa
+cópia de versão diferente ([006](006-restauracao.md)); recusa de linha ou de evento fecha a janela
+como reprovada; cliente que morre a deixa aberta e o banco se descarta. Inativo volta inativo.
 
 ## Onde
 

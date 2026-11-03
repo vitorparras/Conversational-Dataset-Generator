@@ -1,5 +1,4 @@
 using Core.Persistence.Connection;
-using Core.Persistence.Content;
 using Core.Platform.Keys;
 using Core.Platform.Startup;
 using Npgsql;
@@ -54,8 +53,8 @@ internal static class EpochRotationMode
 
         try
         {
-            var keys = new ItemKeys(new KeyDerivation(reading.Key!, reading.Labels), reading.Epochs);
-            var rewrapped = await new EpochRotation(dataSource, keys).RotateAsync(CancellationToken.None).ConfigureAwait(false);
+            var keys = CompositionRoot.KeysOf(reading);
+            var rewrapped = await CompositionRoot.RotationOf(dataSource, keys).RotateAsync(CancellationToken.None).ConfigureAwait(false);
             await output.WriteLineAsync($"rotate-epoch: {rewrapped} chave(s) reembrulhada(s) para a época {keys.Newest}").ConfigureAwait(false);
             return ExitCode.Success;
         }

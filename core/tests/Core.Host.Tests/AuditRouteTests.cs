@@ -109,5 +109,21 @@ public sealed class AuditRouteTests
         Assert.DoesNotContain("-03", await response.Content.ReadAsStringAsync(cancellationToken), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task Answer503LeavesATraceWithTheFileAndTheTypeOfTheFailureAndNothingOfTheLog()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var host = await AuditHost.StartAsync(cancellationToken);
+        host.WriteLog(AuditHost.AuditLine(Noon.AddMinutes(1), "INSERT", zone: "-03"));
+
+        using var response = await host.GetAsync(Interval, withSession: true, cancellationToken);
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        var trace = Assert.Single(host.Logged, line => line.Contains("postgresql-a.csv", StringComparison.Ordinal));
+        Assert.StartsWith("Error: ", trace, StringComparison.Ordinal);
+        Assert.Contains("InvalidDataException", trace, StringComparison.Ordinal);
+        Assert.All(["zqx-text", "public.person", "-03", "AUDIT"], marker => Assert.DoesNotContain(marker, string.Join('\n', host.Logged), StringComparison.Ordinal));
+    }
+
     private static string? Text(JsonElement entry, string name) => entry.GetProperty(name).GetString();
 }

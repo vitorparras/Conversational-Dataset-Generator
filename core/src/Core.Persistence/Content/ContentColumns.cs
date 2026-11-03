@@ -14,6 +14,9 @@ public static class ContentColumns
     /// <summary>The table of the maps that reverse a pseudonym.</summary>
     public static string ReversalMap { get; } = "reversal_map";
 
+    /// <summary>The table that holds the id of each item emptied, so that the refusals of the database do not read the texts.</summary>
+    public static string ItemEmptied { get; } = "item_emptied";
+
     /// <summary>The text as it arrived.</summary>
     public static ProtectedColumn RawText { get; } = new(ItemText, "raw_text", LabelPurpose.RawText);
 
@@ -47,5 +50,8 @@ public static class ContentColumns
         new(ReversalMap, "recorded_at", ClearKind.Moment),
         new(ReversalMap, "emptied_at", ClearKind.Moment),
         new(ReversalMap, "dek_epoch", ClearKind.Epoch),
+        new(ItemEmptied, "id", ClearKind.Identifier),
+        new(ItemEmptied, "domain_id", ClearKind.Domain),
+        new(ItemEmptied, "item_id", ClearKind.Identifier),
     ];
 }

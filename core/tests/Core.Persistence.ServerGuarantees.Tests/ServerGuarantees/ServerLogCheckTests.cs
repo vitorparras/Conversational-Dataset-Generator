@@ -1,5 +1,6 @@
 using Core.Persistence.ServerGuarantees;
 using Core.Platform.Startup;
+using Core.Tests.Support.Audit;
 
 namespace Core.Persistence.Tests.ServerGuarantees;
 
@@ -9,13 +10,31 @@ public sealed class ServerLogCheckTests : IDisposable
     private readonly ServerLogFolder folder = new();
 
     [Fact]
-    public async Task FolderWithALogFilePasses()
+    public async Task FolderWithALogFileAndNoWritePermissionPasses()
     {
         _ = folder.Write("postgresql-a.csv", DateTimeOffset.UtcNow, "x");
+        ServerLogFiles.Seal(folder.Path);
 
         var result = await new ServerLogCheck(folder.Path).RunAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal((CheckStatus.Passed, "ServerLog"), (result.Status, result.Name));
+    }
+
+    [Fact]
+    public async Task FolderTheProcessCanWriteInIsRefusedNamingTheFolderAndTheAdjustmentAndLeavesItAsItWas()
+    {
+        Assert.SkipUnless(OperatingSystem.IsLinux() && !Environment.IsPrivilegedProcess, "Só o Linux sem privilégio de administrador recusa a escrita pelo modo da pasta.");
+        _ = folder.Write("postgresql-a.csv", DateTimeOffset.UtcNow, "x");
+        var before = Directory.EnumerateFileSystemEntries(folder.Path).Order(StringComparer.Ordinal).ToArray();
+
+        var result = await new ServerLogCheck(folder.Path).RunAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(CheckStatus.Failed, result.Status);
+        Assert.Contains(folder.Path, result.Message, StringComparison.Ordinal);
+        Assert.Contains("gravável", result.Message, StringComparison.Ordinal);
+        Assert.Contains("tire a escrita", result.Message, StringComparison.Ordinal);
+        Assert.Contains("Audit:ServerLogDirectory", result.ExpectedSource, StringComparison.Ordinal);
+        Assert.Equal(before, Directory.EnumerateFileSystemEntries(folder.Path).Order(StringComparer.Ordinal).ToArray());
     }
 
     [Fact]

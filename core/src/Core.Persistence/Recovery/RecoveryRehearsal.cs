@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using Core.Persistence.Content;
+using Core.Persistence.Content.Sealing;
 using Npgsql;
 
 namespace Core.Persistence.Recovery;

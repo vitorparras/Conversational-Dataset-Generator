@@ -86,6 +86,11 @@ def failed_tests(root: ElementTree.Element) -> tuple[str, ...]:
     return tuple(found)
 
 
+def describe_failures(runs: tuple[TestRun, ...]) -> tuple[str, ...]:
+    """One line per failed test: `  project: name: first line of its message`; none if all passed."""
+    return tuple(f"  {run.project}: {test}" for run in runs for test in run.failures)
+
+
 def describe_skips(run: TestRun) -> str:
     """One line per project that skipped tests, with the reasons the tests gave."""
     reasons = "; ".join(run.skip_reasons) or "sem motivo declarado"
@@ -115,7 +120,7 @@ def verdict(
         )
     failures = sum(run.failed for run in runs)
     if failures > 0:
-        named = tuple(f"  {run.project}: {test}" for run in runs for test in run.failures)
+        named = describe_failures(runs)
         return failed(NAME, f"{failures} teste(s) do núcleo falharam", *named, *tail(dotnet.text))
     if not dotnet.ok:
         return failed(

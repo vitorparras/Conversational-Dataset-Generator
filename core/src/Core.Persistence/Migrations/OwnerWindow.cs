@@ -11,6 +11,9 @@ namespace Core.Persistence.Migrations;
 /// </summary>
 internal sealed class OwnerWindow
 {
+    /// <summary>The first version whose chain the verifier reads: the one that adds the column of the reference (0016).</summary>
+    private const int FirstReadable = 16;
+
     private const string Tip = "SELECT 'tip=' || sequence || ';digest=' || encode(digest, 'hex') FROM public.custody_event ORDER BY sequence DESC LIMIT 1";
 
     private readonly NpgsqlDataSource dataSource;
@@ -37,18 +40,25 @@ internal sealed class OwnerWindow
     internal static OwnerWindow? Of(NpgsqlDataSource dataSource, IReadOnlyList<MigrationStep> steps, int found) =>
         found > 0 && steps.FirstOrDefault(step => step.Name == StepName) is { } creating ? new OwnerWindow(dataSource, creating.Version, found, steps[^1].Version) : null;
 
-    /// <summary>Before the first step: opens the window now when the events exist, otherwise only keeps the tip. False when the chain did not take the event.</summary>
+    /// <summary>
+    /// Before the first step: verifies the chain where it can be read and refuses to go on if it does not hold, keeps the tip and opens the window now when the events exist.
+    /// False when it did not go on.
+    /// </summary>
     internal async Task<bool> BeforeTheStepsAsync(NpgsqlConnection connection, CancellationToken cancellationToken)
     {
-        if (found < creating)
+        if (found >= FirstReadable && !await ChainHoldsAsync(cancellationToken).ConfigureAwait(false))
         {
-            await KeepTipAsync(connection, cancellationToken).ConfigureAwait(false);
-            return true;
+            return false;
         }
 
-        _ = await new CustodyVerifier(dataSource, TimeProvider.System).VerifyAsync(cancellationToken).ConfigureAwait(false);
         await KeepTipAsync(connection, cancellationToken).ConfigureAwait(false);
-        return await WriteAsync(afterTheStep: false, cancellationToken).ConfigureAwait(false);
+        return found < creating || await WriteAsync(afterTheStep: false, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<bool> ChainHoldsAsync(CancellationToken cancellationToken)
+    {
+        var verified = await new CustodyVerifier(dataSource, TimeProvider.System).VerifyAsync(cancellationToken).ConfigureAwait(false);
+        return verified.Passed && verified.Recorded.Outcome == CustodyOutcome.Appended;
     }
 
     /// <summary>After a step is applied: writes the event right after the step that creates it. False when the chain did not take the event.</summary>

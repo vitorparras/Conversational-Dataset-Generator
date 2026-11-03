@@ -19,7 +19,7 @@ public sealed class OwnerWindowTests
     private const string OwnerWindowStep = "0018-owner-window";
 
     private const string ClosedPointsAtTheEventsBefore =
-        "SELECT (c.reference = format('opened=%s;chain=%s;conference=%s', o.sequence, "
+        "SELECT (c.reference = format('opened=%s;applied=%s;chain=%s;conference=%s', o.sequence, (SELECT max(version) FROM public.schema_version), "
         + "(SELECT max(sequence) FROM public.custody_event WHERE step = 'verify_chain'), "
         + "(SELECT max(sequence) FROM public.custody_event WHERE step = 'verify_guarantees' AND sequence < c.sequence)))::text "
         + "FROM public.custody_event c, public.custody_event o WHERE c.step = 'owner_window_closed' AND o.step = 'owner_window_opened'";
@@ -27,6 +27,7 @@ public sealed class OwnerWindowTests
     private const string Windows =
         "SELECT step || '|' || reason || '|' || item_id || '|' || recorded_by || '|' || actor_system FROM public.custody_event WHERE step LIKE 'owner_window%' ORDER BY sequence";
 
+    private const string Registry = "SELECT string_agg(version || ':' || sha256, ',' ORDER BY version) FROM public.schema_version";
     private const string Opened = "SELECT sequence || '|' || reference FROM public.custody_event WHERE step = 'owner_window_opened'";
     private const string LastChainVerification = "SELECT sequence || '|' || encode(digest, 'hex') FROM public.custody_event WHERE step = 'verify_chain' ORDER BY sequence DESC LIMIT 1";
 
@@ -82,11 +83,12 @@ public sealed class OwnerWindowTests
         _ = await database.MigrateAsync(older);
         await database.RunAsOwnerAsync(
             "INSERT INTO public.custody_event (actor_system, item_kind, item_id, step, reason) VALUES (true, 'custody_chain', 0, 'verify_chain', 'verification_passed')");
-        var tipBefore = Assert.Single(await database.FirstColumnAsOwnerAsync(LastChainVerification)).Split('|');
 
         var result = await database.MigrateAsync(steps);
 
         var opened = Assert.Single(await database.FirstColumnAsOwnerAsync(Opened)).Split('|');
+        var tipBefore = Assert.Single(await database.FirstColumnAsOwnerAsync(LastChainVerification)).Split('|');
+        Assert.Equal("2", tipBefore[0]);
         Assert.Equal((MigrationOutcome.Applied, OwnerWindowOpening.OpenedAfterTheStep), (result.Outcome, result.OwnerWindow));
         Assert.Equal($"from={older[^1].Version};to={steps[^1].Version};tip={tipBefore[0]};digest={tipBefore[1]};late=1", opened[1]);
         await using var source = NpgsqlDataSource.Create(database.AppConnectionString);
@@ -153,6 +155,38 @@ public sealed class OwnerWindowTests
     }
 
     [DatabaseFact]
+    public async Task MigrationOverABrokenChainStopsBeforeTheFirstStepAndRebuildsNothing()
+    {
+        await using var world = await FidelityWorld.CreateAsync();
+        await world.RunAsOwnerAsync("INSERT INTO public.custody_event (actor_system, item_kind, item_id, step, reason) VALUES (true, 'custody_chain', 0, 'verify_chain', 'verification_passed')");
+        await BreakTheChainAsync(world);
+        var before = await world.OwnerColumnAsync(Registry);
+
+        var result = await world.MigrateAsync(WithSynthetic("CREATE TABLE public.zqx_after (a integer)"));
+
+        Assert.Equal((MigrationOutcome.StepFailed, OwnerWindowStep, OwnerWindowOpening.None), (result.Outcome, result.Step, result.OwnerWindow));
+        Assert.Empty(result.Applied);
+        Assert.Equal(["0"], await world.OwnerColumnAsync("SELECT count(*)::text FROM pg_tables WHERE tablename = 'zqx_after'"));
+        Assert.Equal(before, await world.OwnerColumnAsync(Registry));
+        Assert.Empty(await world.OwnerColumnAsync(Windows));
+    }
+
+    [DatabaseFact]
+    public async Task BrokenChainAfterTheWindowOpenedRefusesTheClosingAndTheStartAndLeavesTheWindowOpen()
+    {
+        var token = TestContext.Current.CancellationToken;
+        await using var world = await FidelityWorld.CreateAsync();
+        _ = await world.MigrateAsync(WithSynthetic("CREATE TABLE public.zqx_after (a integer)"));
+        await BreakTheChainAsync(world);
+
+        var result = await new OwnerWindowCheck(world.DataSource, world.Verifier(), TimeProvider.System).RunAsync(token);
+
+        Assert.Equal(CheckStatus.Failed, result.Status);
+        Assert.NotNull(await new RecordedVerificationReader(world.DataSource).OwnerWindowAsync(token));
+        Assert.DoesNotContain(await world.OwnerColumnAsync(Windows), line => line.StartsWith("owner_window_closed", StringComparison.Ordinal));
+    }
+
+    [DatabaseFact]
     public async Task StartWithTheOwnerRoleIsRefusedByThePrivilegeCheck()
     {
         await using var database = await ScratchDatabase.CreateAsync();
@@ -164,6 +198,11 @@ public sealed class OwnerWindowTests
         Assert.Equal(CheckStatus.Failed, result.Status);
     }
 
+
+    private static Task BreakTheChainAsync(FidelityWorld world) =>
+        world.RunAsSuperuserAsync(
+            "ALTER TABLE public.custody_event DISABLE TRIGGER custody_event_never_changed; UPDATE public.custody_event SET item_id = item_id + 7 WHERE sequence = 1; "
+            + "ALTER TABLE public.custody_event ENABLE ALWAYS TRIGGER custody_event_never_changed");
 
     private static List<MigrationStep> WithSynthetic(string sql)
     {

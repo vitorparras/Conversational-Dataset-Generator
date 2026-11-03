@@ -64,14 +64,26 @@ public sealed class OwnerWindowCheck : IStartupCheck
 
         var chain = await new CustodyVerifier(dataSource, time).VerifyAsync(cancellationToken).ConfigureAwait(false);
         var conferred = await guarantees.VerifyAsync(cancellationToken).ConfigureAwait(false);
-        var reference = string.Create(CultureInfo.InvariantCulture, $"opened={open.OpenedSequence};chain={chain.Recorded.Sequence ?? 0};conference={conferred.Recorded.Sequence ?? 0}");
+        var applied = await AppliedAsync(cancellationToken).ConfigureAwait(false);
+        var reference = string.Create(
+            CultureInfo.InvariantCulture, $"opened={open.OpenedSequence};applied={applied};chain={chain.Recorded.Sequence ?? 0};conference={conferred.Recorded.Sequence ?? 0}");
         var closed = await new CustodyChain(dataSource).AppendAsync(CustodyEvent.OwnerWindowClosed((long)conferred.Missing, reference), cancellationToken).ConfigureAwait(false);
         var window = $"a janela da credencial de dono, aberta pela migração da versão {open.From} para a {open.To}";
         return (conferred.Missing, closed.Outcome) switch
         {
             (GuaranteeKinds.None, CustodyOutcome.Appended) => Finding.Holds($"{window}, foi fechada: a cadeia está íntegra e todas as garantias valem"),
             (GuaranteeKinds.None, _) => Finding.Missing($"{window}, não pôde fechar: a cadeia não está íntegra ou não aceitou o evento do fechamento"),
-            _ => Finding.Missing($"{window}, não pôde fechar: faltam as garantias {conferred.Missing}; o fechamento ficou registrado como reprovado na cadeia"),
+            (_, CustodyOutcome.Appended) => Finding.Missing($"{window}, não pôde fechar: faltam as garantias {conferred.Missing}; o fechamento ficou registrado como reprovado na cadeia"),
+            _ => Finding.Missing($"{window}, não pôde fechar: faltam as garantias {conferred.Missing}, e a cadeia não aceitou o evento do fechamento"),
         };
+    }
+
+    private async Task<long> AppliedAsync(CancellationToken cancellationToken)
+    {
+        var command = dataSource.CreateCommand("SELECT coalesce(pg_catalog.max(version), 0) FROM public.schema_version");
+        await using (command.ConfigureAwait(false))
+        {
+            return Convert.ToInt64(await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false), CultureInfo.InvariantCulture);
+        }
     }
 }

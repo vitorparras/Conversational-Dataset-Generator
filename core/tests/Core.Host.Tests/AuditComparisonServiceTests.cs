@@ -61,6 +61,42 @@ public sealed class AuditComparisonServiceTests
     }
 
     [Fact]
+    public async Task CutFileIsAWarningThatNamesItAndTheStatusSaysItWithoutChangingTheResult()
+    {
+        await using var run = await AuditComparisonRun.StartWithAsync(_ => new AuditCompared([], ["postgresql-a.csv"]));
+
+        var status = await run.NextRoundAsync();
+
+        Assert.Equal((AuditComparisonResult.Agreed, 0, 0), (status.Result, status.NewDifferences, status.KnownDifferences));
+        Assert.Equal(["postgresql-a.csv"], status.CutOffFiles);
+        var warning = Assert.Single(run.Log.Lines, entry => entry.Level == LogLevel.Warning).Line;
+        Assert.Contains("postgresql-a.csv", warning, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task CutFileWithANewDifferenceStillCountsTheDifferenceAndKeepsBothWarnings()
+    {
+        await using var run = await AuditComparisonRun.StartWithAsync(_ => new AuditCompared([NewOne], ["postgresql-a.csv"]));
+
+        var status = await run.NextRoundAsync();
+
+        Assert.Equal((AuditComparisonResult.Different, 1), (status.Result, status.NewDifferences));
+        Assert.Equal(2, run.Log.Lines.Count(entry => entry.Level == LogLevel.Warning));
+    }
+
+    [Fact]
+    public async Task RoundWithoutACutFileSaysNoneAndTheNextRoundForgetsTheOneBefore()
+    {
+        await using var run = await AuditComparisonRun.StartWithAsync(call => call == 0 ? new AuditCompared([], ["postgresql-a.csv"]) : new AuditCompared([], []));
+
+        var first = await run.NextRoundAsync();
+        var second = await run.NextRoundAsync();
+
+        Assert.Equal(["postgresql-a.csv"], first.CutOffFiles);
+        Assert.Empty(second.CutOffFiles);
+    }
+
+    [Fact]
     public async Task FailedRoundIsFailedAndTheNextOneStartsWhereTheFailedOneStartedWithNothingButTheTypeSaid()
     {
         const string marker = "zqx-marcador-do-comando";

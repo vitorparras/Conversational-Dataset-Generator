@@ -40,6 +40,38 @@ public sealed class AuditRouteTests
         var entries = listed.RootElement.GetProperty("entries").EnumerateArray().ToArray();
         Assert.Equal(["INSERT", "UPDATE"], entries.Select(entry => entry.GetProperty("command").GetString()));
         Assert.Equal(("app", "WRITE", "public.person"), (Text(entries[0], "role"), Text(entries[0], "class"), Text(entries[0], "objectName")));
+        Assert.Empty(listed.RootElement.GetProperty("cutOffFiles").EnumerateArray());
+    }
+
+    [Fact]
+    public async Task ClosedFileCutShortByTheServersFallIsNamedInTheAnswerAndTheLinesBeforeItAreListed()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var host = await AuditHost.StartAsync(cancellationToken);
+        host.WriteCutLog(Noon.AddMinutes(1));
+
+        using var response = await host.GetAsync(Interval, withSession: true, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var listed = JsonDocument.Parse(body);
+        Assert.Equal(["INSERT", "DELETE"], listed.RootElement.GetProperty("entries").EnumerateArray().Select(entry => entry.GetProperty("command").GetString()));
+        Assert.Equal(["postgresql-a.csv"], listed.RootElement.GetProperty("cutOffFiles").EnumerateArray().Select(file => file.GetString()));
+    }
+
+    [Fact]
+    public async Task ClosedFileCutShortIsAWarningInTheHostsLogWithItsNameAndNothingOfTheLog()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var host = await AuditHost.StartAsync(cancellationToken);
+        host.WriteCutLog(Noon.AddMinutes(1));
+
+        using var response = await host.GetAsync(Interval, withSession: true, cancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var trace = Assert.Single(host.Logged, line => line.Contains("postgresql-a.csv", StringComparison.Ordinal));
+        Assert.All(["zqx-text", "public.person", "AUDIT", "UPDATE"], marker => Assert.DoesNotContain(marker, string.Join('\n', host.Logged), StringComparison.Ordinal));
+        Assert.Contains("cortada", trace, StringComparison.Ordinal);
     }
 
     [Theory]

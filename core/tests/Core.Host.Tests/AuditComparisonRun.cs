@@ -35,7 +35,10 @@ internal sealed class AuditComparisonRun : IAsyncDisposable
 
     public IReadOnlyList<(DateTimeOffset From, DateTimeOffset To)> Calls => [.. calls];
 
-    public static async Task<AuditComparisonRun> StartAsync(Func<int, IReadOnlyList<AuditDifference>> answer)
+    public static Task<AuditComparisonRun> StartAsync(Func<int, IReadOnlyList<AuditDifference>> answer) =>
+        StartWithAsync(index => new AuditCompared(answer(index), []));
+
+    public static async Task<AuditComparisonRun> StartWithAsync(Func<int, AuditCompared> answer)
     {
         var calls = new ConcurrentQueue<(DateTimeOffset From, DateTimeOffset To)>();
         var clock = new TimerAnnouncingClock(new DateTimeOffset(2026, 11, 2, 12, 0, 0, TimeSpan.Zero));

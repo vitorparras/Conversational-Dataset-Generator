@@ -13,7 +13,14 @@ internal static class PortTaken
         where T : class
     {
         T? taken = null;
-        _ = await Poll.UntilAsync(() => Task.FromResult((taken = TryBind(port, bind)) is not null), Poll.LossLimit, cancellationToken);
+        _ = await Poll.UntilAsync(
+            () =>
+            {
+                taken = TryBind(port, bind);
+                return Task.FromResult(taken is not null);
+            },
+            Poll.LossLimit,
+            cancellationToken);
         return taken;
     }
 

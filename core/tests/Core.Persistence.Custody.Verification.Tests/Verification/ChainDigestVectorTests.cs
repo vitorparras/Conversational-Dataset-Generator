@@ -33,6 +33,9 @@ public sealed class ChainDigestVectorTests : IClassFixture<CustodyDatabase>
         new("largest sequence and item, zero present and not absent", "c8c339c340e23327ae26b511c245c841e864bfaf39375f79e04ecdfed6b500df", long.MaxValue, "2262-04-11T23:47:16.854775Z",
             8_276_687_236_854_775, 0, false, "person", long.MaxValue, "person_password_set", "administrative_act", 0, "app",
             "542ec8db5928820bed7ddb7f44eb5c8b8a4acf5b5df4b1f3ba9efb37270ad18f"),
+        new("emptying of an item, with the reference of the protocol", "542ec8db5928820bed7ddb7f44eb5c8b8a4acf5b5df4b1f3ba9efb37270ad18f", 6, "2026-11-02T10:20:30.000007Z",
+            846_930_030_000_007, 7, false, "item_text", 12_345, "item_emptied", "removal_requested_by_subject", null, "app",
+            "216338144af910476146bc5ef79c3a4789d1416cad618a6fb5432029bf4f44b2", "PROT-2026/0042.a_b"),
     ];
 
     private readonly CustodyDatabase database;
@@ -48,6 +51,7 @@ public sealed class ChainDigestVectorTests : IClassFixture<CustodyDatabase>
     [InlineData(2)]
     [InlineData(3)]
     [InlineData(4)]
+    [InlineData(5)]
     public void DigestWrittenInCSharpForTheVerificationIsTheKnownAnswer(int index)
     {
         var vector = Vectors[index];
@@ -63,7 +67,37 @@ public sealed class ChainDigestVectorTests : IClassFixture<CustodyDatabase>
     [InlineData(2)]
     [InlineData(3)]
     [InlineData(4)]
+    [InlineData(5)]
     public async Task FunctionTheDatabaseWritesTheLinksWithIsTheKnownAnswer(int index)
+    {
+        var vector = Vectors[index];
+
+        var digest = await database.TextAsOwnerAsync(
+            "SELECT pg_catalog.encode(public.custody_digest(pg_catalog.decode(@previous, 'hex'), @sequence::bigint, @moment::timestamptz, @person::bigint, @system::boolean, "
+            + "@kind::text, @item::bigint, @step::text, @reason::text, @corrects::bigint, @by::text, @reference::text), 'hex')",
+            ("previous", vector.Previous),
+            ("sequence", vector.Sequence),
+            ("moment", vector.Moment),
+            ("person", Nullable(vector.Person)),
+            ("system", vector.System),
+            ("kind", vector.Kind),
+            ("item", vector.Item),
+            ("step", vector.Step),
+            ("reason", vector.Reason),
+            ("corrects", Nullable(vector.Corrects)),
+            ("by", vector.RecordedBy),
+            ("reference", (object?)vector.Reference ?? DBNull.Value));
+
+        Assert.True(vector.Digest == digest, $"custody_digest of the database diverges from the known answer of the vector '{vector.Name}'.");
+    }
+
+    [DatabaseTheory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    public async Task FunctionWithoutTheReferenceKeepsTheDigestOfEveryEventWrittenBeforeIt(int index)
     {
         var vector = Vectors[index];
 
@@ -82,7 +116,7 @@ public sealed class ChainDigestVectorTests : IClassFixture<CustodyDatabase>
             ("corrects", Nullable(vector.Corrects)),
             ("by", vector.RecordedBy));
 
-        Assert.True(vector.Digest == digest, $"custody_digest of the database diverges from the known answer of the vector '{vector.Name}'.");
+        Assert.True(vector.Digest == digest, $"custody_digest without the reference diverges from the known answer of the vector '{vector.Name}'.");
     }
 
     [Fact]
@@ -124,6 +158,7 @@ public sealed class ChainDigestVectorTests : IClassFixture<CustodyDatabase>
             vector.Stored() with { Reason = "administrative_act" },
             vector.Stored() with { Corrects = 1 },
             vector.Stored() with { RecordedBy = "app" },
+            vector.Stored() with { Reference = "PROT-1" },
         ];
 
         var digests = changed.Select(stored => Convert.ToHexStringLower(ChainDigest.Of(stored, Convert.FromHexString(vector.Previous)))).Append(original);
@@ -135,8 +170,8 @@ public sealed class ChainDigestVectorTests : IClassFixture<CustodyDatabase>
 
     private sealed record Vector(
         string Name, string Previous, long Sequence, string Moment, long Microseconds, long? Person, bool System, string Kind, long Item,
-        string Step, string Reason, long? Corrects, string RecordedBy, string Digest)
+        string Step, string Reason, long? Corrects, string RecordedBy, string Digest, string? Reference = null)
     {
-        public StoredEvent Stored() => new(Sequence, Microseconds, Person, System, Kind, Item, Step, Reason, Corrects, [], [], RecordedBy);
+        public StoredEvent Stored() => new(Sequence, Microseconds, Person, System, Kind, Item, Step, Reason, Corrects, [], [], RecordedBy, Reference);
     }
 }

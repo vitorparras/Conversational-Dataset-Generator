@@ -22,7 +22,7 @@ public sealed class CustodyContentTests : IClassFixture<CustodyDatabase>
             "SELECT string_agg(column_name::text, ',' ORDER BY column_name) FROM information_schema.columns " +
             "WHERE table_schema = 'public' AND table_name = 'custody_event' AND data_type IN ('text', 'character varying', 'character', 'json', 'jsonb', 'xml')");
 
-        Assert.Equal("item_kind,reason,recorded_by,step", textColumns);
+        Assert.Equal("item_kind,reason,recorded_by,reference,step", textColumns);
     }
 
     [DatabaseFact]

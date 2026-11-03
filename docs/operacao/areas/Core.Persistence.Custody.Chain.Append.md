@@ -7,5 +7,5 @@
 - Crítica: sim
 - Motivo: Decide, dentro da transação, a ordem entre a mudança e o evento, grava o evento e só
   confirma se ele entrou (requisito 019); separada de `Core.Persistence.Custody.Chain` para que a
-  mutação de cada uma passe de metade do tempo do teto da 017. Sem projeto de teste próprio: roda
-  os testes de `Core.Persistence.Custody.Chain.Tests`
+  mutação de cada uma fique em até 12 min (#519), dentro do teto da 017. Sem projeto de teste
+  próprio: roda os testes de `Core.Persistence.Custody.Chain.Tests`

@@ -38,7 +38,7 @@ internal static class ServerLog
         try
         {
             await File.WriteAllTextAsync(Path.Combine(directory, "copy.csv"), await database.ServerLogAsync(), TestContext.Current.CancellationToken);
-            return await new ServerAuditLog(directory).ReadAsync(from, DateTimeOffset.UtcNow.AddMinutes(1), TestContext.Current.CancellationToken);
+            return (await new ServerAuditLog(directory).ReadAsync(from, DateTimeOffset.UtcNow.AddMinutes(1), TestContext.Current.CancellationToken)).Entries;
         }
         finally
         {

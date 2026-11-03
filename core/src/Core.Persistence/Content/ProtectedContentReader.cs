@@ -51,15 +51,20 @@ public sealed class ProtectedContentReader(NpgsqlDataSource dataSource, Protecte
         var transaction = await ContentTransaction.BeginAsync(dataSource, request.DomainId, cancellationToken).ConfigureAwait(false);
         await using (transaction.ConfigureAwait(false))
         {
-            var command = transaction.CreateCommand(statement);
-            await using (command.ConfigureAwait(false))
+            return await ReadStoredAsync(transaction, statement, request.RowId, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static async Task<StoredValue> ReadStoredAsync(ContentTransaction transaction, string statement, long rowId, CancellationToken cancellationToken)
+    {
+        var command = transaction.CreateCommand(statement);
+        await using (command.ConfigureAwait(false))
+        {
+            _ = command.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Bigint) { Value = rowId });
+            var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            await using (reader.ConfigureAwait(false))
             {
-                _ = command.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Bigint) { Value = request.RowId });
-                var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-                await using (reader.ConfigureAwait(false))
-                {
-                    return await StoredOfAsync(reader, cancellationToken).ConfigureAwait(false);
-                }
+                return await StoredOfAsync(reader, cancellationToken).ConfigureAwait(false);
             }
         }
     }

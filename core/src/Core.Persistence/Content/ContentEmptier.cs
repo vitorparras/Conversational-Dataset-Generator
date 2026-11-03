@@ -1,6 +1,7 @@
 using System.Globalization;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
+using Core.Persistence.Custody.Chain.Append;
 using Core.Persistence.People;
 using Npgsql;
 using NpgsqlTypes;

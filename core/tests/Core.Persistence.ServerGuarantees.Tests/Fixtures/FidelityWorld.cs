@@ -48,6 +48,9 @@ internal sealed class FidelityWorld : IAsyncDisposable
         return new FidelityWorld(database, NpgsqlDataSource.Create(database.AppConnectionString), custody);
     }
 
+    /// <summary>Makes the first person the curator of the collection, as the owner would; the owner is not the role the comparison looks at.</summary>
+    public Task MakeCuratorAsync() => database.RunAsOwnerAsync("UPDATE public.person SET function_name = '" + PersonFunctions.Curation + "' WHERE name = 'zqx-active'");
+
     /// <summary>The store of passwords, writing as the application's role and deriving with the work factor given.</summary>
     public PersonCredentials Credentials(int workFactor) => new(DataSource, new PasswordDerivation(workFactor));
 

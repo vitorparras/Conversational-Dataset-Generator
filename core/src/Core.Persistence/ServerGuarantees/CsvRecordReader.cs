@@ -38,8 +38,12 @@ internal sealed class CsvRecordReader
         }
 
         record.Fields.Add(record.Field.ToString());
+        CutOff = any && !ended;
         return any ? record.Fields : null;
     }
+
+    /// <summary>True when the last record read ended with the text and not with a line break: the server writes a line break after every line, so it is a line still being written.</summary>
+    internal bool CutOff { get; private set; }
 
     /// <summary>Takes one character into the record; true when it is the line break that ends it.</summary>
     private async Task<bool> TakeAsync(char next, Pending record, CancellationToken cancellationToken)

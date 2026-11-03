@@ -27,6 +27,7 @@ RUN set -eux; \
         "log_file_mode = 0640" \
         "log_truncate_on_rotation = off" \
         "pgaudit.log = 'read, write'" \
+        "pgaudit.log_relation = on" \
         "pgaudit.log_parameter = off" \
         "log_parameter_max_length = 0" \
         "log_parameter_max_length_on_error = 0" \

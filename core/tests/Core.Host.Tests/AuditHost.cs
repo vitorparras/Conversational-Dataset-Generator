@@ -5,6 +5,7 @@ using Core.Platform.Configuration;
 using Core.Platform.Sessions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Core.Host.Tests;
 
@@ -14,14 +15,19 @@ internal sealed class AuditHost : IAsyncDisposable
     private readonly WebApplication app;
     private readonly HttpClient client;
     private readonly string directory;
+    private readonly RecordedLog recorded;
 
-    private AuditHost(WebApplication app, Uri address, string directory, string session)
+    private AuditHost(WebApplication app, Uri address, string directory, string session, RecordedLog recorded)
     {
         this.app = app;
         this.directory = directory;
+        this.recorded = recorded;
         client = new HttpClient { BaseAddress = address };
         Session = session;
     }
+
+    /// <summary>What the host wrote to its log while it served, each line with its level.</summary>
+    public IReadOnlyList<string> Logged => recorded.Lines;
 
     /// <summary>The identifier of a live session, as the cookie carries it.</summary>
     public string Session { get; }
@@ -34,12 +40,19 @@ internal sealed class AuditHost : IAsyncDisposable
         var builder = CompositionRoot.ClosedBuilder(address.GetLeftPart(UriPartial.Authority));
         CompositionRoot.Compose(builder, ClosedConfiguration.Load(new ConfigurationSchema([HostConfiguration.Section])).View, fileLog: null);
         var sessions = new SessionStore(new SessionLifetimes(TimeSpan.FromMinutes(30), TimeSpan.FromHours(8)), TimeProvider.System);
+        var recorded = new RecordedLog();
+        _ = builder.Logging.AddProvider(recorded);
         _ = builder.Services.AddSingleton(sessions).AddSingleton(new ServerAuditLog(directory));
         var app = builder.Build();
+        _ = app.Use(async (context, next) =>
+        {
+            context.Request.Scheme = context.Request.Headers.ContainsKey(SessionedHost.EncryptedMarker) ? "https" : context.Request.Scheme;
+            await next(context);
+        });
         SessionGate.Use(app);
         AuditEndpoint.Map(app);
         await app.StartAsync(cancellationToken);
-        return new AuditHost(app, address, directory, sessions.Open(personId: 1));
+        return new AuditHost(app, address, directory, sessions.Open(personId: 1), recorded);
     }
 
     /// <summary>Writes a log file with the audit lines the server would write for the commands, one second apart from the instant.</summary>
@@ -63,6 +76,7 @@ internal sealed class AuditHost : IAsyncDisposable
         if (withSession)
         {
             request.Headers.Add("Cookie", $"{SessionCookie.Name}={Session}");
+            request.Headers.Add(SessionedHost.EncryptedMarker, "1");
         }
 
         return await client.SendAsync(request, cancellationToken);

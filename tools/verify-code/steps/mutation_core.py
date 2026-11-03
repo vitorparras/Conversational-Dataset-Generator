@@ -69,10 +69,20 @@ def target(root: Path, area: Area, areas: tuple[Area, ...]) -> CoreTarget | None
     return CoreTarget(area, owner, tuple(globs))
 
 
+def holders(project: str, area: str | None) -> Generator[str]:
+    """The prefixes that hold ``area`` inside ``project``, the area first and the project last."""
+    prefix = area or project
+    while within(prefix, project):
+        yield prefix
+        prefix = prefix.rpartition(".")[0]
+
+
 def test_projects(root: Path, project: str, area: str | None = None) -> tuple[Path, ...]:
     """The test projects of ``project`` that reference it directly. An area that has a project of
     its own (``Core.Persistence.Migrations.Tests`` for ``Core.Persistence.Migrations``) gets that
-    one alone; otherwise the project of what holds it: ``<Project>.Tests``, or the one of a project
+    one alone; an area nested in another that has one (``Core.Persistence.Custody.Chain.Append`` in
+    ``Core.Persistence.Custody.Chain``) gets the project of the nearest area that holds it;
+    otherwise the project of what holds it: ``<Project>.Tests``, or the one of a project
     it is nested in (``Core.Boundary.Tests`` for ``Core.Boundary.Contracts``). The cross-cutting
     suites (``Core.Tests.Integration``) are not the module's own and stay out."""
     reference = re.compile(rf'ProjectReference Include="[^"]*[\\/]{re.escape(project)}\.csproj"')
@@ -85,7 +95,10 @@ def test_projects(root: Path, project: str, area: str | None = None) -> tuple[Pa
         return reference.search(path.read_text(encoding="utf-8")) is not None
 
     candidates = sorted((root / TESTS).glob("*/*.csproj"))
-    own = tuple(p for p in candidates if p.stem == f"{area or project}.Tests" and references(p))
+    names = {f"{prefix}.Tests" for prefix in holders(project, area)}
+    owned = [p for p in candidates if p.stem in names and references(p)]
+    nearest = max(owned, key=lambda p: len(p.stem), default=None)
+    own = () if nearest is None else (nearest,)
     return own or tuple(p for p in candidates if owns(p) and references(p))
 
 

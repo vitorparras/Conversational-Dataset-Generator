@@ -20,4 +20,7 @@ public enum CustodyItemKind
 
     /// <summary>A domain of the installation, by its identifier: what the creation of a domain is about.</summary>
     Domain,
+
+    /// <summary>An attempt to sign in, by the number of its row: what the entry steps are about.</summary>
+    SignInAttempt,
 }

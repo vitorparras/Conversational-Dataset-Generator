@@ -9,7 +9,7 @@ public sealed record CustodyEvent
 
     private static readonly FrozenSet<CustodyStep> OfTheirOwn = Enumerable.Repeat(CustodyStep.Correction, 1)
         .Append(CustodyStep.VerifyChain).Append(CustodyStep.ItemEmptied).Append(CustodyStep.ItemEmptyingRefused).Append(CustodyStep.EpochRotated).Append(CustodyStep.DomainCreated)
-        .Append(CustodyStep.SealRecorded).Append(CustodyStep.DomainLabelRotated).ToFrozenSet();
+        .Append(CustodyStep.SealRecorded).Append(CustodyStep.DomainLabelRotated).Append(CustodyStep.SignInAccepted).Append(CustodyStep.SignInRefused).ToFrozenSet();
 
     private CustodyEvent(CustodyAuthor author, CustodyItem item, CustodyStep step, CustodyReason reason)
     {
@@ -48,8 +48,8 @@ public sealed record CustodyEvent
         ArgumentNullException.ThrowIfNull(item);
         return HasEventOfItsOwn(step)
             ? throw new ArgumentException(
-                "A correction, a verification, an emptying, a rotation, the creation of a domain and a seal have an event of their own; "
-                + "use Correction, Verification, Emptied, EmptyingRefused, EpochRotated, DomainCreated, SealRecorded or DomainLabelRotated.", nameof(step))
+                "A correction, a verification, an emptying, a rotation, the creation of a domain, a seal and an entry have an event of their own; "
+                + "use Correction, Verification, Emptied, EmptyingRefused, EpochRotated, DomainCreated, SealRecorded, DomainLabelRotated, SignInAccepted or SignInRefused.", nameof(step))
             : new CustodyEvent(author, item, step, reason);
     }
 
@@ -142,6 +142,32 @@ public sealed record CustodyEvent
         ArgumentNullException.ThrowIfNull(author);
         ArgumentOutOfRangeException.ThrowIfNegative(sealedSequence);
         return new CustodyEvent(author, new CustodyItem(CustodyItemKind.CustodyChain, sealedSequence), CustodyStep.SealRecorded, CustodyReason.AdministrativeAct);
+    }
+
+    /// <summary>An attempt to sign in that was accepted: the person is the author and the item is the attempt.</summary>
+    public static CustodyEvent SignInAccepted(long personId, long attemptId)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(attemptId);
+        return new CustodyEvent(CustodyAuthor.Person(personId), new CustodyItem(CustodyItemKind.SignInAttempt, attemptId), CustodyStep.SignInAccepted, CustodyReason.CredentialsAccepted);
+    }
+
+    /// <summary>An attempt to sign in that was refused: the author is the person only for a wrong password (<paramref name="personId"/>), and the system for any other reason.</summary>
+    public static CustodyEvent SignInRefused(long? personId, CustodyReason reason, long attemptId)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(attemptId);
+        return RefusalAuthor(personId, reason) is { } author
+            ? new CustodyEvent(author, new CustodyItem(CustodyItemKind.SignInAttempt, attemptId), CustodyStep.SignInRefused, reason)
+            : throw new ArgumentException("An entry is refused for a wrong password, of a person, or for for a name nobody goes by, of nobody.", nameof(reason));
+    }
+
+    private static CustodyAuthor? RefusalAuthor(long? personId, CustodyReason reason)
+    {
+        if (reason == CustodyReason.PasswordWrong && personId is { } person)
+        {
+            return CustodyAuthor.Person(person);
+        }
+
+        return reason == CustodyReason.AccountNotRecognized && personId is null ? CustodyAuthor.System : null;
     }
 
     /// <summary>A new event that corrects an earlier one, which stays in the sequence as it was.</summary>

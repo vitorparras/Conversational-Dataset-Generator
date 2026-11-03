@@ -12,11 +12,13 @@ public sealed class AuditCompareTests
 {
     private const string Database = "--Database:Host=127.0.0.1:5432 --Database:Name=zqx --Database:Username=zqx_app --Database:Password=ZQX-SENHA-7731";
 
+    private const string KnownReason = "diferença conhecida do teste, com o motivo";
+
     private static readonly AuditDifference NewOne =
         new("app", "public.person", ["UPDATE"], [CustodyStep.PersonDeactivated, CustodyStep.PersonFunctionChanged], 2, 1, null);
 
     private static readonly AuditDifference KnownOne =
-        new("app", "public.person_credential", ["INSERT", "UPDATE"], [CustodyStep.PersonPasswordSet], 3, 2, AuditMap.RecomputeWithoutEvent);
+        new("app", "public.person_credential", ["INSERT", "UPDATE"], [CustodyStep.PersonPasswordSet], 3, 2, KnownReason);
 
     [Theory]
     [InlineData("2026-11-01T12:00:00Z", "2026-11-01T13:00:00Z", true)]
@@ -74,7 +76,7 @@ public sealed class AuditCompareTests
         var exit = AuditCompareReport.Write(output, TextWriter.Null, new AuditCompareOutcome([KnownOne], Failure: null));
 
         Assert.Equal(ExitCode.Success, exit);
-        Assert.Contains($"[conhecida: {AuditMap.RecomputeWithoutEvent}]", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains($"[conhecida: {KnownReason}]", output.ToString(), StringComparison.Ordinal);
     }
 
     [Fact]

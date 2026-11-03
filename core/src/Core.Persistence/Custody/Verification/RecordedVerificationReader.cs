@@ -55,7 +55,9 @@ public sealed class RecordedVerificationReader
 
         var reference = (string)reader["reference"];
         var late = reference.Contains(";late=1", StringComparison.Ordinal);
-        return new OwnerWindowOpen((long)reader["sequence"], reader.GetFieldValue<DateTimeOffset>(1), (int)Number(reference, "from"), (int)Number(reference, "to"), Number(reference, "tip"), late, (bool)reader["closing_failed"]);
+        var openedAt = await reader.GetFieldValueAsync<DateTimeOffset>(1, cancellationToken).ConfigureAwait(false);
+        return new OwnerWindowOpen(
+            (long)reader["sequence"], openedAt, (int)Number(reference, "from"), (int)Number(reference, "to"), Number(reference, "tip"), late, (bool)reader["closing_failed"]);
     }
 
     private static long Number(string reference, string name) =>

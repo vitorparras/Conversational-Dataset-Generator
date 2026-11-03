@@ -6,6 +6,7 @@ using Core.Host.Endpoints;
 using Core.Host.Migration;
 using Core.Host.Supervision;
 using Core.Persistence.Connection;
+using Core.Persistence.Content;
 using Core.Persistence.Migrations;
 using Core.Persistence.People;
 using Core.Persistence.ServerGuarantees;
@@ -53,6 +54,15 @@ internal static class CompositionRoot
         return analyzeTimeout is { } timeout && refused.Count == 0 ? await LaunchAsync(loaded, database, timeout, target) : HostLaunch.Refused(refused);
     }
 
+    /// <summary>The keys of the epochs file over a source that was read, and the rotation of the rows over them: the mode that rotates is not a root, and the services come from here.</summary>
+    internal static ItemKeys KeysOf(MasterKeyReading reading) => new(new KeyDerivation(reading.Key!, reading.Labels), reading.Epochs);
+
+    internal static EpochRotation RotationOf(NpgsqlDataSource dataSource, ItemKeys keys) => new(dataSource, keys);
+
+    /// <summary>Redacted console logging alone: the modes that migrate or rotate have no host, no file destination and no language service.</summary>
+    internal static ServiceProvider LoggingServices() =>
+        new ServiceCollection().AddSingleton(TimeProvider.System).AddLogging(PlatformLogging.Configure).AddRedaction(PlatformLogging.EraseSensitiveData).BuildServiceProvider();
+
     /// <summary>The migration mode: the steps run once with the owner credential the configuration holds, the outcome is logged and nothing is served.</summary>
     private static async Task<HostLaunch> MigrateAsync(ConfigurationLoadResult loaded, DatabaseSettings database)
     {
@@ -62,7 +72,7 @@ internal static class CompositionRoot
         }
 
         await using var dataSource = NpgsqlDataSource.Create(database.ConnectionString!);
-        await using var logging = MigrationMode.LoggingServices();
+        await using var logging = LoggingServices();
         var result = await new MigrationRunner(dataSource, EmbeddedMigrations.Load()).RunAsync(CancellationToken.None);
         logging.GetRequiredService<ILogger<MigrationRunner>>().Write(result);
         return HostLaunch.Migrated(result.Outcome);
@@ -106,11 +116,7 @@ internal static class CompositionRoot
     internal static void Compose(IHostApplicationBuilder builder, EffectiveConfiguration configuration, ILoggerProvider? fileLog)
     {
         PlatformLogging.Configure(builder.Logging);
-        if (fileLog is not null)
-        {
-            _ = builder.Services.AddSingleton(_ => fileLog);
-        }
-
+        _ = fileLog is null ? builder.Services : builder.Services.AddSingleton(_ => fileLog);
         _ = builder.Services.AddSingleton(TimeProvider.System);
         _ = builder.Services.AddRedaction(PlatformLogging.EraseSensitiveData);
         _ = builder.Services.AddSingleton(configuration);
@@ -137,13 +143,8 @@ internal static class CompositionRoot
             .AddSingleton<IStartupCheck>(provider => provider.GetRequiredService<TlsMaterialCheck>());
         AddServerGuarantees(services, database);
         _ = services.AddSingleton<IStartupCheck>(_ => new ServerLogCheck(AuditConfiguration.ServerLogDirectory(loaded.Values)));
-        _ = services.AddSingleton(TimeProvider.System).AddLogging(logging => HostLogFile.WithFile(logging, fileLog));
-        if (fileLog is not null)
-        {
-            _ = services.AddSingleton(fileLog);
-        }
-
-        _ = services.AddRedaction(PlatformLogging.EraseSensitiveData);
+        _ = services.AddSingleton(TimeProvider.System).AddLogging(logging => HostLogFile.WithFile(logging, fileLog)).AddRedaction(PlatformLogging.EraseSensitiveData);
+        _ = fileLog is null ? services : services.AddSingleton(fileLog);
         _ = services.AddSingleton(_ => LoopbackHttpClient.Create());
         _ = services.AddSingleton(provider => new HealthWait(provider.GetRequiredService<HttpClient>()));
         _ = services.AddSingleton(new ServiceProcessLauncher(ServiceFolder.Beside().Executable(LanguageServiceConfiguration.GivenExecutable(loaded.Values))));
@@ -191,11 +192,7 @@ internal static class CompositionRoot
         _ = builder.Services.AddSingleton(_ => new ServerAuditLog(AuditConfiguration.ServerLogDirectory(loaded.Values)));
         _ = builder.Services.AddSingleton(provider => new SessionStore(SessionConfiguration.Lifetimes(loaded.Values), provider.GetRequiredService<TimeProvider>()));
         _ = builder.Services.AddSingleton(InstallationConfiguration.Of(loaded.Values)).AddSingleton(provider => InstallationConfiguration.Shown(StartupVersions.Of(checks), provider));
-        if (SafekeepingConfiguration.Declaration(loaded.Values) is { } declaration)
-        {
-            _ = builder.Services.AddSingleton(declaration);
-        }
-
+        _ = SafekeepingConfiguration.Declaration(loaded.Values) is { } declaration ? builder.Services.AddSingleton(declaration) : builder.Services;
         return builder;
     }
 

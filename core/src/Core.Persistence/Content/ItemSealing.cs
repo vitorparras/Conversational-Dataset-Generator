@@ -9,31 +9,32 @@ namespace Core.Persistence.Content;
 /// </summary>
 public sealed class ItemSealing : IDisposable
 {
-    private readonly NewItemKey created;
-    private readonly DerivationLabel label;
-
-    internal ItemSealing(NewItemKey created, DerivationLabel label)
+    internal ItemSealing()
     {
-        this.created = created;
-        this.label = label;
     }
 
+    /// <summary>The key drawn for the row, wrapped.</summary>
+    public required NewItemKey Created { get; init; }
+
+    /// <summary>The label whose purpose and domain the key was drawn for.</summary>
+    public required DerivationLabel Label { get; init; }
+
     /// <summary>The key to store with the row.</summary>
-    public ContentKey Stored => new(created.Epoch, created.Wrapped);
+    public ContentKey Stored => new(Created.Epoch, Created.Wrapped);
 
     /// <summary>The text sealed for the column of the row; a column whose purpose is not the one the key was drawn for is refused.</summary>
     public SealedContent Seal(ProtectedColumn column, string text)
     {
         ArgumentNullException.ThrowIfNull(column);
         ArgumentNullException.ThrowIfNull(text);
-        if (column.Purpose != label.Purpose)
+        if (column.Purpose != Label.Purpose)
         {
             throw new ArgumentException("The key of the row was not drawn for the purpose of the column.", nameof(column));
         }
 
-        return new SealedContent(column, label.DomainId, EnvelopeCipher.SealWith(created.Key.AsSpan(), label.Text, Encoding.UTF8.GetBytes(text)));
+        return new SealedContent(column, Label.DomainId, EnvelopeCipher.SealWith(Created.Key.AsSpan(), Label.Text, Encoding.UTF8.GetBytes(text)));
     }
 
     /// <summary>Releases the key.</summary>
-    public void Dispose() => created.Dispose();
+    public void Dispose() => Created.Dispose();
 }

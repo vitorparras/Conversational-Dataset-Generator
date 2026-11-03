@@ -1,4 +1,5 @@
 using Core.Persistence.Content;
+using Core.Persistence.Content.Sealing;
 
 namespace Core.Persistence.Tests.Content;
 

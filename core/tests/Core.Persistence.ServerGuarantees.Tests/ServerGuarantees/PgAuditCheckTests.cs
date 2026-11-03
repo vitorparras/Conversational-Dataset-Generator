@@ -177,9 +177,9 @@ public sealed class PgAuditCheckTests
     [Fact]
     public void EveryGapIsNamedInTheSameRefusal()
     {
-        var finding = PgAuditCheck.Judge(new AuditSettings("ddl", "on", "-1", "-1", "warning", "on", "notice", "debug_print_plan", "none", "Europe/Lisbon"), extensionVersion: "17.0");
+        var finding = PgAuditCheck.Judge(new AuditSettings("ddl", "on", "-1", "-1", "warning", "on", "notice", "debug_print_plan", "none", "Europe/Lisbon", "off"), extensionVersion: "17.0");
 
-        Assert.Equal(9, finding.Message.Split("; ").Length);
+        Assert.Equal(10, finding.Message.Split("; ").Length);
     }
 
     [Theory]
@@ -207,6 +207,18 @@ public sealed class PgAuditCheckTests
         Assert.Equal(passes, !finding.Message.Contains("defina log_timezone = UTC", StringComparison.Ordinal));
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("off")]
+    public void LineThatDoesNotNameTheTableFailsNamingTheSetting(string? logRelation)
+    {
+        var finding = PgAuditCheck.Judge(Settings() with { LogRelation = logRelation }, extensionVersion: "17.0");
+
+        Assert.Equal(CheckStatus.Failed, finding.Status);
+        Assert.Contains("pgaudit.log_relation", finding.Message, StringComparison.Ordinal);
+        Assert.Contains("defina pgaudit.log_relation = on", finding.Message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void CheckWithoutADataSourceIsADefect() =>
         _ = Assert.Throws<ArgumentNullException>(() => new PgAuditCheck(null!));
@@ -219,5 +231,5 @@ public sealed class PgAuditCheckTests
         string? minMessages = "log",
         string? logClient = "off",
         string? logLevel = "log") =>
-        new(log, logParameter, parameterMaxLength, parameterMaxLengthOnError, minMessages, logClient, logLevel, LogStatement: "mod", LogTimezone: "UTC");
+        new(log, logParameter, parameterMaxLength, parameterMaxLengthOnError, minMessages, logClient, logLevel, LogStatement: "mod", LogTimezone: "UTC", LogRelation: "on");
 }

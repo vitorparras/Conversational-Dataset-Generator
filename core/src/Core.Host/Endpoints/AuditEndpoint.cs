@@ -38,14 +38,25 @@ internal static class AuditEndpoint
 
         try
         {
-            var entries = await log.ReadAsync(start, end, MaxEntries + 1, cancellationToken);
-            return entries.Count > MaxEntries ? Refused(TooMany) : Results.Ok(new AuditListed(start, end, entries));
+            var reading = await log.ReadAsync(start, end, MaxEntries + 1, cancellationToken);
+            return reading.Entries.Count > MaxEntries ? Refused(TooMany) : Answer(new AuditListed(start, end, reading.Entries, reading.CutOffFiles), loggers);
         }
         catch (Exception unreadable) when (unreadable is IOException or UnauthorizedAccessException or InvalidDataException)
         {
             loggers.CreateLogger(nameof(AuditEndpoint)).Unreadable(unreadable.Data[ServerAuditLog.FileKey] as string ?? "(desconhecido)", unreadable.GetType().Name);
             return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
+    }
+
+    /// <summary>The listing, with a warning in the host's log for each file the server's fall cut short: the name of the file and nothing of the log.</summary>
+    private static IResult Answer(AuditListed body, ILoggerFactory loggers)
+    {
+        foreach (var file in body.CutOffFiles)
+        {
+            loggers.CreateLogger(nameof(AuditEndpoint)).CutOff(file);
+        }
+
+        return Results.Ok(body);
     }
 
     /// <summary>The two ends of the interval as the query carries them, still text.</summary>

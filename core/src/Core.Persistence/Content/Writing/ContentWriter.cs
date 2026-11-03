@@ -1,12 +1,13 @@
 using System.Data;
 using System.Diagnostics;
 using Core.Persistence.Content.Emptying;
+using Core.Persistence.Content.Sealing;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
 using Npgsql;
 using NpgsqlTypes;
 
-namespace Core.Persistence.Content;
+namespace Core.Persistence.Content.Writing;
 
 /// <summary>
 /// Adds content to the database, and is the only way to: what a protected column receives is sealed here for the domain of the row, so the

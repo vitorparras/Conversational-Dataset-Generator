@@ -62,6 +62,7 @@ internal static class HostConfiguration
                     SafekeepingConfiguration.Section,
                     migrating ? PasswordConfiguration.SectionWhenMigrating : PasswordConfiguration.Section,
                     migrating ? SessionConfiguration.SectionWhenMigrating : SessionConfiguration.Section,
+                    migrating ? VerificationConfiguration.SectionWhenMigrating : VerificationConfiguration.Section,
                     AuditSection(migrating, comparing),
                     LanguageServiceConfiguration.Section,
                     RecognizerConfiguration.Section,
@@ -82,6 +83,7 @@ internal static class HostConfiguration
         .. SafekeepingConfiguration.Refusals(values, InstallationConfiguration.Of(values).Kind),
         .. PasswordConfiguration.Refusals(values),
         .. SessionConfiguration.Refusals(values),
+        .. VerificationConfiguration.Refusals(values),
         .. TlsConfiguration.Refusals(values),
         .. AuditConfiguration.Refusals(values),
     ];

@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Net.Http.Headers;
 using System.Text;
 using Core.Host.Tests;
@@ -96,6 +98,33 @@ internal sealed class AuthenticatedHost : IAsyncDisposable
     public Task<HttpResponseMessage> PostAsync(string route, string json, CancellationToken cancellationToken) =>
         SendAsync(HttpMethod.Post, route, json, cancellationToken);
 
+    /// <summary>Runs the statement as the server's superuser connected to this host's database, for what neither the application nor the owner may arrange.</summary>
+    [SuppressMessage("Security", "CA2100", Justification = "The statements are literals of the calling tests, never input.")]
+    public async Task RunAsSuperuserAsync(string statement, CancellationToken cancellationToken)
+    {
+        await using var connection = await OpenAsSuperuserAsync(cancellationToken);
+        await using var command = new NpgsqlCommand(statement, connection);
+        _ = await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    /// <summary>Reads one number with a query as the server's superuser, for what a test checks against the database and not against the host's own reading.</summary>
+    [SuppressMessage("Security", "CA2100", Justification = "The queries are literals of the calling tests, never input.")]
+    public async Task<long> NumberAsSuperuserAsync(string query, CancellationToken cancellationToken)
+    {
+        await using var connection = await OpenAsSuperuserAsync(cancellationToken);
+        await using var command = new NpgsqlCommand(query, connection);
+        return Convert.ToInt64(await command.ExecuteScalarAsync(cancellationToken), CultureInfo.InvariantCulture);
+    }
+
+    private async Task<NpgsqlConnection> OpenAsSuperuserAsync(CancellationToken cancellationToken)
+    {
+        var shared = await PostgresFixture.SharedAsync();
+        var name = new NpgsqlConnectionStringBuilder(database.AppConnectionString).Database;
+        var connection = new NpgsqlConnection(new NpgsqlConnectionStringBuilder(shared.SuperuserConnectionString) { Database = name, Pooling = false }.ConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        return connection;
+    }
+
     /// <summary>Kills the host and its tree and hands over what it wrote to its output and error streams.</summary>
     public async Task<(string Stdout, string Stderr)> StopAsync()
     {
@@ -176,9 +205,10 @@ internal sealed class AuthenticatedHost : IAsyncDisposable
         {
             ["Host:Urls"] = address.GetLeftPart(UriPartial.Authority),
             ["Installation:Kind"] = "demonstracao",
-            ["Passwords:WorkFactor"] = setup.WorkFactor.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["Passwords:WorkFactor"] = setup.WorkFactor.ToString(CultureInfo.InvariantCulture),
             ["Session:IdleTimeout"] = "00:30:00",
             ["Session:AbsoluteTimeout"] = "08:00:00",
+            ["Custody:VerificationInterval"] = "00:05:00",
             ["Tls:CertificateFile"] = SharedTlsMaterial.CertificatePath,
             ["Tls:KeyFile"] = SharedTlsMaterial.KeyPath,
             ["Audit:ServerLogDirectory"] = ServerLogFiles.Shared,
@@ -225,10 +255,13 @@ internal sealed class AuthenticatedHost : IAsyncDisposable
 
     private async Task PrepareAsync(int workFactor, CancellationToken cancellationToken)
     {
+        await StartupVerification.WaitUntilRecordedAsync(application, cancellationToken);
+        Task<PersonResult> Write(Func<Task<PersonResult>> change) => StartupVerification.WriteAsync(change, cancellationToken);
+
         var registry = new PersonRegistry(application);
         var credentials = new PersonCredentials(application, new PasswordDerivation(workFactor));
-        var person = (await registry.CreateAsync(new NewPerson(Name, PersonFunctions.Accepted[0]), CustodyAuthor.System, cancellationToken)).PersonId!.Value;
-        _ = await credentials.SetPasswordAsync(person, Password, CustodyAuthor.System, cancellationToken);
+        var person = (await Write(() => registry.CreateAsync(new NewPerson(Name, PersonFunctions.Accepted[0]), CustodyAuthor.System, cancellationToken))).PersonId!.Value;
+        _ = await Write(() => credentials.SetPasswordAsync(person, Password, CustodyAuthor.System, cancellationToken));
         _ = await KeyedHost.StatusAsync(Address, process, cancellationToken);
         using var entry = new HttpRequestMessage(HttpMethod.Post, new Uri("/session", UriKind.Relative))
         {

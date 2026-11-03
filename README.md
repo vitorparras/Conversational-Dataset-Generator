@@ -147,7 +147,8 @@ openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -subj 
 export DOTNET_ENVIRONMENT=Development
 dotnet run --project core/src/Core.Host -- --Host:Urls=https://127.0.0.1:5080 \
   --Installation:Kind=demonstracao --Passwords:WorkFactor=ITERACOES --Session:IdleTimeout=00:30:00 \
-  --Session:AbsoluteTimeout=08:00:00 --MasterKey:File="$KEYS/chave" --MasterKey:LabelsFile="$KEYS/rotulos" \
+  --Session:AbsoluteTimeout=08:00:00 --Custody:VerificationInterval=00:05:00 \
+  --MasterKey:File="$KEYS/chave" --MasterKey:LabelsFile="$KEYS/rotulos" \
   --Tls:CertificateFile="$KEYS/tls.crt" --Tls:KeyFile="$KEYS/tls.key" \
   --Audit:ServerLogDirectory="$SERVERLOG" --Audit:CompareInterval=01:00:00 --LanguageService:Executable="$PY"
 ```
@@ -211,6 +212,21 @@ passou desde a anterior, com um minuto de folga para o registro alcançar. Difer
 no log do núcleo (papel, tabela, comandos, contagens e passos, nunca um comando ou valor), e
 `GET /status` traz em `auditComparison` o resultado da última (`Pending`, `Agreed`, `Different` ou
 `Failed`), quando terminou e quantas diferenças novas e conhecidas achou. O `migrate` não a exige.
+
+`Custody:VerificationInterval` é obrigatória ao servir, sem valor padrão, e leva uma duração maior
+que zero, no mesmo formato dos prazos da sessão (`00:05:00`, ou `1.00:00:00`, com dias); o `migrate`
+não a exige. Faltando ela, ou levando outra coisa, a partida recusa e a nomeia. O núcleo verifica a
+cadeia de custódia assim que sobe e depois uma vez a cada intervalo, uma de cada vez. Não é checagem
+de partida: cadeia quebrada não impede a subida, nem muda o `ready`, nem tira a leitura; o veredito
+vai ao registro do núcleo, como erro, com a sequência do primeiro evento inconsistente e a
+informação de ter ficado registrado ou não. Verificação que não chega ao fim (banco fora, por
+exemplo) também vai ao registro, com o tipo da falha, e a próxima sai no intervalo seguinte.
+`GET /custody/verification`, de uma sessão viva, devolve a última verificação que a cadeia registrou
+(instante, se passou, quantos eventos leu e, se falhou, a sequência do primeiro inconsistente; nada
+do conteúdo dos eventos), o intervalo em vigor e `overdue`, verdadeiro quando não há nenhuma
+registrada ou quando a última é mais velha que duas vezes o intervalo: "nunca rodou" e "parou de
+rodar" não se confundem com "passou". Sem nenhuma registrada, `last` vem nulo. O intervalo também
+aparece em `/configuration`.
 
 `MasterKey:File` e `MasterKey:LabelsFile` são obrigatórias ao servir, sem valor padrão, e levam os
 caminhos dos arquivos da chave e dos rótulos, nunca a chave. O núcleo recusa arquivo ausente, com

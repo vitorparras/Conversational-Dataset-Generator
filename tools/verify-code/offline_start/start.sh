@@ -24,8 +24,8 @@ openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -subj 
     -keyout "$custody/tls.key" -out "$custody/tls.crt" 2> /dev/null || exit 125
 export CDG_Tls__CertificateFile="$custody/tls.crt" CDG_Tls__KeyFile="$custody/tls.key"
 
-# A folder with a log file, as the one the database server writes, for the host to read; it only checks that the folder is there.
-mkdir "$custody/serverlog" && : > "$custody/serverlog/postgresql.csv"
+# A folder with a log file, as the one the database server writes, for the host to read; the host checks that the folder is there and that it cannot write in it.
+mkdir "$custody/serverlog" && : > "$custody/serverlog/postgresql.csv" && chmod 555 "$custody/serverlog"
 export CDG_Audit__ServerLogDirectory="$custody/serverlog"
 
 ls /sys/class/net > /trace/interfaces.txt

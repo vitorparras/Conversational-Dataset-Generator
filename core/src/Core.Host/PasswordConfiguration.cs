@@ -50,7 +50,7 @@ internal static class PasswordConfiguration
         {
             null => $"{Accepted}, de {floor} a {Ceiling}",
             var factor when factor < floor && real => $"{Accepted}, no mínimo {RealFloor} na instalação real",
-            var factor when factor < floor => $"{Accepted}, no mínimo {DemonstrationFloor}",
+            var factor when factor < floor => $"{Accepted}, no mínimo {DemonstrationFloor} na instalação de demonstração",
             var factor when factor > Ceiling => $"{Accepted}, no máximo {Ceiling}",
             _ => null,
         };

@@ -102,9 +102,9 @@ public sealed class ServerAuditLogTests : IDisposable
             ServerLogFolder.AuditLine(Noon.AddSeconds(2), "app", "UPDATE", "public.person"),
             ServerLogFolder.AuditLine(Noon.AddSeconds(3), "app", "DELETE", "public.person"));
 
-        var entries = await new ServerAuditLog(folder.Path).ReadAsync(Noon, Noon.AddHours(1), 2, TestContext.Current.CancellationToken);
+        var reading = await new ServerAuditLog(folder.Path).ReadAsync(Noon, Noon.AddHours(1), 2, TestContext.Current.CancellationToken);
 
-        Assert.Equal(["INSERT", "UPDATE"], entries.Select(entry => entry.Command));
+        Assert.Equal(["INSERT", "UPDATE"], reading.Entries.Select(entry => entry.Command));
     }
 
     [Fact]
@@ -164,14 +164,90 @@ public sealed class ServerAuditLogTests : IDisposable
     }
 
     [Fact]
-    public async Task CutLineAtTheEndOfAFileThatIsNotTheNewestIsStillAnError()
+    public async Task CutLineAtTheEndOfAClosedFileIsNeitherAnEntryNorAnErrorAndTheFileIsNamed()
     {
-        var whole = ServerLogFolder.AuditLine(Noon.AddMinutes(1), "app", "INSERT", "public.person");
         var older = folder.Write("postgresql-a.csv", Noon.AddMinutes(5), ServerLogFolder.AuditLine(Noon, "app", "DELETE", "public.person"));
-        await File.AppendAllTextAsync(older, whole[..(whole.IndexOf("AUDIT: SESSION,1,1", StringComparison.Ordinal) + "AUDIT: SESSION,1,1".Length)], TestContext.Current.CancellationToken);
+        await File.AppendAllTextAsync(older, CutAfterTheAuditPrefix(ServerLogFolder.AuditLine(Noon.AddMinutes(1), "app", "INSERT", "public.person")), TestContext.Current.CancellationToken);
         _ = folder.Write("postgresql-b.csv", Noon.AddMinutes(6), ServerLogFolder.AuditLine(Noon.AddMinutes(2), "app", "UPDATE", "public.person"));
 
-        _ = await Assert.ThrowsAsync<InvalidDataException>(() => ReadAsync(Noon, Noon.AddHours(1)));
+        var reading = await ReadingAsync(Noon, Noon.AddHours(1));
+
+        Assert.Equal(["DELETE", "UPDATE"], reading.Entries.Select(entry => entry.Command));
+        Assert.Equal(["postgresql-a.csv"], reading.CutOffFiles);
+    }
+
+    [Fact]
+    public async Task CutLineThatReadsAsAWholeEntryButHasNoLineBreakIsStillLeftOutOfAClosedFile()
+    {
+        var older = folder.Write("postgresql-a.csv", Noon.AddMinutes(5), ServerLogFolder.AuditLine(Noon, "app", "DELETE", "public.person"));
+        var whole = ServerLogFolder.AuditLine(Noon.AddMinutes(1), "app", "INSERT", "public.person");
+        await File.AppendAllTextAsync(older, whole.TrimEnd('\r', '\n'), TestContext.Current.CancellationToken);
+        _ = folder.Write("postgresql-b.csv", Noon.AddMinutes(6), ServerLogFolder.AuditLine(Noon.AddMinutes(2), "app", "UPDATE", "public.person"));
+
+        var reading = await ReadingAsync(Noon, Noon.AddHours(1));
+
+        Assert.Equal(["DELETE", "UPDATE"], reading.Entries.Select(entry => entry.Command));
+        Assert.Equal(["postgresql-a.csv"], reading.CutOffFiles);
+    }
+
+    [Fact]
+    public async Task CutLineAtTheEndOfTheNewestFileIsNoNoticeAndTheNextReadingTakesItWhole()
+    {
+        var first = ServerLogFolder.AuditLine(Noon.AddMinutes(1), "app", "INSERT", "public.person");
+        var second = ServerLogFolder.AuditLine(Noon.AddMinutes(2), "app", "UPDATE", "public.person");
+        var file = folder.Write("postgresql-a.csv", Noon, first);
+        await File.AppendAllTextAsync(file, second[..(second.Length / 2)], TestContext.Current.CancellationToken);
+
+        var before = await ReadingAsync(Noon, Noon.AddHours(1));
+        await File.AppendAllTextAsync(file, second[(second.Length / 2)..] + "\n", TestContext.Current.CancellationToken);
+        var after = await ReadingAsync(Noon, Noon.AddHours(1));
+
+        Assert.Equal(["INSERT"], before.Entries.Select(entry => entry.Command));
+        Assert.Empty(before.CutOffFiles);
+        Assert.Equal(["INSERT", "UPDATE"], after.Entries.Select(entry => entry.Command));
+        Assert.Empty(after.CutOffFiles);
+    }
+
+    [Fact]
+    public async Task EveryClosedFileCutShortIsNamedAndAWholeOneIsNot()
+    {
+        var cutA = folder.Write("postgresql-a.csv", Noon.AddMinutes(5), ServerLogFolder.AuditLine(Noon, "app", "DELETE", "public.person"));
+        _ = folder.Write("postgresql-b.csv", Noon.AddMinutes(7), ServerLogFolder.AuditLine(Noon.AddMinutes(1), "app", "UPDATE", "public.person"));
+        var cutC = folder.Write("postgresql-c.csv", Noon.AddMinutes(9), ServerLogFolder.AuditLine(Noon.AddMinutes(3), "app", "INSERT", "public.person"));
+        _ = folder.Write("postgresql-d.csv", Noon.AddMinutes(11), ServerLogFolder.AuditLine(Noon.AddMinutes(4), "app", "TRUNCATE TABLE", null));
+        await File.AppendAllTextAsync(cutA, CutAfterTheAuditPrefix(ServerLogFolder.AuditLine(Noon.AddMinutes(2), "app", "INSERT", "public.person")), TestContext.Current.CancellationToken);
+        await File.AppendAllTextAsync(cutC, CutAfterTheAuditPrefix(ServerLogFolder.AuditLine(Noon.AddMinutes(5), "app", "INSERT", "public.person")), TestContext.Current.CancellationToken);
+
+        var reading = await ReadingAsync(Noon, Noon.AddHours(1));
+
+        Assert.Equal(["postgresql-a.csv", "postgresql-c.csv"], reading.CutOffFiles);
+        Assert.Equal(["DELETE", "UPDATE", "INSERT", "TRUNCATE TABLE"], reading.Entries.Select(entry => entry.Command));
+    }
+
+    [Fact]
+    public async Task UnreadableLineInTheMiddleOfAClosedFileIsStillAnErrorThatNamesItEvenWithACutLineAtTheEnd()
+    {
+        var bad = ServerLogFolder.AuditLine(Noon.AddMinutes(1), "app", "INSERT", "public.person").Replace(" UTC,", " -03,", StringComparison.Ordinal);
+        var closed = folder.Write("postgresql-a.csv", Noon.AddMinutes(5), bad, ServerLogFolder.AuditLine(Noon.AddMinutes(2), "app", "UPDATE", "public.person"));
+        await File.AppendAllTextAsync(closed, CutAfterTheAuditPrefix(ServerLogFolder.AuditLine(Noon.AddMinutes(3), "app", "DELETE", "public.person")), TestContext.Current.CancellationToken);
+        _ = folder.Write("postgresql-b.csv", Noon.AddMinutes(6), ServerLogFolder.AuditLine(Noon.AddMinutes(4), "app", "INSERT", "public.person"));
+
+        var failure = await Assert.ThrowsAsync<InvalidDataException>(() => ReadingAsync(Noon, Noon.AddHours(1)));
+
+        Assert.Equal("postgresql-a.csv", failure.Data[ServerAuditLog.FileKey]);
+    }
+
+    [Fact]
+    public async Task ReadingACutFileWritesRenamesAndRemovesNothingInTheFolder()
+    {
+        var closed = folder.Write("postgresql-a.csv", Noon.AddMinutes(5), ServerLogFolder.AuditLine(Noon, "app", "DELETE", "public.person"));
+        await File.AppendAllTextAsync(closed, CutAfterTheAuditPrefix(ServerLogFolder.AuditLine(Noon.AddMinutes(1), "app", "INSERT", "public.person")), TestContext.Current.CancellationToken);
+        _ = folder.Write("postgresql-b.csv", Noon.AddMinutes(6), ServerLogFolder.AuditLine(Noon.AddMinutes(2), "app", "UPDATE", "public.person"));
+        var before = await SnapshotAsync();
+
+        _ = await ReadingAsync(Noon, Noon.AddHours(1));
+
+        Assert.Equal(before, await SnapshotAsync());
     }
 
     [Fact]
@@ -187,6 +263,24 @@ public sealed class ServerAuditLogTests : IDisposable
 
     public void Dispose() => folder.Dispose();
 
-    private Task<IReadOnlyList<ServerAuditEntry>> ReadAsync(DateTimeOffset from, DateTimeOffset to) =>
+    /// <summary>The line as far as the audit prefix and no further, as a file the server's fall left it: no audit parts and no line break.</summary>
+    private static string CutAfterTheAuditPrefix(string whole) =>
+        whole[..(whole.IndexOf("AUDIT: SESSION,1,1", StringComparison.Ordinal) + "AUDIT: SESSION,1,1".Length)];
+
+    /// <summary>Every file of the folder with what a write, a rename or a removal would change: the name, the length, the moment of the last write and the content.</summary>
+    private async Task<List<(string Name, long Length, DateTime Written, string Content)>> SnapshotAsync()
+    {
+        var files = new List<(string Name, long Length, DateTime Written, string Content)>();
+        foreach (var file in new DirectoryInfo(folder.Path).EnumerateFiles().OrderBy(file => file.Name, StringComparer.Ordinal))
+        {
+            files.Add((file.Name, file.Length, file.LastWriteTimeUtc, await File.ReadAllTextAsync(file.FullName, TestContext.Current.CancellationToken)));
+        }
+
+        return files;
+    }
+
+    private async Task<IReadOnlyList<ServerAuditEntry>> ReadAsync(DateTimeOffset from, DateTimeOffset to) => (await ReadingAsync(from, to)).Entries;
+
+    private Task<ServerAuditReading> ReadingAsync(DateTimeOffset from, DateTimeOffset to) =>
         new ServerAuditLog(folder.Path).ReadAsync(from, to, TestContext.Current.CancellationToken);
 }

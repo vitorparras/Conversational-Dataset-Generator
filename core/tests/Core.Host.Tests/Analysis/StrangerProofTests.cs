@@ -140,8 +140,8 @@ public sealed class StrangerProofTests : IDisposable
         StandInService.Kill(supervisor.ProcessId!.Value);
         var lost = await Poll.UntilAsync(() => Task.FromResult(watch.State == ServiceState.Unavailable), Poll.LossLimit, cancellationToken);
         Assert.True(lost, "the end of the service process was not seen");
-        Assert.True(await PortReleased.UntilAsync(endpoint.Port, cancellationToken), "the port of the killed service was never let go");
-        using var stranger = new RecordingStranger(endpoint.Port, (_, chunk, request) => chunk > 0 ? null : Unproven(kind, request));
+        using var stranger = await PortTaken.UntilAsync(endpoint.Port, port => new RecordingStranger(port, (_, chunk, request) => chunk > 0 ? null : Unproven(kind, request)), cancellationToken);
+        Assert.NotNull(stranger);
 
         var result = await AnalyzeAsync(endpoint.Port, NewClient(), endpoint.Secret);
         await EndedAsync(stranger);

@@ -52,7 +52,7 @@ internal sealed class AuditComparisonService : BackgroundService
         }
         catch (Exception failure) when (CannotRun(failure))
         {
-            state.Record(new AuditComparisonStatus(AuditComparisonResult.Failed, clock.GetUtcNow(), 0, 0, []));
+            _ = state.Record(new AuditComparisonStatus(AuditComparisonResult.Failed, clock.GetUtcNow(), 0, 0, []));
             plan.Log.ComparisonFailed(failure.GetType().FullName ?? failure.GetType().Name);
             return from;
         }
@@ -69,8 +69,8 @@ internal sealed class AuditComparisonService : BackgroundService
         var found = compared.Differences;
         var fresh = found.Where(difference => difference.KnownGap is null).ToArray();
         var result = fresh.Length > 0 ? AuditComparisonResult.Different : AuditComparisonResult.Agreed;
-        state.Record(new AuditComparisonStatus(result, clock.GetUtcNow(), fresh.Length, found.Count - fresh.Length, compared.CutOffFiles));
-        foreach (var file in compared.CutOffFiles)
+        var unknown = state.Record(new AuditComparisonStatus(result, clock.GetUtcNow(), fresh.Length, found.Count - fresh.Length, compared.CutOffFiles));
+        foreach (var file in unknown)
         {
             plan.Log.CutOffFile(file);
         }

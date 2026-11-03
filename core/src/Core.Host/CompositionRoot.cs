@@ -127,13 +127,11 @@ internal static class CompositionRoot
             .AddSingleton<IStartupCheck>(provider => provider.GetRequiredService<TlsMaterialCheck>());
         AddServerGuarantees(services, database);
         _ = services.AddSingleton<IStartupCheck>(_ => new ServerLogCheck(AuditConfiguration.ServerLogDirectory(loaded.Values)));
-        _ = services.AddSingleton(TimeProvider.System).AddLogging(logging => HostLogFile.WithFile(logging, fileLog));
+        _ = services.AddSingleton(TimeProvider.System).AddLogging(logging => HostLogFile.WithFile(logging, fileLog)).AddRedaction(PlatformLogging.EraseSensitiveData);
         if (fileLog is not null)
         {
             _ = services.AddSingleton(fileLog);
         }
-
-        _ = services.AddRedaction(PlatformLogging.EraseSensitiveData);
         _ = services.AddSingleton(_ => LoopbackHttpClient.Create());
         _ = services.AddSingleton(provider => new HealthWait(provider.GetRequiredService<HttpClient>()));
         _ = services.AddSingleton(new ServiceProcessLauncher(ServiceFolder.Beside().Executable(LanguageServiceConfiguration.GivenExecutable(loaded.Values))));

@@ -22,7 +22,7 @@ internal static class CustodyTransaction
     internal static Task<CustodyResult?> AppendBeforeAsync(NpgsqlDataSource dataSource, CustodyEvent pending, Func<CustodyScope, Task<bool>> change, CancellationToken cancellationToken) =>
         RunAsync(dataSource, scope => CustodyAppend.BeforeAsync(scope, pending, change, cancellationToken), cancellationToken);
 
-    private static async Task<CustodyResult?> RunAsync(NpgsqlDataSource dataSource, Func<CustodyScope, Task<CustodyResult?>> body, CancellationToken cancellationToken)
+    internal static async Task<CustodyResult?> RunAsync(NpgsqlDataSource dataSource, Func<CustodyScope, Task<CustodyResult?>> body, CancellationToken cancellationToken)
     {
         try
         {

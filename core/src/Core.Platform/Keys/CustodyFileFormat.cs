@@ -1,4 +1,5 @@
 using System.Buffers.Text;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -15,6 +16,9 @@ internal static class CustodyFileFormat
 
     /// <summary>The most the labels file may hold, so a file that is not one cannot fill the memory.</summary>
     internal const int LongestLabelsFile = 1_048_576;
+
+    /// <summary>The most the epochs file may hold: one line of a number and 44 characters of base64 per epoch, and no installation keeps as many as the room allows.</summary>
+    internal const int LongestEpochsFile = 65_536;
 
     private const byte Space = (byte)' ';
 
@@ -71,6 +75,93 @@ internal static class CustodyFileFormat
         var lines = text.Split('\n').Select(line => line.EndsWith('\r') ? line[..^1] : line).ToList();
         var flawed = lines.FindIndex(line => line.Length == 0 || line != line.Trim() || line.Any(char.IsControl));
         return flawed < 0 ? (DerivationLabels.Of(lines), null) : (null, $"linha {flawed + 1}: rótulo vazio, com espaço em volta ou com caractere de controle");
+    }
+
+    /// <summary>The epochs the epochs file holds, one per line as <c>number:secret in base64</c>, or why they cannot be taken from it; the content is zeroed here.</summary>
+    internal static (CustodyEpochs? Epochs, string? Problem) ParseEpochs(byte[] content)
+    {
+        var found = new Dictionary<int, byte[]>();
+        try
+        {
+            var problem = ReadEpochLines(WithoutLastBreak(content), found);
+            return problem is null ? (CustodyEpochs.Of(found), null) : (null, problem);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(content);
+            foreach (var secret in found.Values)
+            {
+                CryptographicOperations.ZeroMemory(secret);
+            }
+        }
+    }
+
+    private static string? ReadEpochLines(ReadOnlySpan<byte> text, IDictionary<int, byte[]> found)
+    {
+        if (text.Length == 0)
+        {
+            return "arquivo vazio: ao menos uma época é necessária";
+        }
+
+        var number = 0;
+        var rest = text;
+        var last = false;
+        while (!last)
+        {
+            number++;
+            var end = rest.IndexOf((byte)'\n');
+            last = end < 0;
+            var problem = ReadEpochLine(last ? rest.TrimEnd((byte)'\r') : rest[..end].TrimEnd((byte)'\r'), found);
+            if (problem is not null)
+            {
+                return $"linha {number}: {problem}";
+            }
+
+            rest = last ? rest : rest[(end + 1)..];
+        }
+
+        return null;
+    }
+
+    /// <summary>One line, as bytes from the first to the last: the secret is never a string, nor a copy that is not zeroed.</summary>
+    private static string? ReadEpochLine(ReadOnlySpan<byte> line, IDictionary<int, byte[]> found)
+    {
+        var epoch = NumberOf(line);
+        if (epoch < 1)
+        {
+            return "esperado número da época, dois-pontos e o segredo em base64";
+        }
+
+        if (found.ContainsKey(epoch))
+        {
+            return $"época {epoch} repetida";
+        }
+
+        var (secret, problem) = Decode(line[(line.IndexOf((byte)':') + 1)..]);
+        if (secret is null || secret.Length != MasterKey.Length)
+        {
+            if (secret is not null)
+            {
+                CryptographicOperations.ZeroMemory(secret);
+            }
+
+            return secret is null ? problem : $"o segredo tem {secret.Length} bytes, esperados {MasterKey.Length}";
+        }
+
+        found[epoch] = secret;
+        return null;
+    }
+
+    /// <summary>The number before the one colon of the line, with no sign, space or leading zero; 0 when the line has not that form.</summary>
+    private static int NumberOf(ReadOnlySpan<byte> line)
+    {
+        var colon = line.IndexOf((byte)':');
+        if (colon < 1 || line[0] == (byte)'0' || line[(colon + 1)..].Contains((byte)':'))
+        {
+            return 0;
+        }
+
+        return int.TryParse(line[..colon], NumberStyles.None, CultureInfo.InvariantCulture, out var epoch) ? epoch : 0;
     }
 
     /// <summary>The content without the one line break that may end it.</summary>

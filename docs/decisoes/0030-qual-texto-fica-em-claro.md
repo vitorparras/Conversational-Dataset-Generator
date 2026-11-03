@@ -21,12 +21,12 @@ Lida ao pé da letra, ela deixa em claro justamente a versão que ainda carrega 
 |---|---|
 | Bruto, como chegou | Cifrado |
 | Sanitizado, antes da pseudonimização | **Cifrado** |
-| Pseudonimizado | Em claro no banco |
+| Pseudonimizado | Em claro no banco até a fase 5; depois, cifrado com a chave do item ([0049](0049-chave-por-item-e-epoca.md)) |
 | Mapa de reversão | Cifrado, com chave e finalidade próprias |
 | Anotações, métricas, registro de auditoria | Em claro no banco |
 
-**O pseudonimizado é o texto em claro** — é o que as pessoas leem durante a anotação, e cifrá-lo
-inviabilizaria busca e ordenação, que é onde o trabalho humano acontece.
+**O pseudonimizado é o texto em claro até a fase 5** — é o que as pessoas leem na anotação; cifrá-lo
+depois, com a chave do item, obriga a busca e a ordenação a abrir o item (0049, decisão C).
 
 **O sanitizado fica cifrado, junto com o bruto, e alcançá-lo exige a mesma autorização.** Ele ainda
 contém o que aponta para pessoas; tratá-lo como material pseudonimizado seria tratar como protegido

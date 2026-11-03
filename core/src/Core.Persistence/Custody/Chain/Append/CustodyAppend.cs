@@ -34,7 +34,7 @@ internal static class CustodyAppend
             : null;
     }
 
-    private static async Task<CustodyResult> CommitIfAppendedAsync(CustodyScope scope, CustodyResult result, CancellationToken cancellationToken)
+    internal static async Task<CustodyResult> CommitIfAppendedAsync(CustodyScope scope, CustodyResult result, CancellationToken cancellationToken)
     {
         if (result.Outcome == CustodyOutcome.Appended)
         {
@@ -44,7 +44,7 @@ internal static class CustodyAppend
         return result;
     }
 
-    private static async Task<CustodyResult> AppendAsync(CustodyScope scope, CustodyEvent pending, CancellationToken cancellationToken)
+    internal static async Task<CustodyResult> AppendAsync(CustodyScope scope, CustodyEvent pending, CancellationToken cancellationToken)
     {
         var command = scope.CreateCommand(CustodyStatements.Append);
         await using (command.ConfigureAwait(false))

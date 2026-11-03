@@ -59,7 +59,7 @@ public sealed class KeyFilePermissionTests : IDisposable
         var labels = files.WriteText("labels", string.Empty);
         File.SetUnixFileMode(labels, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.OtherRead);
 
-        using var reading = await new FileMasterKeySource(key, labels, AppContext.BaseDirectory).ReadAsync(TestContext.Current.CancellationToken);
+        using var reading = await new FileMasterKeySource(key, labels, files.WriteText("epochs", CustodyFiles.EpochLine), AppContext.BaseDirectory).ReadAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(MasterKeyFailureKind.Unreadable, reading.Failure!.Kind);
         Assert.Contains($"arquivo dos rótulos em '{labels}': permissão aberta a grupo ou outros (modo 604)", reading.Failure.Found, StringComparison.Ordinal);
@@ -166,7 +166,7 @@ public sealed class KeyFilePermissionTests : IDisposable
         security.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null), FileSystemRights.Read, AccessControlType.Allow));
         file.SetAccessControl(security);
 
-        using var reading = await new FileMasterKeySource(key, labels, AppContext.BaseDirectory).ReadAsync(TestContext.Current.CancellationToken);
+        using var reading = await new FileMasterKeySource(key, labels, files.WriteText("epochs", CustodyFiles.EpochLine), AppContext.BaseDirectory).ReadAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(MasterKeyFailureKind.Unreadable, reading.Failure!.Kind);
         Assert.Contains($"arquivo da chave em '{key}': permissão concedida a quem não é o usuário do processo", reading.Failure.Found, StringComparison.Ordinal);

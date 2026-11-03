@@ -36,7 +36,10 @@ internal static class ComposedProviders
                 HostConfiguration.Section, LanguageServiceConfiguration.Section, RecognizerConfiguration.Section, DatabaseConfiguration.Section,
                 MasterKeyConfiguration.Section]),
             new StrictArgumentsSource(
-                ["--LanguageService:Executable=zqx-never-started-7731", "--MasterKey:File=zqx-never-read-7731", "--MasterKey:LabelsFile=zqx-never-read-7732"]));
+                [
+                    "--LanguageService:Executable=zqx-never-started-7731", "--MasterKey:File=zqx-never-read-7731",
+                    "--MasterKey:LabelsFile=zqx-never-read-7732", "--MasterKey:EpochsFile=zqx-never-read-7733"
+                ]));
         Assert.False(loaded.Refused, "The configuration of a start with only the interpreter named must load.");
         var startup = (ServiceProvider)Method("StartupServices").Invoke(null, [loaded, file.Provider, DatabaseConfiguration.Read(loaded.Values)])!;
         using (startup)

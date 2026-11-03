@@ -16,6 +16,9 @@ internal static class CustodyStatements
     /// <summary>The SQLSTATE raised by the append of a verdict that passed while the last verdict recorded is a failure (migration 0013).</summary>
     internal const string PassedAfterFailureSqlState = "CE003";
 
+    /// <summary>The SQLSTATE raised when a row of content that was emptied is changed, and when a map is added to an item that was emptied (migration 0016).</summary>
+    internal const string EmptiedSqlState = "CE004";
+
     /// <summary>Every field of every event that the digest covers, with the two digests, in the order of the sequence: what the verification reads.</summary>
     internal const string ReadChain = """
         SELECT sequence, pg_catalog.timestamptz_send(occurred_at) AS occurred_at_send, actor_person_id, actor_system, item_kind, item_id, step, reason, corrects,

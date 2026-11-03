@@ -84,14 +84,14 @@ public sealed class CustodyVerificationHostTests
         await LogHasAsync(host, "não chegou ao fim: InvalidOperationException", cancellationToken);
         var stopped = await UntilAsync(host, body => body.GetProperty("last").ValueKind == JsonValueKind.Object, cancellationToken);
         var stoppedAt = stopped.GetProperty("last").GetProperty("recordedAt").GetDateTimeOffset();
-        var late = await UntilAsync(host, body => body.GetProperty("overdue").GetBoolean(), cancellationToken);
+        _ = await UntilAsync(host, body => body.GetProperty("overdue").GetBoolean(), cancellationToken);
         using var alive = await host.GetAsync("/status", cancellationToken);
         var stillLate = await UntilAsync(host, _ => true, cancellationToken);
-        var stoppedAt = late.GetProperty("last").GetProperty("recordedAt").GetDateTimeOffset();
         await host.RunAsSuperuserAsync("DROP TRIGGER zqx_refuse ON public.custody_event; DROP FUNCTION public.zqx_refuse()", cancellationToken);
         var caughtUp = await UntilAsync(host, body => body.GetProperty("last").GetProperty("recordedAt").GetDateTimeOffset() > stoppedAt, cancellationToken);
 
         Assert.Equal(stoppedAt, stillLate.GetProperty("last").GetProperty("recordedAt").GetDateTimeOffset());
+        Assert.True(stillLate.GetProperty("overdue").GetBoolean());
         Assert.Equal(HttpStatusCode.OK, alive.StatusCode);
         Assert.True(caughtUp.GetProperty("last").GetProperty("passed").GetBoolean());
     }

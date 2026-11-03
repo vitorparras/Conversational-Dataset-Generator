@@ -144,6 +144,7 @@ internal static class CompositionRoot
         _ = services.AddSingleton<IStartupCheck>(provider => new OwnerWindowCheck(
             provider.GetRequiredService<NpgsqlDataSource>(), provider.GetRequiredService<GuaranteeVerifier>(), provider.GetRequiredService<TimeProvider>()));
         _ = services.AddSingleton<IStartupCheck>(provider => new RlsForceCheck(provider.GetRequiredService<NpgsqlDataSource>()));
+        _ = services.AddSingleton<IStartupCheck>(provider => new RestoreWindowCheck(provider.GetRequiredService<NpgsqlDataSource>()));
         _ = services.AddSingleton<IStartupCheck>(provider => new SerializableCheck(provider.GetRequiredService<NpgsqlDataSource>()));
         _ = services.AddSingleton<IStartupCheck>(provider => new PgAuditCheck(provider.GetRequiredService<NpgsqlDataSource>()));
         _ = services.AddSingleton<IStartupCheck>(provider => new ColumnRevokeCheck(provider.GetRequiredService<NpgsqlDataSource>()));

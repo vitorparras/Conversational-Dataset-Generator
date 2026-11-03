@@ -16,8 +16,9 @@ public sealed class CustodyNamesFreshLoadTests
     [
         "person", "item_text", "reversal_map", "custody_chain",
         "person_created", "person_deactivated", "person_function_changed", "person_password_set", "correction",
-        "raw_text_read", "sanitized_text_read", "reversal_entries_read", "verify_chain",
+        "raw_text_read", "sanitized_text_read", "reversal_entries_read", "verify_chain", "item_emptied", "item_emptying_refused",
         "administrative_act", "correction_of_record", "content_read", "verification_passed", "verification_failed",
+        "removal_requested_by_subject", "contract_requirement", "author_without_function", "item_already_emptied",
     ];
 
     [Fact]

@@ -13,4 +13,5 @@ internal sealed record StoredEvent(
     long? Corrects,
     byte[] PreviousDigest,
     byte[] Digest,
-    string RecordedBy);
+    string RecordedBy,
+    string? Reference = null);

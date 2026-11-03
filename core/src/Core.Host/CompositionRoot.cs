@@ -151,7 +151,7 @@ internal static class CompositionRoot
         _ = builder.Services.Configure<CookiePolicyOptions>(TransportSecurity.CookiePolicy);
         Compose(builder, loaded.View, fileLog);
         AddAnalysis(builder.Services, loaded.Values, analyzeTimeout);
-        _ = builder.Services.AddSingleton(PasswordConfiguration.Derivation(loaded.Values));
+        _ = builder.Services.AddSingleton(PasswordConfiguration.Derivation(loaded.Values)).AddSingleton(VerificationConfiguration.Schedule(loaded.Values));
         _ = builder.Services.AddSingleton(_ => new ServerAuditLog(AuditConfiguration.ServerLogDirectory(loaded.Values))).AddSingleton<AuditComparisonState>();
         _ = builder.Services.AddHostedService(provider => new AuditComparisonService(
             new AuditComparisonPlan(
@@ -173,6 +173,7 @@ internal static class CompositionRoot
     {
         _ = builder.Services.AddSingleton(report).AddSingleton(_ => startup);
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetRequiredService<ServiceProcessWatch>());
+        _ = builder.Services.AddSingleton(provider => new ChainVerificationService(provider)).AddHostedService(provider => provider.GetRequiredService<ChainVerificationService>());
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source
             ? new SignIn(new PersonRegistry(source), new PersonCredentials(source, provider.GetRequiredService<PasswordDerivation>()),
                 provider.GetRequiredService<SessionStore>(), new SignInDelay(provider.GetRequiredService<TimeProvider>()))

@@ -24,7 +24,7 @@ internal static class SessionEndpoint
             return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
 
-        if (await signIn.OpenAsync(asked.Name, asked.Password, cancellationToken) is not { } identifier)
+        if (await signIn.OpenAsync(asked.Name, asked.Password, context.Connection.RemoteIpAddress, cancellationToken) is not { } identifier)
         {
             return Results.Json(new SessionRefused(Route), statusCode: StatusCodes.Status401Unauthorized);
         }

@@ -44,7 +44,7 @@ public sealed class ProtectedContentReader(NpgsqlDataSource dataSource, Protecte
     {
         var reading = Readings.GetValueOrDefault(request.Column) ?? throw new ArgumentException("The column is not a protected column of the content.", nameof(request));
         var statement = first ? reading.First ?? throw new ArgumentException("The column has no first reading.", nameof(request)) : reading.Query;
-        var stored = await FetchAsync(request, statement, cancellationToken).ConfigureAwait(false);
+        var stored = await FetchAsync(request, statement, first, cancellationToken).ConfigureAwait(false);
         if (!stored.Found || stored.Envelope is null)
         {
             return new ContentReadResult { Outcome = stored.Found ? ContentReadOutcome.Empty : ContentReadOutcome.NotFound };
@@ -57,12 +57,12 @@ public sealed class ProtectedContentReader(NpgsqlDataSource dataSource, Protecte
             : new ContentReadResult { Outcome = ContentReadOutcome.NotRecorded, Refusal = recorded };
     }
 
-    private async Task<StoredValue> FetchAsync(ContentRead request, string statement, CancellationToken cancellationToken)
+    private async Task<StoredValue> FetchAsync(ContentRead request, string statement, bool first, CancellationToken cancellationToken)
     {
         var transaction = await ContentTransaction.BeginAsync(dataSource, request.DomainId, cancellationToken).ConfigureAwait(false);
         await using (transaction.ConfigureAwait(false))
         {
-            var command = Command(transaction, statement, request.RowId);
+            var command = Command(transaction, statement, first ? null : request.RowId);
             await using (command.ConfigureAwait(false))
             {
                 return await FirstRowAsync(command, request.RowId, cancellationToken).ConfigureAwait(false);
@@ -70,10 +70,10 @@ public sealed class ProtectedContentReader(NpgsqlDataSource dataSource, Protecte
         }
     }
 
-    private static NpgsqlCommand Command(ContentTransaction transaction, string statement, long rowId)
+    private static NpgsqlCommand Command(ContentTransaction transaction, string statement, long? rowId)
     {
         var command = transaction.CreateCommand(statement);
-        _ = rowId > 0 ? command.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Bigint) { Value = rowId }) : null;
+        _ = rowId is { } id ? command.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Bigint) { Value = id }) : null;
         return command;
     }
 

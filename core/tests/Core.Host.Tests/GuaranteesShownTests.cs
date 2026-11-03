@@ -3,7 +3,7 @@ using Core.Persistence.Custody.Verification;
 
 namespace Core.Host.Tests;
 
-/// <summary>The answer about the guarantees (issue #68, CA-5): with no conference recorded it is late with nothing conferred, which is not a pass; with one, it names what was conferred and what was missing.</summary>
+/// <summary>The answer about the guarantees (issue #68, CA-5): with none recorded it is late and confers nothing, which is not a pass.</summary>
 public sealed class GuaranteesShownTests
 {
     [Fact]

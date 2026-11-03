@@ -16,6 +16,8 @@ namespace Core.Persistence.Tests.Fixtures;
 /// </summary>
 internal sealed class FidelityWorld : IAsyncDisposable
 {
+    private static readonly string[] Labels = ["texto-bruto/1/v1", "mapa-reversao/1/v1", "texto-bruto/2/v1", "mapa-reversao/2/v1"];
+
     private readonly ScratchDatabase database;
     private readonly SyntheticCustody custody;
 
@@ -36,10 +38,7 @@ internal sealed class FidelityWorld : IAsyncDisposable
 
     public ProtectedContentReader Reader { get; }
 
-
     public PersonRegistry Registry { get; }
-
-    private static readonly string[] Labels = ["texto-bruto/1/v1", "mapa-reversao/1/v1", "texto-bruto/2/v1", "mapa-reversao/2/v1"];
 
     public static async Task<FidelityWorld> CreateAsync()
     {

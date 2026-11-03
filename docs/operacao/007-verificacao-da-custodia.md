@@ -17,7 +17,7 @@ além da cadeia.
 |---|---|
 | Garantias do servidor: política de linha, permissão de coluna, gatilho | A cada implantação, e mensalmente |
 | Papel da aplicação não é dono de tabela nem superusuário | A cada implantação |
-| Amostra de registros cifrados que ainda decifram sob a versão declarada | Mensalmente |
+| Amostra de registros cifrados que ainda decifram sob a versão declarada (decifrar tudo expõe dado pessoal; a leitura é acesso registrado) | Mensalmente |
 | Guarda da chave, e separação dela da credencial de dono | Trimestralmente, e a cada troca de custodiante |
 | Restauração de uma cópia em ambiente separado | Trimestralmente |
 
@@ -27,7 +27,7 @@ remoção da garantia que impedia a alteração. Garantia desativada não quebra
 ## Onde fica o resultado
 
 Na subida e a cada `Custody:VerificationInterval`, cada execução vira um evento da cadeia: passo
-`verify_guarantees`, veredito e, no item, a máscara do que faltou. A rota `/custody/verification`,
+`CustodyStep.VerifyGuarantees`, veredito e, no item, a máscara do que faltou. A rota `/custody/verification`,
 com sessão aberta, mostra em `guarantees` quando rodou, o que conferiu e o que faltou; `overdue`
 verdadeiro, sem resultado ou com o último mais velho que dois intervalos, é falha.
 

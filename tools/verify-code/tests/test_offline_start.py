@@ -196,6 +196,7 @@ class OfflineStartTests(unittest.TestCase):
         script = START_SCRIPT.read_text(encoding="utf-8")
 
         self.assertIn(': > "$custody/serverlog/postgresql.csv"', script)
+        self.assertIn('chmod 555 "$custody/serverlog"', script)
         self.assertIn('export CDG_Audit__ServerLogDirectory="$custody/serverlog"', script)
         self.assertIn("CDG_Audit__CompareInterval=01:00:00", script)
 

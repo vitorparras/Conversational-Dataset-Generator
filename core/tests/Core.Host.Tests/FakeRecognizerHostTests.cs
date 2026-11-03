@@ -23,21 +23,6 @@ public sealed class FakeRecognizerHostTests
     }
 
     [Fact]
-    public async Task ConfigurationInForceShowsTheFakeKindWithItsOrigin()
-    {
-        var cancellationToken = TestContext.Current.CancellationToken;
-        using var host = await HostProcess.StartAsync(cancellationToken);
-
-        using var response = await host.GetAsync("/configuration", cancellationToken);
-        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
-
-        var kind = body.RootElement.GetProperty("entries").EnumerateArray()
-            .Single(entry => entry.GetProperty("key").GetString() == "Recognizer:Kind");
-        Assert.Equal("fake", kind.GetProperty("value").GetString());
-        Assert.Equal("Argument", kind.GetProperty("origin").GetString());
-    }
-
-    [Fact]
     public async Task HostWithAKindOutsideTheSetEndsWithTheRefusalCodeNamingTheKeyAndTheAcceptedValues()
     {
         var cancellationToken = TestContext.Current.CancellationToken;

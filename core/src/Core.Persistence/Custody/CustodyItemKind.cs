@@ -11,4 +11,7 @@ public enum CustodyItemKind
 
     /// <summary>The map that reverses the pseudonyms of an item.</summary>
     ReversalMap,
+
+    /// <summary>The chain itself: what a verification of the chain is about.</summary>
+    CustodyChain,
 }

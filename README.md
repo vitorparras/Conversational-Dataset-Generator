@@ -168,8 +168,10 @@ A instalação real também declara `Custody:LastRecoveryTest` (data ISO) e `Cus
 dois a partida recusa.
 
 `Passwords:WorkFactor` é obrigatória ao servir, sem valor padrão, e leva o fator de trabalho da
-derivação das senhas, um número inteiro positivo de iterações que quem instala escolhe (`ITERACOES`
-acima é marcador). A recusa nomeia a chave; `/configuration` mostra o valor em vigor e de onde veio.
+derivação das senhas, um número inteiro de iterações que quem instala escolhe: de 600000 a 10000000
+na instalação real e de 1 a 10000000 na demonstração ([0047](docs/decisoes/0047-fator-de-trabalho-das-senhas.md)).
+`ITERACOES` acima é marcador. A recusa nomeia a chave e o limite; `/configuration` mostra o valor em
+vigor e de onde veio.
 
 `Session:IdleTimeout` e `Session:AbsoluteTimeout` são obrigatórias ao servir, sem valor padrão, e
 levam cada uma uma duração maior que zero (`00:30:00`, horas:minutos:segundos, ou `1.00:00:00`, com
@@ -183,7 +185,10 @@ sem perder o que submeteu espera a interface.
 `Audit:ServerLogDirectory` é obrigatória ao servir, sem valor padrão, e leva o caminho absoluto da
 pasta onde o servidor de banco escreve o registro `csv` (o `/var/log/postgresql` da imagem de
 `tools/database`). A partida recusa pasta ausente, sem arquivo `.csv` ou ilegível ao processo, e o
-`migrate` não a exige. O núcleo só lê essa pasta.
+`migrate` não a exige. O núcleo só lê essa pasta. `GET /audit/server?from=...&to=...` (instantes
+com fuso, como `2026-11-01T12:00:00Z`, e `from` antes de `to`) lista, de uma sessão viva, o que o
+servidor registrou no intervalo: hora, papel, banco, classe, comando e objeto, nunca o texto do
+comando. Que a sessão seja de quem tem a função Auditoria é decisão da fase 6.
 
 `MasterKey:File` e `MasterKey:LabelsFile` são obrigatórias ao servir, sem valor padrão, e levam os
 caminhos dos arquivos da chave e dos rótulos, nunca a chave. O núcleo recusa arquivo ausente, com

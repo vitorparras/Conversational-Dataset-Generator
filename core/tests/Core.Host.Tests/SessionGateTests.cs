@@ -4,7 +4,7 @@ using System.Text.Json;
 namespace Core.Host.Tests;
 
 /// <summary>
-/// The routes that require a session refuse a request with none, with 401 and the route of the entry, whatever the cause (issue #70, CA-5 interim).
+/// Every route but the entry and the status refuses a request with no session, with 401 and the route of the entry, whatever the cause (issues #70 and #495).
 /// The host here has no database: the entry then says it cannot, and no request gets in.
 /// </summary>
 public sealed class SessionGateTests
@@ -82,7 +82,7 @@ public sealed class SessionGateTests
     }
 
     [Fact]
-    public async Task ExitWithNoSessionAnswers204AndAsksTheBrowserToDropTheCookie()
+    public async Task ExitWithNoSessionIsRefusedLikeEveryRouteBehindTheGate()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         using var host = await HostProcess.StartAsync(cancellationToken);
@@ -90,8 +90,24 @@ public sealed class SessionGateTests
 
         using var response = await host.SendAsync(request, cancellationToken);
 
-        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
-        Assert.Contains(response.Headers.GetValues("Set-Cookie"), cookie => cookie.StartsWith($"{Cookie}=;", StringComparison.Ordinal));
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.Equal("/session", await SignInOfAsync(response, cancellationToken));
+    }
+
+    public static TheoryData<string, string> RoutesBehindTheGate => MappedRoutes.Gated();
+
+    [Theory]
+    [MemberData(nameof(RoutesBehindTheGate))]
+    public async Task EveryRouteBehindTheGateAnswers401PointingAtTheEntryWhenThereIsNoSession(string method, string route)
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var host = await HostProcess.StartAsync(cancellationToken);
+        using var request = new HttpRequestMessage(new HttpMethod(method), new Uri(route, UriKind.Relative));
+
+        using var response = await host.SendAsync(request, cancellationToken);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.Equal("/session", await SignInOfAsync(response, cancellationToken));
     }
 
     private static async Task<string?> SignInOfAsync(HttpResponseMessage response, CancellationToken cancellationToken)

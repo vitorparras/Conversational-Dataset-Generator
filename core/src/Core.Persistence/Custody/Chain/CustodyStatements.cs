@@ -37,7 +37,7 @@ internal static class CustodyStatements
         """;
 
     /// <summary>The scope of every loss of a key declared: the reference of the steps that declare one.</summary>
-    internal const string ReadKeyLossScopes = "SELECT reference FROM public.custody_event WHERE step = @step";
+    internal const string ReadKeyLossScopes = "SELECT reference FROM public.custody_event WHERE item_kind = 'master_key' AND step = @step";
 
     internal const string Append = """
         INSERT INTO public.custody_event (actor_person_id, actor_system, item_kind, item_id, step, reason, corrects, reference)

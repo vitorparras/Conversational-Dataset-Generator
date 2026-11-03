@@ -26,4 +26,7 @@ internal sealed record HostSetup
 
     /// <summary>The work factor the person's password is made with, which is the one the host is told when no argument says otherwise.</summary>
     public int WorkFactor { get; init; } = 1;
+
+    /// <summary>The function of the person the host starts with; the first of the policy unless the test asks for another.</summary>
+    public string Function { get; init; } = Core.Persistence.People.PersonFunctions.Accepted[0];
 }

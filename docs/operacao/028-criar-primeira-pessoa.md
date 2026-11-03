@@ -7,7 +7,7 @@ A primeira pessoa da instalação nasce de um comando só, `./Core.Host create-p
 antes de qualquer entrada. Ele usa a **credencial da aplicação** do banco, a mesma com que o servidor
 roda, e **nunca a de dono** ([010](010-credencial-de-dono-do-banco.md)), que só migra: com a de
 dono o comando recusa e não grava nada. A senha vem pela **entrada padrão**, nunca por argumento.
-Não há endpoint HTTP para isso.
+Não há endpoint HTTP para a primeira pessoa; as seguintes entram pelas rotas com sessão, mais abaixo.
 
 ## Como rodar
 
@@ -53,9 +53,33 @@ sessão, não por ele.
 - **78**: faltou o nome ou a função, a senha veio por argumento, o fator de trabalho falta ou não é
   aceito, ou a configuração do banco está incompleta.
 
-**Código 23 com pessoa criada**: o cadastro já não está vazio e o comando não roda de novo. Quem
-define a senha dessa pessoa é a rota de reposição com sessão; enquanto ela não existir, restaure a
-instalação a partir da cópia ([006](006-restauracao.md)) e repita.
+**Código 23 com pessoa criada**: o cadastro já não está vazio e o comando não roda de novo. A senha dessa pessoa
+se define pela rota `PUT /people/{id}/password`, abaixo, com a sessão de outra administradora; se ela
+for a única pessoa, restaure a instalação a partir da cópia ([006](006-restauracao.md)) e repita.
+
+## As pessoas seguintes: rotas com sessão
+
+Depois da primeira, as pessoas entram, saem e trocam de senha por três rotas que pedem sessão.
+Só quem tem a função **Administração técnica**
+as usa; a função é conferida dentro da rota, a cada pedido, até a autorização chegar na fase 6.
+O autor de cada evento (`person_created`, `person_deactivated`, `person_password_set`) é a pessoa da
+sessão, nunca o sistema.
+
+| Rota | O que faz | Corpo |
+|---|---|---|
+| `POST /people` | cria a pessoa e define a senha inicial | `{"name","function","password"}` |
+| `POST /people/{id}/deactivate` | desativa a pessoa | `{}` |
+| `PUT /people/{id}/password` | repõe a senha | `{"password"}` |
+
+- **401**: sem sessão. **403**: sessão de quem não tem a função; nada é gravado.
+- **400**: o campo fora da regra vem nomeado em `field` (`nome`, `função` ou `senha`).
+  **409**: nome repetido, pessoa já desativada ou a **última pessoa ativa com Administração técnica**,
+  que não se desativa, porque a instalação ficaria sem quem cria ou repõe pessoas.
+- **500** em `POST /people`: a pessoa foi criada e a senha não; a resposta diz o id, e a senha se
+  define pela rota `PUT`. É a saída do código 23 do comando quando já há mais de uma pessoa.
+- A pessoa desativada perde na hora as sessões abertas, não entra mais, e o que ela assinou na
+  cadeia continua dela.
+- A senha nunca aparece em resposta, log ou evento.
 
 ## O que fica registrado
 

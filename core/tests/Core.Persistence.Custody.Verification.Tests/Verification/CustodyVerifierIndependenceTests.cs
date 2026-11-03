@@ -15,12 +15,12 @@ public sealed class CustodyVerifierIndependenceTests
 {
     private const string Replaced =
         "CREATE OR REPLACE FUNCTION public.custody_digest(previous bytea, sequence bigint, occurred_at timestamptz, actor_person_id bigint, actor_system boolean, "
-        + "item_kind text, item_id bigint, step text, reason text, corrects bigint, recorded_by text) RETURNS bytea LANGUAGE sql IMMUTABLE "
+        + "item_kind text, item_id bigint, step text, reason text, corrects bigint, recorded_by text, reference text) RETURNS bytea LANGUAGE sql IMMUTABLE "
         + "AS $replaced$ SELECT pg_catalog.sha256(previous || pg_catalog.int8send(sequence)) $replaced$";
 
     private const string CheckedByTheFunctionItself =
         "SELECT pg_catalog.bool_and(e.digest = public.custody_digest(e.previous_digest, e.sequence, e.occurred_at, e.actor_person_id, e.actor_system, e.item_kind, e.item_id, e.step, "
-        + "e.reason, e.corrects, e.recorded_by)) FROM public.custody_event e WHERE e.sequence >= 3";
+        + "e.reason, e.corrects, e.recorded_by, e.reference)) FROM public.custody_event e WHERE e.sequence >= 3";
 
     [DatabaseFact]
     public async Task DigestFunctionReplacedByTheOwnerIsFoundByTheVerificationAndNotByTheFunctionItself()

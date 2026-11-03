@@ -30,11 +30,12 @@ internal static class AuditCompareMode
         {
             await using var source = NpgsqlDataSource.Create(database.ConnectionString!);
             var comparer = new AuditComparer(source, AuditConfiguration.ServerLogDirectory(loaded.Values));
-            return HostLaunch.Compared(new AuditCompareOutcome(await comparer.CompareAsync(from, to, CancellationToken.None).ConfigureAwait(false), Failure: null));
+            var compared = await comparer.CompareAsync(from, to, CancellationToken.None).ConfigureAwait(false);
+            return HostLaunch.Compared(new AuditCompareOutcome(compared.Differences, compared.CutOffFiles, Failure: null));
         }
         catch (Exception failure) when (failure is NpgsqlException or IOException or UnauthorizedAccessException or InvalidDataException)
         {
-            return HostLaunch.Compared(new AuditCompareOutcome([], failure.GetType().FullName));
+            return HostLaunch.Compared(new AuditCompareOutcome([], [], failure.GetType().FullName));
         }
     }
 }

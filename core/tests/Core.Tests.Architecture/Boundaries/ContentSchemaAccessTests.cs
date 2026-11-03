@@ -6,6 +6,7 @@ namespace Core.Tests.Architecture.Boundaries;
 public sealed class ContentSchemaAccessTests
 {
     private const string Fixtures = "content-schema";
+    private const string GuaranteesProbe = "core/src/Core.Persistence/ServerGuarantees/Names.cs";
     private const string QueriesPath = "core/src/Core.Persistence/Content/ContentQueries.cs";
 
     [Fact]
@@ -139,4 +140,31 @@ public sealed class ContentSchemaAccessTests
 
         Assert.Equal([5, 7, 9, 11, 13], lines);
     }
+
+    [Fact]
+    public void TheWholeNameOfATableOfTheContentSchemaIsLetThroughInTheServerGuarantees()
+    {
+        var probe = SourceFile.FromText(GuaranteesProbe, Constant("content.item_text"));
+
+        Assert.Empty(ContentSchemaAccessRules.Check([probe]));
+    }
+
+    [Fact]
+    public void AStatementThatNamesATableOfTheContentSchemaIsStillRefusedInTheServerGuarantees()
+    {
+        var probe = SourceFile.FromText(GuaranteesProbe, Constant("SELECT 1 FROM content.item_text"));
+
+        Assert.Equal([5], ContentSchemaAccessRules.Check([probe]).Select(violation => violation.Line));
+    }
+
+    [Fact]
+    public void TheWholeNameOfATableOfTheContentSchemaIsRefusedOutsideTheServerGuarantees()
+    {
+        var probe = SourceFile.FromText("core/src/Core.Persistence/People/Names.cs", Constant("content.item_text"));
+
+        Assert.Equal([5], ContentSchemaAccessRules.Check([probe]).Select(violation => violation.Line));
+    }
+
+    private static string Constant(string value) =>
+        string.Join('\n', "namespace Probe;", string.Empty, "public static class Names", "{", $"    public const string Value = \"{value}\";", "}", string.Empty);
 }

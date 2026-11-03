@@ -55,6 +55,21 @@ public sealed class CustodyKeyLossListTests : IClassFixture<CustodyDatabase>
     }
 
     [DatabaseTheory]
+    [InlineData("person")]
+    [InlineData("item_text")]
+    [InlineData("reversal_map")]
+    [InlineData("custody_chain")]
+    [InlineData("content_epoch")]
+    [InlineData("domain")]
+    [InlineData("master_key")]
+    public async Task Ca5EveryKindOfItemTheMigrationsBeforeListedIsStillListed(string kind)
+    {
+        var definition = await database.TextAsOwnerAsync("SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'custody_event_item_kind_listed'");
+
+        Assert.Contains($"'{kind}'::text", definition, StringComparison.Ordinal);
+    }
+
+    [DatabaseTheory]
     [InlineData("domain_label_rotated", "domain", "'v2'")]
     [InlineData("item_emptied", "item_text", "'zqx-1'")]
     [InlineData("seal_recorded", "custody_chain", "NULL")]

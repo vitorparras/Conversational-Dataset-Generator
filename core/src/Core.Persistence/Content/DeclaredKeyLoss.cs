@@ -10,18 +10,23 @@ internal static class DeclaredKeyLoss
 {
     internal static async Task<IReadOnlySet<string>> ScopesAsync(NpgsqlDataSource dataSource, CancellationToken cancellationToken)
     {
-        var scopes = new HashSet<string>(StringComparer.Ordinal);
         var command = dataSource.CreateCommand(CustodyStatements.ReadKeyLossScopes);
         await using (command.ConfigureAwait(false))
         {
             _ = command.Parameters.AddWithValue("step", NpgsqlDbType.Text, CustodyNames.Of(CustodyStep.KeyLossDeclared));
-            var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-            await using (reader.ConfigureAwait(false))
+            return await ReadAsync(command, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static async Task<IReadOnlySet<string>> ReadAsync(NpgsqlCommand command, CancellationToken cancellationToken)
+    {
+        var scopes = new HashSet<string>(StringComparer.Ordinal);
+        var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        await using (reader.ConfigureAwait(false))
+        {
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
             {
-                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-                {
-                    _ = scopes.Add(reader.GetString(0));
-                }
+                _ = scopes.Add(reader.GetString(0));
             }
         }
 

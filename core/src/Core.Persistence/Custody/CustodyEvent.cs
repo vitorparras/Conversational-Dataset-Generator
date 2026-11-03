@@ -153,7 +153,7 @@ public sealed record CustodyEvent
     public static CustodyEvent KeyLossDeclared(KeyLossScope scope, KeyLossAttempts attempts)
     {
         ArgumentNullException.ThrowIfNull(scope);
-        ArgumentOutOfRangeException.ThrowIfEqual((int)attempts, 0);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero((int)attempts);
         ArgumentOutOfRangeException.ThrowIfGreaterThan((int)attempts, (int)KeyLossAttempts.All);
         return WithReference(
             new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.MasterKey, (long)attempts), CustodyStep.KeyLossDeclared, CustodyReason.AdministrativeAct),

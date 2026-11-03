@@ -17,7 +17,7 @@ namespace Core.Tests.Integration.Sessions;
 public sealed class SessionEntryTimingTests
 {
     private const int HeavyFactor = 600_000;
-    private const int MinPairs = 3;
+    private const int MinPairs = 5;
     private const int MaxPairs = 20;
     private static readonly TimeSpan Floor = TimeSpan.FromMilliseconds(20);
 

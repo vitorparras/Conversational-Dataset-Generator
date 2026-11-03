@@ -35,7 +35,7 @@ No Windows, tire a herança do arquivo e deixe só o usuário (`icacls ARQUIVO /
 
 A chave e os rótulos vêm da cópia de guarda ([002](002-guarda-da-chave.md)), nunca de um sorteio
 novo: chave nova sem os rótulos antigos deixa o dado antigo ilegível, e o arquivo de rótulos leva o
-conjunto completo. As épocas vêm da cópia do custodiante ([026](026-rotacao-da-epoca.md)). Além dos
+conjunto completo. As épocas vêm da cópia do custodiante. Além dos
 arquivos, a instalação real declara quando a recuperação foi testada pela última vez e quem detém a
 cópia, e sem isso a partida recusa e nomeia o que falta:
 
@@ -56,5 +56,4 @@ apagado dele. A demonstração não declara nada disso.
 - **`não é base64` ou `linhas`**: o arquivo da chave tem de ter uma linha só
 - **`linha N`**: o arquivo de rótulos tem um rótulo vazio ou com espaço em volta nessa linha, ou
   o das épocas tem uma linha que não é `n:base64`, ou repete a época
-- **`época ... ausente`**: o banco tem linha embrulhada por uma época que o arquivo não tem; veja a
-  [026](026-rotacao-da-epoca.md)
+- **`época ... ausente`**: o banco tem linha embrulhada por uma época que o arquivo não tem

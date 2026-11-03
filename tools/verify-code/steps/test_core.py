@@ -29,6 +29,7 @@ class TestRun:
     failed: int
     skipped: int
     skip_reasons: tuple[str, ...]
+    failures: tuple[str, ...] = ()
 
 
 def test_projects(solution: Path) -> tuple[str, ...]:
@@ -63,12 +64,18 @@ def read_trx(path: Path) -> TestRun:
         for e in root.iter()
         if e.tag.endswith("}UnitTestResult") and e.get("outcome") == "NotExecuted"
     }
+    names = sorted(
+        f"{project}: {e.get('testName', '?')}"
+        for e in root.iter()
+        if e.tag.endswith("}UnitTestResult") and e.get("outcome") == "Failed"
+    )
     return TestRun(
         project,
         int(counters.get("executed", "0")),
         int(counters.get("failed", "0")),
         int(counters.get("notExecuted", "0")),
         tuple(sorted(reason for reason in reasons if reason)),
+        tuple(names),
     )
 
 
@@ -101,7 +108,8 @@ def verdict(
         )
     failures = sum(run.failed for run in runs)
     if failures > 0:
-        return failed(NAME, f"{failures} teste(s) do núcleo falharam", *tail(dotnet.text))
+        names = tuple(name for run in runs for name in run.failures)
+        return failed(NAME, f"{failures} teste(s) do núcleo falharam", *names, *tail(dotnet.text))
     if not dotnet.ok:
         return failed(
             NAME, "`dotnet test` terminou com erro sem teste reprovado", *tail(dotnet.text)

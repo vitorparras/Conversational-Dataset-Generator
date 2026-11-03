@@ -5,6 +5,7 @@ using Core.Persistence.Content.Reading;
 using Core.Persistence.Content.Writing;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Verification;
+using Core.Persistence.People;
 using Core.Persistence.ServerGuarantees;
 using Core.Persistence.ServerGuarantees.Restore;
 using Core.Persistence.Tests.Fixtures;
@@ -19,6 +20,8 @@ namespace Core.Persistence.Tests.ServerGuarantees;
 public sealed class RestoreLoaderTests
 {
     private const string Digests = "SELECT string_agg(sequence || ':' || encode(previous_digest, 'hex') || ':' || encode(digest, 'hex'), ',' ORDER BY sequence) FROM public.custody_event WHERE sequence <= {0}";
+    private const string People = "SELECT string_agg(id || ':' || name || ':' || function_name || ':' || created_at || ':' || active, ',' ORDER BY id) FROM public.person";
+    private const string Credentials = "SELECT string_agg(person_id || ':' || algorithm || ':' || work_factor || ':' || encode(salt, 'hex') || ':' || encode(derived, 'hex'), ',' ORDER BY person_id) FROM public.person_credential";
     private const string Window = "SELECT coalesce(string_agg(state || ':' || coalesce(approved::text, '-'), ',' ORDER BY state), 'none') FROM public.restore_window";
     private const string Restored = "SELECT count(*)::text FROM public.custody_event WHERE step = 'restored'";
 
@@ -38,6 +41,9 @@ public sealed class RestoreLoaderTests
         Assert.True((await new CustodyVerifier(destination.DataSource, TimeProvider.System).VerifyAsync(token)).Passed);
         Assert.Equal(GuaranteeKinds.None, (await destination.Verifier().VerifyAsync(token)).Missing);
         Assert.Equal(["closed:true,opened:-"], await destination.OwnerColumnAsync(Window));
+        Assert.Equal(await source.OwnerColumnAsync(People), await destination.OwnerColumnAsync(People));
+        Assert.Equal(await source.OwnerColumnAsync(Credentials), await destination.OwnerColumnAsync(Credentials));
+        Assert.Equal(["zqx-flow:false"], await destination.OwnerColumnAsync("SELECT name || ':' || active FROM public.person WHERE name = 'zqx-flow'"));
     }
 
     [DatabaseFact]
@@ -72,6 +78,22 @@ public sealed class RestoreLoaderTests
 
         Assert.Equal(RestoreOutcome.RowsRefused, result.Outcome);
         Assert.Contains($"evento {named} ", result.Detail, StringComparison.Ordinal);
+        await AssertNothingRestoredAsync(destination);
+    }
+
+    [DatabaseFact]
+    public async Task LineThatIsNotJsonClosesTheWindowAsFailedNamingTheTable()
+    {
+        await using var source = await PopulatedAsync();
+        using var copy = await CopyFolder.OfAsync(source);
+        var (sequence, digest) = await CopyFolder.TipOfAsync(source);
+        await File.AppendAllTextAsync(Path.Combine(copy.Path, "public.person.jsonl"), "{not json" + Environment.NewLine, TestContext.Current.CancellationToken);
+        await using var destination = await FidelityWorld.CreateAsync(seeded: false);
+
+        var result = await LoadAsync(destination, copy, new RestoreTip(sequence, digest));
+
+        Assert.Equal(RestoreOutcome.CopyRefused, result.Outcome);
+        Assert.Contains("public.person ", result.Detail, StringComparison.Ordinal);
         await AssertNothingRestoredAsync(destination);
     }
 
@@ -160,7 +182,7 @@ public sealed class RestoreLoaderTests
     private static string DigestsUpTo(long sequence) => string.Format(System.Globalization.CultureInfo.InvariantCulture, Digests, sequence);
 
     private static Task<RestoreResult> LoadAsync(FidelityWorld destination, CopyFolder copy, RestoreTip tip) =>
-        new RestoreLoader(destination.DataSource, destination.Verifier(), TimeProvider.System).LoadAsync(RestoreCopy.Open(copy.Path), tip, TestContext.Current.CancellationToken);
+        new RestoreLoader(destination.DataSource, new GuaranteeVerifier(destination.DataSource), TimeProvider.System).LoadAsync(RestoreCopy.Open(copy.Path), tip, TestContext.Current.CancellationToken);
 
     private static IEnumerable<JsonNode> Altered(List<JsonNode> events, int index)
     {
@@ -180,12 +202,16 @@ public sealed class RestoreLoaderTests
         var token = TestContext.Current.CancellationToken;
         var world = await FidelityWorld.CreateAsync();
         await world.MakeCuratorAsync();
+        var curator = CustodyAuthor.Person((long)(await world.InDomainAsync(1, "SELECT id FROM public.person WHERE name = 'zqx-active'"))!);
+        var created = await world.Registry.CreateAsync(new NewPerson("zqx-flow", PersonFunctions.Curation), curator, token);
+        var flow = created.PersonId!.Value;
+        _ = await world.Credentials(workFactor: 1).SetPasswordAsync(flow, "senha-sintetica-zqx", curator, token);
         var first = await world.Writer.AddItemTextAsync(1, new NewItemText("texto bruto sintetico zqx", "texto sanitizado sintetico zqx"), token);
         _ = await world.Writer.AddReversalMapAsync(1, first, "mapa sintetico zqx", token);
         var second = await world.Writer.AddItemTextAsync(1, new NewItemText("segundo texto sintetico zqx"), token);
         _ = await world.Reader.ReadAsync(new ContentRead(CustodyAuthor.System, ContentColumns.RawText, 1, first), token);
-        var person = (long)(await world.InDomainAsync(1, "SELECT id FROM public.person WHERE name = 'zqx-active'"))!;
-        _ = await new ContentEmptier(world.DataSource).EmptyAsync(new ItemEmptying(CustodyAuthor.Person(person), 1, second, EmptyingMotive.ContractRequirement, "PROT-2026/0042"), token);
+        _ = await new ContentEmptier(world.DataSource).EmptyAsync(new ItemEmptying(CustodyAuthor.Person(flow), 1, second, EmptyingMotive.ContractRequirement, "PROT-2026/0042"), token);
+        _ = await world.Registry.DeactivateAsync(flow, curator, token);
         _ = await new CustodyVerifier(world.DataSource, TimeProvider.System).VerifyAsync(token);
         _ = await world.Verifier().VerifyAsync(token);
         return world;

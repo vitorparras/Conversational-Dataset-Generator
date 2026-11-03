@@ -17,6 +17,5 @@ internal enum HostLaunchState
 
     Compared = 4,
 
-    /// <summary>The mode that puts a copy back ran and ended; it has written its own report.</summary>
     Loaded = 5,
 }

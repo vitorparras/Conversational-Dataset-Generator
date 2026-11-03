@@ -32,10 +32,11 @@ versão correspondente. Abra a janela antes de começar: quem restaura, de qual 
 7. Só então libere a escrita, e feche a janela com o resultado
 
 O `restore-load <pasta> <sequência> <digest>` faz o 1, o 2, o 3 e o 5 por você, em banco novo e
-com a credencial da aplicação: `<sequência>` e `<digest>` são o topo anotado fora. Sai com 0 só se
-tudo fechou, grava o evento `restored` (resumo da cópia, topo antes e depois) e, se algo recusar,
-diz qual versão, tabela, evento ou garantia divergiu, sem valor algum. Banco recusado se descarta
-e se refaz com `migrate`. Os passos 4, 6 e 7 seguem sendo seus.
+com a credencial da aplicação, sem a chave mestra: `<sequência>` e `<digest>` são o topo anotado
+fora. Sai com 0 só se tudo fechou, grava o evento `restored` (veredito, resumo da cópia, topo antes
+e depois) e, se algo recusar, diz qual versão, tabela ou evento divergiu, sem valor algum. A janela
+fecha "aprovada" quando o topo confere; o veredito final está no `restored`. Banco recusado se
+descarta e se refaz com `migrate`. Os passos 4, 6 e 7 seguem sendo seus.
 
 ## O que nunca se faz
 
@@ -46,13 +47,14 @@ ligação que não fechou. Qualquer uma das três produz cadeia válida e falsa.
 
 A [política de acesso](../privacidade/006-acesso.md) não concede conteúdo à administração técnica, e
 restaurar é trabalho dela. Todas as conferências acima se fazem sobre estrutura, contagem e resumo:
-nenhuma exige abrir texto. Procedimento que precise ler material para validar restauração está
+nenhuma exige abrir texto; a amostra cifrada, que decifra, é conferida na primeira partida normal,
+com a chave do host. Procedimento que precise ler material para validar restauração está
 pedindo acesso que a política nega.
 
 ## A restauração é um evento
 
-Ela não desaparece depois de dar certo: um evento novo declara o que foi restaurado, de qual cópia,
-por quem, e qual era o topo antes e depois. Restauração silenciosa deixa na sequência um salto que a
+Ela não desaparece depois de dar certo: um evento novo declara o que foi restaurado, de qual cópia
+e qual era o topo antes e depois. Restauração silenciosa deixa na sequência um salto que a
 próxima verificação encontra sem explicação — e trata como incidente, corretamente.
 
 Se a cadeia não fechar, pare aqui e siga [009](009-incidente-cadeia-quebrada.md).

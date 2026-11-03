@@ -26,7 +26,6 @@ public sealed class RestoreCopy
     public string Name { get; }
 
     /// <summary>Reads the manifest of the copy; a manifest this build does not read is an <see cref="InvalidDataException" />.</summary>
-    /// <param name="folder">The folder of the copy.</param>
     public static RestoreCopy Open(string folder)
     {
         ArgumentException.ThrowIfNullOrEmpty(folder);
@@ -47,11 +46,9 @@ public sealed class RestoreCopy
     }
 
     /// <summary>Whether the manifest lists the file of the table.</summary>
-    /// <param name="table">The table, as schema.table.</param>
     public bool Has(string table) => files.Contains(table + ".jsonl");
 
     /// <summary>The rows of the table, as the arrays of JSON that one call of the load takes; none for a table with no row.</summary>
-    /// <param name="table">The table, as schema.table.</param>
     public IEnumerable<string> BatchesOf(string table) =>
         Has(table)
             ? File.ReadLines(Path.Combine(folder, table + ".jsonl")).Where(line => line.Length > 0).Chunk(BatchSize).Select(rows => "[" + string.Join(',', rows) + "]")

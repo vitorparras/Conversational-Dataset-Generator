@@ -8,17 +8,17 @@ using NpgsqlTypes;
 namespace Core.Persistence.ServerGuarantees.Restore;
 
 /// <summary>
-/// Puts a copy back in a new database with the application's credential, through the functions of the step 0019 only (#64, CA-5), confers the chain and the guarantees, and records the restore.
-/// What the database refuses closes the window as failed and records nothing; such a database is discarded and made again by the migration.
+/// Puts a copy back in a new database with the application's credential, through the functions of the step 0019 only (#64, CA-5), confers the chain and the guarantees and records the restore.
 /// </summary>
 public sealed class RestoreLoader
 {
     private const string Chain = "public.custody_event";
-    private const string Tip = "SELECT sequence, encode(digest, 'hex') FROM public.custody_event ORDER BY sequence DESC LIMIT 1";
+    private const string Tip = "SELECT sequence || ':' || encode(digest, 'hex') FROM public.custody_event ORDER BY sequence DESC LIMIT 1";
     private const string Version = "SELECT coalesce(pg_catalog.max(version), 0) FROM public.schema_version";
 
     /// <summary>The tables in the order they come back: the keys first, then the chain once the people exist, then the content, the maps after the texts and the emptied after both.</summary>
-    private static readonly string[] Tables = ["public.domain", "public.derivation_label", "public.person", "public.person_credential", "public.person_change", Chain, "content.item_text", "content.reversal_map", "content.item_emptied"];
+    private static readonly string[] Tables = new[] { "public.domain", "public.derivation_label", "public.person", "public.person_credential", "public.person_change",
+        Chain, "content.item_text", "content.reversal_map", "content.item_emptied" };
 
     private readonly NpgsqlDataSource dataSource;
     private readonly GuaranteeVerifier guarantees;
@@ -41,12 +41,10 @@ public sealed class RestoreLoader
     /// <param name="cancellationToken">Cancels the load.</param>
     public async Task<RestoreResult> LoadAsync(RestoreCopy copy, RestoreTip tip, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(copy);
-        ArgumentNullException.ThrowIfNull(tip);
         var version = Convert.ToInt32(await ScalarAsync(Version, cancellationToken).ConfigureAwait(false), CultureInfo.InvariantCulture);
         if (copy.SchemaVersion != version || Tables.Any(table => !copy.Has(table)))
         {
-            return new RestoreResult(RestoreOutcome.CopyRefused, $"a cópia é da versão {copy.SchemaVersion} do esquema e traz {Tables.Count(copy.Has)} das {Tables.Length} tabelas; o banco está na versão {version}");
+            return new RestoreResult(RestoreOutcome.CopyRefused, $"a cópia: versão {copy.SchemaVersion}, {Tables.Count(copy.Has)} das {Tables.Length} tabelas; o banco: versão {version}");
         }
 
         if (await RefusalOfOpeningAsync(cancellationToken).ConfigureAwait(false) is { } refusal)
@@ -71,26 +69,28 @@ public sealed class RestoreLoader
     private async Task<(long Rows, RestoreResult? Refused)> PutBackAsync(RestoreCopy copy, CancellationToken cancellationToken)
     {
         long rows = 0;
+        var current = string.Empty;
         try
         {
             foreach (var table in Tables)
             {
+                current = table;
                 foreach (var batch in copy.BatchesOf(table))
                 {
                     var answer = await LoadBatchAsync(table, batch, cancellationToken).ConfigureAwait(false);
                     if (answer < 0)
                     {
-                        return (rows, new RestoreResult(RestoreOutcome.RowsRefused, table == Chain ? $"o evento {-answer} da cópia não voltou como a cópia o tem" : $"o banco recusou a tabela {table}"));
+                        return (rows, new RestoreResult(RestoreOutcome.RowsRefused, table == Chain ? $"o evento {-answer} não voltou como a cópia o tem" : $"o banco recusou a tabela {table}"));
                     }
 
                     rows += answer;
                 }
             }
         }
-        catch (IOException unreadable)
+        catch (Exception unreadable) when (unreadable is IOException or UnauthorizedAccessException or NpgsqlException)
         {
             _ = await CloseAsync(approved: false, cancellationToken).ConfigureAwait(false);
-            return (rows, new RestoreResult(RestoreOutcome.CopyRefused, $"um arquivo da cópia não pôde ser lido ({unreadable.GetType().Name})"));
+            return (rows, new RestoreResult(RestoreOutcome.CopyRefused, $"a tabela {current} não pôde ser carregada ({unreadable.GetType().Name})"));
         }
 
         return (rows, null);
@@ -146,15 +146,8 @@ public sealed class RestoreLoader
 
     private async Task<RestoreTip?> LastEventAsync(CancellationToken cancellationToken)
     {
-        var command = dataSource.CreateCommand(Tip);
-        await using (command.ConfigureAwait(false))
-        {
-            var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-            await using (reader.ConfigureAwait(false))
-            {
-                return await reader.ReadAsync(cancellationToken).ConfigureAwait(false) ? new RestoreTip(reader.GetInt64(0), reader.GetString(1)) : null;
-            }
-        }
+        var tip = (string?)await ScalarAsync(Tip, cancellationToken).ConfigureAwait(false);
+        return tip?.Split(':') is [var sequence, var digest] ? new RestoreTip(long.Parse(sequence, CultureInfo.InvariantCulture), digest) : null;
     }
 
     private async Task<object?> ScalarAsync(string statement, CancellationToken cancellationToken, params NpgsqlParameter[] parameters)

@@ -6,6 +6,5 @@ namespace Core.Persistence.ServerGuarantees.Restore;
 public sealed record RestoreTip(long Sequence, string Digest)
 {
     /// <summary>Whether the other tip is the same event.</summary>
-    /// <param name="other">The tip to compare with.</param>
     public bool Matches(RestoreTip? other) => other is not null && other.Sequence == Sequence && string.Equals(other.Digest, Digest, StringComparison.OrdinalIgnoreCase);
 }

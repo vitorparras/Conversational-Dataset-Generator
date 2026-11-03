@@ -7,10 +7,10 @@ Depois de [021](021-subir-o-nucleo-publicado.md), [024](024-arquivos-de-custodia
 
 ## Iniciar
 
-Os valores são os do exemplo de 021 (banco, papel `app`, `demonstracao`), a trocar pelos do seu
-ambiente: `ITERACOES` é o fator das senhas, de 600000 a 10000000 com `Installation:Kind=real` e
-de 1 a 10000000 com `demonstracao` ([0047](../decisoes/0047-fator-de-trabalho-das-senhas.md));
-prazos: `Session:*`; verificação da cadeia: `Custody:VerificationInterval`; log: `Audit:*`. Roda em segundo plano; a saída vai a `/tmp/nucleo.saida`:
+Valores de 021 (banco, papel `app`, `demonstracao`), a trocar pelos seus: `ITERACOES` é o fator das
+senhas, de 600000 a 10000000 com `Installation:Kind=real` e de 1 a 10000000 com `demonstracao`
+([0047](../decisoes/0047-fator-de-trabalho-das-senhas.md)); prazos: `Session:*`; cadeia:
+`Custody:VerificationInterval`; log: `Audit:*`. Roda em segundo plano; saída em `/tmp/nucleo.saida`:
 
 ```
 : > /tmp/nucleo.saida

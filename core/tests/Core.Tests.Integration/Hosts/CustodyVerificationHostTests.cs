@@ -26,7 +26,8 @@ public sealed class CustodyVerificationHostTests
 
         var last = shown.GetProperty("last");
         Assert.True(last.GetProperty("passed").GetBoolean());
-        Assert.True(last.GetProperty("eventsRead").GetInt64() >= 0);
+        var firstVerification = await host.NumberAsSuperuserAsync("SELECT min(sequence) FROM public.custody_event WHERE step = 'verify_chain'", cancellationToken);
+        Assert.Equal(firstVerification - 1, last.GetProperty("eventsRead").GetInt64());
         Assert.Equal(JsonValueKind.Null, last.GetProperty("firstInconsistent").ValueKind);
         Assert.InRange(last.GetProperty("recordedAt").GetDateTimeOffset(), DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddMinutes(1));
         Assert.Equal("00:05:00", shown.GetProperty("interval").GetString());

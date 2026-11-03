@@ -8,13 +8,26 @@ namespace Core.Host.People;
 /// What the people of the registry may do through the routes of a session: make a person with a password, deactivate one and set a password again. Whoever acts is the person of the session,
 /// and only a person who holds the administration function acts; the function is read from the registry at each request, so that a person deactivated meanwhile no longer does.
 /// </summary>
-internal sealed class PeopleAdministration(PersonRegistry registry, PersonCredentials credentials, SessionStore sessions)
+internal sealed class PeopleAdministration
 {
+    private readonly SessionStore sessions;
+
+    /// <summary>The administration works over the registry and the store of passwords the entry also reads, and ends sessions in the store given.</summary>
+    internal PeopleAdministration(PersonRegistry registry, PersonCredentials credentials, SessionStore sessions)
+    {
+        ArgumentNullException.ThrowIfNull(registry);
+        ArgumentNullException.ThrowIfNull(credentials);
+        ArgumentNullException.ThrowIfNull(sessions);
+        Registry = registry;
+        Credentials = credentials;
+        this.sessions = sessions;
+    }
+
     /// <summary>The registry the entry also reads.</summary>
-    internal PersonRegistry Registry { get; } = registry;
+    internal PersonRegistry Registry { get; }
 
     /// <summary>The store of passwords the entry also reads.</summary>
-    internal PersonCredentials Credentials { get; } = credentials;
+    internal PersonCredentials Credentials { get; }
 
     /// <summary>Whether the person is active and holds the administration function.</summary>
     internal async Task<bool> IsAdministratorAsync(long person, CancellationToken cancellationToken) =>
@@ -42,7 +55,15 @@ internal sealed class PeopleAdministration(PersonRegistry registry, PersonCreden
         return result;
     }
 
-    /// <summary>Sets the password of the person again, by the author.</summary>
-    internal Task<PersonResult> SetPasswordAsync(long author, long person, string password, CancellationToken cancellationToken) =>
-        Credentials.SetPasswordAsync(person, password, CustodyAuthor.Person(author), cancellationToken);
+    /// <summary>Sets the password of the person again, by the author, and ends the sessions they had open, which were made with the password that no longer opens.</summary>
+    internal async Task<PersonResult> SetPasswordAsync(long author, long person, string password, CancellationToken cancellationToken)
+    {
+        var result = await Credentials.SetPasswordAsync(person, password, CustodyAuthor.Person(author), cancellationToken).ConfigureAwait(false);
+        if (result.Outcome == PersonOutcome.Done)
+        {
+            sessions.CloseOf(person);
+        }
+
+        return result;
+    }
 }

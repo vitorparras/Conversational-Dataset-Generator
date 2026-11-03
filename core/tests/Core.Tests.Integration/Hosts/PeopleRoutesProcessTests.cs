@@ -137,14 +137,17 @@ public sealed class PeopleRoutesProcessTests
         await using var host = await AdministratorAsync();
         using var made = await host.PostAsync("/people", Person("zqx-resetting", Auditing, Secret), Token);
         var id = await IdFromAsync(made);
+        var oldSession = await host.EnterAsync("zqx-resetting", Secret, Token);
 
         using var reset = await host.SendAsAsync(HttpMethod.Put, $"/people/{id}/password", PasswordBody(Another), host.Identifier, Token);
         var withNew = await host.EnterAsync("zqx-resetting", Another, Token);
         var withOld = await host.EnterAsync("zqx-resetting", Secret, Token);
+        using var held = await host.SendAsAsync(HttpMethod.Get, "/session", json: null, oldSession, Token);
 
         Assert.Equal(HttpStatusCode.OK, reset.StatusCode);
         Assert.NotNull(withNew);
         Assert.Null(withOld);
+        Assert.Equal(HttpStatusCode.Unauthorized, held.StatusCode);
     }
 
     [DatabaseTheory]

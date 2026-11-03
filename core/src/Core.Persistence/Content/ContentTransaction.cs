@@ -42,24 +42,24 @@ public sealed class ContentTransaction : IAsyncDisposable
     {
         ArgumentNullException.ThrowIfNull(dataSource);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(domainId);
-        return OpenAsync(dataSource, domainId, Declare, isolation, cancellationToken);
+        return OpenAsync(dataSource, new Declaration(domainId, Declare), isolation, cancellationToken);
     }
 
     /// <summary>The opening with the statement that declares the domain given, so that a test can make the declaration fail and see the connection released.</summary>
     internal static Task<ContentTransaction> OpenAsync(NpgsqlDataSource dataSource, int domainId, string declare, CancellationToken cancellationToken) =>
-        OpenAsync(dataSource, domainId, declare, IsolationLevel.ReadCommitted, cancellationToken);
+        OpenAsync(dataSource, new Declaration(domainId, declare), IsolationLevel.ReadCommitted, cancellationToken);
 
-    private static async Task<ContentTransaction> OpenAsync(NpgsqlDataSource dataSource, int domainId, string declare, IsolationLevel isolation, CancellationToken cancellationToken)
+    private static async Task<ContentTransaction> OpenAsync(NpgsqlDataSource dataSource, Declaration declare, IsolationLevel isolation, CancellationToken cancellationToken)
     {
         var connection = await dataSource.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
         var opened = false;
         try
         {
             var transaction = await connection.BeginTransactionAsync(isolation, cancellationToken).ConfigureAwait(false);
-            var declaration = new NpgsqlCommand(declare, connection, transaction);
+            var declaration = new NpgsqlCommand(declare.Statement, connection, transaction);
             await using (declaration.ConfigureAwait(false))
             {
-                _ = declaration.Parameters.AddWithValue("domain", domainId.ToString(CultureInfo.InvariantCulture));
+                _ = declaration.Parameters.AddWithValue("domain", declare.DomainId.ToString(CultureInfo.InvariantCulture));
                 _ = await declaration.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
             }
 
@@ -89,4 +89,6 @@ public sealed class ContentTransaction : IAsyncDisposable
         await transaction.DisposeAsync().ConfigureAwait(false);
         await connection.DisposeAsync().ConfigureAwait(false);
     }
+
+    private readonly record struct Declaration(int DomainId, string Statement);
 }

@@ -77,6 +77,9 @@ public sealed class ContentColumnsTests
                 new ClearColumn("reversal_map", "recorded_at", ClearKind.Moment),
                 new ClearColumn("reversal_map", "emptied_at", ClearKind.Moment),
                 new ClearColumn("reversal_map", "dek_epoch", ClearKind.Epoch),
+                new ClearColumn("item_emptied", "id", ClearKind.Identifier),
+                new ClearColumn("item_emptied", "domain_id", ClearKind.Domain),
+                new ClearColumn("item_emptied", "item_id", ClearKind.Identifier),
             ],
             ContentColumns.Clear);
 

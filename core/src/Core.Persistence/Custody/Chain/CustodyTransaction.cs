@@ -1,7 +1,7 @@
 using System.Data;
 using System.Globalization;
+using Core.Persistence.Custody.Chain.Append;
 using Npgsql;
-using NpgsqlTypes;
 
 namespace Core.Persistence.Custody.Chain;
 
@@ -13,14 +13,14 @@ internal static class CustodyTransaction
 {
     /// <summary>Runs the change in the transaction and then adds the event it asks for; null when the change asked for none, in which case nothing is kept.</summary>
     internal static Task<CustodyResult?> AppendAfterAsync(NpgsqlDataSource dataSource, Func<CustodyScope, Task<CustodyEvent?>> change, CancellationToken cancellationToken) =>
-        RunAsync(dataSource, scope => AfterAsync(scope, change, cancellationToken), cancellationToken);
+        RunAsync(dataSource, scope => CustodyAppend.AfterAsync(scope, change, cancellationToken), cancellationToken);
 
     /// <summary>
     /// Adds the event and then runs the change, so that the author is judged as they were when they acted and not as the change leaves them.
     /// Null when the change reports it wrote nothing, in which case the event is not kept either.
     /// </summary>
     internal static Task<CustodyResult?> AppendBeforeAsync(NpgsqlDataSource dataSource, CustodyEvent pending, Func<CustodyScope, Task<bool>> change, CancellationToken cancellationToken) =>
-        RunAsync(dataSource, scope => BeforeAsync(scope, pending, change, cancellationToken), cancellationToken);
+        RunAsync(dataSource, scope => CustodyAppend.BeforeAsync(scope, pending, change, cancellationToken), cancellationToken);
 
     internal static async Task<CustodyResult?> RunAsync(NpgsqlDataSource dataSource, Func<CustodyScope, Task<CustodyResult?>> body, CancellationToken cancellationToken)
     {
@@ -47,70 +47,6 @@ internal static class CustodyTransaction
         }
     }
 
-    private static async Task<CustodyResult?> AfterAsync(CustodyScope scope, Func<CustodyScope, Task<CustodyEvent?>> change, CancellationToken cancellationToken)
-    {
-        var pending = await change(scope).ConfigureAwait(false);
-        if (pending is null)
-        {
-            return null;
-        }
-
-        var result = await AppendAsync(scope, pending, cancellationToken).ConfigureAwait(false);
-        return await CommitIfAppendedAsync(scope, result, cancellationToken).ConfigureAwait(false);
-    }
-
-    private static async Task<CustodyResult?> BeforeAsync(CustodyScope scope, CustodyEvent pending, Func<CustodyScope, Task<bool>> change, CancellationToken cancellationToken)
-    {
-        var result = await AppendAsync(scope, pending, cancellationToken).ConfigureAwait(false);
-        if (result.Outcome != CustodyOutcome.Appended)
-        {
-            return result;
-        }
-
-        return await change(scope).ConfigureAwait(false)
-            ? await CommitIfAppendedAsync(scope, result, cancellationToken).ConfigureAwait(false)
-            : null;
-    }
-
-    internal static async Task<CustodyResult> CommitIfAppendedAsync(CustodyScope scope, CustodyResult result, CancellationToken cancellationToken)
-    {
-        if (result.Outcome == CustodyOutcome.Appended)
-        {
-            await scope.CommitAsync(cancellationToken).ConfigureAwait(false);
-        }
-
-        return result;
-    }
-
-    internal static async Task<CustodyResult> AppendAsync(CustodyScope scope, CustodyEvent pending, CancellationToken cancellationToken)
-    {
-        var command = scope.CreateCommand(CustodyStatements.Append);
-        await using (command.ConfigureAwait(false))
-        {
-            Bind(command, pending);
-            try
-            {
-                return CustodyResult.Appended((long)(await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false))!);
-            }
-            catch (PostgresException failed)
-            {
-                return Refused(failed, pending);
-            }
-        }
-    }
-
-    private static void Bind(NpgsqlCommand command, CustodyEvent pending)
-    {
-        _ = command.Parameters.AddWithValue("actor", NpgsqlDbType.Bigint, Optional(pending.Author.PersonId));
-        _ = command.Parameters.AddWithValue("system", NpgsqlDbType.Boolean, pending.Author.PersonId is null);
-        _ = command.Parameters.AddWithValue("kind", NpgsqlDbType.Text, CustodyNames.Of(pending.Item.Kind));
-        _ = command.Parameters.AddWithValue("item", NpgsqlDbType.Bigint, pending.Item.Id);
-        _ = command.Parameters.AddWithValue("step", NpgsqlDbType.Text, CustodyNames.Of(pending.Step));
-        _ = command.Parameters.AddWithValue("reason", NpgsqlDbType.Text, CustodyNames.Of(pending.Reason));
-        _ = command.Parameters.AddWithValue("corrects", NpgsqlDbType.Bigint, Optional(pending.Corrects));
-        _ = command.Parameters.AddWithValue("reference", NpgsqlDbType.Text, (object?)pending.Reference ?? DBNull.Value);
-    }
-
     /// <summary>What the server's refusal means; one that is none of these is a defect, and its message names the item, the step and the reason and nothing else.</summary>
     internal static CustodyResult Refused(PostgresException failed, CustodyEvent pending) => (failed.SqlState, failed.ConstraintName) switch
     {
@@ -123,8 +59,6 @@ internal static class CustodyTransaction
         (CustodyStatements.PassedAfterFailureSqlState, _) => CustodyRefusals.PassedAfterFailure(),
         _ => throw new InvalidOperationException(Describe(failed.SqlState, pending)),
     };
-
-    private static object Optional(long? value) => value is { } present ? present : DBNull.Value;
 
     private static string Describe(string? sqlState, CustodyEvent pending) =>
         string.Create(

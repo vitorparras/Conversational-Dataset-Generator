@@ -5,6 +5,7 @@ using Core.Persistence.Custody.Chain;
 using Core.Persistence.Custody.Verification;
 using Core.Persistence.Migrations;
 using Core.Persistence.Tests.Fixtures;
+using Core.Platform.Keys;
 using Npgsql;
 
 namespace Core.Persistence.Tests.Content;
@@ -37,6 +38,9 @@ internal sealed class ContentWorld : IAsyncDisposable
     public static IReadOnlyList<string> Labels { get; } = ["texto-bruto/1/v1", "mapa-reversao/1/v1", "texto-bruto/2/v1", "mapa-reversao/2/v1"];
 
     /// <summary>A reader of the world's database that opens content with the custody given instead of the world's own.</summary>
+    /// <summary>The keys of the rows, to unwrap what the world stored.</summary>
+    public ItemKeys Keys => custody.Keys;
+
     public ProtectedContentReader ReaderWith(SyntheticCustody other) => new(DataSource, other.Content, new CustodyChain(DataSource));
 
     public static async Task<ContentWorld> CreateAsync()

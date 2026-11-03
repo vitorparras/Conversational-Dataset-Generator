@@ -77,7 +77,7 @@ internal static class FirstOperatorMode
         catch (InvalidOperationException)
         {
             await words.Error.WriteLineAsync($"{Prefix}, {WhatWasWritten(first.Id)}: o servidor recusou a gravação").ConfigureAwait(false);
-            return ExitCode.PersonCreationRefused;
+            return first.Id is null ? ExitCode.PersonCreationRefused : ExitCode.PersonCreationFailed;
         }
         catch (NpgsqlException)
         {

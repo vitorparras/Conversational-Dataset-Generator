@@ -130,7 +130,7 @@ public sealed class PersonCreationProcessTests
         var (exit, words) = await RunAsync(database.AppConnectionString, Arguments(Name, Function), Password);
 
         var id = (long)(await ScalarAsync(database, "SELECT id FROM public.person"))!;
-        Assert.Equal((22, true), (exit, words.Contains($"a pessoa foi criada com o id {id} e a senha não foi definida", StringComparison.Ordinal)));
+        Assert.Equal((23, true), (exit, words.Contains($"a pessoa foi criada com o id {id} e a senha não foi definida", StringComparison.Ordinal)));
         Assert.Equal((1L, 0L), (await CountAsync(database, "public.person"), await CountAsync(database, "public.person_credential")));
         Assert.All([Password, Name], secret => Assert.DoesNotContain(secret, words, StringComparison.Ordinal));
     }

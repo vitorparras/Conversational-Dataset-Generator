@@ -1,0 +1,54 @@
+name: Repete os testes instáveis (temporário, sai antes do merge)
+
+# Prova das issues #553 e #556: cada teste roda 15 vezes seguidas na CI. Este arquivo existe só na branch
+# fix/553-556-testes-instaveis e é removido antes do merge.
+on:
+  push:
+    branches: [fix/553-556-testes-instaveis]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+
+jobs:
+  servico-real:
+    name: 15 repetições do test_real_service (#553)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - run: pip install -r tools/verify-code/lint-requirements.txt -r tools/verify-code/service-requirements.txt
+      - run: python tools/verify-code/verify.py --step build_core
+      - name: Repetir o passo test_real_service 15 vezes
+        run: |
+          for i in $(seq 1 15); do
+            echo "::group::repetição $i de 15"
+            python tools/verify-code/verify.py --step test_real_service || { echo "::error::reprovou na repetição $i"; exit 1; }
+            echo "::endgroup::"
+          done
+
+  verificacao-da-cadeia:
+    name: 15 repetições do CustodyVerificationHostTests (#556)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - run: dotnet build core/tests/Core.Tests.Integration/Core.Tests.Integration.csproj --nologo
+      - name: Repetir a classe 15 vezes, com a máquina ocupada por outra suíte
+        run: |
+          for i in $(seq 1 15); do
+            echo "::group::repetição $i de 15"
+            dotnet test core/tests/Core.Tests.Integration/Core.Tests.Integration.csproj --no-build \
+              --filter-class "Core.Tests.Integration.Hosts.CustodyVerificationHostTests" || { echo "::error::reprovou na repetição $i"; exit 1; }
+            echo "::endgroup::"
+          done

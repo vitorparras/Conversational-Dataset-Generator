@@ -30,7 +30,7 @@ public sealed class ItemKeys
         var key = new ItemKey(RandomNumberGenerator.GetBytes(ItemKey.Length));
         try
         {
-            return new NewItemKey(key, epoch, Wrap(key, label, epoch));
+            return new NewItemKey { Key = key, Epoch = epoch, Wrapped = Wrap(key, label, epoch) };
         }
         catch
         {

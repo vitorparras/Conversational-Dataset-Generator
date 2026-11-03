@@ -150,7 +150,7 @@ public sealed class ChainVerificationServiceTests
     {
         using var log = new RecordedLog();
         using var loggers = new LoggerFactory([log]);
-        using var service = new ChainVerificationService((Func<CancellationToken, Task<ChainVerification>>?)null, Schedule, new ManualClock(), loggers);
+        using var service = new ChainVerificationService(null, Schedule, new ManualClock(), loggers);
 
         await service.StartAsync(TestContext.Current.CancellationToken);
         var executing = service.ExecuteTask!;

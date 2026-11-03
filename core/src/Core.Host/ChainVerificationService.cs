@@ -16,8 +16,8 @@ internal sealed class ChainVerificationService : BackgroundService
     private readonly ILoggerFactory loggers;
 
     /// <summary>The service as the host builds it: over the data source of the startup container, which a host with no database does not have.</summary>
-    internal ChainVerificationService(IServiceProvider host, VerificationSchedule schedule, TimeProvider time, ILoggerFactory loggers)
-        : this(VerifierOf(host, time), schedule, time, loggers)
+    internal ChainVerificationService(IServiceProvider host)
+        : this(VerifierOf(host), host.GetRequiredService<VerificationSchedule>(), host.GetRequiredService<TimeProvider>(), host.GetRequiredService<ILoggerFactory>())
     {
         Reader = DataSourceOf(host) is { } source ? new RecordedVerificationReader(source) : null;
     }
@@ -60,8 +60,8 @@ internal sealed class ChainVerificationService : BackgroundService
 
     private static NpgsqlDataSource? DataSourceOf(IServiceProvider host) => host.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>();
 
-    private static Func<CancellationToken, Task<ChainVerification>>? VerifierOf(IServiceProvider host, TimeProvider time) =>
-        DataSourceOf(host) is { } source ? new CustodyVerifier(source, time).VerifyAsync : null;
+    private static Func<CancellationToken, Task<ChainVerification>>? VerifierOf(IServiceProvider host) =>
+        DataSourceOf(host) is { } source ? new CustodyVerifier(source, host.GetRequiredService<TimeProvider>()).VerifyAsync : null;
 
     private async Task VerifyOnceAsync(Func<CancellationToken, Task<ChainVerification>> verification, CancellationToken cancellationToken)
     {

@@ -61,6 +61,17 @@ internal sealed class AuditHost : IAsyncDisposable
 
     public void WriteLog(params string[] lines) => File.WriteAllLines(Path.Combine(directory, "postgresql-a.csv"), lines);
 
+    /// <summary>
+    /// Writes a closed file whose last line the server's fall cut short, after one whole line, and a newest file with one more whole line: the cut line is the
+    /// start of a line with no line break after it.
+    /// </summary>
+    public void WriteCutLog(DateTimeOffset first)
+    {
+        var cut = AuditLine(first.AddSeconds(1), "UPDATE")[..40];
+        File.WriteAllText(Path.Combine(directory, "postgresql-a.csv"), AuditLine(first, "INSERT") + "\n" + cut);
+        File.WriteAllLines(Path.Combine(directory, "postgresql-b.csv"), [AuditLine(first.AddSeconds(2), "DELETE")]);
+    }
+
     /// <summary>One csvlog line of an audited statement, with a marker in the statement that no answer may carry.</summary>
     public static string AuditLine(DateTimeOffset at, string command, string zone = "UTC")
     {

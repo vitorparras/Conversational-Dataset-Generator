@@ -29,4 +29,7 @@ public enum ExitCode
 
     /// <summary>The migration could not reach the server or read the registry, and ran nothing.</summary>
     MigrationNotConnected = 14,
+
+    /// <summary>The comparison of the server's audit log with the chain found a difference that is new.</summary>
+    AuditDifferent = 20,
 }

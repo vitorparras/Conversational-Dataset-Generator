@@ -12,10 +12,12 @@ internal static class SessionConfiguration
 
     internal const string AbsoluteTimeoutPath = SectionName + ":" + AbsoluteTimeoutKey;
 
+    /// <summary>The duration every interval of the host is declared in.</summary>
+    internal const string Accepted = "duração maior que zero, como 00:30:00 (horas:minutos:segundos) ou 1.00:00:00 (dias.horas:minutos:segundos)";
+
     private const string SectionName = "Session";
     private const string IdleTimeoutKey = "IdleTimeout";
     private const string AbsoluteTimeoutKey = "AbsoluteTimeout";
-    private const string Accepted = "duração maior que zero, como 00:30:00 (horas:minutos:segundos) ou 1.00:00:00 (dias.horas:minutos:segundos)";
 
     private static readonly string[] Formats = [@"h\:mm\:ss", @"d\.h\:mm\:ss"];
 
@@ -34,6 +36,6 @@ internal static class SessionConfiguration
     internal static SessionLifetimes Lifetimes(IReadOnlyDictionary<string, string> values) =>
         new(Duration(values[IdleTimeoutPath])!.Value, Duration(values[AbsoluteTimeoutPath])!.Value);
 
-    private static TimeSpan? Duration(string declared) =>
+    internal static TimeSpan? Duration(string declared) =>
         TimeSpan.TryParseExact(declared, Formats, CultureInfo.InvariantCulture, TimeSpanStyles.None, out var duration) && duration > TimeSpan.Zero ? duration : null;
 }

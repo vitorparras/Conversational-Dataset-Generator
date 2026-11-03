@@ -5,6 +5,7 @@ using Core.Persistence.Custody;
 using Core.Persistence.Migrations;
 using Core.Persistence.People;
 using Core.Persistence.Tests.Fixtures;
+using Core.Tests.Integration.Hosts;
 using Core.Tests.Integration.Privacy;
 using Core.Tests.Support.Net;
 using Npgsql;
@@ -133,15 +134,18 @@ internal sealed class SessionScenario : IAsyncDisposable
 
     private async Task PrepareAsync(Uri address, int workFactor, CancellationToken cancellationToken)
     {
+        await StartupVerification.WaitUntilRecordedAsync(application, cancellationToken);
+        Task<PersonResult> Write(Func<Task<PersonResult>> change) => StartupVerification.WriteAsync(change, cancellationToken);
+
         var registry = new PersonRegistry(application);
         var credentials = new PersonCredentials(application, new PasswordDerivation(workFactor));
         var function = PersonFunctions.Accepted[0];
-        var active = (await registry.CreateAsync(new NewPerson(Name, function), CustodyAuthor.System, cancellationToken)).PersonId!.Value;
-        _ = await credentials.SetPasswordAsync(active, Password, CustodyAuthor.System, cancellationToken);
-        _ = await registry.CreateAsync(new NewPerson(NameWithoutPassword, function), CustodyAuthor.System, cancellationToken);
-        var deactivated = (await registry.CreateAsync(new NewPerson(NameDeactivated, function), CustodyAuthor.System, cancellationToken)).PersonId!.Value;
-        _ = await credentials.SetPasswordAsync(deactivated, Password, CustodyAuthor.System, cancellationToken);
-        _ = await registry.DeactivateAsync(deactivated, CustodyAuthor.System, cancellationToken);
+        var active = (await Write(() => registry.CreateAsync(new NewPerson(Name, function), CustodyAuthor.System, cancellationToken))).PersonId!.Value;
+        _ = await Write(() => credentials.SetPasswordAsync(active, Password, CustodyAuthor.System, cancellationToken));
+        _ = await Write(() => registry.CreateAsync(new NewPerson(NameWithoutPassword, function), CustodyAuthor.System, cancellationToken));
+        var deactivated = (await Write(() => registry.CreateAsync(new NewPerson(NameDeactivated, function), CustodyAuthor.System, cancellationToken))).PersonId!.Value;
+        _ = await Write(() => credentials.SetPasswordAsync(deactivated, Password, CustodyAuthor.System, cancellationToken));
+        _ = await Write(() => registry.DeactivateAsync(deactivated, CustodyAuthor.System, cancellationToken));
         _ = await KeyedHost.StatusAsync(address, process, cancellationToken);
     }
 }

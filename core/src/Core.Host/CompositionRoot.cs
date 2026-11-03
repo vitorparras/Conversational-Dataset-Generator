@@ -136,10 +136,7 @@ internal static class CompositionRoot
         AddServerGuarantees(services, database);
         _ = services.AddSingleton<IStartupCheck>(_ => new ServerLogCheck(AuditConfiguration.ServerLogDirectory(loaded.Values)));
         _ = services.AddSingleton(TimeProvider.System).AddLogging(logging => HostLogFile.WithFile(logging, fileLog));
-        if (fileLog is not null)
-        {
-            _ = services.AddSingleton(fileLog);
-        }
+        _ = fileLog is null ? services : services.AddSingleton(fileLog);
 
         _ = services.AddRedaction(PlatformLogging.EraseSensitiveData);
         _ = services.AddSingleton(_ => LoopbackHttpClient.Create());
@@ -217,6 +214,9 @@ internal static class CompositionRoot
         HostRoutes.Map(app, recognizer);
         return app;
     }
+
+    /// <summary>The store of passwords, built here because it is a service and only the root builds services.</summary>
+    internal static PersonCredentials CredentialsOf(NpgsqlDataSource source, PasswordDerivation derivation) => new(source, derivation);
 
     /// <summary>The recognizer of the service the supervisor has alive now, with its secret and the client that never goes through a proxy;
     /// with no such service, one that refuses without connecting, so that nothing goes to the port a service that is gone once held.</summary>

@@ -41,6 +41,18 @@ public sealed class RestoreWindowCheckTests
     }
 
     [DatabaseFact]
+    public async Task DatabaseBeforeTheStepThatCreatesTheWindowRefusesTheStartNamingTheMigration()
+    {
+        await using var database = await ScratchDatabase.CreateAsync();
+        _ = await database.MigrateAsync(EmbeddedMigrations.Load().Where(step => step.Version < 19).ToList());
+
+        var result = await AppStartup.CheckAsync(database, dataSource => new RestoreWindowCheck(dataSource));
+
+        Assert.Equal((CheckStatus.Failed, "RestoreWindow"), (result.Status, result.Name));
+        Assert.Contains("aplique as migrações do núcleo com o migrate", result.Message, StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
     public async Task DatabaseWhoseLoadDiedWithTheWindowOpenRefusesTheStartNamingTheWindow()
     {
         await using var database = await ScratchDatabase.CreateAsync();

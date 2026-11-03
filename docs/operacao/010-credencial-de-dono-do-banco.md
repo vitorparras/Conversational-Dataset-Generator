@@ -31,7 +31,8 @@ Cada uso é cercado assim, e o sistema grava sozinho o que está marcado:
 2. Durante: o que foi executado fica no registro de versões e no de falhas da migração
 3. Depois: a partida seguinte, só com a credencial da aplicação, verifica a cadeia, confere as
    garantias da [007](007-verificacao-da-custodia.md) e grava o fechamento. Se algo faltar ou a
-   cadeia recusar o evento, a partida é recusada nomeando a causa e a janela segue aberta
+   cadeia recusar o evento, a partida é recusada nomeando a causa e a janela segue aberta,
+   visível em `/custody/verification`
 4. Continua sendo processo humano: guardar a credencial, decidir quem a usa e conferir o motivo
 
 ## O dono também declara o domínio

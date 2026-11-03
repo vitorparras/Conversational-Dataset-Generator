@@ -74,9 +74,9 @@ internal static class PersonCreationMode
         {
             return await WriteAsync(dataSource, derivation, person, words).ConfigureAwait(false);
         }
-        catch (InvalidOperationException defect)
+        catch (InvalidOperationException)
         {
-            await words.Error.WriteLineAsync($"{Prefix}, {WhatWasWritten(person.Id)}: {defect.Message}").ConfigureAwait(false);
+            await words.Error.WriteLineAsync($"{Prefix}, {WhatWasWritten(person.Id)}: o servidor recusou a gravação").ConfigureAwait(false);
             return ExitCode.PersonCreationRefused;
         }
         catch (NpgsqlException)
@@ -111,7 +111,7 @@ internal static class PersonCreationMode
     private static async Task<ExitCode> SetPasswordAsync(NpgsqlDataSource dataSource, PasswordDerivation derivation, FirstPerson person, Words words)
     {
         var id = person.Id!.Value;
-        var credentials = new PersonCredentials(dataSource, derivation);
+        var credentials = CompositionRoot.CredentialsOf(dataSource, derivation);
         var set = await credentials.SetPasswordAsync(id, person.Password, CustodyAuthor.System, CancellationToken.None).ConfigureAwait(false);
         if (set.Outcome != PersonOutcome.Done)
         {

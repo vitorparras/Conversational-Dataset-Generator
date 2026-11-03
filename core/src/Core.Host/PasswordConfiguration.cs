@@ -66,7 +66,9 @@ internal static class PasswordConfiguration
         }
 
         var missing = new ConfigurationProblem(ConfigurationProblemKind.MissingKey, WorkFactorPath, Found: null, Accepted: null);
-        return [missing];
+        var problems = new ConfigurationProblem[1];
+        problems[0] = missing;
+        return problems;
     }
 
     /// <summary>The derivation that runs with the work factor the configuration gave; the configuration has been judged before.</summary>

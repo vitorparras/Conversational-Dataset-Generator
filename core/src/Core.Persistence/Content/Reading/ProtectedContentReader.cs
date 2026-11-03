@@ -1,10 +1,11 @@
 using System.Collections.Frozen;
+using Core.Persistence.Content.Sealing;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
 using Npgsql;
 using NpgsqlTypes;
 
-namespace Core.Persistence.Content;
+namespace Core.Persistence.Content.Reading;
 
 /// <summary>
 /// The one way protected content is read: the chain records who read which item, at which step, and only then is the content opened.

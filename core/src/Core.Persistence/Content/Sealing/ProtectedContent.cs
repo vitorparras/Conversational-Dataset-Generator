@@ -1,7 +1,7 @@
 using System.Text;
 using Core.Platform.Keys;
 
-namespace Core.Persistence.Content;
+namespace Core.Persistence.Content.Sealing;
 
 /// <summary>
 /// The one way protected content reaches the database and comes back: it is sealed under the label <c>&lt;purpose&gt;/&lt;domain&gt;/v&lt;n&gt;</c>

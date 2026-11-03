@@ -31,4 +31,12 @@ internal static partial class MigrationLogMessages
 
     [LoggerMessage(EventId = 307, Level = LogLevel.Information, Message = "Falha do passo {Step} gravada em schema_failure (versão, nome, resumo e SQLSTATE; sem texto do passo)")]
     internal static partial void FailureRecorded(this ILogger logger, string step);
+
+    [LoggerMessage(EventId = 308, Level = LogLevel.Information, Message = "Janela da credencial de dono aberta na cadeia de custódia antes do primeiro passo; "
+        + "ela se fecha na partida seguinte, com a verificação da cadeia e a conferência das garantias")]
+    internal static partial void OwnerWindowOpened(this ILogger logger);
+
+    [LoggerMessage(EventId = 309, Level = LogLevel.Information, Message = "Janela da credencial de dono aberta na cadeia de custódia logo depois do passo que cria os eventos dela: "
+        + "o banco era anterior a esse passo, e o topo da cadeia no evento é o lido antes dele")]
+    internal static partial void OwnerWindowOpenedAfterTheStep(this ILogger logger);
 }

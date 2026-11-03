@@ -29,4 +29,7 @@ public sealed record MigrationResult
 
     /// <summary>The steps this run applied and registered, in order, also when a later one failed.</summary>
     public IReadOnlyList<string> Applied { get; init; } = [];
+
+    /// <summary>Whether the run opened the window of the owner credential in the chain of custody, and when.</summary>
+    public OwnerWindowOpening OwnerWindow { get; init; }
 }

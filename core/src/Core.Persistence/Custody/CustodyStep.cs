@@ -38,4 +38,10 @@ public enum CustodyStep
 
     /// <summary>The guarantees of the server were conferred; the reason says whether every one held, and the item says which did not.</summary>
     VerifyGuarantees,
+
+    /// <summary>A migration began with the credential that owns the tables; the reference says what for and the tip of the chain it found.</summary>
+    OwnerWindowOpened,
+
+    /// <summary>The window of the owner credential was closed by the application at its start; the reason says whether the chain and the guarantees held.</summary>
+    OwnerWindowClosed,
 }

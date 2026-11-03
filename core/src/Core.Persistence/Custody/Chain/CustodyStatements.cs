@@ -33,6 +33,24 @@ internal static class CustodyStatements
         LIMIT 1
         """;
 
+    /// <summary>The last event of the window of the owner credential, opening or closing: the step and the reason.</summary>
+    internal const string ReadLastOwnerWindowEvent = """
+        SELECT step, reason
+        FROM public.custody_event
+        WHERE step IN ('owner_window_opened', 'owner_window_closed')
+        ORDER BY sequence DESC
+        LIMIT 1
+        """;
+
+    /// <summary>The last opening of the window: its sequence, the moment and the reference that says what it was for.</summary>
+    internal const string ReadLastOwnerWindowOpened = """
+        SELECT sequence, occurred_at, reference
+        FROM public.custody_event
+        WHERE step = 'owner_window_opened'
+        ORDER BY sequence DESC
+        LIMIT 1
+        """;
+
     internal const string Append = """
         INSERT INTO public.custody_event (actor_person_id, actor_system, item_kind, item_id, step, reason, corrects, reference)
         VALUES (@actor, @system, @kind, @item, @step, @reason, @corrects, @reference)

@@ -111,6 +111,12 @@ public sealed class MigrationRunner
     {
         var applied = new List<string>();
         var found = comparison.Found;
+        var window = OwnerWindow.Of(dataSource, steps, found);
+        if (window is not null && !await window.BeforeTheStepsAsync(connection, cancellationToken).ConfigureAwait(false))
+        {
+            return WindowRefused(comparison, applied);
+        }
+
         foreach (var step in steps.Skip(comparison.Applied))
         {
             try
@@ -119,23 +125,40 @@ public sealed class MigrationRunner
             }
             catch (NpgsqlException exception)
             {
-                var sqlState = (exception as PostgresException)?.SqlState;
-                return new MigrationResult
-                {
-                    Outcome = MigrationOutcome.StepFailed,
-                    Found = found,
-                    Expected = comparison.Expected,
-                    Step = step.Name,
-                    SqlState = sqlState,
-                    FailureRecorded = await FailureRegistry.TryRecordAsync(connection, step, sqlState, cancellationToken).ConfigureAwait(false),
-                    Applied = applied,
-                };
+                var failed = await FailedAsync(connection, step, exception, cancellationToken).ConfigureAwait(false);
+                return failed with { Found = found, Expected = comparison.Expected, Applied = applied };
             }
 
             applied.Add(step.Name);
             found = step.Version;
+            if (window is not null && !await window.AfterAsync(step, cancellationToken).ConfigureAwait(false))
+            {
+                return WindowRefused(comparison, applied) with { Found = found };
+            }
         }
 
-        return new MigrationResult { Outcome = MigrationOutcome.Applied, Found = found, Expected = comparison.Expected, Applied = applied };
+        return new MigrationResult
+        {
+            Outcome = MigrationOutcome.Applied,
+            Found = found,
+            Expected = comparison.Expected,
+            Applied = applied,
+            OwnerWindow = window?.Opening ?? OwnerWindowOpening.None,
+        };
     }
+
+    private static async Task<MigrationResult> FailedAsync(NpgsqlConnection connection, MigrationStep step, NpgsqlException exception, CancellationToken cancellationToken)
+    {
+        var sqlState = (exception as PostgresException)?.SqlState;
+        return new MigrationResult
+        {
+            Outcome = MigrationOutcome.StepFailed,
+            Step = step.Name,
+            SqlState = sqlState,
+            FailureRecorded = await FailureRegistry.TryRecordAsync(connection, step, sqlState, cancellationToken).ConfigureAwait(false),
+        };
+    }
+
+    private static MigrationResult WindowRefused(SchemaComparison comparison, List<string> applied) =>
+        new() { Outcome = MigrationOutcome.StepFailed, Found = comparison.Found, Expected = comparison.Expected, Step = OwnerWindow.StepName, Applied = applied };
 }

@@ -6,7 +6,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Core.Host.Tests;
 
-/// <summary>The composition root registers the server's checks with a database declared: the guarantees, then the derivation labels last.</summary>
+/// <summary>
+/// The composition root registers the server's checks with a database declared: the guarantees, with the window of the owner credential right after the privilege, then the labels last.
+/// </summary>
 public sealed class ServerChecksRegistrationTests
 {
     private static readonly Dictionary<string, string> Declared = new(StringComparer.Ordinal)
@@ -24,7 +26,7 @@ public sealed class ServerChecksRegistrationTests
 
         var names = provider.GetServices<IStartupCheck>().Select(check => check.Name);
 
-        Assert.Equal(["Privilege", "RlsForce", "Serializable", "PgAudit", "ColumnRevoke", "SchemaVersion", "Immutability", "ProtectedColumns", "DerivationLabels"], names);
+        Assert.Equal(["Privilege", "OwnerWindow", "RlsForce", "Serializable", "PgAudit", "ColumnRevoke", "SchemaVersion", "Immutability", "ProtectedColumns", "DerivationLabels"], names);
     }
 
     [Fact]
@@ -42,6 +44,7 @@ public sealed class ServerChecksRegistrationTests
         var method = typeof(CompositionRoot).GetMethod("AddServerGuarantees", BindingFlags.NonPublic | BindingFlags.Static)
             ?? throw new InvalidOperationException("CompositionRoot.AddServerGuarantees was not found; the registration test must follow it.");
         var services = new ServiceCollection();
+        _ = services.AddSingleton(TimeProvider.System);
         _ = services.AddSingleton<IMasterKeySource>(new FileMasterKeySource("zqx-never-read-7731", "zqx-never-read-7732", AppContext.BaseDirectory));
         _ = method.Invoke(null, [services, database]);
         return services.BuildServiceProvider();

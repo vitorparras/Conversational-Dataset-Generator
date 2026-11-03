@@ -27,6 +27,8 @@ internal static class CustodyNames
         [CustodyStep.ItemEmptied] = "item_emptied",
         [CustodyStep.ItemEmptyingRefused] = "item_emptying_refused",
         [CustodyStep.VerifyGuarantees] = "verify_guarantees",
+        [CustodyStep.OwnerWindowOpened] = "owner_window_opened",
+        [CustodyStep.OwnerWindowClosed] = "owner_window_closed",
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<CustodyReason, string> Reasons = new Dictionary<CustodyReason, string>

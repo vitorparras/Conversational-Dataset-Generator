@@ -1,4 +1,5 @@
 using System.Data.Common;
+using System.Globalization;
 using Core.Persistence.Custody.Chain;
 using Npgsql;
 using NpgsqlTypes;
@@ -29,6 +30,63 @@ public sealed class RecordedVerificationReader
         var last = await LastOfAsync(CustodyStep.VerifyGuarantees, cancellationToken).ConfigureAwait(false);
         return last is null ? null : new RecordedGuarantees(last.RecordedAt, last.Passed, last.EventsRead);
     }
+
+    /// <summary>The window of the owner credential that is open, or null when the last event of the window closed it with every guarantee held, or no window was ever opened.</summary>
+    /// <param name="cancellationToken">Cancels the reading.</param>
+    public async Task<OwnerWindowOpen?> OwnerWindowAsync(CancellationToken cancellationToken)
+    {
+        var last = await LastWindowEventAsync(cancellationToken).ConfigureAwait(false);
+        if (last is not { } latest)
+        {
+            return null;
+        }
+
+        var closingFailed = latest.Reason == CustodyNames.Of(CustodyReason.VerificationFailed);
+        return latest.Step == CustodyNames.Of(CustodyStep.OwnerWindowClosed) && !closingFailed
+            ? null
+            : await OpenedAsync(closingFailed, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<(string Step, string Reason)?> LastWindowEventAsync(CancellationToken cancellationToken)
+    {
+        var command = dataSource.CreateCommand(CustodyStatements.ReadLastOwnerWindowEvent);
+        await using (command.ConfigureAwait(false))
+        {
+            var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            await using (reader.ConfigureAwait(false))
+            {
+                return await reader.ReadAsync(cancellationToken).ConfigureAwait(false) ? ((string)reader["step"], (string)reader["reason"]) : null;
+            }
+        }
+    }
+
+    private async Task<OwnerWindowOpen?> OpenedAsync(bool closingFailed, CancellationToken cancellationToken)
+    {
+        var command = dataSource.CreateCommand(CustodyStatements.ReadLastOwnerWindowOpened);
+        await using (command.ConfigureAwait(false))
+        {
+            var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            await using (reader.ConfigureAwait(false))
+            {
+                return await OpenedFromAsync(reader, closingFailed, cancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
+
+    private static async Task<OwnerWindowOpen?> OpenedFromAsync(DbDataReader reader, bool closingFailed, CancellationToken cancellationToken)
+    {
+        if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            return null;
+        }
+
+        var fields = OwnerWindowReference.Fields((string)reader["reference"]);
+        var openedAt = await reader.GetFieldValueAsync<DateTimeOffset>(1, cancellationToken).ConfigureAwait(false);
+        return new OwnerWindowOpen((long)reader["sequence"], openedAt, (int)Number(fields, "from"), (int)Number(fields, "to"), Number(fields, "tip"), fields.ContainsKey("late"), closingFailed);
+    }
+
+    private static long Number(IDictionary<string, string> fields, string name) =>
+        fields.TryGetValue(name, out var value) && long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var number) ? number : 0L;
 
     private async Task<RecordedVerification?> LastOfAsync(CustodyStep step, CancellationToken cancellationToken)
     {

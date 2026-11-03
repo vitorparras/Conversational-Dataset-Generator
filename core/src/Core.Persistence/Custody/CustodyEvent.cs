@@ -70,7 +70,23 @@ public sealed record CustodyEvent
             : throw new ArgumentException("An emptying is refused because its author does not hold the function or because the item was emptied already.", nameof(reason));
     }
 
-    private static bool IsVerification(CustodyStep step) => step is CustodyStep.VerifyChain or CustodyStep.VerifyGuarantees;
+    private static bool IsVerification(CustodyStep step) => step is CustodyStep.VerifyChain or CustodyStep.VerifyGuarantees or CustodyStep.OwnerWindowOpened or CustodyStep.OwnerWindowClosed;
+
+    /// <summary>The event that records the opening of the window of the owner credential, by the system: the item is the chain and its id is the version the migration reaches.</summary>
+    /// <param name="to">The version the migration reaches.</param>
+    /// <param name="reference">What <see cref="OwnerWindowReference.Opened" /> says.</param>
+    internal static CustodyEvent OwnerWindowOpened(int to, string reference) =>
+        new(CustodyAuthor.System, new CustodyItem(CustodyItemKind.CustodyChain, to), CustodyStep.OwnerWindowOpened, CustodyReason.AdministrativeAct) { Reference = reference };
+
+    /// <summary>The event that records the closing of the window, by the system: the item is the chain and its id is the mask of what is missing, bit 64 being a chain that did not hold.</summary>
+    /// <param name="missing">The mask of the guarantees missing, plus 64 when the chain did not hold; zero when every one held.</param>
+    /// <param name="reference">What <see cref="OwnerWindowReference.Closed" /> says.</param>
+    internal static CustodyEvent OwnerWindowClosed(long missing, string reference)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(missing);
+        var reason = missing == 0 ? CustodyReason.VerificationPassed : CustodyReason.VerificationFailed;
+        return new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.CustodyChain, missing), CustodyStep.OwnerWindowClosed, reason) { Reference = reference };
+    }
 
     private static CustodyItem EmptyingItem(long itemId)
     {

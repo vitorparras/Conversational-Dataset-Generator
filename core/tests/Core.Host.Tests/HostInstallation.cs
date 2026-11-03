@@ -107,9 +107,9 @@ internal sealed record HostInstallation(string BinaryDirectory, string WorkingDi
     public static IReadOnlyList<string> TlsArguments =>
         [$"--Tls:CertificateFile={SharedTlsMaterial.CertificatePath}", $"--Tls:KeyFile={SharedTlsMaterial.KeyPath}"];
 
-    /// <summary>The arguments that point the host at the shared key and labels files.</summary>
+    /// <summary>The arguments that point the host at the shared key, labels and epochs files.</summary>
     public static IReadOnlyList<string> MasterKeyArguments =>
-        [$"--MasterKey:File={CustodyFiles.Shared.KeyPath}", $"--MasterKey:LabelsFile={CustodyFiles.Shared.LabelsPath}"];
+        [$"--MasterKey:File={CustodyFiles.Shared.KeyPath}", $"--MasterKey:LabelsFile={CustodyFiles.Shared.LabelsPath}", $"--MasterKey:EpochsFile={CustodyFiles.Shared.EpochsPath}"];
 
     private IReadOnlyList<string> ServiceArguments => (ProvidesLanguageService, UsesRealService) switch
     {

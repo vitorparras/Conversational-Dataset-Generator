@@ -183,6 +183,7 @@ class OfflineStartTests(unittest.TestCase):
         self.assertIn("head -c 32 /dev/urandom | base64", script)
         self.assertIn('export CDG_MasterKey__File="$custody/key"', script)
         self.assertIn('CDG_MasterKey__LabelsFile="$custody/labels"', script)
+        self.assertIn('CDG_MasterKey__EpochsFile="$custody/epochs"', script)
 
     def test_the_script_gives_the_host_a_throwaway_certificate_beside_the_key(self) -> None:
         script = START_SCRIPT.read_text(encoding="utf-8")

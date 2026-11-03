@@ -33,9 +33,7 @@ public sealed class ContentTransaction : IAsyncDisposable
         return OpenAsync(dataSource, domainId, Declare, cancellationToken);
     }
 
-    /// <summary>
-    /// As <see cref="BeginAsync(NpgsqlDataSource, int, CancellationToken)"/>, at the isolation level given: a write that must be seen by a serializable reader of the same rows is itself serializable.
-    /// </summary>
+    /// <summary>As <see cref="BeginAsync(NpgsqlDataSource, int, CancellationToken)"/>, at the isolation level given.</summary>
     /// <param name="dataSource">The source of the connection, built with the credential that reads and writes the content.</param>
     /// <param name="domainId">The identifier of the domain in <c>public.domain</c>; a value that is not positive is refused before any connection opens.</param>
     /// <param name="isolation">The isolation level of the transaction.</param>
@@ -44,24 +42,24 @@ public sealed class ContentTransaction : IAsyncDisposable
     {
         ArgumentNullException.ThrowIfNull(dataSource);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(domainId);
-        return OpenAsync(dataSource, new Opening(domainId, Declare, isolation), cancellationToken);
+        return OpenAsync(dataSource, domainId, Declare, isolation, cancellationToken);
     }
 
     /// <summary>The opening with the statement that declares the domain given, so that a test can make the declaration fail and see the connection released.</summary>
     internal static Task<ContentTransaction> OpenAsync(NpgsqlDataSource dataSource, int domainId, string declare, CancellationToken cancellationToken) =>
-        OpenAsync(dataSource, new Opening(domainId, declare, IsolationLevel.ReadCommitted), cancellationToken);
+        OpenAsync(dataSource, domainId, declare, IsolationLevel.ReadCommitted, cancellationToken);
 
-    private static async Task<ContentTransaction> OpenAsync(NpgsqlDataSource dataSource, Opening opening, CancellationToken cancellationToken)
+    private static async Task<ContentTransaction> OpenAsync(NpgsqlDataSource dataSource, int domainId, string declare, IsolationLevel isolation, CancellationToken cancellationToken)
     {
         var connection = await dataSource.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
         var opened = false;
         try
         {
-            var transaction = await connection.BeginTransactionAsync(opening.Isolation, cancellationToken).ConfigureAwait(false);
-            var declaration = new NpgsqlCommand(opening.Statement, connection, transaction);
+            var transaction = await connection.BeginTransactionAsync(isolation, cancellationToken).ConfigureAwait(false);
+            var declaration = new NpgsqlCommand(declare, connection, transaction);
             await using (declaration.ConfigureAwait(false))
             {
-                _ = declaration.Parameters.AddWithValue("domain", opening.DomainId.ToString(CultureInfo.InvariantCulture));
+                _ = declaration.Parameters.AddWithValue("domain", domainId.ToString(CultureInfo.InvariantCulture));
                 _ = await declaration.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
             }
 
@@ -105,6 +103,4 @@ public sealed class ContentTransaction : IAsyncDisposable
         await transaction.DisposeAsync().ConfigureAwait(false);
         await connection.DisposeAsync().ConfigureAwait(false);
     }
-
-    private sealed record Opening(int DomainId, string Statement, IsolationLevel Isolation);
 }

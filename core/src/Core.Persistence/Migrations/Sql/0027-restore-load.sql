@@ -122,7 +122,7 @@ BEGIN
 END
 $events$;
 
--- Closes the window for good, approved or not. When approved, the people the copy held as inactive are deactivated and what the database counts by itself is counted again from what was put back 
+-- Closes the window for good, approved or not. When approved, the people the copy held as inactive are deactivated and what the database counts by itself is counted again from what was put back
 -- (the domains that still hold something).
 CREATE FUNCTION public.restore_close(approved boolean) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $close$
 DECLARE declared integer;

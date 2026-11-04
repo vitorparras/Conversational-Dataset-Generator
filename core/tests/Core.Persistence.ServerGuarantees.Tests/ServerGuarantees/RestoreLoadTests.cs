@@ -24,7 +24,7 @@ public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<Resto
     private const string HeldByDomain =
         "SELECT string_agg(domain_id || ':' || table_name || ':' || live, ',' ORDER BY domain_id, table_name)"
         + " FROM (SELECT domain_id, table_name, sum(delta) AS live FROM public.content_domain GROUP BY domain_id, table_name) c";
-    private const string Window ="SELECT string_agg(state || ':' || coalesce(approved::text, '-'), ',' ORDER BY state) FROM public.restore_window";
+    private const string Window = "SELECT string_agg(state || ':' || coalesce(approved::text, '-'), ',' ORDER BY state) FROM public.restore_window";
 
     [DatabaseFact]
     public async Task EveryTableComesBackAsTheCopyHasItAndTheChainWithTheSameSequenceAndDigests()

@@ -80,6 +80,19 @@ internal sealed class SessionScenario : IAsyncDisposable
     public Task<HttpResponseMessage> LeaveAsync(string? identifier, CancellationToken cancellationToken) =>
         SendAsync(HttpMethod.Delete, identifier, json: null, cancellationToken);
 
+    /// <summary>The first column of the first row of a statement run as the application's role, as text; what the records of the entry hold.</summary>
+    public async Task<string> HeldAsync(string statement, CancellationToken cancellationToken)
+    {
+        var command = application.CreateCommand(statement);
+        await using (command.ConfigureAwait(false))
+        {
+            return Convert.ToString(await command.ExecuteScalarAsync(cancellationToken), System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+        }
+    }
+
+    /// <summary>Runs statements as the owner of the database, for what neither the application nor the entry may arrange.</summary>
+    public Task RunAsOwnerAsync(params string[] statements) => database.RunAsOwnerAsync(statements);
+
     /// <summary>Stops the host and hands over everything it wrote to its output streams and to its log file.</summary>
     public async Task<string> StopAndReadEverythingAsync()
     {

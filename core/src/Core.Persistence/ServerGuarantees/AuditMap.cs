@@ -9,20 +9,19 @@ namespace Core.Persistence.ServerGuarantees;
 /// </summary>
 public static class AuditMap
 {
+    private const string Insert = "INSERT";
     private const string Update = "UPDATE";
-
-    /// <summary>Why the recomputation of a password at sign-in is the one known difference: it writes the credential without an event until issue #71 gives it one.</summary>
-    public static string RecomputeWithoutEvent { get; } = "recálculo da senha na entrada (#69) grava a credencial sem evento até a #71";
 
     /// <summary>The tables the steps account for. Every change of a person also writes a row to person_change, which is why that table lists all four steps.</summary>
     public static IReadOnlyList<AuditExpectation> Expectations { get; } =
     [
-        new("public.person", ["INSERT"], [CustodyStep.PersonCreated]),
+        new("public.person", [Insert], [CustodyStep.PersonCreated]),
         new("public.person", [Update], [CustodyStep.PersonDeactivated, CustodyStep.PersonFunctionChanged]),
-        new("public.person_credential", ["INSERT", Update], [CustodyStep.PersonPasswordSet], RecomputeWithoutEvent),
+        new("public.person_credential", [Insert, Update], [CustodyStep.PersonPasswordSet, CustodyStep.CredentialRecomputed]),
+        new("public.sign_in_attempt", [Insert], [CustodyStep.SignInAccepted, CustodyStep.SignInRefused]),
         new(
             "public.person_change",
-            ["INSERT"],
+            [Insert],
             [CustodyStep.PersonCreated, CustodyStep.PersonDeactivated, CustodyStep.PersonFunctionChanged, CustodyStep.PersonPasswordSet]),
         new("content.item_text", ["SELECT"], [CustodyStep.RawTextRead, CustodyStep.SanitizedTextRead]),
         new("content.reversal_map", ["SELECT"], [CustodyStep.ReversalEntriesRead]),

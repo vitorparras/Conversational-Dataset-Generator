@@ -1,12 +1,13 @@
 using Core.Host.Domains;
 using Core.Host.Loss;
+using Core.Host.Operators;
 using Core.Host.Rotation;
 
 namespace Core.Host;
 
 /// <summary>
-/// The modes that run once with the owner credential and serve nothing, other than the migration: the rotation of the epoch, the creation of a domain,
-/// the rotation of its label and the declaration of the loss of a key.
+/// The modes that run once and serve nothing, other than the migration: with the owner credential, the rotation of the epoch, the creation of a domain,
+/// the rotation of its label and the declaration of the loss of a key; with the application one, the first person.
 /// </summary>
 internal static class OneShotModes
 {
@@ -16,6 +17,11 @@ internal static class OneShotModes
         if (EpochRotationMode.Requested(args))
         {
             return EpochRotationMode.RunAsync(args, Console.Out, Console.Error);
+        }
+
+        if (FirstOperatorMode.Requested(args))
+        {
+            return FirstOperatorMode.RunAsync(args, Console.In, Console.Out, Console.Error);
         }
 
         if (DomainGenerationMode.Requested(args))

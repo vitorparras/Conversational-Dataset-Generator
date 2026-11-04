@@ -58,6 +58,36 @@ public sealed class PersonRegistry
         }
     }
 
+    /// <summary>
+    /// Adds the first person of the installation, by the system, and only if the registry has nobody: the check and the write are one statement in the serializable transaction of the chain,
+    /// so that two commands at once make one person and the other is refused.
+    /// </summary>
+    /// <param name="person">The name of use and the function.</param>
+    /// <param name="cancellationToken">Cancels the operation.</param>
+    public Task<PersonResult> CreateFirstAsync(NewPerson person, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(person);
+        return AddFirstAsync(person, cancellationToken);
+    }
+
+    private async Task<PersonResult> AddFirstAsync(NewPerson person, CancellationToken cancellationToken)
+    {
+        if (PersonRefusals.Judge(person) is { } refusal)
+        {
+            return refusal;
+        }
+
+        var statement = new PersonStatement(
+            PersonStatements.CreateFirst,
+            command =>
+            {
+                Add(command, "name", NpgsqlDbType.Text, person.Name);
+                Add(command, "function", NpgsqlDbType.Text, person.Function);
+            },
+            CustodyStep.PersonCreated);
+        return await dataSource.WriteChainedAsync(statement, CustodyAuthor.System, cancellationToken).ConfigureAwait(false) ?? PersonRefusals.RegistryNotEmpty();
+    }
+
     /// <summary>Deactivates a person; the person stays in the registry and in the history.</summary>
     /// <param name="personId">The person to deactivate.</param>
     /// <param name="author">Who acts: a person of the registry, or the system declared as such; never left out.</param>
@@ -81,6 +111,48 @@ public sealed class PersonRegistry
             personId);
         return await dataSource.WriteChainedAsync(statement, author, cancellationToken).ConfigureAwait(false)
             ?? await WhyNotDeactivatedAsync(personId, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Deactivates a person as <see cref="DeactivateAsync" /> does, except the last active holder of the administration function, who is refused with their own outcome: the check and the write are
+    /// one statement in the serializable transaction of the chain, so that two deactivations at once cannot leave the installation with none.
+    /// </summary>
+    /// <param name="personId">The person to deactivate.</param>
+    /// <param name="author">Who acts: a person of the registry, or the system declared as such; never left out.</param>
+    /// <param name="cancellationToken">Cancels the operation.</param>
+    public Task<PersonResult> DeactivateKeepingAdministrationAsync(long personId, CustodyAuthor author, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(author);
+        return RemoveKeepingAsync(personId, author, cancellationToken);
+    }
+
+    private async Task<PersonResult> RemoveKeepingAsync(long personId, CustodyAuthor author, CancellationToken cancellationToken)
+    {
+        var statement = new PersonStatement(
+            PersonStatements.DeactivateKeepingAdministration,
+            command =>
+            {
+                Add(command, "id", NpgsqlDbType.Bigint, personId);
+                PersonQueries.AddActor(command, author.PersonId);
+                Add(command, "administration", NpgsqlDbType.Text, PersonFunctions.Administration);
+            },
+            CustodyStep.PersonDeactivated,
+            personId);
+        return await dataSource.WriteChainedAsync(statement, author, cancellationToken).ConfigureAwait(false)
+            ?? await WhyNotKeptAsync(personId, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>The function of an active person; null when nobody has the identifier or the person is deactivated. It does not authenticate.</summary>
+    /// <param name="personId">The person whose function is asked.</param>
+    /// <param name="cancellationToken">Cancels the reading.</param>
+    public async Task<string?> ActiveFunctionOfAsync(long personId, CancellationToken cancellationToken)
+    {
+        var command = dataSource.CreateCommand(PersonStatements.ActiveFunctionOf);
+        await using (command.ConfigureAwait(false))
+        {
+            Add(command, "id", NpgsqlDbType.Bigint, personId);
+            return await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) as string;
+        }
     }
 
     /// <summary>Gives an active person another function, keeping the previous one in the history; a function outside the policy writes nothing.</summary>
@@ -159,6 +231,14 @@ public sealed class PersonRegistry
 
     private async Task<PersonResult> WhyNotDeactivatedAsync(long personId, CancellationToken cancellationToken) =>
         await dataSource.ReadActiveAsync(personId, cancellationToken).ConfigureAwait(false) is null ? PersonRefusals.NotFound() : PersonRefusals.Deactivated();
+
+    private async Task<PersonResult> WhyNotKeptAsync(long personId, CancellationToken cancellationToken) =>
+        await dataSource.ReadActiveAsync(personId, cancellationToken).ConfigureAwait(false) switch
+        {
+            null => PersonRefusals.NotFound(),
+            false => PersonRefusals.Deactivated(),
+            true => PersonRefusals.LastAdministrator(),
+        };
 
     private async Task<PersonResult> WhyNotChangedAsync(long personId, CancellationToken cancellationToken) =>
         await dataSource.ReadActiveAsync(personId, cancellationToken).ConfigureAwait(false) switch

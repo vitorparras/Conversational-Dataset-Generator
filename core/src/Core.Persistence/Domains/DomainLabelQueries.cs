@@ -7,9 +7,7 @@ namespace Core.Persistence.Domains;
 /// <summary>What the rotation reads and writes inside its transaction: the newest generation a domain has labels for, and the registration of a label.</summary>
 internal static class DomainLabelQueries
 {
-    private const string NewestVersion = """
-        SELECT coalesce(max((substring(label FROM '/v([0-9]+)$'))::int), 0) FROM public.derivation_label WHERE label LIKE @pattern
-        """;
+    private const string NewestVersion = "SELECT coalesce(max((substring(label FROM '/v([0-9]+)$'))::int), 0) FROM public.derivation_label WHERE label LIKE @pattern";
 
     private const string InsertLabel = "INSERT INTO public.derivation_label (label) VALUES (@label)";
 

@@ -17,9 +17,17 @@ internal sealed class ChainVerificationService : BackgroundService
 
     /// <summary>The service as the host builds it: over the data source of the startup container, which a host with no database does not have.</summary>
     internal ChainVerificationService(IServiceProvider host)
-        : this(VerifierOf(host), host.GetRequiredService<VerificationSchedule>(), host.GetRequiredService<TimeProvider>(), host.GetRequiredService<ILoggerFactory>())
+        : this(host, VerifierOf(host))
     {
-        Reader = DataSourceOf(host) is { } source ? new RecordedVerificationReader(source) : null;
+    }
+
+    private ChainVerificationService(IServiceProvider host, CustodyVerifier? verifier)
+        : this(verifier is null ? null : verifier.VerifyAsync, host.GetRequiredService<VerificationSchedule>(), host.GetRequiredService<TimeProvider>(), host.GetRequiredService<ILoggerFactory>())
+    {
+        Verifier = verifier;
+        var source = DataSourceOf(host);
+        Reader = source is null ? null : new RecordedVerificationReader(source);
+        SealReader = source is null ? null : new RecordedSealReader(source);
     }
 
     /// <summary>The service over the verification it is given, with the clock and the log of its caller.</summary>
@@ -36,6 +44,45 @@ internal sealed class ChainVerificationService : BackgroundService
 
     /// <summary>The reading of the last verification the chain recorded; null when no database is declared.</summary>
     internal RecordedVerificationReader? Reader { get; }
+
+    /// <summary>The verification on demand, which compares the chain with a seal; null when no database is declared.</summary>
+    internal CustodyVerifier? Verifier { get; }
+
+    /// <summary>The reading of when the chain last recorded a seal; null when no database is declared.</summary>
+    internal RecordedSealReader? SealReader { get; }
+
+    /// <summary>Whether a verification recorded at the moment given is late, by the clock the service was given.</summary>
+    internal bool IsOverdue(DateTimeOffset? lastRecordedAt) => Schedule.Overdue(lastRecordedAt, time.GetUtcNow());
+
+    /// <summary>
+    /// Verifies the chain on demand against the seal given and tells the log what it found: a chain that does not hold, and a seal that does not, are errors, and neither writes a failure
+    /// of its own nor blocks a write. Null when no database is declared or the verification did not reach its end, which the log tells with the type of the failure.
+    /// </summary>
+    internal async Task<ChainVerification?> VerifyAgainstAsync(ChainSeal seal, CancellationToken cancellationToken)
+    {
+        if (Verifier is null)
+        {
+            return null;
+        }
+
+        var logger = loggers.CreateLogger<ChainVerificationService>();
+        try
+        {
+            var result = await Verifier.VerifyAsync(seal, cancellationToken).ConfigureAwait(false);
+            Report(logger, result);
+            if (result.Seal is { Holds: false } failing)
+            {
+                logger.SealDoesNotHold(failing.Outcome, seal.Events, result.EventsRead);
+            }
+
+            return result;
+        }
+        catch (Exception failure) when (ServingFailure.CanReport(failure) && !cancellationToken.IsCancellationRequested)
+        {
+            logger.SealVerificationFailed(failure.GetType().Name);
+            return null;
+        }
+    }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -60,23 +107,27 @@ internal sealed class ChainVerificationService : BackgroundService
 
     private static NpgsqlDataSource? DataSourceOf(IServiceProvider host) => host.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>();
 
-    private static Func<CancellationToken, Task<ChainVerification>>? VerifierOf(IServiceProvider host) =>
-        DataSourceOf(host) is { } source ? new CustodyVerifier(source, host.GetRequiredService<TimeProvider>()).VerifyAsync : null;
+    private static CustodyVerifier? VerifierOf(IServiceProvider host) =>
+        DataSourceOf(host) is { } source ? new CustodyVerifier(source, host.GetRequiredService<TimeProvider>()) : null;
+
+    private static void Report(ILogger logger, ChainVerification result)
+    {
+        if (result.FirstInconsistent is { } broken)
+        {
+            logger.ChainBroken($"{broken.Sequence} ({broken.Kind})", result.EventsRead, result.Recorded.Outcome);
+        }
+        else
+        {
+            logger.ChainHeld(result.EventsRead, result.Recorded.Outcome);
+        }
+    }
 
     private async Task VerifyOnceAsync(Func<CancellationToken, Task<ChainVerification>> verification, CancellationToken cancellationToken)
     {
         var logger = loggers.CreateLogger<ChainVerificationService>();
         try
         {
-            var result = await verification(cancellationToken).ConfigureAwait(false);
-            if (result.FirstInconsistent is { } broken)
-            {
-                logger.ChainBroken($"{broken.Sequence} ({broken.Kind})", result.EventsRead, result.Recorded.Outcome);
-            }
-            else
-            {
-                logger.ChainHeld(result.EventsRead, result.Recorded.Outcome);
-            }
+            Report(logger, await verification(cancellationToken).ConfigureAwait(false));
         }
         catch (Exception failure) when (ServingFailure.CanReport(failure) && !cancellationToken.IsCancellationRequested)
         {

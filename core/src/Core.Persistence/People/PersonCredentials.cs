@@ -146,13 +146,15 @@ public sealed class PersonCredentials
     private async Task RecomputeAsync(long personId, Credential previous, string password, CancellationToken cancellationToken)
     {
         var current = derivation.Derive(password);
-        _ = await WithoutRowAsync(() => dataSource.WriteAsync(
+        var statement = new PersonStatement(
             CredentialStatements.Recompute,
             command =>
             {
                 Bind(command, personId, current);
                 PersonQueries.Add(command, "previous", NpgsqlDbType.Bytea, previous.Derived);
             },
-            cancellationToken)).ConfigureAwait(false);
+            CustodyStep.CredentialRecomputed,
+            personId);
+        _ = await WithoutRowAsync(() => dataSource.WriteChainedAsync(statement, CustodyAuthor.Person(personId), cancellationToken)).ConfigureAwait(false);
     }
 }

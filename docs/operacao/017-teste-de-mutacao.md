@@ -52,9 +52,9 @@ reprova, e o sobrevivente que só teste de outro projeto mataria é do módulo, 
   `CDG_TEST_DATABASE_REUSE` e o projeto mantém uma imagem e um contêiner nomeados por ele, que
   sobrevivem aos reinícios; o passo os remove ao fim, também se o Stryker falha ou passa do teto.
   Sem a variável, cada execução sobe e descarta o seu Postgres; sem o `docker` no PATH, nada é
-  reaproveitado. Se a verificação morrer à força, o contêiner e a imagem `cdg-test-database-<token>`
-  ficam: ache-os com `docker ps -a --filter name=cdg-test-database-` e remova com `docker rm` e
-  `docker rmi`.
+  reaproveitado. Se a verificação morrer à força, ficam o contêiner `cdg-test-database-<token>` e a
+  imagem `cdg-test-database:<token>`: ache-os com `docker ps -a --filter name=cdg-test-database-` e
+  remova com `docker rm --force --volumes` e `docker rmi --force` (sem `--force`, o que roda fica).
 - **Serviço:** os arquivos de teste que importam o módulo diretamente (`import language_service.x`,
   `from language_service.x import ...` ou `from language_service import x`), numa rodada do mutmut
   por módulo. Os testes que leem o texto do código-fonte ficam de fora: a mutação o reescreve.

@@ -18,6 +18,9 @@ internal static class PersonRefusals
                     CultureInfo.InvariantCulture,
                     $"A função '{function}' não consta da política de acesso. As aceitas são: {string.Join(", ", PersonFunctions.Accepted)}."));
 
+    internal static PersonResult RegistryNotEmpty() =>
+        PersonResult.Refused(PersonOutcome.RegistryNotEmpty, "O cadastro já tem alguém; as pessoas seguintes entram pela rota com sessão, e não por este comando.");
+
     internal static PersonResult NameTaken() =>
         PersonResult.Refused(PersonOutcome.NameTaken, "Já existe uma pessoa com esse nome de uso.");
 

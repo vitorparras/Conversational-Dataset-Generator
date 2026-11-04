@@ -15,6 +15,13 @@ internal static class PersonStatements
         RETURNING person_id
         """;
 
+    internal const string CreateFirst = """
+        WITH created AS (INSERT INTO public.person (name, function_name) SELECT @name, @function WHERE NOT EXISTS (SELECT 1 FROM public.person) RETURNING id)
+        INSERT INTO public.person_change (person_id, kind, new_function, actor_id)
+        SELECT id, 'created', @function, NULL FROM created
+        RETURNING person_id
+        """;
+
     internal const string Deactivate = $"""
         WITH changed AS (UPDATE public.person SET active = false WHERE id = @id AND active AND {ActorActive} RETURNING id)
         INSERT INTO public.person_change (person_id, kind, actor_id)

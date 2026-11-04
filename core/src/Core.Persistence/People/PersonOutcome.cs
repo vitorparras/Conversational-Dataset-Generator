@@ -24,6 +24,9 @@ public enum PersonOutcome
     /// <summary>Another writer reached the same link of the chain of custody first; nothing was written, and the request may be repeated.</summary>
     ChainBusy,
 
+    /// <summary>The registry already holds someone, and the first person is the one who makes it so.</summary>
+    RegistryNotEmpty,
+
     /// <summary>The password is empty.</summary>
     PasswordInvalid,
 

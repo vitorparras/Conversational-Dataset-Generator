@@ -39,6 +39,11 @@ internal static class OneShotModes
             return RecoveryRehearsalMode.RunAsync(args, Console.Out, Console.Error);
         }
 
+        if (RecoveryRecordMode.Requested(args))
+        {
+            return RecoveryRecordMode.RunAsync(args, Console.Out, Console.Error);
+        }
+
         return DomainCreationMode.Requested(args) ? DomainCreationMode.RunAsync(args, Console.Out, Console.Error) : null;
     }
 }

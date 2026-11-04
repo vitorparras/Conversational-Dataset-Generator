@@ -38,6 +38,7 @@ internal static class CustodyNames
         [CustodyStep.SignInRefused] = "sign_in_refused",
         [CustodyStep.CredentialRecomputed] = "credential_recomputed",
         [CustodyStep.KeyLossDeclared] = "key_loss_declared",
+        [CustodyStep.RecoveryTested] = "recovery_tested",
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<CustodyReason, string> Reasons = new Dictionary<CustodyReason, string>

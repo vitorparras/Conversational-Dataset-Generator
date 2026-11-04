@@ -47,6 +47,7 @@ public sealed class CustodyKeyLossListTests : IClassFixture<CustodyDatabase>
     [InlineData("seal_recorded")]
     [InlineData("domain_label_rotated")]
     [InlineData("key_loss_declared")]
+    [InlineData("recovery_tested")]
     public async Task Ca5EveryStepTheMigrationsBeforeListedIsStillListed(string step)
     {
         var definition = await database.TextAsOwnerAsync("SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'custody_event_step_listed'");

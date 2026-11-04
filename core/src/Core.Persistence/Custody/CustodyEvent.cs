@@ -9,7 +9,8 @@ public sealed record CustodyEvent
 
     private static readonly FrozenSet<CustodyStep> OfTheirOwn = Enumerable.Repeat(CustodyStep.Correction, 1)
         .Append(CustodyStep.VerifyChain).Append(CustodyStep.ItemEmptied).Append(CustodyStep.ItemEmptyingRefused).Append(CustodyStep.EpochRotated).Append(CustodyStep.DomainCreated)
-        .Append(CustodyStep.SealRecorded).Append(CustodyStep.DomainLabelRotated).Append(CustodyStep.SignInAccepted).Append(CustodyStep.SignInRefused).Append(CustodyStep.KeyLossDeclared).ToFrozenSet();
+        .Append(CustodyStep.SealRecorded).Append(CustodyStep.DomainLabelRotated)
+        .Append(CustodyStep.SignInAccepted).Append(CustodyStep.SignInRefused).Append(CustodyStep.KeyLossDeclared).Append(CustodyStep.RecoveryTested).ToFrozenSet();
 
     private CustodyEvent(CustodyAuthor author, CustodyItem item, CustodyStep step, CustodyReason reason)
     {
@@ -184,6 +185,14 @@ public sealed record CustodyEvent
         return WithReference(
             new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.MasterKey, (long)attempts), CustodyStep.KeyLossDeclared, CustodyReason.AdministrativeAct),
             scope.Text);
+    }
+
+    /// <summary>The event of a recovery rehearsed and checked, written by the system: the item is the master key and its id is the sequence of the top of the copy the rehearsal opened.</summary>
+    /// <param name="topSequence">The sequence of the last event of the copy, which the chain of the production holds too.</param>
+    public static CustodyEvent RecoveryRehearsed(long topSequence)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(topSequence);
+        return new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.MasterKey, topSequence), CustodyStep.RecoveryTested, CustodyReason.AdministrativeAct);
     }
 
     /// <summary>A new event that corrects an earlier one, which stays in the sequence as it was.</summary>

@@ -14,12 +14,12 @@ Três perdas diferentes andam sob o mesmo nome, e confundi-las custa caro.
 
 A [decisão 0014](../decisoes/0014-custodia-da-chave-mestra.md) exige recuperação testada antes do
 primeiro dado real: restaurar banco e chave num ambiente limpo e conferir que o texto bruto decifra
-e que o mapa de reversão abre. Enquanto isso não tiver sido feito uma vez, ingestão de material real
-não começa.
+e que o mapa de reversão abre. Sem isso, a ingestão de material real não começa.
 
 Num ambiente limpo, com a cópia do banco e a cópia de guarda, rode `rehearse-recovery`: ele abre
-em memória uma amostra do bruto e do mapa de cada domínio e imprime um recibo sem conteúdo. Repita
-a cada troca de quem detém a cópia e a cada mudança no formato de persistência.
+em memória uma amostra do bruto e do mapa de cada domínio e imprime um recibo sem conteúdo. Na
+produção, `record-recovery-test --receipt "<recibo>"` o registra, se o topo da cópia estiver na
+cadeia e a chave conferir. Repita a cada troca de quem detém a cópia e a cada mudança no formato.
 
 ## Perdeu-se a cópia de guarda
 

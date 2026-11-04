@@ -62,4 +62,10 @@ public enum CustodyStep
     /// There is no way back.
     /// </summary>
     KeyLossDeclared,
+
+    /// <summary>
+    /// The recovery was rehearsed in a clean environment and its receipt was checked against the chain and the key of the production;
+    /// the item is the key and its id the top of the copy.
+    /// </summary>
+    RecoveryTested,
 }

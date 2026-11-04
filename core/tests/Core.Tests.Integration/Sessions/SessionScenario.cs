@@ -90,6 +90,9 @@ internal sealed class SessionScenario : IAsyncDisposable
         }
     }
 
+    /// <summary>Runs statements as the owner of the database, for what neither the application nor the entry may arrange.</summary>
+    public Task RunAsOwnerAsync(params string[] statements) => database.RunAsOwnerAsync(statements);
+
     /// <summary>Stops the host and hands over everything it wrote to its output streams and to its log file.</summary>
     public async Task<string> StopAndReadEverythingAsync()
     {

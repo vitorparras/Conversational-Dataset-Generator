@@ -157,7 +157,7 @@ public sealed record CustodyEvent
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(attemptId);
         return RefusalAuthor(personId, reason) is { } author
             ? new CustodyEvent(author, new CustodyItem(CustodyItemKind.SignInAttempt, attemptId), CustodyStep.SignInRefused, reason)
-            : throw new ArgumentException("An entry is refused for a wrong password, of a person, or for for a name nobody goes by, of nobody.", nameof(reason));
+            : throw new ArgumentException("An entry is refused for a wrong password, of a person, or for a name nobody goes by, of nobody.", nameof(reason));
     }
 
     private static CustodyAuthor? RefusalAuthor(long? personId, CustodyReason reason)

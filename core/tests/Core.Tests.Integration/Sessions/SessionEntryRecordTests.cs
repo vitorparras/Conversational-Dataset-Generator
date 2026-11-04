@@ -40,6 +40,23 @@ public sealed class SessionEntryRecordTests
     }
 
     [DatabaseFact]
+    public async Task ARightPasswordWhoseAcceptanceTheChainDoesNotTakeIsRefusedAndNoEventSaysTheAccountIsNotRecognized()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var scenario = await SessionScenario.StartAsync("00:30:00", cancellationToken);
+        await scenario.RunAsOwnerAsync(
+            "CREATE FUNCTION public.zqx_conflict() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'zqx' USING ERRCODE = '40001'; END $$",
+            "CREATE TRIGGER zqx_conflict BEFORE INSERT ON public.custody_event FOR EACH ROW WHEN (NEW.step = 'sign_in_accepted') EXECUTE FUNCTION public.zqx_conflict()");
+
+        using var refused = await scenario.EnterAsync(scenario.Name, scenario.Password, cancellationToken);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, refused.StatusCode);
+        Assert.Empty(refused.Headers.Where(header => header.Key == "Set-Cookie"));
+        Assert.Equal("0", await scenario.HeldAsync("SELECT count(*) FROM public.custody_event WHERE step LIKE 'sign_in%'", cancellationToken));
+        Assert.Equal("0", await scenario.HeldAsync("SELECT count(*) FROM public.sign_in_attempt", cancellationToken));
+    }
+
+    [DatabaseFact]
     public async Task NeitherTheNameTypedNorThePasswordIsInTheRowsTheEventsOrTheLog()
     {
         var cancellationToken = TestContext.Current.CancellationToken;

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Net;
 using System.Text.Json.Nodes;
 using Core.Persistence.Content;
 using Core.Persistence.Content.Emptying;
@@ -28,6 +29,7 @@ public sealed class RestoreLoaderTests
     private const string Credentials =
         "SELECT string_agg(person_id || ':' || algorithm || ':' || work_factor || ':' || encode(salt, 'hex')"
         + " || ':' || encode(derived, 'hex'), ',' ORDER BY person_id) FROM public.person_credential";
+    private const string Attempts = "SELECT string_agg(id || ':' || occurred_at || ':' || coalesce(network::text, '-'), ',' ORDER BY id) FROM public.sign_in_attempt";
     private const string Window = "SELECT coalesce(string_agg(state || ':' || coalesce(approved::text, '-'), ',' ORDER BY state), 'none') FROM public.restore_window";
     private const string Restored = "SELECT count(*)::text FROM public.custody_event WHERE step = 'restored'";
 
@@ -49,6 +51,8 @@ public sealed class RestoreLoaderTests
         Assert.Equal(["closed:true,opened:-"], await destination.OwnerColumnAsync(Window));
         Assert.Equal(await source.OwnerColumnAsync(People), await destination.OwnerColumnAsync(People));
         Assert.Equal(await source.OwnerColumnAsync(Credentials), await destination.OwnerColumnAsync(Credentials));
+        Assert.Equal(await source.OwnerColumnAsync(Attempts), await destination.OwnerColumnAsync(Attempts));
+        Assert.Equal(["203.0.113.0/24"], await destination.OwnerColumnAsync("SELECT network::text FROM public.sign_in_attempt"));
         Assert.Equal(["zqx-flow:false"], await destination.OwnerColumnAsync("SELECT name || ':' || active FROM public.person WHERE name = 'zqx-flow'"));
     }
 
@@ -153,7 +157,7 @@ public sealed class RestoreLoaderTests
 
         Assert.Equal((RestoreOutcome.CopyRefused, RestoreOutcome.CopyRefused), (other.Outcome, lacking.Outcome));
         Assert.Contains($"versão {version + 1}", other.Detail, StringComparison.Ordinal);
-        Assert.Contains("8 das 9 tabelas", lacking.Detail, StringComparison.Ordinal);
+        Assert.Contains("9 das 10 tabelas", lacking.Detail, StringComparison.Ordinal);
         Assert.Equal(["none"], await destination.OwnerColumnAsync(Window));
     }
 
@@ -216,6 +220,7 @@ public sealed class RestoreLoaderTests
         var created = await world.Registry.CreateAsync(new NewPerson("zqx-flow", PersonFunctions.Curation), curator, token);
         var flow = created.PersonId!.Value;
         _ = await world.Credentials(workFactor: 1).SetPasswordAsync(flow, "senha-sintetica-zqx", curator, token);
+        Assert.Equal(CustodyOutcome.Appended, (await new SignInAttempts(world.DataSource).AcceptedAsync(flow, IPAddress.Parse("203.0.113.9"), token)).Outcome);
         var first = await world.Writer.AddItemTextAsync(1, new NewItemText("texto bruto sintetico zqx", "texto sanitizado sintetico zqx"), token);
         _ = await world.Writer.AddReversalMapAsync(1, first, "mapa sintetico zqx", token);
         var second = await world.Writer.AddItemTextAsync(1, new NewItemText("segundo texto sintetico zqx"), token);

@@ -9,16 +9,14 @@ using NpgsqlTypes;
 
 namespace Core.Persistence.ServerGuarantees.Restore;
 
-/// <summary>
-/// Puts a copy back in a new database with the application's credential, through the functions of the step 0027 only (#64, CA-5), confers the chain and the guarantees and records the restore.
-/// </summary>
+/// <summary>Puts a copy back in a new database with the application's credential, by the functions of the 0027 only (#64, CA-5), confers the chain and the guarantees, records it.</summary>
 public sealed class RestoreLoader
 {
     private const string Chain = "public.custody_event";
     private const string Tip = "SELECT sequence || ':' || encode(digest, 'hex') FROM public.custody_event ORDER BY sequence DESC LIMIT 1";
     private const string Version = "SELECT coalesce(pg_catalog.max(version), 0) FROM public.schema_version";
 
-    /// <summary>The tables in the order they come back: the keys first, then the chain once the people exist, then the content, the maps after the texts and the emptied after both.</summary>
+    /// <summary>The tables in the order they come back: the keys, the people and their sign-in attempts, the chain, then the content (the maps after the texts, the emptied after both).</summary>
     private static readonly ImmutableArray<string> Tables = InOrder();
 
     private readonly NpgsqlDataSource dataSource;
@@ -28,7 +26,7 @@ public sealed class RestoreLoader
     private static ImmutableArray<string> InOrder()
     {
         var tables = ImmutableArray.CreateBuilder<string>();
-        tables.AddRange("public.domain", "public.derivation_label", "public.person", "public.person_credential", "public.person_change");
+        tables.AddRange("public.domain", "public.derivation_label", "public.person", "public.person_credential", "public.person_change", "public.sign_in_attempt");
         tables.AddRange(Chain, "content.item_text", "content.reversal_map", "content.item_emptied");
         return tables.ToImmutable();
     }
@@ -103,10 +101,8 @@ public sealed class RestoreLoader
             {
                 return (rows, new RestoreResult(RestoreOutcome.RowsRefused, table == Chain ? $"o evento {-answer} não voltou como a cópia o tem" : $"o banco recusou a tabela {table}"));
             }
-
             rows += answer;
         }
-
         return (rows, null);
     }
 
@@ -127,7 +123,6 @@ public sealed class RestoreLoader
         {
             return new RestoreResult(RestoreOutcome.GuaranteesMissing, $"faltam as garantias {conferred.Missing}");
         }
-
         return recorded.Outcome == CustodyOutcome.Appended
             ? new RestoreResult(RestoreOutcome.Restored, string.Empty)
             : new RestoreResult(RestoreOutcome.ChainBroken, "a cadeia não aceitou o evento da restauração");

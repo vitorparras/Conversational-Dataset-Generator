@@ -56,7 +56,7 @@ public sealed class RecoveryRecording
 
     private async Task<RecoveryRecord> WriteAsync(RecoveryReceipt receipt, CancellationToken cancellationToken)
     {
-        var chain = await new CustodyChain(dataSource).AppendAsync(CustodyEvent.RecoveryTested(receipt.TopSequence), cancellationToken).ConfigureAwait(false);
+        var chain = await new CustodyChain(dataSource).AppendAsync(CustodyEvent.RecoveryRehearsed(receipt.TopSequence), cancellationToken).ConfigureAwait(false);
         return chain.Outcome == CustodyOutcome.Appended
             ? RecoveryRecord.Written(chain.Sequence ?? 0)
             : RecoveryRecord.Refused(RecoveryOutcome.ChainRefused, $"a cadeia não aceitou o evento ({chain.Outcome})");

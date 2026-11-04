@@ -11,7 +11,7 @@ public sealed class RecoveryTestedEventTests
     [Fact]
     public void TheEventIsTheSystemsAboutTheMasterKeyWithTheTopOfTheCopyAsTheIdAndNoReference()
     {
-        var tested = CustodyEvent.RecoveryTested(42);
+        var tested = CustodyEvent.RecoveryRehearsed(42);
 
         Assert.Equal(
             (CustodyStep.RecoveryTested, CustodyItemKind.MasterKey, 42L, CustodyReason.AdministrativeAct, CustodyAuthor.System, null),
@@ -22,7 +22,7 @@ public sealed class RecoveryTestedEventTests
     [InlineData(0)]
     [InlineData(-1)]
     public void ATopThatIsNotPositiveIsADefectOfTheCaller(long top) =>
-        Assert.ThrowsAny<ArgumentOutOfRangeException>(() => CustodyEvent.RecoveryTested(top));
+        Assert.ThrowsAny<ArgumentOutOfRangeException>(() => CustodyEvent.RecoveryRehearsed(top));
 
     [Fact]
     public void TheStepHasItsNameInTheChainAndIsOneOfTheStepsThatHaveAFactoryOfTheirOwn()

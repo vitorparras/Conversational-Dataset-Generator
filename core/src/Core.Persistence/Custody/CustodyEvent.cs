@@ -189,7 +189,7 @@ public sealed record CustodyEvent
 
     /// <summary>The event of a recovery rehearsed and checked, written by the system: the item is the master key and its id is the sequence of the top of the copy the rehearsal opened.</summary>
     /// <param name="topSequence">The sequence of the last event of the copy, which the chain of the production holds too.</param>
-    public static CustodyEvent RecoveryTested(long topSequence)
+    public static CustodyEvent RecoveryRehearsed(long topSequence)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(topSequence);
         return new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.MasterKey, topSequence), CustodyStep.RecoveryTested, CustodyReason.AdministrativeAct);

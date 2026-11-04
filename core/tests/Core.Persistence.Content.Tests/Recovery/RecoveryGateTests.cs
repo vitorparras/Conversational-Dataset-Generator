@@ -41,7 +41,7 @@ public sealed class RecoveryGateTests
     public async Task Ca2OnceTheStepIsInTheChainTheGateSaysItIsTestedAndNothingIsMissing()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var written = await new CustodyChain(world.DataSource).AppendAsync(CustodyEvent.RecoveryTested(1), TestContext.Current.CancellationToken);
+        var written = await new CustodyChain(world.DataSource).AppendAsync(CustodyEvent.RecoveryRehearsed(1), TestContext.Current.CancellationToken);
         Assert.Equal(CustodyOutcome.Appended, written.Outcome);
 
         var status = await RecoveryGate.StatusAsync(world.DataSource, TestContext.Current.CancellationToken);

@@ -319,7 +319,8 @@ public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<Resto
     {
         private Destination(ScratchDatabase database, NpgsqlDataSource app)
         {
-            (Database, App) = (database, app);
+            Database = database;
+            App = app;
         }
 
         internal ScratchDatabase Database { get; }

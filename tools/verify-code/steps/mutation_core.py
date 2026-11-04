@@ -15,7 +15,8 @@ from steps.common import Context, reset_directory, tail
 from steps.mutant import Mutant
 from steps.mutation_database import DOCKER, discard_database, reusing, starts_database
 from steps.mutation_judge import LanguageRun, ModuleResult, each
-from steps.mutation_parts import Part, module_name, parts_of, share, split_module
+from steps.mutation_members import slices
+from steps.mutation_parts import Part, Slice, module_name, parts_of, share, split_module
 from steps.mutation_policy import MutationPolicy
 from steps.stryker_report import read_stryker
 
@@ -80,13 +81,23 @@ def sources(root: Path, core: CoreTarget) -> list[str]:
     return [found.as_posix() for found in kept if built.isdisjoint(found.parts)]
 
 
+def pieces(root: Path, core: CoreTarget) -> list[Slice]:
+    """Every file of the whole area cut between the members of its types: the units the parts deal
+    out. Stryker counts the spans in the characters of the text it reads, byte order mark aside."""
+    project = root / SOURCES / core.project
+    texts = {
+        name: (project / name).read_bytes().decode("utf-8-sig") for name in sources(root, core)
+    }
+    return [Slice(name, a, b) for name, text in texts.items() for a, b in slices(text)]
+
+
 def part_count(root: Path, area: Area, areas: tuple[Area, ...]) -> int:
     """In how many parts the area is mutated: those its file asks for, but never more than it has
-    files; one for an area with no code, outside the core or without the field."""
+    slices; one for an area with no code, outside the core or without the field."""
     core = whole(root, area, areas)
     if core is None or area.parts == 1 or not within(area.prefix, ROOT):
         return 1
-    return max(1, min(area.parts, len(sources(root, core))))
+    return max(1, min(area.parts, len(pieces(root, core))))
 
 
 def target(
@@ -96,7 +107,7 @@ def target(
     core = whole(root, area, areas)
     if core is None or part is None or part.of == 1:
         return core
-    return replace(core, patterns=share(sources(root, core), part), part=part)
+    return replace(core, patterns=share(pieces(root, core), part), part=part)
 
 
 def part_targets(

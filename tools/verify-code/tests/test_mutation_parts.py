@@ -3,12 +3,15 @@ its files, the names of the matrix and the `--module` that names one part."""
 
 from __future__ import annotations
 
+import itertools
 import json
+import re
 import unittest
 from pathlib import Path
 
 from steps import areas_doc, mutation, mutation_core, mutation_parts
-from steps.mutation_parts import Part
+from steps.mutation_members import UNBOUNDED
+from steps.mutation_parts import Part, Slice
 
 from . import mutation_fixture as fixture
 from . import support
@@ -112,9 +115,68 @@ class PartsOfTheAreaTests(PartsFixture):
         self.assertEqual(self.patterns(2, 3), ("Logging/Beta.cs", "Logging/Gamma.cs"))
 
 
+def whole(*names: str) -> list[Slice]:
+    """Files that are one slice each."""
+    return [Slice(name, 0, UNBOUNDED) for name in names]
+
+
+class SlicedAreaTests(PartsFixture):
+    """The area whose biggest file has many members: the unit of the split is the slice (#585)."""
+
+    BIG = "Logging/Big.cs"
+    METHODS = 7
+
+    def setUp(self) -> None:
+        super().setUp()
+        body = "".join(f"    public int M{n}() {{ return {n}; }}\n" for n in range(self.METHODS))
+        head = "namespace Core.Platform.Logging;\n\npublic sealed class Big\n{\n"
+        text = head + body + "}\n"
+        support.write(self.root, f"core/src/Core.Platform/{self.BIG}", text)
+        self.text = text
+        self.declare("3")
+
+    def spans(self, number: int) -> list[tuple[int, int]]:
+        """The spans of the big file in the part, as the patterns give them."""
+        found = [p for p in self.patterns(number, 3) if p.startswith(self.BIG)]
+        spans = re.findall(r"\{(\d+)\.\.(\d+)\}", "".join(found))
+        return [(int(a), int(b)) for a, b in spans]
+
+    def test_the_big_file_is_in_every_part_each_with_its_own_members(self) -> None:
+        for number in (1, 2, 3):
+            self.assertTrue(self.spans(number), number)
+
+    def test_the_spans_of_the_parts_tile_the_file_with_no_gap_and_no_overlap(self) -> None:
+        spans = sorted(span for number in (1, 2, 3) for span in self.spans(number))
+
+        self.assertEqual(spans[0][0], 0)
+        self.assertEqual(spans[-1][1], UNBOUNDED)
+        self.assertTrue(all(a[1] == b[0] for a, b in itertools.pairwise(spans)))
+
+    def test_no_span_ends_inside_a_member(self) -> None:
+        ends = {
+            end for _, end in (span for n in (1, 2, 3) for span in self.spans(n)) if end < UNBOUNDED
+        }
+
+        for end in ends:
+            self.assertEqual(self.text[end - 1], "}")
+
+    def test_the_whole_files_stay_bare_paths_beside_the_spans_of_the_big_one(self) -> None:
+        found = [p for n in (1, 2, 3) for p in self.patterns(n, 3) if "{" not in p]
+
+        self.assertEqual(sorted(found), sorted(f"Logging/{name}.cs" for name in FILES))
+
+    def test_the_cap_of_the_parts_is_the_number_of_slices_not_of_files(self) -> None:
+        self.declare("99")
+
+        names, _ = mutation.names(self.root)
+
+        own = [name for name in names if LOGGING in name]
+        self.assertEqual(len(own), len(FILES) + self.METHODS + 1)
+
+
 class ShareTests(unittest.TestCase):
     def test_the_share_does_not_depend_on_the_order_the_files_come_in(self) -> None:
-        files = ["b.cs", "a.cs", "d.cs", "c.cs"]
+        files = whole("b.cs", "a.cs", "d.cs", "c.cs")
 
         first = [mutation_parts.share(files, Part(n, 2)) for n in (1, 2)]
         again = [mutation_parts.share(files[::-1], Part(n, 2)) for n in (1, 2)]
@@ -122,8 +184,34 @@ class ShareTests(unittest.TestCase):
         self.assertEqual(first, again)
         self.assertEqual(first, [("a.cs", "c.cs"), ("b.cs", "d.cs")])
 
-    def test_a_part_beyond_the_files_holds_none(self) -> None:
-        self.assertEqual(mutation_parts.share(["a.cs"], Part(2, 3)), ())
+    def test_a_part_beyond_the_slices_holds_none(self) -> None:
+        self.assertEqual(mutation_parts.share(whole("a.cs"), Part(2, 3)), ())
+
+    def test_the_slices_of_one_file_are_dealt_to_different_parts(self) -> None:
+        pieces = [Slice("a.cs", 0, 10), Slice("a.cs", 10, 20), Slice("a.cs", 20, UNBOUNDED)]
+
+        shares = [mutation_parts.share(pieces, Part(n, 3)) for n in (1, 2, 3)]
+
+        self.assertEqual(
+            shares, [("a.cs{0..10}",), ("a.cs{10..20}",), (f"a.cs{{20..{UNBOUNDED}}}",)]
+        )
+
+    def test_the_slices_a_part_holds_of_a_file_share_one_pattern_with_a_span_each(self) -> None:
+        pieces = [Slice("a.cs", 0, 10), Slice("a.cs", 10, 20), Slice("a.cs", 20, UNBOUNDED)]
+
+        self.assertEqual(
+            mutation_parts.share(pieces, Part(1, 2)), (f"a.cs{{0..10}}{{20..{UNBOUNDED}}}",)
+        )
+
+    def test_every_slice_is_in_exactly_one_part_whatever_the_number_of_parts(self) -> None:
+        pieces = [Slice(f"{name}.cs", a, a + 7) for name in "bca" for a in range(0, 35, 7)]
+
+        for count in range(1, 9):
+            dealt = [
+                p for n in range(1, count + 1) for p in mutation_parts.dealt(pieces, Part(n, count))
+            ]
+
+            self.assertEqual(sorted(dealt), sorted(pieces), count)
 
     def test_a_name_with_a_part_splits_back_into_the_prefix_and_the_part(self) -> None:
         name = mutation_parts.module_name("Core.X", Part(2, 3))

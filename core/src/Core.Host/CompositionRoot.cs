@@ -7,8 +7,10 @@ using Core.Host.Migration;
 using Core.Host.Operators;
 using Core.Host.Supervision;
 using Core.Persistence.Connection;
+using Core.Persistence.Content.Reading;
 using Core.Persistence.Content.Rotation;
 using Core.Persistence.Content.Sealing;
+using Core.Persistence.Custody.Chain;
 using Core.Persistence.Migrations;
 using Core.Persistence.People;
 using Core.Persistence.Recovery;
@@ -185,6 +187,9 @@ internal static class CompositionRoot
     {
         _ = builder.Services.AddSingleton(report).AddSingleton(_ => startup);
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetRequiredService<ServiceProcessWatch>());
+        _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source
+            ? new GuaranteeVerifier(source, provider.GetRequiredService<ServiceProvider>().GetRequiredService<IMasterKeySource>().ReadAsync, reading => ContentReader(source, reading))
+            : null!);
         _ = builder.Services.AddSingleton<SealWarningState>();
         _ = builder.Services.AddSingleton(provider => new ChainVerificationService(provider)).AddHostedService(provider => provider.GetRequiredService<ChainVerificationService>());
         _ = builder.Services.AddHostedService(provider => new SealSendingService(provider));
@@ -206,6 +211,10 @@ internal static class CompositionRoot
 
     /// <summary>The store of passwords, built here because it is a service and only the root builds services.</summary>
     internal static PersonCredentials CredentialsOf(NpgsqlDataSource source, PasswordDerivation derivation) => new(source, derivation);
+
+    /// <summary>The path that reads protected content over the key a reading holds, which the conference of the guarantees opens its sample with and lets go of.</summary>
+    private static ProtectedContentReader ContentReader(NpgsqlDataSource source, MasterKeyReading reading) =>
+        new(source, new ProtectedContent(reading.Labels, KeysOf(reading), new HashSet<string>()), new CustodyChain(source));
 
     /// <summary>The recognizer of the service the supervisor has alive now, with its secret and the client that never goes through a proxy;
     /// with no such service, one that refuses without connecting, so that nothing goes to the port a service that is gone once held.</summary>

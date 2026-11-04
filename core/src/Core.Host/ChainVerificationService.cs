@@ -1,12 +1,15 @@
 using Core.Persistence.Custody.Verification;
+using Core.Persistence.ServerGuarantees;
 using Npgsql;
 
 namespace Core.Host;
 
 /// <summary>
 /// Verifies the chain of custody as soon as the host is up and then once every interval, one after the other: the next waits the interval after the one before ended, so two never overlap.
-/// It is not a startup check: a broken chain does not stop the host nor change its readiness, because reading must go on to investigate it. The verdict goes to the log,
-/// as an error when the chain does not hold, and a verification that does not reach its end is logged with the type of the failure and tried again at the next interval.
+/// It is not a startup check: a broken chain does not stop the host nor change its readiness, because reading must go on to investigate it.
+/// The guarantees of the server are conferred in the same round, after the chain.
+/// The verdict goes to the log, as an error when the chain does not hold or a guarantee is missing.
+/// A verification that does not reach its end is logged with the type of the failure and tried again at the next interval.
 /// With no database declared there is no chain: the service does nothing and has nothing to read.
 /// </summary>
 internal sealed class ChainVerificationService : BackgroundService
@@ -35,6 +38,7 @@ internal sealed class ChainVerificationService : BackgroundService
         Reader = source is null ? null : new RecordedVerificationReader(source);
         SealReader = source is null ? null : new RecordedSealReader(source);
         Sealer = source is null ? null : new ChainSealer(source, host.GetRequiredService<TimeProvider>());
+        Guarantees = host.GetService<GuaranteeVerifier>() is { } guarantees ? guarantees.VerifyAsync : null;
     }
 
     /// <summary>The service over the verification it is given, with the clock and the log of its caller.</summary>
@@ -51,6 +55,9 @@ internal sealed class ChainVerificationService : BackgroundService
 
     /// <summary>The reading of the last verification the chain recorded; null when no database is declared.</summary>
     internal RecordedVerificationReader? Reader { get; }
+
+    /// <summary>The conference of the guarantees of the server that runs with every verification; null when no database is declared.</summary>
+    internal Func<CancellationToken, Task<GuaranteeVerification>>? Guarantees { get; init; }
 
     /// <summary>The verification on demand, which compares the chain with a seal; null when no database is declared.</summary>
     internal CustodyVerifier? Verifier { get; }
@@ -122,6 +129,7 @@ internal sealed class ChainVerificationService : BackgroundService
             while (true)
             {
                 await VerifyOnceAsync(verify, stoppingToken).ConfigureAwait(false);
+                await ConferOnceAsync(stoppingToken).ConfigureAwait(false);
                 await Task.Delay(Schedule.Interval, time, stoppingToken).ConfigureAwait(false);
             }
         }
@@ -158,6 +166,32 @@ internal sealed class ChainVerificationService : BackgroundService
         else
         {
             logger.ChainHeld(result.EventsRead, result.Recorded.Outcome);
+        }
+    }
+
+    private async Task ConferOnceAsync(CancellationToken cancellationToken)
+    {
+        if (Guarantees is not { } confer)
+        {
+            return;
+        }
+
+        var logger = loggers.CreateLogger<ChainVerificationService>();
+        try
+        {
+            var result = await confer(cancellationToken).ConfigureAwait(false);
+            if (result.Missing == GuaranteeKinds.None)
+            {
+                logger.GuaranteesHeld(result.Recorded.Outcome);
+            }
+            else
+            {
+                logger.GuaranteesMissing(result.Missing, result.Recorded.Outcome);
+            }
+        }
+        catch (Exception failure) when (ServingFailure.CanReport(failure) && !cancellationToken.IsCancellationRequested)
+        {
+            logger.GuaranteesNotConferred(failure.GetType().Name);
         }
     }
 

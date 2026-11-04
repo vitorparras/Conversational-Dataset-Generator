@@ -10,7 +10,8 @@ public sealed record CustodyEvent
     private static readonly FrozenSet<CustodyStep> OfTheirOwn = Enumerable.Repeat(CustodyStep.Correction, 1)
         .Append(CustodyStep.VerifyChain).Append(CustodyStep.ItemEmptied).Append(CustodyStep.ItemEmptyingRefused).Append(CustodyStep.EpochRotated).Append(CustodyStep.DomainCreated)
         .Append(CustodyStep.SealRecorded).Append(CustodyStep.DomainLabelRotated)
-        .Append(CustodyStep.SignInAccepted).Append(CustodyStep.SignInRefused).Append(CustodyStep.KeyLossDeclared).Append(CustodyStep.RecoveryTested).ToFrozenSet();
+        .Append(CustodyStep.SignInAccepted).Append(CustodyStep.SignInRefused).Append(CustodyStep.KeyLossDeclared).Append(CustodyStep.RecoveryTested)
+        .Append(CustodyStep.VerifyGuarantees).ToFrozenSet();
 
     private CustodyEvent(CustodyAuthor author, CustodyItem item, CustodyStep step, CustodyReason reason)
     {
@@ -50,7 +51,8 @@ public sealed record CustodyEvent
         return HasEventOfItsOwn(step)
             ? throw new ArgumentException(
                 "A correction, a verification, an emptying, a rotation, the creation of a domain, a seal and an entry have an event of their own; "
-                + "use Correction, Verification, Emptied, EmptyingRefused, EpochRotated, DomainCreated, SealRecorded, DomainLabelRotated, SignInAccepted or SignInRefused.", nameof(step))
+                + "use Correction, Verification, GuaranteesVerified, Emptied, EmptyingRefused, EpochRotated, DomainCreated, SealRecorded, DomainLabelRotated, SignInAccepted or SignInRefused.",
+                nameof(step))
             : new CustodyEvent(author, item, step, reason);
     }
 
@@ -193,6 +195,15 @@ public sealed record CustodyEvent
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(topSequence);
         return new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.MasterKey, topSequence), CustodyStep.RecoveryTested, CustodyReason.AdministrativeAct);
+    }
+
+    /// <summary>The event that records the verdict of a conference of the guarantees of the server, by the system: the item is the chain and its id is the mask of the guarantees missing.</summary>
+    /// <param name="missing">The mask of the guarantees missing, between 0 (every one held) and 63.</param>
+    public static CustodyEvent GuaranteesVerified(long missing)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(missing);
+        var reason = missing == 0 ? CustodyReason.VerificationPassed : CustodyReason.VerificationFailed;
+        return new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.CustodyChain, missing), CustodyStep.VerifyGuarantees, reason);
     }
 
     /// <summary>A new event that corrects an earlier one, which stays in the sequence as it was.</summary>

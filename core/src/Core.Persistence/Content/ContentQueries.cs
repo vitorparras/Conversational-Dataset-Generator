@@ -19,6 +19,10 @@ public static class ContentQueries
     /// <summary>The sealed map of a reversal, whether it was emptied, and the key of the map wrapped with its epoch.</summary>
     internal const string ReadReversalEntries = "SELECT entries, emptied_at IS NOT NULL, dek_epoch, dek_wrapped FROM content.reversal_map WHERE id = @id";
 
+    internal const string ReadFirstRawText = "SELECT id, raw_text, dek_epoch, dek_wrapped FROM content.item_text WHERE emptied_at IS NULL ORDER BY id LIMIT 1";
+
+    internal const string ReadFirstEntries = "SELECT id, entries, dek_epoch, dek_wrapped FROM content.reversal_map WHERE emptied_at IS NULL ORDER BY id LIMIT 1";
+
     /// <summary>Adds an item; the texts that are sealed arrive sealed, with the key of the item wrapped.</summary>
     internal const string InsertItemText =
         "INSERT INTO content.item_text (domain_id, raw_text, sanitized_text, pseudonymized_text, dek_epoch, dek_wrapped) "

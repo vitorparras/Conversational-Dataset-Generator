@@ -20,9 +20,9 @@ public sealed class ProtectedContentReader(NpgsqlDataSource dataSource, Protecte
 
     private static readonly FrozenDictionary<ProtectedColumn, ColumnReading> Readings = new Dictionary<ProtectedColumn, ColumnReading>
     {
-        [ContentColumns.RawText] = new(CustodyItemKind.ItemText, CustodyStep.RawTextRead, ContentQueries.ReadRawText),
+        [ContentColumns.RawText] = new(CustodyItemKind.ItemText, CustodyStep.RawTextRead, ContentQueries.ReadRawText, ContentQueries.ReadFirstRawText),
         [ContentColumns.SanitizedText] = new(CustodyItemKind.ItemText, CustodyStep.SanitizedTextRead, ContentQueries.ReadSanitizedText),
-        [ContentColumns.Entries] = new(CustodyItemKind.ReversalMap, CustodyStep.ReversalEntriesRead, ContentQueries.ReadReversalEntries),
+        [ContentColumns.Entries] = new(CustodyItemKind.ReversalMap, CustodyStep.ReversalEntriesRead, ContentQueries.ReadReversalEntries, ContentQueries.ReadFirstEntries),
     }.ToFrozenDictionary();
 
     /// <summary>Reads the column of the row under the domain, recording the reading before the content is opened.</summary>
@@ -31,13 +31,21 @@ public sealed class ProtectedContentReader(NpgsqlDataSource dataSource, Protecte
     public Task<ContentReadResult> ReadAsync(ContentRead request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return ReadingAsync(request, cancellationToken);
+        return ReadingAsync(request, first: false, cancellationToken);
     }
 
-    private async Task<ContentReadResult> ReadingAsync(ContentRead request, CancellationToken cancellationToken)
+    /// <summary>Reads the column of the first row of the domain that holds a value, in one statement and one event, so that the server's log and the chain count it alike.</summary>
+    public Task<ContentReadResult> ReadFirstAsync(CustodyAuthor author, ProtectedColumn column, int domainId, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(author);
+        return ReadingAsync(new ContentRead(author, column, domainId, RowId: 0), first: true, cancellationToken);
+    }
+
+    private async Task<ContentReadResult> ReadingAsync(ContentRead request, bool first, CancellationToken cancellationToken)
     {
         var reading = Readings.GetValueOrDefault(request.Column) ?? throw new ArgumentException("The column is not a protected column of the content.", nameof(request));
-        var stored = await FetchAsync(request, reading.Query, cancellationToken).ConfigureAwait(false);
+        var statement = first ? reading.First ?? throw new ArgumentException("The column has no first reading.", nameof(request)) : reading.Query;
+        var stored = await FetchAsync(request, statement, first, cancellationToken).ConfigureAwait(false);
         if (!stored.Found || stored.Envelope is null)
         {
             return new ContentReadResult { Outcome = Unread(stored) };
@@ -48,7 +56,7 @@ public sealed class ProtectedContentReader(NpgsqlDataSource dataSource, Protecte
             return refused;
         }
 
-        var recorded = await chain.AppendAsync(CustodyEvent.Of(request.Author, new CustodyItem(reading.Kind, request.RowId), reading.Step, CustodyReason.ContentRead), cancellationToken)
+        var recorded = await chain.AppendAsync(CustodyEvent.Of(request.Author, new CustodyItem(reading.Kind, stored.RowId), reading.Step, CustodyReason.ContentRead), cancellationToken)
             .ConfigureAwait(false);
         return recorded.Outcome == CustodyOutcome.Appended
             ? new ContentReadResult { Outcome = ContentReadOutcome.Read, Text = protectedContent.Open(request.Column, request.DomainId, stored.Envelope, stored.Key!) }
@@ -70,41 +78,50 @@ public sealed class ProtectedContentReader(NpgsqlDataSource dataSource, Protecte
         return missing is null ? null : new ContentReadResult { Outcome = ContentReadOutcome.LabelMissing, Label = missing };
     }
 
-    private async Task<StoredValue> FetchAsync(ContentRead request, string statement, CancellationToken cancellationToken)
+    private async Task<StoredValue> FetchAsync(ContentRead request, string statement, bool first, CancellationToken cancellationToken)
     {
         var transaction = await ContentTransaction.BeginAsync(dataSource, request.DomainId, cancellationToken).ConfigureAwait(false);
         await using (transaction.ConfigureAwait(false))
         {
-            return await ReadStoredAsync(transaction, statement, request.RowId, cancellationToken).ConfigureAwait(false);
+            return await ReadStoredAsync(transaction, statement, first ? null : request.RowId, cancellationToken).ConfigureAwait(false);
         }
     }
 
-    private static async Task<StoredValue> ReadStoredAsync(ContentTransaction transaction, string statement, long rowId, CancellationToken cancellationToken)
+    private static async Task<StoredValue> ReadStoredAsync(ContentTransaction transaction, string statement, long? rowId, CancellationToken cancellationToken)
     {
-        var command = transaction.CreateCommand(statement);
+        var command = Command(transaction, statement, rowId);
         await using (command.ConfigureAwait(false))
         {
-            _ = command.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Bigint) { Value = rowId });
             var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             await using (reader.ConfigureAwait(false))
             {
-                return await StoredOfAsync(reader, cancellationToken).ConfigureAwait(false);
+                return await StoredOfAsync(reader, rowId is null, rowId ?? 0, cancellationToken).ConfigureAwait(false);
             }
         }
     }
 
-    private static async Task<StoredValue> StoredOfAsync(DbDataReader reader, CancellationToken cancellationToken)
+    private static NpgsqlCommand Command(ContentTransaction transaction, string statement, long? rowId)
+    {
+        var command = transaction.CreateCommand(statement);
+        _ = rowId is { } id ? command.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Bigint) { Value = id }) : null;
+        return command;
+    }
+
+    // The first reading selects (id, value) among the rows not emptied; the reading of one row selects (value, emptied).
+    private static async Task<StoredValue> StoredOfAsync(DbDataReader reader, bool first, long requested, CancellationToken cancellationToken)
     {
         if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
-            return new StoredValue(Found: false, null, Emptied: false);
+            return new StoredValue(Found: false, 0, null, Emptied: false);
         }
 
-        var held = !await reader.IsDBNullAsync(0, cancellationToken).ConfigureAwait(false);
+        var valueAt = first ? 1 : 0;
+        var held = !await reader.IsDBNullAsync(valueAt, cancellationToken).ConfigureAwait(false);
         return new StoredValue(
             Found: true,
-            held ? (byte[])reader.GetValue(0) : null,
-            Emptied: reader.GetBoolean(1),
+            first ? reader.GetInt64(0) : requested,
+            held ? (byte[])reader.GetValue(valueAt) : null,
+            Emptied: !first && reader.GetBoolean(1),
             held ? new ContentKey(reader.GetInt32(EpochColumn), (byte[])reader.GetValue(WrappedColumn)) : null);
     }
 
@@ -115,7 +132,7 @@ public sealed class ProtectedContentReader(NpgsqlDataSource dataSource, Protecte
         _ => ContentReadOutcome.Empty,
     };
 
-    private sealed record ColumnReading(CustodyItemKind Kind, CustodyStep Step, string Query);
+    private sealed record ColumnReading(CustodyItemKind Kind, CustodyStep Step, string Query, string? First = null);
 
-    private sealed record StoredValue(bool Found, byte[]? Envelope, bool Emptied, ContentKey? Key = null);
+    private sealed record StoredValue(bool Found, long RowId, byte[]? Envelope, bool Emptied, ContentKey? Key = null);
 }

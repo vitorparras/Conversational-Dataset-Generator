@@ -46,6 +46,9 @@ public sealed class CustodyKeyLossListTests : IClassFixture<CustodyDatabase>
     [InlineData("domain_created")]
     [InlineData("seal_recorded")]
     [InlineData("domain_label_rotated")]
+    [InlineData("sign_in_accepted")]
+    [InlineData("sign_in_refused")]
+    [InlineData("credential_recomputed")]
     [InlineData("key_loss_declared")]
     [InlineData("recovery_tested")]
     public async Task Ca5EveryStepTheMigrationsBeforeListedIsStillListed(string step)

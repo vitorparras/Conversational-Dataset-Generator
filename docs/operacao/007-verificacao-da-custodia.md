@@ -17,15 +17,16 @@ além da cadeia.
 |---|---|
 | Garantias do servidor: política de linha, permissão de coluna, gatilho | A cada implantação, e mensalmente |
 | Papel da aplicação não é dono de tabela nem superusuário | A cada implantação |
-| Amostra de registros cifrados que ainda decifram sob a versão declarada | Mensalmente |
+| Amostra de registros cifrados que ainda decifram sob a versão declarada (decifrar tudo expõe dado pessoal; a leitura é acesso registrado) | Mensalmente |
 | Guarda da chave, e separação dela da credencial de dono | Trimestralmente, e a cada troca de custodiante |
 | Restauração de uma cópia em ambiente separado | Trimestralmente |
 
 As duas primeiras linhas cobrem o ponto cego da cadeia: ela detecta alteração nos eventos, não a
 remoção da garantia que impedia a alteração. Garantia desativada não quebra elo nenhum.
 
-A amostra de registros cifrados é amostra de propósito: decifrar tudo expõe dado pessoal sem
-necessidade, e a leitura em si é acesso registrado.
+**Onde fica o resultado:** cada execução vira um evento da cadeia (passo `VerifyGuarantees`, com a
+máscara do que faltou). A rota `/custody/verification`, com sessão, mostra em `guarantees` quando
+rodou e o que faltou; `overdue` verdadeiro, sem resultado ou com o último velho demais, é falha.
 
 ## Por quem, e com qual credencial
 

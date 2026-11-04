@@ -68,4 +68,7 @@ public enum CustodyStep
     /// the item is the key and its id the top of the copy.
     /// </summary>
     RecoveryTested,
+
+    /// <summary>The guarantees of the server were conferred; the reason says whether every one held, and the item says which did not.</summary>
+    VerifyGuarantees,
 }

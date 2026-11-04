@@ -125,6 +125,9 @@ internal static class CompositionRoot
     internal static RecoveryRehearsal RehearsalOf(NpgsqlDataSource dataSource, MasterKeyReading reading, IReadOnlySet<string> registered) =>
         new(dataSource, new ProtectedContent(reading.Labels, KeysOf(reading), registered), TimeProvider.System);
 
+    /// <summary>The record of the rehearsal in the chain of the production.</summary>
+    internal static RecoveryRecording RecordingOf(NpgsqlDataSource dataSource) => new(dataSource);
+
     /// <summary>Redacted console logging alone: the modes that migrate or rotate have no host, no file destination and no language service.</summary>
     internal static ServiceProvider LoggingServices() =>
         new ServiceCollection().AddSingleton(TimeProvider.System).AddLogging(PlatformLogging.Configure).AddRedaction(PlatformLogging.EraseSensitiveData).BuildServiceProvider();

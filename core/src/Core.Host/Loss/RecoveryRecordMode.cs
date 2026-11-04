@@ -58,7 +58,7 @@ internal static class RecoveryRecordMode
 
         try
         {
-            var record = await new RecoveryRecording(dataSource).RecordAsync(receipt, KeyProof.Of(reading.Key!), CancellationToken.None).ConfigureAwait(false);
+            var record = await CompositionRoot.RecordingOf(dataSource).RecordAsync(receipt, KeyProof.Of(reading.Key!), CancellationToken.None).ConfigureAwait(false);
             return await ReportAsync(record, words).ConfigureAwait(false);
         }
         catch (NpgsqlException)

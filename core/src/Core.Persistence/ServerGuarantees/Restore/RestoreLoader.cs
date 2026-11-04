@@ -8,7 +8,7 @@ using NpgsqlTypes;
 namespace Core.Persistence.ServerGuarantees.Restore;
 
 /// <summary>
-/// Puts a copy back in a new database with the application's credential, through the functions of the step 0019 only (#64, CA-5), confers the chain and the guarantees and records the restore.
+/// Puts a copy back in a new database with the application's credential, through the functions of the step 0027 only (#64, CA-5), confers the chain and the guarantees and records the restore.
 /// </summary>
 public sealed class RestoreLoader
 {

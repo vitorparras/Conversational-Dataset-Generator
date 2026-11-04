@@ -27,7 +27,7 @@ Cada uso é cercado assim, e o sistema grava sozinho o que está marcado:
 
 1. Antes: o `migrate` com passo pendente verifica a cadeia, guarda o topo e grava o evento de
    abertura (versão de partida, de chegada e topo; o papel da sessão é o "quem"). Sem passo
-   pendente ou com o banco vazio não há janela; banco anterior ao 0018 recebe o evento depois dele
+   pendente ou com o banco vazio não há janela; banco anterior ao 0026 recebe o evento depois dele
 2. Durante: o que foi executado fica no registro de versões e no de falhas da migração
 3. Depois: a partida seguinte, só com a credencial da aplicação, verifica a cadeia, confere as
    garantias da [007](007-verificacao-da-custodia.md) e grava o fechamento. Se algo faltar ou a

@@ -1,5 +1,5 @@
 -- The end of a restore (#64, CA-5d) is an event of the chain, written by the system: the item is the rows put back, the reason says whether the chain and the guarantees held, and the reference
--- says which copy (the digest of its manifest) and the tip before and after. Only the lists and the shapes of the step 0018 change.
+-- says which copy (the digest of its manifest) and the tip before and after. Only the lists and the shapes of the step 0026 change.
 ALTER TABLE public.custody_event
     DROP CONSTRAINT custody_event_step_listed,
     DROP CONSTRAINT custody_event_verification_shape,

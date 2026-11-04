@@ -117,9 +117,12 @@ public sealed class SignInAttemptsTests : IClassFixture<PeopleDatabase>
 
         var series = await (await AttemptsAsync()).SeriesAsync(DateTimeOffset.UtcNow.AddMinutes(30), token);
 
+        string[] mine = ["203.0.113.0/24", "198.51.100.0/24", "192.0.2.0/24", "100.64.0.0/24"];
+        var ours = series.Where(each => mine.Contains(each.Network)).ToArray();
+
         (string, int)[] expected = [("203.0.113.0/24", 11), ("198.51.100.0/24", SignInAttempts.LeastRefusals)];
-        Assert.Equal(expected, series.Select(each => (each.Network, each.Refusals)));
-        Assert.All(series, each => Assert.True(each.First <= each.Last));
+        Assert.Equal(expected, ours.Select(each => (each.Network, each.Refusals)));
+        Assert.All(ours, each => Assert.True(each.First <= each.Last));
     }
 
     [DatabaseFact]

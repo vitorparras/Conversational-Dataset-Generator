@@ -81,7 +81,7 @@ public sealed class RestoreLoaderTests
         await using var source = await PopulatedAsync();
         using var copy = await CopyFolder.OfAsync(source);
         var (sequence, digest) = await CopyFolder.TipOfAsync(source);
-        copy.Rewrite("public.custody_event", events => damage == "swapped" ? [events[1], events[0], .. events.Skip(2)] : Altered(events, named - 1));
+        copy.Rewrite("public.custody_event", events => damage == "swapped" ? [events[1], events[0], .. events.Skip(2)] : [.. events.Select((each, at) => at == named - 1 ? Spoiled(each) : each)]);
         await using var destination = await FidelityWorld.CreateAsync(seeded: false);
 
         var result = await LoadAsync(destination, copy, new RestoreTip(sequence, digest));
@@ -197,11 +197,11 @@ public sealed class RestoreLoaderTests
         new RestoreLoader(destination.DataSource, new GuaranteeVerifier(destination.DataSource), TimeProvider.System)
             .LoadAsync(RestoreCopy.Open(copy.Path), tip, TestContext.Current.CancellationToken);
 
-    private static List<JsonNode> Altered(IList<JsonNode> events, int index)
+    private static JsonNode Spoiled(JsonNode each)
     {
-        var digest = (string)events[index]["digest"]!;
-        events[index]["digest"] = digest[..^1] + (digest[^1] == '0' ? '1' : '0');
-        return [.. events];
+        var digest = (string)each["digest"]!;
+        each["digest"] = digest[..^1] + (digest[^1] == '0' ? '1' : '0');
+        return each;
     }
 
     private static async Task AssertNothingRestoredAsync(FidelityWorld destination)

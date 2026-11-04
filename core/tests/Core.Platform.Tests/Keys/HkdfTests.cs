@@ -17,6 +17,19 @@ public sealed class HkdfTests
     }
 
     [Fact]
+    public void RfcVectorWithSaltAndInfoGivesTheOutputTheRfcPrints()
+    {
+        var input = Enumerable.Repeat((byte)0x0b, 22).ToArray();
+        var salt = Enumerable.Range(0, 13).Select(index => (byte)index).ToArray();
+        var info = Enumerable.Range(0xf0, 10).Select(value => (byte)value).ToArray();
+        var output = new byte[42];
+
+        Hkdf.Derive(input, salt, info, output);
+
+        Assert.Equal("3cb25f25faacd57a90434f64d0362f2a2d2d0a90cf1a5a4c5db02d56ecc4c5bf34007208d5b887185865", Convert.ToHexStringLower(output));
+    }
+
+    [Fact]
     public void KeyOfALabelIsTheHkdfOutputOfTheMasterKeyWithTheLabelAsInfo()
     {
         using var master = new MasterKey(SyntheticKey.Valid());

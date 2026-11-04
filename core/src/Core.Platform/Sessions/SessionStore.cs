@@ -69,6 +69,18 @@ public sealed class SessionStore(SessionLifetimes lifetimes, TimeProvider clock)
         }
     }
 
+    /// <summary>Ends every session of the person, so that an identifier they hold is refused from then on; the person may have none.</summary>
+    public void CloseOf(long personId)
+    {
+        lock (gate)
+        {
+            foreach (var identifier in sessions.Where(session => session.Value.PersonId == personId).Select(session => session.Key).ToList())
+            {
+                _ = sessions.Remove(identifier);
+            }
+        }
+    }
+
     private bool Passed(Entry entry, DateTimeOffset now) => now - entry.LastActivity > lifetimes.Idle || now - entry.Start > lifetimes.Absolute;
 
     private void Forget(DateTimeOffset now)

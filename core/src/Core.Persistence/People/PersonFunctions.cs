@@ -6,6 +6,9 @@ public static class PersonFunctions
     /// <summary>The function that empties an item of the content: the curation of the collection.</summary>
     public static string Curation { get; } = "Curadoria do acervo";
 
+    /// <summary>The function that makes, deactivates and restores the people who operate.</summary>
+    public static string Administration { get; } = "Administração técnica";
+
     /// <summary>The six functions of the policy, by the name the policy gives each.</summary>
     public static IReadOnlyList<string> Accepted { get; } =
     [
@@ -14,7 +17,7 @@ public static class PersonFunctions
         Curation,
         "Avaliação",
         "Auditoria",
-        "Administração técnica",
+        Administration,
     ];
 
     /// <summary>Whether the name is one of the accepted, letter by letter.</summary>

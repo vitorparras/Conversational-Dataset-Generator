@@ -41,4 +41,7 @@ public enum CustodyStep
 
     /// <summary>A domain was created, with the keys of its two purposes named in the custody; the item is the domain.</summary>
     DomainCreated,
+
+    /// <summary>The seal of the chain was recorded: the item is the chain, its id is the sequence of the event sealed, which is also the number of events the seal counts.</summary>
+    SealRecorded,
 }

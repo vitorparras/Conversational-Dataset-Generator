@@ -24,12 +24,9 @@ além da cadeia.
 As duas primeiras linhas cobrem o ponto cego da cadeia: ela detecta alteração nos eventos, não a
 remoção da garantia que impedia a alteração. Garantia desativada não quebra elo nenhum.
 
-## Onde fica o resultado
-
-Na subida e a cada `Custody:VerificationInterval`, cada execução vira um evento da cadeia (passo
-`CustodyStep.VerifyGuarantees`, veredito e, no item, a máscara do que faltou). A rota
-`/custody/verification`, com sessão aberta, mostra em `guarantees` quando rodou, o que conferiu e
-o que faltou; `overdue` verdadeiro, sem resultado ou com o último velho demais, é falha.
+**Onde fica o resultado:** cada execução vira um evento da cadeia (passo `VerifyGuarantees`, com a
+máscara do que faltou). A rota `/custody/verification`, com sessão, mostra em `guarantees` quando
+rodou e o que faltou; `overdue` verdadeiro, sem resultado ou com o último velho demais, é falha.
 
 ## Por quem, e com qual credencial
 
@@ -58,3 +55,6 @@ ausente, acesso ao cofre sem operação correspondente, ou cópia de chave fora 
 Rode a verificação sobre uma sequência sintética de resposta conhecida. Erro no verificador tem a
 mesma aparência de cadeia alterada, e a distância entre as duas conclusões é grande demais para se
 apoiar numa execução só.
+
+Na instalação que declarou o selo `Manual`, o selo é emitido e confirmado à mão:
+[030](030-selo-manual.md).

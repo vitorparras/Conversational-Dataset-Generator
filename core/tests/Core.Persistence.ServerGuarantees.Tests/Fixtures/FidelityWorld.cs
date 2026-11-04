@@ -61,7 +61,7 @@ internal sealed class FidelityWorld : IAsyncDisposable
     /// <summary>The conference of the guarantees over the source of the key given, wired as the composition root wires it.</summary>
     public GuaranteeVerifier VerifierOver(IMasterKeySource source) =>
         new(DataSource, source.ReadAsync, reading => new ProtectedContentReader(
-            DataSource, new ProtectedContent(new EnvelopeCipher(new KeyDerivation(reading.Key!, reading.Labels)), reading.Labels), new CustodyChain(DataSource)));
+            DataSource, new ProtectedContent(reading.Labels, new ItemKeys(new KeyDerivation(reading.Key!, reading.Labels), reading.Epochs), new HashSet<string>()), new CustodyChain(DataSource)));
 
     /// <summary>Runs the statements as the owner of the database.</summary>
     public Task RunAsOwnerAsync(params string[] statements) => database.RunAsOwnerAsync(statements);

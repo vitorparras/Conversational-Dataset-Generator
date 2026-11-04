@@ -56,7 +56,7 @@ internal sealed class EncryptedSample
         try
         {
             var read = await reader.ReadFirstAsync(CustodyAuthor.System, column, domain, cancellationToken).ConfigureAwait(false);
-            return read.Outcome != ContentReadOutcome.NotRecorded;
+            return read.Outcome is not (ContentReadOutcome.NotRecorded or ContentReadOutcome.LabelMissing or ContentReadOutcome.KeyLossDeclared);
         }
         catch (Exception refused) when (refused is EnvelopeRefusedException or CryptographicException)
         {

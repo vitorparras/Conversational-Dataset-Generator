@@ -14,12 +14,12 @@ Três perdas diferentes andam sob o mesmo nome, e confundi-las custa caro.
 
 A [decisão 0014](../decisoes/0014-custodia-da-chave-mestra.md) exige recuperação testada antes do
 primeiro dado real: restaurar banco e chave num ambiente limpo e conferir que o texto bruto decifra
-e que o mapa de reversão abre. Enquanto isso não tiver sido feito uma vez, ingestão de material real
-não começa.
+e que o mapa de reversão abre. Sem isso, a ingestão de material real não começa.
 
-Repita a cada troca de quem detém a cópia, e a cada mudança no formato de persistência. É trabalho
-recorrente e sem resultado visível quando dá certo — e é a única diferença entre recuperação e
-expectativa.
+Num ambiente limpo, com a cópia do banco e a cópia de guarda, rode `rehearse-recovery`: ele abre
+em memória uma amostra do bruto e do mapa de cada domínio e imprime um recibo sem conteúdo. Na
+produção, `record-recovery-test --receipt "<recibo>"` o registra, se o topo da cópia estiver na
+cadeia e a chave conferir. Repita a cada troca de quem detém a cópia e a cada mudança no formato.
 
 ## Perdeu-se a cópia de guarda
 
@@ -47,10 +47,14 @@ registro de eventos — a maior parte do que a anotação e a exportação conso
 A decisão 0014 é direta sobre o resto: perda da chave é perda de acervo, e se registra como tal; não
 se finge que o material existe porque as linhas continuam no banco. Na prática:
 
-1. Registre a perda na custódia, com data, escopo e o que foi tentado
+1. Registre a perda na custódia, com data, escopo e o que foi tentado:
+   `declare-key-loss --scope <master|rótulo> --tried <lista>`, com a credencial do dono. O escopo é
+   `master` ou um rótulo de derivação; a lista, sem repetir, vem de `copia-de-guarda`,
+   `copia-anterior-da-guarda` e `registro-de-criacao-do-dominio`. Sem volta: a saída é chave nova
 2. Declare o mapa de reversão inexistente — nenhum pedido de reversão será atendido, e dizer isso é
-   melhor que deixar o pedido numa fila que nunca anda
-3. Marque o material cujo bruto se perdeu: ele não pode mais ser ressanitizado se a política de
-   sanitização mudar, e quem usar o dataset precisa saber
-4. Estabeleça chave e cópia de guarda novas antes de ingerir qualquer coisa, e declare na exportação
-   o que ficou sem bruto
+   melhor que deixar o pedido numa fila que nunca anda. Sob o escopo, a leitura do mapa é recusada
+   com o motivo, sem enfileirar nem gravar leitura
+3. Marque o material cujo bruto se perdeu: ele não pode mais ser ressanitizado se a política mudar,
+   e quem usar o dataset precisa saber. O bruto sob o escopo é recusado com o mesmo motivo
+4. Estabeleça chave e cópia de guarda novas antes de ingerir qualquer coisa, e declare na
+   exportação o que ficou sem bruto

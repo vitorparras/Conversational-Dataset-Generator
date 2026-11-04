@@ -28,6 +28,10 @@ internal static class MasterKeyConfiguration
     internal static ConfigurationSection SectionWhenMigrating { get; } =
         new(SectionName, [ConfigurationKey.Optional(FileKey).AsSensitive(), ConfigurationKey.Optional(SecondFileKey).AsSensitive(), ConfigurationKey.Optional(ThirdFileKey).AsSensitive()]);
 
+    /// <summary>The paths of the custody files that the values lack, for the mode that needs all three though the section does not require them.</summary>
+    internal static IEnumerable<string> Missing(IReadOnlyDictionary<string, string> values) =>
+        Enumerable.Repeat(FilePath, 1).Append(SecondFilePath).Append(ThirdFilePath).Where(path => !values.ContainsKey(path));
+
     /// <summary>The source of the files the approved values name, which refuses any that lies in the folder the host runs from.</summary>
     internal static FileMasterKeySource SourceOf(IReadOnlyDictionary<string, string> values) =>
         new(values[FilePath], values[SecondFilePath], values[ThirdFilePath], AppContext.BaseDirectory);

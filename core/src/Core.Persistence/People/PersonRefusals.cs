@@ -34,16 +34,14 @@ internal static class PersonRefusals
         PersonResult.Refused(PersonOutcome.PasswordInvalid, "A senha não pode ser vazia.");
 
     /// <summary>The answer for a change whose custody event was attempted: done when the event is in the chain, otherwise the reason it was not.</summary>
-    internal static PersonResult Chained(CustodyResult custody, long personId) => custody.Outcome switch
+    internal static PersonResult Chained(CustodyResult custody, long personId) => custody switch
     {
-        CustodyOutcome.Appended => PersonResult.Done(personId),
-        CustodyOutcome.ActorUnknown => ActorUnknown(),
-        CustodyOutcome.ActorDeactivated => ActorDeactivated(),
-        CustodyOutcome.CorrectedNotFound or CustodyOutcome.Conflict => ChainBusy(),
-        CustodyOutcome.ChainBroken => ChainBroken(),
-        CustodyOutcome.PassedAfterFailure => throw new ArgumentOutOfRangeException(nameof(custody), custody.Outcome, "A change of a person never records a verdict of the chain."),
-        CustodyOutcome.Immutable => throw new ArgumentOutOfRangeException(nameof(custody), custody.Outcome, "A change of a person never asks the chain to change an event."),
-        _ => throw new ArgumentOutOfRangeException(nameof(custody), custody.Outcome, "The outcome is not one a change of a person can meet."),
+        { Outcome: CustodyOutcome.Appended } => PersonResult.Done(personId),
+        { Outcome: CustodyOutcome.ActorUnknown } => ActorUnknown(),
+        { Outcome: CustodyOutcome.ActorDeactivated } => ActorDeactivated(),
+        { Outcome: CustodyOutcome.CorrectedNotFound or CustodyOutcome.Conflict } => ChainBusy(),
+        { Outcome: CustodyOutcome.ChainBroken } => ChainBroken(),
+        _ => Defect(custody),
     };
 
     internal static PersonResult ChainBroken() =>
@@ -68,4 +66,7 @@ internal static class PersonRefusals
         string.IsNullOrEmpty(name) || name != name.Trim()
             ? PersonResult.Refused(PersonOutcome.NameInvalid, "O nome de uso não pode ser vazio nem ter espaço no começo ou no fim.")
             : null;
+
+    private static PersonResult Defect(CustodyResult custody) =>
+        throw new ArgumentOutOfRangeException(nameof(custody), custody.Outcome, "A change of a person never meets this outcome of the chain.");
 }

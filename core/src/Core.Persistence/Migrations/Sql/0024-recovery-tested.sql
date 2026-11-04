@@ -2,14 +2,16 @@
 -- system for an administrative act, its id the sequence of the top of the copy that was opened and no reference. It is recorded only after the receipt of the rehearsal was checked against the chain
 -- and the key of the production, which the host does before it writes.
 --
--- The step list grows and the shape of the events about the master key now tells the two steps apart; the clauses of the loss stay as the 0023 left them. Triggers, digest and grants stay.
+-- The step list grows from the one the 0023 left (with sign_in_accepted, sign_in_refused and credential_recomputed in it)
+-- and the shape of the events about the master key now tells the two steps apart; the item kinds, the shape of an entry and the clauses of the loss stay as the 0022 and the 0023 left them. Triggers, digest and grants stay.
 ALTER TABLE public.custody_event
     DROP CONSTRAINT custody_event_step_listed,
     DROP CONSTRAINT custody_event_key_loss_shape,
     ADD CONSTRAINT custody_event_step_listed CHECK (step IN
         ('person_created', 'person_deactivated', 'person_function_changed', 'person_password_set', 'correction',
          'raw_text_read', 'sanitized_text_read', 'reversal_entries_read', 'verify_chain', 'item_emptied', 'item_emptying_refused', 'epoch_rotated',
-         'domain_created', 'seal_recorded', 'domain_label_rotated', 'key_loss_declared', 'recovery_tested')),
+         'domain_created', 'seal_recorded', 'domain_label_rotated',
+         'sign_in_accepted', 'sign_in_refused', 'credential_recomputed', 'key_loss_declared', 'recovery_tested')),
     ADD CONSTRAINT custody_event_key_loss_shape CHECK (
         (step IN ('key_loss_declared', 'recovery_tested')) = (item_kind = 'master_key')
         AND (step <> 'key_loss_declared' OR (

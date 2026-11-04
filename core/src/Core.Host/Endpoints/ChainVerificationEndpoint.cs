@@ -15,7 +15,7 @@ internal static class ChainVerificationEndpoint
 
     /// <summary>With no database declared there is no chain to read, and one that cannot be read answers 503, with the type of the failure in the host's log.</summary>
     private static async Task<IResult> ShowAsync(
-        [FromServices] ChainVerificationService verification, [FromServices] TimeProvider time, [FromServices] ILoggerFactory loggers, CancellationToken cancellationToken)
+        [FromServices] ChainVerificationService verification, [FromServices] SealDeclaration declared, [FromServices] ILoggerFactory loggers, CancellationToken cancellationToken)
     {
         if (verification.Reader is not { } reader)
         {
@@ -25,8 +25,8 @@ internal static class ChainVerificationEndpoint
         try
         {
             var last = await reader.LastAsync(cancellationToken);
-            var schedule = verification.Schedule;
-            return Results.Ok(new ChainVerificationShown(last, schedule.Interval, schedule.Overdue(last?.RecordedAt, time.GetUtcNow())));
+            var protection = SealProtection.Of(declared.Situation, await LastSealAsync(verification, declared, cancellationToken));
+            return Results.Ok(new ChainVerificationShown(last, verification.Schedule.Interval, verification.IsOverdue(last?.RecordedAt), declared.Situation.ToString(), protection));
         }
         catch (Exception unreadable) when (unreadable is NpgsqlException or InvalidOperationException or TimeoutException)
         {
@@ -34,4 +34,8 @@ internal static class ChainVerificationEndpoint
             return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
     }
+
+    /// <summary>Only the manual situation says the date of the last seal, so only it asks the chain for it.</summary>
+    private static Task<DateTimeOffset?> LastSealAsync(ChainVerificationService verification, SealDeclaration declared, CancellationToken cancellationToken) =>
+        declared.Situation == SealSituation.Manual && verification.SealReader is { } reader ? reader.LastAsync(cancellationToken) : Task.FromResult<DateTimeOffset?>(null);
 }

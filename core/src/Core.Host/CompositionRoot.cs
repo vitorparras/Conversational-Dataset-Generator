@@ -4,6 +4,7 @@ using Core.Boundary.Http;
 using Core.Host.Analysis;
 using Core.Host.Endpoints;
 using Core.Host.Migration;
+using Core.Host.Operators;
 using Core.Host.Supervision;
 using Core.Persistence.Connection;
 using Core.Persistence.Content.Rotation;
@@ -153,6 +154,7 @@ internal static class CompositionRoot
         Compose(builder, loaded.View, fileLog);
         AddAnalysis(builder.Services, loaded.Values, analyzeTimeout);
         _ = builder.Services.AddSingleton(PasswordConfiguration.Derivation(loaded.Values)).AddSingleton(VerificationConfiguration.Schedule(loaded.Values));
+        _ = builder.Services.AddSingleton(SealConfiguration.Declaration(loaded.Values));
         _ = builder.Services.AddSingleton(_ => new ServerAuditLog(AuditConfiguration.ServerLogDirectory(loaded.Values))).AddSingleton<AuditComparisonState>();
         _ = builder.Services.AddHostedService(provider => new AuditComparisonService(
             new AuditComparisonPlan(
@@ -176,8 +178,11 @@ internal static class CompositionRoot
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetRequiredService<ServiceProcessWatch>());
         _ = builder.Services.AddSingleton(provider => new ChainVerificationService(provider)).AddHostedService(provider => provider.GetRequiredService<ChainVerificationService>());
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source
-            ? new SignIn(new PersonRegistry(source), new PersonCredentials(source, provider.GetRequiredService<PasswordDerivation>()),
-                provider.GetRequiredService<SessionStore>(), new SignInDelay(provider.GetRequiredService<TimeProvider>()), new SignInAttempts(source))
+            ? new OperatorAdministration(new PersonRegistry(source), new PersonCredentials(source, provider.GetRequiredService<PasswordDerivation>()), provider.GetRequiredService<SessionStore>())
+            : null!);
+        _ = builder.Services.AddSingleton(provider => provider.GetService<OperatorAdministration>() is { } people
+            ? new SignIn(people.Registry, people.Credentials, provider.GetRequiredService<SessionStore>(), new SignInDelay(provider.GetRequiredService<TimeProvider>()),
+                new SignInAttempts(provider.GetRequiredService<ServiceProvider>().GetRequiredService<NpgsqlDataSource>()))
             : null!);
 
         var app = builder.Build();
@@ -187,6 +192,9 @@ internal static class CompositionRoot
         HostRoutes.Map(app, recognizer);
         return app;
     }
+
+    /// <summary>The store of passwords, built here because it is a service and only the root builds services.</summary>
+    internal static PersonCredentials CredentialsOf(NpgsqlDataSource source, PasswordDerivation derivation) => new(source, derivation);
 
     /// <summary>The recognizer of the service the supervisor has alive now, with its secret and the client that never goes through a proxy;
     /// with no such service, one that refuses without connecting, so that nothing goes to the port a service that is gone once held.</summary>

@@ -37,7 +37,6 @@ internal sealed class AuthenticatedHost : IAsyncDisposable
     private readonly Task<string[]> streams;
     private readonly HttpClient client;
     private readonly DirectoryInfo? copy;
-    private string identifier = string.Empty;
 
     private AuthenticatedHost(ScratchDatabase database, NpgsqlDataSource application, HostSetup setup, Uri address)
     {
@@ -59,13 +58,24 @@ internal sealed class AuthenticatedHost : IAsyncDisposable
         process = Process.Start(StartInfo(setup, address, database.AppConnectionString, copy?.FullName, LogFile))
             ?? throw new InvalidOperationException("The host process did not start.");
         streams = Task.WhenAll(process.StandardError.ReadToEndAsync(CancellationToken.None), process.StandardOutput.ReadToEndAsync(CancellationToken.None));
-        client = new HttpClient(SharedTlsMaterial.PinnedHandler()) { BaseAddress = address };
+        var handler = SharedTlsMaterial.PinnedHandler();
+        handler.UseCookies = false;
+        client = new HttpClient(handler) { BaseAddress = address };
     }
 
     public Uri Address { get; }
 
     /// <summary>The file the host was asked to write its log to; null when it was not asked.</summary>
     public string? LogFile { get; }
+
+    /// <summary>The connection string of the application's role on the database of the host.</summary>
+    /// <summary>The identifier of the session the host opened for its person.</summary>
+    public string Identifier { get; private set; } = string.Empty;
+
+    public string ApplicationConnectionString => database.AppConnectionString;
+
+    /// <summary>The connection string of the owner of the database of the host, which the tests read through.</summary>
+    public string OwnerConnectionString => database.OwnerConnectionString;
 
     public string Name { get; } = $"zqx-pessoa-{Guid.NewGuid():N}";
 
@@ -82,7 +92,7 @@ internal sealed class AuthenticatedHost : IAsyncDisposable
         var host = new AuthenticatedHost(database, application, setup, new Uri($"https://127.0.0.1:{KeyedHost.FreePort()}"));
         try
         {
-            await host.PrepareAsync(setup.WorkFactor, cancellationToken);
+            await host.PrepareAsync(setup, cancellationToken);
             return host;
         }
         catch
@@ -97,6 +107,19 @@ internal sealed class AuthenticatedHost : IAsyncDisposable
 
     public Task<HttpResponseMessage> PostAsync(string route, string json, CancellationToken cancellationToken) =>
         SendAsync(HttpMethod.Post, route, json, cancellationToken);
+
+    /// <summary>The entry by name and password: the identifier of the session it opened, or null when the entry was refused.</summary>
+    public async Task<string?> EnterAsync(string name, string password, CancellationToken cancellationToken)
+    {
+        using var response = await SendAsAsync(HttpMethod.Post, "/session", $$"""{"name":"{{name}}","password":"{{password}}"}""", session: null, cancellationToken);
+        return response.IsSuccessStatusCode ? SessionIdentifier(response) : null;
+    }
+
+    private static string SessionIdentifier(HttpResponseMessage response)
+    {
+        var line = Assert.Single(response.Headers.GetValues("Set-Cookie"));
+        return line[(Cookie.Length + 1)..line.IndexOf(';', StringComparison.Ordinal)];
+    }
 
     /// <summary>Runs the statement as the server's superuser connected to this host's database, for what neither the application nor the owner may arrange.</summary>
     [SuppressMessage("Security", "CA2100", Justification = "The statements are literals of the calling tests, never input.")]
@@ -114,6 +137,15 @@ internal sealed class AuthenticatedHost : IAsyncDisposable
         await using var connection = await OpenAsSuperuserAsync(cancellationToken);
         await using var command = new NpgsqlCommand(query, connection);
         return Convert.ToInt64(await command.ExecuteScalarAsync(cancellationToken), CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>Reads one text with a query as the server's superuser, for what a test checks against the database and not against the host's own reading.</summary>
+    [SuppressMessage("Security", "CA2100", Justification = "The queries are literals of the calling tests, never input.")]
+    public async Task<string> TextAsSuperuserAsync(string query, CancellationToken cancellationToken)
+    {
+        await using var connection = await OpenAsSuperuserAsync(cancellationToken);
+        await using var command = new NpgsqlCommand(query, connection);
+        return Convert.ToString(await command.ExecuteScalarAsync(cancellationToken), CultureInfo.InvariantCulture) ?? string.Empty;
     }
 
     private async Task<NpgsqlConnection> OpenAsSuperuserAsync(CancellationToken cancellationToken)
@@ -209,6 +241,7 @@ internal sealed class AuthenticatedHost : IAsyncDisposable
             ["Session:IdleTimeout"] = "00:30:00",
             ["Session:AbsoluteTimeout"] = "08:00:00",
             ["Custody:VerificationInterval"] = "00:05:00",
+            ["Custody:SealSituation"] = "Manual",
             ["Tls:CertificateFile"] = SharedTlsMaterial.CertificatePath,
             ["Tls:KeyFile"] = SharedTlsMaterial.KeyPath,
             ["Audit:ServerLogDirectory"] = ServerLogFiles.Shared,
@@ -242,10 +275,18 @@ internal sealed class AuthenticatedHost : IAsyncDisposable
 
     private static string KeyOf(string argument) => argument.TrimStart('-')[..argument.TrimStart('-').IndexOf('=', StringComparison.Ordinal)];
 
-    private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string route, string? json, CancellationToken cancellationToken)
+    private Task<HttpResponseMessage> SendAsync(HttpMethod method, string route, string? json, CancellationToken cancellationToken) =>
+        SendAsAsync(method, route, json, Identifier, cancellationToken);
+
+    /// <summary>A request carrying the session identifier given, or none when it is null.</summary>
+    public async Task<HttpResponseMessage> SendAsAsync(HttpMethod method, string route, string? json, string? session, CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(method, new Uri(route, UriKind.Relative));
-        request.Headers.Add("Cookie", $"{Cookie}={identifier}");
+        if (session is not null)
+        {
+            request.Headers.Add("Cookie", $"{Cookie}={session}");
+        }
+
         if (json is not null)
         {
             request.Content = new StringContent(json, Encoding.UTF8, new MediaTypeHeaderValue("application/json"));
@@ -254,14 +295,14 @@ internal sealed class AuthenticatedHost : IAsyncDisposable
         return await client.SendAsync(request, cancellationToken);
     }
 
-    private async Task PrepareAsync(int workFactor, CancellationToken cancellationToken)
+    private async Task PrepareAsync(HostSetup setup, CancellationToken cancellationToken)
     {
         await StartupVerification.WaitUntilRecordedAsync(application, cancellationToken);
         Task<PersonResult> Write(Func<Task<PersonResult>> change) => StartupVerification.WriteAsync(change, cancellationToken);
 
         var registry = new PersonRegistry(application);
-        var credentials = new PersonCredentials(application, new PasswordDerivation(workFactor));
-        var person = (await Write(() => registry.CreateAsync(new NewPerson(Name, PersonFunctions.Accepted[0]), CustodyAuthor.System, cancellationToken))).PersonId!.Value;
+        var credentials = new PersonCredentials(application, new PasswordDerivation(setup.WorkFactor));
+        var person = (await Write(() => registry.CreateAsync(new NewPerson(Name, setup.Function), CustodyAuthor.System, cancellationToken))).PersonId!.Value;
         _ = await Write(() => credentials.SetPasswordAsync(person, Password, CustodyAuthor.System, cancellationToken));
         _ = await KeyedHost.StatusAsync(Address, process, cancellationToken);
         using var entry = new HttpRequestMessage(HttpMethod.Post, new Uri("/session", UriKind.Relative))
@@ -270,7 +311,6 @@ internal sealed class AuthenticatedHost : IAsyncDisposable
         };
         using var response = await client.SendAsync(entry, cancellationToken);
         _ = response.EnsureSuccessStatusCode();
-        var line = Assert.Single(response.Headers.GetValues("Set-Cookie"));
-        identifier = line[(Cookie.Length + 1)..line.IndexOf(';', StringComparison.Ordinal)];
+        Identifier = SessionIdentifier(response);
     }
 }

@@ -3,6 +3,7 @@ using System.Data.Common;
 using System.Security.Cryptography;
 using Core.Persistence.Content;
 using Core.Persistence.Content.Sealing;
+using Core.Platform.Keys;
 using Npgsql;
 
 namespace Core.Persistence.Recovery;
@@ -68,7 +69,7 @@ public sealed class RecoveryRehearsal
             var command = transaction.CreateCommand(statement);
             await using (command.ConfigureAwait(false))
             {
-                return await RowsAsync<Sample?>(command, SampleOf, cancellationToken).ConfigureAwait(false);
+                return await RowsAsync(command, SampleOf, cancellationToken).ConfigureAwait(false);
             }
         }
     }
@@ -83,7 +84,7 @@ public sealed class RecoveryRehearsal
             _ = content.Open(column, domain, stored, key);
             return true;
         }
-        catch (Exception refused) when (refused is Core.Platform.Keys.EnvelopeRefusedException or InvalidOperationException or CryptographicException or ArgumentException)
+        catch (Exception refused) when (refused is EnvelopeRefusedException or InvalidOperationException or CryptographicException or ArgumentException)
         {
             return false;
         }

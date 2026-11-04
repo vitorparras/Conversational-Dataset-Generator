@@ -21,7 +21,7 @@ public sealed class RestoreCopyTests : IDisposable
     [Fact]
     public void ManifestNamesTheCopyByItsDigestAndGivesTheVersionAndTheFiles()
     {
-        var manifest = """{"format":1,"schemaVersion":20,"files":["public.domain.jsonl"]}""";
+        var manifest = /*lang=json,strict*/ """{"format":1,"schemaVersion":20,"files":["public.domain.jsonl"]}""";
         File.WriteAllText(Path.Combine(folder, "manifest.json"), manifest);
 
         var copy = RestoreCopy.Open(folder);
@@ -32,10 +32,10 @@ public sealed class RestoreCopyTests : IDisposable
     }
 
     [Theory]
-    [InlineData("""{"format":2,"schemaVersion":20,"files":[]}""")]
-    [InlineData("""{"format":1,"files":[]}""")]
-    [InlineData("""{"format":1,"schemaVersion":"20","files":[]}""")]
-    [InlineData("""{"format":1,"schemaVersion":20}""")]
+    [InlineData(/*lang=json,strict*/ """{"format":2,"schemaVersion":20,"files":[]}""")]
+    [InlineData(/*lang=json,strict*/ """{"format":1,"files":[]}""")]
+    [InlineData(/*lang=json,strict*/ """{"format":1,"schemaVersion":"20","files":[]}""")]
+    [InlineData(/*lang=json,strict*/ """{"format":1,"schemaVersion":20}""")]
     [InlineData("not json")]
     public void ManifestThatThisBuildDoesNotReadIsRefused(string manifest)
     {
@@ -51,7 +51,7 @@ public sealed class RestoreCopyTests : IDisposable
     [Fact]
     public void RowsComeInBatchesOfFiveHundredAsArraysWithoutTheEmptyLines()
     {
-        File.WriteAllText(Path.Combine(folder, "manifest.json"), """{"format":1,"schemaVersion":20,"files":["public.domain.jsonl"]}""");
+        File.WriteAllText(Path.Combine(folder, "manifest.json"), /*lang=json,strict*/ """{"format":1,"schemaVersion":20,"files":["public.domain.jsonl"]}""");
         File.WriteAllLines(Path.Combine(folder, Table + ".jsonl"), Enumerable.Range(1, 1203).SelectMany(id => new[] { $$"""{"id":{{id}}}""", string.Empty }));
 
         var batches = RestoreCopy.Open(folder).BatchesOf(Table).Select(batch => JsonNode.Parse(batch)!.AsArray()).ToList();
@@ -63,7 +63,7 @@ public sealed class RestoreCopyTests : IDisposable
     [Fact]
     public void TableThatTheManifestDoesNotListHasNoBatches()
     {
-        File.WriteAllText(Path.Combine(folder, "manifest.json"), """{"format":1,"schemaVersion":20,"files":[]}""");
+        File.WriteAllText(Path.Combine(folder, "manifest.json"), /*lang=json,strict*/ """{"format":1,"schemaVersion":20,"files":[]}""");
 
         _ = Assert.Throws<InvalidDataException>(() => RestoreCopy.Open(folder).BatchesOf(Table).ToList());
     }
@@ -71,7 +71,7 @@ public sealed class RestoreCopyTests : IDisposable
     [Fact]
     public void TableWithNoRowOffersNoBatch()
     {
-        File.WriteAllText(Path.Combine(folder, "manifest.json"), """{"format":1,"schemaVersion":20,"files":["public.domain.jsonl"]}""");
+        File.WriteAllText(Path.Combine(folder, "manifest.json"), /*lang=json,strict*/ """{"format":1,"schemaVersion":20,"files":["public.domain.jsonl"]}""");
         File.WriteAllText(Path.Combine(folder, Table + ".jsonl"), string.Empty);
 
         Assert.Empty(RestoreCopy.Open(folder).BatchesOf(Table));

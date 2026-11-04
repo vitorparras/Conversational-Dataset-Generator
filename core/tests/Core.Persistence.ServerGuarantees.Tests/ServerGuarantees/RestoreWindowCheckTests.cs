@@ -18,9 +18,7 @@ public sealed class RestoreWindowCheckTests
     [InlineData(1, 1, true)]
     [InlineData(0, 1, true)]
     public void OnlyAWindowOpenedAndNeverClosedIsMissing(long opened, long closed, bool holds)
-    {
-        Assert.Equal(holds ? CheckStatus.Passed : CheckStatus.Failed, RestoreWindowCheck.Judge(opened, closed).Status);
-    }
+        => Assert.Equal(holds ? CheckStatus.Passed : CheckStatus.Failed, RestoreWindowCheck.Judge(opened, closed).Status);
 
     [Fact]
     public void RefusalSaysTheRestoreDidNotConcludeAndWhatToDo()
@@ -47,7 +45,7 @@ public sealed class RestoreWindowCheckTests
     public async Task DatabaseBeforeTheStepThatCreatesTheWindowRefusesTheStartNamingTheMigration()
     {
         await using var database = await ScratchDatabase.CreateAsync();
-        _ = await database.MigrateAsync(EmbeddedMigrations.Load().Where(step => step.Version < 27).ToList());
+        _ = await database.MigrateAsync([.. EmbeddedMigrations.Load().Where(step => step.Version < 27)]);
 
         var result = await AppStartup.CheckAsync(database, dataSource => new RestoreWindowCheck(dataSource));
 

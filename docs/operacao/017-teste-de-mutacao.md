@@ -22,9 +22,10 @@ matriz do fluxo lê as áreas da 014 e abre um job por módulo crítico, e um jo
 "Mutação nos módulos críticos", só passa se todos eles passarem. Exceder o teto é achado que
 reprova, nomeando o módulo e o tempo gasto, nunca lentidão tolerada. O tempo de cada módulo sai no
 relatório do passo. Mutação fora do bloqueio só por decisão escrita. A área que não cabe no teto
-declara `- Partes da mutação: N` no seu arquivo: o passo ordena os arquivos C# dela por caminho e os
-reparte em rodízio, e a matriz abre um job por parte, cada um com o mesmo teto, projeto de teste e
-limite. `Core.Persistence.Content` tem 3: inteira, estoura o teto.
+declara `- Partes da mutação: N` no seu arquivo: o passo corta cada arquivo C# dela entre os membros
+dos tipos e passa os trechos ao Stryker como `arquivo.cs{a..b}`, repartidos pelo peso (os tokens de
+cada um); a matriz abre um job por parte, com o mesmo teto e limite. O Stryker 5.0.0 só conta o
+mutante cujo nó cabe inteiro na faixa e o corte nunca cai num membro: a soma é a da área.
 
 No núcleo, em todos os módulos, a verificação não conta **o mutante `false`→`true` do argumento de
 `ConfigureAwait`**: o host não tem contexto de sincronização, então esse mutante é equivalente por
@@ -48,13 +49,12 @@ reprova, e o sobrevivente que só teste de outro projeto mataria é do módulo, 
   estático muda com o número de workers, e o resultado tem de ser o mesmo em duas rodadas. Nenhum
   mutante sai da conta por ser estático.
   O Stryker.NET reinicia o servidor de teste a cada mutante que estoura o timeout. Quando o projeto
-  de teste referencia o Testcontainers, o passo entrega o token na variável
-  `CDG_TEST_DATABASE_REUSE` e o projeto mantém uma imagem e um contêiner nomeados por ele, que
-  sobrevivem aos reinícios; o passo os remove ao fim, também se o Stryker falha ou passa do teto.
-  Sem a variável, cada execução sobe e descarta o seu Postgres; sem o `docker` no PATH, nada é
-  reaproveitado. Se a verificação morrer à força, ficam o contêiner `cdg-test-database-<token>` e a
-  imagem `cdg-test-database:<token>`: ache-os com `docker ps -a --filter name=cdg-test-database-` e
-  remova com `docker rm --force --volumes` e `docker rmi --force` (sem `--force`, o que roda fica).
+  de teste referencia o Testcontainers, o passo entrega o token em `CDG_TEST_DATABASE_REUSE` e o
+  projeto mantém uma imagem e um contêiner com o nome dele, que valem além dos reinícios; o passo os
+  remove ao fim, também se o Stryker falha ou passa do teto. Sem o `docker` no PATH, nada se reusa.
+  Se a verificação morrer à força, ficam o contêiner `cdg-test-database-<token>` e a imagem
+  `cdg-test-database:<token>`: ache-os com `docker ps -a --filter name=cdg-test-database-` e remova
+  com `docker rm --force --volumes` e `docker rmi --force` (sem `--force`, o que roda fica).
 - **Serviço:** os arquivos de teste que importam o módulo diretamente (`import language_service.x`,
   `from language_service.x import ...` ou `from language_service import x`), numa rodada do mutmut
   por módulo. Os testes que leem o texto do código-fonte ficam de fora: a mutação o reescreve.

@@ -39,7 +39,7 @@ nenhuma informação só por cor, inclusive na anotação.
 **O teste de navegador usa o Playwright para .NET**, na CI, sem interface. Cobre o teclado e a troca
 parcial da 0010, a navegação acima e a verificação automática de acessibilidade de cada tela nova.
 
-## Recusados
+## Alternativas recusadas
 
 | Opção | Por quê |
 |---|---|
@@ -54,7 +54,7 @@ Tela nova segue estes padrões ou declara a exceção. A CI passa a baixar um na
 deixa mais lenta. A verificação automática acha só parte dos problemas de acessibilidade; o
 resto fica com quem revisa.
 
-## O que reabre
+## O que reabre esta decisão
 
 Se o teste de navegador não rodar estável na CI, ou uma função exigir lista que a paginação do
 servidor não atenda, a decisão é refeita por escrito.

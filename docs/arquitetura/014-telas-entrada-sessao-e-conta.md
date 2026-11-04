@@ -26,6 +26,6 @@ Telas que toda pessoa usa, qualquer que seja a função. Seguem os padrões da
   [0029](../decisoes/0029-identidade-e-sessao.md).
 - A rota de entrada e a de saída já existem (#70, #71, #495); o que falta é a tela.
 - A troca da própria senha (C2) não estava documentada: a 0029 previa só a reposição
-  administrativa, que é a tela A2 de [015](015-telas-administracao-tecnica.md).
+  administrativa, que é a tela A2 de [015](015-telas-administracao-tecnica.md), por link temporário.
 - A lista de avisos vem vazia para quem não tem concessão, nunca como erro.
 - Acessibilidade: #591. Teste de navegador: #590.

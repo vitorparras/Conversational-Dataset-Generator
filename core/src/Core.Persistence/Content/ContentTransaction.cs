@@ -90,6 +90,13 @@ public sealed class ContentTransaction : IAsyncDisposable
         }
     }
 
+    /// <summary>Opens a transaction at the isolation level given under no domain at all, for the reads that go through the domains one after the other with <see cref="ChangeDomainAsync" />.</summary>
+    internal static Task<ContentTransaction> BeginSnapshotAsync(NpgsqlDataSource dataSource, IsolationLevel isolation, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(dataSource);
+        return OpenAsync(dataSource, new Declaration(0, Declare), isolation, cancellationToken);
+    }
+
     /// <summary>The same transaction as the scope in which an event is added to the chain, so that the event and the change are written together.</summary>
     internal CustodyScope AsCustodyScope() => new(connection, transaction);
 

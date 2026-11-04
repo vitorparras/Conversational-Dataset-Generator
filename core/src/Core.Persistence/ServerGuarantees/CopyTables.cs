@@ -1,8 +1,6 @@
 using System.Data.Common;
-using System.Globalization;
 using System.Text;
 using Core.Persistence.Content;
-using Npgsql;
 
 namespace Core.Persistence.ServerGuarantees;
 
@@ -13,13 +11,11 @@ internal static class CopyTables
 
     private static readonly IEnumerable<int> NoDomain = Enumerable.Repeat(0, 1);
 
-    /// <summary>Every table with the statement that reads it as the rows the database writes; the content is read one domain at a time, the rest at once.</summary>
     internal static Table[] All { get; } = TablesOf();
 
-    /// <summary>The domains of the snapshot, read once so that every table of the content is read for the same ones.</summary>
-    internal static async Task<List<int>> DomainsAsync(NpgsqlTransaction transaction, CancellationToken cancellationToken)
+    internal static async Task<List<int>> DomainsAsync(ContentTransaction transaction, CancellationToken cancellationToken)
     {
-        var command = new NpgsqlCommand(DomainIds, transaction.Connection, transaction);
+        var command = transaction.CreateCommand(DomainIds);
         await using (command.ConfigureAwait(false))
         {
             var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
@@ -62,24 +58,12 @@ internal static class CopyTables
         return tables;
     }
 
-    private static async Task DeclareDomainAsync(NpgsqlTransaction transaction, Table table, int domain, CancellationToken cancellationToken)
-    {
-        if (!table.InDomain)
-        {
-            return;
-        }
+    private static Task DeclareDomainAsync(ContentTransaction transaction, Table table, int domain, CancellationToken cancellationToken) =>
+        table.InDomain ? transaction.ChangeDomainAsync(domain, cancellationToken) : Task.CompletedTask;
 
-        var command = new NpgsqlCommand(ContentTransaction.Declare, transaction.Connection, transaction);
-        await using (command.ConfigureAwait(false))
-        {
-            _ = command.Parameters.AddWithValue("domain", domain.ToString(CultureInfo.InvariantCulture));
-            _ = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
-        }
-    }
-
-    private static async Task WriteLinesAsync(NpgsqlTransaction transaction, string statement, TextWriter writer, CancellationToken cancellationToken)
+    private static async Task WriteLinesAsync(ContentTransaction transaction, string statement, TextWriter writer, CancellationToken cancellationToken)
     {
-        var command = new NpgsqlCommand(statement, transaction.Connection, transaction);
+        var command = transaction.CreateCommand(statement);
         await using (command.ConfigureAwait(false))
         {
             var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
@@ -109,9 +93,7 @@ internal static class CopyTables
         return domains;
     }
 
-    /// <summary>A table of the copy: its name, the statement that reads its rows and whether the row policy holds the read to one domain at a time.</summary>
     internal sealed record Table(string Name, string Statement, bool InDomain);
 
-    /// <summary>What one snapshot holds while the tables are written: the folder, the transaction that reads and the domains it saw.</summary>
-    internal sealed record Snapshot(string Folder, NpgsqlTransaction Transaction, List<int> Domains);
+    internal sealed record Snapshot(string Folder, ContentTransaction Transaction, List<int> Domains);
 }

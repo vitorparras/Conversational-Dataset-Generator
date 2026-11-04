@@ -54,21 +54,22 @@ internal static class CopyDataMode
         }
     }
 
-    private static async Task<ExitCode> ReportAsync(DataCopyResult result, Words words)
+    internal static async Task<ExitCode> ReportAsync(DataCopyResult result, Words words)
     {
         if (result.Outcome == DataCopyOutcome.Made)
         {
-            await words.Output.WriteLineAsync($"{Argument}: cópia escrita; anote fora dela, com a data, em registro que o banco não alcance (operacao/005), este selo:").ConfigureAwait(false);
-            await words.Output.WriteLineAsync(result.Seal!.ToText()).ConfigureAwait(false);
+            await words.Output.WriteLineAsync($"{Argument}: cópia escrita; anote fora dela, com a data, em registro que o banco não alcance (operacao/005), o topo dela:").ConfigureAwait(false);
+            await words.Output.WriteLineAsync($"restore-load <pasta> {result.Seal!.Events} {result.Seal.Digest}").ConfigureAwait(false);
             return ExitCode.Success;
         }
 
-        var reason = result.Outcome == DataCopyOutcome.FolderNotEmpty
-            ? "a pasta já tem conteúdo, e uma cópia não se mistura com o que está lá"
-            : "a cadeia não aceitou o evento do selo (a última verificação falhou ou outra gravação chegou antes)";
-        await words.Error.WriteLineAsync($"{Argument} {Refused}: {reason}").ConfigureAwait(false);
+        await words.Error.WriteLineAsync($"{Argument} {Refused}: {ReasonOf(result.Outcome)}").ConfigureAwait(false);
         return ExitCode.CopyRefused;
     }
+
+    private static string ReasonOf(DataCopyOutcome outcome) => outcome == DataCopyOutcome.FolderNotEmpty
+        ? "a pasta já tem conteúdo, e uma cópia não se mistura com o que está lá"
+        : "a cadeia não aceitou o evento do selo, ou outra gravação a alcançou antes da leitura (repita)";
 
     /// <summary>What the copy is of: the folder it goes to and the configuration in force as it may be shown.</summary>
     internal sealed record Request(string Folder, IReadOnlyList<EffectiveEntry> Configuration);

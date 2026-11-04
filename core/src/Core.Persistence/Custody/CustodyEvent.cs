@@ -51,7 +51,8 @@ public sealed record CustodyEvent
         return HasEventOfItsOwn(step)
             ? throw new ArgumentException(
                 "A correction, a verification, an emptying, a rotation, the creation of a domain, a seal and an entry have an event of their own; "
-                + "use Correction, Verification, GuaranteesVerified, Emptied, EmptyingRefused, EpochRotated, DomainCreated, SealRecorded, DomainLabelRotated, SignInAccepted or SignInRefused.",
+                + "use Correction, Verification, GuaranteesVerified, Emptied, EmptyingRefused, EpochRotated, DomainCreated, SealRecorded, DomainLabelRotated, "
+                + "DomainLabelRevoked, SignInAccepted or SignInRefused.",
                 nameof(step))
             : new CustodyEvent(author, item, step, reason);
     }

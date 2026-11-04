@@ -66,6 +66,7 @@ public sealed class CustodyDomainLabelListTests : IClassFixture<CustodyDatabase>
     [InlineData("NULL, true, 'domain', 16012, 'domain_label_revoked', 'administrative_act', NULL, 'v2'")]
     [InlineData("NULL, true, 'domain', 16013, 'domain_label_revoked', 'administrative_act', NULL, 'texto-bruto/01/v1'")]
     [InlineData("NULL, true, 'domain', 16014, 'domain_label_revoked', 'administrative_act', NULL, 'outra-coisa/1/v1'")]
+    [InlineData("NULL, true, 'domain', 16015, 'domain_label_revoked', 'administrative_act', NULL, 'texto-bruto/16016/v1'")]
     [InlineData("NULL, true, 'domain', 16015, 'domain_created', 'administrative_act', NULL, 'v1'")]
     public async Task Ca6TheNewStepsHaveTheShapeOfTheDomainWithTheReferenceOfTheirOwnAndNoOther(string values)
     {

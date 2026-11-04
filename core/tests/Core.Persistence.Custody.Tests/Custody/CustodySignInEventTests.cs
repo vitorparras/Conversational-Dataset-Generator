@@ -9,7 +9,8 @@ public sealed class CustodySignInEventTests
 
     private const string OfTheirOwnMessage =
         "A correction, a verification, an emptying, a rotation, the creation of a domain, a seal and an entry have an event of their own; "
-        + "use Correction, Verification, GuaranteesVerified, Emptied, EmptyingRefused, EpochRotated, DomainCreated, SealRecorded, DomainLabelRotated, SignInAccepted or SignInRefused.";
+        + "use Correction, Verification, GuaranteesVerified, Emptied, EmptyingRefused, EpochRotated, DomainCreated, SealRecorded, DomainLabelRotated, "
+        + "DomainLabelRevoked, SignInAccepted or SignInRefused.";
 
     [Fact]
     public void AcceptedEntryIsThePersonsAboutThatAttemptForAcceptedCredentials()

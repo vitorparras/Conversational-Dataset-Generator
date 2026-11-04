@@ -48,7 +48,8 @@ ALTER TABLE public.custody_event
         AND (step NOT IN ('domain_created', 'domain_label_rotated', 'domain_label_revoked') OR (actor_system AND reason = 'administrative_act' AND corrects IS NULL))
         AND (step <> 'domain_created' OR reference IS NULL)
         AND (step <> 'domain_label_rotated' OR coalesce(reference ~ '^v[1-9][0-9]*$', false))
-        AND (step <> 'domain_label_revoked' OR coalesce(reference ~ '^(texto-bruto|mapa-reversao)/[1-9][0-9]*/v[1-9][0-9]*$', false))),
+        AND (step <> 'domain_label_revoked' OR coalesce(reference ~ '^(texto-bruto|mapa-reversao)/[1-9][0-9]*/v[1-9][0-9]*$', false))
+        AND (step <> 'domain_label_revoked' OR split_part(reference, '/', 2) = item_id::text)),
     ADD CONSTRAINT custody_event_emptying_shape CHECK (
         (reference IS NOT NULL) = (step IN ('item_emptied', 'item_emptying_refused', 'domain_label_rotated', 'key_loss_declared', 'domain_label_revoked'))
         AND (reference IS NULL OR reference ~ '^[A-Za-z0-9._/-]{1,64}$')

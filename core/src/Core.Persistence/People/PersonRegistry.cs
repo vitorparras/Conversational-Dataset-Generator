@@ -58,6 +58,36 @@ public sealed class PersonRegistry
         }
     }
 
+    /// <summary>
+    /// Adds the first person of the installation, by the system, and only if the registry has nobody: the check and the write are one statement in the serializable transaction of the chain,
+    /// so that two commands at once make one person and the other is refused.
+    /// </summary>
+    /// <param name="person">The name of use and the function.</param>
+    /// <param name="cancellationToken">Cancels the operation.</param>
+    public Task<PersonResult> CreateFirstAsync(NewPerson person, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(person);
+        return AddFirstAsync(person, cancellationToken);
+    }
+
+    private async Task<PersonResult> AddFirstAsync(NewPerson person, CancellationToken cancellationToken)
+    {
+        if (PersonRefusals.Judge(person) is { } refusal)
+        {
+            return refusal;
+        }
+
+        var statement = new PersonStatement(
+            PersonStatements.CreateFirst,
+            command =>
+            {
+                Add(command, "name", NpgsqlDbType.Text, person.Name);
+                Add(command, "function", NpgsqlDbType.Text, person.Function);
+            },
+            CustodyStep.PersonCreated);
+        return await dataSource.WriteChainedAsync(statement, CustodyAuthor.System, cancellationToken).ConfigureAwait(false) ?? PersonRefusals.RegistryNotEmpty();
+    }
+
     /// <summary>Deactivates a person; the person stays in the registry and in the history.</summary>
     /// <param name="personId">The person to deactivate.</param>
     /// <param name="author">Who acts: a person of the registry, or the system declared as such; never left out.</param>

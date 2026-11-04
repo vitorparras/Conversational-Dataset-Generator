@@ -153,6 +153,7 @@ internal static class CompositionRoot
         Compose(builder, loaded.View, fileLog);
         AddAnalysis(builder.Services, loaded.Values, analyzeTimeout);
         _ = builder.Services.AddSingleton(PasswordConfiguration.Derivation(loaded.Values)).AddSingleton(VerificationConfiguration.Schedule(loaded.Values));
+        _ = builder.Services.AddSingleton(SealConfiguration.Declaration(loaded.Values));
         _ = builder.Services.AddSingleton(_ => new ServerAuditLog(AuditConfiguration.ServerLogDirectory(loaded.Values))).AddSingleton<AuditComparisonState>();
         _ = builder.Services.AddHostedService(provider => new AuditComparisonService(
             new AuditComparisonPlan(
@@ -187,6 +188,9 @@ internal static class CompositionRoot
         HostRoutes.Map(app, recognizer);
         return app;
     }
+
+    /// <summary>The store of passwords, built here because it is a service and only the root builds services.</summary>
+    internal static PersonCredentials CredentialsOf(NpgsqlDataSource source, PasswordDerivation derivation) => new(source, derivation);
 
     /// <summary>The recognizer of the service the supervisor has alive now, with its secret and the client that never goes through a proxy;
     /// with no such service, one that refuses without connecting, so that nothing goes to the port a service that is gone once held.</summary>

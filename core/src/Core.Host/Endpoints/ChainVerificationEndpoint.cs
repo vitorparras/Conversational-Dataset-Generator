@@ -29,8 +29,10 @@ internal static class ChainVerificationEndpoint
             var warning = SealAge.Warning(declared.Situation, lastSeal, time.GetUtcNow());
             var recorded = await reader.LastGuaranteesAsync(cancellationToken);
             var guarantees = GuaranteesShown.Of(recorded, verification.IsOverdue(recorded?.RecordedAt));
+            var window = await reader.OwnerWindowAsync(cancellationToken);
             var interval = verification.Schedule.Interval;
-            return Results.Ok(new ChainVerificationShown(last, interval, verification.IsOverdue(last?.RecordedAt), declared.Situation.ToString(), protection, lastSeal, warning, guarantees));
+            var overdue = verification.IsOverdue(last?.RecordedAt);
+            return Results.Ok(new ChainVerificationShown(last, interval, overdue, declared.Situation.ToString(), protection, lastSeal, warning, guarantees, window));
         }
         catch (Exception unreadable) when (unreadable is NpgsqlException or InvalidOperationException or TimeoutException)
         {

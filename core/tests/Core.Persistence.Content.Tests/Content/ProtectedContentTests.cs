@@ -10,13 +10,15 @@ public sealed class ProtectedContentTests
 {
     private const string Text = "texto sintetico do item";
 
+    private static readonly ContentKey Unused = new(1, new byte[] { 1 });
+
     [Fact]
     public void SealedTextOpensAsTheSameText()
     {
         using var custody = SyntheticCustody.Holding("texto-bruto/7/v1");
-        var sealedText = custody.Content.Seal(ContentColumns.RawText, 7, Text);
+        var sealedText = custody.Seal(ContentColumns.RawText, 7, Text);
 
-        var opened = custody.Content.Open(ContentColumns.RawText, 7, sealedText.Envelope.Span);
+        var opened = custody.Content.Open(ContentColumns.RawText, 7, sealedText.Envelope.Span, sealedText.Key);
 
         Assert.Equal(Text, opened);
     }
@@ -25,9 +27,9 @@ public sealed class ProtectedContentTests
     public void EmptyTextOpensAsEmptyText()
     {
         using var custody = SyntheticCustody.Holding("texto-bruto/7/v1");
-        var sealedText = custody.Content.Seal(ContentColumns.RawText, 7, string.Empty);
+        var sealedText = custody.Seal(ContentColumns.RawText, 7, string.Empty);
 
-        Assert.Equal(string.Empty, custody.Content.Open(ContentColumns.RawText, 7, sealedText.Envelope.Span));
+        Assert.Equal(string.Empty, custody.Content.Open(ContentColumns.RawText, 7, sealedText.Envelope.Span, sealedText.Key));
     }
 
     [Fact]
@@ -35,9 +37,9 @@ public sealed class ProtectedContentTests
     {
         using var custody = SyntheticCustody.Holding("texto-bruto/7/v1");
 
-        var sealedText = custody.Content.Seal(ContentColumns.SanitizedText, 7, Text);
+        var sealedText = custody.Seal(ContentColumns.SanitizedText, 7, Text);
 
-        Assert.Equal((ContentColumns.SanitizedText, 7), (sealedText.Column, sealedText.DomainId));
+        Assert.Equal((ContentColumns.SanitizedText, 7), (sealedText.Content.Column, sealedText.Content.DomainId));
     }
 
     [Fact]
@@ -45,7 +47,8 @@ public sealed class ProtectedContentTests
     {
         using var custody = SyntheticCustody.Holding("texto-bruto/7/v1");
 
-        var envelope = custody.Content.Seal(ContentColumns.RawText, 7, Text).Envelope.ToArray();
+        var row = custody.Seal(ContentColumns.RawText, 7, Text);
+        var envelope = row.Envelope.ToArray();
 
         Assert.DoesNotContain(Text, Encoding.Latin1.GetString(envelope), StringComparison.Ordinal);
     }
@@ -59,7 +62,8 @@ public sealed class ProtectedContentTests
         using var custody = SyntheticCustody.Holding("texto-bruto/7/v1", "mapa-reversao/7/v1");
         var column = ContentColumns.Protected.Single(candidate => candidate.Name == name);
 
-        var envelope = custody.Content.Seal(column, 7, Text).Envelope.ToArray();
+        var row = custody.Seal(column, 7, Text);
+        var envelope = row.Envelope.ToArray();
 
         Assert.Equal(label, EnvelopeCipher.LabelOf(envelope));
     }
@@ -69,7 +73,8 @@ public sealed class ProtectedContentTests
     {
         using var custody = SyntheticCustody.Holding("texto-bruto/7/v1", "texto-bruto/7/v10", "texto-bruto/7/v2", "texto-bruto/8/v11");
 
-        var envelope = custody.Content.Seal(ContentColumns.RawText, 7, Text).Envelope.ToArray();
+        var row = custody.Seal(ContentColumns.RawText, 7, Text);
+        var envelope = row.Envelope.ToArray();
 
         Assert.Equal("texto-bruto/7/v10", EnvelopeCipher.LabelOf(envelope));
     }
@@ -78,14 +83,17 @@ public sealed class ProtectedContentTests
     public void ContentSealedBeforeARotationOpensUnderTheLabelItCarries()
     {
         byte[] old;
+        ContentKey key;
         using (var before = SyntheticCustody.Holding("texto-bruto/7/v1"))
         {
-            old = before.Content.Seal(ContentColumns.RawText, 7, Text).Envelope.ToArray();
+            var row = before.Seal(ContentColumns.RawText, 7, Text);
+            old = row.Envelope.ToArray();
+            key = row.Key;
         }
 
         using var after = SyntheticCustody.Holding("texto-bruto/7/v1", "texto-bruto/7/v2");
 
-        Assert.Equal(Text, after.Content.Open(ContentColumns.RawText, 7, old));
+        Assert.Equal(Text, after.Content.Open(ContentColumns.RawText, 7, old, key));
     }
 
     [Fact]
@@ -93,25 +101,27 @@ public sealed class ProtectedContentTests
     {
         using var custody = SyntheticCustody.Holding("texto-bruto/7/v1", "mapa-reversao/8/v1");
 
-        _ = Assert.Throws<InvalidOperationException>(() => custody.Content.Seal(ContentColumns.RawText, 8, Text));
+        _ = Assert.Throws<InvalidOperationException>(() => custody.Seal(ContentColumns.RawText, 8, Text));
     }
 
     [Fact]
     public void ContentOfAnotherDomainIsRefused()
     {
         using var custody = SyntheticCustody.Holding("texto-bruto/7/v1", "texto-bruto/8/v1");
-        var envelope = custody.Content.Seal(ContentColumns.RawText, 7, Text).Envelope.ToArray();
+        var row = custody.Seal(ContentColumns.RawText, 7, Text);
+        var envelope = row.Envelope.ToArray();
 
-        _ = Assert.Throws<EnvelopeRefusedException>(() => custody.Content.Open(ContentColumns.RawText, 8, envelope));
+        _ = Assert.Throws<EnvelopeRefusedException>(() => custody.Content.Open(ContentColumns.RawText, 8, envelope, row.Key));
     }
 
     [Fact]
     public void ContentOfAnotherPurposeIsRefused()
     {
         using var custody = SyntheticCustody.Holding("texto-bruto/7/v1", "mapa-reversao/7/v1");
-        var envelope = custody.Content.Seal(ContentColumns.Entries, 7, Text).Envelope.ToArray();
+        var row = custody.Seal(ContentColumns.Entries, 7, Text);
+        var envelope = row.Envelope.ToArray();
 
-        _ = Assert.Throws<EnvelopeRefusedException>(() => custody.Content.Open(ContentColumns.RawText, 7, envelope));
+        _ = Assert.Throws<EnvelopeRefusedException>(() => custody.Content.Open(ContentColumns.RawText, 7, envelope, row.Key));
     }
 
     [Fact]
@@ -120,17 +130,18 @@ public sealed class ProtectedContentTests
         using var custody = SyntheticCustody.Holding("texto-bruto/7/v1");
         var clear = Encoding.UTF8.GetBytes(Text);
 
-        _ = Assert.Throws<EnvelopeRefusedException>(() => custody.Content.Open(ContentColumns.RawText, 7, clear));
+        _ = Assert.Throws<EnvelopeRefusedException>(() => custody.Content.Open(ContentColumns.RawText, 7, clear, Unused));
     }
 
     [Fact]
     public void EnvelopeWithAChangedByteIsRefused()
     {
         using var custody = SyntheticCustody.Holding("texto-bruto/7/v1");
-        var envelope = custody.Content.Seal(ContentColumns.RawText, 7, Text).Envelope.ToArray();
+        var row = custody.Seal(ContentColumns.RawText, 7, Text);
+        var envelope = row.Envelope.ToArray();
         envelope[^1] ^= 0xFF;
 
-        _ = Assert.Throws<EnvelopeRefusedException>(() => custody.Content.Open(ContentColumns.RawText, 7, envelope));
+        _ = Assert.Throws<EnvelopeRefusedException>(() => custody.Content.Open(ContentColumns.RawText, 7, envelope, row.Key));
     }
 
     [Fact]
@@ -138,35 +149,52 @@ public sealed class ProtectedContentTests
     {
         using var custody = SyntheticCustody.Holding("texto-bruto/07/v1");
 
-        _ = Assert.Throws<InvalidOperationException>(() => custody.Content.Seal(ContentColumns.RawText, 7, Text));
+        _ = Assert.Throws<InvalidOperationException>(() => custody.Seal(ContentColumns.RawText, 7, Text));
     }
 
     [Fact]
     public void NullArgumentsAreRefusedByName()
     {
         using var custody = SyntheticCustody.Holding("texto-bruto/7/v1");
-        var cipher = custody.Cipher;
+        var keys = custody.Keys;
         var labels = DerivationLabels.None;
         var content = custody.Content;
+        using var sealing = content.Begin(ContentColumns.ItemKey, 7);
 
         Assert.Equal(
-            ["cipher", "loaded", "column", "text", "column"],
+            ["loaded", "keys", "column", "column", "text", "column", "key"],
             [
-                Assert.Throws<ArgumentNullException>(() => new ProtectedContent(null!, labels)).ParamName,
-                Assert.Throws<ArgumentNullException>(() => new ProtectedContent(cipher, null!)).ParamName,
-                Assert.Throws<ArgumentNullException>(() => content.Seal(null!, 7, Text)).ParamName,
-                Assert.Throws<ArgumentNullException>(() => content.Seal(ContentColumns.RawText, 7, null!)).ParamName,
-                Assert.Throws<ArgumentNullException>(() => content.Open(null!, 7, [])).ParamName,
+                Assert.Throws<ArgumentNullException>(() => new ProtectedContent(null!, keys)).ParamName,
+                Assert.Throws<ArgumentNullException>(() => new ProtectedContent(labels, null!)).ParamName,
+                Assert.Throws<ArgumentNullException>(() => content.Begin(null!, 7)).ParamName,
+                Assert.Throws<ArgumentNullException>(() => sealing.Seal(null!, Text)).ParamName,
+                Assert.Throws<ArgumentNullException>(() => sealing.Seal(ContentColumns.RawText, null!)).ParamName,
+                Assert.Throws<ArgumentNullException>(() => content.Open(null!, 7, [], Unused)).ParamName,
+                Assert.Throws<ArgumentNullException>(() => content.Open(ContentColumns.RawText, 7, [], null!)).ParamName,
             ]);
+    }
+
+    [Fact]
+    public void KeyDrawnForAnotherPurposeIsRefusedNamingTheColumn()
+    {
+        using var custody = SyntheticCustody.Holding("texto-bruto/7/v1", "mapa-reversao/7/v1");
+        using var sealing = custody.Content.Begin(ContentColumns.ItemKey, 7);
+
+        var refused = Assert.Throws<ArgumentException>(() => sealing.Seal(ContentColumns.Entries, Text));
+
+        Assert.Equal(
+            ("column", "The key of the row was not drawn for the purpose of the column. (Parameter 'column')"),
+            (refused.ParamName, refused.Message));
     }
 
     [Fact]
     public void RefusalOfAnotherColumnNamesTheColumn()
     {
         using var custody = SyntheticCustody.Holding("texto-bruto/7/v1", "mapa-reversao/7/v1");
-        var envelope = custody.Content.Seal(ContentColumns.Entries, 7, Text).Envelope.ToArray();
+        var row = custody.Seal(ContentColumns.Entries, 7, Text);
+        var envelope = row.Envelope.ToArray();
 
-        var refused = Assert.Throws<EnvelopeRefusedException>(() => custody.Content.Open(ContentColumns.RawText, 7, envelope));
+        var refused = Assert.Throws<EnvelopeRefusedException>(() => custody.Content.Open(ContentColumns.RawText, 7, envelope, row.Key));
 
         Assert.Equal("The envelope was not sealed for the purpose and the domain of item_text.raw_text.", refused.Message);
     }
@@ -176,7 +204,7 @@ public sealed class ProtectedContentTests
     {
         using var custody = SyntheticCustody.Holding("texto-bruto/7/v1");
 
-        var refused = Assert.Throws<InvalidOperationException>(() => custody.Content.Seal(ContentColumns.RawText, 8, Text));
+        var refused = Assert.Throws<InvalidOperationException>(() => custody.Seal(ContentColumns.RawText, 8, Text));
 
         Assert.Equal("No derivation label is loaded for the purpose RawText and the domain 8.", refused.Message);
     }
@@ -187,7 +215,7 @@ public sealed class ProtectedContentTests
         using var custody = SyntheticCustody.Holding("not-a-label");
         var envelope = custody.Cipher.Seal("not-a-label", "x"u8);
 
-        var refused = Assert.Throws<EnvelopeRefusedException>(() => custody.Content.Open(ContentColumns.RawText, 7, envelope));
+        var refused = Assert.Throws<EnvelopeRefusedException>(() => custody.Content.Open(ContentColumns.RawText, 7, envelope, Unused));
 
         Assert.Equal("The label in the header is not a derivation label.", refused.Message);
     }
@@ -198,11 +226,11 @@ public sealed class ProtectedContentTests
         byte[] future;
         using (var rotated = SyntheticCustody.Holding("texto-bruto/7/v1", "texto-bruto/7/v2"))
         {
-            future = rotated.Content.Seal(ContentColumns.RawText, 7, Text).Envelope.ToArray();
+            future = rotated.Seal(ContentColumns.RawText, 7, Text).Envelope.ToArray();
         }
 
         using var custody = SyntheticCustody.Holding("texto-bruto/7/v1");
-        var refused = Assert.Throws<EnvelopeRefusedException>(() => custody.Content.Open(ContentColumns.RawText, 7, future));
+        var refused = Assert.Throws<EnvelopeRefusedException>(() => custody.Content.Open(ContentColumns.RawText, 7, future, Unused));
 
         Assert.Equal("The label 'texto-bruto/7/v2' of the envelope is not among the loaded ones.", refused.Message);
     }

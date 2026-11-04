@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Text;
 using Core.Persistence.Domains;
 using Core.Persistence.Migrations;
@@ -112,7 +113,7 @@ public sealed class RecoveryRecordProcessTests
     {
         var top = (await TextAsync(production, Tip)).Split(',');
         var at = new DateTimeOffset(2031, 3, 4, 8, 6, 7, TimeSpan.Zero);
-        return new RecoveryReceipt(at, long.Parse(top[0], System.Globalization.CultureInfo.InvariantCulture), top[1], proof, new SampleCounts(1, 1, 0));
+        return new RecoveryReceipt(at, long.Parse(top[0], CultureInfo.InvariantCulture), top[1], proof, new SampleCounts(1, 1, 0));
     }
 
     /// <summary>A migrated database with a domain, so that its chain has an event.</summary>

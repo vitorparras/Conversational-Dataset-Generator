@@ -1,3 +1,4 @@
+using System.Globalization;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
 using Core.Persistence.Custody.Verification;
@@ -157,6 +158,6 @@ public sealed class RecoveryRecordingTests
     private static async Task<RecoveryReceipt> ReceiptOfTheTopAsync(ContentWorld world, string proof, SampleCounts counts)
     {
         var top = ((string)(await world.ScalarAsync(Tip))!).Split(',');
-        return new RecoveryReceipt(new DateTimeOffset(2031, 3, 4, 8, 6, 7, TimeSpan.Zero), long.Parse(top[0], System.Globalization.CultureInfo.InvariantCulture), top[1], proof, counts);
+        return new RecoveryReceipt(new DateTimeOffset(2031, 3, 4, 8, 6, 7, TimeSpan.Zero), long.Parse(top[0], CultureInfo.InvariantCulture), top[1], proof, counts);
     }
 }

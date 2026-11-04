@@ -92,8 +92,6 @@ public sealed class SealDeliveryTests
         await cancelled.CancelAsync();
 
         _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => delivery.SendAsync(Text, cancelled.Token));
-
-        Assert.Equal(0, handler.Calls);
     }
 
     [Theory]

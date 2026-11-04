@@ -85,8 +85,9 @@ public sealed class SealSendingServiceTests
         using var service = new SealSendingService(null, new ManualClock(), loggers);
 
         await service.StartAsync(TestContext.Current.CancellationToken);
+        await service.ExecuteTask!.WaitAsync(Patience, TestContext.Current.CancellationToken);
 
-        Assert.True(service.ExecuteTask!.IsCompletedSuccessfully);
+        Assert.True(service.ExecuteTask.IsCompletedSuccessfully);
     }
 
     [Fact]
@@ -103,8 +104,9 @@ public sealed class SealSendingServiceTests
         using var service = new SealSendingService(host);
 
         await service.StartAsync(TestContext.Current.CancellationToken);
+        await service.ExecuteTask!.WaitAsync(Patience, TestContext.Current.CancellationToken);
 
-        Assert.True(service.ExecuteTask!.IsCompletedSuccessfully);
+        Assert.True(service.ExecuteTask.IsCompletedSuccessfully);
     }
 
     [Fact]

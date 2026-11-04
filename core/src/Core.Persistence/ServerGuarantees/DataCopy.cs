@@ -1,3 +1,4 @@
+using System.Data;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
@@ -20,6 +21,7 @@ public sealed class DataCopy
     private const int Format = 1;
     private const string ManifestFile = "manifest.json";
     private const string ConfigurationFile = "configuration.json";
+    private const string ReadOnly = "SET TRANSACTION READ ONLY";
     private const string DomainIds = "SELECT id FROM public.domain ORDER BY id";
     private const string SchemaVersion = "SELECT coalesce(pg_catalog.max(version), 0) FROM public.schema_version";
 
@@ -52,7 +54,10 @@ public sealed class DataCopy
         this.time = time;
     }
 
-    /// <summary>Records the seal, then writes the folder; a folder that holds anything, or a seal the chain did not take, leaves nothing written.</summary>
+    /// <summary>The moment each table was written, which a test uses to write to the database in the middle of the copy; the copy ignores what the hook does.</summary>
+    internal Func<string, Task>? AfterTable { get; init; }
+
+    /// <summary>Makes the folder, records the seal, then writes all the tables from one snapshot; a folder that holds anything, or a seal the chain did not take, leaves nothing written.</summary>
     /// <param name="folder">The folder of the copy: it does not exist yet or is empty.</param>
     /// <param name="configuration">The configuration in force as it may be shown, sensitive values redacted.</param>
     /// <param name="cancellationToken">Cancels the copy.</param>
@@ -65,89 +70,102 @@ public sealed class DataCopy
             return new DataCopyResult(DataCopyOutcome.FolderNotEmpty, Seal: null);
         }
 
+        _ = Directory.CreateDirectory(folder);
         var sealing = await new ChainSealer(dataSource, time).RecordAsync(CustodyAuthor.System, cancellationToken).ConfigureAwait(false);
         if (sealing.Seal is null)
         {
             return new DataCopyResult(DataCopyOutcome.SealNotRecorded, Seal: null);
         }
 
-        _ = Directory.CreateDirectory(folder);
-        foreach (var table in Tables)
+        var connection = await dataSource.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+        await using (connection.ConfigureAwait(false))
         {
-            await WriteTableAsync(folder, table, cancellationToken).ConfigureAwait(false);
+            var transaction = await connection.BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken).ConfigureAwait(false);
+            await using (transaction.ConfigureAwait(false))
+            {
+                _ = await ScalarAsync(transaction, ReadOnly, cancellationToken).ConfigureAwait(false);
+                var domains = await DomainsAsync(transaction, cancellationToken).ConfigureAwait(false);
+                foreach (var table in Tables)
+                {
+                    await WriteTableAsync(folder, table, domains, transaction, cancellationToken).ConfigureAwait(false);
+                }
+
+                await File.WriteAllTextAsync(Path.Combine(folder, ConfigurationFile), JsonSerializer.Serialize(configuration, Json), cancellationToken).ConfigureAwait(false);
+                var manifest = await ManifestAsync(transaction, cancellationToken).ConfigureAwait(false);
+                await File.WriteAllTextAsync(Path.Combine(folder, ManifestFile), manifest, cancellationToken).ConfigureAwait(false);
+            }
         }
 
-        await File.WriteAllTextAsync(Path.Combine(folder, ConfigurationFile), JsonSerializer.Serialize(configuration, Json), cancellationToken).ConfigureAwait(false);
-        await File.WriteAllTextAsync(Path.Combine(folder, ManifestFile), await ManifestAsync(cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
         return new DataCopyResult(DataCopyOutcome.Made, sealing.Seal);
     }
 
-    private async Task<string> ManifestAsync(CancellationToken cancellationToken)
+    private static async Task<object?> ScalarAsync(NpgsqlTransaction transaction, string statement, CancellationToken cancellationToken)
     {
-        var command = dataSource.CreateCommand(SchemaVersion);
+        var command = new NpgsqlCommand(statement, transaction.Connection, transaction);
         await using (command.ConfigureAwait(false))
         {
-            var version = Convert.ToInt32(await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false), CultureInfo.InvariantCulture);
-            return JsonSerializer.Serialize(new Manifest(Format, version, Tables.Select(table => table.Name + ".jsonl").ToList(), ConfigurationFile), Json);
+            return await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 
-    private async Task WriteTableAsync(string folder, Table table, CancellationToken cancellationToken)
+    private static async Task<string> ManifestAsync(NpgsqlTransaction transaction, CancellationToken cancellationToken)
+    {
+        var version = Convert.ToInt32(await ScalarAsync(transaction, SchemaVersion, cancellationToken).ConfigureAwait(false), CultureInfo.InvariantCulture);
+        return JsonSerializer.Serialize(new Manifest(Format, version, Tables.Select(table => table.Name + ".jsonl").ToList(), ConfigurationFile), Json);
+    }
+
+    private async Task WriteTableAsync(string folder, Table table, List<int> domains, NpgsqlTransaction transaction, CancellationToken cancellationToken)
     {
         var writer = new StreamWriter(Path.Combine(folder, table.Name + ".jsonl"), append: false, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false)) { NewLine = "\n" };
         await using (writer.ConfigureAwait(false))
         {
-            if (!table.InDomain)
+            foreach (var domain in table.InDomain ? domains : new List<int> { 0 })
             {
-                await WriteRowsAsync(table.Statement, writer, cancellationToken).ConfigureAwait(false);
-                return;
-            }
+                if (table.InDomain)
+                {
+                    await DeclareDomainAsync(transaction, domain, cancellationToken).ConfigureAwait(false);
+                }
 
-            foreach (var domain in await DomainsAsync(cancellationToken).ConfigureAwait(false))
-            {
-                await WriteDomainRowsAsync(table.Statement, domain, writer, cancellationToken).ConfigureAwait(false);
+                await WriteLinesAsync(transaction, table.Statement, writer, cancellationToken).ConfigureAwait(false);
             }
         }
-    }
 
-    private async Task WriteDomainRowsAsync(string statement, int domain, StreamWriter writer, CancellationToken cancellationToken)
-    {
-        var transaction = await ContentTransaction.BeginAsync(dataSource, domain, cancellationToken).ConfigureAwait(false);
-        await using (transaction.ConfigureAwait(false))
+        if (AfterTable is { } hook)
         {
-            var command = transaction.CreateCommand(statement);
-            await using (command.ConfigureAwait(false))
-            {
-                await WriteLinesAsync(command, writer, cancellationToken).ConfigureAwait(false);
-            }
+            await hook(table.Name).ConfigureAwait(false);
         }
     }
 
-    private async Task WriteRowsAsync(string statement, StreamWriter writer, CancellationToken cancellationToken)
+    private static async Task DeclareDomainAsync(NpgsqlTransaction transaction, int domain, CancellationToken cancellationToken)
     {
-        var command = dataSource.CreateCommand(statement);
+        var command = new NpgsqlCommand(ContentTransaction.Declare, transaction.Connection, transaction);
         await using (command.ConfigureAwait(false))
         {
-            await WriteLinesAsync(command, writer, cancellationToken).ConfigureAwait(false);
+            _ = command.Parameters.AddWithValue("domain", domain.ToString(CultureInfo.InvariantCulture));
+            _ = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 
-    private static async Task WriteLinesAsync(NpgsqlCommand command, StreamWriter writer, CancellationToken cancellationToken)
+    private static async Task WriteLinesAsync(NpgsqlTransaction transaction, string statement, StreamWriter writer, CancellationToken cancellationToken)
     {
-        var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-        await using (reader.ConfigureAwait(false))
+        var command = new NpgsqlCommand(statement, transaction.Connection, transaction);
+        await using (command.ConfigureAwait(false))
         {
-            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            await using (reader.ConfigureAwait(false))
             {
-                await writer.WriteLineAsync(reader.GetString(0).AsMemory(), cancellationToken).ConfigureAwait(false);
+                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    await writer.WriteLineAsync(reader.GetString(0).AsMemory(), cancellationToken).ConfigureAwait(false);
+                }
             }
         }
     }
 
-    private async Task<List<int>> DomainsAsync(CancellationToken cancellationToken)
+    private static async Task<List<int>> DomainsAsync(NpgsqlTransaction transaction, CancellationToken cancellationToken)
     {
         var domains = new List<int>();
-        var command = dataSource.CreateCommand(DomainIds);
+        var command = new NpgsqlCommand(DomainIds, transaction.Connection, transaction);
         await using (command.ConfigureAwait(false))
         {
             var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);

@@ -1,5 +1,6 @@
 using Core.Persistence.Content.Writing;
 using Core.Persistence.Custody;
+using Core.Persistence.Custody.Chain;
 using Core.Persistence.Custody.Verification;
 using Core.Persistence.ServerGuarantees;
 using Core.Persistence.Tests.Fixtures;
@@ -140,6 +141,33 @@ public sealed class GuaranteeVerifierTests
         var verification = await world.VerifierOver(LabelsSource.WithoutKey()).VerifyAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(GuaranteeKinds.EncryptedSample, verification.Missing);
+        Assert.Empty(await world.OwnerColumnAsync("SELECT step FROM public.custody_event WHERE step LIKE '%read'"));
+    }
+
+    [DatabaseFact]
+    public async Task LabelTheInstallationDidNotLoadMakesTheSampleMissingWithoutReadingAnything()
+    {
+        await using var world = await FidelityWorld.CreateAsync();
+        _ = await world.Writer.AddItemTextAsync(1, new NewItemText("texto bruto sintetico zqx"), TestContext.Current.CancellationToken);
+
+        var verification = await world.VerifierOver(LabelsSource.Providing("texto-bruto/2/v1")).VerifyAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(GuaranteeKinds.EncryptedSample, verification.Missing);
+        Assert.Empty(await world.OwnerColumnAsync("SELECT step FROM public.custody_event WHERE step LIKE '%read'"));
+    }
+
+    [DatabaseFact]
+    public async Task LossOfTheKeyDeclaredMakesTheSampleMissingWithoutReadingAnything()
+    {
+        var token = TestContext.Current.CancellationToken;
+        await using var world = await FidelityWorld.CreateAsync();
+        _ = await world.Writer.AddItemTextAsync(1, new NewItemText("texto bruto sintetico zqx"), token);
+        Assert.True(KeyLossScope.TryRead("texto-bruto/1/v1", out var scope));
+        var declared = await new CustodyChain(world.DataSource).AppendAsync(CustodyEvent.KeyLossDeclared(scope!, KeyLossAttempts.SafekeepingCopy), token);
+
+        var verification = await world.Verifier().VerifyAsync(token);
+
+        Assert.Equal((CustodyOutcome.Appended, GuaranteeKinds.EncryptedSample), (declared.Outcome, verification.Missing));
         Assert.Empty(await world.OwnerColumnAsync("SELECT step FROM public.custody_event WHERE step LIKE '%read'"));
     }
 

@@ -63,7 +63,7 @@ public enum ExitCode
     /// <summary>The comparison of the server's audit log with the chain found a difference that is new.</summary>
     AuditDifferent = 20,
 
-    /// <summary>The making of the copy of the data was refused and nothing was written: no folder was given, it holds something, or the chain did not take the event of the seal.</summary>
+    /// <summary>The making of the copy of the data was refused and nothing was written: the folder holds something, or the chain did not take the event of the seal.</summary>
     CopyRefused = 31,
 
     /// <summary>The making of the copy of the data could not talk to the database or write the folder; what was written is to be removed and the copy repeated.</summary>

@@ -15,14 +15,14 @@ ALTER TABLE public.custody_event
         AND (step <> 'verify_guarantees' OR (corrects IS NULL AND item_id BETWEEN 0 AND 63 AND (reason = 'verification_passed') = (item_id = 0))));
 CREATE INDEX custody_event_guarantees_idx ON public.custody_event (sequence DESC) WHERE step = 'verify_guarantees';
 -- The domains that still hold something to sample, so that the conference reads only what is there: a read that finds nothing leaves no event and the audit of the server counts it as a read without one. The database keeps the count of what is not emptied, as its owner, and only the role of the application, which runs the conference, reads it.
+-- The count is kept as entries that only add (+1 or -1) and the sum is what is held, so that no two writers of one domain wait for the same row (an update of it made an emptying wait for a write).
 CREATE TABLE public.content_domain (domain_id integer NOT NULL REFERENCES public.domain (id), table_name text NOT NULL CHECK (table_name IN ('item_text', 'reversal_map')),
-    live bigint NOT NULL CHECK (live >= 0), PRIMARY KEY (domain_id, table_name));
+    delta bigint NOT NULL CHECK (delta <> 0));
 GRANT SELECT ON public.content_domain TO app;
 CREATE FUNCTION public.count_content_domain() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $count$
 BEGIN
-    IF TG_OP = 'INSERT' THEN INSERT INTO public.content_domain AS c (domain_id, table_name, live) VALUES (NEW.domain_id, TG_TABLE_NAME, 1) ON CONFLICT (domain_id, table_name) DO UPDATE SET live = c.live + 1;
-    ELSE UPDATE public.content_domain SET live = live - 1 WHERE domain_id = NEW.domain_id AND table_name = TG_TABLE_NAME; END IF;
+    INSERT INTO public.content_domain (domain_id, table_name, delta) VALUES (NEW.domain_id, TG_TABLE_NAME, CASE TG_OP WHEN 'INSERT' THEN 1 ELSE -1 END);
     RETURN NULL;
 END
 $count$;

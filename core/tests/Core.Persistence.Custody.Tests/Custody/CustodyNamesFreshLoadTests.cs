@@ -18,6 +18,7 @@ public sealed class CustodyNamesFreshLoadTests
         "person_created", "person_deactivated", "person_function_changed", "person_password_set", "correction",
         "raw_text_read", "sanitized_text_read", "reversal_entries_read", "verify_chain", "item_emptied", "item_emptying_refused", "epoch_rotated", "domain_created", "seal_recorded",
         "domain_label_rotated", "sign_in_accepted", "sign_in_refused", "credential_recomputed", "key_loss_declared", "recovery_tested", "verify_guarantees",
+        "owner_window_opened", "owner_window_closed",
         "administrative_act", "correction_of_record", "content_read", "verification_passed", "verification_failed",
         "removal_requested_by_subject", "contract_requirement", "author_without_function", "item_already_emptied", "credentials_accepted", "password_wrong", "account_not_recognized",
     ];

@@ -42,5 +42,7 @@ public static class AuditMap
         [CustodyStep.KeyLossDeclared] = "a perda é declarada por quem opera e grava só o evento na cadeia, com a credencial do dono (modo declare-key-loss): não toca tabela de domínio",
         [CustodyStep.RecoveryTested] = "só o evento vai à cadeia, com a credencial do dono (modo record-recovery-test): não toca tabela de domínio",
         [CustodyStep.VerifyGuarantees] = "a conferência lê o catálogo e a amostra pelos passos de leitura e grava o veredito na cadeia: não toca tabela de domínio",
+        [CustodyStep.OwnerWindowOpened] = "a abertura da janela da credencial de dono grava só o evento na cadeia: o que a migração muda é de esquema, não de tabela de domínio",
+        [CustodyStep.OwnerWindowClosed] = "o fechamento da janela grava só o veredito na cadeia, depois de verificar a cadeia e conferir as garantias",
     };
 }

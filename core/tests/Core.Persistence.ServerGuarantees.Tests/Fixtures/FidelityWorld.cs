@@ -63,6 +63,9 @@ internal sealed class FidelityWorld : IAsyncDisposable
         new(DataSource, source.ReadAsync, reading => new ProtectedContentReader(
             DataSource, new ProtectedContent(reading.Labels, new ItemKeys(new KeyDerivation(reading.Key!, reading.Labels), reading.Epochs), new HashSet<string>()), new CustodyChain(DataSource)));
 
+    /// <summary>Runs the migration over the database with the owner credential, as the migration mode does.</summary>
+    public Task<MigrationResult> MigrateAsync(IReadOnlyList<MigrationStep> steps) => database.MigrateAsync(steps);
+
     /// <summary>Runs the statements as the owner of the database.</summary>
     public Task RunAsOwnerAsync(params string[] statements) => database.RunAsOwnerAsync(statements);
 

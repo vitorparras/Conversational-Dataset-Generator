@@ -135,7 +135,7 @@ internal static class CompositionRoot
     internal static ServiceProvider LoggingServices() =>
         new ServiceCollection().AddSingleton(TimeProvider.System).AddLogging(PlatformLogging.Configure).AddRedaction(PlatformLogging.EraseSensitiveData).BuildServiceProvider();
 
-    /// <summary>The application's data source and the nine server checks, privilege first and the derivation labels last, or the check that says no database is declared.</summary>
+    /// <summary>The application's data source, the verifier of the guarantees and the ten server checks, privilege first, the window of the owner credential second and the labels last.</summary>
     private static void AddServerGuarantees(IServiceCollection services, DatabaseSettings database)
     {
         if (database.State != DatabaseSettingsState.Configured)
@@ -146,6 +146,9 @@ internal static class CompositionRoot
 
         _ = services.AddSingleton(_ => NpgsqlDataSource.Create(database.ConnectionString!));
         _ = services.AddSingleton<IStartupCheck>(provider => new PrivilegeCheck(provider.GetRequiredService<NpgsqlDataSource>()));
+        _ = services.AddSingleton(provider => new GuaranteeVerifier(
+            provider.GetRequiredService<NpgsqlDataSource>(), provider.GetRequiredService<IMasterKeySource>().ReadAsync,
+            reading => ContentReader(provider.GetRequiredService<NpgsqlDataSource>(), reading))).AddSingleton<IStartupCheck, OwnerWindowCheck>();
         _ = services.AddSingleton<IStartupCheck>(provider => new RlsForceCheck(provider.GetRequiredService<NpgsqlDataSource>()));
         _ = services.AddSingleton<IStartupCheck>(provider => new SerializableCheck(provider.GetRequiredService<NpgsqlDataSource>()));
         _ = services.AddSingleton<IStartupCheck>(provider => new PgAuditCheck(provider.GetRequiredService<NpgsqlDataSource>()));
@@ -187,10 +190,7 @@ internal static class CompositionRoot
     {
         _ = builder.Services.AddSingleton(report).AddSingleton(_ => startup);
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetRequiredService<ServiceProcessWatch>());
-        _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source
-            ? new GuaranteeVerifier(source, provider.GetRequiredService<ServiceProvider>().GetRequiredService<IMasterKeySource>().ReadAsync, reading => ContentReader(source, reading))
-            : null!);
-        _ = builder.Services.AddSingleton<SealWarningState>();
+        _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<GuaranteeVerifier>()!).AddSingleton<SealWarningState>();
         _ = builder.Services.AddSingleton(provider => new ChainVerificationService(provider)).AddHostedService(provider => provider.GetRequiredService<ChainVerificationService>());
         _ = builder.Services.AddHostedService(provider => new SealSendingService(provider));
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source

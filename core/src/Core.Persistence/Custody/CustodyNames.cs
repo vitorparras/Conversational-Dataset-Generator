@@ -40,6 +40,8 @@ internal static class CustodyNames
         [CustodyStep.KeyLossDeclared] = "key_loss_declared",
         [CustodyStep.RecoveryTested] = "recovery_tested",
         [CustodyStep.VerifyGuarantees] = "verify_guarantees",
+        [CustodyStep.OwnerWindowOpened] = "owner_window_opened",
+        [CustodyStep.OwnerWindowClosed] = "owner_window_closed",
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<CustodyReason, string> Reasons = new Dictionary<CustodyReason, string>

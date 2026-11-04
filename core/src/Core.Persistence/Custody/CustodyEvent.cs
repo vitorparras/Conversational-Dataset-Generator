@@ -11,7 +11,7 @@ public sealed record CustodyEvent
         .Append(CustodyStep.VerifyChain).Append(CustodyStep.ItemEmptied).Append(CustodyStep.ItemEmptyingRefused).Append(CustodyStep.EpochRotated).Append(CustodyStep.DomainCreated)
         .Append(CustodyStep.SealRecorded).Append(CustodyStep.DomainLabelRotated)
         .Append(CustodyStep.SignInAccepted).Append(CustodyStep.SignInRefused).Append(CustodyStep.KeyLossDeclared).Append(CustodyStep.RecoveryTested)
-        .Append(CustodyStep.VerifyGuarantees).ToFrozenSet();
+        .Append(CustodyStep.VerifyGuarantees).Append(CustodyStep.OwnerWindowOpened).Append(CustodyStep.OwnerWindowClosed).ToFrozenSet();
 
     private CustodyEvent(CustodyAuthor author, CustodyItem item, CustodyStep step, CustodyReason reason)
     {
@@ -82,6 +82,16 @@ public sealed record CustodyEvent
         return reason is CustodyReason.AuthorWithoutFunction or CustodyReason.ItemAlreadyEmptied
             ? WithReference(new CustodyEvent(author, EmptyingItem(itemId), CustodyStep.ItemEmptyingRefused, reason), reference)
             : throw new ArgumentException("An emptying is refused because its author does not hold the function or because the item was emptied already.", nameof(reason));
+    }
+
+    internal static CustodyEvent OwnerWindowOpened(int to, string reference) =>
+        new(CustodyAuthor.System, new CustodyItem(CustodyItemKind.CustodyChain, to), CustodyStep.OwnerWindowOpened, CustodyReason.AdministrativeAct) { Reference = reference };
+
+    internal static CustodyEvent OwnerWindowClosed(long missing, string reference)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(missing);
+        var reason = missing == 0 ? CustodyReason.VerificationPassed : CustodyReason.VerificationFailed;
+        return new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.CustodyChain, missing), CustodyStep.OwnerWindowClosed, reason) { Reference = reference };
     }
 
     private static CustodyItem EmptyingItem(long itemId)

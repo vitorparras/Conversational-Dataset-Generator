@@ -12,7 +12,7 @@ namespace Core.Persistence.ServerGuarantees.Restore;
 public sealed class RestoreLoader
 {
     private const string Chain = "public.custody_event";
-    private const string Tip = "SELECT sequence || ':' || encode(digest, 'hex') FROM public.custody_event ORDER BY sequence DESC LIMIT 1";
+    private const string Tip = "SELECT sequence || ':' || pg_catalog.encode(digest, 'hex') FROM public.custody_event ORDER BY sequence DESC LIMIT 1";
     private const string Version = "SELECT coalesce(pg_catalog.max(version), 0) FROM public.schema_version";
 
     /// <summary>The tables in the order they come back: the keys, the people and their sign-in attempts, the chain, then the content (the maps after the texts, the emptied after both).</summary>

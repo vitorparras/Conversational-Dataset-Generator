@@ -1,6 +1,5 @@
 using System.Globalization;
 using Core.Persistence.Connection;
-using Core.Persistence.ServerGuarantees;
 using Core.Persistence.ServerGuarantees.Restore;
 using Core.Platform.Startup;
 using Npgsql;
@@ -37,7 +36,7 @@ internal static class RestoreLoadMode
         try
         {
             await using var source = NpgsqlDataSource.Create(database.ConnectionString!);
-            return await new RestoreLoader(source, new GuaranteeVerifier(source), TimeProvider.System).LoadAsync(RestoreCopy.Open(folder), tip, CancellationToken.None).ConfigureAwait(false);
+            return await CompositionRoot.LoaderOf(source).LoadAsync(RestoreCopy.Open(folder), tip, CancellationToken.None).ConfigureAwait(false);
         }
         catch (Exception failure) when (failure is NpgsqlException or IOException or UnauthorizedAccessException or InvalidDataException)
         {

@@ -7,7 +7,7 @@ namespace Core.Host;
 
 /// <summary>
 /// The modes that run once and serve nothing, other than the migration: with the owner credential, the rotation of the epoch, the creation of a domain,
-/// the rotation and the revocation of its label, the rewrap of its keys and the declaration of the loss of a key; with the application one, the first person.
+/// the rotation and the revocation of its label and the declaration of the loss of a key; with the application one, the first person.
 /// </summary>
 internal static class OneShotModes
 {

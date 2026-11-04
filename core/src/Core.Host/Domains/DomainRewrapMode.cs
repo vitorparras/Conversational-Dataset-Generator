@@ -8,8 +8,8 @@ using Npgsql;
 namespace Core.Host.Domains;
 
 /// <summary>
-/// The mode asked for with <c>rewrap-domain --domain &lt;id&gt;</c> (issue 56): run once with the owner credential, it wraps again the key of each row of the domain under the newest generation of
-/// its labels that is not revoked, in batches that each commit alone, and never touches the content. With <c>--status</c> it only reads and says how many keys are there and how many are behind.
+/// The mode asked for with <c>rewrap-domain --domain &lt;id&gt;</c> (issue 56): run once with the owner credential, it wraps again the keys of the domain under the newest label not revoked, in batches,
+/// never touching the content. With <c>--status</c> it only reads and says how many keys are there and how many are behind.
 /// </summary>
 internal static class DomainRewrapMode
 {

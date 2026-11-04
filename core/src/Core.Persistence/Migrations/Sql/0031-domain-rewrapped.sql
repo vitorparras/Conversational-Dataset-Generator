@@ -35,7 +35,6 @@ BEGIN
 END
 $refuse$;
 
--- The event is the system's, about a domain by its number, for an administrative act, with no reference. Only the step list and the shape of the domain change, from the versions of the 0030.
 ALTER TABLE public.custody_event
     DROP CONSTRAINT custody_event_step_listed,
     DROP CONSTRAINT custody_event_domain_shape,
@@ -51,4 +50,5 @@ ALTER TABLE public.custody_event
             OR (actor_system AND reason = 'administrative_act' AND corrects IS NULL))
         AND (step NOT IN ('domain_created', 'domain_rewrapped') OR reference IS NULL)
         AND (step <> 'domain_label_rotated' OR coalesce(reference ~ '^v[1-9][0-9]*$', false))
-        AND (step <> 'domain_label_revoked' OR coalesce(reference ~ '^(texto-bruto|mapa-reversao)/[1-9][0-9]*/v[1-9][0-9]*$', false)));
+        AND (step <> 'domain_label_revoked' OR coalesce(reference ~ '^(texto-bruto|mapa-reversao)/[1-9][0-9]*/v[1-9][0-9]*$', false))
+        AND (step <> 'domain_label_revoked' OR split_part(reference, '/', 2) = item_id::text));

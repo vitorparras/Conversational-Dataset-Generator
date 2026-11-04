@@ -54,7 +54,7 @@ public sealed class DomainRewrap
         ArgumentNullException.ThrowIfNull(loaded);
         var registered = await RegisteredLabels.ReadAsync(dataSource, cancellationToken).ConfigureAwait(false);
         var revoked = await LabelRevocations.ReadAsync(dataSource, cancellationToken).ConfigureAwait(false);
-        return new Plan { DomainId = domainId, Loaded = loaded, Usable = text => registered.Contains(text) && !revoked.Contains(text) };
+        return new Plan { DomainId = domainId, Loaded = loaded, Wanted = DerivationLabels.Of(registered), Usable = text => !revoked.Contains(text) };
     }
 
     private async Task<int> RewrapTableAsync(Plan plan, ItemKeys keys, Table table, CancellationToken cancellationToken)
@@ -97,13 +97,14 @@ public sealed class DomainRewrap
 
         var result = await CustodyAppend.AppendAsync(transaction.AsCustodyScope(), CustodyEvent.DomainRewrapped(context.Plan.DomainId), cancellationToken).ConfigureAwait(false);
         _ = result.Outcome == CustodyOutcome.Appended ? 0 : throw new InvalidOperationException($"The custody chain did not take the event of the rewrap: {result.Outcome}.");
+        var changed = 0;
         foreach (var (id, epoch, wrapped) in behind)
         {
             var again = context.Keys.Rewrap(epoch, wrapped, epoch, context.Plan.Target(wrapped));
-            _ = await ReplaceAsync(transaction, page.Table, (id, epoch, again), cancellationToken).ConfigureAwait(false);
+            changed += await ReplaceAsync(transaction, page.Table, (id, epoch, again), cancellationToken).ConfigureAwait(false);
         }
 
-        return behind.Count;
+        return changed;
     }
 
     private async Task<(int Current, int Behind)> CountTableAsync(Plan plan, Table table, CancellationToken cancellationToken)
@@ -162,6 +163,8 @@ public sealed class DomainRewrap
 
         internal DerivationLabels Loaded { get; init; } = DerivationLabels.None;
 
+        internal DerivationLabels Wanted { get; init; } = DerivationLabels.None;
+
         internal Func<string, bool> Usable { get; init; } = static _ => false;
 
         internal bool IsBehind(byte[] wrapped) => EnvelopeCipher.LabelOf(wrapped) != Target(wrapped);
@@ -171,7 +174,8 @@ public sealed class DomainRewrap
             var carried = DerivationLabel.TryParse(EnvelopeCipher.LabelOf(wrapped), out var label) && label.DomainId == DomainId
                 ? label
                 : throw new EnvelopeRefusedException("The label in the header of a key is not a derivation label of the domain.");
-            return ProtectedContent.NewestOf(Loaded, Usable, carried.Purpose, DomainId).Text;
+            var wanted = ProtectedContent.NewestOf(Wanted, Usable, carried.Purpose, DomainId).Text;
+            return Loaded.Holds(wanted) ? wanted : throw new EnvelopeRefusedException($"The label {wanted} is the newest registered and not revoked, and the file of labels does not hold it.");
         }
     }
 }

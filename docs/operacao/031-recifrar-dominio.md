@@ -26,8 +26,7 @@ faltam. Faltando zero, o domínio está todo recifrado.
 ## Códigos de saída
 
 - **0**: feito, ou contagem dada.
-- **39**: recusa, como chave que não abre ou cadeia que não aceitou o evento; lotes gravados ficam.
+- **39**: recusa (chave que não abre, rótulo novo ausente do arquivo, cadeia que não aceitou
+  o evento); lotes gravados ficam.
 - **40**: o banco não respondeu; os lotes gravados ficam.
 - **78**: faltou `--domain` ou um dos caminhos.
-
-A saída diz só contagens, nunca uma chave, uma época ou um rótulo.

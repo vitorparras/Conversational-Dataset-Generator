@@ -24,8 +24,8 @@ A derivação leva o domínio ao lado da finalidade, então a rotação pode ser
 tocar nos demais. Rotação de domínio não é rotação de acervo, e dizer qual delas foi feita importa:
 a primeira não protege o material dos outros domínios.
 
-Recifrar o acervo sob o rótulo novo é opcional e, quando feito, é operação registrada: lê sob o
-rótulo antigo e grava sob o novo, item por item, deixando rastro de quantos itens mudaram.
+Recifrar o acervo sob o rótulo novo é opcional e, quando feito, é operação registrada: o comando
+`rewrap-domain` embrulha de novo só a chave de cada item, e está em [031](031-recifrar-dominio.md).
 
 ## O comando
 

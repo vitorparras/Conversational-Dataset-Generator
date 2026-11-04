@@ -52,8 +52,6 @@ public sealed class OwnerWindowEventTests
     [Theory]
     [InlineData(CustodyStep.OwnerWindowOpened)]
     [InlineData(CustodyStep.OwnerWindowClosed)]
-    public void TheTwoStepsHaveAnEventOfTheirOwnAndAreRefusedAsAPlainOne(CustodyStep step)
-    {
+    public void TheTwoStepsHaveAnEventOfTheirOwnAndAreRefusedAsAPlainOne(CustodyStep step) =>
         _ = Assert.Throws<ArgumentException>(() => CustodyEvent.Of(CustodyAuthor.System, new CustodyItem(CustodyItemKind.CustodyChain, 1), step, CustodyReason.AdministrativeAct));
-    }
 }

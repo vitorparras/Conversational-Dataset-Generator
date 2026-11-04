@@ -75,7 +75,7 @@ public sealed class SealSendingServiceTests
         await run.RecordedAsync(1, TestContext.Current.CancellationToken);
 
         Assert.Contains(run.Log.Lines, line => line.Contains("InvalidOperationException", StringComparison.Ordinal) && !line.Contains("zqx", StringComparison.Ordinal));
-        Assert.Single(fakes.Recorded);
+        _ = Assert.Single(fakes.Recorded);
     }
 
     [Fact]
@@ -116,7 +116,7 @@ public sealed class SealSendingServiceTests
         await run.WaitingAsync(TestContext.Current.CancellationToken);
 
         run.Clock.Advance(Interval - TimeSpan.FromSeconds(1));
-        Assert.Single(fakes.Recorded);
+        _ = Assert.Single(fakes.Recorded);
         run.Clock.Advance(TimeSpan.FromSeconds(1));
         await run.RecordedAsync(2, TestContext.Current.CancellationToken);
 
@@ -136,7 +136,7 @@ public sealed class SealSendingServiceTests
         run.Clock.Advance(Interval - TimeSpan.FromHours(6));
         await run.RecordedAsync(1, TestContext.Current.CancellationToken);
 
-        Assert.Single(fakes.Recorded);
+        _ = Assert.Single(fakes.Recorded);
     }
 
     [Fact]
@@ -148,7 +148,7 @@ public sealed class SealSendingServiceTests
         await run.StartAsync(TestContext.Current.CancellationToken);
         await run.WaitingAsync(TestContext.Current.CancellationToken);
 
-        Assert.Single(fakes.Recorded);
+        _ = Assert.Single(fakes.Recorded);
     }
 
     private sealed class Fakes

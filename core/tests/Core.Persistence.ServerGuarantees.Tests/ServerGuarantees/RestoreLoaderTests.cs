@@ -22,9 +22,6 @@ namespace Core.Persistence.Tests.ServerGuarantees;
 [Trait("Category", "Database")]
 public sealed class RestoreLoaderTests
 {
-    private const string Digests =
-        "SELECT string_agg(sequence || ':' || encode(previous_digest, 'hex') || ':' || encode(digest, 'hex'), ',' ORDER BY sequence)"
-        + " FROM public.custody_event WHERE sequence <= {0}";
     private const string People = "SELECT string_agg(id || ':' || name || ':' || function_name || ':' || created_at || ':' || active, ',' ORDER BY id) FROM public.person";
     private const string Credentials =
         "SELECT string_agg(person_id || ':' || algorithm || ':' || work_factor || ':' || encode(salt, 'hex')"
@@ -192,13 +189,15 @@ public sealed class RestoreLoaderTests
         Assert.Equal(["verification_failed"], await destination.OwnerColumnAsync("SELECT reason FROM public.custody_event WHERE step = 'restored'"));
     }
 
-    private static string DigestsUpTo(long sequence) => string.Format(CultureInfo.InvariantCulture, Digests, sequence);
+    // nosemgrep: sql-concatenation-csharp interpolates only a sequence the test read from the database, a number, never input.
+    private static string DigestsUpTo(long sequence) =>
+        $"SELECT string_agg(sequence || ':' || encode(previous_digest, 'hex') || ':' || encode(digest, 'hex'), ',' ORDER BY sequence) FROM public.custody_event WHERE sequence <= {sequence}";
 
     private static Task<RestoreResult> LoadAsync(FidelityWorld destination, CopyFolder copy, RestoreTip tip) =>
         new RestoreLoader(destination.DataSource, new GuaranteeVerifier(destination.DataSource), TimeProvider.System)
             .LoadAsync(RestoreCopy.Open(copy.Path), tip, TestContext.Current.CancellationToken);
 
-    private static IEnumerable<JsonNode> Altered(List<JsonNode> events, int index)
+    private static List<JsonNode> Altered(List<JsonNode> events, int index)
     {
         var digest = (string)events[index]["digest"]!;
         events[index]["digest"] = digest[..^1] + (digest[^1] == '0' ? '1' : '0');

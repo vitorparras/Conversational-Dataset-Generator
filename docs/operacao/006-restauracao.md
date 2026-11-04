@@ -52,8 +52,9 @@ restauração está pedindo acesso que a política nega.
 
 ## A restauração é um evento
 
-Ela não desaparece depois de dar certo: um evento novo declara o que foi restaurado, de qual cópia
-e qual era o topo antes e depois. Restauração silenciosa deixa na sequência um salto que a
-próxima verificação encontra sem explicação — e trata como incidente, corretamente.
+Ela não desaparece depois de dar certo: um evento novo declara o que foi restaurado, de qual cópia,
+o veredito e qual era o topo antes e depois. Janela aprovada não é restauração aprovada: vale o
+`restored`. Restauração silenciosa deixa na sequência um salto que a próxima verificação
+encontra sem explicação — e trata como incidente, corretamente.
 
 Se a cadeia não fechar, pare aqui e siga [009](009-incidente-cadeia-quebrada.md).

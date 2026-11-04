@@ -7,14 +7,12 @@ using Npgsql;
 
 namespace Core.Host.Restore;
 
-/// <summary>
-/// The mode of <c>restore-load &lt;folder&gt; &lt;sequence&gt; &lt;digest&gt;</c>: the copy to put back and the tip noted outside it. Run once with the application's credential in a new database;
-/// the code of the exit is the verdict and the lines say what differs, never a value.
-/// </summary>
+/// <summary>The mode of <c>restore-load &lt;folder&gt; &lt;sequence&gt; &lt;digest&gt;</c>: puts a copy back in a new database; the exit code is the verdict, the lines carry no value.</summary>
 internal static class RestoreLoadMode
 {
     private const string Argument = "restore-load";
     private const int Positional = 4;
+    private const int SequenceAt = 2, DigestAt = 3;
 
     internal static bool Requested(string[] args) => args is [Argument, ..];
 
@@ -23,13 +21,13 @@ internal static class RestoreLoadMode
 
     internal static async Task<HostLaunch> LaunchAsync(string[] args, DatabaseSettings database)
     {
-        if (args.Length < Positional || !long.TryParse(args[2], NumberStyles.None, CultureInfo.InvariantCulture, out var sequence))
+        if (args.Length < Positional || !long.TryParse(args[SequenceAt], NumberStyles.None, CultureInfo.InvariantCulture, out var sequence))
         {
             await Console.Error.WriteLineAsync("restore-load pede a pasta da cópia e o topo anotado fora dela: sequência e digest.").ConfigureAwait(false);
             return HostLaunch.Loaded(ExitCode.ConfigurationRefused);
         }
 
-        var result = await LoadAsync(database, args[1], new RestoreTip(sequence, args[3])).ConfigureAwait(false);
+        var result = await LoadAsync(database, args[1], new RestoreTip(sequence, args[DigestAt])).ConfigureAwait(false);
         await (result.Outcome == RestoreOutcome.Restored ? Console.Out : Console.Error).WriteLineAsync($"restauração: {result.Outcome} {result.Detail}".TrimEnd()).ConfigureAwait(false);
         return HostLaunch.Loaded(result.Outcome == RestoreOutcome.Restored ? ExitCode.Success : ExitCode.RestoreRefused);
     }

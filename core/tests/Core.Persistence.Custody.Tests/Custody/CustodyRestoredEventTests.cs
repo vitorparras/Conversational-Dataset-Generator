@@ -20,13 +20,9 @@ public sealed class CustodyRestoredEventTests
 
     [Fact]
     public void NegativeCountOfRowsIsRefused()
-    {
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() => CustodyEvent.Restored(-1, held: true, "copy=abc;before=5;after=7"));
-    }
+        => _ = Assert.Throws<ArgumentOutOfRangeException>(() => CustodyEvent.Restored(-1, held: true, "copy=abc;before=5;after=7"));
 
     [Fact]
     public void RestoreCannotBeBuiltAsAnOrdinaryStep()
-    {
-        _ = Assert.Throws<ArgumentException>(() => CustodyEvent.Of(CustodyAuthor.System, new CustodyItem(CustodyItemKind.CustodyChain, 1), CustodyStep.Restored, CustodyReason.VerificationPassed));
-    }
+        => _ = Assert.Throws<ArgumentException>(() => CustodyEvent.Of(CustodyAuthor.System, new CustodyItem(CustodyItemKind.CustodyChain, 1), CustodyStep.Restored, CustodyReason.VerificationPassed));
 }

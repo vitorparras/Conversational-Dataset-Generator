@@ -39,6 +39,9 @@ public enum PersonOutcome
     /// <summary>The person already holds the function asked for.</summary>
     FunctionUnchanged,
 
+    /// <summary>The person is the last active holder of the administration function, and deactivating them would leave the installation with nobody who makes or restores people.</summary>
+    LastAdministrator,
+
     /// <summary>The last verification of the chain of custody failed, so nothing is written until the chain is restored; nothing was written.</summary>
     ChainBroken,
 }

@@ -4,6 +4,7 @@ using Core.Boundary.Http;
 using Core.Host.Analysis;
 using Core.Host.Endpoints;
 using Core.Host.Migration;
+using Core.Host.Operators;
 using Core.Host.Supervision;
 using Core.Persistence.Connection;
 using Core.Persistence.Content.Rotation;
@@ -178,8 +179,10 @@ internal static class CompositionRoot
         _ = builder.Services.AddSingleton(provider => new ChainVerificationService(provider)).AddHostedService(provider => provider.GetRequiredService<ChainVerificationService>());
         _ = builder.Services.AddHostedService(provider => new SealSendingService(provider));
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source
-            ? new SignIn(new PersonRegistry(source), new PersonCredentials(source, provider.GetRequiredService<PasswordDerivation>()),
-                provider.GetRequiredService<SessionStore>(), new SignInDelay(provider.GetRequiredService<TimeProvider>()))
+            ? new OperatorAdministration(new PersonRegistry(source), new PersonCredentials(source, provider.GetRequiredService<PasswordDerivation>()), provider.GetRequiredService<SessionStore>())
+            : null!);
+        _ = builder.Services.AddSingleton(provider => provider.GetService<OperatorAdministration>() is { } people
+            ? new SignIn(people.Registry, people.Credentials, provider.GetRequiredService<SessionStore>(), new SignInDelay(provider.GetRequiredService<TimeProvider>()))
             : null!);
 
         var app = builder.Build();

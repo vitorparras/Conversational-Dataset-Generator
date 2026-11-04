@@ -39,5 +39,6 @@ public static class AuditMap
         [CustodyStep.EpochRotated] = "a rotação regrava a chave de cada linha antiga, uma instrução por linha, e grava um só evento: os comandos do log não casam com os eventos",
         [CustodyStep.DomainCreated] = "o domínio e os rótulos são escritos com a credencial do dono (não a da aplicação) em tabelas que o mapa não compara: a cadeia guarda o evento",
         [CustodyStep.SealRecorded] = "o selo é lido da cadeia (ChainSealer) e grava só o evento nela: não toca tabela de domínio",
+        [CustodyStep.DomainLabelRotated] = "os rótulos da nova geração são escritos com a credencial do dono (não a da aplicação) em tabela que o mapa não compara: a cadeia guarda o evento",
     };
 }

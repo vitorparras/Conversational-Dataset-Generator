@@ -12,7 +12,8 @@ internal static class RestoreLoadMode
 {
     private const string Argument = "restore-load";
     private const int Positional = 4;
-    private const int SequenceAt = 2, DigestAt = 3;
+    private const int SequenceAt = 2;
+    private const int DigestAt = 3;
 
     internal static bool Requested(string[] args) => args is [Argument, ..];
 

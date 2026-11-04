@@ -4,7 +4,7 @@ using Core.Host.Rotation;
 
 namespace Core.Host;
 
-/// <summary>The modes that run once and serve nothing: the migration, the epoch rotation, the creation of a domain with the owner credential and the first person.</summary>
+/// <summary>The one-shot modes besides the migration: the epoch rotation, the domain creation with the owner credential and the first person with the application one.</summary>
 internal static class OneShotModes
 {
     /// <summary>The run of the mode the first argument asks for; null when it asks for none of them.</summary>

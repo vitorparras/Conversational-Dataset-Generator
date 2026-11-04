@@ -31,7 +31,8 @@ internal sealed class CopiedWorld : IAsyncDisposable
         new("MasterKey:File", EffectiveConfiguration.Redacted, ConfigurationOrigin.Argument),
     };
 
-    public static async Task<CopiedWorld> CreateAsync()
+    /// <param name="betweenTables">Runs after each table is written, with the world and the name of the table, so a test can write while the copy is under way.</param>
+    public static async Task<CopiedWorld> CreateAsync(Func<FidelityWorld, string, Task>? betweenTables = null)
     {
         var world = await FidelityWorld.CreateAsync();
         await world.RunAsOwnerAsync(
@@ -41,7 +42,8 @@ internal sealed class CopiedWorld : IAsyncDisposable
         _ = await world.Writer.AddReversalMapAsync(1, item, "mapa sintetico zqx", TestContext.Current.CancellationToken);
         var folder = Path.Combine(Path.GetTempPath(), "zqx-copy-" + Guid.NewGuid().ToString("N"));
         await using var owner = NpgsqlDataSource.Create(world.OwnerConnectionString);
-        var result = await new DataCopy(owner, TimeProvider.System).WriteAsync(folder, Configuration, TestContext.Current.CancellationToken);
+        var result = await new DataCopy(owner, TimeProvider.System) { AfterTable = table => betweenTables is null ? Task.CompletedTask : betweenTables(world, table) }
+            .WriteAsync(folder, Configuration, TestContext.Current.CancellationToken);
         return new CopiedWorld(world, folder, result);
     }
 

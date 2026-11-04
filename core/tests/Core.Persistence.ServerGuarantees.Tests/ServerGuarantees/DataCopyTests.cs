@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using Core.Persistence.Content.Writing;
 using Core.Persistence.ServerGuarantees;
 using Core.Persistence.Tests.Content;
 using Core.Persistence.Tests.Fixtures;
@@ -55,6 +56,9 @@ public sealed class DataCopyTests
 
         Assert.DoesNotContain(Convert.ToHexStringLower(key), everything, StringComparison.Ordinal);
         Assert.DoesNotContain(Convert.ToBase64String(key), everything, StringComparison.Ordinal);
+        var epoch = SyntheticCustody.SecretOf(1);
+        Assert.DoesNotContain(Convert.ToHexStringLower(epoch), everything, StringComparison.Ordinal);
+        Assert.DoesNotContain(Convert.ToBase64String(epoch), everything, StringComparison.Ordinal);
         Assert.DoesNotContain(CopiedWorld.Marker, everything, StringComparison.Ordinal);
         Assert.DoesNotContain(copied.Result.Seal!.ToText(), everything, StringComparison.Ordinal);
         Assert.Contains("[redigido]", await File.ReadAllTextAsync(Path.Combine(copied.Folder, "configuration.json"), TestContext.Current.CancellationToken), StringComparison.Ordinal);
@@ -75,6 +79,28 @@ public sealed class DataCopyTests
     }
 
     [DatabaseFact]
+    public async Task Ca1AWriteBetweenTwoTablesIsNotInTheCopyBecauseAllOfThemAreReadFromOneSnapshot()
+    {
+        var token = TestContext.Current.CancellationToken;
+        await using var copied = await CopiedWorld.CreateAsync(async (world, table) =>
+        {
+            if (table == "content.item_text")
+            {
+                var added = await world.Writer.AddItemTextAsync(1, new NewItemText("texto bruto de depois zqx"), token);
+                _ = await world.Writer.AddReversalMapAsync(1, added, "mapa de depois zqx", token);
+            }
+        });
+
+        var texts = await File.ReadAllLinesAsync(Path.Combine(copied.Folder, "content.item_text.jsonl"), token);
+        var maps = await File.ReadAllLinesAsync(Path.Combine(copied.Folder, "content.reversal_map.jsonl"), token);
+
+        var inTheDatabase = await copied.World.InDomainAsync(1, "SELECT count(*)::text FROM content.item_text");
+
+        Assert.Equal("2", inTheDatabase);
+        Assert.Equal((1, 1), (texts.Length, maps.Length));
+    }
+
+    [DatabaseFact]
     public async Task Ca6NoEventOfReadingIsWrittenByTheCopyThoughItReadsEveryTableOfContent()
     {
         await using var copied = await CopiedWorld.CreateAsync();
@@ -84,6 +110,26 @@ public sealed class DataCopyTests
 
         Assert.Equal(["0"], reads);
         Assert.Single(rows);
+    }
+
+    [DatabaseFact]
+    public async Task FolderThatCannotBeMadeLeavesNoSealInTheChain()
+    {
+        await using var world = await FidelityWorld.CreateAsync();
+        var file = Path.Combine(Path.GetTempPath(), "zqx-copy-" + Guid.NewGuid().ToString("N"));
+        await File.WriteAllTextAsync(file, "zqx", TestContext.Current.CancellationToken);
+        await using var owner = NpgsqlDataSource.Create(world.OwnerConnectionString);
+        try
+        {
+            _ = await Assert.ThrowsAnyAsync<IOException>(
+                () => new DataCopy(owner, TimeProvider.System).WriteAsync(Path.Combine(file, "pasta"), CopiedWorld.Configuration, TestContext.Current.CancellationToken));
+
+            Assert.Equal(["0"], await world.OwnerColumnAsync("SELECT count(*)::text FROM public.custody_event"));
+        }
+        finally
+        {
+            File.Delete(file);
+        }
     }
 
     [DatabaseFact]

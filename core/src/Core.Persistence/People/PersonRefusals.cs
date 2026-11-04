@@ -34,13 +34,13 @@ internal static class PersonRefusals
         PersonResult.Refused(PersonOutcome.PasswordInvalid, "A senha não pode ser vazia.");
 
     /// <summary>The answer for a change whose custody event was attempted: done when the event is in the chain, otherwise the reason it was not.</summary>
-    internal static PersonResult Chained(CustodyResult custody, long personId) => custody.Outcome switch
+    internal static PersonResult Chained(CustodyResult custody, long personId) => custody switch
     {
-        CustodyOutcome.Appended => PersonResult.Done(personId),
-        CustodyOutcome.ActorUnknown => ActorUnknown(),
-        CustodyOutcome.ActorDeactivated => ActorDeactivated(),
-        CustodyOutcome.CorrectedNotFound or CustodyOutcome.Conflict => ChainBusy(),
-        CustodyOutcome.ChainBroken => ChainBroken(),
+        { Outcome: CustodyOutcome.Appended } => PersonResult.Done(personId),
+        { Outcome: CustodyOutcome.ActorUnknown } => ActorUnknown(),
+        { Outcome: CustodyOutcome.ActorDeactivated } => ActorDeactivated(),
+        { Outcome: CustodyOutcome.CorrectedNotFound or CustodyOutcome.Conflict } => ChainBusy(),
+        { Outcome: CustodyOutcome.ChainBroken } => ChainBroken(),
         _ => Defect(custody),
     };
 

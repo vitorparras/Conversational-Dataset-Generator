@@ -6,7 +6,8 @@ namespace Core.Persistence.Custody;
 public sealed record CustodyEvent
 {
     private static readonly FrozenSet<CustodyStep> OfTheirOwn = Enumerable.Repeat(CustodyStep.Correction, 1)
-        .Append(CustodyStep.VerifyChain).Append(CustodyStep.ItemEmptied).Append(CustodyStep.ItemEmptyingRefused).Append(CustodyStep.EpochRotated).Append(CustodyStep.DomainCreated).ToFrozenSet();
+        .Append(CustodyStep.VerifyChain).Append(CustodyStep.ItemEmptied).Append(CustodyStep.ItemEmptyingRefused).Append(CustodyStep.EpochRotated).Append(CustodyStep.DomainCreated)
+        .Append(CustodyStep.SealRecorded).ToFrozenSet();
 
     private CustodyEvent(CustodyAuthor author, CustodyItem item, CustodyStep step, CustodyReason reason)
     {
@@ -45,8 +46,8 @@ public sealed record CustodyEvent
         ArgumentNullException.ThrowIfNull(item);
         return HasEventOfItsOwn(step)
             ? throw new ArgumentException(
-                "A correction, a verification, an emptying, a rotation and the creation of a domain have an event of their own; "
-                + "use Correction, Verification, Emptied, EmptyingRefused, EpochRotated or DomainCreated.", nameof(step))
+                "A correction, a verification, an emptying, a rotation, the creation of a domain and a seal have an event of their own; "
+                + "use Correction, Verification, Emptied, EmptyingRefused, EpochRotated, DomainCreated or SealRecorded.", nameof(step))
             : new CustodyEvent(author, item, step, reason);
     }
 
@@ -121,6 +122,16 @@ public sealed record CustodyEvent
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(domainId);
         return new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.Domain, domainId), CustodyStep.DomainCreated, CustodyReason.AdministrativeAct);
+    }
+
+    /// <summary>The event of a seal recorded: the item is the chain, its id is the sequence of the event sealed, and the digest of that event is read from the chain and is not in this one.</summary>
+    /// <param name="author">The system, or the person who confirmed the record.</param>
+    /// <param name="sealedSequence">The sequence of the last event the seal covers, which is also the number of events it counts; 0 for a chain with none.</param>
+    public static CustodyEvent SealRecorded(CustodyAuthor author, long sealedSequence)
+    {
+        ArgumentNullException.ThrowIfNull(author);
+        ArgumentOutOfRangeException.ThrowIfNegative(sealedSequence);
+        return new CustodyEvent(author, new CustodyItem(CustodyItemKind.CustodyChain, sealedSequence), CustodyStep.SealRecorded, CustodyReason.AdministrativeAct);
     }
 
     /// <summary>A new event that corrects an earlier one, which stays in the sequence as it was.</summary>

@@ -37,7 +37,7 @@ public sealed class SealSendingServiceTests
     [Fact]
     public async Task SealThatDidNotArriveIsNotRecordedAndTheLogNamesTheReasonAndTheCountButNotTheSeal()
     {
-        var fakes = new Fakes { Send = _ => Task.FromResult(SealDeliveryResult.Failed(SealDeliveryFailure.DestinationAnswered, 500)) };
+        var fakes = new Fakes { Send = _ => Task.FromResult(new SealDeliveryResult(SealDeliveryFailure.DestinationAnswered, 500)) };
         await using var run = new Run(fakes);
         await run.StartAsync(TestContext.Current.CancellationToken);
         await run.WaitingAsync(TestContext.Current.CancellationToken);

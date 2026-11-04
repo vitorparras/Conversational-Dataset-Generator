@@ -21,7 +21,10 @@ public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<Resto
         "SELECT string_agg(sequence || ':' || encode(previous_digest, 'hex') || ':' || encode(digest, 'hex')"
         + " || ':' || occurred_at || ':' || recorded_by, ',' ORDER BY sequence) FROM public.custody_event";
     private const string People = "SELECT string_agg(id || ':' || name || ':' || created_at || ':' || created_by || ':' || active, ',' ORDER BY id) FROM public.person";
-    private const string Window = "SELECT string_agg(state || ':' || coalesce(approved::text, '-'), ',' ORDER BY state) FROM public.restore_window";
+    private const string HeldByDomain =
+        "SELECT string_agg(domain_id || ':' || table_name || ':' || live, ',' ORDER BY domain_id, table_name)"
+        + " FROM (SELECT domain_id, table_name, sum(delta) AS live FROM public.content_domain GROUP BY domain_id, table_name) c";
+    private const string Window ="SELECT string_agg(state || ':' || coalesce(approved::text, '-'), ',' ORDER BY state) FROM public.restore_window";
 
     [DatabaseFact]
     public async Task EveryTableComesBackAsTheCopyHasItAndTheChainWithTheSameSequenceAndDigests()
@@ -29,7 +32,7 @@ public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<Resto
         await using var destination = await Destination.CreateAsync();
 
         await destination.OpenAsync();
-        foreach (var table in new[] { "public.domain", "public.derivation_label", "public.person", "public.person_credential", "public.person_change" })
+        foreach (var table in new[] { "public.domain", "public.derivation_label", "public.person", "public.person_credential", "public.person_change", "public.sign_in_attempt" })
         {
             _ = await destination.LoadAsync(table, source.Copy[table]);
         }
@@ -52,6 +55,7 @@ public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<Resto
             ("public.person", "id"),
             ("public.person_credential", "person_id"),
             ("public.person_change", "id"),
+            ("public.sign_in_attempt", "id"),
         })
         {
             Assert.Equal(source.Copy[table], Assert.Single(await destination.Database.FirstColumnAsOwnerAsync($"SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY {key}), '[]') FROM {table} t")));
@@ -59,9 +63,7 @@ public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<Resto
 
         Assert.Equal(
             ["1:item_text:1,1:reversal_map:1"],
-            await destination.Database.FirstColumnAsOwnerAsync(
-                "SELECT string_agg(domain_id || ':' || table_name || ':' || live, ',' ORDER BY domain_id, table_name)"
-                + " FROM public.content_domain"));
+            await destination.Database.FirstColumnAsOwnerAsync(HeldByDomain));
         Assert.Equal(
             ["2", "2"],
             await destination.Database.FirstColumnAsOwnerAsync(
@@ -75,6 +77,46 @@ public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<Resto
                 "SELECT (SELECT count(*) FROM content.item_text WHERE emptied_at IS NOT NULL AND raw_text IS NULL)"
                 + " || ',' || (SELECT count(*) FROM content.item_emptied)"
                 + " || ',' || (SELECT count(*) FROM content.reversal_map)"));
+    }
+
+    [DatabaseFact]
+    public async Task SignInAttemptsComeBackAsTheCopyHasThemAndTheNextOneContinuesTheSequence()
+    {
+        await using var destination = await Destination.CreateAsync();
+        await destination.OpenAsync();
+
+        var loaded = await destination.LoadAsync("public.sign_in_attempt", source.Copy["public.sign_in_attempt"]);
+        await destination.Database.RunAsOwnerAsync("INSERT INTO public.sign_in_attempt (network) VALUES (NULL)");
+
+        Assert.Equal(2, loaded);
+        Assert.Equal(
+            source.Copy["public.sign_in_attempt"],
+            Assert.Single(await destination.Database.FirstColumnAsOwnerAsync("SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY id), '[]') FROM (SELECT * FROM public.sign_in_attempt WHERE id <= 2) t")));
+        Assert.Equal(["3"], await destination.Database.FirstColumnAsOwnerAsync("SELECT max(id)::text FROM public.sign_in_attempt"));
+    }
+
+    [DatabaseFact]
+    public async Task ContentDomainIsCountedByTheTriggersWhileTheContentComesBackAndCountedAgainWhenTheWindowClosesApproved()
+    {
+        await using var destination = await Destination.CreateAsync();
+        await destination.OpenAsync();
+        foreach (var table in new[] { "public.domain", "public.derivation_label", "public.person", "public.person_credential", "public.person_change" })
+        {
+            _ = await destination.LoadAsync(table, source.Copy[table]);
+        }
+
+        _ = await destination.EventsAsync(source.Copy["public.custody_event"]);
+        foreach (var table in new[] { "content.item_text", "content.reversal_map", "content.item_emptied" })
+        {
+            _ = await destination.LoadAsync(table, source.Copy[table]);
+        }
+
+        var counted = await destination.Database.FirstColumnAsOwnerAsync(HeldByDomain);
+        await destination.CloseAsync(approved: true);
+
+        Assert.Equal(["1:item_text:1,1:reversal_map:1,2:item_text:1"], counted);
+        Assert.Equal(["1:item_text:1,1:reversal_map:1"], await destination.Database.FirstColumnAsOwnerAsync(HeldByDomain));
+        Assert.Equal(["2"], await destination.Database.FirstColumnAsOwnerAsync("SELECT count(*)::text FROM public.content_domain"));
     }
 
     [DatabaseTheory]

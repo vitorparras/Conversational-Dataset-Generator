@@ -39,6 +39,9 @@ public sealed class RestoreSource : IAsyncLifetime
             "INSERT INTO public.person_credential (person_id, algorithm, work_factor, salt, derived) VALUES (1, 'zqx-algorithm', 1, decode('00112233445566778899aabbccddeeff', 'hex'), '\x0102')",
             "INSERT INTO public.person_change (person_id, kind, new_function, actor_id) VALUES (1, 'created', 'Anotação', NULL)",
             "INSERT INTO public.person_change (person_id, kind, actor_id) VALUES (2, 'deactivated', 1)");
+        await world.RunAsOwnerAsync(
+            "INSERT INTO public.sign_in_attempt (network) VALUES ('203.0.113.0/24')",
+            "INSERT INTO public.sign_in_attempt (network) VALUES (NULL)");
         Copy = new Dictionary<string, string>
         {
             ["public.domain"] = await OwnerRowsAsync("public.domain", "id"),
@@ -46,6 +49,7 @@ public sealed class RestoreSource : IAsyncLifetime
             ["public.derivation_label"] = await OwnerRowsAsync("public.derivation_label", "label"),
             ["public.person_credential"] = await OwnerRowsAsync("public.person_credential", "person_id"),
             ["public.person_change"] = await OwnerRowsAsync("public.person_change", "id"),
+            ["public.sign_in_attempt"] = await OwnerRowsAsync("public.sign_in_attempt", "id"),
             ["public.custody_event"] = await OwnerRowsAsync("public.custody_event", "sequence"),
             ["content.item_text"] = await ContentRowsAsync("content.item_text"),
             ["content.reversal_map"] = await ContentRowsAsync("content.reversal_map"),

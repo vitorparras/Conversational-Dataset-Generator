@@ -17,4 +17,7 @@ public enum CustodyItemKind
 
     /// <summary>An epoch of the content keys, by its number: what a rotation of the epoch is about.</summary>
     ContentEpoch,
+
+    /// <summary>A domain of the installation, by its identifier: what the creation of a domain is about.</summary>
+    Domain,
 }

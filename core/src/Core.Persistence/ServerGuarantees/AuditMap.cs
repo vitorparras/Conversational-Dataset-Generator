@@ -37,5 +37,6 @@ public static class AuditMap
         [CustodyStep.VerifyChain] = "o verificador só lê a cadeia (CustodyStatements.ReadChain) e grava o veredito nela: não toca tabela de domínio",
         [CustodyStep.ItemEmptyingRefused] = "a recusa de esvaziar não altera o conteúdo (o item fica como estava): grava só o evento na cadeia",
         [CustodyStep.EpochRotated] = "a rotação regrava a chave de cada linha antiga, uma instrução por linha, e grava um só evento: os comandos do log não casam com os eventos",
+        [CustodyStep.DomainCreated] = "o domínio e os rótulos são escritos com a credencial do dono (não a da aplicação) em tabelas que o mapa não compara: a cadeia guarda o evento",
     };
 }

@@ -51,7 +51,7 @@ public sealed class SessionEntryRecordTests
         using var refused = await scenario.EnterAsync(scenario.Name, scenario.Password, cancellationToken);
 
         Assert.Equal(HttpStatusCode.Unauthorized, refused.StatusCode);
-        Assert.Empty(refused.Headers.Where(header => header.Key == "Set-Cookie"));
+        Assert.DoesNotContain(refused.Headers, header => header.Key == "Set-Cookie");
         Assert.Equal("0", await scenario.HeldAsync("SELECT count(*) FROM public.custody_event WHERE step LIKE 'sign_in%'", cancellationToken));
         Assert.Equal("0", await scenario.HeldAsync("SELECT count(*) FROM public.sign_in_attempt", cancellationToken));
     }

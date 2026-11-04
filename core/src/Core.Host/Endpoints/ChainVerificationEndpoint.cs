@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 
 namespace Core.Host.Endpoints;

@@ -1,6 +1,5 @@
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Verification;
-using Core.Platform.Sessions;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 

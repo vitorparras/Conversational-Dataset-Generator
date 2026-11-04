@@ -176,6 +176,19 @@ public sealed class ProtectedContentTests
     }
 
     [Fact]
+    public void KeyDrawnForAnotherPurposeIsRefusedNamingTheColumn()
+    {
+        using var custody = SyntheticCustody.Holding("texto-bruto/7/v1", "mapa-reversao/7/v1");
+        using var sealing = custody.Content.Begin(ContentColumns.ItemKey, 7);
+
+        var refused = Assert.Throws<ArgumentException>(() => sealing.Seal(ContentColumns.Entries, Text));
+
+        Assert.Equal(
+            ("column", "The key of the row was not drawn for the purpose of the column. (Parameter 'column')"),
+            (refused.ParamName, refused.Message));
+    }
+
+    [Fact]
     public void RefusalOfAnotherColumnNamesTheColumn()
     {
         using var custody = SyntheticCustody.Holding("texto-bruto/7/v1", "mapa-reversao/7/v1");

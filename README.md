@@ -228,6 +228,36 @@ registrada ou quando a última é mais velha que duas vezes o intervalo: "nunca 
 rodar" não se confundem com "passou". Sem nenhuma registrada, `last` vem nulo. O intervalo também
 aparece em `/configuration`.
 
+`Custody:SealSituation` é obrigatória ao servir, sem valor padrão, e declara onde a instalação
+guarda o selo da cadeia: `External`, `Internal` ou `Manual`; o `migrate` não a exige. As duas
+primeiras exigem `Custody:SealDestination`, um endereço `https`; a manual não tem destino e o
+recusa. O núcleo não vê o destino, e a recusa pega só o que a configuração deixa reconhecer como
+sob o mesmo controle da base: esquema que não é `https`, caminho de arquivo, `localhost` ou
+loopback, o nome ou o endereço da própria máquina, o mesmo servidor do banco e endereço com
+usuário (que não aparece na mensagem); a recusa diz qual regra pegou. Qualquer outro destino é
+declaração da instalação. `POST /custody/verification`, de uma sessão viva, recebe
+`{"seal": "<texto do selo>"}` (a forma `CDG-SELO-1|...`), verifica a cadeia e a compara com o selo:
+devolve se os elos fecharam, como a cadeia está contra o selo (`Holds`, `CountBelowSealed`,
+contagem menor que a selada, ou `DigestDiffers`, resumo diferente) e o que essa verificação protege
+na situação declarada, nunca integridade sem qualificar. Texto que não é um selo recebe 400 com o
+motivo, sem verificar nada. Selo que não confere vai ao resultado e ao registro do núcleo como erro,
+e não bloqueia a escrita. O `GET /custody/verification` traz a situação, o mesmo texto e a data
+do último selo registrado (`lastSeal`, nula quando não há nenhum). Na
+situação `Manual`, `GET /custody/seal` emite o selo do topo, sem gravar nada, e
+`POST /custody/seal/confirmation` grava o selo que quem opera guardou, em nome da pessoa da sessão,
+se a cadeia tiver aquele evento com aquele resumo; senão, 409 com o motivo e nada gravado. Nos dois
+`POST` com selo, corpo acima de 1 KiB recebe 413 sem ser lido. A verificação traz `warning` quando
+não há selo ou o último tem mais de 7 dias, e o `/status` traz só esse aviso (`sealWarning`), sem a
+data nem o selo.
+
+No `External` e no `Internal`, o núcleo envia o selo ao destino uma vez por dia, por `https` com a
+validação padrão do certificado, sem seguir redirecionamento e com 30 s de limite, e só depois do
+envio grava o evento `SealRecorded`, que aponta o selo que foi enviado, ainda que a cadeia tenha
+crescido entre o envio e a gravação. Se o envio falha (rede, certificado, resposta que não seja 2xx
+ou tempo esgotado), nada é gravado, o log diz o motivo e a contagem do selo, nunca o selo, e a
+próxima tentativa vem no intervalo seguinte. Ao subir, o núcleo espera o que resta do dia desde o
+último selo registrado. A situação `Manual` não envia nada.
+
 Se o servidor de banco cai enquanto grava, o arquivo `csv` que ele escrevia fica terminado numa
 linha cortada, sem a quebra de linha, e o servidor segue em outro arquivo. Essa última linha de um
 arquivo que já não é o mais recente não vira entrada nem erro: a leitura a deixa de fora e nomeia o

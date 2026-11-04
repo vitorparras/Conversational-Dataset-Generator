@@ -71,12 +71,20 @@ public sealed class AuditComparisonTests
     }
 
     [Fact]
-    public void CredentialWrittenWithNoEventIsTheKnownDifferenceAndNamesTheIssue()
+    public void CredentialWrittenWithNoEventIsANewDifferenceWithNoKnownGap()
     {
         var difference = Assert.Single(AuditComparison.Compare([Entry(App, "public.person_credential", "UPDATE")], App, new Dictionary<CustodyStep, int>()));
 
-        Assert.Equal(AuditMap.RecomputeWithoutEvent, difference.KnownGap);
-        Assert.Contains("#71", difference.KnownGap, StringComparison.Ordinal);
+        Assert.Null(difference.KnownGap);
+    }
+
+    [Fact]
+    public void TheRecomputationOfACredentialAndTheAttemptsToSignInAreAccountedByTheirOwnSteps()
+    {
+        var seen = new[] { Entry(App, "public.person_credential", "UPDATE"), Entry(App, "public.sign_in_attempt", "INSERT"), Entry(App, "public.sign_in_attempt", "INSERT") };
+        var recorded = new Dictionary<CustodyStep, int> { [CustodyStep.CredentialRecomputed] = 1, [CustodyStep.SignInAccepted] = 1, [CustodyStep.SignInRefused] = 1 };
+
+        Assert.Empty(AuditComparison.Compare(seen, App, recorded));
     }
 
     [Fact]

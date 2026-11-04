@@ -31,9 +31,19 @@ public sealed class CustodyVerifier
 
     /// <summary>Verifies the chain and records the verdict; a verdict the chain did not accept (another writer was first, say) is told in the answer, and the verification may be repeated.</summary>
     /// <param name="cancellationToken">Cancels the verification.</param>
-    public async Task<ChainVerification> VerifyAsync(CancellationToken cancellationToken)
+    public Task<ChainVerification> VerifyAsync(CancellationToken cancellationToken) => VerifyAsync(null, cancellationToken);
+
+    /// <summary>
+    /// Verifies the chain as above and, when a seal is given, tells whether the chain has the event the seal counts with the digest the seal holds.
+    /// The seal is what whoever checks brought from outside the control of the database; nothing here reads it back from where it lives.
+    /// A seal that does not hold leaves the links as they were found and is told in <see cref="ChainVerification.Seal" />.
+    /// </summary>
+    /// <param name="seal">The seal to compare the chain with; null to verify the links alone.</param>
+    /// <param name="cancellationToken">Cancels the verification.</param>
+    public async Task<ChainVerification> VerifyAsync(ChainSeal? seal, CancellationToken cancellationToken)
     {
-        var judge = new ChainJudge();
+        var witness = seal is null ? null : new SealWitness { Sealed = seal };
+        var judge = new ChainJudge { Witness = witness };
         var verifiedAt = await ReadAsync(judge, cancellationToken).ConfigureAwait(false);
         var recorded = await chain.AppendAsync(CustodyEvent.Verification(judge.Read, judge.First?.Sequence), cancellationToken).ConfigureAwait(false);
         return new ChainVerification
@@ -42,6 +52,7 @@ public sealed class CustodyVerifier
             EventsRead = judge.Read,
             VerifiedAt = verifiedAt,
             FirstInconsistent = judge.First,
+            Seal = witness?.Compare(),
             Recorded = recorded,
         };
     }
@@ -88,7 +99,7 @@ public sealed class CustodyVerifier
     {
         while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
-            judge.Accept(new StoredEvent(
+            var stored = new StoredEvent(
                 (long)reader["sequence"],
                 BinaryPrimitives.ReadInt64BigEndian((byte[])reader["occurred_at_send"]),
                 Optional(reader["actor_person_id"]),
@@ -101,7 +112,8 @@ public sealed class CustodyVerifier
                 (byte[])reader["previous_digest"],
                 (byte[])reader["digest"],
                 (string)reader["recorded_by"],
-                reader["reference"] as string));
+                reader["reference"] as string);
+            judge.Accept(stored);
         }
     }
 

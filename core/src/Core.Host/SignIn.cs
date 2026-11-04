@@ -1,4 +1,5 @@
 using System.Net;
+using Core.Persistence.Custody;
 using Core.Persistence.People;
 using Core.Platform.Sessions;
 
@@ -8,9 +9,12 @@ namespace Core.Host;
 /// The one place where a name of use and a password become a session: the password is checked by the store of credentials and nowhere else,
 /// so whatever else must happen at the entry hangs here. A name nobody goes by is checked all the same, against nobody, so that it costs what a wrong password costs.
 /// A refusal waits the delay of <see cref="SignInDelay"/> before it is answered, the same for a wrong password and for a name nobody goes by; while the answers that wait
-/// fill the limits, the entry is refused with the same answer before the password is checked, whatever the password.
+/// fill the limits, the entry is refused with the same answer before the password is checked, whatever the password. Every attempt that reaches the check, accepted or refused,
+/// is recorded in the chain (<see cref="SignInAttempts"/>) before it is answered, and a session opens only for an attempt that was recorded; the answer refused for the limit
+/// reaches no database, and is not recorded. A right password whose acceptance the chain did not take is refused all the same, and as a name nobody goes by only when the person
+/// was deactivated meanwhile: for any other result nothing else is written, because no reason would be true.
 /// </summary>
-internal sealed class SignIn(PersonRegistry registry, PersonCredentials credentials, SessionStore sessions, SignInDelay delay)
+internal sealed class SignIn(PersonRegistry registry, PersonCredentials credentials, SessionStore sessions, SignInDelay delay, SignInAttempts attempts)
 {
     private const long Nobody = 0;
 
@@ -28,10 +32,22 @@ internal sealed class SignIn(PersonRegistry registry, PersonCredentials credenti
         var outcome = await credentials.VerifyAsync(identity ?? Nobody, password, cancellationToken).ConfigureAwait(false);
         if (outcome == PasswordOutcome.Accepted && identity is { } admitted)
         {
-            delay.Accepted(name, origin);
-            return sessions.Open(admitted);
+            var accepted = await attempts.AcceptedAsync(admitted, origin, cancellationToken).ConfigureAwait(false);
+            if (accepted.Outcome == CustodyOutcome.Appended)
+            {
+                delay.Accepted(name, origin);
+                return sessions.Open(admitted);
+            }
+
+            if (accepted.Outcome != CustodyOutcome.ActorDeactivated)
+            {
+                await delay.RefusedAsync(name, origin, cancellationToken).ConfigureAwait(false);
+                return null;
+            }
         }
 
+        var wrong = outcome == PasswordOutcome.Wrong;
+        _ = await attempts.RefusedAsync(wrong ? identity : null, wrong ? SignInRefusal.PasswordWrong : SignInRefusal.AccountNotRecognized, origin, cancellationToken).ConfigureAwait(false);
         await delay.RefusedAsync(name, origin, cancellationToken).ConfigureAwait(false);
         return null;
     }

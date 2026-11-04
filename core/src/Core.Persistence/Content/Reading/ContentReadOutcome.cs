@@ -17,4 +17,10 @@ public enum ContentReadOutcome
 
     /// <summary>The item was emptied, and what it held is gone for good; nothing was read, and nothing is recorded, because there was nothing to read.</summary>
     Emptied,
+
+    /// <summary>The envelope, or the key of its row, is sealed under a label the installation did not load; nothing was read and nothing is recorded, and the label is named.</summary>
+    LabelMissing,
+
+    /// <summary>The loss of the key this content is sealed under was declared; nothing was read and nothing is recorded, and the scope of the loss is named.</summary>
+    KeyLossDeclared,
 }

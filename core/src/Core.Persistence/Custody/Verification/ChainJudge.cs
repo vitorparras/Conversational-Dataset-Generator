@@ -9,6 +9,9 @@ internal sealed class ChainJudge
     private byte[] previousDigest = ChainDigest.Origin();
     private long expectedSequence = 1;
 
+    /// <summary>Watches the same events for the one a seal counts; null when there is no seal to compare.</summary>
+    internal SealWitness? Witness { get; init; }
+
     /// <summary>How many events were given, the inconsistent one and those after it included.</summary>
     internal long Read { get; private set; }
 
@@ -17,15 +20,15 @@ internal sealed class ChainJudge
 
     internal void Accept(StoredEvent stored)
     {
+        Witness?.Accept(stored, previousDigest);
         Read++;
-        if (First is not null)
+        if (First is null)
         {
-            return;
+            First = Inconsistency(stored) is { } kind ? new InconsistentEvent(stored.Sequence, kind) : null;
+            expectedSequence = stored.Sequence + 1;
         }
 
-        First = Inconsistency(stored) is { } kind ? new InconsistentEvent(stored.Sequence, kind) : null;
         previousDigest = stored.Digest;
-        expectedSequence = stored.Sequence + 1;
     }
 
     private ChainInconsistency? Inconsistency(StoredEvent stored)

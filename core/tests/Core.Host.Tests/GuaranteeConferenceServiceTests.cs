@@ -53,6 +53,19 @@ public sealed class GuaranteeConferenceServiceTests
     }
 
     [Fact]
+    public async Task GuaranteesThatHoldWithNoSampleOutsideTheLossAreInformationSaidInTheLog()
+    {
+        await using var run = new Run([], _ => Task.FromResult(Verification(GuaranteeKinds.None) with { NoSampleOutsideLoss = true }));
+        await run.StartAsync(TestContext.Current.CancellationToken);
+        await run.WaitingAsync(TestContext.Current.CancellationToken);
+
+        var line = Assert.Single(run.Log.Lines, text => text.Contains("garantias", StringComparison.Ordinal));
+        Assert.StartsWith("Information: ", line, StringComparison.Ordinal);
+        Assert.Contains("não há amostra legível fora da perda de chave declarada", line, StringComparison.Ordinal);
+        Assert.Contains("registro do veredito: Appended", line, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task ConferenceThatThrowsIsLoggedWithTheTypeOnlyAndTheNextOneRunsAtTheNextInterval()
     {
         var calls = 0;

@@ -15,6 +15,8 @@ namespace Core.Persistence.ServerGuarantees;
 /// </summary>
 internal sealed class EncryptedSample
 {
+    private const int MostPassedOver = 16;
+
     private const string Domains = "SELECT coalesce(pg_catalog.array_agg(domain_id), ARRAY[]::integer[]) FROM (SELECT domain_id FROM public.content_domain "
         + "WHERE table_name = @table GROUP BY domain_id HAVING pg_catalog.sum(delta) > 0 ORDER BY domain_id LIMIT 3) first_domains";
 
@@ -29,38 +31,82 @@ internal sealed class EncryptedSample
         this.open = open;
     }
 
-    /// <summary>Whether every record of the sample opened; a key not read, a label not loaded, a label that is not the column's and an access the chain did not record all say no.</summary>
-    internal async Task<bool> HoldsAsync(CancellationToken cancellationToken)
+    /// <summary>
+    /// Whether every record of the sample opened: a key not read, a label not loaded, a label that is not the column's and an access the chain did not record all say no.
+    /// A record under the scope of a declared loss is passed over for the next one of the domain; when all that is reachable is under the loss, the verdict says so and is not a no.
+    /// </summary>
+    internal async Task<SampleVerdict> VerdictAsync(CancellationToken cancellationToken)
     {
         using var reading = await read(cancellationToken).ConfigureAwait(false);
         if (reading.Failure is not null)
         {
-            return false;
+            return SampleVerdict.NotOpened;
         }
 
         var reader = open(reading);
-        var held = true;
+        SampleVerdict? verdict = null;
         foreach (var column in new[] { ContentColumns.RawText, ContentColumns.Entries })
         {
             foreach (var domain in await DomainsAsync(column.Table, cancellationToken).ConfigureAwait(false))
             {
-                held &= await OpenedAsync(reader, column, domain, cancellationToken).ConfigureAwait(false);
+                verdict = Combined(verdict, await OpenedAsync(reader, column, domain, cancellationToken).ConfigureAwait(false));
             }
         }
 
-        return held;
+        return verdict ?? SampleVerdict.Opened;
     }
 
-    private static async Task<bool> OpenedAsync(ProtectedContentReader reader, ProtectedColumn column, int domain, CancellationToken cancellationToken)
+    private static SampleVerdict Combined(SampleVerdict? soFar, SampleVerdict next)
+    {
+        if (soFar is not { } earlier)
+        {
+            return next;
+        }
+
+        if (earlier == SampleVerdict.NotOpened || next == SampleVerdict.NotOpened)
+        {
+            return SampleVerdict.NotOpened;
+        }
+
+        return earlier == SampleVerdict.NoneOutsideLoss ? next : earlier;
+    }
+
+    private static async Task<SampleVerdict> OpenedAsync(ProtectedContentReader reader, ProtectedColumn column, int domain, CancellationToken cancellationToken)
+    {
+        var after = 0L;
+        for (var passedOver = 0; passedOver < MostPassedOver; passedOver++)
+        {
+            var read = await ReadAfterAsync(reader, new ContentRead(CustodyAuthor.System, column, domain, after), cancellationToken).ConfigureAwait(false);
+            if (Judged(read, passedOver) is { } verdict)
+            {
+                return verdict;
+            }
+
+            after = read!.RowId;
+        }
+
+        return SampleVerdict.NoneOutsideLoss;
+    }
+
+    // Null means the record is under the scope of a loss: look at the next one.
+    private static SampleVerdict? Judged(ContentReadResult? read, int passedOver) => read?.Outcome switch
+    {
+        null => SampleVerdict.NotOpened,
+        ContentReadOutcome.KeyLossDeclared => null,
+        ContentReadOutcome.NotRecorded or ContentReadOutcome.LabelMissing => SampleVerdict.NotOpened,
+        ContentReadOutcome.NotFound when passedOver > 0 => SampleVerdict.NoneOutsideLoss,
+        _ => SampleVerdict.Opened,
+    };
+
+    private static async Task<ContentReadResult?> ReadAfterAsync(ProtectedContentReader reader, ContentRead after, CancellationToken cancellationToken)
     {
         try
         {
-            var read = await reader.ReadFirstAsync(CustodyAuthor.System, column, domain, cancellationToken).ConfigureAwait(false);
-            return read.Outcome is not (ContentReadOutcome.NotRecorded or ContentReadOutcome.LabelMissing or ContentReadOutcome.KeyLossDeclared);
+            return await reader.ReadFirstAsync(after, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception refused) when (refused is EnvelopeRefusedException or CryptographicException)
         {
-            return false;
+            return null;
         }
     }
 

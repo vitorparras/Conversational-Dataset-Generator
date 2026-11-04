@@ -7,6 +7,11 @@ public sealed record CustodyEvent
 {
     private const int FirstRotation = 2;
 
+    private const string OfTheirOwnMessage =
+        "A correction, a verification, an emptying, a rotation, the creation of a domain, a seal, an entry, the loss of a key, a rehearsal of the recovery, a conference of the guarantees "
+        + "and a window of the owner have an event of their own; use Correction, Verification, Emptied, EmptyingRefused, EpochRotated, DomainCreated, DomainLabelRotated, SealRecorded, "
+        + "SignInAccepted, SignInRefused, KeyLossDeclared, RecoveryRehearsed, GuaranteesVerified, OwnerWindowOpened or OwnerWindowClosed.";
+
     private static readonly FrozenSet<CustodyStep> OfTheirOwn = Enumerable.Repeat(CustodyStep.Correction, 1)
         .Append(CustodyStep.VerifyChain).Append(CustodyStep.ItemEmptied).Append(CustodyStep.ItemEmptyingRefused).Append(CustodyStep.EpochRotated).Append(CustodyStep.DomainCreated)
         .Append(CustodyStep.SealRecorded).Append(CustodyStep.DomainLabelRotated)
@@ -49,10 +54,7 @@ public sealed record CustodyEvent
         ArgumentNullException.ThrowIfNull(author);
         ArgumentNullException.ThrowIfNull(item);
         return HasEventOfItsOwn(step)
-            ? throw new ArgumentException(
-                "A correction, a verification, an emptying, a rotation, the creation of a domain, a seal and an entry have an event of their own; "
-                + "use Correction, Verification, GuaranteesVerified, Emptied, EmptyingRefused, EpochRotated, DomainCreated, SealRecorded, DomainLabelRotated, SignInAccepted or SignInRefused.",
-                nameof(step))
+            ? throw new ArgumentException(OfTheirOwnMessage, nameof(step))
             : new CustodyEvent(author, item, step, reason);
     }
 

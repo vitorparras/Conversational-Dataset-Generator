@@ -69,6 +69,25 @@ public sealed class KeyLossReadingTests
     }
 
     [DatabaseFact]
+    public async Task ReadingTheFirstRowAfterARowSkipsToTheNextOneAndNamesTheRowItFoundEvenWhenTheLossRefusedIt()
+    {
+        var token = TestContext.Current.CancellationToken;
+        await using var world = await ContentWorld.CreateAsync();
+        var first = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw), token);
+        var second = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw), token);
+
+        var one = await world.Reader.ReadFirstAsync(new ContentRead(CustodyAuthor.System, ContentColumns.RawText, 1, RowId: 0), token);
+        var next = await world.Reader.ReadFirstAsync(new ContentRead(CustodyAuthor.System, ContentColumns.RawText, 1, first), token);
+        var none = await world.Reader.ReadFirstAsync(new ContentRead(CustodyAuthor.System, ContentColumns.RawText, 1, second), token);
+        await DeclareAsync(world, "texto-bruto/1/v1");
+        var lost = await world.Reader.ReadFirstAsync(new ContentRead(CustodyAuthor.System, ContentColumns.RawText, 1, first), token);
+
+        Assert.Equal(
+            (ContentReadOutcome.Read, first, ContentReadOutcome.Read, second, ContentReadOutcome.NotFound, 0L, ContentReadOutcome.KeyLossDeclared, second),
+            (one.Outcome, one.RowId, next.Outcome, next.RowId, none.Outcome, none.RowId, lost.Outcome, lost.RowId));
+    }
+
+    [DatabaseFact]
     public async Task Ca4TheRawTextUnderTheScopeOfALossIsRefusedWithTheSameReasonAndNothingIsRecorded()
     {
         await using var world = await ContentWorld.CreateAsync();

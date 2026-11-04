@@ -38,9 +38,10 @@ public sealed class GuaranteeVerifier
         missing |= await MissingAsync(new ColumnRevokeCheck(dataSource), GuaranteeKinds.ColumnRevoke, cancellationToken).ConfigureAwait(false);
         missing |= await MissingAsync(new ImmutabilityCheck(dataSource), GuaranteeKinds.Immutability, cancellationToken).ConfigureAwait(false);
         missing |= await MissingAsync(new ProtectedColumnCheck(dataSource), GuaranteeKinds.ProtectedColumns, cancellationToken).ConfigureAwait(false);
-        missing |= await sample.HoldsAsync(cancellationToken).ConfigureAwait(false) ? GuaranteeKinds.None : GuaranteeKinds.EncryptedSample;
+        var sampled = await sample.VerdictAsync(cancellationToken).ConfigureAwait(false);
+        missing |= sampled == SampleVerdict.NotOpened ? GuaranteeKinds.EncryptedSample : GuaranteeKinds.None;
         var recorded = await chain.AppendAsync(CustodyEvent.GuaranteesVerified((long)missing), cancellationToken).ConfigureAwait(false);
-        return new GuaranteeVerification(missing, recorded);
+        return new GuaranteeVerification(missing, recorded, sampled == SampleVerdict.NoneOutsideLoss);
     }
 
     private static async Task<GuaranteeKinds> MissingAsync(IStartupCheck check, GuaranteeKinds code, CancellationToken cancellationToken) =>

@@ -8,8 +8,9 @@ public sealed class CustodySignInEventTests
     private const string RefusalMessage = "An entry is refused for a wrong password, of a person, or for a name nobody goes by, of nobody.";
 
     private const string OfTheirOwnMessage =
-        "A correction, a verification, an emptying, a rotation, the creation of a domain, a seal and an entry have an event of their own; "
-        + "use Correction, Verification, GuaranteesVerified, Emptied, EmptyingRefused, EpochRotated, DomainCreated, SealRecorded, DomainLabelRotated, SignInAccepted or SignInRefused.";
+        "A correction, a verification, an emptying, a rotation, the creation of a domain, a seal, an entry, the loss of a key, a rehearsal of the recovery, a conference of the guarantees "
+        + "and a window of the owner have an event of their own; use Correction, Verification, Emptied, EmptyingRefused, EpochRotated, DomainCreated, DomainLabelRotated, SealRecorded, "
+        + "SignInAccepted, SignInRefused, KeyLossDeclared, RecoveryRehearsed, GuaranteesVerified, OwnerWindowOpened or OwnerWindowClosed.";
 
     [Fact]
     public void AcceptedEntryIsThePersonsAboutThatAttemptForAcceptedCredentials()
@@ -78,14 +79,28 @@ public sealed class CustodySignInEventTests
         Assert.StartsWith(RefusalMessage, refused.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void EntryStepsAsAPlainEventAreRefusedWithTheListOfEventsOfTheirOwnAndTheStepParameter()
+    [Theory]
+    [InlineData(CustodyStep.Correction)]
+    [InlineData(CustodyStep.VerifyChain)]
+    [InlineData(CustodyStep.ItemEmptied)]
+    [InlineData(CustodyStep.ItemEmptyingRefused)]
+    [InlineData(CustodyStep.EpochRotated)]
+    [InlineData(CustodyStep.DomainCreated)]
+    [InlineData(CustodyStep.SealRecorded)]
+    [InlineData(CustodyStep.DomainLabelRotated)]
+    [InlineData(CustodyStep.SignInAccepted)]
+    [InlineData(CustodyStep.SignInRefused)]
+    [InlineData(CustodyStep.KeyLossDeclared)]
+    [InlineData(CustodyStep.RecoveryTested)]
+    [InlineData(CustodyStep.VerifyGuarantees)]
+    [InlineData(CustodyStep.OwnerWindowOpened)]
+    [InlineData(CustodyStep.OwnerWindowClosed)]
+    public void StepsThatHaveAnEventOfTheirOwnAreRefusedAsAPlainEventWithTheMessageNamingEveryFactoryAndTheStepParameter(CustodyStep step)
     {
         var item = new CustodyItem(CustodyItemKind.SignInAttempt, 41);
 
-        var refused = Assert.Throws<ArgumentException>(() => CustodyEvent.Of(CustodyAuthor.Person(7), item, CustodyStep.SignInAccepted, CustodyReason.CredentialsAccepted));
+        var refused = Assert.Throws<ArgumentException>(() => CustodyEvent.Of(CustodyAuthor.Person(7), item, step, CustodyReason.CredentialsAccepted));
 
-        Assert.Equal("step", refused.ParamName);
-        Assert.StartsWith(OfTheirOwnMessage, refused.Message, StringComparison.Ordinal);
+        Assert.Equal(("step", $"{OfTheirOwnMessage} (Parameter 'step')"), (refused.ParamName, refused.Message));
     }
 }

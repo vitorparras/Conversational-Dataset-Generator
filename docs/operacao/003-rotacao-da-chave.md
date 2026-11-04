@@ -29,13 +29,12 @@ rótulo antigo e grava sob o novo, item por item, deixando rastro de quantos ite
 
 ## O comando
 
-`rotate-domain-label --domain <id>` roda uma vez, com a credencial do dono do banco. Antes,
-acrescente ao arquivo de rótulos os dois da geração nova (`texto-bruto/<id>/v<n>` e
-`mapa-reversao/<id>/v<n>`): o comando confere, não cria. O já cifrado segue legível pelo rótulo
-que carrega; o gravado depois só usa o novo quando o núcleo lê os rótulos registrados, ao subir:
-reinicie o núcleo. Nada é recifrado. A cadeia registra quem, quando, o domínio e a geração, no
-passo de rotação do rótulo. Saída 0: feito. 17: rótulo ausente, nomeado. 24: recusa. 25: banco
-mudo.
+`rotate-domain-label --domain <id>` roda uma vez, com a credencial do dono. Antes, acrescente ao
+arquivo de rótulos os dois da geração nova (`texto-bruto/<id>/v<n>`, `mapa-reversao/<id>/v<n>`): o
+comando confere, não cria. O já cifrado segue legível; o gravado depois só usa o novo quando o
+núcleo lê os rótulos registrados, ao subir (reinicie o núcleo). Nada é recifrado; a cadeia registra
+quem, quando, o domínio e a geração. Saída 0: feito. 17: rótulo ausente, nomeado. 24: recusa. 25:
+banco mudo.
 
 ## Rótulo não se descarta
 

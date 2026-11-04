@@ -13,6 +13,7 @@ internal static class CustodyNames
         [CustodyItemKind.CustodyChain] = "custody_chain",
         [CustodyItemKind.ContentEpoch] = "content_epoch",
         [CustodyItemKind.Domain] = "domain",
+        [CustodyItemKind.SignInAttempt] = "sign_in_attempt",
         [CustodyItemKind.MasterKey] = "master_key",
     }.ToFrozenDictionary();
 
@@ -33,6 +34,9 @@ internal static class CustodyNames
         [CustodyStep.DomainCreated] = "domain_created",
         [CustodyStep.SealRecorded] = "seal_recorded",
         [CustodyStep.DomainLabelRotated] = "domain_label_rotated",
+        [CustodyStep.SignInAccepted] = "sign_in_accepted",
+        [CustodyStep.SignInRefused] = "sign_in_refused",
+        [CustodyStep.CredentialRecomputed] = "credential_recomputed",
         [CustodyStep.KeyLossDeclared] = "key_loss_declared",
     }.ToFrozenDictionary();
 
@@ -47,6 +51,9 @@ internal static class CustodyNames
         [CustodyReason.ContractRequirement] = "contract_requirement",
         [CustodyReason.AuthorWithoutFunction] = "author_without_function",
         [CustodyReason.ItemAlreadyEmptied] = "item_already_emptied",
+        [CustodyReason.CredentialsAccepted] = "credentials_accepted",
+        [CustodyReason.PasswordWrong] = "password_wrong",
+        [CustodyReason.AccountNotRecognized] = "account_not_recognized",
     }.ToFrozenDictionary();
 
     internal static string Of(CustodyItemKind kind) => Kinds[kind];

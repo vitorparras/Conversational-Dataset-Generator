@@ -2,9 +2,8 @@
 three jobs of one area, each mutating only its share of the code with the same test project, the
 same ceiling and the same survivor limit. The unit of the split is the slice of a file, cut between
 the members of its types (steps.mutation_members), weighted by its tokens; the heaviest slice goes
-first to the lightest part, ties by path and position, so the split depends on nothing but the
-files and every slice belongs to exactly one part. (#585: dealt in turn by count, one part got 40
-mutants while the others had a few.)"""
+first to the lightest part, so the split depends on nothing but the files and every slice belongs
+to exactly one part (#585: dealt in turn by count, one part got 40 mutants)."""
 
 from __future__ import annotations
 
@@ -58,10 +57,6 @@ class Slice:
     start: int
     end: int
     weight: int = 1
-
-    @property
-    def whole(self) -> bool:
-        return self.start == 0 and self.end == UNBOUNDED
 
 
 def dealt(slices: list[Slice], part: Part) -> list[Slice]:

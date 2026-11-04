@@ -95,14 +95,10 @@ def run_process(
         stdout, stderr = process.communicate(timeout=seconds)
     except subprocess.TimeoutExpired:
         _kill_tree(process)
-        printed = ""
         with contextlib.suppress(subprocess.TimeoutExpired):
-            printed = "".join(process.communicate(timeout=REAP_SECONDS))
+            process.communicate(timeout=REAP_SECONDS)
         _close_pipes(process)
-        # What it printed before the cut comes first, so the tail of the outcome ends on the cause.
-        return CommandOutcome(
-            False, f"{printed}\n'{command[0]}' passou de {seconds:.0f} s e foi interrompido"
-        )
+        return CommandOutcome(False, f"'{command[0]}' passou de {seconds:.0f} s e foi interrompido")
     except BaseException:
         _kill_tree(process)
         _close_pipes(process)

@@ -82,8 +82,8 @@ def sources(root: Path, core: CoreTarget) -> list[str]:
 
 
 def pieces(root: Path, core: CoreTarget) -> list[Slice]:
-    """Every file of the whole area cut between the members of its types: the units the parts deal
-    out. Stryker counts the spans in the characters of the text it reads, byte order mark aside."""
+    """Every file of the area cut between the members of its types: what the parts deal out. The
+    spans count the characters of the text Stryker reads, byte order mark aside."""
     project = root / SOURCES / core.project
     texts = {
         name: (project / name).read_bytes().decode("utf-8-sig") for name in sources(root, core)

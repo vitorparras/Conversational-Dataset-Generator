@@ -1,5 +1,4 @@
-"""The tokens of a C# file that tell where a member ends: braces, semicolons, parentheses, brackets,
-assignments and words, with comments, strings, character literals and directives left out."""
+"""The tokens of a C# file that tell where a member ends, without comments or literals."""
 
 from __future__ import annotations
 
@@ -16,7 +15,7 @@ RAW_QUOTES = 3
 
 
 class Token(NamedTuple):
-    """A word, one mark of ``PUNCTUATION`` or the arrow, and the index just after it."""
+    """A word, a mark of ``PUNCTUATION`` or the arrow, and the index just after it."""
 
     kind: str
     end: int
@@ -112,8 +111,7 @@ def string_step(text: str, j: int, verbatim: bool, dollars: int) -> int:
 
 
 def hole_step(text: str, j: int, char: str) -> int:
-    """The index after a brace of an interpolated string: a doubled brace is text, a lone ``{``
-    opens a hole of code."""
+    """After a brace of an interpolated string: a doubled one is text, a lone ``{`` opens code."""
     if text.startswith(char * 2, j):
         return j + 2
     return hole_end(text, j + 1) if char == "{" else j + 1

@@ -1,9 +1,7 @@
 """Where the members of a C# type end, so a file can be cut into slices between members (#585).
 
-The mutation of an area is dealt out in slices of files: Stryker takes a slice as a span of
-characters (``File.cs{a..b}``) and keeps a mutant only when the node it mutates lies whole inside
-the span. A cut that is never inside a member leaves every node inside exactly one slice, so the
-slices of a file hold, together, the mutants of the file, each once."""
+Stryker keeps a mutant only when the node it mutates lies whole inside the span of a slice
+(``File.cs{a..b}``): a cut never inside a member leaves each node in exactly one slice."""
 
 from __future__ import annotations
 
@@ -53,11 +51,7 @@ class Header:
             return
         elif kind in ASSIGNMENTS:
             self.assigned = True
-        else:
-            self.word(kind)
-
-    def word(self, kind: str) -> None:
-        if kind == "namespace":
+        elif kind == "namespace":
             self.namespace = True
         elif kind in TYPE_WORDS and not (self.paren_seen or self.assigned):
             self.typed = True
@@ -150,9 +144,8 @@ def units(text: str, index: int) -> int:
 
 
 def slices(text: str) -> tuple[tuple[int, int, int], ...]:
-    """The slices of a file, as ``(start, end, weight)``: offsets that follow one another from the
-    first character to ``UNBOUNDED``, cut just after each member, and the tokens each holds. The
-    tokens stand for the mutants: comments and documentation weigh nothing."""
+    """The slices of a file as ``(start, end, weight)``: offsets from the first character to
+    ``UNBOUNDED``, cut after each member; the weight is the tokens, so comments weigh nothing."""
     found = tokens(text)
     cuts = ends_of(found)
     ends = [token.end for token in found]

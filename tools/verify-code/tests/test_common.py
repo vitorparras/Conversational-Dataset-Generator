@@ -69,15 +69,6 @@ class CommonTests(unittest.TestCase):
         self.assertFalse(outcome.ok)
         self.assertIn("passou de 1 s e foi interrompido", outcome.text)
 
-    def test_a_command_past_its_limit_keeps_what_it_printed_before_the_cut(self) -> None:
-        code = "import time; print('zqx-progress 3/9', flush=True); time.sleep(30)"
-
-        outcome = common.run_process([sys.executable, "-c", code], self.root, 2.0)
-
-        self.assertFalse(outcome.ok)
-        self.assertIn("zqx-progress 3/9", outcome.text)
-        self.assertTrue(outcome.text.rstrip().endswith("passou de 2 s e foi interrompido"))
-
     def test_a_command_past_its_limit_leaves_no_child_or_grandchild_alive(self) -> None:
         pids = self.root / "pids.txt"
 

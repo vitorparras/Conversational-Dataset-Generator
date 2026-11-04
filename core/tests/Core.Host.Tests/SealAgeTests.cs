@@ -32,11 +32,13 @@ public sealed class SealAgeTests
     }
 
     [Theory]
-    [InlineData(SealSituation.External)]
-    [InlineData(SealSituation.Internal)]
-    public void TheSituationsThatSendTheSealNeverWarnWhateverTheAge(SealSituation situation)
+    [InlineData("External")]
+    [InlineData("Internal")]
+    public void TheSituationsThatSendTheSealNeverWarnWhateverTheAge(string situation)
     {
-        Assert.Null(SealAge.Warning(situation, null, Now));
-        Assert.Null(SealAge.Warning(situation, Now.AddDays(-30), Now));
+        var parsed = Enum.Parse<SealSituation>(situation);
+
+        Assert.Null(SealAge.Warning(parsed, null, Now));
+        Assert.Null(SealAge.Warning(parsed, Now.AddDays(-30), Now));
     }
 }

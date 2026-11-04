@@ -109,10 +109,8 @@ public sealed class SealDeliveryTests
     [Theory]
     [InlineData("http://selo.example/envio")]
     [InlineData("ftp://selo.example/envio")]
-    public void DeliveryTheHostBuildsRefusesAnAddressThatIsNotHttps(string address)
-    {
+    public void DeliveryTheHostBuildsRefusesAnAddressThatIsNotHttps(string address) =>
         _ = Assert.Throws<ArgumentException>(() => SealDelivery.To(new Uri(address)));
-    }
 
     [Fact]
     public void DeliveryTheHostBuildsForAnHttpsAddressIsBuiltAndDisposed()

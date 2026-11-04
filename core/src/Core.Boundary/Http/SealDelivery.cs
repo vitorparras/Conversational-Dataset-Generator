@@ -19,7 +19,6 @@ public sealed class SealDelivery : IDisposable
     internal SealDelivery(Uri destination, HttpMessageHandler handler)
     {
         ArgumentNullException.ThrowIfNull(destination);
-        ArgumentNullException.ThrowIfNull(handler);
         if (destination.Scheme != Uri.UriSchemeHttps)
         {
             throw new ArgumentException("the seal leaves only over https", nameof(destination));

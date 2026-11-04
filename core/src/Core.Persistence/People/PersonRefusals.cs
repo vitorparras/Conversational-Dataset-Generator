@@ -41,9 +41,7 @@ internal static class PersonRefusals
         CustodyOutcome.ActorDeactivated => ActorDeactivated(),
         CustodyOutcome.CorrectedNotFound or CustodyOutcome.Conflict => ChainBusy(),
         CustodyOutcome.ChainBroken => ChainBroken(),
-        CustodyOutcome.PassedAfterFailure or CustodyOutcome.SealNotOfTheChain => throw new ArgumentOutOfRangeException(nameof(custody), custody.Outcome, "A change of a person never records a verdict of the chain nor a seal."),
-        CustodyOutcome.Immutable => throw new ArgumentOutOfRangeException(nameof(custody), custody.Outcome, "A change of a person never asks the chain to change an event."),
-        _ => throw new ArgumentOutOfRangeException(nameof(custody), custody.Outcome, "The outcome is not one a change of a person can meet."),
+        _ => Defect(custody),
     };
 
     internal static PersonResult ChainBroken() =>
@@ -65,4 +63,7 @@ internal static class PersonRefusals
         string.IsNullOrEmpty(name) || name != name.Trim()
             ? PersonResult.Refused(PersonOutcome.NameInvalid, "O nome de uso não pode ser vazio nem ter espaço no começo ou no fim.")
             : null;
+
+    private static PersonResult Defect(CustodyResult custody) =>
+        throw new ArgumentOutOfRangeException(nameof(custody), custody.Outcome, "A change of a person never meets this outcome of the chain.");
 }

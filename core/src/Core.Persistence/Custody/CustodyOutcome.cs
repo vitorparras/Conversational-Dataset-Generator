@@ -26,4 +26,7 @@ public enum CustodyOutcome
 
     /// <summary>A verdict that passed was refused because the last verdict recorded is a failure: only a restoration closes the chain again, so nothing was written and the refusal stays.</summary>
     PassedAfterFailure,
+
+    /// <summary>A seal was to be recorded, but the chain has no event at the sequence it points at, or the digest of that event is not the seal's; nothing was written.</summary>
+    SealNotOfTheChain,
 }

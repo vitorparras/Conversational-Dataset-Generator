@@ -107,5 +107,10 @@ class MutationModulesCommandTests(unittest.TestCase):
         with contextlib.redirect_stdout(buffer):
             code = verify.main(["--mutation-modules"])
 
-        listed = [a.prefix for a in areas_doc.read_areas(ROOT).areas if a.critical]
+        areas = [a for a in areas_doc.read_areas(ROOT).areas if a.critical]
+        listed = [
+            f"{a.prefix}@{n}/{a.parts}" if a.parts > 1 else a.prefix
+            for a in areas
+            for n in range(1, a.parts + 1)
+        ]
         self.assertEqual((code, json.loads(buffer.getvalue())), (0, listed))

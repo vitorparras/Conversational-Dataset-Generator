@@ -54,3 +54,6 @@ ausente, acesso ao cofre sem operação correspondente, ou cópia de chave fora 
 Rode a verificação sobre uma sequência sintética de resposta conhecida. Erro no verificador tem a
 mesma aparência de cadeia alterada, e a distância entre as duas conclusões é grande demais para se
 apoiar numa execução só.
+
+Na instalação que declarou o selo `Manual`, o selo é emitido e confirmado à mão:
+[030](030-selo-manual.md).

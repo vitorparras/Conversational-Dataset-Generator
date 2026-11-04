@@ -5,6 +5,12 @@ on:
   push:
     branches: [main]
 
+# A new push to a pull request cancels the run still going for the same PR; main has a group of
+# its own per run (run_id), so it is never cancelled or queued.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 

@@ -26,6 +26,9 @@ internal sealed record HostInstallation(string BinaryDirectory, string WorkingDi
     /// <summary>Whether the arguments the host receives also give the interval of the verification of the chain, which the serving mode cannot start without.</summary>
     public bool DeclaresVerificationInterval { get; init; } = true;
 
+    /// <summary>Whether the arguments the host receives also declare where the seal of the chain is kept, which the serving mode cannot start without.</summary>
+    public bool DeclaresSeal { get; init; } = true;
+
     /// <summary>Whether the arguments the host receives also name the certificate and the private key of the encrypted channel, which the serving mode cannot start without.</summary>
     public bool ProvidesTlsMaterial { get; init; } = true;
 
@@ -62,6 +65,11 @@ internal sealed record HostInstallation(string BinaryDirectory, string WorkingDi
                 arguments.Add(VerificationIntervalArgument);
             }
 
+            if (DeclaresSeal)
+            {
+                arguments.Add(SealArgument);
+            }
+
             if (ProvidesTlsMaterial)
             {
                 arguments.AddRange(TlsArguments);
@@ -96,6 +104,9 @@ internal sealed record HostInstallation(string BinaryDirectory, string WorkingDi
 
     /// <summary>The interval of the verification of the chain a test that does not wait for one wants: long enough that none runs again while it runs.</summary>
     public static string VerificationIntervalArgument => "--Custody:VerificationInterval=00:05:00";
+
+    /// <summary>The declaration of the seal a test that does not send one wants: kept by hand, which has no destination to declare.</summary>
+    public static string SealArgument => "--Custody:SealSituation=Manual";
 
     /// <summary>The argument that points the host at the folder of a server log it can read.</summary>
     public static string ServerLogArgument => $"--Audit:ServerLogDirectory={ServerLogFiles.Shared}";

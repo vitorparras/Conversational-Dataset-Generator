@@ -36,6 +36,15 @@ internal static class CustodyStatements
         LIMIT 1
         """;
 
+    /// <summary>The moment of the last event that records a seal.</summary>
+    internal const string ReadLastSeal = """
+        SELECT occurred_at
+        FROM public.custody_event
+        WHERE step = @step
+        ORDER BY sequence DESC
+        LIMIT 1
+        """;
+
     /// <summary>The scope of every loss of a key declared: the reference of the steps that declare one.</summary>
     internal const string ReadKeyLossScopes = "SELECT reference FROM public.custody_event WHERE item_kind = 'master_key' AND step = @step";
 

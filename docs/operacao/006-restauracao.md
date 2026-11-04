@@ -47,9 +47,9 @@ ligação que não fechou. Qualquer uma das três produz cadeia válida e falsa.
 
 A [política de acesso](../privacidade/006-acesso.md) não concede conteúdo à administração técnica, e
 restaurar é trabalho dela. Todas as conferências acima se fazem sobre estrutura, contagem e resumo:
-nenhuma exige abrir texto; a amostra cifrada, que decifra, é conferida na primeira partida normal,
-com a chave do host. Procedimento que precise ler material para validar restauração está
-pedindo acesso que a política nega.
+nenhuma exige abrir texto. A amostra cifrada, que decifra, vai na primeira rodada da verificação
+depois da partida (na subida e a cada intervalo), com a chave do host. Procedimento que precise ler
+material para validar restauração está pedindo acesso que a política nega.
 
 ## A restauração é um evento
 

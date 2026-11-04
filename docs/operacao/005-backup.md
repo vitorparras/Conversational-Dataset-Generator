@@ -24,11 +24,11 @@ O `copy-data --to <pasta>`, com a credencial do dono, grava o manifesto (formato
 esquema de origem, arquivos), a configuration.json (sem os segredos) e um esquema.tabela.jsonl por
 tabela: um registro por linha, do to_jsonb sem mudança, na ordem da chave (sequence na cadeia, id
 nas demais; conteúdo por domínio, cifrado como bytes). Não lê chave nem arquivo de custódia, e
-imprime, fora da pasta, o selo da cadeia que gravou antes (seal_recorded). A carga segue a ordem
-fixa: domínios, etiquetas, pessoas, credenciais, mudanças, cadeia, textos, mapas e esvaziados. Ficam
-de fora versões, falhas, contagem e janelas: o migrate as cria. A carga recusa cópia de versão
-diferente ([006](006-restauracao.md)); recusa de linha ou de evento fecha a janela como reprovada;
-cliente que morre a deixa aberta e o banco se descarta. Inativo volta inativo.
+imprime, fora da pasta, o selo da cadeia que gravou antes (seal_recorded). Ordem fixa da carga:
+domínios, etiquetas, pessoas, credenciais, mudanças, tentativas de entrada, cadeia, textos, mapas e
+esvaziados. Ficam de fora versões, falhas, contagem e janelas: o migrate as cria. A carga recusa
+cópia de versão diferente ([006](006-restauracao.md)); linha ou evento recusado fecha a janela
+como reprovada; cliente que morre a deixa aberta e o banco se descarta. Inativo volta inativo.
 
 ## Onde
 

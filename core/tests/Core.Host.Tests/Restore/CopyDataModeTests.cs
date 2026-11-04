@@ -1,3 +1,4 @@
+using System.Globalization;
 using Core.Host.Restore;
 using Core.Platform.Startup;
 using Npgsql;
@@ -29,7 +30,13 @@ public sealed class CopyDataModeTests
     [InlineData("copy-data")]
     [InlineData("copy-data --to")]
     [InlineData("copy-data --to a --to b")]
-    public async Task WithoutTheFolderGivenOnceTheModeRefusesAndWritesNothing(string line)
+    public Task WithoutTheFolderGivenOnceTheModeRefusesAndWritesNothing(string line)
+    {
+        ArgumentNullException.ThrowIfNull(line);
+        return RefusalWithoutFolderAsync(line);
+    }
+
+    private static async Task RefusalWithoutFolderAsync(string line)
     {
         using var output = new StringWriter();
         using var error = new StringWriter();
@@ -43,7 +50,7 @@ public sealed class CopyDataModeTests
     [Fact]
     public async Task FolderThatHoldsSomethingRefusesBeforeTouchingTheDatabaseAndNeverPrintsTheCredential()
     {
-        var folder = Path.Combine(Path.GetTempPath(), "zqx-copy-" + Guid.NewGuid().ToString("N", System.Globalization.CultureInfo.InvariantCulture));
+        var folder = Path.Combine(Path.GetTempPath(), "zqx-copy-" + Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture));
         _ = Directory.CreateDirectory(folder);
         await File.WriteAllTextAsync(Path.Combine(folder, "other.txt"), "zqx", TestContext.Current.CancellationToken);
         try
@@ -52,7 +59,7 @@ public sealed class CopyDataModeTests
             using var output = new StringWriter();
             using var error = new StringWriter();
 
-            var exit = await CopyDataMode.CopyAsync(dataSource, new CopyDataMode.Request(folder, new List<Core.Platform.Configuration.EffectiveEntry>()), new CopyDataMode.Words(output, error));
+            var exit = await CopyDataMode.CopyAsync(dataSource, new CopyDataMode.Request(folder, []), new CopyDataMode.Words(output, error));
 
             Assert.Equal((ExitCode.CopyRefused, string.Empty), (exit, output.ToString()));
             Assert.Contains("a pasta já tem conteúdo", error.ToString(), StringComparison.Ordinal);

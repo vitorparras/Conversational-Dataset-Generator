@@ -125,7 +125,7 @@ public sealed class SignInSaturationTests
     {
         var source = NpgsqlDataSource.Create(connectionString);
         var sessions = new SessionStore(new SessionLifetimes(TimeSpan.FromMinutes(30), TimeSpan.FromHours(8)), clock);
-        return new SignIn(new PersonRegistry(source), new PersonCredentials(source, new PasswordDerivation(1)), sessions, delay);
+        return new SignIn(new PersonRegistry(source), new PersonCredentials(source, new PasswordDerivation(1)), sessions, delay, new SignInAttempts(source));
     }
 
     /// <summary>A server that takes the connection and never answers, so a check of the password that reaches it stays blocked, and counts how many reached it.</summary>

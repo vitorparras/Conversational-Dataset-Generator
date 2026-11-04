@@ -220,6 +220,10 @@ dotnet_diagnostic.CA2100.severity = none
 # The statement is the constant of CustodyStatements or the one a person statement declares, the system's own; it never carries input.
 dotnet_diagnostic.CA2100.severity = none
 
+[core/src/Core.Persistence/ServerGuarantees/{DataCopy,CopyTables}.cs]
+# The statements are the system's own: the constants of the copy and of ContentQueries, and the version of the schema; they never carry input.
+dotnet_diagnostic.CA2100.severity = none
+
 [core/tests/Core.Persistence.Content.Tests/Content/ContentDomainTests.cs]
 # The statements are the constants of ContentQueries, the system's own, and run here without a domain on purpose.
 dotnet_diagnostic.CA2100.severity = none

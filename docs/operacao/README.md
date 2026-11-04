@@ -39,5 +39,8 @@ e por quem ela roda.
 | [025](025-certificado-do-canal-cifrado.md) | Certificado e chave do canal cifrado |
 | [026](026-rotacao-da-epoca.md) | Rotação mensal da época das chaves de item |
 | [027](027-criar-dominio.md) | Criar domínio: rótulos no arquivo de custódia, depois o banco |
+| [028](028-criar-primeira-pessoa.md) | Criar a primeira pessoa: senha pela entrada padrão, credencial da aplicação |
+| [029](029-pessoas-pela-rota.md) | Pessoas seguintes: criar, desativar e repor a senha pelas rotas com sessão |
+| [030](030-selo-manual.md) | O selo na instalação com selo manual: emitir, guardar fora da base e confirmar |
 
 Ver [regras de escrita](../regras-de-escrita.md).

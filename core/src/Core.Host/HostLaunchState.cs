@@ -16,4 +16,6 @@ internal enum HostLaunchState
     Migrated = 3,
 
     Compared = 4,
+
+    Loaded = 5,
 }

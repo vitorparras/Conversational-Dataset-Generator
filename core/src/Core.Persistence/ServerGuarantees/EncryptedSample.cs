@@ -16,7 +16,7 @@ namespace Core.Persistence.ServerGuarantees;
 internal sealed class EncryptedSample
 {
     private const string Domains = "SELECT coalesce(pg_catalog.array_agg(domain_id), ARRAY[]::integer[]) FROM (SELECT domain_id FROM public.content_domain "
-        + "WHERE table_name = @table AND live > 0 ORDER BY domain_id LIMIT 3) first_domains";
+        + "WHERE table_name = @table GROUP BY domain_id HAVING pg_catalog.sum(delta) > 0 ORDER BY domain_id LIMIT 3) first_domains";
 
     private readonly NpgsqlDataSource dataSource;
     private readonly Func<CancellationToken, Task<MasterKeyReading>> read;
@@ -29,10 +29,7 @@ internal sealed class EncryptedSample
         this.open = open;
     }
 
-    /// <summary>
-    /// Whether every record of the sample opened; a key not read, a label not loaded, a loss declared, a label that is not the column's
-    /// and an access the chain did not record all say no.
-    /// </summary>
+    /// <summary>Whether every record of the sample opened; a key not read, a label not loaded, a label that is not the column's and an access the chain did not record all say no.</summary>
     internal async Task<bool> HoldsAsync(CancellationToken cancellationToken)
     {
         using var reading = await read(cancellationToken).ConfigureAwait(false);

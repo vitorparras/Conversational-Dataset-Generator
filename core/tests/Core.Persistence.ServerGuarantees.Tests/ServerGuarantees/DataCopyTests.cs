@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json.Nodes;
 using Core.Persistence.Content.Writing;
 using Core.Persistence.ServerGuarantees;
@@ -18,6 +19,7 @@ public sealed class DataCopyTests
     [
         "configuration.json", "content.item_emptied.jsonl", "content.item_text.jsonl", "content.reversal_map.jsonl", "manifest.json", "public.custody_event.jsonl",
         "public.derivation_label.jsonl", "public.domain.jsonl", "public.person.jsonl", "public.person_change.jsonl", "public.person_credential.jsonl",
+        "public.sign_in_attempt.jsonl",
     ];
 
     [DatabaseFact]
@@ -30,7 +32,24 @@ public sealed class DataCopyTests
 
         Assert.Equal(DataCopyOutcome.Made, copied.Result.Outcome);
         Assert.Equal(Files, Directory.GetFiles(copied.Folder).Select(file => Path.GetFileName(file)).Order(StringComparer.Ordinal));
-        Assert.Equal((1, int.Parse(version, System.Globalization.CultureInfo.InvariantCulture), 9), ((int)manifest["format"]!, (int)manifest["schemaVersion"]!, manifest["files"]!.AsArray().Count));
+        Assert.Equal((1, int.Parse(version, CultureInfo.InvariantCulture), 10), ((int)manifest["format"]!, (int)manifest["schemaVersion"]!, manifest["files"]!.AsArray().Count));
+    }
+
+    [DatabaseFact]
+    public async Task Ca1TheManifestListsTheTablesInTheOrderOfTheLoadWithTheAttemptsToSignInAfterThePeople()
+    {
+        await using var copied = await CopiedWorld.CreateAsync();
+
+        var manifest = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(copied.Folder, "manifest.json"), TestContext.Current.CancellationToken))!;
+        var attempts = await File.ReadAllLinesAsync(Path.Combine(copied.Folder, "public.sign_in_attempt.jsonl"), TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            [
+                "public.domain.jsonl", "public.derivation_label.jsonl", "public.person.jsonl", "public.person_credential.jsonl", "public.person_change.jsonl",
+                "public.sign_in_attempt.jsonl", "public.custody_event.jsonl", "content.item_text.jsonl", "content.reversal_map.jsonl", "content.item_emptied.jsonl",
+            ],
+            manifest["files"]!.AsArray().Select(file => (string)file!));
+        Assert.Equal("203.0.113.0/24", (string)JsonNode.Parse(Assert.Single(attempts))!["network"]!);
     }
 
     [DatabaseFact]
@@ -109,14 +128,14 @@ public sealed class DataCopyTests
         var rows = await File.ReadAllLinesAsync(Path.Combine(copied.Folder, "content.item_text.jsonl"), TestContext.Current.CancellationToken);
 
         Assert.Equal(["0"], reads);
-        Assert.Single(rows);
+        _ = Assert.Single(rows);
     }
 
     [DatabaseFact]
     public async Task FolderThatCannotBeMadeLeavesNoSealInTheChain()
     {
         await using var world = await FidelityWorld.CreateAsync();
-        var file = Path.Combine(Path.GetTempPath(), "zqx-copy-" + Guid.NewGuid().ToString("N", System.Globalization.CultureInfo.InvariantCulture));
+        var file = Path.Combine(Path.GetTempPath(), "zqx-copy-" + Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture));
         await File.WriteAllTextAsync(file, "zqx", TestContext.Current.CancellationToken);
         await using var owner = NpgsqlDataSource.Create(world.OwnerConnectionString);
         try
@@ -136,7 +155,7 @@ public sealed class DataCopyTests
     public async Task FolderThatHoldsSomethingIsRefusedAndNeitherTheSealNorARowIsWritten()
     {
         await using var world = await FidelityWorld.CreateAsync();
-        var folder = Path.Combine(Path.GetTempPath(), "zqx-copy-" + Guid.NewGuid().ToString("N", System.Globalization.CultureInfo.InvariantCulture));
+        var folder = Path.Combine(Path.GetTempPath(), "zqx-copy-" + Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture));
         _ = Directory.CreateDirectory(folder);
         await File.WriteAllTextAsync(Path.Combine(folder, "other.txt"), "zqx", TestContext.Current.CancellationToken);
         await using var owner = NpgsqlDataSource.Create(world.OwnerConnectionString);

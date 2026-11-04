@@ -75,14 +75,16 @@ internal static class DomainGenerationMode
     {
         if (result.Outcome == DomainLabelOutcome.Rotated)
         {
-            await words.Output.WriteLineAsync(
-                $"{RotateWord}: o domínio {result.DomainId} cifra sob a geração v{result.Version} desde a sequência {result.Sequence} da cadeia").ConfigureAwait(false);
+            await words.Output.WriteLineAsync($"{RotateWord}: o domínio {result.DomainId} cifra sob a geração v{result.Version} desde a sequência {result.Sequence} da cadeia").ConfigureAwait(false);
             return ExitCode.Success;
         }
 
         if (result.Outcome == DomainLabelOutcome.LabelsMissing)
         {
-            await ReportMissingAsync(result, words).ConfigureAwait(false);
+            var named = string.Join(Environment.NewLine + "  ", result.MissingLabels);
+            await words.Error.WriteLineAsync(
+                $"{RotateWord} {Refused}: o domínio {result.DomainId} passaria à geração v{result.Version} e o arquivo de rótulos não traz, de rótulo de derivação:{Environment.NewLine}  {named}"
+                + $"{Environment.NewLine}acrescente-os ao arquivo e à cópia de guarda (operacao/002) e rode de novo").ConfigureAwait(false);
             return ExitCode.DomainLabelsMissing;
         }
 
@@ -91,14 +93,6 @@ internal static class DomainGenerationMode
             : "a gravação não se completou: outra chegou antes, ou a cadeia recusou o evento; repita o comando";
         await words.Error.WriteLineAsync($"{RotateWord} {Refused}: {reason}").ConfigureAwait(false);
         return ExitCode.DomainLabelRefused;
-    }
-
-    private static async Task ReportMissingAsync(DomainLabelResult result, Words words)
-    {
-        var named = string.Join(Environment.NewLine + "  ", result.MissingLabels);
-        await words.Error.WriteLineAsync(
-            $"{RotateWord} {Refused}: o domínio {result.DomainId} passaria à geração v{result.Version} e o arquivo de rótulos não traz, de rótulo de derivação:{Environment.NewLine}  {named}"
-            + $"{Environment.NewLine}acrescente-os ao arquivo e à cópia de guarda (operacao/002) e rode de novo").ConfigureAwait(false);
     }
 
     internal readonly record struct Words(TextWriter Output, TextWriter Error);

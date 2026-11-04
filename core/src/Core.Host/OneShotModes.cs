@@ -1,13 +1,14 @@
 using Core.Host.Domains;
 using Core.Host.Loss;
+using Core.Host.Operators;
 using Core.Host.Restore;
 using Core.Host.Rotation;
 
 namespace Core.Host;
 
 /// <summary>
-/// The modes that run once with the owner credential and serve nothing, other than the migration: the rotation of the epoch, the creation of a domain,
-/// the rotation of its label, the declaration of the loss of a key and the copy of the data.
+/// The modes that run once and serve nothing, other than the migration: with the owner credential, the rotation of the epoch, the creation of a domain,
+/// the rotation of its label, the declaration of the loss of a key and the copy of the data; with the application one, the first person.
 /// </summary>
 internal static class OneShotModes
 {
@@ -19,6 +20,11 @@ internal static class OneShotModes
             return EpochRotationMode.RunAsync(args, Console.Out, Console.Error);
         }
 
+        if (FirstOperatorMode.Requested(args))
+        {
+            return FirstOperatorMode.RunAsync(args, Console.In, Console.Out, Console.Error);
+        }
+
         if (DomainGenerationMode.Requested(args))
         {
             return DomainGenerationMode.RunAsync(args, Console.Out, Console.Error);
@@ -27,6 +33,16 @@ internal static class OneShotModes
         if (KeyLossMode.Requested(args))
         {
             return KeyLossMode.RunAsync(args, Console.Out, Console.Error);
+        }
+
+        if (RecoveryRehearsalMode.Requested(args))
+        {
+            return RecoveryRehearsalMode.RunAsync(args, Console.Out, Console.Error);
+        }
+
+        if (RecoveryRecordMode.Requested(args))
+        {
+            return RecoveryRecordMode.RunAsync(args, Console.Out, Console.Error);
         }
 
         if (CopyDataMode.Requested(args))

@@ -14,7 +14,7 @@ namespace Core.Persistence.ServerGuarantees;
 public sealed class GuaranteeVerifier
 {
     private readonly NpgsqlDataSource dataSource;
-    private readonly EncryptedSample sample;
+    private readonly EncryptedSample? sample;
     private readonly CustodyChain chain;
 
     /// <summary>The conference reads and records through the data source built with the application's credential, and opens the sample with the key it reads.</summary>
@@ -29,6 +29,14 @@ public sealed class GuaranteeVerifier
         chain = new CustodyChain(dataSource);
     }
 
+    /// <summary>The conference without the sample of sealed records: nothing is deciphered, so no key is needed; the sample goes in the first round of the verification after the start.</summary>
+    public GuaranteeVerifier(NpgsqlDataSource dataSource)
+    {
+        ArgumentNullException.ThrowIfNull(dataSource);
+        this.dataSource = dataSource;
+        chain = new CustodyChain(dataSource);
+    }
+
     /// <summary>Confers the guarantees one after the other and records the verdict; a verdict the chain did not accept is told in the answer, and the conference may be repeated.</summary>
     /// <param name="cancellationToken">Cancels the conference.</param>
     public async Task<GuaranteeVerification> VerifyAsync(CancellationToken cancellationToken)
@@ -38,7 +46,7 @@ public sealed class GuaranteeVerifier
         missing |= await MissingAsync(new ColumnRevokeCheck(dataSource), GuaranteeKinds.ColumnRevoke, cancellationToken).ConfigureAwait(false);
         missing |= await MissingAsync(new ImmutabilityCheck(dataSource), GuaranteeKinds.Immutability, cancellationToken).ConfigureAwait(false);
         missing |= await MissingAsync(new ProtectedColumnCheck(dataSource), GuaranteeKinds.ProtectedColumns, cancellationToken).ConfigureAwait(false);
-        missing |= await sample.HoldsAsync(cancellationToken).ConfigureAwait(false) ? GuaranteeKinds.None : GuaranteeKinds.EncryptedSample;
+        missing |= sample is null || await sample.HoldsAsync(cancellationToken).ConfigureAwait(false) ? GuaranteeKinds.None : GuaranteeKinds.EncryptedSample;
         var recorded = await chain.AppendAsync(CustodyEvent.GuaranteesVerified((long)missing), cancellationToken).ConfigureAwait(false);
         return new GuaranteeVerification(missing, recorded);
     }

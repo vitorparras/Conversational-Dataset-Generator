@@ -56,5 +56,5 @@ responde por quem o guarda: não a pessoa que administra o banco de onde ele vir
 
 Backup não testado é hipótese. A cada trimestre, e a cada mudança no formato de persistência, uma
 cópia é restaurada em ambiente separado e conferida pelo procedimento de
-[006](006-restauracao.md). O resultado — passou ou falhou — entra no registro de custódia. Falhar
-em restaurar é incidente, não pendência de melhoria.
+[006](006-restauracao.md). O resultado — passou ou falhou — entra no registro de custódia, pelo
+`rehearse-restore`. Falhar em restaurar é incidente, não pendência de melhoria.

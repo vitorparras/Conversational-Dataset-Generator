@@ -7,7 +7,7 @@ namespace Core.Host;
 
 /// <summary>
 /// The modes that run once with the owner credential and serve nothing, other than the migration: the rotation of the epoch, the creation of a domain,
-/// the rotation of its label, the declaration of the loss of a key and the copy of the data.
+/// the rotation of its label, the declaration of the loss of a key, the copy of the data and the rehearsal of a restore.
 /// </summary>
 internal static class OneShotModes
 {
@@ -32,6 +32,11 @@ internal static class OneShotModes
         if (CopyDataMode.Requested(args))
         {
             return CopyDataMode.RunAsync(args, Console.Out, Console.Error);
+        }
+
+        if (RehearsalMode.Requested(args))
+        {
+            return RehearsalMode.RunAsync(args, Console.Out, Console.Error);
         }
 
         return DomainCreationMode.Requested(args) ? DomainCreationMode.RunAsync(args, Console.Out, Console.Error) : null;

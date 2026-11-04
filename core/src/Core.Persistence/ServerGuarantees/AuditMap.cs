@@ -44,5 +44,6 @@ public static class AuditMap
         [CustodyStep.SealRecorded] = "o selo é lido da cadeia (ChainSealer) e grava só o evento nela: não toca tabela de domínio",
         [CustodyStep.DomainLabelRotated] = "os rótulos da nova geração são escritos com a credencial do dono (não a da aplicação) em tabela que o mapa não compara: a cadeia guarda o evento",
         [CustodyStep.KeyLossDeclared] = "a perda é declarada por quem opera e grava só o evento na cadeia, com a credencial do dono (modo declare-key-loss): não toca tabela de domínio",
+        [CustodyStep.RestoreRehearsed] = "o ensaio lê a cadeia (CustodyVerifier) e o catálogo e grava só o resultado nela: não toca tabela de domínio",
     };
 }

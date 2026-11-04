@@ -62,4 +62,7 @@ public enum CustodyStep
     /// There is no way back.
     /// </summary>
     KeyLossDeclared,
+
+    /// <summary>The result of the rehearsal of a restore: the item is the chain, its id is the mask of what did not hold (zero when everything held) and the reference names it.</summary>
+    RestoreRehearsed,
 }

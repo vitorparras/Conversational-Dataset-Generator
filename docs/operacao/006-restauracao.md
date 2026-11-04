@@ -50,3 +50,11 @@ por quem, e qual era o topo antes e depois. Restauração silenciosa deixa na se
 próxima verificação encontra sem explicação — e trata como incidente, corretamente.
 
 Se a cadeia não fechar, pare aqui e siga [009](009-incidente-cadeia-quebrada.md).
+
+## O ensaio
+
+`rehearse-restore --seal <selo>`, com a credencial da aplicação sobre o banco restaurado, confere
+os elos, o selo anotado fora ([005](005-backup.md)) e as garantias que o catálogo conta, sem abrir
+texto. Grava o evento restore_rehearsed, distinto do da restauração: passou (referência `held`)
+ou falhou, nomeando o que não valeu (privilege, policy, revoke, immutable, columns, chain, seal).
+Se os elos não fecharem, a cadeia não o aceita, o comando sai com erro e vale a [009](009-incidente-cadeia-quebrada.md).

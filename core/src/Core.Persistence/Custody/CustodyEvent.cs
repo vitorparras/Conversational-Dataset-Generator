@@ -6,11 +6,12 @@ namespace Core.Persistence.Custody;
 public sealed record CustodyEvent
 {
     private const int FirstRotation = 2;
+    private const long RehearsalMask = 255;
 
     private static readonly FrozenSet<CustodyStep> OfTheirOwn = Enumerable.Repeat(CustodyStep.Correction, 1)
         .Append(CustodyStep.VerifyChain).Append(CustodyStep.ItemEmptied).Append(CustodyStep.ItemEmptyingRefused).Append(CustodyStep.EpochRotated).Append(CustodyStep.DomainCreated)
         .Append(CustodyStep.SealRecorded).Append(CustodyStep.DomainLabelRotated).Append(CustodyStep.KeyLossDeclared)
-        .Append(CustodyStep.VerifyGuarantees).Append(CustodyStep.OwnerWindowOpened).Append(CustodyStep.OwnerWindowClosed).ToFrozenSet();
+        .Append(CustodyStep.VerifyGuarantees).Append(CustodyStep.OwnerWindowOpened).Append(CustodyStep.OwnerWindowClosed).Append(CustodyStep.RestoreRehearsed).ToFrozenSet();
 
     private CustodyEvent(CustodyAuthor author, CustodyItem item, CustodyStep step, CustodyReason reason)
     {
@@ -50,7 +51,9 @@ public sealed record CustodyEvent
         return HasEventOfItsOwn(step)
             ? throw new ArgumentException(
                 "A correction, a verification, an emptying, a rotation, the creation of a domain and a seal have an event of their own; "
-                + "use Correction, Verification, GuaranteesVerified, Emptied, EmptyingRefused, EpochRotated, DomainCreated, SealRecorded, DomainLabelRotated or KeyLossDeclared.", nameof(step))
+                + "use Correction, Verification, GuaranteesVerified, Emptied, EmptyingRefused, EpochRotated, DomainCreated, SealRecorded, DomainLabelRotated, "
+                + "KeyLossDeclared or RestoreRehearsed.",
+                nameof(step))
             : new CustodyEvent(author, item, step, reason);
     }
 
@@ -178,6 +181,17 @@ public sealed record CustodyEvent
         ArgumentOutOfRangeException.ThrowIfNegative(missing);
         var reason = missing == 0 ? CustodyReason.VerificationPassed : CustodyReason.VerificationFailed;
         return new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.CustodyChain, missing), CustodyStep.VerifyGuarantees, reason);
+    }
+
+    /// <summary>The event of the result of a rehearsal of a restore, by the system: the item is the chain, its id is the mask of what did not hold, and the reference names it.</summary>
+    /// <param name="findings">The mask of what did not hold, between 0 (everything held) and 255.</param>
+    /// <param name="names">The names of what did not hold, letters apart by a dot; <c>held</c> for none.</param>
+    public static CustodyEvent RestoreRehearsed(long findings, string names)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(findings);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(findings, RehearsalMask);
+        var reason = findings == 0 ? CustodyReason.VerificationPassed : CustodyReason.VerificationFailed;
+        return WithReference(new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.CustodyChain, findings), CustodyStep.RestoreRehearsed, reason), names);
     }
 
     /// <summary>A new event that corrects an earlier one, which stays in the sequence as it was.</summary>

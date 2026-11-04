@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Core.Persistence.Custody;
+using Core.Persistence.Custody.Verification;
 
 namespace Core.Host;
 
@@ -21,4 +22,13 @@ internal static partial class ChainVerificationLogMessages
 
     [LoggerMessage(EventId = 323, Level = LogLevel.Error, Message = "Leitura da última verificação da cadeia falhou: {FailureType}; a resposta foi 503")]
     internal static partial void LastUnreadable(this ILogger logger, string failureType);
+
+    [LoggerMessage(
+        EventId = 324,
+        Level = LogLevel.Error,
+        Message = "Verificação da cadeia de custódia contra o selo: NÃO CONFERE ({Outcome}); o selo contava {SealedEvents} eventos e a cadeia tem {EventsRead}")]
+    internal static partial void SealDoesNotHold(this ILogger logger, SealOutcome outcome, long sealedEvents, long eventsRead);
+
+    [LoggerMessage(EventId = 325, Level = LogLevel.Error, Message = "Verificação da cadeia de custódia contra o selo não chegou ao fim: {FailureType}; a resposta foi 503")]
+    internal static partial void SealVerificationFailed(this ILogger logger, string failureType);
 }

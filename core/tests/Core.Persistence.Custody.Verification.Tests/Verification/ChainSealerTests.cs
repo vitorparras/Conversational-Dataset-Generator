@@ -152,9 +152,10 @@ public sealed class ChainSealerTests
         await AppendEventsAsync(database, 3);
         var forged = ChainSeal.Of(Moment, events, [.. Enumerable.Repeat(filler, 32)]);
 
-        _ = await Assert.ThrowsAsync<InvalidOperationException>(async () => await (await SealerAsync(database)).RecordAsync(forged, CustodyAuthor.System, TestContext.Current.CancellationToken));
+        var recording = await (await SealerAsync(database)).RecordAsync(forged, CustodyAuthor.System, TestContext.Current.CancellationToken);
 
-        Assert.Equal(3, (await database.EventsAsync()).Count);
+        Assert.Equal((CustodyOutcome.SealNotOfTheChain, null, 3), (recording.Recorded.Outcome, recording.Seal, (await database.EventsAsync()).Count));
+        Assert.False(string.IsNullOrWhiteSpace(recording.Recorded.Refusal));
     }
 
     private static async Task AppendEventsAsync(CustodyDatabase database, int count)

@@ -17,7 +17,7 @@ internal sealed class SealSendingService : BackgroundService
 
     private readonly SealSteps? steps;
     private readonly TimeProvider time;
-    private readonly ILogger logger;
+    private readonly ILoggerFactory loggers;
     private readonly SealDelivery? delivery;
 
     /// <summary>The service as the host builds it: it sends when the situation has a destination and the host has a database.</summary>
@@ -27,17 +27,17 @@ internal sealed class SealSendingService : BackgroundService
     }
 
     private SealSendingService(IServiceProvider host, SealDelivery? delivery)
-        : this(StepsOf(host, delivery), host.GetRequiredService<TimeProvider>(), host.GetRequiredService<ILoggerFactory>().CreateLogger<SealSendingService>())
+        : this(StepsOf(host, delivery), host.GetRequiredService<TimeProvider>(), host.GetRequiredService<ILoggerFactory>())
     {
         this.delivery = delivery;
     }
 
     /// <summary>The service over the steps it is given, with the clock and the log of its caller; no steps, nothing to send.</summary>
-    internal SealSendingService(SealSteps? steps, TimeProvider time, ILogger logger)
+    internal SealSendingService(SealSteps? steps, TimeProvider time, ILoggerFactory loggers)
     {
         this.steps = steps;
         this.time = time;
-        this.logger = logger;
+        this.loggers = loggers;
     }
 
     /// <inheritdoc />
@@ -94,24 +94,25 @@ internal sealed class SealSendingService : BackgroundService
         }
         catch (Exception failure) when (ServingFailure.CanReport(failure) && !cancellationToken.IsCancellationRequested)
         {
-            logger.SealSendingFailed(failure.GetType().Name);
+            loggers.CreateLogger<SealSendingService>().SealSendingFailed(failure.GetType().Name);
             return TimeSpan.Zero;
         }
     }
 
     private async Task SendOnceAsync(SealSteps toSend, CancellationToken cancellationToken)
     {
+        var logger = loggers.CreateLogger<SealSendingService>();
         try
         {
             var made = await toSend.Make(cancellationToken).ConfigureAwait(false);
             var sent = await toSend.Send(made.ToText(), cancellationToken).ConfigureAwait(false);
             if (sent.Delivered)
             {
-                Report(made, await toSend.Record(made, cancellationToken).ConfigureAwait(false));
+                Report(logger, made, await toSend.Record(made, cancellationToken).ConfigureAwait(false));
             }
             else
             {
-                logger.SealNotDelivered(sent.Reason, made.Events);
+                logger.SealNotDelivered(sent.Failure, sent.Status, made.Events);
             }
         }
         catch (Exception failure) when (ServingFailure.CanReport(failure) && !cancellationToken.IsCancellationRequested)
@@ -120,7 +121,7 @@ internal sealed class SealSendingService : BackgroundService
         }
     }
 
-    private void Report(ChainSeal made, SealRecording recording)
+    private static void Report(ILogger logger, ChainSeal made, SealRecording recording)
     {
         if (recording.Seal is null)
         {

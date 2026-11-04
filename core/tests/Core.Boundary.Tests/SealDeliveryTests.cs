@@ -21,22 +21,22 @@ public sealed class SealDeliveryTests
 
         var result = await delivery.SendAsync(Text, TestContext.Current.CancellationToken);
 
-        Assert.Equal((true, string.Empty, HttpMethod.Post, Destination, Text), (result.Delivered, result.Reason, handler.Method, handler.Target, handler.Body));
+        Assert.Equal((true, SealDeliveryFailure.None, HttpMethod.Post, Destination, Text), (result.Delivered, result.Failure, handler.Method, handler.Target, handler.Body));
     }
 
     [Theory]
-    [InlineData(HttpStatusCode.InternalServerError, "o destino respondeu 500")]
-    [InlineData(HttpStatusCode.Forbidden, "o destino respondeu 403")]
-    [InlineData(HttpStatusCode.Found, "o destino respondeu 302")]
-    [InlineData(HttpStatusCode.MovedPermanently, "o destino respondeu 301")]
-    public async Task AnswerThatIsNotASuccessIsAFailureThatSaysWhichAndDoesNotFollowTheRedirect(HttpStatusCode status, string reason)
+    [InlineData(HttpStatusCode.InternalServerError)]
+    [InlineData(HttpStatusCode.Forbidden)]
+    [InlineData(HttpStatusCode.Found)]
+    [InlineData(HttpStatusCode.MovedPermanently)]
+    public async Task AnswerThatIsNotASuccessIsAFailureThatSaysWhichAndDoesNotFollowTheRedirect(HttpStatusCode status)
     {
         using var handler = new Stub(() => Redirecting(status));
         using var delivery = new SealDelivery(Destination, handler);
 
         var result = await delivery.SendAsync(Text, TestContext.Current.CancellationToken);
 
-        Assert.Equal((false, reason, 1), (result.Delivered, result.Reason, handler.Calls));
+        Assert.Equal((SealDeliveryFailure.DestinationAnswered, (int)status, 1), (result.Failure, result.Status, handler.Calls));
     }
 
     [Fact]
@@ -47,7 +47,7 @@ public sealed class SealDeliveryTests
 
         var result = await delivery.SendAsync(Text, TestContext.Current.CancellationToken);
 
-        Assert.Equal((false, "o certificado do destino não foi aceito"), (result.Delivered, result.Reason));
+        Assert.Equal((false, SealDeliveryFailure.CertificateRejected), (result.Delivered, result.Failure));
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public sealed class SealDeliveryTests
 
         var result = await delivery.SendAsync(Text, TestContext.Current.CancellationToken);
 
-        Assert.Equal((false, "o destino não foi alcançado"), (result.Delivered, result.Reason));
+        Assert.Equal((false, SealDeliveryFailure.Unreachable), (result.Delivered, result.Failure));
     }
 
     [Fact]
@@ -69,7 +69,18 @@ public sealed class SealDeliveryTests
 
         var result = await delivery.SendAsync(Text, TestContext.Current.CancellationToken);
 
-        Assert.Equal((false, "o destino não respondeu no tempo limite"), (result.Delivered, result.Reason));
+        Assert.Equal((false, SealDeliveryFailure.TimedOut), (result.Delivered, result.Failure));
+    }
+
+    [Fact]
+    public async Task ConnectionThatTimesOutBeforeTheWholeRequestDoesIsTimeAndNotUnreachable()
+    {
+        using var handler = new Stub(() => throw new HttpRequestException("zqx", new TimeoutException("zqx")));
+        using var delivery = new SealDelivery(Destination, handler);
+
+        var result = await delivery.SendAsync(Text, TestContext.Current.CancellationToken);
+
+        Assert.Equal((false, SealDeliveryFailure.TimedOut), (result.Delivered, result.Failure));
     }
 
     [Fact]
@@ -100,7 +111,7 @@ public sealed class SealDeliveryTests
     {
         using var handler = SealDelivery.Handler();
 
-        Assert.Equal((false, TimeSpan.FromSeconds(30), true), (handler.AllowAutoRedirect, handler.ConnectTimeout, handler.SslOptions.RemoteCertificateValidationCallback is null));
+        Assert.Equal((false, TimeSpan.FromSeconds(10), true), (handler.AllowAutoRedirect, handler.ConnectTimeout, handler.SslOptions.RemoteCertificateValidationCallback is null));
     }
 
     private static HttpResponseMessage Redirecting(HttpStatusCode status)

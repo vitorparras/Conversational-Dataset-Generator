@@ -37,16 +37,29 @@ public sealed class SealSendingServiceTests
     [Fact]
     public async Task SealThatDidNotArriveIsNotRecordedAndTheLogNamesTheReasonAndTheCountButNotTheSeal()
     {
-        var fakes = new Fakes { Send = _ => Task.FromResult(SealDeliveryResult.Failed("o destino respondeu 500")) };
+        var fakes = new Fakes { Send = _ => Task.FromResult(SealDeliveryResult.Failed(SealDeliveryFailure.DestinationAnswered, 500)) };
         await using var run = new Run(fakes);
         await run.StartAsync(TestContext.Current.CancellationToken);
         await run.WaitingAsync(TestContext.Current.CancellationToken);
 
         var line = Assert.Single(run.Log.Lines, text => text.Contains("NÃO enviado", StringComparison.Ordinal));
         Assert.Empty(fakes.Recorded);
-        Assert.Contains("o destino respondeu 500", line, StringComparison.Ordinal);
+        Assert.Contains("DestinationAnswered (resposta 500)", line, StringComparison.Ordinal);
         Assert.Contains("5 eventos", line, StringComparison.Ordinal);
         Assert.DoesNotContain("CDG-SELO", line, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task SealThatArrivedButWasRefusedByTheChainIsLoggedWithTheNameOfTheOutcomeAndTheCount()
+    {
+        var fakes = new Fakes { Outcome = CustodyOutcome.SealNotOfTheChain };
+        await using var run = new Run(fakes);
+        await run.StartAsync(TestContext.Current.CancellationToken);
+        await run.WaitingAsync(TestContext.Current.CancellationToken);
+
+        var line = Assert.Single(run.Log.Lines, text => text.Contains("registro foi recusado", StringComparison.Ordinal));
+        Assert.Contains("(SealNotOfTheChain)", line, StringComparison.Ordinal);
+        Assert.Contains("5 eventos", line, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -69,7 +82,7 @@ public sealed class SealSendingServiceTests
     public async Task NoStepsMeansNothingIsSentAndTheServiceEnds()
     {
         using var loggers = new LoggerFactory();
-        using var service = new SealSendingService(null, new ManualClock(), loggers.CreateLogger<SealSendingService>());
+        using var service = new SealSendingService(null, new ManualClock(), loggers);
 
         await service.StartAsync(TestContext.Current.CancellationToken);
 
@@ -144,6 +157,8 @@ public sealed class SealSendingServiceTests
 
         public long Chain { get; set; } = 5;
 
+        public CustodyOutcome Outcome { get; set; } = CustodyOutcome.Appended;
+
         public DateTimeOffset? Last { get; set; }
 
         public Func<string, Task<SealDeliveryResult>> Send { get; set; } = _ => Task.FromResult(SealDeliveryResult.Arrived);
@@ -165,7 +180,8 @@ public sealed class SealSendingServiceTests
         private Task<SealRecording> RecordAsync(ChainSeal seal, CancellationToken cancellationToken)
         {
             Recorded.Add(seal);
-            return Task.FromResult(new SealRecording { Recorded = new CustodyResult { Outcome = CustodyOutcome.Appended, Sequence = 9 }, Seal = seal });
+            var appended = Outcome == CustodyOutcome.Appended;
+            return Task.FromResult(new SealRecording { Recorded = new CustodyResult { Outcome = Outcome, Sequence = appended ? 9 : null }, Seal = appended ? seal : null });
         }
     }
 
@@ -179,7 +195,7 @@ public sealed class SealSendingServiceTests
         {
             this.fakes = fakes;
             loggers = new LoggerFactory([Log]);
-            service = new SealSendingService(fakes.Steps(), Clock, loggers.CreateLogger<SealSendingService>());
+            service = new SealSendingService(fakes.Steps(), Clock, loggers);
         }
 
         public ManualClock Clock { get; } = new();

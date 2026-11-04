@@ -36,11 +36,13 @@ public sealed class ChainSealer
         return RecordSealAsync(author, cancellationToken);
     }
 
-    /// <summary>Records a seal that was made before, and sent out: the event points at that seal, whatever the chain grew by since, and only if the digest of the event sealed is the one the seal carries.</summary>
+    /// <summary>
+    /// Records a seal that was made before, and sent out: the event points at that seal, whatever the chain grew by since, and only if the digest of the event sealed is the one the seal carries.
+    /// A seal the chain does not have is refused in the answer, as <see cref="CustodyOutcome.SealNotOfTheChain" />, and nothing is written.
+    /// </summary>
     /// <param name="seal">The seal that was made and sent.</param>
     /// <param name="author">The system, or the active person who confirmed the record.</param>
     /// <param name="cancellationToken">Cancels the record.</param>
-    /// <exception cref="InvalidOperationException">The digest of the event the seal points at is not the seal's; nothing is written.</exception>
     public Task<SealRecording> RecordAsync(ChainSeal seal, CustodyAuthor author, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(seal);
@@ -73,7 +75,7 @@ public sealed class ChainSealer
             async scope => await HoldsAsync(scope, seal, cancellationToken).ConfigureAwait(false) ? CustodyEvent.SealRecorded(author, seal.Events) : null,
             cancellationToken).ConfigureAwait(false);
         return recorded is null
-            ? throw new InvalidOperationException("o resumo do evento selado não é o do selo; nada foi gravado")
+            ? new SealRecording { Recorded = CustodyRefusals.SealNotOfTheChain() }
             : new SealRecording { Recorded = recorded, Seal = recorded.Outcome == CustodyOutcome.Appended ? seal : null };
     }
 

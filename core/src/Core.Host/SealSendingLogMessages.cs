@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Core.Boundary.Http;
 using Core.Persistence.Custody;
 
 namespace Core.Host;
@@ -13,8 +14,8 @@ internal static partial class SealSendingLogMessages
     [LoggerMessage(
         EventId = 327,
         Level = LogLevel.Error,
-        Message = "Selo da cadeia de custódia NÃO enviado, nada foi registrado: {Reason}; o selo contava {SealedEvents} eventos; a próxima tentativa sai no intervalo seguinte")]
-    internal static partial void SealNotDelivered(this ILogger logger, string reason, long sealedEvents);
+        Message = "Selo da cadeia de custódia NÃO enviado, nada foi registrado: {Failure} (resposta {Status}); o selo contava {SealedEvents} eventos; a próxima tentativa sai no intervalo seguinte")]
+    internal static partial void SealNotDelivered(this ILogger logger, SealDeliveryFailure failure, int status, long sealedEvents);
 
     [LoggerMessage(
         EventId = 328,

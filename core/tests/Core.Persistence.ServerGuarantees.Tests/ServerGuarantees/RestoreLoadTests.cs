@@ -10,7 +10,7 @@ using NpgsqlTypes;
 namespace Core.Persistence.Tests.ServerGuarantees;
 
 /// <summary>
-/// The load of a restore by the credential of the application (#64, CA-5): the functions of the step 0025 put back the rows of a copy, the events with the sequence and the digests the copy has,
+/// The load of a restore by the credential of the application (#64, CA-5): the functions of the step 0027 put back the rows of a copy, the events with the sequence and the digests the copy has,
 /// only inside a window that opens once, in a database that never held anything, and closes for good, approved or not. Everything else is refused, and nothing of a refused call stays.
 /// </summary>
 [Trait("Category", "Database")]

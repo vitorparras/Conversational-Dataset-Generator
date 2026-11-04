@@ -61,6 +61,19 @@ public sealed class SealComparisonTests
     }
 
     [DatabaseFact]
+    public async Task SealedEventAlteredWithItsColumnOfDigestLeftAsItWasIsNotTheSealedOneAndTheLinksSayTheSame()
+    {
+        await using var database = new CustodyDatabase();
+        await AppendEventsAsync(database, 4, firstItem: 1);
+        var seal = (await RecordSealAsync(database)).Seal!;
+        await database.RunAsSuperuserAsync($"{Untrusted}UPDATE public.custody_event SET item_id = item_id + 1 WHERE sequence = {seal.Events}{Trusted}");
+
+        var verification = await VerifyAsync(database, seal);
+
+        Assert.Equal((new InconsistentEvent(seal.Events, ChainInconsistency.DigestMismatch), SealOutcome.DigestDiffers), (verification.FirstInconsistent, verification.Seal!.Outcome));
+    }
+
+    [DatabaseFact]
     public async Task ChainThatGrewAfterTheSealPassesTheLinksAndHoldsTheSeal()
     {
         await using var database = new CustodyDatabase();

@@ -9,13 +9,14 @@ import re
 import secrets
 import shutil
 from collections.abc import Generator
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from steps.areas_doc import Area, within
 from steps.common import Context, reset_directory, tail
 from steps.mutant import Mutant
 from steps.mutation_judge import LanguageRun, ModuleResult, each
+from steps.mutation_parts import Part, module_name, parts_of, share, split_module
 from steps.mutation_policy import MutationPolicy
 from steps.stryker_report import read_stryker
 
@@ -44,14 +45,23 @@ TOKEN_BYTES = 8
 
 @dataclass(frozen=True)
 class CoreTarget:
-    """A critical area as Stryker sees it: the project that holds it and the files to mutate."""
+    """A critical area as Stryker sees it: the project that holds it and the files to mutate, all of
+    them or the share of one part."""
 
     area: Area
     project: str
     patterns: tuple[str, ...]
+    part: Part | None = None
+
+    @property
+    def shown(self) -> Area:
+        """The area as the report names it: with its part, when it runs in parts."""
+        if self.part is None:
+            return self.area
+        return replace(self.area, name=f"{self.area.name}, parte {self.part.label}")
 
 
-def target(root: Path, area: Area, areas: tuple[Area, ...]) -> CoreTarget | None:
+def whole(root: Path, area: Area, areas: tuple[Area, ...]) -> CoreTarget | None:
     """The longest-named project owning the area and its folder, minus the folders of the areas
     nested in it, which own their own code; None when there is no code."""
     folder = root / SOURCES
@@ -67,6 +77,47 @@ def target(root: Path, area: Area, areas: tuple[Area, ...]) -> CoreTarget | None
     nested = (prefix.removeprefix(owner).lstrip(".").replace(".", "/") for prefix in inner)
     globs = (f"{rest}/**/*.cs" if rest else "**/*.cs", *(f"!{path}/**/*.cs" for path in nested))
     return CoreTarget(area, owner, tuple(globs))
+
+
+def sources(root: Path, core: CoreTarget) -> list[str]:
+    """The files of the whole area, as paths from its project, minus the ones of nested areas."""
+    project = root / SOURCES / core.project
+    lines = [(pattern.startswith("!"), pattern.removeprefix("!")) for pattern in core.patterns]
+    wanted = {path for out, pattern in lines if not out for path in project.glob(pattern)}
+    left = {path for out, pattern in lines if out for path in project.glob(pattern)}
+    built = {"bin", "obj"}
+    kept = (path.relative_to(project) for path in wanted - left)
+    return [found.as_posix() for found in kept if built.isdisjoint(found.parts)]
+
+
+def part_count(root: Path, area: Area, areas: tuple[Area, ...]) -> int:
+    """In how many parts the area is mutated: those its file asks for, but never more than it has
+    files; one for an area with no code, outside the core or without the field."""
+    core = whole(root, area, areas)
+    if core is None or area.parts == 1 or not within(area.prefix, ROOT):
+        return 1
+    return max(1, min(area.parts, len(sources(root, core))))
+
+
+def target(
+    root: Path, area: Area, areas: tuple[Area, ...], part: Part | None = None
+) -> CoreTarget | None:
+    """The area as ``whole`` finds it, or only the files of ``part`` when it is given."""
+    core = whole(root, area, areas)
+    if core is None or part is None or part.of == 1:
+        return core
+    return replace(core, patterns=share(sources(root, core), part), part=part)
+
+
+def part_targets(
+    root: Path, area: Area, areas: tuple[Area, ...], asked: Part | None
+) -> list[CoreTarget]:
+    """The targets of an area: one per part, or only the part asked for; one for the whole area."""
+    count = part_count(root, area, areas)
+    parts = parts_of(count)
+    chosen = [part for part in parts if asked is None or part == asked or count == 1]
+    found = (target(root, area, areas, part) for part in chosen)
+    return [core for core in found if core is not None]
 
 
 def holders(project: str, area: str | None) -> Generator[str]:
@@ -156,9 +207,9 @@ def mutate(ctx: Context, core: CoreTarget, seconds: float, policy: MutationPolic
     tests = test_projects(ctx.root, core.project, core.area.prefix)
     if not tests:
         return ModuleResult(
-            core.area, (), (f"nenhum projeto de {TESTS}/ referencia {core.project}",)
+            core.shown, (), (f"nenhum projeto de {TESTS}/ referencia {core.project}",)
         )
-    output = ctx.out_dir / RESULTS / core.area.prefix
+    output = ctx.out_dir / RESULTS / module_name(core.area.prefix, core.part).replace("/", "-")
     reset_directory(output)
     config = output / CONFIG
     config.write_text(configuration(core, tests), encoding="utf-8")
@@ -177,19 +228,21 @@ def mutate(ctx: Context, core: CoreTarget, seconds: float, policy: MutationPolic
     report = output / REPORT
     if not report.is_file():
         missing = ("o Stryker não escreveu relatório", *tail(outcome.text))
-        return ModuleResult(core.area, (), missing)
+        return ModuleResult(core.shown, (), missing)
     mutants: tuple[Mutant, ...] = read_stryker(
         report, ctx.root.resolve(), policy.skipped_argument_of
     )
     problems = () if outcome.ok else ("o Stryker terminou com erro", *tail(outcome.text))
-    return ModuleResult(core.area, mutants, problems)
+    return ModuleResult(core.shown, mutants, problems)
 
 
 def run_core(
     ctx: Context, areas: tuple[Area, ...], everything: tuple[Area, ...], policy: MutationPolicy
 ) -> LanguageRun:
     """Every core module in turn, each cut at the ceiling it has to itself."""
-    targets = tuple(c for area in areas if (c := target(ctx.root, area, everything)) is not None)
+    _, asked, _ = split_module(ctx.module)
+    found = (part_targets(ctx.root, area, everything, asked) for area in areas)
+    targets = tuple(core for cores in found for core in cores)
     absent = tuple(area for area in areas if area not in {core.area for core in targets})
     if not targets:
         return LanguageRun(SIDE, absent=absent)

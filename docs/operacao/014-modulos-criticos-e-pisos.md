@@ -26,7 +26,10 @@ no título e quatro campos, um por linha, nesta ordem (o Motivo segue em linhas 
 ```
 
 O piso é a porcentagem de linhas cobertas pela suíte da linguagem da área, ou `isento`. **Crítica**
-diz `sim` ou `não` e é a única marca de módulo crítico: a mutação lê o campo, não o piso.
+diz `sim` ou `não` e é a única marca de módulo crítico: a mutação lê o campo, não o piso. Um campo
+opcional, `- Partes da mutação: N` (de 1 a 99, antes do Motivo), reparte a mutação da área em N
+jobs, como a [017](017-teste-de-mutacao.md) diz.
+
 Projeto/pacote vale como **namespace e pasta**: o passo `floors` reprova o arquivo C# de `core/src`
 que cai numa área pelo namespace e noutra pela pasta, nomeando as duas. No serviço, módulo e arquivo
 coincidem. Código fora de toda área listada conta na do projeto ou pacote que o contém, pelo prefixo

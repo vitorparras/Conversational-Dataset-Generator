@@ -29,7 +29,6 @@ public sealed class SealDelivery : IDisposable
     }
 
     /// <summary>The delivery the host uses, to an https address, through the handler of <see cref="Handler" />, which an address that is refused does not leave behind.</summary>
-    /// <param name="destination">An https address.</param>
     public static SealDelivery To(Uri destination)
     {
         SocketsHttpHandler? handler = null;

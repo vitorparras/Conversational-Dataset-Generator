@@ -5,11 +5,10 @@ namespace Core.Host.Endpoints;
 
 /// <summary>
 /// Verifies the chain of custody against the seal whoever operates brings, in its form in text, and says what that verification protects in the situation the installation declared.
-/// A text that is not a seal is refused with 400 and the reason before anything runs, and a body above the limit is refused with 413 before it is read. A route of a live session, like the reading of the last verification.
+/// A text that is not a seal is refused with 400, and a body above 1 KiB with 413, before anything runs. A route of a live session, like the reading of the last verification.
 /// </summary>
 internal static class SealVerificationEndpoint
 {
-    /// <summary>A seal in text is about 130 characters, so a kilobyte is a wide margin; nothing this route reads is longer, and a session that sends more is not sending a seal.</summary>
     private const long BodyLimitInBytes = 1024;
 
     internal static void Map(IEndpointRouteBuilder endpoints) =>

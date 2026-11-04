@@ -30,6 +30,12 @@ public enum ExitCode
     /// <summary>The migration could not reach the server or read the registry, and ran nothing.</summary>
     MigrationNotConnected = 14,
 
+    /// <summary>The rotation of the epoch refused and changed nothing: a file of the custody was not given or read, or a key could not be unwrapped.</summary>
+    EpochRotationRefused = 15,
+
+    /// <summary>The rotation of the epoch could not talk to the database and changed nothing.</summary>
+    EpochRotationFailed = 16,
+
     /// <summary>The comparison of the server's audit log with the chain found a difference that is new.</summary>
     AuditDifferent = 20,
 }

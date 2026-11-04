@@ -6,6 +6,7 @@ using Core.Host.Endpoints;
 using Core.Host.Migration;
 using Core.Host.Supervision;
 using Core.Persistence.Connection;
+using Core.Persistence.Content.Rotation;
 using Core.Persistence.Migrations;
 using Core.Persistence.People;
 using Core.Persistence.ServerGuarantees;
@@ -26,7 +27,7 @@ internal static class CompositionRoot
     internal static async Task<HostLaunch> MigrateAsync(DatabaseSettings database)
     {
         await using var dataSource = NpgsqlDataSource.Create(database.ConnectionString!);
-        await using var logging = MigrationServices();
+        await using var logging = LoggingServices();
         var result = await new MigrationRunner(dataSource, EmbeddedMigrations.Load()).RunAsync(CancellationToken.None);
         logging.GetRequiredService<ILogger<MigrationRunner>>().Write(result);
         return HostLaunch.Migrated(result.Outcome);
@@ -113,13 +114,14 @@ internal static class CompositionRoot
         return services.BuildServiceProvider();
     }
 
-    /// <summary>Redacted console logging alone: the migration mode has no host, no file destination and no language service.</summary>
-    private static ServiceProvider MigrationServices()
-    {
-        var services = new ServiceCollection();
-        _ = services.AddSingleton(TimeProvider.System).AddLogging(PlatformLogging.Configure).AddRedaction(PlatformLogging.EraseSensitiveData);
-        return services.BuildServiceProvider();
-    }
+    /// <summary>The keys of the epochs file over a source that was read, and the rotation of the rows over them: the mode that rotates is not a root, and the services come from here.</summary>
+    internal static ItemKeys KeysOf(MasterKeyReading reading) => new(new KeyDerivation(reading.Key!, reading.Labels), reading.Epochs);
+
+    internal static EpochRotation RotationOf(NpgsqlDataSource dataSource, ItemKeys keys) => new(dataSource, keys);
+
+    /// <summary>Redacted console logging alone: the modes that migrate or rotate have no host, no file destination and no language service.</summary>
+    internal static ServiceProvider LoggingServices() =>
+        new ServiceCollection().AddSingleton(TimeProvider.System).AddLogging(PlatformLogging.Configure).AddRedaction(PlatformLogging.EraseSensitiveData).BuildServiceProvider();
 
     /// <summary>The application's data source and the nine server checks, privilege first and the derivation labels last, or the check that says no database is declared.</summary>
     private static void AddServerGuarantees(IServiceCollection services, DatabaseSettings database)

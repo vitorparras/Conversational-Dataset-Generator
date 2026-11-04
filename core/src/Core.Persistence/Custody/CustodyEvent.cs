@@ -70,8 +70,9 @@ public sealed record CustodyEvent
             : throw new ArgumentException("An emptying is refused because its author does not hold the function or because the item was emptied already.", nameof(reason));
     }
 
-    private static bool IsVerification(CustodyStep step) => step is CustodyStep.VerifyChain or CustodyStep.VerifyGuarantees or CustodyStep.OwnerWindowOpened
-        or CustodyStep.OwnerWindowClosed or CustodyStep.Restored;
+    private static bool IsVerification(CustodyStep step) => step is CustodyStep.VerifyChain or CustodyStep.VerifyGuarantees || IsOfTheWindowOrRestore(step);
+
+    private static bool IsOfTheWindowOrRestore(CustodyStep step) => step is CustodyStep.OwnerWindowOpened or CustodyStep.OwnerWindowClosed or CustodyStep.Restored;
 
     internal static CustodyEvent OwnerWindowOpened(int to, string reference) =>
         new(CustodyAuthor.System, new CustodyItem(CustodyItemKind.CustodyChain, to), CustodyStep.OwnerWindowOpened, CustodyReason.AdministrativeAct) { Reference = reference };

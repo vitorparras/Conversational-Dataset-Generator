@@ -1,4 +1,6 @@
+using System.Collections.Immutable;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
 using Core.Persistence.Custody.Verification;
@@ -17,8 +19,8 @@ public sealed class RestoreLoader
     private const string Version = "SELECT coalesce(pg_catalog.max(version), 0) FROM public.schema_version";
 
     /// <summary>The tables in the order they come back: the keys first, then the chain once the people exist, then the content, the maps after the texts and the emptied after both.</summary>
-    private static readonly string[] Tables = new[] { "public.domain", "public.derivation_label", "public.person", "public.person_credential", "public.person_change",
-        Chain, "content.item_text", "content.reversal_map", "content.item_emptied" };
+    private static readonly ImmutableArray<string> Tables = ImmutableArray.Create("public.domain", "public.derivation_label", "public.person", "public.person_credential", "public.person_change",
+        Chain, "content.item_text", "content.reversal_map", "content.item_emptied");
 
     private readonly NpgsqlDataSource dataSource;
     private readonly GuaranteeVerifier guarantees;
@@ -36,13 +38,12 @@ public sealed class RestoreLoader
     }
 
     /// <summary>Loads the copy and concludes; it never repairs anything.</summary>
-    /// <param name="copy">The copy to put back.</param>
-    /// <param name="tip">The tip of the chain noted outside the copy.</param>
-    /// <param name="cancellationToken">Cancels the load.</param>
     public async Task<RestoreResult> LoadAsync(RestoreCopy copy, RestoreTip tip, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(copy);
+        ArgumentNullException.ThrowIfNull(tip);
         var version = Convert.ToInt32(await ScalarAsync(Version, cancellationToken).ConfigureAwait(false), CultureInfo.InvariantCulture);
-        if (copy.SchemaVersion != version || Tables.Any(table => !copy.Has(table)))
+        if (copy.SchemaVersion != version || !Tables.All(copy.Has))
         {
             return new RestoreResult(RestoreOutcome.CopyRefused, $"a cópia: versão {copy.SchemaVersion}, {Tables.Count(copy.Has)} das {Tables.Length} tabelas; o banco: versão {version}");
         }
@@ -68,29 +69,35 @@ public sealed class RestoreLoader
 
     private async Task<(long Rows, RestoreResult? Refused)> PutBackAsync(RestoreCopy copy, CancellationToken cancellationToken)
     {
-        long rows = 0;
-        var current = string.Empty;
+        var current = new StrongBox<string>(string.Empty);
         try
         {
-            foreach (var table in Tables)
-            {
-                current = table;
-                foreach (var batch in copy.BatchesOf(table))
-                {
-                    var answer = await LoadBatchAsync(table, batch, cancellationToken).ConfigureAwait(false);
-                    if (answer < 0)
-                    {
-                        return (rows, new RestoreResult(RestoreOutcome.RowsRefused, table == Chain ? $"o evento {-answer} não voltou como a cópia o tem" : $"o banco recusou a tabela {table}"));
-                    }
-
-                    rows += answer;
-                }
-            }
+            return await LoadTablesAsync(copy, current, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception unreadable) when (unreadable is IOException or UnauthorizedAccessException or NpgsqlException)
         {
             _ = await CloseAsync(approved: false, cancellationToken).ConfigureAwait(false);
-            return (rows, new RestoreResult(RestoreOutcome.CopyRefused, $"a tabela {current} não pôde ser carregada ({unreadable.GetType().Name})"));
+            return (0, new RestoreResult(RestoreOutcome.CopyRefused, $"a tabela {current.Value} não pôde ser carregada ({unreadable.GetType().Name})"));
+        }
+    }
+
+    private async Task<(long Rows, RestoreResult? Refused)> LoadTablesAsync(RestoreCopy copy, StrongBox<string> current, CancellationToken cancellationToken)
+    {
+        long rows = 0;
+        var batches = Tables.SelectMany(table =>
+        {
+            current.Value = table;
+            return copy.BatchesOf(table).Select(batch => (Table: table, Batch: batch));
+        });
+        foreach (var (table, batch) in batches)
+        {
+            var answer = await LoadBatchAsync(table, batch, cancellationToken).ConfigureAwait(false);
+            if (answer < 0)
+            {
+                return (rows, new RestoreResult(RestoreOutcome.RowsRefused, table == Chain ? $"o evento {-answer} não voltou como a cópia o tem" : $"o banco recusou a tabela {table}"));
+            }
+
+            rows += answer;
         }
 
         return (rows, null);

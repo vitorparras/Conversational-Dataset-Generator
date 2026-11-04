@@ -22,9 +22,9 @@ matriz do fluxo lê as áreas da 014 e abre um job por módulo crítico, e um jo
 "Mutação nos módulos críticos", só passa se todos eles passarem. Exceder o teto é achado que
 reprova, nomeando o módulo e o tempo gasto, nunca lentidão tolerada. O tempo de cada módulo sai no
 relatório do passo. Mutação fora do bloqueio só por decisão escrita. A área que não cabe no teto
-declara `- Partes da mutação: N` no seu arquivo: o passo ordena os `.cs` dela por caminho e os
-reparte em rodízio, e a matriz abre um job por parte (`Core.Persistence.Content@1/3`), cada um com
-o mesmo teto, projeto de teste e limite. `Core.Persistence.Content` tem 3: inteira, estoura o teto.
+declara `- Partes da mutação: N` no seu arquivo: o passo ordena os arquivos C# dela por caminho e os
+reparte em rodízio, e a matriz abre um job por parte, cada um com o mesmo teto, projeto de teste e
+limite. `Core.Persistence.Content` tem 3: inteira, estoura o teto.
 
 No núcleo, em todos os módulos, a verificação não conta **o mutante `false`→`true` do argumento de
 `ConfigureAwait`**: o host não tem contexto de sincronização, então esse mutante é equivalente por

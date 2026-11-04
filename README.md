@@ -240,7 +240,8 @@ declaração da instalação. `POST /custody/verification`, de uma sessão viva,
 devolve se os elos fecharam, como a cadeia está contra o selo (`Holds`, `CountBelowSealed`,
 contagem menor que a selada, ou `DigestDiffers`, resumo diferente) e o que essa verificação protege
 na situação declarada, nunca integridade sem qualificar. Texto que não é um selo recebe 400 com o
-motivo, sem verificar nada, e corpo acima de 1 KiB recebe 413 sem ser lido. Selo que não confere vai ao resultado e ao registro do núcleo como erro,
+motivo, sem verificar nada, e corpo acima de 1 KiB recebe 413 sem ser lido. Selo que não confere vai
+ao resultado e ao registro do núcleo como erro,
 e não bloqueia a escrita. O `GET /custody/verification` traz a situação, o mesmo texto e a data
 do último selo registrado (`lastSeal`, nula quando não há nenhum).
 

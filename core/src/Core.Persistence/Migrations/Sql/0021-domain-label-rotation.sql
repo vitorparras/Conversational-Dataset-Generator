@@ -1,5 +1,4 @@
--- The rotation of the label of a domain (issue 56): the next generation of its two labels is written to derivation_label, which stays as the decision 0045 left it, never changed nor dropped.
--- The event is about a domain, as the creation is, and is the system's for an administrative act. Its reference is the generation the domain passes to (v2), from which the two labels follow.
+-- Issue 56: the next generation of a domain's two labels is added to derivation_label (never changed or dropped, 0045); the event is the system's, about the domain, referencing the generation (v2).
 ALTER TABLE public.custody_event
     DROP CONSTRAINT custody_event_step_listed,
     DROP CONSTRAINT custody_event_domain_shape,

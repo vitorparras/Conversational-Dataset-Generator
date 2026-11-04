@@ -51,6 +51,25 @@ public sealed class SealWarningTests
     }
 
     [Fact]
+    public async Task ARenewalThatFailsIsToldWithItsOwnTextAndKeepsTheWarningItHad()
+    {
+        var clock = new ManualClock();
+        using var log = new RecordedLog();
+        using var loggers = new LoggerFactory([log]);
+        using var service = new ChainVerificationService(
+            _ => Task.FromResult(Result()), Schedule, clock, loggers, _ => throw new InvalidOperationException("zqx"), new SealWarningState());
+        service.SealWarning.Record("avisar");
+
+        await service.StartAsync(TestContext.Current.CancellationToken);
+        await WaitingAsync(clock, TestContext.Current.CancellationToken);
+
+        Assert.Equal("avisar", service.SealWarning.Current);
+        var line = Assert.Single(log.Lines, text => text.Contains("renovação do aviso do selo", StringComparison.Ordinal));
+        Assert.Contains("InvalidOperationException", line, StringComparison.Ordinal);
+        await service.StopAsync(CancellationToken.None);
+    }
+
+    [Fact]
     public async Task ReadingAgainAfterASealWasRecordedClearsTheWarningWithoutWaitingTheInterval()
     {
         var clock = new ManualClock();

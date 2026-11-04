@@ -36,7 +36,7 @@ internal static class SealVerificationEndpoint
         }
         catch (Exception unreadable) when (unreadable is NpgsqlException or InvalidOperationException or TimeoutException)
         {
-            loggers.CreateLogger(nameof(SealVerificationEndpoint)).LastUnreadable(unreadable.GetType().Name);
+            loggers.CreateLogger(nameof(SealVerificationEndpoint)).SealDateUnreadable(unreadable.GetType().Name);
             return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
     }

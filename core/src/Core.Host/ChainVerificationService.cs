@@ -191,7 +191,7 @@ internal sealed class ChainVerificationService : BackgroundService
         }
         catch (Exception failure) when (ServingFailure.CanReport(failure) && !cancellationToken.IsCancellationRequested)
         {
-            logger.VerificationFailed(failure.GetType().Name);
+            logger.SealWarningNotRenewed(failure.GetType().Name);
         }
     }
 }

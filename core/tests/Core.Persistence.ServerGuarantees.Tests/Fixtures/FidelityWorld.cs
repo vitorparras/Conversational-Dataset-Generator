@@ -34,6 +34,9 @@ internal sealed class FidelityWorld : IAsyncDisposable
         Registry = new PersonRegistry(dataSource);
     }
 
+    /// <summary>The connection string of the owner of the database, which the copy of the data is read with.</summary>
+    public string OwnerConnectionString => database.OwnerConnectionString;
+
     /// <summary>The data source of the application's role, which the comparison of the server's log with the chain connects through.</summary>
     public NpgsqlDataSource DataSource { get; }
 

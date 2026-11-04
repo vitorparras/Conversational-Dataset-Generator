@@ -29,7 +29,7 @@ internal sealed class EncryptedSample
         this.open = open;
     }
 
-    /// <summary>Whether every record of the sample opened; a key not read, a label not loaded, a label that is not the column's and an access the chain did not record all say no.</summary>
+    /// <summary>Whether every record of the sample opened; a key not read, a label not loaded, a loss declared, a label that is not the column's and an access the chain did not record all say no.</summary>
     internal async Task<bool> HoldsAsync(CancellationToken cancellationToken)
     {
         using var reading = await read(cancellationToken).ConfigureAwait(false);
@@ -56,7 +56,7 @@ internal sealed class EncryptedSample
         try
         {
             var read = await reader.ReadFirstAsync(CustodyAuthor.System, column, domain, cancellationToken).ConfigureAwait(false);
-            return read.Outcome != ContentReadOutcome.NotRecorded;
+            return read.Outcome is not (ContentReadOutcome.NotRecorded or ContentReadOutcome.LabelMissing or ContentReadOutcome.KeyLossDeclared);
         }
         catch (Exception refused) when (refused is EnvelopeRefusedException or CryptographicException)
         {

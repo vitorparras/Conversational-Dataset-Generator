@@ -9,25 +9,26 @@ material sensível do acervo, não arquivo de infraestrutura.
 
 ## O que é salvo
 
-- Os dados do banco, na cópia abaixo, com o registro de auditoria e a cadeia de custódia
+- Os dados do banco, na cópia abaixo, com a auditoria, a cadeia e a configuração sem os segredos
 - O arquivo de taxonomia de cada domínio, na versão em uso — sem ele, as anotações restauradas
   apontam para rótulos que ninguém sabe mais o que significam
-- A configuração da instalação, menos os segredos
-- O topo da cadeia no momento da cópia, anotado **fora** do conjunto de backup, como o registro
-  externo que a [cadeia de custódia](../privacidade/004-cadeia-de-custodia.md) exige
+- O selo do topo da cadeia, que o `copy-data` imprime, anotado **fora** do conjunto, como o
+  registro externo que a [cadeia de custódia](../privacidade/004-cadeia-de-custodia.md) exige
 
 A chave não entra no backup, em nenhuma versão. Guardá-la junto do banco anula a cifra em repouso:
 quem levar o conjunto leva dado e chave na mesma caixa.
 
 ## A cópia de dados
 
-Os dados saem numa pasta: um manifesto (formato 1, versão do esquema de onde saiu e a lista dos
-arquivos) e um arquivo por tabela, esquema.tabela.jsonl, com um registro por linha, escrito pelo
-to_jsonb sem mudança, na ordem da chave (sequence na cadeia, id nas demais). A carga segue a ordem
-fixa do código: domínios, etiquetas, pessoas, credenciais, mudanças, cadeia, textos, mapas e
-esvaziados. Ficam de fora versões, falhas, contagem e janelas: o migrate as cria. A carga recusa
-cópia de versão diferente ([006](006-restauracao.md)); recusa de linha ou de evento fecha a janela
-como reprovada; cliente que morre a deixa aberta e o banco se descarta. Inativo volta inativo.
+O `copy-data --to <pasta>`, com a credencial do dono, grava o manifesto (formato 1, versão do
+esquema de origem, arquivos), a configuration.json (sem os segredos) e um esquema.tabela.jsonl por
+tabela: um registro por linha, do to_jsonb sem mudança, na ordem da chave (sequence na cadeia, id
+nas demais; conteúdo por domínio, cifrado como bytes). Não lê chave nem arquivo de custódia, e
+imprime, fora da pasta, o selo da cadeia que gravou antes (seal_recorded). A carga segue a ordem
+fixa: domínios, etiquetas, pessoas, credenciais, mudanças, cadeia, textos, mapas e esvaziados. Ficam
+de fora versões, falhas, contagem e janelas: o migrate as cria. A carga recusa cópia de versão
+diferente ([006](006-restauracao.md)); recusa de linha ou de evento fecha a janela como reprovada;
+cliente que morre a deixa aberta e o banco se descarta. Inativo volta inativo.
 
 ## Onde
 
@@ -49,8 +50,7 @@ acervo e não de quem administra o banco — é o que transforma a verificação
 [007](007-verificacao-da-custodia.md) atesta coerência, não integridade.
 
 Onde esse registro externo mora é pendência declarada na política de custódia. Esta operação
-responde pela parte que lhe cabe: quem o guarda, e que não seja a mesma pessoa que administra o
-banco de onde ele viria.
+responde por quem o guarda: não a pessoa que administra o banco de onde ele viria.
 
 ## Testar é parte de salvar
 

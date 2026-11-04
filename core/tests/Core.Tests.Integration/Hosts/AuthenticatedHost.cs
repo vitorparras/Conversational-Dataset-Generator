@@ -139,6 +139,15 @@ internal sealed class AuthenticatedHost : IAsyncDisposable
         return Convert.ToInt64(await command.ExecuteScalarAsync(cancellationToken), CultureInfo.InvariantCulture);
     }
 
+    /// <summary>Reads one text with a query as the server's superuser, for what a test checks against the database and not against the host's own reading.</summary>
+    [SuppressMessage("Security", "CA2100", Justification = "The queries are literals of the calling tests, never input.")]
+    public async Task<string> TextAsSuperuserAsync(string query, CancellationToken cancellationToken)
+    {
+        await using var connection = await OpenAsSuperuserAsync(cancellationToken);
+        await using var command = new NpgsqlCommand(query, connection);
+        return Convert.ToString(await command.ExecuteScalarAsync(cancellationToken), CultureInfo.InvariantCulture) ?? string.Empty;
+    }
+
     private async Task<NpgsqlConnection> OpenAsSuperuserAsync(CancellationToken cancellationToken)
     {
         var shared = await PostgresFixture.SharedAsync();

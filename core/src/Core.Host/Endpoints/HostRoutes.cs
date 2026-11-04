@@ -15,5 +15,6 @@ internal static class HostRoutes
         AuditEndpoint.Map(app);
         OperatorsEndpoint.Map(app);
         ChainVerificationEndpoint.Map(app);
+        SealVerificationEndpoint.Map(app);
     }
 }

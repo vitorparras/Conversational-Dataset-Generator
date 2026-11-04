@@ -77,4 +77,7 @@ public enum CustodyStep
 
     /// <summary>The window of the owner credential was closed by the application at its start; the reason says whether the chain and the guarantees held.</summary>
     OwnerWindowClosed,
+
+    /// <summary>A copy of the data was put back in a new database; the reason says whether the chain and the guarantees held, and the reference says which copy and the tip before and after.</summary>
+    Restored,
 }

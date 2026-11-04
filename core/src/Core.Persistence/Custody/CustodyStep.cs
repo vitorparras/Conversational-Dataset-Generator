@@ -56,4 +56,10 @@ public enum CustodyStep
 
     /// <summary>The credential of a person was derived again at sign-in, under the current work factor: the item and the author are that person.</summary>
     CredentialRecomputed,
+
+    /// <summary>
+    /// The loss of the master key, or of one label, was declared by whoever operates: the item is the key, its id is what was tried, and the reference is the scope.
+    /// There is no way back.
+    /// </summary>
+    KeyLossDeclared,
 }

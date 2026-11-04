@@ -54,6 +54,12 @@ public enum ExitCode
     /// <summary>The database did not answer the rotation of a domain label, and nothing was written.</summary>
     DomainLabelFailed = 25,
 
+    /// <summary>The declaration of the loss of a key was refused and nothing was written: the scope or what was tried is not one of the accepted, or the chain refused the event.</summary>
+    KeyLossRefused = 27,
+
+    /// <summary>The database did not answer the declaration of the loss of a key, and nothing was written.</summary>
+    KeyLossFailed = 28,
+
     /// <summary>The comparison of the server's audit log with the chain found a difference that is new.</summary>
     AuditDifferent = 20,
 

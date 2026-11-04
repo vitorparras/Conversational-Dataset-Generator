@@ -235,7 +235,14 @@ recusa. O núcleo não vê o destino, e a recusa pega só o que a configuração
 sob o mesmo controle da base: esquema que não é `https`, caminho de arquivo, `localhost` ou
 loopback, o nome ou o endereço da própria máquina, o mesmo servidor do banco e endereço com
 usuário (que não aparece na mensagem); a recusa diz qual regra pegou. Qualquer outro destino é
-declaração da instalação.
+declaração da instalação. `POST /custody/verification`, de uma sessão viva, recebe
+`{"seal": "<texto do selo>"}` (a forma `CDG-SELO-1|...`), verifica a cadeia e a compara com o selo:
+devolve se os elos fecharam, como a cadeia está contra o selo (`Holds`, `CountBelowSealed`,
+contagem menor que a selada, ou `DigestDiffers`, resumo diferente) e o que essa verificação protege
+na situação declarada, nunca integridade sem qualificar. Texto que não é um selo recebe 400 com o
+motivo, sem verificar nada. Selo que não confere vai ao resultado e ao registro do núcleo como erro,
+e não bloqueia a escrita. O `GET /custody/verification` traz a situação e o mesmo texto; na manual,
+ele diz a data do último selo registrado, ou que não há nenhum.
 
 Se o servidor de banco cai enquanto grava, o arquivo `csv` que ele escrevia fica terminado numa
 linha cortada, sem a quebra de linha, e o servidor segue em outro arquivo. Essa última linha de um

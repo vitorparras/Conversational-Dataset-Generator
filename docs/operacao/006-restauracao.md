@@ -47,14 +47,14 @@ pedindo acesso que a política nega.
 
 Ela não desaparece depois de dar certo: um evento novo declara o que foi restaurado, de qual cópia,
 por quem, e qual era o topo antes e depois. Restauração silenciosa deixa na sequência um salto que a
-próxima verificação encontra sem explicação — e trata como incidente, corretamente.
-
-Se a cadeia não fechar, pare aqui e siga [009](009-incidente-cadeia-quebrada.md).
+próxima verificação encontra sem explicação — e trata como incidente, corretamente. Se a cadeia não
+fechar, pare aqui e siga [009](009-incidente-cadeia-quebrada.md).
 
 ## O ensaio
 
 `rehearse-restore --seal <selo>`, com a credencial da aplicação sobre o banco restaurado, confere
-os elos, o selo anotado fora ([005](005-backup.md)) e as garantias que o catálogo conta, sem abrir
-texto. Grava o evento restore_rehearsed, distinto do da restauração: passou (referência `held`)
-ou falhou, nomeando o que não valeu (privilege, policy, revoke, immutable, columns, chain, seal).
-Se os elos não fecharem, a cadeia não o aceita, o comando sai com erro e vale a [009](009-incidente-cadeia-quebrada.md).
+os elos, o selo anotado fora ([005](005-backup.md)) e as garantias do catálogo, sem abrir texto: a
+amostra cifrada da conferência das garantias fica de fora, e é conferida na partida, com a chave.
+Grava restore_rehearsed: passou (`held`) ou falhou, nomeando o que não valeu (privilege, policy,
+revoke, immutable, columns, chain, seal). Saídas: 0; 33, falhou, ou a cadeia, quebrada, não aceitou
+o evento ([009](009-incidente-cadeia-quebrada.md)); 34, selo ausente ou ilegível; 35, sem banco.

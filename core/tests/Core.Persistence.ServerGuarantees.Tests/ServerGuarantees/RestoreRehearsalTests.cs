@@ -14,6 +14,7 @@ namespace Core.Persistence.Tests.ServerGuarantees;
 public sealed class RestoreRehearsalTests
 {
     private const string Rehearsals = "SELECT reason || '|' || item_id || '|' || reference || '|' || actor_system FROM public.custody_event WHERE step = 'restore_rehearsed' ORDER BY sequence";
+    private const string Links = "SELECT sequence || ':' || coalesce(encode(previous_digest, 'hex'), '') || ':' || encode(digest, 'hex') FROM public.custody_event ORDER BY sequence";
     private const string Reads = "SELECT count(*)::text FROM public.custody_event WHERE step IN ('raw_text_read', 'sanitized_text_read', 'reversal_entries_read')";
 
     [DatabaseFact]
@@ -21,9 +22,13 @@ public sealed class RestoreRehearsalTests
     {
         await using var copied = await CopiedWorld.CreateAsync();
         await using var restored = await RestoredCopy.LoadAsync(copied.Folder);
+        var atTheSource = await copied.World.OwnerColumnAsync(Links);
+        var atTheCopy = await restored.Database.FirstColumnAsOwnerAsync(Links);
 
         var result = await new RestoreRehearsal(restored.App, TimeProvider.System).RehearseAsync(copied.Result.Seal!, TestContext.Current.CancellationToken);
 
+        Assert.Equal(3, atTheSource.Count);
+        Assert.Equal(atTheSource, atTheCopy.Take(atTheSource.Count));
         Assert.Equal((RehearsalFindings.None, CustodyOutcome.Appended, "held"), (result.Findings, result.Recorded.Outcome, result.Names));
         Assert.True(result.Passed);
         Assert.Equal(["verification_passed|0|held|true"], await restored.Database.FirstColumnAsOwnerAsync(Rehearsals));

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json.Nodes;
 using Core.Persistence.Content;
 using Core.Persistence.Content.Emptying;
@@ -143,7 +144,7 @@ public sealed class RestoreLoaderTests
         using var copy = await CopyFolder.OfAsync(source);
         var (sequence, digest) = await CopyFolder.TipOfAsync(source);
         await using var destination = await FidelityWorld.CreateAsync(seeded: false);
-        var version = int.Parse(Assert.Single(await destination.OwnerColumnAsync("SELECT max(version)::text FROM public.schema_version")), System.Globalization.CultureInfo.InvariantCulture);
+        var version = int.Parse(Assert.Single(await destination.OwnerColumnAsync("SELECT max(version)::text FROM public.schema_version")), CultureInfo.InvariantCulture);
 
         copy.WriteManifest(version + 1, CopyFolder.Tables);
         var other = await LoadAsync(destination, copy, new RestoreTip(sequence, digest));
@@ -187,7 +188,7 @@ public sealed class RestoreLoaderTests
         Assert.Equal(["verification_failed"], await destination.OwnerColumnAsync("SELECT reason FROM public.custody_event WHERE step = 'restored'"));
     }
 
-    private static string DigestsUpTo(long sequence) => string.Format(System.Globalization.CultureInfo.InvariantCulture, Digests, sequence);
+    private static string DigestsUpTo(long sequence) => string.Format(CultureInfo.InvariantCulture, Digests, sequence);
 
     private static Task<RestoreResult> LoadAsync(FidelityWorld destination, CopyFolder copy, RestoreTip tip) =>
         new RestoreLoader(destination.DataSource, new GuaranteeVerifier(destination.DataSource), TimeProvider.System)

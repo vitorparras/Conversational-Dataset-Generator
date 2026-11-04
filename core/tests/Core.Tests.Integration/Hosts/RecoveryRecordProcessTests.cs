@@ -12,7 +12,8 @@ using Npgsql;
 namespace Core.Tests.Integration.Hosts;
 
 /// <summary>
-/// The built host asked to record the rehearsal of the recovery (issue 67, CA-3), as its own process over a production of its own and the key of the custody files: it writes the step when the top of the
+/// The built host asked to record the rehearsal of the recovery (issue 67, CA-3), as its own process over a production of its own and the key of the custody files:
+/// it writes the step when the top of the
 /// receipt is in the chain and the key is the one of the files, and otherwise exits with the refusal code, says which of the two failed and writes nothing.
 /// </summary>
 [Trait("Category", "Database")]
@@ -43,11 +44,13 @@ public sealed class RecoveryRecordProcessTests
     {
         await using var production = await ProductionAsync();
         using var files = new CustodyFiles();
-        var receipt = await ReceiptAsync(production, ProofOf(Enumerable.Range(0, MasterKey.Length).Select(index => (byte)(index + 1)).ToArray()));
+        var receipt = await ReceiptAsync(production, ProofOf([.. Enumerable.Range(0, MasterKey.Length).Select(index => (byte)(index + 1))]));
 
         var (exit, words) = await RunAsync(production, Arguments(files, receipt.ToText()));
 
-        Assert.Equal((29, true, false, 0L), (exit, words.Contains("a chave do ensaio", StringComparison.Ordinal), words.Contains("o topo da cópia", StringComparison.Ordinal), await ScalarAsync(production, Written)));
+        Assert.Equal(
+            (29, true, false, 0L),
+            (exit, words.Contains("a chave do ensaio", StringComparison.Ordinal), words.Contains("o topo da cópia", StringComparison.Ordinal), await ScalarAsync(production, Written)));
     }
 
     [DatabaseFact]
@@ -59,7 +62,9 @@ public sealed class RecoveryRecordProcessTests
 
         var (exit, words) = await RunAsync(production, Arguments(files, receipt.ToText()));
 
-        Assert.Equal((29, false, true, 0L), (exit, words.Contains("a chave do ensaio", StringComparison.Ordinal), words.Contains("o topo da cópia", StringComparison.Ordinal), await ScalarAsync(production, Written)));
+        Assert.Equal(
+            (29, false, true, 0L),
+            (exit, words.Contains("a chave do ensaio", StringComparison.Ordinal), words.Contains("o topo da cópia", StringComparison.Ordinal), await ScalarAsync(production, Written)));
     }
 
     [DatabaseFact]
@@ -106,7 +111,8 @@ public sealed class RecoveryRecordProcessTests
     private static async Task<RecoveryReceipt> ReceiptAsync(ScratchDatabase production, string proof)
     {
         var top = (await TextAsync(production, Tip)).Split(',');
-        return new RecoveryReceipt(new DateTimeOffset(2031, 3, 4, 8, 6, 7, TimeSpan.Zero), long.Parse(top[0], System.Globalization.CultureInfo.InvariantCulture), top[1], proof, new SampleCounts(1, 1, 0));
+        var at = new DateTimeOffset(2031, 3, 4, 8, 6, 7, TimeSpan.Zero);
+        return new RecoveryReceipt(at, long.Parse(top[0], System.Globalization.CultureInfo.InvariantCulture), top[1], proof, new SampleCounts(1, 1, 0));
     }
 
     /// <summary>A migrated database with a domain, so that its chain has an event.</summary>

@@ -7,7 +7,10 @@ using Npgsql;
 
 namespace Core.Persistence.Tests.Recovery;
 
-/// <summary>The query the gate of the ingestion makes (issue 67, CA-2): while no rehearsal of the recovery is recorded it says what is missing, and once the step is in the chain it says nothing is.</summary>
+/// <summary>
+/// The query the gate of the ingestion makes (issue 67, CA-2): while no rehearsal of the recovery is recorded it says what is missing,
+/// and once the step is in the chain it says nothing is.
+/// </summary>
 [Trait("Category", "Database")]
 public sealed class RecoveryGateTests
 {

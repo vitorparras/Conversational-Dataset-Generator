@@ -87,7 +87,9 @@ public sealed class RecoveryRecordingTests
 
         var record = await Recording(world).RecordAsync(receipt.ToText(), Proof, TestContext.Current.CancellationToken);
 
-        Assert.Equal((RecoveryOutcome.NotConfirmed, 0L, "o ensaio teve amostras que não abriram, ou nenhuma abriu"), (record.Outcome, await world.ScalarAsync(Written), Assert.Single(record.Failures)));
+        var written = await world.ScalarAsync(Written);
+
+        Assert.Equal((RecoveryOutcome.NotConfirmed, 0L, "o ensaio teve amostras que não abriram, ou nenhuma abriu"), (record.Outcome, written, Assert.Single(record.Failures)));
     }
 
     [DatabaseTheory]

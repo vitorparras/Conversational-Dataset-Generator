@@ -136,7 +136,7 @@ public sealed class OwnerWindowOpeningTests
     public async Task BuildWithoutTheStepOpensNoWindow()
     {
         await using var database = await ScratchDatabase.CreateAsync();
-        var without = EmbeddedMigrations.Load().Where(step => step.Name != WindowStep).ToList();
+        List<MigrationStep> without = [.. EmbeddedMigrations.Load().Where(step => step.Name != WindowStep)];
         _ = await database.MigrateAsync(UpTo(15));
 
         var result = await database.MigrateAsync(without);
@@ -180,7 +180,7 @@ public sealed class OwnerWindowOpeningTests
     private static async Task<string> DigestAsync(ScratchDatabase database, int sequence) =>
         Assert.Single(await database.FirstColumnAsOwnerAsync($"SELECT encode(digest, 'hex') FROM public.custody_event WHERE sequence = {sequence}"));
 
-    private static List<MigrationStep> UpTo(int version) => EmbeddedMigrations.Load().Where(step => step.Version <= version).ToList();
+    private static List<MigrationStep> UpTo(int version) => [.. EmbeddedMigrations.Load().Where(step => step.Version <= version)];
 
     private static IReadOnlyList<MigrationStep> WithSynthetic() => TestSteps.OnTopOfTheEmbedded(("zqx-after", "CREATE TABLE public.zqx_after (a integer)"));
 }

@@ -80,7 +80,7 @@ public sealed class OwnerWindowTests
     {
         await using var database = await ScratchDatabase.CreateAsync();
         var steps = EmbeddedMigrations.Load();
-        var older = steps.TakeWhile(step => step.Name != OwnerWindowStep).ToList();
+        List<MigrationStep> older = [.. steps.TakeWhile(step => step.Name != OwnerWindowStep)];
         _ = await database.MigrateAsync(older);
         await database.RunAsOwnerAsync(
             "INSERT INTO public.custody_event (actor_system, item_kind, item_id, step, reason) VALUES (true, 'custody_chain', 0, 'verify_chain', 'verification_passed')");
@@ -207,7 +207,7 @@ public sealed class OwnerWindowTests
 
     private static List<MigrationStep> WithSynthetic(string sql)
     {
-        var steps = EmbeddedMigrations.Load().ToList();
+        List<MigrationStep> steps = [.. EmbeddedMigrations.Load()];
         var version = steps[^1].Version + 1;
         steps.Add(MigrationStep.Of(version, $"{version:0000}-zqx-synthetic", Encoding.UTF8.GetBytes(sql)));
         return steps;

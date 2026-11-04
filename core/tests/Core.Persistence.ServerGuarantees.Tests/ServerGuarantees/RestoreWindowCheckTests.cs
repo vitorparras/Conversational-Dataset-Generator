@@ -6,7 +6,10 @@ using Npgsql;
 
 namespace Core.Persistence.Tests.ServerGuarantees;
 
-/// <summary>The start is refused while the window of the load of a restore is open, because whoever was loading died before closing it (#64, 4d); a window that was closed, approved or not, does not refuse.</summary>
+/// <summary>
+/// The start is refused while the window of the load of a restore is open, because whoever was loading died before closing it (#64, 4d);
+/// a window that was closed, approved or not, does not refuse.
+/// </summary>
 public sealed class RestoreWindowCheckTests
 {
     [Theory]

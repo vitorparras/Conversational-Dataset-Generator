@@ -198,6 +198,10 @@ internal sealed class ChainVerificationService : BackgroundService
         {
             logger.GuaranteesHeldWithoutSample(result.Recorded.Outcome);
         }
+        else if (result.SearchStopped)
+        {
+            logger.GuaranteesHeldSearchStopped(result.Recorded.Outcome);
+        }
         else
         {
             logger.GuaranteesHeld(result.Recorded.Outcome);

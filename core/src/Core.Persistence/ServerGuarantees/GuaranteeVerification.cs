@@ -9,4 +9,5 @@ namespace Core.Persistence.ServerGuarantees;
 /// Information, not a guarantee missing: everything the sample of sealed records could reach is under the scope of a declared loss of the key, so no record was opened.
 /// It is not in the mask nor in the event of the chain.
 /// </param>
-public sealed record GuaranteeVerification(GuaranteeKinds Missing, CustodyResult Recorded, bool NoSampleOutsideLoss = false);
+/// <param name="SearchStopped">Information too: the search for a record outside the loss stopped at its limit, so it is not known whether one is readable further on.</param>
+public sealed record GuaranteeVerification(GuaranteeKinds Missing, CustodyResult Recorded, bool NoSampleOutsideLoss = false, bool SearchStopped = false);

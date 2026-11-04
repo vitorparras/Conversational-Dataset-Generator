@@ -33,7 +33,8 @@ internal sealed class EncryptedSample
 
     /// <summary>
     /// Whether every record of the sample opened: a key not read, a label not loaded, a label that is not the column's and an access the chain did not record all say no.
-    /// A record under the scope of a declared loss is passed over for the next one of the domain; when all that is reachable is under the loss, the verdict says so and is not a no.
+    /// A record under the scope of a declared loss is passed over for the next one of the domain, up to a limit; when all that is reachable is under the loss, or the limit is reached,
+    /// the verdict says which and is not a no.
     /// </summary>
     internal async Task<SampleVerdict> VerdictAsync(CancellationToken cancellationToken)
     {
@@ -68,13 +69,18 @@ internal sealed class EncryptedSample
             return SampleVerdict.NotOpened;
         }
 
-        return earlier == SampleVerdict.NoneOutsideLoss ? next : earlier;
+        if (earlier == SampleVerdict.Opened || next == SampleVerdict.Opened)
+        {
+            return SampleVerdict.Opened;
+        }
+
+        return earlier == SampleVerdict.SearchStopped ? earlier : next;
     }
 
     private static async Task<SampleVerdict> OpenedAsync(ProtectedContentReader reader, ProtectedColumn column, int domain, CancellationToken cancellationToken)
     {
         var after = 0L;
-        for (var passedOver = 0; passedOver < MostPassedOver; passedOver++)
+        for (var passedOver = 0; passedOver <= MostPassedOver; passedOver++)
         {
             var read = await ReadAfterAsync(reader, new ContentRead(CustodyAuthor.System, column, domain, after), cancellationToken).ConfigureAwait(false);
             if (Judged(read, passedOver) is { } verdict)
@@ -85,7 +91,7 @@ internal sealed class EncryptedSample
             after = read!.RowId;
         }
 
-        return SampleVerdict.NoneOutsideLoss;
+        return SampleVerdict.SearchStopped;
     }
 
     // Null means the record is under the scope of a loss: look at the next one.
@@ -94,8 +100,9 @@ internal sealed class EncryptedSample
         null => SampleVerdict.NotOpened,
         ContentReadOutcome.KeyLossDeclared => null,
         ContentReadOutcome.NotRecorded or ContentReadOutcome.LabelMissing => SampleVerdict.NotOpened,
-        ContentReadOutcome.NotFound when passedOver > 0 => SampleVerdict.NoneOutsideLoss,
-        _ => SampleVerdict.Opened,
+        ContentReadOutcome.NotFound => passedOver > 0 ? SampleVerdict.NoneOutsideLoss : SampleVerdict.Opened,
+        ContentReadOutcome.Read or ContentReadOutcome.Empty or ContentReadOutcome.Emptied => SampleVerdict.Opened,
+        _ => throw new ArgumentOutOfRangeException(nameof(read)),
     };
 
     private static async Task<ContentReadResult?> ReadAfterAsync(ProtectedContentReader reader, ContentRead after, CancellationToken cancellationToken)

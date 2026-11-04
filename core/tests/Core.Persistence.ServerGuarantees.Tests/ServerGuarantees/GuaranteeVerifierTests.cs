@@ -165,6 +165,25 @@ public sealed class GuaranteeVerifierTests
         Assert.Equal([$"verification_failed|{(long)GuaranteeKinds.EncryptedSample}"], await world.OwnerColumnAsync(Verification));
     }
 
+    [DatabaseTheory]
+    [InlineData(16, false)]
+    [InlineData(17, true)]
+    public async Task LossDeclaredOverMoreRowsThanTheSearchPassesOverIsToldAsStoppedAtTheLimitAndNotAsNoSampleOutsideIt(int rows, bool stopped)
+    {
+        var token = TestContext.Current.CancellationToken;
+        await using var world = await FidelityWorld.CreateAsync();
+        for (var row = 0; row < rows; row++)
+        {
+            _ = await world.Writer.AddItemTextAsync(1, new NewItemText("texto bruto sintetico zqx"), token);
+        }
+
+        await DeclareAsync(world, "texto-bruto/1/v1");
+
+        var verification = await world.Verifier().VerifyAsync(token);
+
+        Assert.Equal((GuaranteeKinds.None, !stopped, stopped), (verification.Missing, verification.NoSampleOutsideLoss, verification.SearchStopped));
+    }
+
     [DatabaseFact]
     public async Task RecordSealedUnderTheLabelOfAnotherDomainIsTold()
     {
@@ -215,6 +234,7 @@ public sealed class GuaranteeVerifierTests
 
         Assert.Null(recorded);
     }
+
     private static async Task WriteItemAndMapAsync(FidelityWorld world, int domain)
     {
         var token = TestContext.Current.CancellationToken;

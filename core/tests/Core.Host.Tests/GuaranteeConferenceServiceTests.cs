@@ -61,8 +61,21 @@ public sealed class GuaranteeConferenceServiceTests
 
         var line = Assert.Single(run.Log.Lines, text => text.Contains("garantias", StringComparison.Ordinal));
         Assert.StartsWith("Information: ", line, StringComparison.Ordinal);
-        Assert.Contains("não há amostra legível fora da perda de chave declarada", line, StringComparison.Ordinal);
+        Assert.Contains("todo o conteúdo da amostra está sob a perda de chave declarada", line, StringComparison.Ordinal);
         Assert.Contains("registro do veredito: Appended", line, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GuaranteesThatHoldWithTheSearchStoppedAtTheLimitAreInformationThatSaysSoAndNotThatThereIsNoSample()
+    {
+        await using var run = new Run([], _ => Task.FromResult(Verification(GuaranteeKinds.None) with { SearchStopped = true }));
+        await run.StartAsync(TestContext.Current.CancellationToken);
+        await run.WaitingAsync(TestContext.Current.CancellationToken);
+
+        var line = Assert.Single(run.Log.Lines, text => text.Contains("garantias", StringComparison.Ordinal));
+        Assert.StartsWith("Information: ", line, StringComparison.Ordinal);
+        Assert.Contains("a busca da amostra parou no limite", line, StringComparison.Ordinal);
+        Assert.DoesNotContain("todo o conteúdo da amostra", line, StringComparison.Ordinal);
     }
 
     [Fact]

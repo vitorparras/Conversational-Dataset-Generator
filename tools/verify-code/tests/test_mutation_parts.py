@@ -165,6 +165,22 @@ class SlicedAreaTests(PartsFixture):
 
         self.assertEqual(sorted(found), sorted(f"Logging/{name}.cs" for name in FILES))
 
+    def test_every_pattern_names_a_file_of_the_area_and_none_of_the_area_inside(self) -> None:
+        files = {f"Logging/{name}.cs" for name in (*FILES, "Big")}
+
+        for number in (1, 2, 3):
+            named = {re.split(r"[{]", pattern)[0] for pattern in self.patterns(number, 3)}
+
+            self.assertTrue(named <= files, (number, named - files))
+            self.assertNotIn(HIDDEN, named)
+
+    def test_the_parts_together_name_every_file_of_the_area(self) -> None:
+        files = {f"Logging/{name}.cs" for name in (*FILES, "Big")}
+
+        named = {re.split(r"[{]", p)[0] for n in (1, 2, 3) for p in self.patterns(n, 3)}
+
+        self.assertEqual(named, files)
+
     def test_the_cap_of_the_parts_is_the_number_of_slices_not_of_files(self) -> None:
         self.declare("99")
 
@@ -202,6 +218,22 @@ class ShareTests(unittest.TestCase):
         self.assertEqual(
             mutation_parts.share(pieces, Part(1, 2)), (f"a.cs{{0..10}}{{20..{UNBOUNDED}}}",)
         )
+
+    def test_the_heaviest_slice_is_alone_and_the_rest_balance_the_other_parts(self) -> None:
+        weights = [100, 30, 30, 30, 10]
+        pieces = [Slice("a.cs", n * 10, n * 10 + 10, w) for n, w in enumerate(weights)]
+
+        loads = [sum(p.weight for p in mutation_parts.dealt(pieces, Part(n, 3))) for n in (1, 2, 3)]
+
+        self.assertEqual(loads, [100, 60, 40])
+        self.assertEqual([p.weight for p in mutation_parts.dealt(pieces, Part(1, 3))], [100])
+
+    def test_slices_of_equal_weight_are_dealt_in_turn(self) -> None:
+        pieces = [Slice("a.cs", n * 10, n * 10 + 10) for n in range(6)]
+
+        starts = [[p.start for p in mutation_parts.dealt(pieces, Part(n, 3))] for n in (1, 2, 3)]
+
+        self.assertEqual(starts, [[0, 30], [10, 40], [20, 50]])
 
     def test_every_slice_is_in_exactly_one_part_whatever_the_number_of_parts(self) -> None:
         pieces = [Slice(f"{name}.cs", a, a + 7) for name in "bca" for a in range(0, 35, 7)]

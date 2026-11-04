@@ -1,9 +1,10 @@
 """The parts a critical core area may be mutated in: `Core.Persistence.Content@2/3` is the second of
 three jobs of one area, each mutating only its share of the code with the same test project, the
 same ceiling and the same survivor limit. The unit of the split is the slice of a file, cut between
-the members of its types (steps.mutation_members); the slices are sorted by path and position and
-dealt out in turn, so the split depends on nothing but the files, and every slice belongs to
-exactly one part (#585: a file cannot be split, but the members of one big file can)."""
+the members of its types (steps.mutation_members), weighted by its tokens; the heaviest slice goes
+first to the lightest part, ties by path and position, so the split depends on nothing but the
+files and every slice belongs to exactly one part. (#585: dealt in turn by count, one part got 40
+mutants while the others had a few.)"""
 
 from __future__ import annotations
 
@@ -56,6 +57,7 @@ class Slice:
     file: str
     start: int
     end: int
+    weight: int = 1
 
     @property
     def whole(self) -> bool:
@@ -63,8 +65,15 @@ class Slice:
 
 
 def dealt(slices: list[Slice], part: Part) -> list[Slice]:
-    """The slices of one part: the sorted slices dealt out in turn among the parts."""
-    return sorted(slices)[part.number - 1 :: part.of]
+    """The slices of one part: the heaviest first, each to the part with the least weight so far."""
+    loads = [0] * part.of
+    mine: list[Slice] = []
+    for piece in sorted(slices, key=lambda s: (-s.weight, s.file, s.start)):
+        lightest = loads.index(min(loads))
+        loads[lightest] += piece.weight
+        if lightest == part.number - 1:
+            mine.append(piece)
+    return sorted(mine)
 
 
 def share(slices: list[Slice], part: Part) -> tuple[str, ...]:
@@ -76,10 +85,17 @@ def share(slices: list[Slice], part: Part) -> tuple[str, ...]:
 
 
 def pattern(file: str, pieces: list[Slice]) -> str:
-    """The pattern for ``pieces`` of one ``file``: ``File.cs{0..120}{300..480}``."""
-    if len(pieces) == 1 and pieces[0].whole:
+    """The pattern for ``pieces`` of one ``file``: ``File.cs{0..120}{300..480}``; slices that touch
+    are one span, and a file whole in the part is its bare path."""
+    spans: list[list[int]] = []
+    for piece in pieces:
+        if spans and spans[-1][1] == piece.start:
+            spans[-1][1] = piece.end
+        else:
+            spans.append([piece.start, piece.end])
+    if spans == [[0, UNBOUNDED]]:
         return file
-    return file + "".join(f"{{{piece.start}..{piece.end}}}" for piece in pieces)
+    return file + "".join(f"{{{start}..{end}}}" for start, end in spans)
 
 
 def parts_of(count: int) -> tuple[Part | None, ...]:

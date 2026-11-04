@@ -7,6 +7,7 @@ slices of a file hold, together, the mutants of the file, each once."""
 
 from __future__ import annotations
 
+from bisect import bisect_right
 from dataclasses import dataclass, field
 from itertools import pairwise
 
@@ -131,7 +132,11 @@ class Walk:
 def member_ends(text: str) -> tuple[int, ...]:
     """The indexes just after each member of the types of ``text``; none when the braces of the
     file do not close, so a file that is not understood is never cut."""
-    found = tokens(text)
+    return ends_of(tokens(text))
+
+
+def ends_of(found: list[Token]) -> tuple[int, ...]:
+    """``member_ends`` over tokens already read."""
     walk = Walk()
     for position, token in enumerate(found):
         following = found[position + 1].kind if position + 1 < len(found) else ""
@@ -144,8 +149,14 @@ def units(text: str, index: int) -> int:
     return len(text[:index].encode("utf-16-le")) // 2
 
 
-def slices(text: str) -> tuple[tuple[int, int], ...]:
-    """The slices of a file, as ``(start, end)`` offsets that follow one another from the first
-    character to ``UNBOUNDED``, cut just after each member."""
-    bounds = (0, *(units(text, end) for end in member_ends(text)), UNBOUNDED)
-    return tuple(pairwise(bounds))
+def slices(text: str) -> tuple[tuple[int, int, int], ...]:
+    """The slices of a file, as ``(start, end, weight)``: offsets that follow one another from the
+    first character to ``UNBOUNDED``, cut just after each member, and the tokens each holds. The
+    tokens stand for the mutants: comments and documentation weigh nothing."""
+    found = tokens(text)
+    cuts = ends_of(found)
+    ends = [token.end for token in found]
+    marks = [0, *(bisect_right(ends, cut) for cut in cuts), len(ends)]
+    weights = [max(1, b - a) for a, b in pairwise(marks)]
+    bounds = (0, *(units(text, cut) for cut in cuts), UNBOUNDED)
+    return tuple((a, b, w) for (a, b), w in zip(pairwise(bounds), weights, strict=True))

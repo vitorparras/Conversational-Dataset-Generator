@@ -88,7 +88,7 @@ def pieces(root: Path, core: CoreTarget) -> list[Slice]:
     texts = {
         name: (project / name).read_bytes().decode("utf-8-sig") for name in sources(root, core)
     }
-    return [Slice(name, a, b) for name, text in texts.items() for a, b in slices(text)]
+    return [Slice(name, a, b, w) for name, text in texts.items() for a, b, w in slices(text)]
 
 
 def part_count(root: Path, area: Area, areas: tuple[Area, ...]) -> int:

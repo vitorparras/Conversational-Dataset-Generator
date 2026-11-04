@@ -23,8 +23,8 @@ matriz do fluxo lê as áreas da 014 e abre um job por módulo crítico, e um jo
 reprova, nomeando o módulo e o tempo gasto, nunca lentidão tolerada. O tempo de cada módulo sai no
 relatório do passo. Mutação fora do bloqueio só por decisão escrita. A área que não cabe no teto
 declara `- Partes da mutação: N` no seu arquivo: o passo corta cada arquivo C# dela entre os membros
-dos tipos e passa os trechos ao Stryker como `arquivo.cs{a..b}`, repartidos em rodízio por caminho
-e posição; a matriz abre um job por parte, com o mesmo teto e limite. O Stryker 5.0.0 só conta o
+dos tipos e passa os trechos ao Stryker como `arquivo.cs{a..b}`, repartidos pelo peso (os tokens de
+cada um); a matriz abre um job por parte, com o mesmo teto e limite. O Stryker 5.0.0 só conta o
 mutante cujo nó cabe inteiro na faixa e o corte nunca cai num membro: a soma é a da área.
 
 No núcleo, em todos os módulos, a verificação não conta **o mutante `false`→`true` do argumento de

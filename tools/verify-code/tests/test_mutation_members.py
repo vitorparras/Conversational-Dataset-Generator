@@ -114,10 +114,22 @@ class SlicesTests(unittest.TestCase):
 
         self.assertEqual((found[0][0], found[-1][1]), (0, UNBOUNDED))
         self.assertTrue(all(a[1] == b[0] for a, b in pairwise(found)))
-        self.assertTrue(all(start < end for start, end in found))
+        self.assertTrue(all(start < end for start, end, _ in found))
 
     def test_a_file_without_cuts_is_one_slice_of_the_whole_file(self) -> None:
-        self.assertEqual(slices("enum E { A }\n"), ((0, UNBOUNDED),))
+        found = slices("enum E { A }\n")
+
+        self.assertEqual((len(found), found[0][:2]), (1, (0, UNBOUNDED)))
+
+    def test_the_weight_of_a_slice_is_its_tokens_so_documentation_weighs_nothing(self) -> None:
+        body = "int a; int Big() { return 1 + 2 + 3 + 4; } }\n"
+        plain = "class A { " + body
+        documented = "class A { /// " + "word " * 50 + "\n " + body
+
+        weights = [w for _, _, w in slices(plain)]
+
+        self.assertEqual([w for _, _, w in slices(documented)], weights)
+        self.assertGreater(weights[1], weights[0])
 
     def test_the_offsets_count_utf16_units_and_every_character_of_the_line_break(self) -> None:
         text = 'class A { string a = "😀";\r\n int b; }\r\n'
@@ -131,7 +143,7 @@ class SlicesTests(unittest.TestCase):
         self.assertEqual(first_end, len(text.split("\r\n", maxsplit=1)[0]) + 1)
 
     def test_each_slice_starts_where_the_member_before_ended(self) -> None:
-        pieces = [TYPE[a : min(b, len(TYPE))] for a, b in slices(TYPE)]
+        pieces = [TYPE[a : min(b, len(TYPE))] for a, b, _ in slices(TYPE)]
 
         self.assertEqual("".join(pieces), TYPE)
         self.assertEqual(len(pieces), len(member_ends(TYPE)) + 1)

@@ -1,3 +1,4 @@
+using System.Data.Common;
 using System.Security.Cryptography;
 using Core.Persistence.Content;
 using Core.Persistence.Content.Sealing;
@@ -13,8 +14,6 @@ public sealed class RecoveryRehearsal
 {
     private const string Tip = "SELECT sequence, encode(digest, 'hex') FROM public.custody_event ORDER BY sequence DESC LIMIT 1";
     private const string DomainIds = "SELECT id FROM public.domain ORDER BY id";
-    private const string RawSamples = "SELECT raw_text, dek_epoch, dek_wrapped FROM content.item_text WHERE raw_text IS NOT NULL AND emptied_at IS NULL ORDER BY id LIMIT 3";
-    private const string MapSamples = "SELECT entries, dek_epoch, dek_wrapped FROM content.reversal_map WHERE entries IS NOT NULL AND emptied_at IS NULL ORDER BY id LIMIT 3";
 
     private readonly NpgsqlDataSource dataSource;
     private readonly ProtectedContent content;
@@ -41,8 +40,8 @@ public sealed class RecoveryRehearsal
         var total = new SampleCounts(0, 0, 0);
         foreach (var domain in await DomainsAsync(cancellationToken).ConfigureAwait(false))
         {
-            var (rawOpened, rawFailed) = await OpenedAsync(domain, ContentColumns.RawText, RawSamples, cancellationToken).ConfigureAwait(false);
-            var (mapsOpened, mapsFailed) = await OpenedAsync(domain, ContentColumns.Entries, MapSamples, cancellationToken).ConfigureAwait(false);
+            var (rawOpened, rawFailed) = await OpenedAsync(domain, ContentColumns.RawText, ContentQueries.ReadRawSamples, cancellationToken).ConfigureAwait(false);
+            var (mapsOpened, mapsFailed) = await OpenedAsync(domain, ContentColumns.Entries, ContentQueries.ReadMapSamples, cancellationToken).ConfigureAwait(false);
             total = new SampleCounts(total.Raw + rawOpened, total.Maps + mapsOpened, total.Failed + rawFailed + mapsFailed);
         }
 
@@ -52,27 +51,26 @@ public sealed class RecoveryRehearsal
 
     private async Task<(int Opened, int Failed)> OpenedAsync(int domain, ProtectedColumn column, string statement, CancellationToken cancellationToken)
     {
-        var (opened, failed) = (0, 0);
+        var samples = await SamplesAsync(domain, statement, cancellationToken).ConfigureAwait(false);
+        var opened = samples.Count(sample => sample is { } found && TryOpen(domain, column, found.Stored, found.Key));
+        return (opened, samples.Count - opened);
+    }
+
+    private async Task<List<Sample?>> SamplesAsync(int domain, string statement, CancellationToken cancellationToken)
+    {
         var transaction = await ContentTransaction.BeginAsync(dataSource, domain, cancellationToken).ConfigureAwait(false);
         await using (transaction.ConfigureAwait(false))
         {
             var command = transaction.CreateCommand(statement);
             await using (command.ConfigureAwait(false))
             {
-                var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-                await using (reader.ConfigureAwait(false))
-                {
-                    while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-                    {
-                        var wasOpened = TryOpen(domain, column, (byte[])reader.GetValue(0), new ContentKey(reader.GetInt32(1), (byte[])reader.GetValue(2)));
-                        (opened, failed) = (opened + (wasOpened ? 1 : 0), failed + (wasOpened ? 0 : 1));
-                    }
-                }
+                return await RowsAsync<Sample?>(command, SampleOf, cancellationToken).ConfigureAwait(false);
             }
         }
-
-        return (opened, failed);
     }
+
+    private static Sample? SampleOf(DbDataReader row) =>
+        row.IsDBNull(0) ? null : new Sample((byte[])row.GetValue(0), new ContentKey(row.GetInt32(1), (byte[])row.GetValue(2)));
 
     private bool TryOpen(int domain, ProtectedColumn column, byte[] stored, ContentKey key)
     {
@@ -92,32 +90,34 @@ public sealed class RecoveryRehearsal
         var command = dataSource.CreateCommand(Tip);
         await using (command.ConfigureAwait(false))
         {
-            var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-            await using (reader.ConfigureAwait(false))
-            {
-                return await reader.ReadAsync(cancellationToken).ConfigureAwait(false)
-                    ? (reader.GetInt64(0), reader.GetString(1))
-                    : throw new InvalidOperationException("a cópia não tem cadeia de custódia, e não é cópia da produção");
-            }
+            var tips = await RowsAsync(command, row => (row.GetInt64(0), row.GetString(1)), cancellationToken).ConfigureAwait(false);
+            return tips.Count > 0 ? tips[0] : throw new InvalidOperationException("a cópia não tem cadeia de custódia, e não é cópia da produção");
         }
     }
 
     private async Task<List<int>> DomainsAsync(CancellationToken cancellationToken)
     {
-        var ids = new List<int>();
         var command = dataSource.CreateCommand(DomainIds);
         await using (command.ConfigureAwait(false))
         {
-            var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-            await using (reader.ConfigureAwait(false))
+            return await RowsAsync(command, row => row.GetInt32(0), cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static async Task<List<T>> RowsAsync<T>(DbCommand command, Func<DbDataReader, T> read, CancellationToken cancellationToken)
+    {
+        var rows = new List<T>();
+        var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        await using (reader.ConfigureAwait(false))
+        {
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
             {
-                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-                {
-                    ids.Add(reader.GetInt32(0));
-                }
+                rows.Add(read(reader));
             }
         }
 
-        return ids;
+        return rows;
     }
+
+    private readonly record struct Sample(byte[] Stored, ContentKey Key);
 }

@@ -49,6 +49,12 @@ public static class ContentQueries
     internal const string ReadOlderMapKeys =
         "SELECT id, dek_epoch, dek_wrapped FROM content.reversal_map WHERE emptied_at IS NULL AND dek_epoch < @newest ORDER BY id LIMIT 500";
 
+    /// <summary>The sealed raw texts of three items not emptied, each with the key of the item wrapped with its epoch: the sample that the rehearsal of the recovery opens.</summary>
+    internal const string ReadRawSamples = "SELECT raw_text, dek_epoch, dek_wrapped FROM content.item_text WHERE emptied_at IS NULL ORDER BY id LIMIT 3";
+
+    /// <summary>The sealed maps of three reversals not emptied, each with the key of the map wrapped with its epoch: the sample that the rehearsal of the recovery opens.</summary>
+    internal const string ReadMapSamples = "SELECT entries, dek_epoch, dek_wrapped FROM content.reversal_map WHERE emptied_at IS NULL ORDER BY id LIMIT 3";
+
     /// <summary>Wraps again the key of an item not emptied; only the wrapped key and its epoch change.</summary>
     internal const string RewrapItemKey = "UPDATE content.item_text SET dek_epoch = @epoch, dek_wrapped = @wrapped WHERE id = @id AND emptied_at IS NULL";
 

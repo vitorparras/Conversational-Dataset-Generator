@@ -7,8 +7,10 @@ using Core.Host.Migration;
 using Core.Host.Supervision;
 using Core.Persistence.Connection;
 using Core.Persistence.Content.Rotation;
+using Core.Persistence.Content.Sealing;
 using Core.Persistence.Migrations;
 using Core.Persistence.People;
+using Core.Persistence.Recovery;
 using Core.Persistence.ServerGuarantees;
 using Core.Platform.Configuration;
 using Core.Platform.Keys;
@@ -118,6 +120,10 @@ internal static class CompositionRoot
     internal static ItemKeys KeysOf(MasterKeyReading reading) => new(new KeyDerivation(reading.Key!, reading.Labels), reading.Epochs);
 
     internal static EpochRotation RotationOf(NpgsqlDataSource dataSource, ItemKeys keys) => new(dataSource, keys);
+
+    /// <summary>The rehearsal of the recovery over a source that was read, opening content with the labels the database registers.</summary>
+    internal static RecoveryRehearsal RehearsalOf(NpgsqlDataSource dataSource, MasterKeyReading reading, IReadOnlySet<string> registered) =>
+        new(dataSource, new ProtectedContent(reading.Labels, KeysOf(reading), registered), TimeProvider.System);
 
     /// <summary>Redacted console logging alone: the modes that migrate or rotate have no host, no file destination and no language service.</summary>
     internal static ServiceProvider LoggingServices() =>

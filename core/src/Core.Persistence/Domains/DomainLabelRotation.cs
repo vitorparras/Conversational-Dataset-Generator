@@ -33,7 +33,7 @@ public sealed class DomainLabelRotation
 
     /// <summary>The labels of derivation a domain takes in the generation given, one for each purpose, in the order of the purposes.</summary>
     public static IReadOnlyList<string> LabelsOf(int domainId, int version) =>
-        Enum.GetValues<LabelPurpose>().Order().Select(purpose => new DerivationLabel(purpose, domainId, version).Text).ToList();
+        Array.ConvertAll(Enum.GetValues<LabelPurpose>(), purpose => new DerivationLabel(purpose, domainId, version).Text);
 
     /// <summary>Passes the domain to the next generation of its labels if the custody holds them; a refusal writes nothing, and a missing label is named.</summary>
     public Task<DomainLabelResult> RotateAsync(int domainId, DerivationLabels custody, CancellationToken cancellationToken)

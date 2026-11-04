@@ -37,7 +37,7 @@ public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<Resto
             _ = await destination.LoadAsync(table, source.Copy[table]);
         }
 
-        Assert.Equal(5, await destination.EventsAsync(source.Copy["public.custody_event"]));
+        Assert.Equal(7, await destination.EventsAsync(source.Copy["public.custody_event"]));
         foreach (var table in new[] { "content.item_text", "content.reversal_map", "content.item_emptied" })
         {
             _ = await destination.LoadAsync(table, source.Copy[table]);

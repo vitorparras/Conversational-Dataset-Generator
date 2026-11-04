@@ -3,6 +3,7 @@ using System.Text.Json.Nodes;
 using Core.Persistence.Content.Emptying;
 using Core.Persistence.Content.Writing;
 using Core.Persistence.Custody;
+using Core.Persistence.People;
 
 namespace Core.Persistence.Tests.Fixtures;
 
@@ -32,10 +33,10 @@ public sealed class RestoreSource : IAsyncLifetime
         var first = await world.Writer.AddItemTextAsync(1, new NewItemText("texto bruto sintetico zqx"), token);
         _ = await world.Writer.AddReversalMapAsync(1, first, "mapa sintetico zqx", token);
         var second = await world.Writer.AddItemTextAsync(2, new NewItemText("texto bruto sintetico zqx"), token);
-        await world.MakeCuratorAsync();
+        Assert.Equal(PersonOutcome.Done, (await world.Registry.ChangeFunctionAsync(1, PersonFunctions.Curation, CustodyAuthor.System, token)).Outcome);
         var emptying = new ItemEmptying(CustodyAuthor.Person(1), 2, second, EmptyingMotive.RemovalRequestedBySubject, "PROT-2026/0042");
         Assert.Equal(EmptyingOutcome.Emptied, (await new ContentEmptier(world.DataSource).EmptyAsync(emptying, token)).Outcome);
-        await world.RunAsOwnerAsync("UPDATE public.person SET function_name = 'Anotação' WHERE id = 1");
+        Assert.Equal(PersonOutcome.Done, (await world.Registry.ChangeFunctionAsync(1, "Anotação", CustodyAuthor.System, token)).Outcome);
         await world.RunAsOwnerAsync(
             "INSERT INTO public.derivation_label (label) VALUES ('zqx-label/1/v1')",
             "INSERT INTO public.person_credential (person_id, algorithm, work_factor, salt, derived) VALUES (1, 'zqx-algorithm', 1, decode('00112233445566778899aabbccddeeff', 'hex'), '\x0102')",

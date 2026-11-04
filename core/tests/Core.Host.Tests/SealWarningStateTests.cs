@@ -1,6 +1,9 @@
 namespace Core.Host.Tests;
 
-/// <summary>The state that keeps the warning of the seal for /status (issue #62, part B2b): it starts with none, takes the warning whole and clears it, and readers see one whole warning while writers replace it.</summary>
+/// <summary>
+/// The state that keeps the warning of the seal for /status (issue #62, part B2b): it starts with none,
+/// takes the warning whole and clears it, and readers see one whole warning while writers replace it.
+/// </summary>
 public sealed class SealWarningStateTests
 {
     [Fact]

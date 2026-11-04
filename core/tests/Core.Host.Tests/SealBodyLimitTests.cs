@@ -2,10 +2,14 @@ using Core.Host.Endpoints;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Core.Host.Tests;
 
-/// <summary>The size of the body of the two routes that receive a seal (issue #62, part B2b): a body that announces more than the limit is 413 before it is read, one that announces nothing is limited as it is read, and other routes are left alone.</summary>
+/// <summary>
+/// The size of the body of the two routes that receive a seal (issue #62, part B2b): a body that announces more than the limit
+/// is 413 before it is read, one that announces nothing is limited as it is read, and other routes are left alone.
+/// </summary>
 public sealed class SealBodyLimitTests
 {
     [Fact]
@@ -32,15 +36,21 @@ public sealed class SealBodyLimitTests
         var (other, reachedOther) = await RunAsync("POST", "/analysis", SealBodyLimit.Bytes + 1);
         var (read, reachedRead) = await RunAsync("GET", "/custody/verification", SealBodyLimit.Bytes + 1);
 
-        Assert.Equal((null, true, null, true), (other.Features.Get<IHttpMaxRequestBodySizeFeature>()!.MaxRequestBodySize, reachedOther, read.Features.Get<IHttpMaxRequestBodySizeFeature>()!.MaxRequestBodySize, reachedRead));
+        Assert.Equal(
+            (null, true, null, true),
+            (
+                other.Features.Get<IHttpMaxRequestBodySizeFeature>()!.MaxRequestBodySize,
+                reachedOther,
+                read.Features.Get<IHttpMaxRequestBodySizeFeature>()!.MaxRequestBodySize,
+                reachedRead));
     }
 
     private static async Task<(HttpContext Context, bool Reached)> RunAsync(string method, string path, long? length)
     {
-        var builder = new ApplicationBuilder(new Microsoft.Extensions.DependencyInjection.ServiceCollection().BuildServiceProvider());
+        var builder = new ApplicationBuilder(new ServiceCollection().BuildServiceProvider());
         var reached = false;
         SealBodyLimit.Use(builder);
-        _ = builder.Run(_ =>
+        builder.Run(_ =>
         {
             reached = true;
             return Task.CompletedTask;

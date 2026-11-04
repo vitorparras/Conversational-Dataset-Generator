@@ -1,8 +1,9 @@
-using Core.Persistence.Custody.Verification;
-
 namespace Core.Host.Tests;
 
-/// <summary>The warning of the manual situation (issue #62, part B2b): none when no seal was ever recorded is a warning, a seal of 8 days is a warning, one of 6 days is not, and the other situations never warn.</summary>
+/// <summary>
+/// The warning of the manual situation (issue #62, part B2b): none when no seal was ever recorded is a warning,
+/// a seal of 8 days is a warning, one of 6 days is not, and the other situations never warn.
+/// </summary>
 public sealed class SealAgeTests
 {
     private static readonly DateTimeOffset Now = new(2031, 3, 10, 12, 0, 0, TimeSpan.Zero);

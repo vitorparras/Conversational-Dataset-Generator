@@ -10,8 +10,8 @@ primeira pessoa e o primeiro domínio.
 
 | ID | Tela | Função | Mostra | Faz | Fase | Issue |
 |---|---|---|---|---|---|---|
-| A1 | Pessoas | Administração | Lista de pessoas, função declarada, estado, sem conteúdo | Cadastra com função e nenhum alcance | 3 | #599 (regra #109) |
-| A2 | Reposição de senha | Administração | Quem, para quem, quantas sessões foram encerradas; o canal usado (e-mail ou entrega manual), nunca o link | Repõe por ato registrado e gera um link temporário de uso único, que a pessoa abre para definir a senha | 6 | #600, #635 (regra #110) |
+| A1 | Pessoas | Administração | Lista de pessoas, função declarada, estado, sem conteúdo; e-mail opcional, visível só à administração | Cadastra com função, e-mail opcional e nenhum alcance | 3 | #599, #635 (regra #109) |
+| A2 | Reposição de senha | Administração | Quem, para quem, quantas sessões foram encerradas; o canal usado. Com e-mail, o link não aparece a quem administra; na entrega manual, aparece uma única vez, sem cache | Repõe por ato registrado e gera um link temporário de uso único, que a pessoa abre para definir a senha | 6 | #600, #635 (regra #110) |
 | A3 | Concessões | Quem responde pelo acervo | Por pessoa e domínio: finalidade, referência ao termo, prazo, vencimento | Concede, renova, revoga; nunca a si mesmo | 6 | #601 (regra #112–#114) |
 | A4 | Domínios | Administração | Domínios, taxonomia e versão; "nenhum domínio" com o passo no servidor | Só leitura | 3 | #602 |
 | A5 | Configuração em vigor | Administração | Todos os valores com a origem de cada um; redigidos onde a visão exige | Só leitura; a alteração é a A9 | 3 | #603 |

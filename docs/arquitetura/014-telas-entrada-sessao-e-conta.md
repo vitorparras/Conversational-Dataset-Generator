@@ -13,9 +13,10 @@ Telas que toda pessoa usa, qualquer que seja a função. Seguem os padrões da
 | E3 | Sessão vencida | Toda pessoa | Aviso e retorno à entrada, depois ao ponto de origem, sem perder o submetido | Reentra e retoma | 7 | #493 |
 | E4 | Cabeçalho e navegação | Toda pessoa | Só o que a função e o domínio concedem; lista vazia, não erro; seletor de domínio | Navega | 3 | #594 |
 | E5 | Avisos | Toda pessoa | Concessão a vencer, senha reposta que encerrou sessões, domínio somente leitura | Marca como lido | 3 | #595 |
-| C1 | Minha conta | Toda pessoa | Função, concessões por domínio, finalidade e prazo, vencidas | Só leitura | 3 | #596 |
+| C1 | Minha conta | Toda pessoa | Função, concessões por domínio, finalidade e prazo, vencidas; e-mail opcional, visível só a ela e à administração | Só leitura | 3 | #596, #635 |
 | C2 | Trocar a própria senha | Toda pessoa | A senha atual e a nova | Troca e encerra as outras sessões | 3 | #597 |
 | C3 | Minhas sessões | Toda pessoa | Sessões abertas: início e última atividade | Encerra uma ou todas | 3 | #598 |
+| C4 | Definir a senha pelo link | Toda pessoa | Campo da senha nova, aberto por um link de uso único; link usado, vencido ou substituído recebe a recusa uniforme | Define a senha, e o link deixa de valer | 6 | #600 |
 
 ## Observações
 

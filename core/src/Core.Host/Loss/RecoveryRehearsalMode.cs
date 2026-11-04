@@ -1,5 +1,4 @@
 using Core.Persistence.Connection;
-using Core.Persistence.Content.Sealing;
 using Core.Persistence.Domains;
 using Core.Persistence.Recovery;
 using Core.Platform.Keys;
@@ -51,8 +50,7 @@ internal static class RecoveryRehearsalMode
         try
         {
             var registered = await RegisteredLabels.ReadAsync(dataSource, CancellationToken.None).ConfigureAwait(false);
-            var content = new ProtectedContent(reading.Labels, CompositionRoot.KeysOf(reading), registered);
-            var rehearsal = new RecoveryRehearsal(dataSource, content, TimeProvider.System);
+            var rehearsal = CompositionRoot.RehearsalOf(dataSource, reading, registered);
             return await ReportAsync(await rehearsal.RehearseAsync(KeyProof.Of(reading.Key!), CancellationToken.None).ConfigureAwait(false), words).ConfigureAwait(false);
         }
         catch (InvalidOperationException defect)

@@ -15,7 +15,6 @@ internal sealed class ChainVerificationService : BackgroundService
     private readonly TimeProvider time;
     private readonly ILoggerFactory loggers;
     private readonly Func<CancellationToken, Task<string?>>? sealWarning;
-    private volatile string? warning;
 
     /// <summary>The service as the host builds it: over the data source of the startup container, which a host with no database does not have.</summary>
     internal ChainVerificationService(IServiceProvider host)
@@ -29,7 +28,8 @@ internal sealed class ChainVerificationService : BackgroundService
               host.GetRequiredService<VerificationSchedule>(),
               host.GetRequiredService<TimeProvider>(),
               host.GetRequiredService<ILoggerFactory>(),
-              WarningOf(host))
+              WarningOf(host),
+              host.GetRequiredService<SealWarningState>())
     {
         Verifier = verifier;
         var source = DataSourceOf(host);
@@ -40,15 +40,21 @@ internal sealed class ChainVerificationService : BackgroundService
 
     /// <summary>The service over the verification it is given, with the clock and the log of its caller.</summary>
     internal ChainVerificationService(Func<CancellationToken, Task<ChainVerification>>? verify, VerificationSchedule schedule, TimeProvider time, ILoggerFactory loggers)
-        : this(verify, schedule, time, loggers, null)
+        : this(verify, schedule, time, loggers, null, new SealWarningState())
     {
     }
 
-    /// <summary>The service over the verification and over the reading of the warning of the seal it are given, with the clock and the log of its caller.</summary>
+    /// <summary>The service over the verification, the reading of the warning of the seal and the state that keeps the warning, all given, with the clock and the log of its caller.</summary>
     internal ChainVerificationService(
-        Func<CancellationToken, Task<ChainVerification>>? verify, VerificationSchedule schedule, TimeProvider time, ILoggerFactory loggers, Func<CancellationToken, Task<string?>>? sealWarning)
+        Func<CancellationToken, Task<ChainVerification>>? verify,
+        VerificationSchedule schedule,
+        TimeProvider time,
+        ILoggerFactory loggers,
+        Func<CancellationToken, Task<string?>>? sealWarning,
+        SealWarningState warning)
     {
         this.sealWarning = sealWarning;
+        SealWarning = warning;
         this.verify = verify;
         Schedule = schedule;
         this.time = time;
@@ -70,8 +76,8 @@ internal sealed class ChainVerificationService : BackgroundService
     /// <summary>The making and the record of a seal by whoever operates; null when no database is declared.</summary>
     internal ChainSealer? Sealer { get; }
 
-    /// <summary>The warning of the manual situation as the last round, or the last record of a seal, left it: no seal ever recorded, or the last older than 7 days; null when there is none.</summary>
-    internal string? SealWarning => warning;
+    /// <summary>Where the warning of the manual situation of the seal is kept, as the last round or the last record of a seal left it.</summary>
+    internal SealWarningState SealWarning { get; }
 
     /// <summary>Whether a verification recorded at the moment given is late, by the clock the service was given.</summary>
     internal bool IsOverdue(DateTimeOffset? lastRecordedAt) => Schedule.Overdue(lastRecordedAt, time.GetUtcNow());
@@ -112,7 +118,7 @@ internal sealed class ChainVerificationService : BackgroundService
     {
         if (sealWarning is not null)
         {
-            warning = await sealWarning(cancellationToken).ConfigureAwait(false);
+            SealWarning.Record(await sealWarning(cancellationToken).ConfigureAwait(false));
         }
     }
 
@@ -173,6 +179,14 @@ internal sealed class ChainVerificationService : BackgroundService
         try
         {
             Report(logger, await verification(cancellationToken).ConfigureAwait(false));
+        }
+        catch (Exception failure) when (ServingFailure.CanReport(failure) && !cancellationToken.IsCancellationRequested)
+        {
+            logger.VerificationFailed(failure.GetType().Name);
+        }
+
+        try
+        {
             await RefreshSealWarningAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (Exception failure) when (ServingFailure.CanReport(failure) && !cancellationToken.IsCancellationRequested)

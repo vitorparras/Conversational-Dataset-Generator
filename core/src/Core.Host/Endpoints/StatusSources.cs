@@ -11,4 +11,4 @@ internal sealed record StatusSources(
     [FromServices] ServiceProcessWatch Watch,
     [FromServices] Installation Installation,
     [FromServices] AuditComparisonState Comparison,
-    [FromServices] ChainVerificationService Verification);
+    [FromServices] SealWarningState SealWarning);

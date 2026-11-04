@@ -1,5 +1,6 @@
 using Core.Persistence.Custody.Verification;
 using Microsoft.AspNetCore.Mvc;
+using Npgsql;
 
 namespace Core.Host.Endpoints;
 
@@ -14,7 +15,7 @@ internal static class SealVerificationEndpoint
     /// <summary>With no database declared, or one that cannot be read, the answer is 503: the chain was not compared with anything.</summary>
     private static async Task<IResult> VerifyAsync(
         [FromBody] SealAsked asked, [FromServices] ChainVerificationService verification, [FromServices] SealDeclaration declared, [FromServices] TimeProvider time,
-        CancellationToken cancellationToken)
+        [FromServices] ILoggerFactory loggers, CancellationToken cancellationToken)
     {
         var reading = ChainSeal.Read(asked.Seal);
         if (reading.Seal is not { } seal)
@@ -28,7 +29,15 @@ internal static class SealVerificationEndpoint
             return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
 
-        var last = declared.Situation == SealSituation.Manual && verification.SealReader is { } reader ? await reader.LastAsync(cancellationToken) : null;
-        return Results.Ok(SealVerificationShown.Of(done, standing, declared.Situation, SealAge.Warning(declared.Situation, last, time.GetUtcNow())));
+        try
+        {
+            var last = declared.Situation == SealSituation.Manual && verification.SealReader is { } reader ? await reader.LastAsync(cancellationToken) : null;
+            return Results.Ok(SealVerificationShown.Of(done, standing, declared.Situation, SealAge.Warning(declared.Situation, last, time.GetUtcNow())));
+        }
+        catch (Exception unreadable) when (unreadable is NpgsqlException or InvalidOperationException or TimeoutException)
+        {
+            loggers.CreateLogger(nameof(SealVerificationEndpoint)).LastUnreadable(unreadable.GetType().Name);
+            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+        }
     }
 }

@@ -36,7 +36,7 @@ internal static class SealEndpoint
             var made = await verification.Sealer!.MakeAsync(cancellationToken);
             return Results.Ok(new SealIssued(made.ToText(), made.SealedAt, made.Events));
         }
-        catch (NpgsqlException unreadable)
+        catch (Exception unreadable) when (unreadable is NpgsqlException or InvalidOperationException or TimeoutException)
         {
             return Unavailable(loggers, unreadable);
         }
@@ -58,9 +58,14 @@ internal static class SealEndpoint
             return Results.BadRequest(new SealRefused("seal", reading.Problem.ToString()!, reading.Refusal!));
         }
 
+        if (sessions.Resolve(SessionCookie.Read(request)) is not { } person)
+        {
+            return Results.Unauthorized();
+        }
+
         try
         {
-            var author = CustodyAuthor.Person(sessions.Resolve(SessionCookie.Read(request))!.Value);
+            var author = CustodyAuthor.Person(person);
             var recording = await verification.Sealer!.RecordAsync(seal, author, cancellationToken);
             if (recording.Seal is null)
             {
@@ -70,7 +75,7 @@ internal static class SealEndpoint
             await verification.RefreshSealWarningAsync(cancellationToken);
             return Results.Ok(new SealConfirmed(recording.Recorded.Sequence!.Value, seal.Events, seal.SealedAt));
         }
-        catch (NpgsqlException unreadable)
+        catch (Exception unreadable) when (unreadable is NpgsqlException or InvalidOperationException or TimeoutException)
         {
             return Unavailable(loggers, unreadable);
         }
@@ -81,7 +86,7 @@ internal static class SealEndpoint
             ? Results.Conflict(new SealRefused("situation", declared.Situation.ToString(), "o selo só é emitido e confirmado à mão quando a instalação declarou Manual"))
             : verification.Sealer is null ? Results.StatusCode(StatusCodes.Status503ServiceUnavailable) : null;
 
-    private static IResult Unavailable(ILoggerFactory loggers, NpgsqlException failure)
+    private static IResult Unavailable(ILoggerFactory loggers, Exception failure)
     {
         loggers.CreateLogger(nameof(SealEndpoint)).SealRouteUnavailable(failure.GetType().Name);
         return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);

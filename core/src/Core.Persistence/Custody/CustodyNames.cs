@@ -31,6 +31,7 @@ internal static class CustodyNames
         [CustodyStep.EpochRotated] = "epoch_rotated",
         [CustodyStep.DomainCreated] = "domain_created",
         [CustodyStep.SealRecorded] = "seal_recorded",
+        [CustodyStep.DomainLabelRotated] = "domain_label_rotated",
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<CustodyReason, string> Reasons = new Dictionary<CustodyReason, string>

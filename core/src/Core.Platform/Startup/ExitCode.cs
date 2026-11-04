@@ -48,6 +48,12 @@ public enum ExitCode
     /// <summary>The creation of a domain could not talk to the database and wrote nothing.</summary>
     DomainCreationFailed = 26,
 
+    /// <summary>The rotation of a domain label was refused and nothing was written: the domain is not accepted, or the label file could not be read.</summary>
+    DomainLabelRefused = 24,
+
+    /// <summary>The database did not answer the rotation of a domain label, and nothing was written.</summary>
+    DomainLabelFailed = 25,
+
     /// <summary>The comparison of the server's audit log with the chain found a difference that is new.</summary>
     AuditDifferent = 20,
 

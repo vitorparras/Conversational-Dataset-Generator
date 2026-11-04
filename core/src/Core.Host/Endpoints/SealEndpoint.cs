@@ -81,10 +81,15 @@ internal static class SealEndpoint
         }
     }
 
-    private static IResult? Refusal(ChainVerificationService verification, SealDeclaration declared) =>
-        declared.Situation != SealSituation.Manual
-            ? Results.Conflict(new SealRefused("situation", declared.Situation.ToString(), "o selo só é emitido e confirmado à mão quando a instalação declarou Manual"))
-            : verification.Sealer is null ? Results.StatusCode(StatusCodes.Status503ServiceUnavailable) : null;
+    private static IResult? Refusal(ChainVerificationService verification, SealDeclaration declared)
+    {
+        if (declared.Situation != SealSituation.Manual)
+        {
+            return Results.Conflict(new SealRefused("situation", declared.Situation.ToString(), "o selo só é emitido e confirmado à mão quando a instalação declarou Manual"));
+        }
+
+        return verification.Sealer is null ? Results.StatusCode(StatusCodes.Status503ServiceUnavailable) : null;
+    }
 
     private static IResult Unavailable(ILoggerFactory loggers, Exception failure)
     {

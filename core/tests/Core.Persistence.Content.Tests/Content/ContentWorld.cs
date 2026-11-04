@@ -27,6 +27,18 @@ internal sealed class ContentWorld : IAsyncDisposable
         Reader = new ProtectedContentReader(dataSource, custody.Content, new CustodyChain(dataSource));
     }
 
+    /// <summary>The event of an emptying of the item @id, by the curator, as the database ties a change of the content to it (migration 0018).</summary>
+    public const string EmptiedEvent = "INSERT INTO public.custody_event (actor_person_id, actor_system, item_kind, item_id, step, reason, reference) "
+        + "VALUES (3, false, 'item_text', @id, 'item_emptied', 'contract_requirement', 'zqx-1')";
+
+    /// <summary>The same event, for the statement that names the item as @item.</summary>
+    public const string EmptiedEventOfItem = "INSERT INTO public.custody_event (actor_person_id, actor_system, item_kind, item_id, step, reason, reference) "
+        + "VALUES (3, false, 'item_text', @item, 'item_emptied', 'contract_requirement', 'zqx-1')";
+
+    /// <summary>The event of a rotation to the epoch @epoch, by the system.</summary>
+    public const string RotatedEvent = "INSERT INTO public.custody_event (actor_person_id, actor_system, item_kind, item_id, step, reason) "
+        + "VALUES (NULL, true, 'content_epoch', @epoch, 'epoch_rotated', 'administrative_act')";
+
     public ScratchDatabase Database { get; }
 
     public NpgsqlDataSource DataSource { get; }
@@ -99,11 +111,19 @@ internal sealed class ContentWorld : IAsyncDisposable
 
     /// <summary>The first value of the first row of the statement, as the application and under the domain.</summary>
     public Task<object?> InDomainAsync(int domainId, string statement, params (string Name, object Value)[] parameters) =>
-        InDomainAsync(Database.AppConnectionString, domainId, statement, parameters);
+        InDomainAsync(Database.AppConnectionString, domainId, (null, statement), parameters);
+
+    /// <summary>As the statement of <c>InDomainAsync</c>, in the transaction in which the statement <paramref name="before"/> ran first, such as the event a change needs.</summary>
+    public Task<object?> InDomainAfterAsync(string before, int domainId, string statement, params (string Name, object Value)[] parameters) =>
+        InDomainAsync(Database.AppConnectionString, domainId, (before, statement), parameters);
+
+    /// <summary>As <see cref="InDomainAfterAsync"/>, as the owner of the database.</summary>
+    public Task<object?> OwnerInDomainAfterAsync(string before, int domainId, string statement, params (string Name, object Value)[] parameters) =>
+        InDomainAsync(Database.OwnerConnectionString, domainId, (before, statement), parameters);
 
     /// <summary>The first value of the first row of the statement, as the owner of the database and under the domain; the owner is held to the row policy too.</summary>
     public Task<object?> OwnerInDomainAsync(int domainId, string statement, params (string Name, object Value)[] parameters) =>
-        InDomainAsync(Database.OwnerConnectionString, domainId, statement, parameters);
+        InDomainAsync(Database.OwnerConnectionString, domainId, (null, statement), parameters);
 
     /// <summary>The first value of the first row of the statement, as the owner.</summary>
     [SuppressMessage("Security", "CA2100", Justification = "The statements are literals of the calling tests, never input.")]
@@ -121,12 +141,23 @@ internal sealed class ContentWorld : IAsyncDisposable
     }
 
     [SuppressMessage("Security", "CA2100", Justification = "The statements are literals of the calling tests, never input.")]
-    private static async Task<object?> InDomainAsync(string connectionString, int domainId, string statement, (string Name, object Value)[] parameters)
+    private static async Task<object?> InDomainAsync(string connectionString, int domainId, (string? Before, string Statement) statements, (string Name, object Value)[] parameters)
     {
         await using var dataSource = NpgsqlDataSource.Create(connectionString);
         await using var transaction = await ContentTransaction.BeginAsync(dataSource, domainId, TestContext.Current.CancellationToken);
-        await using var command = transaction.CreateCommand(statement);
-        foreach (var (name, value) in parameters)
+        if (statements.Before is not null)
+        {
+            await using var first = transaction.CreateCommand(statements.Before);
+            foreach (var (name, value) in parameters.Where(parameter => statements.Before.Contains("@" + parameter.Name, StringComparison.Ordinal)))
+            {
+                _ = first.Parameters.AddWithValue(name, value);
+            }
+
+            _ = await first.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+        }
+
+        await using var command = transaction.CreateCommand(statements.Statement);
+        foreach (var (name, value) in parameters.Where(parameter => statements.Statement.Contains("@" + parameter.Name, StringComparison.Ordinal)))
         {
             _ = command.Parameters.AddWithValue(name, value);
         }

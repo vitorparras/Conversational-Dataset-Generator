@@ -53,8 +53,8 @@ public sealed class ContentEmptiedTriggerTests
         var item = await world.Writer.AddItemTextAsync(1, new NewItemText("bruto", "sanitizado", "pseudonimizado"), TestContext.Current.CancellationToken);
         _ = await world.Writer.AddReversalMapAsync(1, item, "mapa", TestContext.Current.CancellationToken);
 
-        var emptiedItem = await world.InDomainAsync(1, EmptyItem, ("id", item));
-        var emptiedMap = await world.InDomainAsync(1, EmptyMap, ("id", item));
+        var emptiedItem = await world.InDomainAfterAsync(ContentWorld.EmptiedEvent, 1, EmptyItem, ("id", item));
+        var emptiedMap = await world.InDomainAfterAsync(ContentWorld.EmptiedEvent, 1, EmptyMap, ("id", item));
 
         Assert.NotNull(emptiedItem);
         Assert.NotNull(emptiedMap);
@@ -74,8 +74,8 @@ public sealed class ContentEmptiedTriggerTests
         var item = await world.Writer.AddItemTextAsync(1, new NewItemText("bruto", "sanitizado", "pseudonimizado"), TestContext.Current.CancellationToken);
         _ = await world.Writer.AddReversalMapAsync(1, item, "mapa", TestContext.Current.CancellationToken);
 
-        var byApplication = await Assert.ThrowsAsync<PostgresException>(() => world.InDomainAsync(1, change, ("id", item)));
-        var byOwner = await Assert.ThrowsAsync<PostgresException>(() => world.OwnerInDomainAsync(1, change, ("id", item)));
+        var byApplication = await Assert.ThrowsAsync<PostgresException>(() => world.InDomainAfterAsync(ContentWorld.EmptiedEvent, 1, change, ("id", item)));
+        var byOwner = await Assert.ThrowsAsync<PostgresException>(() => world.OwnerInDomainAfterAsync(ContentWorld.EmptiedEvent, 1, change, ("id", item)));
 
         Assert.Equal((Emptied, Emptied), (byApplication.SqlState, byOwner.SqlState));
     }
@@ -123,8 +123,8 @@ public sealed class ContentEmptiedTriggerTests
     {
         var item = await world.Writer.AddItemTextAsync(1, new NewItemText("bruto", "sanitizado", "pseudonimizado"), TestContext.Current.CancellationToken);
         _ = await world.Writer.AddReversalMapAsync(1, item, "mapa de reversao zqx", TestContext.Current.CancellationToken);
-        _ = await world.InDomainAsync(1, EmptyItem, ("id", item));
-        _ = await world.InDomainAsync(1, EmptyMap, ("id", item));
+        _ = await world.InDomainAfterAsync(ContentWorld.EmptiedEvent, 1, EmptyItem, ("id", item));
+        _ = await world.InDomainAfterAsync(ContentWorld.EmptiedEvent, 1, EmptyMap, ("id", item));
         return item;
     }
 }

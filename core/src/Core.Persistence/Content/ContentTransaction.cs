@@ -1,5 +1,6 @@
 using System.Data;
 using System.Globalization;
+using Core.Persistence.Custody.Chain;
 using Npgsql;
 
 namespace Core.Persistence.Content;
@@ -88,6 +89,9 @@ public sealed class ContentTransaction : IAsyncDisposable
             _ = await declaration.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
         }
     }
+
+    /// <summary>The same transaction as the scope in which an event is added to the chain, so that the event and the change are written together.</summary>
+    internal CustodyScope AsCustodyScope() => new(connection, transaction);
 
     /// <summary>A command that runs inside this transaction, under the domain it declared.</summary>
     /// <param name="sql">The statement; it never filters by domain.</param>

@@ -21,7 +21,7 @@ public sealed class ProtectedContentEmptyingTests
         await using var world = await ContentWorld.CreateAsync();
         var item = await world.Writer.AddItemTextAsync(1, new NewItemText("bruto", "sanitizado", "pseudonimizado"), TestContext.Current.CancellationToken);
 
-        var emptied = await world.OwnerInDomainAsync(1, Empty, ("id", item));
+        var emptied = await world.OwnerInDomainAfterAsync(ContentWorld.EmptiedEvent, 1, Empty, ("id", item));
 
         Assert.Equal(item, emptied);
     }
@@ -31,7 +31,7 @@ public sealed class ProtectedContentEmptyingTests
     {
         await using var world = await ContentWorld.CreateAsync();
         var item = await world.Writer.AddItemTextAsync(1, new NewItemText("bruto"), TestContext.Current.CancellationToken);
-        _ = await world.OwnerInDomainAsync(1, Empty, ("id", item));
+        _ = await world.OwnerInDomainAfterAsync(ContentWorld.EmptiedEvent, 1, Empty, ("id", item));
 
         var found = await world.InDomainAsync(1, "SELECT id FROM content.item_text WHERE emptied_at IS NOT NULL");
 
@@ -44,7 +44,8 @@ public sealed class ProtectedContentEmptyingTests
         await using var world = await ContentWorld.CreateAsync();
         var item = await world.Writer.AddItemTextAsync(1, new NewItemText("bruto"), TestContext.Current.CancellationToken);
 
-        var refused = await Assert.ThrowsAsync<PostgresException>(() => world.OwnerInDomainAsync(1, "UPDATE content.item_text SET emptied_at = now() WHERE id = @id", ("id", item)));
+        var refused = await Assert.ThrowsAsync<PostgresException>(
+            () => world.OwnerInDomainAfterAsync(ContentWorld.EmptiedEvent, 1, "UPDATE content.item_text SET emptied_at = now() WHERE id = @id", ("id", item)));
 
         Assert.Equal("item_text_emptied", refused.ConstraintName);
     }
@@ -67,11 +68,12 @@ public sealed class ProtectedContentEmptyingTests
         var item = await world.Writer.AddItemTextAsync(1, new NewItemText("bruto"), TestContext.Current.CancellationToken);
         var map = await world.Writer.AddReversalMapAsync(1, item, "entradas", TestContext.Current.CancellationToken);
         var clearedOnly = await Assert.ThrowsAsync<PostgresException>(() => world.OwnerInDomainAsync(1, "UPDATE content.reversal_map SET entries = NULL WHERE id = @id", ("id", map)));
-        var beforeItem = await Assert.ThrowsAsync<PostgresException>(() => world.OwnerInDomainAsync(1, EmptyMap, ("id", map)));
-        _ = await world.OwnerInDomainAsync(1, Empty, ("id", item));
+        var beforeItem = await Assert.ThrowsAsync<PostgresException>(() => world.OwnerInDomainAfterAsync(ContentWorld.EmptiedEventOfItem, 1, EmptyMap, ("id", map), ("item", item)));
+        _ = await world.OwnerInDomainAfterAsync(ContentWorld.EmptiedEvent, 1, Empty, ("id", item));
 
-        var markedOnly = await Assert.ThrowsAsync<PostgresException>(() => world.OwnerInDomainAsync(1, "UPDATE content.reversal_map SET emptied_at = now() WHERE id = @id", ("id", map)));
-        var emptied = await world.OwnerInDomainAsync(1, EmptyMap, ("id", map));
+        var markedOnly = await Assert.ThrowsAsync<PostgresException>(
+            () => world.OwnerInDomainAfterAsync(ContentWorld.EmptiedEventOfItem, 1, "UPDATE content.reversal_map SET emptied_at = now() WHERE id = @id", ("id", map), ("item", item)));
+        var emptied = await world.OwnerInDomainAfterAsync(ContentWorld.EmptiedEventOfItem, 1, EmptyMap, ("id", map), ("item", item));
 
         Assert.Equal(("CE004", "CE004", "reversal_map_emptied", map), (clearedOnly.SqlState, beforeItem.SqlState, markedOnly.ConstraintName, emptied));
     }

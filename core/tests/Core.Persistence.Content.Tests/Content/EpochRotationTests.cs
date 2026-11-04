@@ -56,6 +56,23 @@ public sealed class EpochRotationTests
     }
 
     [DatabaseFact]
+    public async Task RotationRecordsOneEventOfTheEpochForAllTheDomainsAndRotatingAgainRecordsNone()
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        _ = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        _ = await world.Writer.AddItemTextAsync(2, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        using var epochs = SyntheticCustody.HoldingEpochs([1, 2], ContentWorld.Labels);
+        var rotation = new EpochRotation(world.DataSource, epochs.Keys);
+        const string Events = "SELECT count(*) FROM public.custody_event WHERE step = 'epoch_rotated' AND item_kind = 'content_epoch' AND item_id = 2 AND actor_system";
+
+        _ = await rotation.RotateAsync(TestContext.Current.CancellationToken);
+        var afterFirst = await world.ScalarAsync(Events);
+        _ = await rotation.RotateAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal((1L, 1L), (afterFirst, await world.ScalarAsync(Events)));
+    }
+
+    [DatabaseFact]
     public async Task RowsEmptiedBeforeTheRotationStayEmptied()
     {
         await using var world = await ContentWorld.CreateAsync();

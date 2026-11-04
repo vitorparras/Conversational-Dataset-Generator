@@ -14,6 +14,7 @@ internal static class CustodyNames
         [CustodyItemKind.ContentEpoch] = "content_epoch",
         [CustodyItemKind.Domain] = "domain",
         [CustodyItemKind.SignInAttempt] = "sign_in_attempt",
+        [CustodyItemKind.MasterKey] = "master_key",
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<CustodyStep, string> Steps = new Dictionary<CustodyStep, string>
@@ -36,6 +37,7 @@ internal static class CustodyNames
         [CustodyStep.SignInAccepted] = "sign_in_accepted",
         [CustodyStep.SignInRefused] = "sign_in_refused",
         [CustodyStep.CredentialRecomputed] = "credential_recomputed",
+        [CustodyStep.KeyLossDeclared] = "key_loss_declared",
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<CustodyReason, string> Reasons = new Dictionary<CustodyReason, string>

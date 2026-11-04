@@ -23,4 +23,7 @@ public enum CustodyItemKind
 
     /// <summary>An attempt to sign in, by the number of its row: what the entry steps are about.</summary>
     SignInAttempt,
+
+    /// <summary>The master key of the installation: what the declaration of its loss is about; the id is the set of what was tried to recover it.</summary>
+    MasterKey,
 }

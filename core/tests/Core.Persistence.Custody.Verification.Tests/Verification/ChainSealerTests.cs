@@ -115,6 +115,48 @@ public sealed class ChainSealerTests
         Assert.Equal((CustodyOutcome.Conflict, null, 3), (recording.Recorded.Outcome, recording.Seal, (await database.EventsAsync()).Count));
     }
 
+    [DatabaseFact]
+    public async Task SealMadeBeforeIsRecordedAsThatSealEvenWhenTheChainGrewAfterItWasMade()
+    {
+        await using var database = new CustodyDatabase();
+        await AppendEventsAsync(database, 3);
+        var sealer = await SealerAsync(database);
+        var made = await sealer.MakeAsync(TestContext.Current.CancellationToken);
+        await AppendEventsAsync(database, 2);
+
+        var recording = await sealer.RecordAsync(made, CustodyAuthor.System, TestContext.Current.CancellationToken);
+
+        var events = await database.EventsAsync();
+        Assert.Equal((CustodyOutcome.Appended, 6L, 3L, 3L), (recording.Recorded.Outcome, recording.Recorded.Sequence, events[^1].ItemId, recording.Seal!.Events));
+        Assert.Equal(Convert.ToHexStringLower(events.Single(row => row.Sequence == 3).Digest), recording.Seal.Digest);
+    }
+
+    [DatabaseFact]
+    public async Task MakingTheSealRecordsNothing()
+    {
+        await using var database = new CustodyDatabase();
+        await AppendEventsAsync(database, 3);
+
+        var made = await (await SealerAsync(database)).MakeAsync(TestContext.Current.CancellationToken);
+
+        var events = await database.EventsAsync();
+        Assert.Equal((3L, Convert.ToHexStringLower(events[^1].Digest), 3), (made.Events, made.Digest, events.Count));
+    }
+
+    [DatabaseTheory]
+    [InlineData(3, 1)]
+    [InlineData(10, 1)]
+    public async Task SealWhoseDigestIsNotTheOneOfTheEventItPointsAtIsRefusedAndNothingIsWritten(long events, byte filler)
+    {
+        await using var database = new CustodyDatabase();
+        await AppendEventsAsync(database, 3);
+        var forged = ChainSeal.Of(Moment, events, [.. Enumerable.Repeat(filler, 32)]);
+
+        _ = await Assert.ThrowsAsync<InvalidOperationException>(async () => await (await SealerAsync(database)).RecordAsync(forged, CustodyAuthor.System, TestContext.Current.CancellationToken));
+
+        Assert.Equal(3, (await database.EventsAsync()).Count);
+    }
+
     private static async Task AppendEventsAsync(CustodyDatabase database, int count)
     {
         var chain = await database.ChainAsync();

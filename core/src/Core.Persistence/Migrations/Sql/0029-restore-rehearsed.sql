@@ -1,6 +1,6 @@
 -- The result of the rehearsal of a restore is an event of the chain (#66): the step restore_rehearsed about the chain, written by the system, with the reason verification_passed or
 -- verification_failed. Its id is the mask of what did not hold, in the closed list of RehearsalFindings (bits 1 to 16 are the guarantees of 0023, 64 the links, 128 the seal); zero means
--- everything held. Its reference names what did not hold, apart by a dot, or says held. Only the checks change, from the lists of 0024. While the last verification failed the chain takes no
+-- everything held. Its reference names what did not hold, apart by a dot, or says held. Only the checks change, from the lists of 0026. While the last verification failed the chain takes no
 -- such event, as it takes no other.
 ALTER TABLE public.custody_event
     DROP CONSTRAINT custody_event_step_listed,

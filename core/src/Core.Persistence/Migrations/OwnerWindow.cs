@@ -29,7 +29,7 @@ internal sealed class OwnerWindow
         this.arrival = arrival;
     }
 
-    internal static string StepName => "0024-owner-window";
+    internal static string StepName => "0026-owner-window";
 
     internal OwnerWindowOpening Opening { get; private set; }
 

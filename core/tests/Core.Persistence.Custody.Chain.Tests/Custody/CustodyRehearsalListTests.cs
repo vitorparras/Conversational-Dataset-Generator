@@ -4,7 +4,7 @@ using Npgsql;
 namespace Core.Persistence.Tests.Custody;
 
 /// <summary>
-/// The migration 0026 (issue 66, CA-2 and CA-3): the server takes the step restore_rehearsed about the chain, written by the system, passed with the mask zero and held, or failed with the mask
+/// The migration 0029 (issue 66, CA-2 and CA-3): the server takes the step restore_rehearsed about the chain, written by the system, passed with the mask zero and held, or failed with the mask
 /// and the names of what failed; it keeps every step the migrations before it listed, and refuses every event of the new step with another shape.
 /// </summary>
 [Trait("Category", "Database")]

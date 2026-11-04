@@ -73,17 +73,7 @@ public sealed class SignInAttempts
             var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             await using (reader.ConfigureAwait(false))
             {
-                var series = new List<SignInSeries>();
-                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-                {
-                    series.Add(new SignInSeries(
-                        reader.GetString(NetworkColumn),
-                        reader.GetInt32(CountColumn),
-                        await reader.GetFieldValueAsync<DateTime>(FirstColumn, cancellationToken).ConfigureAwait(false),
-                        await reader.GetFieldValueAsync<DateTime>(LastColumn, cancellationToken).ConfigureAwait(false)));
-                }
-
-                return series;
+                return await SeriesOfAsync(reader, cancellationToken).ConfigureAwait(false);
             }
         }
     }
@@ -102,6 +92,21 @@ public sealed class SignInAttempts
         var kept = version4 ? Ipv4Kept : Ipv6Kept;
         Array.Clear(bytes, kept, bytes.Length - kept);
         return string.Create(CultureInfo.InvariantCulture, $"{new IPAddress(bytes)}/{(version4 ? Ipv4Length : Ipv6Length)}");
+    }
+
+    private static async Task<IReadOnlyList<SignInSeries>> SeriesOfAsync(NpgsqlDataReader reader, CancellationToken cancellationToken)
+    {
+        var series = new List<SignInSeries>();
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            series.Add(new SignInSeries(
+                reader.GetString(NetworkColumn),
+                reader.GetInt32(CountColumn),
+                await reader.GetFieldValueAsync<DateTime>(FirstColumn, cancellationToken).ConfigureAwait(false),
+                await reader.GetFieldValueAsync<DateTime>(LastColumn, cancellationToken).ConfigureAwait(false)));
+        }
+
+        return series;
     }
 
     private static async Task<long> InsertAsync(CustodyScope scope, string? network, CancellationToken cancellationToken)

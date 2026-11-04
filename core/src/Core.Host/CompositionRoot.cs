@@ -126,7 +126,10 @@ internal static class CompositionRoot
     internal static ServiceProvider LoggingServices() =>
         new ServiceCollection().AddSingleton(TimeProvider.System).AddLogging(PlatformLogging.Configure).AddRedaction(PlatformLogging.EraseSensitiveData).BuildServiceProvider();
 
-    /// <summary>The application's data source, the verifier of the guarantees and the eleven server checks, privilege first, the window of the owner credential second, then the labels and the epochs last.</summary>
+    /// <summary>
+    /// The application's data source, the verifier of the guarantees and the eleven server checks, privilege first, the window of the owner credential second,
+    /// then the labels and the epochs last.
+    /// </summary>
     private static void AddServerGuarantees(IServiceCollection services, DatabaseSettings database)
     {
         if (database.State != DatabaseSettingsState.Configured)

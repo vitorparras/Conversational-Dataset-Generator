@@ -7,7 +7,8 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Core.Host.Tests;
 
 /// <summary>
-/// The composition root registers the server's checks with a database declared: the guarantees, with the window of the owner credential right after the privilege, then the derivation labels and the epochs last.
+/// The composition root registers the server's checks with a database declared: the guarantees, with the window of the owner credential right after the privilege,
+/// then the derivation labels and the epochs last.
 /// </summary>
 public sealed class ServerChecksRegistrationTests
 {

@@ -21,19 +21,20 @@ por módulo**, cada módulo no seu job da verificação de pull request, sem som
 matriz do fluxo lê as áreas da 014 e abre um job por módulo crítico, e um job agregado, com o nome
 "Mutação nos módulos críticos", só passa se todos eles passarem. Exceder o teto é achado que
 reprova, nomeando o módulo e o tempo gasto, nunca lentidão tolerada. O tempo de cada módulo sai no
-relatório do passo. Mutação fora do bloqueio só por decisão escrita.
+relatório do passo. Mutação fora do bloqueio só por decisão escrita. A área que não cabe no teto
+declara `- Partes da mutação: N` no seu arquivo: o passo ordena os arquivos C# dela por caminho e os
+reparte em rodízio, e a matriz abre um job por parte, cada um com o mesmo teto, projeto de teste e
+limite. `Core.Persistence.Content` tem 3: inteira, estoura o teto.
 
 No núcleo, em todos os módulos, a verificação não conta **o mutante `false`→`true` do argumento de
 `ConfigureAwait`**: o host não tem contexto de sincronização, então esse mutante é equivalente por
-construção e não entra como gerado nem como sobrevivente. A regra vale só para ele. As demais
-mutações de uma linha que chama `ConfigureAwait`, como a remoção da instrução ou do bloco que a
-contém, contam como quaisquer outras.
+construção e não entra como gerado nem como sobrevivente. A regra vale só para ele; as demais
+mutações da linha, como a remoção da instrução ou do bloco que a contém, contam como as outras.
 
 ## Qual suíte conta
 
-Em cada módulo conta só a suíte do projeto dele, nas duas linguagens. Módulo sem teste assim
-reprova. O sobrevivente que só teste de outro projeto mataria aparece como sobrevivente, e o módulo
-responde por ele com teste próprio.
+Em cada módulo conta só a suíte do projeto dele, nas duas linguagens; módulo sem teste assim
+reprova, e o sobrevivente que só teste de outro projeto mataria é do módulo, com teste próprio.
 
 - **Núcleo:** o projeto de teste da área, se ela tem um próprio (`<Área>.Tests`, como
   `Core.Persistence.Migrations.Tests`), senão o da área mais próxima que a contém
@@ -51,10 +52,9 @@ responde por ele com teste próprio.
   `CDG_TEST_DATABASE_REUSE` e o projeto mantém uma imagem e um contêiner nomeados por ele, que
   sobrevivem aos reinícios; o passo os remove ao fim, também se o Stryker falha ou passa do teto.
   Sem a variável, cada execução sobe e descarta o seu Postgres; sem o `docker` no PATH, nada é
-  reaproveitado. Se o processo da verificação morrer à força, o `finally` não roda e o contêiner
-  `cdg-test-database-<token>` e a imagem `cdg-test-database:<token>` ficam: ache-os com
-  `docker ps -a --filter name=cdg-test-database-` e remova com `docker rm --force --volumes` e
-  `docker rmi --force`.
+  reaproveitado. Se a verificação morrer à força, ficam o contêiner `cdg-test-database-<token>` e a
+  imagem `cdg-test-database:<token>`: ache-os com `docker ps -a --filter name=cdg-test-database-` e
+  remova com `docker rm --force --volumes` e `docker rmi --force` (sem `--force`, o que roda fica).
 - **Serviço:** os arquivos de teste que importam o módulo diretamente (`import language_service.x`,
   `from language_service.x import ...` ou `from language_service import x`), numa rodada do mutmut
   por módulo. Os testes que leem o texto do código-fonte ficam de fora: a mutação o reescreve.

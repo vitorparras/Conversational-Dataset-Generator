@@ -8,7 +8,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from unittest import mock
 
-from steps import mutation, mutation_core
+from steps import mutation, mutation_database
 from steps.common import OUTPUT_DIRECTORY, CommandOutcome, Context
 
 from . import mutation_fixture as fixture
@@ -22,7 +22,7 @@ PROJECT = "core/tests/Core.Platform.Tests/Core.Platform.Tests.csproj"
 REFERENCE = r'<ProjectReference Include="..\..\src\Core.Platform\Core.Platform.csproj" />'
 DATABASE_TESTS = f'<Project>{REFERENCE}<PackageReference Include="Testcontainers" /></Project>'
 MODULE = "Core.Platform.Logging"
-VARIABLE = mutation_core.REUSE_VARIABLE
+VARIABLE = mutation_database.REUSE_VARIABLE
 
 
 class Watched(fixture.ToolRunner):
@@ -62,7 +62,7 @@ class MutationDatabaseTests(fixture.MutationFixture):
         return Watched(healthy().stryker)
 
     def removals(self, runner: Watched) -> list[list[str]]:
-        return [c for c in runner.commands if c[:1] == [mutation_core.DOCKER]]
+        return [c for c in runner.commands if c[:1] == [mutation_database.DOCKER]]
 
     def test_stryker_runs_with_a_token_that_asks_the_tests_to_reuse_the_database(self) -> None:
         runner = self.watched()
@@ -107,8 +107,8 @@ class MutationDatabaseTests(fixture.MutationFixture):
         source = REUSE_SOURCE.read_text(encoding="utf-8")
 
         self.assertIn(f'"{VARIABLE}"', source)
-        self.assertIn(f'$"{mutation_core.CONTAINER_NAME}"', source)
-        self.assertIn(f'$"{mutation_core.IMAGE_NAME}"', source)
+        self.assertIn(f'$"{mutation_database.CONTAINER_NAME}"', source)
+        self.assertIn(f'$"{mutation_database.IMAGE_NAME}"', source)
 
     def test_they_are_removed_when_the_run_is_interrupted(self) -> None:
         runner = Watched(healthy().stryker, raising=KeyboardInterrupt())

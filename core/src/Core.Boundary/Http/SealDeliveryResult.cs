@@ -11,8 +11,12 @@ public sealed record SealDeliveryResult(SealDeliveryFailure Failure, int Status)
     /// <summary>Whether the seal arrived.</summary>
     public bool Delivered => Failure == SealDeliveryFailure.None;
 
-    /// <summary>The seal did not arrive, for the reason given.</summary>
+    /// <summary>The seal did not arrive, for the reason given, and the destination did not answer.</summary>
     /// <param name="failure">The reason.</param>
-    /// <param name="status">The status the destination answered with, if it did.</param>
-    public static SealDeliveryResult Failed(SealDeliveryFailure failure, int status = 0) => new(failure, status);
+    public static SealDeliveryResult Failed(SealDeliveryFailure failure) => new(failure, 0);
+
+    /// <summary>The seal did not arrive, for the reason given, and the destination answered.</summary>
+    /// <param name="failure">The reason.</param>
+    /// <param name="status">The status the destination answered with.</param>
+    public static SealDeliveryResult Failed(SealDeliveryFailure failure, int status) => new(failure, status);
 }

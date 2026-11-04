@@ -106,6 +106,22 @@ public sealed class SealDeliveryTests
         _ = Assert.Throws<ArgumentException>(() => new SealDelivery(new Uri(address), handler));
     }
 
+    [Theory]
+    [InlineData("http://selo.example/envio")]
+    [InlineData("ftp://selo.example/envio")]
+    public void DeliveryTheHostBuildsRefusesAnAddressThatIsNotHttps(string address)
+    {
+        _ = Assert.Throws<ArgumentException>(() => SealDelivery.To(new Uri(address)));
+    }
+
+    [Fact]
+    public void DeliveryTheHostBuildsForAnHttpsAddressIsBuiltAndDisposed()
+    {
+        using var delivery = SealDelivery.To(Destination);
+
+        Assert.NotNull(delivery);
+    }
+
     [Fact]
     public void HandlerTheHostSendsWithFollowsNoRedirectLimitsTheConnectionAndLeavesTheValidationOfTheCertificateAsItIs()
     {

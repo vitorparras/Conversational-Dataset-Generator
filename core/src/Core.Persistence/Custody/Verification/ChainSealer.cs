@@ -74,9 +74,12 @@ public sealed class ChainSealer
             dataSource,
             async scope => await HoldsAsync(scope, seal, cancellationToken).ConfigureAwait(false) ? CustodyEvent.SealRecorded(author, seal.Events) : null,
             cancellationToken).ConfigureAwait(false);
-        return recorded is null
-            ? new SealRecording { Recorded = CustodyRefusals.SealNotOfTheChain() }
-            : new SealRecording { Recorded = recorded, Seal = recorded.Outcome == CustodyOutcome.Appended ? seal : null };
+        if (recorded is null)
+        {
+            return new SealRecording { Recorded = CustodyRefusals.SealNotOfTheChain() };
+        }
+
+        return new SealRecording { Recorded = recorded, Seal = recorded.Outcome == CustodyOutcome.Appended ? seal : null };
     }
 
     private static async Task<bool> HoldsAsync(CustodyScope scope, ChainSeal seal, CancellationToken cancellationToken)

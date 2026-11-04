@@ -71,6 +71,14 @@ public sealed class PersonRefusalsTextTests
     {
         var defect = Assert.Throws<ArgumentOutOfRangeException>(() => PersonRefusals.Chained(CustodyResult.Refused(CustodyOutcome.PassedAfterFailure, "texto"), 3));
 
-        Assert.Contains("A change of a person never records a verdict of the chain.", defect.Message, StringComparison.Ordinal);
+        Assert.Contains("A change of a person never records a verdict of the chain nor a seal.", defect.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SealThatIsNotOfTheChainIsADefectThatSaysSoForAChangeOfAPerson()
+    {
+        var defect = Assert.Throws<ArgumentOutOfRangeException>(() => PersonRefusals.Chained(CustodyRefusals.SealNotOfTheChain(), 3));
+
+        Assert.Contains("A change of a person never records a verdict of the chain nor a seal.", defect.Message, StringComparison.Ordinal);
     }
 }

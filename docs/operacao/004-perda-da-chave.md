@@ -17,9 +17,9 @@ primeiro dado real: restaurar banco e chave num ambiente limpo e conferir que o 
 e que o mapa de reversão abre. Enquanto isso não tiver sido feito uma vez, ingestão de material real
 não começa.
 
-Repita a cada troca de quem detém a cópia, e a cada mudança no formato de persistência. É trabalho
-recorrente e sem resultado visível quando dá certo — e é a única diferença entre recuperação e
-expectativa.
+Num ambiente limpo, com a cópia do banco e a cópia de guarda, rode `rehearse-recovery`: ele abre
+em memória uma amostra do bruto e do mapa de cada domínio e imprime um recibo sem conteúdo. Repita
+a cada troca de quem detém a cópia e a cada mudança no formato de persistência.
 
 ## Perdeu-se a cópia de guarda
 

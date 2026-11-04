@@ -32,7 +32,8 @@ public sealed class CustodyVerificationHostTests
         Assert.InRange(last.GetProperty("recordedAt").GetDateTimeOffset(), DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddMinutes(1));
         Assert.Equal("00:05:00", shown.GetProperty("interval").GetString());
         Assert.False(shown.GetProperty("overdue").GetBoolean());
-        Assert.Equal(["guarantees", "interval", "last", "overdue", "ownerWindow"], shown.EnumerateObject().Select(property => property.Name).Order(StringComparer.Ordinal));
+        var names = shown.EnumerateObject().Select(property => property.Name).Order(StringComparer.Ordinal);
+        Assert.Equal(["guarantees", "interval", "last", "lastSeal", "overdue", "ownerWindow", "protection", "situation", "warning"], names);
         Assert.Equal(JsonValueKind.Null, shown.GetProperty("ownerWindow").ValueKind);
     }
 

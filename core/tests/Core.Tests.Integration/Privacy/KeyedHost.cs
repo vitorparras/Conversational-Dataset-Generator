@@ -52,7 +52,11 @@ internal static class KeyedHost
         var clock = Stopwatch.StartNew();
         while (clock.Elapsed < StartupTimeout)
         {
-            Assert.False(process.HasExited, "The host exited before it answered.");
+            if (process.HasExited)
+            {
+                Assert.Fail($"The host exited with code {process.ExitCode} before it answered.");
+            }
+
             if (await TryStatusAsync(client, cancellationToken) is { } status)
             {
                 return status;
@@ -113,6 +117,7 @@ internal static class KeyedHost
         $"--Session:IdleTimeout={idleTimeout}",
         "--Session:AbsoluteTimeout=08:00:00",
         "--Custody:VerificationInterval=00:05:00",
+        "--Custody:SealSituation=Manual",
         "--Recognizer:Kind=fake",
         "--LanguageService:Executable=zqx-never-started-7731",
         $"--Tls:CertificateFile={SharedTlsMaterial.CertificatePath}",

@@ -2,7 +2,8 @@
 
 Each area is one file named by its project or package, with the title as the area name and four
 fixed fields, one per line: `- Projeto/pacote: `A.B``, `- Piso: 90 %` (or `isento`),
-`- Crítica: sim` (or `não`) and `- Motivo: ...`, which goes on in lines indented by two spaces.
+`- Crítica: sim` (or `não`) and `- Motivo: ...`, which goes on in lines indented by two spaces. One
+optional field, `- Partes da mutação: N`, splits the mutation of a critical area in N jobs.
 """
 
 from __future__ import annotations
@@ -14,12 +15,14 @@ from pathlib import Path
 FOLDER = "docs/operacao/areas"
 OWNER = "Projeto/pacote"
 FIELDS = (OWNER, "Piso", "Crítica", "Motivo")
+PARTS = "Partes da mutação"
 EXEMPT = "isento"
 YES = "sim"
 NO = "não"
 TITLE = re.compile(r"# (.+)")
 CONTINUATION = re.compile(r"  \S.*")
-FIELD = re.compile(r"- (Projeto/pacote|Piso|Crítica|Motivo): (.*)")
+FIELD = re.compile(r"- (Projeto/pacote|Piso|Crítica|Motivo|Partes da mutação): (.*)")
+PARTS_VALUE = re.compile(r"[1-9][0-9]?")
 FLOOR = re.compile(r"(\d{1,3}) ?%")
 PREFIX = re.compile(r"`([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)`")
 ABSORBS = re.compile(r"Absorve: ([^;]*)")
@@ -31,13 +34,15 @@ WHOLE = 100
 class Area:
     """One file of the folder: a name, the prefix it owns, its floor (absent when exempt), whether
     it is a critical module, the list the mutation test runs over, and the first-level folders or
-    modules it absorbs, which its reason enumerates after `Absorve:` up to the next `;`."""
+    modules it absorbs, which its reason enumerates after `Absorve:` up to the next `;`, and in how
+    many parts the mutation of the area runs (one unless the file says otherwise)."""
 
     name: str
     prefix: str
     floor: int | None
     critical: bool = False
     absorbs: tuple[str, ...] = ()
+    parts: int = 1
 
 
 @dataclass(frozen=True)
@@ -87,6 +92,8 @@ def fields_of(path: str, lines: list[str]) -> tuple[dict[str, str], list[str]]:
             problems.append(f"{path}:{number}: o campo `{name}` já aparece antes")
         found.setdefault(name, value)
     problems.extend(f"{path}: falta o campo `{name}`" for name in FIELDS if name not in found)
+    if PARTS in found and PARTS_VALUE.fullmatch(found[PARTS]) is None:
+        problems.append(f"{path}: {PARTS} '{found[PARTS]}' não é um inteiro de 1 a 99")
     return found, problems
 
 
@@ -110,7 +117,8 @@ def parse_file(path: str, lines: list[str]) -> tuple[Area | None, list[str]]:
             f"{path}: piso '{floor}' não é porcentagem de 0 a 100 (`90 %`) nem `{EXEMPT}`"
         ]
     value = None if number is None else int(number.group(1))
-    return Area(name, owner.group(1), value, critical == YES, absorbs), []
+    parts = int(found.get(PARTS, "1"))
+    return Area(name, owner.group(1), value, critical == YES, absorbs, parts), []
 
 
 def misnamed(path: str, area: Area) -> list[str]:

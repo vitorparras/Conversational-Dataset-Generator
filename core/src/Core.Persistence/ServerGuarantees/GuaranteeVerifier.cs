@@ -29,8 +29,7 @@ public sealed class GuaranteeVerifier
         chain = new CustodyChain(dataSource);
     }
 
-    /// <summary>The conference without the sample of sealed records: nothing is deciphered, so no key is needed; the sample is left to the first normal start.</summary>
-    /// <param name="dataSource">The source of the connections, built with the application's credential.</param>
+    /// <summary>The conference without the sample of sealed records: nothing is deciphered, so no key is needed; the sample goes in the first round of the verification after the start.</summary>
     public GuaranteeVerifier(NpgsqlDataSource dataSource)
     {
         ArgumentNullException.ThrowIfNull(dataSource);

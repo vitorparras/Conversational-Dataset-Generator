@@ -5,10 +5,7 @@ using Npgsql;
 
 namespace Core.Persistence.Migrations;
 
-/// <summary>
-/// The window of the owner credential in the chain of custody (#64): before the first pending step the chain is verified, its tip kept and the window opened;
-/// an older database gets the event right after the step that creates it.
-/// </summary>
+/// <summary>The window of the owner credential: opened before the first pending step, with the chain verified and its tip kept, or after the step that creates it in an older database.</summary>
 internal sealed class OwnerWindow
 {
     private const int FirstReadable = 16; // the version that adds the column of the reference (0016), from which the verifier reads the chain

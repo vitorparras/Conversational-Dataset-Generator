@@ -6,11 +6,10 @@ namespace Core.Persistence.Tests.Fixtures;
 /// <summary>A copy of the data in a folder as the 005 describes it: a manifest and a file of rows for each table, made from a populated database and open to be damaged.</summary>
 internal sealed class CopyFolder : IDisposable
 {
-    private const string Rows = "SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY {0}), '[]') FROM {1} t";
-
     public static readonly string[] Tables =
     [
-        "public.domain", "public.derivation_label", "public.person", "public.person_credential", "public.person_change", "public.custody_event",
+        "public.domain", "public.derivation_label", "public.person", "public.person_credential", "public.person_change", "public.sign_in_attempt",
+        "public.custody_event",
         "content.item_text", "content.reversal_map", "content.item_emptied",
     ];
 
@@ -57,15 +56,18 @@ internal sealed class CopyFolder : IDisposable
 
     private string FileOf(string table) => System.IO.Path.Combine(Path, table + ".jsonl");
 
+    // nosemgrep: sql-concatenation-csharp interpolates only the key and the table of the copy, literals of this fixture, never a value.
+    private static string AllRows(string key, string table) => $"SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY {key}), '[]') FROM {table} t";
+
     private static async Task<string> OwnerRowsAsync(FidelityWorld source, string table) =>
-        Assert.Single(await source.OwnerColumnAsync(string.Format(CultureInfo.InvariantCulture, Rows, Keys.GetValueOrDefault(table, "id"), table)));
+        Assert.Single(await source.OwnerColumnAsync(AllRows(Keys.GetValueOrDefault(table, "id"), table)));
 
     private static async Task<string> ContentRowsAsync(FidelityWorld source, string table)
     {
         var all = new JsonArray();
         foreach (var domain in new[] { 1, 2 })
         {
-            var part = (string)(await source.InDomainAsync(domain, string.Format(CultureInfo.InvariantCulture, Rows, "id", table)))!;
+            var part = (string)(await source.InDomainAsync(domain, AllRows("id", table)))!;
             foreach (var row in JsonNode.Parse(part)!.AsArray())
             {
                 all.Add(row!.DeepClone());

@@ -21,12 +21,12 @@ quem levar o conjunto leva dado e chave na mesma caixa.
 
 ## A cópia de dados
 
-Os dados saem numa pasta: um manifesto (formato 1, versão do esquema de onde saiu e a lista dos
-arquivos) e um arquivo por tabela, esquema.tabela.jsonl, com um registro por linha, escrito pelo
-to_jsonb sem mudança, na ordem da chave (sequence na cadeia, id nas demais). A carga segue a ordem
-fixa do código: domínios, etiquetas, pessoas, credenciais, mudanças, cadeia, textos, mapas e
+Os dados saem numa pasta: um manifesto (formato 1, versão do esquema, lista dos arquivos) e um
+arquivo por tabela, esquema.tabela.jsonl, com um registro por linha, escrito pelo to_jsonb sem
+mudança, na ordem da chave (sequence na cadeia, id nas demais). Ordem fixa da carga: domínios,
+etiquetas, pessoas, credenciais, mudanças, tentativas de entrada, cadeia, textos, mapas e
 esvaziados. Ficam de fora versões, falhas, contagem e janelas: o migrate as cria. A carga recusa
-cópia de versão diferente ([006](006-restauracao.md)); recusa de linha ou de evento fecha a janela
+cópia de versão diferente ([006](006-restauracao.md)); linha ou evento recusado fecha a janela
 como reprovada; cliente que morre a deixa aberta e o banco se descarta. Inativo volta inativo.
 
 ## Onde

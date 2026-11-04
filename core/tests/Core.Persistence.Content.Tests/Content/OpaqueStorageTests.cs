@@ -1,4 +1,3 @@
-using System.Text;
 using Core.Persistence.Tests.Fixtures;
 
 namespace Core.Persistence.Tests.Content;
@@ -20,7 +19,7 @@ public sealed class OpaqueStorageTests
         var observation = await OpaqueStorage.ObserveAsync(world, material);
 
         // Every marked column but the sanitized text, which is CA-2: the two named by the criterion and any a later migration marks.
-        Assert.Empty(OpaqueStorage.ColumnsShown(observation, material, [.. material.Texts.Keys.Where(column => column != OpaqueStorage.SanitizedText)]));
+        Assert.Empty(OpaqueStorage.ColumnsShown(observation, material, [.. material.Columns.Where(column => column != OpaqueStorage.SanitizedText)]));
     }
 
     [DatabaseFact]
@@ -52,12 +51,14 @@ public sealed class OpaqueStorageTests
         var material = await OpaqueStorage.SeedAsync(world);
         var tampered = new List<string>();
 
-        foreach (var column in material.Texts.Keys.Order(StringComparer.Ordinal))
+        foreach (var column in material.Columns.Order(StringComparer.Ordinal))
         {
-            await WriteInClearAsync(world, column, material.Texts[column]);
+            await WriteInClearAsync(world, column, material.InClear(column));
             tampered.Add(column);
             var observation = await OpaqueStorage.ObserveAsync(world, material);
-            Assert.Equal(tampered, OpaqueStorage.ColumnsShown(observation, material, [.. material.Texts.Keys]));
+            Assert.Equal(tampered, OpaqueStorage.ColumnsShown(observation, material, [.. material.Columns]));
+            // The files of the server hold the key written in clear, raw as a bytea is stored: a search that never matched raw bytes would let a key through while the dump alone caught it.
+            Assert.Equal(tampered.Where(material.Keys.ContainsKey).Order(StringComparer.Ordinal), observation.KeysInFiles.Order(StringComparer.Ordinal));
         }
     }
 
@@ -75,13 +76,16 @@ public sealed class OpaqueStorageTests
     }
 
     /// <summary>The defect the detector exists for: the column holds the text as it is, bytes of the text and no envelope, put there by whoever the path of the application does not bind.</summary>
-    private static async Task WriteInClearAsync(ContentWorld world, string column, string text)
+    private static async Task WriteInClearAsync(ContentWorld world, string column, byte[] clear)
     {
         var parts = column.Split('.');
-        // The content changes only by the emptying (CE004, trigger that fires for the owner too): whoever writes in clear sets it aside for the one statement, as an owner would.
+        // The content changes only by the emptying (CE004) and a key is wrapped again only with the event of the rotation (CE005): triggers that fire for the owner too.
+        // Whoever writes in clear sets them aside for the one statement, as an owner would.
         var table = $"{parts[0]}.{parts[1]}";
+        var gate = parts[1] == "item_text" ? "item_change_needs_event" : "map_change_needs_event";
         // nosemgrep: sql-concatenation-csharp interpolates the names of a column read from the catalog of a throwaway database, never input.
-        var statement = $"ALTER TABLE {table} DISABLE TRIGGER emptied_content_is_final; UPDATE {table} SET {parts[2]} = @text; ALTER TABLE {table} ENABLE ALWAYS TRIGGER emptied_content_is_final";
-        await world.Database.ExecuteAsSuperuserAsync(statement, ("text", Encoding.UTF8.GetBytes(text)));
+        var statement = $"ALTER TABLE {table} DISABLE TRIGGER emptied_content_is_final; ALTER TABLE {table} DISABLE TRIGGER {gate}; UPDATE {table} SET {parts[2]} = @text; "
+            + $"ALTER TABLE {table} ENABLE ALWAYS TRIGGER emptied_content_is_final; ALTER TABLE {table} ENABLE ALWAYS TRIGGER {gate}";
+        await world.Database.ExecuteAsSuperuserAsync(statement, ("text", clear));
     }
 }

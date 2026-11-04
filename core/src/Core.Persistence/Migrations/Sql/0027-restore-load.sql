@@ -1,4 +1,5 @@
--- The load of a restore by the credential of the application (#64, CA-5). The digest of an event covers the moment and the one who recorded, which the server fills, and the application has no INSERT on them:
+-- The load of a restore by the credential of the application (#64, CA-5). The digest of an event covers the moment and the one who recorded, which the server fills,
+-- and the application has no INSERT on them:
 -- it could never put back an event with the digest it had. The functions below run as the owner and put the rows of a copy back as they were, in a database that has never held anything,
 -- inside a window that opens once and closes for good. The proof of what was put back is outside: the tip noted apart from the copy (005).
 CREATE TABLE public.restore_window (state text PRIMARY KEY CHECK (state IN ('opened', 'closed')), at timestamptz NOT NULL DEFAULT clock_timestamp(), approved boolean,
@@ -57,7 +58,7 @@ BEGIN
     PERFORM public.restore_require_open();
     BEGIN
         IF table_name NOT IN ('public.domain', 'public.derivation_label', 'public.person', 'public.person_change', 'public.person_credential',
-                              'content.item_text', 'content.reversal_map', 'content.item_emptied') THEN
+                              'public.sign_in_attempt', 'content.item_text', 'content.reversal_map', 'content.item_emptied') THEN
             RAISE EXCEPTION 'the table is not one the load puts back' USING ERRCODE = 'CE005';
         END IF;
 
@@ -103,7 +104,8 @@ BEGIN
     BEGIN
         FOR copied IN SELECT r.* FROM jsonb_array_elements(rows) WITH ORDINALITY AS a(item, n), jsonb_populate_record(NULL::public.custody_event, a.item) r ORDER BY a.n LOOP
             INSERT INTO public.custody_event (occurred_at, actor_person_id, actor_system, item_kind, item_id, step, reason, corrects, recorded_by, reference)
-            VALUES (copied.occurred_at, copied.actor_person_id, copied.actor_system, copied.item_kind, copied.item_id, copied.step, copied.reason, copied.corrects, copied.recorded_by, copied.reference)
+            VALUES (copied.occurred_at, copied.actor_person_id, copied.actor_system, copied.item_kind, copied.item_id, copied.step, copied.reason,
+                    copied.corrects, copied.recorded_by, copied.reference)
             RETURNING * INTO stored;
             IF stored.sequence IS DISTINCT FROM copied.sequence OR stored.previous_digest IS DISTINCT FROM copied.previous_digest OR stored.digest IS DISTINCT FROM copied.digest THEN
                 RAISE EXCEPTION 'the event % does not come back as the copy has it', copied.sequence USING ERRCODE = 'CE005';
@@ -120,7 +122,8 @@ BEGIN
 END
 $events$;
 
--- Closes the window for good, approved or not. When approved, the people the copy held as inactive are deactivated and what the database counts by itself is counted again from what was put back (the domains that still hold something).
+-- Closes the window for good, approved or not. When approved, the people the copy held as inactive are deactivated and what the database counts by itself is counted again from what was put back
+-- (the domains that still hold something).
 CREATE FUNCTION public.restore_close(approved boolean) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $close$
 DECLARE declared integer;
 BEGIN

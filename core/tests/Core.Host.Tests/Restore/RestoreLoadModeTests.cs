@@ -20,9 +20,7 @@ public sealed class RestoreLoadModeTests
 
     [Fact]
     public void ModeWithFewerArgumentsThanItNeedsPassesNothingToTheConfiguration()
-    {
-        Assert.Empty(RestoreLoadMode.ConfigurationArguments(["restore-load", "/zqx/copy"]));
-    }
+        => Assert.Empty(RestoreLoadMode.ConfigurationArguments(["restore-load", "/zqx/copy"]));
 
     [Fact]
     public async Task ModeWithoutTheCopyAndTheTipIsRefusedWithTheConfigurationCodeAndSaysWhatItNeeds()

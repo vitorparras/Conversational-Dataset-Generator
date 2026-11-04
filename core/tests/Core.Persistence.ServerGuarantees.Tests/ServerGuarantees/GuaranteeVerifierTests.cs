@@ -1,3 +1,4 @@
+using Core.Persistence.Content.Emptying;
 using Core.Persistence.Content.Writing;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Verification;
@@ -102,10 +103,10 @@ public sealed class GuaranteeVerifierTests
         await using var world = await FidelityWorld.CreateAsync();
         var item = await world.Writer.AddItemTextAsync(1, new NewItemText("texto bruto sintetico zqx"), token);
         _ = await world.Writer.AddReversalMapAsync(1, item, "mapa sintetico zqx", token);
-        await world.RunAsSuperuserAsync(
-            "SELECT set_config('app.domain', '1', true); "
-            + "UPDATE content.item_text SET emptied_at = now(), raw_text = NULL, sanitized_text = NULL, pseudonymized_text = NULL; "
-            + "UPDATE content.reversal_map SET emptied_at = now(), entries = NULL");
+        await world.MakeCuratorAsync();
+        var person = (long)(await world.InDomainAsync(1, "SELECT id FROM public.person WHERE name = 'zqx-active'"))!;
+        var request = new ItemEmptying(CustodyAuthor.Person(person), 1, item, EmptyingMotive.ContractRequirement, "PROT-2026/0042");
+        _ = await new ContentEmptier(world.DataSource).EmptyAsync(request, token);
 
         var verification = await world.Verifier().VerifyAsync(token);
         var differences = await AuditFidelity.DifferencesAsync(world.DataSource, from);
@@ -122,13 +123,26 @@ public sealed class GuaranteeVerifierTests
         await using var world = await FidelityWorld.CreateAsync();
         _ = await world.Writer.AddItemTextAsync(2, new NewItemText("texto bruto sintetico zqx", "texto sanitizado sintetico zqx"), token);
         await world.RunAsSuperuserAsync(
-            "INSERT INTO content.item_text (domain_id, raw_text, sanitized_text, pseudonymized_text) "
-            + "SELECT 1, raw_text, sanitized_text, pseudonymized_text FROM content.item_text WHERE domain_id = 2");
+            "INSERT INTO content.item_text (domain_id, raw_text, sanitized_text, pseudonymized_text, dek_epoch, dek_wrapped) "
+            + "SELECT 1, raw_text, sanitized_text, pseudonymized_text, dek_epoch, dek_wrapped FROM content.item_text WHERE domain_id = 2");
 
         var verification = await world.Verifier().VerifyAsync(token);
 
         Assert.Equal(GuaranteeKinds.EncryptedSample, verification.Missing);
         Assert.Equal([$"verification_failed|{(long)GuaranteeKinds.EncryptedSample}"], await world.OwnerColumnAsync(Verification));
+    }
+
+    [DatabaseFact]
+    public async Task RecordSealedUnderALabelTheInstallationDidNotLoadMakesTheSampleMissingWithoutReadingAnything()
+    {
+        var token = TestContext.Current.CancellationToken;
+        await using var world = await FidelityWorld.CreateAsync();
+        _ = await world.Writer.AddItemTextAsync(1, new NewItemText("texto bruto sintetico zqx"), token);
+
+        var verification = await world.VerifierOver(new SyntheticKeySource(["texto-bruto/2/v1", "mapa-reversao/2/v1"])).VerifyAsync(token);
+
+        Assert.Equal(GuaranteeKinds.EncryptedSample, verification.Missing);
+        Assert.Empty(await world.OwnerColumnAsync("SELECT step FROM public.custody_event WHERE step LIKE '%read'"));
     }
 
     [DatabaseFact]

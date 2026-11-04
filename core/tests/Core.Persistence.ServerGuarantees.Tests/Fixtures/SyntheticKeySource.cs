@@ -16,5 +16,6 @@ internal sealed class SyntheticKeySource : IMasterKeySource
     public string Origin => "fonte de teste";
 
     public Task<MasterKeyReading> ReadAsync(CancellationToken cancellationToken) =>
-        Task.FromResult(MasterKeyReading.FromBytes(SyntheticCustody.KeyBytes(), DerivationLabels.Of(labels)));
+        Task.FromResult(MasterKeyReading.FromBytes(
+            SyntheticCustody.KeyBytes(), DerivationLabels.Of(labels), CustodyEpochs.Of(new Dictionary<int, byte[]> { [1] = SyntheticCustody.SecretOf(1) }), "synthetic"));
 }

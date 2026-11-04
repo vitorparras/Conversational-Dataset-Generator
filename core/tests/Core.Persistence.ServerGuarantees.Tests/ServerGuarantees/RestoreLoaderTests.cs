@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Net;
 using System.Text.Json.Nodes;
 using Core.Persistence.Content;
 using Core.Persistence.Content.Emptying;
@@ -13,15 +15,18 @@ using Core.Persistence.Tests.Fixtures;
 namespace Core.Persistence.Tests.ServerGuarantees;
 
 /// <summary>
-/// The load of a copy by the application alone (#64, CA-5): a database made by the flows it has comes back in a new one with the sequence and the digests of every event, the chain and the guarantees hold,
-/// the restore is an event with the copy and the tip before and after, and a copy that is out of order, altered or short is refused with the divergence named and no event of restore.
+/// The load of a copy by the application alone (#64, CA-5): a database made by the flows it has comes back in a new one with the sequence and
+/// the digests of every event, the chain and the guarantees hold, the restore is an event with the copy and the tip before and after,
+/// and a copy that is out of order, altered or short is refused with the divergence named and no event of restore.
 /// </summary>
 [Trait("Category", "Database")]
 public sealed class RestoreLoaderTests
 {
-    private const string Digests = "SELECT string_agg(sequence || ':' || encode(previous_digest, 'hex') || ':' || encode(digest, 'hex'), ',' ORDER BY sequence) FROM public.custody_event WHERE sequence <= {0}";
     private const string People = "SELECT string_agg(id || ':' || name || ':' || function_name || ':' || created_at || ':' || active, ',' ORDER BY id) FROM public.person";
-    private const string Credentials = "SELECT string_agg(person_id || ':' || algorithm || ':' || work_factor || ':' || encode(salt, 'hex') || ':' || encode(derived, 'hex'), ',' ORDER BY person_id) FROM public.person_credential";
+    private const string Credentials =
+        "SELECT string_agg(person_id || ':' || algorithm || ':' || work_factor || ':' || encode(salt, 'hex')"
+        + " || ':' || encode(derived, 'hex'), ',' ORDER BY person_id) FROM public.person_credential";
+    private const string Attempts = "SELECT string_agg(id || ':' || occurred_at || ':' || coalesce(network::text, '-'), ',' ORDER BY id) FROM public.sign_in_attempt";
     private const string Window = "SELECT coalesce(string_agg(state || ':' || coalesce(approved::text, '-'), ',' ORDER BY state), 'none') FROM public.restore_window";
     private const string Restored = "SELECT count(*)::text FROM public.custody_event WHERE step = 'restored'";
 
@@ -43,6 +48,8 @@ public sealed class RestoreLoaderTests
         Assert.Equal(["closed:true,opened:-"], await destination.OwnerColumnAsync(Window));
         Assert.Equal(await source.OwnerColumnAsync(People), await destination.OwnerColumnAsync(People));
         Assert.Equal(await source.OwnerColumnAsync(Credentials), await destination.OwnerColumnAsync(Credentials));
+        Assert.Equal(await source.OwnerColumnAsync(Attempts), await destination.OwnerColumnAsync(Attempts));
+        Assert.Equal(["203.0.113.0/24"], await destination.OwnerColumnAsync("SELECT network::text FROM public.sign_in_attempt"));
         Assert.Equal(["zqx-flow:false"], await destination.OwnerColumnAsync("SELECT name || ':' || active FROM public.person WHERE name = 'zqx-flow'"));
     }
 
@@ -57,7 +64,10 @@ public sealed class RestoreLoaderTests
         _ = await LoadAsync(destination, copy, new RestoreTip(sequence, digest));
 
         var name = RestoreCopy.Open(copy.Path).Name;
-        Assert.Equal(["verify_chain,verify_guarantees,restored"], await destination.OwnerColumnAsync($"SELECT string_agg(step, ',' ORDER BY sequence) FROM public.custody_event WHERE sequence > {sequence}"));
+        Assert.Equal(
+            ["verify_chain,verify_guarantees,restored"],
+            await destination.OwnerColumnAsync(
+                $"SELECT string_agg(step, ',' ORDER BY sequence) FROM public.custody_event WHERE sequence > {sequence}"));
         Assert.Equal(
             [$"{copy.RowCount}|verification_passed|true|copy={name};before={sequence};after={sequence + 2}"],
             await destination.OwnerColumnAsync("SELECT item_id || '|' || reason || '|' || actor_system || '|' || reference FROM public.custody_event WHERE step = 'restored'"));
@@ -135,7 +145,7 @@ public sealed class RestoreLoaderTests
         using var copy = await CopyFolder.OfAsync(source);
         var (sequence, digest) = await CopyFolder.TipOfAsync(source);
         await using var destination = await FidelityWorld.CreateAsync(seeded: false);
-        var version = int.Parse(Assert.Single(await destination.OwnerColumnAsync("SELECT max(version)::text FROM public.schema_version")), System.Globalization.CultureInfo.InvariantCulture);
+        var version = int.Parse(Assert.Single(await destination.OwnerColumnAsync("SELECT max(version)::text FROM public.schema_version")), CultureInfo.InvariantCulture);
 
         copy.WriteManifest(version + 1, CopyFolder.Tables);
         var other = await LoadAsync(destination, copy, new RestoreTip(sequence, digest));
@@ -144,7 +154,7 @@ public sealed class RestoreLoaderTests
 
         Assert.Equal((RestoreOutcome.CopyRefused, RestoreOutcome.CopyRefused), (other.Outcome, lacking.Outcome));
         Assert.Contains($"versão {version + 1}", other.Detail, StringComparison.Ordinal);
-        Assert.Contains("8 das 9 tabelas", lacking.Detail, StringComparison.Ordinal);
+        Assert.Contains("9 das 10 tabelas", lacking.Detail, StringComparison.Ordinal);
         Assert.Equal(["none"], await destination.OwnerColumnAsync(Window));
     }
 
@@ -179,12 +189,15 @@ public sealed class RestoreLoaderTests
         Assert.Equal(["verification_failed"], await destination.OwnerColumnAsync("SELECT reason FROM public.custody_event WHERE step = 'restored'"));
     }
 
-    private static string DigestsUpTo(long sequence) => string.Format(System.Globalization.CultureInfo.InvariantCulture, Digests, sequence);
+    // nosemgrep: sql-concatenation-csharp interpolates only a sequence the test read from the database, a number, never input.
+    private static string DigestsUpTo(long sequence) =>
+        $"SELECT string_agg(sequence || ':' || encode(previous_digest, 'hex') || ':' || encode(digest, 'hex'), ',' ORDER BY sequence) FROM public.custody_event WHERE sequence <= {sequence}";
 
     private static Task<RestoreResult> LoadAsync(FidelityWorld destination, CopyFolder copy, RestoreTip tip) =>
-        new RestoreLoader(destination.DataSource, new GuaranteeVerifier(destination.DataSource), TimeProvider.System).LoadAsync(RestoreCopy.Open(copy.Path), tip, TestContext.Current.CancellationToken);
+        new RestoreLoader(destination.DataSource, new GuaranteeVerifier(destination.DataSource), TimeProvider.System)
+            .LoadAsync(RestoreCopy.Open(copy.Path), tip, TestContext.Current.CancellationToken);
 
-    private static IEnumerable<JsonNode> Altered(List<JsonNode> events, int index)
+    private static List<JsonNode> Altered(List<JsonNode> events, int index)
     {
         var digest = (string)events[index]["digest"]!;
         events[index]["digest"] = digest[..^1] + (digest[^1] == '0' ? '1' : '0');
@@ -206,6 +219,7 @@ public sealed class RestoreLoaderTests
         var created = await world.Registry.CreateAsync(new NewPerson("zqx-flow", PersonFunctions.Curation), curator, token);
         var flow = created.PersonId!.Value;
         _ = await world.Credentials(workFactor: 1).SetPasswordAsync(flow, "senha-sintetica-zqx", curator, token);
+        Assert.Equal(CustodyOutcome.Appended, (await new SignInAttempts(world.DataSource).AcceptedAsync(flow, IPAddress.Parse("203.0.113.9"), token)).Outcome);
         var first = await world.Writer.AddItemTextAsync(1, new NewItemText("texto bruto sintetico zqx", "texto sanitizado sintetico zqx"), token);
         _ = await world.Writer.AddReversalMapAsync(1, first, "mapa sintetico zqx", token);
         var second = await world.Writer.AddItemTextAsync(1, new NewItemText("segundo texto sintetico zqx"), token);

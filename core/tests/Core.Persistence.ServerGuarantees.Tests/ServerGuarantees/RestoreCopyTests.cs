@@ -11,7 +11,10 @@ public sealed class RestoreCopyTests : IDisposable
     private const string Table = "public.domain";
     private readonly string folder = Path.Combine(Path.GetTempPath(), "zqx-copy-" + Guid.NewGuid().ToString("N"));
 
-    public RestoreCopyTests() => Directory.CreateDirectory(folder);
+    public RestoreCopyTests()
+    {
+        _ = Directory.CreateDirectory(folder);
+    }
 
     public void Dispose() => Directory.Delete(folder, recursive: true);
 
@@ -43,9 +46,7 @@ public sealed class RestoreCopyTests : IDisposable
 
     [Fact]
     public void FolderWithoutManifestIsRefusedAsAFileThatCannotBeRead()
-    {
-        _ = Assert.ThrowsAny<IOException>(() => RestoreCopy.Open(folder));
-    }
+        => _ = Assert.ThrowsAny<IOException>(() => RestoreCopy.Open(folder));
 
     [Fact]
     public void RowsComeInBatchesOfFiveHundredAsArraysWithoutTheEmptyLines()
@@ -82,13 +83,9 @@ public sealed class RestoreCopyTests : IDisposable
     [InlineData(5, "abc", 6, "abc", false)]
     [InlineData(5, "abc", 5, "abd", false)]
     public void TipMatchesTheSameEventAndNothingElse(long sequence, string digest, long otherSequence, string otherDigest, bool matches)
-    {
-        Assert.Equal(matches, new RestoreTip(sequence, digest).Matches(new RestoreTip(otherSequence, otherDigest)));
-    }
+        => Assert.Equal(matches, new RestoreTip(sequence, digest).Matches(new RestoreTip(otherSequence, otherDigest)));
 
     [Fact]
     public void NoTipMatchesNoEvent()
-    {
-        Assert.False(new RestoreTip(1, "abc").Matches(null));
-    }
+        => Assert.False(new RestoreTip(1, "abc").Matches(null));
 }

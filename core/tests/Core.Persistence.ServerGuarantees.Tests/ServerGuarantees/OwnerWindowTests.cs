@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Core.Persistence.Custody.Verification;
 using Core.Persistence.Migrations;
@@ -42,7 +43,7 @@ public sealed class OwnerWindowTests
         var tip = Assert.Single(await world.OwnerColumnAsync(LastChainVerification)).Split('|');
         var opened = Assert.Single(await world.OwnerColumnAsync(Opened)).Split('|');
         Assert.Equal((MigrationOutcome.Applied, OwnerWindowOpening.Opened), (result.Outcome, result.OwnerWindow));
-        Assert.Equal(long.Parse(tip[0], System.Globalization.CultureInfo.InvariantCulture) + 1, long.Parse(opened[0], System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Equal(long.Parse(tip[0], CultureInfo.InvariantCulture) + 1, long.Parse(opened[0], CultureInfo.InvariantCulture));
         Assert.Equal($"from={left};to={left + 1};tip={tip[0]};digest={tip[1]}", opened[1]);
         Assert.Equal([$"owner_window_opened|administrative_act|{left + 1}|owner|true"], await world.OwnerColumnAsync(Windows));
         Assert.Equal(

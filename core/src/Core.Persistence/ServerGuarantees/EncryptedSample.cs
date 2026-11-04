@@ -95,15 +95,19 @@ internal sealed class EncryptedSample
     }
 
     // Null means the record is under the scope of a loss: look at the next one.
-    private static SampleVerdict? Judged(ContentReadResult? read, int passedOver) => read?.Outcome switch
+    private static SampleVerdict? Judged(ContentReadResult? read, int passedOver) => read is null ? SampleVerdict.NotOpened : JudgedOutcome(read.Outcome, passedOver);
+
+    private static SampleVerdict? JudgedOutcome(ContentReadOutcome outcome, int passedOver) => outcome switch
     {
-        null => SampleVerdict.NotOpened,
         ContentReadOutcome.KeyLossDeclared => null,
         ContentReadOutcome.NotRecorded or ContentReadOutcome.LabelMissing => SampleVerdict.NotOpened,
-        ContentReadOutcome.NotFound => passedOver > 0 ? SampleVerdict.NoneOutsideLoss : SampleVerdict.Opened,
+        ContentReadOutcome.NotFound => Exhausted(passedOver),
         ContentReadOutcome.Read or ContentReadOutcome.Empty or ContentReadOutcome.Emptied => SampleVerdict.Opened,
-        _ => throw new ArgumentOutOfRangeException(nameof(read)),
+        _ => throw new ArgumentOutOfRangeException(nameof(outcome)),
     };
+
+    // Nothing is left after rows passed over: all that was reachable is under the loss; with none passed over, the domain simply holds nothing to open.
+    private static SampleVerdict Exhausted(int passedOver) => passedOver > 0 ? SampleVerdict.NoneOutsideLoss : SampleVerdict.Opened;
 
     private static async Task<ContentReadResult?> ReadAfterAsync(ProtectedContentReader reader, ContentRead after, CancellationToken cancellationToken)
     {

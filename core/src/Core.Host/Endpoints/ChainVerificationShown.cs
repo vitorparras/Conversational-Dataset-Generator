@@ -12,4 +12,5 @@ namespace Core.Host.Endpoints;
 /// <param name="Situation">Where the installation declared it keeps the seal.</param>
 /// <param name="Protection">What a verification against the seal protects in that situation, in words that never claim integrity without qualifying it.</param>
 /// <param name="LastSeal">When the chain last recorded a seal; null when it holds none.</param>
-internal sealed record ChainVerificationShown(RecordedVerification? Last, TimeSpan Interval, bool Overdue, string Situation, string Protection, DateTimeOffset? LastSeal);
+/// <param name="Warning">The warning of the manual situation, when no seal was ever recorded or the last is older than seven days; null otherwise.</param>
+internal sealed record ChainVerificationShown(RecordedVerification? Last, TimeSpan Interval, bool Overdue, string Situation, string Protection, DateTimeOffset? LastSeal, string? Warning);

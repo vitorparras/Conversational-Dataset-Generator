@@ -34,5 +34,5 @@ public enum ExitCode
     AuditDifferent = 20,
 
     /// <summary>The load of a copy in a new database did not restore it: the copy, the database or a check of the result refused.</summary>
-    RestoreRefused = 21,
+    RestoreRefused = 36,
 }

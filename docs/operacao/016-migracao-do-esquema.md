@@ -51,7 +51,7 @@ ou com passo divergente impede a partida (69); atrás manda rodar `migrate`, div
 A janela segue [010](010-credencial-de-dono-do-banco.md): o `migrate` com passo pendente a abre na
 cadeia, que ele verifica antes do primeiro passo (da versão 16, que cria a coluna que o verificador
 lê; abaixo, só guarda o topo), e a partida seguinte a fecha. Cadeia quebrada recusa os eventos da
-janela: o `migrate` falha no passo 0018 (SQLSTATE CE002), sem passo aplicado, e nada é
+janela: o `migrate` falha no passo 0026 (SQLSTATE CE002), sem passo aplicado, e nada é
 reconstruído ([006](006-restauracao.md)). Registro e log não levam a credencial.
 
 ## Passo novo

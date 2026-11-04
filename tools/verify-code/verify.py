@@ -149,11 +149,13 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Verifica o código do repositório.")
     parser.add_argument("--list", action="store_true", help="lista os passos, na ordem da CI")
     parser.add_argument("--step", nargs="+", default=[], metavar="NAME", help="passos a rodar")
-    parser.add_argument("--module", help="módulo crítico que o passo mutation roda (um job de CI)")
+    parser.add_argument(
+        "--module", help="módulo crítico, ou parte dele (`Módulo@N/M`), que o passo mutation roda"
+    )
     parser.add_argument(
         "--mutation-modules",
         action="store_true",
-        help="imprime em JSON os módulos críticos de docs/operacao/areas, a matriz do CI",
+        help="imprime em JSON os módulos críticos e suas partes, a matriz do CI",
     )
     parser.add_argument("--base", help="ref de comparação para pr_size (ex.: origin/main)")
     parser.add_argument("--previous", type=Path, help="by-area.md anterior: floors avisa queda")

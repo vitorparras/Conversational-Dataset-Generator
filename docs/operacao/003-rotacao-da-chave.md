@@ -27,6 +27,15 @@ a primeira não protege o material dos outros domínios.
 Recifrar o acervo sob o rótulo novo é opcional e, quando feito, é operação registrada: lê sob o
 rótulo antigo e grava sob o novo, item por item, deixando rastro de quantos itens mudaram.
 
+## O comando
+
+`rotate-domain-label --domain <id>` roda uma vez, com a credencial do dono. Antes, acrescente ao
+arquivo de rótulos os dois da geração nova (`texto-bruto/<id>/v<n>`, `mapa-reversao/<id>/v<n>`): o
+comando confere, não cria. O já cifrado segue legível; o gravado depois só usa o novo quando o
+núcleo lê os rótulos registrados, ao subir (reinicie o núcleo). Nada é recifrado; a cadeia registra
+quem, quando, o domínio e a geração. Saída 0: feito. 17: rótulo ausente, nomeado. 24: recusa. 25:
+banco mudo.
+
 ## Rótulo não se descarta
 
 Nem depois de recifrar tudo. O conjunto só cresce, e todos os rótulos seguem na cópia de guarda de

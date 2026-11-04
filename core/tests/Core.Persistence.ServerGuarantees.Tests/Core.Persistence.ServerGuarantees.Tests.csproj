@@ -18,5 +18,6 @@
   <ItemGroup>
     <Compile Include="..\Core.Persistence.Tests\Fixtures\DatabaseWarmup.cs" Link="Fixtures\DatabaseWarmup.cs" />
     <Compile Include="..\Core.Persistence.Content.Tests\Content\SyntheticCustody.cs" Link="Fixtures\SyntheticCustody.cs" />
+    <Compile Include="..\Core.Persistence.Content.Tests\Content\SealedRow.cs" Link="Fixtures\SealedRow.cs" />
   </ItemGroup>
 </Project>

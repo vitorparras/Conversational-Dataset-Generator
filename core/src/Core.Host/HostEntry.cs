@@ -17,6 +17,12 @@ internal static class HostEntry
             return HostLaunch.CheckFailed(target);
         }
 
+        return OneShotModes.RunAsync(args) is { } oneShot ? await oneShot : await ConfiguredAsync(args, target);
+    }
+
+    /// <summary>The modes that read the configuration of the host: the migration, the comparison of the log, or the service itself.</summary>
+    private static async Task<HostLaunch> ConfiguredAsync(string[] args, StartupReport target)
+    {
         var migrating = MigrationMode.Requested(args);
         var comparing = AuditCompareMode.Requested(args);
         var offline = migrating || comparing;

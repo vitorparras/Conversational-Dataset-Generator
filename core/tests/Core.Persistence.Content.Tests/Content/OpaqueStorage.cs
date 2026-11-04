@@ -11,6 +11,8 @@ namespace Core.Persistence.Tests.Content;
 /// </summary>
 internal static class OpaqueStorage
 {
+    private const int MinimumRun = 12;
+    private const byte LineBreak = 0x0a;
     private const string MarkedColumns =
         "SELECT n.nspname || '.' || c.relname || '.' || a.attname FROM pg_description d "
         + "JOIN pg_class c ON c.oid = d.objoid JOIN pg_namespace n ON n.oid = c.relnamespace "
@@ -26,7 +28,15 @@ internal static class OpaqueStorage
     /// <summary>The column of the entries of the reversal map.</summary>
     public const string Entries = "content.reversal_map.entries";
 
+    /// <summary>The column of the key of the item, wrapped: what it protects is the key in clear, which no copy of the storage may show.</summary>
+    public const string ItemKey = "content.item_text.dek_wrapped";
+
+    /// <summary>The column of the key of the map, wrapped.</summary>
+    public const string MapKey = "content.reversal_map.dek_wrapped";
+
     private static readonly string[] Seedable = [RawText, SanitizedText, Entries];
+
+    private static readonly string[] KeyColumns = [ItemKey, MapKey];
 
     /// <summary>The columns the catalog marks as protected, as schema.table.column; the marks are the ones the migrations write.</summary>
     public static Task<IReadOnlyList<string>> MarkedColumnsAsync(ContentWorld world)
@@ -62,14 +72,15 @@ internal static class OpaqueStorage
     private static async Task<Material> SeedMarkedAsync(ContentWorld world)
     {
         var marked = await MarkedColumnsAsync(world);
-        Assert.Empty(marked.Except(Seedable, StringComparer.Ordinal));
-        Assert.Empty(Seedable.Except(marked, StringComparer.Ordinal));
-        var texts = marked.ToDictionary(column => column, column => $"zqx-{Guid.NewGuid():N}", StringComparer.Ordinal);
+        string[] known = [.. Seedable, .. KeyColumns];
+        Assert.Empty(marked.Except(known, StringComparer.Ordinal));
+        Assert.Empty(known.Except(marked, StringComparer.Ordinal));
+        var texts = Seedable.ToDictionary(column => column, column => $"zqx-{Guid.NewGuid():N}", StringComparer.Ordinal);
         var pseudonymized = $"zqx-{Guid.NewGuid():N}";
         var item = await world.Writer.AddItemTextAsync(1, new NewItemText(texts[RawText], texts[SanitizedText], pseudonymized), TestContext.Current.CancellationToken);
         _ = await world.Writer.AddReversalMapAsync(1, item, texts[Entries], TestContext.Current.CancellationToken);
         await AssertEveryMarkedColumnHoldsSomethingAsync(world, marked);
-        return new Material(texts, pseudonymized);
+        return new Material(texts, pseudonymized) { Keys = await KeysInClearAsync(world) };
     }
 
     /// <summary>
@@ -99,13 +110,70 @@ internal static class OpaqueStorage
         ArgumentNullException.ThrowIfNull(world);
         ArgumentNullException.ThrowIfNull(material);
         var texts = material.Texts.Values.Append(material.Pseudonymized);
-        return ObserveNeedlesAsync(world, [.. texts.Select(Encoding.UTF8.GetBytes), .. extraNeedles]);
+        return ObserveNeedlesAsync(world, material, [.. texts.Select(Encoding.UTF8.GetBytes), .. extraNeedles]);
     }
 
-    private static async Task<Observation> ObserveNeedlesAsync(ContentWorld world, byte[][] needles)
+    /// <summary>The key of the row of each table in clear, unwrapped the way the path of the application does: this is what a copy of the storage must never show.</summary>
+    private static async Task<IReadOnlyDictionary<string, byte[]>> KeysInClearAsync(ContentWorld world)
+    {
+        var keys = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+        foreach (var column in KeyColumns)
+        {
+            var table = column[..column.LastIndexOf('.')];
+            // nosemgrep: sql-concatenation-csharp interpolates the name of a table fixed above, never input.
+            var epoch = (int)(await world.OwnerInDomainAsync(1, $"SELECT dek_epoch FROM {table} ORDER BY id DESC LIMIT 1"))!;
+            // nosemgrep: sql-concatenation-csharp interpolates the name of a table fixed above, never input.
+            var wrapped = (byte[])(await world.OwnerInDomainAsync(1, $"SELECT dek_wrapped FROM {table} ORDER BY id DESC LIMIT 1"))!;
+            using var key = world.Keys.Unwrap(epoch, wrapped);
+            keys[column] = key.AsSpan().ToArray();
+        }
+
+        return keys;
+    }
+
+    private static async Task<Observation> ObserveNeedlesAsync(ContentWorld world, Material material, byte[][] needles)
     {
         var fixture = await PostgresFixture.SharedAsync();
-        return new Observation(await world.Database.DumpAsync(), await fixture.ServerFilesHoldingAsync(needles));
+        var files = await fixture.ServerFilesHoldingAsync(needles);
+        var keysInFiles = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var (column, key) in material.Keys)
+        {
+            if ((await fixture.ServerFilesHoldingAsync(KeyNeedles(key))).Count > 0)
+            {
+                _ = keysInFiles.Add(column);
+            }
+        }
+
+        return new Observation(await world.Database.DumpAsync(), files) { KeysInFiles = keysInFiles };
+    }
+
+    /// <summary>
+    /// What the search of the files takes for a key, one needle at a time so that a match names its column: the bytes raw, as the server writes a bytea into its files,
+    /// and the two ways of writing them as hex. The search reads line by line, so a key that holds a line break is searched by its longest run without one,
+    /// which no other key shares; a key too broken to leave a run of twelve bytes stops the test.
+    /// </summary>
+    private static byte[][] KeyNeedles(byte[] key)
+    {
+        var run = LongestRunWithoutLineBreak(key);
+        return run.Length < MinimumRun
+            ? throw new InvalidOperationException("The key holds line breaks that leave no run the search of the files could match.")
+            : [run, Encoding.ASCII.GetBytes(Convert.ToHexStringLower(key)), Encoding.ASCII.GetBytes(Convert.ToHexString(key))];
+    }
+
+    private static byte[] LongestRunWithoutLineBreak(byte[] key)
+    {
+        var best = (Start: 0, Length: 0);
+        var start = 0;
+        for (var index = 0; index <= key.Length; index++)
+        {
+            if (index == key.Length || key[index] == LineBreak)
+            {
+                best = index - start > best.Length ? (start, index - start) : best;
+                start = index + 1;
+            }
+        }
+
+        return key[best.Start..(best.Start + best.Length)];
     }
 
     /// <summary>The columns, among those given, whose text the observation shows, in the dump as text or as the hex a bytea is dumped in, or in any file of the server.</summary>
@@ -113,8 +181,13 @@ internal static class OpaqueStorage
     {
         ArgumentNullException.ThrowIfNull(observation);
         ArgumentNullException.ThrowIfNull(material);
-        return [.. columns.Where(column => observation.ShowsInDump(material.Texts[column]) || observation.ShowsInFiles(material.Texts[column])).Order(StringComparer.Ordinal)];
+        return [.. columns.Where(column => ShownBy(observation, material, column)).Order(StringComparer.Ordinal)];
     }
+
+    private static bool ShownBy(Observation observation, Material material, string column) =>
+        material.Keys.TryGetValue(column, out var key)
+            ? observation.Dump.Contains(Convert.ToHexStringLower(key), StringComparison.Ordinal) || observation.KeysInFiles.Contains(column)
+            : observation.ShowsInDump(material.Texts[column]) || observation.ShowsInFiles(material.Texts[column]);
 
     /// <summary>The synthetic key in the ways a dump or a record writes bytes: hex in both cases, with dashes, and base64 with or without padding and in its URL form.</summary>
     public static IReadOnlyList<string> KeyAsText()
@@ -147,13 +220,26 @@ internal static class OpaqueStorage
     /// <summary>The texts seeded: one per marked column, by the name of the column, and the one left in clear.</summary>
     /// <param name="Texts">The text of each protected column.</param>
     /// <param name="Pseudonymized">The text of the column kept in clear on purpose.</param>
-    internal sealed record Material(IReadOnlyDictionary<string, string> Texts, string Pseudonymized);
+    internal sealed record Material(IReadOnlyDictionary<string, string> Texts, string Pseudonymized)
+    {
+        /// <summary>The key of each row in clear, by the column that wraps it.</summary>
+        public IReadOnlyDictionary<string, byte[]> Keys { get; init; } = new Dictionary<string, byte[]>();
+
+        /// <summary>Every marked column the seeding filled.</summary>
+        public IEnumerable<string> Columns => Texts.Keys.Concat(Keys.Keys);
+
+        /// <summary>What the column would hold if it were written in clear.</summary>
+        public byte[] InClear(string column) => Keys.TryGetValue(column, out var key) ? key : Encoding.UTF8.GetBytes(Texts[column]);
+    }
 
     /// <summary>What the copy of the storage shows: the dump of the database and the matches in the files of the server.</summary>
     /// <param name="Dump">What pg_dump wrote, with the data as inserts.</param>
     /// <param name="Files">Where the files of the server hold any needle, and what matched.</param>
     internal sealed record Observation(string Dump, IReadOnlyList<PostgresFixture.FileMatch> Files)
     {
+        /// <summary>The columns whose key the search of the files found, raw or as hex.</summary>
+        public IReadOnlySet<string> KeysInFiles { get; init; } = new HashSet<string>();
+
         /// <summary>Whether the dump holds the text, written as text or as the hex of its bytes, which is how a bytea column is dumped.</summary>
         public bool ShowsInDump(string text) =>
             Dump.Contains(text, StringComparison.Ordinal) || Dump.Contains(Convert.ToHexStringLower(Encoding.UTF8.GetBytes(text)), StringComparison.Ordinal);

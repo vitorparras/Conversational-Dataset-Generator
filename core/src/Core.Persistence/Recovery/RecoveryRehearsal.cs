@@ -1,0 +1,128 @@
+using System.Data;
+using System.Data.Common;
+using System.Security.Cryptography;
+using Core.Persistence.Content;
+using Core.Persistence.Content.Sealing;
+using Core.Platform.Keys;
+using Npgsql;
+
+namespace Core.Persistence.Recovery;
+
+/// <summary>
+/// The rehearsal of the recovery over the copy of the database (decision 0014): it opens in memory a sample of the raw text and of the reversal map of every domain, with the key and the labels of the
+/// copy of safekeeping, and counts what opened and what did not. What was opened is dropped at once: nothing is shown, and no reading is recorded in the chain of the copy.
+/// </summary>
+public sealed class RecoveryRehearsal
+{
+    private const string Tip = "SELECT sequence, encode(digest, 'hex') FROM public.custody_event ORDER BY sequence DESC LIMIT 1";
+    private const string DomainIds = "SELECT id FROM public.domain ORDER BY id";
+    private const int StoredColumn = 0;
+    private const int EpochColumn = 1;
+    private const int WrappedColumn = 2;
+
+    private readonly NpgsqlDataSource dataSource;
+    private readonly ProtectedContent content;
+    private readonly TimeProvider time;
+
+    /// <summary>The rehearsal reads the copy through the source, opens with the path of protected content given, and tells the moment by the clock.</summary>
+    public RecoveryRehearsal(NpgsqlDataSource dataSource, ProtectedContent content, TimeProvider time)
+    {
+        ArgumentNullException.ThrowIfNull(dataSource);
+        ArgumentNullException.ThrowIfNull(content);
+        ArgumentNullException.ThrowIfNull(time);
+        this.dataSource = dataSource;
+        this.content = content;
+        this.time = time;
+    }
+
+    /// <summary>Opens the samples and gives the receipt; a copy with no chain is not a copy of the production and is refused.</summary>
+    /// <param name="keyProof">The proof of the key the content opens with, as <see cref="KeyProof.Of" /> gives it.</param>
+    /// <param name="cancellationToken">Cancels the rehearsal.</param>
+    public async Task<RecoveryReceipt> RehearseAsync(string keyProof, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(keyProof);
+        var (sequence, digest) = await TipAsync(cancellationToken).ConfigureAwait(false);
+        var total = new SampleCounts(0, 0, 0);
+        foreach (var domain in await DomainsAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var (rawOpened, rawFailed) = await OpenedAsync(domain, ContentColumns.RawText, ContentQueries.ReadRawSamples, cancellationToken).ConfigureAwait(false);
+            var (mapsOpened, mapsFailed) = await OpenedAsync(domain, ContentColumns.Entries, ContentQueries.ReadMapSamples, cancellationToken).ConfigureAwait(false);
+            total = new SampleCounts(total.Raw + rawOpened, total.Maps + mapsOpened, total.Failed + rawFailed + mapsFailed);
+        }
+
+        var moment = time.GetUtcNow();
+        return new RecoveryReceipt(moment.AddTicks(-(moment.Ticks % TimeSpan.TicksPerSecond)), sequence, digest, keyProof, total);
+    }
+
+    private async Task<(int Opened, int Failed)> OpenedAsync(int domain, ProtectedColumn column, string statement, CancellationToken cancellationToken)
+    {
+        var samples = await SamplesAsync(domain, statement, cancellationToken).ConfigureAwait(false);
+        var opened = samples.Count(sample => sample is { } found && TryOpen(domain, column, found.Stored, found.Key));
+        return (opened, samples.Count - opened);
+    }
+
+    private async Task<List<Sample?>> SamplesAsync(int domain, string statement, CancellationToken cancellationToken)
+    {
+        var transaction = await ContentTransaction.BeginAsync(dataSource, domain, cancellationToken).ConfigureAwait(false);
+        await using (transaction.ConfigureAwait(false))
+        {
+            var command = transaction.CreateCommand(statement);
+            await using (command.ConfigureAwait(false))
+            {
+                return await RowsAsync(command, SampleOf, cancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
+
+    private static Sample? SampleOf(IDataRecord row) =>
+        row.IsDBNull(StoredColumn) ? null : new Sample((byte[])row.GetValue(StoredColumn), new ContentKey(row.GetInt32(EpochColumn), (byte[])row.GetValue(WrappedColumn)));
+
+    private bool TryOpen(int domain, ProtectedColumn column, byte[] stored, ContentKey key)
+    {
+        try
+        {
+            _ = content.Open(column, domain, stored, key);
+            return true;
+        }
+        catch (Exception refused) when (refused is EnvelopeRefusedException or InvalidOperationException or CryptographicException or ArgumentException)
+        {
+            return false;
+        }
+    }
+
+    private async Task<(long Sequence, string Digest)> TipAsync(CancellationToken cancellationToken)
+    {
+        var command = dataSource.CreateCommand(Tip);
+        await using (command.ConfigureAwait(false))
+        {
+            var tips = await RowsAsync(command, row => (row.GetInt64(0), row.GetString(1)), cancellationToken).ConfigureAwait(false);
+            return tips.Count > 0 ? tips[0] : throw new InvalidOperationException("a cópia não tem cadeia de custódia, e não é cópia da produção");
+        }
+    }
+
+    private async Task<List<int>> DomainsAsync(CancellationToken cancellationToken)
+    {
+        var command = dataSource.CreateCommand(DomainIds);
+        await using (command.ConfigureAwait(false))
+        {
+            return await RowsAsync(command, row => row.GetInt32(0), cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static async Task<List<T>> RowsAsync<T>(DbCommand command, Func<DbDataReader, T> read, CancellationToken cancellationToken)
+    {
+        var rows = new List<T>();
+        var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        await using (reader.ConfigureAwait(false))
+        {
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                rows.Add(read(reader));
+            }
+        }
+
+        return rows;
+    }
+
+    private readonly record struct Sample(byte[] Stored, ContentKey Key);
+}

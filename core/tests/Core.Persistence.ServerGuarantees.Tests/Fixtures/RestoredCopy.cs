@@ -14,7 +14,11 @@ internal sealed class RestoredCopy : IAsyncDisposable
         "content.item_text", "content.reversal_map", "content.item_emptied",
     ];
 
-    private RestoredCopy(ScratchDatabase database, NpgsqlDataSource app) => (Database, App) = (database, app);
+    private RestoredCopy(ScratchDatabase database, NpgsqlDataSource app)
+    {
+        Database = database;
+        App = app;
+    }
 
     public ScratchDatabase Database { get; }
 
@@ -29,7 +33,8 @@ internal sealed class RestoredCopy : IAsyncDisposable
         _ = await restored.CallAsync("restore_open");
         foreach (var table in Tables)
         {
-            var rows = "[" + string.Join(',', File.ReadLines(Path.Combine(folder, table + ".jsonl")).Where(line => line.Length > 0)) + "]";
+            var lines = await File.ReadAllLinesAsync(Path.Combine(folder, table + ".jsonl"), TestContext.Current.CancellationToken);
+            var rows = "[" + string.Join(',', lines.Where(line => line.Length > 0)) + "]";
             _ = table == "public.custody_event" ? await restored.CallAsync("restore_events", rows) : await restored.CallAsync("restore_load", table, rows);
         }
 

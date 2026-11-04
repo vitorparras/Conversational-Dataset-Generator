@@ -2,20 +2,21 @@
 
 from __future__ import annotations
 
-import contextlib
 import json
-import os
 import re
 import secrets
 import shutil
 from collections.abc import Generator
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from steps.areas_doc import Area, within
 from steps.common import Context, reset_directory, tail
 from steps.mutant import Mutant
+from steps.mutation_database import DOCKER, discard_database, reusing, starts_database
 from steps.mutation_judge import LanguageRun, ModuleResult, each
+from steps.mutation_members import slices
+from steps.mutation_parts import Part, Slice, module_name, parts_of, share, split_module
 from steps.mutation_policy import MutationPolicy
 from steps.stryker_report import read_stryker
 
@@ -30,28 +31,28 @@ REPORT = "reports/mutation-report.json"
 RESTORE = ("dotnet", "tool", "restore")
 STRYKER = ("dotnet", "stryker", "--skip-version-check")
 CONCURRENCY = 1
-# Stryker kills and restarts the test server after a mutant times out; a test project that starts
-# its own database container would start it again each time. The variable asks that project for
-# one container and image, named after the token, that outlive the server; the step removes both.
-REUSE_VARIABLE = "CDG_TEST_DATABASE_REUSE"
-DATABASE_PACKAGE = "Testcontainers"
-DOCKER = "docker"
-# The names the test project gives the container and the image of a token (DatabaseReuse.cs).
-CONTAINER_NAME = "cdg-test-database-{token}"
-IMAGE_NAME = "cdg-test-database:{token}"
 TOKEN_BYTES = 8
 
 
 @dataclass(frozen=True)
 class CoreTarget:
-    """A critical area as Stryker sees it: the project that holds it and the files to mutate."""
+    """A critical area as Stryker sees it: the project that holds it and the files to mutate, all of
+    them or the share of one part."""
 
     area: Area
     project: str
     patterns: tuple[str, ...]
+    part: Part | None = None
+
+    @property
+    def shown(self) -> Area:
+        """The area as the report names it: with its part, when it runs in parts."""
+        if self.part is None:
+            return self.area
+        return replace(self.area, name=f"{self.area.name}, parte {self.part.label}")
 
 
-def target(root: Path, area: Area, areas: tuple[Area, ...]) -> CoreTarget | None:
+def whole(root: Path, area: Area, areas: tuple[Area, ...]) -> CoreTarget | None:
     """The longest-named project owning the area and its folder, minus the folders of the areas
     nested in it, which own their own code; None when there is no code."""
     folder = root / SOURCES
@@ -67,6 +68,57 @@ def target(root: Path, area: Area, areas: tuple[Area, ...]) -> CoreTarget | None
     nested = (prefix.removeprefix(owner).lstrip(".").replace(".", "/") for prefix in inner)
     globs = (f"{rest}/**/*.cs" if rest else "**/*.cs", *(f"!{path}/**/*.cs" for path in nested))
     return CoreTarget(area, owner, tuple(globs))
+
+
+def sources(root: Path, core: CoreTarget) -> list[str]:
+    """The files of the whole area, as paths from its project, minus the ones of nested areas."""
+    project = root / SOURCES / core.project
+    lines = [(pattern.startswith("!"), pattern.removeprefix("!")) for pattern in core.patterns]
+    wanted = {path for out, pattern in lines if not out for path in project.glob(pattern)}
+    left = {path for out, pattern in lines if out for path in project.glob(pattern)}
+    built = {"bin", "obj"}
+    kept = (path.relative_to(project) for path in wanted - left)
+    return [found.as_posix() for found in kept if built.isdisjoint(found.parts)]
+
+
+def pieces(root: Path, core: CoreTarget) -> list[Slice]:
+    """Every file of the area cut between the members of its types: what the parts deal out. The
+    spans count the characters of the text Stryker reads, byte order mark aside."""
+    project = root / SOURCES / core.project
+    texts = {
+        name: (project / name).read_bytes().decode("utf-8-sig") for name in sources(root, core)
+    }
+    return [Slice(name, a, b, w) for name, text in texts.items() for a, b, w in slices(text)]
+
+
+def part_count(root: Path, area: Area, areas: tuple[Area, ...]) -> int:
+    """In how many parts the area is mutated: those its file asks for, but never more than it has
+    slices; one for an area with no code, outside the core or without the field."""
+    core = whole(root, area, areas)
+    if core is None or area.parts == 1 or not within(area.prefix, ROOT):
+        return 1
+    return max(1, min(area.parts, len(pieces(root, core))))
+
+
+def target(
+    root: Path, area: Area, areas: tuple[Area, ...], part: Part | None = None
+) -> CoreTarget | None:
+    """The area as ``whole`` finds it, or only the files of ``part`` when it is given."""
+    core = whole(root, area, areas)
+    if core is None or part is None or part.of == 1:
+        return core
+    return replace(core, patterns=share(pieces(root, core), part), part=part)
+
+
+def part_targets(
+    root: Path, area: Area, areas: tuple[Area, ...], asked: Part | None
+) -> list[CoreTarget]:
+    """The targets of an area: one per part, or only the part asked for; one for the whole area."""
+    count = part_count(root, area, areas)
+    parts = parts_of(count)
+    chosen = [part for part in parts if asked is None or part == asked or count == 1]
+    found = (target(root, area, areas, part) for part in chosen)
+    return [core for core in found if core is not None]
 
 
 def holders(project: str, area: str | None) -> Generator[str]:
@@ -119,46 +171,14 @@ def configuration(core: CoreTarget, tests: tuple[Path, ...]) -> str:
     return json.dumps({"stryker-config": options}, indent=2) + "\n"
 
 
-def starts_database(tests: tuple[Path, ...]) -> bool:
-    """Whether a test project starts a database container of its own (references Testcontainers)."""
-    return any(DATABASE_PACKAGE in path.read_text(encoding="utf-8") for path in tests)
-
-
-@contextlib.contextmanager
-def reusing(token: str | None) -> Generator[None]:
-    """The environment of the Stryker run: the reuse token set for its test servers, then back."""
-    if token is None:
-        yield
-        return
-    before = os.environ.get(REUSE_VARIABLE)
-    os.environ[REUSE_VARIABLE] = token
-    try:
-        yield
-    finally:
-        if before is None:
-            del os.environ[REUSE_VARIABLE]
-        else:
-            os.environ[REUSE_VARIABLE] = before
-
-
-def discard_database(ctx: Context, token: str) -> None:
-    """Removes the container and the image a run with ``token`` left; neither is there when no
-    test ran, so a failure to remove is no finding."""
-    for command in (
-        [DOCKER, "rm", "--force", "--volumes", CONTAINER_NAME.format(token=token)],
-        [DOCKER, "rmi", "--force", IMAGE_NAME.format(token=token)],
-    ):
-        ctx.run(command, ctx.root)
-
-
 def mutate(ctx: Context, core: CoreTarget, seconds: float, policy: MutationPolicy) -> ModuleResult:
     """Writes the module's configuration, runs Stryker for at most ``seconds``, reads its report."""
     tests = test_projects(ctx.root, core.project, core.area.prefix)
     if not tests:
         return ModuleResult(
-            core.area, (), (f"nenhum projeto de {TESTS}/ referencia {core.project}",)
+            core.shown, (), (f"nenhum projeto de {TESTS}/ referencia {core.project}",)
         )
-    output = ctx.out_dir / RESULTS / core.area.prefix
+    output = ctx.out_dir / RESULTS / module_name(core.area.prefix, core.part).replace("/", "-")
     reset_directory(output)
     config = output / CONFIG
     config.write_text(configuration(core, tests), encoding="utf-8")
@@ -177,19 +197,21 @@ def mutate(ctx: Context, core: CoreTarget, seconds: float, policy: MutationPolic
     report = output / REPORT
     if not report.is_file():
         missing = ("o Stryker não escreveu relatório", *tail(outcome.text))
-        return ModuleResult(core.area, (), missing)
+        return ModuleResult(core.shown, (), missing)
     mutants: tuple[Mutant, ...] = read_stryker(
         report, ctx.root.resolve(), policy.skipped_argument_of
     )
     problems = () if outcome.ok else ("o Stryker terminou com erro", *tail(outcome.text))
-    return ModuleResult(core.area, mutants, problems)
+    return ModuleResult(core.shown, mutants, problems)
 
 
 def run_core(
     ctx: Context, areas: tuple[Area, ...], everything: tuple[Area, ...], policy: MutationPolicy
 ) -> LanguageRun:
     """Every core module in turn, each cut at the ceiling it has to itself."""
-    targets = tuple(c for area in areas if (c := target(ctx.root, area, everything)) is not None)
+    _, asked, _ = split_module(ctx.module)
+    found = (part_targets(ctx.root, area, everything, asked) for area in areas)
+    targets = tuple(core for cores in found for core in cores)
     absent = tuple(area for area in areas if area not in {core.area for core in targets})
     if not targets:
         return LanguageRun(SIDE, absent=absent)

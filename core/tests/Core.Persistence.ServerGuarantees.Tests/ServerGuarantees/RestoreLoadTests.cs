@@ -17,7 +17,9 @@ namespace Core.Persistence.Tests.ServerGuarantees;
 public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<RestoreSource>
 {
     private const string Refused = "CE005";
-    private const string Chain = "SELECT string_agg(sequence || ':' || encode(previous_digest, 'hex') || ':' || encode(digest, 'hex') || ':' || occurred_at || ':' || recorded_by, ',' ORDER BY sequence) FROM public.custody_event";
+    private const string Chain =
+        "SELECT string_agg(sequence || ':' || encode(previous_digest, 'hex') || ':' || encode(digest, 'hex')"
+        + " || ':' || occurred_at || ':' || recorded_by, ',' ORDER BY sequence) FROM public.custody_event";
     private const string People = "SELECT string_agg(id || ':' || name || ':' || created_at || ':' || created_by || ':' || active, ',' ORDER BY id) FROM public.person";
     private const string Window = "SELECT string_agg(state || ':' || coalesce(approved::text, '-'), ',' ORDER BY state) FROM public.restore_window";
 
@@ -43,19 +45,36 @@ public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<Resto
         Assert.Equal(await source.World.OwnerColumnAsync(People), await destination.Database.FirstColumnAsOwnerAsync(People));
         Assert.True((await new CustodyVerifier(destination.App, TimeProvider.System).VerifyAsync(TestContext.Current.CancellationToken)).Passed);
         Assert.Equal(["closed:true,opened:-"], await destination.Database.FirstColumnAsOwnerAsync(Window));
-        foreach (var (table, key) in new[] { ("public.domain", "id"), ("public.derivation_label", "label"), ("public.person", "id"), ("public.person_credential", "person_id"), ("public.person_change", "id") })
+        foreach (var (table, key) in new[]
+        {
+            ("public.domain", "id"),
+            ("public.derivation_label", "label"),
+            ("public.person", "id"),
+            ("public.person_credential", "person_id"),
+            ("public.person_change", "id"),
+        })
         {
             Assert.Equal(source.Copy[table], Assert.Single(await destination.Database.FirstColumnAsOwnerAsync($"SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY {key}), '[]') FROM {table} t")));
         }
 
-        Assert.Equal(["1:item_text:1,1:reversal_map:1"], await destination.Database.FirstColumnAsOwnerAsync("SELECT string_agg(domain_id || ':' || table_name || ':' || live, ',' ORDER BY domain_id, table_name) FROM public.content_domain"));
-        Assert.Equal(["2", "2"], await destination.Database.FirstColumnAsOwnerAsync("SELECT last_value::text FROM content.item_text_id_seq UNION ALL SELECT last_value::text FROM public.person_id_seq"));
+        Assert.Equal(
+            ["1:item_text:1,1:reversal_map:1"],
+            await destination.Database.FirstColumnAsOwnerAsync(
+                "SELECT string_agg(domain_id || ':' || table_name || ':' || live, ',' ORDER BY domain_id, table_name)"
+                + " FROM public.content_domain"));
+        Assert.Equal(
+            ["2", "2"],
+            await destination.Database.FirstColumnAsOwnerAsync(
+                "SELECT last_value::text FROM content.item_text_id_seq"
+                + " UNION ALL SELECT last_value::text FROM public.person_id_seq"));
         Assert.Equal("1,0", (string?)await destination.InDomainAsync(1, "SELECT count(*) || ',' || (SELECT count(*) FROM content.item_emptied) FROM content.item_text"));
         Assert.Equal(
             "1,1,0",
             (string?)await destination.InDomainAsync(
                 2,
-                "SELECT (SELECT count(*) FROM content.item_text WHERE emptied_at IS NOT NULL AND raw_text IS NULL) || ',' || (SELECT count(*) FROM content.item_emptied) || ',' || (SELECT count(*) FROM content.reversal_map)"));
+                "SELECT (SELECT count(*) FROM content.item_text WHERE emptied_at IS NOT NULL AND raw_text IS NULL)"
+                + " || ',' || (SELECT count(*) FROM content.item_emptied)"
+                + " || ',' || (SELECT count(*) FROM content.reversal_map)"));
     }
 
     [DatabaseTheory]

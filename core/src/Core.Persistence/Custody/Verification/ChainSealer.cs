@@ -40,7 +40,7 @@ public sealed class ChainSealer
     /// <param name="seal">The seal that was made and sent.</param>
     /// <param name="author">The system, or the active person who confirmed the record.</param>
     /// <param name="cancellationToken">Cancels the record.</param>
-    /// <exception cref="InvalidOperationException">The digest of the event the seal points at is not the seal's; nothing is written.</exception>
+    /// <exception cref="SealDoesNotMatchException">The chain has no event at the sequence the seal points at, or its digest is not the seal's; nothing is written.</exception>
     public Task<SealRecording> RecordAsync(ChainSeal seal, CustodyAuthor author, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(seal);
@@ -73,7 +73,7 @@ public sealed class ChainSealer
             async scope => await HoldsAsync(scope, seal, cancellationToken).ConfigureAwait(false) ? CustodyEvent.SealRecorded(author, seal.Events) : null,
             cancellationToken).ConfigureAwait(false);
         return recorded is null
-            ? throw new InvalidOperationException("o resumo do evento selado não é o do selo; nada foi gravado")
+            ? throw new SealDoesNotMatchException()
             : new SealRecording { Recorded = recorded, Seal = recorded.Outcome == CustodyOutcome.Appended ? seal : null };
     }
 

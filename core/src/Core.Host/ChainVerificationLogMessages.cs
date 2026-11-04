@@ -31,4 +31,7 @@ internal static partial class ChainVerificationLogMessages
 
     [LoggerMessage(EventId = 325, Level = LogLevel.Error, Message = "Verificação da cadeia de custódia contra o selo não chegou ao fim: {FailureType}; a resposta foi 503")]
     internal static partial void SealVerificationFailed(this ILogger logger, string failureType);
+
+    [LoggerMessage(EventId = 330, Level = LogLevel.Error, Message = "O selo manual não pôde ser emitido nem registrado: {FailureType}; a resposta foi 503")]
+    internal static partial void SealRouteUnavailable(this ILogger logger, string failureType);
 }

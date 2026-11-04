@@ -54,3 +54,22 @@ ausente, acesso ao cofre sem operação correspondente, ou cópia de chave fora 
 Rode a verificação sobre uma sequência sintética de resposta conhecida. Erro no verificador tem a
 mesma aparência de cadeia alterada, e a distância entre as duas conclusões é grande demais para se
 apoiar numa execução só.
+
+## O selo na instalação com selo manual
+
+Na instalação que declarou o selo `Manual`, ninguém envia o selo por ela: quem opera o guarda fora
+do alcance da base. O fluxo é este, com a sessão de quem opera:
+
+1. `GET /custody/seal` emite o selo do topo atual, em texto, para imprimir ou copiar. Não grava
+   nada. Guarde o texto onde quem controla a base não alcance.
+2. `POST /custody/seal/confirmation`, com `{"seal": "<texto do selo>"}`, grava o evento do selo
+   na cadeia, em nome da pessoa da sessão, só se a cadeia tiver aquele evento com o resumo que o
+   selo traz. Selo alterado, ou de uma sequência que a cadeia não tem, recebe 409 com o motivo e
+   nada é gravado; texto que não é selo recebe 400. Corpo acima de 1 KiB recebe 413.
+3. A verificação (`GET` e `POST /custody/verification`) traz o aviso `warning` quando nenhum selo
+   foi registrado ou quando o último tem mais de 7 dias. Repita o fluxo a cada semana: o selo antigo
+   cobre a cadeia só até a data dele, e o que entrou depois vale pela coerência dos elos, não pela
+   integridade.
+
+Nas instalações `External` e `Internal` essas duas rotas respondem 409: o núcleo envia o selo
+sozinho, uma vez por dia, e um selo gravado à mão diria que o destino guarda o que não guarda.

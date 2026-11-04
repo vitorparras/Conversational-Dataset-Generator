@@ -28,6 +28,7 @@ internal sealed class ChainVerificationService : BackgroundService
         var source = DataSourceOf(host);
         Reader = source is null ? null : new RecordedVerificationReader(source);
         SealReader = source is null ? null : new RecordedSealReader(source);
+        Sealer = source is null ? null : new ChainSealer(source, host.GetRequiredService<TimeProvider>());
     }
 
     /// <summary>The service over the verification it is given, with the clock and the log of its caller.</summary>
@@ -50,6 +51,9 @@ internal sealed class ChainVerificationService : BackgroundService
 
     /// <summary>The reading of when the chain last recorded a seal; null when no database is declared.</summary>
     internal RecordedSealReader? SealReader { get; }
+
+    /// <summary>The making and the record of a seal by whoever operates; null when no database is declared.</summary>
+    internal ChainSealer? Sealer { get; }
 
     /// <summary>Whether a verification recorded at the moment given is late, by the clock the service was given.</summary>
     internal bool IsOverdue(DateTimeOffset? lastRecordedAt) => Schedule.Overdue(lastRecordedAt, time.GetUtcNow());

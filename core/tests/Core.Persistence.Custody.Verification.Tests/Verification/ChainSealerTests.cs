@@ -152,7 +152,7 @@ public sealed class ChainSealerTests
         await AppendEventsAsync(database, 3);
         var forged = ChainSeal.Of(Moment, events, [.. Enumerable.Repeat(filler, 32)]);
 
-        _ = await Assert.ThrowsAsync<InvalidOperationException>(async () => await (await SealerAsync(database)).RecordAsync(forged, CustodyAuthor.System, TestContext.Current.CancellationToken));
+        _ = await Assert.ThrowsAsync<SealDoesNotMatchException>(async () => await (await SealerAsync(database)).RecordAsync(forged, CustodyAuthor.System, TestContext.Current.CancellationToken));
 
         Assert.Equal(3, (await database.EventsAsync()).Count);
     }

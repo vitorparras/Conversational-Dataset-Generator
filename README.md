@@ -242,7 +242,12 @@ contagem menor que a selada, ou `DigestDiffers`, resumo diferente) e o que essa 
 na situação declarada, nunca integridade sem qualificar. Texto que não é um selo recebe 400 com o
 motivo, sem verificar nada. Selo que não confere vai ao resultado e ao registro do núcleo como erro,
 e não bloqueia a escrita. O `GET /custody/verification` traz a situação, o mesmo texto e a data
-do último selo registrado (`lastSeal`, nula quando não há nenhum).
+do último selo registrado (`lastSeal`, nula quando não há nenhum). Na
+situação `Manual`, `GET /custody/seal` emite o selo do topo, sem gravar nada, e
+`POST /custody/seal/confirmation` grava o selo que quem opera guardou, em nome da pessoa da sessão,
+se a cadeia tiver aquele evento com aquele resumo; senão, 409 com o motivo e nada gravado. Nos dois
+`POST` com selo, corpo acima de 1 KiB recebe 413. A verificação traz `warning` quando não há selo ou
+o último tem mais de 7 dias.
 
 No `External` e no `Internal`, o núcleo envia o selo ao destino uma vez por dia, por `https` com a
 validação padrão do certificado, sem seguir redirecionamento e com 30 s de limite, e só depois do

@@ -13,7 +13,8 @@ internal static class SealVerificationEndpoint
 
     /// <summary>With no database declared, or one that cannot be read, the answer is 503: the chain was not compared with anything.</summary>
     private static async Task<IResult> VerifyAsync(
-        [FromBody] SealAsked asked, [FromServices] ChainVerificationService verification, [FromServices] SealDeclaration declared, CancellationToken cancellationToken)
+        [FromBody] SealAsked asked, [FromServices] ChainVerificationService verification, [FromServices] SealDeclaration declared, [FromServices] TimeProvider time,
+        CancellationToken cancellationToken)
     {
         var reading = ChainSeal.Read(asked.Seal);
         if (reading.Seal is not { } seal)
@@ -22,8 +23,12 @@ internal static class SealVerificationEndpoint
         }
 
         var done = await verification.VerifyAgainstAsync(seal, cancellationToken);
-        return done?.Seal is { } standing
-            ? Results.Ok(SealVerificationShown.Of(done, standing, declared.Situation))
-            : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+        if (done?.Seal is not { } standing)
+        {
+            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+        }
+
+        var last = declared.Situation == SealSituation.Manual && verification.SealReader is { } reader ? await reader.LastAsync(cancellationToken) : null;
+        return Results.Ok(SealVerificationShown.Of(done, standing, declared.Situation, SealAge.Warning(declared.Situation, last, time.GetUtcNow())));
     }
 }

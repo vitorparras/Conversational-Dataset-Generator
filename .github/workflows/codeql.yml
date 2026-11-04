@@ -7,6 +7,12 @@ on:
   schedule:
     - cron: '41 5 * * 1'
 
+# A new push to a pull request cancels the run still going for the same PR; main and the schedule
+# have a group of their own per run (run_id), so they are never cancelled or queued.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 

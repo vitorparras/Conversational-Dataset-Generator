@@ -26,7 +26,7 @@ public sealed class ManualClockTests
 
             Assert.Equal(Workers * TimersPerWorker, fired);
             Assert.Equal(Workers * (TimersPerWorker / 2), clock.Waiting);
-            Assert.NotNull(clock.NextDue);
+            _ = Assert.NotNull(clock.NextDue);
 
             foreach (var timer in made)
             {
@@ -38,7 +38,7 @@ public sealed class ManualClockTests
         }
     }
 
-    [Fact(Timeout = TestDeadlineMilliseconds)]
+    [Fact]
     public void AdvanceFiresTheCallbackWithoutHoldingTheLock()
     {
         var clock = new ManualClock();
@@ -50,7 +50,7 @@ public sealed class ManualClockTests
         Assert.Equal(0, seenByAnotherThread);
     }
 
-    [Fact(Timeout = TestDeadlineMilliseconds)]
+    [Fact]
     public void ADisposedTimerDoesNotFireAndAFiredOneLeavesTheList()
     {
         var clock = new ManualClock();

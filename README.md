@@ -241,8 +241,16 @@ devolve se os elos fecharam, como a cadeia está contra o selo (`Holds`, `CountB
 contagem menor que a selada, ou `DigestDiffers`, resumo diferente) e o que essa verificação protege
 na situação declarada, nunca integridade sem qualificar. Texto que não é um selo recebe 400 com o
 motivo, sem verificar nada. Selo que não confere vai ao resultado e ao registro do núcleo como erro,
-e não bloqueia a escrita. O `GET /custody/verification` traz a situação e o mesmo texto; na manual,
-ele diz a data do último selo registrado, ou que não há nenhum.
+e não bloqueia a escrita. O `GET /custody/verification` traz a situação, o mesmo texto e a data
+do último selo registrado (`lastSeal`, nula quando não há nenhum).
+
+No `External` e no `Internal`, o núcleo envia o selo ao destino uma vez por dia, por `https` com a
+validação padrão do certificado, sem seguir redirecionamento e com 30 s de limite, e só depois do
+envio grava o evento `seal_recorded`, que aponta o selo que foi enviado, ainda que a cadeia tenha
+crescido entre o envio e a gravação. Se o envio falha (rede, certificado, resposta que não seja 2xx
+ou tempo esgotado), nada é gravado, o log diz o motivo e a contagem do selo, nunca o selo, e a
+próxima tentativa vem no intervalo seguinte. Ao subir, o núcleo espera o que resta do dia desde o
+último selo registrado. A situação `Manual` não envia nada.
 
 Se o servidor de banco cai enquanto grava, o arquivo `csv` que ele escrevia fica terminado numa
 linha cortada, sem a quebra de linha, e o servidor segue em outro arquivo. Essa última linha de um

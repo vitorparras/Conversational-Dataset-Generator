@@ -88,7 +88,6 @@ public sealed class ProtectedContent
     private DerivationLabel NewestLabel(LabelPurpose purpose, int domainId) =>
         NewestOf(loaded, text => registered.Contains(text) && !revoked.Contains(text), purpose, domainId);
 
-    /// <summary>The newest generation of the purpose and the domain among the labels loaded that <paramref name="usable"/> accepts: where new content goes, and where a key is wrapped again.</summary>
     internal static DerivationLabel NewestOf(DerivationLabels loaded, Func<string, bool> usable, LabelPurpose purpose, int domainId) =>
         loaded.All
             .Select(text => DerivationLabel.TryParse(text, out var label) ? label : null)

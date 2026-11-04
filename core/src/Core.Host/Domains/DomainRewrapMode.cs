@@ -47,7 +47,6 @@ internal static class DomainRewrapMode
         return HostLaunch.Ended(await RewrapAsync(dataSource, reading, (value, rest.Contains(StatusFlag)), new DomainGenerationMode.Words(output, error)).ConfigureAwait(false));
     }
 
-    /// <summary>The rewrap itself, over a source that was read: nothing of the key is written, and a run that stops leaves the batches it committed, which the next run goes on from.</summary>
     internal static async Task<ExitCode> RewrapAsync(NpgsqlDataSource dataSource, MasterKeyReading reading, (string Domain, bool Status) request, DomainGenerationMode.Words words)
     {
         if (reading.Failure is not null)

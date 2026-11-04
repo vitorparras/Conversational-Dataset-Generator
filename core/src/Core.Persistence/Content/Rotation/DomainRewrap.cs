@@ -156,7 +156,6 @@ public sealed class DomainRewrap
 
     private sealed record Table(string Read, string Replace);
 
-    /// <summary>Where a key of the domain goes: the newest label loaded that is usable, which is to say registered and not revoked.</summary>
     private sealed class Plan
     {
         internal int DomainId { get; init; }

@@ -24,9 +24,10 @@ internal static class HostEntry
     /// <summary>The modes that read the configuration of the host: the migration, the comparison of the log, or the service itself.</summary>
     private static async Task<HostLaunch> ConfiguredAsync(string[] args, StartupReport target)
     {
-        var offline = IsOffline(args);
-        var configurationArguments = RestoreLoadMode.ConfigurationArguments(AuditCompareMode.ConfigurationArguments(MigrationMode.ConfigurationArguments(args)));
-        var loaded = HostConfiguration.Load(configurationArguments, offline, AuditCompareMode.Requested(args));
+        var migrating = MigrationMode.Requested(args);
+        var comparing = AuditCompareMode.Requested(args);
+        var offline = migrating || comparing || RestoreLoadMode.Requested(args);
+        var loaded = HostConfiguration.Load(RestoreLoadMode.ConfigurationArguments(AuditCompareMode.ConfigurationArguments(MigrationMode.ConfigurationArguments(args))), offline, comparing);
         var database = HostConfiguration.DatabaseOf(loaded, offline);
         if (database is null || database.State == DatabaseSettingsState.Refused)
         {
@@ -35,7 +36,7 @@ internal static class HostEntry
 
         if (offline)
         {
-            return await OfflineAsync(args, loaded, database);
+            return await OfflineAsync(args, loaded, database, comparing);
         }
 
         var analyzeTimeout = LanguageServiceConfiguration.AnalyzeTimeout(loaded.Values);
@@ -43,19 +44,15 @@ internal static class HostEntry
         return analyzeTimeout is { } timeout && refused.Count == 0 ? await CompositionRoot.LaunchAsync(loaded, database, timeout, target) : HostLaunch.Refused(refused);
     }
 
-    /// <summary>Whether the arguments ask for a mode that serves nothing: the migration, the comparison of the log or the load of a restored copy.</summary>
-    private static bool IsOffline(string[] args) =>
-        MigrationMode.Requested(args) || AuditCompareMode.Requested(args) || RestoreLoadMode.Requested(args);
-
-    /// <summary>The modes that serve nothing: the load of a restored copy, the comparison of the log with the chain, or the migration, which first judges the passwords.</summary>
-    private static async Task<HostLaunch> OfflineAsync(string[] args, ConfigurationLoadResult loaded, DatabaseSettings database)
+    /// <summary>The modes that serve nothing: the comparison of the server's log with the chain, or the migration, which first judges the factor of the passwords.</summary>
+    private static async Task<HostLaunch> OfflineAsync(string[] args, ConfigurationLoadResult loaded, DatabaseSettings database, bool comparing)
     {
         if (RestoreLoadMode.Requested(args))
         {
             return await RestoreLoadMode.LaunchAsync(args, database);
         }
 
-        if (AuditCompareMode.Requested(args))
+        if (comparing)
         {
             return await AuditCompareMode.LaunchAsync(loaded, database);
         }

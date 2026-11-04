@@ -17,7 +17,6 @@ internal static class RestoreLoadMode
 
     internal static bool Requested(string[] args) => args is [Argument, ..];
 
-    /// <summary>The arguments the configuration reads: without the mode word and the three that name the copy and the tip.</summary>
     internal static string[] ConfigurationArguments(string[] args) => Requested(args) ? args[Math.Min(Positional, args.Length)..] : args;
 
     internal static async Task<HostLaunch> LaunchAsync(string[] args, DatabaseSettings database)
@@ -38,8 +37,7 @@ internal static class RestoreLoadMode
         try
         {
             await using var source = NpgsqlDataSource.Create(database.ConnectionString!);
-            var verifier = new GuaranteeVerifier(source);
-            return await new RestoreLoader(source, verifier, TimeProvider.System).LoadAsync(RestoreCopy.Open(folder), tip, CancellationToken.None).ConfigureAwait(false);
+            return await new RestoreLoader(source, new GuaranteeVerifier(source), TimeProvider.System).LoadAsync(RestoreCopy.Open(folder), tip, CancellationToken.None).ConfigureAwait(false);
         }
         catch (Exception failure) when (failure is NpgsqlException or IOException or UnauthorizedAccessException or InvalidDataException)
         {

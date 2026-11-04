@@ -28,7 +28,7 @@ são da [0051](../decisoes/0051-navegacao-gestao-e-relatorio.md); a tecnologia e
 
 | Área | Telas | Documento | Fase |
 |---|---|---|---|
-| Entrada, sessão e conta | E1–E5, C1–C3 | [014](014-telas-entrada-sessao-e-conta.md) | 3, 7 |
+| Entrada, sessão e conta | E1–E5, C1–C4 | [014](014-telas-entrada-sessao-e-conta.md) | 3, 6, 7 |
 | Administração técnica | A1–A9 | [015](015-telas-administracao-tecnica.md) | 3, 6 |
 | Ingestão e acervo | I1–I4, K1–K3 | [016](016-telas-ingestao-e-acervo.md) | 3, 6, 7 |
 | Reversão, esvaziamento, relatos | R1–R3, V1, U2 | [017](017-telas-reversao-esvaziamento-e-relatos.md) | 3, 5, 7 |

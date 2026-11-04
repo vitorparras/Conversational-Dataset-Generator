@@ -79,6 +79,38 @@ public sealed class SealVerificationHostTests
         Assert.Equal(before, await host.NumberAsSuperuserAsync("SELECT count(*) FROM public.custody_event", cancellationToken));
     }
 
+    [DatabaseFact]
+    public async Task ABodyAboveTheLimitIsRefusedWith413AndNothingIsVerifiedWhileASealStillGoesThrough()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var host = await StartedAsync(new HostSetup(), cancellationToken);
+        var before = await host.NumberAsSuperuserAsync("SELECT count(*) FROM public.custody_event", cancellationToken);
+
+        using var refused = await host.PostAsync(Route, JsonSerializer.Serialize(new { seal = new string('a', 4096) }), cancellationToken);
+        var after = await host.NumberAsSuperuserAsync("SELECT count(*) FROM public.custody_event", cancellationToken);
+        var shown = await VerifyAsync(host, await SealOfTheChainAsync(host, cancellationToken), cancellationToken);
+
+        Assert.Equal(HttpStatusCode.RequestEntityTooLarge, refused.StatusCode);
+        Assert.Equal(before, after);
+        Assert.Equal((true, true, "Holds"), Standing(shown));
+    }
+
+    [DatabaseTheory]
+    [InlineData("External")]
+    [InlineData("Internal")]
+    [InlineData("Manual")]
+    public async Task TheSituationDeclaredIsShownByTheConfigurationRouteWithTheArgumentAsItsOrigin(string situation)
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var host = await StartedAsync(Declaring(situation), cancellationToken);
+
+        using var response = await host.GetAsync("/configuration", cancellationToken);
+        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+
+        var entry = body.RootElement.GetProperty("entries").EnumerateArray().Single(item => item.GetProperty("key").GetString() == "Custody:SealSituation");
+        Assert.Equal((situation, "Argument"), (entry.GetProperty("value").GetString(), entry.GetProperty("origin").GetString()));
+    }
+
     [DatabaseTheory]
     [InlineData("External", "base substituída")]
     [InlineData("Internal", "restauração equivocada")]
@@ -113,6 +145,27 @@ public sealed class SealVerificationHostTests
 
         Assert.Contains("Nenhum selo foi registrado ainda", without, StringComparison.Ordinal);
         Assert.Contains(moment, with, StringComparison.Ordinal);
+    }
+
+    [DatabaseTheory]
+    [InlineData("External")]
+    [InlineData("Internal")]
+    public async Task TheReadingOfTheLastVerificationSaysNoLastSealWithoutOneAndThenTheMomentOfTheRecordInTheSituationsThatSendTheSeal(string situation)
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var host = await StartedAsync(Declaring(situation), cancellationToken);
+        var without = await ReadAsync(host, cancellationToken);
+
+        await host.RunAsSuperuserAsync(
+            "INSERT INTO public.custody_event (actor_system, item_kind, item_id, step, reason) "
+            + "SELECT true, 'custody_chain', max(sequence), 'seal_recorded', 'administrative_act' FROM public.custody_event",
+            cancellationToken);
+        var moment = await host.TextAsSuperuserAsync(
+            "SELECT to_char(occurred_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS') FROM public.custody_event WHERE step = 'seal_recorded'", cancellationToken);
+        var with = await ReadAsync(host, cancellationToken);
+
+        Assert.Equal(JsonValueKind.Null, without.GetProperty("lastSeal").ValueKind);
+        Assert.StartsWith(moment, with.GetProperty("lastSeal").GetString(), StringComparison.Ordinal);
     }
 
     [DatabaseFact]

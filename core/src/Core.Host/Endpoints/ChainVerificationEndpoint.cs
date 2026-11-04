@@ -25,8 +25,9 @@ internal static class ChainVerificationEndpoint
         try
         {
             var last = await reader.LastAsync(cancellationToken);
-            var protection = SealProtection.Of(declared.Situation, await LastSealAsync(verification, declared, cancellationToken));
-            return Results.Ok(new ChainVerificationShown(last, verification.Schedule.Interval, verification.IsOverdue(last?.RecordedAt), declared.Situation.ToString(), protection));
+            var lastSeal = await LastSealAsync(verification, cancellationToken);
+            var protection = SealProtection.Of(declared.Situation, lastSeal);
+            return Results.Ok(new ChainVerificationShown(last, verification.Schedule.Interval, verification.IsOverdue(last?.RecordedAt), declared.Situation.ToString(), protection, lastSeal));
         }
         catch (Exception unreadable) when (unreadable is NpgsqlException or InvalidOperationException or TimeoutException)
         {
@@ -35,7 +36,7 @@ internal static class ChainVerificationEndpoint
         }
     }
 
-    /// <summary>Only the manual situation says the date of the last seal, so only it asks the chain for it.</summary>
-    private static Task<DateTimeOffset?> LastSealAsync(ChainVerificationService verification, SealDeclaration declared, CancellationToken cancellationToken) =>
-        declared.Situation == SealSituation.Manual && verification.SealReader is { } reader ? reader.LastAsync(cancellationToken) : Task.FromResult<DateTimeOffset?>(null);
+    /// <summary>When the chain last recorded a seal, whatever the situation: the sending of the seal and the manual record both leave it there; null when it holds none.</summary>
+    private static Task<DateTimeOffset?> LastSealAsync(ChainVerificationService verification, CancellationToken cancellationToken) =>
+        verification.SealReader is { } reader ? reader.LastAsync(cancellationToken) : Task.FromResult<DateTimeOffset?>(null);
 }

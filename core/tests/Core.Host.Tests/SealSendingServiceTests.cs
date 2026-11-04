@@ -13,7 +13,6 @@ namespace Core.Host.Tests;
 /// </summary>
 public sealed class SealSendingServiceTests
 {
-    private const string Unreachable = "Host=127.0.0.1;Port=1;Username=zqx;Password=zqx;Database=zqx;Timeout=2;Pooling=false";
     private static readonly TimeSpan Interval = SealSendingService.Interval;
     private static readonly TimeSpan Patience = TimeSpan.FromSeconds(30);
     private static readonly Uri Destination = new("https://selo.example/envio");
@@ -96,7 +95,7 @@ public sealed class SealSendingServiceTests
     [Fact]
     public async Task ManualSituationBuildsNoSendingAndSendsNothingEvenWithTheDatabaseAndADestinationInHand()
     {
-        await using var source = NpgsqlDataSource.Create(Unreachable);
+        await using var source = NpgsqlDataSource.Create(UnreachableDatabase.ConnectionString);
         using var startup = new ServiceCollection().AddSingleton(source).BuildServiceProvider();
         using var loggers = new LoggerFactory();
         using var host = new ServiceCollection()
@@ -119,7 +118,7 @@ public sealed class SealSendingServiceTests
     public async Task SendingSituationWithTheSameArrangementBuildsTheSendingAndWaitsForTheNextOne(string situation)
     {
         var clock = new ManualClock();
-        await using var source = NpgsqlDataSource.Create(Unreachable);
+        await using var source = NpgsqlDataSource.Create(UnreachableDatabase.ConnectionString);
         using var startup = new ServiceCollection().AddSingleton(source).BuildServiceProvider();
         using var loggers = new LoggerFactory();
         using var host = new ServiceCollection()

@@ -23,45 +23,78 @@ public sealed class SealDeliveryTlsTests
     public async Task ServerWithACertificateItSignedItselfIsRejectedByTheHandlerTheHostSendsWithAndNeverGetsTheSeal()
     {
         var token = TestContext.Current.CancellationToken;
-        using var certificate = SelfSigned();
-        using var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
-        var served = HandshakeAsync(listener, certificate, token);
-        using var delivery = new SealDelivery(new Uri($"https://127.0.0.1:{port}/envio"), SealDelivery.Handler());
+        await using var server = new SelfSignedServer(token);
+        using var delivery = new SealDelivery(new Uri($"https://127.0.0.1:{server.Port}/envio"), SealDelivery.Handler());
 
         var result = await delivery.SendAsync(Text, token);
-        var received = await served;
+        var received = await server.ReceivedAsync();
 
         Assert.Equal((false, SealDeliveryFailure.CertificateRejected, 0), (result.Delivered, result.Failure, received));
     }
 
-    private static X509Certificate2 SelfSigned()
+    /// <summary>A server on the loopback that answers the handshake of the one client that comes with a certificate it signed itself, and owns what it needs to do so until it is disposed.</summary>
+    private sealed class SelfSignedServer : IAsyncDisposable
     {
-        using var key = RSA.Create(KeyBits);
-        var request = new CertificateRequest("CN=selo.zqx", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
-        var names = new SubjectAlternativeNameBuilder();
-        names.AddIpAddress(IPAddress.Loopback);
-        request.CertificateExtensions.Add(names.Build());
-        using var made = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddDays(1));
-        return X509CertificateLoader.LoadPkcs12(made.Export(X509ContentType.Pfx), null);
-    }
+        private readonly X509Certificate2 certificate;
+        private readonly TcpListener listener;
+        private readonly Task<int> served;
 
-    /// <summary>Answers the handshake of the one client that comes, and returns how many bytes of the request it read after it: none when the client turned back at the certificate.</summary>
-    private static async Task<int> HandshakeAsync(TcpListener listener, X509Certificate2 certificate, CancellationToken cancellationToken)
-    {
-        using var client = await listener.AcceptTcpClientAsync(cancellationToken);
-        var stream = new SslStream(client.GetStream());
-        await using (stream.ConfigureAwait(false))
+        public SelfSignedServer(CancellationToken cancellationToken)
         {
+            certificate = SelfSigned();
+            listener = new TcpListener(IPAddress.Loopback, 0);
+            listener.Start();
+            Port = ((IPEndPoint)listener.LocalEndpoint).Port;
+            served = HandshakeAsync(cancellationToken);
+        }
+
+        public int Port { get; }
+
+        /// <summary>How many bytes of the request the server read after the handshake: none when the client turned back at the certificate.</summary>
+        public Task<int> ReceivedAsync() => served;
+
+        public async ValueTask DisposeAsync()
+        {
+            listener.Stop();
             try
             {
-                await stream.AuthenticateAsServerAsync(new SslServerAuthenticationOptions { ServerCertificate = certificate }, cancellationToken);
-                return await stream.ReadAsync(new byte[1], cancellationToken);
+                _ = await served;
             }
-            catch (Exception turnedBack) when (turnedBack is IOException or AuthenticationException)
+            catch (Exception stopped) when (stopped is SocketException or ObjectDisposedException)
             {
-                return 0;
+                // The client never came and the listener was stopped under the wait for it.
+            }
+
+            listener.Dispose();
+            certificate.Dispose();
+        }
+
+        private static X509Certificate2 SelfSigned()
+        {
+            using var key = RSA.Create(KeyBits);
+            var request = new CertificateRequest("CN=selo.zqx", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+            var names = new SubjectAlternativeNameBuilder();
+            names.AddIpAddress(IPAddress.Loopback);
+            request.CertificateExtensions.Add(names.Build());
+            using var made = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddDays(1));
+            return X509CertificateLoader.LoadPkcs12(made.Export(X509ContentType.Pfx), null);
+        }
+
+        private async Task<int> HandshakeAsync(CancellationToken cancellationToken)
+        {
+            using var client = await listener.AcceptTcpClientAsync(cancellationToken);
+            var stream = new SslStream(client.GetStream());
+            await using (stream.ConfigureAwait(false))
+            {
+                try
+                {
+                    await stream.AuthenticateAsServerAsync(new SslServerAuthenticationOptions { ServerCertificate = certificate }, cancellationToken);
+                    return await stream.ReadAsync(new byte[1], cancellationToken);
+                }
+                catch (Exception turnedBack) when (turnedBack is IOException or AuthenticationException)
+                {
+                    return 0;
+                }
             }
         }
     }

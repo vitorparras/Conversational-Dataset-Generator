@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Core.Host.Endpoints;
 using Core.Persistence.Custody.Verification;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,7 +17,6 @@ public sealed class SealVerificationLimitTests
 {
     private const string Route = "/custody/verification";
     private const string ChainRead = "contra o selo não chegou ao fim";
-    private const string Unreachable = "Host=127.0.0.1;Port=1;Username=zqx;Password=zqx;Database=zqx;Timeout=2;Pooling=false";
     private const int TestDeadlineMilliseconds = 60_000;
     private static readonly string Body = $"{{\"seal\":\"{ChainSeal.Of(new DateTimeOffset(2031, 3, 4, 5, 6, 7, TimeSpan.Zero), 5, new byte[32]).ToText()}\"}}";
     private static readonly TimeSpan Window = TimeSpan.FromSeconds(60);
@@ -26,9 +26,9 @@ public sealed class SealVerificationLimitTests
     {
         var token = TestContext.Current.CancellationToken;
         var clock = new ManualClock();
-        var log = new RecordedLog();
+        using var log = new RecordedLog();
         using var loggers = new LoggerFactory([log]);
-        await using var source = NpgsqlDataSource.Create(Unreachable);
+        await using var source = NpgsqlDataSource.Create(UnreachableDatabase.ConnectionString);
         using var service = new ChainVerificationService(null, new VerificationSchedule(TimeSpan.FromHours(1)), clock, loggers) { Verifier = new CustodyVerifier(source, clock) };
         await using var host = await SessionedHost.StartAsync(
             services => services.AddSingleton(service).AddSingleton(new SealDeclaration(SealSituation.External, null)).AddSingleton<TimeProvider>(clock).AddSingleton<ILoggerFactory>(loggers),
@@ -69,7 +69,7 @@ public sealed class SealVerificationLimitTests
             token);
         var session = host.SeedSession();
 
-        using var notASeal = await host.PostAsync(Route, "{\"seal\":\"zqx\"}", session, token);
+        using var notASeal = await host.PostAsync(Route, JsonSerializer.Serialize(new SealAsked("zqx")), session, token);
         using var asked = await host.PostAsync(Route, Body, session, token);
 
         Assert.Equal((HttpStatusCode.BadRequest, HttpStatusCode.ServiceUnavailable), (notASeal.StatusCode, asked.StatusCode));

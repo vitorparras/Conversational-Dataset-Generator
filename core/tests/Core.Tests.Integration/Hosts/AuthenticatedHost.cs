@@ -232,6 +232,7 @@ internal sealed class AuthenticatedHost : IAsyncDisposable
             ["Session:IdleTimeout"] = "00:30:00",
             ["Session:AbsoluteTimeout"] = "08:00:00",
             ["Custody:VerificationInterval"] = "00:05:00",
+            ["Custody:SealSituation"] = "Manual",
             ["Tls:CertificateFile"] = SharedTlsMaterial.CertificatePath,
             ["Tls:KeyFile"] = SharedTlsMaterial.KeyPath,
             ["Audit:ServerLogDirectory"] = ServerLogFiles.Shared,

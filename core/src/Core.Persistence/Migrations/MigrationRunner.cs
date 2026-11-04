@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Core.Persistence.Custody.Chain;
 using Npgsql;
 
 namespace Core.Persistence.Migrations;
@@ -154,7 +155,7 @@ public sealed class MigrationRunner
             Found = comparison.Found,
             Expected = comparison.Expected,
             Step = OwnerWindow.StepName,
-            SqlState = Custody.Chain.CustodyStatements.ChainBrokenSqlState,
+            SqlState = CustodyStatements.ChainBrokenSqlState,
             Applied = applied,
         };
 }

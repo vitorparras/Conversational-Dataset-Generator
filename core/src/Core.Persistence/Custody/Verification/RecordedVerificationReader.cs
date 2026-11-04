@@ -61,7 +61,7 @@ public sealed class RecordedVerificationReader
     }
 
     private static long Number(string reference, string name) =>
-        reference.Split(';').Select(piece => piece.Split('=')).Where(pair => pair.Length == 2 && pair[0] == name)
+        reference.Split(';').Select(piece => piece.Split('=')).Where(pair => pair is [var key, _] && key == name)
             .Select(pair => long.TryParse(pair[1], NumberStyles.None, CultureInfo.InvariantCulture, out var number) ? number : 0L).FirstOrDefault();
 
     private async Task<RecordedVerification?> LastOfAsync(CustodyStep step, CancellationToken cancellationToken)

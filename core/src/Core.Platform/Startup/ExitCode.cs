@@ -80,4 +80,7 @@ public enum ExitCode
 
     /// <summary>The creation of the first person could not talk to the database, or stopped between the person and the password.</summary>
     PersonCreationFailed = 23,
+
+    /// <summary>The load of a copy in a new database did not restore it: the copy, the database or a check of the result refused.</summary>
+    RestoreRefused = 36,
 }

@@ -8,15 +8,15 @@ public sealed record CustodyEvent
     private const int FirstRotation = 2;
 
     private const string OfTheirOwnMessage =
-        "A correction, a verification, an emptying, a rotation, the creation of a domain, a seal, an entry, the loss of a key, a rehearsal of the recovery, a conference of the guarantees "
-        + "and a window of the owner have an event of their own; use Correction, Verification, Emptied, EmptyingRefused, EpochRotated, DomainCreated, DomainLabelRotated, SealRecorded, "
-        + "SignInAccepted, SignInRefused, KeyLossDeclared, RecoveryRehearsed, GuaranteesVerified, OwnerWindowOpened or OwnerWindowClosed.";
+        "A correction, a verification, an emptying, a rotation, the creation of a domain, a seal, an entry, the loss of a key, a rehearsal of the recovery, a conference of the guarantees, "
+        + "a window of the owner and a restore have an event of their own; use Correction, Verification, Emptied, EmptyingRefused, EpochRotated, DomainCreated, DomainLabelRotated, SealRecorded, "
+        + "SignInAccepted, SignInRefused, KeyLossDeclared, RecoveryRehearsed, GuaranteesVerified, OwnerWindowOpened, OwnerWindowClosed or Restored.";
 
     private static readonly FrozenSet<CustodyStep> OfTheirOwn = Enumerable.Repeat(CustodyStep.Correction, 1)
         .Append(CustodyStep.VerifyChain).Append(CustodyStep.ItemEmptied).Append(CustodyStep.ItemEmptyingRefused).Append(CustodyStep.EpochRotated).Append(CustodyStep.DomainCreated)
         .Append(CustodyStep.SealRecorded).Append(CustodyStep.DomainLabelRotated)
         .Append(CustodyStep.SignInAccepted).Append(CustodyStep.SignInRefused).Append(CustodyStep.KeyLossDeclared).Append(CustodyStep.RecoveryTested)
-        .Append(CustodyStep.VerifyGuarantees).Append(CustodyStep.OwnerWindowOpened).Append(CustodyStep.OwnerWindowClosed).ToFrozenSet();
+        .Append(CustodyStep.VerifyGuarantees).Append(CustodyStep.OwnerWindowOpened).Append(CustodyStep.OwnerWindowClosed).Append(CustodyStep.Restored).ToFrozenSet();
 
     private CustodyEvent(CustodyAuthor author, CustodyItem item, CustodyStep step, CustodyReason reason)
     {
@@ -94,6 +94,13 @@ public sealed record CustodyEvent
         ArgumentOutOfRangeException.ThrowIfNegative(missing);
         var reason = missing == 0 ? CustodyReason.VerificationPassed : CustodyReason.VerificationFailed;
         return new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.CustodyChain, missing), CustodyStep.OwnerWindowClosed, reason) { Reference = reference };
+    }
+
+    internal static CustodyEvent Restored(long rows, bool held, string reference)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(rows);
+        var reason = held ? CustodyReason.VerificationPassed : CustodyReason.VerificationFailed;
+        return new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.CustodyChain, rows), CustodyStep.Restored, reason) { Reference = reference };
     }
 
     private static CustodyItem EmptyingItem(long itemId)

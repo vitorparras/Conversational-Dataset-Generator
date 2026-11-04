@@ -19,12 +19,19 @@ public sealed class RestoreLoader
     private const string Version = "SELECT coalesce(pg_catalog.max(version), 0) FROM public.schema_version";
 
     /// <summary>The tables in the order they come back: the keys first, then the chain once the people exist, then the content, the maps after the texts and the emptied after both.</summary>
-    private static readonly ImmutableArray<string> Tables = ImmutableArray.Create("public.domain", "public.derivation_label", "public.person", "public.person_credential", "public.person_change",
-        Chain, "content.item_text", "content.reversal_map", "content.item_emptied");
+    private static readonly ImmutableArray<string> Tables = InOrder();
 
     private readonly NpgsqlDataSource dataSource;
     private readonly GuaranteeVerifier guarantees;
     private readonly TimeProvider time;
+
+    private static ImmutableArray<string> InOrder()
+    {
+        var tables = ImmutableArray.CreateBuilder<string>();
+        tables.AddRange("public.domain", "public.derivation_label", "public.person", "public.person_credential", "public.person_change");
+        tables.AddRange(Chain, "content.item_text", "content.reversal_map", "content.item_emptied");
+        return tables.ToImmutable();
+    }
 
     /// <summary>The load runs through the data source built with the application's credential and confers the guarantees with the verifier it is given.</summary>
     public RestoreLoader(NpgsqlDataSource dataSource, GuaranteeVerifier guarantees, TimeProvider time)

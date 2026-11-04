@@ -13,15 +13,20 @@ using Core.Persistence.Tests.Fixtures;
 namespace Core.Persistence.Tests.ServerGuarantees;
 
 /// <summary>
-/// The load of a copy by the application alone (#64, CA-5): a database made by the flows it has comes back in a new one with the sequence and the digests of every event, the chain and the guarantees hold,
-/// the restore is an event with the copy and the tip before and after, and a copy that is out of order, altered or short is refused with the divergence named and no event of restore.
+/// The load of a copy by the application alone (#64, CA-5): a database made by the flows it has comes back in a new one with the sequence and
+/// the digests of every event, the chain and the guarantees hold, the restore is an event with the copy and the tip before and after,
+/// and a copy that is out of order, altered or short is refused with the divergence named and no event of restore.
 /// </summary>
 [Trait("Category", "Database")]
 public sealed class RestoreLoaderTests
 {
-    private const string Digests = "SELECT string_agg(sequence || ':' || encode(previous_digest, 'hex') || ':' || encode(digest, 'hex'), ',' ORDER BY sequence) FROM public.custody_event WHERE sequence <= {0}";
+    private const string Digests =
+        "SELECT string_agg(sequence || ':' || encode(previous_digest, 'hex') || ':' || encode(digest, 'hex'), ',' ORDER BY sequence)"
+        + " FROM public.custody_event WHERE sequence <= {0}";
     private const string People = "SELECT string_agg(id || ':' || name || ':' || function_name || ':' || created_at || ':' || active, ',' ORDER BY id) FROM public.person";
-    private const string Credentials = "SELECT string_agg(person_id || ':' || algorithm || ':' || work_factor || ':' || encode(salt, 'hex') || ':' || encode(derived, 'hex'), ',' ORDER BY person_id) FROM public.person_credential";
+    private const string Credentials =
+        "SELECT string_agg(person_id || ':' || algorithm || ':' || work_factor || ':' || encode(salt, 'hex')"
+        + " || ':' || encode(derived, 'hex'), ',' ORDER BY person_id) FROM public.person_credential";
     private const string Window = "SELECT coalesce(string_agg(state || ':' || coalesce(approved::text, '-'), ',' ORDER BY state), 'none') FROM public.restore_window";
     private const string Restored = "SELECT count(*)::text FROM public.custody_event WHERE step = 'restored'";
 
@@ -57,7 +62,10 @@ public sealed class RestoreLoaderTests
         _ = await LoadAsync(destination, copy, new RestoreTip(sequence, digest));
 
         var name = RestoreCopy.Open(copy.Path).Name;
-        Assert.Equal(["verify_chain,verify_guarantees,restored"], await destination.OwnerColumnAsync($"SELECT string_agg(step, ',' ORDER BY sequence) FROM public.custody_event WHERE sequence > {sequence}"));
+        Assert.Equal(
+            ["verify_chain,verify_guarantees,restored"],
+            await destination.OwnerColumnAsync(
+                $"SELECT string_agg(step, ',' ORDER BY sequence) FROM public.custody_event WHERE sequence > {sequence}"));
         Assert.Equal(
             [$"{copy.RowCount}|verification_passed|true|copy={name};before={sequence};after={sequence + 2}"],
             await destination.OwnerColumnAsync("SELECT item_id || '|' || reason || '|' || actor_system || '|' || reference FROM public.custody_event WHERE step = 'restored'"));
@@ -182,7 +190,8 @@ public sealed class RestoreLoaderTests
     private static string DigestsUpTo(long sequence) => string.Format(System.Globalization.CultureInfo.InvariantCulture, Digests, sequence);
 
     private static Task<RestoreResult> LoadAsync(FidelityWorld destination, CopyFolder copy, RestoreTip tip) =>
-        new RestoreLoader(destination.DataSource, new GuaranteeVerifier(destination.DataSource), TimeProvider.System).LoadAsync(RestoreCopy.Open(copy.Path), tip, TestContext.Current.CancellationToken);
+        new RestoreLoader(destination.DataSource, new GuaranteeVerifier(destination.DataSource), TimeProvider.System)
+            .LoadAsync(RestoreCopy.Open(copy.Path), tip, TestContext.Current.CancellationToken);
 
     private static IEnumerable<JsonNode> Altered(List<JsonNode> events, int index)
     {

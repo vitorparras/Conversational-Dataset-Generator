@@ -47,4 +47,13 @@ public enum CustodyStep
 
     /// <summary>A domain passed to write under the next generation of its labels; the item is the domain and the reference is the generation.</summary>
     DomainLabelRotated,
+
+    /// <summary>An attempt to sign in was accepted: the item is the attempt, the author is the person who signed in.</summary>
+    SignInAccepted,
+
+    /// <summary>An attempt to sign in was refused: the item is the attempt, and the reason says why, with the person as the author only when the password was wrong.</summary>
+    SignInRefused,
+
+    /// <summary>The credential of a person was derived again at sign-in, under the current work factor: the item and the author are that person.</summary>
+    CredentialRecomputed,
 }

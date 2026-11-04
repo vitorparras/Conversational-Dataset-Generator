@@ -94,7 +94,7 @@ public sealed class PersonChangesChainTests : IClassFixture<CustodyDatabase>
     }
 
     [DatabaseFact]
-    public async Task RecomputingAPasswordAtANewFactorLeavesNoEvent()
+    public async Task RecomputingAPasswordAtANewFactorLeavesOneEventAuthoredByThePerson()
     {
         var registry = await database.RegistryAsync();
         var id = Id(await registry.CreateAsync(new NewPerson(NewName(), Annotation), CustodyAuthor.System, TestContext.Current.CancellationToken));
@@ -103,7 +103,9 @@ public sealed class PersonChangesChainTests : IClassFixture<CustodyDatabase>
 
         _ = await (await database.CredentialsAsync(Factor + 1)).VerifyAsync(id, Password, TestContext.Current.CancellationToken);
 
-        Assert.Equal(before, (await database.EventsAsync()).Count);
+        var added = (await database.EventsAsync()).Skip(before).ToList();
+        var recomputed = Assert.Single(added);
+        Assert.Equal(("credential_recomputed", id, id), (recomputed.Step, recomputed.ItemId, recomputed.ActorPersonId));
     }
 
     [DatabaseFact]

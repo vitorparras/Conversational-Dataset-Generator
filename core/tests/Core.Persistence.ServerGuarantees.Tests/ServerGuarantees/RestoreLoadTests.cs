@@ -14,7 +14,7 @@ namespace Core.Persistence.Tests.ServerGuarantees;
 /// only inside a window that opens once, in a database that never held anything, and closes for good, approved or not. Everything else is refused, and nothing of a refused call stays.
 /// </summary>
 [Trait("Category", "Database")]
-public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<RestoreSource>
+internal sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<RestoreSource>
 {
     private const string Refused = "CE005";
     private const string Chain =
@@ -88,7 +88,7 @@ public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<Resto
         var loaded = await destination.LoadAsync("public.sign_in_attempt", source.Copy["public.sign_in_attempt"]);
         await destination.Database.RunAsOwnerAsync("INSERT INTO public.sign_in_attempt (network) VALUES (NULL)");
 
-        Assert.Equal(2, loaded);
+        Assert.Equal(2L, loaded);
         Assert.Equal(
             source.Copy["public.sign_in_attempt"],
             Assert.Single(await destination.Database.FirstColumnAsOwnerAsync("SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY id), '[]') FROM (SELECT * FROM public.sign_in_attempt WHERE id <= 2) t")));
@@ -317,7 +317,10 @@ public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<Resto
 
     private sealed class Destination : IAsyncDisposable
     {
-        private Destination(ScratchDatabase database) => (Database, App) = (database, NpgsqlDataSource.Create(database.AppConnectionString));
+        private Destination(ScratchDatabase database, NpgsqlDataSource app)
+        {
+            (Database, App) = (database, app);
+        }
 
         internal ScratchDatabase Database { get; }
 
@@ -327,12 +330,12 @@ public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<Resto
         {
             var database = await ScratchDatabase.CreateAsync();
             _ = await database.MigrateAsync(EmbeddedMigrations.Load());
-            return new Destination(database);
+            return new Destination(database, NpgsqlDataSource.Create(database.AppConnectionString));
         }
 
-        internal Task OpenAsync() => CallAsync("restore_open");
+        internal async Task OpenAsync() => _ = await CallAsync("restore_open");
 
-        internal Task CloseAsync(bool approved) => CallAsync("restore_close", approved);
+        internal async Task CloseAsync(bool approved) => _ = await CallAsync("restore_close", approved);
 
         internal async Task<string> OpenOrRefusedAsync()
         {

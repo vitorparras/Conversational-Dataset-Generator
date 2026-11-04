@@ -1,18 +1,13 @@
-using System.Globalization;
 using System.Text.Json.Nodes;
-using Core.Persistence.Tests.Fixtures;
-using Xunit;
 
-namespace Core.Persistence.Tests.ServerGuarantees;
+namespace Core.Persistence.Tests.Fixtures;
 
 /// <summary>
 /// A database that holds what a restore puts back, made by the flows it has: two domains, two people (one deactivated), an event for each kind of author, a text and its map in one domain
 /// and a text emptied in the other. The copy is each table as the array of its rows in the order of the key, as the 005 describes it.
 /// </summary>
-public sealed class RestoreSource : IAsyncLifetime
+internal sealed class RestoreSource : IAsyncLifetime
 {
-    private const string Rows = "SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY {0}), '[]') FROM {1} t";
-
     private FidelityWorld? world;
 
     /// <summary>Each table of the copy, by name, as the array of its rows.</summary>
@@ -65,15 +60,18 @@ public sealed class RestoreSource : IAsyncLifetime
         }
     }
 
+    // nosemgrep: sql-concatenation-csharp interpolates only the key and the table of the copy, literals of this fixture, never a value.
+    private static string AllRows(string key, string table) => $"SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY {key}), '[]') FROM {table} t";
+
     private async Task<string> OwnerRowsAsync(string table, string key) =>
-        Assert.Single(await World.OwnerColumnAsync(string.Format(CultureInfo.InvariantCulture, Rows, key, table)));
+        Assert.Single(await World.OwnerColumnAsync(AllRows(key, table)));
 
     private async Task<string> ContentRowsAsync(string table)
     {
         var all = new JsonArray();
         foreach (var domain in new[] { 1, 2 })
         {
-            var part = (string)(await World.InDomainAsync(domain, string.Format(CultureInfo.InvariantCulture, Rows, "id", table)))!;
+            var part = (string)(await World.InDomainAsync(domain, AllRows("id", table)))!;
             foreach (var row in JsonNode.Parse(part)!.AsArray())
             {
                 all.Add(row!.DeepClone());

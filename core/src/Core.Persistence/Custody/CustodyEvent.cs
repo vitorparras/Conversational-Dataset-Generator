@@ -11,7 +11,7 @@ public sealed record CustodyEvent
         .Append(CustodyStep.VerifyChain).Append(CustodyStep.ItemEmptied).Append(CustodyStep.ItemEmptyingRefused).Append(CustodyStep.EpochRotated).Append(CustodyStep.DomainCreated)
         .Append(CustodyStep.SealRecorded).Append(CustodyStep.DomainLabelRotated)
         .Append(CustodyStep.SignInAccepted).Append(CustodyStep.SignInRefused).Append(CustodyStep.KeyLossDeclared).Append(CustodyStep.RecoveryTested)
-        .Append(CustodyStep.VerifyGuarantees).Append(CustodyStep.DomainLabelRevoked).ToFrozenSet();
+        .Append(CustodyStep.VerifyGuarantees).Append(CustodyStep.DomainLabelRevoked).Append(CustodyStep.DomainRewrapped).ToFrozenSet();
 
     private CustodyEvent(CustodyAuthor author, CustodyItem item, CustodyStep step, CustodyReason reason)
     {
@@ -52,7 +52,7 @@ public sealed record CustodyEvent
             ? throw new ArgumentException(
                 "A correction, a verification, an emptying, a rotation, the creation of a domain, a seal and an entry have an event of their own; "
                 + "use Correction, Verification, GuaranteesVerified, Emptied, EmptyingRefused, EpochRotated, DomainCreated, SealRecorded, DomainLabelRotated, "
-                + "DomainLabelRevoked, SignInAccepted or SignInRefused.",
+                + "DomainLabelRevoked, DomainRewrapped, SignInAccepted or SignInRefused.",
                 nameof(step))
             : new CustodyEvent(author, item, step, reason);
     }
@@ -146,6 +146,13 @@ public sealed record CustodyEvent
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(domainId);
         ArgumentException.ThrowIfNullOrEmpty(label);
         return WithReference(new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.Domain, domainId), CustodyStep.DomainLabelRevoked, CustodyReason.AdministrativeAct), label);
+    }
+
+    /// <summary>The event of a batch of keys of a domain wrapped again, by the system; the item is the domain, and the event has no reference.</summary>
+    public static CustodyEvent DomainRewrapped(int domainId)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(domainId);
+        return new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.Domain, domainId), CustodyStep.DomainRewrapped, CustodyReason.AdministrativeAct);
     }
 
     /// <summary>The event of a seal recorded: the item is the chain, its id is the sequence of the event sealed, and the digest of that event is read from the chain and is not in this one.</summary>

@@ -1,8 +1,17 @@
+using System.Collections.Frozen;
+
 namespace Core.Persistence.Custody;
 
 /// <summary>One event to add to the chain: who, about which item, which step and which reason, and the earlier event it corrects when it is a correction.</summary>
 public sealed record CustodyEvent
 {
+    private const int FirstRotation = 2;
+
+    private static readonly FrozenSet<CustodyStep> OfTheirOwn = Enumerable.Repeat(CustodyStep.Correction, 1)
+        .Append(CustodyStep.VerifyChain).Append(CustodyStep.ItemEmptied).Append(CustodyStep.ItemEmptyingRefused).Append(CustodyStep.EpochRotated).Append(CustodyStep.DomainCreated)
+        .Append(CustodyStep.SealRecorded).Append(CustodyStep.DomainLabelRotated).Append(CustodyStep.KeyLossDeclared)
+        .Append(CustodyStep.VerifyGuarantees).Append(CustodyStep.OwnerWindowOpened).Append(CustodyStep.OwnerWindowClosed).ToFrozenSet();
+
     private CustodyEvent(CustodyAuthor author, CustodyItem item, CustodyStep step, CustodyReason reason)
     {
         Author = author;
@@ -38,11 +47,14 @@ public sealed record CustodyEvent
     {
         ArgumentNullException.ThrowIfNull(author);
         ArgumentNullException.ThrowIfNull(item);
-        return step is CustodyStep.Correction or CustodyStep.ItemEmptied or CustodyStep.ItemEmptyingRefused || IsVerification(step)
+        return HasEventOfItsOwn(step)
             ? throw new ArgumentException(
-                "A correction, a verification and an emptying have an event of their own; use Correction, Verification, GuaranteesVerified, Emptied or EmptyingRefused.", nameof(step))
+                "A correction, a verification, an emptying, a rotation, the creation of a domain and a seal have an event of their own; "
+                + "use Correction, Verification, GuaranteesVerified, Emptied, EmptyingRefused, EpochRotated, DomainCreated, SealRecorded, DomainLabelRotated or KeyLossDeclared.", nameof(step))
             : new CustodyEvent(author, item, step, reason);
     }
+
+    private static bool HasEventOfItsOwn(CustodyStep step) => OfTheirOwn.Contains(step);
 
     /// <summary>The event of an item emptied: a person did it, for one of the two reasons an emptying may be asked for, and the protocol that asked is the reference.</summary>
     /// <param name="author">The person who emptied; the system cannot.</param>
@@ -69,8 +81,6 @@ public sealed record CustodyEvent
             ? WithReference(new CustodyEvent(author, EmptyingItem(itemId), CustodyStep.ItemEmptyingRefused, reason), reference)
             : throw new ArgumentException("An emptying is refused because its author does not hold the function or because the item was emptied already.", nameof(reason));
     }
-
-    private static bool IsVerification(CustodyStep step) => step is CustodyStep.VerifyChain or CustodyStep.VerifyGuarantees or CustodyStep.OwnerWindowOpened or CustodyStep.OwnerWindowClosed;
 
     internal static CustodyEvent OwnerWindowOpened(int to, string reference) =>
         new(CustodyAuthor.System, new CustodyItem(CustodyItemKind.CustodyChain, to), CustodyStep.OwnerWindowOpened, CustodyReason.AdministrativeAct) { Reference = reference };
@@ -109,6 +119,56 @@ public sealed record CustodyEvent
 
         var reason = firstInconsistent is null ? CustodyReason.VerificationPassed : CustodyReason.VerificationFailed;
         return new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.CustodyChain, eventsRead), CustodyStep.VerifyChain, reason) { Corrects = firstInconsistent };
+    }
+
+    /// <summary>The event of a rotation of the epoch, written by the system: the keys of the content were wrapped again under the epoch given.</summary>
+    /// <param name="epoch">The number of the epoch the keys are wrapped under now.</param>
+    public static CustodyEvent EpochRotated(int epoch)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(epoch);
+        return new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.ContentEpoch, epoch), CustodyStep.EpochRotated, CustodyReason.AdministrativeAct);
+    }
+
+    /// <summary>The event of a domain created, written by the system: the item is the domain, by its number, and the name of the domain is not in the event.</summary>
+    /// <param name="domainId">The identifier the domain took in the registry.</param>
+    public static CustodyEvent DomainCreated(int domainId)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(domainId);
+        return new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.Domain, domainId), CustodyStep.DomainCreated, CustodyReason.AdministrativeAct);
+    }
+
+    /// <summary>The event of a domain that passed to write under the next generation of its labels, by the system; the reference is the generation, as <c>v2</c>.</summary>
+    public static CustodyEvent DomainLabelRotated(int domainId, int version)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(domainId);
+        ArgumentOutOfRangeException.ThrowIfLessThan(version, FirstRotation);
+        return new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.Domain, domainId), CustodyStep.DomainLabelRotated, CustodyReason.AdministrativeAct) { Reference = $"v{version}" };
+    }
+
+    /// <summary>The event of a seal recorded: the item is the chain, its id is the sequence of the event sealed, and the digest of that event is read from the chain and is not in this one.</summary>
+    /// <param name="author">The system, or the person who confirmed the record.</param>
+    /// <param name="sealedSequence">The sequence of the last event the seal covers, which is also the number of events it counts; 0 for a chain with none.</param>
+    public static CustodyEvent SealRecorded(CustodyAuthor author, long sealedSequence)
+    {
+        ArgumentNullException.ThrowIfNull(author);
+        ArgumentOutOfRangeException.ThrowIfNegative(sealedSequence);
+        return new CustodyEvent(author, new CustodyItem(CustodyItemKind.CustodyChain, sealedSequence), CustodyStep.SealRecorded, CustodyReason.AdministrativeAct);
+    }
+
+    /// <summary>
+    /// The event of the loss of a key declared by whoever operates, written by the system: the item is the master key, its id is what was tried (the sum of <see cref="KeyLossAttempts" />),
+    /// and the reference is the scope. There is no way back: what was sealed under the scope stays unreadable.
+    /// </summary>
+    /// <param name="scope">The whole master key, or one label.</param>
+    /// <param name="attempts">What was tried to recover it; at least one.</param>
+    public static CustodyEvent KeyLossDeclared(KeyLossScope scope, KeyLossAttempts attempts)
+    {
+        ArgumentNullException.ThrowIfNull(scope);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero((int)attempts);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan((int)attempts, (int)KeyLossAttempts.All);
+        return WithReference(
+            new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.MasterKey, (long)attempts), CustodyStep.KeyLossDeclared, CustodyReason.AdministrativeAct),
+            scope.Text);
     }
 
     /// <summary>The event that records the verdict of a conference of the guarantees of the server, by the system: the item is the chain and its id is the mask of the guarantees missing.</summary>

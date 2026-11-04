@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Core.Host.Tests;
 
 /// <summary>
-/// The composition root registers the server's checks with a database declared: the guarantees, with the window of the owner credential right after the privilege, then the labels last.
+/// The composition root registers the server's checks with a database declared: the guarantees, with the window of the owner credential right after the privilege, then the derivation labels and the epochs last.
 /// </summary>
 public sealed class ServerChecksRegistrationTests
 {
@@ -20,13 +20,15 @@ public sealed class ServerChecksRegistrationTests
     };
 
     [Fact]
-    public async Task DeclaredDatabaseRegistersTheGuaranteesInOrderAndTheDerivationLabelsLast()
+    public async Task DeclaredDatabaseRegistersTheGuaranteesInOrderAndTheEpochsLast()
     {
         await using var provider = RootChecks(DatabaseConfiguration.Read(Declared));
 
         var names = provider.GetServices<IStartupCheck>().Select(check => check.Name);
 
-        Assert.Equal(["Privilege", "OwnerWindow", "RlsForce", "Serializable", "PgAudit", "ColumnRevoke", "SchemaVersion", "Immutability", "ProtectedColumns", "DerivationLabels"], names);
+        Assert.Equal(
+            ["Privilege", "OwnerWindow", "RlsForce", "Serializable", "PgAudit", "ColumnRevoke", "SchemaVersion", "Immutability", "ProtectedColumns", "DerivationLabels", "ContentEpochs"],
+            names);
     }
 
     [Fact]

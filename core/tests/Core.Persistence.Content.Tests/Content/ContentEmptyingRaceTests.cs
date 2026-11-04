@@ -52,6 +52,7 @@ public sealed class ContentEmptyingRaceTests
             var writing = world.Writer.AddReversalMapAsync(1, item, "mapa zqx", TestContext.Current.CancellationToken);
             await WaitForTheWriterToBlockAsync(world);
 
+            _ = await ScalarAsync(emptying, ContentWorld.EmptiedEvent, item);
             _ = await ScalarAsync(emptying, ContentQueries.EmptyItemText, item);
             _ = await ScalarAsync(emptying, ContentQueries.EmptyReversalMaps, item);
             await emptying.CommitAsync(TestContext.Current.CancellationToken);
@@ -76,6 +77,8 @@ public sealed class ContentEmptyingRaceTests
             _ = command.Parameters.Add(new NpgsqlParameter("domain", NpgsqlDbType.Integer) { Value = 1 });
             _ = command.Parameters.Add(new NpgsqlParameter("item", NpgsqlDbType.Bigint) { Value = item });
             _ = command.Parameters.Add(new NpgsqlParameter("entries", NpgsqlDbType.Bytea) { Value = new byte[] { 1 } });
+            _ = command.Parameters.Add(new NpgsqlParameter("epoch", NpgsqlDbType.Integer) { Value = 1 });
+            _ = command.Parameters.Add(new NpgsqlParameter("wrapped", NpgsqlDbType.Bytea) { Value = new byte[] { 1 } });
             _ = await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
         }
     }

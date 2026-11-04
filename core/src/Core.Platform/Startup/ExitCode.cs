@@ -30,6 +30,36 @@ public enum ExitCode
     /// <summary>The migration could not reach the server or read the registry, and ran nothing.</summary>
     MigrationNotConnected = 14,
 
+    /// <summary>The rotation of the epoch refused and changed nothing: a file of the custody was not given or read, or a key could not be unwrapped.</summary>
+    EpochRotationRefused = 15,
+
+    /// <summary>The rotation of the epoch could not talk to the database and changed nothing.</summary>
+    EpochRotationFailed = 16,
+
+    /// <summary>The creation of a domain refused and wrote nothing: the derivation label of a purpose is missing from the custody file.</summary>
+    DomainLabelsMissing = 17,
+
+    /// <summary>The creation of a domain refused and wrote nothing: a domain of that name exists already.</summary>
+    DomainNameTaken = 18,
+
+    /// <summary>The creation of a domain refused and wrote nothing, for another reason: a custody file was not read, the name is not valid, the chain refused or another writer was first.</summary>
+    DomainCreationRefused = 19,
+
+    /// <summary>The creation of a domain could not talk to the database and wrote nothing.</summary>
+    DomainCreationFailed = 26,
+
+    /// <summary>The rotation of a domain label was refused and nothing was written: the domain is not accepted, or the label file could not be read.</summary>
+    DomainLabelRefused = 24,
+
+    /// <summary>The database did not answer the rotation of a domain label, and nothing was written.</summary>
+    DomainLabelFailed = 25,
+
+    /// <summary>The declaration of the loss of a key was refused and nothing was written: the scope or what was tried is not one of the accepted, or the chain refused the event.</summary>
+    KeyLossRefused = 27,
+
+    /// <summary>The database did not answer the declaration of the loss of a key, and nothing was written.</summary>
+    KeyLossFailed = 28,
+
     /// <summary>The comparison of the server's audit log with the chain found a difference that is new.</summary>
     AuditDifferent = 20,
 }

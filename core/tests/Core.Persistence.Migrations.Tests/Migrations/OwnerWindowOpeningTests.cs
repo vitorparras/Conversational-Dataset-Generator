@@ -12,7 +12,7 @@ namespace Core.Persistence.Tests.Migrations;
 [Trait("Category", "Database")]
 public sealed class OwnerWindowOpeningTests
 {
-    private const string WindowStep = "0018-owner-window";
+    private const string WindowStep = "0024-owner-window";
     private const string ChainBroken = "CE002";
 
     private const string Verified =

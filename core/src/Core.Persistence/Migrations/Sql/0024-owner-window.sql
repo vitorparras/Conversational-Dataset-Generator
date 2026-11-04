@@ -7,16 +7,17 @@ ALTER TABLE public.custody_event
     DROP CONSTRAINT custody_event_emptying_shape,
     ADD CONSTRAINT custody_event_step_listed CHECK (step IN
         ('person_created', 'person_deactivated', 'person_function_changed', 'person_password_set', 'correction',
-         'raw_text_read', 'sanitized_text_read', 'reversal_entries_read', 'verify_chain', 'item_emptied', 'item_emptying_refused', 'verify_guarantees',
+         'raw_text_read', 'sanitized_text_read', 'reversal_entries_read', 'verify_chain', 'item_emptied', 'item_emptying_refused', 'epoch_rotated',
+         'domain_created', 'seal_recorded', 'domain_label_rotated', 'key_loss_declared', 'verify_guarantees',
          'owner_window_opened', 'owner_window_closed')),
     ADD CONSTRAINT custody_event_verification_shape CHECK (
-        (step IN ('verify_chain', 'verify_guarantees', 'owner_window_opened', 'owner_window_closed')) = (item_kind = 'custody_chain')
+        (step IN ('verify_chain', 'seal_recorded', 'verify_guarantees', 'owner_window_opened', 'owner_window_closed')) = (item_kind = 'custody_chain')
         AND (step IN ('verify_chain', 'verify_guarantees', 'owner_window_closed')) = (reason IN ('verification_passed', 'verification_failed'))
         AND (step NOT IN ('verify_chain', 'verify_guarantees', 'owner_window_opened', 'owner_window_closed') OR actor_system)
         AND (step NOT IN ('verify_guarantees', 'owner_window_closed') OR (corrects IS NULL AND item_id BETWEEN 0 AND 63 AND (reason = 'verification_passed') = (item_id = 0)))
         AND (step <> 'owner_window_opened' OR (corrects IS NULL AND reason = 'administrative_act' AND item_id >= 0))),
     ADD CONSTRAINT custody_event_emptying_shape CHECK (
-        (reference IS NOT NULL) = (step IN ('item_emptied', 'item_emptying_refused', 'owner_window_opened', 'owner_window_closed'))
+        (reference IS NOT NULL) = (step IN ('item_emptied', 'item_emptying_refused', 'domain_label_rotated', 'key_loss_declared', 'owner_window_opened', 'owner_window_closed'))
         AND (reference IS NULL OR step IN ('owner_window_opened', 'owner_window_closed') OR reference ~ '^[A-Za-z0-9._/-]{1,64}$')
         AND (step NOT IN ('owner_window_opened', 'owner_window_closed') OR reference ~ '^[a-z0-9=;]{1,160}$')
         AND (step NOT IN ('item_emptied', 'item_emptying_refused') OR item_kind = 'item_text')

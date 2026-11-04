@@ -39,5 +39,10 @@ public static class AuditMap
         [CustodyStep.VerifyGuarantees] = "a conferência lê o catálogo e a amostra pelos passos de leitura e grava o veredito na cadeia: não toca tabela de domínio",
         [CustodyStep.OwnerWindowOpened] = "a abertura da janela da credencial de dono grava só o evento na cadeia: o que a migração muda é de esquema, não de tabela de domínio",
         [CustodyStep.OwnerWindowClosed] = "o fechamento da janela grava só o veredito na cadeia, depois de verificar a cadeia e conferir as garantias",
+        [CustodyStep.EpochRotated] = "a rotação regrava a chave de cada linha antiga, uma instrução por linha, e grava um só evento: os comandos do log não casam com os eventos",
+        [CustodyStep.DomainCreated] = "o domínio e os rótulos são escritos com a credencial do dono (não a da aplicação) em tabelas que o mapa não compara: a cadeia guarda o evento",
+        [CustodyStep.SealRecorded] = "o selo é lido da cadeia (ChainSealer) e grava só o evento nela: não toca tabela de domínio",
+        [CustodyStep.DomainLabelRotated] = "os rótulos da nova geração são escritos com a credencial do dono (não a da aplicação) em tabela que o mapa não compara: a cadeia guarda o evento",
+        [CustodyStep.KeyLossDeclared] = "a perda é declarada por quem opera e grava só o evento na cadeia, com a credencial do dono (modo declare-key-loss): não toca tabela de domínio",
     };
 }

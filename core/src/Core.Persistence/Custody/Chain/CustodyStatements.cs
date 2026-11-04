@@ -42,6 +42,8 @@ internal static class CustodyStatements
         CROSS JOIN LATERAL (SELECT sequence, occurred_at, reference FROM public.custody_event WHERE step = 'owner_window_opened' ORDER BY sequence DESC LIMIT 1) o
         WHERE l.step = 'owner_window_opened' OR l.reason = 'verification_failed'
         """;
+    /// <summary>The scope of every loss of a key declared: the reference of the steps that declare one.</summary>
+    internal const string ReadKeyLossScopes = "SELECT reference FROM public.custody_event WHERE item_kind = 'master_key' AND step = @step";
 
     internal const string Append = """
         INSERT INTO public.custody_event (actor_person_id, actor_system, item_kind, item_id, step, reason, corrects, reference)

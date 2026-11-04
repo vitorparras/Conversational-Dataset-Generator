@@ -27,12 +27,13 @@ public sealed class RestoreSource : IAsyncLifetime
             "INSERT INTO public.custody_event (actor_person_id, item_kind, item_id, step, reason) VALUES (1, 'person', 2, 'person_created', 'administrative_act')",
             "INSERT INTO public.custody_event (actor_person_id, item_kind, item_id, step, reason) VALUES (1, 'person', 2, 'person_deactivated', 'administrative_act')",
             "INSERT INTO public.custody_event (actor_system, item_kind, item_id, step, reason) VALUES (true, 'custody_chain', 3, 'verify_chain', 'verification_passed')");
-        _ = await world.InDomainAsync(1, "INSERT INTO content.item_text (domain_id, raw_text) VALUES (1, '\\x0102')");
-        _ = await world.InDomainAsync(1, "INSERT INTO content.reversal_map (domain_id, item_id, entries) VALUES (1, 1, '\\x03')");
-        _ = await world.InDomainAsync(2, "INSERT INTO content.item_text (domain_id, raw_text) VALUES (2, '\\x04')");
-        await world.RunAsOwnerAsync(
-            "INSERT INTO public.custody_event (actor_person_id, item_kind, item_id, step, reason, reference) VALUES (1, 'item_text', 2, 'item_emptied', 'removal_requested_by_subject', 'zqx-1')");
-        _ = await world.InDomainAsync(2, "UPDATE content.item_text SET emptied_at = clock_timestamp(), raw_text = NULL WHERE id = 2");
+        _ = await world.InDomainAsync(1, "INSERT INTO content.item_text (domain_id, raw_text, dek_epoch, dek_wrapped) VALUES (1, '\\x0102', 1, '\\x01')");
+        _ = await world.InDomainAsync(1, "INSERT INTO content.reversal_map (domain_id, item_id, entries, dek_epoch, dek_wrapped) VALUES (1, 1, '\\x03', 1, '\\x01')");
+        _ = await world.InDomainAsync(2, "INSERT INTO content.item_text (domain_id, raw_text, dek_epoch, dek_wrapped) VALUES (2, '\\x04', 1, '\\x01')");
+        _ = await world.InDomainAsync(
+            2,
+            "INSERT INTO public.custody_event (actor_person_id, item_kind, item_id, step, reason, reference) VALUES (1, 'item_text', 2, 'item_emptied', 'removal_requested_by_subject', 'zqx-1'); "
+            + "UPDATE content.item_text SET emptied_at = clock_timestamp(), raw_text = NULL, dek_epoch = NULL, dek_wrapped = NULL WHERE id = 2");
         await world.RunAsOwnerAsync(
             "INSERT INTO public.derivation_label (label) VALUES ('zqx-label/1/v1')",
             "INSERT INTO public.person_credential (person_id, algorithm, work_factor, salt, derived) VALUES (1, 'zqx-algorithm', 1, decode('00112233445566778899aabbccddeeff', 'hex'), '\x0102')",

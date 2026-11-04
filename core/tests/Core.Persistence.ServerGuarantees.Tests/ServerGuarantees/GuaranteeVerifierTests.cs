@@ -122,8 +122,8 @@ public sealed class GuaranteeVerifierTests
         await using var world = await FidelityWorld.CreateAsync();
         _ = await world.Writer.AddItemTextAsync(2, new NewItemText("texto bruto sintetico zqx", "texto sanitizado sintetico zqx"), token);
         await world.RunAsSuperuserAsync(
-            "INSERT INTO content.item_text (domain_id, raw_text, sanitized_text, pseudonymized_text) "
-            + "SELECT 1, raw_text, sanitized_text, pseudonymized_text FROM content.item_text WHERE domain_id = 2");
+            "INSERT INTO content.item_text (domain_id, raw_text, sanitized_text, pseudonymized_text, dek_epoch, dek_wrapped) "
+            + "SELECT 1, raw_text, sanitized_text, pseudonymized_text, dek_epoch, dek_wrapped FROM content.item_text WHERE domain_id = 2");
 
         var verification = await world.Verifier().VerifyAsync(token);
 

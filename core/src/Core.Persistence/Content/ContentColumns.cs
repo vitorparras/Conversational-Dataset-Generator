@@ -27,8 +27,14 @@ public static class ContentColumns
     /// <summary>What each pseudonym replaced.</summary>
     public static ProtectedColumn Entries { get; } = new(ReversalMap, "entries", LabelPurpose.ReversalMap);
 
+    /// <summary>The key of an item, random and wrapped under the key of the domain and the epoch; it seals the raw and the sanitized text, and is destroyed with them.</summary>
+    public static ProtectedColumn ItemKey { get; } = new(ItemText, "dek_wrapped", LabelPurpose.RawText);
+
+    /// <summary>The key of a map, as the key of an item is, for the entries.</summary>
+    public static ProtectedColumn MapKey { get; } = new(ReversalMap, "dek_wrapped", LabelPurpose.ReversalMap);
+
     /// <summary>The columns stored sealed.</summary>
-    public static IReadOnlyList<ProtectedColumn> Protected { get; } = [RawText, SanitizedText, Entries];
+    public static IReadOnlyList<ProtectedColumn> Protected { get; } = [RawText, SanitizedText, ItemKey, Entries, MapKey];
 
     /// <summary>The columns stored in clear: identifiers, the domain, dates and the pseudonymized text.</summary>
     public static IReadOnlyList<ClearColumn> Clear { get; } =
@@ -38,11 +44,13 @@ public static class ContentColumns
         new(ItemText, "recorded_at", ClearKind.Moment),
         new(ItemText, "emptied_at", ClearKind.Moment),
         new(ItemText, "pseudonymized_text", ClearKind.PseudonymizedText),
+        new(ItemText, "dek_epoch", ClearKind.Epoch),
         new(ReversalMap, "id", ClearKind.Identifier),
         new(ReversalMap, "domain_id", ClearKind.Domain),
         new(ReversalMap, "item_id", ClearKind.Identifier),
         new(ReversalMap, "recorded_at", ClearKind.Moment),
         new(ReversalMap, "emptied_at", ClearKind.Moment),
+        new(ReversalMap, "dek_epoch", ClearKind.Epoch),
         new(ItemEmptied, "id", ClearKind.Identifier),
         new(ItemEmptied, "domain_id", ClearKind.Domain),
         new(ItemEmptied, "item_id", ClearKind.Identifier),

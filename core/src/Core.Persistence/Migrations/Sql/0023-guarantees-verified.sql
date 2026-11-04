@@ -1,15 +1,16 @@
 -- The conference of the guarantees of the server is an event of the chain (#68): the step verify_guarantees about the chain, written by the system, with the reason verification_passed or
--- verification_failed. The item is the mask of the guarantees missing, in the closed list of GuaranteeKinds (bits 1 to 32); zero means none is. Only the checks change, from the lists of 0016.
+-- verification_failed. The item is the mask of the guarantees missing, in the closed list of GuaranteeKinds (bits 1 to 32); zero means none is. Only the checks change, from the lists of 0022.
 -- The last conference is found without reading the chain, as the last verification is (0013).
 ALTER TABLE public.custody_event
     DROP CONSTRAINT custody_event_step_listed,
     DROP CONSTRAINT custody_event_verification_shape,
     ADD CONSTRAINT custody_event_step_listed CHECK (step IN
         ('person_created', 'person_deactivated', 'person_function_changed', 'person_password_set', 'correction',
-         'raw_text_read', 'sanitized_text_read', 'reversal_entries_read', 'verify_chain', 'item_emptied', 'item_emptying_refused', 'verify_guarantees')),
+         'raw_text_read', 'sanitized_text_read', 'reversal_entries_read', 'verify_chain', 'item_emptied', 'item_emptying_refused', 'epoch_rotated',
+         'domain_created', 'seal_recorded', 'domain_label_rotated', 'key_loss_declared', 'verify_guarantees')),
     -- The verdict is the mask: passed when nothing is missing, failed when something is, and a conference corrects no event.
     ADD CONSTRAINT custody_event_verification_shape CHECK (
-        (step IN ('verify_chain', 'verify_guarantees')) = (item_kind = 'custody_chain')
+        (step IN ('verify_chain', 'seal_recorded', 'verify_guarantees')) = (item_kind = 'custody_chain')
         AND (step IN ('verify_chain', 'verify_guarantees')) = (reason IN ('verification_passed', 'verification_failed'))
         AND (step NOT IN ('verify_chain', 'verify_guarantees') OR actor_system)
         AND (step <> 'verify_guarantees' OR (corrects IS NULL AND item_id BETWEEN 0 AND 63 AND (reason = 'verification_passed') = (item_id = 0))));

@@ -44,4 +44,22 @@ public enum CustodyStep
 
     /// <summary>The window of the owner credential was closed by the application at its start; the reason says whether the chain and the guarantees held.</summary>
     OwnerWindowClosed,
+
+    /// <summary>The keys of the content were wrapped again under a newer epoch; the item is that epoch.</summary>
+    EpochRotated,
+
+    /// <summary>A domain was created, with the keys of its two purposes named in the custody; the item is the domain.</summary>
+    DomainCreated,
+
+    /// <summary>The seal of the chain was recorded: the item is the chain, its id is the sequence of the event sealed, which is also the number of events the seal counts.</summary>
+    SealRecorded,
+
+    /// <summary>A domain passed to write under the next generation of its labels; the item is the domain and the reference is the generation.</summary>
+    DomainLabelRotated,
+
+    /// <summary>
+    /// The loss of the master key, or of one label, was declared by whoever operates: the item is the key, its id is what was tried, and the reference is the scope.
+    /// There is no way back.
+    /// </summary>
+    KeyLossDeclared,
 }

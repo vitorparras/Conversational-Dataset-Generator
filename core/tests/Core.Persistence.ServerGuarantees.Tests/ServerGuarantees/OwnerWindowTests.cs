@@ -16,7 +16,7 @@ namespace Core.Persistence.Tests.ServerGuarantees;
 [Trait("Category", "Database")]
 public sealed class OwnerWindowTests
 {
-    private const string OwnerWindowStep = "0018-owner-window";
+    private const string OwnerWindowStep = "0024-owner-window";
 
     private const string ClosedPointsAtTheEventsBefore =
         "SELECT (c.reference = format('opened=%s;applied=%s;chain=%s;conference=%s', o.sequence, (SELECT max(version) FROM public.schema_version), "

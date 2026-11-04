@@ -162,16 +162,30 @@ public sealed class ProtectedContentTests
         using var sealing = content.Begin(ContentColumns.ItemKey, 7);
 
         Assert.Equal(
-            ["loaded", "keys", "column", "column", "text", "column", "key"],
+            ["loaded", "keys", "registered", "column", "column", "text", "column", "key"],
             [
-                Assert.Throws<ArgumentNullException>(() => new ProtectedContent(null!, keys)).ParamName,
-                Assert.Throws<ArgumentNullException>(() => new ProtectedContent(labels, null!)).ParamName,
+                Assert.Throws<ArgumentNullException>(() => new ProtectedContent(null!, keys, new HashSet<string>())).ParamName,
+                Assert.Throws<ArgumentNullException>(() => new ProtectedContent(labels, null!, new HashSet<string>())).ParamName,
+                Assert.Throws<ArgumentNullException>(() => new ProtectedContent(labels, keys, null!)).ParamName,
                 Assert.Throws<ArgumentNullException>(() => content.Begin(null!, 7)).ParamName,
                 Assert.Throws<ArgumentNullException>(() => sealing.Seal(null!, Text)).ParamName,
                 Assert.Throws<ArgumentNullException>(() => sealing.Seal(ContentColumns.RawText, null!)).ParamName,
                 Assert.Throws<ArgumentNullException>(() => content.Open(null!, 7, [], Unused)).ParamName,
                 Assert.Throws<ArgumentNullException>(() => content.Open(ContentColumns.RawText, 7, [], null!)).ParamName,
             ]);
+    }
+
+    [Fact]
+    public void KeyDrawnForAnotherPurposeIsRefusedNamingTheColumn()
+    {
+        using var custody = SyntheticCustody.Holding("texto-bruto/7/v1", "mapa-reversao/7/v1");
+        using var sealing = custody.Content.Begin(ContentColumns.ItemKey, 7);
+
+        var refused = Assert.Throws<ArgumentException>(() => sealing.Seal(ContentColumns.Entries, Text));
+
+        Assert.Equal(
+            ("column", "The key of the row was not drawn for the purpose of the column. (Parameter 'column')"),
+            (refused.ParamName, refused.Message));
     }
 
     [Fact]

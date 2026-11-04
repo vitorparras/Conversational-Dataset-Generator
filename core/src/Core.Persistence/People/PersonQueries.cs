@@ -66,6 +66,8 @@ internal static class PersonQueries
         }
     }
 
+    internal static void AddActor(NpgsqlCommand command, long? actor) => Add(command, "actor", NpgsqlDbType.Bigint, actor);
+
     internal static async Task<bool?> ReadActiveAsync(this NpgsqlDataSource dataSource, long personId, CancellationToken cancellationToken)
     {
         var command = dataSource.CreateCommand(PersonStatements.IsActive);

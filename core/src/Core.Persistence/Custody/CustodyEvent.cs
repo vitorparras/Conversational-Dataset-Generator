@@ -5,9 +5,11 @@ namespace Core.Persistence.Custody;
 /// <summary>One event to add to the chain: who, about which item, which step and which reason, and the earlier event it corrects when it is a correction.</summary>
 public sealed record CustodyEvent
 {
+    private const int FirstRotation = 2;
+
     private static readonly FrozenSet<CustodyStep> OfTheirOwn = Enumerable.Repeat(CustodyStep.Correction, 1)
         .Append(CustodyStep.VerifyChain).Append(CustodyStep.ItemEmptied).Append(CustodyStep.ItemEmptyingRefused).Append(CustodyStep.EpochRotated).Append(CustodyStep.DomainCreated)
-        .Append(CustodyStep.SealRecorded).ToFrozenSet();
+        .Append(CustodyStep.SealRecorded).Append(CustodyStep.DomainLabelRotated).ToFrozenSet();
 
     private CustodyEvent(CustodyAuthor author, CustodyItem item, CustodyStep step, CustodyReason reason)
     {
@@ -47,7 +49,7 @@ public sealed record CustodyEvent
         return HasEventOfItsOwn(step)
             ? throw new ArgumentException(
                 "A correction, a verification, an emptying, a rotation, the creation of a domain and a seal have an event of their own; "
-                + "use Correction, Verification, Emptied, EmptyingRefused, EpochRotated, DomainCreated or SealRecorded.", nameof(step))
+                + "use Correction, Verification, Emptied, EmptyingRefused, EpochRotated, DomainCreated, SealRecorded or DomainLabelRotated.", nameof(step))
             : new CustodyEvent(author, item, step, reason);
     }
 
@@ -122,6 +124,14 @@ public sealed record CustodyEvent
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(domainId);
         return new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.Domain, domainId), CustodyStep.DomainCreated, CustodyReason.AdministrativeAct);
+    }
+
+    /// <summary>The event of a domain that passed to write under the next generation of its labels, by the system; the reference is the generation, as <c>v2</c>.</summary>
+    public static CustodyEvent DomainLabelRotated(int domainId, int version)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(domainId);
+        ArgumentOutOfRangeException.ThrowIfLessThan(version, FirstRotation);
+        return new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.Domain, domainId), CustodyStep.DomainLabelRotated, CustodyReason.AdministrativeAct) { Reference = $"v{version}" };
     }
 
     /// <summary>The event of a seal recorded: the item is the chain, its id is the sequence of the event sealed, and the digest of that event is read from the chain and is not in this one.</summary>

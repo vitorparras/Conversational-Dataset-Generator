@@ -15,20 +15,10 @@ public sealed class SealDelivery : IDisposable
     private readonly HttpClient client;
     private readonly Uri destination;
 
-    /// <summary>The delivery the host uses: to an https address, through the handler of <see cref="Handler" />.</summary>
-    /// <param name="destination">An https address.</param>
-    public SealDelivery(Uri destination)
-        : this(destination, Handler())
-    {
-    }
-
     /// <summary>The delivery over the handler given, which a test replaces and the host does not.</summary>
-    /// <param name="destination">An https address.</param>
-    /// <param name="handler">The handler the requests go through.</param>
     internal SealDelivery(Uri destination, HttpMessageHandler handler)
     {
         ArgumentNullException.ThrowIfNull(destination);
-        ArgumentNullException.ThrowIfNull(handler);
         if (destination.Scheme != Uri.UriSchemeHttps)
         {
             throw new ArgumentException("the seal leaves only over https", nameof(destination));
@@ -36,6 +26,23 @@ public sealed class SealDelivery : IDisposable
 
         this.destination = destination;
         client = new HttpClient(handler) { Timeout = Limit };
+    }
+
+    /// <summary>The delivery the host uses, to an https address, through the handler of <see cref="Handler" />, which an address that is refused does not leave behind.</summary>
+    public static SealDelivery To(Uri destination)
+    {
+        SocketsHttpHandler? handler = null;
+        try
+        {
+            handler = Handler();
+            var delivery = new SealDelivery(destination, handler);
+            handler = null;
+            return delivery;
+        }
+        finally
+        {
+            handler?.Dispose();
+        }
     }
 
     /// <summary>The handler the host sends with: no redirect is followed, the connection has a time limit shorter than the request's and the certificate is judged by the default validation.</summary>
@@ -63,7 +70,7 @@ public sealed class SealDelivery : IDisposable
         }
     }
 
-    private static SealDeliveryFailure FailureOf(HttpRequestException failure) => failure.InnerException switch
+    private static SealDeliveryFailure FailureOf(Exception failure) => failure.InnerException switch
     {
         AuthenticationException => SealDeliveryFailure.CertificateRejected,
         TimeoutException => SealDeliveryFailure.TimedOut,

@@ -246,12 +246,13 @@ do último selo registrado (`lastSeal`, nula quando não há nenhum). Na
 situação `Manual`, `GET /custody/seal` emite o selo do topo, sem gravar nada, e
 `POST /custody/seal/confirmation` grava o selo que quem opera guardou, em nome da pessoa da sessão,
 se a cadeia tiver aquele evento com aquele resumo; senão, 409 com o motivo e nada gravado. Nos dois
-`POST` com selo, corpo acima de 1 KiB recebe 413. A verificação traz `warning` quando não há selo ou
-o último tem mais de 7 dias, e o `/status` traz só esse aviso (`sealWarning`), sem a data nem o selo.
+`POST` com selo, corpo acima de 1 KiB recebe 413 sem ser lido. A verificação traz `warning` quando
+não há selo ou o último tem mais de 7 dias, e o `/status` traz só esse aviso (`sealWarning`), sem a
+data nem o selo.
 
 No `External` e no `Internal`, o núcleo envia o selo ao destino uma vez por dia, por `https` com a
 validação padrão do certificado, sem seguir redirecionamento e com 30 s de limite, e só depois do
-envio grava o evento `seal_recorded`, que aponta o selo que foi enviado, ainda que a cadeia tenha
+envio grava o evento `SealRecorded`, que aponta o selo que foi enviado, ainda que a cadeia tenha
 crescido entre o envio e a gravação. Se o envio falha (rede, certificado, resposta que não seja 2xx
 ou tempo esgotado), nada é gravado, o log diz o motivo e a contagem do selo, nunca o selo, e a
 próxima tentativa vem no intervalo seguinte. Ao subir, o núcleo espera o que resta do dia desde o

@@ -14,5 +14,5 @@ public sealed record SealDeliveryResult(SealDeliveryFailure Failure, int Status)
     /// <summary>The seal did not arrive, for the reason given.</summary>
     /// <param name="failure">The reason.</param>
     /// <param name="status">The status the destination answered with, if it did.</param>
-    public static SealDeliveryResult Failed(SealDeliveryFailure failure, int status = 0) => new(failure, status);
+    internal static SealDeliveryResult Failed(SealDeliveryFailure failure, int status = 0) => new(failure, status);
 }

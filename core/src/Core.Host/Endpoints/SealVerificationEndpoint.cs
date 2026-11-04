@@ -6,11 +6,14 @@ namespace Core.Host.Endpoints;
 
 /// <summary>
 /// Verifies the chain of custody against the seal whoever operates brings, in its form in text, and says what that verification protects in the situation the installation declared.
-/// A text that is not a seal is refused with 400 and the reason before anything runs. A route of a live session, like the reading of the last verification.
+/// A text that is not a seal is refused with 400, and a body above 1 KiB with 413, before anything runs. A route of a live session, like the reading of the last verification.
 /// </summary>
 internal static class SealVerificationEndpoint
 {
-    internal static void Map(IEndpointRouteBuilder endpoints) => _ = endpoints.MapPost(ChainVerificationEndpoint.Route, VerifyAsync);
+    private const long BodyLimitInBytes = 1024;
+
+    internal static void Map(IEndpointRouteBuilder endpoints) =>
+        _ = endpoints.MapPost(ChainVerificationEndpoint.Route, VerifyAsync).WithMetadata(new RequestSizeLimitAttribute(BodyLimitInBytes));
 
     /// <summary>With no database declared, or one that cannot be read, the answer is 503: the chain was not compared with anything.</summary>
     private static async Task<IResult> VerifyAsync(

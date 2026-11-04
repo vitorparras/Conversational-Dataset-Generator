@@ -48,6 +48,21 @@ public enum ExitCode
     /// <summary>The creation of a domain could not talk to the database and wrote nothing.</summary>
     DomainCreationFailed = 26,
 
+    /// <summary>The rotation of a domain label was refused and nothing was written: the domain is not accepted, or the label file could not be read.</summary>
+    DomainLabelRefused = 24,
+
+    /// <summary>The database did not answer the rotation of a domain label, and nothing was written.</summary>
+    DomainLabelFailed = 25,
+
     /// <summary>The comparison of the server's audit log with the chain found a difference that is new.</summary>
     AuditDifferent = 20,
+
+    /// <summary>The creation of the first person refused and wrote nothing: the registry already holds someone.</summary>
+    PersonRegistryNotEmpty = 21,
+
+    /// <summary>The creation of the first person refused and wrote nothing, for another reason: a field is not accepted, the credential is the owner one, or the chain refused.</summary>
+    PersonCreationRefused = 22,
+
+    /// <summary>The creation of the first person could not talk to the database, or stopped between the person and the password.</summary>
+    PersonCreationFailed = 23,
 }

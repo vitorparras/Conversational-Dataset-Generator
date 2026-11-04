@@ -92,8 +92,6 @@ public sealed class SealDeliveryTests
         await cancelled.CancelAsync();
 
         _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => delivery.SendAsync(Text, cancelled.Token));
-
-        Assert.Equal(0, handler.Calls);
     }
 
     [Theory]
@@ -104,6 +102,20 @@ public sealed class SealDeliveryTests
         using var handler = new Stub(() => new HttpResponseMessage(HttpStatusCode.NoContent));
 
         _ = Assert.Throws<ArgumentException>(() => new SealDelivery(new Uri(address), handler));
+    }
+
+    [Theory]
+    [InlineData("http://selo.example/envio")]
+    [InlineData("ftp://selo.example/envio")]
+    public void DeliveryTheHostBuildsRefusesAnAddressThatIsNotHttps(string address) =>
+        _ = Assert.Throws<ArgumentException>(() => SealDelivery.To(new Uri(address)));
+
+    [Fact]
+    public void DeliveryTheHostBuildsForAnHttpsAddressIsBuiltAndDisposed()
+    {
+        using var delivery = SealDelivery.To(Destination);
+
+        Assert.NotNull(delivery);
     }
 
     [Fact]

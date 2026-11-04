@@ -43,7 +43,7 @@ public sealed class CopyDataModeTests
     [Fact]
     public async Task FolderThatHoldsSomethingRefusesBeforeTouchingTheDatabaseAndNeverPrintsTheCredential()
     {
-        var folder = Path.Combine(Path.GetTempPath(), "zqx-copy-" + Guid.NewGuid().ToString("N"));
+        var folder = Path.Combine(Path.GetTempPath(), "zqx-copy-" + Guid.NewGuid().ToString("N", System.Globalization.CultureInfo.InvariantCulture));
         _ = Directory.CreateDirectory(folder);
         await File.WriteAllTextAsync(Path.Combine(folder, "other.txt"), "zqx", TestContext.Current.CancellationToken);
         try

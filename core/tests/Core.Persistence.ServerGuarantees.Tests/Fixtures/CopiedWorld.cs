@@ -40,7 +40,7 @@ internal sealed class CopiedWorld : IAsyncDisposable
             "INSERT INTO public.custody_event (actor_person_id, item_kind, item_id, step, reason) VALUES (1, 'person', 2, 'person_created', 'administrative_act')");
         var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Marker, "texto sanitizado sintetico zqx"), TestContext.Current.CancellationToken);
         _ = await world.Writer.AddReversalMapAsync(1, item, "mapa sintetico zqx", TestContext.Current.CancellationToken);
-        var folder = Path.Combine(Path.GetTempPath(), "zqx-copy-" + Guid.NewGuid().ToString("N"));
+        var folder = Path.Combine(Path.GetTempPath(), "zqx-copy-" + Guid.NewGuid().ToString("N", System.Globalization.CultureInfo.InvariantCulture));
         await using var owner = NpgsqlDataSource.Create(world.OwnerConnectionString);
         var result = await new DataCopy(owner, TimeProvider.System) { AfterTable = table => betweenTables is null ? Task.CompletedTask : betweenTables(world, table) }
             .WriteAsync(folder, Configuration, TestContext.Current.CancellationToken);

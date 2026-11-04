@@ -116,7 +116,7 @@ public sealed class DataCopyTests
     public async Task FolderThatCannotBeMadeLeavesNoSealInTheChain()
     {
         await using var world = await FidelityWorld.CreateAsync();
-        var file = Path.Combine(Path.GetTempPath(), "zqx-copy-" + Guid.NewGuid().ToString("N"));
+        var file = Path.Combine(Path.GetTempPath(), "zqx-copy-" + Guid.NewGuid().ToString("N", System.Globalization.CultureInfo.InvariantCulture));
         await File.WriteAllTextAsync(file, "zqx", TestContext.Current.CancellationToken);
         await using var owner = NpgsqlDataSource.Create(world.OwnerConnectionString);
         try
@@ -136,7 +136,7 @@ public sealed class DataCopyTests
     public async Task FolderThatHoldsSomethingIsRefusedAndNeitherTheSealNorARowIsWritten()
     {
         await using var world = await FidelityWorld.CreateAsync();
-        var folder = Path.Combine(Path.GetTempPath(), "zqx-copy-" + Guid.NewGuid().ToString("N"));
+        var folder = Path.Combine(Path.GetTempPath(), "zqx-copy-" + Guid.NewGuid().ToString("N", System.Globalization.CultureInfo.InvariantCulture));
         _ = Directory.CreateDirectory(folder);
         await File.WriteAllTextAsync(Path.Combine(folder, "other.txt"), "zqx", TestContext.Current.CancellationToken);
         await using var owner = NpgsqlDataSource.Create(world.OwnerConnectionString);

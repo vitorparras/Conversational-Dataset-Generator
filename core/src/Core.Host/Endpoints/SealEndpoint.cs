@@ -66,10 +66,6 @@ internal static class SealEndpoint
                 ? Results.Conflict(new SealRefused("seal", recording.Recorded.Outcome.ToString(), recording.Recorded.Refusal!))
                 : Results.Ok(new SealConfirmed(recording.Recorded.Sequence!.Value, seal.Events, seal.SealedAt));
         }
-        catch (SealDoesNotMatchException mismatch)
-        {
-            return Results.Conflict(new SealRefused("seal", nameof(SealDoesNotMatchException), mismatch.Message));
-        }
         catch (NpgsqlException unreadable)
         {
             return Unavailable(loggers, unreadable);

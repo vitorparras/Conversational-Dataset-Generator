@@ -115,6 +115,27 @@ public sealed class SealVerificationHostTests
         Assert.Contains(moment, with, StringComparison.Ordinal);
     }
 
+    [DatabaseTheory]
+    [InlineData("External")]
+    [InlineData("Internal")]
+    public async Task TheReadingOfTheLastVerificationSaysNoLastSealWithoutOneAndThenTheMomentOfTheRecordInTheSituationsThatSendTheSeal(string situation)
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var host = await StartedAsync(Declaring(situation), cancellationToken);
+        var without = await ReadAsync(host, cancellationToken);
+
+        await host.RunAsSuperuserAsync(
+            "INSERT INTO public.custody_event (actor_system, item_kind, item_id, step, reason) "
+            + "SELECT true, 'custody_chain', max(sequence), 'seal_recorded', 'administrative_act' FROM public.custody_event",
+            cancellationToken);
+        var moment = await host.TextAsSuperuserAsync(
+            "SELECT to_char(occurred_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS') FROM public.custody_event WHERE step = 'seal_recorded'", cancellationToken);
+        var with = await ReadAsync(host, cancellationToken);
+
+        Assert.Equal(JsonValueKind.Null, without.GetProperty("lastSeal").ValueKind);
+        Assert.StartsWith(moment, with.GetProperty("lastSeal").GetString(), StringComparison.Ordinal);
+    }
+
     [DatabaseFact]
     public async Task Ca5ASealThatDoesNotMatchIsNeverToldInTheProtectionAsAChainThatMatchesIt()
     {

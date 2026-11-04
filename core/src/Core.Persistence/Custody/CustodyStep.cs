@@ -71,4 +71,7 @@ public enum CustodyStep
 
     /// <summary>The guarantees of the server were conferred; the reason says whether every one held, and the item says which did not.</summary>
     VerifyGuarantees,
+
+    /// <summary>A label of a domain was revoked, so that it encrypts nothing new and still decrypts; the item is the domain and the reference is the label.</summary>
+    DomainLabelRevoked,
 }

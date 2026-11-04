@@ -11,7 +11,7 @@ public sealed record CustodyEvent
         .Append(CustodyStep.VerifyChain).Append(CustodyStep.ItemEmptied).Append(CustodyStep.ItemEmptyingRefused).Append(CustodyStep.EpochRotated).Append(CustodyStep.DomainCreated)
         .Append(CustodyStep.SealRecorded).Append(CustodyStep.DomainLabelRotated)
         .Append(CustodyStep.SignInAccepted).Append(CustodyStep.SignInRefused).Append(CustodyStep.KeyLossDeclared).Append(CustodyStep.RecoveryTested)
-        .Append(CustodyStep.VerifyGuarantees).ToFrozenSet();
+        .Append(CustodyStep.VerifyGuarantees).Append(CustodyStep.DomainLabelRevoked).ToFrozenSet();
 
     private CustodyEvent(CustodyAuthor author, CustodyItem item, CustodyStep step, CustodyReason reason)
     {
@@ -135,6 +135,16 @@ public sealed record CustodyEvent
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(domainId);
         ArgumentOutOfRangeException.ThrowIfLessThan(version, FirstRotation);
         return new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.Domain, domainId), CustodyStep.DomainLabelRotated, CustodyReason.AdministrativeAct) { Reference = $"v{version}" };
+    }
+
+    /// <summary>The event of a label revoked, by the system; the item is the domain and the reference is the label, which names the purpose, the domain and the generation and nothing else.</summary>
+    /// <param name="domainId">The domain the label belongs to.</param>
+    /// <param name="label">The text of the label revoked.</param>
+    public static CustodyEvent DomainLabelRevoked(int domainId, string label)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(domainId);
+        ArgumentException.ThrowIfNullOrEmpty(label);
+        return WithReference(new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.Domain, domainId), CustodyStep.DomainLabelRevoked, CustodyReason.AdministrativeAct), label);
     }
 
     /// <summary>The event of a seal recorded: the item is the chain, its id is the sequence of the event sealed, and the digest of that event is read from the chain and is not in this one.</summary>

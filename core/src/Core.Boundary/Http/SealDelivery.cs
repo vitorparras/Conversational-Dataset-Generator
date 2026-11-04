@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Security.Authentication;
 using System.Text;
 
@@ -16,17 +15,7 @@ public sealed class SealDelivery : IDisposable
     private readonly HttpClient client;
     private readonly Uri destination;
 
-    /// <summary>The delivery the host uses: to an https address, through the handler of <see cref="Handler" />.</summary>
-    /// <param name="destination">An https address.</param>
-    [SuppressMessage("Reliability", "CA2000", Justification = "The client the delivery disposes owns the handler; it is lost only when the address is refused, and the host then does not start.")]
-    public SealDelivery(Uri destination)
-        : this(destination, Handler())
-    {
-    }
-
     /// <summary>The delivery over the handler given, which a test replaces and the host does not.</summary>
-    /// <param name="destination">An https address.</param>
-    /// <param name="handler">The handler the requests go through.</param>
     internal SealDelivery(Uri destination, HttpMessageHandler handler)
     {
         ArgumentNullException.ThrowIfNull(destination);
@@ -38,6 +27,24 @@ public sealed class SealDelivery : IDisposable
 
         this.destination = destination;
         client = new HttpClient(handler) { Timeout = Limit };
+    }
+
+    /// <summary>The delivery the host uses, to an https address, through the handler of <see cref="Handler" />, which an address that is refused does not leave behind.</summary>
+    /// <param name="destination">An https address.</param>
+    public static SealDelivery To(Uri destination)
+    {
+        SocketsHttpHandler? handler = null;
+        try
+        {
+            handler = Handler();
+            var delivery = new SealDelivery(destination, handler);
+            handler = null;
+            return delivery;
+        }
+        finally
+        {
+            handler?.Dispose();
+        }
     }
 
     /// <summary>The handler the host sends with: no redirect is followed, the connection has a time limit shorter than the request's and the certificate is judged by the default validation.</summary>

@@ -15,7 +15,10 @@ internal sealed class CopyFolder : IDisposable
 
     private static readonly Dictionary<string, string> Keys = new() { ["public.person_credential"] = "person_id", ["public.derivation_label"] = "label", ["public.custody_event"] = "sequence" };
 
-    private CopyFolder(string path) => Path = path;
+    private CopyFolder(string path)
+    {
+        Path = path;
+    }
 
     public string Path { get; }
 
@@ -24,12 +27,12 @@ internal sealed class CopyFolder : IDisposable
 
     public static async Task<CopyFolder> OfAsync(FidelityWorld source)
     {
-        var copy = new CopyFolder(System.IO.Path.Combine(System.IO.Path.GetTempPath(), "zqx-copy-" + Guid.NewGuid().ToString("N")));
+        var copy = new CopyFolder(System.IO.Path.Combine(System.IO.Path.GetTempPath(), "zqx-copy-" + Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture)));
         _ = Directory.CreateDirectory(copy.Path);
         foreach (var table in Tables)
         {
             var rows = table.StartsWith("content.", StringComparison.Ordinal) ? await ContentRowsAsync(source, table) : await OwnerRowsAsync(source, table);
-            File.WriteAllLines(copy.FileOf(table), JsonNode.Parse(rows)!.AsArray().Select(row => row!.ToJsonString()));
+            await File.WriteAllLinesAsync(copy.FileOf(table), JsonNode.Parse(rows)!.AsArray().Select(row => row!.ToJsonString()), TestContext.Current.CancellationToken);
         }
 
         var version = Assert.Single(await source.OwnerColumnAsync("SELECT max(version)::text FROM public.schema_version"));

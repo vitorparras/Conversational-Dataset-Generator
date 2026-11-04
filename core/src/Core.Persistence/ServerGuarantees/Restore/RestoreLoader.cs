@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using Core.Persistence.Custody;
@@ -13,23 +12,16 @@ namespace Core.Persistence.ServerGuarantees.Restore;
 public sealed class RestoreLoader
 {
     private const string Chain = "public.custody_event";
-    private const string Tip = "SELECT sequence || ':' || encode(digest, 'hex') FROM public.custody_event ORDER BY sequence DESC LIMIT 1";
+    private const string Tip = "SELECT sequence || ':' || pg_catalog.encode(digest, 'hex') FROM public.custody_event ORDER BY sequence DESC LIMIT 1";
     private const string Version = "SELECT coalesce(pg_catalog.max(version), 0) FROM public.schema_version";
 
     /// <summary>The tables in the order they come back: the keys, the people and their sign-in attempts, the chain, then the content (the maps after the texts, the emptied after both).</summary>
-    private static readonly ImmutableArray<string> Tables = InOrder();
+    private static readonly IEnumerable<string> Tables = Enumerable.Repeat("public.domain", 1).Append("public.derivation_label").Append("public.person").Append("public.person_credential")
+        .Append("public.person_change").Append("public.sign_in_attempt").Append(Chain).Append("content.item_text").Append("content.reversal_map").Append("content.item_emptied");
 
     private readonly NpgsqlDataSource dataSource;
     private readonly GuaranteeVerifier guarantees;
     private readonly TimeProvider time;
-
-    private static ImmutableArray<string> InOrder()
-    {
-        var tables = ImmutableArray.CreateBuilder<string>();
-        tables.AddRange("public.domain", "public.derivation_label", "public.person", "public.person_credential", "public.person_change", "public.sign_in_attempt");
-        tables.AddRange(Chain, "content.item_text", "content.reversal_map", "content.item_emptied");
-        return tables.ToImmutable();
-    }
 
     /// <summary>The load runs through the data source built with the application's credential and confers the guarantees with the verifier it is given.</summary>
     public RestoreLoader(NpgsqlDataSource dataSource, GuaranteeVerifier guarantees, TimeProvider time)
@@ -43,14 +35,19 @@ public sealed class RestoreLoader
     }
 
     /// <summary>Loads the copy and concludes; it never repairs anything.</summary>
-    public async Task<RestoreResult> LoadAsync(RestoreCopy copy, RestoreTip tip, CancellationToken cancellationToken)
+    public Task<RestoreResult> LoadAsync(RestoreCopy copy, RestoreTip tip, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(copy);
         ArgumentNullException.ThrowIfNull(tip);
+        return LoadingAsync(copy, tip, cancellationToken);
+    }
+
+    private async Task<RestoreResult> LoadingAsync(RestoreCopy copy, RestoreTip tip, CancellationToken cancellationToken)
+    {
         var version = Convert.ToInt32(await ScalarAsync(Version, cancellationToken).ConfigureAwait(false), CultureInfo.InvariantCulture);
         if (copy.SchemaVersion != version || !Tables.All(copy.Has))
         {
-            return new RestoreResult(RestoreOutcome.CopyRefused, $"a cópia: versão {copy.SchemaVersion}, {Tables.Count(copy.Has)} das {Tables.Length} tabelas; o banco: versão {version}");
+            return new RestoreResult(RestoreOutcome.CopyRefused, $"a cópia: versão {copy.SchemaVersion}, {Tables.Count(copy.Has)} das {Tables.Count()} tabelas; o banco: versão {version}");
         }
 
         if (await RefusalOfOpeningAsync(cancellationToken).ConfigureAwait(false) is { } refusal)

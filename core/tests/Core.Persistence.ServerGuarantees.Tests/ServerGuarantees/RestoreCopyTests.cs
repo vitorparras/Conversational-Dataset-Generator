@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Nodes;
@@ -9,7 +10,7 @@ namespace Core.Persistence.Tests.ServerGuarantees;
 public sealed class RestoreCopyTests : IDisposable
 {
     private const string Table = "public.domain";
-    private readonly string folder = Path.Combine(Path.GetTempPath(), "zqx-copy-" + Guid.NewGuid().ToString("N"));
+    private readonly string folder = Path.Combine(Path.GetTempPath(), "zqx-copy-" + Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture));
 
     public RestoreCopyTests()
     {

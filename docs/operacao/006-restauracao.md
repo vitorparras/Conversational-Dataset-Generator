@@ -32,10 +32,10 @@ versão correspondente. Abra a janela antes de começar: quem restaura, de qual 
 7. Só então libere a escrita, e feche a janela com o resultado
 
 O `restore-load <pasta> <sequência> <digest>` faz o 1, o 2, o 3 e o 5 em banco novo, com a
-credencial da aplicação e sem a chave mestra; sequência e digest são o topo anotado fora. Sai
-com 0 só se tudo fechou, grava o evento `restored` e, se algo recusar, diz qual versão, tabela ou
-evento divergiu, sem valor algum. A janela fecha "aprovada" quando o topo confere. Banco recusado
-se descarta e se refaz com `migrate`. Os passos 4, 6 e 7 seguem sendo seus.
+credencial da aplicação e sem a chave mestra; sequência e digest são o topo anotado fora. Sai com
+0 só se tudo fechou, grava o evento `restored` e, se algo recusar, diz qual versão, tabela ou evento
+divergiu, sem valor algum. Banco recusado se refaz com `migrate`. A amostra cifrada, que decifra,
+fica para a primeira partida, com a chave do host. Os passos 4, 6 e 7 são seus.
 
 ## O que nunca se faz
 
@@ -46,15 +46,13 @@ ligação que não fechou. Qualquer uma das três produz cadeia válida e falsa.
 
 A [política de acesso](../privacidade/006-acesso.md) não concede conteúdo à administração técnica, e
 restaurar é trabalho dela. Todas as conferências acima se fazem sobre estrutura, contagem e resumo:
-nenhuma exige abrir texto. A amostra cifrada, que decifra, vai na primeira rodada da verificação
-depois da partida, com a chave do host. Procedimento que precise ler material para validar
-restauração está pedindo acesso que a política nega.
+nenhuma exige abrir texto. Procedimento que precise ler material para validar restauração está
+pedindo acesso que a política nega.
 
 ## A restauração é um evento
 
 Ela não desaparece depois de dar certo: um evento novo declara o que foi restaurado, de qual cópia,
 o veredito e qual era o topo antes e depois. Janela aprovada não é restauração aprovada: vale o
-`restored`. Restauração silenciosa deixa na sequência um salto que a próxima verificação
-encontra sem explicação — e trata como incidente, corretamente.
+`restored`. Restauração silenciosa deixa um salto que a próxima verificação trata como incidente.
 
 Se a cadeia não fechar, pare aqui e siga [009](009-incidente-cadeia-quebrada.md).

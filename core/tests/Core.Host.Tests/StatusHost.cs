@@ -47,6 +47,7 @@ internal sealed class StatusHost : IAsyncDisposable
         _ = builder.Services.AddSingleton(wiring.Installation);
         var comparison = new AuditComparisonState();
         _ = builder.Services.AddSingleton(comparison);
+        _ = builder.Services.AddSingleton<SealWarningState>();
         var app = builder.Build();
         StatusEndpoint.Map(app, wiring.Recognizer);
         await app.StartAsync(cancellationToken);

@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 
 namespace Core.Host.Endpoints;
@@ -14,9 +13,9 @@ internal static class ChainVerificationEndpoint
     internal static void Map(IEndpointRouteBuilder endpoints) => _ = endpoints.MapGet(Route, ShowAsync);
 
     /// <summary>With no database declared there is no chain to read, and one that cannot be read answers 503, with the type of the failure in the host's log.</summary>
-    private static async Task<IResult> ShowAsync(
-        [FromServices] ChainVerificationService verification, [FromServices] SealDeclaration declared, [FromServices] ILoggerFactory loggers, CancellationToken cancellationToken)
+    private static async Task<IResult> ShowAsync([AsParameters] ChainSources sources, CancellationToken cancellationToken)
     {
+        var (verification, declared, _, time, loggers) = sources;
         if (verification.Reader is not { } reader)
         {
             return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
@@ -27,7 +26,8 @@ internal static class ChainVerificationEndpoint
             var last = await reader.LastAsync(cancellationToken);
             var lastSeal = await LastSealAsync(verification, cancellationToken);
             var protection = SealProtection.Of(declared.Situation, lastSeal);
-            return Results.Ok(new ChainVerificationShown(last, verification.Schedule.Interval, verification.IsOverdue(last?.RecordedAt), declared.Situation.ToString(), protection, lastSeal));
+            var warning = SealAge.Warning(declared.Situation, lastSeal, time.GetUtcNow());
+            return Results.Ok(new ChainVerificationShown(last, verification.Schedule.Interval, verification.IsOverdue(last?.RecordedAt), declared.Situation.ToString(), protection, lastSeal, warning));
         }
         catch (Exception unreadable) when (unreadable is NpgsqlException or InvalidOperationException or TimeoutException)
         {

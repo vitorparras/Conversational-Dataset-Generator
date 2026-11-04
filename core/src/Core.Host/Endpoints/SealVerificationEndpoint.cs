@@ -1,5 +1,6 @@
 using Core.Persistence.Custody.Verification;
 using Microsoft.AspNetCore.Mvc;
+using Npgsql;
 
 namespace Core.Host.Endpoints;
 
@@ -15,9 +16,9 @@ internal static class SealVerificationEndpoint
         _ = endpoints.MapPost(ChainVerificationEndpoint.Route, VerifyAsync).WithMetadata(new RequestSizeLimitAttribute(BodyLimitInBytes));
 
     /// <summary>With no database declared, or one that cannot be read, the answer is 503: the chain was not compared with anything.</summary>
-    private static async Task<IResult> VerifyAsync(
-        [FromBody] SealAsked asked, [FromServices] ChainVerificationService verification, [FromServices] SealDeclaration declared, CancellationToken cancellationToken)
+    private static async Task<IResult> VerifyAsync([FromBody] SealAsked asked, [AsParameters] ChainSources sources, CancellationToken cancellationToken)
     {
+        var (verification, declared, _, time, loggers) = sources;
         var reading = ChainSeal.Read(asked.Seal);
         if (reading.Seal is not { } seal)
         {
@@ -25,8 +26,20 @@ internal static class SealVerificationEndpoint
         }
 
         var done = await verification.VerifyAgainstAsync(seal, cancellationToken);
-        return done?.Seal is { } standing
-            ? Results.Ok(SealVerificationShown.Of(done, standing, declared.Situation))
-            : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+        if (done?.Seal is not { } standing)
+        {
+            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+        }
+
+        try
+        {
+            var last = declared.Situation == SealSituation.Manual && verification.SealReader is { } reader ? await reader.LastAsync(cancellationToken) : null;
+            return Results.Ok(SealVerificationShown.Of(done, standing, declared.Situation, SealAge.Warning(declared.Situation, last, time.GetUtcNow())));
+        }
+        catch (Exception unreadable) when (unreadable is NpgsqlException or InvalidOperationException or TimeoutException)
+        {
+            loggers.CreateLogger(nameof(SealVerificationEndpoint)).SealDateUnreadable(unreadable.GetType().Name);
+            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+        }
     }
 }

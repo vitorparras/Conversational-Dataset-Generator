@@ -12,14 +12,16 @@ namespace Core.Host.Endpoints;
 /// <param name="Seal">How the chain stands against the seal.</param>
 /// <param name="Situation">Where the installation declared it keeps the seal.</param>
 /// <param name="Protection">What this verification protects against in that situation.</param>
-internal sealed record SealVerificationShown(bool Passed, long EventsRead, long? FirstInconsistent, SealStanding Seal, string Situation, string Protection)
+/// <param name="Warning">The warning of the manual situation, when no seal was ever recorded or the last is older than seven days; null otherwise.</param>
+internal sealed record SealVerificationShown(bool Passed, long EventsRead, long? FirstInconsistent, SealStanding Seal, string Situation, string Protection, string? Warning)
 {
-    internal static SealVerificationShown Of(ChainVerification verification, SealComparison seal, SealSituation situation) =>
+    internal static SealVerificationShown Of(ChainVerification verification, SealComparison seal, SealSituation situation, string? warning) =>
         new(
             verification.Passed,
             verification.EventsRead,
             verification.FirstInconsistent?.Sequence,
             new SealStanding(seal.Holds, seal.Outcome.ToString(), seal.Statement, seal.Sealed.SealedAt, seal.Sealed.Events),
             situation.ToString(),
-            SealProtection.Of(situation, seal.Sealed.SealedAt));
+            SealProtection.Of(situation, seal.Sealed.SealedAt),
+            warning);
 }

@@ -7,6 +7,7 @@ internal static class HostRoutes
     {
         TransportSecurity.Map(app);
         SessionGate.Use(app);
+        SealBodyLimit.Use(app);
         StatusEndpoint.Map(app, recognizer);
         ConfigurationEndpoint.Map(app);
         VersionsEndpoint.Map(app);
@@ -16,5 +17,6 @@ internal static class HostRoutes
         OperatorsEndpoint.Map(app);
         ChainVerificationEndpoint.Map(app);
         SealVerificationEndpoint.Map(app);
+        SealEndpoint.Map(app);
     }
 }

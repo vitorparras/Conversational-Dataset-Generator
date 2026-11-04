@@ -43,10 +43,9 @@ internal static class SealEndpoint
     }
 
     /// <summary>A text that is not a seal is 400; a seal the chain does not have, or one the chain refuses to record, is 409 with the reason and nothing written.</summary>
-    private static async Task<IResult> ConfirmAsync(
-        [FromBody] SealAsked asked, HttpRequest request, [FromServices] ChainVerificationService verification, [FromServices] SealDeclaration declared, [FromServices] SessionStore sessions,
-        [FromServices] ILoggerFactory loggers, CancellationToken cancellationToken)
+    private static async Task<IResult> ConfirmAsync([FromBody] SealAsked asked, HttpRequest request, [AsParameters] CustodySources sources, CancellationToken cancellationToken)
     {
+        var (verification, declared, sessions, _, loggers) = sources;
         if (Refusal(verification, declared) is { } refusal)
         {
             return refusal;

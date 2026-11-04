@@ -16,10 +16,9 @@ internal static class SealVerificationEndpoint
         _ = endpoints.MapPost(ChainVerificationEndpoint.Route, VerifyAsync).WithMetadata(new RequestSizeLimitAttribute(BodyLimitInBytes));
 
     /// <summary>With no database declared, or one that cannot be read, the answer is 503: the chain was not compared with anything.</summary>
-    private static async Task<IResult> VerifyAsync(
-        [FromBody] SealAsked asked, [FromServices] ChainVerificationService verification, [FromServices] SealDeclaration declared, [FromServices] TimeProvider time,
-        [FromServices] ILoggerFactory loggers, CancellationToken cancellationToken)
+    private static async Task<IResult> VerifyAsync([FromBody] SealAsked asked, [AsParameters] CustodySources sources, CancellationToken cancellationToken)
     {
+        var (verification, declared, _, time, loggers) = sources;
         var reading = ChainSeal.Read(asked.Seal);
         if (reading.Seal is not { } seal)
         {

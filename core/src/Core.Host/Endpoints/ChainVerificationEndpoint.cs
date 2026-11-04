@@ -14,10 +14,9 @@ internal static class ChainVerificationEndpoint
     internal static void Map(IEndpointRouteBuilder endpoints) => _ = endpoints.MapGet(Route, ShowAsync);
 
     /// <summary>With no database declared there is no chain to read, and one that cannot be read answers 503, with the type of the failure in the host's log.</summary>
-    private static async Task<IResult> ShowAsync(
-        [FromServices] ChainVerificationService verification, [FromServices] SealDeclaration declared, [FromServices] ILoggerFactory loggers, [FromServices] TimeProvider time,
-        CancellationToken cancellationToken)
+    private static async Task<IResult> ShowAsync([AsParameters] CustodySources sources, CancellationToken cancellationToken)
     {
+        var (verification, declared, _, time, loggers) = sources;
         if (verification.Reader is not { } reader)
         {
             return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);

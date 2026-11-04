@@ -23,8 +23,10 @@ public sealed class SealWarningTests
         using var log = new RecordedLog();
         using var loggers = new LoggerFactory([log]);
         DateTimeOffset? last = days is { } age ? clock.GetUtcNow().AddDays(age) : null;
-        using var service = new ChainVerificationService(
-            _ => Task.FromResult(Result()), Schedule, clock, loggers, _ => Task.FromResult(SealAge.Warning(SealSituation.Manual, last, clock.GetUtcNow())), new SealWarningState());
+        using var service = new ChainVerificationService(_ => Task.FromResult(Result()), Schedule, clock, loggers)
+        {
+            SealWarningReading = _ => Task.FromResult(SealAge.Warning(SealSituation.Manual, last, clock.GetUtcNow())),
+        };
 
         await service.StartAsync(TestContext.Current.CancellationToken);
         await WaitingAsync(clock, TestContext.Current.CancellationToken);
@@ -39,8 +41,10 @@ public sealed class SealWarningTests
         var clock = new ManualClock();
         using var log = new RecordedLog();
         using var loggers = new LoggerFactory([log]);
-        using var service = new ChainVerificationService(
-            _ => throw new InvalidOperationException("zqx"), Schedule, clock, loggers, _ => Task.FromResult<string?>("avisar"), new SealWarningState());
+        using var service = new ChainVerificationService(_ => throw new InvalidOperationException("zqx"), Schedule, clock, loggers)
+        {
+            SealWarningReading = _ => Task.FromResult<string?>("avisar"),
+        };
 
         await service.StartAsync(TestContext.Current.CancellationToken);
         await WaitingAsync(clock, TestContext.Current.CancellationToken);
@@ -56,8 +60,10 @@ public sealed class SealWarningTests
         var clock = new ManualClock();
         using var log = new RecordedLog();
         using var loggers = new LoggerFactory([log]);
-        using var service = new ChainVerificationService(
-            _ => Task.FromResult(Result()), Schedule, clock, loggers, _ => throw new InvalidOperationException("zqx"), new SealWarningState());
+        using var service = new ChainVerificationService(_ => Task.FromResult(Result()), Schedule, clock, loggers)
+        {
+            SealWarningReading = _ => throw new InvalidOperationException("zqx"),
+        };
         service.SealWarning.Record("avisar");
 
         await service.StartAsync(TestContext.Current.CancellationToken);
@@ -75,8 +81,10 @@ public sealed class SealWarningTests
         var clock = new ManualClock();
         DateTimeOffset? last = null;
         using var loggers = new LoggerFactory();
-        using var service = new ChainVerificationService(
-            _ => Task.FromResult(Result()), Schedule, clock, loggers, _ => Task.FromResult(SealAge.Warning(SealSituation.Manual, last, clock.GetUtcNow())), new SealWarningState());
+        using var service = new ChainVerificationService(_ => Task.FromResult(Result()), Schedule, clock, loggers)
+        {
+            SealWarningReading = _ => Task.FromResult(SealAge.Warning(SealSituation.Manual, last, clock.GetUtcNow())),
+        };
         await service.RefreshSealWarningAsync(TestContext.Current.CancellationToken);
         var before = service.SealWarning.Current;
 

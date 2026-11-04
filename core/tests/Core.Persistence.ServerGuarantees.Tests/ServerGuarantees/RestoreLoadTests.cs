@@ -14,7 +14,7 @@ namespace Core.Persistence.Tests.ServerGuarantees;
 /// only inside a window that opens once, in a database that never held anything, and closes for good, approved or not. Everything else is refused, and nothing of a refused call stays.
 /// </summary>
 [Trait("Category", "Database")]
-internal sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<RestoreSource>
+public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<RestoreSource>
 {
     private const string Refused = "CE005";
     private const string Chain =

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Nodes;
 
 namespace Core.Persistence.Tests.Fixtures;
@@ -6,7 +7,8 @@ namespace Core.Persistence.Tests.Fixtures;
 /// A database that holds what a restore puts back, made by the flows it has: two domains, two people (one deactivated), an event for each kind of author, a text and its map in one domain
 /// and a text emptied in the other. The copy is each table as the array of its rows in the order of the key, as the 005 describes it.
 /// </summary>
-internal sealed class RestoreSource : IAsyncLifetime
+[SuppressMessage("Design", "CA1515", Justification = "xunit builds the class fixture and the public test classes take it in their constructors.")]
+public sealed class RestoreSource : IAsyncLifetime
 {
     private FidelityWorld? world;
 

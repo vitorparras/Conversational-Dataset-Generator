@@ -312,6 +312,7 @@ public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<Resto
         [SuppressMessage("Security", "CA2100", Justification = "The function is a literal of the calling tests and the arguments are parameters.")]
         private async Task<object?> CallAsync(string function, params object[] arguments)
         {
+            // nosemgrep: sql-concatenation-csharp interpolates only the name of a restore_* function, a literal of the calling tests; the arguments are parameters.
             await using var command = App.CreateCommand($"SELECT public.{function}({string.Join(", ", arguments.Select((_, index) => $"@p{index}"))})");
             for (var index = 0; index < arguments.Length; index++)
             {

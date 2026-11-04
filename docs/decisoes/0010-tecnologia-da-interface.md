@@ -47,7 +47,7 @@ manual de critérios descarta o que não foi submetido.
 ## Consequências
 
 Comportamento de teclado, troca parcial de região e foco real não se testam sem ferramenta de
-navegador: ou ela entra no escopo, ou o atalho fica sem rede de proteção. A [0051](0051-navegacao-gestao-e-relatorio.md) a escolhe. E o
+navegador: ou ela entra no escopo, ou o atalho fica sem rede de proteção, e isso se declara. A [0051](0051-navegacao-gestao-e-relatorio.md) a escolhe. E o
 teto de tamanho da unidade de anotação vira pré-requisito em aberto — acima de um valor modesto,
 lista virtualizada pesa na escolha; abaixo, paginação resolve e o critério some.
 

@@ -11,7 +11,7 @@ na versão que a função alcança ([006](../privacidade/006-acesso.md)).
 | I1 | Submeter material | Curadoria | Domínio, origem declarada e condição, limite de tamanho; porta bloqueada sem ensaio de recuperação | Envia o arquivo, validado antes de gravar | 3 | #607 (regra #75, #85, #584) |
 | I2 | Lotes | Curadoria | Estado (em curso, aceito, rejeitado), motivo, quem submeteu, tamanho; o rejeitado continua listado | Abre o lote | 3 | #608 (regra #74) |
 | I3 | Lote | Curadoria | Itens, procedência, reenvio, perda declarada, conteúdo replicado, trechos por destino (contagem) | Acompanha | 3 | #609 (regra #76–#82, #84) |
-| I4 | Revisão por amostra | Curadoria | A amostra sorteada, sem escolha de quem revisa, trecho a trecho | Registra achado; aprova ou reprova o lote | 3 | #610 (regra #83) |
+| I4 | Revisão por amostra | Curadoria | A amostra sorteada, sem escolha de quem revisa, no texto bruto até haver sanitização e no sanitizado depois | Registra achado; aprova ou reprova o lote | 3 | #610 (regra #83) |
 | K1 | Acervo do domínio | Curadoria | Itens com filtro por lote, origem, estado; paginação; vazio sem concessão | Filtra, abre o item | 6 | #611 (regra #111) |
 | K2 | Item | Curadoria | Texto na versão da função, procedência, trilha da sanitização, marca de esvaziado | Lê e registra o acesso | 6 | #612 (regra #117) |
 | K3 | Taxonomia, glossário, critérios | Curadoria, anotação | Categorias, dimensões, glossário, decisões de critério com vigência | Só leitura | 7 | #613 |

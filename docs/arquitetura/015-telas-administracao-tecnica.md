@@ -4,7 +4,7 @@
 > Estado no código: nenhuma tela existe; as rotas estão em `core/src/Core.Host/Endpoints/`.
 
 Função de administração técnica (política de acesso, [006](../privacidade/006-acesso.md)): quem
-cadastra, concede e vê o estado do sistema, sem alcance a conteúdo. Instalação, migração, cópia,
+cadastra e vê o estado do sistema, sem alcance a conteúdo. Instalação, migração, cópia,
 restauração, chave e ensaio de recuperação ficam na linha de comando do servidor, assim como a
 primeira pessoa e o primeiro domínio.
 
@@ -12,7 +12,7 @@ primeira pessoa e o primeiro domínio.
 |---|---|---|---|---|---|---|
 | A1 | Pessoas | Administração | Lista de pessoas, função declarada, estado, sem conteúdo | Cadastra com função e nenhum alcance | 3 | #599 (regra #109) |
 | A2 | Reposição de senha | Administração | Quem, para quem, quantas sessões foram encerradas; senha provisória mostrada uma vez | Repõe por ato registrado | 6 | #600 (regra #110) |
-| A3 | Concessões | Administração | Por pessoa e domínio: finalidade, referência ao termo, prazo, vencimento | Concede, renova, revoga | 6 | #601 (regra #112–#114) |
+| A3 | Concessões | Quem responde pelo acervo | Por pessoa e domínio: finalidade, referência ao termo, prazo, vencimento | Concede, renova, revoga; nunca a si mesmo | 6 | #601 (regra #112–#114) |
 | A4 | Domínios | Administração | Domínios, taxonomia e versão; "nenhum domínio" com o passo no servidor | Só leitura | 3 | #602 |
 | A5 | Configuração em vigor | Administração | Todos os valores com a origem de cada um; redigidos onde a visão exige | Só leitura | 3 | #603 |
 | A6 | Estado do sistema | Administração | Vivo e apto, conferências da subida, versões, esquema, serviço de linguagem | Só leitura | 3 | #604, #632 |

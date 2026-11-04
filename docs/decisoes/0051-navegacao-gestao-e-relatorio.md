@@ -17,9 +17,9 @@ que ela tem a fazer. Uma rota fora das funções dela responde como rota que nã
 não distingue "negado" de "inexistente" (requisito 017), vale para item de lista e para acesso
 direto por endereço.
 
-**Toda lista tem filtro e paginação no servidor**, com ambos no endereço, para que voltar e
-compartilhar funcionem. O tamanho da página é fixo e declarado na tela; não há rolagem
-infinita nem lista virtualizada.
+**As listas de gestão têm filtro e paginação no servidor**, com ambos no endereço, para que voltar e
+compartilhar funcionem. O tamanho da página é fixo e declarado na tela; não há rolagem infinita
+nem lista virtualizada nelas. O teto da unidade de anotação, em aberto na 0010, não é fechado aqui.
 
 **Todo formulário valida no servidor e devolve o mesmo formulário com os erros**, sem perder o que
 foi digitado. Ação que não se desfaz pede confirmação numa tela própria que diz o que será
@@ -44,7 +44,7 @@ parcial da 0010, a navegação acima e a verificação automática de acessibili
 | Opção | Por quê |
 |---|---|
 | Menu único, com a negativa na hora do clique | Revela que a tela existe e dá à pessoa um beco sem saída |
-| Rolagem infinita ou lista virtualizada | Perde a página no endereço e exige estado de cliente |
+| Rolagem infinita ou lista virtualizada nas listas de gestão | Perde a página no endereço e exige estado de cliente |
 | Diálogo do navegador para confirmar | Não se estiliza, não se testa e não diz o que será afetado |
 | WCAG AAA | Não é atingível para todo conteúdo e não vira critério verificável |
 

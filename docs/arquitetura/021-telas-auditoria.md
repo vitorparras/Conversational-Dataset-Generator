@@ -4,7 +4,7 @@
 > Estado no código: nenhuma tela existe; as rotas estão em `core/src/Core.Host/Endpoints/`.
 
 Função de auditoria: consulta de eventos e acessos sem conteúdo (requisitos 021 e 023). As demais
-telas da função estão em outros documentos, listados abaixo.
+telas da função estão no documento 015, listadas abaixo.
 
 | ID | Tela | Função | Mostra | Faz | Fase | Issue |
 |---|---|---|---|---|---|---|
@@ -16,8 +16,6 @@ telas da função estão em outros documentos, listados abaixo.
 |---|---|---|---|
 | A7 | Custódia | [015](015-telas-administracao-tecnica.md) | #605 |
 | A8 | Registro do servidor | [015](015-telas-administracao-tecnica.md) | #606 |
-| R2 | Autorizar reversão | [017](017-telas-reversao-esvaziamento-e-relatos.md) | #615 |
-| U2 | Relatos de dado pessoal | [017](017-telas-reversao-esvaziamento-e-relatos.md) | #618 |
 
 ## Observações
 

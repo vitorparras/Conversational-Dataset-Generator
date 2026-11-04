@@ -15,13 +15,14 @@ são da [0051](../decisoes/0051-navegacao-gestao-e-relatorio.md); a tecnologia e
 | Função | Fluxo | Documentos |
 |---|---|---|
 | Toda pessoa | Entrar, ver o que alcança, trabalhar, sair | [014](014-telas-entrada-sessao-e-conta.md) |
-| Administração técnica | Cadastrar, conceder, repor senha, ver estado e custódia | [015](015-telas-administracao-tecnica.md) |
-| Curadoria do acervo | Submeter, acompanhar, revisar, ler o acervo, declarar campanha, exportar | [016](016-telas-ingestao-e-acervo.md), [019](019-telas-campanha-avaliacao-e-parecer.md), [020](020-telas-exportacao-e-comparacao.md) |
+| Administração técnica | Cadastrar pessoas, repor senha, ver domínios, configuração, estado e custódia | [015](015-telas-administracao-tecnica.md) |
+| Curadoria do acervo | Submeter, acompanhar, revisar, ler o acervo, declarar campanha, pedir exportação e reversão, autorizar a reversão de outra pessoa, decidir relatos de dado pessoal | [016](016-telas-ingestao-e-acervo.md), [019](019-telas-campanha-avaliacao-e-parecer.md), [020](020-telas-exportacao-e-comparacao.md) |
 | Anotação | Lista de trabalho, anotar, relatar dado pessoal | [018](018-telas-anotacao-e-arbitragem.md) |
 | Arbitragem | Fila de divergências, arbitrar às cegas | [018](018-telas-anotacao-e-arbitragem.md) |
 | Avaliação | Andamento, concordância, parecer do recorte | [019](019-telas-campanha-avaliacao-e-parecer.md) |
-| Auditoria | Eventos e acessos, relatos, autorizar reversão, conferir a custódia | [021](021-telas-auditoria.md), [017](017-telas-reversao-esvaziamento-e-relatos.md) |
-| Quem responde pelo acervo | Aprovar exportação | [020](020-telas-exportacao-e-comparacao.md) |
+| Auditoria | Eventos e acessos, registro do servidor, conferir a custódia | [021](021-telas-auditoria.md), [015](015-telas-administracao-tecnica.md) |
+| Quem responde pelo acervo | Conceder, renovar e revogar acesso (nunca a si mesmo); aprovar exportação | [015](015-telas-administracao-tecnica.md), [020](020-telas-exportacao-e-comparacao.md) |
+| Função própria do esvaziamento | Esvaziar um item por identificador | [017](017-telas-reversao-esvaziamento-e-relatos.md) |
 
 ## Áreas
 
@@ -41,8 +42,3 @@ são da [0051](../decisoes/0051-navegacao-gestao-e-relatorio.md); a tecnologia e
 - Teste de navegador na CI, com o Playwright para .NET: #590.
 - Acessibilidade das telas, nível WCAG 2.1 AA: #591.
 - Fora das telas: a criação da primeira pessoa e do primeiro domínio, que a tela só sinaliza.
-
-## Ainda sem regra escrita
-
-- Como a pessoa localiza o item a esvaziar (V1): a tela pede o identificador (#617).
-- Qual função autoriza a reversão (R2): a política de acesso decide, a tela não.

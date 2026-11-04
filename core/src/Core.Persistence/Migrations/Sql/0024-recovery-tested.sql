@@ -3,7 +3,8 @@
 -- and the key of the production, which the host does before it writes.
 --
 -- The step list grows from the one the 0023 left (with sign_in_accepted, sign_in_refused and credential_recomputed in it)
--- and the shape of the events about the master key now tells the two steps apart; the item kinds, the shape of an entry and the clauses of the loss stay as the 0022 and the 0023 left them. Triggers, digest and grants stay.
+-- and the shape of the events about the master key now tells the two steps apart; the item kinds, the shape of an entry
+-- and the clauses of the loss stay as the 0022 and the 0023 left them. Triggers, digest and grants stay.
 ALTER TABLE public.custody_event
     DROP CONSTRAINT custody_event_step_listed,
     DROP CONSTRAINT custody_event_key_loss_shape,

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json.Nodes;
 using Core.Persistence.Tests.Fixtures;
 using Xunit;
@@ -61,14 +62,14 @@ public sealed class RestoreSource : IAsyncLifetime
     }
 
     private async Task<string> OwnerRowsAsync(string table, string key) =>
-        Assert.Single(await World.OwnerColumnAsync(string.Format(System.Globalization.CultureInfo.InvariantCulture, Rows, key, table)));
+        Assert.Single(await World.OwnerColumnAsync(string.Format(CultureInfo.InvariantCulture, Rows, key, table)));
 
     private async Task<string> ContentRowsAsync(string table)
     {
         var all = new JsonArray();
         foreach (var domain in new[] { 1, 2 })
         {
-            var part = (string)(await World.InDomainAsync(domain, string.Format(System.Globalization.CultureInfo.InvariantCulture, Rows, "id", table)))!;
+            var part = (string)(await World.InDomainAsync(domain, string.Format(CultureInfo.InvariantCulture, Rows, "id", table)))!;
             foreach (var row in JsonNode.Parse(part)!.AsArray())
             {
                 all.Add(row!.DeepClone());

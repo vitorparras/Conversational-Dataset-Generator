@@ -15,7 +15,7 @@ internal static class StatusEndpoint
     /// <summary>The fake asks no service, so the watch, which no start ever moves, says nothing about it.</summary>
     private static StatusResponse Describe(StatusSources sources, RecognizerKind recognizer)
     {
-        var (report, watch, installation, comparison) = sources;
+        var (report, watch, installation, comparison, verification) = sources;
         ServiceState? service = recognizer == RecognizerKind.Http ? watch.State : null;
         return new(
             Alive: true,
@@ -25,6 +25,7 @@ internal static class StatusEndpoint
             CheckedAt: report.CheckedAt,
             Checks: report.Results,
             Installation: installation,
-            AuditComparison: comparison.Current);
+            AuditComparison: comparison.Current,
+            SealWarning: verification.SealWarning);
     }
 }

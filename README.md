@@ -247,7 +247,7 @@ situação `Manual`, `GET /custody/seal` emite o selo do topo, sem gravar nada, 
 `POST /custody/seal/confirmation` grava o selo que quem opera guardou, em nome da pessoa da sessão,
 se a cadeia tiver aquele evento com aquele resumo; senão, 409 com o motivo e nada gravado. Nos dois
 `POST` com selo, corpo acima de 1 KiB recebe 413. A verificação traz `warning` quando não há selo ou
-o último tem mais de 7 dias.
+o último tem mais de 7 dias, e o `/status` traz só esse aviso (`sealWarning`), sem a data nem o selo.
 
 No `External` e no `Internal`, o núcleo envia o selo ao destino uma vez por dia, por `https` com a
 validação padrão do certificado, sem seguir redirecionamento e com 30 s de limite, e só depois do

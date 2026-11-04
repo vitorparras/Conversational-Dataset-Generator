@@ -8,7 +8,8 @@ namespace Core.Tests.Integration.Hosts;
 /// <summary>
 /// The seal of the manual situation at the built host over a real database (issue #62, part B2b): the route that issues the seal writes nothing, the route that confirms it records the event
 /// in the name of the person of the session and only for a seal the chain has, a seal altered or of a sequence the chain does not have is 409 with the reason and nothing written, the two
-/// routes refuse the situations that send the seal themselves, a body above the limit is 413 on both routes that receive a seal, and the warning of age (8 and 6 days) is in SealAgeTests.
+/// routes refuse the situations that send the seal themselves, a body above the limit is 413 on both routes that receive a seal, and the status carries the warning of the manual situation
+/// only (the ages of 8 and 6 days are in SealAgeTests and SealWarningTests).
 /// </summary>
 [Trait("Category", "Database")]
 public sealed class ManualSealHostTests
@@ -132,6 +133,43 @@ public sealed class ManualSealHostTests
     }
 
     private static long ChainSealCount(string seal) => ChainSeal.Read(seal).Seal!.Events;
+
+    [DatabaseTheory]
+    [InlineData("Manual", true)]
+    [InlineData("External", false)]
+    public async Task TheStatusCarriesOnlyTheWarningOfTheManualSituationAndNeverTheDateOrTheSeal(string situation, bool warns)
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var setup = situation == "Manual" ? new HostSetup() : new HostSetup { Arguments = ["--Custody:SealSituation=External", "--Custody:SealDestination=https://zqx-vault.example.test/selos"] };
+        await using var host = await StartedAsync(setup, cancellationToken);
+
+        var status = await StatusAsync(host, cancellationToken);
+
+        Assert.Equal(warns, status.GetProperty("sealWarning").ValueKind == JsonValueKind.String);
+        Assert.DoesNotContain("lastSeal", status.ToString(), StringComparison.Ordinal);
+        Assert.DoesNotContain("CDG-SELO", status.ToString(), StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
+    public async Task TheStatusStopsWarningAsSoonAsTheSealIsConfirmed()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var host = await StartedAsync(new HostSetup(), cancellationToken);
+        var before = await StatusAsync(host, cancellationToken);
+
+        using var confirmed = await host.PostAsync(Confirm, Body(await IssueAsync(host, cancellationToken)), cancellationToken);
+        var after = await StatusAsync(host, cancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, confirmed.StatusCode);
+        Assert.Equal((JsonValueKind.String, JsonValueKind.Null), (before.GetProperty("sealWarning").ValueKind, after.GetProperty("sealWarning").ValueKind));
+    }
+
+    private static async Task<JsonElement> StatusAsync(AuthenticatedHost host, CancellationToken cancellationToken)
+    {
+        using var response = await host.GetAsync("/status", cancellationToken);
+        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+        return body.RootElement.Clone();
+    }
 
     private static string Body(string seal) => JsonSerializer.Serialize(new { seal });
 

@@ -62,9 +62,13 @@ internal static class SealEndpoint
         {
             var author = CustodyAuthor.Person(sessions.Resolve(SessionCookie.Read(request))!.Value);
             var recording = await verification.Sealer!.RecordAsync(seal, author, cancellationToken);
-            return recording.Seal is null
-                ? Results.Conflict(new SealRefused("seal", recording.Recorded.Outcome.ToString(), recording.Recorded.Refusal!))
-                : Results.Ok(new SealConfirmed(recording.Recorded.Sequence!.Value, seal.Events, seal.SealedAt));
+            if (recording.Seal is null)
+            {
+                return Results.Conflict(new SealRefused("seal", recording.Recorded.Outcome.ToString(), recording.Recorded.Refusal!));
+            }
+
+            await verification.RefreshSealWarningAsync(cancellationToken);
+            return Results.Ok(new SealConfirmed(recording.Recorded.Sequence!.Value, seal.Events, seal.SealedAt));
         }
         catch (NpgsqlException unreadable)
         {

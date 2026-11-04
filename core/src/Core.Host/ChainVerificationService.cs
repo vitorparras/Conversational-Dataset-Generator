@@ -14,6 +14,8 @@ internal sealed class ChainVerificationService : BackgroundService
     private readonly Func<CancellationToken, Task<ChainVerification>>? verify;
     private readonly TimeProvider time;
     private readonly ILoggerFactory loggers;
+    private readonly Func<CancellationToken, Task<string?>>? sealWarning;
+    private volatile string? warning;
 
     /// <summary>The service as the host builds it: over the data source of the startup container, which a host with no database does not have.</summary>
     internal ChainVerificationService(IServiceProvider host)
@@ -22,7 +24,12 @@ internal sealed class ChainVerificationService : BackgroundService
     }
 
     private ChainVerificationService(IServiceProvider host, CustodyVerifier? verifier)
-        : this(verifier is null ? null : verifier.VerifyAsync, host.GetRequiredService<VerificationSchedule>(), host.GetRequiredService<TimeProvider>(), host.GetRequiredService<ILoggerFactory>())
+        : this(
+              verifier is null ? null : verifier.VerifyAsync,
+              host.GetRequiredService<VerificationSchedule>(),
+              host.GetRequiredService<TimeProvider>(),
+              host.GetRequiredService<ILoggerFactory>(),
+              WarningOf(host))
     {
         Verifier = verifier;
         var source = DataSourceOf(host);
@@ -33,7 +40,15 @@ internal sealed class ChainVerificationService : BackgroundService
 
     /// <summary>The service over the verification it is given, with the clock and the log of its caller.</summary>
     internal ChainVerificationService(Func<CancellationToken, Task<ChainVerification>>? verify, VerificationSchedule schedule, TimeProvider time, ILoggerFactory loggers)
+        : this(verify, schedule, time, loggers, null)
     {
+    }
+
+    /// <summary>The service over the verification and over the reading of the warning of the seal it are given, with the clock and the log of its caller.</summary>
+    internal ChainVerificationService(
+        Func<CancellationToken, Task<ChainVerification>>? verify, VerificationSchedule schedule, TimeProvider time, ILoggerFactory loggers, Func<CancellationToken, Task<string?>>? sealWarning)
+    {
+        this.sealWarning = sealWarning;
         this.verify = verify;
         Schedule = schedule;
         this.time = time;
@@ -54,6 +69,9 @@ internal sealed class ChainVerificationService : BackgroundService
 
     /// <summary>The making and the record of a seal by whoever operates; null when no database is declared.</summary>
     internal ChainSealer? Sealer { get; }
+
+    /// <summary>The warning of the manual situation as the last round, or the last record of a seal, left it: no seal ever recorded, or the last older than 7 days; null when there is none.</summary>
+    internal string? SealWarning => warning;
 
     /// <summary>Whether a verification recorded at the moment given is late, by the clock the service was given.</summary>
     internal bool IsOverdue(DateTimeOffset? lastRecordedAt) => Schedule.Overdue(lastRecordedAt, time.GetUtcNow());
@@ -88,6 +106,16 @@ internal sealed class ChainVerificationService : BackgroundService
         }
     }
 
+    /// <summary>Reads again when the chain last recorded a seal and takes the warning that follows; the situations that send the seal themselves, and a host with no database, have none.</summary>
+    /// <param name="cancellationToken">Cancels the reading.</param>
+    internal async Task RefreshSealWarningAsync(CancellationToken cancellationToken)
+    {
+        if (sealWarning is not null)
+        {
+            warning = await sealWarning(cancellationToken).ConfigureAwait(false);
+        }
+    }
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         if (verify is null)
@@ -111,6 +139,19 @@ internal sealed class ChainVerificationService : BackgroundService
 
     private static NpgsqlDataSource? DataSourceOf(IServiceProvider host) => host.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>();
 
+    private static Func<CancellationToken, Task<string?>>? WarningOf(IServiceProvider host)
+    {
+        var situation = host.GetRequiredService<SealDeclaration>().Situation;
+        if (situation != SealSituation.Manual || DataSourceOf(host) is not { } source)
+        {
+            return null;
+        }
+
+        var reader = new RecordedSealReader(source);
+        var time = host.GetRequiredService<TimeProvider>();
+        return async token => SealAge.Warning(situation, await reader.LastAsync(token).ConfigureAwait(false), time.GetUtcNow());
+    }
+
     private static CustodyVerifier? VerifierOf(IServiceProvider host) =>
         DataSourceOf(host) is { } source ? new CustodyVerifier(source, host.GetRequiredService<TimeProvider>()) : null;
 
@@ -132,6 +173,7 @@ internal sealed class ChainVerificationService : BackgroundService
         try
         {
             Report(logger, await verification(cancellationToken).ConfigureAwait(false));
+            await RefreshSealWarningAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (Exception failure) when (ServingFailure.CanReport(failure) && !cancellationToken.IsCancellationRequested)
         {

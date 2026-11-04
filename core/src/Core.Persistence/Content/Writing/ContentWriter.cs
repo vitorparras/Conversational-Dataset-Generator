@@ -41,22 +41,31 @@ public sealed class ContentWriter(NpgsqlDataSource dataSource, ProtectedContent 
 
     private async Task<long> AddItemAsync(int domainId, NewItemText item, CancellationToken cancellationToken)
     {
-        var raw = protectedContent.Seal(ContentColumns.RawText, domainId, item.Raw);
-        var sanitized = item.Sanitized is null ? null : protectedContent.Seal(ContentColumns.SanitizedText, domainId, item.Sanitized);
-        return await InsertAsync(
-            domainId,
-            new Insertion(ContentQueries.InsertItemText, () => [Bytes("raw", raw), Bytes("sanitized", sanitized), Text("pseudonymized", item.Pseudonymized)], IsolationLevel.ReadCommitted),
-            cancellationToken).ConfigureAwait(false);
+        using var sealing = protectedContent.Begin(ContentColumns.ItemKey, domainId);
+        var raw = sealing.Seal(ContentColumns.RawText, item.Raw);
+        var sanitized = item.Sanitized is null ? null : sealing.Seal(ContentColumns.SanitizedText, item.Sanitized);
+        var insertion = new Insertion(
+            ContentQueries.InsertItemText,
+            () => [Bytes("raw", raw), Bytes("sanitized", sanitized), Text("pseudonymized", item.Pseudonymized), .. KeyOf(sealing)],
+            IsolationLevel.ReadCommitted);
+        return await InsertAsync(domainId, insertion, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<long> AddMapAsync(int domainId, long itemId, string entries, CancellationToken cancellationToken)
     {
-        var sealedEntries = protectedContent.Seal(ContentColumns.Entries, domainId, entries);
+        using var sealing = protectedContent.Begin(ContentColumns.MapKey, domainId);
+        var sealedEntries = sealing.Seal(ContentColumns.Entries, entries);
         var insertion = new Insertion(
             ContentQueries.InsertReversalMap,
-            () => [new NpgsqlParameter("item", NpgsqlDbType.Bigint) { Value = itemId }, Bytes("entries", sealedEntries)],
+            () => [new NpgsqlParameter("item", NpgsqlDbType.Bigint) { Value = itemId }, Bytes("entries", sealedEntries), .. KeyOf(sealing)],
             IsolationLevel.Serializable);
         return await InsertAsync(domainId, insertion, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static IEnumerable<NpgsqlParameter> KeyOf(ItemSealing sealing)
+    {
+        yield return new NpgsqlParameter("epoch", NpgsqlDbType.Integer) { Value = sealing.Stored.Epoch };
+        yield return new NpgsqlParameter("wrapped", NpgsqlDbType.Bytea) { Value = sealing.Stored.Wrapped.ToArray() };
     }
 
     private static NpgsqlParameter Bytes(string name, SealedContent? content) =>

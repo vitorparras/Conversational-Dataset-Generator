@@ -34,7 +34,10 @@ internal sealed class HostLaunch
     private ExitCode MigrationExit { get; init; }
 
     internal static HostLaunch Migrated(MigrationOutcome outcome) =>
-        new(HostLaunchState.Migrated, app: null, [], report: null) { MigrationExit = MigrationMode.ExitOf(outcome) };
+        Ended(MigrationMode.ExitOf(outcome));
+
+    /// <summary>A mode that serves nothing and ended with the code given.</summary>
+    internal static HostLaunch Ended(ExitCode exit) => new(HostLaunchState.Migrated, app: null, [], report: null) { MigrationExit = exit };
 
     /// <summary>Serves until stopped, or reports why the host was not assembled and ends at once.</summary>
     private AuditCompareOutcome? Comparison { get; init; }

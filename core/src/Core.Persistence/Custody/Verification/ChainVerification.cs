@@ -21,6 +21,9 @@ public sealed record ChainVerification
     /// <summary>What the chain answered when the verdict was recorded as an event: appended with its sequence, or the reason it was not.</summary>
     public required CustodyResult Recorded { get; init; }
 
-    /// <summary>Whether every link of the chain held.</summary>
+    /// <summary>The chain against the seal brought from outside the control of the database; null when no seal was informed. It says nothing of the links, which <see cref="Passed" /> does.</summary>
+    public SealComparison? Seal { get; init; }
+
+    /// <summary>Whether every link of the chain held; the seal, when one was informed, is told apart in <see cref="Seal" />.</summary>
     public bool Passed => FirstInconsistent is null;
 }

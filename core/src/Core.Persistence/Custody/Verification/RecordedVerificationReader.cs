@@ -9,6 +9,8 @@ namespace Core.Persistence.Custody.Verification;
 /// <summary>Reads the last verification the chain recorded; what a process remembers of its own verifications is not asked, since only the chain says what was accepted.</summary>
 public sealed class RecordedVerificationReader
 {
+    private const int PairParts = 2;
+
     private readonly NpgsqlDataSource dataSource;
 
     /// <summary>The reading goes through the data source built with the application's credential.</summary>
@@ -61,7 +63,7 @@ public sealed class RecordedVerificationReader
     }
 
     private static long Number(string reference, string name) =>
-        reference.Split(';').Select(piece => piece.Split('=')).Where(pair => pair.Length == 2 && pair[0] == name)
+        reference.Split(';').Select(piece => piece.Split('=')).Where(pair => pair.Length == PairParts && pair[0] == name)
             .Select(pair => long.TryParse(pair[1], NumberStyles.None, CultureInfo.InvariantCulture, out var number) ? number : 0L).FirstOrDefault();
 
     private async Task<RecordedVerification?> LastOfAsync(CustodyStep step, CancellationToken cancellationToken)

@@ -16,7 +16,7 @@ namespace Core.Persistence.ServerGuarantees;
 internal sealed class EncryptedSample
 {
     private const string Domains = "SELECT coalesce(pg_catalog.array_agg(domain_id), ARRAY[]::integer[]) FROM (SELECT domain_id FROM public.content_domain "
-        + "WHERE table_name = @table AND live > 0 ORDER BY domain_id LIMIT 3) first_domains";
+        + "WHERE table_name = @table GROUP BY domain_id HAVING pg_catalog.sum(delta) > 0 ORDER BY domain_id LIMIT 3) first_domains";
 
     private readonly NpgsqlDataSource dataSource;
     private readonly Func<CancellationToken, Task<MasterKeyReading>> read;
@@ -56,7 +56,7 @@ internal sealed class EncryptedSample
         try
         {
             var read = await reader.ReadFirstAsync(CustodyAuthor.System, column, domain, cancellationToken).ConfigureAwait(false);
-            return read.Outcome != ContentReadOutcome.NotRecorded;
+            return read.Outcome is not (ContentReadOutcome.NotRecorded or ContentReadOutcome.LabelMissing or ContentReadOutcome.KeyLossDeclared);
         }
         catch (Exception refused) when (refused is EnvelopeRefusedException or CryptographicException)
         {

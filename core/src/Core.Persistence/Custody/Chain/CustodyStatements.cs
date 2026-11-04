@@ -43,6 +43,18 @@ internal static class CustodyStatements
         WHERE l.step = 'owner_window_opened' OR l.reason = 'verification_failed'
         """;
 
+    /// <summary>The moment of the last event that records a seal.</summary>
+    internal const string ReadLastSeal = """
+        SELECT occurred_at
+        FROM public.custody_event
+        WHERE step = @step
+        ORDER BY sequence DESC
+        LIMIT 1
+        """;
+
+    /// <summary>The scope of every loss of a key declared: the reference of the steps that declare one.</summary>
+    internal const string ReadKeyLossScopes = "SELECT reference FROM public.custody_event WHERE item_kind = 'master_key' AND step = @step";
+
     internal const string Append = """
         INSERT INTO public.custody_event (actor_person_id, actor_system, item_kind, item_id, step, reason, corrects, reference)
         VALUES (@actor, @system, @kind, @item, @step, @reason, @corrects, @reference)

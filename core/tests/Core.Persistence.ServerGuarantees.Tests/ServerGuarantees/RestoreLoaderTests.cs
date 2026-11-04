@@ -197,11 +197,11 @@ public sealed class RestoreLoaderTests
         new RestoreLoader(destination.DataSource, new GuaranteeVerifier(destination.DataSource), TimeProvider.System)
             .LoadAsync(RestoreCopy.Open(copy.Path), tip, TestContext.Current.CancellationToken);
 
-    private static List<JsonNode> Altered(List<JsonNode> events, int index)
+    private static List<JsonNode> Altered(IList<JsonNode> events, int index)
     {
         var digest = (string)events[index]["digest"]!;
         events[index]["digest"] = digest[..^1] + (digest[^1] == '0' ? '1' : '0');
-        return events;
+        return [.. events];
     }
 
     private static async Task AssertNothingRestoredAsync(FidelityWorld destination)

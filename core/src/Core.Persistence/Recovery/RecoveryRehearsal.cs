@@ -1,3 +1,4 @@
+using System.Data;
 using System.Data.Common;
 using System.Security.Cryptography;
 using Core.Persistence.Content;
@@ -14,6 +15,9 @@ public sealed class RecoveryRehearsal
 {
     private const string Tip = "SELECT sequence, encode(digest, 'hex') FROM public.custody_event ORDER BY sequence DESC LIMIT 1";
     private const string DomainIds = "SELECT id FROM public.domain ORDER BY id";
+    private const int StoredColumn = 0;
+    private const int EpochColumn = 1;
+    private const int WrappedColumn = 2;
 
     private readonly NpgsqlDataSource dataSource;
     private readonly ProtectedContent content;
@@ -69,8 +73,8 @@ public sealed class RecoveryRehearsal
         }
     }
 
-    private static Sample? SampleOf(DbDataReader row) =>
-        row.IsDBNull(0) ? null : new Sample((byte[])row.GetValue(0), new ContentKey(row.GetInt32(1), (byte[])row.GetValue(2)));
+    private static Sample? SampleOf(IDataRecord row) =>
+        row.IsDBNull(StoredColumn) ? null : new Sample((byte[])row.GetValue(StoredColumn), new ContentKey(row.GetInt32(EpochColumn), (byte[])row.GetValue(WrappedColumn)));
 
     private bool TryOpen(int domain, ProtectedColumn column, byte[] stored, ContentKey key)
     {

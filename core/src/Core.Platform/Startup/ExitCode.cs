@@ -75,6 +75,12 @@ public enum ExitCode
     /// <summary>The database did not answer the revocation of a domain label, and nothing was written.</summary>
     DomainLabelRevocationFailed = 38,
 
+    /// <summary>The rewrap of a domain stopped for a key it could not open or a label it was not given; the batches already written stay, and a new run goes on from them.</summary>
+    DomainRewrapRefused = 39,
+
+    /// <summary>The database did not answer the rewrap of a domain; the batches already written stay, and a new run goes on from them.</summary>
+    DomainRewrapFailed = 40,
+
     /// <summary>The comparison of the server's audit log with the chain found a difference that is new.</summary>
     AuditDifferent = 20,
 

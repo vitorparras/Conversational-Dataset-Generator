@@ -27,12 +27,14 @@ public sealed class RestoreWindowCheck : IStartupCheck
     public Task<CheckResult> RunAsync(CancellationToken cancellationToken) =>
         ServerProbe.RunAsync(
             dataSource,
-            new Guarantee(Name, "aplique as migrações do núcleo com o migrate, que criam a tabela da janela de carga", (connection, token) => ReadAsync(connection, token), ReadsCatalog: false),
+            new Guarantee(Name, "aplique as migrações do núcleo com o migrate, que criam a tabela da janela de carga", ReadAsync, ReadsCatalog: false),
             cancellationToken);
 
     internal static Finding Judge(long opened, long closed) =>
         opened > 0 && closed == 0
-            ? Finding.Missing("a janela de carga de uma restauração está aberta: a restauração não concluiu, e a cópia carregada não foi conferida; descarte este banco, crie outro com o migrate e carregue a cópia de novo")
+            ? Finding.Missing(
+                "a janela de carga de uma restauração está aberta: a restauração não concluiu, e a cópia carregada não foi conferida; "
+                + "descarte este banco, crie outro com o migrate e carregue a cópia de novo")
             : Finding.Holds("nenhuma janela de carga de restauração está aberta");
 
     private static Task<Finding> ReadAsync(NpgsqlConnection connection, CancellationToken cancellationToken) =>

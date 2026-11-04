@@ -2,7 +2,7 @@
 -- system for an administrative act, its id the sequence of the top of the copy that was opened and no reference. It is recorded only after the receipt of the rehearsal was checked against the chain
 -- and the key of the production, which the host does before it writes.
 --
--- The step list grows and the shape of the events about the master key now tells the two steps apart; the clauses of the loss stay as the 0022 left them. Triggers, digest and grants stay.
+-- The step list grows and the shape of the events about the master key now tells the two steps apart; the clauses of the loss stay as the 0023 left them. Triggers, digest and grants stay.
 ALTER TABLE public.custody_event
     DROP CONSTRAINT custody_event_step_listed,
     DROP CONSTRAINT custody_event_key_loss_shape,

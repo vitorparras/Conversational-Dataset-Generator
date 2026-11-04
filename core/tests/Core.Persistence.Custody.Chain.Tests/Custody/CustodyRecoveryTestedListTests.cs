@@ -4,8 +4,8 @@ using Npgsql;
 namespace Core.Persistence.Tests.Custody;
 
 /// <summary>
-/// The migration 0023 (issue 67, part 2): the server takes the step recovery_tested about the master key, written by the system for an administrative act, with the top of the copy in the id and no
-/// reference; it keeps the clauses the loss of a key was given by the 0022, and refuses every event of the new step with another shape.
+/// The migration 0024 (issue 67, part 2): the server takes the step recovery_tested about the master key, written by the system for an administrative act, with the top of the copy in the id and no
+/// reference; it keeps the clauses the loss of a key was given by the 0023, and refuses every event of the new step with another shape.
 /// </summary>
 [Trait("Category", "Database")]
 public sealed class CustodyRecoveryTestedListTests : IClassFixture<CustodyDatabase>

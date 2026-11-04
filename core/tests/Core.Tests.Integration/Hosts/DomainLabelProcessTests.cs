@@ -110,6 +110,44 @@ public sealed class DomainLabelProcessTests
     }
 
     [DatabaseFact]
+    public async Task TheRewrapOfADomainWithNoRowsSaysSoAndItsStatusCountsNothing()
+    {
+        await using var database = await WithTwoDomainsAsync();
+        using var files = new CustodyFiles();
+
+        var (rewrap, saidRewrap) = await RunAsync(database, Arguments(files, "rewrap-domain", "--domain=1", Everything));
+        var (status, saidStatus) = await RunAsync(database, Arguments(files, "rewrap-domain", "--domain=1", Everything, "--status"));
+
+        Assert.Equal(
+            (0, true, 0, true),
+            (rewrap, saidRewrap.Contains("0 chave(s) do domínio 1", StringComparison.Ordinal),
+             status, saidStatus.Contains("0 chave(s) na geração mais nova não revogada, 0 por reembrulhar", StringComparison.Ordinal)));
+        Assert.Equal(0L, await ScalarAsync(database, "SELECT count(*) FROM public.custody_event WHERE step = 'domain_rewrapped'"));
+    }
+
+    [DatabaseFact]
+    public async Task TheRewrapOfADomainThatIsNotAPositiveIntegerExitsWithTheRefusalCode()
+    {
+        await using var database = await WithTwoDomainsAsync();
+        using var files = new CustodyFiles();
+
+        var (exit, words) = await RunAsync(database, Arguments(files, "rewrap-domain", "--domain=0", Everything));
+
+        Assert.Equal((39, true), (exit, words.Contains("inteiro positivo", StringComparison.Ordinal)));
+    }
+
+    [DatabaseFact]
+    public async Task TheRewrapWithoutItsOptionRefusesWithTheConfigurationCode()
+    {
+        await using var database = await WithTwoDomainsAsync();
+        using var files = new CustodyFiles();
+
+        var (exit, words) = await RunAsync(database, Arguments(files, "rewrap-domain", null, Everything, "--status"));
+
+        Assert.Equal((78, true), (exit, words.Contains("--domain", StringComparison.Ordinal)));
+    }
+
+    [DatabaseFact]
     public async Task TheCommandWithoutItsOptionRefusesWithTheConfigurationCodeBeforeAnythingElse()
     {
         await using var database = await WithTwoDomainsAsync();
@@ -133,7 +171,7 @@ public sealed class DomainLabelProcessTests
         return database;
     }
 
-    private static string[] Arguments(CustodyFiles files, string mode, string? option, string[] labels)
+    private static string[] Arguments(CustodyFiles files, string mode, string? option, string[] labels, string? flag = null)
     {
         var withKey = new[]
         {
@@ -142,7 +180,8 @@ public sealed class DomainLabelProcessTests
             $"--MasterKey:LabelsFile={files.WriteText("labels", string.Concat(labels.Select(label => label + "\n")))}",
             $"--MasterKey:EpochsFile={files.WriteText("epochs", $"1:{Convert.ToBase64String(CustodyFiles.SyntheticEpoch(1))}\n")}",
         };
-        return option is null ? withKey : [.. withKey, option];
+        var given = new[] { option, flag }.OfType<string>();
+        return [.. withKey, .. given];
     }
 
     [SuppressMessage("Security", "CA2100", Justification = "The statements are literals of the tests, never input.")]

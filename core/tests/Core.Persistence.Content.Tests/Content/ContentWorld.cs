@@ -39,6 +39,10 @@ internal sealed class ContentWorld : IAsyncDisposable
     public const string RotatedEvent = "INSERT INTO public.custody_event (actor_person_id, actor_system, item_kind, item_id, step, reason) "
         + "VALUES (NULL, true, 'content_epoch', @epoch, 'epoch_rotated', 'administrative_act')";
 
+    /// <summary>The event of a batch of keys of the domain @domain wrapped again, by the system.</summary>
+    public const string RewrappedEvent = "INSERT INTO public.custody_event (actor_person_id, actor_system, item_kind, item_id, step, reason) "
+        + "VALUES (NULL, true, 'domain', @domain, 'domain_rewrapped', 'administrative_act')";
+
     public ScratchDatabase Database { get; }
 
     public NpgsqlDataSource DataSource { get; }

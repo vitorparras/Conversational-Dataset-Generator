@@ -261,7 +261,8 @@ chega certa ao núcleo e ao `migrate`. Nada a corrigir.
 
 Depois da revisão do PR #655, cinco menores de texto (032, 021, 022 e 033) foram corrigidos, e cada
 bloco alterado rodou como shell dentro da máquina, sem o `docker exec` no texto (o contêiner só
-transportou o bloco): o `sed` de dentro (021), a senha da pessoa e a entrada (022), a partida e a queda.
+transportou o bloco): o `sed` de dentro (021), a senha da pessoa e a entrada (022), a partida
+e a queda.
 
 ## Conclusão
 

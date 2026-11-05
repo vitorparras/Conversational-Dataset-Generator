@@ -21,14 +21,14 @@ quem levar o conjunto leva dado e chave na mesma caixa.
 ## A cópia de dados
 
 O `copy-data --to <pasta>` grava o manifesto (formato 1, versão do esquema, arquivos), a
-configuration.json (sem os segredos) e um esquema.tabela.jsonl por tabela: um registro por linha, do
-to_jsonb sem mudança, na ordem da chave (sequence na cadeia, id nas demais). Não lê chave nem
-arquivo de custódia. Grava o seal_recorded e lê num instantâneo que termina nele; imprime fora dela
-o topo (sequência e digest). Saídas: 0; 31, recusa (pasta cheia, selo ou escrita recusados); 32,
-falha, apague e repita. Carga na ordem: domínios, etiquetas, pessoas, credenciais, mudanças,
-tentativas de entrada, cadeia, textos, mapas e esvaziados. O migrate cria versões, falhas, contagem
-e janelas. A carga recusa outra versão ([006](006-restauracao.md)); linha ou evento recusado fecha a
-janela reprovada; cliente que morre a deixa aberta: descarte o banco. Inativo volta inativo.
+configuration.json (sem os segredos) e um esquema.tabela.jsonl por tabela: um registro por linha,
+do to_jsonb sem mudança, na ordem da chave (sequence na cadeia, id nas demais). Não lê chave nem
+arquivo de custódia. Grava o seal_recorded e lê num instantâneo até ele; imprime, fora da
+pasta, o topo. Saídas: 0; 31, recusa; 32, falha, apague e repita; 78, configuração recusada.
+Carga na ordem: domínios, etiquetas, pessoas, credenciais, mudanças, tentativas de entrada,
+cadeia, textos, mapas e esvaziados. Ficam fora da cópia versões, falhas, contagem e janelas, que
+o migrate cria. A carga recusa outra versão ([006](006-restauracao.md)); linha ou evento recusado
+fecha a janela reprovada; cliente que morre a deixa aberta: descarte o banco. Inativo volta inativo.
 
 ## Onde
 

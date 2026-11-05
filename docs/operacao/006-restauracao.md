@@ -33,8 +33,7 @@ versão correspondente. Abra a janela antes de começar: quem restaura, de qual 
 O `restore-load <pasta> <sequência> <digest>` faz o 1, o 2, o 3 e o 5 em banco novo, com a
 credencial da aplicação, sem a chave mestra; sequência e digest são o topo do `copy-data`. Sai com
 0 só se tudo fechou, grava o evento `restored` e, se algo recusar, diz qual versão, tabela ou evento
-divergiu, sem valor algum. Banco recusado se refaz com `migrate`. A amostra cifrada, que decifra,
-fica para a primeira partida, com a chave do host. Os passos 4, 6 e 7 são seus.
+divergiu, sem valor algum. Banco recusado se refaz com `migrate`. Os passos 4, 6 e 7 são seus.
 
 ## O que nunca se faz
 
@@ -57,4 +56,5 @@ a cadeia não fechar, pare aqui e siga [009](009-incidente-cadeia-quebrada.md).
 
 O `rehearse-restore --seal '<selo>'` confere os elos, o selo anotado fora ([005](005-backup.md)) e
 as garantias do catálogo, sem abrir texto, e grava restore_rehearsed. Saídas: 0; 33, falhou ou a
-cadeia não aceitou o evento; 34, selo ilegível; 35, sem banco; 78, configuração recusada.
+cadeia não aceitou o evento; 34, selo ilegível; 35, sem banco; 78, configuração recusada. A
+amostra cifrada fica fora do ensaio: a primeira partida a confere, com a chave do host.

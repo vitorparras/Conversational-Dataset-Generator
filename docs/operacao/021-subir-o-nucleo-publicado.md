@@ -6,17 +6,16 @@ Para quem tem o executável, a pasta do serviço de [018](018-pasta-do-servico.m
 esquema de [016](016-migracao-do-esquema.md) e o que [001](001-ambiente.md) lista. Usa só o que o
 Linux traz (bash, `/proc`) e o `openssl`: `ps` e cliente SQL não são dependência do artefato.
 
-Os blocos de 021 a 024 são comandos de um shell na máquina. Se a máquina é um contêiner
-operado de fora, cada bloco vai inteiro em `docker exec -i <contêiner> bash -s <<'EOF'`, com um
-`EOF` sozinho na última linha; no Git Bash do Windows, ponha `MSYS_NO_PATHCONV=1` antes do
-`docker`, ou ele reescreve caminhos como `/tmp/...`.
+Os blocos de 021 a 025 e de 028 são comandos de um shell, como a conta de [032](032-conta-do-nucleo.md)
+(`/opt/cdg` e `/etc/cdg` são dela). Num contêiner operado de fora, o bloco inteiro vai em
+`docker exec -i -u <conta> <contêiner> bash -s <<'EOF'`, com um `EOF` sozinho no fim; no Git Bash do
+Windows, `MSYS_NO_PATHCONV=1` antes do `docker`, ou ele reescreve caminhos como `/tmp/...`.
 
 **O roteiro é o de uma demonstração.** Os blocos usam os valores do ambiente do exemplo, a trocar
 pelos do seu (001): banco `cdg` em `db:5432`, papéis `owner` e `app`, artefato em `/opt/cdg`, núcleo
-em `127.0.0.1:5080`. `FICHA` e `CONTEINER` são marcadores: o arquivo da ficha (no Git Bash serve o
-caminho do Windows com barras normais) e o nome do contêiner. Numa instalação real, `real` troca
-`demonstracao` em `--Installation:Kind`, e valem [024](024-arquivos-de-custodia-da-chave.md),
-[025](025-certificado-do-canal-cifrado.md) e o cerco de [010](010-credencial-de-dono-do-banco.md).
+em `127.0.0.1:5080`. `FICHA`, `CONTEINER` e `CONTA` são marcadores: o arquivo da ficha (no Git Bash
+serve o caminho do Windows), o contêiner e a conta. Numa instalação real, `real` troca
+`demonstracao` em `--Installation:Kind`, e valem [024](024-arquivos-de-custodia-da-chave.md), [025](025-certificado-do-canal-cifrado.md) e o cerco de [010](010-credencial-de-dono-do-banco.md).
 
 ## A pasta do serviço fica dentro da pasta do executável
 
@@ -43,7 +42,7 @@ Com a ficha fora do contêiner, a senha vai pela entrada do `docker exec -i` (a 
 
 ```
 sed -n '/^Papel dono/s/.*Credencial: //p' FICHA \
-  | docker exec -i CONTEINER bash -c 'umask 077; cat > /tmp/senha-owner'
+  | docker exec -i -u CONTA CONTEINER bash -c 'umask 077; cat > /tmp/senha-owner'
 ```
 
 ## Migrar o esquema

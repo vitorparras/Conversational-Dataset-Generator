@@ -40,7 +40,7 @@ visível a outro processo, nem em log. A guarda está em [002](002-guarda-da-cha
 O núcleo carrega do sistema, no Linux, a glibc, a libgcc_s, a libstdc++ e a OpenSSL 3, e não sobe
 sem elas; no Windows, só o próprio sistema. A criptografia da biblioteca padrão da
 [decisão 0002](../decisoes/0002-stack.md) é a da plataforma: OpenSSL 3 no Linux, CNG no Windows. A
-lista vem do [histórico 002](../historico/002-medidas-do-artefato.md), que não mediu o `win-x64` nem a pasta do serviço. A `debian:12-slim` não traz a `libssl3`. A `libgssapi_krb5.so.2` é opcional: sem ela sai o aviso de [023](023-iniciar-o-nucleo-publicado.md), e a conexão segue.
+lista vem do [histórico 002](../historico/002-medidas-do-artefato.md), que não mediu o `win-x64` nem a pasta do serviço. No Debian, os pacotes são `libc6`, `libgcc-s1`, `libstdc++6` e `libssl3`, mais o `openssl`, o cliente TLS de [022](022-conferir-o-nucleo-publicado.md), e a `debian:12-slim` não traz a `libssl3` nem o `openssl`. O núcleo roda com a conta de [032](032-conta-do-nucleo.md): não é root e está no grupo `postgres`, que lê o registro do servidor. A `libgssapi_krb5.so.2` é opcional: sem ela sai o aviso de [023](023-iniciar-o-nucleo-publicado.md), e a conexão segue.
 
 ## O resto
 
@@ -49,7 +49,7 @@ lista vem do [histórico 002](../historico/002-medidas-do-artefato.md), que não
 - **Taxonomia de cada domínio** versionada e válida onde a instalação a lê: sem ela, nada sobe
 - **Certificado e chave do canal cifrado**, em PEM e só do dono, fora da pasta do executável
   ([0046](../decisoes/0046-material-do-canal-cifrado.md)). Conferir o núcleo pede um cliente TLS
-  (`openssl s_client` ou `curl`): proposta ao dono, que ainda confirma
+  (`openssl s_client` ou `curl`): proposta ao dono, que ainda confirma. No Debian: pacote `openssl`
 - **Lugar para backup** separado de onde vive a cópia de guarda da chave — ver [005](005-backup.md)
 
 ## O que não pode existir

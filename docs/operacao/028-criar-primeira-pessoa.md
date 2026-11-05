@@ -11,7 +11,9 @@ senha vem pela **entrada padrão**, nunca por argumento. Não há endpoint HTTP 
 ## Como rodar
 
 1. **Tenha a configuração do `migrate`** ([016](016-migracao-do-esquema.md)), com usuário e senha
-   do banco da **aplicação** e o fator de trabalho da derivação de senha (`Passwords:WorkFactor`, [decisão 0047](../decisoes/0047-fator-de-trabalho-das-senhas.md)).
+   do banco da **aplicação** e o fator de trabalho da derivação de senha (`Passwords:WorkFactor`, [decisão 0047](../decisoes/0047-fator-de-trabalho-das-senhas.md)), e
+   `--Installation:Kind` (`real` ou `demonstracao`): sem ele vale `real`, e um fator abaixo do piso
+   de 600000 sai com 78.
 2. **Envie a senha sem deixá-la em argumento nem no histórico do terminal.** Em `bash`:
 
    ```
@@ -21,6 +23,9 @@ senha vem pela **entrada padrão**, nunca por argumento. Não há endpoint HTTP 
    O `printf` é interno do shell, então a senha não aparece na lista de processos. A senha é a
    primeira linha da entrada, sem a quebra de linha final.
 3. **Guarde a senha** onde a instalação guarda segredos de operação ([decisão 0029](../decisoes/0029-identidade-e-sessao.md)).
+
+Num contêiner operado de fora não há terminal para o `read`: a forma de lá está em
+[033](033-primeira-pessoa-numa-maquina-operada-de-fora.md).
 
 A função é uma das seis da política de acesso, escrita como ela: Anotação, Arbitragem, Curadoria
 do acervo, Avaliação, Auditoria ou Administração técnica (em geral, a de quem abre a instalação).

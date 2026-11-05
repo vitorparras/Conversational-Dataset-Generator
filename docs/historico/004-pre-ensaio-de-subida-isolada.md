@@ -182,10 +182,58 @@ marcadores `FICHA` e `CONTEINER` e pondo `MSYS_NO_PATHCONV=1`. Uma observação,
 registro, sem consulta SQL, porque a máquina do operador não tem cliente SQL. Na Fase 1 também não
 há tabela que receba análise, de modo que a consulta não teria o que mostrar.
 
+## Rodada 7: sobre o main da fase 2
+
+Refeita em 2026-11-05 sobre o main `3336a2e8` (o commit completo é
+`3336a2e8b3e1449664968df7b0a15fe114736920`), porque desde a rodada 6 mudaram o README e as docs
+001, 016, 023 e 024 e entraram a 026 a 031. O artefato `linux-x64` foi construído desse commit, com
+o SDK 10.0.403 num contêiner de 3 GB e a pasta do serviço montada num contêiner Linux e levada em
+`.tar`, e tudo conferiu de novo dentro da máquina do ensaio:
+
+| Parte | SHA-256 |
+|---|---|
+| nucleo/Core.Host | `564afdb91d71a6e2f37e570c94caebb9c9aaabf621b1d02a0a9bfcb849588aea` |
+| nucleo/appsettings.json | `7c9d0624f1bc636ef8bf852a25105ea00c01e1b6eaf4c90a6d73f93db802e1e6` |
+| servico/SHA256SUMS | `a368b4f5fcc6f12321ebcf7fa5aa4dea7dd71b65507253cfb1da10b165ee47e8` |
+| servico/ORIGIN.json | `5a81e6516c5899a6f1ac56190574d55381e3b13f15bbbc89478b685b2caea5bc` |
+| servico/language-service-linux-x64.tar | `dfe31978347d6a53ddfb8ef24185dbfb7bb5af85f66fa381adfcb12635e7af17` |
+
+O `SHA256SUMS` cobre 13086 arquivos. **Ambiente da rodada 7:** `debian:12-slim` de 2 GB em rede
+interna, com a prova de isolamento nos mesmos 7 itens, banco PostgreSQL 17 irmão e ficha só com o
+que a 001 põe no ambiente. A base tinha 88 pacotes e ficou com 89: só `libssl3` 3.0.22-1~deb12u2
+(os outros três da 001 já estavam). **Ensaiou** o QA, um agente (Claude Code) sem memória do
+projeto, lendo só o `README.md` e `docs/` do commit. A subida (com análise 200), a queda do serviço
+(503 `ConnectionRefused`, nada gravado, linha `interrompida`) e o SIGTERM com saída 0 passaram, com
+cinco improvisos:
+
+| # | Improviso | Correção |
+|---|---|---|
+| 1 | Sem `openssl` na máquina: o certificado foi gerado fora e o cliente TLS feito com o Python do serviço | 001 lista o pacote `openssl` (cliente TLS e gerador do certificado de 025), e o ambiente passou a instalá-lo |
+| 2 | A partida saiu com 78: faltava `--MasterKey:EpochsFile`, que a 024 cita | 023 passa o argumento |
+| 3 | `Audit:ServerLogDirectory` apontava para uma pasta que não existia; com root a pasta contava como gravável (69), e sem o grupo, como ilegível (69) | 001 e a nova [032](../operacao/032-conta-do-nucleo.md): a conta é não root e do grupo do registro, com a conferência da pasta; o ambiente monta o `csvlog` do servidor só para leitura e a ficha diz a pasta, o grupo e a conta |
+| 4 | `ITERACOES` sem valor sugerido na demonstração | 023 usa 100000 |
+| 5 | 401 sem dizer como entrar; o `create-person` sem `--Installation:Kind` saía com 78 | 022 entra com a pessoa de 028 (`entrar`, com cookie); 028 pede o `Kind` e a nova [033](../operacao/033-primeira-pessoa-numa-maquina-operada-de-fora.md) dá a forma sem terminal |
+
+Duas coisas só se viram ao testar. O `create-person` sem `Kind` vale como instalação real, e o fator
+100000 fica abaixo do piso de 600000, o que dá o 78. E o núcleo como root passa na conferência do
+registro quando a montagem é só de leitura (a recusa por "gravável" só ocorre numa pasta comum), o
+que a 032 diz. O 021 passou a mandar rodar os blocos como a conta, com `docker exec -u`.
+
+As docs 032 e 033 existem porque o teto de 60 linhas por documento não deixava a 001, a 023 e a
+028 acomodar o texto novo. **Ambiente corrigido:** `openssl` instalado (90 pacotes), volume do
+`csvlog` montado em `/var/log/postgresql` só para leitura, conta `nucleo` (não root, grupo
+`postgres` de gid 999, dona de `/opt/cdg` e `/etc/cdg`), e a ficha com esses dados. Cada bloco
+corrigido foi extraído do texto e rodado, do jeito do operador (inteiro em `docker exec -i -u
+nucleo bash -s`, no Git Bash com `MSYS_NO_PATHCONV=1`), num contêiner descartável e num banco novo:
+cópia da pasta do serviço, `migrate` (0), custódia, certificado, `create-person` (0), a conferência
+da pasta, a partida (pronta), a entrada e as rotas, a queda do serviço (503, linha `interrompida`)
+e o SIGTERM (saída 0). Recusas conferidas à mão: sem o grupo, 69 em `ServerLog`.
+
 ## Conclusão
 
-Passou sem improviso na rodada 6, por agente. Isso encerra o pré-ensaio: o texto de 021, 022 e 023
-basta a um agente sem memória do sistema para subir o núcleo publicado, ver a queda do serviço e
+Passou sem improviso na rodada 6, por agente, sobre a Fase 1, e isso encerrou o pré-ensaio dela: o
+texto de 021, 022 e 023 de então basta a um agente sem memória do sistema para subir o núcleo
+publicado, ver a queda do serviço e
 encerrar, num contêiner Debian sem rede, com banco irmão. **Não é o ensaio da #50 nem da #264.** Foi
 um agente, num ambiente montado por quem escreveu o texto, e a rodada 2 teve memória residual da 1
 (o reset que não funcionava). O que vale daqui é o texto corrigido, não uma aprovação. Os commits

@@ -269,7 +269,7 @@ primeira pessoa, entrada, queda do serviço e encerramento com saída 0. **Não 
 da #264.** Foi um agente, num ambiente montado por quem escreveu o texto, e a rodada 2 teve memória
 residual da 1 (o reset que não funcionava). O que vale daqui é o texto corrigido, não uma
 aprovação. Os commits citados (`e4ae18d` a `66b3381`) são desta branch; com squash, sobrevivem na
-referência do PR #450. Os da Fase 2 (`9ee926c1`, `f3985842`) são de outra branch, do PR de docs da #50.
+referência do PR #450. Os da Fase 2 (`9ee926c1`, `f3985842`) são do PR de docs da #50.
 
 ## O que fica para o ensaio formal, por uma pessoa (#50 e #264)
 

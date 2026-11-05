@@ -23,6 +23,13 @@ public static class ContentQueries
 
     internal const string ReadFirstEntries = "SELECT id, entries, dek_epoch, dek_wrapped FROM content.reversal_map WHERE emptied_at IS NULL ORDER BY id LIMIT 1";
 
+    /// <summary>The rows of the copy of the data, as the database writes them, for the domain declared: the sealed columns go as the bytes they are, never opened.</summary>
+    internal const string ReadCopyItemText = "SELECT pg_catalog.to_jsonb(t)::text FROM content.item_text t ORDER BY id";
+
+    internal const string ReadCopyReversalMap = "SELECT pg_catalog.to_jsonb(t)::text FROM content.reversal_map t ORDER BY id";
+
+    internal const string ReadCopyItemEmptied = "SELECT pg_catalog.to_jsonb(t)::text FROM content.item_emptied t ORDER BY id";
+
     /// <summary>Adds an item; the texts that are sealed arrive sealed, with the key of the item wrapped.</summary>
     internal const string InsertItemText =
         "INSERT INTO content.item_text (domain_id, raw_text, sanitized_text, pseudonymized_text, dek_epoch, dek_wrapped) "

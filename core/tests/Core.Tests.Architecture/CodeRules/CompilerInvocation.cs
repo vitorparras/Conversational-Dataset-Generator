@@ -12,6 +12,19 @@ internal sealed class CompilerInvocation
 {
     private static readonly ConcurrentDictionary<string, Lazy<CompilerInvocation>> Evaluated = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// Reads the command line of the compiler without running it or the compilers of the projects it references: the targets that make the line run, the compiler itself does not, and the
+    /// references are the outputs already compiled. A file that never exists keeps the target from being skipped as up to date, and the Razor discovery of application parts, which
+    /// reads those outputs, is off; the sources, analyzers and options are the same as the full build gives.
+    /// </summary>
+    private static readonly string[] DesignTime =
+    [
+        "-p:SkipCompilerExecution=true", "-p:BuildProjectReferences=false", "-p:GenerateMvcApplicationPartsAssemblyAttributes=false", "-p:NonExistentFile=__never__",
+    ];
+
+    private static readonly Lock RepositoryReading = new();
+    private static readonly Lazy<ScratchDirectory> RepositoryScratch = new(CreateRepositoryScratch);
+
     public required string ProjectPath { get; init; }
 
     /// <summary>The name of the assembly the compiler writes.</summary>
@@ -75,9 +88,12 @@ internal sealed class CompilerInvocation
     /// <summary>The configs merged the way the compiler merges them, kept as read while the build output still existed.</summary>
     public AnalyzerConfigSet ConfigSet { get; init; } = AnalyzerConfigSet.Create(Array.Empty<AnalyzerConfig>());
 
-    /// <summary>The invocation of a project as it sits in the repository; nothing is written under the repository.</summary>
+    /// <summary>
+    /// The invocation of a project as it sits in the repository; nothing is written under the repository. The projects are read one at a time in a scratch directory
+    /// that lives as long as the test process, so the projects each one references are compiled once, for the first, and found compiled by the others.
+    /// </summary>
     public static CompilerInvocation Of(string projectPath) =>
-        Evaluated.GetOrAdd(projectPath, path => new Lazy<CompilerInvocation>(() => Evaluate(path, null))).Value;
+        Evaluated.GetOrAdd(projectPath, path => new Lazy<CompilerInvocation>(() => EvaluateInRepositoryScratch(path))).Value;
 
     /// <summary>The invocation of a fixture project, built in a temporary copy of the fixture tree with its own package cache, so that nothing reaches the machine's.</summary>
     public static CompilerInvocation OfFixture(string relativeDirectory, string projectName)
@@ -85,17 +101,60 @@ internal sealed class CompilerInvocation
         using var scratch = ScratchDirectory.Create();
         var tree = scratch.CopyFixture(Path.Combine(SourceTree.FixturesDirectory, relativeDirectory), "tree");
         FixturePackages.Build(tree);
-        return Evaluate(Path.Combine(tree, projectName, projectName + ".csproj"), Path.Combine(scratch.Path, "packages"));
+        var projectPath = Path.Combine(tree, projectName, projectName + ".csproj");
+        var packages = Path.Combine(scratch.Path, "packages");
+        var run = new MsBuildRun(projectPath, scratch.Path, packages);
+        var referencing = ReferencesProjects(tree);
+        if (referencing)
+        {
+            _ = run.Execute("-t:Restore").OutputOfSuccess(Description(projectPath));
+            _ = run.Execute("-t:ResolveReferences", "-p:RunAnalyzers=false").OutputOfSuccess(Description(projectPath));
+        }
+
+        return Read(run, projectPath, packages, restore: !referencing);
     }
 
-    private static CompilerInvocation Evaluate(string projectPath, string? packages)
+    private static CompilerInvocation EvaluateInRepositoryScratch(string projectPath)
     {
-        using var scratch = ScratchDirectory.Create();
-        var run = new MsBuildRun(projectPath, scratch.Path, packages);
-        var description = $"Reading the compiler invocation of {Path.GetFileName(projectPath)}";
-        _ = run.Execute("-t:Restore").OutputOfSuccess(description);
-        var output = run.Execute("-t:Build", "-p:ProvideCommandLineArgs=true", "-getItem:CscCommandLineArgs", "-getProperty:IntermediateOutputPath")
-            .OutputOfSuccess(description);
+        lock (RepositoryReading)
+        {
+            var run = new MsBuildRun(projectPath, RepositoryScratch.Value.Path, null);
+            _ = run.Execute("-t:Restore").OutputOfSuccess(Description(projectPath));
+            _ = run.Execute("-t:ResolveReferences", "-p:RunAnalyzers=false").OutputOfSuccess(Description(projectPath));
+            return Read(run, projectPath, null, restore: false);
+        }
+    }
+
+    private static bool ReferencesProjects(string tree) =>
+        Directory.EnumerateFiles(tree, "*", SearchOption.AllDirectories)
+            .Where(file => file.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase) || file.EndsWith(".props", StringComparison.OrdinalIgnoreCase))
+            .Any(file => File.ReadAllText(file).Contains("ProjectReference", StringComparison.Ordinal));
+
+    private static ScratchDirectory CreateRepositoryScratch()
+    {
+        var scratch = ScratchDirectory.Create();
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => RemoveQuietly(scratch.Path);
+        return scratch;
+    }
+
+    private static void RemoveQuietly(string path)
+    {
+        try
+        {
+            ScratchDirectory.Remove(path);
+        }
+        catch (IOException)
+        {
+            // The scratch directory of a process that is ending is the operating system's to clean up in the end.
+        }
+    }
+
+    private static string Description(string projectPath) => $"Reading the compiler invocation of {Path.GetFileName(projectPath)}";
+
+    private static CompilerInvocation Read(MsBuildRun run, string projectPath, string? packages, bool restore)
+    {
+        string[] read = ["-t:Compile", .. DesignTime, "-p:ProvideCommandLineArgs=true", "-getItem:CscCommandLineArgs", "-getProperty:IntermediateOutputPath"];
+        var output = run.Execute(restore ? [.. read, "-restore"] : read).OutputOfSuccess(Description(projectPath));
         using var document = JsonDocument.Parse(output[output.IndexOf('{', StringComparison.Ordinal)..]);
         var arguments = document.RootElement.GetProperty("Items").GetProperty("CscCommandLineArgs").EnumerateArray()
             .Select(item => item.GetProperty("Identity").GetString()!);

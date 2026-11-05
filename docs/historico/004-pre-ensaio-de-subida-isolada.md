@@ -249,15 +249,27 @@ trazia os valores. Os dois blocos corrigidos foram extraídos do texto e rodados
 num contêiner e num banco novos: os dois `sed` gravaram os arquivos de modo 600 com a senha certa, o
 `migrate` saiu com 0 e o `create-person` com a senha do exemplo, com 0.
 
+## Rodada 9
+
+Em 2026-11-05, com os docs de `f3985842`, o mesmo artefato de `3336a2e8` e um QA zerado (agente,
+Claude Code), no ambiente da rodada 8: contêiner `debian:12-slim` de 2 GB em rede interna, 90
+pacotes, isolamento nos 12 itens, sem falha. A subida (com análise 200), a queda do serviço (503
+`ConnectionRefused`, nada gravado, linha `interrompida`) e o SIGTERM com saída 0 passaram **sem
+improviso** e sem comando falho. Uma observação, sem efeito: o `sed` da senha de 021 deixa a quebra
+de linha no fim dos arquivos de senha, e o `$(cat ...)` que os lê a descarta, de modo que a senha
+chega certa ao núcleo e ao `migrate`. Nada a corrigir.
+
 ## Conclusão
 
-Passou sem improviso na rodada 6, por agente, sobre a Fase 1, e isso encerrou o pré-ensaio dela: o
-texto de 021, 022 e 023 de então basta a um agente sem memória do sistema para subir o núcleo
-publicado, ver a queda do serviço e
-encerrar, num contêiner Debian sem rede, com banco irmão. **Não é o ensaio da #50 nem da #264.** Foi
-um agente, num ambiente montado por quem escreveu o texto, e a rodada 2 teve memória residual da 1
-(o reset que não funcionava). O que vale daqui é o texto corrigido, não uma aprovação. Os commits
-citados (`e4ae18d` a `66b3381`) são desta branch; com squash, sobrevivem na referência do PR #450.
+A Fase 1 passou sem improviso na rodada 6, e a Fase 2, nas rodadas 7 a 9, sobre o main
+`3336a2e8`: a rodada 7 achou cinco improvisos, a 8 achou três, e a 9 passou sem nenhum. O texto de
+021 a 025, 028, 032 e 033, com a 001, basta a um agente sem memória do sistema para subir o núcleo
+publicado da Fase 2 numa máquina Debian sem rede, com banco irmão: custódia, certificado, migração,
+primeira pessoa, entrada, queda do serviço e encerramento com saída 0. **Não é o ensaio da #50 nem
+da #264.** Foi um agente, num ambiente montado por quem escreveu o texto, e a rodada 2 teve memória
+residual da 1 (o reset que não funcionava). O que vale daqui é o texto corrigido, não uma
+aprovação. Os commits citados (`e4ae18d` a `66b3381`) são desta branch; com squash, sobrevivem na
+referência do PR #450. Os da Fase 2 (`9ee926c1`, `f3985842`) são de outra branch, do PR de docs da #50.
 
 ## O que fica para o ensaio formal, por uma pessoa (#50 e #264)
 
@@ -266,9 +278,17 @@ citados (`e4ae18d` a `66b3381`) são desta branch; com squash, sobrevivem na ref
   localmente do commit; e o mesmo para o destino `win-x64`, que não foi tocado
 - **Uma máquina**, e não um contêiner de rede interna: usuário do serviço, permissões da pasta,
   como o núcleo é mantido de pé e reiniciado, e o isolamento de rede do ambiente de verdade
-- **Instalação real**, com a chave-mestra (decisão D1 da #53, que ficou de fora) e o cerco da
-  credencial de [010](../operacao/010-credencial-de-dono-do-banco.md): a verificação da cadeia antes
-  e depois do `migrate` e o registro da janela, que a demonstração dispensou
+- **O registro do servidor e a conta de verdade**: o pré-ensaio montou o `csvlog` num volume só de
+  leitura e deu ao ensaiador a conta `nucleo`, não root e do grupo do registro; numa máquina, é
+  quem opera que cria a conta, o grupo e a permissão da pasta ([032](../operacao/032-conta-do-nucleo.md))
+- **Instalação real**, com a chave-mestra (decisão D1 da #53, que ficou de fora; a demonstração usou
+  chave, rótulos e épocas descartáveis) e o cerco da credencial de
+  [010](../operacao/010-credencial-de-dono-do-banco.md): a verificação da cadeia antes e depois do
+  `migrate` e o registro da janela, que a demonstração dispensou, e um certificado de verdade no
+  lugar do autoassinado de [025](../operacao/025-certificado-do-canal-cifrado.md)
+- **A entrada e a primeira pessoa com a senha de quem a usa**: o pré-ensaio deu a senha de
+  demonstração do texto, e a senha guardada onde a instalação guarda segredos
+  ([028](../operacao/028-criar-primeira-pessoa.md)) não foi exercida
 - **Guarda da chave, backup e restauração** ([002](../operacao/002-guarda-da-chave.md),
   [005](../operacao/005-backup.md), [006](../operacao/006-restauracao.md)), fora do pré-ensaio
 - **Conferência no banco** por quem opera o banco, com cliente SQL, de que a análise recusada não

@@ -55,11 +55,6 @@ Ela não desaparece depois de dar certo: um evento novo declara o que foi restau
 o veredito e qual era o topo antes e depois. Janela aprovada não é restauração aprovada: vale o
 `restored`. Restauração silenciosa deixa um salto que a próxima verificação trata como incidente.
 
-## O ensaio
-
-`rehearse-restore --seal <selo>`, com a credencial da aplicação sobre o banco restaurado, confere
-os elos, o selo anotado fora ([005](005-backup.md)) e as garantias do catálogo, sem abrir texto: a
-amostra cifrada da conferência das garantias fica de fora, e é conferida na partida, com a chave.
-Grava restore_rehearsed: passou (`held`) ou falhou, nomeando o que não valeu (privilege, policy,
-revoke, immutable, columns, chain, seal). Saídas: 0; 33, falhou, ou a cadeia, quebrada, não aceitou
-o evento ([009](009-incidente-cadeia-quebrada.md)); 34, selo ausente ou ilegível; 35, sem banco.
+O `rehearse-restore --seal <selo>` confere os elos, o selo anotado fora ([005](005-backup.md)) e as
+garantias do catálogo, sem abrir texto: a amostra cifrada fica de fora. Grava restore_rehearsed:
+`held` ou o que não valeu. Saídas: 0; 33, falhou ou a cadeia não aceitou o evento ([009](009-incidente-cadeia-quebrada.md)); 34, selo ilegível; 35, sem banco.

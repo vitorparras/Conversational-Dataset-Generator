@@ -29,7 +29,6 @@ domínios, etiquetas, pessoas, credenciais, mudanças, tentativas de entrada, ca
 esvaziados. Fora ficam versões, falhas, contagem e janelas: o migrate as cria. A carga recusa cópia
 de versão diferente ([006](006-restauracao.md)); linha ou evento recusado fecha a janela como
 reprovada; cliente que morre a deixa aberta e o banco se descarta. Inativo volta inativo.
-Saídas: 0; 31, recusa; 32, falha; 78, sem pasta.
 
 ## Onde
 

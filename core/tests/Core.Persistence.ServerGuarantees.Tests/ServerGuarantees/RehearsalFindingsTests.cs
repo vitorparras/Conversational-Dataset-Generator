@@ -2,7 +2,9 @@ using Core.Persistence.ServerGuarantees;
 
 namespace Core.Persistence.Tests.ServerGuarantees;
 
-/// <summary>The closed list of what a rehearsal of a restore finds (issue 66): the bits of the guarantees are the ones of the conference, the others do not clash, and the names fit a reference.</summary>
+/// <summary>
+/// The closed list of what a rehearsal of a restore finds (issue 66): the bits of the guarantees are the ones of the conference, the others do not clash, and the names fit a reference.
+/// </summary>
 public sealed class RehearsalFindingsTests
 {
     [Theory]

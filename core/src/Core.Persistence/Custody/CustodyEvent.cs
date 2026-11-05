@@ -12,7 +12,8 @@ public sealed record CustodyEvent
         .Append(CustodyStep.VerifyChain).Append(CustodyStep.ItemEmptied).Append(CustodyStep.ItemEmptyingRefused).Append(CustodyStep.EpochRotated).Append(CustodyStep.DomainCreated)
         .Append(CustodyStep.SealRecorded).Append(CustodyStep.DomainLabelRotated)
         .Append(CustodyStep.SignInAccepted).Append(CustodyStep.SignInRefused).Append(CustodyStep.KeyLossDeclared).Append(CustodyStep.RecoveryTested)
-        .Append(CustodyStep.VerifyGuarantees).Append(CustodyStep.OwnerWindowOpened).Append(CustodyStep.OwnerWindowClosed).Append(CustodyStep.Restored).Append(CustodyStep.RestoreRehearsed).ToFrozenSet();
+        .Append(CustodyStep.VerifyGuarantees).Append(CustodyStep.OwnerWindowOpened).Append(CustodyStep.OwnerWindowClosed)
+        .Append(CustodyStep.Restored).Append(CustodyStep.RestoreRehearsed).ToFrozenSet();
 
     private CustodyEvent(CustodyAuthor author, CustodyItem item, CustodyStep step, CustodyReason reason)
     {

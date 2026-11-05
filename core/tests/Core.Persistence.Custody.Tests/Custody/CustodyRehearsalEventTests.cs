@@ -2,7 +2,9 @@ using Core.Persistence.Custody;
 
 namespace Core.Persistence.Tests.Custody;
 
-/// <summary>The event of the result of a rehearsal of a restore (issue 66, CA-2 and CA-3): about the chain, by the system, passed or failed, with the mask in the id and the names in the reference.</summary>
+/// <summary>
+/// The event of the result of a rehearsal of a restore (issue 66, CA-2 and CA-3): about the chain, by the system, passed or failed, with the mask in the id and the names in the reference.
+/// </summary>
 public sealed class CustodyRehearsalEventTests
 {
     [Fact]

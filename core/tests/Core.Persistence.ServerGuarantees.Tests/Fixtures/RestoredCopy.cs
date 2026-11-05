@@ -5,13 +5,15 @@ using NpgsqlTypes;
 
 namespace Core.Persistence.Tests.Fixtures;
 
-/// <summary>A copy of the data put back into a database of its own by the functions of the load, in the order of the 005, with the window closed approved, as the load of a restore leaves it.</summary>
+/// <summary>
+/// A copy of the data put back into a database of its own by the functions of the load, in the order of the 005, with the window closed approved, as the load of a restore leaves it.
+/// </summary>
 internal sealed class RestoredCopy : IAsyncDisposable
 {
     private static readonly string[] Tables =
     [
-        "public.domain", "public.derivation_label", "public.person", "public.person_credential", "public.person_change", "public.custody_event",
-        "content.item_text", "content.reversal_map", "content.item_emptied",
+        "public.domain", "public.derivation_label", "public.person", "public.person_credential", "public.person_change", "public.sign_in_attempt",
+        "public.custody_event", "content.item_text", "content.reversal_map", "content.item_emptied",
     ];
 
     private RestoredCopy(ScratchDatabase database, NpgsqlDataSource app)

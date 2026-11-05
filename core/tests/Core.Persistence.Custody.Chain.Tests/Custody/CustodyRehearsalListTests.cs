@@ -36,6 +36,12 @@ public sealed class CustodyRehearsalListTests : IClassFixture<CustodyDatabase>
     [InlineData("key_loss_declared")]
     [InlineData("verify_guarantees")]
     [InlineData("owner_window_closed")]
+    [InlineData("owner_window_opened")]
+    [InlineData("sign_in_accepted")]
+    [InlineData("sign_in_refused")]
+    [InlineData("credential_recomputed")]
+    [InlineData("recovery_tested")]
+    [InlineData("restored")]
     public async Task Ca2EveryStepTheMigrationsBeforeListedIsStillListed(string step)
     {
         var definition = await database.TextAsOwnerAsync("SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'custody_event_step_listed'");

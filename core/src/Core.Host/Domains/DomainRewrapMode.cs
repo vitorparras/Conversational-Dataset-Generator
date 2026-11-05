@@ -8,8 +8,7 @@ using Npgsql;
 namespace Core.Host.Domains;
 
 /// <summary>
-/// The mode asked for with <c>rewrap-domain --domain &lt;id&gt;</c> (issue 56): run once with the owner credential, it wraps again the keys of the domain under the newest label not revoked,
-/// in batches, never touching the content. With <c>--status</c> it only reads and says how many keys are there and how many are behind.
+/// The mode asked for with <c>rewrap-domain --domain &lt;id&gt;</c> (issue 56): run once with the owner credential, it wraps the keys of the domain again in batches; <c>--status</c> only reads.
 /// </summary>
 internal static class DomainRewrapMode
 {
@@ -77,7 +76,7 @@ internal static class DomainRewrapMode
 
     private static async Task<string> RunOnceAsync(NpgsqlDataSource dataSource, MasterKeyReading reading, (int Id, bool Status) request)
     {
-        var rewrap = new DomainRewrap(dataSource);
+        var rewrap = new DomainRewrap(dataSource, DomainRewrap.WholeBatch);
         if (request.Status)
         {
             var (current, behind) = await rewrap.StatusAsync(request.Id, reading.Labels, CancellationToken.None).ConfigureAwait(false);

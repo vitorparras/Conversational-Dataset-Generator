@@ -9,23 +9,18 @@ using NpgsqlTypes;
 namespace Core.Persistence.Content.Rotation;
 
 /// <summary>
-/// The rewrap of a domain (issue 56): the key of each row not emptied is wrapped again under the newest generation of its labels that is registered and not revoked, in batches that each commit
-/// alone with the event that ties the change to the chain (decision 0050). Only the wrapped key changes, never the content or the epoch; a run that stops leaves its batches, and the next goes on.
+/// The rewrap of a domain (issue 56): each key not emptied is wrapped again under the newest registered label not revoked, in batches that each commit with their event in the chain (0050).
 /// </summary>
 public sealed class DomainRewrap
 {
-    private const int WholeBatch = 500;
+    /// <summary>The size of a whole batch, in rows.</summary>
+    public static readonly int WholeBatch = 500;
+
     private static readonly Table Items = new(ContentQueries.ReadItemKeysAfter, ContentQueries.RewrapItemKey);
     private static readonly Table Maps = new(ContentQueries.ReadMapKeysAfter, ContentQueries.RewrapMapKey);
 
     private readonly NpgsqlDataSource dataSource;
     private readonly int batch;
-
-    /// <summary>The rewrap reads and writes through the data source of the owner credential, in whole batches of 500 rows.</summary>
-    public DomainRewrap(NpgsqlDataSource dataSource)
-        : this(dataSource, WholeBatch)
-    {
-    }
 
     /// <summary>The rewrap reads and writes through the data source of the owner credential, in batches of <paramref name="batch"/> rows (a test makes them small to stop a run between two).</summary>
     public DomainRewrap(NpgsqlDataSource dataSource, int batch)
@@ -72,13 +67,12 @@ public sealed class DomainRewrap
     {
         var registered = await RegisteredLabels.ReadAsync(dataSource, cancellationToken).ConfigureAwait(false);
         var revoked = await LabelRevocations.ReadAsync(dataSource, cancellationToken).ConfigureAwait(false);
-        return new Plan { DomainId = domainId, Loaded = loaded, Wanted = DerivationLabels.Of(registered), Usable = text => !revoked.Contains(text) };
+        return new Plan(domainId, loaded, DerivationLabels.Of(registered), text => !revoked.Contains(text));
     }
 
     private async Task<int> RewrapTableAsync(Plan plan, ItemKeys keys, Table table, CancellationToken cancellationToken)
     {
-        var rewrapped = 0;
-        long after = 0;
+        var (rewrapped, after) = (0, 0L);
         while (true)
         {
             var (last, read, changed) = await RewrapBatchAsync(plan, keys, (table, after), cancellationToken).ConfigureAwait(false);
@@ -175,16 +169,8 @@ public sealed class DomainRewrap
 
     private sealed record Table(string Read, string Replace);
 
-    private sealed class Plan
+    private sealed record Plan(int DomainId, DerivationLabels Loaded, DerivationLabels Wanted, Func<string, bool> Usable)
     {
-        internal int DomainId { get; init; }
-
-        internal DerivationLabels Loaded { get; init; } = DerivationLabels.None;
-
-        internal DerivationLabels Wanted { get; init; } = DerivationLabels.None;
-
-        internal Func<string, bool> Usable { get; init; } = static _ => false;
-
         internal bool IsBehind(byte[] wrapped) => EnvelopeCipher.LabelOf(wrapped) != Target(wrapped);
 
         internal string Target(byte[] wrapped)

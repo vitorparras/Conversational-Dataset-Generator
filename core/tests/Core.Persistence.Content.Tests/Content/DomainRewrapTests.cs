@@ -38,7 +38,7 @@ public sealed class DomainRewrapTests
         var sealedBefore = await world.StoredAsync(1, ItemRaw, first);
         using var custody = SyntheticCustody.HoldingEpochs([1], WithTheNextGeneration);
 
-        var rewrapped = await new DomainRewrap(world.DataSource).RewrapAsync(1, custody.Keys, custody.Labels, TestContext.Current.CancellationToken);
+        var rewrapped = await WholeBatches(world).RewrapAsync(1, custody.Keys, custody.Labels, TestContext.Current.CancellationToken);
 
         var reading = world.ReaderWith(custody);
         var raw = await reading.ReadAsync(new ContentRead(CustodyAuthor.System, ContentColumns.RawText, 1, first), TestContext.Current.CancellationToken);
@@ -100,7 +100,7 @@ public sealed class DomainRewrapTests
         _ = await world.ScalarAsync("INSERT INTO public.derivation_label_revocation (label) VALUES ('texto-bruto/1/v3'), ('mapa-reversao/1/v3')");
         using var custody = SyntheticCustody.HoldingEpochs([1], [.. WithTheNextGeneration, "texto-bruto/1/v3", "mapa-reversao/1/v3"]);
 
-        _ = await new DomainRewrap(world.DataSource).RewrapAsync(1, custody.Keys, custody.Labels, TestContext.Current.CancellationToken);
+        _ = await WholeBatches(world).RewrapAsync(1, custody.Keys, custody.Labels, TestContext.Current.CancellationToken);
 
         Assert.Equal("texto-bruto/1/v2", await LabelOfAsync(world, 1, ItemKey, item));
     }
@@ -111,7 +111,7 @@ public sealed class DomainRewrapTests
         await using var world = await WorldWithTheNextGenerationAsync();
         var ids = await AddItemsAsync(world.Writer, 2);
         using var custody = SyntheticCustody.HoldingEpochs([1], ContentWorld.Labels);
-        var rewrap = new DomainRewrap(world.DataSource);
+        var rewrap = WholeBatches(world);
 
         var refused = await Assert.ThrowsAsync<EnvelopeRefusedException>(() => rewrap.RewrapAsync(1, custody.Keys, custody.Labels, TestContext.Current.CancellationToken));
         var status = await Assert.ThrowsAsync<EnvelopeRefusedException>(() => rewrap.StatusAsync(1, custody.Labels, TestContext.Current.CancellationToken));
@@ -131,7 +131,7 @@ public sealed class DomainRewrapTests
         _ = await world.InDomainAsync(1, "INSERT INTO content.item_text (domain_id, raw_text, dek_epoch, dek_wrapped) VALUES (1, '\x01', 1, @wrapped) RETURNING id", ("wrapped", foreign));
         using var custody = SyntheticCustody.HoldingEpochs([1], WithTheNextGeneration);
 
-        _ = await Assert.ThrowsAsync<EnvelopeRefusedException>(() => new DomainRewrap(world.DataSource).RewrapAsync(1, custody.Keys, custody.Labels, TestContext.Current.CancellationToken));
+        _ = await Assert.ThrowsAsync<EnvelopeRefusedException>(() => WholeBatches(world).RewrapAsync(1, custody.Keys, custody.Labels, TestContext.Current.CancellationToken));
 
         Assert.Equal(0L, await world.ScalarAsync(Events));
     }
@@ -144,7 +144,7 @@ public sealed class DomainRewrapTests
         await world.BreakTheChainAsync();
         using var custody = SyntheticCustody.HoldingEpochs([1], WithTheNextGeneration);
 
-        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => new DomainRewrap(world.DataSource).RewrapAsync(1, custody.Keys, custody.Labels, TestContext.Current.CancellationToken));
+        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => WholeBatches(world).RewrapAsync(1, custody.Keys, custody.Labels, TestContext.Current.CancellationToken));
 
         Assert.Equal((true, "v1,v1"), (refused.Message.Contains("ChainBroken", StringComparison.Ordinal), string.Join(',', (await LabelsOfAsync(world, ids)).Select(label => label[^2..]))));
     }
@@ -159,7 +159,7 @@ public sealed class DomainRewrapTests
             new ItemEmptying(CustodyAuthor.Person(curator), 1, ids[0], EmptyingMotive.ContractRequirement, "PROT-2026/0042"), TestContext.Current.CancellationToken);
         using var custody = SyntheticCustody.HoldingEpochs([1], WithTheNextGeneration);
 
-        var rewrapped = await new DomainRewrap(world.DataSource).RewrapAsync(1, custody.Keys, custody.Labels, TestContext.Current.CancellationToken);
+        var rewrapped = await WholeBatches(world).RewrapAsync(1, custody.Keys, custody.Labels, TestContext.Current.CancellationToken);
 
         Assert.Equal((1, "texto-bruto/1/v2", null), (rewrapped, await LabelOfAsync(world, 1, ItemKey, ids[1]), await world.InDomainAsync(1, ItemEpoch, ("id", ids[0]))));
     }
@@ -186,7 +186,7 @@ public sealed class DomainRewrapTests
     {
         await using var world = await WorldWithTheNextGenerationAsync();
         using var custody = SyntheticCustody.HoldingEpochs([1], WithTheNextGeneration);
-        var rewrap = new DomainRewrap(world.DataSource);
+        var rewrap = WholeBatches(world);
 
         var rewrapped = await rewrap.RewrapAsync(2, custody.Keys, custody.Labels, TestContext.Current.CancellationToken);
 
@@ -198,12 +198,12 @@ public sealed class DomainRewrapTests
     {
         await using var dataSource = NpgsqlDataSource.Create("Host=127.0.0.1;Port=1;Username=u;Password=p;Database=d");
         using var custody = SyntheticCustody.Holding(ContentWorld.Labels);
-        var rewrap = new DomainRewrap(dataSource);
+        var rewrap = new DomainRewrap(dataSource, DomainRewrap.WholeBatch);
         var token = TestContext.Current.CancellationToken;
 
         var names = new[]
         {
-            Assert.Throws<ArgumentNullException>(() => new DomainRewrap(null!)).ParamName,
+            Assert.Throws<ArgumentNullException>(() => new DomainRewrap(null!, DomainRewrap.WholeBatch)).ParamName,
             Assert.Throws<ArgumentOutOfRangeException>(() => new DomainRewrap(dataSource, 0)).ParamName,
             (await Assert.ThrowsAsync<ArgumentNullException>(() => rewrap.RewrapAsync(1, null!, custody.Labels, token))).ParamName,
             (await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => rewrap.RewrapAsync(0, custody.Keys, custody.Labels, token))).ParamName,
@@ -231,6 +231,8 @@ public sealed class DomainRewrapTests
 
         return ids;
     }
+
+    private static DomainRewrap WholeBatches(ContentWorld world) => new(world.DataSource, DomainRewrap.WholeBatch);
 
     private static async Task<string> LabelOfAsync(ContentWorld world, int domainId, string statement, long id) =>
         EnvelopeCipher.LabelOf(await world.StoredAsync(domainId, statement, id));

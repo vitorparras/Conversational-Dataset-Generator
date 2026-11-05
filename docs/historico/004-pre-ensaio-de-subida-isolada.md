@@ -259,6 +259,10 @@ improviso** e sem comando falho. Uma observação, sem efeito: o `sed` da senha 
 de linha no fim dos arquivos de senha, e o `$(cat ...)` que os lê a descarta, de modo que a senha
 chega certa ao núcleo e ao `migrate`. Nada a corrigir.
 
+Depois da revisão do PR #655, cinco menores de texto (032, 021, 022 e 033) foram corrigidos, e cada
+bloco alterado rodou como shell dentro da máquina, sem o `docker exec` no texto (o contêiner só
+transportou o bloco): o `sed` de dentro (021), a senha da pessoa e a entrada (022), a partida e a queda.
+
 ## Conclusão
 
 A Fase 1 passou sem improviso na rodada 6, e a Fase 2, nas rodadas 7 a 9, sobre o main

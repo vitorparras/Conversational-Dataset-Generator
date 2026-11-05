@@ -3,11 +3,10 @@
 > Operacional. 2026-11-05.
 
 O núcleo roda com uma conta que **não é root** e pertence ao grupo que lê o registro do servidor de
-banco ([001](001-ambiente.md)). O ambiente diz qual é a conta, o grupo e a pasta; os exemplos de
-[021](021-subir-o-nucleo-publicado.md) a [025](025-certificado-do-canal-cifrado.md) e de
-[028](028-criar-primeira-pessoa.md) usam `nucleo`, `postgres` e `/var/log/postgresql`. Todo bloco
-desses documentos roda como ela, e `/opt/cdg` e `/etc/cdg` são dela. Num contêiner operado de fora,
-isso é o `-u` do `docker exec`.
+banco ([001](001-ambiente.md)). O ambiente diz qual é a conta, o grupo e a pasta; no exemplo são `nucleo`, `postgres` e
+`/var/log/postgresql`. Todo bloco de [021](021-subir-o-nucleo-publicado.md) a
+[025](025-certificado-do-canal-cifrado.md) e de [028](028-criar-primeira-pessoa.md) roda como ela, e `/opt/cdg` e `/etc/cdg`
+são dela. Num contêiner operado de fora, a conta é o marcador `CONTA` do `-u` do `docker exec`.
 
 ## O que a partida recusa
 

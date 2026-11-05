@@ -2,16 +2,16 @@
 
 > Operacional. 2026-10-30.
 
-Depois de [023](023-iniciar-o-nucleo-publicado.md): entrar com a pessoa de [028](028-criar-primeira-pessoa.md),
-consultar as rotas, derrubar o serviço de linguagem e ler o resultado, com `openssl s_client` como
-cliente TLS (o canal é cifrado também no loopback; **proposta ao dono**, ver
-[001](001-ambiente.md), que lista o pacote `openssl`), sem `ps` nem cliente SQL na máquina. Cada bloco roda num shell novo, então as funções ficam em `/tmp/f.sh`.
+Depois de [023](023-iniciar-o-nucleo-publicado.md): entrar com a pessoa de [028](028-criar-primeira-pessoa.md), consultar as rotas, derrubar o serviço de linguagem e ler o resultado, com `openssl s_client` como cliente TLS (o canal é cifrado também no loopback;
+**proposta ao dono**, ver [001](001-ambiente.md), que lista o pacote `openssl`), sem `ps` nem cliente SQL na máquina. As funções ficam em `/tmp/f.sh`, porque cada bloco roda num shell novo.
 Num contêiner operado de fora: [021](021-subir-o-nucleo-publicado.md).
 
 ## Entrar e consultar as rotas
 
 Só `GET /status` responde sem sessão; o resto dá 401. `entrar NOME` abre a sessão (`POST /session`,
-com a senha de `/tmp/senha-pessoa`) e guarda o cookie em `/tmp/cookie`, que `rota` envia:
+com a senha de `/tmp/senha-pessoa`) e guarda o cookie em `/tmp/cookie`, que `rota` envia. Com a
+pessoa da 028, grave antes a senha dela, sem aspas nem barra invertida:
+`( umask 077; printf '%s' 'SENHA' > /tmp/senha-pessoa )`.
 
 ```
 cat > /tmp/f.sh <<'FIM'
@@ -31,14 +31,14 @@ rota POST /analysis '{"text":"texto de teste","language":"pt"}'
 ```
 
 `GET /session` responde 204 com sessão viva, e `/tmp/cookie` vazio é entrada que falhou. Sem
-`Content-Type: application/json`, a análise responde 415 sem corpo. O `${#3}` conta caracteres, e
-com acento o `Content-Length` pede bytes. Os campos do pedido e as recusas com 400: README.
+`Content-Type: application/json`, a análise dá 415. O `${#3}` conta caracteres, e com acento o
+`Content-Length` pede bytes. Pedido e recusas com 400: README.
 
 ## Derrubar o serviço e ler a recusa
 
-`pid` imprime os PIDs cuja linha de comando casa com o padrão; o `[s]` e o `^` impedem que o
-próprio shell case com o que procura. O núcleo é `pid '^./Core[.]Host'` (SIGTERM, em 023), e o
-serviço, `pid 'language_[s]ervice'`. O `/status` demora a mudar, até 30 s:
+`pid` imprime os PIDs que casam com o padrão; o `[s]` e o `^` impedem que o próprio shell case. O
+núcleo é `pid '^./Core[.]Host'` (SIGTERM, em 023), e o serviço, `pid 'language_[s]ervice'`. O
+`/status` demora a mudar, até 30 s:
 
 ```
 . /tmp/f.sh
@@ -51,7 +51,7 @@ grep interrompida /tmp/nucleo.log | tail -3
 ```
 
 Então `/status` mostra `languageService` `Unavailable` e `ready` falso, e `/analysis` responde 503
-com `reason` e `cause`. Na Fase 1 nenhuma tabela recebe análise: "nada gravado" se lê no corpo do
+com `reason` e `cause`. Nenhuma tabela recebe análise: "nada gravado" se lê no corpo do
 503 e na linha `interrompida`, que chega um instante depois (daí a espera).
 
 ## O que parece erro e não é

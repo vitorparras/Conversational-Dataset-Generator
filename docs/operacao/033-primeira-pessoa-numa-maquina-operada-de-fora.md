@@ -28,4 +28,5 @@ echo "saída=$?"
 ```
 
 A 022 lê `/tmp/senha-pessoa` para entrar, e a 023 o apaga no fim. O `--Installation:Kind` e o fator
-são os de 023: um `Kind` que falta vale `real`, e o fator de demonstração sai com 78.
+são os de 023: sem o `Kind`, a instalação vale `real`, e só então o fator de demonstração sai
+com 78.

@@ -133,9 +133,9 @@ public sealed class DomainRewrapTests
         _ = await world.InDomainAsync(1, "INSERT INTO content.item_text (domain_id, raw_text, dek_epoch, dek_wrapped) VALUES (1, '\x01', 1, @wrapped) RETURNING id", ("wrapped", foreign));
         using var custody = SyntheticCustody.HoldingEpochs([1], WithTheNextGeneration);
 
-        _ = await Assert.ThrowsAsync<EnvelopeRefusedException>(() => WholeBatches(world).RewrapAsync(1, custody.Keys, custody.Labels, TestContext.Current.CancellationToken));
+        var refused = await Assert.ThrowsAsync<EnvelopeRefusedException>(() => WholeBatches(world).RewrapAsync(1, custody.Keys, custody.Labels, TestContext.Current.CancellationToken));
 
-        Assert.Equal(0L, await world.ScalarAsync(Events));
+        Assert.Equal((true, 0L), (refused.Message.Contains("label in the header of a key", StringComparison.Ordinal), await world.ScalarAsync(Events)));
     }
 
     [DatabaseFact]
@@ -215,6 +215,41 @@ public sealed class DomainRewrapTests
         var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => WholeBatches(world).StatusAsync(99, custody.Labels, TestContext.Current.CancellationToken));
 
         Assert.Equal(("The domain 99 does not exist.", 0L), (refused.Message, await world.ScalarAsync(AnyRewrapEvent)));
+    }
+
+    [DatabaseFact]
+    public async Task StatusSumsTheItemsAndTheMapsApartInEachCountByTheirOwnGeneration()
+    {
+        await using var world = await WorldWithTheNextGenerationAsync();
+        _ = await AddItemsAsync(world.Writer, 1);
+        using var custody = SyntheticCustody.HoldingEpochs([1], WithTheNextGeneration);
+        var newest = new ContentWriter(world.DataSource, custody.Content);
+        var current = new List<long>();
+        for (var count = 0; count < 3; count++)
+        {
+            current.Add(await newest.AddItemTextAsync(1, new NewItemText(Raw), TestContext.Current.CancellationToken));
+        }
+
+        _ = await newest.AddReversalMapAsync(1, current[2], Entries, TestContext.Current.CancellationToken);
+        _ = await world.Writer.AddReversalMapAsync(1, current[0], Entries, TestContext.Current.CancellationToken);
+        _ = await world.Writer.AddReversalMapAsync(1, current[1], Entries, TestContext.Current.CancellationToken);
+
+        var status = await WholeBatches(world).StatusAsync(1, custody.Labels, TestContext.Current.CancellationToken);
+
+        Assert.Equal((4, 3), (status.Current, status.Behind));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public async Task TheStatusOfADomainThatIsNotPositiveIsRefusedByTheDomainParameterBeforeAnyConnectionOpens(int domainId)
+    {
+        await using var dataSource = NpgsqlDataSource.Create("Host=127.0.0.1;Port=1;Username=u;Password=p;Database=d");
+        using var custody = SyntheticCustody.Holding(ContentWorld.Labels);
+
+        var refused = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => new DomainRewrap(dataSource, Whole).StatusAsync(domainId, custody.Labels, TestContext.Current.CancellationToken));
+
+        Assert.Equal("domainId", refused.ParamName);
     }
 
     [Fact]

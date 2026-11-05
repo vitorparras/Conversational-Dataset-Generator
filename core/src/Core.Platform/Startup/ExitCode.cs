@@ -69,6 +69,12 @@ public enum ExitCode
     /// <summary>The database did not answer the rehearsal of the recovery or its record.</summary>
     RecoveryFailed = 30,
 
+    /// <summary>The revocation of a domain label was refused, nothing written: not a label, unknown, revoked or the last, a conflict with another writer, or the chain refused the event.</summary>
+    DomainLabelRevocationRefused = 37,
+
+    /// <summary>The database did not answer the revocation of a domain label, and nothing was written.</summary>
+    DomainLabelRevocationFailed = 38,
+
     /// <summary>The comparison of the server's audit log with the chain found a difference that is new.</summary>
     AuditDifferent = 20,
 

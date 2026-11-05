@@ -142,6 +142,16 @@ public sealed record CustodyEvent
         return new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.Domain, domainId), CustodyStep.DomainLabelRotated, CustodyReason.AdministrativeAct) { Reference = $"v{version}" };
     }
 
+    /// <summary>The event of a label revoked, by the system; the item is the domain and the reference is the label, which names the purpose, the domain and the generation and nothing else.</summary>
+    /// <param name="domainId">The domain the label belongs to.</param>
+    /// <param name="label">The text of the label revoked.</param>
+    public static CustodyEvent DomainLabelRevoked(int domainId, string label)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(domainId);
+        ArgumentException.ThrowIfNullOrEmpty(label);
+        return WithReference(new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.Domain, domainId), CustodyStep.DomainLabelRevoked, CustodyReason.AdministrativeAct), label);
+    }
+
     /// <summary>The event of a seal recorded: the item is the chain, its id is the sequence of the event sealed, and the digest of that event is read from the chain and is not in this one.</summary>
     /// <param name="author">The system, or the person who confirmed the record.</param>
     /// <param name="sealedSequence">The sequence of the last event the seal covers, which is also the number of events it counts; 0 for a chain with none.</param>

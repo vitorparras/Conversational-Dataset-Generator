@@ -83,4 +83,7 @@ public enum CustodyStep
 
     /// <summary>The result of the rehearsal of a restore: the item is the chain, its id is the mask of what did not hold (zero when everything held) and the reference names it.</summary>
     RestoreRehearsed,
+
+    /// <summary>A label of a domain was revoked, so that it encrypts nothing new and still decrypts; the item is the domain and the reference is the label.</summary>
+    DomainLabelRevoked,
 }

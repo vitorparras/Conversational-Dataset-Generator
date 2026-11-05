@@ -37,10 +37,10 @@ quem, quando, o domínio e a geração. Saída 0: feito. 17: rótulo ausente, no
 banco mudo.
 
 `revoke-domain-label --label <rótulo>` também roda uma vez, com a credencial do dono: o rótulo deixa
-de cifrar o que vier e segue decifrando o que cifrou, registrado e na cópia de guarda. Só se revoga
-geração que tenha outra mais nova, não revogada, da mesma finalidade e domínio: rotacione antes. É
-registro só de acréscimo e evento da cadeia; não se desfaz. Saída 0: feito. 37: recusa.
-38: banco mudo.
+de cifrar o que vier e segue decifrando o que cifrou: não o tire do arquivo de custódia nem da cópia
+de guarda. Só se revoga geração que tenha outra mais nova, não revogada, da mesma finalidade e
+domínio: rotacione antes. Só de acréscimo, com evento na cadeia; não se desfaz. Saída 0: feito. 37:
+recusa. 38: banco mudo.
 
 ## Rótulo não se descarta
 

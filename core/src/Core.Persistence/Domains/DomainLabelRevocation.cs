@@ -8,9 +8,8 @@ using Npgsql;
 namespace Core.Persistence.Domains;
 
 /// <summary>
-/// The revocation of a label of a domain (decision 0045, issue 56): the owner credential writes the revocation, in a register of its own beside derivation_label, and the event of the chain
-/// in one serializable transaction, and either both exist or neither does. A revoked label encrypts nothing new and decrypts what it did, so no label is changed or removed, and a label
-/// is revoked only if a newer generation of its purpose, not revoked, is left for the domain to encrypt under.
+/// The revocation of a label of a domain (decision 0045, issue 56): the owner credential writes the revocation and the event of the chain in one serializable transaction, both or neither.
+/// A revoked label encrypts nothing new and decrypts what it did, and is revoked only if a newer generation of its purpose, not revoked, is left to encrypt under.
 /// </summary>
 public sealed class DomainLabelRevocation
 {
@@ -74,7 +73,6 @@ public sealed class DomainLabelRevocation
         return await RecordAsync(scope, label, answer, cancellationToken).ConfigureAwait(false);
     }
 
-    /// <summary>Adds the event after the revocation and commits only if the chain took it.</summary>
     private async Task<CustodyResult?> RecordAsync(CustodyScope scope, DerivationLabel label, StrongBox<DomainLabelResult?> answer, CancellationToken cancellationToken)
     {
         var chain = await append(scope, CustodyEvent.DomainLabelRevoked(label.DomainId, label.Text), cancellationToken).ConfigureAwait(false);

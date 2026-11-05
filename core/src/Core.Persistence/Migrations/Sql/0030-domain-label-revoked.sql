@@ -1,6 +1,5 @@
--- The revocation of a label of a domain (issue 56, part 1b): a label revoked encrypts nothing new and decrypts what was encrypted under it. The revocation is a register of its own, beside
--- derivation_label, which stays as the decision 0045 left it: a label is never changed nor dropped, and nothing here touches it. The register is read by everyone, as derivation_label is, and is
--- written only by the owner, who is the one that revokes; it takes only a label that is registered, and no role, the owner included, changes it, removes it or empties it.
+-- The revocation of a label of a domain (issue 56, part 1b): a label revoked encrypts nothing new and decrypts what it did. It is a register of its own, beside derivation_label, which the decision
+-- 0045 leaves untouched. Everyone reads it, only the owner writes it, only for a registered label, and no role, the owner included, changes it, removes it or empties it.
 CREATE TABLE public.derivation_label_revocation (
     label text PRIMARY KEY REFERENCES public.derivation_label (label),
     revoked_at timestamptz NOT NULL DEFAULT now(),
@@ -28,9 +27,8 @@ CREATE TRIGGER derivation_label_revocation_never_emptied
 ALTER TABLE public.derivation_label_revocation ENABLE ALWAYS TRIGGER derivation_label_revocation_never_changed;
 ALTER TABLE public.derivation_label_revocation ENABLE ALWAYS TRIGGER derivation_label_revocation_never_emptied;
 
--- The event is about a domain, by its number, as the creation and the rotation are, and is the system's for an administrative act: the owner credential that revokes is no person of the registry.
--- Its reference is the label revoked, which names the purpose, the domain and the generation and nothing else. Only the checks change, from the last ones the earlier steps left (the step list and the
--- shape of a reference from the 0029, the shape of the domain from the 0021): every step they list and every clause they fix stays, and the new step comes in beside them.
+-- The event is about a domain and is the system's, as the creation and the rotation are: the owner credential that revokes is no person of the registry. Its reference is the label revoked.
+-- Only the checks change, from the last ones left (step list and reference shape from the 0029, domain shape from the 0021): every step and clause they fix stays, the new step comes in beside.
 ALTER TABLE public.custody_event
     DROP CONSTRAINT custody_event_step_listed,
     DROP CONSTRAINT custody_event_domain_shape,

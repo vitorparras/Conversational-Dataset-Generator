@@ -6,8 +6,7 @@ using Npgsql;
 namespace Core.Host.Domains;
 
 /// <summary>
-/// The mode asked for with <c>revoke-domain-label --label &lt;label&gt;</c> (issue 56): run once with the owner credential, it stops a label from encrypting anything new, and what was encrypted
-/// under it is still opened. It needs no key, serves nothing and says nothing of one.
+/// The mode asked for with <c>revoke-domain-label --label &lt;label&gt;</c> (issue 56): run once with the owner credential, it stops a label from encrypting anything new; what it sealed still opens.
 /// </summary>
 internal static class DomainRevocationMode
 {

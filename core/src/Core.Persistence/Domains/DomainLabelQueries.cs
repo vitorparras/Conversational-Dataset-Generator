@@ -15,8 +15,7 @@ internal static class DomainLabelQueries
     private const string InsertRevocation = "INSERT INTO public.derivation_label_revocation (label) VALUES (@label)";
 
     private const string StateOfLabel = """
-        SELECT
-            EXISTS (SELECT 1 FROM public.derivation_label WHERE label = @label) AS known,
+        SELECT EXISTS (SELECT 1 FROM public.derivation_label WHERE label = @label) AS known,
             EXISTS (SELECT 1 FROM public.derivation_label_revocation WHERE label = @label) AS revoked,
             EXISTS (
                 SELECT 1 FROM public.derivation_label l

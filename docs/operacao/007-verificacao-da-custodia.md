@@ -43,18 +43,18 @@ separação ausente, é a separação ausente e não sabida.
 Que o resultado fique registrado é garantia do sistema, não disciplina de quem opera. O que esta
 operação acrescenta é quem olha: a revisão procura **o resultado**, não a falha — ausência de
 resultado recente é falha, e é o modo mais comum de uma verificação deixar de existir sem que
-ninguém tenha decidido isso. Inclusive "passou" se lê, porque sem isso "nunca rodou" e "rodou e
-estava íntegro" ficam iguais para quem revisa.
+ninguém tenha decidido isso. Inclusive "passou" se lê: sem isso, "nunca rodou" e "rodou e estava
+íntegro" ficam iguais para quem revisa.
 
 Falha de cadeia ou de topo vai para [009](009-incidente-cadeia-quebrada.md). Garantia do servidor
 ausente, acesso ao cofre sem operação correspondente, ou cópia de chave fora do lugar vão para
 [008](008-incidente-vazamento.md).
 
-## Antes de concluir adulteração
+## Verificação sob demanda
 
-Rode a verificação sobre uma sequência sintética de resposta conhecida. Erro no verificador tem a
-mesma aparência de cadeia alterada, e a distância entre as duas conclusões é grande demais para se
-apoiar numa execução só.
+Antes de concluir adulteração, rode a verificação sobre uma sequência sintética de resposta
+conhecida: erro no verificador parece cadeia alterada, e a distância é grande demais para uma só.
 
-Na instalação que declarou o selo `Manual`, o selo é emitido e confirmado à mão:
-[030](030-selo-manual.md).
+`POST /custody/verification` lê a cadeia inteira: cada sessão faz uma a cada 60 segundos, pelo
+relógio do núcleo e na memória dele (um reinício zera). A seguinte dentro dos 60 s recebe 429, com
+`Retry-After` e o motivo, e a cadeia não é lida. Com selo `Manual`: [030](030-selo-manual.md).

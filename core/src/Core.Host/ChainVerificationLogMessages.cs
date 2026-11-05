@@ -27,6 +27,18 @@ internal static partial class ChainVerificationLogMessages
     [LoggerMessage(EventId = 334, Level = LogLevel.Error, Message = "Conferência das garantias do servidor: FALTAM {Missing}; registro do veredito: {Recorded}")]
     internal static partial void GuaranteesMissing(this ILogger logger, GuaranteeKinds missing, CustodyOutcome recorded);
 
+    [LoggerMessage(
+        EventId = 336,
+        Level = LogLevel.Information,
+        Message = "Conferência das garantias do servidor: nenhuma faltou, mas todo o conteúdo da amostra está sob a perda de chave declarada; registro do veredito: {Recorded}")]
+    internal static partial void GuaranteesHeldWithoutSample(this ILogger logger, CustodyOutcome recorded);
+
+    [LoggerMessage(
+        EventId = 337,
+        Level = LogLevel.Information,
+        Message = "Conferência das garantias do servidor: nenhuma faltou, mas a busca da amostra parou no limite de linhas sob a perda, sem achar uma legível; registro do veredito: {Recorded}")]
+    internal static partial void GuaranteesHeldSearchStopped(this ILogger logger, CustodyOutcome recorded);
+
     [LoggerMessage(EventId = 335, Level = LogLevel.Error, Message = "Conferência das garantias do servidor não chegou ao fim: {FailureType}; a próxima sai no intervalo seguinte")]
     internal static partial void GuaranteesNotConferred(this ILogger logger, string failureType);
 

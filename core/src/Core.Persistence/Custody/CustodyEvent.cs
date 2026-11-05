@@ -1,5 +1,3 @@
-using System.Collections.Frozen;
-
 namespace Core.Persistence.Custody;
 
 /// <summary>One event to add to the chain: who, about which item, which step and which reason, and the earlier event it corrects when it is a correction.</summary>
@@ -7,13 +5,6 @@ public sealed record CustodyEvent
 {
     private const int FirstRotation = 2;
     private const long RehearsalMask = 255;
-
-    private static readonly FrozenSet<CustodyStep> OfTheirOwn = Enumerable.Repeat(CustodyStep.Correction, 1)
-        .Append(CustodyStep.VerifyChain).Append(CustodyStep.ItemEmptied).Append(CustodyStep.ItemEmptyingRefused).Append(CustodyStep.EpochRotated).Append(CustodyStep.DomainCreated)
-        .Append(CustodyStep.SealRecorded).Append(CustodyStep.DomainLabelRotated)
-        .Append(CustodyStep.SignInAccepted).Append(CustodyStep.SignInRefused).Append(CustodyStep.KeyLossDeclared).Append(CustodyStep.RecoveryTested)
-        .Append(CustodyStep.VerifyGuarantees).Append(CustodyStep.OwnerWindowOpened).Append(CustodyStep.OwnerWindowClosed)
-        .Append(CustodyStep.Restored).Append(CustodyStep.RestoreRehearsed).ToFrozenSet();
 
     private CustodyEvent(CustodyAuthor author, CustodyItem item, CustodyStep step, CustodyReason reason)
     {
@@ -50,15 +41,10 @@ public sealed record CustodyEvent
     {
         ArgumentNullException.ThrowIfNull(author);
         ArgumentNullException.ThrowIfNull(item);
-        return HasEventOfItsOwn(step)
-            ? throw new ArgumentException(
-                "A correction, a verification, an emptying, a rotation, the creation of a domain, a seal and an entry have an event of their own; "
-                + "use Correction, Verification, GuaranteesVerified, Emptied, EmptyingRefused, EpochRotated, DomainCreated, SealRecorded, DomainLabelRotated, SignInAccepted or SignInRefused.",
-                nameof(step))
+        return EventsOfTheirOwn.Has(step)
+            ? throw new ArgumentException(EventsOfTheirOwn.Message, nameof(step))
             : new CustodyEvent(author, item, step, reason);
     }
-
-    private static bool HasEventOfItsOwn(CustodyStep step) => OfTheirOwn.Contains(step);
 
     /// <summary>The event of an item emptied: a person did it, for one of the two reasons an emptying may be asked for, and the protocol that asked is the reference.</summary>
     /// <param name="author">The person who emptied; the system cannot.</param>

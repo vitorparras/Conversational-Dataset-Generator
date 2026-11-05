@@ -32,7 +32,7 @@ versão correspondente. Abra a janela antes de começar: quem restaura, de qual 
 7. Só então libere a escrita, e feche a janela com o resultado
 
 O `restore-load <pasta> <sequência> <digest>` faz o 1, o 2, o 3 e o 5 em banco novo, com a
-credencial da aplicação e sem a chave mestra; sequência e digest são o topo anotado fora. Sai com
+credencial da aplicação, sem a chave mestra; sequência e digest são o topo do `copy-data`. Sai com
 0 só se tudo fechou, grava o evento `restored` e, se algo recusar, diz qual versão, tabela ou evento
 divergiu, sem valor algum. Banco recusado se refaz com `migrate`. A amostra cifrada, que decifra,
 fica para a primeira partida, com a chave do host. Os passos 4, 6 e 7 são seus.

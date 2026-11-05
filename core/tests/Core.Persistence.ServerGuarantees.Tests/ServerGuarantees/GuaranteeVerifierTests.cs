@@ -226,6 +226,21 @@ public sealed class GuaranteeVerifierTests
     }
 
     [DatabaseFact]
+    public async Task LossOfTheKeyDeclaredMakesTheSampleMissingWithoutReadingAnything()
+    {
+        var token = TestContext.Current.CancellationToken;
+        await using var world = await FidelityWorld.CreateAsync();
+        _ = await world.Writer.AddItemTextAsync(1, new NewItemText("texto bruto sintetico zqx"), token);
+        Assert.True(KeyLossScope.TryRead("texto-bruto/1/v1", out var scope));
+        var declared = await new CustodyChain(world.DataSource).AppendAsync(CustodyEvent.KeyLossDeclared(scope!, KeyLossAttempts.SafekeepingCopy), token);
+
+        var verification = await world.Verifier().VerifyAsync(token);
+
+        Assert.Equal((CustodyOutcome.Appended, GuaranteeKinds.EncryptedSample), (declared.Outcome, verification.Missing));
+        Assert.Empty(await world.OwnerColumnAsync("SELECT step FROM public.custody_event WHERE step LIKE '%read'"));
+    }
+
+    [DatabaseFact]
     public async Task ConferenceThatNeverRanLeavesNothingToReadSoNoResultIsNotAPass()
     {
         await using var world = await FidelityWorld.CreateAsync();

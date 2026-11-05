@@ -229,6 +229,26 @@ cópia da pasta do serviço, `migrate` (0), custódia, certificado, `create-pers
 da pasta, a partida (pronta), a entrada e as rotas, a queda do serviço (503, linha `interrompida`)
 e o SIGTERM (saída 0). Recusas conferidas à mão: sem o grupo, 69 em `ServerLog`.
 
+## Rodada 8
+
+Em 2026-11-05, com os docs de `9ee926c1`, o mesmo artefato de `3336a2e8` (mesmos sha256 da rodada
+7, conferidos dentro da máquina) e um QA zerado, de novo um agente (Claude Code). O ambiente era o
+corrigido da rodada 7: `debian:12-slim` de 2 GB em rede interna, com a prova de isolamento nos 7
+itens e nos 5 do registro e da conta, e 90 pacotes (a base mais `libssl3` e `openssl`). A subida, a
+queda do serviço e o encerramento com saída 0 passaram, e nenhum comando falhou de primeira. Houve
+três improvisos de texto:
+
+| # | Improviso | Correção |
+|---|---|---|
+| 1 | Sem índice da ordem dos documentos: ele a deduziu (021, 024, 025, 033, 023, 022) | A 021 abre com a sequência numerada dos documentos |
+| 2 | O `sed` da senha do papel da aplicação estava só na prosa, e ele montou o comando | Passou a bloco, ao lado do do dono |
+| 3 | A senha da pessoa sem exemplo nem regra à vista | A 033 diz a regra (não vazia, sem aspas nem barra invertida, sem quebra de linha no fim) e dá um exemplo de demonstração |
+
+Sem correção: um `timeout 20` posto por precaução, e o README não aberto na 021, porque a 023 já
+trazia os valores. Os dois blocos corrigidos foram extraídos do texto e rodados do jeito do operador
+num contêiner e num banco novos: os dois `sed` gravaram os arquivos de modo 600 com a senha certa, o
+`migrate` saiu com 0 e o `create-person` com a senha do exemplo, com 0.
+
 ## Conclusão
 
 Passou sem improviso na rodada 6, por agente, sobre a Fase 1, e isso encerrou o pré-ensaio dela: o

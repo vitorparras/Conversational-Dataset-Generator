@@ -7,11 +7,13 @@ de [028](028-criar-primeira-pessoa.md) não tem terminal. A senha da pessoa vai 
 modo 600, como as de 021, e o comando a lê dele. Depois de 021 e antes de
 [023](023-iniciar-o-nucleo-publicado.md); a conta é a de [032](032-conta-do-nucleo.md).
 
-Na demonstração, escolha a senha (sem aspas nem barra invertida, que quebrariam o JSON da entrada
-em [022](022-conferir-o-nucleo-publicado.md)). `SENHA`, `CONTA` e `CONTEINER` são marcadores:
+A regra da senha: não vazia, sem aspas nem barra invertida (que quebrariam o JSON da entrada em
+[022](022-conferir-o-nucleo-publicado.md)) e sem quebra de linha no fim, que o `printf` abaixo não
+acrescenta. Na demonstração serve a do exemplo, `senha-de-demonstracao-1`. `CONTA` e `CONTEINER` são
+marcadores:
 
 ```
-printf '%s' 'SENHA' | docker exec -i -u CONTA CONTEINER bash -c 'umask 077; cat > /tmp/senha-pessoa'
+printf '%s' 'senha-de-demonstracao-1' | docker exec -i -u CONTA CONTEINER bash -c 'umask 077; cat > /tmp/senha-pessoa'
 ```
 
 O comando é um bloco de máquina: a senha da aplicação vem de `/tmp/senha-app` (021), e o nome

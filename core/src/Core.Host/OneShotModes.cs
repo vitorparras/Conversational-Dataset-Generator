@@ -8,8 +8,8 @@ namespace Core.Host;
 
 /// <summary>
 /// The modes that run once and serve nothing, other than the migration, in two groups by the credential each one uses. With the owner credential: the rotation of the epoch, the creation of a
-/// domain, the rotation and the revocation of its label, the declaration of the loss of a key, the record of the recovery test and the copy of the data. With the application one: the first
-/// person, the rehearsal of a restore and the rehearsal of the recovery.
+/// domain, the rotation, the revocation and the rewrap of its label, the declaration of the loss of a key, the record of the recovery test and the copy of the data. With the application one: the
+/// first person, the rehearsal of a restore and the rehearsal of the recovery.
 /// </summary>
 internal static class OneShotModes
 {

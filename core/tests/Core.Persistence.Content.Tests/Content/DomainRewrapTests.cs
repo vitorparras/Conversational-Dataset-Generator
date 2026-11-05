@@ -47,7 +47,8 @@ public sealed class DomainRewrapTests
             (2, "texto-bruto/1/v2", "mapa-reversao/1/v2", "texto-bruto/2/v1", "1"),
             (rewrapped, await LabelOfAsync(world, 1, ItemKey, first), await LabelOfAsync(world, 1, MapKey, map), await LabelOfAsync(world, 2, ItemKey, other),
              await world.InDomainAsync(1, ItemEpoch, ("id", first)) as string));
-        Assert.Equal((Raw, Entries, true), (raw.Text, entries.Text, sealedBefore.SequenceEqual(await world.StoredAsync(1, ItemRaw, first))));
+        var sealedAfter = await world.StoredAsync(1, ItemRaw, first);
+        Assert.Equal((Raw, Entries, true), (raw.Text, entries.Text, sealedBefore.SequenceEqual(sealedAfter)));
     }
 
     [DatabaseFact]
@@ -240,6 +241,7 @@ public sealed class DomainRewrapTests
         foreach (var id in ids)
         {
             var read = await world.ReaderWith(custody).ReadAsync(new ContentRead(CustodyAuthor.System, ContentColumns.RawText, 1, id), TestContext.Current.CancellationToken);
+            Assert.NotNull(read.Text);
             texts.Add(read.Text);
         }
 

@@ -21,8 +21,14 @@ public sealed class DomainRewrap
     private readonly NpgsqlDataSource dataSource;
     private readonly int batch;
 
+    /// <summary>The rewrap reads and writes through the data source of the owner credential, in whole batches of 500 rows.</summary>
+    public DomainRewrap(NpgsqlDataSource dataSource)
+        : this(dataSource, WholeBatch)
+    {
+    }
+
     /// <summary>The rewrap reads and writes through the data source of the owner credential, in batches of <paramref name="batch"/> rows (a test makes them small to stop a run between two).</summary>
-    public DomainRewrap(NpgsqlDataSource dataSource, int batch = WholeBatch)
+    public DomainRewrap(NpgsqlDataSource dataSource, int batch)
     {
         ArgumentNullException.ThrowIfNull(dataSource);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(batch);
@@ -31,27 +37,39 @@ public sealed class DomainRewrap
     }
 
     /// <summary>Wraps again the keys of the domain that are behind, and says how many; a key that cannot be opened stops the run, and the batches already committed stay.</summary>
-    public async Task<int> RewrapAsync(int domainId, ItemKeys keys, DerivationLabels loaded, CancellationToken cancellationToken)
+    public Task<int> RewrapAsync(int domainId, ItemKeys keys, DerivationLabels loaded, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(keys);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(domainId);
+        ArgumentNullException.ThrowIfNull(loaded);
+        return RewrapPlannedAsync(domainId, keys, loaded, cancellationToken);
+    }
+
+    /// <summary>How many keys of the rows not emptied are under the newest generation not revoked, and how many are behind; it only reads.</summary>
+    public Task<(int Current, int Behind)> StatusAsync(int domainId, DerivationLabels loaded, CancellationToken cancellationToken)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(domainId);
+        ArgumentNullException.ThrowIfNull(loaded);
+        return StatusPlannedAsync(domainId, loaded, cancellationToken);
+    }
+
+    private async Task<int> RewrapPlannedAsync(int domainId, ItemKeys keys, DerivationLabels loaded, CancellationToken cancellationToken)
+    {
         var plan = await PlanAsync(domainId, loaded, cancellationToken).ConfigureAwait(false);
         var items = await RewrapTableAsync(plan, keys, Items, cancellationToken).ConfigureAwait(false);
         return items + await RewrapTableAsync(plan, keys, Maps, cancellationToken).ConfigureAwait(false);
     }
 
-    /// <summary>How many keys of the rows not emptied are under the newest generation not revoked, and how many are behind; it only reads.</summary>
-    public async Task<(int Current, int Behind)> StatusAsync(int domainId, DerivationLabels loaded, CancellationToken cancellationToken)
+    private async Task<(int Current, int Behind)> StatusPlannedAsync(int domainId, DerivationLabels loaded, CancellationToken cancellationToken)
     {
         var plan = await PlanAsync(domainId, loaded, cancellationToken).ConfigureAwait(false);
-        var items = await CountTableAsync(plan, Items, cancellationToken).ConfigureAwait(false);
-        var maps = await CountTableAsync(plan, Maps, cancellationToken).ConfigureAwait(false);
-        return (items.Current + maps.Current, items.Behind + maps.Behind);
+        var (itemsCurrent, itemsBehind) = await CountTableAsync(plan, Items, cancellationToken).ConfigureAwait(false);
+        var (mapsCurrent, mapsBehind) = await CountTableAsync(plan, Maps, cancellationToken).ConfigureAwait(false);
+        return (itemsCurrent + mapsCurrent, itemsBehind + mapsBehind);
     }
 
     private async Task<Plan> PlanAsync(int domainId, DerivationLabels loaded, CancellationToken cancellationToken)
     {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(domainId);
-        ArgumentNullException.ThrowIfNull(loaded);
         var registered = await RegisteredLabels.ReadAsync(dataSource, cancellationToken).ConfigureAwait(false);
         var revoked = await LabelRevocations.ReadAsync(dataSource, cancellationToken).ConfigureAwait(false);
         return new Plan { DomainId = domainId, Loaded = loaded, Wanted = DerivationLabels.Of(registered), Usable = text => !revoked.Contains(text) };

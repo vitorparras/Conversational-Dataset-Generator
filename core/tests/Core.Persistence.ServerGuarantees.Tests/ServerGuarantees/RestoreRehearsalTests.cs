@@ -21,7 +21,7 @@ public sealed class RestoreRehearsalTests
     public async Task Ca2CopyPutBackPassesTheRehearsalAndTheChainRecordsThatItPassed()
     {
         await using var copied = await CopiedWorld.CreateAsync();
-        await using var restored = await RestoredCopy.LoadAsync(copied.Folder);
+        await using var restored = await RestoredCopy.LoadAsync(copied);
         var atTheSource = await copied.World.OwnerColumnAsync(Links);
         var atTheCopy = await restored.Database.FirstColumnAsOwnerAsync(Links);
 
@@ -38,7 +38,7 @@ public sealed class RestoreRehearsalTests
     public async Task Ca3CopyPutBackWithoutAGuaranteeFailsAndTheRecordNamesIt()
     {
         await using var copied = await CopiedWorld.CreateAsync();
-        await using var restored = await RestoredCopy.LoadAsync(copied.Folder);
+        await using var restored = await RestoredCopy.LoadAsync(copied);
         await restored.Database.RunAsOwnerAsync("ALTER TABLE content.item_text NO FORCE ROW LEVEL SECURITY");
 
         var result = await new RestoreRehearsal(restored.App, TimeProvider.System).RehearseAsync(copied.Result.Seal!, TestContext.Current.CancellationToken);
@@ -52,7 +52,7 @@ public sealed class RestoreRehearsalTests
     public async Task Ca3SealOfAnotherChainFailsTheRehearsalWhileTheLinksStillHold()
     {
         await using var copied = await CopiedWorld.CreateAsync();
-        await using var restored = await RestoredCopy.LoadAsync(copied.Folder);
+        await using var restored = await RestoredCopy.LoadAsync(copied);
         var other = ChainSeal.Of(copied.Result.Seal!.SealedAt, copied.Result.Seal.Events, new byte[32]);
 
         var result = await new RestoreRehearsal(restored.App, TimeProvider.System).RehearseAsync(other, TestContext.Current.CancellationToken);
@@ -65,7 +65,7 @@ public sealed class RestoreRehearsalTests
     public async Task Ca3ChainWithABrokenLinkFailsNamingTheChainAndTheChainTakesNoEventOfTheResult()
     {
         await using var copied = await CopiedWorld.CreateAsync();
-        await using var restored = await RestoredCopy.LoadAsync(copied.Folder);
+        await using var restored = await RestoredCopy.LoadAsync(copied);
         await restored.Database.ExecuteAsSuperuserAsync(
             "ALTER TABLE public.custody_event DISABLE TRIGGER custody_event_never_changed; UPDATE public.custody_event SET item_id = item_id + 1 WHERE sequence = 2; "
             + "ALTER TABLE public.custody_event ENABLE ALWAYS TRIGGER custody_event_never_changed");
@@ -83,7 +83,7 @@ public sealed class RestoreRehearsalTests
     public async Task Ca6NoEventOfReadingIsWrittenFromTheCopyToTheRehearsalInEitherDatabase()
     {
         await using var copied = await CopiedWorld.CreateAsync();
-        await using var restored = await RestoredCopy.LoadAsync(copied.Folder);
+        await using var restored = await RestoredCopy.LoadAsync(copied);
 
         _ = await new RestoreRehearsal(restored.App, TimeProvider.System).RehearseAsync(copied.Result.Seal!, TestContext.Current.CancellationToken);
 

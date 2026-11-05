@@ -7,9 +7,9 @@ internal static class EventsOfTheirOwn
 {
     internal const string Message =
         "A correction, a verification, an emptying, a rotation, the creation of a domain, a seal, an entry, the loss of a key, a rehearsal of the recovery, "
-        + "a conference of the guarantees, a window of the owner, a restore, a rehearsal of it, a revocation of a label and a rewrap of a domain have an event of their own; use Correction, Verification, "
-        + "Emptied, EmptyingRefused, EpochRotated, DomainCreated, DomainLabelRotated, DomainLabelRevoked, DomainRewrapped, SealRecorded, SignInAccepted, SignInRefused, KeyLossDeclared, RecoveryRehearsed, "
-        + "GuaranteesVerified, OwnerWindowOpened, OwnerWindowClosed, Restored or RestoreRehearsed.";
+        + "a conference of the guarantees, a window of the owner, a restore, a rehearsal of it, a revocation of a label and a rewrap of a domain have an event of their own; "
+        + "use Correction, Verification, Emptied, EmptyingRefused, EpochRotated, DomainCreated, DomainLabelRotated, DomainLabelRevoked, DomainRewrapped, SealRecorded, SignInAccepted, "
+        + "SignInRefused, KeyLossDeclared, RecoveryRehearsed, GuaranteesVerified, OwnerWindowOpened, OwnerWindowClosed, Restored or RestoreRehearsed.";
 
     private static readonly FrozenSet<CustodyStep> Steps = Enumerable.Repeat(CustodyStep.Correction, 1)
         .Append(CustodyStep.VerifyChain).Append(CustodyStep.ItemEmptied).Append(CustodyStep.ItemEmptyingRefused).Append(CustodyStep.EpochRotated).Append(CustodyStep.DomainCreated)

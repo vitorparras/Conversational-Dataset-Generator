@@ -43,7 +43,7 @@ ALTER TABLE public.custody_event
          'raw_text_read', 'sanitized_text_read', 'reversal_entries_read', 'verify_chain', 'item_emptied', 'item_emptying_refused', 'epoch_rotated',
          'domain_created', 'seal_recorded', 'domain_label_rotated',
          'sign_in_accepted', 'sign_in_refused', 'credential_recomputed', 'key_loss_declared', 'recovery_tested', 'verify_guarantees',
-         'domain_label_revoked', 'domain_rewrapped')),
+         'owner_window_opened', 'owner_window_closed', 'restored', 'restore_rehearsed', 'domain_label_revoked', 'domain_rewrapped')),
     ADD CONSTRAINT custody_event_domain_shape CHECK (
         (step IN ('domain_created', 'domain_label_rotated', 'domain_label_revoked', 'domain_rewrapped')) = (item_kind = 'domain')
         AND (step NOT IN ('domain_created', 'domain_label_rotated', 'domain_label_revoked', 'domain_rewrapped')

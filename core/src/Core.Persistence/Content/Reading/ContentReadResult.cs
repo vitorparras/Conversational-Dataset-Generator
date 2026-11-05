@@ -16,4 +16,7 @@ public sealed record ContentReadResult
 
     /// <summary>The label that is missing, for <see cref="ContentReadOutcome.LabelMissing"/>, or the scope of the loss declared, for <see cref="ContentReadOutcome.KeyLossDeclared"/>.</summary>
     public string? Label { get; init; }
+
+    /// <summary>The row the reading found, so that the next reading of the first row can look after it; 0 when it found none.</summary>
+    public long RowId { get; init; }
 }

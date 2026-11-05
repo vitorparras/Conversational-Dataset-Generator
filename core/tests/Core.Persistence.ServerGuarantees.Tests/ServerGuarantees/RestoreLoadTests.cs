@@ -32,7 +32,10 @@ public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<Resto
         await using var destination = await Destination.CreateAsync();
 
         await destination.OpenAsync();
-        foreach (var table in new[] { "public.domain", "public.derivation_label", "public.person", "public.person_credential", "public.person_change", "public.sign_in_attempt" })
+        foreach (var table in new[]
+        {
+            "public.domain", "public.derivation_label", "public.derivation_label_revocation", "public.person", "public.person_credential", "public.person_change", "public.sign_in_attempt",
+        })
         {
             _ = await destination.LoadAsync(table, source.Copy[table]);
         }
@@ -52,6 +55,7 @@ public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<Resto
         {
             ("public.domain", "id"),
             ("public.derivation_label", "label"),
+            ("public.derivation_label_revocation", "label"),
             ("public.person", "id"),
             ("public.person_credential", "person_id"),
             ("public.person_change", "id"),
@@ -100,7 +104,7 @@ public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<Resto
     {
         await using var destination = await Destination.CreateAsync();
         await destination.OpenAsync();
-        foreach (var table in new[] { "public.domain", "public.derivation_label", "public.person", "public.person_credential", "public.person_change" })
+        foreach (var table in new[] { "public.domain", "public.derivation_label", "public.derivation_label_revocation", "public.person", "public.person_credential", "public.person_change" })
         {
             _ = await destination.LoadAsync(table, source.Copy[table]);
         }
@@ -194,6 +198,32 @@ public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<Resto
 
         Assert.Equal(["2"], await destination.Database.FirstColumnAsOwnerAsync("SELECT count(*)::text FROM public.domain"));
         await AssertClosedAsFailedAsync(destination);
+    }
+
+    [DatabaseFact]
+    public async Task RevocationOfALabelTheCopyDoesNotHoldIsRefusedNothingStaysAndTheWindowClosesAsFailed()
+    {
+        await using var destination = await Destination.CreateAsync();
+        await destination.OpenAsync();
+
+        Assert.Equal(-1, await destination.LoadAsync("public.derivation_label_revocation", source.Copy["public.derivation_label_revocation"]));
+
+        Assert.Equal(["0"], await destination.Database.FirstColumnAsOwnerAsync("SELECT count(*)::text FROM public.derivation_label_revocation"));
+        await AssertClosedAsFailedAsync(destination);
+    }
+
+    [DatabaseFact]
+    public async Task RevocationOfALabelTheCopyHoldsComesBackAfterTheLabelAndTheWindowStaysOpen()
+    {
+        await using var destination = await Destination.CreateAsync();
+        await destination.OpenAsync();
+        Assert.Equal(1, await destination.LoadAsync("public.derivation_label", source.Copy["public.derivation_label"]));
+
+        Assert.Equal(1, await destination.LoadAsync("public.derivation_label_revocation", source.Copy["public.derivation_label_revocation"]));
+
+        Assert.Equal(["zqx-label/1/v1"], await destination.Database.FirstColumnAsOwnerAsync("SELECT label FROM public.derivation_label_revocation"));
+        Assert.Equal(["zqx-label/1/v1"], await destination.Database.FirstColumnAsOwnerAsync("SELECT label FROM public.derivation_label"));
+        Assert.Equal(["opened:-"], await destination.Database.FirstColumnAsOwnerAsync(Window));
     }
 
     [DatabaseFact]

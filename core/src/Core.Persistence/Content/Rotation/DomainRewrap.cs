@@ -11,6 +11,7 @@ namespace Core.Persistence.Content.Rotation;
 /// <summary>The rewrap of a domain (issue 56): each key not emptied is wrapped again under the newest registered label not revoked, in batches that each commit with their event (0050).</summary>
 public sealed class DomainRewrap
 {
+    private const string DomainExists = "SELECT EXISTS (SELECT 1 FROM public.domain WHERE id = @id)";
     private static readonly Table Items = new(ContentQueries.ReadItemKeysAfter, ContentQueries.RewrapItemKey);
     private static readonly Table Maps = new(ContentQueries.ReadMapKeysAfter, ContentQueries.RewrapMapKey);
 
@@ -60,9 +61,23 @@ public sealed class DomainRewrap
 
     private async Task<Plan> PlanAsync(int domainId, DerivationLabels loaded, CancellationToken cancellationToken)
     {
+        await EnsureDomainAsync(domainId, cancellationToken).ConfigureAwait(false);
         var registered = await RegisteredLabels.ReadAsync(dataSource, cancellationToken).ConfigureAwait(false);
         var revoked = await LabelRevocations.ReadAsync(dataSource, cancellationToken).ConfigureAwait(false);
         return new Plan(domainId, loaded, DerivationLabels.Of(registered), text => !revoked.Contains(text));
+    }
+
+    private async Task EnsureDomainAsync(int domainId, CancellationToken cancellationToken)
+    {
+        var command = dataSource.CreateCommand(DomainExists);
+        await using (command.ConfigureAwait(false))
+        {
+            _ = command.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Integer) { Value = domainId });
+            if (!(bool)(await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false))!)
+            {
+                throw new InvalidOperationException($"The domain {domainId} does not exist.");
+            }
+        }
     }
 
     private async Task<int> RewrapTableAsync(Plan plan, ItemKeys keys, Table table, CancellationToken cancellationToken)

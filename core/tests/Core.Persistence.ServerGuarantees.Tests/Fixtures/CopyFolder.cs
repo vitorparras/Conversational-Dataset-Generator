@@ -8,12 +8,19 @@ internal sealed class CopyFolder : IDisposable
 {
     public static readonly string[] Tables =
     [
-        "public.domain", "public.derivation_label", "public.person", "public.person_credential", "public.person_change", "public.sign_in_attempt",
+        "public.domain", "public.derivation_label", "public.derivation_label_revocation", "public.person", "public.person_credential", "public.person_change",
+        "public.sign_in_attempt",
         "public.custody_event",
         "content.item_text", "content.reversal_map", "content.item_emptied",
     ];
 
-    private static readonly Dictionary<string, string> Keys = new() { ["public.person_credential"] = "person_id", ["public.derivation_label"] = "label", ["public.custody_event"] = "sequence" };
+    private static readonly Dictionary<string, string> Keys = new()
+    {
+        ["public.person_credential"] = "person_id",
+        ["public.derivation_label"] = "label",
+        ["public.derivation_label_revocation"] = "label",
+        ["public.custody_event"] = "sequence",
+    };
 
     private CopyFolder(string path)
     {

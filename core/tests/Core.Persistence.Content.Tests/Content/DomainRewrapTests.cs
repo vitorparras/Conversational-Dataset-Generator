@@ -23,6 +23,7 @@ public sealed class DomainRewrapTests
     private const string Register = "INSERT INTO public.derivation_label (label) VALUES ('texto-bruto/1/v1'), ('mapa-reversao/1/v1'), ('texto-bruto/2/v1'), ('mapa-reversao/2/v1'), "
         + "('texto-bruto/1/v2'), ('mapa-reversao/1/v2')";
     private const string Events = "SELECT count(*) FROM public.custody_event WHERE step = 'domain_rewrapped' AND item_kind = 'domain' AND item_id = 1 AND actor_system";
+    private const string AnyRewrapEvent = "SELECT count(*) FROM public.custody_event WHERE step = 'domain_rewrapped'";
     private const string ItemKey = "SELECT dek_wrapped FROM content.item_text WHERE id = @id";
     private const string MapKey = "SELECT dek_wrapped FROM content.reversal_map WHERE id = @id";
     private const string ItemRaw = "SELECT raw_text FROM content.item_text WHERE id = @id";
@@ -192,6 +193,28 @@ public sealed class DomainRewrapTests
         var rewrapped = await rewrap.RewrapAsync(2, custody.Keys, custody.Labels, TestContext.Current.CancellationToken);
 
         Assert.Equal((0, new RewrapStatus(0, 0), 0L), (rewrapped, await rewrap.StatusAsync(2, custody.Labels, TestContext.Current.CancellationToken), await world.ScalarAsync(Events)));
+    }
+
+    [DatabaseFact]
+    public async Task RewrappingADomainThatDoesNotExistIsRefusedNamingItAndWritesNoEvent()
+    {
+        await using var world = await WorldWithTheNextGenerationAsync();
+        using var custody = SyntheticCustody.HoldingEpochs([1], WithTheNextGeneration);
+
+        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => WholeBatches(world).RewrapAsync(99, custody.Keys, custody.Labels, TestContext.Current.CancellationToken));
+
+        Assert.Equal(("The domain 99 does not exist.", 0L), (refused.Message, await world.ScalarAsync(AnyRewrapEvent)));
+    }
+
+    [DatabaseFact]
+    public async Task TheStatusOfADomainThatDoesNotExistIsRefusedNamingItAndWritesNoEvent()
+    {
+        await using var world = await WorldWithTheNextGenerationAsync();
+        using var custody = SyntheticCustody.HoldingEpochs([1], WithTheNextGeneration);
+
+        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => WholeBatches(world).StatusAsync(99, custody.Labels, TestContext.Current.CancellationToken));
+
+        Assert.Equal(("The domain 99 does not exist.", 0L), (refused.Message, await world.ScalarAsync(AnyRewrapEvent)));
     }
 
     [Fact]

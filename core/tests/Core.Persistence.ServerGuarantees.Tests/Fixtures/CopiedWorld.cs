@@ -33,14 +33,20 @@ internal sealed class CopiedWorld : IAsyncDisposable
     ];
 
     /// <param name="betweenTables">Runs after each table is written, with the world and the name of the table, so a test can write while the copy is under way.</param>
+    /// <param name="beforeCopy">Statements the owner runs after the world is made and before the copy is, such as the registering and the revocation of a label.</param>
     [SuppressMessage("Reliability", "CA2000", Justification = "The world goes to the CopiedWorld that is returned, which disposes it.")]
-    public static async Task<CopiedWorld> CreateAsync(Func<FidelityWorld, string, Task>? betweenTables = null)
+    public static async Task<CopiedWorld> CreateAsync(Func<FidelityWorld, string, Task>? betweenTables = null, string[]? beforeCopy = null)
     {
         var world = await FidelityWorld.CreateAsync();
         await world.RunAsOwnerAsync(
             "INSERT INTO public.custody_event (actor_person_id, item_kind, item_id, step, reason) VALUES (1, 'person', 1, 'person_created', 'administrative_act')",
             "INSERT INTO public.custody_event (actor_person_id, item_kind, item_id, step, reason) VALUES (1, 'person', 2, 'person_created', 'administrative_act')",
             "INSERT INTO public.sign_in_attempt (network) VALUES ('203.0.113.0/24')");
+        if (beforeCopy is not null)
+        {
+            await world.RunAsOwnerAsync(beforeCopy);
+        }
+
         var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Marker, "texto sanitizado sintetico zqx"), TestContext.Current.CancellationToken);
         _ = await world.Writer.AddReversalMapAsync(1, item, "mapa sintetico zqx", TestContext.Current.CancellationToken);
         var folder = Path.Combine(Path.GetTempPath(), "zqx-copy-" + Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture));

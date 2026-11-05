@@ -46,7 +46,8 @@ public sealed class RestoreRehearsal
         RehearsalFindings.Immutable => "immutable",
         RehearsalFindings.Columns => "columns",
         RehearsalFindings.Chain => "chain",
-        _ => "seal",
+        RehearsalFindings.Seal => "seal",
+        _ => "held",
     };
 
     /// <summary>Rehearses and records the result; the result is recorded only if the links hold, because the chain takes no event but a verification while they do not.</summary>

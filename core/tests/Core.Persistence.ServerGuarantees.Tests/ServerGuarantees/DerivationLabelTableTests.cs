@@ -155,6 +155,7 @@ public sealed class DerivationLabelTableTests
         var refused = await Assert.ThrowsAsync<PostgresException>(() => database.RunAsOwnerAsync("TRUNCATE public.derivation_label CASCADE"));
 
         Assert.Equal(PostgresErrorCodes.RestrictViolation, refused.SqlState);
+        Assert.Contains("a derivation label is never changed nor dropped (TRUNCATE on derivation_label)", refused.MessageText, StringComparison.Ordinal);
         Assert.Equal(["dominio-a"], await LabelsAsync(database));
         Assert.Equal(["dominio-a"], await database.FirstColumnAsOwnerAsync("SELECT label FROM public.derivation_label_revocation"));
     }

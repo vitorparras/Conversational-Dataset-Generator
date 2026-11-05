@@ -226,7 +226,7 @@ public sealed class GuaranteeVerifierTests
     }
 
     [DatabaseFact]
-    public async Task LossOfTheKeyDeclaredMakesTheSampleMissingWithoutReadingAnything()
+    public async Task LossOfTheKeyDeclaredOverTheOnlyRecordLeavesTheGuaranteeHeldAndTellsNoSampleOutsideItWithoutReadingAnything()
     {
         var token = TestContext.Current.CancellationToken;
         await using var world = await FidelityWorld.CreateAsync();
@@ -236,7 +236,7 @@ public sealed class GuaranteeVerifierTests
 
         var verification = await world.Verifier().VerifyAsync(token);
 
-        Assert.Equal((CustodyOutcome.Appended, GuaranteeKinds.EncryptedSample), (declared.Outcome, verification.Missing));
+        Assert.Equal((CustodyOutcome.Appended, GuaranteeKinds.None, true), (declared.Outcome, verification.Missing, verification.NoSampleOutsideLoss));
         Assert.Empty(await world.OwnerColumnAsync("SELECT step FROM public.custody_event WHERE step LIKE '%read'"));
     }
 

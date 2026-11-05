@@ -43,5 +43,7 @@ e por quem ela roda.
 | [029](029-pessoas-pela-rota.md) | Pessoas seguintes: criar, desativar e repor a senha pelas rotas com sessão |
 | [030](030-selo-manual.md) | O selo na instalação com selo manual: emitir, guardar fora da base e confirmar |
 | [031](031-recifrar-dominio.md) | Recifrar um domínio: reembrulhar as chaves sob a geração nova, em lotes |
+| [032](032-conta-do-nucleo.md) | A conta do núcleo: não é root, lê o registro do servidor pelo grupo e não o grava |
+| [033](033-primeira-pessoa-numa-maquina-operada-de-fora.md) | A primeira pessoa numa máquina operada de fora: senha em arquivo, não no terminal |
 
 Ver [regras de escrita](../regras-de-escrita.md).

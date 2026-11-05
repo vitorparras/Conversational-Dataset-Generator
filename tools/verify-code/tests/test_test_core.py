@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import os
 import sys
 import tempfile
 import unittest
+from collections.abc import Sequence
 from pathlib import Path
 
 from steps import test_core
@@ -160,7 +162,7 @@ class TestCoreTests(unittest.TestCase):
 
         result = test_core.run(support.context(self.root, self.runner(files)))
 
-        self.assertEqual(result.details, ("5 testes executados em 2 projetos",))
+        self.assertEqual(result.details[:-1], ("5 testes executados em 2 projetos",))
 
     def test_missing_coverage_report_fails(self) -> None:
         files = {
@@ -213,3 +215,85 @@ class TestCoreTests(unittest.TestCase):
         index = command.index("--filter-not-trait")
         self.assertEqual("Category=RealService", command[index + 1])
         self.assertNotIn("--filter-trait", command)
+
+
+class MsBuildSummaryTests(unittest.TestCase):
+    LOG = (
+        "[msbuild] Core.Host.csproj -t:Compile 2.5s\nruído\n[msbuild] App.csproj -t:Restore 9.0s\n"
+    )
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.root = Path(self._tmp.name)
+        support.write(self.root, test_core.SOLUTION, support.SOLUTION_WITH_TESTS)
+        self.results = self.root / ".verify-code" / test_core.RESULTS
+
+    def files(self, trx: str = "ok") -> dict[str, str]:
+        failing = support.trx("Alpha.Tests", 3, 1 if trx == "failed" else 0)
+        return {
+            "a.trx": failing,
+            "b.trx": support.trx("Beta.Tests", 2, 0),
+            "x.cobertura.xml": "<coverage />",
+            test_core.MSBUILD_LOG: self.LOG,
+        }
+
+    def run_step(self, files: dict[str, str], ok: bool = True) -> test_core.StepResult:
+        runner = support.FakeRunner(CommandOutcome(ok, "dotnet output"), files, self.results)
+        return test_core.run(support.context(self.root, runner))
+
+    def test_the_summary_lists_each_msbuild_the_longest_and_the_total(self) -> None:
+        result = self.run_step(self.files())
+
+        self.assertTrue(result.ok, result.details)
+        self.assertEqual(
+            (
+                "  msbuild Core.Host.csproj -t:Compile 2.5s",
+                "  msbuild App.csproj -t:Restore 9.0s",
+                "msbuild do Core.Tests.Architecture: 2 execuções, total 11.5s, "
+                "maior App.csproj -t:Restore 9.0s",
+            ),
+            result.details[-3:],
+        )
+
+    def test_the_summary_is_printed_when_the_step_fails_too(self) -> None:
+        result = self.run_step(self.files("failed"), ok=False)
+
+        self.assertFalse(result.ok)
+        self.assertIn("1 teste(s) do núcleo falharam", result.details)
+        self.assertIn(
+            "msbuild do Core.Tests.Architecture: 2 execuções, total 11.5s, "
+            "maior App.csproj -t:Restore 9.0s",
+            result.details,
+        )
+
+    def test_a_run_that_logged_no_msbuild_says_so(self) -> None:
+        files = {name: text for name, text in self.files().items() if name != test_core.MSBUILD_LOG}
+
+        result = self.run_step(files)
+
+        self.assertEqual(
+            "msbuild do Core.Tests.Architecture: nenhuma execução registrada", result.details[-1]
+        )
+
+    def test_the_command_gets_the_log_in_the_results_directory_and_the_environment_is_put_back(
+        self,
+    ) -> None:
+        seen: list[str | None] = []
+
+        def runner(command: Sequence[str], cwd: Path) -> CommandOutcome:
+            seen.append(os.environ.get(test_core.MSBUILD_LOG_VARIABLE))
+            return CommandOutcome(True, "")
+
+        test_core.run(support.context(self.root, runner))
+
+        self.assertEqual([str(self.results / test_core.MSBUILD_LOG)], seen)
+        self.assertNotIn(test_core.MSBUILD_LOG_VARIABLE, os.environ)
+
+    def test_a_value_the_variable_had_before_is_put_back(self) -> None:
+        os.environ[test_core.MSBUILD_LOG_VARIABLE] = "antes"
+        self.addCleanup(os.environ.pop, test_core.MSBUILD_LOG_VARIABLE, None)
+
+        self.run_step(self.files())
+
+        self.assertEqual("antes", os.environ[test_core.MSBUILD_LOG_VARIABLE])

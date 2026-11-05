@@ -76,5 +76,5 @@ internal static class SealText
 
     private static bool IsLowerHex(char character) => character is (>= '0' and <= '9') or (>= 'a' and <= 'f');
 
-    private static string CheckOf(string body) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(body)).AsSpan(0, CheckBytes));
+    internal static string CheckOf(string body) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(body)).AsSpan(0, CheckBytes));
 }

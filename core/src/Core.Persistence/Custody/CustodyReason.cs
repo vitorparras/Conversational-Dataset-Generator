@@ -29,4 +29,13 @@ public enum CustodyReason
 
     /// <summary>The emptying was refused because the item had been emptied already.</summary>
     ItemAlreadyEmptied,
+
+    /// <summary>The attempt to sign in was accepted.</summary>
+    CredentialsAccepted,
+
+    /// <summary>The attempt to sign in was refused because the password of the person was wrong.</summary>
+    PasswordWrong,
+
+    /// <summary>The attempt to sign in was refused for a name nobody goes by or an account that does not enter; the name typed is not kept.</summary>
+    AccountNotRecognized,
 }

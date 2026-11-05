@@ -15,8 +15,24 @@ internal static class PersonStatements
         RETURNING person_id
         """;
 
+    internal const string CreateFirst = """
+        WITH created AS (INSERT INTO public.person (name, function_name) SELECT @name, @function WHERE NOT EXISTS (SELECT 1 FROM public.person) RETURNING id)
+        INSERT INTO public.person_change (person_id, kind, new_function, actor_id)
+        SELECT id, 'created', @function, NULL FROM created
+        RETURNING person_id
+        """;
+
     internal const string Deactivate = $"""
         WITH changed AS (UPDATE public.person SET active = false WHERE id = @id AND active AND {ActorActive} RETURNING id)
+        INSERT INTO public.person_change (person_id, kind, actor_id)
+        SELECT id, 'deactivated', @actor FROM changed
+        RETURNING person_id
+        """;
+
+    /// <summary>Deactivates as <see cref="Deactivate"/> does, but never the last active person who holds the function @administration.</summary>
+    internal const string DeactivateKeepingAdministration = $"""
+        WITH changed AS (UPDATE public.person SET active = false WHERE id = @id AND active AND {ActorActive}
+            AND (function_name <> @administration OR EXISTS (SELECT 1 FROM public.person other WHERE other.id <> @id AND other.active AND other.function_name = @administration)) RETURNING id)
         INSERT INTO public.person_change (person_id, kind, actor_id)
         SELECT id, 'deactivated', @actor FROM changed
         RETURNING person_id
@@ -31,6 +47,8 @@ internal static class PersonStatements
         """;
 
     internal const string IsActive = "SELECT active FROM public.person WHERE id = @id";
+
+    internal const string ActiveFunctionOf = "SELECT function_name FROM public.person WHERE id = @id AND active";
 
     internal const string IdOfName = "SELECT id FROM public.person WHERE name = @name";
 }

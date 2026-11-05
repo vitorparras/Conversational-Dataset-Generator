@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Core.Persistence.Custody.Chain;
 using Npgsql;
 
 namespace Core.Persistence.Migrations;
@@ -150,7 +151,11 @@ public sealed class MigrationRunner
     private static MigrationResult WindowRefused(SchemaComparison comparison, List<string> applied) =>
         new()
         {
-            Outcome = MigrationOutcome.StepFailed, Found = comparison.Found, Expected = comparison.Expected, Step = OwnerWindow.StepName,
-            SqlState = Custody.Chain.CustodyStatements.ChainBrokenSqlState, Applied = applied,
+            Outcome = MigrationOutcome.StepFailed,
+            Found = comparison.Found,
+            Expected = comparison.Expected,
+            Step = OwnerWindow.StepName,
+            SqlState = CustodyStatements.ChainBrokenSqlState,
+            Applied = applied,
         };
 }

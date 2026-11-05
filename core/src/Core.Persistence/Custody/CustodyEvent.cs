@@ -10,8 +10,9 @@ public sealed record CustodyEvent
 
     private static readonly FrozenSet<CustodyStep> OfTheirOwn = Enumerable.Repeat(CustodyStep.Correction, 1)
         .Append(CustodyStep.VerifyChain).Append(CustodyStep.ItemEmptied).Append(CustodyStep.ItemEmptyingRefused).Append(CustodyStep.EpochRotated).Append(CustodyStep.DomainCreated)
-        .Append(CustodyStep.SealRecorded).Append(CustodyStep.DomainLabelRotated).Append(CustodyStep.KeyLossDeclared)
-        .Append(CustodyStep.VerifyGuarantees).Append(CustodyStep.OwnerWindowOpened).Append(CustodyStep.OwnerWindowClosed).Append(CustodyStep.RestoreRehearsed).ToFrozenSet();
+        .Append(CustodyStep.SealRecorded).Append(CustodyStep.DomainLabelRotated)
+        .Append(CustodyStep.SignInAccepted).Append(CustodyStep.SignInRefused).Append(CustodyStep.KeyLossDeclared).Append(CustodyStep.RecoveryTested)
+        .Append(CustodyStep.VerifyGuarantees).Append(CustodyStep.OwnerWindowOpened).Append(CustodyStep.OwnerWindowClosed).Append(CustodyStep.Restored).Append(CustodyStep.RestoreRehearsed).ToFrozenSet();
 
     private CustodyEvent(CustodyAuthor author, CustodyItem item, CustodyStep step, CustodyReason reason)
     {
@@ -50,9 +51,8 @@ public sealed record CustodyEvent
         ArgumentNullException.ThrowIfNull(item);
         return HasEventOfItsOwn(step)
             ? throw new ArgumentException(
-                "A correction, a verification, an emptying, a rotation, the creation of a domain and a seal have an event of their own; "
-                + "use Correction, Verification, GuaranteesVerified, Emptied, EmptyingRefused, EpochRotated, DomainCreated, SealRecorded, DomainLabelRotated, "
-                + "KeyLossDeclared or RestoreRehearsed.",
+                "A correction, a verification, an emptying, a rotation, the creation of a domain, a seal and an entry have an event of their own; "
+                + "use Correction, Verification, GuaranteesVerified, Emptied, EmptyingRefused, EpochRotated, DomainCreated, SealRecorded, DomainLabelRotated, SignInAccepted or SignInRefused.",
                 nameof(step))
             : new CustodyEvent(author, item, step, reason);
     }
@@ -93,6 +93,13 @@ public sealed record CustodyEvent
         ArgumentOutOfRangeException.ThrowIfNegative(missing);
         var reason = missing == 0 ? CustodyReason.VerificationPassed : CustodyReason.VerificationFailed;
         return new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.CustodyChain, missing), CustodyStep.OwnerWindowClosed, reason) { Reference = reference };
+    }
+
+    internal static CustodyEvent Restored(long rows, bool held, string reference)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(rows);
+        var reason = held ? CustodyReason.VerificationPassed : CustodyReason.VerificationFailed;
+        return new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.CustodyChain, rows), CustodyStep.Restored, reason) { Reference = reference };
     }
 
     private static CustodyItem EmptyingItem(long itemId)
@@ -158,6 +165,32 @@ public sealed record CustodyEvent
         return new CustodyEvent(author, new CustodyItem(CustodyItemKind.CustodyChain, sealedSequence), CustodyStep.SealRecorded, CustodyReason.AdministrativeAct);
     }
 
+    /// <summary>An attempt to sign in that was accepted: the person is the author and the item is the attempt.</summary>
+    public static CustodyEvent SignInAccepted(long personId, long attemptId)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(attemptId);
+        return new CustodyEvent(CustodyAuthor.Person(personId), new CustodyItem(CustodyItemKind.SignInAttempt, attemptId), CustodyStep.SignInAccepted, CustodyReason.CredentialsAccepted);
+    }
+
+    /// <summary>An attempt to sign in that was refused: the author is the person only for a wrong password (<paramref name="personId"/>), and the system for any other reason.</summary>
+    public static CustodyEvent SignInRefused(long? personId, CustodyReason reason, long attemptId)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(attemptId);
+        return RefusalAuthor(personId, reason) is { } author
+            ? new CustodyEvent(author, new CustodyItem(CustodyItemKind.SignInAttempt, attemptId), CustodyStep.SignInRefused, reason)
+            : throw new ArgumentException("An entry is refused for a wrong password, of a person, or for a name nobody goes by, of nobody.", nameof(reason));
+    }
+
+    private static CustodyAuthor? RefusalAuthor(long? personId, CustodyReason reason)
+    {
+        if (reason == CustodyReason.PasswordWrong && personId is { } person)
+        {
+            return CustodyAuthor.Person(person);
+        }
+
+        return reason == CustodyReason.AccountNotRecognized && personId is null ? CustodyAuthor.System : null;
+    }
+
     /// <summary>
     /// The event of the loss of a key declared by whoever operates, written by the system: the item is the master key, its id is what was tried (the sum of <see cref="KeyLossAttempts" />),
     /// and the reference is the scope. There is no way back: what was sealed under the scope stays unreadable.
@@ -172,6 +205,14 @@ public sealed record CustodyEvent
         return WithReference(
             new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.MasterKey, (long)attempts), CustodyStep.KeyLossDeclared, CustodyReason.AdministrativeAct),
             scope.Text);
+    }
+
+    /// <summary>The event of a recovery rehearsed and checked, written by the system: the item is the master key and its id is the sequence of the top of the copy the rehearsal opened.</summary>
+    /// <param name="topSequence">The sequence of the last event of the copy, which the chain of the production holds too.</param>
+    public static CustodyEvent RecoveryRehearsed(long topSequence)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(topSequence);
+        return new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.MasterKey, topSequence), CustodyStep.RecoveryTested, CustodyReason.AdministrativeAct);
     }
 
     /// <summary>The event that records the verdict of a conference of the guarantees of the server, by the system: the item is the chain and its id is the mask of the guarantees missing.</summary>

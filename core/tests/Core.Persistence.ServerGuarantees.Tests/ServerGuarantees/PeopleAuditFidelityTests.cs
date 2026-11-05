@@ -7,7 +7,7 @@ namespace Core.Persistence.Tests.ServerGuarantees;
 
 /// <summary>
 /// The map of <see cref="AuditMap"/> against the real server (#60, part 2): what the registry and the store of passwords do as the
-/// application's role is in the server's log in the number the chain holds events, except the one difference that is known.
+/// application's role is in the server's log in the number the chain holds events.
 /// </summary>
 [Trait("Category", "Database")]
 public sealed class PeopleAuditFidelityTests
@@ -35,7 +35,7 @@ public sealed class PeopleAuditFidelityTests
     }
 
     [DatabaseFact]
-    public async Task RecomputationAtSignInIsTheKnownDifferenceAndNamesTheIssue()
+    public async Task RecomputationAndAttemptsAtSignInAreSeenByTheServerAsManyTimesAsTheChainRecordsThem()
     {
         var from = DateTimeOffset.UtcNow.AddMinutes(-1);
         var token = TestContext.Current.CancellationToken;
@@ -44,12 +44,13 @@ public sealed class PeopleAuditFidelityTests
         var person = Id(await registry.CreateAsync(new NewPerson(NewName(), PersonFunctions.Accepted[0]), CustodyAuthor.System, token));
         _ = await world.Credentials(workFactor: 1).SetPasswordAsync(person, Password, CustodyAuthor.System, token);
 
+        var attempts = new SignInAttempts(world.DataSource);
         _ = await world.Credentials(workFactor: 2).VerifyAsync(person, Password, token);
+        _ = await attempts.AcceptedAsync(person, null, token);
+        _ = await attempts.RefusedAsync(null, SignInRefusal.AccountNotRecognized, null, token);
         var differences = await AuditFidelity.DifferencesAsync(world.DataSource, from);
 
-        var known = Assert.Single(differences, difference => difference.Role == "app");
-        Assert.Equal(("public.person_credential", 1), (known.Table, known.Seen - known.Recorded));
-        Assert.Equal(AuditMap.RecomputeWithoutEvent, known.KnownGap);
+        Assert.DoesNotContain(differences, difference => difference.Role == "app");
     }
 
     private static string NewName() => $"zqx-pessoa-{Guid.NewGuid():N}";

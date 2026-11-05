@@ -13,12 +13,14 @@ namespace Core.Host.Tests;
 /// </summary>
 public sealed class AuditComparisonServiceTests
 {
+    private const string KnownReason = "diferença conhecida do teste, com o motivo";
+
     private static readonly TimeSpan Lag = TimeSpan.FromMinutes(1);
 
     private static readonly AuditDifference NewOne = new("app", "public.person", ["UPDATE"], [CustodyStep.PersonDeactivated], 2, 1, null);
 
     private static readonly AuditDifference KnownOne =
-        new("app", "public.person_credential", ["UPDATE"], [CustodyStep.PersonPasswordSet], 3, 2, AuditMap.RecomputeWithoutEvent);
+        new("app", "public.person_credential", ["UPDATE"], [CustodyStep.PersonPasswordSet], 3, 2, KnownReason);
 
     [Fact]
     public async Task BeforeTheFirstIntervalNothingHasBeenComparedAndTheStateSaysSo()

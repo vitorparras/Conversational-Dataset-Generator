@@ -4,7 +4,7 @@ using Npgsql;
 namespace Core.Persistence.Tests.Custody;
 
 /// <summary>
-/// The migration 0022 (issue 67, CA-5): the server takes the step key_loss_declared about the master key, written by the system for an administrative act, with what was tried in the id and the scope
+/// The migration 0023 (issue 67, CA-5): the server takes the step key_loss_declared about the master key, written by the system for an administrative act, with what was tried in the id and the scope
 /// in the reference; it keeps every step the migrations before it listed, and refuses every event of the new step with another shape.
 /// </summary>
 [Trait("Category", "Database")]
@@ -46,7 +46,11 @@ public sealed class CustodyKeyLossListTests : IClassFixture<CustodyDatabase>
     [InlineData("domain_created")]
     [InlineData("seal_recorded")]
     [InlineData("domain_label_rotated")]
+    [InlineData("sign_in_accepted")]
+    [InlineData("sign_in_refused")]
+    [InlineData("credential_recomputed")]
     [InlineData("key_loss_declared")]
+    [InlineData("recovery_tested")]
     public async Task Ca5EveryStepTheMigrationsBeforeListedIsStillListed(string step)
     {
         var definition = await database.TextAsOwnerAsync("SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'custody_event_step_listed'");

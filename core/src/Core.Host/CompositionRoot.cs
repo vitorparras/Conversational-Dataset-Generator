@@ -4,6 +4,7 @@ using Core.Boundary.Http;
 using Core.Host.Analysis;
 using Core.Host.Endpoints;
 using Core.Host.Migration;
+using Core.Host.Operators;
 using Core.Host.Supervision;
 using Core.Persistence.Connection;
 using Core.Persistence.Content.Reading;
@@ -12,7 +13,9 @@ using Core.Persistence.Content.Sealing;
 using Core.Persistence.Custody.Chain;
 using Core.Persistence.Migrations;
 using Core.Persistence.People;
+using Core.Persistence.Recovery;
 using Core.Persistence.ServerGuarantees;
+using Core.Persistence.ServerGuarantees.Restore;
 using Core.Platform.Configuration;
 using Core.Platform.Keys;
 using Core.Platform.Logging;
@@ -49,7 +52,6 @@ internal static class CompositionRoot
             {
                 return HostLaunch.CheckFailed(report);
             }
-
             var launch = HostLaunch.Ready(await AssembleAsync(
                 TlsConfiguration.Serve(Prepared(loaded, fileLog, analyzeTimeout, checks), startup),
                 new StartupReport([.. target.Results, .. report.Results], report.CheckedAt),
@@ -119,14 +121,21 @@ internal static class CompositionRoot
 
     /// <summary>The keys of the epochs file over a source that was read, and the rotation of the rows over them: the mode that rotates is not a root, and the services come from here.</summary>
     internal static ItemKeys KeysOf(MasterKeyReading reading) => new(new KeyDerivation(reading.Key!, reading.Labels), reading.Epochs);
-
     internal static EpochRotation RotationOf(NpgsqlDataSource dataSource, ItemKeys keys) => new(dataSource, keys);
+
+    /// <summary>The rehearsal of the recovery over a source that was read, opening content with the labels the database registers.</summary>
+    internal static RecoveryRehearsal RehearsalOf(NpgsqlDataSource dataSource, MasterKeyReading reading, IReadOnlySet<string> registered) =>
+        new(dataSource, new ProtectedContent(reading.Labels, KeysOf(reading), registered), TimeProvider.System);
+
+    /// <summary>The record of the rehearsal in the chain of the production, and the load of a restored copy.</summary>
+    internal static RecoveryRecording RecordingOf(NpgsqlDataSource dataSource) => new(dataSource);
+    internal static RestoreLoader LoaderOf(NpgsqlDataSource dataSource) => new(dataSource, new GuaranteeVerifier(dataSource), TimeProvider.System);
 
     /// <summary>Redacted console logging alone: the modes that migrate or rotate have no host, no file destination and no language service.</summary>
     internal static ServiceProvider LoggingServices() =>
         new ServiceCollection().AddSingleton(TimeProvider.System).AddLogging(PlatformLogging.Configure).AddRedaction(PlatformLogging.EraseSensitiveData).BuildServiceProvider();
 
-    /// <summary>The application's data source, the verifier of the guarantees and the eleven server checks, privilege first, the window of the owner credential second, then the labels and the epochs last.</summary>
+    /// <summary>The application's data source, the verifier of the guarantees and the ten server checks, privilege first, the window of the owner credential second and the labels last.</summary>
     private static void AddServerGuarantees(IServiceCollection services, DatabaseSettings database)
     {
         if (database.State != DatabaseSettingsState.Configured)
@@ -138,12 +147,9 @@ internal static class CompositionRoot
         _ = services.AddSingleton(_ => NpgsqlDataSource.Create(database.ConnectionString!));
         _ = services.AddSingleton<IStartupCheck>(provider => new PrivilegeCheck(provider.GetRequiredService<NpgsqlDataSource>()));
         _ = services.AddSingleton(provider => new GuaranteeVerifier(
-            provider.GetRequiredService<NpgsqlDataSource>(),
-            provider.GetRequiredService<IMasterKeySource>().ReadAsync,
-            reading => ContentReader(provider.GetRequiredService<NpgsqlDataSource>(), reading)));
-        _ = services.AddSingleton<IStartupCheck>(provider => new OwnerWindowCheck(
-            provider.GetRequiredService<NpgsqlDataSource>(), provider.GetRequiredService<GuaranteeVerifier>(), provider.GetRequiredService<TimeProvider>()));
-        _ = services.AddSingleton<IStartupCheck>(provider => new RlsForceCheck(provider.GetRequiredService<NpgsqlDataSource>()));
+            provider.GetRequiredService<NpgsqlDataSource>(), provider.GetRequiredService<IMasterKeySource>().ReadAsync,
+            reading => ContentReader(provider.GetRequiredService<NpgsqlDataSource>(), reading))).AddSingleton<IStartupCheck, OwnerWindowCheck>();
+        _ = services.AddSingleton<IStartupCheck>(provider => new RlsForceCheck(provider.GetRequiredService<NpgsqlDataSource>())).AddSingleton<IStartupCheck, RestoreWindowCheck>();
         _ = services.AddSingleton<IStartupCheck>(provider => new SerializableCheck(provider.GetRequiredService<NpgsqlDataSource>()));
         _ = services.AddSingleton<IStartupCheck>(provider => new PgAuditCheck(provider.GetRequiredService<NpgsqlDataSource>()));
         _ = services.AddSingleton<IStartupCheck>(provider => new ColumnRevokeCheck(provider.GetRequiredService<NpgsqlDataSource>()));
@@ -162,6 +168,7 @@ internal static class CompositionRoot
         Compose(builder, loaded.View, fileLog);
         AddAnalysis(builder.Services, loaded.Values, analyzeTimeout);
         _ = builder.Services.AddSingleton(PasswordConfiguration.Derivation(loaded.Values)).AddSingleton(VerificationConfiguration.Schedule(loaded.Values));
+        _ = builder.Services.AddSingleton(SealConfiguration.Declaration(loaded.Values));
         _ = builder.Services.AddSingleton(_ => new ServerAuditLog(AuditConfiguration.ServerLogDirectory(loaded.Values))).AddSingleton<AuditComparisonState>();
         _ = builder.Services.AddHostedService(provider => new AuditComparisonService(
             new AuditComparisonPlan(
@@ -183,11 +190,15 @@ internal static class CompositionRoot
     {
         _ = builder.Services.AddSingleton(report).AddSingleton(_ => startup);
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetRequiredService<ServiceProcessWatch>());
-        _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<GuaranteeVerifier>()!);
+        _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<GuaranteeVerifier>()!).AddSingleton<SealWarningState>();
         _ = builder.Services.AddSingleton(provider => new ChainVerificationService(provider)).AddHostedService(provider => provider.GetRequiredService<ChainVerificationService>());
+        _ = builder.Services.AddHostedService(provider => new SealSendingService(provider));
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source
-            ? new SignIn(new PersonRegistry(source), new PersonCredentials(source, provider.GetRequiredService<PasswordDerivation>()),
-                provider.GetRequiredService<SessionStore>(), new SignInDelay(provider.GetRequiredService<TimeProvider>()))
+            ? new OperatorAdministration(new PersonRegistry(source), new PersonCredentials(source, provider.GetRequiredService<PasswordDerivation>()), provider.GetRequiredService<SessionStore>())
+            : null!);
+        _ = builder.Services.AddSingleton(provider => provider.GetService<OperatorAdministration>() is { } people
+            ? new SignIn(people.Registry, people.Credentials, provider.GetRequiredService<SessionStore>(), new SignInDelay(provider.GetRequiredService<TimeProvider>()),
+                new SignInAttempts(provider.GetRequiredService<ServiceProvider>().GetRequiredService<NpgsqlDataSource>()))
             : null!);
 
         var app = builder.Build();
@@ -198,9 +209,12 @@ internal static class CompositionRoot
         return app;
     }
 
+    /// <summary>The store of passwords, built here because it is a service and only the root builds services.</summary>
+    internal static PersonCredentials CredentialsOf(NpgsqlDataSource source, PasswordDerivation derivation) => new(source, derivation);
+
     /// <summary>The path that reads protected content over the key a reading holds, which the conference of the guarantees opens its sample with and lets go of.</summary>
     private static ProtectedContentReader ContentReader(NpgsqlDataSource source, MasterKeyReading reading) =>
-        new(source, new ProtectedContent(reading.Labels, KeysOf(reading), new HashSet<string>(StringComparer.Ordinal)), new CustodyChain(source));
+        new(source, new ProtectedContent(reading.Labels, KeysOf(reading), new HashSet<string>()), new CustodyChain(source));
 
     /// <summary>The recognizer of the service the supervisor has alive now, with its secret and the client that never goes through a proxy;
     /// with no such service, one that refuses without connecting, so that nothing goes to the port a service that is gone once held.</summary>

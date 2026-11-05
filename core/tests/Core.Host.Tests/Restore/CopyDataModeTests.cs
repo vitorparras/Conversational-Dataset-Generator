@@ -1,4 +1,7 @@
+using System.Globalization;
 using Core.Host.Restore;
+using Core.Persistence.Custody.Verification;
+using Core.Persistence.ServerGuarantees;
 using Core.Platform.Startup;
 using Npgsql;
 
@@ -29,7 +32,13 @@ public sealed class CopyDataModeTests
     [InlineData("copy-data")]
     [InlineData("copy-data --to")]
     [InlineData("copy-data --to a --to b")]
-    public async Task WithoutTheFolderGivenOnceTheModeRefusesAndWritesNothing(string line)
+    public Task WithoutTheFolderGivenOnceTheModeRefusesAndWritesNothing(string line)
+    {
+        ArgumentNullException.ThrowIfNull(line);
+        return RefusalWithoutFolderAsync(line);
+    }
+
+    private static async Task RefusalWithoutFolderAsync(string line)
     {
         using var output = new StringWriter();
         using var error = new StringWriter();
@@ -41,9 +50,63 @@ public sealed class CopyDataModeTests
     }
 
     [Fact]
+    public async Task DatabaseThatDoesNotAnswerEndsInCopyFailedAndNeverPrintsTheCredential()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "zqx-copy-" + Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture));
+        try
+        {
+            await using var dataSource = NpgsqlDataSource.Create(Unreachable);
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exit = await CopyDataMode.CopyAsync(dataSource, new CopyDataMode.Request(folder, []), new CopyDataMode.Words(output, error));
+
+            Assert.Equal((ExitCode.CopyFailed, string.Empty), (exit, output.ToString()));
+            Assert.Contains("falhou ao falar com o banco", error.ToString(), StringComparison.Ordinal);
+            Assert.DoesNotContain("ZQX-never-printed", error.ToString(), StringComparison.Ordinal);
+        }
+        finally
+        {
+            if (Directory.Exists(folder))
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData(DataCopyOutcome.FolderNotEmpty, "a pasta já tem conteúdo")]
+    [InlineData(DataCopyOutcome.SealNotRecorded, "a cadeia não aceitou o selo")]
+    [InlineData(DataCopyOutcome.ChainMoved, "outra gravação chegou antes da leitura")]
+    public async Task EachRefusalOfTheCopySaysItsReasonAndPrintsNothingToNote(DataCopyOutcome outcome, string reason)
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        var exit = await CopyDataMode.ReportAsync(new DataCopyResult(outcome, Seal: null), new CopyDataMode.Words(output, error));
+
+        Assert.Equal((ExitCode.CopyRefused, string.Empty), (exit, output.ToString()));
+        Assert.Contains(reason, error.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task CopyThatWasMadePrintsTheTopOfItWithTheLineTheLoadTakes()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var top = ChainSeal.Of(DateTimeOffset.UnixEpoch, 3, new byte[32]);
+
+        var exit = await CopyDataMode.ReportAsync(new DataCopyResult(DataCopyOutcome.Made, top), new CopyDataMode.Words(output, error));
+
+        Assert.Equal((ExitCode.Success, string.Empty), (exit, error.ToString()));
+        Assert.Contains($"restore-load <pasta> 3 {top.Digest}", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains(top.ToText(), output.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task FolderThatHoldsSomethingRefusesBeforeTouchingTheDatabaseAndNeverPrintsTheCredential()
     {
-        var folder = Path.Combine(Path.GetTempPath(), "zqx-copy-" + Guid.NewGuid().ToString("N"));
+        var folder = Path.Combine(Path.GetTempPath(), "zqx-copy-" + Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture));
         _ = Directory.CreateDirectory(folder);
         await File.WriteAllTextAsync(Path.Combine(folder, "other.txt"), "zqx", TestContext.Current.CancellationToken);
         try
@@ -52,7 +115,7 @@ public sealed class CopyDataModeTests
             using var output = new StringWriter();
             using var error = new StringWriter();
 
-            var exit = await CopyDataMode.CopyAsync(dataSource, new CopyDataMode.Request(folder, new List<Core.Platform.Configuration.EffectiveEntry>()), new CopyDataMode.Words(output, error));
+            var exit = await CopyDataMode.CopyAsync(dataSource, new CopyDataMode.Request(folder, []), new CopyDataMode.Words(output, error));
 
             Assert.Equal((ExitCode.CopyRefused, string.Empty), (exit, output.ToString()));
             Assert.Contains("a pasta já tem conteúdo", error.ToString(), StringComparison.Ordinal);

@@ -1,6 +1,6 @@
 namespace Core.Persistence.ServerGuarantees;
 
-/// <summary>The guarantees the conference of the server reads, as a closed list of bits: the mask of the ones missing is the item of the event that records it (migration 0023).</summary>
+/// <summary>The guarantees the conference of the server reads, as a closed list of bits: the mask of the ones missing is the item of the event that records it (migration 0025).</summary>
 [Flags]
 public enum GuaranteeKinds : long
 {

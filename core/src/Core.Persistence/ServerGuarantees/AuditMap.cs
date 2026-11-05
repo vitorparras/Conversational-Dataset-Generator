@@ -9,20 +9,19 @@ namespace Core.Persistence.ServerGuarantees;
 /// </summary>
 public static class AuditMap
 {
+    private const string Insert = "INSERT";
     private const string Update = "UPDATE";
-
-    /// <summary>Why the recomputation of a password at sign-in is the one known difference: it writes the credential without an event until issue #71 gives it one.</summary>
-    public static string RecomputeWithoutEvent { get; } = "recálculo da senha na entrada (#69) grava a credencial sem evento até a #71";
 
     /// <summary>The tables the steps account for. Every change of a person also writes a row to person_change, which is why that table lists all four steps.</summary>
     public static IReadOnlyList<AuditExpectation> Expectations { get; } =
     [
-        new("public.person", ["INSERT"], [CustodyStep.PersonCreated]),
+        new("public.person", [Insert], [CustodyStep.PersonCreated]),
         new("public.person", [Update], [CustodyStep.PersonDeactivated, CustodyStep.PersonFunctionChanged]),
-        new("public.person_credential", ["INSERT", Update], [CustodyStep.PersonPasswordSet], RecomputeWithoutEvent),
+        new("public.person_credential", [Insert, Update], [CustodyStep.PersonPasswordSet, CustodyStep.CredentialRecomputed]),
+        new("public.sign_in_attempt", [Insert], [CustodyStep.SignInAccepted, CustodyStep.SignInRefused]),
         new(
             "public.person_change",
-            ["INSERT"],
+            [Insert],
             [CustodyStep.PersonCreated, CustodyStep.PersonDeactivated, CustodyStep.PersonFunctionChanged, CustodyStep.PersonPasswordSet]),
         new("content.item_text", ["SELECT"], [CustodyStep.RawTextRead, CustodyStep.SanitizedTextRead]),
         new("content.reversal_map", ["SELECT"], [CustodyStep.ReversalEntriesRead]),
@@ -36,14 +35,16 @@ public static class AuditMap
         [CustodyStep.Correction] = "é o evento que corrige outro evento: grava só na cadeia e não altera tabela de domínio",
         [CustodyStep.VerifyChain] = "o verificador só lê a cadeia (CustodyStatements.ReadChain) e grava o veredito nela: não toca tabela de domínio",
         [CustodyStep.ItemEmptyingRefused] = "a recusa de esvaziar não altera o conteúdo (o item fica como estava): grava só o evento na cadeia",
-        [CustodyStep.VerifyGuarantees] = "a conferência lê o catálogo e a amostra pelos passos de leitura e grava o veredito na cadeia: não toca tabela de domínio",
-        [CustodyStep.OwnerWindowOpened] = "a abertura da janela da credencial de dono grava só o evento na cadeia: o que a migração muda é de esquema, não de tabela de domínio",
-        [CustodyStep.OwnerWindowClosed] = "o fechamento da janela grava só o veredito na cadeia, depois de verificar a cadeia e conferir as garantias",
         [CustodyStep.EpochRotated] = "a rotação regrava a chave de cada linha antiga, uma instrução por linha, e grava um só evento: os comandos do log não casam com os eventos",
         [CustodyStep.DomainCreated] = "o domínio e os rótulos são escritos com a credencial do dono (não a da aplicação) em tabelas que o mapa não compara: a cadeia guarda o evento",
         [CustodyStep.SealRecorded] = "o selo é lido da cadeia (ChainSealer) e grava só o evento nela: não toca tabela de domínio",
         [CustodyStep.DomainLabelRotated] = "os rótulos da nova geração são escritos com a credencial do dono (não a da aplicação) em tabela que o mapa não compara: a cadeia guarda o evento",
         [CustodyStep.KeyLossDeclared] = "a perda é declarada por quem opera e grava só o evento na cadeia, com a credencial do dono (modo declare-key-loss): não toca tabela de domínio",
+        [CustodyStep.RecoveryTested] = "só o evento vai à cadeia, com a credencial do dono (modo record-recovery-test): não toca tabela de domínio",
+        [CustodyStep.VerifyGuarantees] = "a conferência lê o catálogo e a amostra pelos passos de leitura e grava o veredito na cadeia: não toca tabela de domínio",
+        [CustodyStep.OwnerWindowOpened] = "a abertura da janela da credencial de dono grava só o evento na cadeia: o que a migração muda é de esquema, não de tabela de domínio",
+        [CustodyStep.OwnerWindowClosed] = "o fechamento da janela grava só o veredito na cadeia, depois de verificar a cadeia e conferir as garantias",
+        [CustodyStep.Restored] = "a restauração grava as linhas pelas funções do dono, que a cadeia não vê, e termina com este evento depois de verificar a cadeia e conferir as garantias",
         [CustodyStep.RestoreRehearsed] = "o ensaio lê a cadeia (CustodyVerifier) e o catálogo e grava só o resultado nela: não toca tabela de domínio",
     };
 }

@@ -2,7 +2,6 @@ using Core.Persistence.Content.Reading;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
 using Core.Platform.Keys;
-using Core.Platform.Startup;
 using Npgsql;
 
 namespace Core.Persistence.ServerGuarantees;
@@ -41,11 +40,7 @@ public sealed class GuaranteeVerifier
     /// <param name="cancellationToken">Cancels the conference.</param>
     public async Task<GuaranteeVerification> VerifyAsync(CancellationToken cancellationToken)
     {
-        var missing = await MissingAsync(new PrivilegeCheck(dataSource), GuaranteeKinds.Privilege, cancellationToken).ConfigureAwait(false);
-        missing |= await MissingAsync(new RlsForceCheck(dataSource), GuaranteeKinds.RowPolicy, cancellationToken).ConfigureAwait(false);
-        missing |= await MissingAsync(new ColumnRevokeCheck(dataSource), GuaranteeKinds.ColumnRevoke, cancellationToken).ConfigureAwait(false);
-        missing |= await MissingAsync(new ImmutabilityCheck(dataSource), GuaranteeKinds.Immutability, cancellationToken).ConfigureAwait(false);
-        missing |= await MissingAsync(new ProtectedColumnCheck(dataSource), GuaranteeKinds.ProtectedColumns, cancellationToken).ConfigureAwait(false);
+        var missing = await StructuralGuarantees.MissingAsync(dataSource, cancellationToken).ConfigureAwait(false);
         var sampled = await SampledAsync(cancellationToken).ConfigureAwait(false);
         missing |= sampled == SampleVerdict.NotOpened ? GuaranteeKinds.EncryptedSample : GuaranteeKinds.None;
         var recorded = await chain.AppendAsync(CustodyEvent.GuaranteesVerified((long)missing), cancellationToken).ConfigureAwait(false);
@@ -54,7 +49,4 @@ public sealed class GuaranteeVerifier
 
     private async Task<SampleVerdict> SampledAsync(CancellationToken cancellationToken) =>
         sample is null ? SampleVerdict.Opened : await sample.VerdictAsync(cancellationToken).ConfigureAwait(false);
-
-    private static async Task<GuaranteeKinds> MissingAsync(IStartupCheck check, GuaranteeKinds code, CancellationToken cancellationToken) =>
-        (await check.RunAsync(cancellationToken).ConfigureAwait(false)).Status == CheckStatus.Passed ? GuaranteeKinds.None : code;
 }

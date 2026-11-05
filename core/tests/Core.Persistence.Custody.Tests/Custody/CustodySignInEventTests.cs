@@ -8,9 +8,10 @@ public sealed class CustodySignInEventTests
     private const string RefusalMessage = "An entry is refused for a wrong password, of a person, or for a name nobody goes by, of nobody.";
 
     private const string OfTheirOwnMessage =
-        "A correction, a verification, an emptying, a rotation, the creation of a domain, a seal, an entry, the loss of a key, a rehearsal of the recovery, a conference of the guarantees, "
-        + "a window of the owner and a restore have an event of their own; use Correction, Verification, Emptied, EmptyingRefused, EpochRotated, DomainCreated, DomainLabelRotated, SealRecorded, "
-        + "SignInAccepted, SignInRefused, KeyLossDeclared, RecoveryRehearsed, GuaranteesVerified, OwnerWindowOpened, OwnerWindowClosed or Restored.";
+        "A correction, a verification, an emptying, a rotation, the creation of a domain, a seal, an entry, the loss of a key, a rehearsal of the recovery, "
+        + "a conference of the guarantees, a window of the owner, a restore and a rehearsal of it have an event of their own; use Correction, Verification, "
+        + "Emptied, EmptyingRefused, EpochRotated, DomainCreated, DomainLabelRotated, SealRecorded, SignInAccepted, SignInRefused, KeyLossDeclared, RecoveryRehearsed, "
+        + "GuaranteesVerified, OwnerWindowOpened, OwnerWindowClosed, Restored or RestoreRehearsed.";
 
     [Fact]
     public void AcceptedEntryIsThePersonsAboutThatAttemptForAcceptedCredentials()
@@ -96,6 +97,7 @@ public sealed class CustodySignInEventTests
     [InlineData(CustodyStep.OwnerWindowOpened)]
     [InlineData(CustodyStep.OwnerWindowClosed)]
     [InlineData(CustodyStep.Restored)]
+    [InlineData(CustodyStep.RestoreRehearsed)]
     public void StepsThatHaveAnEventOfTheirOwnAreRefusedAsAPlainEventWithTheMessageNamingEveryFactoryAndTheStepParameter(CustodyStep step)
     {
         var item = new CustodyItem(CustodyItemKind.SignInAttempt, 41);

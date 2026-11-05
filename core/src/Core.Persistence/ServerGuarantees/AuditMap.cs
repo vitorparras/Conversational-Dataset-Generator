@@ -45,5 +45,6 @@ public static class AuditMap
         [CustodyStep.OwnerWindowOpened] = "a abertura da janela da credencial de dono grava só o evento na cadeia: o que a migração muda é de esquema, não de tabela de domínio",
         [CustodyStep.OwnerWindowClosed] = "o fechamento da janela grava só o veredito na cadeia, depois de verificar a cadeia e conferir as garantias",
         [CustodyStep.Restored] = "a restauração grava as linhas pelas funções do dono, que a cadeia não vê, e termina com este evento depois de verificar a cadeia e conferir as garantias",
+        [CustodyStep.RestoreRehearsed] = "o ensaio lê a cadeia (CustodyVerifier) e o catálogo e grava só o resultado nela: não toca tabela de domínio",
     };
 }

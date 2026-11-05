@@ -17,6 +17,7 @@ namespace Core.Persistence.Tests.Content;
 [Trait("Category", "Database")]
 public sealed class DomainRewrapTests
 {
+    private const int Whole = 500;
     private const string Raw = "texto bruto sintetico zqx";
     private const string Entries = "mapa de reversao zqx";
     private const string Register = "INSERT INTO public.derivation_label (label) VALUES ('texto-bruto/1/v1'), ('mapa-reversao/1/v1'), ('texto-bruto/2/v1'), ('mapa-reversao/2/v1'), "
@@ -86,7 +87,7 @@ public sealed class DomainRewrapTests
         var rest = await new DomainRewrap(world.DataSource, 2).RewrapAsync(1, both.Keys, both.Labels, TestContext.Current.CancellationToken);
 
         Assert.Equal(("v2,v2,v1,v1,v1", 1L), (string.Join(',', stopped.Item1.Select(label => label[^2..])), stopped.Item2));
-        Assert.Equal(((2, 3), 5), (status, readAfterStop.Count(text => text == Raw)));
+        Assert.Equal((new RewrapStatus(2, 3), 5), (status, readAfterStop.Count(text => text == Raw)));
         Assert.Equal((3, "v2,v2,v2,v2,v2", 3L), (rest, string.Join(',', (await LabelsOfAsync(world, ids)).Select(label => label[^2..])), await world.ScalarAsync(Events)));
         Assert.Equal(5, (await ReadAllAsync(world, both, ids)).Count(text => text == Raw));
     }
@@ -178,7 +179,7 @@ public sealed class DomainRewrapTests
         _ = await rewrap.RewrapAsync(1, custody.Keys, custody.Labels, TestContext.Current.CancellationToken);
         var after = await rewrap.StatusAsync(1, custody.Labels, TestContext.Current.CancellationToken);
 
-        Assert.Equal(((1, 3), 0L, (4, 0)), (before, eventsAfterStatus, after));
+        Assert.Equal((new RewrapStatus(1, 3), 0L, new RewrapStatus(4, 0)), (before, eventsAfterStatus, after));
     }
 
     [DatabaseFact]
@@ -190,7 +191,7 @@ public sealed class DomainRewrapTests
 
         var rewrapped = await rewrap.RewrapAsync(2, custody.Keys, custody.Labels, TestContext.Current.CancellationToken);
 
-        Assert.Equal((0, (0, 0), 0L), (rewrapped, await rewrap.StatusAsync(2, custody.Labels, TestContext.Current.CancellationToken), await world.ScalarAsync(Events)));
+        Assert.Equal((0, new RewrapStatus(0, 0), 0L), (rewrapped, await rewrap.StatusAsync(2, custody.Labels, TestContext.Current.CancellationToken), await world.ScalarAsync(Events)));
     }
 
     [Fact]
@@ -198,12 +199,12 @@ public sealed class DomainRewrapTests
     {
         await using var dataSource = NpgsqlDataSource.Create("Host=127.0.0.1;Port=1;Username=u;Password=p;Database=d");
         using var custody = SyntheticCustody.Holding(ContentWorld.Labels);
-        var rewrap = new DomainRewrap(dataSource, DomainRewrap.WholeBatch);
+        var rewrap = new DomainRewrap(dataSource, Whole);
         var token = TestContext.Current.CancellationToken;
 
         var names = new[]
         {
-            Assert.Throws<ArgumentNullException>(() => new DomainRewrap(null!, DomainRewrap.WholeBatch)).ParamName,
+            Assert.Throws<ArgumentNullException>(() => new DomainRewrap(null!, Whole)).ParamName,
             Assert.Throws<ArgumentOutOfRangeException>(() => new DomainRewrap(dataSource, 0)).ParamName,
             (await Assert.ThrowsAsync<ArgumentNullException>(() => rewrap.RewrapAsync(1, null!, custody.Labels, token))).ParamName,
             (await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => rewrap.RewrapAsync(0, custody.Keys, custody.Labels, token))).ParamName,
@@ -232,7 +233,7 @@ public sealed class DomainRewrapTests
         return ids;
     }
 
-    private static DomainRewrap WholeBatches(ContentWorld world) => new(world.DataSource, DomainRewrap.WholeBatch);
+    private static DomainRewrap WholeBatches(ContentWorld world) => new(world.DataSource, Whole);
 
     private static async Task<string> LabelOfAsync(ContentWorld world, int domainId, string statement, long id) =>
         EnvelopeCipher.LabelOf(await world.StoredAsync(domainId, statement, id));

@@ -7,14 +7,13 @@ using Npgsql;
 
 namespace Core.Host.Domains;
 
-/// <summary>
-/// The mode asked for with <c>rewrap-domain --domain &lt;id&gt;</c> (issue 56): run once with the owner credential, it wraps the keys of the domain again in batches; <c>--status</c> only reads.
-/// </summary>
+/// <summary>The mode of <c>rewrap-domain --domain &lt;id&gt;</c> (issue 56): once, with the owner credential, it wraps the keys of the domain again in batches; <c>--status</c> only reads.</summary>
 internal static class DomainRewrapMode
 {
     private const string RewrapWord = "rewrap-domain";
     private const string DomainOption = "--domain";
     private const string StatusFlag = "--status";
+    private const int WholeBatch = 500;
 
     internal static bool Requested(string[] args) => args.Length > 0 && args[0] == RewrapWord;
 
@@ -76,7 +75,7 @@ internal static class DomainRewrapMode
 
     private static async Task<string> RunOnceAsync(NpgsqlDataSource dataSource, MasterKeyReading reading, (int Id, bool Status) request)
     {
-        var rewrap = new DomainRewrap(dataSource, DomainRewrap.WholeBatch);
+        var rewrap = new DomainRewrap(dataSource, WholeBatch);
         if (request.Status)
         {
             var (current, behind) = await rewrap.StatusAsync(request.Id, reading.Labels, CancellationToken.None).ConfigureAwait(false);

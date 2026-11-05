@@ -40,6 +40,7 @@ public sealed class RestoreRehearsal
 
     private static string NameOf(RehearsalFindings finding) => finding switch
     {
+        RehearsalFindings.None => "held",
         RehearsalFindings.Privilege => "privilege",
         RehearsalFindings.Policy => "policy",
         RehearsalFindings.Revoke => "revoke",
@@ -47,7 +48,7 @@ public sealed class RestoreRehearsal
         RehearsalFindings.Columns => "columns",
         RehearsalFindings.Chain => "chain",
         RehearsalFindings.Seal => "seal",
-        _ => "held",
+        _ => "seal",
     };
 
     /// <summary>Rehearses and records the result; the result is recorded only if the links hold, because the chain takes no event but a verification while they do not.</summary>

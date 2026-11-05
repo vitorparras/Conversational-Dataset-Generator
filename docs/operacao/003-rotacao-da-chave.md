@@ -36,6 +36,12 @@ núcleo lê os rótulos registrados, ao subir (reinicie o núcleo). Nada é reci
 quem, quando, o domínio e a geração. Saída 0: feito. 17: rótulo ausente, nomeado. 24: recusa. 25:
 banco mudo.
 
+`revoke-domain-label --label <rótulo>` também roda uma vez, com a credencial do dono: o rótulo deixa
+de cifrar o que vier e segue decifrando o que cifrou: não o tire do arquivo de custódia nem da cópia
+de guarda. Só se revoga geração que tenha outra mais nova, não revogada, da mesma finalidade e
+domínio: rotacione antes. Só de acréscimo, com evento na cadeia; não se desfaz. Saída 0: feito. 37:
+recusa. 38: banco mudo.
+
 ## Rótulo não se descarta
 
 Nem depois de recifrar tudo. O conjunto só cresce, e todos os rótulos seguem na cópia de guarda de

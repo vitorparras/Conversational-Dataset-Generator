@@ -44,6 +44,7 @@ internal static class CustodyNames
         [CustodyStep.OwnerWindowClosed] = "owner_window_closed",
         [CustodyStep.Restored] = "restored",
         [CustodyStep.RestoreRehearsed] = "restore_rehearsed",
+        [CustodyStep.DomainLabelRevoked] = "domain_label_revoked",
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<CustodyReason, string> Reasons = new Dictionary<CustodyReason, string>

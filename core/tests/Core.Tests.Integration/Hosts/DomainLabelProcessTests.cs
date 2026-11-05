@@ -65,6 +65,51 @@ public sealed class DomainLabelProcessTests
     }
 
     [DatabaseFact]
+    public async Task Ca4TheCommandRevokesAnOlderGenerationAndRefusesTheGenerationInUseWithItsOwnCode()
+    {
+        await using var database = await WithTwoDomainsAsync();
+        using var files = new CustodyFiles();
+        _ = await RunAsync(database, Arguments(files, "rotate-domain-label", "--domain=1", Everything));
+
+        var (revoked, saidRevoked) = await RunAsync(database, Arguments(files, "revoke-domain-label", "--label=texto-bruto/1/v1", Everything));
+        var (inUse, saidInUse) = await RunAsync(database, Arguments(files, "revoke-domain-label", "--label=texto-bruto/1/v2", Everything));
+        var (again, saidAgain) = await RunAsync(database, Arguments(files, "revoke-domain-label", "--label=texto-bruto/1/v1", Everything));
+
+        Assert.Equal(
+            (0, true, 37, true, 37, true),
+            (revoked, saidRevoked.Contains("texto-bruto/1/v1 revogado no domínio 1", StringComparison.Ordinal),
+             inUse, saidInUse.Contains("rotacione antes", StringComparison.Ordinal),
+             again, saidAgain.Contains("já foi revogado", StringComparison.Ordinal)));
+        Assert.Equal(
+            (1L, 1L),
+            (await ScalarAsync(database, "SELECT count(*) FROM public.derivation_label_revocation"),
+             await ScalarAsync(database, "SELECT count(*) FROM public.custody_event WHERE step = 'domain_label_revoked' AND item_id = 1 AND reference = 'texto-bruto/1/v1'")));
+    }
+
+    [DatabaseFact]
+    public async Task TheCommandToRevokeALabelThatIsNotRegisteredExitsWithTheRefusalCodeAndWritesNothing()
+    {
+        await using var database = await WithTwoDomainsAsync();
+        using var files = new CustodyFiles();
+
+        var (exit, words) = await RunAsync(database, Arguments(files, "revoke-domain-label", "--label=texto-bruto/9/v1", Everything));
+
+        Assert.Equal((37, true), (exit, words.Contains("nenhum rótulo registrado", StringComparison.Ordinal)));
+        Assert.Equal((0L, 2L), (await ScalarAsync(database, "SELECT count(*) FROM public.derivation_label_revocation"), await ScalarAsync(database, "SELECT count(*) FROM public.custody_event")));
+    }
+
+    [DatabaseFact]
+    public async Task TheCommandToRevokeWithoutItsOptionRefusesWithTheConfigurationCode()
+    {
+        await using var database = await WithTwoDomainsAsync();
+        using var files = new CustodyFiles();
+
+        var (exit, words) = await RunAsync(database, Arguments(files, "revoke-domain-label", null, Everything));
+
+        Assert.Equal((78, true), (exit, words.Contains("--label", StringComparison.Ordinal)));
+    }
+
+    [DatabaseFact]
     public async Task TheCommandWithoutItsOptionRefusesWithTheConfigurationCodeBeforeAnythingElse()
     {
         await using var database = await WithTwoDomainsAsync();

@@ -7,8 +7,8 @@ internal static class EventsOfTheirOwn
 {
     internal const string Message =
         "A correction, a verification, an emptying, a rotation, the creation of a domain, a seal, an entry, the loss of a key, a rehearsal of the recovery, "
-        + "a conference of the guarantees, a window of the owner, a restore and a rehearsal of it have an event of their own; use Correction, Verification, "
-        + "Emptied, EmptyingRefused, EpochRotated, DomainCreated, DomainLabelRotated, SealRecorded, SignInAccepted, SignInRefused, KeyLossDeclared, RecoveryRehearsed, "
+        + "a conference of the guarantees, a window of the owner, a restore, a rehearsal of it and a revocation of a label have an event of their own; use Correction, Verification, "
+        + "Emptied, EmptyingRefused, EpochRotated, DomainCreated, DomainLabelRotated, DomainLabelRevoked, SealRecorded, SignInAccepted, SignInRefused, KeyLossDeclared, RecoveryRehearsed, "
         + "GuaranteesVerified, OwnerWindowOpened, OwnerWindowClosed, Restored or RestoreRehearsed.";
 
     private static readonly FrozenSet<CustodyStep> Steps = Enumerable.Repeat(CustodyStep.Correction, 1)
@@ -16,7 +16,7 @@ internal static class EventsOfTheirOwn
         .Append(CustodyStep.SealRecorded).Append(CustodyStep.DomainLabelRotated)
         .Append(CustodyStep.SignInAccepted).Append(CustodyStep.SignInRefused).Append(CustodyStep.KeyLossDeclared).Append(CustodyStep.RecoveryTested)
         .Append(CustodyStep.VerifyGuarantees).Append(CustodyStep.OwnerWindowOpened).Append(CustodyStep.OwnerWindowClosed)
-        .Append(CustodyStep.Restored).Append(CustodyStep.RestoreRehearsed).ToFrozenSet();
+        .Append(CustodyStep.Restored).Append(CustodyStep.RestoreRehearsed).Append(CustodyStep.DomainLabelRevoked).ToFrozenSet();
 
     /// <summary>Whether the step has a factory of its own.</summary>
     /// <param name="step">The step asked for as a plain event.</param>

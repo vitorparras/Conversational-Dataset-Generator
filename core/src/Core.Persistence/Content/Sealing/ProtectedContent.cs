@@ -13,16 +13,25 @@ public sealed class ProtectedContent
     private readonly DerivationLabels loaded;
     private readonly ItemKeys keys;
     private readonly IReadOnlySet<string> registered;
+    private readonly IReadOnlySet<string> revoked;
 
     /// <summary>The path draws the keys of the rows with <paramref name="keys"/>, under the labels the installation loaded, among those <paramref name="registered"/> in the database.</summary>
     public ProtectedContent(DerivationLabels loaded, ItemKeys keys, IReadOnlySet<string> registered)
+        : this(loaded, keys, registered, new HashSet<string>(StringComparer.Ordinal))
+    {
+    }
+
+    /// <summary>As above, except that a label in <paramref name="revoked"/> seals nothing new: the newest generation not revoked is used, and what it sealed is opened all the same.</summary>
+    public ProtectedContent(DerivationLabels loaded, ItemKeys keys, IReadOnlySet<string> registered, IReadOnlySet<string> revoked)
     {
         ArgumentNullException.ThrowIfNull(loaded);
         ArgumentNullException.ThrowIfNull(keys);
         ArgumentNullException.ThrowIfNull(registered);
+        ArgumentNullException.ThrowIfNull(revoked);
         this.loaded = loaded;
         this.keys = keys;
         this.registered = registered;
+        this.revoked = revoked;
     }
 
     /// <summary>The key of a new row of the domain, for the purpose of the column; a domain with no label loaded for the purpose is a defect of the caller.</summary>
@@ -80,7 +89,7 @@ public sealed class ProtectedContent
         loaded.All
             .Select(text => DerivationLabel.TryParse(text, out var label) ? label : null)
             .OfType<DerivationLabel>()
-            .Where(label => label.Purpose == purpose && label.DomainId == domainId && registered.Contains(label.Text))
+            .Where(label => label.Purpose == purpose && label.DomainId == domainId && registered.Contains(label.Text) && !revoked.Contains(label.Text))
             .MaxBy(label => label.Version)
         ?? throw new InvalidOperationException($"No derivation label is loaded for the purpose {purpose} and the domain {domainId}.");
 }

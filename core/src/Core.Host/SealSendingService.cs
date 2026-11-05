@@ -66,7 +66,7 @@ internal sealed class SealSendingService : BackgroundService
     }
 
     private static SealDelivery? DeliveryOf(IServiceProvider host) =>
-        host.GetRequiredService<SealDeclaration>().Destination is { } destination ? SealDelivery.To(destination) : null;
+        host.GetRequiredService<SealDeclaration>() is { Situation: not SealSituation.Manual, Destination: { } destination } ? SealDelivery.To(destination) : null;
 
     private static SealSteps? StepsOf(IServiceProvider host, SealDelivery? delivery)
     {

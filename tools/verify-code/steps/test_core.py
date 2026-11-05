@@ -6,7 +6,10 @@ whether the step passes or fails. The tests that start the real language service
 
 from __future__ import annotations
 
+import os
 import re
+from collections.abc import Generator
+from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from pathlib import Path
 from xml.etree import ElementTree
@@ -18,6 +21,9 @@ NAME = "test_core"
 RESULTS = "core"
 REAL_SERVICE_TRAIT = "Category=RealService"
 WITHOUT_REAL_SERVICE = ("--filter-not-trait", REAL_SERVICE_TRAIT)
+MSBUILD_LOG_VARIABLE = "ARCHITECTURE_MSBUILD_LOG"
+MSBUILD_LOG = "architecture-msbuild.log"
+MSBUILD_LINE = re.compile(r"^\[msbuild\] (\S+) (\S+) ([0-9]+(?:\.[0-9]+)?)s$")
 
 
 @dataclass(frozen=True)
@@ -97,6 +103,45 @@ def describe_skips(run: TestRun) -> str:
     return f"{run.project}: {run.skipped} teste(s) saltado(s) ({reasons})"
 
 
+@contextmanager
+def environment_with(name: str, value: str) -> Generator[None]:
+    """The process environment with ``name`` set for the commands run inside, put back as it was."""
+    previous = os.environ.get(name)
+    os.environ[name] = value
+    try:
+        yield
+    finally:
+        if previous is None:
+            os.environ.pop(name, None)
+        else:
+            os.environ[name] = previous
+
+
+def describe_msbuilds(log: Path) -> tuple[str, ...]:
+    """Each msbuild the architecture tests ran (`project target seconds`), the longest, the total.
+
+    The tests write one `[msbuild] project target seconds` line per run to the file; a line that is
+    not of that form is ignored, and a missing file or one without runs says so in one line."""
+    runs = [
+        (m[1], m[2], float(m[3]))
+        for m in (MSBUILD_LINE.match(line.strip()) for line in _lines(log))
+        if m is not None
+    ]
+    if not runs:
+        return ("msbuild do Core.Tests.Architecture: nenhuma execução registrada",)
+    longest = max(runs, key=lambda run: run[2])
+    total = sum(seconds for _, _, seconds in runs)
+    return (
+        *(f"  msbuild {project} {target} {seconds:.1f}s" for project, target, seconds in runs),
+        f"msbuild do Core.Tests.Architecture: {len(runs)} execuções, total {total:.1f}s, "
+        f"maior {longest[0]} {longest[1]} {longest[2]:.1f}s",
+    )
+
+
+def _lines(log: Path) -> list[str]:
+    return log.read_text(encoding="utf-8").splitlines() if log.is_file() else []
+
+
 def judge(
     runs: tuple[TestRun, ...], projects: tuple[str, ...], dotnet: CommandOutcome
 ) -> StepResult:
@@ -148,7 +193,15 @@ def run(ctx: Context) -> StepResult:
         "--results-directory",
         str(results),
     ]
-    outcome = ctx.run(command, ctx.root)
+    log = results / MSBUILD_LOG
+    with environment_with(MSBUILD_LOG_VARIABLE, str(log)):
+        outcome = ctx.run(command, ctx.root)
+    result = conclude(results, solution, outcome)
+    return replace(result, details=(*result.details, *describe_msbuilds(log)))
+
+
+def conclude(results: Path, solution: Path, outcome: CommandOutcome) -> StepResult:
+    """The verdict from what the run wrote to the results directory."""
     reports = tuple(read_trx(trx) for trx in sorted(results.glob("*.trx")))
     if not reports:
         return failed(

@@ -15,8 +15,7 @@ internal static class DomainLabelQueries
     private const string InsertRevocation = "INSERT INTO public.derivation_label_revocation (label) VALUES (@label)";
 
     private const string StateOfLabel = """
-        SELECT
-            EXISTS (SELECT 1 FROM public.derivation_label WHERE label = @label) AS known,
+        SELECT EXISTS (SELECT 1 FROM public.derivation_label WHERE label = @label) AS known,
             EXISTS (SELECT 1 FROM public.derivation_label_revocation WHERE label = @label) AS revoked,
             EXISTS (
                 SELECT 1 FROM public.derivation_label l
@@ -46,7 +45,7 @@ internal static class DomainLabelQueries
         await using (command.ConfigureAwait(false))
         {
             _ = command.Parameters.Add(new NpgsqlParameter("label", NpgsqlDbType.Text) { Value = label.Text });
-            _ = command.Parameters.Add(new NpgsqlParameter("prefix", NpgsqlDbType.Text) { Value = label.Text.Remove(label.Text.LastIndexOf('/')) + "/v%" });
+            _ = command.Parameters.Add(new NpgsqlParameter("prefix", NpgsqlDbType.Text) { Value = label.Text[..label.Text.LastIndexOf('/')] + "/v%" });
             _ = command.Parameters.Add(new NpgsqlParameter("version", NpgsqlDbType.Integer) { Value = label.Version });
             var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             await using (reader.ConfigureAwait(false))

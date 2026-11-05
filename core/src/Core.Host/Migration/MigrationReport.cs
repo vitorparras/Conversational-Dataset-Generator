@@ -16,6 +16,11 @@ internal static class MigrationReport
         switch (result.Outcome)
         {
             case MigrationOutcome.Applied:
+                if (result.OwnerWindow != OwnerWindowOpening.None)
+                {
+                    logger.OwnerWindowOpened(result.OwnerWindow);
+                }
+
                 logger.SchemaMigrated(result.Found);
                 break;
             case MigrationOutcome.NothingToDo:

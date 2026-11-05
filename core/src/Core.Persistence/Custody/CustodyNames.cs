@@ -40,6 +40,10 @@ internal static class CustodyNames
         [CustodyStep.KeyLossDeclared] = "key_loss_declared",
         [CustodyStep.RecoveryTested] = "recovery_tested",
         [CustodyStep.VerifyGuarantees] = "verify_guarantees",
+        [CustodyStep.OwnerWindowOpened] = "owner_window_opened",
+        [CustodyStep.OwnerWindowClosed] = "owner_window_closed",
+        [CustodyStep.Restored] = "restored",
+        [CustodyStep.RestoreRehearsed] = "restore_rehearsed",
         [CustodyStep.DomainLabelRevoked] = "domain_label_revoked",
         [CustodyStep.DomainRewrapped] = "domain_rewrapped",
     }.ToFrozenDictionary();

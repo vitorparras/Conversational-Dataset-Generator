@@ -157,6 +157,21 @@ public sealed class DatabaseConfigurationTests
         Assert.Equal(DatabaseSettingsState.Configured, settings.State);
     }
 
+    [Theory]
+    [InlineData("CDG_Database__OwnerUsername", "Database:OwnerUsername")]
+    [InlineData("CDG_Database__OwnerPassword", "Database:OwnerPassword")]
+    [InlineData("CDG_Database__Owner__Username", "Database:Owner:Username")]
+    public void NormalModeOffersNoKeyForASecondCredentialAndRefusesOneThatIsGiven(string variable, string key)
+    {
+        var variables = Complete();
+        variables[variable] = "zqx-owner";
+
+        var loaded = Load(variables);
+
+        var problem = Assert.Single(loaded.Problems);
+        Assert.Equal((ConfigurationProblemKind.UnknownKey, key), (problem.Kind, problem.Key));
+    }
+
     [Fact]
     public void PasswordIsRedactedInTheConfigurationInForce()
     {

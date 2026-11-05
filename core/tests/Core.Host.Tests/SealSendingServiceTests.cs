@@ -3,6 +3,7 @@ using Core.Persistence.Custody;
 using Core.Persistence.Custody.Verification;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 
 namespace Core.Host.Tests;
 
@@ -14,6 +15,7 @@ public sealed class SealSendingServiceTests
 {
     private static readonly TimeSpan Interval = SealSendingService.Interval;
     private static readonly TimeSpan Patience = TimeSpan.FromSeconds(30);
+    private static readonly Uri Destination = new("https://selo.example/envio");
 
     [Fact]
     public async Task SealThatArrivedIsRecordedAsTheSealThatWasSentEvenIfTheChainGrewMeanwhile()
@@ -91,12 +93,13 @@ public sealed class SealSendingServiceTests
     }
 
     [Fact]
-    public async Task ManualSituationBuildsNoSendingAndSendsNothing()
+    public async Task ManualSituationBuildsNoSendingAndSendsNothingEvenWithTheDatabaseAndADestinationInHand()
     {
-        using var startup = new ServiceCollection().BuildServiceProvider();
+        await using var source = NpgsqlDataSource.Create(UnreachableDatabase.ConnectionString);
+        using var startup = new ServiceCollection().AddSingleton(source).BuildServiceProvider();
         using var loggers = new LoggerFactory();
         using var host = new ServiceCollection()
-            .AddSingleton(new SealDeclaration(SealSituation.Manual, null))
+            .AddSingleton(new SealDeclaration(SealSituation.Manual, Destination))
             .AddSingleton(startup)
             .AddSingleton<TimeProvider>(new ManualClock())
             .AddSingleton<ILoggerFactory>(loggers)
@@ -107,6 +110,34 @@ public sealed class SealSendingServiceTests
         await service.ExecuteTask!.WaitAsync(Patience, TestContext.Current.CancellationToken);
 
         Assert.True(service.ExecuteTask.IsCompletedSuccessfully);
+    }
+
+    [Theory]
+    [InlineData("External")]
+    [InlineData("Internal")]
+    public async Task SendingSituationWithTheSameArrangementBuildsTheSendingAndWaitsForTheNextOne(string situation)
+    {
+        var clock = new ManualClock();
+        await using var source = NpgsqlDataSource.Create(UnreachableDatabase.ConnectionString);
+        using var startup = new ServiceCollection().AddSingleton(source).BuildServiceProvider();
+        using var loggers = new LoggerFactory();
+        using var host = new ServiceCollection()
+            .AddSingleton(new SealDeclaration(Enum.Parse<SealSituation>(situation), Destination))
+            .AddSingleton(startup)
+            .AddSingleton<TimeProvider>(clock)
+            .AddSingleton<ILoggerFactory>(loggers)
+            .BuildServiceProvider();
+        using var service = new SealSendingService(host);
+
+        await service.StartAsync(TestContext.Current.CancellationToken);
+        var until = DateTimeOffset.UtcNow + Patience;
+        while (clock.Waiting == 0 && DateTimeOffset.UtcNow < until)
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(5), TestContext.Current.CancellationToken);
+        }
+
+        Assert.Equal((1, false), (clock.Waiting, service.ExecuteTask!.IsCompleted));
+        await service.StopAsync(CancellationToken.None);
     }
 
     [Fact]

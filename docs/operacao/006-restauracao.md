@@ -4,10 +4,9 @@
 
 Restaurar é devolver o acervo ao estado da cópia **sem alterar a ordem da sequência de eventos**. A
 ordem não é detalhe de armazenamento: cada evento carrega o resumo do anterior, e verificar é
-recalcular a sequência a partir dessas ligações. Restauração que reinsira eventos em outra ordem
-produz cadeia que não fecha — e, embora a
-[verificação da custódia](../privacidade/005-verificacao-da-custodia.md) saiba separar dano
-acidental de adulteração, a separação se apoia em existir janela operacional que explique o dano.
+recalcular a sequência a partir dessas ligações. Reinserir eventos em outra ordem produz cadeia que
+não fecha — e, embora a [verificação da custódia](../privacidade/005-verificacao-da-custodia.md)
+saiba separar dano acidental de adulteração, isso depende de janela operacional que explique o dano.
 Restauração malfeita e sem registro é dano sem explicação.
 
 ## Antes de restaurar
@@ -20,7 +19,7 @@ versão correspondente. Abra a janela antes de começar: quem restaura, de qual 
 
 ## O procedimento
 
-1. Restaure o banco inteiro, em uma operação, com o sistema sem escrever
+1. Crie o banco novo pelo `migrate` e, com o sistema sem escrever, carregue a cópia
 2. Confira que cada evento conserva o número de sequência e o resumo do antecessor que tinha na
    cópia. A ordem a preservar é a **registrada** — nem a de inserção física, nem a do horário
 3. Percorra a sequência da origem ao topo e compare o valor obtido com o anotado fora
@@ -30,6 +29,12 @@ versão correspondente. Abra a janela antes de começar: quem restaura, de qual 
    garantia, e é a falha mais silenciosa deste procedimento
 6. Carregue a taxonomia e confira que todo rótulo gravado existe nela
 7. Só então libere a escrita, e feche a janela com o resultado
+
+O `restore-load <pasta> <sequência> <digest>` faz o 1, o 2, o 3 e o 5 em banco novo, com a
+credencial da aplicação, sem a chave mestra; sequência e digest são o topo do `copy-data`. Sai com
+0 só se tudo fechou, grava o evento `restored` e, se algo recusar, diz qual versão, tabela ou evento
+divergiu, sem valor algum. Banco recusado se refaz com `migrate`. A amostra cifrada, que decifra,
+fica para a primeira partida, com a chave do host. Os passos 4, 6 e 7 são seus.
 
 ## O que nunca se faz
 
@@ -46,7 +51,10 @@ pedindo acesso que a política nega.
 ## A restauração é um evento
 
 Ela não desaparece depois de dar certo: um evento novo declara o que foi restaurado, de qual cópia,
-por quem, e qual era o topo antes e depois. Restauração silenciosa deixa na sequência um salto que a
-próxima verificação encontra sem explicação — e trata como incidente, corretamente.
+o veredito e qual era o topo antes e depois. Janela aprovada não é restauração aprovada: vale o
+`restored`. Restauração silenciosa deixa um salto que a próxima verificação trata como incidente. Se
+a cadeia não fechar, pare aqui e siga [009](009-incidente-cadeia-quebrada.md).
 
-Se a cadeia não fechar, pare aqui e siga [009](009-incidente-cadeia-quebrada.md).
+O `rehearse-restore --seal '<selo>'` confere os elos, o selo anotado fora ([005](005-backup.md)) e
+as garantias do catálogo, sem abrir texto, e grava restore_rehearsed. Saídas: 0; 33, falhou ou a
+cadeia não aceitou o evento; 34, selo ilegível; 35, sem banco; 78, configuração recusada.

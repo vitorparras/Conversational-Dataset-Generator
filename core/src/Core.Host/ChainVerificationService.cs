@@ -60,7 +60,10 @@ internal sealed class ChainVerificationService : BackgroundService
     internal Func<CancellationToken, Task<GuaranteeVerification>>? Guarantees { get; init; }
 
     /// <summary>The verification on demand, which compares the chain with a seal; null when no database is declared.</summary>
-    internal CustodyVerifier? Verifier { get; }
+    internal CustodyVerifier? Verifier { get; init; }
+
+    /// <summary>How often a session may ask for the verification on demand, which reads the whole chain.</summary>
+    internal VerificationLimit Limit { get; } = new();
 
     /// <summary>The reading of when the chain last recorded a seal; null when no database is declared.</summary>
     internal RecordedSealReader? SealReader { get; }
@@ -180,18 +183,31 @@ internal sealed class ChainVerificationService : BackgroundService
         try
         {
             var result = await confer(cancellationToken).ConfigureAwait(false);
-            if (result.Missing == GuaranteeKinds.None)
-            {
-                logger.GuaranteesHeld(result.Recorded.Outcome);
-            }
-            else
-            {
-                logger.GuaranteesMissing(result.Missing, result.Recorded.Outcome);
-            }
+            ReportGuarantees(logger, result);
         }
         catch (Exception failure) when (ServingFailure.CanReport(failure) && !cancellationToken.IsCancellationRequested)
         {
             logger.GuaranteesNotConferred(failure.GetType().Name);
+        }
+    }
+
+    private static void ReportGuarantees(ILogger logger, GuaranteeVerification result)
+    {
+        if (result.Missing != GuaranteeKinds.None)
+        {
+            logger.GuaranteesMissing(result.Missing, result.Recorded.Outcome);
+        }
+        else if (result.NoSampleOutsideLoss)
+        {
+            logger.GuaranteesHeldWithoutSample(result.Recorded.Outcome);
+        }
+        else if (result.SearchStopped)
+        {
+            logger.GuaranteesHeldSearchStopped(result.Recorded.Outcome);
+        }
+        else
+        {
+            logger.GuaranteesHeld(result.Recorded.Outcome);
         }
     }
 

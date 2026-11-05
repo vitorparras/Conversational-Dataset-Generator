@@ -1,0 +1,86 @@
+using System.Globalization;
+using Core.Persistence.Custody;
+using Core.Persistence.Custody.Chain;
+using Core.Persistence.Custody.Verification;
+using Core.Platform.Startup;
+using Npgsql;
+
+namespace Core.Persistence.ServerGuarantees;
+
+/// <summary>
+/// Closes the window of the owner credential that a migration opened (#64), and runs only when one is open: verifies the chain, confers the guarantees and records the verdict as the closing.
+/// A guarantee missing, or a chain that takes no event, refuses the start naming the cause and leaves the window open. It goes right after the privilege check.
+/// </summary>
+public sealed class OwnerWindowCheck : IStartupCheck
+{
+    private readonly NpgsqlDataSource dataSource;
+    private readonly GuaranteeVerifier guarantees;
+    private readonly TimeProvider time;
+
+    /// <summary>The check reads and records through the data source built with the application's credential, and confers the guarantees with the verifier it is given.</summary>
+    public OwnerWindowCheck(NpgsqlDataSource dataSource, GuaranteeVerifier guarantees, TimeProvider time)
+    {
+        ArgumentNullException.ThrowIfNull(dataSource);
+        ArgumentNullException.ThrowIfNull(guarantees);
+        ArgumentNullException.ThrowIfNull(time);
+        this.dataSource = dataSource;
+        this.guarantees = guarantees;
+        this.time = time;
+    }
+
+    /// <inheritdoc />
+    public string Name => "OwnerWindow";
+
+    /// <inheritdoc />
+    public Task<CheckResult> RunAsync(CancellationToken cancellationToken) =>
+        ServerProbe.RunAsync(
+            dataSource,
+            new Guarantee(
+                Name,
+                "refaça a garantia que falta com a credencial de dono, ou restaure uma cópia que a tenha, e suba o núcleo de novo; a janela segue aberta até uma partida em que tudo vale",
+                (_, token) => CloseAsync(token),
+                ReadsCatalog: false),
+            cancellationToken);
+
+    private async Task<Finding> CloseAsync(CancellationToken cancellationToken)
+    {
+        OwnerWindowOpen? open;
+        try
+        {
+            open = await new RecordedVerificationReader(dataSource).OwnerWindowAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (PostgresException noChain) when (noChain.SqlState == PostgresErrorCodes.UndefinedTable)
+        {
+            return Finding.Holds("o banco ainda não tem a cadeia de custódia, e sem ela não há janela da credencial de dono");
+        }
+
+        if (open is null)
+        {
+            return Finding.Holds("nenhuma janela da credencial de dono está aberta");
+        }
+
+        var chain = await new CustodyVerifier(dataSource, time).VerifyAsync(cancellationToken).ConfigureAwait(false);
+        var conferred = await guarantees.VerifyAsync(cancellationToken).ConfigureAwait(false);
+        var applied = await AppliedAsync(cancellationToken).ConfigureAwait(false);
+        var reference = string.Create(
+            CultureInfo.InvariantCulture, $"opened={open.OpenedSequence};applied={applied};chain={chain.Recorded.Sequence ?? 0};conference={conferred.Recorded.Sequence ?? 0}");
+        var closed = await new CustodyChain(dataSource).AppendAsync(CustodyEvent.OwnerWindowClosed((long)conferred.Missing, reference), cancellationToken).ConfigureAwait(false);
+        var window = $"a janela da credencial de dono, aberta pela migração da versão {open.From} para a {open.To}";
+        return (conferred.Missing, closed.Outcome) switch
+        {
+            (GuaranteeKinds.None, CustodyOutcome.Appended) => Finding.Holds($"{window}, foi fechada: a cadeia está íntegra e todas as garantias valem"),
+            (GuaranteeKinds.None, _) => Finding.Missing($"{window}, não pôde fechar: a cadeia não está íntegra ou não aceitou o evento do fechamento"),
+            (_, CustodyOutcome.Appended) => Finding.Missing($"{window}, não pôde fechar: faltam as garantias {conferred.Missing}; o fechamento ficou registrado como reprovado na cadeia"),
+            _ => Finding.Missing($"{window}, não pôde fechar: faltam as garantias {conferred.Missing}, e a cadeia não aceitou o evento do fechamento"),
+        };
+    }
+
+    private async Task<long> AppliedAsync(CancellationToken cancellationToken)
+    {
+        var command = dataSource.CreateCommand("SELECT coalesce(pg_catalog.max(version), 0) FROM public.schema_version");
+        await using (command.ConfigureAwait(false))
+        {
+            return Convert.ToInt64(await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false), CultureInfo.InvariantCulture);
+        }
+    }
+}

@@ -134,15 +134,30 @@ public sealed class DerivationLabelTableTests
     }
 
     [DatabaseFact]
-    public async Task OwnerCannotTruncateTheTable()
+    public async Task OwnerCannotTruncateTheTableForTheRevocationKeyRefusesItFirst()
     {
         await using var database = await MigratedAsync();
         await database.RecordLabelsAsync(["dominio-a"]);
 
         var refused = await Assert.ThrowsAsync<PostgresException>(() => database.RunAsOwnerAsync("TRUNCATE public.derivation_label"));
 
-        Assert.Equal(PostgresErrorCodes.RestrictViolation, refused.SqlState);
+        Assert.Equal(PostgresErrorCodes.FeatureNotSupported, refused.SqlState);
         Assert.Equal(["dominio-a"], await LabelsAsync(database));
+    }
+
+    [DatabaseFact]
+    public async Task OwnerCannotTruncateTheTableWithCascadeEitherAndNothingIsLost()
+    {
+        await using var database = await MigratedAsync();
+        await database.RecordLabelsAsync(["dominio-a"]);
+        await database.RunAsOwnerAsync("INSERT INTO public.derivation_label_revocation (label) VALUES ('dominio-a')");
+
+        var refused = await Assert.ThrowsAsync<PostgresException>(() => database.RunAsOwnerAsync("TRUNCATE public.derivation_label CASCADE"));
+
+        Assert.Equal(PostgresErrorCodes.RestrictViolation, refused.SqlState);
+        Assert.Contains("a derivation label is never changed nor dropped (TRUNCATE on derivation_label)", refused.MessageText, StringComparison.Ordinal);
+        Assert.Equal(["dominio-a"], await LabelsAsync(database));
+        Assert.Equal(["dominio-a"], await database.FirstColumnAsOwnerAsync("SELECT label FROM public.derivation_label_revocation"));
     }
 
     [DatabaseFact]

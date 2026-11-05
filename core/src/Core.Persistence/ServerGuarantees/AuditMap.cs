@@ -44,5 +44,9 @@ public static class AuditMap
         [CustodyStep.DomainLabelRevoked] = "a revogação é escrita com a credencial do dono (não a da aplicação) em tabela que o mapa não compara: a cadeia guarda o evento",
         [CustodyStep.DomainRewrapped] = "a recifragem troca só a chave embrulhada das linhas, com a credencial do dono: o evento do lote vai à cadeia, e o conteúdo não é tocado",
         [CustodyStep.VerifyGuarantees] = "a conferência lê o catálogo e a amostra pelos passos de leitura e grava o veredito na cadeia: não toca tabela de domínio",
+        [CustodyStep.OwnerWindowOpened] = "a abertura da janela da credencial de dono grava só o evento na cadeia: o que a migração muda é de esquema, não de tabela de domínio",
+        [CustodyStep.OwnerWindowClosed] = "o fechamento da janela grava só o veredito na cadeia, depois de verificar a cadeia e conferir as garantias",
+        [CustodyStep.Restored] = "a restauração grava as linhas pelas funções do dono, que a cadeia não vê, e termina com este evento depois de verificar a cadeia e conferir as garantias",
+        [CustodyStep.RestoreRehearsed] = "o ensaio lê a cadeia (CustodyVerifier) e o catálogo e grava só o resultado nela: não toca tabela de domínio",
     };
 }

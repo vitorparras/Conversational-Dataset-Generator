@@ -14,6 +14,7 @@ from steps.areas_doc import Area, within
 from steps.common import Context, reset_directory, tail
 from steps.mutant import Mutant
 from steps.mutation_database import DOCKER, discard_database, reusing, starts_database
+from steps.mutation_initial import explain
 from steps.mutation_judge import LanguageRun, ModuleResult, each
 from steps.mutation_members import slices
 from steps.mutation_parts import Part, Slice, module_name, parts_of, share, split_module
@@ -29,7 +30,7 @@ RESULTS = "mutation/core"
 CONFIG = "stryker-config.json"
 REPORT = "reports/mutation-report.json"
 RESTORE = ("dotnet", "tool", "restore")
-STRYKER = ("dotnet", "stryker", "--skip-version-check")
+STRYKER = ("dotnet", "stryker", "--skip-version-check", "--log-to-file")
 CONCURRENCY = 1
 TOKEN_BYTES = 8
 
@@ -196,7 +197,8 @@ def mutate(ctx: Context, core: CoreTarget, seconds: float, policy: MutationPolic
             discard_database(ctx, reuse)
     report = output / REPORT
     if not report.is_file():
-        missing = ("o Stryker não escreveu relatório", *tail(outcome.text))
+        explained = explain(output, outcome.text)
+        missing = ("o Stryker não escreveu relatório", *explained, *tail(outcome.text))
         return ModuleResult(core.shown, (), missing)
     mutants: tuple[Mutant, ...] = read_stryker(
         report, ctx.root.resolve(), policy.skipped_argument_of

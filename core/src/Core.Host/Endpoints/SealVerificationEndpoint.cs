@@ -1,3 +1,4 @@
+using System.Globalization;
 using Core.Persistence.Custody.Verification;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
@@ -6,7 +7,8 @@ namespace Core.Host.Endpoints;
 
 /// <summary>
 /// Verifies the chain of custody against the seal whoever operates brings, in its form in text, and says what that verification protects in the situation the installation declared.
-/// A text that is not a seal is refused with 400, and a body above 1 KiB with 413, before anything runs. A route of a live session, like the reading of the last verification.
+/// A text that is not a seal is refused with 400, and a body above 1 KiB with 413, before anything runs. A session that already asked within the window of <see cref="VerificationLimit" /> is
+/// refused with 429, with the time to wait, before the chain is read. A route of a live session, like the reading of the last verification.
 /// </summary>
 internal static class SealVerificationEndpoint
 {
@@ -16,13 +18,18 @@ internal static class SealVerificationEndpoint
         _ = endpoints.MapPost(ChainVerificationEndpoint.Route, VerifyAsync).WithMetadata(new RequestSizeLimitAttribute(BodyLimitInBytes));
 
     /// <summary>With no database declared, or one that cannot be read, the answer is 503: the chain was not compared with anything.</summary>
-    private static async Task<IResult> VerifyAsync([FromBody] SealAsked asked, [AsParameters] ChainSources sources, CancellationToken cancellationToken)
+    private static async Task<IResult> VerifyAsync([FromBody] SealAsked asked, HttpContext context, [AsParameters] ChainSources sources, CancellationToken cancellationToken)
     {
         var (verification, declared, _, time, loggers) = sources;
         var reading = ChainSeal.Read(asked.Seal);
         if (reading.Seal is not { } seal)
         {
             return Results.BadRequest(new SealRefused("seal", reading.Problem.ToString()!, reading.Refusal!));
+        }
+
+        if (TooSoon(verification, context, time) is { } limited)
+        {
+            return limited;
         }
 
         var done = await verification.VerifyAgainstAsync(seal, cancellationToken);
@@ -41,5 +48,18 @@ internal static class SealVerificationEndpoint
             loggers.CreateLogger(nameof(SealVerificationEndpoint)).SealDateUnreadable(unreadable.GetType().Name);
             return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
+    }
+
+    private static IResult? TooSoon(ChainVerificationService verification, HttpContext context, TimeProvider time)
+    {
+        if (verification.Limit.Admit(SessionCookie.Read(context.Request) ?? string.Empty, time.GetUtcNow()) is not { } left)
+        {
+            return null;
+        }
+
+        var seconds = (int)Math.Ceiling(left.TotalSeconds);
+        context.Response.Headers.RetryAfter = seconds.ToString(CultureInfo.InvariantCulture);
+        var reason = $"Uma verificação contra o selo por sessão a cada {(int)VerificationLimit.Window.TotalSeconds} segundos; a cadeia não foi lida. Tente de novo em {seconds} segundos.";
+        return Results.Json(new VerificationLimited(reason, seconds), statusCode: StatusCodes.Status429TooManyRequests);
     }
 }

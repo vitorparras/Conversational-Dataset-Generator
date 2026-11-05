@@ -1,27 +1,26 @@
 using Core.Host.Domains;
 using Core.Host.Loss;
 using Core.Host.Operators;
+using Core.Host.Restore;
 using Core.Host.Rotation;
 
 namespace Core.Host;
 
 /// <summary>
-/// The modes that run once and serve nothing, other than the migration: with the owner credential, the rotation of the epoch, the creation of a domain,
-/// the rotation and the revocation of its label and the declaration of the loss of a key; with the application one, the first person.
+/// The modes that run once and serve nothing, other than the migration, in two groups by the credential each one uses. With the owner credential: the rotation of the epoch, the creation of a
+/// domain, the rotation and the revocation of its label, the declaration of the loss of a key, the record of the recovery test and the copy of the data. With the application one: the first
+/// person, the rehearsal of a restore and the rehearsal of the recovery.
 /// </summary>
 internal static class OneShotModes
 {
-    /// <summary>The run of the mode the first argument asks for; null when it asks for none of them.</summary>
-    internal static Task<HostLaunch>? RunAsync(string[] args)
+    /// <summary>The run of the mode the first argument asks for, the owner's group first; null when it asks for none of them.</summary>
+    internal static Task<HostLaunch>? RunAsync(string[] args) => OwnerModeAsync(args) ?? ApplicationModeAsync(args);
+
+    private static Task<HostLaunch>? OwnerModeAsync(string[] args)
     {
         if (EpochRotationMode.Requested(args))
         {
             return EpochRotationMode.RunAsync(args, Console.Out, Console.Error);
-        }
-
-        if (FirstOperatorMode.Requested(args))
-        {
-            return FirstOperatorMode.RunAsync(args, Console.In, Console.Out, Console.Error);
         }
 
         if (DomainGenerationMode.Requested(args))
@@ -44,16 +43,31 @@ internal static class OneShotModes
             return KeyLossMode.RunAsync(args, Console.Out, Console.Error);
         }
 
-        if (RecoveryRehearsalMode.Requested(args))
-        {
-            return RecoveryRehearsalMode.RunAsync(args, Console.Out, Console.Error);
-        }
-
         if (RecoveryRecordMode.Requested(args))
         {
             return RecoveryRecordMode.RunAsync(args, Console.Out, Console.Error);
         }
 
+        if (CopyDataMode.Requested(args))
+        {
+            return CopyDataMode.RunAsync(args, Console.Out, Console.Error);
+        }
+
         return DomainCreationMode.Requested(args) ? DomainCreationMode.RunAsync(args, Console.Out, Console.Error) : null;
+    }
+
+    private static Task<HostLaunch>? ApplicationModeAsync(string[] args)
+    {
+        if (FirstOperatorMode.Requested(args))
+        {
+            return FirstOperatorMode.RunAsync(args, Console.In, Console.Out, Console.Error);
+        }
+
+        if (RecoveryRehearsalMode.Requested(args))
+        {
+            return RecoveryRehearsalMode.RunAsync(args, Console.Out, Console.Error);
+        }
+
+        return RehearsalMode.Requested(args) ? RehearsalMode.RunAsync(args, Console.Out, Console.Error) : null;
     }
 }

@@ -6,14 +6,12 @@ using Npgsql;
 namespace Core.Host.Domains;
 
 /// <summary>
-/// The mode asked for with <c>revoke-domain-label --label &lt;label&gt;</c> (issue 56): run once with the owner credential, it stops a label from encrypting anything new, and what was encrypted
-/// under it is still opened. It needs no key, serves nothing and says nothing of one.
+/// The mode asked for with <c>revoke-domain-label --label &lt;label&gt;</c> (issue 56): run once with the owner credential, it stops a label from encrypting anything new; what it sealed still opens.
 /// </summary>
 internal static class DomainRevocationMode
 {
     private const string RevokeWord = "revoke-domain-label";
     private const string TargetOption = "--label";
-    private const string Refused = "recusado, nada foi gravado";
 
     internal static bool Requested(string[] args) => args.Length > 0 && args[0] == RevokeWord;
 
@@ -60,16 +58,26 @@ internal static class DomainRevocationMode
             return ExitCode.Success;
         }
 
-        await words.Error.WriteLineAsync($"{RevokeWord} {Refused}: {ReasonOf(result.Outcome)}").ConfigureAwait(false);
+        await words.Error.WriteLineAsync($"{RevokeWord} recusado, nada foi gravado: {ReasonOf(result.Outcome)}").ConfigureAwait(false);
         return ExitCode.DomainLabelRevocationRefused;
     }
 
-    private static string ReasonOf(DomainLabelOutcome outcome) => outcome switch
+    private static string ReasonOf(DomainLabelOutcome outcome)
     {
-        DomainLabelOutcome.LabelInvalid => "o texto não é um rótulo de derivação, que se escreve <finalidade>/<id do domínio>/v<n>",
-        DomainLabelOutcome.LabelUnknown => "nenhum rótulo registrado tem esse texto",
-        DomainLabelOutcome.AlreadyRevoked => "o rótulo já foi revogado",
-        DomainLabelOutcome.LastGeneration => "é a geração mais nova não revogada da finalidade, e o domínio ficaria sem rótulo para cifrar; rotacione antes, com rotate-domain-label",
-        _ => "a gravação não se completou: outra chegou antes, ou a cadeia recusou o evento; repita o comando",
-    };
+        if (outcome == DomainLabelOutcome.LabelInvalid)
+        {
+            return "o texto não é um rótulo de derivação, que se escreve <finalidade>/<id do domínio>/v<n>";
+        }
+        if (outcome == DomainLabelOutcome.LabelUnknown)
+        {
+            return "nenhum rótulo registrado tem esse texto";
+        }
+        if (outcome == DomainLabelOutcome.AlreadyRevoked)
+        {
+            return "o rótulo já foi revogado";
+        }
+        return outcome == DomainLabelOutcome.LastGeneration
+            ? "é a geração mais nova não revogada da finalidade, e o domínio ficaria sem rótulo para cifrar; rotacione antes, com rotate-domain-label"
+            : "a gravação não se completou: outra chegou antes, ou a cadeia recusou o evento; repita o comando";
+    }
 }

@@ -6,7 +6,6 @@ CREATE TABLE public.derivation_label_revocation (
     revoked_at timestamptz NOT NULL DEFAULT now(),
     revoked_by text NOT NULL DEFAULT session_user
 );
-
 GRANT SELECT ON public.derivation_label_revocation TO PUBLIC;
 
 CREATE FUNCTION public.refuse_label_revocation_change() RETURNS trigger
@@ -21,7 +20,6 @@ $refuse$;
 CREATE TRIGGER derivation_label_revocation_never_changed
     BEFORE UPDATE OR DELETE ON public.derivation_label_revocation
     FOR EACH ROW EXECUTE FUNCTION public.refuse_label_revocation_change();
-
 CREATE TRIGGER derivation_label_revocation_never_emptied
     BEFORE TRUNCATE ON public.derivation_label_revocation
     FOR EACH STATEMENT EXECUTE FUNCTION public.refuse_label_revocation_change();
@@ -32,8 +30,7 @@ ALTER TABLE public.derivation_label_revocation ENABLE ALWAYS TRIGGER derivation_
 
 -- The event is about a domain, by its number, as the creation and the rotation are, and is the system's for an administrative act: the owner credential that revokes is no person of the registry.
 -- Its reference is the label revoked, which names the purpose, the domain and the generation and nothing else. Only the checks change, from the last ones the earlier steps left (the step list and the
--- shape of a reference from the 0029, the shape of the domain from the 0021): every step they list and every clause they fix stays, and the new step comes in beside them. The shape of
--- the verification is the 0029's and stays: the new step is about a domain, not the chain.
+-- shape of a reference from the 0029, the shape of the domain from the 0021): every step they list and every clause they fix stays, and the new step comes in beside them.
 ALTER TABLE public.custody_event
     DROP CONSTRAINT custody_event_step_listed,
     DROP CONSTRAINT custody_event_domain_shape,

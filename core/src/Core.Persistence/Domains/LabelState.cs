@@ -13,12 +13,10 @@ internal sealed record LabelState(bool Known, bool Revoked, bool NewerKept)
         {
             return DomainLabelOutcome.LabelUnknown;
         }
-
         if (Revoked)
         {
             return DomainLabelOutcome.AlreadyRevoked;
         }
-
         return NewerKept ? null : DomainLabelOutcome.LastGeneration;
     }
 }

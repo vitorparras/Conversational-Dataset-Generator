@@ -13,8 +13,6 @@ internal static class DomainRevocationMode
 {
     private const string RevokeWord = "revoke-domain-label";
     private const string TargetOption = "--label";
-    private const string Refused = "recusado, nada foi gravado";
-    private const string NotCompleted = "a gravação não se completou: outra chegou antes, ou a cadeia recusou o evento; repita o comando";
 
     internal static bool Requested(string[] args) => args.Length > 0 && args[0] == RevokeWord;
 
@@ -61,7 +59,7 @@ internal static class DomainRevocationMode
             return ExitCode.Success;
         }
 
-        await words.Error.WriteLineAsync($"{RevokeWord} {Refused}: {ReasonOf(result.Outcome)}").ConfigureAwait(false);
+        await words.Error.WriteLineAsync($"{RevokeWord} recusado, nada foi gravado: {ReasonOf(result.Outcome)}").ConfigureAwait(false);
         return ExitCode.DomainLabelRevocationRefused;
     }
 
@@ -71,19 +69,16 @@ internal static class DomainRevocationMode
         {
             return "o texto não é um rótulo de derivação, que se escreve <finalidade>/<id do domínio>/v<n>";
         }
-
         if (outcome == DomainLabelOutcome.LabelUnknown)
         {
             return "nenhum rótulo registrado tem esse texto";
         }
-
         if (outcome == DomainLabelOutcome.AlreadyRevoked)
         {
             return "o rótulo já foi revogado";
         }
-
         return outcome == DomainLabelOutcome.LastGeneration
             ? "é a geração mais nova não revogada da finalidade, e o domínio ficaria sem rótulo para cifrar; rotacione antes, com rotate-domain-label"
-            : NotCompleted;
+            : "a gravação não se completou: outra chegou antes, ou a cadeia recusou o evento; repita o comando";
     }
 }

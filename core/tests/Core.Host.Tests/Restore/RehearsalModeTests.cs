@@ -77,6 +77,58 @@ public sealed class RehearsalModeTests
     }
 
     [Fact]
+    public async Task RehearsalThatHeldAndWasRecordedEndsInSuccessAndTellsTheSequence()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var result = new RehearsalResult(RehearsalFindings.None, Verified(Seal), Recorded(5));
+
+        var exit = await RehearsalMode.ReportAsync(result, new RehearsalMode.Words(output, error));
+
+        Assert.Equal((ExitCode.Success, string.Empty), (exit, error.ToString()));
+        Assert.Contains("passou, na cadeia com a sequência 5", output.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task RehearsalThatFailedAndWasRecordedEndsInFailureNamesWhatFailedAndStatesTheSeal()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var result = new RehearsalResult(RehearsalFindings.Policy | RehearsalFindings.Seal, Verified(Seal), Recorded(6));
+
+        var exit = await RehearsalMode.ReportAsync(result, new RehearsalMode.Words(output, error));
+
+        Assert.Equal((ExitCode.RehearsalFailed, string.Empty), (exit, output.ToString()));
+        Assert.Contains("falhou (policy.seal), na cadeia com a sequência 6", error.ToString(), StringComparison.Ordinal);
+        Assert.Contains(Verified(Seal).Seal!.Statement, error.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task RehearsalThatHeldButWasNotRecordedEndsInFailureAndAsksToRepeat()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var result = new RehearsalResult(RehearsalFindings.None, Verified(Seal), new CustodyResult { Outcome = CustodyOutcome.ChainBroken, Refusal = "zqx" });
+
+        var exit = await RehearsalMode.ReportAsync(result, new RehearsalMode.Words(output, error));
+
+        Assert.Equal((ExitCode.RehearsalFailed, string.Empty), (exit, output.ToString()));
+        Assert.Contains("tudo valeu, mas a cadeia não aceitou o evento do resultado; repita", error.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ValidSealPassesTheReadingAndStopsAtTheConfigurationWithoutTheCodeOfTheSeal()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        var launch = await RehearsalMode.RunAsync(["rehearse-restore", "--seal", Seal.ToText(), "--Zqx:Unknown=1"], output, error);
+
+        Assert.Equal(ExitCode.ConfigurationRefused, await launch.RunAsync());
+        Assert.Equal(string.Empty, error.ToString());
+    }
+
+    [Fact]
     public async Task DatabaseThatDoesNotAnswerEndsWithTheCodeOfItsOwnAndNeverPrintsTheCredential()
     {
         await using var dataSource = NpgsqlDataSource.Create(Unreachable);
@@ -88,4 +140,15 @@ public sealed class RehearsalModeTests
         Assert.Equal((ExitCode.RehearsalNotRun, string.Empty), (exit, output.ToString()));
         Assert.DoesNotContain("ZQX-never-printed", error.ToString(), StringComparison.Ordinal);
     }
+
+    private static ChainVerification Verified(ChainSeal seal) => new()
+    {
+        Scope = VerificationScope.Installation,
+        EventsRead = 3,
+        VerifiedAt = new DateTimeOffset(2026, 11, 3, 12, 0, 0, TimeSpan.Zero),
+        Recorded = Recorded(4),
+        Seal = new SealComparison { Sealed = seal, Outcome = SealOutcome.Holds },
+    };
+
+    private static CustodyResult Recorded(long sequence) => new() { Outcome = CustodyOutcome.Appended, Sequence = sequence };
 }

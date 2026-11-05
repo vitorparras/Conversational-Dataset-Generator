@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
 using Core.Persistence.Custody.Verification;
@@ -35,7 +36,7 @@ public sealed class RestoreRehearsal
             .Where(finding => finding != RehearsalFindings.None && findings.HasFlag(finding))
             .Select(NameOf)
             .ToList();
-        return names.Count == 0 ? "held" : string.Join('.', names);
+        return names.Count == 0 ? NameOf(RehearsalFindings.None) : string.Join('.', names);
     }
 
     private static string NameOf(RehearsalFindings finding) => finding switch
@@ -48,7 +49,7 @@ public sealed class RestoreRehearsal
         RehearsalFindings.Columns => "columns",
         RehearsalFindings.Chain => "chain",
         RehearsalFindings.Seal => "seal",
-        _ => "seal",
+        _ => throw new UnreachableException(),
     };
 
     /// <summary>Rehearses and records the result; the result is recorded only if the links hold, because the chain takes no event but a verification while they do not.</summary>

@@ -4,10 +4,9 @@
 
 Restaurar é devolver o acervo ao estado da cópia **sem alterar a ordem da sequência de eventos**. A
 ordem não é detalhe de armazenamento: cada evento carrega o resumo do anterior, e verificar é
-recalcular a sequência a partir dessas ligações. Restauração que reinsira eventos em outra ordem
-produz cadeia que não fecha — e, embora a
-[verificação da custódia](../privacidade/005-verificacao-da-custodia.md) saiba separar dano
-acidental de adulteração, a separação se apoia em existir janela operacional que explique o dano.
+recalcular a sequência a partir dessas ligações. Reinserir eventos em outra ordem produz cadeia que
+não fecha — e, embora a [verificação da custódia](../privacidade/005-verificacao-da-custodia.md)
+saiba separar dano acidental de adulteração, isso depende de janela operacional que explique o dano.
 Restauração malfeita e sem registro é dano sem explicação.
 
 ## Antes de restaurar
@@ -53,8 +52,9 @@ pedindo acesso que a política nega.
 
 Ela não desaparece depois de dar certo: um evento novo declara o que foi restaurado, de qual cópia,
 o veredito e qual era o topo antes e depois. Janela aprovada não é restauração aprovada: vale o
-`restored`. Restauração silenciosa deixa um salto que a próxima verificação trata como incidente.
+`restored`. Restauração silenciosa deixa um salto que a próxima verificação trata como incidente. Se
+a cadeia não fechar, pare aqui e siga [009](009-incidente-cadeia-quebrada.md).
 
-O `rehearse-restore --seal <selo>` confere os elos, o selo anotado fora ([005](005-backup.md)) e as
-garantias do catálogo, sem abrir texto: a amostra cifrada fica de fora. Grava restore_rehearsed:
-`held` ou o que não valeu. Saídas: 0; 33, falhou ou a cadeia não aceitou o evento ([009](009-incidente-cadeia-quebrada.md)); 34, selo ilegível; 35, sem banco.
+O `rehearse-restore --seal '<selo>'` confere os elos, o selo anotado fora ([005](005-backup.md)) e
+as garantias do catálogo, sem abrir texto, e grava restore_rehearsed. Saídas: 0; 33, falhou ou a
+cadeia não aceitou o evento; 34, selo ilegível; 35, sem banco; 78, configuração recusada.

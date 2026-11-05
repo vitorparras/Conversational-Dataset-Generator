@@ -86,10 +86,13 @@ public sealed class ProtectedContent
             : throw new EnvelopeRefusedException("The label in the header is not a derivation label.");
 
     private DerivationLabel NewestLabel(LabelPurpose purpose, int domainId) =>
+        NewestOf(loaded, text => registered.Contains(text) && !revoked.Contains(text), purpose, domainId);
+
+    internal static DerivationLabel NewestOf(DerivationLabels loaded, Func<string, bool> usable, LabelPurpose purpose, int domainId) =>
         loaded.All
             .Select(text => DerivationLabel.TryParse(text, out var label) ? label : null)
             .OfType<DerivationLabel>()
-            .Where(label => label.Purpose == purpose && label.DomainId == domainId && registered.Contains(label.Text) && !revoked.Contains(label.Text))
+            .Where(label => label.Purpose == purpose && label.DomainId == domainId && usable(label.Text))
             .MaxBy(label => label.Version)
         ?? throw new InvalidOperationException($"No derivation label is loaded for the purpose {purpose} and the domain {domainId}.");
 }

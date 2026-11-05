@@ -18,6 +18,8 @@ public sealed class ContentChangeNeedsEventTests
     private const string EmptyMap = "UPDATE content.reversal_map SET emptied_at = now(), entries = NULL, dek_epoch = NULL, dek_wrapped = NULL WHERE item_id = @id RETURNING id";
     private const string RewrapItem = "UPDATE content.item_text SET dek_epoch = 2, dek_wrapped = '\\x02' WHERE id = @id RETURNING id";
     private const string RewrapMap = "UPDATE content.reversal_map SET dek_epoch = 2, dek_wrapped = '\\x02' WHERE item_id = @id RETURNING id";
+    private const string SameEpochItem = "UPDATE content.item_text SET dek_wrapped = '\\x02' WHERE id = @id RETURNING id";
+    private const string SameEpochMap = "UPDATE content.reversal_map SET dek_wrapped = '\\x02' WHERE item_id = @id RETURNING id";
     private const string Intact = "SELECT count(*) FROM content.item_text WHERE id = @id AND emptied_at IS NULL AND raw_text IS NOT NULL AND dek_epoch = 1";
 
     [DatabaseTheory]
@@ -84,6 +86,46 @@ public sealed class ContentChangeNeedsEventTests
         var onMap = await world.InDomainAfterAsync(ContentWorld.RotatedEvent, 1, RewrapMap, ("id", item), ("epoch", 2));
 
         Assert.Equal((item, true), (onItem, onMap is not null));
+    }
+
+    [DatabaseFact]
+    public async Task WrappedKeyChangedWithTheEventOfTheRewrapOfItsDomainAndTheSameEpochIsChanged()
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        var item = await ItemWithMapAsync(world);
+
+        var onItem = await world.InDomainAfterAsync(ContentWorld.RewrappedEvent, 1, SameEpochItem, ("id", item), ("domain", 1));
+        var onMap = await world.InDomainAfterAsync(ContentWorld.RewrappedEvent, 1, SameEpochMap, ("id", item), ("domain", 1));
+
+        Assert.Equal((item, true), (onItem, onMap is not null));
+    }
+
+    [DatabaseTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task EventOfTheRewrapOfAnotherDomainDoesNotReleaseTheChange(bool onMap)
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        var item = await ItemWithMapAsync(world);
+
+        var refused = await Assert.ThrowsAsync<PostgresException>(
+            () => world.InDomainAfterAsync(ContentWorld.RewrappedEvent, 1, onMap ? SameEpochMap : SameEpochItem, ("id", item), ("domain", 2)));
+
+        Assert.Equal(Unbound, refused.SqlState);
+    }
+
+    [DatabaseTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task EventOfTheRewrapDoesNotReleaseAChangeOfTheEpoch(bool onMap)
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        var item = await ItemWithMapAsync(world);
+
+        var refused = await Assert.ThrowsAsync<PostgresException>(
+            () => world.InDomainAfterAsync(ContentWorld.RewrappedEvent, 1, onMap ? RewrapMap : RewrapItem, ("id", item), ("domain", 1)));
+
+        Assert.Equal(Unbound, refused.SqlState);
     }
 
     [DatabaseFact]

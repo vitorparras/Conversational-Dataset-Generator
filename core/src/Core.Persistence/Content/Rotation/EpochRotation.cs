@@ -129,7 +129,7 @@ public sealed class EpochRotation
         return domains;
     }
 
-    private static async Task<List<(long Id, int Epoch, byte[] Wrapped)>> CollectOlderAsync(DbDataReader reader, CancellationToken cancellationToken)
+    internal static async Task<List<(long Id, int Epoch, byte[] Wrapped)>> CollectOlderAsync(DbDataReader reader, CancellationToken cancellationToken)
     {
         var older = new List<(long Id, int Epoch, byte[] Wrapped)>();
         while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))

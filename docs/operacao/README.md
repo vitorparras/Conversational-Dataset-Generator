@@ -42,5 +42,6 @@ e por quem ela roda.
 | [028](028-criar-primeira-pessoa.md) | Criar a primeira pessoa: senha pela entrada padrão, credencial da aplicação |
 | [029](029-pessoas-pela-rota.md) | Pessoas seguintes: criar, desativar e repor a senha pelas rotas com sessão |
 | [030](030-selo-manual.md) | O selo na instalação com selo manual: emitir, guardar fora da base e confirmar |
+| [031](031-recifrar-dominio.md) | Recifrar um domínio: reembrulhar as chaves sob a geração nova, em lotes |
 
 Ver [regras de escrita](../regras-de-escrita.md).

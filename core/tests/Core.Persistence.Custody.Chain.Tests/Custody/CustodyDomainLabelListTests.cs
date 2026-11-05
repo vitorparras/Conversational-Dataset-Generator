@@ -4,8 +4,8 @@ using Npgsql;
 namespace Core.Persistence.Tests.Custody;
 
 /// <summary>
-/// The migrations 0021 and 0030 (issue 56, CA-6): the server takes the steps domain_label_rotated and domain_label_revoked about a domain, written by the system for an administrative act and
-/// carrying the generation or the label as the reference, keeps every step the migrations before them listed, and refuses every event of the new steps with another shape.
+/// The migrations 0021, 0030 and 0031 (issue 56, CA-6): the server takes the steps domain_label_rotated, domain_label_revoked and domain_rewrapped about a domain, written by the system for
+/// an administrative act and carrying the generation or the label as the reference, keeps every step the migrations before them listed, and refuses every event of the new steps with another shape.
 /// </summary>
 [Trait("Category", "Database")]
 public sealed class CustodyDomainLabelListTests : IClassFixture<CustodyDatabase>
@@ -20,14 +20,15 @@ public sealed class CustodyDomainLabelListTests : IClassFixture<CustodyDatabase>
     }
 
     [DatabaseFact]
-    public async Task Ca6TheTwoStepsAreTakenFromTheOwnerWithTheShapeOfTheDomain()
+    public async Task Ca6TheNewStepsAreTakenFromTheOwnerWithTheShapeOfTheDomain()
     {
         await database.RunAsOwnerAsync(Row("NULL, true, 'domain', 16001, 'domain_label_rotated', 'administrative_act', NULL, 'v2'"));
         await database.RunAsOwnerAsync(Row("NULL, true, 'domain', 16002, 'domain_label_revoked', 'administrative_act', NULL, 'texto-bruto/16002/v1'"));
         await database.RunAsOwnerAsync(Row("NULL, true, 'domain', 16003, 'domain_label_revoked', 'administrative_act', NULL, 'mapa-reversao/16003/v12'"));
+        await database.RunAsOwnerAsync(Row("NULL, true, 'domain', 16020, 'domain_rewrapped', 'administrative_act', NULL, NULL"));
 
-        const string Count = "SELECT count(*) FROM public.custody_event WHERE step IN ('domain_label_rotated', 'domain_label_revoked') AND item_id BETWEEN 16001 AND 16003";
-        Assert.Equal(3L, await database.CountAsOwnerAsync(Count));
+        const string Count = "SELECT count(*) FROM public.custody_event WHERE step IN ('domain_label_rotated', 'domain_label_revoked', 'domain_rewrapped') AND item_id IN (16001, 16002, 16003, 16020)";
+        Assert.Equal(4L, await database.CountAsOwnerAsync(Count));
     }
 
     [DatabaseTheory]
@@ -47,6 +48,7 @@ public sealed class CustodyDomainLabelListTests : IClassFixture<CustodyDatabase>
     [InlineData("seal_recorded")]
     [InlineData("domain_label_rotated")]
     [InlineData("domain_label_revoked")]
+    [InlineData("domain_rewrapped")]
     public async Task Ca6EveryStepTheMigrationsBeforeListedIsStillListed(string step)
     {
         var definition = await database.TextAsOwnerAsync("SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'custody_event_step_listed'");
@@ -67,6 +69,9 @@ public sealed class CustodyDomainLabelListTests : IClassFixture<CustodyDatabase>
     [InlineData("NULL, true, 'domain', 16013, 'domain_label_revoked', 'administrative_act', NULL, 'texto-bruto/01/v1'")]
     [InlineData("NULL, true, 'domain', 16014, 'domain_label_revoked', 'administrative_act', NULL, 'outra-coisa/1/v1'")]
     [InlineData("NULL, true, 'domain', 16015, 'domain_label_revoked', 'administrative_act', NULL, 'texto-bruto/16016/v1'")]
+    [InlineData("NULL, true, 'item_text', 16017, 'domain_rewrapped', 'administrative_act', NULL, NULL")]
+    [InlineData("NULL, true, 'domain', 16018, 'domain_rewrapped', 'administrative_act', NULL, 'v2'")]
+    [InlineData("NULL, true, 'domain', 16019, 'domain_rewrapped', 'content_read', NULL, NULL")]
     [InlineData("NULL, true, 'domain', 16015, 'domain_created', 'administrative_act', NULL, 'v1'")]
     public async Task Ca6TheNewStepsHaveTheShapeOfTheDomainWithTheReferenceOfTheirOwnAndNoOther(string values)
     {

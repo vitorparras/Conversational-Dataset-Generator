@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using Core.Persistence.Content.Sealing;
+using Core.Persistence.Content.Writing;
 using Core.Persistence.Domains;
 using Core.Persistence.Migrations;
 using Core.Persistence.Tests.Fixtures;
@@ -136,6 +138,34 @@ public sealed class DomainLabelProcessTests
         Assert.Equal((39, true), (exit, words.Contains("inteiro positivo", StringComparison.Ordinal)));
     }
 
+    [DatabaseTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task TheRewrapOrTheStatusOfADomainThatDoesNotExistExitsWithTheRefusalCodeNamesItAndWritesNothing(bool status)
+    {
+        await using var database = await WithTwoDomainsAsync();
+        using var files = new CustodyFiles();
+        var chainBefore = await ScalarAsync(database, "SELECT count(*) FROM public.custody_event");
+
+        var (exit, words) = await RunAsync(database, Arguments(files, "rewrap-domain", "--domain=99", Everything, status ? "--status" : null));
+
+        Assert.Equal((39, true, chainBefore), (exit, words.Contains("99", StringComparison.Ordinal), await ScalarAsync(database, "SELECT count(*) FROM public.custody_event")));
+    }
+
+    [DatabaseFact]
+    public async Task TheRewrapWithTheNewLabelRegisteredAndMissingFromTheFileExitsWithTheRefusalCodeNamesItAndWritesNothing()
+    {
+        await using var database = await WithTwoDomainsAsync();
+        using var files = new CustodyFiles();
+        await AddRowUnderTheFirstGenerationAsync(database);
+        _ = await RunAsync(database, Arguments(files, "rotate-domain-label", "--domain=1", Everything));
+        var chainBefore = await ScalarAsync(database, "SELECT count(*) FROM public.custody_event");
+
+        var (exit, words) = await RunAsync(database, Arguments(files, "rewrap-domain", "--domain=1", [.. Everything.Where(label => label != "texto-bruto/1/v2")]));
+
+        Assert.Equal((39, true, chainBefore), (exit, words.Contains("texto-bruto/1/v2", StringComparison.Ordinal), await ScalarAsync(database, "SELECT count(*) FROM public.custody_event")));
+    }
+
     [DatabaseFact]
     public async Task TheRewrapWithoutItsOptionRefusesWithTheConfigurationCode()
     {
@@ -169,6 +199,17 @@ public sealed class DomainLabelProcessTests
         _ = await creation.CreateAsync("zqx-domain-a", both, TestContext.Current.CancellationToken);
         _ = await creation.CreateAsync("zqx-domain-b", both, TestContext.Current.CancellationToken);
         return database;
+    }
+
+    private static async Task AddRowUnderTheFirstGenerationAsync(ScratchDatabase database)
+    {
+        var first = new[] { "texto-bruto/1/v1", "mapa-reversao/1/v1" };
+        using var reading = MasterKeyReading.FromBytes(
+            CustodyFiles.SyntheticKey(), DerivationLabels.Of(first), CustodyEpochs.Of(new Dictionary<int, byte[]> { [1] = CustodyFiles.SyntheticEpoch(1) }), "test");
+        var keys = new ItemKeys(new KeyDerivation(reading.Key!, reading.Labels), reading.Epochs);
+        await using var app = NpgsqlDataSource.Create(database.AppConnectionString);
+        var writer = new ContentWriter(app, new ProtectedContent(reading.Labels, keys, new HashSet<string>(first, StringComparer.Ordinal)));
+        _ = await writer.AddItemTextAsync(1, new NewItemText("zqx-texto"), TestContext.Current.CancellationToken);
     }
 
     private static string[] Arguments(CustodyFiles files, string mode, string? option, string[] labels, string? flag = null)

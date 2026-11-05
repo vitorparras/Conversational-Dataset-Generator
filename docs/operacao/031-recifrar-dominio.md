@@ -9,11 +9,13 @@ revogada, sem tocar no conteúdo cifrado, na época nem em outros domínios.
 `./Core.Host rewrap-domain --domain <id>` roda uma vez, com a credencial de dono
 ([010](010-credencial-de-dono-do-banco.md)), a configuração de `migrate`
 ([016](016-migracao-do-esquema.md)) e os caminhos `MasterKey:` de
-[024](024-arquivos-de-custodia-da-chave.md). Os lotes são de 500 linhas, cada um numa transação
+[024](024-arquivos-de-custodia-da-chave.md); o arquivo de rótulos tem de trazer a geração nova, que
+`rotate-domain-label` registrou. Os lotes são de 500 linhas, cada um numa transação
 com seu evento `DomainRewrapped` na cadeia
 ([decisão 0050](../decisoes/0050-banco-amarra-a-mudanca-do-conteudo-a-um-evento.md)). Se parar,
 os lotes gravados ficam; repita, e ele só toca as linhas ainda atrás. Com `--status` só lê e diz
 quantas chaves estão na geração mais nova e quantas faltam.
 
-Saída: **0** feito; **39** recusa (chave que não abre, rótulo novo fora do arquivo, cadeia que não
-aceitou o evento); **40** banco sem resposta; **78** faltou `--domain` ou um caminho.
+Saída: **0** feito; **39** recusa (domínio inexistente, chave que não abre, rótulo novo fora do
+arquivo, cadeia que não aceitou o evento); **40** banco sem resposta; **78** faltou `--domain` ou
+um caminho.

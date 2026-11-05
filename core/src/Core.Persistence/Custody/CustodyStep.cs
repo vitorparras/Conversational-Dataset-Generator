@@ -80,4 +80,7 @@ public enum CustodyStep
 
     /// <summary>A copy of the data was put back in a new database; the reason says whether the chain and the guarantees held, and the reference says which copy and the tip before and after.</summary>
     Restored,
+
+    /// <summary>The result of the rehearsal of a restore: the item is the chain, its id is the mask of what did not hold (zero when everything held) and the reference names it.</summary>
+    RestoreRehearsed,
 }

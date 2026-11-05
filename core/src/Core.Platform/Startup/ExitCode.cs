@@ -87,6 +87,15 @@ public enum ExitCode
     /// <summary>The making of the copy of the data could not talk to the database or write the folder; what was written is to be removed and the copy repeated.</summary>
     CopyFailed = 32,
 
+    /// <summary>The rehearsal of the restore concluded that something did not hold, or could not record its result: the restored database is not to be trusted.</summary>
+    RehearsalFailed = 33,
+
+    /// <summary>The rehearsal of the restore was refused before it began: the seal noted outside the copy was not given once or is not a seal this version reads.</summary>
+    RehearsalRefused = 34,
+
+    /// <summary>The database did not answer the rehearsal of the restore, and nothing was concluded.</summary>
+    RehearsalNotRun = 35,
+
     /// <summary>The load of a copy in a new database did not restore it: the copy, the database or a check of the result refused.</summary>
     RestoreRefused = 36,
 }

@@ -71,7 +71,8 @@ public sealed class DomainLabelProcessTests
     {
         await using var database = await WithTwoDomainsAsync();
         using var files = new CustodyFiles();
-        _ = await RunAsync(database, Arguments(files, "rotate-domain-label", "--domain=1", Everything));
+        var (rotation, _) = await RunAsync(database, Arguments(files, "rotate-domain-label", "--domain=1", Everything));
+        Assert.Equal(0, rotation);
 
         var (revoked, saidRevoked) = await RunAsync(database, Arguments(files, "revoke-domain-label", "--label=texto-bruto/1/v1", Everything));
         var (inUse, saidInUse) = await RunAsync(database, Arguments(files, "revoke-domain-label", "--label=texto-bruto/1/v2", Everything));
@@ -158,7 +159,8 @@ public sealed class DomainLabelProcessTests
         await using var database = await WithTwoDomainsAsync();
         using var files = new CustodyFiles();
         await AddRowUnderTheFirstGenerationAsync(database);
-        _ = await RunAsync(database, Arguments(files, "rotate-domain-label", "--domain=1", Everything));
+        var (rotation, _) = await RunAsync(database, Arguments(files, "rotate-domain-label", "--domain=1", Everything));
+        Assert.Equal(0, rotation);
         var chainBefore = await ScalarAsync(database, "SELECT count(*) FROM public.custody_event");
 
         var (exit, words) = await RunAsync(database, Arguments(files, "rewrap-domain", "--domain=1", [.. Everything.Where(label => label != "texto-bruto/1/v2")]));

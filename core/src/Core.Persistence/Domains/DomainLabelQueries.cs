@@ -46,7 +46,7 @@ internal static class DomainLabelQueries
         await using (command.ConfigureAwait(false))
         {
             _ = command.Parameters.Add(new NpgsqlParameter("label", NpgsqlDbType.Text) { Value = label.Text });
-            _ = command.Parameters.Add(new NpgsqlParameter("prefix", NpgsqlDbType.Text) { Value = label.Text.Remove(label.Text.LastIndexOf('/')) + "/v%" });
+            _ = command.Parameters.Add(new NpgsqlParameter("prefix", NpgsqlDbType.Text) { Value = label.Text[..label.Text.LastIndexOf('/')] + "/v%" });
             _ = command.Parameters.Add(new NpgsqlParameter("version", NpgsqlDbType.Integer) { Value = label.Version });
             var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             await using (reader.ConfigureAwait(false))

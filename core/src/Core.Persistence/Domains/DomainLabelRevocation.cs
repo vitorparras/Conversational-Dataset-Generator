@@ -35,9 +35,14 @@ public sealed class DomainLabelRevocation
     /// <summary>Revokes the label if it is registered, not yet revoked and not the newest of its purpose left; a refusal writes nothing and says why.</summary>
     /// <param name="label">The text of the label.</param>
     /// <param name="cancellationToken">Cancels the operation.</param>
-    public async Task<DomainLabelResult> RevokeAsync(string label, CancellationToken cancellationToken)
+    public Task<DomainLabelResult> RevokeAsync(string label, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(label);
+        return RevokeCheckedAsync(label, cancellationToken);
+    }
+
+    private async Task<DomainLabelResult> RevokeCheckedAsync(string label, CancellationToken cancellationToken)
+    {
         if (!DerivationLabel.TryParse(label, out var parsed))
         {
             return new DomainLabelResult { Outcome = DomainLabelOutcome.LabelInvalid };

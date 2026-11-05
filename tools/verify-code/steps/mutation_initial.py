@@ -33,11 +33,14 @@ def lines_of(output: Path, console: str) -> list[str]:
 
 
 def about(names: tuple[str, ...], lines: list[str]) -> list[str]:
-    """Each line that names a test or, with none named, one that tells a failure, with the lines
-    that follow it, which carry the message; a line is shown once."""
+    """Each line that names a test and tells a failure, with the lines that follow it, which carry
+    the message; the log also names the test when it discovers it, so the lines that only name it
+    come next, and with no test named, the lines that tell a failure. A line is shown once."""
     methods = tuple(name.rpartition(".")[2] for name in names)
-    wanted = [i for i, line in enumerate(lines) if any(m in line for m in methods)]
-    starts = wanted or [i for i, line in enumerate(lines) if FAILURE.search(line)]
+    named = [i for i, line in enumerate(lines) if any(m in line for m in methods)]
+    failing = [i for i in named if FAILURE.search(lines[i])]
+    anyfailure = [i for i, line in enumerate(lines) if FAILURE.search(line)]
+    starts = failing or named or anyfailure
     chosen = (lines[j].rstrip() for i in starts for j in range(i, min(i + AFTER, len(lines))))
     return [line for line in dict.fromkeys(chosen) if line.strip()]
 

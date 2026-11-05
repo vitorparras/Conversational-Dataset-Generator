@@ -18,10 +18,7 @@ from .mutation_samples import meta
 from .test_mutation import AUTH_META, KILLED_AUTH, KILLED_LOGGING, LOGGING_META
 
 TEST = "SyntheticStorageTests.CaTheTextIsInNeitherPlace"
-CONSOLE = (
-    "[Error] Initial testrun has more than 50% failing tests. Failing tests:\n"
-    f"  {TEST}\n"
-)
+CONSOLE = f"[Error] Initial testrun has more than 50% failing tests. Failing tests:\n  {TEST}\n"
 LOG = (
     "2031-03-04 05:06:07 [Debug] Initial test run started\n"
     f"2031-03-04 05:06:08 [Debug] Test {TEST} failed\n"
@@ -66,11 +63,12 @@ class InitialRunTests(unittest.TestCase):
         self.assertIn("  |   Expected: not zqx-secret", lines)
 
     def test_a_line_that_the_console_and_the_log_both_hold_is_shown_once(self) -> None:
-        support.write(self.output, LOG_FILE, CONSOLE + LOG)
+        told = f"Test {TEST} failed\n"
+        support.write(self.output, LOG_FILE, told + LOG)
 
-        lines = mutation_initial.explain(self.output, CONSOLE)
+        lines = mutation_initial.explain(self.output, CONSOLE + told)
 
-        self.assertEqual(lines.count(f"  |   {TEST}"), 1)
+        self.assertEqual(lines.count(f"  | {told.strip()}"), 1)
 
     def test_a_run_that_cites_no_test_shows_the_lines_that_tell_a_failure(self) -> None:
         support.write(self.output, LOG_FILE, LOG)
@@ -88,6 +86,22 @@ class InitialRunTests(unittest.TestCase):
         lines = mutation_initial.explain(self.output, CONSOLE)
 
         self.assertEqual(len(lines), mutation_initial.SHOWN + 1)
+
+    def test_the_lines_of_the_discovery_do_not_fill_the_cut_before_the_failure(self) -> None:
+        discovery = "".join(f"Discovered {TEST} {n}\n" for n in range(mutation_initial.SHOWN * 2))
+        support.write(self.output, LOG_FILE, discovery + LOG)
+
+        lines = mutation_initial.explain(self.output, CONSOLE)
+
+        self.assertIn("  |   Expected: not zqx-secret", lines)
+        self.assertFalse(any("Discovered" in line for line in lines))
+
+    def test_a_test_named_but_never_told_as_failed_still_shows_its_lines(self) -> None:
+        support.write(self.output, LOG_FILE, f"Discovered {TEST}\nnext line\n")
+
+        lines = mutation_initial.explain(self.output, CONSOLE)
+
+        self.assertIn(f"  | Discovered {TEST}", lines)
 
     def test_the_tests_are_named_once_each_in_the_order_they_come(self) -> None:
         text = "A.BTests.One and C.DTests.Two then BTests.One again"
@@ -110,10 +124,11 @@ class InitialRunStepTests(MutationFixture):
         self.assertIn(f"{module}:   |   {message}", result.details)
         self.assertTrue(any(TEST in line for line in result.details))
 
-    def test_the_configuration_asks_stryker_to_write_its_log(self) -> None:
+    def test_stryker_is_asked_to_write_its_log_by_the_command_line_and_not_the_file(self) -> None:
         runner = InitialFailureRunner()
 
         self.run_step(runner, "Core.Platform.Logging")
 
         config = self.root / ".verify-code/mutation/core/Core.Platform.Logging/stryker-config.json"
-        self.assertIn('"log-to-file": true', config.read_text(encoding="utf-8"))
+        self.assertEqual(len(runner.called("--log-to-file")), 1)
+        self.assertNotIn("log-to-file", config.read_text(encoding="utf-8"))

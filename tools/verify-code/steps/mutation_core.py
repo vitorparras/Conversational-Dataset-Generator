@@ -30,7 +30,7 @@ RESULTS = "mutation/core"
 CONFIG = "stryker-config.json"
 REPORT = "reports/mutation-report.json"
 RESTORE = ("dotnet", "tool", "restore")
-STRYKER = ("dotnet", "stryker", "--skip-version-check")
+STRYKER = ("dotnet", "stryker", "--skip-version-check", "--log-to-file")
 CONCURRENCY = 1
 TOKEN_BYTES = 8
 
@@ -167,7 +167,6 @@ def configuration(core: CoreTarget, tests: tuple[Path, ...]) -> str:
         "test-runner": "mtp",
         "concurrency": CONCURRENCY,
         "reporters": ["json"],
-        "log-to-file": True,
         "thresholds": {"high": 100, "low": 0, "break": 0},
     }
     return json.dumps({"stryker-config": options}, indent=2) + "\n"

@@ -36,6 +36,13 @@ internal static class CustodyStatements
         LIMIT 1
         """;
 
+    internal const string ReadOpenOwnerWindow = """
+        SELECT o.sequence, o.occurred_at, o.reference, l.reason = 'verification_failed' AS closing_failed
+        FROM (SELECT step, reason FROM public.custody_event WHERE step IN ('owner_window_opened', 'owner_window_closed') ORDER BY sequence DESC LIMIT 1) l
+        CROSS JOIN LATERAL (SELECT sequence, occurred_at, reference FROM public.custody_event WHERE step = 'owner_window_opened' ORDER BY sequence DESC LIMIT 1) o
+        WHERE l.step = 'owner_window_opened' OR l.reason = 'verification_failed'
+        """;
+
     /// <summary>The moment of the last event that records a seal.</summary>
     internal const string ReadLastSeal = """
         SELECT occurred_at

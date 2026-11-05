@@ -53,7 +53,8 @@ public sealed class SealVerificationHostTests
         var seal = await SealOfTheChainAsync(host, cancellationToken);
 
         var first = await VerifyAsync(host, seal, cancellationToken);
-        var second = await VerifyAsync(host, seal, cancellationToken);
+        var other = await host.EnterAsync(host.Name, host.Password, cancellationToken) ?? throw new InvalidOperationException("The second entry of the same person was refused.");
+        var second = await VerifyAsync(host, seal, other, cancellationToken);
 
         Assert.All([first, second], shown => Assert.Equal((true, true, "Holds"), Standing(shown)));
         Assert.Equal(0L, await host.NumberAsSuperuserAsync("SELECT count(*) FROM public.custody_event WHERE reason = 'verification_failed'", cancellationToken));
@@ -230,9 +231,12 @@ public sealed class SealVerificationHostTests
         return ChainSeal.Of(DateTimeOffset.UtcNow, last, Convert.FromHexString(digest)).ToText();
     }
 
-    private static async Task<JsonElement> VerifyAsync(AuthenticatedHost host, string seal, CancellationToken cancellationToken)
+    private static Task<JsonElement> VerifyAsync(AuthenticatedHost host, string seal, CancellationToken cancellationToken) => VerifyAsync(host, seal, host.Identifier, cancellationToken);
+
+    // The limit counts per session: a second verification within the window has to come from another session.
+    private static async Task<JsonElement> VerifyAsync(AuthenticatedHost host, string seal, string session, CancellationToken cancellationToken)
     {
-        using var response = await host.PostAsync(Route, JsonSerializer.Serialize(new { seal }), cancellationToken);
+        using var response = await host.SendAsAsync(HttpMethod.Post, Route, JsonSerializer.Serialize(new { seal }), session, cancellationToken);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
         return body.RootElement.Clone();

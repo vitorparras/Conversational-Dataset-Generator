@@ -31,8 +31,9 @@ ALTER TABLE public.derivation_label_revocation ENABLE ALWAYS TRIGGER derivation_
 ALTER TABLE public.derivation_label_revocation ENABLE ALWAYS TRIGGER derivation_label_revocation_never_emptied;
 
 -- The event is about a domain, by its number, as the creation and the rotation are, and is the system's for an administrative act: the owner credential that revokes is no person of the registry.
--- Its reference is the label revoked, which names the purpose, the domain and the generation and nothing else. Only the checks change, from the last ones the earlier steps left (the step list from
--- the 0025, the shape of the domain from the 0021, the shape of a reference from the 0023): every step they list and every clause they fix stays, and the new step comes in beside them.
+-- Its reference is the label revoked, which names the purpose, the domain and the generation and nothing else. Only the checks change, from the last ones the earlier steps left (the step list and the
+-- shape of a reference from the 0029, the shape of the domain from the 0021): every step they list and every clause they fix stays, and the new step comes in beside them. The shape of
+-- the verification is the 0029's and stays: the new step is about a domain, not the chain.
 ALTER TABLE public.custody_event
     DROP CONSTRAINT custody_event_step_listed,
     DROP CONSTRAINT custody_event_domain_shape,
@@ -42,7 +43,7 @@ ALTER TABLE public.custody_event
          'raw_text_read', 'sanitized_text_read', 'reversal_entries_read', 'verify_chain', 'item_emptied', 'item_emptying_refused', 'epoch_rotated',
          'domain_created', 'seal_recorded', 'domain_label_rotated',
          'sign_in_accepted', 'sign_in_refused', 'credential_recomputed', 'key_loss_declared', 'recovery_tested', 'verify_guarantees',
-         'domain_label_revoked')),
+         'owner_window_opened', 'owner_window_closed', 'restored', 'restore_rehearsed', 'domain_label_revoked')),
     ADD CONSTRAINT custody_event_domain_shape CHECK (
         (step IN ('domain_created', 'domain_label_rotated', 'domain_label_revoked')) = (item_kind = 'domain')
         AND (step NOT IN ('domain_created', 'domain_label_rotated', 'domain_label_revoked') OR (actor_system AND reason = 'administrative_act' AND corrects IS NULL))
@@ -51,8 +52,12 @@ ALTER TABLE public.custody_event
         AND (step <> 'domain_label_revoked' OR coalesce(reference ~ '^(texto-bruto|mapa-reversao)/[1-9][0-9]*/v[1-9][0-9]*$', false))
         AND (step <> 'domain_label_revoked' OR split_part(reference, '/', 2) = item_id::text)),
     ADD CONSTRAINT custody_event_emptying_shape CHECK (
-        (reference IS NOT NULL) = (step IN ('item_emptied', 'item_emptying_refused', 'domain_label_rotated', 'key_loss_declared', 'domain_label_revoked'))
-        AND (reference IS NULL OR reference ~ '^[A-Za-z0-9._/-]{1,64}$')
+        (reference IS NOT NULL)
+            = (step IN ('item_emptied', 'item_emptying_refused', 'domain_label_rotated', 'key_loss_declared', 'owner_window_opened', 'owner_window_closed', 'restored', 'restore_rehearsed',
+                        'domain_label_revoked'))
+        AND (reference IS NULL OR step IN ('owner_window_opened', 'owner_window_closed', 'restored') OR reference ~ '^[A-Za-z0-9._/-]{1,64}$')
+        AND (step NOT IN ('owner_window_opened', 'owner_window_closed', 'restored') OR reference ~ '^[a-z0-9=;]{1,160}$')
+        AND (step <> 'restore_rehearsed' OR reference ~ '^[a-z]+(\.[a-z]+)*$')
         AND (step NOT IN ('item_emptied', 'item_emptying_refused') OR item_kind = 'item_text')
         AND (step = 'item_emptied') = (reason IN ('removal_requested_by_subject', 'contract_requirement'))
         AND (step = 'item_emptying_refused') = (reason IN ('author_without_function', 'item_already_emptied'))

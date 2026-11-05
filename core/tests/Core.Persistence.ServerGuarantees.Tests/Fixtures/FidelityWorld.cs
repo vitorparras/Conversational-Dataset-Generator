@@ -34,6 +34,9 @@ internal sealed class FidelityWorld : IAsyncDisposable
         Registry = new PersonRegistry(dataSource);
     }
 
+    /// <summary>The connection string of the owner of the database, which the copy of the data is read with.</summary>
+    public string OwnerConnectionString => database.OwnerConnectionString;
+
     /// <summary>The data source of the application's role, which the comparison of the server's log with the chain connects through.</summary>
     public NpgsqlDataSource DataSource { get; }
 
@@ -43,14 +46,19 @@ internal sealed class FidelityWorld : IAsyncDisposable
 
     public PersonRegistry Registry { get; }
 
-    public static async Task<FidelityWorld> CreateAsync()
+    /// <param name="seeded">Whether the two domains and the two people are put in; a database that never held anything is the one a restore loads into.</param>
+    public static async Task<FidelityWorld> CreateAsync(bool seeded = true)
     {
         var database = await ScratchDatabase.CreateAsync();
         _ = await database.MigrateAsync(EmbeddedMigrations.Load());
-        await database.RunAsOwnerAsync(
-            "INSERT INTO public.domain (name) VALUES ('zqx-domain-a'), ('zqx-domain-b')",
-            "INSERT INTO public.person (name, function_name) VALUES ('zqx-active', 'Anotação'), ('zqx-gone', 'Anotação')",
-            "UPDATE public.person SET active = false WHERE name = 'zqx-gone'");
+        if (seeded)
+        {
+            await database.RunAsOwnerAsync(
+                "INSERT INTO public.domain (name) VALUES ('zqx-domain-a'), ('zqx-domain-b')",
+                "INSERT INTO public.person (name, function_name) VALUES ('zqx-active', 'Anotação'), ('zqx-gone', 'Anotação')",
+                "UPDATE public.person SET active = false WHERE name = 'zqx-gone'");
+        }
+
         var custody = SyntheticCustody.Holding(Labels);
         return new FidelityWorld(database, NpgsqlDataSource.Create(database.AppConnectionString), custody);
     }
@@ -62,6 +70,9 @@ internal sealed class FidelityWorld : IAsyncDisposable
     public GuaranteeVerifier VerifierOver(IMasterKeySource source) =>
         new(DataSource, source.ReadAsync, reading => new ProtectedContentReader(
             DataSource, new ProtectedContent(reading.Labels, new ItemKeys(new KeyDerivation(reading.Key!, reading.Labels), reading.Epochs), new HashSet<string>()), new CustodyChain(DataSource)));
+
+    /// <summary>Runs the migration over the database with the owner credential, as the migration mode does.</summary>
+    public Task<MigrationResult> MigrateAsync(IReadOnlyList<MigrationStep> steps) => database.MigrateAsync(steps);
 
     /// <summary>Runs the statements as the owner of the database.</summary>
     public Task RunAsOwnerAsync(params string[] statements) => database.RunAsOwnerAsync(statements);

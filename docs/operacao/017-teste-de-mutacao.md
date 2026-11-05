@@ -17,15 +17,15 @@ prefixo mais longo, como na cobertura: área aninhada, crítica ou não, sai da 
 nenhum arquivo conta duas vezes.
 
 Por módulo, no máximo **20 % dos mutantes gerados** podem sobreviver. Teto de tempo: **20 minutos
-por módulo**, cada módulo no seu job da verificação de pull request, sem somar com os outros: a
-matriz do fluxo lê as áreas da 014 e abre um job por módulo crítico, e um job agregado, com o nome
-"Mutação nos módulos críticos", só passa se todos eles passarem. Exceder o teto é achado que
-reprova, nomeando o módulo e o tempo gasto, nunca lentidão tolerada. O tempo de cada módulo sai no
-relatório do passo. Mutação fora do bloqueio só por decisão escrita. A área que não cabe no teto
-declara `- Partes da mutação: N` no seu arquivo: o passo corta cada arquivo C# dela entre os membros
-dos tipos e passa os trechos ao Stryker como `arquivo.cs{a..b}`, repartidos pelo peso (os tokens de
-cada um); a matriz abre um job por parte, com o mesmo teto e limite. O Stryker 5.0.0 só conta o
-mutante cujo nó cabe inteiro na faixa e o corte nunca cai num membro: a soma é a da área.
+por módulo**, cada módulo no job da verificação de pull request, sem somar os outros: a matriz
+do fluxo lê as áreas da 014 e abre um job por módulo crítico, e um job agregado, com o nome
+"Mutação nos módulos críticos", só passa se todos passarem. Exceder o teto é achado que
+reprova, nomeando o módulo e o tempo gasto, nunca lentidão tolerada. O tempo de cada módulo sai
+no relatório do passo. Mutação fora do bloqueio só por decisão escrita. A área que estoura o
+teto declara `- Partes da mutação: N` no arquivo: o passo corta cada arquivo C# entre os membros
+e passa os trechos ao Stryker como `arquivo.cs{a..b}`, repartidos pelo peso (tokens); a matriz abre
+um job por parte, com o mesmo teto, projeto de teste e limite. O Stryker 5.0.0 só conta o mutante
+cujo nó cabe inteiro na faixa e o corte nunca cai num membro: a soma é a da área.
 
 No núcleo, em todos os módulos, a verificação não conta **o mutante `false`→`true` do argumento de
 `ConfigureAwait`**: o host não tem contexto de sincronização, então esse mutante é equivalente por
@@ -47,14 +47,14 @@ reprova, e o sobrevivente que só teste de outro projeto mataria é do módulo, 
   O apoio comum (contêiner, `ScratchDatabase`) mora em `Core.Tests.Database`, que não é de teste.
   O Stryker.NET roda com um worker em todos os módulos: o veredito de um mutante em inicializador
   estático muda com o número de workers, e o resultado tem de ser o mesmo em duas rodadas. Nenhum
-  mutante sai da conta por ser estático.
-  O Stryker.NET reinicia o servidor de teste a cada mutante que estoura o timeout. Quando o projeto
-  de teste referencia o Testcontainers, o passo entrega o token em `CDG_TEST_DATABASE_REUSE` e o
-  projeto mantém uma imagem e um contêiner com o nome dele, que valem além dos reinícios; o passo os
-  remove ao fim, também se o Stryker falha ou passa do teto. Sem o `docker` no PATH, nada se reusa.
-  Se a verificação morrer à força, ficam o contêiner `cdg-test-database-<token>` e a imagem
-  `cdg-test-database:<token>`: ache-os com `docker ps -a --filter name=cdg-test-database-` e remova
-  com `docker rm --force --volumes` e `docker rmi --force` (sem `--force`, o que roda fica).
+  mutante sai da conta por ser estático. O Stryker.NET reinicia o servidor de teste a cada mutante
+  que estoura o timeout. Quando o projeto de teste referencia o Testcontainers, o passo entrega o
+  token em `CDG_TEST_DATABASE_REUSE` e o projeto mantém imagem e contêiner com o nome dele, que
+  valem além dos reinícios; o passo os remove ao fim, também se o Stryker falha ou passa do teto.
+  Sem a variável, cada execução sobe e descarta o seu Postgres; sem o `docker` no PATH, nada se
+  reusa. Se a verificação morrer à força, ficam o contêiner `cdg-test-database-<token>` e a imagem
+  `cdg-test-database:<token>`: ache-os com `docker ps -a --filter name=cdg-test-database-` e
+  remova com `docker rm --force --volumes` e `docker rmi --force` (sem `--force`, o que roda fica).
 - **Serviço:** os arquivos de teste que importam o módulo diretamente (`import language_service.x`,
   `from language_service.x import ...` ou `from language_service import x`), numa rodada do mutmut
   por módulo. Os testes que leem o texto do código-fonte ficam de fora: a mutação o reescreve.

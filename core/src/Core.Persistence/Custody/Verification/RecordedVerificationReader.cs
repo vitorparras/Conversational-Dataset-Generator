@@ -1,4 +1,5 @@
 using System.Data.Common;
+using System.Globalization;
 using Core.Persistence.Custody.Chain;
 using Npgsql;
 using NpgsqlTypes;
@@ -8,6 +9,8 @@ namespace Core.Persistence.Custody.Verification;
 /// <summary>Reads the last verification the chain recorded; what a process remembers of its own verifications is not asked, since only the chain says what was accepted.</summary>
 public sealed class RecordedVerificationReader
 {
+    private const int PairParts = 2;
+
     private readonly NpgsqlDataSource dataSource;
 
     /// <summary>The reading goes through the data source built with the application's credential.</summary>
@@ -29,6 +32,39 @@ public sealed class RecordedVerificationReader
         var last = await LastOfAsync(CustodyStep.VerifyGuarantees, cancellationToken).ConfigureAwait(false);
         return last is null ? null : new RecordedGuarantees(last.RecordedAt, last.Passed, last.EventsRead);
     }
+
+    /// <summary>The window of the owner credential that is open, or null when none is or the last event of the window closed it with every guarantee held.</summary>
+    /// <param name="cancellationToken">Cancels the reading.</param>
+    public async Task<OwnerWindowOpen?> OwnerWindowAsync(CancellationToken cancellationToken)
+    {
+        var command = dataSource.CreateCommand(CustodyStatements.ReadOpenOwnerWindow);
+        await using (command.ConfigureAwait(false))
+        {
+            var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            await using (reader.ConfigureAwait(false))
+            {
+                return await OpenedFromAsync(reader, cancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
+
+    private static async Task<OwnerWindowOpen?> OpenedFromAsync(DbDataReader reader, CancellationToken cancellationToken)
+    {
+        if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            return null;
+        }
+
+        var reference = (string)reader["reference"];
+        var late = reference.Contains(";late=1", StringComparison.Ordinal);
+        var openedAt = await reader.GetFieldValueAsync<DateTimeOffset>(1, cancellationToken).ConfigureAwait(false);
+        return new OwnerWindowOpen(
+            (long)reader["sequence"], openedAt, (int)Number(reference, "from"), (int)Number(reference, "to"), Number(reference, "tip"), late, (bool)reader["closing_failed"]);
+    }
+
+    private static long Number(string reference, string name) =>
+        reference.Split(';').Select(piece => piece.Split('=')).Where(pair => pair.Length == PairParts && pair[0] == name)
+            .Select(pair => long.TryParse(pair[1], NumberStyles.None, CultureInfo.InvariantCulture, out var number) ? number : 0L).FirstOrDefault();
 
     private async Task<RecordedVerification?> LastOfAsync(CustodyStep step, CancellationToken cancellationToken)
     {

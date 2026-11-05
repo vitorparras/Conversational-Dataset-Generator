@@ -60,7 +60,10 @@ internal sealed class ChainVerificationService : BackgroundService
     internal Func<CancellationToken, Task<GuaranteeVerification>>? Guarantees { get; init; }
 
     /// <summary>The verification on demand, which compares the chain with a seal; null when no database is declared.</summary>
-    internal CustodyVerifier? Verifier { get; }
+    internal CustodyVerifier? Verifier { get; init; }
+
+    /// <summary>How often a session may ask for the verification on demand, which reads the whole chain.</summary>
+    internal VerificationLimit Limit { get; } = new();
 
     /// <summary>The reading of when the chain last recorded a seal; null when no database is declared.</summary>
     internal RecordedSealReader? SealReader { get; }

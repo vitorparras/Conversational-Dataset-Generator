@@ -21,3 +21,9 @@ do alcance da base. A verificação que o usa está em
 
 Nas instalações `External` e `Internal` essas duas rotas respondem 409: o núcleo envia o selo
 sozinho, uma vez por dia, e um selo gravado à mão diria que o destino guarda o que não guarda.
+
+## Como o envio dos outros selos é provado
+
+O certificado recusado é provado com um servidor TLS local e o handler real do envio. O tempo
+esgotado não: o limite do pedido é de 30 segundos, fixo em `SealDelivery`, e encurtá-lo para um
+teste abriria um gancho de teste na produção. Esse caso fica com o dublê, que lança a exceção.

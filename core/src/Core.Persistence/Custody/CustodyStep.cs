@@ -72,6 +72,18 @@ public enum CustodyStep
     /// <summary>The guarantees of the server were conferred; the reason says whether every one held, and the item says which did not.</summary>
     VerifyGuarantees,
 
+    /// <summary>A migration began with the credential that owns the tables; the reference says what for and the tip of the chain it found.</summary>
+    OwnerWindowOpened,
+
+    /// <summary>The window of the owner credential was closed by the application at its start; the reason says whether the chain and the guarantees held.</summary>
+    OwnerWindowClosed,
+
+    /// <summary>A copy of the data was put back in a new database; the reason says whether the chain and the guarantees held, and the reference says which copy and the tip before and after.</summary>
+    Restored,
+
+    /// <summary>The result of the rehearsal of a restore: the item is the chain, its id is the mask of what did not hold (zero when everything held) and the reference names it.</summary>
+    RestoreRehearsed,
+
     /// <summary>A label of a domain was revoked, so that it encrypts nothing new and still decrypts; the item is the domain and the reference is the label.</summary>
     DomainLabelRevoked,
 }

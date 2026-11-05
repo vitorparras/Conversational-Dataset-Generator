@@ -23,13 +23,17 @@ Em migração de esquema, e em mais nada. Restauração não precisa dela se o p
 [006](006-restauracao.md) recriar o banco com as garantias já no lugar; precisar de dono para
 restaurar é sinal de que o procedimento está errado, não de que a regra deve ceder.
 
-Cada uso é cercado assim:
+Cada uso é cercado assim, e o sistema grava sozinho o que está marcado:
 
-1. Antes: rode a verificação de [007](007-verificacao-da-custodia.md) e guarde o topo da cadeia
-2. Durante: a janela fica registrada — quem, quando, para quê, o que foi executado
-3. Depois: verifique de novo, e confira que gatilhos, permissões de coluna e política de linha
-   voltaram ativos
-4. O resultado entra no registro de custódia, e a janela também
+1. Antes: o `migrate` com passo pendente verifica a cadeia, guarda o topo e grava o evento de
+   abertura (versão de partida, de chegada e topo; o papel da sessão é o "quem"). Sem passo
+   pendente ou com o banco vazio não há janela; banco anterior ao 0026 recebe o evento depois dele
+2. Durante: o que foi executado fica no registro de versões e no de falhas da migração
+3. Depois: a partida seguinte, só com a credencial da aplicação, verifica a cadeia, confere as
+   garantias da [007](007-verificacao-da-custodia.md) e grava o fechamento. Se algo faltar ou a
+   cadeia recusar o evento, a partida é recusada nomeando a causa e a janela segue aberta,
+   visível em `/custody/verification`
+4. Continua sendo processo humano: guardar a credencial, decidir quem a usa e conferir o motivo
 
 ## O dono também declara o domínio
 

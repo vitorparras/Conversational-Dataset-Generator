@@ -10,7 +10,7 @@ geração mais nova não revogada, sem tocar no conteúdo cifrado, na época nem
 ([010](010-credencial-de-dono-do-banco.md)), a configuração de `migrate`
 ([016](016-migracao-do-esquema.md)) e os três caminhos `MasterKey:` de
 [024](024-arquivos-de-custodia-da-chave.md); o arquivo de rótulos traz a geração nova.
-Os lotes são de 500 linhas, cada um numa transação com seu evento `domain_rewrapped` na cadeia
+Os lotes são de 500 linhas, cada um numa transação com seu evento `DomainRewrapped` na cadeia
 ([decisão 0050](../decisoes/0050-banco-amarra-a-mudanca-do-conteudo-a-um-evento.md)). Se o comando
 parar, os lotes gravados ficam; repita, e ele só toca as linhas ainda atrás.
 Com `--status` só lê e diz quantas chaves já estão na geração mais nova e quantas faltam; zero

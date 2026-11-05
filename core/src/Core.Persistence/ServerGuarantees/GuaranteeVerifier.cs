@@ -41,8 +41,12 @@ public sealed class GuaranteeVerifier
     public async Task<GuaranteeVerification> VerifyAsync(CancellationToken cancellationToken)
     {
         var missing = await StructuralGuarantees.MissingAsync(dataSource, cancellationToken).ConfigureAwait(false);
-        missing |= sample is null || await sample.HoldsAsync(cancellationToken).ConfigureAwait(false) ? GuaranteeKinds.None : GuaranteeKinds.EncryptedSample;
+        var sampled = await SampledAsync(cancellationToken).ConfigureAwait(false);
+        missing |= sampled == SampleVerdict.NotOpened ? GuaranteeKinds.EncryptedSample : GuaranteeKinds.None;
         var recorded = await chain.AppendAsync(CustodyEvent.GuaranteesVerified((long)missing), cancellationToken).ConfigureAwait(false);
-        return new GuaranteeVerification(missing, recorded);
+        return new GuaranteeVerification(missing, recorded, sampled == SampleVerdict.NoneOutsideLoss, sampled == SampleVerdict.SearchStopped);
     }
+
+    private async Task<SampleVerdict> SampledAsync(CancellationToken cancellationToken) =>
+        sample is null ? SampleVerdict.Opened : await sample.VerdictAsync(cancellationToken).ConfigureAwait(false);
 }

@@ -183,18 +183,31 @@ internal sealed class ChainVerificationService : BackgroundService
         try
         {
             var result = await confer(cancellationToken).ConfigureAwait(false);
-            if (result.Missing == GuaranteeKinds.None)
-            {
-                logger.GuaranteesHeld(result.Recorded.Outcome);
-            }
-            else
-            {
-                logger.GuaranteesMissing(result.Missing, result.Recorded.Outcome);
-            }
+            ReportGuarantees(logger, result);
         }
         catch (Exception failure) when (ServingFailure.CanReport(failure) && !cancellationToken.IsCancellationRequested)
         {
             logger.GuaranteesNotConferred(failure.GetType().Name);
+        }
+    }
+
+    private static void ReportGuarantees(ILogger logger, GuaranteeVerification result)
+    {
+        if (result.Missing != GuaranteeKinds.None)
+        {
+            logger.GuaranteesMissing(result.Missing, result.Recorded.Outcome);
+        }
+        else if (result.NoSampleOutsideLoss)
+        {
+            logger.GuaranteesHeldWithoutSample(result.Recorded.Outcome);
+        }
+        else if (result.SearchStopped)
+        {
+            logger.GuaranteesHeldSearchStopped(result.Recorded.Outcome);
+        }
+        else
+        {
+            logger.GuaranteesHeld(result.Recorded.Outcome);
         }
     }
 

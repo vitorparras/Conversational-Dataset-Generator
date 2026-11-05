@@ -1,7 +1,7 @@
 namespace Core.Persistence.Custody;
 
 /// <summary>One event to add to the chain: who, about which item, which step and which reason, and the earlier event it corrects when it is a correction.</summary>
-public sealed record CustodyEvent
+public sealed partial record CustodyEvent
 {
     private const int FirstRotation = 2;
     private const long RehearsalMask = 255;

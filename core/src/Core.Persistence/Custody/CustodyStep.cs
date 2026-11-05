@@ -86,4 +86,7 @@ public enum CustodyStep
 
     /// <summary>A label of a domain was revoked, so that it encrypts nothing new and still decrypts; the item is the domain and the reference is the label.</summary>
     DomainLabelRevoked,
+
+    /// <summary>A batch of the keys of a domain was wrapped again under the newest generation of its labels not revoked; the item is the domain.</summary>
+    DomainRewrapped,
 }

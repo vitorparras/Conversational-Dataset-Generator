@@ -45,6 +45,7 @@ internal static class CustodyNames
         [CustodyStep.Restored] = "restored",
         [CustodyStep.RestoreRehearsed] = "restore_rehearsed",
         [CustodyStep.DomainLabelRevoked] = "domain_label_revoked",
+        [CustodyStep.DomainRewrapped] = "domain_rewrapped",
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<CustodyReason, string> Reasons = new Dictionary<CustodyReason, string>

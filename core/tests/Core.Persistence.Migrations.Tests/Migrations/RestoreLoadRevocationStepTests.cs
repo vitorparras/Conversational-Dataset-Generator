@@ -78,7 +78,7 @@ public sealed class RestoreLoadRevocationStepTests
         await using var app = NpgsqlDataSource.Create(database.AppConnectionString);
         _ = await CallAsync(app, "SELECT public.restore_open()");
 
-        var refusal = await Assert.ThrowsAsync<PostgresException>(() => bare.RunAsync("SELECT public.restore_open()"));
+        var refusal = await Assert.ThrowsAsync<PostgresException>(() => bare.RunAsync("SELECT public.restore_load('public.domain', '[]'::jsonb)"));
         var outside = await LoadAsync(app, "public.schema_version", "[]");
 
         Assert.Equal(PostgresErrorCodes.InsufficientPrivilege, refusal.SqlState);

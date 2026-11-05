@@ -19,7 +19,7 @@ versão correspondente. Abra a janela antes de começar: quem restaura, de qual 
 
 ## O procedimento
 
-1. Crie o banco pelo `migrate` e, sem escrita, carregue a cópia (revogação depois da etiqueta)
+1. Crie o banco novo pelo `migrate` e, sem escrita, carregue a cópia (revogação após a etiqueta)
 2. Confira que cada evento conserva o número de sequência e o resumo do antecessor que tinha na
    cópia. A ordem a preservar é a **registrada** — nem a de inserção física, nem a do horário
 3. Percorra a sequência da origem ao topo e compare o valor obtido com o anotado fora

@@ -40,11 +40,12 @@ public sealed class RestoredRevocationTests
         using var custody = SyntheticCustody.Holding(Generations);
 
         var revoked = await LabelRevocations.ReadAsync(restored.App, token);
+        var registered = await RegisteredLabels.ReadAsync(restored.App, token);
 
         Assert.Equal(await copied.World.OwnerColumnAsync(Rows), await restored.Database.FirstColumnAsOwnerAsync(Rows));
         Assert.Equal(["texto-bruto/1/v3"], revoked.Order(StringComparer.Ordinal));
-        Assert.Equal("texto-bruto/1/v3", LabelOfNewRow(custody, new HashSet<string>(StringComparer.Ordinal)));
-        Assert.Equal("texto-bruto/1/v2", LabelOfNewRow(custody, revoked));
+        Assert.Equal("texto-bruto/1/v3", LabelOfNewRow(custody, registered, new HashSet<string>(StringComparer.Ordinal)));
+        Assert.Equal("texto-bruto/1/v2", LabelOfNewRow(custody, registered, revoked));
     }
 
     [DatabaseFact]
@@ -56,15 +57,16 @@ public sealed class RestoredRevocationTests
         using var custody = SyntheticCustody.Holding(Generations);
 
         var revoked = await LabelRevocations.ReadAsync(restored.App, token);
+        var registered = await RegisteredLabels.ReadAsync(restored.App, token);
 
         Assert.Empty(revoked);
         Assert.Equal(Generations, await restored.Database.FirstColumnAsOwnerAsync("SELECT label FROM public.derivation_label ORDER BY label"));
-        Assert.Equal("texto-bruto/1/v3", LabelOfNewRow(custody, revoked));
+        Assert.Equal("texto-bruto/1/v3", LabelOfNewRow(custody, registered, revoked));
     }
 
-    private static string LabelOfNewRow(SyntheticCustody custody, IReadOnlySet<string> revoked)
+    private static string LabelOfNewRow(SyntheticCustody custody, IReadOnlySet<string> registered, IReadOnlySet<string> revoked)
     {
-        var content = new ProtectedContent(custody.Labels, custody.Keys, new HashSet<string>(Generations, StringComparer.Ordinal), revoked);
+        var content = new ProtectedContent(custody.Labels, custody.Keys, registered, revoked);
         using var sealing = content.Begin(ContentColumns.ItemKey, 1);
         return sealing.Label.Text;
     }

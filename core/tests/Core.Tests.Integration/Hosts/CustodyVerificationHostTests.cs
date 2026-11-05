@@ -33,7 +33,8 @@ public sealed class CustodyVerificationHostTests
         Assert.Equal("00:05:00", shown.GetProperty("interval").GetString());
         Assert.False(shown.GetProperty("overdue").GetBoolean());
         var names = shown.EnumerateObject().Select(property => property.Name).Order(StringComparer.Ordinal);
-        Assert.Equal(["guarantees", "interval", "last", "lastSeal", "overdue", "protection", "situation", "warning"], names);
+        Assert.Equal(["guarantees", "interval", "last", "lastSeal", "overdue", "ownerWindow", "protection", "situation", "warning"], names);
+        Assert.Equal(JsonValueKind.Null, shown.GetProperty("ownerWindow").ValueKind);
     }
 
     [DatabaseFact]
@@ -95,6 +96,25 @@ public sealed class CustodyVerificationHostTests
         Assert.True(stillLate.GetProperty("overdue").GetBoolean());
         Assert.Equal(HttpStatusCode.OK, alive.StatusCode);
         Assert.True(caughtUp.GetProperty("last").GetProperty("passed").GetBoolean());
+    }
+
+    [DatabaseFact]
+    public async Task WindowOfTheOwnerCredentialThatIsOpenIsShownInTheRouteSoThatItIsNotForgotten()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var host = await AuthenticatedHost.StartAsync(new HostSetup(), cancellationToken);
+        _ = await UntilAsync(host, body => body.GetProperty("last").ValueKind == JsonValueKind.Object, cancellationToken);
+
+        await host.RunAsSuperuserAsync(
+            "INSERT INTO public.custody_event (actor_system, item_kind, item_id, step, reason, reference) "
+            + "VALUES (true, 'custody_chain', 19, 'owner_window_opened', 'administrative_act', 'from=18;to=19;tip=2')",
+            cancellationToken);
+        var shown = await UntilAsync(host, body => body.GetProperty("ownerWindow").ValueKind == JsonValueKind.Object, cancellationToken);
+
+        var window = shown.GetProperty("ownerWindow");
+        var seen = (window.GetProperty("from").GetInt32(), window.GetProperty("to").GetInt32(), window.GetProperty("tipSequence").GetInt32());
+        Assert.Equal((18, 19, 2), seen);
+        Assert.False(window.GetProperty("closingFailed").GetBoolean());
     }
 
     private static async Task<JsonElement> UntilAsync(AuthenticatedHost host, Func<JsonElement, bool> reached, CancellationToken cancellationToken)

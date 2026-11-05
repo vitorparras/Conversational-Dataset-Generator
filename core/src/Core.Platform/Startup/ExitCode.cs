@@ -80,4 +80,13 @@ public enum ExitCode
 
     /// <summary>The creation of the first person could not talk to the database, or stopped between the person and the password.</summary>
     PersonCreationFailed = 23,
+
+    /// <summary>The making of the copy was refused and nothing was written: the folder holds something, the chain did not take the seal, or another write reached it first.</summary>
+    CopyRefused = 31,
+
+    /// <summary>The making of the copy of the data could not talk to the database or write the folder; what was written is to be removed and the copy repeated.</summary>
+    CopyFailed = 32,
+
+    /// <summary>The load of a copy in a new database did not restore it: the copy, the database or a check of the result refused.</summary>
+    RestoreRefused = 36,
 }

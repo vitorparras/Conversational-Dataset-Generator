@@ -33,17 +33,33 @@ public sealed class RestoreRehearsal
     {
         var names = Enum.GetValues<RehearsalFindings>()
             .Where(finding => finding != RehearsalFindings.None && findings.HasFlag(finding))
-            .Select(finding => finding.ToString().ToLowerInvariant())
+            .Select(NameOf)
             .ToList();
         return names.Count == 0 ? "held" : string.Join('.', names);
     }
 
+    private static string NameOf(RehearsalFindings finding) => finding switch
+    {
+        RehearsalFindings.Privilege => "privilege",
+        RehearsalFindings.Policy => "policy",
+        RehearsalFindings.Revoke => "revoke",
+        RehearsalFindings.Immutable => "immutable",
+        RehearsalFindings.Columns => "columns",
+        RehearsalFindings.Chain => "chain",
+        _ => "seal",
+    };
+
     /// <summary>Rehearses and records the result; the result is recorded only if the links hold, because the chain takes no event but a verification while they do not.</summary>
     /// <param name="seal">The seal noted outside the copy, which the chain must have.</param>
     /// <param name="cancellationToken">Cancels the rehearsal.</param>
-    public async Task<RehearsalResult> RehearseAsync(ChainSeal seal, CancellationToken cancellationToken)
+    public Task<RehearsalResult> RehearseAsync(ChainSeal seal, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(seal);
+        return ConcludeAsync(seal, cancellationToken);
+    }
+
+    private async Task<RehearsalResult> ConcludeAsync(ChainSeal seal, CancellationToken cancellationToken)
+    {
         var verification = await verifier.VerifyAsync(seal, cancellationToken).ConfigureAwait(false);
         var findings = (RehearsalFindings)(long)await StructuralGuarantees.MissingAsync(dataSource, cancellationToken).ConfigureAwait(false);
         findings |= verification.Passed ? RehearsalFindings.None : RehearsalFindings.Chain;

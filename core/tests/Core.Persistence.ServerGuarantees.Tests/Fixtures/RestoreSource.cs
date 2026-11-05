@@ -39,6 +39,7 @@ public sealed class RestoreSource : IAsyncLifetime
         Assert.Equal(PersonOutcome.Done, (await world.Registry.ChangeFunctionAsync(1, "Anotação", CustodyAuthor.System, token)).Outcome);
         await world.RunAsOwnerAsync(
             "INSERT INTO public.derivation_label (label) VALUES ('zqx-label/1/v1')",
+            "INSERT INTO public.derivation_label_revocation (label) VALUES ('zqx-label/1/v1')",
             "INSERT INTO public.person_credential (person_id, algorithm, work_factor, salt, derived) VALUES (1, 'zqx-algorithm', 1, decode('00112233445566778899aabbccddeeff', 'hex'), '\x0102')",
             "INSERT INTO public.person_change (person_id, kind, new_function, actor_id) VALUES (1, 'created', 'Anotação', NULL)",
             "INSERT INTO public.person_change (person_id, kind, actor_id) VALUES (2, 'deactivated', 1)");
@@ -50,6 +51,7 @@ public sealed class RestoreSource : IAsyncLifetime
             ["public.domain"] = await OwnerRowsAsync("public.domain", "id"),
             ["public.person"] = await OwnerRowsAsync("public.person", "id"),
             ["public.derivation_label"] = await OwnerRowsAsync("public.derivation_label", "label"),
+            ["public.derivation_label_revocation"] = await OwnerRowsAsync("public.derivation_label_revocation", "label"),
             ["public.person_credential"] = await OwnerRowsAsync("public.person_credential", "person_id"),
             ["public.person_change"] = await OwnerRowsAsync("public.person_change", "id"),
             ["public.sign_in_attempt"] = await OwnerRowsAsync("public.sign_in_attempt", "id"),

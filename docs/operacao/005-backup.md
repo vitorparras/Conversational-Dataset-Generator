@@ -23,8 +23,8 @@ quem levar o conjunto leva dado e chave na mesma caixa.
 O `copy-data --to <pasta>` grava o manifesto (formato 1, versão do esquema, arquivos), a
 configuration.json (sem os segredos) e um esquema.tabela.jsonl por tabela: um registro por linha, do
 to_jsonb sem mudança, na ordem da chave (sequence na cadeia, id nas demais). Não lê chave nem
-custódia. Grava o seal_recorded e lê num instantâneo que termina nele (se outra escrita entrou
-antes, recusa); imprime, fora da pasta, o topo da cópia (sequência e digest). Ordem fixa da carga:
+arquivo de custódia. Grava o seal_recorded e lê num instantâneo que termina nele (se outra escrita
+entrou, recusa); imprime, fora da pasta, o topo da cópia (sequência e digest). Ordem fixa da carga:
 domínios, etiquetas, pessoas, credenciais, mudanças, tentativas de entrada, cadeia, textos, mapas e
 esvaziados. Fora ficam versões, falhas, contagem e janelas: o migrate as cria. A carga recusa cópia
 de versão diferente ([006](006-restauracao.md)); linha ou evento recusado fecha a janela como

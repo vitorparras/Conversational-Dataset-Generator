@@ -76,8 +76,8 @@ public sealed class CopyDataModeTests
 
     [Theory]
     [InlineData(DataCopyOutcome.FolderNotEmpty, "a pasta já tem conteúdo")]
-    [InlineData(DataCopyOutcome.SealNotRecorded, "a cadeia não aceitou o evento do selo")]
-    [InlineData(DataCopyOutcome.ChainMoved, "outra gravação a alcançou antes da leitura")]
+    [InlineData(DataCopyOutcome.SealNotRecorded, "a cadeia não aceitou o selo")]
+    [InlineData(DataCopyOutcome.ChainMoved, "outra gravação chegou antes da leitura")]
     public async Task EachRefusalOfTheCopySaysItsReasonAndPrintsNothingToNote(DataCopyOutcome outcome, string reason)
     {
         using var output = new StringWriter();
@@ -100,6 +100,7 @@ public sealed class CopyDataModeTests
 
         Assert.Equal((ExitCode.Success, string.Empty), (exit, error.ToString()));
         Assert.Contains($"restore-load <pasta> 3 {top.Digest}", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains(top.ToText(), output.ToString(), StringComparison.Ordinal);
     }
 
     [Fact]

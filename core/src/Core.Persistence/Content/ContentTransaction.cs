@@ -90,7 +90,7 @@ public sealed class ContentTransaction : IAsyncDisposable
         }
     }
 
-    /// <summary>Opens a transaction at the isolation level given under no domain at all, for the reads that go through the domains one after the other with <see cref="ChangeDomainAsync" />.</summary>
+    /// <summary>Opens a transaction at the isolation level given under domain 0, which no row has: reads public tables, and content one domain at a time (<see cref="ChangeDomainAsync" />).</summary>
     internal static Task<ContentTransaction> BeginSnapshotAsync(NpgsqlDataSource dataSource, IsolationLevel isolation, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(dataSource);

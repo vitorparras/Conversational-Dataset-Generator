@@ -1,7 +1,7 @@
 namespace Core.Persistence.Custody;
 
 /// <summary>One event to add to the chain: who, about which item, which step and which reason, and the earlier event it corrects when it is a correction.</summary>
-public sealed record CustodyEvent
+public sealed partial record CustodyEvent
 {
     private const int FirstRotation = 2;
     private const long RehearsalMask = 255;
@@ -150,13 +150,6 @@ public sealed record CustodyEvent
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(domainId);
         ArgumentException.ThrowIfNullOrEmpty(label);
         return WithReference(new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.Domain, domainId), CustodyStep.DomainLabelRevoked, CustodyReason.AdministrativeAct), label);
-    }
-
-    /// <summary>The event of a batch of keys of a domain wrapped again, by the system; the item is the domain, and the event has no reference.</summary>
-    public static CustodyEvent DomainRewrapped(int domainId)
-    {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(domainId);
-        return new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.Domain, domainId), CustodyStep.DomainRewrapped, CustodyReason.AdministrativeAct);
     }
 
     /// <summary>The event of a seal recorded: the item is the chain, its id is the sequence of the event sealed, and the digest of that event is read from the chain and is not in this one.</summary>

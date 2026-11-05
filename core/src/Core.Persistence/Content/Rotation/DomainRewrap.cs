@@ -8,14 +8,9 @@ using NpgsqlTypes;
 
 namespace Core.Persistence.Content.Rotation;
 
-/// <summary>
-/// The rewrap of a domain (issue 56): each key not emptied is wrapped again under the newest registered label not revoked, in batches that each commit with their event in the chain (0050).
-/// </summary>
+/// <summary>The rewrap of a domain (issue 56): each key not emptied is wrapped again under the newest registered label not revoked, in batches that each commit with their event (0050).</summary>
 public sealed class DomainRewrap
 {
-    /// <summary>The size of a whole batch, in rows.</summary>
-    public static readonly int WholeBatch = 500;
-
     private static readonly Table Items = new(ContentQueries.ReadItemKeysAfter, ContentQueries.RewrapItemKey);
     private static readonly Table Maps = new(ContentQueries.ReadMapKeysAfter, ContentQueries.RewrapMapKey);
 
@@ -41,7 +36,7 @@ public sealed class DomainRewrap
     }
 
     /// <summary>How many keys of the rows not emptied are under the newest generation not revoked, and how many are behind; it only reads.</summary>
-    public Task<(int Current, int Behind)> StatusAsync(int domainId, DerivationLabels loaded, CancellationToken cancellationToken)
+    public Task<RewrapStatus> StatusAsync(int domainId, DerivationLabels loaded, CancellationToken cancellationToken)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(domainId);
         ArgumentNullException.ThrowIfNull(loaded);
@@ -55,12 +50,12 @@ public sealed class DomainRewrap
         return items + await RewrapTableAsync(plan, keys, Maps, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<(int Current, int Behind)> StatusPlannedAsync(int domainId, DerivationLabels loaded, CancellationToken cancellationToken)
+    private async Task<RewrapStatus> StatusPlannedAsync(int domainId, DerivationLabels loaded, CancellationToken cancellationToken)
     {
         var plan = await PlanAsync(domainId, loaded, cancellationToken).ConfigureAwait(false);
         var (itemsCurrent, itemsBehind) = await CountTableAsync(plan, Items, cancellationToken).ConfigureAwait(false);
         var (mapsCurrent, mapsBehind) = await CountTableAsync(plan, Maps, cancellationToken).ConfigureAwait(false);
-        return (itemsCurrent + mapsCurrent, itemsBehind + mapsBehind);
+        return new RewrapStatus(itemsCurrent + mapsCurrent, itemsBehind + mapsBehind);
     }
 
     private async Task<Plan> PlanAsync(int domainId, DerivationLabels loaded, CancellationToken cancellationToken)
@@ -122,21 +117,19 @@ public sealed class DomainRewrap
     private async Task<(int Current, int Behind)> CountTableAsync(Plan plan, Table table, CancellationToken cancellationToken)
     {
         var transaction = await ContentTransaction.BeginAsync(dataSource, plan.DomainId, cancellationToken).ConfigureAwait(false);
-        await using (transaction.ConfigureAwait(false))
+        await using var scope = transaction.ConfigureAwait(false);
+        var (current, behind, after) = (0, 0, 0L);
+        while (true)
         {
-            var (current, behind, after) = (0, 0, 0L);
-            while (true)
+            var rows = await ReadAsync(transaction, (table, after), cancellationToken).ConfigureAwait(false);
+            var late = rows.Count(row => plan.IsBehind(row.Wrapped));
+            (current, behind) = (current + rows.Count - late, behind + late);
+            if (rows.Count < batch)
             {
-                var rows = await ReadAsync(transaction, (table, after), cancellationToken).ConfigureAwait(false);
-                var late = rows.Count(row => plan.IsBehind(row.Wrapped));
-                (current, behind) = (current + rows.Count - late, behind + late);
-                if (rows.Count < batch)
-                {
-                    return (current, behind);
-                }
-
-                after = rows[^1].Id;
+                return (current, behind);
             }
+
+            after = rows[^1].Id;
         }
     }
 

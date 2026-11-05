@@ -1,5 +1,4 @@
--- The rewrap of a domain (issue 56, part 2) wraps a key again in batches that each commit alone, with the epoch unchanged: the step domain_rewrapped, about the domain and written in the same
--- transaction as the batch, releases that change of the wrapped key (decision 0050).
+-- The rewrap of a domain (issue 56, part 2) keeps the epoch, so its batches are tied to their own step, domain_rewrapped, written in the same transaction (decision 0050).
 CREATE OR REPLACE FUNCTION public.refuse_item_change_without_event() RETURNS trigger
 LANGUAGE plpgsql
 AS $refuse$

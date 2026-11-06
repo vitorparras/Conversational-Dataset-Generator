@@ -57,10 +57,11 @@ public sealed class RecoveryRehearsalModeTests
     [Fact]
     public void TheExitCodesOfTheRecoveryAreDistinctFromEachOtherAndFromTheOtherModes() =>
         Assert.Equal(
-            11,
+            12,
             new[]
             {
-                ExitCode.RecoveryRefused, ExitCode.RecoveryFailed, ExitCode.KeyLossRefused, ExitCode.KeyLossFailed, ExitCode.DomainLabelRefused, ExitCode.DomainLabelFailed,
+                ExitCode.RecoveryRefused, ExitCode.RecoveryFailed, ExitCode.RecoveryReceiptRepeated, ExitCode.KeyLossRefused, ExitCode.KeyLossFailed,
+                ExitCode.DomainLabelRefused, ExitCode.DomainLabelFailed,
                 ExitCode.DomainLabelsMissing, ExitCode.DomainNameTaken, ExitCode.DomainCreationRefused, ExitCode.DomainCreationFailed, ExitCode.EpochRotationRefused,
             }.Distinct().Count());
 }

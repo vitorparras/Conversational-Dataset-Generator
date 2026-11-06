@@ -81,6 +81,7 @@ internal static class CompositionRoot
         _ = builder.Services.AddRedaction(PlatformLogging.EraseSensitiveData);
         _ = builder.Services.AddSingleton(configuration);
         _ = builder.Services.ConfigureHttpJsonOptions(HostJson.Strict);
+        _ = builder.Services.AddRazorComponents();
     }
 
     /// <summary>The analysis and the recognizer the configuration chose: the fake by name, otherwise one per use, with the port and secret the supervisor has then.</summary>
@@ -138,12 +139,6 @@ internal static class CompositionRoot
     /// <summary>The application's data source, the verifier of the guarantees and the ten server checks, privilege first, the window of the owner credential second and the labels last.</summary>
     private static void AddServerGuarantees(IServiceCollection services, DatabaseSettings database)
     {
-        if (database.State != DatabaseSettingsState.Configured)
-        {
-            _ = services.AddSingleton<IStartupCheck>(new UnconfiguredDatabaseCheck());
-            return;
-        }
-
         _ = services.AddSingleton(_ => NpgsqlDataSource.Create(database.ConnectionString!));
         _ = services.AddSingleton<IStartupCheck>(provider => new PrivilegeCheck(provider.GetRequiredService<NpgsqlDataSource>()));
         _ = services.AddSingleton(provider => new GuaranteeVerifier(
@@ -198,7 +193,8 @@ internal static class CompositionRoot
             : null!);
         _ = builder.Services.AddSingleton(provider => provider.GetService<OperatorAdministration>() is { } people
             ? new SignIn(people.Registry, people.Credentials, provider.GetRequiredService<SessionStore>(), new SignInDelay(provider.GetRequiredService<TimeProvider>()),
-                new SignInAttempts(provider.GetRequiredService<ServiceProvider>().GetRequiredService<NpgsqlDataSource>()))
+                new SignInRecord(
+                    new SignInAttempts(provider.GetRequiredService<ServiceProvider>().GetRequiredService<NpgsqlDataSource>()), provider.GetRequiredService<ILoggerFactory>()))
             : null!);
 
         var app = builder.Build();

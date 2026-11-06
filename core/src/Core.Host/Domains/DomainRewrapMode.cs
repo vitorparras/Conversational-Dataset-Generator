@@ -27,7 +27,7 @@ internal static class DomainRewrapMode
         }
 
         var loaded = HostConfiguration.Load(Array.FindAll(rest, argument => argument != StatusFlag), migrating: true);
-        var database = HostConfiguration.DatabaseOf(loaded, migrating: true);
+        var database = HostConfiguration.DatabaseOf(loaded);
         if (database is null || database.State == DatabaseSettingsState.Refused)
         {
             return HostLaunch.Refused(database?.Problems ?? loaded.Problems);

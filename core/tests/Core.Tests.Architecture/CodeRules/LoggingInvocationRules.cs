@@ -58,7 +58,7 @@ internal static class LoggingInvocationRules
         }
     }
 
-    /// <summary>The only additional file is the list of banned symbols; any other would be handed to the generators.</summary>
+    /// <summary>The only additional file is the list of banned symbols, besides the components of the screens that the Razor generator reads (decision 0052).</summary>
     public static IEnumerable<Violation> CheckAdditionalFiles(CompilerInvocation invocation)
     {
         if (!invocation.AdditionalFiles.Any(path => Path.GetFileName(path) == SymbolsFile))
@@ -66,7 +66,7 @@ internal static class LoggingInvocationRules
             yield return At(invocation, $"{SymbolsFile} is not given to the compiler");
         }
 
-        foreach (var file in invocation.AdditionalFiles.Where(path => Path.GetFileName(path) != SymbolsFile))
+        foreach (var file in invocation.AdditionalFiles.Where(path => Path.GetFileName(path) != SymbolsFile && !RazorScreens.IsComponent(path)))
         {
             yield return At(invocation, $"additional file {Path.GetFileName(file)} is given to the compiler besides {SymbolsFile}");
         }

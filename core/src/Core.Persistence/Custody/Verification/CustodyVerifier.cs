@@ -40,21 +40,12 @@ public sealed class CustodyVerifier
     /// </summary>
     /// <param name="seal">The seal to compare the chain with; null to verify the links alone.</param>
     /// <param name="cancellationToken">Cancels the verification.</param>
-    public Task<ChainVerification> VerifyAsync(ChainSeal? seal, CancellationToken cancellationToken) => VerifyAsync(seal, requestedBy: null, cancellationToken);
-
-    /// <summary>
-    /// Verifies the chain as above for someone who asked: the event that records the verdict carries the id of whoever asked, so that the history of the verifications says who did.
-    /// </summary>
-    /// <param name="seal">The seal to compare the chain with; null to verify the links alone.</param>
-    /// <param name="requestedBy">The id of whoever asked; null for a verification nobody asked for.</param>
-    /// <param name="cancellationToken">Cancels the verification.</param>
-    public async Task<ChainVerification> VerifyAsync(ChainSeal? seal, long? requestedBy, CancellationToken cancellationToken)
+    public async Task<ChainVerification> VerifyAsync(ChainSeal? seal, CancellationToken cancellationToken)
     {
         var witness = seal is null ? null : new SealWitness { Sealed = seal };
         var judge = new ChainJudge { Witness = witness };
         var verifiedAt = await ReadAsync(judge, cancellationToken).ConfigureAwait(false);
-        var verdict = requestedBy is { } asker ? CustodyEvent.Verification(judge.Read, judge.First?.Sequence, asker) : CustodyEvent.Verification(judge.Read, judge.First?.Sequence);
-        var recorded = await chain.AppendAsync(verdict, cancellationToken).ConfigureAwait(false);
+        var recorded = await chain.AppendAsync(CustodyEvent.Verification(judge.Read, judge.First?.Sequence), cancellationToken).ConfigureAwait(false);
         return new ChainVerification
         {
             Scope = VerificationScope.Installation,

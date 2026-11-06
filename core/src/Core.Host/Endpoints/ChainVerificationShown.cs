@@ -16,7 +16,6 @@ namespace Core.Host.Endpoints;
 /// <param name="Warning">The warning of the manual situation, when no seal was ever recorded or the last is older than seven days; null otherwise.</param>
 /// <param name="Guarantees">The last conference of the guarantees of the server, as the chain recorded it.</param>
 /// <param name="OwnerWindow">The window of the owner credential, when one is still open; null otherwise.</param>
-/// <param name="History">The verifications the chain recorded, the newest first, each with the id and the name of whoever asked for it, if someone did.</param>
 internal sealed record ChainVerificationShown(
     RecordedVerification? Last,
     TimeSpan Interval,
@@ -26,5 +25,4 @@ internal sealed record ChainVerificationShown(
     DateTimeOffset? LastSeal,
     string? Warning,
     GuaranteesShown Guarantees,
-    OwnerWindowOpen? OwnerWindow,
-    IReadOnlyList<RecordedVerification> History);
+    OwnerWindowOpen? OwnerWindow);

@@ -23,23 +23,13 @@ public sealed class RecordedVerificationReader
 
     /// <summary>The last event of the chain that records a verification; null when the chain holds none.</summary>
     /// <param name="cancellationToken">Cancels the reading.</param>
-    public async Task<RecordedVerification?> LastAsync(CancellationToken cancellationToken) =>
-        Newest(await ReadAsync(CustodyStep.VerifyChain, 1, cancellationToken).ConfigureAwait(false));
-
-    /// <summary>The events of the chain that record a verification, the newest first, each with who asked for it when someone did; the host's own verifications have no asker.</summary>
-    /// <param name="limit">How many to read at most; positive.</param>
-    /// <param name="cancellationToken">Cancels the reading.</param>
-    public Task<IReadOnlyList<RecordedVerification>> HistoryAsync(int limit, CancellationToken cancellationToken)
-    {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
-        return ReadAsync(CustodyStep.VerifyChain, limit, cancellationToken);
-    }
+    public Task<RecordedVerification?> LastAsync(CancellationToken cancellationToken) => LastOfAsync(CustodyStep.VerifyChain, cancellationToken);
 
     /// <summary>The last event of the chain that records a conference of the guarantees; null when the chain holds none.</summary>
     /// <param name="cancellationToken">Cancels the reading.</param>
     public async Task<RecordedGuarantees?> LastGuaranteesAsync(CancellationToken cancellationToken)
     {
-        var last = Newest(await ReadAsync(CustodyStep.VerifyGuarantees, 1, cancellationToken).ConfigureAwait(false));
+        var last = await LastOfAsync(CustodyStep.VerifyGuarantees, cancellationToken).ConfigureAwait(false);
         return last is null ? null : new RecordedGuarantees(last.RecordedAt, last.Passed, last.EventsRead);
     }
 
@@ -76,34 +66,29 @@ public sealed class RecordedVerificationReader
         reference.Split(';').Select(piece => piece.Split('=')).Where(pair => pair.Length == PairParts && pair[0] == name)
             .Select(pair => long.TryParse(pair[1], NumberStyles.None, CultureInfo.InvariantCulture, out var number) ? number : 0L).FirstOrDefault();
 
-    private async Task<IReadOnlyList<RecordedVerification>> ReadAsync(CustodyStep step, int limit, CancellationToken cancellationToken)
+    private async Task<RecordedVerification?> LastOfAsync(CustodyStep step, CancellationToken cancellationToken)
     {
         var command = dataSource.CreateCommand(CustodyStatements.ReadLastVerification);
         await using (command.ConfigureAwait(false))
         {
             _ = command.Parameters.AddWithValue("step", NpgsqlDbType.Text, CustodyNames.Of(step));
-            _ = command.Parameters.AddWithValue("limit", NpgsqlDbType.Integer, limit);
             var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             await using (reader.ConfigureAwait(false))
             {
-                return await AllAsync(reader, cancellationToken).ConfigureAwait(false);
+                return await FirstAsync(reader, cancellationToken).ConfigureAwait(false);
             }
         }
     }
 
-    private static RecordedVerification? Newest(IReadOnlyList<RecordedVerification> newestFirst) => newestFirst.Count == 0 ? null : newestFirst[0];
-
-    private static async Task<IReadOnlyList<RecordedVerification>> AllAsync(DbDataReader reader, CancellationToken cancellationToken)
+    private static async Task<RecordedVerification?> FirstAsync(DbDataReader reader, CancellationToken cancellationToken)
     {
-        var all = new List<RecordedVerification>();
-        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
-            var recordedAt = await reader.GetFieldValueAsync<DateTimeOffset>(0, cancellationToken).ConfigureAwait(false);
-            var passed = (string)reader["reason"] == CustodyNames.Of(CustodyReason.VerificationPassed);
-            var asker = RequesterReference.From(reader["reference"] as string);
-            all.Add(new RecordedVerification(recordedAt, passed, (long)reader["item_id"], reader["corrects"] is long first ? first : null, asker, asker is null ? null : reader["asker"] as string));
+            return null;
         }
 
-        return all;
+        var recordedAt = await reader.GetFieldValueAsync<DateTimeOffset>(0, cancellationToken).ConfigureAwait(false);
+        var passed = (string)reader["reason"] == CustodyNames.Of(CustodyReason.VerificationPassed);
+        return new RecordedVerification(recordedAt, passed, (long)reader["item_id"], reader["corrects"] is long first ? first : null);
     }
 }

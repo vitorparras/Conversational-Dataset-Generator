@@ -1,9 +1,10 @@
+using Npgsql;
+
 namespace Core.Host.Endpoints;
 
 /// <summary>
-/// Shows the last verification of the chain of custody as the chain records it, with the interval in force and whether one is late, and the history of the verifications with who asked for
-/// each. A route of a live session and not part of the status, which answers with no session: the state of the chain and the count of its events are not for whoever did not enter.
-/// What it answers is what <see cref="ChainState" /> reads, the same the screen of the chain shows.
+/// Shows the last verification of the chain of custody as the chain records it, with the interval in force and whether one is late. A route of a live session and not part of the
+/// status, which answers with no session: the state of the chain and the count of its events are not for whoever did not enter.
 /// </summary>
 internal static class ChainVerificationEndpoint
 {
@@ -12,6 +13,35 @@ internal static class ChainVerificationEndpoint
     internal static void Map(IEndpointRouteBuilder endpoints) => _ = endpoints.MapGet(Route, ShowAsync);
 
     /// <summary>With no database declared there is no chain to read, and one that cannot be read answers 503, with the type of the failure in the host's log.</summary>
-    private static async Task<IResult> ShowAsync([AsParameters] ChainSources sources, CancellationToken cancellationToken) =>
-        await ChainState.ReadAsync(sources, cancellationToken) is { } shown ? Results.Ok(shown) : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+    private static async Task<IResult> ShowAsync([AsParameters] ChainSources sources, CancellationToken cancellationToken)
+    {
+        var (verification, declared, _, time, loggers) = sources;
+        if (verification.Reader is not { } reader)
+        {
+            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+        }
+
+        try
+        {
+            var last = await reader.LastAsync(cancellationToken);
+            var lastSeal = await LastSealAsync(verification, cancellationToken);
+            var protection = SealProtection.Of(declared.Situation, lastSeal);
+            var warning = SealAge.Warning(declared.Situation, lastSeal, time.GetUtcNow());
+            var recorded = await reader.LastGuaranteesAsync(cancellationToken);
+            var guarantees = GuaranteesShown.Of(recorded, verification.IsOverdue(recorded?.RecordedAt));
+            var window = await reader.OwnerWindowAsync(cancellationToken);
+            var interval = verification.Schedule.Interval;
+            var overdue = verification.IsOverdue(last?.RecordedAt);
+            return Results.Ok(new ChainVerificationShown(last, interval, overdue, declared.Situation.ToString(), protection, lastSeal, warning, guarantees, window));
+        }
+        catch (Exception unreadable) when (unreadable is NpgsqlException or InvalidOperationException or TimeoutException)
+        {
+            loggers.CreateLogger(nameof(ChainVerificationEndpoint)).LastUnreadable(unreadable.GetType().Name);
+            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+        }
+    }
+
+    /// <summary>When the chain last recorded a seal, whatever the situation: the sending of the seal and the manual record both leave it there; null when it holds none.</summary>
+    private static Task<DateTimeOffset?> LastSealAsync(ChainVerificationService verification, CancellationToken cancellationToken) =>
+        verification.SealReader is { } reader ? reader.LastAsync(cancellationToken) : Task.FromResult<DateTimeOffset?>(null);
 }

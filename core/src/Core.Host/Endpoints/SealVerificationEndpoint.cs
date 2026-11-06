@@ -27,13 +27,13 @@ internal static class SealVerificationEndpoint
             return Results.BadRequest(new SealRefused("seal", reading.Problem.ToString()!, reading.Refusal!));
         }
 
-        var outcome = await ChainState.VerifyAsync(sources, SessionCookie.Read(context.Request), seal, cancellationToken);
-        if (outcome.WaitSeconds is { } seconds)
+        if (TooSoon(verification, context, time) is { } limited)
         {
-            return TooSoon(context, seconds);
+            return limited;
         }
 
-        if (outcome.Done is not { Seal: { } standing } done)
+        var done = await verification.VerifyAgainstAsync(seal, cancellationToken);
+        if (done?.Seal is not { } standing)
         {
             return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
@@ -50,8 +50,14 @@ internal static class SealVerificationEndpoint
         }
     }
 
-    private static IResult TooSoon(HttpContext context, int seconds)
+    private static IResult? TooSoon(ChainVerificationService verification, HttpContext context, TimeProvider time)
     {
+        if (verification.Limit.Admit(SessionCookie.Read(context.Request) ?? string.Empty, time.GetUtcNow()) is not { } left)
+        {
+            return null;
+        }
+
+        var seconds = (int)Math.Ceiling(left.TotalSeconds);
         context.Response.Headers.RetryAfter = seconds.ToString(CultureInfo.InvariantCulture);
         var reason = $"Uma verificação contra o selo por sessão a cada {(int)VerificationLimit.Window.TotalSeconds} segundos; a cadeia não foi lida. Tente de novo em {seconds} segundos.";
         return Results.Json(new VerificationLimited(reason, seconds), statusCode: StatusCodes.Status429TooManyRequests);

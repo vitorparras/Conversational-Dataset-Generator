@@ -96,21 +96,6 @@ public sealed class SealVerificationHostTests
         Assert.Equal((true, true, "Holds"), Standing(shown));
     }
 
-    [DatabaseFact]
-    public async Task AVerificationAskedForEntersTheHistoryWithWhoAskedAndTheOneTheHostRanByItselfHasNobody()
-    {
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await StartedAsync(new HostSetup(), cancellationToken);
-        var asker = await host.NumberAsSuperuserAsync($"SELECT id FROM public.person WHERE name = '{host.Name}'", cancellationToken);
-
-        _ = await VerifyAsync(host, await SealOfTheChainAsync(host, cancellationToken), cancellationToken);
-        var history = (await ReadAsync(host, cancellationToken)).GetProperty("history").EnumerateArray().ToList();
-
-        Assert.True(history.Count >= 2);
-        Assert.Equal((asker, host.Name), (history[0].GetProperty("requestedBy").GetInt64(), history[0].GetProperty("requestedByName").GetString()));
-        Assert.Equal(JsonValueKind.Null, history[^1].GetProperty("requestedBy").ValueKind);
-    }
-
     [DatabaseTheory]
     [InlineData("External")]
     [InlineData("Internal")]

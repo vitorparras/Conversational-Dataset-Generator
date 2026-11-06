@@ -81,7 +81,8 @@ else
 
     private static readonly string[] Columns = { "Quando", "Resultado", "Eventos lidos", "Pedida por" };
 
-    private static readonly CultureInfo Format = CultureInfo.GetCultureInfo("pt-BR");
+    /// <summary>The numbers as Portuguese writes them, built on the invariant culture: the host runs with invariant globalization, which has no culture to look up by name.</summary>
+    private static readonly NumberFormatInfo Format = new() { NumberGroupSeparator = ".", NumberDecimalSeparator = "," };
 
     /// <summary>The last verification the chain recorded; null when it holds none.</summary>
     [Parameter]

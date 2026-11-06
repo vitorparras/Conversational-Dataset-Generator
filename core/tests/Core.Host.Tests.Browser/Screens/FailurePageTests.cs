@@ -1,7 +1,7 @@
+using System.Text.RegularExpressions;
 using Core.Host.Tests.Browser.Accessibility;
 using Core.Host.Tests.Browser.Fixtures;
 using Core.Host.Tests.Browser.Trial;
-using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using static Microsoft.Playwright.Assertions;
 

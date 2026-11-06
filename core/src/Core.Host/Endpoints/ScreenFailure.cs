@@ -27,11 +27,16 @@ internal static class ScreenFailure
             }
         });
 
-    /// <summary>
-    /// A failure the page answers: one the process can still report, of a request for a page whose answer has not begun. A request the server refused as malformed
-    /// keeps its own status, and one the browser gave up on is no failure of the page.
-    /// </summary>
+    /// <summary>A failure the page answers: a failure of the page itself, of a request for a page whose answer has not begun.</summary>
     private static bool Unhandled(HttpContext context, Exception failure) =>
-        ServingFailure.CanReport(failure) && failure is not BadHttpRequestException && !context.RequestAborted.IsCancellationRequested
-        && !context.Response.HasStarted && SessionGate.AsksForPage(context.Request);
+        FailureOfThePage(failure, context.RequestAborted) && PageStillToAnswer(context);
+
+    /// <summary>
+    /// One the process can still report. A request the server refused as malformed keeps its own status, and one the browser gave up on is no failure of the page.
+    /// </summary>
+    private static bool FailureOfThePage(Exception failure, CancellationToken aborted) =>
+        ServingFailure.CanReport(failure) && failure is not BadHttpRequestException && !aborted.IsCancellationRequested;
+
+    private static bool PageStillToAnswer(HttpContext context) =>
+        !context.Response.HasStarted && SessionGate.AsksForPage(context.Request);
 }

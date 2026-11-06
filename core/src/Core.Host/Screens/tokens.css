@@ -26,11 +26,17 @@
     --space-6: 2.25rem;
     --space-7: clamp(2.5rem, 1.5rem + 3vw, 4rem);
     --page-width: 72rem;
+    --control-height: 2.75rem;
     --header-clearance: 5rem;
+    --field-width: 32rem;
     --hidden-above: -200%;
 
     --radius-sm: 0.375rem;
+    --radius-md: 0.625rem;
+    --radius-lg: 1.125rem;
     --line: 1px;
+    --line-strong: 2px;
+    --line-error: 3px;
 
     --focus-color: #a84b05;
     --focus-width: 3px;
@@ -38,6 +44,7 @@
 
     --motion: 140ms;
     --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --opacity-disabled: 0.55;
 
     /* Light: a cool paper with two faint washes behind the glass, so the blur has something real to soften. */
     --canvas: #eceff3;
@@ -51,13 +58,27 @@
     --accent: #1d4a73;
     --accent-hover: #153a5c;
     --on-accent: #f7fafc;
+    --danger: #a1231b;
+    --danger-hover: #821a13;
+    --on-danger: #fdf6f5;
+    --error: #a1231b;
+    --error-surface: #fbeceb;
+    --success: #1c6636;
+    --success-surface: #e7f3eb;
+    --pending: #7a4f00;
+    --pending-surface: #fbf1dc;
+    --info: #1d4a73;
+    --info-surface: #e6eef6;
 
     --glass: rgba(250, 251, 252, 0.62);
+    --glass-edge: rgba(255, 255, 255, 0.8);
     --glass-blur: 18px;
     --glass-saturate: 1.4;
     --backdrop:
         radial-gradient(60rem 40rem at 12% -10%, var(--wash-cool), transparent 70%),
         radial-gradient(50rem 36rem at 100% 0%, var(--wash-warm), transparent 65%);
+    --shadow-raised: 0 1px 2px rgba(21, 29, 39, 0.06), 0 8px 24px -12px rgba(21, 29, 39, 0.22);
+    --shadow-control: 0 1px 1px rgba(21, 29, 39, 0.08);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -74,7 +95,21 @@
         --accent: #9cc4ec;
         --accent-hover: #bad7f3;
         --on-accent: #0e141b;
+        --danger: #ff9d92;
+        --danger-hover: #ffbcb4;
+        --on-danger: #1b0b09;
+        --error: #ff9d92;
+        --error-surface: #2c1513;
+        --success: #86d6a0;
+        --success-surface: #12261a;
+        --pending: #f1c56c;
+        --pending-surface: #2a2110;
+        --info: #9cc4ec;
+        --info-surface: #13222f;
         --glass: rgba(23, 32, 42, 0.6);
+        --glass-edge: rgba(231, 236, 241, 0.1);
+        --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 28px -12px rgba(0, 0, 0, 0.7);
+        --shadow-control: 0 1px 1px rgba(0, 0, 0, 0.4);
     }
 }
 

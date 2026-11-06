@@ -13,11 +13,31 @@ namespace Core.Tests.Browser.Screens;
 public sealed class CatalogTests(BrowserFixture browser)
 {
     private const string Absent = "(pairs) => pairs.filter(([name, selector]) => document.querySelector(selector) === null).map(([name]) => name)";
+    private const string Kinds = "() => [...document.querySelectorAll('.notice')].map(n => n.querySelector('.notice__kind').textContent + ' ' + n.querySelector('.notice__mark').textContent)";
 
     /// <summary>The components the issue lists, each state an example the page must show; the selector is how the production markup names it.</summary>
     private static readonly string[][] Examples =
     [
         ["cabecalho", "header.header a.header__name"],
+        ["botao-principal", ".button--primary:not([disabled])"],
+        ["botao-secundario", ".button--secondary"],
+        ["botao-discreto", ".button--quiet"],
+        ["botao-de-perigo", ".button--danger"],
+        ["botao-desabilitado", "button.button[disabled]"],
+        ["botao-com-atalho", "[data-shortcut] .button__key"],
+        ["botao-como-link", "a.button[href]"],
+        ["campo", ".field__label + .field__input"],
+        ["campo-com-dica", ".field__hint"],
+        ["campo-obrigatorio", ".field__input[aria-required=true]"],
+        ["campo-com-erro", ".field__input[aria-invalid=true][aria-describedby] ~ .field__error[role=alert]"],
+        ["mensagem-de-aviso", ".notice--info"],
+        ["mensagem-de-conclusao", ".notice--success"],
+        ["mensagem-de-pendencia", ".notice--pending"],
+        ["mensagem-de-erro", ".notice--error[role=alert]"],
+        ["painel-de-vidro", ".panel"],
+        ["lista-com-itens", "ul.paged-list li"],
+        ["lista-com-paginas", "nav.pager a[rel=next]"],
+        ["lista-vazia", ".paged-list__empty[role=status]"],
     ];
 
     [Fact]
@@ -28,6 +48,19 @@ public sealed class CatalogTests(BrowserFixture browser)
         var absent = await tab.Page.EvaluateAsync<string[]>(Absent, Examples);
 
         Assert.Empty(absent);
+    }
+
+    [Fact]
+    public async Task Ca4TheStatesOfAMessageDifferByTheWordAndByTheShapeAndNotOnlyByColour()
+    {
+        await using var tab = await browser.OpenAsync(TrialRoutes.Catalog);
+
+        var kinds = await tab.Page.EvaluateAsync<string[]>(Kinds);
+
+        Assert.Equal(4, kinds.Length);
+        Assert.Equal(kinds.Length, kinds.Distinct().Count());
+        Assert.Equal(kinds.Length, kinds.Select(kind => kind.Split(' ')[0]).Distinct().Count());
+        Assert.Equal(kinds.Length, kinds.Select(kind => kind.Split(' ')[1]).Distinct().Count());
     }
 
     [Theory]

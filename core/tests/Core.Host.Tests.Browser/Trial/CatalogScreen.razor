@@ -1,3 +1,58 @@
 <h1>Catálogo dos componentes</h1>
 <p>Cada componente da base das telas, em cada estado, montado com as peças de produção. Esta tela existe só no teste de navegador.</p>
-<p>O cabeçalho, no topo, é de vidro: o fundo passa por ele, desfocado, ao rolar a página.</p>
+
+<Panel Id="botoes" Title="Botões">
+    <p>Um botão principal por tela, no máximo. O de perigo fica para o que não se desfaz.</p>
+    <div class="actions">
+        <Button Type="button">Salvar</Button>
+        <Button Type="button" Kind="Button.Look.Secondary">Voltar</Button>
+        <Button Type="button" Kind="Button.Look.Quiet">Ver detalhes</Button>
+        <Button Type="button" Kind="Button.Look.Danger">Excluir em definitivo</Button>
+        <Button Type="button" Disabled="true">Salvar</Button>
+        <Button Type="button" Kind="Button.Look.Secondary" Shortcut="n">Próximo item</Button>
+        <Button Href="#botoes" Kind="Button.Look.Secondary">Abrir como link</Button>
+    </div>
+</Panel>
+
+<Panel Id="campos" Title="Campos">
+    <Field Id="campo-vazio" Caption="Título" />
+    <Field Id="campo-dica" Caption="Endereço de e-mail" Type="email" Autocomplete="email" Hint="Usado só para avisos da conta." />
+    <Field Id="campo-obrigatorio" Caption="Identificador do operador" Required="true" Value="operador-07" />
+    <Field Id="campo-erro" Caption="Código de acesso" Required="true" Value="12" Hint="Seis dígitos, enviados pelo administrador."
+           Error="O código tem seis dígitos; foram informados dois." />
+</Panel>
+
+<Panel Id="estados" Title="Mensagens de estado">
+    <Notice>A cópia de segurança roda toda noite às 2h.</Notice>
+    <Notice Kind="Notice.Tone.Success">As alterações foram salvas.</Notice>
+    <Notice Kind="Notice.Tone.Pending">Aguardando a aprovação de uma segunda pessoa.</Notice>
+    <Notice Kind="Notice.Tone.Error">Não foi possível salvar. Confira os campos marcados e envie de novo.</Notice>
+</Panel>
+
+<Panel Id="listas" Title="Lista paginada">
+    <h3>Com itens</h3>
+    <PagedList Items="Rows" Caption="Lotes recebidos" Page="2" PageCount="3" PageSize="3" Address="@(page => $"?pagina={page}")"
+               EmptyTitle="Nenhum lote recebido.">
+        <ItemContent>@context</ItemContent>
+    </PagedList>
+    <h3>Primeira página</h3>
+    <PagedList Items="Rows" Caption="Lotes arquivados" Page="1" PageCount="2" PageSize="3" Address="@(page => $"?arquivo={page}")"
+               EmptyTitle="Nenhum lote arquivado.">
+        <ItemContent>@context</ItemContent>
+    </PagedList>
+    <h3>Vazia</h3>
+    <PagedList Items="None" Caption="Lotes rejeitados" Address="@(page => $"?rejeitados={page}")" EmptyTitle="Nenhum lote rejeitado."
+               EmptyHint="Um lote aparece aqui quando a verificação de formato o recusa.">
+        <ItemContent>@context</ItemContent>
+    </PagedList>
+</Panel>
+
+<Panel Id="vidro" Title="Painel de vidro">
+    <p>Cada seção desta tela é um painel. Com transparência reduzida ou contraste alto pedidos pelo sistema, o vidro vira superfície sólida.</p>
+</Panel>
+
+@code {
+    private static readonly string[] Rows = ["Lote 4 · 120 arquivos", "Lote 5 · 98 arquivos", "Lote 6 · 143 arquivos"];
+
+    private static readonly string[] None = [];
+}

@@ -204,7 +204,15 @@ public sealed partial record CustodyEvent
             scope.Text);
     }
 
-    /// <summary>The event of a recovery rehearsed and checked, written by the system: the item is the master key and its id is the sequence of the top of the copy the rehearsal opened.</summary>
+    /// <summary>
+    /// The event of a recovery rehearsed and checked, written by the system: the item is the master key, its id is the sequence of the top of the copy the rehearsal opened,
+    /// and the reference is the digest of the receipt, which the server takes only once (migration 0033).
+    /// </summary>
+    /// <param name="topSequence">The sequence of the last event of the copy, which the chain of the production holds too.</param>
+    /// <param name="receiptDigest">The digest of the receipt, as <c>RecoveryReceipt.Digest</c> gives it.</param>
+    public static CustodyEvent RecoveryRehearsed(long topSequence, string receiptDigest) => WithReference(RecoveryRehearsed(topSequence), receiptDigest);
+
+    /// <summary>The event of a recovery rehearsed and checked that names no receipt, written by the system: the item is the master key and its id is the sequence of the top of the copy.</summary>
     /// <param name="topSequence">The sequence of the last event of the copy, which the chain of the production holds too.</param>
     public static CustodyEvent RecoveryRehearsed(long topSequence)
     {

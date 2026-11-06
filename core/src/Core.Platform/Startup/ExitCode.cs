@@ -69,6 +69,9 @@ public enum ExitCode
     /// <summary>The database did not answer the rehearsal of the recovery or its record.</summary>
     RecoveryFailed = 30,
 
+    /// <summary>The record of the rehearsal was refused and nothing was written because the chain already holds a record of that very receipt; the rehearsal is to be repeated.</summary>
+    RecoveryReceiptRepeated = 41,
+
     /// <summary>The revocation of a domain label was refused, nothing written: not a label, unknown, revoked or the last, a conflict with another writer, or the chain refused the event.</summary>
     DomainLabelRevocationRefused = 37,
 

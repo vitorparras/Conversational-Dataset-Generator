@@ -1,0 +1,21 @@
+<h1>Tela de escolha</h1>
+
+<Region Id="status" Focus="[data-status]">
+    <p data-status tabindex="-1">@Message</p>
+    <Button Id="acionar" Kind="Button.Look.Secondary" Href="/ensaio/atalho" Swap="status" Shortcut="a">Acionar o atalho</Button>
+</Region>
+
+<p>
+    <label><input id="aceito" type="checkbox" name="aceito" /> Aceito os termos do ensaio</label>
+</p>
+<fieldset>
+    <legend>Escolha uma opção</legend>
+    <label><input id="opcao-a" type="radio" name="opcao" value="a" /> Opção A</label>
+    <label><input id="opcao-b" type="radio" name="opcao" value="b" /> Opção B</label>
+</fieldset>
+
+@code {
+    /// <summary>What the status region says; empty before the shortcut fires.</summary>
+    [Parameter]
+    public string Message { get; set; } = "Nada aconteceu ainda.";
+}

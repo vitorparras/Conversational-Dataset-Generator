@@ -19,6 +19,10 @@ internal static class TrialRoutes
     public const string Shortcut = "/ensaio/atalho";
     public const string Form = "/ensaio/formulario";
     public const string Submit = "/ensaio/envio";
+    public const string List = "/ensaio/lista";
+    public const string Choice = "/ensaio/caixa";
+    public const string Failure = "/ensaio/falha";
+    public const string InternalDetail = "zqx-detalhe-interno-6710";
     public const string ShortcutMessage = "O atalho foi acionado.";
     public const string NameRefusal = "Informe o nome.";
 
@@ -30,6 +34,9 @@ internal static class TrialRoutes
         _ = routes.MapGet(Catalog, (HttpContext context) => Show(context, typeof(CatalogScreen), "Catálogo dos componentes"));
         _ = routes.MapGet(Trial, (HttpContext context) => Show(context, typeof(TrialScreen), "Tela de ensaio"));
         _ = routes.MapGet(Shortcut, (HttpContext context) => Show(context, typeof(TrialScreen), "Tela de ensaio", Parameters((nameof(TrialScreen.Message), ShortcutMessage))));
+        _ = routes.MapGet(List, ShowList);
+        _ = routes.MapGet(Choice, (HttpContext context) => Show(context, typeof(ChoiceScreen), "Tela de escolha"));
+        _ = routes.MapGet(Failure, Fail);
         _ = routes.MapPost(Form, AnswerAsync);
         _ = routes.MapGet(Submit + "/{mode}", ShowSubmit);
         _ = routes.MapPost(Submit + "/{mode}", ReceiveAsync);
@@ -51,6 +58,7 @@ internal static class TrialRoutes
         {
             "erro" => Results.Text("Falha do servidor no ensaio.", statusCode: StatusCodes.Status500InternalServerError),
             "redireciona" => Results.Redirect(Bare),
+            "falha" => Fail(),
             _ => Show(context, typeof(BareScreen), "Tela base"),
         };
     }
@@ -63,6 +71,12 @@ internal static class TrialRoutes
             ? Show(context, typeof(TrialScreen), "Tela de ensaio", Parameters((nameof(TrialScreen.NameError), NameRefusal)))
             : Show(context, typeof(TrialScreen), "Tela de ensaio", Parameters((nameof(TrialScreen.Name), name), (nameof(TrialScreen.Saved), $"Nome aceito: {name}.")));
     }
+
+    private static RazorComponentResult<ScreenFrame> ShowList(int? pagina, string? filtro, HttpContext context) =>
+        Show(context, typeof(ListScreen), "Lista de ensaio", Parameters((nameof(ListScreen.Page), Math.Max(pagina ?? 1, 1)), (nameof(ListScreen.Filter), filtro ?? "")));
+
+    /// <summary>The failure nobody handles: a screen that throws, with a message that carries what the person must never see.</summary>
+    private static IResult Fail() => throw new InvalidOperationException(InternalDetail);
 
     private static RazorComponentResult<ScreenFrame> Show(HttpContext context, Type screen, string title, IDictionary<string, object?>? parameters = null) =>
         ScreenResult.Of(context, screen, title, parameters);

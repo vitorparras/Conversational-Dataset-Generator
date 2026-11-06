@@ -1,0 +1,98 @@
+[
+  {
+    "file": "valid.json",
+    "name": "conversa.json",
+    "expect": "read"
+  },
+  {
+    "file": "valid.json",
+    "name": "../../etc/passwd",
+    "expect": "read"
+  },
+  {
+    "file": "valid.json",
+    "name": "....windowssystem32conversa.json",
+    "expect": "read"
+  },
+  {
+    "file": "valid.json",
+    "name": "a\u0000b\u0007c\nd\u001b[31m.json",
+    "expect": "read"
+  },
+  {
+    "file": "valid.json",
+    "name": "conversa.exe",
+    "expect": "read"
+  },
+  {
+    "file": "valid.json",
+    "name": null,
+    "expect": "read"
+  },
+  {
+    "file": "valid.json",
+    "name": "conversa.json",
+    "limit": 50,
+    "expect": "TooLarge"
+  },
+  {
+    "file": "deep-json.json",
+    "name": "fundo.json",
+    "expect": "Unreadable:OverLimits"
+  },
+  {
+    "file": "huge-string.json",
+    "name": "gigante.json",
+    "expect": "Unreadable:OverLimits"
+  },
+  {
+    "file": "duplicate-key.json",
+    "name": "repetida.json",
+    "expect": "Unreadable:Corrupted"
+  },
+  {
+    "file": "bom.json",
+    "name": "bom.json",
+    "expect": "FormatNotConfirmed"
+  },
+  {
+    "file": "utf16-with-bom.json",
+    "name": "utf16.json",
+    "expect": "FormatNotConfirmed"
+  },
+  {
+    "file": "utf16-without-bom.json",
+    "name": "utf16.json",
+    "expect": "FormatNotConfirmed"
+  },
+  {
+    "file": "invalid-bytes-inside.json",
+    "name": "invalido.json",
+    "expect": "Unreadable:Corrupted"
+  },
+  {
+    "file": "invalid-bytes-leading.json",
+    "name": "invalido.json",
+    "expect": "FormatNotConfirmed"
+  },
+  {
+    "file": "external-reference.json",
+    "name": "externa.json",
+    "expect": "Unreadable:ExternalReference"
+  },
+  {
+    "file": "path-reference.json",
+    "name": "caminho.json",
+    "expect": "Unreadable:ExternalReference"
+  },
+  {
+    "file": "not-json.json",
+    "name": "texto.json",
+    "expect": "FormatNotConfirmed"
+  },
+  {
+    "file": "empty.json",
+    "name": "vazio.json",
+    "expect": "FormatNotConfirmed"
+  }
+]

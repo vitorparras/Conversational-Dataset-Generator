@@ -14,4 +14,10 @@ public enum UnreadableReason
 
     /// <summary>Only a part of the content could be read; a part is never taken for the whole.</summary>
     OnlyPartlyRead = 3,
+
+    /// <summary>The content goes past a limit the reader declares: how deep it nests, how many units it has or how long a text is.</summary>
+    OverLimits = 4,
+
+    /// <summary>A member of the structure reads as an address or a path, which the format does not have and the reader does not follow.</summary>
+    ExternalReference = 5,
 }

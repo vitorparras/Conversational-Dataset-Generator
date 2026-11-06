@@ -82,7 +82,7 @@ public sealed class SignInSaturationTests
 
         var refusedAtOnce = entries.Where(entry => entry.IsCompletedSuccessfully).ToList();
         Assert.Equal((SignInDelay.MaxWaitingPerOrigin, Parallel - SignInDelay.MaxWaitingPerOrigin), (database.Connections, refusedAtOnce.Count));
-        Assert.All(refusedAtOnce, entry => Assert.Null(entry.Result));
+        Assert.All(refusedAtOnce, entry => Assert.Equal(SignInEntry.Refused, entry.Result));
         database.Dispose();
         await cancel.CancelAsync();
         foreach (var blocked in entries.Except(refusedAtOnce))
@@ -102,7 +102,7 @@ public sealed class SignInSaturationTests
 
         var fromElsewhere = await signIn.OpenAsync("bia", "a senha certa ou errada", SignInDelayTests.NetworkNumber(700), TestContext.Current.CancellationToken);
 
-        Assert.Null(fromElsewhere);
+        Assert.Equal(SignInEntry.Refused, fromElsewhere);
         Assert.Equal(0, database.Connections);
         places.ForEach(place => place!.Dispose());
     }

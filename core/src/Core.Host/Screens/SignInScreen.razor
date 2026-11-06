@@ -1,0 +1,37 @@
+@using Core.Host.Endpoints
+
+<h1>Entrar</h1>
+
+<form class="sign-in" method="post" action="@ScreenPaths.SignIn" data-wait="entrada-espera" novalidate>
+    @if (Unregistered)
+    {
+        <Notice>Cadastro vazio: ainda não há ninguém para entrar. Quem administra o servidor cria a primeira pessoa com o comando <code>create-person</code>.</Notice>
+    }
+    @if (Refused)
+    {
+        <Notice Kind="Notice.Tone.Error">Nome ou senha não conferem. Confira os dois e tente de novo.</Notice>
+    }
+    <Field Id="entrada-nome" Name="@NameField" Caption="Nome" Value="@Name" Autocomplete="username" Autofocus="true" />
+    <Field Id="entrada-senha" Name="@SecretField" Caption="Senha" Type="password" Autocomplete="current-password" />
+    <p id="entrada-espera" class="wait" role="status" data-wait-text="Conferindo nome e senha. A resposta pode levar alguns segundos."></p>
+    <Button Id="entrar">Entrar</Button>
+</form>
+
+@code {
+    /// <summary>The name the form sends; the password goes in the body of the post alone and is never written back.</summary>
+    internal const string NameField = "nome";
+
+    internal const string SecretField = "senha";
+
+    /// <summary>The name as it was typed, given back when the entry is refused.</summary>
+    [Parameter]
+    public string? Name { get; set; }
+
+    /// <summary>Whether the entry was refused: one text for an unknown name, a wrong password and a wait, so the page never tells which.</summary>
+    [Parameter]
+    public bool Refused { get; set; }
+
+    /// <summary>Whether no one is registered yet, so that the page points to the step on the server.</summary>
+    [Parameter]
+    public bool Unregistered { get; set; }
+}

@@ -37,7 +37,7 @@ public sealed class CatalogTests(BrowserFixture browser)
         ["painel-de-vidro", ".panel"],
         ["lista-com-itens", "ul.paged-list li"],
         ["lista-com-paginas", "nav.pager a[rel=next]"],
-        ["lista-vazia", ".paged-list__empty[role=status]"],
+        ["lista-vazia", ".empty-state[role=status]"],
     ];
 
     [Fact]

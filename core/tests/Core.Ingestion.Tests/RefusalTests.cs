@@ -31,9 +31,12 @@ public sealed class RefusalTests
     [InlineData(RefusalCode.NoUnits, "o material não tem nenhuma unidade")]
     [InlineData(RefusalCode.FieldMissing, "falta o que a forma exige")]
     [InlineData(RefusalCode.FieldNotAllowed, "há o que a forma não admite")]
-    [InlineData(RefusalCode.OrderNotDetermined, "duas mensagens têm o mesmo instante, e a ordem não pode vir da posição no arquivo")]
+    [InlineData(RefusalCode.OrderNotDetermined, "duas mensagens têm o mesmo instante, e nada no conteúdo decide qual vem antes: a ordem não pode vir da posição no arquivo")]
+    [InlineData(RefusalCode.OrderIncoherent, "a ordem que as respostas dão contradiz os instantes ou a si mesma: uma resposta é anterior à mensagem que responde, ou as respostas formam um ciclo")]
     [InlineData(RefusalCode.PassageOutsideText, "um trecho começa antes do texto, termina depois dele ou não tem extensão")]
-    [InlineData(RefusalCode.MoreThanOneUnit, "a forma é de uma unidade só e o material tem mais")]
+    [InlineData(RefusalCode.ConversationThread, "o material traz fio de conversa, e a forma é de uma manifestação isolada")]
+    [InlineData(RefusalCode.AuthorshipByPart, "o material tem autoria por trecho, e a forma não tem autoria por parte")]
+    [InlineData(RefusalCode.PassageSplitsPair, "um limite de trecho cai dentro de um par substituto, e o trecho não seria o pretendido")]
     public void EachCodeIsWordedAsItIs(RefusalCode code, string words) =>
         Assert.Equal($"{Whole}{words}", Refusal.Whole(MaterialForm.Document, code, null).Reason);
 

@@ -1,0 +1,12 @@
+@using Core.Host.Endpoints
+
+<h1>@Title</h1>
+<div>
+    <p>Este endereço não leva a uma página. Confira se ele está completo ou volte ao início.</p>
+    <Button Href="@ScreenPaths.Home" Kind="Button.Look.Secondary">Ir para o início</Button>
+</div>
+
+@code {
+    /// <summary>The title of the page and of its heading; the text names nothing of the address asked, which is the same for a page refused and one that does not exist.</summary>
+    internal const string Title = "Página não encontrada";
+}

@@ -43,6 +43,21 @@ public sealed class PersonRegistryFirstPersonTests
     }
 
     [DatabaseFact]
+    public async Task TheRegistryIsEmptyUntilSomeoneIsMadeAndStaysNotEmptyWhenTheOnlyPersonIsDeactivated()
+    {
+        await using var database = new PeopleDatabase();
+        var registry = await database.RegistryAsync();
+        var before = await registry.IsEmptyAsync(TestContext.Current.CancellationToken);
+
+        var id = PeopleDatabase.Id(await registry.CreateAsync(new NewPerson(PeopleDatabase.NewName(), Annotation), CustodyAuthor.System, TestContext.Current.CancellationToken));
+        var made = await registry.IsEmptyAsync(TestContext.Current.CancellationToken);
+        _ = await registry.DeactivateAsync(id, CustodyAuthor.System, TestContext.Current.CancellationToken);
+        var deactivated = await registry.IsEmptyAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal((true, false, false), (before, made, deactivated));
+    }
+
+    [DatabaseFact]
     public async Task AFunctionOutsideThePolicyIsRefusedBeforeTheRegistryIsLookedAt()
     {
         await using var database = new PeopleDatabase();

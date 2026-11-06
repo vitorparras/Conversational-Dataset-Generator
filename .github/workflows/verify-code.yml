@@ -11,9 +11,13 @@ env:
 
 jobs:
   contagem:
-    name: Contar as construções da imagem no test_core real
+    name: Contar as construções da imagem no test_core real (amostra ${{ matrix.amostra }})
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        amostra: [1, 2, 3, 4, 5, 6]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
@@ -30,7 +34,7 @@ jobs:
           { docker version; docker info; df -h /; cat /etc/os-release | head -3; nproc; free -m; } > "$RUNNER_TEMP/m/ambiente.txt" 2>&1 || true
       - name: Eventos de imagem do Docker durante o teste
         run: |
-          nohup docker events --format '{{.TimeNano}} {{.Type}} {{.Action}} {{.ID}} {{json .Actor.Attributes}}' --filter type=image > "$RUNNER_TEMP/m/eventos.txt" 2>&1 &
+          nohup docker events --format '{{.TimeNano}} {{.Action}} {{.Actor.ID}} {{json .Actor.Attributes}}' --filter type=image > "$RUNNER_TEMP/m/eventos.txt" 2>&1 &
           echo $! > "$RUNNER_TEMP/m/events.pid"
       - name: Construir e testar o núcleo (como a CI)
         run: python tools/verify-code/verify.py --step build_core test_core
@@ -41,55 +45,12 @@ jobs:
           kill "$(cat "$RUNNER_TEMP/m/events.pid")" || true
           docker images --digests > "$RUNNER_TEMP/m/imagens.txt" 2>&1 || true
           date -u +%s%N > "$RUNNER_TEMP/m/fim.txt"
+          sudo journalctl -u docker -u containerd --no-pager > "$RUNNER_TEMP/m/daemon.txt" 2>&1 || true
+          sudo dmesg -T 2>&1 | tail -n 200 > "$RUNNER_TEMP/m/dmesg.txt" || true
+          free -m > "$RUNNER_TEMP/m/memoria.txt"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
-          name: contagem
-          path: ${{ runner.temp }}/m
-          overwrite: true
-
-  rajada:
-    name: Construção ${{ matrix.modo }} (amostra ${{ matrix.amostra }})
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    strategy:
-      fail-fast: false
-      matrix:
-        modo: [rajada, unica]
-        amostra: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Construir pela API do Docker, como o Testcontainers, e guardar o fluxo de cada construção
-        env:
-          MODO: ${{ matrix.modo }}
-        run: |
-          mkdir -p "$RUNNER_TEMP/m"
-          { docker version --format 'cliente {{.Client.Version}} servidor {{.Server.Version}}'; docker info --format 'driver {{.Driver}} rootdir {{.DockerRootDir}}'; df -h / | tail -1; nproc; } > "$RUNNER_TEMP/m/ambiente.txt" 2>&1 || true
-          tar -C tools/database -cf "$RUNNER_TEMP/ctx.tar" .
-          n=1; [ "$MODO" = rajada ] && n=9
-          build() {
-            id=$(cat /proc/sys/kernel/random/uuid)
-            s=$(date +%s)
-            curl -sS --unix-socket /var/run/docker.sock -X POST -H 'Content-Type: application/x-tar' \
-              --data-binary @"$RUNNER_TEMP/ctx.tar" \
-              "http://localhost/build?dockerfile=Dockerfile&t=localhost/testcontainers/$id:latest&rm=1&forcerm=1" \
-              > "$RUNNER_TEMP/m/build-$1.json" 2> "$RUNNER_TEMP/m/build-$1.err"
-            echo "$(( $(date +%s) - s ))" > "$RUNNER_TEMP/m/build-$1.seg"
-          }
-          for i in $(seq 1 "$n"); do build "$i" & done
-          wait
-          fails=0
-          for i in $(seq 1 "$n"); do
-            if grep -q '"error' "$RUNNER_TEMP/m/build-$i.json" || [ -s "$RUNNER_TEMP/m/build-$i.err" ] || ! docker image inspect >/dev/null 2>&1 localhost/testcontainers/$(true); then :; fi
-            if grep -q '"error' "$RUNNER_TEMP/m/build-$i.json" || [ -s "$RUNNER_TEMP/m/build-$i.err" ]; then fails=$((fails+1)); echo "::warning::construção $i caiu"; fi
-            echo "construção $i: $(cat "$RUNNER_TEMP/m/build-$i.seg") s, $(grep -c . "$RUNNER_TEMP/m/build-$i.json") linhas"
-          done
-          echo "falhas: $fails de $n"
-          echo "$fails" > "$RUNNER_TEMP/m/falhas.txt"
-          docker images --format '{{.Repository}}:{{.Tag}} {{.ID}}' | grep -c testcontainers || true
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always()
-        with:
-          name: rajada-${{ matrix.modo }}-${{ matrix.amostra }}
+          name: contagem-${{ matrix.amostra }}
           path: ${{ runner.temp }}/m
           overwrite: true

@@ -89,9 +89,10 @@ public sealed record Refusal
         RefusalCode.NoUnits => "o material não tem nenhuma unidade",
         RefusalCode.FieldMissing => "falta o que a forma exige",
         RefusalCode.FieldNotAllowed => "há o que a forma não admite",
-        RefusalCode.OrderNotDetermined => "duas mensagens têm o mesmo instante, e a ordem não pode vir da posição no arquivo",
+        RefusalCode.OrderNotDetermined => "duas mensagens têm o mesmo instante, e nada no conteúdo decide qual vem antes: a ordem não pode vir da posição no arquivo",
         RefusalCode.PassageOutsideText => "um trecho começa antes do texto, termina depois dele ou não tem extensão",
         RefusalCode.MoreThanOneUnit => "a forma é de uma unidade só e o material tem mais",
+        RefusalCode.OrderIncoherent => "a ordem que as respostas dão contradiz os instantes ou a si mesma: uma resposta é anterior à mensagem que responde, ou as respostas formam um ciclo",
         _ => throw new ArgumentOutOfRangeException(nameof(code), code, "The code is not one of the enumeration."),
     };
 

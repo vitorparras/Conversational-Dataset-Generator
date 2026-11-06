@@ -31,7 +31,8 @@ public sealed class RefusalTests
     [InlineData(RefusalCode.NoUnits, "o material não tem nenhuma unidade")]
     [InlineData(RefusalCode.FieldMissing, "falta o que a forma exige")]
     [InlineData(RefusalCode.FieldNotAllowed, "há o que a forma não admite")]
-    [InlineData(RefusalCode.OrderNotDetermined, "duas mensagens têm o mesmo instante, e a ordem não pode vir da posição no arquivo")]
+    [InlineData(RefusalCode.OrderNotDetermined, "duas mensagens têm o mesmo instante, e nada no conteúdo decide qual vem antes: a ordem não pode vir da posição no arquivo")]
+    [InlineData(RefusalCode.OrderIncoherent, "a ordem que as respostas dão contradiz os instantes ou a si mesma: uma resposta é anterior à mensagem que responde, ou as respostas formam um ciclo")]
     [InlineData(RefusalCode.PassageOutsideText, "um trecho começa antes do texto, termina depois dele ou não tem extensão")]
     [InlineData(RefusalCode.MoreThanOneUnit, "a forma é de uma unidade só e o material tem mais")]
     public void EachCodeIsWordedAsItIs(RefusalCode code, string words) =>

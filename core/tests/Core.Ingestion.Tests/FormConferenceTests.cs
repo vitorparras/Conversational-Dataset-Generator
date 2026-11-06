@@ -39,13 +39,13 @@ public sealed class FormConferenceTests
         var read = Units.Read(
             Units.Message("A", "ana", 3),
             new ReadUnit("B", "bia", Units.First.AddSeconds(1), null, []),
-            new ReadUnit("C", "bia", Units.First.AddSeconds(2), 0, []),
-            new ReadUnit("D", "bia", Units.First.AddSeconds(4), 1, []));
+            new ReadUnit("C", "bia", Units.First.AddSeconds(4), 0, []),
+            new ReadUnit("D", "bia", Units.First.AddSeconds(5), 1, []));
 
         var messages = Assert.IsType<Conversation>(Conference.Confer(MaterialForm.Conversation, read).Accepted).Messages;
 
-        Assert.Equal(["B", "C", "A", "D"], [.. messages.Select(message => message.Text)]);
-        Assert.Equal([null, 2, null, 0], [.. messages.Select(message => message.RepliesTo)]);
+        Assert.Equal(["B", "A", "C", "D"], [.. messages.Select(message => message.Text)]);
+        Assert.Equal([null, null, 1, 0], [.. messages.Select(message => message.RepliesTo)]);
     }
 
     [Theory]
@@ -95,7 +95,8 @@ public sealed class FormConferenceTests
         Assert.Equal(RefusalCode.OrderNotDetermined, refusal.Code);
         Assert.Equal([0, 2], [.. refusal.Findings.Select(finding => finding.Unit!.Value)]);
         Assert.Equal(
-            $"{Wording} conversa: duas mensagens têm o mesmo instante, e a ordem não pode vir da posição no arquivo: unidade 1, campo instante; unidade 3, campo instante",
+            $"{Wording} conversa: duas mensagens têm o mesmo instante, e nada no conteúdo decide qual vem antes: "
+            + "a ordem não pode vir da posição no arquivo: unidade 1, campo instante; unidade 3, campo instante",
             refusal.Reason);
     }
 

@@ -46,5 +46,6 @@ e por quem ela roda.
 | [032](032-conta-do-nucleo.md) | A conta do núcleo: não é root, lê o registro do servidor pelo grupo e não o grava |
 | [033](033-primeira-pessoa-numa-maquina-operada-de-fora.md) | A primeira pessoa numa máquina operada de fora: senha em arquivo, não no terminal |
 | [034](034-roteiro-de-usabilidade.md) | Roteiro de usabilidade de uma tela: modelo que as telas seguintes preenchem |
+| [036](036-roteiro-de-usabilidade-da-entrada-e-da-saida.md) | Roteiro de usabilidade da entrada e da saída |
 
 Ver [regras de escrita](../regras-de-escrita.md).

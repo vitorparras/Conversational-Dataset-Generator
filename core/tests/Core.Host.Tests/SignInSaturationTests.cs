@@ -126,7 +126,7 @@ public sealed class SignInSaturationTests
     {
         var source = NpgsqlDataSource.Create(connectionString);
         var sessions = new SessionStore(new SessionLifetimes(TimeSpan.FromMinutes(30), TimeSpan.FromHours(8)), clock);
-        var record = SignInRecord.Over(new SignInAttempts(source), NullLogger<SignInRecord>.Instance);
+        var record = new SignInRecord(new SignInAttempts(source), NullLoggerFactory.Instance);
         return new SignIn(new PersonRegistry(source), new PersonCredentials(source, new PasswordDerivation(1)), sessions, delay, record);
     }
 

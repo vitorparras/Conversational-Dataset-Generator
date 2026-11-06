@@ -58,7 +58,7 @@ internal static class DomainCreationMode
         }
 
         var loaded = HostConfiguration.Load(rest, migrating: true);
-        var database = HostConfiguration.DatabaseOf(loaded, migrating: true);
+        var database = HostConfiguration.DatabaseOf(loaded);
         if (database is null || database.State == DatabaseSettingsState.Refused)
         {
             return HostLaunch.Refused(database?.Problems ?? loaded.Problems);

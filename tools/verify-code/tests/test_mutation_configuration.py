@@ -102,7 +102,7 @@ class MutationAggregateJobTests(unittest.TestCase):
         self.assertEqual(text().count(AGGREGATE_NAME), 1)
 
     def test_the_aggregate_waits_for_the_list_and_for_every_module(self) -> None:
-        self.assertIn("needs: [mutation_modules, mutation_module]\n", aggregate_job())
+        self.assertIn("needs: [changes, mutation_modules, mutation_module]\n", aggregate_job())
 
     def test_the_aggregate_runs_when_a_module_fails_but_not_on_the_schedule(self) -> None:
         self.assertIn("if: always() && github.event_name != 'schedule'\n", aggregate_job())
@@ -110,8 +110,14 @@ class MutationAggregateJobTests(unittest.TestCase):
     def test_the_aggregate_fails_unless_every_result_is_success(self) -> None:
         job = aggregate_job()
 
-        self.assertIn("RESULTS: ${{ join(needs.*.result, ' ') }}", job)
-        self.assertIn('[ "$result" = success ] || exit 1', job)
+        self.assertIn(
+            "RESULTS: ${{ needs.mutation_modules.result }} ${{ needs.mutation_module.result }}",
+            job,
+        )
+        self.assertIn("wanted=success", job)
+        self.assertIn('if [ "$CLASSIFICATION" = success ] && [ "$HEAVY" = false ]; then', job)
+        self.assertIn("wanted=skipped", job)
+        self.assertIn('[ "$result" = "$wanted" ] || exit 1', job)
 
     def test_the_aggregate_never_continues_on_error(self) -> None:
         self.assertNotIn("continue-on-error", aggregate_job())

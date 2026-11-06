@@ -25,7 +25,7 @@ public sealed class StartupLineTests
     }
 
     [Fact]
-    public async Task VersionsLineNamesTheVersionAndCommitAndMarksWhatIsAbsent()
+    public async Task VersionsLineNamesTheVersionTheCommitAndTheSchemaAndMarksWhatTheFakeLeavesAbsent()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         using var host = await HostProcess.StartAsync(cancellationToken);
@@ -38,7 +38,7 @@ public sealed class StartupLineTests
         Assert.Contains(" ContractVersion=<absent>", line, StringComparison.Ordinal);
         Assert.Contains(" LanguageServiceVersion=<absent>", line, StringComparison.Ordinal);
         Assert.Contains(" ModelVersion=<absent>", line, StringComparison.Ordinal);
-        Assert.Contains(" SchemaVersion=<absent>", line, StringComparison.Ordinal);
+        Assert.Matches(@" SchemaVersion=(?!<absent>)\S+", line);
     }
 
     [Trait("Category", "RealService")]

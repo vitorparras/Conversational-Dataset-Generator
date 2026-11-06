@@ -39,8 +39,16 @@ internal static class ComposedProviders
                 [
                     "--LanguageService:Executable=zqx-never-started-7731", "--MasterKey:File=zqx-never-read-7731",
                     "--MasterKey:LabelsFile=zqx-never-read-7732", "--MasterKey:EpochsFile=zqx-never-read-7733"
-                ]));
-        Assert.False(loaded.Refused, "The configuration of a start with only the interpreter named must load.");
+                ]),
+            new EnvironmentSource(
+                new Dictionary<string, string?>(StringComparer.Ordinal)
+                {
+                    ["CDG_Database__Host"] = "127.0.0.1:5432",
+                    ["CDG_Database__Name"] = "zqx_database",
+                    ["CDG_Database__Username"] = "zqx_app",
+                    ["CDG_Database__Password"] = "ZQX-SENHA-7731",
+                }));
+        Assert.False(loaded.Refused, "The configuration of a start with only the interpreter and the database named must load.");
         var startup = (ServiceProvider)Method("StartupServices").Invoke(null, [loaded, file.Provider, DatabaseConfiguration.Read(loaded.Values)])!;
         using (startup)
         {

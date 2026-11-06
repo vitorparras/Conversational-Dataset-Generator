@@ -50,6 +50,15 @@ python tools/verify-code/verify.py --list
 python tools/verify-code/verify.py --step pr_size --base origin/main
 ```
 
+Num pull request que só muda Markdown de `docs/` ou da raiz que nenhum código, teste ou ferramenta
+lê (`git grep` do caminho, da pasta e do nome em `core/`, `language-service/` e `tools/`), o job
+`changes` dá `heavy=false` e o `if:` dispensa os jobs pesados; o agregador "Mutação nos módulos
+críticos" só aceita `skipped` nesse caso. Outro arquivo, diff vazio ou erro dá `heavy=true`; a
+execução semanal não classifica. No push do main, `--changes --tested-sha <commit> --repository
+<dono/nome>` pergunta à API se uma execução de PR registrou a árvore do commit com os obrigatórios
+verdes: se sim, só rodam o CodeQL, os jobs leves e a promoção da cobertura; se não, a régua inteira.
+O motivo sai no `stderr`: `verify.py --changes --base origin/main`.
+
 A ordem é única: `--step test_core` sozinho, em árvore limpa, falha porque testa com `--no-build`;
 `build_core` vem antes, e a execução sem argumento segue essa ordem. Os passos `lint_tools` e
 `test_tools` exigem `ruff`, `pyright`, `coverage` e `pyyaml` nas versões de
@@ -338,7 +347,7 @@ Com `fake` (sem conexão), com o serviço indisponível, recusando o segredo, fo
 respondendo algo que não é versão, as três vêm `null`. O contrato que o serviço informa pode
 diferir do que o núcleo fala nas requisições; o relatório mostra o do serviço. A `schemaVersion` é
 a versão que a conferência de inicialização confirmou no banco, fixada na partida e não relida a
-cada consulta: vem `null` sem banco configurado. A mesma lista sai no registro, na linha
+cada consulta. A mesma lista sai no registro, na linha
 `Versões em execução`, com o esquema já preenchido e as três do serviço lidas uma vez, depois que
 o serviço tem porta e segredo, sem esperar além do limite de leitura; ausentes aparecem como
 `<absent>`.
@@ -373,10 +382,10 @@ O teste de arquitetura em `core/tests/Core.Tests.Architecture` impõe as regras 
 construção; as fixtures que ele reprova de propósito ficam em `core/tests/fixtures/code-rules`, fora
 de qualquer projeto.
 
-Com as chaves `Database:Host`, `Database:Name` e `Database:Username` e a senha em
-`CDG_DATABASE__PASSWORD` (a caixa não importa), o núcleo confere as garantias do banco com o papel
-`app` antes do serviço de linguagem e recusa iniciar se faltar alguma; sem `Database:Host`, a
-conferência `Database` aparece como `NotConfigured`. A porta vai junto, em `Database:Host`
+As chaves `Database:Host`, `Database:Name` e `Database:Username` e a senha em
+`CDG_DATABASE__PASSWORD` (a caixa não importa) são obrigatórias para servir: o núcleo confere as
+garantias do banco com o papel `app` antes do serviço de linguagem e recusa iniciar, com o código
+78, se faltar alguma, nomeando as que faltam. A porta vai junto, em `Database:Host`
 (`servidor:5432`).
 
 ## Banco de dados de desenvolvimento

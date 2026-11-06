@@ -33,7 +33,7 @@ internal static class PersonQueries
             return await CreateChainedAsync(dataSource, statement, author, cancellationToken).ConfigureAwait(false);
         }
 
-        var pending = CustodyEvent.Of(author, new CustodyItem(CustodyItemKind.Person, personId), statement.Step, CustodyReason.AdministrativeAct);
+        var pending = statement.Event ?? CustodyEvent.Of(author, new CustodyItem(CustodyItemKind.Person, personId), statement.Step, CustodyReason.AdministrativeAct);
         var result = await CustodyTransaction.AppendBeforeAsync(
             dataSource,
             pending,

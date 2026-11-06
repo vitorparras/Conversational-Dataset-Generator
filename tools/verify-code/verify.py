@@ -138,15 +138,8 @@ def print_mutation_modules() -> int:
 def print_changes(base: str | None, sha: str | None, repository: str | None) -> int:
     """The CI output lines (`heavy=...`, and the run to promote); the reasons go to stderr."""
     ctx = Context(ROOT, ROOT / OUTPUT_DIRECTORY, run_process, base)
-    if sha and repository:
-        found = tested_tree.tested(ctx, repository, sha)
-        if found is None:
-            print(
-                "nenhuma execução verde de PR com a árvore do commit: régua inteira",
-                file=sys.stderr,
-            )
-            print("heavy=true")
-            return 0
+    found = tested_tree.tested(ctx, repository, sha) if sha and repository else None
+    if found:
         print(f"heavy=false\ntested_run={found.run}\ntested_head={found.head}")
         print("promote=" + " ".join(found.promote))
         return 0

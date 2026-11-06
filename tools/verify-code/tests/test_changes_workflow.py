@@ -118,6 +118,9 @@ class ChangesWorkflowTests(unittest.TestCase):
         self.assertIn("path: ${{ runner.temp }}/cobertura-main\n", text)
         self.assertNotIn('run: gh run download "${{', text)
 
+    def test_one_language_failing_does_not_cancel_the_promotion_of_the_other(self) -> None:
+        self.assertIn("fail-fast: false", job("promote_coverage"))
+
     def test_each_job_that_measures_the_coverage_keeps_the_table_for_the_promotion(self) -> None:
         for name in ("dotnet", "python"):
             with self.subTest(job=name):

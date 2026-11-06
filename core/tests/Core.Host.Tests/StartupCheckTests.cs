@@ -44,12 +44,12 @@ public sealed class StartupCheckTests
         Assert.Equal("Passed", checks[2].GetProperty("status").GetString());
         Assert.Equal("Tls", checks[3].GetProperty("name").GetString());
         Assert.Equal("Passed", checks[3].GetProperty("status").GetString());
-        Assert.Equal("Database", checks[4].GetProperty("name").GetString());
-        Assert.Equal("ServerLog", checks[5].GetProperty("name").GetString());
-        Assert.Equal("Passed", checks[5].GetProperty("status").GetString());
-        Assert.Equal("LanguageServiceFolder", checks[6].GetProperty("name").GetString());
-        Assert.Equal("Passed", checks[6].GetProperty("status").GetString());
-        Assert.Equal("LanguageService", checks[7].GetProperty("name").GetString());
-        Assert.Equal("Passed", checks[7].GetProperty("status").GetString());
+        Assert.Equal("Privilege", checks[4].GetProperty("name").GetString());
+        Assert.Equal("ServerLog", checks[16].GetProperty("name").GetString());
+        Assert.Equal("Passed", checks[16].GetProperty("status").GetString());
+        Assert.Equal("LanguageServiceFolder", checks[17].GetProperty("name").GetString());
+        Assert.Equal("Passed", checks[17].GetProperty("status").GetString());
+        Assert.Equal("LanguageService", checks[18].GetProperty("name").GetString());
+        Assert.Equal("Passed", checks[18].GetProperty("status").GetString());
     }
 }

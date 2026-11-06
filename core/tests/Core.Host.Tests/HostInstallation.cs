@@ -38,6 +38,9 @@ internal sealed record HostInstallation(string BinaryDirectory, string WorkingDi
     /// <summary>Whether the arguments the host receives also name the custody files of a key and labels of the right form, which the serving mode cannot start without.</summary>
     public bool ProvidesMasterKey { get; init; } = true;
 
+    /// <summary>Whether the process also receives the four keys of a migrated database, which the serving mode cannot start without; a test of the refusal withholds them.</summary>
+    public bool ProvidesDatabase { get; init; } = true;
+
     /// <summary>Whether the host asks the real language service, which it then starts, instead of the fake recognizer, which needs none.</summary>
     public bool UsesRealService { get; init; }
 

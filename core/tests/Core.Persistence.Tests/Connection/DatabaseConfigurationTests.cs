@@ -6,8 +6,7 @@ using Npgsql;
 namespace Core.Persistence.Tests.Connection;
 
 /// <summary>
-/// The application's credential comes from the closed configuration: without a host the database is not configured; with a
-/// host, the rest is required and the port must be a number; the password is never shown.
+/// The application's credential comes from the closed configuration: all four keys are required, and the port of the host must be a number; the password is never shown.
 /// </summary>
 public sealed class DatabaseConfigurationTests
 {
@@ -16,7 +15,7 @@ public sealed class DatabaseConfigurationTests
     [Fact]
     public void ConnectionStringCarriesTheConfiguredServerDatabaseAndCredential()
     {
-        var settings = DatabaseConfiguration.Read(Load(Complete()).Values);
+        var settings = DatabaseConfiguration.Read(Declared(Complete()));
 
         var connection = new NpgsqlConnectionStringBuilder(settings.ConnectionString);
 
@@ -33,39 +32,30 @@ public sealed class DatabaseConfigurationTests
         var variables = Complete();
         variables["CDG_Database__Host"] = "zqx-host";
 
-        var settings = DatabaseConfiguration.Read(Load(variables).Values);
+        var settings = DatabaseConfiguration.Read(Declared(variables));
 
         Assert.Equal(DatabaseSettingsState.Configured, settings.State);
     }
 
     [Fact]
-    public void NoSectionLoadsAndLeavesTheDatabaseNotConfigured()
+    public void NoKeyDeclaredIsRefusedAtLoadNamingAllFour()
     {
         var loaded = Load([]);
 
-        var settings = DatabaseConfiguration.Read(loaded.Values);
-
-        Assert.False(loaded.Refused);
-        Assert.Equal(DatabaseSettingsState.NotConfigured, settings.State);
-        Assert.Null(settings.ConnectionString);
+        Assert.True(loaded.Refused);
+        Assert.Equal(
+            ["Database:Host", "Database:Name", "Database:Username", "Database:Password"],
+            loaded.Problems.Where(problem => problem.Kind == ConfigurationProblemKind.MissingKey).Select(problem => problem.Key));
     }
 
     [Fact]
-    public void RequiredWithNoKeyDeclaredIsRefusedNamingAllFour()
+    public void NoKeyDeclaredIsRefusedNamingAllFour()
     {
-        var settings = DatabaseConfiguration.ReadRequired(Load([]).Values);
+        var settings = DatabaseConfiguration.Read(Declared([]));
 
         Assert.Equal(DatabaseSettingsState.Refused, settings.State);
         Assert.Equal(
             ["Database:Host", "Database:Name", "Database:Username", "Database:Password"], settings.Problems.Select(problem => problem.Key));
-    }
-
-    [Fact]
-    public void RequiredWithTheWholeSectionDeclaredIsConfigured()
-    {
-        var settings = DatabaseConfiguration.ReadRequired(Load(Complete()).Values);
-
-        Assert.Equal(DatabaseSettingsState.Configured, settings.State);
     }
 
     [Fact]
@@ -74,7 +64,7 @@ public sealed class DatabaseConfigurationTests
         var variables = Complete();
         _ = variables.Remove("CDG_Database__Host");
 
-        var settings = DatabaseConfiguration.Read(Load(variables).Values);
+        var settings = DatabaseConfiguration.Read(Declared(variables));
 
         Assert.Equal(DatabaseSettingsState.Refused, settings.State);
         var problem = Assert.Single(settings.Problems);
@@ -91,7 +81,7 @@ public sealed class DatabaseConfigurationTests
         var variables = Complete();
         _ = variables.Remove(variable);
 
-        var settings = DatabaseConfiguration.Read(Load(variables).Values);
+        var settings = DatabaseConfiguration.Read(Declared(variables));
 
         var problem = Assert.Single(settings.Problems);
         Assert.Equal(ConfigurationProblemKind.MissingKey, problem.Kind);
@@ -101,7 +91,7 @@ public sealed class DatabaseConfigurationTests
     [Fact]
     public void SingleCompanionIsRefusedNamingTheOtherThree()
     {
-        var settings = DatabaseConfiguration.Read(Load(new(StringComparer.Ordinal) { ["CDG_Database__Name"] = "zqx_database" }).Values);
+        var settings = DatabaseConfiguration.Read(Declared(new(StringComparer.Ordinal) { ["CDG_Database__Name"] = "zqx_database" }));
 
         Assert.Equal(["Database:Host", "Database:Username", "Database:Password"], settings.Problems.Select(problem => problem.Key));
     }
@@ -112,7 +102,7 @@ public sealed class DatabaseConfigurationTests
         var variables = Complete();
         _ = variables.Remove("CDG_Database__Password");
 
-        var settings = DatabaseConfiguration.Read(Load(variables).Values);
+        var settings = DatabaseConfiguration.Read(Declared(variables));
 
         Assert.Equal(DatabaseSettingsState.Refused, settings.State);
         var problem = Assert.Single(settings.Problems);
@@ -138,7 +128,7 @@ public sealed class DatabaseConfigurationTests
         var variables = Complete();
         variables["CDG_Database__Host"] = host;
 
-        var settings = DatabaseConfiguration.Read(Load(variables).Values);
+        var settings = DatabaseConfiguration.Read(Declared(variables));
 
         var problem = Assert.Single(settings.Problems);
         Assert.Equal(ConfigurationProblemKind.ValueNotAccepted, problem.Kind);
@@ -152,7 +142,7 @@ public sealed class DatabaseConfigurationTests
         var variables = Complete();
         variables["CDG_Database__Host"] = "zqx-host:65535";
 
-        var settings = DatabaseConfiguration.Read(Load(variables).Values);
+        var settings = DatabaseConfiguration.Read(Declared(variables));
 
         Assert.Equal(DatabaseSettingsState.Configured, settings.State);
     }
@@ -182,6 +172,13 @@ public sealed class DatabaseConfigurationTests
         Assert.Equal(EffectiveConfiguration.Redacted, shown.Value);
         Assert.Equal(ConfigurationOrigin.Environment, shown.Origin);
     }
+
+    /// <summary>The values a load of the whole section would hand over, by key, for the reading of one that is missing or wrong.</summary>
+    private static Dictionary<string, string> Declared(Dictionary<string, string?> variables) =>
+        variables.ToDictionary(
+            variable => variable.Key.Replace("CDG_", string.Empty, StringComparison.Ordinal).Replace("__", ":", StringComparison.Ordinal),
+            variable => variable.Value!,
+            StringComparer.Ordinal);
 
     private static ConfigurationLoadResult Load(Dictionary<string, string?> variables) =>
         ClosedConfiguration.Load(new ConfigurationSchema([DatabaseConfiguration.Section]), new EnvironmentSource(variables));

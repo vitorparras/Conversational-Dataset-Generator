@@ -338,7 +338,7 @@ Com `fake` (sem conexão), com o serviço indisponível, recusando o segredo, fo
 respondendo algo que não é versão, as três vêm `null`. O contrato que o serviço informa pode
 diferir do que o núcleo fala nas requisições; o relatório mostra o do serviço. A `schemaVersion` é
 a versão que a conferência de inicialização confirmou no banco, fixada na partida e não relida a
-cada consulta: vem `null` sem banco configurado. A mesma lista sai no registro, na linha
+cada consulta. A mesma lista sai no registro, na linha
 `Versões em execução`, com o esquema já preenchido e as três do serviço lidas uma vez, depois que
 o serviço tem porta e segredo, sem esperar além do limite de leitura; ausentes aparecem como
 `<absent>`.
@@ -373,10 +373,10 @@ O teste de arquitetura em `core/tests/Core.Tests.Architecture` impõe as regras 
 construção; as fixtures que ele reprova de propósito ficam em `core/tests/fixtures/code-rules`, fora
 de qualquer projeto.
 
-Com as chaves `Database:Host`, `Database:Name` e `Database:Username` e a senha em
-`CDG_DATABASE__PASSWORD` (a caixa não importa), o núcleo confere as garantias do banco com o papel
-`app` antes do serviço de linguagem e recusa iniciar se faltar alguma; sem `Database:Host`, a
-conferência `Database` aparece como `NotConfigured`. A porta vai junto, em `Database:Host`
+As chaves `Database:Host`, `Database:Name` e `Database:Username` e a senha em
+`CDG_DATABASE__PASSWORD` (a caixa não importa) são obrigatórias para servir: o núcleo confere as
+garantias do banco com o papel `app` antes do serviço de linguagem e recusa iniciar, com o código
+78, se faltar alguma, nomeando as que faltam. A porta vai junto, em `Database:Host`
 (`servidor:5432`).
 
 ## Banco de dados de desenvolvimento

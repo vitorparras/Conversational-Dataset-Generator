@@ -173,6 +173,14 @@ internal sealed class HostProcess : IDisposable
         }
 
         info.Environment[LanguageServiceConfiguration.EnvironmentVariable] = "Development";
+        if (installation.ProvidesDatabase)
+        {
+            foreach (var variable in MigratedDatabase.Variables)
+            {
+                info.Environment[variable.Key] = variable.Value;
+            }
+        }
+
         foreach (var variable in installation.Environment)
         {
             info.Environment[variable.Key] = variable.Value;

@@ -37,14 +37,14 @@ internal static class HostConfiguration
 
     /// <summary>The database section of a configuration that loaded; none from one that was refused, which has no values to read it from
     /// and would otherwise report every key of the section as missing.</summary>
-    internal static DatabaseSettings? DatabaseOf(ConfigurationLoadResult loaded, bool migrating)
+    internal static DatabaseSettings? DatabaseOf(ConfigurationLoadResult loaded)
     {
         if (loaded.Refused)
         {
             return null;
         }
 
-        return migrating ? DatabaseConfiguration.ReadRequired(loaded.Values) : DatabaseConfiguration.Read(loaded.Values);
+        return DatabaseConfiguration.Read(loaded.Values);
     }
 
     /// <summary>
@@ -67,7 +67,7 @@ internal static class HostConfiguration
                     AuditSection(migrating, comparing),
                     LanguageServiceConfiguration.Section,
                     RecognizerConfiguration.Section,
-                    migrating ? DatabaseConfiguration.SectionWhenMigrating : DatabaseConfiguration.Section
+                    DatabaseConfiguration.Section
                 ]),
             new JsonFileSource(SettingsPath),
             EnvironmentSource.FromProcess(),

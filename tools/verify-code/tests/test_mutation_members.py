@@ -8,7 +8,8 @@ from itertools import pairwise
 from pathlib import Path
 
 from steps import mutation_members
-from steps.mutation_members import STATIC_COST, UNBOUNDED, member_ends, slices
+from steps.mutation_cost import STATIC_COST
+from steps.mutation_members import UNBOUNDED, member_ends, slices
 
 from . import support
 

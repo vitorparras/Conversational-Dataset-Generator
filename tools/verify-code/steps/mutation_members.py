@@ -12,18 +12,10 @@ from dataclasses import dataclass, field
 from itertools import pairwise
 
 from steps.csharp_tokens import ARROW, Token, tokens
+from steps.mutation_cost import pieces
 
 #: The largest index of a file: the last slice runs to it, as a pattern with no span does.
 UNBOUNDED = 2**31 - 1
-#: What one token of a static initializer costs against one of any other code. Stryker cannot say
-#: which tests reach a static initializer, so each of its mutants runs the whole suite (#683: the
-#: 24 mutants of ``ContentColumns`` took 22 min, 304 tests each, while the same weight in tokens
-#: anywhere else took 4 to 11 min). Measured between 4 and 5.
-STATIC_COST = 5
-OPENERS = frozenset("{([")
-CLOSERS = frozenset("})]")
-ANGLES = frozenset("<>")
-STATIC = "static"
 TYPE_WORDS = frozenset({"class", "struct", "interface", "enum", "record"})
 ASSIGNMENTS = frozenset({"=", ARROW})
 #: What may follow the brace that closes a body without ending the member (``{ get; } = 1;``).
@@ -152,67 +144,6 @@ def ends_of(found: list[Token]) -> tuple[int, ...]:
 def units(text: str, index: int) -> int:
     """The UTF-16 units before ``index``: the offsets Stryker counts the spans in."""
     return len(text[:index].encode("utf-16-le")) // 2
-
-
-def static_initializer(member: list[Token]) -> bool:
-    """Whether the member is a static field or property with an initializer, or a static
-    constructor: what runs once, before any test, so Stryker tests each of its mutants against
-    every test. What is inside brackets, braces or parentheses says nothing about the member."""
-    depth = 0
-    after_static = -1
-    for position, token in enumerate(member):
-        if token.kind in OPENERS:
-            if depth == 0 and token.kind == "(" and after_static >= 0:
-                return position - after_static == 1
-            depth += 1
-        elif token.kind in CLOSERS:
-            depth = max(0, depth - 1)
-        elif depth == 0 and token.kind == ";":
-            after_static = -1
-        elif depth == 0 and token.kind == STATIC:
-            after_static = position + 1
-        elif depth == 0 and token.kind == "=" and after_static >= 0:
-            return True
-    return False
-
-
-def element_cuts(text: str, found: list[Token], first: int, last: int) -> list[int]:
-    """The token positions, exclusive, at which the member of ``found[first:last]`` may also be cut:
-    after each comma between the elements of the collection expression that initializes it
-    (``= [ new(...), new(...) ]``), so a long list is not one unit (#683). None when the list holds
-    a ``<`` or a ``>`` (generic arguments, lambdas), where this reading of the tokens could take a
-    comma of an element for one of the list. Stryker 5.0.0 makes no mutant of the list itself, only
-    of its elements, and each element lies whole in one slice."""
-    cuts: list[int] = []
-    depth = 0
-    opened = -1
-    for position in range(first, last):
-        kind = found[position].kind
-        if kind in OPENERS:
-            if kind == "[" and depth == 0 and position > first and found[position - 1].kind == "=":
-                opened = position
-            depth += 1
-        elif kind in CLOSERS:
-            depth = max(0, depth - 1)
-            if depth == 0 and opened >= 0:
-                inside = text[found[opened].end : found[position].end]
-                return [] if set(inside) & ANGLES else cuts
-        elif kind == "," and depth == 1 and opened >= 0 and position + 1 < last:
-            if found[position + 1].kind != "]":
-                cuts.append(position + 1)
-    return []
-
-
-def pieces(text: str, found: list[Token], first: int, last: int) -> list[tuple[int, int]]:
-    """The cuts of one member as ``(end, weight)``: the member itself, or its elements when it is
-    a static initializer holding a list; the weight is the tokens, times ``STATIC_COST`` for a
-    static initializer, wherever it is cut."""
-    member = found[first:last]
-    static = static_initializer(member)
-    inner = element_cuts(text, found, first, last) if static else []
-    marks = [first, *inner, last]
-    factor = STATIC_COST if static else 1
-    return [(b, max(1, b - a) * factor) for a, b in pairwise(marks)]
 
 
 def slices(text: str) -> tuple[tuple[int, int, int], ...]:

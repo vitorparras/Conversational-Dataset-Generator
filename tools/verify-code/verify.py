@@ -136,8 +136,7 @@ def print_mutation_modules() -> int:
 
 
 def print_changes(base: str | None, sha: str | None, repository: str | None) -> int:
-    """The output lines of the CI: `heavy=true|false` and, for a tree a pull request tested,
-    the run, the head and the languages to promote; the reasons go to stderr."""
+    """The CI output lines (`heavy=...`, and the run to promote); the reasons go to stderr."""
     ctx = Context(ROOT, ROOT / OUTPUT_DIRECTORY, run_process, base)
     if sha and repository:
         found = tested_tree.tested(ctx, repository, sha)
@@ -149,7 +148,7 @@ def print_changes(base: str | None, sha: str | None, repository: str | None) -> 
             print("heavy=true")
             return 0
         print(f"heavy=false\ntested_run={found.run}\ntested_head={found.head}")
-        print(f"promote={' '.join(found.promote)}")
+        print("promote=" + " ".join(found.promote))
         return 0
     decision = changes.verdict(ctx)
     for reason in decision.reasons:

@@ -72,7 +72,7 @@ class ChangesWorkflowTests(unittest.TestCase):
 
         self.assertIn("fetch-depth: 0", text)
         self.assertIn("verify.py --changes", text)
-        env, run = text.split("        run:", 1)
+        env, run = text[text.index("      - id: classify") :].split("        run:", 1)
         self.assertIn("format('origin/{0}', github.base_ref)", env)
         self.assertIn("BASE: ${{ github.event_name == 'pull_request' &&", env)
         self.assertIn('${BASE:+--base "$BASE"}', run)
@@ -84,10 +84,23 @@ class ChangesWorkflowTests(unittest.TestCase):
 
         self.assertIn("TESTED_SHA: ${{ github.event_name == 'push' && github.sha || '' }}", text)
         self.assertIn('${TESTED_SHA:+--tested-sha "$TESTED_SHA" --repository', text)
-        for permission in ("contents: read", "actions: read", "pull-requests: read"):
+        for permission in ("contents: read", "actions: read", "checks: read"):
             self.assertIn(f"      {permission}\n", text)
         for output in ("heavy", "tested_run", "tested_head", "promote"):
             self.assertIn(f"{output}: ${{{{ steps.classify.outputs.{output} }}}}", text)
+
+    def test_a_pull_request_run_records_the_tree_of_the_merge_ref_it_checked_out(self) -> None:
+        text = job("changes")
+        record = text[text.index("      - id: tree") : text.index("      - id: classify")]
+
+        self.assertIn("if: github.event_name == 'pull_request'", record)
+        self.assertIn("git rev-parse 'HEAD^{tree}'", record)
+        self.assertIn("name: arvore-${{ steps.tree.outputs.tree }}", record)
+        self.assertIn("overwrite: true", record)
+        self.assertIn(
+            tested_tree.TREE_ARTIFACT.format(tree="${{ steps.tree.outputs.tree }}"), record
+        )
+        self.assertLess(text.index("      - id: tree"), text.index("      - id: classify"))
 
     def test_the_promotion_runs_on_a_push_with_a_tested_tree_and_only_for_the_tables_it_has(
         self,

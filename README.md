@@ -57,9 +57,10 @@ comentário conta), o job `changes` dá `heavy=false` e o `if:` dispensa os jobs
 o agregador "Mutação nos módulos críticos" só aceita `skipped` nesse caso. Outro arquivo, diff
 vazio ou erro dá `heavy=true`; a execução semanal não classifica. No push do main, `--changes
 --tested-sha <commit> --repository <dono/nome>` pergunta à API se um PR verde já testou a árvore
-(pai contido na cabeça, mesma árvore, última execução verde, cobertura guardada): se sim, só rodam
-o CodeQL, os jobs leves e a promoção da cobertura; se não, ou se algo falhar, a régua inteira.
-A decisão sai no `stdout`, o motivo no `stderr`: `verify.py --changes --base origin/main`.
+(a execução de PR registra a árvore do merge ref; vale a igual de uma execução com os
+obrigatórios verdes): se sim, só rodam o CodeQL, os jobs leves e a promoção da cobertura; se não,
+ou se algo falhar, a régua inteira.
+O motivo sai no `stderr`: `verify.py --changes --base origin/main`.
 
 A ordem é única: `--step test_core` sozinho, em árvore limpa, falha porque testa com `--no-build`;
 `build_core` vem antes, e a execução sem argumento segue essa ordem. Os passos `lint_tools` e

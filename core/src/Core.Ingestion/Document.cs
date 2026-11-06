@@ -3,9 +3,9 @@ namespace Core.Ingestion;
 /// <summary>Running text with no author for any part of it.</summary>
 public sealed class Document : Material
 {
-    /// <summary>The document holds its sections.</summary>
+    /// <summary>The document holds its sections; only the conference of the form makes one.</summary>
     /// <param name="sections">The texts of the document, in the order the content gives them.</param>
-    public Document(IReadOnlyList<string> sections)
+    internal Document(IReadOnlyList<string> sections)
     {
         ArgumentNullException.ThrowIfNull(sections);
         Sections = sections;

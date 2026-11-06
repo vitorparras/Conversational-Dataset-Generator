@@ -10,7 +10,7 @@ public sealed class FormConference
 
     /// <summary>The conference over one rule for each of the four forms.</summary>
     /// <param name="rules">Exactly one rule for each form.</param>
-    public FormConference(IEnumerable<IFormRule> rules)
+    internal FormConference(IEnumerable<IFormRule> rules)
     {
         ArgumentNullException.ThrowIfNull(rules);
         var byForm = new Dictionary<MaterialForm, IFormRule>();
@@ -32,8 +32,15 @@ public sealed class FormConference
     }
 
     /// <summary>The conference with the minimal rule of each form.</summary>
-    public static FormConference Minimal() =>
-        new(Enumerable.Repeat<IFormRule>(new ConversationRule(), 1).Append(new CommentRule()).Append(new DocumentRule()).Append(new LabeledSequenceRule()));
+    public static FormConference Minimal()
+    {
+        var minimal = new IFormRule[Enum.GetValues<MaterialForm>().Length];
+        minimal[(int)MaterialForm.Conversation] = new ConversationRule();
+        minimal[(int)MaterialForm.Comment] = new CommentRule();
+        minimal[(int)MaterialForm.Document] = new DocumentRule();
+        minimal[(int)MaterialForm.LabeledSequence] = new LabeledSequenceRule();
+        return new FormConference(minimal);
+    }
 
     /// <summary>Confers what the reader gave against the form declared.</summary>
     /// <param name="declared">The form the one who submitted declared.</param>

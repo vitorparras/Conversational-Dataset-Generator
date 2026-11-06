@@ -15,8 +15,8 @@ public sealed record ConferenceResult
     /// <summary>The refusal; null when accepted.</summary>
     public Refusal? Refusal { get; }
 
-    /// <summary>The material holds up to the form declared.</summary>
-    public static ConferenceResult Accept(Material material)
+    /// <summary>The material holds up to the form declared; only a rule of the conference gives it.</summary>
+    internal static ConferenceResult Accept(Material material)
     {
         ArgumentNullException.ThrowIfNull(material);
         return new(material, null);

@@ -3,9 +3,9 @@ namespace Core.Ingestion;
 /// <summary>Text where the annotation falls on passages and not on the whole.</summary>
 public sealed class LabeledSequence : Material
 {
-    /// <summary>The sequence holds its texts with their passages.</summary>
+    /// <summary>The sequence holds its texts with their passages; only the conference of the form makes one.</summary>
     /// <param name="texts">The texts with their passages.</param>
-    public LabeledSequence(IReadOnlyList<LabeledText> texts)
+    internal LabeledSequence(IReadOnlyList<LabeledText> texts)
     {
         ArgumentNullException.ThrowIfNull(texts);
         Texts = texts;

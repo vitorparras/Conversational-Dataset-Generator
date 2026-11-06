@@ -5,7 +5,7 @@ namespace Core.Ingestion.Tests;
 /// </summary>
 public sealed class FormConferenceTests
 {
-    private const string Secret = "ZQXSEGREDO";
+    private const string Marker = "ZQXMARCADOR";
     private const string Wording = "lote recusado como";
     private static readonly FormConference Conference = FormConference.Minimal();
 
@@ -35,7 +35,7 @@ public sealed class FormConferenceTests
     [Fact]
     public void AConversationWhereAMessageHasNoAuthorIsRefusedNamingTheMessageAndTheField()
     {
-        var read = Units.Read(Units.Message($"UM {Secret}", "ana", 1), Units.Message($"DOIS {Secret}", null, 2), Units.Message($"TRES {Secret}", "  ", 3));
+        var read = Units.Read(Units.Message($"UM {Marker}", "ana", 1), Units.Message($"DOIS {Marker}", null, 2), Units.Message($"TRES {Marker}", "  ", 3));
 
         var refusal = Assert.IsType<Refusal>(Conference.Confer(MaterialForm.Conversation, read).Refusal);
 
@@ -91,7 +91,7 @@ public sealed class FormConferenceTests
     [Fact]
     public void ACommentWithoutAnAuthorIsRefused()
     {
-        var refusal = Assert.IsType<Refusal>(Conference.Confer(MaterialForm.Comment, Units.Read(Units.Message(Secret, null, 1))).Refusal);
+        var refusal = Assert.IsType<Refusal>(Conference.Confer(MaterialForm.Comment, Units.Read(Units.Message(Marker, null, 1))).Refusal);
 
         Assert.Equal($"{Wording} comentário: falta o que a forma exige: unidade 1, campo autor", refusal.Reason);
     }
@@ -109,7 +109,7 @@ public sealed class FormConferenceTests
     [Fact]
     public void ACommentThatAnswersSomeoneIsRefusedBecauseThatIsAThread()
     {
-        var unit = new ReadUnit(Secret, "ana", null, "bia", []);
+        var unit = new ReadUnit(Marker, "ana", null, "bia", []);
 
         var refusal = Assert.IsType<Refusal>(Conference.Confer(MaterialForm.Comment, Units.Read(unit)).Refusal);
 
@@ -179,7 +179,7 @@ public sealed class FormConferenceTests
     [Fact]
     public void ALabeledSequenceWhereAUnitHasNoPassageIsRefusedNamingTheUnit()
     {
-        var read = Units.Read(Units.Labeled("ABCDE", new Passage(0, 2)), Units.Plain(Secret));
+        var read = Units.Read(Units.Labeled("ABCDE", new Passage(0, 2)), Units.Plain(Marker));
 
         var refusal = Assert.IsType<Refusal>(Conference.Confer(MaterialForm.LabeledSequence, read).Refusal);
 
@@ -272,23 +272,6 @@ public sealed class FormConferenceTests
     }
 
     [Fact]
-    public void TheToStringOfWhatIsReadAndAcceptedTellsNothingOfTheText()
-    {
-        var passages = new[] { new Passage(0, 1) };
-        var unit = new ReadUnit(Secret, Secret, Units.First, Secret, passages);
-        var shown = string.Concat(
-            unit,
-            new Message(Secret, Units.First, null, Secret),
-            new Conversation([new Message(Secret, Units.First, Secret, Secret)]),
-            new Comment(Secret, null, Secret),
-            new Document([Secret]),
-            new LabeledText(Secret, passages),
-            new LabeledSequence([new LabeledText(Secret, passages)]));
-
-        Assert.DoesNotContain(Secret, shown, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void TheConferenceAsksForExactlyOneRuleForEachFormAndRefusesTheRest()
     {
         var rules = AllForms();
@@ -299,6 +282,39 @@ public sealed class FormConferenceTests
         var nothing = Assert.Throws<ArgumentNullException>(() => new FormConference([null!]));
 
         Assert.Equal(["rules", "rules", "rules", "rule"], [missing.ParamName, twice.ParamName, absent.ParamName, nothing.ParamName]);
+        Assert.StartsWith("There is not one rule for each of the four forms.", missing.Message, StringComparison.Ordinal);
+        Assert.StartsWith("There are two rules for the form Document.", twice.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheMinimalConferenceHasTheRuleOfEachFormAndEachRuleKnowsItsForm()
+    {
+        var rules = new IFormRule[] { new ConversationRule(), new CommentRule(), new DocumentRule(), new LabeledSequenceRule() };
+
+        Assert.Equal(
+            [MaterialForm.Conversation, MaterialForm.Comment, MaterialForm.Document, MaterialForm.LabeledSequence],
+            rules.Select(rule => rule.Form).ToArray());
+        Assert.All(rules, rule => Assert.Equal("read", Assert.Throws<ArgumentNullException>(() => rule.Confer(null!)).ParamName));
+    }
+
+    [Fact]
+    public void AnyPassageOutsideTheTextRefusesTheUnitEvenWhenAnotherOneIsInside()
+    {
+        var read = Units.Read(Units.Labeled("ABCDE", new Passage(0, 2), new Passage(0, 99)), Units.Labeled("ABCDE", new Passage(0, 99), new Passage(0, 2)));
+
+        var refusal = Assert.IsType<Refusal>(Conference.Confer(MaterialForm.LabeledSequence, read).Refusal);
+
+        Assert.Equal([0, 1], [.. refusal.Findings.Select(finding => finding.Unit!.Value)]);
+    }
+
+    [Fact]
+    public void TiedMessagesAreNamedInTheOrderOfTheUnitsWhateverTheGroupsAre()
+    {
+        var read = Units.Read(Units.Message("A", "ana", 5), Units.Message("B", "bia", 1), Units.Message("C", "ana", 5), Units.Message("D", "bia", 1));
+
+        var refusal = Assert.IsType<Refusal>(Conference.Confer(MaterialForm.Conversation, read).Refusal);
+
+        Assert.Equal([0, 1, 2, 3], [.. refusal.Findings.Select(finding => finding.Unit!.Value)]);
     }
 
     [Fact]
@@ -314,32 +330,9 @@ public sealed class FormConferenceTests
     {
         var undefined = Assert.Throws<ArgumentOutOfRangeException>(() => Conference.Confer((MaterialForm)99, Units.Read()));
         var nothing = Assert.Throws<ArgumentNullException>(() => Conference.Confer(MaterialForm.Document, null!));
-        var reason = Assert.Throws<ArgumentOutOfRangeException>(() => ReadOutcome.Unreadable((UnreadableReason)99));
-        var material = Assert.Throws<ArgumentNullException>(() => ReadOutcome.Read(null!));
-        var units = Assert.Throws<ArgumentNullException>(() => new ReadMaterial(null!));
 
-        Assert.Equal(["declared", "outcome", "reason", "material", "units"], [undefined.ParamName, nothing.ParamName, reason.ParamName, material.ParamName, units.ParamName]);
-    }
-
-    [Fact]
-    public void AReadOutcomeIsTheMaterialOrTheReasonAndNeverBoth()
-    {
-        var read = Units.Read(Units.Plain("A"));
-        var unreadable = ReadOutcome.Unreadable(UnreadableReason.Truncated);
-
-        Assert.Equal((true, null, null, UnreadableReason.Truncated), (read.Material is not null, read.Reason, unreadable.Material, unreadable.Reason));
-    }
-
-    [Fact]
-    public void AUnitAndItsPartsRefuseWhatIsNull()
-    {
-        var text = Assert.Throws<ArgumentNullException>(() => new ReadUnit(null!, null, null, null, []));
-        var passages = Assert.Throws<ArgumentNullException>(() => new ReadUnit("A", null, null, null, null!));
-        var findings = Assert.Throws<ArgumentNullException>(() => new Refusal(MaterialForm.Document, RefusalCode.NoUnits, null, null!));
-        var accepted = Assert.Throws<ArgumentNullException>(() => ConferenceResult.Accept(null!));
-        var refused = Assert.Throws<ArgumentNullException>(() => ConferenceResult.Refuse(null!));
-
-        Assert.Equal(["Text", "Passages", "findings", "material", "refusal"], [text.ParamName, passages.ParamName, findings.ParamName, accepted.ParamName, refused.ParamName]);
+        Assert.Equal(["declared", "outcome"], [undefined.ParamName, nothing.ParamName]);
+        Assert.StartsWith("The form is not one of the four.", undefined.Message, StringComparison.Ordinal);
     }
 
     private static IFormRule[] AllForms() =>

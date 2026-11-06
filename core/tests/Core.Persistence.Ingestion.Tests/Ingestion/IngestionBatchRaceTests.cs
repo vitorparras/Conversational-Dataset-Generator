@@ -1,6 +1,5 @@
 using Core.Persistence.Content;
 using Core.Persistence.Ingestion;
-using Core.Persistence.Tests.Content;
 using Core.Persistence.Tests.Fixtures;
 using Npgsql;
 
@@ -50,7 +49,7 @@ public sealed class IngestionBatchRaceTests
     /// <summary>
     /// A writer adds an item to the batch and does not commit; the closing starts and waits on it; the writer commits. The closing's result is what comes back.
     /// </summary>
-    private static async Task<BatchResult> CloseWhileAWriterCommitsAsync(ContentWorld world, long batch, Func<Task<BatchResult>> close)
+    private static async Task<BatchResult> CloseWhileAWriterCommitsAsync(BatchesWorld world, long batch, Func<Task<BatchResult>> close)
     {
         var token = TestContext.Current.CancellationToken;
         var writer = await ContentTransaction.BeginAsync(world.DataSource, IngestionWorld.Domain, token);
@@ -73,7 +72,7 @@ public sealed class IngestionBatchRaceTests
     /// Waits, as the superuser (who is the one that sees what the sessions of other roles wait for), until the update that closes the batch waits on a lock.
     /// The only lock it can wait on is the turn of the batch that the writer holds.
     /// </summary>
-    private static async Task WaitUntilSomeoneWaitsAsync(ContentWorld world)
+    private static async Task WaitUntilSomeoneWaitsAsync(BatchesWorld world)
     {
         var server = await PostgresFixture.SharedAsync();
         await using var connection = new NpgsqlConnection(server.SuperuserConnectionString);
@@ -88,7 +87,7 @@ public sealed class IngestionBatchRaceTests
         }
     }
 
-    private static async Task<long> ItemsInTheBatchAsync(ContentWorld world, long batch)
+    private static async Task<long> ItemsInTheBatchAsync(BatchesWorld world, long batch)
     {
         await using var transaction = await ContentTransaction.BeginSystemAsync(world.DataSource, IngestionWorld.Domain, TestContext.Current.CancellationToken);
         await using var command = transaction.CreateCommand(InTheBatch);

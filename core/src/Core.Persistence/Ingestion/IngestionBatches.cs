@@ -101,27 +101,26 @@ public sealed class IngestionBatches
 
     private async Task<BatchResult> OpeningAsync(int domainId, long authorId, CancellationToken cancellationToken)
     {
-        var batch = new StrongBox<long>();
-        var failure = new StrongBox<BatchOutcome?>(null);
-        var recorded = await CustodyTransaction.RunAsync(dataSource, scope => OpenInAsync(scope, (domainId, authorId), batch, failure, cancellationToken), cancellationToken).ConfigureAwait(false);
-        return failure.Value is { } outcome ? new BatchResult { Outcome = outcome } : Answered(recorded, BatchOutcome.Opened, batch.Value);
+        var run = new StrongBox<(long Batch, BatchOutcome? Failure)>();
+        var recorded = await CustodyTransaction.RunAsync(dataSource, scope => OpenInAsync(scope, (domainId, authorId), run, cancellationToken), cancellationToken).ConfigureAwait(false);
+        return run.Value.Failure is { } outcome ? new BatchResult { Outcome = outcome } : Answered(recorded, BatchOutcome.Opened, run.Value.Batch);
     }
 
     private static async Task<CustodyResult?> OpenInAsync(
-        CustodyScope scope, (int DomainId, long AuthorId) opening, StrongBox<long> batch, StrongBox<BatchOutcome?> failure, CancellationToken cancellationToken)
+        CustodyScope scope, (int DomainId, long AuthorId) opening, StrongBox<(long Batch, BatchOutcome? Failure)> run, CancellationToken cancellationToken)
     {
         await DeclareDomainAsync(scope, opening.DomainId, cancellationToken).ConfigureAwait(false);
         try
         {
-            batch.Value = await InsertAsync(scope, opening, cancellationToken).ConfigureAwait(false);
+            run.Value = (await InsertAsync(scope, opening, cancellationToken).ConfigureAwait(false), null);
         }
         catch (PostgresException refused) when (refused.SqlState == PostgresErrorCodes.ForeignKeyViolation)
         {
-            failure.Value = refused.ConstraintName == AuthorConstraint ? BatchOutcome.AuthorUnknown : BatchOutcome.DomainUnknown;
+            run.Value = (0, refused.ConstraintName == AuthorConstraint ? BatchOutcome.AuthorUnknown : BatchOutcome.DomainUnknown);
             return null;
         }
 
-        var appended = await CustodyAppend.AppendAsync(scope, CustodyEvent.BatchOpened(opening.AuthorId, batch.Value), cancellationToken).ConfigureAwait(false);
+        var appended = await CustodyAppend.AppendAsync(scope, CustodyEvent.BatchOpened(opening.AuthorId, run.Value.Batch), cancellationToken).ConfigureAwait(false);
         return await CustodyAppend.CommitIfAppendedAsync(scope, appended, cancellationToken).ConfigureAwait(false);
     }
 
@@ -193,13 +192,7 @@ public sealed class IngestionBatches
         }
     }
 
-    private static BatchState StateOf(string state) => state switch
-    {
-        "open" => BatchState.Open,
-        "accepted" => BatchState.Accepted,
-        "rejected" => BatchState.Rejected,
-        _ => throw new InvalidOperationException("The database holds a batch in a state this build does not know."),
-    };
+    private static BatchState StateOf(string state) => Enum.Parse<BatchState>(state, ignoreCase: true);
 
     private async Task<IngestionBatch?> ReadingAsync(int domainId, long batchId, CancellationToken cancellationToken)
     {

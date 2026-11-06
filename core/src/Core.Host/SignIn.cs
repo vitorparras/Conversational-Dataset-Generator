@@ -18,6 +18,9 @@ internal sealed class SignIn(PersonRegistry registry, PersonCredentials credenti
 {
     private const long Nobody = 0;
 
+    /// <summary>Whether nobody is registered yet, which the entry says so that the person knows the step is on the server.</summary>
+    internal Task<bool> NobodyRegisteredAsync(CancellationToken cancellationToken) => registry.IsEmptyAsync(cancellationToken);
+
     /// <summary>The identifier of the session that was opened; null when the entry is refused, whatever the reason.</summary>
     internal async Task<string?> OpenAsync(string name, string password, IPAddress? origin, CancellationToken cancellationToken)
     {

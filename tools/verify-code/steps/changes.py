@@ -23,8 +23,6 @@ SEPARATOR = r"[^A-Za-z0-9_.-]{1,10}"
 FOLDER_END = r"""(["']|/["'{*$]|\\|$)"""
 NOT_A_PATH = r"(^|[^A-Za-z0-9_./-])"
 NO_MATCH = 1
-HEAVY = "heavy=true"
-LIGHT = "heavy=false"
 
 
 @dataclass(frozen=True)
@@ -36,7 +34,7 @@ class Verdict:
 
     @property
     def output(self) -> str:
-        return HEAVY if self.heavy else LIGHT
+        return "heavy=true" if self.heavy else "heavy=false"
 
 
 def heavy(*reasons: str) -> Verdict:
@@ -60,12 +58,9 @@ def _joined(segments: tuple[str, ...]) -> str:
 
 
 def reader_patterns(path: str) -> tuple[str, ...]:
-    """Extended regular expressions for the ways code can name the document at ``path``.
-
-    The full path and the folders above it (two segments or more) may be written with any
-    punctuation between the segments, as `Path.Combine(root, "docs", "privacidade")` does; a
-    folder only counts when it ends the string or is followed by `/` and a quote or wildcard, so
-    a citation like `docs/operacao/018` does not make every document of the folder code."""
+    """Extended regular expressions for the ways code can name the document at ``path``: the path
+    and the folders above it, with any punctuation between segments (`Path.Combine` style), a
+    folder only when it ends the string or a quote or wildcard follows it, and the file name."""
     parts = PurePosixPath(path).parts
     if len(parts) == 1:
         return (NOT_A_PATH + _escaped(parts[0]),)
@@ -87,8 +82,7 @@ def read_by_code(ctx: Context, path: str) -> bool:
 
 
 def changed_paths(ctx: Context) -> tuple[str, ...] | str:
-    """The paths the pull request changes against the base (a rename counts both ends), or the
-    reason it could not tell."""
+    """The paths changed against the base (a rename counts both ends), or why it could not tell."""
     command = ["git", "-c", "core.quotepath=off", "diff", "--name-only", "--no-renames"]
     outcome = ctx.run([*command, f"{ctx.base}...HEAD"], ctx.root)
     if not outcome.ok:

@@ -1,8 +1,9 @@
 """Tells if a commit of the main holds a tree a green pull request run already tested.
 
-Any doubt or error returns nothing, and the whole ruler runs as before. It takes: one parent and one
-merged pull request; a head that contains the parent and has the tree of the commit; a green newest
-finished run on that head; and, for each heavy job that ran, its coverage table, still kept.
+Each pull request run records the tree of the merge ref it checked out, in an artifact named after
+that tree. The push is skipped only for a tree such a run recorded, when the run is a finished green
+run of the workflow and every check the ruleset requires is green on its head. Nothing is deduced
+from the head or the base. Any doubt or error returns nothing: the whole ruler runs.
 """
 
 from __future__ import annotations
@@ -16,81 +17,76 @@ from steps.common import Context
 WORKFLOW = "verify-code.yml"
 JOBS = {"dotnet": "Núcleo (.NET) e ferramentas", "python": "Serviço de linguagem (Python)"}
 ARTIFACT = "cobertura-pr-{language}-{head}"
-ONE_PARENT = 2
+TREE_ARTIFACT = "arvore-{tree}"
+GREEN = ("success", "skipped")
 Json = dict[str, Any]
 
 
 @dataclass(frozen=True)
 class Tested:
-    """The green run and head that tested the tree, and the languages whose table to promote."""
-
     run: int
     head: str
     promote: tuple[str, ...]
 
 
-def _api(ctx: Context, path: str) -> Json | None:
+def _api(ctx: Context, path: str) -> Any:
     outcome = ctx.run(["gh", "api", path], ctx.root)
-    return cast("Json", json.loads(outcome.text)) if outcome.ok else None
+    return json.loads(outcome.text) if outcome.ok else None
 
 
-def _git(ctx: Context, *args: str) -> str | None:
-    outcome = ctx.run(["git", *args], ctx.root)
-    return outcome.text.strip() if outcome.ok else None
+def _object(ctx: Context, path: str) -> Json:
+    return cast("Json", _api(ctx, path) or {})
 
 
-def _merged_pull(ctx: Context, repository: str, sha: str) -> Json | None:
-    outcome = ctx.run(["gh", "api", f"repos/{repository}/commits/{sha}/pulls"], ctx.root)
-    pulls = cast("list[Json]", json.loads(outcome.text)) if outcome.ok else []
-    merged = [p for p in pulls if p.get("merge_commit_sha") == sha and p.get("merged_at")]
-    return merged[0] if len(merged) == 1 else None
+def _required(ctx: Context, repository: str) -> set[str]:
+    rules = cast("list[Json]", _api(ctx, f"repos/{repository}/rules/branches/main") or [])
+    return {
+        str(c["context"])
+        for rule in rules
+        if rule["type"] == "required_status_checks"
+        for c in cast("list[Json]", rule["parameters"]["required_status_checks"])
+    }
 
 
-def _same_tree(ctx: Context, sha: str, head: str) -> bool:
-    """True when ``head`` contains the parent of ``sha`` and has the tree of ``sha``."""
-    parent, tree = _git(ctx, "rev-parse", f"{sha}^"), _git(ctx, "rev-parse", f"{sha}^{{tree}}")
-    return (
-        parent is not None
-        and tree is not None
-        and _git(ctx, "rev-parse", f"{head}^{{tree}}") == tree
-        and _git(ctx, "merge-base", "--is-ancestor", parent, head) is not None
-    )
-
-
-def _green_run(ctx: Context, repository: str, head: str) -> Json | None:
-    path = (
-        f"repos/{repository}/actions/workflows/{WORKFLOW}/runs?head_sha={head}&event=pull_request"
-    )
-    runs = cast("list[Json]", (_api(ctx, path) or {}).get("workflow_runs", []))
-    done = [r for r in runs if r["status"] == "completed"]
-    return done[0] if done and done[0]["conclusion"] == "success" else None
+def _all_required_green(ctx: Context, repository: str, head: str, required: set[str]) -> bool:
+    checks = _object(ctx, f"repos/{repository}/commits/{head}/check-runs?per_page=100")
+    runs = cast("list[Json]", checks.get("check_runs", []))
+    states = {str(c["name"]): c["conclusion"] for c in runs if c["name"] in required}
+    return bool(required) and set(states) == required and all(v in GREEN for v in states.values())
 
 
 def _promotable(ctx: Context, repository: str, run: int, head: str) -> tuple[str, ...] | None:
     """The languages whose heavy job ran in the run, or None if a table is missing."""
     base = f"repos/{repository}/actions/runs/{run}"
-    jobs, artifacts = (
-        _api(ctx, f"{base}/jobs?per_page=100"),
-        _api(ctx, f"{base}/artifacts?per_page=100"),
-    )
-    if jobs is None or artifacts is None:
+    jobs, kept = _api(ctx, f"{base}/jobs?per_page=100"), _api(ctx, f"{base}/artifacts?per_page=100")
+    if jobs is None or kept is None:
         return None
     done = {
         str(j["name"]) for j in cast("list[Json]", jobs["jobs"]) if j["conclusion"] == "success"
     }
-    kept = {str(a["name"]) for a in cast("list[Json]", artifacts["artifacts"]) if not a["expired"]}
+    names = {str(a["name"]) for a in cast("list[Json]", kept["artifacts"]) if not a["expired"]}
     ran = tuple(n for n, title in JOBS.items() if title in done)
-    return ran if all(ARTIFACT.format(language=n, head=head) in kept for n in ran) else None
+    return ran if all(ARTIFACT.format(language=n, head=head) in names for n in ran) else None
+
+
+def _recorded_by(ctx: Context, repository: str, tree: str) -> list[Json]:
+    name = TREE_ARTIFACT.format(tree=tree)
+    found = _object(ctx, f"repos/{repository}/actions/artifacts?name={name}&per_page=100")
+    runs: list[Json] = []
+    for artifact in cast("list[Json]", found.get("artifacts", [])):
+        run = _object(ctx, f"repos/{repository}/actions/runs/{artifact['workflow_run']['id']}")
+        done = run.get("event") == "pull_request" and run.get("conclusion") == "success"
+        if done and not artifact["expired"] and WORKFLOW in str(run.get("path")):
+            runs.append(run)
+    return runs
 
 
 def tested(ctx: Context, repository: str, sha: str) -> Tested | None:
-    parents = (_git(ctx, "rev-list", "--parents", "-n", "1", sha) or "").split()
-    pull = _merged_pull(ctx, repository, sha) if len(parents) == ONE_PARENT else None
-    if pull is None:
-        return None
-    head = str(pull["head"]["sha"])
-    if _git(ctx, "fetch", "-q", "origin", f"refs/pull/{pull['number']}/head") is None:
-        return None
-    green = _green_run(ctx, repository, head) if _same_tree(ctx, sha, head) else None
-    promote = _promotable(ctx, repository, int(green["id"]), head) if green else None
-    return None if promote is None or green is None else Tested(int(green["id"]), head, promote)
+    outcome = ctx.run(["git", "rev-parse", f"{sha}^{{tree}}"], ctx.root)
+    required = _required(ctx, repository)
+    for run in _recorded_by(ctx, repository, outcome.text.strip()) if outcome.ok else []:
+        head = str(run["head_sha"])
+        promote = _promotable(ctx, repository, int(run["id"]), head)
+        if promote is not None and _all_required_green(ctx, repository, head, required):
+            return Tested(int(run["id"]), head, promote)
+    return None

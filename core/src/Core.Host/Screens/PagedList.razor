@@ -1,0 +1,64 @@
+@typeparam TItem
+
+@if (Items.Count == 0)
+{
+    <div class="paged-list__empty" role="status">
+        <p><strong>@EmptyTitle</strong></p>
+        @if (EmptyHint is not null)
+        {
+            <p>@EmptyHint</p>
+        }
+    </div>
+}
+else
+{
+    <ul class="paged-list" aria-label="@Caption">
+        @foreach (var item in Items)
+        {
+            <li>@ItemContent(item)</li>
+        }
+    </ul>
+    <nav class="pager" aria-label="Páginas de @Caption.ToLowerInvariant()">
+        @Edge(Page > 1, Page - 1, "Anterior", "prev")
+        <span aria-current="page">Página @Page de @PageCount, @PageSize por página</span>
+        @Edge(Page < PageCount, Page + 1, "Próxima", "next")
+    </nav>
+}
+
+@code {
+    /// <summary>The items of this page alone: the server filters and pages (decision 0051), the list only shows.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<TItem> Items { get; set; } = Array.Empty<TItem>();
+
+    [Parameter, EditorRequired]
+    public RenderFragment<TItem> ItemContent { get; set; } = _ => _ => { };
+
+    /// <summary>What the list holds, which names it and its pages for a reader of screens.</summary>
+    [Parameter, EditorRequired]
+    public string Caption { get; set; } = "";
+
+    [Parameter]
+    public int Page { get; set; } = 1;
+
+    [Parameter]
+    public int PageCount { get; set; } = 1;
+
+    /// <summary>The fixed size the screen declares.</summary>
+    [Parameter]
+    public int PageSize { get; set; }
+
+    /// <summary>The address of a page, which keeps the page and the filter in the address so that going back and sharing work.</summary>
+    [Parameter, EditorRequired]
+    public Func<int, string> Address { get; set; } = _ => "";
+
+    /// <summary>What the empty list says, and what makes something appear in it.</summary>
+    [Parameter, EditorRequired]
+    public string EmptyTitle { get; set; } = "";
+
+    [Parameter]
+    public string? EmptyHint { get; set; }
+
+    private RenderFragment Edge(bool open, int page, string word, string relation) => open
+        ? @<a href="@Address(page)" rel="@relation">@word</a>
+        : @<span class="pager__edge">@word</span>;
+}

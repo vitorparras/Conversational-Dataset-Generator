@@ -48,17 +48,14 @@ def aggregator_script() -> str:
     return "\n".join(line[10:] for line in block.splitlines())
 
 
-def aggregate(classification: str, heavy: str, modules: str, matrix: str) -> int:
-    """The exit code of the aggregator for the results GitHub would hand it."""
+def aggregate(*results: str) -> int:
+    """The exit code of the aggregator for the results GitHub would hand it, in the order of
+    CLASSIFICATION, HEAVY, LISTED, MODULES and MATRIX."""
     assert BASH is not None
+    names = ("CLASSIFICATION", "HEAVY", "LISTED", "MODULES", "MATRIX")
     done = subprocess.run(
         [BASH, "-c", aggregator_script()],
-        env={
-            "CLASSIFICATION": classification,
-            "HEAVY": heavy,
-            "RESULTS": f"{modules} {matrix}",
-            "PATH": "/usr/bin:/bin",
-        },
+        env={**dict(zip(names, results, strict=True)), "PATH": "/usr/bin:/bin"},
         capture_output=True,
         text=True,
         check=False,
@@ -156,9 +153,24 @@ class ChangesWorkflowTests(unittest.TestCase):
                 self.assertNotIn("heavy == 'true'", condition)
 
     def test_the_schedule_still_skips_what_it_always_skipped(self) -> None:
-        for name in set(DISPENSED) - {"offline_start"}:
+        for name in set(DISPENSED) - {"offline_start", "mutation_modules"}:
             with self.subTest(job=name):
                 self.assertIn("github.event_name != 'schedule'", job(name))
+
+    def test_the_schedule_and_the_manual_run_mutate_every_module(self) -> None:
+        self.assertIn("workflow_dispatch:", WORKFLOW.read_text(encoding="utf-8"))
+        lister = job("mutation_modules")
+        self.assertNotIn("schedule", lister)
+        self.assertIn("github.event_name == 'pull_request' && needs.changes.result", lister)
+        self.assertIn("== 'success' && format('origin/{0}'", lister)
+        self.assertIn("fetch-depth: 0", lister)
+
+    def test_a_failed_classification_makes_the_list_read_every_module(self) -> None:
+        step = job("mutation_modules")
+        base = step[step.index("BASE:") : step.index("run: |")]
+
+        self.assertLess(base.index("needs.changes.result == 'success'"), base.index("format("))
+        self.assertTrue(base.rstrip().endswith("|| '' }}"))
 
     def test_the_light_jobs_never_wait_for_the_classification_nor_depend_on_it(self) -> None:
         for name in ALWAYS:
@@ -172,7 +184,7 @@ class ChangesWorkflowTests(unittest.TestCase):
         text = job("mutation")
 
         self.assertIn("needs: [changes, mutation_modules, mutation_module]", text)
-        self.assertIn("if: always() && github.event_name != 'schedule'", text)
+        self.assertIn("    if: always()\n", text)
         self.assertIn("name: Mutação nos módulos críticos", text)
 
     def test_no_workflow_filters_by_path_because_that_leaves_the_required_check_pending(
@@ -194,33 +206,46 @@ class ChangesWorkflowTests(unittest.TestCase):
 
 @unittest.skipIf(BASH is None, "bash is needed to run the aggregator as the runner does")
 class AggregatorTests(unittest.TestCase):
-    def test_a_dispensed_matrix_passes_when_the_classification_dispensed_it(self) -> None:
-        self.assertEqual(aggregate("success", "false", "skipped", "skipped"), 0)
+    def test_a_dispensed_run_passes_when_the_classification_dispensed_every_job(self) -> None:
+        self.assertEqual(aggregate("success", "false", "skipped", "", "skipped"), 0)
 
-    def test_a_green_matrix_passes_when_the_classification_asked_for_it(self) -> None:
-        self.assertEqual(aggregate("success", "true", "success", "success"), 0)
+    def test_a_dispensed_classification_does_not_accept_a_list_or_a_matrix_that_ran(self) -> None:
+        self.assertEqual(aggregate("success", "false", "success", '["a"]', "success"), 1)
+        self.assertEqual(aggregate("success", "false", "skipped", "", "success"), 1)
 
-    def test_a_matrix_that_ran_and_failed_reproves(self) -> None:
-        self.assertEqual(aggregate("success", "true", "success", "failure"), 1)
+    def test_a_matrix_of_the_modules_the_list_named_passes_when_it_is_green(self) -> None:
+        self.assertEqual(aggregate("success", "true", "success", '["a","b"]', "success"), 0)
 
-    def test_a_matrix_that_was_cancelled_reproves(self) -> None:
-        self.assertEqual(aggregate("success", "true", "success", "cancelled"), 1)
+    def test_a_matrix_that_ran_and_failed_or_was_cancelled_reproves(self) -> None:
+        for matrix in ("failure", "cancelled"):
+            with self.subTest(matrix=matrix):
+                self.assertEqual(aggregate("success", "true", "success", '["a"]', matrix), 1)
 
-    def test_a_skipped_matrix_reproves_when_the_classification_asked_for_the_ruler(self) -> None:
-        self.assertEqual(aggregate("success", "true", "skipped", "skipped"), 1)
+    def test_a_skipped_matrix_reproves_when_the_list_named_modules(self) -> None:
+        self.assertEqual(aggregate("success", "true", "success", '["a"]', "skipped"), 1)
 
-    def test_a_skipped_matrix_reproves_when_the_classification_failed(self) -> None:
-        self.assertEqual(aggregate("failure", "", "skipped", "skipped"), 1)
-        self.assertEqual(aggregate("failure", "false", "skipped", "skipped"), 1)
+    def test_an_empty_matrix_passes_only_when_the_list_declared_that_no_module_is_reached(
+        self,
+    ) -> None:
+        self.assertEqual(aggregate("success", "true", "success", "[]", "skipped"), 0)
+        self.assertEqual(aggregate("success", "true", "success", "[]", "success"), 1)
 
-    def test_a_dispensed_classification_does_not_accept_a_matrix_that_ran(self) -> None:
-        self.assertEqual(aggregate("success", "false", "success", "success"), 1)
+    def test_a_failed_or_skipped_list_reproves_whatever_the_matrix_did(self) -> None:
+        for listed in ("failure", "cancelled", "skipped"):
+            with self.subTest(listed=listed):
+                self.assertEqual(aggregate("success", "true", listed, "", "skipped"), 1)
+                self.assertEqual(aggregate("success", "true", listed, "[]", "skipped"), 1)
 
-    def test_a_green_matrix_after_a_failed_classification_passes(self) -> None:
-        self.assertEqual(aggregate("failure", "", "success", "success"), 0)
+    def test_an_empty_matrix_needs_a_classification_that_succeeded(self) -> None:
+        for classification in ("failure", "cancelled", "skipped", ""):
+            with self.subTest(classification=classification):
+                self.assertEqual(aggregate(classification, "", "success", "[]", "skipped"), 1)
+        self.assertEqual(aggregate("success", "true", "success", "[]", "skipped"), 0)
 
-    def test_the_list_failing_reproves_even_if_the_matrix_is_skipped(self) -> None:
-        self.assertEqual(aggregate("success", "true", "failure", "skipped"), 1)
+    def test_a_failed_classification_reproves_a_skipped_list_and_accepts_a_green_run(self) -> None:
+        self.assertEqual(aggregate("failure", "", "skipped", "", "skipped"), 1)
+        self.assertEqual(aggregate("failure", "false", "skipped", "", "skipped"), 1)
+        self.assertEqual(aggregate("failure", "", "success", '["a"]', "success"), 0)
 
 
 if __name__ == "__main__":

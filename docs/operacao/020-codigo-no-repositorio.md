@@ -38,6 +38,7 @@ Da raiz do repositório. Cada passo do `verify-code` é a mesma conferência da 
 | `python tools/verify-code/verify.py --step <nome>` | Um passo; veja a ordem em `--list` |
 | `python tools/verify-code/verify.py --step pr_size ai_attribution --base origin/main` | O tamanho do PR e a atribuição a IA |
 | `python tools/verify-code/verify.py --changes --base origin/main` | Se o diff pede os jobs pesados da CI |
+| `python tools/verify-code/verify.py --mutation-modules --base origin/main` | Os módulos de mutação que o diff alcança |
 | `python tools/verify-docs/verify.py` | A verificação de texto |
 | `dotnet test core/Core.slnx` | Os testes do núcleo |
 | `uv run --directory language-service pytest` | Os testes do serviço |

@@ -49,6 +49,5 @@ nem cifra, não lê disco, rede ou relógio, e não recebe o nome do arquivo.
 
 ## Para quem prepara o material
 
-Gere o arquivo já na forma acima, com um remetente e um instante com fuso por mensagem. Dois
-instantes iguais na mesma conversa são recusados pela conferência, porque a ordem não pode vir da
-posição no arquivo.
+Gere o arquivo na forma acima, com um remetente e um instante com fuso por mensagem. Dois instantes
+iguais na mesma conversa são recusados, porque a ordem não pode vir da posição no arquivo.

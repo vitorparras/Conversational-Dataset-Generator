@@ -205,8 +205,7 @@ public sealed partial record CustodyEvent
     }
 
     /// <summary>
-    /// The event of a recovery rehearsed and checked, written by the system: the item is the master key, its id is the sequence of the top of the copy the rehearsal opened,
-    /// and the reference is the digest of the receipt, which the server takes only once (migration 0033). There is no way to write the step without the digest.
+    /// The recovery rehearsed and checked, by the system: the item is the master key, its id the top sequence of the copy opened, the reference the digest of the receipt (once, 0033).
     /// </summary>
     /// <param name="topSequence">The sequence of the last event of the copy, which the chain of the production holds too.</param>
     /// <param name="receiptDigest">The digest of the receipt, as <c>RecoveryReceipt.Digest</c> gives it.</param>

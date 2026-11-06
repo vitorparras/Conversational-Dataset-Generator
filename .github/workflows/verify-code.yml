@@ -238,6 +238,31 @@ jobs:
       - name: Exigir que o núcleo e o serviço executem propriedades
         run: python tools/verify-code/verify.py --step properties
 
+  # The screens in a real Chromium, over the host on a real Kestrel and the test database. The solution's test step does not run this project
+  # (it is no test project of the solution): this is the only place it runs, so a failing browser test fails this job.
+  browser:
+    name: Navegador (Playwright)
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: Construir o projeto de navegador nos pacotes travados (as versões do Playwright e do axe estão em core/Directory.Packages.props)
+        run: |
+          echo "inicio=$(date +%s)" >> "$GITHUB_ENV"
+          dotnet restore core/tests/Core.Host.Tests.Browser/Core.Host.Tests.Browser.csproj --locked-mode
+          dotnet build core/tests/Core.Host.Tests.Browser/Core.Host.Tests.Browser.csproj -c Release --no-restore
+      - name: Instalar o Chromium da versão que o pacote fixa, sem latest e sem outro navegador
+        run: pwsh core/tests/Core.Host.Tests.Browser/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+      - name: Rodar os testes de navegador
+        run: dotnet run --project core/tests/Core.Host.Tests.Browser/Core.Host.Tests.Browser.csproj -c Release --no-build
+      - name: Anotar o tempo do job
+        if: always()
+        run: echo "Tempo do job de navegador (construir, instalar o Chromium e testar) - $(( $(date +%s) - inicio )) s" >> "$GITHUB_STEP_SUMMARY"
+
   package:
     name: Construção reproduzível (duas cópias limpas)
     needs: changes

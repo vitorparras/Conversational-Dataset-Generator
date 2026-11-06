@@ -2,13 +2,16 @@ using Core.Tests.Architecture.CodeRules;
 
 namespace Core.Tests.Architecture.Boundaries;
 
-/// <summary>Nothing in the host answers around the session gate and only the entry and the status are marked open (issue #495, CA-3), with fixtures that break each part.</summary>
+/// <summary>
+/// Nothing in the host answers around the session gate and only the entry, the status and the style of the screens are marked open (issue #495, CA-3; decision 0052),
+/// with fixtures that break each part.
+/// </summary>
 public sealed class SessionGateBypassTests
 {
     private const string Fixtures = "session-gate";
 
     [Fact]
-    public void HostServesNoRequestAroundTheGateAndMarksOpenOnlyTheEntryAndTheStatus()
+    public void HostServesNoRequestAroundTheGateAndMarksOpenOnlyTheEntryTheStatusAndTheStyleOfTheScreens()
     {
         var violations = SessionGateBypassRules.Check(NoDomainRuleInHostRules.HostFiles());
 

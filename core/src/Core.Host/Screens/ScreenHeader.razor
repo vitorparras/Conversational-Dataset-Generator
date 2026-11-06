@@ -1,0 +1,16 @@
+<header class="header">
+    <a class="header__name" href="/">@Name</a>
+    @if (ChildContent is not null)
+    {
+        <nav class="header__nav" aria-label="Principal">@ChildContent</nav>
+    }
+</header>
+
+@code {
+    /// <summary>The name of the system, the first thing on every page and the way back to the start.</summary>
+    internal const string Name = "Gerador de bases conversacionais";
+
+    /// <summary>The menu, when the page has one.</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

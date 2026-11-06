@@ -1,0 +1,126 @@
+@using Core.Host.Endpoints
+@using System.Globalization
+@using Core.Persistence.Custody.Verification
+
+<h1>@Title</h1>
+<p class="lead">Se a cadeia de custódia confere elo por elo, desde quando, e o que protege o selo externo. Nada nesta tela refaz a cadeia.</p>
+@if (Unreadable)
+{
+    <Notice Kind="Notice.Tone.Error">Não foi possível ler a cadeia agora. Tente de novo em instantes; se repetir, quem administra o servidor vê a causa no registro do sistema.</Notice>
+}
+else
+{
+    if (Asked)
+    {
+        <Notice Kind="Notice.Tone.Success">A verificação que você pediu terminou. O resultado está abaixo e no histórico, com o seu nome.</Notice>
+    }
+    if (Overdue)
+    {
+        <Notice Kind="Notice.Tone.Pending">A verificação está atrasada: o intervalo em vigor é de @Interval.TotalHours.ToString("0.#", Format) horas.</Notice>
+    }
+    <Panel Id="ultima" Title="Última verificação">
+        @if (Last is null)
+        {
+            <EmptyState Title="Nenhuma verificação registrada">
+                <p>A primeira roda sozinha no intervalo em vigor, ou quando você pede uma agora.</p>
+            </EmptyState>
+        }
+        else
+        {
+            <FactList>
+                <Fact Term="Resultado">@(Last.Passed ? Mark(StateMark.Tone.Good, "Passou: todos os elos conferem") : Mark(StateMark.Tone.Bad, "Quebrada: um elo não confere"))</Fact>
+                @if (Last.FirstInconsistent is { } first)
+                {
+                    <Fact Term="Incidente">
+                        @Mark(StateMark.Tone.Bad, $"Aberto desde o evento nº {first}, o primeiro que não confere")
+                        <span class="facts__note">Enquanto o incidente estiver aberto, o domínio afetado só aceita leitura: nenhum evento entra na cadeia além de uma verificação.</span>
+                    </Fact>
+                }
+                <Fact Term="Quando"><Moment At="Last.RecordedAt" /></Fact>
+                <Fact Term="Escopo">A cadeia inteira: @Last.EventsRead.ToString("N0", Format) eventos lidos</Fact>
+                <Fact Term="Pedida por">@Asker(Last)</Fact>
+            </FactList>
+        }
+        <div class="actions">
+            <Button Href="@ScreenPaths.ChainCheck" Kind="Button.Look.Secondary">Pedir uma verificação agora</Button>
+        </div>
+    </Panel>
+    <Panel Id="selo" Title="Selo externo">
+        @if (SealWarning is not null)
+        {
+            <Notice Kind="Notice.Tone.Pending">@SealWarning</Notice>
+        }
+        <FactList>
+            <Fact Term="O que protege">@Protection</Fact>
+            <Fact Term="Último selo">@if (LastSeal is { } seal) { <Moment At="seal" /> } else { <StateMark>Nenhum selo registrado</StateMark> }</Fact>
+        </FactList>
+    </Panel>
+    if (History.Count > 0)
+    {
+        <Panel Id="historico" Title="Histórico das verificações">
+            <DataTable Id="historico-tabela" Caption="@($"As {History.Count} mais recentes, da mais nova para a mais antiga.")" Headers="Columns">
+                <tbody>
+                    @foreach (var past in History)
+                    {
+                        <tr>
+                            <th scope="row"><Moment At="past.RecordedAt" /></th>
+                            <td>@(past.Passed ? Mark(StateMark.Tone.Good, "Passou") : Mark(StateMark.Tone.Bad, $"Quebrada no evento nº {past.FirstInconsistent}"))</td>
+                            <td>@past.EventsRead.ToString("N0", Format)</td>
+                            <td>@Asker(past)</td>
+                        </tr>
+                    }
+                </tbody>
+            </DataTable>
+        </Panel>
+    }
+}
+
+@code {
+    /// <summary>The title of the page and of its entry in the menu.</summary>
+    internal const string Title = "Custódia";
+
+    private static readonly string[] Columns = { "Quando", "Resultado", "Eventos lidos", "Pedida por" };
+
+    private static readonly CultureInfo Format = CultureInfo.GetCultureInfo("pt-BR");
+
+    /// <summary>The last verification the chain recorded; null when it holds none.</summary>
+    [Parameter]
+    public RecordedVerification? Last { get; set; }
+
+    /// <summary>The verifications the chain recorded, the newest first, each with who asked when someone did.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<RecordedVerification> History { get; set; } = Array.Empty<RecordedVerification>();
+
+    [Parameter]
+    public TimeSpan Interval { get; set; }
+
+    [Parameter]
+    public bool Overdue { get; set; }
+
+    /// <summary>What a verification against the seal protects, in the words of the route, which never claim integrity without qualifying it.</summary>
+    [Parameter, EditorRequired]
+    public string Protection { get; set; } = "";
+
+    [Parameter]
+    public DateTimeOffset? LastSeal { get; set; }
+
+    [Parameter]
+    public string? SealWarning { get; set; }
+
+    /// <summary>Whether the chain could not be read now, so that the page shows nothing of a verification.</summary>
+    [Parameter]
+    public bool Unreadable { get; set; }
+
+    /// <summary>Whether the page follows a verification the one who entered asked for, which it says it finished.</summary>
+    [Parameter]
+    public bool Asked { get; set; }
+
+    private static RenderFragment Mark(StateMark.Tone tone, string text) => @<StateMark Kind="tone">@text</StateMark>;
+
+    private static string Asker(RecordedVerification verification) => (verification.RequestedBy, verification.RequestedByName) switch
+    {
+        (null, _) => "O sistema, no intervalo em vigor",
+        (_, { } name) => name,
+        (var id, null) => $"Cadastro nº {id}, sem nome encontrado",
+    };
+}

@@ -14,8 +14,8 @@ usabilidade primeiro e vidro translúcido sem sair do AA. O publish desliga os s
 **Monte cada tela com os componentes Razor de `core/src/Core.Host/Screens/`, renderizados no
 servidor e devolvidos pela rota mínima, com todo valor visual tirado dos tokens.**
 
-- A rota devolve `ScreenResult.Of`: a página base inteira, ou só a região pedida pelo cabeçalho
-  `X-Region`. Não há modo interativo nem o script do Blazor; a política de acesso fica na rota.
+- A rota devolve `ScreenResult.Of`, sempre a página base inteira, e a camada de cliente tira dela a
+  região. Não há modo interativo nem o script do Blazor; a política de acesso fica na rota.
 - A camada de cliente é `client.js`, embutido no executável e servido por rota própria, sem
   biblioteca de terceiros. Faz três coisas: troca a região declarada (`data-swap`), põe o foco no
   elemento que a região declara (`data-focus`) e dispara o atalho declarado (`data-shortcut`),
@@ -26,8 +26,8 @@ servidor e devolvidos pela rota mínima, com todo valor visual tirado dos tokens
   entra como componente, nunca como marcação copiada.
 - O vidro é só CSS (`backdrop-filter`), no cabeçalho e no painel. Vira superfície sólida sob
   `prefers-reduced-transparency`, `prefers-contrast: more` e no navegador que não desfoca. O
-  contraste é medido sobre o pior ponto do fundo real e anotado na lista de revisão manual de
-  acessibilidade.
+  contraste é medido sobre o pior ponto do fundo real e anotado na
+  [022](../arquitetura/022-revisao-manual-de-acessibilidade.md).
 - A fonte é a do sistema operacional: nada se baixa e nada vai embutido.
 - O catálogo dos componentes é tela do host de teste em `core/tests/Core.Host.Tests.Browser/`.
 - O código que o Razor gera para `Screens/` é a única exceção às regras de build: desliga os

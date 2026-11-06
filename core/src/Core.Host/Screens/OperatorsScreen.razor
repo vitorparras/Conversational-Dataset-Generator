@@ -4,6 +4,13 @@
 
 <h1>@Title</h1>
 <p class="lead">Quem opera o sistema, com a função declarada e o estado. Nenhum conteúdo de material aparece aqui.</p>
+@if (Registered is not null)
+{
+    <Notice Kind="Notice.Tone.Success">@Registered foi cadastrada, sem nenhuma concessão de domínio. Ela entra com a senha inicial que você definiu e a troca depois.</Notice>
+}
+<div class="actions">
+    <Button Href="@ScreenPaths.OperatorNew">Cadastrar pessoa</Button>
+</div>
 
 <Panel Id="filtro" Title="Filtrar">
     <form class="filter" method="get" action="@ScreenPaths.Operators">
@@ -54,6 +61,9 @@
 
     internal const string InactiveState = "inativas";
 
+    /// <summary>The mark in the address that the person named by the filter was just registered.</summary>
+    internal const string RegisteredKey = "cadastrada";
+
     private static readonly List<Field.Option> FunctionChoices =
         new(PersonFunctions.Accepted.Select(function => new Field.Option(function, function)).Prepend(new Field.Option("", "Todas as funções")));
 
@@ -72,6 +82,10 @@
 
     [Parameter]
     public string? State { get; set; }
+
+    /// <summary>The name of the person just registered, which the page says it was; null otherwise.</summary>
+    [Parameter]
+    public string? Registered { get; set; }
 
     /// <summary>The address of a page with the filter in force, leaving out what is not filtered.</summary>
     private string Address(int page)

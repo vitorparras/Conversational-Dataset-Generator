@@ -289,3 +289,4 @@ h1 + .lead { margin-top: 0; }
 /* Row of a list: the name first and strong, then what describes it. */
 .row { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-5); }
 .row > strong { flex: 1 1 var(--term-width); }
+.form > .notice { margin-bottom: var(--space-5); }

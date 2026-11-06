@@ -41,6 +41,10 @@ verificados, e a medição descrita lá foi feita. Em particular:
    povoados, e não mais com um só.
 5. A condição de reabertura da decisão 0001 sobre a ausência de segundo domínio está respondida por
    fato, não por intenção.
+6. O ensaio de subida numa máquina recém-preparada foi feito por uma pessoa que nunca viu o projeto:
+   o núcleo e o serviço sobem a partir do artefato publicado, sem que nada seja instalado nela — a
+   parte de [022](../requisitos/022-operacao-sem-servico-externo.md) que só uma máquina de verdade
+   fecha. O registro dele é o 001 de `docs/historico/`.
 
 ## O que destrava
 

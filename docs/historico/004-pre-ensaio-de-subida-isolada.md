@@ -6,11 +6,12 @@ Registro de um **pré-ensaio feito por agente**, para achar lacunas no texto ant
 da [#50](https://github.com/vitorparras/Conversational-Dataset-Generator/issues/50) e da
 [#264](https://github.com/vitorparras/Conversational-Dataset-Generator/issues/264). **Não é esse
 ensaio**: quem ensaiou foi um agente (Claude Code), não uma pessoa, e o reservado a ele segue em
-aberto. É o que valeu naquela máquina, naquele dia; não é regra nem previsão.
+aberto, agora como critério de término da [fase 10](../roadmap/010-segundo-dominio.md). É o que
+valeu naquela máquina, naquele dia; não é regra nem previsão.
 
 ## Preparo
 
-O artefato foi construído do commit `ab91d09` (main, árvore limpa), em contêiner Linux x64. A
+O artefato foi const do commit `ab91d09` (main, árvore limpa), em contêiner Linux x64. A
 primeira construção falhou ao montar a pasta do serviço direto no disco do Windows, que não
 distingue maiúsculas: o arquivo `terminfo` colidiu (`[Errno 17] File exists`). O procedimento
 passou a montar a pasta dentro de um contêiner e copiá-la ao destino em fluxo tar, sem passar por
@@ -276,7 +277,10 @@ residual da 1 (o reset que não funcionava). O que vale daqui é o texto corrigi
 aprovação. Os commits citados (`e4ae18d` a `66b3381`) são desta branch; com squash, sobrevivem na
 referência do PR #450. Os da Fase 2 (`9ee926c1`, `f3985842`) são do PR de docs da #50.
 
-## O que fica para o ensaio formal, por uma pessoa (#50 e #264)
+## O que fica para o ensaio formal, por uma pessoa, na fase 10 (#50 e #264)
+
+O ensaio formal deixou de ser critério de término das fases 1 e 2 e passou a ser da
+[fase 10](../roadmap/010-segundo-dominio.md). O que segue não é pendência dessas fases.
 
 - **Uma pessoa**, que nunca viu o projeto, com o tempo dela medido; o pré-ensaio mediu agentes
 - **O artefato publicado** pelo fluxo de empacotamento, com os hashes dele, e não o construído

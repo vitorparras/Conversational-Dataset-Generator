@@ -19,4 +19,7 @@ falsificaria o registro.
 | [003](003-medicao-do-modelo.md) | Medição do modelo de linguagem |
 | [004](004-pre-ensaio-de-subida-isolada.md) | Pré-ensaio de subida isolada |
 
+O 001 está reservado ao registro do ensaio formal de subida (#50, #264), que é critério de
+término da [fase 10](../roadmap/010-segundo-dominio.md), e não das fases 1 e 2.
+
 Ver [regras de escrita](../regras-de-escrita.md).

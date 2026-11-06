@@ -28,8 +28,8 @@ deve ser curta: quanto mais ela crescer, mais longe fica o primeiro material rea
 ## Critério de término
 
 1. A construção, a partir de uma cópia limpa do repositório, produz o executável único do núcleo e a
-   pasta do serviço, e os dois sobem numa máquina recém-preparada sem que nada seja instalado nela —
-   a parte de [022](../requisitos/022-operacao-sem-servico-externo.md) que já se fecha aqui.
+   pasta do serviço — a parte de [022](../requisitos/022-operacao-sem-servico-externo.md) que se
+   verifica pela construção.
 2. O núcleo conversa com o serviço de linguagem, e derrubar o serviço produz erro visível, não
    silêncio nem resultado parcial.
 3. [021](../requisitos/021-registro-sem-dado-pessoal.md) tem teste próprio, e esse teste reprova de

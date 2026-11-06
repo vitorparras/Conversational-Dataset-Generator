@@ -11,10 +11,17 @@ brasileiro.
 
 ## Estado
 
-Fase 1 do [roadmap](docs/roadmap/001-fundacao-verificavel.md), a fundação verificável: o núcleo
-(.NET), o serviço de linguagem (Python), o banco de desenvolvimento e o aparato que os verifica.
-Não há ainda módulo de domínio nem material real; a árvore e os comandos estão em
-[020](docs/operacao/020-codigo-no-repositorio.md).
+Fases 1 e 2 do [roadmap](docs/roadmap/README.md) concluídas: a
+[fundação verificável](docs/roadmap/001-fundacao-verificavel.md) (o núcleo em .NET, o serviço de
+linguagem em Python, o banco de desenvolvimento e o aparato que os verifica) e a
+[custódia e cifra](docs/roadmap/002-custodia-e-cifra.md). A próxima é a
+[ingestão](docs/roadmap/003-ingestao.md). Não há ainda módulo de domínio nem material real; a árvore
+e os comandos estão em [020](docs/operacao/020-codigo-no-repositorio.md).
+
+O ensaio de subida numa máquina recém-preparada, por uma pessoa, é critério de término da
+[fase 10](docs/roadmap/010-segundo-dominio.md) e segue nas issues
+[#50](https://github.com/vitorparras/Conversational-Dataset-Generator/issues/50) e
+[#264](https://github.com/vitorparras/Conversational-Dataset-Generator/issues/264).
 
 ## Como isto funciona
 

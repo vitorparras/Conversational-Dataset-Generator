@@ -123,7 +123,7 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
 
 .panel > :last-child { margin-bottom: 0; }
 
-/* Button */
+/* Button: the colour eases only into the hover, so a change of theme, or of anything else, takes effect at once and never half way. */
 .button {
     display: inline-flex;
     align-items: center;
@@ -136,8 +136,8 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
     text-decoration: none;
     cursor: pointer;
     box-shadow: var(--shadow-control);
-    transition: background-color var(--motion) var(--ease), color var(--motion) var(--ease);
 }
+.button:hover { transition: background-color var(--motion) var(--ease), color var(--motion) var(--ease); }
 
 .button--primary { color: var(--on-accent); background: var(--accent); }
 .button--primary:hover { color: var(--on-accent); background: var(--accent-hover); }

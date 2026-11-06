@@ -32,4 +32,12 @@ internal static class ScreenResult
         var parameters = new Dictionary<string, object?>(shown.Parameters, StringComparer.Ordinal) { [nameof(ScreenFrame.Current)] = null };
         return new(parameters) { StatusCode = StatusCodes.Status404NotFound };
     }
+
+    /// <summary>The page of a failure no route handled, with 500: what happened and what to do, and nothing of the failure.</summary>
+    internal static RazorComponentResult<ScreenFrame> Failure(HttpContext context)
+    {
+        var page = Of(context, typeof(FailureScreen), FailureScreen.Title);
+        page.StatusCode = StatusCodes.Status500InternalServerError;
+        return page;
+    }
 }

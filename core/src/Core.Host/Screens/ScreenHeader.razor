@@ -2,7 +2,6 @@
 
 <header class="header">
     <a class="header__name" href="@ScreenPaths.Home">@Name</a>
-    <ScreenNav Entries="Menu" Current="Current" />
     <DomainPicker Granted="Granted" />
     @if (WithSession)
     {
@@ -10,6 +9,7 @@
             <Button Id="sair" Kind="Button.Look.Secondary">Sair</Button>
         </form>
     }
+    <ScreenNav Entries="Menu" Current="Current" />
 </header>
 
 @code {

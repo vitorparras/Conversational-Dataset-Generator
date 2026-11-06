@@ -74,7 +74,9 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
 .sign-in { max-width: var(--field-width); }
 .sign-in > .notice { margin-bottom: var(--space-5); }
 
-/* Menu of the functions: the entry of the page is marked by its shape, a thick underline, and not by colour alone. */
+/* Menu of the functions: a row of its own under the name, the domain and the exit, in the order the focus walks; the entry of the page is marked
+   by its shape, a thick underline, and not by colour alone. */
+.nav { flex-basis: 100%; margin-left: calc(-1 * var(--space-3)); }
 .nav__list { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-2); margin: 0; padding: 0; list-style: none; }
 
 .nav__link {
@@ -236,9 +238,11 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
     border-radius: var(--radius-md);
     background: var(--surface);
     font-weight: var(--weight-strong);
+    text-decoration: none;
 }
 
-.destinations__link::after { content: "\2192" / ""; margin-left: auto; }
+.destinations__link:hover { color: var(--accent-hover); border-color: var(--accent-hover); text-decoration: underline; }
+.destinations__link::after { content: "\2192" / ""; margin-left: auto; padding-left: var(--space-3); }
 
 @media (forced-colors: active) {
     .button, .notice, .panel, .header, .destinations__link { border-color: CanvasText; }

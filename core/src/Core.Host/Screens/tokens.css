@@ -1,0 +1,109 @@
+/* The tokens of the screens (decision 0052): every visual value lives here, and screens.css only names them. */
+:root {
+    color-scheme: light dark;
+
+    --font-text: "Segoe UI Variable Text", "Segoe UI", "SF Pro Text", -apple-system, "Noto Sans", "Helvetica Neue", sans-serif;
+    --font-display: "Segoe UI Variable Display", "Segoe UI", "SF Pro Display", -apple-system, "Noto Sans", "Helvetica Neue", sans-serif;
+    --font-mono: "Cascadia Mono", "SF Mono", Consolas, "Liberation Mono", monospace;
+    --text-sm: 0.875rem;
+    --text-md: 1rem;
+    --text-lg: 1.1875rem;
+    --text-xl: 1.5rem;
+    --text-title: clamp(1.75rem, 1.35rem + 1.4vw, 2.375rem);
+    --leading-tight: 1.2;
+    --leading-text: 1.55;
+    --weight-text: 400;
+    --weight-strong: 600;
+    --measure: 68ch;
+    --tracking-title: -0.01em;
+    --underline-offset: 0.2em;
+
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.5rem;
+    --space-6: 2.25rem;
+    --space-7: clamp(2.5rem, 1.5rem + 3vw, 4rem);
+    --page-width: 72rem;
+    --header-clearance: 5rem;
+    --hidden-above: -200%;
+
+    --radius-sm: 0.375rem;
+    --line: 1px;
+
+    --focus-color: #a84b05;
+    --focus-width: 3px;
+    --focus-offset: 2px;
+
+    --motion: 140ms;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+    /* Light: a cool paper with two faint washes behind the glass, so the blur has something real to soften. */
+    --canvas: #eceff3;
+    --wash-cool: #c8dbee;
+    --wash-warm: #f1d9bd;
+    --ink: #151d27;
+    --ink-muted: #45505e;
+    --surface: #fafbfc;
+    --edge: #6a7583;
+    --edge-soft: rgba(21, 29, 39, 0.12);
+    --accent: #1d4a73;
+    --accent-hover: #153a5c;
+    --on-accent: #f7fafc;
+
+    --glass: rgba(250, 251, 252, 0.62);
+    --glass-blur: 18px;
+    --glass-saturate: 1.4;
+    --backdrop:
+        radial-gradient(60rem 40rem at 12% -10%, var(--wash-cool), transparent 70%),
+        radial-gradient(50rem 36rem at 100% 0%, var(--wash-warm), transparent 65%);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --focus-color: #f2a65e;
+        --canvas: #0e141b;
+        --wash-cool: #1a3350;
+        --wash-warm: #3a2a18;
+        --ink: #e7ecf1;
+        --ink-muted: #a7b2bf;
+        --surface: #17202a;
+        --edge: #7f8b99;
+        --edge-soft: rgba(231, 236, 241, 0.14);
+        --accent: #9cc4ec;
+        --accent-hover: #bad7f3;
+        --on-accent: #0e141b;
+        --glass: rgba(23, 32, 42, 0.6);
+    }
+}
+
+/* Glass is a nicety: whoever asks for less transparency or more contrast, or whose browser cannot blur, gets a solid surface. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+    :root {
+        --glass: var(--surface);
+        --glass-blur: 0;
+        --wash-cool: var(--canvas);
+        --wash-warm: var(--canvas);
+    }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    :root {
+        --glass: var(--surface);
+    }
+}
+
+@media (prefers-contrast: more) {
+    :root {
+        --ink-muted: var(--ink);
+        --edge: var(--ink);
+        --edge-soft: var(--ink);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :root {
+        --motion: 0ms;
+    }
+}

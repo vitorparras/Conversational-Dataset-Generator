@@ -1,0 +1,73 @@
+/* The style of the screens (decision 0052): one section per component, every value a token of tokens.css. */
+
+/* Page base */
+*, *::before, *::after { box-sizing: border-box; }
+
+/* What takes the focus or the anchor never hides under the sticky header. */
+html { scroll-padding-top: var(--header-clearance); }
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    color: var(--ink);
+    background: var(--backdrop), var(--canvas);
+    background-attachment: fixed;
+    font: var(--weight-text) var(--text-md) / var(--leading-text) var(--font-text);
+    overflow-wrap: break-word;
+}
+
+h1, h2, h3 { margin: 0 0 var(--space-3); font-family: var(--font-display); line-height: var(--leading-tight); text-wrap: balance; }
+h1 { font-size: var(--text-title); font-weight: var(--weight-strong); letter-spacing: var(--tracking-title); }
+h2 { font-size: var(--text-xl); font-weight: var(--weight-strong); }
+h3 { font-size: var(--text-lg); font-weight: var(--weight-strong); }
+:not(h2) + h3 { margin-top: var(--space-6); }
+p { margin: 0 0 var(--space-4); max-width: var(--measure); }
+a { color: var(--accent); text-underline-offset: var(--underline-offset); }
+a:hover { color: var(--accent-hover); }
+kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
+
+:focus-visible {
+    outline: var(--focus-width) solid var(--focus-color);
+    outline-offset: var(--focus-offset);
+}
+
+.page { max-width: var(--page-width); margin: 0 auto; padding: var(--space-6) var(--space-5) var(--space-7); }
+.page > * + * { margin-top: var(--space-6); }
+.page:focus { outline: none; }
+
+.skip-link {
+    position: absolute;
+    left: var(--space-4);
+    top: var(--space-2);
+    z-index: 2;
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-sm);
+    color: var(--on-accent);
+    background: var(--accent);
+    transform: translateY(var(--hidden-above));
+}
+
+.skip-link:focus { transform: none; }
+
+/* Header */
+.header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3) var(--space-5);
+    padding: var(--space-3) var(--space-5);
+    border-bottom: var(--line) solid var(--edge-soft);
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+}
+
+.header__name { margin: 0; font: var(--weight-strong) var(--text-md) / var(--leading-tight) var(--font-display); color: var(--ink); text-decoration: none; }
+.header__nav { margin-left: auto; }
+
+@media (forced-colors: active) {
+    .header { border-color: CanvasText; }
+}

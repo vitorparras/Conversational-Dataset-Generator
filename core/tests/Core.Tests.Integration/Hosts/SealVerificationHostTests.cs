@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using Core.Persistence.Custody.Verification;
+using Core.Persistence.People;
 using Core.Persistence.Tests.Fixtures;
 
 namespace Core.Tests.Integration.Hosts;
@@ -21,7 +22,7 @@ public sealed class SealVerificationHostTests
     public async Task Ca3ABaseReplacedByAnotherThatIsCoherentIsToldAsADifferentDigestWhileTheChainCloses()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await StartedAsync(new HostSetup { WithLogFile = true }, cancellationToken);
+        await using var host = await StartedAsync(new HostSetup { Function = PersonFunctions.Administration, WithLogFile = true }, cancellationToken);
         var last = await host.NumberAsSuperuserAsync(LastEvent, cancellationToken);
 
         var shown = await VerifyAsync(host, ChainSeal.Of(DateTimeOffset.UtcNow, last, new byte[32]).ToText(), cancellationToken);
@@ -35,7 +36,7 @@ public sealed class SealVerificationHostTests
     public async Task Ca4AnEndRemovedIsToldAsACountBelowTheSealedOneWhileTheChainCloses()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await StartedAsync(new HostSetup { WithLogFile = true }, cancellationToken);
+        await using var host = await StartedAsync(new HostSetup { Function = PersonFunctions.Administration, WithLogFile = true }, cancellationToken);
         var last = await host.NumberAsSuperuserAsync(LastEvent, cancellationToken);
 
         var shown = await VerifyAsync(host, ChainSeal.Of(DateTimeOffset.UtcNow, last + 500, new byte[32]).ToText(), cancellationToken);
@@ -49,7 +50,7 @@ public sealed class SealVerificationHostTests
     public async Task ASealOfTheChainItselfHoldsAfterTheChainHasGrownAndNothingIsWrittenAsAFailure()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await StartedAsync(new HostSetup { WithLogFile = true }, cancellationToken);
+        await using var host = await StartedAsync(new HostSetup { Function = PersonFunctions.Administration, WithLogFile = true }, cancellationToken);
         var seal = await SealOfTheChainAsync(host, cancellationToken);
 
         var first = await VerifyAsync(host, seal, cancellationToken);
@@ -68,7 +69,7 @@ public sealed class SealVerificationHostTests
     public async Task Ca6ATextThatIsNotASealIsRefusedWith400AndTheReasonAndNothingIsVerified(string text)
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await StartedAsync(new HostSetup(), cancellationToken);
+        await using var host = await StartedAsync(new HostSetup { Function = PersonFunctions.Administration }, cancellationToken);
         var before = await host.NumberAsSuperuserAsync("SELECT count(*) FROM public.custody_event", cancellationToken);
 
         using var refused = await host.PostAsync(Route, JsonSerializer.Serialize(new { seal = text }), cancellationToken);
@@ -84,7 +85,7 @@ public sealed class SealVerificationHostTests
     public async Task ABodyAboveTheLimitIsRefusedWith413AndNothingIsVerifiedWhileASealStillGoesThrough()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await StartedAsync(new HostSetup(), cancellationToken);
+        await using var host = await StartedAsync(new HostSetup { Function = PersonFunctions.Administration }, cancellationToken);
         var before = await host.NumberAsSuperuserAsync("SELECT count(*) FROM public.custody_event", cancellationToken);
 
         using var refused = await host.PostAsync(Route, JsonSerializer.Serialize(new { seal = new string('a', 4096) }), cancellationToken);
@@ -100,7 +101,7 @@ public sealed class SealVerificationHostTests
     public async Task AVerificationAskedForEntersTheHistoryWithWhoAskedAndTheOneTheHostRanByItselfHasNobody()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await StartedAsync(new HostSetup(), cancellationToken);
+        await using var host = await StartedAsync(new HostSetup { Function = PersonFunctions.Administration }, cancellationToken);
         var asker = await host.NumberAsSuperuserAsync($"SELECT id FROM public.person WHERE name = '{host.Name}'", cancellationToken);
 
         _ = await VerifyAsync(host, await SealOfTheChainAsync(host, cancellationToken), cancellationToken);
@@ -148,7 +149,7 @@ public sealed class SealVerificationHostTests
     public async Task Ca5TheManualSituationSaysNoSealWasRecordedAndThenTheDateOfTheLastOne()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await StartedAsync(new HostSetup(), cancellationToken);
+        await using var host = await StartedAsync(new HostSetup { Function = PersonFunctions.Administration }, cancellationToken);
         var without = (await ReadAsync(host, cancellationToken)).GetProperty("protection").GetString();
 
         await host.RunAsSuperuserAsync(
@@ -188,7 +189,7 @@ public sealed class SealVerificationHostTests
     public async Task Ca5ASealThatDoesNotMatchIsNeverToldInTheProtectionAsAChainThatMatchesIt()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await StartedAsync(new HostSetup(), cancellationToken);
+        await using var host = await StartedAsync(new HostSetup { Function = PersonFunctions.Administration }, cancellationToken);
         await host.RunAsSuperuserAsync(
             "INSERT INTO public.custody_event (actor_system, item_kind, item_id, step, reason) "
             + "SELECT true, 'custody_chain', max(sequence), 'seal_recorded', 'administrative_act' FROM public.custody_event",
@@ -223,8 +224,8 @@ public sealed class SealVerificationHostTests
 
     private static HostSetup Declaring(string situation) =>
         situation == "Manual"
-            ? new HostSetup()
-            : new HostSetup { Arguments = [$"--Custody:SealSituation={situation}", "--Custody:SealDestination=https://zqx-vault.example.test/selos"] };
+            ? new HostSetup { Function = PersonFunctions.Administration }
+            : new HostSetup { Function = PersonFunctions.Administration, Arguments = [$"--Custody:SealSituation={situation}", "--Custody:SealDestination=https://zqx-vault.example.test/selos"] };
 
     private static async Task<AuthenticatedHost> StartedAsync(HostSetup setup, CancellationToken cancellationToken)
     {

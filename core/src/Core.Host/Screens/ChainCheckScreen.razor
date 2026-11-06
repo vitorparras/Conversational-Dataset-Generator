@@ -1,0 +1,40 @@
+@using Core.Host.Endpoints
+
+<h1>@Title</h1>
+<p class="lead">Confira o que a verificação faz antes de pedir. Ela não se desfaz: o resultado fica no histórico.</p>
+@if (WaitSeconds is { } wait)
+{
+    <Notice Kind="Notice.Tone.Error">Você pediu uma verificação há pouco. Espere @wait segundos e peça de novo.</Notice>
+}
+@if (Unfinished)
+{
+    <Notice Kind="Notice.Tone.Error">A verificação não chegou ao fim e nada entrou no histórico. Peça de novo; se repetir, quem administra o servidor vê a causa no registro do sistema.</Notice>
+}
+
+<Panel Id="verificar" Title="O que acontece">
+    <FactList>
+        <Fact Term="O que se lê">A cadeia de custódia inteira, elo por elo, sem mostrar o conteúdo de nenhum evento.</Fact>
+        <Fact Term="O que se grava">O resultado entra no histórico das verificações, com o seu nome como quem pediu.</Fact>
+        <Fact Term="O que não muda">Nenhum evento é alterado e a cadeia não é refeita, passe ou não passe.</Fact>
+    </FactList>
+    <form method="post" action="@ScreenPaths.ChainCheck" data-wait="verificar-espera">
+        <WaitNotice Id="verificar-espera" Text="Verificando a cadeia. A espera cresce com o tamanho dela; o resultado aparece na tela da custódia." />
+        <div class="actions">
+            <Button Id="verificar-agora">Verificar agora</Button>
+            <Button Href="@ScreenPaths.Chain" Kind="Button.Look.Secondary">Voltar sem verificar</Button>
+        </div>
+    </form>
+</Panel>
+
+@code {
+    /// <summary>The title of the page that confirms a verification asked for now (decision 0051: what cannot be undone is confirmed on a page of its own).</summary>
+    internal const string Title = "Verificar a cadeia agora";
+
+    /// <summary>The seconds to wait when the verification was refused for coming too soon after the last one asked.</summary>
+    [Parameter]
+    public int? WaitSeconds { get; set; }
+
+    /// <summary>Whether the verification asked did not reach its end, so that nothing was recorded.</summary>
+    [Parameter]
+    public bool Unfinished { get; set; }
+}

@@ -181,7 +181,7 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
     background: var(--pending-surface);
 }
 
-.wait:not(:empty)::before { content: "F7"; color: var(--pending); font-weight: var(--weight-strong); }
+.wait:not(:empty)::before { content: "\25F7" / ""; color: var(--pending); font-weight: var(--weight-strong); }
 
 /* Paged list */
 .paged-list { margin: 0; padding: 0; list-style: none; }

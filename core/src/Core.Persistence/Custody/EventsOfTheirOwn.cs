@@ -16,7 +16,7 @@ internal static class EventsOfTheirOwn
         .Append(CustodyStep.SealRecorded).Append(CustodyStep.DomainLabelRotated)
         .Append(CustodyStep.SignInAccepted).Append(CustodyStep.SignInRefused).Append(CustodyStep.KeyLossDeclared).Append(CustodyStep.RecoveryTested)
         .Append(CustodyStep.VerifyGuarantees).Append(CustodyStep.OwnerWindowOpened).Append(CustodyStep.OwnerWindowClosed)
-        .Append(CustodyStep.Restored).Append(CustodyStep.RestoreRehearsed).Append(CustodyStep.DomainLabelRevoked).Append(CustodyStep.DomainRewrapped).ToFrozenSet();
+        .Append(CustodyStep.Restored).Append(CustodyStep.RestoreRehearsed).Append(CustodyStep.DomainLabelRevoked).Append(CustodyStep.DomainRewrapped).Append(CustodyStep.PasswordChanged).ToFrozenSet();
 
     /// <summary>Whether the step has a factory of its own.</summary>
     /// <param name="step">The step asked for as a plain event.</param>

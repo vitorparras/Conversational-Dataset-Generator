@@ -73,6 +73,12 @@ internal sealed class SessionedHost : IAsyncDisposable
         return await client.SendAsync(request, cancellationToken);
     }
 
+    public async Task<HttpResponseMessage> DeleteAsync(string route, string? identifier, CancellationToken cancellationToken)
+    {
+        using var request = RequestOf(HttpMethod.Delete, route, identifier, encrypted: true);
+        return await client.SendAsync(request, cancellationToken);
+    }
+
     public async ValueTask DisposeAsync()
     {
         client.Dispose();

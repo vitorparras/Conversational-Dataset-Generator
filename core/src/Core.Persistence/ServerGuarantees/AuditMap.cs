@@ -17,12 +17,12 @@ public static class AuditMap
     [
         new("public.person", [Insert], [CustodyStep.PersonCreated]),
         new("public.person", [Update], [CustodyStep.PersonDeactivated, CustodyStep.PersonFunctionChanged]),
-        new("public.person_credential", [Insert, Update], [CustodyStep.PersonPasswordSet, CustodyStep.CredentialRecomputed]),
+        new("public.person_credential", [Insert, Update], [CustodyStep.PersonPasswordSet, CustodyStep.PasswordChanged, CustodyStep.CredentialRecomputed]),
         new("public.sign_in_attempt", [Insert], [CustodyStep.SignInAccepted, CustodyStep.SignInRefused]),
         new(
             "public.person_change",
             [Insert],
-            [CustodyStep.PersonCreated, CustodyStep.PersonDeactivated, CustodyStep.PersonFunctionChanged, CustodyStep.PersonPasswordSet]),
+            [CustodyStep.PersonCreated, CustodyStep.PersonDeactivated, CustodyStep.PersonFunctionChanged, CustodyStep.PersonPasswordSet, CustodyStep.PasswordChanged]),
         new("content.item_text", ["SELECT"], [CustodyStep.RawTextRead, CustodyStep.SanitizedTextRead]),
         new("content.reversal_map", ["SELECT"], [CustodyStep.ReversalEntriesRead]),
         new("content.item_text", [Update], [CustodyStep.ItemEmptied]),

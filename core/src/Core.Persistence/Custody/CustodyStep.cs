@@ -89,4 +89,7 @@ public enum CustodyStep
 
     /// <summary>A batch of the keys of a domain was wrapped again under the newest generation of its labels not revoked; the item is the domain.</summary>
     DomainRewrapped,
+
+    /// <summary>A person changed their own password: the item and the author are that person and the reference is how many of their other sessions it ended, never a value of a password.</summary>
+    PasswordChanged,
 }

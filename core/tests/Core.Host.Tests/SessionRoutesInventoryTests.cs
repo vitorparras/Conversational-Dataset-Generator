@@ -26,10 +26,13 @@ public sealed class SessionRoutesInventoryTests
     {
         var gated = MappedRoutes.Read().Where(route => !route.Open).Select(route => route.ToString()).Order(StringComparer.Ordinal).ToList();
 
-        string[] expected = ["DELETE /session", "GET /audit/server", "GET /configuration", "GET /custody/seal", "GET /custody/verification", "GET /session", "GET /versions"];
-        Assert.Equal(
-            [.. expected, "POST /analysis", "POST /custody/seal/confirmation", "POST /custody/verification", "POST /people", "POST /people/{id}/deactivate", "PUT /people/{id}/password"],
-            gated);
+        string[] expected =
+        [
+            "DELETE /account/sessions/{id}", "DELETE /session", "GET /account/sessions", "GET /audit/server", "GET /configuration", "GET /custody/seal", "GET /custody/verification",
+            "GET /session", "GET /versions", "POST /account/password", "POST /analysis", "POST /custody/seal/confirmation", "POST /custody/verification", "POST /people",
+            "POST /people/{id}/deactivate", "PUT /people/{id}/password",
+        ];
+        Assert.Equal(expected, gated);
     }
 
     [Fact]

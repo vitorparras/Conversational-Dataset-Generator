@@ -40,10 +40,10 @@ public sealed class RegionSwapTests(BrowserFixture browser)
         await using var tab = await browser.OpenAsync(TrialRoutes.Trial);
         _ = await tab.Page.EvaluateAsync("() => { window.zqxMark = 'same page'; }");
 
-        await tab.Page.Locator("#nome").FillAsync("Ana");
+        await tab.Page.Locator("#nome").FillAsync("operador-07");
         await tab.Page.Locator("#enviar").ClickAsync();
 
-        await Expect(tab.Page.Locator("[data-saved]")).ToHaveTextAsync("Nome aceito: Ana.");
+        await Expect(tab.Page.Locator("[data-saved]")).ToHaveTextAsync("Nome aceito: operador-07.");
         Assert.Equal("same page", await tab.Page.EvaluateAsync<string>("() => window.zqxMark"));
         Assert.EndsWith(TrialRoutes.Trial, tab.Page.Url, StringComparison.Ordinal);
     }

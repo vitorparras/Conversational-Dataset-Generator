@@ -1,4 +1,3 @@
-using System.Net;
 using Core.Persistence.People;
 using Npgsql;
 
@@ -31,26 +30,6 @@ internal static class StartupVerification
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             throw new TimeoutException($"The verification and the conference of the start were not recorded in the chain within {Patience}.");
-        }
-    }
-
-    /// <summary>
-    /// The entry of a helper with a password it knows is right, sent again while the host refuses it: the entry is recorded in the chain before it is answered, so a host with a short interval
-    /// whose round meets it refuses a right password. Any other answer is returned as it is, and so is the refusal when the patience runs out.
-    /// </summary>
-    public static async Task<HttpResponseMessage> EnterAsync(Func<Task<HttpResponseMessage>> enter, CancellationToken cancellationToken)
-    {
-        var until = DateTimeOffset.UtcNow + Patience;
-        while (true)
-        {
-            var response = await enter();
-            if (response.StatusCode != HttpStatusCode.Unauthorized || DateTimeOffset.UtcNow > until)
-            {
-                return response;
-            }
-
-            response.Dispose();
-            await Task.Delay(Poll, cancellationToken);
         }
     }
 

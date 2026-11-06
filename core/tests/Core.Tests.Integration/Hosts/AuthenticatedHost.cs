@@ -295,15 +295,6 @@ internal sealed class AuthenticatedHost : IAsyncDisposable
         return await client.SendAsync(request, cancellationToken);
     }
 
-    private async Task<HttpResponseMessage> EnterOnceAsync(CancellationToken cancellationToken)
-    {
-        using var entry = new HttpRequestMessage(HttpMethod.Post, new Uri("/session", UriKind.Relative))
-        {
-            Content = new StringContent($$"""{"name":"{{Name}}","password":"{{Password}}"}""", Encoding.UTF8, new MediaTypeHeaderValue("application/json")),
-        };
-        return await client.SendAsync(entry, cancellationToken);
-    }
-
     private async Task PrepareAsync(HostSetup setup, CancellationToken cancellationToken)
     {
         await StartupVerification.WaitUntilRecordedAsync(application, cancellationToken);
@@ -314,7 +305,11 @@ internal sealed class AuthenticatedHost : IAsyncDisposable
         var person = (await Write(() => registry.CreateAsync(new NewPerson(Name, setup.Function), CustodyAuthor.System, cancellationToken))).PersonId!.Value;
         _ = await Write(() => credentials.SetPasswordAsync(person, Password, CustodyAuthor.System, cancellationToken));
         _ = await KeyedHost.StatusAsync(Address, process, cancellationToken);
-        using var response = await StartupVerification.EnterAsync(() => EnterOnceAsync(cancellationToken), cancellationToken);
+        using var entry = new HttpRequestMessage(HttpMethod.Post, new Uri("/session", UriKind.Relative))
+        {
+            Content = new StringContent($$"""{"name":"{{Name}}","password":"{{Password}}"}""", Encoding.UTF8, new MediaTypeHeaderValue("application/json")),
+        };
+        using var response = await client.SendAsync(entry, cancellationToken);
         _ = response.EnsureSuccessStatusCode();
         Identifier = SessionIdentifier(response);
     }

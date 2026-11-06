@@ -167,6 +167,7 @@ def configuration(core: CoreTarget, tests: tuple[Path, ...]) -> str:
         "test-runner": "mtp",
         "concurrency": CONCURRENCY,
         "reporters": ["json"],
+        "log-level": "debug",
         "thresholds": {"high": 100, "low": 0, "break": 0},
     }
     return json.dumps({"stryker-config": options}, indent=2) + "\n"

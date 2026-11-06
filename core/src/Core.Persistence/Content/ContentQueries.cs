@@ -24,8 +24,6 @@ public static class ContentQueries
     internal const string ReadFirstEntries = "SELECT id, entries, dek_epoch, dek_wrapped FROM content.reversal_map WHERE emptied_at IS NULL AND id > @id ORDER BY id LIMIT 1";
 
     /// <summary>The rows of the copy of the data, as the database writes them, for the domain declared: the sealed columns go as the bytes they are, never opened.</summary>
-    internal const string ReadCopyIngestionBatch = "SELECT pg_catalog.to_jsonb(t)::text FROM content.ingestion_batch t ORDER BY id";
-
     internal const string ReadCopyItemText = "SELECT pg_catalog.to_jsonb(t)::text FROM content.item_text t ORDER BY id";
 
     internal const string ReadCopyReversalMap = "SELECT pg_catalog.to_jsonb(t)::text FROM content.reversal_map t ORDER BY id";
@@ -34,12 +32,30 @@ public static class ContentQueries
 
     /// <summary>Adds an item; the texts that are sealed arrive sealed, with the key of the item wrapped.</summary>
     internal const string InsertItemText =
-        "INSERT INTO content.item_text (domain_id, raw_text, sanitized_text, pseudonymized_text, dek_epoch, dek_wrapped) "
-        + "VALUES (@domain, @raw, @sanitized, @pseudonymized, @epoch, @wrapped) RETURNING id";
+        "INSERT INTO content.item_text (domain_id, batch_id, raw_text, sanitized_text, pseudonymized_text, dek_epoch, dek_wrapped) "
+        + "VALUES (@domain, @batch, @raw, @sanitized, @pseudonymized, @epoch, @wrapped) RETURNING id";
 
     /// <summary>Adds the map that reverses the pseudonyms of an item.</summary>
     internal const string InsertReversalMap =
-        "INSERT INTO content.reversal_map (domain_id, item_id, entries, dek_epoch, dek_wrapped) VALUES (@domain, @item, @entries, @epoch, @wrapped) RETURNING id";
+        "INSERT INTO content.reversal_map (domain_id, batch_id, item_id, entries, dek_epoch, dek_wrapped) VALUES (@domain, @batch, @item, @entries, @epoch, @wrapped) RETURNING id";
+
+    /// <summary>Opens a batch of ingestion for the domain declared: it holds no content, and the state, the moments and the identifier are the database's.</summary>
+    internal const string InsertIngestionBatch = "INSERT INTO content.ingestion_batch (domain_id, opened_by) VALUES (@domain, @author) RETURNING id";
+
+    /// <summary>The state and the motive of a batch of the domain, whatever its state: a batch rejected stays consultable after its material is gone.</summary>
+    internal const string ReadIngestionBatch = "SELECT state, motive, opened_by FROM content.ingestion_batch WHERE id = @id";
+
+    /// <summary>The batches of the domain declared, as the database writes them, for the copy of the data.</summary>
+    internal const string ReadCopyIngestionBatch = "SELECT pg_catalog.to_jsonb(t)::text FROM content.ingestion_batch t ORDER BY id";
+
+    /// <summary>Closes a batch that is open, accepted or rejected with its motive; the database refuses it without the event of the closing in the same transaction.</summary>
+    internal const string CloseIngestionBatch = "UPDATE content.ingestion_batch SET state = @state, motive = @motive WHERE id = @id AND state = 'open'";
+
+    /// <summary>Removes the maps of a batch just rejected, before its items; the database refuses it for any batch that is not rejected in this transaction.</summary>
+    internal const string RemoveBatchMaps = "DELETE FROM content.reversal_map WHERE batch_id = @id";
+
+    /// <summary>Removes the items of a batch just rejected, after its maps; the database refuses it for any batch that is not rejected in this transaction.</summary>
+    internal const string RemoveBatchItems = "DELETE FROM content.item_text WHERE batch_id = @id";
 
     /// <summary>The row of an item of the domain that was emptied, none when it was not; asked of the table of the items emptied, so that the audit sees no read of a text.</summary>
     internal const string ReadItemEmptied = "SELECT true FROM content.item_emptied WHERE item_id = @id";

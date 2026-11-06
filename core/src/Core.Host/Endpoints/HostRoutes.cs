@@ -8,6 +8,7 @@ internal static class HostRoutes
     internal static void Map(WebApplication app, RecognizerKind recognizer)
     {
         TransportSecurity.Map(app);
+        ScreenFailure.Use(app);
         SessionGate.Use(app);
         ScreenGate.Use(app);
         SealBodyLimit.Use(app);

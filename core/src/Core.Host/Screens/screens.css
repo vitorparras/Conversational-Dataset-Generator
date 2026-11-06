@@ -272,7 +272,7 @@ h1 + .lead { margin-top: 0; }
 .facts__note { display: block; margin-top: var(--space-1); color: var(--ink-muted); font-size: var(--text-sm); }
 
 /* Data table: on a screen narrower than its columns the table scrolls inside its region, which the keyboard reaches, and never the page. */
-.data-table { max-width: 100%; overflow-x: auto; }
+.data-table { position: relative; max-width: 100%; overflow-x: auto; }
 .data-table > table { width: 100%; min-width: var(--table-min-width); border-collapse: collapse; }
 .data-table caption { padding-bottom: var(--space-3); color: var(--ink-muted); font-size: var(--text-sm); text-align: left; }
 .data-table th, .data-table td { padding: var(--space-3); border-bottom: var(--line) solid var(--edge-soft); text-align: left; vertical-align: top; }

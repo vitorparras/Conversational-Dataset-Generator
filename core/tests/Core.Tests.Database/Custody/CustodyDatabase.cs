@@ -138,7 +138,7 @@ public sealed class CustodyDatabase : IAsyncDisposable
     }
 
     /// <summary>Runs the statement as the role that owns the database.</summary>
-    internal async Task RunAsOwnerAsync(string statement) => await (await ScratchAsync()).RunAsOwnerAsync(statement);
+    internal async Task RunAsOwnerAsync(params string[] statements) => await (await ScratchAsync()).RunAsOwnerAsync(statements);
 
     /// <summary>What the server answers to a statement run as the application's role.</summary>
     internal async Task<PostgresException> RefusedToAppAsync(string statement) =>

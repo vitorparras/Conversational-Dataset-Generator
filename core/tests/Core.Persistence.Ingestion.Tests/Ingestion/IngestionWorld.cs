@@ -32,6 +32,25 @@ internal static class IngestionWorld
         return opened.BatchId!.Value;
     }
 
+    /// <summary>Adds an item to the batch with a statement of its own, which the batch rules judge as they judge the writer of the system, and answers its identifier.</summary>
+    public static async Task<long> AddItemAsync(BatchesWorld world, long batch) =>
+        (long)(await world.InDomainAsync(
+            Domain,
+            "INSERT INTO content.item_text (domain_id, batch_id, raw_text, dek_epoch, dek_wrapped) "
+            + "VALUES (@domain, @batch, decode('a1', 'hex'), 1, decode('c3', 'hex')) RETURNING id",
+            ("domain", Domain),
+            ("batch", batch)))!;
+
+    /// <summary>Adds the map of the item to the batch with a statement of its own, and answers its identifier.</summary>
+    public static async Task<long> AddMapAsync(BatchesWorld world, long batch, long item) =>
+        (long)(await world.InDomainAsync(
+            Domain,
+            "INSERT INTO content.reversal_map (domain_id, batch_id, item_id, entries, dek_epoch, dek_wrapped) "
+            + "VALUES (@domain, @batch, @item, decode('b2', 'hex'), 1, decode('c3', 'hex')) RETURNING id",
+            ("domain", Domain),
+            ("batch", batch),
+            ("item", item)))!;
+
     /// <summary>The batch of the domain of the tests, closed by the system as accepted.</summary>
     public static Task<BatchResult> AcceptAsync(BatchesWorld world, long batch) =>
         BatchesOf(world).AcceptAsync(new BatchClosing(Domain, batch, CustodyAuthor.System), TestContext.Current.CancellationToken);

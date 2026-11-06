@@ -368,8 +368,8 @@ public sealed partial class ContentDomainTests
     }
 
     [Fact]
-    public void EveryStatementOfTheListIsAReadingAnInsertAnEmptyingARewrapOrAClosing() =>
-        Assert.All(ContentQueries.All.Keys, name => Assert.Matches("^(Read|Insert|Empty|Rewrap|Close)", name));
+    public void EveryStatementOfTheListIsAReadingAnInsertAnEmptyingARewrapAClosingOrARemoval() =>
+        Assert.All(ContentQueries.All.Keys, name => Assert.Matches("^(Read|Insert|Empty|Rewrap|Close|Remove)", name));
 
     [Fact]
     public async Task DomainThatIsNotPositiveIsRefusedBeforeAnyConnectionOpens()
@@ -431,7 +431,8 @@ public sealed partial class ContentDomainTests
     }
 
     private static bool IsEmptyingOrRewrap(string name) =>
-        name.StartsWith("Empty", StringComparison.Ordinal) || name.StartsWith("Rewrap", StringComparison.Ordinal) || name.StartsWith("Close", StringComparison.Ordinal);
+        name.StartsWith("Empty", StringComparison.Ordinal) || name.StartsWith("Rewrap", StringComparison.Ordinal)
+        || name.StartsWith("Close", StringComparison.Ordinal) || name.StartsWith("Remove", StringComparison.Ordinal);
 
     private static NpgsqlCommand Unbound(string statement, NpgsqlConnection connection)
     {

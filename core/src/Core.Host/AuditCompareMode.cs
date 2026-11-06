@@ -39,3 +39,5 @@ internal static class AuditCompareMode
         }
     }
 }
+
+// Prova descartável da #669: este PR toca só o Core.Host, então só o módulo dele muta.

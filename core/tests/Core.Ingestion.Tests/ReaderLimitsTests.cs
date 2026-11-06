@@ -120,14 +120,15 @@ public sealed class ReaderLimitsTests
     {
         Assert.True(Reader.Recognizes(Bytes(Head + "[]}")));
         Assert.True(Reader.Recognizes(Bytes("  \n" + Head + "[")));
-        Assert.True(Reader.Recognizes(Bytes("""{"x":{"a":[1,2,{"b":3}]},"formato":"cdg-conversa/1","mensagens":[""")));
-        Assert.True(Reader.Recognizes(Bytes(/*lang=json*/ """{"mensagens":[],"formato":"cdg-conversa/1"}""")));
+        Assert.True(Reader.Recognizes(Bytes(/*lang=json*/ """{"formato":"cdg-conversa/1","x":{"a":[1,2,{"b":3}]}}""")));
     }
 
     [Theory]
     [InlineData(/*lang=json*/ """{"formato":"cdg-conversa/2","mensagens":[]}""")]
     [InlineData(/*lang=json*/ """{"formato":"CDG-CONVERSA/1","mensagens":[]}""")]
     [InlineData(/*lang=json*/ """{"formato":7,"mensagens":[]}""")]
+    [InlineData(/*lang=json*/ """{"mensagens":[],"formato":"cdg-conversa/1"}""")]
+    [InlineData(/*lang=json*/ """{"x":{"a":[1,2,{"b":3}]},"formato":"cdg-conversa/1","mensagens":[]}""")]
     [InlineData("""["cdg-conversa/1"]""")]
     [InlineData("""{"formato":""")]
     [InlineData("""{"formato""")]
@@ -148,11 +149,12 @@ public sealed class ReaderLimitsTests
     }
 
     [Fact]
-    public void TheFormatMemberMustComeInsideTheHeadTheReaderDeclares()
+    public void TheFormatMemberIsTheFirstOneWhateverTheSizeOfTheFile()
     {
-        var late = /*lang=json*/ $$"""{"x":"{{new string('a', 5000)}}","formato":"cdg-conversa/1","mensagens":[]}""";
-        var content = Bytes(late);
+        var first = Bytes(Head + "[" + Message("a", "Ana", new string('x', 60_000)) + "]}");
+        var late = Bytes($$"""{"mensagens":[{{Message("a", "Ana", new string('x', 6000))}}],"formato":"cdg-conversa/1"}""");
 
-        Assert.Equal((false, true), (Reader.Recognizes(content.AsSpan(0, Reader.Limits.HeadBytes)), Reader.Recognizes(content)));
+        Assert.Equal((true, false), (Reader.Recognizes(first.AsSpan(0, Reader.Limits.HeadBytes)), Reader.Recognizes(late.AsSpan(0, Reader.Limits.HeadBytes))));
+        Assert.NotNull(Reader.Read(late).Material);
     }
 }

@@ -109,13 +109,13 @@ internal sealed class NavigationScreenHost : IAsyncDisposable
 
     private static RazorComponentResult<ScreenFrame> Show(HttpContext context) => ScreenResult.Of(context, typeof(BareScreen), "Tela de ensaio");
 
-    private static OperatorAdministration AdministrationOf(IServiceProvider provider)
+    internal static OperatorAdministration AdministrationOf(IServiceProvider provider)
     {
         var source = provider.GetRequiredService<NpgsqlDataSource>();
         return new OperatorAdministration(new PersonRegistry(source), new PersonCredentials(source, new PasswordDerivation(1)), provider.GetRequiredService<SessionStore>());
     }
 
-    private static SignIn SignInOf(IServiceProvider provider)
+    internal static SignIn SignInOf(IServiceProvider provider)
     {
         var people = provider.GetRequiredService<OperatorAdministration>();
         return new SignIn(

@@ -8,4 +8,5 @@ internal static class ScreenPaths
     internal const string Home = "/";
     internal const string State = "/estado-do-sistema";
     internal const string Configuration = "/configuracao";
+    internal const string Domains = "/dominios";
 }

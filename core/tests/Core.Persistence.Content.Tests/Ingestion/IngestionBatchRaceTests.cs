@@ -2,6 +2,7 @@ using Core.Persistence.Content;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Content;
 using Core.Persistence.Tests.Fixtures;
+using Npgsql;
 
 namespace Core.Persistence.Tests.Ingestion;
 
@@ -15,7 +16,8 @@ public sealed class IngestionBatchRaceTests
     private const string AddItem =
         "INSERT INTO content.item_text (domain_id, batch_id, raw_text, dek_epoch, dek_wrapped) "
         + "VALUES (1, @batch, decode('a1', 'hex'), 1, decode('c3', 'hex'))";
-    private const string Waiting = "SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock'";
+    private const string Waiting =
+        "SELECT count(*) FROM pg_stat_activity WHERE datname = @database AND wait_event_type = 'Lock' AND query LIKE 'UPDATE content.ingestion_batch%'";
     private const string InTheBatch = "SELECT count(*) FROM content.item_text WHERE batch_id = @batch";
     private const string Counted = "SELECT coalesce(sum(delta), 0)::text FROM public.content_domain WHERE domain_id = 1 AND table_name = 'item_text'";
 
@@ -67,19 +69,23 @@ public sealed class IngestionBatchRaceTests
         }
     }
 
+    /// <summary>
+    /// Waits, as the superuser (who is the one that sees what the sessions of other roles wait for), until the update that closes the batch waits on a lock.
+    /// The only lock it can wait on is the turn of the batch that the writer holds.
+    /// </summary>
     private static async Task WaitUntilSomeoneWaitsAsync(ContentWorld world)
     {
-        for (var attempt = 0; attempt < 100; attempt++)
+        var server = await PostgresFixture.SharedAsync();
+        await using var connection = new NpgsqlConnection(server.SuperuserConnectionString);
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
+        await using var command = new NpgsqlCommand(Waiting, connection);
+        _ = command.Parameters.AddWithValue("database", new NpgsqlConnectionStringBuilder(world.Database.OwnerConnectionString).Database!);
+        var deadline = DateTimeOffset.UtcNow.AddSeconds(30);
+        while ((long)(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken))! == 0)
         {
-            if (Convert.ToInt64(await world.ScalarAsync(Waiting), System.Globalization.CultureInfo.InvariantCulture) > 0)
-            {
-                return;
-            }
-
-            await Task.Delay(100, TestContext.Current.CancellationToken);
+            Assert.True(DateTimeOffset.UtcNow < deadline, "The closing never waited on the writer.");
+            await Task.Delay(50, TestContext.Current.CancellationToken);
         }
-
-        Assert.Fail("The closing never waited on the writer.");
     }
 
     private static async Task<long> ItemsInTheBatchAsync(ContentWorld world, long batch)

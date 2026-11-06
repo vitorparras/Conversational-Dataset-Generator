@@ -8,7 +8,7 @@ namespace Core.Persistence.People;
 /// The people who operate the system. Each operation writes the person, the record of what was done and the event of the chain of custody in one transaction, so that
 /// the history never lacks a change nor holds one that did not happen. A person is deactivated and never deleted; what they reach comes from grants.
 /// </summary>
-public sealed class PersonRegistry
+public sealed partial class PersonRegistry
 {
     private readonly NpgsqlDataSource dataSource;
 

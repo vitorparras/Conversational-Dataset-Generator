@@ -42,5 +42,6 @@ Comece pela visão geral; os três seguintes dão o desenho inteiro, e os módul
 | [019](019-telas-campanha-avaliacao-e-parecer.md) | Telas de campanha, avaliação e parecer |
 | [020](020-telas-exportacao-e-comparacao.md) | Telas de exportação e comparação |
 | [021](021-telas-auditoria.md) | Telas de auditoria |
+| [022](022-revisao-manual-de-acessibilidade.md) | Revisão manual de acessibilidade |
 
 Ver [regras de escrita](../regras-de-escrita.md).

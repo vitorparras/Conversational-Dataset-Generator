@@ -10,7 +10,7 @@ public sealed class NoDomainRuleInHostTests
     [Fact]
     public void HostDeclaresNoNameFromTheDomain()
     {
-        var violations = NoDomainRuleInHostRules.Check(NoDomainRuleInHostRules.HostFiles());
+        var violations = NoDomainRuleInHostRules.Check(NoDomainRuleInHostRules.HostAndComponentFiles());
 
         Assert.Empty(violations);
     }
@@ -18,12 +18,23 @@ public sealed class NoDomainRuleInHostTests
     [Fact]
     public void HostCompositionEndpointsAndSupervisionAreAmongTheJudgedNames()
     {
-        var names = NoDomainRuleInHostRules.DeclaredNames(NoDomainRuleInHostRules.HostFiles()).ToList();
+        var names = NoDomainRuleInHostRules.DeclaredNames(NoDomainRuleInHostRules.HostAndComponentFiles()).ToList();
 
         Assert.Contains("CompositionRoot", names);
         Assert.Contains("StatusEndpoint", names);
         Assert.Contains("LanguageServiceSupervisor", names);
         Assert.Contains("SupervisionLogMessages", names);
+    }
+
+    [Fact]
+    public void HostComponentsAndTheNamesTheyDeclareAreAmongTheJudgedNames()
+    {
+        var files = NoDomainRuleInHostRules.HostAndComponentFiles();
+        var names = NoDomainRuleInHostRules.DeclaredNames(files).ToList();
+
+        Assert.Contains(files, file => file.FileName == "ScreenFrame.razor");
+        Assert.Contains("ScreenFrame", names);
+        Assert.Contains("Caption", names);
     }
 
     [Fact]
@@ -44,6 +55,16 @@ public sealed class NoDomainRuleInHostTests
         var violations = NoDomainRuleInHostRules.Check([fixture]);
 
         Assert.Empty(violations);
+    }
+
+    [Fact]
+    public void DomainTermInAComponentFileNameIsRefused()
+    {
+        var fixture = SourceTree.Fixture(Path.Combine(Fixtures, "ConversationList.razor"));
+
+        var violation = Assert.Single(NoDomainRuleInHostRules.Check([fixture]));
+
+        Assert.Contains("file name ConversationList.razor", violation.Message, StringComparison.Ordinal);
     }
 
     [Fact]

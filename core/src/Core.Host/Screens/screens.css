@@ -49,11 +49,15 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
 
 .skip-link:focus { transform: none; }
 
+[data-region]:focus { outline: none; }
+[data-region][aria-busy="true"] { opacity: var(--opacity-busy); cursor: progress; transition: opacity var(--motion) var(--ease); }
+
 /* Header */
 .header {
     position: sticky;
     top: 0;
     z-index: var(--layer-header);
+    min-height: var(--header-height);
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -65,9 +69,182 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
     backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
 }
 
-.header__name { margin: 0; font: var(--weight-strong) var(--text-md) / var(--leading-tight) var(--font-display); color: var(--ink); text-decoration: none; }
-.header__nav { margin-left: auto; }
+.header__name { margin: 0 auto 0 0; font: var(--weight-strong) var(--text-md) / var(--leading-tight) var(--font-display); color: var(--ink); text-decoration: none; }
+.header__leave { margin: 0; }
+.sign-in { max-width: var(--field-width); }
+.sign-in > .notice { margin-bottom: var(--space-5); }
+
+/* Menu of the functions: a row of its own under the name, the domain and the exit, in the order the focus walks; the entry of the page is marked
+   by its shape, a thick underline, and not by colour alone. */
+.nav { flex-basis: 100%; margin-left: calc(-1 * var(--space-3)); }
+.nav__list { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-2); margin: 0; padding: 0; list-style: none; }
+
+.nav__link {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--control-height);
+    padding: 0 var(--space-3);
+    border-radius: var(--radius-sm);
+    color: var(--ink);
+    font-weight: var(--weight-strong);
+    text-decoration: none;
+}
+
+.nav__link:hover { color: var(--accent-hover); text-decoration: underline; }
+.nav__link[aria-current="page"] { color: var(--accent); text-decoration: underline; text-decoration-thickness: var(--line-strong); }
+
+/* Domain picker: shown only with a domain granted. */
+.domain { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin: 0; }
+.domain__label { font-weight: var(--weight-strong); }
+
+.domain__choice {
+    min-height: var(--control-height);
+    padding: 0 var(--space-3);
+    border: var(--line) solid var(--edge);
+    border-radius: var(--radius-sm);
+    color: var(--ink);
+    background: var(--surface);
+    font: inherit;
+}
+
+/* Glass panel */
+.panel {
+    padding: var(--space-5);
+    border: var(--line) solid var(--edge-soft);
+    border-radius: var(--radius-lg);
+    background: var(--glass);
+    box-shadow: inset 0 var(--line) 0 var(--glass-edge), var(--shadow-raised);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+}
+
+.panel > :last-child { margin-bottom: 0; }
+
+/* Button */
+.button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--control-height);
+    padding: 0 var(--space-4);
+    border: var(--line-strong) solid transparent;
+    border-radius: var(--radius-md);
+    font: var(--weight-strong) var(--text-md) / var(--leading-tight) var(--font-text);
+    text-decoration: none;
+    cursor: pointer;
+    box-shadow: var(--shadow-control);
+    transition: background-color var(--motion) var(--ease), color var(--motion) var(--ease);
+}
+
+.button--primary { color: var(--on-accent); background: var(--accent); }
+.button--primary:hover { color: var(--on-accent); background: var(--accent-hover); }
+.button--secondary { color: var(--accent); background: var(--surface); border-color: var(--accent); }
+.button--secondary:hover { color: var(--accent-hover); border-color: var(--accent-hover); }
+.button--quiet { color: var(--accent); background: transparent; box-shadow: none; text-decoration: underline; text-underline-offset: var(--underline-offset); }
+.button--quiet:hover { color: var(--accent-hover); text-decoration-thickness: var(--line-strong); }
+.button--danger { color: var(--on-danger); background: var(--danger); }
+.button--danger:hover { color: var(--on-danger); background: var(--danger-hover); }
+.button:disabled, .button[aria-disabled="true"] { cursor: not-allowed; opacity: var(--opacity-disabled); }
+
+.button__key {
+    padding: 0 var(--space-2);
+    border: var(--line) solid currentColor;
+    border-radius: var(--radius-sm);
+    font-weight: var(--weight-text);
+}
+
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+
+/* Field with label and error */
+.field { display: grid; gap: var(--space-2); max-width: var(--field-width); margin-bottom: var(--space-5); }
+.field__label { font-weight: var(--weight-strong); }
+.field__required { margin-left: var(--space-1); font-weight: var(--weight-text); color: var(--ink-muted); }
+.field__hint { margin: 0; color: var(--ink-muted); font-size: var(--text-sm); }
+
+.field__input {
+    min-height: var(--control-height);
+    padding: var(--space-2) var(--space-3);
+    border: var(--line) solid var(--edge);
+    border-radius: var(--radius-sm);
+    color: var(--ink);
+    background: var(--surface);
+    font: inherit;
+    box-shadow: inset var(--shadow-control);
+}
+
+.field__input[aria-invalid="true"] { border: var(--line-error) double var(--error); }
+
+/* An error is told by text and by shape, never by colour alone. */
+.field__error { display: flex; gap: var(--space-2); margin: 0; color: var(--error); font-weight: var(--weight-strong); }
+.field__error::before { content: "\26A0"; }
+
+/* Status notice: the kind is said in words and drawn as a shape; the colour only repeats it. */
+.notice {
+    display: flex;
+    gap: var(--space-3);
+    align-items: baseline;
+    max-width: var(--measure);
+    padding: var(--space-3) var(--space-4);
+    border: var(--line) solid currentColor;
+    border-radius: var(--radius-md);
+}
+
+.notice + .notice { margin-top: var(--space-3); }
+.notice > p { margin: 0; color: var(--ink); }
+.notice__mark { flex: none; font-weight: var(--weight-strong); }
+.notice__kind { font-weight: var(--weight-strong); }
+.notice--info { color: var(--info); background: var(--info-surface); }
+.notice--success { color: var(--success); background: var(--success-surface); }
+.notice--pending { color: var(--pending); background: var(--pending-surface); border-style: dashed; }
+.notice--error { color: var(--error); background: var(--error-surface); border-width: var(--line-strong); }
+
+/* Waiting notice: an empty live region the client layer fills while a form is on its way; the text says it, the shape repeats it. */
+.wait { margin: 0 0 var(--space-4); }
+
+.wait:not(:empty) {
+    display: flex;
+    gap: var(--space-3);
+    max-width: var(--field-width);
+    padding: var(--space-3) var(--space-4);
+    border: var(--line) dashed var(--pending);
+    border-radius: var(--radius-md);
+    color: var(--ink);
+    background: var(--pending-surface);
+}
+
+.wait:not(:empty)::before { content: "\25F7" / ""; color: var(--pending); font-weight: var(--weight-strong); }
+
+/* Paged list */
+.paged-list { margin: 0; padding: 0; list-style: none; }
+.paged-list > li { padding: var(--space-3) 0; border-bottom: var(--line) solid var(--edge-soft); }
+
+.pager { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4); margin-top: var(--space-4); color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+.pager__edge { color: var(--ink-muted); }
+
+/* Empty state: what is empty, then why and what makes something appear. */
+.empty-state { max-width: var(--measure); padding: var(--space-5); border: var(--line-strong) dashed var(--edge); border-radius: var(--radius-md); }
+.empty-state__title { font-weight: var(--weight-strong); }
+.empty-state > :last-child { margin-bottom: 0; }
+
+/* Start page: the screens to go to, each a whole row to click. */
+.destinations { display: grid; gap: var(--space-2); max-width: var(--field-width); margin: 0; padding: 0; list-style: none; }
+
+.destinations__link {
+    display: flex;
+    align-items: center;
+    min-height: var(--control-height);
+    padding: var(--space-3) var(--space-4);
+    border: var(--line) solid var(--edge);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    font-weight: var(--weight-strong);
+    text-decoration: none;
+}
+
+.destinations__link:hover { color: var(--accent-hover); border-color: var(--accent-hover); text-decoration: underline; }
+.destinations__link::after { content: "\2192" / ""; margin-left: auto; padding-left: var(--space-3); }
 
 @media (forced-colors: active) {
-    .header { border-color: CanvasText; }
+    .button, .notice, .panel, .header, .destinations__link { border-color: CanvasText; }
+    .button__key { border-color: currentColor; }
 }

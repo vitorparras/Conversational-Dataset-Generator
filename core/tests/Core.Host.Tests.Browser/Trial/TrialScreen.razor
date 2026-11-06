@@ -1,0 +1,32 @@
+<h1>Tela de ensaio</h1>
+
+<Region Id="status" Focus="[data-status]">
+    <p data-status tabindex="-1">@Message</p>
+    <Button Id="acionar" Kind="Button.Look.Secondary" Href="/ensaio/atalho" Swap="status" Shortcut="a">Acionar o atalho</Button>
+</Region>
+
+<Region Id="formulario" Focus="[aria-invalid='true']">
+    <form method="post" action="/ensaio/formulario" data-swap="formulario" novalidate>
+        <Field Id="nome" Caption="Nome" Value="@Name" Error="@NameError" />
+        <Button Id="enviar">Enviar</Button>
+    </form>
+    <p data-saved>@Saved</p>
+</Region>
+
+@code {
+    /// <summary>What the status region says; empty before the shortcut fires.</summary>
+    [Parameter]
+    public string Message { get; set; } = "Nada aconteceu ainda.";
+
+    /// <summary>The name the form holds, given back when the answer refuses it.</summary>
+    [Parameter]
+    public string Name { get; set; } = "";
+
+    /// <summary>What the form refused about the name, or nothing.</summary>
+    [Parameter]
+    public string? NameError { get; set; }
+
+    /// <summary>What the form says once it accepted the name.</summary>
+    [Parameter]
+    public string Saved { get; set; } = "";
+}

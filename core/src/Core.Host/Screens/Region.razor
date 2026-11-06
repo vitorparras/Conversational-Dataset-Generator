@@ -1,0 +1,14 @@
+<div id="@Id" data-region data-focus="@Focus" tabindex="-1">@ChildContent</div>
+
+@code {
+    /// <summary>The identifier the client layer swaps by, taking the region of that identifier out of the whole page the server answers.</summary>
+    [Parameter, EditorRequired]
+    public string Id { get; set; } = "";
+
+    /// <summary>The selector, inside the region, of the element that takes the focus once the region is swapped in; the region itself when absent.</summary>
+    [Parameter]
+    public string? Focus { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

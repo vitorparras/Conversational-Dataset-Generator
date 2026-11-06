@@ -51,4 +51,6 @@ internal static class PersonStatements
     internal const string ActiveFunctionOf = "SELECT function_name FROM public.person WHERE id = @id AND active";
 
     internal const string IdOfName = "SELECT id FROM public.person WHERE name = @name";
+
+    internal const string NobodyRegistered = "SELECT NOT EXISTS (SELECT 1 FROM public.person)";
 }

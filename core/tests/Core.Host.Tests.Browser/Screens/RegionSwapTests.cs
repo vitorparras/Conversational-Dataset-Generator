@@ -15,13 +15,13 @@ public sealed class RegionSwapTests(BrowserFixture browser)
     {
         await using var tab = await browser.OpenAsync(TrialRoutes.Trial);
         await tab.Page.Locator("#nome").FillAsync(Typed);
-        _ = await tab.Page.EvaluateAsync("() => { document.querySelector('form').dataset.mark = 'original'; }");
+        _ = await tab.Page.EvaluateAsync("() => { document.querySelector('form[data-swap]').dataset.mark = 'original'; }");
 
         await tab.Page.Locator("#acionar").ClickAsync();
 
         await Expect(tab.Page.Locator("[data-status]")).ToHaveTextAsync(TrialRoutes.ShortcutMessage);
         await Expect(tab.Page.Locator("#nome")).ToHaveValueAsync(Typed);
-        await Expect(tab.Page.Locator("form")).ToHaveAttributeAsync("data-mark", "original");
+        await Expect(tab.Page.Locator("form[data-swap]")).ToHaveAttributeAsync("data-mark", "original");
     }
 
     [Fact]

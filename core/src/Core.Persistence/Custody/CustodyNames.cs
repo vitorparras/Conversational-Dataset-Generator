@@ -15,6 +15,7 @@ internal static class CustodyNames
         [CustodyItemKind.Domain] = "domain",
         [CustodyItemKind.SignInAttempt] = "sign_in_attempt",
         [CustodyItemKind.MasterKey] = "master_key",
+        [CustodyItemKind.IngestionBatch] = "ingestion_batch",
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<CustodyStep, string> Steps = new Dictionary<CustodyStep, string>
@@ -46,6 +47,8 @@ internal static class CustodyNames
         [CustodyStep.RestoreRehearsed] = "restore_rehearsed",
         [CustodyStep.DomainLabelRevoked] = "domain_label_revoked",
         [CustodyStep.DomainRewrapped] = "domain_rewrapped",
+        [CustodyStep.BatchOpened] = "batch_opened",
+        [CustodyStep.BatchClosed] = "batch_closed",
         [CustodyStep.PasswordChanged] = "password_changed",
     }.ToFrozenDictionary();
 
@@ -63,6 +66,8 @@ internal static class CustodyNames
         [CustodyReason.CredentialsAccepted] = "credentials_accepted",
         [CustodyReason.PasswordWrong] = "password_wrong",
         [CustodyReason.AccountNotRecognized] = "account_not_recognized",
+        [CustodyReason.BatchAccepted] = "batch_accepted",
+        [CustodyReason.BatchRejected] = "batch_rejected",
     }.ToFrozenDictionary();
 
     internal static string Of(CustodyItemKind kind) => Kinds[kind];

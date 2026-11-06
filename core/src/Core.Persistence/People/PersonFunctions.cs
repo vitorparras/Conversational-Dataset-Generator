@@ -9,6 +9,9 @@ public static class PersonFunctions
     /// <summary>The function that makes, deactivates and restores the people who operate.</summary>
     public static string Administration { get; } = "Administração técnica";
 
+    /// <summary>The function that reads the record of events and of access, and no content.</summary>
+    public static string Audit { get; } = "Auditoria";
+
     /// <summary>The six functions of the policy, by the name the policy gives each.</summary>
     public static IReadOnlyList<string> Accepted { get; } =
     [
@@ -16,7 +19,7 @@ public static class PersonFunctions
         "Arbitragem",
         Curation,
         "Avaliação",
-        "Auditoria",
+        Audit,
         Administration,
     ];
 

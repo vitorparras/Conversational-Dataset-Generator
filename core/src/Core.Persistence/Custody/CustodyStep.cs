@@ -90,6 +90,12 @@ public enum CustodyStep
     /// <summary>A batch of the keys of a domain was wrapped again under the newest generation of its labels not revoked; the item is the domain.</summary>
     DomainRewrapped,
 
+    /// <summary>A batch of ingestion was opened, with no content, by a person; the item is the batch.</summary>
+    BatchOpened,
+
+    /// <summary>A batch of ingestion was closed, accepted or rejected; the item is the batch, the reason says which, and a rejection carries its motive as the reference.</summary>
+    BatchClosed,
+
     /// <summary>A person changed their own password: the item and the author are that person and the reference is how many of their other sessions it ended, never a value of a password.</summary>
     PasswordChanged,
 }

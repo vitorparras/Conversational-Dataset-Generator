@@ -50,7 +50,7 @@ public sealed class ExportedConversationReaderTests
         { Head + """[{"id":"a","remetente":"Ana","instante":"2031-03-04T08:00:00Z","texto":"ZQXMARCADOR"},]}""", UnreadableReason.Corrupted },
         { Head + """[/* ZQXMARCADOR */]}""", UnreadableReason.Corrupted },
         { Head + """[] // ZQXMARCADOR""", UnreadableReason.Corrupted },
-        { Head + """[{"id":{"a":{"b":"ZQXMARCADOR"}}}]}""", UnreadableReason.Corrupted },
+        { Head + """[{"id":{"a":{"b":"ZQXMARCADOR"}}}]}""", UnreadableReason.OverLimits },
         { Head + """[]} ZQXMARCADOR""", UnreadableReason.Corrupted },
         { Head + """[]}{"formato":"cdg-conversa/1","mensagens":[]}""", UnreadableReason.Corrupted },
         { "", UnreadableReason.Truncated },

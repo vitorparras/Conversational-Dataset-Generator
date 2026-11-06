@@ -27,7 +27,11 @@ public static class AuditMap
         new("content.reversal_map", ["SELECT"], [CustodyStep.ReversalEntriesRead]),
         new("content.item_text", [Update], [CustodyStep.ItemEmptied]),
         new("content.reversal_map", [Update], [CustodyStep.ItemEmptied]),
+        new("content.ingestion_batch", Of(Insert), Of(CustodyStep.BatchOpened)),
+        new("content.ingestion_batch", Of(Update), Of(CustodyStep.BatchClosed)),
     ];
+
+    private static T[] Of<T>(params T[] values) => values;
 
     /// <summary>The steps that touch no table, each with the reason.</summary>
     public static IReadOnlyDictionary<CustodyStep, string> StepsWithoutTable { get; } = new Dictionary<CustodyStep, string>

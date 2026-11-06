@@ -31,7 +31,8 @@ public sealed class RefusalTests
     [InlineData(RefusalCode.NoUnits, "o material não tem nenhuma unidade")]
     [InlineData(RefusalCode.FieldMissing, "falta o que a forma exige")]
     [InlineData(RefusalCode.FieldNotAllowed, "há o que a forma não admite")]
-    [InlineData(RefusalCode.OrderNotDetermined, "duas mensagens têm o mesmo instante, e a ordem não pode vir da posição no arquivo")]
+    [InlineData(RefusalCode.OrderNotDetermined, "duas mensagens têm o mesmo instante, e nada no conteúdo decide qual vem antes: a ordem não pode vir da posição no arquivo")]
+    [InlineData(RefusalCode.OrderIncoherent, "a ordem que as respostas dão contradiz os instantes ou a si mesma: uma resposta é anterior à mensagem que responde, ou as respostas formam um ciclo")]
     [InlineData(RefusalCode.PassageOutsideText, "um trecho começa antes do texto, termina depois dele ou não tem extensão")]
     [InlineData(RefusalCode.ConversationThread, "o material traz fio de conversa, e a forma é de uma manifestação isolada")]
     [InlineData(RefusalCode.AuthorshipByPart, "o material tem autoria por trecho, e a forma não tem autoria por parte")]
@@ -65,6 +66,8 @@ public sealed class RefusalTests
     [InlineData(UnreadableReason.Truncated, "arquivo cortado antes do fim")]
     [InlineData(UnreadableReason.UnsupportedFormat, "formato que esta versão não lê")]
     [InlineData(UnreadableReason.OnlyPartlyRead, "só uma parte foi lida")]
+    [InlineData(UnreadableReason.OverLimits, "o conteúdo passa dos limites do formato: profundidade, quantidade de unidades ou tamanho de texto")]
+    [InlineData(UnreadableReason.ExternalReference, "um campo de estrutura aponta para fora do arquivo, por endereço ou caminho, e o formato não segue referência")]
     public void EachCauseOfAnUnreadableMaterialIsNamedAndPartialReadingIsNeverAccepted(UnreadableReason cause, string words) =>
         Assert.Equal(
             $"{Whole}a leitura não foi completa ({words}), e leitura parcial não é aceita",

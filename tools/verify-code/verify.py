@@ -22,6 +22,7 @@ from steps import (
     ai_attribution,
     build_core,
     build_service,
+    changes,
     coverage_by_area,
     dependencies,
     floors,
@@ -133,6 +134,16 @@ def print_mutation_modules() -> int:
     return 0
 
 
+def print_changes(base: str | None) -> int:
+    """`heavy=true` or `heavy=false` for the output of the CI, the reasons on stderr."""
+    ctx = Context(ROOT, ROOT / OUTPUT_DIRECTORY, run_process, base)
+    decision = changes.verdict(ctx)
+    for reason in decision.reasons:
+        print(reason, file=sys.stderr)
+    print(decision.output)
+    return 0
+
+
 def usage_error(requested: list[str], module: str | None) -> str | None:
     """Why the request cannot run: a step that does not exist, or a module for other steps."""
     unknown = [n for n in requested if n not in {s.name for s in STEPS}]
@@ -157,6 +168,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="imprime em JSON os módulos críticos e suas partes, a matriz do CI",
     )
+    parser.add_argument(
+        "--changes",
+        action="store_true",
+        help="imprime heavy=true ou heavy=false: o diff de --base pede os jobs pesados do código?",
+    )
     parser.add_argument("--base", help="ref de comparação para pr_size (ex.: origin/main)")
     parser.add_argument("--previous", type=Path, help="by-area.md anterior: floors avisa queda")
     args = parser.parse_args(argv)
@@ -165,6 +181,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.mutation_modules:
         return print_mutation_modules()
+    if args.changes:
+        return print_changes(args.base)
     refusal = usage_error(args.step, args.module)
     if refusal:
         print(refusal)

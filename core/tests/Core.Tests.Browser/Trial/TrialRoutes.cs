@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Core.Host.Screens;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -17,8 +18,11 @@ internal static class TrialRoutes
     public const string Catalog = "/ensaio/catalogo";
     public const string Shortcut = "/ensaio/atalho";
     public const string Form = "/ensaio/formulario";
+    public const string Submit = "/ensaio/envio";
     public const string ShortcutMessage = "O atalho foi acionado.";
     public const string NameRefusal = "Informe o nome.";
+
+    private static readonly ConcurrentDictionary<string, int> Posts = new();
 
     public static void Map(IEndpointRouteBuilder routes)
     {
@@ -27,6 +31,30 @@ internal static class TrialRoutes
         _ = routes.MapGet(Trial, (HttpContext context) => Show(context, typeof(TrialScreen), "Tela de ensaio"));
         _ = routes.MapGet(Shortcut, (HttpContext context) => Show(context, typeof(TrialScreen), "Tela de ensaio", Parameters((nameof(TrialScreen.Message), ShortcutMessage))));
         _ = routes.MapPost(Form, AnswerAsync);
+        _ = routes.MapGet(Submit + "/{mode}", ShowSubmit);
+        _ = routes.MapPost(Submit + "/{mode}", ReceiveAsync);
+    }
+
+    private static RazorComponentResult<ScreenFrame> ShowSubmit(string mode, HttpContext context) =>
+        Show(context, typeof(SubmitScreen), "Envio sem região", Parameters((nameof(SubmitScreen.Action), $"{Submit}/{mode}"), (nameof(SubmitScreen.Key), KeyOf(mode))));
+
+    /// <summary>The synthetic identifier a form of the mode posts, which the server counts by.</summary>
+    public static string KeyOf(string mode) => $"ENVIO_{mode.ToUpperInvariant()}";
+
+    /// <summary>How many posts with the identifier reached the server.</summary>
+    public static int Received(string key) => Posts.GetValueOrDefault(key);
+
+    /// <summary>Counts the post, then answers without the region the client asked for: another screen, a failure of the server, or a redirect to another screen.</summary>
+    private static async Task<IResult> ReceiveAsync(string mode, HttpContext context, CancellationToken cancellationToken)
+    {
+        var form = await context.Request.ReadFormAsync(cancellationToken);
+        _ = Posts.AddOrUpdate(form["chave"].ToString(), 1, (_, count) => count + 1);
+        return mode switch
+        {
+            "erro" => Results.Text("Falha do servidor no ensaio.", statusCode: StatusCodes.Status500InternalServerError),
+            "redireciona" => Results.Redirect(Bare),
+            _ => Show(context, typeof(BareScreen), "Tela base"),
+        };
     }
 
     private static async Task<IResult> AnswerAsync(HttpContext context, CancellationToken cancellationToken)

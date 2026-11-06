@@ -1,0 +1,18 @@
+<h1>Envio sem a região</h1>
+
+<Region Id="formulario">
+    <form method="post" action="@Action" data-swap="formulario" novalidate>
+        <input type="hidden" name="chave" value="@Key" />
+        <Button Id="enviar">Enviar</Button>
+    </form>
+</Region>
+
+@code {
+    /// <summary>Where the form posts: a route of the test that answers without the region, and counts what reaches it.</summary>
+    [Parameter]
+    public string Action { get; set; } = "";
+
+    /// <summary>The synthetic identifier the server counts the posts by.</summary>
+    [Parameter]
+    public string Key { get; set; } = "";
+}

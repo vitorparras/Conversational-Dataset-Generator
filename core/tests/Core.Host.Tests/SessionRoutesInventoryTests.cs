@@ -10,8 +10,8 @@ namespace Core.Host.Tests;
 /// </summary>
 public sealed class SessionRoutesInventoryTests
 {
-    /// <summary>The only routes that answer with no session: the entry, which makes one, the status, and the style of the screens, which the entry page needs before it.</summary>
-    private static readonly string[] Exceptions = ["POST /session", "GET /status", "GET /screens/client.css"];
+    /// <summary>The only routes that answer with no session: the entry, which makes one, the status, and the script and style of the screens, which the entry page needs before it.</summary>
+    private static readonly string[] Exceptions = ["POST /session", "GET /status", "GET /screens/client.css", "GET /screens/client.js"];
 
     [Fact]
     public void OnlyTheEntryTheStatusAndTheStyleOfTheScreensAnswerWithNoSession()

@@ -35,11 +35,9 @@ internal static class TrialRoutes
         _ = routes.MapPost(Submit + "/{mode}", ReceiveAsync);
     }
 
-    private static RazorComponentResult<ScreenFrame> ShowSubmit(string mode, HttpContext context) =>
-        Show(context, typeof(SubmitScreen), "Envio sem região", Parameters((nameof(SubmitScreen.Action), $"{Submit}/{mode}"), (nameof(SubmitScreen.Key), KeyOf(mode))));
-
-    /// <summary>The synthetic identifier a form of the mode posts, which the server counts by.</summary>
-    public static string KeyOf(string mode) => $"ENVIO_{mode.ToUpperInvariant()}";
+    /// <summary>The form of the mode, carrying the identifier that the test chose for this run, so that no other test's posts are counted with its own.</summary>
+    private static RazorComponentResult<ScreenFrame> ShowSubmit(string mode, string? key, HttpContext context) =>
+        Show(context, typeof(SubmitScreen), "Envio sem região", Parameters((nameof(SubmitScreen.Action), $"{Submit}/{mode}"), (nameof(SubmitScreen.Key), key ?? "")));
 
     /// <summary>How many posts with the identifier reached the server.</summary>
     public static int Received(string key) => Posts.GetValueOrDefault(key);

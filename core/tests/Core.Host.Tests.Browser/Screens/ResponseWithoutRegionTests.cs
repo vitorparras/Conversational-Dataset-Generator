@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Globalization;
 using Core.Host.Tests.Browser.Accessibility;
 using Core.Host.Tests.Browser.Fixtures;
 using Core.Host.Tests.Browser.Trial;
@@ -28,7 +29,8 @@ public sealed class ResponseWithoutRegionTests(BrowserFixture browser)
     private async Task ReachesOnceAsync(string mode)
     {
         var address = $"{TrialRoutes.Submit}/{mode}";
-        await using var tab = await browser.OpenAsync(address);
+        var key = $"ENVIO_{mode.ToUpperInvariant()}_{Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture)}";
+        await using var tab = await browser.OpenAsync($"{address}?key={key}");
         var posts = new ConcurrentQueue<string>();
         tab.Page.Request += (_, request) =>
         {
@@ -41,7 +43,7 @@ public sealed class ResponseWithoutRegionTests(BrowserFixture browser)
         _ = await tab.Page.RunAndWaitForResponseAsync(() => tab.Page.Locator("#enviar").ClickAsync(), response => response.Request.Method == "POST");
         await Task.Delay(Settle, TestContext.Current.CancellationToken);
 
-        Assert.Equal((1, 1), (TrialRoutes.Received(TrialRoutes.KeyOf(mode)), posts.Count));
+        Assert.Equal((1, 1), (TrialRoutes.Received(key), posts.Count));
     }
 
     [Fact]

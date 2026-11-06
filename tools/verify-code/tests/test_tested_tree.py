@@ -58,6 +58,7 @@ class Github:
         self.kept = [f"cobertura-pr-dotnet-{HEAD}", f"cobertura-pr-python-{HEAD}"]
         self.expired_tables = False
         self.broken: set[str] = set()
+        self.pulls: list[dict[str, Any]] = [{"head": {"sha": HEAD}}]
 
     @staticmethod
     def run(number: int, conclusion: str | None = "success") -> dict[str, Any]:
@@ -68,6 +69,7 @@ class Github:
             "conclusion": conclusion,
             "path": PATH,
             "head_sha": HEAD,
+            "head_repository": {"full_name": REPOSITORY},
         }
 
     def __call__(self, command: Sequence[str], cwd: Path) -> CommandOutcome:
@@ -78,12 +80,19 @@ class Github:
             return CommandOutcome(False, "HTTP 502", 1)
         return CommandOutcome(True, json.dumps(self.answer(path)), 0)
 
+    def about_the_main(self, path: str) -> object:
+        """The commit's pull requests and the ruleset."""
+        if path.endswith("/pulls"):
+            sha = path.split("/commits/")[1].split("/", maxsplit=1)[0]
+            return [{"merge_commit_sha": sha, **p} for p in self.pulls]
+        checks = [{"context": name} for name in self.required]
+        return [
+            {"type": "required_status_checks", "parameters": {"required_status_checks": checks}}
+        ]
+
     def answer(self, path: str) -> object:
-        if "/rules/" in path:
-            checks = [{"context": name} for name in self.required]
-            return [
-                {"type": "required_status_checks", "parameters": {"required_status_checks": checks}}
-            ]
+        if path.endswith("/pulls") or "/rules/" in path:
+            return self.about_the_main(path)
         if "/check-runs" in path:
             return {"check_runs": [{"name": n, "conclusion": c} for n, c in self.checks.items()]}
         if "actions/artifacts?name=" in path:
@@ -139,6 +148,37 @@ class TestedTreeTests(unittest.TestCase):
 
         self.assertNotEqual(recorded, tree_of(self.repo, "HEAD"))
         self.assertEqual(self.github.recorded, {f"arvore-{recorded}": [RUN]})
+        self.assertIsNone(self.decide())
+
+    def test_a_run_from_a_fork_that_recorded_the_same_tree_runs_everything(self) -> None:
+        fork = {**Github.run(RUN), "head_repository": {"full_name": "intruso/repo"}}
+        self.github.runs = {RUN: fork}
+
+        self.assertIsNone(self.decide())
+
+    def test_a_run_without_the_head_repository_runs_everything(self) -> None:
+        self.github.runs = {
+            RUN: {k: v for k, v in Github.run(RUN).items() if k != "head_repository"}
+        }
+
+        self.assertIsNone(self.decide())
+
+    def test_a_run_of_another_pull_request_with_the_same_tree_runs_everything(self) -> None:
+        other = {**Github.run(RUN), "head_sha": "o" * 40}
+        self.github.runs = {RUN: other}
+
+        self.assertIsNone(self.decide())
+
+    def test_a_commit_that_closed_no_pull_request_or_more_than_one_runs_everything(self) -> None:
+        for pulls in ([], self.github.pulls * 2):
+            with self.subTest(pulls=len(pulls)):
+                self.github.pulls = pulls
+
+                self.assertIsNone(self.decide())
+
+    def test_a_pull_request_that_was_not_merged_into_this_commit_runs_everything(self) -> None:
+        self.github.pulls = [{"merge_commit_sha": "0" * 40, "head": {"sha": HEAD}}]
+
         self.assertIsNone(self.decide())
 
     def test_a_red_run_that_recorded_the_same_tree_does_not_release(self) -> None:
@@ -210,6 +250,7 @@ class TestedTreeTests(unittest.TestCase):
             "/check-runs",
             "/jobs",
             "/artifacts?per",
+            "/pulls",
         ):
             with self.subTest(part=part):
                 self.github.broken = {part}
@@ -241,7 +282,7 @@ class CommandLineTests(unittest.TestCase):
         out, err = self.main(None)
 
         self.assertEqual(out.strip(), "heavy=true")
-        self.assertIn("régua inteira", err)
+        self.assertIn("sem base de comparação", err)
 
 
 if __name__ == "__main__":

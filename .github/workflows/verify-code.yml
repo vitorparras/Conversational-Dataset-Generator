@@ -22,8 +22,7 @@ env:
 # Same script, same step order as `verify.py --list`; a test in tools/verify-code/tests checks it.
 jobs:
   # Decides if the heavy jobs run (steps/changes.py, steps/tested_tree.py): they run unless the diff
-  # is documents no code reads, or a green pull request run recorded the tree of the push. Any error,
-  # also of this job, runs them. A job skipped by `if` still reports to the required check.
+  # is documents no code reads, or a green PR run recorded the tree of the push. Any error runs them.
   changes:
     name: Classificar o diff (jobs pesados do código)
     runs-on: ubuntu-latest
@@ -57,7 +56,6 @@ jobs:
           name: arvore-${{ steps.tree.outputs.tree }}
           path: ${{ runner.temp }}/arvore.txt
           overwrite: true
-          if-no-files-found: error
       - id: classify
         name: Dispensar os jobs pesados só se o diff do pull request for documento que nenhum código lê
         env:
@@ -195,6 +193,7 @@ jobs:
     permissions:
       actions: read
     strategy:
+      fail-fast: false
       matrix:
         language: [dotnet, python]
     steps:

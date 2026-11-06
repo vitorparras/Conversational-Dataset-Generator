@@ -1,10 +1,9 @@
 """Decides if a pull request needs the heavy jobs of the code, from the files it changes.
 
 Only a diff of Markdown documents (under ``docs/`` or at the root) that no code, test or tool reads
-skips them; anything else, an error, an empty diff or a missing base runs everything. A document
-counts as read when ``git grep`` finds its path, a folder of it or its file name in ``core/``,
-``language-service/`` or ``tools/`` (a comment that cites it counts too). ``tools/verify-docs`` and
-``tools/verify-code/tests`` are left out of the search: they build their own repositories.
+skips them; anything else, an error, an empty diff or a missing base runs everything. A document is
+read when ``git grep`` finds its path, a folder or its name in ``core/``, ``language-service/``
+or ``tools/`` (less ``verify-docs`` and ``verify-code/tests``, which build their own repositories).
 """
 
 from __future__ import annotations

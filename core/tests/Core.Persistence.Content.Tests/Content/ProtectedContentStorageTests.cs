@@ -73,8 +73,8 @@ public sealed class ProtectedContentStorageTests
         Assert.Equal(
             ["item", "entries"],
             [
-                (await Assert.ThrowsAsync<ArgumentNullException>(() => writer.AddItemTextAsync(1, 1, null!, TestContext.Current.CancellationToken))).ParamName,
-                (await Assert.ThrowsAsync<ArgumentNullException>(() => writer.AddReversalMapAsync(1, null!, TestContext.Current.CancellationToken))).ParamName,
+                (await Assert.ThrowsAsync<ArgumentNullException>(() => writer.AddItemTextAsync(1, null!, TestContext.Current.CancellationToken))).ParamName,
+                (await Assert.ThrowsAsync<ArgumentNullException>(() => writer.AddReversalMapAsync(1, 1, null!, TestContext.Current.CancellationToken))).ParamName,
             ]);
     }
 }

@@ -145,8 +145,6 @@ public sealed class EpochRotationTests
     public async Task WorldWithNoDomainRotatesNothing()
     {
         await using var world = await ContentWorld.CreateAsync();
-        await world.Database.ExecuteAsSuperuserAsync("ALTER TABLE content.ingestion_batch DISABLE TRIGGER batch_is_never_removed");
-        await world.Database.ExecuteAsSuperuserAsync("DELETE FROM content.ingestion_batch");
         _ = await world.ScalarAsync("DELETE FROM public.domain");
         using var epochs = SyntheticCustody.HoldingEpochs([1, 2], ContentWorld.Labels);
 

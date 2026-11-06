@@ -26,7 +26,4 @@ public enum ClearKind
 
     /// <summary>The motive of a rejection, a name of lowercase letters, digits and underscores that the table checks, never free text.</summary>
     Motive = 6,
-
-    /// <summary>The number of the transaction that wrote a row, which the row policy compares with the transaction that reads.</summary>
-    Transaction = 7,
 }

@@ -98,7 +98,7 @@ public sealed class DomainRewrap
 
     private async Task<(long Last, int Read, int Changed)> RewrapBatchAsync(Plan plan, ItemKeys keys, (Table Table, long After) page, CancellationToken cancellationToken)
     {
-        var transaction = await ContentTransaction.BeginSystemAsync(dataSource, plan.DomainId, cancellationToken).ConfigureAwait(false);
+        var transaction = await ContentTransaction.BeginAsync(dataSource, plan.DomainId, cancellationToken).ConfigureAwait(false);
         await using (transaction.ConfigureAwait(false))
         {
             var rows = await ReadAsync(transaction, page, cancellationToken).ConfigureAwait(false);
@@ -131,7 +131,7 @@ public sealed class DomainRewrap
 
     private async Task<(int Current, int Behind)> CountTableAsync(Plan plan, Table table, CancellationToken cancellationToken)
     {
-        var transaction = await ContentTransaction.BeginSystemAsync(dataSource, plan.DomainId, cancellationToken).ConfigureAwait(false);
+        var transaction = await ContentTransaction.BeginAsync(dataSource, plan.DomainId, cancellationToken).ConfigureAwait(false);
         await using var scope = transaction.ConfigureAwait(false);
         var (current, behind, after) = (0, 0, 0L);
         while (true)

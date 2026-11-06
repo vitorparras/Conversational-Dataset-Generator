@@ -22,14 +22,45 @@ public sealed class FormConferenceTests
     }
 
     [Fact]
-    public void AConversationKeepsWhomAMessageAnswers()
+    public void AConversationKeepsWhichMessageAMessageAnswersWhereTheOrderOfTheMomentsPutsIt()
     {
-        var unit = new ReadUnit("UM", "ana", Units.First, "bia", []);
+        var answered = new ReadUnit("DOIS", "ana", Units.First.AddSeconds(2), 1, []);
+        var first = new ReadUnit("UM", "ana", Units.First, null, []);
 
-        var conversation = Assert.IsType<Conversation>(Conference.Confer(MaterialForm.Conversation, Units.Read(unit)).Accepted);
+        var conversation = Assert.IsType<Conversation>(Conference.Confer(MaterialForm.Conversation, Units.Read(answered, first)).Accepted);
 
-        var message = conversation.Messages[0];
-        Assert.Equal(("ana", Units.First, "bia", "UM"), (message.Author, message.Instant, message.RepliesTo, message.Text));
+        Assert.Equal(["UM", "DOIS"], [.. conversation.Messages.Select(message => message.Text)]);
+        Assert.Equal([null, 0], [.. conversation.Messages.Select(message => message.RepliesTo)]);
+    }
+
+    [Fact]
+    public void TwoMessagesOfTheSameSenderAnswerTheirOwnMessagesAndNotJustTheSender()
+    {
+        var read = Units.Read(
+            Units.Message("A", "ana", 3),
+            new ReadUnit("B", "bia", Units.First.AddSeconds(1), null, []),
+            new ReadUnit("C", "bia", Units.First.AddSeconds(2), 0, []),
+            new ReadUnit("D", "bia", Units.First.AddSeconds(4), 1, []));
+
+        var messages = Assert.IsType<Conversation>(Conference.Confer(MaterialForm.Conversation, read).Accepted).Messages;
+
+        Assert.Equal(["B", "C", "A", "D"], [.. messages.Select(message => message.Text)]);
+        Assert.Equal([null, 2, null, 0], [.. messages.Select(message => message.RepliesTo)]);
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void AnAnswerThatNamesNoOtherUnitOfTheMaterialIsRefusedAtTheUnitThatAnswers(int answered)
+    {
+        var read = Units.Read(Units.Message("A", "ana", 1), new ReadUnit("B", "bia", Units.First.AddSeconds(2), answered, []));
+
+        var refusal = Assert.IsType<Refusal>(Conference.Confer(MaterialForm.Conversation, read).Refusal);
+
+        Assert.Equal(
+            (RefusalCode.FieldNotAllowed, $"{Wording} conversa: há o que a forma não admite: unidade 2, campo a mensagem respondida"),
+            (refusal.Code, refusal.Reason));
     }
 
     [Fact]
@@ -109,11 +140,11 @@ public sealed class FormConferenceTests
     [Fact]
     public void ACommentThatAnswersSomeoneIsRefusedBecauseThatIsAThread()
     {
-        var unit = new ReadUnit(Marker, "ana", null, "bia", []);
+        var unit = new ReadUnit(Marker, "ana", null, 0, []);
 
         var refusal = Assert.IsType<Refusal>(Conference.Confer(MaterialForm.Comment, Units.Read(unit)).Refusal);
 
-        Assert.Equal($"{Wording} comentário: há o que a forma não admite: unidade 1, campo a quem responde", refusal.Reason);
+        Assert.Equal($"{Wording} comentário: há o que a forma não admite: unidade 1, campo a mensagem respondida", refusal.Reason);
     }
 
     [Fact]
@@ -149,7 +180,7 @@ public sealed class FormConferenceTests
     [Fact]
     public void ADocumentWithABlankSectionOrAnAnsweredAuthorOrPassagesIsRefused()
     {
-        var answers = new ReadUnit("A", null, null, "bia", []);
+        var answers = new ReadUnit("A", null, null, 0, []);
         var blank = Assert.IsType<Refusal>(Conference.Confer(MaterialForm.Document, Units.Read(Units.Plain(" "))).Refusal);
         var answered = Assert.IsType<Refusal>(Conference.Confer(MaterialForm.Document, Units.Read(answers)).Refusal);
         var marked = Assert.IsType<Refusal>(Conference.Confer(MaterialForm.Document, Units.Read(Units.Labeled("A", new Passage(0, 1)))).Refusal);
@@ -158,7 +189,7 @@ public sealed class FormConferenceTests
             new[]
             {
                 $"{Wording} documento: falta o que a forma exige: unidade 1, campo texto",
-                $"{Wording} documento: há o que a forma não admite: unidade 1, campo a quem responde",
+                $"{Wording} documento: há o que a forma não admite: unidade 1, campo a mensagem respondida",
                 $"{Wording} documento: há o que a forma não admite: unidade 1, campo trechos",
             },
             new[] { blank.Reason, answered.Reason, marked.Reason });

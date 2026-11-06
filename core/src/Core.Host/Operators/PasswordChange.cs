@@ -10,8 +10,23 @@ namespace Core.Host.Operators;
 /// new password is derived with the work factor in force. A change that is written ends the other sessions of the account and keeps the one that asked; the event records who, when and how many
 /// sessions were open at the moment of the write, and never a password.
 /// </summary>
-internal sealed class PasswordChange(PersonCredentials credentials, SessionStore sessions, SignInDelay delay)
+internal sealed class PasswordChange
 {
+    private readonly PersonCredentials credentials;
+    private readonly SessionStore sessions;
+    private readonly SignInDelay delay;
+
+    /// <summary>The change asks the store of credentials, the sessions open and the delay of the entry.</summary>
+    internal PasswordChange(PersonCredentials credentials, SessionStore sessions, SignInDelay delay)
+    {
+        ArgumentNullException.ThrowIfNull(credentials);
+        ArgumentNullException.ThrowIfNull(sessions);
+        ArgumentNullException.ThrowIfNull(delay);
+        this.credentials = credentials;
+        this.sessions = sessions;
+        this.delay = delay;
+    }
+
     /// <summary>The result of the change asked by the account of a session, with the password it knows and the one it wants.</summary>
     internal async Task<PasswordChangeResult> ChangeAsync(PasswordChangeRequest who, string current, string replacement, CancellationToken cancellationToken)
     {

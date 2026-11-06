@@ -22,7 +22,7 @@ internal static class EntryPageEndpoint
     }
 
     private static async Task<IResult> ShowAsync(HttpContext context, [FromServices] SignIn? signIn) =>
-        signIn is null ? Results.StatusCode(StatusCodes.Status503ServiceUnavailable) : await PageAsync(context, signIn, name: null, refused: false, unavailable: false);
+        signIn is null ? Results.StatusCode(StatusCodes.Status503ServiceUnavailable) : await PageAsync(context, signIn, name: null, EntryNotice.None);
 
     /// <summary>With no database declared there is nobody to enter, and the answer says it is the host that cannot, as the route of JSON does.</summary>
     private static async Task<IResult> EnterAsync(HttpContext context, [FromServices] SignIn? signIn)
@@ -38,30 +38,38 @@ internal static class EntryPageEndpoint
         var entry = await signIn.OpenAsync(name, password, context.Connection.RemoteIpAddress, context.RequestAborted);
         if (entry.ChainBusy)
         {
-            return await PageAsync(context, signIn, name, refused: false, unavailable: true);
+            return await PageAsync(context, signIn, name, EntryNotice.Busy);
         }
 
         if (entry.Identifier is not { } identifier)
         {
-            return await PageAsync(context, signIn, name, refused: true, unavailable: false);
+            return await PageAsync(context, signIn, name, EntryNotice.Refused);
         }
 
         SessionCookie.Issue(context.Response, identifier);
         return PageRedirect.Of(context, ScreenPaths.Home);
     }
 
-    private static async Task<IResult> PageAsync(HttpContext context, SignIn signIn, string? name, bool refused, bool unavailable)
+    /// <summary>The notice the page shows above the form: none, the refusal of the entry, or the chain too busy to record a right password.</summary>
+    private enum EntryNotice
+    {
+        None,
+        Refused,
+        Busy,
+    }
+
+    private static async Task<IResult> PageAsync(HttpContext context, SignIn signIn, string? name, EntryNotice notice)
     {
         var unregistered = await signIn.NobodyRegisteredAsync(context.RequestAborted);
         var screen = new Dictionary<string, object?>(StringComparer.Ordinal)
         {
             [nameof(SignInScreen.Name)] = name,
-            [nameof(SignInScreen.Refused)] = refused,
-            [nameof(SignInScreen.Unavailable)] = unavailable,
+            [nameof(SignInScreen.Refused)] = notice == EntryNotice.Refused,
+            [nameof(SignInScreen.Unavailable)] = notice == EntryNotice.Busy,
             [nameof(SignInScreen.Unregistered)] = unregistered,
         };
         var page = ScreenResult.Of(context, typeof(SignInScreen), "Entrada", screen);
-        if (unavailable)
+        if (notice == EntryNotice.Busy)
         {
             page.StatusCode = StatusCodes.Status503ServiceUnavailable;
         }

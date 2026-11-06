@@ -1,15 +1,10 @@
 """Decides if a pull request needs the heavy jobs of the code, from the files it changes.
 
-Only one diff skips them: every changed file is a Markdown document (under ``docs/`` or at the
-root) that no code, test or tool reads. Anything else, an error, an empty diff or a missing base
-runs everything; the answer errs toward the whole ruler. A document counts as read when
-``git grep`` finds its path, one of its folders or its file name in ``core/``,
-``language-service/`` or ``tools/``, for example ``docs/operacao/areas`` or
-``docs/privacidade/006-acesso.md``. The check is textual, so a comment that cites the path also
-makes the document count as code: that costs a longer run, never a skipped check.
-
-``tools/verify-docs`` (its own job always runs) and ``tools/verify-code/tests`` (they build their
-own repositories and write README files there) are left out of the search.
+Only a diff of Markdown documents (under ``docs/`` or at the root) that no code, test or tool reads
+skips them; anything else, an error, an empty diff or a missing base runs everything. A document
+counts as read when ``git grep`` finds its path, a folder of it or its file name in ``core/``,
+``language-service/`` or ``tools/`` (a comment that cites it counts too). ``tools/verify-docs`` and
+``tools/verify-code/tests`` are left out of the search: they build their own repositories.
 """
 
 from __future__ import annotations

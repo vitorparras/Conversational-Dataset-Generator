@@ -31,6 +31,6 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Core.Host.Tests" />
-    <InternalsVisibleTo Include="Core.Tests.Browser" />
+    <InternalsVisibleTo Include="Core.Host.Tests.Browser" />
   </ItemGroup>
 </Project>

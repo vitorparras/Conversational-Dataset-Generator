@@ -151,12 +151,12 @@ jobs:
       - name: Construir o projeto de navegador nos pacotes travados (as versões do Playwright e do axe estão em core/Directory.Packages.props)
         run: |
           echo "inicio=$(date +%s)" >> "$GITHUB_ENV"
-          dotnet restore core/tests/Core.Tests.Browser/Core.Tests.Browser.csproj --locked-mode
-          dotnet build core/tests/Core.Tests.Browser/Core.Tests.Browser.csproj -c Release --no-restore
+          dotnet restore core/tests/Core.Host.Tests.Browser/Core.Host.Tests.Browser.csproj --locked-mode
+          dotnet build core/tests/Core.Host.Tests.Browser/Core.Host.Tests.Browser.csproj -c Release --no-restore
       - name: Instalar o Chromium da versão que o pacote fixa, sem latest e sem outro navegador
-        run: pwsh core/tests/Core.Tests.Browser/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+        run: pwsh core/tests/Core.Host.Tests.Browser/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
       - name: Rodar os testes de navegador
-        run: dotnet run --project core/tests/Core.Tests.Browser/Core.Tests.Browser.csproj -c Release --no-build
+        run: dotnet run --project core/tests/Core.Host.Tests.Browser/Core.Host.Tests.Browser.csproj -c Release --no-build
       - name: Anotar o tempo do job
         if: always()
         run: echo "Tempo do job de navegador (construir, instalar o Chromium e testar) - $(( $(date +%s) - inicio )) s" >> "$GITHUB_STEP_SUMMARY"

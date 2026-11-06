@@ -1,9 +1,9 @@
-using Core.Tests.Browser.Accessibility;
-using Core.Tests.Browser.Fixtures;
-using Core.Tests.Browser.Trial;
+using Core.Host.Tests.Browser.Accessibility;
+using Core.Host.Tests.Browser.Fixtures;
+using Core.Host.Tests.Browser.Trial;
 using static Microsoft.Playwright.Assertions;
 
-namespace Core.Tests.Browser.Screens;
+namespace Core.Host.Tests.Browser.Screens;
 
 /// <summary>
 /// The catalog page of the design system (issue 658, CA-4): each component in each state, no violation of WCAG 2.1 A and AA in any setting of the system,

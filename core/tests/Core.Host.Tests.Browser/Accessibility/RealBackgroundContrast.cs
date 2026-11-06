@@ -1,6 +1,6 @@
 using Microsoft.Playwright;
 
-namespace Core.Tests.Browser.Accessibility;
+namespace Core.Host.Tests.Browser.Accessibility;
 
 /// <summary>
 /// The contrast of every text of the page measured over the background as it is drawn (issue 658, CA-3). A tool that reads the style cannot see through a glass that blurs and lets

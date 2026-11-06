@@ -12,4 +12,11 @@ public interface ISourceReader
     /// <summary>Reads the content whole; a content that cannot be read whole is unreadable, and nothing of it is handed over.</summary>
     /// <param name="content">The bytes of the content.</param>
     ReadOutcome Read(ReadOnlyMemory<byte> content);
+
+    /// <summary>What the reader will read and no more; past it the material is refused with a reason.</summary>
+    ReadLimits Limits { get; }
+
+    /// <summary>Whether the first bytes of a content, at most <see cref="ReadLimits.HeadBytes" /> of them, are of the format of this reader; the name of the file is never asked.</summary>
+    /// <param name="head">The first bytes of the content.</param>
+    bool Recognizes(ReadOnlySpan<byte> head);
 }

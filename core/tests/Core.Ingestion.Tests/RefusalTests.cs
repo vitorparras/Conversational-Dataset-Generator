@@ -65,6 +65,8 @@ public sealed class RefusalTests
     [InlineData(UnreadableReason.Truncated, "arquivo cortado antes do fim")]
     [InlineData(UnreadableReason.UnsupportedFormat, "formato que esta versão não lê")]
     [InlineData(UnreadableReason.OnlyPartlyRead, "só uma parte foi lida")]
+    [InlineData(UnreadableReason.OverLimits, "o conteúdo passa dos limites do formato: profundidade, quantidade de unidades ou tamanho de texto")]
+    [InlineData(UnreadableReason.ExternalReference, "um campo de estrutura aponta para fora do arquivo, por endereço ou caminho, e o formato não segue referência")]
     public void EachCauseOfAnUnreadableMaterialIsNamedAndPartialReadingIsNeverAccepted(UnreadableReason cause, string words) =>
         Assert.Equal(
             $"{Whole}a leitura não foi completa ({words}), e leitura parcial não é aceita",

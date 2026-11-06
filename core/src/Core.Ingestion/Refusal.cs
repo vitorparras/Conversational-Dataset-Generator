@@ -106,6 +106,8 @@ public sealed record Refusal
         UnreadableReason.Truncated => "arquivo cortado antes do fim",
         UnreadableReason.UnsupportedFormat => "formato que esta versão não lê",
         UnreadableReason.OnlyPartlyRead => "só uma parte foi lida",
+        UnreadableReason.OverLimits => "o conteúdo passa dos limites do formato: profundidade, quantidade de unidades ou tamanho de texto",
+        UnreadableReason.ExternalReference => "um campo de estrutura aponta para fora do arquivo, por endereço ou caminho, e o formato não segue referência",
         _ => "motivo não informado",
     };
 }

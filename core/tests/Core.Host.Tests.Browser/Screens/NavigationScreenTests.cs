@@ -159,15 +159,21 @@ public sealed class NavigationScreenTests(BrowserFixture browser, NavigationHost
         Assert.Empty(await annotator.Page.Locator(".destinations__link").AllInnerTextsAsync());
     }
 
-    [Fact]
-    public async Task Ca3TheMenuMarksTheScreenOfTheCurrentPageForTheEyeAndForAReaderOfScreens()
+    [Theory]
+    [InlineData("Light")]
+    [InlineData("Dark")]
+    public async Task Ca3TheMenuMarksTheScreenOfTheCurrentPageForTheEyeAndForAReaderOfScreens(string name)
     {
+        var mode = MediaMode.Named(name);
         await using var tab = await SignedInAsync(navigation.Host.Administrator);
+        await mode.ApplyAsync(tab.Page);
 
         _ = await tab.Page.GotoAsync(NavigationScreenHost.OfAudit);
 
         await Expect(tab.Page.GetByRole(AriaRole.Link, new() { Name = NavigationScreenHost.AuditCaption })).ToHaveAttributeAsync("aria-current", "page");
         await Expect(tab.Page.GetByRole(AriaRole.Link, new() { Name = NavigationScreenHost.AdministrationCaption })).Not.ToHaveAttributeAsync("aria-current", "page");
+        await AccessibilityCheck.AssertNoViolationsAsync(tab.Page);
+        await ModeCapture.SaveAsync(tab.Page, mode, "menu-pagina-atual");
     }
 
     [Theory]

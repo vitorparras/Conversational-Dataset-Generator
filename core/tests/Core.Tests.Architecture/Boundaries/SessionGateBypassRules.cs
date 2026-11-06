@@ -19,10 +19,11 @@ internal static class SessionGateBypassRules
     private static readonly string[] Bypasses = ["ShortCircuit", "MapShortCircuit", "MapWhen", "UseWhen", "Run"];
 
     /// <summary>
-    /// The only files that may mark a route open: the entry, which makes the session, the status, which says whether the host is alive, and the style of the screens,
-    /// which the page of the entry needs before there is a session and which holds no data of anyone (decision 0052).
+    /// The only files that may mark a route open: the entry, which makes the session, the status, which says whether the host is alive, the style of the screens,
+    /// which the page of the entry needs before there is a session and which holds no data of anyone (decision 0052), and the pages of the entry itself (the page and its form,
+    /// which make the session as the route of JSON does).
     /// </summary>
-    private static readonly string[] MayMarkOpen = ["SessionEndpoint.cs", "StatusEndpoint.cs", "ScreenAssets.cs"];
+    private static readonly string[] MayMarkOpen = ["SessionEndpoint.cs", "StatusEndpoint.cs", "ScreenAssets.cs", "EntryPageEndpoint.cs"];
 
     /// <summary>Every bypass, every use of the short circuit mark and every open mark in a file that may not make one.</summary>
     public static IEnumerable<Violation> Check(IReadOnlyList<SourceFile> files)

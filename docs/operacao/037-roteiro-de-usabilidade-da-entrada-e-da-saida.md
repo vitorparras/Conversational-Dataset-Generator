@@ -1,10 +1,10 @@
-# 036 — Roteiro de usabilidade: entrada e saída
+# 037 — Roteiro de usabilidade: entrada e saída
 
 > Operacional. 2026-11-06.
 
 Preenche o modelo de [034](034-roteiro-de-usabilidade.md) para a tela de entrada e para a ação de
 sair do cabeçalho. A pessoa de teste é `operador-07`, criada só para o ensaio, com a senha
-combinada para ele e descartada no fim. Quem executa não é quem escreveu a tela.
+combinada para o ensaio e descartada no fim. Quem executa não é quem escreveu a tela.
 
 ## Antes de executar
 
@@ -22,8 +22,8 @@ combinada para ele e descartada no fim. Quem executa não é quem escreveu a tel
 2. **Errar a senha** e corrigir. A recusa diz o que fazer, sem dizer se o nome existe, e o nome
    digitado continua no campo.
 3. **Nome que não existe.** A recusa tem de ser a mesma da tarefa 2, palavra por palavra.
-4. **Cadastro vazio.** Com nenhuma pessoa ativa, a tela diz que o cadastro está vazio e aponta o
-   passo no servidor. Pergunte à pessoa o que ela faria agora.
+4. **Cadastro vazio.** Sem nenhuma pessoa cadastrada, ativa ou não, a tela diz que o cadastro
+   está vazio e aponta o passo no servidor. Pergunte à pessoa o que ela faria agora.
 5. **Espera.** Depois de várias tentativas erradas, a tela diz que há espera. A pessoa não pode
    deduzir quantas tentativas faltam nem se o nome existe.
 6. **Sair** pelo cabeçalho, só pelo teclado. O foco deve cair no primeiro campo da entrada.
@@ -44,4 +44,4 @@ Resultado "ajuda" ou "desistência" abre item novo na issue da tela, como em 034
 ## Fora do roteiro
 
 A senha de teste não vai a captura de tela, chat nem registro. A prova de que ela não aparece no
-endereço, no log e nas respostas é do teste de navegador, não de quem executa.
+endereço, no log e nas respostas é do teste de processo `EntryPageTests`, não de quem executa.

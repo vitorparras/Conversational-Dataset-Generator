@@ -14,7 +14,6 @@ namespace Core.Persistence.ServerGuarantees;
 public sealed class ContentEpochCheck : IStartupCheck
 {
     private const string Domains = "SELECT id FROM public.domain ORDER BY id";
-    private const string Declare = "SELECT pg_catalog.set_config('app.domain', @domain, true), pg_catalog.set_config('app.content_scope', 'system', true)";
 
     private readonly NpgsqlDataSource dataSource;
     private readonly IMasterKeySource source;
@@ -78,7 +77,7 @@ public sealed class ContentEpochCheck : IStartupCheck
 
     private static async Task DeclareAsync(NpgsqlConnection connection, int domain, CancellationToken cancellationToken)
     {
-        var declare = new NpgsqlCommand(Declare, connection);
+        var declare = new NpgsqlCommand(ContentTransaction.DeclareSystem, connection);
         await using (declare.ConfigureAwait(false))
         {
             _ = declare.Parameters.AddWithValue("domain", domain.ToString(CultureInfo.InvariantCulture));

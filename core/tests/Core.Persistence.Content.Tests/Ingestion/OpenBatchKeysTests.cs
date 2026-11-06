@@ -5,6 +5,7 @@ using Core.Persistence.Custody;
 using Core.Persistence.Tests.Content;
 using Core.Persistence.Tests.Fixtures;
 using Core.Platform.Keys;
+using Npgsql;
 
 namespace Core.Persistence.Tests.Ingestion;
 
@@ -96,6 +97,48 @@ public sealed class OpenBatchKeysTests
         var withScope = await InScopeOfTheSystemAsync(world, IngestionWorld.Reachable);
 
         Assert.Equal(("0,0", "1,0"), (await world.InDomainAsync(IngestionWorld.Domain, IngestionWorld.Reachable) as string, withScope));
+    }
+
+    [DatabaseTheory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task ScopeOfTheSystemEndsWithItsTransactionAndTheNextReadOfTheStockOnTheSameConnectionDoesNotSeeTheOpenBatch(bool commit)
+    {
+        await using var world = await IngestionWorld.CreateAsync();
+        var batch = await IngestionWorld.OpenAsync(world);
+        _ = await IngestionWorld.AddItemAsync(world, batch);
+        var pooled = new NpgsqlConnectionStringBuilder(world.Database.AppConnectionString) { Pooling = true, MinPoolSize = 0, MaxPoolSize = 1 }.ConnectionString;
+        await using var source = NpgsqlDataSource.Create(pooled);
+
+        var inside = await ReadAsync(source, system: true, commit);
+        var next = await ReadAsync(source, system: false, commit: true);
+
+        Assert.Equal((inside.Connection, "1,0", "system"), (next.Connection, inside.Reachable, inside.Scope));
+        Assert.Equal(("0,0", true), (next.Reachable, next.Scope != "system"));
+    }
+
+    private static async Task<(string Connection, string Reachable, string Scope)> ReadAsync(NpgsqlDataSource source, bool system, bool commit)
+    {
+        var transaction = system
+            ? await ContentTransaction.BeginSystemAsync(source, IngestionWorld.Domain, TestContext.Current.CancellationToken)
+            : await ContentTransaction.BeginAsync(source, IngestionWorld.Domain, TestContext.Current.CancellationToken);
+        await using (transaction)
+        {
+            var seen = (await ScalarAsync(transaction, "SELECT pg_catalog.pg_backend_pid()::text"), await ScalarAsync(transaction, IngestionWorld.Reachable),
+                await ScalarAsync(transaction, "SELECT coalesce(pg_catalog.current_setting('app.content_scope', true), 'unset')"));
+            if (commit)
+            {
+                await transaction.CommitAsync(TestContext.Current.CancellationToken);
+            }
+
+            return seen;
+        }
+    }
+
+    private static async Task<string> ScalarAsync(ContentTransaction transaction, string statement)
+    {
+        await using var command = transaction.CreateCommand(statement);
+        return (string)(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken))!;
     }
 
     private static async Task<string?> InScopeOfTheSystemAsync(ContentWorld world, string statement)

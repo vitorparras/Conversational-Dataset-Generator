@@ -18,7 +18,7 @@ public sealed class ContentTransaction : IAsyncDisposable
     /// Declares the domain and, with it, the scope of the system: the one the operations that only move keys or copy rows run in,
     /// which see the content of a batch that is not accepted too.
     /// </summary>
-    internal const string DeclareSystem = "SELECT set_config('app.domain', @domain, true), set_config('app.content_scope', 'system', true)";
+    internal const string DeclareSystem = "SELECT pg_catalog.set_config('app.domain', @domain, true), pg_catalog.set_config('app.content_scope', 'system', true)";
 
     private readonly NpgsqlConnection connection;
     private readonly NpgsqlTransaction transaction;

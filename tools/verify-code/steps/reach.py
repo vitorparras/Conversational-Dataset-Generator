@@ -5,11 +5,13 @@ references, directly or not; (c) a test project that exercises it (or one that p
 (d) its own area file in docs/operacao/areas; (e) in the language service, a package it imports or a
 test that imports it. Anything the graph cannot classify (``Directory.Build.*``, ``global.json``,
 ``packages.lock.json``, ``uv.lock``, the workflow, ``tools/verify-code``, ``core/Core.slnx``...), an
-empty or unreadable diff and every doubt reach every module. The graph is read from the files.
+empty or unreadable diff and every doubt reach every module, as does an ``importlib`` or
+``__import__`` the reader cannot follow. The graph is read from the files.
 """
 
 from __future__ import annotations
 
+import ast
 import re
 from collections import defaultdict
 from collections.abc import Iterable, Mapping
@@ -22,6 +24,8 @@ from steps.build_service import SERVICE
 from steps.common import Context
 
 REFERENCE = re.compile(r'<ProjectReference\s+Include="([^"]+)"')
+DYNAMIC = "importlib"
+BUILTIN = "__import__"
 WHOLE_NAMES = ("packages.lock.json", "global.json", "uv.lock", "Core.slnx", "Directory.")
 SERVICE_SOURCES = f"{SERVICE}/{mutation_service.SOURCES}"
 CORE_TREES = (("core", "src"), ("core", "tests"))
@@ -47,11 +51,49 @@ def units(root: Path) -> dict[str, Path]:
     return {".".join(n[:-1] if n[-1] == "__init__" else n): p for p, n in parts.items()}
 
 
+def targets(parent: list[str], source: str) -> tuple[set[str], bool]:
+    """The dotted names a module imports, relative imports resolved from the package ``parent``,
+    and whether it also imports in a way the reader cannot follow (``importlib``, ``__import__``,
+    a relative import above the top package, a source that does not parse)."""
+    try:
+        tree = ast.parse(source)
+    except (SyntaxError, ValueError):
+        return set(), True
+    found: set[str] = set()
+    opaque = False
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            found.update(alias.name for alias in node.names)
+            opaque |= any(alias.name.split(".")[0] == DYNAMIC for alias in node.names)
+        elif isinstance(node, ast.ImportFrom):
+            base = parent[: len(parent) - node.level + 1] if node.level else []
+            module = [*base, *(node.module.split(".") if node.module else [])]
+            opaque |= node.level > len(parent) or (node.module or "").split(".")[0] == DYNAMIC
+            found.add(".".join(module))
+            found.update(f"{'.'.join(module)}.{alias.name}" for alias in node.names)
+        elif isinstance(node, ast.Name):
+            opaque |= node.id == BUILTIN
+    return found, opaque
+
+
+def scanned(known: Mapping[str, Path]) -> dict[str, tuple[set[str], bool]]:
+    """What each module of the service imports and whether the reader can follow all of it."""
+    found: dict[str, tuple[set[str], bool]] = {}
+    for name, path in known.items():
+        parent = name.split(".") if path.name == "__init__.py" else name.split(".")[:-1]
+        found[name] = targets(parent, path.read_text(encoding="utf-8", errors="replace"))
+    return found
+
+
+def opaque(known: Mapping[str, Path]) -> list[str]:
+    """The modules of the service whose imports the reader cannot resolve."""
+    return sorted(name for name, (_, doubt) in scanned(known).items() if doubt)
+
+
 def imports(known: Mapping[str, Path]) -> dict[str, set[str]]:
     """The modules of the service each one imports, with the packages those imports run through."""
     edges: dict[str, set[str]] = {}
-    for name, path in known.items():
-        names = mutation_service.imported(path.read_text(encoding="utf-8", errors="replace"))
+    for name, (names, _) in scanned(known).items():
         edges[name] = {
             ".".join(parts[:n])
             for parts in (imported.split(".") for imported in names)
@@ -142,6 +184,8 @@ def select(ctx: Context) -> tuple[tuple[str, ...], list[str]]:
     if isinstance(paths, str) or not paths:
         return everything, [f"régua inteira: {paths or 'o diff está vazio'}"]
     graph, known = projects(ctx.root), units(ctx.root)
+    if doubtful := opaque(known):
+        return everything, [f"régua inteira: o leitor não resolve os imports de {doubtful[0]}"]
     touched: Touched = defaultdict(set)
     for path in paths:
         placed = classify(ctx, path, known, graph)

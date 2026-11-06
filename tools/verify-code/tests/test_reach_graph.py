@@ -80,6 +80,23 @@ class ProjectGraphTests(unittest.TestCase):
         self.assertEqual(seen, written, "ProjectReference que o leitor do grafo não vê")
         self.assertEqual(unknown, set(), "referência a projeto fora do grafo")
 
+    def test_no_code_of_the_service_imports_in_a_way_the_reader_cannot_resolve(self) -> None:
+        opaque = reach.opaque(reach.units(ROOT))
+
+        self.assertEqual(opaque, [], "import acima do pacote, importlib ou __import__")
+
+    def test_every_import_of_the_service_names_a_module_the_reader_knows(self) -> None:
+        known = reach.units(ROOT)
+        unknown = [
+            f"{name} -> {target}"
+            for name, (targets, _) in reach.scanned(known).items()
+            for target in targets
+            if within(target, mutation_service.ROOT)
+            and not any(within(target, unit) or within(unit, target) for unit in known)
+        ]
+
+        self.assertEqual(unknown, [], "import do serviço para módulo que o leitor não conhece")
+
     def test_the_reference_of_every_test_project_to_a_core_project_is_in_the_graph(self) -> None:
         graph = reach.projects(ROOT)
         every = {p.stem for p in (ROOT / mutation_core.SOURCES).glob("*/*.csproj")}

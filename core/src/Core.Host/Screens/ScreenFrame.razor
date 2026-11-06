@@ -9,7 +9,7 @@
 </head>
 <body>
     <a class="skip-link" href="#content">Ir para o conteúdo</a>
-    <ScreenHeader WithSession="WithSession" Menu="Menu" Granted="Granted" Current="Current" />
+    <ScreenHeader WithSession="WithSession" Menu="Menu" Granted="Granted" Current="@Current" />
     <main id="content" class="page" tabindex="-1">
         <CascadingValue Value="this" IsFixed="true">
             <DynamicComponent Type="Screen" Parameters="ScreenParameters" />

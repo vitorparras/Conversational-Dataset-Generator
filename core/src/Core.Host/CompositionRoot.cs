@@ -198,8 +198,7 @@ internal static class CompositionRoot
             ? new PasswordChange(staff.Credentials, provider.GetRequiredService<SessionStore>(), provider.GetRequiredService<SignInDelay>()) : null!);
         _ = builder.Services.AddSingleton(provider => provider.GetService<OperatorAdministration>() is { } people
             ? new SignIn(people.Registry, people.Credentials, provider.GetRequiredService<SessionStore>(), provider.GetRequiredService<SignInDelay>(),
-                new SignInRecord(
-                    new SignInAttempts(provider.GetRequiredService<ServiceProvider>().GetRequiredService<NpgsqlDataSource>()), provider.GetRequiredService<ILoggerFactory>()))
+                new SignInRecord(new SignInAttempts(provider.GetRequiredService<ServiceProvider>().GetRequiredService<NpgsqlDataSource>()), provider.GetRequiredService<ILoggerFactory>()))
             : null!);
 
         var app = builder.Build();

@@ -23,6 +23,15 @@ public sealed class SourceReaders
     /// <summary>The registry with the readers of the first version.</summary>
     public static SourceReaders Default() => new(Enumerable.Repeat<ISourceReader>(new ExportedConversationReader(), 1));
 
+    /// <summary>The reader of the format given, when the version has one.</summary>
+    /// <param name="format">The format declared.</param>
+    /// <param name="reader">The reader, when there is one.</param>
+    internal bool TryGet(string format, out ISourceReader reader)
+    {
+        ArgumentNullException.ThrowIfNull(format);
+        return byFormat.TryGetValue(format, out reader!);
+    }
+
     /// <summary>Reads the content with the reader of the format named; a format with no reader is unreadable as an unsupported format.</summary>
     /// <param name="format">The format the content was submitted as.</param>
     /// <param name="content">The bytes of the content.</param>

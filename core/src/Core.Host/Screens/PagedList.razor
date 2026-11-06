@@ -12,13 +12,13 @@
 }
 else
 {
-    <ul class="paged-list" aria-label="@Label">
+    <ul class="paged-list" aria-label="@Caption">
         @foreach (var item in Items)
         {
             <li>@ItemContent(item)</li>
         }
     </ul>
-    <nav class="pager" aria-label="Páginas de @Label.ToLowerInvariant()">
+    <nav class="pager" aria-label="Páginas de @Caption.ToLowerInvariant()">
         @Edge(Page > 1, Page - 1, "Anterior", "prev")
         <span aria-current="page">Página @Page de @PageCount, @PageSize por página</span>
         @Edge(Page < PageCount, Page + 1, "Próxima", "next")
@@ -35,7 +35,7 @@ else
 
     /// <summary>What the list holds, which names it and its pages for a reader of screens.</summary>
     [Parameter, EditorRequired]
-    public string Label { get; set; } = "";
+    public string Caption { get; set; } = "";
 
     [Parameter]
     public int Page { get; set; } = 1;

@@ -1,6 +1,6 @@
 <div class="field">
     <label class="field__label" for="@Id">
-        @Label
+        @Caption
         @if (Required)
         {
             <span class="field__required">(obrigatório)</span>
@@ -24,7 +24,7 @@
     public string Id { get; set; } = "";
 
     [Parameter, EditorRequired]
-    public string Label { get; set; } = "";
+    public string Caption { get; set; } = "";
 
     /// <summary>The name the form sends; the identifier when absent.</summary>
     [Parameter]

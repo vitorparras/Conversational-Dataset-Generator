@@ -15,10 +15,10 @@
 </Panel>
 
 <Panel Id="campos" Title="Campos">
-    <Field Id="campo-vazio" Label="Título" />
-    <Field Id="campo-dica" Label="Endereço de e-mail" Type="email" Autocomplete="email" Hint="Usado só para avisos da conta." />
-    <Field Id="campo-obrigatorio" Label="Identificador do operador" Required="true" Value="operador-07" />
-    <Field Id="campo-erro" Label="Código de acesso" Required="true" Value="12" Hint="Seis dígitos, enviados pelo administrador."
+    <Field Id="campo-vazio" Caption="Título" />
+    <Field Id="campo-dica" Caption="Endereço de e-mail" Type="email" Autocomplete="email" Hint="Usado só para avisos da conta." />
+    <Field Id="campo-obrigatorio" Caption="Identificador do operador" Required="true" Value="operador-07" />
+    <Field Id="campo-erro" Caption="Código de acesso" Required="true" Value="12" Hint="Seis dígitos, enviados pelo administrador."
            Error="O código tem seis dígitos; foram informados dois." />
 </Panel>
 
@@ -31,17 +31,17 @@
 
 <Panel Id="listas" Title="Lista paginada">
     <h3>Com itens</h3>
-    <PagedList Items="Rows" Label="Lotes recebidos" Page="2" PageCount="3" PageSize="3" Address="@(page => $"?pagina={page}")"
+    <PagedList Items="Rows" Caption="Lotes recebidos" Page="2" PageCount="3" PageSize="3" Address="@(page => $"?pagina={page}")"
                EmptyTitle="Nenhum lote recebido.">
         <ItemContent>@context</ItemContent>
     </PagedList>
     <h3>Primeira página</h3>
-    <PagedList Items="Rows" Label="Lotes arquivados" Page="1" PageCount="2" PageSize="3" Address="@(page => $"?arquivo={page}")"
+    <PagedList Items="Rows" Caption="Lotes arquivados" Page="1" PageCount="2" PageSize="3" Address="@(page => $"?arquivo={page}")"
                EmptyTitle="Nenhum lote arquivado.">
         <ItemContent>@context</ItemContent>
     </PagedList>
     <h3>Vazia</h3>
-    <PagedList Items="None" Label="Lotes rejeitados" Address="@(page => $"?rejeitados={page}")" EmptyTitle="Nenhum lote rejeitado."
+    <PagedList Items="None" Caption="Lotes rejeitados" Address="@(page => $"?rejeitados={page}")" EmptyTitle="Nenhum lote rejeitado."
                EmptyHint="Um lote aparece aqui quando a verificação de formato o recusa.">
         <ItemContent>@context</ItemContent>
     </PagedList>

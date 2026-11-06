@@ -100,7 +100,7 @@ public sealed record Refusal
             ? $"a leitura não foi completa ({CauseWords(cause)}), e leitura parcial não é aceita"
             : Words.GetValueOrDefault(code) ?? throw new ArgumentOutOfRangeException(nameof(code), code, "The code is not one of the enumeration.");
 
-    private static string CauseWords(UnreadableReason? cause) => cause switch
+    internal static string CauseWords(UnreadableReason? cause) => cause switch
     {
         UnreadableReason.Corrupted => "arquivo danificado ou de outro formato",
         UnreadableReason.Truncated => "arquivo cortado antes do fim",

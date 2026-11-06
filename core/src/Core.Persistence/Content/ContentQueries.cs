@@ -24,6 +24,15 @@ public static class ContentQueries
     internal const string ReadFirstEntries = "SELECT id, entries, dek_epoch, dek_wrapped FROM content.reversal_map WHERE emptied_at IS NULL AND id > @id ORDER BY id LIMIT 1";
 
     /// <summary>The rows of the copy of the data, as the database writes them, for the domain declared: the sealed columns go as the bytes they are, never opened.</summary>
+    /// <summary>Opens a batch of ingestion for the domain declared: it holds no content, and the state, the moments and the identifier are the database's.</summary>
+    internal const string InsertIngestionBatch = "INSERT INTO content.ingestion_batch (domain_id, opened_by) VALUES (@domain, @author) RETURNING id";
+
+    /// <summary>The state and the motive of a batch of the domain, whatever its state: a batch rejected stays consultable after its material is gone.</summary>
+    internal const string ReadIngestionBatch = "SELECT state, motive, opened_by FROM content.ingestion_batch WHERE id = @id";
+
+    /// <summary>Closes a batch that is open, accepted or rejected with its motive; the database refuses it without the event of the closing in the same transaction.</summary>
+    internal const string CloseIngestionBatch = "UPDATE content.ingestion_batch SET state = @state, motive = @motive WHERE id = @id AND state = 'open'";
+
     internal const string ReadCopyIngestionBatch = "SELECT pg_catalog.to_jsonb(t)::text FROM content.ingestion_batch t ORDER BY id";
 
     internal const string ReadCopyItemText = "SELECT pg_catalog.to_jsonb(t)::text FROM content.item_text t ORDER BY id";

@@ -42,7 +42,8 @@ implementar.
 | O que a revisão humana do lote alcança | [requisito 035](../requisitos/035-revisao-do-lote-por-amostra.md) |
 | Até quando o texto bruto é recuperável | [0034](../decisoes/0034-bruto-sem-prazo-proprio.md) |
 
-O que a [fase 2](002-custodia-e-cifra.md) ainda deve à custódia da chave não é texto: é o ensaio.
+O ensaio da custódia da chave numa máquina recém-preparada não trava a
+[fase 2](002-custodia-e-cifra.md): é critério de término da [fase 10](010-segundo-dominio.md).
 
 Nenhuma pendência aberta autoriza avançar provisoriamente a fase que ela trava. Decisão tomada
 depois do código é decisão tomada pelo código — e o formato das decisões, que exige alternativas

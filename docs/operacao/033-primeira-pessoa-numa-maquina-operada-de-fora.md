@@ -17,11 +17,12 @@ printf '%s' 'senha-de-demonstracao-1' | docker exec -i -u CONTA CONTEINER bash -
 ```
 
 O comando é um bloco de máquina: a senha da aplicação vem de `/tmp/senha-app` (021), e o nome
-(`Ana`) é o que a entrada pede em `name`. O código de saída é o de 028, e 0 diz o id da pessoa:
+(zqx_admin, sintético) é o que a entrada pede em `name`. O código de saída é o de 028, e 0 diz o
+id da pessoa:
 
 ```
 cd /opt/cdg/nucleo
-CDG_Database__Password="$(cat /tmp/senha-app)" ./Core.Host create-person --name Ana \
+CDG_Database__Password="$(cat /tmp/senha-app)" ./Core.Host create-person --name zqx_admin \
   --function "Administração técnica" --Installation:Kind=demonstracao --Passwords:WorkFactor=100000 \
   --Database:Host=db:5432 --Database:Name=cdg --Database:Username=app < /tmp/senha-pessoa
 echo "saída=$?"

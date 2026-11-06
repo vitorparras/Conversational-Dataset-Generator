@@ -50,6 +50,15 @@ python tools/verify-code/verify.py --list
 python tools/verify-code/verify.py --step pr_size --base origin/main
 ```
 
+Num pull request que só muda Markdown de `docs/` ou da raiz que nenhum código, teste ou ferramenta
+lê (`git grep` do caminho, da pasta e do nome em `core/`, `language-service/` e `tools/`), o job
+`changes` dá `heavy=false` e o `if:` dispensa os jobs pesados; o agregador "Mutação nos módulos
+críticos" só aceita `skipped` nesse caso. Outro arquivo, diff vazio ou erro dá `heavy=true`; a
+execução semanal não classifica. No push do main, `--changes --tested-sha <commit> --repository
+<dono/nome>` pergunta à API se uma execução de PR registrou a árvore do commit com os obrigatórios
+verdes: se sim, só rodam o CodeQL, os jobs leves e a promoção da cobertura; se não, a régua inteira.
+O motivo sai no `stderr`: `verify.py --changes --base origin/main`.
+
 A ordem é única: `--step test_core` sozinho, em árvore limpa, falha porque testa com `--no-build`;
 `build_core` vem antes, e a execução sem argumento segue essa ordem. Os passos `lint_tools` e
 `test_tools` exigem `ruff`, `pyright`, `coverage` e `pyyaml` nas versões de

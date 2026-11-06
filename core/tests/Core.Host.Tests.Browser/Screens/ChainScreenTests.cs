@@ -137,7 +137,7 @@ public sealed partial class ChainScreenTests(BrowserFixture browser, IntactChain
     [GeneratedRegex("refaz|refeit|reconstr|recalcul|repar|recri|apag|exclu|restaur", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
     private static partial Regex Rebuild();
 
-    [GeneratedRegex(@"^A cadeia inteira: \d+ eventos lidos$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex(@"^A cadeia inteira: \d+(\.\d{3})* eventos lidos$", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex EventsRead();
 
     private async Task<BrowserTab> OpenAsync(ScreenHostBase host, string name)

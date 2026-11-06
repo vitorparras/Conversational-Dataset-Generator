@@ -1,0 +1,41 @@
+@using Core.Persistence.Domains
+
+<h1>@Title</h1>
+<p class="lead">Os domínios desta instalação, com a versão da taxonomia e das dimensões carregadas em cada um.</p>
+@if (Domains.Count == 0)
+{
+    <EmptyState Title="Nenhum domínio">
+        <p>Esta instalação ainda não tem domínio. Quem administra o servidor cria o primeiro com o comando <code>create-domain</code>.</p>
+    </EmptyState>
+}
+else
+{
+    <Panel Id="dominios" Title="Domínios carregados">
+        <DataTable Id="dominios-tabela" Caption="@(Domains.Count == 1 ? "Um domínio." : $"{Domains.Count} domínios, na ordem em que foram criados.")" Headers="Columns">
+            <tbody>
+                @foreach (var domain in Domains)
+                {
+                    <tr>
+                        <th scope="row">@domain.Name</th>
+                        <td><Moment At="domain.CreatedAt" /></td>
+                        <td>@Version(domain.TaxonomyVersion)</td>
+                        <td>@Version(domain.DimensionsVersion)</td>
+                    </tr>
+                }
+            </tbody>
+        </DataTable>
+    </Panel>
+}
+
+@code {
+    /// <summary>The title of the page and of its entry in the menu.</summary>
+    internal const string Title = "Domínios";
+
+    private static readonly string[] Columns = { "Domínio", "Criado em", "Taxonomia", "Dimensões" };
+
+    /// <summary>Every domain, as the listing reads it; a version the model does not keep yet is absent and shown as such, never made up.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<ListedDomain> Domains { get; set; } = Array.Empty<ListedDomain>();
+
+    private static RenderFragment Version(string? version) => version is null ? @<StateMark>Nenhuma carregada</StateMark> : @<code>@version</code>;
+}

@@ -59,8 +59,7 @@ obrigatórios seguem reportando: o job dispensado aparece como `skipped`, e o ag
 "Mutação nos módulos críticos" só aceita `skipped` quando a classificação deu `heavy=false`.
 Qualquer outro arquivo, um diff vazio, um erro e o push no main dão `heavy=true`; a execução
 semanal não classifica nada e roda os mesmos jobs de sempre. Para ver a decisão e o motivo
-(no `stderr`): `python tools/verify-code/verify.py --changes --base origin/main`. Onde o tempo de
-um pull request vai se mede com `python tools/verify-code/measure_pr_time.py --limit 20`.
+(no `stderr`): `python tools/verify-code/verify.py --changes --base origin/main`.
 
 A ordem é única: `--step test_core` sozinho, em árvore limpa, falha porque testa com `--no-build`;
 `build_core` vem antes, e a execução sem argumento segue essa ordem. Os passos `lint_tools` e

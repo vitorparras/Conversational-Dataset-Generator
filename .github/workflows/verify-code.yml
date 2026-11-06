@@ -39,7 +39,9 @@ jobs:
           python-version: '3.12'
       - id: classify
         name: Dispensar os jobs pesados só se o diff do pull request for documento que nenhum código lê
-        run: python tools/verify-code/verify.py --changes ${{ github.event_name == 'pull_request' && format('--base origin/{0}', github.base_ref) || '' }} >> "$GITHUB_OUTPUT"
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
+        run: python tools/verify-code/verify.py --changes ${BASE:+--base "$BASE"} >> "$GITHUB_OUTPUT"
 
   dotnet:
     name: Núcleo (.NET) e ferramentas

@@ -15,11 +15,12 @@ de término apontam para [`requisitos/`](../requisitos/) em vez de repetir o que
 
 ## A sequência
 
-1. [Fundação verificável](001-fundacao-verificavel.md) — a régua de qualidade e o esqueleto, com o
-   núcleo num executável único. Sem ela, nenhuma fase posterior tem como declarar que terminou.
-2. [Custódia e cifra](002-custodia-e-cifra.md) — chave derivada por finalidade, cifra feita pela
-   aplicação, cadeia imutável e o eixo de domínio em toda tabela de conteúdo. É o que permite que
-   material real exista no sistema.
+1. [Fundação verificável](001-fundacao-verificavel.md) (concluída) — a régua de qualidade e o
+   esqueleto, com o núcleo num executável único. Sem ela, nenhuma fase posterior tem como declarar
+   que terminou.
+2. [Custódia e cifra](002-custodia-e-cifra.md) (concluída) — chave derivada por finalidade, cifra
+   feita pela aplicação, cadeia imutável e o eixo de domínio em toda tabela de conteúdo. É o que
+   permite que material real exista no sistema.
 3. [Ingestão](003-ingestao.md) — as quatro formas de material, cada uma com a validação que a
    define. O acervo deixa de ser pasta de arquivos.
 4. [Sanitização](004-sanitizacao.md) — o resíduo sai, o sinal linguístico fica. O invariante é

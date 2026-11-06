@@ -18,7 +18,8 @@ O eixo de domínio entra aqui, e não mais tarde, porque precisa existir na prim
 conteúdo que for criada. Acrescentá-lo depois é migrar dado e reescrever consulta.
 
 Os procedimentos de guarda, rotação, perda, backup e restauração da chave já estão escritos em
-`docs/operacao/`. O que esta fase deve a eles não é texto: é o ensaio.
+`docs/operacao/`. O ensaio deles numa máquina recém-preparada é critério de término da
+[fase 10](010-segundo-dominio.md).
 
 ## O que precisa estar pronto antes
 

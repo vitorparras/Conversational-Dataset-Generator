@@ -11,10 +11,17 @@ brasileiro.
 
 ## Estado
 
-Fase 1 do [roadmap](docs/roadmap/001-fundacao-verificavel.md), a fundação verificável: o núcleo
-(.NET), o serviço de linguagem (Python), o banco de desenvolvimento e o aparato que os verifica.
-Não há ainda módulo de domínio nem material real; a árvore e os comandos estão em
-[020](docs/operacao/020-codigo-no-repositorio.md).
+Fases 1 e 2 do [roadmap](docs/roadmap/README.md) concluídas: a
+[fundação verificável](docs/roadmap/001-fundacao-verificavel.md) (o núcleo em .NET, o serviço de
+linguagem em Python, o banco de desenvolvimento e o aparato que os verifica) e a
+[custódia e cifra](docs/roadmap/002-custodia-e-cifra.md). A próxima é a
+[ingestão](docs/roadmap/003-ingestao.md). Não há ainda módulo de domínio nem material real; a árvore
+e os comandos estão em [020](docs/operacao/020-codigo-no-repositorio.md).
+
+O ensaio de subida numa máquina recém-preparada, por uma pessoa, é critério de término da
+[fase 10](docs/roadmap/010-segundo-dominio.md) e segue nas issues
+[#50](https://github.com/vitorparras/Conversational-Dataset-Generator/issues/50) e
+[#264](https://github.com/vitorparras/Conversational-Dataset-Generator/issues/264).
 
 ## Como isto funciona
 
@@ -202,9 +209,7 @@ sem o último a linha de auditoria não diz a tabela, e sem os outros o comando 
 (a credencial é a da aplicação). Para cada papel, tabela e comando, confere quantas vezes o
 servidor viu o que a cadeia registrou, pelo mapa de `AuditMap` (passo da cadeia ↔ tabela e
 comando), e imprime cada diferença com os passos envolvidos. Sai com 0 quando não há diferença
-nova e com 20 quando há;
-a diferença conhecida, o recálculo da senha na entrada (#69), que grava a credencial sem evento até
-a #71, sai com o motivo e não reprova.
+nova e com 20 quando há; uma diferença marcada como conhecida sai com o motivo e não reprova.
 
 `Audit:CompareInterval` é obrigatória ao servir, sem valor padrão, e leva a duração (de `00:01:00`
 a `49.00:00:00`, como `01:00:00`) entre duas comparações, feitas pelo próprio núcleo sobre o que

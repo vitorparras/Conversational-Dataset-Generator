@@ -54,7 +54,7 @@ internal sealed class ConversationRule : IFormRule
         foreach (var position in ordered)
         {
             var unit = read.Units[position];
-            messages.Add(new Message(unit.Author!, unit.Instant!.Value, unit.RepliesTo is { } to ? placed[to] : null, unit.Text));
+            messages.Add(new Message(unit.Author!, unit.Instant!.Value, unit.RepliesTo is { } to ? placed[to] : null, unit.Text, messages.Count));
         }
 
         return messages;

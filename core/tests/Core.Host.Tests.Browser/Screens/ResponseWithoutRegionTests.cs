@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
+using Core.Host.Tests.Browser.Accessibility;
 using Core.Host.Tests.Browser.Fixtures;
 using Core.Host.Tests.Browser.Trial;
+using static Microsoft.Playwright.Assertions;
 
 namespace Core.Host.Tests.Browser.Screens;
 
@@ -40,5 +42,19 @@ public sealed class ResponseWithoutRegionTests(BrowserFixture browser)
         await Task.Delay(Settle, TestContext.Current.CancellationToken);
 
         Assert.Equal((1, 1), (TrialRoutes.Received(TrialRoutes.KeyOf(mode)), posts.Count));
+    }
+
+    [Fact]
+    public async Task TheAnswerThatIsAnotherScreenShowsAsAWholePageWithItsFrame()
+    {
+        await using var tab = await browser.OpenAsync($"{TrialRoutes.Submit}/outra");
+
+        await tab.Page.Locator("#enviar").ClickAsync();
+
+        await Expect(tab.Page.Locator("h1")).ToHaveTextAsync("Tela base");
+        await Expect(tab.Page.Locator("html")).ToHaveAttributeAsync("lang", "pt-BR");
+        Assert.Contains("Gerador de bases conversacionais", await tab.Page.TitleAsync(), StringComparison.Ordinal);
+        Assert.True(await tab.Page.EvaluateAsync<bool>("() => document.styleSheets.length > 0"), "The page came without its style sheet.");
+        await AccessibilityCheck.AssertNoViolationsAsync(tab.Page);
     }
 }

@@ -77,6 +77,6 @@ internal static class RecoveryRecordMode
         }
 
         await words.Error.WriteLineAsync($"{Argument} recusado, nada foi gravado: {string.Join("; ", record.Failures)}").ConfigureAwait(false);
-        return ExitCode.RecoveryRefused;
+        return record.Outcome == RecoveryOutcome.ReceiptRepeated ? ExitCode.RecoveryReceiptRepeated : ExitCode.RecoveryRefused;
     }
 }

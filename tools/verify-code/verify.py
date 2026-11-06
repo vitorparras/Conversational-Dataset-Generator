@@ -22,6 +22,7 @@ from steps import (
     ai_attribution,
     build_core,
     build_service,
+    changes,
     coverage_by_area,
     dependencies,
     floors,
@@ -33,6 +34,7 @@ from steps import (
     package,
     pr_size,
     properties,
+    reach,
     ruler_proof,
     secrets,
     static_analysis,
@@ -40,6 +42,7 @@ from steps import (
     test_real_service,
     test_service,
     test_tools,
+    tested_tree,
     trivy,
 )
 from steps.common import OUTPUT_DIRECTORY, Context, StepResult, run_process
@@ -123,13 +126,33 @@ def _print_utf8() -> None:
             stream.reconfigure(encoding="utf-8")
 
 
-def print_mutation_modules() -> int:
-    """The critical modules as a JSON list for the matrix of the CI; 1 when the areas give none."""
+def print_mutation_modules(base: str | None) -> int:
+    """The critical modules as a JSON list for the matrix of the CI; with ``base``, only the ones
+    the diff reaches (the reasons go to stderr); 1 when the areas give none."""
     modules, problems = mutation.names(ROOT)
     if problems:
         print("\n".join(problems))
         return 1
+    reasons = ["todos os módulos: não é pull request"]
+    if base:
+        modules, reasons = reach.select(Context(ROOT, ROOT / OUTPUT_DIRECTORY, run_process, base))
+    print("\n".join(reasons), file=sys.stderr)
     print(json.dumps(modules, ensure_ascii=False))
+    return 0
+
+
+def print_changes(base: str | None, sha: str | None, repository: str | None) -> int:
+    """The CI output lines (`heavy=...`, and the run to promote); the reasons go to stderr."""
+    ctx = Context(ROOT, ROOT / OUTPUT_DIRECTORY, run_process, base)
+    found = tested_tree.tested(ctx, repository, sha) if sha and repository else None
+    if found:
+        print(f"heavy=false\ntested_run={found.run}\ntested_head={found.head}")
+        print("promote=" + " ".join(found.promote))
+        return 0
+    decision = changes.verdict(ctx)
+    for reason in decision.reasons:
+        print(reason, file=sys.stderr)
+    print(decision.output)
     return 0
 
 
@@ -144,8 +167,8 @@ def usage_error(requested: list[str], module: str | None) -> str | None:
     return None
 
 
-def main(argv: list[str] | None = None) -> int:
-    _print_utf8()
+def build_parser() -> argparse.ArgumentParser:
+    """The command line: the steps to run, and the flags that print what the CI reads."""
     parser = argparse.ArgumentParser(description="Verifica o código do repositório.")
     parser.add_argument("--list", action="store_true", help="lista os passos, na ordem da CI")
     parser.add_argument("--step", nargs="+", default=[], metavar="NAME", help="passos a rodar")
@@ -155,16 +178,32 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--mutation-modules",
         action="store_true",
-        help="imprime em JSON os módulos críticos e suas partes, a matriz do CI",
+        help="imprime em JSON os módulos críticos, a matriz do CI (com --base, só os do diff)",
     )
+    parser.add_argument(
+        "--changes",
+        action="store_true",
+        help="imprime heavy=true ou heavy=false: o diff de --base pede os jobs pesados do código?",
+    )
+    parser.add_argument(
+        "--tested-sha", help="com --changes: um PR verde testou a árvore do commit?"
+    )
+    parser.add_argument("--repository", help="com --tested-sha: dono/nome do repositório")
     parser.add_argument("--base", help="ref de comparação para pr_size (ex.: origin/main)")
     parser.add_argument("--previous", type=Path, help="by-area.md anterior: floors avisa queda")
-    args = parser.parse_args(argv)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    _print_utf8()
+    args = build_parser().parse_args(argv)
     if args.list:
         print("\n".join(s.name for s in STEPS))
         return 0
     if args.mutation_modules:
-        return print_mutation_modules()
+        return print_mutation_modules(args.base)
+    if args.changes:
+        return print_changes(args.base, args.tested_sha, args.repository)
     refusal = usage_error(args.step, args.module)
     if refusal:
         print(refusal)

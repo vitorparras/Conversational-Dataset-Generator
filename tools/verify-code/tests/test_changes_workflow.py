@@ -22,6 +22,7 @@ DISPENSED = (
     "service_folder",
     "mutation_modules",
     "ruler_proof",
+    "browser",
 )
 ALWAYS = (
     "dependencies",

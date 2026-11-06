@@ -13,8 +13,8 @@ public sealed class ConferenceShapeTests
         Assert.DoesNotContain("Accept", publicMethods);
         Assert.Contains("Refuse", publicMethods);
         Assert.False(typeof(IFormRule).IsVisible);
-        Assert.Empty(typeof(FormConference).GetConstructors(BindingFlags.Instance | BindingFlags.Public));
-        Assert.Contains(typeof(FormConference).GetMethods(BindingFlags.Static | BindingFlags.Public), method => method.Name == "Minimal");
+        var constructor = Assert.Single(typeof(FormConference).GetConstructors(BindingFlags.Instance | BindingFlags.Public));
+        Assert.Equal(["ITextBoundaries"], [.. constructor.GetParameters().Select(parameter => parameter.ParameterType.Name)]);
     }
 
     [Fact]

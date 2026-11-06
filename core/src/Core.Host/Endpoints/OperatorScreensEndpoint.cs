@@ -38,7 +38,7 @@ internal static class OperatorScreensEndpoint
         var page = int.TryParse(query[OperatorsScreen.PageKey], NumberStyles.None, CultureInfo.InvariantCulture, out var asked) ? asked : 1;
         var screen = new Dictionary<string, object?>(StringComparer.Ordinal)
         {
-            [nameof(OperatorsScreen.Page)] = await staff.Registry.ListAsync(filter, page, context.RequestAborted),
+            [nameof(OperatorsScreen.Page)] = await staff.ListAsync(filter, page, context.RequestAborted),
             [nameof(OperatorsScreen.Name)] = name,
             [nameof(OperatorsScreen.Function)] = function,
             [nameof(OperatorsScreen.State)] = state,

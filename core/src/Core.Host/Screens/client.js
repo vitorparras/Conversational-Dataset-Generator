@@ -63,6 +63,36 @@
         });
     }
 
+    // A form that declares a waiting notice says, while it is on its way, that the answer is coming, and is not sent a second time meanwhile.
+    // The text is the server's; the layer only shows it, and knows nothing of why the answer takes long.
+    document.addEventListener("submit", function (event) {
+        var form = event.target;
+        var slot = form instanceof HTMLFormElement && form.hasAttribute("data-wait") ? document.getElementById(form.getAttribute("data-wait")) : null;
+        if (!slot) {
+            return;
+        }
+        if (form.getAttribute("aria-busy") === "true") {
+            event.preventDefault();
+            return;
+        }
+        form.setAttribute("aria-busy", "true");
+        slot.textContent = slot.getAttribute("data-wait-text");
+    });
+
+    // A page brought back from the history of the browser is no longer waiting for anything.
+    window.addEventListener("pageshow", function (event) {
+        if (!event.persisted) {
+            return;
+        }
+        document.querySelectorAll("form[data-wait][aria-busy]").forEach(function (form) {
+            form.removeAttribute("aria-busy");
+            var slot = document.getElementById(form.getAttribute("data-wait"));
+            if (slot) {
+                slot.textContent = "";
+            }
+        });
+    });
+
     document.addEventListener("submit", function (event) {
         var form = event.target;
         var id = form instanceof HTMLFormElement ? form.getAttribute("data-swap") : null;

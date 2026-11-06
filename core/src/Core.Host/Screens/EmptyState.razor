@@ -1,0 +1,14 @@
+<div class="empty-state" role="status">
+    <p class="empty-state__title">@Title</p>
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>What is empty, said first.</summary>
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = "";
+
+    /// <summary>Why it is empty and what makes something appear in it.</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

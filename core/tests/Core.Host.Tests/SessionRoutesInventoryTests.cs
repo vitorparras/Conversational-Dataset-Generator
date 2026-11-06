@@ -10,8 +10,8 @@ namespace Core.Host.Tests;
 /// </summary>
 public sealed class SessionRoutesInventoryTests
 {
-    /// <summary>The only routes that answer with no session: the entry, which makes one, the status, and the script and style of the screens, which the entry page needs before it.</summary>
-    private static readonly string[] Exceptions = ["POST /session", "GET /status", "GET /screens/client.css", "GET /screens/client.js"];
+    /// <summary>The only routes that answer with no session: the entry (page, form and JSON), the status, and the script and style of the screens the entry page needs.</summary>
+    private static readonly string[] Exceptions = ["GET /entrada", "POST /entrada", "POST /session", "GET /status", "GET /screens/client.css", "GET /screens/client.js"];
 
     [Fact]
     public void OnlyTheEntryTheStatusAndTheStyleOfTheScreensAnswerWithNoSession()
@@ -26,9 +26,18 @@ public sealed class SessionRoutesInventoryTests
     {
         var gated = MappedRoutes.Read().Where(route => !route.Open).Select(route => route.ToString()).Order(StringComparer.Ordinal).ToList();
 
-        string[] expected = ["DELETE /session", "GET /audit/server", "GET /configuration", "GET /custody/seal", "GET /custody/verification", "GET /session", "GET /versions"];
+        string[] expected = ["DELETE /session", "GET /", "GET /audit/server", "GET /configuration", "GET /custody/seal", "GET /custody/verification", "GET /session", "GET /versions"];
         Assert.Equal(
-            [.. expected, "POST /analysis", "POST /custody/seal/confirmation", "POST /custody/verification", "POST /people", "POST /people/{id}/deactivate", "PUT /people/{id}/password"],
+            [
+                .. expected,
+                "POST /analysis",
+                "POST /custody/seal/confirmation",
+                "POST /custody/verification",
+                "POST /people",
+                "POST /people/{id}/deactivate",
+                "POST /saida",
+                "PUT /people/{id}/password",
+            ],
             gated);
     }
 

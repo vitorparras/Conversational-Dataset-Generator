@@ -20,7 +20,7 @@ public sealed class ModelTests
     [Fact]
     public void TheToStringOfTheFormsTellsOnlyHowManyPartsTheyHaveAndWhetherThereIsAMoment()
     {
-        var message = new Message(Marker, Units.First, 0, Marker);
+        var message = new Message(Marker, Units.First, 0, Marker, 0);
 
         Assert.Equal(
             [

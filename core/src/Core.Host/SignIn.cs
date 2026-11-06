@@ -14,7 +14,7 @@ namespace Core.Host;
 /// reaches no database, and is not recorded. A right password whose acceptance the chain did not take is refused all the same, and as a name nobody goes by only when the person
 /// was deactivated meanwhile: for any other result nothing else is written, because no reason would be true.
 /// </summary>
-internal sealed class SignIn(PersonRegistry registry, PersonCredentials credentials, SessionStore sessions, SignInDelay delay, SignInAttempts attempts)
+internal sealed class SignIn(PersonRegistry registry, PersonCredentials credentials, SessionStore sessions, SignInDelay delay, SignInRecord attempts)
 {
     private const long Nobody = 0;
 
@@ -47,7 +47,7 @@ internal sealed class SignIn(PersonRegistry registry, PersonCredentials credenti
         }
 
         var wrong = outcome == PasswordOutcome.Wrong;
-        _ = await attempts.RefusedAsync(wrong ? identity : null, wrong ? SignInRefusal.PasswordWrong : SignInRefusal.AccountNotRecognized, origin, cancellationToken).ConfigureAwait(false);
+        await attempts.RefusedAsync(wrong ? identity : null, wrong ? SignInRefusal.PasswordWrong : SignInRefusal.AccountNotRecognized, origin, cancellationToken).ConfigureAwait(false);
         await delay.RefusedAsync(name, origin, cancellationToken).ConfigureAwait(false);
         return null;
     }

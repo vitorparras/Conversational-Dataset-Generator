@@ -32,6 +32,8 @@
     <InternalsVisibleTo Include="Core.Persistence.Custody.Chain.Tests" />
     <InternalsVisibleTo Include="Core.Persistence.ServerGuarantees.Tests" />
     <InternalsVisibleTo Include="Core.Tests.Integration" />
+    <InternalsVisibleTo Include="Core.Host.Tests.Browser" />
+    <InternalsVisibleTo Include="Core.Host.Tests" />
   </ItemGroup>
 
   <!-- Test code is not measured: the library is no test assembly, so coverage would instrument it and no area of 014 owns it. -->

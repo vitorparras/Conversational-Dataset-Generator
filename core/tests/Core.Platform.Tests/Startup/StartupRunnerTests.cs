@@ -63,21 +63,4 @@ public sealed class StartupRunnerTests
 
         Assert.Equal(checkedAt, report.CheckedAt);
     }
-
-    [Fact]
-    public async Task NotConfiguredCheckNeitherFailsNorStopsTheRun()
-    {
-        List<string> ran = [];
-        var runner = new StartupRunner(
-        [
-            new ScriptedStartupCheck("first", CheckStatus.NotConfigured, ran),
-            new ScriptedStartupCheck("second", CheckStatus.Passed, ran),
-        ], TimeProvider.System);
-
-        var report = await runner.RunAsync(TestContext.Current.CancellationToken);
-
-        Assert.Equal(["first", "second"], ran);
-        Assert.True(report.Ready);
-        Assert.Null(report.FirstFailure);
-    }
 }

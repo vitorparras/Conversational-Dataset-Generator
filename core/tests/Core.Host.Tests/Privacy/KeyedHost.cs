@@ -6,7 +6,7 @@ namespace Core.Host.Tests.Privacy;
 /// <summary>The built host started with the synthetic key of the shared custody files, asked for its status, and stopped.</summary>
 internal static class KeyedHost
 {
-    /// <summary>Starts the host with the key and no database, and returns what it answered at <c>/status</c>.</summary>
+    /// <summary>Starts the host with the key, and returns what it answered at <c>/status</c>.</summary>
     public static Task<JsonDocument> RunAsync(CancellationToken cancellationToken) =>
         RunAsync(environment: ReadOnlyDictionary<string, string>.Empty, cancellationToken);
 

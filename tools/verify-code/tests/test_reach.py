@@ -85,6 +85,7 @@ class ReachTests(unittest.TestCase):
                 f"{PACKAGE}/auth/tokens.py": "import language_service.auth\n",
                 f"{PACKAGE}/logging_/__init__.py": "",
                 f"{PACKAGE}/proof/__init__.py": "",
+                f"{PACKAGE}/proof/uses.py": "from .. import logging_\n",
                 f"{SERVICE}/tests/test_auth.py": "from language_service.auth import tokens\n",
                 f"{SERVICE}/tests/test_proof.py": "import language_service.proof\n",
                 "docs/roadmap/001-x.md": "a plain document\n",
@@ -149,7 +150,12 @@ class ReachTests(unittest.TestCase):
     def test_a_package_reaches_its_module_and_the_modules_that_import_it(self) -> None:
         names, lines = self.reached({f"{PACKAGE}/logging_/__init__.py": "x = 1\n"})
 
-        self.assertEqual(names, {"language_service.logging_", "language_service.auth"})
+        self.assertEqual(
+            names, {"language_service.logging_", "language_service.auth", "language_service.proof"}
+        )
+        self.assertIn(
+            "- `language_service.proof`: depende de language_service.logging_, que mudou", lines
+        )
         self.assertIn(
             "- `language_service.auth`: depende de language_service.logging_, que mudou", lines
         )
@@ -235,6 +241,64 @@ class WholeRulerTests(unittest.TestCase):
 
         self.assertTrue({"Core.Beta", "Core.Delta"} <= set(names))
         self.assertTrue(lines[0].startswith("régua inteira:"))
+
+
+PARENT = ["language_service", "auth"]
+
+
+class ImportTests(unittest.TestCase):
+    def test_a_relative_import_is_resolved_from_the_package_of_the_module(self) -> None:
+        source = (
+            "from . import tokens\nfrom .tokens import x\n"
+            "from ..logging_ import y\nfrom .. import proof\n"
+        )
+
+        found, opaque = reach.targets(PARENT, source)
+
+        self.assertFalse(opaque)
+        expected = {
+            "language_service.auth",
+            "language_service.auth.tokens",
+            "language_service.logging_",
+            "language_service.logging_.y",
+            "language_service.proof",
+        }
+        self.assertTrue(expected <= found, found)
+
+    def test_an_absolute_import_is_read_as_before(self) -> None:
+        source = "import language_service.proof\nfrom os import path\n"
+
+        found, opaque = reach.targets(PARENT, source)
+
+        self.assertFalse(opaque)
+        self.assertTrue({"language_service.proof", "os", "os.path"} <= found)
+
+    def test_an_import_the_reader_cannot_follow_is_flagged(self) -> None:
+        sources = (
+            "import importlib\n",
+            "import importlib.util\n",
+            "from importlib import import_module\n",
+            "x = __import__('language_service.auth')\n",
+            "from ... import x\n",
+            "def broken(:\n",
+        )
+        for source in sources:
+            with self.subTest(source=source):
+                self.assertTrue(reach.targets(PARENT, source)[1])
+
+    def test_a_module_that_imports_through_importlib_runs_the_whole_ruler(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = support.git_repository(Path(tmp))
+            support.write_areas(repo, AREAS)
+            commit(repo, {f"{PACKAGE}/__init__.py": "", f"{PACKAGE}/proof/__init__.py": ""})
+            support.git(repo, "branch", "-f", "main", "HEAD")
+            support.git(repo, "checkout", "-q", "-b", "pull")
+            commit(repo, {f"{PACKAGE}/proof/__init__.py": "import importlib\n"})
+
+            names, lines = reach.select(support.context(repo, None, "main"))
+
+        self.assertIn("language_service.auth", names)
+        self.assertIn("régua inteira", lines[0])
 
 
 class CommandLineTests(unittest.TestCase):

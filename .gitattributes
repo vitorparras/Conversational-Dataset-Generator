@@ -6,6 +6,4 @@
 *.yaml text eol=lf
 *.cs text eol=lf
 *.md text eol=lf
-
-# Corpus hostil da barreira de envio (#75): bytes exatos, sem conversao de fim de linha.
 core/tests/fixtures/ingestion-hostile/** -text

@@ -29,9 +29,7 @@ internal static class ExternalReferences
         message.TryGetProperty(member, out var value) && value.ValueKind == JsonValueKind.String && value.GetString() is { } text && Reads(text);
 
     /// <summary>An address with a scheme, a step up to the folder above, a root, or a drive letter, at the places of the value where each one means it.</summary>
-    private static bool Reads(string text) => HasScheme(text) || StepsUp(text) || Rooted(text) || Drive(text);
-
-    private static bool HasScheme(string text) => text.Contains("://", StringComparison.Ordinal);
+    private static bool Reads(string text) => text.Contains("://", StringComparison.Ordinal) || StepsUp(text) || Rooted(text) || Drive(text);
 
     private static bool StepsUp(string text) => text.Contains("../", StringComparison.Ordinal) || text.Contains("..\\", StringComparison.Ordinal);
 

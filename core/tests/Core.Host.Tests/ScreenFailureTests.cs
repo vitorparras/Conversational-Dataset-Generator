@@ -10,7 +10,8 @@ namespace Core.Host.Tests;
 
 /// <summary>
 /// A failure no route handled (#671, CA-4), in process behind the real gates: a request for a page gets 500 on the base page, with the frame and a way back, and nothing
-/// of the failure, neither its message nor its kind; the log names the kind and not the message. Any other request keeps the 500 of the server, with no body.
+/// of the failure, neither its message nor its kind, and with the header of the encrypted channel; the log names the kind and not the message.
+/// Any other request keeps the 500 of the server, with no body.
 /// </summary>
 public sealed class ScreenFailureTests
 {
@@ -31,6 +32,7 @@ public sealed class ScreenFailureTests
         var page = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync(cancellationToken));
 
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        Assert.Equal(["max-age=31536000"], response.Headers.GetValues("Strict-Transport-Security"));
         Assert.Contains(FailureScreen.Title, page, StringComparison.Ordinal);
         Assert.Contains($"href=\"{ScreenPaths.Home}\"", page, StringComparison.Ordinal);
         Assert.DoesNotContain(Secret, page, StringComparison.Ordinal);
@@ -56,6 +58,7 @@ public sealed class ScreenFailureTests
             services => services.AddSingleton(log),
             routes =>
             {
+                TransportSecurity.Map((IApplicationBuilder)routes);
                 ScreenFailure.Use((IApplicationBuilder)routes);
                 ScreenGate.Use((IApplicationBuilder)routes);
                 _ = routes.MapGet(Failing, Fail).WithMetadata(ScreenAccess.Everyone);

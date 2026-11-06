@@ -28,4 +28,7 @@ internal sealed class ScreenAccess
 
     /// <summary>The screen of the functions given, with its entry in the menu at the place given.</summary>
     internal static ScreenAccess Of(string caption, int place, params string[] functions) => new(functions, caption, place);
+
+    /// <summary>A page of the functions given with no entry in the menu, such as the confirmation of an action that a screen of the menu leads to.</summary>
+    internal static ScreenAccess Unlisted(params string[] functions) => new(functions, caption: null, place: 0);
 }

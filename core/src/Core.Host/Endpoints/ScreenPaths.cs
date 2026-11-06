@@ -6,4 +6,7 @@ internal static class ScreenPaths
     internal const string SignIn = "/entrada";
     internal const string SignOut = "/saida";
     internal const string Home = "/";
+    internal const string State = "/estado-do-sistema";
+    internal const string Configuration = "/configuracao";
+    internal const string Domains = "/dominios";
 }

@@ -197,6 +197,79 @@ public sealed class IngestionBatchesTests
             ]);
     }
 
+    [Fact]
+    public void ClosingThatIsMissingOrWithoutAuthorOrNumbersIsRefusedByNameForBothTheAcceptanceAndTheRejection()
+    {
+        using var dataSource = NpgsqlDataSource.Create("Host=127.0.0.1;Port=1;Username=u;Password=p;Database=d");
+        var batches = new IngestionBatches(dataSource);
+        var none = new BatchClosing(1, 1, null!);
+        var noDomain = new BatchClosing(0, 1, CustodyAuthor.System);
+        var noBatch = new BatchClosing(1, 0, CustodyAuthor.System);
+
+        Assert.Equal(
+            ["closing", "closing.Author", "closing.DomainId", "closing.BatchId", "closing", "closing.Author", "closing.DomainId", "closing.BatchId"],
+            [
+                Param(() => batches.AcceptAsync(null!, CancellationToken.None)),
+                Param(() => batches.AcceptAsync(none, CancellationToken.None)),
+                Param(() => batches.AcceptAsync(noDomain, CancellationToken.None)),
+                Param(() => batches.AcceptAsync(noBatch, CancellationToken.None)),
+                Param(() => batches.RejectAsync(null!, Reason, CancellationToken.None)),
+                Param(() => batches.RejectAsync(none, Reason, CancellationToken.None)),
+                Param(() => batches.RejectAsync(noDomain, Reason, CancellationToken.None)),
+                Param(() => batches.RejectAsync(noBatch, Reason, CancellationToken.None)),
+            ]);
+    }
+
+    [DatabaseFact]
+    public async Task AcceptanceAndRejectionAnswerWithTheirOutcomeTheBatchAndTheSequenceOfTheirEvent()
+    {
+        await using var world = await IngestionWorld.CreateAsync();
+        var accepted = await IngestionWorld.OpenAsync(world);
+        var rejected = await IngestionWorld.OpenAsync(world);
+
+        var acceptance = await IngestionWorld.AcceptAsync(world, accepted);
+        var rejection = await IngestionWorld.RejectAsync(world, rejected, Reason);
+
+        var closings = await world.ScalarAsync("SELECT string_agg(sequence::text, ',' ORDER BY sequence) FROM public.custody_event WHERE step = 'batch_closed'") as string;
+        Assert.Equal(
+            (BatchOutcome.Accepted, accepted, BatchOutcome.Rejected, rejected, $"{acceptance.Sequence},{rejection.Sequence}"),
+            (acceptance.Outcome, acceptance.BatchId, rejection.Outcome, rejection.BatchId, closings));
+    }
+
+    [DatabaseFact]
+    public async Task ABatchAcceptedOrRejectedIsReadWithItsStateItsMotiveAndItsAuthor()
+    {
+        await using var world = await IngestionWorld.CreateAsync();
+        var accepted = await IngestionWorld.OpenAsync(world);
+        var rejected = await IngestionWorld.OpenAsync(world);
+        _ = await IngestionWorld.AcceptAsync(world, accepted);
+        _ = await IngestionWorld.RejectAsync(world, rejected, Reason);
+        var batches = IngestionWorld.BatchesOf(world);
+
+        Assert.Equal(
+            (new IngestionBatch(BatchState.Accepted, null, IngestionWorld.Person), new IngestionBatch(BatchState.Rejected, Reason, IngestionWorld.Person)),
+            (
+                await batches.ReadAsync(IngestionWorld.Domain, accepted, TestContext.Current.CancellationToken),
+                await batches.ReadAsync(IngestionWorld.Domain, rejected, TestContext.Current.CancellationToken)));
+    }
+
+    [DatabaseFact]
+    public async Task ClosingByAPersonWhoIsNotActiveIsToldSoByTheChainAndLeavesTheBatchOpenWithNoNewEvent()
+    {
+        await using var world = await IngestionWorld.CreateAsync();
+        var batch = await IngestionWorld.OpenAsync(world);
+        var closing = new BatchClosing(IngestionWorld.Domain, batch, CustodyAuthor.Person(await world.PersonAsync("zqx-gone")));
+        var batches = IngestionWorld.BatchesOf(world);
+
+        var accepted = await batches.AcceptAsync(closing, TestContext.Current.CancellationToken);
+        var rejected = await batches.RejectAsync(closing, Reason, TestContext.Current.CancellationToken);
+        var held = await batches.ReadAsync(IngestionWorld.Domain, batch, TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            (BatchOutcome.NotRecorded, CustodyOutcome.ActorDeactivated, BatchOutcome.NotRecorded, CustodyOutcome.ActorDeactivated, BatchState.Open, OnlyTheOpening),
+            (accepted.Outcome, accepted.Refusal?.Outcome, rejected.Outcome, rejected.Refusal?.Outcome, held?.State, await world.ScalarAsync(IngestionWorld.Events) as string));
+    }
+
     private static string? Param(Func<object?> call) =>
         Assert.ThrowsAny<ArgumentException>(call).ParamName;
 }

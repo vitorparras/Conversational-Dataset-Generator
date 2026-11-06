@@ -12,6 +12,11 @@ namespace Core.Persistence.Recovery;
 public sealed class RecoveryRecording
 {
     private const string TopInChain = "SELECT EXISTS (SELECT 1 FROM public.custody_event WHERE sequence = @sequence AND encode(digest, 'hex') = @digest)";
+    private const string ReceiptRecorded = "SELECT EXISTS (SELECT 1 FROM public.custody_event WHERE step = @step AND reference = @digest)";
+
+    /// <summary>The words that say why a receipt already recorded is not recorded again.</summary>
+    public static string RepeatedWords { get; } =
+        "o recibo já está registrado na cadeia: cada recibo vale um registro só; repita o ensaio com rehearse-recovery e registre o recibo novo (operacao/004)";
 
     private readonly NpgsqlDataSource dataSource;
 
@@ -51,15 +56,39 @@ public sealed class RecoveryRecording
             failures.Add("o ensaio teve amostras que não abriram, ou nenhuma abriu");
         }
 
-        return failures.Count > 0 ? RecoveryRecord.Refused(RecoveryOutcome.NotConfirmed, failures) : await WriteAsync(receipt, cancellationToken).ConfigureAwait(false);
+        if (failures.Count > 0)
+        {
+            return RecoveryRecord.Refused(RecoveryOutcome.NotConfirmed, failures);
+        }
+
+        return await IsRecordedAsync(receipt, cancellationToken).ConfigureAwait(false)
+            ? RecoveryRecord.Refused(RecoveryOutcome.ReceiptRepeated, RepeatedWords)
+            : await WriteAsync(receipt, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<RecoveryRecord> WriteAsync(RecoveryReceipt receipt, CancellationToken cancellationToken)
     {
-        var chain = await new CustodyChain(dataSource).AppendAsync(CustodyEvent.RecoveryRehearsed(receipt.TopSequence), cancellationToken).ConfigureAwait(false);
-        return chain.Outcome == CustodyOutcome.Appended
-            ? RecoveryRecord.Written(chain.Sequence ?? 0)
+        var chain = await new CustodyChain(dataSource).AppendAsync(CustodyEvent.RecoveryRehearsed(receipt.TopSequence, receipt.Digest()), cancellationToken).ConfigureAwait(false);
+        if (chain.Outcome == CustodyOutcome.Appended)
+        {
+            return RecoveryRecord.Written(chain.Sequence ?? 0);
+        }
+
+        // Two records of the same receipt at once: the server took one, and the other one is told the receipt is repeated, not that the chain refused.
+        return chain.Outcome == CustodyOutcome.Conflict && await IsRecordedAsync(receipt, cancellationToken).ConfigureAwait(false)
+            ? RecoveryRecord.Refused(RecoveryOutcome.ReceiptRepeated, RepeatedWords)
             : RecoveryRecord.Refused(RecoveryOutcome.ChainRefused, $"a cadeia não aceitou o evento ({chain.Outcome})");
+    }
+
+    private async Task<bool> IsRecordedAsync(RecoveryReceipt receipt, CancellationToken cancellationToken)
+    {
+        var command = dataSource.CreateCommand(ReceiptRecorded);
+        await using (command.ConfigureAwait(false))
+        {
+            _ = command.Parameters.AddWithValue("step", NpgsqlDbType.Text, CustodyNames.Of(CustodyStep.RecoveryTested));
+            _ = command.Parameters.AddWithValue("digest", NpgsqlDbType.Text, receipt.Digest());
+            return (bool)(await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false))!;
+        }
     }
 
     private async Task<bool> HoldsTopAsync(RecoveryReceipt receipt, CancellationToken cancellationToken)

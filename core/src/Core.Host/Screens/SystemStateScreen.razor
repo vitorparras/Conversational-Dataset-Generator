@@ -9,9 +9,8 @@
 {
     <Notice Kind="Notice.Tone.Pending">@warning</Notice>
 }
-<Panel Id="agora" Title="Agora">
+<Panel Id="agora" Title="Situação agora">
     <FactList>
-        <Fact Term="Instalação">@Status.Installation.Name</Fact>
         <Fact Term="Vivo">@Mark(StateMark.Tone.Good, "Sim: o sistema responde")</Fact>
         <Fact Term="Apto">@Readiness</Fact>
         <Fact Term="Serviço de linguagem">@Service</Fact>
@@ -26,6 +25,7 @@
                 <span class="facts__note">Arquivos que a queda do servidor cortou: @string.Join(", ", Status.AuditComparison.CutOffFiles).</span>
             }
         </Fact>
+        <Fact Term="Instalação">@Status.Installation.Name</Fact>
     </FactList>
 </Panel>
 <Panel Id="conferencias" Title="Conferências da subida">

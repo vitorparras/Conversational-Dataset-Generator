@@ -23,7 +23,8 @@ internal sealed class ContentWorld : IAsyncDisposable
         Database = database;
         DataSource = dataSource;
         this.custody = custody;
-        Writer = new ContentWriter(dataSource, custody.Content);
+        RealWriter = new ContentWriter(dataSource, custody.Content);
+        Writer = new SeededWriter(RealWriter);
         Reader = new ProtectedContentReader(dataSource, custody.Content, new CustodyChain(dataSource));
     }
 
@@ -47,7 +48,10 @@ internal sealed class ContentWorld : IAsyncDisposable
 
     public NpgsqlDataSource DataSource { get; }
 
-    public ContentWriter Writer { get; }
+    /// <summary>The writer as the system has it, which adds content only to a batch that is open; <see cref="Writer" /> adds into a batch accepted at creation.</summary>
+    public ContentWriter RealWriter { get; }
+
+    public SeededWriter Writer { get; }
 
     public ProtectedContentReader Reader { get; }
 
@@ -62,7 +66,8 @@ internal sealed class ContentWorld : IAsyncDisposable
     /// <summary>A reader of the world's database that opens content with the custody given instead of the world's own.</summary>
     public ProtectedContentReader ReaderWith(SyntheticCustody other) => new(DataSource, other.Content, new CustodyChain(DataSource));
 
-    public static async Task<ContentWorld> CreateAsync()
+    /// <param name="seeded">Whether the world holds a batch accepted for each domain, which the tests that are not about batches write into; a world of the batches holds none.</param>
+    public static async Task<ContentWorld> CreateAsync(bool seeded = true)
     {
         var database = await ScratchDatabase.CreateAsync();
         _ = await database.MigrateAsync(EmbeddedMigrations.Load());
@@ -70,6 +75,11 @@ internal sealed class ContentWorld : IAsyncDisposable
             "INSERT INTO public.domain (name) VALUES ('zqx-domain-a'), ('zqx-domain-b')",
             "INSERT INTO public.person (name, function_name) VALUES ('zqx-active', 'Anotação'), ('zqx-gone', 'Anotação'), ('zqx-curator', 'Curadoria do acervo')",
             "UPDATE public.person SET active = false WHERE name = 'zqx-gone'");
+        if (seeded)
+        {
+            await SeededBatches.SeedAsync(database, 1, 2);
+        }
+
         var custody = SyntheticCustody.Holding(Labels);
         return new ContentWorld(database, NpgsqlDataSource.Create(database.AppConnectionString), custody);
     }

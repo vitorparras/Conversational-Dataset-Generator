@@ -1,3 +1,4 @@
+using Core.Persistence.Content.Writing;
 using Core.Persistence.Custody;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Content;
@@ -20,7 +21,7 @@ internal static class IngestionWorld
     public const string Reachable = "SELECT (SELECT count(*) FROM content.item_text) || ',' || (SELECT count(*) FROM content.reversal_map)";
 
     /// <summary>A world with the domains, the people and the chain, and no batch at all.</summary>
-    public static Task<ContentWorld> CreateAsync() => ContentWorld.CreateAsync();
+    public static Task<ContentWorld> CreateAsync() => ContentWorld.CreateAsync(seeded: false);
 
     /// <summary>The batches over the application's credential of the world.</summary>
     public static IngestionBatches BatchesOf(ContentWorld world) => new(world.DataSource);
@@ -32,6 +33,14 @@ internal static class IngestionWorld
         Assert.Equal(BatchOutcome.Opened, opened.Outcome);
         return opened.BatchId!.Value;
     }
+
+    /// <summary>Adds an item to the batch, as the system does, and answers its identifier.</summary>
+    public static Task<long> AddItemAsync(ContentWorld world, long batch) =>
+        world.RealWriter.AddItemTextAsync(Domain, batch, new NewItemText("texto bruto sintetico zqx"), TestContext.Current.CancellationToken);
+
+    /// <summary>Adds the map of the item to the batch, as the system does, and answers its identifier.</summary>
+    public static Task<long> AddMapAsync(ContentWorld world, long batch, long item) =>
+        world.RealWriter.AddReversalMapAsync(Domain, new NewReversalMap(batch, item, "mapa sintetico zqx"), TestContext.Current.CancellationToken);
 
     /// <summary>The batch of the domain of the tests, closed by the system as accepted.</summary>
     public static Task<BatchResult> AcceptAsync(ContentWorld world, long batch) =>

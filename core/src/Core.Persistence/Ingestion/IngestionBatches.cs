@@ -175,6 +175,22 @@ public sealed class IngestionBatches
             _ = command.Parameters.Add(Id("id", closing.Request.BatchId));
             _ = await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
+
+        if (closing.Motive is not null)
+        {
+            await RemoveAsync(scope, ContentQueries.RemoveBatchMaps, closing.Request.BatchId, cancellationToken).ConfigureAwait(false);
+            await RemoveAsync(scope, ContentQueries.RemoveBatchItems, closing.Request.BatchId, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static async Task RemoveAsync(CustodyScope scope, string statement, long batchId, CancellationToken cancellationToken)
+    {
+        var command = scope.CreateCommand(statement);
+        await using (command.ConfigureAwait(false))
+        {
+            _ = command.Parameters.Add(Id("id", batchId));
+            _ = await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
     }
 
     private static async Task<IngestionBatch?> ReadStateAsync(CustodyScope scope, long batchId, CancellationToken cancellationToken)

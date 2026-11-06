@@ -37,7 +37,7 @@ public sealed class IngestionBatchTableTests
     [DatabaseFact]
     public async Task BatchOpensOpenWithTheEventOfItsOpeningAndTheMomentsAreTheServers()
     {
-        await using var world = await ContentWorld.CreateAsync();
+        await using var world = await IngestionWorld.CreateAsync();
 
         var batch = await OpenAsync(world);
 
@@ -47,7 +47,7 @@ public sealed class IngestionBatchTableTests
     [DatabaseFact]
     public async Task OpeningWithoutItsEventInTheSameTransactionIsRefusedWhenTheTransactionEnds()
     {
-        await using var world = await ContentWorld.CreateAsync();
+        await using var world = await IngestionWorld.CreateAsync();
 
         var refused = await Assert.ThrowsAsync<PostgresException>(async () =>
         {
@@ -63,7 +63,7 @@ public sealed class IngestionBatchTableTests
     [DatabaseFact]
     public async Task OpeningWithTheEventOfAnotherPersonIsRefused()
     {
-        await using var world = await ContentWorld.CreateAsync();
+        await using var world = await IngestionWorld.CreateAsync();
 
         var refused = await Assert.ThrowsAsync<PostgresException>(() => world.InDomainAsync(1, OpeningByAnotherPerson));
 
@@ -73,7 +73,7 @@ public sealed class IngestionBatchTableTests
     [DatabaseFact]
     public async Task ApplicationCannotWriteTheStateOrTheMomentsWhenOpening()
     {
-        await using var world = await ContentWorld.CreateAsync();
+        await using var world = await IngestionWorld.CreateAsync();
 
         var state = await Assert.ThrowsAsync<PostgresException>(() => world.InDomainAsync(1, "INSERT INTO content.ingestion_batch (domain_id, opened_by, state) VALUES (1, 1, 'accepted')"));
         var moment = await Assert.ThrowsAsync<PostgresException>(() => world.InDomainAsync(1, "INSERT INTO content.ingestion_batch (domain_id, opened_by, opened_at) VALUES (1, 1, now())"));
@@ -84,7 +84,7 @@ public sealed class IngestionBatchTableTests
     [DatabaseFact]
     public async Task BatchBornClosedIsRefusedToTheOwnerToo()
     {
-        await using var world = await ContentWorld.CreateAsync();
+        await using var world = await IngestionWorld.CreateAsync();
 
         var refused = await Assert.ThrowsAsync<PostgresException>(
             () => world.OwnerInDomainAsync(1, "INSERT INTO content.ingestion_batch (domain_id, opened_by, state, closed_at) VALUES (1, 1, 'accepted', now())"));
@@ -95,7 +95,7 @@ public sealed class IngestionBatchTableTests
     [DatabaseFact]
     public async Task BatchClosesAcceptedOrRejectedWithTheEventOfTheClosingAndTheMotiveIsTheReferenceOfTheEvent()
     {
-        await using var world = await ContentWorld.CreateAsync();
+        await using var world = await IngestionWorld.CreateAsync();
         var accepted = await OpenAsync(world);
         var rejected = await OpenAsync(world);
 
@@ -110,7 +110,7 @@ public sealed class IngestionBatchTableTests
     [DatabaseFact]
     public async Task ClosingWithoutTheEventOfTheClosingInTheSameTransactionIsRefused()
     {
-        await using var world = await ContentWorld.CreateAsync();
+        await using var world = await IngestionWorld.CreateAsync();
         var batch = await OpenAsync(world);
 
         var accepted = await Assert.ThrowsAsync<PostgresException>(() => world.InDomainAsync(1, Accept, ("id", batch)));
@@ -123,7 +123,7 @@ public sealed class IngestionBatchTableTests
     [DatabaseFact]
     public async Task ClosingWithTheEventOfAnotherOutcomeOrAnotherBatchIsRefused()
     {
-        await using var world = await ContentWorld.CreateAsync();
+        await using var world = await IngestionWorld.CreateAsync();
         var batch = await OpenAsync(world);
         var other = await OpenAsync(world);
 
@@ -136,7 +136,7 @@ public sealed class IngestionBatchTableTests
     [DatabaseFact]
     public async Task MotiveThatIsNotANameInSnakeCaseIsRefused()
     {
-        await using var world = await ContentWorld.CreateAsync();
+        await using var world = await IngestionWorld.CreateAsync();
         var batch = await OpenAsync(world);
 
         var refused = await Assert.ThrowsAsync<PostgresException>(
@@ -148,7 +148,7 @@ public sealed class IngestionBatchTableTests
     [DatabaseFact]
     public async Task BatchThatClosedPassesToNothingElseNotEvenForTheOwnerOrAReplicaSession()
     {
-        await using var world = await ContentWorld.CreateAsync();
+        await using var world = await IngestionWorld.CreateAsync();
         var accepted = await OpenAsync(world);
         _ = await world.InDomainAfterAsync(AcceptedEvent, 1, Accept, ("event", accepted), ("id", accepted));
         var rejected = await OpenAsync(world);
@@ -176,7 +176,7 @@ public sealed class IngestionBatchTableTests
     [DatabaseFact]
     public async Task BatchIsNeverRemovedAndTheTableIsNeverEmptiedWhoeverAsks()
     {
-        await using var world = await ContentWorld.CreateAsync();
+        await using var world = await IngestionWorld.CreateAsync();
         var batch = await OpenAsync(world);
         _ = await world.InDomainAfterAsync(RejectedEvent, 1, Reject, ("event", batch), ("id", batch));
 

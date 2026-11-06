@@ -73,6 +73,45 @@ public sealed class EpochRotationTests
     }
 
     [DatabaseFact]
+    public async Task RotationOverItemsAndMapsOfSeveralDomainsRecordsTheEventOnceInTheTransaction()
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        var first = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        _ = await world.Writer.AddReversalMapAsync(1, first, Entries, TestContext.Current.CancellationToken);
+        var second = await world.Writer.AddItemTextAsync(2, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        _ = await world.Writer.AddReversalMapAsync(2, second, Entries, TestContext.Current.CancellationToken);
+        using var epochs = SyntheticCustody.HoldingEpochs([1, 2], ContentWorld.Labels);
+        const string Events = "SELECT count(*) FROM public.custody_event WHERE step = 'epoch_rotated'";
+
+        var rewrapped = await new EpochRotation(world.DataSource, epochs.Keys).RotateAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal((4, 1L), (rewrapped, await world.ScalarAsync(Events)));
+    }
+
+    [DatabaseFact]
+    public async Task ChainThatDoesNotAcceptTheEventOfTheRotationStopsItNamingTheOutcomeAndChangesNoKey()
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        var first = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        _ = await world.Writer.AddReversalMapAsync(1, first, Entries, TestContext.Current.CancellationToken);
+        _ = await world.Writer.AddItemTextAsync(2, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        await world.BreakTheChainAsync();
+        using var epochs = SyntheticCustody.HoldingEpochs([1, 2], ContentWorld.Labels);
+        const string Events = "SELECT count(*) FROM public.custody_event WHERE step = 'epoch_rotated'";
+
+        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => new EpochRotation(world.DataSource, epochs.Keys).RotateAsync(TestContext.Current.CancellationToken));
+
+        Assert.Equal(
+            ("The custody chain did not take the event of the rotation: ChainBroken.", "1", "1", "1", 0L),
+            (
+                refused.Message,
+                await world.InDomainAsync(1, Epochs) as string,
+                await world.InDomainAsync(1, MapEpochs) as string,
+                await world.InDomainAsync(2, Epochs) as string,
+                await world.ScalarAsync(Events)));
+    }
+
+    [DatabaseFact]
     public async Task RowsEmptiedBeforeTheRotationStayEmptied()
     {
         await using var world = await ContentWorld.CreateAsync();

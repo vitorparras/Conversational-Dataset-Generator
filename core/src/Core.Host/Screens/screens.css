@@ -57,6 +57,7 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
     position: sticky;
     top: 0;
     z-index: var(--layer-header);
+    min-height: var(--header-height);
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -71,6 +72,8 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
 .header__name { margin: 0; font: var(--weight-strong) var(--text-md) / var(--leading-tight) var(--font-display); color: var(--ink); text-decoration: none; }
 .header__nav { margin-left: auto; }
 .header__leave { margin: 0 0 0 auto; }
+.sign-in { max-width: var(--field-width); }
+.sign-in > .notice { margin-bottom: var(--space-5); }
 .header__nav + .header__leave { margin-left: 0; }
 
 /* Glass panel */

@@ -1,0 +1,29 @@
+<h1>Lista de ensaio</h1>
+
+<Region Id="lista" Focus="[data-page]">
+    <form method="get" action="/ensaio/lista" data-swap="lista" novalidate>
+        <Field Id="filtro" Caption="Filtro" Value="@Filter" />
+        <Button Id="filtrar" Kind="Button.Look.Secondary">Filtrar</Button>
+    </form>
+    <h2 data-page tabindex="-1">Página @Page</h2>
+    <p data-filter>Filtro: @(Filter.Length == 0 ? "nenhum" : Filter)</p>
+    <nav aria-label="Páginas da lista de ensaio">
+        @if (Page > 1)
+        {
+            <a id="anterior" href="@Address(Page - 1)" data-swap="lista" rel="prev">Anterior</a>
+        }
+        <a id="proxima" href="@Address(Page + 1)" data-swap="lista" rel="next">Próxima</a>
+    </nav>
+</Region>
+
+@code {
+    /// <summary>The page the address names; the first when it names none.</summary>
+    [Parameter]
+    public int Page { get; set; } = 1;
+
+    /// <summary>The filter the address names, which the page keeps in the address so that going back and sharing work.</summary>
+    [Parameter]
+    public string Filter { get; set; } = "";
+
+    private string Address(int page) => $"?pagina={page}" + (Filter.Length == 0 ? "" : $"&filtro={Uri.EscapeDataString(Filter)}");
+}

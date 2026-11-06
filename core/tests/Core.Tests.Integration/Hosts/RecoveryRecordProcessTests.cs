@@ -81,6 +81,19 @@ public sealed class RecoveryRecordProcessTests
     }
 
     [DatabaseFact]
+    public async Task Ca584TheCommandWithAReceiptAlreadyRecordedExitsWithItsOwnCodeSaysSoAndWritesNothing()
+    {
+        await using var production = await ProductionAsync();
+        using var files = new CustodyFiles();
+        var receipt = await ReceiptAsync(production, ProofOf(CustodyFiles.SyntheticKey()));
+        var (first, _) = await RunAsync(production, Arguments(files, receipt.ToText()));
+
+        var (exit, words) = await RunAsync(production, Arguments(files, receipt.ToText()));
+
+        Assert.Equal((0, 41, true, 1L), (first, exit, words.Contains("já está registrado", StringComparison.Ordinal), await ScalarAsync(production, Written)));
+    }
+
+    [DatabaseFact]
     public async Task TheCommandWithoutTheReceiptRefusesWithTheConfigurationCode()
     {
         await using var production = await ProductionAsync();

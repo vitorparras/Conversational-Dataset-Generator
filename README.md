@@ -50,6 +50,26 @@ python tools/verify-code/verify.py --list
 python tools/verify-code/verify.py --step pr_size --base origin/main
 ```
 
+Num pull request que só muda Markdown de `docs/` ou da raiz que nenhum código, teste ou ferramenta
+lê (`git grep` do caminho, da pasta e do nome em `core/`, `language-service/` e `tools/`), o job
+`changes` dá `heavy=false` e o `if:` dispensa os jobs pesados; o agregador "Mutação nos módulos
+críticos" só aceita `skipped` nesse caso. Outro arquivo, diff vazio ou erro dá `heavy=true`; a
+execução semanal não classifica. No push do main, `--changes --tested-sha <commit> --repository
+<dono/nome>` pergunta à API se uma execução de PR registrou a árvore do commit com os obrigatórios
+verdes: se sim, só rodam o CodeQL, os jobs leves e a promoção da cobertura; se não, a régua inteira.
+O motivo sai no `stderr`: `verify.py --changes --base origin/main`.
+
+A mutação do pull request roda só nos módulos críticos que o diff alcança
+(`tools/verify-code/steps/reach.py`): o projeto do módulo, um projeto que ele referencia (o grafo
+vem dos projetos .NET), o projeto de teste dele, a área dele em `docs/operacao/areas` e, no serviço,
+um pacote que ele importa ou um teste que o importa, no head ou na base; teste apagado roda todos.
+`Directory.Build.*`, `global.json`, o lock dos pacotes, `uv.lock`, o workflow, `tools/verify-code`,
+`core/Core.slnx`, um caminho fora do grafo, o diff vazio e qualquer dúvida rodam todos; a semanal e
+a manual também. `verify.py --mutation-modules --base origin/main` (o job só passa `--base` se o
+`changes` passou) lista os jobs, com o motivo de cada módulo no `stderr`, e o job o copia para o
+resumo da execução. Sem módulo alcançado a matriz fica vazia e o agregado aceita `skipped`, desde
+que o `changes` tenha passado; a lista falhar reprova.
+
 A ordem é única: `--step test_core` sozinho, em árvore limpa, falha porque testa com `--no-build`;
 `build_core` vem antes, e a execução sem argumento segue essa ordem. Os passos `lint_tools` e
 `test_tools` exigem `ruff`, `pyright`, `coverage` e `pyyaml` nas versões de

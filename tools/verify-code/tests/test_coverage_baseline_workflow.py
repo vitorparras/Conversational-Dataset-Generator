@@ -42,7 +42,7 @@ class CoverageBaselineWorkflowTests(unittest.TestCase):
     def test_each_job_also_uploads_the_table_as_an_artifact_with_long_retention(self) -> None:
         for name, job in self.jobs.items():
             with self.subTest(job=name):
-                upload = step_of(job, "actions/upload-artifact@")
+                upload = step_of(job, f"name: cobertura-{name}-${{{{ github.sha }}}}")
                 self.assertIn("github.event_name == 'push'", upload)
                 self.assertIn(f"name: cobertura-{name}-${{{{ github.sha }}}}", upload)
                 self.assertIn(f"path: {TABLE}", upload)

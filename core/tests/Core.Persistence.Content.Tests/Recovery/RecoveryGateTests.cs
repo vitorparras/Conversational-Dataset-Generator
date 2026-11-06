@@ -41,7 +41,7 @@ public sealed class RecoveryGateTests
     public async Task Ca2OnceTheStepIsInTheChainTheGateSaysItIsTestedAndNothingIsMissing()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var written = await new CustodyChain(world.DataSource).AppendAsync(CustodyEvent.RecoveryRehearsed(1), TestContext.Current.CancellationToken);
+        var written = await new CustodyChain(world.DataSource).AppendAsync(Rehearsed(1), TestContext.Current.CancellationToken);
         Assert.Equal(CustodyOutcome.Appended, written.Outcome);
 
         var status = await RecoveryGate.StatusAsync(world.DataSource, TestContext.Current.CancellationToken);
@@ -53,7 +53,7 @@ public sealed class RecoveryGateTests
     public async Task Ca584ARehearsalBeforeTheLastLossOfTheMasterKeyDoesNotOpenTheGateAndTheWordsSayToRepeatIt()
     {
         await using var world = await ContentWorld.CreateAsync();
-        await AppendAsync(world, CustodyEvent.RecoveryRehearsed(1));
+        await AppendAsync(world, Rehearsed(1));
         await DeclareAsync(world, KeyLossScope.MasterText);
 
         var status = await RecoveryGate.StatusAsync(world.DataSource, TestContext.Current.CancellationToken);
@@ -68,9 +68,9 @@ public sealed class RecoveryGateTests
     public async Task Ca584ARehearsalAfterTheLastLossOfTheMasterKeyOpensTheGateAndAnotherLossClosesItAgain()
     {
         await using var world = await ContentWorld.CreateAsync();
-        await AppendAsync(world, CustodyEvent.RecoveryRehearsed(1));
+        await AppendAsync(world, Rehearsed(1));
         await DeclareAsync(world, KeyLossScope.MasterText);
-        await AppendAsync(world, CustodyEvent.RecoveryRehearsed(2));
+        await AppendAsync(world, Rehearsed(2));
         var opened = await RecoveryGate.StatusAsync(world.DataSource, TestContext.Current.CancellationToken);
         await DeclareAsync(world, KeyLossScope.MasterText);
 
@@ -94,7 +94,7 @@ public sealed class RecoveryGateTests
     public async Task Ca584TheLossOfTheKeyOfOneLabelDoesNotCloseTheGate()
     {
         await using var world = await ContentWorld.CreateAsync();
-        await AppendAsync(world, CustodyEvent.RecoveryRehearsed(1));
+        await AppendAsync(world, Rehearsed(1));
         await DeclareAsync(world, "texto-bruto/1/v1");
 
         var status = await RecoveryGate.StatusAsync(world.DataSource, TestContext.Current.CancellationToken);
@@ -118,13 +118,15 @@ public sealed class RecoveryGateTests
     public async Task Ca584ALossWithAnEarlierClockButLaterInTheChainStillClosesTheGate()
     {
         await using var world = await ContentWorld.CreateAsync();
-        await AppendAsync(world, CustodyEvent.RecoveryRehearsed(1));
+        await AppendAsync(world, Rehearsed(1));
         _ = await world.OwnerInDomainAsync(1, Backdated("key_loss_declared", 3, "'master'"));
 
         var status = await RecoveryGate.StatusAsync(world.DataSource, TestContext.Current.CancellationToken);
 
         Assert.Equal((false, RecoveryGate.StaleWords), (status.Tested, status.Missing));
     }
+
+    private static CustodyEvent Rehearsed(long top) => CustodyEvent.RecoveryRehearsed(top, top.ToString("x", System.Globalization.CultureInfo.InvariantCulture).PadLeft(64, '0'));
 
     private static string Backdated(string step, int item, string reference) =>
         "INSERT INTO public.custody_event (occurred_at, actor_person_id, actor_system, item_kind, item_id, step, reason, reference) "

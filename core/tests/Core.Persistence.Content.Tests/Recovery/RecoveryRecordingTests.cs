@@ -170,9 +170,8 @@ public sealed class RecoveryRecordingTests
             Recording(world).RecordAsync(receipt.ToText(), Proof, TestContext.Current.CancellationToken),
             Recording(world).RecordAsync(receipt.ToText(), Proof, TestContext.Current.CancellationToken));
 
-        Assert.Equal(
-            ([RecoveryOutcome.Recorded, RecoveryOutcome.ReceiptRepeated], 1L),
-            (records.Select(record => record.Outcome).Order().ToList(), await world.ScalarAsync(Written)));
+        Assert.Equal([RecoveryOutcome.Recorded, RecoveryOutcome.ReceiptRepeated], records.Select(record => record.Outcome).Order().ToList());
+        Assert.Equal(1L, await world.ScalarAsync(Written));
     }
 
     [DatabaseFact]

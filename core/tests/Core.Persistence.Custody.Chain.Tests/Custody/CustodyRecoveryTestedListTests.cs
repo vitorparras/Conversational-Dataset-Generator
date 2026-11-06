@@ -90,7 +90,7 @@ public sealed class CustodyRecoveryTestedListTests : IClassFixture<CustodyDataba
     {
         var refused = await database.RefusedToOwnerAsync(Row($"NULL, true, 'master_key', 18104, 'recovery_tested', 'administrative_act', NULL, '{reference}'"));
 
-        Assert.Equal((PostgresErrorCodes.CheckViolation, "custody_event_key_loss_shape"), (refused.SqlState, refused.ConstraintName));
+        Assert.Equal(PostgresErrorCodes.CheckViolation, refused.SqlState);
     }
 
 

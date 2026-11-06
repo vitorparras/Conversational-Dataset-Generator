@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
-using Core.Tests.Browser.Fixtures;
-using Core.Tests.Browser.Trial;
+using Core.Host.Tests.Browser.Fixtures;
+using Core.Host.Tests.Browser.Trial;
 
-namespace Core.Tests.Browser.Screens;
+namespace Core.Host.Tests.Browser.Screens;
 
 /// <summary>
 /// The post of a form that swaps a region, when the answer does not bring the region (review of the pull request 667): the server has already done what the post asks, so

@@ -1,8 +1,8 @@
-using Core.Tests.Browser.Fixtures;
-using Core.Tests.Browser.Trial;
+using Core.Host.Tests.Browser.Fixtures;
+using Core.Host.Tests.Browser.Trial;
 using static Microsoft.Playwright.Assertions;
 
-namespace Core.Tests.Browser.Screens;
+namespace Core.Host.Tests.Browser.Screens;
 
 /// <summary>The shortcut the markup declares (decision 0010): the key fires its effect with the focus outside a field, and does nothing while the person types.</summary>
 [Trait("Category", "Browser")]

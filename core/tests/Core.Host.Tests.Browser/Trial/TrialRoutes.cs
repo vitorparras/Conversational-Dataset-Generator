@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 
-namespace Core.Tests.Browser.Trial;
+namespace Core.Host.Tests.Browser.Trial;
 
 /// <summary>
 /// The screens that exist for the test alone: the bare page, and a screen with a shortcut, a region that swaps, and a form that refuses an empty name with an error

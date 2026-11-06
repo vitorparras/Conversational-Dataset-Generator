@@ -5,8 +5,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace Core.Tests.Architecture.Boundaries;
 
 /// <summary>
-/// Every route of the host is behind the session gate unless it is marked open, so nothing in the host may answer around the gate and only the entry and the status may
-/// be marked open. A short-circuited endpoint skips the middleware that follows it, and a branch or a terminal middleware answers with no endpoint at all, which the
+/// Every route of the host is behind the session gate unless it is marked open, so nothing in the host may answer around the gate and only the entry, the status and the style
+/// of the screens may be marked open. A short-circuited endpoint skips the middleware that follows it, and a branch or a terminal middleware answers with no endpoint at all, which the
 /// gate lets through so that a path nobody serves gets its 404; the inventory of mapped endpoints cannot see either.
 /// </summary>
 internal static class SessionGateBypassRules
@@ -18,8 +18,11 @@ internal static class SessionGateBypassRules
     /// <summary>The calls that serve a request around the gate: a short circuit of the endpoint, a branch of the pipeline by path or by condition and a terminal middleware.</summary>
     private static readonly string[] Bypasses = ["ShortCircuit", "MapShortCircuit", "MapWhen", "UseWhen", "Run"];
 
-    /// <summary>The only files that may mark a route open: the entry, which makes the session, and the status, which says whether the host is alive.</summary>
-    private static readonly string[] MayMarkOpen = ["SessionEndpoint.cs", "StatusEndpoint.cs"];
+    /// <summary>
+    /// The only files that may mark a route open: the entry, which makes the session, the status, which says whether the host is alive, and the style of the screens,
+    /// which the page of the entry needs before there is a session and which holds no data of anyone (decision 0052).
+    /// </summary>
+    private static readonly string[] MayMarkOpen = ["SessionEndpoint.cs", "StatusEndpoint.cs", "ScreenAssets.cs"];
 
     /// <summary>Every bypass, every use of the short circuit mark and every open mark in a file that may not make one.</summary>
     public static IEnumerable<Violation> Check(IReadOnlyList<SourceFile> files)

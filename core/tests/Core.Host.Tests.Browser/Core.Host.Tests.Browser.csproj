@@ -6,7 +6,7 @@
   <PropertyGroup>
     <IsTestProject>false</IsTestProject>
     <IsTestingPlatformApplication>false</IsTestingPlatformApplication>
-    <RootNamespace>Core.Tests.Browser</RootNamespace>
+    <RootNamespace>Core.Host.Tests.Browser</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

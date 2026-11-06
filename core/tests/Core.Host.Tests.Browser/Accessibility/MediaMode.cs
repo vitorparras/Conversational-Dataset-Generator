@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
 using Microsoft.Playwright;
 
-namespace Core.Tests.Browser.Accessibility;
+namespace Core.Host.Tests.Browser.Accessibility;
 
 /// <summary>
 /// One setting of the person's system that the screens answer to: the colour scheme, the contrast and the transparency. The browser is told by the protocol,

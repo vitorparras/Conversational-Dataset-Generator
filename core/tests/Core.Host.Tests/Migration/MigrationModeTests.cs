@@ -172,7 +172,7 @@ public sealed class MigrationModeTests
     private static HostInstallation Migrating(ReadOnlyDictionary<string, string> environment)
     {
         var installation = HostInstallation.Built(HostProcess.FreeAddress());
-        return installation with { Arguments = ["migrate", .. installation.Arguments], Environment = environment };
+        return installation with { Arguments = ["migrate", .. installation.Arguments], Environment = environment, ProvidesDatabase = false };
     }
 
     private static ReadOnlyDictionary<string, string> Database(string host) =>

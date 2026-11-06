@@ -1,8 +1,8 @@
-using Core.Tests.Browser.Accessibility;
-using Core.Tests.Browser.Fixtures;
-using Core.Tests.Browser.Trial;
+using Core.Host.Tests.Browser.Accessibility;
+using Core.Host.Tests.Browser.Fixtures;
+using Core.Host.Tests.Browser.Trial;
 
-namespace Core.Tests.Browser.Screens;
+namespace Core.Host.Tests.Browser.Screens;
 
 /// <summary>
 /// The glass of the design system (issue 658, CA-3 and CA-5): translucent and blurred by the style alone in the usual setting, a solid surface without blur when the person asks for less

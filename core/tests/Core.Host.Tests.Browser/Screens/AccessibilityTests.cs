@@ -1,10 +1,10 @@
 using System.Text.RegularExpressions;
-using Core.Tests.Browser.Accessibility;
-using Core.Tests.Browser.Fixtures;
-using Core.Tests.Browser.Trial;
+using Core.Host.Tests.Browser.Accessibility;
+using Core.Host.Tests.Browser.Fixtures;
+using Core.Host.Tests.Browser.Trial;
 using static Microsoft.Playwright.Assertions;
 
-namespace Core.Tests.Browser.Screens;
+namespace Core.Host.Tests.Browser.Screens;
 
 /// <summary>
 /// Accessibility of the base page and of the trial screen (issue 591): axe with the rules of WCAG 2.1 A and AA in every state, the way through the page by the keyboard alone,

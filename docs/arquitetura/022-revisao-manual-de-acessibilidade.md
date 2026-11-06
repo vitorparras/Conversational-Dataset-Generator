@@ -1,7 +1,7 @@
 # 022 — Revisão manual de acessibilidade
 
 > Descrição. 2026-11-06.
-> Estado no código: a verificação automática é `core/tests/Core.Tests.Browser/Accessibility/`.
+> Estado no código: a verificação automática é `core/tests/Core.Host.Tests.Browser/Accessibility/`.
 
 O teste de navegador roda o axe com as regras A e AA da WCAG 2.1 em toda tela
 ([0051](../decisoes/0051-navegacao-gestao-e-relatorio.md)). O axe não mede contraste sobre vidro

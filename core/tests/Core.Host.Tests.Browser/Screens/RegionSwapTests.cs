@@ -1,8 +1,8 @@
-using Core.Tests.Browser.Fixtures;
-using Core.Tests.Browser.Trial;
+using Core.Host.Tests.Browser.Fixtures;
+using Core.Host.Tests.Browser.Trial;
 using static Microsoft.Playwright.Assertions;
 
-namespace Core.Tests.Browser.Screens;
+namespace Core.Host.Tests.Browser.Screens;
 
 /// <summary>The swap of a region the markup declares (decision 0010): what is typed outside the region stays, the focus lands where the region says, and the page is not reloaded.</summary>
 [Trait("Category", "Browser")]

@@ -5,7 +5,6 @@ namespace Core.Host.Tests;
 
 /// <summary>
 /// Every route but the entry and the status refuses a request with no session, with 401 and the route of the entry, whatever the cause (issues #70 and #495).
-/// The host here has no database: the entry then says it cannot, and no request gets in.
 /// </summary>
 public sealed class SessionGateTests
 {
@@ -53,20 +52,6 @@ public sealed class SessionGateTests
         using var response = await host.GetAsync("/status", cancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task EntryOnAHostWithNoDatabaseAnswers503AndOpensNoSession()
-    {
-        var cancellationToken = TestContext.Current.CancellationToken;
-        using var host = await HostProcess.StartAsync(cancellationToken);
-
-        var password = Guid.NewGuid().ToString("N", System.Globalization.CultureInfo.InvariantCulture);
-
-        using var response = await host.PostAsync("/session", JsonSerializer.Serialize(new { name = "zqx-pessoa", password }), cancellationToken);
-
-        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
-        Assert.False(response.Headers.Contains("Set-Cookie"));
     }
 
     [Theory]

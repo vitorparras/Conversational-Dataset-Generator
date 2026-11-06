@@ -3,10 +3,18 @@
 (function () {
     "use strict";
 
-    var TEXT_FIELDS = ["INPUT", "TEXTAREA", "SELECT"];
+    // A key typed in a field that takes text belongs to the field; a box to mark, a choice or a button takes no text, so a shortcut still fires there.
+    var TEXT_FIELDS = ["TEXTAREA", "SELECT"];
+    var INPUTS_WITHOUT_TEXT = ["checkbox", "radio", "button", "submit", "reset", "range", "color", "file", "image"];
 
     function typing(target) {
-        return target instanceof Element && (TEXT_FIELDS.indexOf(target.tagName) >= 0 || target.isContentEditable);
+        if (!(target instanceof Element)) {
+            return false;
+        }
+        if (target.tagName === "INPUT") {
+            return INPUTS_WITHOUT_TEXT.indexOf(target.type) < 0;
+        }
+        return TEXT_FIELDS.indexOf(target.tagName) >= 0 || target.isContentEditable;
     }
 
     function focusIn(region) {
@@ -53,7 +61,9 @@
         if (region) {
             region.setAttribute("aria-busy", "true");
         }
+        // The request asks for a page, as the browser would, so that the server answers a refusal or a failure with a page and never with a blank.
         init.credentials = "same-origin";
+        init.headers = { Accept: "text/html" };
         return fetch(url, init).then(function (response) {
             return response.text().then(function (html) {
                 var received = new DOMParser().parseFromString(html, "text/html");

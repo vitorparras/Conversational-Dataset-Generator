@@ -40,7 +40,7 @@ public sealed class EpochRotation
             return 0;
         }
 
-        var transaction = await ContentTransaction.BeginAsync(dataSource, domains[0], cancellationToken).ConfigureAwait(false);
+        var transaction = await ContentTransaction.BeginSystemAsync(dataSource, domains[0], cancellationToken).ConfigureAwait(false);
         await using (transaction.ConfigureAwait(false))
         {
             var rewrapped = 0;

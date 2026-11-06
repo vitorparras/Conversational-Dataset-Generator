@@ -243,18 +243,22 @@ ALTER TABLE content.reversal_map ENABLE ALWAYS TRIGGER content_removal_needs_rej
 -- The rejection removes the maps and then the items of the batch.
 GRANT DELETE ON content.item_text, content.reversal_map TO app;
 
--- Visibility (issue 74, CA-5), by a restrictive row policy and not by a view: the policy applies to every read of the table, the ones the audit of the server counts and the ones of the rotation and of the
--- emptying included, and a read that names the table cannot choose a way around it. Without a view, the queries keep reading the table. The restrictive policy adds to the domain one, which stays as it was.
+-- Visibility (issue 74, CA-5), by a restrictive row policy and not by a view: the policy applies to every read of the table, the ones the audit of the server counts included, and a read that names the table
+-- cannot choose a way around it. Without a view, the queries keep reading the table. The restrictive policy adds to the domain one, which stays as it was.
 -- A row is seen when its batch is accepted; or, while the batch is open, by the transaction that wrote it; or by the transaction that wrote the event of the closing of its batch, which is the one that removes
--- the rows of a rejected batch. The review by sample of a batch still open (issue 83) reads it by a function of its own.
+-- the rows of a rejected batch; or in the scope of the system (app.content_scope = system), the one of the operations that only wrap a key again (the rotation of the epoch and the rewrap of a domain), that
+-- check the epochs in use, and that copy the data, which must carry every item and every map, so that a batch accepted later is found with its keys on the epoch that is held and is restored whole. The scope
+-- is declared by those paths and by none that reads the stock. The review by sample of a batch still open (issue 83) reads it by a function of its own.
 CREATE POLICY batch_accepted_only ON content.item_text AS RESTRICTIVE FOR SELECT
     USING (written_in = pg_catalog.pg_current_xact_id()
         OR EXISTS (SELECT 1 FROM content.ingestion_batch b WHERE b.id = item_text.batch_id AND b.domain_id = item_text.domain_id AND b.state = 'accepted')
-        OR public.custody_event_of_this_transaction('ingestion_batch', batch_id, 'batch_closed'));
+        OR public.custody_event_of_this_transaction('ingestion_batch', batch_id, 'batch_closed')
+        OR pg_catalog.current_setting('app.content_scope', true) = 'system');
 CREATE POLICY batch_accepted_only ON content.reversal_map AS RESTRICTIVE FOR SELECT
     USING (written_in = pg_catalog.pg_current_xact_id()
         OR EXISTS (SELECT 1 FROM content.ingestion_batch b WHERE b.id = reversal_map.batch_id AND b.domain_id = reversal_map.domain_id AND b.state = 'accepted')
-        OR public.custody_event_of_this_transaction('ingestion_batch', batch_id, 'batch_closed'));
+        OR public.custody_event_of_this_transaction('ingestion_batch', batch_id, 'batch_closed')
+        OR pg_catalog.current_setting('app.content_scope', true) = 'system');
 
 -- What the database counts of the content that is held (0025) is the content that can be read: it enters the count when its batch is accepted, and not when it is written, unless the batch is accepted
 -- already when the row is written (a row put back by a restore). A rejected batch never enters it, and an item emptied leaves it as before.

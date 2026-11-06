@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 using System.Xml;
 using Core.Persistence.Custody.Verification;
 
@@ -36,6 +38,9 @@ public sealed record RecoveryReceipt(DateTimeOffset At, long TopSequence, string
         var body = string.Create(CultureInfo.InvariantCulture, $"{Form}{Bar}{moment}{Bar}{TopSequence}{Bar}{TopDigest}{Bar}{KeyProof}{Bar}{Counts.Raw}{Bar}{Counts.Maps}{Bar}{Counts.Failed}");
         return body + Bar + SealText.CheckOf(body);
     }
+
+    /// <summary>The digest of the receipt: SHA-256 of its text, in 64 lowercase hexadecimal digits, which tells one receipt from another by what it holds.</summary>
+    public string Digest() => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(ToText())));
 
     /// <summary>Reads a receipt back from its text; one that was altered, cut short or is of another form is not read, and the answer says why.</summary>
     /// <param name="text">The text <see cref="ToText" /> gave; blanks around it are ignored.</param>

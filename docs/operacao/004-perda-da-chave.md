@@ -16,10 +16,10 @@ A [decisão 0014](../decisoes/0014-custodia-da-chave-mestra.md) exige recuperaç
 primeiro dado real: restaurar banco e chave num ambiente limpo e conferir que o texto bruto decifra
 e que o mapa de reversão abre. Sem isso, a ingestão de material real não começa.
 
-Num ambiente limpo, com a cópia do banco e a cópia de guarda, rode `rehearse-recovery`: ele abre
-em memória uma amostra do bruto e do mapa de cada domínio e imprime um recibo sem conteúdo. Na
-produção, `record-recovery-test --receipt "<recibo>"` o registra, se o topo da cópia estiver na
-cadeia e a chave conferir. Repita a cada troca de quem detém a cópia e a cada mudança no formato.
+Num ambiente limpo, com as cópias do banco e de guarda, `rehearse-recovery` abre uma amostra do
+bruto e do mapa de cada domínio e imprime um recibo sem conteúdo. Na produção, `record-recovery-test
+--receipt "<recibo>"` o registra se o topo da cópia estiver na cadeia e a chave conferir
+([035](035-registro-do-ensaio.md)). Repita a cada novo detentor, formato ou perda da chave mestra.
 
 ## Perdeu-se a cópia de guarda
 

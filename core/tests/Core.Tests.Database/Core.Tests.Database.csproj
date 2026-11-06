@@ -33,6 +33,7 @@
     <InternalsVisibleTo Include="Core.Persistence.Ingestion.Tests" />
     <InternalsVisibleTo Include="Core.Persistence.ServerGuarantees.Tests" />
     <InternalsVisibleTo Include="Core.Tests.Integration" />
+    <InternalsVisibleTo Include="Core.Host.Tests.Browser" />
     <InternalsVisibleTo Include="Core.Host.Tests" />
   </ItemGroup>
 

@@ -1,6 +1,5 @@
 using Core.Persistence.Custody;
 using Core.Persistence.Ingestion;
-using Core.Persistence.Tests.Content;
 
 namespace Core.Persistence.Tests.Ingestion;
 
@@ -20,13 +19,13 @@ internal static class IngestionWorld
     public const string Reachable = "SELECT (SELECT count(*) FROM content.item_text) || ',' || (SELECT count(*) FROM content.reversal_map)";
 
     /// <summary>A world with the domains, the people and the chain, and no batch at all.</summary>
-    public static Task<ContentWorld> CreateAsync() => ContentWorld.CreateAsync();
+    public static Task<BatchesWorld> CreateAsync() => BatchesWorld.CreateAsync();
 
     /// <summary>The batches over the application's credential of the world.</summary>
-    public static IngestionBatches BatchesOf(ContentWorld world) => new(world.DataSource);
+    public static IngestionBatches BatchesOf(BatchesWorld world) => new(world.DataSource);
 
     /// <summary>Opens a batch in the domain of the tests and answers its identifier, after judging that it opened.</summary>
-    public static async Task<long> OpenAsync(ContentWorld world)
+    public static async Task<long> OpenAsync(BatchesWorld world)
     {
         var opened = await BatchesOf(world).OpenAsync(Domain, Person, TestContext.Current.CancellationToken);
         Assert.Equal(BatchOutcome.Opened, opened.Outcome);
@@ -34,10 +33,10 @@ internal static class IngestionWorld
     }
 
     /// <summary>The batch of the domain of the tests, closed by the system as accepted.</summary>
-    public static Task<BatchResult> AcceptAsync(ContentWorld world, long batch) =>
+    public static Task<BatchResult> AcceptAsync(BatchesWorld world, long batch) =>
         BatchesOf(world).AcceptAsync(new BatchClosing(Domain, batch, CustodyAuthor.System), TestContext.Current.CancellationToken);
 
     /// <summary>The batch of the domain of the tests, closed by the system as rejected for the motive.</summary>
-    public static Task<BatchResult> RejectAsync(ContentWorld world, long batch, string motive) =>
+    public static Task<BatchResult> RejectAsync(BatchesWorld world, long batch, string motive) =>
         BatchesOf(world).RejectAsync(new BatchClosing(Domain, batch, CustodyAuthor.System), motive, TestContext.Current.CancellationToken);
 }

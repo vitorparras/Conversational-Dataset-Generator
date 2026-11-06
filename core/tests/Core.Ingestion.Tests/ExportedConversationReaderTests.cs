@@ -46,6 +46,7 @@ public sealed class ExportedConversationReaderTests
         },
         { Head + """[{"id":"a","remetente":"Ana","instante":"2031-03-04T08:00:00Z","texto":"ZQXMARCADOR","responde_a":"zzz"}]}""", UnreadableReason.Corrupted },
         { Head + """[{"id":"a","remetente":"Ana","instante":"2031-03-04T08:00:00Z","texto":"ZQXMARCADOR","responde_a":3}]}""", UnreadableReason.Corrupted },
+        { Head + """[{"id":"a","remetente":"Ana","instante":"2031-03-04T08:00:00Z","texto":"ZQXMARCADOR","responde_a":"a"}]}""", UnreadableReason.Corrupted },
         { Head + """[{"id":"a","remetente":"Ana","instante":"2031-03-04T08:00:00Z","texto":"ZQXMARCADOR"},]}""", UnreadableReason.Corrupted },
         { Head + """[/* ZQXMARCADOR */]}""", UnreadableReason.Corrupted },
         { Head + """[] // ZQXMARCADOR""", UnreadableReason.Corrupted },
@@ -73,7 +74,7 @@ public sealed class ExportedConversationReaderTests
         var units = Assert.IsType<ReadMaterial>(outcome.Material).Units;
         Assert.Equal(["segunda", "primeira"], [.. units.Select(unit => unit.Text)]);
         Assert.Equal(["Bia", "Ana"], [.. units.Select(unit => unit.Author)]);
-        Assert.Equal([null, "Bia"], [.. units.Select(unit => unit.RepliesTo)]);
+        Assert.Equal([null, 0], [.. units.Select(unit => unit.RepliesTo)]);
         Assert.Equal(new DateTimeOffset(2031, 3, 4, 5, 1, 0, TimeSpan.FromHours(-3)), units[0].Instant);
         Assert.Equal(TimeSpan.FromHours(-3), units[0].Instant!.Value.Offset);
         Assert.Equal(TimeSpan.Zero, units[1].Instant!.Value.Offset);
@@ -115,7 +116,20 @@ public sealed class ExportedConversationReaderTests
 
         var units = Assert.IsType<ReadMaterial>(Reader.Read(Bytes(content)).Material).Units;
 
-        Assert.Equal(["Bia", null], [.. units.Select(unit => unit.RepliesTo)]);
+        Assert.Equal([1, null], [.. units.Select(unit => unit.RepliesTo)]);
+    }
+
+    [Fact]
+    public void TwoMessagesOfTheSameSenderAnswerDifferentMessagesAndTheReaderKeepsWhich()
+    {
+        var content = Head + """[{"id":"a","remetente":"Ana","instante":"2031-03-04T08:00:00Z","texto":"t"},"""
+            + """{"id":"b","remetente":"Ana","instante":"2031-03-04T08:01:00Z","texto":"u"},"""
+            + """{"id":"c","remetente":"Bia","instante":"2031-03-04T08:02:00Z","texto":"v","responde_a":"b"},"""
+            + """{"id":"d","remetente":"Bia","instante":"2031-03-04T08:03:00Z","texto":"w","responde_a":"a"}]}""";
+
+        var units = Assert.IsType<ReadMaterial>(Reader.Read(Bytes(content)).Material).Units;
+
+        Assert.Equal([null, null, 1, 0], [.. units.Select(unit => unit.RepliesTo)]);
     }
 
     [Theory]

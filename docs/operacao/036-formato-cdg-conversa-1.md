@@ -27,8 +27,10 @@ próprio.
 - **id:** único no arquivo. É só um nome para **responde_a**, e não dá ordem a nada.
 - **instante:** RFC 3339 com fuso escrito, como `Z` ou `+03:00`. Sem fuso o arquivo é recusado: o
   leitor não supõe o fuso de ninguém.
-- **responde_a:** opcional. Traz o `id` de outra mensagem do mesmo arquivo; o leitor entrega o
-  remetente dela. Um `id` que não existe recusa o arquivo.
+- **responde_a:** opcional. Traz o `id` da mensagem respondida, que é outra mensagem do mesmo
+  arquivo e pode vir antes ou depois dela. O leitor entrega a posição dessa mensagem, e não o
+  remetente: dois remetentes iguais com respostas distintas não se confundem. Um `id` que não
+  existe, ou o da própria mensagem, recusa o arquivo.
 
 ## O que o leitor recusa
 

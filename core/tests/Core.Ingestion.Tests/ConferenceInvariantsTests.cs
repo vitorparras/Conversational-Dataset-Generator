@@ -20,7 +20,7 @@ public sealed class ConferenceInvariantsTests
         Marked,
         Marked.Null(),
         Gen.Int[0, 3].Select(second => new DateTimeOffset(2031, 1, 1, 0, 0, second, TimeSpan.Zero)).Nullable(),
-        Marked.Null(),
+        Gen.Int[-1, 6].Nullable(),
         Passages.List[0, 2],
         (text, author, instant, repliesTo, passages) => new ReadUnit(text, author, instant, repliesTo, passages));
 
@@ -54,7 +54,7 @@ public sealed class ConferenceInvariantsTests
 
             if (refusal is not null)
             {
-                var words = outcome.Material?.Units.SelectMany(unit => new[] { unit.Text, unit.Author, unit.RepliesTo }).OfType<string>() ?? [];
+                var words = outcome.Material?.Units.SelectMany(unit => new[] { unit.Text, unit.Author }).OfType<string>() ?? [];
                 Assert.All(words, word => Assert.DoesNotContain(word, refusal.Reason, StringComparison.Ordinal));
                 Assert.False(string.IsNullOrWhiteSpace(refusal.Reason));
             }

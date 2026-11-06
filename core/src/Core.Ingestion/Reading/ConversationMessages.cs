@@ -3,7 +3,10 @@ using System.Text.Json;
 
 namespace Core.Ingestion.Reading;
 
-/// <summary>The messages of the exported conversation: each one with its id, sender, moment and text, and the one it answers by the id of that one.</summary>
+/// <summary>
+/// The messages of the exported conversation: each one with its id, sender, moment and text, and the one it answers by the id of that one,
+/// given as the position of that one among the messages.
+/// </summary>
 internal sealed class ConversationMessages
 {
     private const string IdName = "id";
@@ -12,20 +15,22 @@ internal sealed class ConversationMessages
     private const string TextName = "texto";
     private const string AnswersName = "responde_a";
 
-    private readonly Dictionary<string, string> senders = new(StringComparer.Ordinal);
-    private readonly List<ReadUnit> read = [];
+    private readonly Dictionary<string, int> positions = new(StringComparer.Ordinal);
+    private readonly List<ReadUnit> read;
 
-    private ConversationMessages()
+    private ConversationMessages(List<ReadUnit> read)
     {
+        this.read = read;
     }
 
-    /// <summary>Reads the array of messages; false when it is not an array, a message is wrong, an id repeats or an answer names an id that is not there.</summary>
+    /// <summary>Reads the array of messages; false when it is not an array, a message is wrong, an id repeats or an answer names an id that is not there or its own.</summary>
     /// <param name="array">The array of the messages.</param>
-    /// <param name="units">The units read, in the order of the array.</param>
+    /// <param name="units">The units read, in the order of the array, each answer being the position of the message answered.</param>
     internal static bool TryRead(JsonElement array, out IReadOnlyList<ReadUnit> units)
     {
-        var messages = new ConversationMessages();
-        units = messages.read;
+        var read = new List<ReadUnit>();
+        var messages = new ConversationMessages(read);
+        units = read;
         return array.ValueKind == JsonValueKind.Array && messages.TryAll(array);
     }
 
@@ -43,7 +48,7 @@ internal sealed class ConversationMessages
         foreach (var message in array.EnumerateArray())
         {
             var members = JsonMembers.Of(message, IsKnown);
-            if (members is null || !TryIdentify(members))
+            if (members is null || !JsonMembers.TryText(members, IdName, out var id) || !positions.TryAdd(id, objects.Count))
             {
                 return false;
             }
@@ -51,16 +56,13 @@ internal sealed class ConversationMessages
             objects.Add(members);
         }
 
-        return objects.TrueForAll(TryUnit);
+        return Enumerable.Range(0, objects.Count).All(position => TryUnit(objects[position], position));
     }
 
-    private bool TryIdentify(IDictionary<string, JsonElement> members) =>
-        JsonMembers.TryText(members, IdName, out var id) && JsonMembers.TryText(members, SenderName, out var sender) && senders.TryAdd(id, sender);
-
-    private bool TryUnit(IDictionary<string, JsonElement> members)
+    private bool TryUnit(IDictionary<string, JsonElement> members, int position)
     {
-        string? answered = null;
-        if (members.ContainsKey(AnswersName) && !TryAnswered(members, out answered))
+        int? answered = null;
+        if (members.ContainsKey(AnswersName) && !TryAnswered(members, position, out answered))
         {
             return false;
         }
@@ -70,14 +72,21 @@ internal sealed class ConversationMessages
             return false;
         }
 
-        read.Add(new ReadUnit(text, sender, instant, answered, []));
+        var none = new List<Passage>();
+        read.Add(new ReadUnit(text, sender, instant, answered, none));
         return true;
     }
 
-    private bool TryAnswered(IDictionary<string, JsonElement> members, out string? answered)
+    private bool TryAnswered(IDictionary<string, JsonElement> members, int own, out int? answered)
     {
         answered = null;
-        return JsonMembers.TryText(members, AnswersName, out var to) && senders.TryGetValue(to, out answered);
+        if (!JsonMembers.TryText(members, AnswersName, out var to) || !positions.TryGetValue(to, out var position) || position == own)
+        {
+            return false;
+        }
+
+        answered = position;
+        return true;
     }
 
     private static bool TryInstant(IDictionary<string, JsonElement> members, out DateTimeOffset instant)

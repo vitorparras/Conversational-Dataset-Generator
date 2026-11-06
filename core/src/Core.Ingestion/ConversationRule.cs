@@ -16,9 +16,10 @@ internal sealed class ConversationRule : IFormRule
         var missing = RuleChecks.Failing(read, MaterialField.Text, unit => RuleChecks.Blank(unit.Text));
         missing.AddRange(RuleChecks.Failing(read, MaterialField.Author, unit => RuleChecks.Blank(unit.Author)));
         missing.AddRange(RuleChecks.Failing(read, MaterialField.Instant, unit => unit.Instant is null));
-        var passages = RuleChecks.Failing(read, MaterialField.Passages, unit => unit.Passages.Count > 0);
+        var notAllowed = RuleChecks.Failing(read, MaterialField.Passages, unit => unit.Passages.Count > 0);
+        notAllowed.AddRange(Dangling(read));
         return RuleChecks.Refusal(Form, RefusalCode.FieldMissing, missing)
-            ?? RuleChecks.Refusal(Form, RefusalCode.FieldNotAllowed, passages)
+            ?? RuleChecks.Refusal(Form, RefusalCode.FieldNotAllowed, notAllowed)
             ?? RuleChecks.Refusal(Form, RefusalCode.OrderNotDetermined, Tied(read))
             ?? ConferenceResult.Accept(new Conversation(InOrder(read)));
     }
@@ -38,12 +39,35 @@ internal sealed class ConversationRule : IFormRule
         return tied;
     }
 
+    /// <summary>The answers that name no unit of the material, or the unit itself.</summary>
+    private static List<Finding> Dangling(ReadMaterial read)
+    {
+        var dangling = new List<Finding>();
+        for (var position = 0; position < read.Units.Count; position++)
+        {
+            if (read.Units[position].RepliesTo is { } to && (to < 0 || to >= read.Units.Count || to == position))
+            {
+                dangling.Add(new Finding(position, MaterialField.RepliesTo));
+            }
+        }
+
+        return dangling;
+    }
+
+    /// <summary>The messages in the order of the moments, each answer pointing at the message answered where it now stands.</summary>
     private static List<Message> InOrder(ReadMaterial read)
     {
-        var messages = new List<Message>();
-        foreach (var unit in read.Units.OrderBy(unit => unit.Instant))
+        var ordered = read.Units.Select((unit, position) => (unit, position)).OrderBy(pair => pair.unit.Instant).ToList();
+        var placed = new int[ordered.Count];
+        for (var at = 0; at < ordered.Count; at++)
         {
-            messages.Add(new Message(unit.Author!, unit.Instant!.Value, unit.RepliesTo, unit.Text));
+            placed[ordered[at].position] = at;
+        }
+
+        var messages = new List<Message>();
+        foreach (var (unit, _) in ordered)
+        {
+            messages.Add(new Message(unit.Author!, unit.Instant!.Value, unit.RepliesTo is { } to ? placed[to] : null, unit.Text));
         }
 
         return messages;

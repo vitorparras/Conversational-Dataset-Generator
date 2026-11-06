@@ -30,9 +30,8 @@ servidor e devolvidos pela rota mínima, com todo valor visual tirado dos tokens
   acessibilidade.
 - A fonte é a do sistema operacional: nada se baixa e nada vai embutido.
 - O catálogo dos componentes é tela do host de teste em `core/tests/Core.Host.Tests.Browser/`.
-- O código que o gerador do Razor escreve para `Screens/` é a única exceção das regras de build: ele
-  desliga os avisos 1591 e 1998 do compilador e escapa do analisador. Por isso o componente só
-  decide a apresentação; regra fica em C# escrito à mão.
+- O código que o Razor gera para `Screens/` é a única exceção às regras de build: desliga os
+  avisos 1591 e 1998 e escapa do analisador, então o componente só decide a apresentação.
 
 ## Alternativas recusadas
 
@@ -49,12 +48,13 @@ servidor e devolvidos pela rota mínima, com todo valor visual tirado dos tokens
 
 Toda tela herda salto para o conteúdo, cabeçalho, foco visível e tema escuro da página base.
 Mudar um token muda toda tela de uma vez. O que piora: o desfoque custa processamento em máquina
-fraca; a fonte muda de sistema para sistema, e com ela a métrica do texto; e trocar um token de
-fundo ou de vidro obriga a refazer a medida de contraste da 022. Sem script, a troca de região
+fraca; a fonte muda de sistema para sistema, e com ela a métrica do texto; trocar um token de
+fundo ou de vidro obriga a refazer a medida de contraste da 022; e o executável publicado sai sem
+PDB, porque o código gerado leva o caminho absoluto de cada componente e tiraria a construção
+reproduzível, então a pilha de exceção perde o número da linha. Sem script, a troca de região
 vira página inteira: funciona, mais devagar.
 
 ## O que reabre esta decisão
 
-Se uma tela precisar de regra de decisão ou de estado no cliente, reabre a 0010. Se o vidro não
-atingir AA sobre algum fundo que uma tela precise, ou se a camada de cliente precisar de uma
-quarta função, esta decisão é refeita por escrito.
+Regra ou estado no cliente reabre a 0010. Vidro sem AA sobre um fundo que uma tela precise, ou
+uma quarta função na camada de cliente, refaz esta decisão por escrito.

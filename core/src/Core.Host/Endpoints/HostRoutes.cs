@@ -1,3 +1,5 @@
+using Core.Host.Screens;
+
 namespace Core.Host.Endpoints;
 
 /// <summary>Every route the host serves, behind what it asks of the browser on the encrypted channel and behind a session, except the entry and the status.</summary>
@@ -18,5 +20,6 @@ internal static class HostRoutes
         ChainVerificationEndpoint.Map(app);
         SealVerificationEndpoint.Map(app);
         SealEndpoint.Map(app);
+        ScreenAssets.Map(app);
     }
 }

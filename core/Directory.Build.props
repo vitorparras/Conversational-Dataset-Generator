@@ -2,6 +2,7 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <!-- The core version is declared here so that the version report never shows the SDK default. -->
+    <!-- Prova descartável da #669: tocar este arquivo roda a régua inteira da mutação. -->
     <Version>0.1.0</Version>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>

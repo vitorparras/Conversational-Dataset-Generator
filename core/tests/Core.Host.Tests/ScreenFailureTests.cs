@@ -16,7 +16,7 @@ namespace Core.Host.Tests;
 public sealed class ScreenFailureTests
 {
     private const string Failing = "/zqx-falha-6710";
-    private const string Secret = "zqx-detalhe-interno-6710";
+    private const string InternalDetail = "zqx-detalhe-interno-6710";
     private const string BrowserAccept = "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8";
 
     [Fact]
@@ -35,10 +35,10 @@ public sealed class ScreenFailureTests
         Assert.Equal(["max-age=31536000"], response.Headers.GetValues("Strict-Transport-Security"));
         Assert.Contains(FailureScreen.Title, page, StringComparison.Ordinal);
         Assert.Contains($"href=\"{ScreenPaths.Home}\"", page, StringComparison.Ordinal);
-        Assert.DoesNotContain(Secret, page, StringComparison.Ordinal);
+        Assert.DoesNotContain(InternalDetail, page, StringComparison.Ordinal);
         Assert.DoesNotContain(nameof(InvalidOperationException), page, StringComparison.Ordinal);
         Assert.Contains(log.Lines, line => line.Contains(typeof(InvalidOperationException).FullName!, StringComparison.Ordinal));
-        Assert.DoesNotContain(log.Lines, line => line.Contains(Secret, StringComparison.Ordinal));
+        Assert.DoesNotContain(log.Lines, line => line.Contains(InternalDetail, StringComparison.Ordinal));
     }
 
     [Fact]
@@ -65,5 +65,5 @@ public sealed class ScreenFailureTests
             },
             cancellationToken);
 
-    private static IResult Fail() => throw new InvalidOperationException(Secret);
+    private static IResult Fail() => throw new InvalidOperationException(InternalDetail);
 }

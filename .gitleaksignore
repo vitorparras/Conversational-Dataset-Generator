@@ -1,2 +1,5 @@
 # Synthetic hex constant in a test of the first-cycle reference branches; history is not rewritten.
 e23639b4972b0191179533d5001c6935ed501cfd:language-service/tests/conftest.py:generic-api-key:16
+# Synthetic values of the tests of the failure page (#671), no credential; history is not rewritten.
+e8560e898cc32b738b394a01191727dc907ecd38:core/tests/Core.Host.Tests.Browser/Screens/FailurePageTests.cs:generic-api-key:69
+205c40a7674ab91bc77a5e7352bdf9cbc17b4938:core/tests/Core.Host.Tests/ScreenFailureTests.cs:generic-api-key:18

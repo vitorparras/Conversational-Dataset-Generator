@@ -1,3 +1,5 @@
+using Core.Boundary.Contracts;
+
 namespace Core.Ingestion;
 
 /// <summary>
@@ -32,13 +34,15 @@ public sealed class FormConference
     }
 
     /// <summary>The conference with the minimal rule of each form.</summary>
-    public static FormConference Minimal()
+    /// <param name="boundaries">The boundary that tells where a text can be cut, which the labeled sequence asks.</param>
+    public static FormConference Minimal(ITextBoundaries boundaries)
     {
+        ArgumentNullException.ThrowIfNull(boundaries);
         var minimal = new IFormRule[Enum.GetValues<MaterialForm>().Length];
         minimal[(int)MaterialForm.Conversation] = new ConversationRule();
         minimal[(int)MaterialForm.Comment] = new CommentRule();
         minimal[(int)MaterialForm.Document] = new DocumentRule();
-        minimal[(int)MaterialForm.LabeledSequence] = new LabeledSequenceRule();
+        minimal[(int)MaterialForm.LabeledSequence] = new LabeledSequenceRule(boundaries);
         return new FormConference(minimal);
     }
 

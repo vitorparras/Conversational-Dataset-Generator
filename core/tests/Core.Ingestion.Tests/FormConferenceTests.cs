@@ -1,3 +1,5 @@
+using Core.Boundary.Text;
+
 namespace Core.Ingestion.Tests;
 
 /// <summary>
@@ -7,7 +9,7 @@ public sealed class FormConferenceTests
 {
     private const string Marker = "ZQXMARCADOR";
     private const string Wording = "lote recusado como";
-    private static readonly FormConference Conference = FormConference.Minimal();
+    private static readonly FormConference Conference = FormConference.Minimal(new TextBoundaries());
 
     [Fact]
     public void AConversationWithAuthorAndMomentInEveryMessageIsAcceptedInTheOrderOfTheMoments()
@@ -97,13 +99,15 @@ public sealed class FormConferenceTests
     }
 
     [Fact]
-    public void ACommentWithMoreThanOneUnitIsRefusedNamingTheExtraOnes()
+    public void ACommentWithMoreThanOneUnitIsRefusedAsAThreadNamingTheExtraOnes()
     {
         var read = Units.Read(Units.Message("A", "ana", 1), Units.Message("B", "bia", 2), Units.Message("C", "cai", 3));
 
         var refusal = Assert.IsType<Refusal>(Conference.Confer(MaterialForm.Comment, read).Refusal);
 
-        Assert.Equal((RefusalCode.MoreThanOneUnit, $"{Wording} comentário: a forma é de uma unidade só e o material tem mais: unidade 2; unidade 3"), (refusal.Code, refusal.Reason));
+        Assert.Equal(
+            (RefusalCode.ConversationThread, $"{Wording} comentário: o material traz fio de conversa, e a forma é de uma manifestação isolada: unidade 2; unidade 3"),
+            (refusal.Code, refusal.Reason));
     }
 
     [Fact]
@@ -113,7 +117,9 @@ public sealed class FormConferenceTests
 
         var refusal = Assert.IsType<Refusal>(Conference.Confer(MaterialForm.Comment, Units.Read(unit)).Refusal);
 
-        Assert.Equal($"{Wording} comentário: há o que a forma não admite: unidade 1, campo a quem responde", refusal.Reason);
+        Assert.Equal(
+            (RefusalCode.ConversationThread, $"{Wording} comentário: o material traz fio de conversa, e a forma é de uma manifestação isolada: unidade 1, campo a quem responde"),
+            (refusal.Code, refusal.Reason));
     }
 
     [Fact]
@@ -143,7 +149,9 @@ public sealed class FormConferenceTests
 
         var refusal = Assert.IsType<Refusal>(Conference.Confer(MaterialForm.Document, read).Refusal);
 
-        Assert.Equal((RefusalCode.FieldNotAllowed, $"{Wording} documento: há o que a forma não admite: unidade 2, campo autor"), (refusal.Code, refusal.Reason));
+        Assert.Equal(
+            (RefusalCode.AuthorshipByPart, $"{Wording} documento: o material tem autoria por trecho, e a forma não tem autoria por parte: unidade 2, campo autor"),
+            (refusal.Code, refusal.Reason));
     }
 
     [Fact]
@@ -289,7 +297,7 @@ public sealed class FormConferenceTests
     [Fact]
     public void TheMinimalConferenceHasTheRuleOfEachFormAndEachRuleKnowsItsForm()
     {
-        var rules = new IFormRule[] { new ConversationRule(), new CommentRule(), new DocumentRule(), new LabeledSequenceRule() };
+        var rules = new IFormRule[] { new ConversationRule(), new CommentRule(), new DocumentRule(), new LabeledSequenceRule(new TextBoundaries()) };
 
         Assert.Equal(
             [MaterialForm.Conversation, MaterialForm.Comment, MaterialForm.Document, MaterialForm.LabeledSequence],

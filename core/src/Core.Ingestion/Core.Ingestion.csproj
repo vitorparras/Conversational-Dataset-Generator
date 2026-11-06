@@ -1,0 +1,3 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The domain of the ingestion: what a reader hands over, the four forms and the conference of the form declared. It reaches no database, no host and no network. -->
+</Project>

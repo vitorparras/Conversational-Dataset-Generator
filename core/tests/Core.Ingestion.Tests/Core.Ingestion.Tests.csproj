@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Core.Ingestion\Core.Ingestion.csproj" />
+    <ProjectReference Include="..\Core.Tests.Support\Core.Tests.Support.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CsCheck" />
+  </ItemGroup>
+</Project>

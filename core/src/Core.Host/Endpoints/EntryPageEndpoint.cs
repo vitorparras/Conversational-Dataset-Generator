@@ -16,8 +16,8 @@ internal static class EntryPageEndpoint
     {
         _ = endpoints.MapGet(ScreenPaths.SignIn, ShowAsync).WithMetadata(new SessionOpen("the page that makes the session"));
         _ = endpoints.MapPost(ScreenPaths.SignIn, EnterAsync).WithMetadata(new SessionOpen("the form that makes the session"));
-        _ = endpoints.MapPost(ScreenPaths.SignOut, Leave);
-        _ = endpoints.MapGet(ScreenPaths.Home, Start);
+        _ = endpoints.MapPost(ScreenPaths.SignOut, Leave).WithMetadata(ScreenAccess.Everyone);
+        _ = endpoints.MapGet(ScreenPaths.Home, Start).WithMetadata(ScreenAccess.Everyone);
     }
 
     private static async Task<IResult> ShowAsync(HttpContext context, [FromServices] SignIn? signIn) =>

@@ -41,7 +41,8 @@ internal static class SessionGate
     private static bool NeedsSession(HttpContext context) =>
         context.GetEndpoint() is { } endpoint ? endpoint.Metadata.GetMetadata<SessionOpen>() is null : AsksForPage(context.Request);
 
-    private static bool AsksForPage(HttpRequest request) =>
+    /// <summary>Whether the request is a browser asking for a page: HTML with a GET or with a form.</summary>
+    internal static bool AsksForPage(HttpRequest request) =>
         (HttpMethods.IsGet(request.Method) || (HttpMethods.IsPost(request.Method) && request.HasFormContentType))
         && request.GetTypedHeaders().Accept.Any(accepted => accepted.MediaType.Equals(Html, StringComparison.OrdinalIgnoreCase));
 

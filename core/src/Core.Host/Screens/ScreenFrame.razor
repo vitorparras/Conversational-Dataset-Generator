@@ -9,9 +9,11 @@
 </head>
 <body>
     <a class="skip-link" href="#content">Ir para o conteúdo</a>
-    <ScreenHeader WithSession="WithSession" />
+    <ScreenHeader WithSession="WithSession" Menu="Menu" Granted="Granted" Current="Current" />
     <main id="content" class="page" tabindex="-1">
-        <DynamicComponent Type="Screen" Parameters="ScreenParameters" />
+        <CascadingValue Value="this" IsFixed="true">
+            <DynamicComponent Type="Screen" Parameters="ScreenParameters" />
+        </CascadingValue>
     </main>
 </body>
 </html>
@@ -32,4 +34,16 @@
     /// <summary>Whether the page stands behind a session, which gives the header the action that ends it.</summary>
     [Parameter]
     public bool WithSession { get; set; }
+
+    /// <summary>The screens the one who entered reaches, in the order of the menu; the start page lists the same.</summary>
+    [Parameter]
+    public IReadOnlyList<ScreenNav.Entry> Menu { get; set; } = Array.Empty<ScreenNav.Entry>();
+
+    /// <summary>The domains granted to the one who entered.</summary>
+    [Parameter]
+    public IEnumerable<string> Granted { get; set; } = Enumerable.Empty<string>();
+
+    /// <summary>The route of the page, which marks its own entry in the menu.</summary>
+    [Parameter]
+    public string? Current { get; set; }
 }

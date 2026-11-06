@@ -1,0 +1,22 @@
+@if (Granted.Any())
+{
+    <form class="domain" method="get">
+        <label class="domain__label" for="dominio">Domínio</label>
+        <select id="dominio" class="domain__choice" name="@Field">
+            @foreach (var domain in Granted)
+            {
+                <option value="@domain">@domain</option>
+            }
+        </select>
+        <Button Id="dominio-trocar" Kind="Button.Look.Secondary">Trocar</Button>
+    </form>
+}
+
+@code {
+    /// <summary>The field the choice is sent in, to the page it was made on; the form names no route, so a page refused and one that does not exist stay alike.</summary>
+    internal const string Field = "dominio";
+
+    /// <summary>The domains granted; with none, there is nothing to choose and the picker is left out (the start page says why).</summary>
+    [Parameter, EditorRequired]
+    public IEnumerable<string> Granted { get; set; } = Enumerable.Empty<string>();
+}

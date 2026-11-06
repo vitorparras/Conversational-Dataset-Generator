@@ -8,27 +8,18 @@ namespace Core.Ingestion;
 /// </summary>
 internal sealed class LabeledSequenceRule : IFormRule
 {
-    private readonly ITextBoundaries boundaries;
-
-    /// <summary>The rule asks the boundary where the text can be cut.</summary>
-    /// <param name="boundaries">The boundary that tells a surrogate pair.</param>
-    internal LabeledSequenceRule(ITextBoundaries boundaries)
-    {
-        ArgumentNullException.ThrowIfNull(boundaries);
-        this.boundaries = boundaries;
-    }
-
     /// <inheritdoc />
     public MaterialForm Form => MaterialForm.LabeledSequence;
 
     /// <inheritdoc />
-    public ConferenceResult Confer(ReadMaterial read)
+    public ConferenceResult Confer(ReadMaterial read, ITextBoundaries boundaries)
     {
         ArgumentNullException.ThrowIfNull(read);
+        ArgumentNullException.ThrowIfNull(boundaries);
         var missing = RuleChecks.Failing(read, MaterialField.Text, unit => RuleChecks.Blank(unit.Text));
         missing.AddRange(RuleChecks.Failing(read, MaterialField.Passages, unit => unit.Passages.Count == 0));
         var outside = RuleChecks.Failing(read, MaterialField.Passages, unit => unit.Passages.Any(passage => !Inside(passage, unit.Text)));
-        var splits = RuleChecks.Failing(read, MaterialField.Passages, unit => unit.Passages.Any(passage => Splits(passage, unit.Text)));
+        var splits = RuleChecks.Failing(read, MaterialField.Passages, unit => unit.Passages.Any(passage => Splits(boundaries, passage, unit.Text)));
         return RuleChecks.Refusal(Form, RefusalCode.FieldMissing, missing)
             ?? RuleChecks.Refusal(Form, RefusalCode.PassageOutsideText, outside)
             ?? RuleChecks.Refusal(Form, RefusalCode.PassageSplitsPair, splits)
@@ -37,6 +28,6 @@ internal sealed class LabeledSequenceRule : IFormRule
 
     private static bool Inside(Passage passage, string text) => passage.Start >= 0 && passage.End > passage.Start && passage.End <= text.Length;
 
-    private bool Splits(Passage passage, string text) =>
+    private static bool Splits(ITextBoundaries boundaries, Passage passage, string text) =>
         Inside(passage, text) && (boundaries.SplitsPair(text, passage.Start) || boundaries.SplitsPair(text, passage.End));
 }

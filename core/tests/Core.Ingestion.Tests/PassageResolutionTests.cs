@@ -10,7 +10,7 @@ namespace Core.Ingestion.Tests;
 /// </summary>
 public sealed class PassageResolutionTests
 {
-    private static readonly FormConference Conference = FormConference.Minimal(new TextBoundaries());
+    private static readonly FormConference Conference = new(new TextBoundaries());
 
     private static readonly string[] Alphabet = ["a", "Z", " ", "é", "\U0001F642", "\U0001F469‍\U0001F4BB", "\U0001D400", "é", "7"];
 
@@ -33,6 +33,7 @@ public sealed class PassageResolutionTests
             var second = Conference.Confer(MaterialForm.LabeledSequence, read);
 
             Assert.Equal(first.Refusal?.Reason, second.Refusal?.Reason);
+            Assert.Equal(MustBeRefused(text, passage), first.Accepted is null);
             if (first.Accepted is LabeledSequence sequence)
             {
                 var resolved = sequence.Texts[0].Resolve(0);
@@ -40,13 +41,15 @@ public sealed class PassageResolutionTests
                 Assert.Equal(text[passage.Start..passage.End], resolved);
                 Assert.False(char.IsLowSurrogate(resolved[0]) && !IsPairedBefore(text, passage.Start));
                 Assert.False(char.IsHighSurrogate(resolved[^1]) && !IsPairedAfter(text, passage.End));
-                Assert.Null(first.Refusal);
-            }
-            else
-            {
-                Assert.True(passage.Start < 0 || passage.End <= passage.Start || passage.End > text.Length || Splits(text, passage));
             }
         });
+
+    /// <summary>The oracle, written from the rules of the form and not from the code: a blank text, a passage outside the text or with no length, or a limit between the halves of a pair.</summary>
+    private static bool MustBeRefused(string text, Passage passage)
+    {
+        var outside = passage.Start < 0 || passage.End <= passage.Start || passage.End > text.Length;
+        return string.IsNullOrWhiteSpace(text) || outside || Splits(text, passage);
+    }
 
     private static bool Splits(string text, Passage passage) =>
         (passage.Start > 0 && char.IsSurrogatePair(text, passage.Start - 1)) || (passage.End > 0 && char.IsSurrogatePair(text, passage.End - 1));

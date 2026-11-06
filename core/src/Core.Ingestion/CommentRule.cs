@@ -1,3 +1,5 @@
+using Core.Boundary.Contracts;
+
 namespace Core.Ingestion;
 
 /// <summary>A comment is one unit, with an author and a text, and with no one it answers: a thread is refused, and never dropped to leave a comment.</summary>
@@ -7,7 +9,7 @@ internal sealed class CommentRule : IFormRule
     public MaterialForm Form => MaterialForm.Comment;
 
     /// <inheritdoc />
-    public ConferenceResult Confer(ReadMaterial read)
+    public ConferenceResult Confer(ReadMaterial read, ITextBoundaries boundaries)
     {
         ArgumentNullException.ThrowIfNull(read);
         var thread = new List<Finding>();

@@ -1,3 +1,5 @@
+using Core.Boundary.Contracts;
+
 namespace Core.Ingestion;
 
 /// <summary>A document is running text with no author, no one answered and no passages for any part of it; authorship by part is refused, and never dropped.</summary>
@@ -7,7 +9,7 @@ internal sealed class DocumentRule : IFormRule
     public MaterialForm Form => MaterialForm.Document;
 
     /// <inheritdoc />
-    public ConferenceResult Confer(ReadMaterial read)
+    public ConferenceResult Confer(ReadMaterial read, ITextBoundaries boundaries)
     {
         ArgumentNullException.ThrowIfNull(read);
         var missing = RuleChecks.Failing(read, MaterialField.Text, unit => RuleChecks.Blank(unit.Text));

@@ -15,7 +15,7 @@ public sealed class ThreeFormsTests
     private const string ByPart = "o material tem autoria por trecho, e a forma não tem autoria por parte";
     private const string Splits = "um limite de trecho cai dentro de um par substituto, e o trecho não seria o pretendido";
 
-    private static readonly FormConference Conference = FormConference.Minimal(new TextBoundaries());
+    private static readonly FormConference Conference = new(new TextBoundaries());
 
     [Fact]
     public void ACommentWithNoAuthorIsRefusedNamingTheMissingAuthorOfTheUnit()
@@ -146,7 +146,7 @@ public sealed class ThreeFormsTests
     public void APassageOutsideTheTextIsRefusedAsOutsideBeforeItsPairIsAsked()
     {
         var boundaries = new CountingBoundaries();
-        var conference = FormConference.Minimal(boundaries);
+        var conference = new FormConference(boundaries);
         var read = Units.Read(Units.Labeled("A\U0001F642B", new Passage(0, 9)));
 
         var refusal = Assert.IsType<Refusal>(conference.Confer(MaterialForm.LabeledSequence, read).Refusal);
@@ -158,7 +158,7 @@ public sealed class ThreeFormsTests
     public void BothLimitsOfEveryPassageAreAskedOfTheBoundary()
     {
         var boundaries = new CountingBoundaries();
-        var conference = FormConference.Minimal(boundaries);
+        var conference = new FormConference(boundaries);
         var read = Units.Read(Units.Labeled("ABCD", new Passage(0, 1), new Passage(2, 3)));
 
         _ = conference.Confer(MaterialForm.LabeledSequence, read);
@@ -197,7 +197,7 @@ public sealed class ThreeFormsTests
     [Fact]
     public void TheRuleOfTheSequenceNeedsABoundary()
     {
-        var defect = Assert.Throws<ArgumentNullException>(() => FormConference.Minimal(null!));
+        var defect = Assert.Throws<ArgumentNullException>(() => new FormConference(null!));
 
         Assert.Equal("boundaries", defect.ParamName);
     }

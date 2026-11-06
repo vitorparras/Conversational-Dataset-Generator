@@ -1,8 +1,16 @@
+@using Core.Host.Endpoints
+
 <header class="header">
-    <a class="header__name" href="/">@Name</a>
+    <a class="header__name" href="@ScreenPaths.Home">@Name</a>
     @if (ChildContent is not null)
     {
         <nav class="header__nav" aria-label="Principal">@ChildContent</nav>
+    }
+    @if (WithSession)
+    {
+        <form class="header__leave" method="post" action="@ScreenPaths.SignOut">
+            <Button Id="sair" Kind="Button.Look.Secondary">Sair</Button>
+        </form>
     }
 </header>
 
@@ -13,4 +21,8 @@
     /// <summary>The menu, when the page has one.</summary>
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Whether the page stands behind a session, and so offers to end it on the server.</summary>
+    [Parameter]
+    public bool WithSession { get; set; }
 }

@@ -10,7 +10,7 @@
     {
         <p id="@HintId" class="field__hint">@Hint</p>
     }
-    <input id="@Id" class="field__input" name="@(Name ?? Id)" type="@Type" value="@Value" autocomplete="@Autocomplete"
+    <input id="@Id" class="field__input" name="@(Name ?? Id)" type="@Type" value="@Value" autocomplete="@Autocomplete" autofocus="@Autofocus"
            aria-required="@(Required ? "true" : null)" aria-invalid="@(Error is null ? null : "true")" aria-describedby="@DescribedBy" />
     @if (Error is not null)
     {
@@ -50,6 +50,10 @@
 
     [Parameter]
     public string? Autocomplete { get; set; }
+
+    /// <summary>Whether the field takes the focus when the page opens: only the first field of a page made for that one task.</summary>
+    [Parameter]
+    public bool Autofocus { get; set; }
 
     private string HintId => $"{Id}-dica";
 

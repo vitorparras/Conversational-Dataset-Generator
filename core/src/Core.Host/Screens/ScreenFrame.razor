@@ -9,7 +9,7 @@
 </head>
 <body>
     <a class="skip-link" href="#content">Ir para o conteúdo</a>
-    <ScreenHeader />
+    <ScreenHeader WithSession="WithSession" />
     <main id="content" class="page" tabindex="-1">
         <DynamicComponent Type="Screen" Parameters="ScreenParameters" />
     </main>
@@ -28,4 +28,8 @@
     /// <summary>What the screen takes, if anything.</summary>
     [Parameter]
     public IDictionary<string, object?>? ScreenParameters { get; set; }
+
+    /// <summary>Whether the page stands behind a session, which gives the header the action that ends it.</summary>
+    [Parameter]
+    public bool WithSession { get; set; }
 }

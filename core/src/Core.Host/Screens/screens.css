@@ -70,6 +70,8 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
 
 .header__name { margin: 0; font: var(--weight-strong) var(--text-md) / var(--leading-tight) var(--font-display); color: var(--ink); text-decoration: none; }
 .header__nav { margin-left: auto; }
+.header__leave { margin: 0 0 0 auto; }
+.header__nav + .header__leave { margin-left: 0; }
 
 /* Glass panel */
 .panel {
@@ -161,6 +163,22 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
 .notice--success { color: var(--success); background: var(--success-surface); }
 .notice--pending { color: var(--pending); background: var(--pending-surface); border-style: dashed; }
 .notice--error { color: var(--error); background: var(--error-surface); border-width: var(--line-strong); }
+
+/* Waiting notice: an empty live region the client layer fills while a form is on its way; the text says it, the shape repeats it. */
+.wait { margin: 0 0 var(--space-4); }
+
+.wait:not(:empty) {
+    display: flex;
+    gap: var(--space-3);
+    max-width: var(--field-width);
+    padding: var(--space-3) var(--space-4);
+    border: var(--line) dashed var(--pending);
+    border-radius: var(--radius-md);
+    color: var(--ink);
+    background: var(--pending-surface);
+}
+
+.wait:not(:empty)::before { content: "F7"; color: var(--pending); font-weight: var(--weight-strong); }
 
 /* Paged list */
 .paged-list { margin: 0; padding: 0; list-style: none; }

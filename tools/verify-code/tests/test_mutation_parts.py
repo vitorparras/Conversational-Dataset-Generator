@@ -358,21 +358,24 @@ class LineOfTheAreaFileTests(PartsFixture):
 
 
 class RepositoryAreaTests(unittest.TestCase):
-    def test_the_content_area_of_the_repository_runs_in_three_parts(self) -> None:
+    def test_the_content_areas_of_the_repository_run_in_their_parts(self) -> None:
         root = support.VERIFY_CODE.parents[1]
         areas = {a.prefix: a for a in areas_doc.read_areas(root).areas}
 
-        self.assertEqual(areas["Core.Persistence.Content"].parts, 3)
+        self.assertEqual(areas["Core.Persistence.Content"].parts, 4)
+        self.assertEqual(areas["Core.Persistence.Content.Writing"].parts, 2)
         self.assertEqual(areas["Core.Persistence.Content.Reading"].parts, 1)
 
-    def test_the_content_area_of_the_repository_has_files_for_its_three_parts(self) -> None:
+    def test_the_content_areas_of_the_repository_have_files_for_their_parts(self) -> None:
         root = support.VERIFY_CODE.parents[1]
         names, problems = mutation.names(root)
 
         content = [name for name in names if name.startswith("Core.Persistence.Content@")]
 
-        expected = [f"Core.Persistence.Content@{n}/3" for n in (1, 2, 3)]
-        self.assertEqual((problems, content), ((), expected))
+        writing = [name for name in names if name.startswith("Core.Persistence.Content.Writing@")]
+
+        expected = [f"Core.Persistence.Content@{n}/4" for n in (1, 2, 3, 4)]
+        self.assertEqual((problems, content, writing), ((), expected, [f"Core.Persistence.Content.Writing@{n}/2" for n in (1, 2)]))
 
 
 if __name__ == "__main__":

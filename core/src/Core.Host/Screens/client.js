@@ -16,17 +16,29 @@
         target.focus();
     }
 
-    function swapIn(id, html) {
-        var received = new DOMParser().parseFromString(html, "text/html").getElementById(id);
+    function swapIn(id, received) {
+        var region = received.getElementById(id);
         var current = document.getElementById(id);
-        if (!received || !current) {
+        if (!region || !current) {
             return false;
         }
-        current.replaceWith(received);
-        focusIn(received);
+        current.replaceWith(document.adoptNode(region));
+        focusIn(region);
         return true;
     }
 
+    // An answer without the region is shown whole, as the server sent it; a redirect is followed by a plain load of where it points.
+    // Once the server answered, the request is never sent again: it has already done what was asked.
+    function showWhole(response, received) {
+        if (response.redirected) {
+            location.assign(response.url);
+            return;
+        }
+        document.replaceChild(document.adoptNode(received.documentElement), document.documentElement);
+        (document.getElementById("content") || document.body).focus();
+    }
+
+    // Resolves to true when nothing reached back from the server, so that only a request that changes nothing may be sent again as a plain load.
     function request(url, init, id) {
         var region = document.getElementById(id);
         if (region) {
@@ -36,17 +48,21 @@
         init.headers[REGION_HEADER] = id;
         init.credentials = "same-origin";
         return fetch(url, init).then(function (response) {
-            return response.text();
-        }).then(function (html) {
-            return swapIn(id, html);
-        }).catch(function () {
-            return false;
-        }).then(function (swapped) {
+            return response.text().then(function (html) {
+                var received = new DOMParser().parseFromString(html, "text/html");
+                if (!swapIn(id, received)) {
+                    showWhole(response, received);
+                }
+                return false;
+            });
+        }, function () {
+            return true;
+        }).then(function (unanswered) {
             var after = document.getElementById(id);
             if (after) {
                 after.removeAttribute("aria-busy");
             }
-            return swapped;
+            return unanswered;
         });
     }
 
@@ -66,9 +82,9 @@
         } else {
             init.body = new URLSearchParams(data);
         }
-        request(url, init, id).then(function (swapped) {
-            if (!swapped) {
-                HTMLFormElement.prototype.submit.call(form);
+        request(url, init, id).then(function (unanswered) {
+            if (unanswered && method === "GET") {
+                location.assign(url);
             }
         });
     });
@@ -79,8 +95,8 @@
             return;
         }
         event.preventDefault();
-        request(link.href, { method: "GET" }, link.getAttribute("data-swap")).then(function (swapped) {
-            if (!swapped) {
+        request(link.href, { method: "GET" }, link.getAttribute("data-swap")).then(function (unanswered) {
+            if (unanswered) {
                 location.assign(link.href);
             }
         });

@@ -2,6 +2,8 @@ using Core.Host.Endpoints;
 using Core.Host.Screens;
 using Core.Platform.Configuration;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Core.Host.Tests;
 
@@ -26,7 +28,7 @@ public sealed class ScreenRouteTests : IAsyncLifetime
         CompositionRoot.Compose(builder, ClosedConfiguration.Load(new ConfigurationSchema([HostConfiguration.Section])).View, fileLog: null);
         app = builder.Build();
         ScreenAssets.Map(app);
-        _ = app.MapGet(Page, () => ScreenResult.Of(typeof(ScreenHeader), Title)).WithMetadata(new SessionOpen("the test of the screens"));
+        _ = app.MapGet(Page, Show).WithMetadata(new SessionOpen("the test of the screens"));
         await app.StartAsync(TestContext.Current.CancellationToken);
         client = new HttpClient { BaseAddress = address };
     }
@@ -62,6 +64,29 @@ public sealed class ScreenRouteTests : IAsyncLifetime
         Assert.Contains($"href=\"{ScreenAssets.StyleRoute}\"", page, StringComparison.Ordinal);
         Assert.Contains("<header class=\"header\">", page, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public async Task APageVariesByTheRegionHeaderAndNoCacheKeepsIt()
+    {
+        using var response = await Client.GetAsync(new Uri(Page, UriKind.Relative), TestContext.Current.CancellationToken);
+
+        Assert.Equal((ScreenResult.RegionHeader, true), (string.Join(',', response.Headers.Vary), response.Headers.CacheControl?.NoStore == true));
+    }
+
+    [Fact]
+    public async Task TheRegionHeaderBringsTheScreenAloneWithoutTheBasePage()
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(Page, UriKind.Relative));
+        request.Headers.Add(ScreenResult.RegionHeader, "zqx-regiao");
+
+        using var response = await Client.SendAsync(request, TestContext.Current.CancellationToken);
+        var fragment = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        Assert.DoesNotContain("<html", fragment, StringComparison.Ordinal);
+        Assert.Contains("<header class=\"header\">", fragment, StringComparison.Ordinal);
+    }
+
+    private static RazorComponentResult<ScreenFrame> Show(HttpContext context) => ScreenResult.Of(context, typeof(ScreenHeader), Title);
 
     private static string Sniffing(HttpResponseMessage response) =>
         response.Headers.TryGetValues("X-Content-Type-Options", out var values) ? string.Join(',', values) : "";

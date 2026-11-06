@@ -23,7 +23,7 @@ abrem todos, e o agregado "Mutação nos módulos críticos" só passa se eles p
 achado que reprova, nomeando o módulo e o tempo gasto. O tempo de cada módulo sai no relatório do
 passo. Mutação fora do bloqueio só por decisão escrita. A área que estoura o teto declara `- Partes
 da mutação: N` no arquivo: o passo corta cada arquivo C# entre os membros e passa os trechos ao
-Stryker como `arquivo.cs{a..b}`, repartidos pelo peso (tokens); a matriz abre um job por parte, com
+Stryker como `arquivo.cs{a..b}`, repartidos pelo peso ([038](038-repartir-a-mutacao.md)); a matriz abre um job por parte, com
 o mesmo teto, projeto de teste e limite. O Stryker 5.0.0 só conta o mutante cujo nó cabe inteiro na
 faixa e o corte nunca cai num membro: a soma é a da área.
 

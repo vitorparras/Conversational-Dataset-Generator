@@ -48,5 +48,6 @@ e por quem ela roda.
 | [034](034-roteiro-de-usabilidade.md) | Roteiro de usabilidade de uma tela: modelo que as telas seguintes preenchem |
 | [035](035-registro-do-ensaio.md) | Registro do ensaio de recuperação: as recusas e a porta da ingestão |
 | [036](036-formato-cdg-conversa-1.md) | O formato cdg-conversa/1 da conversa exportada: o que o arquivo tem e o que o leitor recusa |
+| [038](038-repartir-a-mutacao.md) | Repartir a mutação de uma área em partes: a unidade, o peso e o corte da lista estática |
 
 Ver [regras de escrita](../regras-de-escrita.md).

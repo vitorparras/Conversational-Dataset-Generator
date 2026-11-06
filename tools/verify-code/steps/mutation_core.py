@@ -30,7 +30,7 @@ RESULTS = "mutation/core"
 CONFIG = "stryker-config.json"
 REPORT = "reports/mutation-report.json"
 RESTORE = ("dotnet", "tool", "restore")
-STRYKER = ("dotnet", "stryker", "--skip-version-check", "--log-to-file", "--log-level", "debug")
+STRYKER = ("dotnet", "stryker", "--skip-version-check", "--log-to-file", "--verbosity", "debug")
 CONCURRENCY = 1
 TOKEN_BYTES = 8
 

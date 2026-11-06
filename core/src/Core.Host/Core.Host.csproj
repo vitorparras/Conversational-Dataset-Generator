@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <!-- The screens validate nothing in the browser (decision 0052): no validation attribute is written into the build. -->
+    <GenerateEmbeddedValidatableTypeAttribute>false</GenerateEmbeddedValidatableTypeAttribute>
   </PropertyGroup>
 
   <!--

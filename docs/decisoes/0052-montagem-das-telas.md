@@ -29,7 +29,10 @@ servidor e devolvidos pela rota mínima, com todo valor visual tirado dos tokens
   contraste é medido sobre o pior ponto do fundo real e anotado na lista de revisão manual de
   acessibilidade.
 - A fonte é a do sistema operacional: nada se baixa e nada vai embutido.
-- O catálogo dos componentes é tela do host de teste em `core/tests/Core.Tests.Browser/`.
+- O catálogo dos componentes é tela do host de teste em `core/tests/Core.Host.Tests.Browser/`.
+- O código que o gerador do Razor escreve para `Screens/` é a única exceção das regras de build: ele
+  desliga os avisos 1591 e 1998 do compilador e escapa do analisador. Por isso o componente só
+  decide a apresentação; regra fica em C# escrito à mão.
 
 ## Alternativas recusadas
 

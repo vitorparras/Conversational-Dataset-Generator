@@ -1,3 +1,5 @@
+using Core.Boundary.Contracts;
+
 namespace Core.Ingestion;
 
 /// <summary>
@@ -10,7 +12,7 @@ internal sealed class ConversationRule : IFormRule
     public MaterialForm Form => MaterialForm.Conversation;
 
     /// <inheritdoc />
-    public ConferenceResult Confer(ReadMaterial read)
+    public ConferenceResult Confer(ReadMaterial read, ITextBoundaries boundaries)
     {
         ArgumentNullException.ThrowIfNull(read);
         var missing = RuleChecks.Failing(read, MaterialField.Text, unit => RuleChecks.Blank(unit.Text));

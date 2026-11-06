@@ -1,3 +1,6 @@
+using Core.Boundary.Contracts;
+using Core.Boundary.Text;
+
 namespace Core.Ingestion.Tests;
 
 /// <summary>
@@ -7,7 +10,7 @@ public sealed class FormConferenceTests
 {
     private const string Marker = "ZQXMARCADOR";
     private const string Wording = "lote recusado como";
-    private static readonly FormConference Conference = FormConference.Minimal();
+    private static readonly FormConference Conference = new(new TextBoundaries());
 
     [Fact]
     public void AConversationWithAuthorAndMomentInEveryMessageIsAcceptedInTheOrderOfTheMoments()
@@ -128,13 +131,15 @@ public sealed class FormConferenceTests
     }
 
     [Fact]
-    public void ACommentWithMoreThanOneUnitIsRefusedNamingTheExtraOnes()
+    public void ACommentWithMoreThanOneUnitIsRefusedAsAThreadNamingTheExtraOnes()
     {
         var read = Units.Read(Units.Message("A", "ana", 1), Units.Message("B", "bia", 2), Units.Message("C", "cai", 3));
 
         var refusal = Assert.IsType<Refusal>(Conference.Confer(MaterialForm.Comment, read).Refusal);
 
-        Assert.Equal((RefusalCode.MoreThanOneUnit, $"{Wording} comentário: a forma é de uma unidade só e o material tem mais: unidade 2; unidade 3"), (refusal.Code, refusal.Reason));
+        Assert.Equal(
+            (RefusalCode.ConversationThread, $"{Wording} comentário: o material traz fio de conversa, e a forma é de uma manifestação isolada: unidade 2; unidade 3"),
+            (refusal.Code, refusal.Reason));
     }
 
     [Fact]
@@ -144,7 +149,9 @@ public sealed class FormConferenceTests
 
         var refusal = Assert.IsType<Refusal>(Conference.Confer(MaterialForm.Comment, Units.Read(unit)).Refusal);
 
-        Assert.Equal($"{Wording} comentário: há o que a forma não admite: unidade 1, campo a mensagem respondida", refusal.Reason);
+        Assert.Equal(
+            (RefusalCode.ConversationThread, $"{Wording} comentário: o material traz fio de conversa, e a forma é de uma manifestação isolada: unidade 1, campo a mensagem respondida"),
+            (refusal.Code, refusal.Reason));
     }
 
     [Fact]
@@ -174,7 +181,9 @@ public sealed class FormConferenceTests
 
         var refusal = Assert.IsType<Refusal>(Conference.Confer(MaterialForm.Document, read).Refusal);
 
-        Assert.Equal((RefusalCode.FieldNotAllowed, $"{Wording} documento: há o que a forma não admite: unidade 2, campo autor"), (refusal.Code, refusal.Reason));
+        Assert.Equal(
+            (RefusalCode.AuthorshipByPart, $"{Wording} documento: o material tem autoria por trecho, e a forma não tem autoria por parte: unidade 2, campo autor"),
+            (refusal.Code, refusal.Reason));
     }
 
     [Fact]
@@ -307,12 +316,16 @@ public sealed class FormConferenceTests
     {
         var rules = AllForms();
 
-        var missing = Assert.Throws<ArgumentException>(() => new FormConference(rules.Take(3)));
-        var twice = Assert.Throws<ArgumentException>(() => new FormConference(rules.Append(new FixedRule(MaterialForm.Document))));
-        var absent = Assert.Throws<ArgumentNullException>(() => new FormConference(null!));
-        var nothing = Assert.Throws<ArgumentNullException>(() => new FormConference([null!]));
+        var missing = Assert.Throws<ArgumentException>(() => new FormConference(rules.Take(3), new TextBoundaries()));
+        var twice = Assert.Throws<ArgumentException>(() => new FormConference(rules.Append(new FixedRule(MaterialForm.Document)), new TextBoundaries()));
+        var absent = Assert.Throws<ArgumentNullException>(() => new FormConference(null!, new TextBoundaries()));
+        var nothing = Assert.Throws<ArgumentNullException>(() => new FormConference([null!], new TextBoundaries()));
 
-        Assert.Equal(["rules", "rules", "rules", "rule"], [missing.ParamName, twice.ParamName, absent.ParamName, nothing.ParamName]);
+        var unbounded = Assert.Throws<ArgumentNullException>(() => new FormConference(rules, null!));
+
+        Assert.Equal(
+            ["rules", "rules", "rules", "rule", "boundaries"],
+            [missing.ParamName, twice.ParamName, absent.ParamName, nothing.ParamName, unbounded.ParamName]);
         Assert.StartsWith("There is not one rule for each of the four forms.", missing.Message, StringComparison.Ordinal);
         Assert.StartsWith("There are two rules for the form Document.", twice.Message, StringComparison.Ordinal);
     }
@@ -325,7 +338,7 @@ public sealed class FormConferenceTests
         Assert.Equal(
             [MaterialForm.Conversation, MaterialForm.Comment, MaterialForm.Document, MaterialForm.LabeledSequence],
             rules.Select(rule => rule.Form).ToArray());
-        Assert.All(rules, rule => Assert.Equal("read", Assert.Throws<ArgumentNullException>(() => rule.Confer(null!)).ParamName));
+        Assert.All(rules, rule => Assert.Equal("read", Assert.Throws<ArgumentNullException>(() => rule.Confer(null!, new TextBoundaries())).ParamName));
     }
 
     [Fact]
@@ -351,7 +364,7 @@ public sealed class FormConferenceTests
     [Fact]
     public void ARuleThatIsGivenReplacesTheMinimalOneOfItsForm()
     {
-        var result = new FormConference(AllForms()).Confer(MaterialForm.Comment, Units.Read(Units.Message("A", "ana", 1)));
+        var result = new FormConference(AllForms(), new TextBoundaries()).Confer(MaterialForm.Comment, Units.Read(Units.Message("A", "ana", 1)));
 
         Assert.Equal(RefusalCode.FieldNotAllowed, result.Refusal!.Code);
     }
@@ -383,7 +396,7 @@ public sealed class FormConferenceTests
 
         public MaterialForm Form { get; }
 
-        public ConferenceResult Confer(ReadMaterial read) =>
+        public ConferenceResult Confer(ReadMaterial read, ITextBoundaries boundaries) =>
             ConferenceResult.Refuse(new Refusal(Form, RefusalCode.FieldNotAllowed, null, []));
     }
 }

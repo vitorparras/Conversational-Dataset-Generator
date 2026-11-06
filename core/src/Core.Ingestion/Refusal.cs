@@ -64,6 +64,18 @@ public sealed record Refusal
         _ => "o lote todo",
     };
 
+    private static readonly Dictionary<RefusalCode, string> Words = new()
+    {
+        [RefusalCode.NoUnits] = "o material não tem nenhuma unidade",
+        [RefusalCode.FieldMissing] = "falta o que a forma exige",
+        [RefusalCode.FieldNotAllowed] = "há o que a forma não admite",
+        [RefusalCode.OrderNotDetermined] = "duas mensagens têm o mesmo instante, e a ordem não pode vir da posição no arquivo",
+        [RefusalCode.PassageOutsideText] = "um trecho começa antes do texto, termina depois dele ou não tem extensão",
+        [RefusalCode.ConversationThread] = "o material traz fio de conversa, e a forma é de uma manifestação isolada",
+        [RefusalCode.AuthorshipByPart] = "o material tem autoria por trecho, e a forma não tem autoria por parte",
+        [RefusalCode.PassageSplitsPair] = "um limite de trecho cai dentro de um par substituto, e o trecho não seria o pretendido",
+    };
+
     private static string FormWords(MaterialForm form) => form switch
     {
         MaterialForm.Conversation => "conversa",
@@ -83,17 +95,10 @@ public sealed record Refusal
         _ => throw new ArgumentOutOfRangeException(nameof(field), field, "The field is not one of the enumeration."),
     };
 
-    private static string CodeWords(RefusalCode code, UnreadableReason? cause) => code switch
-    {
-        RefusalCode.Unreadable => $"a leitura não foi completa ({CauseWords(cause)}), e leitura parcial não é aceita",
-        RefusalCode.NoUnits => "o material não tem nenhuma unidade",
-        RefusalCode.FieldMissing => "falta o que a forma exige",
-        RefusalCode.FieldNotAllowed => "há o que a forma não admite",
-        RefusalCode.OrderNotDetermined => "duas mensagens têm o mesmo instante, e a ordem não pode vir da posição no arquivo",
-        RefusalCode.PassageOutsideText => "um trecho começa antes do texto, termina depois dele ou não tem extensão",
-        RefusalCode.MoreThanOneUnit => "a forma é de uma unidade só e o material tem mais",
-        _ => throw new ArgumentOutOfRangeException(nameof(code), code, "The code is not one of the enumeration."),
-    };
+    private static string CodeWords(RefusalCode code, UnreadableReason? cause) =>
+        code == RefusalCode.Unreadable
+            ? $"a leitura não foi completa ({CauseWords(cause)}), e leitura parcial não é aceita"
+            : Words.GetValueOrDefault(code) ?? throw new ArgumentOutOfRangeException(nameof(code), code, "The code is not one of the enumeration.");
 
     private static string CauseWords(UnreadableReason? cause) => cause switch
     {

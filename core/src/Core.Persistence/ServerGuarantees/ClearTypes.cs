@@ -12,6 +12,9 @@ internal static class ClearTypes
         ClearKind.Moment => "timestamp with time zone",
         ClearKind.PseudonymizedText => "text",
         ClearKind.Epoch => "integer",
+        ClearKind.Status => "text",
+        ClearKind.Motive => "text",
+        ClearKind.Transaction => "xid8",
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
 }

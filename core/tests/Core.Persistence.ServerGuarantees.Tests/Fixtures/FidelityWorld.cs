@@ -29,7 +29,7 @@ internal sealed class FidelityWorld : IAsyncDisposable
         this.database = database;
         DataSource = dataSource;
         this.custody = custody;
-        Writer = new ContentWriter(dataSource, custody.Content);
+        Writer = new SeededWriter(new ContentWriter(dataSource, custody.Content));
         Reader = new ProtectedContentReader(dataSource, custody.Content, new CustodyChain(dataSource));
         Registry = new PersonRegistry(dataSource);
     }
@@ -40,7 +40,7 @@ internal sealed class FidelityWorld : IAsyncDisposable
     /// <summary>The data source of the application's role, which the comparison of the server's log with the chain connects through.</summary>
     public NpgsqlDataSource DataSource { get; }
 
-    public ContentWriter Writer { get; }
+    public SeededWriter Writer { get; }
 
     public ProtectedContentReader Reader { get; }
 
@@ -57,6 +57,7 @@ internal sealed class FidelityWorld : IAsyncDisposable
                 "INSERT INTO public.domain (name) VALUES ('zqx-domain-a'), ('zqx-domain-b')",
                 "INSERT INTO public.person (name, function_name) VALUES ('zqx-active', 'Anotação'), ('zqx-gone', 'Anotação')",
                 "UPDATE public.person SET active = false WHERE name = 'zqx-gone'");
+            await SeededBatches.SeedAsync(database, 1, 2);
         }
 
         var custody = SyntheticCustody.Holding(Labels);

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using Core.Persistence.Custody.Verification;
+using Core.Persistence.People;
 using Core.Persistence.Tests.Fixtures;
 
 namespace Core.Tests.Integration.Hosts;
@@ -207,7 +208,7 @@ public sealed class ManualSealHostTests
 
     private static async Task<AuthenticatedHost> StartedAsync(HostSetup setup, CancellationToken cancellationToken)
     {
-        var host = await AuthenticatedHost.StartAsync(setup, cancellationToken);
+        var host = await AuthenticatedHost.StartAsync(setup with { Function = PersonFunctions.Administration }, cancellationToken);
         var until = DateTimeOffset.UtcNow + Patience;
         while ((await ReadAsync(host, cancellationToken)).GetProperty("last").ValueKind != JsonValueKind.Object)
         {

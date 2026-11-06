@@ -62,7 +62,7 @@ public sealed class GuaranteeConferenceHostTests
         var stopped = await UntilAsync(host, body => body.GetProperty("guarantees").GetProperty("recordedAt").ValueKind == JsonValueKind.String, cancellationToken);
         var stoppedAt = stopped.GetProperty("guarantees").GetProperty("recordedAt").GetDateTimeOffset();
         var late = await UntilAsync(host, body => body.GetProperty("guarantees").GetProperty("overdue").GetBoolean(), cancellationToken);
-        using var alive = await host.GetAsync("/status", cancellationToken);
+        using var alive = await host.SendAsAsync(HttpMethod.Get, "/status", json: null, session: null, cancellationToken);
 
         Assert.Equal(stoppedAt, late.GetProperty("guarantees").GetProperty("recordedAt").GetDateTimeOffset());
         Assert.Equal(HttpStatusCode.OK, alive.StatusCode);

@@ -13,6 +13,7 @@ namespace Core.Tests.Integration.Hosts;
 public sealed class SignInChainBusyHostTests
 {
     private const string Tries = "public.zqx_tries";
+    private const string WrongCredentialPhrase = "Nome ou senha não conferem";
 
     [DatabaseFact]
     public async Task RightPasswordThatMeetsAnotherWriterFourTimesIsRecordedAgainAndOpensTheSession()
@@ -60,6 +61,39 @@ public sealed class SignInChainBusyHostTests
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
+
+    [DatabaseFact]
+    public async Task FormOfTheEntryPageWithARightPasswordThatAlwaysMeetsAnotherWriterShowsPage503SayingNothingWasRefused()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var host = await AuthenticatedHost.StartAsync(new HostSetup(), cancellationToken);
+        await ConflictOnEntryAsync(host, conflicts: int.MaxValue, cancellationToken);
+
+        using var response = await FormAsync(host, host.Password, cancellationToken);
+        var page = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync(cancellationToken));
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        Assert.Contains("Nada foi recusado: tente de novo", page, StringComparison.Ordinal);
+        Assert.DoesNotContain(WrongCredentialPhrase, page, StringComparison.Ordinal);
+        Assert.False(response.Headers.Contains("Set-Cookie"));
+    }
+
+    [DatabaseFact]
+    public async Task FormOfTheEntryPageWithAWrongPasswordStillShowsTheCredentialPhraseAndNotTheBusyOne()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var host = await AuthenticatedHost.StartAsync(new HostSetup(), cancellationToken);
+
+        using var response = await FormAsync(host, "zqx-wrong", cancellationToken);
+        var page = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync(cancellationToken));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains(WrongCredentialPhrase, page, StringComparison.Ordinal);
+        Assert.DoesNotContain("Nada foi recusado", page, StringComparison.Ordinal);
+    }
+
+    private static Task<HttpResponseMessage> FormAsync(AuthenticatedHost host, string password, CancellationToken cancellationToken) =>
+        host.PostEntryFormAsync(host.Name, password, cancellationToken);
 
     private static Task<HttpResponseMessage> EnterAsync(AuthenticatedHost host, CancellationToken cancellationToken) =>
         host.SendAsAsync(HttpMethod.Post, "/session", $$"""{"name":"{{host.Name}}","password":"{{host.Password}}"}""", session: null, cancellationToken);

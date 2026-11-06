@@ -8,7 +8,8 @@ namespace Core.Host.Endpoints;
 /// <summary>
 /// The pages of the entry and of the exit, which a browser walks through with forms and not with JSON: the entry page and its form (open, because it makes the session),
 /// the exit (behind the gate, because it ends one) and the first page after the entry. A refusal is the same page again with the name typed and never the password,
-/// whatever its cause, except a right password the chain was too busy to record, which is the same page with 503 and a notice that nothing was refused; a success and an exit take the browser on with 303. The password is read from the body of the post and goes to the store of credentials, nowhere else.
+/// whatever its cause, except a right password the chain was too busy to record, which is the same page with 503 and a notice that nothing was refused;
+/// a success and an exit take the browser on with 303. The password is read from the body of the post and goes to the store of credentials, nowhere else.
 /// </summary>
 internal static class EntryPageEndpoint
 {

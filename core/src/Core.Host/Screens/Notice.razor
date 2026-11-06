@@ -1,0 +1,37 @@
+<div class="notice notice--@Kind.ToString().ToLowerInvariant()" role="@(Kind == Tone.Error ? "alert" : "status")">
+    <span class="notice__mark" aria-hidden="true">@Mark</span>
+    <p><span class="notice__kind">@Word:</span> @ChildContent</p>
+</div>
+
+@code {
+    /// <summary>What the notice tells; each one has its own word and shape, so it reads without colour.</summary>
+    public enum Tone
+    {
+        Info,
+        Success,
+        Pending,
+        Error,
+    }
+
+    [Parameter]
+    public Tone Kind { get; set; } = Tone.Info;
+
+    [Parameter, EditorRequired]
+    public RenderFragment? ChildContent { get; set; }
+
+    private string Word => Kind switch
+    {
+        Tone.Success => "Concluído",
+        Tone.Pending => "Pendente",
+        Tone.Error => "Erro",
+        _ => "Aviso",
+    };
+
+    private string Mark => Kind switch
+    {
+        Tone.Success => "✓",
+        Tone.Pending => "◷",
+        Tone.Error => "✕",
+        _ => "ℹ",
+    };
+}

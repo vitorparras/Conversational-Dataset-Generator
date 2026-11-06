@@ -32,20 +32,20 @@ public sealed class ThreeFormsTests
     [Fact]
     public void ACommentThatBringsAThreadByUnitsAndByAnswerIsRefusedWithBothPlaces()
     {
-        var answers = new ReadUnit(Marker, "ana", null, "bia", []);
-        var read = Units.Read(answers, Units.Message("B", "bia", 2), new ReadUnit("C", "cai", null, "ana", []));
+        var answers = new ReadUnit(Marker, "ana", null, 1, []);
+        var read = Units.Read(answers, Units.Message("B", "bia", 2), new ReadUnit("C", "cai", null, 0, []));
 
         var refusal = Assert.IsType<Refusal>(Conference.Confer(MaterialForm.Comment, read).Refusal);
 
         Assert.Equal(
-            (RefusalCode.ConversationThread, $"{Wording} comentário: {Thread}: unidade 2; unidade 3; unidade 1, campo a quem responde; unidade 3, campo a quem responde"),
+            (RefusalCode.ConversationThread, $"{Wording} comentário: {Thread}: unidade 2; unidade 3; unidade 1, campo a mensagem respondida; unidade 3, campo a mensagem respondida"),
             (refusal.Code, refusal.Reason));
     }
 
     [Fact]
     public void ACommentThatIsAThreadAndHasNoAuthorIsRefusedForTheAuthorFirst()
     {
-        var refusal = Refused(MaterialForm.Comment, new ReadUnit(Marker, null, null, "bia", []));
+        var refusal = Refused(MaterialForm.Comment, new ReadUnit(Marker, null, null, 1, []));
 
         Assert.Equal(RefusalCode.FieldMissing, refusal.Code);
     }
@@ -83,7 +83,7 @@ public sealed class ThreeFormsTests
     [Fact]
     public void ADocumentWithAnAnsweredAuthorOrPassagesButNoAuthorStaysNotAllowed()
     {
-        var answered = Refused(MaterialForm.Document, new ReadUnit("A", null, null, "bia", []));
+        var answered = Refused(MaterialForm.Document, new ReadUnit("A", null, null, 1, []));
         var marked = Refused(MaterialForm.Document, new ReadUnit("A", null, null, null, [new Passage(0, 1)]));
 
         Assert.Equal([RefusalCode.FieldNotAllowed, RefusalCode.FieldNotAllowed], [answered.Code, marked.Code]);

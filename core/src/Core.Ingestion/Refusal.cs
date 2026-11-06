@@ -90,7 +90,7 @@ public sealed record Refusal
         MaterialField.Text => "texto",
         MaterialField.Author => "autor",
         MaterialField.Instant => "instante",
-        MaterialField.RepliesTo => "a quem responde",
+        MaterialField.RepliesTo => "a mensagem respondida",
         MaterialField.Passages => "trechos",
         _ => throw new ArgumentOutOfRangeException(nameof(field), field, "The field is not one of the enumeration."),
     };

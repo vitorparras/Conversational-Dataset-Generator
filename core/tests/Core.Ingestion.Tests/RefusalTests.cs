@@ -51,7 +51,7 @@ public sealed class RefusalTests
     [InlineData(MaterialField.Text, "texto")]
     [InlineData(MaterialField.Author, "autor")]
     [InlineData(MaterialField.Instant, "instante")]
-    [InlineData(MaterialField.RepliesTo, "a quem responde")]
+    [InlineData(MaterialField.RepliesTo, "a mensagem respondida")]
     [InlineData(MaterialField.Passages, "trechos")]
     public void EachFieldIsNamedAsItIs(MaterialField field, string name)
     {

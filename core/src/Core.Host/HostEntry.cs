@@ -28,7 +28,7 @@ internal static class HostEntry
         var comparing = AuditCompareMode.Requested(args);
         var offline = migrating || comparing || RestoreLoadMode.Requested(args);
         var loaded = HostConfiguration.Load(RestoreLoadMode.ConfigurationArguments(AuditCompareMode.ConfigurationArguments(MigrationMode.ConfigurationArguments(args))), offline, comparing);
-        var database = HostConfiguration.DatabaseOf(loaded, offline);
+        var database = HostConfiguration.DatabaseOf(loaded);
         if (database is null || database.State == DatabaseSettingsState.Refused)
         {
             return HostLaunch.Refused(database?.Problems ?? loaded.Problems);

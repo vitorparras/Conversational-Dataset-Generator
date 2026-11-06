@@ -12,6 +12,9 @@ public enum RecoveryOutcome
     /// <summary>The receipt holds, but the top of the copy is not in this chain, or the key is not the one of the custody here, or both; the failures say which.</summary>
     NotConfirmed,
 
+    /// <summary>The receipt holds and is confirmed, but the chain already holds a record of that very receipt (same digest); the rehearsal is to be repeated and a new receipt recorded.</summary>
+    ReceiptRepeated,
+
     /// <summary>The chain refused the event, or another writer reached the same link first.</summary>
     ChainRefused,
 }

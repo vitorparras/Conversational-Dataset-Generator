@@ -120,6 +120,73 @@ public sealed class RecoveryRecordingTests
     }
 
     [DatabaseFact]
+    public async Task Ca584TheEventCarriesTheDigestOfTheReceiptItRecords()
+    {
+        await using var world = await WorldWithAChainAsync();
+        var receipt = await ReceiptOfTheTopAsync(world, Proof, new SampleCounts(2, 2, 0));
+
+        _ = await Recording(world).RecordAsync(receipt.ToText(), Proof, TestContext.Current.CancellationToken);
+
+        Assert.Equal(receipt.Digest(), await world.ScalarAsync("SELECT reference FROM public.custody_event WHERE step = 'recovery_tested'"));
+        Assert.Matches("^[0-9a-f]{64}$", receipt.Digest());
+    }
+
+    [DatabaseFact]
+    public async Task Ca584ARepeatedReceiptIsRefusedWithTheReasonAndTheChainDoesNotChange()
+    {
+        await using var world = await WorldWithAChainAsync();
+        var receipt = await ReceiptOfTheTopAsync(world, Proof, new SampleCounts(2, 2, 0));
+        var first = await Recording(world).RecordAsync(receipt.ToText(), Proof, TestContext.Current.CancellationToken);
+        var before = await world.ScalarAsync(Tip);
+
+        var again = await Recording(world).RecordAsync(receipt.ToText(), Proof, TestContext.Current.CancellationToken);
+
+        Assert.Equal((RecoveryOutcome.Recorded, RecoveryOutcome.ReceiptRepeated, 0L, 1L), (first.Outcome, again.Outcome, again.Sequence, await world.ScalarAsync(Written)));
+        Assert.Equal((RecoveryRecording.RepeatedWords, before), (Assert.Single(again.Failures), await world.ScalarAsync(Tip)));
+        Assert.Contains("já está registrado", RecoveryRecording.RepeatedWords, StringComparison.Ordinal);
+        Assert.True((await new CustodyVerifier(world.DataSource, TimeProvider.System).VerifyAsync(TestContext.Current.CancellationToken)).Passed);
+    }
+
+    [DatabaseFact]
+    public async Task Ca584AReceiptOfAnotherRehearsalOfTheSameTopIsAnotherReceiptAndIsRecorded()
+    {
+        await using var world = await WorldWithAChainAsync();
+        var receipt = await ReceiptOfTheTopAsync(world, Proof, new SampleCounts(2, 2, 0));
+        var later = receipt with { At = receipt.At.AddMinutes(1) };
+
+        var first = await Recording(world).RecordAsync(receipt.ToText(), Proof, TestContext.Current.CancellationToken);
+        var second = await Recording(world).RecordAsync(later.ToText(), Proof, TestContext.Current.CancellationToken);
+
+        Assert.Equal((RecoveryOutcome.Recorded, RecoveryOutcome.Recorded, 2L), (first.Outcome, second.Outcome, await world.ScalarAsync(Written)));
+    }
+
+    [DatabaseFact]
+    public async Task Ca584TwoRecordsOfTheSameReceiptAtOnceLeaveOneInTheChainAndTellTheOtherItIsRepeated()
+    {
+        await using var world = await WorldWithAChainAsync();
+        var receipt = await ReceiptOfTheTopAsync(world, Proof, new SampleCounts(2, 2, 0));
+
+        var records = await Task.WhenAll(
+            Recording(world).RecordAsync(receipt.ToText(), Proof, TestContext.Current.CancellationToken),
+            Recording(world).RecordAsync(receipt.ToText(), Proof, TestContext.Current.CancellationToken));
+
+        Assert.Equal([RecoveryOutcome.Recorded, RecoveryOutcome.ReceiptRepeated], records.Select(record => record.Outcome).Order().ToList());
+        Assert.Equal(1L, await world.ScalarAsync(Written));
+    }
+
+    [DatabaseFact]
+    public async Task Ca584ARepeatedReceiptWithAKeyThatDoesNotMatchIsToldAsNotConfirmed()
+    {
+        await using var world = await WorldWithAChainAsync();
+        var receipt = await ReceiptOfTheTopAsync(world, Proof, new SampleCounts(2, 2, 0));
+        _ = await Recording(world).RecordAsync(receipt.ToText(), Proof, TestContext.Current.CancellationToken);
+
+        var again = await Recording(world).RecordAsync(receipt.ToText(), "fedcba9876543210", TestContext.Current.CancellationToken);
+
+        Assert.Equal((RecoveryOutcome.NotConfirmed, 1L), (again.Outcome, await world.ScalarAsync(Written)));
+    }
+
+    [DatabaseFact]
     public async Task TheChainThatRefusesTheEventWhileItsLastVerificationFailedIsToldAndNothingIsWritten()
     {
         await using var world = await ContentWorld.CreateAsync();

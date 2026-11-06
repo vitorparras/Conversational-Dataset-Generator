@@ -94,7 +94,7 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
 }
 
 .nav__link:hover { color: var(--accent-hover); text-decoration: underline; }
-.nav__link[aria-current="page"] { color: var(--accent); text-decoration: underline; text-decoration-thickness: var(--line-strong); }
+.nav__link[aria-current] { color: var(--accent); text-decoration: underline; text-decoration-thickness: var(--line-strong); }
 
 /* Domain picker: shown only with a domain granted. */
 .domain { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin: 0; }
@@ -157,6 +157,7 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
 }
 
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+.data-table + .actions { margin-top: var(--space-4); }
 
 /* Field with label and error */
 .field { display: grid; gap: var(--space-2); max-width: var(--field-width); margin-bottom: var(--space-5); }

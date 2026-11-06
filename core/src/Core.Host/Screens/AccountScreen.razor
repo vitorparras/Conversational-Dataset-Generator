@@ -7,7 +7,7 @@
     <Notice Kind="Notice.Tone.Success">@said</Notice>
 }
 <Panel Id="senha" Title="Senha">
-    <p>Trocar a senha encerra as suas outras sessões abertas. Esta continua aberta.</p>
+    <p>Trocar a senha encerra as suas outras sessões abertas; esta continua aberta.</p>
     <Button Href="@ScreenPaths.AccountChange" Kind="Button.Look.Secondary">Trocar senha</Button>
 </Panel>
 <Panel Id="sessoes" Title="Sessões abertas">
@@ -78,8 +78,8 @@
     private static string Others(int ended) => ended switch
     {
         0 => "Não havia outras sessões abertas.",
-        1 => "A outra sessão aberta foi encerrada; esta continua.",
-        _ => $"As outras {ended} sessões abertas foram encerradas; esta continua.",
+        1 => "A outra sessão aberta foi encerrada; esta continua aberta.",
+        _ => $"As outras {ended} sessões abertas foram encerradas; esta continua aberta.",
     };
 
     private static string EndAddress(SessionListing session) => $"{ScreenPaths.AccountEnd}?{SessionEndScreen.SessionField}={Uri.EscapeDataString(session.ListingId)}";

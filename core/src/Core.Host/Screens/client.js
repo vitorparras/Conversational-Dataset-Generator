@@ -37,8 +37,18 @@
         (document.getElementById("content") || document.body).focus();
     }
 
+    // A swap a GET made changes what the page shows, so the address takes it (decision 0051): going back, and sharing the address, give the same region.
+    // The entry the page was loaded on is marked with its region as well, so that going back to it restores the region as it was.
+    function remember(id, url) {
+        if (!history.state) {
+            history.replaceState({ swap: id }, "", location.href);
+        }
+        history.pushState({ swap: id }, "", url);
+    }
+
     // Resolves to true when nothing reached back from the server, so that only a request that changes nothing may be sent again as a plain load.
-    function request(url, init, id) {
+    // A request that is to be remembered puts its address in the history once its region is swapped in, and only then.
+    function request(url, init, id, remembered) {
         var region = document.getElementById(id);
         if (region) {
             region.setAttribute("aria-busy", "true");
@@ -49,6 +59,8 @@
                 var received = new DOMParser().parseFromString(html, "text/html");
                 if (!swapIn(id, received)) {
                     showWhole(response, received);
+                } else if (remembered) {
+                    remember(id, response.redirected ? response.url : url);
                 }
                 return false;
             });
@@ -109,7 +121,7 @@
         } else {
             init.body = new URLSearchParams(data);
         }
-        request(url, init, id).then(function (unanswered) {
+        request(url, init, id, method === "GET").then(function (unanswered) {
             if (unanswered && method === "GET") {
                 location.assign(url);
             }
@@ -122,9 +134,23 @@
             return;
         }
         event.preventDefault();
-        request(link.href, { method: "GET" }, link.getAttribute("data-swap")).then(function (unanswered) {
+        request(link.href, { method: "GET" }, link.getAttribute("data-swap"), true).then(function (unanswered) {
             if (unanswered) {
                 location.assign(link.href);
+            }
+        });
+    });
+
+    // Going back or forth to an entry a swap made asks the server for that address again and swaps the same region, without a new entry;
+    // an entry the layer did not make, such as the jump to the content, is the browser's own.
+    window.addEventListener("popstate", function (event) {
+        var id = event.state && event.state.swap;
+        if (!id) {
+            return;
+        }
+        request(location.href, { method: "GET" }, id, false).then(function (unanswered) {
+            if (unanswered) {
+                location.reload();
             }
         });
     });

@@ -7,6 +7,8 @@ import shutil
 import subprocess
 import unittest
 
+from steps import tested_tree
+
 from . import support
 
 WORKFLOWS = support.VERIFY_CODE.parents[1] / ".github" / "workflows"
@@ -76,6 +78,46 @@ class ChangesWorkflowTests(unittest.TestCase):
         self.assertIn('${BASE:+--base "$BASE"}', run)
         self.assertNotIn("${{", run)
         self.assertIn('>> "$GITHUB_OUTPUT"', text)
+
+    def test_only_a_push_asks_whether_a_pull_request_tested_the_tree(self) -> None:
+        text = job("changes")
+
+        self.assertIn("TESTED_SHA: ${{ github.event_name == 'push' && github.sha || '' }}", text)
+        self.assertIn('${TESTED_SHA:+--tested-sha "$TESTED_SHA" --repository', text)
+        for permission in ("contents: read", "actions: read", "pull-requests: read"):
+            self.assertIn(f"      {permission}\n", text)
+        for output in ("heavy", "tested_run", "tested_head", "promote"):
+            self.assertIn(f"{output}: ${{{{ steps.classify.outputs.{output} }}}}", text)
+
+    def test_the_promotion_runs_on_a_push_with_a_tested_tree_and_only_for_the_tables_it_has(
+        self,
+    ) -> None:
+        text = job("promote_coverage")
+
+        self.assertIn(
+            "if: ${{ github.event_name == 'push' && needs.changes.outputs.tested_run", text
+        )
+        steps = re.split(r"^      - ", text, flags=re.MULTILINE)[1:]
+        self.assertEqual(len(steps), 3)
+        for step in steps:
+            self.assertIn("if: contains(needs.changes.outputs.promote, matrix.language)", step)
+        self.assertIn("key: cobertura-${{ matrix.language }}-${{ github.sha }}", text)
+        self.assertIn("path: ${{ runner.temp }}/cobertura-main\n", text)
+        self.assertNotIn('run: gh run download "${{', text)
+
+    def test_each_job_that_measures_the_coverage_keeps_the_table_for_the_promotion(self) -> None:
+        for name in ("dotnet", "python"):
+            with self.subTest(job=name):
+                text = job(name)
+                upload = text[text.index("Guardar o by-area.md do pull request") :]
+                upload = upload[: upload.index("      - name: Separar")]
+
+                self.assertIn("if: github.event_name == 'pull_request'", upload)
+                head = "${{ github.event.pull_request.head.sha }}"
+                expected = tested_tree.ARTIFACT.format(language=name, head=head)
+                self.assertIn(f"name: {expected}", upload)
+                self.assertIn("if-no-files-found: error", upload)
+                self.assertIn("path: .verify-code/coverage/by-area.md", upload)
 
     def test_the_heavy_jobs_wait_for_the_classification_and_run_unless_it_dispenses_them(
         self,

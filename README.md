@@ -50,16 +50,16 @@ python tools/verify-code/verify.py --list
 python tools/verify-code/verify.py --step pr_size --base origin/main
 ```
 
-Num pull request que só muda documento Markdown de `docs/` ou da raiz, e que nenhum código,
-teste ou ferramenta lê, o job `changes` da CI imprime `heavy=false` e o `if:` dispensa os jobs
-pesados do código (núcleo, serviço, propriedades, construção, pasta, partida offline, mutação e
-prova da régua). Quem lê é o `git grep` do caminho, da pasta e do nome do documento em `core/`,
-`language-service/` e `tools/`; uma citação em comentário também conta como leitura. Os checks
-obrigatórios seguem reportando: o job dispensado aparece como `skipped`, e o agregador
-"Mutação nos módulos críticos" só aceita `skipped` quando a classificação deu `heavy=false`.
-Qualquer outro arquivo, um diff vazio, um erro e o push no main dão `heavy=true`; a execução
-semanal não classifica nada e roda os mesmos jobs de sempre. Para ver a decisão e o motivo
-(no `stderr`): `python tools/verify-code/verify.py --changes --base origin/main`.
+Num pull request que só muda Markdown de `docs/` ou da raiz que nenhum código, teste ou
+ferramenta lê
+(`git grep` do caminho, da pasta e do nome em `core/`, `language-service/` e `tools/`; citar em
+comentário conta), o job `changes` dá `heavy=false` e o `if:` dispensa os jobs pesados do código;
+o agregador "Mutação nos módulos críticos" só aceita `skipped` nesse caso. Outro arquivo, diff
+vazio ou erro dá `heavy=true`; a execução semanal não classifica. No push do main, `--changes
+--tested-sha <commit> --repository <dono/nome>` pergunta à API se um PR verde já testou a árvore
+(pai contido na cabeça, mesma árvore, última execução verde, cobertura guardada): se sim, só rodam
+o CodeQL, os jobs leves e a promoção da cobertura; se não, ou se algo falhar, a régua inteira.
+A decisão sai no `stdout`, o motivo no `stderr`: `verify.py --changes --base origin/main`.
 
 A ordem é única: `--step test_core` sozinho, em árvore limpa, falha porque testa com `--no-build`;
 `build_core` vem antes, e a execução sem argumento segue essa ordem. Os passos `lint_tools` e

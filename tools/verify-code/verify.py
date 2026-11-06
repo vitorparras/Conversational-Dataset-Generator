@@ -41,6 +41,7 @@ from steps import (
     test_real_service,
     test_service,
     test_tools,
+    tested_tree,
     trivy,
 )
 from steps.common import OUTPUT_DIRECTORY, Context, StepResult, run_process
@@ -134,9 +135,22 @@ def print_mutation_modules() -> int:
     return 0
 
 
-def print_changes(base: str | None) -> int:
-    """`heavy=true` or `heavy=false` for the output of the CI, the reasons on stderr."""
+def print_changes(base: str | None, sha: str | None, repository: str | None) -> int:
+    """The output lines of the CI: `heavy=true|false` and, for a tree a pull request tested,
+    the run, the head and the languages to promote; the reasons go to stderr."""
     ctx = Context(ROOT, ROOT / OUTPUT_DIRECTORY, run_process, base)
+    if sha and repository:
+        found = tested_tree.tested(ctx, repository, sha)
+        if found is None:
+            print(
+                "nenhuma execução verde de PR com a árvore do commit: régua inteira",
+                file=sys.stderr,
+            )
+            print("heavy=true")
+            return 0
+        print(f"heavy=false\ntested_run={found.run}\ntested_head={found.head}")
+        print(f"promote={' '.join(found.promote)}")
+        return 0
     decision = changes.verdict(ctx)
     for reason in decision.reasons:
         print(reason, file=sys.stderr)
@@ -155,8 +169,8 @@ def usage_error(requested: list[str], module: str | None) -> str | None:
     return None
 
 
-def main(argv: list[str] | None = None) -> int:
-    _print_utf8()
+def build_parser() -> argparse.ArgumentParser:
+    """The command line: the steps to run, and the flags that print what the CI reads."""
     parser = argparse.ArgumentParser(description="Verifica o código do repositório.")
     parser.add_argument("--list", action="store_true", help="lista os passos, na ordem da CI")
     parser.add_argument("--step", nargs="+", default=[], metavar="NAME", help="passos a rodar")
@@ -173,16 +187,25 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="imprime heavy=true ou heavy=false: o diff de --base pede os jobs pesados do código?",
     )
+    parser.add_argument(
+        "--tested-sha", help="com --changes: um PR verde testou a árvore do commit?"
+    )
+    parser.add_argument("--repository", help="com --tested-sha: dono/nome do repositório")
     parser.add_argument("--base", help="ref de comparação para pr_size (ex.: origin/main)")
     parser.add_argument("--previous", type=Path, help="by-area.md anterior: floors avisa queda")
-    args = parser.parse_args(argv)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    _print_utf8()
+    args = build_parser().parse_args(argv)
     if args.list:
         print("\n".join(s.name for s in STEPS))
         return 0
     if args.mutation_modules:
         return print_mutation_modules()
     if args.changes:
-        return print_changes(args.base)
+        return print_changes(args.base, args.tested_sha, args.repository)
     refusal = usage_error(args.step, args.module)
     if refusal:
         print(refusal)

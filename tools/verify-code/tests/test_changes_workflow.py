@@ -161,8 +161,16 @@ class ChangesWorkflowTests(unittest.TestCase):
         self.assertIn("workflow_dispatch:", WORKFLOW.read_text(encoding="utf-8"))
         lister = job("mutation_modules")
         self.assertNotIn("schedule", lister)
-        self.assertIn("github.event_name == 'pull_request' && format('origin/{0}'", lister)
+        self.assertIn("github.event_name == 'pull_request' && needs.changes.result", lister)
+        self.assertIn("== 'success' && format('origin/{0}'", lister)
         self.assertIn("fetch-depth: 0", lister)
+
+    def test_a_failed_classification_makes_the_list_read_every_module(self) -> None:
+        step = job("mutation_modules")
+        base = step[step.index("BASE:") : step.index("run: |")]
+
+        self.assertLess(base.index("needs.changes.result == 'success'"), base.index("format("))
+        self.assertTrue(base.rstrip().endswith("|| '' }}"))
 
     def test_the_light_jobs_never_wait_for_the_classification_nor_depend_on_it(self) -> None:
         for name in ALWAYS:
@@ -227,6 +235,12 @@ class AggregatorTests(unittest.TestCase):
             with self.subTest(listed=listed):
                 self.assertEqual(aggregate("success", "true", listed, "", "skipped"), 1)
                 self.assertEqual(aggregate("success", "true", listed, "[]", "skipped"), 1)
+
+    def test_an_empty_matrix_needs_a_classification_that_succeeded(self) -> None:
+        for classification in ("failure", "cancelled", "skipped", ""):
+            with self.subTest(classification=classification):
+                self.assertEqual(aggregate(classification, "", "success", "[]", "skipped"), 1)
+        self.assertEqual(aggregate("success", "true", "success", "[]", "skipped"), 0)
 
     def test_a_failed_classification_reproves_a_skipped_list_and_accepts_a_green_run(self) -> None:
         self.assertEqual(aggregate("failure", "", "skipped", "", "skipped"), 1)

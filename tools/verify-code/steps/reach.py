@@ -19,13 +19,13 @@ from fnmatch import fnmatch
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
 from steps import changes, mutation, mutation_core, mutation_service
-from steps.areas_doc import FOLDER, Area, read_areas, within
+from steps.areas_doc import FOLDER, Area, area_of, read_areas, within
 from steps.build_service import SERVICE
 from steps.common import Context
 
 REFERENCE = re.compile(r'<ProjectReference\s+Include="([^"]+)"')
 DYNAMIC = "importlib"
-BUILTIN = "__import__"
+BUILTINS = ("__import__", "exec", "eval")
 WHOLE_NAMES = ("packages.lock.json", "global.json", "uv.lock", "Core.slnx", "Directory.")
 SERVICE_SOURCES = f"{SERVICE}/{mutation_service.SOURCES}"
 CORE_TREES = (("core", "src"), ("core", "tests"))
@@ -72,7 +72,11 @@ def targets(parent: list[str], source: str) -> tuple[set[str], bool]:
             found.add(".".join(module))
             found.update(f"{'.'.join(module)}.{alias.name}" for alias in node.names)
         elif isinstance(node, ast.Name):
-            opaque |= node.id == BUILTIN
+            opaque |= node.id in BUILTINS
+        elif isinstance(node, ast.Attribute):
+            opaque |= node.attr in BUILTINS
+        elif isinstance(node, ast.Constant):
+            opaque |= node.value == BUILTINS[0]
     return found, opaque
 
 
@@ -115,14 +119,16 @@ def closure(graph: Graph, start: Iterable[str]) -> set[str]:
     return seen
 
 
-def in_service(path: str, known: Mapping[str, Path]) -> tuple[str, str] | None:
-    """The module or test of the language service a changed path is, or None."""
+def in_service(root: Path, path: str, known: Mapping[str, Path]) -> tuple[str, str] | None:
+    """The module or test of the language service a changed path is, or None. A test the head no
+    longer has is none: what it killed is gone, so the whole ruler runs."""
     pure = PurePosixPath(path)
     unit = ".".join(pure.with_suffix("").parts[2:]).removesuffix(".__init__")
     if path.startswith(f"{SERVICE_SOURCES}/") and pure.suffix == ".py" and unit in known:
         return "unit", unit
     tests = f"{SERVICE}/{mutation_service.TESTS}/"
-    if path.startswith(tests) and any(fnmatch(pure.name, g) for g in mutation_service.TEST_FILES):
+    named = any(fnmatch(pure.name, g) for g in mutation_service.TEST_FILES)
+    if path.startswith(tests) and named and (root / path).is_file():
         return "test", path.removeprefix(f"{SERVICE}/")
     return None
 
@@ -141,7 +147,7 @@ def classify(
         return None if changes.read_by_code(ctx, path) else ("doc", path)
     if parts[:2] in CORE_TREES and len(parts) > PROJECT_FILE and parts[2] in graph:
         return "project", parts[2]
-    return in_service(path, known)
+    return in_service(ctx.root, path, known)
 
 
 def why(graph: Graph, code: set[str], tests: set[str], touched: set[str]) -> str | None:
@@ -170,8 +176,32 @@ def reason(ctx: Context, area: Area, everything: tuple[Area, ...], touched: Touc
         known = units(ctx.root)
         owned = {name for name in known if within(name, area.prefix)}
         tests = set(mutation_service.test_files(ctx.root, area, everything))
-        return why(imports(known), owned, tests, touched["unit"] | touched["test"])
+        found = why(imports(known), owned, tests, touched["unit"] | touched["test"])
+        before = (
+            "um teste que o importava na base mudou" if area.prefix in touched["before"] else None
+        )
+        return found or before
     return "fora dos mapas de projeto e de pacote: na dúvida, roda"
+
+
+def imported_before(ctx: Context, tests: set[str], areas: tuple[Area, ...]) -> set[str] | None:
+    """The areas the changed tests imported at the merge base; None when it cannot read them."""
+    mark = ctx.run(["git", "merge-base", ctx.base or "", "HEAD"], ctx.root)
+    base = mark.text.strip()
+    found: set[str] = set()
+    for test in sorted(tests):
+        path = f"{SERVICE}/{test}"
+        listed = ctx.run(["git", "ls-tree", "--name-only", base, "--", path], ctx.root)
+        if not mark.ok or not listed.ok:
+            return None
+        if not listed.text.strip():
+            continue  # a new test imported nothing before
+        shown = ctx.run(["git", "show", f"{base}:{path}"], ctx.root)
+        if not shown.ok:
+            return None
+        owners = (area_of(unit, areas) for unit in mutation_service.imported(shown.text))
+        found |= {area.prefix for area in owners if area is not None}
+    return found
 
 
 def select(ctx: Context) -> tuple[tuple[str, ...], list[str]]:
@@ -192,6 +222,10 @@ def select(ctx: Context) -> tuple[tuple[str, ...], list[str]]:
         if placed is None:
             return everything, [f"régua inteira: `{path}` está fora do grafo ou dispara a régua"]
         touched[placed[0]].add(placed[1])
+    before = imported_before(ctx, touched["test"], table.areas)
+    if before is None:
+        return everything, ["régua inteira: não li na base um teste que mudou"]
+    touched["before"] = before
     lines = {a.prefix: reason(ctx, a, table.areas, touched) for a in modules}
     chosen = [a.prefix for a in modules if lines[a.prefix]]
     shown = [f"- `{prefix}`: {lines[prefix]}" for prefix in chosen]

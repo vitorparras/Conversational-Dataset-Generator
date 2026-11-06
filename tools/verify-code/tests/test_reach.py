@@ -168,6 +168,33 @@ class ReachTests(unittest.TestCase):
         self.assertEqual(names, {"language_service.proof"})
         self.assertIn("- `language_service.proof`: o teste tests/test_proof.py mudou", lines)
 
+    def test_a_test_the_head_no_longer_has_runs_the_whole_ruler(self) -> None:
+        (self.repo / SERVICE / "tests/test_proof.py").unlink()
+        commit(self.repo, {})
+
+        names, lines = reach.select(support.context(self.repo, None, "main"))
+
+        self.assertEqual(set(names), self.everything())
+        self.assertTrue(lines[0].startswith("régua inteira:"))
+        self.assertIn("test_proof.py", lines[0])
+
+    def test_a_test_that_stopped_importing_a_module_still_reaches_it(self) -> None:
+        names, lines = self.reached({f"{SERVICE}/tests/test_proof.py": "x = 1\n"})
+
+        self.assertEqual(names, {"language_service.proof"})
+        self.assertIn("- `language_service.proof`: um teste que o importava na base mudou", lines)
+
+    def test_a_test_that_now_imports_a_module_reaches_it_by_the_head(self) -> None:
+        changed = {f"{SERVICE}/tests/test_proof.py": "import language_service.auth\n"}
+        names, _ = self.reached(changed)
+
+        self.assertEqual(names, {"language_service.proof", "language_service.auth"})
+
+    def test_a_new_test_has_nothing_to_read_at_the_base(self) -> None:
+        names, _ = self.reached({f"{SERVICE}/tests/test_new.py": "import language_service.proof\n"})
+
+        self.assertEqual(names, {"language_service.proof"})
+
     def test_a_module_of_one_language_does_not_reach_the_other(self) -> None:
         names, _ = self.reached({f"{PACKAGE}/proof/__init__.py": "x = 1\n"})
 
@@ -279,6 +306,9 @@ class ImportTests(unittest.TestCase):
             "import importlib.util\n",
             "from importlib import import_module\n",
             "x = __import__('language_service.auth')\n",
+            "import builtins\nx = getattr(builtins, '__import__')\n",
+            "import builtins\nx = builtins.__import__\n",
+            "exec('import language_service.auth')\n",
             "from ... import x\n",
             "def broken(:\n",
         )

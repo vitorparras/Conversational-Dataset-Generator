@@ -313,7 +313,7 @@ jobs:
       - id: list
         name: Ler os módulos críticos que o diff alcança (todos fora de pull request ou na dúvida)
         env:
-          BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
+          BASE: ${{ github.event_name == 'pull_request' && needs.changes.result == 'success' && format('origin/{0}', github.base_ref) || '' }}
         run: |
           modules=$(python tools/verify-code/verify.py --mutation-modules ${BASE:+--base "$BASE"} 2> "$RUNNER_TEMP/alcance.md")
           echo "modules=$modules" >> "$GITHUB_OUTPUT"
@@ -368,7 +368,7 @@ jobs:
           if [ "$CLASSIFICATION" = success ] && [ "$HEAVY" = false ]; then
             list=skipped
             matrix=skipped
-          elif [ "$LISTED" = success ] && [ "$MODULES" = '[]' ]; then
+          elif [ "$CLASSIFICATION" = success ] && [ "$LISTED" = success ] && [ "$MODULES" = '[]' ]; then
             matrix=skipped
           fi
           [ "$LISTED" = "$list" ] && [ "$MATRIX" = "$matrix" ] || exit 1

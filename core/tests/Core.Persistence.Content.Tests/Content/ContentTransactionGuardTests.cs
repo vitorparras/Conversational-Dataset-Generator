@@ -5,7 +5,8 @@ using Npgsql;
 
 namespace Core.Persistence.Tests.Content;
 
-/// <summary>The guards of the other ways to open a transaction of content, and of the change of its domain (issue 74): each refusal names the parameter and holds the value it refused.</summary>
+/// <summary>The guards of the other ways to open a transaction of content, and of the change of its domain (issue 683): each refusal names the parameter and holds the value it refused.</summary>
+[Trait("Category", "Database")]
 public sealed class ContentTransactionGuardTests
 {
     [Fact]

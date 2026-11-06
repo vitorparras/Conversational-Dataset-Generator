@@ -1,0 +1,13 @@
+<div class="facts__item">
+    <dt>@Term</dt>
+    <dd>@ChildContent</dd>
+</div>
+
+@code {
+    /// <summary>What the fact is about, said first.</summary>
+    [Parameter, EditorRequired]
+    public string Term { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public RenderFragment? ChildContent { get; set; }
+}

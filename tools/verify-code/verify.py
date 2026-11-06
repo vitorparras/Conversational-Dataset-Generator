@@ -34,6 +34,7 @@ from steps import (
     package,
     pr_size,
     properties,
+    reach,
     ruler_proof,
     secrets,
     static_analysis,
@@ -125,12 +126,17 @@ def _print_utf8() -> None:
             stream.reconfigure(encoding="utf-8")
 
 
-def print_mutation_modules() -> int:
-    """The critical modules as a JSON list for the matrix of the CI; 1 when the areas give none."""
+def print_mutation_modules(base: str | None) -> int:
+    """The critical modules as a JSON list for the matrix of the CI; with ``base``, only the ones
+    the diff reaches (the reasons go to stderr); 1 when the areas give none."""
     modules, problems = mutation.names(ROOT)
     if problems:
         print("\n".join(problems))
         return 1
+    reasons = ["todos os módulos: não é pull request"]
+    if base:
+        modules, reasons = reach.select(Context(ROOT, ROOT / OUTPUT_DIRECTORY, run_process, base))
+    print("\n".join(reasons), file=sys.stderr)
     print(json.dumps(modules, ensure_ascii=False))
     return 0
 
@@ -172,7 +178,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--mutation-modules",
         action="store_true",
-        help="imprime em JSON os módulos críticos e suas partes, a matriz do CI",
+        help="imprime em JSON os módulos críticos, a matriz do CI (com --base, só os do diff)",
     )
     parser.add_argument(
         "--changes",
@@ -195,7 +201,7 @@ def main(argv: list[str] | None = None) -> int:
         print("\n".join(s.name for s in STEPS))
         return 0
     if args.mutation_modules:
-        return print_mutation_modules()
+        return print_mutation_modules(args.base)
     if args.changes:
         return print_changes(args.base, args.tested_sha, args.repository)
     refusal = usage_error(args.step, args.module)

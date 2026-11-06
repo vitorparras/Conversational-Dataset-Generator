@@ -7,9 +7,9 @@ namespace Core.Ingestion;
 /// <param name="Text">The text of the unit.</param>
 /// <param name="Author">Who wrote it, when the content says.</param>
 /// <param name="Instant">The moment the content gives for it.</param>
-/// <param name="RepliesTo">The author it answers, when the content says.</param>
+/// <param name="RepliesTo">The position, among the units of the material, of the unit it answers, when the content says.</param>
 /// <param name="Passages">The limits of the passages the content marks in the text; none when it marks none.</param>
-public sealed record ReadUnit(string Text, string? Author, DateTimeOffset? Instant, string? RepliesTo, IReadOnlyList<Passage> Passages)
+public sealed record ReadUnit(string Text, string? Author, DateTimeOffset? Instant, int? RepliesTo, IReadOnlyList<Passage> Passages)
 {
     /// <summary>The text of the unit.</summary>
     public string Text { get; } = Text ?? throw new ArgumentNullException(nameof(Text));

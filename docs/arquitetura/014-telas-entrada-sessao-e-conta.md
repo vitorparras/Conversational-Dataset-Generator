@@ -1,7 +1,8 @@
 # 014 — Telas de entrada, sessão e conta
 
 > Descrição. 2026-11-04.
-> Estado no código: nenhuma tela existe; as rotas estão em `core/src/Core.Host/Endpoints/`.
+> Estado no código: só a página base e os componentes, em `core/src/Core.Host/Screens/`
+> ([0052](../decisoes/0052-montagem-das-telas.md)); as rotas estão em `core/src/Core.Host/Endpoints/`.
 
 Telas que toda pessoa usa, qualquer que seja a função. Seguem os padrões da
 [0051](../decisoes/0051-navegacao-gestao-e-relatorio.md) e o [índice](013-mapa-de-telas.md).

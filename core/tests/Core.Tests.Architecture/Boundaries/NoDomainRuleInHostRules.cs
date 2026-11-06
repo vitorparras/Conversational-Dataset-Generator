@@ -7,6 +7,9 @@ namespace Core.Tests.Architecture.Boundaries;
 /// <summary>The host only composes, serves endpoints and supervises, so no name it declares, and no file it holds, speaks the product's domain.</summary>
 internal static partial class NoDomainRuleInHostRules
 {
+    private const string ComponentExtension = ".razor";
+    private const string RazorGenerator = "/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/";
+
     /// <summary>Stems of the forms of material, the parts of a conversation, the pipeline stages, the custody of the material, the taxonomy and the people in the material.</summary>
     private static readonly string[] DomainTerms =
     [
@@ -18,6 +21,8 @@ internal static partial class NoDomainRuleInHostRules
     /// <summary>Words after which <c>Message</c> names a log line, as in the <c>*LogMessages</c> classes or a <c>logMessage</c>, not a part of a conversation.</summary>
     private static readonly string[] LoggingWords = ["Log", "Logger"];
 
+    private static readonly char[] PathSeparators = [Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar];
+
     private static readonly SymbolKind[] JudgedKinds =
         [SymbolKind.Namespace, SymbolKind.Alias, SymbolKind.NamedType, SymbolKind.TypeParameter, SymbolKind.Method, SymbolKind.Property, SymbolKind.Field, SymbolKind.Event, SymbolKind.Parameter];
 
@@ -25,13 +30,36 @@ internal static partial class NoDomainRuleInHostRules
     public static IReadOnlyList<SourceFile> HostFiles() =>
         CompilerInvocation.Of(SourceTree.ProductionProject(ModuleBoundaryRules.Host).Path).SourceFiles;
 
-    /// <summary>Every name or file name that carries a domain term.</summary>
+    /// <summary>The sources of the host, its Razor components, and what the Razor generator writes for them: the class, the members and the parameters a component declares.</summary>
+    public static IReadOnlyList<SourceFile> HostAndComponentFiles()
+    {
+        var invocation = CompilerInvocation.Of(SourceTree.ProductionProject(ModuleBoundaryRules.Host).Path);
+        return [.. invocation.SourceFiles, .. invocation.GeneratorFiles.Where(IsRazorOutput), .. HostComponents()];
+    }
+
+    /// <summary>Every name or file name that carries a domain term; a component is judged by its file name, and the names inside it by what the generator writes.</summary>
     public static IEnumerable<Violation> Check(IReadOnlyList<SourceFile> files) =>
-        files.SelectMany(FileNameFindings).Concat(Declarations(files).SelectMany(NameFindings)).Distinct();
+        files.SelectMany(FileNameFindings).Concat(Declarations([.. files.Where(file => !IsComponent(file))]).SelectMany(NameFindings)).Distinct();
 
     /// <summary>Every name the files declare, as the compiler binds it: namespaces, aliases, types, type parameters, members and their parameters.</summary>
     public static IEnumerable<string> DeclaredNames(IReadOnlyList<SourceFile> files) =>
         Declarations(files).Select(declaration => declaration.Name);
+
+    /// <summary>The components under the host project, wherever they sit in it; the build output is no component.</summary>
+    private static IEnumerable<SourceFile> HostComponents() =>
+        Directory.EnumerateFiles(Path.GetDirectoryName(SourceTree.ProductionProject(ModuleBoundaryRules.Host).Path)!, "*" + ComponentExtension, SearchOption.AllDirectories)
+            .Where(path => !IsBuildOutput(path))
+            .Order(StringComparer.Ordinal)
+            .Select(SourceFile.Read);
+
+    private static bool IsBuildOutput(string path) =>
+        Array.Exists(path.Split(PathSeparators), part => part is "bin" or "obj");
+
+    private static bool IsComponent(SourceFile file) =>
+        string.Equals(Path.GetExtension(file.Path), ComponentExtension, StringComparison.Ordinal);
+
+    private static bool IsRazorOutput(SourceFile file) =>
+        file.Path.Replace('\\', '/').Contains(RazorGenerator, StringComparison.Ordinal);
 
     private static IEnumerable<Declaration> Declarations(IReadOnlyList<SourceFile> files)
     {

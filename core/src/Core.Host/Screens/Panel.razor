@@ -1,0 +1,18 @@
+<section class="panel" aria-labelledby="@HeadingId">
+    <h2 id="@HeadingId">@Title</h2>
+    @ChildContent
+</section>
+
+@code {
+    /// <summary>The identifier of the panel, which names its heading and so the section a reader of screens lands on.</summary>
+    [Parameter, EditorRequired]
+    public string Id { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = "";
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private string HeadingId => $"{Id}-titulo";
+}

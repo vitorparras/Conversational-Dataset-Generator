@@ -16,6 +16,7 @@ namespace Core.Persistence.Tests.ServerGuarantees;
 public sealed class GuaranteeVerifierTests
 {
     private const string Verification = "SELECT reason || '|' || item_id FROM public.custody_event WHERE step = 'verify_guarantees' ORDER BY sequence";
+    private const string Tries = "public.zqx_tries";
     private const string ReadSteps = "SELECT step FROM public.custody_event WHERE step LIKE '%read' AND actor_system AND reason = 'content_read' ORDER BY step";
 
     [DatabaseFact]
@@ -249,6 +250,44 @@ public sealed class GuaranteeVerifierTests
         var recorded = await new RecordedVerificationReader(world.DataSource).LastGuaranteesAsync(TestContext.Current.CancellationToken);
 
         Assert.Null(recorded);
+    }
+
+    [DatabaseFact]
+    public async Task VerdictThatMeetsAnotherWriterAtTheChainIsRecordedAgainOnTheThirdTry()
+    {
+        await using var world = await FidelityWorld.CreateAsync();
+        await ConflictOnVerdictAsync(world, conflicts: 2);
+
+        var verification = await world.Verifier().VerifyAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal((CustodyOutcome.Appended, GuaranteeKinds.None), (verification.Recorded.Outcome, verification.Missing));
+        Assert.Equal(["3"], await world.OwnerColumnAsync($"SELECT last_value::text FROM {Tries}"));
+        Assert.Equal(["verification_passed|0"], await world.OwnerColumnAsync(Verification));
+    }
+
+    [DatabaseFact]
+    public async Task VerdictThatAlwaysMeetsAnotherWriterIsTriedTheFiveTimesAndTheAnswerSaysConflictWithNothingWritten()
+    {
+        await using var world = await FidelityWorld.CreateAsync();
+        await ConflictOnVerdictAsync(world, conflicts: int.MaxValue);
+
+        var verification = await world.Verifier().VerifyAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(CustodyOutcome.Conflict, verification.Recorded.Outcome);
+        Assert.Equal(["5"], await world.OwnerColumnAsync($"SELECT last_value::text FROM {Tries}"));
+        Assert.Empty(await world.OwnerColumnAsync(Verification));
+    }
+
+    /// <summary>The first inserts of the verdict into the chain are refused with a serialization failure, as a writer that meets another would be, and the tries are counted.</summary>
+    private static async Task ConflictOnVerdictAsync(FidelityWorld world, int conflicts)
+    {
+        await world.RunAsOwnerAsync(
+            $"CREATE SEQUENCE {Tries}",
+            $"GRANT USAGE ON SEQUENCE {Tries} TO app",
+            $"CREATE FUNCTION public.zqx_conflict() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF nextval('{Tries}') <= {conflicts} "
+            + "THEN RAISE EXCEPTION 'zqx' USING ERRCODE = '40001'; END IF; RETURN NEW; END $$");
+        await world.RunAsSuperuserAsync(
+            "CREATE TRIGGER zqx_conflict BEFORE INSERT ON public.custody_event FOR EACH ROW WHEN (NEW.step = 'verify_guarantees') EXECUTE FUNCTION public.zqx_conflict()");
     }
 
     private static async Task WriteItemAndMapAsync(FidelityWorld world, int domain)

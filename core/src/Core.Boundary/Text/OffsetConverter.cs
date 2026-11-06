@@ -45,13 +45,7 @@ internal static class OffsetConverter
     /// <exception cref="ArgumentOutOfRangeException">The index is outside the text or falls inside a surrogate pair.</exception>
     internal static int ToCodePointOffset(string text, int utf16Index)
     {
-        ArgumentNullException.ThrowIfNull(text);
-        if (utf16Index < 0 || utf16Index > text.Length)
-        {
-            throw new ArgumentOutOfRangeException(nameof(utf16Index), OutsideText);
-        }
-
-        if (utf16Index > 0 && char.IsSurrogatePair(text, utf16Index - 1))
+        if (FallsInsidePair(text, utf16Index))
         {
             throw new ArgumentOutOfRangeException(nameof(utf16Index), InsidePair);
         }
@@ -63,6 +57,21 @@ internal static class OffsetConverter
         }
 
         return offset;
+    }
+
+    /// <summary>Whether the UTF-16 index falls between the two halves of a surrogate pair.</summary>
+    /// <param name="text">The text the index points into.</param>
+    /// <param name="utf16Index">A UTF-16 index, from zero to the length of the text.</param>
+    /// <exception cref="ArgumentOutOfRangeException">The index is outside the text.</exception>
+    internal static bool FallsInsidePair(string text, int utf16Index)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        if (utf16Index < 0 || utf16Index > text.Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(utf16Index), OutsideText);
+        }
+
+        return utf16Index > 0 && char.IsSurrogatePair(text, utf16Index - 1);
     }
 
     private static int WidthAt(string text, int index) => char.IsSurrogatePair(text, index) ? PairWidth : 1;

@@ -171,6 +171,12 @@
         "resolved": "10.0.13",
         "contentHash": "ZjTwxzhiw2TMEzIbUDkMF0dfDB2I4NQgIfKD0ELu9/5Mk+SRGdKZcD0/lvBrRCAPo6KN2r0BW86MRancoyJkoA=="
       },
+      "core.boundary.contracts": {
+        "type": "Project",
+        "dependencies": {
+          "Core.Platform": "[0.1.0, )"
+        }
+      },
       "core.platform": {
         "type": "Project",
         "dependencies": {

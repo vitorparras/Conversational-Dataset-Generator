@@ -66,24 +66,11 @@ public sealed class ScreenRouteTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task APageVariesByTheRegionHeaderAndNoCacheKeepsIt()
+    public async Task APageIsKeptByNoCache()
     {
         using var response = await Client.GetAsync(new Uri(Page, UriKind.Relative), TestContext.Current.CancellationToken);
 
-        Assert.Equal((ScreenResult.RegionHeader, true), (string.Join(',', response.Headers.Vary), response.Headers.CacheControl?.NoStore == true));
-    }
-
-    [Fact]
-    public async Task TheRegionHeaderBringsTheScreenAloneWithoutTheBasePage()
-    {
-        using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(Page, UriKind.Relative));
-        request.Headers.Add(ScreenResult.RegionHeader, "zqx-regiao");
-
-        using var response = await Client.SendAsync(request, TestContext.Current.CancellationToken);
-        var fragment = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
-
-        Assert.DoesNotContain("<html", fragment, StringComparison.Ordinal);
-        Assert.Contains("<header class=\"header\">", fragment, StringComparison.Ordinal);
+        Assert.True(response.Headers.CacheControl?.NoStore);
     }
 
     private static RazorComponentResult<ScreenFrame> Show(HttpContext context) => ScreenResult.Of(context, typeof(ScreenHeader), Title);

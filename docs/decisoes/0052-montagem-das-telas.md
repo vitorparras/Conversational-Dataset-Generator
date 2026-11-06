@@ -14,8 +14,8 @@ usabilidade primeiro e vidro translúcido sem sair do AA. O publish desliga os s
 **Monte cada tela com os componentes Razor de `core/src/Core.Host/Screens/`, renderizados no
 servidor e devolvidos pela rota mínima, com todo valor visual tirado dos tokens.**
 
-- A rota devolve `ScreenResult.Of`: a página base inteira, ou só a região pedida pelo cabeçalho
-  `X-Region`. Não há modo interativo nem o script do Blazor; a política de acesso fica na rota.
+- A rota devolve `ScreenResult.Of`, sempre a página base inteira, e a camada de cliente tira dela a
+  região. Não há modo interativo nem o script do Blazor; a política de acesso fica na rota.
 - A camada de cliente é `client.js`, embutido no executável e servido por rota própria, sem
   biblioteca de terceiros. Faz três coisas: troca a região declarada (`data-swap`), põe o foco no
   elemento que a região declara (`data-focus`) e dispara o atalho declarado (`data-shortcut`),

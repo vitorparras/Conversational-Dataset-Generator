@@ -1,14 +1,7 @@
-@if (Asked is null || Asked == Id)
-{
-    <div id="@Id" data-region data-focus="@Focus" tabindex="-1">@ChildContent</div>
-}
+<div id="@Id" data-region data-focus="@Focus" tabindex="-1">@ChildContent</div>
 
 @code {
-    /// <summary>The region the request asked for alone; with none, every region is shown.</summary>
-    [CascadingParameter(Name = "RegionAsked")]
-    public string? Asked { get; set; }
-
-    /// <summary>The identifier the client layer swaps by.</summary>
+    /// <summary>The identifier the client layer swaps by, taking the region of that identifier out of the whole page the server answers.</summary>
     [Parameter, EditorRequired]
     public string Id { get; set; } = "";
 

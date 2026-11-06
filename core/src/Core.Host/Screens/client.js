@@ -3,7 +3,6 @@
 (function () {
     "use strict";
 
-    var REGION_HEADER = "X-Region";
     var TEXT_FIELDS = ["INPUT", "TEXTAREA", "SELECT"];
 
     function typing(target) {
@@ -27,7 +26,7 @@
         return true;
     }
 
-    // An answer without the region is shown whole, as the server sent it; a redirect is followed by a plain load of where it points.
+    // The server always answers the whole page; an answer without the region is shown whole, frame and all; a redirect is followed by a plain load of where it points.
     // Once the server answered, the request is never sent again: it has already done what was asked.
     function showWhole(response, received) {
         if (response.redirected) {
@@ -44,8 +43,6 @@
         if (region) {
             region.setAttribute("aria-busy", "true");
         }
-        init.headers = init.headers || {};
-        init.headers[REGION_HEADER] = id;
         init.credentials = "same-origin";
         return fetch(url, init).then(function (response) {
             return response.text().then(function (html) {

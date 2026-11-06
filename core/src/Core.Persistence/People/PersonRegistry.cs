@@ -8,7 +8,7 @@ namespace Core.Persistence.People;
 /// The people who operate the system. Each operation writes the person, the record of what was done and the event of the chain of custody in one transaction, so that
 /// the history never lacks a change nor holds one that did not happen. A person is deactivated and never deleted; what they reach comes from grants.
 /// </summary>
-public sealed class PersonRegistry
+public sealed partial class PersonRegistry
 {
     private readonly NpgsqlDataSource dataSource;
 
@@ -206,17 +206,6 @@ public sealed class PersonRegistry
     {
         ArgumentNullException.ThrowIfNull(name);
         return FindAsync(name, cancellationToken);
-    }
-
-    /// <summary>Whether the registry has nobody at all, active or not, which is the one state where the first person can be made. It does not authenticate.</summary>
-    /// <param name="cancellationToken">Cancels the reading.</param>
-    public async Task<bool> IsEmptyAsync(CancellationToken cancellationToken)
-    {
-        var command = dataSource.CreateCommand(PersonStatements.NobodyRegistered);
-        await using (command.ConfigureAwait(false))
-        {
-            return await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) is true;
-        }
     }
 
     private async Task<long?> FindAsync(string name, CancellationToken cancellationToken)

@@ -1,14 +1,13 @@
-using Core.Host;
 using Core.Host.Screens;
+using Core.Host.Tests.Browser.Trial;
 using Core.Persistence.Migrations;
 using Core.Persistence.Tests.Fixtures;
 using Core.Platform.Configuration;
-using Core.Tests.Browser.Trial;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 
-namespace Core.Tests.Browser.Fixtures;
+namespace Core.Host.Tests.Browser.Fixtures;
 
 /// <summary>
 /// The host composition on a real Kestrel, on a loopback port the system gives, over a migrated database of its own, with the routes of the screens

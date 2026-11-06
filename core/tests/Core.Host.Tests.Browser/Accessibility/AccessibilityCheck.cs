@@ -4,7 +4,7 @@ using Deque.AxeCore.Commons;
 using Deque.AxeCore.Playwright;
 using Microsoft.Playwright;
 
-namespace Core.Tests.Browser.Accessibility;
+namespace Core.Host.Tests.Browser.Accessibility;
 
 /// <summary>
 /// The check every test of a screen calls: axe over the page as it stands, with the rules of WCAG 2.1 levels A and AA, and no violation accepted.

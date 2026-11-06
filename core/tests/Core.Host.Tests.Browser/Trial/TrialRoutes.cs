@@ -2,7 +2,7 @@ using Core.Host.Screens;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 
-namespace Core.Tests.Browser.Trial;
+namespace Core.Host.Tests.Browser.Trial;
 
 /// <summary>
 /// The screens that exist for the test alone: the bare page and the catalog of the components. Nothing of production serves them; the host of the test maps them beside the

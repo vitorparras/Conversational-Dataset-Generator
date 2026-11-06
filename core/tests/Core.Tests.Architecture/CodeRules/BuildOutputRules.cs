@@ -12,7 +12,10 @@ internal static class BuildOutputRules
 
     private static readonly char[] Separators = [Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar];
 
-    /// <summary>The generators allowed to emit a file, each with the one file it emits: the analyzer skips generated code, so no other output is accepted.</summary>
+    /// <summary>
+    /// The generators allowed to emit a file, each with the one file it emits: the analyzer skips generated code, so no other output is accepted.
+    /// The Razor generator is the one exception, for the components of the screens alone (<see cref="RazorScreens"/>).
+    /// </summary>
     private static readonly (string Generator, string Hint)[] KnownGeneratorOutputs =
     [
         ("Microsoft.AspNetCore.SourceGenerators.PublicProgramSourceGenerator", "PublicTopLevelProgram.Generated.g.cs"),
@@ -24,7 +27,7 @@ internal static class BuildOutputRules
     [
         // Acts only on members of a custom marshaller of the interop generator; the core has none, and CA1822 stays active on the rest of it.
         ("Microsoft.Interop.Analyzers.ShapeBreakingDiagnosticSuppressor", "CA1822"),
-        // Acts only on a property that is a parameter of a Razor component; the core has no Razor component.
+        // Acts only on a property that is a parameter of a Razor component; the components are the screens of the host (decision 0052).
         ("Microsoft.CodeAnalysis.Razor.Compiler.Analyzers.ComponentParameterNullableWarningSuppressor", "CS8618"),
     ];
 
@@ -50,7 +53,7 @@ internal static class BuildOutputRules
     private static bool IsKnownGeneratorOutput(SourceFile file)
     {
         var parts = file.Path.Split(Separators);
-        return parts.Length == 3 && Array.Exists(KnownGeneratorOutputs, known => parts[1] == known.Generator && parts[2] == known.Hint);
+        return (parts.Length == 3 && Array.Exists(KnownGeneratorOutputs, known => parts[1] == known.Generator && parts[2] == known.Hint)) || RazorScreens.IsGenerated(file);
     }
 
     private static bool IsSdkFile(CompilerInvocation invocation, SourceFile file)

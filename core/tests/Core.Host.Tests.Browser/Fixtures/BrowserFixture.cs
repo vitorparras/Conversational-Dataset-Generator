@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Playwright;
 
-namespace Core.Tests.Browser.Fixtures;
+namespace Core.Host.Tests.Browser.Fixtures;
 
 /// <summary>
 /// What every test of the run shares: the host on a real Kestrel and the Chromium that the job installed at the version the package pins.

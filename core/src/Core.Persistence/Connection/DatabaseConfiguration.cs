@@ -26,24 +26,10 @@ public static class DatabaseConfiguration
 
     /// <summary>
     /// The section the composition root adds to the schema: the server (a name or address, optionally followed by
-    /// <c>:port</c>), the database, and the application's role and password, the password never shown. The section is
-    /// optional while nothing persists; once any of the four is declared, all four are required.
+    /// <c>:port</c>), the database, and the application's role and password, the password never shown. Every mode runs against
+    /// the database, so all four keys are required and a refusal for any other key also names the ones of this section that are missing.
     /// </summary>
     public static ConfigurationSection Section { get; } =
-        new(
-            SectionName,
-            [
-                ConfigurationKey.Optional(HostKey),
-                ConfigurationKey.Optional(NameKey),
-                ConfigurationKey.Optional(UsernameKey),
-                ConfigurationKey.Optional(PasswordKey).AsSensitive(),
-            ]);
-
-    /// <summary>
-    /// The same section for the mode that migrates the schema, which has nothing to run against without a database: all four keys
-    /// are required, so a refusal for any other key also names the ones of this section that are missing.
-    /// </summary>
-    public static ConfigurationSection SectionWhenMigrating { get; } =
         new(
             SectionName,
             [
@@ -54,26 +40,13 @@ public static class DatabaseConfiguration
             ]);
 
     /// <summary>
-    /// The settings the approved values make: not configured when no key is declared; refused, naming every key at fault, when
-    /// only part of the section is, or when the host is not one server with an optional port of 1 to 65535; otherwise the
-    /// connection string.
+    /// The settings the approved values make: refused, naming every key at fault, when a key of the section is missing (all four when
+    /// none is declared) or when the host is not one server with an optional port of 1 to 65535; otherwise the connection string.
     /// </summary>
-    public static DatabaseSettings Read(IReadOnlyDictionary<string, string> values) => Read(values, required: false);
-
-    /// <summary>
-    /// The settings for the mode that migrates the schema, which has nothing to run against without a database: as
-    /// <see cref="Read(IReadOnlyDictionary{string, string})"/>, but a section with no key declared is refused, naming all four.
-    /// </summary>
-    public static DatabaseSettings ReadRequired(IReadOnlyDictionary<string, string> values) => Read(values, required: true);
-
-    private static DatabaseSettings Read(IReadOnlyDictionary<string, string> values, bool required)
+    public static DatabaseSettings Read(IReadOnlyDictionary<string, string> values)
     {
         ArgumentNullException.ThrowIfNull(values);
         var missing = Paths.Where(path => !values.ContainsKey(path)).ToList();
-        if (missing.Count == Paths.Length && !required)
-        {
-            return DatabaseSettings.NotConfigured;
-        }
 
         ConfigurationProblem[] problems =
         [

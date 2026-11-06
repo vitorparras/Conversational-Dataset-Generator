@@ -8,7 +8,7 @@ html { scroll-padding-top: var(--header-clearance); }
 
 body {
     margin: 0;
-    min-height: 100vh;
+    min-height: var(--page-min-height);
     color: var(--ink);
     background: var(--backdrop), var(--canvas);
     background-attachment: fixed;
@@ -39,7 +39,7 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
     position: absolute;
     left: var(--space-4);
     top: var(--space-2);
-    z-index: 2;
+    z-index: var(--layer-skip);
     padding: var(--space-2) var(--space-4);
     border-radius: var(--radius-sm);
     color: var(--on-accent);
@@ -53,7 +53,7 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
 .header {
     position: sticky;
     top: 0;
-    z-index: 1;
+    z-index: var(--layer-header);
     display: flex;
     flex-wrap: wrap;
     align-items: center;

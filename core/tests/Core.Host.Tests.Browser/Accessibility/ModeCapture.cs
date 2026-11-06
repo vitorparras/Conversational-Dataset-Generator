@@ -1,6 +1,6 @@
 using Microsoft.Playwright;
 
-namespace Core.Tests.Browser.Accessibility;
+namespace Core.Host.Tests.Browser.Accessibility;
 
 /// <summary>
 /// The photographs of a screen in each setting of the system, for whoever reviews the design. They are made only when the variable names a folder, so that the run of the job leaves nothing

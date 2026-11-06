@@ -1,6 +1,6 @@
 using Microsoft.Playwright;
 
-namespace Core.Tests.Browser.Fixtures;
+namespace Core.Host.Tests.Browser.Fixtures;
 
 /// <summary>One page of a context of its own, so that no test sees the cookies or the storage of another; closed with the object.</summary>
 internal sealed class BrowserTab : IAsyncDisposable

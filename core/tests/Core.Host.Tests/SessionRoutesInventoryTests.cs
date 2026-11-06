@@ -14,7 +14,7 @@ public sealed class SessionRoutesInventoryTests
     private static readonly string[] Exceptions = ["POST /session", "GET /status", "GET /screens/client.css"];
 
     [Fact]
-    public void OnlyTheEntryAndTheStatusAnswerWithNoSession()
+    public void OnlyTheEntryTheStatusAndTheStyleOfTheScreensAnswerWithNoSession()
     {
         var open = MappedRoutes.Read().Where(route => route.Open).Select(route => route.ToString());
 

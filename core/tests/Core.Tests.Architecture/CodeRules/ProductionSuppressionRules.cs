@@ -21,6 +21,7 @@ internal static partial class ProductionSuppressionRules
         file.Root.DescendantNodes(descendIntoTrivia: true)
             .OfType<PragmaWarningDirectiveTriviaSyntax>()
             .Where(pragma => pragma.DisableOrRestoreKeyword.IsKind(SyntaxKind.DisableKeyword))
+            .Where(pragma => !RazorScreens.IsGeneratorPragma(file, [.. pragma.ErrorCodes.Select(code => code.ToString())]))
             .Select(pragma => new Violation(file.Path, SourceFile.LineOf(pragma), "#pragma warning disable in production code"));
 
     private static IEnumerable<Violation> Attributes(IReadOnlyList<SourceFile> files)

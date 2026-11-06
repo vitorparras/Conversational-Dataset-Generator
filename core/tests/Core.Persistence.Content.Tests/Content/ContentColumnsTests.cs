@@ -81,6 +81,13 @@ public sealed class ContentColumnsTests
                 new ClearColumn("item_emptied", "id", ClearKind.Identifier),
                 new ClearColumn("item_emptied", "domain_id", ClearKind.Domain),
                 new ClearColumn("item_emptied", "item_id", ClearKind.Identifier),
+                new ClearColumn("ingestion_batch", "id", ClearKind.Identifier),
+                new ClearColumn("ingestion_batch", "domain_id", ClearKind.Domain),
+                new ClearColumn("ingestion_batch", "state", ClearKind.Status),
+                new ClearColumn("ingestion_batch", "motive", ClearKind.Motive),
+                new ClearColumn("ingestion_batch", "opened_by", ClearKind.Identifier),
+                new ClearColumn("ingestion_batch", "opened_at", ClearKind.Moment),
+                new ClearColumn("ingestion_batch", "closed_at", ClearKind.Moment),
             ],
             ContentColumns.Clear);
 

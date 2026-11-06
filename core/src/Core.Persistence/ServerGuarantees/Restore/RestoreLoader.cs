@@ -15,10 +15,13 @@ public sealed class RestoreLoader
     private const string Tip = "SELECT sequence || ':' || pg_catalog.encode(digest, 'hex') FROM public.custody_event ORDER BY sequence DESC LIMIT 1";
     private const string Version = "SELECT coalesce(pg_catalog.max(version), 0) FROM public.schema_version";
 
-    /// <summary>The tables in the order they come back: the keys and their revocations, the people and sign-in attempts, the chain, then the content (maps after texts, emptied after both).</summary>
+    /// <summary>
+    /// The tables in the order they come back: the keys and their revocations, the people and sign-in attempts, the chain, then the content
+    /// (the batches first, maps after texts, emptied after both).
+    /// </summary>
     private static readonly IEnumerable<string> Tables = Enumerable.Repeat("public.domain", 1).Append("public.derivation_label").Append("public.derivation_label_revocation")
         .Append("public.person").Append("public.person_credential").Append("public.person_change").Append("public.sign_in_attempt").Append(Chain)
-        .Append("content.item_text").Append("content.reversal_map").Append("content.item_emptied");
+        .Append("content.ingestion_batch").Append("content.item_text").Append("content.reversal_map").Append("content.item_emptied");
 
     private readonly NpgsqlDataSource dataSource;
     private readonly GuaranteeVerifier guarantees;

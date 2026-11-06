@@ -1,3 +1,5 @@
+using Core.Boundary.Text;
+
 namespace Core.Ingestion.Tests;
 
 /// <summary>
@@ -9,7 +11,7 @@ public sealed class ConversationOrderTests
     private const string Wording = "lote recusado como conversa:";
     private const string Undecided = "duas mensagens têm o mesmo instante, e nada no conteúdo decide qual vem antes: a ordem não pode vir da posição no arquivo";
     private const string Incoherent = "a ordem que as respostas dão contradiz os instantes ou a si mesma: uma resposta é anterior à mensagem que responde, ou as respostas formam um ciclo";
-    private static readonly FormConference Conference = FormConference.Minimal();
+    private static readonly FormConference Conference = new(new TextBoundaries());
 
     private static ReadUnit At(string text, int second, int? answers) => new(text, "ana", Units.First.AddSeconds(second), answers, []);
 

@@ -1,3 +1,4 @@
+using Core.Boundary.Text;
 using Core.Tests.Support.Harness;
 using CsCheck;
 
@@ -9,7 +10,7 @@ namespace Core.Ingestion.Tests;
 /// </summary>
 public sealed class ConferenceInvariantsTests
 {
-    private static readonly FormConference Conference = FormConference.Minimal();
+    private static readonly FormConference Conference = new(new TextBoundaries());
 
     /// <summary>Texts of capital letters only, which no word of the reasons (all in lower case, but for the names of the fields) can spell.</summary>
     private static readonly Gen<string> Marked = Gen.String[Gen.Char['A', 'Z'], 8, 16];

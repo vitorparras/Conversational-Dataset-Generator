@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Core.Boundary.Text;
 using Core.Ingestion.Reading;
 using Core.Tests.Support.Harness;
 using CsCheck;
@@ -11,7 +12,7 @@ namespace Core.Ingestion.Tests;
 /// </summary>
 public sealed class ConversationOrderPropertiesTests
 {
-    private static readonly FormConference Conference = FormConference.Minimal();
+    private static readonly FormConference Conference = new(new TextBoundaries());
 
     private static readonly Gen<string> Marked = Gen.String[Gen.Char['A', 'Z'], 1, 6];
 

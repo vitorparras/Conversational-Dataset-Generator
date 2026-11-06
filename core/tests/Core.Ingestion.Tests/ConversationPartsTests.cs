@@ -1,9 +1,11 @@
+using Core.Boundary.Text;
+
 namespace Core.Ingestion.Tests;
 
 /// <summary>The parts of a conversation accepted (issue 77, criterion 4): each carries its author and its rank in the order, and none is lost or merged.</summary>
 public sealed class ConversationPartsTests
 {
-    private static readonly FormConference Conference = FormConference.Minimal();
+    private static readonly FormConference Conference = new(new TextBoundaries());
 
     private static ReadUnit Unit(string text, string author, int second, int? answers) => new(text, author, Units.First.AddSeconds(second), answers, []);
 

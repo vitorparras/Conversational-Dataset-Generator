@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <!--
+    The screens in a real Chromium, over the host on a real Kestrel and the test database. It is in the solution so that the build, the analyzers and the audit
+    of the dependencies reach it, and it is no test project for `dotnet test` of the solution: the job "Navegador (Playwright)" installs the browser and runs it.
+  -->
+  <PropertyGroup>
+    <IsTestProject>false</IsTestProject>
+    <IsTestingPlatformApplication>false</IsTestingPlatformApplication>
+    <RootNamespace>Core.Host.Tests.Browser</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Core.Host\Core.Host.csproj" />
+    <ProjectReference Include="..\..\src\Core.Persistence\Core.Persistence.csproj" />
+    <ProjectReference Include="..\Core.Tests.Database\Core.Tests.Database.csproj" />
+    <ProjectReference Include="..\Core.Tests.Support\Core.Tests.Support.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Playwright" />
+    <PackageReference Include="Deque.AxeCore.Playwright" />
+    <PackageReference Include="Npgsql" />
+  </ItemGroup>
+</Project>

@@ -17,15 +17,15 @@ prefixo mais longo, como na cobertura: área aninhada, crítica ou não, sai da 
 nenhum arquivo conta duas vezes.
 
 Por módulo, no máximo **20 % dos mutantes gerados** podem sobreviver. Teto de tempo: **20 minutos
-por módulo**, cada módulo no job da verificação de pull request, sem somar os outros: a matriz
-do fluxo lê as áreas da 014 e abre um job por módulo crítico, e um job agregado, com o nome
-"Mutação nos módulos críticos", só passa se todos passarem. Exceder o teto é achado que
-reprova, nomeando o módulo e o tempo gasto, nunca lentidão tolerada. O tempo de cada módulo sai
-no relatório do passo. Mutação fora do bloqueio só por decisão escrita. A área que estoura o
-teto declara `- Partes da mutação: N` no arquivo: o passo corta cada arquivo C# entre os membros
-e passa os trechos ao Stryker como `arquivo.cs{a..b}`, repartidos pelo peso (tokens); a matriz abre
-um job por parte, com o mesmo teto, projeto de teste e limite. O Stryker 5.0.0 só conta o mutante
-cujo nó cabe inteiro na faixa e o corte nunca cai num membro: a soma é a da área.
+por módulo**, cada módulo no job da verificação, sem somar os outros: a matriz lê as áreas da 014 e
+abre um job por módulo crítico que o pull request alcança (regras no README); a semanal e a manual
+abrem todos, e o agregado "Mutação nos módulos críticos" só passa se eles passarem. Exceder o teto é
+achado que reprova, nomeando o módulo e o tempo gasto. O tempo de cada módulo sai no relatório do
+passo. Mutação fora do bloqueio só por decisão escrita. A área que estoura o teto declara `- Partes
+da mutação: N` no arquivo: o passo corta cada arquivo C# entre os membros e passa os trechos ao
+Stryker como `arquivo.cs{a..b}`, repartidos pelo peso (tokens); a matriz abre um job por parte, com
+o mesmo teto, projeto de teste e limite. O Stryker 5.0.0 só conta o mutante cujo nó cabe inteiro na
+faixa e o corte nunca cai num membro: a soma é a da área.
 
 No núcleo, em todos os módulos, a verificação não conta **o mutante `false`→`true` do argumento de
 `ConfigureAwait`**: o host não tem contexto de sincronização, então esse mutante é equivalente por

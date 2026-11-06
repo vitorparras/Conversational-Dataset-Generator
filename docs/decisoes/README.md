@@ -63,6 +63,7 @@ deliberada e justificada.
 | [0049](0049-chave-por-item-e-epoca.md) | Cada item tem a chave dele, e uma época a embrulha | Decisão vigente |
 | [0050](0050-banco-amarra-a-mudanca-do-conteudo-a-um-evento.md) | O banco amarra a mudança do conteúdo a um evento da cadeia | Decisão vigente |
 | [0051](0051-navegacao-gestao-e-relatorio.md) | Navegação, gestão e relatório: padrões comuns, acessibilidade e teste de navegador | Decisão vigente |
+| [0052](0052-montagem-das-telas.md) | Montagem das telas e base do sistema de design | Decisão vigente |
 
 ## Formato
 

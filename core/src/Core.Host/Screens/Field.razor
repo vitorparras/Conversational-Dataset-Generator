@@ -1,0 +1,65 @@
+<div class="field">
+    <label class="field__label" for="@Id">
+        @Caption
+        @if (Required)
+        {
+            <span class="field__required">(obrigatório)</span>
+        }
+    </label>
+    @if (Hint is not null)
+    {
+        <p id="@HintId" class="field__hint">@Hint</p>
+    }
+    <input id="@Id" class="field__input" name="@(Name ?? Id)" type="@Type" value="@Value" autocomplete="@Autocomplete"
+           aria-required="@(Required ? "true" : null)" aria-invalid="@(Error is null ? null : "true")" aria-describedby="@DescribedBy" />
+    @if (Error is not null)
+    {
+        <p id="@ErrorId" class="field__error" role="alert">@Error</p>
+    }
+</div>
+
+@code {
+    /// <summary>The identifier of the input; the hint and the error take it with a suffix, so the region can focus the field by it.</summary>
+    [Parameter, EditorRequired]
+    public string Id { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public string Caption { get; set; } = "";
+
+    /// <summary>The name the form sends; the identifier when absent.</summary>
+    [Parameter]
+    public string? Name { get; set; }
+
+    [Parameter]
+    public string Type { get; set; } = "text";
+
+    /// <summary>What the field holds, given back as typed when the server refuses the form (decision 0051).</summary>
+    [Parameter]
+    public string? Value { get; set; }
+
+    /// <summary>What helps fill the field, said before the person types.</summary>
+    [Parameter]
+    public string? Hint { get; set; }
+
+    /// <summary>What the server refused about the field, bound to it and announced. Only the server decides it; the browser does not validate.</summary>
+    [Parameter]
+    public string? Error { get; set; }
+
+    [Parameter]
+    public bool Required { get; set; }
+
+    [Parameter]
+    public string? Autocomplete { get; set; }
+
+    private string HintId => $"{Id}-dica";
+
+    private string ErrorId => $"{Id}-erro";
+
+    private string? DescribedBy => (Hint, Error) switch
+    {
+        (null, null) => null,
+        (_, null) => HintId,
+        (null, _) => ErrorId,
+        _ => $"{HintId} {ErrorId}",
+    };
+}

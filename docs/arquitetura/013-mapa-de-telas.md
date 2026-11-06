@@ -1,7 +1,8 @@
 # 013 — Mapa de telas
 
 > Descrição. 2026-11-04.
-> Estado no código: nenhuma tela existe; as rotas estão em `core/src/Core.Host/Endpoints/`.
+> Estado no código: só a página base e os componentes, em `core/src/Core.Host/Screens/`
+> ([0052](../decisoes/0052-montagem-das-telas.md)); as rotas estão em `core/src/Core.Host/Endpoints/`.
 
 Toda operação de quem usa o sistema passa por uma tela; a linha de comando fica com a gestão do
 servidor: instalação, migração, cópia, restauração, chave, ensaio de recuperação, primeira pessoa

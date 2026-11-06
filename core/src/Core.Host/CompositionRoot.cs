@@ -81,6 +81,7 @@ internal static class CompositionRoot
         _ = builder.Services.AddRedaction(PlatformLogging.EraseSensitiveData);
         _ = builder.Services.AddSingleton(configuration);
         _ = builder.Services.ConfigureHttpJsonOptions(HostJson.Strict);
+        _ = builder.Services.AddRazorComponents();
     }
 
     /// <summary>The analysis and the recognizer the configuration chose: the fake by name, otherwise one per use, with the port and secret the supervisor has then.</summary>

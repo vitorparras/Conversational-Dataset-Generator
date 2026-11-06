@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Text.Json;
 using Core.Platform.Startup;
 using Core.Tests.Support.Net;
 
@@ -7,7 +6,7 @@ namespace Core.Host.Tests;
 
 /// <summary>
 /// The host with a database declared checks the server before the language service starts and refuses to start when it
-/// cannot; without one it says, in its status, that nothing was checked.
+/// cannot; without one it does not start at all.
 /// </summary>
 public sealed class ServerGuaranteesHostTests
 {
@@ -50,19 +49,17 @@ public sealed class ServerGuaranteesHostTests
     }
 
     [Fact]
-    public async Task HostWithoutADatabaseIsReadyAndSaysTheDatabaseIsNotConfigured()
+    public async Task HostWithoutAnyDatabaseKeyEndsTheProcessWithTheRefusalCodeNamingTheFourKeys()
     {
-        var cancellationToken = TestContext.Current.CancellationToken;
-        using var host = await HostProcess.StartAsync(cancellationToken);
+        var installation = HostInstallation.Built(HostProcess.FreeAddress()) with { ProvidesDatabase = false };
 
-        using var response = await host.GetAsync("/status", cancellationToken);
-        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+        var exit = await HostProcess.RunToExitAsync(installation, HostProcess.StartupTimeout, TestContext.Current.CancellationToken);
 
-        Assert.True(body.RootElement.GetProperty("ready").GetBoolean());
-        var database = Assert.Single(
-            body.RootElement.GetProperty("checks").EnumerateArray(), check => check.GetProperty("name").GetString() == "Database");
-        Assert.Equal("NotConfigured", database.GetProperty("status").GetString());
-        Assert.StartsWith("banco não configurado", database.GetProperty("message").GetString(), StringComparison.Ordinal);
+        Assert.Equal((int)ExitCode.ConfigurationRefused, exit.Code);
+        Assert.Contains("chave exigida ausente 'Database:Host'", exit.Error, StringComparison.Ordinal);
+        Assert.Contains("chave exigida ausente 'Database:Name'", exit.Error, StringComparison.Ordinal);
+        Assert.Contains("chave exigida ausente 'Database:Username'", exit.Error, StringComparison.Ordinal);
+        Assert.Contains("chave exigida ausente 'Database:Password'", exit.Error, StringComparison.Ordinal);
     }
 
     private static ReadOnlyDictionary<string, string> Database(string host) =>

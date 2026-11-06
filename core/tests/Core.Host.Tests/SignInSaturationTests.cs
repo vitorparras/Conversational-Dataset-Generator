@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using Core.Persistence.People;
 using Core.Platform.Sessions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
 
 namespace Core.Host.Tests;
@@ -125,7 +126,8 @@ public sealed class SignInSaturationTests
     {
         var source = NpgsqlDataSource.Create(connectionString);
         var sessions = new SessionStore(new SessionLifetimes(TimeSpan.FromMinutes(30), TimeSpan.FromHours(8)), clock);
-        return new SignIn(new PersonRegistry(source), new PersonCredentials(source, new PasswordDerivation(1)), sessions, delay, new SignInAttempts(source));
+        var record = SignInRecord.Over(new SignInAttempts(source), NullLogger<SignInRecord>.Instance);
+        return new SignIn(new PersonRegistry(source), new PersonCredentials(source, new PasswordDerivation(1)), sessions, delay, record);
     }
 
     /// <summary>A server that takes the connection and never answers, so a check of the password that reaches it stays blocked, and counts how many reached it.</summary>

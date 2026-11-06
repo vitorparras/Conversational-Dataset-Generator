@@ -79,7 +79,7 @@ public sealed class SignInAttempts
     }
 
     /// <summary>The prefix an attempt is recorded under: /24 of IPv4 or /48 of IPv6, the rest of the address zeroed, and null when the origin is unknown.</summary>
-    internal static string? NetworkOf(IPAddress? origin)
+    public static string? NetworkOf(IPAddress? origin)
     {
         if (origin is null)
         {

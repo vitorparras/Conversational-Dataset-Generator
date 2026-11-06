@@ -47,6 +47,29 @@
     </PagedList>
 </Panel>
 
+<Panel Id="marcas" Title="Marcas de estado e lista de fatos">
+    <FactList>
+        <Fact Term="Neutra"><StateMark>Não usado</StateMark></Fact>
+        <Fact Term="Boa"><StateMark Kind="StateMark.Tone.Good">Disponível</StateMark></Fact>
+        <Fact Term="Em espera"><StateMark Kind="StateMark.Tone.Waiting">Iniciando</StateMark></Fact>
+        <Fact Term="Ruim"><StateMark Kind="StateMark.Tone.Bad">Indisponível</StateMark></Fact>
+        <Fact Term="Oculta">
+            <StateMark Kind="StateMark.Tone.Hidden">Segredo, valor oculto</StateMark>
+            <span class="facts__note">Conferido em <Moment At="Checked" />.</span>
+        </Fact>
+    </FactList>
+</Panel>
+
+<Panel Id="tabelas" Title="Tabela">
+    <DataTable Id="tabela" Caption="Um arquivo por linha, agrupados por lote." Headers="Columns">
+        <tbody>
+            <tr><th class="data-table__group" colspan="3" scope="rowgroup">Lote 4</th></tr>
+            <tr><th scope="row"><code>recebidos/lote-4/a.json</code></th><td><StateMark Kind="StateMark.Tone.Good">Aceito</StateMark></td><td>120 itens</td></tr>
+            <tr><th scope="row"><code>recebidos/lote-4/b.json</code></th><td><StateMark Kind="StateMark.Tone.Bad">Recusado</StateMark></td><td>Formato desconhecido</td></tr>
+        </tbody>
+    </DataTable>
+</Panel>
+
 <Panel Id="vidro" Title="Painel de vidro">
     <p>Cada seção desta tela é um painel. Com transparência reduzida ou contraste alto pedidos pelo sistema, o vidro vira superfície sólida.</p>
 </Panel>
@@ -55,4 +78,8 @@
     private static readonly string[] Rows = ["Lote 4 · 120 arquivos", "Lote 5 · 98 arquivos", "Lote 6 · 143 arquivos"];
 
     private static readonly string[] None = [];
+
+    private static readonly string[] Columns = ["Arquivo", "Resultado", "Detalhe"];
+
+    private static readonly DateTimeOffset Checked = new(2026, 11, 6, 18, 30, 0, TimeSpan.Zero);
 }

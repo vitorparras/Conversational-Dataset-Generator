@@ -3,8 +3,8 @@ using Core.Boundary.Contracts;
 namespace Core.Ingestion;
 
 /// <summary>
-/// A conversation needs an author and a moment for every message, and the moments tell the order; two messages with the same moment have no order but the one of the file,
-/// so the batch is refused.
+/// A conversation needs an author and a moment for every message, and the moments tell the order. Two messages with the same moment are ordered by the answer of one to the other,
+/// near or far, and when nothing in the content decides, or the answers contradict the moments or each other, the batch is refused: the place in the file never orders.
 /// </summary>
 internal sealed class ConversationRule : IFormRule
 {
@@ -22,23 +22,9 @@ internal sealed class ConversationRule : IFormRule
         notAllowed.AddRange(Dangling(read));
         return RuleChecks.Refusal(Form, RefusalCode.FieldMissing, missing)
             ?? RuleChecks.Refusal(Form, RefusalCode.FieldNotAllowed, notAllowed)
-            ?? RuleChecks.Refusal(Form, RefusalCode.OrderNotDetermined, Tied(read))
+            ?? RuleChecks.Refusal(Form, RefusalCode.OrderIncoherent, ConversationOrder.Incoherent(read))
+            ?? RuleChecks.Refusal(Form, RefusalCode.OrderNotDetermined, ConversationOrder.Undecided(read))
             ?? ConferenceResult.Accept(new Conversation(InOrder(read)));
-    }
-
-    private static List<Finding> Tied(ReadMaterial read)
-    {
-        var tied = new List<Finding>();
-        foreach (var same in read.Units.Select((unit, position) => (unit.Instant, position)).GroupBy(pair => pair.Instant).Where(group => group.Count() > 1))
-        {
-            foreach (var (_, position) in same)
-            {
-                tied.Add(new Finding(position, MaterialField.Instant));
-            }
-        }
-
-        tied.Sort((left, right) => Nullable.Compare(left.Unit, right.Unit));
-        return tied;
     }
 
     /// <summary>The answers that name no unit of the material, or the unit itself.</summary>
@@ -59,17 +45,18 @@ internal sealed class ConversationRule : IFormRule
     /// <summary>The messages in the order of the moments, each answer pointing at the message answered where it now stands.</summary>
     private static List<Message> InOrder(ReadMaterial read)
     {
-        var ordered = read.Units.Select((unit, position) => (unit, position)).OrderBy(pair => pair.unit.Instant).ToList();
+        var ordered = ConversationOrder.Sequence(read);
         var placed = new int[ordered.Count];
         for (var at = 0; at < ordered.Count; at++)
         {
-            placed[ordered[at].position] = at;
+            placed[ordered[at]] = at;
         }
 
         var messages = new List<Message>();
-        foreach (var (unit, _) in ordered)
+        foreach (var position in ordered)
         {
-            messages.Add(new Message(unit.Author!, unit.Instant!.Value, unit.RepliesTo is { } to ? placed[to] : null, unit.Text));
+            var unit = read.Units[position];
+            messages.Add(new Message(unit.Author!, unit.Instant!.Value, unit.RepliesTo is { } to ? placed[to] : null, unit.Text, messages.Count));
         }
 
         return messages;

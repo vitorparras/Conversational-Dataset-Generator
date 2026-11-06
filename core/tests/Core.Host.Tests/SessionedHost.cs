@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Core.Boundary.Contracts;
 using Core.Boundary.Fake;
 using Core.Host.Endpoints;
@@ -26,7 +27,7 @@ internal sealed class SessionedHost : IAsyncDisposable
     {
         this.app = app;
         Sessions = sessions;
-        client = new HttpClient { BaseAddress = address };
+        client = ClientOf(address);
     }
 
     /// <summary>The store the gate asks, which the test seeds.</summary>
@@ -73,15 +74,33 @@ internal sealed class SessionedHost : IAsyncDisposable
         return await client.SendAsync(request, cancellationToken);
     }
 
+    /// <summary>Sends a request the test built, with the cookie of the session and the mark of the encrypted channel when it says so; a redirect is not followed.</summary>
+    public async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, string? identifier, bool encrypted, CancellationToken cancellationToken)
+    {
+        using var marked = request;
+        Mark(marked, identifier, encrypted);
+        return await client.SendAsync(marked, cancellationToken);
+    }
+
     public async ValueTask DisposeAsync()
     {
         client.Dispose();
         await app.DisposeAsync();
     }
 
+    /// <summary>The client of the test, which does not follow a redirect: the test judges the 303 itself.</summary>
+    [SuppressMessage("Reliability", "CA2000", Justification = "The client takes the handler and disposes it with itself.")]
+    private static HttpClient ClientOf(Uri address) => new(new SocketsHttpHandler { AllowAutoRedirect = false }) { BaseAddress = address };
+
     private static HttpRequestMessage RequestOf(HttpMethod method, string route, string? identifier, bool encrypted)
     {
         var request = new HttpRequestMessage(method, new Uri(route, UriKind.Relative));
+        Mark(request, identifier, encrypted);
+        return request;
+    }
+
+    private static void Mark(HttpRequestMessage request, string? identifier, bool encrypted)
+    {
         if (identifier is not null)
         {
             request.Headers.Add("Cookie", $"{Cookie}={identifier}");
@@ -91,7 +110,5 @@ internal sealed class SessionedHost : IAsyncDisposable
         {
             request.Headers.Add(EncryptedMarker, "1");
         }
-
-        return request;
     }
 }

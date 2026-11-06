@@ -1,0 +1,29 @@
+<span class="mark mark--@Kind.ToString().ToLowerInvariant()"><span class="mark__shape" aria-hidden="true">@Shape</span>@ChildContent</span>
+
+@code {
+    /// <summary>How a state reads: each tone has its own word in the text, its own sign and its own border, so it reads without colour.</summary>
+    public enum Tone
+    {
+        Plain,
+        Good,
+        Waiting,
+        Bad,
+        Hidden,
+    }
+
+    [Parameter]
+    public Tone Kind { get; set; } = Tone.Plain;
+
+    /// <summary>The state in words, which say it whole; the sign only repeats it.</summary>
+    [Parameter, EditorRequired]
+    public RenderFragment? ChildContent { get; set; }
+
+    private string Shape => Kind switch
+    {
+        Tone.Good => "✓",
+        Tone.Waiting => "◷",
+        Tone.Bad => "✕",
+        Tone.Hidden => "•••",
+        _ => "–",
+    };
+}

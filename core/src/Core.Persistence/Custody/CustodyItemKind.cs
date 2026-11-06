@@ -26,4 +26,7 @@ public enum CustodyItemKind
 
     /// <summary>The master key of the installation: what the declaration of its loss is about; the id is the set of what was tried to recover it.</summary>
     MasterKey,
+
+    /// <summary>A batch of ingestion, by its identifier: what the opening and the closing of a batch are about.</summary>
+    IngestionBatch,
 }

@@ -23,3 +23,6 @@ O 001 está reservado ao registro do ensaio formal de subida (#50, #264), que é
 término da [fase 10](../roadmap/010-segundo-dominio.md), e não das fases 1 e 2.
 
 Ver [regras de escrita](../regras-de-escrita.md).
+
+Prova descartável da #660: só existe para o diff ser um documento
+que nenhum código lê.

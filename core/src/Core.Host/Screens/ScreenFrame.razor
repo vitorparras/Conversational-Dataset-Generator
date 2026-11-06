@@ -1,19 +1,29 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>@Title · @ScreenHeader.Name</title>
-    <link rel="stylesheet" href="@ScreenAssets.StyleRoute" />
-</head>
-<body>
-    <a class="skip-link" href="#content">Ir para o conteúdo</a>
-    <ScreenHeader />
-    <main id="content" class="page" tabindex="-1">
+<CascadingValue Name="RegionAsked" Value="Asked">
+    @if (Asked is null)
+    {
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+        <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>@Title · @ScreenHeader.Name</title>
+            <link rel="stylesheet" href="@ScreenAssets.StyleRoute" />
+            <script src="@ScreenAssets.ScriptRoute" defer></script>
+        </head>
+        <body>
+            <a class="skip-link" href="#content">Ir para o conteúdo</a>
+            <ScreenHeader />
+            <main id="content" class="page" tabindex="-1">
+                <DynamicComponent Type="Screen" Parameters="ScreenParameters" />
+            </main>
+        </body>
+        </html>
+    }
+    else
+    {
         <DynamicComponent Type="Screen" Parameters="ScreenParameters" />
-    </main>
-</body>
-</html>
+    }
+</CascadingValue>
 
 @code {
     /// <summary>The title of the page, which a reader of screens hears first.</summary>
@@ -27,4 +37,8 @@
     /// <summary>What the screen takes, if anything.</summary>
     [Parameter]
     public IDictionary<string, object?>? ScreenParameters { get; set; }
+
+    /// <summary>The region the request asked for alone; with none, the whole page.</summary>
+    [Parameter]
+    public string? Asked { get; set; }
 }

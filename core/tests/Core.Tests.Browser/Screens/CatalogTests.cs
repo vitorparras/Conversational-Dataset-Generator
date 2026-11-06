@@ -105,4 +105,19 @@ public sealed class CatalogTests(BrowserFixture browser)
 
         await RealBackgroundContrast.AssertAaAsync(tab.Page);
     }
+
+    [Theory]
+    [InlineData("Light")]
+    [InlineData("Dark")]
+    [InlineData("ReducedTransparency")]
+    [InlineData("HighContrast")]
+    public async Task Ca3TheTextOfTheTrialScreenReachesAaOverTheBackgroundAsItIsDrawn(string name)
+    {
+        await using var tab = await browser.OpenAsync(TrialRoutes.Trial);
+        await MediaMode.Named(name).ApplyAsync(tab.Page);
+        await tab.Page.Locator("#enviar").ClickAsync();
+        await tab.Page.Locator("#nome-erro").WaitForAsync();
+
+        await RealBackgroundContrast.AssertAaAsync(tab.Page);
+    }
 }

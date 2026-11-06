@@ -26,8 +26,8 @@ servidor e devolvidos pela rota mínima, com todo valor visual tirado dos tokens
   entra como componente, nunca como marcação copiada.
 - O vidro é só CSS (`backdrop-filter`), no cabeçalho e no painel. Vira superfície sólida sob
   `prefers-reduced-transparency`, `prefers-contrast: more` e no navegador que não desfoca. O
-  contraste é medido sobre o pior ponto do fundo real e anotado na lista de revisão manual de
-  acessibilidade.
+  contraste é medido sobre o pior ponto do fundo real e anotado na
+  [022](../arquitetura/022-revisao-manual-de-acessibilidade.md).
 - A fonte é a do sistema operacional: nada se baixa e nada vai embutido.
 - O catálogo dos componentes é tela do host de teste em `core/tests/Core.Tests.Browser/`.
 

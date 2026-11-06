@@ -49,6 +49,9 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
 
 .skip-link:focus { transform: none; }
 
+[data-region]:focus { outline: none; }
+[data-region][aria-busy="true"] { opacity: var(--opacity-busy); cursor: progress; transition: opacity var(--motion) var(--ease); }
+
 /* Header */
 .header {
     position: sticky;

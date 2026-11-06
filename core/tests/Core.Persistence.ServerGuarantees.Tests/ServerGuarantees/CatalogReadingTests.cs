@@ -44,7 +44,7 @@ public sealed class CatalogReadingTests
         var result = await AppStartup.CheckAsync(database, dataSource => new RlsForceCheck(dataSource));
 
         AssertPassedOn("RlsForce", result);
-        Assert.StartsWith("4 tabela(s)", result.Message, StringComparison.Ordinal);
+        Assert.StartsWith("5 tabela(s)", result.Message, StringComparison.Ordinal);
     }
 
     [DatabaseFact]

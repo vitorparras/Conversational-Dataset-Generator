@@ -45,5 +45,6 @@ e por quem ela roda.
 | [031](031-recifrar-dominio.md) | Recifrar um domínio: reembrulhar as chaves sob a geração nova, em lotes |
 | [032](032-conta-do-nucleo.md) | A conta do núcleo: não é root, lê o registro do servidor pelo grupo e não o grava |
 | [033](033-primeira-pessoa-numa-maquina-operada-de-fora.md) | A primeira pessoa numa máquina operada de fora: senha em arquivo, não no terminal |
+| [035](035-registro-do-ensaio.md) | Registro do ensaio de recuperação: as recusas e a porta da ingestão |
 
 Ver [regras de escrita](../regras-de-escrita.md).

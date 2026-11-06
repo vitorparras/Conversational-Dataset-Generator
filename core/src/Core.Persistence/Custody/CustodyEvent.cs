@@ -204,12 +204,16 @@ public sealed partial record CustodyEvent
             scope.Text);
     }
 
-    /// <summary>The event of a recovery rehearsed and checked, written by the system: the item is the master key and its id is the sequence of the top of the copy the rehearsal opened.</summary>
+    /// <summary>
+    /// The recovery rehearsed and checked, by the system: the item is the master key, its id the top sequence of the copy opened, the reference the digest of the receipt (once, 0033).
+    /// </summary>
     /// <param name="topSequence">The sequence of the last event of the copy, which the chain of the production holds too.</param>
-    public static CustodyEvent RecoveryRehearsed(long topSequence)
+    /// <param name="receiptDigest">The digest of the receipt, as <c>RecoveryReceipt.Digest</c> gives it.</param>
+    public static CustodyEvent RecoveryRehearsed(long topSequence, string receiptDigest)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(topSequence);
-        return new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.MasterKey, topSequence), CustodyStep.RecoveryTested, CustodyReason.AdministrativeAct);
+        var rehearsed = new CustodyEvent(CustodyAuthor.System, new CustodyItem(CustodyItemKind.MasterKey, topSequence), CustodyStep.RecoveryTested, CustodyReason.AdministrativeAct);
+        return WithReference(rehearsed, receiptDigest);
     }
 
     /// <summary>The event that records the verdict of a conference of the guarantees of the server, by the system: the item is the chain and its id is the mask of the guarantees missing.</summary>

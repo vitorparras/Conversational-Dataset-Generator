@@ -11,7 +11,7 @@ valeu naquela máquina, naquele dia; não é regra nem previsão.
 
 ## Preparo
 
-O artefato foi const do commit `ab91d09` (main, árvore limpa), em contêiner Linux x64. A
+O artefato foi construído do commit `ab91d09` (main, árvore limpa), em contêiner Linux x64. A
 primeira construção falhou ao montar a pasta do serviço direto no disco do Windows, que não
 distingue maiúsculas: o arquivo `terminfo` colidiu (`[Errno 17] File exists`). O procedimento
 passou a montar a pasta dentro de um contêiner e copiá-la ao destino em fluxo tar, sem passar por

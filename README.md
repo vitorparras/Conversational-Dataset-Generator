@@ -209,9 +209,7 @@ sem o último a linha de auditoria não diz a tabela, e sem os outros o comando 
 (a credencial é a da aplicação). Para cada papel, tabela e comando, confere quantas vezes o
 servidor viu o que a cadeia registrou, pelo mapa de `AuditMap` (passo da cadeia ↔ tabela e
 comando), e imprime cada diferença com os passos envolvidos. Sai com 0 quando não há diferença
-nova e com 20 quando há;
-a diferença conhecida, o recálculo da senha na entrada (#69), que grava a credencial sem evento até
-a #71, sai com o motivo e não reprova.
+nova e com 20 quando há; uma diferença marcada como conhecida sai com o motivo e não reprova.
 
 `Audit:CompareInterval` é obrigatória ao servir, sem valor padrão, e leva a duração (de `00:01:00`
 a `49.00:00:00`, como `01:00:00`) entre duas comparações, feitas pelo próprio núcleo sobre o que

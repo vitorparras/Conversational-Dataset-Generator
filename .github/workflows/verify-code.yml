@@ -242,7 +242,8 @@ jobs:
   # (it is no test project of the solution): this is the only place it runs, so a failing browser test fails this job.
   browser:
     name: Navegador (Playwright)
-    if: github.event_name != 'schedule'
+    needs: changes
+    if: ${{ !cancelled() && github.event_name != 'schedule' && needs.changes.outputs.heavy != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

@@ -47,7 +47,8 @@ public sealed class ChainStateTests
         clock.Advance(TimeSpan.FromSeconds(1));
         var after = await ChainState.VerifyAsync(sources, "one", seal: null, token);
 
-        Assert.Equal<int?>([null, 60, null, 1, null], new[] { first, again, other, early, after }.Select(asked => asked.WaitSeconds));
+        int?[] expected = [null, 60, null, 1, null];
+        Assert.Equal(expected, [.. new[] { first, again, other, early, after }.Select(asked => asked.WaitSeconds)]);
     }
 
     private static ChainSources Sources(ChainVerificationService service, TimeProvider clock, ILoggerFactory loggers) =>

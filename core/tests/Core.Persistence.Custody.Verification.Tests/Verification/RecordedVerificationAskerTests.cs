@@ -26,7 +26,8 @@ public sealed class RecordedVerificationAskerTests
         var history = await new RecordedVerificationReader(await database.DataSourceAsync()).HistoryAsync(10, TestContext.Current.CancellationToken);
 
         Assert.Equal(CustodyOutcome.Appended, asked.Recorded.Outcome);
-        Assert.Equal(new long?[] { Asker, null }, history.Select(entry => entry.RequestedBy));
+        long?[] askers = [Asker, null];
+        Assert.Equal(askers, [.. history.Select(entry => entry.RequestedBy)]);
         Assert.All(history, entry => Assert.True(entry.Passed));
     }
 
@@ -54,7 +55,8 @@ public sealed class RecordedVerificationAskerTests
 
         var history = await new RecordedVerificationReader(await database.DataSourceAsync()).HistoryAsync(2, TestContext.Current.CancellationToken);
 
-        Assert.Equal(new long?[] { 3, 2 }, history.Select(entry => entry.RequestedBy));
+        long?[] askers = [3, 2];
+        Assert.Equal(askers, [.. history.Select(entry => entry.RequestedBy)]);
     }
 
     [DatabaseFact]
@@ -75,6 +77,9 @@ public sealed class RecordedVerificationAskerTests
         using var source = NpgsqlDataSource.Create("Host=localhost");
         var reader = new RecordedVerificationReader(source);
 
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() => _ = reader.HistoryAsync(limit, TestContext.Current.CancellationToken));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() =>
+        {
+            _ = reader.HistoryAsync(limit, TestContext.Current.CancellationToken);
+        });
     }
 }

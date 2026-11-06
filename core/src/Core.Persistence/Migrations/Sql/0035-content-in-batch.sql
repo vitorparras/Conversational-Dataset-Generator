@@ -63,7 +63,7 @@ END
 $turn$;
 
 CREATE TRIGGER batch_closing_takes_turn BEFORE UPDATE ON content.ingestion_batch
-    FOR EACH ROW WHEN (OLD.state = open AND NEW.state IS DISTINCT FROM open) EXECUTE FUNCTION public.take_turn_on_batch_closing();
+    FOR EACH ROW WHEN (OLD.state = 'open' AND NEW.state IS DISTINCT FROM 'open') EXECUTE FUNCTION public.take_turn_on_batch_closing();
 ALTER TABLE content.ingestion_batch ENABLE ALWAYS TRIGGER batch_closing_takes_turn;
 
 -- Content is added only to a batch that is open (outside the window of a restore). The row takes the turn of the batch first (see the gate below) and only then looks at the state, so that a closing that

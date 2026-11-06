@@ -9,4 +9,6 @@ internal static class ScreenPaths
     internal const string State = "/estado-do-sistema";
     internal const string Configuration = "/configuracao";
     internal const string Domains = "/dominios";
+    internal const string Emptying = "/esvaziamento";
+    internal const string EmptyingConfirm = "/esvaziamento/confirmar";
 }

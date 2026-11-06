@@ -10,7 +10,9 @@ internal static class ModeCapture
 {
     public const string Variable = "SCREEN_CAPTURES";
 
-    public static async Task SaveAsync(IPage page, MediaMode mode, string screen)
+    public static Task SaveAsync(IPage page, MediaMode mode, string screen) => SaveAsync(page, mode.Slug, screen);
+
+    public static async Task SaveAsync(IPage page, string slug, string screen)
     {
         var folder = Environment.GetEnvironmentVariable(Variable);
         if (string.IsNullOrEmpty(folder))
@@ -21,7 +23,7 @@ internal static class ModeCapture
         _ = Directory.CreateDirectory(folder);
         _ = await page.ScreenshotAsync(new PageScreenshotOptions
         {
-            Path = Path.Combine(folder, $"{screen}-{mode.Slug}.png"),
+            Path = Path.Combine(folder, $"{screen}-{slug}.png"),
             FullPage = true,
             Animations = ScreenshotAnimations.Disabled,
         });

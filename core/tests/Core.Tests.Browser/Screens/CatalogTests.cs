@@ -78,6 +78,20 @@ public sealed class CatalogTests(BrowserFixture browser)
         await ModeCapture.SaveAsync(tab.Page, mode, "catalogo");
     }
 
+    [Fact]
+    public async Task Ca4TheCatalogFitsThePhoneWidthWithoutScrollingSidewaysAndHasNoViolation()
+    {
+        await using var tab = await browser.OpenAsync(TrialRoutes.Catalog);
+        await tab.Page.SetViewportSizeAsync(390, 844);
+
+        var overflow = await tab.Page.EvaluateAsync<int>("() => document.documentElement.scrollWidth - document.documentElement.clientWidth");
+
+        Assert.True(overflow <= 0, $"The page is {overflow} px wider than the phone.");
+        await AccessibilityCheck.AssertNoViolationsAsync(tab.Page);
+        await RealBackgroundContrast.AssertAaAsync(tab.Page);
+        await ModeCapture.SaveAsync(tab.Page, "celular", "catalogo");
+    }
+
     [Theory]
     [InlineData("Light")]
     [InlineData("Dark")]

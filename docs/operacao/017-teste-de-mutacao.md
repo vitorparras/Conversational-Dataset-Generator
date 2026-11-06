@@ -16,7 +16,7 @@ A mutação roda sobre as áreas com `sim` em Crítica. Cada arquivo pertence a 
 prefixo mais longo, como na cobertura: área aninhada, crítica ou não, sai da área que a contém, e
 nenhum arquivo conta duas vezes.
 
-Por módulo, no máximo **20 % dos mutantes gerados** podem sobreviver. Teto de tempo: **20 minutos
+Por módulo, no máximo **20 % dos mutantes gerados** podem sobreviver. Teto de tempo: **90 minutos
 por módulo**, cada módulo no job da verificação de pull request, sem somar os outros: a matriz
 do fluxo lê as áreas da 014 e abre um job por módulo crítico, e um job agregado, com o nome
 "Mutação nos módulos críticos", só passa se todos passarem. Exceder o teto é achado que

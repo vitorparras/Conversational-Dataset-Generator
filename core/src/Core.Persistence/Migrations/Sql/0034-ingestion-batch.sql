@@ -4,7 +4,7 @@
 -- The chain learns the batch: the item kind ingestion_batch (its id is the batch's own) and the steps batch_opened and batch_closed, with the reasons batch_accepted and batch_rejected.
 -- The author of an opening is a person, who must be active; the author of a closing is a person or the system. The motive of a rejection is a name in snake_case, never free text, and it is
 -- the reference of the event that closes the batch, so that the two records say the same thing. Only the checks change, from the last ones the earlier steps left (the item kinds from the 0023,
--- the steps from the 0031, the reasons from the 0022 and the shape of the reference from the 0030): everything they list and every clause they fix stays, and the batch comes in beside it.
+-- the steps from the 0031, the reasons from the 0022 and the shape of the reference from the 0033, which lets the rehearsal of a recovery carry its receipt or none): everything they list and every clause they fix stays, and the batch comes in beside it.
 ALTER TABLE public.custody_event
     DROP CONSTRAINT custody_event_item_kind_listed,
     DROP CONSTRAINT custody_event_step_listed,
@@ -25,9 +25,10 @@ ALTER TABLE public.custody_event
          'credentials_accepted', 'password_wrong', 'account_not_recognized',
          'batch_accepted', 'batch_rejected')),
     ADD CONSTRAINT custody_event_emptying_shape CHECK (
-        (reference IS NOT NULL)
-            = (step IN ('item_emptied', 'item_emptying_refused', 'domain_label_rotated', 'key_loss_declared', 'owner_window_opened', 'owner_window_closed', 'restored', 'restore_rehearsed',
-                        'domain_label_revoked') OR reason = 'batch_rejected')
+        (step = 'recovery_tested'
+            OR (reference IS NOT NULL)
+                = (step IN ('item_emptied', 'item_emptying_refused', 'domain_label_rotated', 'key_loss_declared', 'owner_window_opened', 'owner_window_closed', 'restored',
+                            'restore_rehearsed', 'domain_label_revoked') OR reason = 'batch_rejected'))
         AND (reference IS NULL OR step IN ('owner_window_opened', 'owner_window_closed', 'restored') OR reference ~ '^[A-Za-z0-9._/-]{1,64}$')
         AND (step NOT IN ('owner_window_opened', 'owner_window_closed', 'restored') OR reference ~ '^[a-z0-9=;]{1,160}$')
         AND (step <> 'restore_rehearsed' OR reference ~ '^[a-z]+(\.[a-z]+)*$')

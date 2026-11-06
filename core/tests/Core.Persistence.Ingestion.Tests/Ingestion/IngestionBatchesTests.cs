@@ -1,5 +1,4 @@
 using System.Reflection;
-using Core.Persistence.Content.Writing;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Verification;
 using Core.Persistence.Ingestion;
@@ -121,32 +120,6 @@ public sealed class IngestionBatchesTests
         Assert.Equal(
             (BatchOutcome.Rejected, Unreachable),
             (rejected.Outcome, await world.InDomainAsync(IngestionWorld.Domain, IngestionWorld.Reachable) as string));
-    }
-
-    [DatabaseFact]
-    public async Task ContentIsNotAddedToABatchThatClosed()
-    {
-        await using var world = await IngestionWorld.CreateAsync();
-        var accepted = await IngestionWorld.OpenAsync(world);
-        var item = await IngestionWorld.AddItemAsync(world, accepted);
-        _ = await IngestionWorld.AcceptAsync(world, accepted);
-        var rejected = await IngestionWorld.OpenAsync(world);
-        _ = await IngestionWorld.RejectAsync(world, rejected, Reason);
-
-        _ = await Assert.ThrowsAsync<BatchNotOpenException>(() => IngestionWorld.AddItemAsync(world, accepted));
-        _ = await Assert.ThrowsAsync<BatchNotOpenException>(() => IngestionWorld.AddItemAsync(world, rejected));
-        _ = await Assert.ThrowsAsync<BatchNotOpenException>(() => IngestionWorld.AddMapAsync(world, accepted, item));
-    }
-
-    [DatabaseFact]
-    public async Task ContentIsNotAddedToABatchOfAnotherDomainOrOneThatDoesNotExist()
-    {
-        await using var world = await IngestionWorld.CreateAsync();
-        var batch = await IngestionWorld.OpenAsync(world);
-        var item = new NewItemText("texto bruto sintetico zqx");
-
-        _ = await Assert.ThrowsAsync<BatchNotOpenException>(() => world.RealWriter.AddItemTextAsync(2, batch, item, TestContext.Current.CancellationToken));
-        _ = await Assert.ThrowsAsync<BatchNotOpenException>(() => world.RealWriter.AddItemTextAsync(IngestionWorld.Domain, 9_999, item, TestContext.Current.CancellationToken));
     }
 
     [DatabaseFact]

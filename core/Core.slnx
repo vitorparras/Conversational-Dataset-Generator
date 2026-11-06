@@ -16,6 +16,7 @@
     <Project Path="tests/Core.Persistence.Custody.Chain.Tests/Core.Persistence.Custody.Chain.Tests.csproj" />
     <Project Path="tests/Core.Persistence.Custody.Tests/Core.Persistence.Custody.Tests.csproj" />
     <Project Path="tests/Core.Persistence.Custody.Verification.Tests/Core.Persistence.Custody.Verification.Tests.csproj" />
+    <Project Path="tests/Core.Persistence.Ingestion.Tests/Core.Persistence.Ingestion.Tests.csproj" />
     <Project Path="tests/Core.Persistence.Migrations.Tests/Core.Persistence.Migrations.Tests.csproj" />
     <Project Path="tests/Core.Persistence.ServerGuarantees.Tests/Core.Persistence.ServerGuarantees.Tests.csproj" />
     <Project Path="tests/Core.Persistence.Tests/Core.Persistence.Tests.csproj" />

@@ -31,8 +31,43 @@ ALTER TABLE content.reversal_map
     ADD CONSTRAINT reversal_map_batch_fkey FOREIGN KEY (batch_id, domain_id) REFERENCES content.ingestion_batch (id, domain_id),
     ADD CONSTRAINT reversal_map_item_batch_fkey FOREIGN KEY (item_id, batch_id) REFERENCES content.item_text (id, batch_id);
 
--- Content is added only to a batch that is open (outside the window of a restore). The batch row is locked while the row goes in, so that a batch that closes meanwhile waits for it, or the row is refused
--- once the closing commits: no item enters a batch already accepted or rejected.
+-- The turn of a batch: one row for each batch that has been written to or closed, in a table of its own that no role but the owner touches. Whoever adds content to a batch and whoever closes it each
+-- change that row, in the transaction, before looking at anything else, so that two of them never go at once and, above all, so that neither works from a snapshot older than the other's commit. A lock alone
+-- would not do: the closing runs serializable and the writer does not, and a row that was only locked is no write for a serializable transaction to conflict with. A row that was changed is: a closing whose snapshot
+-- is older than a commit that added content fails with a serialization failure and is told to repeat, and a writer that comes after a closing finds the batch closed. The statement is the owner's, so that the
+-- application needs no right over the table.
+CREATE TABLE public.ingestion_batch_turn (
+    batch_id bigint PRIMARY KEY,
+    turns bigint NOT NULL
+);
+
+CREATE FUNCTION public.take_batch_turn(of_batch bigint) RETURNS void
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = pg_catalog
+AS $turn$
+    INSERT INTO public.ingestion_batch_turn (batch_id, turns) VALUES (of_batch, 1) ON CONFLICT (batch_id) DO UPDATE SET turns = ingestion_batch_turn.turns + 1
+$turn$;
+
+REVOKE ALL ON FUNCTION public.take_batch_turn(bigint) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.take_batch_turn(bigint) TO app;
+
+-- The closing takes the turn when the batch leaves the open state, after the transition has been judged and before the rows of the batch are removed or counted.
+CREATE FUNCTION public.take_turn_on_batch_closing() RETURNS trigger
+LANGUAGE plpgsql
+AS $turn$
+BEGIN
+    PERFORM public.take_batch_turn(NEW.id);
+    RETURN NEW;
+END
+$turn$;
+
+CREATE TRIGGER batch_closing_takes_turn BEFORE UPDATE ON content.ingestion_batch
+    FOR EACH ROW WHEN (OLD.state = open AND NEW.state IS DISTINCT FROM open) EXECUTE FUNCTION public.take_turn_on_batch_closing();
+ALTER TABLE content.ingestion_batch ENABLE ALWAYS TRIGGER batch_closing_takes_turn;
+
+-- Content is added only to a batch that is open (outside the window of a restore). The row takes the turn of the batch first (see the gate below) and only then looks at the state, so that a closing that
+-- commits meanwhile is seen, and the row is refused: no item enters a batch already accepted or rejected.
 CREATE FUNCTION public.refuse_content_outside_open_batch() RETURNS trigger
 LANGUAGE plpgsql
 AS $refuse$
@@ -42,7 +77,8 @@ BEGIN
     NEW.written_in := pg_catalog.pg_current_xact_id();
     -- A row of a domain other than the declared one, or with none declared, is the row policy's to refuse, with its own refusal, and the batch is not looked for.
     IF NEW.domain_id = public.declared_domain() AND NOT public.restore_window_is_open() THEN
-        SELECT b.state INTO batch_state FROM content.ingestion_batch b WHERE b.id = NEW.batch_id AND b.domain_id = NEW.domain_id FOR SHARE;
+        PERFORM public.take_batch_turn(NEW.batch_id);
+        SELECT b.state INTO batch_state FROM content.ingestion_batch b WHERE b.id = NEW.batch_id AND b.domain_id = NEW.domain_id;
         IF batch_state IS DISTINCT FROM 'open' THEN
             RAISE EXCEPTION 'content is added only to a batch that is open'
                 USING ERRCODE = 'CE006', SCHEMA = TG_TABLE_SCHEMA, TABLE = TG_TABLE_NAME;
@@ -57,6 +93,26 @@ CREATE TRIGGER content_needs_open_batch BEFORE INSERT ON content.item_text FOR E
 CREATE TRIGGER content_needs_open_batch BEFORE INSERT ON content.reversal_map FOR EACH ROW EXECUTE FUNCTION public.refuse_content_outside_open_batch();
 ALTER TABLE content.item_text ENABLE ALWAYS TRIGGER content_needs_open_batch;
 ALTER TABLE content.reversal_map ENABLE ALWAYS TRIGGER content_needs_open_batch;
+
+-- The batch of a row, the transaction that wrote it and its domain never change, by any statement and any session, the owner and a replica one included: the row would otherwise move into a batch that was
+-- accepted, or take the number of the transaction that reads it, and be seen without the batch having been accepted. The window of a restore only inserts.
+CREATE FUNCTION public.refuse_content_link_change() RETURNS trigger
+LANGUAGE plpgsql
+AS $refuse$
+BEGIN
+    IF NEW.batch_id IS DISTINCT FROM OLD.batch_id OR NEW.written_in IS DISTINCT FROM OLD.written_in OR NEW.domain_id IS DISTINCT FROM OLD.domain_id THEN
+        RAISE EXCEPTION 'the batch, the transaction and the domain of a row of content never change'
+            USING ERRCODE = 'CE006', SCHEMA = TG_TABLE_SCHEMA, TABLE = TG_TABLE_NAME;
+    END IF;
+
+    RETURN NEW;
+END
+$refuse$;
+
+CREATE TRIGGER content_link_is_never_changed BEFORE UPDATE ON content.item_text FOR EACH ROW EXECUTE FUNCTION public.refuse_content_link_change();
+CREATE TRIGGER content_link_is_never_changed BEFORE UPDATE ON content.reversal_map FOR EACH ROW EXECUTE FUNCTION public.refuse_content_link_change();
+ALTER TABLE content.item_text ENABLE ALWAYS TRIGGER content_link_is_never_changed;
+ALTER TABLE content.reversal_map ENABLE ALWAYS TRIGGER content_link_is_never_changed;
 
 -- A row of content is removed only with its batch rejected, and only in the transaction that wrote the event of the rejection: the batch is already rejected in the row, the event is the one of this batch with the
 -- motive of the row. Nobody removes content any other way, the owner included.
@@ -86,19 +142,19 @@ GRANT DELETE ON content.item_text, content.reversal_map TO app;
 
 -- Visibility (issue 74, CA-5), by a restrictive row policy and not by a view: the policy applies to every read of the table, the ones the audit of the server counts included, and a read that names the table
 -- cannot choose a way around it. Without a view, the queries keep reading the table. The restrictive policy adds to the domain one, which stays as it was.
--- A row is seen when its batch is accepted; or, while the batch is open, by the transaction that wrote it; or by the transaction that wrote the event of the closing of its batch, which is the one that removes
+-- A row is seen when its batch is accepted; or, while the batch is open, by the transaction that wrote it; or by the transaction that rejected its batch, with the event of the rejection and the motive of the batch, which is the one that removes
 -- the rows of a rejected batch; or in the scope of the system (app.content_scope = system), the one of the operations that only wrap a key again (the rotation of the epoch and the rewrap of a domain), that
 -- check the epochs in use, and that copy the data, which must carry every item and every map, so that a batch accepted later is found with its keys on the epoch that is held and is restored whole. The scope
 -- is declared by those paths and by none that reads the stock. The review by sample of a batch still open (issue 83) reads it by a function of its own.
 CREATE POLICY batch_accepted_only ON content.item_text AS RESTRICTIVE FOR SELECT
     USING (written_in = pg_catalog.pg_current_xact_id()
-        OR EXISTS (SELECT 1 FROM content.ingestion_batch b WHERE b.id = item_text.batch_id AND b.domain_id = item_text.domain_id AND b.state = 'accepted')
-        OR public.custody_event_of_this_transaction('ingestion_batch', batch_id, 'batch_closed')
+        OR EXISTS (SELECT 1 FROM content.ingestion_batch b WHERE b.id = item_text.batch_id AND b.domain_id = item_text.domain_id
+            AND (b.state = 'accepted' OR (b.state = 'rejected' AND public.batch_event_of_this_transaction(b.id, 'batch_closed', 'batch_rejected', b.motive))))
         OR pg_catalog.current_setting('app.content_scope', true) = 'system');
 CREATE POLICY batch_accepted_only ON content.reversal_map AS RESTRICTIVE FOR SELECT
     USING (written_in = pg_catalog.pg_current_xact_id()
-        OR EXISTS (SELECT 1 FROM content.ingestion_batch b WHERE b.id = reversal_map.batch_id AND b.domain_id = reversal_map.domain_id AND b.state = 'accepted')
-        OR public.custody_event_of_this_transaction('ingestion_batch', batch_id, 'batch_closed')
+        OR EXISTS (SELECT 1 FROM content.ingestion_batch b WHERE b.id = reversal_map.batch_id AND b.domain_id = reversal_map.domain_id
+            AND (b.state = 'accepted' OR (b.state = 'rejected' AND public.batch_event_of_this_transaction(b.id, 'batch_closed', 'batch_rejected', b.motive))))
         OR pg_catalog.current_setting('app.content_scope', true) = 'system');
 
 -- What the database counts of the content that is held (0025) is the content that can be read: it enters the count when its batch is accepted, and not when it is written, unless the batch is accepted

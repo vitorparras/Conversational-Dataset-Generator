@@ -41,7 +41,7 @@ public sealed class IngestionBatchTableTests
 
         var batch = await OpenAsync(world);
 
-        Assert.Equal(("open:-:False", "batch_opened:administrative_act:-"), (await HeldAsync(world, batch), await world.ScalarAsync(Events) as string));
+        Assert.Equal(("open:-:false", "batch_opened:administrative_act:-"), (await HeldAsync(world, batch), await world.ScalarAsync(Events) as string));
     }
 
     [DatabaseFact]
@@ -103,7 +103,7 @@ public sealed class IngestionBatchTableTests
         _ = await world.InDomainAfterAsync(RejectedEvent, 1, Reject, ("event", rejected), ("id", rejected));
 
         Assert.Equal(
-            ("accepted:-:True", "rejected:invalid_rows:True"),
+            ("accepted:-:true", "rejected:invalid_rows:true"),
             (await HeldAsync(world, accepted), await HeldAsync(world, rejected)));
     }
 
@@ -134,15 +134,16 @@ public sealed class IngestionBatchTableTests
     }
 
     [DatabaseFact]
-    public async Task MotiveThatIsNotANameInSnakeCaseIsRefused()
+    public async Task MotiveThatIsNotANameInSnakeCaseIsRefusedByTheChainAndByTheBatchWithoutAnEventThatSaysIt()
     {
         await using var world = await IngestionWorld.CreateAsync();
         var batch = await OpenAsync(world);
+        const string BadMotive = "UPDATE content.ingestion_batch SET state = 'rejected', motive = 'Invalid_rows' WHERE id = @id";
 
-        var refused = await Assert.ThrowsAsync<PostgresException>(
-            () => world.OwnerInDomainAsync(1, "UPDATE content.ingestion_batch SET state = 'rejected', motive = 'Invalid rows' WHERE id = @id", ("id", batch)));
+        var inTheChain = await Assert.ThrowsAsync<PostgresException>(() => world.InDomainAsync(1, RejectedEventWith("Invalid_rows"), ("event", batch)));
+        var inTheTable = await Assert.ThrowsAsync<PostgresException>(() => world.OwnerInDomainAsync(1, BadMotive, ("id", batch)));
 
-        Assert.Equal(PostgresErrorCodes.CheckViolation, refused.SqlState);
+        Assert.Equal((PostgresErrorCodes.CheckViolation, WithoutEvent), (inTheChain.SqlState, inTheTable.SqlState));
     }
 
     [DatabaseFact]
@@ -193,6 +194,8 @@ public sealed class IngestionBatchTableTests
                 $"refused with {refused.SqlState}"));
         Assert.Equal((OutsideTheRules, OutsideTheRules), (byOwner.SqlState, asReplica.SqlState));
     }
+
+    private static string RejectedEventWith(string motive) => RejectedEvent.Replace("'invalid_rows'", "'" + motive + "'", StringComparison.Ordinal);
 
     private static async Task<long> OpenAsync(ContentWorld world) => (long)(await world.InDomainAsync(1, Opening))!;
 

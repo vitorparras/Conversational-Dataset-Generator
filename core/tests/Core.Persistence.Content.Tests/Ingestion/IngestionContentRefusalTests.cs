@@ -58,16 +58,59 @@ public sealed class IngestionContentRefusalTests
         Assert.Equal((WithoutEvent, item), (withoutIt.SqlState, removed));
     }
 
+    [DatabaseFact]
+    public async Task BatchTransactionAndDomainOfARowNeverChangeNotEvenForTheSuperuserOrAReplicaSession()
+    {
+        await using var world = await IngestionWorld.CreateAsync();
+        var open = await IngestionWorld.OpenAsync(world);
+        var item = await IngestionWorld.AddItemAsync(world, open);
+        var map = await IngestionWorld.AddMapAsync(world, open, item);
+        var accepted = await IngestionWorld.OpenAsync(world);
+        _ = await IngestionWorld.AcceptAsync(world, accepted);
+
+        var refused = new[]
+        {
+            await Assert.ThrowsAsync<PostgresException>(() => AsSuperuserAsync(world, "UPDATE content.item_text SET batch_id = @target WHERE id = @id", false, ("id", item), ("target", accepted))),
+            await Assert.ThrowsAsync<PostgresException>(() => AsSuperuserAsync(world, "UPDATE content.item_text SET batch_id = @target WHERE id = @id", true, ("id", item), ("target", accepted))),
+            await Assert.ThrowsAsync<PostgresException>(() => AsSuperuserAsync(world, "UPDATE content.reversal_map SET batch_id = @target WHERE id = @id", true, ("id", map), ("target", accepted))),
+            await Assert.ThrowsAsync<PostgresException>(() => AsSuperuserAsync(world, "UPDATE content.item_text SET written_in = pg_current_xact_id() WHERE id = @id", false, ("id", item))),
+            await Assert.ThrowsAsync<PostgresException>(() => AsSuperuserAsync(world, "UPDATE content.reversal_map SET written_in = pg_current_xact_id() WHERE id = @id", true, ("id", map))),
+            await Assert.ThrowsAsync<PostgresException>(() => AsSuperuserAsync(world, "UPDATE content.item_text SET domain_id = 2 WHERE id = @id", true, ("id", item))),
+        };
+
+        Assert.All(refused, one => Assert.Equal("CE006", one.SqlState));
+        Assert.Equal("0,0", await world.InDomainAsync(1, IngestionWorld.Reachable) as string);
+    }
+
+    [DatabaseFact]
+    public async Task EventOfARejectionWithoutTheRejectionOfTheBatchDoesNotShowItsContent()
+    {
+        await using var world = await IngestionWorld.CreateAsync();
+        var batch = await IngestionWorld.OpenAsync(world);
+        var item = await IngestionWorld.AddItemAsync(world, batch);
+        _ = await IngestionWorld.AddMapAsync(world, batch, item);
+
+        var seen = await world.InDomainAfterAsync(RejectedEvent, 1, IngestionWorld.Reachable, ("event", batch));
+
+        Assert.Equal("0,0", seen as string);
+    }
+
+    private static Task<object?> AsReplicaAsync(ContentWorld world, string statement, long id) => AsSuperuserAsync(world, statement, true, ("id", id));
+
     [SuppressMessage("Security", "CA2100", Justification = "The statements are literals of the tests, never input.")]
-    private static async Task<object?> AsReplicaAsync(ContentWorld world, string statement, long id)
+    private static async Task<object?> AsSuperuserAsync(ContentWorld world, string statement, bool replica, params (string Name, object Value)[] parameters)
     {
         await using var connection = await Sql.OpenAsync(world.Database.SuperuserConnectionString);
-        await using var replica = new NpgsqlCommand("SET session_replication_role = replica", connection);
-        _ = await replica.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
-        await using var command = new NpgsqlCommand(statement, connection);
-        if (statement.Contains("@id", StringComparison.Ordinal))
+        if (replica)
         {
-            _ = command.Parameters.AddWithValue("id", id);
+            await using var skip = new NpgsqlCommand("SET session_replication_role = replica", connection);
+            _ = await skip.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+        }
+
+        await using var command = new NpgsqlCommand(statement, connection);
+        foreach (var (name, value) in parameters.Where(parameter => statement.Contains("@" + parameter.Name, StringComparison.Ordinal)))
+        {
+            _ = command.Parameters.AddWithValue(name, value);
         }
 
         return await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);

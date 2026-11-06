@@ -18,7 +18,7 @@ internal static class EpochRotationMode
     internal static async Task<HostLaunch> RunAsync(string[] args, TextWriter output, TextWriter error)
     {
         var loaded = HostConfiguration.Load(args[1..], migrating: true);
-        var database = HostConfiguration.DatabaseOf(loaded, migrating: true);
+        var database = HostConfiguration.DatabaseOf(loaded);
         if (database is null || database.State == DatabaseSettingsState.Refused)
         {
             return HostLaunch.Refused(database?.Problems ?? loaded.Problems);

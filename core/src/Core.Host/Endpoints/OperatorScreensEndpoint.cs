@@ -2,27 +2,20 @@ using System.Globalization;
 using Core.Host.Operators;
 using Core.Host.Screens;
 using Core.Persistence.People;
-using Core.Platform.Sessions;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Core.Host.Endpoints;
 
 /// <summary>
-/// The screens of the people who operate (#599), for the technical administration alone: the list, filtered and paged by the server with both in the address, and the form that
-/// registers one, which calls what the route of JSON calls. A refusal is the same form again with the error bound to its field and what was typed, never the password;
-/// a registration takes the browser to the list filtered by the name just registered.
+/// The screen of the people who operate (#599), for the technical administration alone: the list, filtered and paged by the server with both in the address, read from the same
+/// administration the routes of JSON use, and nothing of any material.
 /// </summary>
 internal static class OperatorScreensEndpoint
 {
     private const int OperatorsPlace = 80;
 
-    internal static void Map(IEndpointRouteBuilder endpoints)
-    {
+    internal static void Map(IEndpointRouteBuilder endpoints) =>
         _ = endpoints.MapGet(ScreenPaths.Operators, ListAsync).WithMetadata(ScreenAccess.Of(OperatorsScreen.Title, OperatorsPlace, PersonFunctions.Administration));
-        _ = endpoints.MapGet(ScreenPaths.OperatorNew, Form).WithMetadata(ScreenAccess.Unlisted(PersonFunctions.Administration));
-        _ = endpoints.MapPost(ScreenPaths.OperatorNew, RegisterAsync).WithMetadata(ScreenAccess.Unlisted(PersonFunctions.Administration));
-    }
 
     /// <summary>With no database declared there is nobody to list, and the page says it is the host that cannot, as the route of JSON does.</summary>
     private static async Task<IResult> ListAsync(HttpContext context, [FromServices] OperatorAdministration? staff)
@@ -42,42 +35,9 @@ internal static class OperatorScreensEndpoint
             [nameof(OperatorsScreen.Name)] = name,
             [nameof(OperatorsScreen.Function)] = function,
             [nameof(OperatorsScreen.State)] = state,
-            [nameof(OperatorsScreen.Registered)] = query.ContainsKey(OperatorsScreen.RegisteredKey) ? name : null,
         };
         return ScreenResult.Of(context, typeof(OperatorsScreen), OperatorsScreen.Title, screen);
     }
-
-    private static RazorComponentResult<ScreenFrame> Form(HttpContext context) => ScreenResult.Of(context, typeof(OperatorFormScreen), OperatorFormScreen.Title);
-
-    /// <summary>The password is read from the body of the post and goes to the registration, nowhere else: not to the page, the address nor the log.</summary>
-    private static async Task<IResult> RegisterAsync(HttpContext context, [FromServices] OperatorAdministration? staff, [FromServices] SessionStore sessions)
-    {
-        if (staff is null || sessions.Resolve(SessionCookie.Read(context.Request)) is not { } author)
-        {
-            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
-        }
-
-        var form = context.Request.HasFormContentType ? await context.Request.ReadFormAsync(context.RequestAborted) : null;
-        var (name, function) = (ValueOf(form, OperatorFormScreen.NameField), ValueOf(form, OperatorFormScreen.FunctionField));
-        var registered = await staff.RegisterAsync(author, new OperatorAsked(name, function, ValueOf(form, OperatorFormScreen.SecretField)), context.RequestAborted);
-        if (registered.Refusal is not { } refusal)
-        {
-            return PageRedirect.Of(context, $"{ScreenPaths.Operators}?{OperatorsScreen.NameKey}={Uri.EscapeDataString(name)}&{OperatorsScreen.RegisteredKey}=1");
-        }
-
-        var screen = new Dictionary<string, object?>(StringComparer.Ordinal)
-        {
-            [nameof(OperatorFormScreen.Name)] = name,
-            [nameof(OperatorFormScreen.Function)] = function,
-            [nameof(OperatorFormScreen.ErrorField)] = refusal.Field,
-            [nameof(OperatorFormScreen.ErrorReason)] = refusal.Reason,
-        };
-        var page = ScreenResult.Of(context, typeof(OperatorFormScreen), OperatorFormScreen.Title, screen);
-        page.StatusCode = registered.Status;
-        return page;
-    }
-
-    private static string ValueOf(IFormCollection? form, string field) => form?[field].ToString() ?? string.Empty;
 
     private static string? Given(string value) => string.IsNullOrWhiteSpace(value) ? null : value;
 

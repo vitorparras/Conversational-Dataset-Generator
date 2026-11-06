@@ -14,6 +14,7 @@ internal static class OperatorsEndpoint
     internal const string Route = "/people";
 
     private const string NotAdministrator = "Só quem tem a função Administração técnica cria, desativa ou repõe a senha de uma pessoa; nada foi gravado.";
+    private const string BlankSecret = "A senha não pode ser vazia.";
 
     internal static void Map(IEndpointRouteBuilder endpoints)
     {
@@ -25,10 +26,18 @@ internal static class OperatorsEndpoint
     private static Task<IResult> MakeAsync([FromBody] OperatorAsked asked, [FromServices] OperatorAdministration? staff, HttpContext context) =>
         ActAsync(staff, context, async (administration, author) =>
         {
-            var registered = await administration.RegisterAsync(author, asked, context.RequestAborted);
-            return registered.Id is { } id
-                ? Results.Created(new Uri($"{Route}/{id}", UriKind.Relative), new OperatorMade(id))
-                : Results.Json(registered.Refusal, statusCode: registered.Status);
+            if (asked.Password.Length == 0)
+            {
+                return OperatorAnswer.AtField("senha", BlankSecret);
+            }
+
+            var (made, password) = await administration.CreateAsync(author, new NewPerson(asked.Name, asked.Function), asked.Password, context.RequestAborted);
+            return (made, password) switch
+            {
+                ({ Outcome: not PersonOutcome.Done }, _) => OperatorAnswer.Of(made),
+                (_, { Outcome: PersonOutcome.Done }) => Results.Created(new Uri($"{Route}/{made.PersonId}", UriKind.Relative), new OperatorMade(made.PersonId!.Value)),
+                _ => Results.Json(new OperatorRefused(null, Unfinished(made.PersonId!.Value)), statusCode: StatusCodes.Status500InternalServerError),
+            };
         });
 
     private static Task<IResult> DeactivateAsync(long id, [FromServices] OperatorAdministration? staff, HttpContext context) =>
@@ -55,4 +64,7 @@ internal static class OperatorsEndpoint
 
     private static IResult Of(PersonResult result, long id) =>
         result.Outcome == PersonOutcome.Done ? Results.Ok(new OperatorMade(id)) : OperatorAnswer.Of(result);
+
+    private static string Unfinished(long id) =>
+        $"A pessoa foi criada com o id {id} e a senha não foi definida; defina-a pela rota PUT {Route}/{id}/password.";
 }

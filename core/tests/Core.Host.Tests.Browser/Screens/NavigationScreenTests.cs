@@ -100,14 +100,14 @@ public sealed class NavigationScreenTests(BrowserFixture browser, NavigationHost
         var reached = new List<string>();
         var seen = new List<bool>();
 
-        for (var stop = 0; stop < 7; stop++)
+        for (var stop = 0; stop < 8; stop++)
         {
             await tab.Page.Keyboard.PressAsync("Tab");
             reached.Add(await tab.Page.EvaluateAsync<string>(FocusedId));
             seen.Add(await tab.Page.EvaluateAsync<bool>(FocusIsSeen));
         }
 
-        Assert.Equal(["skip-link", "header__name", "sair", "nav__link", "nav__link", "destinations__link", "destinations__link"], reached);
+        Assert.Equal(["skip-link", "header__name", "nav__link header__account", "sair", "nav__link", "nav__link", "destinations__link", "destinations__link"], reached);
         Assert.DoesNotContain(false, seen);
     }
 
@@ -118,7 +118,7 @@ public sealed class NavigationScreenTests(BrowserFixture browser, NavigationHost
         var reached = new List<string>();
         var seen = new List<bool>();
 
-        for (var stop = 0; stop < 3; stop++)
+        for (var stop = 0; stop < 4; stop++)
         {
             await tab.Page.Keyboard.PressAsync("Tab");
             reached.Add(await tab.Page.EvaluateAsync<string>(FocusedId));
@@ -128,7 +128,7 @@ public sealed class NavigationScreenTests(BrowserFixture browser, NavigationHost
         await tab.Page.Keyboard.PressAsync("Tab");
         var beyond = await tab.Page.EvaluateAsync<string>(FocusedId);
 
-        Assert.Equal(["skip-link", "header__name", "sair"], reached);
+        Assert.Equal(["skip-link", "header__name", "nav__link header__account", "sair"], reached);
         Assert.DoesNotContain(false, seen);
         Assert.NotEqual("sair", beyond);
     }
@@ -151,11 +151,11 @@ public sealed class NavigationScreenTests(BrowserFixture browser, NavigationHost
         await using var auditor = await SignedInAsync(navigation.Host.Auditor);
         await using var annotator = await SignedInAsync(navigation.Host.Annotator);
 
-        Assert.Equal([NavigationScreenHost.AdministrationCaption, NavigationScreenHost.AuditCaption], await administrator.Page.Locator(".nav__link").AllInnerTextsAsync());
+        Assert.Equal([NavigationScreenHost.AdministrationCaption, NavigationScreenHost.AuditCaption], await administrator.Page.Locator("nav .nav__link").AllInnerTextsAsync());
         Assert.Equal([NavigationScreenHost.AdministrationCaption, NavigationScreenHost.AuditCaption], await administrator.Page.Locator(".destinations__link").AllInnerTextsAsync());
-        Assert.Equal([NavigationScreenHost.AuditCaption], await auditor.Page.Locator(".nav__link").AllInnerTextsAsync());
+        Assert.Equal([NavigationScreenHost.AuditCaption], await auditor.Page.Locator("nav .nav__link").AllInnerTextsAsync());
         Assert.Equal([NavigationScreenHost.AuditCaption], await auditor.Page.Locator(".destinations__link").AllInnerTextsAsync());
-        Assert.Empty(await annotator.Page.Locator(".nav__link").AllInnerTextsAsync());
+        Assert.Empty(await annotator.Page.Locator("nav .nav__link").AllInnerTextsAsync());
         Assert.Empty(await annotator.Page.Locator(".destinations__link").AllInnerTextsAsync());
     }
 

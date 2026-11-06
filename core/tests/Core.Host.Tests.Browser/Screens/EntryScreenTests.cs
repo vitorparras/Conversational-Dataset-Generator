@@ -137,13 +137,13 @@ public sealed class EntryScreenTests(BrowserFixture browser, EntryHostFixture en
         await AccessibilityCheck.AssertNoViolationsAsync(tab.Page);
         await ModeCapture.SaveAsync(tab.Page, mode, "cabecalho-com-sair");
         var order = new List<string>();
-        for (var stop = 0; stop < 3; stop++)
+        for (var stop = 0; stop < 4; stop++)
         {
             await tab.Page.Keyboard.PressAsync("Tab");
             order.Add(await tab.Page.EvaluateAsync<string>(FocusedId));
         }
 
-        Assert.Equal(["skip-link", "header__name", "sair"], order);
+        Assert.Equal(["skip-link", "header__name", "nav__link header__account", "sair"], order);
     }
 
     private static async Task FillAsync(IPage page, string name, string password)

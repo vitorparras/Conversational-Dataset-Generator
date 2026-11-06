@@ -1,3 +1,5 @@
+using Core.Boundary.Contracts;
+
 namespace Core.Ingestion;
 
 /// <summary>
@@ -7,12 +9,22 @@ namespace Core.Ingestion;
 public sealed class FormConference
 {
     private readonly Dictionary<MaterialForm, IFormRule> rules;
+    private readonly ITextBoundaries boundaries;
+
+    /// <summary>The conference with the minimal rule of each form; the host gives it the boundary that tells where a text can be cut.</summary>
+    /// <param name="boundaries">The boundary that tells where a text can be cut, which the labeled sequence asks.</param>
+    public FormConference(ITextBoundaries boundaries)
+        : this(MinimalRules(), boundaries)
+    {
+    }
 
     /// <summary>The conference over one rule for each of the four forms.</summary>
     /// <param name="rules">Exactly one rule for each form.</param>
-    internal FormConference(IEnumerable<IFormRule> rules)
+    /// <param name="boundaries">The boundary that tells where a text can be cut, which the rules are given.</param>
+    internal FormConference(IEnumerable<IFormRule> rules, ITextBoundaries boundaries)
     {
         ArgumentNullException.ThrowIfNull(rules);
+        ArgumentNullException.ThrowIfNull(boundaries);
         var byForm = new Dictionary<MaterialForm, IFormRule>();
         foreach (var rule in rules)
         {
@@ -29,17 +41,7 @@ public sealed class FormConference
         }
 
         this.rules = byForm;
-    }
-
-    /// <summary>The conference with the minimal rule of each form.</summary>
-    public static FormConference Minimal()
-    {
-        var minimal = new IFormRule[Enum.GetValues<MaterialForm>().Length];
-        minimal[(int)MaterialForm.Conversation] = new ConversationRule();
-        minimal[(int)MaterialForm.Comment] = new CommentRule();
-        minimal[(int)MaterialForm.Document] = new DocumentRule();
-        minimal[(int)MaterialForm.LabeledSequence] = new LabeledSequenceRule();
-        return new FormConference(minimal);
+        this.boundaries = boundaries;
     }
 
     /// <summary>Confers what the reader gave against the form declared.</summary>
@@ -60,6 +62,16 @@ public sealed class FormConference
 
         return read.Units.Count == 0
             ? ConferenceResult.Refuse(Refusal.Whole(declared, RefusalCode.NoUnits, null))
-            : rules[declared].Confer(read);
+            : rules[declared].Confer(read, boundaries);
+    }
+
+    private static IFormRule[] MinimalRules()
+    {
+        var minimal = new IFormRule[Enum.GetValues<MaterialForm>().Length];
+        minimal[(int)MaterialForm.Conversation] = new ConversationRule();
+        minimal[(int)MaterialForm.Comment] = new CommentRule();
+        minimal[(int)MaterialForm.Document] = new DocumentRule();
+        minimal[(int)MaterialForm.LabeledSequence] = new LabeledSequenceRule();
+        return minimal;
     }
 }

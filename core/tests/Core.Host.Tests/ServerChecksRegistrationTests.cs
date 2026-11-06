@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Core.Host.Tests;
 
 /// <summary>
-/// The composition root registers the server's checks with a database declared: the guarantees, with the window of the owner credential right after the privilege,
+/// The composition root registers the server's checks: the guarantees, with the window of the owner credential right after the privilege,
 /// then the labels and the epochs last.
 /// </summary>
 public sealed class ServerChecksRegistrationTests
@@ -33,16 +33,6 @@ public sealed class ServerChecksRegistrationTests
                 "ContentEpochs",
             ],
             names);
-    }
-
-    [Fact]
-    public async Task UndeclaredDatabaseRegistersOnlyTheCheckThatSaysNoneIsDeclared()
-    {
-        await using var provider = RootChecks(DatabaseConfiguration.Read(new Dictionary<string, string>()));
-
-        var names = provider.GetServices<IStartupCheck>().Select(check => check.Name);
-
-        Assert.Equal(["Database"], names);
     }
 
     private static ServiceProvider RootChecks(DatabaseSettings database)

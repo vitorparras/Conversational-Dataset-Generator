@@ -50,5 +50,6 @@ e por quem ela roda.
 | [036](036-formato-cdg-conversa-1.md) | O formato cdg-conversa/1 da conversa exportada: o que o arquivo tem e o que o leitor recusa |
 | [037](037-roteiro-de-usabilidade-da-entrada-e-da-saida.md) | Roteiro de usabilidade da entrada e da saída |
 | [038](038-roteiro-de-usabilidade-da-navegacao.md) | Roteiro de usabilidade da navegação e da página inicial |
+| [039](039-roteiro-de-usabilidade-da-configuracao-e-do-estado.md) | Roteiro de usabilidade da configuração em vigor e do estado do sistema |
 
 Ver [regras de escrita](../regras-de-escrita.md).

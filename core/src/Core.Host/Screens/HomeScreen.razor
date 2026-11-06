@@ -1,2 +1,28 @@
 <h1>Início</h1>
-<p>Você entrou. As telas de trabalho aparecem aqui conforme a sua função.</p>
+
+@if (Frame.Menu.Count == 0)
+{
+    <EmptyState Title="Nada a fazer por enquanto">
+        <p>As telas de trabalho aparecem aqui conforme a sua função e os domínios concedidos a você.</p>
+        @if (!Frame.Granted.Any())
+        {
+            <p>Nenhum domínio foi concedido a você. Para trabalhar num domínio, peça a concessão a quem administra o sistema.</p>
+        }
+    </EmptyState>
+}
+else
+{
+    <p>Escolha por onde começar.</p>
+    <ul class="destinations">
+        @foreach (var entry in Frame.Menu)
+        {
+            <li><a class="destinations__link" href="@entry.Path">@entry.Caption</a></li>
+        }
+    </ul>
+}
+
+@code {
+    /// <summary>The page around the screen, whose menu is what the one who entered has to do: the start lists the same entries, from the same place.</summary>
+    [CascadingParameter]
+    public ScreenFrame Frame { get; set; } = default!;
+}

@@ -2,13 +2,12 @@
 
 @if (Items.Count == 0)
 {
-    <div class="paged-list__empty" role="status">
-        <p><strong>@EmptyTitle</strong></p>
+    <EmptyState Title="@EmptyTitle">
         @if (EmptyHint is not null)
         {
             <p>@EmptyHint</p>
         }
-    </div>
+    </EmptyState>
 }
 else
 {

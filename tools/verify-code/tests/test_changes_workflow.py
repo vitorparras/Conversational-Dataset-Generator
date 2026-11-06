@@ -70,10 +70,11 @@ class ChangesWorkflowTests(unittest.TestCase):
 
         self.assertIn("fetch-depth: 0", text)
         self.assertIn("verify.py --changes", text)
-        self.assertIn(
-            "github.event_name == 'pull_request' && format('--base origin/{0}', github.base_ref)",
-            text,
-        )
+        env, run = text.split("        run:", 1)
+        self.assertIn("format('origin/{0}', github.base_ref)", env)
+        self.assertIn("BASE: ${{ github.event_name == 'pull_request' &&", env)
+        self.assertIn('${BASE:+--base "$BASE"}', run)
+        self.assertNotIn("${{", run)
         self.assertIn('>> "$GITHUB_OUTPUT"', text)
 
     def test_the_heavy_jobs_wait_for_the_classification_and_run_unless_it_dispenses_them(

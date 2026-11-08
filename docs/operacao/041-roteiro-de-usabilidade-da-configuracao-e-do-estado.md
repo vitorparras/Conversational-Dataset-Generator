@@ -14,20 +14,20 @@ descartadas no fim. Quem executa não é quem escreveu a tela.
 |---|---|
 | Telas | Configuração em vigor e Estado do sistema, nas issues 603 e 604 |
 | Quem usa | Quem administra o servidor ou audita o sistema, sem treino na tela |
-| Ponto de partida | Núcleo no ar com o reconhecedor simulado, uma conferência da subida falha, a entrada feita |
+| Ponto de partida | Instalação real no ar, com o reconhecedor simulado e `Custody:Holder` declarado (a demonstração não o declara), apta, a entrada feita |
 | Sucesso | Acha a resposta na tela, e a que a tela não dá, entende que não dá |
 | Limite | 30 s e 2 passos do início até a resposta; acima disso é difícil |
 
 ## Tarefas
 
 1. **Saber se o sistema pode ser usado.** Como `operador-10`, pergunte se o sistema está pronto
-   para trabalhar e, se não, o que falhou. A pessoa tem de separar "vivo" de "apto" e dizer qual
-   conferência falhou e onde ela se confere.
+   para trabalhar. A pessoa tem de separar "vivo" de "apto", ler que todas as conferências da
+   subida passaram e dizer onde cada uma se confere.
 2. **Achar uma versão.** Peça a versão do núcleo e a do esquema do banco. Anote o que ela diz da
    versão do serviço de linguagem, que aqui não é obtida: tem de ler como "não obtida", não como
    erro.
 3. **De onde veio um valor.** Na configuração, peça de onde veio o valor da chave `Host:Urls`.
-4. **Um segredo.** Peça o valor da chave de guarda da cópia de segurança (`Custody:Holder`). A
+4. **Um segredo.** Peça o nome de quem guarda a cópia da chave (`Custody:Holder`). A
    pessoa tem de entender que o sistema não mostra o valor, só o nome e a origem, e que isso não é
    falha da tela.
 5. **Mudar um valor.** Peça que mude o valor de uma chave. A pessoa não pode procurar botão por
@@ -53,8 +53,8 @@ Resultado "ajuda" ou "desistência" abre item novo na issue da tela, como em 034
 ## Fora do roteiro
 
 A mudança de um valor, submetida e aprovada por outra pessoa, é da issue 634: até lá a tarefa 5
-só confere que a tela diz que a mudança é no servidor. A comparação do registro contra a cadeia e
-o aviso do selo aparecem só quando há fato real, e entram no roteiro quando a instalação tiver
-um. O serviço de linguagem em uso e as versões que ele declara dependem do reconhecedor real.
-A prova de que a tela negada e a inexistente são iguais é do teste de navegador e do
-`ScreenGateTests`.
+só confere que a tela diz que a mudança é no servidor. Uma conferência da subida que falha não se
+vê aqui, porque o núcleo não sobe (sai com 69, caminho da 022); com o serviço de linguagem real
+derrubado a tela diz "Não: o serviço de linguagem não está disponível", e isso entra com o
+reconhecedor real, assim como a comparação do registro contra a cadeia e o aviso do selo. A prova
+de que a tela negada e a inexistente são iguais é do teste de navegador e do `ScreenGateTests`.

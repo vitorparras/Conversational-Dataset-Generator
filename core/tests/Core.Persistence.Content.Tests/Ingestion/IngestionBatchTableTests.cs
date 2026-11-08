@@ -52,7 +52,7 @@ public sealed class IngestionBatchTableTests
         var refused = await Assert.ThrowsAsync<PostgresException>(async () =>
         {
             await using var transaction = await ContentTransaction.BeginAsync(world.DataSource, 1, TestContext.Current.CancellationToken);
-            await using var insert = transaction.CreateCommand("INSERT INTO content.ingestion_batch (domain_id, opened_by, condition) VALUES (1, 1)");
+            await using var insert = transaction.CreateCommand("INSERT INTO content.ingestion_batch (domain_id, opened_by, condition) VALUES (1, 1, 'restrita')");
             _ = await insert.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
             await transaction.CommitAsync(TestContext.Current.CancellationToken);
         });

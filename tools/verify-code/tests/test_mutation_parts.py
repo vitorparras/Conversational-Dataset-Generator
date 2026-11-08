@@ -421,12 +421,65 @@ class LineOfTheAreaFileTests(PartsFixture):
         self.assertIn("o campo `Partes da mutação` já aparece antes", problems[0])
 
 
+def spans_by_file(patterns: tuple[str, ...]) -> dict[str, list[tuple[int, int]]]:
+    """The spans each pattern of a part gives its file; a bare path is the whole file."""
+    found: dict[str, list[tuple[int, int]]] = {}
+    for pattern in patterns:
+        file = pattern.split("{")[0]
+        spans = [(int(a), int(b)) for a, b in re.findall(r"\{(\d+)\.\.(\d+)\}", pattern)]
+        found.setdefault(file, []).extend(spans or [(0, UNBOUNDED)])
+    return found
+
+
+class UnionOfThePartsTests(unittest.TestCase):
+    """The parts of every area of the repository together are the whole area (#716)."""
+
+    def setUp(self) -> None:
+        self.root = support.VERIFY_CODE.parents[1]
+        self.areas = areas_doc.read_areas(self.root).areas
+
+    def split_areas(self) -> list[areas_doc.Area]:
+        return [a for a in self.areas if mutation_core.part_count(self.root, a, self.areas) > 1]
+
+    def union(self, area: areas_doc.Area) -> dict[str, list[tuple[int, int]]]:
+        """Every span of every part of the area, by file, in the order of the file."""
+        count = mutation_core.part_count(self.root, area, self.areas)
+        joined: dict[str, list[tuple[int, int]]] = {}
+        for part in mutation_parts.parts_of(count):
+            target = mutation_core.target(self.root, area, self.areas, part)
+            assert target is not None
+            for file, spans in spans_by_file(target.patterns).items():
+                joined.setdefault(file, []).extend(spans)
+        return {file: sorted(spans) for file, spans in joined.items()}
+
+    def test_the_repository_has_areas_in_parts_to_check(self) -> None:
+        names = {a.prefix for a in self.split_areas()}
+
+        self.assertIn("Core.Persistence.Content", names)
+
+    def test_the_parts_together_name_every_file_of_the_area_and_no_other(self) -> None:
+        for area in self.split_areas():
+            core = mutation_core.whole(self.root, area, self.areas)
+            assert core is not None
+            self.assertEqual(
+                set(self.union(area)), set(mutation_core.sources(self.root, core)), area.prefix
+            )
+
+    def test_the_spans_of_each_file_tile_it_with_no_gap_no_overlap_and_no_repeat(self) -> None:
+        for area in self.split_areas():
+            for file, spans in self.union(area).items():
+                self.assertEqual(spans[0][0], 0, (area.prefix, file))
+                self.assertEqual(spans[-1][1], UNBOUNDED, (area.prefix, file))
+                joints = [a[1] == b[0] for a, b in itertools.pairwise(spans)]
+                self.assertTrue(all(joints), (area.prefix, file, spans))
+
+
 class RepositoryAreaTests(unittest.TestCase):
     def test_the_content_areas_of_the_repository_run_in_their_parts(self) -> None:
         root = support.VERIFY_CODE.parents[1]
         areas = {a.prefix: a for a in areas_doc.read_areas(root).areas}
 
-        self.assertEqual(areas["Core.Persistence.Content"].parts, 5)
+        self.assertEqual(areas["Core.Persistence.Content"].parts, 8)
         self.assertEqual(areas["Core.Persistence.Content.Writing"].parts, 2)
         self.assertEqual(areas["Core.Persistence.Content.Reading"].parts, 1)
 
@@ -438,7 +491,7 @@ class RepositoryAreaTests(unittest.TestCase):
 
         writing = [name for name in names if name.startswith("Core.Persistence.Content.Writing@")]
 
-        expected = [f"Core.Persistence.Content@{n}/5" for n in (1, 2, 3, 4, 5)]
+        expected = [f"Core.Persistence.Content@{n}/8" for n in range(1, 9)]
         self.assertEqual(
             (problems, content, writing),
             ((), expected, [f"Core.Persistence.Content.Writing@{n}/2" for n in (1, 2)]),

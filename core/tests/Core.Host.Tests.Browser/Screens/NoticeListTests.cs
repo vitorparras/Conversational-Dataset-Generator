@@ -17,7 +17,6 @@ namespace Core.Host.Tests.Browser.Screens;
 public sealed class NoticeListTests(BrowserFixture browser, SoundNoticeHostFixture sound) : IClassFixture<SoundNoticeHostFixture>
 {
     private const string NewPassword = "ZQX-nova-senha-5950";
-    private const int StatusSeeOther = 303;
 
     [Theory]
     [InlineData(0, "Nenhuma sessão estava aberta.")]
@@ -154,7 +153,6 @@ public sealed class NoticeListTests(BrowserFixture browser, SoundNoticeHostFixtu
     [InlineData("OfAnother")]
     [InlineData("DoesNotExist")]
     [InlineData("NotANumber")]
-    [InlineData("AlreadyRead")]
     public async Task Ca4ANoticeThatIsNotTheirsOrIsGoneIsAnsweredOnThePostAsForAnAddressThatDoesNotExist(string which)
     {
         var host = sound.Host;
@@ -163,20 +161,13 @@ public sealed class NoticeListTests(BrowserFixture browser, SoundNoticeHostFixtu
         await host.TellPasswordResetAsync(owner.Id, 4, TestContext.Current.CancellationToken);
         await host.TellPasswordResetAsync(reader.Id, 1, TestContext.Current.CancellationToken);
         var ofOwner = Assert.Single(await host.UnreadIdsOfAsync(owner.Id));
-        var ofReader = Assert.Single(await host.UnreadIdsOfAsync(reader.Id));
         await using var tab = await ScreenSession.SignedInAsync(browser, host, reader.Name);
         var identifier = which switch
         {
             "OfAnother" => ofOwner.ToString(System.Globalization.CultureInfo.InvariantCulture),
             "DoesNotExist" => "999999999",
-            "NotANumber" => "zqx-aviso",
-            _ => ofReader.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            _ => "zqx-aviso",
         };
-        if (which == "AlreadyRead")
-        {
-            Assert.Equal(StatusSeeOther, (await PostAsync(tab, identifier)).Status);
-        }
-
         var posted = await PostAsync(tab, identifier);
         var missing = await tab.Page.Context.APIRequest.GetAsync(new Uri(new Uri(tab.Page.Url), Missing).AbsoluteUri, new() { Headers = Html() });
 

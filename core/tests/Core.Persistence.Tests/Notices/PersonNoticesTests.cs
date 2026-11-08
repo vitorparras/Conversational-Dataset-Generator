@@ -81,7 +81,7 @@ public sealed class PersonNoticesTests : IClassFixture<PeopleDatabase>
     }
 
     [DatabaseFact]
-    public async Task ANoticeAlreadyReadIsNotMarkedAgain()
+    public async Task ANoticeAlreadyReadStaysAsItWasWhenMarkedAgainAndIsStillTheirs()
     {
         var person = await database.NewPersonAsync();
         var notices = await database.NoticesAsync();
@@ -89,7 +89,10 @@ public sealed class PersonNoticesTests : IClassFixture<PeopleDatabase>
         var id = (await notices.UnreadAsync(person, TestContext.Current.CancellationToken))[0].Id;
         _ = await notices.MarkReadAsync(person, id, TestContext.Current.CancellationToken);
 
-        Assert.False(await notices.MarkReadAsync(person, id, TestContext.Current.CancellationToken));
+        var again = await notices.MarkReadAsync(person, id, TestContext.Current.CancellationToken);
+
+        Assert.True(again);
+        Assert.Equal("1", await database.TextAsync($"SELECT count(*) FROM public.person_notice WHERE id = {id} AND read_at IS NOT NULL"));
     }
 
     [DatabaseFact]

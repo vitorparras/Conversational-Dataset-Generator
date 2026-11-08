@@ -12,7 +12,6 @@ internal static class NoticeText
         NoticeCode.DomainReadOnly => "A escrita nos domínios foi suspensa porque a cadeia de custódia não conferiu na última verificação. A leitura continua.",
         _ => throw new ArgumentOutOfRangeException(nameof(notice), notice.Code, "The notice has a code the screen has no words for."),
     };
-
     private static string PasswordReset(int ended) => "Sua senha foi reposta por quem administra o sistema. " + (ended switch
     {
         0 => "Nenhuma sessão estava aberta.",

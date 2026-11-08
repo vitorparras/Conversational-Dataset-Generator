@@ -53,6 +53,20 @@ public sealed class NoticeScreensRouteTests
     }
 
     [DatabaseFact]
+    public async Task PostingAgainTheReadOfANoticeAlreadyReadGoesBackToTheList()
+    {
+        await using var world = await World.StartAsync();
+        var person = await world.NewPersonAsync();
+        await world.Notices.RecordPasswordResetAsync(person, 1, Token);
+        var (session, id) = (world.Host.Sessions.Open(person), (await world.Notices.UnreadAsync(person, Token))[0].Id);
+        using var first = await world.PostAsync($"/avisos/{id}/lido", session);
+
+        using var again = await world.PostAsync($"/avisos/{id}/lido", session);
+
+        Assert.Equal((HttpStatusCode.SeeOther, "/avisos?lido"), (again.StatusCode, again.Headers.Location?.OriginalString));
+    }
+
+    [DatabaseFact]
     public async Task ANoticeThatIsNotTheAskersOrDoesNotExistIsOneAnswerToTheByteAndNothingIsRead()
     {
         await using var world = await World.StartAsync();

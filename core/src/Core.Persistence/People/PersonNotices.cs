@@ -58,7 +58,7 @@ public sealed class PersonNotices
         }
     }
 
-    /// <summary>Marks the notice as read; false when the person has no unread notice by that identifier, which is also the answer for the notice of another person.</summary>
+    /// <summary>Marks the notice as read and says it is theirs, read before or now; false when it is not theirs or does not exist, the same answer for both.</summary>
     /// <param name="personId">The person who reads.</param>
     /// <param name="noticeId">The identifier of the notice.</param>
     /// <param name="cancellationToken">Cancels the operation.</param>
@@ -69,7 +69,7 @@ public sealed class PersonNotices
         {
             PersonQueries.Add(command, "id", NpgsqlDbType.Bigint, noticeId);
             PersonQueries.Add(command, "person", NpgsqlDbType.Bigint, personId);
-            return await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) == 1;
+            return await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) is true;
         }
     }
 

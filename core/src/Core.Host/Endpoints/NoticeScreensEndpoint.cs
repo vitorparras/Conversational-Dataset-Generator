@@ -22,7 +22,6 @@ internal static class NoticeScreensEndpoint
         _ = endpoints.MapPost(ReadPattern, ReadAsync).WithMetadata(ScreenAccess.Everyone);
     }
 
-    /// <summary>Where the form of a notice posts to read it.</summary>
     internal static string ReadPath(long id) => string.Create(CultureInfo.InvariantCulture, $"{ScreenPaths.Notices}/{id}/{ReadMark}");
 
     private static async Task<IResult> ListAsync(HttpContext context, [FromServices] OperatorAdministration? staff, [FromServices] SessionStore sessions)

@@ -26,16 +26,13 @@ BEGIN
         AND (NEW.id, NEW.person_id, NEW.code, NEW.sessions_ended, NEW.created_at) IS NOT DISTINCT FROM (OLD.id, OLD.person_id, OLD.code, OLD.sessions_ended, OLD.created_at) THEN
         RETURN NEW;
     END IF;
-
     RAISE EXCEPTION 'public.person_notice: % refused', TG_OP USING ERRCODE = 'CE001', SCHEMA = 'public', TABLE = 'person_notice';
 END
 $refuse$;
-
 CREATE TRIGGER person_notice_only_read BEFORE UPDATE OR DELETE ON public.person_notice FOR EACH ROW EXECUTE FUNCTION public.refuse_person_notice_change();
 CREATE TRIGGER person_notice_never_emptied BEFORE TRUNCATE ON public.person_notice FOR EACH STATEMENT EXECUTE FUNCTION public.refuse_person_notice_change();
 ALTER TABLE public.person_notice ENABLE ALWAYS TRIGGER person_notice_only_read;
 ALTER TABLE public.person_notice ENABLE ALWAYS TRIGGER person_notice_never_emptied;
-
 -- A verdict that the chain failed tells every active person that the writing is suspended (policy 005). The trigger is on the verdict, so the verification the host runs and the one someone asks for
 -- tell it alike, in the same transaction as the verdict; a person with the notice still unread is not told twice.
 CREATE FUNCTION public.notify_domain_read_only() RETURNS trigger
@@ -48,6 +45,5 @@ BEGIN
     RETURN NULL;
 END
 $notify$;
-
 CREATE TRIGGER custody_event_notifies_read_only AFTER INSERT ON public.custody_event FOR EACH ROW
     WHEN (NEW.step = 'verify_chain' AND NEW.reason = 'verification_failed') EXECUTE FUNCTION public.notify_domain_read_only();

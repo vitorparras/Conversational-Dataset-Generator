@@ -21,11 +21,11 @@ else
                 @foreach (var notice in Notices)
                 {
                     <tr>
-                        <th scope="row">@NoticeText.Of(notice)</th>
+                        <th scope="row" id="aviso-@notice.Id">@NoticeText.Of(notice)</th>
                         <td><Moment At="notice.CreatedAt" /></td>
                         <td>
                             <form method="post" action="@NoticeScreensEndpoint.ReadPath(notice.Id)">
-                                <Button Id="@($"lido-{notice.Id}")" Kind="Button.Look.Secondary">Marcar como lido</Button>
+                                <Button Id="@($"lido-{notice.Id}")" Kind="Button.Look.Secondary" DescribedBy="@($"aviso-{notice.Id}")">Marcar como lido</Button>
                             </form>
                         </td>
                     </tr>
@@ -36,9 +36,8 @@ else
 }
 
 @code {
-    /// <summary>The title of the page and of its entry in the menu.</summary>
+    /// <summary>The title of the page.</summary>
     internal const string Title = "Avisos";
-
     private static readonly string[] Columns = { "Aviso", "Quando", "Ação" };
 
     /// <summary>The notices of the person that were not read, the newest first.</summary>

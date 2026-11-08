@@ -15,9 +15,9 @@ public sealed class IngestionBatchesTests
     private const string Unreachable = "0,0";
 
     [Fact]
-    public void OpeningTakesTheDomainAndThePersonAndNoContent() =>
+    public void OpeningTakesTheDomainThePersonAndTheConditionAndNoContent() =>
         Assert.Equal(
-            [typeof(int), typeof(long), typeof(CancellationToken)],
+            [typeof(BatchOpening), typeof(CancellationToken)],
             typeof(IngestionBatches).GetMethod(nameof(IngestionBatches.OpenAsync))!.GetParameters().Select(parameter => parameter.ParameterType));
 
     [Fact]
@@ -34,7 +34,7 @@ public sealed class IngestionBatchesTests
     public async Task MotiveThatIsNotAWordOfTheClosedFormIsRefusedBeforeAnyConnectionOpens()
     {
         await using var dataSource = NpgsqlDataSource.Create("Host=127.0.0.1;Port=1;Username=u;Password=p;Database=d");
-        var batches = new IngestionBatches(dataSource);
+        var batches = new IngestionBatches(dataSource, TestConditions.Known);
         var closing = new BatchClosing(1, 1, CustodyAuthor.System);
 
         var refused = await Task.WhenAll(
@@ -53,7 +53,7 @@ public sealed class IngestionBatchesTests
         var held = await IngestionWorld.BatchesOf(world).ReadAsync(IngestionWorld.Domain, batch, TestContext.Current.CancellationToken);
 
         Assert.Equal(
-            (new IngestionBatch(BatchState.Open, null, IngestionWorld.Person), Unreachable),
+            (new IngestionBatch(BatchState.Open, null, IngestionWorld.Person, TestConditions.Strictest), Unreachable),
             (held, await world.InDomainAsync(IngestionWorld.Domain, IngestionWorld.Reachable) as string));
     }
 
@@ -102,7 +102,7 @@ public sealed class IngestionBatchesTests
         var held = await IngestionWorld.BatchesOf(world).ReadAsync(IngestionWorld.Domain, batch, TestContext.Current.CancellationToken);
 
         Assert.Equal(
-            (BatchOutcome.Rejected, new IngestionBatch(BatchState.Rejected, Reason, IngestionWorld.Person), Unreachable),
+            (BatchOutcome.Rejected, new IngestionBatch(BatchState.Rejected, Reason, IngestionWorld.Person, TestConditions.Strictest), Unreachable),
             (rejected.Outcome, held, await world.InDomainAsync(IngestionWorld.Domain, IngestionWorld.Reachable) as string));
     }
 
@@ -160,8 +160,8 @@ public sealed class IngestionBatchesTests
         await using var world = await IngestionWorld.CreateAsync();
         var batches = IngestionWorld.BatchesOf(world);
 
-        var person = await batches.OpenAsync(IngestionWorld.Domain, 9_999, TestContext.Current.CancellationToken);
-        var domain = await batches.OpenAsync(99, IngestionWorld.Person, TestContext.Current.CancellationToken);
+        var person = await batches.OpenAsync(new BatchOpening(IngestionWorld.Domain, 9_999), TestContext.Current.CancellationToken);
+        var domain = await batches.OpenAsync(new BatchOpening(99, IngestionWorld.Person), TestContext.Current.CancellationToken);
 
         Assert.Equal((BatchOutcome.AuthorUnknown, BatchOutcome.DomainUnknown, null), (person.Outcome, domain.Outcome, await world.ScalarAsync(IngestionWorld.Events)));
     }
@@ -172,7 +172,7 @@ public sealed class IngestionBatchesTests
         await using var world = await IngestionWorld.CreateAsync();
         var gone = await world.PersonAsync("zqx-gone");
 
-        var refused = await IngestionWorld.BatchesOf(world).OpenAsync(IngestionWorld.Domain, gone, TestContext.Current.CancellationToken);
+        var refused = await IngestionWorld.BatchesOf(world).OpenAsync(new BatchOpening(IngestionWorld.Domain, gone), TestContext.Current.CancellationToken);
 
         Assert.Equal(
             (BatchOutcome.NotRecorded, CustodyOutcome.ActorDeactivated, null),
@@ -183,17 +183,17 @@ public sealed class IngestionBatchesTests
     public void ArgumentsThatAreNotPositiveOrAreMissingAreRefusedByName()
     {
         using var dataSource = NpgsqlDataSource.Create("Host=127.0.0.1;Port=1;Username=u;Password=p;Database=d");
-        var batches = new IngestionBatches(dataSource);
+        var batches = new IngestionBatches(dataSource, TestConditions.Known);
 
         Assert.Equal(
-            ["domainId", "authorId", "closing", "domainId", "batchId", "dataSource"],
+            ["opening.DomainId", "opening.AuthorId", "closing", "domainId", "batchId", "dataSource"],
             [
-                Param(() => batches.OpenAsync(0, 1, CancellationToken.None)),
-                Param(() => batches.OpenAsync(1, 0, CancellationToken.None)),
+                Param(() => batches.OpenAsync(new BatchOpening(0, 1), CancellationToken.None)),
+                Param(() => batches.OpenAsync(new BatchOpening(1, 0), CancellationToken.None)),
                 Param(() => batches.AcceptAsync(null!, CancellationToken.None)),
                 Param(() => batches.ReadAsync(0, 1, CancellationToken.None)),
                 Param(() => batches.ReadAsync(1, 0, CancellationToken.None)),
-                Assert.Throws<ArgumentNullException>(() => new IngestionBatches(null!)).ParamName,
+                Assert.Throws<ArgumentNullException>(() => new IngestionBatches(null!, TestConditions.Known)).ParamName,
             ]);
     }
 
@@ -201,7 +201,7 @@ public sealed class IngestionBatchesTests
     public void ClosingThatIsMissingOrWithoutAuthorOrNumbersIsRefusedByNameForBothTheAcceptanceAndTheRejection()
     {
         using var dataSource = NpgsqlDataSource.Create("Host=127.0.0.1;Port=1;Username=u;Password=p;Database=d");
-        var batches = new IngestionBatches(dataSource);
+        var batches = new IngestionBatches(dataSource, TestConditions.Known);
         var none = new BatchClosing(1, 1, null!);
         var noDomain = new BatchClosing(0, 1, CustodyAuthor.System);
         var noBatch = new BatchClosing(1, 0, CustodyAuthor.System);
@@ -247,7 +247,7 @@ public sealed class IngestionBatchesTests
         var batches = IngestionWorld.BatchesOf(world);
 
         Assert.Equal(
-            (new IngestionBatch(BatchState.Accepted, null, IngestionWorld.Person), new IngestionBatch(BatchState.Rejected, Reason, IngestionWorld.Person)),
+            (new IngestionBatch(BatchState.Accepted, null, IngestionWorld.Person, TestConditions.Strictest), new IngestionBatch(BatchState.Rejected, Reason, IngestionWorld.Person, TestConditions.Strictest)),
             (
                 await batches.ReadAsync(IngestionWorld.Domain, accepted, TestContext.Current.CancellationToken),
                 await batches.ReadAsync(IngestionWorld.Domain, rejected, TestContext.Current.CancellationToken)));

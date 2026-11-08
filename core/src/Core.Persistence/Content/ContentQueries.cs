@@ -39,11 +39,14 @@ public static class ContentQueries
     internal const string InsertReversalMap =
         "INSERT INTO content.reversal_map (domain_id, batch_id, item_id, entries, dek_epoch, dek_wrapped) VALUES (@domain, @batch, @item, @entries, @epoch, @wrapped) RETURNING id";
 
-    /// <summary>Opens a batch of ingestion for the domain declared: it holds no content, and the state, the moments and the identifier are the database's.</summary>
-    internal const string InsertIngestionBatch = "INSERT INTO content.ingestion_batch (domain_id, opened_by) VALUES (@domain, @author) RETURNING id";
+    /// <summary>Opens a batch of ingestion for the domain declared, under its condition of origin: it holds no content, and the state, the moments and the identifier are the database's.</summary>
+    internal const string InsertIngestionBatch = "INSERT INTO content.ingestion_batch (domain_id, opened_by, condition) VALUES (@domain, @author, @condition) RETURNING id";
 
-    /// <summary>The state and the motive of a batch of the domain, whatever its state: a batch rejected stays consultable after its material is gone.</summary>
-    internal const string ReadIngestionBatch = "SELECT state, motive, opened_by FROM content.ingestion_batch WHERE id = @id";
+    /// <summary>The state, the motive and the condition of a batch of the domain, whatever its state: a batch rejected stays consultable after its material is gone.</summary>
+    internal const string ReadIngestionBatch = "SELECT state, motive, opened_by, condition FROM content.ingestion_batch WHERE id = @id";
+
+    /// <summary>The condition of an item that can be read, from the view that joins the item to its batch.</summary>
+    internal const string ReadItemCondition = "SELECT condition FROM public.item_condition WHERE item_id = @id";
 
     /// <summary>The batches of the domain declared, as the database writes them, for the copy of the data.</summary>
     internal const string ReadCopyIngestionBatch = "SELECT pg_catalog.to_jsonb(t)::text FROM content.ingestion_batch t ORDER BY id";

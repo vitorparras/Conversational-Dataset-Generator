@@ -22,12 +22,12 @@ internal static class IngestionWorld
     public static Task<BatchesWorld> CreateAsync() => BatchesWorld.CreateAsync();
 
     /// <summary>The batches over the application's credential of the world.</summary>
-    public static IngestionBatches BatchesOf(BatchesWorld world) => new(world.DataSource);
+    public static IngestionBatches BatchesOf(BatchesWorld world) => new(world.DataSource, TestConditions.Known);
 
     /// <summary>Opens a batch in the domain of the tests and answers its identifier, after judging that it opened.</summary>
     public static async Task<long> OpenAsync(BatchesWorld world)
     {
-        var opened = await BatchesOf(world).OpenAsync(Domain, Person, TestContext.Current.CancellationToken);
+        var opened = await BatchesOf(world).OpenAsync(new BatchOpening(Domain, Person), TestContext.Current.CancellationToken);
         Assert.Equal(BatchOutcome.Opened, opened.Outcome);
         return opened.BatchId!.Value;
     }

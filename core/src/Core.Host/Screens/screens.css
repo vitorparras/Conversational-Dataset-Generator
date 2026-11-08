@@ -280,6 +280,22 @@ h1 + .lead { margin-top: 0; }
 .data-table__group { padding-top: var(--space-5); font-family: var(--font-display); font-size: var(--text-lg); }
 .data-table code { font-family: var(--font-mono); font-size: var(--text-sm); overflow-wrap: anywhere; }
 
+/* A table that stacks: in a box narrower than --table-min-width (36rem) each row is a block and each cell carries the header of its column, so no column is out of sight. */
+.data-table--stacks { container-type: inline-size; }
+@container (max-width: 36rem) {
+    .data-table--stacks > table, .data-table--stacks caption, .data-table--stacks tbody, .data-table--stacks tr, .data-table--stacks th, .data-table--stacks td { display: block; min-width: 0; }
+    .data-table--stacks thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .data-table--stacks tbody > tr { padding: var(--space-2) 0; border-bottom: var(--line) solid var(--edge-soft); }
+    .data-table--stacks tbody > tr > * { padding: var(--space-1) 0; border-bottom: 0; }
+    .data-table--stacks tbody > tr > *::before { display: block; color: var(--ink-muted); font-size: var(--text-sm); font-weight: var(--weight-text); }
+    .data-table--stacks tbody > tr > :nth-child(1)::before { content: var(--data-table-header-1); }
+    .data-table--stacks tbody > tr > :nth-child(2)::before { content: var(--data-table-header-2); }
+    .data-table--stacks tbody > tr > :nth-child(3)::before { content: var(--data-table-header-3); }
+    .data-table--stacks tbody > tr > :nth-child(4)::before { content: var(--data-table-header-4); }
+    .data-table--stacks tbody > tr > :nth-child(5)::before { content: var(--data-table-header-5); }
+    .data-table--stacks tbody > tr > :nth-child(6)::before { content: var(--data-table-header-6); }
+}
+
 @media (forced-colors: active) {
     .button, .notice, .panel, .header, .destinations__link { border-color: CanvasText; }
     .button__key { border-color: currentColor; }

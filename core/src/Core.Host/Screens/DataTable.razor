@@ -1,4 +1,4 @@
-<div class="data-table" role="region" aria-labelledby="@CaptionId" tabindex="0">
+<div class="@Classes" role="region" aria-labelledby="@CaptionId" tabindex="0" style="@HeaderProperties">
     <table>
         <caption id="@CaptionId">@Caption</caption>
         <thead><tr>@foreach (var header in Headers) { <th scope="col">@header</th> }</tr></thead>
@@ -22,5 +22,19 @@
     [Parameter, EditorRequired]
     public RenderFragment? ChildContent { get; set; }
 
+    /// <summary>
+    /// Whether, in a box narrower than the columns need, each row becomes a block with each cell under the header of its column, instead of the table scrolling sideways:
+    /// for a table of a few columns whose last one holds what to do, so that it is never out of sight. Up to six columns.
+    /// </summary>
+    [Parameter]
+    public bool Stacks { get; set; }
+
     private string CaptionId => $"{Id}-legenda";
+
+    private string Classes => Stacks ? "data-table data-table--stacks" : "data-table";
+
+    /// <summary>The headers as the custom properties the style writes over each cell of a stacked row; nothing when the table does not stack.</summary>
+    private string? HeaderProperties => Stacks ? string.Join(' ', Headers.Select((header, column) => $"--data-table-header-{column + 1}: \"{Quoted(header)}\";")) : null;
+
+    private static string Quoted(string header) => header.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal);
 }

@@ -11,7 +11,7 @@
     <Button Href="@ScreenPaths.AccountChange" Kind="Button.Look.Secondary">Trocar senha</Button>
 </Panel>
 <Panel Id="sessoes" Title="Sessões abertas">
-    <DataTable Id="sessoes-tabela" Caption="@Caption" Headers="Columns">
+    <DataTable Id="sessoes-tabela" Caption="@Caption" Headers="Columns" Stacks="true">
         <tbody>
             @foreach (var session in Sessions)
             {

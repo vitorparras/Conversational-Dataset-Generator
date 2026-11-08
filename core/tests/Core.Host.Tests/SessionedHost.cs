@@ -74,6 +74,12 @@ internal sealed class SessionedHost : IAsyncDisposable
         return await client.SendAsync(request, cancellationToken);
     }
 
+    public async Task<HttpResponseMessage> DeleteAsync(string route, string? identifier, CancellationToken cancellationToken)
+    {
+        using var request = RequestOf(HttpMethod.Delete, route, identifier, encrypted: true);
+        return await client.SendAsync(request, cancellationToken);
+    }
+
     /// <summary>Sends a request the test built, with the cookie of the session and the mark of the encrypted channel when it says so; a redirect is not followed.</summary>
     public async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, string? identifier, bool encrypted, CancellationToken cancellationToken)
     {

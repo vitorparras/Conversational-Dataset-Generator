@@ -18,11 +18,11 @@ public sealed class SessionStore(SessionLifetimes lifetimes, TimeProvider clock)
     public string Open(long personId)
     {
         var now = clock.GetUtcNow();
-        var identifier = Convert.ToHexString(RandomNumberGenerator.GetBytes(IdentifierBytes));
+        var identifier = NewIdentifier();
         lock (gate)
         {
             Forget(now);
-            sessions[identifier] = new Entry(personId, now, now);
+            sessions[identifier] = new Entry(personId, now, now, NewIdentifier());
         }
 
         return identifier;
@@ -81,6 +81,72 @@ public sealed class SessionStore(SessionLifetimes lifetimes, TimeProvider clock)
         }
     }
 
+    /// <summary>
+    /// The sessions of the person that are still open, the oldest first, with the one that asked marked as current. Reading them does not use them: no inactivity limit starts again.
+    /// Only the listing identifier of each leaves, never the identifier of the session.
+    /// </summary>
+    public IReadOnlyList<SessionListing> ListOf(long personId, string? currentIdentifier)
+    {
+        var now = clock.GetUtcNow();
+        lock (gate)
+        {
+            Forget(now);
+            var listed = sessions
+                .Where(session => session.Value.PersonId == personId)
+                .OrderBy(session => session.Value.Start)
+                .Select(session => new SessionListing(
+                    session.Value.ListingId,
+                    session.Value.Start,
+                    session.Value.LastActivity,
+                    string.Equals(session.Key, currentIdentifier, StringComparison.Ordinal)))
+                .ToList();
+            return listed;
+        }
+    }
+
+    /// <summary>
+    /// Ends the session of the person that the listing identifier names, so that it is refused from then on; false when the person has none by that identifier,
+    /// which is also the answer for the identifier of another person's session.
+    /// </summary>
+    public bool CloseListed(long personId, string? listingId)
+    {
+        if (listingId is null)
+        {
+            return false;
+        }
+
+        lock (gate)
+        {
+            var found = sessions.Where(session => session.Value.PersonId == personId && string.Equals(session.Value.ListingId, listingId, StringComparison.Ordinal)).ToList();
+            foreach (var session in found)
+            {
+                _ = sessions.Remove(session.Key);
+            }
+
+            return found.Count > 0;
+        }
+    }
+
+    /// <summary>Ends every session of the person but the one given, and says how many it ended; the one given stays even if the store does not know it.</summary>
+    public int CloseOthersOf(long personId, string? keptIdentifier)
+    {
+        lock (gate)
+        {
+            var others = sessions
+                .Where(session => session.Value.PersonId == personId && !string.Equals(session.Key, keptIdentifier, StringComparison.Ordinal))
+                .Select(session => session.Key)
+                .ToList();
+            foreach (var identifier in others)
+            {
+                _ = sessions.Remove(identifier);
+            }
+
+            return others.Count;
+        }
+    }
+
+    private static string NewIdentifier() => Convert.ToHexString(RandomNumberGenerator.GetBytes(IdentifierBytes));
+
     private bool Passed(Entry entry, DateTimeOffset now) => now - entry.LastActivity > lifetimes.Idle || now - entry.Start > lifetimes.Absolute;
 
     private void Forget(DateTimeOffset now)
@@ -91,5 +157,5 @@ public sealed class SessionStore(SessionLifetimes lifetimes, TimeProvider clock)
         }
     }
 
-    private sealed record Entry(long PersonId, DateTimeOffset Start, DateTimeOffset LastActivity);
+    private sealed record Entry(long PersonId, DateTimeOffset Start, DateTimeOffset LastActivity, string ListingId);
 }

@@ -23,6 +23,9 @@ internal sealed record HostInstallation(string BinaryDirectory, string WorkingDi
     /// <summary>Whether the arguments the host receives also give the two limits of a session, which the serving mode cannot start without.</summary>
     public bool DeclaresSessionLimits { get; init; } = true;
 
+    /// <summary>Whether the arguments the host receives also give the conditions of origin the installation knows, which the serving mode cannot start without.</summary>
+    public bool DeclaresIngestionConditions { get; init; } = true;
+
     /// <summary>Whether the arguments the host receives also give the interval of the verification of the chain, which the serving mode cannot start without.</summary>
     public bool DeclaresVerificationInterval { get; init; } = true;
 
@@ -61,6 +64,11 @@ internal sealed record HostInstallation(string BinaryDirectory, string WorkingDi
             if (DeclaresSessionLimits)
             {
                 arguments.AddRange(SessionArguments);
+            }
+
+            if (DeclaresIngestionConditions)
+            {
+                arguments.Add(IngestionConditionsArgument);
             }
 
             if (DeclaresVerificationInterval)
@@ -104,6 +112,9 @@ internal sealed record HostInstallation(string BinaryDirectory, string WorkingDi
 
     /// <summary>The limits of a session a test that does not wait for one to pass wants: long enough that none passes while it runs.</summary>
     public static IReadOnlyList<string> SessionArguments => ["--Session:IdleTimeout=00:30:00", "--Session:AbsoluteTimeout=08:00:00"];
+
+    /// <summary>The conditions of origin a test that does not ingest wants: three synthetic names, the most restrictive first.</summary>
+    public static string IngestionConditionsArgument => "--Ingestion:Conditions=restrita,intermediaria,permissiva";
 
     /// <summary>The interval of the verification of the chain a test that does not wait for one wants: long enough that none runs again while it runs.</summary>
     public static string VerificationIntervalArgument => "--Custody:VerificationInterval=00:05:00";

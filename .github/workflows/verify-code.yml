@@ -83,6 +83,7 @@ jobs:
       - uses: ./.github/actions/install-gitleaks
       - name: Instalar ruff, pyright e coverage nas versões fixadas (ainda sem uv no PATH)
         run: pip install -r tools/verify-code/lint-requirements.txt
+      - uses: ./.github/actions/build-database-image
       - name: Construir e testar o núcleo sem o serviço real, e sem uv no PATH
         run: python tools/verify-code/verify.py --step build_core test_core
       - name: Instalar uv na versão fixada (test_real_service chama `uv run --frozen`)
@@ -235,6 +236,7 @@ jobs:
           python-version: '3.12'
       - name: Instalar uv na versão fixada
         run: pip install -r tools/verify-code/service-requirements.txt
+      - uses: ./.github/actions/build-database-image
       - name: Exigir que o núcleo e o serviço executem propriedades
         run: python tools/verify-code/verify.py --step properties
 
@@ -258,6 +260,7 @@ jobs:
           dotnet build core/tests/Core.Host.Tests.Browser/Core.Host.Tests.Browser.csproj -c Release --no-restore
       - name: Instalar o Chromium da versão que o pacote fixa, sem latest e sem outro navegador
         run: pwsh core/tests/Core.Host.Tests.Browser/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+      - uses: ./.github/actions/build-database-image
       - name: Rodar os testes de navegador
         run: dotnet run --project core/tests/Core.Host.Tests.Browser/Core.Host.Tests.Browser.csproj -c Release --no-build
       - name: Anotar o tempo do job
@@ -370,6 +373,23 @@ jobs:
         env:
           MODULE: ${{ matrix.module }}
         run: python tools/verify-code/verify.py --step mutation --module "$MODULE"
+      - id: log
+        name: Dar ao artefato do log um nome sem barra nem arroba
+        if: failure()
+        env:
+          MODULE: ${{ matrix.module }}
+        run: echo "name=log-da-mutacao-$(echo "$MODULE" | tr '/@' '--')-${{ github.run_attempt }}" >> "$GITHUB_OUTPUT"
+      - name: Guardar o log do Stryker e o do host de teste quando o passo reprova
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ steps.log.outputs.name }}
+          path: |
+            .verify-code/mutation/core/*/logs
+            .verify-code/mutation/core/*/stryker-config.json
+          include-hidden-files: true
+          retention-days: 14
+          if-no-files-found: ignore
 
   # Aggregates the matrix under the name the check always had. It always reports: everything skipped
   # when the classification dispensed it, an empty matrix when the list declared that no module is

@@ -12,9 +12,10 @@ from pathlib import Path
 
 from steps.areas_doc import Area, within
 from steps.common import Context, reset_directory, tail
+from steps.coverage_by_area import summarize
 from steps.mutant import Mutant
 from steps.mutation_database import DOCKER, discard_database, reusing, starts_database
-from steps.mutation_initial import explain
+from steps.mutation_initial import explain, summary
 from steps.mutation_judge import LanguageRun, ModuleResult, each
 from steps.mutation_members import slices
 from steps.mutation_parts import Part, Slice, module_name, parts_of, share, split_module
@@ -198,6 +199,7 @@ def mutate(ctx: Context, core: CoreTarget, seconds: float, policy: MutationPolic
     report = output / REPORT
     if not report.is_file():
         explained = explain(output, outcome.text)
+        summarize(summary(output, outcome.text, module_name(core.area.prefix, core.part)))
         missing = ("o Stryker não escreveu relatório", *explained, *tail(outcome.text))
         return ModuleResult(core.shown, (), missing)
     mutants: tuple[Mutant, ...] = read_stryker(

@@ -24,13 +24,13 @@ internal static class ScreenResult
 
     /// <summary>
     /// The page of an address that leads nowhere, with 404: the one answer of a route that does not exist and of a screen the function does not reach,
-    /// which carries nothing of the address asked, so the two are the same to the byte.
+    /// which carries nothing of the address asked, not even as the entry of the menu or of the header it would mark, so the two are the same to the byte.
     /// </summary>
     internal static RazorComponentResult<ScreenFrame> NotFound(HttpContext context)
     {
-        var page = Of(context, typeof(NotFoundScreen), NotFoundScreen.Title);
-        page.StatusCode = StatusCodes.Status404NotFound;
-        return page;
+        var shown = Of(context, typeof(NotFoundScreen), NotFoundScreen.Title);
+        var parameters = new Dictionary<string, object?>(shown.Parameters, StringComparer.Ordinal) { [nameof(ScreenFrame.Current)] = null };
+        return new(parameters) { StatusCode = StatusCodes.Status404NotFound };
     }
 
     /// <summary>The page of a failure no route handled, with 500: what happened and what to do, and nothing of the failure.</summary>

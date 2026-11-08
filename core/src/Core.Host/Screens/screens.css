@@ -82,7 +82,8 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
 .nav { flex-basis: 100%; margin-left: calc(-1 * var(--space-3)); }
 .nav__list { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-2); margin: 0; padding: 0; list-style: none; }
 
-.nav__link {
+.nav__link,
+.header__notices {
     display: inline-flex;
     align-items: center;
     min-height: var(--control-height);
@@ -93,7 +94,7 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
     text-decoration: none;
 }
 
-.nav__link:hover { color: var(--accent-hover); text-decoration: underline; }
+.nav__link:hover, .header__notices:hover { color: var(--accent-hover); text-decoration: underline; }
 .nav__link[aria-current] { color: var(--accent); text-decoration: underline; text-decoration-thickness: var(--line-strong); }
 
 /* Domain picker: shown only with a domain granted. */
@@ -285,6 +286,7 @@ h1 + .lead { margin-top: 0; }
 .data-table thead th { border-bottom: var(--line-strong) solid var(--edge); font-size: var(--text-sm); }
 .data-table__group { padding-top: var(--space-5); font-family: var(--font-display); font-size: var(--text-lg); }
 .data-table code { font-family: var(--font-mono); font-size: var(--text-sm); overflow-wrap: anywhere; }
+.data-table .button { white-space: nowrap; }
 
 /* A digest cut to its start for the eye; the whole value stays in the page, for a reader of screens and for whoever copies it. */
 .digest { display: inline-block; max-width: 16ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }

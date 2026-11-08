@@ -47,38 +47,38 @@ internal sealed record SubmissionReason(string Code, IReadOnlyList<SubmissionFin
 internal sealed record SubmissionOutcome
 {
     /// <summary>How it ended.</summary>
-    public required SubmissionKind Kind { get; init; }
+    internal required SubmissionKind Kind { get; init; }
 
     /// <summary>The fields that were missing or invalid, for <see cref="SubmissionKind.Invalid" />; null otherwise.</summary>
-    public IReadOnlyList<FieldProblem>? Fields { get; init; }
+    internal IReadOnlyList<FieldProblem>? Fields { get; init; }
 
     /// <summary>The code of what keeps the gate closed, for <see cref="SubmissionKind.Blocked" />.</summary>
-    public string? BlockedBy { get; init; }
+    internal string? BlockedBy { get; init; }
 
     /// <summary>Why the batch was not recorded, for <see cref="SubmissionKind.NotRecorded" />.</summary>
-    public BatchOutcome? Failure { get; init; }
+    internal BatchOutcome? Failure { get; init; }
 
     /// <summary>The identifier the system generated for the submission, as 32 hexadecimal digits.</summary>
-    public string? Submission { get; init; }
+    internal string? Submission { get; init; }
 
     /// <summary>The batch the submission opened.</summary>
-    public long? Batch { get; init; }
+    internal long? Batch { get; init; }
 
     /// <summary>Accepted or rejected.</summary>
-    public SubmissionState? State { get; init; }
+    internal SubmissionState? State { get; init; }
 
     /// <summary>Why it was rejected; null when it was accepted.</summary>
-    public SubmissionReason? Reason { get; init; }
+    internal SubmissionReason? Reason { get; init; }
 
     /// <summary>How many bytes were read.</summary>
-    public long Size { get; init; }
+    internal long Size { get; init; }
 
     /// <summary>The SHA-256 of the bytes read.</summary>
-    public string? Sha256 { get; init; }
+    internal string? Sha256 { get; init; }
 
     /// <summary>The code of what the service noticed and let pass, as a name that had a path in it; null when it noticed nothing.</summary>
-    public string? Warning { get; init; }
+    internal string? Warning { get; init; }
 
     /// <summary>Whether the file passed the limit of bytes, which the route answers with 413.</summary>
-    public bool IsTooLarge => Reason?.Code == ReasonCodes.TooLarge;
+    internal bool IsTooLarge => Reason?.Code == ReasonCodes.TooLarge;
 }

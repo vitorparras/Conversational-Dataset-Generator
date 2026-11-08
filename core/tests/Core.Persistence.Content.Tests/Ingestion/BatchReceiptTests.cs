@@ -40,15 +40,15 @@ public sealed class BatchReceiptTests
 
         var kept = await world.OwnerInDomainAsync(1, Receipt, ("id", batch));
 
-        Assert.Equal(DBNull.Value, kept);
+        Assert.Null(kept);
     }
 
     [DatabaseTheory]
-    [InlineData("0123", 1, Hex64, null)]
-    [InlineData(Hex32, -1, Hex64, null)]
-    [InlineData(Hex32, 1, "abc", null)]
-    [InlineData(Hex32, 1, Hex64, "Name With Path")]
-    [InlineData(null, 1, Hex64, null)]
+    [InlineData("0123", 1L, Hex64, null)]
+    [InlineData(Hex32, -1L, Hex64, null)]
+    [InlineData(Hex32, 1L, "abc", null)]
+    [InlineData(Hex32, 1L, Hex64, "Name With Path")]
+    [InlineData(null, 1L, Hex64, null)]
     [InlineData(null, null, null, "name_with_path")]
     [InlineData(Hex32, null, Hex64, null)]
     public async Task ReceiptThatIsNotWholeOrNotInShapeIsRefusedByTheTable(string? submission, long? bytes, string? digest, string? warning)

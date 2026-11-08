@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Core.Ingestion;
 using Core.Ingestion.Entrance;
 using Core.Persistence.Custody;
@@ -24,7 +25,7 @@ internal sealed class SubmissionService
     /// <param name="intake">The barrier, the conference and the conditions.</param>
     /// <param name="batches">Opens and closes the batches.</param>
     /// <param name="dataSource">The source of the connections, for the gate.</param>
-    public SubmissionService(SubmissionIntake intake, IngestionBatches batches, NpgsqlDataSource dataSource)
+    internal SubmissionService(SubmissionIntake intake, IngestionBatches batches, NpgsqlDataSource dataSource)
     {
         ArgumentNullException.ThrowIfNull(intake);
         ArgumentNullException.ThrowIfNull(batches);
@@ -36,12 +37,15 @@ internal sealed class SubmissionService
 
     /// <summary>Whether the ingestion takes material in: open, or blocked by the code of what is missing (decision 0014).</summary>
     /// <param name="cancellationToken">Cancels the question.</param>
-    public async Task<SubmissionGateStatus> GateAsync(CancellationToken cancellationToken)
+    internal async Task<SubmissionGateStatus> GateAsync(CancellationToken cancellationToken)
     {
         var status = await RecoveryGate.StatusAsync(dataSource, cancellationToken).ConfigureAwait(false);
-        return status.Tested
-            ? new SubmissionGateStatus(true, null)
-            : new SubmissionGateStatus(false, status.Missing == RecoveryGate.StaleWords ? "recovery_rehearsal_stale" : "recovery_not_rehearsed");
+        if (status.Tested)
+        {
+            return new SubmissionGateStatus(true, null);
+        }
+
+        return new SubmissionGateStatus(false, status.Missing == RecoveryGate.StaleWords ? "recovery_rehearsal_stale" : "recovery_not_rehearsed");
     }
 
     /// <summary>
@@ -50,7 +54,7 @@ internal sealed class SubmissionService
     /// </summary>
     /// <param name="request">Where it goes, in which form and format, under which condition, and the file.</param>
     /// <param name="cancellationToken">Cancels the submission.</param>
-    public Task<SubmissionOutcome> SubmitAsync(SubmissionRequest request, CancellationToken cancellationToken)
+    internal Task<SubmissionOutcome> SubmitAsync(SubmissionRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(request.Content);
@@ -61,14 +65,15 @@ internal sealed class SubmissionService
     }
 
     private static bool HasPath(string? name) =>
-        name is not null
-        && (name.Contains('/', StringComparison.Ordinal) || name.Contains('\\', StringComparison.Ordinal) || name.Contains("..", StringComparison.Ordinal) || name.Any(char.IsControl));
+        name is not null && (HasSeparator(name) || name.Contains("..", StringComparison.Ordinal) || name.Any(char.IsControl));
+
+    private static bool HasSeparator(string name) => name.Contains('/', StringComparison.Ordinal) || name.Contains('\\', StringComparison.Ordinal);
 
     private SubmissionReason? Judged(SubmissionResult received, MaterialForm form) =>
         Barred(received) ?? (intake.Conference.Confer(form, ReadOutcome.Read(received.Material!)).Refusal is { } refused ? ReasonOf(refused) : null);
 
     private static SubmissionReason? Barred(SubmissionResult received) =>
-        received.Refusal is { } refusal ? new SubmissionReason(ReasonCodes.Of(refusal), new List<SubmissionFinding>()) : null;
+        received.Refusal is { } refusal ? new SubmissionReason(ReasonCodes.Of(refusal), ImmutableList<SubmissionFinding>.Empty) : null;
 
     private static SubmissionReason ReasonOf(Refusal refusal)
     {
@@ -88,7 +93,7 @@ internal sealed class SubmissionService
         Warning = warning,
     };
 
-    private static void AddWhen(List<FieldProblem> problems, bool wrong, string field, string code)
+    private static void AddWhen(ICollection<FieldProblem> problems, bool wrong, string field, string code)
     {
         if (wrong)
         {

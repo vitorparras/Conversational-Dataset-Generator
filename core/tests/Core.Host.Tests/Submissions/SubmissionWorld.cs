@@ -102,6 +102,7 @@ internal sealed class SubmissionWorld : IAsyncDisposable
         await using var connection = new NpgsqlConnection(Database.SuperuserConnectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
         await using var command = new NpgsqlCommand(
+            // nosemgrep: sql-concatenation-csharp joins one of two literal filters of the callers above, never input.
             "SELECT id, domain_id, state, motive, opened_by, opened_at, submission, received_bytes, received_digest, warning FROM content.ingestion_batch " + filter + " ORDER BY id DESC",
             connection);
         _ = command.Parameters.Add(parameter);

@@ -78,11 +78,8 @@ internal static class CompositionRoot
     {
         PlatformLogging.Configure(builder.Logging);
         _ = fileLog is null ? builder.Services : builder.Services.AddSingleton(_ => fileLog);
-        _ = builder.Services.AddSingleton(TimeProvider.System);
-        _ = builder.Services.AddRedaction(PlatformLogging.EraseSensitiveData);
-        _ = builder.Services.AddSingleton(configuration);
-        _ = builder.Services.ConfigureHttpJsonOptions(HostJson.Strict);
-        _ = builder.Services.AddRazorComponents();
+        _ = builder.Services.AddSingleton(TimeProvider.System).AddRedaction(PlatformLogging.EraseSensitiveData).AddSingleton(configuration);
+        _ = builder.Services.ConfigureHttpJsonOptions(HostJson.Strict).AddRazorComponents();
     }
 
     /// <summary>The analysis and the recognizer the configuration chose: the fake by name, otherwise one per use, with the port and secret the supervisor has then.</summary>
@@ -164,7 +161,8 @@ internal static class CompositionRoot
         Compose(builder, loaded.View, fileLog);
         AddAnalysis(builder.Services, loaded.Values, analyzeTimeout);
         _ = builder.Services.AddSingleton(PasswordConfiguration.Derivation(loaded.Values)).AddSingleton(VerificationConfiguration.Schedule(loaded.Values));
-        _ = builder.Services.AddSingleton(SealConfiguration.Declaration(loaded.Values));
+        _ = builder.Services.AddSingleton(SealConfiguration.Declaration(loaded.Values))
+            .AddSingleton(provider => Submissions.SubmissionParts.BatchesOf(provider, loaded.Values));
         _ = builder.Services.AddSingleton(_ => new ServerAuditLog(AuditConfiguration.ServerLogDirectory(loaded.Values))).AddSingleton<AuditComparisonState>();
         _ = builder.Services.AddHostedService(provider => new AuditComparisonService(
             new AuditComparisonPlan(

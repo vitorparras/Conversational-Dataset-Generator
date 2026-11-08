@@ -53,5 +53,6 @@ e por quem ela roda.
 | [039](039-repartir-a-mutacao.md) | Repartir a mutação de uma área em partes: a unidade, o peso e o corte da lista estática |
 | [041](041-roteiro-de-usabilidade-da-configuracao-e-do-estado.md) | Roteiro de usabilidade da configuração em vigor e do estado do sistema |
 | [043](043-roteiro-de-usabilidade-dos-dominios-e-da-custodia.md) | Roteiro de usabilidade dos domínios e da custódia |
+| [045](045-roteiro-de-usabilidade-dos-avisos.md) | Roteiro de usabilidade dos avisos |
 
 Ver [regras de escrita](../regras-de-escrita.md).

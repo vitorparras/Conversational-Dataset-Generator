@@ -87,7 +87,7 @@ public sealed class SystemStateScreenTests(BrowserFixture browser, SystemHostFix
         var person = who == "Administrator" ? system.Host.Administrator : system.Host.Auditor;
         await using var tab = await OpenAsync(person);
 
-        Assert.Equal(["Estado do sistema", "Configuração em vigor"], await tab.Page.Locator(".nav__link").AllInnerTextsAsync());
+        Assert.Equal(["Estado do sistema", "Configuração em vigor"], await tab.Page.Locator("nav .nav__link").AllInnerTextsAsync());
         await Expect(tab.Page.GetByRole(AriaRole.Link, new() { Name = "Estado do sistema" })).ToHaveAttributeAsync("aria-current", "page");
     }
 
@@ -109,7 +109,7 @@ public sealed class SystemStateScreenTests(BrowserFixture browser, SystemHostFix
         Assert.DoesNotContain("Estado do sistema", refusedPage, StringComparison.Ordinal);
         Assert.DoesNotContain("Configuração em vigor", refusedPage, StringComparison.Ordinal);
         Assert.DoesNotContain(system.Host.Secret, refusedPage, StringComparison.Ordinal);
-        Assert.Empty(await tab.Page.Locator(".nav__link").AllInnerTextsAsync());
+        Assert.Empty(await tab.Page.Locator("nav .nav__link").AllInnerTextsAsync());
     }
 
     [Fact]
@@ -172,14 +172,14 @@ public sealed class SystemStateScreenTests(BrowserFixture browser, SystemHostFix
         var reached = new List<string>();
         var seen = new List<bool>();
 
-        for (var stop = 0; stop < 6; stop++)
+        for (var stop = 0; stop < 7; stop++)
         {
             await tab.Page.Keyboard.PressAsync("Tab");
             reached.Add(await tab.Page.EvaluateAsync<string>(FocusedId));
             seen.Add(await tab.Page.EvaluateAsync<bool>(FocusIsSeen));
         }
 
-        Assert.Equal(["skip-link", "header__name", "sair", "nav__link", "nav__link", "data-table"], reached);
+        Assert.Equal(["skip-link", "header__name", "nav__link header__account", "sair", "nav__link", "nav__link", "data-table"], reached);
         Assert.DoesNotContain(false, seen);
     }
 

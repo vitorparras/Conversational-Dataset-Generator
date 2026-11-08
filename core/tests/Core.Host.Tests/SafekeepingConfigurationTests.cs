@@ -1,6 +1,7 @@
 using Core.Host.Tests.Logging;
 using Core.Platform;
 using Core.Platform.Configuration;
+using Core.Platform.Startup;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Core.Host.Tests;
@@ -80,7 +81,8 @@ public sealed class SafekeepingConfigurationTests
     {
         var line = ComposedConsole.LineWrittenBy(logger => InstallationConfiguration.Announce(
             logger,
-            new ServiceCollection().AddSingleton(new Installation(InstallationKind.Real)).AddSingleton(new SafekeepingDeclaration(Date, Holder)).BuildServiceProvider()));
+            new ServiceCollection().AddSingleton(new Installation(InstallationKind.Real)).AddSingleton(new SafekeepingDeclaration(Date, Holder))
+                .AddSingleton(new StartupReport([], DateTimeOffset.UnixEpoch)).BuildServiceProvider()));
 
         Assert.Contains("Instalação real", line, StringComparison.Ordinal);
         Assert.Contains($"LastRecoveryTest={Date}", line, StringComparison.Ordinal);

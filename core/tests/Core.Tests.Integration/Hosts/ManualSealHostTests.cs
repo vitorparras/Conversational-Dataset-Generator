@@ -209,7 +209,7 @@ public sealed class ManualSealHostTests
 
     private static async Task<AuthenticatedHost> StartedAsync(HostSetup setup, CancellationToken cancellationToken)
     {
-        var host = await AuthenticatedHost.StartAsync(setup, cancellationToken);
+        var host = await AuthenticatedHost.StartAsync(setup with { Function = PersonFunctions.Administration }, cancellationToken);
         var until = DateTimeOffset.UtcNow + Patience;
         while ((await ReadAsync(host, cancellationToken)).GetProperty("last").ValueKind != JsonValueKind.Object)
         {

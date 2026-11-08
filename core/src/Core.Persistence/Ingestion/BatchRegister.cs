@@ -19,6 +19,7 @@ public sealed class BatchRegister
     private const int BytesColumn = 6;
     private const int DigestColumn = 7;
     private const int WarningColumn = 8;
+    private const int OriginColumn = 9;
 
     private readonly NpgsqlDataSource dataSource;
 
@@ -136,5 +137,6 @@ public sealed class BatchRegister
         Receipt = reader[SubmissionColumn] is string submission
             ? new SubmissionReceipt(submission, reader.GetInt64(BytesColumn), reader.GetString(DigestColumn), reader[WarningColumn] as string)
             : null,
+        OriginState = reader[OriginColumn] as string,
     };
 }

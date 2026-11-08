@@ -50,6 +50,7 @@ internal static class CustodyNames
         [CustodyStep.BatchOpened] = "batch_opened",
         [CustodyStep.BatchClosed] = "batch_closed",
         [CustodyStep.PasswordChanged] = "password_changed",
+        [CustodyStep.OriginRead] = "origin_read",
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<CustodyReason, string> Reasons = new Dictionary<CustodyReason, string>

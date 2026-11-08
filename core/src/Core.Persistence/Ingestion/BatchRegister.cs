@@ -49,7 +49,8 @@ public sealed class BatchRegister
             found.AddRange(await InDomainAsync(domain, scope => ListInAsync(scope, domain, filter, cancellationToken), cancellationToken).ConfigureAwait(false));
         }
 
-        return found.OrderByDescending(entry => entry.SubmittedAt).ThenByDescending(entry => entry.Id).Skip(filter.Skip).Take(filter.Take).ToList();
+        var page = found.OrderByDescending(entry => entry.SubmittedAt).ThenByDescending(entry => entry.Id).Skip(filter.Skip).Take(filter.Take).ToList();
+        return page;
     }
 
     /// <summary>One batch, found in the first of the domains given that holds it; null when none does.</summary>

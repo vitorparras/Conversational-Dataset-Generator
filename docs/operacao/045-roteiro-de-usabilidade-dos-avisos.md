@@ -31,20 +31,17 @@ não é quem escreveu a tela.
 4. **Lista vazia.** Depois de marcar o último, pergunte o que a tela diz. Tem de ler "Nenhum aviso
    novo" como "nada a fazer", não como erro.
 5. **Cadeia quebrada.** No ambiente com a cadeia quebrada, como `operador-16`, abra os domínios.
-   Pergunte o que mudou: a escrita está suspensa e a leitura continua, e que o estado
-   está na tela da custódia, para quem administra o servidor. Tem de notar que a tela não traz
-   botão nem elo, e que não diz qual evento falhou.
-6. **O mesmo aviso sem acesso aos domínios.** Como `operador-17`, no mesmo ambiente, abra a lista de
-   avisos. Tem de achar o aviso de escrita suspensa, mesmo sem alcançar os domínios. A lista diz
-   "A escrita nos domínios foi suspensa porque a cadeia de custódia não conferiu na última
-   verificação. A leitura continua.", em palavras próprias da lista, não as da tela dos domínios.
+   Pergunte o que mudou: a escrita está suspensa, a leitura continua e o estado está na tela da
+   custódia. Tem de notar que a tela não traz botão nem elo e não diz qual evento falhou.
+6. **O mesmo aviso sem acesso aos domínios.** Como `operador-17`, no mesmo ambiente, abra os avisos.
+   Tem de achar o aviso de escrita suspensa, com as palavras da lista e não as da tela dos domínios.
 7. **Aviso que não é seu.** Peça que digite o endereço de marcar como lido de um aviso de outra
    pessoa. A resposta tem de ser a de um endereço que não existe.
 
 ## Variações
 
 Repita as tarefas 1 e 3 só pelo teclado (a ordem é o atalho para o conteúdo, o nome do sistema, a
-contagem de avisos, Minha conta, Sair, a tabela e cada botão), depois com tema escuro,
+contagem de avisos, Minha conta, Sair, o menu, a tabela e cada botão), depois com tema escuro,
 transparência reduzida e contraste alto do sistema, e com a janela na largura de um celular
 (390 px), onde a tabela rola dentro da sua região. Anote se o botão "Marcar como lido" cabe sem
 quebrar em duas linhas na largura de 1280 px.

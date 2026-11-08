@@ -8,4 +8,4 @@ namespace Core.Host.Submissions;
 /// <param name="Gate">The barrier that reads the file, limits it and gives its digest.</param>
 /// <param name="Conference">The conference that judges the material against the form declared.</param>
 /// <param name="Conditions">The conditions the installation knows, the most restrictive first.</param>
-internal sealed record IngestionIntake(SubmissionGate Gate, FormConference Conference, OriginConditions Conditions);
+internal sealed record SubmissionIntake(SubmissionGate Gate, FormConference Conference, OriginConditions Conditions);

@@ -30,7 +30,7 @@ internal sealed class SubmissionWorld : IAsyncDisposable
         /*lang=json*/ """{"formato":"cdg-conversa/1","mensagens":[{"id":"a","remetente":"ZQXUM","instante":"2031-03-04T08:00:00Z","texto":"ZQXPRIMEIRO"},""" +
         /*lang=json*/ """{"id":"b","remetente":"ZQXDOIS","instante":"2031-03-04T08:01:00Z","texto":"ZQXSEGUNDO"}]}""";
 
-    private SubmissionWorld(ScratchDatabase database, NpgsqlDataSource dataSource, IngestionSubmissions service)
+    private SubmissionWorld(ScratchDatabase database, NpgsqlDataSource dataSource, SubmissionService service)
     {
         Database = database;
         DataSource = dataSource;
@@ -41,7 +41,7 @@ internal sealed class SubmissionWorld : IAsyncDisposable
 
     internal NpgsqlDataSource DataSource { get; }
 
-    internal IngestionSubmissions Service { get; }
+    internal SubmissionService Service { get; }
 
     internal static async Task<SubmissionWorld> CreateAsync(long maxBytes = 1_000_000, bool gateOpen = true)
     {
@@ -59,10 +59,10 @@ internal sealed class SubmissionWorld : IAsyncDisposable
 
         var conditions = OriginConditions.Of([Strictest, "zqx_media", Loosest]);
         var intake = Intake(maxBytes, conditions);
-        return new SubmissionWorld(database, dataSource, new IngestionSubmissions(intake, new IngestionBatches(dataSource, conditions), new BatchRegister(dataSource), dataSource));
+        return new SubmissionWorld(database, dataSource, new SubmissionService(intake, new IngestionBatches(dataSource, conditions), new BatchRegister(dataSource), dataSource));
     }
 
-    internal static IngestionIntake Intake(long maxBytes, OriginConditions conditions) =>
+    internal static SubmissionIntake Intake(long maxBytes, OriginConditions conditions) =>
         new(new SubmissionGate(SourceReaders.Default(), maxBytes), new FormConference(new TextBoundaries()), conditions);
 
     internal static SubmissionRequest Request(string content = Conversation, string? name = "conversa.json", string? condition = null) => new()

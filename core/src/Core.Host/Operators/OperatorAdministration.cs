@@ -1,4 +1,3 @@
-using Core.Host.Endpoints;
 using Core.Persistence.Custody;
 using Core.Persistence.People;
 using Core.Platform.Sessions;
@@ -37,40 +36,23 @@ internal sealed class OperatorAdministration
         await Registry.ActiveFunctionOfAsync(subject, cancellationToken).ConfigureAwait(false) == PersonFunctions.Administration;
 
     /// <summary>
-    /// Registers a person as the route and the screen do: the first password is required, the person is made and the password is set, both by the author.
-    /// A refusal names the field at fault; a person made whose password was not set is told as such, with the identifier, so that the password can be set again.
-    /// Nothing here keeps or answers back the password.
+    /// Registers a person as the route and the screen do: a blank first password is refused as an invalid password before anything is asked of the registry; otherwise the person is made
+    /// and the password set, both by the author. The answer of the password is null when the person was not made. Nothing here keeps or answers back the password.
     /// </summary>
-    internal Task<OperatorRegistered> RegisterAsync(long author, OperatorAsked asked, CancellationToken cancellationToken)
+    internal Task<(PersonResult Made, PersonResult? Password)> RegisterAsync(long author, NewPerson fresh, string password, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(asked);
-        return RegisteredAsync(author, asked, cancellationToken);
-    }
-
-    private async Task<OperatorRegistered> RegisteredAsync(long author, OperatorAsked asked, CancellationToken cancellationToken)
-    {
-        if (asked.Password.Length == 0)
-        {
-            return new OperatorRegistered(null, new OperatorRefused("senha", BlankSecret), StatusCodes.Status400BadRequest);
-        }
-
-        var (made, password) = await CreateAsync(author, new NewPerson(asked.Name, asked.Function), asked.Password, cancellationToken).ConfigureAwait(false);
-        if (made.Outcome != PersonOutcome.Done)
-        {
-            var (refusal, status) = OperatorAnswer.RefusalOf(made);
-            return new OperatorRegistered(null, refusal, status);
-        }
-
-        return password is { Outcome: PersonOutcome.Done }
-            ? new OperatorRegistered(made.PersonId, null, StatusCodes.Status201Created)
-            : new OperatorRegistered(null, new OperatorRefused(null, Unfinished(made.PersonId!.Value)), StatusCodes.Status500InternalServerError);
+        ArgumentNullException.ThrowIfNull(fresh);
+        ArgumentNullException.ThrowIfNull(password);
+        return password.Length == 0
+            ? Task.FromResult<(PersonResult Made, PersonResult? Password)>((new PersonResult { Outcome = PersonOutcome.PasswordInvalid, Refusal = BlankSecret }, null))
+            : CreateAsync(author, fresh, password, cancellationToken);
     }
 
     /// <summary>One page of the people the filter leaves, by name, with the total; it reads the name, the function and the state, nothing of any material.</summary>
     internal Task<PersonPage> ListAsync(PersonFilter filter, int page, CancellationToken cancellationToken) => Registry.ListAsync(filter, page, cancellationToken);
 
     /// <summary>Makes the person and then sets the password, both by the author; the answer of the password is the one returned when the person was made.</summary>
-    internal async Task<(PersonResult Made, PersonResult? Password)> CreateAsync(long author, NewPerson fresh, string password, CancellationToken cancellationToken)
+    private async Task<(PersonResult Made, PersonResult? Password)> CreateAsync(long author, NewPerson fresh, string password, CancellationToken cancellationToken)
     {
         var by = CustodyAuthor.Person(author);
         var made = await Registry.CreateAsync(fresh, by, cancellationToken).ConfigureAwait(false);
@@ -102,7 +84,4 @@ internal sealed class OperatorAdministration
 
         return result;
     }
-
-    private static string Unfinished(long id) =>
-        $"A pessoa foi criada com o id {id} e a senha não foi definida; defina-a pela rota PUT {OperatorsEndpoint.Route}/{id}/password.";
 }

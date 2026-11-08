@@ -25,7 +25,8 @@ internal static class OperatorsEndpoint
     private static Task<IResult> MakeAsync([FromBody] OperatorAsked asked, [FromServices] OperatorAdministration? staff, HttpContext context) =>
         ActAsync(staff, context, async (administration, author) =>
         {
-            var registered = await administration.RegisterAsync(author, asked, context.RequestAborted);
+            var (made, password) = await administration.RegisterAsync(author, new NewPerson(asked.Name, asked.Function), asked.Password, context.RequestAborted);
+            var registered = OperatorAnswer.Registered(made, password);
             return registered.Id is { } id
                 ? Results.Created(new Uri($"{Route}/{id}", UriKind.Relative), new OperatorMade(id))
                 : Results.Json(registered.Refusal, statusCode: registered.Status);

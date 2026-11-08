@@ -61,9 +61,6 @@
 
     internal const string InactiveState = "inativas";
 
-    /// <summary>The mark in the address that the person named by the filter was just registered.</summary>
-    internal const string RegisteredKey = "cadastrada";
-
     private static readonly List<Field.Option> FunctionChoices =
         new(PersonFunctions.Accepted.Select(function => new Field.Option(function, function)).Prepend(new Field.Option("", "Todas as funções")));
 

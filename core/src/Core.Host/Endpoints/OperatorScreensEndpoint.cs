@@ -33,16 +33,15 @@ internal static class OperatorScreensEndpoint
         }
 
         var query = context.Request.Query;
-        var (name, function, state) = (query[OperatorsScreen.NameKey].ToString(), query[OperatorsScreen.FunctionKey].ToString(), query[OperatorsScreen.StateKey].ToString());
-        var filter = new PersonFilter(Given(name), Given(function), ActiveOf(state));
+        var filter = FilterOf(query);
         var page = int.TryParse(query[OperatorsScreen.PageKey], NumberStyles.None, CultureInfo.InvariantCulture, out var asked) ? asked : 1;
         var screen = new Dictionary<string, object?>(StringComparer.Ordinal)
         {
             [nameof(OperatorsScreen.Page)] = await staff.ListAsync(filter, page, context.RequestAborted),
-            [nameof(OperatorsScreen.Name)] = name,
-            [nameof(OperatorsScreen.Function)] = function,
-            [nameof(OperatorsScreen.State)] = state,
-            [nameof(OperatorsScreen.Registered)] = query.ContainsKey(OperatorsScreen.RegisteredKey) ? name : null,
+            [nameof(OperatorsScreen.Name)] = query[OperatorsScreen.NameKey].ToString(),
+            [nameof(OperatorsScreen.Function)] = filter.Function,
+            [nameof(OperatorsScreen.State)] = query[OperatorsScreen.StateKey].ToString(),
+            [nameof(OperatorsScreen.Registered)] = RegisteredNotice.Take(context),
         };
         return ScreenResult.Of(context, typeof(OperatorsScreen), OperatorsScreen.Title, screen);
     }
@@ -59,10 +58,12 @@ internal static class OperatorScreensEndpoint
 
         var form = context.Request.HasFormContentType ? await context.Request.ReadFormAsync(context.RequestAborted) : null;
         var (name, function) = (ValueOf(form, OperatorFormScreen.NameField), ValueOf(form, OperatorFormScreen.FunctionField));
-        var registered = await staff.RegisterAsync(author, new OperatorAsked(name, function, ValueOf(form, OperatorFormScreen.SecretField)), context.RequestAborted);
+        var (made, password) = await staff.RegisterAsync(author, new NewPerson(name, function), ValueOf(form, OperatorFormScreen.SecretField), context.RequestAborted);
+        var registered = OperatorAnswer.Registered(made, password);
         if (registered.Refusal is not { } refusal)
         {
-            return PageRedirect.Of(context, $"{ScreenPaths.Operators}?{OperatorsScreen.NameKey}={Uri.EscapeDataString(name)}&{OperatorsScreen.RegisteredKey}=1");
+            RegisteredNotice.Issue(context.Response, name);
+            return PageRedirect.Of(context, $"{ScreenPaths.Operators}?{OperatorsScreen.NameKey}={Uri.EscapeDataString(name)}");
         }
 
         var screen = new Dictionary<string, object?>(StringComparer.Ordinal)
@@ -78,6 +79,13 @@ internal static class OperatorScreensEndpoint
     }
 
     private static string ValueOf(IFormCollection? form, string field) => form?[field].ToString() ?? string.Empty;
+
+    /// <summary>The filter the address asks for; a function the registry does not accept is left out, as the list of choices shows, instead of leaving nobody.</summary>
+    internal static PersonFilter FilterOf(IQueryCollection query)
+    {
+        var function = query[OperatorsScreen.FunctionKey].ToString();
+        return new PersonFilter(Given(query[OperatorsScreen.NameKey].ToString()), PersonFunctions.IsAccepted(function) ? function : null, ActiveOf(query[OperatorsScreen.StateKey].ToString()));
+    }
 
     private static string? Given(string value) => string.IsNullOrWhiteSpace(value) ? null : value;
 

@@ -1,3 +1,4 @@
+using System.Reflection;
 using Core.Host.Endpoints;
 using Core.Host.Operators;
 using Core.Persistence.People;
@@ -19,12 +20,49 @@ public sealed class OperatorRegistrationTests
         var sessions = new SessionStore(new SessionLifetimes(TimeSpan.FromMinutes(30), TimeSpan.FromHours(8)), TimeProvider.System);
         var administration = new OperatorAdministration(new PersonRegistry(source), new PersonCredentials(source, new PasswordDerivation(2)), sessions);
 
-        var registered = await administration.RegisterAsync(1, new OperatorAsked("zqx-nome", "Auditoria", string.Empty), TestContext.Current.CancellationToken);
+        var (made, password) = await administration.RegisterAsync(1, new NewPerson("zqx-nome", "Auditoria"), string.Empty, TestContext.Current.CancellationToken);
 
-        Assert.Null(registered.Id);
-        Assert.Equal(("senha", 400), (registered.Refusal!.Field, registered.Status));
-        Assert.Equal("A senha não pode ser vazia.", registered.Refusal.Reason);
+        Assert.Equal((PersonOutcome.PasswordInvalid, "A senha não pode ser vazia."), (made.Outcome, made.Refusal));
+        Assert.Null(password);
     }
+
+    [Fact]
+    public void ABlankFirstPasswordIsAnswered400AtThePasswordField()
+    {
+        var registered = OperatorAnswer.Registered(new PersonResult { Outcome = PersonOutcome.PasswordInvalid, Refusal = "A senha não pode ser vazia." }, null);
+
+        Assert.Equal((null, 400, "senha", "A senha não pode ser vazia."), (registered.Id, registered.Status, registered.Refusal!.Field, registered.Refusal.Reason));
+    }
+
+    [Fact]
+    public void APersonMadeWithThePasswordIsAnswered201WithTheIdentifierAndNoRefusal()
+    {
+        var registered = OperatorAnswer.Registered(new PersonResult { Outcome = PersonOutcome.Done, PersonId = 42 }, new PersonResult { Outcome = PersonOutcome.Done, PersonId = 42 });
+
+        Assert.Equal((42, 201, null), (registered.Id, registered.Status, registered.Refusal));
+    }
+
+    [Fact]
+    public void APersonMadeWhosePasswordWasNotSetIsAnswered500WithTheRouteThatSetsItAgain()
+    {
+        var registered = OperatorAnswer.Registered(new PersonResult { Outcome = PersonOutcome.Done, PersonId = 42 }, new PersonResult { Outcome = PersonOutcome.ChainBusy });
+
+        Assert.Equal((null, 500, null), (registered.Id, registered.Status, registered.Refusal!.Field));
+        Assert.Contains("PUT /people/42/password", registered.Refusal.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheAdministrationOfOperatorsAnswersInTermsOfTheRegistryAndNothingOfTheRoutes()
+    {
+        var signatures = typeof(OperatorAdministration).GetMethods(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
+            .SelectMany(method => method.GetParameters().Select(parameter => parameter.ParameterType).Append(method.ReturnType))
+            .SelectMany(Unwrapped);
+
+        Assert.DoesNotContain(signatures, type => type.Namespace == typeof(OperatorAnswer).Namespace);
+    }
+
+    private static IEnumerable<Type> Unwrapped(Type type) =>
+        type.IsGenericType ? type.GetGenericArguments().SelectMany(Unwrapped).Prepend(type) : [type];
 
     [Theory]
     [InlineData(PersonOutcome.NameInvalid, "nome")]

@@ -31,6 +31,20 @@ public sealed class PersonNoticesTests : IClassFixture<PeopleDatabase>
     }
 
     [DatabaseFact]
+    public async Task TheUnreadAreCountedForTheOwnerOnlyAndTheReadOnesLeaveTheCount()
+    {
+        var (person, other) = (await database.NewPersonAsync(), await database.NewPersonAsync());
+        var notices = await database.NoticesAsync();
+        await notices.RecordPasswordResetAsync(person, 1, TestContext.Current.CancellationToken);
+        await notices.RecordPasswordResetAsync(person, 2, TestContext.Current.CancellationToken);
+        await notices.RecordPasswordResetAsync(other, 3, TestContext.Current.CancellationToken);
+        _ = await notices.MarkReadAsync(person, (await notices.UnreadAsync(person, TestContext.Current.CancellationToken))[0].Id, TestContext.Current.CancellationToken);
+        var counted = (await notices.UnreadCountAsync(person, TestContext.Current.CancellationToken), await notices.UnreadCountAsync(other, TestContext.Current.CancellationToken));
+
+        Assert.Equal((1, 1), counted);
+    }
+
+    [DatabaseFact]
     public async Task APasswordSetAgainThatEndedNoSessionIsToldWithZero()
     {
         var person = await database.NewPersonAsync();

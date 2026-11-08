@@ -1,3 +1,4 @@
+using System.Globalization;
 using Npgsql;
 using NpgsqlTypes;
 
@@ -13,11 +14,10 @@ public sealed class PersonNotices
     private const int CodeColumn = 1;
     private const int SessionsColumn = 2;
     private const int CreatedColumn = 3;
-
+    private const string PersonParameter = "person";
     private readonly NpgsqlDataSource dataSource;
 
     /// <summary>The notices are kept in the database of the data source, in the role it logs in as.</summary>
-    /// <param name="dataSource">The source of the connection, built with the credential of the application.</param>
     public PersonNotices(NpgsqlDataSource dataSource)
     {
         ArgumentNullException.ThrowIfNull(dataSource);
@@ -25,16 +25,13 @@ public sealed class PersonNotices
     }
 
     /// <summary>Tells the person that their password was set again and how many sessions that ended; the database refuses a person who is not registered.</summary>
-    /// <param name="personId">The person whose password was set again.</param>
-    /// <param name="sessionsEnded">How many sessions the act ended, none or more.</param>
-    /// <param name="cancellationToken">Cancels the operation.</param>
     public async Task RecordPasswordResetAsync(long personId, int sessionsEnded, CancellationToken cancellationToken)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(sessionsEnded);
         var command = dataSource.CreateCommand(NoticeStatements.Insert);
         await using (command.ConfigureAwait(false))
         {
-            PersonQueries.Add(command, "person", NpgsqlDbType.Bigint, personId);
+            PersonQueries.Add(command, PersonParameter, NpgsqlDbType.Bigint, personId);
             PersonQueries.Add(command, "code", NpgsqlDbType.Text, NoticeStatements.PasswordReset);
             PersonQueries.Add(command, "sessions", NpgsqlDbType.Integer, sessionsEnded);
             _ = await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
@@ -42,14 +39,12 @@ public sealed class PersonNotices
     }
 
     /// <summary>The notices of the person that were not read, the newest first; empty when there is none.</summary>
-    /// <param name="personId">The person whose notices are listed.</param>
-    /// <param name="cancellationToken">Cancels the reading.</param>
     public async Task<IReadOnlyList<PersonNotice>> UnreadAsync(long personId, CancellationToken cancellationToken)
     {
         var command = dataSource.CreateCommand(NoticeStatements.Unread);
         await using (command.ConfigureAwait(false))
         {
-            PersonQueries.Add(command, "person", NpgsqlDbType.Bigint, personId);
+            PersonQueries.Add(command, PersonParameter, NpgsqlDbType.Bigint, personId);
             var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             await using (reader.ConfigureAwait(false))
             {
@@ -59,17 +54,25 @@ public sealed class PersonNotices
     }
 
     /// <summary>Marks the notice as read and says it is theirs, read before or now; false when it is not theirs or does not exist, the same answer for both.</summary>
-    /// <param name="personId">The person who reads.</param>
-    /// <param name="noticeId">The identifier of the notice.</param>
-    /// <param name="cancellationToken">Cancels the operation.</param>
     public async Task<bool> MarkReadAsync(long personId, long noticeId, CancellationToken cancellationToken)
     {
         var command = dataSource.CreateCommand(NoticeStatements.MarkRead);
         await using (command.ConfigureAwait(false))
         {
             PersonQueries.Add(command, "id", NpgsqlDbType.Bigint, noticeId);
-            PersonQueries.Add(command, "person", NpgsqlDbType.Bigint, personId);
+            PersonQueries.Add(command, PersonParameter, NpgsqlDbType.Bigint, personId);
             return await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) is true;
+        }
+    }
+
+    /// <summary>How many notices of the person were not read.</summary>
+    public async Task<int> UnreadCountAsync(long personId, CancellationToken cancellationToken)
+    {
+        var command = dataSource.CreateCommand(NoticeStatements.UnreadCount);
+        await using (command.ConfigureAwait(false))
+        {
+            PersonQueries.Add(command, PersonParameter, NpgsqlDbType.Bigint, personId);
+            return Convert.ToInt32(await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false), CultureInfo.InvariantCulture);
         }
     }
 

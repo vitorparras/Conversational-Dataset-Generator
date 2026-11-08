@@ -40,7 +40,7 @@ LANGUAGE plpgsql
 AS $notify$
 BEGIN
     -- With the window of a restoration open the verdicts of the copy come back, and one of the past tells nobody anything now.
-    IF EXISTS (SELECT 1 FROM public.restore_window WHERE state = 'opened') AND NOT EXISTS (SELECT 1 FROM public.restore_window WHERE state = 'closed') THEN RETURN NULL; END IF;
+    IF public.restore_window_is_open() THEN RETURN NULL; END IF;
     INSERT INTO public.person_notice (person_id, code) SELECT p.id, 'domain_read_only' FROM public.person p WHERE p.active ON CONFLICT DO NOTHING;
     RETURN NULL;
 END

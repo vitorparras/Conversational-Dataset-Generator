@@ -191,7 +191,9 @@ certificado autoassinado serve à instalação local. O `migrate` não os exige.
 
 `Installation:Kind` é obrigatória, sem valor padrão, e só aceita `real` ou `demonstracao`, escritos
 assim. A demonstração roda sem cópia de guarda da chave e sem recuperação testada, e diz isso no
-nome da instalação (`(DEMONSTRAÇÃO)`), em `/status` e `/versions` e numa linha de aviso na partida.
+nome da instalação (`(DEMONSTRAÇÃO)`), em `/versions`, no detalhe de `/status` (só com sessão de
+Administração técnica ou Auditoria; sem sessão, só `alive` e `ready`) e numa linha de aviso na
+partida.
 A instalação real também declara `Custody:LastRecoveryTest` (data ISO) e `Custody:Holder`, e sem os
 dois a partida recusa.
 
@@ -235,8 +237,9 @@ nova e com 20 quando há; uma diferença marcada como conhecida sai com o motivo
 a `49.00:00:00`, como `01:00:00`) entre duas comparações, feitas pelo próprio núcleo sobre o que
 passou desde a anterior, com um minuto de folga para o registro alcançar. Diferença nova vira aviso
 no log do núcleo (papel, tabela, comandos, contagens e passos, nunca um comando ou valor), e
-`GET /status` traz em `auditComparison` o resultado da última (`Pending`, `Agreed`, `Different` ou
-`Failed`), quando terminou e quantas diferenças novas e conhecidas achou. O `migrate` não a exige.
+`GET /status`, com sessão de Administração técnica ou Auditoria, traz em `auditComparison` o
+resultado da última (`Pending`, `Agreed`, `Different` ou `Failed`), quando terminou e quantas
+diferenças novas e conhecidas achou; sem sessão, só `alive` e `ready`. O `migrate` não a exige.
 
 `Custody:VerificationInterval` é obrigatória ao servir, sem valor padrão, e leva uma duração maior
 que zero, no mesmo formato dos prazos da sessão (`00:05:00`, ou `1.00:00:00`, com dias); o `migrate`
@@ -273,7 +276,8 @@ situação `Manual`, `GET /custody/seal` emite o selo do topo, sem gravar nada, 
 se a cadeia tiver aquele evento com aquele resumo; senão, 409 com o motivo e nada gravado. Nos dois
 `POST` com selo, corpo acima de 1 KiB recebe 413 sem ser lido. A verificação traz `warning` quando
 não há selo ou o último tem mais de 7 dias, e o `/status` traz só esse aviso (`sealWarning`), sem a
-data nem o selo.
+data nem o selo, e só com sessão de Administração técnica ou Auditoria; sem sessão, só `alive` e
+`ready`.
 
 No `External` e no `Internal`, o núcleo envia o selo ao destino uma vez por dia, por `https` com a
 validação padrão do certificado, sem seguir redirecionamento e com 30 s de limite, e só depois do
@@ -287,7 +291,8 @@ Se o servidor de banco cai enquanto grava, o arquivo `csv` que ele escrevia fica
 linha cortada, sem a quebra de linha, e o servidor segue em outro arquivo. Essa última linha de um
 arquivo que já não é o mais recente não vira entrada nem erro: a leitura a deixa de fora e nomeia o
 arquivo, em `cutOffFiles` na resposta de `GET /audit/server`, em uma linha `aviso:` do
-`audit-compare`, em `auditComparison.cutOffFiles` de `GET /status` e em um aviso no log do núcleo.
+`audit-compare`, em `auditComparison.cutOffFiles` de `GET /status` (só com sessão de Administração
+técnica ou Auditoria; sem sessão, só `alive` e `ready`) e em um aviso no log do núcleo.
 Na resposta de `GET /audit/server` e no `audit-compare`, o nome aparece enquanto o arquivo estiver
 na janela lida. No `/status`, os nomes ficam até o núcleo reiniciar, cada um uma vez só, na ordem em
 que foram vistos, e uma rodada que falha não os apaga; a lista vive só na memória do processo e
@@ -342,11 +347,14 @@ linguagem, fecha o registro e sai com código 0. Uma conferência de inicializa�
 porta já ocupada, sai com 70 (salvo memória esgotada ou corrompida, que o processo não relata) e a
 saída de erro nomeia o tipo da falha, nunca a mensagem.
 
-Com o núcleo de pé, `https://127.0.0.1:5080/status` responde `alive`, `ready`, `recognizer`,
-`languageService`, `checkedAt` e `checks[]`: o reconhecedor em vigor, o estado atual do serviço
-de linguagem, quando as conferências terminaram e o resultado de cada conferência de
-inicialização. Se o processo do serviço termina, `languageService` passa a `Unavailable` e `ready`
-a falso, e o núcleo não o reinicia sozinho. Com `fake`, nenhum serviço é vigiado: `languageService`
+Com o núcleo de pé, `https://127.0.0.1:5080/status` responde, sem sessão, só `alive` e `ready`.
+Com sessão de Administração técnica ou Auditoria, responde o detalhe: `alive`, `ready`,
+`recognizer`, `languageService`, `checkedAt` e `checks[]`, com o reconhecedor em vigor, o estado
+atual do serviço de linguagem, quando as conferências terminaram e o resultado de cada conferência
+de inicialização; com sessão de outro papel, a mesma 404 da rota inexistente. O resultado de cada
+conferência também sai no log da partida, uma linha por conferência, com o nome e o resultado. Se
+o processo do serviço termina, `languageService` passa a `Unavailable` e `ready` a falso, e o
+núcleo não o reinicia sozinho. Com `fake`, nenhum serviço é vigiado: `languageService`
 é `null`, e `ready` depende só das conferências.
 `https://127.0.0.1:5080/versions` responde a versão do núcleo, o commit de que ele foi construído e
 se a árvore tinha mudança não registrada (`workingTree`, que vale `Unknown` se a construção não

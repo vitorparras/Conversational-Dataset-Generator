@@ -35,21 +35,21 @@ public sealed class StartupCheckTests
         using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
 
         Assert.True(body.RootElement.GetProperty("ready").GetBoolean());
-        var checks = body.RootElement.GetProperty("checks").EnumerateArray().ToList();
-        Assert.Equal("RuntimeIdentifier", checks[0].GetProperty("name").GetString());
-        Assert.Equal("Passed", checks[0].GetProperty("status").GetString());
-        Assert.Equal("Host:BundledFile", checks[1].GetProperty("name").GetString());
-        Assert.Equal("Passed", checks[1].GetProperty("status").GetString());
-        Assert.Equal("MasterKey", checks[2].GetProperty("name").GetString());
-        Assert.Equal("Passed", checks[2].GetProperty("status").GetString());
-        Assert.Equal("Tls", checks[3].GetProperty("name").GetString());
-        Assert.Equal("Passed", checks[3].GetProperty("status").GetString());
-        Assert.Equal("Privilege", checks[4].GetProperty("name").GetString());
-        Assert.Equal("ServerLog", checks[16].GetProperty("name").GetString());
-        Assert.Equal("Passed", checks[16].GetProperty("status").GetString());
-        Assert.Equal("LanguageServiceFolder", checks[17].GetProperty("name").GetString());
-        Assert.Equal("Passed", checks[17].GetProperty("status").GetString());
-        Assert.Equal("LanguageService", checks[18].GetProperty("name").GetString());
-        Assert.Equal("Passed", checks[18].GetProperty("status").GetString());
+        var checks = StartupCheckLog.Of(await host.StopAsync());
+        Assert.Equal("RuntimeIdentifier", checks[0].Name);
+        Assert.Equal("Passed", checks[0].Outcome);
+        Assert.Equal("Host:BundledFile", checks[1].Name);
+        Assert.Equal("Passed", checks[1].Outcome);
+        Assert.Equal("MasterKey", checks[2].Name);
+        Assert.Equal("Passed", checks[2].Outcome);
+        Assert.Equal("Tls", checks[3].Name);
+        Assert.Equal("Passed", checks[3].Outcome);
+        Assert.Equal("Privilege", checks[4].Name);
+        Assert.Equal("ServerLog", checks[16].Name);
+        Assert.Equal("Passed", checks[16].Outcome);
+        Assert.Equal("LanguageServiceFolder", checks[17].Name);
+        Assert.Equal("Passed", checks[17].Outcome);
+        Assert.Equal("LanguageService", checks[18].Name);
+        Assert.Equal("Passed", checks[18].Outcome);
     }
 }

@@ -75,8 +75,10 @@ public sealed class IngestionBatchTableTests
     {
         await using var world = await IngestionWorld.CreateAsync();
 
-        var state = await Assert.ThrowsAsync<PostgresException>(() => world.InDomainAsync(1, "INSERT INTO content.ingestion_batch (domain_id, opened_by, condition, state) VALUES (1, 1, 'restrita', 'accepted')"));
-        var moment = await Assert.ThrowsAsync<PostgresException>(() => world.InDomainAsync(1, "INSERT INTO content.ingestion_batch (domain_id, opened_by, condition, opened_at) VALUES (1, 1, 'restrita', now())"));
+        var state = await Assert.ThrowsAsync<PostgresException>(
+            () => world.InDomainAsync(1, "INSERT INTO content.ingestion_batch (domain_id, opened_by, condition, state) VALUES (1, 1, 'restrita', 'accepted')"));
+        var moment = await Assert.ThrowsAsync<PostgresException>(
+            () => world.InDomainAsync(1, "INSERT INTO content.ingestion_batch (domain_id, opened_by, condition, opened_at) VALUES (1, 1, 'restrita', now())"));
 
         Assert.Equal((PostgresErrorCodes.InsufficientPrivilege, PostgresErrorCodes.InsufficientPrivilege), (state.SqlState, moment.SqlState));
     }

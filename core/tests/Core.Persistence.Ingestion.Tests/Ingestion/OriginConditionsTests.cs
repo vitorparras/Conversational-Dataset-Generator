@@ -2,7 +2,10 @@ using Core.Persistence.Ingestion;
 
 namespace Core.Persistence.Tests.Ingestion;
 
-/// <summary>The conditions the installation knows, from the most restrictive to the most permissive: the place in the list is the order, and a list that cannot be run with is refused (issue 85, CA-1 and CA-4).</summary>
+/// <summary>
+/// The conditions the installation knows, from the most restrictive to the most permissive: the place in the list is the order,
+/// and a list that cannot be run with is refused (issue 85, CA-1 and CA-4).
+/// </summary>
 public sealed class OriginConditionsTests
 {
     private const string NotAName = "uma condição não é um nome de letras minúsculas, algarismos e sublinhado";

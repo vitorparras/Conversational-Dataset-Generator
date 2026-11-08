@@ -126,8 +126,10 @@ public sealed class BatchConditionTests
         var item = await IngestionWorld.AddItemAsync(world, batch);
         _ = await IngestionWorld.AcceptAsync(world, batch);
 
-        var columns = await world.ScalarAsync("SELECT string_agg(column_name, ',' ORDER BY column_name) FROM information_schema.columns WHERE table_schema = 'content' AND table_name = 'item_text'") as string;
-        var viewed = await world.InDomainAsync(IngestionWorld.Domain, "SELECT item_id || ':' || batch_id || ':' || condition FROM public.item_condition WHERE item_id = @item", ("item", item)) as string;
+        var columns = await world.ScalarAsync(
+            "SELECT string_agg(column_name, ',' ORDER BY column_name) FROM information_schema.columns WHERE table_schema = 'content' AND table_name = 'item_text'") as string;
+        var viewed = await world.InDomainAsync(
+            IngestionWorld.Domain, "SELECT item_id || ':' || batch_id || ':' || condition FROM public.item_condition WHERE item_id = @item", ("item", item)) as string;
 
         Assert.DoesNotContain("condition", columns, StringComparison.Ordinal);
         Assert.Equal($"{item}:{batch}:{TestConditions.Middle}", viewed);

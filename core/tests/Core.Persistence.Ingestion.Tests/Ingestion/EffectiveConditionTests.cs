@@ -14,7 +14,10 @@ public sealed class EffectiveConditionTests
     private const int MostItems = 12;
     private const int MostDilution = 60;
 
-    /// <summary>An installation that knows from one to eight conditions, and a non-empty set of items, each with the place of its condition in the list; the keys give the order a permutation takes.</summary>
+    /// <summary>
+    /// An installation that knows from one to eight conditions, and a non-empty set of items, each with the place of its condition in the list;
+    /// the keys give the order a permutation takes.
+    /// </summary>
     private static readonly Gen<(int Size, int[] Ranks, int[] Keys)> Sets = Gen.Int[1, MostConditions].SelectMany(size =>
         Gen.Int[0, size - 1].Array[1, MostItems].SelectMany(ranks => Gen.Int.Array[ranks.Length].Select(keys => (size, ranks, keys))));
 

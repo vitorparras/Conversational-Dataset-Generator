@@ -247,7 +247,9 @@ public sealed class IngestionBatchesTests
         var batches = IngestionWorld.BatchesOf(world);
 
         Assert.Equal(
-            (new IngestionBatch(BatchState.Accepted, null, IngestionWorld.Person, TestConditions.Strictest), new IngestionBatch(BatchState.Rejected, Reason, IngestionWorld.Person, TestConditions.Strictest)),
+            (
+                new IngestionBatch(BatchState.Accepted, null, IngestionWorld.Person, TestConditions.Strictest),
+                new IngestionBatch(BatchState.Rejected, Reason, IngestionWorld.Person, TestConditions.Strictest)),
             (
                 await batches.ReadAsync(IngestionWorld.Domain, accepted, TestContext.Current.CancellationToken),
                 await batches.ReadAsync(IngestionWorld.Domain, rejected, TestContext.Current.CancellationToken)));

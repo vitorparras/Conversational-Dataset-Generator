@@ -67,7 +67,7 @@ public static class ContentColumns
         new(IngestionBatch, DomainColumn, ClearKind.Domain),
         new(IngestionBatch, "state", ClearKind.Status),
         new(IngestionBatch, "motive", ClearKind.Motive),
-        new(IngestionBatch, "condition", ClearKind.Condition),
+        new(IngestionBatch, "condition", ClearKind.Motive),
         new(IngestionBatch, "opened_by", ClearKind.Identifier),
         new(IngestionBatch, "opened_at", ClearKind.Moment),
         new(IngestionBatch, "closed_at", ClearKind.Moment),

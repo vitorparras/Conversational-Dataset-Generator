@@ -28,5 +28,5 @@ public static class Replication
     }
 
     private static IEnumerable<ReplicationOccurrence> Settled(IReadOnlyList<ReplicationOccurrence> arriving) =>
-        arriving.OrderBy(message => message.Instant).ThenBy(message => message.Text, StringComparer.Ordinal).ThenBy(message => message.Sender, StringComparer.Ordinal).ThenBy(message => message.Place);
+        arriving.OrderBy(message => message.Instant).ThenBy(message => message.Place);
 }

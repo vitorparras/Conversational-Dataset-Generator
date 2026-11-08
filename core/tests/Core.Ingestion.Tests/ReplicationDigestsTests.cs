@@ -1,0 +1,69 @@
+using Core.Platform.Keys;
+
+namespace Core.Ingestion.Tests;
+
+/// <summary>
+/// What the criterion compares is a keyed digest and never the text or the sender (issue 82, decision 0030): the digest is per domain, a text is never comparable with a sender, and the marks that
+/// the digests of real messages give are the ones the plain reading gives.
+/// </summary>
+public sealed class ReplicationDigestsTests : IDisposable
+{
+    private static readonly DateTimeOffset Start = new(2031, 5, 6, 9, 0, 0, TimeSpan.Zero);
+
+    private readonly MasterKeyReading reading = MasterKeyReading.FromBytes(Enumerable.Range(0, MasterKey.Length).Select(at => (byte)(at + 1)).ToArray(), DerivationLabels.None);
+
+    private KeyDerivation Derivation => new(reading.Key!, DerivationLabels.None);
+
+    public void Dispose() => reading.Dispose();
+
+    [Fact]
+    public void TheSameTextInTheSameDomainGivesTheSameDigestAndInAnotherDomainAnotherOne()
+    {
+        Assert.Equal(ReplicationDigests.OfText(Derivation, 7, "ZQX-encaminhada"), ReplicationDigests.OfText(Derivation, 7, "ZQX-encaminhada"));
+        Assert.NotEqual(ReplicationDigests.OfText(Derivation, 7, "ZQX-encaminhada"), ReplicationDigests.OfText(Derivation, 8, "ZQX-encaminhada"));
+    }
+
+    [Fact]
+    public void ATextAndASenderThatAreWrittenTheSameAreNotComparable() =>
+        Assert.NotEqual(ReplicationDigests.OfText(Derivation, 7, "ZQX-igual"), ReplicationDigests.OfSender(Derivation, 7, "ZQX-igual"));
+
+    [Fact]
+    public void TheOccurrenceCarriesTheDigestsTheLengthAndTheMomentAndNeitherTheTextNorTheSender()
+    {
+        var message = new Message("ZQX-ana-silva", Start, RepliesTo: null, "ZQX-texto da mensagem", Rank: 0);
+
+        var occurrence = ReplicationDigests.OccurrenceOf(Derivation, 7, new ReplicationPlace(3, 1), message);
+
+        Assert.Equal((new ReplicationPlace(3, 1), 21, Start), (occurrence.Place, occurrence.Length, occurrence.Instant));
+        Assert.Equal(ReplicationDigests.OfText(Derivation, 7, "ZQX-texto da mensagem"), occurrence.Text);
+        Assert.Equal(ReplicationDigests.OfSender(Derivation, 7, "ZQX-ana-silva"), occurrence.Sender);
+        Assert.DoesNotContain("zqx", occurrence.ToString(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void AForwardedMessageInTwoBatchesIsMarkedByTheDigestsOfTheDomain()
+    {
+        var rule = new ReplicationRule(minLength: 10, minSenders: 2);
+        var kept = ReplicationDigests.OccurrenceOf(Derivation, 7, new ReplicationPlace(1, 0), new Message("ZQX-ana", Start, null, "ZQX-ordem repassada em cadeia", 0));
+        var arriving = ReplicationDigests.OccurrenceOf(Derivation, 7, new ReplicationPlace(9, 4), new Message("ZQX-bia", Start.AddDays(2), null, "ZQX-ordem repassada em cadeia", 4));
+        var other = ReplicationDigests.OccurrenceOf(Derivation, 7, new ReplicationPlace(9, 5), new Message("ZQX-caio", Start.AddDays(2), null, "ZQX-outra coisa totalmente", 5));
+
+        var marks = Replication.Marks(rule, new List<ReplicationOccurrence> { kept }, new List<ReplicationOccurrence> { other, arriving });
+
+        Assert.Equal(new[] { new ReplicationMark(kept.Place, kept.Place), new ReplicationMark(arriving.Place, kept.Place) }, marks);
+    }
+
+    [Fact]
+    public void TheSameTextWithTheDigestsOfAnotherDomainIsNotTheSameContent()
+    {
+        var rule = new ReplicationRule(minLength: 10, minSenders: 2);
+        var here = ReplicationDigests.OccurrenceOf(Derivation, 7, new ReplicationPlace(1, 0), new Message("ZQX-ana", Start, null, "ZQX-ordem repassada em cadeia", 0));
+        var there = ReplicationDigests.OccurrenceOf(Derivation, 8, new ReplicationPlace(2, 0), new Message("ZQX-bia", Start, null, "ZQX-ordem repassada em cadeia", 0));
+
+        Assert.Empty(Replication.Marks(rule, new List<ReplicationOccurrence> { here }, new List<ReplicationOccurrence> { there }));
+    }
+
+    [Fact]
+    public void ADomainBelowOneIsRefused() =>
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => ReplicationDigests.OfText(Derivation, 0, "ZQX-texto"));
+}

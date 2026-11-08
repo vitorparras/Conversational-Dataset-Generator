@@ -81,28 +81,13 @@ internal sealed class SubmissionService
     /// <param name="granted">The domains granted.</param>
     /// <param name="batchId">The batch.</param>
     /// <param name="cancellationToken">Cancels the reading.</param>
-    internal Task<BatchEntry?> DetailAsync(IReadOnlyCollection<int> granted, long batchId, CancellationToken cancellationToken) =>
+    internal Task<BatchEntry?> DetailAsync(IEnumerable<int> granted, long batchId, CancellationToken cancellationToken) =>
         register.ReadAsync(granted, batchId, cancellationToken);
 
     private static bool HasPath(string? name) =>
         name is not null && (HasSeparator(name) || name.Contains("..", StringComparison.Ordinal) || name.Any(char.IsControl));
 
     private static bool HasSeparator(string name) => name.Contains('/', StringComparison.Ordinal) || name.Contains('\\', StringComparison.Ordinal);
-
-    private SubmissionReason? Judged(SubmissionResult received, MaterialForm form) =>
-        Barred(received) ?? (intake.Conference.Confer(form, ReadOutcome.Read(received.Material!)).Refusal is { } refused ? ReasonOf(refused) : null);
-
-    private static SubmissionReason? Barred(SubmissionResult received)
-    {
-        var none = new List<SubmissionFinding>();
-        return received.Refusal is { } refusal ? new SubmissionReason(ReasonCodes.Of(refusal), none) : null;
-    }
-
-    private static SubmissionReason ReasonOf(Refusal refusal)
-    {
-        var findings = refusal.Findings.Select(finding => new SubmissionFinding(finding.Unit, finding.Field is { } field ? ReasonCodes.Of(field) : null)).ToList();
-        return new SubmissionReason(ReasonCodes.Of(refusal.Code), findings);
-    }
 
     private static SubmissionOutcome Answer(SubmissionResult received, long batch, SubmissionReason? reason, string? warning) => new()
     {
@@ -139,7 +124,7 @@ internal sealed class SubmissionService
         }
 
         var received = await intake.Gate.ReceiveAsync(new Submission(request.Content, request.SourceFormat, request.ReceivedName), cancellationToken).ConfigureAwait(false);
-        var reason = Judged(received, request.DeclaredForm);
+        var reason = SubmissionJudgement.Of(intake, received, request.DeclaredForm);
         var warning = HasPath(request.ReceivedName) ? NameWithPath : null;
         var receipt = new SubmissionReceipt(received.Id.ToString(), received.BytesRead, received.Digest, warning);
         var opened = await batches.OpenAsync(new BatchOpening(request.DomainId, request.AuthorId, request.Condition, receipt), cancellationToken).ConfigureAwait(false);

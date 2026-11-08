@@ -1,5 +1,6 @@
 using Core.Platform;
 using Core.Platform.Configuration;
+using Core.Platform.Startup;
 using Core.Platform.Versions;
 using ConfigurationSection = Core.Platform.Configuration.ConfigurationSection;
 
@@ -30,7 +31,7 @@ internal static class InstallationConfiguration
     internal static VersionReport Shown(VersionReport report, IServiceProvider services) =>
         report.WithInstallation(services.GetRequiredService<Installation>());
 
-    /// <summary>Writes, once, the line that says which kind of installation this is.</summary>
+    /// <summary>Writes, once, the line that says which kind of installation this is, then the line of each check of the startup (#632).</summary>
     internal static void Announce(ILogger logger, IServiceProvider services)
     {
         var installation = services.GetRequiredService<Installation>();
@@ -43,5 +44,7 @@ internal static class InstallationConfiguration
             var declaration = services.GetRequiredService<SafekeepingDeclaration>();
             logger.RealInstallation(installation, declaration);
         }
+
+        StartupCheckLine.Write(logger, services.GetRequiredService<StartupReport>());
     }
 }

@@ -100,7 +100,7 @@ public sealed class MasterKeyStartTests : IDisposable
 
         var streams = await host.StopWithErrorAsync();
 
-        Assert.Contains("\"MasterKey\"", body, StringComparison.Ordinal);
+        Assert.Equal("Passed", StartupCheckLog.OutcomeOf(streams.Output + streams.Error, "MasterKey"));
         AssertNoSpelling(Key, body + streams.Output + streams.Error);
         Assert.DoesNotContain(files.Directory, body, StringComparison.Ordinal);
     }

@@ -8,4 +8,5 @@ namespace Core.Persistence.People;
 /// <param name="Bind">Gives the parameters to the command.</param>
 /// <param name="Step">The step the chain records when the statement wrote.</param>
 /// <param name="PersonId">The person the statement changes, when it is known beforehand; null when the statement makes the person.</param>
-internal sealed record PersonStatement(string Sql, Action<NpgsqlCommand> Bind, CustodyStep Step, long? PersonId = null);
+/// <param name="Event">The event to record when it carries more than the step, as a reference does; null when <paramref name="Step"/> alone says it.</param>
+internal sealed record PersonStatement(string Sql, Action<NpgsqlCommand> Bind, CustodyStep Step, long? PersonId = null, CustodyEvent? Event = null);

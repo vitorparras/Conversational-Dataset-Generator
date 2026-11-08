@@ -4,6 +4,7 @@ using Core.Persistence.Content.Reading;
 using Core.Persistence.Content.Sealing;
 using Core.Persistence.Content.Writing;
 using Core.Persistence.Custody.Chain;
+using Core.Persistence.Ingestion;
 using Core.Persistence.Migrations;
 using Core.Persistence.People;
 using Core.Persistence.ServerGuarantees;
@@ -29,7 +30,8 @@ internal sealed class FidelityWorld : IAsyncDisposable
         this.database = database;
         DataSource = dataSource;
         this.custody = custody;
-        Writer = new ContentWriter(dataSource, custody.Content);
+        RealWriter = new ContentWriter(dataSource, custody.Content);
+        Writer = new SeededWriter(RealWriter);
         Reader = new ProtectedContentReader(dataSource, custody.Content, new CustodyChain(dataSource));
         Registry = new PersonRegistry(dataSource);
     }
@@ -40,7 +42,10 @@ internal sealed class FidelityWorld : IAsyncDisposable
     /// <summary>The data source of the application's role, which the comparison of the server's log with the chain connects through.</summary>
     public NpgsqlDataSource DataSource { get; }
 
-    public ContentWriter Writer { get; }
+    /// <summary>The writer as the system has it, which adds content only to a batch that is open; <see cref="Writer" /> adds into a batch accepted at creation.</summary>
+    public ContentWriter RealWriter { get; }
+
+    public SeededWriter Writer { get; }
 
     public ProtectedContentReader Reader { get; }
 
@@ -57,6 +62,7 @@ internal sealed class FidelityWorld : IAsyncDisposable
                 "INSERT INTO public.domain (name) VALUES ('zqx-domain-a'), ('zqx-domain-b')",
                 "INSERT INTO public.person (name, function_name) VALUES ('zqx-active', 'Anotação'), ('zqx-gone', 'Anotação')",
                 "UPDATE public.person SET active = false WHERE name = 'zqx-gone'");
+            await SeededBatches.SeedAsync(database, 1, 2);
         }
 
         var custody = SyntheticCustody.Holding(Labels);
@@ -102,6 +108,27 @@ internal sealed class FidelityWorld : IAsyncDisposable
 
         var result = await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
         await transaction.CommitAsync(TestContext.Current.CancellationToken);
+        return result is DBNull ? null : result;
+    }
+
+    /// <summary>Opens a batch in the first domain, by the first person, and puts two items in it and the map of the first, as the system does; the batch stays open. The batch is the third.</summary>
+    public async Task LeaveABatchOpenAsync()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var opened = await new IngestionBatches(DataSource).OpenAsync(1, 1, token);
+        Assert.Equal((BatchOutcome.Opened, 3L), (opened.Outcome, opened.BatchId));
+        var first = await RealWriter.AddItemTextAsync(1, 3, new NewItemText("texto do lote aberto zqx"), token);
+        _ = await RealWriter.AddItemTextAsync(1, 3, new NewItemText("outro texto do lote aberto zqx"), token);
+        _ = await RealWriter.AddReversalMapAsync(1, new NewReversalMap(3, first, "mapa do lote aberto zqx"), token);
+    }
+
+    /// <summary>The first value of the first row of the statement, as the application under the domain and in the scope of the system, which sees every batch.</summary>
+    [SuppressMessage("Security", "CA2100", Justification = "The statements are literals of the calling tests, never input.")]
+    public static async Task<object?> InSystemScopeAsync(NpgsqlDataSource source, int domainId, string statement)
+    {
+        await using var transaction = await ContentTransaction.BeginSystemAsync(source, domainId, TestContext.Current.CancellationToken);
+        await using var command = transaction.CreateCommand(statement);
+        var result = await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
         return result is DBNull ? null : result;
     }
 

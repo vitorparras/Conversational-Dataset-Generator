@@ -112,7 +112,7 @@ public sealed class ContentEpochCheckTests
         await SeedAsync(database, (1, 2));
         await database.RunAsOwnerAsync(
             "SELECT set_config('app.domain', '1', true)",
-            "INSERT INTO content.item_text (domain_id, emptied_at) VALUES (1, now())");
+            "INSERT INTO content.item_text (domain_id, batch_id, emptied_at) VALUES (1, 1, now())");
 
         var result = await CheckAsync(database, EpochsSource.Providing(2));
 
@@ -124,11 +124,12 @@ public sealed class ContentEpochCheckTests
     private static async Task SeedAsync(ScratchDatabase database, params (int Domain, int Epoch)[] rows)
     {
         await database.RunAsOwnerAsync("INSERT INTO public.domain (name) VALUES ('zqx-a'), ('zqx-b')");
+        await SeededBatches.SeedAsync(database, 1, 2);
         foreach (var (domain, epoch) in rows)
         {
             await database.RunAsOwnerAsync(
                 $"SELECT set_config('app.domain', '{domain}', true)",
-                $"INSERT INTO content.item_text (domain_id, raw_text, dek_epoch, dek_wrapped) VALUES ({domain}, '\\x01', {epoch}, '\\x01')");
+                $"INSERT INTO content.item_text (domain_id, batch_id, raw_text, dek_epoch, dek_wrapped) VALUES ({domain}, {domain}, '\\x01', {epoch}, '\\x01')");
         }
     }
 

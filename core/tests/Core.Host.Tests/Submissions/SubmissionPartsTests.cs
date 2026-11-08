@@ -10,7 +10,7 @@ namespace Core.Host.Tests.Submissions;
 /// The list of conditions the configuration declares reaches the opening of the batches (issue 85, CA-1; issue 75):
 /// the first of the list is what a batch opened with none declared takes.
 /// </summary>
-public sealed class IngestionServicesTests
+public sealed class SubmissionPartsTests
 {
     private const string Declared = "zqx_sigilosa, zqx_media,zqx_livre";
 
@@ -20,7 +20,7 @@ public sealed class IngestionServicesTests
     public async Task BatchOpenedByTheServiceTakesTheFirstConditionOfTheConfiguredList()
     {
         await using var world = await SubmissionWorld.CreateAsync();
-        var batches = IngestionServices.BatchesOf(world.DataSource, Values);
+        var batches = SubmissionParts.BatchesOf(world.DataSource, Values);
 
         var opened = await batches.OpenAsync(new BatchOpening(SubmissionWorld.Domain, SubmissionWorld.Person), TestContext.Current.CancellationToken);
         var read = await batches.ReadAsync(SubmissionWorld.Domain, opened.BatchId!.Value, TestContext.Current.CancellationToken);
@@ -32,7 +32,7 @@ public sealed class IngestionServicesTests
     public async Task ConditionOutsideTheConfiguredListIsRefusedWithTheValueFoundAndTheOnesAccepted()
     {
         await using var world = await SubmissionWorld.CreateAsync();
-        var batches = IngestionServices.BatchesOf(world.DataSource, Values);
+        var batches = SubmissionParts.BatchesOf(world.DataSource, Values);
 
         var refused = await batches.OpenAsync(new BatchOpening(SubmissionWorld.Domain, SubmissionWorld.Person, "zqx_livre_demais"), TestContext.Current.CancellationToken);
 
@@ -45,7 +45,7 @@ public sealed class IngestionServicesTests
     {
         await using var world = await SubmissionWorld.CreateAsync();
         await using var startup = new ServiceCollection().AddSingleton(world.DataSource).BuildServiceProvider();
-        await using var host = IngestionServices.AddIngestion(new ServiceCollection().AddSingleton(startup), Values).BuildServiceProvider();
+        await using var host = Hosted(startup);
 
         var opened = await host.GetRequiredService<IngestionBatches>().OpenAsync(new BatchOpening(SubmissionWorld.Domain, SubmissionWorld.Person), TestContext.Current.CancellationToken);
         var entry = await host.GetRequiredService<BatchRegister>().ReadAsync([SubmissionWorld.Domain], opened.BatchId!.Value, TestContext.Current.CancellationToken);
@@ -57,7 +57,7 @@ public sealed class IngestionServicesTests
     public void WithNoDatabaseDeclaredTheHostHasNoBatchesToOffer()
     {
         using var startup = new ServiceCollection().BuildServiceProvider();
-        using var host = IngestionServices.AddIngestion(new ServiceCollection().AddSingleton(startup), Values).BuildServiceProvider();
+        using var host = Hosted(startup);
 
         Assert.Null(host.GetService<IngestionBatches>());
         Assert.Null(host.GetService<BatchRegister>());
@@ -75,10 +75,10 @@ public sealed class IngestionServicesTests
         Assert.Equal(
             ["intake", "batches", "register", "dataSource"],
             [
-                Assert.Throws<ArgumentNullException>(() => new IngestionSubmissions(null!, batches, register, dataSource)).ParamName,
-                Assert.Throws<ArgumentNullException>(() => new IngestionSubmissions(intake, null!, register, dataSource)).ParamName,
-                Assert.Throws<ArgumentNullException>(() => new IngestionSubmissions(intake, batches, null!, dataSource)).ParamName,
-                Assert.Throws<ArgumentNullException>(() => new IngestionSubmissions(intake, batches, register, null!)).ParamName,
+                Assert.Throws<ArgumentNullException>(() => new SubmissionService(null!, batches, register, dataSource)).ParamName,
+                Assert.Throws<ArgumentNullException>(() => new SubmissionService(intake, null!, register, dataSource)).ParamName,
+                Assert.Throws<ArgumentNullException>(() => new SubmissionService(intake, batches, null!, dataSource)).ParamName,
+                Assert.Throws<ArgumentNullException>(() => new SubmissionService(intake, batches, register, null!)).ParamName,
             ]);
     }
 
@@ -88,7 +88,7 @@ public sealed class IngestionServicesTests
         using var dataSource = NpgsqlDataSource.Create("Host=127.0.0.1;Port=1;Username=u;Password=p;Database=d");
         var conditions = OriginConditions.Of(["a"]);
         var intake = SubmissionWorld.Intake(1, conditions, SubmissionWorld.SealingOf(["texto-bruto/1/v1"]));
-        var service = new IngestionSubmissions(intake, new IngestionBatches(dataSource, conditions), new BatchRegister(dataSource), dataSource);
+        var service = new SubmissionService(intake, new IngestionBatches(dataSource, conditions), new BatchRegister(dataSource), dataSource);
         var request = SubmissionWorld.Request();
 
         Assert.Equal(
@@ -99,4 +99,11 @@ public sealed class IngestionServicesTests
                 Assert.Throws<ArgumentOutOfRangeException>(() => service.SubmitAsync(request with { AuthorId = 0 }, CancellationToken.None)).ParamName,
             ]);
     }
+
+    private static ServiceProvider Hosted(ServiceProvider startup) =>
+        new ServiceCollection()
+            .AddSingleton(startup)
+            .AddSingleton(provider => SubmissionParts.BatchesOf(provider, Values))
+            .AddSingleton(SubmissionParts.RegisterOf)
+            .BuildServiceProvider();
 }

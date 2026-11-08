@@ -10,7 +10,7 @@ namespace Core.Host.Tests;
 /// in some place, repeats a name or holds what is not a name is refused saying what was found and what is accepted; and the configuration in force shows the list in full, with the origin
 /// of the value and the most restrictive marked (CA-4).
 /// </summary>
-public sealed class IngestionConfigurationTests
+public sealed class AdmissionConfigurationTests
 {
     private const string Key = "Ingestion:Conditions";
     private const string Declared = "restrita,intermediaria,permissiva";
@@ -18,7 +18,7 @@ public sealed class IngestionConfigurationTests
     [Fact]
     public void ListNotDeclaredIsRefusedAsMissingAndNamesTheKey()
     {
-        var loaded = Loaded(IngestionConfiguration.Section);
+        var loaded = Loaded(AdmissionConfiguration.Section);
 
         var problem = Assert.Single(loaded.Problems);
         Assert.Equal((ConfigurationProblemKind.MissingKey, Key), (problem.Kind, problem.Key));
@@ -28,11 +28,11 @@ public sealed class IngestionConfigurationTests
     [Fact]
     public void ListDeclaredIsTheOneTheInstallationRunsWithInTheOrderGiven()
     {
-        var loaded = Loaded(IngestionConfiguration.Section, $"--{Key}=restrita, intermediaria ,permissiva");
+        var loaded = Loaded(AdmissionConfiguration.Section, $"--{Key}=restrita, intermediaria ,permissiva");
 
-        var conditions = IngestionConfiguration.Conditions(loaded.Values);
+        var conditions = AdmissionConfiguration.Conditions(loaded.Values);
 
-        Assert.Empty(IngestionConfiguration.Refusals(loaded.Values));
+        Assert.Empty(AdmissionConfiguration.Refusals(loaded.Values));
         Assert.Equal(["restrita", "intermediaria", "permissiva"], conditions.Names);
         Assert.Equal("restrita", conditions.MostRestrictive);
     }
@@ -51,29 +51,29 @@ public sealed class IngestionConfigurationTests
     [InlineData("acentuação")]
     public void ListThatRepeatsOrIsEmptyInSomePlaceOrHoldsWhatIsNotANameIsRefusedSayingWhatWasFoundAndWhatIsAccepted(string declared)
     {
-        var loaded = Loaded(IngestionConfiguration.Section, $"--{Key}={declared}");
+        var loaded = Loaded(AdmissionConfiguration.Section, $"--{Key}={declared}");
 
-        var problem = Assert.Single(IngestionConfiguration.Refusals(loaded.Values));
+        var problem = Assert.Single(AdmissionConfiguration.Refusals(loaded.Values));
 
         Assert.Equal((ConfigurationProblemKind.ValueNotAccepted, Key), (problem.Kind, problem.Key));
         Assert.Contains($"'{declared}'", problem.Describe(), StringComparison.Ordinal);
-        Assert.Contains(IngestionConfiguration.Accepted, problem.Describe(), StringComparison.Ordinal);
+        Assert.Contains(AdmissionConfiguration.Accepted, problem.Describe(), StringComparison.Ordinal);
     }
 
     [Fact]
     public void NameOfSixtyFourCharactersIsRefusedAndOneOfSixtyThreeIsAccepted()
     {
-        var accepted = Loaded(IngestionConfiguration.Section, $"--{Key}={new string('a', 63)}");
-        var refused = Loaded(IngestionConfiguration.Section, $"--{Key}={new string('a', 64)}");
+        var accepted = Loaded(AdmissionConfiguration.Section, $"--{Key}={new string('a', 63)}");
+        var refused = Loaded(AdmissionConfiguration.Section, $"--{Key}={new string('a', 64)}");
 
-        Assert.Empty(IngestionConfiguration.Refusals(accepted.Values));
-        _ = Assert.Single(IngestionConfiguration.Refusals(refused.Values));
+        Assert.Empty(AdmissionConfiguration.Refusals(accepted.Values));
+        _ = Assert.Single(AdmissionConfiguration.Refusals(refused.Values));
     }
 
     [Fact]
     public void ListBlankIsRefusedAsEmptyBeforeAnyJudgmentOfTheNames()
     {
-        var loaded = Loaded(IngestionConfiguration.Section, $"--{Key}= ");
+        var loaded = Loaded(AdmissionConfiguration.Section, $"--{Key}= ");
 
         Assert.Equal(ConfigurationProblemKind.EmptyValue, Assert.Single(loaded.Problems).Kind);
     }
@@ -81,12 +81,12 @@ public sealed class IngestionConfigurationTests
     [Fact]
     public void MigrationModeDoesNotRequireTheListButStillRefusesOneDeclaredThatIsWrong()
     {
-        var absent = Loaded(IngestionConfiguration.SectionWhenMigrating);
-        var wrong = Loaded(IngestionConfiguration.SectionWhenMigrating, $"--{Key}=restrita,restrita");
+        var absent = Loaded(AdmissionConfiguration.SectionWhenMigrating);
+        var wrong = Loaded(AdmissionConfiguration.SectionWhenMigrating, $"--{Key}=restrita,restrita");
 
         Assert.Empty(absent.Problems);
-        Assert.Empty(IngestionConfiguration.Refusals(absent.Values));
-        _ = Assert.Single(IngestionConfiguration.Refusals(wrong.Values));
+        Assert.Empty(AdmissionConfiguration.Refusals(absent.Values));
+        _ = Assert.Single(AdmissionConfiguration.Refusals(wrong.Values));
     }
 
     [Fact]
@@ -94,7 +94,7 @@ public sealed class IngestionConfigurationTests
     {
         var loaded = ClosedConfiguration.Load(
             new ConfigurationSchema(
-                [IngestionConfiguration.Section, InstallationConfiguration.Section, SafekeepingConfiguration.Section, LanguageServiceConfiguration.Section]),
+                [AdmissionConfiguration.Section, InstallationConfiguration.Section, SafekeepingConfiguration.Section, LanguageServiceConfiguration.Section]),
             new StrictArgumentsSource([$"--{Key}=restrita,restrita", "--Installation:Kind=demonstracao"]));
 
         var refusals = HostRefusals.Of(loaded.Values, TimeSpan.FromSeconds(1));
@@ -106,7 +106,7 @@ public sealed class IngestionConfigurationTests
     public void ConfigurationInForceShowsTheWholeListWithTheOriginThatWonAndTheMostRestrictiveMarked()
     {
         var loaded = ClosedConfiguration.Load(
-            new ConfigurationSchema([IngestionConfiguration.Section]),
+            new ConfigurationSchema([AdmissionConfiguration.Section]),
             new EnvironmentSource([KeyValuePair.Create<string, string?>("CDG_Ingestion__Conditions", "livre,restrita")]),
             new StrictArgumentsSource([$"--{Key}={Declared}"]));
 
@@ -119,7 +119,7 @@ public sealed class IngestionConfigurationTests
     public void ListFromTheEnvironmentIsShownWithTheEnvironmentAsOriginAndItsOwnFirstNameMarked()
     {
         var loaded = ClosedConfiguration.Load(
-            new ConfigurationSchema([IngestionConfiguration.Section]),
+            new ConfigurationSchema([AdmissionConfiguration.Section]),
             new EnvironmentSource([KeyValuePair.Create<string, string?>("CDG_Ingestion__Conditions", "sigilosa,livre")]));
 
         var entry = Assert.Single(loaded.View.Entries);

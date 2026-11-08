@@ -12,12 +12,12 @@ namespace Core.Host.Submissions;
 /// rejects it with the reason when the barrier or the form turn it back, and answers the gate, the list of the batches and the detail of one.
 /// Nothing is recorded for a request that is invalid, and everything is, the refused included, for one that is not.
 /// </summary>
-internal sealed class IngestionSubmissions
+internal sealed class SubmissionService
 {
     private const string NameWithPath = "name_with_path";
     private const int MostPerPage = 100;
 
-    private readonly IngestionIntake intake;
+    private readonly SubmissionIntake intake;
     private readonly IngestionBatches batches;
     private readonly BatchRegister register;
     private readonly NpgsqlDataSource dataSource;
@@ -27,7 +27,7 @@ internal sealed class IngestionSubmissions
     /// <param name="batches">Opens and closes the batches.</param>
     /// <param name="register">Reads the register of the submissions.</param>
     /// <param name="dataSource">The source of the connections, for the gate.</param>
-    public IngestionSubmissions(IngestionIntake intake, IngestionBatches batches, BatchRegister register, NpgsqlDataSource dataSource)
+    public SubmissionService(SubmissionIntake intake, IngestionBatches batches, BatchRegister register, NpgsqlDataSource dataSource)
     {
         ArgumentNullException.ThrowIfNull(intake);
         ArgumentNullException.ThrowIfNull(batches);
@@ -41,12 +41,12 @@ internal sealed class IngestionSubmissions
 
     /// <summary>Whether the ingestion takes material in: open, or blocked by the code of what is missing (decision 0014).</summary>
     /// <param name="cancellationToken">Cancels the question.</param>
-    public async Task<IngestionGateStatus> GateAsync(CancellationToken cancellationToken)
+    public async Task<SubmissionGateStatus> GateAsync(CancellationToken cancellationToken)
     {
         var status = await RecoveryGate.StatusAsync(dataSource, cancellationToken).ConfigureAwait(false);
         return status.Tested
-            ? new IngestionGateStatus(true, null)
-            : new IngestionGateStatus(false, status.Missing == RecoveryGate.StaleWords ? "recovery_rehearsal_stale" : "recovery_not_rehearsed");
+            ? new SubmissionGateStatus(true, null)
+            : new SubmissionGateStatus(false, status.Missing == RecoveryGate.StaleWords ? "recovery_rehearsal_stale" : "recovery_not_rehearsed");
     }
 
     /// <summary>

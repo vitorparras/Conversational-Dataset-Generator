@@ -10,4 +10,4 @@ namespace Core.Host.Submissions;
 /// <param name="Conference">The conference that judges the material against the form declared.</param>
 /// <param name="Conditions">The conditions the installation knows, the most restrictive first.</param>
 /// <param name="Sealing">The path that seals the origin a submission declares, as the raw text of an item is sealed.</param>
-internal sealed record IngestionIntake(SubmissionGate Gate, FormConference Conference, OriginConditions Conditions, ProtectedContent Sealing);
+internal sealed record SubmissionIntake(SubmissionGate Gate, FormConference Conference, OriginConditions Conditions, ProtectedContent Sealing);

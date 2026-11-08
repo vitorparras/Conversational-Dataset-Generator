@@ -34,7 +34,7 @@ internal sealed class SubmissionWorld : IAsyncDisposable
         /*lang=json*/ """{"formato":"cdg-conversa/1","mensagens":[{"id":"a","remetente":"ZQXUM","instante":"2031-03-04T08:00:00Z","texto":"ZQXPRIMEIRO"},""" +
         /*lang=json*/ """{"id":"b","remetente":"ZQXDOIS","instante":"2031-03-04T08:01:00Z","texto":"ZQXSEGUNDO"}]}""";
 
-    private SubmissionWorld(ScratchDatabase database, NpgsqlDataSource dataSource, (IngestionSubmissions Service, ProtectedContent Content) service)
+    private SubmissionWorld(ScratchDatabase database, NpgsqlDataSource dataSource, (SubmissionService Service, ProtectedContent Content) service)
     {
         Database = database;
         DataSource = dataSource;
@@ -47,7 +47,7 @@ internal sealed class SubmissionWorld : IAsyncDisposable
 
     internal NpgsqlDataSource DataSource { get; }
 
-    internal IngestionSubmissions Service { get; }
+    internal SubmissionService Service { get; }
 
     internal ProtectedContent Content { get; }
 
@@ -70,7 +70,7 @@ internal sealed class SubmissionWorld : IAsyncDisposable
         var conditions = OriginConditions.Of([Strictest, "zqx_media", Loosest]);
         var content = SealingOf(["texto-bruto/1/v1", "texto-bruto/2/v1"]);
         var intake = Intake(maxBytes, conditions, content);
-        var service = new IngestionSubmissions(intake, new IngestionBatches(dataSource, conditions), new BatchRegister(dataSource), dataSource);
+        var service = new SubmissionService(intake, new IngestionBatches(dataSource, conditions), new BatchRegister(dataSource), dataSource);
         return new SubmissionWorld(database, dataSource, (service, content));
     }
 
@@ -84,7 +84,7 @@ internal sealed class SubmissionWorld : IAsyncDisposable
         return new ProtectedContent(loaded, new ItemKeys(new KeyDerivation(reading.Key!, loaded), reading.Epochs), new HashSet<string>(labels, StringComparer.Ordinal));
     }
 
-    internal static IngestionIntake Intake(long maxBytes, OriginConditions conditions, ProtectedContent content) =>
+    internal static SubmissionIntake Intake(long maxBytes, OriginConditions conditions, ProtectedContent content) =>
         new(new SubmissionGate(SourceReaders.Default(), maxBytes), new FormConference(new TextBoundaries()), conditions, content);
 
     internal static SubmissionRequest Request(string content = Conversation, string? name = "conversa.json", string? condition = null) => new()

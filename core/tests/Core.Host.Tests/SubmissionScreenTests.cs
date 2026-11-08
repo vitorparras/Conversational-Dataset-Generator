@@ -20,7 +20,7 @@ public sealed class SubmissionScreenTests
 
     private static readonly Dictionary<string, object?> Nothing = [];
 
-    private static readonly SubmissionForm.Choices Offer = new(
+    private static readonly SubmissionFields.Choices Offer = new(
         [new ChoiceGroup.Option("7", "zqx-dominio")],
         ["cdg-conversa/1"],
         ["zqx_restrita", "zqx_media", "zqx_aberta"],
@@ -47,7 +47,7 @@ public sealed class SubmissionScreenTests
         var page = await RenderAsync(new Dictionary<string, object?>
         {
             ["Errors"] = new Dictionary<string, string> { ["condition"] = "missing", ["origin"] = "conflict" },
-            ["Given"] = new SubmissionForm.Typed("7", "comment", "cdg-conversa/1", "zqx_media", "zqx-origem-digitada", true),
+            ["Given"] = new SubmissionFields.Typed("7", "comment", "cdg-conversa/1", "zqx_media", "zqx-origem-digitada", true),
         });
 
         Assert.Contains("nada foi gravado", page, StringComparison.Ordinal);
@@ -75,7 +75,7 @@ public sealed class SubmissionScreenTests
     [Fact]
     public async Task AnAcceptedSubmissionLeadsToItsBatchAndSaysTheNameWasDropped()
     {
-        var answer = new SubmissionAnswer.Result(41, BatchAddress, 2_048, Digest, true, null, [], "name_with_path");
+        var answer = new SubmissionVerdict.Result(41, BatchAddress, 2_048, Digest, true, null, [], "name_with_path");
 
         var page = await RenderAsync(new Dictionary<string, object?> { ["Answer"] = answer });
 
@@ -89,8 +89,8 @@ public sealed class SubmissionScreenTests
     [Fact]
     public async Task ARejectedSubmissionSaysTheReasonByItsCodeAndWhereToCorrect()
     {
-        var points = Enumerable.Range(0, 12).Select(unit => new SubmissionAnswer.Point(unit, "author")).ToList();
-        var answer = new SubmissionAnswer.Result(42, BatchAddress, 512, Digest, false, "field_missing", points, null);
+        var points = Enumerable.Range(0, 12).Select(unit => new SubmissionVerdict.Point(unit, "author")).ToList();
+        var answer = new SubmissionVerdict.Result(42, BatchAddress, 512, Digest, false, "field_missing", points, null);
 
         var page = await RenderAsync(new Dictionary<string, object?> { ["Answer"] = answer });
 
@@ -114,7 +114,10 @@ public sealed class SubmissionScreenTests
     [Fact]
     public void NothingThePiecesTakeCanHoldTheNameOfAFileOrAWordOfTheMaterial()
     {
-        var taken = new[] { typeof(SubmissionScreen), typeof(SubmissionForm), typeof(SubmissionAnswer), typeof(SubmissionAnswer.Result), typeof(SubmissionAnswer.Point), typeof(SubmissionForm.Typed) }
+        var taken = new[]
+            {
+                typeof(SubmissionScreen), typeof(SubmissionFields), typeof(SubmissionVerdict), typeof(SubmissionVerdict.Result), typeof(SubmissionVerdict.Point), typeof(SubmissionFields.Typed),
+            }
             .SelectMany(type => type.GetProperties())
             .Select(property => property.Name);
 

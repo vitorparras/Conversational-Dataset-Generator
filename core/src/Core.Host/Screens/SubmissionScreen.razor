@@ -9,7 +9,7 @@
 }
 else if (Answer is { } answer)
 {
-    <SubmissionAnswer Answer="answer" Again="@Action" />
+    <SubmissionVerdict Answer="answer" Again="@Action" />
 }
 else
 {
@@ -17,7 +17,7 @@ else
     {
         <Notice Kind="Notice.Tone.Error">@SubmissionTexts.NotRecorded</Notice>
     }
-    <SubmissionForm Action="@Action" Offer="Offer" Given="Given" Errors="Errors" />
+    <SubmissionFields Action="@Action" Offer="Offer" Given="Given" Errors="Errors" />
 }
 
 @code {
@@ -29,7 +29,7 @@ else
     public string Action { get; set; } = "";
 
     [Parameter, EditorRequired]
-    public SubmissionForm.Choices Offer { get; set; } = null!;
+    public SubmissionFields.Choices Offer { get; set; } = null!;
 
     /// <summary>The code of what keeps the ingestion closed (#584); with it the screen says so and offers no form at all.</summary>
     [Parameter]
@@ -37,14 +37,14 @@ else
 
     /// <summary>The submission the service recorded, accepted or rejected; none before a sending.</summary>
     [Parameter]
-    public SubmissionAnswer.Result? Answer { get; set; }
+    public SubmissionVerdict.Result? Answer { get; set; }
 
     /// <summary>Whether the sending reached the service and no batch could be recorded, so the form opens again.</summary>
     [Parameter]
     public bool NotRecorded { get; set; }
 
     [Parameter]
-    public SubmissionForm.Typed Given { get; set; } = SubmissionForm.Typed.Nothing;
+    public SubmissionFields.Typed Given { get; set; } = SubmissionFields.Typed.Nothing;
 
     [Parameter]
     public IReadOnlyDictionary<string, string>? Errors { get; set; }

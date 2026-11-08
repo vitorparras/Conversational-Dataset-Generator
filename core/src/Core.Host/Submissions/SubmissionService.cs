@@ -1,4 +1,3 @@
-using Core.Ingestion;
 using Core.Ingestion.Entrance;
 using Core.Persistence.Custody;
 using Core.Persistence.Ingestion;
@@ -81,25 +80,13 @@ internal sealed class SubmissionService
     /// <param name="granted">The domains granted.</param>
     /// <param name="batchId">The batch.</param>
     /// <param name="cancellationToken">Cancels the reading.</param>
-    internal Task<BatchEntry?> DetailAsync(IReadOnlyCollection<int> granted, long batchId, CancellationToken cancellationToken) =>
+    internal Task<BatchEntry?> DetailAsync(IEnumerable<int> granted, long batchId, CancellationToken cancellationToken) =>
         register.ReadAsync(granted, batchId, cancellationToken);
 
     private static bool HasPath(string? name) =>
         name is not null && (HasSeparator(name) || name.Contains("..", StringComparison.Ordinal) || name.Any(char.IsControl));
 
     private static bool HasSeparator(string name) => name.Contains('/', StringComparison.Ordinal) || name.Contains('\\', StringComparison.Ordinal);
-
-    private SubmissionReason? Judged(SubmissionResult received, MaterialForm form) =>
-        Barred(received) ?? (intake.Conference.Confer(form, ReadOutcome.Read(received.Material!)).Refusal is { } refused ? ReasonOf(refused) : null);
-
-    private static SubmissionReason? Barred(SubmissionResult received) =>
-        received.Refusal is { } refusal ? new SubmissionReason(ReasonCodes.Of(refusal), []) : null;
-
-    private static SubmissionReason ReasonOf(Refusal refusal)
-    {
-        var findings = refusal.Findings.Select(finding => new SubmissionFinding(finding.Unit, finding.Field is { } field ? ReasonCodes.Of(field) : null)).ToList();
-        return new SubmissionReason(ReasonCodes.Of(refusal.Code), findings);
-    }
 
     private static SubmissionOutcome Answer(SubmissionResult received, long batch, (SubmissionReason? Reason, string? Warning) judged, string origin) => new()
     {
@@ -147,17 +134,18 @@ internal sealed class SubmissionService
         }
     }
 
-    private List<FieldProblem> Problems(SubmissionRequest request) =>
-    [
-        .. new[]
+    private List<FieldProblem> Problems(SubmissionRequest request)
+    {
+        var problems = new[]
         {
             When(request.DomainId <= 0, "domain", "missing"),
             When(!Enum.IsDefined(request.DeclaredForm), "declared_form", "invalid"),
             When(string.IsNullOrWhiteSpace(request.SourceFormat), "source_format", "missing"),
             When(request.Condition is { } declared && intake.Conditions.RankOf(declared) < 0, "condition", "unknown"),
             OriginProblem(request) is { } origin ? new FieldProblem("origin", origin) : null,
-        }.OfType<FieldProblem>(),
-    ];
+        }.OfType<FieldProblem>().ToList();
+        return problems;
+    }
 
     private async Task<SubmissionOutcome> SubmittingAsync(SubmissionRequest request, CancellationToken cancellationToken)
     {
@@ -168,7 +156,7 @@ internal sealed class SubmissionService
         }
 
         var received = await intake.Gate.ReceiveAsync(new Submission(request.Content, request.SourceFormat, request.ReceivedName), cancellationToken).ConfigureAwait(false);
-        var reason = Judged(received, request.DeclaredForm);
+        var reason = SubmissionJudgement.Of(intake, received, request.DeclaredForm);
         var warning = HasPath(request.ReceivedName) ? NameWithPath : null;
         var receipt = new SubmissionReceipt(received.Id.ToString(), received.BytesRead, received.Digest, warning);
         if (Declaration(request) is not { } origin)

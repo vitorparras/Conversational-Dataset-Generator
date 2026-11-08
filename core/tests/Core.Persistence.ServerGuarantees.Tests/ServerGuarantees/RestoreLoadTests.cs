@@ -74,6 +74,7 @@ public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<Resto
                 "SELECT last_value::text FROM content.item_text_id_seq"
                 + " UNION ALL SELECT last_value::text FROM public.person_id_seq"));
         Assert.Equal("1,0", (string?)await destination.InDomainAsync(1, "SELECT count(*) || ',' || (SELECT count(*) FROM content.item_emptied) FROM content.item_text"));
+        Assert.Equal("2,2", (string?)await destination.InDomainAsync(1, "SELECT (SELECT count(*) FROM content.replication_occurrence) || ',' || (SELECT count(*) FROM content.replication_mark)"));
         Assert.Equal(
             "1,1,0",
             (string?)await destination.InDomainAsync(

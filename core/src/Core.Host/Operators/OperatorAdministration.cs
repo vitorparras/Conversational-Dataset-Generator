@@ -78,4 +78,7 @@ internal sealed class OperatorAdministration
 
         return result;
     }
+
+    /// <summary>One page of the people the filter leaves, by name, with the total; it reads the name, the function and the state, nothing of any material.</summary>
+    internal Task<PersonPage> ListAsync(PersonFilter filter, int page, CancellationToken cancellationToken) => Registry.ListAsync(filter, page, cancellationToken);
 }

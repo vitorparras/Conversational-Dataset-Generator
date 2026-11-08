@@ -9,6 +9,7 @@
     }
     @if (WithSession)
     {
+        <a class="nav__link header__account" href="@ScreenPaths.Account" aria-current="@AccountCurrent">@AccountScreen.Title</a>
         <form class="header__leave" method="post" action="@ScreenPaths.SignOut">
             <Button Id="sair" Kind="Button.Look.Secondary">Sair</Button>
         </form>
@@ -37,4 +38,12 @@
     /// <summary>Whether the page stands behind a session, and so offers to end it on the server.</summary>
     [Parameter]
     public bool WithSession { get; set; }
+
+    /// <summary>The account is the page itself on its own route and the place the page stands in on its own pages, named one by one so that an address that leads nowhere marks nothing.</summary>
+    private string? AccountCurrent => Current switch
+    {
+        ScreenPaths.Account => "page",
+        ScreenPaths.AccountEnd or ScreenPaths.AccountEndOthers => "location",
+        _ => null,
+    };
 }

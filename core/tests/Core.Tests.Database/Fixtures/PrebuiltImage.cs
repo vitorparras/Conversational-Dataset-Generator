@@ -8,7 +8,8 @@ namespace Core.Persistence.Tests.Fixtures;
 /// </summary>
 internal static class PrebuiltImage
 {
-    public const string Variable = "CDG_TEST_DATABASE_IMAGE";
+    // No CDG_ prefix: the hosts the tests start read every CDG_ variable as configuration and refuse the one they do not know (exit 78).
+    public const string Variable = "TEST_DATABASE_IMAGE";
 
     /// <summary>The name and tag of the image that already exists in the Docker daemon, or null when the run has to build it.</summary>
     public static string? Name

@@ -1,6 +1,6 @@
 name: Construir a imagem do banco de teste
 description: >-
-  Constrói uma vez a imagem de tools/database e a entrega pelo nome em CDG_TEST_DATABASE_IMAGE, para que os projetos de teste a usem
+  Constrói uma vez a imagem de tools/database e a entrega pelo nome em TEST_DATABASE_IMAGE, para que os projetos de teste a usem
   sem construí-la cada um. Se a construção cai, cai aqui, com o log dela.
 
 runs:
@@ -10,4 +10,4 @@ runs:
       shell: bash
       run: |
         docker build --progress=plain --tag cdg-test-database:ci tools/database
-        echo "CDG_TEST_DATABASE_IMAGE=cdg-test-database:ci" >> "$GITHUB_ENV"
+        echo "TEST_DATABASE_IMAGE=cdg-test-database:ci" >> "$GITHUB_ENV"

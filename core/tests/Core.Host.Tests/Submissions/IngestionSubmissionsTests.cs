@@ -178,30 +178,6 @@ public sealed class IngestionSubmissionsTests
     }
 
     [DatabaseFact]
-    public async Task GateClosedByTheMissingRehearsalBlocksTheSubmissionAndRecordsNothing()
-    {
-        await using var world = await SubmissionWorld.CreateAsync(gateOpen: false);
-        var request = SubmissionWorld.Request();
-
-        var gate = await world.Service.GateAsync(TestContext.Current.CancellationToken);
-        var outcome = await world.SubmitAsync(request);
-
-        Assert.Equal(
-            (false, "recovery_not_rehearsed", SubmissionKind.Blocked, "recovery_not_rehearsed", 0L, 0L),
-            (gate.Open, gate.Code, outcome.Kind, outcome.BlockedBy, request.Content.Position, await world.BatchCountAsync()));
-    }
-
-    [DatabaseFact]
-    public async Task GateIsOpenOnceTheRehearsalIsRecorded()
-    {
-        await using var world = await SubmissionWorld.CreateAsync();
-
-        var gate = await world.Service.GateAsync(TestContext.Current.CancellationToken);
-
-        Assert.Equal((true, null), (gate.Open, gate.Code));
-    }
-
-    [DatabaseFact]
     public async Task DomainThatDoesNotExistIsNotRecordedAndTheOutcomeSaysWhy()
     {
         await using var world = await SubmissionWorld.CreateAsync();

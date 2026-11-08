@@ -86,6 +86,28 @@ public sealed class PersonListingTests : IClassFixture<PeopleDatabase>
     }
 
     [DatabaseFact]
+    public async Task TheTotalAndTheItemsOfAPageAgreeWhilePeopleAreBeingRegistered()
+    {
+        var stem = Stem();
+        var registering = Task.Run(async () =>
+        {
+            for (var number = 10; number < 10 + PersonPage.Size + 10; number++)
+            {
+                _ = await MakeAsync($"{stem}-{number}", "Anotação");
+            }
+        });
+        var pages = new List<PersonPage>();
+        while (!registering.IsCompleted)
+        {
+            pages.Add(await ListAsync(new PersonFilter(stem, null, null), 2));
+        }
+
+        await registering;
+
+        Assert.All(pages, page => Assert.Equal(Math.Clamp(page.Total - ((page.Page - 1) * PersonPage.Size), 0, PersonPage.Size), page.Items.Count));
+    }
+
+    [DatabaseFact]
     public async Task ANameThatNobodyHasLeavesAnEmptyFirstPage()
     {
         var page = await ListAsync(new PersonFilter(Stem(), null, null), 3);

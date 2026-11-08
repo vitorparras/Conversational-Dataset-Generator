@@ -236,6 +236,7 @@ jobs:
           python-version: '3.12'
       - name: Instalar uv na versão fixada
         run: pip install -r tools/verify-code/service-requirements.txt
+      - uses: ./.github/actions/build-database-image
       - name: Exigir que o núcleo e o serviço executem propriedades
         run: python tools/verify-code/verify.py --step properties
 

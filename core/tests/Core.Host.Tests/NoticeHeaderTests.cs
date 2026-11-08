@@ -31,7 +31,8 @@ public sealed class NoticeHeaderTests
         await using var source = NpgsqlDataSource.Create(database.AppConnectionString);
         var sessions = new SessionStore(new SessionLifetimes(TimeSpan.FromMinutes(30), TimeSpan.FromHours(8)), TimeProvider.System);
         var staff = new OperatorAdministration(new PersonRegistry(source), new PersonCredentials(source, new PasswordDerivation(1)), sessions, new PersonNotices(source));
-        var person = (await staff.Registry.CreateAsync(new NewPerson(PeopleDatabase.NewName(), PersonFunctions.Accepted[0]), CustodyAuthor.System, Token)).PersonId!.Value;
+        var made = await staff.Registry.CreateAsync(new NewPerson($"zqx-pessoa-{Guid.NewGuid():N}", PersonFunctions.Accepted[0]), CustodyAuthor.System, Token);
+        var person = made.PersonId!.Value;
         await staff.Notices.RecordPasswordResetAsync(person, 1, Token);
         await staff.Notices.RecordPasswordResetAsync(person, 2, Token);
         var context = new DefaultHttpContext { RequestServices = new ServiceCollection().AddSingleton(sessions).AddSingleton(staff).BuildServiceProvider() };

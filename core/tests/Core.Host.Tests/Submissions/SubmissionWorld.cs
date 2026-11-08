@@ -135,6 +135,28 @@ internal sealed class SubmissionWorld : IAsyncDisposable
         return total;
     }
 
+    /// <summary>The first column of a query over content as the owner reads it, inside the domain of the tests; the sealed bytes come as the database holds them.</summary>
+    /// <param name="select">The query, with no parameters.</param>
+    internal async Task<IReadOnlyList<string>> StoredAsync(string select, int domain = Domain)
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var connection = new NpgsqlConnection(Database.OwnerConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+        await using var command = new NpgsqlCommand("SELECT set_config('app.domain', @domain, true)", connection, transaction);
+        _ = command.Parameters.AddWithValue("domain", domain.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        _ = await command.ExecuteScalarAsync(cancellationToken);
+        command.CommandText = select;
+        var found = new List<string>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            found.Add(reader.GetString(0));
+        }
+
+        return found;
+    }
+
     internal Task<IReadOnlyList<string>> OriginEventsAsync() => Database.FirstColumnAsOwnerAsync(
         "SELECT item_kind || ',' || item_id || ',' || step || ',' || reason FROM public.custody_event WHERE step = 'origin_read' ORDER BY sequence");
 

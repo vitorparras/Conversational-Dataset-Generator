@@ -34,6 +34,19 @@ public sealed class PeopleListTests(BrowserFixture browser, PeopleHostFixture pe
     }
 
     [Fact]
+    public async Task OnAWideScreenTheFunctionAndTheStateStayNearTheNameInColumnsThatLineUp()
+    {
+        await using var tab = await OpenAsync(browser, people.Host, people.Host.Administrator, Listed);
+        await tab.Page.SetViewportSizeAsync(1440, 900);
+
+        var columns = await tab.Page.Locator(".paged-list .row").EvaluateAllAsync<double[][]>(
+            "(rows) => rows.map((row) => [...row.children].map((cell) => cell.getBoundingClientRect().left - row.getBoundingClientRect().left))");
+
+        Assert.All(columns, row => Assert.InRange(row[2], 0, 600));
+        _ = Assert.Single(columns.Select(row => (row[1], row[2])).Distinct());
+    }
+
+    [Fact]
     public async Task TheFunctionTheFormFiltersByAndTheAddressKeepsLeavesOnlyThePeopleOfThatFunction()
     {
         await using var tab = await OpenAsync(browser, people.Host, people.Host.Administrator, List);

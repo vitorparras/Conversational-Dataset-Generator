@@ -79,8 +79,12 @@ public sealed class EffectiveConditionTests
     }
 
     [Fact]
-    public void ASetOfOneItemGivesTheConditionOfThatItem() =>
-        Assert.Equal(["permissiva", "intermediaria", "restrita"], ["permissiva", "intermediaria", "restrita"].Select(name => EffectiveCondition.Of(Known, [name])));
+    public void ASetOfOneItemGivesTheConditionOfThatItem()
+    {
+        var order = new[] { "permissiva", "intermediaria", "restrita" };
+
+        Assert.Equal(order, order.Select(name => EffectiveCondition.Of(Known, new[] { name })));
+    }
 
     [Fact]
     public void ThePlaceInTheListIsWhatOrdersAndNotTheAlphabetNorTheNames()

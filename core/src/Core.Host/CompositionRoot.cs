@@ -162,7 +162,8 @@ internal static class CompositionRoot
         AddAnalysis(builder.Services, loaded.Values, analyzeTimeout);
         _ = builder.Services.AddSingleton(PasswordConfiguration.Derivation(loaded.Values)).AddSingleton(VerificationConfiguration.Schedule(loaded.Values));
         _ = builder.Services.AddSingleton(SealConfiguration.Declaration(loaded.Values))
-            .AddSingleton(provider => Submissions.SubmissionParts.BatchesOf(provider, loaded.Values));
+            .AddSingleton(provider => Submissions.SubmissionParts.BatchesOf(provider, loaded.Values))
+            .AddSingleton(Submissions.SubmissionParts.RegisterOf);
         _ = builder.Services.AddSingleton(_ => new ServerAuditLog(AuditConfiguration.ServerLogDirectory(loaded.Values))).AddSingleton<AuditComparisonState>();
         _ = builder.Services.AddHostedService(provider => new AuditComparisonService(
             new AuditComparisonPlan(

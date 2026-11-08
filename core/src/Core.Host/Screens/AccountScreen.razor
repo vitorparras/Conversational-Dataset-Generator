@@ -12,13 +12,13 @@
 </Panel>
 <Panel Id="sessoes" Title="Sessões abertas">
     <DataTable Id="sessoes-tabela" Caption="@Caption" Headers="Columns" Stacks="true">
-        <tbody>
+        <tbody role="rowgroup">
             @foreach (var session in Sessions)
             {
-                <tr>
-                    <th scope="row"><Moment At="session.Start" /></th>
-                    <td><Moment At="session.LastActivity" /></td>
-                    <td>
+                <tr role="row">
+                    <th scope="row" role="rowheader"><Moment At="session.Start" /></th>
+                    <td role="cell"><Moment At="session.LastActivity" /></td>
+                    <td role="cell">
                         @if (session.Current)
                         {
                             <StateMark Kind="StateMark.Tone.Good">Esta sessão</StateMark>

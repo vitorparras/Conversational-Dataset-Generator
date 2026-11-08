@@ -80,7 +80,7 @@ internal static class CompositionRoot
         _ = fileLog is null ? builder.Services : builder.Services.AddSingleton(_ => fileLog);
         _ = builder.Services.AddSingleton(TimeProvider.System);
         _ = builder.Services.AddRedaction(PlatformLogging.EraseSensitiveData);
-        _ = builder.Services.AddSingleton(configuration);
+        _ = builder.Services.AddSingleton(configuration).AddSingleton(ItemEmptyingServices.GrantsOf).AddSingleton(ItemEmptyingServices.DeskOf);
         _ = builder.Services.ConfigureHttpJsonOptions(HostJson.Strict);
         _ = builder.Services.AddRazorComponents();
     }

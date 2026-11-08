@@ -75,6 +75,7 @@ public sealed class ContentEmptyingRaceTests
         await using (command.ConfigureAwait(false))
         {
             _ = command.Parameters.Add(new NpgsqlParameter("domain", NpgsqlDbType.Integer) { Value = 1 });
+            _ = command.Parameters.Add(new NpgsqlParameter("batch", NpgsqlDbType.Bigint) { Value = 1L });
             _ = command.Parameters.Add(new NpgsqlParameter("item", NpgsqlDbType.Bigint) { Value = item });
             _ = command.Parameters.Add(new NpgsqlParameter("entries", NpgsqlDbType.Bytea) { Value = new byte[] { 1 } });
             _ = command.Parameters.Add(new NpgsqlParameter("epoch", NpgsqlDbType.Integer) { Value = 1 });

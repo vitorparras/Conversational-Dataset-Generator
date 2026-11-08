@@ -131,7 +131,7 @@ public sealed class SignInSaturationTests
     }
 
     /// <summary>A server that takes the connection and never answers, so a check of the password that reaches it stays blocked, and counts how many reached it.</summary>
-    private sealed class SilentDatabase : IDisposable
+    internal sealed class SilentDatabase : IDisposable
     {
         private readonly TcpListener listener = new(IPAddress.Loopback, 0);
         private readonly List<TcpClient> held = [];

@@ -77,7 +77,9 @@ public sealed class RecoveryRehearsalProcessTests
         using var reading = MasterKeyReading.FromBytes(
             CustodyFiles.SyntheticKey(), labels, CustodyEpochs.Of(new Dictionary<int, byte[]> { [1] = CustodyFiles.SyntheticEpoch(1) }), "teste");
         await using var app = NpgsqlDataSource.Create(database.AppConnectionString);
-        var writer = new ContentWriter(app, new ProtectedContent(labels, new ItemKeys(new KeyDerivation(reading.Key!, labels), reading.Epochs), new HashSet<string>(Labels, StringComparer.Ordinal)));
+        await SeededBatches.SeedAsync(database, 1, 2);
+        var keys = new ItemKeys(new KeyDerivation(reading.Key!, labels), reading.Epochs);
+        var writer = new SeededWriter(new ContentWriter(app, new ProtectedContent(labels, keys, new HashSet<string>(Labels, StringComparer.Ordinal))));
         foreach (var domain in (int[])[1, 2])
         {
             var item = await writer.AddItemTextAsync(domain, new NewItemText(Raw), TestContext.Current.CancellationToken);

@@ -49,10 +49,15 @@ internal sealed class BatchesWorld : IAsyncDisposable
 
     /// <summary>The first value of the first row of the statement, as the application and under the domain.</summary>
     [SuppressMessage("Security", "CA2100", Justification = "The statements are literals of the calling tests, never input.")]
-    public async Task<object?> InDomainAsync(int domainId, string statement)
+    public async Task<object?> InDomainAsync(int domainId, string statement, params (string Name, object Value)[] parameters)
     {
         await using var transaction = await ContentTransaction.BeginAsync(DataSource, domainId, TestContext.Current.CancellationToken);
         await using var command = transaction.CreateCommand(statement);
+        foreach (var (name, value) in parameters)
+        {
+            _ = command.Parameters.AddWithValue(name, value);
+        }
+
         var result = await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
         await transaction.CommitAsync(TestContext.Current.CancellationToken);
         return result is DBNull ? null : result;

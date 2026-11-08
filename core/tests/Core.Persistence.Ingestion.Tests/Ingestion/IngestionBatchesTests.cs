@@ -7,7 +7,7 @@ using Npgsql;
 
 namespace Core.Persistence.Tests.Ingestion;
 
-/// <summary>The batch of ingestion as the system uses it: it opens with no content, and closes once (issue 74, criteria 1 and 3).</summary>
+/// <summary>The batch of ingestion as the system uses it: it opens with no content, closes once, and a rejection leaves nothing of the material reachable (issue 74, criteria 1 to 5).</summary>
 public sealed class IngestionBatchesTests
 {
     private const string Reason = "invalid_rows";
@@ -71,6 +71,55 @@ public sealed class IngestionBatchesTests
 
         Assert.Equal($"{OnlyTheOpening},batch_closed:batch_accepted:-,{OnlyTheOpening},batch_closed:batch_rejected:{Reason}", events);
         Assert.True(verified.Passed);
+    }
+
+    [DatabaseFact]
+    public async Task ItemsOfAnOpenBatchAreNotInTheStockUntilTheBatchIsAccepted()
+    {
+        await using var world = await IngestionWorld.CreateAsync();
+        var batch = await IngestionWorld.OpenAsync(world);
+        var item = await IngestionWorld.AddItemAsync(world, batch);
+        _ = await IngestionWorld.AddMapAsync(world, batch, item);
+        var whileOpen = await world.InDomainAsync(IngestionWorld.Domain, IngestionWorld.Reachable);
+
+        var accepted = await IngestionWorld.AcceptAsync(world, batch);
+
+        Assert.Equal(
+            (Unreachable, BatchOutcome.Accepted, "1,1"),
+            (whileOpen as string, accepted.Outcome, await world.InDomainAsync(IngestionWorld.Domain, IngestionWorld.Reachable) as string));
+    }
+
+    [DatabaseFact]
+    public async Task RejectedBatchLeavesNoItemReachableAndStaysConsultableWithItsMotive()
+    {
+        await using var world = await IngestionWorld.CreateAsync();
+        var batch = await IngestionWorld.OpenAsync(world);
+        var item = await IngestionWorld.AddItemAsync(world, batch);
+        _ = await IngestionWorld.AddItemAsync(world, batch);
+        _ = await IngestionWorld.AddMapAsync(world, batch, item);
+
+        var rejected = await IngestionWorld.RejectAsync(world, batch, Reason);
+        var held = await IngestionWorld.BatchesOf(world).ReadAsync(IngestionWorld.Domain, batch, TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            (BatchOutcome.Rejected, new IngestionBatch(BatchState.Rejected, Reason, IngestionWorld.Person), Unreachable),
+            (rejected.Outcome, held, await world.InDomainAsync(IngestionWorld.Domain, IngestionWorld.Reachable) as string));
+    }
+
+    [DatabaseFact]
+    public async Task FailureInTheMiddleOfTheBatchEndsWithNoItemReachableOnceTheBatchIsRejected()
+    {
+        await using var world = await IngestionWorld.CreateAsync();
+        var batch = await IngestionWorld.OpenAsync(world);
+        _ = await IngestionWorld.AddItemAsync(world, batch);
+        _ = await IngestionWorld.AddItemAsync(world, batch);
+        _ = await Assert.ThrowsAsync<PostgresException>(() => IngestionWorld.AddMapAsync(world, batch, 9_999));
+
+        var rejected = await IngestionWorld.RejectAsync(world, batch, "write_failed");
+
+        Assert.Equal(
+            (BatchOutcome.Rejected, Unreachable),
+            (rejected.Outcome, await world.InDomainAsync(IngestionWorld.Domain, IngestionWorld.Reachable) as string));
     }
 
     [DatabaseFact]

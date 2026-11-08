@@ -26,7 +26,7 @@ public sealed class ManualSealHostTests
     public async Task TheSealIssuedThenConfirmedRecordsTheEventInTheNameOfThePersonAndTheChainVerifiesAndTheSealHolds()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await StartedAsync(new HostSetup(), cancellationToken);
+        await using var host = await StartedAsync(new HostSetup { Function = PersonFunctions.Administration }, cancellationToken);
         var before = await host.NumberAsSuperuserAsync(Count, cancellationToken);
 
         var issued = await IssueAsync(host, cancellationToken);
@@ -48,7 +48,7 @@ public sealed class ManualSealHostTests
     public async Task ASealAlteredIsRefusedWith409AndTheReasonAndNothingIsWritten()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await StartedAsync(new HostSetup(), cancellationToken);
+        await using var host = await StartedAsync(new HostSetup { Function = PersonFunctions.Administration }, cancellationToken);
         var altered = ChainSeal.Of(DateTimeOffset.UtcNow, ChainSealCount(await IssueAsync(host, cancellationToken)), new byte[32]).ToText();
         var before = await host.NumberAsSuperuserAsync(Count, cancellationToken);
 
@@ -62,7 +62,7 @@ public sealed class ManualSealHostTests
     public async Task ASealOfASequenceTheChainDoesNotHaveIsRefusedWith409AndTheReasonAndNothingIsWritten()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await StartedAsync(new HostSetup(), cancellationToken);
+        await using var host = await StartedAsync(new HostSetup { Function = PersonFunctions.Administration }, cancellationToken);
         var last = await host.NumberAsSuperuserAsync("SELECT max(sequence) FROM public.custody_event", cancellationToken);
         var before = await host.NumberAsSuperuserAsync(Count, cancellationToken);
 
@@ -78,7 +78,7 @@ public sealed class ManualSealHostTests
     public async Task ATextThatIsNotASealIsRefusedWith400AndNothingIsWritten(string text)
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await StartedAsync(new HostSetup(), cancellationToken);
+        await using var host = await StartedAsync(new HostSetup { Function = PersonFunctions.Administration }, cancellationToken);
         var before = await host.NumberAsSuperuserAsync(Count, cancellationToken);
 
         using var refused = await host.PostAsync(Confirm, Body(text), cancellationToken);
@@ -93,7 +93,7 @@ public sealed class ManualSealHostTests
     public async Task TheSituationsThatSendTheSealThemselvesRefuseBothRoutesWith409AndWriteNothing(string situation)
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var setup = new HostSetup { Arguments = [$"--Custody:SealSituation={situation}", "--Custody:SealDestination=https://zqx-vault.example.test/selos"] };
+        var setup = new HostSetup { Function = PersonFunctions.Administration, Arguments = [$"--Custody:SealSituation={situation}", "--Custody:SealDestination=https://zqx-vault.example.test/selos"] };
         await using var host = await StartedAsync(setup, cancellationToken);
         var before = await host.NumberAsSuperuserAsync(Count, cancellationToken);
 
@@ -110,7 +110,7 @@ public sealed class ManualSealHostTests
     public async Task ABodyAboveTheLimitIsRefusedWith413OnBothRoutesThatReceiveASeal(string route)
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await StartedAsync(new HostSetup(), cancellationToken);
+        await using var host = await StartedAsync(new HostSetup { Function = PersonFunctions.Administration }, cancellationToken);
         var before = await host.NumberAsSuperuserAsync(Count, cancellationToken);
 
         using var refused = await host.PostAsync(route, Body(new string('z', 4096)), cancellationToken);
@@ -123,7 +123,7 @@ public sealed class ManualSealHostTests
     public async Task TheVerificationWarnsWhenNoSealWasEverRecordedAndStopsWarningOnceOneIsRecorded()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await StartedAsync(new HostSetup(), cancellationToken);
+        await using var host = await StartedAsync(new HostSetup { Function = PersonFunctions.Administration }, cancellationToken);
         var none = await ReadAsync(host, cancellationToken);
         using var confirmed = await host.PostAsync(Confirm, Body(await IssueAsync(host, cancellationToken)), cancellationToken);
         var recent = await ReadAsync(host, cancellationToken);
@@ -141,7 +141,8 @@ public sealed class ManualSealHostTests
     public async Task TheStatusCarriesOnlyTheWarningOfTheManualSituationAndNeverTheDateOrTheSeal(string situation, bool warns)
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        var setup = situation == "Manual" ? new HostSetup() : new HostSetup { Arguments = ["--Custody:SealSituation=External", "--Custody:SealDestination=https://zqx-vault.example.test/selos"] };
+        IReadOnlyList<string> arguments = situation == "Manual" ? [] : ["--Custody:SealSituation=External", "--Custody:SealDestination=https://zqx-vault.example.test/selos"];
+        var setup = new HostSetup { Function = PersonFunctions.Administration, Arguments = arguments };
         await using var host = await StartedAsync(setup, cancellationToken);
 
         var status = await StatusAsync(host, cancellationToken);
@@ -155,7 +156,7 @@ public sealed class ManualSealHostTests
     public async Task TheStatusStopsWarningAsSoonAsTheSealIsConfirmed()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await StartedAsync(new HostSetup(), cancellationToken);
+        await using var host = await StartedAsync(new HostSetup { Function = PersonFunctions.Administration }, cancellationToken);
         var before = await StatusAsync(host, cancellationToken);
 
         using var confirmed = await host.PostAsync(Confirm, Body(await IssueAsync(host, cancellationToken)), cancellationToken);

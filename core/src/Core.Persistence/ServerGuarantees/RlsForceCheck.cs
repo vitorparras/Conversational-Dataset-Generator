@@ -27,7 +27,7 @@ public sealed class RlsForceCheck : IStartupCheck
                     WHERE k.conrelid = t.oid AND k.contype = 'f' AND k.convalidated AND k.confrelid = pg_catalog.to_regclass('public.domain')
                         AND k.conkey = ARRAY[a.attnum])) AS without_domain_key,
             (SELECT pg_catalog.min(t.oid::regclass::text) FROM content t WHERE t.relkind IN ('r', 'p')
-                AND NOT EXISTS (SELECT FROM pg_catalog.pg_policy p WHERE p.polrelid = t.oid)) AS without_policy,
+                AND NOT EXISTS (SELECT FROM pg_catalog.pg_policy p WHERE p.polrelid = t.oid AND p.polpermissive)) AS without_policy,
             (SELECT pg_catalog.min(t.oid::regclass::text) FROM content t WHERE t.relkind IN ('r', 'p')
                 AND EXISTS (SELECT FROM pg_catalog.pg_policy p WHERE p.polrelid = t.oid AND p.polpermissive AND (
                     pg_catalog.regexp_replace(coalesce(pg_catalog.pg_get_expr(p.polqual, p.polrelid), 'domain_id=declared_domain'),

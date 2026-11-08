@@ -35,11 +35,12 @@ internal static class CustodyStatements
 
     /// <summary>The last event that records a verification: the moment, the reason that says whether it held, how many events it read and, when it failed, the first inconsistent one.</summary>
     internal const string ReadLastVerification = """
-        SELECT occurred_at, reason, item_id, corrects
-        FROM public.custody_event
-        WHERE step = @step
-        ORDER BY sequence DESC
-        LIMIT 1
+        SELECT e.occurred_at, e.reason, e.item_id, e.corrects, e.reference, p.name AS asker
+        FROM public.custody_event e
+        LEFT JOIN public.person p ON p.id = CASE WHEN e.reference ~ '^requested-by/[0-9]{1,18}$' THEN substring(e.reference FROM 14)::bigint END
+        WHERE e.step = @step
+        ORDER BY e.sequence DESC
+        LIMIT @limit
         """;
 
     internal const string ReadOpenOwnerWindow = """

@@ -19,7 +19,7 @@ internal static class ScreenResult
         var withSession = context.GetEndpoint()?.Metadata.GetMetadata<SessionOpen>() is null;
         var reach = context.Features.Get<ScreenReach>() ?? ScreenReach.Nothing;
         var menu = ScreenMenu.Of(context, reach);
-        return new(new { Title = title, Screen = screen, ScreenParameters = parameters, WithSession = withSession, Menu = menu, reach.Granted, Current = context.Request.Path.Value });
+        return new(new { Title = title, Screen = screen, ScreenParameters = parameters, WithSession = withSession, Menu = menu, reach.Granted, reach.Unread, Current = context.Request.Path.Value });
     }
 
     /// <summary>

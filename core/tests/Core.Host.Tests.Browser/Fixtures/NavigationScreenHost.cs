@@ -105,6 +105,7 @@ internal sealed class NavigationScreenHost : IAsyncDisposable
         _ = app.MapGet(OfAnnotation, Show).WithMetadata(ScreenAccess.Of("Anotação", 30, "Anotação"));
         _ = app.MapGet(OfAudit, Show).WithMetadata(ScreenAccess.Of(AuditCaption, 20, PersonFunctions.Audit, PersonFunctions.Administration));
         _ = app.MapGet(OfAdministration, Show).WithMetadata(ScreenAccess.Of(AdministrationCaption, 10, PersonFunctions.Administration));
+        NoticeScreensEndpoint.Map(app);
     }
 
     private static RazorComponentResult<ScreenFrame> Show(HttpContext context) => ScreenResult.Of(context, typeof(BareScreen), "Tela de ensaio");

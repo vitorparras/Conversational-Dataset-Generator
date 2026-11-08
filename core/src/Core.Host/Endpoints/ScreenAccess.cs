@@ -26,9 +26,6 @@ internal sealed class ScreenAccess
     /// <summary>Where the entry stands in the menu, which lists the entries by this place and never by the order the routes were mapped in.</summary>
     internal int Place { get; }
 
-    /// <summary>A page of everyone who entered, whatever the function, with its entry in the menu at the place given.</summary>
-    internal static ScreenAccess ListedForEveryone(string caption, int place) => new(functions: null, caption, place);
-
     /// <summary>The screen of the functions given, with its entry in the menu at the place given.</summary>
     internal static ScreenAccess Of(string caption, int place, params string[] functions) => new(functions, caption, place);
 

@@ -3,6 +3,10 @@
 <header class="header">
     <a class="header__name" href="@ScreenPaths.Home">@Name</a>
     <DomainPicker Granted="Granted" />
+    @if (Unread > 0)
+    {
+        <a class="header__notices" href="@ScreenPaths.Notices">@Unread @(Unread == 1 ? "aviso não lido" : "avisos não lidos")</a>
+    }
     @if (WithSession)
     {
         <form class="header__leave" method="post" action="@ScreenPaths.SignOut">
@@ -26,6 +30,9 @@
 
     [Parameter]
     public string? Current { get; set; }
+
+    [Parameter]
+    public int Unread { get; set; }
 
     /// <summary>Whether the page stands behind a session, and so offers to end it on the server.</summary>
     [Parameter]

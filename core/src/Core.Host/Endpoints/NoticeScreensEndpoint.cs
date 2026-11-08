@@ -8,17 +8,17 @@ namespace Core.Host.Endpoints;
 
 /// <summary>
 /// The notices of the person of the session (#595): the list of the unread, and the mark that reads one, posted from the list and answered with a redirect to it. Everyone who entered reaches it,
-/// whatever the function, since a notice is about the own account; nobody lists or marks another person's, and a notice that is not theirs is answered as one that does not exist.
+/// whatever the function, since a notice is about the own account, and it stays out of the menu of work: the header says how many are unread.
+/// Nobody lists or marks another person's, and a notice that is not theirs is answered as one that does not exist.
 /// </summary>
 internal static class NoticeScreensEndpoint
 {
-    private const int NoticesPlace = 10;
     private const string ReadMark = "lido";
     private const string ReadPattern = $"{ScreenPaths.Notices}/{{id}}/{ReadMark}";
 
     internal static void Map(IEndpointRouteBuilder endpoints)
     {
-        _ = endpoints.MapGet(ScreenPaths.Notices, ListAsync).WithMetadata(ScreenAccess.ListedForEveryone(NoticeScreen.Title, NoticesPlace));
+        _ = endpoints.MapGet(ScreenPaths.Notices, ListAsync).WithMetadata(ScreenAccess.Everyone);
         _ = endpoints.MapPost(ReadPattern, ReadAsync).WithMetadata(ScreenAccess.Everyone);
     }
 

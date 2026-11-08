@@ -110,11 +110,26 @@ public sealed class PeoplePagingTests(BrowserFixture browser, PeopleHostFixture 
     }
 
     [Fact]
-    public async Task AFilterThatLeavesOnePageHasNoMorePagesToGoTo()
+    public async Task AFilterThatLeavesOnePageShowsNoPagerAndNoWayThatLeadsNowhere()
     {
         await using var tab = await OpenAsync(browser, people.Host, people.Host.Administrator, $"{Listed}&estado=inativas");
 
-        await Expect(Pager(tab.Page)).ToHaveTextAsync("Página 1 de 1, 20 por página");
-        await Expect(tab.Page.Locator("nav.pager a")).ToHaveCountAsync(0);
+        await Expect(tab.Page.Locator("ul.paged-list li").First).ToBeVisibleAsync();
+        await Expect(tab.Page.Locator("nav.pager")).ToHaveCountAsync(0);
+        await Expect(tab.Page.GetByText("Anterior", new() { Exact = true })).ToHaveCountAsync(0);
+        await Expect(tab.Page.GetByText("Próxima", new() { Exact = true })).ToHaveCountAsync(0);
+    }
+
+    [Fact]
+    public async Task TheFirstAndTheLastPageShowNoWayBeyondThemNotEvenAsText()
+    {
+        await using var tab = await OpenAsync(browser, people.Host, people.Host.Administrator, Listed);
+        await Expect(tab.Page.Locator("nav.pager").GetByText("Anterior")).ToHaveCountAsync(0);
+
+        _ = await tab.Page.GotoAsync($"{Listed}&pagina=3");
+
+        await Expect(Pager(tab.Page)).ToHaveTextAsync("Página 3 de 3, 20 por página");
+        await Expect(tab.Page.Locator("nav.pager").GetByText("Próxima")).ToHaveCountAsync(0);
+        await Expect(tab.Page.Locator("nav.pager a[rel=prev]")).ToHaveCountAsync(1);
     }
 }

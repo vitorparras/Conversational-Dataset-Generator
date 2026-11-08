@@ -15,11 +15,19 @@ internal static class SubmissionStoring
     /// <summary>The motive of a batch that was opened and could not keep its items; the items written are removed with the rejection.</summary>
     internal const string WriteFailed = "write_failed";
 
+    /// <summary>The motive of the batch registered as rejected when the key that seals the content could not be read.</summary>
+    internal const string KeyUnavailable = "content_key_unavailable";
+
     /// <summary>Whether the raw text of an item of the domain can be sealed now: there is a key to seal with, under a label loaded, registered and not revoked.</summary>
     /// <param name="sealing">The path that seals.</param>
     /// <param name="domainId">The domain of the batch.</param>
-    internal static bool CanSeal(ProtectedContent sealing, int domainId)
+    internal static bool CanSeal(ProtectedContent? sealing, int domainId)
     {
+        if (sealing is null)
+        {
+            return false;
+        }
+
         try
         {
             using var key = sealing.Begin(ContentColumns.ItemKey, domainId);

@@ -13,6 +13,6 @@ namespace Core.Host.Submissions;
 /// <param name="Gate">The barrier that reads the file, limits it and gives its digest.</param>
 /// <param name="Conference">The conference that judges the material against the form declared.</param>
 /// <param name="Conditions">The conditions the installation knows, the most restrictive first.</param>
-/// <param name="Sealing">The path that seals the origin a submission declares, as the raw text of an item is sealed.</param>
-/// <param name="Writer">Writes an item of the batch, its raw text sealed by the application before it reaches the database.</param>
-internal sealed record SubmissionIntake(SubmissionGate Gate, FormConference Conference, OriginConditions Conditions, ProtectedContent Sealing, ContentWriter Writer);
+/// <param name="Sealing">The path that seals the origin a submission declares, as the raw text of an item is sealed; none when the key was not read.</param>
+/// <param name="Writer">Writes an item of the batch, its raw text sealed by the application before it reaches the database; none when the key was not read.</param>
+internal sealed record SubmissionIntake(SubmissionGate Gate, FormConference Conference, OriginConditions Conditions, ProtectedContent? Sealing, ContentWriter? Writer);

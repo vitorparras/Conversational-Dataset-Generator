@@ -38,15 +38,12 @@ internal static class SubmissionParts
         var reading = await startup.GetRequiredService<IMasterKeySource>().ReadAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (reading.Failure is not null)
-            {
-                throw new ContentKeyUnavailableException(reading.Failure.Kind);
-            }
-
-            var registered = await RegisteredLabels.ReadAsync(source, cancellationToken).ConfigureAwait(false);
-            var revoked = await LabelRevocations.ReadAsync(source, cancellationToken).ConfigureAwait(false);
+            var failed = reading.Failure is not null;
+            IReadOnlySet<string> registered = failed ? new HashSet<string>() : await RegisteredLabels.ReadAsync(source, cancellationToken).ConfigureAwait(false);
+            IReadOnlySet<string> revoked = failed ? new HashSet<string>() : await LabelRevocations.ReadAsync(source, cancellationToken).ConfigureAwait(false);
             var settings = new SubmissionSettings(batches, AdmissionConfiguration.Conditions(values), AdmissionConfiguration.MaxBytes(values), registered, revoked);
-            return new SubmissionServiceHolder.Loaded(CompositionRoot.SubmissionsOf(source, reading, settings), reading);
+            var service = CompositionRoot.SubmissionsOf(source, reading, settings);
+            return reading.Failure is { } failure ? throw new ContentKeyUnavailableException(failure.Kind, service) : new SubmissionServiceHolder.Loaded(service, reading);
         }
         catch
         {

@@ -1,4 +1,5 @@
 using System.Net;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Core.Host.Endpoints;
@@ -14,7 +15,7 @@ namespace Core.Host.Tests.Submissions;
 /// <summary>
 /// The path of a file from the door to the items (issue 79, part 1): what was read and conferred is kept as one item per unit with its raw text sealed and the batch accepted;
 /// what was turned back leaves the batch rejected with the reason and no item; and when the key that seals is not there, or the writing fails, the path says so by a code
-/// and keeps nothing (CA-4).
+/// and keeps nothing of the material, registering the submission as rejected with the motive and no item (CA-4).
 /// </summary>
 public sealed class SubmissionPathTests
 {
@@ -94,7 +95,7 @@ public sealed class SubmissionPathTests
     [InlineData(MasterKeyFailureKind.Absent, "absent")]
     [InlineData(MasterKeyFailureKind.Unreadable, "unreadable")]
     [InlineData(MasterKeyFailureKind.WrongSize, "wrong_size")]
-    public async Task KeyThatSealsTheContentNotThereMakesTheRouteSay503WithTheCodeAndKeepsNothing(MasterKeyFailureKind kind, string told)
+    public async Task KeyThatSealsTheContentNotThereMakesTheRouteSay503AndRegistersTheSubmissionRejectedWithNoItemAndNoMaterial(MasterKeyFailureKind kind, string told)
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         await using var world = await SubmissionWorld.CreateAsync();
@@ -106,25 +107,32 @@ public sealed class SubmissionPathTests
                 .AddSingleton<IGrantedDomains>(new GrantedTo(SubmissionWorld.Domain)),
             SubmissionsEndpoint.Map,
             cancellationToken);
+        var bytes = Encoding.UTF8.GetBytes(SubmissionWorld.Conversation);
 
         using var response = await host.SendAsync(Form(), host.SeedSession(), encrypted: true, cancellationToken);
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
         using var json = JsonDocument.Parse(body);
+        var entry = await world.Service.DetailAsync([SubmissionWorld.Domain], json.RootElement.GetProperty("batch").GetInt64(), cancellationToken);
 
         Assert.Equal(
-            (HttpStatusCode.ServiceUnavailable, "content_key_unavailable", told, 0L, 0L),
-            (response.StatusCode, json.RootElement.GetProperty("code").GetString(), json.RootElement.GetProperty("reason").GetString(), await world.BatchCountAsync(), await world.ItemRowsAsync()));
+            (HttpStatusCode.ServiceUnavailable, "content_key_unavailable", told),
+            (response.StatusCode, json.RootElement.GetProperty("code").GetString(), json.RootElement.GetProperty("reason").GetString()));
+        Assert.Equal(
+            (BatchState.Rejected, "content_key_unavailable", SubmissionWorld.Person, (long)bytes.Length, Convert.ToHexStringLower(SHA256.HashData(bytes))),
+            (entry!.State, entry.Reason, entry.SubmittedBy, entry.Receipt!.Bytes, entry.Receipt.Digest));
+        Assert.Equal((1L, 0L, 0L), (await world.BatchCountAsync(), await world.ItemRowsAsync(), await world.OriginRowsAsync()));
         Assert.DoesNotContain("ZQXPRIMEIRO", body, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [DatabaseFact]
     public async Task HolderThatCouldNotReadTheKeyTriesAgainOnTheNextRequestInsteadOfKeepingTheFailure()
     {
+        await using var world = await SubmissionWorld.CreateAsync();
         var attempts = 0;
         using var holder = new SubmissionServiceHolder(1, _ =>
         {
             attempts++;
-            return Task.FromException<SubmissionServiceHolder.Loaded>(new ContentKeyUnavailableException(MasterKeyFailureKind.Absent));
+            return Task.FromException<SubmissionServiceHolder.Loaded>(new ContentKeyUnavailableException(MasterKeyFailureKind.Absent, world.Service));
         });
 
         _ = await Assert.ThrowsAsync<ContentKeyUnavailableException>(() => holder.GetAsync(TestContext.Current.CancellationToken));

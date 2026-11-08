@@ -142,7 +142,7 @@ internal sealed class SubmissionService
     /// <summary>The origin of the request, sealed for the domain; null when the domain has no key for it, which is a domain that cannot take the material.</summary>
     private OriginDeclaration? Declaration(SubmissionRequest request)
     {
-        if (request.OriginUnknown)
+        if (request.OriginUnknown || intake.Sealing is null)
         {
             return OriginDeclaration.Unknown;
         }
@@ -181,7 +181,7 @@ internal sealed class SubmissionService
         }
 
         var received = await intake.Gate.ReceiveAsync(new Submission(request.Content, request.SourceFormat, request.ReceivedName), cancellationToken).ConfigureAwait(false);
-        var reason = Judged(received, request.DeclaredForm);
+        var reason = Judged(received, request.DeclaredForm) ?? Unsealed();
         var warning = HasPath(request.ReceivedName) ? NameWithPath : null;
         var receipt = new SubmissionReceipt(received.Id.ToString(), received.BytesRead, received.Digest, warning);
         if (Declaration(request) is not { } origin || (reason is null && !SubmissionStoring.CanSeal(intake.Sealing, request.DomainId)))
@@ -202,7 +202,7 @@ internal sealed class SubmissionService
         if (reason is null)
         {
             var place = new SubmissionStoring.BatchRef(request.DomainId, opened.Batch);
-            var stored = await SubmissionStoring.StoreAsync(intake.Writer, place, opened.Received.Material!, cancellationToken).ConfigureAwait(false);
+            var stored = await SubmissionStoring.StoreAsync(intake.Writer!, place, opened.Received.Material!, cancellationToken).ConfigureAwait(false);
             if (stored && (await batches.AcceptAsync(closing, cancellationToken).ConfigureAwait(false)).Outcome == BatchOutcome.Accepted)
             {
                 return Answer(opened.Received, opened.Batch, (null, opened.Warning), opened.Origin);
@@ -214,9 +214,17 @@ internal sealed class SubmissionService
 
         var closed = await batches.RejectAsync(closing, reason.Code, cancellationToken).ConfigureAwait(false);
         return closed.Outcome == BatchOutcome.Rejected
-            ? Answer(opened.Received, opened.Batch, (reason, opened.Warning), opened.Origin)
+            ? Turned(opened, reason)
             : new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = closed.Outcome, Batch = opened.Batch };
     }
+
+    /// <summary>What there is to say of a submission that was registered as rejected: the key that was missing is a failure of the service, not a defect of the file.</summary>
+    private static SubmissionOutcome Turned(Opened opened, SubmissionReason reason) => reason.Code == SubmissionStoring.KeyUnavailable
+        ? new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = reason.Code, Batch = opened.Batch }
+        : Answer(opened.Received, opened.Batch, (reason, opened.Warning), opened.Origin);
+
+    /// <summary>The reason of a service with no key to seal with: whatever the file is, nothing of it is kept.</summary>
+    private SubmissionReason? Unsealed() => intake.Sealing is null ? new SubmissionReason(SubmissionStoring.KeyUnavailable, new List<SubmissionFinding>()) : null;
 
     private sealed record Opened(SubmissionResult Received, long Batch, string? Warning, string Origin);
 }

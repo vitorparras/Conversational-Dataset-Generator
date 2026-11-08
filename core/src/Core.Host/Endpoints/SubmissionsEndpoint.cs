@@ -67,7 +67,9 @@ internal static class SubmissionsEndpoint
             return Results.NotFound();
         }
 
-        return read.HasFile ? SubmissionAnswer.Of(await service.SubmitAsync(read.Request, context.RequestAborted)) : SubmissionAnswer.NoFile(service.Check(read.Request));
+        return read.HasFile
+            ? SubmissionAnswer.Of(await service.SubmitAsync(read.Request, context.RequestAborted), obtained.Unsealed)
+            : SubmissionAnswer.NoFile(service.Check(read.Request));
     }
 
     private static async Task<IResult> ListAsync([FromServices] SubmissionServiceHolder? services, [FromServices] IGrantedDomains? grants, HttpContext context)
@@ -116,16 +118,16 @@ internal static class SubmissionsEndpoint
     {
         if (services is null)
         {
-            return new Obtained(null, Results.StatusCode(StatusCodes.Status503ServiceUnavailable));
+            return new Obtained(null, Results.StatusCode(StatusCodes.Status503ServiceUnavailable), null);
         }
 
         try
         {
-            return new Obtained(await services.GetAsync(cancellationToken), null);
+            return new Obtained(await services.GetAsync(cancellationToken), null, null);
         }
         catch (ContentKeyUnavailableException failure)
         {
-            return new Obtained(null, SubmissionAnswer.KeyUnavailable(failure));
+            return new Obtained(failure.Unsealed, null, failure);
         }
     }
 
@@ -144,5 +146,5 @@ internal static class SubmissionsEndpoint
         }
     }
 
-    private sealed record Obtained(SubmissionService? Service, IResult? Failure);
+    private sealed record Obtained(SubmissionService? Service, IResult? Failure, ContentKeyUnavailableException? Unsealed);
 }

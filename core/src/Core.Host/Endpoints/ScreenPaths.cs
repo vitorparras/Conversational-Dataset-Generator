@@ -11,4 +11,5 @@ internal static class ScreenPaths
     internal const string Domains = "/dominios";
     internal const string Chain = "/custodia";
     internal const string ChainCheck = "/custodia/verificar";
+    internal const string Notices = "/avisos";
 }

@@ -1,0 +1,26 @@
+<div class="data-table" role="region" aria-labelledby="@CaptionId" tabindex="0">
+    <table>
+        <caption id="@CaptionId">@Caption</caption>
+        <thead><tr>@foreach (var header in Headers) { <th scope="col">@header</th> }</tr></thead>
+        @ChildContent
+    </table>
+</div>
+
+@code {
+    /// <summary>The identifier of the table, which names its caption and so the region a reader of screens lands on and the keyboard scrolls when the screen is narrow.</summary>
+    [Parameter, EditorRequired]
+    public string Id { get; set; } = "";
+
+    /// <summary>What one row of the table is, said before the rows.</summary>
+    [Parameter, EditorRequired]
+    public string Caption { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<string> Headers { get; set; } = Array.Empty<string>();
+
+    /// <summary>The bodies of the table, each a <c>tbody</c> whose rows start with the header of the row.</summary>
+    [Parameter, EditorRequired]
+    public RenderFragment? ChildContent { get; set; }
+
+    private string CaptionId => $"{Id}-legenda";
+}

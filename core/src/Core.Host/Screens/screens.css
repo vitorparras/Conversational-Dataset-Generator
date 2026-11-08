@@ -57,6 +57,7 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
     position: sticky;
     top: 0;
     z-index: var(--layer-header);
+    min-height: var(--header-height);
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -68,8 +69,43 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
     backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
 }
 
-.header__name { margin: 0; font: var(--weight-strong) var(--text-md) / var(--leading-tight) var(--font-display); color: var(--ink); text-decoration: none; }
-.header__nav { margin-left: auto; }
+.header__name { margin: 0 auto 0 0; font: var(--weight-strong) var(--text-md) / var(--leading-tight) var(--font-display); color: var(--ink); text-decoration: none; }
+.header__leave { margin: 0; }
+.sign-in { max-width: var(--field-width); }
+.sign-in > .notice { margin-bottom: var(--space-5); }
+
+/* Menu of the functions: a row of its own under the name, the domain and the exit, in the order the focus walks; the entry of the page is marked
+   by its shape, a thick underline, and not by colour alone. */
+.nav { flex-basis: 100%; margin-left: calc(-1 * var(--space-3)); }
+.nav__list { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-2); margin: 0; padding: 0; list-style: none; }
+
+.nav__link {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--control-height);
+    padding: 0 var(--space-3);
+    border-radius: var(--radius-sm);
+    color: var(--ink);
+    font-weight: var(--weight-strong);
+    text-decoration: none;
+}
+
+.nav__link:hover { color: var(--accent-hover); text-decoration: underline; }
+.nav__link[aria-current="page"] { color: var(--accent); text-decoration: underline; text-decoration-thickness: var(--line-strong); }
+
+/* Domain picker: shown only with a domain granted. */
+.domain { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin: 0; }
+.domain__label { font-weight: var(--weight-strong); }
+
+.domain__choice {
+    min-height: var(--control-height);
+    padding: 0 var(--space-3);
+    border: var(--line) solid var(--edge);
+    border-radius: var(--radius-sm);
+    color: var(--ink);
+    background: var(--surface);
+    font: inherit;
+}
 
 /* Glass panel */
 .panel {
@@ -84,7 +120,7 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
 
 .panel > :last-child { margin-bottom: 0; }
 
-/* Button */
+/* Button: the colour eases only into the hover, so a change of theme, or of anything else, takes effect at once and never half way. */
 .button {
     display: inline-flex;
     align-items: center;
@@ -97,8 +133,8 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
     text-decoration: none;
     cursor: pointer;
     box-shadow: var(--shadow-control);
-    transition: background-color var(--motion) var(--ease), color var(--motion) var(--ease);
 }
+.button:hover { transition: background-color var(--motion) var(--ease), color var(--motion) var(--ease); }
 
 .button--primary { color: var(--on-accent); background: var(--accent); }
 .button--primary:hover { color: var(--on-accent); background: var(--accent-hover); }
@@ -162,16 +198,85 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
 .notice--pending { color: var(--pending); background: var(--pending-surface); border-style: dashed; }
 .notice--error { color: var(--error); background: var(--error-surface); border-width: var(--line-strong); }
 
+/* Waiting notice: an empty live region the client layer fills while a form is on its way; the text says it, the shape repeats it. */
+.wait { margin: 0 0 var(--space-4); }
+
+.wait:not(:empty) {
+    display: flex;
+    gap: var(--space-3);
+    max-width: var(--field-width);
+    padding: var(--space-3) var(--space-4);
+    border: var(--line) dashed var(--pending);
+    border-radius: var(--radius-md);
+    color: var(--ink);
+    background: var(--pending-surface);
+}
+
+.wait:not(:empty)::before { content: "\25F7" / ""; color: var(--pending); font-weight: var(--weight-strong); }
+
 /* Paged list */
 .paged-list { margin: 0; padding: 0; list-style: none; }
 .paged-list > li { padding: var(--space-3) 0; border-bottom: var(--line) solid var(--edge-soft); }
-.paged-list__empty { padding: var(--space-5); border: var(--line-strong) dashed var(--edge); border-radius: var(--radius-md); }
-.paged-list__empty > :last-child { margin-bottom: 0; }
 
 .pager { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4); margin-top: var(--space-4); color: var(--ink-muted); font-variant-numeric: tabular-nums; }
 .pager__edge { color: var(--ink-muted); }
 
+/* Empty state: what is empty, then why and what makes something appear. */
+.empty-state { max-width: var(--measure); padding: var(--space-5); border: var(--line-strong) dashed var(--edge); border-radius: var(--radius-md); }
+.empty-state__title { font-weight: var(--weight-strong); }
+.empty-state > :last-child { margin-bottom: 0; }
+
+/* Start page: the screens to go to, each a whole row to click. */
+.destinations { display: grid; gap: var(--space-2); max-width: var(--field-width); margin: 0; padding: 0; list-style: none; }
+
+.destinations__link {
+    display: flex;
+    align-items: center;
+    min-height: var(--control-height);
+    padding: var(--space-3) var(--space-4);
+    border: var(--line) solid var(--edge);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    font-weight: var(--weight-strong);
+    text-decoration: none;
+}
+
+.destinations__link:hover { color: var(--accent-hover); border-color: var(--accent-hover); text-decoration: underline; }
+.destinations__link::after { content: "\2192" / ""; margin-left: auto; padding-left: var(--space-3); }
+
+/* Lead: what the screen holds, right under its title. */
+h1 + .lead { margin-top: 0; }
+.lead { color: var(--ink-muted); font-size: var(--text-lg); }
+
+/* State mark: the state in a word, with a sign and a border of its own for each tone; the colour only repeats them. */
+.mark { display: inline-flex; align-items: baseline; gap: var(--space-2); padding: 0 var(--space-2); font-weight: var(--weight-strong);
+    border: var(--line) solid currentColor; border-radius: var(--radius-sm); }
+.mark__shape { flex: none; }
+.mark--plain { padding-left: 0; border-color: transparent; color: var(--ink-muted); }
+.mark--good { color: var(--success); }
+.mark--waiting { color: var(--pending); border-style: dashed; }
+.mark--bad { color: var(--error); border-width: var(--line-strong); }
+.mark--hidden { color: var(--ink-muted); border-style: dotted; }
+
+/* Fact list: the term beside what it is where there is room, above it where there is not. */
+.facts { margin: 0; }
+.facts__item { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-5); padding: var(--space-3) 0; border-bottom: var(--line) solid var(--edge-soft); }
+.facts__item:last-child { border-bottom: 0; }
+.facts__item > dt { flex: 0 1 var(--term-width); font-weight: var(--weight-strong); }
+.facts__item > dd { flex: 1 1 var(--fact-width); min-width: 0; margin: 0; }
+.facts code { font-family: var(--font-mono); overflow-wrap: anywhere; }
+.facts__note { display: block; margin-top: var(--space-1); color: var(--ink-muted); font-size: var(--text-sm); }
+
+/* Data table: on a screen narrower than its columns the table scrolls inside its region, which the keyboard reaches, and never the page. */
+.data-table { max-width: 100%; overflow-x: auto; }
+.data-table > table { width: 100%; min-width: var(--table-min-width); border-collapse: collapse; }
+.data-table caption { padding-bottom: var(--space-3); color: var(--ink-muted); font-size: var(--text-sm); text-align: left; }
+.data-table th, .data-table td { padding: var(--space-3); border-bottom: var(--line) solid var(--edge-soft); text-align: left; vertical-align: top; }
+.data-table thead th { border-bottom: var(--line-strong) solid var(--edge); font-size: var(--text-sm); }
+.data-table__group { padding-top: var(--space-5); font-family: var(--font-display); font-size: var(--text-lg); }
+.data-table code { font-family: var(--font-mono); font-size: var(--text-sm); overflow-wrap: anywhere; }
+
 @media (forced-colors: active) {
-    .button, .notice, .panel, .header { border-color: CanvasText; }
+    .button, .notice, .panel, .header, .destinations__link { border-color: CanvasText; }
     .button__key { border-color: currentColor; }
 }

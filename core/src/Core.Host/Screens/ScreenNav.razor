@@ -1,0 +1,24 @@
+@if (Entries.Count > 0)
+{
+    <nav class="nav" aria-label="Telas da sua função">
+        <ul class="nav__list">
+            @foreach (var entry in Entries)
+            {
+                <li><a class="nav__link" href="@entry.Path" aria-current="@(entry.Path == Current ? "page" : null)">@entry.Caption</a></li>
+            }
+        </ul>
+    </nav>
+}
+
+@code {
+    /// <summary>One entry of the menu: its words and the route it opens.</summary>
+    public sealed record Entry(string Caption, string Path);
+
+    /// <summary>The entries, in the order the screens declare; the menu is left out when there is none, so no empty landmark is announced.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<Entry> Entries { get; set; } = Array.Empty<Entry>();
+
+    /// <summary>The route of the page, whose entry is marked as the current one by its shape and for a reader of screens.</summary>
+    [Parameter]
+    public string? Current { get; set; }
+}

@@ -30,8 +30,12 @@
     --layer-header: 1;
     --layer-skip: 2;
     --control-height: 2.75rem;
+    --header-height: 4.25rem;
     --header-clearance: 5rem;
     --field-width: 32rem;
+    --term-width: 14rem;
+    --fact-width: 18rem;
+    --table-min-width: 36rem;
     --hidden-above: -200%;
 
     --radius-sm: 0.375rem;

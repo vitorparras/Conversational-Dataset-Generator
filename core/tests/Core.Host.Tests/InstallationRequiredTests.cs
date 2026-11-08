@@ -1,9 +1,8 @@
-using System.Text.Json;
 using Core.Platform.Startup;
 
 namespace Core.Host.Tests;
 
-/// <summary>The process does not start without declaring what kind of installation it is, and a demonstration that starts says so on its status.</summary>
+/// <summary>The process does not start without declaring what kind of installation it is, and a demonstration that starts says so in its log (the detail of /status needs a session, #632).</summary>
 public sealed class InstallationRequiredTests
 {
     [Fact]
@@ -20,14 +19,13 @@ public sealed class InstallationRequiredTests
     }
 
     [Fact]
-    public async Task ProcessOfADemonstrationAnswersItsKindOnTheStatus()
+    public async Task ProcessOfADemonstrationSaysItsKindInItsLog()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         using var host = await HostProcess.StartAsync(cancellationToken);
 
-        using var response = await host.GetAsync("/status", cancellationToken);
-        using var status = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+        var output = await host.StopAsync();
 
-        Assert.Equal("demonstracao", status.RootElement.GetProperty("installation").GetProperty("kind").GetString());
+        Assert.Contains("Core.Host[202] Instalação de demonstração", output, StringComparison.Ordinal);
     }
 }

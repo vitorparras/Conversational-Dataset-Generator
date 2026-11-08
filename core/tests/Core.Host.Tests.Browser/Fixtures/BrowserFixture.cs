@@ -36,11 +36,13 @@ public sealed class BrowserFixture : IAsyncLifetime
     }
 
     /// <summary>A page, in a context of its own, already on the route given.</summary>
-    internal async Task<BrowserTab> OpenAsync(string route)
+    internal Task<BrowserTab> OpenAsync(string route) =>
+        OpenAtAsync((host ?? throw new InvalidOperationException("The host was not started.")).Address, route);
+
+    /// <summary>A page, in a context of its own, already on the route of the host at the address given (a host a test class started for itself).</summary>
+    internal async Task<BrowserTab> OpenAtAsync(Uri address, string route)
     {
-        var tab = await BrowserTab.OpenAsync(
-            browser ?? throw new InvalidOperationException("The browser was not started."),
-            (host ?? throw new InvalidOperationException("The host was not started.")).Address);
+        var tab = await BrowserTab.OpenAsync(browser ?? throw new InvalidOperationException("The browser was not started."), address);
         try
         {
             _ = await tab.Page.GotoAsync(route);

@@ -23,7 +23,7 @@ pid() { for p in /proc/[0-9]*; do tr '\0' ' ' < $p/cmdline 2>/dev/null \
   | grep -q "$1" && echo ${p#/proc/}; done; true; }
 FIM
 . /tmp/f.sh
-entrar Ana
+entrar zqx_admin
 rota GET /session
 rota GET /status
 rota GET /versions

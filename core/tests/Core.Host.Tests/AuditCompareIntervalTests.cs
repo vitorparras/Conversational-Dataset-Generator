@@ -71,9 +71,9 @@ public sealed class AuditCompareIntervalTests
         var ct = TestContext.Current.CancellationToken;
         await using var host = await StatusHost.StartAsync(new StartupReport([], DateTimeOffset.UtcNow), new ServiceProcessWatch(), ct);
 
-        using var before = await host.StatusAsync(ct);
+        using var before = host.Detail();
         _ = host.Comparison.Record(new AuditComparisonStatus(AuditComparisonResult.Different, DateTimeOffset.UtcNow, 2, 1, ["postgresql-a.csv"]));
-        using var after = await host.StatusAsync(ct);
+        using var after = host.Detail();
 
         Assert.Equal("Pending", before.RootElement.GetProperty("auditComparison").GetProperty("result").GetString());
         var comparison = after.RootElement.GetProperty("auditComparison");

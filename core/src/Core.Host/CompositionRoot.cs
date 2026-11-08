@@ -11,6 +11,7 @@ using Core.Persistence.Content.Reading;
 using Core.Persistence.Content.Rotation;
 using Core.Persistence.Content.Sealing;
 using Core.Persistence.Custody.Chain;
+using Core.Persistence.Domains;
 using Core.Persistence.Migrations;
 using Core.Persistence.People;
 using Core.Persistence.Recovery;
@@ -188,13 +189,16 @@ internal static class CompositionRoot
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<GuaranteeVerifier>()!).AddSingleton<SealWarningState>();
         _ = builder.Services.AddSingleton(provider => new ChainVerificationService(provider)).AddHostedService(provider => provider.GetRequiredService<ChainVerificationService>());
         _ = builder.Services.AddHostedService(provider => new SealSendingService(provider));
+        _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source ? new DomainListing(source) : null!);
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source
             ? new OperatorAdministration(new PersonRegistry(source), new PersonCredentials(source, provider.GetRequiredService<PasswordDerivation>()), provider.GetRequiredService<SessionStore>())
             : null!);
+        _ = builder.Services.AddSingleton(provider => new SignInDelay(provider.GetRequiredService<TimeProvider>()));
+        _ = builder.Services.AddSingleton(provider => provider.GetService<OperatorAdministration>() is { } staff
+            ? new PasswordChange(staff.Credentials, provider.GetRequiredService<SessionStore>(), provider.GetRequiredService<SignInDelay>()) : null!);
         _ = builder.Services.AddSingleton(provider => provider.GetService<OperatorAdministration>() is { } people
-            ? new SignIn(people.Registry, people.Credentials, provider.GetRequiredService<SessionStore>(), new SignInDelay(provider.GetRequiredService<TimeProvider>()),
-                new SignInRecord(
-                    new SignInAttempts(provider.GetRequiredService<ServiceProvider>().GetRequiredService<NpgsqlDataSource>()), provider.GetRequiredService<ILoggerFactory>()))
+            ? new SignIn(people.Registry, people.Credentials, provider.GetRequiredService<SessionStore>(), provider.GetRequiredService<SignInDelay>(),
+                new SignInRecord(new SignInAttempts(provider.GetRequiredService<ServiceProvider>().GetRequiredService<NpgsqlDataSource>()), provider.GetRequiredService<ILoggerFactory>()))
             : null!);
 
         var app = builder.Build();

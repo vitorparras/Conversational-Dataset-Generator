@@ -11,7 +11,7 @@ internal sealed class CopyFolder : IDisposable
         "public.domain", "public.derivation_label", "public.derivation_label_revocation", "public.person", "public.person_credential", "public.person_change",
         "public.sign_in_attempt",
         "public.custody_event",
-        "content.item_text", "content.reversal_map", "content.item_emptied",
+        "content.ingestion_batch", "content.item_text", "content.reversal_map", "content.item_emptied",
     ];
 
     private static readonly Dictionary<string, string> Keys = new()

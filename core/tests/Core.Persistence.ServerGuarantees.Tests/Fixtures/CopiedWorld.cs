@@ -34,8 +34,10 @@ internal sealed class CopiedWorld : IAsyncDisposable
 
     /// <param name="betweenTables">Runs after each table is written, with the world and the name of the table, so a test can write while the copy is under way.</param>
     /// <param name="beforeCopy">Statements the owner runs after the world is made and before the copy is, such as the registering and the revocation of a label.</param>
+    /// <param name="openBatch">Whether a batch is left open, with two items and a map, in the first domain when the copy is made: the batch is the third, after the two seeded.</param>
     [SuppressMessage("Reliability", "CA2000", Justification = "The world goes to the CopiedWorld that is returned, which disposes it.")]
-    public static async Task<CopiedWorld> CreateAsync(Func<FidelityWorld, string, Task>? betweenTables = null, string[]? beforeCopy = null)
+    public static async Task<CopiedWorld> CreateAsync(Func<FidelityWorld, string, Task>? betweenTables = null, string[]? beforeCopy = null,
+        bool openBatch = false)
     {
         var world = await FidelityWorld.CreateAsync();
         await world.RunAsOwnerAsync(
@@ -49,6 +51,11 @@ internal sealed class CopiedWorld : IAsyncDisposable
 
         var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Marker, "texto sanitizado sintetico zqx"), TestContext.Current.CancellationToken);
         _ = await world.Writer.AddReversalMapAsync(1, item, "mapa sintetico zqx", TestContext.Current.CancellationToken);
+        if (openBatch)
+        {
+            await world.LeaveABatchOpenAsync();
+        }
+
         var folder = Path.Combine(Path.GetTempPath(), "zqx-copy-" + Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture));
         await using var owner = NpgsqlDataSource.Create(world.OwnerConnectionString);
         var result = await new DataCopy(owner, TimeProvider.System) { AfterTable = table => betweenTables is null ? Task.CompletedTask : betweenTables(world, table) }

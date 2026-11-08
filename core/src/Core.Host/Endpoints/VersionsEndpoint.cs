@@ -11,7 +11,7 @@ internal static class VersionsEndpoint
 
     internal static void Map(IEndpointRouteBuilder endpoints) => _ = endpoints.MapGet(Route, InForceAsync);
 
-    private static async Task<VersionReport> InForceAsync(
+    private static Task<VersionReport> InForceAsync(
         [FromServices] VersionReport versions, [FromServices] IServiceVersionReader service, CancellationToken cancellationToken) =>
-        versions.WithServiceVersions(await service.ReadAsync(cancellationToken));
+        SystemState.VersionsAsync(versions, service, cancellationToken);
 }

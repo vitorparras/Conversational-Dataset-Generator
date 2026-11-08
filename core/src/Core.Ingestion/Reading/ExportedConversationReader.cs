@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 
 namespace Core.Ingestion.Reading;
@@ -15,12 +16,22 @@ public sealed class ExportedConversationReader : ISourceReader
     internal const int MaxBytes = 16 * 1024 * 1024;
 
     private const int MaxDepth = 4;
+    private const int MaxUnits = 100_000;
+    private const int MaxTextBytes = 64 * 1024;
+    private const int HeadBytes = 4096;
     private const string FormatMember = "formato";
     private const string MessagesMember = "mensagens";
+    private static readonly ReadLimits Declared = new(MaxDepth, MaxUnits, MaxTextBytes, HeadBytes);
     private static readonly JsonDocumentOptions Strict = new() { CommentHandling = JsonCommentHandling.Disallow, AllowTrailingCommas = false, MaxDepth = MaxDepth };
 
     /// <inheritdoc />
     public string Format => FormatName;
+
+    /// <inheritdoc />
+    public ReadLimits Limits => Declared;
+
+    /// <inheritdoc />
+    public bool Recognizes(ReadOnlySpan<byte> head) => ExportedHead.Confirms(head, FormatName);
 
     /// <inheritdoc />
     public ReadOutcome Read(ReadOnlyMemory<byte> content)
@@ -28,6 +39,11 @@ public sealed class ExportedConversationReader : ISourceReader
         if (content.Length > MaxBytes)
         {
             return ReadOutcome.Unreadable(UnreadableReason.Corrupted);
+        }
+
+        if (JsonNesting.Exceeds(content.Span, MaxDepth))
+        {
+            return ReadOutcome.Unreadable(UnreadableReason.OverLimits);
         }
 
         try
@@ -60,8 +76,26 @@ public sealed class ExportedConversationReader : ISourceReader
             return ReadOutcome.Unreadable(UnreadableReason.UnsupportedFormat);
         }
 
-        return members.TryGetValue(MessagesMember, out var messages) && ConversationMessages.TryRead(messages, out var units)
-            ? ReadOutcome.Read(new ReadMaterial(units))
-            : ReadOutcome.Unreadable(UnreadableReason.Corrupted);
+        if (!members.TryGetValue(MessagesMember, out var messages) || messages.ValueKind != JsonValueKind.Array)
+        {
+            return ReadOutcome.Unreadable(UnreadableReason.Corrupted);
+        }
+
+        if (messages.GetArrayLength() > MaxUnits)
+        {
+            return ReadOutcome.Unreadable(UnreadableReason.OverLimits);
+        }
+
+        if (ExternalReferences.Found(messages))
+        {
+            return ReadOutcome.Unreadable(UnreadableReason.ExternalReference);
+        }
+
+        return ConversationMessages.TryRead(messages, out var units) ? Whole(units) : ReadOutcome.Unreadable(UnreadableReason.Corrupted);
     }
+
+    private static ReadOutcome Whole(IReadOnlyList<ReadUnit> units) =>
+        units.Any(unit => Encoding.UTF8.GetByteCount(unit.Text) > MaxTextBytes)
+            ? ReadOutcome.Unreadable(UnreadableReason.OverLimits)
+            : ReadOutcome.Read(new ReadMaterial(units));
 }

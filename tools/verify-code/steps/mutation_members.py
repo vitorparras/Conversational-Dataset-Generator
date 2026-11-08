@@ -1,7 +1,9 @@
 """Where the members of a C# type end, so a file can be cut into slices between members (#585).
 
 Stryker keeps a mutant only when the node it mutates lies whole inside the span of a slice
-(``File.cs{a..b}``): a cut never inside a member leaves each node in exactly one slice."""
+(``File.cs{a..b}``): a cut never inside a member leaves each node in exactly one slice. The one
+cut inside a member is between the elements of the list that initializes a static member, and a
+slice weighs what its mutants cost to test, not only its tokens (#683)."""
 
 from __future__ import annotations
 
@@ -10,6 +12,7 @@ from dataclasses import dataclass, field
 from itertools import pairwise
 
 from steps.csharp_tokens import ARROW, Token, tokens
+from steps.mutation_cost import pieces
 
 #: The largest index of a file: the last slice runs to it, as a pattern with no span does.
 UNBOUNDED = 2**31 - 1
@@ -145,11 +148,11 @@ def units(text: str, index: int) -> int:
 
 def slices(text: str) -> tuple[tuple[int, int, int], ...]:
     """The slices of a file as ``(start, end, weight)``: offsets from the first character to
-    ``UNBOUNDED``, cut after each member; the weight is the tokens, so comments weigh nothing."""
+    ``UNBOUNDED``, cut after each member and, in a static list, after each element; the weight is
+    the tokens, so comments weigh nothing, times ``STATIC_COST`` for a static initializer."""
     found = tokens(text)
-    cuts = ends_of(found)
     ends = [token.end for token in found]
-    marks = [0, *(bisect_right(ends, cut) for cut in cuts), len(ends)]
-    weights = [max(1, b - a) for a, b in pairwise(marks)]
-    bounds = (0, *(units(text, cut) for cut in cuts), UNBOUNDED)
-    return tuple((a, b, w) for (a, b), w in zip(pairwise(bounds), weights, strict=True))
+    members = [0, *(bisect_right(ends, cut) for cut in ends_of(found)), len(ends)]
+    cut = [item for a, b in pairwise(members) for item in pieces(text, found, a, b)]
+    bounds = (0, *(units(text, found[end - 1].end) for end, _ in cut[:-1]), UNBOUNDED)
+    return tuple((a, b, w) for (a, b), (_, w) in zip(pairwise(bounds), cut, strict=True))

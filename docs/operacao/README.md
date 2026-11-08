@@ -48,5 +48,10 @@ e por quem ela roda.
 | [034](034-roteiro-de-usabilidade.md) | Roteiro de usabilidade de uma tela: modelo que as telas seguintes preenchem |
 | [035](035-registro-do-ensaio.md) | Registro do ensaio de recuperação: as recusas e a porta da ingestão |
 | [036](036-formato-cdg-conversa-1.md) | O formato cdg-conversa/1 da conversa exportada: o que o arquivo tem e o que o leitor recusa |
+| [037](037-roteiro-de-usabilidade-da-entrada-e-da-saida.md) | Roteiro de usabilidade da entrada e da saída |
+| [038](038-roteiro-de-usabilidade-da-navegacao.md) | Roteiro de usabilidade da navegação e da página inicial |
+| [039](039-repartir-a-mutacao.md) | Repartir a mutação de uma área em partes: a unidade, o peso e o corte da lista estática |
+| [041](041-roteiro-de-usabilidade-da-configuracao-e-do-estado.md) | Roteiro de usabilidade da configuração em vigor e do estado do sistema |
+| [043](043-roteiro-de-usabilidade-dos-dominios-e-da-custodia.md) | Roteiro de usabilidade dos domínios e da custódia |
 
 Ver [regras de escrita](../regras-de-escrita.md).

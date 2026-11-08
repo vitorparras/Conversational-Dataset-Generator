@@ -13,7 +13,7 @@ internal static class HostRefusals
         .. SafekeepingConfiguration.Refusals(values, InstallationConfiguration.Of(values).Kind),
         .. PasswordConfiguration.Refusals(values),
         .. SessionConfiguration.Refusals(values),
-        .. IngestionConfiguration.Refusals(values),
+        .. AdmissionConfiguration.Refusals(values),
         .. VerificationConfiguration.Refusals(values),
         .. SealConfiguration.Refusals(values),
         .. TlsConfiguration.Refusals(values),

@@ -9,7 +9,7 @@ namespace Core.Host;
 /// The conditions under which material may come in, from the most restrictive to the most permissive: declared by every installation, with no default;
 /// and the most bytes a file may have, which has a default of ten mebibytes.
 /// </summary>
-internal static class IngestionConfiguration
+internal static class AdmissionConfiguration
 {
     internal const string ConditionsPath = SectionName + ":" + ConditionsKey;
 

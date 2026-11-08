@@ -118,8 +118,8 @@ internal static class CompositionRoot
     internal static EpochRotation RotationOf(NpgsqlDataSource dataSource, ItemKeys keys) => new(dataSource, keys);
 
     /// <summary>The service of the submissions over the key a reading holds; the gate, the conference, the intake and the register are services, and so are built here.</summary>
-    internal static Submissions.IngestionSubmissions SubmissionsOf(NpgsqlDataSource source, MasterKeyReading reading, Submissions.SubmissionSettings settings) => new(
-        new Submissions.IngestionIntake(new Core.Ingestion.Entrance.SubmissionGate(Core.Ingestion.Reading.SourceReaders.Default(), settings.MaxBytes),
+    internal static Submissions.SubmissionService SubmissionsOf(NpgsqlDataSource source, MasterKeyReading reading, Submissions.SubmissionSettings settings) => new(
+        new Submissions.SubmissionIntake(new Core.Ingestion.Entrance.SubmissionGate(Core.Ingestion.Reading.SourceReaders.Default(), settings.MaxBytes),
             new Core.Ingestion.FormConference(new Core.Boundary.Text.TextBoundaries()), settings.Conditions,
             new ProtectedContent(reading.Labels, KeysOf(reading), settings.Registered, settings.Revoked)),
         settings.Batches, new Core.Persistence.Ingestion.BatchRegister(source), source);
@@ -163,7 +163,10 @@ internal static class CompositionRoot
         Compose(builder, loaded.View, fileLog);
         AddAnalysis(builder.Services, loaded.Values, analyzeTimeout);
         _ = builder.Services.AddSingleton(PasswordConfiguration.Derivation(loaded.Values)).AddSingleton(VerificationConfiguration.Schedule(loaded.Values));
-        _ = builder.Services.AddSingleton(SealConfiguration.Declaration(loaded.Values)).AddSingleton(provider => Submissions.IngestionServices.ServicesOf(provider, loaded.Values));
+        _ = builder.Services.AddSingleton(SealConfiguration.Declaration(loaded.Values))
+            .AddSingleton(provider => Submissions.SubmissionParts.BatchesOf(provider, loaded.Values))
+            .AddSingleton(Submissions.SubmissionParts.RegisterOf)
+            .AddSingleton(provider => Submissions.SubmissionParts.ServicesOf(provider, loaded.Values));
         _ = builder.Services.AddSingleton(_ => new ServerAuditLog(AuditConfiguration.ServerLogDirectory(loaded.Values))).AddSingleton<AuditComparisonState>();
         _ = builder.Services.AddHostedService(provider => new AuditComparisonService(
             new AuditComparisonPlan(
@@ -198,7 +201,6 @@ internal static class CompositionRoot
             ? new SignIn(people.Registry, people.Credentials, provider.GetRequiredService<SessionStore>(), provider.GetRequiredService<SignInDelay>(),
                 new SignInRecord(new SignInAttempts(provider.GetRequiredService<ServiceProvider>().GetRequiredService<NpgsqlDataSource>()), provider.GetRequiredService<ILoggerFactory>()))
             : null!);
-
         var app = builder.Build();
         _ = app.Services.GetRequiredService<ServiceProvider>();
         await StartupVersions.WriteAsync(app.Logger, app.Services.GetRequiredService<VersionReport>(), app.Services.GetRequiredService<IServiceVersionReader>(), CancellationToken.None);

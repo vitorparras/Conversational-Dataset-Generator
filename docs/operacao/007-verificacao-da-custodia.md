@@ -25,8 +25,8 @@ As duas primeiras linhas cobrem o ponto cego da cadeia: ela detecta alteração 
 remoção da garantia que impedia a alteração. Garantia desativada não quebra elo nenhum.
 
 **Onde fica o resultado:** cada execução vira um evento da cadeia (passo `VerifyGuarantees`, com a
-máscara do que faltou). A rota `/custody/verification`, com sessão, mostra em `guarantees` quando
-rodou e o que faltou; `overdue` verdadeiro, sem resultado ou com o último velho demais, é falha.
+máscara do que faltou). A rota `/custody/verification` (Administração ou Auditoria) traz em
+`guarantees` quando rodou e o que faltou; `overdue` verdadeiro, sem resultado ou velho, é falha.
 
 ## Por quem, e com qual credencial
 

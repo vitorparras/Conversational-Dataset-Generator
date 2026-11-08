@@ -17,7 +17,7 @@
     }
     <Field Id="entrada-nome" Name="@NameField" Caption="Nome" Value="@Name" Autocomplete="username" Autofocus="true" />
     <Field Id="entrada-senha" Name="@SecretField" Caption="Senha" Type="password" Autocomplete="current-password" />
-    <p id="entrada-espera" class="wait" role="status" data-wait-text="Conferindo nome e senha. A resposta pode levar alguns segundos."></p>
+    <WaitNotice Id="entrada-espera" Text="Conferindo nome e senha. A resposta pode levar alguns segundos." />
     <Button Id="entrar">Entrar</Button>
 </form>
 

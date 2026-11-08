@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using Core.Persistence.People;
 using Core.Persistence.Tests.Fixtures;
 
 namespace Core.Tests.Integration.Hosts;
@@ -20,7 +21,7 @@ public sealed class CustodyVerificationHostTests
     public async Task VerificationRunsWhenTheHostComesUpWithNobodyAskingAndTheRouteShowsItRecordedWithMomentCountAndInterval()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await AuthenticatedHost.StartAsync(new HostSetup(), cancellationToken);
+        await using var host = await AuthenticatedHost.StartAsync(new HostSetup { Function = PersonFunctions.Administration }, cancellationToken);
 
         var shown = await UntilAsync(host, body => body.GetProperty("last").ValueKind == JsonValueKind.Object, cancellationToken);
 
@@ -33,15 +34,40 @@ public sealed class CustodyVerificationHostTests
         Assert.Equal("00:05:00", shown.GetProperty("interval").GetString());
         Assert.False(shown.GetProperty("overdue").GetBoolean());
         var names = shown.EnumerateObject().Select(property => property.Name).Order(StringComparer.Ordinal);
-        Assert.Equal(["guarantees", "interval", "last", "lastSeal", "overdue", "ownerWindow", "protection", "situation", "warning"], names);
+        Assert.Equal(["guarantees", "history", "interval", "last", "lastSeal", "overdue", "ownerWindow", "protection", "situation", "warning"], names);
         Assert.Equal(JsonValueKind.Null, shown.GetProperty("ownerWindow").ValueKind);
+    }
+
+    [DatabaseTheory]
+    [InlineData("Anotação")]
+    [InlineData("Curadoria do acervo")]
+    public async Task APersonOfAFunctionThatDoesNotReachTheScreenReadsNothingOfTheVerificationAndGetsA404WithNoBody(string function)
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var host = await AuthenticatedHost.StartAsync(new HostSetup { Function = function }, cancellationToken);
+
+        using var response = await host.GetAsync(Route, cancellationToken);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Empty(await response.Content.ReadAsByteArrayAsync(cancellationToken));
+    }
+
+    [DatabaseFact]
+    public async Task APersonOfTheAuditReadsTheVerificationAndItsHistory()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var host = await AuthenticatedHost.StartAsync(new HostSetup { Function = PersonFunctions.Audit }, cancellationToken);
+
+        var shown = await UntilAsync(host, body => body.GetProperty("last").ValueKind == JsonValueKind.Object, cancellationToken);
+
+        Assert.Equal(JsonValueKind.Array, shown.GetProperty("history").ValueKind);
     }
 
     [DatabaseFact]
     public async Task IntervalInForceIsShownByTheConfigurationRoute()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await AuthenticatedHost.StartAsync(new HostSetup(), cancellationToken);
+        await using var host = await AuthenticatedHost.StartAsync(new HostSetup { Function = PersonFunctions.Administration }, cancellationToken);
 
         using var response = await host.GetAsync("/configuration", cancellationToken);
         using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
@@ -54,7 +80,7 @@ public sealed class CustodyVerificationHostTests
     public async Task BrokenChainDoesNotStopTheHostNorItsReadingAndIsToldInTheLogAndInTheRoute()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await AuthenticatedHost.StartAsync(new HostSetup { Arguments = [OneSecond], WithLogFile = true }, cancellationToken);
+        await using var host = await AuthenticatedHost.StartAsync(new HostSetup { Function = PersonFunctions.Administration, Arguments = [OneSecond], WithLogFile = true }, cancellationToken);
         _ = await UntilAsync(host, body => body.GetProperty("last").ValueKind == JsonValueKind.Object, cancellationToken);
 
         await host.RunAsSuperuserAsync(
@@ -65,7 +91,7 @@ public sealed class CustodyVerificationHostTests
 
         Assert.Equal(1, shown.GetProperty("last").GetProperty("firstInconsistent").GetInt64());
         await LogHasAsync(host, "QUEBRADA no evento de sequência 1 (DigestMismatch)", cancellationToken);
-        using var status = await host.GetAsync("/status", cancellationToken);
+        using var status = await host.SendAsAsync(HttpMethod.Get, "/status", json: null, session: null, cancellationToken);
         using var session = await host.GetAsync("/session", cancellationToken);
         Assert.Equal(HttpStatusCode.OK, status.StatusCode);
         Assert.Contains("\"ready\":true", await status.Content.ReadAsStringAsync(cancellationToken), StringComparison.Ordinal);
@@ -76,7 +102,7 @@ public sealed class CustodyVerificationHostTests
     public async Task VerificationThatCannotBeRecordedIsLoggedTheRouteSaysLateAndTheNextOneRecordsOnceItCanAndTheHostStaysUp()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await AuthenticatedHost.StartAsync(new HostSetup { Arguments = [OneSecond], WithLogFile = true }, cancellationToken);
+        await using var host = await AuthenticatedHost.StartAsync(new HostSetup { Function = PersonFunctions.Administration, Arguments = [OneSecond], WithLogFile = true }, cancellationToken);
         _ = await UntilAsync(host, body => body.GetProperty("last").ValueKind == JsonValueKind.Object, cancellationToken);
 
         await host.RunAsSuperuserAsync(
@@ -87,7 +113,7 @@ public sealed class CustodyVerificationHostTests
         var stopped = await UntilAsync(host, body => body.GetProperty("last").ValueKind == JsonValueKind.Object, cancellationToken);
         var stoppedAt = stopped.GetProperty("last").GetProperty("recordedAt").GetDateTimeOffset();
         _ = await UntilAsync(host, body => body.GetProperty("overdue").GetBoolean(), cancellationToken);
-        using var alive = await host.GetAsync("/status", cancellationToken);
+        using var alive = await host.SendAsAsync(HttpMethod.Get, "/status", json: null, session: null, cancellationToken);
         var stillLate = await UntilAsync(host, _ => true, cancellationToken);
         await host.RunAsSuperuserAsync("DROP TRIGGER zqx_refuse ON public.custody_event; DROP FUNCTION public.zqx_refuse()", cancellationToken);
         var caughtUp = await UntilAsync(host, body => body.GetProperty("last").GetProperty("recordedAt").GetDateTimeOffset() > stoppedAt, cancellationToken);
@@ -102,7 +128,7 @@ public sealed class CustodyVerificationHostTests
     public async Task WindowOfTheOwnerCredentialThatIsOpenIsShownInTheRouteSoThatItIsNotForgotten()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await AuthenticatedHost.StartAsync(new HostSetup(), cancellationToken);
+        await using var host = await AuthenticatedHost.StartAsync(new HostSetup { Function = PersonFunctions.Administration }, cancellationToken);
         _ = await UntilAsync(host, body => body.GetProperty("last").ValueKind == JsonValueKind.Object, cancellationToken);
 
         await host.RunAsSuperuserAsync(

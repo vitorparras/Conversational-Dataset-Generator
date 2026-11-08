@@ -20,7 +20,7 @@ internal static class SubmissionsEndpoint
 
     private const int BodyMargin = 64 * 1024;
 
-    private static readonly ScreenAccess Access = ScreenAccess.Route(PersonFunctions.Curation);
+    private static readonly ScreenAccess Access = ScreenAccess.Unlisted(PersonFunctions.Curation);
 
     internal static void Map(IEndpointRouteBuilder endpoints)
     {

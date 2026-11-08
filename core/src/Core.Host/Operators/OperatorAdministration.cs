@@ -1,4 +1,5 @@
 using Core.Persistence.Custody;
+using Core.Persistence.Notices;
 using Core.Persistence.People;
 using Core.Platform.Sessions;
 
@@ -12,15 +13,17 @@ internal sealed class OperatorAdministration
 {
     private readonly SessionStore sessions;
 
-    /// <summary>The administration works over the registry and the store of passwords the entry also reads, and ends sessions in the store given.</summary>
-    internal OperatorAdministration(PersonRegistry registry, PersonCredentials credentials, SessionStore sessions)
+    /// <summary>The administration works over the registry and the store of passwords the entry also reads, ends sessions in the store given and tells the person in the notices given.</summary>
+    internal OperatorAdministration(PersonRegistry registry, PersonCredentials credentials, SessionStore sessions, PersonNotices notices)
     {
         ArgumentNullException.ThrowIfNull(registry);
         ArgumentNullException.ThrowIfNull(credentials);
         ArgumentNullException.ThrowIfNull(sessions);
+        ArgumentNullException.ThrowIfNull(notices);
         Registry = registry;
         Credentials = credentials;
         this.sessions = sessions;
+        Notices = notices;
     }
 
     /// <summary>The registry the entry also reads.</summary>
@@ -28,6 +31,9 @@ internal sealed class OperatorAdministration
 
     /// <summary>The store of passwords the entry also reads.</summary>
     internal PersonCredentials Credentials { get; }
+
+    /// <summary>The notices of the people, which the screens list and mark as read.</summary>
+    internal PersonNotices Notices { get; }
 
     /// <summary>Whether the person is active and holds the administration function.</summary>
     internal async Task<bool> IsAdministratorAsync(long subject, CancellationToken cancellationToken) =>
@@ -49,19 +55,26 @@ internal sealed class OperatorAdministration
         var result = await Registry.DeactivateKeepingAdministrationAsync(subject, CustodyAuthor.Person(author), cancellationToken).ConfigureAwait(false);
         if (result.Outcome == PersonOutcome.Done)
         {
-            sessions.CloseOf(subject);
+            _ = sessions.CloseOf(subject);
         }
 
         return result;
     }
 
-    /// <summary>Sets the password of the person again, by the author, and ends the sessions they had open, which were made with the password that no longer opens.</summary>
+    /// <summary>
+    /// Sets the password of the person again, by the author, ends the sessions they had open, which were made with the password that no longer opens, and tells them how many it ended;
+    /// a person who sets their own is not told what they did.
+    /// </summary>
     internal async Task<PersonResult> SetPasswordAsync(long author, long subject, string password, CancellationToken cancellationToken)
     {
         var result = await Credentials.SetPasswordAsync(subject, password, CustodyAuthor.Person(author), cancellationToken).ConfigureAwait(false);
         if (result.Outcome == PersonOutcome.Done)
         {
-            sessions.CloseOf(subject);
+            var ended = sessions.CloseOf(subject);
+            if (author != subject)
+            {
+                await Notices.RecordPasswordResetAsync(subject, ended, cancellationToken).ConfigureAwait(false);
+            }
         }
 
         return result;

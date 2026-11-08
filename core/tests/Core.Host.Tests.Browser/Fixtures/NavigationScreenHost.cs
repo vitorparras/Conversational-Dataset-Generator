@@ -4,6 +4,7 @@ using Core.Host.Screens;
 using Core.Host.Tests.Browser.Trial;
 using Core.Persistence.Custody;
 using Core.Persistence.Migrations;
+using Core.Persistence.Notices;
 using Core.Persistence.People;
 using Core.Persistence.Tests.Fixtures;
 using Core.Platform.Configuration;
@@ -112,7 +113,7 @@ internal sealed class NavigationScreenHost : IAsyncDisposable
     internal static OperatorAdministration AdministrationOf(IServiceProvider provider)
     {
         var source = provider.GetRequiredService<NpgsqlDataSource>();
-        return new OperatorAdministration(new PersonRegistry(source), new PersonCredentials(source, new PasswordDerivation(1)), provider.GetRequiredService<SessionStore>());
+        return new OperatorAdministration(new PersonRegistry(source), new PersonCredentials(source, new PasswordDerivation(1)), provider.GetRequiredService<SessionStore>(), new PersonNotices(source));
     }
 
     internal static SignIn SignInOf(IServiceProvider provider)

@@ -190,9 +190,7 @@ internal static class CompositionRoot
         _ = builder.Services.AddSingleton(provider => new ChainVerificationService(provider)).AddHostedService(provider => provider.GetRequiredService<ChainVerificationService>());
         _ = builder.Services.AddHostedService(provider => new SealSendingService(provider));
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source ? new DomainListing(source) : null!);
-        _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source
-            ? new OperatorAdministration(new PersonRegistry(source), new PersonCredentials(source, provider.GetRequiredService<PasswordDerivation>()), provider.GetRequiredService<SessionStore>())
-            : null!);
+        _ = builder.Services.AddSingleton(OperatorServices.AdministrationOf);
         _ = builder.Services.AddSingleton(provider => new SignInDelay(provider.GetRequiredService<TimeProvider>()));
         _ = builder.Services.AddSingleton(provider => provider.GetService<OperatorAdministration>() is { } staff
             ? new PasswordChange(staff.Credentials, provider.GetRequiredService<SessionStore>(), provider.GetRequiredService<SignInDelay>()) : null!);

@@ -18,7 +18,18 @@ internal static class ReasonCodes
         var code = new StringBuilder();
         foreach (var letter in value.ToString())
         {
-            _ = char.IsUpper(letter) ? code.Append(code.Length == 0 ? string.Empty : "_").Append(char.ToLowerInvariant(letter)) : code.Append(letter);
+            if (!char.IsAsciiLetterUpper(letter))
+            {
+                _ = code.Append(letter);
+                continue;
+            }
+
+            if (code.Length > 0)
+            {
+                _ = code.Append('_');
+            }
+
+            _ = code.Append((char)(letter - 'A' + 'a'));
         }
 
         return code.ToString();

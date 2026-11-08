@@ -27,7 +27,7 @@ internal sealed class SubmissionService
     /// <param name="batches">Opens and closes the batches.</param>
     /// <param name="register">Reads the register of the submissions.</param>
     /// <param name="dataSource">The source of the connections, for the gate.</param>
-    public SubmissionService(SubmissionIntake intake, IngestionBatches batches, BatchRegister register, NpgsqlDataSource dataSource)
+    internal SubmissionService(SubmissionIntake intake, IngestionBatches batches, BatchRegister register, NpgsqlDataSource dataSource)
     {
         ArgumentNullException.ThrowIfNull(intake);
         ArgumentNullException.ThrowIfNull(batches);
@@ -41,12 +41,15 @@ internal sealed class SubmissionService
 
     /// <summary>Whether the ingestion takes material in: open, or blocked by the code of what is missing (decision 0014).</summary>
     /// <param name="cancellationToken">Cancels the question.</param>
-    public async Task<SubmissionGateStatus> GateAsync(CancellationToken cancellationToken)
+    internal async Task<SubmissionGateStatus> GateAsync(CancellationToken cancellationToken)
     {
         var status = await RecoveryGate.StatusAsync(dataSource, cancellationToken).ConfigureAwait(false);
-        return status.Tested
-            ? new SubmissionGateStatus(true, null)
-            : new SubmissionGateStatus(false, status.Missing == RecoveryGate.StaleWords ? "recovery_rehearsal_stale" : "recovery_not_rehearsed");
+        if (status.Tested)
+        {
+            return new SubmissionGateStatus(true, null);
+        }
+
+        return new SubmissionGateStatus(false, status.Missing == RecoveryGate.StaleWords ? "recovery_rehearsal_stale" : "recovery_not_rehearsed");
     }
 
     /// <summary>
@@ -55,7 +58,7 @@ internal sealed class SubmissionService
     /// </summary>
     /// <param name="request">Where it goes, in which form and format, under which condition, and the file.</param>
     /// <param name="cancellationToken">Cancels the submission.</param>
-    public Task<SubmissionOutcome> SubmitAsync(SubmissionRequest request, CancellationToken cancellationToken)
+    internal Task<SubmissionOutcome> SubmitAsync(SubmissionRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(request.Content);
@@ -68,7 +71,7 @@ internal sealed class SubmissionService
     /// <summary>The batches of the domains granted, newest first, by state and by period, in a page the server cuts and never larger than the most a page may hold.</summary>
     /// <param name="filter">The domains granted, the state, the period and the page.</param>
     /// <param name="cancellationToken">Cancels the reading.</param>
-    public Task<IReadOnlyList<BatchEntry>> ListAsync(BatchFilter filter, CancellationToken cancellationToken)
+    internal Task<IReadOnlyList<BatchEntry>> ListAsync(BatchFilter filter, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(filter);
         return register.ListAsync(filter with { Take = Math.Min(filter.Take, MostPerPage) }, cancellationToken);
@@ -78,18 +81,19 @@ internal sealed class SubmissionService
     /// <param name="granted">The domains granted.</param>
     /// <param name="batchId">The batch.</param>
     /// <param name="cancellationToken">Cancels the reading.</param>
-    public Task<BatchEntry?> DetailAsync(IReadOnlyCollection<int> granted, long batchId, CancellationToken cancellationToken) =>
+    internal Task<BatchEntry?> DetailAsync(IReadOnlyCollection<int> granted, long batchId, CancellationToken cancellationToken) =>
         register.ReadAsync(granted, batchId, cancellationToken);
 
     private static bool HasPath(string? name) =>
-        name is not null
-        && (name.Contains('/', StringComparison.Ordinal) || name.Contains('\\', StringComparison.Ordinal) || name.Contains("..", StringComparison.Ordinal) || name.Any(char.IsControl));
+        name is not null && (HasSeparator(name) || name.Contains("..", StringComparison.Ordinal) || name.Any(char.IsControl));
+
+    private static bool HasSeparator(string name) => name.Contains('/', StringComparison.Ordinal) || name.Contains('\\', StringComparison.Ordinal);
 
     private SubmissionReason? Judged(SubmissionResult received, MaterialForm form) =>
         Barred(received) ?? (intake.Conference.Confer(form, ReadOutcome.Read(received.Material!)).Refusal is { } refused ? ReasonOf(refused) : null);
 
     private static SubmissionReason? Barred(SubmissionResult received) =>
-        received.Refusal is { } refusal ? new SubmissionReason(ReasonCodes.Of(refusal), new List<SubmissionFinding>()) : null;
+        received.Refusal is { } refusal ? new SubmissionReason(ReasonCodes.Of(refusal), []) : null;
 
     private static SubmissionReason ReasonOf(Refusal refusal)
     {
@@ -110,13 +114,7 @@ internal sealed class SubmissionService
         Origin = origin,
     };
 
-    private static void AddWhen(List<FieldProblem> problems, bool wrong, string field, string code)
-    {
-        if (wrong)
-        {
-            problems.Add(new FieldProblem(field, code));
-        }
-    }
+    private static FieldProblem? When(bool wrong, string field, string code) => wrong ? new FieldProblem(field, code) : null;
 
     /// <summary>The origin is required, and saying it is unknown is an answer of its own that excludes a text; the text has a size.</summary>
     private static string? OriginProblem(SubmissionRequest request)
@@ -149,20 +147,17 @@ internal sealed class SubmissionService
         }
     }
 
-    private List<FieldProblem> Problems(SubmissionRequest request)
-    {
-        var problems = new List<FieldProblem>();
-        AddWhen(problems, request.DomainId <= 0, "domain", "missing");
-        AddWhen(problems, !Enum.IsDefined(request.DeclaredForm), "declared_form", "invalid");
-        AddWhen(problems, string.IsNullOrWhiteSpace(request.SourceFormat), "source_format", "missing");
-        AddWhen(problems, request.Condition is { } declared && intake.Conditions.RankOf(declared) < 0, "condition", "unknown");
-        if (OriginProblem(request) is { } origin)
+    private List<FieldProblem> Problems(SubmissionRequest request) =>
+    [
+        .. new[]
         {
-            problems.Add(new FieldProblem("origin", origin));
-        }
-
-        return problems;
-    }
+            When(request.DomainId <= 0, "domain", "missing"),
+            When(!Enum.IsDefined(request.DeclaredForm), "declared_form", "invalid"),
+            When(string.IsNullOrWhiteSpace(request.SourceFormat), "source_format", "missing"),
+            When(request.Condition is { } declared && intake.Conditions.RankOf(declared) < 0, "condition", "unknown"),
+            OriginProblem(request) is { } origin ? new FieldProblem("origin", origin) : null,
+        }.OfType<FieldProblem>(),
+    ];
 
     private async Task<SubmissionOutcome> SubmittingAsync(SubmissionRequest request, CancellationToken cancellationToken)
     {

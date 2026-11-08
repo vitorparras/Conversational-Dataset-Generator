@@ -24,7 +24,7 @@ ALTER TABLE public.custody_event
 CREATE TABLE public.configuration_change (
     id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     config_key text NOT NULL CONSTRAINT configuration_change_key CHECK (config_key ~ '^[A-Z][A-Za-z]{0,62}:[A-Z][A-Za-z]{0,62}$'),
-    new_value text NOT NULL CONSTRAINT configuration_change_value CHECK (new_value ~ '^[ -~]{1,256}$'),
+    new_value text NOT NULL CONSTRAINT configuration_change_value CHECK (char_length(new_value) BETWEEN 1 AND 256 AND new_value ~ '^[ -~]+$'),
     motive text NOT NULL CONSTRAINT configuration_change_motive CHECK (motive ~ '^[a-z][a-z_]{0,31}$'),
     submitted_by bigint NOT NULL CONSTRAINT configuration_change_author REFERENCES public.person (id),
     submitted_at timestamptz NOT NULL DEFAULT clock_timestamp()

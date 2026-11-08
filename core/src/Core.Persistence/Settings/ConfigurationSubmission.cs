@@ -23,12 +23,12 @@ public sealed partial record ConfigurationSubmission
     /// <summary>Whether the database takes the submission as it is.</summary>
     public bool HasShape => KeyShape().IsMatch(Key) && ValueShape().IsMatch(Value) && MotiveShape().IsMatch(Motive) && AuthorId > 0;
 
-    [GeneratedRegex("^[A-Z][A-Za-z]{0,62}:[A-Z][A-Za-z]{0,62}$", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"^[A-Z][A-Za-z]{0,62}:[A-Z][A-Za-z]{0,62}\z", RegexOptions.CultureInvariant)]
     private static partial Regex KeyShape();
 
-    [GeneratedRegex("^[ -~]{1,256}$", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"^[ -~]{1,256}\z", RegexOptions.CultureInvariant)]
     private static partial Regex ValueShape();
 
-    [GeneratedRegex("^[a-z][a-z_]{0,31}$", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"^[a-z][a-z_]{0,31}\z", RegexOptions.CultureInvariant)]
     private static partial Regex MotiveShape();
 }

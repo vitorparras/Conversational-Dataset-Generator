@@ -34,7 +34,7 @@ public sealed class ConfigurationChangesTests : IClassFixture<PeopleDatabase>
         var result = await (await ChangesAsync()).SubmitAsync(Submission(person), TestContext.Current.CancellationToken);
 
         Assert.Equal(CustodyOutcome.Appended, result.Recorded.Outcome);
-        Assert.NotNull(result.ChangeId);
+        _ = Assert.NotNull(result.ChangeId);
         Assert.Equal($"configuration_submitted|administrative_act|{person}|-|Session:IdleTimeout|00:20:00|operational_adjustment|{person}", await TextAsync(Row + result.Recorded.Sequence));
     }
 
@@ -48,7 +48,8 @@ public sealed class ConfigurationChangesTests : IClassFixture<PeopleDatabase>
 
         var result = await (await ChangesAsync()).SubmitAsync(Submission(person), TestContext.Current.CancellationToken);
 
-        Assert.Equal((CustodyOutcome.ActorDeactivated, (long?)null, rows), (result.Recorded.Outcome, result.ChangeId, await TextAsync("SELECT count(*) FROM public.configuration_change")));
+        Assert.Null(result.ChangeId);
+        Assert.Equal((CustodyOutcome.ActorDeactivated, rows), (result.Recorded.Outcome, await TextAsync("SELECT count(*) FROM public.configuration_change")));
     }
 
     [DatabaseFact]
@@ -94,6 +95,19 @@ public sealed class ConfigurationChangesTests : IClassFixture<PeopleDatabase>
         _ = await (await ChangesAsync()).SubmitAsync(Submission(await NewPersonAsync()), TestContext.Current.CancellationToken);
 
         var refused = await database.RefusedToOwnerAsync(statement);
+
+        Assert.Equal(PostgresErrorCodes.InsufficientPrivilege, refused.SqlState);
+    }
+
+    [DatabaseTheory]
+    [InlineData("UPDATE public.configuration_change SET new_value = '00:05:00'")]
+    [InlineData("DELETE FROM public.configuration_change")]
+    [InlineData("TRUNCATE public.configuration_change")]
+    public async Task AnOwnerWhoGrantsItselfTheRightIsStillRefusedByTheTrigger(string statement)
+    {
+        _ = await (await ChangesAsync()).SubmitAsync(Submission(await NewPersonAsync()), TestContext.Current.CancellationToken);
+
+        var refused = await database.RefusedToOwnerAsync($"GRANT UPDATE, DELETE, TRUNCATE ON public.configuration_change TO CURRENT_USER; {statement}");
 
         Assert.Equal("CE001", refused.SqlState);
     }

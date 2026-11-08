@@ -112,7 +112,7 @@ public sealed class EntryScreenTests(BrowserFixture browser, EntryHostFixture en
         await tab.Page.Keyboard.PressAsync("Enter");
         await Expect(tab.Page.Locator("#sair")).ToBeVisibleAsync();
 
-        var reached = await TabToAsync(tab.Page, "sair");
+        var reached = await TabToAsync(tab.Page, HeaderStops.Signed[^1]);
         await tab.Page.Keyboard.PressAsync("Enter");
 
         Assert.True(reached, "The keyboard alone did not reach the exit in the header.");
@@ -137,13 +137,13 @@ public sealed class EntryScreenTests(BrowserFixture browser, EntryHostFixture en
         await AccessibilityCheck.AssertNoViolationsAsync(tab.Page);
         await ModeCapture.SaveAsync(tab.Page, mode, "cabecalho-com-sair");
         var order = new List<string>();
-        for (var stop = 0; stop < 4; stop++)
+        for (var stop = 0; stop < HeaderStops.Count; stop++)
         {
             await tab.Page.Keyboard.PressAsync("Tab");
             order.Add(await tab.Page.EvaluateAsync<string>(FocusedId));
         }
 
-        Assert.Equal(["skip-link", "header__name", "nav__link header__account", "sair"], order);
+        Assert.Equal(HeaderStops.Signed, order);
     }
 
     private static async Task FillAsync(IPage page, string name, string password)
@@ -154,7 +154,7 @@ public sealed class EntryScreenTests(BrowserFixture browser, EntryHostFixture en
 
     private static async Task<bool> TabToAsync(IPage page, string id)
     {
-        for (var attempt = 0; attempt < 6; attempt++)
+        for (var attempt = 0; attempt < HeaderStops.Count + 2; attempt++)
         {
             await page.Keyboard.PressAsync("Tab");
             if (await page.EvaluateAsync<string>(FocusedId) == id)

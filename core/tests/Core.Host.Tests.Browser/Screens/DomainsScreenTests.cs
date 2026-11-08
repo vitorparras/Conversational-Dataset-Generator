@@ -151,14 +151,14 @@ public sealed class DomainsScreenTests(BrowserFixture browser, DomainsHostFixtur
         var reached = new List<string>();
         var seen = new List<bool>();
 
-        for (var stop = 0; stop < 6; stop++)
+        for (var stop = 0; stop < HeaderStops.Count + 2; stop++)
         {
             await tab.Page.Keyboard.PressAsync("Tab");
             reached.Add(await tab.Page.EvaluateAsync<string>(FocusedId));
             seen.Add(await tab.Page.EvaluateAsync<bool>(FocusIsSeen));
         }
 
-        Assert.Equal(["skip-link", "header__name", "nav__link header__account", "sair", "nav__link", "data-table"], reached);
+        Assert.Equal(HeaderStops.Then("nav__link", "data-table"), reached);
         Assert.DoesNotContain(false, seen);
     }
 

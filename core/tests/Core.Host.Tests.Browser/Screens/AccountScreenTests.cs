@@ -31,6 +31,9 @@ public sealed class AccountScreenTests(BrowserFixture browser, AccountHostFixtur
     private static readonly string[] OfTheNetworkAndOfTheBrowser = ["127.0.0.1", "::1", "LOCALHOST", "CHROME", "CHROMIUM", "MOZILLA", "HEADLESS", "PLAYWRIGHT", "USER-AGENT", "ENDEREÇO", "NAVEGADOR"];
     private static readonly string[] Ways = ["Encerrar a sessão iniciada em", "Encerrar todas as outras"];
 
+    /// <summary>The stops of the page after the header: the link that ends the other session, the table the keyboard scrolls, and the button that ends all the others.</summary>
+    private const int PageStops = 3;
+
     [Fact]
     public async Task Ca1EachOpenSessionShowsItsStartAndItsLastUseAndTheCurrentOneIsMarked()
     {
@@ -252,18 +255,17 @@ public sealed class AccountScreenTests(BrowserFixture browser, AccountHostFixtur
         var reached = new List<string>();
         var seen = new List<bool>();
 
-        for (var stop = 0; stop < 7; stop++)
+        for (var stop = 0; stop < HeaderStops.Count + PageStops; stop++)
         {
             await tabs.Current.Page.Keyboard.PressAsync("Tab");
             reached.Add(await tabs.Current.Page.EvaluateAsync<string>(Focused));
             seen.Add(await tabs.Current.Page.EvaluateAsync<bool>(FocusIsSeen));
         }
 
-        Assert.Contains("skip-link", reached[0], StringComparison.Ordinal);
-        Assert.Contains("header__name", reached[1], StringComparison.Ordinal);
-        Assert.Contains("header__account", reached[2], StringComparison.Ordinal);
-        Assert.StartsWith("sair|", reached[3], StringComparison.Ordinal);
-        Assert.Equal(Ways, reached.Skip(4).Select(stop => stop.Split('|')[2]).Select(text => Array.Find(Ways, way => text.StartsWith(way, StringComparison.Ordinal))).OfType<string>().ToList());
+        var header = reached.Take(HeaderStops.Count).Select(stop => stop.Split('|')).Select(parts => parts[0].Length > 0 ? parts[0] : parts[1]);
+        Assert.Equal(HeaderStops.Signed, header);
+        var page = reached.Skip(HeaderStops.Count).Select(stop => stop.Split('|')[2]);
+        Assert.Equal(Ways, page.Select(text => Array.Find(Ways, way => text.StartsWith(way, StringComparison.Ordinal))).OfType<string>().ToList());
         Assert.DoesNotContain(false, seen);
     }
 

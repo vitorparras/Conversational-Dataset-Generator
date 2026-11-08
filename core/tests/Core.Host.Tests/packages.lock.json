@@ -424,6 +424,13 @@
           "Core.Platform": "[0.1.0, )"
         }
       },
+      "core.ingestion": {
+        "type": "Project",
+        "dependencies": {
+          "Core.Boundary.Contracts": "[0.1.0, )",
+          "Core.Platform": "[0.1.0, )"
+        }
+      },
       "core.persistence": {
         "type": "Project",
         "dependencies": {

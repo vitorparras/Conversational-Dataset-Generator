@@ -73,23 +73,31 @@ internal static class AccountScreensEndpoint
     private static RazorComponentResult<ScreenFrame> PasswordPage(HttpContext context, PasswordScreen.Problem problem) =>
         ScreenResult.Of(context, typeof(PasswordScreen), PasswordScreen.Title, new Dictionary<string, object?>(StringComparer.Ordinal) { [nameof(PasswordScreen.Shown)] = problem });
 
-    /// <summary>The confirmation of ending one session, which names it by when it began and when it was last used; a session not in the list is an address that leads nowhere.</summary>
+    /// <summary>The confirmation of ending one session, which names it by when it began and when it was last used; a session not offered by the list is an address that leads nowhere.</summary>
     private static RazorComponentResult<ScreenFrame> ConfirmEnd(HttpContext context, [FromServices] SessionStore sessions, [FromQuery(Name = SessionEndScreen.SessionField)] string? listed)
     {
-        var chosen = Of(context, sessions)?.FirstOrDefault(session => !session.Current && string.Equals(session.ListingId, listed, StringComparison.Ordinal));
+        var chosen = Offered(context, sessions, listed);
         return chosen is null
             ? ScreenResult.NotFound(context)
             : ScreenResult.Of(context, typeof(SessionEndScreen), SessionEndScreen.OneTitle, new Dictionary<string, object?>(StringComparer.Ordinal) { [nameof(SessionEndScreen.Session)] = chosen });
     }
 
+    /// <summary>
+    /// Ends the session the form names, which only a session the list offers can be: the current one, one of another person and one that is gone
+    /// are answered as an address that leads nowhere.
+    /// </summary>
     private static async Task<IResult> EndAsync(HttpContext context, [FromServices] SessionStore sessions)
     {
         var form = context.Request.HasFormContentType ? await context.Request.ReadFormAsync(context.RequestAborted) : null;
-        var listed = form?[SessionEndScreen.SessionField].ToString();
-        return sessions.Resolve(SessionCookie.Read(context.Request)) is { } account && sessions.CloseListed(account, listed)
+        var chosen = Offered(context, sessions, form?[SessionEndScreen.SessionField].ToString());
+        return chosen is not null && sessions.Resolve(SessionCookie.Read(context.Request)) is { } account && sessions.CloseListed(account, chosen.ListingId)
             ? Back(context, AccountScreen.SessionsDone, 1)
             : ScreenResult.NotFound(context);
     }
+
+    /// <summary>The session of the list that the identifier names, among the ones the list offers to end, which leaves out the current one; none when there is no such session.</summary>
+    private static SessionListing? Offered(HttpContext context, SessionStore sessions, string? listed) =>
+        Of(context, sessions)?.FirstOrDefault(session => !session.Current && string.Equals(session.ListingId, listed, StringComparison.Ordinal));
 
     private static RazorComponentResult<ScreenFrame> ConfirmEndOthers(HttpContext context, [FromServices] SessionStore sessions) =>
         ScreenResult.Of(context, typeof(SessionEndScreen), SessionEndScreen.OthersTitle, new Dictionary<string, object?>(StringComparer.Ordinal)

@@ -54,7 +54,7 @@ public static class ContentQueries
     internal const string ReadCopyIngestionBatch = "SELECT pg_catalog.to_jsonb(t)::text FROM content.ingestion_batch t ORDER BY id";
 
     /// <summary>The batches of the domain declared, newest first, by state and by the moment of the submission, with what each submission brought.</summary>
-    internal const string ListIngestionBatches =
+    internal const string ReadIngestionBatchPage =
         "SELECT id, state, motive, opened_by, opened_at, submission, received_bytes, received_digest, warning FROM content.ingestion_batch "
         + "WHERE (@state::text IS NULL OR state = @state) AND (@from::timestamptz IS NULL OR opened_at >= @from) AND (@until::timestamptz IS NULL OR opened_at < @until) "
         + "ORDER BY opened_at DESC, id DESC LIMIT @limit";

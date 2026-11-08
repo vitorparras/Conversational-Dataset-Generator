@@ -116,7 +116,7 @@ public sealed class BatchRegisterTests
         var domains = new[] { 1 };
 
         Assert.Equal(
-            ["dataSource", "filter", "Skip", "Skip", "Take", "Take", "batchId", "domains"],
+            ["dataSource", "filter", "filter.Skip", "filter.Skip", "filter.Take", "filter.Take", "batchId", "domains"],
             [
                 Assert.Throws<ArgumentNullException>(() => new BatchRegister(null!)).ParamName,
                 Param(() => register.ListAsync(null!, CancellationToken.None)),

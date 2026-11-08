@@ -109,7 +109,7 @@ public sealed class BatchRegister
 
     private static async Task<IReadOnlyList<BatchEntry>> ListInAsync(ContentTransaction scope, int domain, BatchFilter filter, CancellationToken cancellationToken)
     {
-        var command = scope.CreateCommand(ContentQueries.ListIngestionBatches);
+        var command = scope.CreateCommand(ContentQueries.ReadIngestionBatchPage);
         await using (command.ConfigureAwait(false))
         {
             _ = command.Parameters.Add(new NpgsqlParameter("state", NpgsqlDbType.Text) { Value = filter.State is { } state ? NameOf(state) : DBNull.Value });

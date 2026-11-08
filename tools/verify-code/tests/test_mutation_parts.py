@@ -190,6 +190,70 @@ class SlicedAreaTests(PartsFixture):
         self.assertEqual(len(own), len(FILES) + self.METHODS + 1)
 
 
+class StaticListAreaTests(PartsFixture):
+    """The area whose biggest file is a long static list: Stryker tests each mutant of a static
+    initializer against the whole suite, so the list is dealt element by element (#683)."""
+
+    BIG = "Logging/Columns.cs"
+    ELEMENTS = 12
+
+    def setUp(self) -> None:
+        super().setUp()
+        items = "".join(
+            f'        new(Table, "column_{n}", Kind.X),\n' for n in range(self.ELEMENTS)
+        )
+        head = "namespace Core.Platform.Logging;\n\npublic static class Columns\n{\n"
+        head += '    public const string Table = "t";\n\n'
+        text = (
+            head
+            + "    public static IReadOnlyList<C> All { get; } =\n    [\n"
+            + items
+            + "    ];\n}\n"
+        )
+        support.write(self.root, f"core/src/Core.Platform/{self.BIG}", text)
+        self.text = text
+        self.declare("3")
+
+    def spans(self, number: int) -> list[tuple[int, int]]:
+        found = [p for p in self.patterns(number, 3) if p.startswith(self.BIG)]
+        return [(int(a), int(b)) for a, b in re.findall(r"\{(\d+)\.\.(\d+)\}", "".join(found))]
+
+    def test_the_elements_of_the_list_are_dealt_to_every_part(self) -> None:
+        for number in (1, 2, 3):
+            held = [self.text[a:b] for a, b in self.spans(number)]
+
+            self.assertGreater(sum(piece.count("column_") for piece in held), 1, number)
+
+    def test_the_parts_hold_every_element_once(self) -> None:
+        held = [self.text[a:b] for n in (1, 2, 3) for a, b in self.spans(n) if b < UNBOUNDED]
+        held += [self.text[a:] for n in (1, 2, 3) for a, b in self.spans(n) if b == UNBOUNDED]
+
+        for element in range(self.ELEMENTS):
+            self.assertEqual(sum(piece.count(f'column_{element}"') for piece in held), 1, element)
+
+    def test_the_spans_tile_the_file_and_every_cut_inside_the_list_is_after_a_comma(self) -> None:
+        spans = sorted(span for number in (1, 2, 3) for span in self.spans(number))
+
+        self.assertEqual((spans[0][0], spans[-1][1]), (0, UNBOUNDED))
+        self.assertTrue(all(a[1] == b[0] for a, b in itertools.pairwise(spans)))
+        for _, end in spans[:-1]:
+            self.assertIn(self.text[end - 1], ",;}")
+
+    def test_the_loads_of_the_parts_differ_by_less_than_an_element(self) -> None:
+        loads = [
+            sum(piece.weight for piece in mutation_parts.dealt(self.slices(), Part(n, 3)))
+            for n in (1, 2, 3)
+        ]
+
+        self.assertLess(max(loads) - min(loads), max(loads) // 4)
+
+    def slices(self) -> list[Slice]:
+        every = areas_doc.read_areas(self.root).areas
+        core = mutation_core.whole(self.root, self.area(), every)
+        assert core is not None
+        return mutation_core.pieces(self.root, core)
+
+
 class ShareTests(unittest.TestCase):
     def test_the_share_does_not_depend_on_the_order_the_files_come_in(self) -> None:
         files = whole("b.cs", "a.cs", "d.cs", "c.cs")
@@ -358,21 +422,27 @@ class LineOfTheAreaFileTests(PartsFixture):
 
 
 class RepositoryAreaTests(unittest.TestCase):
-    def test_the_content_area_of_the_repository_runs_in_three_parts(self) -> None:
+    def test_the_content_areas_of_the_repository_run_in_their_parts(self) -> None:
         root = support.VERIFY_CODE.parents[1]
         areas = {a.prefix: a for a in areas_doc.read_areas(root).areas}
 
-        self.assertEqual(areas["Core.Persistence.Content"].parts, 3)
+        self.assertEqual(areas["Core.Persistence.Content"].parts, 5)
+        self.assertEqual(areas["Core.Persistence.Content.Writing"].parts, 2)
         self.assertEqual(areas["Core.Persistence.Content.Reading"].parts, 1)
 
-    def test_the_content_area_of_the_repository_has_files_for_its_three_parts(self) -> None:
+    def test_the_content_areas_of_the_repository_have_files_for_their_parts(self) -> None:
         root = support.VERIFY_CODE.parents[1]
         names, problems = mutation.names(root)
 
         content = [name for name in names if name.startswith("Core.Persistence.Content@")]
 
-        expected = [f"Core.Persistence.Content@{n}/3" for n in (1, 2, 3)]
-        self.assertEqual((problems, content), ((), expected))
+        writing = [name for name in names if name.startswith("Core.Persistence.Content.Writing@")]
+
+        expected = [f"Core.Persistence.Content@{n}/5" for n in (1, 2, 3, 4, 5)]
+        self.assertEqual(
+            (problems, content, writing),
+            ((), expected, [f"Core.Persistence.Content.Writing@{n}/2" for n in (1, 2)]),
+        )
 
 
 if __name__ == "__main__":

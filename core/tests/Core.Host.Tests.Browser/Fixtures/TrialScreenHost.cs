@@ -1,3 +1,4 @@
+using Core.Host.Endpoints;
 using Core.Host.Screens;
 using Core.Host.Tests.Browser.Trial;
 using Core.Persistence.Migrations;
@@ -38,6 +39,7 @@ internal sealed class TrialScreenHost : IAsyncDisposable
             CompositionRoot.Compose(builder, ClosedConfiguration.Load(new ConfigurationSchema([HostConfiguration.Section])).View, fileLog: null);
             _ = builder.Services.AddSingleton(_ => NpgsqlDataSource.Create(database.AppConnectionString));
             var app = builder.Build();
+            ScreenFailure.Use(app);
             ScreenAssets.Map(app);
             TrialRoutes.Map(app);
             await app.StartAsync(cancellationToken);

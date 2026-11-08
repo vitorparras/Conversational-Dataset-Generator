@@ -9,11 +9,16 @@ namespace Core.Persistence.Content;
 /// </summary>
 public static class ContentColumns
 {
+    private const string DomainColumn = "domain_id";
+
     /// <summary>The table of the texts of an item.</summary>
     public static string ItemText { get; } = "item_text";
 
     /// <summary>The table of the maps that reverse a pseudonym.</summary>
     public static string ReversalMap { get; } = "reversal_map";
+
+    /// <summary>The table of the batches of ingestion, the unit in which content comes in; the content of a batch is visible only once the batch is accepted.</summary>
+    public static string IngestionBatch { get; } = "ingestion_batch";
 
     /// <summary>The table that holds the id of each item emptied, so that the refusals of the database do not read the texts.</summary>
     public static string ItemEmptied { get; } = "item_emptied";
@@ -40,19 +45,30 @@ public static class ContentColumns
     public static IReadOnlyList<ClearColumn> Clear { get; } =
     [
         new(ItemText, "id", ClearKind.Identifier),
-        new(ItemText, "domain_id", ClearKind.Domain),
+        new(ItemText, DomainColumn, ClearKind.Domain),
         new(ItemText, "recorded_at", ClearKind.Moment),
         new(ItemText, "emptied_at", ClearKind.Moment),
         new(ItemText, "pseudonymized_text", ClearKind.PseudonymizedText),
         new(ItemText, "dek_epoch", ClearKind.Epoch),
+        new(ItemText, "batch_id", ClearKind.Identifier),
+        new(ItemText, "written_in", ClearKind.Transaction),
         new(ReversalMap, "id", ClearKind.Identifier),
-        new(ReversalMap, "domain_id", ClearKind.Domain),
+        new(ReversalMap, DomainColumn, ClearKind.Domain),
         new(ReversalMap, "item_id", ClearKind.Identifier),
         new(ReversalMap, "recorded_at", ClearKind.Moment),
         new(ReversalMap, "emptied_at", ClearKind.Moment),
         new(ReversalMap, "dek_epoch", ClearKind.Epoch),
+        new(ReversalMap, "batch_id", ClearKind.Identifier),
+        new(ReversalMap, "written_in", ClearKind.Transaction),
         new(ItemEmptied, "id", ClearKind.Identifier),
-        new(ItemEmptied, "domain_id", ClearKind.Domain),
+        new(ItemEmptied, DomainColumn, ClearKind.Domain),
         new(ItemEmptied, "item_id", ClearKind.Identifier),
+        new(IngestionBatch, "id", ClearKind.Identifier),
+        new(IngestionBatch, DomainColumn, ClearKind.Domain),
+        new(IngestionBatch, "state", ClearKind.Status),
+        new(IngestionBatch, "motive", ClearKind.Motive),
+        new(IngestionBatch, "opened_by", ClearKind.Identifier),
+        new(IngestionBatch, "opened_at", ClearKind.Moment),
+        new(IngestionBatch, "closed_at", ClearKind.Moment),
     ];
 }

@@ -37,11 +37,15 @@ public sealed class ReaderPurityTests
     [Fact]
     public void ReadingTakesBytesAndNothingElseAndGivesTheOutcome()
     {
-        var read = Assert.Single(typeof(ISourceReader).GetMethods(), method => !method.IsSpecialName);
+        var methods = typeof(ISourceReader).GetMethods().Where(method => !method.IsSpecialName).ToList();
+        var read = Assert.Single(methods, method => method.Name == "Read");
+        var recognizes = Assert.Single(methods, method => method.Name == "Recognizes");
 
         Assert.Equal(typeof(ReadOutcome), read.ReturnType);
         Assert.Equal([typeof(ReadOnlyMemory<byte>)], [.. read.GetParameters().Select(parameter => parameter.ParameterType)]);
-        Assert.Equal(["Format"], [.. typeof(ISourceReader).GetProperties().Select(property => property.Name)]);
+        Assert.Equal((typeof(bool), 2), (recognizes.ReturnType, methods.Count));
+        Assert.Equal([typeof(ReadOnlySpan<byte>)], [.. recognizes.GetParameters().Select(parameter => parameter.ParameterType)]);
+        Assert.Equal(["Format", "Limits"], [.. typeof(ISourceReader).GetProperties().Select(property => property.Name).Order(StringComparer.Ordinal)]);
     }
 
     private static string CoreRoot()

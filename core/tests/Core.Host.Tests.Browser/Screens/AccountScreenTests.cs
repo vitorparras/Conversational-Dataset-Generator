@@ -91,8 +91,14 @@ public sealed class AccountScreenTests(BrowserFixture browser, AccountHostFixtur
         var posted = await page.Context.APIRequest.PostAsync(
             new Uri(new Uri(page.Url), End).AbsoluteUri,
             new() { Headers = new Dictionary<string, string> { ["Accept"] = "text/html" }, Form = page.Context.APIRequest.CreateFormData().Set("sessao", "ZQX-nao-existe") });
+        var listingOfTheCurrent = System.Web.HttpUtility.ParseQueryString(new Uri(new Uri(page.Url), ofTheCurrent).Query)["sessao"];
+        var postedCurrent = await page.Context.APIRequest.PostAsync(
+            new Uri(new Uri(page.Url), End).AbsoluteUri,
+            new() { Headers = new Dictionary<string, string> { ["Accept"] = "text/html" }, Form = page.Context.APIRequest.CreateFormData().Set("sessao", listingOfTheCurrent!) });
 
-        Assert.Equal([StatusNotFound, StatusNotFound, StatusNotFound, StatusNotFound], [absent?.Status, none?.Status, current?.Status, posted.Status]);
+        Assert.Equal([StatusNotFound, StatusNotFound, StatusNotFound, StatusNotFound, StatusNotFound], [absent?.Status, none?.Status, current?.Status, posted.Status, postedCurrent.Status]);
+        _ = await tabs.Other.Page.GotoAsync(Route);
+        await Expect(tabs.Other.Page.Locator(Rows)).ToHaveCountAsync(2);
     }
 
     [Fact]
@@ -180,6 +186,25 @@ public sealed class AccountScreenTests(BrowserFixture browser, AccountHostFixtur
         Assert.True(table <= 0, $"The table scrolls {table} px sideways on the phone.");
         Assert.Equal(["\"Início\"", "\"Última atividade\"", "\"Ação\""], labels.Take(3));
         Assert.Equal("block", await tabs.Current.Page.Locator(Rows).First.EvaluateAsync<string>("(row) => getComputedStyle(row).display"));
+    }
+
+    [Fact]
+    public async Task OnThePhoneTheStackedTableStaysATableForAReaderOfScreensWithItsRowsHeadersAndCells()
+    {
+        await using var tabs = await TwoSessionsAsync();
+        await tabs.Current.Page.SetViewportSizeAsync(PhoneWidth, PhoneHeight);
+        _ = await tabs.Current.Page.GotoAsync(Route);
+        var cdp = await tabs.Current.Page.Context.NewCDPSessionAsync(tabs.Current.Page);
+        _ = await cdp.SendAsync("Accessibility.enable");
+
+        var tree = await cdp.SendAsync("Accessibility.getFullAXTree");
+
+        var roles = tree!.Value.GetProperty("nodes").EnumerateArray()
+            .Where(node => !node.TryGetProperty("ignored", out var ignored) || !ignored.GetBoolean())
+            .Select(node => node.TryGetProperty("role", out var role) ? role.GetProperty("value").GetString() : null)
+            .ToList();
+        Assert.Equal((1, 3, 3, 2, 4), (roles.Count(role => role == "table"), roles.Count(role => role == "row"), roles.Count(role => role == "columnheader"),
+            roles.Count(role => role == "rowheader"), roles.Count(role => role == "cell")));
     }
 
     [Fact]

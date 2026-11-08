@@ -73,10 +73,11 @@ public sealed class SubmissionPartsTests
         var register = new BatchRegister(dataSource);
 
         Assert.Equal(
-            ["intake", "batches"],
+            ["intake", "batches", "dataSource"],
             [
-                Assert.Throws<ArgumentNullException>(() => new SubmissionService(null!, batches)).ParamName,
-                Assert.Throws<ArgumentNullException>(() => new SubmissionService(intake, null!)).ParamName,
+                Assert.Throws<ArgumentNullException>(() => new SubmissionService(null!, batches, dataSource)).ParamName,
+                Assert.Throws<ArgumentNullException>(() => new SubmissionService(intake, null!, dataSource)).ParamName,
+                Assert.Throws<ArgumentNullException>(() => new SubmissionService(intake, batches, null!)).ParamName,
             ]);
     }
 
@@ -86,7 +87,7 @@ public sealed class SubmissionPartsTests
         using var dataSource = NpgsqlDataSource.Create("Host=127.0.0.1;Port=1;Username=u;Password=p;Database=d");
         var conditions = OriginConditions.Of(["a"]);
         var intake = SubmissionWorld.Intake(1, conditions);
-        var service = new SubmissionService(intake, new IngestionBatches(dataSource, conditions));
+        var service = new SubmissionService(intake, new IngestionBatches(dataSource, conditions), dataSource);
         var request = SubmissionWorld.Request();
 
         Assert.Equal(

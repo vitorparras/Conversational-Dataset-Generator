@@ -2,12 +2,14 @@ using Core.Ingestion;
 using Core.Ingestion.Entrance;
 using Core.Persistence.Custody;
 using Core.Persistence.Ingestion;
+using Core.Persistence.Recovery;
+using Npgsql;
 
 namespace Core.Host.Submissions;
 
 /// <summary>
 /// The service the screens and the routes of the ingestion call (decision 0052): it takes a file through the barrier, opens the batch that keeps what arrived,
-/// rejects it with the reason when the barrier or the form turn it back.
+/// rejects it with the reason when the barrier or the form turn it back, and answers the gate.
 /// Nothing is recorded for a request that is invalid, and everything is, the refused included, for one that is not.
 /// </summary>
 internal sealed class SubmissionService
@@ -17,16 +19,33 @@ internal sealed class SubmissionService
 
     private readonly SubmissionIntake intake;
     private readonly IngestionBatches batches;
+    private readonly NpgsqlDataSource dataSource;
 
     /// <summary>The service over the database and the pieces that take a file in.</summary>
     /// <param name="intake">The barrier, the conference and the conditions.</param>
     /// <param name="batches">Opens and closes the batches.</param>
-    internal SubmissionService(SubmissionIntake intake, IngestionBatches batches)
+    /// <param name="dataSource">The source of the connections, for the gate.</param>
+    internal SubmissionService(SubmissionIntake intake, IngestionBatches batches, NpgsqlDataSource dataSource)
     {
         ArgumentNullException.ThrowIfNull(intake);
         ArgumentNullException.ThrowIfNull(batches);
+        ArgumentNullException.ThrowIfNull(dataSource);
         this.intake = intake;
         this.batches = batches;
+        this.dataSource = dataSource;
+    }
+
+    /// <summary>Whether the ingestion takes material in: open, or blocked by the code of what is missing (decision 0014).</summary>
+    /// <param name="cancellationToken">Cancels the question.</param>
+    internal async Task<SubmissionGateStatus> GateAsync(CancellationToken cancellationToken)
+    {
+        var status = await RecoveryGate.StatusAsync(dataSource, cancellationToken).ConfigureAwait(false);
+        if (status.Tested)
+        {
+            return new SubmissionGateStatus(true, null);
+        }
+
+        return new SubmissionGateStatus(false, status.Missing == RecoveryGate.StaleWords ? "recovery_rehearsal_stale" : "recovery_not_rehearsed");
     }
 
     /// <summary>
@@ -105,6 +124,12 @@ internal sealed class SubmissionService
 
     private async Task<SubmissionOutcome> SubmittingAsync(SubmissionRequest request, CancellationToken cancellationToken)
     {
+        var gate = await GateAsync(cancellationToken).ConfigureAwait(false);
+        if (!gate.Open)
+        {
+            return new SubmissionOutcome { Kind = SubmissionKind.Blocked, BlockedBy = gate.Code };
+        }
+
         var received = await intake.Gate.ReceiveAsync(new Submission(request.Content, request.SourceFormat, request.ReceivedName), cancellationToken).ConfigureAwait(false);
         var reason = Judged(received, request.DeclaredForm);
         var warning = HasPath(request.ReceivedName) ? NameWithPath : null;

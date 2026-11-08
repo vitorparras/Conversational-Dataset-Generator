@@ -309,15 +309,24 @@ internal sealed class AuthenticatedHost : IAsyncDisposable
 
         var registry = new PersonRegistry(application);
         var credentials = new PersonCredentials(application, new PasswordDerivation(setup.WorkFactor));
-        var person = (await Write(() => registry.CreateAsync(new NewPerson(Name, setup.Function), CustodyAuthor.System, cancellationToken))).PersonId!.Value;
-        _ = await Write(() => credentials.SetPasswordAsync(person, Password, CustodyAuthor.System, cancellationToken));
+        var created = await Write(() => registry.CreateAsync(new NewPerson(Name, setup.Function), CustodyAuthor.System, cancellationToken));
+        var person = Done(created, "making the administrator").PersonId!.Value;
+        var password = await Write(() => credentials.SetPasswordAsync(person, Password, CustodyAuthor.System, cancellationToken));
+        _ = Done(password, "setting the password of the administrator");
         _ = await KeyedHost.StatusAsync(Address, process, cancellationToken);
         using var entry = new HttpRequestMessage(HttpMethod.Post, new Uri("/session", UriKind.Relative))
         {
             Content = new StringContent($$"""{"name":"{{Name}}","password":"{{Password}}"}""", Encoding.UTF8, new MediaTypeHeaderValue("application/json")),
         };
         using var response = await client.SendAsync(entry, cancellationToken);
-        _ = response.EnsureSuccessStatusCode();
-        Identifier = SessionIdentifier(response);
+        Identifier = response.IsSuccessStatusCode
+            ? SessionIdentifier(response)
+            : throw new InvalidOperationException(
+                $"The first entry of the administrator was answered {(int)response.StatusCode}: {await response.Content.ReadAsStringAsync(cancellationToken)}");
     }
+
+    private static PersonResult Done(PersonResult result, string step) =>
+        result.Outcome == PersonOutcome.Done
+            ? result
+            : throw new InvalidOperationException($"The set-up stopped at {step}: the registry answered {result.Outcome}, and the entry that follows would be refused for it.");
 }

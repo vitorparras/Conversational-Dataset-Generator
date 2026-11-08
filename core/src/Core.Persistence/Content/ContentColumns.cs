@@ -23,6 +23,12 @@ public static class ContentColumns
     /// <summary>The table that holds the id of each item emptied, so that the refusals of the database do not read the texts.</summary>
     public static string ItemEmptied { get; } = "item_emptied";
 
+    /// <summary>The table of the digests of every message, by item and position: what the replicated content is compared by, never the text or the sender.</summary>
+    public static string ReplicationOccurrence { get; } = "replication_occurrence";
+
+    /// <summary>The table of the marks of the messages whose content is replicated, each pointing to the first occurrence.</summary>
+    public static string ReplicationMark { get; } = "replication_mark";
+
     /// <summary>The text as it arrived.</summary>
     public static ProtectedColumn RawText { get; } = new(ItemText, "raw_text", LabelPurpose.RawText);
 
@@ -70,5 +76,23 @@ public static class ContentColumns
         new(IngestionBatch, "opened_by", ClearKind.Identifier),
         new(IngestionBatch, "opened_at", ClearKind.Moment),
         new(IngestionBatch, "closed_at", ClearKind.Moment),
+        new(ReplicationOccurrence, "id", ClearKind.Identifier),
+        new(ReplicationOccurrence, DomainColumn, ClearKind.Domain),
+        new(ReplicationOccurrence, "batch_id", ClearKind.Identifier),
+        new(ReplicationOccurrence, "item_id", ClearKind.Identifier),
+        new(ReplicationOccurrence, "message_position", ClearKind.Position),
+        new(ReplicationOccurrence, "text_digest", ClearKind.Digest),
+        new(ReplicationOccurrence, "sender_digest", ClearKind.Digest),
+        new(ReplicationOccurrence, "text_length", ClearKind.Length),
+        new(ReplicationOccurrence, "said_at", ClearKind.Moment),
+        new(ReplicationOccurrence, "written_in", ClearKind.Transaction),
+        new(ReplicationMark, "id", ClearKind.Identifier),
+        new(ReplicationMark, DomainColumn, ClearKind.Domain),
+        new(ReplicationMark, "batch_id", ClearKind.Identifier),
+        new(ReplicationMark, "item_id", ClearKind.Identifier),
+        new(ReplicationMark, "message_position", ClearKind.Position),
+        new(ReplicationMark, "first_item_id", ClearKind.Identifier),
+        new(ReplicationMark, "first_message_position", ClearKind.Position),
+        new(ReplicationMark, "written_in", ClearKind.Transaction),
     ];
 }

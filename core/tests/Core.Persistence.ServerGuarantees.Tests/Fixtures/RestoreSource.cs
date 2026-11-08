@@ -60,6 +60,8 @@ public sealed class RestoreSource : IAsyncLifetime
             ["content.item_text"] = await ContentRowsAsync("content.item_text"),
             ["content.reversal_map"] = await ContentRowsAsync("content.reversal_map"),
             ["content.item_emptied"] = await ContentRowsAsync("content.item_emptied"),
+            ["content.replication_occurrence"] = await ContentRowsAsync("content.replication_occurrence"),
+            ["content.replication_mark"] = await ContentRowsAsync("content.replication_mark"),
         };
     }
 

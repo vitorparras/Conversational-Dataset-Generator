@@ -24,11 +24,33 @@ public static class ContentQueries
     internal const string ReadFirstEntries = "SELECT id, entries, dek_epoch, dek_wrapped FROM content.reversal_map WHERE emptied_at IS NULL AND id > @id ORDER BY id LIMIT 1";
 
     /// <summary>The rows of the copy of the data, as the database writes them, for the domain declared: the sealed columns go as the bytes they are, never opened.</summary>
+    internal const string ReadCopyReplicationOccurrence = "SELECT pg_catalog.to_jsonb(t)::text FROM content.replication_occurrence t ORDER BY id";
+
+    internal const string ReadCopyReplicationMark = "SELECT pg_catalog.to_jsonb(t)::text FROM content.replication_mark t ORDER BY id";
+
     internal const string ReadCopyItemText = "SELECT pg_catalog.to_jsonb(t)::text FROM content.item_text t ORDER BY id";
 
     internal const string ReadCopyReversalMap = "SELECT pg_catalog.to_jsonb(t)::text FROM content.reversal_map t ORDER BY id";
 
     internal const string ReadCopyItemEmptied = "SELECT pg_catalog.to_jsonb(t)::text FROM content.item_emptied t ORDER BY id";
+
+    /// <summary>Writes the occurrences of a batch of the domain declared, in the order given; the identifier and the transaction are the database's.</summary>
+    internal const string InsertReplicationOccurrences =
+        "INSERT INTO content.replication_occurrence (domain_id, batch_id, item_id, message_position, text_digest, sender_digest, text_length, said_at) "
+        + "SELECT @domain, @batch, t.i, t.p, t.tx, t.sn, t.ln, t.sd FROM unnest(@items, @positions, @texts, @senders, @lengths, @saids) "
+        + "WITH ORDINALITY AS t(i, p, tx, sn, ln, sd, n) ORDER BY t.n";
+
+    /// <summary>Writes the marks a batch brings; a message already marked keeps the mark it has, since a mark is never undone.</summary>
+    internal const string InsertReplicationMarks =
+        "INSERT INTO content.replication_mark (domain_id, batch_id, item_id, message_position, first_item_id, first_message_position) "
+        + "SELECT @domain, @batch, t.i, t.p, t.fi, t.fp FROM unnest(@items, @positions, @first_items, @first_positions) "
+        + "WITH ORDINALITY AS t(i, p, fi, fp, n) ORDER BY t.n ON CONFLICT (item_id, message_position) DO NOTHING";
+
+    /// <summary>The occurrences of the domain declared that the reader may see, in the order they were written.</summary>
+    internal const string ReadReplicationOccurrences = "SELECT item_id, message_position, text_digest, sender_digest, text_length, said_at FROM content.replication_occurrence ORDER BY id";
+
+    /// <summary>The marks of the domain declared that the reader may see, in the order they were written.</summary>
+    internal const string ReadReplicationMarks = "SELECT item_id, message_position, first_item_id, first_message_position FROM content.replication_mark ORDER BY id";
 
     /// <summary>Adds an item; the texts that are sealed arrive sealed, with the key of the item wrapped.</summary>
     internal const string InsertItemText =
@@ -50,6 +72,12 @@ public static class ContentQueries
 
     /// <summary>Closes a batch that is open, accepted or rejected with its motive; the database refuses it without the event of the closing in the same transaction.</summary>
     internal const string CloseIngestionBatch = "UPDATE content.ingestion_batch SET state = @state, motive = @motive WHERE id = @id AND state = 'open'";
+
+    /// <summary>Removes the marks of a batch just rejected, first of all; the database refuses it for any batch that is not rejected in this transaction.</summary>
+    internal const string RemoveBatchMarks = "DELETE FROM content.replication_mark WHERE batch_id = @id";
+
+    /// <summary>Removes the occurrences of a batch just rejected, after its marks and before its maps; the database refuses it for any batch that is not rejected in this transaction.</summary>
+    internal const string RemoveBatchOccurrences = "DELETE FROM content.replication_occurrence WHERE batch_id = @id";
 
     /// <summary>Removes the maps of a batch just rejected, before its items; the database refuses it for any batch that is not rejected in this transaction.</summary>
     internal const string RemoveBatchMaps = "DELETE FROM content.reversal_map WHERE batch_id = @id";

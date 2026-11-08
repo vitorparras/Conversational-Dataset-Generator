@@ -56,6 +56,8 @@ internal static class CopyTables
             new Table("content.item_text", ContentQueries.ReadCopyItemText, InDomain: true),
             new Table("content.reversal_map", ContentQueries.ReadCopyReversalMap, InDomain: true),
             new Table("content.item_emptied", ContentQueries.ReadCopyItemEmptied, InDomain: true),
+            new Table("content.replication_occurrence", ContentQueries.ReadCopyReplicationOccurrence, InDomain: true),
+            new Table("content.replication_mark", ContentQueries.ReadCopyReplicationMark, InDomain: true),
         };
         return tables;
     }

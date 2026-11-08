@@ -41,7 +41,7 @@ public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<Resto
         }
 
         Assert.Equal(7, await destination.EventsAsync(source.Copy["public.custody_event"]));
-        foreach (var table in new[] { "content.ingestion_batch", "content.item_text", "content.reversal_map", "content.item_emptied" })
+        foreach (var table in new[] { "content.ingestion_batch", "content.item_text", "content.reversal_map", "content.item_emptied", "content.replication_occurrence", "content.replication_mark" })
         {
             _ = await destination.LoadAsync(table, source.Copy[table]);
         }
@@ -110,7 +110,7 @@ public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<Resto
         }
 
         _ = await destination.EventsAsync(source.Copy["public.custody_event"]);
-        foreach (var table in new[] { "content.ingestion_batch", "content.item_text", "content.reversal_map", "content.item_emptied" })
+        foreach (var table in new[] { "content.ingestion_batch", "content.item_text", "content.reversal_map", "content.item_emptied", "content.replication_occurrence", "content.replication_mark" })
         {
             _ = await destination.LoadAsync(table, source.Copy[table]);
         }

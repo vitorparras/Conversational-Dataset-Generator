@@ -86,20 +86,27 @@ def _nodes(line: str) -> list[dict[str, Any]]:
     return [node for node in nodes if node]
 
 
+def _failure_of(node: dict[str, Any]) -> FailedTest | None:
+    """The test a node tells as failed; None for a node in any other state."""
+    state = str(node.get("execution-state", ""))
+    if state not in FAILED_STATES:
+        return None
+    name = str(node.get("display-name", node.get("uid", "?")))
+    return FailedTest(
+        name, state, str(node.get("error.message", "")), str(node.get("error.stacktrace", ""))
+    )
+
+
 def failed_tests(output: Path) -> tuple[FailedTest, ...]:
     """The tests the host told as failed in the talk logs of the output folder, once each (the last
     word on a test stands), in the order they first came."""
-    found: dict[str, FailedTest] = {}
-    for path in sorted(output.glob(f"**/{LOGS}/{RPC}")):
-        for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
-            for node in _nodes(line):
-                state = str(node.get("execution-state", ""))
-                if state in FAILED_STATES:
-                    name = str(node.get("display-name", node.get("uid", "?")))
-                    message = str(node.get("error.message", ""))
-                    found[name] = FailedTest(
-                        name, state, message, str(node.get("error.stacktrace", ""))
-                    )
+    lines = (
+        line
+        for path in sorted(output.glob(f"**/{LOGS}/{RPC}"))
+        for line in path.read_text(encoding="utf-8", errors="replace").splitlines()
+    )
+    failures = (_failure_of(node) for line in lines for node in _nodes(line))
+    found = {failure.name: failure for failure in failures if failure is not None}
     return tuple(found.values())
 
 

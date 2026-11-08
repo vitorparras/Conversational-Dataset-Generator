@@ -15,6 +15,8 @@ internal static class ClearTypes
         ClearKind.Status => "text",
         ClearKind.Motive => "text",
         ClearKind.Transaction => "xid8",
+        ClearKind.Form => "text",
+        ClearKind.Losses => "text[]",
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
 }

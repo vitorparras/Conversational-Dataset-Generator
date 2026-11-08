@@ -47,9 +47,15 @@ public sealed class ContentWriter(NpgsqlDataSource dataSource, ProtectedContent 
         var sanitized = item.Sanitized is null ? null : sealing.Seal(ContentColumns.SanitizedText, item.Sanitized);
         var insertion = new Insertion(
             ContentQueries.InsertItemText,
-            () => [Batch(batchId), Bytes("raw", raw), Bytes("sanitized", sanitized), Text("pseudonymized", item.Pseudonymized), .. KeyOf(sealing)],
+            () => [Batch(batchId), Bytes("raw", raw), Bytes("sanitized", sanitized), Text("pseudonymized", item.Pseudonymized), .. KeyOf(sealing), .. Declared(item.Accommodation)],
             IsolationLevel.ReadCommitted);
         return await InsertAsync(domainId, insertion, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static IEnumerable<NpgsqlParameter> Declared(ItemAccommodation? accommodation)
+    {
+        yield return Text("accommodated", accommodation?.Form);
+        yield return new NpgsqlParameter("losses", NpgsqlDbType.Array | NpgsqlDbType.Text) { Value = accommodation?.Losses.ToArray() ?? Array.Empty<string>() };
     }
 
     private async Task<long> AddMapAsync(int domainId, NewReversalMap map, CancellationToken cancellationToken)

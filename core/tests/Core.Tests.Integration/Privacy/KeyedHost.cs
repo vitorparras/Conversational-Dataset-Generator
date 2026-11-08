@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Core.Tests.Support.Audit;
 using Core.Tests.Support.Custody;
 using Core.Tests.Support.Net;
@@ -9,8 +10,8 @@ using Npgsql;
 
 namespace Core.Tests.Integration.Privacy;
 
-/// <summary>The built host started over a database with the synthetic key of the shared custody files, asked for its status, and stopped.</summary>
-internal static class KeyedHost
+/// <summary>The built host started over a database with the synthetic key of the shared custody files, asked for its status until it answered, and stopped, with what it wrote.</summary>
+internal static partial class KeyedHost
 {
     private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(120);
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(100);
@@ -22,8 +23,8 @@ internal static class KeyedHost
     /// </summary>
     private static readonly string[] CoverageVariables = ["STRYKER_COVERAGE_FILE", "STRYKER_COVERAGE_EPOCH_FILE"];
 
-    /// <summary>Starts the host with the key and the database the connection string names, and returns what it answered at <c>/status</c>.</summary>
-    public static async Task<JsonDocument> RunAsync(string databaseConnectionString, CancellationToken cancellationToken)
+    /// <summary>Starts the host with the key and the database the connection string names, waits for it to answer at <c>/status</c>, and returns what it wrote.</summary>
+    public static async Task<string> RunAsync(string databaseConnectionString, CancellationToken cancellationToken)
     {
         var address = new Uri($"https://127.0.0.1:{FreePort()}");
         using var process = Process.Start(StartInfo(address, databaseConnectionString))
@@ -31,20 +32,20 @@ internal static class KeyedHost
         var streams = Task.WhenAll(process.StandardError.ReadToEndAsync(CancellationToken.None), process.StandardOutput.ReadToEndAsync(CancellationToken.None));
         try
         {
-            return await StatusAsync(address, process, cancellationToken);
+            _ = await StatusAsync(address, process, cancellationToken);
         }
         finally
         {
             process.Kill(entireProcessTree: true);
             _ = await Task.WhenAny(streams, Task.Delay(DrainTimeout, CancellationToken.None));
         }
+
+        return streams.IsCompletedSuccessfully ? string.Concat(await streams) : string.Empty;
     }
 
-    /// <summary>The status of the check with that name, as the host reported it.</summary>
-    public static string StatusOf(JsonDocument status, string check) =>
-        status.RootElement.GetProperty("checks").EnumerateArray()
-            .Single(entry => entry.GetProperty("name").GetString() == check)
-            .GetProperty("status").GetString()!;
+    /// <summary>The outcome of the check with that name, as the host wrote it at startup (the detail of <c>/status</c> needs a session, #632).</summary>
+    public static string StatusOf(string log, string check) =>
+        CheckLine().Matches(log).Single(line => line.Groups["name"].Value == check).Groups["outcome"].Value;
 
     internal static async Task<JsonDocument> StatusAsync(Uri address, Process process, CancellationToken cancellationToken)
     {
@@ -116,6 +117,7 @@ internal static class KeyedHost
         $"--Passwords:WorkFactor={workFactor}",
         $"--Session:IdleTimeout={idleTimeout}",
         "--Session:AbsoluteTimeout=08:00:00",
+        "--Ingestion:Conditions=restrita,intermediaria,permissiva",
         "--Custody:VerificationInterval=00:05:00",
         "--Custody:SealSituation=Manual",
         "--Recognizer:Kind=fake",
@@ -135,4 +137,7 @@ internal static class KeyedHost
         listener.Start();
         return ((IPEndPoint)listener.LocalEndpoint).Port;
     }
+
+    [GeneratedRegex(@"Core\.Host\[342\] Conferência da subida (?<name>\S+): (?<outcome>\w+)")]
+    private static partial Regex CheckLine();
 }

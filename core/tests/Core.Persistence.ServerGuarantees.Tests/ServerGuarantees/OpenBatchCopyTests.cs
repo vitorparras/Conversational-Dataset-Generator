@@ -26,14 +26,14 @@ public sealed class OpenBatchCopyTests
         var visibleBefore = await copied.World.InDomainAsync(1, InTheStock) as string;
 
         await using var restored = await RestoredCopy.LoadAsync(copied);
-        var batches = new IngestionBatches(restored.App);
+        var batches = new IngestionBatches(restored.App, TestConditions.Known);
         var held = await batches.ReadAsync(1, 3, TestContext.Current.CancellationToken);
         var after = await FidelityWorld.InSystemScopeAsync(restored.App, 1, OfTheOpenBatch) as string;
         var hiddenWhileOpen = await InTheStockOfAsync(restored, 1);
         var accepted = await batches.AcceptAsync(new BatchClosing(1, 3, CustodyAuthor.System), TestContext.Current.CancellationToken);
 
         Assert.StartsWith("2:1:", before, StringComparison.Ordinal);
-        Assert.Equal((before, new IngestionBatch(BatchState.Open, null, 1)), (after, held));
+        Assert.Equal((before, new IngestionBatch(BatchState.Open, null, 1, TestConditions.Strictest)), (after, held));
         Assert.Equal((visibleBefore, BatchOutcome.Accepted), (hiddenWhileOpen, accepted.Outcome));
         Assert.Equal("3:2", await InTheStockOfAsync(restored, 1));
     }

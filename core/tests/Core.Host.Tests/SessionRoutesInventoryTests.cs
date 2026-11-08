@@ -29,7 +29,8 @@ public sealed class SessionRoutesInventoryTests
         string[] expected =
         [
             "DELETE /account/sessions/{id}", "DELETE /session", "GET /", "GET /account/sessions", "GET /audit/server", "GET /configuracao", "GET /configuration",
-            "GET /custodia", "GET /custodia/verificar", "GET /custody/seal", "GET /custody/verification", "GET /dominios", "GET /estado-do-sistema", "GET /pessoas", "GET /session", "GET /versions",
+            "GET /custodia", "GET /custodia/verificar", "GET /custody/seal", "GET /custody/verification", "GET /dominios", "GET /estado-do-sistema", "GET /minha-conta",
+            "GET /minha-conta/sessoes/encerrar", "GET /minha-conta/sessoes/encerrar-outras", "GET /pessoas", "GET /session", "GET /versions",
         ];
         Assert.Equal(
             [
@@ -39,6 +40,8 @@ public sealed class SessionRoutesInventoryTests
                 "POST /custodia/verificar",
                 "POST /custody/seal/confirmation",
                 "POST /custody/verification",
+                "POST /minha-conta/sessoes/encerrar",
+                "POST /minha-conta/sessoes/encerrar-outras",
                 "POST /people",
                 "POST /people/{id}/deactivate",
                 "POST /saida",

@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
+using DotNet.Testcontainers.Images;
 using Npgsql;
 
 namespace Core.Persistence.Tests.Fixtures;
@@ -42,20 +43,12 @@ internal sealed class PostgresFixture
     private static async Task<PostgresFixture> StartAsync()
     {
         var reuse = DatabaseReuse.Token;
-        var imageBuilder = new ImageFromDockerfileBuilder()
-            .WithDockerfileDirectory(DatabaseTool.Directory)
-            .WithDockerfile("Dockerfile");
-        if (reuse is not null)
-        {
-            imageBuilder = imageBuilder.WithName(DatabaseReuse.ImageName(reuse)).WithDeleteIfExists(false).WithImageBuildPolicy(found => string.IsNullOrEmpty(found?.ID));
-        }
-
-        var image = imageBuilder.Build();
-        await image.CreateAsync();
+        var image = PrebuiltImage.Name is { } named ? new DockerImage(named) : await BuildImageAsync(reuse);
         var superuserPassword = reuse is null ? NewPassword() : DatabaseReuse.Password(reuse, "postgres");
         var ownerPassword = reuse is null ? NewPassword() : DatabaseReuse.Password(reuse, "owner");
         var appPassword = reuse is null ? NewPassword() : DatabaseReuse.Password(reuse, "app");
         var builder = new ContainerBuilder(image)
+            .WithImagePullPolicy(_ => false)
             .WithEnvironment("POSTGRES_PASSWORD", superuserPassword)
             .WithEnvironment("DATABASE_OWNER_PASSWORD", ownerPassword)
             .WithEnvironment("DATABASE_APP_PASSWORD", appPassword)
@@ -79,6 +72,22 @@ internal sealed class PostgresFixture
         }
 
         return fixture;
+    }
+
+    /// <summary>The image built from tools/database; named after the reuse token when the mutation step asked for one that outlives the run.</summary>
+    private static async Task<IImage> BuildImageAsync(string? reuse)
+    {
+        var imageBuilder = new ImageFromDockerfileBuilder()
+            .WithDockerfileDirectory(DatabaseTool.Directory)
+            .WithDockerfile("Dockerfile");
+        if (reuse is not null)
+        {
+            imageBuilder = imageBuilder.WithName(DatabaseReuse.ImageName(reuse)).WithDeleteIfExists(false).WithImageBuildPolicy(found => string.IsNullOrEmpty(found?.ID));
+        }
+
+        var image = imageBuilder.Build();
+        await image.CreateAsync();
+        return image;
     }
 
     /// <summary>What pg_dump, run inside the server as the superuser, writes for the database: schema, data and comments.</summary>

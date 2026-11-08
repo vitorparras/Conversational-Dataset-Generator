@@ -4,4 +4,5 @@ namespace Core.Persistence.Ingestion;
 /// <param name="State">Where the batch is.</param>
 /// <param name="Motive">Why the batch was rejected; null unless it was.</param>
 /// <param name="OpenedBy">The person who opened it.</param>
-public sealed record IngestionBatch(BatchState State, string? Motive, long OpenedBy);
+/// <param name="Condition">The condition of origin it was opened under, which never changes.</param>
+public sealed record IngestionBatch(BatchState State, string? Motive, long OpenedBy, string Condition);

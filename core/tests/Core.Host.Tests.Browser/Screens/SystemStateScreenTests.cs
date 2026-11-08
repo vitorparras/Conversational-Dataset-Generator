@@ -172,14 +172,14 @@ public sealed class SystemStateScreenTests(BrowserFixture browser, SystemHostFix
         var reached = new List<string>();
         var seen = new List<bool>();
 
-        for (var stop = 0; stop < 7; stop++)
+        for (var stop = 0; stop < HeaderStops.Count + 3; stop++)
         {
             await tab.Page.Keyboard.PressAsync("Tab");
             reached.Add(await tab.Page.EvaluateAsync<string>(FocusedId));
             seen.Add(await tab.Page.EvaluateAsync<bool>(FocusIsSeen));
         }
 
-        Assert.Equal(["skip-link", "header__name", "nav__link header__account", "sair", "nav__link", "nav__link", "data-table"], reached);
+        Assert.Equal(HeaderStops.Then("nav__link", "nav__link", "data-table"), reached);
         Assert.DoesNotContain(false, seen);
     }
 

@@ -20,7 +20,7 @@ public sealed partial class AccessibilityTests(BrowserFixture browser)
     private const string FieldBorder = "() => { const s = getComputedStyle(document.getElementById('nome')); return s.borderTopStyle + ' ' + s.borderTopWidth; }";
     private const string ErrorMark = "() => getComputedStyle(document.getElementById('nome-erro'), '::before').content";
 
-    private static readonly string[] Controls = ["skip-link", "header__name", "nav__link header__account", "sair", "acionar", "nome", "enviar"];
+    private static readonly string[] Controls = HeaderStops.Then("acionar", "nome", "enviar");
     private static readonly string[] NoMark = ["none", "normal", "\"\""];
 
     [Fact]
@@ -94,7 +94,7 @@ public sealed partial class AccessibilityTests(BrowserFixture browser)
             back.Add(await tab.Page.EvaluateAsync<string>(Focused));
         }
 
-        Assert.Equal(["nome", "acionar", "sair", "nav__link header__account", "header__name", "skip-link"], back);
+        Assert.Equal(Enumerable.Reverse(Controls).Skip(1), back);
     }
 
     [Fact]

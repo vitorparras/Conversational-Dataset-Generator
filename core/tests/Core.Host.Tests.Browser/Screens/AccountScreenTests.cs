@@ -29,7 +29,7 @@ public sealed class AccountScreenTests(BrowserFixture browser, AccountHostFixtur
     private const int StatusNotFound = 404;
 
     private static readonly string[] OfTheNetworkAndOfTheBrowser = ["127.0.0.1", "::1", "LOCALHOST", "CHROME", "CHROMIUM", "MOZILLA", "HEADLESS", "PLAYWRIGHT", "USER-AGENT", "ENDEREÇO", "NAVEGADOR"];
-    private static readonly string[] Ways = ["Encerrar a sessão iniciada em", "Encerrar todas as outras"];
+    private static readonly string[] Ways = ["Trocar senha", "Encerrar a sessão iniciada em", "Encerrar todas as outras"];
 
     [Fact]
     public async Task Ca1EachOpenSessionShowsItsStartAndItsLastUseAndTheCurrentOneIsMarked()
@@ -246,13 +246,13 @@ public sealed class AccountScreenTests(BrowserFixture browser, AccountHostFixtur
     }
 
     [Fact]
-    public async Task TheKeyboardAloneReachesTheHeaderTheLinkOfTheAccountAndEachWayToEndASessionInOrderWithTheFocusSeen()
+    public async Task TheKeyboardAloneReachesTheHeaderTheLinkOfTheAccountThePasswordAndEachWayToEndASessionInOrderWithTheFocusSeen()
     {
         await using var tabs = await TwoSessionsAsync();
         var reached = new List<string>();
         var seen = new List<bool>();
 
-        for (var stop = 0; stop < 7; stop++)
+        for (var stop = 0; stop < 8; stop++)
         {
             await tabs.Current.Page.Keyboard.PressAsync("Tab");
             reached.Add(await tabs.Current.Page.EvaluateAsync<string>(Focused));

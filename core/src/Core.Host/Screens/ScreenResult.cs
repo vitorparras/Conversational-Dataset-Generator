@@ -40,4 +40,12 @@ internal static class ScreenResult
         page.StatusCode = StatusCodes.Status500InternalServerError;
         return page;
     }
+
+    /// <summary>The same page with 503, for a screen whose service the host does not have or whose session ended meanwhile: what to do, and nothing of why.</summary>
+    internal static RazorComponentResult<ScreenFrame> Unavailable(HttpContext context)
+    {
+        var page = Failure(context);
+        page.StatusCode = StatusCodes.Status503ServiceUnavailable;
+        return page;
+    }
 }

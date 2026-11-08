@@ -20,6 +20,8 @@ public sealed class PersonNoticesRestoreTests
 {
     private const string AllPeople = "SELECT jsonb_agg(to_jsonb(p) ORDER BY id)::text FROM public.person p";
     private const string AllEvents = "SELECT jsonb_agg(to_jsonb(e) ORDER BY sequence)::text FROM public.custody_event e";
+    private const string LoadPeople = "SELECT public.restore_load('public.person', @rows)::text";
+    private const string LoadEvents = "SELECT public.restore_events(@rows)::text";
 
     [DatabaseFact]
     public async Task AFailedVerdictOfTheCopyComingBackTellsNobody()
@@ -33,7 +35,7 @@ public sealed class PersonNoticesRestoreTests
 
         var (people, events) = (await TextAsync(source.OwnerConnectionString, AllPeople), await TextAsync(source.OwnerConnectionString, AllEvents));
         _ = await TextAsync(target.AppConnectionString, "SELECT public.restore_open()::text");
-        var loaded = (await LoadedAsync(target, "restore_load('public.person', @rows)", people), await LoadedAsync(target, "restore_events(@rows)", events));
+        var loaded = (await LoadedAsync(target, LoadPeople, people), await LoadedAsync(target, LoadEvents, events));
 
         Assert.Equal(("1", "2"), loaded);
         Assert.Equal("0", await TextAsync(target.OwnerConnectionString, "SELECT count(*) FROM public.person_notice"));
@@ -54,11 +56,11 @@ public sealed class PersonNoticesRestoreTests
         return Convert.ToString(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken), CultureInfo.InvariantCulture)!;
     }
 
-    [SuppressMessage("Security", "CA2100", Justification = "Each call is a literal of this class, never built from input.")]
-    private static async Task<string> LoadedAsync(ScratchDatabase database, string call, string rows)
+    [SuppressMessage("Security", "CA2100", Justification = "Each statement is a constant of this class, never built from input.")]
+    private static async Task<string> LoadedAsync(ScratchDatabase database, string statement, string rows)
     {
         await using var connection = await Sql.OpenAsync(database.AppConnectionString);
-        await using var command = new NpgsqlCommand($"SELECT public.{call}::text", connection);
+        await using var command = new NpgsqlCommand(statement, connection);
         _ = command.Parameters.AddWithValue("rows", NpgsqlDbType.Jsonb, rows);
         return Convert.ToString(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken), CultureInfo.InvariantCulture)!;
     }

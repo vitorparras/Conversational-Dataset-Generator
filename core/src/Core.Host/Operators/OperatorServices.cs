@@ -6,8 +6,8 @@ using Npgsql;
 namespace Core.Host.Operators;
 
 /// <summary>
-/// What the root registers for the people who operate (#595): the administration, over the registry, the passwords, the sessions and the notices. It is a factory and not a registration,
-/// because only the root registers; with no database declared there is none, and the routes say it is the host that cannot, as the other routes do.
+/// What the root registers for the people who operate (#595): the administration over the registry, the passwords, the sessions and the notices. A factory and not a registration,
+/// because only the root registers; with no database declared there is none.
 /// </summary>
 internal static class OperatorServices
 {

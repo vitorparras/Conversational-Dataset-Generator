@@ -13,12 +13,10 @@ internal static class NoticeText
         _ => throw new ArgumentOutOfRangeException(nameof(notice), notice.Code, "The notice has a code the screen has no words for."),
     };
 
-    private static string PasswordReset(int ended) => string.Create(CultureInfo.InvariantCulture, $"Sua senha foi reposta por quem administra o sistema. {Sessions(ended)}.");
-
-    private static string Sessions(int ended) => ended switch
+    private static string PasswordReset(int ended) => "Sua senha foi reposta por quem administra o sistema. " + (ended switch
     {
-        0 => "Nenhuma sessão estava aberta",
-        1 => "1 sessão aberta foi encerrada",
-        _ => string.Create(CultureInfo.InvariantCulture, $"{ended} sessões abertas foram encerradas"),
-    };
+        0 => "Nenhuma sessão estava aberta.",
+        1 => "1 sessão aberta foi encerrada.",
+        _ => string.Create(CultureInfo.InvariantCulture, $"{ended} sessões abertas foram encerradas."),
+    });
 }

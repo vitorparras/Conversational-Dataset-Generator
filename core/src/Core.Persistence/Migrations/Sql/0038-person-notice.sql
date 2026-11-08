@@ -1,6 +1,5 @@
--- The notices of a person (issue 595): what the system tells someone without any message leaving it. A notice is a row with a code from a closed list and, for a password set again, the number of sessions
--- the act ended; nothing free is written, and the text of each code lives in the host. Reading a notice marks it with the moment, once, and the row stays: nobody deletes or empties it, the owner included.
--- A notice is not an event of the chain, so it is outside the copy of the data and a restoration brings none: it tells what the person has not yet been told, and the chain keeps what happened.
+-- The notices of a person (issue 595): what the system tells someone without any message leaving it. A row holds a code from a closed list and, for a password set again, the number of sessions the act ended;
+-- nothing free is written. Reading a notice marks it once and the row stays: nobody deletes or empties it, the owner included. A notice is not an event of the chain, so the copy of the data and a restoration leave it out.
 CREATE TABLE public.person_notice (
     id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     person_id bigint NOT NULL REFERENCES public.person (id),
@@ -11,18 +10,14 @@ CREATE TABLE public.person_notice (
     CONSTRAINT person_notice_shape CHECK ((code = 'password_reset') = (sessions_ended IS NOT NULL)),
     CONSTRAINT person_notice_read_after_creation CHECK (read_at IS NULL OR read_at >= created_at)
 );
-
 CREATE INDEX person_notice_unread_idx ON public.person_notice (person_id, id DESC) WHERE read_at IS NULL;
-
 -- A person holds at most one unread notice that the domains stopped accepting writes, however many verifications failed meanwhile.
 CREATE UNIQUE INDEX person_notice_one_unread_read_only_idx ON public.person_notice (person_id) WHERE code = 'domain_read_only' AND read_at IS NULL;
-
 -- The application adds a notice with the person, the code and the number, and marks one as read; the moments are the server's. A notice already read is not read again.
 GRANT SELECT ON public.person_notice TO app;
 GRANT INSERT (person_id, code, sessions_ended) ON public.person_notice TO app;
 GRANT UPDATE (read_at) ON public.person_notice TO app;
 REVOKE DELETE, TRUNCATE ON public.person_notice FROM PUBLIC, CURRENT_USER;
-
 CREATE FUNCTION public.refuse_person_notice_change() RETURNS trigger
 LANGUAGE plpgsql
 AS $refuse$

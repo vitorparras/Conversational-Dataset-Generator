@@ -37,6 +37,18 @@ public sealed class PeopleRegistrationTests(BrowserFixture browser, PeopleHostFi
     }
 
     [Fact]
+    public async Task ANameOfNearlyFourKilobytesIsRegisteredAndTheNoticeStillSaysSoBecauseTheCookieHoldsOnlyTheIdentifier()
+    {
+        var name = $"{Made("longo")}-{new string('x', 4000)}";
+        await using var tab = await OpenAsync(browser, people.Host, people.Host.Administrator, Form);
+
+        await FillAsync(tab.Page, name, Annotation, people.Host.Password);
+        await tab.Page.Locator("#cadastrar").ClickAsync();
+
+        await Expect(tab.Page.Locator(".notice--success")).ToContainTextAsync($"{name} foi cadastrada, sem nenhuma concessão de domínio.");
+    }
+
+    [Fact]
     public async Task Ca1ThePersonRegisteredEntersWithTheInitialPasswordAndSeesTheStartEmptyWithNoMenuAndNoRouteOfTheAdministration()
     {
         var (name, password) = (Made("nova"), Made("senha-inicial").ToUpperInvariant());

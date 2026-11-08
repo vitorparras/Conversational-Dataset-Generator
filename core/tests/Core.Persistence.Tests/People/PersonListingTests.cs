@@ -108,6 +108,21 @@ public sealed class PersonListingTests : IClassFixture<PeopleDatabase>
     }
 
     [DatabaseFact]
+    public async Task TheNameOfAnIdentifierIsTheNameOfUseActiveOrNotAndNoneWhenNobodyHasIt()
+    {
+        var stem = Stem();
+        var id = await MakeAsync($"{stem}-Maria José", "Auditoria");
+        var registry = await database.RegistryAsync();
+        _ = await registry.DeactivateAsync(id, CustodyAuthor.System, TestContext.Current.CancellationToken);
+
+        var name = await registry.NameOfAsync(id, TestContext.Current.CancellationToken);
+        var nobody = await registry.NameOfAsync(long.MaxValue, TestContext.Current.CancellationToken);
+
+        Assert.Equal($"{stem}-Maria José", name);
+        Assert.Null(nobody);
+    }
+
+    [DatabaseFact]
     public async Task ANameThatNobodyHasLeavesAnEmptyFirstPage()
     {
         var page = await ListAsync(new PersonFilter(Stem(), null, null), 3);

@@ -41,7 +41,7 @@ internal static class OperatorScreensEndpoint
             [nameof(OperatorsScreen.Name)] = query[OperatorsScreen.NameKey].ToString(),
             [nameof(OperatorsScreen.Function)] = filter.Function,
             [nameof(OperatorsScreen.State)] = query[OperatorsScreen.StateKey].ToString(),
-            [nameof(OperatorsScreen.Registered)] = RegisteredNotice.Take(context),
+            [nameof(OperatorsScreen.Registered)] = RegisteredNotice.Take(context) is { } registered ? await staff.Registry.NameOfAsync(registered, context.RequestAborted) : null,
         };
         return ScreenResult.Of(context, typeof(OperatorsScreen), OperatorsScreen.Title, screen);
     }
@@ -62,7 +62,7 @@ internal static class OperatorScreensEndpoint
         var registered = OperatorAnswer.Registered(made, password);
         if (registered.Refusal is not { } refusal)
         {
-            RegisteredNotice.Issue(context.Response, name);
+            RegisteredNotice.Issue(context.Response, registered.Id!.Value);
             return PageRedirect.Of(context, $"{ScreenPaths.Operators}?{OperatorsScreen.NameKey}={Uri.EscapeDataString(name)}");
         }
 

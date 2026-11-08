@@ -36,24 +36,34 @@ public sealed class OperatorScreensTests
     }
 
     [Fact]
-    public void TheNoticeTheRegistrationSetsIsTheNameItWasGivenAndIsSecureHttpOnlyAndStrict()
+    public void TheNoticeTheRegistrationSetsHoldsOnlyTheIdentifierAndIsSecureHttpOnlyAndStrict()
     {
         var registration = new DefaultHttpContext();
 
-        RegisteredNotice.Issue(registration.Response, "Maria José da Silva");
+        RegisteredNotice.Issue(registration.Response, 9_007_199_254_740_993);
 
         var line = registration.Response.Headers.SetCookie.ToString();
-        Assert.Equal("Maria José da Silva", RegisteredNotice.Take(ListAsked(line)));
+        Assert.StartsWith($"{RegisteredNotice.Name}=9007199254740993;", line, StringComparison.Ordinal);
+        Assert.Equal(9_007_199_254_740_993, RegisteredNotice.Take(ListAsked(line)));
         Assert.Contains("secure", line, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("httponly", line, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("samesite=strict", line, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Theory]
+    [InlineData("Maria")]
+    [InlineData("0")]
+    [InlineData("-4")]
+    [InlineData("+4")]
+    [InlineData("4 5")]
+    public void ANoticeThatHoldsNoIdentifierSaysNothing(string held) =>
+        Assert.Null(RegisteredNotice.Take(ListAsked($"{RegisteredNotice.Name}={Uri.EscapeDataString(held)};")));
+
     [Fact]
     public void TheListTellsTheNoticeOnceAndThenForgetsIt()
     {
         var registration = new DefaultHttpContext();
-        RegisteredNotice.Issue(registration.Response, "Maria");
+        RegisteredNotice.Issue(registration.Response, 42);
         var list = ListAsked(registration.Response.Headers.SetCookie.ToString());
 
         _ = RegisteredNotice.Take(list);

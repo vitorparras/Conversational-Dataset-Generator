@@ -83,7 +83,7 @@ public sealed class SubmissionPartsTests
     }
 
     [Fact]
-    public void SubmissionWithNoRequestOrNoContentOrNoAuthorIsRefusedByName()
+    public async Task SubmissionWithNoRequestOrNoContentOrNoAuthorIsRefusedByName()
     {
         using var dataSource = NpgsqlDataSource.Create("Host=127.0.0.1;Port=1;Username=u;Password=p;Database=d");
         var conditions = OriginConditions.Of(["a"]);
@@ -94,9 +94,9 @@ public sealed class SubmissionPartsTests
         Assert.Equal(
             ["request", "Content", "AuthorId"],
             [
-                Assert.Throws<ArgumentNullException>(() => service.SubmitAsync(null!, CancellationToken.None)).ParamName,
-                Assert.Throws<ArgumentNullException>(() => service.SubmitAsync(request with { Content = null! }, CancellationToken.None)).ParamName,
-                Assert.Throws<ArgumentOutOfRangeException>(() => service.SubmitAsync(request with { AuthorId = 0 }, CancellationToken.None)).ParamName,
+                (await Assert.ThrowsAsync<ArgumentNullException>(() => service.SubmitAsync(null!, CancellationToken.None))).ParamName,
+                (await Assert.ThrowsAsync<ArgumentNullException>(() => service.SubmitAsync(request with { Content = null! }, CancellationToken.None))).ParamName,
+                (await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => service.SubmitAsync(request with { AuthorId = 0 }, CancellationToken.None))).ParamName,
             ]);
     }
 

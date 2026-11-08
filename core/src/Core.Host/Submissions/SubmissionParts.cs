@@ -6,8 +6,9 @@ using Npgsql;
 namespace Core.Host.Submissions;
 
 /// <summary>
-/// Where the pieces of the submissions are taken from the configuration: the batches open under the list of conditions the installation declared, so that an omitted condition takes its first,
-/// and the service of the submissions takes files up to the most bytes the installation declared and seals the origin with the key the host reads when the first submission comes.
+/// Where the pieces of the submissions are taken from the configuration: the batches open under the list of conditions the installation declared,
+/// so that an omitted condition takes its first, and the service of the submissions takes files up to the most bytes the installation declared
+/// and seals the origin with the key the host reads when the first submission comes.
 /// </summary>
 internal static class SubmissionParts
 {

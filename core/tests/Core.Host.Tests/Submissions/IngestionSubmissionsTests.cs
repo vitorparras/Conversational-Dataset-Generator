@@ -22,7 +22,7 @@ public sealed class IngestionSubmissionsTests
         var entry = await world.Service.DetailAsync([SubmissionWorld.Domain], outcome.Batch!.Value, TestContext.Current.CancellationToken);
 
         Assert.Equal(
-            (SubmissionKind.Done, SubmissionState.Accepted, null, (long)bytes.Length, Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(bytes))),
+            (SubmissionKind.Done, SubmissionState.Accepted, null, bytes.Length, Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(bytes))),
             (outcome.Kind, outcome.State, outcome.Reason, outcome.Size, outcome.Sha256));
         Assert.Equal(
             (BatchState.Accepted, SubmissionWorld.Person, outcome.Submission, outcome.Size, outcome.Sha256, null),
@@ -38,9 +38,10 @@ public sealed class IngestionSubmissionsTests
         var omitted = await world.SubmitAsync(SubmissionWorld.Request());
 
         var batches = new IngestionBatches(world.DataSource, OriginConditions.Of([SubmissionWorld.Strictest, "zqx_media", SubmissionWorld.Loosest]));
-        var read = async (SubmissionOutcome outcome) => (await batches.ReadAsync(SubmissionWorld.Domain, outcome.Batch!.Value, TestContext.Current.CancellationToken))!.Condition;
+        async Task<string> Read(SubmissionOutcome outcome) =>
+            (await batches.ReadAsync(SubmissionWorld.Domain, outcome.Batch!.Value, TestContext.Current.CancellationToken))!.Condition;
 
-        Assert.Equal((SubmissionWorld.Loosest, SubmissionWorld.Strictest), (await read(declared), await read(omitted)));
+        Assert.Equal((SubmissionWorld.Loosest, SubmissionWorld.Strictest), (await Read(declared), await Read(omitted)));
     }
 
     [DatabaseFact]
@@ -72,8 +73,8 @@ public sealed class IngestionSubmissionsTests
     }
 
     [DatabaseTheory]
-    [InlineData("""{"formato":"cdg-conversa/1","mensagens":[{"id":"http://externo.example/x","remetente":"a","instante":"2031-03-04T08:00:00Z","texto":"t"}]}""")]
-    [InlineData("""{"formato":"cdg-conversa/1","mensagens":[{"id":"a","remetente":"/etc/passwd","instante":"2031-03-04T08:00:00Z","texto":"t"}]}""")]
+    [InlineData(/*lang=json*/ """{"formato":"cdg-conversa/1","mensagens":[{"id":"http://externo.example/x","remetente":"a","instante":"2031-03-04T08:00:00Z","texto":"t"}]}""")]
+    [InlineData(/*lang=json*/ """{"formato":"cdg-conversa/1","mensagens":[{"id":"a","remetente":"/etc/passwd","instante":"2031-03-04T08:00:00Z","texto":"t"}]}""")]
     public async Task FileThatPointsOutsideItselfIsRefusedAsUnreadableAndTheReferenceIsNotFollowed(string content)
     {
         await using var world = await SubmissionWorld.CreateAsync();

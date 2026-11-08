@@ -1,6 +1,6 @@
 # 0010 — A tecnologia da interface
 
-> Decisão vigente. 2026-10-04.
+> Decisão vigente. 2026-10-04. Emendada em 2026-11-06 pela [0052](0052-montagem-das-telas.md): a ferramenta de navegador está na CI, no job "Navegador (Playwright)", e a camada é `client.js`.
 
 ## Contexto
 

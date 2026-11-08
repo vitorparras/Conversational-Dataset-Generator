@@ -3,7 +3,10 @@ using Core.Platform.Startup;
 
 namespace Core.Host.Tests;
 
-/// <summary>The built host with the fake recognizer starts without the language service and shows the kind in force; a kind outside the set keeps it from starting.</summary>
+/// <summary>
+/// The built host with the fake recognizer starts without the language service, which none of its startup checks asks (their lines in the log say which ran, since the detail of
+/// <c>/status</c> needs a session, #632); a kind outside the set keeps it from starting.
+/// </summary>
 public sealed class FakeRecognizerHostTests
 {
     [Fact]
@@ -16,9 +19,7 @@ public sealed class FakeRecognizerHostTests
         using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
 
         Assert.True(body.RootElement.GetProperty("ready").GetBoolean());
-        Assert.Equal("fake", body.RootElement.GetProperty("recognizer").GetString());
-        Assert.Equal(JsonValueKind.Null, body.RootElement.GetProperty("languageService").ValueKind);
-        var names = body.RootElement.GetProperty("checks").EnumerateArray().Select(check => check.GetProperty("name").GetString()).ToList();
+        var names = StartupCheckLog.Of(await host.StopAsync()).Select(check => check.Name);
         Assert.Equal(
             [
                 "RuntimeIdentifier", "Host:BundledFile", "MasterKey", "Tls", "Privilege", "OwnerWindow", "RlsForce", "RestoreWindow", "Serializable", "PgAudit", "ColumnRevoke",

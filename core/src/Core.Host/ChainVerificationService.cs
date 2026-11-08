@@ -81,10 +81,10 @@ internal sealed class ChainVerificationService : BackgroundService
     internal bool IsOverdue(DateTimeOffset? lastRecordedAt) => Schedule.Overdue(lastRecordedAt, time.GetUtcNow());
 
     /// <summary>
-    /// Verifies the chain on demand against the seal given and tells the log what it found: a chain that does not hold, and a seal that does not, are errors, and neither writes a failure
-    /// of its own nor blocks a write. Null when no database is declared or the verification did not reach its end, which the log tells with the type of the failure.
+    /// Verifies the chain on demand, against the seal when one is given, for whoever asked (null when nobody did), and tells the log what it found: a chain that does not hold, and a seal that
+    /// does not, are errors, and neither writes a failure of its own nor blocks a write. Null when no database is declared or the verification did not reach its end, which the log tells.
     /// </summary>
-    internal async Task<ChainVerification?> VerifyAgainstAsync(ChainSeal seal, CancellationToken cancellationToken)
+    internal async Task<ChainVerification?> VerifyAsync(ChainSeal? seal, long? requestedBy, CancellationToken cancellationToken)
     {
         if (Verifier is null)
         {
@@ -94,9 +94,9 @@ internal sealed class ChainVerificationService : BackgroundService
         var logger = loggers.CreateLogger<ChainVerificationService>();
         try
         {
-            var result = await Verifier.VerifyAsync(seal, cancellationToken).ConfigureAwait(false);
+            var result = await Verifier.VerifyAsync(seal, requestedBy, cancellationToken).ConfigureAwait(false);
             Report(logger, result);
-            if (result.Seal is { Holds: false } failing)
+            if (seal is not null && result.Seal is { Holds: false } failing)
             {
                 logger.SealDoesNotHold(failing.Outcome, seal.Events, result.EventsRead);
             }

@@ -278,6 +278,13 @@ internal sealed class AuthenticatedHost : IAsyncDisposable
     private Task<HttpResponseMessage> SendAsync(HttpMethod method, string route, string? json, CancellationToken cancellationToken) =>
         SendAsAsync(method, route, json, Identifier, cancellationToken);
 
+    /// <summary>The form of the entry page as a browser sends it, with no session: the name and the password in the body of the post, and the page the host answers with.</summary>
+    public async Task<HttpResponseMessage> PostEntryFormAsync(string name, string password, CancellationToken cancellationToken)
+    {
+        using var content = new FormUrlEncodedContent(new Dictionary<string, string> { ["nome"] = name, ["senha"] = password });
+        return await client.PostAsync(new Uri("/entrada", UriKind.Relative), content, cancellationToken);
+    }
+
     /// <summary>A request carrying the session identifier given, or none when it is null.</summary>
     public async Task<HttpResponseMessage> SendAsAsync(HttpMethod method, string route, string? json, string? session, CancellationToken cancellationToken)
     {

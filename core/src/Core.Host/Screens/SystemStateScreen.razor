@@ -1,0 +1,104 @@
+@using Core.Host.Endpoints
+@using Core.Host.Supervision
+@using Core.Platform.Startup
+@using Core.Platform.Versions
+
+<h1>@Title</h1>
+<p class="lead">As conferências são as da subida, em <Moment At="Status.CheckedAt" />; o serviço de linguagem e a comparação do registro mostram o estado de agora.</p>
+@if (Status.SealWarning is { } warning)
+{
+    <Notice Kind="Notice.Tone.Pending">@warning</Notice>
+}
+<Panel Id="agora" Title="Situação agora">
+    <FactList>
+        <Fact Term="Vivo">@Mark(StateMark.Tone.Good, "Sim: o sistema responde")</Fact>
+        <Fact Term="Apto">@Readiness</Fact>
+        <Fact Term="Serviço de linguagem">@Service</Fact>
+        <Fact Term="Registro do servidor contra a cadeia">
+            @Comparison
+            @if (Status.AuditComparison.At is { } at)
+            {
+                <span class="facts__note">Última comparação em <Moment At="at" />.</span>
+            }
+            @if (Status.AuditComparison.CutOffFiles.Count > 0)
+            {
+                <span class="facts__note">Arquivos que a queda do servidor cortou: @string.Join(", ", Status.AuditComparison.CutOffFiles).</span>
+            }
+        </Fact>
+        <Fact Term="Instalação">@Status.Installation.Name</Fact>
+    </FactList>
+</Panel>
+<Panel Id="conferencias" Title="Conferências da subida">
+    <p>@(Status.Checks.Count - Failed) de @Status.Checks.Count passaram.</p>
+    <DataTable Id="conferencias-tabela" Caption="Uma conferência por linha." Headers="Columns">
+        <tbody>
+            @foreach (var check in Status.Checks)
+            {
+                <tr>
+                    <th scope="row">@check.Name</th>
+                    <td>@(check.Status == CheckStatus.Passed ? Mark(StateMark.Tone.Good, "Passou") : Mark(StateMark.Tone.Bad, "Falhou"))</td>
+                    <td>@check.Message@(check.Observed is { } observed ? $". Encontrado: {observed}" : "")</td>
+                    <td><code>@check.ExpectedSource</code></td>
+                </tr>
+            }
+        </tbody>
+    </DataTable>
+</Panel>
+<Panel Id="versoes" Title="Versões">
+    <FactList>
+        <Fact Term="Núcleo">@Shown(Versions.CoreVersion), commit @Shown(Versions.Commit)@(Versions.WorkingTree == WorkingTree.Dirty ? ", com alterações fora do commit" : "")</Fact>
+        <Fact Term="Serviço de linguagem">@Shown(Versions.LanguageServiceVersion)</Fact>
+        <Fact Term="Contrato do serviço">@Shown(Versions.ContractVersion)</Fact>
+        <Fact Term="Modelo">@Shown(Versions.ModelVersion)</Fact>
+        <Fact Term="Esquema do banco">@Shown(Versions.SchemaVersion)</Fact>
+    </FactList>
+</Panel>
+
+@code {
+    /// <summary>The title of the page and of its entry in the menu.</summary>
+    internal const string Title = "Estado do sistema";
+
+    private static readonly string[] Columns = { "Conferência", "Resultado", "O que concluiu", "Onde se confere" };
+
+    /// <summary>What the status route answers, from the same call; its record is internal to the host, which a public parameter cannot name, so it comes as an object.</summary>
+    [Parameter, EditorRequired]
+    public object State { get; set; } = default!;
+
+    /// <summary>What the versions route answers, from the same call.</summary>
+    [Parameter, EditorRequired]
+    public VersionReport Versions { get; set; } = default!;
+
+    private StatusResponse Status => (StatusResponse)State;
+
+    private int Failed => Status.Checks.Count(check => check.Status == CheckStatus.Failed);
+
+    private RenderFragment Readiness => Failed switch
+    {
+        _ when Status.Ready => Mark(StateMark.Tone.Good, "Sim: pronto para trabalhar"),
+        0 => Mark(StateMark.Tone.Bad, "Não: o serviço de linguagem não está disponível"),
+        1 => Mark(StateMark.Tone.Bad, "Não: uma conferência da subida falhou"),
+        var failed => Mark(StateMark.Tone.Bad, $"Não: {failed} conferências da subida falharam"),
+    };
+
+    private RenderFragment Service => Status.LanguageService switch
+    {
+        null => Mark(StateMark.Tone.Plain, "Não usado: o reconhecedor em vigor é o simulado (fake), que não chama o serviço"),
+        ServiceState.Available => Mark(StateMark.Tone.Good, "Disponível"),
+        ServiceState.Starting => Mark(StateMark.Tone.Waiting, "Iniciando: ainda não respondeu"),
+        ServiceState.Restarting => Mark(StateMark.Tone.Waiting, "Reiniciando"),
+        ServiceState.Stopped => Mark(StateMark.Tone.Bad, "Parado: o sistema está encerrando"),
+        _ => Mark(StateMark.Tone.Bad, "Indisponível: não respondeu ou o processo terminou"),
+    };
+
+    private RenderFragment Comparison => Status.AuditComparison switch
+    {
+        { Result: AuditComparisonResult.Agreed } => Mark(StateMark.Tone.Good, "Sem diferença"),
+        { Result: AuditComparisonResult.Different } found => Mark(StateMark.Tone.Bad, $"Com diferença: {found.NewDifferences} novas e {found.KnownDifferences} já conhecidas"),
+        { Result: AuditComparisonResult.Failed } => Mark(StateMark.Tone.Bad, "Não concluída: a última comparação falhou"),
+        _ => Mark(StateMark.Tone.Waiting, "Ainda não feita"),
+    };
+
+    private static RenderFragment Mark(StateMark.Tone tone, string text) => @<StateMark Kind="tone">@text</StateMark>;
+
+    private static RenderFragment Shown(VersionValue version) => version == VersionValue.Absent ? @<StateMark>Não obtida</StateMark> : @<code>@version.ToString()</code>;
+}

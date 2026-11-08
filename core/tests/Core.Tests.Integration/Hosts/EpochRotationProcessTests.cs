@@ -69,10 +69,11 @@ public sealed class EpochRotationProcessTests
             CustodyFiles.SyntheticKey(), DerivationLabels.Of(Enumerable.Repeat(Label, 1)), CustodyEpochs.Of(new Dictionary<int, byte[]> { [1] = CustodyFiles.SyntheticEpoch(1) }), "test");
         var keys = new ItemKeys(new KeyDerivation(reading.Key!, reading.Labels), reading.Epochs);
         var wrapped = keys.Create(Label);
+        await SeededBatches.SeedAsync(database, 1);
         await using var connection = await Sql.OpenAsync(database.OwnerConnectionString);
         await using var command = new NpgsqlCommand(
             "SELECT set_config('app.domain', '1', false); "
-            + "INSERT INTO content.item_text (domain_id, raw_text, dek_epoch, dek_wrapped) VALUES (1, '\\x01', @epoch, @wrapped)",
+            + "INSERT INTO content.item_text (domain_id, batch_id, raw_text, dek_epoch, dek_wrapped) VALUES (1, 1, '\\x01', @epoch, @wrapped)",
             connection);
         _ = command.Parameters.AddWithValue("epoch", wrapped.Epoch);
         _ = command.Parameters.AddWithValue("wrapped", wrapped.Wrapped.ToArray());

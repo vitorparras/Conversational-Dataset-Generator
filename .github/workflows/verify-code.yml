@@ -1,6 +1,7 @@
 name: Verifica código
 
 on:
+  workflow_dispatch:
   pull_request:
   push:
     branches: [main]
@@ -82,6 +83,7 @@ jobs:
       - uses: ./.github/actions/install-gitleaks
       - name: Instalar ruff, pyright e coverage nas versões fixadas (ainda sem uv no PATH)
         run: pip install -r tools/verify-code/lint-requirements.txt
+      - uses: ./.github/actions/build-database-image
       - name: Construir e testar o núcleo sem o serviço real, e sem uv no PATH
         run: python tools/verify-code/verify.py --step build_core test_core
       - name: Instalar uv na versão fixada (test_real_service chama `uv run --frozen`)
@@ -234,6 +236,7 @@ jobs:
           python-version: '3.12'
       - name: Instalar uv na versão fixada
         run: pip install -r tools/verify-code/service-requirements.txt
+      - uses: ./.github/actions/build-database-image
       - name: Exigir que o núcleo e o serviço executem propriedades
         run: python tools/verify-code/verify.py --step properties
 
@@ -241,7 +244,8 @@ jobs:
   # (it is no test project of the solution): this is the only place it runs, so a failing browser test fails this job.
   browser:
     name: Navegador (Playwright)
-    if: github.event_name != 'schedule'
+    needs: changes
+    if: ${{ !cancelled() && github.event_name != 'schedule' && needs.changes.outputs.heavy != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -256,6 +260,7 @@ jobs:
           dotnet build core/tests/Core.Host.Tests.Browser/Core.Host.Tests.Browser.csproj -c Release --no-restore
       - name: Instalar o Chromium da versão que o pacote fixa, sem latest e sem outro navegador
         run: pwsh core/tests/Core.Host.Tests.Browser/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+      - uses: ./.github/actions/build-database-image
       - name: Rodar os testes de navegador
         run: dotnet run --project core/tests/Core.Host.Tests.Browser/Core.Host.Tests.Browser.csproj -c Release --no-build
       - name: Anotar o tempo do job
@@ -323,25 +328,30 @@ jobs:
   mutation_modules:
     name: Módulos críticos da mutação
     needs: changes
-    if: ${{ !cancelled() && github.event_name != 'schedule' && needs.changes.outputs.heavy != 'false' }}
+    if: ${{ !cancelled() && needs.changes.outputs.heavy != 'false' }}
     runs-on: ubuntu-latest
     outputs:
       modules: ${{ steps.list.outputs.modules }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
       - id: list
-        name: Ler os módulos críticos de docs/operacao/areas (a matriz não tem lista própria)
+        name: Ler os módulos críticos que o diff alcança (todos fora de pull request ou na dúvida)
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && needs.changes.result == 'success' && format('origin/{0}', github.base_ref) || '' }}
         run: |
-          modules=$(python tools/verify-code/verify.py --mutation-modules)
+          modules=$(python tools/verify-code/verify.py --mutation-modules ${BASE:+--base "$BASE"} 2> "$RUNNER_TEMP/alcance.md")
           echo "modules=$modules" >> "$GITHUB_OUTPUT"
+          { echo "### Mutação: módulos alcançados e o motivo de cada um"; cat "$RUNNER_TEMP/alcance.md"; } >> "$GITHUB_STEP_SUMMARY"
 
   mutation_module:
     name: Mutação (${{ matrix.module }})
     needs: mutation_modules
-    if: github.event_name != 'schedule'
+    if: needs.mutation_modules.outputs.modules != '[]'
     runs-on: ubuntu-latest
     # The step cuts the module at the ceiling of docs/operacao/017; the rest is setup and restore.
     timeout-minutes: 35
@@ -364,28 +374,33 @@ jobs:
           MODULE: ${{ matrix.module }}
         run: python tools/verify-code/verify.py --step mutation --module "$MODULE"
 
-  # Aggregates the matrix under the name the check always had. It always reports: skipped matrix
-  # only when the classification dispensed it, green otherwise (a failed classification is a failure).
+  # Aggregates the matrix under the name the check always had. It always reports: everything skipped
+  # when the classification dispensed it, an empty matrix when the list declared that no module is
+  # reached, green otherwise (a failed classification or list is a failure).
   mutation:
     name: Mutação nos módulos críticos
     needs: [changes, mutation_modules, mutation_module]
-    if: always() && github.event_name != 'schedule'
+    if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Exigir a lista e todos os módulos da matriz verdes, ou dispensados quando o diff só tem documentos que nenhum código lê
+      - name: Exigir a lista e os módulos alcançados verdes, ou dispensados quando o alcance diz que não há
         env:
           CLASSIFICATION: ${{ needs.changes.result }}
           HEAVY: ${{ needs.changes.outputs.heavy }}
-          RESULTS: ${{ needs.mutation_modules.result }} ${{ needs.mutation_module.result }}
+          LISTED: ${{ needs.mutation_modules.result }}
+          MODULES: ${{ needs.mutation_modules.outputs.modules }}
+          MATRIX: ${{ needs.mutation_module.result }}
         run: |
-          echo "classificação: $CLASSIFICATION, heavy=$HEAVY, resultados: $RESULTS"
-          wanted=success
+          echo "classificação: $CLASSIFICATION, heavy=$HEAVY, lista: $LISTED, módulos: $MODULES, matriz: $MATRIX"
+          list=success
+          matrix=success
           if [ "$CLASSIFICATION" = success ] && [ "$HEAVY" = false ]; then
-            wanted=skipped
+            list=skipped
+            matrix=skipped
+          elif [ "$CLASSIFICATION" = success ] && [ "$LISTED" = success ] && [ "$MODULES" = '[]' ]; then
+            matrix=skipped
           fi
-          for result in $RESULTS; do
-            [ "$result" = "$wanted" ] || exit 1
-          done
+          [ "$LISTED" = "$list" ] && [ "$MATRIX" = "$matrix" ] || exit 1
 
   ruler_proof:
     name: Prova de que a régua reprova o que deve recusar

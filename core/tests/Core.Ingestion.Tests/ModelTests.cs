@@ -9,7 +9,7 @@ public sealed class ModelTests
     [Fact]
     public void TheToStringOfAUnitTellsOnlyWhatItCarries()
     {
-        var full = new ReadUnit(Marker, Marker, Units.First, Marker, OnePassage);
+        var full = new ReadUnit(Marker, Marker, Units.First, 0, OnePassage);
         var bare = new ReadUnit(Marker, null, null, null, []);
 
         Assert.Equal(
@@ -20,7 +20,7 @@ public sealed class ModelTests
     [Fact]
     public void TheToStringOfTheFormsTellsOnlyHowManyPartsTheyHaveAndWhetherThereIsAMoment()
     {
-        var message = new Message(Marker, Units.First, Marker, Marker);
+        var message = new Message(Marker, Units.First, 0, Marker, 0);
 
         Assert.Equal(
             [

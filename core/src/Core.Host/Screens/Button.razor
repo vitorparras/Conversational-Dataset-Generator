@@ -1,0 +1,51 @@
+@if (Href is null)
+{
+    <button id="@Id" class="@Classes" type="@Type" disabled="@Disabled" data-shortcut="@Shortcut" aria-keyshortcuts="@Shortcut">@ChildContent@Key</button>
+}
+else
+{
+    <a id="@Id" class="@Classes" href="@Href" data-swap="@Swap" data-shortcut="@Shortcut" aria-keyshortcuts="@Shortcut">@ChildContent@Key</a>
+}
+
+@code {
+    /// <summary>How much the action stands out: one primary per screen at most, and danger only for what cannot be undone.</summary>
+    public enum Look
+    {
+        Primary,
+        Secondary,
+        Quiet,
+        Danger,
+    }
+
+    [Parameter]
+    public string? Id { get; set; }
+
+    [Parameter]
+    public Look Kind { get; set; } = Look.Primary;
+
+    /// <summary>The kind of the button inside a form; ignored when <see cref="Href"/> makes it a link.</summary>
+    [Parameter]
+    public string Type { get; set; } = "submit";
+
+    /// <summary>Where the action goes when it is a link rather than a button of a form.</summary>
+    [Parameter]
+    public string? Href { get; set; }
+
+    /// <summary>The region the link swaps instead of loading the page (decision 0010).</summary>
+    [Parameter]
+    public string? Swap { get; set; }
+
+    /// <summary>The key that fires the action with the focus outside a field, shown beside the label.</summary>
+    [Parameter]
+    public string? Shortcut { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter, EditorRequired]
+    public RenderFragment? ChildContent { get; set; }
+
+    private string Classes => $"button button--{Kind.ToString().ToLowerInvariant()}";
+
+    private RenderFragment? Key => Shortcut is null ? null : @<kbd class="button__key" aria-hidden="true">@Shortcut</kbd>;
+}

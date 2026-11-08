@@ -19,6 +19,12 @@ internal static class CustodyStatements
     /// <summary>The SQLSTATE raised when a row of content that was emptied is changed, and when a map is added to an item that was emptied (migration 0016).</summary>
     internal const string EmptiedSqlState = "CE004";
 
+    /// <summary>
+    /// The SQLSTATE raised when content is added to a batch that is not open, when a batch changes any way but the one closing it allows,
+    /// and when a batch is removed (migration 0034).
+    /// </summary>
+    internal const string BatchSqlState = "CE006";
+
     /// <summary>Every field of every event that the digest covers, with the two digests, in the order of the sequence: what the verification reads.</summary>
     internal const string ReadChain = """
         SELECT sequence, pg_catalog.timestamptz_send(occurred_at) AS occurred_at_send, actor_person_id, actor_system, item_kind, item_id, step, reason, corrects,
@@ -29,11 +35,12 @@ internal static class CustodyStatements
 
     /// <summary>The last event that records a verification: the moment, the reason that says whether it held, how many events it read and, when it failed, the first inconsistent one.</summary>
     internal const string ReadLastVerification = """
-        SELECT occurred_at, reason, item_id, corrects
-        FROM public.custody_event
-        WHERE step = @step
-        ORDER BY sequence DESC
-        LIMIT 1
+        SELECT e.occurred_at, e.reason, e.item_id, e.corrects, e.reference, p.name AS asker
+        FROM public.custody_event e
+        LEFT JOIN public.person p ON p.id = CASE WHEN e.reference ~ '^requested-by/[0-9]{1,18}$' THEN substring(e.reference FROM 14)::bigint END
+        WHERE e.step = @step
+        ORDER BY e.sequence DESC
+        LIMIT @limit
         """;
 
     internal const string ReadOpenOwnerWindow = """

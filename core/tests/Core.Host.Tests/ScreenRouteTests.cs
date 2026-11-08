@@ -2,6 +2,8 @@ using Core.Host.Endpoints;
 using Core.Host.Screens;
 using Core.Platform.Configuration;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Core.Host.Tests;
 
@@ -26,7 +28,7 @@ public sealed class ScreenRouteTests : IAsyncLifetime
         CompositionRoot.Compose(builder, ClosedConfiguration.Load(new ConfigurationSchema([HostConfiguration.Section])).View, fileLog: null);
         app = builder.Build();
         ScreenAssets.Map(app);
-        _ = app.MapGet(Page, () => ScreenResult.Of(typeof(ScreenHeader), Title)).WithMetadata(new SessionOpen("the test of the screens"));
+        _ = app.MapGet(Page, Show).WithMetadata(new SessionOpen("the test of the screens"));
         await app.StartAsync(TestContext.Current.CancellationToken);
         client = new HttpClient { BaseAddress = address };
     }
@@ -62,6 +64,16 @@ public sealed class ScreenRouteTests : IAsyncLifetime
         Assert.Contains($"href=\"{ScreenAssets.StyleRoute}\"", page, StringComparison.Ordinal);
         Assert.Contains("<header class=\"header\">", page, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public async Task APageIsKeptByNoCache()
+    {
+        using var response = await Client.GetAsync(new Uri(Page, UriKind.Relative), TestContext.Current.CancellationToken);
+
+        Assert.True(response.Headers.CacheControl?.NoStore);
+    }
+
+    private static RazorComponentResult<ScreenFrame> Show(HttpContext context) => ScreenResult.Of(context, typeof(ScreenHeader), Title);
 
     private static string Sniffing(HttpResponseMessage response) =>
         response.Headers.TryGetValues("X-Content-Type-Options", out var values) ? string.Join(',', values) : "";

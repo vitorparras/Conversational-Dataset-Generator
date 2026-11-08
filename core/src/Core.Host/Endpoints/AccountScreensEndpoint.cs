@@ -59,7 +59,7 @@ internal static class AccountScreensEndpoint
         return Answer(context, await change.ChangeAsync(who, Typed(form, PasswordScreen.CurrentField), Typed(form, PasswordScreen.ReplacementField), context.RequestAborted));
     }
 
-    private static string Typed(IFormCollection? form, string field) => form?[field].ToString() ?? string.Empty;
+    private static string Typed(IFormCollection? form, string field) => form is null ? string.Empty : form[field].ToString();
 
     private static IResult Answer(HttpContext context, PasswordChangeResult result) => result.Outcome switch
     {

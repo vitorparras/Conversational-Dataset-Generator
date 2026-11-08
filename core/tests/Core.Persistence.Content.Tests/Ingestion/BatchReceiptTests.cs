@@ -38,7 +38,7 @@ public sealed class BatchReceiptTests
 
         var entry = await new BatchRegister(world.DataSource).ReadAsync([1], batch, TestContext.Current.CancellationToken);
 
-        Assert.Null(kept);
+        Assert.Null(entry!.Receipt);
     }
 
     [DatabaseTheory]

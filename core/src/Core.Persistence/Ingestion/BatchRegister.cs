@@ -20,12 +20,14 @@ public sealed class BatchRegister
     private const int DigestColumn = 7;
     private const int WarningColumn = 8;
     private const int OriginColumn = 9;
+    private const int SkipCeiling = 10_000;
+    private const int TakeCeiling = 1_000;
 
     /// <summary>The most batches a page may skip: the server reads that many for each domain granted before it cuts the page, so the cost has a ceiling.</summary>
-    public const int MostSkipped = 10_000;
+    public static int MostSkipped => SkipCeiling;
 
     /// <summary>The most batches a page may take.</summary>
-    public const int MostTaken = 1_000;
+    public static int MostTaken => TakeCeiling;
 
     private readonly NpgsqlDataSource dataSource;
 
@@ -55,11 +57,7 @@ public sealed class BatchRegister
         var found = new List<BatchEntry>();
         foreach (var domain in filter.Domains.Distinct())
         {
-            var transaction = await ContentTransaction.BeginAsync(dataSource, domain, cancellationToken).ConfigureAwait(false);
-            await using (transaction.ConfigureAwait(false))
-            {
-                found.AddRange(await ListInAsync(transaction, domain, filter, cancellationToken).ConfigureAwait(false));
-            }
+            found.AddRange(await ListOneAsync(domain, filter, cancellationToken).ConfigureAwait(false));
         }
 
         var page = found.OrderByDescending(entry => entry.SubmittedAt).ThenByDescending(entry => entry.Id).Skip(filter.Skip).Take(filter.Take).ToList();
@@ -81,18 +79,33 @@ public sealed class BatchRegister
     {
         foreach (var domain in domains.Distinct())
         {
-            var transaction = await ContentTransaction.BeginAsync(dataSource, domain, cancellationToken).ConfigureAwait(false);
-            await using (transaction.ConfigureAwait(false))
+            var found = await ReadOneAsync(domain, batchId, cancellationToken).ConfigureAwait(false);
+            if (found is not null)
             {
-                var found = await ReadInAsync(transaction, domain, batchId, cancellationToken).ConfigureAwait(false);
-                if (found.Count > 0)
-                {
-                    return found[0];
-                }
+                return found;
             }
         }
 
         return null;
+    }
+
+    private async Task<IReadOnlyList<BatchEntry>> ListOneAsync(int domain, BatchFilter filter, CancellationToken cancellationToken)
+    {
+        var transaction = await ContentTransaction.BeginAsync(dataSource, domain, cancellationToken).ConfigureAwait(false);
+        await using (transaction.ConfigureAwait(false))
+        {
+            return await ListInAsync(transaction, domain, filter, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task<BatchEntry?> ReadOneAsync(int domain, long batchId, CancellationToken cancellationToken)
+    {
+        var transaction = await ContentTransaction.BeginAsync(dataSource, domain, cancellationToken).ConfigureAwait(false);
+        await using (transaction.ConfigureAwait(false))
+        {
+            var found = await ReadInAsync(transaction, domain, batchId, cancellationToken).ConfigureAwait(false);
+            return found.Count > 0 ? found[0] : null;
+        }
     }
 
     private static async Task<IReadOnlyList<BatchEntry>> ListInAsync(ContentTransaction scope, int domain, BatchFilter filter, CancellationToken cancellationToken)

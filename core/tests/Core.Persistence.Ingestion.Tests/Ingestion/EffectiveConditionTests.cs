@@ -83,7 +83,7 @@ public sealed class EffectiveConditionTests
     {
         var order = new[] { "permissiva", "intermediaria", "restrita" };
 
-        Assert.Equal(order, order.Select(name => EffectiveCondition.Of(Known, new[] { name })));
+        Assert.Equal(order, order.Select(name => EffectiveCondition.Of(Known, [name])));
     }
 
     [Fact]

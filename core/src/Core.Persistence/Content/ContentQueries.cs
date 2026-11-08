@@ -53,16 +53,6 @@ public static class ContentQueries
     /// <summary>The batches of the domain declared, as the database writes them, for the copy of the data.</summary>
     internal const string ReadCopyIngestionBatch = "SELECT pg_catalog.to_jsonb(t)::text FROM content.ingestion_batch t ORDER BY id";
 
-    /// <summary>The batches of the domain declared, newest first, by state and by the moment of the submission, with what each submission brought.</summary>
-    internal const string ListIngestionBatches =
-        "SELECT id, state, motive, opened_by, opened_at, submission, received_bytes, received_digest, warning FROM content.ingestion_batch "
-        + "WHERE (@state::text IS NULL OR state = @state) AND (@from::timestamptz IS NULL OR opened_at >= @from) AND (@until::timestamptz IS NULL OR opened_at < @until) "
-        + "ORDER BY opened_at DESC, id DESC LIMIT @limit";
-
-    /// <summary>One batch of the domain declared, as the register shows it.</summary>
-    internal const string ReadIngestionBatchEntry =
-        "SELECT id, state, motive, opened_by, opened_at, submission, received_bytes, received_digest, warning FROM content.ingestion_batch WHERE id = @id";
-
     /// <summary>Closes a batch that is open, accepted or rejected with its motive; the database refuses it without the event of the closing in the same transaction.</summary>
     internal const string CloseIngestionBatch = "UPDATE content.ingestion_batch SET state = @state, motive = @motive WHERE id = @id AND state = 'open'";
 

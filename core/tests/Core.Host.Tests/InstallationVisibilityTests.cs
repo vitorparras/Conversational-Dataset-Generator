@@ -86,5 +86,6 @@ public sealed class InstallationVisibilityTests
     private static void Announced(ILogger logger, InstallationKind kind) =>
         InstallationConfiguration.Announce(
             logger,
-            new ServiceCollection().AddSingleton(new Installation(kind)).AddSingleton(new SafekeepingDeclaration("2026-10-01", "PESSOA_1")).BuildServiceProvider());
+            new ServiceCollection().AddSingleton(new Installation(kind)).AddSingleton(new SafekeepingDeclaration("2026-10-01", "PESSOA_1"))
+                .AddSingleton(new StartupReport([], DateTimeOffset.UnixEpoch)).BuildServiceProvider());
 }

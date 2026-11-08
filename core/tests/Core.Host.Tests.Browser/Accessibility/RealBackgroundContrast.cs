@@ -41,7 +41,7 @@ internal static class RealBackgroundContrast
               if (rect.width >= 1 && rect.height >= 1 && rect.right > 0 && rect.bottom > 0) { add(e, node.textContent.trim(), rect, getComputedStyle(e).color); }
             }
           }
-          for (const e of document.querySelectorAll('input:not([type=hidden]),textarea')) {
+          for (const e of document.querySelectorAll('input:not([type=hidden],[type=radio],[type=checkbox],[type=file],[type=range],[type=color],[type=image]),textarea')) {
             const shown = e.value || e.placeholder;
             if (!shown || !e.checkVisibility()) { continue; }
             const s = getComputedStyle(e);

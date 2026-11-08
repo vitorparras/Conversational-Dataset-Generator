@@ -21,6 +21,12 @@ public sealed class BatchRegister
     private const int WarningColumn = 8;
     private const int OriginColumn = 9;
 
+    /// <summary>The most batches a page may skip: the server reads that many for each domain granted before it cuts the page, so the cost has a ceiling.</summary>
+    public const int MostSkipped = 10_000;
+
+    /// <summary>The most batches a page may take.</summary>
+    public const int MostTaken = 1_000;
+
     private readonly NpgsqlDataSource dataSource;
 
     /// <summary>The register over the database.</summary>
@@ -38,7 +44,9 @@ public sealed class BatchRegister
     {
         ArgumentNullException.ThrowIfNull(filter);
         ArgumentOutOfRangeException.ThrowIfNegative(filter.Skip);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(filter.Skip, MostSkipped);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(filter.Take);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(filter.Take, MostTaken);
         return ListingAsync(filter, cancellationToken);
     }
 
@@ -47,7 +55,11 @@ public sealed class BatchRegister
         var found = new List<BatchEntry>();
         foreach (var domain in filter.Domains.Distinct())
         {
-            found.AddRange(await InDomainAsync(domain, scope => ListInAsync(scope, domain, filter, cancellationToken), cancellationToken).ConfigureAwait(false));
+            var transaction = await ContentTransaction.BeginAsync(dataSource, domain, cancellationToken).ConfigureAwait(false);
+            await using (transaction.ConfigureAwait(false))
+            {
+                found.AddRange(await ListInAsync(transaction, domain, filter, cancellationToken).ConfigureAwait(false));
+            }
         }
 
         var page = found.OrderByDescending(entry => entry.SubmittedAt).ThenByDescending(entry => entry.Id).Skip(filter.Skip).Take(filter.Take).ToList();
@@ -58,34 +70,29 @@ public sealed class BatchRegister
     /// <param name="domains">The domains that may be seen.</param>
     /// <param name="batchId">The batch.</param>
     /// <param name="cancellationToken">Cancels the reading.</param>
-    public Task<BatchEntry?> ReadAsync(IReadOnlyCollection<int> domains, long batchId, CancellationToken cancellationToken)
+    public Task<BatchEntry?> ReadAsync(IEnumerable<int> domains, long batchId, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(domains);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(batchId);
         return ReadingAsync(domains, batchId, cancellationToken);
     }
 
-    private async Task<BatchEntry?> ReadingAsync(IReadOnlyCollection<int> domains, long batchId, CancellationToken cancellationToken)
+    private async Task<BatchEntry?> ReadingAsync(IEnumerable<int> domains, long batchId, CancellationToken cancellationToken)
     {
         foreach (var domain in domains.Distinct())
         {
-            var found = await InDomainAsync(domain, scope => ReadInAsync(scope, domain, batchId, cancellationToken), cancellationToken).ConfigureAwait(false);
-            if (found.Count > 0)
+            var transaction = await ContentTransaction.BeginAsync(dataSource, domain, cancellationToken).ConfigureAwait(false);
+            await using (transaction.ConfigureAwait(false))
             {
-                return found[0];
+                var found = await ReadInAsync(transaction, domain, batchId, cancellationToken).ConfigureAwait(false);
+                if (found.Count > 0)
+                {
+                    return found[0];
+                }
             }
         }
 
         return null;
-    }
-
-    private async Task<IReadOnlyList<BatchEntry>> InDomainAsync(int domain, Func<ContentTransaction, Task<IReadOnlyList<BatchEntry>>> read, CancellationToken cancellationToken)
-    {
-        var transaction = await ContentTransaction.BeginAsync(dataSource, domain, cancellationToken).ConfigureAwait(false);
-        await using (transaction.ConfigureAwait(false))
-        {
-            return await read(transaction).ConfigureAwait(false);
-        }
     }
 
     private static async Task<IReadOnlyList<BatchEntry>> ListInAsync(ContentTransaction scope, int domain, BatchFilter filter, CancellationToken cancellationToken)
@@ -93,7 +100,7 @@ public sealed class BatchRegister
         var command = scope.CreateCommand(ContentQueries.ListIngestionBatches);
         await using (command.ConfigureAwait(false))
         {
-            _ = command.Parameters.Add(new NpgsqlParameter("state", NpgsqlDbType.Text) { Value = filter.State is { } state ? state.ToString().ToLowerInvariant() : DBNull.Value });
+            _ = command.Parameters.Add(new NpgsqlParameter("state", NpgsqlDbType.Text) { Value = filter.State is { } state ? NameOf(state) : DBNull.Value });
             _ = command.Parameters.Add(new NpgsqlParameter("from", NpgsqlDbType.TimestampTz) { Value = filter.From is { } since ? since : DBNull.Value });
             _ = command.Parameters.Add(new NpgsqlParameter("until", NpgsqlDbType.TimestampTz) { Value = filter.Until is { } until ? until : DBNull.Value });
             _ = command.Parameters.Add(new NpgsqlParameter("limit", NpgsqlDbType.Integer) { Value = filter.Skip + filter.Take });
@@ -125,6 +132,14 @@ public sealed class BatchRegister
 
         return entries;
     }
+
+    private static string NameOf(BatchState state) => state switch
+    {
+        BatchState.Open => "open",
+        BatchState.Accepted => "accepted",
+        BatchState.Rejected => "rejected",
+        _ => throw new ArgumentOutOfRangeException(nameof(state), state, "The state is not one a batch has."),
+    };
 
     private static BatchEntry Entry(NpgsqlDataReader reader, int domain) => new()
     {

@@ -47,7 +47,12 @@ internal abstract class ScreenHostBase : IAsyncDisposable
     protected ScratchDatabase Database { get; }
 
     /// <summary>The host, migrated and with its people, once <paramref name="prepare"/> has written what the test needs in the database.</summary>
-    protected static async Task<T> StartAsync<T>(Func<ScratchDatabase, T> make, Func<T, Task> prepare, CancellationToken cancellationToken)
+    protected static Task<T> StartAsync<T>(Func<ScratchDatabase, T> make, Func<T, Task> prepare, CancellationToken cancellationToken)
+        where T : ScreenHostBase =>
+        StartAsync(make, prepare, _ => Task.CompletedTask, cancellationToken);
+
+    /// <summary>The same, with <paramref name="finish"/> run once the host is up and its people exist, for what only they can write, such as a verification of the chain.</summary>
+    protected static async Task<T> StartAsync<T>(Func<ScratchDatabase, T> make, Func<T, Task> prepare, Func<T, Task> finish, CancellationToken cancellationToken)
         where T : ScreenHostBase
     {
         var database = await ScratchDatabase.CreateAsync();
@@ -58,6 +63,7 @@ internal abstract class ScreenHostBase : IAsyncDisposable
             await prepare(host);
             await host.RunAsync(cancellationToken);
             await host.AddPeopleAsync(cancellationToken);
+            await finish(host);
             return host;
         }
         catch
@@ -76,6 +82,9 @@ internal abstract class ScreenHostBase : IAsyncDisposable
 
         await Database.DisposeAsync();
     }
+
+    /// <summary>The services of the running host, as a screen asks for them.</summary>
+    protected IServiceProvider Services => (app ?? throw new InvalidOperationException("The host is not running.")).Services;
 
     /// <summary>The services the screens read, besides the session, the people and the data source.</summary>
     protected abstract void AddServices(IServiceCollection services);

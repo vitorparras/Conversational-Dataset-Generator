@@ -62,7 +62,7 @@ internal static class HostConfiguration
                     SafekeepingConfiguration.Section,
                     migrating ? PasswordConfiguration.SectionWhenMigrating : PasswordConfiguration.Section,
                     migrating ? SessionConfiguration.SectionWhenMigrating : SessionConfiguration.Section,
-                    migrating ? IngestionConfiguration.SectionWhenMigrating : IngestionConfiguration.Section,
+                    migrating ? AdmissionConfiguration.SectionWhenMigrating : AdmissionConfiguration.Section,
                     migrating ? VerificationConfiguration.SectionWhenMigrating : VerificationConfiguration.Section,
                     migrating ? SealConfiguration.SectionWhenMigrating : SealConfiguration.Section,
                     AuditSection(migrating, comparing),

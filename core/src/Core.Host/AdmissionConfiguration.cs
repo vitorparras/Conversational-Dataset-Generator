@@ -5,7 +5,7 @@ using ConfigurationSection = Core.Platform.Configuration.ConfigurationSection;
 namespace Core.Host;
 
 /// <summary>The conditions under which material may come in, from the most restrictive to the most permissive: declared by every installation, with no default.</summary>
-internal static class IngestionConfiguration
+internal static class AdmissionConfiguration
 {
     internal const string ConditionsPath = SectionName + ":" + ConditionsKey;
 

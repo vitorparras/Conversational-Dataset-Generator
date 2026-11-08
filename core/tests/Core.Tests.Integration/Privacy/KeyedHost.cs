@@ -116,6 +116,7 @@ internal static class KeyedHost
         $"--Passwords:WorkFactor={workFactor}",
         $"--Session:IdleTimeout={idleTimeout}",
         "--Session:AbsoluteTimeout=08:00:00",
+        "--Ingestion:Conditions=restrita,intermediaria,permissiva",
         "--Custody:VerificationInterval=00:05:00",
         "--Custody:SealSituation=Manual",
         "--Recognizer:Kind=fake",

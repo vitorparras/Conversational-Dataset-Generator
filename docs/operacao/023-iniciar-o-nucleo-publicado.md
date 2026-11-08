@@ -9,13 +9,13 @@ e [028](028-criar-primeira-pessoa.md) (a primeira pessoa), e antes de [022](022-
 
 Valores de 021, a trocar: `Passwords:WorkFactor` ([0047](../decisoes/0047-fator-de-trabalho-das-senhas.md)),
 de 600000 a 10000000 com `real` e de 1 a 10000000 com `demonstracao` (o bloco usa 100000);
-`Session:*`, prazos; `Custody:VerificationInterval`, a cadeia; `Audit:*`, pasta, intervalo. Roda
+`Session:*`, prazos; `Ingestion:Conditions`, as condições de origem, da mais restrita à mais permissiva; `Custody:VerificationInterval`, a cadeia; `Audit:*`, pasta, intervalo. Roda
 como a conta de [032](032-conta-do-nucleo.md), em segundo plano, com a saída em `/tmp/nucleo.saida`:
 
 ```
 : > /tmp/nucleo.saida
 cd /opt/cdg/nucleo
-( CDG_Database__Password="$(cat /tmp/senha-app)" CDG_Session__IdleTimeout=00:30:00 CDG_Session__AbsoluteTimeout=08:00:00 CDG_Custody__VerificationInterval=00:05:00 CDG_Custody__SealSituation=Manual ./Core.Host --Host:Urls=https://127.0.0.1:5080 \
+( CDG_Database__Password="$(cat /tmp/senha-app)" CDG_Session__IdleTimeout=00:30:00 CDG_Session__AbsoluteTimeout=08:00:00 CDG_Ingestion__Conditions=restrita,intermediaria,permissiva CDG_Custody__VerificationInterval=00:05:00 CDG_Custody__SealSituation=Manual ./Core.Host --Host:Urls=https://127.0.0.1:5080 \
   --Installation:Kind=demonstracao --Passwords:WorkFactor=100000 --MasterKey:File=/etc/cdg/custodia/chave \
   --MasterKey:LabelsFile=/etc/cdg/custodia/rotulos --MasterKey:EpochsFile=/etc/cdg/custodia/epocas --Tls:CertificateFile=/etc/cdg/tls/certificado.pem \
   --Tls:KeyFile=/etc/cdg/tls/chave.pem --Database:Host=db:5432 --Database:Name=cdg \

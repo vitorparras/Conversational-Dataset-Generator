@@ -22,7 +22,9 @@ próprio.
 
 ## O que o arquivo tem
 
-- **formato:** exatamente **cdg-conversa/1**. Outra versão é recusada como formato não lido.
+- **formato:** exatamente **cdg-conversa/1**, e **primeiro membro** do objeto: a barreira de envio o
+  reconhece nos primeiros 4 KiB, e em outra posição o arquivo é recusado como formato não
+  confirmado. Outra versão é recusada como formato não lido.
 - **mensagens:** a lista. Cada mensagem tem `id`, `remetente`, `instante` e `texto`, todos texto.
 - **id:** único no arquivo. É só um nome para **responde_a**, e não dá ordem a nada.
 - **instante:** RFC 3339 com fuso escrito, como `Z` ou `+03:00`. Sem fuso o arquivo é recusado: o
@@ -36,7 +38,12 @@ próprio.
 
 O JSON é lido sem comentário, sem vírgula final e sem campo que o formato não tem. Chave repetida,
 tipo trocado, campo faltando, profundidade acima de 4 níveis e arquivo acima de 16 MiB recusam o
-arquivo inteiro. Não existe leitura parcial: ou o arquivo foi lido todo, ou nada dele passa adiante.
+arquivo inteiro. Os limites são: até 100 000 mensagens, até 64 KiB por **texto** (em bytes, não em
+caracteres) e nenhum **id**, **remetente** ou **responde_a** que pareça endereço (com `://`) ou
+caminho (subir pasta com `../`, começar por barra, barra invertida ou `~/`, ou ter letra de unidade
+e dois-pontos no começo): o leitor recusa e nunca segue. O **texto** é conteúdo e pode trazer
+endereço ou caminho. Não existe leitura parcial: ou o arquivo foi lido todo, ou nada dele passa
+adiante.
 
 O motivo da recusa nomeia o defeito (arquivo danificado, cortado antes do fim ou formato que esta
 versão não lê) e **nunca traz palavra do conteúdo**.

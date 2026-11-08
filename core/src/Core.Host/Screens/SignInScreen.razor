@@ -7,6 +7,10 @@
     {
         <Notice>Cadastro vazio: ainda não há ninguém para entrar. Quem administra o servidor cria a primeira pessoa com o comando <code>create-person</code>.</Notice>
     }
+    @if (Unavailable)
+    {
+        <Notice Kind="Notice.Tone.Error">A entrada não pôde ser registrada agora porque o servidor estava ocupado. Nada foi recusado: tente de novo.</Notice>
+    }
     @if (Refused)
     {
         <Notice Kind="Notice.Tone.Error">Nome ou senha não conferem. Confira os dois e tente de novo.</Notice>
@@ -30,6 +34,10 @@
     /// <summary>Whether the entry was refused: one text for an unknown name, a wrong password and a wait, so the page never tells which.</summary>
     [Parameter]
     public bool Refused { get; set; }
+
+    /// <summary>Whether the entry could not be recorded because the chain stayed busy: the credential was not refused, and the page says so and asks to try again.</summary>
+    [Parameter]
+    public bool Unavailable { get; set; }
 
     /// <summary>Whether no one is registered yet, so that the page points to the step on the server.</summary>
     [Parameter]

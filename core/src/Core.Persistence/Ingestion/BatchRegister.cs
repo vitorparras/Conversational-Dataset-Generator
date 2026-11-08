@@ -19,12 +19,14 @@ public sealed class BatchRegister
     private const int BytesColumn = 6;
     private const int DigestColumn = 7;
     private const int WarningColumn = 8;
+    private const int SkipCeiling = 10_000;
+    private const int TakeCeiling = 1_000;
 
     /// <summary>The most batches a page may skip: the server reads that many for each domain granted before it cuts the page, so the cost has a ceiling.</summary>
-    public static int MostSkipped => 10_000;
+    public static int MostSkipped => SkipCeiling;
 
     /// <summary>The most batches a page may take.</summary>
-    public static int MostTaken => 1_000;
+    public static int MostTaken => TakeCeiling;
 
     private readonly NpgsqlDataSource dataSource;
 

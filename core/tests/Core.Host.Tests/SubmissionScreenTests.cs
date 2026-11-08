@@ -39,6 +39,7 @@ public sealed class SubmissionScreenTests
         Assert.Contains("type=\"file\"", page, StringComparison.Ordinal);
         Assert.Contains("Até 10 MiB.", page, StringComparison.Ordinal);
         Assert.DoesNotContain("role=\"alert\"", page, StringComparison.Ordinal);
+        Assert.Contains("id=\"originUnknown\" type=\"checkbox\" name=\"originUnknown\" value=\"true\" />", page, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -58,6 +59,7 @@ public sealed class SubmissionScreenTests
         Assert.Contains("value=\"zqx_media\" checked", page, StringComparison.Ordinal);
         Assert.Contains("value=\"comment\" checked", page, StringComparison.Ordinal);
         Assert.Contains("value=\"zqx-origem-digitada\"", page, StringComparison.Ordinal);
+        Assert.Contains("id=\"originUnknown\" type=\"checkbox\" name=\"originUnknown\" value=\"true\" checked aria-invalid=\"true\" aria-describedby=\"origem-erro\"", page, StringComparison.Ordinal);
     }
 
     [Theory]

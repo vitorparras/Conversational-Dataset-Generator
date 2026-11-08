@@ -11,9 +11,6 @@ internal static class SubmissionTexts
     /// <summary>The field of the form the file goes in, which the service never names: a form without a file is refused by the screen before it calls anything.</summary>
     internal const string FileField = "file";
 
-    /// <summary>The code the screen gives a field the person left empty.</summary>
-    internal const string Missing = "missing";
-
     /// <summary>What the screen says when the submission reached the service and no batch could be opened or closed.</summary>
     internal const string NotRecorded =
         "O envio não foi registrado e nenhum lote foi aberto. Envie de novo; se repetir, quem administra o servidor vê a causa no registro do sistema.";

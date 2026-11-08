@@ -210,7 +210,8 @@ public sealed class DomainLabelProcessTests
             CustodyFiles.SyntheticKey(), DerivationLabels.Of(first), CustodyEpochs.Of(new Dictionary<int, byte[]> { [1] = CustodyFiles.SyntheticEpoch(1) }), "test");
         var keys = new ItemKeys(new KeyDerivation(reading.Key!, reading.Labels), reading.Epochs);
         await using var app = NpgsqlDataSource.Create(database.AppConnectionString);
-        var writer = new ContentWriter(app, new ProtectedContent(reading.Labels, keys, new HashSet<string>(first, StringComparer.Ordinal)));
+        await SeededBatches.SeedAsync(database, 1);
+        var writer = new SeededWriter(new ContentWriter(app, new ProtectedContent(reading.Labels, keys, new HashSet<string>(first, StringComparer.Ordinal))));
         _ = await writer.AddItemTextAsync(1, new NewItemText("zqx-texto"), TestContext.Current.CancellationToken);
     }
 

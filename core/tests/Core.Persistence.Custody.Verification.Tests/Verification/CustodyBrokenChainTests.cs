@@ -143,14 +143,15 @@ public sealed class CustodyBrokenChainTests
     public async Task AfterAFailureContentIsNotWrittenAndTheRefusalIsTheSameWhateverTheTable()
     {
         await using var database = new CustodyDatabase();
-        await BreakAsync(database);
         await database.RunAsOwnerAsync("INSERT INTO public.domain (name) VALUES ('zqx-dominio')");
+        await database.RunAsOwnerAsync(SeededBatches.Statements(1));
+        await BreakAsync(database);
         var source = await database.DataSourceAsync();
 
         var refused = await Assert.ThrowsAsync<PostgresException>(async () =>
         {
             await using var transaction = await ContentTransaction.BeginAsync(source, 1, TestContext.Current.CancellationToken);
-            await using var command = transaction.CreateCommand("INSERT INTO content.item_text (domain_id, raw_text) VALUES (1, '\\x00')");
+            await using var command = transaction.CreateCommand("INSERT INTO content.item_text (domain_id, batch_id, raw_text) VALUES (1, 1, '\\x00')");
             _ = await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
         });
 

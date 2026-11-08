@@ -32,4 +32,12 @@ internal static class ScreenResult
         page.StatusCode = StatusCodes.Status404NotFound;
         return page;
     }
+
+    /// <summary>The page of a failure no route handled, with 500: what happened and what to do, and nothing of the failure.</summary>
+    internal static RazorComponentResult<ScreenFrame> Failure(HttpContext context)
+    {
+        var page = Of(context, typeof(FailureScreen), FailureScreen.Title);
+        page.StatusCode = StatusCodes.Status500InternalServerError;
+        return page;
+    }
 }

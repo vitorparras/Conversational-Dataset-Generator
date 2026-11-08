@@ -1,0 +1,12 @@
+@using Core.Host.Endpoints
+
+<h1>@Title</h1>
+<div>
+    <p>O servidor teve uma falha ao montar esta página. Tente de novo em instantes; se a falha se repetir, avise quem administra o sistema.</p>
+    <Button Href="@ScreenPaths.Home" Kind="Button.Look.Secondary">Ir para o início</Button>
+</div>
+
+@code {
+    /// <summary>The title of the page and of its heading; the text says what happened and what to do, and nothing of the failure itself.</summary>
+    internal const string Title = "Falha ao abrir a página";
+}

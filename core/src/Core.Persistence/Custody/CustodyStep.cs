@@ -95,4 +95,7 @@ public enum CustodyStep
 
     /// <summary>A batch of ingestion was closed, accepted or rejected; the item is the batch, the reason says which, and a rejection carries its motive as the reference.</summary>
     BatchClosed,
+
+    /// <summary>A person changed their own password: the item and the author are that person and the reference is how many of their other sessions it ended, never a value of a password.</summary>
+    PasswordChanged,
 }

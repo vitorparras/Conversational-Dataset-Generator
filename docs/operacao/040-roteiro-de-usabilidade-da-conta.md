@@ -38,10 +38,11 @@ executa não é quem escreveu a tela.
 ## Variações
 
 Repita as tarefas 1, 2 e 4 só pelo teclado, depois com tema escuro, transparência reduzida e
-contraste alto do sistema, e com a janela na largura de um celular (390 px). No celular, observe
-onde a pessoa procura "Encerrar": a lista rola para o lado dentro do quadro, e a coluna da ação
-fica à direita da tela. Se ela não achar o botão sem ajuda, o resultado é "ajuda" e abre item
-novo na issue.
+contraste alto do sistema, e com a janela na largura de um celular (390 px). No celular, cada
+sessão aparece em bloco, uma abaixo da outra, com "Início", "Última atividade" e "Ação" escritos
+acima de cada valor, e o "Encerrar" fica à vista sem rolar para o lado. Observe se a pessoa
+distingue as sessões e acha o "Encerrar" da sessão certa. Se ela precisar de ajuda, o resultado
+é "ajuda" e abre item novo na issue.
 
 ## Registro
 

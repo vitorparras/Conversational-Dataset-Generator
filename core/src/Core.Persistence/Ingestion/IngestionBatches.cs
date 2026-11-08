@@ -137,6 +137,16 @@ public sealed class IngestionBatches
         return await CustodyAppend.CommitIfAppendedAsync(scope, appended, cancellationToken).ConfigureAwait(false);
     }
 
+    private static void AddReceipt(NpgsqlCommand command, SubmissionReceipt? receipt)
+    {
+        _ = command.Parameters.Add(Nullable("submission", NpgsqlDbType.Text, receipt?.Submission));
+        _ = command.Parameters.Add(Nullable("bytes", NpgsqlDbType.Bigint, receipt?.Bytes));
+        _ = command.Parameters.Add(Nullable("digest", NpgsqlDbType.Text, receipt?.Digest));
+        _ = command.Parameters.Add(Nullable("warning", NpgsqlDbType.Text, receipt?.Warning));
+    }
+
+    private static NpgsqlParameter Nullable(string name, NpgsqlDbType type, object? value) => new(name, type) { Value = value ?? DBNull.Value };
+
     private static async Task<long> InsertAsync(CustodyScope scope, BatchOpening opening, CancellationToken cancellationToken)
     {
         var command = scope.CreateCommand(ContentQueries.InsertIngestionBatch);
@@ -145,6 +155,7 @@ public sealed class IngestionBatches
             _ = command.Parameters.Add(new NpgsqlParameter("domain", NpgsqlDbType.Integer) { Value = opening.DomainId });
             _ = command.Parameters.Add(Id("author", opening.AuthorId));
             _ = command.Parameters.Add(new NpgsqlParameter("condition", NpgsqlDbType.Text) { Value = opening.Condition });
+            AddReceipt(command, opening.Receipt);
             return (long)(await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false))!;
         }
     }

@@ -1,0 +1,51 @@
+<h1>@Title</h1>
+<p class="lead">Envie um arquivo de material a um domínio, dizendo de onde ele veio e sob qual condição entra. O arquivo é conferido antes de ser gravado.</p>
+@if (BlockedBy is { } blocked)
+{
+    <Panel Id="envio-fechado" Title="Entrada fechada">
+        <Notice Kind="Notice.Tone.Pending">@SubmissionTexts.BlockedOf(blocked)</Notice>
+        <p>Nenhum arquivo pode ser enviado agora. Quem administra o servidor faz o ensaio de recuperação; depois dele, esta tela volta a oferecer o envio.</p>
+    </Panel>
+}
+else if (Answer is { } answer)
+{
+    <SubmissionAnswer Answer="answer" Again="@Action" />
+}
+else
+{
+    @if (NotRecorded)
+    {
+        <Notice Kind="Notice.Tone.Error">@SubmissionTexts.NotRecorded</Notice>
+    }
+    <SubmissionForm Action="@Action" Offer="Offer" Given="Given" Errors="Errors" />
+}
+
+@code {
+    /// <summary>The title of the page and of its entry in the menu.</summary>
+    internal const string Title = "Enviar material";
+
+    /// <summary>Where the form posts and where it opens clean again.</summary>
+    [Parameter, EditorRequired]
+    public string Action { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public SubmissionForm.Choices Offer { get; set; } = null!;
+
+    /// <summary>The code of what keeps the ingestion closed (#584); with it the screen says so and offers no form at all.</summary>
+    [Parameter]
+    public string? BlockedBy { get; set; }
+
+    /// <summary>The submission the service recorded, accepted or rejected; none before a sending.</summary>
+    [Parameter]
+    public SubmissionAnswer.Result? Answer { get; set; }
+
+    /// <summary>Whether the sending reached the service and no batch could be recorded, so the form opens again.</summary>
+    [Parameter]
+    public bool NotRecorded { get; set; }
+
+    [Parameter]
+    public SubmissionForm.Typed Given { get; set; } = SubmissionForm.Typed.Nothing;
+
+    [Parameter]
+    public IReadOnlyDictionary<string, string>? Errors { get; set; }
+}

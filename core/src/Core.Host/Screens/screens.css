@@ -282,6 +282,9 @@ h1 + .lead { margin-top: 0; }
 .data-table__group { padding-top: var(--space-5); font-family: var(--font-display); font-size: var(--text-lg); }
 .data-table code { font-family: var(--font-mono); font-size: var(--text-sm); overflow-wrap: anywhere; }
 
+/* A digest cut to its start for the eye; the whole value stays in the page, for a reader of screens and for whoever copies it. */
+.digest { display: inline-block; max-width: 16ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+
 /* A table that stacks: in a box narrower than --table-min-width (36rem) each row is a block and each cell carries the header of its column, so no column is out of sight. */
 .data-table--stacks { container-type: inline-size; }
 @container (max-width: 36rem) {

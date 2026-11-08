@@ -2,55 +2,77 @@
 @using Core.Persistence.Ingestion
 
 <h1>@Title</h1>
-<p class="lead">Os lotes dos domínios que você alcança, do mais novo ao mais antigo, com o estado, o motivo de uma recusa e o que o envio trouxe. Nenhum texto do material aparece aqui.</p>
+<p class="lead">
+    Os lotes dos domínios que você alcança, do mais novo ao mais antigo, cada um com o domínio, o estado, o motivo de uma recusa e o recibo do envio.
+    Nenhum texto do material aparece aqui.
+</p>
 
-<Panel Id="filtro" Title="Filtrar">
-    <form method="get">
-        <ChoiceGroup Name="@StateKey" Legend="Estado" Options="StateChoices" Value="@(State ?? string.Empty)" />
-        <Field Id="filtro-de" Name="@FromKey" Caption="Enviados a partir de" Type="date" Value="@From" />
-        <Field Id="filtro-ate" Name="@UntilKey" Caption="Enviados até" Type="date" Value="@Until" Error="@PeriodError" />
-        <div class="actions">
-            <Button Id="filtrar" Kind="Button.Look.Secondary">Filtrar</Button>
-            <Button Href="?" Kind="Button.Look.Quiet">Limpar filtro</Button>
-        </div>
-    </form>
-</Panel>
-
-<Panel Id="lotes" Title="Lotes">
-    @if (!Granted)
-    {
+@if (!Granted)
+{
+    <Panel Id="lotes" Title="Lotes">
         <EmptyState Title="Nenhum lote para mostrar."><p>Você não tem concessão em nenhum domínio. Quem administra o sistema é quem concede.</p></EmptyState>
-    }
-    else if (Rows.Count == 0)
-    {
-        <EmptyState Title="Nenhum lote com esse filtro."><p>Mude ou limpe o filtro para ver os outros.</p></EmptyState>
-    }
-    else
-    {
-        <DataTable Id="lotes-tabela" Caption="Um lote por linha, do mais novo ao mais antigo. Horários em UTC." Headers="Columns" Stacks="true">
-            <tbody role="rowgroup">
-                @foreach (var row in Rows)
-                {
-                    <tr role="row">
-                        <th scope="row" role="rowheader">Lote @row.Id.ToString(CultureInfo.InvariantCulture)</th>
-                        <td role="cell">
-                            <StateMark Kind="BatchTexts.ToneOf(row.State)">@BatchTexts.StateOf(row.State)</StateMark>
-                            @if (row.Motive is { } motive)
-                            {
-                                <p>@BatchTexts.MotiveOf(motive)</p>
-                            }
-                        </td>
-                        <td role="cell">@row.SubmittedBy</td>
-                        <td role="cell"><Moment At="row.SubmittedAt" /></td>
-                        <td role="cell">@(row.Bytes is { } bytes ? BatchTexts.SizeOf(bytes) : NoReceipt)</td>
-                        <td role="cell">@if (row.Digest is { } digest) { <code>@digest</code> } else { @NoReceipt }</td>
-                    </tr>
-                }
-            </tbody>
-        </DataTable>
-    }
-    <PageSteps Caption="Páginas de lotes" Page="Page" HasNext="HasNext" PageSize="Size" Address="Address" />
-</Panel>
+    </Panel>
+}
+else
+{
+    <Panel Id="filtro" Title="Filtrar">
+        <form method="get">
+            <ChoiceGroup Name="@StateKey" Legend="Estado" Options="StateChoices" Value="@(State ?? string.Empty)" />
+            <Field Id="filtro-de" Name="@FromKey" Caption="Enviados a partir de" Type="date" Value="@From" Error="@FromError" />
+            <Field Id="filtro-ate" Name="@UntilKey" Caption="Enviados até" Type="date" Value="@Until" Error="@UntilError" />
+            <div class="actions">
+                <Button Id="filtrar" Kind="Button.Look.Secondary">Filtrar</Button>
+                <Button Href="?" Kind="Button.Look.Quiet">Limpar filtro</Button>
+            </div>
+        </form>
+    </Panel>
+
+    <Panel Id="lotes" Title="Lotes">
+        @if (Rows.Count == 0)
+        {
+            <EmptyState Title="Nenhum lote com esse filtro."><p>Mude ou limpe o filtro para ver os outros.</p></EmptyState>
+        }
+        else
+        {
+            <DataTable Id="lotes-tabela" Caption="Um lote por linha, do mais novo ao mais antigo. Horários em UTC." Headers="Columns" Stacks="true">
+                <tbody role="rowgroup">
+                    @foreach (var row in Rows)
+                    {
+                        <tr role="row">
+                            <th scope="row" role="rowheader">Lote @row.Id.ToString(CultureInfo.InvariantCulture)</th>
+                            <td role="cell">@row.Domain</td>
+                            <td role="cell">
+                                <StateMark Kind="BatchTexts.ToneOf(row.State)">@BatchTexts.StateOf(row.State)</StateMark>
+                                @if (row.Motive is { } motive)
+                                {
+                                    <p>@BatchTexts.MotiveOf(motive)</p>
+                                }
+                            </td>
+                            <td role="cell">@row.SubmittedBy</td>
+                            <td role="cell"><Moment At="row.SubmittedAt" /></td>
+                            <td role="cell">
+                                @if (row.Receipt is { } receipt)
+                                {
+                                    <p>@BatchTexts.SizeOf(receipt.Bytes)</p>
+                                    <p>Resumo (SHA-256): <code class="digest">@receipt.Digest</code></p>
+                                    @if (receipt.Warning is { } warning)
+                                    {
+                                        <p>@BatchTexts.WarningOf(warning)</p>
+                                    }
+                                }
+                                else
+                                {
+                                    @NoReceipt
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </DataTable>
+        }
+        <PageSteps Caption="Páginas de lotes" Page="Page" HasNext="HasNext" PageSize="Size" Address="Address" />
+    </Panel>
+}
 
 @code {
     /// <summary>The title of the page and of its entry in the menu.</summary>
@@ -70,21 +92,26 @@
 
     private const string NoReceipt = "Sem envio registrado";
 
-    private static readonly string[] Columns = { "Lote", "Estado", "Enviado por", "Quando", "Tamanho", "SHA-256" };
+    private const string NotADay = "Escreva a data como dia, mês e ano; ela ficou de fora do filtro.";
+
+    private static readonly string[] Columns = { "Lote", "Domínio", "Estado", "Enviado por", "Quando", "Recibo do envio" };
 
     private static readonly ChoiceGroup.Option[] StateChoices =
     {
         new("", "Todos"), new("em-curso", "Em curso"), new("aceitos", "Aceitos"), new("rejeitados", "Rejeitados"),
     };
 
-    /// <summary>One batch as the list shows it: nothing of the material, and the person who submitted by name.</summary>
-    public sealed record Row(long Id, BatchState State, string? Motive, string SubmittedBy, DateTimeOffset SubmittedAt, long? Bytes, string? Digest);
+    /// <summary>One batch as the list shows it: the domain and the person who submitted by name, and nothing of the material.</summary>
+    public sealed record Row(long Id, string Domain, BatchState State, string? Motive, string SubmittedBy, DateTimeOffset SubmittedAt, Receipt? Receipt);
+
+    /// <summary>What the submission brought: how many bytes, their SHA-256 and the code of a warning, if one was recorded; never the name of the file.</summary>
+    public sealed record Receipt(long Bytes, string Digest, string? Warning);
 
     /// <summary>The batches of this page alone, cut by the server.</summary>
     [Parameter, EditorRequired]
     public IReadOnlyList<Row> Rows { get; set; } = Array.Empty<Row>();
 
-    /// <summary>Whether a domain is granted at all; with none, the list is empty and says why, and never an error.</summary>
+    /// <summary>Whether a domain is granted at all; with none, the list is empty and says why, with no filter and no pages, and never an error.</summary>
     [Parameter]
     public bool Granted { get; set; }
 
@@ -98,9 +125,12 @@
     [Parameter]
     public string? Until { get; set; }
 
-    /// <summary>What the server refused about the period, bound to its field.</summary>
+    /// <summary>What the server left out of the period, each bound to its field.</summary>
     [Parameter]
-    public string? PeriodError { get; set; }
+    public string? FromError { get; set; }
+
+    [Parameter]
+    public string? UntilError { get; set; }
 
     [Parameter]
     public int Page { get; set; } = 1;
@@ -118,17 +148,19 @@
     };
 
     /// <summary>
-    /// The period the address asks for, by the day in universal time: from the start of the first day to the end of the last, both counted. A day that is not a date is left out;
-    /// a last day before the first leaves both out and says why, bound to the field of the last.
+    /// The period the address asks for, by the day in universal time: from the start of the first day to the end of the last, both counted. A day that is not a date is left
+    /// out and says so at its field; a last day before the first leaves both out and says why at the field of the last.
     /// </summary>
-    internal static (DateTimeOffset? From, DateTimeOffset? Until, string? Error) PeriodOf(string? from, string? until)
+    internal static (DateTimeOffset? From, DateTimeOffset? Until, string? FromError, string? UntilError) PeriodOf(string? from, string? until)
     {
-        var first = DayOf(from);
-        var last = DayOf(until);
+        var (first, last) = (DayOf(from), DayOf(until));
+        var (fromError, untilError) = (Refused(from, first), Refused(until, last));
         return first is { } start && last is { } end && end < start
-            ? (null, null, "A data final vem antes da inicial; o período ficou de fora.")
-            : (first, last?.AddDays(1), null);
+            ? (null, null, null, "A data final vem antes da inicial; o período ficou de fora.")
+            : (first, last?.AddDays(1), fromError, untilError);
     }
+
+    private static string? Refused(string? typed, DateTimeOffset? day) => string.IsNullOrEmpty(typed) || day is not null ? null : NotADay;
 
     private static DateTimeOffset? DayOf(string? typed) =>
         DateOnly.TryParseExact(typed, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var day) ? new DateTimeOffset(day, TimeOnly.MinValue, TimeSpan.Zero) : null;

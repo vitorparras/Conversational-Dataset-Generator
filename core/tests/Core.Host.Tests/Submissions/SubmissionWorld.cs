@@ -59,7 +59,7 @@ internal sealed class SubmissionWorld : IAsyncDisposable
 
         var conditions = OriginConditions.Of([Strictest, "zqx_media", Loosest]);
         var intake = Intake(maxBytes, conditions);
-        return new SubmissionWorld(database, dataSource, new SubmissionService(intake, new IngestionBatches(dataSource, conditions), dataSource));
+        return new SubmissionWorld(database, dataSource, new SubmissionService(intake, new IngestionBatches(dataSource, conditions), new BatchRegister(dataSource), dataSource));
     }
 
     internal static SubmissionIntake Intake(long maxBytes, OriginConditions conditions) =>

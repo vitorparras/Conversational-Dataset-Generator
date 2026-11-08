@@ -9,7 +9,7 @@ namespace Core.Host.Submissions;
 
 /// <summary>
 /// The service the screens and the routes of the ingestion call (decision 0052): it takes a file through the barrier, opens the batch that keeps what arrived,
-/// rejects it with the reason when the barrier or the form turn it back, and answers the gate.
+/// rejects it with the reason when the barrier or the form turn it back, and answers the gate, the list of the batches and the detail of one.
 /// Nothing is recorded for a request that is invalid, and everything is, the refused included, for one that is not.
 /// </summary>
 internal sealed class SubmissionService
@@ -19,19 +19,23 @@ internal sealed class SubmissionService
 
     private readonly SubmissionIntake intake;
     private readonly IngestionBatches batches;
+    private readonly BatchRegister register;
     private readonly NpgsqlDataSource dataSource;
 
     /// <summary>The service over the database and the pieces that take a file in.</summary>
     /// <param name="intake">The barrier, the conference and the conditions.</param>
     /// <param name="batches">Opens and closes the batches.</param>
+    /// <param name="register">Reads the register of the submissions.</param>
     /// <param name="dataSource">The source of the connections, for the gate.</param>
-    internal SubmissionService(SubmissionIntake intake, IngestionBatches batches, NpgsqlDataSource dataSource)
+    internal SubmissionService(SubmissionIntake intake, IngestionBatches batches, BatchRegister register, NpgsqlDataSource dataSource)
     {
         ArgumentNullException.ThrowIfNull(intake);
         ArgumentNullException.ThrowIfNull(batches);
+        ArgumentNullException.ThrowIfNull(register);
         ArgumentNullException.ThrowIfNull(dataSource);
         this.intake = intake;
         this.batches = batches;
+        this.register = register;
         this.dataSource = dataSource;
     }
 
@@ -67,7 +71,7 @@ internal sealed class SubmissionService
     /// <summary>The batches of the domains granted, newest first, by state and by period, in a page the server cuts and never larger than the most a page may hold.</summary>
     /// <param name="filter">The domains granted, the state, the period and the page.</param>
     /// <param name="cancellationToken">Cancels the reading.</param>
-    public Task<IReadOnlyList<BatchEntry>> ListAsync(BatchFilter filter, CancellationToken cancellationToken)
+    internal Task<IReadOnlyList<BatchEntry>> ListAsync(BatchFilter filter, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(filter);
         return register.ListAsync(filter with { Take = Math.Min(filter.Take, MostPerPage) }, cancellationToken);
@@ -77,7 +81,7 @@ internal sealed class SubmissionService
     /// <param name="granted">The domains granted.</param>
     /// <param name="batchId">The batch.</param>
     /// <param name="cancellationToken">Cancels the reading.</param>
-    public Task<BatchEntry?> DetailAsync(IReadOnlyCollection<int> granted, long batchId, CancellationToken cancellationToken) =>
+    internal Task<BatchEntry?> DetailAsync(IReadOnlyCollection<int> granted, long batchId, CancellationToken cancellationToken) =>
         register.ReadAsync(granted, batchId, cancellationToken);
 
     private static bool HasPath(string? name) =>

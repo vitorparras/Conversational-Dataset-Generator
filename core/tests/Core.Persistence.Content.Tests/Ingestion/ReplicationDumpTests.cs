@@ -1,4 +1,4 @@
-using Core.Persistence.Replicated;
+using Core.Persistence.Content;
 using Core.Persistence.Tests.Content;
 using Core.Platform.Keys;
 

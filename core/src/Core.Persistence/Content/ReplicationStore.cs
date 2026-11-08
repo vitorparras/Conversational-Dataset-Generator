@@ -1,11 +1,10 @@
-using Core.Persistence.Content;
 using Core.Persistence.Content.Writing;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
 using Npgsql;
 using NpgsqlTypes;
 
-namespace Core.Persistence.Replicated;
+namespace Core.Persistence.Content;
 
 /// <summary>
 /// Keeps the digests and the marks of the replicated content in the database and reads them back. It writes into a batch that is open and reads what the batches accepted left, in the domain

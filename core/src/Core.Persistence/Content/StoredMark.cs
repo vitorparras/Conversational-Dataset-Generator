@@ -1,4 +1,4 @@
-namespace Core.Persistence.Replicated;
+namespace Core.Persistence.Content;
 
 /// <summary>The mark of a message whose content is replicated, with the first occurrence of that content; the first occurrence is marked too, and points to itself.</summary>
 /// <param name="Item">The item that holds the marked message.</param>

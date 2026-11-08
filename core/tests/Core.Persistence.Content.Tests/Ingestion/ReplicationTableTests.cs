@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
+using Core.Persistence.Content;
 using Core.Persistence.Content.Writing;
-using Core.Persistence.Replicated;
 using Core.Persistence.Tests.Content;
 using Core.Persistence.Tests.Fixtures;
 using Npgsql;

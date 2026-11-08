@@ -38,10 +38,10 @@ public sealed class IngestionSubmissionsTests
         var omitted = await world.SubmitAsync(SubmissionWorld.Request());
 
         var batches = new IngestionBatches(world.DataSource, OriginConditions.Of([SubmissionWorld.Strictest, "zqx_media", SubmissionWorld.Loosest]));
-        async Task<string> read(SubmissionOutcome outcome) =>
+        async Task<string> Read(SubmissionOutcome outcome) =>
             (await batches.ReadAsync(SubmissionWorld.Domain, outcome.Batch!.Value, TestContext.Current.CancellationToken))!.Condition;
 
-        Assert.Equal((SubmissionWorld.Loosest, SubmissionWorld.Strictest), (await read(declared), await read(omitted)));
+        Assert.Equal((SubmissionWorld.Loosest, SubmissionWorld.Strictest), (await Read(declared), await Read(omitted)));
     }
 
     [DatabaseFact]

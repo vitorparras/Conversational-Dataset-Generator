@@ -1,5 +1,5 @@
 using System.Globalization;
-using Core.Persistence.Notices;
+using Core.Persistence.People;
 
 namespace Core.Host.Screens;
 

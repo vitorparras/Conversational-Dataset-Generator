@@ -1,9 +1,9 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using Core.Host.Endpoints;
 using Core.Host.Operators;
 using Core.Persistence.Custody;
 using Core.Persistence.Migrations;
-using Core.Persistence.Notices;
 using Core.Persistence.People;
 using Core.Persistence.Tests.Fixtures;
 using Core.Platform.Sessions;
@@ -71,7 +71,7 @@ public sealed class NoticeScreensRouteTests
         }
 
         Assert.Equal(HttpStatusCode.NotFound, Assert.Single(answers.Distinct()).Status);
-        Assert.Single(await world.Notices.UnreadAsync(owner, Token));
+        _ = Assert.Single(await world.Notices.UnreadAsync(owner, Token));
     }
 
     [DatabaseFact]
@@ -144,6 +144,7 @@ public sealed class NoticeScreensRouteTests
         internal Task<HttpResponseMessage> PostAsync(string route, string? identifier) =>
             Host.SendAsync(new HttpRequestMessage(HttpMethod.Post, new Uri(route, UriKind.Relative)), identifier, encrypted: true, Token);
 
+        [SuppressMessage("Security", "CA2100", Justification = "The statement is a literal of the calling test, never input.")]
         internal async Task<string> OwnerTextAsync(string statement)
         {
             await using var connection = await Sql.OpenAsync(database.OwnerConnectionString);

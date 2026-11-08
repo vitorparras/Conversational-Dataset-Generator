@@ -1,4 +1,4 @@
-namespace Core.Persistence.Notices;
+namespace Core.Persistence.People;
 
 /// <summary>The statements over the notices of a person; the codes are the ones the table lists, and nothing free is bound.</summary>
 internal static class NoticeStatements

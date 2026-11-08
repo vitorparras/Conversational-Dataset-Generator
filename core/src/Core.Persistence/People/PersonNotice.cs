@@ -1,4 +1,4 @@
-namespace Core.Persistence.Notices;
+namespace Core.Persistence.People;
 
 /// <summary>A notice of a person that was not yet read, as the list shows it.</summary>
 /// <param name="Id">The identifier of the notice.</param>

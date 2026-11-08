@@ -1,5 +1,4 @@
 using Core.Persistence.Custody;
-using Core.Persistence.Notices;
 using Core.Persistence.People;
 using Core.Platform.Sessions;
 

@@ -1,4 +1,4 @@
-namespace Core.Persistence.Notices;
+namespace Core.Persistence.People;
 
 /// <summary>What a notice tells, from a closed list: the text of each is the host's, and the database accepts no other code.</summary>
 public enum NoticeCode

@@ -1,7 +1,6 @@
 using Core.Host.Operators;
 using Core.Persistence.Custody;
 using Core.Persistence.Migrations;
-using Core.Persistence.Notices;
 using Core.Persistence.People;
 using Core.Persistence.Tests.Fixtures;
 using Core.Platform.Sessions;

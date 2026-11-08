@@ -1,8 +1,7 @@
-using Core.Persistence.People;
 using Npgsql;
 using NpgsqlTypes;
 
-namespace Core.Persistence.Notices;
+namespace Core.Persistence.People;
 
 /// <summary>
 /// The notices of the people: what the system tells a person without any message leaving it. A notice is added with a code from a closed list and, for a password set again, the number of

@@ -62,6 +62,7 @@ internal static class HostConfiguration
                     SafekeepingConfiguration.Section,
                     migrating ? PasswordConfiguration.SectionWhenMigrating : PasswordConfiguration.Section,
                     migrating ? SessionConfiguration.SectionWhenMigrating : SessionConfiguration.Section,
+                    migrating ? IngestionConfiguration.SectionWhenMigrating : IngestionConfiguration.Section,
                     migrating ? VerificationConfiguration.SectionWhenMigrating : VerificationConfiguration.Section,
                     migrating ? SealConfiguration.SectionWhenMigrating : SealConfiguration.Section,
                     AuditSection(migrating, comparing),
@@ -76,19 +77,6 @@ internal static class HostConfiguration
     /// <summary>Runs before the configuration is read: an executable built for another target is refused whatever it is configured with.</summary>
     internal static RuntimeTargetCheck TargetCheck() =>
         new(BuildInfo.Of(typeof(HostConfiguration).Assembly).RuntimeIdentifier, RuntimeTarget.Current);
-
-    /// <summary>What the values of the language service, of the safekeeping declaration, of the work factor, of the addresses and of the audit folder refuse, together.</summary>
-    internal static IReadOnlyList<ConfigurationProblem> Refusals(IReadOnlyDictionary<string, string> values, TimeSpan? analyzeTimeout) =>
-    [
-        .. LanguageServiceConfiguration.Refusals(values, analyzeTimeout),
-        .. SafekeepingConfiguration.Refusals(values, InstallationConfiguration.Of(values).Kind),
-        .. PasswordConfiguration.Refusals(values),
-        .. SessionConfiguration.Refusals(values),
-        .. VerificationConfiguration.Refusals(values),
-        .. SealConfiguration.Refusals(values),
-        .. TlsConfiguration.Refusals(values),
-        .. AuditConfiguration.Refusals(values),
-    ];
 
     private static ConfigurationSection AuditSection(bool migrating, bool comparing)
     {

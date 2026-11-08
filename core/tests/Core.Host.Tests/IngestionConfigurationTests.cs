@@ -67,7 +67,7 @@ public sealed class IngestionConfigurationTests
         var refused = Loaded(IngestionConfiguration.Section, $"--{Key}={new string('a', 64)}");
 
         Assert.Empty(IngestionConfiguration.Refusals(accepted.Values));
-        Assert.Single(IngestionConfiguration.Refusals(refused.Values));
+        _ = Assert.Single(IngestionConfiguration.Refusals(refused.Values));
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public sealed class IngestionConfigurationTests
 
         Assert.Empty(absent.Problems);
         Assert.Empty(IngestionConfiguration.Refusals(absent.Values));
-        Assert.Single(IngestionConfiguration.Refusals(wrong.Values));
+        _ = Assert.Single(IngestionConfiguration.Refusals(wrong.Values));
     }
 
     [Fact]

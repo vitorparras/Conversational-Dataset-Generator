@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using Core.Ingestion;
 using Core.Ingestion.Entrance;
 using Core.Persistence.Custody;
@@ -73,7 +72,7 @@ internal sealed class SubmissionService
         Barred(received) ?? (intake.Conference.Confer(form, ReadOutcome.Read(received.Material!)).Refusal is { } refused ? ReasonOf(refused) : null);
 
     private static SubmissionReason? Barred(SubmissionResult received) =>
-        received.Refusal is { } refusal ? new SubmissionReason(ReasonCodes.Of(refusal), ImmutableList<SubmissionFinding>.Empty) : null;
+        received.Refusal is { } refusal ? new SubmissionReason(ReasonCodes.Of(refusal), []) : null;
 
     private static SubmissionReason ReasonOf(Refusal refusal)
     {
@@ -93,23 +92,16 @@ internal sealed class SubmissionService
         Warning = warning,
     };
 
-    private static void AddWhen(ICollection<FieldProblem> problems, bool wrong, string field, string code)
-    {
-        if (wrong)
-        {
-            problems.Add(new FieldProblem(field, code));
-        }
-    }
+    private static FieldProblem? When(bool wrong, string field, string code) => wrong ? new FieldProblem(field, code) : null;
 
-    private List<FieldProblem> Problems(SubmissionRequest request)
-    {
-        var problems = new List<FieldProblem>();
-        AddWhen(problems, request.DomainId <= 0, "domain", "missing");
-        AddWhen(problems, !Enum.IsDefined(request.DeclaredForm), "declared_form", "invalid");
-        AddWhen(problems, string.IsNullOrWhiteSpace(request.SourceFormat), "source_format", "missing");
-        AddWhen(problems, request.Condition is { } declared && intake.Conditions.RankOf(declared) < 0, "condition", "unknown");
-        return problems;
-    }
+    private List<FieldProblem> Problems(SubmissionRequest request) =>
+        new[]
+        {
+            When(request.DomainId <= 0, "domain", "missing"),
+            When(!Enum.IsDefined(request.DeclaredForm), "declared_form", "invalid"),
+            When(string.IsNullOrWhiteSpace(request.SourceFormat), "source_format", "missing"),
+            When(request.Condition is { } declared && intake.Conditions.RankOf(declared) < 0, "condition", "unknown"),
+        }.OfType<FieldProblem>().ToList();
 
     private async Task<SubmissionOutcome> SubmittingAsync(SubmissionRequest request, CancellationToken cancellationToken)
     {

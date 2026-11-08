@@ -116,12 +116,14 @@ public sealed class BatchRegisterTests
         var domains = new[] { 1 };
 
         Assert.Equal(
-            ["dataSource", "filter", "Skip", "Take", "batchId", "domains"],
+            ["dataSource", "filter", "Skip", "Skip", "Take", "Take", "batchId", "domains"],
             [
                 Assert.Throws<ArgumentNullException>(() => new BatchRegister(null!)).ParamName,
                 Param(() => register.ListAsync(null!, CancellationToken.None)),
                 Param(() => register.ListAsync(new BatchFilter { Domains = domains, Skip = -1 }, CancellationToken.None)),
+                Param(() => register.ListAsync(new BatchFilter { Domains = domains, Skip = BatchRegister.MostSkipped + 1 }, CancellationToken.None)),
                 Param(() => register.ListAsync(new BatchFilter { Domains = domains, Take = 0 }, CancellationToken.None)),
+                Param(() => register.ListAsync(new BatchFilter { Domains = domains, Take = BatchRegister.MostTaken + 1 }, CancellationToken.None)),
                 Param(() => register.ReadAsync(domains, 0, CancellationToken.None)),
                 Param(() => register.ReadAsync(null!, 1, CancellationToken.None)),
             ]);

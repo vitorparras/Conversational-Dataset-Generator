@@ -97,16 +97,17 @@ internal sealed class IngestionSubmissions
         return new SubmissionReason(ReasonCodes.Of(refusal.Code), findings);
     }
 
-    private static SubmissionOutcome Answer(SubmissionResult received, long batch, SubmissionReason? reason, string? warning) => new()
+    private static SubmissionOutcome Answer(SubmissionResult received, long batch, (SubmissionReason? Reason, string? Warning) judged, string origin) => new()
     {
         Kind = SubmissionKind.Done,
         Submission = received.Id.ToString(),
         Batch = batch,
-        State = reason is null ? SubmissionState.Accepted : SubmissionState.Rejected,
-        Reason = reason,
+        State = judged.Reason is null ? SubmissionState.Accepted : SubmissionState.Rejected,
+        Reason = judged.Reason,
         Size = received.BytesRead,
         Sha256 = received.Digest,
-        Warning = warning,
+        Warning = judged.Warning,
+        Origin = origin,
     };
 
     private static void AddWhen(List<FieldProblem> problems, bool wrong, string field, string code)
@@ -117,6 +118,37 @@ internal sealed class IngestionSubmissions
         }
     }
 
+    /// <summary>The origin is required, and saying it is unknown is an answer of its own that excludes a text; the text has a size.</summary>
+    private static string? OriginProblem(SubmissionRequest request)
+    {
+        var text = request.Origin?.Trim();
+        return (string.IsNullOrEmpty(text), request.OriginUnknown) switch
+        {
+            (true, false) => "missing",
+            (false, true) => "conflict",
+            (false, false) when text!.Length > OriginDeclaration.MostCharacters => "too_long",
+            _ => null,
+        };
+    }
+
+    /// <summary>The origin of the request, sealed for the domain; null when the domain has no key for it, which is a domain that cannot take the material.</summary>
+    private OriginDeclaration? Declaration(SubmissionRequest request)
+    {
+        if (request.OriginUnknown)
+        {
+            return OriginDeclaration.Unknown;
+        }
+
+        try
+        {
+            return OriginDeclaration.Declared(intake.Sealing, request.DomainId, request.Origin!.Trim());
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+    }
+
     private List<FieldProblem> Problems(SubmissionRequest request)
     {
         var problems = new List<FieldProblem>();
@@ -124,6 +156,11 @@ internal sealed class IngestionSubmissions
         AddWhen(problems, !Enum.IsDefined(request.DeclaredForm), "declared_form", "invalid");
         AddWhen(problems, string.IsNullOrWhiteSpace(request.SourceFormat), "source_format", "missing");
         AddWhen(problems, request.Condition is { } declared && intake.Conditions.RankOf(declared) < 0, "condition", "unknown");
+        if (OriginProblem(request) is { } origin)
+        {
+            problems.Add(new FieldProblem("origin", origin));
+        }
+
         return problems;
     }
 
@@ -139,7 +176,12 @@ internal sealed class IngestionSubmissions
         var reason = Judged(received, request.DeclaredForm);
         var warning = HasPath(request.ReceivedName) ? NameWithPath : null;
         var receipt = new SubmissionReceipt(received.Id.ToString(), received.BytesRead, received.Digest, warning);
-        var opened = await batches.OpenAsync(new BatchOpening(request.DomainId, request.AuthorId, request.Condition, receipt), cancellationToken).ConfigureAwait(false);
+        if (Declaration(request) is not { } origin)
+        {
+            return new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = BatchOutcome.DomainUnknown };
+        }
+
+        var opened = await batches.OpenAsync(new BatchOpening(request.DomainId, request.AuthorId, request.Condition, receipt, origin), cancellationToken).ConfigureAwait(false);
         if (opened.Outcome != BatchOutcome.Opened)
         {
             return new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = opened.Outcome };
@@ -148,12 +190,12 @@ internal sealed class IngestionSubmissions
         var batch = opened.BatchId!.Value;
         if (reason is null)
         {
-            return Answer(received, batch, null, warning);
+            return Answer(received, batch, (null, warning), origin.State);
         }
 
         var closed = await batches.RejectAsync(new BatchClosing(request.DomainId, batch, CustodyAuthor.System), reason.Code, cancellationToken).ConfigureAwait(false);
         return closed.Outcome == BatchOutcome.Rejected
-            ? Answer(received, batch, reason, warning)
+            ? Answer(received, batch, (reason, warning), origin.State)
             : new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = closed.Outcome, Batch = batch };
     }
 }

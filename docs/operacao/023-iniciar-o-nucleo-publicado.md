@@ -9,8 +9,8 @@ e [028](028-criar-primeira-pessoa.md) (a primeira pessoa), e antes de [022](022-
 
 Valores de 021, a trocar: `Passwords:WorkFactor` ([0047](../decisoes/0047-fator-de-trabalho-das-senhas.md)),
 de 600000 a 10000000 com `real` e de 1 a 10000000 com `demonstracao` (o bloco usa 100000);
-`Session:*`, prazos; `Ingestion:Conditions`, as condições de origem, da mais restrita à mais permissiva; `Custody:VerificationInterval`, a cadeia; `Audit:*`, pasta, intervalo. Roda
-como a conta de [032](032-conta-do-nucleo.md), em segundo plano, com a saída em `/tmp/nucleo.saida`:
+`Session:*`, prazos; `Ingestion:Conditions`, condições de origem; `Custody:VerificationInterval`, a
+cadeia; `Audit:*`, pasta, intervalo. Roda como a conta de [032](032-conta-do-nucleo.md), em segundo plano, com a saída em `/tmp/nucleo.saida`:
 
 ```
 : > /tmp/nucleo.saida

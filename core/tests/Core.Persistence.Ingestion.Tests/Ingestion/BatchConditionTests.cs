@@ -62,7 +62,9 @@ public sealed class BatchConditionTests
 
         Assert.Equal(
             (BatchOutcome.ConditionUnknown, null, null, "0"),
-            (refused.Outcome, refused.BatchId, await world.ScalarAsync(IngestionWorld.Events), await world.InDomainAsync(IngestionWorld.Domain, "SELECT count(*)::text FROM content.ingestion_batch") as string));
+            (refused.Outcome, refused.BatchId, await world.ScalarAsync(IngestionWorld.Events), await CountAsync(world)));
+        Assert.Equal("zqx_desconhecida", refused.ConditionFound);
+        Assert.Equal([TestConditions.Strictest, TestConditions.Middle, TestConditions.Loosest], refused.ConditionsAccepted);
     }
 
     [Theory]
@@ -77,7 +79,8 @@ public sealed class BatchConditionTests
 
         var refused = await batches.OpenAsync(new BatchOpening(1, 1, declared), TestContext.Current.CancellationToken);
 
-        Assert.Equal(BatchOutcome.ConditionUnknown, refused.Outcome);
+        Assert.Equal((BatchOutcome.ConditionUnknown, declared), (refused.Outcome, refused.ConditionFound));
+        Assert.Equal([TestConditions.Strictest, TestConditions.Middle, TestConditions.Loosest], refused.ConditionsAccepted);
     }
 
     [Fact]
@@ -165,6 +168,9 @@ public sealed class BatchConditionTests
                 Assert.Throws<ArgumentNullException>(() => new ItemConditions(null!)).ParamName,
             ]);
     }
+
+    private static async Task<string?> CountAsync(BatchesWorld world) =>
+        await world.InDomainAsync(IngestionWorld.Domain, "SELECT count(*)::text FROM content.ingestion_batch") as string;
 
     private static string? Param(Func<object?> call) =>
         Assert.ThrowsAny<ArgumentException>(call).ParamName;

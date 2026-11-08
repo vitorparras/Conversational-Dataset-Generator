@@ -38,8 +38,10 @@ public sealed class IngestionBatches
     }
 
     /// <summary>
-    /// Opens a batch in the domain, with no content, by a person who must be active; the event of the opening is written with it. The batch takes the condition the opening declares, which must be one the installation
+    /// Opens a batch in the domain, with no content, by a person who must be active; the event of the opening is written with it.
+    /// The batch takes the condition the opening declares, which must be one the installation
     /// knows; when it declares none, the batch takes the most restrictive one, and never the most permissive.
+    /// A condition the installation does not know refuses the opening, and the result says the value found and the ones accepted.
     /// </summary>
     /// <param name="opening">The domain, the person and the condition, if declared.</param>
     /// <param name="cancellationToken">Cancels the opening.</param>
@@ -49,7 +51,7 @@ public sealed class IngestionBatches
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(opening.DomainId);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(opening.AuthorId);
         return opening.Condition is { } declared && conditions.RankOf(declared) < 0
-            ? Task.FromResult(new BatchResult { Outcome = BatchOutcome.ConditionUnknown })
+            ? Task.FromResult(new BatchResult { Outcome = BatchOutcome.ConditionUnknown, ConditionFound = declared, ConditionsAccepted = conditions.Names })
             : OpeningAsync(opening with { Condition = opening.Condition ?? conditions.MostRestrictive }, cancellationToken);
     }
 

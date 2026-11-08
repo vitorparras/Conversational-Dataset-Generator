@@ -238,12 +238,12 @@ no log do núcleo (papel, tabela, comandos, contagens e passos, nunca um comando
 `GET /status` traz em `auditComparison` o resultado da última (`Pending`, `Agreed`, `Different` ou
 `Failed`), quando terminou e quantas diferenças novas e conhecidas achou. O `migrate` não a exige.
 
-`Ingestion:Conditions` é obrigatória ao servir, sem valor padrão, e leva as condições de origem que a
-instalação reconhece, separadas por vírgula, da mais restrita para a mais permissiva (`restrita`
-acima é exemplo): a posição na lista é a ordem de restrição. Lista vazia, nome repetido ou que não
-seja de letras minúsculas, algarismos e sublinhado recusam a partida; o `migrate` não a exige. Lote
-aberto sem condição declarada recebe a primeira da lista, e `/configuration` mostra a lista em
-vigor, de onde veio, com a mais restrita marcada.
+`Ingestion:Conditions` é obrigatória ao servir, sem valor padrão, e leva as condições de origem
+que a instalação reconhece, separadas por vírgula, da mais restrita para a mais permissiva
+(`restrita` acima é exemplo): a posição na lista é a ordem de restrição. Lista vazia, nome repetido
+ou que não seja de letras minúsculas, algarismos e sublinhado recusam a partida; o `migrate` não a
+exige. Lote aberto sem condição declarada recebe a primeira da lista, e `/configuration` mostra a
+lista em vigor, de onde veio, com a mais restrita marcada.
 
 `Custody:VerificationInterval` é obrigatória ao servir, sem valor padrão, e leva uma duração maior
 que zero, no mesmo formato dos prazos da sessão (`00:05:00`, ou `1.00:00:00`, com dias); o `migrate`

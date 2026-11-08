@@ -25,7 +25,7 @@ public sealed class OriginConditions
     public static OriginConditions Of(IReadOnlyList<string> ordered)
     {
         ArgumentNullException.ThrowIfNull(ordered);
-        return Refusal(ordered) is { } reason ? throw new ArgumentException(reason, nameof(ordered)) : new OriginConditions([.. ordered]);
+        return Refusal(ordered) is { } reason ? throw new ArgumentException(reason, nameof(ordered)) : new OriginConditions(ordered.ToArray());
     }
 
     /// <summary>Why the list is not one the installation can run with; null when it is.</summary>

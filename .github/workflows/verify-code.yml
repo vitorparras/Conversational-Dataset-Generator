@@ -373,6 +373,23 @@ jobs:
         env:
           MODULE: ${{ matrix.module }}
         run: python tools/verify-code/verify.py --step mutation --module "$MODULE"
+      - id: log
+        name: Dar ao artefato do log um nome sem barra nem arroba
+        if: failure()
+        env:
+          MODULE: ${{ matrix.module }}
+        run: echo "name=log-da-mutacao-$(echo "$MODULE" | tr '/@' '--')-${{ github.run_attempt }}" >> "$GITHUB_OUTPUT"
+      - name: Guardar o log do Stryker e o do host de teste quando o passo reprova
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ steps.log.outputs.name }}
+          path: |
+            .verify-code/mutation/core/*/logs
+            .verify-code/mutation/core/*/stryker-config.json
+          include-hidden-files: true
+          retention-days: 14
+          if-no-files-found: ignore
 
   # Aggregates the matrix under the name the check always had. It always reports: everything skipped
   # when the classification dispensed it, an empty matrix when the list declared that no module is

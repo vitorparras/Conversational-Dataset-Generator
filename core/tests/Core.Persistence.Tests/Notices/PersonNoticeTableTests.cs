@@ -6,7 +6,7 @@ using Npgsql;
 namespace Core.Persistence.Tests.Notices;
 
 /// <summary>
-/// The migration 0038 (issue 595, CA-4): the table takes a code from the closed list with the number only where it belongs,
+/// The migration 0040 (issue 595, CA-4): the table takes a code from the closed list with the number only where it belongs,
 /// and nobody deletes, empties or rewrites a notice but to read it once.
 /// </summary>
 [Trait("Category", "Database")]

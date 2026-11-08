@@ -45,7 +45,7 @@ public sealed class SubmissionPartsTests
     {
         await using var world = await SubmissionWorld.CreateAsync();
         await using var startup = new ServiceCollection().AddSingleton(world.DataSource).BuildServiceProvider();
-        await using var host = SubmissionParts.AddIngestion(new ServiceCollection().AddSingleton(startup), Values).BuildServiceProvider();
+        await using var host = Hosted(startup);
 
         var opened = await host.GetRequiredService<IngestionBatches>().OpenAsync(new BatchOpening(SubmissionWorld.Domain, SubmissionWorld.Person), TestContext.Current.CancellationToken);
         var entry = await host.GetRequiredService<BatchRegister>().ReadAsync([SubmissionWorld.Domain], opened.BatchId!.Value, TestContext.Current.CancellationToken);
@@ -57,7 +57,7 @@ public sealed class SubmissionPartsTests
     public void WithNoDatabaseDeclaredTheHostHasNoBatchesToOffer()
     {
         using var startup = new ServiceCollection().BuildServiceProvider();
-        using var host = SubmissionParts.AddIngestion(new ServiceCollection().AddSingleton(startup), Values).BuildServiceProvider();
+        using var host = Hosted(startup);
 
         Assert.Null(host.GetService<IngestionBatches>());
         Assert.Null(host.GetService<BatchRegister>());
@@ -99,4 +99,11 @@ public sealed class SubmissionPartsTests
                 Assert.Throws<ArgumentOutOfRangeException>(() => service.SubmitAsync(request with { AuthorId = 0 }, CancellationToken.None)).ParamName,
             ]);
     }
+
+    private static ServiceProvider Hosted(ServiceProvider startup) =>
+        new ServiceCollection()
+            .AddSingleton(startup)
+            .AddSingleton(provider => SubmissionParts.BatchesOf(provider, Values))
+            .AddSingleton(SubmissionParts.RegisterOf)
+            .BuildServiceProvider();
 }

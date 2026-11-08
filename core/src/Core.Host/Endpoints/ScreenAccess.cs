@@ -28,4 +28,7 @@ internal sealed class ScreenAccess
 
     /// <summary>The screen of the functions given, with its entry in the menu at the place given.</summary>
     internal static ScreenAccess Of(string caption, int place, params string[] functions) => new(functions, caption, place);
+
+    /// <summary>The route of JSON of the functions given, which has no screen and so no entry in the menu: a function that does not hold it gets the answer of a route that does not exist.</summary>
+    internal static ScreenAccess Route(params string[] functions) => new(functions, caption: null, place: 0);
 }

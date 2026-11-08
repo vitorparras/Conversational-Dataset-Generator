@@ -78,11 +78,8 @@ internal static class CompositionRoot
     {
         PlatformLogging.Configure(builder.Logging);
         _ = fileLog is null ? builder.Services : builder.Services.AddSingleton(_ => fileLog);
-        _ = builder.Services.AddSingleton(TimeProvider.System);
-        _ = builder.Services.AddRedaction(PlatformLogging.EraseSensitiveData);
-        _ = builder.Services.AddSingleton(configuration);
-        _ = builder.Services.ConfigureHttpJsonOptions(HostJson.Strict);
-        _ = builder.Services.AddRazorComponents();
+        _ = builder.Services.AddSingleton(TimeProvider.System).AddRedaction(PlatformLogging.EraseSensitiveData).AddSingleton(configuration);
+        _ = builder.Services.ConfigureHttpJsonOptions(HostJson.Strict).AddRazorComponents();
     }
 
     /// <summary>The analysis and the recognizer the configuration chose: the fake by name, otherwise one per use, with the port and secret the supervisor has then.</summary>
@@ -104,18 +101,13 @@ internal static class CompositionRoot
         _ = services.AddSingleton(_ => new TlsMaterialCheck(TlsConfiguration.SourceOf(loaded.Values)))
             .AddSingleton<IStartupCheck>(provider => provider.GetRequiredService<TlsMaterialCheck>());
         AddServerGuarantees(services, database);
-        _ = services.AddSingleton<IStartupCheck>(_ => new ServerLogCheck(AuditConfiguration.ServerLogDirectory(loaded.Values)));
-        _ = services.AddSingleton(TimeProvider.System).AddLogging(logging => HostLogFile.WithFile(logging, fileLog)).AddRedaction(PlatformLogging.EraseSensitiveData);
+        _ = services.AddSingleton<IStartupCheck>(_ => new ServerLogCheck(AuditConfiguration.ServerLogDirectory(loaded.Values))).AddSingleton(TimeProvider.System);
+        _ = services.AddLogging(logging => HostLogFile.WithFile(logging, fileLog)).AddRedaction(PlatformLogging.EraseSensitiveData);
         _ = fileLog is null ? services : services.AddSingleton(fileLog);
-        _ = services.AddSingleton(_ => LoopbackHttpClient.Create());
-        _ = services.AddSingleton(provider => new HealthWait(provider.GetRequiredService<HttpClient>()));
-        _ = services.AddSingleton(new ServiceProcessLauncher(ServiceFolder.Beside().Executable(LanguageServiceConfiguration.GivenExecutable(loaded.Values))));
-        _ = services.AddSingleton(new ServiceProcessWatch());
-        _ = services.AddSingleton(provider => new LanguageServiceSupervisor(
-            provider.GetRequiredService<ServiceProcessLauncher>(),
-            provider.GetRequiredService<HealthWait>(),
-            provider.GetRequiredService<ServiceProcessWatch>(),
-            provider.GetRequiredService<ILogger<LanguageServiceSupervisor>>()));
+        _ = services.AddSingleton(_ => LoopbackHttpClient.Create()).AddSingleton(provider => new HealthWait(provider.GetRequiredService<HttpClient>()));
+        _ = services.AddSingleton(new ServiceProcessLauncher(ServiceFolder.Beside().Executable(LanguageServiceConfiguration.GivenExecutable(loaded.Values)))).AddSingleton(new ServiceProcessWatch());
+        _ = services.AddSingleton(provider => new LanguageServiceSupervisor(provider.GetRequiredService<ServiceProcessLauncher>(), provider.GetRequiredService<HealthWait>(),
+            provider.GetRequiredService<ServiceProcessWatch>(), provider.GetRequiredService<ILogger<LanguageServiceSupervisor>>()));
         _ = services.AddSingleton(provider => new LanguageServiceStartupCheck(
             provider.GetRequiredService<LanguageServiceSupervisor>(), loaded.Values[LanguageServiceConfiguration.StartupTimeoutPath]));
         return services.BuildServiceProvider();
@@ -124,6 +116,13 @@ internal static class CompositionRoot
     /// <summary>The keys of the epochs file over a source that was read, and the rotation of the rows over them: the mode that rotates is not a root, and the services come from here.</summary>
     internal static ItemKeys KeysOf(MasterKeyReading reading) => new(new KeyDerivation(reading.Key!, reading.Labels), reading.Epochs);
     internal static EpochRotation RotationOf(NpgsqlDataSource dataSource, ItemKeys keys) => new(dataSource, keys);
+
+    /// <summary>The service of the submissions over the key a reading holds; the gate, the conference, the intake and the register are services, and so are built here.</summary>
+    internal static Submissions.IngestionSubmissions SubmissionsOf(NpgsqlDataSource source, MasterKeyReading reading, Submissions.SubmissionSettings settings) => new(
+        new Submissions.IngestionIntake(new Core.Ingestion.Entrance.SubmissionGate(Core.Ingestion.Reading.SourceReaders.Default(), settings.MaxBytes),
+            new Core.Ingestion.FormConference(new Core.Boundary.Text.TextBoundaries()), settings.Conditions,
+            new ProtectedContent(reading.Labels, KeysOf(reading), settings.Registered, settings.Revoked)),
+        settings.Batches, new Core.Persistence.Ingestion.BatchRegister(source), source);
 
     /// <summary>The rehearsal of the recovery over a source that was read, opening content with the labels the database registers.</summary>
     internal static RecoveryRehearsal RehearsalOf(NpgsqlDataSource dataSource, MasterKeyReading reading, IReadOnlySet<string> registered) =>
@@ -164,7 +163,7 @@ internal static class CompositionRoot
         Compose(builder, loaded.View, fileLog);
         AddAnalysis(builder.Services, loaded.Values, analyzeTimeout);
         _ = builder.Services.AddSingleton(PasswordConfiguration.Derivation(loaded.Values)).AddSingleton(VerificationConfiguration.Schedule(loaded.Values));
-        _ = Submissions.IngestionServices.AddIngestion(builder.Services.AddSingleton(SealConfiguration.Declaration(loaded.Values)), loaded.Values);
+        _ = builder.Services.AddSingleton(SealConfiguration.Declaration(loaded.Values)).AddSingleton(provider => Submissions.IngestionServices.ServicesOf(provider, loaded.Values));
         _ = builder.Services.AddSingleton(_ => new ServerAuditLog(AuditConfiguration.ServerLogDirectory(loaded.Values))).AddSingleton<AuditComparisonState>();
         _ = builder.Services.AddHostedService(provider => new AuditComparisonService(
             new AuditComparisonPlan(
@@ -184,11 +183,10 @@ internal static class CompositionRoot
     /// <summary>What the checks produced, adopted by the host: the report, the startup container, the recognizer in force and, once, the service's versions for the startup line.</summary>
     private static async Task<WebApplication> AssembleAsync(WebApplicationBuilder builder, StartupReport report, ServiceProvider startup, RecognizerKind recognizer)
     {
-        _ = builder.Services.AddSingleton(report).AddSingleton(_ => startup);
-        _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetRequiredService<ServiceProcessWatch>());
+        _ = builder.Services.AddSingleton(report).AddSingleton(_ => startup).AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetRequiredService<ServiceProcessWatch>());
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<GuaranteeVerifier>()!).AddSingleton<SealWarningState>();
-        _ = builder.Services.AddSingleton(provider => new ChainVerificationService(provider)).AddHostedService(provider => provider.GetRequiredService<ChainVerificationService>());
         _ = builder.Services.AddHostedService(provider => new SealSendingService(provider));
+        _ = builder.Services.AddSingleton(provider => new ChainVerificationService(provider)).AddHostedService(provider => provider.GetRequiredService<ChainVerificationService>());
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source ? new DomainListing(source) : null!);
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source
             ? new OperatorAdministration(new PersonRegistry(source), new PersonCredentials(source, provider.GetRequiredService<PasswordDerivation>()), provider.GetRequiredService<SessionStore>())

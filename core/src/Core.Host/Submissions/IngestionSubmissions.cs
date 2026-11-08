@@ -65,6 +65,14 @@ internal sealed class IngestionSubmissions
             : SubmittingAsync(request, cancellationToken);
     }
 
+    /// <summary>The fields of the request that are missing or invalid, by name and by code; none when the request can be taken in.</summary>
+    /// <param name="request">The request, whose file is not read.</param>
+    public IReadOnlyList<FieldProblem> Check(SubmissionRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return Problems(request);
+    }
+
     /// <summary>The batches of the domains granted, newest first, by state and by period, in a page the server cuts and never larger than the most a page may hold.</summary>
     /// <param name="filter">The domains granted, the state, the period and the page.</param>
     /// <param name="cancellationToken">Cancels the reading.</param>

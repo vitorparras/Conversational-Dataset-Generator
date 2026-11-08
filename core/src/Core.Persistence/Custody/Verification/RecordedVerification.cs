@@ -8,4 +8,7 @@ namespace Core.Persistence.Custody.Verification;
 /// <param name="Passed">Whether every link held.</param>
 /// <param name="EventsRead">How many events the verification read.</param>
 /// <param name="FirstInconsistent">The sequence of the first inconsistent event; null when the chain held.</param>
-public sealed record RecordedVerification(DateTimeOffset RecordedAt, bool Passed, long EventsRead, long? FirstInconsistent);
+/// <param name="RequestedBy">The id of whoever asked for it, when someone did; null for the verification the host runs by itself.</param>
+/// <param name="RequestedByName">The name that id has now; null when nobody asked or the name is not found.</param>
+public sealed record RecordedVerification(
+    DateTimeOffset RecordedAt, bool Passed, long EventsRead, long? FirstInconsistent, long? RequestedBy = null, string? RequestedByName = null);

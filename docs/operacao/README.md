@@ -52,5 +52,6 @@ e por quem ela roda.
 | [038](038-roteiro-de-usabilidade-da-navegacao.md) | Roteiro de usabilidade da navegação e da página inicial |
 | [039](039-repartir-a-mutacao.md) | Repartir a mutação de uma área em partes: a unidade, o peso e o corte da lista estática |
 | [040](040-roteiro-de-usabilidade-da-conta.md) | Roteiro de usabilidade da conta, da troca da senha e das sessões |
+| [041](041-roteiro-de-usabilidade-da-configuracao-e-do-estado.md) | Roteiro de usabilidade da configuração em vigor e do estado do sistema |
 
 Ver [regras de escrita](../regras-de-escrita.md).

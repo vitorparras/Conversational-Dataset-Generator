@@ -6,4 +6,4 @@
 - Piso: 60 %
 - Crítica: não
 - Motivo: Absorve: `Domains`, `Endpoints`, `Loss`, `Migration`, `Operators`, `Restore`, `Rotation`,
-  `Screens`, `Supervision`; só composição, sem regra, coberto por teste de integração
+  `Screens`, `Settings`, `Supervision`; só composição, sem regra, coberto por teste de integração

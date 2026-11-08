@@ -1,4 +1,5 @@
 using Core.Host.Supervision;
+using Core.Persistence.Connection;
 using Core.Platform.Configuration;
 
 namespace Core.Host;
@@ -19,4 +20,16 @@ internal static class HostRefusals
         .. TlsConfiguration.Refusals(values),
         .. AuditConfiguration.Refusals(values),
     ];
+
+    /// <summary>
+    /// What a configuration loaded for the service refuses, in the order the start judges it: the shape of the keys, then the database, then the values together.
+    /// The start and the trial of a change of configuration both ask it, so that the trial refuses exactly what the next start would.
+    /// </summary>
+    internal static IReadOnlyList<ConfigurationProblem> OfService(ConfigurationLoadResult loaded) =>
+        HostConfiguration.DatabaseOf(loaded) switch
+        {
+            null => loaded.Problems,
+            { State: DatabaseSettingsState.Refused } database => database.Problems,
+            _ => Of(loaded.Values, LanguageServiceConfiguration.AnalyzeTimeout(loaded.Values)),
+        };
 }

@@ -39,7 +39,7 @@ internal static class SeededBatches
         var seeds = domains.SelectMany(domain => new[]
         {
             $"SELECT set_config('app.domain', '{domain}', false)",
-            $"INSERT INTO content.ingestion_batch (domain_id, state, opened_by, closed_at) SELECT {domain}, 'accepted', min(id), now() FROM public.person",
+            $"INSERT INTO content.ingestion_batch (domain_id, state, opened_by, condition, closed_at) SELECT {domain}, 'accepted', min(id), 'restrita', now() FROM public.person",
         });
         return [.. before, .. seeds, .. after];
     }

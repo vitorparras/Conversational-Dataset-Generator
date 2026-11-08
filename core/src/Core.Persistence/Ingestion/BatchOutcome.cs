@@ -29,4 +29,7 @@ public enum BatchOutcome
 
     /// <summary>The domain named to open the batch is not registered.</summary>
     DomainUnknown,
+
+    /// <summary>The condition declared to open the batch is not one the installation knows, so nothing was written.</summary>
+    ConditionUnknown,
 }

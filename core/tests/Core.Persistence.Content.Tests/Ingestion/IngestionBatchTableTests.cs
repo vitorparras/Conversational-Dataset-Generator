@@ -16,10 +16,10 @@ public sealed class IngestionBatchTableTests
     private const string WithoutEvent = "CE005";
     private const string OutsideTheRules = "CE006";
     private const string Opening =
-        "WITH b AS (INSERT INTO content.ingestion_batch (domain_id, opened_by) VALUES (1, 1) RETURNING id) "
+        "WITH b AS (INSERT INTO content.ingestion_batch (domain_id, opened_by, condition) VALUES (1, 1, 'restrita') RETURNING id) "
         + "INSERT INTO public.custody_event (actor_person_id, item_kind, item_id, step, reason) SELECT 1, 'ingestion_batch', id, 'batch_opened', 'administrative_act' FROM b RETURNING item_id";
     private const string OpeningByAnotherPerson =
-        "WITH b AS (INSERT INTO content.ingestion_batch (domain_id, opened_by) VALUES (1, 1) RETURNING id) "
+        "WITH b AS (INSERT INTO content.ingestion_batch (domain_id, opened_by, condition) VALUES (1, 1, 'restrita') RETURNING id) "
         + "INSERT INTO public.custody_event (actor_person_id, item_kind, item_id, step, reason) SELECT 3, 'ingestion_batch', id, 'batch_opened', 'administrative_act' FROM b RETURNING item_id";
     private const string AcceptedEvent =
         "INSERT INTO public.custody_event (actor_system, item_kind, item_id, step, reason) VALUES (true, 'ingestion_batch', @event, 'batch_closed', 'batch_accepted')";
@@ -52,7 +52,7 @@ public sealed class IngestionBatchTableTests
         var refused = await Assert.ThrowsAsync<PostgresException>(async () =>
         {
             await using var transaction = await ContentTransaction.BeginAsync(world.DataSource, 1, TestContext.Current.CancellationToken);
-            await using var insert = transaction.CreateCommand("INSERT INTO content.ingestion_batch (domain_id, opened_by) VALUES (1, 1)");
+            await using var insert = transaction.CreateCommand("INSERT INTO content.ingestion_batch (domain_id, opened_by, condition) VALUES (1, 1, 'restrita')");
             _ = await insert.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
             await transaction.CommitAsync(TestContext.Current.CancellationToken);
         });
@@ -75,8 +75,10 @@ public sealed class IngestionBatchTableTests
     {
         await using var world = await IngestionWorld.CreateAsync();
 
-        var state = await Assert.ThrowsAsync<PostgresException>(() => world.InDomainAsync(1, "INSERT INTO content.ingestion_batch (domain_id, opened_by, state) VALUES (1, 1, 'accepted')"));
-        var moment = await Assert.ThrowsAsync<PostgresException>(() => world.InDomainAsync(1, "INSERT INTO content.ingestion_batch (domain_id, opened_by, opened_at) VALUES (1, 1, now())"));
+        var state = await Assert.ThrowsAsync<PostgresException>(
+            () => world.InDomainAsync(1, "INSERT INTO content.ingestion_batch (domain_id, opened_by, condition, state) VALUES (1, 1, 'restrita', 'accepted')"));
+        var moment = await Assert.ThrowsAsync<PostgresException>(
+            () => world.InDomainAsync(1, "INSERT INTO content.ingestion_batch (domain_id, opened_by, condition, opened_at) VALUES (1, 1, 'restrita', now())"));
 
         Assert.Equal((PostgresErrorCodes.InsufficientPrivilege, PostgresErrorCodes.InsufficientPrivilege), (state.SqlState, moment.SqlState));
     }
@@ -87,7 +89,7 @@ public sealed class IngestionBatchTableTests
         await using var world = await IngestionWorld.CreateAsync();
 
         var refused = await Assert.ThrowsAsync<PostgresException>(
-            () => world.OwnerInDomainAsync(1, "INSERT INTO content.ingestion_batch (domain_id, opened_by, state, closed_at) VALUES (1, 1, 'accepted', now())"));
+            () => world.OwnerInDomainAsync(1, "INSERT INTO content.ingestion_batch (domain_id, opened_by, condition, state, closed_at) VALUES (1, 1, 'restrita', 'accepted', now())"));
 
         Assert.Equal(OutsideTheRules, refused.SqlState);
     }

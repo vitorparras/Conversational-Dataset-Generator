@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using Core.Persistence.People;
 using Core.Persistence.Tests.Fixtures;
 
 namespace Core.Tests.Integration.Hosts;
@@ -19,7 +20,7 @@ public sealed class GuaranteeConferenceHostTests
     public async Task ConferenceRunsWhenTheHostComesUpAndTheRouteShowsWhatItConferredAndWhen()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await AuthenticatedHost.StartAsync(new HostSetup(), cancellationToken);
+        await using var host = await AuthenticatedHost.StartAsync(new HostSetup { Function = PersonFunctions.Administration }, cancellationToken);
 
         var shown = await UntilAsync(host, body => body.GetProperty("guarantees").GetProperty("passed").ValueKind == JsonValueKind.True, cancellationToken);
 
@@ -36,7 +37,7 @@ public sealed class GuaranteeConferenceHostTests
     public async Task GuaranteeRemovedIsToldByNameInTheRouteAndInTheLogWhileTheChainStillCloses()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await AuthenticatedHost.StartAsync(new HostSetup { Arguments = [OneSecond], WithLogFile = true }, cancellationToken);
+        await using var host = await AuthenticatedHost.StartAsync(new HostSetup { Function = PersonFunctions.Administration, Arguments = [OneSecond], WithLogFile = true }, cancellationToken);
         _ = await UntilAsync(host, body => body.GetProperty("guarantees").GetProperty("passed").ValueKind == JsonValueKind.True, cancellationToken);
 
         await host.RunAsSuperuserAsync("ALTER TABLE content.item_text NO FORCE ROW LEVEL SECURITY", cancellationToken);
@@ -51,7 +52,7 @@ public sealed class GuaranteeConferenceHostTests
     public async Task ConferenceThatCannotBeRecordedLeavesTheRouteSayingLateAndIsToldInTheLog()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await AuthenticatedHost.StartAsync(new HostSetup { Arguments = [OneSecond], WithLogFile = true }, cancellationToken);
+        await using var host = await AuthenticatedHost.StartAsync(new HostSetup { Function = PersonFunctions.Administration, Arguments = [OneSecond], WithLogFile = true }, cancellationToken);
         _ = await UntilAsync(host, body => body.GetProperty("guarantees").GetProperty("recordedAt").ValueKind == JsonValueKind.String, cancellationToken);
 
         await host.RunAsSuperuserAsync(
@@ -62,7 +63,7 @@ public sealed class GuaranteeConferenceHostTests
         var stopped = await UntilAsync(host, body => body.GetProperty("guarantees").GetProperty("recordedAt").ValueKind == JsonValueKind.String, cancellationToken);
         var stoppedAt = stopped.GetProperty("guarantees").GetProperty("recordedAt").GetDateTimeOffset();
         var late = await UntilAsync(host, body => body.GetProperty("guarantees").GetProperty("overdue").GetBoolean(), cancellationToken);
-        using var alive = await host.GetAsync("/status", cancellationToken);
+        using var alive = await host.SendAsAsync(HttpMethod.Get, "/status", json: null, session: null, cancellationToken);
 
         Assert.Equal(stoppedAt, late.GetProperty("guarantees").GetProperty("recordedAt").GetDateTimeOffset());
         Assert.Equal(HttpStatusCode.OK, alive.StatusCode);

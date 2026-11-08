@@ -92,8 +92,11 @@ internal sealed class SubmissionService
     private SubmissionReason? Judged(SubmissionResult received, MaterialForm form) =>
         Barred(received) ?? (intake.Conference.Confer(form, ReadOutcome.Read(received.Material!)).Refusal is { } refused ? ReasonOf(refused) : null);
 
-    private static SubmissionReason? Barred(SubmissionResult received) =>
-        received.Refusal is { } refusal ? new SubmissionReason(ReasonCodes.Of(refusal), []) : null;
+    private static SubmissionReason? Barred(SubmissionResult received)
+    {
+        var none = new List<SubmissionFinding>();
+        return received.Refusal is { } refusal ? new SubmissionReason(ReasonCodes.Of(refusal), none) : null;
+    }
 
     private static SubmissionReason ReasonOf(Refusal refusal)
     {
@@ -115,16 +118,17 @@ internal sealed class SubmissionService
 
     private static FieldProblem? When(bool wrong, string field, string code) => wrong ? new FieldProblem(field, code) : null;
 
-    private List<FieldProblem> Problems(SubmissionRequest request) =>
-    [
-        .. new[]
+    private List<FieldProblem> Problems(SubmissionRequest request)
+    {
+        var problems = new[]
         {
             When(request.DomainId <= 0, "domain", "missing"),
             When(!Enum.IsDefined(request.DeclaredForm), "declared_form", "invalid"),
             When(string.IsNullOrWhiteSpace(request.SourceFormat), "source_format", "missing"),
             When(request.Condition is { } declared && intake.Conditions.RankOf(declared) < 0, "condition", "unknown"),
-        }.OfType<FieldProblem>(),
-    ];
+        }.OfType<FieldProblem>().ToList();
+        return problems;
+    }
 
     private async Task<SubmissionOutcome> SubmittingAsync(SubmissionRequest request, CancellationToken cancellationToken)
     {

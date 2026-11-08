@@ -64,6 +64,7 @@ deliberada e justificada.
 | [0050](0050-banco-amarra-a-mudanca-do-conteudo-a-um-evento.md) | O banco amarra a mudança do conteúdo a um evento da cadeia | Decisão vigente |
 | [0051](0051-navegacao-gestao-e-relatorio.md) | Navegação, gestão e relatório: padrões comuns, acessibilidade e teste de navegador | Decisão vigente |
 | [0052](0052-montagem-das-telas.md) | Montagem das telas e base do sistema de design | Decisão vigente |
+| [0053](0053-configuracao-alterada-pela-tela.md) | Configuração alterada pela tela, com aprovação de outra pessoa | Decisão vigente |
 
 ## Formato
 

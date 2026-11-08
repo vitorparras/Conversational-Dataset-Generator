@@ -92,7 +92,7 @@ public sealed class SubmissionPartsTests
         var request = SubmissionWorld.Request();
 
         Assert.Equal(
-            ["request", "Content", "AuthorId"],
+            ["request", "request.Content", "request.AuthorId"],
             [
                 (await Assert.ThrowsAsync<ArgumentNullException>(() => service.SubmitAsync(null!, CancellationToken.None))).ParamName,
                 (await Assert.ThrowsAsync<ArgumentNullException>(() => service.SubmitAsync(request with { Content = null! }, CancellationToken.None))).ParamName,

@@ -107,7 +107,7 @@ internal sealed class SubmissionWorld : IAsyncDisposable
         var total = 0L;
         foreach (var domain in new[] { Domain, OtherDomain })
         {
-            var entries = await Service.ListAsync(new BatchFilter { Domains = new[] { domain }, Take = 100 }, TestContext.Current.CancellationToken);
+            var entries = await Service.ListAsync(new BatchFilter { Domains = [domain], Take = 100 }, TestContext.Current.CancellationToken);
             total += entries.Count;
         }
 
@@ -164,32 +164,5 @@ internal sealed class SubmissionWorld : IAsyncDisposable
     {
         await DataSource.DisposeAsync();
         await Database.DisposeAsync();
-    }
-
-    [SuppressMessage("Security", "CA2100", Justification = "The filter is a literal of the callers above, never input.")]
-    private async Task<IReadOnlyList<BatchView>> ReadAsync(string filter, NpgsqlParameter parameter)
-    {
-        await using var connection = new NpgsqlConnection(Database.SuperuserConnectionString);
-        await connection.OpenAsync(TestContext.Current.CancellationToken);
-        await using var command = new NpgsqlCommand(
-            // nosemgrep: sql-concatenation-csharp joins one of two literal filters of the callers above, never input.
-            "SELECT id, domain_id, state, motive, opened_by, opened_at, submission, received_bytes, received_digest, warning FROM content.ingestion_batch " + filter + " ORDER BY id DESC",
-            connection);
-        _ = command.Parameters.Add(parameter);
-        var views = new List<BatchView>();
-        await using var reader = await command.ExecuteReaderAsync(TestContext.Current.CancellationToken);
-        while (await reader.ReadAsync(TestContext.Current.CancellationToken))
-        {
-            views.Add(new BatchView(
-                reader.GetInt64(0),
-                reader.GetInt32(1),
-                Enum.Parse<BatchState>(reader.GetString(2), ignoreCase: true),
-                reader[3] as string,
-                reader.GetInt64(4),
-                await reader.GetFieldValueAsync<DateTimeOffset>(5, TestContext.Current.CancellationToken),
-                reader[6] is string submission ? new SubmissionReceipt(submission, reader.GetInt64(7), reader.GetString(8), reader[9] as string) : null));
-        }
-
-        return views;
     }
 }

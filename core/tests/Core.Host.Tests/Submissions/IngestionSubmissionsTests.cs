@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Core.Host.Submissions;
 using Core.Ingestion;
@@ -227,8 +228,8 @@ public sealed class IngestionSubmissionsTests
                 Seen(await world.Service.ListAsync(new BatchFilter { Domains = [SubmissionWorld.Domain] }, token)),
                 Seen(await world.Service.ListAsync(new BatchFilter { Domains = [SubmissionWorld.OtherDomain] }, token)),
                 (await world.Service.ListAsync(new BatchFilter { Domains = [] }, token)).Count,
-                (await world.Service.DetailAsync([SubmissionWorld.OtherDomain], mine.Batch!.Value, token))?.Id.ToString() ?? "none",
-                (await world.Service.DetailAsync([SubmissionWorld.Domain], mine.Batch!.Value, token))?.Id));
+                (await world.Service.DetailAsync([SubmissionWorld.OtherDomain], mine.Batch!.Value, token))?.Id.ToString(CultureInfo.InvariantCulture) ?? "none",
+                (await world.Service.DetailAsync([SubmissionWorld.Domain], mine.Batch.Value, token))?.Id));
     }
 
     [DatabaseFact]

@@ -3,7 +3,10 @@ using Npgsql;
 
 namespace Core.Host.Submissions;
 
-/// <summary>Where the pieces of the submissions are taken from the configuration: the batches open under the list of conditions the installation declared, so that an omitted condition takes its first.</summary>
+/// <summary>
+/// Where the pieces of the submissions are taken from the configuration: the batches open under the list of conditions the installation declared,
+/// so that an omitted condition takes its first.
+/// </summary>
 internal static class SubmissionParts
 {
     /// <summary>The batches over the database, under the conditions the configuration gave, the most restrictive first.</summary>

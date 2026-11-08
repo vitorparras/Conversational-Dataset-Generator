@@ -73,30 +73,28 @@ public sealed class SubmissionPartsTests
         var register = new BatchRegister(dataSource);
 
         Assert.Equal(
-            ["intake", "batches", "register", "dataSource"],
+            ["intake", "batches"],
             [
-                Assert.Throws<ArgumentNullException>(() => new SubmissionService(null!, batches, register, dataSource)).ParamName,
-                Assert.Throws<ArgumentNullException>(() => new SubmissionService(intake, null!, register, dataSource)).ParamName,
-                Assert.Throws<ArgumentNullException>(() => new SubmissionService(intake, batches, null!, dataSource)).ParamName,
-                Assert.Throws<ArgumentNullException>(() => new SubmissionService(intake, batches, register, null!)).ParamName,
+                Assert.Throws<ArgumentNullException>(() => new SubmissionService(null!, batches)).ParamName,
+                Assert.Throws<ArgumentNullException>(() => new SubmissionService(intake, null!)).ParamName,
             ]);
     }
 
     [Fact]
-    public void SubmissionWithNoRequestOrNoContentOrNoAuthorIsRefusedByName()
+    public async Task SubmissionWithNoRequestOrNoContentOrNoAuthorIsRefusedByName()
     {
         using var dataSource = NpgsqlDataSource.Create("Host=127.0.0.1;Port=1;Username=u;Password=p;Database=d");
         var conditions = OriginConditions.Of(["a"]);
         var intake = SubmissionWorld.Intake(1, conditions);
-        var service = new SubmissionService(intake, new IngestionBatches(dataSource, conditions), new BatchRegister(dataSource), dataSource);
+        var service = new SubmissionService(intake, new IngestionBatches(dataSource, conditions));
         var request = SubmissionWorld.Request();
 
         Assert.Equal(
             ["request", "Content", "AuthorId"],
             [
-                Assert.Throws<ArgumentNullException>(() => service.SubmitAsync(null!, CancellationToken.None)).ParamName,
-                Assert.Throws<ArgumentNullException>(() => service.SubmitAsync(request with { Content = null! }, CancellationToken.None)).ParamName,
-                Assert.Throws<ArgumentOutOfRangeException>(() => service.SubmitAsync(request with { AuthorId = 0 }, CancellationToken.None)).ParamName,
+                (await Assert.ThrowsAsync<ArgumentNullException>(() => service.SubmitAsync(null!, CancellationToken.None))).ParamName,
+                (await Assert.ThrowsAsync<ArgumentNullException>(() => service.SubmitAsync(request with { Content = null! }, CancellationToken.None))).ParamName,
+                (await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => service.SubmitAsync(request with { AuthorId = 0 }, CancellationToken.None))).ParamName,
             ]);
     }
 

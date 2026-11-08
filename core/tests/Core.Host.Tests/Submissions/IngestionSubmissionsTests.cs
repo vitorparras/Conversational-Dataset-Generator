@@ -22,7 +22,7 @@ public sealed class IngestionSubmissionsTests
         var entry = await world.Service.DetailAsync([SubmissionWorld.Domain], outcome.Batch!.Value, TestContext.Current.CancellationToken);
 
         Assert.Equal(
-            (SubmissionKind.Done, SubmissionState.Accepted, null, (long)bytes.Length, Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(bytes))),
+            (SubmissionKind.Done, SubmissionState.Accepted, null, bytes.Length, Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(bytes))),
             (outcome.Kind, outcome.State, outcome.Reason, outcome.Size, outcome.Sha256));
         Assert.Equal(
             (BatchState.Open, SubmissionWorld.Person, outcome.Submission, outcome.Size, outcome.Sha256, null),
@@ -38,9 +38,10 @@ public sealed class IngestionSubmissionsTests
         var omitted = await world.SubmitAsync(SubmissionWorld.Request());
 
         var batches = new IngestionBatches(world.DataSource, OriginConditions.Of([SubmissionWorld.Strictest, "zqx_media", SubmissionWorld.Loosest]));
-        var read = async (SubmissionOutcome outcome) => (await batches.ReadAsync(SubmissionWorld.Domain, outcome.Batch!.Value, TestContext.Current.CancellationToken))!.Condition;
+        async Task<string> Read(SubmissionOutcome outcome) =>
+            (await batches.ReadAsync(SubmissionWorld.Domain, outcome.Batch!.Value, TestContext.Current.CancellationToken))!.Condition;
 
-        Assert.Equal((SubmissionWorld.Loosest, SubmissionWorld.Strictest), (await read(declared), await read(omitted)));
+        Assert.Equal((SubmissionWorld.Loosest, SubmissionWorld.Strictest), (await Read(declared), await Read(omitted)));
     }
 
     [DatabaseFact]
@@ -72,8 +73,8 @@ public sealed class IngestionSubmissionsTests
     }
 
     [DatabaseTheory]
-    [InlineData("""{"formato":"cdg-conversa/1","mensagens":[{"id":"http://externo.example/x","remetente":"a","instante":"2031-03-04T08:00:00Z","texto":"t"}]}""")]
-    [InlineData("""{"formato":"cdg-conversa/1","mensagens":[{"id":"a","remetente":"/etc/passwd","instante":"2031-03-04T08:00:00Z","texto":"t"}]}""")]
+    [InlineData(/*lang=json*/ """{"formato":"cdg-conversa/1","mensagens":[{"id":"http://externo.example/x","remetente":"a","instante":"2031-03-04T08:00:00Z","texto":"t"}]}""")]
+    [InlineData(/*lang=json*/ """{"formato":"cdg-conversa/1","mensagens":[{"id":"a","remetente":"/etc/passwd","instante":"2031-03-04T08:00:00Z","texto":"t"}]}""")]
     public async Task FileThatPointsOutsideItselfIsRefusedAsUnreadableAndTheReferenceIsNotFollowed(string content)
     {
         await using var world = await SubmissionWorld.CreateAsync();
@@ -175,30 +176,6 @@ public sealed class IngestionSubmissionsTests
             (SubmissionKind.Invalid, "domain:missing,declared_form:invalid,source_format:missing,condition:unknown", 0L, 0L),
             (outcome.Kind, string.Join(',', outcome.Fields!.Select(field => $"{field.Field}:{field.Code}")), request.Content.Position, await world.BatchCountAsync()));
         Assert.Null(outcome.Batch);
-    }
-
-    [DatabaseFact]
-    public async Task GateClosedByTheMissingRehearsalBlocksTheSubmissionAndRecordsNothing()
-    {
-        await using var world = await SubmissionWorld.CreateAsync(gateOpen: false);
-        var request = SubmissionWorld.Request();
-
-        var gate = await world.Service.GateAsync(TestContext.Current.CancellationToken);
-        var outcome = await world.SubmitAsync(request);
-
-        Assert.Equal(
-            (false, "recovery_not_rehearsed", SubmissionKind.Blocked, "recovery_not_rehearsed", 0L, 0L),
-            (gate.Open, gate.Code, outcome.Kind, outcome.BlockedBy, request.Content.Position, await world.BatchCountAsync()));
-    }
-
-    [DatabaseFact]
-    public async Task GateIsOpenOnceTheRehearsalIsRecorded()
-    {
-        await using var world = await SubmissionWorld.CreateAsync();
-
-        var gate = await world.Service.GateAsync(TestContext.Current.CancellationToken);
-
-        Assert.Equal((true, null), (gate.Open, gate.Code));
     }
 
     [DatabaseFact]

@@ -108,7 +108,7 @@ internal sealed class SubmissionWorld : IAsyncDisposable
                 Enum.Parse<BatchState>(reader.GetString(2), ignoreCase: true),
                 reader[3] as string,
                 reader.GetInt64(4),
-                reader.GetFieldValue<DateTimeOffset>(5),
+                await reader.GetFieldValueAsync<DateTimeOffset>(5, TestContext.Current.CancellationToken),
                 reader[6] is string submission ? new SubmissionReceipt(submission, reader.GetInt64(7), reader.GetString(8), reader[9] as string) : null));
         }
 

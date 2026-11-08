@@ -23,7 +23,10 @@ internal static class SubmissionParts
     internal static BatchRegister RegisterOf(IServiceProvider provider) =>
         provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source ? new BatchRegister(source) : null!;
 
-    /// <summary>The holder of the service, which reads the master key and the labels when the first submission asks and holds the key until the host stops; none when no database is declared.</summary>
+    /// <summary>
+    /// The holder of the service, which reads the master key and the labels when the first submission asks and holds the key until the host stops;
+    /// none when no database is declared.
+    /// </summary>
     internal static SubmissionServiceHolder ServicesOf(IServiceProvider provider, IReadOnlyDictionary<string, string> values) =>
         provider.GetRequiredService<ServiceProvider>() is var startup && startup.GetService<NpgsqlDataSource>() is { } source
             ? new SubmissionServiceHolder(AdmissionConfiguration.MaxBytes(values), token => LoadAsync(startup, source, provider.GetRequiredService<IngestionBatches>(), values, token))

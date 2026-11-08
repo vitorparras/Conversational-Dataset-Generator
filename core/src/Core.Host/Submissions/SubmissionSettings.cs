@@ -2,7 +2,9 @@ using Core.Persistence.Ingestion;
 
 namespace Core.Host.Submissions;
 
-/// <summary>What the service of the submissions is put together from besides the key: the batches, the conditions and the limit the configuration gave, and the labels the database registers and revokes.</summary>
+/// <summary>
+/// What the service of the submissions is put together from besides the key: the batches, the conditions and the limit the configuration gave, and the labels the database registers and revokes.
+/// </summary>
 /// <param name="Batches">The batches the submissions open.</param>
 /// <param name="Conditions">The conditions under which material may come in.</param>
 /// <param name="MaxBytes">The most bytes a file may have.</param>

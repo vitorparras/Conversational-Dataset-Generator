@@ -4,7 +4,8 @@ using Core.Persistence.Ingestion;
 namespace Core.Host.Endpoints;
 
 /// <summary>
-/// What the list of the batches is asked for in the address: the state, the period in UTC (ISO 8601) and the page, which the server cuts. The domains are never asked for here: they are the ones granted.
+/// What the list of the batches is asked for in the address: the state, the period in UTC (ISO 8601) and the page, which the server cuts.
+/// The domains are never asked for here: they are the ones granted.
 /// A parameter that is not accepted is named by the field, and nothing is listed.
 /// </summary>
 internal static class BatchQuery

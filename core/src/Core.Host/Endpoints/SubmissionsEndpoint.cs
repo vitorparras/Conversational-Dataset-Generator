@@ -108,7 +108,7 @@ internal static class SubmissionsEndpoint
         var granted = await GrantedAsync(grants, requester, context.RequestAborted);
         var service = await services.GetAsync(context.RequestAborted);
         var entry = await service.DetailAsync(granted, id, context.RequestAborted);
-        return entry is null ? Results.NotFound() : Results.Ok(new BatchDetailShown(SubmissionAnswer.Shown(entry)));
+        return entry is null ? Results.NotFound() : Results.Ok(SubmissionAnswer.Shown(entry));
     }
 
     /// <summary>The domains granted to the requester; none while no grant is recorded (#112), which makes every domain one that does not exist for them.</summary>

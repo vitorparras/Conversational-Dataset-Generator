@@ -55,7 +55,7 @@ internal sealed record GateShown(string State, string? Code);
 /// <param name="Sha256">The SHA-256 of what came; null for a batch no submission opened.</param>
 /// <param name="Warnings">The codes of what the service noticed and let pass.</param>
 /// <param name="Origin"><c>declared</c> or <c>unknown</c>; null for a batch no submission opened.</param>
-internal record BatchShown(
+internal sealed record BatchShown(
     long Id, int Domain, string State, string? Reason, DateTimeOffset SubmittedAt, long SubmittedBy, string? Submission, long? Size, string? Sha256,
     IReadOnlyList<string> Warnings, string? Origin);
 
@@ -64,20 +64,3 @@ internal record BatchShown(
 /// <param name="PageSize">How many batches a page holds.</param>
 /// <param name="Batches">The batches of the page.</param>
 internal sealed record BatchesShown(int Page, int PageSize, IReadOnlyList<BatchShown> Batches);
-
-/// <summary>
-/// One batch with what the screen of the batch also asks for (#609): the counts by form, by destination of passage and by repeated, the batch before it that recognized the material
-/// in a resubmission, and the loss declared when a form was accommodated. They are null until the issues that produce them fill them, and are never text.
-/// </summary>
-/// <param name="Batch">The batch as the list shows it.</param>
-internal sealed record BatchDetailShown(BatchShown Batch) : BatchShown(Batch)
-{
-    /// <summary>The counts by form, by destination of passage and by repeated; null for now.</summary>
-    public object? Counts { get; init; }
-
-    /// <summary>The identifier of the batch before it that recognized the material; null for now.</summary>
-    public long? PreviousBatch { get; init; }
-
-    /// <summary>The loss declared when a form was accommodated; null for now.</summary>
-    public object? DeclaredLoss { get; init; }
-}

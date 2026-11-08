@@ -245,6 +245,10 @@ ou que não seja de letras minúsculas, algarismos e sublinhado recusam a partid
 exige. Lote aberto sem condição declarada recebe a primeira da lista, e `/configuration` mostra a
 lista em vigor, de onde veio, com a mais restrita marcada.
 
+`Ingestion:MaxBytes` é opcional e vale 10485760 (10 MiB): o maior arquivo, em bytes, que uma
+submissão aceita. Um arquivo maior é registrado como rejeitado (413) sem ser lido além do limite;
+o valor tem de ser inteiro, de 1 a 1073741824, senão recusa a partida.
+
 `Custody:VerificationInterval` é obrigatória ao servir, sem valor padrão, e leva uma duração maior
 que zero, no mesmo formato dos prazos da sessão (`00:05:00`, ou `1.00:00:00`, com dias); o `migrate`
 não a exige. Faltando ela, ou levando outra coisa, a partida recusa e a nomeia. O núcleo verifica a

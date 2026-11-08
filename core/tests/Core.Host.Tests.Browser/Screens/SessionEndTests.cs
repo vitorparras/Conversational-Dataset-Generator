@@ -69,7 +69,7 @@ public sealed class SessionEndTests(BrowserFixture browser, AccountHostFixture a
 
         await tabs.Current.Page.Locator("#encerrar-sessao").ClickAsync();
 
-        await Expect(tabs.Current.Page).ToHaveURLAsync(new Regex(@"/minha-conta\?feito=sessoes&encerradas=1$", RegexOptions.None, TimeSpan.FromSeconds(1)));
+        await Expect(tabs.Current.Page).ToHaveURLAsync(new Regex("/minha-conta$", RegexOptions.None, TimeSpan.FromSeconds(1)));
         await Expect(tabs.Current.Page.Locator(".notice--success")).ToContainTextAsync("A sessão foi encerrada.");
         await Expect(tabs.Current.Page.Locator(Rows)).ToHaveCountAsync(1);
         await Expect(tabs.Current.Page.Locator(Rows)).ToContainTextAsync("Esta sessão");
@@ -88,7 +88,7 @@ public sealed class SessionEndTests(BrowserFixture browser, AccountHostFixture a
         await Expect(tabs.Current.Page.GetByRole(AriaRole.Link, new() { Name = "Manter sessões" })).ToHaveAttributeAsync("href", Route);
         await tabs.Current.Page.Locator("#encerrar-outras").ClickAsync();
 
-        await Expect(tabs.Current.Page).ToHaveURLAsync(new Regex(@"/minha-conta\?feito=sessoes&encerradas=2$", RegexOptions.None, TimeSpan.FromSeconds(1)));
+        await Expect(tabs.Current.Page).ToHaveURLAsync(new Regex("/minha-conta$", RegexOptions.None, TimeSpan.FromSeconds(1)));
         await Expect(tabs.Current.Page.Locator(".notice--success")).ToContainTextAsync("2 sessões foram encerradas.");
         await Expect(tabs.Current.Page.Locator(Rows)).ToHaveCountAsync(1);
         await Expect(tabs.Current.Page.Locator("#encerrar-outras")).ToHaveCountAsync(0);
@@ -156,7 +156,7 @@ public sealed class SessionEndTests(BrowserFixture browser, AccountHostFixture a
 
         Assert.True(await tabs.Current.Page.EvaluateAsync<bool>(FocusIsSeen), "The button that ends the session shows no focus.");
         await tabs.Current.Page.Keyboard.PressAsync("Enter");
-        await Expect(tabs.Current.Page).ToHaveURLAsync(new Regex(@"/minha-conta\?feito=sessoes&encerradas=1$", RegexOptions.None, TimeSpan.FromSeconds(1)));
+        await Expect(tabs.Current.Page).ToHaveURLAsync(new Regex("/minha-conta$", RegexOptions.None, TimeSpan.FromSeconds(1)));
         await AssertNotRecognizedAsync(tabs.Others[0]);
     }
 

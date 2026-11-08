@@ -91,7 +91,7 @@ public sealed class PasswordScreenTests(BrowserFixture browser, AccountHostFixtu
 
         await tab.Page.Locator("#trocar-senha").ClickAsync();
 
-        await Expect(tab.Page).ToHaveURLAsync(new Regex(@"/minha-conta\?feito=senha&encerradas=1$", RegexOptions.None, TimeSpan.FromSeconds(1)));
+        await Expect(tab.Page).ToHaveURLAsync(new Regex("/minha-conta$", RegexOptions.None, TimeSpan.FromSeconds(1)));
         await Expect(tab.Page.Locator(".notice--success")).ToContainTextAsync("Senha trocada. A outra sessão aberta foi encerrada; esta continua aberta.");
         await Expect(tab.Page.Locator("[aria-labelledby=sessoes-titulo] tbody tr")).ToHaveCountAsync(1);
         await AssertNoPasswordAsync(tab.Page, host.Log, host.Password, replacement);
@@ -190,7 +190,8 @@ public sealed class PasswordScreenTests(BrowserFixture browser, AccountHostFixtu
         Assert.DoesNotContain(false, seen);
         await tab.Page.Keyboard.PressAsync("Shift+Tab");
         await tab.Page.Keyboard.PressAsync("Enter");
-        await Expect(tab.Page).ToHaveURLAsync(new Regex(@"/minha-conta\?feito=senha&encerradas=0$", RegexOptions.None, TimeSpan.FromSeconds(1)));
+        await Expect(tab.Page).ToHaveURLAsync(new Regex("/minha-conta$", RegexOptions.None, TimeSpan.FromSeconds(1)));
+        await Expect(tab.Page.Locator(".notice--success")).ToContainTextAsync("Senha trocada. Não havia outras sessões abertas.");
     }
 
     internal static string Made(string kind) => $"ZQX-SENHA-{kind}-{Guid.NewGuid():N}";

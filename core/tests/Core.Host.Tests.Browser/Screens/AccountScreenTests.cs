@@ -162,6 +162,65 @@ public sealed class AccountScreenTests(BrowserFixture browser, AccountHostFixtur
     }
 
     [Fact]
+    public async Task OnThePhoneEachSessionIsABlockWithItsHeadersAndTheWayToEndItIsInSightWithoutScrollingTheTable()
+    {
+        await using var tabs = await TwoSessionsAsync();
+        await tabs.Current.Page.SetViewportSizeAsync(PhoneWidth, PhoneHeight);
+        _ = await tabs.Current.Page.GotoAsync(Route);
+
+        var end = tabs.Current.Page.Locator($"{Rows} a");
+        var box = await end.BoundingBoxAsync();
+        var table = await tabs.Current.Page.Locator("#sessoes-tabela-legenda")
+            .EvaluateAsync<int>("(caption) => { const region = caption.closest('.data-table'); return region.scrollWidth - region.clientWidth; }");
+        var labels = await tabs.Current.Page.Locator($"{Rows} > *").EvaluateAllAsync<string[]>("(cells) => cells.map((cell) => getComputedStyle(cell, '::before').content)");
+
+        await Expect(end).ToBeInViewportAsync(new() { Ratio = 1 });
+        Assert.NotNull(box);
+        Assert.InRange(box.X + box.Width, 0, PhoneWidth);
+        Assert.True(table <= 0, $"The table scrolls {table} px sideways on the phone.");
+        Assert.Equal(["\"Início\"", "\"Última atividade\"", "\"Ação\""], labels.Take(3));
+        Assert.Equal("block", await tabs.Current.Page.Locator(Rows).First.EvaluateAsync<string>("(row) => getComputedStyle(row).display"));
+    }
+
+    [Fact]
+    public async Task OnAWideScreenTheSessionsStayATableWithTheHeadersAboveTheColumns()
+    {
+        await using var tabs = await TwoSessionsAsync();
+
+        var display = await tabs.Current.Page.Locator(Rows).First.EvaluateAsync<string>("(row) => getComputedStyle(row).display");
+
+        Assert.Equal("table-row", display);
+        await Expect(tabs.Current.Page.Locator("[aria-labelledby=sessoes-titulo] thead th").First).ToBeVisibleAsync();
+    }
+
+    [Fact]
+    public async Task AnAddressThatSaysAnActWasDoneShowsNoNoticeWhateverItsCount()
+    {
+        await using var tab = await OpenAsync(await account.Host.AddPersonAsync());
+
+        _ = await tab.Page.GotoAsync($"{Route}?feito=senha&encerradas=-3");
+        await Expect(tab.Page.GetByRole(AriaRole.Heading, new() { Name = "Minha conta", Level = 1 })).ToBeVisibleAsync();
+        await Expect(tab.Page.Locator(".notice--success")).ToHaveCountAsync(0);
+        _ = await tab.Page.GotoAsync($"{Route}?feito=sessoes&encerradas=4");
+        await Expect(tab.Page.Locator(".notice--success")).ToHaveCountAsync(0);
+    }
+
+    [Fact]
+    public async Task TheNoticeOfAnActIsToldOnceAndNotAgainWhenTheAccountIsOpenedAgain()
+    {
+        await using var tabs = await TwoSessionsAsync();
+        await tabs.Current.Page.GetByRole(AriaRole.Link, new() { Name = "Encerrar todas as outras" }).ClickAsync();
+        await tabs.Current.Page.Locator("#encerrar-outras").ClickAsync();
+        await Expect(tabs.Current.Page.Locator(".notice--success")).ToContainTextAsync("A sessão foi encerrada.");
+
+        _ = await tabs.Current.Page.ReloadAsync();
+
+        await Expect(tabs.Current.Page.GetByRole(AriaRole.Heading, new() { Name = "Minha conta", Level = 1 })).ToBeVisibleAsync();
+        await Expect(tabs.Current.Page.Locator(".notice--success")).ToHaveCountAsync(0);
+        Assert.DoesNotContain(await tabs.Current.Page.Context.CookiesAsync(), cookie => cookie.Name == "__Host-feito");
+    }
+
+    [Fact]
     public async Task TheKeyboardAloneReachesTheHeaderTheLinkOfTheAccountThePasswordAndEachWayToEndASessionInOrderWithTheFocusSeen()
     {
         await using var tabs = await TwoSessionsAsync();

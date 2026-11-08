@@ -44,11 +44,7 @@
     /// <summary>The title of the page and of the link of the header that opens it.</summary>
     internal const string Title = "Minha conta";
 
-    /// <summary>The field of the address that names the act just done, and the one that counts the sessions it ended.</summary>
-    internal const string DoneField = "feito";
-
-    internal const string EndedField = "encerradas";
-
+    /// <summary>The names of the acts the notice of the account tells about.</summary>
     internal const string ChangeDone = "senha";
 
     internal const string SessionsDone = "sessoes";
@@ -59,7 +55,7 @@
     [Parameter, EditorRequired]
     public IReadOnlyList<SessionListing> Sessions { get; set; } = Array.Empty<SessionListing>();
 
-    /// <summary>The act just done, as the address names it; anything else says nothing.</summary>
+    /// <summary>The act just done, as its notice names it; anything else says nothing.</summary>
     [Parameter]
     public string? Done { get; set; }
 

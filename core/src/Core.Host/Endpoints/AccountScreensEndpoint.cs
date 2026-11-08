@@ -1,4 +1,3 @@
-using System.Globalization;
 using Core.Host.Operators;
 using Core.Host.Screens;
 using Core.Platform.Sessions;
@@ -26,20 +25,20 @@ internal static class AccountScreensEndpoint
         _ = endpoints.MapPost(ScreenPaths.AccountEndOthers, EndOthers).WithMetadata(ScreenAccess.Everyone);
     }
 
-    /// <summary>The account, with what the last act did when the address says so: the address names the act and a count, never anything of a password.</summary>
-    private static RazorComponentResult<ScreenFrame> Show(
-        HttpContext context, [FromServices] SessionStore sessions, [FromQuery(Name = AccountScreen.DoneField)] string? done, [FromQuery(Name = AccountScreen.EndedField)] int? ended)
+    /// <summary>The account, with what the last act did when the notice it left says so: the act and a count, never anything of a password, and never from the address.</summary>
+    private static RazorComponentResult<ScreenFrame> Show(HttpContext context, [FromServices] SessionStore sessions)
     {
         if (Of(context, sessions) is not { } open)
         {
             return ScreenResult.NotFound(context);
         }
 
+        var notice = AccountNotice.Take(context);
         var screen = new Dictionary<string, object?>(StringComparer.Ordinal)
         {
             [nameof(AccountScreen.Sessions)] = open,
-            [nameof(AccountScreen.Done)] = done,
-            [nameof(AccountScreen.Ended)] = ended ?? 0,
+            [nameof(AccountScreen.Done)] = notice?.Done,
+            [nameof(AccountScreen.Ended)] = notice?.Ended ?? 0,
         };
         return ScreenResult.Of(context, typeof(AccountScreen), AccountScreen.Title, screen);
     }
@@ -52,7 +51,7 @@ internal static class AccountScreensEndpoint
         var identifier = SessionCookie.Read(context.Request);
         if (change is null || sessions.Resolve(identifier) is not { } account)
         {
-            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+            return ScreenResult.Unavailable(context);
         }
 
         var form = context.Request.HasFormContentType ? await context.Request.ReadFormAsync(context.RequestAborted) : null;
@@ -111,6 +110,9 @@ internal static class AccountScreensEndpoint
         return sessions.Resolve(identifier) is { } account ? sessions.ListOf(account, identifier) : null;
     }
 
-    private static IResult Back(HttpContext context, string done, int ended) =>
-        PageRedirect.Of(context, $"{ScreenPaths.Account}?{AccountScreen.DoneField}={done}&{AccountScreen.EndedField}={ended.ToString(CultureInfo.InvariantCulture)}");
+    private static IResult Back(HttpContext context, string done, int ended)
+    {
+        AccountNotice.Issue(context.Response, done, ended);
+        return PageRedirect.Of(context, ScreenPaths.Account);
+    }
 }

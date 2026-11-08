@@ -8,20 +8,10 @@ internal static class ClearTypes
     internal static string Of(ClearKind kind) => kind switch
     {
         ClearKind.Identifier => "bigint",
-        ClearKind.Domain => "integer",
+        ClearKind.Domain or ClearKind.Epoch => "integer",
         ClearKind.Moment => "timestamp with time zone",
-        ClearKind.Epoch => "integer",
+        ClearKind.PseudonymizedText or ClearKind.Status or ClearKind.Motive or ClearKind.Condition => "text",
         ClearKind.Transaction => "xid8",
-        _ => Text(kind),
-    };
-
-    /// <summary>The kinds that are words of a closed form or the pseudonymized text, which the database holds as text.</summary>
-    private static string Text(ClearKind kind) => kind switch
-    {
-        ClearKind.PseudonymizedText => "text",
-        ClearKind.Status => "text",
-        ClearKind.Motive => "text",
-        ClearKind.Condition => "text",
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
 }

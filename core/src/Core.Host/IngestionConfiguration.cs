@@ -14,21 +14,21 @@ internal static class IngestionConfiguration
     private const string SectionName = "Ingestion";
     private const string ConditionsKey = "Conditions";
 
-    internal static ConfigurationSection Section { get; } = new(SectionName, new[] { ConfigurationKey.Required(ConditionsKey).Marking(Marked) });
+    internal static ConfigurationSection Section { get; } = new(SectionName, [ConfigurationKey.Required(ConditionsKey).Marking(Marked)]);
 
     /// <summary>The same section for the migration mode, which takes no material in: the list may be given, but is not required.</summary>
-    internal static ConfigurationSection SectionWhenMigrating { get; } = new(SectionName, new[] { ConfigurationKey.Optional(ConditionsKey).Marking(Marked) });
+    internal static ConfigurationSection SectionWhenMigrating { get; } = new(SectionName, [ConfigurationKey.Optional(ConditionsKey).Marking(Marked)]);
 
     /// <summary>The refusal of a list declared that is empty in some place, repeats a name or holds what is not a name; none for one not declared, which the mode requires or not.</summary>
     internal static IReadOnlyList<ConfigurationProblem> Refusals(IReadOnlyDictionary<string, string> values) =>
         values.TryGetValue(ConditionsPath, out var declared) && OriginConditions.Refusal(Split(declared)) is not null
-            ? new List<ConfigurationProblem> { new(ConfigurationProblemKind.ValueNotAccepted, ConditionsPath, declared, new[] { Accepted }) }
-            : new List<ConfigurationProblem>();
+            ? [new ConfigurationProblem(ConfigurationProblemKind.ValueNotAccepted, ConditionsPath, declared, [Accepted])]
+            : [];
 
     /// <summary>The conditions the configuration gave; the configuration has been judged before.</summary>
     internal static OriginConditions Conditions(IReadOnlyDictionary<string, string> values) => OriginConditions.Of(Split(values[ConditionsPath]));
 
-    private static string[] Split(string declared) => declared.Split(',').Select(name => name.Trim()).ToArray();
+    private static string[] Split(string declared) => [.. declared.Split(',').Select(name => name.Trim())];
 
     private static string Marked(string declared) => $"mais restrita: {Split(declared)[0]}";
 }

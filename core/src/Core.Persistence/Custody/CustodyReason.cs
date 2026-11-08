@@ -38,4 +38,10 @@ public enum CustodyReason
 
     /// <summary>The attempt to sign in was refused for a name nobody goes by or an account that does not enter; the name typed is not kept.</summary>
     AccountNotRecognized,
+
+    /// <summary>The batch of ingestion was accepted: what it holds is now part of the stock.</summary>
+    BatchAccepted,
+
+    /// <summary>The batch of ingestion was rejected: what it held was removed, and the motive is in the reference of the event.</summary>
+    BatchRejected,
 }

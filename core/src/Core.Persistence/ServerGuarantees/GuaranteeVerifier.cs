@@ -12,6 +12,9 @@ namespace Core.Persistence.ServerGuarantees;
 /// </summary>
 public sealed class GuaranteeVerifier
 {
+    private const int Tries = 5;
+    private static readonly TimeSpan Pause = TimeSpan.FromMilliseconds(200);
+
     private readonly NpgsqlDataSource dataSource;
     private readonly EncryptedSample? sample;
     private readonly CustodyChain chain;
@@ -43,8 +46,28 @@ public sealed class GuaranteeVerifier
         var missing = await StructuralGuarantees.MissingAsync(dataSource, cancellationToken).ConfigureAwait(false);
         var sampled = await SampledAsync(cancellationToken).ConfigureAwait(false);
         missing |= sampled == SampleVerdict.NotOpened ? GuaranteeKinds.EncryptedSample : GuaranteeKinds.None;
-        var recorded = await chain.AppendAsync(CustodyEvent.GuaranteesVerified((long)missing), cancellationToken).ConfigureAwait(false);
+        var recorded = await RecordAsync(CustodyEvent.GuaranteesVerified((long)missing), cancellationToken).ConfigureAwait(false);
         return new GuaranteeVerification(missing, recorded, sampled == SampleVerdict.NoneOutsideLoss, sampled == SampleVerdict.SearchStopped);
+    }
+
+    /// <summary>
+    /// The verdict is added to the chain; a writer that met another at the same link is told so and nothing was written, so the verdict is added again after a short pause, up to the tries
+    /// given, instead of waiting for the next interval of the verification, which is minutes away. The readings are not made again. The answer of the last try is the one returned.
+    /// </summary>
+    private async Task<CustodyResult> RecordAsync(CustodyEvent verdict, CancellationToken cancellationToken)
+    {
+        var tries = 0;
+        CustodyResult recorded;
+        while (true)
+        {
+            recorded = await chain.AppendAsync(verdict, cancellationToken).ConfigureAwait(false);
+            if (recorded.Outcome != CustodyOutcome.Conflict || ++tries >= Tries)
+            {
+                return recorded;
+            }
+
+            await Task.Delay(Pause, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     private async Task<SampleVerdict> SampledAsync(CancellationToken cancellationToken) =>

@@ -90,11 +90,15 @@ public sealed class SourceReadersTests
 
         public string Format { get; } = format;
 
+        public ReadLimits Limits { get; } = new(4, 10, 100, 64);
+
         public ReadOutcome Read(ReadOnlyMemory<byte> content)
         {
             Calls++;
             Received = content.ToArray();
             return outcome;
         }
+
+        public bool Recognizes(ReadOnlySpan<byte> head) => head.Length > 0;
     }
 }

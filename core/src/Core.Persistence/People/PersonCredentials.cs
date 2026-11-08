@@ -36,7 +36,22 @@ public sealed class PersonCredentials
     {
         ArgumentNullException.ThrowIfNull(password);
         ArgumentNullException.ThrowIfNull(author);
-        return ReplaceAsync(personId, password, author, cancellationToken);
+        return ReplaceAsync(personId, new Replacement(password, author, Recorded: null), cancellationToken);
+    }
+
+    /// <summary>
+    /// Changes the password of an active person who gave the one they had, which the caller has checked, and records the act as theirs, with how many of their other
+    /// sessions it ends and no value of any password; a refusal writes nothing.
+    /// </summary>
+    /// <param name="personId">The person who changes their own password.</param>
+    /// <param name="password">The new password; it must not be empty.</param>
+    /// <param name="sessionsEnded">How many of their other sessions the change ends, for the record.</param>
+    /// <param name="cancellationToken">Cancels the operation.</param>
+    public Task<PersonResult> ChangeOwnPasswordAsync(long personId, string password, int sessionsEnded, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(password);
+        var recorded = CustodyEvent.PasswordChanged(personId, sessionsEnded);
+        return ReplaceAsync(personId, new Replacement(password, CustodyAuthor.Person(personId), recorded), cancellationToken);
     }
 
     /// <summary>Whether the password is the one of an active person; when it is and the work factor stored is lower than the current, the derivation is made again with the current one.</summary>
@@ -106,29 +121,32 @@ public sealed class PersonCredentials
         PersonQueries.Add(command, "derived", NpgsqlDbType.Bytea, credential.Derived);
     }
 
-    private async Task<PersonResult> ReplaceAsync(long personId, string password, CustodyAuthor author, CancellationToken cancellationToken)
+    private async Task<PersonResult> ReplaceAsync(long personId, Replacement replacement, CancellationToken cancellationToken)
     {
-        if (password.Length == 0)
+        if (replacement.Password.Length == 0)
         {
             return PersonRefusals.PasswordInvalid();
         }
 
-        var credential = derivation.Derive(password);
+        var credential = derivation.Derive(replacement.Password);
         var statement = new PersonStatement(
             CredentialStatements.Set,
             command =>
             {
                 Bind(command, personId, credential);
-                PersonQueries.Add(command, "actor", NpgsqlDbType.Bigint, author.PersonId);
+                PersonQueries.Add(command, "actor", NpgsqlDbType.Bigint, replacement.Author.PersonId);
             },
-            CustodyStep.PersonPasswordSet,
-            personId);
-        return await WithoutRowAsync(() => dataSource.WriteChainedAsync(statement, author, cancellationToken)).ConfigureAwait(false)
+            replacement.Recorded?.Step ?? CustodyStep.PersonPasswordSet,
+            personId,
+            replacement.Recorded);
+        return await WithoutRowAsync(() => dataSource.WriteChainedAsync(statement, replacement.Author, cancellationToken)).ConfigureAwait(false)
             ?? await WhyNotSetAsync(personId, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<PersonResult> WhyNotSetAsync(long personId, CancellationToken cancellationToken) =>
         await dataSource.ReadActiveAsync(personId, cancellationToken).ConfigureAwait(false) is null ? PersonRefusals.NotFound() : PersonRefusals.Deactivated();
+
+    private sealed record Replacement(string Password, CustodyAuthor Author, CustodyEvent? Recorded);
 
     private async Task<PasswordOutcome> CheckAsync(long personId, string password, CancellationToken cancellationToken)
     {

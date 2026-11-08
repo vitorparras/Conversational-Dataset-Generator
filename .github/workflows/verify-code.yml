@@ -83,6 +83,7 @@ jobs:
       - uses: ./.github/actions/install-gitleaks
       - name: Instalar ruff, pyright e coverage nas versões fixadas (ainda sem uv no PATH)
         run: pip install -r tools/verify-code/lint-requirements.txt
+      - uses: ./.github/actions/build-database-image
       - name: Construir e testar o núcleo sem o serviço real, e sem uv no PATH
         run: python tools/verify-code/verify.py --step build_core test_core
       - name: Instalar uv na versão fixada (test_real_service chama `uv run --frozen`)
@@ -258,6 +259,7 @@ jobs:
           dotnet build core/tests/Core.Host.Tests.Browser/Core.Host.Tests.Browser.csproj -c Release --no-restore
       - name: Instalar o Chromium da versão que o pacote fixa, sem latest e sem outro navegador
         run: pwsh core/tests/Core.Host.Tests.Browser/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+      - uses: ./.github/actions/build-database-image
       - name: Rodar os testes de navegador
         run: dotnet run --project core/tests/Core.Host.Tests.Browser/Core.Host.Tests.Browser.csproj -c Release --no-build
       - name: Anotar o tempo do job

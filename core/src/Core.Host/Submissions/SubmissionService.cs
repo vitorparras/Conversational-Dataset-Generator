@@ -184,26 +184,39 @@ internal sealed class SubmissionService
         var reason = Judged(received, request.DeclaredForm);
         var warning = HasPath(request.ReceivedName) ? NameWithPath : null;
         var receipt = new SubmissionReceipt(received.Id.ToString(), received.BytesRead, received.Digest, warning);
-        if (Declaration(request) is not { } origin)
+        if (Declaration(request) is not { } origin || (reason is null && !SubmissionStoring.CanSeal(intake.Sealing, request.DomainId)))
         {
             return new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = BatchOutcome.DomainUnknown };
         }
 
         var opened = await batches.OpenAsync(new BatchOpening(request.DomainId, request.AuthorId, request.Condition, receipt, origin), cancellationToken).ConfigureAwait(false);
-        if (opened.Outcome != BatchOutcome.Opened)
-        {
-            return new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = opened.Outcome };
-        }
+        return opened.Outcome == BatchOutcome.Opened
+            ? await ClosingAsync(request, new Opened(received, opened.BatchId!.Value, warning, origin.State), reason, cancellationToken).ConfigureAwait(false)
+            : new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = opened.Outcome };
+    }
 
-        var batch = opened.BatchId!.Value;
+    /// <summary>A file that was turned back is rejected with the reason and no item; one that was not has its items written and is accepted, or is rejected with no item when they cannot be.</summary>
+    private async Task<SubmissionOutcome> ClosingAsync(SubmissionRequest request, Opened opened, SubmissionReason? reason, CancellationToken cancellationToken)
+    {
+        var closing = new BatchClosing(request.DomainId, opened.Batch, CustodyAuthor.System);
         if (reason is null)
         {
-            return Answer(received, batch, (null, warning), origin.State);
+            var place = new SubmissionStoring.BatchRef(request.DomainId, opened.Batch);
+            var stored = await SubmissionStoring.StoreAsync(intake.Writer, place, opened.Received.Material!, cancellationToken).ConfigureAwait(false);
+            if (stored && (await batches.AcceptAsync(closing, cancellationToken).ConfigureAwait(false)).Outcome == BatchOutcome.Accepted)
+            {
+                return Answer(opened.Received, opened.Batch, (null, opened.Warning), opened.Origin);
+            }
+
+            _ = await batches.RejectAsync(closing, SubmissionStoring.WriteFailed, cancellationToken).ConfigureAwait(false);
+            return new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = SubmissionStoring.WriteFailed, Batch = opened.Batch };
         }
 
-        var closed = await batches.RejectAsync(new BatchClosing(request.DomainId, batch, CustodyAuthor.System), reason.Code, cancellationToken).ConfigureAwait(false);
+        var closed = await batches.RejectAsync(closing, reason.Code, cancellationToken).ConfigureAwait(false);
         return closed.Outcome == BatchOutcome.Rejected
-            ? Answer(received, batch, (reason, warning), origin.State)
-            : new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = closed.Outcome, Batch = batch };
+            ? Answer(opened.Received, opened.Batch, (reason, opened.Warning), opened.Origin)
+            : new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = closed.Outcome, Batch = opened.Batch };
     }
+
+    private sealed record Opened(SubmissionResult Received, long Batch, string? Warning, string Origin);
 }

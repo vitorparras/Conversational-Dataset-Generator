@@ -121,7 +121,8 @@ internal static class CompositionRoot
     internal static Submissions.SubmissionService SubmissionsOf(NpgsqlDataSource source, MasterKeyReading reading, Submissions.SubmissionSettings settings) => new(
         new Submissions.SubmissionIntake(new Core.Ingestion.Entrance.SubmissionGate(Core.Ingestion.Reading.SourceReaders.Default(), settings.MaxBytes),
             new Core.Ingestion.FormConference(new Core.Boundary.Text.TextBoundaries()), settings.Conditions,
-            new ProtectedContent(reading.Labels, KeysOf(reading), settings.Registered, settings.Revoked)),
+            new ProtectedContent(reading.Labels, KeysOf(reading), settings.Registered, settings.Revoked),
+            new Core.Persistence.Content.Writing.ContentWriter(source, new ProtectedContent(reading.Labels, KeysOf(reading), settings.Registered, settings.Revoked))),
         settings.Batches, new Core.Persistence.Ingestion.BatchRegister(source), source);
 
     /// <summary>The rehearsal of the recovery over a source that was read, opening content with the labels the database registers.</summary>
@@ -175,8 +176,7 @@ internal static class CompositionRoot
                     provider.GetRequiredService<ServiceProvider>().GetRequiredService<NpgsqlDataSource>(), AuditConfiguration.ServerLogDirectory(loaded.Values))
                     .CompareAsync(from, to, token),
                 provider.GetRequiredService<ILogger<AuditComparisonService>>()),
-            provider.GetRequiredService<AuditComparisonState>(),
-            provider.GetRequiredService<TimeProvider>()));
+            provider.GetRequiredService<AuditComparisonState>(), provider.GetRequiredService<TimeProvider>()));
         _ = builder.Services.AddSingleton(provider => new SessionStore(SessionConfiguration.Lifetimes(loaded.Values), provider.GetRequiredService<TimeProvider>()));
         _ = builder.Services.AddSingleton(InstallationConfiguration.Of(loaded.Values)).AddSingleton(provider => InstallationConfiguration.Shown(StartupVersions.Of(checks), provider));
         _ = SafekeepingConfiguration.Declaration(loaded.Values) is { } declaration ? builder.Services.AddSingleton(declaration) : builder.Services;

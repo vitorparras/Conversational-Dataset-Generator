@@ -9,17 +9,26 @@ namespace Core.Host.Endpoints;
 /// </summary>
 internal static class SubmissionAnswer
 {
+    internal const string KeyUnavailableCode = "content_key_unavailable";
+
     internal static IResult Of(SubmissionOutcome outcome) => outcome.Kind switch
     {
         SubmissionKind.Invalid => Results.Json(new FieldsRefused([.. outcome.Fields!.Select(Field)]), statusCode: StatusCodes.Status400BadRequest),
         SubmissionKind.Blocked => Results.Json(new SubmissionBlocked(outcome.BlockedBy), statusCode: StatusCodes.Status409Conflict),
         SubmissionKind.NotRecorded => NotRecorded(outcome.Failure),
+        SubmissionKind.Unavailable => Unavailable(new SubmissionUnavailable(outcome.Code!, null)),
         _ => Results.Json(Done(outcome), statusCode: outcome.IsTooLarge ? StatusCodes.Status413PayloadTooLarge : StatusCodes.Status201Created),
     };
 
     /// <summary>The fields at fault when the body had no file, beside the ones the service found.</summary>
     internal static IResult NoFile(IReadOnlyList<FieldProblem> problems) =>
         Results.Json(new FieldsRefused([.. problems.Select(Field), new FieldShown("file", "missing")]), statusCode: StatusCodes.Status400BadRequest);
+
+    /// <summary>The key that seals the content could not be read: 503 with the code and the kind of failure, and nothing was recorded.</summary>
+    internal static IResult KeyUnavailable(ContentKeyUnavailableException failure) =>
+        Unavailable(new SubmissionUnavailable(KeyUnavailableCode, ReasonCodes.Of(failure.Kind)));
+
+    private static IResult Unavailable(SubmissionUnavailable body) => Results.Json(body, statusCode: StatusCodes.Status503ServiceUnavailable);
 
     /// <summary>A batch as the list shows it.</summary>
     internal static BatchShown Shown(BatchEntry entry) => new(

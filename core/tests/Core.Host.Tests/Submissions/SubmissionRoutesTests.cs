@@ -32,7 +32,8 @@ public sealed class SubmissionRoutesTests
 
         Assert.Equal(
             (HttpStatusCode.Created, "accepted", "declared", JsonValueKind.Null, 1L),
-            (response.StatusCode, json.RootElement.GetProperty("state").GetString(), json.RootElement.GetProperty("origin").GetString(), json.RootElement.GetProperty("reason").ValueKind, await world.BatchCountAsync()));
+            (response.StatusCode, json.RootElement.GetProperty("state").GetString(), json.RootElement.GetProperty("origin").GetString(),
+                json.RootElement.GetProperty("reason").ValueKind, await world.BatchCountAsync()));
         Assert.DoesNotContain("ZQXPRIMEIRO", body, StringComparison.Ordinal);
         Assert.DoesNotContain(SubmissionWorld.Origin, body, StringComparison.Ordinal);
         Assert.DoesNotContain("conversa.json", body, StringComparison.Ordinal);
@@ -144,7 +145,8 @@ public sealed class SubmissionRoutesTests
 
         Assert.Equal(
             (HttpStatusCode.Created, 1, 0, 0, HttpStatusCode.OK, HttpStatusCode.NotFound),
-            (created.StatusCode, await CountAsync(accepted, cancellationToken), await CountAsync(rejected, cancellationToken), await CountAsync(hidden, cancellationToken), detail.StatusCode, hiddenDetail.StatusCode));
+            (created.StatusCode, await CountAsync(accepted, cancellationToken), await CountAsync(rejected, cancellationToken),
+                await CountAsync(hidden, cancellationToken), detail.StatusCode, hiddenDetail.StatusCode));
         Assert.DoesNotContain(SubmissionWorld.Origin, await detail.Content.ReadAsStringAsync(cancellationToken), StringComparison.Ordinal);
     }
 

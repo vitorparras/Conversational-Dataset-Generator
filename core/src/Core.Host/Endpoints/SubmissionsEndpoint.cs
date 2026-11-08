@@ -32,29 +32,30 @@ internal static class SubmissionsEndpoint
 
     private static async Task<IResult> GateAsync([FromServices] SubmissionServiceHolder? services, HttpContext context)
     {
-        if (services is null)
+        var obtained = await ObtainAsync(services, context.RequestAborted);
+        if (obtained.Service is not { } service)
         {
-            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+            return obtained.Failure!;
         }
 
-        var service = await services.GetAsync(context.RequestAborted);
         var gate = await service.GateAsync(context.RequestAborted);
         return Results.Ok(new GateShown(gate.Open ? "open" : "blocked", gate.Code));
     }
 
     private static async Task<IResult> SubmitAsync([FromServices] SubmissionServiceHolder? services, [FromServices] IGrantedDomains? grants, HttpContext context)
     {
-        if (services is null)
-        {
-            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
-        }
-
         if (SessionOf(context) is not { } author)
         {
             return Results.Unauthorized();
         }
 
-        Bound(context, services.MaxBytes);
+        var obtained = await ObtainAsync(services, context.RequestAborted);
+        if (obtained.Service is not { } service)
+        {
+            return obtained.Failure!;
+        }
+
+        Bound(context, services!.MaxBytes);
         if (await SubmissionForm.ReadAsync(context.Request, author, context.RequestAborted) is not { } read)
         {
             return Results.StatusCode(StatusCodes.Status415UnsupportedMediaType);
@@ -66,17 +67,11 @@ internal static class SubmissionsEndpoint
             return Results.NotFound();
         }
 
-        var service = await services.GetAsync(context.RequestAborted);
         return read.HasFile ? SubmissionAnswer.Of(await service.SubmitAsync(read.Request, context.RequestAborted)) : SubmissionAnswer.NoFile(service.Check(read.Request));
     }
 
     private static async Task<IResult> ListAsync([FromServices] SubmissionServiceHolder? services, [FromServices] IGrantedDomains? grants, HttpContext context)
     {
-        if (services is null)
-        {
-            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
-        }
-
         if (SessionOf(context) is not { } requester)
         {
             return Results.Unauthorized();
@@ -88,27 +83,50 @@ internal static class SubmissionsEndpoint
             return Results.Json(new FieldsRefused(BatchQuery.Problems(context.Request.Query)), statusCode: StatusCodes.Status400BadRequest);
         }
 
-        var service = await services.GetAsync(context.RequestAborted);
+        var obtained = await ObtainAsync(services, context.RequestAborted);
+        if (obtained.Service is not { } service)
+        {
+            return obtained.Failure!;
+        }
+
         var entries = await service.ListAsync(asked.Filter, context.RequestAborted);
         return Results.Ok(new BatchesShown(asked.Page, asked.PageSize, [.. entries.Select(SubmissionAnswer.Shown)]));
     }
 
     private static async Task<IResult> DetailAsync(long id, [FromServices] SubmissionServiceHolder? services, [FromServices] IGrantedDomains? grants, HttpContext context)
     {
-        if (services is null)
-        {
-            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
-        }
-
         if (SessionOf(context) is not { } requester)
         {
             return Results.Unauthorized();
         }
 
+        var obtained = await ObtainAsync(services, context.RequestAborted);
+        if (obtained.Service is not { } service)
+        {
+            return obtained.Failure!;
+        }
+
         var granted = await GrantedAsync(grants, requester, context.RequestAborted);
-        var service = await services.GetAsync(context.RequestAborted);
         var entry = await service.DetailAsync(granted, id, context.RequestAborted);
         return entry is null ? Results.NotFound() : Results.Ok(SubmissionAnswer.Shown(entry));
+    }
+
+    /// <summary>The service the first request builds with the key of the content; with no database, or with no key to be read, the answer is 503 and nothing was recorded.</summary>
+    private static async Task<Obtained> ObtainAsync(SubmissionServiceHolder? services, CancellationToken cancellationToken)
+    {
+        if (services is null)
+        {
+            return new Obtained(null, Results.StatusCode(StatusCodes.Status503ServiceUnavailable));
+        }
+
+        try
+        {
+            return new Obtained(await services.GetAsync(cancellationToken), null);
+        }
+        catch (ContentKeyUnavailableException failure)
+        {
+            return new Obtained(null, SubmissionAnswer.KeyUnavailable(failure));
+        }
     }
 
     /// <summary>The domains granted to the requester; none while no grant is recorded (#112), which makes every domain one that does not exist for them.</summary>
@@ -125,4 +143,6 @@ internal static class SubmissionsEndpoint
             feature.MaxRequestBodySize = maxBytes + BodyMargin;
         }
     }
+
+    private sealed record Obtained(SubmissionService? Service, IResult? Failure);
 }

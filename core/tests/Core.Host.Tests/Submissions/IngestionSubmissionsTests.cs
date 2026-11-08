@@ -13,7 +13,7 @@ namespace Core.Host.Tests.Submissions;
 public sealed class IngestionSubmissionsTests
 {
     [DatabaseFact]
-    public async Task ValidFileIsAcceptedAndKeptInAnOpenBatchUnderTheMostRestrictiveConditionWithWhatArrived()
+    public async Task ValidFileIsAcceptedAndKeptInAnAcceptedBatchUnderTheMostRestrictiveConditionWithWhatArrived()
     {
         await using var world = await SubmissionWorld.CreateAsync();
         var bytes = Encoding.UTF8.GetBytes(SubmissionWorld.Conversation);
@@ -25,7 +25,7 @@ public sealed class IngestionSubmissionsTests
             (SubmissionKind.Done, SubmissionState.Accepted, null, (long)bytes.Length, Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(bytes))),
             (outcome.Kind, outcome.State, outcome.Reason, outcome.Size, outcome.Sha256));
         Assert.Equal(
-            (BatchState.Open, SubmissionWorld.Person, outcome.Submission, outcome.Size, outcome.Sha256, null),
+            (BatchState.Accepted, SubmissionWorld.Person, outcome.Submission, outcome.Size, outcome.Sha256, null),
             (entry!.State, entry.SubmittedBy, entry.Receipt!.Submission, entry.Receipt.Bytes, entry.Receipt.Digest, entry.Receipt.Warning));
         Assert.Equal(32, outcome.Submission!.Length);
     }

@@ -40,7 +40,7 @@ internal static class SubmissionParts
         {
             if (reading.Failure is not null)
             {
-                throw new InvalidOperationException("The master key could not be read to seal what a submission declares.");
+                throw new ContentKeyUnavailableException(reading.Failure.Kind);
             }
 
             var registered = await RegisteredLabels.ReadAsync(source, cancellationToken).ConfigureAwait(false);

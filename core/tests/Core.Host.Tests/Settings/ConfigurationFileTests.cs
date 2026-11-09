@@ -82,6 +82,28 @@ public sealed class ConfigurationFileTests : IDisposable
         Assert.False(new ConfigurationFile(path, clock).TryChange("SemSecao", "x"));
     }
 
+    [Fact]
+    public void TheValuesAreEveryKeyOfEverySectionAsSectionColonName()
+    {
+        var path = Written("""{ "Host": { "Urls": "https://127.0.0.1:5000" }, "Session": { "IdleTimeout": "00:30:00" } }""");
+
+        var values = new ConfigurationFile(path, clock).Values();
+
+        Assert.Equal(("https://127.0.0.1:5000", "00:30:00", 2), (values["Host:Urls"], values["Session:IdleTimeout"], values.Count));
+    }
+
+    [Fact]
+    public void AValueThatIsAlreadyTheOneAskedForChangesNothingAndKeepsNoVersion()
+    {
+        const string Same = """{ "Session": { "IdleTimeout": "00:20:00" } }""";
+        var path = Written(Same);
+
+        var changed = new ConfigurationFile(path, clock).TryChange(Key, "00:20:00");
+
+        Assert.True(changed);
+        Assert.Equal((Same, 1), (File.ReadAllText(path), Directory.GetFiles(folder.Path).Length));
+    }
+
     public void Dispose() => folder.Dispose();
 
     private static JsonObject Read(string path) => (JsonObject)JsonNode.Parse(File.ReadAllText(path))!;

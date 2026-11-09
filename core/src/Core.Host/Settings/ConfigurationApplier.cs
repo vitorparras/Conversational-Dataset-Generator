@@ -76,6 +76,7 @@ internal sealed class ConfigurationApplier
             return ApplicationRefusal.KeyOnlyOnServer;
         }
 
-        return ConfigurationTrial.Problems(inForce, change.Key, change.Value).Count > 0 ? ApplicationRefusal.ValueRefused : ApplicationRefusal.None;
+        var problems = ConfigurationTrial.Problems(inForce, change.Key, change.Value);
+        return problems.Any(problem => ChangeableKeys.Has(problem.Key)) ? ApplicationRefusal.ValueRefused : ApplicationRefusal.None;
     }
 }

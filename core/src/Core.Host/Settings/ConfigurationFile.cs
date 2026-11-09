@@ -1,3 +1,23 @@
+        var parts = key.Split(':');
+        if (parts.Length != 2 || Read() is not { } root)
+        {
+            return false;
+        }
+
+        if (root[parts[0]]?[parts[1]] is JsonValue current && current.ToString() == value)
+        {
+            return true;
+        }
+
+        if (!TrySet(root, parts[0], parts[1], value))
+        {
+            return false;
+        }
+
+        if (root[parts[0]]?[parts[1]] is JsonValue current && current.ToString() == value)
+        {
+            return true;
+        }
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
@@ -31,7 +51,17 @@ internal sealed class ConfigurationFile
     internal bool TryChange(string key, string value)
     {
         var parts = key.Split(':');
-        if (parts.Length != 2 || Read() is not { } root || !TrySet(root, parts[0], parts[1], value))
+        if (parts.Length != 2 || Read() is not { } root)
+        {
+            return false;
+        }
+
+        if (root[parts[0]]?[parts[1]] is JsonValue current && current.ToString() == value)
+        {
+            return true;
+        }
+
+        if (!TrySet(root, parts[0], parts[1], value))
         {
             return false;
         }
@@ -40,6 +70,24 @@ internal sealed class ConfigurationFile
         File.WriteAllText(written, root.ToJsonString(Indented), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
         Replace(written);
         return true;
+    }
+
+    /// <summary>Every value the file holds as <c>Section:Name</c>, the one level of sections the host reads; none from a file that is not a JSON object.</summary>
+    internal IReadOnlyDictionary<string, string> Values()
+    {
+        var values = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var section in Read() ?? new JsonObject())
+        {
+            foreach (var entry in section.Value as JsonObject ?? new JsonObject())
+            {
+                if (entry.Value is JsonValue value)
+                {
+                    values[$"{section.Key}:{entry.Key}"] = value.ToString();
+                }
+            }
+        }
+
+        return values;
     }
 
     private static bool TrySet(JsonObject root, string section, string name, string value)

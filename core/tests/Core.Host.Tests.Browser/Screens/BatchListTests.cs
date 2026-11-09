@@ -116,7 +116,7 @@ public sealed class BatchListTests(BrowserFixture browser, GrantedBatchesHostFix
         await ModeCapture.SaveAsync(tab.Page, width < 1280 ? "celular" : "1280", withGrant ? "lotes" : "lotes-sem-concessao");
     }
 
-    private async Task<BrowserTab> OpenAsync(BatchScreenHost host)
+    private async Task<BrowserTab> OpenAsync(ScreenHostBase host)
     {
         var tab = await ScreenSession.SignedInAsync(browser, host, host.Curator);
         try

@@ -9,16 +9,17 @@ internal static class GrantedDomains
     /// <param name="listing">The listing of the domains.</param>
     /// <param name="names">The names, as the grants give them.</param>
     /// <param name="cancellationToken">Cancels the reading.</param>
-    internal static Task<IReadOnlyDictionary<int, string>> OfAsync(DomainListing listing, IEnumerable<string> names, CancellationToken cancellationToken)
+    internal static Task<Dictionary<int, string>> OfAsync(DomainListing listing, IEnumerable<string> names, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(listing);
         ArgumentNullException.ThrowIfNull(names);
-        return FindingAsync(listing, names.ToHashSet(StringComparer.Ordinal), cancellationToken);
+        return FindingAsync(listing, names, cancellationToken);
     }
 
-    private static async Task<IReadOnlyDictionary<int, string>> FindingAsync(DomainListing listing, HashSet<string> names, CancellationToken cancellationToken)
+    private static async Task<Dictionary<int, string>> FindingAsync(DomainListing listing, IEnumerable<string> names, CancellationToken cancellationToken)
     {
+        var wanted = names.ToHashSet(StringComparer.Ordinal);
         var listed = await listing.ListAsync(cancellationToken).ConfigureAwait(false);
-        return listed.Where(domain => names.Contains(domain.Name)).ToDictionary(domain => domain.Id, domain => domain.Name);
+        return listed.Where(domain => wanted.Contains(domain.Name)).ToDictionary(domain => domain.Id, domain => domain.Name);
     }
 }

@@ -15,10 +15,6 @@ namespace Core.Host.Endpoints;
 internal static class BatchScreensEndpoint
 {
     private const int BatchesPlace = 20;
-    private const string Removed = "Pessoa removida";
-
-    /// <summary>The last page the address may ask for: past it the register would skip more than it reads for each domain, so the page stops there and says there is no next.</summary>
-    private static readonly int LastPage = BatchRegister.MostSkipped / BatchesScreen.Size;
 
     internal static void Map(IEndpointRouteBuilder endpoints) =>
         _ = endpoints.MapGet(ScreenPaths.Batches, ListAsync).WithMetadata(ScreenAccess.OfFunction(BatchesScreen.Title, BatchesPlace, PersonFunctions.Curation));
@@ -34,43 +30,22 @@ internal static class BatchScreensEndpoint
 
         var query = context.Request.Query;
         var (state, from, until) = (query[BatchesScreen.StateKey].ToString(), query[BatchesScreen.FromKey].ToString(), query[BatchesScreen.UntilKey].ToString());
-        var period = BatchesScreen.PeriodOf(from, until);
-        var page = Math.Clamp(int.TryParse(query[BatchesScreen.PageKey], NumberStyles.None, CultureInfo.InvariantCulture, out var asked) ? asked : 1, 1, LastPage);
-        var reach = context.Features.Get<ScreenReach>() ?? ScreenReach.Nothing;
-        var domains = await GrantedDomains.OfAsync(listing, reach.Granted, context.RequestAborted);
-        var filter = new BatchFilter
-        {
-            Domains = domains.Keys.ToList(),
-            State = BatchesScreen.StateOf(state),
-            From = period.From,
-            Until = period.Until,
-            Skip = (page - 1) * BatchesScreen.Size,
-            Take = BatchesScreen.Size + 1,
-        };
-        IReadOnlyList<BatchEntry> found = domains.Count == 0 ? Array.Empty<BatchEntry>() : await register.ListAsync(filter, context.RequestAborted);
-        var names = await staff.Registry.NamesOfAsync(found.Select(entry => entry.SubmittedBy), context.RequestAborted);
+        var (since, before, fromError, untilError) = BatchesScreen.PeriodOf(from, until);
+        var page = Math.Clamp(int.TryParse(query[BatchesScreen.PageKey], NumberStyles.None, CultureInfo.InvariantCulture, out var asked) ? asked : 1, 1, BatchListing.LastPage);
+        var granted = (context.Features.Get<ScreenReach>() ?? ScreenReach.Nothing).Granted;
+        var (rows, any, next) = await BatchListing.PageAsync((register, listing, staff.Registry), granted, (BatchesScreen.StateOf(state), since, before), page, context.RequestAborted);
         var screen = new Dictionary<string, object?>(StringComparer.Ordinal)
         {
-            [nameof(BatchesScreen.Rows)] = found.Take(BatchesScreen.Size).Select(entry => RowOf(entry, domains, names)).ToList(),
-            [nameof(BatchesScreen.Granted)] = domains.Count > 0,
+            [nameof(BatchesScreen.Rows)] = rows,
+            [nameof(BatchesScreen.Granted)] = any,
             [nameof(BatchesScreen.State)] = state,
             [nameof(BatchesScreen.From)] = from,
             [nameof(BatchesScreen.Until)] = until,
-            [nameof(BatchesScreen.FromError)] = period.FromError,
-            [nameof(BatchesScreen.UntilError)] = period.UntilError,
+            [nameof(BatchesScreen.FromError)] = fromError,
+            [nameof(BatchesScreen.UntilError)] = untilError,
             [nameof(BatchesScreen.Page)] = page,
-            [nameof(BatchesScreen.HasNext)] = found.Count > BatchesScreen.Size && page < LastPage,
+            [nameof(BatchesScreen.HasNext)] = next,
         };
         return ScreenResult.Of(context, typeof(BatchesScreen), BatchesScreen.Title, screen);
     }
-
-    /// <summary>One batch as the list shows it: the domain and the person by name, a person the registry no longer has said as removed and never by the identifier.</summary>
-    private static BatchesScreen.Row RowOf(BatchEntry entry, IReadOnlyDictionary<int, string> domains, IReadOnlyDictionary<long, string> names) => new(
-        entry.Id,
-        domains[entry.DomainId],
-        entry.State,
-        entry.Reason,
-        names.TryGetValue(entry.SubmittedBy, out var name) ? name : Removed,
-        entry.SubmittedAt,
-        entry.Receipt is { } receipt ? new BatchesScreen.Receipt(receipt.Bytes, receipt.Digest, receipt.Warning) : null);
 }

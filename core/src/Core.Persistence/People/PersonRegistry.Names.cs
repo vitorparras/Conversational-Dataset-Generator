@@ -1,5 +1,4 @@
 using Npgsql;
-using NpgsqlTypes;
 
 namespace Core.Persistence.People;
 
@@ -16,7 +15,10 @@ public sealed partial class PersonRegistry
     public Task<IReadOnlyDictionary<long, string>> NamesOfAsync(IEnumerable<long> ids, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(ids);
-        return NamingAsync(ids.Distinct().ToArray(), cancellationToken);
+        var distinct = new HashSet<long>(ids);
+        var given = new long[distinct.Count];
+        distinct.CopyTo(given);
+        return NamingAsync(given, cancellationToken);
     }
 
     private async Task<IReadOnlyDictionary<long, string>> NamingAsync(long[] ids, CancellationToken cancellationToken)
@@ -30,7 +32,7 @@ public sealed partial class PersonRegistry
         var command = dataSource.CreateCommand(NamesOfIds);
         await using (command.ConfigureAwait(false))
         {
-            Add(command, "ids", NpgsqlDbType.Array | NpgsqlDbType.Bigint, ids);
+            _ = command.Parameters.Add(new NpgsqlParameter<long[]>("ids", ids));
             var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             await using (reader.ConfigureAwait(false))
             {

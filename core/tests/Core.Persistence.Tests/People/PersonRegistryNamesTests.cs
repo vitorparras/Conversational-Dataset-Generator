@@ -27,7 +27,7 @@ public sealed class PersonRegistryNamesTests : IClassFixture<PeopleDatabase>
         var other = PeopleDatabase.Id(await registry.CreateAsync(new NewPerson(second, Annotation), CustodyAuthor.System, TestContext.Current.CancellationToken));
         _ = await registry.DeactivateAsync(other, CustodyAuthor.System, TestContext.Current.CancellationToken);
 
-        var names = await registry.NamesOfAsync(new[] { one, other, one }, TestContext.Current.CancellationToken);
+        var names = await registry.NamesOfAsync([one, other, one], TestContext.Current.CancellationToken);
 
         Assert.Equal(2, names.Count);
         Assert.Equal(first, names[one]);
@@ -41,7 +41,7 @@ public sealed class PersonRegistryNamesTests : IClassFixture<PeopleDatabase>
         var name = PeopleDatabase.NewName();
         var id = PeopleDatabase.Id(await registry.CreateAsync(new NewPerson(name, Annotation), CustodyAuthor.System, TestContext.Current.CancellationToken));
 
-        var names = await registry.NamesOfAsync(new[] { id, long.MaxValue }, TestContext.Current.CancellationToken);
+        var names = await registry.NamesOfAsync([id, long.MaxValue], TestContext.Current.CancellationToken);
 
         Assert.Equal(name, Assert.Single(names).Value);
         Assert.False(names.ContainsKey(long.MaxValue));
@@ -53,7 +53,7 @@ public sealed class PersonRegistryNamesTests : IClassFixture<PeopleDatabase>
         await using var server = new UnreachableServer();
         var registry = new PersonRegistry(server.DataSource);
 
-        var names = await registry.NamesOfAsync(Array.Empty<long>(), TestContext.Current.CancellationToken);
+        var names = await registry.NamesOfAsync([], TestContext.Current.CancellationToken);
 
         Assert.Empty(names);
     }

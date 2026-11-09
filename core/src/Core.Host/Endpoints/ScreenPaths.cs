@@ -18,4 +18,5 @@ internal static class ScreenPaths
     internal const string Operators = "/pessoas";
     internal const string OperatorNew = "/pessoas/nova";
     internal const string Notices = "/avisos";
+    internal const string Batches = "/lotes";
 }

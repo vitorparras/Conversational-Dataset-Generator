@@ -33,7 +33,7 @@
 @if (Batch.Accommodation is { } accommodation)
 {
     <Panel Id="lote-perda" Title="Perda declarada">
-        <Notice Kind="Notice.Tone.Pending">
+        <Notice>
             O material veio como @BatchDetailTexts.FormOf(accommodation.Declared) e foi acomodado como @BatchDetailTexts.FormOf(accommodation.Into), em @Items(accommodation.Items). O que se perdeu:
         </Notice>
         <ul>

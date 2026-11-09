@@ -99,6 +99,29 @@ public sealed class BatchDetailScreenTests
         Assert.DoesNotContain("<input", page, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Ca4NothingTheDetailTakesCanHoldAWordOfTheMaterialEveryTextIsAClosedListOfNamesCodesAndAnAddress()
+    {
+        var types = new[]
+        {
+            typeof(BatchDetailScreen.Detail), typeof(BatchDetailScreen.FormCount), typeof(BatchDetailScreen.DestinationCount), typeof(BatchDetailScreen.ReplicaCount),
+            typeof(BatchDetailScreen.Recognition), typeof(BatchDetailScreen.Accommodated),
+        };
+
+        var texts = types.SelectMany(type => type.GetProperties().Where(property => Holds(property.PropertyType)).Select(property => $"{type.Name}.{property.Name}"));
+
+        Assert.Equal(
+            [
+                "Detail.Domain", "Detail.Motive", "Detail.SubmittedBy", "FormCount.Form", "DestinationCount.Destination", "Recognition.Address",
+                "Accommodated.Declared", "Accommodated.Into", "Accommodated.Losses",
+            ],
+            texts);
+    }
+
+    /// <summary>Whether a property can carry text: a string, or a collection of strings, such as the codes of the losses.</summary>
+    private static bool Holds(Type type) =>
+        type == typeof(string) || (type.IsAssignableTo(typeof(System.Collections.IEnumerable)) && type.GetGenericArguments().Any(Holds));
+
     private static string Fact(string term, string value) => $@"<dt>\s*{Regex.Escape(term)}\s*</dt>\s*<dd>\s*{Regex.Escape(value)}\s*</dd>";
 
     private static async Task<string> RenderAsync(BatchDetailScreen.Detail batch)

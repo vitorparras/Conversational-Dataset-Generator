@@ -52,7 +52,7 @@ jobs:
           shown() { if [ "$architecture" = skipped ]; then echo "build=$build format=$format"; else echo "build=$build format=$format architecture=$architecture"; fi; }
           : > "$RUNNER_TEMP/architecture.log"
           if [ "$ARCHITECTURE" = true ]; then
-            dotnet test --project core/tests/Core.Tests.Architecture/Core.Tests.Architecture.csproj -c Release -m:2 -nodeReuse:false -p:UseSharedCompilation=false -nologo > "$RUNNER_TEMP/architecture.log" 2>&1
+            dotnet test --project core/tests/Core.Tests.Architecture/Core.Tests.Architecture.csproj -c Release --no-build > "$RUNNER_TEMP/architecture.log" 2>&1
             architecture=$?
           fi
           errors() {

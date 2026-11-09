@@ -1,0 +1,68 @@
+-- PROVISIONAL NUMBER: the definitive one is taken when the pull request opens, after the change in force (0045).
+-- An approved change of configuration that will never be applied (issue 748; decision 0053): the core, which runs the same rules as the applier, writes one event, by the system, that says why:
+-- the item is the submission and the reference is the code of the reason and the sequence of the event of the approval. Only the checks change, from the last ones the 0045 left: everything they
+-- list and every clause they fix stays, and the new step comes in beside it.
+ALTER TABLE public.custody_event
+    DROP CONSTRAINT custody_event_step_listed,
+    DROP CONSTRAINT custody_event_configuration_shape,
+    DROP CONSTRAINT custody_event_emptying_shape,
+    ADD CONSTRAINT custody_event_step_listed CHECK (step IN
+        ('person_created', 'person_deactivated', 'person_function_changed', 'person_password_set', 'correction',
+         'raw_text_read', 'sanitized_text_read', 'reversal_entries_read', 'verify_chain', 'item_emptied', 'item_emptying_refused', 'epoch_rotated',
+         'domain_created', 'seal_recorded', 'domain_label_rotated',
+         'sign_in_accepted', 'sign_in_refused', 'credential_recomputed', 'key_loss_declared', 'recovery_tested', 'verify_guarantees',
+         'owner_window_opened', 'owner_window_closed', 'restored', 'restore_rehearsed', 'domain_label_revoked', 'domain_rewrapped',
+         'batch_opened', 'batch_closed', 'password_changed', 'configuration_submitted', 'origin_read', 'configuration_approved', 'configuration_refused',
+         'configuration_in_force', 'configuration_not_applied')),
+    ADD CONSTRAINT custody_event_configuration_shape CHECK (
+        (step IN ('configuration_submitted', 'configuration_approved', 'configuration_refused', 'configuration_in_force', 'configuration_not_applied')) = (item_kind = 'configuration_change')
+        AND (item_kind <> 'configuration_change'
+             OR (reason = 'administrative_act' AND corrects IS NULL AND (actor_person_id IS NOT NULL) = (step NOT IN ('configuration_in_force', 'configuration_not_applied'))))
+        AND (step <> 'configuration_submitted' OR reference IS NULL)
+        AND (step NOT IN ('configuration_approved', 'configuration_refused', 'configuration_in_force') OR coalesce(reference ~ '^[1-9][0-9]{0,18}$', false))
+        AND (step <> 'configuration_not_applied' OR coalesce(reference ~ '^[a-z_]{1,40}/[1-9][0-9]{0,18}$', false))),
+    ADD CONSTRAINT custody_event_emptying_shape CHECK (
+        (step IN ('recovery_tested', 'verify_chain')
+            OR (reference IS NOT NULL)
+                = (step IN ('item_emptied', 'item_emptying_refused', 'domain_label_rotated', 'key_loss_declared', 'owner_window_opened', 'owner_window_closed', 'restored',
+                            'restore_rehearsed', 'domain_label_revoked', 'password_changed', 'configuration_approved', 'configuration_refused', 'configuration_in_force',
+                            'configuration_not_applied')
+                    OR reason = 'batch_rejected'))
+        AND (step <> 'verify_chain' OR reference IS NULL OR reference ~ '^requested-by/[1-9][0-9]{0,17}$')
+        AND (reference IS NULL OR step IN ('owner_window_opened', 'owner_window_closed', 'restored') OR reference ~ '^[A-Za-z0-9._/-]{1,64}$')
+        AND (step NOT IN ('owner_window_opened', 'owner_window_closed', 'restored') OR reference ~ '^[a-z0-9=;]{1,160}$')
+        AND (step <> 'restore_rehearsed' OR reference ~ '^[a-z]+(\.[a-z]+)*$')
+        AND (step NOT IN ('item_emptied', 'item_emptying_refused') OR item_kind = 'item_text')
+        AND (step = 'item_emptied') = (reason IN ('removal_requested_by_subject', 'contract_requirement'))
+        AND (step = 'item_emptying_refused') = (reason IN ('author_without_function', 'item_already_emptied'))
+        AND (step <> 'item_emptied' OR actor_person_id IS NOT NULL));
+
+-- A change is not applied once.
+CREATE UNIQUE INDEX custody_event_configuration_not_applied_once ON public.custody_event (item_id) WHERE step = 'configuration_not_applied';
+
+-- The event points at the event of the approval of the same change, and a change already in force is not refused afterwards; the load of a restore puts back what was recorded, as it was.
+CREATE FUNCTION public.refuse_configuration_not_applied_out_of_turn() RETURNS trigger
+LANGUAGE plpgsql
+AS $refuse$
+BEGIN
+    IF public.restore_window_is_open() THEN
+        RETURN NEW;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM public.custody_event e
+                   WHERE e.item_kind = 'configuration_change' AND e.item_id = NEW.item_id AND e.step = 'configuration_approved'
+                     AND e.sequence::text = split_part(NEW.reference, '/', 2)) THEN
+        RAISE EXCEPTION 'the refusal to apply a change of configuration comes only after its approval, and the event points at it'
+            USING ERRCODE = 'check_violation', CONSTRAINT = 'configuration_not_applied_points_at_approval';
+    ELSIF EXISTS (SELECT 1 FROM public.custody_event f WHERE f.item_kind = 'configuration_change' AND f.item_id = NEW.item_id AND f.step = 'configuration_in_force') THEN
+        RAISE EXCEPTION 'a change of configuration already in force is not refused afterwards'
+            USING ERRCODE = 'check_violation', CONSTRAINT = 'configuration_not_applied_after_in_force';
+    END IF;
+
+    RETURN NEW;
+END
+$refuse$;
+
+CREATE TRIGGER custody_event_configuration_not_applied BEFORE INSERT ON public.custody_event FOR EACH ROW
+    WHEN (NEW.step = 'configuration_not_applied') EXECUTE FUNCTION public.refuse_configuration_not_applied_out_of_turn();
+ALTER TABLE public.custody_event ENABLE ALWAYS TRIGGER custody_event_configuration_not_applied;

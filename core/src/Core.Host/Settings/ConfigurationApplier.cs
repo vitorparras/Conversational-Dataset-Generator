@@ -30,7 +30,7 @@ internal sealed class ConfigurationApplier
         ArgumentNullException.ThrowIfNull(change);
         ArgumentNullException.ThrowIfNull(facts);
         ArgumentNullException.ThrowIfNull(inForce);
-        var refusal = Judge(change, facts, inForce);
+        var refusal = ApplicationJudge.Judge(change, facts, inForce);
         if (refusal == ApplicationRefusal.None && !file.TryChange(change.Key, change.Value))
         {
             refusal = ApplicationRefusal.FileUnreadable;
@@ -47,36 +47,5 @@ internal sealed class ConfigurationApplier
         }
 
         return refusal;
-    }
-
-    private static ApplicationRefusal Judge(ApprovedChange change, ApplicationFacts facts, IReadOnlyDictionary<string, string> inForce)
-    {
-        if (!facts.ChainClosed)
-        {
-            return ApplicationRefusal.ChainBroken;
-        }
-
-        if (change.SubmitterId == change.ApproverId)
-        {
-            return ApplicationRefusal.SameAuthor;
-        }
-
-        if (!facts.SubmitterAllowed)
-        {
-            return ApplicationRefusal.SubmitterNotAllowed;
-        }
-
-        if (!facts.ApproverAllowed)
-        {
-            return ApplicationRefusal.ApproverNotAllowed;
-        }
-
-        if (!ChangeableKeys.Has(change.Key))
-        {
-            return ApplicationRefusal.KeyOnlyOnServer;
-        }
-
-        var problems = ConfigurationTrial.Problems(inForce, change.Key, change.Value);
-        return problems.Any(problem => ChangeableKeys.Has(problem.Key)) ? ApplicationRefusal.ValueRefused : ApplicationRefusal.None;
     }
 }

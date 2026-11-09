@@ -1,4 +1,5 @@
 using System.Text;
+using Core.Persistence.Content;
 using Core.Persistence.Content.Writing;
 using Core.Persistence.Tests.Fixtures;
 using Npgsql;
@@ -25,6 +26,9 @@ internal static class OpaqueStorage
     /// <summary>The column of the sanitized text.</summary>
     public const string SanitizedText = "content.item_text.sanitized_text";
 
+    /// <summary>The column of the occurrences found in the item and the destination of each.</summary>
+    public const string Occurrences = "content.item_text.occurrences";
+
     /// <summary>The column of the entries of the reversal map.</summary>
     public const string Entries = "content.reversal_map.entries";
 
@@ -34,7 +38,7 @@ internal static class OpaqueStorage
     /// <summary>The column of the key of the map, wrapped.</summary>
     public const string MapKey = "content.reversal_map.dek_wrapped";
 
-    private static readonly string[] Seedable = [RawText, SanitizedText, Entries];
+    private static readonly string[] Seedable = [RawText, SanitizedText, Occurrences, Entries];
 
     private static readonly string[] KeyColumns = [ItemKey, MapKey];
 
@@ -77,7 +81,7 @@ internal static class OpaqueStorage
         Assert.Empty(known.Except(marked, StringComparer.Ordinal));
         var texts = Seedable.ToDictionary(column => column, column => $"zqx-{Guid.NewGuid():N}", StringComparer.Ordinal);
         var pseudonymized = $"zqx-{Guid.NewGuid():N}";
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(texts[RawText], texts[SanitizedText], pseudonymized), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(texts[RawText], texts[SanitizedText], pseudonymized, [new ItemOccurrence(0, 1, texts[Occurrences], OccurrenceDestination.Remove)]), TestContext.Current.CancellationToken);
         _ = await world.Writer.AddReversalMapAsync(1, item, texts[Entries], TestContext.Current.CancellationToken);
         await AssertEveryMarkedColumnHoldsSomethingAsync(world, marked);
         return new Material(texts, pseudonymized) { Keys = await KeysInClearAsync(world) };

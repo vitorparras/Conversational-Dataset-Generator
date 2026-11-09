@@ -12,4 +12,6 @@
   de arquivo cortado entre membros, pelo peso (#585, #683), não o arquivo nem a contagem de
   trechos: assim nenhuma parte fica com a maioria dos mutantes. A leitura do conteúdo protegido é
   a área `Core.Persistence.Content.Reading`, a escrita é a
-  `Core.Persistence.Content.Writing` e a cifra é a `Core.Persistence.Content.Sealing`
+  `Core.Persistence.Content.Writing` e a cifra é a `Core.Persistence.Content.Sealing`.
+  Guarda com cada item as ocorrências e o destino de cada uma, seladas com a chave do item, e a
+  leitura delas é um evento da cadeia (#84)

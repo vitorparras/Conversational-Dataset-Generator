@@ -35,11 +35,11 @@ public sealed class ContentColumnsTests
     }
 
     [Fact]
-    public void RawAndSanitizedTextShareThePurposeAndTheMapHasItsOwn()
+    public void RawSanitizedAndOccurrencesShareThePurposeAndTheMapHasItsOwn()
     {
         Assert.Equal(
-            [LabelPurpose.RawText, LabelPurpose.RawText, LabelPurpose.ReversalMap],
-            [ContentColumns.RawText.Purpose, ContentColumns.SanitizedText.Purpose, ContentColumns.Entries.Purpose]);
+            [LabelPurpose.RawText, LabelPurpose.RawText, LabelPurpose.RawText, LabelPurpose.ReversalMap],
+            [ContentColumns.RawText.Purpose, ContentColumns.SanitizedText.Purpose, ContentColumns.Occurrences.Purpose, ContentColumns.Entries.Purpose]);
     }
 
     [Fact]
@@ -56,6 +56,7 @@ public sealed class ContentColumnsTests
             [
                 new ProtectedColumn("item_text", "raw_text", LabelPurpose.RawText),
                 new ProtectedColumn("item_text", "sanitized_text", LabelPurpose.RawText),
+                new ProtectedColumn("item_text", "occurrences", LabelPurpose.RawText),
                 new ProtectedColumn("item_text", "dek_wrapped", LabelPurpose.RawText),
                 new ProtectedColumn("reversal_map", "entries", LabelPurpose.ReversalMap),
                 new ProtectedColumn("reversal_map", "dek_wrapped", LabelPurpose.ReversalMap),

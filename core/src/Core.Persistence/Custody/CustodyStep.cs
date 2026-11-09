@@ -101,4 +101,7 @@ public enum CustodyStep
 
     /// <summary>A person submitted a change of configuration on the screen; the item is the submission, which holds the key, the value and the motive, and the event has no reference.</summary>
     ConfigurationSubmitted,
+
+    /// <summary>The occurrences found in an item, with the destination of each, were read; the item is the one read from.</summary>
+    OccurrencesRead,
 }

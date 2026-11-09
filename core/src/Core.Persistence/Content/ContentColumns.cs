@@ -29,6 +29,9 @@ public static class ContentColumns
     /// <summary>The text after sanitization, which has the key and the authorization of the raw text.</summary>
     public static ProtectedColumn SanitizedText { get; } = new(ItemText, "sanitized_text", LabelPurpose.RawText);
 
+    /// <summary>The occurrences found in the raw text and the destination of each; with the offsets they rebuild what was found, so they are sealed like the raw text.</summary>
+    public static ProtectedColumn Occurrences { get; } = new(ItemText, "occurrences", LabelPurpose.RawText);
+
     /// <summary>What each pseudonym replaced.</summary>
     public static ProtectedColumn Entries { get; } = new(ReversalMap, "entries", LabelPurpose.ReversalMap);
 
@@ -39,7 +42,7 @@ public static class ContentColumns
     public static ProtectedColumn MapKey { get; } = new(ReversalMap, "dek_wrapped", LabelPurpose.ReversalMap);
 
     /// <summary>The columns stored sealed.</summary>
-    public static IReadOnlyList<ProtectedColumn> Protected { get; } = [RawText, SanitizedText, ItemKey, Entries, MapKey];
+    public static IReadOnlyList<ProtectedColumn> Protected { get; } = [RawText, SanitizedText, Occurrences, ItemKey, Entries, MapKey];
 
     /// <summary>The columns stored in clear: identifiers, the domain, dates and the pseudonymized text.</summary>
     public static IReadOnlyList<ClearColumn> Clear { get; } =

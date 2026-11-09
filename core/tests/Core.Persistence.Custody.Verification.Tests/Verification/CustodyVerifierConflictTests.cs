@@ -1,5 +1,6 @@
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Verification;
+using Core.Persistence.Tests.Custody;
 using Core.Persistence.Tests.Fixtures;
 
 namespace Core.Persistence.Tests.Verification;

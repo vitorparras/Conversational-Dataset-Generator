@@ -1,9 +1,10 @@
 namespace Core.Ingestion;
 
 /// <summary>
-/// The criterion of the replicated content (decision 0024), as a pure function: a message is replicated when its text is equal to that of another, is at least as long as the minimum and comes from
-/// at least as many distinct senders as the minimum, the three together and none alone. The comparison is over the keyed digests, so it reaches the whole domain, the messages that came before in other
-/// batches among them, and nothing is in clear. It only marks: no message is removed, merged or changed, and every message of a replicated text is marked, the first occurrence included.
+/// The criterion of the replicated content (decision 0024), as a pure function: a message is replicated when its text is equal to that of another, is at least as long as the minimum and
+/// comes from at least as many distinct senders as the minimum, the three together and none alone. The comparison is over the keyed digests, so it reaches the whole domain, the messages
+/// that came before in other batches among them, and nothing is in clear. It only marks: no message is removed, merged or changed, and every message of a replicated text is marked,
+/// the first occurrence included.
 /// </summary>
 public static class Replication
 {
@@ -18,15 +19,16 @@ public static class Replication
         ArgumentNullException.ThrowIfNull(arriving);
         var inOrder = known.Concat(Settled(arriving)).ToList();
         var arrivingPlaces = arriving.Select(message => message.Place).ToHashSet();
-        return inOrder
+        var marks = inOrder
             .Where(message => message.Length >= rule.MinLength)
             .GroupBy(message => message.Text, StringComparer.Ordinal)
             .Where(group => group.Select(message => message.Sender).Distinct(StringComparer.Ordinal).Count() >= rule.MinSenders && group.Any(message => arrivingPlaces.Contains(message.Place)))
             .SelectMany(group => group.Select(message => new ReplicationMark(message.Place, group.First().Place)))
             .OrderBy(mark => mark.First).ThenBy(mark => mark.Of)
             .ToList();
+        return marks;
     }
 
-    private static IEnumerable<ReplicationOccurrence> Settled(IReadOnlyList<ReplicationOccurrence> arriving) =>
+    private static IEnumerable<ReplicationOccurrence> Settled(IEnumerable<ReplicationOccurrence> arriving) =>
         arriving.OrderBy(message => message.Instant).ThenBy(message => message.Place);
 }

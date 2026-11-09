@@ -2,7 +2,9 @@ using Core.Platform.Keys;
 
 namespace Core.Platform.Tests.Keys;
 
-/// <summary>The keyed digest of a text (issue 82): always the same for the same key, purpose and text; another for another key, purpose or text; never the text; and never under a purpose that is a label.</summary>
+/// <summary>
+/// The keyed digest of a text (issue 82): always the same for the same key, purpose and text; another for another key, purpose or text; never the text; and never under a purpose that is a label.
+/// </summary>
 public sealed class KeyedDigestTests : IDisposable
 {
     private readonly MasterKey master = new(SyntheticKey.Valid());

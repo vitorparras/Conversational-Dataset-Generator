@@ -1,4 +1,5 @@
 using Core.Platform.Configuration;
+using Core.Platform.Configuration.Sources;
 
 namespace Core.Ingestion.Tests;
 
@@ -66,19 +67,19 @@ public sealed class ReplicationConfigurationTests
             Said(5, "ZQX-longo", "ZQX-caio", 60, 4),
         };
 
-        Assert.Equal(new[] { 3L, 4, 5 }, MarkedBy(material));
-        Assert.Equal(new[] { 1L, 2, 3, 4, 5 }, MarkedBy(material, "--Replication:MinLength=5"));
-        Assert.Equal(new[] { 3L, 4, 5 }, MarkedBy(material, "--Replication:MinLength=5", "--Replication:MinSenders=3"));
+        Assert.Equal([3L, 4, 5], MarkedBy(material));
+        Assert.Equal([1L, 2, 3, 4, 5], MarkedBy(material, "--Replication:MinLength=5"));
+        Assert.Equal([3L, 4, 5], MarkedBy(material, "--Replication:MinLength=5", "--Replication:MinSenders=3"));
         Assert.Empty(MarkedBy(material, "--Replication:MinLength=5", "--Replication:MinSenders=4"));
         Assert.Empty(MarkedBy(material, "--Replication:MinLength=61"));
     }
 
     private static IReadOnlyList<long> MarkedBy(IReadOnlyList<ReplicationOccurrence> material, params string[] arguments) =>
-        Replication.Marks(ReplicationConfiguration.Rule(Loaded(arguments).Values), new List<ReplicationOccurrence>(), material).Select(mark => mark.Of.Item).Order().ToList();
+        [.. Replication.Marks(ReplicationConfiguration.Rule(Loaded(arguments).Values), [], material).Select(mark => mark.Of.Item).Order()];
 
     private static ReplicationOccurrence Said(long item, string text, string sender, int length, int minute) =>
         new(new ReplicationPlace(item, 0), text, sender, length, Start.AddMinutes(minute));
 
     private static ConfigurationLoadResult Loaded(params string[] arguments) =>
-        ClosedConfiguration.Load(new ConfigurationSchema(new[] { ReplicationConfiguration.Section }), new StrictArgumentsSource(arguments));
+        ClosedConfiguration.Load(new ConfigurationSchema([ReplicationConfiguration.Section]), new StrictArgumentsSource(arguments));
 }

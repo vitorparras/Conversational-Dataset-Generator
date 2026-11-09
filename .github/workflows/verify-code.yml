@@ -464,8 +464,10 @@ jobs:
         with:
           python-version: '3.12'
       - uses: ./.github/actions/install-gitleaks
-      - name: Varrer o diff do pull request, ou o histórico inteiro fora dele
-        run: python tools/verify-code/verify.py --step secrets ${{ github.event_name == 'pull_request' && format('--base origin/{0}', github.base_ref) || '' }}
+      # The push to main answers for the main alone: the clone holds every branch, and an old one
+      # with a finding (#722) must not turn the main red. The schedule still reads them all.
+      - name: Varrer o diff do pull request, o histórico do main no push e o de todas as branches fora deles
+        run: python tools/verify-code/verify.py --step secrets ${{ github.event_name == 'pull_request' && format('--base origin/{0}', github.base_ref) || github.event_name == 'push' && '--head-only' || '' }}
 
   trivy:
     name: Dependências, segredos e configuração (trivy)

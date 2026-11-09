@@ -39,7 +39,6 @@ internal static class ChangeTexts
         _ => motive,
     };
 
-    /// <summary>What a submission refused tells, on the field it is about.</summary>
     internal static string? Refused(ChangeAnswer? answer) => answer?.Outcome switch
     {
         ChangeOutcome.OnlyOnServer => "Essa chave só muda no servidor, no arquivo de configuração.",

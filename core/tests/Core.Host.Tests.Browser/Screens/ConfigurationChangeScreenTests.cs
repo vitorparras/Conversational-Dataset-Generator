@@ -67,6 +67,21 @@ public sealed class ConfigurationChangeScreenTests(BrowserFixture browser, Chang
     }
 
     [Fact]
+    public async Task ADecisionOtherThanToApproveOrToRefuseLeadsNowhereAndTheProposalStillWaits()
+    {
+        var id = await changes.Host.ProposeAsync("00:26:00");
+        await using var tab = await OpenAsync(changes.Host.SecondAdministrator);
+        _ = await tab.Page.EvaluateAsync($"() => document.querySelector('#recusar-{id}').form.querySelector('[name=decisao]').value = 'zqx'");
+
+        var answer = await tab.Page.RunAndWaitForResponseAsync(
+            () => tab.Page.Locator($"#recusar-{id}").ClickAsync(), response => response.Request.Method == "POST");
+
+        Assert.Equal(NotFound, answer.Status);
+        _ = await tab.Page.GotoAsync(Route);
+        await Expect(tab.Page.Locator($"#aprovar-{id}")).ToBeVisibleAsync();
+    }
+
+    [Fact]
     public async Task Ca5OnlyTheKeysOfTheListAreOfferedAndNoSecret()
     {
         await using var tab = await OpenAsync(changes.Host.Administrator);

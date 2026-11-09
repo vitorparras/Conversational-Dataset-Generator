@@ -59,7 +59,7 @@ internal static class ConfigurationChangeScreensEndpoint
             });
     }
 
-    /// <summary>Approves or refuses the submission the form names; an identifier that is not a number is an address that leads nowhere.</summary>
+    /// <summary>Approves or refuses the submission the form names; an identifier that is not a number, or a decision that is neither, leads nowhere and decides nothing.</summary>
     private static async Task<IResult> DecideAsync(HttpContext context, [FromServices] ChangeDecisionDesk? decisions, [FromServices] EffectiveConfiguration configuration)
     {
         if (decisions is null || ActorOf(context) is not { } actor)
@@ -68,12 +68,14 @@ internal static class ConfigurationChangeScreensEndpoint
         }
 
         var form = await context.Request.ReadFormAsync(context.RequestAborted);
-        if (!long.TryParse(form[ConfigurationChangeScreen.ChangeField], NumberStyles.None, CultureInfo.InvariantCulture, out var changeId))
+        var decision = form[ConfigurationChangeScreen.DecisionField].ToString();
+        if (!long.TryParse(form[ConfigurationChangeScreen.ChangeField], NumberStyles.None, CultureInfo.InvariantCulture, out var changeId)
+            || decision is not (ConfigurationChangeScreen.Approve or ConfigurationChangeScreen.Refuse))
         {
             return ScreenResult.NotFound(context);
         }
 
-        var approved = string.Equals(form[ConfigurationChangeScreen.DecisionField], ConfigurationChangeScreen.Approve, StringComparison.Ordinal);
+        var approved = decision == ConfigurationChangeScreen.Approve;
         var outcome = await decisions.DecideAsync(new DecisionRequest(changeId, approved, actor), context.RequestAborted);
         return outcome == DecisionOutcome.Decided
             ? Back(context, approved ? ChangeTexts.ApprovedDone : ChangeTexts.RefusedDone)

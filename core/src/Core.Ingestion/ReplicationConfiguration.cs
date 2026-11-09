@@ -16,7 +16,7 @@ public static class ReplicationConfiguration
     public const string MinSendersPath = SectionName + ":" + MinSendersKey;
 
     /// <summary>What the smallest length accepts.</summary>
-    public const string MinLengthAccepted = "um número inteiro de caracteres, de 1 até 100000";
+    public const string MinLengthAccepted = "um número inteiro de pontos de código, de 1 até 100000";
 
     /// <summary>What the smallest number of senders accepts.</summary>
     public const string MinSendersAccepted = "um número inteiro de remetentes, de 2 até 1000";

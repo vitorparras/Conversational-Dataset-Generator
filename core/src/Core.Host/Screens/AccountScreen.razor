@@ -1,0 +1,82 @@
+@using Core.Host.Endpoints
+@using Core.Platform.Sessions
+
+<h1>@Title</h1>
+@if (DoneText is { } said)
+{
+    <Notice Kind="Notice.Tone.Success">@said</Notice>
+}
+<Panel Id="senha" Title="Senha">
+    <p>Trocar a senha encerra as suas outras sessões abertas; esta continua aberta.</p>
+    <Button Href="@ScreenPaths.AccountChange" Kind="Button.Look.Secondary">Trocar senha</Button>
+</Panel>
+<Panel Id="sessoes" Title="Sessões abertas">
+    <DataTable Id="sessoes-tabela" Caption="@Caption" Headers="Columns" Stacks="true">
+        <tbody role="rowgroup">
+            @foreach (var session in Sessions)
+            {
+                <tr role="row">
+                    <th scope="row" role="rowheader"><Moment At="session.Start" /></th>
+                    <td role="cell"><Moment At="session.LastActivity" /></td>
+                    <td role="cell">
+                        @if (session.Current)
+                        {
+                            <StateMark Kind="StateMark.Tone.Good">Esta sessão</StateMark>
+                        }
+                        else
+                        {
+                            <a href="@EndAddress(session)">Encerrar<span class="visually-hidden"> a sessão iniciada em <Moment At="session.Start" /></span></a>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </DataTable>
+    @if (Sessions.Any(session => !session.Current))
+    {
+        <div class="actions">
+            <Button Href="@ScreenPaths.AccountEndOthers" Kind="Button.Look.Secondary">Encerrar todas as outras</Button>
+        </div>
+    }
+</Panel>
+
+@code {
+    /// <summary>The title of the page and of the link of the header that opens it.</summary>
+    internal const string Title = "Minha conta";
+
+    /// <summary>The names of the acts the notice of the account tells about.</summary>
+    internal const string ChangeDone = "senha";
+
+    internal const string SessionsDone = "sessoes";
+
+    private static readonly string[] Columns = { "Início", "Última atividade", "Ação" };
+
+    /// <summary>The open sessions of the one who entered, the current one marked; nothing of the network or of the browser.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<SessionListing> Sessions { get; set; } = Array.Empty<SessionListing>();
+
+    /// <summary>The act just done, as its notice names it; anything else says nothing.</summary>
+    [Parameter]
+    public string? Done { get; set; }
+
+    [Parameter]
+    public int Ended { get; set; }
+
+    private string Caption => Sessions.Count == 1 ? "Só esta sessão está aberta." : $"{Sessions.Count} sessões abertas, contando esta. Horários em UTC.";
+
+    private string? DoneText => Done switch
+    {
+        ChangeDone => $"Senha trocada. {Others(Ended)}",
+        SessionsDone => Ended == 1 ? "A sessão foi encerrada." : $"{Ended} sessões foram encerradas.",
+        _ => null,
+    };
+
+    private static string Others(int ended) => ended switch
+    {
+        0 => "Não havia outras sessões abertas.",
+        1 => "A outra sessão aberta foi encerrada; esta continua aberta.",
+        _ => $"As outras {ended} sessões abertas foram encerradas; esta continua aberta.",
+    };
+
+    private static string EndAddress(SessionListing session) => $"{ScreenPaths.AccountEnd}?{SessionEndScreen.SessionField}={Uri.EscapeDataString(session.ListingId)}";
+}

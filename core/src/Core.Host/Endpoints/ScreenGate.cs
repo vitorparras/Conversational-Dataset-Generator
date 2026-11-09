@@ -50,6 +50,7 @@ internal static class ScreenGate
         }
 
         var function = await administration.Registry.ActiveFunctionOfAsync(entered, context.RequestAborted).ConfigureAwait(false);
-        return new ScreenReach(function, DomainGrants.None);
+        var unread = await administration.Notices.UnreadCountAsync(entered, context.RequestAborted).ConfigureAwait(false);
+        return new ScreenReach(function, DomainGrants.None) { Unread = unread };
     }
 }

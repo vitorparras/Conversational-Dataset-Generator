@@ -18,7 +18,13 @@
                 {
                     <tr>
                         <th scope="row"><code>@entry.Key</code></th>
-                        <td>@Value(entry.Value)</td>
+                        <td>
+                            @Value(entry.Value)
+                            @if (entry.Mark is { } mark)
+                            {
+                                <StateMark>@mark</StateMark>
+                            }
+                        </td>
                         <td>@Origin(entry.Origin)</td>
                         <td>No servidor</td>
                     </tr>

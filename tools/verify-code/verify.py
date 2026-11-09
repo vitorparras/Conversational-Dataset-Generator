@@ -191,6 +191,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--repository", help="com --tested-sha: dono/nome do repositório")
     parser.add_argument("--base", help="ref de comparação para pr_size (ex.: origin/main)")
     parser.add_argument("--previous", type=Path, help="by-area.md anterior: floors avisa queda")
+    parser.add_argument(
+        "--head-only",
+        action="store_true",
+        help="secrets: só o histórico que leva ao HEAD, não todas as branches do clone",
+    )
     return parser
 
 
@@ -216,6 +221,7 @@ def main(argv: list[str] | None = None) -> int:
         args.previous,
         run_process,
         args.module,
+        args.head_only,
     )
     try:
         return report(run_steps(select(args.step, args.base is not None), ctx))

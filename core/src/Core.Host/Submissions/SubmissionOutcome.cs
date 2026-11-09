@@ -77,7 +77,7 @@ internal sealed record SubmissionOutcome
     internal string? Sha256 { get; init; }
 
     /// <summary>Whether the origin was <c>declared</c> or <c>unknown</c>; the text of it is never answered.</summary>
-    public string? Origin { get; init; }
+    internal string? Origin { get; init; }
 
     /// <summary>The code of what the service noticed and let pass, as a name that had a path in it; null when it noticed nothing.</summary>
     internal string? Warning { get; init; }

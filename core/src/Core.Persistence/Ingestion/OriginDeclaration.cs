@@ -9,14 +9,18 @@ namespace Core.Persistence.Ingestion;
 /// </summary>
 public sealed record OriginDeclaration
 {
+    private const string Declaring = "declared";
+    private const string Unknowing = "unknown";
+    private const int CharacterCeiling = 500;
+
     /// <summary>The state of a batch whose submission declared an origin.</summary>
-    public const string DeclaredState = "declared";
+    public static string DeclaredState => Declaring;
 
     /// <summary>The state of a batch whose submission chose to say the origin is unknown.</summary>
-    public const string UnknownState = "unknown";
+    public static string UnknownState => Unknowing;
 
     /// <summary>The most characters the text of an origin may have, counted before it is sealed.</summary>
-    public const int MostCharacters = 500;
+    public static int MostCharacters => CharacterCeiling;
 
     private OriginDeclaration(SealedContent? content, ContentKey? key)
     {

@@ -79,8 +79,8 @@ public sealed class BatchOriginTests
         var opening = new BatchOpening(IngestionWorld.Domain, IngestionWorld.Person, null, receipt);
         var withoutReceipt = opening with { Receipt = null, Origin = OriginDeclaration.Unknown };
 
-        _ = Assert.Throws<ArgumentException>(() => batches.OpenAsync(opening, TestContext.Current.CancellationToken));
-        _ = Assert.Throws<ArgumentException>(() => batches.OpenAsync(withoutReceipt, TestContext.Current.CancellationToken));
+        _ = await Assert.ThrowsAsync<ArgumentException>(() => batches.OpenAsync(opening, TestContext.Current.CancellationToken));
+        _ = await Assert.ThrowsAsync<ArgumentException>(() => batches.OpenAsync(withoutReceipt, TestContext.Current.CancellationToken));
     }
 
     [DatabaseTheory]

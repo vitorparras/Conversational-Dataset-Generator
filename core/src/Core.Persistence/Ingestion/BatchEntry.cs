@@ -27,6 +27,8 @@ public sealed record BatchEntry
     /// <summary>What the submission brought; null for a batch no submission opened.</summary>
     public SubmissionReceipt? Receipt { get; init; }
 
-    /// <summary>Whether the submission declared where the material came from, or chose to say it is unknown: <c>declared</c> or <c>unknown</c>, never the text; null for a batch no submission opened.</summary>
+    /// <summary>
+    /// Whether the submission declared where the material came from, or chose to say it is unknown: <c>declared</c> or <c>unknown</c>, never the text; null for a batch no submission opened.
+    /// </summary>
     public string? OriginState { get; init; }
 }

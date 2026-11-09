@@ -14,11 +14,13 @@ public sealed class SealStateTests
     private static readonly DateTimeOffset Moment = new(2031, 3, 10, 12, 0, 0, TimeSpan.Zero);
 
     [Theory]
-    [InlineData(SealSituation.External, SealAvailability.NotManual)]
-    [InlineData(SealSituation.Internal, SealAvailability.NotManual)]
-    [InlineData(SealSituation.Manual, SealAvailability.Unreadable)]
-    public void TheSealIsOperatedByHandOnlyInTheManualSituationAndWithAChainToRead(SealSituation situation, SealAvailability expected)
+    [InlineData("External", "NotManual")]
+    [InlineData("Internal", "NotManual")]
+    [InlineData("Manual", "Unreadable")]
+    public void TheSealIsOperatedByHandOnlyInTheManualSituationAndWithAChainToRead(string situationName, string expectedName)
     {
+        var situation = Enum.Parse<SealSituation>(situationName);
+        var expected = Enum.Parse<SealAvailability>(expectedName);
         using var loggers = new LoggerFactory();
         using var service = new ChainVerificationService(null, new VerificationSchedule(TimeSpan.FromHours(1)), new ManualClock(), loggers);
 

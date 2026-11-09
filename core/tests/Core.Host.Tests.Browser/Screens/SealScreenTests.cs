@@ -32,7 +32,7 @@ public sealed class SealScreenTests(BrowserFixture browser, ManualSealHostFixtur
 
         await Expect(tab.Page.GetByText("Guarde este texto onde quem controla a base não alcance.")).ToBeVisibleAsync();
         var text = await tab.Page.Locator(Text).InputValueAsync();
-        Assert.Contains('|', text, StringComparison.Ordinal);
+        Assert.Contains("|", text, StringComparison.Ordinal);
         Assert.DoesNotContain(text, tab.Page.Url, StringComparison.Ordinal);
         await Expect(tab.Page.Locator(Text)).ToHaveAttributeAsync("readonly", string.Empty);
         _ = await tab.Page.GotoAsync(Seal);

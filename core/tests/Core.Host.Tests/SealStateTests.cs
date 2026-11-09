@@ -13,18 +13,21 @@ public sealed class SealStateTests
 {
     private static readonly DateTimeOffset Moment = new(2031, 3, 10, 12, 0, 0, TimeSpan.Zero);
 
-    [Theory]
-    [InlineData(SealSituation.External, SealAvailability.NotManual)]
-    [InlineData(SealSituation.Internal, SealAvailability.NotManual)]
-    [InlineData(SealSituation.Manual, SealAvailability.Unreadable)]
-    public void TheSealIsOperatedByHandOnlyInTheManualSituationAndWithAChainToRead(SealSituation situation, SealAvailability expected)
+    [Fact]
+    public void TheSealIsOperatedByHandOnlyInTheManualSituationAndWithAChainToRead()
     {
+        (SealSituation Situation, SealAvailability Expected)[] cases =
+        [
+            (SealSituation.External, SealAvailability.NotManual),
+            (SealSituation.Internal, SealAvailability.NotManual),
+            (SealSituation.Manual, SealAvailability.Unreadable),
+        ];
         using var loggers = new LoggerFactory();
         using var service = new ChainVerificationService(null, new VerificationSchedule(TimeSpan.FromHours(1)), new ManualClock(), loggers);
 
-        var availability = SealState.Availability(Sources(service, situation, loggers));
+        var availabilities = cases.Select(c => SealState.Availability(Sources(service, c.Situation, loggers))).ToArray();
 
-        Assert.Equal(expected, availability);
+        Assert.Equal(cases.Select(c => c.Expected).ToArray(), availabilities);
     }
 
     [Theory]

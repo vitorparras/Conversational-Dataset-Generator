@@ -10,16 +10,16 @@ namespace Core.Ingestion;
 public static class ReplicationConfiguration
 {
     /// <summary>The key of the smallest length of a replicated text.</summary>
-    public const string MinLengthPath = SectionName + ":" + MinLengthKey;
+    public static string MinLengthPath { get; } = SectionName + ":" + MinLengthKey;
 
     /// <summary>The key of the smallest number of distinct senders of a replicated text.</summary>
-    public const string MinSendersPath = SectionName + ":" + MinSendersKey;
+    public static string MinSendersPath { get; } = SectionName + ":" + MinSendersKey;
 
     /// <summary>What the smallest length accepts.</summary>
-    public const string MinLengthAccepted = "um número inteiro de pontos de código, de 1 até 100000";
+    public static string MinLengthAccepted { get; } = "um número inteiro de pontos de código, de 1 até 100000";
 
     /// <summary>What the smallest number of senders accepts.</summary>
-    public const string MinSendersAccepted = "um número inteiro de remetentes, de 2 até 1000";
+    public static string MinSendersAccepted { get; } = "um número inteiro de remetentes, de 2 até 1000";
 
     private const string SectionName = "Replication";
     private const string MinLengthKey = "MinLength";
@@ -31,7 +31,7 @@ public static class ReplicationConfiguration
 
     /// <summary>The section of the criterion: both keys have a default, so a domain that says nothing is judged by the decision's own numbers.</summary>
     public static ConfigurationSection Section { get; } =
-        new(SectionName, new[] { ConfigurationKey.WithDefault(MinLengthKey, DefaultMinLength), ConfigurationKey.WithDefault(MinSendersKey, DefaultMinSenders) });
+        new(SectionName, Listed(ConfigurationKey.WithDefault(MinLengthKey, DefaultMinLength), ConfigurationKey.WithDefault(MinSendersKey, DefaultMinSenders)));
 
     /// <summary>What the values refuse: a number outside what the criterion makes sense with.</summary>
     /// <param name="values">The effective values.</param>
@@ -41,12 +41,12 @@ public static class ReplicationConfiguration
         var problems = new List<ConfigurationProblem>();
         if (values.TryGetValue(MinLengthPath, out var length) && Number(length, 1, MostLength) is null)
         {
-            problems.Add(new ConfigurationProblem(ConfigurationProblemKind.ValueNotAccepted, MinLengthPath, length, new List<string> { MinLengthAccepted }));
+            problems.Add(new ConfigurationProblem(ConfigurationProblemKind.ValueNotAccepted, MinLengthPath, length, Listed(MinLengthAccepted)));
         }
 
-        if (values.TryGetValue(MinSendersPath, out var senders) && Number(senders, 2, MostSenders) is null)
+        if (values.TryGetValue(MinSendersPath, out var senders) && Number(senders, ReplicationRule.FewestSenders, MostSenders) is null)
         {
-            problems.Add(new ConfigurationProblem(ConfigurationProblemKind.ValueNotAccepted, MinSendersPath, senders, new List<string> { MinSendersAccepted }));
+            problems.Add(new ConfigurationProblem(ConfigurationProblemKind.ValueNotAccepted, MinSendersPath, senders, Listed(MinSendersAccepted)));
         }
 
         return problems;
@@ -57,8 +57,10 @@ public static class ReplicationConfiguration
     public static ReplicationRule Rule(IReadOnlyDictionary<string, string> values)
     {
         ArgumentNullException.ThrowIfNull(values);
-        return new ReplicationRule(Number(values[MinLengthPath], 1, MostLength)!.Value, Number(values[MinSendersPath], 2, MostSenders)!.Value);
+        return new ReplicationRule(Number(values[MinLengthPath], 1, MostLength)!.Value, Number(values[MinSendersPath], ReplicationRule.FewestSenders, MostSenders)!.Value);
     }
+
+    private static T[] Listed<T>(params T[] items) => items;
 
     private static int? Number(string declared, int least, int most) =>
         int.TryParse(declared, NumberStyles.None, CultureInfo.InvariantCulture, out var number) && number >= least && number <= most ? number : null;

@@ -6,13 +6,16 @@ namespace Core.Ingestion;
 /// </summary>
 public sealed record ReplicationRule
 {
+    /// <summary>The fewest distinct senders the criterion can ask for: one sender repeating itself is behaviour and not replication.</summary>
+    public const int FewestSenders = 2;
+
     /// <summary>The criterion with its two values.</summary>
     /// <param name="minLength">The smallest length, in code points, a text can have to be replicated: at least one.</param>
     /// <param name="minSenders">How many distinct senders the same text comes from: at least two, since one sender repeating itself is behaviour and not replication.</param>
     public ReplicationRule(int minLength, int minSenders)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(minLength, 1);
-        ArgumentOutOfRangeException.ThrowIfLessThan(minSenders, 2);
+        ArgumentOutOfRangeException.ThrowIfLessThan(minSenders, FewestSenders);
         MinLength = minLength;
         MinSenders = minSenders;
     }

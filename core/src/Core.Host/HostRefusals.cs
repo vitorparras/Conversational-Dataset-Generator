@@ -1,3 +1,4 @@
+using Core.Host.Settings;
 using Core.Host.Supervision;
 using Core.Persistence.Connection;
 using Core.Platform.Configuration;
@@ -14,6 +15,7 @@ internal static class HostRefusals
         .. SafekeepingConfiguration.Refusals(values, InstallationConfiguration.Of(values).Kind),
         .. PasswordConfiguration.Refusals(values),
         .. SessionConfiguration.Refusals(values),
+        .. ChangeDeadlineConfiguration.Refusals(values),
         .. AdmissionConfiguration.Refusals(values),
         .. VerificationConfiguration.Refusals(values),
         .. SealConfiguration.Refusals(values),

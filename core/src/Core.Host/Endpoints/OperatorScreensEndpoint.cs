@@ -78,7 +78,7 @@ internal static class OperatorScreensEndpoint
         return page;
     }
 
-    private static string ValueOf(IFormCollection? form, string field) => form?[field].ToString() ?? string.Empty;
+    private static string ValueOf(IFormCollection? form, string field) => form is null ? string.Empty : form[field].ToString();
 
     /// <summary>The filter the address asks for; a function the registry does not accept is left out, as the list of choices shows, instead of leaving nobody.</summary>
     internal static PersonFilter FilterOf(IQueryCollection query)

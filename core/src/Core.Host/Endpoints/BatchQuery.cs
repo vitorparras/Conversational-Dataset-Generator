@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Globalization;
 using Core.Persistence.Ingestion;
 
@@ -14,7 +15,7 @@ internal static class BatchQuery
     private const int DefaultPageSize = 50;
     private const int MostPageSize = 100;
 
-    private static readonly string[] Iso8601 = new[] { "yyyy-MM-dd'T'HH:mm:ssK", "yyyy-MM-dd'T'HH:mm:ss.FFFFFFFK", "yyyy-MM-dd" };
+    private static readonly ImmutableArray<string> Iso8601 = ImmutableArray.Create("yyyy-MM-dd'T'HH:mm:ssK", "yyyy-MM-dd'T'HH:mm:ss.FFFFFFFK", "yyyy-MM-dd");
 
     /// <summary>The filter and the page asked for, over the domains granted; null when some parameter is not accepted.</summary>
     /// <param name="query">The address's parameters.</param>
@@ -67,17 +68,17 @@ internal static class BatchQuery
     }
 
     /// <summary>The state by its name and no other way: a number, a list of names or a combination is not a state.</summary>
-    private static BatchState? StateOf(string? text) => text?.ToLowerInvariant() switch
+    private static BatchState? StateOf(string? text) => text?.ToUpperInvariant() switch
     {
-        "open" => BatchState.Open,
-        "accepted" => BatchState.Accepted,
-        "rejected" => BatchState.Rejected,
+        "OPEN" => BatchState.Open,
+        "ACCEPTED" => BatchState.Accepted,
+        "REJECTED" => BatchState.Rejected,
         _ => null,
     };
 
     /// <summary>The moment in ISO 8601, with the offset or the Z, or only the date, which is the start of that day in UTC; any other way of writing a moment is not accepted.</summary>
     private static DateTimeOffset? Moment(string? text) =>
-        DateTimeOffset.TryParseExact(text, Iso8601, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var moment) ? moment : null;
+        DateTimeOffset.TryParseExact(text, Iso8601.AsSpan(), CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var moment) ? moment : null;
 
     /// <summary>The filter, and the page it was cut for.</summary>
     /// <param name="Filter">The domains granted, the state, the period and the page.</param>

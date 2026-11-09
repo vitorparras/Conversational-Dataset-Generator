@@ -82,7 +82,7 @@ internal static class SubmissionStoring
 
     /// <summary>The reason of a service with no key to seal with: whatever the file is, nothing of it is kept; none when there is a key.</summary>
     /// <param name="sealing">The path that seals; none when the key could not be read.</param>
-    internal static SubmissionReason? Unsealed(ProtectedContent? sealing) => sealing is null ? new SubmissionReason(KeyUnavailable, new List<SubmissionFinding>()) : null;
+    internal static SubmissionReason? Unsealed(ProtectedContent? sealing) => sealing is null ? new SubmissionReason(KeyUnavailable, Array.Empty<SubmissionFinding>()) : null;
 
     /// <summary>The batch an item is written to, and what is written there.</summary>
     /// <param name="DomainId">The domain.</param>

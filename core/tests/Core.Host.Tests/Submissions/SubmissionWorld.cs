@@ -70,7 +70,7 @@ internal sealed class SubmissionWorld : IAsyncDisposable
         }
 
         var conditions = OriginConditions.Of([Strictest, "zqx_media", Loosest]);
-        var content = SealingOf(labels ?? new[] { "texto-bruto/1/v1", "texto-bruto/2/v1" });
+        var content = SealingOf(labels ?? ["texto-bruto/1/v1", "texto-bruto/2/v1"]);
         var intake = Intake(maxBytes, conditions, content, dataSource);
         var service = new SubmissionService(intake, new IngestionBatches(dataSource, conditions), new BatchRegister(dataSource), dataSource);
         return new SubmissionWorld(database, dataSource, (service, content));
@@ -140,6 +140,7 @@ internal sealed class SubmissionWorld : IAsyncDisposable
     /// <summary>The first column of a query over content as the owner reads it, inside the domain of the tests; the sealed bytes come as the database holds them.</summary>
     /// <param name="select">The query, with no parameters.</param>
     /// <param name="domain">The domain the query runs in.</param>
+    [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "The statements are constants of the tests, never input.")]
     internal async Task<IReadOnlyList<string>> StoredAsync(string select, int domain = Domain)
     {
         var cancellationToken = TestContext.Current.CancellationToken;

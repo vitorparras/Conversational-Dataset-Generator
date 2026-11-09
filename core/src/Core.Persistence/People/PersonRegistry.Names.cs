@@ -33,16 +33,21 @@ public sealed partial class PersonRegistry
         await using (command.ConfigureAwait(false))
         {
             _ = command.Parameters.Add(new NpgsqlParameter<long[]>("ids", ids));
-            var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-            await using (reader.ConfigureAwait(false))
-            {
-                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-                {
-                    names[reader.GetInt64(0)] = reader.GetString(1);
-                }
-            }
+            await ReadNamesAsync(command, names, cancellationToken).ConfigureAwait(false);
         }
 
         return names;
+    }
+
+    private static async Task ReadNamesAsync(NpgsqlCommand command, Dictionary<long, string> names, CancellationToken cancellationToken)
+    {
+        var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        await using (reader.ConfigureAwait(false))
+        {
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                names[reader.GetInt64(0)] = reader.GetString(1);
+            }
+        }
     }
 }

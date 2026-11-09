@@ -51,6 +51,18 @@ public sealed class ApprovedChangesTests : IClassFixture<PeopleDatabase>
     }
 
     [DatabaseFact]
+    public async Task AnApprovalThatALaterOneOfTheSameKeyHasSupersededIsNotReadAndTheLaterOneIs()
+    {
+        var (older, _, _, _) = await ApprovedAsync();
+        var (newer, _, _, _) = await ApprovedAsync();
+
+        var read = await (await RegisterAsync()).PendingAsync(TestContext.Current.CancellationToken);
+
+        Assert.DoesNotContain(read, pending => pending.Id == older.Id);
+        Assert.Contains(read, pending => pending.Id == newer.Id);
+    }
+
+    [DatabaseFact]
     public async Task TheChangeInForceIsAnEventOfTheSystemThatPointsAtTheApprovalAndIsNotReadAgain()
     {
         var (change, _, _, approval) = await ApprovedAsync();

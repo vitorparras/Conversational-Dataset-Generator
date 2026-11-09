@@ -1,7 +1,8 @@
 namespace Core.Ingestion;
 
 /// <summary>
-/// The two values of the criterion of the replicated content (decision 0024) that the configuration of the domain holds: the smallest text that can be replicated and how many distinct senders
+/// The two values of the criterion of the replicated content (decision 0024) that the configuration of the installation holds, the same for every domain:
+/// the smallest text that can be replicated and how many distinct senders
 /// a text has to come from. The third part of the criterion, text equal, has no value to configure.
 /// </summary>
 public sealed record ReplicationRule

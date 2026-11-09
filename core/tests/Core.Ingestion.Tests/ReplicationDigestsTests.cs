@@ -76,7 +76,7 @@ public sealed class ReplicationDigestsTests : IDisposable
 
         var refused = Assert.Throws<ArgumentOutOfRangeException>(() => ReplicationDigests.OccurrenceOf(Derivation, 7, new ReplicationPlace(3, 1), new MeasuredMessage(message, -1)));
 
-        Assert.Equal("Length", refused.ParamName);
+        Assert.Equal("measured.Length", refused.ParamName);
     }
 
     [Fact]

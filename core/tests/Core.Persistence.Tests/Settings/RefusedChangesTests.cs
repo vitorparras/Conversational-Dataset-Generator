@@ -79,6 +79,21 @@ public sealed class RefusedChangesTests : IClassFixture<PeopleDatabase>
     }
 
     [DatabaseFact]
+    public async Task TheServerRefusesTheMarkInForceOfAChangeAlreadyRefusedForGood()
+    {
+        var (register, found) = await PendingAsync();
+        _ = await register.RecordNotAppliedAsync(found, "same_author", TestContext.Current.CancellationToken);
+
+        var refused = await database.RefusedToAppAsync(
+            $"""
+            INSERT INTO public.custody_event (actor_system, item_kind, item_id, step, reason, reference)
+            VALUES (true, 'configuration_change', {found.Id}, 'configuration_in_force', 'administrative_act', '{found.ApprovalSequence}')
+            """);
+
+        Assert.Equal((PostgresErrorCodes.CheckViolation, "configuration_in_force_after_not_applied"), (refused.SqlState, refused.ConstraintName));
+    }
+
+    [DatabaseFact]
     public async Task TheServerRefusesTheRecordSignedByAPerson()
     {
         var (_, found) = await PendingAsync();

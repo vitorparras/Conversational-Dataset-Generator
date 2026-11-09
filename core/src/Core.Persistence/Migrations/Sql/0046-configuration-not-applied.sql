@@ -66,3 +66,25 @@ $refuse$;
 CREATE TRIGGER custody_event_configuration_not_applied BEFORE INSERT ON public.custody_event FOR EACH ROW
     WHEN (NEW.step = 'configuration_not_applied') EXECUTE FUNCTION public.refuse_configuration_not_applied_out_of_turn();
 ALTER TABLE public.custody_event ENABLE ALWAYS TRIGGER custody_event_configuration_not_applied;
+
+-- The other way round: a change already refused for good is not marked in force afterwards, so that the chain never says both. The trigger of the change in force (0045) stays as it is; this one is beside it.
+CREATE FUNCTION public.refuse_configuration_in_force_after_not_applied() RETURNS trigger
+LANGUAGE plpgsql
+AS $refuse$
+BEGIN
+    IF public.restore_window_is_open() THEN
+        RETURN NEW;
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM public.custody_event n WHERE n.item_kind = 'configuration_change' AND n.item_id = NEW.item_id AND n.step = 'configuration_not_applied') THEN
+        RAISE EXCEPTION 'a change of configuration already refused for good is not marked in force afterwards'
+            USING ERRCODE = 'check_violation', CONSTRAINT = 'configuration_in_force_after_not_applied';
+    END IF;
+
+    RETURN NEW;
+END
+$refuse$;
+
+CREATE TRIGGER custody_event_configuration_in_force_after_not_applied BEFORE INSERT ON public.custody_event FOR EACH ROW
+    WHEN (NEW.step = 'configuration_in_force') EXECUTE FUNCTION public.refuse_configuration_in_force_after_not_applied();
+ALTER TABLE public.custody_event ENABLE ALWAYS TRIGGER custody_event_configuration_in_force_after_not_applied;

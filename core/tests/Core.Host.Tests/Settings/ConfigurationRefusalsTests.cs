@@ -32,14 +32,30 @@ public sealed class ConfigurationRefusalsTests : IDisposable
     public void ARefusalThatLastsIsTheOnlyOneThatIsRecorded(ApplicationRefusal refusal, bool definitive) =>
         Assert.Equal(definitive, refusal.IsDefinitive());
 
-    [Fact]
-    public void EveryDefinitiveRefusalHasACodeTheChainTakes()
+    public static TheoryData<ApplicationRefusal, string> Codes() => new()
     {
-        var codes = Enum.GetValues<ApplicationRefusal>().Where(refusal => refusal.IsDefinitive()).Select(refusal => refusal.CodeOf()).ToList();
+        { ApplicationRefusal.SameAuthor, "same_author" },
+        { ApplicationRefusal.SubmitterNotAllowed, "submitter_not_allowed" },
+        { ApplicationRefusal.ApproverNotAllowed, "approver_not_allowed" },
+        { ApplicationRefusal.KeyOnlyOnServer, "key_only_on_server" },
+        { ApplicationRefusal.ValueRefused, "value_refused" },
+    };
 
-        Assert.Equal(5, codes.Distinct(StringComparer.Ordinal).Count());
-        Assert.All(codes, code => Assert.Matches("^[a-z_]{1,40}$", code));
+    [Theory]
+    [MemberData(nameof(Codes))]
+    public void TheCodeTheChainCarriesIsFixedAndNotDerivedFromTheNameOfTheMember(ApplicationRefusal refusal, string code) =>
+        Assert.Equal(code, refusal.CodeOf());
+
+    [Fact]
+    public void EveryDefinitiveRefusalHasACodeAndOnlyThoseHaveOne()
+    {
+        var definitive = Enum.GetValues<ApplicationRefusal>().Where(refusal => refusal.IsDefinitive()).ToList();
+
+        Assert.Equal(5, definitive.Select(refusal => refusal.CodeOf()).Distinct(StringComparer.Ordinal).Count());
+        Assert.Equal(5, Codes().Count);
         Assert.Throws<ArgumentOutOfRangeException>(() => ApplicationRefusal.ChainBroken.CodeOf());
+        Assert.Throws<ArgumentOutOfRangeException>(() => ApplicationRefusal.None.CodeOf());
+        Assert.Throws<ArgumentOutOfRangeException>(() => ApplicationRefusal.FileUnreadable.CodeOf());
     }
 
     [Fact]

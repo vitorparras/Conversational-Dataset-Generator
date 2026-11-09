@@ -11,7 +11,7 @@ namespace Core.Host;
 /// <summary>
 /// Records in the chain the approved changes of configuration that will never be applied (issue 748; decision 0053): at the start and at each interval it goes through the approved changes not yet
 /// in force with the same judgment the applier makes, and for a definitive reason writes one event of the system with the code of the reason. A reason that may pass, such as a chain that does not
-/// close, leaves the change pending. The applier only reads, so it is the core that writes; the event is once per change, by a unique index.
+/// close, leaves the change pending. A change whose value is already in force is not judged at all: it belongs to the service that marks it in force, and the two must never contradict each other. The applier only reads, so it is the core that writes; the event is once per change, by a unique index.
 /// </summary>
 internal sealed class ConfigurationRefusals : BackgroundService
 {
@@ -85,6 +85,11 @@ internal sealed class ConfigurationRefusals : BackgroundService
 
     private async Task<int> JudgeAsync(ApprovedChange change, ILogger logger, CancellationToken cancellationToken)
     {
+        if (inForce.TryGetValue(change.Key, out var current) && current == change.Value)
+        {
+            return 0;
+        }
+
         var refusal = ApplicationJudge.Judge(change, await facts!.ReadAsync(change, cancellationToken).ConfigureAwait(false), inForce);
         if (refusal == ApplicationRefusal.None || !refusal.IsDefinitive())
         {

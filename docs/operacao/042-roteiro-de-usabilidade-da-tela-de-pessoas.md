@@ -13,19 +13,19 @@ só para o ensaio e descartadas no fim. Quem executa não é quem escreveu a tel
 |---|---|
 | Telas | Pessoas (`/pessoas`) e Cadastrar pessoa (`/pessoas/nova`), na issue 599 |
 | Quem usa | Quem administra o sistema, sem treino |
-| Ponto de partida | Núcleo no ar, `operador-11` ativa, mais de 20 pessoas cadastradas (para haver página 2) |
+| Ponto de partida | Núcleo no ar, `operador-11` ativa, 21 pessoas ou mais cadastradas (20 por página; para haver página 2) |
 | Sucesso | Acha a tela pelo menu; filtra e muda de página sem se perder; cadastra na primeira tentativa certa ou corrige o nome repetido sem refazer o resto |
 | Limite | 20 s e 2 passos para abrir a lista; 30 s e 3 passos para achar alguém pelo nome; 60 s e 4 passos para cadastrar; acima disso é difícil |
 
 ## Tarefas
 
-1. **Achar a lista** da página inicial. Pergunte o que cada coluna diz. O estado se lê pela
+1. **Achar a lista** da página inicial. Pergunte o que cada linha diz. O estado se lê pela
    palavra (Ativa ou Inativa), e não só pelo sinal ou pela cor, e nada de material aparece.
 2. **Achar uma pessoa pelo nome**, por um pedaço dele; depois pela função e pelo estado. Pergunte
    como soube que o filtro valeu e como o desfaria (o botão Limpar filtro).
 3. **Mudar de página**, voltar pelo botão do navegador e passar o endereço a outra pessoa da
    administração: a lista abre na mesma página e com o mesmo filtro. Anote se entende "Página 1
-   de 3, 20 por página".
+   de 2, 20 por página" (com 21 a 40 pessoas).
 4. **Cadastrar `operador-12`**: nome, função Anotação e senha inicial. Pergunte o que espera ver
    depois de enviar (a lista filtrada pelo nome novo, com o aviso de cadastrada sem concessão de
    domínio) e como passará a senha a `operador-12`.

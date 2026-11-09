@@ -9,17 +9,24 @@ public sealed class SealAgeTests
     private static readonly DateTimeOffset Now = new(2031, 3, 10, 12, 0, 0, TimeSpan.Zero);
 
     [Fact]
-    public void ManualWithoutAnySealWarnsAndNamesTheRoutes()
-    {
-        var warning = SealAge.Warning(SealSituation.Manual, null, Now);
+    public void ManualWithoutAnySealWarnsAndLeadsToTheScreenOfTheSeal() =>
+        Assert.EndsWith("confirme-o na tela Custódia, em Selo.", SealAge.Warning(SealSituation.Manual, null, Now), StringComparison.Ordinal);
 
-        Assert.Contains("GET /custody/seal", warning, StringComparison.Ordinal);
-        Assert.Contains("POST /custody/seal/confirmation", warning, StringComparison.Ordinal);
+    [Fact]
+    public void ManualWithTheLastSealEightDaysOldWarnsAndLeadsToTheScreenOfTheSeal()
+    {
+        var warning = SealAge.Warning(SealSituation.Manual, Now.AddDays(-8), Now);
+
+        Assert.Contains("mais de 7 dias", warning, StringComparison.Ordinal);
+        Assert.EndsWith("na tela Custódia, em Selo.", warning, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void ManualWithTheLastSealEightDaysOldWarns() =>
-        Assert.Contains("mais de 7 dias", SealAge.Warning(SealSituation.Manual, Now.AddDays(-8), Now), StringComparison.Ordinal);
+    public void TheWarningNamesNoRouteOfJsonBecauseNobodyOperatesTheSealByCommandLine()
+    {
+        Assert.DoesNotContain("/custody/seal", SealAge.Warning(SealSituation.Manual, null, Now), StringComparison.Ordinal);
+        Assert.DoesNotContain("/custody/seal", SealAge.Warning(SealSituation.Manual, Now.AddDays(-8), Now), StringComparison.Ordinal);
+    }
 
     [Fact]
     public void ManualWithTheLastSealSixDaysOldDoesNotWarn() =>

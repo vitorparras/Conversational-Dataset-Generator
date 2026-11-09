@@ -1,3 +1,4 @@
+using System.Data;
 using System.Runtime.CompilerServices;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
@@ -20,7 +21,8 @@ public sealed class ConfigurationChanges
 
     private const string Submitted = """
         SELECT c.config_key, c.new_value, c.motive, c.submitted_by, c.submitted_at, e.sequence,
-               EXISTS (SELECT 1 FROM public.custody_event d WHERE d.item_kind = 'configuration_change' AND d.item_id = c.id AND d.step IN ('configuration_approved', 'configuration_refused')) AS decided
+               EXISTS (SELECT 1 FROM public.custody_event d
+                       WHERE d.item_kind = 'configuration_change' AND d.item_id = c.id AND d.step IN ('configuration_approved', 'configuration_refused')) AS decided
         FROM public.configuration_change c
         JOIN public.custody_event e ON e.item_kind = 'configuration_change' AND e.item_id = c.id AND e.step = 'configuration_submitted'
         WHERE c.id = @id
@@ -79,7 +81,7 @@ public sealed class ConfigurationChanges
         return new CustodyChain(dataSource).AppendAsync(CustodyEvent.ConfigurationDecided(deciderId, change.Id, change.Sequence, approved), cancellationToken);
     }
 
-    private static SubmittedChange Read(long changeId, NpgsqlDataReader reader) => new()
+    private static SubmittedChange Read(long changeId, IDataRecord reader) => new()
     {
         Id = changeId,
         Key = (string)reader["config_key"],

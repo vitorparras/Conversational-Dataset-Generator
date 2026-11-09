@@ -11,7 +11,6 @@ namespace Core.Host.Settings;
 /// </summary>
 internal sealed class ChangeDecisionDesk
 {
-    private readonly TimeSpan deadline;
     private readonly ConfigurationChanges register;
     private readonly PersonRegistry registry;
     private readonly TimeProvider time;
@@ -23,21 +22,26 @@ internal sealed class ChangeDecisionDesk
         ArgumentNullException.ThrowIfNull(register);
         ArgumentNullException.ThrowIfNull(registry);
         ArgumentNullException.ThrowIfNull(time);
-        deadline = ChangeDeadlineConfiguration.Of(inForce.Values);
+        Deadline = ChangeDeadlineConfiguration.Of(inForce.Values);
         this.register = register;
         this.registry = registry;
         this.time = time;
     }
 
     /// <summary>How long a submission waits for a decision, as the host started with.</summary>
-    internal TimeSpan Deadline => deadline;
+    internal TimeSpan Deadline { get; }
 
     /// <summary>Records the decision when nothing refuses it; nothing is written for a decision refused.</summary>
-    internal async Task<DecisionOutcome> DecideAsync(DecisionRequest request, CancellationToken cancellationToken)
+    internal Task<DecisionOutcome> DecideAsync(DecisionRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
+        return DecidingAsync(request, cancellationToken);
+    }
+
+    private async Task<DecisionOutcome> DecidingAsync(DecisionRequest request, CancellationToken cancellationToken)
+    {
         var change = await register.SubmittedAsync(request.ChangeId, cancellationToken).ConfigureAwait(false);
-        if (Refusal(change, request.DeciderId, time.GetUtcNow(), deadline) is { } refused)
+        if (Refusal(change, request.DeciderId, time.GetUtcNow(), Deadline) is { } refused)
         {
             return refused;
         }
@@ -48,12 +52,12 @@ internal sealed class ChangeDecisionDesk
         }
 
         var recorded = await register.DecideAsync(request.DeciderId, change!, request.Approved, cancellationToken).ConfigureAwait(false);
-        return recorded.Outcome switch
+        if (recorded.Outcome == CustodyOutcome.Appended)
         {
-            CustodyOutcome.Appended => DecisionOutcome.Decided,
-            CustodyOutcome.Conflict => DecisionOutcome.AlreadyDecided,
-            _ => DecisionOutcome.NotRecorded,
-        };
+            return DecisionOutcome.Decided;
+        }
+
+        return recorded.Outcome == CustodyOutcome.Conflict ? DecisionOutcome.AlreadyDecided : DecisionOutcome.NotRecorded;
     }
 
     /// <summary>What refuses the decision before the function of the person is read, or null: the submission must exist, be pending, be of another person and be within the deadline.</summary>

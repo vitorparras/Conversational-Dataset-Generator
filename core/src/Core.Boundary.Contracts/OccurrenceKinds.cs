@@ -2,7 +2,7 @@ namespace Core.Boundary.Contracts;
 
 /// <summary>
 /// The kinds an occurrence may have, a closed list the contract fixes: a kind outside it is not an occurrence the core knows, and the answer that carries one is refused whole.
-/// A secret is any of the last six, and the destination of a secret is the same whatever the sentence says.
+/// A secret is any of six named only in the list of secrets, and the destination of a secret is the same whatever the sentence says.
 /// </summary>
 public static class OccurrenceKinds
 {
@@ -18,24 +18,6 @@ public static class OccurrenceKinds
 
     /// <summary>An organization.</summary>
     public static string Organization { get; } = "ORGANIZATION";
-
-    /// <summary>A credential.</summary>
-    public static string Credential { get; } = "CREDENTIAL";
-
-    /// <summary>A secret that is none of the others.</summary>
-    public static string Secret { get; } = "SECRET";
-
-    /// <summary>A password.</summary>
-    public static string Password { get; } = "PASSWORD";
-
-    /// <summary>A token of access.</summary>
-    public static string Token { get; } = "TOKEN";
-
-    /// <summary>A key of an interface.</summary>
-    public static string ApiKey { get; } = "API_KEY";
-
-    /// <summary>A private key.</summary>
-    public static string PrivateKey { get; } = "PRIVATE_KEY";
 
     /// <summary>Whether the kind is one of the list, written exactly as the list writes it.</summary>
     /// <param name="kind">The kind an occurrence carries.</param>

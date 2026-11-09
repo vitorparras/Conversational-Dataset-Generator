@@ -1,0 +1,50 @@
+<fieldset class="choices" aria-describedby="@DescribedBy">
+    <legend class="field__label">
+        @Legend
+        @if (Required)
+        {
+            <span class="field__required">(obrigatório)</span>
+        }
+    </legend>
+    @foreach (var option in Options)
+    {
+        <label class="choices__option">
+            <input type="radio" name="@Name" value="@option.Value" checked="@(option.Value == Value)" aria-invalid="@(Error is null ? null : "true")" />
+            @option.Caption
+        </label>
+    }
+    @if (Error is not null)
+    {
+        <p id="@ErrorId" class="field__error" role="alert">@Error</p>
+    }
+</fieldset>
+
+@code {
+    /// <summary>One choice: what the form sends and what the person reads.</summary>
+    public sealed record Option(string Value, string Caption);
+
+    /// <summary>The name the form sends the choice under, which also names the error.</summary>
+    [Parameter, EditorRequired]
+    public string Name { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public string Legend { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<Option> Options { get; set; } = Array.Empty<Option>();
+
+    /// <summary>The choice made, given back when the server refuses the form.</summary>
+    [Parameter]
+    public string? Value { get; set; }
+
+    /// <summary>What the server refused about the choice, bound to the group and announced.</summary>
+    [Parameter]
+    public string? Error { get; set; }
+
+    [Parameter]
+    public bool Required { get; set; }
+
+    private string ErrorId => $"{Name}-erro";
+
+    private string? DescribedBy => Error is null ? null : ErrorId;
+}

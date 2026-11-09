@@ -50,7 +50,7 @@ public sealed partial class NoticeSuspensionTests(BrowserFixture browser, Broken
         await using var list = await OpenListAsync(browser, sound.Host, person.Name);
 
         await Expect(domains.Page.Locator(".notice--error, [role=alert]")).ToHaveCountAsync(0);
-        await Expect(list.Page.Locator(".empty-state__title")).ToHaveTextAsync("Nenhum aviso novo");
+        await Expect(list.Page.Locator(".empty-state__title")).ToHaveTextAsync("Nenhum aviso não lido");
         Assert.Empty(await sound.Host.UnreadIdsOfAsync(person.Id));
     }
 
@@ -93,7 +93,7 @@ public sealed partial class NoticeSuspensionTests(BrowserFixture browser, Broken
         await tab.Page.GetByRole(AriaRole.Button, new() { Name = "Marcar como lido" }).ClickAsync();
 
         await Expect(tab.Page).ToHaveURLAsync(new Regex(@"/avisos\?lido$"));
-        await Expect(tab.Page.Locator(".empty-state__title")).ToHaveTextAsync("Nenhum aviso novo");
+        await Expect(tab.Page.Locator(".empty-state__title")).ToHaveTextAsync("Nenhum aviso não lido");
         Assert.Equal((1, 1), await host.RecordOfAsync(person.Id));
         await host.VerifyAsync(TestContext.Current.CancellationToken);
         _ = await tab.Page.GotoAsync(List);

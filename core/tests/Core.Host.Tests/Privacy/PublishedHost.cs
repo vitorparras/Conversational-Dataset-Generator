@@ -8,7 +8,7 @@ internal static class PublishedHost
     private const string Project = "core/src/Core.Host/Core.Host.csproj";
     private static readonly TimeSpan Limit = TimeSpan.FromMinutes(10);
 
-    /// <summary>Publishes into the folder and returns the full path of every file it wrote; a publish that fails fails with what it said.</summary>
+    /// <summary>Publishes into the folder and returns the full path of every file it wrote; a publish that fails fails with its cause and the end of what it said (PublishFailure).</summary>
     public static async Task<IReadOnlyList<string>> IntoAsync(string folder, CancellationToken cancellationToken)
     {
         var info = new ProcessStartInfo("dotnet")
@@ -42,6 +42,6 @@ internal static class PublishedHost
         var text = string.Concat(await said);
         return publish.ExitCode == 0
             ? [.. Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories)]
-            : throw new InvalidOperationException($"dotnet publish exited with {publish.ExitCode}: {text[^Math.Min(text.Length, 2000)..]}");
+            : throw new InvalidOperationException(PublishFailure.Describe(publish.ExitCode, text));
     }
 }

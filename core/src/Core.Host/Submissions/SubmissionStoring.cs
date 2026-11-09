@@ -45,14 +45,16 @@ internal static class SubmissionStoring
     /// <param name="writer">Writes the items.</param>
     /// <param name="batch">The domain and the batch, open.</param>
     /// <param name="material">What the reader gave.</param>
+    /// <param name="form">The form the material is accommodated into, which says what each item declares it lost.</param>
     /// <param name="cancellationToken">Cancels the writing.</param>
-    internal static async Task<bool> StoreAsync(ContentWriter writer, BatchRef batch, ReadMaterial material, CancellationToken cancellationToken)
+    internal static async Task<bool> StoreAsync(ContentWriter writer, BatchRef batch, ReadMaterial material, MaterialForm form, CancellationToken cancellationToken)
     {
         try
         {
-            foreach (var unit in material.Units)
+            foreach (var (unit, declared) in material.Units.Zip(Accommodating.Of(material, form)))
             {
-                _ = await writer.AddItemTextAsync(batch.DomainId, batch.BatchId, new NewItemText(unit.Text), cancellationToken).ConfigureAwait(false);
+                var accommodation = declared is null ? null : new ItemAccommodation(declared.FormCode, declared.Codes);
+                _ = await writer.AddItemTextAsync(batch.DomainId, batch.BatchId, new NewItemText(unit.Text, Accommodation: accommodation), cancellationToken).ConfigureAwait(false);
             }
 
             return true;
@@ -67,12 +69,12 @@ internal static class SubmissionStoring
     /// <param name="batches">Accepts and rejects the batch.</param>
     /// <param name="writer">Writes the items.</param>
     /// <param name="batch">The domain and the batch, open.</param>
-    /// <param name="material">What the reader gave.</param>
+    /// <param name="read">What the reader gave, and the form it is accommodated into.</param>
     /// <param name="cancellationToken">Cancels the writing.</param>
-    internal static async Task<bool> KeepAsync(IngestionBatches batches, ContentWriter writer, BatchRef batch, ReadMaterial material, CancellationToken cancellationToken)
+    internal static async Task<bool> KeepAsync(IngestionBatches batches, ContentWriter writer, BatchRef batch, (ReadMaterial Material, MaterialForm Form) read, CancellationToken cancellationToken)
     {
         var closing = new BatchClosing(batch.DomainId, batch.BatchId, CustodyAuthor.System);
-        if (await StoreAsync(writer, batch, material, cancellationToken).ConfigureAwait(false)
+        if (await StoreAsync(writer, batch, read.Material, read.Form, cancellationToken).ConfigureAwait(false)
             && (await batches.AcceptAsync(closing, cancellationToken).ConfigureAwait(false)).Outcome == BatchOutcome.Accepted)
         {
             return true;

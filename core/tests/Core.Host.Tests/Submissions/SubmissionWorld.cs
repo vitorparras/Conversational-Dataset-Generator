@@ -118,6 +118,8 @@ internal sealed class SubmissionWorld : IAsyncDisposable
 
     internal Task<long> ItemRowsAsync() => RowsAsync("SELECT count(*) FROM content.item_text");
 
+    internal Task<long> AccommodatedRowsAsync() => RowsAsync("SELECT count(*) FROM content.item_text WHERE accommodated_into = 'document' AND losses = ARRAY['author', 'instant']");
+
     private async Task<long> RowsAsync(string count)
     {
         var total = 0L;

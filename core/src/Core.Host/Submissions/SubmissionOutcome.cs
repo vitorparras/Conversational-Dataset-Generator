@@ -59,7 +59,7 @@ internal sealed record SubmissionOutcome
     internal string? BlockedBy { get; init; }
 
     /// <summary>The code of what made the path unavailable, for <see cref="SubmissionKind.Unavailable"/>.</summary>
-    public string? Code { get; init; }
+    internal string? Code { get; init; }
 
     /// <summary>Why the batch was not recorded, for <see cref="SubmissionKind.NotRecorded" />.</summary>
     internal BatchOutcome? Failure { get; init; }

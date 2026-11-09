@@ -37,7 +37,7 @@ public sealed class SubmissionProofsTests
 
         Assert.Equal((SubmissionState.Accepted, (long)Texts.Length), (outcome.State, await world.ItemRowsAsync()));
         Assert.Contains("content.item_text", dump, StringComparison.Ordinal);
-        Assert.Empty(Texts.SelectMany(Stretches).Where(stretch => Shown(dump, stretch)));
+        Assert.DoesNotContain(Texts.SelectMany(Stretches), stretch => Shown(dump, stretch));
     }
 
     [DatabaseFact]
@@ -88,7 +88,7 @@ public sealed class SubmissionProofsTests
     });
 
     private static IEnumerable<string> Stretches(string text) =>
-        new[] { text, text[..24], text[(text.Length / 2)..((text.Length / 2) + 16)], text[^20..] };
+        [text, text[..24], text[(text.Length / 2)..((text.Length / 2) + 16)], text[^20..]];
 
     private static bool Shown(string dump, string stretch) =>
         dump.Contains(stretch, StringComparison.Ordinal) || dump.Contains(Convert.ToHexStringLower(Encoding.UTF8.GetBytes(stretch)), StringComparison.Ordinal);
@@ -96,7 +96,7 @@ public sealed class SubmissionProofsTests
     private static async Task<IEnumerable<(LabelPurpose Purpose, int Domain)>> LabelsAsync(SubmissionWorld world, int domain)
     {
         var stored = await world.StoredAsync("SELECT encode(raw_text, 'hex') FROM content.item_text ORDER BY id", domain);
-        return stored.Select(hex => EnvelopeCipher.LabelOf(Convert.FromHexString(hex))).Select(Parsed).ToList();
+        return [.. stored.Select(hex => EnvelopeCipher.LabelOf(Convert.FromHexString(hex))).Select(Parsed)];
     }
 
     private static (LabelPurpose Purpose, int Domain) Parsed(string text)

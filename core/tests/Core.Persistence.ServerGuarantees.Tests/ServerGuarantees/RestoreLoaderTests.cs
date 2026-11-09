@@ -154,7 +154,7 @@ public sealed class RestoreLoaderTests
 
         Assert.Equal((RestoreOutcome.CopyRefused, RestoreOutcome.CopyRefused), (other.Outcome, lacking.Outcome));
         Assert.Contains($"versão {version + 1}", other.Detail, StringComparison.Ordinal);
-        Assert.Contains("14 das 15 tabelas", lacking.Detail, StringComparison.Ordinal);
+        Assert.Contains("15 das 16 tabelas", lacking.Detail, StringComparison.Ordinal);
         Assert.Equal(["none"], await destination.OwnerColumnAsync(Window));
     }
 

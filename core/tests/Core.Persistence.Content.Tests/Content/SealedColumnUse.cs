@@ -11,7 +11,7 @@ internal static partial class SealedColumnUse
     /// <summary>The sealed columns the statement uses beyond carrying them; none when it only carries them.</summary>
     /// <param name="statement">The statement as the query holds it.</param>
     /// <param name="sealedColumns">The names of the sealed columns.</param>
-    public static IReadOnlyList<string> Beyond(string statement, IReadOnlyCollection<string> sealedColumns)
+    public static IReadOnlyList<string> Beyond(string statement, IEnumerable<string> sealedColumns)
     {
         var found = new List<string>();
         var names = string.Join('|', sealedColumns.Select(Regex.Escape));

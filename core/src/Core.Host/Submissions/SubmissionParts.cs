@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Core.Ingestion;
 using Core.Persistence.Domains;
 using Core.Persistence.Ingestion;
@@ -30,7 +31,7 @@ internal static class SubmissionParts
     /// none when no database is declared.
     /// </summary>
     internal static SubmissionServiceHolder ServicesOf(IServiceProvider provider, IReadOnlyDictionary<string, string> values) =>
-        provider.GetRequiredService<ServiceProvider>() is var startup && startup.GetService<NpgsqlDataSource>() is { } source
+        provider.GetRequiredService<ServiceProvider>() is var startup && startup.GetService<NpgsqlDataSource>() is not null
             ? new SubmissionServiceHolder(AdmissionConfiguration.MaxBytes(values), token => LoadAsync(startup, provider.GetRequiredService<IngestionBatches>(), values, token))
             : null!;
 
@@ -46,11 +47,18 @@ internal static class SubmissionParts
         try
         {
             var failed = reading.Failure is not null;
-            IReadOnlySet<string> registered = failed ? new HashSet<string>() : await RegisteredLabels.ReadAsync(source, cancellationToken).ConfigureAwait(false);
-            IReadOnlySet<string> revoked = failed ? new HashSet<string>() : await LabelRevocations.ReadAsync(source, cancellationToken).ConfigureAwait(false);
-            var settings = new SubmissionSettings(batches, AdmissionConfiguration.Conditions(values), AdmissionConfiguration.MaxBytes(values), registered, revoked, ReplicationConfiguration.Rule(values));
+            var registered = failed ? ImmutableHashSet<string>.Empty : await RegisteredLabels.ReadAsync(source, cancellationToken).ConfigureAwait(false);
+            var revoked = failed ? ImmutableHashSet<string>.Empty : await LabelRevocations.ReadAsync(source, cancellationToken).ConfigureAwait(false);
+            var admission = (AdmissionConfiguration.Conditions(values), AdmissionConfiguration.MaxBytes(values), ReplicationConfiguration.Rule(values));
+            var settings = new SubmissionSettings(batches, admission.Item1, admission.Item2, registered, revoked, admission.Item3);
             var service = ServiceOf(source, reading, settings);
-            return reading.Failure is { } failure ? throw new ContentKeyUnavailableException(failure.Kind, service) : new SubmissionServiceHolder.Loaded(service, reading);
+            if (reading.Failure is not { } failure)
+            {
+                return new SubmissionServiceHolder.Loaded(service, reading);
+            }
+
+            reading.Dispose();
+            return new SubmissionServiceHolder.Loaded(service, null, failure.Kind);
         }
         catch
         {

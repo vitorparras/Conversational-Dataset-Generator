@@ -43,23 +43,22 @@ internal static class SubmissionStoring
 
     /// <summary>Writes each unit of the material as an item of the batch; false when some item could not be written, the ones before it still standing for the rejection to remove.</summary>
     /// <param name="intake">Holds the writer of the items and the marking of the replicated content.</param>
-    /// <param name="batch">The domain and the batch, open.</param>
-    /// <param name="read">What the reader gave, and the form it was declared in.</param>
+    /// <param name="kept">The domain and the batch, open, what the reader gave and the form it was declared in.</param>
     /// <param name="cancellationToken">Cancels the writing.</param>
-    internal static async Task<bool> StoreAsync(SubmissionIntake intake, BatchRef batch, (ReadMaterial Material, MaterialForm Form) read, CancellationToken cancellationToken)
+    internal static async Task<bool> StoreAsync(SubmissionIntake intake, Kept kept, CancellationToken cancellationToken)
     {
         try
         {
             var written = new List<(long Item, ReadUnit Unit)>();
-            foreach (var unit in read.Material.Units)
+            foreach (var unit in kept.Material.Units)
             {
-                var item = await intake.Writer!.AddItemTextAsync(batch.DomainId, batch.BatchId, new NewItemText(unit.Text), cancellationToken).ConfigureAwait(false);
+                var item = await intake.Writer!.AddItemTextAsync(kept.DomainId, kept.BatchId, new NewItemText(unit.Text), cancellationToken).ConfigureAwait(false);
                 written.Add((item, unit));
             }
 
-            if (read.Form == MaterialForm.Conversation && intake.Marking is { } marking)
+            if (kept.Form == MaterialForm.Conversation && intake.Marking is { } marking)
             {
-                await marking.MarkAsync(batch.DomainId, batch.BatchId, written, cancellationToken).ConfigureAwait(false);
+                await marking.MarkAsync(kept.DomainId, kept.BatchId, written, cancellationToken).ConfigureAwait(false);
             }
 
             return true;
@@ -73,13 +72,12 @@ internal static class SubmissionStoring
     /// <summary>Writes the items of a file that was not turned back and accepts the batch; when that fails, rejects it with no item and says so.</summary>
     /// <param name="batches">Accepts and rejects the batch.</param>
     /// <param name="intake">Holds the writer of the items and the marking of the replicated content.</param>
-    /// <param name="batch">The domain and the batch, open.</param>
-    /// <param name="read">What the reader gave, and the form it was declared in.</param>
+    /// <param name="kept">The domain and the batch, open, what the reader gave and the form it was declared in.</param>
     /// <param name="cancellationToken">Cancels the writing.</param>
-    internal static async Task<bool> KeepAsync(IngestionBatches batches, SubmissionIntake intake, BatchRef batch, (ReadMaterial Material, MaterialForm Form) read, CancellationToken cancellationToken)
+    internal static async Task<bool> KeepAsync(IngestionBatches batches, SubmissionIntake intake, Kept kept, CancellationToken cancellationToken)
     {
-        var closing = new BatchClosing(batch.DomainId, batch.BatchId, CustodyAuthor.System);
-        if (await StoreAsync(intake, batch, read, cancellationToken).ConfigureAwait(false)
+        var closing = new BatchClosing(kept.DomainId, kept.BatchId, CustodyAuthor.System);
+        if (await StoreAsync(intake, kept, cancellationToken).ConfigureAwait(false)
             && (await batches.AcceptAsync(closing, cancellationToken).ConfigureAwait(false)).Outcome == BatchOutcome.Accepted)
         {
             return true;
@@ -89,8 +87,14 @@ internal static class SubmissionStoring
         return false;
     }
 
-    /// <summary>The batch an item is written to.</summary>
+    /// <summary>The reason of a service with no key to seal with: whatever the file is, nothing of it is kept; none when there is a key.</summary>
+    /// <param name="sealing">The path that seals; none when the key could not be read.</param>
+    internal static SubmissionReason? Unsealed(ProtectedContent? sealing) => sealing is null ? new SubmissionReason(KeyUnavailable, new List<SubmissionFinding>()) : null;
+
+    /// <summary>The batch an item is written to, and what is written there.</summary>
     /// <param name="DomainId">The domain.</param>
     /// <param name="BatchId">The batch.</param>
-    internal sealed record BatchRef(int DomainId, long BatchId);
+    /// <param name="Material">What the reader gave.</param>
+    /// <param name="Form">The form the material was declared in.</param>
+    internal sealed record Kept(int DomainId, long BatchId, ReadMaterial Material, MaterialForm Form);
 }

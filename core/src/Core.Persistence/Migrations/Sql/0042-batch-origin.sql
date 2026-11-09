@@ -1,6 +1,6 @@
 -- The origin of a submission (issue 75, decision 0025): who the material came from narrows who the people in it are, so the text is kept sealed as the raw text of an item is, under a key of its own
 -- wrapped under the epoch, in a table of its own, and never read without an event of the chain. Only the clear state of it, declared or unknown, stays in the batch, which is what an answer may say.
--- The step origin_read is the reading of it, about the batch. The checks of the chain change from the last ones the earlier steps left (the step list from the 0036, the shape of the batch from the 0034):
+-- The step origin_read is the reading of it, about the batch. The checks of the chain change from the last ones the earlier steps left (the step list from the 0041, the shape of the batch from the 0034):
 -- every step and every clause they fix stays, and the new step comes in beside them.
 ALTER TABLE public.custody_event
     DROP CONSTRAINT custody_event_step_listed,
@@ -11,7 +11,7 @@ ALTER TABLE public.custody_event
          'domain_created', 'seal_recorded', 'domain_label_rotated',
          'sign_in_accepted', 'sign_in_refused', 'credential_recomputed', 'key_loss_declared', 'recovery_tested', 'verify_guarantees',
          'owner_window_opened', 'owner_window_closed', 'restored', 'restore_rehearsed', 'domain_label_revoked', 'domain_rewrapped',
-         'batch_opened', 'batch_closed', 'password_changed', 'origin_read')),
+         'batch_opened', 'batch_closed', 'password_changed', 'configuration_submitted', 'origin_read')),
     ADD CONSTRAINT custody_event_batch_shape CHECK (
         (step IN ('batch_opened', 'batch_closed', 'origin_read')) = (item_kind = 'ingestion_batch')
         AND (step = 'batch_closed') = (reason IN ('batch_accepted', 'batch_rejected'))
@@ -106,7 +106,7 @@ BEGIN
     PERFORM public.restore_require_open();
     BEGIN
         IF table_name NOT IN ('public.domain', 'public.derivation_label', 'public.derivation_label_revocation', 'public.person', 'public.person_change', 'public.person_credential',
-                              'public.sign_in_attempt', 'content.ingestion_batch', 'content.batch_origin', 'content.item_text', 'content.reversal_map', 'content.item_emptied') THEN
+                              'public.sign_in_attempt', 'public.configuration_change', 'content.ingestion_batch', 'content.batch_origin', 'content.item_text', 'content.reversal_map', 'content.item_emptied') THEN
             RAISE EXCEPTION 'the table is not one the load puts back' USING ERRCODE = 'CE005';
         END IF;
 

@@ -55,7 +55,11 @@ jobs:
             dotnet test core/tests/Core.Tests.Architecture -c Release -m:2 -nodeReuse:false -p:UseSharedCompilation=false -nologo > "$RUNNER_TEMP/architecture.log" 2>&1
             architecture=$?
           fi
-          errors() { grep -E "error|Failed|failed|Passed!|Build succeeded" "$1" | sort -u | head -60; }
+          errors() {
+            extra=
+            [ "$1" = "$RUNNER_TEMP/format.log" ] && extra='|warning'
+            grep -E "error|Failed|failed|Passed!|Build succeeded$extra" "$1" | sort -u | head -60
+          }
           {
             echo "### $(shown)"
             echo

@@ -39,7 +39,7 @@ public sealed partial class PersonRegistry
         return names;
     }
 
-    private static async Task ReadNamesAsync(NpgsqlCommand command, Dictionary<long, string> names, CancellationToken cancellationToken)
+    private static async Task ReadNamesAsync(NpgsqlCommand command, IDictionary<long, string> names, CancellationToken cancellationToken)
     {
         var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
         await using (reader.ConfigureAwait(false))

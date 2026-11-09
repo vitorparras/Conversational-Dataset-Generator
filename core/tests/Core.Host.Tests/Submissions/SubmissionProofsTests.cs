@@ -4,6 +4,7 @@ using System.Text.Json;
 using Core.Persistence.Content;
 using Core.Persistence.Content.Reading;
 using Core.Persistence.Custody;
+using Core.Persistence.Tests.Fixtures;
 using Core.Platform.Keys;
 
 namespace Core.Host.Tests.Submissions;

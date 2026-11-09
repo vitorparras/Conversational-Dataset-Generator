@@ -98,7 +98,7 @@ public sealed class FailurePageTests(BrowserFixture browser)
         _ = await tab.Page.GotoAsync(TrialRoutes.Failure);
         var code = (await tab.Page.Locator("main code").InnerTextAsync()).Trim();
 
-        Assert.Matches("^[0-9a-f]{8}$", code);
+        Assert.Matches("^[0-9A-F]{8}$", code);
         var lines = browser.HostLines.Where(line => line.Contains("[341]", StringComparison.Ordinal) && line.Contains(code, StringComparison.Ordinal)).ToList();
         _ = Assert.Single(lines);
         Assert.DoesNotContain(TrialRoutes.InternalDetail, lines[0], StringComparison.Ordinal);

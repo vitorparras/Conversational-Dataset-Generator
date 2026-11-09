@@ -94,8 +94,11 @@ else
     /// <summary>How many batches a page holds.</summary>
     internal const int Size = 20;
 
-    /// <summary>Whether a filter is in use, or refused; the box of the filter then opens by itself, and folds otherwise so the list comes first.</summary>
-    private bool Filtered => new[] { State, From, Until, FromError, UntilError }.Any(value => !string.IsNullOrEmpty(value));
+    /// <summary>
+    /// Whether a filter is in use, or a date refused; the box of the filter then opens by itself, and folds otherwise so the list comes first. A state the screen does not offer
+    /// filters nothing, so it opens nothing.
+    /// </summary>
+    private bool Filtered => new[] { StateOf(State) is null ? null : State, From, Until, FromError, UntilError }.Any(value => !string.IsNullOrEmpty(value));
 
     private const string NoReceipt = "Sem envio registrado";
 

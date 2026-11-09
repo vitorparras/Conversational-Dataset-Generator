@@ -98,6 +98,41 @@ public sealed class BatchesScreenTests
         Assert.DoesNotContain("role=\"alert\"", page, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("State", "aceitos")]
+    [InlineData("From", "2026-11-01")]
+    [InlineData("Until", "2026-11-08")]
+    [InlineData("FromError", "zqx-erro")]
+    [InlineData("UntilError", "zqx-erro")]
+    public async Task TheFilterOpensByItselfWhenAFilterIsInUseOrADateWasRefused(string key, string value)
+    {
+        var page = await RenderAsync(new Dictionary<string, object?> { ["Rows"] = ThreeStates, ["Granted"] = true, [key] = value });
+
+        Assert.Matches(new Regex("<details id=\"filtro\" class=\"panel filter-box\" open", RegexOptions.None, TimeSpan.FromSeconds(1)), page);
+        Assert.Contains("Filtrar por estado e período (filtro em uso)", page, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("zqx-estado")]
+    public async Task WithNoFilterInUseTheFilterFoldsSoTheListComesFirst(string? state)
+    {
+        var page = await RenderAsync(new Dictionary<string, object?> { ["Rows"] = ThreeStates, ["Granted"] = true, ["State"] = state });
+
+        Assert.Contains("<details id=\"filtro\" class=\"panel filter-box\">", page, StringComparison.Ordinal);
+        Assert.DoesNotContain("(filtro em uso)", page, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task TheListHasATitleOfItsOwnAndSaysItDoesNotFollowTheDomainOfWork()
+    {
+        var page = await RenderAsync(new Dictionary<string, object?> { ["Rows"] = ThreeStates, ["Granted"] = true });
+
+        Assert.Contains(">Lista de lotes</h2>", page, StringComparison.Ordinal);
+        Assert.Contains("A lista traz todos os domínios que você alcança, qualquer que seja o domínio de trabalho escolhido no cabeçalho.", page, StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task AFilterThatLeavesNoBatchSaysSoAndHowToSeeTheOthers()
     {

@@ -54,6 +54,39 @@ public sealed class BatchScreensRouteTests
     }
 
     [DatabaseFact]
+    public async Task TheServerCutsThePageOfTwentyAndReadsOneMoreToOfferTheNextWhichHoldsTheRest()
+    {
+        await using var world = await World.StartAsync(grantsCurator: true, twentyMore: true);
+
+        var first = await world.PageAsync("/lotes", world.Curator);
+        var second = await world.PageAsync("/lotes?pagina=2", world.Curator);
+
+        Assert.Equal(20, Rows(first));
+        Assert.Contains("Lote\u00A022</th>", first, StringComparison.Ordinal);
+        Assert.DoesNotContain("Lote\u00A01</th>", first, StringComparison.Ordinal);
+        Assert.Contains("rel=\"next\"", first, StringComparison.Ordinal);
+        Assert.Equal(1, Rows(second));
+        Assert.Contains("Lote\u00A01</th>", second, StringComparison.Ordinal);
+        Assert.Contains("rel=\"prev\"", second, StringComparison.Ordinal);
+        Assert.DoesNotContain("rel=\"next\"", second, StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
+    public async Task ThePeriodOfTheAddressReachesTheRegisterFromItsFirstDayAndUntilItsLast()
+    {
+        await using var world = await World.StartAsync(grantsCurator: true);
+
+        var since = await world.PageAsync("/lotes?de=2000-01-01", world.Curator);
+        var before = await world.PageAsync("/lotes?ate=2000-01-01", world.Curator);
+        var after = await world.PageAsync("/lotes?de=2999-01-01", world.Curator);
+
+        Assert.Contains("Lote\u00A01</th>", since, StringComparison.Ordinal);
+        Assert.DoesNotContain("Lote\u00A01</th>", before, StringComparison.Ordinal);
+        Assert.Contains("Nenhum lote com esse filtro.", before, StringComparison.Ordinal);
+        Assert.DoesNotContain("Lote\u00A01</th>", after, StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
     public async Task WithNoDomainGrantedTheCurationSeesTheListEmptyWithTheMotiveAndNoFilter()
     {
         await using var world = await World.StartAsync(grantsCurator: false);
@@ -98,9 +131,23 @@ public sealed class BatchScreensRouteTests
         Assert.Equal(HttpStatusCode.ServiceUnavailable, listed.StatusCode);
     }
 
+    private static int Rows(string page) => page.Split("<th scope=\"row\" role=\"rowheader\">Lote", StringSplitOptions.None).Length - 1;
+
     private sealed class World : IAsyncDisposable
     {
         private const string PersonOf = "SELECT id FROM public.person WHERE name = @name";
+
+        /// <summary>Twenty batches more in the domain granted, after the one of the seed, so that the list fills a page and leaves one for the next.</summary>
+        private static readonly string[] TwentyMore =
+        [
+            "ALTER TABLE content.ingestion_batch DISABLE TRIGGER batch_is_born_open",
+            "ALTER TABLE content.ingestion_batch DISABLE TRIGGER batch_open_needs_event",
+            "SELECT set_config('app.domain', '1', false)",
+            "INSERT INTO content.ingestion_batch (domain_id, state, opened_by, condition, closed_at) SELECT 1, 'accepted', (SELECT min(id) FROM public.person), 'restrita', now() FROM generate_series(1, 20)",
+            "SELECT set_config('app.domain', '', false)",
+            "ALTER TABLE content.ingestion_batch ENABLE ALWAYS TRIGGER batch_is_born_open",
+            "ALTER TABLE content.ingestion_batch ENABLE ALWAYS TRIGGER batch_open_needs_event",
+        ];
 
         private readonly ScratchDatabase database;
         private readonly NpgsqlDataSource source;
@@ -120,7 +167,7 @@ public sealed class BatchScreensRouteTests
 
         internal long Annotator { get; }
 
-        internal static async Task<World> StartAsync(bool grantsCurator)
+        internal static async Task<World> StartAsync(bool grantsCurator, bool twentyMore = false)
         {
             var database = await ScratchDatabase.CreateAsync();
             _ = await database.MigrateAsync(EmbeddedMigrations.Load());
@@ -129,6 +176,11 @@ public sealed class BatchScreensRouteTests
                 "INSERT INTO public.person (name, function_name) VALUES ('zqx-curadora', 'Curadoria do acervo')",
                 "INSERT INTO public.person (name, function_name) VALUES ('zqx-anotadora', 'Anotação')");
             await database.RunAsOwnerAsync(SeededBatches.Statements(1, 2));
+            if (twentyMore)
+            {
+                await database.RunAsOwnerAsync(TwentyMore);
+            }
+
             var (curator, annotator) = (await PersonIdAsync(database, CuratorName), await PersonIdAsync(database, "zqx-anotadora"));
             var source = NpgsqlDataSource.Create(database.AppConnectionString);
             var staff = new OperatorAdministration(

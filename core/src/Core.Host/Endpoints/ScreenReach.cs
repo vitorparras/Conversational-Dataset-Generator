@@ -6,7 +6,8 @@ namespace Core.Host.Endpoints;
 /// <summary>
 /// What the one who entered reaches by the access policy (006): the function they hold and the domains granted to them, read once for the request.
 /// The route and the menu ask it the same question, so the menu never lists what the route would refuse. The administration of the system and the audit
-/// hold no content and no axis of domain, and reach their screens by the function; the other functions reach a screen only with a domain granted.
+/// hold no content and no axis of domain, and reach their screens by the function; the other functions reach a screen only with a domain granted, except a screen
+/// marked to answer its functions with none, such as the list of batches, which the route opens by <see cref="Opens"/> and the menu still lists only with a domain.
 /// </summary>
 internal sealed class ScreenReach
 {

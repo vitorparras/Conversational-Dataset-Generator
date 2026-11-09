@@ -45,6 +45,7 @@ public sealed class BatchListTests(BrowserFixture browser, GrantedBatchesHostFix
         await Expect(tab.Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("estado=rejeitados"));
         await Expect(tab.Page.Locator(".empty-state__title")).ToHaveTextAsync("Nenhum lote com esse filtro.");
         await Expect(tab.Page.GetByLabel("Rejeitados")).ToBeCheckedAsync();
+        await Expect(tab.Page.Locator("#filtro")).ToHaveAttributeAsync("open", string.Empty);
     }
 
     [Fact]

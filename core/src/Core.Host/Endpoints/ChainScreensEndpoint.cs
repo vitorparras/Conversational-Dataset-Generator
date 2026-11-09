@@ -43,6 +43,7 @@ internal static class ChainScreensEndpoint
             [nameof(ChainScreen.LastSeal)] = shown.LastSeal,
             [nameof(ChainScreen.SealWarning)] = shown.Warning,
             [nameof(ChainScreen.Asked)] = context.Request.Query.ContainsKey(AskedMark),
+            [nameof(ChainScreen.SealAction)] = SealScreensEndpoint.Offered(context, sources.Declared),
         };
         return ScreenResult.Of(context, typeof(ChainScreen), ChainScreen.Title, screen);
     }

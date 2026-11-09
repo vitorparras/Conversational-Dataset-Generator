@@ -19,6 +19,7 @@ internal static class SubmissionForm
     private const string FormData = "multipart/form-data";
     private const int HeaderBytes = 16 * 1024;
     private const int HeaderCount = 16;
+    private const int MostFields = 16;
 
     private static readonly Dictionary<string, MaterialForm> Forms = new(StringComparer.Ordinal)
     {
@@ -28,7 +29,7 @@ internal static class SubmissionForm
         ["labeled-sequence"] = MaterialForm.LabeledSequence,
     };
 
-    /// <summary>Reads the fields up to the file; null when the body is not <c>multipart/form-data</c> with a boundary.</summary>
+    /// <summary>Reads the fields up to the file; null when the body is not <c>multipart/form-data</c> with a boundary, and a body with too many parts before the file has none read.</summary>
     /// <param name="request">The request.</param>
     /// <param name="author">The person of the session.</param>
     /// <param name="cancellationToken">Cancels the reading.</param>
@@ -41,8 +42,14 @@ internal static class SubmissionForm
 
         var reader = new MultipartReader(boundary, request.Body) { HeadersCountLimit = HeaderCount, HeadersLengthLimit = HeaderBytes };
         var fields = new Dictionary<string, string>(StringComparer.Ordinal);
+        var seen = 0;
         while (await reader.ReadNextSectionAsync(cancellationToken).ConfigureAwait(false) is { } section)
         {
+            if (++seen > MostFields)
+            {
+                break;
+            }
+
             if (section.GetContentDispositionHeader() is not { } disposition || HeaderUtilities.RemoveQuotes(disposition.Name).Value is not { } name)
             {
                 continue;

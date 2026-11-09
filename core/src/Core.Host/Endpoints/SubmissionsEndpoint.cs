@@ -1,6 +1,6 @@
 using Core.Host.Submissions;
+using Core.Persistence.Ingestion;
 using Core.Persistence.People;
-using Core.Platform.Keys;
 using Core.Platform.Sessions;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
@@ -30,32 +30,30 @@ internal static class SubmissionsEndpoint
         _ = endpoints.MapGet(BatchesRoute + "/{id:long}", DetailAsync).WithMetadata(Access);
     }
 
-    private static async Task<IResult> GateAsync([FromServices] SubmissionServiceHolder? services, HttpContext context)
+    private static async Task<IResult> GateAsync([FromServices] IntakeDoor? door, HttpContext context)
     {
-        var obtained = await ObtainAsync(services, context.RequestAborted);
-        if (obtained.Service is not { } service)
+        if (door is null)
         {
-            return obtained.Failure!;
+            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
 
-        var gate = await service.GateAsync(context.RequestAborted);
+        var gate = await door.StatusAsync(context.RequestAborted);
         return Results.Ok(new GateShown(gate.Open ? "open" : "blocked", gate.Code));
     }
 
     private static async Task<IResult> SubmitAsync([FromServices] SubmissionServiceHolder? services, [FromServices] IGrantedDomains? grants, HttpContext context)
     {
+        if (services is null)
+        {
+            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+        }
+
         if (SessionOf(context) is not { } author)
         {
             return Results.Unauthorized();
         }
 
-        var obtained = await ObtainAsync(services, context.RequestAborted);
-        if (obtained.Service is not { } service)
-        {
-            return obtained.Failure!;
-        }
-
-        Bound(context, services!.MaxBytes);
+        Bound(context, services.MaxBytes);
         if (await SubmissionForm.ReadAsync(context.Request, author, context.RequestAborted) is not { } read)
         {
             return Results.StatusCode(StatusCodes.Status415UnsupportedMediaType);
@@ -67,13 +65,24 @@ internal static class SubmissionsEndpoint
             return Results.NotFound();
         }
 
+        using var loaded = await services.GetAsync(context.RequestAborted);
+        if (loaded is null)
+        {
+            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+        }
+
         return read.HasFile
-            ? SubmissionAnswer.Of(await service.SubmitAsync(read.Request, context.RequestAborted), obtained.Unsealed)
-            : SubmissionAnswer.NoFile(service.Check(read.Request));
+            ? SubmissionAnswer.Of(await loaded.Service.SubmitAsync(read.Request, context.RequestAborted), loaded.Unsealed)
+            : SubmissionAnswer.NoFile(loaded.Service.Check(read.Request));
     }
 
-    private static async Task<IResult> ListAsync([FromServices] SubmissionServiceHolder? services, [FromServices] IGrantedDomains? grants, HttpContext context)
+    private static async Task<IResult> ListAsync([FromServices] BatchRegister? register, [FromServices] IGrantedDomains? grants, HttpContext context)
     {
+        if (register is null)
+        {
+            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+        }
+
         if (SessionOf(context) is not { } requester)
         {
             return Results.Unauthorized();
@@ -85,44 +94,25 @@ internal static class SubmissionsEndpoint
             return Results.Json(new FieldsRefused(BatchQuery.Problems(context.Request.Query)), statusCode: StatusCodes.Status400BadRequest);
         }
 
-        var obtained = await ObtainAsync(services, context.RequestAborted);
-        if (obtained.Service is not { } service)
-        {
-            return obtained.Failure!;
-        }
-
-        var entries = await service.ListAsync(asked.Filter, context.RequestAborted);
+        var entries = await register.ListAsync(asked.Filter, context.RequestAborted);
         return Results.Ok(new BatchesShown(asked.Page, asked.PageSize, [.. entries.Select(SubmissionAnswer.Shown)]));
     }
 
-    private static async Task<IResult> DetailAsync(long id, [FromServices] SubmissionServiceHolder? services, [FromServices] IGrantedDomains? grants, HttpContext context)
+    private static async Task<IResult> DetailAsync(long id, [FromServices] BatchRegister? register, [FromServices] IGrantedDomains? grants, HttpContext context)
     {
+        if (register is null)
+        {
+            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+        }
+
         if (SessionOf(context) is not { } requester)
         {
             return Results.Unauthorized();
         }
 
-        var obtained = await ObtainAsync(services, context.RequestAborted);
-        if (obtained.Service is not { } service)
-        {
-            return obtained.Failure!;
-        }
-
         var granted = await GrantedAsync(grants, requester, context.RequestAborted);
-        var entry = await service.DetailAsync(granted, id, context.RequestAborted);
+        var entry = await register.ReadAsync(granted, id, context.RequestAborted);
         return entry is null ? Results.NotFound() : Results.Ok(SubmissionAnswer.Shown(entry));
-    }
-
-    /// <summary>The service the first request builds with the key of the content; with no database, or with no key to be read, the answer is 503 and nothing was recorded.</summary>
-    private static async Task<Obtained> ObtainAsync(SubmissionServiceHolder? services, CancellationToken cancellationToken)
-    {
-        if (services is null)
-        {
-            return new Obtained(null, Results.StatusCode(StatusCodes.Status503ServiceUnavailable), null);
-        }
-
-        var loaded = await services.GetAsync(cancellationToken);
-        return new Obtained(loaded.Service, null, loaded.Unsealed);
     }
 
     /// <summary>The domains granted to the requester; none while no grant is recorded (#112), which makes every domain one that does not exist for them.</summary>
@@ -139,6 +129,4 @@ internal static class SubmissionsEndpoint
             feature.MaxRequestBodySize = maxBytes + BodyMargin;
         }
     }
-
-    private sealed record Obtained(SubmissionService? Service, IResult? Failure, MasterKeyFailureKind? Unsealed);
 }

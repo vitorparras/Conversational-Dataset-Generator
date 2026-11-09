@@ -14,6 +14,8 @@ internal static class BatchQuery
     private const int DefaultPageSize = 50;
     private const int MostPageSize = 100;
 
+    private static readonly string[] Iso8601 = new[] { "yyyy-MM-dd'T'HH:mm:ssK", "yyyy-MM-dd'T'HH:mm:ss.FFFFFFFK", "yyyy-MM-dd" };
+
     /// <summary>The filter and the page asked for, over the domains granted; null when some parameter is not accepted.</summary>
     /// <param name="query">The address's parameters.</param>
     /// <param name="granted">The domains granted.</param>
@@ -29,7 +31,7 @@ internal static class BatchQuery
         var filter = new BatchFilter
         {
             Domains = granted,
-            State = query.TryGetValue("state", out var state) ? Enum.Parse<BatchState>(state.ToString(), ignoreCase: true) : null,
+            State = query.TryGetValue("state", out var state) ? StateOf(state) : null,
             From = Moment(query["from"]),
             Until = Moment(query["until"]),
             Skip = (page - 1) * size,
@@ -44,7 +46,7 @@ internal static class BatchQuery
     {
         var problems = new[]
         {
-            When(query.TryGetValue("state", out var state) && !Enum.TryParse<BatchState>(state.ToString(), ignoreCase: true, out _), "state"),
+            When(query.TryGetValue("state", out var state) && StateOf(state) is null, "state"),
             When(query.TryGetValue("from", out var from) && Moment(from) is null, "from"),
             When(query.TryGetValue("until", out var until) && Moment(until) is null, "until"),
             When(query.TryGetValue("page", out var page) && (Number(page, 0) < 1 || Skipped(query) > BatchRegister.MostSkipped), "page"),
@@ -64,8 +66,18 @@ internal static class BatchQuery
         return string.IsNullOrEmpty(text) ? absent : parsed;
     }
 
+    /// <summary>The state by its name and no other way: a number, a list of names or a combination is not a state.</summary>
+    private static BatchState? StateOf(string? text) => text?.ToLowerInvariant() switch
+    {
+        "open" => BatchState.Open,
+        "accepted" => BatchState.Accepted,
+        "rejected" => BatchState.Rejected,
+        _ => null,
+    };
+
+    /// <summary>The moment in ISO 8601, with the offset or the Z, or only the date, which is the start of that day in UTC; any other way of writing a moment is not accepted.</summary>
     private static DateTimeOffset? Moment(string? text) =>
-        DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var moment) ? moment : null;
+        DateTimeOffset.TryParseExact(text, Iso8601, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var moment) ? moment : null;
 
     /// <summary>The filter, and the page it was cut for.</summary>
     /// <param name="Filter">The domains granted, the state, the period and the page.</param>

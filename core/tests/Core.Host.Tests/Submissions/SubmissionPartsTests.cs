@@ -1,6 +1,8 @@
 using Core.Host.Submissions;
+using Core.Persistence.Custody;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Fixtures;
+using Core.Platform.Keys;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 
@@ -100,10 +102,86 @@ public sealed class SubmissionPartsTests
             ]);
     }
 
+    [DatabaseFact]
+    public async Task EachUseReadsTheKeyAndTheLabelsAgainSoADomainCreatedAfterTheFirstSubmissionIsKnownToTheNext()
+    {
+        await using var world = await SubmissionWorld.CreateAsync();
+        await using var startup = new ServiceCollection().AddSingleton(world.DataSource).AddSingleton<IMasterKeySource>(new FixedKeySource(present: true)).BuildServiceProvider();
+        await using var host = Hosted(startup);
+        var holder = host.GetRequiredService<SubmissionServiceHolder>();
+
+        using var first = await holder.GetAsync(TestContext.Current.CancellationToken);
+        var before = await first!.Service.SubmitAsync(SubmissionWorld.Request(), TestContext.Current.CancellationToken);
+        await world.Database.RunAsOwnerAsync("INSERT INTO public.domain (name) VALUES ('zqx-domain-c')", "INSERT INTO public.derivation_label (label) VALUES ('texto-bruto/3/v1')");
+        using var next = await holder.GetAsync(TestContext.Current.CancellationToken);
+        var after = await next!.Service.SubmitAsync(SubmissionWorld.Request() with { DomainId = 3 }, TestContext.Current.CancellationToken);
+
+        Assert.Equal(((BatchOutcome?)null, SubmissionKind.Done, SubmissionKind.Done), (before.Failure, before.Kind, after.Kind));
+        Assert.NotSame(first.Service, next.Service);
+    }
+
+    [DatabaseFact]
+    public async Task KeyThatCannotBeReadGivesNoServiceAndTheNextUseTriesAgain()
+    {
+        await using var world = await SubmissionWorld.CreateAsync();
+        var source = new FixedKeySource(present: false);
+        await using var startup = new ServiceCollection().AddSingleton(world.DataSource).AddSingleton<IMasterKeySource>(source).BuildServiceProvider();
+        await using var host = Hosted(startup);
+        var holder = host.GetRequiredService<SubmissionServiceHolder>();
+
+        var absent = await holder.GetAsync(TestContext.Current.CancellationToken);
+        source.Present = true;
+        using var present = await holder.GetAsync(TestContext.Current.CancellationToken);
+
+        Assert.Null(absent);
+        Assert.NotNull(present);
+        Assert.Equal(2, source.Reads);
+    }
+
+    [DatabaseFact]
+    public async Task TheDoorAnswersFromTheDatabaseAloneWhateverTheKey()
+    {
+        await using var world = await SubmissionWorld.CreateAsync();
+        await using var startup = new ServiceCollection().AddSingleton(world.DataSource).AddSingleton<IMasterKeySource>(new FixedKeySource(present: false)).BuildServiceProvider();
+        await using var host = Hosted(startup);
+
+        var status = await host.GetRequiredService<IntakeDoor>().StatusAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(new SubmissionGateStatus(true, null), status);
+    }
+
     private static ServiceProvider Hosted(ServiceProvider startup) =>
         new ServiceCollection()
             .AddSingleton(startup)
             .AddSingleton(provider => SubmissionParts.BatchesOf(provider, Values))
             .AddSingleton(SubmissionParts.RegisterOf)
+            .AddSingleton(SubmissionParts.DoorOf)
+            .AddSingleton(provider => SubmissionParts.ServicesOf(provider, Values))
             .BuildServiceProvider();
+
+    /// <summary>A source of the master key that gives it, with the labels of three domains, or does not, as the test asks; each reading is a new one, as the file is read again.</summary>
+    private sealed class FixedKeySource : IMasterKeySource
+    {
+        private static readonly string[] Labels = new[] { "texto-bruto/1/v1", "texto-bruto/2/v1", "texto-bruto/3/v1" };
+
+        internal FixedKeySource(bool present)
+        {
+            Present = present;
+        }
+
+        public string Origin => "zqx-test";
+
+        internal bool Present { get; set; }
+
+        internal int Reads { get; private set; }
+
+        public Task<MasterKeyReading> ReadAsync(CancellationToken cancellationToken)
+        {
+            Reads++;
+            var key = Enumerable.Range(0, MasterKey.Length).Select(index => (byte)(0x5A ^ ((index * 29) + 3))).ToArray();
+            var secret = Enumerable.Range(0, MasterKey.Length).Select(index => (byte)(0xA7 ^ ((index * 31) + 11))).ToArray();
+            var epochs = CustodyEpochs.Of(new Dictionary<int, byte[]> { [1] = secret });
+            return Task.FromResult(Present ? MasterKeyReading.FromBytes(key, DerivationLabels.Of(Labels), epochs, "zqx-test") : MasterKeyReading.Absent("zqx-test"));
+        }
+    }
 }

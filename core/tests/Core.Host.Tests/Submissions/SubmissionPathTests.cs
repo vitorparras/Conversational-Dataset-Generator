@@ -127,20 +127,20 @@ public sealed class SubmissionPathTests
     }
 
     [DatabaseFact]
-    public async Task HolderThatCouldNotReadTheKeyTriesAgainOnTheNextRequestInsteadOfKeepingTheFailure()
+    public async Task HolderReadsTheKeyAgainAtEveryUseAndKeepsNeitherTheKeyNorTheFailure()
     {
         await using var world = await SubmissionWorld.CreateAsync();
         var attempts = 0;
-        using var holder = new SubmissionServiceHolder(1, _ =>
+        var holder = new SubmissionServiceHolder(1, _ =>
         {
             attempts++;
-            return Task.FromResult(new SubmissionServiceHolder.Loaded(world.Service, null, MasterKeyFailureKind.Absent));
+            return Task.FromResult<SubmissionServiceHolder.Loaded?>(new SubmissionServiceHolder.Loaded(world.Service, null, MasterKeyFailureKind.Absent));
         });
 
         var first = await holder.GetAsync(TestContext.Current.CancellationToken);
         var second = await holder.GetAsync(TestContext.Current.CancellationToken);
 
-        Assert.Equal((2, MasterKeyFailureKind.Absent, MasterKeyFailureKind.Absent), (attempts, first.Unsealed, second.Unsealed));
+        Assert.Equal((2, MasterKeyFailureKind.Absent, MasterKeyFailureKind.Absent), (attempts, first!.Unsealed, second!.Unsealed));
     }
 
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The contents belong to the multipart form, which the request disposes.")]

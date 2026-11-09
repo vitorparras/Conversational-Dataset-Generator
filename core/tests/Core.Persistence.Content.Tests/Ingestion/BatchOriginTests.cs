@@ -69,15 +69,6 @@ public sealed class BatchOriginTests
         Assert.Equal((ContentReadOutcome.NotFound, 0L), (read.Outcome, await world.ScalarAsync(OriginEvents, ("id", batch))));
     }
 
-    [Fact]
-    public void ABatchOfASubmissionHasItsOriginAndItsReceiptTogetherAndABatchOfNoneHasNeither()
-    {
-        var receipt = new SubmissionReceipt(Hex32, 1, Hex64);
-
-        _ = Assert.Throws<ArgumentException>(() => new BatchOpening(IngestionWorld.Domain, IngestionWorld.Person, null, receipt));
-        _ = Assert.Throws<ArgumentException>(() => new BatchOpening(IngestionWorld.Domain, IngestionWorld.Person, null, null, OriginDeclaration.Unknown));
-    }
-
     [DatabaseFact]
     public async Task TheDatabaseTiesTheStateOfTheOriginToTheReceiptBothWays()
     {
@@ -144,7 +135,7 @@ public sealed class BatchOriginTests
     private static async Task<long> OpenAsync(ContentWorld world, OriginDeclaration origin, string submission)
     {
         var opened = await IngestionWorld.BatchesOf(world).OpenAsync(
-            new BatchOpening(IngestionWorld.Domain, IngestionWorld.Person, null, new SubmissionReceipt(submission, 1, Hex64), origin), TestContext.Current.CancellationToken);
+            new BatchOpening(IngestionWorld.Domain, IngestionWorld.Person, null, new SubmissionOpening(new SubmissionReceipt(submission, 1, Hex64), origin)), TestContext.Current.CancellationToken);
         Assert.Equal(BatchOutcome.Opened, opened.Outcome);
         return opened.BatchId!.Value;
     }

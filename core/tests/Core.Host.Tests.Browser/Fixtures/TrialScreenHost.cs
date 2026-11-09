@@ -6,6 +6,7 @@ using Core.Persistence.Tests.Fixtures;
 using Core.Platform.Configuration;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 
 namespace Core.Host.Tests.Browser.Fixtures;
@@ -18,16 +19,21 @@ internal sealed class TrialScreenHost : IAsyncDisposable
 {
     private readonly ScratchDatabase database;
     private readonly WebApplication app;
+    private readonly HostLog log;
 
-    private TrialScreenHost(ScratchDatabase database, WebApplication app)
+    private TrialScreenHost(ScratchDatabase database, WebApplication app, HostLog log)
     {
         this.database = database;
         this.app = app;
+        this.log = log;
         Address = new Uri(app.Urls.Single());
     }
 
     /// <summary>The address the server listens on, with the port it was given.</summary>
     public Uri Address { get; }
+
+    /// <summary>The lines the host logged, with the id of their event.</summary>
+    public IReadOnlyList<string> Log => log.Lines;
 
     public static async Task<TrialScreenHost> StartAsync(CancellationToken cancellationToken)
     {
@@ -35,7 +41,9 @@ internal sealed class TrialScreenHost : IAsyncDisposable
         try
         {
             _ = await database.MigrateAsync(EmbeddedMigrations.Load());
+            var log = new HostLog();
             var builder = CompositionRoot.ClosedBuilder("http://127.0.0.1:0");
+            _ = builder.Services.AddLogging(logging => logging.AddProvider(log));
             CompositionRoot.Compose(builder, ClosedConfiguration.Load(new ConfigurationSchema([HostConfiguration.Section])).View, fileLog: null);
             _ = builder.Services.AddSingleton(_ => NpgsqlDataSource.Create(database.AppConnectionString));
             var app = builder.Build();
@@ -43,7 +51,7 @@ internal sealed class TrialScreenHost : IAsyncDisposable
             ScreenAssets.Map(app);
             TrialRoutes.Map(app);
             await app.StartAsync(cancellationToken);
-            return new TrialScreenHost(database, app);
+            return new TrialScreenHost(database, app, log);
         }
         catch
         {

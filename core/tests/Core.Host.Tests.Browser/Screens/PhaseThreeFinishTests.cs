@@ -25,7 +25,7 @@ public sealed partial class PhaseThreeFinishTests(BrowserFixture browser, PhaseT
 
     [Theory]
     [MemberData(nameof(HeaderCases))]
-    public async Task TheHeaderTakesAtMostAFifthOfThePhoneHeightOnEveryScreen(string route, bool noticed)
+    public async Task TheHeaderTakesAtMost15PercentOfThePhoneHeightOnEveryScreen(string route, bool noticed)
     {
         await using var tab = await OpenAsync(route, noticed, PhoneWidth, PhoneHeight);
 
@@ -35,7 +35,7 @@ public sealed partial class PhaseThreeFinishTests(BrowserFixture browser, PhaseT
     }
 
     [Fact]
-    public async Task TheHeaderOfTheEntryWithoutSessionTakesAtMostAFifthOfThePhoneHeight()
+    public async Task TheHeaderOfTheEntryWithoutSessionTakesAtMost15PercentOfThePhoneHeight()
     {
         await using var tab = await browser.OpenAtAsync(phase.Host.Address, "/entrada");
         await tab.Page.SetViewportSizeAsync(PhoneWidth, PhoneHeight);

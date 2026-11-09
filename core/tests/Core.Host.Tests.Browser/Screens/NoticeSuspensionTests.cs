@@ -22,9 +22,11 @@ public sealed partial class NoticeSuspensionTests(BrowserFixture browser, Broken
     {
         await using var tab = await OpenDomainsAsync(browser, broken.Host, broken.Host.Administrator);
 
-        var warning = tab.Page.Locator("[role=alert].notice--error");
+        var warning = tab.Page.Locator(".notice--info");
 
         await Expect(warning).ToHaveCountAsync(1);
+        await Expect(warning.Locator(".notice__kind")).ToHaveTextAsync("Aviso:");
+        await Expect(tab.Page.Locator(".notice--error, [role=alert]")).ToHaveCountAsync(0);
         await Expect(warning).ToContainTextAsync(SuspendedBanner);
         Assert.Equal(NoticeScreenHost.Domains, await tab.Page.Locator("[aria-labelledby=dominios-titulo] tbody th[scope=row]").AllInnerTextsAsync());
         await Expect(tab.Page.Locator("main form, main input, main textarea, main select, main button")).ToHaveCountAsync(0);
@@ -35,7 +37,7 @@ public sealed partial class NoticeSuspensionTests(BrowserFixture browser, Broken
     {
         await using var tab = await OpenDomainsAsync(browser, broken.Host, broken.Host.Administrator);
 
-        var text = await tab.Page.Locator("[role=alert].notice--error").InnerTextAsync();
+        var text = await tab.Page.Locator(".notice--info").InnerTextAsync();
 
         await Expect(tab.Page.Locator(".notice a")).ToHaveCountAsync(0);
         Assert.DoesNotMatch(Detail(), text);

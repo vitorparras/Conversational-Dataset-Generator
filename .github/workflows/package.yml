@@ -20,9 +20,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
-        with:
-          global-json-file: global.json
+      - uses: ./.github/actions/setup-dotnet
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
@@ -31,7 +29,7 @@ jobs:
       - name: Publicar cada alvo com restauração travada
         run: |
           for target in linux-x64 win-x64; do
-            dotnet restore core/src/Core.Host/Core.Host.csproj --locked-mode -p:RuntimeIdentifier=$target
+            python3 tools/verify-code/retry.py -- dotnet restore core/src/Core.Host/Core.Host.csproj --locked-mode -p:RuntimeIdentifier=$target
             dotnet publish core/src/Core.Host/Core.Host.csproj --no-restore --configuration Release -p:ContinuousIntegrationBuild=true --runtime $target --output publish/$target
           done
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -66,7 +64,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Instalar uv na versão fixada
-        run: pip install -r tools/verify-code/service-requirements.txt
+        run: python3 tools/verify-code/retry.py -- pip install -r tools/verify-code/service-requirements.txt
       - name: Montar a pasta do serviço neste sistema, com o manifesto e a origem
         run: python tools/build-service/service_folder.py --system ${{ matrix.target }} --model pt_core_news_md --output publish
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

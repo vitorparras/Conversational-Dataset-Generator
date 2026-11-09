@@ -68,7 +68,7 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
     gap: var(--space-3) var(--space-5);
     padding: var(--space-3) var(--space-5);
     border-bottom: var(--line) solid var(--edge-soft);
-    background: var(--glass);
+    background: var(--glass-header);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
     backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
 }

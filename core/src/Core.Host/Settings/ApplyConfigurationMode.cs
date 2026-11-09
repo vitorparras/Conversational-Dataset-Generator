@@ -76,8 +76,9 @@ internal static class ApplyConfigurationMode
         var owed = 0;
         foreach (var change in await new ApprovedChanges(dataSource).PendingAsync(CancellationToken.None).ConfigureAwait(false))
         {
+            var already = file.Holds(change.Key, change.Value);
             var refusal = applier.Apply(change, await facts.ReadAsync(change, CancellationToken.None).ConfigureAwait(false), file.Values());
-            owed += refusal == ApplicationRefusal.None ? 1 : 0;
+            owed += refusal == ApplicationRefusal.None && !already ? 1 : 0;
         }
 
         return owed;
@@ -92,7 +93,7 @@ internal static class ApplyConfigurationMode
             return ExitCode.Success;
         }
 
-        await error.WriteLineAsync($"{Argument}: {applied} alteração(ões) no arquivo, mas o núcleo NÃO reiniciou; a próxima execução tenta de novo").ConfigureAwait(false);
+        await error.WriteLineAsync($"{Argument}: {applied} alteração(ões) no arquivo, mas o núcleo NÃO reiniciou; reinicie-o pelo gerenciador de serviço (operacao/049)").ConfigureAwait(false);
         return ExitCode.ApplierFailed;
     }
 }

@@ -40,11 +40,37 @@ public sealed class CredentialPrivilegesTests : IClassFixture<PeopleDatabase>
         Assert.Equal(PostgresErrorCodes.InsufficientPrivilege, refused.SqlState);
     }
 
+    [DatabaseFact]
+    public async Task Ca7ARoleThatWritesOnlyInTheContentSchemaIsFound()
+    {
+        var scratch = await database.ScratchAsync();
+        await using var role = await scratch.CreateBareRoleAsync();
+        await GrantReadAsync(scratch.OwnerConnectionString, role.Name);
+        await GrantWriteInContentAsync(scratch.OwnerConnectionString, role.Name);
+        await using var source = NpgsqlDataSource.Create(role.ConnectionString);
+
+        Assert.True(await CredentialPrivileges.CanWriteAsync(source, TestContext.Current.CancellationToken));
+    }
+
     private static async Task GrantReadAsync(string ownerConnectionString, string role)
     {
         await using var connection = await Sql.OpenAsync(ownerConnectionString);
         // nosemgrep: sql-concatenation-csharp interpolates the name of a role the fixture made itself, never input.
         await using var command = new NpgsqlCommand($"GRANT SELECT ON ALL TABLES IN SCHEMA public TO {role}", connection);
+        _ = await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+    }
+
+    private static async Task GrantWriteInContentAsync(string ownerConnectionString, string role)
+    {
+        await using var connection = await Sql.OpenAsync(ownerConnectionString);
+        // nosemgrep: sql-concatenation-csharp interpolates the name of a role the fixture made itself, never input.
+        await using var command = new NpgsqlCommand(
+            $"""
+            CREATE TABLE IF NOT EXISTS content.zqx_credential_6340 (id integer);
+            GRANT USAGE ON SCHEMA content TO {role};
+            GRANT INSERT ON content.zqx_credential_6340 TO {role}
+            """,
+            connection);
         _ = await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
     }
 

@@ -1,4 +1,4 @@
-<fieldset class="choices" aria-describedby="@DescribedBy">
+<fieldset class="@(Inline ? "choices choices--inline" : "choices")" aria-describedby="@DescribedBy">
     <legend class="field__label">
         @Legend
         @if (Required)
@@ -43,6 +43,10 @@
 
     [Parameter]
     public bool Required { get; set; }
+
+    /// <summary>Whether the options stand in a row, as a segmented group, for a filter of a few short options.</summary>
+    [Parameter]
+    public bool Inline { get; set; }
 
     private string ErrorId => $"{Name}-erro";
 

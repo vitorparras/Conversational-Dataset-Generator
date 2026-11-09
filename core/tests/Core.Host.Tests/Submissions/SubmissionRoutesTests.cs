@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using Core.Host.Endpoints;
 using Core.Host.Submissions;
+using Core.Persistence.Domains;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Fixtures;
 using Microsoft.AspNetCore.Builder;
@@ -143,7 +144,7 @@ public sealed class SubmissionRoutesTests
         await using var other = await StartAsync(world, cancellationToken, granted: SubmissionWorld.OtherDomain);
         var otherIdentifier = other.SeedSession();
 
-        using var accepted = await granted.GetAsync($"{Batches}?state=accepted", identifier, encrypted: true, cancellationToken);
+        using var opened = await granted.GetAsync($"{Batches}?state=open", identifier, encrypted: true, cancellationToken);
         using var rejected = await granted.GetAsync($"{Batches}?state=rejected", identifier, encrypted: true, cancellationToken);
         using var hidden = await other.GetAsync(Batches, otherIdentifier, encrypted: true, cancellationToken);
         using var detail = await granted.GetAsync($"{Batches}/1", identifier, encrypted: true, cancellationToken);
@@ -153,7 +154,7 @@ public sealed class SubmissionRoutesTests
             (HttpStatusCode.Created, 1, 0, 0, HttpStatusCode.OK, HttpStatusCode.NotFound),
             (
                 created.StatusCode,
-                await CountAsync(accepted, cancellationToken),
+                await CountAsync(opened, cancellationToken),
                 await CountAsync(rejected, cancellationToken),
                 await CountAsync(hidden, cancellationToken),
                 detail.StatusCode,
@@ -184,7 +185,9 @@ public sealed class SubmissionRoutesTests
         var cancellationToken = TestContext.Current.CancellationToken;
         await using var world = await SubmissionWorld.CreateAsync();
         await using var host = await SessionedHost.StartAsync(
-            services => services.AddSingleton(SubmissionServiceHolder.Of(world.Service, 1_000_000)).AddSingleton<IGrantedDomains>(new GrantedTo(SubmissionWorld.Domain)),
+            services => services.AddSingleton(SubmissionServiceHolder.Of(world.Service, 1_000_000))
+                .AddSingleton<DomainGrants>(new GrantsByName(SubmissionWorld.NameOf(SubmissionWorld.Domain)))
+                .AddSingleton(new DomainListing(world.DataSource)),
             routes =>
             {
                 ScreenGate.Use((IApplicationBuilder)routes);
@@ -207,6 +210,26 @@ public sealed class SubmissionRoutesTests
         using var response = await host.SendAsync(Form(Fields(SubmissionWorld.Origin)), host.SeedSession(), encrypted: true, cancellationToken);
 
         Assert.Equal((HttpStatusCode.ServiceUnavailable, 0L), (response.StatusCode, await world.BatchCountAsync()));
+    }
+
+    [DatabaseTheory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public async Task WithoutTheGrantsOrWithoutTheListingNoDomainIsGrantedAndEveryBatchAndEverySubmissionIsOneThatDoesNotExist(bool withGrants, bool withListing)
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var world = await SubmissionWorld.CreateAsync();
+        var accepted = await world.SubmitAsync(SubmissionWorld.Request());
+        await using var host = await SessionedHost.StartAsync(services => Registered(services, world, withGrants, withListing), SubmissionsEndpoint.Map, cancellationToken);
+        var identifier = host.SeedSession();
+
+        using var listed = await host.GetAsync(Batches, identifier, encrypted: true, cancellationToken);
+        using var detail = await host.GetAsync($"{Batches}/{accepted.Batch}", identifier, encrypted: true, cancellationToken);
+        using var submitted = await host.SendAsync(Form(Fields(SubmissionWorld.Origin)), identifier, encrypted: true, cancellationToken);
+
+        Assert.Equal(
+            (HttpStatusCode.OK, 0, HttpStatusCode.NotFound, HttpStatusCode.NotFound, 1L),
+            (listed.StatusCode, await CountAsync(listed, cancellationToken), detail.StatusCode, submitted.StatusCode, await world.BatchCountAsync()));
     }
 
     [DatabaseFact]
@@ -243,6 +266,17 @@ public sealed class SubmissionRoutesTests
         Assert.Equal((HttpStatusCode.BadRequest, 0L), (response.StatusCode, await world.BatchCountAsync()));
     }
 
+    private static IServiceCollection Registered(IServiceCollection services, SubmissionWorld world, bool withGrants, bool withListing)
+    {
+        _ = services.AddSingleton(SubmissionServiceHolder.Of(world.Service, 1_000_000)).AddSingleton(new BatchRegister(world.DataSource));
+        return withGrants
+            ? Listed(services.AddSingleton<DomainGrants>(new GrantsByName(SubmissionWorld.NameOf(SubmissionWorld.Domain))), world, withListing)
+            : Listed(services, world, withListing);
+    }
+
+    private static IServiceCollection Listed(IServiceCollection services, SubmissionWorld world, bool withListing) =>
+        withListing ? services.AddSingleton(new DomainListing(world.DataSource)) : services;
+
     private static SubmissionServiceHolder NoKey() => new(1_000_000, _ => Task.FromResult<SubmissionServiceHolder.Loaded?>(null));
 
     private static Task<SessionedHost> StartAsync(
@@ -251,7 +285,8 @@ public sealed class SubmissionRoutesTests
             services => services.AddSingleton(holder ?? SubmissionServiceHolder.Of(world.Service, maxBytes))
                 .AddSingleton(new BatchRegister(world.DataSource))
                 .AddSingleton(new IntakeDoor(world.DataSource))
-                .AddSingleton<IGrantedDomains>(new GrantedTo(granted)),
+                .AddSingleton<DomainGrants>(new GrantsByName(SubmissionWorld.NameOf(granted)))
+                .AddSingleton(new DomainListing(world.DataSource)),
             SubmissionsEndpoint.Map,
             cancellationToken);
 

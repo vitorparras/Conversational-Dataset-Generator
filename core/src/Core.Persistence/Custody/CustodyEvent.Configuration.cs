@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Core.Persistence.Custody;
 
 public sealed partial record CustodyEvent
@@ -9,5 +11,21 @@ public sealed partial record CustodyEvent
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(changeId);
         return new CustodyEvent(CustodyAuthor.Person(personId), new CustodyItem(CustodyItemKind.ConfigurationChange, changeId), CustodyStep.ConfigurationSubmitted, CustodyReason.AdministrativeAct);
+    }
+
+    /// <summary>The event of the decision on a change of configuration, by a person other than the one who submitted; the item is the submission and the reference the sequence of its event.</summary>
+    /// <param name="personId">The person who decided.</param>
+    /// <param name="changeId">The submission decided.</param>
+    /// <param name="submissionSequence">The sequence of the event of the submission.</param>
+    /// <param name="approved">Whether the change was approved; refused otherwise.</param>
+    public static CustodyEvent ConfigurationDecided(long personId, long changeId, long submissionSequence, bool approved)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(changeId);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(submissionSequence);
+        var step = approved ? CustodyStep.ConfigurationApproved : CustodyStep.ConfigurationRefused;
+        return new CustodyEvent(CustodyAuthor.Person(personId), new CustodyItem(CustodyItemKind.ConfigurationChange, changeId), step, CustodyReason.AdministrativeAct)
+        {
+            Reference = submissionSequence.ToString(CultureInfo.InvariantCulture),
+        };
     }
 }

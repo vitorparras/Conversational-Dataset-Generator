@@ -6,6 +6,7 @@ using System.Text.Json;
 using Core.Host.Endpoints;
 using Core.Host.Submissions;
 using Core.Ingestion;
+using Core.Persistence.Domains;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Fixtures;
 using Core.Platform.Keys;
@@ -159,7 +160,8 @@ public sealed class SubmissionPathTests
             services => services.AddSingleton(startup)
                 .AddSingleton(provider => SubmissionParts.BatchesOf(provider, Values))
                 .AddSingleton(provider => SubmissionParts.ServicesOf(provider, Values))
-                .AddSingleton<IGrantedDomains>(new GrantedTo(SubmissionWorld.Domain)),
+                .AddSingleton<DomainGrants>(new GrantsByName(SubmissionWorld.NameOf(SubmissionWorld.Domain)))
+                .AddSingleton(new DomainListing(startup.GetRequiredService<NpgsqlDataSource>())),
             SubmissionsEndpoint.Map,
             cancellationToken);
 

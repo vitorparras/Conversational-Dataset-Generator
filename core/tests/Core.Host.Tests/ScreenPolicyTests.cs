@@ -59,6 +59,28 @@ public sealed class ScreenPolicyTests
         Assert.Equal(["Primeira:/zqx-primeira", "Segunda:/zqx-segunda"], menu.Select(entry => $"{entry.Caption}:{entry.Path}"));
     }
 
+    [Theory]
+    [InlineData("Curadoria do acervo", true)]
+    [InlineData("Anotação", false)]
+    [InlineData("Auditoria", false)]
+    [InlineData("Administração técnica", false)]
+    public void AScreenThatAnswersItsFunctionWithNoGrantOpensToThatFunctionAloneAndTheMenuStillWantsADomain(string function, bool opened)
+    {
+        var access = ScreenAccess.OfFunction("Lotes", 1, PersonFunctions.Curation);
+        var reach = new ScreenReach(function, DomainGrants.None);
+
+        Assert.Equal((opened, false), (reach.Opens(access), reach.Reaches(access)));
+        Assert.Equal(opened, new ScreenReach(function, Enumerable.Repeat("zqx-dominio", 1)).Reaches(access));
+    }
+
+    [Fact]
+    public void AScreenThatWantsADomainStillDoesNotOpenWithNoneGranted()
+    {
+        var reach = new ScreenReach(PersonFunctions.Curation, DomainGrants.None);
+
+        Assert.Equal((false, false), (reach.Opens(ScreenAccess.Of("Tela", 1, PersonFunctions.Curation)), ScreenReach.Nothing.Opens(ScreenAccess.OfFunction("Lotes", 1, PersonFunctions.Curation))));
+    }
+
     private static DefaultHttpContext ContextWith(params Endpoint[] endpoints)
     {
         var services = new ServiceCollection().AddSingleton<EndpointDataSource>(new DefaultEndpointDataSource(endpoints)).BuildServiceProvider();

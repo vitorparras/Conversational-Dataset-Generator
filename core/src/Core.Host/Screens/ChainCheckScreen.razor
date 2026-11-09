@@ -4,7 +4,7 @@
 <p class="lead">Confira o que a verificação faz antes de pedir. Ela não se desfaz: o resultado fica no histórico.</p>
 @if (WaitSeconds is { } wait)
 {
-    <Notice Kind="Notice.Tone.Error">Você pediu uma verificação há pouco. Espere @wait segundos e peça de novo.</Notice>
+    <Notice Kind="Notice.Tone.Pending">Você pediu uma verificação há pouco. Espere @wait segundos e peça de novo.</Notice>
 }
 @if (Unfinished)
 {

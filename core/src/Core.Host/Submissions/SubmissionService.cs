@@ -142,12 +142,12 @@ internal sealed class SubmissionService
         var batch = opened.BatchId!.Value;
         if (reason is null)
         {
-            return Answer(received, batch, (null, warning), origin.State);
+            return Answer(received, batch, (null, warning), opening.Origin!.State);
         }
 
         var closed = await batches.RejectAsync(new BatchClosing(request.DomainId, batch, CustodyAuthor.System), reason.Code, cancellationToken).ConfigureAwait(false);
         return closed.Outcome == BatchOutcome.Rejected
-            ? Answer(received, batch, (reason, warning), origin.State)
+            ? Answer(received, batch, (reason, warning), opening.Origin!.State)
             : new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = closed.Outcome, Batch = batch };
     }
 }

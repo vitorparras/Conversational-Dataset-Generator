@@ -1,6 +1,6 @@
--- PROVISIONAL NUMBER: the definitive one is taken when the pull request opens, after the decision on a change of configuration (0043, also provisional).
+-- PROVISIONAL NUMBER: the definitive one is taken when the pull request opens, after the decision on a change of configuration (0044).
 -- A change of configuration in force (issue 634, part 4; decision 0053): when the core starts with the value an approved change asked for, it writes one event, by the system, that points
--- at the event of the approval. Only the checks change, from the last ones the 0043 of the decision left (with origin_read): everything they list and every clause they fix stays, and the new step comes in beside it.
+-- at the event of the approval. Only the checks change, from the last ones the 0044 of the decision left (with origin_read): everything they list and every clause they fix stays, and the new step comes in beside it.
 ALTER TABLE public.custody_event
     DROP CONSTRAINT custody_event_step_listed,
     DROP CONSTRAINT custody_event_configuration_shape,

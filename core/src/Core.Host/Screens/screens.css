@@ -321,6 +321,7 @@ h1 + .lead { margin-top: 0; }
     .data-table--stacks tbody > tr > :nth-child(4)::before { content: var(--data-table-header-4); }
     .data-table--stacks tbody > tr > :nth-child(5)::before { content: var(--data-table-header-5); }
     .data-table--stacks tbody > tr > :nth-child(6)::before { content: var(--data-table-header-6); }
+    .data-table--stacks tbody > tr > .data-table__group::before { content: none; }
 }
 
 @media (forced-colors: active) {

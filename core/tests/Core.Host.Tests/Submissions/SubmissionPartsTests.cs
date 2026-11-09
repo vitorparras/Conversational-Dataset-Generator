@@ -106,6 +106,7 @@ public sealed class SubmissionPartsTests
     {
         await using var world = await SubmissionWorld.CreateAsync();
         await using var startup = new ServiceCollection().AddSingleton(world.DataSource).AddSingleton<IMasterKeySource>(new FixedKeySource(present: true)).BuildServiceProvider();
+        await world.Database.RunAsOwnerAsync("INSERT INTO public.derivation_label (label) VALUES ('texto-bruto/1/v1'), ('texto-bruto/2/v1')");
         await using var host = Hosted(startup);
         var holder = host.GetRequiredService<SubmissionServiceHolder>();
 

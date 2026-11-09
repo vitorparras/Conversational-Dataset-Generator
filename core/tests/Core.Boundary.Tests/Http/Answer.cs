@@ -20,6 +20,9 @@ internal static class Answer
     public static byte[] WithOccurrence(int start, int end) =>
         Body($$"""{"occurrences":[{{OccurrenceJson(start, end)}}],"model_version":"zqx-model-1"}""");
 
+    public static byte[] WithKind(string kind) =>
+        Body($$"""{"occurrences":[{"start":0,"end":1,"kind":"{{kind}}","part_of_speech":"PROPN","syntactic_role":"obl"}],"model_version":null}""");
+
     public static byte[] WithOccurrences(int firstStart, int firstEnd, int secondStart, int secondEnd) =>
         Body($$"""{"occurrences":[{{OccurrenceJson(firstStart, firstEnd)}},{{OccurrenceJson(secondStart, secondEnd)}}],"model_version":null}""");
 

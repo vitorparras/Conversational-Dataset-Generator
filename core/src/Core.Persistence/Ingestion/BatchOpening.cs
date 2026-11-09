@@ -12,14 +12,15 @@ public sealed record BatchOpening
     /// <param name="condition">The condition the material comes under, one the installation knows; null when the opening declares none, and the batch then takes the most restrictive one.</param>
     /// <param name="receipt">What the submission brought, kept with the batch; null for a batch that no submission opens.</param>
     /// <param name="origin">Where the submission says the material came from, sealed or declared unknown; null for a batch that no submission opens.</param>
-    public BatchOpening(int domainId, long authorId, string? condition = null, SubmissionReceipt? receipt = null, OriginDeclaration? origin = null)
+    /// <param name="rejectedFor">The motive (a name of lowercase letters, digits and underscores) when the batch is turned back as it opens, in the same transaction; null when it stays open.</param>
+    public BatchOpening(int domainId, long authorId, string? condition = null, SubmissionReceipt? receipt = null, OriginDeclaration? origin = null, string? rejectedFor = null)
     {
         if ((receipt is null) != (origin is null))
         {
             throw new ArgumentException("A batch that a submission opens has its receipt and its origin together, and one that none opens has neither.", nameof(receipt));
         }
 
-        (DomainId, AuthorId, Condition, Receipt, Origin) = (domainId, authorId, condition, receipt, origin);
+        (DomainId, AuthorId, Condition, Receipt, Origin, RejectedFor) = (domainId, authorId, condition, receipt, origin, rejectedFor);
     }
 
     /// <summary>The domain the batch belongs to.</summary>
@@ -36,4 +37,7 @@ public sealed record BatchOpening
 
     /// <summary>Where the submission says the material came from; null for a batch that no submission opens.</summary>
     public OriginDeclaration? Origin { get; }
+
+    /// <summary>The motive the batch is rejected with as it opens; null when it stays open.</summary>
+    public string? RejectedFor { get; }
 }

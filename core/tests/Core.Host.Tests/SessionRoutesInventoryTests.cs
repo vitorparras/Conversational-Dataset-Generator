@@ -39,6 +39,8 @@ public sealed class SessionRoutesInventoryTests
                 "POST /account/password",
                 "POST /analysis",
                 "POST /avisos/{id}/lido",
+                "POST /custodia/selo/confirmar",
+                "POST /custodia/selo/emitir",
                 "POST /custodia/verificar",
                 "POST /custody/seal/confirmation",
                 "POST /custody/verification",

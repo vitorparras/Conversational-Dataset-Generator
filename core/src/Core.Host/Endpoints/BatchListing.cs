@@ -19,14 +19,12 @@ internal static class BatchListing
     /// <summary>The rows of the page asked, whether any domain is granted, and whether a next page exists; one more batch than the page holds is read to know it.</summary>
     /// <param name="sources">The register, the listing of the domains and the registry of the people.</param>
     /// <param name="granted">The names of the domains granted to the one who entered.</param>
-    /// <param name="filter">The state and the period, as the address asks for them.</param>
-    /// <param name="page">The page, from one up to <see cref="LastPage"/>.</param>
+    /// <param name="filter">The state, the period and the page, as the address asks for them; the page runs from one up to <see cref="LastPage"/>.</param>
     /// <param name="cancellationToken">Cancels the reading.</param>
     internal static async Task<(List<BatchesScreen.Row> Rows, bool Granted, bool HasNext)> PageAsync(
-        (BatchRegister Register, DomainListing Listing, PersonRegistry People) sources,
+        (BatchRegister Register, DomainListing Listing, PersonRegistry Registry) sources,
         IEnumerable<string> granted,
-        (BatchState? State, DateTimeOffset? From, DateTimeOffset? Until) filter,
-        int page,
+        (BatchState? State, DateTimeOffset? From, DateTimeOffset? Until, int Page) filter,
         CancellationToken cancellationToken)
     {
         var rows = new List<BatchesScreen.Row>();
@@ -42,13 +40,13 @@ internal static class BatchListing
             State = filter.State,
             From = filter.From,
             Until = filter.Until,
-            Skip = (page - 1) * BatchesScreen.Size,
+            Skip = (filter.Page - 1) * BatchesScreen.Size,
             Take = BatchesScreen.Size + 1,
         };
         var found = await sources.Register.ListAsync(asked, cancellationToken).ConfigureAwait(false);
-        var names = await sources.People.NamesOfAsync(found.Select(entry => entry.SubmittedBy), cancellationToken).ConfigureAwait(false);
+        var names = await sources.Registry.NamesOfAsync(found.Select(entry => entry.SubmittedBy), cancellationToken).ConfigureAwait(false);
         rows.AddRange(found.Take(BatchesScreen.Size).Select(entry => RowOf(entry, domains[entry.DomainId], names)));
-        return (rows, true, found.Count > BatchesScreen.Size && page < LastPage);
+        return (rows, true, found.Count > BatchesScreen.Size && filter.Page < LastPage);
     }
 
     /// <summary>One batch as the list shows it: the domain and the person by name, a person the registry no longer has said as removed and never by the identifier.</summary>

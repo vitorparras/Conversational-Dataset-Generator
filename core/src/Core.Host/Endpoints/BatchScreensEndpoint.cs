@@ -33,7 +33,7 @@ internal static class BatchScreensEndpoint
         var (since, before, fromError, untilError) = BatchesScreen.PeriodOf(from, until);
         var page = Math.Clamp(int.TryParse(query[BatchesScreen.PageKey], NumberStyles.None, CultureInfo.InvariantCulture, out var asked) ? asked : 1, 1, BatchListing.LastPage);
         var granted = (context.Features.Get<ScreenReach>() ?? ScreenReach.Nothing).Granted;
-        var (rows, any, next) = await BatchListing.PageAsync((register, listing, staff.Registry), granted, (BatchesScreen.StateOf(state), since, before), page, context.RequestAborted);
+        var (rows, any, next) = await BatchListing.PageAsync((register, listing, staff.Registry), granted, (BatchesScreen.StateOf(state), since, before, page), context.RequestAborted);
         var screen = new Dictionary<string, object?>(StringComparer.Ordinal)
         {
             [nameof(BatchesScreen.Rows)] = rows,

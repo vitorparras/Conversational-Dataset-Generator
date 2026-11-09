@@ -58,6 +58,7 @@ public sealed class RestoreSource : IAsyncLifetime
             ["public.configuration_change"] = await OwnerRowsAsync("public.configuration_change", "id"),
             ["public.custody_event"] = await OwnerRowsAsync("public.custody_event", "sequence"),
             ["content.ingestion_batch"] = await ContentRowsAsync("content.ingestion_batch"),
+            ["content.batch_origin"] = await ContentRowsAsync("content.batch_origin"),
             ["content.item_text"] = await ContentRowsAsync("content.item_text"),
             ["content.reversal_map"] = await ContentRowsAsync("content.reversal_map"),
             ["content.item_emptied"] = await ContentRowsAsync("content.item_emptied"),

@@ -35,6 +35,9 @@ public sealed class BrowserFixture : IAsyncLifetime
         }
     }
 
+    /// <summary>The lines the shared host logged, as <c>category[event id]: message</c>.</summary>
+    internal IReadOnlyList<string> HostLines => (host ?? throw new InvalidOperationException("The host was not started.")).Log;
+
     /// <summary>A page, in a context of its own, already on the route given.</summary>
     internal Task<BrowserTab> OpenAsync(string route) =>
         OpenAtAsync((host ?? throw new InvalidOperationException("The host was not started.")).Address, route);

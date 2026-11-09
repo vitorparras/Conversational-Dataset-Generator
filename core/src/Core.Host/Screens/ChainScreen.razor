@@ -7,6 +7,9 @@
 @if (Unreadable)
 {
     <Notice Kind="Notice.Tone.Error">Não foi possível ler a cadeia agora. Tente de novo em instantes; se repetir, quem administra o servidor vê a causa no registro do sistema.</Notice>
+    <div class="actions">
+        <Button Id="cadeia-tentar-de-novo" Href="" Kind="Button.Look.Secondary">Tentar de novo</Button>
+    </div>
 }
 else
 {
@@ -65,14 +68,14 @@ else
     {
         <Panel Id="historico" Title="Histórico das verificações">
             <DataTable Id="historico-tabela" Caption="@($"As {History.Count} mais recentes, da mais nova para a mais antiga.")" Headers="Columns">
-                <tbody>
+                <tbody role="rowgroup">
                     @foreach (var past in History)
                     {
-                        <tr>
-                            <th scope="row"><Moment At="past.RecordedAt" /></th>
-                            <td>@(past.Passed ? Mark(StateMark.Tone.Good, "Passou") : Mark(StateMark.Tone.Bad, $"Quebrada no evento nº {past.FirstInconsistent}"))</td>
-                            <td>@past.EventsRead.ToString("N0", Format)</td>
-                            <td>@Asker(past)</td>
+                        <tr role="row">
+                            <th scope="row" role="rowheader"><Moment At="past.RecordedAt" /></th>
+                            <td role="cell">@(past.Passed ? Mark(StateMark.Tone.Good, "Passou") : Mark(StateMark.Tone.Bad, $"Quebrada no evento nº {past.FirstInconsistent}"))</td>
+                            <td role="cell">@past.EventsRead.ToString("N0", Format)</td>
+                            <td role="cell">@Asker(past)</td>
                         </tr>
                     }
                 </tbody>

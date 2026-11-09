@@ -3,8 +3,11 @@
 <time datetime="@At.ToString("O", CultureInfo.InvariantCulture)">@At.ToUniversalTime().ToString(Shown, CultureInfo.InvariantCulture)</time>
 
 @code {
-    /// <summary>One way to write an instant on every screen, in universal time and saying so, so that no reader takes it for their own.</summary>
-    private const string Shown = "dd/MM/yyyy 'às' HH:mm:ss 'UTC'";
+    /// <summary>
+    /// One way to write an instant on every screen, in universal time and saying so, so that no reader takes it for their own: to the minute, which is what a person reads,
+    /// with spaces that do not break, so that a narrow column never parts the hour from its day or from the zone (#734). The seconds stay in the machine value.
+    /// </summary>
+    private const string Shown = "dd/MM/yyyy' às 'HH:mm' UTC'";
 
     [Parameter, EditorRequired]
     public DateTimeOffset At { get; set; }

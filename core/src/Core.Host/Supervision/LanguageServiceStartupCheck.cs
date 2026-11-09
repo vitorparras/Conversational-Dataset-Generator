@@ -1,4 +1,4 @@
-        if (LanguageServiceConfiguration.StartupSeconds(timeoutSeconds) is not { } seconds)using System.Diagnostics;
+using System.Diagnostics;
 using Core.Platform.Startup;
 
 namespace Core.Host.Supervision;

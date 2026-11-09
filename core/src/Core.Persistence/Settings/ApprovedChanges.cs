@@ -16,6 +16,9 @@ public sealed class ApprovedChanges
         JOIN public.custody_event s ON s.item_kind = 'configuration_change' AND s.item_id = c.id AND s.step = 'configuration_submitted'
         JOIN public.custody_event a ON a.item_kind = 'configuration_change' AND a.item_id = c.id AND a.step = 'configuration_approved'
         WHERE NOT EXISTS (SELECT 1 FROM public.custody_event f WHERE f.item_kind = 'configuration_change' AND f.item_id = c.id AND f.step = 'configuration_in_force')
+          AND NOT EXISTS (SELECT 1 FROM public.configuration_change newer
+                          JOIN public.custody_event b ON b.item_kind = 'configuration_change' AND b.item_id = newer.id AND b.step = 'configuration_approved'
+                          WHERE newer.config_key = c.config_key AND b.sequence > a.sequence)
         ORDER BY a.sequence
         """;
 
@@ -29,7 +32,7 @@ public sealed class ApprovedChanges
         this.dataSource = dataSource;
     }
 
-    /// <summary>The approved changes that are not yet in force, in the order they were approved.</summary>
+    /// <summary>The approved changes that are not yet in force, in the order they were approved; one that a later approval of the same key has superseded is not among them.</summary>
     /// <param name="cancellationToken">Cancels the reading.</param>
     public async Task<IReadOnlyList<ApprovedChange>> PendingAsync(CancellationToken cancellationToken)
     {

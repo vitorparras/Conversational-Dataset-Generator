@@ -1,5 +1,4 @@
-using System.Diagnostics;
-using System.Globalization;
+        if (LanguageServiceConfiguration.StartupSeconds(timeoutSeconds) is not { } seconds)using System.Diagnostics;
 using Core.Platform.Startup;
 
 namespace Core.Host.Supervision;
@@ -24,7 +23,7 @@ internal sealed class LanguageServiceStartupCheck : IStartupCheck
     /// <inheritdoc />
     public async Task<CheckResult> RunAsync(CancellationToken cancellationToken)
     {
-        if (!int.TryParse(timeoutSeconds, NumberStyles.None, CultureInfo.InvariantCulture, out var seconds) || seconds <= 0)
+        if (LanguageServiceConfiguration.StartupSeconds(timeoutSeconds) is not { } seconds)
         {
             return CheckResult.Failed(
                 Name,

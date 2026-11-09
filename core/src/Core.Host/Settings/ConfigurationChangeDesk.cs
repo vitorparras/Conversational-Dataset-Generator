@@ -85,7 +85,6 @@ internal sealed class ConfigurationChangeDesk
             return new[] { new ConfigurationProblem(ConfigurationProblemKind.ValueNotAccepted, request.Key, request.Value, new[] { ShapeAccepted }.AsReadOnly()) }.AsReadOnly();
         }
 
-        var trial = ClosedConfiguration.Load(HostConfiguration.Schema(migrating: false, comparing: false), new TrialSource(inForce.Values, request.Key, request.Value));
-        return HostRefusals.OfService(trial);
+        return ConfigurationTrial.Problems(inForce.Values, request.Key, request.Value);
     }
 }

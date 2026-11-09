@@ -12,6 +12,7 @@ namespace Core.Persistence.Settings;
 /// </summary>
 public sealed class ConfigurationChanges
 {
+    /// <summary>The foreign key of the author, the only constraint of the table with this name: a person not registered.</summary>
     private const string AuthorConstraint = "configuration_change_author";
 
     private const string Insert =
@@ -61,7 +62,7 @@ public sealed class ConfigurationChanges
             {
                 change.Value = (long)(await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false))!;
             }
-            catch (PostgresException refused) when (refused.SqlState == PostgresErrorCodes.ForeignKeyViolation && refused.ConstraintName == AuthorConstraint)
+            catch (PostgresException refused) when (refused.ConstraintName == AuthorConstraint)
             {
                 return null;
             }

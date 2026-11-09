@@ -39,7 +39,7 @@ internal static class SubmissionAnswer
     /// <summary>The field as the form names it, which is the name the caller sent, not the one the service keeps.</summary>
     private static FieldShown Field(FieldProblem problem) => new(problem.Field switch { "declared_form" => "declaredForm", "source_format" => "sourceFormat", _ => problem.Field }, problem.Code);
 
-    private static IReadOnlyList<string> WarningsOf(string? warning) => warning is null ? Array.Empty<string>() : Enumerable.Repeat(warning, 1).ToArray();
+    private static IReadOnlyList<string> WarningsOf(string? warning) => warning is null ? [] : [warning];
 
     /// <summary>A domain the host does not know is a domain that does not exist; any other failure to record is the host's, not the request's.</summary>
     private static IResult NotRecorded(BatchOutcome? failure) =>

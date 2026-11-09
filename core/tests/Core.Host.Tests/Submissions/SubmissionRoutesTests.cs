@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net;
 using System.Text;
@@ -63,9 +64,7 @@ public sealed class SubmissionRoutesTests
         var cancellationToken = TestContext.Current.CancellationToken;
         await using var world = await SubmissionWorld.CreateAsync();
         await using var host = await StartAsync(world, cancellationToken);
-        using var form = new MultipartFormDataContent { { Text("conversation"), "declaredForm" } };
-
-        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(Submit, UriKind.Relative)) { Content = form };
+        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(Submit, UriKind.Relative)) { Content = OnlyTheForm() };
         using var response = await host.SendAsync(request, host.SeedSession(), encrypted: true, cancellationToken);
         var fields = await FieldsOfAsync(response, cancellationToken);
 
@@ -172,7 +171,7 @@ public sealed class SubmissionRoutesTests
         var fields = await FieldsOfAsync(response, cancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        Assert.Equal(new[] { "state:invalid", "from:invalid", "page:invalid" }, fields);
+        Assert.Equal(["state:invalid", "from:invalid", "page:invalid"], fields);
     }
 
     [DatabaseTheory]
@@ -212,19 +211,19 @@ public sealed class SubmissionRoutesTests
         ["originUnknown"] = originUnknown ? "true" : null,
     };
 
-    private static StringContent Text(string value) => new(value);
+    [SuppressMessage("Reliability", "CA2000", Justification = "The form takes the parts it is given and lets go of them with itself.")]
+    private static MultipartFormDataContent OnlyTheForm() => new() { { new StringContent("conversation"), "declaredForm" } };
 
-    private static ByteArrayContent Bytes(string value) => new(Encoding.UTF8.GetBytes(value));
-
+    [SuppressMessage("Reliability", "CA2000", Justification = "The form takes the parts it is given and lets go of them with itself, and the request lets go of the form.")]
     private static HttpRequestMessage Form(Dictionary<string, string?> fields)
     {
         var form = new MultipartFormDataContent();
         foreach (var field in fields.Where(field => field.Value is not null))
         {
-            form.Add(Text(field.Value!), field.Key);
+            form.Add(new StringContent(field.Value!), field.Key);
         }
 
-        form.Add(Bytes(SubmissionWorld.Conversation), "file", "conversa.json");
+        form.Add(new ByteArrayContent(Encoding.UTF8.GetBytes(SubmissionWorld.Conversation)), "file", "conversa.json");
         return new HttpRequestMessage(HttpMethod.Post, new Uri(Submit, UriKind.Relative)) { Content = form };
     }
 

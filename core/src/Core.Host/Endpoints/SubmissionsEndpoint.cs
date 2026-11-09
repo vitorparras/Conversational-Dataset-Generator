@@ -112,7 +112,7 @@ internal static class SubmissionsEndpoint
 
     /// <summary>The domains granted to the requester; none while no grant is recorded (#112), which makes every domain one that does not exist for them.</summary>
     private static async Task<IReadOnlyCollection<int>> GrantedAsync(IGrantedDomains? grants, long requester, CancellationToken cancellationToken) =>
-        grants is null ? Array.Empty<int>() : await grants.OfAsync(requester, cancellationToken);
+        grants is null ? [] : await grants.OfAsync(requester, cancellationToken);
 
     private static long? SessionOf(HttpContext context) => context.RequestServices.GetRequiredService<SessionStore>().Resolve(SessionCookie.Read(context.Request));
 

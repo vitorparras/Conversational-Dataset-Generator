@@ -45,7 +45,7 @@ internal sealed class SubmissionServiceHolder : IDisposable
     }
 
     /// <summary>Lets go of the key the service holds.</summary>
-    internal void Dispose()
+    void IDisposable.Dispose()
     {
         loaded?.Key?.Dispose();
         turn.Dispose();

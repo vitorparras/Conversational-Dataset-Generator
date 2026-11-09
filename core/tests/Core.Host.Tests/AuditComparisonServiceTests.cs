@@ -76,6 +76,29 @@ public sealed class AuditComparisonServiceTests
     }
 
     [Fact]
+    public async Task EveryWarningIsInTheLogBeforeTheStatusOfItsRoundIsPublished()
+    {
+        await using var run = await AuditComparisonRun.StartWithAsync(_ => new AuditCompared([NewOne], ["postgresql-a.csv"]));
+
+        var status = await run.NextRoundAsync();
+
+        Assert.Equal(AuditComparisonResult.Different, status.Result);
+        Assert.Equal(2, run.Log.Lines.Count(entry => entry.Level == LogLevel.Warning));
+        Assert.All(run.Log.StatusWhenWritten, published => Assert.Equal(AuditComparisonResult.Pending, published.Result));
+    }
+
+    [Fact]
+    public async Task TheFailureIsInTheLogBeforeTheStatusSaysFailed()
+    {
+        await using var run = await AuditComparisonRun.StartAsync(call => call == 0 ? throw new IOException("zqx") : []);
+
+        var status = await run.NextRoundAsync();
+
+        Assert.Equal(AuditComparisonResult.Failed, status.Result);
+        Assert.Equal(AuditComparisonResult.Pending, Assert.Single(run.Log.StatusWhenWritten).Result);
+    }
+
+    [Fact]
     public async Task CutFileWithANewDifferenceStillCountsTheDifferenceAndKeepsBothWarnings()
     {
         await using var run = await AuditComparisonRun.StartWithAsync(_ => new AuditCompared([NewOne], ["postgresql-a.csv"]));

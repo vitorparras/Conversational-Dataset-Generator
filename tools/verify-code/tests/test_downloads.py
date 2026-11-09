@@ -110,6 +110,26 @@ class WhatTellsTheNetworkTests(unittest.TestCase):
             with self.subTest(text=outcome.text):
                 self.assertEqual(downloads.failure_lines(outcome.text), ())
 
+    def test_an_answer_of_the_server_that_the_thing_is_not_there_is_not_the_network(self) -> None:
+        texts = (
+            "E: Failed to fetch http://deb.invalid/x.deb  404  Not Found [IP: 1.2.3.4 80]",
+            "curl: (22) The requested URL returned error: 404",
+            "ERROR: HTTP error 403 while getting https://files.pythonhosted.org/x.whl",
+            "error: failed to fetch https://x.invalid/z.tar.gz: status code 401 Unauthorized",
+        )
+        for text in texts:
+            with self.subTest(text=text):
+                self.assertEqual(downloads.failure_lines(text), ())
+
+    def test_a_429_and_a_gateway_with_a_failed_fetch_are_still_the_network(self) -> None:
+        texts = (
+            "E: Failed to fetch http://deb.invalid/x.deb  504  Gateway Time-out [IP: 1.2.3.4]",
+            "error: failed to fetch https://github.com/x: HTTP error 429 too many requests",
+        )
+        for text in texts:
+            with self.subTest(text=text):
+                self.assertTrue(downloads.failure_lines(text))
+
     def test_a_timeout_of_the_compiler_a_test_and_a_vulnerability_text_is_not_the_network(
         self,
     ) -> None:
@@ -303,7 +323,12 @@ class WorkflowSyncsTheServiceBeforeUvRunTests(unittest.TestCase):
     from GitHub) first, in a step that repeats, so a 504 of the model is never inside a test."""
 
     SYNC = "retry.py -- uv sync --locked --directory language-service"
-    NEEDS_ENVIRONMENT = ("test_real_service", "--step properties", "--step mutation")
+    NEEDS_ENVIRONMENT = (
+        "test_real_service",
+        "--step properties",
+        "--step mutation",
+        "--step ruler_proof",
+    )
 
     def test_every_job_that_runs_the_service_syncs_it_in_an_earlier_step(self) -> None:
         workflow = Path(__file__).resolve().parents[3] / ".github" / "workflows" / "verify-code.yml"
@@ -318,7 +343,7 @@ class WorkflowSyncsTheServiceBeforeUvRunTests(unittest.TestCase):
                 seen += 1
                 with self.subTest(job=name):
                     self.assertTrue(any(self.SYNC in run for run in runs[:index]))
-        self.assertEqual(seen, 3)
+        self.assertEqual(seen, 4)
 
 
 if __name__ == "__main__":

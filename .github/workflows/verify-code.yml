@@ -426,6 +426,8 @@ jobs:
           python-version: '3.12'
       - name: Instalar uv na versão fixada
         run: python3 tools/verify-code/retry.py -- pip install -r tools/verify-code/service-requirements.txt
+      - name: Sincronizar o ambiente do serviço (o modelo do spaCy vem do GitHub; só baixar repete, nunca o pytest)
+        run: python3 tools/verify-code/retry.py -- uv sync --locked --directory language-service
       - name: Semear numa cópia descartável uma propriedade falsa, um defeito em módulo crítico, código sem teste e testes fracos, e exigir a recusa de cada um
         run: python tools/verify-code/verify.py --step ruler_proof
 

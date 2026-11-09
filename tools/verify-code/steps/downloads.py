@@ -62,6 +62,13 @@ NETWORK = re.compile(
     re.IGNORECASE,
 )
 STATUS = re.compile(r"\b(429|50[0-4])\b")
+# An answer of the server that says the thing is not there or not allowed (404, 403, 401...) is the
+# command's own failure, even when the line also says "failed to fetch"; a 429 is the network's.
+CLIENT_ERROR = re.compile(
+    r"\b(?:http(?: error)?|status(?: code)?|returned(?: error)?|response)\W{0,3}4(?!29\b)\d\d\b"
+    r"|\b4(?!29\b)\d\d\s+(?:not found|forbidden|unauthorized|bad request|gone|client error)",
+    re.IGNORECASE,
+)
 STATUS_CONTEXT = re.compile(r"\bhttp\b|status|response|gateway|returned", re.IGNORECASE)
 CODE = re.compile(r"\b([45]\d\d)\b")
 CURL_CODE = re.compile(r"curl: \((\d+)\)")
@@ -127,6 +134,8 @@ def failure_lines(text: str) -> tuple[str, ...]:
 
 
 def _tells_network(line: str) -> bool:
+    if CLIENT_ERROR.search(line) and not STATUS.search(line):
+        return False
     return bool(NETWORK.search(line)) or bool(STATUS.search(line) and STATUS_CONTEXT.search(line))
 
 

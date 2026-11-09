@@ -71,8 +71,10 @@ public sealed class ChainCheckTests(BrowserFixture browser, IntactChainHostFixtu
         _ = await tab.Page.GotoAsync(Check);
         await tab.Page.GetByRole(AriaRole.Button, new() { Name = "Verificar agora" }).ClickAsync();
 
-        await Expect(tab.Page.Locator(".notice--error")).ToContainTextAsync("Você pediu uma verificação há pouco. Espere");
-        await Expect(tab.Page.Locator(".notice--error")).ToContainTextAsync("segundos e peça de novo.");
+        await Expect(tab.Page.Locator(".notice--pending")).ToContainTextAsync("Você pediu uma verificação há pouco. Espere");
+        await Expect(tab.Page.Locator(".notice--pending")).ToContainTextAsync("segundos e peça de novo.");
+        await Expect(tab.Page.Locator(".notice--pending .notice__kind")).ToHaveTextAsync("Pendente:");
+        await Expect(tab.Page.Locator(".notice--error")).ToHaveCountAsync(0);
         await Expect(tab.Page.GetByRole(AriaRole.Heading, new() { Name = "Verificar a cadeia agora", Level = 1 })).ToBeVisibleAsync();
         _ = await tab.Page.GotoAsync(Chain);
         await Expect(tab.Page.Locator(FirstRow)).ToHaveCountAsync(rows);
@@ -148,14 +150,14 @@ public sealed class ChainCheckTests(BrowserFixture browser, IntactChainHostFixtu
     {
         await using var tab = await SignedAtAsync(intact.Host, intact.Host.Administrator, Chain);
 
-        for (var stop = 0; stop < 5 && !await tab.Page.EvaluateAsync<bool>("() => document.activeElement.textContent.trim() === 'Pedir uma verificação agora'"); stop++)
+        for (var stop = 0; stop < HeaderStops.Count + 2 && !await tab.Page.EvaluateAsync<bool>("() => document.activeElement.textContent.trim() === 'Pedir uma verificação agora'"); stop++)
         {
             await tab.Page.Keyboard.PressAsync("Tab");
         }
 
         await tab.Page.Keyboard.PressAsync("Enter");
         await Expect(tab.Page.GetByRole(AriaRole.Heading, new() { Name = "Verificar a cadeia agora", Level = 1 })).ToBeVisibleAsync();
-        for (var stop = 0; stop < 6 && !await tab.Page.EvaluateAsync<bool>("() => document.activeElement.id === 'verificar-agora'"); stop++)
+        for (var stop = 0; stop < HeaderStops.Count + 3 && !await tab.Page.EvaluateAsync<bool>("() => document.activeElement.id === 'verificar-agora'"); stop++)
         {
             await tab.Page.Keyboard.PressAsync("Tab");
         }

@@ -118,17 +118,19 @@ public sealed partial class ChainScreenTests(BrowserFixture browser, IntactChain
     public async Task TheKeyboardAloneReachesTheHeaderTheMenuTheRequestAndTheHistoryInOrderWithTheFocusSeen()
     {
         await using var tab = await OpenAsync(intact.Host, intact.Host.Auditor);
+        var expected = HeaderStops.Then("Custódia", "Pedir uma verificação agora", HeaderStops.TableStop);
         var reached = new List<string>();
         var seen = new List<bool>();
 
-        for (var stop = 0; stop < 6; stop++)
+        for (var stop = 0; stop < expected.Length; stop++)
         {
             await tab.Page.Keyboard.PressAsync("Tab");
-            reached.Add(stop is 3 or 4 ? await tab.Page.EvaluateAsync<string>(FocusedText) : await tab.Page.EvaluateAsync<string>(FocusedId));
+            var byText = stop >= HeaderStops.Count && stop < expected.Length - 1;
+            reached.Add(await tab.Page.EvaluateAsync<string>(byText ? FocusedText : FocusedId));
             seen.Add(await tab.Page.EvaluateAsync<bool>(FocusIsSeen));
         }
 
-        Assert.Equal(["skip-link", "header__name", "sair", "Custódia", "Pedir uma verificação agora", "data-table"], reached);
+        Assert.Equal(expected, reached);
         Assert.DoesNotContain(false, seen);
     }
 

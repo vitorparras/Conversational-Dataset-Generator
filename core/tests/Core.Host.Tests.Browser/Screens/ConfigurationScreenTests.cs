@@ -105,14 +105,14 @@ public sealed class ConfigurationScreenTests(BrowserFixture browser, SystemHostF
         var reached = new List<string>();
         var seen = new List<bool>();
 
-        for (var stop = 0; stop < 6; stop++)
+        for (var stop = 0; stop < HeaderStops.Count + 3; stop++)
         {
             await tab.Page.Keyboard.PressAsync("Tab");
             reached.Add(await tab.Page.EvaluateAsync<string>(FocusedId));
             seen.Add(await tab.Page.EvaluateAsync<bool>(FocusIsSeen));
         }
 
-        Assert.Equal(["skip-link", "header__name", "sair", "nav__link", "nav__link", "data-table"], reached);
+        Assert.Equal(HeaderStops.Then("nav__link", "nav__link", HeaderStops.TableStop), reached);
         Assert.DoesNotContain(false, seen);
         await Expect(tab.Page.Locator("#chaves-tabela-legenda")).ToBeVisibleAsync();
     }

@@ -96,6 +96,18 @@ public sealed class MigrationModeTests
     }
 
     [Fact]
+    public async Task ModeDoesNotNeedTheConditionsOfOriginThatTheServingModeCannotStartWithout()
+    {
+        using var closed = new ClosedPort();
+        var installation = Migrating(Database($"127.0.0.1:{closed.Number}")) with { DeclaresIngestionConditions = false };
+
+        var exit = await HostProcess.RunToExitAsync(installation, HostProcess.StartupTimeout, TestContext.Current.CancellationToken);
+
+        Assert.Equal((int)ExitCode.MigrationNotConnected, exit.Code);
+        Assert.DoesNotContain("Ingestion:Conditions", exit.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task ModeDoesNotNeedTheSealSituationThatTheServingModeCannotStartWithout()
     {
         using var closed = new ClosedPort();

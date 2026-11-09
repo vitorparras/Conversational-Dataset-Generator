@@ -10,8 +10,20 @@
     {
         <p id="@HintId" class="field__hint">@Hint</p>
     }
-    <input id="@Id" class="field__input" name="@(Name ?? Id)" type="@Type" value="@Value" autocomplete="@Autocomplete" autofocus="@Autofocus"
-           aria-required="@(Required ? "true" : null)" aria-invalid="@(Error is null ? null : "true")" aria-describedby="@DescribedBy" />
+    @if (Options is null)
+    {
+        <input id="@Id" class="field__input" name="@(Name ?? Id)" type="@Type" value="@Value" autocomplete="@Autocomplete" autofocus="@Autofocus" inputmode="@InputMode"
+               aria-required="@(Required ? "true" : null)" aria-invalid="@(Error is null ? null : "true")" aria-describedby="@DescribedBy" />
+    }
+    else
+    {
+        <select id="@Id" class="field__input" name="@(Name ?? Id)" aria-required="@(Required ? "true" : null)" aria-invalid="@(Error is null ? null : "true")" aria-describedby="@DescribedBy">
+            @foreach (var option in Options)
+            {
+                <option value="@option.Value" selected="@(option.Value == (Value ?? ""))">@option.Caption</option>
+            }
+        </select>
+    }
     @if (Error is not null)
     {
         <p id="@ErrorId" class="field__error" role="alert">@Error</p>
@@ -19,6 +31,9 @@
 </div>
 
 @code {
+    /// <summary>One choice of a list: what the form sends and the words shown.</summary>
+    public sealed record Option(string Value, string Caption);
+
     /// <summary>The identifier of the input; the hint and the error take it with a suffix, so the region can focus the field by it.</summary>
     [Parameter, EditorRequired]
     public string Id { get; set; } = "";
@@ -32,6 +47,10 @@
 
     [Parameter]
     public string Type { get; set; } = "text";
+
+    /// <summary>The choices of a field that is a list to choose from, in the order shown; null for a field typed in. The value given back marks the choice made.</summary>
+    [Parameter]
+    public IReadOnlyList<Option>? Options { get; set; }
 
     /// <summary>What the field holds, given back as typed when the server refuses the form (decision 0051).</summary>
     [Parameter]
@@ -50,6 +69,10 @@
 
     [Parameter]
     public string? Autocomplete { get; set; }
+
+    /// <summary>The keyboard a phone offers, such as <c>numeric</c> for a number that is not a quantity.</summary>
+    [Parameter]
+    public string? InputMode { get; set; }
 
     /// <summary>Whether the field takes the focus when the page opens: only the first field of a page made for that one task.</summary>
     [Parameter]

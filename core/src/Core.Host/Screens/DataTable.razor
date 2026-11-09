@@ -1,7 +1,7 @@
-<div class="data-table" role="region" aria-labelledby="@CaptionId" tabindex="0">
-    <table>
+<div class="@Classes" role="region" aria-labelledby="@CaptionId" tabindex="0" style="@HeaderProperties">
+    <table role="@TableRole">
         <caption id="@CaptionId">@Caption</caption>
-        <thead><tr>@foreach (var header in Headers) { <th scope="col">@header</th> }</tr></thead>
+        <thead role="@GroupRole"><tr role="@RowRole">@foreach (var header in Headers) { <th scope="col" role="@HeaderRole">@header</th> }</tr></thead>
         @ChildContent
     </table>
 </div>
@@ -22,5 +22,32 @@
     [Parameter, EditorRequired]
     public RenderFragment? ChildContent { get; set; }
 
+    /// <summary>
+    /// Whether, in a box narrower than the columns need, each row becomes a block with each cell under the header of its column, instead of the table scrolling sideways,
+    /// so that no column is ever out of sight on a phone (#734). Every table of the screens stacks; up to six columns.
+    /// The table written out as such for a reader of screens (see the roles below): the bodies, rows and cells it holds must carry <c>rowgroup</c>, <c>row</c>, <c>rowheader</c> and <c>cell</c> too.
+    /// </summary>
+    [Parameter]
+    public bool Stacks { get; set; } = true;
+
     private string CaptionId => $"{Id}-legenda";
+
+    /// <summary>
+    /// The roles of the table, written out when it stacks: in a narrow box the style gives the table, the rows and the cells <c>display: block</c>, and a reader of screens drops the semantics of a table whose
+    /// elements are not displayed as one. With the roles written, the table stays a table, with its rows and the header of each column. The rows and cells the table holds say the same in their own markup.
+    /// </summary>
+    private string? TableRole => Stacks ? "table" : null;
+
+    private string? GroupRole => Stacks ? "rowgroup" : null;
+
+    private string? RowRole => Stacks ? "row" : null;
+
+    private string? HeaderRole => Stacks ? "columnheader" : null;
+
+    private string Classes => Stacks ? "data-table data-table--stacks" : "data-table";
+
+    /// <summary>The headers as the custom properties the style writes over each cell of a stacked row; nothing when the table does not stack.</summary>
+    private string? HeaderProperties => Stacks ? string.Join(' ', Headers.Select((header, column) => $"--data-table-header-{column + 1}: \"{Quoted(header)}\";")) : null;
+
+    private static string Quoted(string header) => header.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal);
 }

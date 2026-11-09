@@ -12,15 +12,21 @@
     <DataTable Id="chaves-tabela" Caption="@($"{Entries.Count} chaves, uma por linha, agrupadas por seção.")" Headers="Columns">
         @foreach (var section in Entries.GroupBy(entry => entry.Key.Split(':')[0]))
         {
-            <tbody>
-                <tr><th class="data-table__group" colspan="@Columns.Length" scope="rowgroup">@section.Key</th></tr>
+            <tbody role="rowgroup">
+                <tr role="row"><th role="rowheader" class="data-table__group" colspan="@Columns.Length" scope="rowgroup">@section.Key</th></tr>
                 @foreach (var entry in section)
                 {
-                    <tr>
-                        <th scope="row"><code>@entry.Key</code></th>
-                        <td>@Value(entry.Value)</td>
-                        <td>@Origin(entry.Origin)</td>
-                        <td>No servidor</td>
+                    <tr role="row">
+                        <th scope="row" role="rowheader"><code>@entry.Key</code></th>
+                        <td role="cell">
+                            @Value(entry.Value)
+                            @if (entry.Mark is { } mark)
+                            {
+                                <StateMark>@mark</StateMark>
+                            }
+                        </td>
+                        <td role="cell">@Origin(entry.Origin)</td>
+                        <td role="cell">No servidor</td>
                     </tr>
                 }
             </tbody>

@@ -1,4 +1,10 @@
+@using Core.Host.Endpoints
 <h1>Início</h1>
+
+@if (Frame.Unread > 0)
+{
+    <Notice>Você tem @Frame.Unread @(Frame.Unread == 1 ? "aviso não lido" : "avisos não lidos"). <a href="@ScreenPaths.Notices">Ver os avisos</a></Notice>
+}
 
 @if (Frame.Menu.Count == 0)
 {

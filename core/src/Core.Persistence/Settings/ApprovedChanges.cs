@@ -81,18 +81,23 @@ public sealed class ApprovedChanges
     /// <param name="cancellationToken">Cancels the reading.</param>
     public async Task<IReadOnlyList<RefusedChange>> RefusedAsync(CancellationToken cancellationToken)
     {
-        var found = new List<RefusedChange>();
         var command = dataSource.CreateCommand(Refused);
         await using (command.ConfigureAwait(false))
         {
             var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             await using (reader.ConfigureAwait(false))
             {
-                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-                {
-                    found.Add(ReadRefused(reader));
-                }
+                return await AllRefusedAsync(reader, cancellationToken).ConfigureAwait(false);
             }
+        }
+    }
+
+    private static async Task<IReadOnlyList<RefusedChange>> AllRefusedAsync(NpgsqlDataReader reader, CancellationToken cancellationToken)
+    {
+        var found = new List<RefusedChange>();
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            found.Add(ReadRefused(reader));
         }
 
         return found;

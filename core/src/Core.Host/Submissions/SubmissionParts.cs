@@ -39,7 +39,7 @@ internal static class SubmissionParts
             ? new SubmissionServiceHolder(AdmissionConfiguration.MaxBytes(values), token => LoadAsync(startup, source, provider.GetRequiredService<IngestionBatches>(), values, token))
             : null!;
 
-    /// <summary>The service over the key a reading holds, or over none when it failed: it then registers and turns back; the gate, the conference, the intake and the register are built here.</summary>
+    /// <summary>The service over the key a reading holds, or over none when it failed: it then registers and turns back; the intake and the register are built here.</summary>
     private static SubmissionService ServiceOf(NpgsqlDataSource source, MasterKeyReading reading, SubmissionSettings settings)
     {
         var sealing = reading.Failure is null ? new ProtectedContent(reading.Labels, CompositionRoot.KeysOf(reading), settings.Registered, settings.Revoked) : null;

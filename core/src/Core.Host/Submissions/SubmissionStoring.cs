@@ -63,7 +63,7 @@ internal static class SubmissionStoring
         }
     }
 
-    /// <summary>Writes the items of a file that was not turned back and accepts the batch; when an item cannot be written, or the batch cannot be accepted, rejects it with no item and says so.</summary>
+    /// <summary>Writes the items of a file that was not turned back and accepts the batch; when that fails, rejects it with no item and says so.</summary>
     /// <param name="batches">Accepts and rejects the batch.</param>
     /// <param name="writer">Writes the items.</param>
     /// <param name="batch">The domain and the batch, open.</param>

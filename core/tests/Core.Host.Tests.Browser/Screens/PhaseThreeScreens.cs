@@ -35,10 +35,11 @@ internal static class PhaseThreeScreens
     /// <summary>The height of the header, and of the window, in pixels.</summary>
     public const string HeaderHeight = "() => document.querySelector('header').getBoundingClientRect().height";
 
-    /// <summary>Where the focus is: its top and bottom, the bottom of the header, and whether it is inside the header; nothing when the focus left the page.</summary>
+    /// <summary>Where the focus is: its top and bottom, the bottom of the header, and whether it is seen (inside the header, or what is on top at its centre is itself or not the header); nothing when the focus left the page.</summary>
     public const string FocusAgainstHeader =
         "() => { const e = document.activeElement; if (e === document.body) { return null; } const h = document.querySelector('header').getBoundingClientRect();"
-        + " const r = e.getBoundingClientRect(); return [r.top, r.bottom, h.bottom, e.closest('header') ? 1 : 0]; }";
+        + " const r = e.getBoundingClientRect(); const t = document.elementFromPoint((r.left + r.right) / 2, (r.top + r.bottom) / 2);"
+        + " const seen = e.closest('header') || !t || e.contains(t) || !t.closest('header'); return [r.top, r.bottom, h.bottom, seen ? 1 : 0]; }";
 
     /// <summary>The name of whatever has the focus, for the message of a failure.</summary>
     public const string FocusedName = "() => (document.activeElement.id || document.activeElement.className || document.activeElement.tagName)";

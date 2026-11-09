@@ -43,8 +43,8 @@ internal sealed class TrialScreenHost : IAsyncDisposable
             _ = await database.MigrateAsync(EmbeddedMigrations.Load());
             var log = new HostLog();
             var builder = CompositionRoot.ClosedBuilder("http://127.0.0.1:0");
-            _ = builder.Services.AddLogging(logging => logging.AddProvider(log));
             CompositionRoot.Compose(builder, ClosedConfiguration.Load(new ConfigurationSchema([HostConfiguration.Section])).View, fileLog: null);
+            _ = builder.Logging.AddProvider(log);
             _ = builder.Services.AddSingleton(_ => NpgsqlDataSource.Create(database.AppConnectionString));
             var app = builder.Build();
             ScreenFailure.Use(app);

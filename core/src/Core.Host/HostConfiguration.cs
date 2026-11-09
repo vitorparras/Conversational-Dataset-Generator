@@ -69,6 +69,7 @@ internal static class HostConfiguration
                 migrating ? AdmissionConfiguration.SectionWhenMigrating : AdmissionConfiguration.Section,
                 migrating ? VerificationConfiguration.SectionWhenMigrating : VerificationConfiguration.Section,
                 migrating ? SealConfiguration.SectionWhenMigrating : SealConfiguration.Section,
+                MailConfiguration.Section,
                 AuditSection(migrating, comparing),
                 LanguageServiceConfiguration.Section,
                 RecognizerConfiguration.Section,

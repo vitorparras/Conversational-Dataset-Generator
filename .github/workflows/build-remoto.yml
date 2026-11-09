@@ -52,7 +52,7 @@ jobs:
           shown() { if [ "$architecture" = skipped ]; then echo "build=$build format=$format"; else echo "build=$build format=$format architecture=$architecture"; fi; }
           : > "$RUNNER_TEMP/architecture.log"
           if [ "$ARCHITECTURE" = true ]; then
-            dotnet test core/tests/Core.Tests.Architecture -c Release -m:2 -nodeReuse:false -p:UseSharedCompilation=false -nologo > "$RUNNER_TEMP/architecture.log" 2>&1
+            dotnet test --project core/tests/Core.Tests.Architecture/Core.Tests.Architecture.csproj -c Release --no-build > "$RUNNER_TEMP/architecture.log" 2>&1
             architecture=$?
           fi
           errors() {
@@ -74,4 +74,5 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           shown
           for part in build format architecture; do errors "$RUNNER_TEMP/$part.log"; done
+          if [ "$architecture" != skipped ] && [ "$architecture" != 0 ]; then tail -n 25 "$RUNNER_TEMP/architecture.log"; fi
           [ "$build" = 0 ] && [ "$format" = 0 ] && { [ "$architecture" = skipped ] || [ "$architecture" = 0 ]; }

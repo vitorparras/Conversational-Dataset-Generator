@@ -20,7 +20,7 @@ public sealed class ItemAccommodationTests
     private const string Insertion =
         "INSERT INTO content.item_text (domain_id, batch_id, raw_text, dek_epoch, dek_wrapped, accommodated_into, losses) "
         + "VALUES (1, 1, decode('a1', 'hex'), 1, decode('c3', 'hex'), @into, @losses) RETURNING id";
-    private const string Held = "SELECT coalesce(accommodated_into, '-') || ':' || array_to_string(losses, ',') FROM content.item_text WHERE id = @id";
+    private const string Held = "SELECT coalesce(accommodated_into, '-') || ':' || losses FROM content.item_text WHERE id = @id";
     private const string CheckViolation = "23514";
 
     [DatabaseFact]
@@ -116,8 +116,8 @@ public sealed class ItemAccommodationTests
     {
         await using var world = await ContentWorld.CreateAsync();
 
-        var asApplication = await Assert.ThrowsAsync<PostgresException>(() => world.InDomainAsync(1, Insertion, ("into", (object?)into ?? DBNull.Value), ("losses", losses)));
-        var asOwner = await Assert.ThrowsAsync<PostgresException>(() => world.OwnerInDomainAsync(1, Insertion, ("into", (object?)into ?? DBNull.Value), ("losses", losses)));
+        var asApplication = await Assert.ThrowsAsync<PostgresException>(() => world.InDomainAsync(1, Insertion, ("into", (object?)into ?? DBNull.Value), ("losses", string.Join(',', losses))));
+        var asOwner = await Assert.ThrowsAsync<PostgresException>(() => world.OwnerInDomainAsync(1, Insertion, ("into", (object?)into ?? DBNull.Value), ("losses", string.Join(',', losses))));
 
         Assert.Equal((CheckViolation, constraint, CheckViolation, constraint), (asApplication.SqlState, asApplication.ConstraintName, asOwner.SqlState, asOwner.ConstraintName));
         Assert.Equal(0L, await world.ScalarAsync("SELECT count(*) FROM content.item_text"));
@@ -131,9 +131,9 @@ public sealed class ItemAccommodationTests
             1, new NewItemText(Raw, Accommodation: new ItemAccommodation("document", ["author"])), TestContext.Current.CancellationToken);
 
         var erased = await Assert.ThrowsAsync<PostgresException>(() => world.OwnerInDomainAsync(
-            1, "UPDATE content.item_text SET accommodated_into = NULL, losses = '{}' WHERE id = @id RETURNING id", ("id", item)));
+            1, "UPDATE content.item_text SET accommodated_into = NULL, losses = '' WHERE id = @id RETURNING id", ("id", item)));
         var changed = await Assert.ThrowsAsync<PostgresException>(() => world.OwnerInDomainAsync(
-            1, "UPDATE content.item_text SET losses = '{instant}' WHERE id = @id RETURNING id", ("id", item)));
+            1, "UPDATE content.item_text SET losses = 'instant' WHERE id = @id RETURNING id", ("id", item)));
 
         Assert.Equal(("CE006", "CE006", "document:author"), (erased.SqlState, changed.SqlState, await world.OwnerInDomainAsync(1, Held, ("id", item))));
     }

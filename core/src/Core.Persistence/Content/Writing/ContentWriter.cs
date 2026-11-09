@@ -55,7 +55,7 @@ public sealed class ContentWriter(NpgsqlDataSource dataSource, ProtectedContent 
     private static IEnumerable<NpgsqlParameter> Declared(ItemAccommodation? accommodation)
     {
         yield return Text("accommodated", accommodation?.Form);
-        yield return new NpgsqlParameter("losses", NpgsqlDbType.Array | NpgsqlDbType.Text) { Value = accommodation?.Losses.ToArray() ?? Array.Empty<string>() };
+        yield return new NpgsqlParameter("losses", NpgsqlDbType.Text) { Value = string.Join(',', accommodation?.Losses ?? Array.Empty<string>()) };
     }
 
     private async Task<long> AddMapAsync(int domainId, NewReversalMap map, CancellationToken cancellationToken)

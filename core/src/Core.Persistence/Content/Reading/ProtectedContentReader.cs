@@ -144,7 +144,7 @@ public sealed class ProtectedContentReader(NpgsqlDataSource dataSource, Protecte
             return null;
         }
 
-        return new ItemAccommodation(reader.GetString(FormColumn), reader.GetFieldValue<string[]>(LossesColumn));
+        return new ItemAccommodation(reader.GetString(FormColumn), reader.GetString(LossesColumn).Split(','));
     }
 
     private static ContentReadOutcome Unread(StoredValue stored) => stored switch

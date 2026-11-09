@@ -32,10 +32,4 @@ public enum ClearKind
 
     /// <summary>The number of the transaction that wrote a row, which the row policy compares with the transaction that reads.</summary>
     Transaction = 7,
-
-    /// <summary>The form an item was accommodated into, one of the four, or nothing when the item fits its form exactly.</summary>
-    Form = 8,
-
-    /// <summary>The codes of what the form received does not keep of an item, none when it fits exactly: codes of a closed set, never a word of the material.</summary>
-    Losses = 9,
 }

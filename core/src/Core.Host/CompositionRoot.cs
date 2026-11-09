@@ -123,7 +123,7 @@ internal static class CompositionRoot
     internal static ItemKeys KeysOf(MasterKeyReading reading) => new(new KeyDerivation(reading.Key!, reading.Labels), reading.Epochs);
     internal static EpochRotation RotationOf(NpgsqlDataSource dataSource, ItemKeys keys) => new(dataSource, keys);
 
-    /// <summary>What takes a file in over the key a reading holds: the barrier, the conference, the sealing and the writer are services and so are built here; the last two are none when the key was not read.</summary>
+    /// <summary>What takes a file in over the key a reading holds: the gate, the conference, the sealing and the writer are services, built here; the last two are none without the key.</summary>
     internal static SubmissionIntake IntakeOf(NpgsqlDataSource source, MasterKeyReading reading, SubmissionSettings settings)
     {
         var sealing = reading.Failure is null ? new ProtectedContent(reading.Labels, KeysOf(reading), settings.Registered, settings.Revoked) : null;

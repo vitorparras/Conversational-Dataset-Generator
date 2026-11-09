@@ -138,7 +138,9 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
     backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
 }
 
-.panel > :last-child { margin-bottom: 0; }
+/* The pieces of a panel stand at one interval, set here and never by a margin of a screen. */
+.panel > * { margin-block: 0; }
+.panel > * + * { margin-top: var(--space-4); }
 
 /* Button: the colour eases only into the hover, so a change of theme, or of anything else, takes effect at once and never half way. */
 .button {

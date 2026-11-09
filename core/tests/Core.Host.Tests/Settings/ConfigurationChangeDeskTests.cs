@@ -34,6 +34,9 @@ public sealed class ConfigurationChangeDeskTests : IDisposable
     [InlineData(Key, "zqx-nao-e-tempo")]
     [InlineData("Passwords:WorkFactor", "0")]
     [InlineData("Session:AbsoluteTimeout", "-00:10:00")]
+    [InlineData("LanguageService:StartupTimeoutSeconds", "0")]
+    [InlineData("LanguageService:StartupTimeoutSeconds", "abc")]
+    [InlineData("LanguageService:AnalyzeTimeoutSeconds", "0")]
     public async Task Ca1AChangeTheStartWouldRefuseIsRefusedNamingTheKeyAndTheValueAndNothingIsWritten(string key, string value)
     {
         var answer = await Desk(InForce()).SubmitAsync(new ChangeRequest(key, value, Motive, 1), TestContext.Current.CancellationToken);
@@ -75,6 +78,19 @@ public sealed class ConfigurationChangeDeskTests : IDisposable
 
         Assert.Equal(ChangeOutcome.OverriddenOnServer, Desk(overridden).Judge(new ChangeRequest(Key, "00:20:00", Motive, 1))!.Outcome);
     }
+
+    [Fact]
+    public void AValueTheEnvironmentOverridesIsRefusedSinceTheFileWouldNotChangeIt()
+    {
+        var variable = new KeyValuePair<string, string?>(EnvironmentSource.Prefix + Key.Replace(":", "__", StringComparison.Ordinal), "00:30:00");
+        var overridden = ClosedConfiguration.Load(Schema(), new TrialSource(Values(), Key, "00:30:00"), new EnvironmentSource([variable]));
+
+        Assert.Equal(ChangeOutcome.OverriddenOnServer, Desk(overridden).Judge(new ChangeRequest(Key, "00:20:00", Motive, 1))!.Outcome);
+    }
+
+    [Fact]
+    public void AnAuthorWithNoIdentifierIsADefectOfTheCallerAndNotARefusedValue() =>
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => Desk(InForce()).Judge(new ChangeRequest(Key, "00:20:00", Motive, 0)));
 
     [Fact]
     public void EveryKeyOfTheListIsOneTheStartDeclaresAndNoneIsSensitive()

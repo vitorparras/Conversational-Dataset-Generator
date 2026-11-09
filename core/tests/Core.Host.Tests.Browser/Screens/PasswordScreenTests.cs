@@ -174,6 +174,8 @@ public sealed class PasswordScreenTests(BrowserFixture browser, AccountHostFixtu
         var order = new List<string>();
         var seen = new List<bool>();
 
+        // The first field takes the focus from its autofocus, which can come after the heading is seen on a loaded machine; a key typed before that is lost, and the password goes cut and is refused.
+        await Expect(tab.Page.Locator("#senha-atual")).ToBeFocusedAsync();
         await tab.Page.Keyboard.TypeAsync(host.Password);
         for (var stop = 0; stop < 3; stop++)
         {

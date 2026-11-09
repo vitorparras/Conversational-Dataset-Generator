@@ -1,7 +1,9 @@
 using Core.Persistence.Content;
 using Core.Persistence.Content.Reading;
+using Core.Persistence.Content.Sealing;
 using Core.Persistence.Content.Writing;
 using Core.Persistence.Custody;
+using Core.Persistence.Custody.Chain;
 using Core.Persistence.Tests.Fixtures;
 using Npgsql;
 
@@ -47,7 +49,7 @@ public sealed class ItemAccommodationTests
         var first = await ReadAsync(world, item, ContentColumns.RawText);
         var again = await ReadAsync(world, item, ContentColumns.RawText);
         var sanitized = await ReadAsync(world, item, ContentColumns.SanitizedText);
-        var elsewhere = await new ProtectedContentReader(world.DataSource, SyntheticCustody.Holding(ContentWorld.Labels).Content, new Core.Persistence.Custody.Chain.CustodyChain(world.DataSource))
+        var elsewhere = await new ProtectedContentReader(world.DataSource, SyntheticCustody.Holding(ContentWorld.Labels).Content, new CustodyChain(world.DataSource))
             .ReadAsync(new ContentRead(CustodyAuthor.System, ContentColumns.RawText, 1, item), TestContext.Current.CancellationToken);
 
         Assert.All(
@@ -140,6 +142,6 @@ public sealed class ItemAccommodationTests
 
     private static string Declared(ContentReadResult read) => read.Accommodation is null ? "-" : $"{read.Accommodation.Form}:{string.Join(',', read.Accommodation.Losses)}";
 
-    private static Task<ContentReadResult> ReadAsync(ContentWorld world, long item, Core.Persistence.Content.Sealing.ProtectedColumn column) =>
+    private static Task<ContentReadResult> ReadAsync(ContentWorld world, long item, ProtectedColumn column) =>
         world.Reader.ReadAsync(new ContentRead(CustodyAuthor.System, column, 1, item), TestContext.Current.CancellationToken);
 }

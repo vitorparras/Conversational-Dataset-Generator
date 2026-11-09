@@ -77,29 +77,31 @@ public sealed class AccommodationPropertiesTests
         });
 
     private static bool Carries(ReadUnit unit, MaterialForm form, int units) =>
-        (unit.Author is not null && form is MaterialForm.Document or MaterialForm.LabeledSequence)
-        || (unit.Instant is not null && form is MaterialForm.Document or MaterialForm.LabeledSequence)
-        || (unit.RepliesTo is not null && form != MaterialForm.Conversation)
-        || (unit.Passages.Count > 0 && form != MaterialForm.LabeledSequence)
-        || (form == MaterialForm.Comment && units > 1);
+        LosesAuthorOrInstant(unit, form) || LosesStructure(unit, form) || (form == MaterialForm.Comment && units > 1);
+
+    private static bool LosesAuthorOrInstant(ReadUnit unit, MaterialForm form) =>
+        (unit.Author is not null || unit.Instant is not null) && form is MaterialForm.Document or MaterialForm.LabeledSequence;
+
+    private static bool LosesStructure(ReadUnit unit, MaterialForm form) =>
+        (unit.RepliesTo is not null && form != MaterialForm.Conversation) || (unit.Passages.Count > 0 && form != MaterialForm.LabeledSequence);
 
     /// <summary>What the form keeps of each unit and not a word more: the conversation its author, its instants (one after the other) and answers to a unit before; the comment its author;
     /// the document its text; the labeled sequence its text and a passage that is the whole of it.</summary>
     private static ReadMaterial FitsExactly(MaterialForm form, string[] texts, string[] authors, bool[] replies) => form switch
     {
-        MaterialForm.Conversation => new ReadMaterial(
-            texts.Select((text, at) => new ReadUnit(text, authors[at], Moment.AddSeconds(at), replies[at] && at > 0 ? at - 1 : null, new List<Passage>())).ToList()),
-        MaterialForm.Comment => new ReadMaterial(new List<ReadUnit> { new(texts[0], authors[0], replies[0] ? Moment : null, null, new List<Passage>()) }),
-        MaterialForm.Document => new ReadMaterial(texts.Select(text => new ReadUnit(text, null, null, null, new List<Passage>())).ToList()),
-        _ => new ReadMaterial(texts.Select(text => new ReadUnit(text, null, null, null, new List<Passage> { new(0, text.Length) })).ToList()),
+        MaterialForm.Conversation => new ReadMaterial([.. texts.Select((text, at) => new ReadUnit(text, authors[at], Moment.AddSeconds(at), replies[at] && at > 0 ? at - 1 : null, []))]),
+        MaterialForm.Comment => new ReadMaterial([new ReadUnit(texts[0], authors[0], replies[0] ? Moment : null, null, [])]),
+        MaterialForm.Document => new ReadMaterial([.. texts.Select(text => new ReadUnit(text, null, null, null, []))]),
+        MaterialForm.LabeledSequence => new ReadMaterial([.. texts.Select(text => new ReadUnit(text, null, null, null, [new Passage(0, text.Length)]))]),
+        _ => throw new ArgumentOutOfRangeException(nameof(form), form, "The form is not one of the four."),
     };
 
     /// <summary>Units that carry now one thing, now another, whatever the form: an author, an instant, an answer, a passage.</summary>
     private static ReadMaterial Carrying(string[] texts, string[] authors, bool[] flags) =>
-        new(texts.Select((text, at) => new ReadUnit(
+        new([.. texts.Select((text, at) => new ReadUnit(
             text,
             flags[at] ? authors[at] : null,
-            at % 2 == 0 ? Moment.AddSeconds(at) : null,
-            at % 3 == 1 ? at - 1 : null,
-            at % 4 == 2 ? new List<Passage> { new(0, text.Length) } : new List<Passage>())).ToList());
+            at % 2 is 0 ? Moment.AddSeconds(at) : null,
+            at % 3 is 1 ? at - 1 : null,
+            at % 4 is 2 ? [new Passage(0, text.Length)] : []))]);
 }

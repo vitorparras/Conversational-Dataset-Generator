@@ -66,8 +66,13 @@ public sealed class ProtectedContentReader(NpgsqlDataSource dataSource, Protecte
         var recorded = await chain.AppendAsync(CustodyEvent.Of(request.Author, new CustodyItem(reading.Kind, stored.RowId), reading.Step, CustodyReason.ContentRead), cancellationToken)
             .ConfigureAwait(false);
         return recorded.Outcome == CustodyOutcome.Appended
-            ? new ContentReadResult { Outcome = ContentReadOutcome.Read, Text = protectedContent.Open(request.Column, request.DomainId, stored.Envelope, stored.Key!),
-                RowId = stored.RowId, Accommodation = stored.Accommodation }
+            ? new ContentReadResult
+            {
+                Outcome = ContentReadOutcome.Read,
+                Text = protectedContent.Open(request.Column, request.DomainId, stored.Envelope, stored.Key!),
+                RowId = stored.RowId,
+                Accommodation = stored.Accommodation,
+            }
             : new ContentReadResult { Outcome = ContentReadOutcome.NotRecorded, Refusal = recorded, RowId = stored.RowId };
     }
 

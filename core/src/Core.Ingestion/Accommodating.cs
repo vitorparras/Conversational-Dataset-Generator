@@ -19,7 +19,8 @@ public static class Accommodating
         }
 
         var thread = form == MaterialForm.Comment && read.Units.Count > 1;
-        return read.Units.Select(unit => Declared(LossesOf(unit, form, thread), form)).ToList();
+        var declared = read.Units.Select(unit => Declared(LossesOf(unit, form, thread), form)).ToList();
+        return declared;
     }
 
     private static Accommodation? Declared(List<Loss> losses, MaterialForm form) => losses.Count == 0 ? null : new Accommodation(form, losses);
@@ -36,7 +37,7 @@ public static class Accommodating
         return losses;
     }
 
-    private static void AddWhen(List<Loss> losses, Loss loss, bool lost)
+    private static void AddWhen(ICollection<Loss> losses, Loss loss, bool lost)
     {
         if (lost)
         {

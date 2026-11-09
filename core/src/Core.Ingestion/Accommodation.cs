@@ -27,8 +27,13 @@ public sealed record Accommodation
             throw new ArgumentException("A loss is not one of the set.", nameof(losses));
         }
 
+        var ordered = losses.Distinct().Order().ToList();
+        var codes = ordered.Select(loss => LossCodes.Code(loss)).ToList();
+        var words = ordered.Select(loss => LossCodes.Words(loss)).ToList();
         Received = received;
-        Losses = losses.Distinct().Order().ToList();
+        Losses = ordered;
+        Codes = codes;
+        Words = words;
     }
 
     /// <summary>The form the material was accommodated into.</summary>
@@ -41,8 +46,8 @@ public sealed record Accommodation
     public string FormCode => LossCodes.Code(Received);
 
     /// <summary>The codes of the losses, as they are stored, in the order of the set.</summary>
-    public IReadOnlyList<string> Codes => Losses.Select(loss => LossCodes.Code(loss)).ToList();
+    public IReadOnlyList<string> Codes { get; }
 
     /// <summary>The text that describes each loss, taken from the codes.</summary>
-    public IReadOnlyList<string> Words => Losses.Select(loss => LossCodes.Words(loss)).ToList();
+    public IReadOnlyList<string> Words { get; }
 }

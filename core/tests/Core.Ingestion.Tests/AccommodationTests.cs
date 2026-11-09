@@ -56,32 +56,36 @@ public sealed class AccommodationTests
         var document = new ReadMaterial([new ReadUnit(Marker, null, null, null, []), new ReadUnit(Marker, null, null, null, [])]);
         var sequence = new ReadMaterial([new ReadUnit(Marker, null, null, null, [new Passage(0, 3)])]);
 
-        Assert.All(
-            new[] { (conversation, MaterialForm.Conversation), (comment, MaterialForm.Comment), (document, MaterialForm.Document), (sequence, MaterialForm.LabeledSequence) },
-            fit => Assert.All(Accommodating.Of(fit.Item1, fit.Item2), accommodation => Assert.Null(accommodation)));
+        (ReadMaterial Material, MaterialForm Form)[] fits =
+        [
+            (conversation, MaterialForm.Conversation),
+            (comment, MaterialForm.Comment),
+            (document, MaterialForm.Document),
+            (sequence, MaterialForm.LabeledSequence),
+        ];
+
+        Assert.All(fits, fit => Assert.All(Accommodating.Of(fit.Material, fit.Form), accommodation => Assert.Null(accommodation)));
     }
 
     [Fact]
-    public void AccommodatingIsNotTheDefaultAndAMaterialWithNoUnitDeclaresNothing()
-    {
+    public void AccommodatingIsNotTheDefaultAndAMaterialWithNoUnitDeclaresNothing() =>
         Assert.Empty(Accommodating.Of(new ReadMaterial([]), MaterialForm.Document));
-    }
 
     [Fact]
     public void FormThatIsNotOneOfTheFourOrNoMaterialIsRefused()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => Accommodating.Of(new ReadMaterial([]), (MaterialForm)99));
-        Assert.Throws<ArgumentNullException>(() => Accommodating.Of(null!, MaterialForm.Document));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => Accommodating.Of(new ReadMaterial([]), (MaterialForm)99));
+        _ = Assert.Throws<ArgumentNullException>(() => Accommodating.Of(null!, MaterialForm.Document));
     }
 
     [Fact]
     public void DeclarationCannotBeBuiltWithoutAtLeastOneLossOrWithOneThatIsNotInTheSet()
     {
-        Assert.Throws<ArgumentException>(() => new Accommodation(MaterialForm.Document, []));
-        Assert.Throws<ArgumentException>(() => new Accommodation(MaterialForm.Document, Array.Empty<Loss>()));
-        Assert.Throws<ArgumentException>(() => new Accommodation(MaterialForm.Document, [(Loss)99]));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new Accommodation((MaterialForm)99, [Loss.Author]));
-        Assert.Throws<ArgumentNullException>(() => new Accommodation(MaterialForm.Document, null!));
+        _ = Assert.Throws<ArgumentException>(() => new Accommodation(MaterialForm.Document, []));
+        _ = Assert.Throws<ArgumentException>(() => new Accommodation(MaterialForm.Document, []));
+        _ = Assert.Throws<ArgumentException>(() => new Accommodation(MaterialForm.Document, [(Loss)99]));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new Accommodation((MaterialForm)99, [Loss.Author]));
+        _ = Assert.Throws<ArgumentNullException>(() => new Accommodation(MaterialForm.Document, null!));
     }
 
     [Fact]
@@ -130,9 +134,9 @@ public sealed class AccommodationTests
         var codes = Enum.GetValues<MaterialForm>().Select(form => LossCodes.Code(form));
 
         Assert.Equal(["conversation", "comment", "document", "labeled_sequence"], codes);
-        Assert.Throws<ArgumentOutOfRangeException>(() => LossCodes.Code((MaterialForm)99));
-        Assert.Throws<ArgumentOutOfRangeException>(() => LossCodes.Code((Loss)99));
-        Assert.Throws<ArgumentOutOfRangeException>(() => LossCodes.Words((Loss)99));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => LossCodes.Code((MaterialForm)99));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => LossCodes.Code((Loss)99));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => LossCodes.Words((Loss)99));
     }
 
     private static string Shown(Accommodation? declared) => declared is null ? "-" : $"{declared.FormCode}:{string.Join(',', declared.Codes)}";

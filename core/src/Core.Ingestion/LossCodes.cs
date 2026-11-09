@@ -24,6 +24,11 @@ public static class LossCodes
     /// <param name="loss">The loss.</param>
     public static string Code(Loss loss) => Known(loss).Code;
 
+    /// <summary>The code of a form, as it is stored beside an item that was accommodated into it.</summary>
+    /// <param name="form">The form.</param>
+    public static string Code(MaterialForm form) =>
+        Forms.TryGetValue(form, out var code) ? code : throw new ArgumentOutOfRangeException(nameof(form), form, "The form is not one of the four.");
+
     /// <summary>The text that describes the loss, taken from its code and never from the material.</summary>
     /// <param name="loss">The loss.</param>
     public static string Words(Loss loss) => Known(loss).Words;
@@ -31,11 +36,6 @@ public static class LossCodes
     /// <summary>The loss a code stands for; null when the code is not one of the set.</summary>
     /// <param name="code">The code as stored.</param>
     public static Loss? Of(string? code) => Losses.Where(known => known.Value.Code == code).Select(known => (Loss?)known.Key).FirstOrDefault();
-
-    /// <summary>The code of a form, as it is stored beside an item that was accommodated into it.</summary>
-    /// <param name="form">The form.</param>
-    public static string Code(MaterialForm form) =>
-        Forms.TryGetValue(form, out var code) ? code : throw new ArgumentOutOfRangeException(nameof(form), form, "The form is not one of the four.");
 
     private static (string Code, string Words) Known(Loss loss) =>
         Losses.TryGetValue(loss, out var known) ? known : throw new ArgumentOutOfRangeException(nameof(loss), loss, "The loss is not one of the set.");

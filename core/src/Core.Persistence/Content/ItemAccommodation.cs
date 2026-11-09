@@ -30,8 +30,9 @@ public sealed record ItemAccommodation
             throw new ArgumentException("A loss is a code in lowercase, digits and underscores.", nameof(losses));
         }
 
+        var distinct = losses.Distinct(StringComparer.Ordinal).ToList();
         Form = form;
-        Losses = losses.Distinct(StringComparer.Ordinal).ToList();
+        Losses = distinct;
     }
 
     /// <summary>The code of the form the item received.</summary>
@@ -41,5 +42,7 @@ public sealed record ItemAccommodation
     public IReadOnlyList<string> Losses { get; }
 
     private static bool IsCode(string? text) =>
-        text is { Length: > 0 and <= MostCharacters } && text[0] is >= 'a' and <= 'z' && text.All(character => character is (>= 'a' and <= 'z') or (>= '0' and <= '9') or '_');
+        text is { Length: > 0 and <= MostCharacters } && text[0] is >= 'a' and <= 'z' && text.All(IsCodeCharacter);
+
+    private static bool IsCodeCharacter(char character) => character is (>= 'a' and <= 'z') or (>= '0' and <= '9') or '_';
 }

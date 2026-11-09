@@ -35,6 +35,21 @@ internal static class SealState
         }
     }
 
+    /// <summary>The moment of the last seal the chain recorded and the warning that tells it is missing or old, the same words of the verification; null when the chain cannot be read now.</summary>
+    internal static async Task<SealOnRecord?> OnRecordAsync(ChainSources sources, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var last = sources.Verification.SealReader is { } reader ? await reader.LastAsync(cancellationToken) : null;
+            return new SealOnRecord(last, SealAge.Warning(sources.Declared.Situation, last, sources.Time.GetUtcNow()));
+        }
+        catch (Exception unreadable) when (unreadable is NpgsqlException or InvalidOperationException or TimeoutException)
+        {
+            sources.Loggers.CreateLogger(nameof(SealState)).SealDateUnreadable(unreadable.GetType().Name);
+            return null;
+        }
+    }
+
     /// <summary>
     /// Records the seal the text carries in the name of the person of the session, only if the chain has that event with that digest. A text that is not a seal, a seal the chain does not
     /// have and a session that ended meanwhile are told apart from a chain that cannot be read, and in none of them is anything written.

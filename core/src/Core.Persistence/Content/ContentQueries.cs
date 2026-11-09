@@ -44,8 +44,26 @@ public static class ContentQueries
 
     /// <summary>Opens a batch of ingestion for the domain declared, under its condition of origin: it holds no content, and the state, the moments and the identifier are the database's.</summary>
     internal const string InsertIngestionBatch =
-        "INSERT INTO content.ingestion_batch (domain_id, opened_by, condition, submission, received_bytes, received_digest, warning) "
-        + "VALUES (@domain, @author, @condition, @submission, @bytes, @digest, @warning) RETURNING id";
+        "INSERT INTO content.ingestion_batch (domain_id, opened_by, condition, submission, received_bytes, received_digest, warning, origin_state) "
+        + "VALUES (@domain, @author, @condition, @submission, @bytes, @digest, @warning, @origin) RETURNING id";
+
+    /// <summary>Keeps the origin of a batch sealed, with the key of the row wrapped, in the transaction that opens the batch.</summary>
+    internal const string InsertBatchOrigin =
+        "INSERT INTO content.batch_origin (domain_id, batch_id, origin, dek_epoch, dek_wrapped) VALUES (@domain, @batch, @origin, @epoch, @wrapped) RETURNING id";
+
+    /// <summary>The sealed origin of a batch, never emptied, and the key of the row wrapped with its epoch.</summary>
+    internal const string ReadBatchOrigin = "SELECT origin, false, dek_epoch, dek_wrapped FROM content.batch_origin WHERE batch_id = @id";
+
+    /// <summary>The origins of the domain declared, as the database writes them, for the copy of the data.</summary>
+    internal const string ReadCopyBatchOrigin = "SELECT pg_catalog.to_jsonb(t)::text FROM content.batch_origin t ORDER BY id";
+
+    /// <summary>The keys, wrapped, that an epoch older than the newest wraps, among the origins; a page of them.</summary>
+    internal const string ReadOlderOriginKeys = "SELECT id, dek_epoch, dek_wrapped FROM content.batch_origin WHERE dek_epoch < @newest ORDER BY id LIMIT 500";
+
+    internal const string ReadOriginKeysAfter = "SELECT id, dek_epoch, dek_wrapped FROM content.batch_origin WHERE id > @after ORDER BY id LIMIT @batch";
+
+    /// <summary>Wraps again the key of an origin; only the wrapped key and its epoch change.</summary>
+    internal const string RewrapOriginKey = "UPDATE content.batch_origin SET dek_epoch = @epoch, dek_wrapped = @wrapped WHERE id = @id";
 
     /// <summary>The state, the motive and the condition of a batch of the domain, whatever its state: a batch rejected stays consultable after its material is gone.</summary>
     internal const string ReadIngestionBatch = "SELECT state, motive, opened_by, condition FROM content.ingestion_batch WHERE id = @id";
@@ -58,13 +76,13 @@ public static class ContentQueries
 
     /// <summary>The batches of the domain declared, newest first, by state and by the moment of the submission, with what each submission brought.</summary>
     internal const string ReadIngestionBatchPage =
-        "SELECT id, state, motive, opened_by, opened_at, submission, received_bytes, received_digest, warning FROM content.ingestion_batch "
+        "SELECT id, state, motive, opened_by, opened_at, submission, received_bytes, received_digest, warning, origin_state FROM content.ingestion_batch "
         + "WHERE (@state::text IS NULL OR state = @state) AND (@from::timestamptz IS NULL OR opened_at >= @from) AND (@until::timestamptz IS NULL OR opened_at < @until) "
         + "ORDER BY opened_at DESC, id DESC LIMIT @limit";
 
     /// <summary>One batch of the domain declared, as the register shows it.</summary>
     internal const string ReadIngestionBatchEntry =
-        "SELECT id, state, motive, opened_by, opened_at, submission, received_bytes, received_digest, warning FROM content.ingestion_batch WHERE id = @id";
+        "SELECT id, state, motive, opened_by, opened_at, submission, received_bytes, received_digest, warning, origin_state FROM content.ingestion_batch WHERE id = @id";
 
     /// <summary>Closes a batch that is open, accepted or rejected with its motive; the database refuses it without the event of the closing in the same transaction.</summary>
     internal const string CloseIngestionBatch = "UPDATE content.ingestion_batch SET state = @state, motive = @motive WHERE id = @id AND state = 'open'";
@@ -114,7 +132,8 @@ public static class ContentQueries
 
     /// <summary>The epochs that the keys of the rows not emptied name, in the domain declared.</summary>
     internal const string ReadEpochsInUse =
-        "SELECT dek_epoch FROM content.item_text WHERE emptied_at IS NULL UNION SELECT dek_epoch FROM content.reversal_map WHERE emptied_at IS NULL";
+        "SELECT dek_epoch FROM content.item_text WHERE emptied_at IS NULL UNION SELECT dek_epoch FROM content.reversal_map WHERE emptied_at IS NULL "
+        + "UNION SELECT dek_epoch FROM content.batch_origin";
 
     /// <summary>The queries over content, as the statement each one runs, by the name of its constant.</summary>
     public static IReadOnlyDictionary<string, string> All { get; } = Declared(typeof(ContentQueries));

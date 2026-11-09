@@ -1,6 +1,6 @@
 -- The review of the sample (issue 83): a person reviews the sample the system drew, and one finding of personal data not treated rejects the whole batch. The review is a gate and not an estimate: there is
 -- no rate to reach, and no path accepts a batch whose sample was not reviewed, the owner included. The chain learns the step batch_reviewed (by the reviewer, with the reason review_clean or review_found);
--- the checks change from the ones the 0043 left, and a finding is also the rejection of the batch, in the same transaction.
+-- the checks change from the ones the 0046 left, and a finding is also the rejection of the batch, in the same transaction.
 ALTER TABLE public.custody_event
     DROP CONSTRAINT custody_event_step_listed,
     DROP CONSTRAINT custody_event_reason_listed,
@@ -11,19 +11,20 @@ ALTER TABLE public.custody_event
          'domain_created', 'seal_recorded', 'domain_label_rotated',
          'sign_in_accepted', 'sign_in_refused', 'credential_recomputed', 'key_loss_declared', 'recovery_tested', 'verify_guarantees',
          'owner_window_opened', 'owner_window_closed', 'restored', 'restore_rehearsed', 'domain_label_revoked', 'domain_rewrapped',
-         'batch_opened', 'batch_closed', 'password_changed', 'configuration_submitted', 'occurrences_read', 'batch_sampled', 'batch_reviewed')),
+         'batch_opened', 'batch_closed', 'password_changed', 'configuration_submitted', 'origin_read', 'occurrences_read', 'batch_sampled', 'batch_reviewed')),
     ADD CONSTRAINT custody_event_reason_listed CHECK (reason IN
         ('administrative_act', 'correction_of_record', 'content_read', 'verification_passed', 'verification_failed',
          'removal_requested_by_subject', 'contract_requirement', 'author_without_function', 'item_already_emptied',
          'credentials_accepted', 'password_wrong', 'account_not_recognized',
          'batch_accepted', 'batch_rejected', 'review_clean', 'review_found')),
     ADD CONSTRAINT custody_event_batch_shape CHECK (
-        (step IN ('batch_opened', 'batch_closed', 'batch_sampled', 'batch_reviewed')) = (item_kind = 'ingestion_batch')
+        (step IN ('batch_opened', 'batch_closed', 'batch_sampled', 'batch_reviewed', 'origin_read')) = (item_kind = 'ingestion_batch')
         AND (step = 'batch_closed') = (reason IN ('batch_accepted', 'batch_rejected'))
         AND (step = 'batch_reviewed') = (reason IN ('review_clean', 'review_found'))
         AND (step NOT IN ('batch_opened', 'batch_sampled') OR (reason = 'administrative_act' AND actor_person_id IS NOT NULL))
         AND (step <> 'batch_reviewed' OR actor_person_id IS NOT NULL)
-        AND (step NOT IN ('batch_opened', 'batch_closed', 'batch_sampled', 'batch_reviewed') OR corrects IS NULL)
+        AND (step <> 'origin_read' OR (reason = 'content_read' AND reference IS NULL))
+        AND (step NOT IN ('batch_opened', 'batch_closed', 'batch_sampled', 'batch_reviewed', 'origin_read') OR corrects IS NULL)
         AND (step <> 'batch_closed' OR (reason = 'batch_rejected') = (reference IS NOT NULL))
         AND (step <> 'batch_closed' OR reference IS NULL OR reference ~ '^[a-z][a-z0-9_]{0,62}$'));
 

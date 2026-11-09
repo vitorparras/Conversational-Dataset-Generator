@@ -1,5 +1,5 @@
 -- The sample of a batch for review (issue 83): drawn once by the system, with its event in the chain, and never changed after. The chain learns the step batch_sampled, by the person who asks for the
--- review; the checks change from the last ones the earlier steps left (the steps from the 0042, the shape of the batch from the 0034), and everything they list stays.
+-- review; the checks change from the last ones the earlier steps left (the steps from the 0044, the shape of the batch from the 0042), and everything they list stays.
 ALTER TABLE public.custody_event
     DROP CONSTRAINT custody_event_step_listed,
     DROP CONSTRAINT custody_event_batch_shape,
@@ -9,12 +9,13 @@ ALTER TABLE public.custody_event
          'domain_created', 'seal_recorded', 'domain_label_rotated',
          'sign_in_accepted', 'sign_in_refused', 'credential_recomputed', 'key_loss_declared', 'recovery_tested', 'verify_guarantees',
          'owner_window_opened', 'owner_window_closed', 'restored', 'restore_rehearsed', 'domain_label_revoked', 'domain_rewrapped',
-         'batch_opened', 'batch_closed', 'password_changed', 'configuration_submitted', 'occurrences_read', 'batch_sampled')),
+         'batch_opened', 'batch_closed', 'password_changed', 'configuration_submitted', 'origin_read', 'occurrences_read', 'batch_sampled')),
     ADD CONSTRAINT custody_event_batch_shape CHECK (
-        (step IN ('batch_opened', 'batch_closed', 'batch_sampled')) = (item_kind = 'ingestion_batch')
+        (step IN ('batch_opened', 'batch_closed', 'batch_sampled', 'origin_read')) = (item_kind = 'ingestion_batch')
         AND (step = 'batch_closed') = (reason IN ('batch_accepted', 'batch_rejected'))
         AND (step NOT IN ('batch_opened', 'batch_sampled') OR (reason = 'administrative_act' AND actor_person_id IS NOT NULL))
-        AND (step NOT IN ('batch_opened', 'batch_closed', 'batch_sampled') OR corrects IS NULL)
+        AND (step <> 'origin_read' OR (reason = 'content_read' AND reference IS NULL))
+        AND (step NOT IN ('batch_opened', 'batch_closed', 'batch_sampled', 'origin_read') OR corrects IS NULL)
         AND (step <> 'batch_closed' OR (reason = 'batch_rejected') = (reference IS NOT NULL))
         AND (step <> 'batch_closed' OR reference IS NULL OR reference ~ '^[a-z][a-z0-9_]{0,62}$'));
 

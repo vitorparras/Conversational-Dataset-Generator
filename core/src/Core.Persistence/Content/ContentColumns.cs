@@ -20,6 +20,9 @@ public static class ContentColumns
     /// <summary>The table of the batches of ingestion, the unit in which content comes in; the content of a batch is visible only once the batch is accepted.</summary>
     public static string IngestionBatch { get; } = "ingestion_batch";
 
+    /// <summary>The table of the origins sealed, one for each batch whose submission declared where the material came from.</summary>
+    public static string BatchOrigin { get; } = "batch_origin";
+
     /// <summary>The table that holds the id of each item emptied, so that the refusals of the database do not read the texts.</summary>
     public static string ItemEmptied { get; } = "item_emptied";
 
@@ -41,8 +44,14 @@ public static class ContentColumns
     /// <summary>The key of a map, as the key of an item is, for the entries.</summary>
     public static ProtectedColumn MapKey { get; } = new(ReversalMap, "dek_wrapped", LabelPurpose.ReversalMap);
 
+    /// <summary>Where the material of a batch came from, as its submission declared it, sealed as the raw text is (decision 0025).</summary>
+    public static ProtectedColumn Origin { get; } = new(BatchOrigin, "origin", LabelPurpose.RawText);
+
+    /// <summary>The key of an origin, as the key of an item is, for the origin.</summary>
+    public static ProtectedColumn OriginKey { get; } = new(BatchOrigin, "dek_wrapped", LabelPurpose.RawText);
+
     /// <summary>The columns stored sealed.</summary>
-    public static IReadOnlyList<ProtectedColumn> Protected { get; } = [RawText, SanitizedText, Occurrences, ItemKey, Entries, MapKey];
+    public static IReadOnlyList<ProtectedColumn> Protected { get; } = [RawText, SanitizedText, Occurrences, ItemKey, Entries, MapKey, Origin, OriginKey];
 
     /// <summary>The columns stored in clear: identifiers, the domain, dates and the pseudonymized text.</summary>
     public static IReadOnlyList<ClearColumn> Clear { get; } =
@@ -78,6 +87,12 @@ public static class ContentColumns
         new(IngestionBatch, "received_bytes", ClearKind.Identifier),
         new(IngestionBatch, "received_digest", ClearKind.Motive),
         new(IngestionBatch, "warning", ClearKind.Motive),
+        new(IngestionBatch, "origin_state", ClearKind.Motive),
+        new(BatchOrigin, "id", ClearKind.Identifier),
+        new(BatchOrigin, DomainColumn, ClearKind.Domain),
+        new(BatchOrigin, "batch_id", ClearKind.Identifier),
+        new(BatchOrigin, "recorded_at", ClearKind.Moment),
+        new(BatchOrigin, "dek_epoch", ClearKind.Epoch),
         new(IngestionBatch, "review_sample", ClearKind.Motive),
         new(IngestionBatch, "sampled_at", ClearKind.Moment),
         new(IngestionBatch, "reviewed_by", ClearKind.Identifier),

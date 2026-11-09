@@ -41,16 +41,16 @@ public sealed class SubmissionPartsTests
     }
 
     [DatabaseFact]
-    public async Task TheContainerOfTheHostGivesTheBatchesOverTheDatabaseOfTheStartup()
+    public async Task TheContainerOfTheHostGivesTheBatchesAndTheirRegisterOverTheDatabaseOfTheStartup()
     {
         await using var world = await SubmissionWorld.CreateAsync();
         await using var startup = new ServiceCollection().AddSingleton(world.DataSource).BuildServiceProvider();
         await using var host = Hosted(startup);
 
         var opened = await host.GetRequiredService<IngestionBatches>().OpenAsync(new BatchOpening(SubmissionWorld.Domain, SubmissionWorld.Person), TestContext.Current.CancellationToken);
-        var read = await host.GetRequiredService<IngestionBatches>().ReadAsync(SubmissionWorld.Domain, opened.BatchId!.Value, TestContext.Current.CancellationToken);
+        var entry = await host.GetRequiredService<BatchRegister>().ReadAsync([SubmissionWorld.Domain], opened.BatchId!.Value, TestContext.Current.CancellationToken);
 
-        Assert.Equal((BatchState.Open, SubmissionWorld.Person), (read!.State, read.OpenedBy));
+        Assert.Equal((BatchState.Open, SubmissionWorld.Person), (entry!.State, entry.SubmittedBy));
     }
 
     [Fact]
@@ -60,6 +60,7 @@ public sealed class SubmissionPartsTests
         using var host = Hosted(startup);
 
         Assert.Null(host.GetService<IngestionBatches>());
+        Assert.Null(host.GetService<BatchRegister>());
     }
 
     [Fact]
@@ -69,12 +70,15 @@ public sealed class SubmissionPartsTests
         var conditions = OriginConditions.Of(["a"]);
         var intake = SubmissionWorld.Intake(1, conditions);
         var batches = new IngestionBatches(dataSource, conditions);
+        var register = new BatchRegister(dataSource);
 
         Assert.Equal(
-            ["intake", "batches"],
+            ["intake", "batches", "register", "dataSource"],
             [
-                Assert.Throws<ArgumentNullException>(() => new SubmissionService(null!, batches)).ParamName,
-                Assert.Throws<ArgumentNullException>(() => new SubmissionService(intake, null!)).ParamName,
+                Assert.Throws<ArgumentNullException>(() => new SubmissionService(null!, batches, register, dataSource)).ParamName,
+                Assert.Throws<ArgumentNullException>(() => new SubmissionService(intake, null!, register, dataSource)).ParamName,
+                Assert.Throws<ArgumentNullException>(() => new SubmissionService(intake, batches, null!, dataSource)).ParamName,
+                Assert.Throws<ArgumentNullException>(() => new SubmissionService(intake, batches, register, null!)).ParamName,
             ]);
     }
 
@@ -84,7 +88,7 @@ public sealed class SubmissionPartsTests
         using var dataSource = NpgsqlDataSource.Create("Host=127.0.0.1;Port=1;Username=u;Password=p;Database=d");
         var conditions = OriginConditions.Of(["a"]);
         var intake = SubmissionWorld.Intake(1, conditions);
-        var service = new SubmissionService(intake, new IngestionBatches(dataSource, conditions));
+        var service = new SubmissionService(intake, new IngestionBatches(dataSource, conditions), new BatchRegister(dataSource), dataSource);
         var request = SubmissionWorld.Request();
 
         Assert.Equal(
@@ -100,5 +104,6 @@ public sealed class SubmissionPartsTests
         new ServiceCollection()
             .AddSingleton(startup)
             .AddSingleton(provider => SubmissionParts.BatchesOf(provider, Values))
+            .AddSingleton(SubmissionParts.RegisterOf)
             .BuildServiceProvider();
 }

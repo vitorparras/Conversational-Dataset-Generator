@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Core.Host.Submissions;
 using Core.Ingestion;
@@ -19,7 +20,7 @@ public sealed class IngestionSubmissionsTests
         var bytes = Encoding.UTF8.GetBytes(SubmissionWorld.Conversation);
 
         var outcome = await world.SubmitAsync(SubmissionWorld.Request());
-        var entry = await world.BatchAsync(outcome.Batch!.Value);
+        var entry = await world.Service.DetailAsync([SubmissionWorld.Domain], outcome.Batch!.Value, TestContext.Current.CancellationToken);
 
         Assert.Equal(
             (SubmissionKind.Done, SubmissionState.Accepted, null, bytes.Length, Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(bytes))),
@@ -50,7 +51,7 @@ public sealed class IngestionSubmissionsTests
         await using var world = await SubmissionWorld.CreateAsync(maxBytes: 20);
 
         var outcome = await world.SubmitAsync(SubmissionWorld.Request());
-        var entry = await world.BatchAsync(outcome.Batch!.Value);
+        var entry = await world.Service.DetailAsync([SubmissionWorld.Domain], outcome.Batch!.Value, TestContext.Current.CancellationToken);
 
         Assert.Equal(
             (SubmissionKind.Done, SubmissionState.Rejected, "too_large", true, 21L),
@@ -102,7 +103,7 @@ public sealed class IngestionSubmissionsTests
         var request = SubmissionWorld.Request() with { DeclaredForm = MaterialForm.Comment };
 
         var outcome = await world.SubmitAsync(request);
-        var entry = await world.BatchAsync(outcome.Batch!.Value);
+        var entry = await world.Service.DetailAsync([SubmissionWorld.Domain], outcome.Batch!.Value, TestContext.Current.CancellationToken);
 
         Assert.Equal((SubmissionState.Rejected, "conversation_thread", BatchState.Rejected), (outcome.State, outcome.Reason!.Code, entry!.State));
         Assert.Equal(outcome.Reason.Code, entry.Reason);
@@ -118,7 +119,7 @@ public sealed class IngestionSubmissionsTests
         await using var world = await SubmissionWorld.CreateAsync();
 
         var outcome = await world.SubmitAsync(SubmissionWorld.Request(name: name));
-        var entry = await world.BatchAsync(outcome.Batch!.Value);
+        var entry = await world.Service.DetailAsync([SubmissionWorld.Domain], outcome.Batch!.Value, TestContext.Current.CancellationToken);
 
         Assert.Equal((SubmissionState.Accepted, "name_with_path", "name_with_path"), (outcome.State, outcome.Warning, entry!.Receipt!.Warning));
     }
@@ -155,7 +156,7 @@ public sealed class IngestionSubmissionsTests
         var turnedBack = await world.SubmitAsync(SubmissionWorld.Request("a,b\n"));
         var tooLarge = await world.SubmitAsync(SubmissionWorld.Request(new string('x', 1_000)));
 
-        var listed = await world.BatchesAsync(SubmissionWorld.Domain);
+        var listed = await world.Service.ListAsync(new BatchFilter { Domains = [SubmissionWorld.Domain] }, TestContext.Current.CancellationToken);
 
         Assert.Equal(
             [tooLarge.Batch, turnedBack.Batch, accepted.Batch],
@@ -179,6 +180,30 @@ public sealed class IngestionSubmissionsTests
     }
 
     [DatabaseFact]
+    public async Task GateClosedByTheMissingRehearsalBlocksTheSubmissionAndRecordsNothing()
+    {
+        await using var world = await SubmissionWorld.CreateAsync(gateOpen: false);
+        var request = SubmissionWorld.Request();
+
+        var gate = await world.Service.GateAsync(TestContext.Current.CancellationToken);
+        var outcome = await world.SubmitAsync(request);
+
+        Assert.Equal(
+            (false, "recovery_not_rehearsed", SubmissionKind.Blocked, "recovery_not_rehearsed", 0L, 0L),
+            (gate.Open, gate.Code, outcome.Kind, outcome.BlockedBy, request.Content.Position, await world.BatchCountAsync()));
+    }
+
+    [DatabaseFact]
+    public async Task GateIsOpenOnceTheRehearsalIsRecorded()
+    {
+        await using var world = await SubmissionWorld.CreateAsync();
+
+        var gate = await world.Service.GateAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal((true, null), (gate.Open, gate.Code));
+    }
+
+    [DatabaseFact]
     public async Task DomainThatDoesNotExistIsNotRecordedAndTheOutcomeSaysWhy()
     {
         await using var world = await SubmissionWorld.CreateAsync();
@@ -187,4 +212,36 @@ public sealed class IngestionSubmissionsTests
 
         Assert.Equal((SubmissionKind.NotRecorded, BatchOutcome.DomainUnknown, null), (outcome.Kind, outcome.Failure, outcome.Batch));
     }
+
+    [DatabaseFact]
+    public async Task ListAndDetailShowOnlyTheDomainsGranted()
+    {
+        await using var world = await SubmissionWorld.CreateAsync();
+        var mine = await world.SubmitAsync(SubmissionWorld.Request());
+        var other = await world.SubmitAsync(SubmissionWorld.Request() with { DomainId = SubmissionWorld.OtherDomain });
+        var token = TestContext.Current.CancellationToken;
+
+        Assert.Equal(
+            $"{mine.Batch}|{other.Batch}|0|none|{mine.Batch}",
+            string.Join(
+                '|',
+                Seen(await world.Service.ListAsync(new BatchFilter { Domains = [SubmissionWorld.Domain] }, token)),
+                Seen(await world.Service.ListAsync(new BatchFilter { Domains = [SubmissionWorld.OtherDomain] }, token)),
+                (await world.Service.ListAsync(new BatchFilter { Domains = [] }, token)).Count,
+                (await world.Service.DetailAsync([SubmissionWorld.OtherDomain], mine.Batch!.Value, token))?.Id.ToString(CultureInfo.InvariantCulture) ?? "none",
+                (await world.Service.DetailAsync([SubmissionWorld.Domain], mine.Batch.Value, token))?.Id));
+    }
+
+    [DatabaseFact]
+    public async Task PageLargerThanTheMostAPageMayHoldIsCutToIt()
+    {
+        await using var world = await SubmissionWorld.CreateAsync();
+        var first = await world.SubmitAsync(SubmissionWorld.Request());
+
+        var listed = await world.Service.ListAsync(new BatchFilter { Domains = [SubmissionWorld.Domain], Take = 1_000_000 }, TestContext.Current.CancellationToken);
+
+        Assert.Equal([first.Batch], listed.Select(entry => (long?)entry.Id));
+    }
+
+    private static string Seen(IEnumerable<BatchEntry> entries) => string.Join(',', entries.Select(entry => entry.Id));
 }

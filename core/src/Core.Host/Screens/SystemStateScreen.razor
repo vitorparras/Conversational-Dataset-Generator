@@ -8,6 +8,10 @@
 @if (Status.SealWarning is { } warning)
 {
     <Notice Kind="Notice.Tone.Pending">@warning</Notice>
+    if (SealLink)
+    {
+        <p><Button Id="selo-estado" Href="@ScreenPaths.Seal" Kind="Button.Look.Secondary">Selo: emitir e confirmar</Button></p>
+    }
 }
 <Panel Id="agora" Title="Situação agora">
     <FactList>
@@ -31,14 +35,14 @@
 <Panel Id="conferencias" Title="Conferências da subida">
     <p>@(Status.Checks.Count - Failed) de @Status.Checks.Count passaram.</p>
     <DataTable Id="conferencias-tabela" Caption="Uma conferência por linha." Headers="Columns">
-        <tbody>
+        <tbody role="rowgroup">
             @foreach (var check in Status.Checks)
             {
-                <tr>
-                    <th scope="row">@check.Name</th>
-                    <td>@(check.Status == CheckStatus.Passed ? Mark(StateMark.Tone.Good, "Passou") : Mark(StateMark.Tone.Bad, "Falhou"))</td>
-                    <td>@check.Message@(check.Observed is { } observed ? $". Encontrado: {observed}" : "")</td>
-                    <td><code>@check.ExpectedSource</code></td>
+                <tr role="row">
+                    <th scope="row" role="rowheader">@check.Name</th>
+                    <td role="cell">@(check.Status == CheckStatus.Passed ? Mark(StateMark.Tone.Good, "Passou") : Mark(StateMark.Tone.Bad, "Falhou"))</td>
+                    <td role="cell">@check.Message@(check.Observed is { } observed ? $". Encontrado: {observed}" : "")</td>
+                    <td role="cell"><code>@check.ExpectedSource</code></td>
                 </tr>
             }
         </tbody>
@@ -67,6 +71,10 @@
     /// <summary>What the versions route answers, from the same call.</summary>
     [Parameter, EditorRequired]
     public VersionReport Versions { get; set; } = default!;
+
+    /// <summary>Whether the page leads to the screen of the seal: there is a warning and whoever entered operates the seal.</summary>
+    [Parameter]
+    public bool SealLink { get; set; }
 
     private StatusResponse Status => (StatusResponse)State;
 

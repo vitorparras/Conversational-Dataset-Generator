@@ -303,9 +303,28 @@ internal sealed class AuthenticatedHost : IAsyncDisposable
         return await client.SendAsync(request, cancellationToken);
     }
 
+    /// <summary>What a start that never finished its round left to read: whether the host is still up, the steps the chain holds and the end of what the host wrote.</summary>
+    private async Task<string> WhatTheStartLeftAsync()
+    {
+        var exited = process.HasExited ? $"exited with {process.ExitCode}" : "still running";
+        var steps = string.Join(", ", await database.FirstColumnAsOwnerAsync("SELECT sequence || ':' || step FROM public.custody_event ORDER BY sequence"));
+        var (stdout, stderr) = await StopAsync();
+        return $"{Environment.NewLine}host: {exited}; chain: [{steps}]{Environment.NewLine}stdout (end): {End(stdout)}{Environment.NewLine}stderr (end): {End(stderr)}";
+    }
+
+    private static string End(string text) => text.Length <= 3000 ? text : text[^3000..];
+
     private async Task PrepareAsync(HostSetup setup, CancellationToken cancellationToken)
     {
-        await StartupVerification.WaitUntilRecordedAsync(application, cancellationToken);
+        try
+        {
+            await StartupVerification.WaitUntilRecordedAsync(application, cancellationToken);
+        }
+        catch (TimeoutException timeout)
+        {
+            throw new TimeoutException($"{timeout.Message}{await WhatTheStartLeftAsync()}", timeout);
+        }
+
         Task<PersonResult> Write(Func<Task<PersonResult>> change) => StartupVerification.WriteAsync(change, cancellationToken);
 
         var registry = new PersonRegistry(application);

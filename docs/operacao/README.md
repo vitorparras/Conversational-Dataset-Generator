@@ -54,5 +54,6 @@ e por quem ela roda.
 | [040](040-roteiro-de-usabilidade-da-conta.md) | Roteiro de usabilidade da conta, da troca da senha e das sessões |
 | [041](041-roteiro-de-usabilidade-da-configuracao-e-do-estado.md) | Roteiro de usabilidade da configuração em vigor e do estado do sistema |
 | [043](043-roteiro-de-usabilidade-dos-dominios-e-da-custodia.md) | Roteiro de usabilidade dos domínios e da custódia |
+| [045](045-roteiro-de-usabilidade-dos-avisos.md) | Roteiro de usabilidade dos avisos |
 
 Ver [regras de escrita](../regras-de-escrita.md).

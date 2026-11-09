@@ -138,19 +138,18 @@ internal sealed class SubmissionService
         var reason = await JudgedAsync(request, received, cancellationToken).ConfigureAwait(false);
         var warning = HasPath(request.ReceivedName) ? NameWithPath : null;
         var receipt = new SubmissionReceipt(received.Id.ToString(), received.BytesRead, received.Digest, warning);
-        if (SubmissionOrigin.Declaration(intake, request) is not { } origin || (reason is null && !SubmissionStoring.CanSeal(intake.Sealing, request.DomainId)))
+        if (SubmissionOrigin.Opening(intake, request, receipt) is not { } opening || (reason is null && !SubmissionStoring.CanSeal(intake.Sealing, request.DomainId)))
         {
             return new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = BatchOutcome.DomainUnknown };
         }
 
-        var opening = new BatchOpening(request.DomainId, request.AuthorId, request.Condition, new SubmissionOpening(receipt, origin)) { RejectedFor = reason?.Code };
-        var opened = await batches.OpenAsync(opening, cancellationToken).ConfigureAwait(false);
+        var opened = await batches.OpenAsync(opening with { RejectedFor = reason?.Code }, cancellationToken).ConfigureAwait(false);
         if (opened.Outcome != (reason is null ? BatchOutcome.Opened : BatchOutcome.Rejected))
         {
             return new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = opened.Outcome };
         }
 
-        var kept = new Opened(received, opened.BatchId!.Value, warning, origin.State);
+        var kept = new Opened(received, opened.BatchId!.Value, warning, opening.Origin!.State);
         return reason is null ? await StoringAsync(request, kept, cancellationToken).ConfigureAwait(false) : Turned(kept, reason);
     }
 

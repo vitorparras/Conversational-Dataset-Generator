@@ -53,6 +53,7 @@ e por quem ela roda.
 | [039](039-repartir-a-mutacao.md) | Repartir a mutação de uma área em partes: a unidade, o peso e o corte da lista estática |
 | [040](040-roteiro-de-usabilidade-da-conta.md) | Roteiro de usabilidade da conta, da troca da senha e das sessões |
 | [041](041-roteiro-de-usabilidade-da-configuracao-e-do-estado.md) | Roteiro de usabilidade da configuração em vigor e do estado do sistema |
+| [042](042-roteiro-de-usabilidade-da-tela-de-pessoas.md) | Roteiro de usabilidade da tela de pessoas, listar e cadastrar |
 | [043](043-roteiro-de-usabilidade-dos-dominios-e-da-custodia.md) | Roteiro de usabilidade dos domínios e da custódia |
 | [044](044-roteiro-de-usabilidade-do-esvaziamento.md) | Roteiro de usabilidade do esvaziamento do item por identificador |
 | [045](045-roteiro-de-usabilidade-dos-avisos.md) | Roteiro de usabilidade dos avisos |

@@ -133,7 +133,7 @@ internal sealed class SubmissionService
             return new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = BatchOutcome.DomainUnknown };
         }
 
-        var opened = await batches.OpenAsync(new BatchOpening(request.DomainId, request.AuthorId, request.Condition, receipt, origin), cancellationToken).ConfigureAwait(false);
+        var opened = await batches.OpenAsync(new BatchOpening(request.DomainId, request.AuthorId, request.Condition, new SubmissionOpening(receipt, origin)), cancellationToken).ConfigureAwait(false);
         if (opened.Outcome != BatchOutcome.Opened)
         {
             return new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = opened.Outcome };

@@ -143,7 +143,8 @@ public sealed class BatchScreensRouteTests
             "ALTER TABLE content.ingestion_batch DISABLE TRIGGER batch_is_born_open",
             "ALTER TABLE content.ingestion_batch DISABLE TRIGGER batch_open_needs_event",
             "SELECT set_config('app.domain', '1', false)",
-            "INSERT INTO content.ingestion_batch (domain_id, state, opened_by, condition, closed_at) SELECT 1, 'accepted', (SELECT min(id) FROM public.person), 'restrita', now() FROM generate_series(1, 20)",
+            "INSERT INTO content.ingestion_batch (domain_id, state, opened_by, condition, closed_at) "
+            + "SELECT 1, 'accepted', (SELECT min(id) FROM public.person), 'restrita', now() FROM generate_series(1, 20)",
             "SELECT set_config('app.domain', '', false)",
             "ALTER TABLE content.ingestion_batch ENABLE ALWAYS TRIGGER batch_is_born_open",
             "ALTER TABLE content.ingestion_batch ENABLE ALWAYS TRIGGER batch_open_needs_event",

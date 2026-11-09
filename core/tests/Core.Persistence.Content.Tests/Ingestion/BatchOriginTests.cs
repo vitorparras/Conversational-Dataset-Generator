@@ -70,13 +70,13 @@ public sealed class BatchOriginTests
     }
 
     [DatabaseFact]
-    public async Task AnOriginWithoutTheReceiptOfASubmissionIsRefused()
+    public async Task TheDatabaseTiesTheStateOfTheOriginToTheReceiptBothWays()
     {
         await using var world = await IngestionWorld.CreateAsync();
-        var batches = IngestionWorld.BatchesOf(world);
-        var withoutReceipt = new BatchOpening(IngestionWorld.Domain, IngestionWorld.Person, null, null, OriginDeclaration.Unknown);
 
-        _ = await Assert.ThrowsAsync<ArgumentException>(() => batches.OpenAsync(withoutReceipt, TestContext.Current.CancellationToken));
+        var definition = (string?)await world.ScalarAsync("SELECT pg_catalog.pg_get_constraintdef(oid) FROM pg_catalog.pg_constraint WHERE conname = 'ingestion_batch_origin_state'");
+
+        Assert.Contains("(submission IS NULL) = (origin_state IS NULL)", definition, StringComparison.Ordinal);
     }
 
     [DatabaseTheory]
@@ -135,7 +135,7 @@ public sealed class BatchOriginTests
     private static async Task<long> OpenAsync(ContentWorld world, OriginDeclaration origin, string submission)
     {
         var opened = await IngestionWorld.BatchesOf(world).OpenAsync(
-            new BatchOpening(IngestionWorld.Domain, IngestionWorld.Person, null, new SubmissionReceipt(submission, 1, Hex64), origin), TestContext.Current.CancellationToken);
+            new BatchOpening(IngestionWorld.Domain, IngestionWorld.Person, null, new SubmissionOpening(new SubmissionReceipt(submission, 1, Hex64), origin)), TestContext.Current.CancellationToken);
         Assert.Equal(BatchOutcome.Opened, opened.Outcome);
         return opened.BatchId!.Value;
     }

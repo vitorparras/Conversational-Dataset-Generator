@@ -320,3 +320,8 @@ h1 + .lead { margin-top: 0; }
 .row { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-5); }
 .row > strong, .row > strong + span { flex: 0 1 var(--term-width); min-width: 0; overflow-wrap: anywhere; }
 .form > .notice { margin-bottom: var(--space-5); }
+
+/* The sample of a review: the items in the order of the draw, each in its panel, and the text as it is, in its lines, never cut. */
+.sample { display: grid; gap: var(--space-4); margin: var(--space-5) 0; padding: 0; list-style: none; }
+.sample__version { color: var(--ink-muted); font-size: var(--text-sm); }
+.sample__text { margin: 0 0 var(--space-4); padding: var(--space-3) var(--space-4); border-left: var(--line-strong) solid var(--edge); white-space: pre-wrap; overflow-wrap: anywhere; }

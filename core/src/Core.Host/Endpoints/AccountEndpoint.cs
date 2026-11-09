@@ -12,8 +12,6 @@ internal static class AccountEndpoint
 {
     internal const string Route = "/account";
 
-    private const string WrongCurrent = "A senha atual não confere.";
-    private const string BlankSecret = "A nova senha não pode ser vazia.";
 
     internal static void Map(IEndpointRouteBuilder endpoints)
     {
@@ -56,9 +54,9 @@ internal static class AccountEndpoint
     private static IResult Answer(PasswordChangeResult result) => result.Outcome switch
     {
         PasswordChangeOutcome.Changed => Results.Ok(new PasswordChanged(result.SessionsEnded)),
-        PasswordChangeOutcome.EmptyReplacement => OperatorAnswer.AtField("senha-nova", BlankSecret),
+        PasswordChangeOutcome.EmptyReplacement => OperatorAnswer.AtField("senha-nova", PasswordChangeWords.BlankReplacement),
         PasswordChangeOutcome.NotWritten => OperatorAnswer.Of(result.Failure!),
-        PasswordChangeOutcome.Refused => OperatorAnswer.AtField("senha-atual", WrongCurrent),
+        PasswordChangeOutcome.Refused => OperatorAnswer.AtField("senha-atual", PasswordChangeWords.WrongCurrent),
         _ => throw new ArgumentOutOfRangeException(nameof(result), result.Outcome, "The change ended in a way the route does not answer."),
     };
 }

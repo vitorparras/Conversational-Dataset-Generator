@@ -94,6 +94,15 @@ public static class ContentQueries
     internal const string ReadItemEmptied = "SELECT true FROM content.item_emptied WHERE item_id = @id";
 
     /// <summary>
+    /// When, by whom, why and for which protocol an item of the domain was emptied, none when it was not:
+    /// the table of the items emptied joined to the event of the chain, with no text read.
+    /// </summary>
+    internal const string ReadEmptiedItem =
+        "SELECT e.occurred_at, p.name, e.reason, e.reference FROM content.item_emptied i "
+        + "JOIN public.custody_event e ON e.item_id = i.item_id AND e.item_kind = 'item_text' AND e.step = 'item_emptied' "
+        + "JOIN public.person p ON p.id = e.actor_person_id WHERE i.item_id = @id ORDER BY e.sequence LIMIT 1";
+
+    /// <summary>
     /// Empties an item: the marker is set and every column of content is cleared, the key of the item with them, in one statement; an item emptied already is left as it is.
     /// </summary>
     internal const string EmptyItemText =

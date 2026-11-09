@@ -1,0 +1,73 @@
+name: Build remoto
+
+# Só sob demanda, e nunca entre os checks de um pull request: o Dev confere num runner do GitHub o
+# que o build local com trava conferia (o build em Release com analisadores, o formato e, se pedido,
+# os testes de arquitetura), sem depender da memória da máquina dele. Roda a partir do main e faz o
+# checkout da branch recebida; por isso funciona para uma branch antiga, que não tem este arquivo.
+# Não grava nada: o token só lê o conteúdo. Dispara com `bash C:/tmp/build-remoto.sh <branch>`.
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch (ou commit) a construir
+        required: true
+        type: string
+      architecture:
+        description: Rodar também o Core.Tests.Architecture
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+  MSBUILDDISABLENODEREUSE: '1'
+
+jobs:
+  build:
+    name: Build, formato e arquitetura da branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.branch }}
+          persist-credentials: false
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+      - name: Construir em Release com analisadores, verificar o formato e, se pedido, rodar a arquitetura
+        env:
+          ARCHITECTURE: ${{ inputs.architecture }}
+          BRANCH: ${{ inputs.branch }}
+        run: |
+          set +e
+          dotnet build core/Core.slnx -c Release -m:2 -nodeReuse:false -p:UseSharedCompilation=false -nologo -clp:ErrorsOnly > "$RUNNER_TEMP/build.log" 2>&1
+          build=$?
+          dotnet format core/Core.slnx --verify-no-changes --no-restore > "$RUNNER_TEMP/format.log" 2>&1
+          format=$?
+          architecture=skipped
+          shown() { if [ "$architecture" = skipped ]; then echo "build=$build format=$format"; else echo "build=$build format=$format architecture=$architecture"; fi; }
+          : > "$RUNNER_TEMP/architecture.log"
+          if [ "$ARCHITECTURE" = true ]; then
+            dotnet test core/tests/Core.Tests.Architecture -c Release -m:2 -nodeReuse:false -p:UseSharedCompilation=false -nologo > "$RUNNER_TEMP/architecture.log" 2>&1
+            architecture=$?
+          fi
+          errors() { grep -E "error|Failed|failed|Passed!|Build succeeded" "$1" | sort -u | head -60; }
+          {
+            echo "### $(shown)"
+            echo
+            echo "- branch: \`$BRANCH\` em \`$(git rev-parse --short HEAD)\`"
+            for part in build format architecture; do
+              echo
+              echo "#### $part"
+              echo '```'
+              errors "$RUNNER_TEMP/$part.log"
+              echo '```'
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+          shown
+          for part in build format architecture; do errors "$RUNNER_TEMP/$part.log"; done
+          [ "$build" = 0 ] && [ "$format" = 0 ] && { [ "$architecture" = skipped ] || [ "$architecture" = 0 ]; }

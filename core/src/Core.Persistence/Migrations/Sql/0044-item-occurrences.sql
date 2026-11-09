@@ -27,7 +27,7 @@ CREATE TRIGGER emptied_content_is_final BEFORE UPDATE ON content.item_text
     EXECUTE FUNCTION public.refuse_change_of_emptied_content();
 ALTER TABLE content.item_text ENABLE ALWAYS TRIGGER emptied_content_is_final;
 
--- Reading the occurrences is an event of the chain about the item, the step occurrences_read; only the list of the steps grows (the last one is the step 0041's), and every clause the chain fixes stays.
+-- Reading the occurrences is an event of the chain about the item, the step occurrences_read; only the list of the steps grows (the last one is the step 0042's), and every clause the chain fixes stays.
 ALTER TABLE public.custody_event
     DROP CONSTRAINT custody_event_step_listed,
     ADD CONSTRAINT custody_event_step_listed CHECK (step IN
@@ -36,9 +36,9 @@ ALTER TABLE public.custody_event
          'domain_created', 'seal_recorded', 'domain_label_rotated',
          'sign_in_accepted', 'sign_in_refused', 'credential_recomputed', 'key_loss_declared', 'recovery_tested', 'verify_guarantees',
          'owner_window_opened', 'owner_window_closed', 'restored', 'restore_rehearsed', 'domain_label_revoked', 'domain_rewrapped',
-         'batch_opened', 'batch_closed', 'password_changed', 'configuration_submitted', 'occurrences_read'));
+         'batch_opened', 'batch_closed', 'password_changed', 'configuration_submitted', 'origin_read', 'occurrences_read'));
 
--- Reading the destinations of an item is a reading like the others (the 0013), so it goes on while the chain is broken, recorded in the chain: the function is the 0022 as it was, with the new step among the
+-- Reading the destinations of an item is a reading like the others (the 0013), so it goes on while the chain is broken, recorded in the chain: the function is the 0042 as it was, with the new step among the
 -- readings the chain accepts after a failed verification. Everything else it does is untouched.
 CREATE OR REPLACE FUNCTION public.custody_event_link() RETURNS trigger
 LANGUAGE plpgsql
@@ -53,7 +53,7 @@ BEGIN
             USING ERRCODE = 'CE003', SCHEMA = 'public', TABLE = 'custody_event';
     END IF;
 
-    IF NEW.step NOT IN ('verify_chain', 'raw_text_read', 'sanitized_text_read', 'reversal_entries_read', 'occurrences_read', 'sign_in_accepted', 'sign_in_refused', 'credential_recomputed')
+    IF NEW.step NOT IN ('verify_chain', 'raw_text_read', 'sanitized_text_read', 'reversal_entries_read', 'origin_read', 'occurrences_read', 'sign_in_accepted', 'sign_in_refused', 'credential_recomputed')
         AND public.custody_chain_broken() THEN
         RAISE EXCEPTION 'the custody chain failed its last verification: only a verification, a reading or an entry is added until the chain is restored'
             USING ERRCODE = 'CE002', SCHEMA = 'public', TABLE = 'custody_event';

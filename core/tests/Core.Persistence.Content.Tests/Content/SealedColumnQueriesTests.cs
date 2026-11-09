@@ -19,10 +19,8 @@ public sealed class SealedColumnQueriesTests
     }
 
     [Fact]
-    public void TheSealedColumnsAreTheOnesTheContentMarks()
-    {
+    public void TheSealedColumnsAreTheOnesTheContentMarks() =>
         Assert.Equal(["raw_text", "sanitized_text", "dek_wrapped", "entries", "origin"], Sealed);
-    }
 
     [Theory]
     [InlineData("SELECT id FROM content.item_text WHERE raw_text = @x")]
@@ -35,18 +33,14 @@ public sealed class SealedColumnQueriesTests
     [InlineData("SELECT id FROM content.item_text WHERE dek_wrapped IS NULL")]
     [InlineData("UPDATE content.item_text SET dek_epoch = @e WHERE raw_text = @x")]
     [InlineData("DELETE FROM content.item_text WHERE raw_text = @x")]
-    public void FilterOrderGroupJoinComparisonOrFunctionOverASealedColumnIsFound(string statement)
-    {
+    public void FilterOrderGroupJoinComparisonOrFunctionOverASealedColumnIsFound(string statement) =>
         Assert.NotEmpty(SealedColumnUse.Beyond(statement, Sealed));
-    }
 
     [Theory]
     [InlineData("SELECT raw_text, dek_epoch, dek_wrapped FROM content.item_text WHERE id = @id")]
     [InlineData("INSERT INTO content.item_text (domain_id, raw_text, dek_wrapped) VALUES (@d, @r, @w) RETURNING id")]
     [InlineData("UPDATE content.item_text SET raw_text = NULL, dek_wrapped = NULL WHERE id = @id")]
     [InlineData("SELECT pg_catalog.to_jsonb(t)::text FROM content.batch_origin t ORDER BY id")]
-    public void ColumnThatOnlyPassesThroughIsNotFound(string statement)
-    {
+    public void ColumnThatOnlyPassesThroughIsNotFound(string statement) =>
         Assert.Empty(SealedColumnUse.Beyond(statement, Sealed));
-    }
 }

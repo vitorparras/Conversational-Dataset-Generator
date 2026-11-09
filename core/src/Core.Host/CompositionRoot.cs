@@ -70,11 +70,7 @@ internal static class CompositionRoot
         }
         finally
         {
-            if (startup is not null)
-            {
-                await startup.DisposeAsync();
-            }
-
+            await (startup?.DisposeAsync() ?? ValueTask.CompletedTask);
             fileLog?.Dispose();
         }
     }
@@ -171,8 +167,8 @@ internal static class CompositionRoot
         AddAnalysis(builder.Services, loaded.Values, analyzeTimeout);
         _ = builder.Services.AddSingleton(PasswordConfiguration.Derivation(loaded.Values)).AddSingleton(VerificationConfiguration.Schedule(loaded.Values))
             .AddSingleton(SealConfiguration.Declaration(loaded.Values))
-            .AddSingleton(provider => Submissions.SubmissionParts.BatchesOf(provider, loaded.Values)).AddSingleton(Submissions.SubmissionParts.RegisterOf)
-            .AddSingleton(provider => Submissions.SubmissionParts.ServicesOf(provider, loaded.Values));
+            .AddSingleton(provider => SubmissionParts.BatchesOf(provider, loaded.Values)).AddSingleton(SubmissionParts.RegisterOf)
+            .AddSingleton(provider => SubmissionParts.ServicesOf(provider, loaded.Values));
         _ = builder.Services.AddSingleton(_ => new ServerAuditLog(AuditConfiguration.ServerLogDirectory(loaded.Values))).AddSingleton<AuditComparisonState>();
         _ = builder.Services.AddHostedService(provider => new AuditComparisonService(
             new AuditComparisonPlan(
@@ -220,8 +216,7 @@ internal static class CompositionRoot
     private static ProtectedContentReader ContentReader(NpgsqlDataSource source, MasterKeyReading reading) =>
         new(source, new ProtectedContent(reading.Labels, KeysOf(reading), new HashSet<string>()), new CustodyChain(source));
 
-    /// <summary>The recognizer of the service the supervisor has alive now, with its secret and the client that never goes through a proxy;
-    /// with no such service, one that refuses without connecting, so that nothing goes to the port a service that is gone once held.</summary>
+    /// <summary>The recognizer of the live service, with its secret and a client that skips proxies; with no service, one that refuses without connecting.</summary>
     private static IRecognizer Recognizer(IServiceProvider host, TimeSpan analyzeTimeout)
     {
         var startup = host.GetRequiredService<ServiceProvider>();
@@ -243,5 +238,10 @@ internal static class CompositionRoot
     }
 
     /// <summary>A web host with no configuration source of its own, so nothing reaches it except what the closed configuration approved.</summary>
-    internal static WebApplicationBuilder ClosedBuilder(string urls) => HostBuilders.Closed(urls);
+    internal static WebApplicationBuilder ClosedBuilder(string urls)
+    {
+        var builder = HostBuilders.Closed(urls);
+        _ = builder.Services.AddRoutingCore();
+        return builder;
+    }
 }

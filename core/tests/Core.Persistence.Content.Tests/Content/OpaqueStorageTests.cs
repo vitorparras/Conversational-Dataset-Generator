@@ -82,10 +82,15 @@ public sealed class OpaqueStorageTests
         // The content changes only by the emptying (CE004) and a key is wrapped again only with the event of the rotation (CE005): triggers that fire for the owner too.
         // Whoever writes in clear sets them aside for the one statement, as an owner would.
         var table = $"{parts[0]}.{parts[1]}";
-        var gate = parts[1] == "item_text" ? "item_change_needs_event" : "map_change_needs_event";
+        string[] gates = parts[1] switch
+        {
+            "item_text" => ["emptied_content_is_final", "item_change_needs_event"],
+            "reversal_map" => ["emptied_content_is_final", "map_change_needs_event"],
+            _ => ["origin_change_is_bounded"],
+        };
         // nosemgrep: sql-concatenation-csharp interpolates the names of a column read from the catalog of a throwaway database, never input.
-        var statement = $"ALTER TABLE {table} DISABLE TRIGGER emptied_content_is_final; ALTER TABLE {table} DISABLE TRIGGER {gate}; UPDATE {table} SET {parts[2]} = @text; "
-            + $"ALTER TABLE {table} ENABLE ALWAYS TRIGGER emptied_content_is_final; ALTER TABLE {table} ENABLE ALWAYS TRIGGER {gate}";
+        var statement = string.Concat(gates.Select(gate => $"ALTER TABLE {table} DISABLE TRIGGER {gate}; "))
+            + $"UPDATE {table} SET {parts[2]} = @text; " + string.Concat(gates.Select(gate => $"ALTER TABLE {table} ENABLE ALWAYS TRIGGER {gate}; "));
         await world.Database.ExecuteAsSuperuserAsync(statement, ("text", clear));
     }
 }

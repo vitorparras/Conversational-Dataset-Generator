@@ -1,5 +1,6 @@
 using Core.Host.Submissions;
 using Core.Persistence.People;
+using Core.Platform.Keys;
 using Core.Platform.Sessions;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
@@ -120,14 +121,8 @@ internal static class SubmissionsEndpoint
             return new Obtained(null, Results.StatusCode(StatusCodes.Status503ServiceUnavailable), null);
         }
 
-        try
-        {
-            return new Obtained(await services.GetAsync(cancellationToken), null, null);
-        }
-        catch (ContentKeyUnavailableException failure)
-        {
-            return new Obtained(failure.Unsealed, null, failure);
-        }
+        var loaded = await services.GetAsync(cancellationToken);
+        return new Obtained(loaded.Service, null, loaded.Unsealed);
     }
 
     /// <summary>The domains granted to the requester; none while no grant is recorded (#112), which makes every domain one that does not exist for them.</summary>
@@ -145,5 +140,5 @@ internal static class SubmissionsEndpoint
         }
     }
 
-    private sealed record Obtained(SubmissionService? Service, IResult? Failure, ContentKeyUnavailableException? Unsealed);
+    private sealed record Obtained(SubmissionService? Service, IResult? Failure, MasterKeyFailureKind? Unsealed);
 }

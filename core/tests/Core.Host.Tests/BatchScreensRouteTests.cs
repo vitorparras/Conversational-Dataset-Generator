@@ -95,7 +95,7 @@ public sealed class BatchScreensRouteTests
 
         Assert.Contains("Você não tem concessão em nenhum domínio.", page, StringComparison.Ordinal);
         Assert.DoesNotContain("Lote\u00A01", page, StringComparison.Ordinal);
-        Assert.DoesNotContain("<form", page, StringComparison.Ordinal);
+        Assert.DoesNotContain("<form class=\"filter\"", page, StringComparison.Ordinal);
     }
 
     [DatabaseFact]

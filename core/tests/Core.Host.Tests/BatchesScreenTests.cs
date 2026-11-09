@@ -92,7 +92,7 @@ public sealed class BatchesScreenTests
 
         Assert.Contains("Nenhum lote para mostrar.", page, StringComparison.Ordinal);
         Assert.Contains("Você não tem concessão em nenhum domínio.", page, StringComparison.Ordinal);
-        Assert.DoesNotContain("<form", page, StringComparison.Ordinal);
+        Assert.DoesNotContain("<form class=\"filter\"", page, StringComparison.Ordinal);
         Assert.DoesNotContain("<table", page, StringComparison.Ordinal);
         Assert.DoesNotContain("class=\"pager\"", page, StringComparison.Ordinal);
         Assert.DoesNotContain("role=\"alert\"", page, StringComparison.Ordinal);

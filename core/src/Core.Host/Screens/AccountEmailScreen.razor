@@ -12,7 +12,7 @@
 }
 <form class="form" method="post" action="@ScreenPaths.AccountEmail" novalidate>
     <Field Id="conta-email" Name="@EmailField" Caption="E-mail (opcional)" Type="email" Value="@Address" Autocomplete="email" Error="@Error"
-           Hint="Um endereço só, como nome@exemplo.org. Ele nunca aparece em registro do sistema." />
+           Hint="Um endereço só, como nome@exemplo.org. Ele nunca aparece em log nem em histórico do sistema." />
     <div class="actions">
         <Button Id="guardar-email">Guardar</Button>
         <Button Href="@ScreenPaths.Account" Kind="Button.Look.Secondary">Voltar à conta</Button>

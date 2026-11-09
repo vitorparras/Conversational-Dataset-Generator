@@ -106,7 +106,15 @@ public sealed class PeopleEmailTests(BrowserFixture browser, PeopleHostFixture p
         foreach (var other in new[] { people.Host.Annotator, people.Host.Auditor, people.Host.Administrator })
         {
             await using var tab = await OpenAsync(browser, people.Host, other, Own);
-            foreach (var route in new[] { Own, $"{Own}?pessoa={people.Host.Curator}", $"{Own}?nome={people.Host.Curator}&id=1&email={Uri.EscapeDataString(address)}", $"{Own}/{people.Host.Curator}", $"{Own}?guardado" })
+            string[] routes =
+            [
+                Own,
+                $"{Own}?pessoa={people.Host.Curator}",
+                $"{Own}?nome={people.Host.Curator}&id=1&email={Uri.EscapeDataString(address)}",
+                $"{Own}/{people.Host.Curator}",
+                $"{Own}?guardado",
+            ];
+            foreach (var route in routes)
             {
                 _ = await tab.Page.GotoAsync(route);
 

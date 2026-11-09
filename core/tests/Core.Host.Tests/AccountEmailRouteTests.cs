@@ -44,19 +44,27 @@ public sealed class AccountEmailRouteTests
         Assert.Equal(HttpStatusCode.ServiceUnavailable, shown.StatusCode);
     }
 
-    [Theory]
-    [InlineData(null, false, null)]
-    [InlineData("zqx@example.test", true, "Endereço de e-mail guardado.")]
-    [InlineData(null, true, "Você está sem endereço de e-mail.")]
-    public async Task ThePageOfTheAccountOffersTheAddressAsAnOptionalFieldAndSaysWhatTheSavingDid(string? address, bool saved, string? said)
+    [Fact]
+    public async Task ThePageOfTheAccountOffersTheAddressAsAnOptionalFieldAndSaysNothingBeforeASaving()
     {
-        var page = await RenderAsync<AccountEmailScreen>(new Dictionary<string, object?> { ["Address"] = address, ["Saved"] = saved });
+        var page = await RenderAsync<AccountEmailScreen>(new Dictionary<string, object?> { ["Address"] = null, ["Saved"] = false });
 
         Assert.Contains("type=\"email\"", page, StringComparison.Ordinal);
         Assert.Contains("Só você e a administração técnica o veem.", page, StringComparison.Ordinal);
         Assert.DoesNotContain("aria-required", page, StringComparison.Ordinal);
-        Assert.Equal(said is not null, said is not null && page.Contains(said, StringComparison.Ordinal));
-        Assert.Equal(address is not null, address is not null && page.Contains($"value=\"{address}\"", StringComparison.Ordinal));
+        Assert.DoesNotContain("class=\"notice", page, StringComparison.Ordinal);
+        Assert.DoesNotContain("value=\"", page, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("zqx@example.test", "Endereço de e-mail guardado.", "value=\"zqx@example.test\"")]
+    [InlineData(null, "Você está sem endereço de e-mail.", "type=\"email\" autocomplete=\"email\"")]
+    public async Task AfterASavingThePageSaysWhatTheSavingDidAndGivesTheAddressKept(string? address, string said, string shown)
+    {
+        var page = await RenderAsync<AccountEmailScreen>(new Dictionary<string, object?> { ["Address"] = address, ["Saved"] = true });
+
+        Assert.Contains(said, page, StringComparison.Ordinal);
+        Assert.Contains(shown, page, StringComparison.Ordinal);
     }
 
     [Fact]

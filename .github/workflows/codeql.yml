@@ -38,10 +38,8 @@ jobs:
             build-mode: none
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+      - uses: ./.github/actions/setup-dotnet
         if: matrix.language == 'csharp'
-        with:
-          global-json-file: global.json
       - uses: github/codeql-action/init@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
         with:
           languages: ${{ matrix.language }}
@@ -50,7 +48,7 @@ jobs:
       - name: Construir o núcleo para a extração do CodeQL
         if: matrix.language == 'csharp'
         run: |
-          dotnet restore core/Core.slnx --locked-mode
+          python3 tools/verify-code/retry.py -- dotnet restore core/Core.slnx --locked-mode
           dotnet build core/Core.slnx --no-restore
       - uses: github/codeql-action/analyze@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
         with:

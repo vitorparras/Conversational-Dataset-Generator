@@ -8,6 +8,7 @@ runs:
       shell: bash
       run: |
         mkdir -p "$RUNNER_TEMP/trivy"
-        curl -sSfL https://github.com/aquasecurity/trivy/releases/download/v0.76.0/trivy_0.76.0_Linux-64bit.tar.gz \
-          | tar -xz -C "$RUNNER_TEMP/trivy" trivy
+        archive="$RUNNER_TEMP/trivy.tar.gz"
+        python3 tools/verify-code/retry.py -- curl -sSfL -o "$archive" https://github.com/aquasecurity/trivy/releases/download/v0.76.0/trivy_0.76.0_Linux-64bit.tar.gz
+        tar -xz -C "$RUNNER_TEMP/trivy" -f "$archive" trivy
         echo "$RUNNER_TEMP/trivy" >> "$GITHUB_PATH"

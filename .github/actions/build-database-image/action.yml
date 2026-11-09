@@ -9,5 +9,5 @@ runs:
     - name: Construir a imagem com o log inteiro
       shell: bash
       run: |
-        docker build --progress=plain --tag cdg-test-database:ci tools/database
+        python3 tools/verify-code/retry.py -- docker build --progress=plain --tag cdg-test-database:ci tools/database
         echo "TEST_DATABASE_IMAGE=cdg-test-database:ci" >> "$GITHUB_ENV"

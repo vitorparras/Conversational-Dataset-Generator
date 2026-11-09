@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using Core.Host.Endpoints;
 using Core.Host.Submissions;
+using Core.Persistence.Domains;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Fixtures;
 using Microsoft.AspNetCore.Builder;
@@ -184,7 +185,9 @@ public sealed class SubmissionRoutesTests
         var cancellationToken = TestContext.Current.CancellationToken;
         await using var world = await SubmissionWorld.CreateAsync();
         await using var host = await SessionedHost.StartAsync(
-            services => services.AddSingleton(SubmissionServiceHolder.Of(world.Service, 1_000_000)).AddSingleton<IGrantedDomains>(new GrantedTo(SubmissionWorld.Domain)),
+            services => services.AddSingleton(SubmissionServiceHolder.Of(world.Service, 1_000_000))
+                .AddSingleton<DomainGrants>(new GrantsByName(SubmissionWorld.NameOf(SubmissionWorld.Domain)))
+                .AddSingleton(new DomainListing(world.DataSource)),
             routes =>
             {
                 ScreenGate.Use((IApplicationBuilder)routes);
@@ -251,7 +254,8 @@ public sealed class SubmissionRoutesTests
             services => services.AddSingleton(holder ?? SubmissionServiceHolder.Of(world.Service, maxBytes))
                 .AddSingleton(new BatchRegister(world.DataSource))
                 .AddSingleton(new IntakeDoor(world.DataSource))
-                .AddSingleton<IGrantedDomains>(new GrantedTo(granted)),
+                .AddSingleton<DomainGrants>(new GrantsByName(SubmissionWorld.NameOf(granted)))
+                .AddSingleton(new DomainListing(world.DataSource)),
             SubmissionsEndpoint.Map,
             cancellationToken);
 

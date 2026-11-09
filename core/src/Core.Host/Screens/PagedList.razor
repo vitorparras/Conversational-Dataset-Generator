@@ -17,11 +17,20 @@ else
             <li>@ItemContent(item)</li>
         }
     </ul>
-    <nav class="pager" aria-label="Páginas de @Caption.ToLowerInvariant()">
-        @Edge(Page > 1, Page - 1, "Anterior", "prev")
-        <span aria-current="page">Página @Page de @PageCount, @PageSize por página</span>
-        @Edge(Page < PageCount, Page + 1, "Próxima", "next")
-    </nav>
+    @if (PageCount > 1)
+    {
+        <nav class="pager" aria-label="Páginas de @Caption.ToLowerInvariant()">
+            @if (Page > 1)
+            {
+                <a href="@Address(Page - 1)" rel="prev">Anterior</a>
+            }
+            <span aria-current="page">Página @Page de @PageCount, @PageSize por página</span>
+            @if (Page < PageCount)
+            {
+                <a href="@Address(Page + 1)" rel="next">Próxima</a>
+            }
+        </nav>
+    }
 }
 
 @code {
@@ -39,6 +48,7 @@ else
     [Parameter]
     public int Page { get; set; } = 1;
 
+    /// <summary>How many pages the filter leaves: with one there is nowhere to go and no pager is shown, and a way with no page behind it is never shown as dead text.</summary>
     [Parameter]
     public int PageCount { get; set; } = 1;
 
@@ -56,8 +66,4 @@ else
 
     [Parameter]
     public string? EmptyHint { get; set; }
-
-    private RenderFragment Edge(bool open, int page, string word, string relation) => open
-        ? @<a href="@Address(page)" rel="@relation">@word</a>
-        : @<span class="pager__edge">@word</span>;
 }

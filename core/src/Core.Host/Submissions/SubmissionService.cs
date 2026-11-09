@@ -38,7 +38,7 @@ internal sealed class SubmissionService
 
     /// <summary>Whether the ingestion takes material in: open, or blocked by the code of what is missing (decision 0014).</summary>
     /// <param name="cancellationToken">Cancels the question.</param>
-    internal Task<SubmissionGateStatus> GateAsync(CancellationToken cancellationToken) => SubmissionGateStatus.OfAsync(dataSource, cancellationToken);
+    internal Task<SubmissionGateStatus> GateAsync(CancellationToken cancellationToken) => new IntakeDoor(dataSource).StatusAsync(cancellationToken);
 
     /// <summary>
     /// Takes a file in: validates the fields, passes the file through the barrier and the conference, and records the submission in a batch,
@@ -143,7 +143,7 @@ internal sealed class SubmissionService
             return new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = BatchOutcome.DomainUnknown };
         }
 
-        var opening = new BatchOpening(request.DomainId, request.AuthorId, request.Condition, receipt, origin, reason?.Code);
+        var opening = new BatchOpening(request.DomainId, request.AuthorId, request.Condition, new SubmissionOpening(receipt, origin)) { RejectedFor = reason?.Code };
         var opened = await batches.OpenAsync(opening, cancellationToken).ConfigureAwait(false);
         if (opened.Outcome != (reason is null ? BatchOutcome.Opened : BatchOutcome.Rejected))
         {

@@ -1,4 +1,3 @@
-using System.Data;
 using System.Runtime.CompilerServices;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
@@ -64,7 +63,7 @@ public sealed class ConfigurationChanges
                 var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
                 await using (reader.ConfigureAwait(false))
                 {
-                    return await reader.ReadAsync(cancellationToken).ConfigureAwait(false) ? Read(changeId, reader) : null;
+                    return await reader.ReadAsync(cancellationToken).ConfigureAwait(false) ? Read(changeId, name => reader[name]) : null;
                 }
             }
         }
@@ -81,16 +80,16 @@ public sealed class ConfigurationChanges
         return new CustodyChain(dataSource).AppendAsync(CustodyEvent.ConfigurationDecided(deciderId, change.Id, change.Sequence, approved), cancellationToken);
     }
 
-    private static SubmittedChange Read(long changeId, IDataRecord reader) => new()
+    private static SubmittedChange Read(long changeId, Func<string, object> column) => new()
     {
         Id = changeId,
-        Key = (string)reader["config_key"],
-        Value = (string)reader["new_value"],
-        Motive = (string)reader["motive"],
-        AuthorId = (long)reader["submitted_by"],
-        SubmittedAt = new DateTimeOffset((DateTime)reader["submitted_at"]),
-        Sequence = (long)reader["sequence"],
-        Decided = (bool)reader["decided"],
+        Key = (string)column("config_key"),
+        Value = (string)column("new_value"),
+        Motive = (string)column("motive"),
+        AuthorId = (long)column("submitted_by"),
+        SubmittedAt = new DateTimeOffset((DateTime)column("submitted_at")),
+        Sequence = (long)column("sequence"),
+        Decided = (bool)column("decided"),
     };
 
     private async Task<ConfigurationChangeResult> SubmittingAsync(ConfigurationSubmission submission, CancellationToken cancellationToken)

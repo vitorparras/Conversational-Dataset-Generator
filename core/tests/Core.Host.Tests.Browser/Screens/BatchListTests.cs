@@ -26,7 +26,7 @@ public sealed class BatchListTests(BrowserFixture browser, GrantedBatchesHostFix
     {
         await using var tab = await OpenAsync(granted.Host);
 
-        Assert.Equal(["Lote 1"], await tab.Page.Locator($"{Rows} th[scope=row]").AllInnerTextsAsync());
+        Assert.Equal(["Lote\u00A01"], await tab.Page.Locator($"{Rows} th[scope=row]").AllInnerTextsAsync());
         await Expect(tab.Page.Locator($"{Rows} td").Nth(0)).ToHaveTextAsync(BatchScreenHost.Granted);
         await Expect(tab.Page.Locator($"{Rows} td").Nth(2)).ToHaveTextAsync("zqx-seed");
         await Expect(tab.Page.Locator("main")).Not.ToContainTextAsync(BatchScreenHost.Other);
@@ -38,6 +38,7 @@ public sealed class BatchListTests(BrowserFixture browser, GrantedBatchesHostFix
     {
         await using var tab = await OpenAsync(granted.Host);
 
+        await tab.Page.GetByText("Filtrar por estado e período").ClickAsync();
         await tab.Page.GetByLabel("Rejeitados").CheckAsync();
         await tab.Page.GetByRole(AriaRole.Button, new() { Name = "Filtrar" }).ClickAsync();
 
@@ -79,7 +80,7 @@ public sealed class BatchListTests(BrowserFixture browser, GrantedBatchesHostFix
 
         Assert.Equal((StatusNotFound, StatusNotFound), (answer?.Status, missing?.Status));
         Assert.Equal(missingPage.Replace(Missing.TrimStart('/'), string.Empty, StringComparison.Ordinal), page.Replace(Route.TrimStart('/'), string.Empty, StringComparison.Ordinal));
-        Assert.DoesNotContain("Lote 1", page, StringComparison.Ordinal);
+        Assert.DoesNotContain("Lote\u00A01", page, StringComparison.Ordinal);
     }
 
     [Theory]

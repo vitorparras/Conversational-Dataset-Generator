@@ -4,20 +4,21 @@
 <h1>@Title</h1>
 <p class="lead">
     Os lotes dos domínios que você alcança, do mais novo ao mais antigo, cada um com o domínio, o estado, o motivo de uma recusa e o recibo do envio.
-    Nenhum texto do material aparece aqui.
+    A lista traz todos os domínios que você alcança, qualquer que seja o domínio de trabalho escolhido no cabeçalho. Nenhum texto do material aparece aqui.
 </p>
 
 @if (!Granted)
 {
-    <Panel Id="lotes" Title="Lotes">
+    <Panel Id="lotes" Title="Lista de lotes">
         <EmptyState Title="Nenhum lote para mostrar."><p>Você não tem concessão em nenhum domínio. Quem administra o sistema é quem concede.</p></EmptyState>
     </Panel>
 }
 else
 {
-    <Panel Id="filtro" Title="Filtrar">
+    <details id="filtro" class="panel filter-box" open="@Filtered">
+        <summary class="filter-box__summary">Filtrar por estado e período@(Filtered ? " (filtro em uso)" : null)</summary>
         <form class="filter" method="get">
-            <ChoiceGroup Name="@StateKey" Legend="Estado" Options="StateChoices" Value="@(State ?? string.Empty)" />
+            <ChoiceGroup Name="@StateKey" Legend="Estado" Options="StateChoices" Value="@(State ?? string.Empty)" Inline="true" />
             <Field Id="filtro-de" Name="@FromKey" Caption="Enviados a partir de" Type="date" Value="@From" Error="@FromError" />
             <Field Id="filtro-ate" Name="@UntilKey" Caption="Enviados até" Type="date" Value="@Until" Error="@UntilError" />
             <div class="actions">
@@ -25,9 +26,9 @@ else
                 <Button Href="?" Kind="Button.Look.Quiet">Limpar filtro</Button>
             </div>
         </form>
-    </Panel>
+    </details>
 
-    <Panel Id="lotes" Title="Lotes">
+    <Panel Id="lotes" Title="Lista de lotes">
         @if (Rows.Count == 0)
         {
             <EmptyState Title="Nenhum lote com esse filtro."><p>Mude ou limpe o filtro para ver os outros.</p></EmptyState>
@@ -39,7 +40,7 @@ else
                     @foreach (var row in Rows)
                     {
                         <tr role="row">
-                            <th scope="row" role="rowheader">Lote @row.Id.ToString(CultureInfo.InvariantCulture)</th>
+                            <th scope="row" role="rowheader">Lote&nbsp;@row.Id.ToString(CultureInfo.InvariantCulture)</th>
                             <td role="cell">@row.Domain</td>
                             <td role="cell">
                                 <StateMark Kind="BatchTexts.ToneOf(row.State)">@BatchTexts.StateOf(row.State)</StateMark>
@@ -54,7 +55,10 @@ else
                                 @if (row.Receipt is { } receipt)
                                 {
                                     <p>@BatchTexts.SizeOf(receipt.Bytes)</p>
-                                    <p>Resumo (SHA-256): <code class="digest">@receipt.Digest</code></p>
+                                    <details class="digest-box">
+                                        <summary>Resumo (SHA-256): <code class="digest" aria-hidden="true">@receipt.Digest</code> mostrar inteiro</summary>
+                                        <code class="digest-box__full">@receipt.Digest</code>
+                                    </details>
                                     @if (receipt.Warning is { } warning)
                                     {
                                         <p>@BatchTexts.WarningOf(warning)</p>
@@ -90,11 +94,14 @@ else
     /// <summary>How many batches a page holds.</summary>
     internal const int Size = 20;
 
+    /// <summary>Whether a filter is in use, or refused; the box of the filter then opens by itself, and folds otherwise so the list comes first.</summary>
+    private bool Filtered => new[] { State, From, Until, FromError, UntilError }.Any(value => !string.IsNullOrEmpty(value));
+
     private const string NoReceipt = "Sem envio registrado";
 
     private const string NotADay = "Escreva a data como dia, mês e ano; ela ficou de fora do filtro.";
 
-    private static readonly string[] Columns = { "Lote", "Domínio", "Estado", "Enviado por", "Quando", "Recibo do envio" };
+    private static readonly string[] Columns = { "Lote", "Domínio", "Estado", "Enviado por", "Quando", "Recibo do envio" };
 
     private static readonly ChoiceGroup.Option[] StateChoices =
     {

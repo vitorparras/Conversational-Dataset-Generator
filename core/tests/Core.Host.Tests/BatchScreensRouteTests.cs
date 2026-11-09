@@ -35,10 +35,10 @@ public sealed class BatchScreensRouteTests
 
         var page = await world.PageAsync("/lotes", world.Curator);
 
-        Assert.Contains("Lote 1", page, StringComparison.Ordinal);
+        Assert.Contains("Lote\u00A01", page, StringComparison.Ordinal);
         Assert.Contains(Granted, page, StringComparison.Ordinal);
         Assert.Contains(CuratorName, page, StringComparison.Ordinal);
-        Assert.DoesNotContain("Lote 2", page, StringComparison.Ordinal);
+        Assert.DoesNotContain("Lote\u00A02", page, StringComparison.Ordinal);
         Assert.DoesNotContain(Other, page, StringComparison.Ordinal);
     }
 
@@ -49,7 +49,7 @@ public sealed class BatchScreensRouteTests
 
         var page = await world.PageAsync("/lotes?estado=rejeitados", world.Curator);
 
-        Assert.DoesNotContain("Lote 1", page, StringComparison.Ordinal);
+        Assert.DoesNotContain("Lote\u00A01", page, StringComparison.Ordinal);
         Assert.Contains("Nenhum lote com esse filtro.", page, StringComparison.Ordinal);
     }
 
@@ -61,7 +61,7 @@ public sealed class BatchScreensRouteTests
         var page = await world.PageAsync("/lotes", world.Curator);
 
         Assert.Contains("Você não tem concessão em nenhum domínio.", page, StringComparison.Ordinal);
-        Assert.DoesNotContain("Lote 1", page, StringComparison.Ordinal);
+        Assert.DoesNotContain("Lote\u00A01", page, StringComparison.Ordinal);
         Assert.DoesNotContain("<form", page, StringComparison.Ordinal);
     }
 
@@ -152,7 +152,7 @@ public sealed class BatchScreensRouteTests
         {
             using var response = await Host.GetAsync(route, Host.Sessions.Open(person), encrypted: true, Token);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            return await response.Content.ReadAsStringAsync(Token);
+            return WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync(Token));
         }
 
         public async ValueTask DisposeAsync()

@@ -64,18 +64,14 @@ public sealed class ConfigurationChanges
     /// <param name="cancellationToken">Cancels the reading.</param>
     public async Task<SubmittedChange?> SubmittedAsync(long changeId, CancellationToken cancellationToken)
     {
-        var connection = await dataSource.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
-        await using (connection.ConfigureAwait(false))
+        var command = dataSource.CreateCommand(Submitted);
+        await using (command.ConfigureAwait(false))
         {
-            var command = new NpgsqlCommand(Submitted, connection);
-            await using (command.ConfigureAwait(false))
+            _ = command.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Bigint) { Value = changeId });
+            var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            await using (reader.ConfigureAwait(false))
             {
-                _ = command.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Bigint) { Value = changeId });
-                var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-                await using (reader.ConfigureAwait(false))
-                {
-                    return await reader.ReadAsync(cancellationToken).ConfigureAwait(false) ? Read(name => reader[name]) : null;
-                }
+                return await reader.ReadAsync(cancellationToken).ConfigureAwait(false) ? Read(name => reader[name]) : null;
             }
         }
     }
@@ -85,26 +81,16 @@ public sealed class ConfigurationChanges
     /// <param name="cancellationToken">Cancels the reading.</param>
     public async Task<IReadOnlyList<PendingChange>> PendingAsync(DateTimeOffset since, CancellationToken cancellationToken)
     {
-        var pending = new List<PendingChange>();
-        var connection = await dataSource.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
-        await using (connection.ConfigureAwait(false))
+        var command = dataSource.CreateCommand(Pending);
+        await using (command.ConfigureAwait(false))
         {
-            var command = new NpgsqlCommand(Pending, connection);
-            await using (command.ConfigureAwait(false))
+            _ = command.Parameters.Add(new NpgsqlParameter("since", NpgsqlDbType.TimestampTz) { Value = since.UtcDateTime });
+            var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            await using (reader.ConfigureAwait(false))
             {
-                _ = command.Parameters.Add(new NpgsqlParameter("since", NpgsqlDbType.TimestampTz) { Value = since.UtcDateTime });
-                var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-                await using (reader.ConfigureAwait(false))
-                {
-                    while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-                    {
-                        pending.Add(new PendingChange(Read(name => reader[name]), (string)reader["name"]));
-                    }
-                }
+                return await AllAsync(reader.ReadAsync, name => reader[name], cancellationToken).ConfigureAwait(false);
             }
         }
-
-        return pending.AsReadOnly();
     }
 
     /// <summary>Records the decision on the submission, by a person other than the one who submitted, as the event that points at the submission; nothing else is written.</summary>
@@ -116,6 +102,17 @@ public sealed class ConfigurationChanges
     {
         ArgumentNullException.ThrowIfNull(change);
         return new CustodyChain(dataSource).AppendAsync(CustodyEvent.ConfigurationDecided(deciderId, change.Id, change.Sequence, approved), cancellationToken);
+    }
+
+    private static async Task<IReadOnlyList<PendingChange>> AllAsync(Func<CancellationToken, Task<bool>> next, Func<string, object> column, CancellationToken cancellationToken)
+    {
+        var pending = new List<PendingChange>();
+        while (await next(cancellationToken).ConfigureAwait(false))
+        {
+            pending.Add(new PendingChange(Read(column), (string)column("name")));
+        }
+
+        return pending.AsReadOnly();
     }
 
     private static SubmittedChange Read(Func<string, object> column) => new()

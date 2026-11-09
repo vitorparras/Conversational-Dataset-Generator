@@ -14,8 +14,10 @@ public sealed class ReplicationPropertiesTests
     private static readonly DateTimeOffset Start = new(2031, 5, 6, 9, 0, 0, TimeSpan.Zero);
 
     /// <summary>Few texts, senders and moments, so that equal texts, repeated senders and ties are the common case; the length is a function of the text, as it is of a real one.</summary>
-    private static readonly Gen<ReplicationOccurrence[]> Messages = Gen.Int[0, 14].SelectMany(count => Gen.Select(Gen.Int[0, 3], Gen.Int[0, 3], Gen.Int[0, 2], (text, sender, minute) => (text, sender, minute))
-        .Array[count].Select(drawn => drawn.Select((one, at) => Occurrence(at, one.text, one.sender, one.minute)).ToArray()));
+    private static readonly Gen<ReplicationOccurrence[]> Messages = Gen.Int[0, 14].SelectMany(count => Gen
+        .Select(Gen.Int[0, 3], Gen.Int[0, 3], Gen.Int[0, 2], (text, sender, minute) => (text, sender, minute))
+        .Array[count]
+        .Select(drawn => drawn.Select((one, at) => Occurrence(at, one.text, one.sender, one.minute)).ToArray()));
 
     private static readonly Gen<(ReplicationOccurrence[] Messages, int[] Permutation)> Permuted = Messages.SelectMany(messages =>
         Gen.Int.Array[messages.Length].Select(keys => (messages, Enumerable.Range(0, messages.Length).OrderBy(at => keys[at]).ThenBy(at => at).ToArray())));
@@ -28,7 +30,7 @@ public sealed class ReplicationPropertiesTests
             var (messages, permutation) = generated;
 
             var original = Replication.Marks(Rule, [], messages);
-            var shuffled = Replication.Marks(Rule, [], permutation.Select(at => messages[at]).ToList());
+            var shuffled = Replication.Marks(Rule, [], [.. permutation.Select(at => messages[at])]);
 
             Assert.Equal(original, shuffled);
         });
@@ -43,7 +45,7 @@ public sealed class ReplicationPropertiesTests
             var arriving = messages.Skip(messages.Length / 2).ToList();
 
             var original = Replication.Marks(Rule, kept, arriving);
-            var shuffled = Replication.Marks(Rule, kept, permutation.Where(at => at >= kept.Count).Select(at => messages[at]).ToList());
+            var shuffled = Replication.Marks(Rule, kept, [.. permutation.Where(at => at >= kept.Count).Select(at => messages[at])]);
 
             Assert.Equal(original, shuffled);
         });
@@ -52,19 +54,19 @@ public sealed class ReplicationPropertiesTests
     [Trait("Kind", "Property")]
     public void OneSenderAloneNeverMarksWhateverTheTextAndTheLength() =>
         PropertyRunner.FromProcess().Check(Messages, messages =>
-            Assert.Empty(Replication.Marks(Rule, [], messages.Select(message => message with { Sender = "ZQX-um-so" }).ToList())));
+            Assert.Empty(Replication.Marks(Rule, [], [.. messages.Select(message => message with { Sender = "ZQX-um-so" })])));
 
     [Fact]
     [Trait("Kind", "Property")]
     public void ShortTextsNeverMarkWhateverTheSendersAndHowManyTimesTheyRepeat() =>
         PropertyRunner.FromProcess().Check(Messages, messages =>
-            Assert.Empty(Replication.Marks(Rule, [], messages.Select(message => message with { Length = 9 }).ToList())));
+            Assert.Empty(Replication.Marks(Rule, [], [.. messages.Select(message => message with { Length = 9 })])));
 
     [Fact]
     [Trait("Kind", "Property")]
     public void DistinctTextsNeverMarkWhateverTheSendersAndTheLength() =>
         PropertyRunner.FromProcess().Check(Messages, messages =>
-            Assert.Empty(Replication.Marks(Rule, [], messages.Select((message, at) => message with { Text = "ZQX-texto-" + at, Length = 99 }).ToList())));
+            Assert.Empty(Replication.Marks(Rule, [], [.. messages.Select((message, at) => message with { Text = "ZQX-texto-" + at, Length = 99 })])));
 
     [Fact]
     [Trait("Kind", "Property")]

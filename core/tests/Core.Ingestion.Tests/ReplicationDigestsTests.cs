@@ -10,7 +10,7 @@ public sealed class ReplicationDigestsTests : IDisposable
 {
     private static readonly DateTimeOffset Start = new(2031, 5, 6, 9, 0, 0, TimeSpan.Zero);
 
-    private readonly MasterKeyReading reading = MasterKeyReading.FromBytes(Enumerable.Range(0, MasterKey.Length).Select(at => (byte)(at + 1)).ToArray(), DerivationLabels.None);
+    private readonly MasterKeyReading reading = MasterKeyReading.FromBytes([.. Enumerable.Range(0, MasterKey.Length).Select(at => (byte)(at + 1))], DerivationLabels.None);
 
     private KeyDerivation Derivation => new(reading.Key!, DerivationLabels.None);
 
@@ -58,9 +58,9 @@ public sealed class ReplicationDigestsTests : IDisposable
         var arriving = ReplicationDigests.OccurrenceOf(Derivation, 7, new ReplicationPlace(9, 4), new Message("ZQX-bia", Start.AddDays(2), null, "ZQX-ordem repassada em cadeia", 4));
         var other = ReplicationDigests.OccurrenceOf(Derivation, 7, new ReplicationPlace(9, 5), new Message("ZQX-caio", Start.AddDays(2), null, "ZQX-outra coisa totalmente", 5));
 
-        var marks = Replication.Marks(rule, new List<ReplicationOccurrence> { kept }, new List<ReplicationOccurrence> { other, arriving });
+        var marks = Replication.Marks(rule, [kept], [other, arriving]);
 
-        Assert.Equal(new[] { new ReplicationMark(kept.Place, kept.Place), new ReplicationMark(arriving.Place, kept.Place) }, marks);
+        Assert.Equal([new ReplicationMark(kept.Place, kept.Place), new ReplicationMark(arriving.Place, kept.Place)], marks);
     }
 
     [Fact]
@@ -70,7 +70,7 @@ public sealed class ReplicationDigestsTests : IDisposable
         var here = ReplicationDigests.OccurrenceOf(Derivation, 7, new ReplicationPlace(1, 0), new Message("ZQX-ana", Start, null, "ZQX-ordem repassada em cadeia", 0));
         var there = ReplicationDigests.OccurrenceOf(Derivation, 8, new ReplicationPlace(2, 0), new Message("ZQX-bia", Start, null, "ZQX-ordem repassada em cadeia", 0));
 
-        Assert.Empty(Replication.Marks(rule, new List<ReplicationOccurrence> { here }, new List<ReplicationOccurrence> { there }));
+        Assert.Empty(Replication.Marks(rule, [here], [there]));
     }
 
     [Fact]

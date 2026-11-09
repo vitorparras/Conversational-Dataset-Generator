@@ -18,7 +18,7 @@ public sealed class ReplicationTests
 
         var marks = Replication.Marks(Rule, [], [second, first]);
 
-        Assert.Equal(new[] { Mark(1, 0, 1, 0), Mark(2, 0, 1, 0) }, marks);
+        Assert.Equal([Mark(1, 0, 1, 0), Mark(2, 0, 1, 0)], marks);
     }
 
     [Fact]
@@ -61,7 +61,7 @@ public sealed class ReplicationTests
 
         var marks = Replication.Marks(Rule, kept, arriving);
 
-        Assert.Equal(new[] { Mark(1, 0, 1, 0), Mark(1, 1, 1, 0), Mark(2, 0, 1, 0) }, marks);
+        Assert.Equal([Mark(1, 0, 1, 0), Mark(1, 1, 1, 0), Mark(2, 0, 1, 0)], marks);
     }
 
     [Fact]
@@ -70,7 +70,7 @@ public sealed class ReplicationTests
         var kept = new List<ReplicationOccurrence> { Said(1, 3, "ZQX-texto", "ZQX-ana", 40, minute: 0) };
         var arriving = new List<ReplicationOccurrence> { Said(7, 0, "ZQX-texto", "ZQX-bia", 40, minute: 0) };
 
-        Assert.Equal(new[] { Mark(1, 3, 1, 3), Mark(7, 0, 1, 3) }, Replication.Marks(Rule, kept, arriving));
+        Assert.Equal([Mark(1, 3, 1, 3), Mark(7, 0, 1, 3)], Replication.Marks(Rule, kept, arriving));
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public sealed class ReplicationTests
     {
         var properties = typeof(ReplicationMark).GetProperties().Where(property => property.GetIndexParameters().Length == 0).ToList();
 
-        Assert.Equal(new[] { "First", "Of" }, properties.Select(property => property.Name).Order(StringComparer.Ordinal));
+        Assert.Equal(["First", "Of"], properties.Select(property => property.Name).Order(StringComparer.Ordinal));
         Assert.All(properties, property => Assert.Equal(typeof(ReplicationPlace), property.PropertyType));
     }
 

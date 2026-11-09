@@ -16,6 +16,7 @@ internal static class HostRefusals
         .. AdmissionConfiguration.Refusals(values),
         .. VerificationConfiguration.Refusals(values),
         .. SealConfiguration.Refusals(values),
+        .. MailConfiguration.Refusals(values),
         .. TlsConfiguration.Refusals(values),
         .. AuditConfiguration.Refusals(values),
     ];

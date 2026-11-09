@@ -102,13 +102,7 @@ public sealed class SubmissionPathTests
         var cancellationToken = TestContext.Current.CancellationToken;
         await using var world = await SubmissionWorld.CreateAsync();
         await using var startup = new ServiceCollection().AddSingleton(world.DataSource).AddSingleton<IMasterKeySource>(new FailingKeySource(kind)).BuildServiceProvider();
-        await using var host = await SessionedHost.StartAsync(
-            services => services.AddSingleton(startup)
-                .AddSingleton(provider => SubmissionParts.BatchesOf(provider, Values))
-                .AddSingleton(provider => SubmissionParts.ServicesOf(provider, Values))
-                .AddSingleton<IGrantedDomains>(new GrantedTo(SubmissionWorld.Domain)),
-            SubmissionsEndpoint.Map,
-            cancellationToken);
+        await using var host = await NoKeyHostAsync(startup, cancellationToken);
         var bytes = Encoding.UTF8.GetBytes(SubmissionWorld.Conversation);
 
         using var response = await host.SendAsync(Form(), host.SeedSession(), encrypted: true, cancellationToken);
@@ -124,6 +118,23 @@ public sealed class SubmissionPathTests
             (entry!.State, entry.Reason, entry.SubmittedBy, entry.Receipt!.Bytes, entry.Receipt.Digest));
         Assert.Equal((1L, 0L, 0L), (await world.BatchCountAsync(), await world.ItemRowsAsync(), await world.OriginRowsAsync()));
         Assert.DoesNotContain("ZQXPRIMEIRO", body, StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
+    public async Task OriginDeclaredWithNoKeyToSealItStaysDeclaredAndItsTextIsKeptNowhere()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var world = await SubmissionWorld.CreateAsync();
+        await using var startup = new ServiceCollection().AddSingleton(world.DataSource).AddSingleton<IMasterKeySource>(new FailingKeySource(MasterKeyFailureKind.Absent)).BuildServiceProvider();
+        await using var host = await NoKeyHostAsync(startup, cancellationToken);
+
+        using var response = await host.SendAsync(Form(originUnknown: false), host.SeedSession(), encrypted: true, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        using var json = JsonDocument.Parse(body);
+        var entry = await world.Service.DetailAsync([SubmissionWorld.Domain], json.RootElement.GetProperty("batch").GetInt64(), cancellationToken);
+
+        Assert.Equal((HttpStatusCode.ServiceUnavailable, "declared", 0L), (response.StatusCode, entry!.OriginState, await world.OriginRowsAsync()));
+        Assert.DoesNotContain(SubmissionWorld.Origin, await world.Database.DumpAsync(), StringComparison.Ordinal);
     }
 
     [DatabaseFact]
@@ -143,15 +154,24 @@ public sealed class SubmissionPathTests
         Assert.Equal((2, MasterKeyFailureKind.Absent, MasterKeyFailureKind.Absent), (attempts, first!.Unsealed, second!.Unsealed));
     }
 
+    private static Task<SessionedHost> NoKeyHostAsync(ServiceProvider startup, CancellationToken cancellationToken) =>
+        SessionedHost.StartAsync(
+            services => services.AddSingleton(startup)
+                .AddSingleton(provider => SubmissionParts.BatchesOf(provider, Values))
+                .AddSingleton(provider => SubmissionParts.ServicesOf(provider, Values))
+                .AddSingleton<IGrantedDomains>(new GrantedTo(SubmissionWorld.Domain)),
+            SubmissionsEndpoint.Map,
+            cancellationToken);
+
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The contents belong to the multipart form, which the request disposes.")]
-    private static HttpRequestMessage Form()
+    private static HttpRequestMessage Form(bool originUnknown = true)
     {
         var form = new MultipartFormDataContent
         {
             { new StringContent("1"), "domain" },
             { new StringContent("conversation"), "declaredForm" },
             { new StringContent(SubmissionWorld.Format), "sourceFormat" },
-            { new StringContent("true"), "originUnknown" },
+            { new StringContent(originUnknown ? "true" : SubmissionWorld.Origin), originUnknown ? "originUnknown" : "origin" },
             { new ByteArrayContent(Encoding.UTF8.GetBytes(SubmissionWorld.Conversation)), "file", "conversa.json" },
         };
         return new HttpRequestMessage(HttpMethod.Post, new Uri(SubmissionsEndpoint.SubmissionsRoute, UriKind.Relative)) { Content = form };

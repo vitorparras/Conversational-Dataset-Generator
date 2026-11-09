@@ -4,7 +4,8 @@
 *, *::before, *::after { box-sizing: border-box; }
 
 /* What takes the focus or the anchor never hides under the sticky header. */
-html { scroll-padding-top: var(--header-clearance); }
+/* The script writes the height the header really has, which the menu of a phone changes; without it the token is the floor. */
+html { scroll-padding-top: var(--header-measured, var(--header-clearance)); }
 
 body {
     margin: 0;
@@ -74,6 +75,21 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
 
 .header__name { margin: 0 auto 0 0; font: var(--weight-strong) var(--text-md) / var(--leading-tight) var(--font-display); color: var(--ink); text-decoration: none; }
 .header__leave { margin: 0; }
+
+/* The menu of the header: on a wide screen its pieces sit in the header as if the box were not there; on a phone, once the script runs, it folds behind the
+   button of the menu, so the header keeps one line and covers nothing, and opened it stops following the page, so it never hides what takes the focus. */
+.header__menu { display: contents; }
+.header__toggle { display: none; }
+@media (max-width: 40rem) {
+    .header { padding: var(--space-2) var(--space-4); gap: var(--space-2) var(--space-3); }
+    .header__name { flex: 1 1 0; min-width: 0; font-size: var(--text-sm); }
+    .scripted .header__toggle { display: inline-flex; }
+    .scripted .header:not([data-open]) .header__menu { display: none; }
+    .header[data-open] { position: relative; }
+    .header__menu { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); flex-basis: 100%; }
+    .header__menu > .nav__link, .header__notices { margin-left: calc(-1 * var(--space-3)); }
+    .nav__list { flex-direction: column; }
+}
 .sign-in, .form { max-width: var(--field-width); }
 .sign-in > .notice, .form > .notice { margin-bottom: var(--space-5); }
 

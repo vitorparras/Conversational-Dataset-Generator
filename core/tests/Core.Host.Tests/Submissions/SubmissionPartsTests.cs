@@ -15,7 +15,7 @@ public sealed class SubmissionPartsTests
 {
     private const string Declared = "zqx_sigilosa, zqx_media,zqx_livre";
 
-    private static readonly Dictionary<string, string> Values = new() { ["Ingestion:Conditions"] = Declared };
+    private static readonly Dictionary<string, string> Values = new() { ["Ingestion:Conditions"] = Declared, [AdmissionConfiguration.MaxBytesPath] = "10485760" };
 
     [DatabaseFact]
     public async Task BatchOpenedByTheServiceTakesTheFirstConditionOfTheConfiguredList()

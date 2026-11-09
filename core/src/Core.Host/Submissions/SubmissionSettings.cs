@@ -1,3 +1,4 @@
+using Core.Ingestion;
 using Core.Persistence.Ingestion;
 
 namespace Core.Host.Submissions;
@@ -10,5 +11,6 @@ namespace Core.Host.Submissions;
 /// <param name="MaxBytes">The most bytes a file may have.</param>
 /// <param name="Registered">The labels the database registers.</param>
 /// <param name="Revoked">The labels the database revoked.</param>
+/// <param name="Replication">The criterion of the replicated content the configuration gave.</param>
 internal sealed record SubmissionSettings(
-    IngestionBatches Batches, OriginConditions Conditions, long MaxBytes, IReadOnlySet<string> Registered, IReadOnlySet<string> Revoked);
+    IngestionBatches Batches, OriginConditions Conditions, long MaxBytes, IReadOnlySet<string> Registered, IReadOnlySet<string> Revoked, ReplicationRule Replication);

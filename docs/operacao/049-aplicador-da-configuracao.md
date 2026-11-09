@@ -1,4 +1,4 @@
-# 046 — O aplicador da configuração: a conta, o papel do banco e o serviço
+# 049 — O aplicador da configuração: a conta, o papel do banco e o serviço
 
 > Operacional. 2026-11-09. Decisão [0053](../decisoes/0053-configuracao-alterada-pela-tela.md).
 

@@ -176,9 +176,11 @@ public sealed class AdmissionConfigurationTests
             new EnvironmentSource([KeyValuePair.Create<string, string?>("CDG_Ingestion__Conditions", "livre,restrita")]),
             new StrictArgumentsSource([$"--{Key}={Declared}"]));
 
-        var entry = Assert.Single(loaded.View.Entries);
+        var entry = Assert.Single(loaded.View.Entries, candidate => candidate.Key == Key);
+        var size = Assert.Single(loaded.View.Entries, candidate => candidate.Key == AdmissionConfiguration.MaxBytesPath);
 
         Assert.Equal(new EffectiveEntry(Key, Declared, ConfigurationOrigin.Argument, "mais restrita: restrita"), entry);
+        Assert.Equal(new EffectiveEntry(AdmissionConfiguration.MaxBytesPath, "10485760", ConfigurationOrigin.Default), size);
     }
 
     [Fact]
@@ -188,7 +190,7 @@ public sealed class AdmissionConfigurationTests
             new ConfigurationSchema([AdmissionConfiguration.Section]),
             new EnvironmentSource([KeyValuePair.Create<string, string?>("CDG_Ingestion__Conditions", "sigilosa,livre")]));
 
-        var entry = Assert.Single(loaded.View.Entries);
+        var entry = Assert.Single(loaded.View.Entries, candidate => candidate.Key == Key);
 
         Assert.Equal(("sigilosa,livre", ConfigurationOrigin.Environment, "mais restrita: sigilosa"), (entry.Value, entry.Origin, entry.Mark));
     }

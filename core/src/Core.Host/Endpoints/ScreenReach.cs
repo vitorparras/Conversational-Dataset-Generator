@@ -26,6 +26,9 @@ internal sealed class ScreenReach
     /// <summary>The domains granted, which the selector of the header lists.</summary>
     internal IEnumerable<string> Granted { get; }
 
+    /// <summary>How many notices of the person were not read, which the header and the start say.</summary>
+    internal int Unread { get; init; }
+
     /// <summary>Whether the screen of the mark given is reached; a route with no mark is not.</summary>
     internal bool Reaches(ScreenAccess? access)
     {

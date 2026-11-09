@@ -71,5 +71,9 @@ public static class ContentColumns
         new(IngestionBatch, "opened_by", ClearKind.Identifier),
         new(IngestionBatch, "opened_at", ClearKind.Moment),
         new(IngestionBatch, "closed_at", ClearKind.Moment),
+        new(IngestionBatch, "submission", ClearKind.Motive),
+        new(IngestionBatch, "received_bytes", ClearKind.Identifier),
+        new(IngestionBatch, "received_digest", ClearKind.Motive),
+        new(IngestionBatch, "warning", ClearKind.Motive),
     ];
 }

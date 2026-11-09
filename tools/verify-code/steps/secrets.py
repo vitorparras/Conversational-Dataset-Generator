@@ -17,7 +17,7 @@ REPORT_FILE = "report.json"
 SHORT_COMMIT = 7
 
 
-def scan_command(binary: str, report: Path, base: str | None) -> list[str]:
+def scan_command(binary: str, report: Path, limit: str | None) -> list[str]:
     command = [
         binary,
         "git",
@@ -29,8 +29,8 @@ def scan_command(binary: str, report: Path, base: str | None) -> list[str]:
         "--report-format=json",
         f"--report-path={report}",
     ]
-    if base is not None:
-        command.append(f"--log-opts={base}..HEAD")
+    if limit is not None:
+        command.append(f"--log-opts={limit}")
     return [*command, "."]
 
 
@@ -64,14 +64,25 @@ def judge(findings: list[dict[str, Any]] | None, outcome: CommandOutcome, scope:
     return passed(NAME, f"nenhum segredo {scope}")
 
 
+def reach(ctx: Context) -> tuple[str | None, str]:
+    """The ``--log-opts`` that limit the scan, and how a finding names where it looked: the commits
+    of the pull request, the history that leads to HEAD (the push to main, which must not turn red
+    for a branch it does not hold, #722), or every branch of the clone."""
+    if ctx.base is not None:
+        return f"{ctx.base}..HEAD", f"nos commits de {ctx.base}..HEAD"
+    if ctx.head_only:
+        return "HEAD", "no histórico de HEAD"
+    return None, "no histórico inteiro"
+
+
 def scan(ctx: Context, binary: str) -> StepResult:
     if not (ctx.root / CONFIG).is_file():
         return failed(NAME, f"{CONFIG} não existe na raiz: sem ele a varredura não tem as regras")
     folder = ctx.out_dir / REPORT_DIRECTORY
     reset_directory(folder)
     report = folder / REPORT_FILE
-    outcome = ctx.run(scan_command(binary, report, ctx.base), ctx.root)
-    scope = "no histórico inteiro" if ctx.base is None else f"nos commits de {ctx.base}..HEAD"
+    limit, scope = reach(ctx)
+    outcome = ctx.run(scan_command(binary, report, limit), ctx.root)
     findings = read_findings(report)
     shutil.rmtree(folder, ignore_errors=True)
     return judge(findings, outcome, scope)

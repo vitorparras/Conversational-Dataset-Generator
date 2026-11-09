@@ -118,7 +118,7 @@ public sealed class AccountProcessTests
         var answer = JsonDocument.Parse(await refused.Content.ReadAsStringAsync(Token)).RootElement;
         using var held = await host.SendAsAsync(HttpMethod.Get, "/session", json: null, other, Token);
         Assert.Equal((HttpStatusCode.BadRequest, "senha-atual"), (refused.StatusCode, answer.GetProperty("field").GetString()));
-        Assert.Equal("A senha atual não confere.", answer.GetProperty("reason").GetString());
+        Assert.Equal("A senha atual não confere. Confira e tente de novo.", answer.GetProperty("reason").GetString());
         Assert.Null(entry);
         Assert.True(watch.Elapsed >= FirstDelay, $"the refusal of the entry after a refused change waited only {watch.Elapsed}");
         Assert.Equal(HttpStatusCode.NoContent, held.StatusCode);

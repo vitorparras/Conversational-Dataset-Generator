@@ -12,9 +12,22 @@ public sealed partial class PersonRegistry
           AND (@active::boolean IS NULL OR active = @active::boolean)
         """;
 
-    private const string CountMatching = "SELECT count(*) FROM public.person " + Narrowing;
-
-    private const string PageMatching = "SELECT id, name, function_name, active FROM public.person " + Narrowing + " ORDER BY lower(name), id LIMIT @size OFFSET @skip";
+    // One statement, so the total and the page are read from the same snapshot; the page is clamped there, and with nobody left the one row it answers has no person.
+    private const string PageMatching = """
+        WITH matching AS (
+            SELECT id, name, function_name, active, count(*) OVER () AS counted, row_number() OVER (ORDER BY lower(name), id) AS place
+            FROM public.person
+        """ + " " + Narrowing + """
+        ),
+        shown AS (
+            SELECT coalesce(max(counted), 0)::integer AS total,
+                   LEAST(GREATEST(@page, 1), GREATEST(1, (coalesce(max(counted), 0)::integer + @size - 1) / @size)) AS page
+            FROM matching
+        )
+        SELECT shown.total, shown.page, matching.id, matching.name, matching.function_name, matching.active
+        FROM shown LEFT JOIN matching ON matching.place > (shown.page - 1) * @size AND matching.place <= shown.page * @size
+        ORDER BY matching.place
+        """;
 
     /// <summary>
     /// One page of the people the filter leaves, by name, with how many it leaves; the page asked beyond the last is the last, and one below the first is the first.
@@ -31,29 +44,17 @@ public sealed partial class PersonRegistry
 
     private async Task<PersonPage> PageAsync(PersonFilter filter, int page, CancellationToken cancellationToken)
     {
-        var total = await CountAsync(filter, cancellationToken).ConfigureAwait(false);
-        var shown = Math.Clamp(page, 1, PersonPage.PagesFor(total));
         var command = dataSource.CreateCommand(PageMatching);
         await using (command.ConfigureAwait(false))
         {
             Bind(command, filter);
             _ = command.Parameters.AddWithValue("size", NpgsqlDbType.Integer, PersonPage.Size);
-            _ = command.Parameters.AddWithValue("skip", NpgsqlDbType.Integer, (shown - 1) * PersonPage.Size);
+            _ = command.Parameters.AddWithValue("page", NpgsqlDbType.Integer, page);
             var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             await using (reader.ConfigureAwait(false))
             {
-                return new PersonPage(await ListedAsync(reader, cancellationToken).ConfigureAwait(false), total, shown);
+                return await PageOfAsync(reader, cancellationToken).ConfigureAwait(false);
             }
-        }
-    }
-
-    private async Task<int> CountAsync(PersonFilter filter, CancellationToken cancellationToken)
-    {
-        var command = dataSource.CreateCommand(CountMatching);
-        await using (command.ConfigureAwait(false))
-        {
-            Bind(command, filter);
-            return (int)(long)(await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false))!;
         }
     }
 
@@ -64,14 +65,19 @@ public sealed partial class PersonRegistry
         _ = command.Parameters.AddWithValue("active", NpgsqlDbType.Boolean, filter.Active.HasValue ? filter.Active.Value : DBNull.Value);
     }
 
-    private static async Task<IReadOnlyList<ListedPerson>> ListedAsync(DbDataReader reader, CancellationToken cancellationToken)
+    private static async Task<PersonPage> PageOfAsync(DbDataReader reader, CancellationToken cancellationToken)
     {
         var people = new List<ListedPerson>();
+        var (total, shown) = (0, 1);
         while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
-            people.Add(new ListedPerson((long)reader["id"], (string)reader["name"], (string)reader["function_name"], (bool)reader["active"]));
+            (total, shown) = ((int)reader["total"], (int)reader["page"]);
+            if (reader["id"] is long id)
+            {
+                people.Add(new ListedPerson(id, (string)reader["name"], (string)reader["function_name"], (bool)reader["active"]));
+            }
         }
 
-        return people;
+        return new PersonPage(people, total, shown);
     }
 }

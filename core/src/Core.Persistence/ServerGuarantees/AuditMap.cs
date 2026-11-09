@@ -25,6 +25,7 @@ public static class AuditMap
             [CustodyStep.PersonCreated, CustodyStep.PersonDeactivated, CustodyStep.PersonFunctionChanged, CustodyStep.PersonPasswordSet, CustodyStep.PasswordChanged]),
         new("content.item_text", ["SELECT"], [CustodyStep.RawTextRead, CustodyStep.SanitizedTextRead, CustodyStep.OccurrencesRead]),
         new("content.reversal_map", ["SELECT"], [CustodyStep.ReversalEntriesRead]),
+        new("content.batch_origin", Of("SELECT"), Of(CustodyStep.OriginRead)),
         new("content.item_text", [Update], [CustodyStep.ItemEmptied]),
         new("content.reversal_map", [Update], [CustodyStep.ItemEmptied]),
         new("content.ingestion_batch", Of(Insert), Of(CustodyStep.BatchOpened)),

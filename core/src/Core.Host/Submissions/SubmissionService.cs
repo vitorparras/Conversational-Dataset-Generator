@@ -125,16 +125,15 @@ internal sealed class SubmissionService
         var reason = SubmissionJudgement.Of(intake, received, request.DeclaredForm);
         var warning = HasPath(request.ReceivedName) ? NameWithPath : null;
         var receipt = new SubmissionReceipt(received.Id.ToString(), received.BytesRead, received.Digest, warning);
-        if (SubmissionOrigin.Declaration(intake, request) is not { } origin)
+        if (SubmissionOrigin.Opening(intake, request, receipt) is not { } opening)
         {
             return new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = BatchOutcome.DomainUnknown };
         }
 
-        var opening = new BatchOpening(request.DomainId, request.AuthorId, request.Condition, new SubmissionOpening(receipt, origin)) { RejectedFor = reason?.Code };
-        var opened = await batches.OpenAsync(opening, cancellationToken).ConfigureAwait(false);
+        var opened = await batches.OpenAsync(opening with { RejectedFor = reason?.Code }, cancellationToken).ConfigureAwait(false);
         var done = reason is null ? BatchOutcome.Opened : BatchOutcome.Rejected;
         return opened.Outcome == done
-            ? Answer(received, opened.BatchId!.Value, (reason, warning), origin.State)
+            ? Answer(received, opened.BatchId!.Value, (reason, warning), opening.Origin!.State)
             : new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = opened.Outcome };
     }
 }

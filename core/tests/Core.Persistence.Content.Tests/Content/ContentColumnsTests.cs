@@ -93,6 +93,10 @@ public sealed class ContentColumnsTests
                 new ClearColumn("ingestion_batch", "opened_by", ClearKind.Identifier),
                 new ClearColumn("ingestion_batch", "opened_at", ClearKind.Moment),
                 new ClearColumn("ingestion_batch", "closed_at", ClearKind.Moment),
+                new ClearColumn("ingestion_batch", "submission", ClearKind.Motive),
+                new ClearColumn("ingestion_batch", "received_bytes", ClearKind.Identifier),
+                new ClearColumn("ingestion_batch", "received_digest", ClearKind.Motive),
+                new ClearColumn("ingestion_batch", "warning", ClearKind.Motive),
             ],
             ContentColumns.Clear);
 

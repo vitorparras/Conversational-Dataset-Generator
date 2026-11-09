@@ -74,9 +74,12 @@ class FakeRunner:
         return self.outcome
 
 
-def context(root: Path, run: RunCommand | None = None, base: str | None = None) -> Context:
+def context(
+    root: Path, run: RunCommand | None = None, base: str | None = None, head_only: bool = False
+) -> Context:
     """A context on ``root``; without a fake, commands really run."""
-    return Context(root, root / OUTPUT_DIRECTORY, run if run is not None else run_process, base)
+    runner = run if run is not None else run_process
+    return Context(root, root / OUTPUT_DIRECTORY, runner, base, head_only=head_only)
 
 
 def write(root: Path, relative: str, content: str) -> None:

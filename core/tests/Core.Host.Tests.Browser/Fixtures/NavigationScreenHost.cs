@@ -105,6 +105,7 @@ internal sealed class NavigationScreenHost : IAsyncDisposable
         _ = app.MapGet(OfAnnotation, Show).WithMetadata(ScreenAccess.Of("Anotação", 30, "Anotação"));
         _ = app.MapGet(OfAudit, Show).WithMetadata(ScreenAccess.Of(AuditCaption, 20, PersonFunctions.Audit, PersonFunctions.Administration));
         _ = app.MapGet(OfAdministration, Show).WithMetadata(ScreenAccess.Of(AdministrationCaption, 10, PersonFunctions.Administration));
+        NoticeScreensEndpoint.Map(app);
     }
 
     private static RazorComponentResult<ScreenFrame> Show(HttpContext context) => ScreenResult.Of(context, typeof(BareScreen), "Tela de ensaio");
@@ -112,7 +113,7 @@ internal sealed class NavigationScreenHost : IAsyncDisposable
     internal static OperatorAdministration AdministrationOf(IServiceProvider provider)
     {
         var source = provider.GetRequiredService<NpgsqlDataSource>();
-        return new OperatorAdministration(new PersonRegistry(source), new PersonCredentials(source, new PasswordDerivation(1)), provider.GetRequiredService<SessionStore>());
+        return new OperatorAdministration(new PersonRegistry(source), new PersonCredentials(source, new PasswordDerivation(1)), provider.GetRequiredService<SessionStore>(), new PersonNotices(source));
     }
 
     internal static SignIn SignInOf(IServiceProvider provider)

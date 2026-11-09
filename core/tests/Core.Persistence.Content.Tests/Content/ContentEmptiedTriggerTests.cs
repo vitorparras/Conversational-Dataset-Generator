@@ -50,7 +50,7 @@ public sealed class ContentEmptiedTriggerTests
     public async Task ApplicationRoleClearsTheContentColumnsAndTheMarkerOfAnItemThatWasNotEmptied()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText("bruto", "sanitizado", "pseudonimizado"), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("bruto", "sanitizado", "pseudonimizado"), TestContext.Current.CancellationToken);
         _ = await world.Writer.AddReversalMapAsync(1, item, "mapa", TestContext.Current.CancellationToken);
 
         var emptiedItem = await world.InDomainAfterAsync(ContentWorld.EmptiedEvent, 1, EmptyItem, ("id", item));
@@ -71,7 +71,7 @@ public sealed class ContentEmptiedTriggerTests
     public async Task ContentOfARowThatWasNotEmptiedIsNotChangedByTheApplicationRoleNorByTheOwner(string change)
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText("bruto", "sanitizado", "pseudonimizado"), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("bruto", "sanitizado", "pseudonimizado"), TestContext.Current.CancellationToken);
         _ = await world.Writer.AddReversalMapAsync(1, item, "mapa", TestContext.Current.CancellationToken);
 
         var byApplication = await Assert.ThrowsAsync<PostgresException>(() => world.InDomainAfterAsync(ContentWorld.EmptiedEvent, 1, change, ("id", item)));
@@ -84,7 +84,7 @@ public sealed class ContentEmptiedTriggerTests
     public async Task ApplicationRoleStillChangesNothingOfTheMapButItsMarkerAndEntries()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText("bruto"), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("bruto"), TestContext.Current.CancellationToken);
         _ = await world.Writer.AddReversalMapAsync(1, item, "mapa", TestContext.Current.CancellationToken);
 
         var refused = await Assert.ThrowsAsync<PostgresException>(() => world.InDomainAsync(1, "UPDATE content.reversal_map SET recorded_at = now() WHERE item_id = @id", ("id", item)));
@@ -97,7 +97,7 @@ public sealed class ContentEmptiedTriggerTests
     {
         await using var world = await ContentWorld.CreateAsync();
         var emptied = await EmptiedItemAsync(world);
-        var kept = await world.Writer.AddItemTextAsync(1, new NewItemText("bruto"), TestContext.Current.CancellationToken);
+        var kept = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("bruto"), TestContext.Current.CancellationToken);
 
         var recorded = await world.InDomainAsync(1, "SELECT array_agg(item_id ORDER BY item_id) FROM content.item_emptied");
 
@@ -121,7 +121,7 @@ public sealed class ContentEmptiedTriggerTests
 
     private static async Task<long> EmptiedItemAsync(ContentWorld world)
     {
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText("bruto", "sanitizado", "pseudonimizado"), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("bruto", "sanitizado", "pseudonimizado"), TestContext.Current.CancellationToken);
         _ = await world.Writer.AddReversalMapAsync(1, item, "mapa de reversao zqx", TestContext.Current.CancellationToken);
         _ = await world.InDomainAfterAsync(ContentWorld.EmptiedEvent, 1, EmptyItem, ("id", item));
         _ = await world.InDomainAfterAsync(ContentWorld.EmptiedEvent, 1, EmptyMap, ("id", item));

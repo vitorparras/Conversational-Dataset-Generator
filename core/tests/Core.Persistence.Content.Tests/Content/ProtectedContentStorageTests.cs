@@ -18,7 +18,7 @@ public sealed class ProtectedContentStorageTests
     public async Task RawAndSanitizedTextAreStoredUnderTheSameLabelOfTheDomain()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(2, new NewItemText(Raw, Sanitized), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(2, ItemTexts.Of(Raw, Sanitized), TestContext.Current.CancellationToken);
 
         var labels = new[]
         {
@@ -33,7 +33,7 @@ public sealed class ProtectedContentStorageTests
     public async Task MapIsStoredUnderTheLabelOfItsOwnPurpose()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
         var map = await world.Writer.AddReversalMapAsync(1, item, Entries, TestContext.Current.CancellationToken);
 
         var stored = await world.StoredAsync(1, ContentQueries.ReadReversalEntries, map);
@@ -45,7 +45,7 @@ public sealed class ProtectedContentStorageTests
     public async Task ItemWithoutSanitizedOrPseudonymizedTextKeepsNothingInThoseColumns()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
 
         var empty = await world.InDomainAsync(1, "SELECT sanitized_text IS NULL AND pseudonymized_text IS NULL FROM content.item_text WHERE id = @id", ("id", item));
 
@@ -56,7 +56,7 @@ public sealed class ProtectedContentStorageTests
     public async Task MapOfAnItemOfAnotherDomainIsRefusedByTheDatabase()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
 
         var refused = await Assert.ThrowsAsync<PostgresException>(() => world.Writer.AddReversalMapAsync(2, item, Entries, TestContext.Current.CancellationToken));
 

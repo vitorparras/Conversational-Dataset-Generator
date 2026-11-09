@@ -20,7 +20,7 @@ public sealed class ContentAuditFidelityTests
         var from = DateTimeOffset.UtcNow.AddMinutes(-1);
         var token = TestContext.Current.CancellationToken;
         await using var world = await FidelityWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText("texto bruto sintetico zqx", "texto sanitizado sintetico zqx"), token);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("texto bruto sintetico zqx", "texto sanitizado sintetico zqx"), token);
         var map = await world.Writer.AddReversalMapAsync(1, item, "mapa sintetico zqx", token);
         _ = await world.Reader.ReadAsync(new ContentRead(CustodyAuthor.System, ContentColumns.RawText, 1, item), token);
         _ = await world.Reader.ReadAsync(new ContentRead(CustodyAuthor.System, ContentColumns.SanitizedText, 1, item), token);
@@ -38,7 +38,7 @@ public sealed class ContentAuditFidelityTests
         var token = TestContext.Current.CancellationToken;
         await using var world = await FidelityWorld.CreateAsync();
         await world.MakeCuratorAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText("texto bruto sintetico zqx", "texto sanitizado sintetico zqx"), token);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("texto bruto sintetico zqx", "texto sanitizado sintetico zqx"), token);
         _ = await world.Writer.AddReversalMapAsync(1, item, "mapa sintetico zqx", token);
         var person = (long)(await world.InDomainAsync(1, "SELECT id FROM public.person WHERE name = 'zqx-active'"))!;
 
@@ -54,7 +54,7 @@ public sealed class ContentAuditFidelityTests
         var from = DateTimeOffset.UtcNow.AddMinutes(-1);
         var token = TestContext.Current.CancellationToken;
         await using var world = await FidelityWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText("texto bruto sintetico zqx"), token);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("texto bruto sintetico zqx"), token);
         _ = await world.Reader.ReadAsync(new ContentRead(CustodyAuthor.System, ContentColumns.RawText, 1, item), token);
         _ = await world.InDomainAsync(1, "SELECT raw_text FROM content.item_text WHERE id = @id", ("id", item));
 

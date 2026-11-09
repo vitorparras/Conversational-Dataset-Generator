@@ -81,7 +81,9 @@ internal static class OpaqueStorage
         Assert.Empty(known.Except(marked, StringComparer.Ordinal));
         var texts = Seedable.ToDictionary(column => column, column => $"zqx-{Guid.NewGuid():N}", StringComparer.Ordinal);
         var pseudonymized = $"zqx-{Guid.NewGuid():N}";
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(texts[RawText], texts[SanitizedText], pseudonymized, [new ItemOccurrence(0, 1, texts[Occurrences], OccurrenceDestination.Remove)]), TestContext.Current.CancellationToken);
+        ItemOccurrence[] occurrences = [new(0, 1, texts[Occurrences], OccurrenceDestination.Remove)];
+        var written = new NewItemText(texts[RawText], texts[SanitizedText], pseudonymized, occurrences);
+        var item = await world.Writer.AddItemTextAsync(1, written, TestContext.Current.CancellationToken);
         _ = await world.Writer.AddReversalMapAsync(1, item, texts[Entries], TestContext.Current.CancellationToken);
         await AssertEveryMarkedColumnHoldsSomethingAsync(world, marked);
         return new Material(texts, pseudonymized) { Keys = await KeysInClearAsync(world) };

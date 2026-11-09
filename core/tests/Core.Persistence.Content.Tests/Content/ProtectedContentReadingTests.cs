@@ -27,7 +27,7 @@ public sealed class ProtectedContentReadingTests
     {
         await using var world = await ContentWorld.CreateAsync();
         var reader = await world.PersonAsync("zqx-active");
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
 
         var result = await world.Reader.ReadAsync(new ContentRead(CustodyAuthor.Person(reader), ContentColumns.RawText, 1, item), TestContext.Current.CancellationToken);
 
@@ -38,7 +38,7 @@ public sealed class ProtectedContentReadingTests
     public async Task SanitizedTextGoesThroughTheSamePointOfReadingAsTheRawText()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, Sanitized), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw, Sanitized), TestContext.Current.CancellationToken);
 
         var result = await world.Reader.ReadAsync(new ContentRead(CustodyAuthor.System, ContentColumns.SanitizedText, 1, item), TestContext.Current.CancellationToken);
 
@@ -49,7 +49,7 @@ public sealed class ProtectedContentReadingTests
     public async Task ReversalMapIsReadAndTheEventIsAboutTheMap()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(2, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(2, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
         var map = await world.Writer.AddReversalMapAsync(2, item, Entries, TestContext.Current.CancellationToken);
 
         var result = await world.Reader.ReadAsync(new ContentRead(CustodyAuthor.System, ContentColumns.Entries, 2, map), TestContext.Current.CancellationToken);
@@ -61,7 +61,7 @@ public sealed class ProtectedContentReadingTests
     public async Task EventCarriesNoContentOfWhatWasRead()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, Sanitized), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw, Sanitized), TestContext.Current.CancellationToken);
         _ = await world.Reader.ReadAsync(new ContentRead(CustodyAuthor.System, ContentColumns.RawText, 1, item), TestContext.Current.CancellationToken);
 
         var rows = (string)(await world.ScalarAsync(EventRows))!;
@@ -73,7 +73,7 @@ public sealed class ProtectedContentReadingTests
     public async Task EachReadingAddsAnEventOfItsOwn()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
         var request = new ContentRead(CustodyAuthor.System, ContentColumns.RawText, 1, item);
         _ = await world.Reader.ReadAsync(request, TestContext.Current.CancellationToken);
         _ = await world.Reader.ReadAsync(request, TestContext.Current.CancellationToken);
@@ -86,7 +86,7 @@ public sealed class ProtectedContentReadingTests
     {
         await using var world = await ContentWorld.CreateAsync();
         var deactivated = await world.PersonAsync("zqx-gone");
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
 
         var result = await world.Reader.ReadAsync(new ContentRead(CustodyAuthor.Person(deactivated), ContentColumns.RawText, 1, item), TestContext.Current.CancellationToken);
 
@@ -97,7 +97,7 @@ public sealed class ProtectedContentReadingTests
     public async Task ItemOfAnotherDomainIsNotFoundAndNothingIsRecorded()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
 
         var result = await world.Reader.ReadAsync(new ContentRead(CustodyAuthor.System, ContentColumns.RawText, 2, item), TestContext.Current.CancellationToken);
 
@@ -108,7 +108,7 @@ public sealed class ProtectedContentReadingTests
     public async Task ColumnThatHoldsNothingYetIsEmptyAndNothingIsRecorded()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
 
         var result = await world.Reader.ReadAsync(new ContentRead(CustodyAuthor.System, ContentColumns.SanitizedText, 1, item), TestContext.Current.CancellationToken);
 

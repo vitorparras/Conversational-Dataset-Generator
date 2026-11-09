@@ -25,8 +25,8 @@ public sealed class ItemKeyDestructionTests
     public async Task EachRowHasAKeyOfItsOwnAndEmptyingTheItemDestroysTheKeysOfTheItemAndOfItsMaps()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, "sanitizado"), TestContext.Current.CancellationToken);
-        var other = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, "sanitizado"), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw, "sanitizado"), TestContext.Current.CancellationToken);
+        var other = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw, "sanitizado"), TestContext.Current.CancellationToken);
         var map = await world.Writer.AddReversalMapAsync(1, item, "mapa zqx", TestContext.Current.CancellationToken);
         var before = (await WrappedAsync(world, "item_text", item), await WrappedAsync(world, "item_text", other), await WrappedAsync(world, "reversal_map", map));
 
@@ -42,8 +42,8 @@ public sealed class ItemKeyDestructionTests
     public async Task CopyOfTheBytesTakenBeforeEmptyingCannotBeOpenedOnceTheEpochIsRotatedAndDestroyed()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, "sanitizado"), TestContext.Current.CancellationToken);
-        var kept = await world.Writer.AddItemTextAsync(1, new NewItemText("outro texto zqx"), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw, "sanitizado"), TestContext.Current.CancellationToken);
+        var kept = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("outro texto zqx"), TestContext.Current.CancellationToken);
         var copy = new ContentKey(1, await WrappedAsync(world, "item_text", item));
         var copiedContent = await world.StoredAsync(1, ContentQueries.ReadRawText, item);
         using var epoch1 = SyntheticCustody.Holding(ContentWorld.Labels);

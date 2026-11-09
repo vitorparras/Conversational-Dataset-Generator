@@ -64,7 +64,7 @@ public sealed class ContentEmptyingRaceTests
 
     private static async Task<(long Curator, long Item)> ItemAsync(ContentWorld world)
     {
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText("texto bruto zqx", "texto sanitizado zqx", "texto pseudonimizado zqx"), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("texto bruto zqx", "texto sanitizado zqx", "texto pseudonimizado zqx"), TestContext.Current.CancellationToken);
         _ = await world.Writer.AddReversalMapAsync(1, item, "mapa de reversao zqx", TestContext.Current.CancellationToken);
         return (await world.PersonAsync("zqx-curator"), item);
     }

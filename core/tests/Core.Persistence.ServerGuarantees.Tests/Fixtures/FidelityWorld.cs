@@ -1,16 +1,17 @@
 using System.Diagnostics.CodeAnalysis;
 using Core.Persistence.Content;
-using Core.Persistence.Content.Reading;
 using Core.Persistence.Content.Sealing;
-using Core.Persistence.Content.Writing;
-using Core.Persistence.Custody.Chain;
-using Core.Persistence.Ingestion;
+using Core.Persistence.Content.Reading;
 using Core.Persistence.Migrations;
-using Core.Persistence.People;
-using Core.Persistence.ServerGuarantees;
-using Core.Persistence.Tests.Content;
-using Core.Platform.Keys;
+using Core.Persistence.Ingestion;
+using Core.Persistence.Custody.Chain;
+using Core.Persistence.Content.Writing;
+using Core.Persistence.Tests.Fixtures;
 using Npgsql;
+using Core.Platform.Keys;
+using Core.Persistence.Tests.Content;
+using Core.Persistence.ServerGuarantees;
+using Core.Persistence.People;
 
 namespace Core.Persistence.Tests.Fixtures;
 
@@ -117,8 +118,8 @@ internal sealed class FidelityWorld : IAsyncDisposable
         var token = TestContext.Current.CancellationToken;
         var opened = await new IngestionBatches(DataSource, TestConditions.Known).OpenAsync(new BatchOpening(1, 1), token);
         Assert.Equal((BatchOutcome.Opened, 3L), (opened.Outcome, opened.BatchId));
-        var first = await RealWriter.AddItemTextAsync(1, 3, new NewItemText("texto do lote aberto zqx"), token);
-        _ = await RealWriter.AddItemTextAsync(1, 3, new NewItemText("outro texto do lote aberto zqx"), token);
+        var first = await RealWriter.AddItemTextAsync(1, 3, ItemTexts.Of("texto do lote aberto zqx"), token);
+        _ = await RealWriter.AddItemTextAsync(1, 3, ItemTexts.Of("outro texto do lote aberto zqx"), token);
         _ = await RealWriter.AddReversalMapAsync(1, new NewReversalMap(3, first, "mapa do lote aberto zqx"), token);
     }
 

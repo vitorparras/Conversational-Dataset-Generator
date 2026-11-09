@@ -26,7 +26,7 @@ public sealed class IngestionContentWritingTests
     {
         await using var world = await IngestionWorld.CreateAsync();
         var batch = await IngestionWorld.OpenAsync(world);
-        var item = new NewItemText("texto bruto sintetico zqx");
+        var item = ItemTexts.Of("texto bruto sintetico zqx");
 
         _ = await Assert.ThrowsAsync<BatchNotOpenException>(() => world.RealWriter.AddItemTextAsync(2, batch, item, TestContext.Current.CancellationToken));
         _ = await Assert.ThrowsAsync<BatchNotOpenException>(() => world.RealWriter.AddItemTextAsync(IngestionWorld.Domain, 9_999, item, TestContext.Current.CancellationToken));

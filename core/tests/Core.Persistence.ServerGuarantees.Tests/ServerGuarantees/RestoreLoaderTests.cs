@@ -220,9 +220,9 @@ public sealed class RestoreLoaderTests
         var flow = created.PersonId!.Value;
         _ = await world.Credentials(workFactor: 1).SetPasswordAsync(flow, "senha-sintetica-zqx", curator, token);
         Assert.Equal(CustodyOutcome.Appended, (await new SignInAttempts(world.DataSource).AcceptedAsync(flow, IPAddress.Parse("203.0.113.9"), token)).Outcome);
-        var first = await world.Writer.AddItemTextAsync(1, new NewItemText("texto bruto sintetico zqx", "texto sanitizado sintetico zqx"), token);
+        var first = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("texto bruto sintetico zqx", "texto sanitizado sintetico zqx"), token);
         _ = await world.Writer.AddReversalMapAsync(1, first, "mapa sintetico zqx", token);
-        var second = await world.Writer.AddItemTextAsync(1, new NewItemText("segundo texto sintetico zqx"), token);
+        var second = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("segundo texto sintetico zqx"), token);
         _ = await world.Reader.ReadAsync(new ContentRead(CustodyAuthor.System, ContentColumns.RawText, 1, first), token);
         _ = await new ContentEmptier(world.DataSource).EmptyAsync(new ItemEmptying(CustodyAuthor.Person(flow), 1, second, EmptyingMotive.ContractRequirement, "PROT-2026/0042"), token);
         _ = await world.Registry.DeactivateAsync(flow, curator, token);

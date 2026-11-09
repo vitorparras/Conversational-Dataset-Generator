@@ -37,7 +37,7 @@ internal static class IngestionWorld
 
     /// <summary>Adds an item to the batch, as the system does, and answers its identifier.</summary>
     public static Task<long> AddItemAsync(ContentWorld world, long batch) =>
-        world.RealWriter.AddItemTextAsync(Domain, batch, new NewItemText("texto bruto sintetico zqx"), TestContext.Current.CancellationToken);
+        world.RealWriter.AddItemTextAsync(Domain, batch, ItemTexts.Of("texto bruto sintetico zqx"), TestContext.Current.CancellationToken);
 
     /// <summary>Adds the map of the item to the batch, as the system does, and answers its identifier.</summary>
     public static Task<long> AddMapAsync(ContentWorld world, long batch, long item) =>

@@ -26,7 +26,7 @@ public sealed class ContentWriterRetryTests
     public async Task AWriteStoppedBehindAnotherIsTriedAgainUpToThreeTimesAndTheLastFailureIsTold(string table, int refusedFirst, long attempts, bool written)
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText("texto bruto zqx"), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("texto bruto zqx"), TestContext.Current.CancellationToken);
         var before = await StoredAsync(world, table);
         await world.Database.RunAsOwnerAsync(RefusingTrigger(table, refusedFirst));
 
@@ -39,7 +39,7 @@ public sealed class ContentWriterRetryTests
     }
 
     private static Task<long> WriteAsync(ContentWorld world, string table, long item) => table == "item_text"
-        ? world.Writer.AddItemTextAsync(1, new NewItemText("outro texto zqx"), TestContext.Current.CancellationToken)
+        ? world.Writer.AddItemTextAsync(1, ItemTexts.Of("outro texto zqx"), TestContext.Current.CancellationToken)
         : world.Writer.AddReversalMapAsync(1, item, "mapa zqx", TestContext.Current.CancellationToken);
 
     private static async Task<long> StoredAsync(ContentWorld world, string table) =>

@@ -26,7 +26,7 @@ public sealed class KeyLossReadingTests
     {
         var unloaded = isRaw ? "texto-bruto/1/v1" : "mapa-reversao/1/v1";
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
         var map = await world.Writer.AddReversalMapAsync(1, item, Entries, TestContext.Current.CancellationToken);
         using var others = SyntheticCustody.Holding(ContentWorld.Labels.Where(label => label != unloaded));
 
@@ -40,7 +40,7 @@ public sealed class KeyLossReadingTests
     public async Task Ca1ARowThatIsMissingOrEmptyKeepsItsOwnOutcomeWhateverLabelsAreLoaded()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
         using var none = SyntheticCustody.Holding("mapa-reversao/2/v1");
         var reader = world.ReaderWith(none);
 
@@ -54,9 +54,9 @@ public sealed class KeyLossReadingTests
     public async Task Ca3TheReversalMapUnderTheScopeOfALossIsRefusedWithTheReasonAndNothingIsRecordedWhileAnotherDomainReads()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
         var lost = await world.Writer.AddReversalMapAsync(1, item, Entries, TestContext.Current.CancellationToken);
-        var other = await world.Writer.AddItemTextAsync(2, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        var other = await world.Writer.AddItemTextAsync(2, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
         var kept = await world.Writer.AddReversalMapAsync(2, other, Entries, TestContext.Current.CancellationToken);
         await DeclareAsync(world, "mapa-reversao/1/v1");
 
@@ -73,8 +73,8 @@ public sealed class KeyLossReadingTests
     {
         var token = TestContext.Current.CancellationToken;
         await using var world = await ContentWorld.CreateAsync();
-        var first = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw), token);
-        var second = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw), token);
+        var first = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw), token);
+        var second = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw), token);
 
         var one = await world.Reader.ReadFirstAsync(new ContentRead(CustodyAuthor.System, ContentColumns.RawText, 1, RowId: 0), token);
         var next = await world.Reader.ReadFirstAsync(new ContentRead(CustodyAuthor.System, ContentColumns.RawText, 1, first), token);
@@ -91,7 +91,7 @@ public sealed class KeyLossReadingTests
     public async Task Ca4TheRawTextUnderTheScopeOfALossIsRefusedWithTheSameReasonAndNothingIsRecorded()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
         await DeclareAsync(world, "texto-bruto/1/v1");
 
         var raw = await world.Reader.ReadAsync(new ContentRead(CustodyAuthor.System, ContentColumns.RawText, 1, item), TestContext.Current.CancellationToken);
@@ -104,7 +104,7 @@ public sealed class KeyLossReadingTests
     public async Task Ca3ALossOfTheWholeKeyRefusesEveryReadingOfWhatIsSealed()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(2, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(2, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
         var map = await world.Writer.AddReversalMapAsync(2, item, Entries, TestContext.Current.CancellationToken);
         await DeclareAsync(world, "master");
 

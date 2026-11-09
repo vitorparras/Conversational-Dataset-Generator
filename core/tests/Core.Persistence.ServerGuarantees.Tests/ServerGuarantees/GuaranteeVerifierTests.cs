@@ -72,7 +72,7 @@ public sealed class GuaranteeVerifierTests
     {
         var token = TestContext.Current.CancellationToken;
         await using var world = await FidelityWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText("texto bruto sintetico zqx", "texto sanitizado sintetico zqx"), token);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("texto bruto sintetico zqx", "texto sanitizado sintetico zqx"), token);
         _ = await world.Writer.AddReversalMapAsync(1, item, "mapa sintetico zqx", token);
 
         var verification = await world.Verifier().VerifyAsync(token);
@@ -89,7 +89,7 @@ public sealed class GuaranteeVerifierTests
         var from = DateTimeOffset.UtcNow.AddMinutes(-1);
         var token = TestContext.Current.CancellationToken;
         await using var world = await FidelityWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText("texto bruto sintetico zqx", "texto sanitizado sintetico zqx"), token);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("texto bruto sintetico zqx", "texto sanitizado sintetico zqx"), token);
         _ = await world.Writer.AddReversalMapAsync(1, item, "mapa sintetico zqx", token);
         _ = await world.Verifier().VerifyAsync(token);
 
@@ -104,7 +104,7 @@ public sealed class GuaranteeVerifierTests
         var from = DateTimeOffset.UtcNow.AddMinutes(-1);
         var token = TestContext.Current.CancellationToken;
         await using var world = await FidelityWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText("texto bruto sintetico zqx"), token);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("texto bruto sintetico zqx"), token);
         _ = await world.Writer.AddReversalMapAsync(1, item, "mapa sintetico zqx", token);
         await world.MakeCuratorAsync();
         var person = (long)(await world.InDomainAsync(1, "SELECT id FROM public.person WHERE name = 'zqx-active'"))!;
@@ -157,7 +157,7 @@ public sealed class GuaranteeVerifierTests
         var token = TestContext.Current.CancellationToken;
         await using var world = await FidelityWorld.CreateAsync();
         await WriteItemAndMapAsync(world, 1);
-        _ = await world.Writer.AddItemTextAsync(2, new NewItemText("texto bruto sintetico zqx"), token);
+        _ = await world.Writer.AddItemTextAsync(2, ItemTexts.Of("texto bruto sintetico zqx"), token);
         await DeclareAsync(world, "mapa-reversao/1/v1");
 
         var verification = await world.VerifierOver(new SyntheticKeySource(["texto-bruto/1/v1", "mapa-reversao/1/v1", "mapa-reversao/2/v1"])).VerifyAsync(token);
@@ -175,7 +175,7 @@ public sealed class GuaranteeVerifierTests
         await using var world = await FidelityWorld.CreateAsync();
         for (var row = 0; row < rows; row++)
         {
-            _ = await world.Writer.AddItemTextAsync(1, new NewItemText("texto bruto sintetico zqx"), token);
+            _ = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("texto bruto sintetico zqx"), token);
         }
 
         await DeclareAsync(world, "texto-bruto/1/v1");
@@ -190,7 +190,7 @@ public sealed class GuaranteeVerifierTests
     {
         var token = TestContext.Current.CancellationToken;
         await using var world = await FidelityWorld.CreateAsync();
-        _ = await world.Writer.AddItemTextAsync(2, new NewItemText("texto bruto sintetico zqx", "texto sanitizado sintetico zqx"), token);
+        _ = await world.Writer.AddItemTextAsync(2, ItemTexts.Of("texto bruto sintetico zqx", "texto sanitizado sintetico zqx"), token);
         await world.RunAsSuperuserAsync(
             "SELECT set_config('app.domain', '1', true); "
             + "INSERT INTO content.item_text (domain_id, batch_id, raw_text, sanitized_text, pseudonymized_text, dek_epoch, dek_wrapped) "
@@ -207,7 +207,7 @@ public sealed class GuaranteeVerifierTests
     {
         var token = TestContext.Current.CancellationToken;
         await using var world = await FidelityWorld.CreateAsync();
-        _ = await world.Writer.AddItemTextAsync(1, new NewItemText("texto bruto sintetico zqx"), token);
+        _ = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("texto bruto sintetico zqx"), token);
 
         var verification = await world.VerifierOver(new SyntheticKeySource(["texto-bruto/2/v1", "mapa-reversao/2/v1"])).VerifyAsync(token);
 
@@ -219,7 +219,7 @@ public sealed class GuaranteeVerifierTests
     public async Task KeyThatCannotBeReadMakesTheSampleMissingWithoutReadingAnything()
     {
         await using var world = await FidelityWorld.CreateAsync();
-        _ = await world.Writer.AddItemTextAsync(1, new NewItemText("texto bruto sintetico zqx"), TestContext.Current.CancellationToken);
+        _ = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("texto bruto sintetico zqx"), TestContext.Current.CancellationToken);
 
         var verification = await world.VerifierOver(LabelsSource.WithoutKey()).VerifyAsync(TestContext.Current.CancellationToken);
 
@@ -232,7 +232,7 @@ public sealed class GuaranteeVerifierTests
     {
         var token = TestContext.Current.CancellationToken;
         await using var world = await FidelityWorld.CreateAsync();
-        _ = await world.Writer.AddItemTextAsync(1, new NewItemText("texto bruto sintetico zqx"), token);
+        _ = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("texto bruto sintetico zqx"), token);
         Assert.True(KeyLossScope.TryRead("texto-bruto/1/v1", out var scope));
         var declared = await new CustodyChain(world.DataSource).AppendAsync(CustodyEvent.KeyLossDeclared(scope!, KeyLossAttempts.SafekeepingCopy), token);
 
@@ -293,7 +293,7 @@ public sealed class GuaranteeVerifierTests
     private static async Task WriteItemAndMapAsync(FidelityWorld world, int domain)
     {
         var token = TestContext.Current.CancellationToken;
-        var item = await world.Writer.AddItemTextAsync(domain, new NewItemText("texto bruto sintetico zqx", "texto sanitizado sintetico zqx"), token);
+        var item = await world.Writer.AddItemTextAsync(domain, ItemTexts.Of("texto bruto sintetico zqx", "texto sanitizado sintetico zqx"), token);
         _ = await world.Writer.AddReversalMapAsync(domain, item, "mapa sintetico zqx", token);
     }
 

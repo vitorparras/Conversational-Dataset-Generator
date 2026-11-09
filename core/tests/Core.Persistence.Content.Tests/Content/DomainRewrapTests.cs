@@ -34,9 +34,9 @@ public sealed class DomainRewrapTests
     public async Task EveryKeyOfTheDomainPassesToTheNewestGenerationAndTheContentReadsAsBefore()
     {
         await using var world = await WorldWithTheNextGenerationAsync();
-        var first = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, "sanitizado"), TestContext.Current.CancellationToken);
+        var first = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw, "sanitizado"), TestContext.Current.CancellationToken);
         var map = await world.Writer.AddReversalMapAsync(1, first, Entries, TestContext.Current.CancellationToken);
-        var other = await world.Writer.AddItemTextAsync(2, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        var other = await world.Writer.AddItemTextAsync(2, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
         var sealedBefore = await world.StoredAsync(1, ItemRaw, first);
         using var custody = SyntheticCustody.HoldingEpochs([1], WithTheNextGeneration);
 
@@ -74,7 +74,7 @@ public sealed class DomainRewrapTests
         await using var world = await WorldWithTheNextGenerationAsync();
         var ids = await AddItemsAsync(world.Writer, 3);
         using var ahead = SyntheticCustody.HoldingEpochs([1, 2], ContentWorld.Labels);
-        ids.Add(await new SeededWriter(new ContentWriter(world.DataSource, ahead.Content)).AddItemTextAsync(1, new NewItemText(Raw), TestContext.Current.CancellationToken));
+        ids.Add(await new SeededWriter(new ContentWriter(world.DataSource, ahead.Content)).AddItemTextAsync(1, ItemTexts.Of(Raw), TestContext.Current.CancellationToken));
         ids.AddRange(await AddItemsAsync(world.Writer, 1));
         using var onlyTheFirstEpoch = SyntheticCustody.HoldingEpochs([1], WithTheNextGeneration);
 
@@ -128,7 +128,7 @@ public sealed class DomainRewrapTests
     public async Task KeyWhoseHeaderNamesALabelOfAnotherDomainStopsTheRun()
     {
         await using var world = await WorldWithTheNextGenerationAsync();
-        var other = await world.Writer.AddItemTextAsync(2, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        var other = await world.Writer.AddItemTextAsync(2, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
         var foreign = await world.StoredAsync(2, ItemKey, other);
         _ = await world.InDomainAsync(1, "INSERT INTO content.item_text (domain_id, batch_id, raw_text, dek_epoch, dek_wrapped) VALUES (1, 1, '\x01', 1, @wrapped) RETURNING id", ("wrapped", foreign));
         using var custody = SyntheticCustody.HoldingEpochs([1], WithTheNextGeneration);
@@ -172,7 +172,7 @@ public sealed class DomainRewrapTests
         await using var world = await WorldWithTheNextGenerationAsync();
         _ = await AddItemsAsync(world.Writer, 3);
         using var custody = SyntheticCustody.HoldingEpochs([1], WithTheNextGeneration);
-        _ = await new SeededWriter(new ContentWriter(world.DataSource, custody.Content)).AddItemTextAsync(1, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        _ = await new SeededWriter(new ContentWriter(world.DataSource, custody.Content)).AddItemTextAsync(1, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
         var rewrap = new DomainRewrap(world.DataSource, 2);
 
         var before = await rewrap.StatusAsync(1, custody.Labels, TestContext.Current.CancellationToken);
@@ -227,7 +227,7 @@ public sealed class DomainRewrapTests
         var current = new List<long>();
         for (var count = 0; count < 3; count++)
         {
-            current.Add(await newest.AddItemTextAsync(1, new NewItemText(Raw), TestContext.Current.CancellationToken));
+            current.Add(await newest.AddItemTextAsync(1, ItemTexts.Of(Raw), TestContext.Current.CancellationToken));
         }
 
         _ = await newest.AddReversalMapAsync(1, current[2], Entries, TestContext.Current.CancellationToken);
@@ -285,7 +285,7 @@ public sealed class DomainRewrapTests
         var ids = new List<long>();
         for (var index = 0; index < count; index++)
         {
-            ids.Add(await writer.AddItemTextAsync(1, new NewItemText(Raw), TestContext.Current.CancellationToken));
+            ids.Add(await writer.AddItemTextAsync(1, ItemTexts.Of(Raw), TestContext.Current.CancellationToken));
         }
 
         return ids;

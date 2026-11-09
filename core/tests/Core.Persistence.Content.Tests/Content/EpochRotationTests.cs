@@ -23,9 +23,9 @@ public sealed class EpochRotationTests
     public async Task EveryLiveKeyOfEveryDomainIsWrappedAgainAndTheContentReadsAsBefore()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var first = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, "sanitizado"), TestContext.Current.CancellationToken);
+        var first = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw, "sanitizado"), TestContext.Current.CancellationToken);
         var map = await world.Writer.AddReversalMapAsync(1, first, Entries, TestContext.Current.CancellationToken);
-        var second = await world.Writer.AddItemTextAsync(2, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        var second = await world.Writer.AddItemTextAsync(2, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
         var wrappedBefore = await world.StoredAsync(1, "SELECT dek_wrapped FROM content.item_text WHERE id = @id", first);
         using var epochs = SyntheticCustody.HoldingEpochs([1, 2], ContentWorld.Labels);
 
@@ -45,7 +45,7 @@ public sealed class EpochRotationTests
     public async Task RotatingAgainWithNothingOlderChangesNothing()
     {
         await using var world = await ContentWorld.CreateAsync();
-        _ = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        _ = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
         using var epochs = SyntheticCustody.HoldingEpochs([1, 2], ContentWorld.Labels);
         var rotation = new EpochRotation(world.DataSource, epochs.Keys);
 
@@ -59,8 +59,8 @@ public sealed class EpochRotationTests
     public async Task RotationRecordsOneEventOfTheEpochForAllTheDomainsAndRotatingAgainRecordsNone()
     {
         await using var world = await ContentWorld.CreateAsync();
-        _ = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw), TestContext.Current.CancellationToken);
-        _ = await world.Writer.AddItemTextAsync(2, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        _ = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
+        _ = await world.Writer.AddItemTextAsync(2, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
         using var epochs = SyntheticCustody.HoldingEpochs([1, 2], ContentWorld.Labels);
         var rotation = new EpochRotation(world.DataSource, epochs.Keys);
         const string Events = "SELECT count(*) FROM public.custody_event WHERE step = 'epoch_rotated' AND item_kind = 'content_epoch' AND item_id = 2 AND actor_system";
@@ -76,9 +76,9 @@ public sealed class EpochRotationTests
     public async Task RotationOverItemsAndMapsOfSeveralDomainsRecordsTheEventOnceInTheTransaction()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var first = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        var first = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
         _ = await world.Writer.AddReversalMapAsync(1, first, Entries, TestContext.Current.CancellationToken);
-        var second = await world.Writer.AddItemTextAsync(2, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        var second = await world.Writer.AddItemTextAsync(2, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
         _ = await world.Writer.AddReversalMapAsync(2, second, Entries, TestContext.Current.CancellationToken);
         using var epochs = SyntheticCustody.HoldingEpochs([1, 2], ContentWorld.Labels);
         const string Events = "SELECT count(*) FROM public.custody_event WHERE step = 'epoch_rotated'";
@@ -92,9 +92,9 @@ public sealed class EpochRotationTests
     public async Task ChainThatDoesNotAcceptTheEventOfTheRotationStopsItNamingTheOutcomeAndChangesNoKey()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var first = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        var first = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
         _ = await world.Writer.AddReversalMapAsync(1, first, Entries, TestContext.Current.CancellationToken);
-        _ = await world.Writer.AddItemTextAsync(2, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        _ = await world.Writer.AddItemTextAsync(2, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
         await world.BreakTheChainAsync();
         using var epochs = SyntheticCustody.HoldingEpochs([1, 2], ContentWorld.Labels);
         const string Events = "SELECT count(*) FROM public.custody_event WHERE step = 'epoch_rotated'";
@@ -115,8 +115,8 @@ public sealed class EpochRotationTests
     public async Task RowsEmptiedBeforeTheRotationStayEmptied()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var gone = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw), TestContext.Current.CancellationToken);
-        var kept = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        var gone = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
+        var kept = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
         var curator = await world.PersonAsync("zqx-curator");
         _ = await world.Emptier.EmptyAsync(
             new ItemEmptying(CustodyAuthor.Person(curator), 1, gone, EmptyingMotive.ContractRequirement, "PROT-2026/0042"), TestContext.Current.CancellationToken);
@@ -132,8 +132,8 @@ public sealed class EpochRotationTests
     public async Task RotationThatCannotUnwrapAKeyChangesNoRowAndNamesNothingOfTheKey()
     {
         await using var world = await ContentWorld.CreateAsync();
-        _ = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw), TestContext.Current.CancellationToken);
-        _ = await world.Writer.AddItemTextAsync(2, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        _ = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
+        _ = await world.Writer.AddItemTextAsync(2, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
         using var onlyTheNewOne = SyntheticCustody.HoldingEpochs([2], ContentWorld.Labels);
 
         var refused = await Assert.ThrowsAsync<EnvelopeRefusedException>(() => new EpochRotation(world.DataSource, onlyTheNewOne.Keys).RotateAsync(TestContext.Current.CancellationToken));

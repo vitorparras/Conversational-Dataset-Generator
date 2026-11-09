@@ -26,6 +26,7 @@ public sealed class ContentWriter(NpgsqlDataSource dataSource, ProtectedContent 
     public Task<long> AddItemTextAsync(int domainId, long batchId, NewItemText item, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(item);
+        ArgumentNullException.ThrowIfNull(item.Occurrences);
         return AddItemAsync(domainId, batchId, item, cancellationToken);
     }
 
@@ -45,7 +46,7 @@ public sealed class ContentWriter(NpgsqlDataSource dataSource, ProtectedContent 
         using var sealing = protectedContent.Begin(ContentColumns.ItemKey, domainId);
         var raw = sealing.Seal(ContentColumns.RawText, item.Raw);
         var sanitized = item.Sanitized is null ? null : sealing.Seal(ContentColumns.SanitizedText, item.Sanitized);
-        var occurrences = item.Occurrences is null ? null : sealing.Seal(ContentColumns.Occurrences, OccurrenceJson.Write(item.Occurrences));
+        var occurrences = sealing.Seal(ContentColumns.Occurrences, OccurrenceJson.Write(item.Occurrences));
         var insertion = new Insertion(
             ContentQueries.InsertItemText,
             () => [Batch(batchId), Bytes("raw", raw), Bytes("sanitized", sanitized), Bytes("occurrences", occurrences), Text("pseudonymized", item.Pseudonymized), .. KeyOf(sealing)],

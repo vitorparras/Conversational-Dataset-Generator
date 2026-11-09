@@ -25,8 +25,8 @@ public sealed class ReplicationTableTests
         var store = new ReplicationStore(world.DataSource);
         var batch = await IngestionWorld.OpenAsync(world);
         var item = await IngestionWorld.AddItemAsync(world, batch);
-        var occurrences = [Occurrence(item, 0, 'a', 'b'), Occurrence(item, 1, 'a', 'c')];
-        var marks = [new(item, 0, item, 0), new(item, 1, item, 0)];
+        StoredOccurrence[] occurrences = [Occurrence(item, 0, 'a', 'b'), Occurrence(item, 1, 'a', 'c')];
+        StoredMark[] marks = [new(item, 0, item, 0), new(item, 1, item, 0)];
 
         await store.RecordAsync(1, batch, occurrences, marks, TestContext.Current.CancellationToken);
         var before = (await store.OccurrencesAsync(1, TestContext.Current.CancellationToken)).Count + (await store.MarksAsync(1, TestContext.Current.CancellationToken)).Count;
@@ -100,7 +100,7 @@ public sealed class ReplicationTableTests
         var store = new ReplicationStore(world.DataSource);
         var batch = await IngestionWorld.OpenAsync(world);
         var item = await IngestionWorld.AddItemAsync(world, batch);
-        var written = [Occurrence(item, 0, 'a', 'b'), Occurrence(item, 1, 'a', 'c')];
+        StoredOccurrence[] written = [Occurrence(item, 0, 'a', 'b'), Occurrence(item, 1, 'a', 'c')];
         await store.RecordAsync(1, batch, written, [new(item, 1, item, 0)], TestContext.Current.CancellationToken);
         _ = await IngestionWorld.AcceptAsync(world, batch);
         const string ChangeOccurrence = "UPDATE content.replication_occurrence SET text_digest = repeat('f', 64) WHERE item_id = @id";
@@ -187,7 +187,7 @@ public sealed class ReplicationTableTests
         var store = new ReplicationStore(world.DataSource);
         var batch = await IngestionWorld.OpenAsync(world);
         var item = await IngestionWorld.AddItemAsync(world, batch);
-        var notDigests = ["ZQX-texto-em-claro", new string('A', 64), new string('a', 63), new string('a', 65), string.Empty];
+        string[] notDigests = ["ZQX-texto-em-claro", new string('A', 64), new string('a', 63), new string('a', 65), string.Empty];
 
         foreach (var notDigest in notDigests)
         {

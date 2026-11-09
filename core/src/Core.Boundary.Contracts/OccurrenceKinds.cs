@@ -6,24 +6,25 @@ namespace Core.Boundary.Contracts;
 /// </summary>
 public static class OccurrenceKinds
 {
-    private static readonly HashSet<string> Secrets = new(StringComparer.Ordinal) { "CREDENTIAL", "SECRET", "PASSWORD", "TOKEN", "API_KEY", "PRIVATE_KEY" };
-
-    private static readonly HashSet<string> Names = new(StringComparer.Ordinal) { "PERSON", "LOCATION", "ORGANIZATION" };
-
     /// <summary>A person.</summary>
-    public static string Person { get; } = "PERSON";
+    public static string Person => "PERSON";
 
     /// <summary>A place.</summary>
-    public static string Location { get; } = "LOCATION";
+    public static string Location => "LOCATION";
 
     /// <summary>An organization.</summary>
-    public static string Organization { get; } = "ORGANIZATION";
+    public static string Organization => "ORGANIZATION";
 
     /// <summary>Whether the kind is one of the list, written exactly as the list writes it.</summary>
     /// <param name="kind">The kind an occurrence carries.</param>
-    public static bool IsKnown(string kind) => Names.Contains(kind) || Secrets.Contains(kind);
+    public static bool IsKnown(string kind) => Names().Contains(kind) || Secrets().Contains(kind);
 
     /// <summary>Whether the kind is a credential or a secret, which is removed always.</summary>
     /// <param name="kind">The kind an occurrence carries.</param>
-    public static bool IsSecret(string kind) => Secrets.Contains(kind);
+    public static bool IsSecret(string kind) => Secrets().Contains(kind);
+
+    // Built at each call, and not once in a static initializer: a value fixed before any test runs is one the mutation of the text cannot reach.
+    private static HashSet<string> Secrets() => new(StringComparer.Ordinal) { "CREDENTIAL", "SECRET", "PASSWORD", "TOKEN", "API_KEY", "PRIVATE_KEY" };
+
+    private static HashSet<string> Names() => new(StringComparer.Ordinal) { "PERSON", "LOCATION", "ORGANIZATION" };
 }

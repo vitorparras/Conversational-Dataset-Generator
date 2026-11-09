@@ -5,7 +5,8 @@ using Core.Persistence.Tests.Fixtures;
 namespace Core.Host.Tests.Submissions;
 
 /// <summary>
-/// What the submission keeps of the loss of a material that does not fit the form exactly (issue 81): each item declares the form it received and what that form does not keep, and one that fits declares nothing.
+/// What the submission keeps of the loss of a material that does not fit the form exactly (issue 81): each item declares the form it received and what that form does not keep,
+/// and one that fits declares nothing.
 /// </summary>
 public sealed class SubmissionAccommodationTests
 {

@@ -1,0 +1,95 @@
+@using Core.Host.Endpoints
+@using Core.Persistence.Custody.Verification
+
+<h1>@Title</h1>
+@if (!Manual)
+{
+    <p class="lead">Nesta instalação o núcleo envia o selo sozinho, uma vez por dia. Não há nada a emitir nem a confirmar por aqui.</p>
+    <Notice Kind="Notice.Tone.Info">Um selo gravado à mão diria que o destino guarda o que ele não guarda; por isso a ação não é oferecida.</Notice>
+}
+else if (Unreadable)
+{
+    <Notice Kind="Notice.Tone.Error">
+        Não foi possível ler a cadeia agora. Nada foi gravado. Tente de novo em instantes; se repetir, quem administra o servidor vê a causa no registro do sistema.
+    </Notice>
+}
+else
+{
+    <p class="lead">O selo é a marca da cadeia de custódia neste momento. Guardado fora do alcance da base, ele permite provar depois que a cadeia não foi refeita até aqui.</p>
+    if (Recorded)
+    {
+        <Notice Kind="Notice.Tone.Success">O selo foi gravado na cadeia, com o seu nome. O aviso de selo ausente some.</Notice>
+    }
+    else if (Warning is not null)
+    {
+        <Notice Kind="Notice.Tone.Pending">@Warning</Notice>
+    }
+    <Panel Id="emitir" Title="1. Emitir o selo">
+        <FactList>
+            <Fact Term="Último selo registrado">@if (LastSeal is { } last) { <Moment At="last" /> } else { <StateMark>Nenhum selo registrado</StateMark> }</Fact>
+        </FactList>
+        @if (Issued is { } seal)
+        {
+            <p><strong>Guarde este texto onde quem controla a base não alcance.</strong> Ele só aparece agora: copie ou imprima antes de sair desta página.</p>
+            <Field Id="selo-texto" Caption="Texto do selo" Rows="4" ReadOnly="true" Value="@seal.ToText()" Hint="Selecione tudo (Ctrl+A) e copie, ou imprima esta página." />
+            <FactList>
+                <Fact Term="Momento do selo"><Moment At="seal.SealedAt" /></Fact>
+                <Fact Term="Eventos selados">@seal.Events</Fact>
+            </FactList>
+        }
+        <form method="post" action="@ScreenPaths.SealIssue" data-wait="emitir-espera">
+            <WaitNotice Id="emitir-espera" Text="Emitindo o selo. A espera é curta; nada é gravado." />
+            <div class="actions">
+                <Button Id="emitir-selo" Kind="@(Issued is null ? Button.Look.Primary : Button.Look.Secondary)">@(Issued is null ? "Emitir selo" : "Emitir outro selo")</Button>
+            </div>
+        </form>
+    </Panel>
+    <Panel Id="confirmar" Title="2. Confirmar o selo">
+        <p>Depois de guardar o texto, cole-o abaixo. A cadeia só grava o selo se ela tiver aquele evento, com aquele resumo.</p>
+        <form class="form" method="post" action="@ScreenPaths.SealConfirm" data-wait="confirmar-espera" novalidate>
+            <Field Id="@KeptField" Caption="Selo guardado" Required="true" Autocomplete="off" Value="@Typed" Error="@Refusal"
+                   Hint="O texto exatamente como foi emitido, em uma linha." />
+            <WaitNotice Id="confirmar-espera" Text="Confirmando o selo. A resposta pode levar alguns segundos." />
+            <div class="actions">
+                <Button Id="confirmar-selo" Kind="@(Issued is null ? Button.Look.Primary : Button.Look.Secondary)">Confirmar selo</Button>
+                <Button Href="@ScreenPaths.Chain" Kind="Button.Look.Quiet">Voltar à custódia</Button>
+            </div>
+        </form>
+    </Panel>
+}
+
+@code {
+    internal const string Title = "Selo da custódia";
+
+    /// <summary>The field the form sends; the text of the seal goes in the body of the post alone, never in the address.</summary>
+    internal const string KeptField = "selo-guardado";
+
+    /// <summary>Whether the installation declared the manual situation; in the others the screen only says the host sends the seal.</summary>
+    [Parameter]
+    public bool Manual { get; set; }
+
+    /// <summary>Whether the chain could not be read, so that the page offers no action.</summary>
+    [Parameter]
+    public bool Unreadable { get; set; }
+
+    [Parameter]
+    public DateTimeOffset? LastSeal { get; set; }
+
+    /// <summary>The warning of the manual situation that tells a seal is missing or old.</summary>
+    [Parameter]
+    public string? Warning { get; set; }
+
+    /// <summary>The seal just issued; shown on the answer that issued it and on no other.</summary>
+    [Parameter]
+    public ChainSeal? Issued { get; set; }
+
+    [Parameter]
+    public string? Typed { get; set; }
+
+    [Parameter]
+    public string? Refusal { get; set; }
+
+    /// <summary>Whether the page follows a seal that was recorded.</summary>
+    [Parameter]
+    public bool Recorded { get; set; }
+}

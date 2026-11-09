@@ -12,7 +12,7 @@
     }
     @if (Options is null)
     {
-        <input id="@Id" class="field__input" name="@(Name ?? Id)" type="@Type" value="@Value" autocomplete="@Autocomplete" autofocus="@Autofocus"
+        <input id="@Id" class="field__input" name="@(Name ?? Id)" type="@Type" value="@Value" autocomplete="@Autocomplete" autofocus="@Autofocus" inputmode="@InputMode"
                aria-required="@(Required ? "true" : null)" aria-invalid="@(Error is null ? null : "true")" aria-describedby="@DescribedBy" />
     }
     else
@@ -69,6 +69,10 @@
 
     [Parameter]
     public string? Autocomplete { get; set; }
+
+    /// <summary>The keyboard a phone offers, such as <c>numeric</c> for a number that is not a quantity.</summary>
+    [Parameter]
+    public string? InputMode { get; set; }
 
     /// <summary>Whether the field takes the focus when the page opens: only the first field of a page made for that one task.</summary>
     [Parameter]

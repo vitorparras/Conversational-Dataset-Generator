@@ -37,7 +37,7 @@ internal sealed class ConfigurationFile
         }
 
         var written = path + ".new";
-        File.WriteAllText(written, root.ToJsonString(Indented), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        Create(written, root.ToJsonString(Indented));
         Replace(written);
         return true;
     }
@@ -65,6 +65,20 @@ internal sealed class ConfigurationFile
         {
             return null;
         }
+    }
+
+    /// <summary>Writes the new file already with the mode of the old one, or readable by its owner alone when there is none, so that it is never readable by others, not even for an instant.</summary>
+    private void Create(string written, string content)
+    {
+        File.Delete(written);
+        var options = new FileStreamOptions { Mode = FileMode.CreateNew, Access = FileAccess.Write };
+        if (!OperatingSystem.IsWindows())
+        {
+            options.UnixCreateMode = File.Exists(path) ? File.GetUnixFileMode(path) : UnixFileMode.UserRead | UnixFileMode.UserWrite;
+        }
+
+        using var stream = new FileStream(written, options);
+        stream.Write(new UTF8Encoding(encoderShouldEmitUTF8Identifier: false).GetBytes(content));
     }
 
     private void Replace(string written)

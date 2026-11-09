@@ -6,7 +6,7 @@ namespace Core.Ingestion.Deciding;
 /// An item whose every occurrence has a destination: the only shape in which material reaches the writing. It is built by <see cref="Decide" /> alone, from one analysis for each text, and an
 /// item whose text was not analysed does not become one, so that an empty list and a service that did not answer never arrive alike.
 /// </summary>
-public sealed class DecidedMaterial
+public sealed record DecidedMaterial
 {
     private readonly IReadOnlyList<IReadOnlyList<DecidedOccurrence>> byText;
 

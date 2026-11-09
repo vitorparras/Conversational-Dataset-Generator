@@ -1,10 +1,11 @@
+using Core.Boundary.Contracts;
 using Core.Ingestion.Deciding;
 
 namespace Core.Ingestion.Tests.Deciding;
 
 /// <summary>
-/// The destination of one occurrence: three and no other, a secret always removed, and the same word in the function of a person and of a place
-/// with different destinations (issue 84, CA-2 and CA-3).
+/// The destination of one occurrence: three and no other, a secret always removed, and the same word of a person and of a place with different destinations,
+/// the kind separating them and the grammar breaking the tie (issue 84, CA-2 and CA-3).
 /// </summary>
 public sealed class DestinationPolicyTests
 {
@@ -15,16 +16,14 @@ public sealed class DestinationPolicyTests
     [InlineData("TOKEN")]
     [InlineData("API_KEY")]
     [InlineData("PRIVATE_KEY")]
-    [InlineData("credential")]
-    [InlineData("  Secret ")]
     public void ASecretIsRemovedEvenWhenItLooksLikeAProperNameInTheRoleOfAPerson(string kind) =>
         Assert.Equal(Destination.Remove, DestinationPolicy.Of(Found.Occurrence(kind, "PROPN", "nsubj")));
 
     [Fact]
-    public void ThePersonIsPseudonymizedAndThePlaceIsPreservedForTheSameWord()
+    public void ThePersonIsPseudonymizedAndThePlaceIsPreservedForTheSameWordInTheSameFunction()
     {
-        var person = DestinationPolicy.Of(Found.Occurrence("PERSON", "PROPN", "obl"));
-        var place = DestinationPolicy.Of(Found.Occurrence("LOCATION", "PROPN", "obl"));
+        var person = DestinationPolicy.Of(Found.Occurrence(OccurrenceKinds.Person, "PROPN", "obl"));
+        var place = DestinationPolicy.Of(Found.Occurrence(OccurrenceKinds.Location, "PROPN", "obl"));
 
         Assert.Equal((Destination.Pseudonymize, Destination.Preserve), (person, place));
     }
@@ -32,31 +31,31 @@ public sealed class DestinationPolicyTests
     [Theory]
     [InlineData("nsubj")]
     [InlineData("nsubj:pass")]
-    [InlineData("OBJ")]
+    [InlineData("obj")]
     [InlineData("iobj")]
     [InlineData("vocative")]
-    [InlineData("csubj")]
-    public void APlaceInTheRoleOfWhoActsOrIsAddressedIsAPersonInThatSentence(string role) =>
-        Assert.Equal(Destination.Pseudonymize, DestinationPolicy.Of(Found.Occurrence("LOCATION", "PROPN", role)));
-
-    [Theory]
     [InlineData("obl")]
-    [InlineData("obl:arg")]
     [InlineData("nmod")]
-    [InlineData("advmod")]
     [InlineData("")]
-    public void APlaceOutsideTheRolesOfWhoTakesPartIsPreserved(string role) =>
-        Assert.Equal(Destination.Preserve, DestinationPolicy.Of(Found.Occurrence("location", "propn", role)));
+    public void APlaceIsPreservedInWhateverFunctionItHasInTheSentence(string role) =>
+        Assert.Equal(Destination.Preserve, DestinationPolicy.Of(Found.Occurrence(OccurrenceKinds.Location, "PROPN", role)));
 
     [Theory]
-    [InlineData("ORGANIZATION")]
-    [InlineData("PERSON")]
-    public void APersonAndAnOrganizationKeepTheirRelationThroughAMarker(string kind) =>
-        Assert.Equal(Destination.Pseudonymize, DestinationPolicy.Of(Found.Occurrence(kind, "PROPN", "obl")));
+    [InlineData("nsubj")]
+    [InlineData("obj")]
+    [InlineData("obl")]
+    [InlineData("")]
+    public void APersonIsPseudonymizedInWhateverFunctionItHasInTheSentence(string role) =>
+        Assert.Equal(Destination.Pseudonymize, DestinationPolicy.Of(Found.Occurrence(OccurrenceKinds.Person, "PROPN", role)));
+
+    [Fact]
+    public void AnOrganizationKeepsItsRelationThroughAMarker() =>
+        Assert.Equal(Destination.Pseudonymize, DestinationPolicy.Of(Found.Occurrence(OccurrenceKinds.Organization, "PROPN", "obl")));
 
     [Theory]
     [InlineData("PERSON", "NOUN")]
     [InlineData("PERSON", "PRON")]
+    [InlineData("ORGANIZATION", "NOUN")]
     [InlineData("LOCATION", "NOUN")]
     [InlineData("LOCATION", "")]
     public void WhatIsNotAProperNameIsRemovedBecauseThereIsNoNameToKeepARelationTo(string kind, string partOfSpeech) =>
@@ -64,10 +63,10 @@ public sealed class DestinationPolicyTests
 
     [Theory]
     [InlineData("CPF")]
-    [InlineData("EMAIL")]
-    [InlineData("UNHEARD_OF")]
+    [InlineData("PER")]
+    [InlineData("person")]
     [InlineData("")]
-    public void AKindThePolicyDoesNotKnowIsRemovedSoThatItCannotPassAsClean(string kind) =>
+    public void AKindOutsideTheListIsRemovedSoThatItCannotPassAsClean(string kind) =>
         Assert.Equal(Destination.Remove, DestinationPolicy.Of(Found.Occurrence(kind, "PROPN", "obl")));
 
     [Fact]

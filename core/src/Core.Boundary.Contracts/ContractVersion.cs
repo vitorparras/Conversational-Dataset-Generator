@@ -4,5 +4,5 @@ namespace Core.Boundary.Contracts;
 public static class ContractVersion
 {
     /// <summary>The only version the core knows; a different one is refused.</summary>
-    public static string Current { get; } = "1";
+    public static string Current => "1";
 }

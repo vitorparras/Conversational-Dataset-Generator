@@ -24,7 +24,7 @@ public sealed class BatchReceiptTests
         await using var world = await IngestionWorld.CreateAsync();
         var receipt = new SubmissionReceipt(Hex32, 1234, Hex64, "name_with_path");
 
-        var opened = await IngestionWorld.BatchesOf(world).OpenAsync(new BatchOpening(1, 1, null, receipt, OriginDeclaration.Unknown), TestContext.Current.CancellationToken);
+        var opened = await IngestionWorld.BatchesOf(world).OpenAsync(new BatchOpening(1, 1, null, new SubmissionOpening(receipt, OriginDeclaration.Unknown)), TestContext.Current.CancellationToken);
         var entry = await new BatchRegister(world.DataSource).ReadAsync([1], opened.BatchId!.Value, TestContext.Current.CancellationToken);
 
         Assert.Equal(receipt, entry!.Receipt);
@@ -71,9 +71,10 @@ public sealed class BatchReceiptTests
         await using var world = await IngestionWorld.CreateAsync();
         var batches = IngestionWorld.BatchesOf(world);
         var receipt = new SubmissionReceipt(Hex32, 1, Hex64);
-        _ = await batches.OpenAsync(new BatchOpening(1, 1, null, receipt, OriginDeclaration.Unknown), TestContext.Current.CancellationToken);
+        _ = await batches.OpenAsync(new BatchOpening(1, 1, null, new SubmissionOpening(receipt, OriginDeclaration.Unknown)), TestContext.Current.CancellationToken);
 
-        var second = await Record.ExceptionAsync(() => batches.OpenAsync(new BatchOpening(1, 1, null, receipt, OriginDeclaration.Unknown), TestContext.Current.CancellationToken));
+        var again = new BatchOpening(1, 1, null, new SubmissionOpening(receipt, OriginDeclaration.Unknown));
+        var second = await Record.ExceptionAsync(() => batches.OpenAsync(again, TestContext.Current.CancellationToken));
 
         Assert.Equal(PostgresErrorCodes.UniqueViolation, Assert.IsType<PostgresException>(second).SqlState);
     }
@@ -83,7 +84,7 @@ public sealed class BatchReceiptTests
     {
         await using var world = await IngestionWorld.CreateAsync();
         var opened = await IngestionWorld.BatchesOf(world).OpenAsync(
-            new BatchOpening(1, 1, null, new SubmissionReceipt(Hex32, 5, Hex64), OriginDeclaration.Unknown), TestContext.Current.CancellationToken);
+            new BatchOpening(1, 1, null, new SubmissionOpening(new SubmissionReceipt(Hex32, 5, Hex64), OriginDeclaration.Unknown)), TestContext.Current.CancellationToken);
         await world.Database.RunAsOwnerAsync("ALTER TABLE content.ingestion_batch DISABLE TRIGGER batch_change_needs_event");
         const string Change = "UPDATE content.ingestion_batch SET received_bytes = 6 WHERE id = @id";
 

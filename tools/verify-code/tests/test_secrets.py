@@ -53,8 +53,8 @@ class ScanRepositoryTests(unittest.TestCase):
         self.repo = support.git_repository(Path(self._tmp.name))
         commit(self.repo, secrets.CONFIG, REPO_CONFIG)
 
-    def scan(self, base: str | None) -> StepResult:
-        return secrets.run(support.context(self.repo, base=base))
+    def scan(self, base: str | None, head_only: bool = False) -> StepResult:
+        return secrets.run(support.context(self.repo, base=base, head_only=head_only))
 
     def test_a_token_in_the_diff_fails_naming_rule_file_and_line(self) -> None:
         commit(self.repo, "src/a.py", "x = 1\n" + TOKEN_LINE)
@@ -126,6 +126,46 @@ class ScanRepositoryTests(unittest.TestCase):
 
         self.assertTrue(result.ok, result.details)
 
+    def old_branch_with_a_token(self) -> None:
+        """A branch the main never held, with a token, left in the clone beside the main."""
+        support.git(self.repo, "branch", "-f", "main", "HEAD")
+        support.git(self.repo, "checkout", "-q", "-b", "old")
+        commit(self.repo, "src/old.py", TOKEN_LINE)
+        support.git(self.repo, "checkout", "-q", "main")
+
+    def test_the_history_of_head_leaves_out_a_branch_the_main_does_not_hold(self) -> None:
+        self.old_branch_with_a_token()
+
+        result = self.scan(None, head_only=True)
+
+        self.assertTrue(result.ok, result.details)
+        self.assertIn("no histórico de HEAD", result.details[0])
+
+    def test_the_whole_history_still_finds_the_token_of_that_branch(self) -> None:
+        self.old_branch_with_a_token()
+
+        result = self.scan(None)
+
+        self.assertFalse(result.ok)
+
+    def test_the_history_of_head_still_finds_a_token_the_main_holds(self) -> None:
+        commit(self.repo, "src/a.py", TOKEN_LINE)
+        support.git(self.repo, "branch", "-f", "main", "HEAD")
+
+        result = self.scan(None, head_only=True)
+
+        self.assertFalse(result.ok)
+
+    def test_a_token_in_the_commits_of_the_pull_request_is_found_beside_an_old_branch(self) -> None:
+        self.old_branch_with_a_token()
+        support.git(self.repo, "checkout", "-q", "change")
+        commit(self.repo, "src/b.py", TOKEN_LINE)
+
+        result = self.scan("main", head_only=True)
+
+        self.assertFalse(result.ok)
+        self.assertIn("main..HEAD", result.details[0])
+
 
 class ScanWithFakeRunnerTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -151,6 +191,20 @@ class ScanWithFakeRunnerTests(unittest.TestCase):
         _, runner = self.run_fake(support.SUCCESS, fake_report([]))
 
         self.assertEqual(log_limits(runner.commands[0]), [])
+
+    def test_the_head_only_command_limits_the_log_to_head(self) -> None:
+        runner = support.FakeRunner(support.SUCCESS, fake_report([]), self.folder)
+
+        secrets.scan(support.context(self.root, runner, head_only=True), "gitleaks")
+
+        self.assertEqual(log_limits(runner.commands[0]), ["--log-opts=HEAD"])
+
+    def test_the_base_wins_over_head_only(self) -> None:
+        runner = support.FakeRunner(support.SUCCESS, fake_report([]), self.folder)
+
+        secrets.scan(support.context(self.root, runner, "origin/main", head_only=True), "gitleaks")
+
+        self.assertEqual(log_limits(runner.commands[0]), ["--log-opts=origin/main..HEAD"])
 
     def test_findings_are_reported_without_the_tool_output(self) -> None:
         outcome = CommandOutcome(False, "Author: ZQX-AUTHOR-0001")

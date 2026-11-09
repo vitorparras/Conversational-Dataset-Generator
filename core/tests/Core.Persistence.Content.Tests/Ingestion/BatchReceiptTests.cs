@@ -14,8 +14,6 @@ public sealed class BatchReceiptTests
 {
     private const string Hex32 = "0123456789abcdef0123456789abcdef";
     private const string Hex64 = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
-    private const string Receipt =
-        "SELECT submission || '|' || received_bytes || '|' || received_digest || '|' || coalesce(warning, '') FROM content.ingestion_batch WHERE id = @id";
     private const string Insert =
         "INSERT INTO content.ingestion_batch (domain_id, opened_by, condition, submission, received_bytes, received_digest, warning) "
         + "VALUES (1, 1, 'restrita', @s, @b, @d, @w)";
@@ -27,9 +25,9 @@ public sealed class BatchReceiptTests
         var receipt = new SubmissionReceipt(Hex32, 1234, Hex64, "name_with_path");
 
         var opened = await IngestionWorld.BatchesOf(world).OpenAsync(new BatchOpening(1, 1, null, receipt), TestContext.Current.CancellationToken);
-        var kept = await world.OwnerInDomainAsync(1, Receipt, ("id", opened.BatchId!.Value));
+        var entry = await new BatchRegister(world.DataSource).ReadAsync([1], opened.BatchId!.Value, TestContext.Current.CancellationToken);
 
-        Assert.Equal($"{receipt.Submission}|{receipt.Bytes}|{receipt.Digest}|{receipt.Warning}", kept);
+        Assert.Equal(receipt, entry!.Receipt);
     }
 
     [DatabaseFact]
@@ -38,9 +36,9 @@ public sealed class BatchReceiptTests
         await using var world = await IngestionWorld.CreateAsync();
         var batch = await IngestionWorld.OpenAsync(world);
 
-        var kept = await world.OwnerInDomainAsync(1, Receipt, ("id", batch));
+        var entry = await new BatchRegister(world.DataSource).ReadAsync([1], batch, TestContext.Current.CancellationToken);
 
-        Assert.Null(kept);
+        Assert.Null(entry!.Receipt);
     }
 
     [DatabaseTheory]

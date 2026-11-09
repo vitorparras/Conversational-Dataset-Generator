@@ -92,6 +92,14 @@ class WorkflowTests(unittest.TestCase):
     def test_the_step_runs_against_the_base_of_the_pull_request(self) -> None:
         self.assertIn("format('--base origin/{0}', github.base_ref)", self.job)
 
+    def test_the_push_scans_only_the_history_of_the_commit_pushed(self) -> None:
+        self.assertIn("github.event_name == 'push' && '--head-only'", self.job)
+
+    def test_the_pull_request_is_decided_before_the_push(self) -> None:
+        pull_request = self.job.index("github.event_name == 'pull_request'")
+
+        self.assertLess(pull_request, self.job.index("'--head-only'"))
+
 
 class JobOfTests(unittest.TestCase):
     def test_a_job_ends_where_the_next_job_starts(self) -> None:

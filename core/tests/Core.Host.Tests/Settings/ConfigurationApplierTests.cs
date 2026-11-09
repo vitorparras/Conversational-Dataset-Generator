@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Core.Host.Settings;
 using Core.Platform.Configuration;
 using Microsoft.Extensions.Logging;
@@ -12,12 +13,19 @@ namespace Core.Host.Tests.Settings;
 public sealed class ConfigurationApplierTests : IDisposable
 {
     private const string Key = "Session:IdleTimeout";
+    [StringSyntax(StringSyntaxAttribute.Json)]
     private const string File0 = """{ "Session": { "IdleTimeout": "00:30:00" } }""";
     private const long SubmissionSequence = 41;
     private const long ApprovalSequence = 57;
 
     private readonly TemporaryDirectory folder = new();
     private readonly RecordedLog log = new();
+    private readonly ILoggerFactory loggers;
+
+    public ConfigurationApplierTests()
+    {
+        loggers = LoggerFactory.Create(builder => builder.AddProvider(log));
+    }
 
     [Fact]
     public void AChangeTheChainAndTheRegistryStandBehindIsWrittenWithTheVersionBeforeKept()
@@ -100,6 +108,7 @@ public sealed class ConfigurationApplierTests : IDisposable
 
     public void Dispose()
     {
+        loggers.Dispose();
         folder.Dispose();
         log.Dispose();
     }
@@ -127,7 +136,6 @@ public sealed class ConfigurationApplierTests : IDisposable
 
     private ConfigurationApplier Applier(string path)
     {
-        var loggers = LoggerFactory.Create(builder => builder.AddProvider(log));
         return new ConfigurationApplier(new ConfigurationFile(path, new ManualClock()), loggers);
     }
 

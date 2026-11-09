@@ -9,7 +9,7 @@ namespace Core.Host.Tests;
 /// <summary>The root registers what the screens of the emptying need (#617), so that the routes only ask for the desk and the source of grants.</summary>
 public sealed class ItemEmptyingRootTests
 {
-    private const string Connection = "Host=localhost;Database=zqx;Username=zqx;Password=zqx";
+    private const string Connection = "Host=localhost;Database=zqx;Username=zqx";
 
     [Fact]
     public async Task RootResolvesTheDeskOnceWhenTheStartupContainerHoldsTheDataSource()

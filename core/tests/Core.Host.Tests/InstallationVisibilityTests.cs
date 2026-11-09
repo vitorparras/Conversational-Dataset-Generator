@@ -23,7 +23,7 @@ public sealed class InstallationVisibilityTests
         var cancellationToken = TestContext.Current.CancellationToken;
         await using var host = await StatusHost.StartAsync(Passed, new ServiceProcessWatch(), new Installation(InstallationKind.Demonstration), cancellationToken);
 
-        using var status = await host.StatusAsync(cancellationToken);
+        using var status = host.Detail();
 
         var installation = status.RootElement.GetProperty("installation");
         Assert.Equal("demonstracao", installation.GetProperty("kind").GetString());
@@ -36,7 +36,7 @@ public sealed class InstallationVisibilityTests
         var cancellationToken = TestContext.Current.CancellationToken;
         await using var host = await StatusHost.StartAsync(Passed, new ServiceProcessWatch(), new Installation(InstallationKind.Real), cancellationToken);
 
-        using var status = await host.StatusAsync(cancellationToken);
+        using var status = host.Detail();
 
         var installation = status.RootElement.GetProperty("installation");
         Assert.Equal("real", installation.GetProperty("kind").GetString());
@@ -86,5 +86,6 @@ public sealed class InstallationVisibilityTests
     private static void Announced(ILogger logger, InstallationKind kind) =>
         InstallationConfiguration.Announce(
             logger,
-            new ServiceCollection().AddSingleton(new Installation(kind)).AddSingleton(new SafekeepingDeclaration("2026-10-01", "PESSOA_1")).BuildServiceProvider());
+            new ServiceCollection().AddSingleton(new Installation(kind)).AddSingleton(new SafekeepingDeclaration("2026-10-01", "PESSOA_1"))
+                .AddSingleton(new StartupReport([], DateTimeOffset.UnixEpoch)).BuildServiceProvider());
 }

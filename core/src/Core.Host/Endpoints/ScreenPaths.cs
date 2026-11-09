@@ -11,6 +11,12 @@ internal static class ScreenPaths
     internal const string Domains = "/dominios";
     internal const string Chain = "/custodia";
     internal const string ChainCheck = "/custodia/verificar";
+    internal const string Account = "/minha-conta";
+    internal const string AccountChange = "/minha-conta/senha";
+    internal const string AccountEnd = "/minha-conta/sessoes/encerrar";
+    internal const string AccountEndOthers = "/minha-conta/sessoes/encerrar-outras";
+    internal const string Operators = "/pessoas";
+    internal const string Notices = "/avisos";
     internal const string Emptying = "/esvaziamento";
     internal const string EmptyingConfirm = "/esvaziamento/confirmar";
 }

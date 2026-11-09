@@ -13,6 +13,9 @@ namespace Core.Persistence.Custody.Verification;
 /// </summary>
 public sealed class CustodyVerifier
 {
+    private const int Tries = 5;
+    private static readonly TimeSpan Pause = TimeSpan.FromMilliseconds(200);
+
     private readonly NpgsqlDataSource dataSource;
     private readonly TimeProvider time;
     private readonly CustodyChain chain;
@@ -54,7 +57,7 @@ public sealed class CustodyVerifier
         var judge = new ChainJudge { Witness = witness };
         var verifiedAt = await ReadAsync(judge, cancellationToken).ConfigureAwait(false);
         var verdict = requestedBy is { } asker ? CustodyEvent.Verification(judge.Read, judge.First?.Sequence, asker) : CustodyEvent.Verification(judge.Read, judge.First?.Sequence);
-        var recorded = await chain.AppendAsync(verdict, cancellationToken).ConfigureAwait(false);
+        var recorded = await RecordAsync(verdict, cancellationToken).ConfigureAwait(false);
         return new ChainVerification
         {
             Scope = VerificationScope.Installation,
@@ -64,6 +67,26 @@ public sealed class CustodyVerifier
             Seal = witness?.Compare(),
             Recorded = recorded,
         };
+    }
+
+    /// <summary>
+    /// The verdict is added to the chain; a writer that met another at the same link is told so and nothing was written, so the verdict is added again after a short pause, up to the tries
+    /// given, instead of leaving the chain without it until the next verification, which is minutes away. The reading is not made again. The answer of the last try is the one returned.
+    /// </summary>
+    private async Task<CustodyResult> RecordAsync(CustodyEvent verdict, CancellationToken cancellationToken)
+    {
+        var tries = 0;
+        CustodyResult recorded;
+        while (true)
+        {
+            recorded = await chain.AppendAsync(verdict, cancellationToken).ConfigureAwait(false);
+            if (recorded.Outcome != CustodyOutcome.Conflict || ++tries >= Tries)
+            {
+                return recorded;
+            }
+
+            await Task.Delay(Pause, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     private async Task<DateTimeOffset> ReadAsync(ChainJudge judge, CancellationToken cancellationToken)

@@ -12,6 +12,13 @@ namespace Core.Persistence.Content;
 /// </summary>
 public sealed class ReplicationStore
 {
+    private const int TextColumn = 2;
+    private const int SenderColumn = 3;
+    private const int LengthColumn = 4;
+    private const int SaidColumn = 5;
+    private const int FirstItemColumn = 2;
+    private const int FirstPositionColumn = 3;
+
     private readonly NpgsqlDataSource dataSource;
 
     /// <summary>The store writes and reads through the data source built with the application's credential.</summary>
@@ -28,16 +35,25 @@ public sealed class ReplicationStore
     /// <param name="occurrences">The messages of the batch, in the order the criterion settled them.</param>
     /// <param name="marks">The marks the batch brought, to its messages and to the ones kept before.</param>
     /// <param name="cancellationToken">Cancels the writing.</param>
-    public async Task RecordAsync(int domainId, long batchId, IReadOnlyList<StoredOccurrence> occurrences, IReadOnlyList<StoredMark> marks, CancellationToken cancellationToken)
+    public Task RecordAsync(int domainId, long batchId, IReadOnlyList<StoredOccurrence> occurrences, IReadOnlyList<StoredMark> marks, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(occurrences);
         ArgumentNullException.ThrowIfNull(marks);
+        return RecordingAsync(domainId, batchId, (occurrences, marks), cancellationToken);
+    }
+
+    private async Task RecordingAsync(
+        int domainId,
+        long batchId,
+        (IReadOnlyCollection<StoredOccurrence> Occurrences, IReadOnlyCollection<StoredMark> Marks) written,
+        CancellationToken cancellationToken)
+    {
         try
         {
             var transaction = await ContentTransaction.BeginAsync(dataSource, domainId, cancellationToken).ConfigureAwait(false);
             await using (transaction.ConfigureAwait(false))
             {
-                await WriteAsync(transaction, domainId, batchId, occurrences, marks, cancellationToken).ConfigureAwait(false);
+                await WriteAsync(transaction, domainId, batchId, written, cancellationToken).ConfigureAwait(false);
                 await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             }
         }
@@ -60,7 +76,14 @@ public sealed class ReplicationStore
         await ReadAsync(
             domainId,
             ContentQueries.ReadReplicationOccurrences,
-            reader => found.Add(new StoredOccurrence(reader.GetInt64(0), reader.GetInt32(1), reader.GetString(2), reader.GetString(3), reader.GetInt32(4), reader.GetFieldValue<DateTimeOffset>(5))),
+            reader => found.Add(
+                new StoredOccurrence(
+                    reader.GetInt64(0),
+                    reader.GetInt32(1),
+                    reader.GetString(TextColumn),
+                    reader.GetString(SenderColumn),
+                    reader.GetInt32(LengthColumn),
+                    reader.GetFieldValue<DateTimeOffset>(SaidColumn))),
             cancellationToken).ConfigureAwait(false);
         return found;
     }
@@ -74,7 +97,7 @@ public sealed class ReplicationStore
         await ReadAsync(
             domainId,
             ContentQueries.ReadReplicationMarks,
-            reader => found.Add(new StoredMark(reader.GetInt64(0), reader.GetInt32(1), reader.GetInt64(2), reader.GetInt32(3))),
+            reader => found.Add(new StoredMark(reader.GetInt64(0), reader.GetInt32(1), reader.GetInt64(FirstItemColumn), reader.GetInt32(FirstPositionColumn))),
             cancellationToken).ConfigureAwait(false);
         return found;
     }
@@ -83,10 +106,10 @@ public sealed class ReplicationStore
         ContentTransaction transaction,
         int domainId,
         long batchId,
-        IReadOnlyList<StoredOccurrence> occurrences,
-        IReadOnlyList<StoredMark> marks,
+        (IReadOnlyCollection<StoredOccurrence> Occurrences, IReadOnlyCollection<StoredMark> Marks) written,
         CancellationToken cancellationToken)
     {
+        var (occurrences, marks) = written;
         if (occurrences.Count > 0)
         {
             var command = transaction.CreateCommand(ContentQueries.InsertReplicationOccurrences);
@@ -124,8 +147,8 @@ public sealed class ReplicationStore
         _ = command.Parameters.Add(new NpgsqlParameter("batch", NpgsqlDbType.Bigint) { Value = batchId });
     }
 
-    private static void ArrayOf(NpgsqlCommand command, string name, NpgsqlDbType element, System.Array values) =>
-        _ = command.Parameters.Add(new NpgsqlParameter(name, NpgsqlDbType.Array | element) { Value = values });
+    private static void ArrayOf(NpgsqlCommand command, string name, NpgsqlDbType element, Array values) =>
+        _ = command.Parameters.Add(new NpgsqlParameter(name, (NpgsqlDbType)((int)NpgsqlDbType.Array + (int)element)) { Value = values });
 
     private async Task ReadAsync(int domainId, string statement, Action<NpgsqlDataReader> each, CancellationToken cancellationToken)
     {

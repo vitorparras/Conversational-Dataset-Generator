@@ -10,6 +10,9 @@ namespace Core.Persistence.Content;
 public static class ContentColumns
 {
     private const string DomainColumn = "domain_id";
+    private const string BatchColumn = "batch_id";
+    private const string WrittenInColumn = "written_in";
+    private const string ItemColumn = "item_id";
 
     /// <summary>The table of the texts of an item.</summary>
     public static string ItemText { get; } = "item_text";
@@ -65,19 +68,19 @@ public static class ContentColumns
         new(ItemText, "emptied_at", ClearKind.Moment),
         new(ItemText, "pseudonymized_text", ClearKind.PseudonymizedText),
         new(ItemText, "dek_epoch", ClearKind.Epoch),
-        new(ItemText, "batch_id", ClearKind.Identifier),
-        new(ItemText, "written_in", ClearKind.Transaction),
+        new(ItemText, BatchColumn, ClearKind.Identifier),
+        new(ItemText, WrittenInColumn, ClearKind.Transaction),
         new(ReversalMap, "id", ClearKind.Identifier),
         new(ReversalMap, DomainColumn, ClearKind.Domain),
-        new(ReversalMap, "item_id", ClearKind.Identifier),
+        new(ReversalMap, ItemColumn, ClearKind.Identifier),
         new(ReversalMap, "recorded_at", ClearKind.Moment),
         new(ReversalMap, "emptied_at", ClearKind.Moment),
         new(ReversalMap, "dek_epoch", ClearKind.Epoch),
-        new(ReversalMap, "batch_id", ClearKind.Identifier),
-        new(ReversalMap, "written_in", ClearKind.Transaction),
+        new(ReversalMap, BatchColumn, ClearKind.Identifier),
+        new(ReversalMap, WrittenInColumn, ClearKind.Transaction),
         new(ItemEmptied, "id", ClearKind.Identifier),
         new(ItemEmptied, DomainColumn, ClearKind.Domain),
-        new(ItemEmptied, "item_id", ClearKind.Identifier),
+        new(ItemEmptied, ItemColumn, ClearKind.Identifier),
         new(IngestionBatch, "id", ClearKind.Identifier),
         new(IngestionBatch, DomainColumn, ClearKind.Domain),
         new(IngestionBatch, "state", ClearKind.Status),
@@ -93,26 +96,26 @@ public static class ContentColumns
         new(IngestionBatch, "origin_state", ClearKind.Motive),
         new(BatchOrigin, "id", ClearKind.Identifier),
         new(BatchOrigin, DomainColumn, ClearKind.Domain),
-        new(BatchOrigin, "batch_id", ClearKind.Identifier),
+        new(BatchOrigin, BatchColumn, ClearKind.Identifier),
         new(BatchOrigin, "recorded_at", ClearKind.Moment),
         new(BatchOrigin, "dek_epoch", ClearKind.Epoch),
         new(ReplicationOccurrence, "id", ClearKind.Identifier),
         new(ReplicationOccurrence, DomainColumn, ClearKind.Domain),
-        new(ReplicationOccurrence, "batch_id", ClearKind.Identifier),
-        new(ReplicationOccurrence, "item_id", ClearKind.Identifier),
+        new(ReplicationOccurrence, BatchColumn, ClearKind.Identifier),
+        new(ReplicationOccurrence, ItemColumn, ClearKind.Identifier),
         new(ReplicationOccurrence, "message_position", ClearKind.Epoch),
         new(ReplicationOccurrence, "text_digest", ClearKind.Motive),
         new(ReplicationOccurrence, "sender_digest", ClearKind.Motive),
         new(ReplicationOccurrence, "text_length", ClearKind.Epoch),
         new(ReplicationOccurrence, "said_at", ClearKind.Moment),
-        new(ReplicationOccurrence, "written_in", ClearKind.Transaction),
+        new(ReplicationOccurrence, WrittenInColumn, ClearKind.Transaction),
         new(ReplicationMark, "id", ClearKind.Identifier),
         new(ReplicationMark, DomainColumn, ClearKind.Domain),
-        new(ReplicationMark, "batch_id", ClearKind.Identifier),
-        new(ReplicationMark, "item_id", ClearKind.Identifier),
+        new(ReplicationMark, BatchColumn, ClearKind.Identifier),
+        new(ReplicationMark, ItemColumn, ClearKind.Identifier),
         new(ReplicationMark, "message_position", ClearKind.Epoch),
         new(ReplicationMark, "first_item_id", ClearKind.Identifier),
         new(ReplicationMark, "first_message_position", ClearKind.Epoch),
-        new(ReplicationMark, "written_in", ClearKind.Transaction),
+        new(ReplicationMark, WrittenInColumn, ClearKind.Transaction),
     ];
 }

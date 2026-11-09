@@ -66,7 +66,12 @@ internal static class MailConfiguration
     /// <summary>The server the configuration declared, once judged whole; none when the group is absent, and the reset of a password is then handed over by hand.</summary>
     internal static MailServer? Declaration(IReadOnlyDictionary<string, string> values) =>
         Declared(values)
-            ? new MailServer(values[HostPath], int.Parse(values[PortPath], CultureInfo.InvariantCulture), values[SenderPath], Enum.Parse<MailTransport>(values[TransportPath]), values.GetValueOrDefault(UserPath))
+            ? new MailServer(
+                values[HostPath],
+                int.Parse(values[PortPath], CultureInfo.InvariantCulture),
+                values[SenderPath],
+                Enum.Parse<MailTransport>(values[TransportPath]),
+                values.GetValueOrDefault(UserPath))
             : null;
 
     private static bool Declared(IReadOnlyDictionary<string, string> values) => Whole.Concat(Pair).Any(values.ContainsKey);

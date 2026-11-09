@@ -106,7 +106,7 @@ public sealed class MailConfigurationTests
         var shown = Assert.Single(loaded.View.Entries, entry => entry.Key == MailConfiguration.PasswordPath);
 
         Assert.Equal((EffectiveConfiguration.Redacted, ConfigurationOrigin.Environment), (shown.Value, shown.Origin));
-        Assert.DoesNotContain(loaded.View.Entries, entry => entry.Value == "zqx-segredo-do-smtp");
+        Assert.DoesNotContain(loaded.View.Entries, entry => entry.Value == "ZQX-SENHA-6351");
     }
 
     private static Dictionary<string, string?> Whole() => new()
@@ -116,7 +116,7 @@ public sealed class MailConfigurationTests
         ["CDG_Mail__Sender"] = "zqx@example.test",
         ["CDG_Mail__Transport"] = "StartTls",
         ["CDG_Mail__User"] = "zqx-user",
-        ["CDG_Mail__Password"] = "zqx-segredo-do-smtp",
+        ["CDG_Mail__Password"] = "ZQX-SENHA-6351",
     };
 
     private static ConfigurationLoadResult Load(Dictionary<string, string?> variables) =>

@@ -33,7 +33,24 @@ precisa para dizer quem fez o quê.
 
 ## Quem impõe
 
-A aplicação, no cadastro e na conta, que só mostram o campo a quem o vê, e no registro, que não
-recebe o endereço. A configuração recusa iniciar com o servidor de e-mail declarado em parte ou sem
-transporte cifrado ([0029](../decisoes/0029-identidade-e-sessao.md)), para que o link nunca viaje em
-claro.
+Três camadas, cada uma com o que impõe e o que acontece quando falha.
+
+**O banco.** Uma restrição na tabela recusa o que não tem forma de endereço ou passa do tamanho, e
+um gatilho apaga o endereço na mesma transação que desativa a pessoa, qualquer que seja o caminho da
+desativação. Se a restrição falhar, entra um texto que não é endereço, e o envio do link falha para
+aquela pessoa sem afetar as outras. Se o gatilho falhar, o endereço de quem foi desativado
+fica guardado sem finalidade: é a falha que mais importa aqui, e a defesa é o teste de banco que
+desativa uma pessoa e confere que o endereço sumiu.
+
+**A aplicação.** Só a tela da própria conta e o cadastro mostram o campo, e o endereço vai ao banco
+sempre como parâmetro, nunca no texto do comando, que é o que o log do servidor guarda. Se ela
+falhar, o endereço aparece a quem não devia ou entra num log. A defesa são os testes de rota, que
+conferem quem vê, e o teste que procura o endereço no log do driver, no histórico da pessoa e na
+cadeia.
+
+**A configuração.** Ela recusa iniciar com o servidor de e-mail declarado em parte ou sem transporte
+cifrado ([0029](../decisoes/0029-identidade-e-sessao.md)), para que o link nunca viaje em claro. Se
+ela falhar, o sistema pode iniciar com um transporte em claro, e o link viajaria aberto. A defesa é
+o teste da configuração, que recusa todo transporte fora de `Tls` e `StartTls`, e o envio
+([#600](https://github.com/vitorparras/Conversational-Dataset-Generator/issues/600)), que só abre
+conexão cifrada.

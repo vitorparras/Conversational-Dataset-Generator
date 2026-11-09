@@ -6,7 +6,10 @@ namespace Core.Host;
 /// <summary>What the values the host reads refuse, apart from the shape of the keys.</summary>
 internal static class HostRefusals
 {
-    /// <summary>What the values of the language service, of the safekeeping declaration, of the work factor, of the addresses, of the conditions and of the audit folder refuse, together.</summary>
+    /// <summary>
+    /// What the values of the language service, of the safekeeping declaration, of the work factor, of the addresses, of the conditions, of the server of e-mail and of the audit folder
+    /// refuse, together.
+    /// </summary>
     internal static IReadOnlyList<ConfigurationProblem> Of(IReadOnlyDictionary<string, string> values, TimeSpan? analyzeTimeout) =>
     [
         .. LanguageServiceConfiguration.Refusals(values, analyzeTimeout),

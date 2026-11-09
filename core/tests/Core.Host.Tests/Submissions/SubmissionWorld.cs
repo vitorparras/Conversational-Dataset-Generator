@@ -4,14 +4,11 @@ using Core.Host.Submissions;
 using Core.Ingestion;
 using Core.Ingestion.Entrance;
 using Core.Ingestion.Reading;
-using Core.Persistence.Content.Reading;
-using Core.Persistence.Content.Sealing;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Migrations;
 using Core.Persistence.Tests.Fixtures;
-using Core.Platform.Keys;
 using Npgsql;
 
 namespace Core.Host.Tests.Submissions;
@@ -28,19 +25,16 @@ internal sealed class SubmissionWorld : IAsyncDisposable
     internal const string Strictest = "zqx_sigilosa";
     internal const string Loosest = "zqx_livre";
     internal const string Format = "cdg-conversa/1";
-    internal const string Origin = "zqx-origem-secreta";
 
     internal const string Conversation =
         /*lang=json*/ """{"formato":"cdg-conversa/1","mensagens":[{"id":"a","remetente":"ZQXUM","instante":"2031-03-04T08:00:00Z","texto":"ZQXPRIMEIRO"},""" +
         /*lang=json*/ """{"id":"b","remetente":"ZQXDOIS","instante":"2031-03-04T08:01:00Z","texto":"ZQXSEGUNDO"}]}""";
 
-    private SubmissionWorld(ScratchDatabase database, NpgsqlDataSource dataSource, (SubmissionService Service, ProtectedContent Content) service)
+    private SubmissionWorld(ScratchDatabase database, NpgsqlDataSource dataSource, SubmissionService service)
     {
         Database = database;
         DataSource = dataSource;
-        Service = service.Service;
-        Content = service.Content;
-        Reader = new ProtectedContentReader(dataSource, service.Content, new CustodyChain(dataSource));
+        Service = service;
     }
 
     internal ScratchDatabase Database { get; }
@@ -48,10 +42,6 @@ internal sealed class SubmissionWorld : IAsyncDisposable
     internal NpgsqlDataSource DataSource { get; }
 
     internal SubmissionService Service { get; }
-
-    internal ProtectedContent Content { get; }
-
-    internal ProtectedContentReader Reader { get; }
 
     internal static async Task<SubmissionWorld> CreateAsync(long maxBytes = 1_000_000, bool gateOpen = true)
     {
@@ -68,24 +58,12 @@ internal sealed class SubmissionWorld : IAsyncDisposable
         }
 
         var conditions = OriginConditions.Of([Strictest, "zqx_media", Loosest]);
-        var content = SealingOf(["texto-bruto/1/v1", "texto-bruto/2/v1"]);
-        var intake = Intake(maxBytes, conditions, content);
-        var service = new SubmissionService(intake, new IngestionBatches(dataSource, conditions), new BatchRegister(dataSource), dataSource);
-        return new SubmissionWorld(database, dataSource, (service, content));
+        var intake = Intake(maxBytes, conditions);
+        return new SubmissionWorld(database, dataSource, new SubmissionService(intake, new IngestionBatches(dataSource, conditions), new BatchRegister(dataSource), dataSource));
     }
 
-    /// <summary>The path of protected content over a synthetic key that holds the labels given, as the installation would load them.</summary>
-    internal static ProtectedContent SealingOf(IReadOnlyList<string> labels)
-    {
-        var loaded = DerivationLabels.Of(labels);
-        var key = Enumerable.Range(0, MasterKey.Length).Select(index => (byte)(0x5A ^ ((index * 29) + 3))).ToArray();
-        var secret = Enumerable.Range(0, MasterKey.Length).Select(index => (byte)(0xA7 ^ ((index * 31) + 11))).ToArray();
-        var reading = MasterKeyReading.FromBytes(key, loaded, CustodyEpochs.Of(new Dictionary<int, byte[]> { [1] = secret }), "synthetic");
-        return new ProtectedContent(loaded, new ItemKeys(new KeyDerivation(reading.Key!, loaded), reading.Epochs), new HashSet<string>(labels, StringComparer.Ordinal));
-    }
-
-    internal static SubmissionIntake Intake(long maxBytes, OriginConditions conditions, ProtectedContent content) =>
-        new(new SubmissionGate(SourceReaders.Default(), maxBytes), new FormConference(new TextBoundaries()), conditions, content);
+    internal static SubmissionIntake Intake(long maxBytes, OriginConditions conditions) =>
+        new(new SubmissionGate(SourceReaders.Default(), maxBytes), new FormConference(new TextBoundaries()), conditions);
 
     internal static SubmissionRequest Request(string content = Conversation, string? name = "conversa.json", string? condition = null) => new()
     {
@@ -94,7 +72,6 @@ internal sealed class SubmissionWorld : IAsyncDisposable
         DeclaredForm = MaterialForm.Conversation,
         SourceFormat = Format,
         Condition = condition,
-        Origin = Origin,
         Content = new MemoryStream(Encoding.UTF8.GetBytes(content)),
         ReceivedName = name,
     };
@@ -112,26 +89,6 @@ internal sealed class SubmissionWorld : IAsyncDisposable
 
         return total;
     }
-
-    internal async Task<long> OriginRowsAsync()
-    {
-        var total = 0L;
-        foreach (var domain in new[] { Domain, OtherDomain })
-        {
-            await using var connection = await DataSource.OpenConnectionAsync(TestContext.Current.CancellationToken);
-            await using var transaction = await connection.BeginTransactionAsync(TestContext.Current.CancellationToken);
-            await using var command = new NpgsqlCommand("SELECT set_config('app.domain', @domain, true)", connection, transaction);
-            _ = command.Parameters.AddWithValue("domain", domain.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            _ = await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
-            command.CommandText = "SELECT count(*) FROM content.batch_origin";
-            total += (long)(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken))!;
-        }
-
-        return total;
-    }
-
-    internal Task<IReadOnlyList<string>> OriginEventsAsync() => Database.FirstColumnAsOwnerAsync(
-        "SELECT item_kind || ',' || item_id || ',' || step || ',' || reason FROM public.custody_event WHERE step = 'origin_read' ORDER BY sequence");
 
     public async ValueTask DisposeAsync()
     {

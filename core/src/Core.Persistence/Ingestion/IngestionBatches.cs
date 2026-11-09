@@ -50,9 +50,9 @@ public sealed class IngestionBatches
         ArgumentNullException.ThrowIfNull(opening);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(opening.DomainId);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(opening.AuthorId);
-        if ((opening.Receipt is null) != (opening.Origin is null))
+        if (opening.Origin is not null && opening.Receipt is null)
         {
-            throw new ArgumentException("A batch that a submission opens has its receipt and its origin together, and one that none opens has neither.", nameof(opening));
+            throw new ArgumentException("The origin of a batch belongs to the receipt of a submission, and a batch that none opens has neither", nameof(opening));
         }
 
         return opening.Condition is { } declared && conditions.RankOf(declared) < 0

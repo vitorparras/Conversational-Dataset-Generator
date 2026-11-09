@@ -1,7 +1,5 @@
--- The origin of a submission (issue 75, decision 0025): who the material came from narrows who the people in it are, so the text is kept sealed as the raw text of an item is, under a key of its own
--- wrapped under the epoch, in a table of its own, and never read without an event of the chain. Only the clear state of it, declared or unknown, stays in the batch, which is what an answer may say.
--- The step origin_read is the reading of it, about the batch. The checks of the chain change from the last ones the earlier steps left (the step list from the 0041, the shape of the batch from the 0034):
--- every step and every clause they fix stays, and the new step comes in beside them.
+-- The origin of a submission (issue 75, decision 0025): who the material came from narrows who the people in it are, so the text is kept sealed as the raw text of an item is, under a key of its own wrapped under the epoch, in a table of its own, and never read without an event of the chain. Only the clear state of it, declared or unknown, stays in the batch, which is what an answer may say.
+-- The step origin_read is the reading of it, about the batch. The checks of the chain change from the last ones the earlier steps left (the step list from the 0041, the shape of the batch from the 0034): every step and every clause they fix stays, and the new step comes in beside them.
 ALTER TABLE public.custody_event
     DROP CONSTRAINT custody_event_step_listed,
     DROP CONSTRAINT custody_event_batch_shape,
@@ -21,10 +19,10 @@ ALTER TABLE public.custody_event
         AND (step <> 'batch_closed' OR (reason = 'batch_rejected') = (reference IS NOT NULL))
         AND (step <> 'batch_closed' OR reference IS NULL OR reference ~ '^[a-z][a-z0-9_]{0,62}$'));
 
--- Whether the submission declared its origin or chose to say it is unknown, in clear and born with the batch: a batch that a submission opens has it, and one that none opens has none.
+-- Whether the submission declared its origin or chose to say it is unknown, in clear and born with the batch: only a batch that a submission opens has it.
 ALTER TABLE content.ingestion_batch
     ADD COLUMN origin_state text,
-    ADD CONSTRAINT ingestion_batch_origin_state CHECK ((submission IS NULL) = (origin_state IS NULL) AND (origin_state IS NULL OR origin_state IN ('declared', 'unknown')));
+    ADD CONSTRAINT ingestion_batch_origin_state CHECK (origin_state IS NULL OR (submission IS NOT NULL AND origin_state IN ('declared', 'unknown')));
 
 GRANT INSERT (origin_state) ON content.ingestion_batch TO app;
 

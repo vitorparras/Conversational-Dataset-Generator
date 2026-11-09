@@ -30,7 +30,7 @@ internal enum SubmissionState
 
 /// <summary>A field of the request that is missing or invalid, by name and by code, never by value.</summary>
 /// <param name="Field">The field.</param>
-/// <param name="Code">Why: <c>missing</c>, <c>invalid</c>, <c>conflict</c>, <c>too_long</c> or <c>unknown</c>.</param>
+/// <param name="Code">Why: <c>missing</c>, <c>invalid</c> or <c>unknown</c>.</param>
 internal sealed record FieldProblem(string Field, string Code);
 
 /// <summary>Where a refusal points: the position of the unit and the field of it, never what it says.</summary>
@@ -75,9 +75,6 @@ internal sealed record SubmissionOutcome
 
     /// <summary>The SHA-256 of the bytes read.</summary>
     internal string? Sha256 { get; init; }
-
-    /// <summary>Whether the origin was <c>declared</c> or <c>unknown</c>; the text of it is never answered.</summary>
-    internal string? Origin { get; init; }
 
     /// <summary>The code of what the service noticed and let pass, as a name that had a path in it; null when it noticed nothing.</summary>
     internal string? Warning { get; init; }

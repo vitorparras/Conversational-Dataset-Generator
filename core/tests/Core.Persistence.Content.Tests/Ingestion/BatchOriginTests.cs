@@ -70,16 +70,12 @@ public sealed class BatchOriginTests
     }
 
     [DatabaseFact]
-    public async Task ABatchOfASubmissionHasItsOriginAndItsReceiptTogetherAndABatchOfNoneHasNeither()
+    public async Task AnOriginWithoutTheReceiptOfASubmissionIsRefused()
     {
         await using var world = await IngestionWorld.CreateAsync();
         var batches = IngestionWorld.BatchesOf(world);
-        var receipt = new SubmissionReceipt(Hex32, 1, Hex64);
+        var withoutReceipt = new BatchOpening(IngestionWorld.Domain, IngestionWorld.Person, null, null, OriginDeclaration.Unknown);
 
-        var opening = new BatchOpening(IngestionWorld.Domain, IngestionWorld.Person, null, receipt);
-        var withoutReceipt = opening with { Receipt = null, Origin = OriginDeclaration.Unknown };
-
-        _ = await Assert.ThrowsAsync<ArgumentException>(() => batches.OpenAsync(opening, TestContext.Current.CancellationToken));
         _ = await Assert.ThrowsAsync<ArgumentException>(() => batches.OpenAsync(withoutReceipt, TestContext.Current.CancellationToken));
     }
 

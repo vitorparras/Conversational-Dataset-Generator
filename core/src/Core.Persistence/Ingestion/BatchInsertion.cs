@@ -5,10 +5,7 @@ using NpgsqlTypes;
 
 namespace Core.Persistence.Ingestion;
 
-/// <summary>
-/// Writes the rows of a batch at its opening: the batch, with what the submission brought and the state of its origin, and, when the origin was declared, the origin sealed, in the same transaction,
-/// so that a batch that says it declared an origin never lacks it.
-/// </summary>
+/// <summary>Writes the rows of a batch at its opening: the batch, with its receipt and the state of its origin, and the origin sealed when declared, in one transaction.</summary>
 internal static class BatchInsertion
 {
     internal static async Task<long> InsertAsync(CustodyScope scope, BatchOpening opening, CancellationToken cancellationToken)

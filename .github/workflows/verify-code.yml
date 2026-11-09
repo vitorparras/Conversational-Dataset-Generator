@@ -86,6 +86,8 @@ jobs:
         run: python tools/verify-code/verify.py --step build_core test_core
       - name: Instalar uv na versão fixada (test_real_service chama `uv run --frozen`)
         run: python3 tools/verify-code/retry.py -- pip install -r tools/verify-code/service-requirements.txt
+      - name: Sincronizar o ambiente do serviço (o modelo do spaCy vem do GitHub; só baixar repete, nunca o pytest)
+        run: python3 tools/verify-code/retry.py -- uv sync --locked --directory language-service
       - name: 'Restaurar a cobertura por área que o main guardou (cache vazio: o passo compara sem ela)'
         if: github.event_name == 'pull_request'
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -232,6 +234,8 @@ jobs:
           python-version: '3.12'
       - name: Instalar uv na versão fixada
         run: python3 tools/verify-code/retry.py -- pip install -r tools/verify-code/service-requirements.txt
+      - name: Sincronizar o ambiente do serviço (o modelo do spaCy vem do GitHub; só baixar repete, nunca o pytest)
+        run: python3 tools/verify-code/retry.py -- uv sync --locked --directory language-service
       - uses: ./.github/actions/build-database-image
       - name: Exigir que o núcleo e o serviço executem propriedades
         run: python tools/verify-code/verify.py --step properties
@@ -357,6 +361,8 @@ jobs:
           python-version: '3.12'
       - name: Instalar uv na versão fixada (o mutmut vem de language-service/uv.lock)
         run: python3 tools/verify-code/retry.py -- pip install -r tools/verify-code/service-requirements.txt
+      - name: Sincronizar o ambiente do serviço (o modelo do spaCy vem do GitHub; só baixar repete, nunca o pytest)
+        run: python3 tools/verify-code/retry.py -- uv sync --locked --directory language-service
       - name: Mutar o módulo crítico da matriz (Stryker.NET ou mutmut, um worker)
         env:
           MODULE: ${{ matrix.module }}

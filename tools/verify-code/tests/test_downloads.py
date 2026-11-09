@@ -11,6 +11,7 @@ from pathlib import Path
 from unittest import mock
 
 import retry
+import yaml
 
 from steps import coverage_by_area, downloads
 from steps.common import CommandOutcome, RunCommand
@@ -295,6 +296,29 @@ class CommandLineTests(unittest.TestCase):
         self.assertEqual(retry.main(["--", "zqx-no-such-tool-733"]), retry.NOT_FOUND)
         self.assertEqual(retry.main(["--"]), retry.USAGE)
         self.assertEqual(retry.main([]), retry.USAGE)
+
+
+class WorkflowSyncsTheServiceBeforeUvRunTests(unittest.TestCase):
+    """A job that runs the service with ``uv run`` brings the environment (and the spaCy model,
+    from GitHub) first, in a step that repeats, so a 504 of the model is never inside a test."""
+
+    SYNC = "retry.py -- uv sync --locked --directory language-service"
+    NEEDS_ENVIRONMENT = ("test_real_service", "--step properties", "--step mutation")
+
+    def test_every_job_that_runs_the_service_syncs_it_in_an_earlier_step(self) -> None:
+        workflow = Path(__file__).resolve().parents[3] / ".github" / "workflows" / "verify-code.yml"
+        jobs = yaml.safe_load(workflow.read_text(encoding="utf-8"))["jobs"]
+        seen = 0
+        for name, job in jobs.items():
+            runs = [str(step.get("run", "")) for step in job.get("steps", [])]
+            uses = [
+                i for i, run in enumerate(runs) if any(k in run for k in self.NEEDS_ENVIRONMENT)
+            ]
+            for index in uses:
+                seen += 1
+                with self.subTest(job=name):
+                    self.assertTrue(any(self.SYNC in run for run in runs[:index]))
+        self.assertEqual(seen, 3)
 
 
 if __name__ == "__main__":

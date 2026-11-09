@@ -68,7 +68,7 @@ public sealed class SubmissionPartsTests
     {
         using var dataSource = NpgsqlDataSource.Create("Host=127.0.0.1;Port=1;Username=u;Password=p;Database=d");
         var conditions = OriginConditions.Of(["a"]);
-        var intake = SubmissionWorld.Intake(1, conditions, SubmissionWorld.SealingOf(["texto-bruto/1/v1"]));
+        var intake = SubmissionWorld.Intake(1, conditions);
         var batches = new IngestionBatches(dataSource, conditions);
         var register = new BatchRegister(dataSource);
 
@@ -87,7 +87,7 @@ public sealed class SubmissionPartsTests
     {
         using var dataSource = NpgsqlDataSource.Create("Host=127.0.0.1;Port=1;Username=u;Password=p;Database=d");
         var conditions = OriginConditions.Of(["a"]);
-        var intake = SubmissionWorld.Intake(1, conditions, SubmissionWorld.SealingOf(["texto-bruto/1/v1"]));
+        var intake = SubmissionWorld.Intake(1, conditions);
         var service = new SubmissionService(intake, new IngestionBatches(dataSource, conditions), new BatchRegister(dataSource), dataSource);
         var request = SubmissionWorld.Request();
 

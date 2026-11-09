@@ -1,8 +1,8 @@
 using System.Text;
 using Core.Persistence.Content.Writing;
 using Core.Persistence.Ingestion;
-using Core.Persistence.Tests.Ingestion;
 using Core.Persistence.Tests.Fixtures;
+using Core.Persistence.Tests.Ingestion;
 using Npgsql;
 
 namespace Core.Persistence.Tests.Content;

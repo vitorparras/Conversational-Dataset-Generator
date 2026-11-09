@@ -1,0 +1,23 @@
+<div class="field">
+    <label class="choices__option">
+        <input id="@Id" type="checkbox" name="@Id" value="true" checked="@Checked" aria-invalid="@(ErrorOf is null ? null : "true")" aria-describedby="@ErrorOf" />
+        @Caption
+    </label>
+</div>
+
+@code {
+    /// <summary>The identifier of the box, which is also the name the form sends <c>true</c> under when it is marked.</summary>
+    [Parameter, EditorRequired]
+    public string Id { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public string Caption { get; set; } = "";
+
+    /// <summary>Whether the box is marked, given back as it was when the server refuses the form.</summary>
+    [Parameter]
+    public bool Checked { get; set; }
+
+    /// <summary>The identifier of the error the server bound to the field this box answers with, which the box then carries and announces too; none when there is no error.</summary>
+    [Parameter]
+    public string? ErrorOf { get; set; }
+}

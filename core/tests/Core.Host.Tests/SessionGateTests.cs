@@ -44,14 +44,31 @@ public sealed class SessionGateTests
     }
 
     [Fact]
-    public async Task RoutesThatRequireNoSessionAreServedWithNone()
+    public async Task RoutesThatRequireNoSessionAreServedWithNoneAndTheStatusSaysAliveAndReadyAlone()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         using var host = await HostProcess.StartAsync(cancellationToken);
 
         using var response = await host.GetAsync("/status", cancellationToken);
+        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(["alive", "ready"], body.RootElement.EnumerateObject().Select(field => field.Name));
+    }
+
+    [Fact]
+    public async Task StatusWithAnIdentifierThatOpensNoSessionSaysAliveAndReadyAlone()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var host = await HostProcess.StartAsync(cancellationToken);
+        using var request = new HttpRequestMessage(HttpMethod.Get, new Uri("/status", UriKind.Relative));
+        request.Headers.Add("Cookie", $"{Cookie}={new string('0', 64)}");
+
+        using var response = await host.SendAsync(request, cancellationToken);
+        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(["alive", "ready"], body.RootElement.EnumerateObject().Select(field => field.Name));
     }
 
     [Theory]

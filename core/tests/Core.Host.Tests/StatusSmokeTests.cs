@@ -4,7 +4,10 @@ using Core.Host.Tests.Supervision;
 
 namespace Core.Host.Tests;
 
-/// <summary>The built host starts and answers the status route, which follows the language service it supervises.</summary>
+/// <summary>
+/// The built host starts and answers the status route, whose readiness follows the language service it supervises; with no session the route says alive and ready alone (#632),
+/// so the ready of the http recognizer stands for the service available.
+/// </summary>
 public sealed class StatusSmokeTests
 {
     [Fact]
@@ -30,8 +33,6 @@ public sealed class StatusSmokeTests
         using var body = await StatusAsync(host, cancellationToken);
 
         Assert.True(body.RootElement.GetProperty("ready").GetBoolean());
-        Assert.Equal("http", body.RootElement.GetProperty("recognizer").GetString());
-        Assert.Equal("Available", body.RootElement.GetProperty("languageService").GetString());
     }
 
     [Trait("Category", "RealService")]
@@ -45,10 +46,8 @@ public sealed class StatusSmokeTests
 
         StandInService.Kill(service.Id);
         var notReady = await Poll.UntilAsync(async () => !await IsReadyAsync(host, cancellationToken), Poll.LossLimit, cancellationToken);
-        using var body = await StatusAsync(host, cancellationToken);
 
         Assert.True(notReady, "the status still said ready after the service process was killed");
-        Assert.Equal("Unavailable", body.RootElement.GetProperty("languageService").GetString());
     }
 
     private static async Task<JsonDocument> StatusAsync(HostProcess host, CancellationToken cancellationToken)

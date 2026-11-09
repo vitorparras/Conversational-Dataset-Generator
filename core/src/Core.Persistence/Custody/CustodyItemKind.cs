@@ -29,4 +29,7 @@ public enum CustodyItemKind
 
     /// <summary>A batch of ingestion, by its identifier: what the opening and the closing of a batch are about.</summary>
     IngestionBatch,
+
+    /// <summary>A change of configuration submitted on the screen, by its identifier: what its submission is about.</summary>
+    ConfigurationChange,
 }

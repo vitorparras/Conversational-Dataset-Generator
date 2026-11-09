@@ -40,7 +40,7 @@ internal static class HostEntry
         }
 
         var analyzeTimeout = LanguageServiceConfiguration.AnalyzeTimeout(loaded.Values);
-        var refused = HostConfiguration.Refusals(loaded.Values, analyzeTimeout);
+        var refused = HostRefusals.Of(loaded.Values, analyzeTimeout);
         return analyzeTimeout is { } timeout && refused.Count == 0 ? await CompositionRoot.LaunchAsync(loaded, database, timeout, target) : HostLaunch.Refused(refused);
     }
 

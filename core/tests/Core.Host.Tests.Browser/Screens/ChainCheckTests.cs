@@ -148,14 +148,14 @@ public sealed class ChainCheckTests(BrowserFixture browser, IntactChainHostFixtu
     {
         await using var tab = await SignedAtAsync(intact.Host, intact.Host.Administrator, Chain);
 
-        for (var stop = 0; stop < 5 && !await tab.Page.EvaluateAsync<bool>("() => document.activeElement.textContent.trim() === 'Pedir uma verificação agora'"); stop++)
+        for (var stop = 0; stop < HeaderStops.Count + 2 && !await tab.Page.EvaluateAsync<bool>("() => document.activeElement.textContent.trim() === 'Pedir uma verificação agora'"); stop++)
         {
             await tab.Page.Keyboard.PressAsync("Tab");
         }
 
         await tab.Page.Keyboard.PressAsync("Enter");
         await Expect(tab.Page.GetByRole(AriaRole.Heading, new() { Name = "Verificar a cadeia agora", Level = 1 })).ToBeVisibleAsync();
-        for (var stop = 0; stop < 6 && !await tab.Page.EvaluateAsync<bool>("() => document.activeElement.id === 'verificar-agora'"); stop++)
+        for (var stop = 0; stop < HeaderStops.Count + 3 && !await tab.Page.EvaluateAsync<bool>("() => document.activeElement.id === 'verificar-agora'"); stop++)
         {
             await tab.Page.Keyboard.PressAsync("Tab");
         }

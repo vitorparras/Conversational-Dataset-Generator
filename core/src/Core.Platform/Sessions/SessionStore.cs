@@ -69,15 +69,18 @@ public sealed class SessionStore(SessionLifetimes lifetimes, TimeProvider clock)
         }
     }
 
-    /// <summary>Ends every session of the person, so that an identifier they hold is refused from then on; the person may have none.</summary>
-    public void CloseOf(long personId)
+    /// <summary>Ends every session of the person, so that an identifier they hold is refused from then on; the person may have none. Returns how many it ended.</summary>
+    public int CloseOf(long personId)
     {
         lock (gate)
         {
-            foreach (var identifier in sessions.Where(session => session.Value.PersonId == personId).Select(session => session.Key).ToList())
+            var open = sessions.Where(session => session.Value.PersonId == personId).Select(session => session.Key).ToList();
+            foreach (var identifier in open)
             {
                 _ = sessions.Remove(identifier);
             }
+
+            return open.Count;
         }
     }
 

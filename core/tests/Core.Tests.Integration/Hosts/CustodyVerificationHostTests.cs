@@ -91,7 +91,7 @@ public sealed class CustodyVerificationHostTests
 
         Assert.Equal(1, shown.GetProperty("last").GetProperty("firstInconsistent").GetInt64());
         await LogHasAsync(host, "QUEBRADA no evento de sequência 1 (DigestMismatch)", cancellationToken);
-        using var status = await host.GetAsync("/status", cancellationToken);
+        using var status = await host.SendAsAsync(HttpMethod.Get, "/status", json: null, session: null, cancellationToken);
         using var session = await host.GetAsync("/session", cancellationToken);
         Assert.Equal(HttpStatusCode.OK, status.StatusCode);
         Assert.Contains("\"ready\":true", await status.Content.ReadAsStringAsync(cancellationToken), StringComparison.Ordinal);
@@ -113,7 +113,7 @@ public sealed class CustodyVerificationHostTests
         var stopped = await UntilAsync(host, body => body.GetProperty("last").ValueKind == JsonValueKind.Object, cancellationToken);
         var stoppedAt = stopped.GetProperty("last").GetProperty("recordedAt").GetDateTimeOffset();
         _ = await UntilAsync(host, body => body.GetProperty("overdue").GetBoolean(), cancellationToken);
-        using var alive = await host.GetAsync("/status", cancellationToken);
+        using var alive = await host.SendAsAsync(HttpMethod.Get, "/status", json: null, session: null, cancellationToken);
         var stillLate = await UntilAsync(host, _ => true, cancellationToken);
         await host.RunAsSuperuserAsync("DROP TRIGGER zqx_refuse ON public.custody_event; DROP FUNCTION public.zqx_refuse()", cancellationToken);
         var caughtUp = await UntilAsync(host, body => body.GetProperty("last").GetProperty("recordedAt").GetDateTimeOffset() > stoppedAt, cancellationToken);

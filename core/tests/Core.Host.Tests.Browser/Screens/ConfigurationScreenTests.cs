@@ -112,7 +112,7 @@ public sealed class ConfigurationScreenTests(BrowserFixture browser, SystemHostF
             seen.Add(await tab.Page.EvaluateAsync<bool>(FocusIsSeen));
         }
 
-        Assert.Equal(HeaderStops.Then("nav__link", "nav__link", "data-table"), reached);
+        Assert.Equal(HeaderStops.Then("nav__link", "nav__link", HeaderStops.TableStop), reached);
         Assert.DoesNotContain(false, seen);
         await Expect(tab.Page.Locator("#chaves-tabela-legenda")).ToBeVisibleAsync();
     }

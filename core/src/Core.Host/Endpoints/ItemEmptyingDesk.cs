@@ -31,8 +31,8 @@ internal sealed class ItemEmptyingDesk
     /// <param name="cancellationToken">Cancels the reading.</param>
     internal async Task<int?> DomainIdOfAsync(string name, CancellationToken cancellationToken)
     {
-        var found = await GrantedDomains.OfAsync(domains, Enumerable.Repeat(name, 1), cancellationToken).ConfigureAwait(false);
-        return found.Keys.Select(id => (int?)id).FirstOrDefault();
+        var listed = await domains.ListAsync(cancellationToken).ConfigureAwait(false);
+        return listed.FirstOrDefault(domain => string.Equals(domain.Name, name, StringComparison.Ordinal))?.Id;
     }
 
     /// <summary>The record of the emptying of the item; none when the item was not emptied, is not in the domain or does not exist: the record does not tell them apart.</summary>

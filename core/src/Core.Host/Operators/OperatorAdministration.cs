@@ -10,6 +10,8 @@ namespace Core.Host.Operators;
 /// </summary>
 internal sealed class OperatorAdministration
 {
+    private const string BlankSecret = "A senha não pode ser vazia.";
+
     private readonly SessionStore sessions;
 
     /// <summary>The administration works over the registry and the store of passwords the entry also reads, ends sessions in the store given and tells the person in the notices given.</summary>
@@ -38,8 +40,24 @@ internal sealed class OperatorAdministration
     internal async Task<bool> IsAdministratorAsync(long subject, CancellationToken cancellationToken) =>
         await Registry.ActiveFunctionOfAsync(subject, cancellationToken).ConfigureAwait(false) == PersonFunctions.Administration;
 
+    /// <summary>
+    /// Registers a person as the route and the screen do: a blank first password is refused as an invalid password before anything is asked of the registry; otherwise the person is made
+    /// and the password set, both by the author. The answer of the password is null when the person was not made. Nothing here keeps or answers back the password.
+    /// </summary>
+    internal Task<(PersonResult Made, PersonResult? Password)> RegisterAsync(long author, NewPerson fresh, string password, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(fresh);
+        ArgumentNullException.ThrowIfNull(password);
+        return password.Length == 0
+            ? Task.FromResult<(PersonResult Made, PersonResult? Password)>((new PersonResult { Outcome = PersonOutcome.PasswordInvalid, Refusal = BlankSecret }, null))
+            : CreateAsync(author, fresh, password, cancellationToken);
+    }
+
+    /// <summary>One page of the people the filter leaves, by name, with the total; it reads the name, the function and the state, nothing of any material.</summary>
+    internal Task<PersonPage> ListAsync(PersonFilter filter, int page, CancellationToken cancellationToken) => Registry.ListAsync(filter, page, cancellationToken);
+
     /// <summary>Makes the person and then sets the password, both by the author; the answer of the password is the one returned when the person was made.</summary>
-    internal async Task<(PersonResult Made, PersonResult? Password)> CreateAsync(long author, NewPerson fresh, string password, CancellationToken cancellationToken)
+    private async Task<(PersonResult Made, PersonResult? Password)> CreateAsync(long author, NewPerson fresh, string password, CancellationToken cancellationToken)
     {
         var by = CustodyAuthor.Person(author);
         var made = await Registry.CreateAsync(fresh, by, cancellationToken).ConfigureAwait(false);
@@ -78,7 +96,4 @@ internal sealed class OperatorAdministration
 
         return result;
     }
-
-    /// <summary>One page of the people the filter leaves, by name, with the total; it reads the name, the function and the state, nothing of any material.</summary>
-    internal Task<PersonPage> ListAsync(PersonFilter filter, int page, CancellationToken cancellationToken) => Registry.ListAsync(filter, page, cancellationToken);
 }

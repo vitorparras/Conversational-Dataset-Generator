@@ -73,7 +73,7 @@ internal sealed class SubmissionService
     internal Task<IReadOnlyList<BatchEntry>> ListAsync(BatchFilter filter, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(filter);
-        return register.ListAsync(filter with { Take = Math.Min(filter.Take, MostPerPage) }, cancellationToken);
+        return register.ListAsync(filter with { Take = filter.Take > MostPerPage ? MostPerPage : filter.Take }, cancellationToken);
     }
 
     /// <summary>One batch with what its submission brought, if it is in one of the domains granted.</summary>
@@ -88,16 +88,17 @@ internal sealed class SubmissionService
 
     private static bool HasSeparator(string name) => name.Contains('/', StringComparison.Ordinal) || name.Contains('\\', StringComparison.Ordinal);
 
-    private static SubmissionOutcome Answer(SubmissionResult received, long batch, SubmissionReason? reason, string? warning) => new()
+    private static SubmissionOutcome Answer(SubmissionResult received, long batch, (SubmissionReason? Reason, string? Warning) judged, string origin) => new()
     {
         Kind = SubmissionKind.Done,
         Submission = received.Id.ToString(),
         Batch = batch,
-        State = reason is null ? SubmissionState.Accepted : SubmissionState.Rejected,
-        Reason = reason,
+        State = judged.Reason is null ? SubmissionState.Accepted : SubmissionState.Rejected,
+        Reason = judged.Reason,
         Size = received.BytesRead,
         Sha256 = received.Digest,
-        Warning = warning,
+        Warning = judged.Warning,
+        Origin = origin,
     };
 
     private static FieldProblem? When(bool wrong, string field, string code) => wrong ? new FieldProblem(field, code) : null;
@@ -110,6 +111,7 @@ internal sealed class SubmissionService
             When(!Enum.IsDefined(request.DeclaredForm), "declared_form", "invalid"),
             When(string.IsNullOrWhiteSpace(request.SourceFormat), "source_format", "missing"),
             When(request.Condition is { } declared && intake.Conditions.RankOf(declared) < 0, "condition", "unknown"),
+            SubmissionOrigin.Problem(request) is { } origin ? new FieldProblem("origin", origin) : null,
         }.OfType<FieldProblem>().ToList();
         return problems;
     }
@@ -126,7 +128,12 @@ internal sealed class SubmissionService
         var reason = SubmissionJudgement.Of(intake, received, request.DeclaredForm);
         var warning = HasPath(request.ReceivedName) ? NameWithPath : null;
         var receipt = new SubmissionReceipt(received.Id.ToString(), received.BytesRead, received.Digest, warning);
-        var opened = await batches.OpenAsync(new BatchOpening(request.DomainId, request.AuthorId, request.Condition, receipt), cancellationToken).ConfigureAwait(false);
+        if (SubmissionOrigin.Opening(intake, request, receipt) is not { } opening)
+        {
+            return new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = BatchOutcome.DomainUnknown };
+        }
+
+        var opened = await batches.OpenAsync(opening, cancellationToken).ConfigureAwait(false);
         if (opened.Outcome != BatchOutcome.Opened)
         {
             return new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = opened.Outcome };
@@ -135,12 +142,12 @@ internal sealed class SubmissionService
         var batch = opened.BatchId!.Value;
         if (reason is null)
         {
-            return Answer(received, batch, null, warning);
+            return Answer(received, batch, (null, warning), opening.Origin!.State);
         }
 
         var closed = await batches.RejectAsync(new BatchClosing(request.DomainId, batch, CustodyAuthor.System), reason.Code, cancellationToken).ConfigureAwait(false);
         return closed.Outcome == BatchOutcome.Rejected
-            ? Answer(received, batch, reason, warning)
+            ? Answer(received, batch, (reason, warning), opening.Origin!.State)
             : new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = closed.Outcome, Batch = batch };
     }
 }

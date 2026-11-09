@@ -79,6 +79,22 @@ nem endereço de pessoa: `ChainBroken`, `SameAuthor`, `SubmitterNotAllowed`, `Ap
 `FileUnreadable`. Códigos de saída: 0 (aplicou ou não havia o que aplicar), 37 (recusado, nada gravado), 38 (o banco não respondeu ou o
 núcleo não reiniciou; a próxima execução tenta de novo).
 
+### A recusa que fica registrada
+
+O aplicador **só lê o banco e não grava a recusa**: quem a grava é o núcleo, na partida e a cada 5 minutos, com as mesmas regras (o
+mesmo código de julgamento). Os motivos se separam assim:
+
+- **Definitivos**, que não mudam sozinhos: `SameAuthor`, `SubmitterNotAllowed`, `ApproverNotAllowed`, `KeyOnlyOnServer` e `ValueRefused`.
+  O núcleo grava na cadeia um evento `configuration_not_applied`, de autor sistema, uma vez por alteração, com o código do motivo e a
+  sequência da aprovação, sem nome nem endereço de pessoa. A alteração sai da lista de pendentes, e o aplicador deixa de tentar e de
+  dizê-la no log.
+- **Passageiros**: `ChainBroken` e `FileUnreadable`, além de um banco que não responde. Nada é gravado, a alteração segue pendente e
+  o aplicador tenta de novo na próxima execução.
+
+Quem administra vê a alteração como não aplicada, com o motivo em palavras, na tela da alteração (a leitura é
+`ApprovedChanges.RefusedAsync`, que devolve a chave, o código do motivo e a sequência da aprovação). Uma alteração que já está em vigor
+não pode ser registrada como não aplicada.
+
 ## Conferir (CA-7)
 
 Com a conta do núcleo, o arquivo não pode ser gravado; com o papel `leitura`, o banco não pode:

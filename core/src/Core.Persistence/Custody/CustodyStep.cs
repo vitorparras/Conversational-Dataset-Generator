@@ -104,4 +104,7 @@ public enum CustodyStep
 
     /// <summary>The origin that a submission declared for its batch was read; the item is the batch.</summary>
     OriginRead,
+
+    /// <summary>The technical administration corrected the e-mail address of a person; the item is that person, the author the one who corrected, and the event holds no address.</summary>
+    PersonEmailCorrected,
 }

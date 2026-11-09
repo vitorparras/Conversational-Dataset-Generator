@@ -54,5 +54,7 @@ public static class AuditMap
         [CustodyStep.OwnerWindowClosed] = "o fechamento da janela grava só o veredito na cadeia, depois de verificar a cadeia e conferir as garantias",
         [CustodyStep.Restored] = "a restauração grava as linhas pelas funções do dono, que a cadeia não vê, e termina com este evento depois de verificar a cadeia e conferir as garantias",
         [CustodyStep.RestoreRehearsed] = "o ensaio lê a cadeia (CustodyVerifier) e o catálogo e grava só o resultado nela: não toca tabela de domínio",
+        [CustodyStep.PersonEmailCorrected] =
+            "a tabela public.person_email fica fora do mapa: a própria pessoa muda o endereço sem passo da cadeia (política 009), e os comandos do log não casam com os eventos",
     };
 }

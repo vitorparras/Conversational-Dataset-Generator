@@ -53,6 +53,7 @@ internal static class CustodyNames
         [CustodyStep.PasswordChanged] = "password_changed",
         [CustodyStep.ConfigurationSubmitted] = "configuration_submitted",
         [CustodyStep.OriginRead] = "origin_read",
+        [CustodyStep.PersonEmailCorrected] = "person_email_corrected",
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<CustodyReason, string> Reasons = new Dictionary<CustodyReason, string>

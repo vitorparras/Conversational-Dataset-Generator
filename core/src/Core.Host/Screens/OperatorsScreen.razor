@@ -40,6 +40,10 @@
                     <StateMark>Inativa</StateMark>
                 }
             </span>
+            @if (context.Active)
+            {
+                <Button Href="@OperatorEmailEndpoint.Of(context.Id)" Kind="Button.Look.Quiet">E-mail de @context.Name</Button>
+            }
         </ItemContent>
     </PagedList>
 </Panel>

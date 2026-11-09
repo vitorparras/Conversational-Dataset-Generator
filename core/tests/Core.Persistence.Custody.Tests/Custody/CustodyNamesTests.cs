@@ -55,6 +55,7 @@ public sealed partial class CustodyNamesTests
                 "owner_window_opened", "owner_window_closed", "restored", "restore_rehearsed", "domain_label_revoked", "domain_rewrapped", "batch_opened", "batch_closed", "password_changed",
                 "configuration_submitted",
                 "origin_read",
+                "person_email_corrected",
                 "administrative_act", "correction_of_record", "content_read", "verification_passed", "verification_failed",
                 "removal_requested_by_subject", "contract_requirement", "author_without_function", "item_already_emptied", "credentials_accepted", "password_wrong", "account_not_recognized",
                 "batch_accepted", "batch_rejected",

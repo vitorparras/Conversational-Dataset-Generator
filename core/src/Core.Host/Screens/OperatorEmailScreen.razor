@@ -1,0 +1,49 @@
+@using Core.Host.Endpoints
+
+<h1>E-mail de @Person.Name</h1>
+<p class="lead">
+    Corrija aqui o endereço de quem não consegue entrar para corrigi-lo, como quem esqueceu a senha: ele serve só para receber o link de reposição.
+    A correção fica registrada na cadeia de custódia sem o endereço, e a pessoa vê o endereço novo na própria conta.
+</p>
+@if (Saved)
+{
+    <Notice Kind="Notice.Tone.Success">@(Person.Address is null ? $"{Person.Name} está sem endereço de e-mail." : $"Endereço de e-mail de {Person.Name} corrigido.")</Notice>
+}
+@if (Person.Active)
+{
+    <form class="form" method="post" action="@OperatorEmailEndpoint.Of(Person.Id)" novalidate>
+        <Field Id="pessoa-email" Name="@AccountEmailScreen.EmailField" Caption="E-mail (opcional)" Type="email" Value="@Person.Address" Autocomplete="off" Error="@Error"
+               Hint="Um endereço só, como nome@exemplo.org. Deixe o campo em branco para a pessoa ficar sem endereço." />
+        <div class="actions">
+            <Button Id="corrigir-email">Corrigir o e-mail</Button>
+            <Button Href="@ScreenPaths.Operators" Kind="Button.Look.Secondary">Voltar às pessoas</Button>
+        </div>
+    </form>
+}
+else
+{
+    <EmptyState Title="Pessoa desativada, sem endereço.">
+        <p>O endereço de e-mail é apagado quando a pessoa é desativada, porque ela não repõe mais a senha. Não há o que corrigir.</p>
+    </EmptyState>
+    <div class="actions">
+        <Button Href="@ScreenPaths.Operators" Kind="Button.Look.Secondary">Voltar às pessoas</Button>
+    </div>
+}
+
+@code {
+    /// <summary>The title of the page, which the list of people leads to.</summary>
+    internal const string Title = "E-mail da pessoa";
+
+    /// <summary>The person whose address is shown: the name, whether active, and the address kept, or the one typed when the server refused it.</summary>
+    public sealed record Shown(long Id, string Name, bool Active, string? Address);
+
+    [Parameter, EditorRequired]
+    public Shown Person { get; set; } = null!;
+
+    /// <summary>Whether the page comes back from a correction, which it then says.</summary>
+    [Parameter]
+    public bool Saved { get; set; }
+
+    [Parameter]
+    public string? Error { get; set; }
+}

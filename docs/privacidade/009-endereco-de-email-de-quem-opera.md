@@ -16,8 +16,11 @@ opcional: sem ele, ou sem servidor declarado, a reposição é entregue por fora
 
 ## Quem vê
 
-A administração técnica, que cadastra, e a própria pessoa, na tela da sua conta. Nenhuma outra
-função o vê, nem em lista, nem em detalhe.
+A administração técnica, que cadastra, e a própria pessoa, na tela da sua conta. Depois do cadastro,
+a administração técnica vê e corrige o endereço de outra pessoa ativa, na página de e-mail que a
+lista de pessoas abre, porque quem esqueceu a senha não entra para corrigi-lo. A correção entra na
+cadeia de custódia como ato da administração sobre a pessoa, sem o endereço, e a pessoa vê o endereço
+novo na própria conta. Nenhuma outra função o vê, nem em lista, nem em detalhe.
 
 ## Onde ele não aparece
 
@@ -42,11 +45,11 @@ aquela pessoa sem afetar as outras. Se o gatilho falhar, o endereço de quem foi
 fica guardado sem finalidade: é a falha que mais importa aqui, e a defesa é o teste de banco que
 desativa uma pessoa e confere que o endereço sumiu.
 
-**A aplicação.** Só a tela da própria conta e o cadastro mostram o campo, e o endereço vai ao banco
-sempre como parâmetro, nunca no texto do comando, que é o que o log do servidor guarda. Se ela
-falhar, o endereço aparece a quem não devia ou entra num log. A defesa são os testes de rota, que
-conferem quem vê, e o teste que procura o endereço no log do driver, no histórico da pessoa e na
-cadeia.
+**A aplicação.** Só a tela da própria conta, o cadastro e a página de correção da administração
+mostram o campo, e o endereço vai ao banco sempre como parâmetro, nunca no texto do comando, que é
+o que o log do servidor guarda. Se ela falhar, o endereço aparece a quem não devia ou entra num log.
+A defesa são os testes de rota, que conferem quem vê, e o teste que procura o endereço no log do
+driver, no histórico da pessoa e na cadeia.
 
 **A configuração.** Ela recusa iniciar com o servidor de e-mail declarado em parte ou sem transporte
 cifrado ([0029](../decisoes/0029-identidade-e-sessao.md)), para que o link nunca viaje em claro. Se

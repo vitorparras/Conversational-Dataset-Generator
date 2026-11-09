@@ -1,7 +1,7 @@
 @if (Granted.Any())
 {
     <form class="domain" method="get">
-        <label class="domain__label" for="dominio">Domínio</label>
+        <label class="domain__label" for="dominio">Domínio de trabalho</label>
         <select id="dominio" class="domain__choice" name="@Field">
             @foreach (var domain in Granted)
             {

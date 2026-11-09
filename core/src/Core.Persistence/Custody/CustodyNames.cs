@@ -52,6 +52,7 @@ internal static class CustodyNames
         [CustodyStep.BatchClosed] = "batch_closed",
         [CustodyStep.PasswordChanged] = "password_changed",
         [CustodyStep.ConfigurationSubmitted] = "configuration_submitted",
+        [CustodyStep.OriginRead] = "origin_read",
         [CustodyStep.OccurrencesRead] = "occurrences_read",
         [CustodyStep.BatchSampled] = "batch_sampled",
     }.ToFrozenDictionary();

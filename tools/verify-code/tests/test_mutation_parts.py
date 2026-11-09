@@ -455,7 +455,13 @@ class UnionOfThePartsTests(unittest.TestCase):
     def test_the_repository_has_areas_in_parts_to_check(self) -> None:
         names = {a.prefix for a in self.split_areas()}
 
-        self.assertIn("Core.Persistence.Content", names)
+        for expected in (
+            "Core.Persistence.Content",
+            "Core.Persistence.Content.Writing",
+            "Core.Persistence.Custody.Verification",
+            "Core.Ingestion",
+        ):
+            self.assertIn(expected, names)
 
     def test_the_parts_together_name_every_file_of_the_area_and_no_other(self) -> None:
         for area in self.split_areas():
@@ -479,8 +485,8 @@ class RepositoryAreaTests(unittest.TestCase):
         root = support.VERIFY_CODE.parents[1]
         areas = {a.prefix: a for a in areas_doc.read_areas(root).areas}
 
-        self.assertEqual(areas["Core.Persistence.Content"].parts, 8)
-        self.assertEqual(areas["Core.Persistence.Content.Writing"].parts, 2)
+        self.assertEqual(areas["Core.Persistence.Content"].parts, 12)
+        self.assertEqual(areas["Core.Persistence.Content.Writing"].parts, 3)
         self.assertEqual(areas["Core.Persistence.Content.Reading"].parts, 1)
 
     def test_the_content_areas_of_the_repository_have_files_for_their_parts(self) -> None:
@@ -491,10 +497,10 @@ class RepositoryAreaTests(unittest.TestCase):
 
         writing = [name for name in names if name.startswith("Core.Persistence.Content.Writing@")]
 
-        expected = [f"Core.Persistence.Content@{n}/8" for n in range(1, 9)]
+        expected = [f"Core.Persistence.Content@{n}/12" for n in range(1, 13)]
         self.assertEqual(
             (problems, content, writing),
-            ((), expected, [f"Core.Persistence.Content.Writing@{n}/2" for n in (1, 2)]),
+            ((), expected, [f"Core.Persistence.Content.Writing@{n}/3" for n in (1, 2, 3)]),
         )
 
 

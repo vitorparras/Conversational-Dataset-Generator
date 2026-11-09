@@ -2,12 +2,11 @@
 
 > Operacional. 2026-11-09.
 
-Preenche o modelo de [034](034-roteiro-de-usabilidade.md) para a alteração de configuração pela
-tela (`/configuracao/alteracoes`, issue 634, parte 2c), conferido com a decisão 0053 e com a tela
-do commit 999e7193, que ainda não estão no main. As pessoas de teste são `operador-23` e
-`operador-24`, com a função de Administração técnica, e `operador-25`, com a de Auditoria,
-criadas só para o ensaio, com a senha combinada para o ensaio e descartadas no fim. Quem executa
-não é quem escreveu a tela. O aplicador, que grava o arquivo e reinicia o núcleo, não tem tela.
+Preenche o modelo de [034](034-roteiro-de-usabilidade.md) para a alteração de configuração pela tela
+(`/configuracao/alteracoes`, issue 634, parte 2c), conferido com a decisão 0053 e com a tela do
+commit cc473d42, fora do main. As pessoas de teste são `operador-23` e `operador-24`, com a função
+de Administração técnica, e `operador-25`, com a de Auditoria, criadas para o ensaio, com a senha
+combinada, e descartadas no fim. Quem executa não é quem escreveu a tela. O aplicador não tem tela.
 
 ## Antes de executar
 
@@ -15,7 +14,7 @@ não é quem escreveu a tela. O aplicador, que grava o arquivo e reinicia o núc
 |---|---|
 | Telas | Alterar configuração: a proposta, a recusa no campo, a lista de pendentes e a decisão |
 | Quem usa | Administração técnica, duas pessoas, sem treino na tela |
-| Ponto de partida | Núcleo no ar, a configuração em vigor à vista em outra aba; uma proposta antiga, já vencida |
+| Ponto de partida | Núcleo no ar, a configuração em vigor à vista em outra aba; uma proposta já vencida e outra, ainda no prazo, aberta numa aba |
 | Sucesso | Propõe, entende que ainda não vale, e outra pessoa decide; ninguém decide a própria |
 | Limite | 30 s e 2 passos do início até a tela; propor, 90 s e 5 passos; decidir, 30 s e 2 passos |
 
@@ -23,9 +22,9 @@ não é quem escreveu a tela. O aplicador, que grava o arquivo e reinicia o núc
 
 1. **Achar a tela.** Como `operador-23`, peça que altere o tempo de inatividade da sessão. Tem de
    achar "Alterar configuração" no menu e ler que cada chave traz o valor em vigor.
-2. **Propor.** Chave "Tempo de inatividade da sessão", valor 00:20:00, motivo "Ajuste
-   operacional", "Enviar para aprovação". Pergunte se já vale: a tela diz que aguarda outra pessoa
-   e, até lá, vale o valor em vigor. Confira na configuração em vigor que nada mudou.
+2. **Propor.** Chave "Tempo de inatividade da sessão", valor 00:20:00, motivo "Ajuste operacional",
+   "Enviar para aprovação". Pergunte se já vale: a tela diz que aguarda outra pessoa da
+   Administração técnica; a abertura, que vale o valor em vigor. Nada muda na configuração.
 3. **Valor recusado.** Proponha o valor "vinte". A recusa vem junto do campo "Valor novo", diz que a
    partida a recusaria e por quê, com a chave e o valor; os campos voltam preenchidos e a lista de
    pendentes não ganha linha. Sem escolher o motivo, o erro vem no campo do motivo.
@@ -38,8 +37,9 @@ não é quem escreveu a tela. O aplicador, que grava o arquivo e reinicia o núc
    configuração", e a lista vazia ("Nenhuma alteração aguardando decisão") como "nada a fazer".
 7. **Decisão repetida.** Abra a mesma proposta em duas abas e decida nas duas. A segunda tem de
    dizer que outra pessoa já decidiu, sem erro de servidor.
-8. **Prazo vencido.** Com a proposta antiga, tente decidir. Tem de ler que o prazo venceu e
-   achar o caminho: propor de novo. A lista não a mostra mais.
+8. **Prazo vencido.** A proposta vencida não aparece na lista nem tem botão: tem de achar o caminho,
+   propor de novo. Na aba aberta antes do prazo, decida depois dele e leia "O prazo dessa alteração
+   venceu; proponha de novo, se ainda for preciso."
 9. **Outra função.** Como `operador-25`, digite o endereço da tela. A resposta tem de ser a de um
    endereço que não existe, e o menu não traz a entrada.
 

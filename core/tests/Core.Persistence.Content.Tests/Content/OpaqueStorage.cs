@@ -1,6 +1,8 @@
 using System.Text;
 using Core.Persistence.Content.Writing;
+using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Fixtures;
+using Core.Persistence.Tests.Ingestion;
 using Npgsql;
 
 namespace Core.Persistence.Tests.Content;
@@ -34,9 +36,15 @@ internal static class OpaqueStorage
     /// <summary>The column of the key of the map, wrapped.</summary>
     public const string MapKey = "content.reversal_map.dek_wrapped";
 
-    private static readonly string[] Seedable = [RawText, SanitizedText, Entries];
+    /// <summary>The column of the origin a submission declared, sealed as the raw text is.</summary>
+    public const string Origin = "content.batch_origin.origin";
 
-    private static readonly string[] KeyColumns = [ItemKey, MapKey];
+    /// <summary>The column of the key of the origin, wrapped.</summary>
+    public const string OriginKey = "content.batch_origin.dek_wrapped";
+
+    private static readonly string[] Seedable = [RawText, SanitizedText, Entries, Origin];
+
+    private static readonly string[] KeyColumns = [ItemKey, MapKey, OriginKey];
 
     /// <summary>The columns the catalog marks as protected, as schema.table.column; the marks are the ones the migrations write.</summary>
     public static Task<IReadOnlyList<string>> MarkedColumnsAsync(ContentWorld world)
@@ -79,8 +87,18 @@ internal static class OpaqueStorage
         var pseudonymized = $"zqx-{Guid.NewGuid():N}";
         var item = await world.Writer.AddItemTextAsync(1, new NewItemText(texts[RawText], texts[SanitizedText], pseudonymized), TestContext.Current.CancellationToken);
         _ = await world.Writer.AddReversalMapAsync(1, item, texts[Entries], TestContext.Current.CancellationToken);
+        await OpenWithOriginAsync(world, texts[Origin]);
         await AssertEveryMarkedColumnHoldsSomethingAsync(world, marked);
         return new Material(texts, pseudonymized) { Keys = await KeysInClearAsync(world) };
+    }
+
+    /// <summary>Opens a batch whose submission declared an origin, which the application seals in a row of its own with a key of its own.</summary>
+    private static async Task OpenWithOriginAsync(ContentWorld world, string origin)
+    {
+        var receipt = new SubmissionReceipt("0123456789abcdef0123456789abcdef", 1, new string('0', 64));
+        var opening = new BatchOpening(IngestionWorld.Domain, IngestionWorld.Person, null, receipt, OriginDeclaration.Declared(world.Content, IngestionWorld.Domain, origin));
+        var opened = await IngestionWorld.BatchesOf(world).OpenAsync(opening, TestContext.Current.CancellationToken);
+        Assert.Equal(BatchOutcome.Opened, opened.Outcome);
     }
 
     /// <summary>

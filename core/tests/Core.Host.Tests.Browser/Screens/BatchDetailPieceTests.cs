@@ -180,19 +180,15 @@ public sealed class BatchDetailPieceTests(BrowserFixture browser, BatchDetailHos
     {
         await FocusTheTitleAsync(page);
         var stops = new List<string>();
-        for (var press = 0; press < MostStops; press++)
+        var stop = "início";
+        for (var press = 0; press < MostStops && stop.Length > 0; press++)
         {
             await page.Keyboard.PressAsync("Tab");
-            var stop = await page.EvaluateAsync<string>(StopInMain);
-            if (stop.Length == 0)
-            {
-                break;
-            }
-
+            stop = await page.EvaluateAsync<string>(StopInMain);
             stops.Add(stop);
         }
 
-        return stops;
+        return [.. stops.Where(reached => reached.Length > 0)];
     }
 
     private static async Task FocusTheTitleAsync(IPage page) => _ = await page.EvaluateAsync(FocusTheTitle);

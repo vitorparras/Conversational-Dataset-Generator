@@ -120,7 +120,7 @@ public sealed class BatchDetailScreenTests
 
     /// <summary>Whether a property can carry text: a string, or a collection of strings, such as the codes of the losses.</summary>
     private static bool Holds(Type type) =>
-        type == typeof(string) || (type.IsAssignableTo(typeof(System.Collections.IEnumerable)) && type.GetGenericArguments().Any(Holds));
+        type == typeof(string) || (type.IsAssignableTo(typeof(System.Collections.IEnumerable)) && Array.Exists(type.GetGenericArguments(), Holds));
 
     private static string Fact(string term, string value) => $@"<dt>\s*{Regex.Escape(term)}\s*</dt>\s*<dd>\s*{Regex.Escape(value)}\s*</dd>";
 

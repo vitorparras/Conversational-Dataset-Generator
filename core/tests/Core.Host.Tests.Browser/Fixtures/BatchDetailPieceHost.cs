@@ -3,6 +3,7 @@ using Core.Host.Screens;
 using Core.Host.Tests.Browser.Trial;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Fixtures;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;

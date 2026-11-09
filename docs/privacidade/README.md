@@ -24,6 +24,7 @@ investigação criminal; a política não é sugestão, é regra.
 | [006](006-acesso.md) | Acesso a material sensível | Norma vigente |
 | [007](007-reversao-da-pseudonimizacao.md) | Reversão da pseudonimização | Norma vigente |
 | [008](008-distribuicao.md) | Licenciamento e distribuição de dados | Norma vigente |
+| [009](009-endereco-de-email-de-quem-opera.md) | O endereço de e-mail de quem opera | Norma vigente |
 
 Cada política diz **qual camada impõe** o que ela promete — banco, aplicação, configuração de
 ambiente ou processo humano — e o que acontece quando essa camada falha. Promessa sem mecanismo

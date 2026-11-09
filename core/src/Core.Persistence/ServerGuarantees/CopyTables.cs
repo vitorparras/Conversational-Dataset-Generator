@@ -54,6 +54,7 @@ internal static class CopyTables
             new Table("public.configuration_change", "SELECT pg_catalog.to_jsonb(t)::text FROM public.configuration_change t ORDER BY id", InDomain: false),
             new Table("public.custody_event", "SELECT pg_catalog.to_jsonb(t)::text FROM public.custody_event t ORDER BY sequence", InDomain: false),
             new Table("content.ingestion_batch", ContentQueries.ReadCopyIngestionBatch, InDomain: true),
+            new Table("content.batch_origin", ContentQueries.ReadCopyBatchOrigin, InDomain: true),
             new Table("content.item_text", ContentQueries.ReadCopyItemText, InDomain: true),
             new Table("content.reversal_map", ContentQueries.ReadCopyReversalMap, InDomain: true),
             new Table("content.item_emptied", ContentQueries.ReadCopyItemEmptied, InDomain: true),

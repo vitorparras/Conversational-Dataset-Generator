@@ -18,6 +18,7 @@ public sealed class EpochRotation
     private const string Domains = "SELECT id FROM public.domain ORDER BY id";
     private static readonly Table Items = new(ContentQueries.ReadOlderItemKeys, ContentQueries.RewrapItemKey);
     private static readonly Table Maps = new(ContentQueries.ReadOlderMapKeys, ContentQueries.RewrapMapKey);
+    private static readonly Table Origins = new(ContentQueries.ReadOlderOriginKeys, ContentQueries.RewrapOriginKey);
 
     private readonly NpgsqlDataSource dataSource;
     private readonly ItemKeys keys;
@@ -50,6 +51,7 @@ public sealed class EpochRotation
                 await transaction.ChangeDomainAsync(domain, cancellationToken).ConfigureAwait(false);
                 rewrapped += await RewrapAsync(transaction, Items, recorded, cancellationToken).ConfigureAwait(false);
                 rewrapped += await RewrapAsync(transaction, Maps, recorded, cancellationToken).ConfigureAwait(false);
+                rewrapped += await RewrapAsync(transaction, Origins, recorded, cancellationToken).ConfigureAwait(false);
             }
 
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);

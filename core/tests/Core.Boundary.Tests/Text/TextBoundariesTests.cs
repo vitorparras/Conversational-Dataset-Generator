@@ -1,3 +1,4 @@
+using Core.Boundary.Contracts;
 using Core.Boundary.Text;
 
 namespace Core.Boundary.Tests.Text;
@@ -35,6 +36,15 @@ public sealed class TextBoundariesTests
         Assert.Equal("utf16Index", refusal.ParamName);
         Assert.StartsWith("The offset is outside the text.", refusal.Message, StringComparison.Ordinal);
     }
+
+    [Theory]
+    [InlineData(0, 1, "a")]
+    [InlineData(1, 2, "\U0001F642")]
+    [InlineData(1, 3, "\U0001F642b")]
+    [InlineData(0, 3, Emoji)]
+    [InlineData(2, 2, "")]
+    public void TheSliceOfAnOccurrenceIsCutByCodePointsAndNeverByUtf16Units(int start, int end, string expected) =>
+        Assert.Equal(expected, boundaries.Slice(Emoji, new Occurrence(start, end, "PERSON", "PROPN", "obl")));
 
     [Fact]
     public void NoTextIsADefect()

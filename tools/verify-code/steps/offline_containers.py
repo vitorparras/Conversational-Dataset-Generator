@@ -21,6 +21,8 @@ MODEL = "pt_core_news_md"
 SYSTEM = "linux-x64"
 BUILD = "cdg-offline-build-run"
 DATABASE = "cdg-offline-database-run"
+PACKAGES = ("strace", "openssl")
+PACKAGE_FORMAT = "${Package}=${Version}\n"
 HOST = "cdg-offline-host-run"
 VOLUME = "cdg-offline-service"
 CONTAINERS = (HOST, DATABASE, BUILD)
@@ -76,6 +78,15 @@ def build_images(ctx: Context) -> StepResult | None:
         if not built.ok:
             return failed(NAME, f"a imagem {image.tag} não foi construída", *tail(built.text))
     return None
+
+
+def installed_packages(ctx: Context) -> str:
+    """The versions of the packages the runner image got (`strace=6.8-0ubuntu2 openssl=...`): the
+    image installs them unpinned, so this is what makes a run reproducible by its report."""
+    query = ("run", "--rm", "--entrypoint", "dpkg-query", RUNNER.tag, "-W", "-f", PACKAGE_FORMAT)
+    found = docker(ctx, *query, *PACKAGES)
+    versions = found.text.split() if found.ok else []
+    return " ".join(versions) or "versões não lidas da imagem"
 
 
 def remove_all(ctx: Context) -> None:

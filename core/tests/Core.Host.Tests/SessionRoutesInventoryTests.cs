@@ -31,7 +31,7 @@ public sealed class SessionRoutesInventoryTests
             "DELETE /account/sessions/{id}", "DELETE /session", "GET /", "GET /account/sessions", "GET /audit/server", "GET /avisos", "GET /configuracao",
             "GET /configuracao/alteracoes", "GET /configuration",
             "GET /custodia", "GET /custodia/verificar", "GET /custody/seal", "GET /custody/verification", "GET /dominios", "GET /estado-do-sistema",
-            "GET /minha-conta", "GET /minha-conta/senha", "GET /minha-conta/sessoes/encerrar", "GET /minha-conta/sessoes/encerrar-outras", "GET /pessoas", "GET /session",
+            "GET /minha-conta", "GET /minha-conta/senha", "GET /minha-conta/sessoes/encerrar", "GET /minha-conta/sessoes/encerrar-outras", "GET /pessoas", "GET /pessoas/nova", "GET /session",
             "GET /versions",
         ];
         Assert.Equal(
@@ -50,6 +50,7 @@ public sealed class SessionRoutesInventoryTests
                 "POST /minha-conta/sessoes/encerrar-outras",
                 "POST /people",
                 "POST /people/{id}/deactivate",
+                "POST /pessoas/nova",
                 "POST /saida",
                 "PUT /people/{id}/password",
             ],

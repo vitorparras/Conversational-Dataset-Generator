@@ -18,5 +18,6 @@ internal static class ScreenPaths
     internal const string AccountEnd = "/minha-conta/sessoes/encerrar";
     internal const string AccountEndOthers = "/minha-conta/sessoes/encerrar-outras";
     internal const string Operators = "/pessoas";
+    internal const string OperatorNew = "/pessoas/nova";
     internal const string Notices = "/avisos";
 }

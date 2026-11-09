@@ -42,23 +42,16 @@ internal static class SubmissionStoring
     }
 
     /// <summary>Writes each unit of the material as an item of the batch; false when some item could not be written, the ones before it still standing for the rejection to remove.</summary>
-    /// <param name="intake">Holds the writer of the items and the marking of the replicated content.</param>
-    /// <param name="kept">The domain and the batch, open, what the reader gave and the form it was declared in.</param>
+    /// <param name="writer">Writes the items.</param>
+    /// <param name="kept">The domain and the batch, open, and what the reader gave.</param>
     /// <param name="cancellationToken">Cancels the writing.</param>
-    internal static async Task<bool> StoreAsync(SubmissionIntake intake, Kept kept, CancellationToken cancellationToken)
+    internal static async Task<bool> StoreAsync(ContentWriter writer, Kept kept, CancellationToken cancellationToken)
     {
         try
         {
-            var written = new List<(long Item, ReadUnit Unit)>();
             foreach (var unit in kept.Material.Units)
             {
-                var item = await intake.Writer!.AddItemTextAsync(kept.DomainId, kept.BatchId, new NewItemText(unit.Text), cancellationToken).ConfigureAwait(false);
-                written.Add((item, unit));
-            }
-
-            if (kept.Form == MaterialForm.Conversation && intake.Marking is { } marking)
-            {
-                await marking.MarkAsync(kept.DomainId, kept.BatchId, written, cancellationToken).ConfigureAwait(false);
+                _ = await writer.AddItemTextAsync(kept.DomainId, kept.BatchId, new NewItemText(unit.Text), cancellationToken).ConfigureAwait(false);
             }
 
             return true;
@@ -71,13 +64,13 @@ internal static class SubmissionStoring
 
     /// <summary>Writes the items of a file that was not turned back and accepts the batch; when that fails, rejects it with no item and says so.</summary>
     /// <param name="batches">Accepts and rejects the batch.</param>
-    /// <param name="intake">Holds the writer of the items and the marking of the replicated content.</param>
-    /// <param name="kept">The domain and the batch, open, what the reader gave and the form it was declared in.</param>
+    /// <param name="writer">Writes the items.</param>
+    /// <param name="kept">The domain and the batch, open, and what the reader gave.</param>
     /// <param name="cancellationToken">Cancels the writing.</param>
-    internal static async Task<bool> KeepAsync(IngestionBatches batches, SubmissionIntake intake, Kept kept, CancellationToken cancellationToken)
+    internal static async Task<bool> KeepAsync(IngestionBatches batches, ContentWriter writer, Kept kept, CancellationToken cancellationToken)
     {
         var closing = new BatchClosing(kept.DomainId, kept.BatchId, CustodyAuthor.System);
-        if (await StoreAsync(intake, kept, cancellationToken).ConfigureAwait(false)
+        if (await StoreAsync(writer, kept, cancellationToken).ConfigureAwait(false)
             && (await batches.AcceptAsync(closing, cancellationToken).ConfigureAwait(false)).Outcome == BatchOutcome.Accepted)
         {
             return true;
@@ -95,6 +88,5 @@ internal static class SubmissionStoring
     /// <param name="DomainId">The domain.</param>
     /// <param name="BatchId">The batch.</param>
     /// <param name="Material">What the reader gave.</param>
-    /// <param name="Form">The form the material was declared in.</param>
-    internal sealed record Kept(int DomainId, long BatchId, ReadMaterial Material, MaterialForm Form);
+    internal sealed record Kept(int DomainId, long BatchId, ReadMaterial Material);
 }

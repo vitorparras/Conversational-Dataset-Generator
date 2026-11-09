@@ -46,7 +46,6 @@ from steps import (
     trivy,
 )
 from steps.common import OUTPUT_DIRECTORY, Context, StepResult, run_process
-from steps.downloads import retrying
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -217,7 +216,7 @@ def main(argv: list[str] | None = None) -> int:
     ctx = Context(
         ROOT,
         ROOT / OUTPUT_DIRECTORY,
-        retrying(run_process),
+        run_process,
         args.base,
         args.previous,
         run_process,

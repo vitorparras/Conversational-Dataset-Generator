@@ -459,7 +459,7 @@ class OfflineStartWorkflowTests(unittest.TestCase):
         self.assertIn("if: ${{ !cancelled() && needs.changes.outputs.heavy != 'false' }}", self.job)
 
     def test_the_job_has_the_sdk_the_publish_needs(self) -> None:
-        self.assertIn("./.github/actions/setup-dotnet", self.job)
+        self.assertIn("actions/setup-dotnet@", self.job)
 
 
 if __name__ == "__main__":

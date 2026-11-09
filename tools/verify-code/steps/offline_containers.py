@@ -31,8 +31,7 @@ READY_SECONDS = 120
 ASSEMBLE_SECONDS = 900
 ASSEMBLE = (
     "set -e; cp -r /input /home/build/repo; "
-    "python /home/build/repo/tools/verify-code/retry.py -- pip install -q --user "
-    "-r /home/build/repo/tools/verify-code/service-requirements.txt; "
+    "pip install -q --user -r /home/build/repo/tools/verify-code/service-requirements.txt; "
     f"timeout {ASSEMBLE_SECONDS} python /home/build/repo/tools/build-service/service_folder.py "
     f"--system {SYSTEM} --model {MODEL} --output /out"
 )

@@ -30,7 +30,6 @@ import systems
 
 ROOT = Path(__file__).resolve().parents[2]
 SERVICE = "language-service"
-RETRY = ROOT / "tools" / "verify-code" / "retry.py"
 PYTHON_VERSION = "3.12.13"
 MODEL = re.compile(r"[a-z]{2}_core_news_[a-z]+")
 BUILD_REQUIREMENTS = "build-requirements.txt"
@@ -69,8 +68,6 @@ class Job:
 def run(command: Sequence[str | Path], environment: dict[str, str] | None = None) -> None:
     """Runs the command; on failure raises with the tail of what it printed."""
     words = [str(word) for word in command]
-    if words[:2] in (["uv", "python"], ["uv", "pip"]):  # downloads: tried again on a 504 (#733)
-        words = [sys.executable, str(RETRY), "--", *words]
     outcome = subprocess.run(words, capture_output=True, text=True, check=False, env=environment)
     if outcome.returncode != 0:
         tail = (outcome.stdout + outcome.stderr).strip().splitlines()[-OUTPUT_TAIL_LINES:]

@@ -1,4 +1,5 @@
 using Core.Host.Settings;
+using Core.Persistence.Settings;
 using Core.Platform.Configuration;
 using Microsoft.Extensions.Logging;
 

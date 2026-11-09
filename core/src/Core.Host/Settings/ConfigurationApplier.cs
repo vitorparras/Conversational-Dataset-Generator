@@ -1,3 +1,5 @@
+using Core.Persistence.Settings;
+
 namespace Core.Host.Settings;
 
 /// <summary>

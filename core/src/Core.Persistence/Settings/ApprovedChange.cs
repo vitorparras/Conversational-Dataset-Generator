@@ -1,10 +1,10 @@
-namespace Core.Host.Settings;
+namespace Core.Persistence.Settings;
 
 /// <summary>
 /// A change of configuration approved on the screen, as the applier reads it from the database (decision 0053): what was submitted, who submitted and who approved, and the sequences of the
 /// two events of the chain that the applier checks before it touches the file.
 /// </summary>
-internal sealed record ApprovedChange
+public sealed record ApprovedChange
 {
     /// <summary>The submission.</summary>
     public required long Id { get; init; }

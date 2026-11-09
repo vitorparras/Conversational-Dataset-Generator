@@ -55,5 +55,6 @@ public static class AuditMap
         [CustodyStep.RestoreRehearsed] = "o ensaio lê a cadeia (CustodyVerifier) e o catálogo e grava só o resultado nela: não toca tabela de domínio",
         [CustodyStep.ConfigurationApproved] = "a decisão sobre uma alteração de configuração é só o evento na cadeia, que aponta a submissão: não toca tabela de domínio nem o arquivo",
         [CustodyStep.ConfigurationRefused] = "a recusa de uma alteração de configuração é só o evento na cadeia, que aponta a submissão: não toca tabela de domínio nem o arquivo",
+        [CustodyStep.ConfigurationInForce] = "o valor em vigor é só o evento na cadeia, escrito pelo núcleo ao partir com o valor aprovado: não toca tabela de domínio nem o arquivo",
     };
 }

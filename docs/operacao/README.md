@@ -56,5 +56,6 @@ e por quem ela roda.
 | [042](042-roteiro-de-usabilidade-da-tela-de-pessoas.md) | Roteiro de usabilidade da tela de pessoas, listar e cadastrar |
 | [043](043-roteiro-de-usabilidade-dos-dominios-e-da-custodia.md) | Roteiro de usabilidade dos domínios e da custódia |
 | [045](045-roteiro-de-usabilidade-dos-avisos.md) | Roteiro de usabilidade dos avisos |
+| [047](047-roteiro-de-usabilidade-do-selo.md) | Roteiro de usabilidade do selo da custódia |
 
 Ver [regras de escrita](../regras-de-escrita.md).

@@ -1,6 +1,5 @@
 using Core.Ingestion.Entrance;
 using Core.Persistence.Ingestion;
-using Core.Persistence.Recovery;
 using Npgsql;
 
 namespace Core.Host.Submissions;
@@ -39,16 +38,7 @@ internal sealed class SubmissionService
 
     /// <summary>Whether the ingestion takes material in: open, or blocked by the code of what is missing (decision 0014).</summary>
     /// <param name="cancellationToken">Cancels the question.</param>
-    internal async Task<SubmissionGateStatus> GateAsync(CancellationToken cancellationToken)
-    {
-        var status = await RecoveryGate.StatusAsync(dataSource, cancellationToken).ConfigureAwait(false);
-        if (status.Tested)
-        {
-            return new SubmissionGateStatus(true, null);
-        }
-
-        return new SubmissionGateStatus(false, status.Missing == RecoveryGate.StaleWords ? "recovery_rehearsal_stale" : "recovery_not_rehearsed");
-    }
+    internal Task<SubmissionGateStatus> GateAsync(CancellationToken cancellationToken) => new IntakeDoor(dataSource).StatusAsync(cancellationToken);
 
     /// <summary>
     /// Takes a file in: validates the fields, passes the file through the barrier and the conference, and records the submission in a batch,
@@ -140,7 +130,7 @@ internal sealed class SubmissionService
             return new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = BatchOutcome.DomainUnknown };
         }
 
-        var opening = new BatchOpening(request.DomainId, request.AuthorId, request.Condition, receipt, origin, reason?.Code);
+        var opening = new BatchOpening(request.DomainId, request.AuthorId, request.Condition, new SubmissionOpening(receipt, origin)) { RejectedFor = reason?.Code };
         var opened = await batches.OpenAsync(opening, cancellationToken).ConfigureAwait(false);
         var done = reason is null ? BatchOutcome.Opened : BatchOutcome.Rejected;
         return opened.Outcome == done

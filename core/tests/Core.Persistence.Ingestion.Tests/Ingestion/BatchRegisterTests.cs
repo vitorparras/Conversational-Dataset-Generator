@@ -138,7 +138,7 @@ public sealed class BatchRegisterTests
     private static async Task<long> OpenInAsync(BatchesWorld world, int domain, char digit, long bytes)
     {
         var receipt = new SubmissionReceipt(new string(digit, 32), bytes, new string(digit, 64));
-        var opened = await IngestionWorld.BatchesOf(world).OpenAsync(new BatchOpening(domain, IngestionWorld.Person, null, receipt, OriginDeclaration.Unknown), TestContext.Current.CancellationToken);
+        var opened = await IngestionWorld.BatchesOf(world).OpenAsync(new BatchOpening(domain, IngestionWorld.Person, null, new SubmissionOpening(receipt, OriginDeclaration.Unknown)), TestContext.Current.CancellationToken);
         Assert.Equal(BatchOutcome.Opened, opened.Outcome);
         return opened.BatchId!.Value;
     }

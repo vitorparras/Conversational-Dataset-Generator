@@ -8,7 +8,7 @@ namespace Core.Host.Submissions;
 /// <summary>
 /// Where the pieces of the submissions are taken from the configuration: the batches open under the list of conditions the installation declared,
 /// so that an omitted condition takes its first, and the service of the submissions takes files up to the most bytes the installation declared
-/// and seals the origin with the key the host reads when the first submission comes.
+/// and seals the origin with the key the host reads at each submission.
 /// </summary>
 internal static class SubmissionParts
 {
@@ -24,8 +24,12 @@ internal static class SubmissionParts
     internal static BatchRegister RegisterOf(IServiceProvider provider) =>
         provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source ? new BatchRegister(source) : null!;
 
+    /// <summary>The door of the ingestion over the database the startup container holds; none when no database is declared.</summary>
+    internal static IntakeDoor DoorOf(IServiceProvider provider) =>
+        provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source ? new IntakeDoor(source) : null!;
+
     /// <summary>
-    /// The holder of the service, which reads the master key and the labels when the first submission asks and holds the key until the host stops;
+    /// The holder of the service, which reads the master key and the labels at each submission and lets the reading go at its end;
     /// none when no database is declared.
     /// </summary>
     internal static SubmissionServiceHolder ServicesOf(IServiceProvider provider, IReadOnlyDictionary<string, string> values) =>
@@ -37,7 +41,7 @@ internal static class SubmissionParts
     private static SubmissionService ServiceOf(NpgsqlDataSource source, MasterKeyReading reading, SubmissionSettings settings) =>
         new(CompositionRoot.IntakeOf(reading, settings), settings.Batches, new BatchRegister(source), source);
 
-    private static async Task<SubmissionServiceHolder.Loaded> LoadAsync(
+    private static async Task<SubmissionServiceHolder.Loaded?> LoadAsync(
         IServiceProvider startup, IngestionBatches batches, IReadOnlyDictionary<string, string> values, CancellationToken cancellationToken)
     {
         var source = startup.GetRequiredService<NpgsqlDataSource>();
@@ -46,7 +50,8 @@ internal static class SubmissionParts
         {
             if (reading.Failure is not null)
             {
-                throw new InvalidOperationException("The master key could not be read to seal what a submission declares.");
+                reading.Dispose();
+                return null;
             }
 
             var registered = await RegisteredLabels.ReadAsync(source, cancellationToken).ConfigureAwait(false);

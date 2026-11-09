@@ -161,6 +161,7 @@ internal static class CompositionRoot
         _ = builder.Services.AddSingleton(SealConfiguration.Declaration(loaded.Values))
             .AddSingleton(provider => SubmissionParts.BatchesOf(provider, loaded.Values))
             .AddSingleton(SubmissionParts.RegisterOf)
+            .AddSingleton(SubmissionParts.DoorOf)
             .AddSingleton(provider => SubmissionParts.ServicesOf(provider, loaded.Values));
         _ = builder.Services.AddSingleton(_ => new ServerAuditLog(AuditConfiguration.ServerLogDirectory(loaded.Values))).AddSingleton<AuditComparisonState>();
         _ = builder.Services.AddHostedService(provider => new AuditComparisonService(
@@ -183,8 +184,8 @@ internal static class CompositionRoot
     {
         _ = builder.Services.AddSingleton(report).AddSingleton(_ => startup).AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetRequiredService<ServiceProcessWatch>());
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<GuaranteeVerifier>()!).AddSingleton<SealWarningState>();
-        _ = builder.Services.AddHostedService(provider => new SealSendingService(provider));
         _ = builder.Services.AddSingleton(provider => new ChainVerificationService(provider)).AddHostedService(provider => provider.GetRequiredService<ChainVerificationService>());
+        _ = builder.Services.AddHostedService(provider => new SealSendingService(provider));
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source ? new DomainListing(source) : null!);
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source ? new OperatorAdministration(
             new PersonRegistry(source), CredentialsOf(source, provider.GetRequiredService<PasswordDerivation>()), provider.GetRequiredService<SessionStore>(), new PersonNotices(source)) : null!);

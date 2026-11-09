@@ -15,8 +15,8 @@ public sealed class BatchOpenedRejectedTests
         await using var world = await IngestionWorld.CreateAsync();
         var batches = IngestionWorld.BatchesOf(world);
 
-        var result = await batches.OpenAsync(new BatchOpening(IngestionWorld.Domain, IngestionWorld.Person, RejectedFor: Reason), TestContext.Current.CancellationToken);
-        var held = await batches.ReadAsync(IngestionWorld.Domain, result.BatchId!.Value, TestContext.Current.CancellationToken);
+        var result = await batches.OpenAsync(new BatchOpening(IngestionWorld.Domain, IngestionWorld.Person) { RejectedFor = Reason }, TestContext.Current.CancellationToken);
+        var held = await batches.ReadAsync(IngestionWorld.Domain, result.BatchId.Value, TestContext.Current.CancellationToken);
 
         Assert.Equal(
             (BatchOutcome.Rejected, new IngestionBatch(BatchState.Rejected, Reason, IngestionWorld.Person, TestConditions.Strictest), OpenedThenRejected),
@@ -29,7 +29,7 @@ public sealed class BatchOpenedRejectedTests
         await using var world = await IngestionWorld.CreateAsync();
 
         var result = await IngestionWorld.BatchesOf(world).OpenAsync(
-            new BatchOpening(IngestionWorld.Domain, IngestionWorld.Person, RejectedFor: "Not A Motive"), TestContext.Current.CancellationToken);
+            new BatchOpening(IngestionWorld.Domain, IngestionWorld.Person) { RejectedFor = "Not A Motive" }, TestContext.Current.CancellationToken);
 
         Assert.Equal((BatchOutcome.MotiveRefused, null), (result.Outcome, await world.ScalarAsync(IngestionWorld.Events) as string));
     }

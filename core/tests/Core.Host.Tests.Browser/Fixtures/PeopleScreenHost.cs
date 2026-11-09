@@ -43,9 +43,14 @@ internal sealed class PeopleScreenHost : ScreenHostBase
     /// <summary>The whole database as text, as a copy of it would be taken, for a test to look for what must not be in it.</summary>
     public Task<string> DumpAsync() => Database.DumpAsync();
 
-    protected override void AddServices(IServiceCollection services) => _ = services.AddLogging(logging => logging.AddProvider(keeper));
+    protected override void AddServices(IServiceCollection services) =>
+        _ = services.AddLogging(logging => logging.AddProvider(keeper)).AddSingleton(provider => new PersonEmails(provider.GetRequiredService<NpgsqlDataSource>()));
 
-    protected override void MapScreens(IEndpointRouteBuilder routes) => OperatorScreensEndpoint.Map(routes);
+    protected override void MapScreens(IEndpointRouteBuilder routes)
+    {
+        OperatorScreensEndpoint.Map(routes);
+        AccountEmailEndpoint.Map(routes);
+    }
 
     private async Task SeedAsync()
     {

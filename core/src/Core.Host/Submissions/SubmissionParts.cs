@@ -1,10 +1,4 @@
-using Core.Boundary.Text;
 using Core.Ingestion;
-using Core.Ingestion.Entrance;
-using Core.Ingestion.Reading;
-using Core.Persistence.Content;
-using Core.Persistence.Content.Sealing;
-using Core.Persistence.Content.Writing;
 using Core.Persistence.Domains;
 using Core.Persistence.Ingestion;
 using Core.Platform.Keys;
@@ -37,23 +31,17 @@ internal static class SubmissionParts
     /// </summary>
     internal static SubmissionServiceHolder ServicesOf(IServiceProvider provider, IReadOnlyDictionary<string, string> values) =>
         provider.GetRequiredService<ServiceProvider>() is var startup && startup.GetService<NpgsqlDataSource>() is { } source
-            ? new SubmissionServiceHolder(AdmissionConfiguration.MaxBytes(values), token => LoadAsync(startup, source, provider.GetRequiredService<IngestionBatches>(), values, token))
+            ? new SubmissionServiceHolder(AdmissionConfiguration.MaxBytes(values), token => LoadAsync(startup, provider.GetRequiredService<IngestionBatches>(), values, token))
             : null!;
 
-    /// <summary>The service over the key a reading holds, or over none when it failed: it then registers and turns back; the intake and the register are built here.</summary>
-    private static SubmissionService ServiceOf(NpgsqlDataSource source, MasterKeyReading reading, SubmissionSettings settings)
-    {
-        var sealing = reading.Failure is null ? new ProtectedContent(reading.Labels, CompositionRoot.KeysOf(reading), settings.Registered, settings.Revoked) : null;
-        var writer = sealing is null ? null : new ContentWriter(source, sealing);
-        var marking = sealing is null ? null : new ReplicationMarking(new ReplicationStore(source), new KeyDerivation(reading.Key!, reading.Labels), settings.Replication);
-        var intake = new SubmissionIntake(
-            new SubmissionGate(SourceReaders.Default(), settings.MaxBytes), new FormConference(new TextBoundaries()), settings.Conditions, sealing, writer, marking);
-        return new SubmissionService(intake, settings.Batches, new BatchRegister(source), source);
-    }
+    /// <summary>The service over the key a reading holds: or over none when it failed: it then registers and turns back; the intake is built by the composition root, the register here.</summary>
+    private static SubmissionService ServiceOf(NpgsqlDataSource source, MasterKeyReading reading, SubmissionSettings settings) =>
+        new(CompositionRoot.IntakeOf(source, reading, settings), settings.Batches, new BatchRegister(source), source);
 
     private static async Task<SubmissionServiceHolder.Loaded> LoadAsync(
-        IServiceProvider startup, NpgsqlDataSource source, IngestionBatches batches, IReadOnlyDictionary<string, string> values, CancellationToken cancellationToken)
+        IServiceProvider startup, IngestionBatches batches, IReadOnlyDictionary<string, string> values, CancellationToken cancellationToken)
     {
+        var source = startup.GetRequiredService<NpgsqlDataSource>();
         var reading = await startup.GetRequiredService<IMasterKeySource>().ReadAsync(cancellationToken).ConfigureAwait(false);
         try
         {

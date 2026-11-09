@@ -41,12 +41,27 @@ internal sealed class ChangeScreenHost : ScreenHostBase
         return written.ChangeId!.Value;
     }
 
+    /// <summary>A change of the first administrator approved by the second and recorded by the core as never to be applied, for the reason given; the key of the change.</summary>
+    public async Task<string> RefuseAsync(string reasonCode)
+    {
+        var id = await ProposeAsync("00:25:00");
+        await using var source = NpgsqlDataSource.Create(Database.AppConnectionString);
+        var changes = new ConfigurationChanges(source);
+        var decider = (await new PersonRegistry(source).IdOfAsync(SecondAdministrator, CancellationToken.None))!.Value;
+        _ = await changes.DecideAsync(decider, (await changes.SubmittedAsync(id, CancellationToken.None))!, approved: true, CancellationToken.None);
+        var approved = new ApprovedChanges(source);
+        var found = (await approved.PendingAsync(CancellationToken.None)).Single(change => change.Id == id);
+        _ = await approved.RecordNotAppliedAsync(found, reasonCode, CancellationToken.None);
+        return found.Key;
+    }
+
     protected override void AddServices(IServiceCollection services)
     {
         var inForce = InForce();
         _ = services
             .AddSingleton(provider => new ConfigurationChangeDesk(inForce, Changes(provider), new PersonRegistry(provider.GetRequiredService<NpgsqlDataSource>())))
-            .AddSingleton(provider => new ChangeDecisionDesk(inForce, Changes(provider), new PersonRegistry(provider.GetRequiredService<NpgsqlDataSource>()), TimeProvider.System));
+            .AddSingleton(provider => new ChangeDecisionDesk(inForce, Changes(provider), new PersonRegistry(provider.GetRequiredService<NpgsqlDataSource>()), TimeProvider.System))
+            .AddSingleton(provider => new ApprovedChanges(provider.GetRequiredService<NpgsqlDataSource>()));
     }
 
     protected override void MapScreens(IEndpointRouteBuilder routes) => ConfigurationChangeScreensEndpoint.Map(routes);

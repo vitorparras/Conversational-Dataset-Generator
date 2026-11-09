@@ -17,7 +17,8 @@ internal static class ChangeParts
             .AddSingleton(provider => SourceOf(provider) is { } source
                 ? new ConfigurationChangeDesk(inForce, new ConfigurationChanges(source), new PersonRegistry(source)) : null!)
             .AddSingleton(provider => SourceOf(provider) is { } source
-                ? new ChangeDecisionDesk(inForce, new ConfigurationChanges(source), new PersonRegistry(source), provider.GetRequiredService<TimeProvider>()) : null!);
+                ? new ChangeDecisionDesk(inForce, new ConfigurationChanges(source), new PersonRegistry(source), provider.GetRequiredService<TimeProvider>()) : null!)
+            .AddSingleton(provider => SourceOf(provider) is { } source ? new ApprovedChanges(source) : null!);
 
     private static NpgsqlDataSource? SourceOf(IServiceProvider provider) => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>();
 }

@@ -39,6 +39,17 @@ internal static class ChangeTexts
         _ => motive,
     };
 
+    /// <summary>Why an approved change will not be applied, in words and from the closed list of the codes the core records; a code outside it is told as unknown, never as the code itself.</summary>
+    internal static string NotApplied(string reasonCode) => reasonCode switch
+    {
+        "same_author" => "Quem propôs e quem aprovou são a mesma pessoa.",
+        "submitter_not_allowed" => "Quem propôs deixou de estar ativo na Administração técnica.",
+        "approver_not_allowed" => "Quem aprovou deixou de estar ativo na Administração técnica.",
+        "key_only_on_server" => "Essa chave só muda no servidor, no arquivo de configuração.",
+        "value_refused" => "A partida recusaria o valor.",
+        _ => "O motivo não é conhecido por esta versão.",
+    };
+
     /// <summary>What a submission refused tells, on the field it is about.</summary>
     internal static string? Refused(ChangeAnswer? answer) => answer?.Outcome switch
     {

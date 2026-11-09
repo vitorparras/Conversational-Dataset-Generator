@@ -81,7 +81,7 @@ internal sealed class SubmissionService
     internal Task<IReadOnlyList<BatchEntry>> ListAsync(BatchFilter filter, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(filter);
-        return register.ListAsync(filter with { Take = Math.Min(filter.Take, MostPerPage) }, cancellationToken);
+        return register.ListAsync(filter with { Take = filter.Take > MostPerPage ? MostPerPage : filter.Take }, cancellationToken);
     }
 
     /// <summary>One batch with what its submission brought, if it is in one of the domains granted.</summary>
@@ -111,37 +111,6 @@ internal sealed class SubmissionService
 
     private static FieldProblem? When(bool wrong, string field, string code) => wrong ? new FieldProblem(field, code) : null;
 
-    /// <summary>The origin is required, and saying it is unknown is an answer of its own that excludes a text; the text has a size.</summary>
-    private static string? OriginProblem(SubmissionRequest request)
-    {
-        var text = request.Origin?.Trim();
-        return (string.IsNullOrEmpty(text), request.OriginUnknown) switch
-        {
-            (true, false) => "missing",
-            (false, true) => "conflict",
-            (false, false) when text!.Length > OriginDeclaration.MostCharacters => "too_long",
-            _ => null,
-        };
-    }
-
-    /// <summary>The origin of the request, sealed for the domain; null when the domain has no key for it, which is a domain that cannot take the material.</summary>
-    private OriginDeclaration? Declaration(SubmissionRequest request)
-    {
-        if (request.OriginUnknown || intake.Sealing is null)
-        {
-            return OriginDeclaration.Unknown;
-        }
-
-        try
-        {
-            return OriginDeclaration.Declared(intake.Sealing, request.DomainId, request.Origin!.Trim());
-        }
-        catch (InvalidOperationException)
-        {
-            return null;
-        }
-    }
-
     private List<FieldProblem> Problems(SubmissionRequest request)
     {
         var problems = new[]
@@ -150,7 +119,7 @@ internal sealed class SubmissionService
             When(!Enum.IsDefined(request.DeclaredForm), "declared_form", "invalid"),
             When(string.IsNullOrWhiteSpace(request.SourceFormat), "source_format", "missing"),
             When(request.Condition is { } declared && intake.Conditions.RankOf(declared) < 0, "condition", "unknown"),
-            OriginProblem(request) is { } origin ? new FieldProblem("origin", origin) : null,
+            SubmissionOrigin.Problem(request) is { } origin ? new FieldProblem("origin", origin) : null,
         }.OfType<FieldProblem>().ToList();
         return problems;
     }
@@ -167,7 +136,7 @@ internal sealed class SubmissionService
         var reason = SubmissionJudgement.Of(intake, received, request.DeclaredForm) ?? Unsealed();
         var warning = HasPath(request.ReceivedName) ? NameWithPath : null;
         var receipt = new SubmissionReceipt(received.Id.ToString(), received.BytesRead, received.Digest, warning);
-        if (Declaration(request) is not { } origin || (reason is null && !SubmissionStoring.CanSeal(intake.Sealing, request.DomainId)))
+        if (SubmissionOrigin.Declaration(intake, request) is not { } origin || (reason is null && !SubmissionStoring.CanSeal(intake.Sealing, request.DomainId)))
         {
             return new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = BatchOutcome.DomainUnknown };
         }

@@ -4,15 +4,15 @@ using Core.Host.Submissions;
 using Core.Ingestion;
 using Core.Ingestion.Entrance;
 using Core.Ingestion.Reading;
-using Core.Persistence.Custody;
-using Core.Persistence.Custody.Chain;
 using Core.Persistence.Content.Reading;
 using Core.Persistence.Content.Sealing;
 using Core.Persistence.Content.Writing;
-using Core.Platform.Keys;
+using Core.Persistence.Custody;
+using Core.Persistence.Custody.Chain;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Migrations;
 using Core.Persistence.Tests.Fixtures;
+using Core.Platform.Keys;
 using Npgsql;
 
 namespace Core.Host.Tests.Submissions;

@@ -1,4 +1,5 @@
 using Core.Host.Submissions;
+using Core.Persistence.Ingestion;
 using Core.Persistence.People;
 using Core.Platform.Sessions;
 using Microsoft.AspNetCore.Http.Features;
@@ -29,15 +30,14 @@ internal static class SubmissionsEndpoint
         _ = endpoints.MapGet(BatchesRoute + "/{id:long}", DetailAsync).WithMetadata(Access);
     }
 
-    private static async Task<IResult> GateAsync([FromServices] SubmissionServiceHolder? services, HttpContext context)
+    private static async Task<IResult> GateAsync([FromServices] IntakeDoor? door, HttpContext context)
     {
-        if (services is null)
+        if (door is null)
         {
             return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
 
-        var service = await services.GetAsync(context.RequestAborted);
-        var gate = await service.GateAsync(context.RequestAborted);
+        var gate = await door.StatusAsync(context.RequestAborted);
         return Results.Ok(new GateShown(gate.Open ? "open" : "blocked", gate.Code));
     }
 
@@ -65,13 +65,18 @@ internal static class SubmissionsEndpoint
             return Results.NotFound();
         }
 
-        var service = await services.GetAsync(context.RequestAborted);
-        return read.HasFile ? SubmissionAnswer.Of(await service.SubmitAsync(read.Request, context.RequestAborted)) : SubmissionAnswer.NoFile(service.Check(read.Request));
+        using var loaded = await services.GetAsync(context.RequestAborted);
+        if (loaded is null)
+        {
+            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+        }
+
+        return read.HasFile ? SubmissionAnswer.Of(await loaded.Service.SubmitAsync(read.Request, context.RequestAborted)) : SubmissionAnswer.NoFile(loaded.Service.Check(read.Request));
     }
 
-    private static async Task<IResult> ListAsync([FromServices] SubmissionServiceHolder? services, [FromServices] IGrantedDomains? grants, HttpContext context)
+    private static async Task<IResult> ListAsync([FromServices] BatchRegister? register, [FromServices] IGrantedDomains? grants, HttpContext context)
     {
-        if (services is null)
+        if (register is null)
         {
             return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
@@ -87,14 +92,13 @@ internal static class SubmissionsEndpoint
             return Results.Json(new FieldsRefused(BatchQuery.Problems(context.Request.Query)), statusCode: StatusCodes.Status400BadRequest);
         }
 
-        var service = await services.GetAsync(context.RequestAborted);
-        var entries = await service.ListAsync(asked.Filter, context.RequestAborted);
+        var entries = await register.ListAsync(asked.Filter, context.RequestAborted);
         return Results.Ok(new BatchesShown(asked.Page, asked.PageSize, [.. entries.Select(SubmissionAnswer.Shown)]));
     }
 
-    private static async Task<IResult> DetailAsync(long id, [FromServices] SubmissionServiceHolder? services, [FromServices] IGrantedDomains? grants, HttpContext context)
+    private static async Task<IResult> DetailAsync(long id, [FromServices] BatchRegister? register, [FromServices] IGrantedDomains? grants, HttpContext context)
     {
-        if (services is null)
+        if (register is null)
         {
             return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
@@ -105,8 +109,7 @@ internal static class SubmissionsEndpoint
         }
 
         var granted = await GrantedAsync(grants, requester, context.RequestAborted);
-        var service = await services.GetAsync(context.RequestAborted);
-        var entry = await service.DetailAsync(granted, id, context.RequestAborted);
+        var entry = await register.ReadAsync(granted, id, context.RequestAborted);
         return entry is null ? Results.NotFound() : Results.Ok(SubmissionAnswer.Shown(entry));
     }
 

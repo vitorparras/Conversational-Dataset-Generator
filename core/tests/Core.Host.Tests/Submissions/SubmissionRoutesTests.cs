@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using Core.Host.Endpoints;
 using Core.Host.Submissions;
+using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Fixtures;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
@@ -196,9 +197,61 @@ public sealed class SubmissionRoutesTests
         Assert.Equal((HttpStatusCode.NotFound, 0L, 0L), (response.StatusCode, (await response.Content.ReadAsByteArrayAsync(cancellationToken)).LongLength, await world.BatchCountAsync()));
     }
 
-    private static Task<SessionedHost> StartAsync(SubmissionWorld world, CancellationToken cancellationToken, long maxBytes = 1_000_000, int granted = SubmissionWorld.Domain) =>
+    [DatabaseFact]
+    public async Task KeyThatCannotBeReadIsA503OnTheSubmissionAndNothingIsRecorded()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var world = await SubmissionWorld.CreateAsync();
+        await using var host = await StartAsync(world, cancellationToken, holder: NoKey());
+
+        using var response = await host.SendAsync(Form(Fields(SubmissionWorld.Origin)), host.SeedSession(), encrypted: true, cancellationToken);
+
+        Assert.Equal((HttpStatusCode.ServiceUnavailable, 0L), (response.StatusCode, await world.BatchCountAsync()));
+    }
+
+    [DatabaseFact]
+    public async Task GateListAndDetailAnswerWithNoKeyAtAllBecauseNoneOfThemReadsOne()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var world = await SubmissionWorld.CreateAsync();
+        var accepted = await world.SubmitAsync(SubmissionWorld.Request());
+        await using var host = await StartAsync(world, cancellationToken, holder: NoKey());
+        var identifier = host.SeedSession();
+
+        using var gate = await host.GetAsync(SubmissionsEndpoint.GateRoute, identifier, encrypted: true, cancellationToken);
+        using var listed = await host.GetAsync(Batches, identifier, encrypted: true, cancellationToken);
+        using var detail = await host.GetAsync($"{Batches}/{accepted.Batch}", identifier, encrypted: true, cancellationToken);
+
+        Assert.Equal((HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK), (gate.StatusCode, listed.StatusCode, detail.StatusCode));
+        Assert.Equal(1, await CountAsync(listed, cancellationToken));
+    }
+
+    [DatabaseFact]
+    public async Task BodyWithMoreFieldsThanTheFormHasBeforeTheFileIsNotReadPastThemAndRecordsNothing()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var world = await SubmissionWorld.CreateAsync();
+        await using var host = await StartAsync(world, cancellationToken);
+        var fields = Fields(SubmissionWorld.Origin);
+        for (var extra = 0; extra < 40; extra++)
+        {
+            fields[$"zqx{extra}"] = "x";
+        }
+
+        using var response = await host.SendAsync(Form(fields), host.SeedSession(), encrypted: true, cancellationToken);
+
+        Assert.Equal((HttpStatusCode.BadRequest, 0L), (response.StatusCode, await world.BatchCountAsync()));
+    }
+
+    private static SubmissionServiceHolder NoKey() => new(1_000_000, _ => Task.FromResult<SubmissionServiceHolder.Loaded?>(null));
+
+    private static Task<SessionedHost> StartAsync(
+        SubmissionWorld world, CancellationToken cancellationToken, long maxBytes = 1_000_000, int granted = SubmissionWorld.Domain, SubmissionServiceHolder? holder = null) =>
         SessionedHost.StartAsync(
-            services => services.AddSingleton(SubmissionServiceHolder.Of(world.Service, maxBytes)).AddSingleton<IGrantedDomains>(new GrantedTo(granted)),
+            services => services.AddSingleton(holder ?? SubmissionServiceHolder.Of(world.Service, maxBytes))
+                .AddSingleton(new BatchRegister(world.DataSource))
+                .AddSingleton(new IntakeDoor(world.DataSource))
+                .AddSingleton<IGrantedDomains>(new GrantedTo(granted)),
             SubmissionsEndpoint.Map,
             cancellationToken);
 

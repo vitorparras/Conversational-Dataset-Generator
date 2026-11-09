@@ -20,12 +20,23 @@ public sealed class ConfigurationChanges
         "INSERT INTO public.configuration_change (config_key, new_value, motive, submitted_by) VALUES (@key, @value, @motive, @author) RETURNING id";
 
     private const string Submitted = """
-        SELECT c.config_key, c.new_value, c.motive, c.submitted_by, c.submitted_at, e.sequence,
+        SELECT c.id, c.config_key, c.new_value, c.motive, c.submitted_by, c.submitted_at, e.sequence,
                EXISTS (SELECT 1 FROM public.custody_event d
                        WHERE d.item_kind = 'configuration_change' AND d.item_id = c.id AND d.step IN ('configuration_approved', 'configuration_refused')) AS decided
         FROM public.configuration_change c
         JOIN public.custody_event e ON e.item_kind = 'configuration_change' AND e.item_id = c.id AND e.step = 'configuration_submitted'
         WHERE c.id = @id
+        """;
+
+    private const string Pending = """
+        SELECT c.id, c.config_key, c.new_value, c.motive, c.submitted_by, c.submitted_at, e.sequence, false AS decided, p.name
+        FROM public.configuration_change c
+        JOIN public.custody_event e ON e.item_kind = 'configuration_change' AND e.item_id = c.id AND e.step = 'configuration_submitted'
+        JOIN public.person p ON p.id = c.submitted_by
+        WHERE c.submitted_at > @since AND NOT EXISTS (SELECT 1 FROM public.custody_event d
+            WHERE d.item_kind = 'configuration_change' AND d.item_id = c.id AND d.step IN ('configuration_approved', 'configuration_refused'))
+        ORDER BY c.submitted_at DESC, c.id DESC
+        LIMIT 50
         """;
 
     private readonly NpgsqlDataSource dataSource;
@@ -64,10 +75,37 @@ public sealed class ConfigurationChanges
                 var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
                 await using (reader.ConfigureAwait(false))
                 {
-                    return await reader.ReadAsync(cancellationToken).ConfigureAwait(false) ? Read(changeId, reader) : null;
+                    return await reader.ReadAsync(cancellationToken).ConfigureAwait(false) ? Read(reader) : null;
                 }
             }
         }
+    }
+
+    /// <summary>The submissions still waiting for a decision, taken after the moment given, the latest first and at most fifty, each with the name of who submitted.</summary>
+    /// <param name="since">The oldest moment a pending submission may have been taken at: before it, the submission expired.</param>
+    /// <param name="cancellationToken">Cancels the reading.</param>
+    public async Task<IReadOnlyList<PendingChange>> PendingAsync(DateTimeOffset since, CancellationToken cancellationToken)
+    {
+        var pending = new List<PendingChange>();
+        var connection = await dataSource.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+        await using (connection.ConfigureAwait(false))
+        {
+            var command = new NpgsqlCommand(Pending, connection);
+            await using (command.ConfigureAwait(false))
+            {
+                _ = command.Parameters.Add(new NpgsqlParameter("since", NpgsqlDbType.TimestampTz) { Value = since.UtcDateTime });
+                var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+                await using (reader.ConfigureAwait(false))
+                {
+                    while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                    {
+                        pending.Add(new PendingChange(Read(reader), (string)reader["name"]));
+                    }
+                }
+            }
+        }
+
+        return pending.AsReadOnly();
     }
 
     /// <summary>Records the decision on the submission, by a person other than the one who submitted, as the event that points at the submission; nothing else is written.</summary>
@@ -81,9 +119,9 @@ public sealed class ConfigurationChanges
         return new CustodyChain(dataSource).AppendAsync(CustodyEvent.ConfigurationDecided(deciderId, change.Id, change.Sequence, approved), cancellationToken);
     }
 
-    private static SubmittedChange Read(long changeId, IDataRecord reader) => new()
+    private static SubmittedChange Read(IDataRecord reader) => new()
     {
-        Id = changeId,
+        Id = (long)reader["id"],
         Key = (string)reader["config_key"],
         Value = (string)reader["new_value"],
         Motive = (string)reader["motive"],

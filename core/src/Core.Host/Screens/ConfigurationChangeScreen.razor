@@ -1,0 +1,140 @@
+@using Core.Host.Endpoints
+@using Core.Persistence.Settings
+
+<h1>@Title</h1>
+<p class="lead">Proponha uma alteração. Ela só vale quando outra pessoa da Administração técnica aprova e o aplicador a grava no servidor, que reinicia o sistema.</p>
+
+@if (Done is { } done)
+{
+    <Notice Kind="Notice.Tone.Success">@done</Notice>
+}
+
+<Panel Id="propor" Title="Propor alteração">
+    <form class="form" method="post" action="@ScreenPaths.ConfigurationChanges" data-wait="alteracao-espera" novalidate>
+        @if (FormError is { } refused)
+        {
+            <Notice Kind="Notice.Tone.Error">@refused</Notice>
+        }
+        <Field Id="@KeyField" Caption="Chave" Options="KeyChoices" Value="@Key" Required="true" Error="@KeyError"
+               Hint="Só as chaves de tempo e de trabalho mudam aqui. Segredos, certificado, endereço e banco mudam só no servidor." />
+        <Field Id="@ValueField" Caption="Valor novo" Value="@Value" Required="true" Autocomplete="off" Error="@ValueError"
+               Hint="Durações como 00:30:00 (horas:minutos:segundos); prazos em segundos e o custo das senhas como números inteiros." />
+        <Field Id="@MotiveField" Caption="Motivo" Options="MotiveChoices" Value="@Motive" Required="true" Error="@MotiveError" />
+        <p id="alteracao-espera" class="wait" role="status" data-wait-text="Conferindo a alteração com as regras da partida."></p>
+        <div class="actions">
+            <Button Id="enviar-alteracao">Enviar para aprovação</Button>
+        </div>
+    </form>
+</Panel>
+
+<Panel Id="pendentes" Title="@(Pending.Count == 1 ? "1 alteração aguardando decisão" : $"{Pending.Count} alterações aguardando decisão")">
+    @if (DecisionError is { } undecided)
+    {
+        <Notice Kind="Notice.Tone.Error">@undecided</Notice>
+    }
+    @if (Pending.Count == 0)
+    {
+        <EmptyState Title="Nenhuma alteração aguardando decisão.">Uma proposta aparece aqui até outra pessoa decidir ou o prazo vencer.</EmptyState>
+    }
+    else
+    {
+        <ul class="paged-list" aria-label="Alterações aguardando decisão">
+            @foreach (var pending in Pending)
+            {
+                var change = pending.Change;
+                <li>
+                    <span class="row">
+                        <strong><code>@change.Key</code> = <code>@change.Value</code></strong>
+                        <span>@ChangeTexts.Motive(change.Motive)</span>
+                        <span>Proposta por @pending.AuthorName em <Moment At="change.SubmittedAt" /></span>
+                    </span>
+                    @if (change.AuthorId == Actor)
+                    {
+                        <StateMark Kind="StateMark.Tone.Waiting">Proposta sua: outra pessoa decide</StateMark>
+                    }
+                    else
+                    {
+                        <span class="actions">
+                            @Decision(change.Id, Approve, "Aprovar")
+                            @Decision(change.Id, Refuse, "Recusar")
+                        </span>
+                    }
+                </li>
+            }
+        </ul>
+    }
+</Panel>
+
+@code {
+    /// <summary>The title of the page and of its entry in the menu.</summary>
+    internal const string Title = "Alterar configuração";
+
+    /// <summary>The fields the forms send; the author is never one of them, since the session names who acts.</summary>
+    internal const string KeyField = "chave";
+
+    internal const string ValueField = "valor";
+
+    internal const string MotiveField = "motivo";
+
+    internal const string ChangeField = "alteracao";
+
+    internal const string DecisionField = "decisao";
+
+    internal const string Approve = "aprovar";
+
+    internal const string Refuse = "recusar";
+
+    /// <summary>The keys the screen changes, each named with its value in force.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<Field.Option> Keys { get; set; } = Array.Empty<Field.Option>();
+
+    /// <summary>What waits for a decision within the deadline, the latest first.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<PendingChange> Pending { get; set; } = Array.Empty<PendingChange>();
+
+    /// <summary>The one the session names, who never decides what they proposed.</summary>
+    [Parameter, EditorRequired]
+    public long Actor { get; set; }
+
+    /// <summary>What the last act did, told once after the browser came back.</summary>
+    [Parameter]
+    public string? Done { get; set; }
+
+    /// <summary>The proposal refused, given back to its fields, and the reason on the field it is about.</summary>
+    [Parameter]
+    public string? Key { get; set; }
+
+    [Parameter]
+    public string? Value { get; set; }
+
+    [Parameter]
+    public string? Motive { get; set; }
+
+    [Parameter]
+    public string? KeyError { get; set; }
+
+    [Parameter]
+    public string? ValueError { get; set; }
+
+    [Parameter]
+    public string? MotiveError { get; set; }
+
+    [Parameter]
+    public string? FormError { get; set; }
+
+    [Parameter]
+    public string? DecisionError { get; set; }
+
+    private IReadOnlyList<Field.Option> KeyChoices => new List<Field.Option>(Keys.Prepend(new Field.Option("", "Escolha a chave")));
+
+    private static IReadOnlyList<Field.Option> MotiveChoices { get; } =
+        new List<Field.Option>(Settings.ChangeMotives.All.Select(motive => new Field.Option(motive, ChangeTexts.Motive(motive))).Prepend(new Field.Option("", "Escolha o motivo")));
+
+    /// <summary>One decision on one submission, a form of its own so that each button says what it does and to which change.</summary>
+    private static RenderFragment Decision(long id, string decision, string caption) =>
+        @<form method="post" action="@ScreenPaths.ConfigurationDecision">
+            <input type="hidden" name="@ChangeField" value="@id" />
+            <input type="hidden" name="@DecisionField" value="@decision" />
+            <Button Id="@($"{decision}-{id}")" Kind="@(decision == Approve ? Button.Look.Primary : Button.Look.Secondary)">@caption</Button>
+        </form>;
+}

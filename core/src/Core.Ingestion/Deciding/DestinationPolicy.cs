@@ -1,67 +1,39 @@
-using System.Diagnostics;
 using Core.Boundary.Contracts;
 
 namespace Core.Ingestion.Deciding;
 
 /// <summary>
-/// What becomes of each occurrence, decided once, from the occurrence alone. A secret is always removed. A name is pseudonymized when it is in the function of a person and preserved when
-/// it is in the function of a place; the part of speech says whether it is a name, and the syntactic role says the function when the kind alone does not (decision 0018).
-/// Whatever the policy does not recognise is removed, so that a kind it never heard of cannot pass as clean.
+/// What becomes of each occurrence, decided once, from the occurrence alone. A secret is always removed. The kind says whether a name is of a person or of a place, and the grammar breaks
+/// the tie: only a proper noun is a name, pseudonymized when it is of a person and preserved when it is of a place, and what is not a name has no relation to keep and is removed.
+/// Whatever the policy does not recognise is removed, so that a kind it never heard of cannot pass as clean (decision 0018).
 /// </summary>
 public static class DestinationPolicy
 {
     private const string ProperNoun = "PROPN";
 
     /// <summary>The one destination of the occurrence.</summary>
-    /// <param name="occurrence">What the service found, with its kind, part of speech and syntactic role.</param>
+    /// <param name="occurrence">What the service found, with its kind and the part of speech of its head.</param>
     public static Destination Of(Occurrence occurrence)
     {
         ArgumentNullException.ThrowIfNull(occurrence);
-        var kind = Normalized(occurrence.Kind);
-        if (IsSecret(kind))
+        if (OccurrenceKinds.IsSecret(occurrence.Kind))
         {
             return Destination.Remove;
         }
 
-        var name = string.Equals(Normalized(occurrence.PartOfSpeech), ProperNoun, StringComparison.Ordinal);
-        return FunctionOf(kind, occurrence.SyntacticRole) switch
-        {
-            Function.Person => name ? Destination.Pseudonymize : Destination.Remove,
-            Function.Place => name ? Destination.Preserve : Destination.Remove,
-            Function.Other => Destination.Remove,
-            _ => throw new UnreachableException(),
-        };
+        var name = string.Equals(occurrence.PartOfSpeech.Trim(), ProperNoun, StringComparison.OrdinalIgnoreCase);
+        return NameDestination(occurrence.Kind, name);
     }
 
-    private static string Normalized(string text) => text.Trim().ToUpperInvariant();
-
-    private static bool IsSecret(string kind) => kind switch
+    private static Destination NameDestination(string kind, bool name)
     {
-        "CREDENTIAL" or "SECRET" or "PASSWORD" => true,
-        "TOKEN" or "API_KEY" or "PRIVATE_KEY" => true,
-        _ => false,
-    };
+        var ofPerson = string.Equals(kind, OccurrenceKinds.Person, StringComparison.Ordinal) || string.Equals(kind, OccurrenceKinds.Organization, StringComparison.Ordinal);
+        var ofPlace = string.Equals(kind, OccurrenceKinds.Location, StringComparison.Ordinal);
+        if (!name || (!ofPerson && !ofPlace))
+        {
+            return Destination.Remove;
+        }
 
-    /// <summary>A place named in the role of someone who acts or is addressed is a person in that sentence; the kind decides the rest.</summary>
-    private static Function FunctionOf(string kind, string role) => kind switch
-    {
-        "PERSON" or "ORGANIZATION" => Function.Person,
-        "LOCATION" => TakesPart(role) ? Function.Person : Function.Place,
-        _ => Function.Other,
-    };
-
-    /// <summary>The role with no subtype after the colon is one of the five in which a participant of the sentence stands.</summary>
-    private static bool TakesPart(string role) => Normalized(role).Split(':')[0] switch
-    {
-        "NSUBJ" or "CSUBJ" or "OBJ" => true,
-        "IOBJ" or "VOCATIVE" => true,
-        _ => false,
-    };
-
-    private enum Function
-    {
-        Other,
-        Person,
-        Place,
+        return ofPerson ? Destination.Pseudonymize : Destination.Preserve;
     }
 }

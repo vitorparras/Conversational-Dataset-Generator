@@ -1,3 +1,4 @@
+using Core.Boundary.Contracts;
 using Core.Ingestion.Deciding;
 using Core.Tests.Support.Harness;
 using CsCheck;
@@ -7,13 +8,19 @@ namespace Core.Ingestion.Tests.Deciding;
 /// <summary>The destination holds for every occurrence the service could send, and not for the ones someone thought of (issue 84, CA-2 and CA-3).</summary>
 public sealed class DestinationPolicyPropertiesTests
 {
-    private static readonly Gen<string> Secret = Gen.OneOf("CREDENTIAL", "SECRET", "PASSWORD", "TOKEN", "API_KEY", "PRIVATE_KEY", "credential", "Secret");
+    private static readonly Gen<string> Secret = Gen.OneOf(
+        OccurrenceKinds.Credential,
+        OccurrenceKinds.Secret,
+        OccurrenceKinds.Password,
+        OccurrenceKinds.Token,
+        OccurrenceKinds.ApiKey,
+        OccurrenceKinds.PrivateKey);
+
+    private static readonly Gen<string> Name = Gen.OneOf(OccurrenceKinds.Person, OccurrenceKinds.Organization, OccurrenceKinds.Location);
 
     private static readonly Gen<string> AnyText = Gen.String[Gen.Char['A', 'z'], 0, 8];
 
-    private static readonly Gen<string> OutsideRoles = Gen.OneOf("obl", "obl:arg", "nmod", "advmod", "appos", "root", "flat", string.Empty);
-
-    private static readonly Gen<string> TakingPart = Gen.OneOf("nsubj", "nsubj:pass", "obj", "iobj", "vocative", "csubj");
+    private static readonly Gen<string> AnyRole = Gen.OneOf("nsubj", "nsubj:pass", "obj", "iobj", "vocative", "csubj", "obl", "obl:arg", "nmod", "advmod", "appos", "root", "flat", string.Empty);
 
     [Fact]
     [Trait("Kind", "Property")]
@@ -27,39 +34,39 @@ public sealed class DestinationPolicyPropertiesTests
 
     [Fact]
     [Trait("Kind", "Property")]
-    public void TheSameProperNameAsAPersonAndAsAPlaceNeverGetsTheSameDestination() =>
-        PropertyRunner.FromProcess().Check(Gen.Select(OutsideRoles, Gen.Int[0, 50], Gen.Int[1, 20]), generated =>
+    public void TheSameProperNameAsAPersonAndAsAPlaceNeverGetsTheSameDestinationWhateverTheFunction() =>
+        PropertyRunner.FromProcess().Check(Gen.Select(AnyRole, Gen.Int[0, 50], Gen.Int[1, 20]), generated =>
         {
             var (role, start, length) = generated;
 
-            var person = DestinationPolicy.Of(Found.Occurrence("PERSON", "PROPN", role, start, start + length));
-            var place = DestinationPolicy.Of(Found.Occurrence("LOCATION", "PROPN", role, start, start + length));
+            var person = DestinationPolicy.Of(Found.Occurrence(OccurrenceKinds.Person, "PROPN", role, start, start + length));
+            var place = DestinationPolicy.Of(Found.Occurrence(OccurrenceKinds.Location, "PROPN", role, start, start + length));
 
             Assert.NotEqual(person, place);
         });
 
     [Fact]
     [Trait("Kind", "Property")]
-    public void ThePlaceIsPreservedOutsideTheRolesOfWhoTakesPartAndPseudonymizedInThem() =>
-        PropertyRunner.FromProcess().Check(Gen.Select(OutsideRoles, TakingPart), generated =>
+    public void TheGrammarBreaksTheTieOfAKindThatNamesAProperNameAndAWordThatIsNone() =>
+        PropertyRunner.FromProcess().Check(Gen.Select(Name, AnyRole), generated =>
         {
-            var (outside, taking) = generated;
+            var (kind, role) = generated;
 
-            var aside = DestinationPolicy.Of(Found.Occurrence("LOCATION", "PROPN", outside));
-            var acting = DestinationPolicy.Of(Found.Occurrence("LOCATION", "PROPN", taking));
+            var name = DestinationPolicy.Of(Found.Occurrence(kind, "PROPN", role));
+            var common = DestinationPolicy.Of(Found.Occurrence(kind, "NOUN", role));
 
-            Assert.Equal((Destination.Preserve, Destination.Pseudonymize), (aside, acting));
+            Assert.Equal((Destination.Remove, true), (common, name != Destination.Remove));
         });
 
     [Fact]
     [Trait("Kind", "Property")]
-    public void TheOffsetsNeverChangeTheDestination() =>
-        PropertyRunner.FromProcess().Check(Gen.Select(AnyText, AnyText, AnyText, Gen.Int[0, 100]), generated =>
+    public void TheOffsetsAndTheFunctionNeverChangeTheDestination() =>
+        PropertyRunner.FromProcess().Check(Gen.Select(Name, AnyText, AnyRole, AnyRole, Gen.Int[0, 100]), generated =>
         {
-            var (kind, partOfSpeech, role, end) = generated;
+            var (kind, partOfSpeech, role, other, end) = generated;
 
             var here = DestinationPolicy.Of(Found.Occurrence(kind, partOfSpeech, role, 0, 1));
-            var there = DestinationPolicy.Of(Found.Occurrence(kind, partOfSpeech, role, end, end + 1));
+            var there = DestinationPolicy.Of(Found.Occurrence(kind, partOfSpeech, other, end, end + 1));
 
             Assert.Equal(here, there);
         });

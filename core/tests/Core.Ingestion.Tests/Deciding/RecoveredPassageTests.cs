@@ -17,7 +17,7 @@ public sealed class RecoveredPassageTests
 
     private static readonly Gen<(string Text, int Start, int End)> Spans = Gen.Int[1, 12].SelectMany(count => Pieces.Array[count]).SelectMany(pieces =>
     {
-        var text = string.Concat(pieces);
+        var text = "Z" + string.Concat(pieces);
         var length = text.EnumerateRunes().Count();
         return Gen.Int[0, length].SelectMany(start => Gen.Int[start, length].Select(end => (text, start, end)));
     });

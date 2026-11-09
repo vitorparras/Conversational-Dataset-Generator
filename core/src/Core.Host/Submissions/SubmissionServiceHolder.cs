@@ -2,7 +2,8 @@ namespace Core.Host.Submissions;
 
 /// <summary>
 /// The way to the service of the submissions: sealing an origin needs the master key, the epochs and the labels registered and revoked.
-/// Each use reads them again and lets the reading go when it is done, so that a domain created after the host started, a label revoked or an epoch rotated is seen by the next submission and no key outlives the use that needed it.
+/// Each use reads them again and lets the reading go when it is done, so that a domain created later, a label revoked or an epoch rotated
+/// is seen by the next submission and no key outlives the use that needed it.
 /// </summary>
 internal sealed class SubmissionServiceHolder
 {

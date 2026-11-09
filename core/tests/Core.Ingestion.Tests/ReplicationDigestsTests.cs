@@ -41,6 +41,16 @@ public sealed class ReplicationDigestsTests : IDisposable
     }
 
     [Fact]
+    public void TheLengthOfTheOccurrenceCountsCodePointsAndNotUtf16Units()
+    {
+        var message = new Message("ZQX-ana", Start, RepliesTo: null, "ZQX-\U0001F600\U0001F600", Rank: 0);
+
+        var occurrence = ReplicationDigests.OccurrenceOf(Derivation, 7, new ReplicationPlace(3, 1), message);
+
+        Assert.Equal(6, occurrence.Length);
+    }
+
+    [Fact]
     public void AForwardedMessageInTwoBatchesIsMarkedByTheDigestsOfTheDomain()
     {
         var rule = new ReplicationRule(minLength: 10, minSenders: 2);

@@ -7,7 +7,7 @@ namespace Core.Ingestion;
 public sealed record ReplicationRule
 {
     /// <summary>The criterion with its two values.</summary>
-    /// <param name="minLength">The smallest length, in characters, a text can have to be replicated: at least one.</param>
+    /// <param name="minLength">The smallest length, in code points, a text can have to be replicated: at least one.</param>
     /// <param name="minSenders">How many distinct senders the same text comes from: at least two, since one sender repeating itself is behaviour and not replication.</param>
     public ReplicationRule(int minLength, int minSenders)
     {
@@ -17,7 +17,7 @@ public sealed record ReplicationRule
         MinSenders = minSenders;
     }
 
-    /// <summary>The smallest length, in characters, a text can have to be replicated.</summary>
+    /// <summary>The smallest length, in code points, a text can have to be replicated.</summary>
     public int MinLength { get; }
 
     /// <summary>How many distinct senders the same text comes from.</summary>

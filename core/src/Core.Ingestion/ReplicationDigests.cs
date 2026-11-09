@@ -31,7 +31,7 @@ public static class ReplicationDigests
     public static ReplicationOccurrence OccurrenceOf(KeyDerivation derivation, int domainId, ReplicationPlace place, Message message)
     {
         ArgumentNullException.ThrowIfNull(message);
-        return new ReplicationOccurrence(place, OfText(derivation, domainId, message.Text), OfSender(derivation, domainId, message.Author), message.Text.Length, message.Instant);
+        return new ReplicationOccurrence(place, OfText(derivation, domainId, message.Text), OfSender(derivation, domainId, message.Author), message.Text.EnumerateRunes().Count(), message.Instant);
     }
 
     private static string Of(KeyDerivation derivation, string purpose, int domainId, string text)

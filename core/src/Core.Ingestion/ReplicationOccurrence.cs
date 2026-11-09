@@ -7,6 +7,6 @@ namespace Core.Ingestion;
 /// <param name="Place">Where the message is kept.</param>
 /// <param name="Text">The keyed digest of the text.</param>
 /// <param name="Sender">The keyed digest of the sender.</param>
-/// <param name="Length">The length of the text, in characters.</param>
+/// <param name="Length">The length of the text, in code points: a character outside the basic plane counts once.</param>
 /// <param name="Instant">When the message was said.</param>
 public sealed record ReplicationOccurrence(ReplicationPlace Place, string Text, string Sender, int Length, DateTimeOffset Instant);

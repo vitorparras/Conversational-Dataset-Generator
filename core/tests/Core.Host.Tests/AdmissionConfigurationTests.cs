@@ -90,6 +90,72 @@ public sealed class AdmissionConfigurationTests
     }
 
     [Fact]
+    public void SizeNotDeclaredIsTenMebibytesInEveryMode()
+    {
+        var required = Loaded(AdmissionConfiguration.Section, $"--{Key}={Declared}");
+        var migrating = Loaded(AdmissionConfiguration.SectionWhenMigrating);
+
+        Assert.Equal(10_485_760L, AdmissionConfiguration.MaxBytes(required.Values));
+        Assert.Equal(10_485_760L, AdmissionConfiguration.MaxBytes(migrating.Values));
+        Assert.Empty(AdmissionConfiguration.Refusals(required.Values));
+        Assert.Empty(AdmissionConfiguration.Refusals(migrating.Values));
+    }
+
+    [Theory]
+    [InlineData("1", 1L)]
+    [InlineData("2", 2L)]
+    [InlineData("1073741823", 1_073_741_823L)]
+    [InlineData("1073741824", 1_073_741_824L)]
+    public void SizeFromOneByteUpToOneGibibyteIsAcceptedAsDeclared(string declared, long bytes)
+    {
+        var loaded = Loaded(AdmissionConfiguration.SectionWhenMigrating, $"--{AdmissionConfiguration.MaxBytesPath}={declared}");
+
+        Assert.Empty(AdmissionConfiguration.Refusals(loaded.Values));
+        Assert.Equal(bytes, AdmissionConfiguration.MaxBytes(loaded.Values));
+    }
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData("1073741825")]
+    [InlineData("99999999999999999999")]
+    [InlineData("-1")]
+    [InlineData("+1")]
+    [InlineData("1.5")]
+    [InlineData("1,5")]
+    [InlineData("dez")]
+    [InlineData("10MB")]
+    public void SizeOutOfRangeOrNotAWholeNumberIsRefusedSayingWhatWasFoundAndWhatIsAccepted(string declared)
+    {
+        var loaded = Loaded(AdmissionConfiguration.SectionWhenMigrating, $"--{AdmissionConfiguration.MaxBytesPath}={declared}");
+
+        var problem = Assert.Single(AdmissionConfiguration.Refusals(loaded.Values));
+
+        Assert.Equal((ConfigurationProblemKind.ValueNotAccepted, AdmissionConfiguration.MaxBytesPath), (problem.Kind, problem.Key));
+        Assert.Contains($"'{declared}'", problem.Describe(), StringComparison.Ordinal);
+        Assert.Contains(AdmissionConfiguration.MaxBytesAccepted, problem.Describe(), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void SizeEmptyOrBlankIsRefusedAsEmptyBeforeAnyJudgmentOfTheNumber(string declared)
+    {
+        var loaded = Loaded(AdmissionConfiguration.Section, $"--{Key}={Declared}", $"--{AdmissionConfiguration.MaxBytesPath}={declared}");
+
+        var problem = Assert.Single(loaded.Problems);
+
+        Assert.Equal((ConfigurationProblemKind.EmptyValue, AdmissionConfiguration.MaxBytesPath), (problem.Kind, problem.Key));
+    }
+
+    [Fact]
+    public void ASizeWrongAndAListWrongAreRefusedTogether()
+    {
+        var loaded = Loaded(AdmissionConfiguration.Section, $"--{Key}=restrita,restrita", $"--{AdmissionConfiguration.MaxBytesPath}=0");
+
+        Assert.Equal([Key, AdmissionConfiguration.MaxBytesPath], AdmissionConfiguration.Refusals(loaded.Values).Select(problem => problem.Key));
+    }
+
+    [Fact]
     public void TheHostRefusesAWrongListTogetherWithTheOtherRefusals()
     {
         var loaded = ClosedConfiguration.Load(

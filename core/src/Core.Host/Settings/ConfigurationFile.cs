@@ -42,24 +42,26 @@ internal sealed class ConfigurationFile
         return true;
     }
 
-    private static bool TrySet(JsonObject root, string section, string name, string value)
+    private static bool TrySet(JsonNode root, string section, string name, string value)
     {
-        if (root[section] is not (null or JsonObject))
+        switch (root[section])
         {
-            return false;
+            case null:
+                root[section] = new JsonObject { [name] = value };
+                return true;
+            case JsonObject target:
+                target[name] = value;
+                return true;
+            default:
+                return false;
         }
-
-        var target = root[section] as JsonObject ?? new JsonObject();
-        target[name] = value;
-        root[section] = target;
-        return true;
     }
 
     private JsonObject? Read()
     {
         try
         {
-            return File.Exists(path) ? JsonNode.Parse(File.ReadAllText(path)) as JsonObject : new JsonObject();
+            return JsonNode.Parse(File.Exists(path) ? File.ReadAllText(path) : "{}") as JsonObject;
         }
         catch (JsonException)
         {

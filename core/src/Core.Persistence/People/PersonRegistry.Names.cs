@@ -23,24 +23,22 @@ public sealed partial class PersonRegistry
 
     private async Task<IReadOnlyDictionary<long, string>> NamingAsync(long[] ids, CancellationToken cancellationToken)
     {
-        var names = new Dictionary<long, string>();
         if (ids.Length == 0)
         {
-            return names;
+            return new Dictionary<long, string>();
         }
 
         var command = dataSource.CreateCommand(NamesOfIds);
         await using (command.ConfigureAwait(false))
         {
             _ = command.Parameters.Add(new NpgsqlParameter<long[]>("ids", ids));
-            await ReadNamesAsync(command, names, cancellationToken).ConfigureAwait(false);
+            return await ReadNamesAsync(command, cancellationToken).ConfigureAwait(false);
         }
-
-        return names;
     }
 
-    private static async Task ReadNamesAsync(NpgsqlCommand command, IDictionary<long, string> names, CancellationToken cancellationToken)
+    private static async Task<Dictionary<long, string>> ReadNamesAsync(NpgsqlCommand command, CancellationToken cancellationToken)
     {
+        var names = new Dictionary<long, string>();
         var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
         await using (reader.ConfigureAwait(false))
         {
@@ -49,5 +47,7 @@ public sealed partial class PersonRegistry
                 names[reader.GetInt64(0)] = reader.GetString(1);
             }
         }
+
+        return names;
     }
 }

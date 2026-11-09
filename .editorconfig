@@ -232,3 +232,7 @@ indent_size = 2
 
 [*.{yml,yaml,json}]
 indent_size = 2
+
+[core/src/Core.Host/Settings/ConfigurationFile.cs]
+# The name of the kept version carries the moment in a fixed shape (UTC, to the second) that the operator reads and sorts as text; the format and the invariant culture are the contract.
+dotnet_diagnostic.S6585.severity = none

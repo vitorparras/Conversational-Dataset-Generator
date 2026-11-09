@@ -59,9 +59,9 @@ internal sealed class ConfigurationFile
     internal IReadOnlyDictionary<string, string> Values()
     {
         var values = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var section in Read() ?? new JsonObject())
+        foreach (var section in Read() is { } root ? root : Enumerable.Empty<KeyValuePair<string, JsonNode?>>())
         {
-            foreach (var entry in section.Value as JsonObject ?? new JsonObject())
+            foreach (var entry in SectionEntries(section.Value))
             {
                 if (entry.Value is JsonValue value)
                 {
@@ -73,24 +73,29 @@ internal sealed class ConfigurationFile
         return values;
     }
 
-    private static bool TrySet(JsonObject root, string section, string name, string value)
-    {
-        if (root[section] is not (null or JsonObject))
-        {
-            return false;
-        }
+    private static IEnumerable<KeyValuePair<string, JsonNode?>> SectionEntries(JsonNode? section) =>
+        section is JsonObject entries ? entries : Enumerable.Empty<KeyValuePair<string, JsonNode?>>();
 
-        var target = root[section] as JsonObject ?? new JsonObject();
-        target[name] = value;
-        root[section] = target;
-        return true;
+    private static bool TrySet(JsonNode root, string section, string name, string value)
+    {
+        switch (root[section])
+        {
+            case null:
+                root[section] = new JsonObject { [name] = value };
+                return true;
+            case JsonObject target:
+                target[name] = value;
+                return true;
+            default:
+                return false;
+        }
     }
 
     private JsonObject? Read()
     {
         try
         {
-            return File.Exists(path) ? JsonNode.Parse(File.ReadAllText(path)) as JsonObject : new JsonObject();
+            return JsonNode.Parse(File.Exists(path) ? File.ReadAllText(path) : "{}") as JsonObject;
         }
         catch (JsonException)
         {

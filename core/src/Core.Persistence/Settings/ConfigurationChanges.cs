@@ -1,4 +1,3 @@
-using System.Data;
 using System.Runtime.CompilerServices;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
@@ -81,7 +80,7 @@ public sealed class ConfigurationChanges
         return new CustodyChain(dataSource).AppendAsync(CustodyEvent.ConfigurationDecided(deciderId, change.Id, change.Sequence, approved), cancellationToken);
     }
 
-    private static SubmittedChange Read(long changeId, IDataRecord reader) => new()
+    private static SubmittedChange Read(long changeId, NpgsqlDataReader reader) => new()
     {
         Id = changeId,
         Key = (string)reader["config_key"],

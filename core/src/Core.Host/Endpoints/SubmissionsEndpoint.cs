@@ -123,7 +123,7 @@ internal static class SubmissionsEndpoint
         var services = context.RequestServices;
         if (services.GetService<DomainGrants>() is not { } grants || services.GetService<DomainListing>() is not { } listing)
         {
-            return new List<int>();
+            return new Dictionary<int, string>().Keys;
         }
 
         var names = await grants.GrantedToAsync(requester, context.RequestAborted);

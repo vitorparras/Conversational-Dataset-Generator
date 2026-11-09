@@ -140,7 +140,7 @@ public sealed partial class PhaseThreeFinishTests(BrowserFixture browser, PhaseT
         {
             await page.Keyboard.PressAsync(key);
             at = await page.EvaluateAsync<double[]?>(FocusAgainstHeader);
-            if (at is { Length: 4 } && at[3] == 0 && at[0] < at[2] - 0.5)
+            if (at is { Length: 4 } && at[3] < 0.5 && at[0] < at[2] - 0.5)
             {
                 hidden.Add($"{key}: \"{await page.EvaluateAsync<string>(FocusedName)}\" starts at {at[0]:0} px and the header goes down to {at[2]:0} px");
             }

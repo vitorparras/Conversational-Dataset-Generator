@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Core.Persistence.Ingestion;
 
 namespace Core.Host.Screens;
@@ -9,9 +10,9 @@ namespace Core.Host.Screens;
 internal static class BatchDetailTexts
 {
     private static readonly (string Code, string Caption)[] Known =
-    {
+    [
         ("remove", "Removidos"), ("pseudonymize", "Pseudonimizados"), ("preserve", "Preservados"),
-    };
+    ];
 
     /// <summary>The three destinations of a passage detected as identifiable (#84), in the order the detail says them, with the code and the words.</summary>
     internal static IReadOnlyList<(string Code, string Caption)> Destinations => Known;
@@ -55,6 +56,7 @@ internal static class BatchDetailTexts
     {
         BatchState.Rejected => "O lote foi rejeitado na entrada, e nenhum item do material foi gravado.",
         BatchState.Open => "O lote ainda está em curso; os itens aparecem aqui quando forem gravados.",
-        _ => "O lote foi aceito sem nenhum item gravado.",
+        BatchState.Accepted => "O lote foi aceito sem nenhum item gravado.",
+        _ => throw new UnreachableException(),
     };
 }

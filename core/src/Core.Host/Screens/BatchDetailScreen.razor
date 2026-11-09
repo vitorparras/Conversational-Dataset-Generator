@@ -34,7 +34,7 @@
 {
     <Panel Id="lote-perda" Title="Perda declarada">
         <Notice>
-            O material veio como @BatchDetailTexts.FormOf(accommodation.Declared) e foi acomodado como @BatchDetailTexts.FormOf(accommodation.Into), em @Items(accommodation.Items). O que se perdeu:
+            O material veio como @BatchDetailTexts.FormOf(accommodation.Declared) e foi acomodado como @BatchDetailTexts.FormOf(accommodation.Into), em @ItemCount(accommodation.Items). O que se perdeu:
         </Notice>
         <ul>
             @foreach (var loss in accommodation.Losses)
@@ -55,7 +55,7 @@
         <FactList>
             @foreach (var form in Batch.Forms)
             {
-                <Fact Term="@BatchDetailTexts.FormNameOf(form.Form)">@Items(form.Items)</Fact>
+                <Fact Term="@BatchDetailTexts.FormNameOf(form.Form)">@ItemCount(form.Items)</Fact>
             }
         </FactList>
     }
@@ -65,7 +65,7 @@
     <FactList>
         @foreach (var destination in BatchDetailTexts.Destinations)
         {
-            <Fact Term="@destination.Caption">@Passages(Batch.PassagesOf(destination.Code))</Fact>
+            <Fact Term="@destination.Caption">@PassageCount(Batch.PassagesOf(destination.Code))</Fact>
         }
     </FactList>
 </Panel>
@@ -134,7 +134,7 @@
 
     private static string Number(long value) => value.ToString(CultureInfo.InvariantCulture);
 
-    private static string Items(int count) => count == 1 ? "1 item" : $"{Number(count)} itens";
+    private static string ItemCount(int count) => count == 1 ? "1 item" : $"{Number(count)} itens";
 
-    private static string Passages(int count) => count == 1 ? "1 trecho" : $"{Number(count)} trechos";
+    private static string PassageCount(int count) => count == 1 ? "1 trecho" : $"{Number(count)} trechos";
 }

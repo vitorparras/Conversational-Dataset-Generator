@@ -240,6 +240,7 @@ internal sealed class AuthenticatedHost : IAsyncDisposable
             ["Passwords:WorkFactor"] = setup.WorkFactor.ToString(CultureInfo.InvariantCulture),
             ["Session:IdleTimeout"] = "00:30:00",
             ["Session:AbsoluteTimeout"] = "08:00:00",
+            ["Ingestion:Conditions"] = "restrita,intermediaria,permissiva",
             ["Custody:VerificationInterval"] = "00:05:00",
             ["Custody:SealSituation"] = "Manual",
             ["Tls:CertificateFile"] = SharedTlsMaterial.CertificatePath,

@@ -35,7 +35,8 @@ RunFor = Callable[[Sequence[str], Path, float], CommandOutcome]
 @dataclass(frozen=True)
 class Context:
     """Where a step runs: the repository root, the output directory and how it runs commands;
-    ``module`` narrows the mutation step to one critical module."""
+    ``module`` narrows the mutation step to one critical module; ``head_only`` limits the secrets
+    scan to the history that leads to HEAD, not every branch of the clone."""
 
     root: Path
     out_dir: Path
@@ -44,6 +45,7 @@ class Context:
     previous: Path | None = None
     run_for: RunFor = field(default_factory=lambda: run_process)
     module: str | None = None
+    head_only: bool = False
 
 
 @dataclass(frozen=True)

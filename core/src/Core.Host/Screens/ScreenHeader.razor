@@ -3,8 +3,13 @@
 <header class="header">
     <a class="header__name" href="@ScreenPaths.Home">@Name</a>
     <DomainPicker Granted="Granted" />
+    @if (Unread > 0)
+    {
+        <a class="header__notices" href="@ScreenPaths.Notices">@Unread @(Unread == 1 ? "aviso não lido" : "avisos não lidos")</a>
+    }
     @if (WithSession)
     {
+        <a class="nav__link header__account" href="@ScreenPaths.Account" aria-current="@AccountCurrent">@AccountScreen.Title</a>
         <form class="header__leave" method="post" action="@ScreenPaths.SignOut">
             <Button Id="sair" Kind="Button.Look.Secondary">Sair</Button>
         </form>
@@ -27,7 +32,18 @@
     [Parameter]
     public string? Current { get; set; }
 
+    [Parameter]
+    public int Unread { get; set; }
+
     /// <summary>Whether the page stands behind a session, and so offers to end it on the server.</summary>
     [Parameter]
     public bool WithSession { get; set; }
+
+    /// <summary>The account is the page itself on its own route and the place the page stands in on its own pages, named one by one so that an address that leads nowhere marks nothing.</summary>
+    private string? AccountCurrent => Current switch
+    {
+        ScreenPaths.Account => "page",
+        ScreenPaths.AccountChange or ScreenPaths.AccountEnd or ScreenPaths.AccountEndOthers => "location",
+        _ => null,
+    };
 }

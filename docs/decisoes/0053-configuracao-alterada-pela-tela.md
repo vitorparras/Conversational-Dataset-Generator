@@ -6,8 +6,9 @@
 
 O [requisito 032](../requisitos/032-configuracao-falha-fechada.md) faz a configuração falhar
 fechada e trata a mudança do que protege como operação deliberada, sem recarga. A #634 pede que a
-administração técnica a proponha pela tela, sem que o processo da rede escreva no arquivo; o
-[requisito 030](../requisitos/030-exportacao-exige-duas-pessoas.md) já pede duas pessoas.
+administração técnica a proponha pela tela, sem que o processo da rede escreva no arquivo, e com
+duas pessoas, como o [requisito 030](../requisitos/030-exportacao-exige-duas-pessoas.md) pede para
+a exportação.
 
 ## Decisão
 
@@ -37,7 +38,8 @@ de escuta e o banco. Fora da lista, a recusa avisa que a chave só muda no servi
   (b) chave obrigatória, sem padrão; (c) fixo no código.
 - **Chaves da tela:** (a) tempos e trabalho: `Session:IdleTimeout`, `Session:AbsoluteTimeout`,
   `Passwords:WorkFactor`, `Custody:VerificationInterval`, `Audit:CompareInterval` e os dois prazos
-  do serviço de linguagem; (b) a lista (a) mais as condições de entrada e a situação do selo.
+  do serviço de linguagem; (b) a lista (a) mais `Ingestion:Conditions` (as condições de origem do
+  roteiro 023) e `Custody:SealSituation` (a situação do selo).
 
 ## Alternativas recusadas
 

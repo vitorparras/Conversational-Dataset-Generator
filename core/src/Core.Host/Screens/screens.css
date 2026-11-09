@@ -79,7 +79,7 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
 /* The menu of the header: on a wide screen its pieces sit in the header as if the box were not there; on a phone, once the script runs, it folds behind the
    button of the menu, so the header keeps one line and covers nothing, and opened it stops following the page, so it never hides what takes the focus. */
 .header__menu { display: contents; }
-.header__toggle { display: none; }
+.header .header__toggle { display: none; }
 @media (max-width: 40rem) {
     .header { padding: var(--space-2) var(--space-4); gap: var(--space-2) var(--space-3); }
     .header__name { flex: 1 1 0; min-width: 0; font-size: var(--text-sm); }

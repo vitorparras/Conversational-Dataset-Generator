@@ -49,7 +49,8 @@ internal static class AdmissionConfiguration
     {
         if (values.TryGetValue(SampleSizePath, out var declared) && SampleSize(declared) is null)
         {
-            yield return new ConfigurationProblem(ConfigurationProblemKind.ValueNotAccepted, SampleSizePath, declared, new List<string> { AcceptedSampleSize });
+            var accepted = Enumerable.Repeat(AcceptedSampleSize, 1).ToList();
+            yield return new ConfigurationProblem(ConfigurationProblemKind.ValueNotAccepted, SampleSizePath, declared, accepted);
         }
     }
 

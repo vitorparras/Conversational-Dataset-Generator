@@ -4,7 +4,7 @@
     <a class="header__name" href="@ScreenPaths.Home">@Name</a>
     @if (Collapses)
     {
-        <button id="cabecalho-abrir" class="button button--secondary header__toggle" type="button" aria-expanded="false" aria-controls="cabecalho-menu">Menu@ToggleNote</button>
+        <button id="cabecalho-abrir" class="button button--secondary header__toggle" type="button" aria-expanded="false" aria-controls="cabecalho-menu">Menu@(ToggleNote)</button>
     }
     <div id="cabecalho-menu" class="header__menu">
         <DomainPicker Granted="Granted" />
@@ -49,7 +49,7 @@
     private bool Collapses => WithSession || Menu.Count > 0 || Granted.Any();
 
     /// <summary>The notices not read, said on the folded button too, so that a phone sees them without opening the menu.</summary>
-    private string? ToggleNote => Unread > 0 ? $" ({Unread} não {(Unread == 1 ? "lido" : "lidos")})" : null;
+    private string? ToggleNote => Unread switch { <= 0 => null, 1 => " (1 não lido)", _ => $" ({Unread} não lidos)" };
 
     /// <summary>The account is the page itself on its own route and the place the page stands in on its own pages, named one by one so that an address that leads nowhere marks nothing.</summary>
     private string? AccountCurrent => Current switch

@@ -3,7 +3,7 @@
 <h1>@Title</h1>
 @if (WritesSuspended)
 {
-    <Notice Kind="Notice.Tone.Error">A escrita está suspensa nos domínios: a última verificação da cadeia de custódia não conferiu. A leitura continua. Quem administra o servidor vê o estado na tela da custódia.</Notice>
+    <Notice>A escrita está suspensa nos domínios: a última verificação da cadeia de custódia não conferiu. A leitura continua. Quem administra o servidor vê o estado na tela da custódia.</Notice>
 }
 <p class="lead">
     Os domínios desta instalação e quando cada um foi criado. O sistema ainda não guarda a versão da taxonomia nem a das dimensões
@@ -19,14 +19,14 @@ else
 {
     <Panel Id="dominios" Title="Domínios carregados">
         <DataTable Id="dominios-tabela" Caption="@(Domains.Count == 1 ? "Um domínio." : $"{Domains.Count} domínios, na ordem em que foram criados.")" Headers="Columns">
-            <tbody>
+            <tbody role="rowgroup">
                 @foreach (var domain in Domains)
                 {
-                    <tr>
-                        <th scope="row">@domain.Name</th>
-                        <td><Moment At="domain.CreatedAt" /></td>
-                        <td>@Version(domain.TaxonomyVersion)</td>
-                        <td>@Version(domain.DimensionsVersion)</td>
+                    <tr role="row">
+                        <th scope="row" role="rowheader">@domain.Name</th>
+                        <td role="cell"><Moment At="domain.CreatedAt" /></td>
+                        <td role="cell">@Version(domain.TaxonomyVersion)</td>
+                        <td role="cell">@Version(domain.DimensionsVersion)</td>
                     </tr>
                 }
             </tbody>

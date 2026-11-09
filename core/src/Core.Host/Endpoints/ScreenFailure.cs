@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Core.Host.Screens;
 
 namespace Core.Host.Endpoints;
@@ -19,11 +20,12 @@ internal static class ScreenFailure
             }
             catch (Exception failure) when (Unhandled(context, failure))
             {
-                context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(ScreenFailure)).ScreenFailed(failure.GetType().FullName);
+                var reference = Convert.ToHexString(RandomNumberGenerator.GetBytes(4));
+                context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(ScreenFailure)).ScreenFailed(failure.GetType().FullName, reference);
                 var transport = context.Response.Headers.StrictTransportSecurity;
                 context.Response.Clear();
                 context.Response.Headers.StrictTransportSecurity = transport;
-                await ScreenResult.Failure(context).ExecuteAsync(context).ConfigureAwait(false);
+                await ScreenResult.Failure(context, reference).ExecuteAsync(context).ConfigureAwait(false);
             }
         });
 

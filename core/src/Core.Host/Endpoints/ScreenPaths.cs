@@ -8,6 +8,8 @@ internal static class ScreenPaths
     internal const string Home = "/";
     internal const string State = "/estado-do-sistema";
     internal const string Configuration = "/configuracao";
+    internal const string ConfigurationChanges = "/configuracao/alteracoes";
+    internal const string ConfigurationDecision = "/configuracao/alteracoes/decisao";
     internal const string Domains = "/dominios";
     internal const string Chain = "/custodia";
     internal const string ChainCheck = "/custodia/verificar";

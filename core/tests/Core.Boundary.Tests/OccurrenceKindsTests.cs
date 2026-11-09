@@ -47,6 +47,20 @@ public sealed class OccurrenceKindsTests
     [InlineData("")]
     public void ACaseOrANameOutsideTheListIsUnknown(string kind) => Assert.False(OccurrenceKinds.IsKnown(kind));
 
+    [Theory]
+    [InlineData("CREDENTIAL", true, true)]
+    [InlineData("SECRET", true, true)]
+    [InlineData("PASSWORD", true, true)]
+    [InlineData("TOKEN", true, true)]
+    [InlineData("API_KEY", true, true)]
+    [InlineData("PRIVATE_KEY", true, true)]
+    [InlineData("PERSON", true, false)]
+    [InlineData("LOCATION", true, false)]
+    [InlineData("ORGANIZATION", true, false)]
+    [InlineData("", false, false)]
+    public void EachKindIsKnownAndIsASecretExactlyAsTheListSaysIt(string kind, bool known, bool secret) =>
+        Assert.Equal((known, secret), (OccurrenceKinds.IsKnown(kind), OccurrenceKinds.IsSecret(kind)));
+
     [Fact]
     public void TheNamesTheCoreUsesAreTheOnesTheListHas() =>
         Assert.Equal(["PERSON", "LOCATION", "ORGANIZATION"], [OccurrenceKinds.Person, OccurrenceKinds.Location, OccurrenceKinds.Organization]);

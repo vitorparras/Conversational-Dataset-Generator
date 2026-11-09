@@ -43,13 +43,8 @@ internal static class SubmissionForm
         var reader = new MultipartReader(boundary, request.Body) { HeadersCountLimit = HeaderCount, HeadersLengthLimit = HeaderBytes };
         var fields = new Dictionary<string, string>(StringComparer.Ordinal);
         var seen = 0;
-        while (await reader.ReadNextSectionAsync(cancellationToken).ConfigureAwait(false) is { } section)
+        while (++seen <= MostFields && await reader.ReadNextSectionAsync(cancellationToken).ConfigureAwait(false) is { } section)
         {
-            if (++seen > MostFields)
-            {
-                break;
-            }
-
             if (section.GetContentDispositionHeader() is not { } disposition || HeaderUtilities.RemoveQuotes(disposition.Name).Value is not { } name)
             {
                 continue;

@@ -155,7 +155,7 @@ internal sealed class SubmissionService
     private async Task<SubmissionOutcome> StoringAsync(SubmissionRequest request, Opened opened, CancellationToken cancellationToken)
     {
         var place = new SubmissionStoring.BatchRef(request.DomainId, opened.Batch);
-        var kept = await SubmissionStoring.KeepAsync(batches, intake.Writer!, place, opened.Received.Material!, cancellationToken).ConfigureAwait(false);
+        var kept = await SubmissionStoring.KeepAsync(batches, intake, place, (opened.Received.Material!, request.DeclaredForm), cancellationToken).ConfigureAwait(false);
         return kept
             ? Answer(opened.Received, opened.Batch, (null, opened.Warning), opened.Origin)
             : new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = SubmissionStoring.WriteFailed, Batch = opened.Batch };

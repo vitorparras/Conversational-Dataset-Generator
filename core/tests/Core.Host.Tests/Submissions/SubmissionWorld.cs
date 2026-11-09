@@ -54,7 +54,7 @@ internal sealed class SubmissionWorld : IAsyncDisposable
 
     internal ProtectedContentReader Reader { get; }
 
-    internal static async Task<SubmissionWorld> CreateAsync(long maxBytes = 1_000_000, bool gateOpen = true, IReadOnlyList<string>? labels = null)
+    internal static async Task<SubmissionWorld> CreateAsync(long maxBytes = 1_000_000, bool gateOpen = true, IReadOnlyList<string>? labels = null, ReplicationRule? replication = null)
     {
         var database = await ScratchDatabase.CreateAsync();
         _ = await database.MigrateAsync(EmbeddedMigrations.Load());
@@ -70,7 +70,7 @@ internal sealed class SubmissionWorld : IAsyncDisposable
 
         var conditions = OriginConditions.Of([Strictest, "zqx_media", Loosest]);
         var content = SealingOf(labels ?? new[] { "texto-bruto/1/v1", "texto-bruto/2/v1" });
-        var intake = Intake(maxBytes, conditions, content, dataSource);
+        var intake = Intake(maxBytes, conditions, content, dataSource, replication);
         var service = new SubmissionService(intake, new IngestionBatches(dataSource, conditions), new BatchRegister(dataSource), dataSource);
         return new SubmissionWorld(database, dataSource, (service, content));
     }
@@ -85,8 +85,20 @@ internal sealed class SubmissionWorld : IAsyncDisposable
         return new ProtectedContent(loaded, new ItemKeys(new KeyDerivation(reading.Key!, loaded), reading.Epochs), new HashSet<string>(labels, StringComparer.Ordinal));
     }
 
-    internal static SubmissionIntake Intake(long maxBytes, OriginConditions conditions, ProtectedContent content, NpgsqlDataSource dataSource) =>
-        new(new SubmissionGate(SourceReaders.Default(), maxBytes), new FormConference(new TextBoundaries()), conditions, content, new ContentWriter(dataSource, content));
+    internal static SubmissionIntake Intake(long maxBytes, OriginConditions conditions, ProtectedContent content, NpgsqlDataSource dataSource, ReplicationRule? replication = null) =>
+        new(
+            new SubmissionGate(SourceReaders.Default(), maxBytes),
+            new FormConference(new TextBoundaries()),
+            conditions,
+            content,
+            new ContentWriter(dataSource, content),
+            replication is null ? null : new ReplicationMarking(new ReplicationStore(dataSource), MarkingDerivation(), replication));
+
+    private static KeyDerivation MarkingDerivation()
+    {
+        var key = Enumerable.Range(0, MasterKey.Length).Select(index => (byte)(0x3C ^ ((index * 17) + 5))).ToArray();
+        return new KeyDerivation(MasterKeyReading.FromBytes(key, DerivationLabels.None).Key!, DerivationLabels.None);
+    }
 
     internal static SubmissionRequest Request(string content = Conversation, string? name = "conversa.json", string? condition = null) => new()
     {
@@ -117,6 +129,10 @@ internal sealed class SubmissionWorld : IAsyncDisposable
     internal Task<long> OriginRowsAsync() => RowsAsync("SELECT count(*) FROM content.batch_origin");
 
     internal Task<long> ItemRowsAsync() => RowsAsync("SELECT count(*) FROM content.item_text");
+
+    internal Task<long> MarkRowsAsync() => RowsAsync("SELECT count(*) FROM content.replication_mark");
+
+    internal Task<long> OccurrenceRowsAsync() => RowsAsync("SELECT count(*) FROM content.replication_occurrence");
 
     private async Task<long> RowsAsync(string count)
     {

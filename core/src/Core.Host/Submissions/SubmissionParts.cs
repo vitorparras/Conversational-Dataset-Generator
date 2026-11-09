@@ -2,6 +2,7 @@ using Core.Boundary.Text;
 using Core.Ingestion;
 using Core.Ingestion.Entrance;
 using Core.Ingestion.Reading;
+using Core.Persistence.Content;
 using Core.Persistence.Content.Sealing;
 using Core.Persistence.Content.Writing;
 using Core.Persistence.Domains;
@@ -44,8 +45,9 @@ internal static class SubmissionParts
     {
         var sealing = reading.Failure is null ? new ProtectedContent(reading.Labels, CompositionRoot.KeysOf(reading), settings.Registered, settings.Revoked) : null;
         var writer = sealing is null ? null : new ContentWriter(source, sealing);
+        var marking = sealing is null ? null : new ReplicationMarking(new ReplicationStore(source), new KeyDerivation(reading.Key!, reading.Labels), settings.Replication);
         var intake = new SubmissionIntake(
-            new SubmissionGate(SourceReaders.Default(), settings.MaxBytes), new FormConference(new TextBoundaries()), settings.Conditions, sealing, writer);
+            new SubmissionGate(SourceReaders.Default(), settings.MaxBytes), new FormConference(new TextBoundaries()), settings.Conditions, sealing, writer, marking);
         return new SubmissionService(intake, settings.Batches, new BatchRegister(source), source);
     }
 
@@ -58,7 +60,7 @@ internal static class SubmissionParts
             var failed = reading.Failure is not null;
             IReadOnlySet<string> registered = failed ? new HashSet<string>() : await RegisteredLabels.ReadAsync(source, cancellationToken).ConfigureAwait(false);
             IReadOnlySet<string> revoked = failed ? new HashSet<string>() : await LabelRevocations.ReadAsync(source, cancellationToken).ConfigureAwait(false);
-            var settings = new SubmissionSettings(batches, AdmissionConfiguration.Conditions(values), AdmissionConfiguration.MaxBytes(values), registered, revoked);
+            var settings = new SubmissionSettings(batches, AdmissionConfiguration.Conditions(values), AdmissionConfiguration.MaxBytes(values), registered, revoked, ReplicationConfiguration.Rule(values));
             var service = ServiceOf(source, reading, settings);
             return reading.Failure is { } failure ? throw new ContentKeyUnavailableException(failure.Kind, service) : new SubmissionServiceHolder.Loaded(service, reading);
         }

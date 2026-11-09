@@ -1,4 +1,5 @@
 using Core.Host.Supervision;
+using Core.Ingestion;
 using Core.Platform.Configuration;
 
 namespace Core.Host;
@@ -14,6 +15,7 @@ internal static class HostRefusals
         .. PasswordConfiguration.Refusals(values),
         .. SessionConfiguration.Refusals(values),
         .. AdmissionConfiguration.Refusals(values),
+        .. ReplicationConfiguration.Refusals(values),
         .. VerificationConfiguration.Refusals(values),
         .. SealConfiguration.Refusals(values),
         .. TlsConfiguration.Refusals(values),

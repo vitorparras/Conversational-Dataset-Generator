@@ -34,9 +34,10 @@ internal static class ScreenResult
     }
 
     /// <summary>The page of a failure no route handled, with 500: what happened and what to do, and nothing of the failure.</summary>
-    internal static RazorComponentResult<ScreenFrame> Failure(HttpContext context)
+    internal static RazorComponentResult<ScreenFrame> Failure(HttpContext context, string? reference = null)
     {
-        var page = Of(context, typeof(FailureScreen), FailureScreen.Title);
+        var shown = new Dictionary<string, object?>(StringComparer.Ordinal) { [nameof(FailureScreen.Reference)] = reference };
+        var page = Of(context, typeof(FailureScreen), FailureScreen.Title, shown);
         page.StatusCode = StatusCodes.Status500InternalServerError;
         return page;
     }

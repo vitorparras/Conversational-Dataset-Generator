@@ -10,9 +10,8 @@ namespace Core.Persistence.People;
 /// </summary>
 public sealed class PersonEmails
 {
-    /// <summary>The most characters an address may have, as the database holds it.</summary>
-    public const int MostCharacters = 254;
-
+    private const int Longest = 254;
+    private const int Shortest = 3;
     private const string Read = "SELECT address FROM public.person_email WHERE person_id = @person";
     private const string Keep =
         "INSERT INTO public.person_email (person_id, address) VALUES (@person, @address) ON CONFLICT (person_id) DO UPDATE SET address = EXCLUDED.address, changed_at = clock_timestamp()";
@@ -27,16 +26,15 @@ public sealed class PersonEmails
         this.dataSource = dataSource;
     }
 
+    /// <summary>The most characters an address may have, as the database holds it.</summary>
+    public static int MostCharacters => Longest;
+
     /// <summary>Whether the text is an address the registry takes: one mailbox, without a name around it, without white space and within the size the database holds.</summary>
     /// <param name="address">The address as typed, already trimmed.</param>
     public static bool IsAddress(string address)
     {
         ArgumentNullException.ThrowIfNull(address);
-        return address.Length is >= 3 and <= MostCharacters
-            && !address.Any(char.IsWhiteSpace)
-            && address.Count(letter => letter == '@') == 1
-            && MailAddress.TryCreate(address, out var parsed)
-            && string.Equals(parsed.Address, address, StringComparison.Ordinal);
+        return IsShaped(address) && MailAddress.TryCreate(address, out var parsed) && string.Equals(parsed.Address, address, StringComparison.Ordinal);
     }
 
     /// <summary>The address of the person; null when the person has none.</summary>
@@ -63,6 +61,10 @@ public sealed class PersonEmails
 
         return SettingAsync(personId, address, cancellationToken);
     }
+
+    /// <summary>Within the sizes, with no white space and with one at sign, as the constraint of the database asks.</summary>
+    private static bool IsShaped(string address) =>
+        address.Length is >= Shortest and <= Longest && !address.Any(char.IsWhiteSpace) && address.Count(letter => letter == '@') == 1;
 
     private async Task SettingAsync(long personId, string? address, CancellationToken cancellationToken)
     {

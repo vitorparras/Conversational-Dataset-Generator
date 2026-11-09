@@ -47,7 +47,7 @@ public sealed class AccountEmailRouteTests
     [Fact]
     public async Task ThePageOfTheAccountOffersTheAddressAsAnOptionalFieldAndSaysNothingBeforeASaving()
     {
-        var page = await RenderAsync<AccountEmailScreen>(new Dictionary<string, object?> { ["Address"] = null, ["Saved"] = false });
+        var page = await RenderAsync(typeof(AccountEmailScreen), new Dictionary<string, object?> { ["Address"] = null, ["Saved"] = false });
 
         Assert.Contains("type=\"email\"", page, StringComparison.Ordinal);
         Assert.Contains("Só você e a administração técnica o veem.", page, StringComparison.Ordinal);
@@ -61,7 +61,7 @@ public sealed class AccountEmailRouteTests
     [InlineData(null, "Você está sem endereço de e-mail.", "type=\"email\" autocomplete=\"email\"")]
     public async Task AfterASavingThePageSaysWhatTheSavingDidAndGivesTheAddressKept(string? address, string said, string shown)
     {
-        var page = await RenderAsync<AccountEmailScreen>(new Dictionary<string, object?> { ["Address"] = address, ["Saved"] = true });
+        var page = await RenderAsync(typeof(AccountEmailScreen), new Dictionary<string, object?> { ["Address"] = address, ["Saved"] = true });
 
         Assert.Contains(said, page, StringComparison.Ordinal);
         Assert.Contains(shown, page, StringComparison.Ordinal);
@@ -70,9 +70,11 @@ public sealed class AccountEmailRouteTests
     [Fact]
     public async Task TheRegistrationOffersTheAddressAsAnOptionalFieldAndGivesItBackWithARefusal()
     {
-        var page = await RenderAsync<OperatorFormScreen>(new Dictionary<string, object?>
+        var page = await RenderAsync(typeof(OperatorFormScreen), new Dictionary<string, object?>
         {
-            ["Email"] = "zqx sem arroba", ["ErrorField"] = AccountEmailScreen.EmailField, ["ErrorReason"] = AccountEmailScreen.Invalid,
+            ["Email"] = "zqx sem arroba",
+            ["ErrorField"] = AccountEmailScreen.EmailField,
+            ["ErrorReason"] = AccountEmailScreen.Invalid,
         });
 
         Assert.Contains("id=\"pessoa-email\"", page, StringComparison.Ordinal);
@@ -90,12 +92,11 @@ public sealed class AccountEmailRouteTests
         return request;
     }
 
-    private static async Task<string> RenderAsync<TScreen>(IDictionary<string, object?> given)
-        where TScreen : IComponent
+    private static async Task<string> RenderAsync(Type screen, IDictionary<string, object?> given)
     {
         await using var services = new ServiceCollection().BuildServiceProvider();
         await using var renderer = new HtmlRenderer(services, NullLoggerFactory.Instance);
-        var html = await renderer.Dispatcher.InvokeAsync(async () => (await renderer.RenderComponentAsync<TScreen>(ParameterView.FromDictionary(given))).ToHtmlString());
+        var html = await renderer.Dispatcher.InvokeAsync(async () => (await renderer.RenderComponentAsync(screen, ParameterView.FromDictionary(given))).ToHtmlString());
         return WebUtility.HtmlDecode(html);
     }
 }

@@ -339,16 +339,15 @@ public sealed class PeopleEmailTests(BrowserFixture browser, PeopleHostFixture p
     {
         await FocusTheTitleAsync(page);
         var stops = new List<string>();
-        for (var press = 0; press < MostStops; press++)
+        var stop = "-";
+        for (var press = 0; press < MostStops && stop.Length > 0; press++)
         {
             await page.Keyboard.PressAsync("Tab");
-            var stop = await page.EvaluateAsync<string>(StopInMain);
-            if (stop.Length == 0)
+            stop = await page.EvaluateAsync<string>(StopInMain);
+            if (stop.Length > 0)
             {
-                break;
+                stops.Add(stop);
             }
-
-            stops.Add(stop);
         }
 
         return stops;

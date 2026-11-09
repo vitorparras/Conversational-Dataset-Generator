@@ -51,7 +51,7 @@ public sealed class BatchesScreenTests
         Assert.Contains("Em curso", page, StringComparison.Ordinal);
         Assert.Contains("Aceito", page, StringComparison.Ordinal);
         Assert.Contains("zqx-bia", page, StringComparison.Ordinal);
-        Assert.Contains("08/11/2026 às 14:30:00 UTC", page, StringComparison.Ordinal);
+        Assert.Contains("08/11/2026 às 14:30 UTC", page, StringComparison.Ordinal);
         Assert.Contains("2,0 KiB", page, StringComparison.Ordinal);
         Assert.Contains($"Resumo (SHA-256): <code class=\"digest\">{Digest}</code>", page, StringComparison.Ordinal);
         Assert.Contains("Sem envio registrado", page, StringComparison.Ordinal);

@@ -1,3 +1,4 @@
+using Core.Host.Settings;
 using Core.Host.Supervision;
 using Core.Persistence.Connection;
 using Core.Platform.Configuration;
@@ -71,6 +72,7 @@ internal static class HostConfiguration
                 AuditSection(migrating, comparing),
                 LanguageServiceConfiguration.Section,
                 RecognizerConfiguration.Section,
+                ChangeDeadlineConfiguration.Section,
                 DatabaseConfiguration.Section
             ]);
 

@@ -29,10 +29,14 @@ internal sealed class ConfigurationChangeDesk
         this.registry = registry;
     }
 
-    /// <summary>What refuses the change before anything is read from the database, or null when the change may be submitted: the same answer the start would give the result.</summary>
+    /// <summary>
+    /// What refuses the change before anything is read from the database, or null when the change may be submitted: the same answer the start would give the result.
+    /// An author with no identifier is a defect of the caller, since the screen takes the author from the session.
+    /// </summary>
     internal ChangeAnswer? Judge(ChangeRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(request.AuthorId);
         if (!ChangeMotives.Has(request.Motive))
         {
             return new ChangeAnswer { Outcome = ChangeOutcome.MotiveUnknown };

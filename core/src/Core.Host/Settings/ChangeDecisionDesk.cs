@@ -57,7 +57,10 @@ internal sealed class ChangeDecisionDesk
             return DecisionOutcome.Decided;
         }
 
-        return recorded.Outcome == CustodyOutcome.Conflict ? DecisionOutcome.AlreadyDecided : DecisionOutcome.NotRecorded;
+        // A conflict is a decision taken meanwhile or a failure of serialization: only the first one is a decision already taken.
+        return recorded.Outcome == CustodyOutcome.Conflict && await register.SubmittedAsync(request.ChangeId, cancellationToken).ConfigureAwait(false) is { Decided: true }
+            ? DecisionOutcome.AlreadyDecided
+            : DecisionOutcome.NotRecorded;
     }
 
     /// <summary>What refuses the decision before the function of the person is read, or null: the submission must exist, be pending, be of another person and be within the deadline.</summary>

@@ -124,7 +124,7 @@ internal static class AccountScreensEndpoint
     }
 
     /// <summary>The sessions as the page lists them: the one used most recently first, whatever the order the store keeps.</summary>
-    internal static IReadOnlyList<SessionListing> MostRecentFirst(IEnumerable<SessionListing> listed) => listed.OrderByDescending(session => session.LastActivity).ToList();
+    internal static IReadOnlyList<SessionListing> MostRecentFirst(IEnumerable<SessionListing> listed) => [.. listed.OrderByDescending(session => session.LastActivity)];
 
     private static IResult Back(HttpContext context, string done, int ended)
     {

@@ -23,9 +23,9 @@ public sealed class AccountScreensRouteTests
         var newestUsedFirst = new SessionListing("b", start.AddHours(1), start.AddHours(1), Current: true);
         var middle = new SessionListing("c", start.AddHours(2), start.AddHours(2), Current: false);
 
-        var listed = AccountScreensEndpoint.MostRecentFirst(new[] { oldestUsedLast, newestUsedFirst, middle });
+        var listed = AccountScreensEndpoint.MostRecentFirst([oldestUsedLast, newestUsedFirst, middle]);
 
-        Assert.Equal(new[] { "a", "c", "b" }, listed.Select(session => session.ListingId));
+        Assert.Equal(["a", "c", "b"], listed.Select(session => session.ListingId));
     }
 
     [Fact]

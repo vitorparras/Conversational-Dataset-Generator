@@ -16,7 +16,7 @@
         @foreach (var section in Entries.GroupBy(entry => entry.Key.Split(':')[0]))
         {
             <tbody role="rowgroup">
-                <tr role="row"><th role="rowheader" class="data-table__group" colspan="@Columns.Length" scope="rowgroup">@SectionLabel(section.Key)</th></tr>
+                <tr role="row"><th role="rowheader" class="data-table__group" colspan="@Columns.Length" scope="rowgroup">@SectionTitle(section.Key)</th></tr>
                 @foreach (var entry in section)
                 {
                     <tr role="row">
@@ -48,7 +48,7 @@
     public IReadOnlyList<EffectiveEntry> Entries { get; set; } = Array.Empty<EffectiveEntry>();
 
     /// <summary>The name of a section in words, with the name in the file beside it; every section the host declares has one, which a test walks.</summary>
-    internal static string SectionLabel(string key) => key switch
+    internal static string SectionTitle(string key) => key switch
     {
         "Host" => "Servidor (Host)",
         "Session" => "Sessões (Session)",

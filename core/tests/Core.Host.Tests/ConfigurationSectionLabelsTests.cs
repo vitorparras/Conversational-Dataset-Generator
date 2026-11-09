@@ -9,12 +9,12 @@ namespace Core.Host.Tests;
 public sealed class ConfigurationSectionLabelsTests
 {
     private static readonly string[] Arguments =
-    {
+    [
         "--Database:Host=127.0.0.1:5432",
         "--Database:Name=zqx",
         "--Database:Username=zqx",
         "--Database:Password=ZQX-SENHA-7340",
-    };
+    ];
 
     [Fact]
     public void EverySectionTheHostDeclaresHasAName()
@@ -25,7 +25,7 @@ public sealed class ConfigurationSectionLabelsTests
 
         Assert.False(loaded.Refused);
         Assert.NotEmpty(sections);
-        Assert.All(sections, section => Assert.NotEqual(section, ConfigurationScreen.SectionLabel(section)));
+        Assert.All(sections, section => Assert.NotEqual(section, ConfigurationScreen.SectionTitle(section)));
     }
 
     [Theory]
@@ -33,7 +33,7 @@ public sealed class ConfigurationSectionLabelsTests
     [InlineData("Mail")]
     public void ASectionTheScreenHasToNameIsNamedInWordsWithTheNameOfTheFileBesideIt(string section)
     {
-        var label = ConfigurationScreen.SectionLabel(section);
+        var label = ConfigurationScreen.SectionTitle(section);
 
         Assert.EndsWith($"({section})", label, StringComparison.Ordinal);
     }

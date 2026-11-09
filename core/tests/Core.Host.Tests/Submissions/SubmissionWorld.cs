@@ -1,21 +1,21 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using Core.Boundary.Text;
 using Core.Host.Submissions;
 using Core.Ingestion;
 using Core.Ingestion.Entrance;
 using Core.Ingestion.Reading;
+using Core.Persistence.Custody;
+using Core.Persistence.Custody.Chain;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Migrations;
 using Core.Persistence.Tests.Fixtures;
 using Npgsql;
-using NpgsqlTypes;
 
 namespace Core.Host.Tests.Submissions;
 
 /// <summary>
 /// A migrated database of its own with two domains and a person, and the service of the submissions over it,
-/// with a limit of bytes of the test.
+/// with a limit of bytes of the test and the gate open or closed as the test asks.
 /// </summary>
 internal sealed class SubmissionWorld : IAsyncDisposable
 {
@@ -43,7 +43,7 @@ internal sealed class SubmissionWorld : IAsyncDisposable
 
     internal SubmissionService Service { get; }
 
-    internal static async Task<SubmissionWorld> CreateAsync(long maxBytes = 1_000_000)
+    internal static async Task<SubmissionWorld> CreateAsync(long maxBytes = 1_000_000, bool gateOpen = true)
     {
         var database = await ScratchDatabase.CreateAsync();
         _ = await database.MigrateAsync(EmbeddedMigrations.Load());
@@ -51,9 +51,15 @@ internal sealed class SubmissionWorld : IAsyncDisposable
             "INSERT INTO public.domain (name) VALUES ('zqx-domain-a'), ('zqx-domain-b')",
             "INSERT INTO public.person (name, function_name) VALUES ('zqx-active', 'Anotação')");
         var dataSource = NpgsqlDataSource.Create(database.AppConnectionString);
+        if (gateOpen)
+        {
+            var rehearsed = CustodyEvent.RecoveryRehearsed(1, new string('0', 64));
+            Assert.Equal(CustodyOutcome.Appended, (await new CustodyChain(dataSource).AppendAsync(rehearsed, TestContext.Current.CancellationToken)).Outcome);
+        }
+
         var conditions = OriginConditions.Of([Strictest, "zqx_media", Loosest]);
         var intake = Intake(maxBytes, conditions);
-        return new SubmissionWorld(database, dataSource, new SubmissionService(intake, new IngestionBatches(dataSource, conditions)));
+        return new SubmissionWorld(database, dataSource, new SubmissionService(intake, new IngestionBatches(dataSource, conditions), new BatchRegister(dataSource), dataSource));
     }
 
     internal static SubmissionIntake Intake(long maxBytes, OriginConditions conditions) =>
@@ -72,49 +78,21 @@ internal sealed class SubmissionWorld : IAsyncDisposable
 
     internal Task<SubmissionOutcome> SubmitAsync(SubmissionRequest request) => Service.SubmitAsync(request, TestContext.Current.CancellationToken);
 
-    /// <summary>The batches of the domain, or of both when none is given, newest first, as the superuser reads them (it is not held to the row policy).</summary>
-    internal Task<IReadOnlyList<BatchView>> BatchesAsync(int? domain = null) =>
-        ReadAsync("WHERE @domain::integer IS NULL OR domain_id = @domain", new NpgsqlParameter("domain", NpgsqlDbType.Integer) { Value = domain is { } given ? given : DBNull.Value });
+    internal async Task<long> BatchCountAsync()
+    {
+        var total = 0L;
+        foreach (var domain in new[] { Domain, OtherDomain })
+        {
+            var entries = await Service.ListAsync(new BatchFilter { Domains = [domain], Take = 100 }, TestContext.Current.CancellationToken);
+            total += entries.Count;
+        }
 
-    /// <summary>One batch with what its submission brought, or null when there is none.</summary>
-    internal async Task<BatchView?> BatchAsync(long batch) =>
-        (await ReadAsync("WHERE id = @id", new NpgsqlParameter("id", NpgsqlDbType.Bigint) { Value = batch })).SingleOrDefault();
-
-    internal async Task<long> BatchCountAsync() => (await BatchesAsync()).Count;
+        return total;
+    }
 
     public async ValueTask DisposeAsync()
     {
         await DataSource.DisposeAsync();
         await Database.DisposeAsync();
     }
-
-    [SuppressMessage("Security", "CA2100", Justification = "The filter is a literal of the callers above, never input.")]
-    private async Task<IReadOnlyList<BatchView>> ReadAsync(string filter, NpgsqlParameter parameter)
-    {
-        await using var connection = new NpgsqlConnection(Database.SuperuserConnectionString);
-        await connection.OpenAsync(TestContext.Current.CancellationToken);
-        await using var command = new NpgsqlCommand(
-            // nosemgrep: sql-concatenation-csharp joins one of two literal filters of the callers above, never input.
-            "SELECT id, domain_id, state, motive, opened_by, opened_at, submission, received_bytes, received_digest, warning FROM content.ingestion_batch " + filter + " ORDER BY id DESC",
-            connection);
-        _ = command.Parameters.Add(parameter);
-        var views = new List<BatchView>();
-        await using var reader = await command.ExecuteReaderAsync(TestContext.Current.CancellationToken);
-        while (await reader.ReadAsync(TestContext.Current.CancellationToken))
-        {
-            views.Add(new BatchView(
-                reader.GetInt64(0),
-                reader.GetInt32(1),
-                Enum.Parse<BatchState>(reader.GetString(2), ignoreCase: true),
-                reader[3] as string,
-                reader.GetInt64(4),
-                await reader.GetFieldValueAsync<DateTimeOffset>(5, TestContext.Current.CancellationToken),
-                reader[6] is string submission ? new SubmissionReceipt(submission, reader.GetInt64(7), reader.GetString(8), reader[9] as string) : null));
-        }
-
-        return views;
-    }
 }
-
-/// <summary>A batch as the test reads it from the table: its state, why it was rejected, who opened it and when, and the receipt of the submission.</summary>
-internal sealed record BatchView(long Id, int DomainId, BatchState State, string? Reason, long SubmittedBy, DateTimeOffset SubmittedAt, SubmissionReceipt? Receipt);

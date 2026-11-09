@@ -14,7 +14,4 @@ public sealed record RefusedChange
 
     /// <summary>The sequence of the event of the approval.</summary>
     public required long ApprovalSequence { get; init; }
-
-    /// <summary>The sequence of the event that recorded the refusal.</summary>
-    public required long Sequence { get; init; }
 }

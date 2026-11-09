@@ -21,7 +21,7 @@ public sealed class ApprovedChanges
         """;
 
     private const string Refused = """
-        SELECT c.id, c.config_key, split_part(n.reference, '/', 1) AS reason_code, split_part(n.reference, '/', 2)::bigint AS approval_sequence, n.sequence
+        SELECT c.id, c.config_key, split_part(n.reference, '/', 1) AS reason_code, split_part(n.reference, '/', 2)::bigint AS approval_sequence
         FROM public.configuration_change c
         JOIN public.custody_event n ON n.item_kind = 'configuration_change' AND n.item_id = c.id AND n.step = 'configuration_not_applied'
         ORDER BY n.sequence DESC
@@ -104,7 +104,6 @@ public sealed class ApprovedChanges
         Key = (string)reader["config_key"],
         ReasonCode = (string)reader["reason_code"],
         ApprovalSequence = (long)reader["approval_sequence"],
-        Sequence = (long)reader["sequence"],
     };
 
     private static ApprovedChange Read(NpgsqlDataReader reader) => new()

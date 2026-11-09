@@ -38,7 +38,7 @@ public sealed class RefusedChangesTests : IClassFixture<PeopleDatabase>
         Assert.Equal($"configuration_not_applied|administrative_act|true|{found.Id}|same_author/{found.ApprovalSequence}", await EventAsync(recorded.Sequence!.Value));
         Assert.DoesNotContain(await register.PendingAsync(TestContext.Current.CancellationToken), pending => pending.Id == found.Id);
         var read = Assert.Single(await register.RefusedAsync(TestContext.Current.CancellationToken), refused => refused.Id == found.Id);
-        Assert.Equal(("Session:IdleTimeout", "same_author", found.ApprovalSequence, recorded.Sequence), (read.Key, read.ReasonCode, read.ApprovalSequence, read.Sequence));
+        Assert.Equal(("Session:IdleTimeout", "same_author", found.ApprovalSequence), (read.Key, read.ReasonCode, read.ApprovalSequence));
     }
 
     [DatabaseFact]

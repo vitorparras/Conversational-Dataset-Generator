@@ -12,16 +12,8 @@ internal static class ApplicationRefusals
         _ => throw new ArgumentOutOfRangeException(nameof(refusal), refusal, "The refusal is not one the applier knows."),
     };
 
-    /// <summary>The code of a definitive refusal as the event of the chain carries it, which the screen turns into words.</summary>
-    internal static string CodeOf(this ApplicationRefusal refusal) => refusal switch
-    {
-        ApplicationRefusal.SameAuthor => "same_author",
-        ApplicationRefusal.SubmitterNotAllowed => "submitter_not_allowed",
-        ApplicationRefusal.ApproverNotAllowed => "approver_not_allowed",
-        ApplicationRefusal.KeyOnlyOnServer => "key_only_on_server",
-        ApplicationRefusal.ValueRefused => "value_refused",
-        ApplicationRefusal.None or ApplicationRefusal.ChainBroken or ApplicationRefusal.FileUnreadable
-            => throw new ArgumentOutOfRangeException(nameof(refusal), refusal, "Only a definitive refusal has a code in the chain."),
-        _ => throw new ArgumentOutOfRangeException(nameof(refusal), refusal, "The refusal is not one the applier knows."),
-    };
+    /// <summary>The code of a definitive refusal as the event of the chain carries it, its name in lower case and underscores, which the screen turns into words.</summary>
+    internal static string CodeOf(this ApplicationRefusal refusal) => refusal.IsDefinitive()
+        ? string.Concat(refusal.ToString().Select((letter, index) => index > 0 && char.IsUpper(letter) ? "_" + char.ToLowerInvariant(letter) : char.ToLowerInvariant(letter).ToString()))
+        : throw new ArgumentOutOfRangeException(nameof(refusal), refusal, "Only a definitive refusal has a code in the chain.");
 }

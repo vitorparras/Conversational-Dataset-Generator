@@ -1,0 +1,51 @@
+@using Core.Host.Endpoints
+@using Core.Platform.Sessions
+
+@if (Session is { } one)
+{
+    <h1>@OneTitle</h1>
+    <p>Esta sessão deixa de valer na hora: quem a usa precisa entrar de novo. A sessão em que você está continua aberta.</p>
+    <FactList>
+        <Fact Term="Início"><Moment At="one.Start" /></Fact>
+        <Fact Term="Última atividade"><Moment At="one.LastActivity" /></Fact>
+    </FactList>
+    <form class="actions" method="post" action="@ScreenPaths.AccountEnd">
+        <input type="hidden" name="@SessionField" value="@one.ListingId" />
+        <Button Id="encerrar-sessao" Kind="Button.Look.Danger">Encerrar sessão</Button>
+        <Button Href="@ScreenPaths.Account" Kind="Button.Look.Quiet">Manter sessão</Button>
+    </form>
+}
+else
+{
+    <h1>@OthersTitle</h1>
+    @if (Others == 0)
+    {
+        <p>Não há outras sessões abertas: só esta, que continua.</p>
+        <Button Href="@ScreenPaths.Account" Kind="Button.Look.Secondary">Voltar à minha conta</Button>
+    }
+    else
+    {
+        <p>@(Others == 1 ? "A outra sessão aberta deixa" : $"As outras {Others} sessões abertas deixam") de valer na hora. A sessão em que você está continua aberta.</p>
+        <form class="actions" method="post" action="@ScreenPaths.AccountEndOthers">
+            <Button Id="encerrar-outras" Kind="Button.Look.Danger">@(Others == 1 ? "Encerrar a outra sessão" : $"Encerrar {Others} sessões")</Button>
+            <Button Href="@ScreenPaths.Account" Kind="Button.Look.Quiet">Manter sessões</Button>
+        </form>
+    }
+}
+
+@code {
+    internal const string OneTitle = "Encerrar sessão";
+
+    internal const string OthersTitle = "Encerrar as outras sessões";
+
+    /// <summary>The field that names the session to end, by the identifier of the list and never by the one of the session.</summary>
+    internal const string SessionField = "sessao";
+
+    /// <summary>The session to end, when one is chosen.</summary>
+    [Parameter]
+    public SessionListing? Session { get; set; }
+
+    /// <summary>How many other sessions all the others are, when no one is chosen.</summary>
+    [Parameter]
+    public int Others { get; set; }
+}

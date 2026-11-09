@@ -174,7 +174,7 @@ openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -subj 
 export DOTNET_ENVIRONMENT=Development
 dotnet run --project core/src/Core.Host -- --Host:Urls=https://127.0.0.1:5080 \
   --Installation:Kind=demonstracao --Passwords:WorkFactor=ITERACOES --Session:IdleTimeout=00:30:00 \
-  --Session:AbsoluteTimeout=08:00:00 --Custody:VerificationInterval=00:05:00 \
+  --Session:AbsoluteTimeout=08:00:00 --Ingestion:Conditions=restrita,intermediaria,permissiva --Custody:VerificationInterval=00:05:00 \
   --MasterKey:File="$KEYS/chave" --MasterKey:LabelsFile="$KEYS/rotulos" \
   --Tls:CertificateFile="$KEYS/tls.crt" --Tls:KeyFile="$KEYS/tls.key" \
   --Audit:ServerLogDirectory="$SERVERLOG" --Audit:CompareInterval=01:00:00 --LanguageService:Executable="$PY"
@@ -240,6 +240,17 @@ no log do núcleo (papel, tabela, comandos, contagens e passos, nunca um comando
 `GET /status`, com sessão de Administração técnica ou Auditoria, traz em `auditComparison` o
 resultado da última (`Pending`, `Agreed`, `Different` ou `Failed`), quando terminou e quantas
 diferenças novas e conhecidas achou; sem sessão, só `alive` e `ready`. O `migrate` não a exige.
+
+`Ingestion:Conditions` é obrigatória ao servir, sem valor padrão, e leva as condições de origem
+que a instalação reconhece, separadas por vírgula, da mais restrita para a mais permissiva
+(`restrita` acima é exemplo): a posição na lista é a ordem de restrição. Lista vazia, nome repetido
+ou que não seja de letras minúsculas, algarismos e sublinhado recusam a partida; o `migrate` não a
+exige. Lote aberto sem condição declarada recebe a primeira da lista, e `/configuration` mostra a
+lista em vigor, de onde veio, com a mais restrita marcada.
+
+`Ingestion:MaxBytes` é opcional e vale 10485760 (10 MiB): o maior arquivo, em bytes, que uma
+submissão aceita. Um arquivo maior é registrado como rejeitado (413) sem ser lido além do limite;
+o valor tem de ser inteiro, de 1 a 1073741824, senão recusa a partida.
 
 `Custody:VerificationInterval` é obrigatória ao servir, sem valor padrão, e leva uma duração maior
 que zero, no mesmo formato dos prazos da sessão (`00:05:00`, ou `1.00:00:00`, com dias); o `migrate`

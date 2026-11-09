@@ -5,10 +5,12 @@
 - Projeto/pacote: `Core.Persistence.Content`
 - Piso: 90 %
 - Crítica: sim
-- Partes da mutação: 5
+- Partes da mutação: 12
 - Motivo: Declara o domínio que o banco usa para decidir o que uma consulta de conteúdo vê (decisão
-  0006); inteira, a área estoura o teto da 017 (#580) e por isso muta em 5 partes, cada uma em até
-  12 min (#557). A unidade da repartição é o trecho de arquivo cortado entre membros, pelo peso
-  (#585, #683), não o arquivo nem a contagem de trechos: assim nenhuma parte fica com a maioria dos
-  mutantes. A leitura do conteúdo protegido é a área `Core.Persistence.Content.Reading`, a escrita
-  é a `Core.Persistence.Content.Writing` e a cifra é a `Core.Persistence.Content.Sealing`
+  0006); inteira, a área estoura o teto da 017 (#580) e por isso muta em 12 partes, cada uma em até
+  15 min (#557, #716: com 5 partes a 3 passou dos 20 min; #726: com 8, a 2 levou 17 a 20 min por
+  17 mutantes de 41 a 61 s cada, que rodam a suíte do banco). A unidade da repartição é o trecho
+  de arquivo cortado entre membros, pelo peso (#585, #683), não o arquivo nem a contagem de
+  trechos: assim nenhuma parte fica com a maioria dos mutantes. A leitura do conteúdo protegido é
+  a área `Core.Persistence.Content.Reading`, a escrita é a
+  `Core.Persistence.Content.Writing` e a cifra é a `Core.Persistence.Content.Sealing`

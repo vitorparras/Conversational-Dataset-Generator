@@ -16,6 +16,7 @@ internal static class CustodyNames
         [CustodyItemKind.SignInAttempt] = "sign_in_attempt",
         [CustodyItemKind.MasterKey] = "master_key",
         [CustodyItemKind.IngestionBatch] = "ingestion_batch",
+        [CustodyItemKind.ConfigurationChange] = "configuration_change",
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<CustodyStep, string> Steps = new Dictionary<CustodyStep, string>
@@ -50,6 +51,8 @@ internal static class CustodyNames
         [CustodyStep.BatchOpened] = "batch_opened",
         [CustodyStep.BatchClosed] = "batch_closed",
         [CustodyStep.PasswordChanged] = "password_changed",
+        [CustodyStep.ConfigurationSubmitted] = "configuration_submitted",
+        [CustodyStep.OriginRead] = "origin_read",
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<CustodyReason, string> Reasons = new Dictionary<CustodyReason, string>

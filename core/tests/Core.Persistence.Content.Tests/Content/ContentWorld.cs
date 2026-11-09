@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using Core.Persistence.Content;
 using Core.Persistence.Content.Emptying;
 using Core.Persistence.Content.Reading;
+using Core.Persistence.Content.Sealing;
 using Core.Persistence.Content.Writing;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
@@ -56,6 +57,9 @@ internal sealed class ContentWorld : IAsyncDisposable
     public ProtectedContentReader Reader { get; }
 
     public ContentEmptier Emptier => new(DataSource);
+
+    /// <summary>The path of protected content over the custody of the world, which seals what a test writes.</summary>
+    public ProtectedContent Content => custody.Content;
 
     /// <summary>The labels the world holds, which a custody of other epochs shares.</summary>
     public static IReadOnlyList<string> Labels { get; } = ["texto-bruto/1/v1", "mapa-reversao/1/v1", "texto-bruto/2/v1", "mapa-reversao/2/v1"];

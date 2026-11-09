@@ -1,7 +1,7 @@
 namespace Core.Persistence.Content;
 
 /// <summary>
-/// What a column left in clear holds. The only free text is the pseudonymized one; the state and the motive of a batch are words of a closed form
+/// What a column left in clear holds. The only free text is the pseudonymized one; the state, the motive and the condition of a batch are words of a closed form
 /// that the table checks, and any other text is protected.
 /// </summary>
 public enum ClearKind
@@ -24,7 +24,10 @@ public enum ClearKind
     /// <summary>The state a batch of ingestion is in: one of three words the table allows.</summary>
     Status = 5,
 
-    /// <summary>The motive of a rejection, a name of lowercase letters, digits and underscores that the table checks, never free text.</summary>
+    /// <summary>
+    /// A value the table checks by its form, never free text: a name of lowercase letters, digits and underscores (the motive of a rejection and the condition of origin of a batch)
+    /// or an identifier or digest in lowercase hexadecimal (the submission and the digest of what it brought, which may begin with a digit and run to 64 characters).
+    /// </summary>
     Motive = 6,
 
     /// <summary>The number of the transaction that wrote a row, which the row policy compares with the transaction that reads.</summary>

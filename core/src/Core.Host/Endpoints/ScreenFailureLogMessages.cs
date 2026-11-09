@@ -9,6 +9,6 @@ internal static partial class ScreenFailureLogMessages
     [LoggerMessage(
         EventId = 341,
         Level = LogLevel.Error,
-        Message = "Uma página falhou ao ser montada ({Kind}); a resposta foi a página de falha, sem detalhe")]
-    internal static partial void ScreenFailed(this ILogger logger, string? kind);
+        Message = "Uma página falhou ao ser montada ({Kind}); a resposta foi a página de falha, sem detalhe, com o código {Reference}")]
+    internal static partial void ScreenFailed(this ILogger logger, string? kind, string reference);
 }

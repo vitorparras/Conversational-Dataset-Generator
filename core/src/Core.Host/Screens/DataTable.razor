@@ -23,12 +23,12 @@
     public RenderFragment? ChildContent { get; set; }
 
     /// <summary>
-    /// Whether, in a box narrower than the columns need, each row becomes a block with each cell under the header of its column, instead of the table scrolling sideways:
-    /// for a table of a few columns whose last one holds what to do, so that it is never out of sight. Up to six columns.
+    /// Whether, in a box narrower than the columns need, each row becomes a block with each cell under the header of its column, instead of the table scrolling sideways,
+    /// so that no column is ever out of sight on a phone (#734). Every table of the screens stacks; up to six columns.
     /// The table written out as such for a reader of screens (see the roles below): the bodies, rows and cells it holds must carry <c>rowgroup</c>, <c>row</c>, <c>rowheader</c> and <c>cell</c> too.
     /// </summary>
     [Parameter]
-    public bool Stacks { get; set; }
+    public bool Stacks { get; set; } = true;
 
     private string CaptionId => $"{Id}-legenda";
 

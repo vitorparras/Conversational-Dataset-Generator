@@ -2,6 +2,7 @@ using System.Globalization;
 using Core.Host.Endpoints;
 using Core.Host.Screens;
 using Core.Persistence.Tests.Fixtures;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;

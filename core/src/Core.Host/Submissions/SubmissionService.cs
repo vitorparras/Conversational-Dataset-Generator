@@ -1,5 +1,4 @@
 using Core.Ingestion.Entrance;
-using Core.Persistence.Custody;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Recovery;
 using Npgsql;
@@ -65,6 +64,14 @@ internal sealed class SubmissionService
         return Problems(request) is { Count: > 0 } fields
             ? Task.FromResult(new SubmissionOutcome { Kind = SubmissionKind.Invalid, Fields = fields })
             : SubmittingAsync(request, cancellationToken);
+    }
+
+    /// <summary>The fields of the request that are missing or invalid, by name and by code; none when the request can be taken in.</summary>
+    /// <param name="request">The request, whose file is not read.</param>
+    internal IReadOnlyList<FieldProblem> Check(SubmissionRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return Problems(request);
     }
 
     /// <summary>The batches of the domains granted, newest first, by state and by period, in a page the server cuts and never larger than the most a page may hold.</summary>
@@ -133,21 +140,11 @@ internal sealed class SubmissionService
             return new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = BatchOutcome.DomainUnknown };
         }
 
-        var opened = await batches.OpenAsync(new BatchOpening(request.DomainId, request.AuthorId, request.Condition, receipt, origin), cancellationToken).ConfigureAwait(false);
-        if (opened.Outcome != BatchOutcome.Opened)
-        {
-            return new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = opened.Outcome };
-        }
-
-        var batch = opened.BatchId!.Value;
-        if (reason is null)
-        {
-            return Answer(received, batch, (null, warning), origin.State);
-        }
-
-        var closed = await batches.RejectAsync(new BatchClosing(request.DomainId, batch, CustodyAuthor.System), reason.Code, cancellationToken).ConfigureAwait(false);
-        return closed.Outcome == BatchOutcome.Rejected
-            ? Answer(received, batch, (reason, warning), origin.State)
-            : new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = closed.Outcome, Batch = batch };
+        var opening = new BatchOpening(request.DomainId, request.AuthorId, request.Condition, receipt, origin, reason?.Code);
+        var opened = await batches.OpenAsync(opening, cancellationToken).ConfigureAwait(false);
+        var done = reason is null ? BatchOutcome.Opened : BatchOutcome.Rejected;
+        return opened.Outcome == done
+            ? Answer(received, opened.BatchId!.Value, (reason, warning), origin.State)
+            : new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = opened.Outcome };
     }
 }

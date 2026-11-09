@@ -9,12 +9,12 @@ namespace Core.Ingestion.Tests.Deciding;
 public sealed class DestinationPolicyPropertiesTests
 {
     private static readonly Gen<string> Secret = Gen.OneOf(
-        OccurrenceKinds.Credential,
-        OccurrenceKinds.Secret,
-        OccurrenceKinds.Password,
-        OccurrenceKinds.Token,
-        OccurrenceKinds.ApiKey,
-        OccurrenceKinds.PrivateKey);
+        "CREDENTIAL",
+        "SECRET",
+        "PASSWORD",
+        "TOKEN",
+        "API_KEY",
+        "PRIVATE_KEY");
 
     private static readonly Gen<string> Name = Gen.OneOf(OccurrenceKinds.Person, OccurrenceKinds.Organization, OccurrenceKinds.Location);
 

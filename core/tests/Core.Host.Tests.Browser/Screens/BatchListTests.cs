@@ -80,7 +80,7 @@ public sealed class BatchListTests(BrowserFixture browser, GrantedBatchesHostFix
         var missingPage = await tab.Page.ContentAsync();
 
         Assert.Equal((StatusNotFound, StatusNotFound), (answer?.Status, missing?.Status));
-        Assert.Equal(missingPage.Replace(Missing.TrimStart('/'), string.Empty, StringComparison.Ordinal), page.Replace(Route.TrimStart('/'), string.Empty, StringComparison.Ordinal));
+        Assert.Equal(missingPage.Replace(Missing, string.Empty, StringComparison.Ordinal), page.Replace(Route, string.Empty, StringComparison.Ordinal));
         Assert.DoesNotContain("Lote\u00A01", page, StringComparison.Ordinal);
     }
 

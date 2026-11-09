@@ -170,9 +170,11 @@ def run(ctx: Context) -> StepResult:
     problem = containers.build_images(ctx)
     if problem is not None:
         return problem
+    packages = f"pacotes da imagem de partida: {containers.installed_packages(ctx)}"
     containers.remove_all(ctx)
     try:
         with tempfile.TemporaryDirectory(prefix="cdg-offline-", ignore_cleanup_errors=True) as tmp:
-            return serve(ctx, Path(tmp))
+            result = serve(ctx, Path(tmp))
+            return replace(result, details=(*result.details, packages))
     finally:
         containers.remove_all(ctx)

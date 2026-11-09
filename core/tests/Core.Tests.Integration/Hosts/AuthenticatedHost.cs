@@ -303,7 +303,10 @@ internal sealed class AuthenticatedHost : IAsyncDisposable
         return await client.SendAsync(request, cancellationToken);
     }
 
-    /// <summary>What a start that never finished its round left to read, which goes to the diagnostic messages of the test beside the timeout that is thrown: whether the host is still up, the steps the chain holds and the end of what the host wrote.</summary>
+    /// <summary>
+    /// What a start that never finished its round left to read: whether the host is still up, the steps the chain holds and the end of what the host wrote.
+    /// It goes to the diagnostic messages of the test, beside the timeout that is thrown.
+    /// </summary>
     private async Task<string> WhatTheStartLeftAsync()
     {
         var exited = process.HasExited ? $"exited with {process.ExitCode}" : "still running";

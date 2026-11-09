@@ -25,9 +25,9 @@ public sealed class SealStateTests
         using var loggers = new LoggerFactory();
         using var service = new ChainVerificationService(null, new VerificationSchedule(TimeSpan.FromHours(1)), new ManualClock(), loggers);
 
-        var availabilities = cases.Select(c => SealState.Availability(Sources(service, c.Situation, loggers))).ToArray();
+        var availabilities = cases.Select(c => SealState.Availability(Sources(service, c.Situation, loggers)));
 
-        Assert.Equal(cases.Select(c => c.Expected).ToArray(), availabilities);
+        Assert.Equal(cases.Select(c => c.Expected), availabilities);
     }
 
     [Theory]
@@ -50,7 +50,7 @@ public sealed class SealStateTests
     {
         using var loggers = new LoggerFactory();
         using var service = new ChainVerificationService(null, new VerificationSchedule(TimeSpan.FromHours(1)), new ManualClock(), loggers);
-        var text = ChainSeal.Of(Moment, 3, new byte[ChainDigest.Length]).ToText();
+        var text = ChainSeal.Of(Moment, 3, new byte[32]).ToText();
 
         var confirmation = await SealState.ConfirmAsync(Sources(service, SealSituation.Manual, loggers), "no-session", text, TestContext.Current.CancellationToken);
 

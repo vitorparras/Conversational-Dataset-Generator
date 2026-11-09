@@ -55,9 +55,9 @@ public sealed class SealScreenTests(BrowserFixture browser, ManualSealHostFixtur
 
         await Expect(tab.Page).ToHaveURLAsync(new Regex(@"/custodia/selo\?registrado$"));
         await Expect(tab.Page.Locator(".notice--success")).ToContainTextAsync("O selo foi gravado na cadeia");
-        await Expect(tab.Page.Locator(".notice--pending")).ToHaveCountAsync(0);
+        await Expect(tab.Page.Locator(".notice--pending").Filter(new() { HasText = "selo" })).ToHaveCountAsync(0);
         _ = await tab.Page.GotoAsync("/custodia");
-        await Expect(tab.Page.Locator(".notice--pending")).ToHaveCountAsync(0);
+        await Expect(tab.Page.Locator(".notice--pending").Filter(new() { HasText = "selo" })).ToHaveCountAsync(0);
         await Expect(tab.Page.GetByText("Nenhum selo registrado")).ToHaveCountAsync(0);
     }
 

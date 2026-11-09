@@ -73,7 +73,8 @@ public sealed class BatchReceiptTests
         var receipt = new SubmissionReceipt(Hex32, 1, Hex64);
         _ = await batches.OpenAsync(new BatchOpening(1, 1, null, new SubmissionOpening(receipt, OriginDeclaration.Unknown)), TestContext.Current.CancellationToken);
 
-        var second = await Record.ExceptionAsync(() => batches.OpenAsync(new BatchOpening(1, 1, null, new SubmissionOpening(receipt, OriginDeclaration.Unknown)), TestContext.Current.CancellationToken));
+        var again = new BatchOpening(1, 1, null, new SubmissionOpening(receipt, OriginDeclaration.Unknown));
+        var second = await Record.ExceptionAsync(() => batches.OpenAsync(again, TestContext.Current.CancellationToken));
 
         Assert.Equal(PostgresErrorCodes.UniqueViolation, Assert.IsType<PostgresException>(second).SqlState);
     }

@@ -13,7 +13,8 @@ do alcance da base. A verificação que o usa está em
    selo traz. Selo alterado, ou de uma sequência que a cadeia não tem, recebe 409 com o motivo e
    nada é gravado; texto que não é selo recebe 400. Corpo acima de 1 KiB recebe 413.
 3. A verificação (`GET` e `POST /custody/verification`) traz o aviso `warning` quando nenhum selo
-   foi registrado ou quando o último tem mais de 7 dias. O `/status` traz o mesmo aviso, em
+   foi registrado ou quando o último tem mais de 7 dias. O aviso diz a quem pedir (a administração
+   técnica) e não cita rota, porque quem opera não chama rotas. O `/status` traz o mesmo aviso, em
    `sealWarning`, só com sessão de Administração técnica ou Auditoria (sem sessão, só `alive` e
    `ready`), atualizado a cada verificação periódica e logo após cada confirmação; a data do
    selo e o selo ficam atrás da sessão. Repita o fluxo a cada semana: o selo antigo

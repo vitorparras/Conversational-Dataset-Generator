@@ -21,9 +21,9 @@ internal static class SealAge
 
         if (lastSeal is not { } recorded)
         {
-            return "Nenhum selo foi registrado: emita um em GET /custody/seal, guarde-o fora do alcance da base e confirme em POST /custody/seal/confirmation.";
+            return "Nenhum selo foi registrado: peça à administração técnica que emita um, guarde-o fora do alcance da base e o confirme.";
         }
 
-        return now - recorded > Limit ? "O último selo registrado tem mais de 7 dias: emita outro, guarde-o fora do alcance da base e confirme-o." : null;
+        return now - recorded > Limit ? "O último selo registrado tem mais de 7 dias: peça à administração técnica que emita outro, guarde-o fora do alcance da base e o confirme." : null;
     }
 }

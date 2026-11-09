@@ -9,17 +9,22 @@ public sealed class SealAgeTests
     private static readonly DateTimeOffset Now = new(2031, 3, 10, 12, 0, 0, TimeSpan.Zero);
 
     [Fact]
-    public void ManualWithoutAnySealWarnsAndNamesTheRoutes()
+    public void ManualWithoutAnySealWarnsAndNamesWhoDoesItAndNoRoute()
     {
         var warning = SealAge.Warning(SealSituation.Manual, null, Now);
 
-        Assert.Contains("GET /custody/seal", warning, StringComparison.Ordinal);
-        Assert.Contains("POST /custody/seal/confirmation", warning, StringComparison.Ordinal);
+        Assert.Contains("administração técnica", warning, StringComparison.Ordinal);
+        Assert.DoesNotContain("/custody", warning, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void ManualWithTheLastSealEightDaysOldWarns() =>
-        Assert.Contains("mais de 7 dias", SealAge.Warning(SealSituation.Manual, Now.AddDays(-8), Now), StringComparison.Ordinal);
+    public void ManualWithTheLastSealEightDaysOldWarnsAndNamesWhoDoesIt()
+    {
+        var warning = SealAge.Warning(SealSituation.Manual, Now.AddDays(-8), Now);
+
+        Assert.Contains("mais de 7 dias", warning, StringComparison.Ordinal);
+        Assert.Contains("administração técnica", warning, StringComparison.Ordinal);
+    }
 
     [Fact]
     public void ManualWithTheLastSealSixDaysOldDoesNotWarn() =>

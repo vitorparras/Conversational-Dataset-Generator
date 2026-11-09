@@ -16,7 +16,7 @@ public sealed class BatchOpenedRejectedTests
         var batches = IngestionWorld.BatchesOf(world);
 
         var result = await batches.OpenAsync(new BatchOpening(IngestionWorld.Domain, IngestionWorld.Person) { RejectedFor = Reason }, TestContext.Current.CancellationToken);
-        var held = await batches.ReadAsync(IngestionWorld.Domain, result.BatchId.Value, TestContext.Current.CancellationToken);
+        var held = await batches.ReadAsync(IngestionWorld.Domain, result.BatchId.GetValueOrDefault(), TestContext.Current.CancellationToken);
 
         Assert.Equal(
             (BatchOutcome.Rejected, new IngestionBatch(BatchState.Rejected, Reason, IngestionWorld.Person, TestConditions.Strictest), OpenedThenRejected),

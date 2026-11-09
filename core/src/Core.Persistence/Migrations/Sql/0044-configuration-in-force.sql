@@ -1,6 +1,6 @@
--- PROVISIONAL NUMBER: the definitive one is taken when the pull request opens (0043 belongs to issue 75).
+-- PROVISIONAL NUMBER: the definitive one is taken when the pull request opens, after the decision on a change of configuration (0043, also provisional).
 -- A change of configuration in force (issue 634, part 4; decision 0053): when the core starts with the value an approved change asked for, it writes one event, by the system, that points
--- at the event of the approval. Only the checks change, from the last ones the 0042 left: everything they list and every clause they fix stays, and the new step comes in beside it.
+-- at the event of the approval. Only the checks change, from the last ones the 0043 of the decision left (with origin_read): everything they list and every clause they fix stays, and the new step comes in beside it.
 ALTER TABLE public.custody_event
     DROP CONSTRAINT custody_event_step_listed,
     DROP CONSTRAINT custody_event_configuration_shape,
@@ -11,7 +11,8 @@ ALTER TABLE public.custody_event
          'domain_created', 'seal_recorded', 'domain_label_rotated',
          'sign_in_accepted', 'sign_in_refused', 'credential_recomputed', 'key_loss_declared', 'recovery_tested', 'verify_guarantees',
          'owner_window_opened', 'owner_window_closed', 'restored', 'restore_rehearsed', 'domain_label_revoked', 'domain_rewrapped',
-         'batch_opened', 'batch_closed', 'password_changed', 'configuration_submitted', 'configuration_approved', 'configuration_refused', 'configuration_in_force')),
+         'batch_opened', 'batch_closed', 'password_changed', 'configuration_submitted', 'origin_read', 'configuration_approved', 'configuration_refused',
+         'configuration_in_force')),
     ADD CONSTRAINT custody_event_configuration_shape CHECK (
         (step IN ('configuration_submitted', 'configuration_approved', 'configuration_refused', 'configuration_in_force')) = (item_kind = 'configuration_change')
         AND (item_kind <> 'configuration_change' OR (reason = 'administrative_act' AND corrects IS NULL AND (actor_person_id IS NOT NULL) = (step <> 'configuration_in_force')))

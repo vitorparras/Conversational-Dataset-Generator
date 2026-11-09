@@ -1,8 +1,8 @@
 -- The decision on a change of configuration (issue 634, part 3; decision 0053): another active person with the technical administration approves or refuses a pending submission. The decision is
 -- an event of the chain and nothing else: the item is the submission, the author is who decided and the reference is the sequence of the event of the submission; the file stays as it is.
 -- The server refuses a decision by the person who submitted, one that points at another event, a second one on the same submission and any after the longest deadline the configuration
--- takes (168 h); the deadline in force is the core's to check. Only the checks change, from the last ones the earlier steps left (the steps and the shape of the submission from the 0041,
--- the shape of the reference from the 0037): everything they list and every clause they fix stays, and the decision comes in beside it.
+-- takes (168 h); the deadline in force is the core's to check. Only the checks change, from the last ones the earlier steps left (the steps from the 0042, with origin_read, the shape of the submission
+-- from the 0041 and the shape of the reference from the 0037): everything they list and every clause they fix stays, and the decision comes in beside it.
 ALTER TABLE public.custody_event
     DROP CONSTRAINT custody_event_step_listed,
     DROP CONSTRAINT custody_event_configuration_shape,
@@ -13,7 +13,7 @@ ALTER TABLE public.custody_event
          'domain_created', 'seal_recorded', 'domain_label_rotated',
          'sign_in_accepted', 'sign_in_refused', 'credential_recomputed', 'key_loss_declared', 'recovery_tested', 'verify_guarantees',
          'owner_window_opened', 'owner_window_closed', 'restored', 'restore_rehearsed', 'domain_label_revoked', 'domain_rewrapped',
-         'batch_opened', 'batch_closed', 'password_changed', 'configuration_submitted', 'configuration_approved', 'configuration_refused')),
+         'batch_opened', 'batch_closed', 'password_changed', 'configuration_submitted', 'origin_read', 'configuration_approved', 'configuration_refused')),
     ADD CONSTRAINT custody_event_configuration_shape CHECK (
         (step IN ('configuration_submitted', 'configuration_approved', 'configuration_refused')) = (item_kind = 'configuration_change')
         AND (item_kind <> 'configuration_change' OR (reason = 'administrative_act' AND actor_person_id IS NOT NULL AND corrects IS NULL))

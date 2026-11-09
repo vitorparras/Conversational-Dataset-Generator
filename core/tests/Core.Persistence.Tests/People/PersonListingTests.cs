@@ -86,6 +86,43 @@ public sealed class PersonListingTests : IClassFixture<PeopleDatabase>
     }
 
     [DatabaseFact]
+    public async Task TheTotalAndTheItemsOfAPageAgreeWhilePeopleAreBeingRegistered()
+    {
+        var stem = Stem();
+        var registering = Task.Run(async () =>
+        {
+            for (var number = 10; number < 10 + PersonPage.Size + 10; number++)
+            {
+                _ = await MakeAsync($"{stem}-{number}", "Anotação");
+            }
+        });
+        var pages = new List<PersonPage>();
+        while (!registering.IsCompleted)
+        {
+            pages.Add(await ListAsync(new PersonFilter(stem, null, null), 2));
+        }
+
+        await registering;
+
+        Assert.All(pages, page => Assert.Equal(Math.Clamp(page.Total - ((page.Page - 1) * PersonPage.Size), 0, PersonPage.Size), page.Items.Count));
+    }
+
+    [DatabaseFact]
+    public async Task TheNameOfAnIdentifierIsTheNameOfUseActiveOrNotAndNoneWhenNobodyHasIt()
+    {
+        var stem = Stem();
+        var id = await MakeAsync($"{stem}-Maria José", "Auditoria");
+        var registry = await database.RegistryAsync();
+        _ = await registry.DeactivateAsync(id, CustodyAuthor.System, TestContext.Current.CancellationToken);
+
+        var name = await registry.NameOfAsync(id, TestContext.Current.CancellationToken);
+        var nobody = await registry.NameOfAsync(long.MaxValue, TestContext.Current.CancellationToken);
+
+        Assert.Equal($"{stem}-Maria José", name);
+        Assert.Null(nobody);
+    }
+
+    [DatabaseFact]
     public async Task ANameThatNobodyHasLeavesAnEmptyFirstPage()
     {
         var page = await ListAsync(new PersonFilter(Stem(), null, null), 3);

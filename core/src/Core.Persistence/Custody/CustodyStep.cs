@@ -102,6 +102,9 @@ public enum CustodyStep
     /// <summary>A person submitted a change of configuration on the screen; the item is the submission, which holds the key, the value and the motive, and the event has no reference.</summary>
     ConfigurationSubmitted,
 
+    /// <summary>The origin that a submission declared for its batch was read; the item is the batch.</summary>
+    OriginRead,
+
     /// <summary>Another person approved a change of configuration submitted; the item is the submission and the reference is the sequence of the event of the submission.</summary>
     ConfigurationApproved,
 

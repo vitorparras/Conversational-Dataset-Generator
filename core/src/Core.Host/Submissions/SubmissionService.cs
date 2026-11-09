@@ -73,6 +73,13 @@ internal sealed class SubmissionService
         return register.ListAsync(filter with { Take = filter.Take > MostPerPage ? MostPerPage : filter.Take }, cancellationToken);
     }
 
+    /// <summary>Where an item came from: the batch that kept it, when the submission came and who submitted it, if the item is in one of the domains granted.</summary>
+    /// <param name="granted">The domains granted.</param>
+    /// <param name="itemId">The item.</param>
+    /// <param name="cancellationToken">Cancels the reading.</param>
+    internal Task<ItemProvenance?> ProvenanceAsync(IEnumerable<int> granted, long itemId, CancellationToken cancellationToken) =>
+        register.ProvenanceAsync(granted, itemId, cancellationToken);
+
     /// <summary>One batch with what its submission brought, if it is in one of the domains granted.</summary>
     /// <param name="granted">The domains granted.</param>
     /// <param name="batchId">The batch.</param>
@@ -128,7 +135,7 @@ internal sealed class SubmissionService
     /// <summary>Judges what was received and opens the batch that keeps it, rejected with the reason when it was turned back.</summary>
     private async Task<SubmissionOutcome> OpeningAsync(SubmissionRequest request, SubmissionResult received, CancellationToken cancellationToken)
     {
-        var reason = SubmissionJudgement.Of(intake, received, request.DeclaredForm) ?? SubmissionStoring.Unsealed(intake.Sealing);
+        var reason = await JudgedAsync(request, received, cancellationToken).ConfigureAwait(false);
         var warning = HasPath(request.ReceivedName) ? NameWithPath : null;
         var receipt = new SubmissionReceipt(received.Id.ToString(), received.BytesRead, received.Digest, warning);
         if (SubmissionOrigin.Declaration(intake, request) is not { } origin || (reason is null && !SubmissionStoring.CanSeal(intake.Sealing, request.DomainId)))
@@ -145,6 +152,19 @@ internal sealed class SubmissionService
 
         var kept = new Opened(received, opened.BatchId!.Value, warning, origin.State);
         return reason is null ? await StoringAsync(request, kept, cancellationToken).ConfigureAwait(false) : Turned(kept, reason);
+    }
+
+    /// <summary>Why the file is turned back, if it is: the barrier and the form, then the key that seals, and last the digest, since a file already accepted in the domain is a repeat.</summary>
+    private async Task<SubmissionReason?> JudgedAsync(SubmissionRequest request, SubmissionResult received, CancellationToken cancellationToken)
+    {
+        var reason = SubmissionJudgement.Of(intake, received, request.DeclaredForm) ?? SubmissionStoring.Unsealed(intake.Sealing);
+        if (reason is not null)
+        {
+            return reason;
+        }
+
+        var previous = await register.PreviousAsync(request.DomainId, received.Digest, cancellationToken).ConfigureAwait(false);
+        return previous is null ? null : new SubmissionReason(ReasonCodes.AlreadyReceived, new List<SubmissionFinding>(), previous);
     }
 
     /// <summary>A file that was not turned back has its items written and is accepted, or is rejected with no item when they cannot be.</summary>

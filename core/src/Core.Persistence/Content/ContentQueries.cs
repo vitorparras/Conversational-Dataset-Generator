@@ -71,15 +71,25 @@ public static class ContentQueries
     /// <summary>The batches of the domain declared, as the database writes them, for the copy of the data.</summary>
     internal const string ReadCopyIngestionBatch = "SELECT pg_catalog.to_jsonb(t)::text FROM content.ingestion_batch t ORDER BY id";
 
+    private const string BatchColumns =
+        "SELECT b.id, b.state, b.motive, b.opened_by, b.opened_at, b.submission, b.received_bytes, b.received_digest, b.warning, b.origin_state, "
+        + "(SELECT min(p.id) FROM content.ingestion_batch p WHERE b.motive = 'already_received' AND p.state = 'accepted' AND p.received_digest = b.received_digest AND p.id < b.id)";
+
     /// <summary>The batches of the domain declared, newest first, by state and by the moment of the submission, with what each submission brought.</summary>
     internal const string ReadIngestionBatchPage =
-        "SELECT id, state, motive, opened_by, opened_at, submission, received_bytes, received_digest, warning, origin_state FROM content.ingestion_batch "
-        + "WHERE (@state::text IS NULL OR state = @state) AND (@from::timestamptz IS NULL OR opened_at >= @from) AND (@until::timestamptz IS NULL OR opened_at < @until) "
-        + "ORDER BY opened_at DESC, id DESC LIMIT @limit";
+        BatchColumns + " FROM content.ingestion_batch b "
+        + "WHERE (@state::text IS NULL OR b.state = @state) AND (@from::timestamptz IS NULL OR b.opened_at >= @from) AND (@until::timestamptz IS NULL OR b.opened_at < @until) "
+        + "ORDER BY b.opened_at DESC, b.id DESC LIMIT @limit";
 
     /// <summary>One batch of the domain declared, as the register shows it.</summary>
-    internal const string ReadIngestionBatchEntry =
-        "SELECT id, state, motive, opened_by, opened_at, submission, received_bytes, received_digest, warning, origin_state FROM content.ingestion_batch WHERE id = @id";
+    internal const string ReadIngestionBatchEntry = BatchColumns + " FROM content.ingestion_batch b WHERE b.id = @id";
+
+    /// <summary>The first batch of the domain declared that accepted a file with the digest, which makes the next one with it a repeat.</summary>
+    internal const string ReadPreviousBatch = "SELECT id FROM content.ingestion_batch WHERE state = 'accepted' AND received_digest = @digest ORDER BY id LIMIT 1";
+
+    /// <summary>Where an item came from: the batch that kept it and what the submission of that batch brought.</summary>
+    internal const string ReadItemProvenance =
+        "SELECT b.id, b.opened_at, b.opened_by, b.submission FROM content.item_text i JOIN content.ingestion_batch b ON b.id = i.batch_id WHERE i.id = @id";
 
     /// <summary>Closes a batch that is open, accepted or rejected with its motive; the database refuses it without the event of the closing in the same transaction.</summary>
     internal const string CloseIngestionBatch = "UPDATE content.ingestion_batch SET state = @state, motive = @motive WHERE id = @id AND state = 'open'";

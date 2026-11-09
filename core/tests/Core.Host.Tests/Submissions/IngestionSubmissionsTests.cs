@@ -36,7 +36,7 @@ public sealed class IngestionSubmissionsTests
     {
         await using var world = await SubmissionWorld.CreateAsync();
         var declared = await world.SubmitAsync(SubmissionWorld.Request(condition: SubmissionWorld.Loosest));
-        var omitted = await world.SubmitAsync(SubmissionWorld.Request());
+        var omitted = await world.SubmitAsync(SubmissionWorld.Request(content: SubmissionWorld.Conversation.Replace("ZQXPRIMEIRO", "ZQXOUTRO", StringComparison.Ordinal)));
 
         var batches = new IngestionBatches(world.DataSource, OriginConditions.Of([SubmissionWorld.Strictest, "zqx_media", SubmissionWorld.Loosest]));
         async Task<string> Read(SubmissionOutcome outcome) =>

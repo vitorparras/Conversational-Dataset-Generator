@@ -20,6 +20,7 @@ public sealed class BatchRegister
     private const int DigestColumn = 7;
     private const int WarningColumn = 8;
     private const int OriginColumn = 9;
+    private const int PreviousColumn = 10;
     private const int SkipCeiling = 10_000;
     private const int TakeCeiling = 1_000;
 
@@ -87,6 +88,65 @@ public sealed class BatchRegister
         }
 
         return null;
+    }
+
+    /// <summary>The first batch of the domain that accepted a file with the digest; null when none did, and then a file with it is not a repeat.</summary>
+    /// <param name="domainId">The domain.</param>
+    /// <param name="digest">The SHA-256 of the file, in lowercase hexadecimal.</param>
+    /// <param name="cancellationToken">Cancels the reading.</param>
+    public async Task<long?> PreviousAsync(int domainId, string digest, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(digest);
+        var transaction = await ContentTransaction.BeginAsync(dataSource, domainId, cancellationToken).ConfigureAwait(false);
+        await using (transaction.ConfigureAwait(false))
+        {
+            var command = transaction.CreateCommand(ContentQueries.ReadPreviousBatch);
+            await using (command.ConfigureAwait(false))
+            {
+                _ = command.Parameters.Add(new NpgsqlParameter("digest", NpgsqlDbType.Text) { Value = digest });
+                return await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) as long?;
+            }
+        }
+    }
+
+    /// <summary>Where an item came from, found in the first of the domains given that holds it: its batch, when the submission came and who sent it; null when none does.</summary>
+    /// <param name="domains">The domains that may be seen.</param>
+    /// <param name="itemId">The item.</param>
+    /// <param name="cancellationToken">Cancels the reading.</param>
+    public async Task<ItemProvenance?> ProvenanceAsync(IEnumerable<int> domains, long itemId, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(domains);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(itemId);
+        foreach (var domain in domains.Distinct())
+        {
+            var found = await ProvenanceInAsync(domain, itemId, cancellationToken).ConfigureAwait(false);
+            if (found is not null)
+            {
+                return found;
+            }
+        }
+
+        return null;
+    }
+
+    private async Task<ItemProvenance?> ProvenanceInAsync(int domain, long itemId, CancellationToken cancellationToken)
+    {
+        var transaction = await ContentTransaction.BeginAsync(dataSource, domain, cancellationToken).ConfigureAwait(false);
+        await using (transaction.ConfigureAwait(false))
+        {
+            var command = transaction.CreateCommand(ContentQueries.ReadItemProvenance);
+            await using (command.ConfigureAwait(false))
+            {
+                _ = command.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Bigint) { Value = itemId });
+                var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+                await using (reader.ConfigureAwait(false))
+                {
+                    return await reader.ReadAsync(cancellationToken).ConfigureAwait(false)
+                        ? new ItemProvenance(reader.GetInt64(0), reader.GetFieldValue<DateTimeOffset>(1), reader.GetInt64(2), reader[3] as string)
+                        : null;
+                }
+            }
+        }
     }
 
     private async Task<IReadOnlyList<BatchEntry>> ListOneAsync(int domain, BatchFilter filter, CancellationToken cancellationToken)
@@ -166,5 +226,6 @@ public sealed class BatchRegister
             ? new SubmissionReceipt(submission, reader.GetInt64(BytesColumn), reader.GetString(DigestColumn), reader[WarningColumn] as string)
             : null,
         OriginState = reader[OriginColumn] as string,
+        PreviousBatch = reader.IsDBNull(PreviousColumn) ? null : reader.GetInt64(PreviousColumn),
     };
 }

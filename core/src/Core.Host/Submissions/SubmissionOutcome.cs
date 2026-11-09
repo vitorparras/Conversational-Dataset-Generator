@@ -44,7 +44,8 @@ internal sealed record SubmissionFinding(int? Unit, string? Field);
 /// <summary>Why the submission was turned back: a stable code, the cause the reader gave when it could not read, and where the material did not hold.</summary>
 /// <param name="Code">The code, a name of lowercase letters, digits and underscores.</param>
 /// <param name="Findings">Where it did not hold; none when the refusal is about the file as a whole.</param>
-internal sealed record SubmissionReason(string Code, IReadOnlyList<SubmissionFinding> Findings);
+/// <param name="PreviousBatch">For a repeat, the batch that accepted the same file before; null for any other reason.</param>
+internal sealed record SubmissionReason(string Code, IReadOnlyList<SubmissionFinding> Findings, long? PreviousBatch = null);
 
 /// <summary>What the service answers a submission with. Nothing in it is a word of the material or the name the file came with.</summary>
 internal sealed record SubmissionOutcome

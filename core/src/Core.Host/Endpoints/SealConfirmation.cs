@@ -1,6 +1,8 @@
 namespace Core.Host.Endpoints;
 
-/// <summary>The end of the record of a seal the person kept: the way it ended and, when it was refused, the kind of the refusal and the reason in words, or what was recorded when it was not.</summary>
+/// <summary>
+/// The end of the record of a seal the person kept: the way it ended and, when it was refused, the kind of the refusal and the reason in words, or what was recorded when it was not.
+/// </summary>
 /// <param name="Outcome">How the record ended.</param>
 /// <param name="Kind">The kind of the refusal, by name; empty when there is none to tell.</param>
 /// <param name="Reason">The reason in words, for whoever operates; empty when there is none to tell.</param>

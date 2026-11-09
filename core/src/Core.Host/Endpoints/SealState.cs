@@ -74,5 +74,5 @@ internal static class SealState
         }
     }
 
-    private static void Unavailable(ILoggerFactory loggers, Exception failure) => loggers.CreateLogger(nameof(SealEndpoint)).SealRouteUnavailable(failure.GetType().Name);
+    private static void Unavailable(ILoggerFactory loggers, Exception failure) => loggers.CreateLogger(nameof(SealState)).SealRouteUnavailable(failure.GetType().Name);
 }

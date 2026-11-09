@@ -46,7 +46,8 @@ internal static class SealEndpoint
             SealConfirmationOutcome.NotASeal => Results.BadRequest(new SealRefused("seal", confirmation.Kind, confirmation.Reason)),
             SealConfirmationOutcome.NotRecorded => Results.Conflict(new SealRefused("seal", confirmation.Kind, confirmation.Reason)),
             SealConfirmationOutcome.NoSession => Results.Unauthorized(),
-            _ => Results.StatusCode(StatusCodes.Status503ServiceUnavailable),
+            SealConfirmationOutcome.Unreadable => Results.StatusCode(StatusCodes.Status503ServiceUnavailable),
+            _ => throw new ArgumentOutOfRangeException(nameof(asked), confirmation.Outcome, "The record ended in a way the route does not answer."),
         };
     }
 
@@ -55,6 +56,7 @@ internal static class SealEndpoint
         SealAvailability.NotManual => Results.Conflict(
             new SealRefused("situation", sources.Declared.Situation.ToString(), "o selo só é emitido e confirmado à mão quando a instalação declarou Manual")),
         SealAvailability.Unreadable => Results.StatusCode(StatusCodes.Status503ServiceUnavailable),
-        _ => null,
+        SealAvailability.Open => null,
+        _ => throw new ArgumentOutOfRangeException(nameof(sources), sources.Declared, "The seal is available in a way the route does not answer."),
     };
 }

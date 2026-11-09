@@ -71,7 +71,7 @@ public sealed class ItemOccurrencesTests
 
         var defect = await Assert.ThrowsAsync<ArgumentNullException>(() => world.Writer.AddItemTextAsync(1, new NewItemText(Raw, null, null, null!), TestContext.Current.CancellationToken));
 
-        Assert.Equal((nameof(NewItemText.Occurrences), 0L), (defect.ParamName, await world.ScalarAsync("SELECT count(*) FROM content.item_text")));
+        Assert.Equal(("occurrences", 0L), (defect.ParamName, await world.ScalarAsync("SELECT count(*) FROM content.item_text")));
     }
 
     [DatabaseTheory]

@@ -37,3 +37,50 @@ ALTER TABLE public.custody_event
          'sign_in_accepted', 'sign_in_refused', 'credential_recomputed', 'key_loss_declared', 'recovery_tested', 'verify_guarantees',
          'owner_window_opened', 'owner_window_closed', 'restored', 'restore_rehearsed', 'domain_label_revoked', 'domain_rewrapped',
          'batch_opened', 'batch_closed', 'password_changed', 'configuration_submitted', 'occurrences_read'));
+
+-- Reading the destinations of an item is a reading like the others (the 0013), so it goes on while the chain is broken, recorded in the chain: the function is the 0022 as it was, with the new step among the
+-- readings the chain accepts after a failed verification. Everything else it does is untouched.
+CREATE OR REPLACE FUNCTION public.custody_event_link() RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    tip_sequence bigint;
+    tip_digest bytea;
+    author_active boolean;
+BEGIN
+    IF NEW.step = 'verify_chain' AND NEW.reason = 'verification_passed' AND public.custody_chain_broken() THEN
+        RAISE EXCEPTION 'the custody chain failed its last verification: a verdict that passed is not added until the chain is restored'
+            USING ERRCODE = 'CE003', SCHEMA = 'public', TABLE = 'custody_event';
+    END IF;
+
+    IF NEW.step NOT IN ('verify_chain', 'raw_text_read', 'sanitized_text_read', 'reversal_entries_read', 'occurrences_read', 'sign_in_accepted', 'sign_in_refused', 'credential_recomputed')
+        AND public.custody_chain_broken() THEN
+        RAISE EXCEPTION 'the custody chain failed its last verification: only a verification, a reading or an entry is added until the chain is restored'
+            USING ERRCODE = 'CE002', SCHEMA = 'public', TABLE = 'custody_event';
+    END IF;
+
+    IF NEW.actor_person_id IS NOT NULL THEN
+        SELECT p.active INTO author_active FROM public.person p WHERE p.id = NEW.actor_person_id;
+        IF NOT FOUND THEN
+            RAISE EXCEPTION 'the author of a custody event is not a registered person'
+                USING ERRCODE = 'foreign_key_violation', CONSTRAINT = 'custody_event_actor_fkey';
+        ELSIF NOT author_active THEN
+            RAISE EXCEPTION 'the author of a custody event must be an active person'
+                USING ERRCODE = 'check_violation', CONSTRAINT = 'custody_event_actor_active';
+        END IF;
+    END IF;
+
+    IF NEW.corrects IS NOT NULL AND NOT EXISTS (SELECT 1 FROM public.custody_event c WHERE c.sequence = NEW.corrects) THEN
+        RAISE EXCEPTION 'the event to correct is not in the chain'
+            USING ERRCODE = 'foreign_key_violation', CONSTRAINT = 'custody_event_corrects_fkey';
+    END IF;
+
+    SELECT e.sequence, e.digest INTO tip_sequence, tip_digest FROM public.custody_event e ORDER BY e.sequence DESC LIMIT 1;
+    NEW.sequence := COALESCE(tip_sequence, 0) + 1;
+    NEW.previous_digest := COALESCE(tip_digest, public.custody_origin());
+    NEW.digest := public.custody_digest(
+        NEW.previous_digest, NEW.sequence, NEW.occurred_at, NEW.actor_person_id, NEW.actor_system,
+        NEW.item_kind, NEW.item_id, NEW.step, NEW.reason, NEW.corrects, NEW.recorded_by, NEW.reference);
+    RETURN NEW;
+END
+$$;

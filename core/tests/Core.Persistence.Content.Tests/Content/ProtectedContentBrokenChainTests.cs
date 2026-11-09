@@ -69,6 +69,21 @@ public sealed class ProtectedContentBrokenChainTests
     }
 
     [DatabaseFact]
+    public async Task TheDestinationsOfAnItemAreStillReadWhileTheChainIsBrokenAndTheReadingIsRecorded()
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        ItemOccurrence[] decided = [new(0, 5, "PERSON", OccurrenceDestination.Pseudonymize)];
+        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, null, null, decided), TestContext.Current.CancellationToken);
+        await BreakAsync(world);
+
+        var read = await new ItemOccurrenceReader(world.Reader).ReadAsync(CustodyAuthor.System, 1, item, TestContext.Current.CancellationToken);
+
+        Assert.Equal(ContentReadOutcome.Read, read.Reading.Outcome);
+        Assert.Equal(decided, read.Occurrences);
+        Assert.Equal("occurrences_read", await world.ScalarAsync("SELECT step FROM public.custody_event ORDER BY sequence DESC LIMIT 1"));
+    }
+
+    [DatabaseFact]
     public async Task ChainRestoredWithoutTheFailureAndVerifiedAgainLetsContentBeWrittenAndReadAgain()
     {
         await using var world = await ContentWorld.CreateAsync();

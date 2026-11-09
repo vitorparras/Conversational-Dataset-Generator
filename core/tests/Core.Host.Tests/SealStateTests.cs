@@ -49,7 +49,7 @@ public sealed class SealStateTests
     {
         using var loggers = new LoggerFactory();
         using var service = new ChainVerificationService(null, new VerificationSchedule(TimeSpan.FromHours(1)), new ManualClock(), loggers);
-        var text = ChainSeal.Of(Moment, 3, new byte[ChainDigest.Length]).ToText();
+        var text = ChainSeal.Of(Moment, 3, new byte[32]).ToText();
 
         var confirmation = await SealState.ConfirmAsync(Sources(service, SealSituation.Manual, loggers), "no-session", text, TestContext.Current.CancellationToken);
 

@@ -31,7 +31,7 @@ internal static class SealBodyLimit
     private static readonly string[] SealRoutes = new[] { ChainVerificationEndpoint.Route, SealEndpoint.ConfirmationRoute, ScreenPaths.SealConfirm };
 
     private static bool HoldsASeal(HttpRequest request) =>
-        HttpMethods.IsPost(request.Method) && SealRoutes.Contains(request.Path.Value, StringComparer.Ordinal);
+        HttpMethods.IsPost(request.Method) && SealRoutes.Contains(request.Path.Value, StringComparer.OrdinalIgnoreCase);
 
     private static void Limit(HttpContext context)
     {

@@ -38,6 +38,7 @@ public sealed class SealScreenTests(BrowserFixture browser, ManualSealHostFixtur
         _ = await tab.Page.GotoAsync(Seal);
         await Expect(tab.Page.Locator(Text)).ToHaveCountAsync(0);
         Assert.DoesNotContain(text, await tab.Page.ContentAsync(), StringComparison.Ordinal);
+        Assert.DoesNotContain(text, manual.Host.Log, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -76,6 +77,8 @@ public sealed class SealScreenTests(BrowserFixture browser, ManualSealHostFixtur
         await Expect(tab.Page.Locator(Kept)).ToHaveAttributeAsync("aria-describedby", new Regex("selo-guardado-erro"));
         await Expect(tab.Page.Locator(Kept)).ToHaveValueAsync(altered);
         Assert.DoesNotContain("registrado", tab.Page.Url, StringComparison.Ordinal);
+        Assert.DoesNotContain(altered, manual.Host.Log, StringComparison.Ordinal);
+        Assert.DoesNotContain(altered[..^1], manual.Host.Log, StringComparison.Ordinal);
         await Expect(tab.Page.Locator(".notice--success")).ToHaveCountAsync(0);
     }
 

@@ -24,6 +24,8 @@ public sealed class SealBodyLimitTests
     [InlineData("/custody/verification")]
     [InlineData("/custody/seal/confirmation")]
     [InlineData("/custodia/selo/confirmar")]
+    [InlineData("/Custodia/Selo/Confirmar")]
+    [InlineData("/Custody/Seal/Confirmation")]
     public async Task ABodyThatAnnouncesNothingIsLimitedAsItIsReadAndTheRouteIsReached(string route)
     {
         var (context, reached) = await RunAsync("POST", route, null);

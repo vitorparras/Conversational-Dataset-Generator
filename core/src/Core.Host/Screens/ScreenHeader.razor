@@ -43,7 +43,7 @@
     private string? AccountCurrent => Current switch
     {
         ScreenPaths.Account => "page",
-        ScreenPaths.AccountChange or ScreenPaths.AccountEnd or ScreenPaths.AccountEndOthers => "location",
+        ScreenPaths.AccountChange or ScreenPaths.AccountEmail or ScreenPaths.AccountEnd or ScreenPaths.AccountEndOthers => "location",
         _ => null,
     };
 }

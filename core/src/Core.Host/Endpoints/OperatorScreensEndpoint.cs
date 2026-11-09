@@ -49,7 +49,8 @@ internal static class OperatorScreensEndpoint
     private static RazorComponentResult<ScreenFrame> Form(HttpContext context) => ScreenResult.Of(context, typeof(OperatorFormScreen), OperatorFormScreen.Title);
 
     /// <summary>The password is read from the body of the post and goes to the registration, nowhere else: not to the page, the address nor the log.</summary>
-    private static async Task<IResult> RegisterAsync(HttpContext context, [FromServices] OperatorAdministration? staff, [FromServices] SessionStore sessions)
+    private static async Task<IResult> RegisterAsync(
+        HttpContext context, [FromServices] OperatorAdministration? staff, [FromServices] PersonEmails? emails, [FromServices] SessionStore sessions)
     {
         if (staff is null || sessions.Resolve(SessionCookie.Read(context.Request)) is not { } author)
         {
@@ -57,24 +58,41 @@ internal static class OperatorScreensEndpoint
         }
 
         var form = context.Request.HasFormContentType ? await context.Request.ReadFormAsync(context.RequestAborted) : null;
-        var (name, function) = (ValueOf(form, OperatorFormScreen.NameField), ValueOf(form, OperatorFormScreen.FunctionField));
-        var (made, password) = await staff.RegisterAsync(author, new NewPerson(name, function), ValueOf(form, OperatorFormScreen.SecretField), context.RequestAborted);
+        var typed = (Name: ValueOf(form, OperatorFormScreen.NameField), Function: ValueOf(form, OperatorFormScreen.FunctionField), Email: AccountEmailEndpoint.Typed(form));
+        if (typed.Email is { } given && !PersonEmails.IsAddress(given))
+        {
+            return Refused(context, typed, new OperatorRefused(AccountEmailScreen.EmailField, AccountEmailScreen.Invalid), StatusCodes.Status400BadRequest);
+        }
+
+        var (made, password) = await staff.RegisterAsync(author, new NewPerson(typed.Name, typed.Function), ValueOf(form, OperatorFormScreen.SecretField), context.RequestAborted);
         var registered = OperatorAnswer.Registered(made, password);
         if (registered.Refusal is not { } refusal)
         {
+            if (emails is not null)
+            {
+                await emails.SetAsync(registered.Id!.Value, typed.Email, context.RequestAborted);
+            }
+
             RegisteredNotice.Issue(context.Response, registered.Id!.Value);
-            return PageRedirect.Of(context, $"{ScreenPaths.Operators}?{OperatorsScreen.NameKey}={Uri.EscapeDataString(name)}");
+            return PageRedirect.Of(context, $"{ScreenPaths.Operators}?{OperatorsScreen.NameKey}={Uri.EscapeDataString(typed.Name)}");
         }
 
+        return Refused(context, typed, refusal, registered.Status);
+    }
+
+    /// <summary>The form again, with what was typed, never the password, and the refusal at its field.</summary>
+    private static RazorComponentResult<ScreenFrame> Refused(HttpContext context, (string Name, string Function, string? Email) typed, OperatorRefused refusal, int status)
+    {
         var screen = new Dictionary<string, object?>(StringComparer.Ordinal)
         {
-            [nameof(OperatorFormScreen.Name)] = name,
-            [nameof(OperatorFormScreen.Function)] = function,
+            [nameof(OperatorFormScreen.Name)] = typed.Name,
+            [nameof(OperatorFormScreen.Function)] = typed.Function,
+            [nameof(OperatorFormScreen.Email)] = typed.Email,
             [nameof(OperatorFormScreen.ErrorField)] = refusal.Field,
             [nameof(OperatorFormScreen.ErrorReason)] = refusal.Reason,
         };
         var page = ScreenResult.Of(context, typeof(OperatorFormScreen), OperatorFormScreen.Title, screen);
-        page.StatusCode = registered.Status;
+        page.StatusCode = status;
         return page;
     }
 

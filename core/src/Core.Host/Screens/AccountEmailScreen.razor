@@ -1,0 +1,42 @@
+@using Core.Host.Endpoints
+@using Core.Persistence.People
+
+<h1>@Title</h1>
+<p class="lead">
+    O endereço serve só para receber o link de reposição de senha, quando a instalação tem servidor de e-mail. Só você e a administração técnica o veem.
+    Deixe o campo em branco para não ter endereço.
+</p>
+@if (Saved)
+{
+    <Notice Kind="Notice.Tone.Success">@(Address is null ? "Você está sem endereço de e-mail." : "Endereço de e-mail guardado.")</Notice>
+}
+<form class="form" method="post" action="@ScreenPaths.AccountEmail" novalidate>
+    <Field Id="conta-email" Name="@EmailField" Caption="E-mail (opcional)" Type="email" Value="@Address" Autocomplete="email" Error="@Error"
+           Hint="Um endereço só, como nome@exemplo.org. Ele nunca aparece em registro do sistema." />
+    <div class="actions">
+        <Button Id="guardar-email">Guardar</Button>
+        <Button Href="@ScreenPaths.Account" Kind="Button.Look.Secondary">Voltar à conta</Button>
+    </div>
+</form>
+
+@code {
+    /// <summary>The title of the page, which the account leads to.</summary>
+    internal const string Title = "Meu e-mail";
+
+    /// <summary>The name the field of the address is sent under, here and in the registration of a person.</summary>
+    internal const string EmailField = "email";
+
+    /// <summary>What a person corrects when the address is not one the registry takes; never the address typed.</summary>
+    internal static readonly string Invalid = $"Escreva um endereço só, como nome@exemplo.org, sem espaços e com até {PersonEmails.MostCharacters} caracteres.";
+
+    /// <summary>The address kept, or the one typed when the server refused it.</summary>
+    [Parameter]
+    public string? Address { get; set; }
+
+    /// <summary>Whether the page comes back from a saving, which it then says.</summary>
+    [Parameter]
+    public bool Saved { get; set; }
+
+    [Parameter]
+    public string? Error { get; set; }
+}

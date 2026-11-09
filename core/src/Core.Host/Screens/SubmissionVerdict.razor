@@ -1,0 +1,73 @@
+@using System.Globalization
+
+<Panel Id="envio-desfecho" Title="@(Accepted ? "Material aceito" : "Material recusado")">
+    @if (Accepted)
+    {
+        <Notice Kind="Notice.Tone.Success">O material passou pela conferência e o lote @Number(Answer.Batch) está aberto.</Notice>
+    }
+    else
+    {
+        <Notice Kind="Notice.Tone.Error">@SubmissionTexts.ReasonOf(Answer.ReasonCode!)</Notice>
+    }
+    @if (Answer.Warning is { } warning)
+    {
+        <Notice>@SubmissionTexts.WarningOf(warning)</Notice>
+    }
+    @if (Answer.Points.Count > 0)
+    {
+        <h3>Onde corrigir</h3>
+        <ul>
+            @foreach (var point in Answer.Points.Take(MostPoints))
+            {
+                <li>@SubmissionTexts.WhereOf(point.Unit, point.Field)</li>
+            }
+        </ul>
+        @if (Answer.Points.Count > MostPoints)
+        {
+            <p>E mais @Number(Answer.Points.Count - MostPoints) pontos no mesmo arquivo.</p>
+        }
+    }
+    <FactList>
+        <Fact Term="Lote">@Number(Answer.Batch), @(Accepted ? "aberto" : "recusado e registrado")</Fact>
+        <Fact Term="Tamanho lido">@SubmissionTexts.SizeOf(Answer.Size)</Fact>
+        <Fact Term="Resumo SHA-256"><code>@Answer.Sha256</code></Fact>
+        <Fact Term="Origem">@(Answer.OriginDeclared ? "declarada e guardada selada" : "desconhecida")</Fact>
+    </FactList>
+    <div class="actions">
+        @if (Accepted)
+        {
+            <Button Id="abrir-lote" Href="@Answer.BatchAddress">Abrir o lote @Number(Answer.Batch)</Button>
+            <Button Href="@Again" Kind="Button.Look.Secondary">Enviar outro arquivo</Button>
+        }
+        else
+        {
+            <Button Id="enviar-de-novo" Href="@Again">Enviar outro arquivo</Button>
+            <Button Href="@Answer.BatchAddress" Kind="Button.Look.Secondary">Ver o lote recusado</Button>
+        }
+    </div>
+</Panel>
+
+@code {
+    /// <summary>Where a refusal points: the position of the unit and the code of its field, never what it says.</summary>
+    public sealed record Point(int? Unit, string? Field);
+
+    /// <summary>
+    /// What the screen shows of a submission the service recorded: the batch and the address of it, what was read, whether an origin was declared,
+    /// the code of the refusal (none when accepted) with where it points, and the code of a warning. No name of a file and no word of the material fit in it.
+    /// </summary>
+    public sealed record Result(long Batch, string BatchAddress, long Size, string Sha256, bool OriginDeclared, string? ReasonCode, IReadOnlyList<Point> Points, string? Warning);
+
+    /// <summary>The most points the screen lists; the rest is counted.</summary>
+    private const int MostPoints = 10;
+
+    [Parameter, EditorRequired]
+    public Result Answer { get; set; } = null!;
+
+    /// <summary>The address of the form, opened clean for another file.</summary>
+    [Parameter, EditorRequired]
+    public string Again { get; set; } = "";
+
+    private bool Accepted => Answer.ReasonCode is null;
+
+    private static string Number(long value) => value.ToString(CultureInfo.InvariantCulture);
+}

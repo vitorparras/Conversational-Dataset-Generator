@@ -78,5 +78,7 @@ public static class ContentColumns
         new(IngestionBatch, "received_bytes", ClearKind.Identifier),
         new(IngestionBatch, "received_digest", ClearKind.Motive),
         new(IngestionBatch, "warning", ClearKind.Motive),
+        new(IngestionBatch, "review_sample", ClearKind.Motive),
+        new(IngestionBatch, "sampled_at", ClearKind.Moment),
     ];
 }

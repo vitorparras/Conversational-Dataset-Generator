@@ -28,7 +28,7 @@ public static class AuditMap
         new("content.item_text", [Update], [CustodyStep.ItemEmptied]),
         new("content.reversal_map", [Update], [CustodyStep.ItemEmptied]),
         new("content.ingestion_batch", Of(Insert), Of(CustodyStep.BatchOpened)),
-        new("content.ingestion_batch", Of(Update), Of(CustodyStep.BatchClosed)),
+        new("content.ingestion_batch", Of(Update), Of(CustodyStep.BatchClosed, CustodyStep.BatchSampled)),
         new("public.configuration_change", Of(Insert), Of(CustodyStep.ConfigurationSubmitted)),
     ];
 

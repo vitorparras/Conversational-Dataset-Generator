@@ -36,6 +36,16 @@ public sealed partial record CustodyEvent
             : throw new ArgumentException("The motive of a rejection is a name of lowercase letters, digits and underscores, starting with a letter, up to 63 characters.", nameof(motive));
     }
 
+    /// <summary>The event of the draw of the sample of a batch, by the person who asks for the review; the item is the batch, and the event has no reference.</summary>
+    /// <param name="personId">The person who asks for the review.</param>
+    /// <param name="batchId">The batch.</param>
+    public static CustodyEvent BatchSampled(long personId, long batchId)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(personId);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(batchId);
+        return new CustodyEvent(CustodyAuthor.Person(personId), new CustodyItem(CustodyItemKind.IngestionBatch, batchId), CustodyStep.BatchSampled, CustodyReason.AdministrativeAct);
+    }
+
     /// <summary>Whether the text is a motive the database takes: a lowercase letter, then lowercase letters, digits and underscores, up to 63 characters in all.</summary>
     /// <param name="motive">The text to judge.</param>
     public static bool IsBatchMotive(string? motive) =>

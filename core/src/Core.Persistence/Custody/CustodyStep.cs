@@ -104,4 +104,7 @@ public enum CustodyStep
 
     /// <summary>The occurrences found in an item, with the destination of each, were read; the item is the one read from.</summary>
     OccurrencesRead,
+
+    /// <summary>The sample of a batch was drawn by the system, once, at the request of the person who reviews it; the item is the batch.</summary>
+    BatchSampled,
 }

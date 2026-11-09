@@ -3,10 +3,21 @@
 <h1>@Title</h1>
 <div>
     <p>O servidor teve uma falha ao montar esta página. Tente de novo em instantes; se a falha se repetir, avise quem administra o sistema.</p>
-    <Button Href="@ScreenPaths.Home" Kind="Button.Look.Secondary">Ir para o início</Button>
+    @if (Reference is not null)
+    {
+        <p>Se avisar, diga este código, que quem administra encontra no registro do sistema: <code>@Reference</code>.</p>
+    }
+    <div class="actions">
+        <Button Href="" Kind="Button.Look.Primary">Tentar de novo</Button>
+        <Button Href="@ScreenPaths.Home" Kind="Button.Look.Secondary">Ir para o início</Button>
+    </div>
 </div>
 
 @code {
     /// <summary>The title of the page and of its heading; the text says what happened and what to do, and nothing of the failure itself.</summary>
     internal const string Title = "Falha ao abrir a página";
+
+    /// <summary>The short code the log wrote with the failure, which ties the page a person saw to the line whoever administers reads; none when the host could not serve the screen.</summary>
+    [Parameter]
+    public string? Reference { get; set; }
 }

@@ -3,6 +3,31 @@
 (function () {
     "use strict";
 
+    // The header of a phone folds its menu behind a button only where this script runs, so a page without it keeps every way in sight; and the page learns
+    // the height the header has, so what takes the focus is never left under it.
+    document.documentElement.classList.add("scripted");
+
+    function measureHeader() {
+        var header = document.querySelector(".header");
+        var sticks = header && getComputedStyle(header).position === "sticky";
+        document.documentElement.style.setProperty("--header-measured", sticks ? header.getBoundingClientRect().height + 16 + "px" : "1rem");
+    }
+
+    document.addEventListener("DOMContentLoaded", measureHeader);
+    window.addEventListener("resize", measureHeader);
+
+    document.addEventListener("click", function (event) {
+        var toggle = event.target instanceof Element ? event.target.closest(".header__toggle") : null;
+        var header = toggle && toggle.closest(".header");
+        if (!header) {
+            return;
+        }
+        var open = !header.hasAttribute("data-open");
+        header.toggleAttribute("data-open", open);
+        toggle.setAttribute("aria-expanded", String(open));
+        measureHeader();
+    });
+
     // A key typed in a field that takes text belongs to the field; a box to mark, a choice or a button takes no text, so a shortcut still fires there.
     var TEXT_FIELDS = ["TEXTAREA", "SELECT"];
     var INPUTS_WITHOUT_TEXT = ["checkbox", "radio", "button", "submit", "reset", "range", "color", "file", "image"];

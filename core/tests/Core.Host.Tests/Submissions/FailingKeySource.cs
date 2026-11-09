@@ -19,6 +19,6 @@ internal sealed class FailingKeySource : IMasterKeySource
         MasterKeyFailureKind.Absent => MasterKeyReading.Absent("zqx-test"),
         MasterKeyFailureKind.Unreadable => MasterKeyReading.Unreadable("zqx-test"),
         MasterKeyFailureKind.WrongSize => MasterKeyReading.FromBytes(new byte[3], DerivationLabels.Of(["texto-bruto/1/v1"]), CustodyEpochs.None, "zqx-test"),
-        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "The kind is not one the source fails with."),
+        _ => throw new InvalidOperationException("The kind is not one the source fails with."),
     });
 }

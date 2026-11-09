@@ -19,8 +19,8 @@ public sealed class BatchDetailScreenTests
 
     private static readonly BatchDetailScreen.Detail Accepted = new(7, "zqx-dominio-a", BatchState.Accepted, null, "zqx-ana", At, OriginDeclared: true)
     {
-        Forms = new BatchDetailScreen.FormCount[] { new("conversation", 12), new("comment", 1) },
-        Destinations = new BatchDetailScreen.DestinationCount[] { new("remove", 4), new("pseudonymize", 9) },
+        Forms = [new("conversation", 12), new("comment", 1)],
+        Destinations = [new("remove", 4), new("pseudonymize", 9)],
         Replicas = new BatchDetailScreen.ReplicaCount(3, 1),
     };
 
@@ -51,7 +51,7 @@ public sealed class BatchDetailScreenTests
     [Fact]
     public async Task Ca3AnAccommodationShowsTheFormsAndEveryLossDeclared()
     {
-        var page = await RenderAsync(Accepted with { Accommodation = new BatchDetailScreen.Accommodated("conversation", "document", 12, new[] { "author", "instant" }) });
+        var page = await RenderAsync(Accepted with { Accommodation = new BatchDetailScreen.Accommodated("conversation", "document", 12, ["author", "instant"]) });
         var plain = await RenderAsync(Accepted);
 
         Assert.Contains("Perda declarada", page, StringComparison.Ordinal);

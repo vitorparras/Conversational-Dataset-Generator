@@ -8,11 +8,13 @@ namespace Core.Host.Screens;
 /// </summary>
 internal static class BatchDetailTexts
 {
-    /// <summary>The three destinations of a passage detected as identifiable (#84), in the order the detail says them, with the code and the words.</summary>
-    internal static IReadOnlyList<(string Code, string Caption)> Destinations { get; } = new[]
+    private static readonly (string Code, string Caption)[] Known =
     {
         ("remove", "Removidos"), ("pseudonymize", "Pseudonimizados"), ("preserve", "Preservados"),
     };
+
+    /// <summary>The three destinations of a passage detected as identifiable (#84), in the order the detail says them, with the code and the words.</summary>
+    internal static IReadOnlyList<(string Code, string Caption)> Destinations => Known;
 
     /// <summary>The name of a form, as a heading of its count.</summary>
     internal static string FormNameOf(string code) => code switch

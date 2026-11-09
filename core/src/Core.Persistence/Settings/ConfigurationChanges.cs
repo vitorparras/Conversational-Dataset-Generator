@@ -53,18 +53,14 @@ public sealed class ConfigurationChanges
     /// <param name="cancellationToken">Cancels the reading.</param>
     public async Task<SubmittedChange?> SubmittedAsync(long changeId, CancellationToken cancellationToken)
     {
-        var connection = await dataSource.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
-        await using (connection.ConfigureAwait(false))
+        var command = dataSource.CreateCommand(Submitted);
+        await using (command.ConfigureAwait(false))
         {
-            var command = new NpgsqlCommand(Submitted, connection);
-            await using (command.ConfigureAwait(false))
+            _ = command.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Bigint) { Value = changeId });
+            var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            await using (reader.ConfigureAwait(false))
             {
-                _ = command.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Bigint) { Value = changeId });
-                var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-                await using (reader.ConfigureAwait(false))
-                {
-                    return await reader.ReadAsync(cancellationToken).ConfigureAwait(false) ? Read(changeId, name => reader[name]) : null;
-                }
+                return await reader.ReadAsync(cancellationToken).ConfigureAwait(false) ? Read(changeId, name => reader[name]) : null;
             }
         }
     }

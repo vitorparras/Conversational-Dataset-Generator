@@ -51,8 +51,8 @@ internal static class ResponseValidator
             return ResponseValidation.Refused(ValidationProblem.WrongValue);
         }
 
-        var offsets = FirstOffsetProblem(text, response.Occurrences);
-        return offsets is null ? ResponseValidation.Accepted(response) : ResponseValidation.Refused(offsets.Value);
+        var problem = FirstOffsetProblem(text, response.Occurrences) ?? FirstKindProblem(response.Occurrences);
+        return problem is null ? ResponseValidation.Accepted(response) : ResponseValidation.Refused(problem.Value);
     }
 
     private static JsonDocument? Parse(ReadOnlyMemory<byte> body)
@@ -91,6 +91,10 @@ internal static class ResponseValidator
         var length = OffsetConverter.ToCodePointOffset(text, text.Length);
         return occurrences.Select(occurrence => OffsetProblem(occurrence, length)).FirstOrDefault(problem => problem is not null);
     }
+
+    /// <summary>The first occurrence whose kind is not one of the closed list of the contract, written exactly as the list writes it.</summary>
+    private static ValidationProblem? FirstKindProblem(IEnumerable<Occurrence> occurrences) =>
+        occurrences.Any(occurrence => !OccurrenceKinds.IsKnown(occurrence.Kind)) ? ValidationProblem.KindOutsideVocabulary : null;
 
     private static ValidationProblem? OffsetProblem(Occurrence occurrence, int length)
     {

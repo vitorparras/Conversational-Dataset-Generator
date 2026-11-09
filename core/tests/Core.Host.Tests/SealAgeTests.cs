@@ -10,7 +10,14 @@ public sealed class SealAgeTests
 
     [Fact]
     public void ManualWithoutAnySealWarnsAndLeadsToTheScreenOfTheSeal() =>
-        Assert.EndsWith("confirme-o na tela Custódia, em Selo.", SealAge.Warning(SealSituation.Manual, null, Now), StringComparison.Ordinal);
+        Assert.EndsWith("o confirme na tela Custódia, em Selo.", SealAge.Warning(SealSituation.Manual, null, Now), StringComparison.Ordinal);
+
+    [Fact]
+    public void TheWarningNamesWhoIssuesTheSeal()
+    {
+        Assert.Contains("peça à administração técnica", SealAge.Warning(SealSituation.Manual, null, Now), StringComparison.Ordinal);
+        Assert.Contains("peça à administração técnica", SealAge.Warning(SealSituation.Manual, Now.AddDays(-8), Now), StringComparison.Ordinal);
+    }
 
     [Fact]
     public void ManualWithTheLastSealEightDaysOldWarnsAndLeadsToTheScreenOfTheSeal()

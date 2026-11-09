@@ -82,6 +82,23 @@ public sealed class ConfigurationFileTests : IDisposable
         Assert.False(new ConfigurationFile(path, clock).TryChange("SemSecao", "x"));
     }
 
+    [Fact]
+    public void TheFileKeepsTheModeOfTheOneItReplacedAndSoDoesTheVersionKept()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var path = Written("""{ "Session": { "IdleTimeout": "00:30:00" } }""");
+        File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+
+        _ = new ConfigurationFile(path, clock).TryChange(Key, "00:20:00");
+
+        var kept = Assert.Single(Directory.GetFiles(folder.Path, "*.previous"));
+        Assert.Equal((UnixFileMode.UserRead | UnixFileMode.UserWrite, UnixFileMode.UserRead | UnixFileMode.UserWrite), (File.GetUnixFileMode(path), File.GetUnixFileMode(kept)));
+    }
+
     public void Dispose() => folder.Dispose();
 
     private static JsonObject Read(string path) => (JsonObject)JsonNode.Parse(File.ReadAllText(path))!;

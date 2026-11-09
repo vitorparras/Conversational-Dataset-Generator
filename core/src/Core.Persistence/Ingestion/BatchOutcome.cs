@@ -32,4 +32,7 @@ public enum BatchOutcome
 
     /// <summary>The condition declared to open the batch is not one the installation knows, so nothing was written.</summary>
     ConditionUnknown,
+
+    /// <summary>Another batch of the domain accepted the same file first, so this one was left open, with its items, for whoever closes it to reject.</summary>
+    AlreadyReceived,
 }

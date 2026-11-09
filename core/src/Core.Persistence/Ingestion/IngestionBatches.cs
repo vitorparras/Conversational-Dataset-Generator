@@ -18,6 +18,7 @@ namespace Core.Persistence.Ingestion;
 public sealed class IngestionBatches
 {
     private const string AuthorConstraint = "ingestion_batch_opened_by_fkey";
+    private const string AcceptedDigestIndex = "ingestion_batch_accepted_digest";
 
     private readonly NpgsqlDataSource dataSource;
     private readonly OriginConditions conditions;
@@ -183,7 +184,16 @@ public sealed class IngestionBatches
             return appended;
         }
 
-        await ChangeAsync(scope, closing, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await ChangeAsync(scope, closing, cancellationToken).ConfigureAwait(false);
+        }
+        catch (PostgresException repeated) when (repeated.SqlState == PostgresErrorCodes.UniqueViolation && repeated.ConstraintName == AcceptedDigestIndex)
+        {
+            early.Value = BatchOutcome.AlreadyReceived;
+            return null;
+        }
+
         return await CustodyAppend.CommitIfAppendedAsync(scope, appended, cancellationToken).ConfigureAwait(false);
     }
 

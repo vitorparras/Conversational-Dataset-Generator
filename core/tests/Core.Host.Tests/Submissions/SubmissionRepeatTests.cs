@@ -28,6 +28,19 @@ public sealed class SubmissionRepeatTests
     }
 
     [DatabaseFact]
+    public async Task TwoIdenticalFilesSentAtTheSameTimeAreNotBothAcceptedAndTheOtherIsARepeatOfTheOneThatWasWithNoItem()
+    {
+        await using var world = await SubmissionWorld.CreateAsync();
+
+        var both = await Task.WhenAll(world.SubmitAsync(SubmissionWorld.Request()), world.SubmitAsync(SubmissionWorld.Request()));
+
+        var accepted = both.Single(outcome => outcome.State == SubmissionState.Accepted);
+        var repeated = both.Single(outcome => outcome.State == SubmissionState.Rejected);
+        Assert.Equal((ReasonCodes.AlreadyReceived, accepted.Batch), (repeated.Reason!.Code, repeated.Reason.PreviousBatch));
+        Assert.Equal((2L, 2L), (await world.ItemRowsAsync(), await world.BatchCountAsync()));
+    }
+
+    [DatabaseFact]
     public async Task SameContentUnderTwoDifferentNamesIsTheSameFileAndTheSameNameOverOtherContentIsNot()
     {
         await using var world = await SubmissionWorld.CreateAsync();

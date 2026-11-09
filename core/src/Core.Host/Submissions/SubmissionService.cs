@@ -171,10 +171,20 @@ internal sealed class SubmissionService
     private async Task<SubmissionOutcome> StoringAsync(SubmissionRequest request, Opened opened, CancellationToken cancellationToken)
     {
         var place = new SubmissionStoring.Kept(request.DomainId, opened.Batch, opened.Received.Material!);
-        var kept = await SubmissionStoring.KeepAsync(batches, intake.Writer!, place, cancellationToken).ConfigureAwait(false);
-        return kept
-            ? Answer(opened.Received, opened.Batch, (null, opened.Warning), opened.Origin)
-            : new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = SubmissionStoring.WriteFailed, Batch = opened.Batch };
+        var failure = await SubmissionStoring.KeepAsync(batches, intake.Writer!, place, cancellationToken).ConfigureAwait(false);
+        return failure switch
+        {
+            null => Answer(opened.Received, opened.Batch, (null, opened.Warning), opened.Origin),
+            ReasonCodes.AlreadyReceived => await RepeatedAsync(request, opened, cancellationToken).ConfigureAwait(false),
+            _ => new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = failure, Batch = opened.Batch },
+        };
+    }
+
+    /// <summary>A file sent at the same time as an identical one, which the database let the other one accept: it is a repeat of that one, rejected with no item as any other.</summary>
+    private async Task<SubmissionOutcome> RepeatedAsync(SubmissionRequest request, Opened opened, CancellationToken cancellationToken)
+    {
+        var previous = await register.PreviousAsync(request.DomainId, opened.Received.Digest, cancellationToken).ConfigureAwait(false);
+        return Turned(opened, new SubmissionReason(ReasonCodes.AlreadyReceived, new List<SubmissionFinding>(), previous));
     }
 
     /// <summary>What there is to say of a submission that was registered as rejected: the key that was missing is a failure of the service, not a defect of the file.</summary>

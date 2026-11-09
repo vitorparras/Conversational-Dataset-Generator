@@ -62,22 +62,31 @@ internal static class SubmissionStoring
         }
     }
 
-    /// <summary>Writes the items of a file that was not turned back and accepts the batch; when that fails, rejects it with no item and says so.</summary>
+    /// <summary>
+    /// Writes the items of a file that was not turned back and accepts the batch; when that fails, rejects it with no item, and says why: null when the batch was accepted,
+    /// the repeat when another batch accepted the same file first, which the database decides at the acceptance, and the failure to write otherwise.
+    /// </summary>
     /// <param name="batches">Accepts and rejects the batch.</param>
     /// <param name="writer">Writes the items.</param>
     /// <param name="kept">The domain and the batch, open, and what the reader gave.</param>
     /// <param name="cancellationToken">Cancels the writing.</param>
-    internal static async Task<bool> KeepAsync(IngestionBatches batches, ContentWriter writer, Kept kept, CancellationToken cancellationToken)
+    internal static async Task<string?> KeepAsync(IngestionBatches batches, ContentWriter writer, Kept kept, CancellationToken cancellationToken)
     {
         var closing = new BatchClosing(kept.DomainId, kept.BatchId, CustodyAuthor.System);
-        if (await StoreAsync(writer, kept, cancellationToken).ConfigureAwait(false)
-            && (await batches.AcceptAsync(closing, cancellationToken).ConfigureAwait(false)).Outcome == BatchOutcome.Accepted)
+        var motive = WriteFailed;
+        if (await StoreAsync(writer, kept, cancellationToken).ConfigureAwait(false))
         {
-            return true;
+            var accepted = await batches.AcceptAsync(closing, cancellationToken).ConfigureAwait(false);
+            if (accepted.Outcome == BatchOutcome.Accepted)
+            {
+                return null;
+            }
+
+            motive = accepted.Outcome == BatchOutcome.AlreadyReceived ? ReasonCodes.AlreadyReceived : WriteFailed;
         }
 
-        _ = await batches.RejectAsync(closing, WriteFailed, cancellationToken).ConfigureAwait(false);
-        return false;
+        _ = await batches.RejectAsync(closing, motive, cancellationToken).ConfigureAwait(false);
+        return motive;
     }
 
     /// <summary>The reason of a service with no key to seal with: whatever the file is, nothing of it is kept; none when there is a key.</summary>

@@ -10,7 +10,7 @@ using Npgsql;
 namespace Core.Host.Settings;
 
 /// <summary>
-/// The mode asked for with <c>apply-configuration</c> (issue 634, operacao/046; decision 0053): the same executable, run once by the service manager under the account that writes the file of the
+/// The mode asked for with <c>apply-configuration</c> (issue 634, operacao/049; decision 0053): the same executable, run once by the service manager under the account that writes the file of the
 /// configuration and with a credential of the database that only reads. It applies the approved changes the chain and the registry still stand behind, restarts the core once if the file changed
 /// or a restart is still owed, and says what it did in its output; whatever it does not apply is told in the log with the reason and the two sequences, never a person.
 /// </summary>
@@ -47,7 +47,7 @@ internal static class ApplyConfigurationMode
         {
             if (await CredentialPrivileges.CanWriteAsync(dataSource, CancellationToken.None).ConfigureAwait(false))
             {
-                await error.WriteLineAsync($"{Argument} recusado, nada foi gravado: a credencial do banco do aplicador grava; use uma que só lê (operacao/046)").ConfigureAwait(false);
+                await error.WriteLineAsync($"{Argument} recusado, nada foi gravado: a credencial do banco do aplicador grava; use uma que só lê (operacao/049)").ConfigureAwait(false);
                 return ExitCode.ApplierRefused;
             }
 

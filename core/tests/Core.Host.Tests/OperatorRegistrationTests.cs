@@ -18,7 +18,7 @@ public sealed class OperatorRegistrationTests
     {
         await using var source = NpgsqlDataSource.Create(UnreachableDatabase.ConnectionString);
         var sessions = new SessionStore(new SessionLifetimes(TimeSpan.FromMinutes(30), TimeSpan.FromHours(8)), TimeProvider.System);
-        var administration = new OperatorAdministration(new PersonRegistry(source), new PersonCredentials(source, new PasswordDerivation(2)), sessions);
+        var administration = new OperatorAdministration(new PersonRegistry(source), new PersonCredentials(source, new PasswordDerivation(2)), sessions, new PersonNotices(source));
 
         var (made, password) = await administration.RegisterAsync(1, new NewPerson("zqx-nome", "Auditoria"), string.Empty, TestContext.Current.CancellationToken);
 

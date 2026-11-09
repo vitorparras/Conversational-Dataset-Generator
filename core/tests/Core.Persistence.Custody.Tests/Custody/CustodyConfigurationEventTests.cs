@@ -3,7 +3,8 @@ using Core.Persistence.Custody;
 namespace Core.Persistence.Tests.Custody;
 
 /// <summary>
-/// The events of a change of configuration (issue 634): the submission is the author's, and the decision is another person's, approving or refusing, with the sequence of the submission as the reference;
+/// The events of a change of configuration (issue 634): the submission is the author's, and the decision is another person's, approving or refusing,
+/// with the sequence of the submission as the reference;
 /// the item is the change in both, and neither the key nor the value travels in the event.
 /// </summary>
 public sealed class CustodyConfigurationEventTests

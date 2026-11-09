@@ -74,7 +74,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -83,6 +83,7 @@ jobs:
       - uses: ./.github/actions/install-gitleaks
       - name: Instalar ruff, pyright e coverage nas versões fixadas (ainda sem uv no PATH)
         run: pip install -r tools/verify-code/lint-requirements.txt
+      - uses: ./.github/actions/build-database-image
       - name: Construir e testar o núcleo sem o serviço real, e sem uv no PATH
         run: python tools/verify-code/verify.py --step build_core test_core
       - name: Instalar uv na versão fixada (test_real_service chama `uv run --frozen`)
@@ -227,7 +228,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -235,6 +236,7 @@ jobs:
           python-version: '3.12'
       - name: Instalar uv na versão fixada
         run: pip install -r tools/verify-code/service-requirements.txt
+      - uses: ./.github/actions/build-database-image
       - name: Exigir que o núcleo e o serviço executem propriedades
         run: python tools/verify-code/verify.py --step properties
 
@@ -248,7 +250,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
       - name: Construir o projeto de navegador nos pacotes travados (as versões do Playwright e do axe estão em core/Directory.Packages.props)
@@ -258,6 +260,7 @@ jobs:
           dotnet build core/tests/Core.Host.Tests.Browser/Core.Host.Tests.Browser.csproj -c Release --no-restore
       - name: Instalar o Chromium da versão que o pacote fixa, sem latest e sem outro navegador
         run: pwsh core/tests/Core.Host.Tests.Browser/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+      - uses: ./.github/actions/build-database-image
       - name: Rodar os testes de navegador
         run: dotnet run --project core/tests/Core.Host.Tests.Browser/Core.Host.Tests.Browser.csproj -c Release --no-build
       - name: Anotar o tempo do job
@@ -271,7 +274,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -297,7 +300,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -358,7 +361,7 @@ jobs:
         module: ${{ fromJSON(needs.mutation_modules.outputs.modules) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -370,6 +373,23 @@ jobs:
         env:
           MODULE: ${{ matrix.module }}
         run: python tools/verify-code/verify.py --step mutation --module "$MODULE"
+      - id: log
+        name: Dar ao artefato do log um nome sem barra nem arroba
+        if: failure()
+        env:
+          MODULE: ${{ matrix.module }}
+        run: echo "name=log-da-mutacao-$(echo "$MODULE" | tr '/@' '--')-${{ github.run_attempt }}" >> "$GITHUB_OUTPUT"
+      - name: Guardar o log do Stryker e o do host de teste quando o passo reprova
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ steps.log.outputs.name }}
+          path: |
+            .verify-code/mutation/core/*/logs
+            .verify-code/mutation/core/*/stryker-config.json
+          include-hidden-files: true
+          retention-days: 14
+          if-no-files-found: ignore
 
   # Aggregates the matrix under the name the check always had. It always reports: everything skipped
   # when the classification dispensed it, an empty matrix when the list declared that no module is
@@ -406,7 +426,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -422,7 +442,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -444,8 +464,10 @@ jobs:
         with:
           python-version: '3.12'
       - uses: ./.github/actions/install-gitleaks
-      - name: Varrer o diff do pull request, ou o histórico inteiro fora dele
-        run: python tools/verify-code/verify.py --step secrets ${{ github.event_name == 'pull_request' && format('--base origin/{0}', github.base_ref) || '' }}
+      # The push to main answers for the main alone: the clone holds every branch, and an old one
+      # with a finding (#722) must not turn the main red. The schedule still reads them all.
+      - name: Varrer o diff do pull request, o histórico do main no push e o de todas as branches fora deles
+        run: python tools/verify-code/verify.py --step secrets ${{ github.event_name == 'pull_request' && format('--base origin/{0}', github.base_ref) || github.event_name == 'push' && '--head-only' || '' }}
 
   trivy:
     name: Dependências, segredos e configuração (trivy)

@@ -1,6 +1,6 @@
 @if (Href is null)
 {
-    <button id="@Id" class="@Classes" type="@Type" disabled="@Disabled" data-shortcut="@Shortcut" aria-keyshortcuts="@Shortcut">@ChildContent@Key</button>
+    <button id="@Id" class="@Classes" type="@Type" disabled="@Disabled" aria-describedby="@DescribedBy" data-shortcut="@Shortcut" aria-keyshortcuts="@Shortcut">@ChildContent@Key</button>
 }
 else
 {
@@ -41,6 +41,9 @@ else
 
     [Parameter]
     public bool Disabled { get; set; }
+
+    [Parameter]
+    public string? DescribedBy { get; set; }
 
     [Parameter, EditorRequired]
     public RenderFragment? ChildContent { get; set; }

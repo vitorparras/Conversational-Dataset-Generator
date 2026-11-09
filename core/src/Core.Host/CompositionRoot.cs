@@ -164,7 +164,9 @@ internal static class CompositionRoot
         Compose(builder, loaded.View, fileLog);
         AddAnalysis(builder.Services, loaded.Values, analyzeTimeout);
         _ = builder.Services.AddSingleton(PasswordConfiguration.Derivation(loaded.Values)).AddSingleton(VerificationConfiguration.Schedule(loaded.Values));
-        _ = builder.Services.AddSingleton(SealConfiguration.Declaration(loaded.Values));
+        _ = builder.Services.AddSingleton(SealConfiguration.Declaration(loaded.Values))
+            .AddSingleton(provider => Submissions.SubmissionParts.BatchesOf(provider, loaded.Values))
+            .AddSingleton(Submissions.SubmissionParts.RegisterOf);
         _ = builder.Services.AddSingleton(_ => new ServerAuditLog(AuditConfiguration.ServerLogDirectory(loaded.Values))).AddSingleton<AuditComparisonState>();
         _ = builder.Services.AddHostedService(provider => new AuditComparisonService(
             new AuditComparisonPlan(
@@ -190,9 +192,8 @@ internal static class CompositionRoot
         _ = builder.Services.AddSingleton(provider => new ChainVerificationService(provider)).AddHostedService(provider => provider.GetRequiredService<ChainVerificationService>());
         _ = builder.Services.AddHostedService(provider => new SealSendingService(provider));
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source ? new DomainListing(source) : null!);
-        _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source
-            ? new OperatorAdministration(new PersonRegistry(source), new PersonCredentials(source, provider.GetRequiredService<PasswordDerivation>()), provider.GetRequiredService<SessionStore>())
-            : null!);
+        _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source ? new OperatorAdministration(
+            new PersonRegistry(source), CredentialsOf(source, provider.GetRequiredService<PasswordDerivation>()), provider.GetRequiredService<SessionStore>(), new PersonNotices(source)) : null!);
         _ = builder.Services.AddSingleton(provider => new SignInDelay(provider.GetRequiredService<TimeProvider>()));
         _ = builder.Services.AddSingleton(provider => provider.GetService<OperatorAdministration>() is { } staff
             ? new PasswordChange(staff.Credentials, provider.GetRequiredService<SessionStore>(), provider.GetRequiredService<SignInDelay>()) : null!);

@@ -29,7 +29,7 @@ internal static class ScreenGate
         });
 
     /// <summary>The one answer of an address that leads nowhere the one who entered may go.</summary>
-    private static Task NotFoundAsync(HttpContext context)
+    internal static Task NotFoundAsync(HttpContext context)
     {
         if (!SessionGate.AsksForPage(context.Request))
         {
@@ -41,7 +41,7 @@ internal static class ScreenGate
     }
 
     /// <summary>With no database declared there is no registry, so no function and no screen but the pages of everyone.</summary>
-    private static async Task<ScreenReach> ReachOfAsync(HttpContext context)
+    internal static async Task<ScreenReach> ReachOfAsync(HttpContext context)
     {
         var subject = context.RequestServices.GetRequiredService<SessionStore>().Resolve(SessionCookie.Read(context.Request));
         if (subject is not { } entered || context.RequestServices.GetService<OperatorAdministration>() is not { } administration)
@@ -52,6 +52,7 @@ internal static class ScreenGate
         var function = await administration.Registry.ActiveFunctionOfAsync(entered, context.RequestAborted).ConfigureAwait(false);
         var grants = context.RequestServices.GetService<DomainGrants>();
         var granted = grants is null ? DomainGrants.None : await grants.GrantedToAsync(entered, context.RequestAborted).ConfigureAwait(false);
-        return new ScreenReach(function, granted);
+        var unread = await administration.Notices.UnreadCountAsync(entered, context.RequestAborted).ConfigureAwait(false);
+        return new ScreenReach(function, granted) { Unread = unread };
     }
 }

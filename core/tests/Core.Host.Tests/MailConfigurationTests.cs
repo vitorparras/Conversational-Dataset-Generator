@@ -12,7 +12,7 @@ public sealed class MailConfigurationTests
     [Fact]
     public void Ca1WithNoKeyOfTheGroupNothingIsRefusedAndNoServerIsDeclared()
     {
-        var loaded = Load(new Dictionary<string, string?>());
+        var loaded = Load([]);
 
         Assert.False(loaded.Refused);
         Assert.Empty(MailConfiguration.Refusals(loaded.Values));
@@ -33,8 +33,8 @@ public sealed class MailConfigurationTests
     public void AGroupWithNoUserNorPasswordIsWholeForAServerThatAsksForNone()
     {
         var values = Whole();
-        values.Remove("CDG_Mail__User");
-        values.Remove("CDG_Mail__Password");
+        _ = values.Remove("CDG_Mail__User");
+        _ = values.Remove("CDG_Mail__Password");
 
         var loaded = Load(values);
 
@@ -59,7 +59,7 @@ public sealed class MailConfigurationTests
     public void Ca2AUserWithoutItsPasswordOrAPasswordWithoutItsUserIsRefused(string left, string named)
     {
         var values = Whole();
-        values.Remove(left);
+        _ = values.Remove(left);
 
         var problem = Assert.Single(MailConfiguration.Refusals(Load(values).Values));
 

@@ -79,8 +79,10 @@ public sealed partial class CustodyListsInTheDatabaseTests
         var definition = Assert.Single(await database.FirstColumnAsOwnerAsync(
             $"SELECT pg_catalog.pg_get_constraintdef(oid) FROM pg_catalog.pg_constraint WHERE conrelid = 'public.custody_event'::regclass AND conname = '{constraint}'"));
 
-        var listed = Literal().Matches(definition).Select(match => match.Groups[1].Value).Order(StringComparer.Ordinal).ToArray();
-        Assert.Equal([.. declared.Order(StringComparer.Ordinal)], listed);
+        var listed = Literal().Matches(definition).Select(match => match.Groups[1].Value).ToArray();
+        var missing = declared.Except(listed, StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+        var extra = listed.Except(declared, StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+        Assert.True(missing.Length == 0 && extra.Length == 0, $"{constraint}: faltam no banco [{string.Join(", ", missing)}]; sobram no banco [{string.Join(", ", extra)}].");
     }
 
     private static async Task<object?> CallAsync(NpgsqlDataSource app, string function, params object[] arguments)

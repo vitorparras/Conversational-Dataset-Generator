@@ -48,7 +48,7 @@ class RemoteBuildWorkflowTests(unittest.TestCase):
         for command in (
             "dotnet build core/Core.slnx -c Release",
             "dotnet format core/Core.slnx --verify-no-changes",
-            "dotnet test core/tests/Core.Tests.Architecture",
+            "dotnet test --project core/tests/Core.Tests.Architecture/Core.Tests.Architecture.csproj",
         ):
             with self.subTest(command=command):
                 self.assertIn(command, run)

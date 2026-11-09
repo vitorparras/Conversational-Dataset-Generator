@@ -33,9 +33,9 @@ internal static class MailConfiguration
     private const string PasswordKey = "Password";
     private const int HighestPort = 65_535;
 
-    private static readonly string[] Whole = { HostPath, PortPath, SenderPath, TransportPath };
+    private static readonly string[] Whole = Of(HostPath, PortPath, SenderPath, TransportPath);
 
-    private static readonly string[] Pair = { UserPath, PasswordPath };
+    private static readonly string[] Pair = Of(UserPath, PasswordPath);
 
     /// <summary>Every key is optional to the schema, which cannot say that a group is all or nothing; <see cref="Refusals"/> says it. The transport accepts no clear text.</summary>
     internal static ConfigurationSection Section { get; } = new(SectionName, Keys());
@@ -50,14 +50,14 @@ internal static class MailConfiguration
         }
 
         problems.AddRange(Whole.Where(path => !values.ContainsKey(path)).Select(Missing));
-        if (Pair.Any(values.ContainsKey))
+        if (Array.Exists(Pair, values.ContainsKey))
         {
             problems.AddRange(Pair.Where(path => !values.ContainsKey(path)).Select(Missing));
         }
 
         if (values.TryGetValue(PortPath, out var port) && !IsPort(port))
         {
-            problems.Add(new ConfigurationProblem(ConfigurationProblemKind.ValueNotAccepted, PortPath, port, Only($"um número de porta, de 1 a {HighestPort}")));
+            problems.Add(new ConfigurationProblem(ConfigurationProblemKind.ValueNotAccepted, PortPath, port, Of($"um número de porta, de 1 a {HighestPort}")));
         }
 
         return problems;
@@ -81,22 +81,14 @@ internal static class MailConfiguration
 
     private static ConfigurationProblem Missing(string path) => new(ConfigurationProblemKind.MissingKey, path, Found: null, Accepted: null);
 
-    private static string[] Only(string rule)
-    {
-        var rules = new string[1];
-        rules[0] = rule;
-        return rules;
-    }
+    private static T[] Of<T>(params T[] items) => items;
 
-    private static ConfigurationKey[] Keys()
-    {
-        var keys = new ConfigurationKey[6];
-        keys[0] = ConfigurationKey.Optional(HostKey);
-        keys[1] = ConfigurationKey.Optional(PortKey);
-        keys[2] = ConfigurationKey.Optional(SenderKey);
-        keys[3] = ConfigurationKey.Optional(TransportKey).Accepting(nameof(MailTransport.Tls), nameof(MailTransport.StartTls));
-        keys[4] = ConfigurationKey.Optional(UserKey);
-        keys[5] = ConfigurationKey.Optional(PasswordKey).AsSensitive();
-        return keys;
-    }
+    private static ConfigurationKey[] Keys() =>
+        Of(
+            ConfigurationKey.Optional(HostKey),
+            ConfigurationKey.Optional(PortKey),
+            ConfigurationKey.Optional(SenderKey),
+            ConfigurationKey.Optional(TransportKey).Accepting(nameof(MailTransport.Tls), nameof(MailTransport.StartTls)),
+            ConfigurationKey.Optional(UserKey),
+            ConfigurationKey.Optional(PasswordKey).AsSensitive());
 }

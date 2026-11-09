@@ -154,16 +154,11 @@ internal sealed class SubmissionService
     /// <summary>A file that was not turned back has its items written and is accepted, or is rejected with no item when they cannot be.</summary>
     private async Task<SubmissionOutcome> StoringAsync(SubmissionRequest request, Opened opened, CancellationToken cancellationToken)
     {
-        var closing = new BatchClosing(request.DomainId, opened.Batch, CustodyAuthor.System);
         var place = new SubmissionStoring.BatchRef(request.DomainId, opened.Batch);
-        var stored = await SubmissionStoring.StoreAsync(intake.Writer!, place, opened.Received.Material!, cancellationToken).ConfigureAwait(false);
-        if (stored && (await batches.AcceptAsync(closing, cancellationToken).ConfigureAwait(false)).Outcome == BatchOutcome.Accepted)
-        {
-            return Answer(opened.Received, opened.Batch, (null, opened.Warning), opened.Origin);
-        }
-
-        _ = await batches.RejectAsync(closing, SubmissionStoring.WriteFailed, cancellationToken).ConfigureAwait(false);
-        return new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = SubmissionStoring.WriteFailed, Batch = opened.Batch };
+        var kept = await SubmissionStoring.KeepAsync(batches, intake.Writer!, place, opened.Received.Material!, cancellationToken).ConfigureAwait(false);
+        return kept
+            ? Answer(opened.Received, opened.Batch, (null, opened.Warning), opened.Origin)
+            : new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = SubmissionStoring.WriteFailed, Batch = opened.Batch };
     }
 
     /// <summary>What there is to say of a submission that was registered as rejected: the key that was missing is a failure of the service, not a defect of the file.</summary>
@@ -172,7 +167,11 @@ internal sealed class SubmissionService
         : Answer(opened.Received, opened.Batch, (reason, opened.Warning), opened.Origin);
 
     /// <summary>The reason of a service with no key to seal with: whatever the file is, nothing of it is kept.</summary>
-    private SubmissionReason? Unsealed() => intake.Sealing is null ? new SubmissionReason(SubmissionStoring.KeyUnavailable, new List<SubmissionFinding>()) : null;
+    private SubmissionReason? Unsealed()
+    {
+        var none = new List<SubmissionFinding>();
+        return intake.Sealing is null ? new SubmissionReason(SubmissionStoring.KeyUnavailable, none) : null;
+    }
 
     private sealed record Opened(SubmissionResult Received, long Batch, string? Warning, string Origin);
 }

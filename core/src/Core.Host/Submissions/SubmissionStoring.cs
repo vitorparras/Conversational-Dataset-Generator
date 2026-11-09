@@ -2,6 +2,8 @@ using Core.Ingestion;
 using Core.Persistence.Content;
 using Core.Persistence.Content.Sealing;
 using Core.Persistence.Content.Writing;
+using Core.Persistence.Custody;
+using Core.Persistence.Ingestion;
 using Npgsql;
 
 namespace Core.Host.Submissions;
@@ -59,6 +61,25 @@ internal static class SubmissionStoring
         {
             return false;
         }
+    }
+
+    /// <summary>Writes the items of a file that was not turned back and accepts the batch; when an item cannot be written, or the batch cannot be accepted, rejects it with no item and says so.</summary>
+    /// <param name="batches">Accepts and rejects the batch.</param>
+    /// <param name="writer">Writes the items.</param>
+    /// <param name="batch">The domain and the batch, open.</param>
+    /// <param name="material">What the reader gave.</param>
+    /// <param name="cancellationToken">Cancels the writing.</param>
+    internal static async Task<bool> KeepAsync(IngestionBatches batches, ContentWriter writer, BatchRef batch, ReadMaterial material, CancellationToken cancellationToken)
+    {
+        var closing = new BatchClosing(batch.DomainId, batch.BatchId, CustodyAuthor.System);
+        if (await StoreAsync(writer, batch, material, cancellationToken).ConfigureAwait(false)
+            && (await batches.AcceptAsync(closing, cancellationToken).ConfigureAwait(false)).Outcome == BatchOutcome.Accepted)
+        {
+            return true;
+        }
+
+        _ = await batches.RejectAsync(closing, WriteFailed, cancellationToken).ConfigureAwait(false);
+        return false;
     }
 
     /// <summary>The batch an item is written to.</summary>

@@ -230,7 +230,6 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
 .paged-list > li { padding: var(--space-3) 0; border-bottom: var(--line) solid var(--edge-soft); }
 
 .pager { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4); margin-top: var(--space-4); color: var(--ink-muted); font-variant-numeric: tabular-nums; }
-.pager__edge { color: var(--ink-muted); }
 
 /* Empty state: what is empty, then why and what makes something appear. */
 .empty-state { max-width: var(--measure); padding: var(--space-5); border: var(--line-strong) dashed var(--edge); border-radius: var(--radius-md); }
@@ -317,6 +316,7 @@ h1 + .lead { margin-top: 0; }
 .filter > .field { flex: 1 1 var(--term-width); }
 .filter > .actions { flex-basis: 100%; }
 
-/* Row of a list: the name first and strong, then what describes it. */
+/* Row of a list: the name first and strong, then what describes it, each in a column of its own width, so that on a wide screen what describes the name stays near it. */
 .row { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-5); }
-.row > strong { flex: 1 1 var(--term-width); }
+.row > strong, .row > strong + span { flex: 0 1 var(--term-width); min-width: 0; overflow-wrap: anywhere; }
+.form > .notice { margin-bottom: var(--space-5); }

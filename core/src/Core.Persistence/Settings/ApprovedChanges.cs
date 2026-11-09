@@ -36,21 +36,15 @@ public sealed class ApprovedChanges
     /// <param name="cancellationToken">Cancels the reading.</param>
     public async Task<IReadOnlyList<ApprovedChange>> PendingAsync(CancellationToken cancellationToken)
     {
-        var found = new List<ApprovedChange>();
         var command = dataSource.CreateCommand(Pending);
         await using (command.ConfigureAwait(false))
         {
             var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             await using (reader.ConfigureAwait(false))
             {
-                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-                {
-                    found.Add(Read(reader));
-                }
+                return await AllAsync(reader, cancellationToken).ConfigureAwait(false);
             }
         }
-
-        return found;
     }
 
     /// <summary>Records that the core started with the value of the change, as the event of the system that points at the approval.</summary>
@@ -60,6 +54,17 @@ public sealed class ApprovedChanges
     {
         ArgumentNullException.ThrowIfNull(change);
         return new CustodyChain(dataSource).AppendAsync(CustodyEvent.ConfigurationInForce(change.Id, change.ApprovalSequence), cancellationToken);
+    }
+
+    private static async Task<IReadOnlyList<ApprovedChange>> AllAsync(NpgsqlDataReader reader, CancellationToken cancellationToken)
+    {
+        var found = new List<ApprovedChange>();
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            found.Add(Read(reader));
+        }
+
+        return found;
     }
 
     private static ApprovedChange Read(NpgsqlDataReader reader) => new()

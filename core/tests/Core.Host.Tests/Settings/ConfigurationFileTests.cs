@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Nodes;
 using Core.Host.Settings;
 
@@ -29,6 +30,7 @@ public sealed class ConfigurationFileTests : IDisposable
     [Fact]
     public void TheVersionBeforeIsKeptWithTheMomentInItsNameAndItsContentAsItWas()
     {
+        // language=json
         const string Before = """{ "Session": { "IdleTimeout": "00:30:00" } }""";
         var path = Written(Before);
 
@@ -65,6 +67,7 @@ public sealed class ConfigurationFileTests : IDisposable
     [Fact]
     public void ASectionThatIsNotAnObjectIsLeftExactlyAsItWas()
     {
+        // language=json
         const string Odd = """{ "Session": "texto" }""";
         var path = Written(Odd);
 
@@ -134,9 +137,9 @@ public sealed class ConfigurationFileTests : IDisposable
 
     private static JsonObject Read(string path) => (JsonObject)JsonNode.Parse(File.ReadAllText(path))!;
 
-    private static string Text(JsonObject root, string section, string name) => (string)root[section]![name]!;
+    private static string Text(JsonNode root, string section, string name) => (string)root[section]![name]!;
 
-    private string Written(string content)
+    private string Written([StringSyntax(StringSyntaxAttribute.Json)] string content)
     {
         var path = Path.Combine(folder.Path, "appsettings.json");
         File.WriteAllText(path, content);

@@ -44,6 +44,7 @@ internal sealed class AuditComparisonRun : IAsyncDisposable
         var clock = new TimerAnnouncingClock(new DateTimeOffset(2026, 11, 2, 12, 0, 0, TimeSpan.Zero));
         var state = new AuditComparisonState();
         var log = new AuditComparisonLog();
+        log.Watch(state);
         var plan = new AuditComparisonPlan(
             Interval,
             (from, to, _) =>

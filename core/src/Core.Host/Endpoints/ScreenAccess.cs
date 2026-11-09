@@ -26,6 +26,9 @@ internal sealed class ScreenAccess
     /// <summary>Where the entry stands in the menu, which lists the entries by this place and never by the order the routes were mapped in.</summary>
     internal int Place { get; }
 
+    /// <summary>The screen of the functions given and no entry in the menu, such as the page that confirms an act, which one reaches from the screen that asks for it.</summary>
+    internal static ScreenAccess WithoutEntry(params string[] functions) => new(functions, caption: null, place: 0);
+
     /// <summary>The screen of the functions given, with its entry in the menu at the place given.</summary>
     internal static ScreenAccess Of(string caption, int place, params string[] functions) => new(functions, caption, place);
 

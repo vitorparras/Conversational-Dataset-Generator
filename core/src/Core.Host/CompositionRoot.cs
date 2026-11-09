@@ -237,5 +237,10 @@ internal static class CompositionRoot
     }
 
     /// <summary>A web host with no configuration source of its own, so nothing reaches it except what the closed configuration approved.</summary>
-    internal static WebApplicationBuilder ClosedBuilder(string urls) => HostBuilders.Closed(urls);
+    internal static WebApplicationBuilder ClosedBuilder(string urls)
+    {
+        var builder = HostBuilders.Closed(urls);
+        _ = builder.Services.AddRoutingCore();
+        return builder;
+    }
 }

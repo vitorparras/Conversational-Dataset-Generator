@@ -11,7 +11,6 @@ internal static class HostBuilders
     {
         var builder = WebApplication.CreateEmptyBuilder(new WebApplicationOptions { ContentRootPath = AppContext.BaseDirectory });
         _ = builder.WebHost.UseKestrel().UseUrls(urls);
-        _ = builder.Services.AddRoutingCore();
         _ = builder.Services.Configure<ConsoleLifetimeOptions>(options => options.SuppressStatusMessages = true);
         return builder;
     }

@@ -1,0 +1,140 @@
+@using System.Globalization
+@using Core.Persistence.Ingestion
+
+<h1>Lote @Number(Batch.Id)</h1>
+<p class="lead">O que o lote trouxe, em contagens: os itens por forma, os trechos identificáveis por destino e o conteúdo replicado. Nenhum texto do material aparece aqui.</p>
+
+<Panel Id="lote-resumo" Title="Resumo">
+    <FactList>
+        <Fact Term="Domínio">@Batch.Domain</Fact>
+        <Fact Term="Estado">
+            <StateMark Kind="BatchTexts.ToneOf(Batch.State)">@BatchTexts.StateOf(Batch.State)</StateMark>
+            @if (Batch.Motive is { } motive)
+            {
+                <p>@BatchTexts.MotiveOf(motive)</p>
+            }
+        </Fact>
+        <Fact Term="Enviado por">@Batch.SubmittedBy</Fact>
+        <Fact Term="Quando"><Moment At="Batch.SubmittedAt" /></Fact>
+        <Fact Term="Procedência">@BatchDetailTexts.OriginOf(Batch.OriginDeclared)</Fact>
+        <Fact Term="Reenvio">
+            @if (Batch.Recognized is { } prior)
+            {
+                <span>Reconhecido como reenvio do material do <a href="@prior.Address">lote @Number(prior.Batch)</a>.</span>
+            }
+            else
+            {
+                <span>Não é reenvio de um lote anterior.</span>
+            }
+        </Fact>
+    </FactList>
+</Panel>
+
+@if (Batch.Accommodation is { } accommodation)
+{
+    <Panel Id="lote-perda" Title="Perda declarada">
+        <Notice Kind="Notice.Tone.Pending">
+            O material veio como @BatchDetailTexts.FormOf(accommodation.Declared) e foi acomodado como @BatchDetailTexts.FormOf(accommodation.Into), em @Items(accommodation.Items). O que se perdeu:
+        </Notice>
+        <ul>
+            @foreach (var loss in accommodation.Losses)
+            {
+                <li>@BatchDetailTexts.LossOf(loss)</li>
+            }
+        </ul>
+    </Panel>
+}
+
+<Panel Id="lote-formas" Title="Itens por forma">
+    @if (Batch.Forms.Count == 0)
+    {
+        <EmptyState Title="Nenhum item neste lote."><p>@BatchDetailTexts.NoItemsOf(Batch.State)</p></EmptyState>
+    }
+    else
+    {
+        <FactList>
+            @foreach (var form in Batch.Forms)
+            {
+                <Fact Term="@BatchDetailTexts.FormNameOf(form.Form)">@Items(form.Items)</Fact>
+            }
+        </FactList>
+    }
+</Panel>
+
+<Panel Id="lote-destinos" Title="Trechos identificáveis por destino">
+    <FactList>
+        @foreach (var destination in BatchDetailTexts.Destinations)
+        {
+            <Fact Term="@destination.Caption">@Passages(Batch.PassagesOf(destination.Code))</Fact>
+        }
+    </FactList>
+</Panel>
+
+<Panel Id="lote-replicado" Title="Conteúdo replicado">
+    <FactList>
+        <Fact Term="Mensagens marcadas como réplica">@Number(Batch.Replicas.Marked)</Fact>
+        <Fact Term="Primeiras ocorrências desse conteúdo">@Number(Batch.Replicas.Firsts)</Fact>
+    </FactList>
+    <p>Nada replicado é removido nem fundido: cada réplica fica marcada e aponta para a primeira ocorrência.</p>
+</Panel>
+
+<div class="actions">
+    <Button Href="@ListAddress" Kind="Button.Look.Secondary">Voltar para os lotes</Button>
+</div>
+
+@code {
+    /// <summary>The title of the page.</summary>
+    internal const string Title = "Lote";
+
+    /// <summary>How many items of one form the batch holds.</summary>
+    public sealed record FormCount(string Form, int Items);
+
+    /// <summary>How many passages detected as identifiable got one destination: <c>remove</c>, <c>pseudonymize</c> or <c>preserve</c>.</summary>
+    public sealed record DestinationCount(string Destination, int Passages);
+
+    /// <summary>How many messages are marked as replicas of another, and how many first occurrences they point to.</summary>
+    public sealed record ReplicaCount(int Marked, int Firsts)
+    {
+        /// <summary>Nothing replicated.</summary>
+        public static ReplicaCount None { get; } = new(0, 0);
+    }
+
+    /// <summary>The earlier batch that recognized the material of this one as sent before, with the address of its detail.</summary>
+    public sealed record Recognition(long Batch, string Address);
+
+    /// <summary>The form the material was declared as, the form it was accommodated into, how many items, and the codes of what that loses (decision 0024).</summary>
+    public sealed record Accommodated(string Declared, string Into, int Items, IReadOnlyList<string> Losses);
+
+    /// <summary>
+    /// One batch as the detail shows it: who sent it, when, its state, whether the origin was declared, and counts alone. Nothing in it is a word of the material,
+    /// the name of the file or the origin as it was written (CA-4).
+    /// </summary>
+    public sealed record Detail(long Id, string Domain, BatchState State, string? Motive, string SubmittedBy, DateTimeOffset SubmittedAt, bool OriginDeclared)
+    {
+        public IReadOnlyList<FormCount> Forms { get; init; } = Array.Empty<FormCount>();
+
+        public IReadOnlyList<DestinationCount> Destinations { get; init; } = Array.Empty<DestinationCount>();
+
+        public ReplicaCount Replicas { get; init; } = ReplicaCount.None;
+
+        public Recognition? Recognized { get; init; }
+
+        public Accommodated? Accommodation { get; init; }
+
+        /// <summary>The passages of a destination; a destination with none counts zero, so that all three are always said.</summary>
+        internal int PassagesOf(string destination) => Destinations.Where(count => count.Destination == destination).Sum(count => count.Passages);
+    }
+
+    [Parameter, EditorRequired]
+    public Detail Batch { get; set; } = null!;
+
+    /// <summary>The address of the list of batches, with the filter it was opened from.</summary>
+    [Parameter, EditorRequired]
+    public string ListAddress { get; set; } = "";
+
+    private static string Number(long value) => value.ToString(CultureInfo.InvariantCulture);
+
+    private static string Items(int count) => count == 1 ? "1 item" : $"{Number(count)} itens";
+
+    private static string Passages(int count) => count == 1 ? "1 trecho" : $"{Number(count)} trechos";
+}

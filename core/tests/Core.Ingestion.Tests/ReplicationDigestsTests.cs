@@ -60,7 +60,7 @@ public sealed class ReplicationDigestsTests : IDisposable
     {
         var rule = new ReplicationRule(minLength: 6, minSenders: 2);
         var kept = ReplicationDigests.OccurrenceOf(Derivation, 7, new ReplicationPlace(1, 0), Measured("ZQX-ana", Start, "ZQX-\U0001F600", 0, codePoints));
-        var arriving = ReplicationDigests.OccurrenceOf(Derivation, 7, new ReplicationPlace(9, 4), Measured("ZQX-bia", Start.AddDays(2), "ZQX-0001F600", 4, CODEPOINTS));
+        var arriving = ReplicationDigests.OccurrenceOf(Derivation, 7, new ReplicationPlace(9, 4), Measured("ZQX-bia", Start.AddDays(2), "ZQX-\U0001F600", 4, codePoints));
 
         Assert.Equal(marked, Replication.Marks(rule, [kept], [arriving]).Count > 0);
     }

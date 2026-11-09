@@ -10,6 +10,7 @@ try that failed was repaired by the next, the job summary says which URL and whi
 from __future__ import annotations
 
 import re
+import sys
 import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
@@ -141,11 +142,17 @@ def report(command: Sequence[str], found: Evidence, tries: int, repaired: bool) 
     return "\n".join(lines)
 
 
+def wait_announcing(seconds: float) -> None:
+    """Says on stderr that the try failed by the network, then waits: the log shows each retry."""
+    print(f"retry: falha de rede; nova tentativa em {seconds:.0f} s", file=sys.stderr, flush=True)
+    time.sleep(seconds)
+
+
 def repeat(
     attempt: Callable[[], CommandOutcome],
     command: Sequence[str],
     *,
-    sleep: Sleep = time.sleep,
+    sleep: Sleep = wait_announcing,
     publish: Publish = summarize,
 ) -> CommandOutcome:
     """Runs ``attempt`` again while it fails with a network failure, waiting longer each time."""
@@ -167,7 +174,7 @@ def repeat(
 
 
 def retrying(
-    run: RunCommand, *, sleep: Sleep = time.sleep, publish: Publish = summarize
+    run: RunCommand, *, sleep: Sleep = wait_announcing, publish: Publish = summarize
 ) -> RunCommand:
     """``run`` that tries a download again; any other command goes through as it is."""
 

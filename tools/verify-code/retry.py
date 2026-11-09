@@ -13,7 +13,6 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
-import time
 from collections.abc import Iterator, Sequence
 
 from steps import downloads
@@ -52,18 +51,12 @@ def _echo(process: subprocess.Popen[str]) -> Iterator[str]:
         yield line
 
 
-def announce(seconds: float) -> None:
-    """Says the try failed by the network and waits."""
-    print(f"retry: falha de rede; nova tentativa em {seconds:.0f} s", file=sys.stderr, flush=True)
-    time.sleep(seconds)
-
-
 def main(arguments: Sequence[str]) -> int:
     if SEPARATOR not in arguments or arguments.index(SEPARATOR) == len(arguments) - 1:
         print("uso: retry.py -- <comando> [argumentos]", file=sys.stderr)
         return USAGE
     command = list(arguments[arguments.index(SEPARATOR) + 1 :])
-    outcome = downloads.repeat(lambda: stream(command), command, sleep=announce)
+    outcome = downloads.repeat(lambda: stream(command), command)
     return 0 if outcome.ok else (outcome.code or 1)
 
 

@@ -210,7 +210,7 @@ class CommandLineTests(unittest.TestCase):
         environment = mock.patch.dict(os.environ, {coverage_by_area.SUMMARY: str(self.summary)})
         environment.start()
         self.addCleanup(environment.stop)
-        sleeping = mock.patch.object(retry.time, "sleep")
+        sleeping = mock.patch.object(downloads.time, "sleep")
         self.sleeping = sleeping.start()
         self.addCleanup(sleeping.stop)
 

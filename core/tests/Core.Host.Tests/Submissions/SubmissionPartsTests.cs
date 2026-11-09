@@ -1,5 +1,4 @@
 using Core.Host.Submissions;
-using Core.Persistence.Custody;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Fixtures;
 using Core.Platform.Keys;
@@ -116,7 +115,7 @@ public sealed class SubmissionPartsTests
         using var next = await holder.GetAsync(TestContext.Current.CancellationToken);
         var after = await next!.Service.SubmitAsync(SubmissionWorld.Request() with { DomainId = 3 }, TestContext.Current.CancellationToken);
 
-        Assert.Equal(((BatchOutcome?)null, SubmissionKind.Done, SubmissionKind.Done), (before.Failure, before.Kind, after.Kind));
+        Assert.Equal((null, SubmissionKind.Done, SubmissionKind.Done), (before.Failure, before.Kind, after.Kind));
         Assert.NotSame(first.Service, next.Service);
     }
 
@@ -162,7 +161,7 @@ public sealed class SubmissionPartsTests
     /// <summary>A source of the master key that gives it, with the labels of three domains, or does not, as the test asks; each reading is a new one, as the file is read again.</summary>
     private sealed class FixedKeySource : IMasterKeySource
     {
-        private static readonly string[] Labels = new[] { "texto-bruto/1/v1", "texto-bruto/2/v1", "texto-bruto/3/v1" };
+        private static readonly string[] Labels = ["texto-bruto/1/v1", "texto-bruto/2/v1", "texto-bruto/3/v1"];
 
         internal FixedKeySource(bool present)
         {

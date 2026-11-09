@@ -13,7 +13,7 @@ internal sealed class SubmissionServiceHolder : IDisposable
     /// <summary>The holder over the way to build the service.</summary>
     /// <param name="maxBytes">The most bytes a file may have, which the route bounds the body by.</param>
     /// <param name="build">Builds the service and the key it holds.</param>
-    public SubmissionServiceHolder(long maxBytes, Func<CancellationToken, Task<Loaded>> build)
+    internal SubmissionServiceHolder(long maxBytes, Func<CancellationToken, Task<Loaded>> build)
     {
         ArgumentNullException.ThrowIfNull(build);
         this.build = build;
@@ -21,7 +21,7 @@ internal sealed class SubmissionServiceHolder : IDisposable
     }
 
     /// <summary>The most bytes a file may have.</summary>
-    public long MaxBytes { get; }
+    internal long MaxBytes { get; }
 
     /// <summary>A holder of a service already built, which holds no key of its own.</summary>
     /// <param name="service">The service.</param>
@@ -30,7 +30,7 @@ internal sealed class SubmissionServiceHolder : IDisposable
 
     /// <summary>The service, built by the first request that asks.</summary>
     /// <param name="cancellationToken">Cancels the wait.</param>
-    public async Task<SubmissionService> GetAsync(CancellationToken cancellationToken)
+    internal async Task<SubmissionService> GetAsync(CancellationToken cancellationToken)
     {
         await turn.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -45,7 +45,7 @@ internal sealed class SubmissionServiceHolder : IDisposable
     }
 
     /// <summary>Lets go of the key the service holds.</summary>
-    public void Dispose()
+    internal void Dispose()
     {
         loaded?.Key?.Dispose();
         turn.Dispose();

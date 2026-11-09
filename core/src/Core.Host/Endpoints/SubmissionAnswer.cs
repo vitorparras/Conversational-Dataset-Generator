@@ -14,18 +14,19 @@ internal static class SubmissionAnswer
         SubmissionKind.Invalid => Results.Json(new FieldsRefused([.. outcome.Fields!.Select(Field)]), statusCode: StatusCodes.Status400BadRequest),
         SubmissionKind.Blocked => Results.Json(new SubmissionBlocked(outcome.BlockedBy), statusCode: StatusCodes.Status409Conflict),
         SubmissionKind.NotRecorded => NotRecorded(outcome.Failure),
-        _ => Results.Json(Done(outcome), statusCode: outcome.IsTooLarge ? StatusCodes.Status413PayloadTooLarge : StatusCodes.Status201Created),
+        SubmissionKind.Done => Results.Json(Done(outcome), statusCode: outcome.IsTooLarge ? StatusCodes.Status413PayloadTooLarge : StatusCodes.Status201Created),
+        _ => throw new ArgumentOutOfRangeException(nameof(outcome), outcome.Kind, "The kind of the outcome is not one the service answers."),
     };
 
     /// <summary>The fields at fault when the body had no file, beside the ones the service found.</summary>
-    internal static IResult NoFile(IReadOnlyList<FieldProblem> problems) =>
+    internal static IResult NoFile(IEnumerable<FieldProblem> problems) =>
         Results.Json(new FieldsRefused([.. problems.Select(Field), new FieldShown("file", "missing")]), statusCode: StatusCodes.Status400BadRequest);
 
     /// <summary>A batch as the list shows it.</summary>
     internal static BatchShown Shown(BatchEntry entry) => new(
         entry.Id,
         entry.DomainId,
-        entry.State.ToString().ToLowerInvariant(),
+        ReasonCodes.Of(entry.State),
         entry.Reason,
         entry.SubmittedAt.ToUniversalTime(),
         entry.SubmittedBy,
@@ -38,7 +39,7 @@ internal static class SubmissionAnswer
     /// <summary>The field as the form names it, which is the name the caller sent, not the one the service keeps.</summary>
     private static FieldShown Field(FieldProblem problem) => new(problem.Field switch { "declared_form" => "declaredForm", "source_format" => "sourceFormat", _ => problem.Field }, problem.Code);
 
-    private static List<string> WarningsOf(string? warning) => warning is null ? new List<string>() : new List<string> { warning };
+    private static IReadOnlyList<string> WarningsOf(string? warning) => warning is null ? Array.Empty<string>() : Enumerable.Repeat(warning, 1).ToArray();
 
     /// <summary>A domain the host does not know is a domain that does not exist; any other failure to record is the host's, not the request's.</summary>
     private static IResult NotRecorded(BatchOutcome? failure) =>

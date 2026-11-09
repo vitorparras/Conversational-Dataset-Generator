@@ -10,6 +10,7 @@ namespace Core.Host.Endpoints;
 /// </summary>
 internal static class BatchQuery
 {
+    private const string PageSizeField = "pageSize";
     private const int DefaultPageSize = 50;
     private const int MostPageSize = 100;
 
@@ -24,7 +25,7 @@ internal static class BatchQuery
         }
 
         var page = Number(query["page"], 1);
-        var size = Math.Min(Number(query["pageSize"], DefaultPageSize), MostPageSize);
+        var size = Number(query[PageSizeField], DefaultPageSize);
         var filter = new BatchFilter
         {
             Domains = granted,
@@ -39,18 +40,21 @@ internal static class BatchQuery
 
     /// <summary>The parameters that are not accepted, by name.</summary>
     /// <param name="query">The address's parameters.</param>
-    internal static List<FieldShown> Problems(IQueryCollection query)
+    internal static IReadOnlyList<FieldShown> Problems(IQueryCollection query)
     {
         var problems = new List<FieldShown>();
         AddWhen(problems, query.TryGetValue("state", out var state) && !Enum.TryParse<BatchState>(state.ToString(), ignoreCase: true, out _), "state");
         AddWhen(problems, query.TryGetValue("from", out var from) && Moment(from) is null, "from");
         AddWhen(problems, query.TryGetValue("until", out var until) && Moment(until) is null, "until");
-        AddWhen(problems, query.TryGetValue("page", out var page) && Number(page, 0) < 1, "page");
-        AddWhen(problems, query.TryGetValue("pageSize", out var size) && Number(size, 0) < 1, "pageSize");
+        AddWhen(problems, query.TryGetValue("page", out var page) && (Number(page, 0) < 1 || Skipped(query) > BatchRegister.MostSkipped), "page");
+        AddWhen(problems, query.TryGetValue(PageSizeField, out var size) && Number(size, 0) is < 1 or > MostPageSize, PageSizeField);
         return problems;
     }
 
-    private static void AddWhen(List<FieldShown> problems, bool wrong, string field)
+    /// <summary>How many batches the page asked for skips, counted wide so that no page can overflow it.</summary>
+    private static long Skipped(IQueryCollection query) => (long)(Number(query["page"], 1) - 1) * Math.Min(Number(query[PageSizeField], DefaultPageSize), MostPageSize);
+
+    private static void AddWhen(ICollection<FieldShown> problems, bool wrong, string field)
     {
         if (wrong)
         {
@@ -58,8 +62,11 @@ internal static class BatchQuery
         }
     }
 
-    private static int Number(string? text, int absent) =>
-        string.IsNullOrEmpty(text) ? absent : int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out var number) ? number : 0;
+    private static int Number(string? text, int absent)
+    {
+        var parsed = int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out var number) ? number : 0;
+        return string.IsNullOrEmpty(text) ? absent : parsed;
+    }
 
     private static DateTimeOffset? Moment(string? text) =>
         DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var moment) ? moment : null;

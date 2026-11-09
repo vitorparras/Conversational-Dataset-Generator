@@ -87,5 +87,5 @@ internal static class SubmissionForm
         ReceivedName = receivedName,
     };
 
-    private static string Field(Dictionary<string, string> fields, string name) => fields.GetValueOrDefault(name, string.Empty);
+    private static string Field(IReadOnlyDictionary<string, string> fields, string name) => fields.GetValueOrDefault(name, string.Empty);
 }

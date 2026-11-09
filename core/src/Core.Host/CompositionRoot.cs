@@ -117,13 +117,6 @@ internal static class CompositionRoot
     internal static ItemKeys KeysOf(MasterKeyReading reading) => new(new KeyDerivation(reading.Key!, reading.Labels), reading.Epochs);
     internal static EpochRotation RotationOf(NpgsqlDataSource dataSource, ItemKeys keys) => new(dataSource, keys);
 
-    /// <summary>The service of the submissions over the key a reading holds; the gate, the conference, the intake and the register are services, and so are built here.</summary>
-    internal static Submissions.SubmissionService SubmissionsOf(NpgsqlDataSource source, MasterKeyReading reading, Submissions.SubmissionSettings settings) => new(
-        new Submissions.SubmissionIntake(new Core.Ingestion.Entrance.SubmissionGate(Core.Ingestion.Reading.SourceReaders.Default(), settings.MaxBytes),
-            new Core.Ingestion.FormConference(new Core.Boundary.Text.TextBoundaries()), settings.Conditions,
-            new ProtectedContent(reading.Labels, KeysOf(reading), settings.Registered, settings.Revoked)),
-        settings.Batches, new Core.Persistence.Ingestion.BatchRegister(source), source);
-
     /// <summary>The rehearsal of the recovery over a source that was read, opening content with the labels the database registers.</summary>
     internal static RecoveryRehearsal RehearsalOf(NpgsqlDataSource dataSource, MasterKeyReading reading, IReadOnlySet<string> registered) =>
         new(dataSource, new ProtectedContent(reading.Labels, KeysOf(reading), registered), TimeProvider.System);

@@ -6,4 +6,6 @@ namespace Core.Persistence.Ingestion;
 /// <param name="Condition">The condition the material comes under, one the installation knows; null when the opening declares none, and the batch then takes the most restrictive one.</param>
 /// <param name="Receipt">What the submission brought, kept with the batch; null for a batch that no submission opens.</param>
 /// <param name="Origin">Where the submission says the material came from, sealed or declared unknown; required with a receipt and refused without one.</param>
-public sealed record BatchOpening(int DomainId, long AuthorId, string? Condition = null, SubmissionReceipt? Receipt = null, OriginDeclaration? Origin = null);
+/// <param name="RejectedFor">The motive (a name of lowercase letters, digits and underscores) when the batch is turned back as it opens, in the same transaction; null when it stays open.</param>
+public sealed record BatchOpening(
+    int DomainId, long AuthorId, string? Condition = null, SubmissionReceipt? Receipt = null, OriginDeclaration? Origin = null, string? RejectedFor = null);

@@ -1,3 +1,8 @@
+using Core.Boundary.Text;
+using Core.Ingestion;
+using Core.Ingestion.Entrance;
+using Core.Ingestion.Reading;
+using Core.Persistence.Content.Sealing;
 using Core.Persistence.Domains;
 using Core.Persistence.Ingestion;
 using Core.Platform.Keys;
@@ -33,8 +38,19 @@ internal static class SubmissionParts
             ? new SubmissionServiceHolder(AdmissionConfiguration.MaxBytes(values), token => LoadAsync(startup, source, provider.GetRequiredService<IngestionBatches>(), values, token))
             : null!;
 
+    /// <summary>The service over the key a reading holds; the gate, the conference, the intake and the register are services, and so are built here.</summary>
+    private static SubmissionService ServiceOf(NpgsqlDataSource source, MasterKeyReading reading, SubmissionSettings settings) => new(
+        new SubmissionIntake(
+            new SubmissionGate(SourceReaders.Default(), settings.MaxBytes),
+            new FormConference(new TextBoundaries()),
+            settings.Conditions,
+            new ProtectedContent(reading.Labels, CompositionRoot.KeysOf(reading), settings.Registered, settings.Revoked)),
+        settings.Batches,
+        new BatchRegister(source),
+        source);
+
     private static async Task<SubmissionServiceHolder.Loaded> LoadAsync(
-        ServiceProvider startup, NpgsqlDataSource source, IngestionBatches batches, IReadOnlyDictionary<string, string> values, CancellationToken cancellationToken)
+        IServiceProvider startup, NpgsqlDataSource source, IngestionBatches batches, IReadOnlyDictionary<string, string> values, CancellationToken cancellationToken)
     {
         var reading = await startup.GetRequiredService<IMasterKeySource>().ReadAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -47,7 +63,7 @@ internal static class SubmissionParts
             var registered = await RegisteredLabels.ReadAsync(source, cancellationToken).ConfigureAwait(false);
             var revoked = await LabelRevocations.ReadAsync(source, cancellationToken).ConfigureAwait(false);
             var settings = new SubmissionSettings(batches, AdmissionConfiguration.Conditions(values), AdmissionConfiguration.MaxBytes(values), registered, revoked);
-            return new SubmissionServiceHolder.Loaded(CompositionRoot.SubmissionsOf(source, reading, settings), reading);
+            return new SubmissionServiceHolder.Loaded(ServiceOf(source, reading, settings), reading);
         }
         catch
         {

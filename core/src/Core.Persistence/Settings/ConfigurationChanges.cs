@@ -1,4 +1,3 @@
-using System.Data;
 using System.Runtime.CompilerServices;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
@@ -75,7 +74,7 @@ public sealed class ConfigurationChanges
                 var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
                 await using (reader.ConfigureAwait(false))
                 {
-                    return await reader.ReadAsync(cancellationToken).ConfigureAwait(false) ? Read(reader) : null;
+                    return await reader.ReadAsync(cancellationToken).ConfigureAwait(false) ? Read(name => reader[name]) : null;
                 }
             }
         }
@@ -99,7 +98,7 @@ public sealed class ConfigurationChanges
                 {
                     while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
                     {
-                        pending.Add(new PendingChange(Read(reader), (string)reader["name"]));
+                        pending.Add(new PendingChange(Read(name => reader[name]), (string)reader["name"]));
                     }
                 }
             }
@@ -119,16 +118,16 @@ public sealed class ConfigurationChanges
         return new CustodyChain(dataSource).AppendAsync(CustodyEvent.ConfigurationDecided(deciderId, change.Id, change.Sequence, approved), cancellationToken);
     }
 
-    private static SubmittedChange Read(IDataRecord reader) => new()
+    private static SubmittedChange Read(Func<string, object> column) => new()
     {
-        Id = (long)reader["id"],
-        Key = (string)reader["config_key"],
-        Value = (string)reader["new_value"],
-        Motive = (string)reader["motive"],
-        AuthorId = (long)reader["submitted_by"],
-        SubmittedAt = new DateTimeOffset((DateTime)reader["submitted_at"]),
-        Sequence = (long)reader["sequence"],
-        Decided = (bool)reader["decided"],
+        Id = (long)column("id"),
+        Key = (string)column("config_key"),
+        Value = (string)column("new_value"),
+        Motive = (string)column("motive"),
+        AuthorId = (long)column("submitted_by"),
+        SubmittedAt = new DateTimeOffset((DateTime)column("submitted_at")),
+        Sequence = (long)column("sequence"),
+        Decided = (bool)column("decided"),
     };
 
     private async Task<ConfigurationChangeResult> SubmittingAsync(ConfigurationSubmission submission, CancellationToken cancellationToken)

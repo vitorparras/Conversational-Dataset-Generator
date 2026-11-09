@@ -67,8 +67,13 @@ public sealed class BatchDetailScreenTests
     [InlineData("replies_to")]
     [InlineData("passages")]
     [InlineData("thread")]
-    public void EveryLossOfTheSetHasItsOwnWordsAndNoneIsSaidByItsCode(string code) =>
-        Assert.DoesNotContain(code, BatchDetailTexts.LossOf(code), StringComparison.Ordinal);
+    public void EveryLossOfTheSetHasItsOwnWordsAndNoneIsSaidByItsCode(string code)
+    {
+        var words = BatchDetailTexts.LossOf(code);
+
+        Assert.DoesNotMatch(new Regex($@"\b{Regex.Escape(code)}\b", RegexOptions.None, TimeSpan.FromSeconds(1)), words);
+        Assert.DoesNotContain("Perda registrada", words, StringComparison.Ordinal);
+    }
 
     [Fact]
     public void ACodeTheScreenDoesNotKnowIsSaidByItsNameNeverAsAnError()

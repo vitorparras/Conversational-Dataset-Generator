@@ -37,7 +37,8 @@ public sealed class SubmissionProofsTests
         var outcome = await world.SubmitAsync(SubmissionWorld.Request(content: Material()));
         var dump = await world.Database.DumpAsync();
 
-        Assert.Equal((SubmissionState.Accepted, (long)Texts.Length), (outcome.State, await world.ItemRowsAsync()));
+        Assert.Equal(SubmissionState.Accepted, outcome.State);
+        Assert.Equal(Texts.Length, await world.ItemRowsAsync());
         Assert.Contains("content.item_text", dump, StringComparison.Ordinal);
         Assert.DoesNotContain(Texts.SelectMany(Stretches), stretch => Shown(dump, stretch));
     }

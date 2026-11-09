@@ -23,20 +23,21 @@ tela. Aprovar ou reprovar lote é da revisão por amostra, não desta tela.
 
 1. **Achar a lista.** Como `operador-18`, pergunte onde estão os lotes enviados. Tem de achar
    "Lotes" no menu, sem ajuda.
-2. **Ler um lote.** Peça domínio, quem enviou, quando e o tamanho do lote mais novo. Os horários
-   vêm em UTC, e a legenda diz isso. Não há texto do material nem nome de arquivo. Peça também o
-   resumo (SHA-256) inteiro: tem de achar "mostrar inteiro".
+2. **Ler um lote.** Peça domínio, quem enviou, quando e o tamanho do lote mais novo. Os horários vêm
+   em UTC, e a legenda diz isso. Não há texto do material nem nome de arquivo, e o lote de outro
+   domínio não aparece. Peça também o resumo (SHA-256) inteiro: tem de achar "mostrar inteiro".
 3. **Entender uma recusa.** Num lote rejeitado, pergunte por que foi recusado. Tem de ler o motivo
    em palavras, junto do estado, e não um código.
 4. **Filtrar por estado.** Abra "Filtrar por estado e período", marque "Rejeitados" e "Filtrar".
    Copie o endereço numa aba nova: o filtro tem de voltar igual, e Voltar tem de desfazê-lo.
 5. **Filtrar por período.** Escreva um dia final antes do inicial: a tela tem de dizer, junto do
-   campo, que o período ficou de fora. Depois escreva algo que não é data e leia a frase.
+   campo, que o período ficou de fora. O campo só aceita data; para ler a frase de data inválida,
+   troque `de=` no endereço por um texto que não é data.
 6. **Nenhum resultado.** Com um filtro sem lotes, pergunte o que a tela diz. Tem de ler "Nenhum
    lote com esse filtro" como "mude o filtro", e achar "Limpar filtro".
 7. **Páginas.** Sem filtro, peça o lote mais antigo: são 20 por página, e tem de achar a página 2.
    Com um filtro em uso, a página 2 tem de manter o filtro.
-8. **Sem concessão.** Como `operador-19`, abra os lotes. Tem de ler que não há concessão e quem
+8. **Sem concessão.** Como `operador-19`, digite `/lotes`. Tem de ler que não há concessão e quem
    concede, sem ver erro; "Lotes" não aparece no menu.
 9. **Outra função.** Como `operador-20`, digite `/lotes`. A resposta tem de ser a de um endereço
    que não existe.

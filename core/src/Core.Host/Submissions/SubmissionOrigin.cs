@@ -38,4 +38,13 @@ internal static class SubmissionOrigin
             return null;
         }
     }
+
+    /// <summary>The opening of the batch that keeps the submission: its receipt and its origin; null when the origin cannot be declared, which is a domain that cannot take the material.</summary>
+    /// <param name="intake">What takes the file in, with the path that seals protected content.</param>
+    /// <param name="request">The request, already valid.</param>
+    /// <param name="receipt">What the submission brought.</param>
+    internal static BatchOpening? Opening(SubmissionIntake intake, SubmissionRequest request, SubmissionReceipt receipt) =>
+        Declaration(intake, request) is { } origin
+            ? new BatchOpening(request.DomainId, request.AuthorId, request.Condition, new SubmissionOpening(receipt, origin))
+            : null;
 }

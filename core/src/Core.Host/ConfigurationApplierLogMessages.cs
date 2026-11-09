@@ -3,7 +3,7 @@ using Core.Host.Settings;
 
 namespace Core.Host;
 
-/// <summary>What the applier of the configuration writes: the submission, the reason and the sequences of the two events of the chain, never the value of a key, a name or an address of a person.</summary>
+/// <summary>What the applier of the configuration writes: the submission, the reason and the sequences of the two events, never the value of a key, a name or an address of a person.</summary>
 [SuppressMessage("ApiDesign", "RS0030", Justification = "The generated bodies are the one sanctioned caller of ILogger.Log.")]
 internal static partial class ConfigurationApplierLogMessages
 {

@@ -12,7 +12,7 @@ internal static class ApplicationRefusals
         _ => throw new ArgumentOutOfRangeException(nameof(refusal), refusal, "The refusal is not one the applier knows."),
     };
 
-    /// <summary>The code of a definitive refusal as the event of the chain carries it, which the screen turns into words; a fixed table, so that renaming a member never changes what was recorded.</summary>
+    /// <summary>The code of a definitive refusal as the event of the chain carries it, which the screen turns into words; a fixed table, so that a rename never changes what was recorded.</summary>
     internal static string CodeOf(this ApplicationRefusal refusal) => refusal switch
     {
         ApplicationRefusal.SameAuthor => "same_author",

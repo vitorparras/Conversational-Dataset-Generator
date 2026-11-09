@@ -23,6 +23,7 @@ public sealed class ProtectedContentReader(NpgsqlDataSource dataSource, Protecte
         [ContentColumns.RawText] = new(CustodyItemKind.ItemText, CustodyStep.RawTextRead, ContentQueries.ReadRawText, ContentQueries.ReadFirstRawText),
         [ContentColumns.SanitizedText] = new(CustodyItemKind.ItemText, CustodyStep.SanitizedTextRead, ContentQueries.ReadSanitizedText),
         [ContentColumns.Entries] = new(CustodyItemKind.ReversalMap, CustodyStep.ReversalEntriesRead, ContentQueries.ReadReversalEntries, ContentQueries.ReadFirstEntries),
+        [ContentColumns.Origin] = new(CustodyItemKind.IngestionBatch, CustodyStep.OriginRead, ContentQueries.ReadBatchOrigin),
     }.ToFrozenDictionary();
 
     /// <summary>Reads the column of the row under the domain, recording the reading before the content is opened.</summary>

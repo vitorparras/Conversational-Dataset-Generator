@@ -1,0 +1,53 @@
+@using Core.Host.Endpoints
+@using Core.Persistence.People
+
+<h1>@Title</h1>
+<p class="lead">A pessoa nasce com a função que você declarar e sem nenhuma concessão de domínio.</p>
+
+<form class="form" method="post" action="@ScreenPaths.OperatorNew" novalidate>
+    @if (ErrorReason is not null && ErrorField is null)
+    {
+        <Notice Kind="Notice.Tone.Error">@ErrorReason</Notice>
+    }
+    <Field Id="pessoa-nome" Name="@NameField" Caption="Nome" Value="@Name" Required="true" Autocomplete="off" Autofocus="true"
+           Hint="O nome com que a pessoa entra no sistema. Não pode repetir o de outra pessoa." Error="@ErrorAt(NameField)" />
+    <Field Id="pessoa-funcao" Name="@FunctionField" Caption="Função" Value="@Function" Required="true" Options="Choices" Error="@ErrorAt(FunctionField)" />
+    <Field Id="pessoa-senha" Name="@SecretField" Caption="Senha inicial" Type="password" Required="true" Autocomplete="new-password"
+           Hint="Passe-a à pessoa por um canal seu. Ela a troca depois na tela da própria senha." Error="@ErrorAt(SecretField)" />
+    <div class="actions">
+        <Button Id="cadastrar">Cadastrar pessoa</Button>
+        <Button Href="@ScreenPaths.Operators" Kind="Button.Look.Secondary">Voltar à lista</Button>
+    </div>
+</form>
+
+@code {
+    /// <summary>The title of the page; the form has no entry in the menu, the list leads to it.</summary>
+    internal const string Title = "Cadastrar pessoa";
+
+    /// <summary>The names the form sends, the ones the route of JSON takes; the password goes in the body of the post alone and is never written back.</summary>
+    internal const string NameField = "nome";
+
+    internal const string FunctionField = "função";
+
+    internal const string SecretField = "senha";
+
+    private static readonly List<Field.Option> Choices =
+        new(PersonFunctions.Accepted.Select(function => new Field.Option(function, function)).Prepend(new Field.Option("", "Escolha a função")));
+
+    /// <summary>What was typed, given back when the server refuses the form; never the password.</summary>
+    [Parameter]
+    public string? Name { get; set; }
+
+    [Parameter]
+    public string? Function { get; set; }
+
+    /// <summary>The field the server refused, by the name the form and the route of JSON give it; null when the refusal is about no field, and it is said at the top.</summary>
+    [Parameter]
+    public string? ErrorField { get; set; }
+
+    /// <summary>Why the server refused, in its words.</summary>
+    [Parameter]
+    public string? ErrorReason { get; set; }
+
+    private string? ErrorAt(string field) => ErrorField == field ? ErrorReason : null;
+}

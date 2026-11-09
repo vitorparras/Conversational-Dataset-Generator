@@ -1,5 +1,6 @@
 using Core.Host.Submissions;
 using Core.Persistence.Ingestion;
+using Core.Platform.Keys;
 
 namespace Core.Host.Endpoints;
 
@@ -10,13 +11,13 @@ namespace Core.Host.Endpoints;
 /// </summary>
 internal static class SubmissionAnswer
 {
-    internal static IResult Of(SubmissionOutcome outcome, ContentKeyUnavailableException? unsealed = null) => outcome.Kind switch
+    internal static IResult Of(SubmissionOutcome outcome, MasterKeyFailureKind? unsealed = null) => outcome.Kind switch
     {
         SubmissionKind.Invalid => Results.Json(new FieldsRefused([.. outcome.Fields!.Select(Field)]), statusCode: StatusCodes.Status400BadRequest),
         SubmissionKind.Blocked => Results.Json(new SubmissionBlocked(outcome.BlockedBy), statusCode: StatusCodes.Status409Conflict),
         SubmissionKind.NotRecorded => NotRecorded(outcome.Failure),
         SubmissionKind.Unavailable => Results.Json(
-            new SubmissionUnavailable(outcome.Code!, unsealed is null ? null : ReasonCodes.Of(unsealed.Kind), outcome.Batch), statusCode: StatusCodes.Status503ServiceUnavailable),
+            new SubmissionUnavailable(outcome.Code!, unsealed is { } kind ? ReasonCodes.Of(kind) : null, outcome.Batch), statusCode: StatusCodes.Status503ServiceUnavailable),
         SubmissionKind.Done => Results.Json(Done(outcome), statusCode: outcome.IsTooLarge ? StatusCodes.Status413PayloadTooLarge : StatusCodes.Status201Created),
         _ => throw new ArgumentOutOfRangeException(nameof(outcome), outcome.Kind, "The kind of the outcome is not one the service answers."),
     };

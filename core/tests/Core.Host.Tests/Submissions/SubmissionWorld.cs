@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using Core.Boundary.Text;
 using Core.Host.Submissions;
@@ -118,6 +119,7 @@ internal sealed class SubmissionWorld : IAsyncDisposable
 
     internal Task<long> ItemRowsAsync() => RowsAsync("SELECT count(*) FROM content.item_text");
 
+    [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "The statements are constants of the tests, never input.")]
     private async Task<long> RowsAsync(string count)
     {
         var total = 0L;
@@ -137,6 +139,7 @@ internal sealed class SubmissionWorld : IAsyncDisposable
 
     /// <summary>The first column of a query over content as the owner reads it, inside the domain of the tests; the sealed bytes come as the database holds them.</summary>
     /// <param name="select">The query, with no parameters.</param>
+    /// <param name="domain">The domain the query runs in.</param>
     internal async Task<IReadOnlyList<string>> StoredAsync(string select, int domain = Domain)
     {
         var cancellationToken = TestContext.Current.CancellationToken;

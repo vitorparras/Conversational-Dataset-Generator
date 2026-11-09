@@ -1,3 +1,5 @@
+using Core.Platform.Keys;
+
 namespace Core.Host.Submissions;
 
 /// <summary>
@@ -28,15 +30,16 @@ internal sealed class SubmissionServiceHolder : IDisposable
     /// <param name="maxBytes">The most bytes a file may have.</param>
     internal static SubmissionServiceHolder Of(SubmissionService service, long maxBytes) => new(maxBytes, _ => Task.FromResult(new Loaded(service, null)));
 
-    /// <summary>The service, built by the first request that asks.</summary>
+    /// <summary>The service, built by the first request that asks; one built with no key to seal with is not kept, so the next request tries again.</summary>
     /// <param name="cancellationToken">Cancels the wait.</param>
-    internal async Task<SubmissionService> GetAsync(CancellationToken cancellationToken)
+    internal async Task<Loaded> GetAsync(CancellationToken cancellationToken)
     {
         await turn.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            loaded ??= await build(cancellationToken).ConfigureAwait(false);
-            return loaded.Service;
+            var built = loaded ?? await build(cancellationToken).ConfigureAwait(false);
+            loaded = built.Unsealed is null ? built : null;
+            return built;
         }
         finally
         {
@@ -54,5 +57,6 @@ internal sealed class SubmissionServiceHolder : IDisposable
     /// <summary>The service and what it holds that must be let go of with it.</summary>
     /// <param name="Service">The service.</param>
     /// <param name="Key">The key the sealing holds; null when the service holds none.</param>
-    internal sealed record Loaded(SubmissionService Service, IDisposable? Key);
+    /// <param name="Unsealed">Why the key could not be read, when it could not: the service then has no key to seal with and only registers the submission as turned back.</param>
+    internal sealed record Loaded(SubmissionService Service, IDisposable? Key, MasterKeyFailureKind? Unsealed = null);
 }

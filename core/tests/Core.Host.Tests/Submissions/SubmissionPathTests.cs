@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
@@ -6,6 +7,7 @@ using Core.Host.Endpoints;
 using Core.Host.Submissions;
 using Core.Ingestion;
 using Core.Persistence.Ingestion;
+using Core.Persistence.Tests.Fixtures;
 using Core.Platform.Keys;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
@@ -118,7 +120,7 @@ public sealed class SubmissionPathTests
             (HttpStatusCode.ServiceUnavailable, "content_key_unavailable", told),
             (response.StatusCode, json.RootElement.GetProperty("code").GetString(), json.RootElement.GetProperty("reason").GetString()));
         Assert.Equal(
-            (BatchState.Rejected, "content_key_unavailable", SubmissionWorld.Person, (long)bytes.Length, Convert.ToHexStringLower(SHA256.HashData(bytes))),
+            (BatchState.Rejected, "content_key_unavailable", SubmissionWorld.Person, bytes.Length, Convert.ToHexStringLower(SHA256.HashData(bytes))),
             (entry!.State, entry.Reason, entry.SubmittedBy, entry.Receipt!.Bytes, entry.Receipt.Digest));
         Assert.Equal((1L, 0L, 0L), (await world.BatchCountAsync(), await world.ItemRowsAsync(), await world.OriginRowsAsync()));
         Assert.DoesNotContain("ZQXPRIMEIRO", body, StringComparison.Ordinal);
@@ -132,15 +134,16 @@ public sealed class SubmissionPathTests
         using var holder = new SubmissionServiceHolder(1, _ =>
         {
             attempts++;
-            return Task.FromException<SubmissionServiceHolder.Loaded>(new ContentKeyUnavailableException(MasterKeyFailureKind.Absent, world.Service));
+            return Task.FromResult(new SubmissionServiceHolder.Loaded(world.Service, null, MasterKeyFailureKind.Absent));
         });
 
-        _ = await Assert.ThrowsAsync<ContentKeyUnavailableException>(() => holder.GetAsync(TestContext.Current.CancellationToken));
-        _ = await Assert.ThrowsAsync<ContentKeyUnavailableException>(() => holder.GetAsync(TestContext.Current.CancellationToken));
+        var first = await holder.GetAsync(TestContext.Current.CancellationToken);
+        var second = await holder.GetAsync(TestContext.Current.CancellationToken);
 
-        Assert.Equal(2, attempts);
+        Assert.Equal((2, MasterKeyFailureKind.Absent, MasterKeyFailureKind.Absent), (attempts, first.Unsealed, second.Unsealed));
     }
 
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The contents belong to the multipart form, which the request disposes.")]
     private static HttpRequestMessage Form()
     {
         var form = new MultipartFormDataContent
@@ -151,6 +154,6 @@ public sealed class SubmissionPathTests
             { new StringContent("true"), "originUnknown" },
             { new ByteArrayContent(Encoding.UTF8.GetBytes(SubmissionWorld.Conversation)), "file", "conversa.json" },
         };
-        return new HttpRequestMessage(HttpMethod.Post, SubmissionsEndpoint.SubmissionsRoute) { Content = form };
+        return new HttpRequestMessage(HttpMethod.Post, new Uri(SubmissionsEndpoint.SubmissionsRoute, UriKind.Relative)) { Content = form };
     }
 }

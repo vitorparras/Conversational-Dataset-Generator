@@ -1,6 +1,5 @@
 using Core.Ingestion.Entrance;
 using Core.Persistence.Ingestion;
-using Core.Persistence.Recovery;
 using Npgsql;
 
 namespace Core.Host.Submissions;
@@ -39,16 +38,7 @@ internal sealed class SubmissionService
 
     /// <summary>Whether the ingestion takes material in: open, or blocked by the code of what is missing (decision 0014).</summary>
     /// <param name="cancellationToken">Cancels the question.</param>
-    internal async Task<SubmissionGateStatus> GateAsync(CancellationToken cancellationToken)
-    {
-        var status = await RecoveryGate.StatusAsync(dataSource, cancellationToken).ConfigureAwait(false);
-        if (status.Tested)
-        {
-            return new SubmissionGateStatus(true, null);
-        }
-
-        return new SubmissionGateStatus(false, status.Missing == RecoveryGate.StaleWords ? "recovery_rehearsal_stale" : "recovery_not_rehearsed");
-    }
+    internal Task<SubmissionGateStatus> GateAsync(CancellationToken cancellationToken) => SubmissionGateStatus.OfAsync(dataSource, cancellationToken);
 
     /// <summary>
     /// Takes a file in: validates the fields, passes the file through the barrier and the conference, and records the submission in a batch,
@@ -132,7 +122,13 @@ internal sealed class SubmissionService
         }
 
         var received = await intake.Gate.ReceiveAsync(new Submission(request.Content, request.SourceFormat, request.ReceivedName), cancellationToken).ConfigureAwait(false);
-        var reason = SubmissionJudgement.Of(intake, received, request.DeclaredForm) ?? Unsealed();
+        return await OpeningAsync(request, received, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Judges what was received and opens the batch that keeps it, rejected with the reason when it was turned back.</summary>
+    private async Task<SubmissionOutcome> OpeningAsync(SubmissionRequest request, SubmissionResult received, CancellationToken cancellationToken)
+    {
+        var reason = SubmissionJudgement.Of(intake, received, request.DeclaredForm) ?? SubmissionStoring.Unsealed(intake.Sealing);
         var warning = HasPath(request.ReceivedName) ? NameWithPath : null;
         var receipt = new SubmissionReceipt(received.Id.ToString(), received.BytesRead, received.Digest, warning);
         if (SubmissionOrigin.Declaration(intake, request) is not { } origin || (reason is null && !SubmissionStoring.CanSeal(intake.Sealing, request.DomainId)))
@@ -154,8 +150,8 @@ internal sealed class SubmissionService
     /// <summary>A file that was not turned back has its items written and is accepted, or is rejected with no item when they cannot be.</summary>
     private async Task<SubmissionOutcome> StoringAsync(SubmissionRequest request, Opened opened, CancellationToken cancellationToken)
     {
-        var place = new SubmissionStoring.BatchRef(request.DomainId, opened.Batch);
-        var kept = await SubmissionStoring.KeepAsync(batches, intake.Writer!, place, opened.Received.Material!, cancellationToken).ConfigureAwait(false);
+        var place = new SubmissionStoring.Kept(request.DomainId, opened.Batch, opened.Received.Material!);
+        var kept = await SubmissionStoring.KeepAsync(batches, intake.Writer!, place, cancellationToken).ConfigureAwait(false);
         return kept
             ? Answer(opened.Received, opened.Batch, (null, opened.Warning), opened.Origin)
             : new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = SubmissionStoring.WriteFailed, Batch = opened.Batch };
@@ -165,13 +161,6 @@ internal sealed class SubmissionService
     private static SubmissionOutcome Turned(Opened opened, SubmissionReason reason) => reason.Code == SubmissionStoring.KeyUnavailable
         ? new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = reason.Code, Batch = opened.Batch }
         : Answer(opened.Received, opened.Batch, (reason, opened.Warning), opened.Origin);
-
-    /// <summary>The reason of a service with no key to seal with: whatever the file is, nothing of it is kept.</summary>
-    private SubmissionReason? Unsealed()
-    {
-        var none = new List<SubmissionFinding>();
-        return intake.Sealing is null ? new SubmissionReason(SubmissionStoring.KeyUnavailable, none) : null;
-    }
 
     private sealed record Opened(SubmissionResult Received, long Batch, string? Warning, string Origin);
 }

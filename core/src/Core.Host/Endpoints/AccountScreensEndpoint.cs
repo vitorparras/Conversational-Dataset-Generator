@@ -55,6 +55,11 @@ internal static class AccountScreensEndpoint
         }
 
         var form = context.Request.HasFormContentType ? await context.Request.ReadFormAsync(context.RequestAborted) : null;
+        if (Typed(form, PasswordScreen.RepeatField) != Typed(form, PasswordScreen.ReplacementField))
+        {
+            return PasswordPage(context, PasswordScreen.Problem.Mismatch);
+        }
+
         var who = new PasswordChangeRequest(account, identifier, context.Connection.RemoteIpAddress);
         return Answer(context, await change.ChangeAsync(who, Typed(form, PasswordScreen.CurrentField), Typed(form, PasswordScreen.ReplacementField), context.RequestAborted));
     }

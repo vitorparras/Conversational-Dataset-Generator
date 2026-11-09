@@ -50,7 +50,7 @@ public sealed class ChainCheckTests(BrowserFixture browser, IntactChainHostFixtu
         var before = await tab.Page.Context.APIRequest.GetAsync(new Uri(new Uri(tab.Page.Url), Chain).AbsoluteUri, new() { Headers = Html() });
         var rowsBefore = Rows(await before.TextAsync());
 
-        await tab.Page.GetByRole(AriaRole.Button, new() { Name = "Verificar agora" }).ClickAsync();
+        await tab.Page.GetByRole(AriaRole.Button, new() { Name = "Verificar a cadeia agora", Exact = true }).ClickAsync();
 
         await Expect(tab.Page).ToHaveURLAsync(new Regex(@"/custodia\?pedida$"));
         await Expect(tab.Page.Locator(".notice--success")).ToContainTextAsync("A verificação que você pediu terminou");
@@ -64,12 +64,12 @@ public sealed class ChainCheckTests(BrowserFixture browser, IntactChainHostFixtu
     public async Task Ca4ASecondRequestOfTheSameSessionWithinTheWindowIsRefusedWithTheSecondsToWaitAndRecordsNothing()
     {
         await using var tab = await OpenCheckAsync(intact.Host, intact.Host.Administrator);
-        await tab.Page.GetByRole(AriaRole.Button, new() { Name = "Verificar agora" }).ClickAsync();
+        await tab.Page.GetByRole(AriaRole.Button, new() { Name = "Verificar a cadeia agora", Exact = true }).ClickAsync();
         await Expect(tab.Page.Locator(".notice--success")).ToBeVisibleAsync();
         var rows = await tab.Page.Locator(FirstRow).CountAsync();
 
         _ = await tab.Page.GotoAsync(Check);
-        await tab.Page.GetByRole(AriaRole.Button, new() { Name = "Verificar agora" }).ClickAsync();
+        await tab.Page.GetByRole(AriaRole.Button, new() { Name = "Verificar a cadeia agora", Exact = true }).ClickAsync();
 
         await Expect(tab.Page.Locator(".notice--error")).ToContainTextAsync("Você pediu uma verificação há pouco. Espere");
         await Expect(tab.Page.Locator(".notice--error")).ToContainTextAsync("segundos e peça de novo.");
@@ -83,7 +83,7 @@ public sealed class ChainCheckTests(BrowserFixture browser, IntactChainHostFixtu
     {
         await using var tab = await OpenCheckAsync(broken.Host, broken.Host.Administrator);
 
-        await tab.Page.GetByRole(AriaRole.Button, new() { Name = "Verificar agora" }).ClickAsync();
+        await tab.Page.GetByRole(AriaRole.Button, new() { Name = "Verificar a cadeia agora", Exact = true }).ClickAsync();
 
         await Expect(tab.Page).ToHaveURLAsync(new Regex(@"/custodia\?pedida$"));
         await Expect(FactOf(tab.Page, "Resultado")).ToContainTextAsync("Quebrada: um elo não confere");
@@ -148,7 +148,7 @@ public sealed class ChainCheckTests(BrowserFixture browser, IntactChainHostFixtu
     {
         await using var tab = await SignedAtAsync(intact.Host, intact.Host.Administrator, Chain);
 
-        for (var stop = 0; stop < HeaderStops.Count + 2 && !await tab.Page.EvaluateAsync<bool>("() => document.activeElement.textContent.trim() === 'Pedir uma verificação agora'"); stop++)
+        for (var stop = 0; stop < HeaderStops.Count + 2 && !await tab.Page.EvaluateAsync<bool>("() => document.activeElement.textContent.trim() === 'Verificar a cadeia agora'"); stop++)
         {
             await tab.Page.Keyboard.PressAsync("Tab");
         }

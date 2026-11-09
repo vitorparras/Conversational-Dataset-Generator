@@ -34,12 +34,14 @@ public sealed class SystemStateScreenTests(BrowserFixture browser, SystemHostFix
 
         await Expect(tab.Page.Locator("[aria-labelledby=agora-titulo]")).ToContainTextAsync("Vivo");
         await Expect(FactOf(tab.Page, "Vivo")).ToContainTextAsync("Sim: o sistema responde");
-        await Expect(FactOf(tab.Page, "Apto")).ToContainTextAsync("Não: uma conferência da subida falhou");
+        await Expect(FactOf(tab.Page, "Apto")).ToContainTextAsync("Não: uma conferência feita ao iniciar falhou");
         await Expect(tab.Page.Locator(ChecksRows)).ToHaveCountAsync(2);
         await Expect(tab.Page.Locator(ChecksRows).Nth(0)).ToContainTextAsync(SystemScreenHost.PassedCheck);
         await Expect(tab.Page.Locator(ChecksRows).Nth(0)).ToContainTextAsync("Passou");
         await Expect(tab.Page.Locator(ChecksRows).Nth(1)).ToContainTextAsync(SystemScreenHost.FailedCheck);
         await Expect(tab.Page.Locator(ChecksRows).Nth(1)).ToContainTextAsync("Falhou");
+        await Expect(FactOf(tab.Page, "Apto").GetByRole(AriaRole.Link, new() { Name = "Ver a conferência que falhou" })).ToHaveAttributeAsync("href", "#conferencia-que-falhou");
+        await Expect(tab.Page.Locator(ChecksRows).Nth(1)).ToHaveAttributeAsync("aria-current", "true");
         await Expect(tab.Page.Locator(ChecksRows).Nth(1)).ToContainTextAsync($"{SystemScreenHost.FailedMessage}. Encontrado: {SystemScreenHost.FailedObserved}");
         await Expect(tab.Page.Locator("[aria-labelledby=conferencias-titulo]")).ToContainTextAsync("1 de 2 passaram");
     }

@@ -21,7 +21,7 @@
     <PagedList Items="Page.Items" Caption="Pessoas" Page="Page.Page" PageCount="Page.Pages" PageSize="PersonPage.Size" Address="Address"
                EmptyTitle="Nenhuma pessoa com esse filtro." EmptyHint="Mude ou limpe o filtro para ver as outras.">
         <ItemContent>
-            <span class="row">
+            <span class="row row--stacked">
                 <strong>@context.Name</strong>
                 <span>@context.Function</span>
                 @if (context.Active)

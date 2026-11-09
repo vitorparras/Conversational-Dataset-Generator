@@ -285,6 +285,8 @@ h1 + .lead { margin-top: 0; }
 .data-table th, .data-table td { padding: var(--space-3); border-bottom: var(--line) solid var(--edge-soft); text-align: left; vertical-align: top; }
 .data-table thead th { border-bottom: var(--line-strong) solid var(--edge); font-size: var(--text-sm); }
 .data-table__group { padding-top: var(--space-5); font-family: var(--font-display); font-size: var(--text-lg); }
+.data-table__plain { font-weight: var(--weight-text); }
+.data-table__mark { display: inline-block; margin-left: var(--space-2); }
 .data-table code { font-family: var(--font-mono); font-size: var(--text-sm); overflow-wrap: anywhere; }
 .data-table .button { white-space: nowrap; }
 
@@ -320,3 +322,4 @@ h1 + .lead { margin-top: 0; }
 /* Row of a list: the name first and strong, then what describes it. */
 .row { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-5); }
 .row > strong { flex: 1 1 var(--term-width); }
+.row--stacked > strong { flex-basis: 100%; }

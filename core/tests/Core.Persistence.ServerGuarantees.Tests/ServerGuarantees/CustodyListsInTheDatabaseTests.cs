@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using Core.Persistence.Custody;
 using Core.Persistence.Migrations;
 using Core.Persistence.ServerGuarantees;
+using Core.Persistence.Tests.Fixtures;
 using Npgsql;
 
 namespace Core.Persistence.Tests.ServerGuarantees;

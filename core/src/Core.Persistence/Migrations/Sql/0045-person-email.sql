@@ -1,5 +1,5 @@
 -- The e-mail address of a person who operates (issue 635, policy 009), in a table of its own and optional: it serves only to carry the link that resets a password. It is no event of the chain and has
--- no history, so the copy of the data and a restoration leave it out, and an address changed or removed leaves nothing behind. The number of this migration is provisional until the pull request opens.
+-- no history, so the copy of the data and a restoration leave it out, and an address changed or removed leaves nothing behind.
 CREATE TABLE public.person_email (
     person_id bigint PRIMARY KEY REFERENCES public.person (id),
     address text NOT NULL CONSTRAINT person_email_address_shape CHECK (char_length(address) BETWEEN 3 AND 254 AND address ~ '^[^@[:space:]]+@[^@[:space:]]+$'),

@@ -46,14 +46,15 @@ public sealed class BatchesScreenTests
         Assert.Contains("class=\"data-table data-table--stacks\"", page, StringComparison.Ordinal);
         Assert.Contains("--data-table-header-2: \"Domínio\";", page, StringComparison.Ordinal);
         Assert.Contains("--data-table-header-6: \"Recibo do envio\";", page, StringComparison.Ordinal);
-        Assert.Matches(new Regex(@"Lote 43</th>\s*<td role=""cell"">zqx-dominio-a</td>", RegexOptions.None, TimeSpan.FromSeconds(1)), page);
-        Assert.Matches(new Regex(@"Lote 42</th>\s*<td role=""cell"">zqx-dominio-b</td>", RegexOptions.None, TimeSpan.FromSeconds(1)), page);
+        Assert.Matches(new Regex(@"Lote 43</th>\s*<td role=""cell"">zqx-dominio-a</td>", RegexOptions.None, TimeSpan.FromSeconds(1)), page);
+        Assert.Matches(new Regex(@"Lote 42</th>\s*<td role=""cell"">zqx-dominio-b</td>", RegexOptions.None, TimeSpan.FromSeconds(1)), page);
         Assert.Contains("Em curso", page, StringComparison.Ordinal);
         Assert.Contains("Aceito", page, StringComparison.Ordinal);
         Assert.Contains("zqx-bia", page, StringComparison.Ordinal);
         Assert.Contains("08/11/2026 às 14:30 UTC", page, StringComparison.Ordinal);
         Assert.Contains("2,0 KiB", page, StringComparison.Ordinal);
-        Assert.Contains($"Resumo (SHA-256): <code class=\"digest\">{Digest}</code>", page, StringComparison.Ordinal);
+        Assert.Contains($"<code class=\"digest-box__full\">{Digest}</code>", page, StringComparison.Ordinal);
+        Assert.Contains("mostrar inteiro</summary>", page, StringComparison.Ordinal);
         Assert.Contains("Sem envio registrado", page, StringComparison.Ordinal);
     }
 
@@ -91,10 +92,45 @@ public sealed class BatchesScreenTests
 
         Assert.Contains("Nenhum lote para mostrar.", page, StringComparison.Ordinal);
         Assert.Contains("Você não tem concessão em nenhum domínio.", page, StringComparison.Ordinal);
-        Assert.DoesNotContain("<form", page, StringComparison.Ordinal);
+        Assert.DoesNotContain("<form class=\"filter\"", page, StringComparison.Ordinal);
         Assert.DoesNotContain("<table", page, StringComparison.Ordinal);
         Assert.DoesNotContain("class=\"pager\"", page, StringComparison.Ordinal);
         Assert.DoesNotContain("role=\"alert\"", page, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("State", "aceitos")]
+    [InlineData("From", "2026-11-01")]
+    [InlineData("Until", "2026-11-08")]
+    [InlineData("FromError", "zqx-erro")]
+    [InlineData("UntilError", "zqx-erro")]
+    public async Task TheFilterOpensByItselfWhenAFilterIsInUseOrADateWasRefused(string key, string value)
+    {
+        var page = await RenderAsync(new Dictionary<string, object?> { ["Rows"] = ThreeStates, ["Granted"] = true, [key] = value });
+
+        Assert.Matches(new Regex("<details id=\"filtro\" class=\"panel filter-box\" open", RegexOptions.None, TimeSpan.FromSeconds(1)), page);
+        Assert.Contains("Filtrar por estado e período (filtro em uso)", page, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("zqx-estado")]
+    public async Task WithNoFilterInUseTheFilterFoldsSoTheListComesFirst(string? state)
+    {
+        var page = await RenderAsync(new Dictionary<string, object?> { ["Rows"] = ThreeStates, ["Granted"] = true, ["State"] = state });
+
+        Assert.Contains("<details id=\"filtro\" class=\"panel filter-box\">", page, StringComparison.Ordinal);
+        Assert.DoesNotContain("(filtro em uso)", page, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task TheListHasATitleOfItsOwnAndSaysItDoesNotFollowTheDomainOfWork()
+    {
+        var page = await RenderAsync(new Dictionary<string, object?> { ["Rows"] = ThreeStates, ["Granted"] = true });
+
+        Assert.Contains(">Lista de lotes</h2>", page, StringComparison.Ordinal);
+        Assert.Contains("A lista traz todos os domínios que você alcança, qualquer que seja o domínio de trabalho escolhido no cabeçalho.", page, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -1,3 +1,4 @@
+using System.Net;
 using Core.Host.Endpoints;
 using Core.Host.Screens;
 using Core.Platform.Configuration;
@@ -15,6 +16,7 @@ public sealed class ScreenRouteTests : IAsyncLifetime
 {
     private const string Page = "/zqx-tela-7731";
     private const string Title = "Tela zqx";
+    private const string Unavailable = "/zqx-tela-indisponivel-7731";
 
     private WebApplication? app;
     private HttpClient? client;
@@ -29,6 +31,7 @@ public sealed class ScreenRouteTests : IAsyncLifetime
         app = builder.Build();
         ScreenAssets.Map(app);
         _ = app.MapGet(Page, Show).WithMetadata(new SessionOpen("the test of the screens"));
+        _ = app.MapPost(Unavailable, ScreenResult.Unavailable).WithMetadata(new SessionOpen("the test of the screens"));
         await app.StartAsync(TestContext.Current.CancellationToken);
         client = new HttpClient { BaseAddress = address };
     }
@@ -71,6 +74,17 @@ public sealed class ScreenRouteTests : IAsyncLifetime
         using var response = await Client.GetAsync(new Uri(Page, UriKind.Relative), TestContext.Current.CancellationToken);
 
         Assert.True(response.Headers.CacheControl?.NoStore);
+    }
+
+    [Fact]
+    public async Task AScreenWithoutItsServiceAnswers503WithTheFailurePageAndNotABareStatus()
+    {
+        using var response = await Client.PostAsync(new Uri(Unavailable, UriKind.Relative), content: null, TestContext.Current.CancellationToken);
+        var page = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        Assert.Contains("<h1>Falha ao abrir a p", page, StringComparison.Ordinal);
+        Assert.Contains("<header class=\"header\">", page, StringComparison.Ordinal);
     }
 
     private static RazorComponentResult<ScreenFrame> Show(HttpContext context) => ScreenResult.Of(context, typeof(ScreenHeader), Title);

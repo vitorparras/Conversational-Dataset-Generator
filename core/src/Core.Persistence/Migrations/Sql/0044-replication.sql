@@ -98,7 +98,7 @@ BEGIN
     PERFORM public.restore_require_open();
     BEGIN
         IF table_name NOT IN ('public.domain', 'public.derivation_label', 'public.derivation_label_revocation', 'public.person', 'public.person_change', 'public.person_credential',
-                              'public.sign_in_attempt', 'content.ingestion_batch', 'content.item_text', 'content.reversal_map', 'content.item_emptied',
+                              'public.sign_in_attempt', 'public.configuration_change', 'content.ingestion_batch', 'content.batch_origin', 'content.item_text', 'content.reversal_map', 'content.item_emptied',
                               'content.replication_occurrence', 'content.replication_mark') THEN
             RAISE EXCEPTION 'the table is not one the load puts back' USING ERRCODE = 'CE005';
         END IF;

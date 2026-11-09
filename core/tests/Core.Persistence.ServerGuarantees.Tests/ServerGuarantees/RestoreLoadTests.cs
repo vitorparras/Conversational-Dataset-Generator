@@ -35,6 +35,7 @@ public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<Resto
         foreach (var table in new[]
         {
             "public.domain", "public.derivation_label", "public.derivation_label_revocation", "public.person", "public.person_credential", "public.person_change", "public.sign_in_attempt",
+            "public.configuration_change",
         })
         {
             _ = await destination.LoadAsync(table, source.Copy[table]);
@@ -60,6 +61,7 @@ public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<Resto
             ("public.person_credential", "person_id"),
             ("public.person_change", "id"),
             ("public.sign_in_attempt", "id"),
+            ("public.configuration_change", "id"),
         })
         {
             Assert.Equal(source.Copy[table], Assert.Single(await destination.Database.FirstColumnAsOwnerAsync($"SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY {key}), '[]') FROM {table} t")));

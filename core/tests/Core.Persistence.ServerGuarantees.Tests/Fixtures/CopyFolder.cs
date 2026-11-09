@@ -9,7 +9,7 @@ internal sealed class CopyFolder : IDisposable
     public static readonly string[] Tables =
     [
         "public.domain", "public.derivation_label", "public.derivation_label_revocation", "public.person", "public.person_credential", "public.person_change",
-        "public.sign_in_attempt",
+        "public.sign_in_attempt", "public.configuration_change",
         "public.custody_event",
         "content.ingestion_batch", "content.item_text", "content.reversal_map", "content.item_emptied", "content.replication_occurrence", "content.replication_mark",
     ];

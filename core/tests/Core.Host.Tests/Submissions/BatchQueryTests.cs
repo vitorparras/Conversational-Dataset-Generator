@@ -35,6 +35,46 @@ public sealed class BatchQueryTests
         Assert.NotNull(BatchQuery.Of(Query([("pageSize", pageSize), ("page", page)]), [1]));
     }
 
+    [Theory]
+    [InlineData("open", BatchState.Open)]
+    [InlineData("accepted", BatchState.Accepted)]
+    [InlineData("Rejected", BatchState.Rejected)]
+    public void StateIsAcceptedOnlyByOneOfTheThreeNames(string name, BatchState state)
+    {
+        Assert.Equal(string.Empty, Fields(("state", name)));
+        Assert.Equal(state, BatchQuery.Of(Query([("state", name)]), [1])!.Filter.State);
+    }
+
+    [Theory]
+    [InlineData("7")]
+    [InlineData("-1")]
+    [InlineData("open,accepted")]
+    [InlineData("open, rejected")]
+    [InlineData("")]
+    [InlineData("zqx")]
+    public void StateThatIsNotOneOfTheThreeNamesIsAParameterThatIsNotAcceptedAndNothingIsListed(string state)
+    {
+        Assert.Equal("state", Fields(("state", state)));
+        Assert.Null(BatchQuery.Of(Query([("state", state)]), [1]));
+    }
+
+    [Theory]
+    [InlineData("2026-11-01T12:00:00Z")]
+    [InlineData("2026-11-01T12:00:00.123Z")]
+    [InlineData("2026-11-01T09:00:00-03:00")]
+    [InlineData("2026-11-01")]
+    public void MomentInIso8601IsAccepted(string moment) =>
+        Assert.Equal(string.Empty, Fields(("from", moment), ("until", moment)));
+
+    [Theory]
+    [InlineData("ontem")]
+    [InlineData("11/01/2026")]
+    [InlineData("1 nov 2026")]
+    [InlineData("2026-11-01 12:00")]
+    [InlineData("1762000000")]
+    public void MomentThatIsNotInIso8601IsAParameterThatIsNotAccepted(string moment) =>
+        Assert.Equal("from,until", Fields(("from", moment), ("until", moment)));
+
     [Fact]
     public void LastPageTheRegisterReadsSkipsExactlyTheMostItSkips()
     {

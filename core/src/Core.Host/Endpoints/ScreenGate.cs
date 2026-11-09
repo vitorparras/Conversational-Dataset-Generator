@@ -25,7 +25,7 @@ internal static class ScreenGate
 
             var reach = await ReachOfAsync(context).ConfigureAwait(false);
             context.Features.Set(reach);
-            await (endpoint is not null && reach.Reaches(access) ? next(context) : NotFoundAsync(context)).ConfigureAwait(false);
+            await (endpoint is not null && reach.Opens(access) ? next(context) : NotFoundAsync(context)).ConfigureAwait(false);
         });
 
     /// <summary>The one answer of an address that leads nowhere the one who entered may go.</summary>

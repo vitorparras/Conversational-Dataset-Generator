@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Core.Persistence.People;
 
 namespace Core.Host.Endpoints;
@@ -37,6 +38,12 @@ internal sealed class ScreenReach
             return access is not null;
         }
 
-        return function is not null && access.Functions.Contains(function, StringComparer.Ordinal) && (Granted.Any() || WithoutDomain.Contains(function, StringComparer.Ordinal));
+        return Holds(access.Functions) && (Granted.Any() || WithoutDomain.Contains(function, StringComparer.Ordinal));
     }
+
+    /// <summary>Whether the route of the mark given answers: what <see cref="Reaches"/> says, or, for a screen that answers its functions with no domain granted, the function alone.</summary>
+    internal bool Opens(ScreenAccess? access) => Reaches(access) || (access is { WithoutGrant: true, Functions: { } functions } && Holds(functions));
+
+    [MemberNotNullWhen(true, nameof(function))]
+    private bool Holds(IEnumerable<string> functions) => function is not null && functions.Contains(function, StringComparer.Ordinal);
 }

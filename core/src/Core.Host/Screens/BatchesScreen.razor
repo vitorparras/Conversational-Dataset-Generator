@@ -16,7 +16,7 @@
 else
 {
     <Panel Id="filtro" Title="Filtrar">
-        <form method="get">
+        <form class="filter" method="get">
             <ChoiceGroup Name="@StateKey" Legend="Estado" Options="StateChoices" Value="@(State ?? string.Empty)" />
             <Field Id="filtro-de" Name="@FromKey" Caption="Enviados a partir de" Type="date" Value="@From" Error="@FromError" />
             <Field Id="filtro-ate" Name="@UntilKey" Caption="Enviados até" Type="date" Value="@Until" Error="@UntilError" />

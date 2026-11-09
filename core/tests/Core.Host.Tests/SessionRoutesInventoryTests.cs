@@ -29,7 +29,7 @@ public sealed class SessionRoutesInventoryTests
         string[] expected =
         [
             "DELETE /account/sessions/{id}", "DELETE /session", "GET /", "GET /account/sessions", "GET /audit/server", "GET /avisos", "GET /configuracao", "GET /configuration",
-            "GET /custodia", "GET /custodia/verificar", "GET /custody/seal", "GET /custody/verification", "GET /dominios", "GET /estado-do-sistema",
+            "GET /custodia", "GET /custodia/verificar", "GET /custody/seal", "GET /custody/verification", "GET /dominios", "GET /estado-do-sistema", "GET /lotes",
             "GET /minha-conta", "GET /minha-conta/senha", "GET /minha-conta/sessoes/encerrar", "GET /minha-conta/sessoes/encerrar-outras", "GET /pessoas", "GET /session",
             "GET /versions",
         ];

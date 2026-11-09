@@ -1,11 +1,15 @@
 # PostgreSQL with the pgaudit extension preloaded; base pinned by tag and digest.
+# pgaudit carries no version here (#733), as strace and openssl carry none in the start image (#728): the repository drops a
+# version when a newer one replaces it, and a pinned one broke the build without a change in the repository. The package is the
+# one for the server's major version, so it follows the 17 of the base; the version the build got is printed in the build log.
 FROM postgres:17.11-bookworm@sha256:3645570cccdfa447589da9f57dd740faa29b30938e861289a5574b6ca6b03826
 
 USER root
 
 RUN set -eux; \
-    apt-get update; \
-    apt-get install -y --no-install-recommends "postgresql-17-pgaudit=17.1-2.pgdg12+1"; \
+    apt-get -o Acquire::Retries=3 update; \
+    apt-get -o Acquire::Retries=3 install -y --no-install-recommends postgresql-17-pgaudit; \
+    dpkg-query -W -f='pacote instalado: ${Package}=${Version}\n' postgresql-17-pgaudit; \
     rm -rf /var/lib/apt/lists/*
 
 # Every cluster initdb creates from the sample loads pgaudit, whatever command the container gets.

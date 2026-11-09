@@ -15,6 +15,7 @@ namespace Core.Host.Tests.Browser.Screens;
 public sealed class FailurePageTests(BrowserFixture browser)
 {
     private const int ServerFailure = 500;
+    private const int ServiceUnavailable = 503;
     private const string Title = "Falha ao abrir a página";
 
     private static readonly string[] Detail = [TrialRoutes.InternalDetail, "InvalidOperationException", "Exception", "StackTrace", "   at ", ".cs:", "Core.Host", "Microsoft.AspNetCore"];
@@ -73,5 +74,47 @@ public sealed class FailurePageTests(BrowserFixture browser)
         await Expect(tab.Page.GetByRole(AriaRole.Heading, new() { Name = Title })).ToBeVisibleAsync();
         var page = await tab.Page.ContentAsync();
         Assert.All(Detail, term => Assert.DoesNotContain(term, page, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Ca4ThePageOfAFailureOffersToTryAgainAndTheLinkLeadsBackToTheSamePage()
+    {
+        await using var tab = await browser.OpenAsync(TrialRoutes.Trial);
+        _ = await tab.Page.GotoAsync(TrialRoutes.Failure);
+
+        var again = tab.Page.GetByRole(AriaRole.Link, new() { Name = "Tentar de novo" });
+        await Expect(again).ToBeVisibleAsync();
+        await again.ClickAsync();
+
+        await Expect(tab.Page).ToHaveURLAsync(new Regex($"{Regex.Escape(TrialRoutes.Failure)}$"));
+        await Expect(tab.Page.GetByRole(AriaRole.Heading, new() { Name = Title })).ToBeVisibleAsync();
+    }
+
+    [Fact]
+    public async Task Ca4TheCodeOnThePageOfAFailureIsTheOneTheLogWroteWithTheFailureAndNoDetail()
+    {
+        await using var tab = await browser.OpenAsync(TrialRoutes.Trial);
+
+        _ = await tab.Page.GotoAsync(TrialRoutes.Failure);
+        var code = (await tab.Page.Locator("main code").InnerTextAsync()).Trim();
+
+        Assert.Matches("^[0-9A-F]{8}$", code);
+        var lines = browser.HostLines.Where(line => line.Contains("[341]", StringComparison.Ordinal) && line.Contains(code, StringComparison.Ordinal)).ToList();
+        _ = Assert.Single(lines);
+        Assert.DoesNotContain(TrialRoutes.InternalDetail, lines[0], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Ca4ThePageOf503OffersToTryAgainAndSaysNoCode()
+    {
+        await using var tab = await browser.OpenAsync(TrialRoutes.Trial);
+
+        var response = await tab.Page.GotoAsync(TrialRoutes.Unavailable);
+
+        Assert.Equal(ServiceUnavailable, response?.Status);
+        await Expect(tab.Page.GetByRole(AriaRole.Heading, new() { Name = Title })).ToBeVisibleAsync();
+        await Expect(tab.Page.GetByRole(AriaRole.Link, new() { Name = "Tentar de novo" })).ToBeVisibleAsync();
+        await Expect(tab.Page.Locator("main code")).ToHaveCountAsync(0);
+        await Expect(tab.Page.Locator("main")).Not.ToContainTextAsync("código");
     }
 }

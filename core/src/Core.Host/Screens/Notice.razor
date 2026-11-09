@@ -4,7 +4,10 @@
 </div>
 
 @code {
-    /// <summary>What the notice tells; each one has its own word and shape, so it reads without colour.</summary>
+    /// <summary>
+    /// What the notice tells; each one has its own word and shape, so it reads without colour. One rule for every screen (#734): an error is what failed, pending is what
+    /// is waited for, and a notice is what the system says of its state; a wait or a state is never said as an error.
+    /// </summary>
     public enum Tone
     {
         Info,

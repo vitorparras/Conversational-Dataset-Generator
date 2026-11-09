@@ -30,7 +30,7 @@ public sealed class StatusReadinessTests : IDisposable
         var report = new StartupReport([CheckResult.Failed("Sample:File", "recurso ausente", "ZQX-MARKER-7731.bin")], DateTimeOffset.UnixEpoch);
         await using var host = await StatusHost.StartAsync(report, watch, cancellationToken);
 
-        using var body = await host.StatusAsync(cancellationToken);
+        using var body = host.Detail();
 
         Assert.True(body.RootElement.GetProperty("alive").GetBoolean());
         Assert.False(body.RootElement.GetProperty("ready").GetBoolean());
@@ -46,7 +46,7 @@ public sealed class StatusReadinessTests : IDisposable
         var cancellationToken = TestContext.Current.CancellationToken;
         await using var host = await StatusHost.StartAsync(PassedReport, watch, cancellationToken);
 
-        using var body = await host.StatusAsync(cancellationToken);
+        using var body = host.Detail();
 
         Assert.True(body.RootElement.GetProperty("ready").GetBoolean());
         Assert.Equal("Available", body.RootElement.GetProperty("languageService").GetString());
@@ -61,7 +61,7 @@ public sealed class StatusReadinessTests : IDisposable
 
         StandInService.Kill(service.ProcessId);
         var lost = await Poll.UntilAsync(() => Task.FromResult(watch.State == ServiceState.Unavailable), Poll.LossLimit, cancellationToken);
-        using var body = await host.StatusAsync(cancellationToken);
+        using var body = host.Detail();
 
         Assert.True(lost, "the end of the service process was not seen");
         Assert.False(body.RootElement.GetProperty("ready").GetBoolean());
@@ -75,7 +75,7 @@ public sealed class StatusReadinessTests : IDisposable
         var observed = CheckResult.Passed("Sample:File", "recurso presente", "Sample:Host") with { Observed = "ZQX-MARKER-7731 1.0" };
         await using var host = await StatusHost.StartAsync(new StartupReport([observed], DateTimeOffset.UnixEpoch), watch, cancellationToken);
 
-        using var body = await host.StatusAsync(cancellationToken);
+        using var body = host.Detail();
 
         Assert.Equal("ZQX-MARKER-7731 1.0", body.RootElement.GetProperty("checks")[0].GetProperty("observed").GetString());
     }
@@ -88,7 +88,7 @@ public sealed class StatusReadinessTests : IDisposable
         var report = new StartupReport([CheckResult.Passed("Sample:File", "recurso presente", "ZQX-MARKER-7731.bin")], checkedAt);
         await using var host = await StatusHost.StartAsync(report, watch, cancellationToken);
 
-        using var body = await host.StatusAsync(cancellationToken);
+        using var body = host.Detail();
 
         Assert.Equal(checkedAt, body.RootElement.GetProperty("checkedAt").GetDateTimeOffset());
     }
@@ -99,7 +99,7 @@ public sealed class StatusReadinessTests : IDisposable
         var cancellationToken = TestContext.Current.CancellationToken;
         await using var host = await StatusHost.StartAsync(PassedReport, new ServiceProcessWatch(), RecognizerKind.Fake, cancellationToken);
 
-        using var body = await host.StatusAsync(cancellationToken);
+        using var body = host.Detail();
 
         Assert.True(body.RootElement.GetProperty("ready").GetBoolean());
         Assert.Equal("fake", body.RootElement.GetProperty("recognizer").GetString());
@@ -113,7 +113,7 @@ public sealed class StatusReadinessTests : IDisposable
         var report = new StartupReport([CheckResult.Failed("Sample:File", "recurso ausente", "ZQX-MARKER-7731.bin")], DateTimeOffset.UnixEpoch);
         await using var host = await StatusHost.StartAsync(report, watch, RecognizerKind.Fake, cancellationToken);
 
-        using var body = await host.StatusAsync(cancellationToken);
+        using var body = host.Detail();
 
         Assert.False(body.RootElement.GetProperty("ready").GetBoolean());
     }
@@ -124,7 +124,7 @@ public sealed class StatusReadinessTests : IDisposable
         var cancellationToken = TestContext.Current.CancellationToken;
         await using var host = await StatusHost.StartAsync(PassedReport, new ServiceProcessWatch(), RecognizerKind.Http, cancellationToken);
 
-        using var body = await host.StatusAsync(cancellationToken);
+        using var body = host.Detail();
 
         Assert.False(body.RootElement.GetProperty("ready").GetBoolean());
         Assert.Equal("http", body.RootElement.GetProperty("recognizer").GetString());

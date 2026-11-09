@@ -1,4 +1,5 @@
 @using Core.Host.Endpoints
+@using Core.Platform
 @using Core.Host.Supervision
 @using Core.Platform.Startup
 @using Core.Platform.Versions
@@ -31,20 +32,20 @@
                 <span class="facts__note">Arquivos que a queda do servidor cortou: @string.Join(", ", Status.AuditComparison.CutOffFiles).</span>
             }
         </Fact>
-        <Fact Term="Instalação">@Status.Installation.Name</Fact>
+        <Fact Term="Instalação">@ScreenHeader.Name@(Status.Installation.Kind == InstallationKind.Demonstration ? " (demonstração)" : null)</Fact>
     </FactList>
 </Panel>
 <Panel Id="conferencias" Title="Conferências ao iniciar">
     <p>@(Status.Checks.Count - Failed) de @Status.Checks.Count passaram.</p>
     <DataTable Id="conferencias-tabela" Caption="Uma conferência por linha." Headers="Columns">
-        <tbody>
+        <tbody role="rowgroup">
             @foreach (var check in Status.Checks)
             {
-                <tr id="@(IsFirstFailed(check) ? FirstFailedId : null)" aria-current="@(IsFirstFailed(check) ? "true" : null)">
-                    <th scope="row">@check.Name</th>
-                    <td>@(check.Status == CheckStatus.Passed ? Mark(StateMark.Tone.Good, "Passou") : Mark(StateMark.Tone.Bad, "Falhou"))</td>
-                    <td>@Sentence(check.Message)@(check.Observed is { } observed ? $". Encontrado: {observed}" : "")</td>
-                    <td><code>@check.ExpectedSource</code></td>
+                <tr role="row" id="@(IsFirstFailed(check) ? FirstFailedId : null)" tabindex="@(IsFirstFailed(check) ? "-1" : null)" aria-current="@(IsFirstFailed(check) ? "true" : null)">
+                    <th scope="row" role="rowheader">@check.Name</th>
+                    <td role="cell">@(check.Status == CheckStatus.Passed ? Mark(StateMark.Tone.Good, "Passou") : Mark(StateMark.Tone.Bad, "Falhou"))</td>
+                    <td role="cell">@Sentence(check.Message)@(check.Observed is { } observed ? $". Encontrado: {observed}" : "")</td>
+                    <td role="cell"><code>@check.ExpectedSource</code></td>
                 </tr>
             }
         </tbody>

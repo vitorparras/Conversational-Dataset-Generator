@@ -5,8 +5,8 @@
 
 <Panel Id="chaves" Title="Chaves em vigor">
     <Notice>Esta tela só mostra. Quem administra o servidor altera os valores; o novo vale quando o sistema reinicia.</Notice>
-    <details class="note">
-        <summary>Como se altera um valor</summary>
+    <details class="filter-box">
+        <summary class="filter-box__summary">Como se altera um valor</summary>
         <p>
             O valor se grava no arquivo de configuração, numa variável de ambiente ou num argumento da linha de comando, nessa ordem de precedência crescente.
             De uma chave de segredo aparecem só o nome e a origem.
@@ -15,21 +15,21 @@
     <DataTable Id="chaves-tabela" Caption="@($"{Entries.Count} chaves, uma por linha, agrupadas por seção.")" Headers="Columns">
         @foreach (var section in Entries.GroupBy(entry => entry.Key.Split(':')[0]))
         {
-            <tbody>
-                <tr><th class="data-table__group" colspan="@Columns.Length" scope="rowgroup">@SectionLabel(section.Key)</th></tr>
+            <tbody role="rowgroup">
+                <tr role="row"><th role="rowheader" class="data-table__group" colspan="@Columns.Length" scope="rowgroup">@SectionLabel(section.Key)</th></tr>
                 @foreach (var entry in section)
                 {
-                    <tr>
-                        <th scope="row"><code>@entry.Key</code></th>
-                        <td>
+                    <tr role="row">
+                        <th scope="row" role="rowheader"><code>@entry.Key</code></th>
+                        <td role="cell">
                             @Value(entry.Value)
                             @if (entry.Mark is { } mark)
                             {
                                 <span class="data-table__mark"><StateMark>@mark</StateMark></span>
                             }
                         </td>
-                        <td>@Origin(entry.Origin)</td>
-                        <td>No servidor</td>
+                        <td role="cell">@Origin(entry.Origin)</td>
+                        <td role="cell">No servidor</td>
                     </tr>
                 }
             </tbody>
@@ -47,7 +47,8 @@
     [Parameter, EditorRequired]
     public IReadOnlyList<EffectiveEntry> Entries { get; set; } = Array.Empty<EffectiveEntry>();
 
-    private static string SectionLabel(string key) => key switch
+    /// <summary>The name of a section in words, with the name in the file beside it; every section the host declares has one, which a test walks.</summary>
+    internal static string SectionLabel(string key) => key switch
     {
         "Host" => "Servidor (Host)",
         "Session" => "Sessões (Session)",
@@ -60,6 +61,8 @@
         "MasterKey" => "Chave mestra (MasterKey)",
         "Recognizer" => "Reconhecedor (Recognizer)",
         "LanguageService" => "Serviço de linguagem (LanguageService)",
+        "Tls" => "Certificado e chave de TLS (Tls)",
+        "Mail" => "Envio de e-mail (Mail)",
         _ => key,
     };
 

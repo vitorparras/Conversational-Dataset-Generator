@@ -71,8 +71,11 @@ public sealed class ChainCheckTests(BrowserFixture browser, IntactChainHostFixtu
         _ = await tab.Page.GotoAsync(Check);
         await tab.Page.GetByRole(AriaRole.Button, new() { Name = "Verificar a cadeia agora", Exact = true }).ClickAsync();
 
-        await Expect(tab.Page.Locator(".notice--error")).ToContainTextAsync("Você pediu uma verificação há pouco. Espere");
-        await Expect(tab.Page.Locator(".notice--error")).ToContainTextAsync("segundos e peça de novo.");
+        await Expect(tab.Page.Locator(".notice--pending")).ToContainTextAsync("Você pediu uma verificação há pouco. Tente de novo a partir de");
+        await Expect(tab.Page.Locator(".notice--pending time")).ToHaveTextAsync(new Regex(@"^\d{2}/\d{2}/\d{4}\sàs\s\d{2}:\d{2}\sUTC$"));
+        await Expect(tab.Page.Locator(".notice--pending")).ToContainTextAsync(new Regex(@"daqui a \d+ segundos\."));
+        await Expect(tab.Page.Locator(".notice--pending .notice__kind")).ToHaveTextAsync("Pendente:");
+        await Expect(tab.Page.Locator(".notice--error")).ToHaveCountAsync(0);
         await Expect(tab.Page.GetByRole(AriaRole.Heading, new() { Name = "Verificar a cadeia agora", Level = 1 })).ToBeVisibleAsync();
         _ = await tab.Page.GotoAsync(Chain);
         await Expect(tab.Page.Locator(FirstRow)).ToHaveCountAsync(rows);

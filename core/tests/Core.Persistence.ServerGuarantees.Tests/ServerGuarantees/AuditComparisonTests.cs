@@ -71,6 +71,15 @@ public sealed class AuditComparisonTests
     }
 
     [Fact]
+    public void ReadOfTheSealedOriginIsAccountedByItsOwnStep()
+    {
+        var seen = new[] { Entry(App, "content.batch_origin", "SELECT") };
+
+        Assert.Empty(AuditComparison.Compare(seen, App, new Dictionary<CustodyStep, int> { [CustodyStep.OriginRead] = 1 }));
+        _ = Assert.Single(AuditComparison.Compare(seen, App, new Dictionary<CustodyStep, int>()));
+    }
+
+    [Fact]
     public void CredentialWrittenWithNoEventIsANewDifferenceWithNoKnownGap()
     {
         var difference = Assert.Single(AuditComparison.Compare([Entry(App, "public.person_credential", "UPDATE")], App, new Dictionary<CustodyStep, int>()));

@@ -47,7 +47,7 @@ public sealed class AccountScreenTests(BrowserFixture browser, AccountHostFixtur
         await Expect(rows.Filter(new() { HasText = "Esta sessão" })).ToHaveCountAsync(1);
         await Expect(rows.Filter(new() { HasText = "Esta sessão" }).Locator("a")).ToHaveCountAsync(0);
         await Expect(rows.Filter(new() { HasNotText = "Esta sessão" }).GetByRole(AriaRole.Link, new() { Name = "Encerrar" })).ToHaveCountAsync(1);
-        await Expect(tabs.Current.Page.Locator("#sessoes-tabela-legenda")).ToHaveTextAsync("2 sessões abertas, contando esta. Horários em UTC.");
+        await Expect(tabs.Current.Page.Locator("#sessoes-tabela-legenda")).ToHaveTextAsync("2 sessões abertas, contando esta, da usada há menos tempo para a mais antiga. Horários em UTC.");
         await Expect(tabs.Current.Page.GetByRole(AriaRole.Link, new() { Name = "Encerrar todas as outras" })).ToHaveAttributeAsync("href", EndOthers);
     }
 

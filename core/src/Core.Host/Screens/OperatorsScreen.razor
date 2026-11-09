@@ -4,8 +4,16 @@
 
 <h1>@Title</h1>
 <p class="lead">Quem opera o sistema, com a função declarada e o estado. Nenhum conteúdo de material aparece aqui.</p>
+@if (Registered is not null)
+{
+    <Notice Kind="Notice.Tone.Success">@Registered foi cadastrada, sem nenhuma concessão de domínio. Ela entra com a senha inicial que você definiu e a troca depois.</Notice>
+}
+<div class="actions">
+    <Button Href="@ScreenPaths.OperatorNew">Cadastrar pessoa</Button>
+</div>
 
-<Panel Id="filtro" Title="Filtrar">
+<details id="filtro" class="panel filter-box" open="@Filtered">
+    <summary class="filter-box__summary">Filtrar por nome, função e estado@(Filtered ? " (filtro em uso)" : null)</summary>
     <form class="filter" method="get" action="@ScreenPaths.Operators">
         <Field Id="filtro-nome" Name="@NameKey" Caption="Nome contém" Value="@Name" Autocomplete="off" />
         <Field Id="filtro-funcao" Name="@FunctionKey" Caption="Função" Value="@Function" Options="FunctionChoices" />
@@ -15,7 +23,7 @@
             <Button Href="@ScreenPaths.Operators" Kind="Button.Look.Quiet">Limpar filtro</Button>
         </div>
     </form>
-</Panel>
+</details>
 
 <Panel Id="lista" Title="@(Page.Total == 1 ? "1 pessoa" : $"{Page.Total} pessoas")">
     <PagedList Items="Page.Items" Caption="Pessoas" Page="Page.Page" PageCount="Page.Pages" PageSize="PersonPage.Size" Address="Address"
@@ -72,6 +80,13 @@
 
     [Parameter]
     public string? State { get; set; }
+
+    /// <summary>Whether any part of the filter is in force, which is when the filter shows itself open.</summary>
+    private bool Filtered => !string.IsNullOrEmpty(Name) || !string.IsNullOrEmpty(Function) || !string.IsNullOrEmpty(State);
+
+    /// <summary>The name of the person just registered, which the page says it was; null otherwise.</summary>
+    [Parameter]
+    public string? Registered { get; set; }
 
     /// <summary>The address of a page with the filter in force, leaving out what is not filtered.</summary>
     private string Address(int page)

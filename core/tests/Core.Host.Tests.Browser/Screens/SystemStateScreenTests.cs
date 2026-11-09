@@ -81,6 +81,17 @@ public sealed class SystemStateScreenTests(BrowserFixture browser, SystemHostFix
         await Expect(FactOf(tab.Page, "Modelo")).ToContainTextAsync("Não obtida");
     }
 
+    [Fact]
+    public async Task TheInstallationIsNamedInPortugueseWithTheMarkOfADemonstrationAndTheHeaderSaysItOnEveryPage()
+    {
+        await using var tab = await OpenAsync(system.Host.Administrator);
+
+        await Expect(FactOf(tab.Page, "Instalação")).ToHaveTextAsync("Gerador de bases conversacionais (demonstração)");
+        await Expect(tab.Page.Locator(".header .header__demo")).ToContainTextAsync("Instalação de demonstração: não envie material real.");
+        _ = await tab.Page.GotoAsync("/");
+        await Expect(tab.Page.Locator(".header .header__demo")).ToHaveCountAsync(1);
+    }
+
     [Theory]
     [InlineData("Administrator")]
     [InlineData("Auditor")]
@@ -181,7 +192,7 @@ public sealed class SystemStateScreenTests(BrowserFixture browser, SystemHostFix
             seen.Add(await tab.Page.EvaluateAsync<bool>(FocusIsSeen));
         }
 
-        Assert.Equal(HeaderStops.Then("nav__link", "nav__link", "data-table"), reached);
+        Assert.Equal(HeaderStops.Then("nav__link", "nav__link", HeaderStops.TableStop), reached);
         Assert.DoesNotContain(false, seen);
     }
 

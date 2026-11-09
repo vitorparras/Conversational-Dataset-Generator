@@ -23,4 +23,7 @@ internal enum ValidationProblem
 
     /// <summary>An occurrence starts before the text or ends past it, counted in code points.</summary>
     OffsetOutsideText = 6,
+
+    /// <summary>An occurrence has a kind outside the closed list of the contract.</summary>
+    KindOutsideVocabulary = 7,
 }

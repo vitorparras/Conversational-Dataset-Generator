@@ -1,11 +1,16 @@
 using Core.Boundary.Contracts;
 using Core.Boundary.Fake;
 using Core.Boundary.Http;
+using Core.Boundary.Text;
 using Core.Host.Analysis;
 using Core.Host.Endpoints;
 using Core.Host.Migration;
 using Core.Host.Operators;
+using Core.Host.Submissions;
 using Core.Host.Supervision;
+using Core.Ingestion;
+using Core.Ingestion.Entrance;
+using Core.Ingestion.Reading;
 using Core.Persistence.Connection;
 using Core.Persistence.Content.Reading;
 using Core.Persistence.Content.Rotation;
@@ -34,7 +39,7 @@ internal static class CompositionRoot
     internal static async Task<HostLaunch> MigrateAsync(DatabaseSettings database)
     {
         await using var dataSource = NpgsqlDataSource.Create(database.ConnectionString!);
-        await using var logging = LoggingServices();
+        await using var logging = HostBuilders.Logging();
         var result = await new MigrationRunner(dataSource, EmbeddedMigrations.Load()).RunAsync(CancellationToken.None);
         logging.GetRequiredService<ILogger<MigrationRunner>>().Write(result);
         return HostLaunch.Migrated(result.Outcome);
@@ -117,6 +122,11 @@ internal static class CompositionRoot
     internal static ItemKeys KeysOf(MasterKeyReading reading) => new(new KeyDerivation(reading.Key!, reading.Labels), reading.Epochs);
     internal static EpochRotation RotationOf(NpgsqlDataSource dataSource, ItemKeys keys) => new(dataSource, keys);
 
+    /// <summary>What takes a file in over the key a reading holds: the barrier, the conference and the path that seals what a submission declares are services, and so are built here.</summary>
+    internal static SubmissionIntake IntakeOf(MasterKeyReading reading, SubmissionSettings settings) => new(
+        new SubmissionGate(SourceReaders.Default(), settings.MaxBytes), new FormConference(new TextBoundaries()), settings.Conditions,
+        new ProtectedContent(reading.Labels, KeysOf(reading), settings.Registered, settings.Revoked));
+
     /// <summary>The rehearsal of the recovery over a source that was read, opening content with the labels the database registers.</summary>
     internal static RecoveryRehearsal RehearsalOf(NpgsqlDataSource dataSource, MasterKeyReading reading, IReadOnlySet<string> registered) =>
         new(dataSource, new ProtectedContent(reading.Labels, KeysOf(reading), registered), TimeProvider.System);
@@ -124,10 +134,6 @@ internal static class CompositionRoot
     /// <summary>The record of the rehearsal in the chain of the production, and the load of a restored copy.</summary>
     internal static RecoveryRecording RecordingOf(NpgsqlDataSource dataSource) => new(dataSource);
     internal static RestoreLoader LoaderOf(NpgsqlDataSource dataSource) => new(dataSource, new GuaranteeVerifier(dataSource), TimeProvider.System);
-
-    /// <summary>Redacted console logging alone: the modes that migrate or rotate have no host, no file destination and no language service.</summary>
-    internal static ServiceProvider LoggingServices() =>
-        new ServiceCollection().AddSingleton(TimeProvider.System).AddLogging(PlatformLogging.Configure).AddRedaction(PlatformLogging.EraseSensitiveData).BuildServiceProvider();
 
     /// <summary>The application's data source, the verifier of the guarantees and the ten server checks, privilege first, the window of the owner credential second and the labels last.</summary>
     private static void AddServerGuarantees(IServiceCollection services, DatabaseSettings database)
@@ -231,12 +237,5 @@ internal static class CompositionRoot
     }
 
     /// <summary>A web host with no configuration source of its own, so nothing reaches it except what the closed configuration approved.</summary>
-    internal static WebApplicationBuilder ClosedBuilder(string urls)
-    {
-        var builder = WebApplication.CreateEmptyBuilder(new WebApplicationOptions { ContentRootPath = AppContext.BaseDirectory });
-        _ = builder.WebHost.UseKestrel().UseUrls(urls);
-        _ = builder.Services.AddRoutingCore();
-        _ = builder.Services.Configure<ConsoleLifetimeOptions>(options => options.SuppressStatusMessages = true);
-        return builder;
-    }
+    internal static WebApplicationBuilder ClosedBuilder(string urls) => HostBuilders.Closed(urls);
 }

@@ -67,11 +67,58 @@ public sealed class SampleReviewScreenTests
     }
 
     [Fact]
-    public async Task Ca4AnEmptySampleOffersNoApprovalEither()
+    public async Task Ca4AnEmptySampleOffersNoApprovalEitherAndSaysWhy()
     {
         var page = await ReviewAsync(new SampleReviewScreen.Drawn(7, "zqx-dominio", 3, [], null));
 
         Assert.DoesNotContain($"{Action}/aprovar", page, StringComparison.Ordinal);
+        Assert.Contains("A amostra não tem item.", page, StringComparison.Ordinal);
+        Assert.Contains("O lote não tem nenhum item gravado para sortear", page, StringComparison.Ordinal);
+        Assert.DoesNotContain("quando todos os itens da amostra estiverem revisados", page, StringComparison.Ordinal);
+        Assert.DoesNotContain("<ol", page, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ABatchWithFewerItemsThanTheDeclaredSizeSaysTheSampleIsTheWholeBatch()
+    {
+        var smaller = await ReviewAsync(Drawn(reviewed: 0) with { Declared = 10 });
+        var full = await ReviewAsync(Drawn(reviewed: 0));
+
+        Assert.Contains("O lote tem menos itens que o tamanho declarado, e por isso a amostra são todos os 3 itens dele.", smaller, StringComparison.Ordinal);
+        Assert.DoesNotContain("menos itens que o tamanho declarado", full, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(3)]
+    public async Task Ca2AFindingCanBeToldAtEveryItemReviewedOrNotWhileTheBatchIsUndecided(int reviewed)
+    {
+        var page = await ReviewAsync(Drawn(reviewed));
+
+        Assert.All(Enumerable.Range(1, 3), position => Assert.Contains($"href=\"{Action}/itens/{position}/achado\"", page, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Ca2ARejectedBatchSaysWhoWhenTheKindAndTheItemAndOffersNothingToDo()
+    {
+        var page = await ReviewAsync(Drawn(reviewed: 1) with { Rejected = new("zqx-curadora", At, 2, "documento") });
+
+        Assert.Contains("Lote reprovado por zqx-curadora em", page, StringComparison.Ordinal);
+        Assert.Contains("Número de documento no item 2 da amostra. Nenhum item dele entrará no acervo.", page, StringComparison.Ordinal);
+        Assert.Contains("O lote já foi reprovado.", page, StringComparison.Ordinal);
+        Assert.Contains("Não revisado: o lote já foi decidido.", page, StringComparison.Ordinal);
+        Assert.DoesNotContain("/achado", page, StringComparison.Ordinal);
+        Assert.DoesNotContain("/revisado", page, StringComparison.Ordinal);
+        Assert.DoesNotContain($"{Action}/aprovar", page, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Ca3AnApprovedBatchOffersNoFindingAnymore()
+    {
+        var page = await ReviewAsync(Drawn(reviewed: 3) with { Approved = new("zqx-curadora", At, "amostra-7-1") });
+
+        Assert.DoesNotContain("/achado", page, StringComparison.Ordinal);
     }
 
     [Fact]

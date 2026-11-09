@@ -27,7 +27,9 @@ public sealed class SampleReviewPieceTests(BrowserFixture browser, SampleReviewH
     private const string Overflow = "() => document.documentElement.scrollWidth - document.documentElement.clientWidth";
     private const string FocusTheTitle = "() => { const title = document.querySelector('main h1'); title.setAttribute('tabindex', '-1'); title.focus(); }";
     private const string StopInMain = "() => { const stop = document.activeElement; return stop && stop.closest('main') ? (stop.id || stop.textContent.trim()) : ''; }";
-    private const string WithoutTheItems = "() => { const main = document.querySelector('main').cloneNode(true); main.querySelectorAll('.sample__text').forEach(text => text.remove()); return main.innerText; }";
+    private const string WithoutTheItems =
+        "() => { const main = document.querySelector('main').cloneNode(true); " +
+        "main.querySelectorAll('.sample__text').forEach(text => text.remove()); return main.innerText; }";
 
     [Theory]
     [InlineData(0, 1)]
@@ -39,7 +41,7 @@ public sealed class SampleReviewPieceTests(BrowserFixture browser, SampleReviewH
 
         await Expect(tab.Page.GetByRole(AriaRole.Button, new() { Name = Mark })).ToHaveCountAsync(1);
         await Expect(tab.Page.Locator($"#revisado-{next}")).ToBeVisibleAsync();
-        await Expect(tab.Page.GetByRole(AriaRole.Link, new() { Name = Finding })).ToHaveCountAsync(1);
+        await Expect(tab.Page.GetByRole(AriaRole.Link, new() { Name = Finding })).ToHaveCountAsync(Items);
         await Expect(tab.Page.Locator(".mark--good")).ToHaveCountAsync(reviewed);
         await Expect(tab.Page.GetByText("Revise os itens anteriores primeiro.")).ToHaveCountAsync(Items - reviewed - 1);
     }
@@ -58,25 +60,37 @@ public sealed class SampleReviewPieceTests(BrowserFixture browser, SampleReviewH
     }
 
     [Fact]
-    public async Task WithEveryItemReviewedTheApprovalAppearsAndNoMarkIsLeft()
+    public async Task WithEveryItemReviewedTheApprovalAppearsNoMarkIsLeftAndAFindingCanStillBeTold()
     {
         await using var tab = await OpenAsync($"{Review}?e=revisados-{Items}", ReviewTitle);
 
         await Expect(tab.Page.GetByRole(AriaRole.Button, new() { Name = "Aprovar o lote 41" })).ToBeVisibleAsync();
         await Expect(tab.Page.GetByRole(AriaRole.Button, new() { Name = Mark })).ToHaveCountAsync(0);
-        await Expect(tab.Page.GetByRole(AriaRole.Link, new() { Name = Finding })).ToHaveCountAsync(0);
+        await Expect(tab.Page.GetByRole(AriaRole.Link, new() { Name = Finding })).ToHaveCountAsync(Items);
         await Expect(tab.Page.Locator(".mark--good")).ToHaveCountAsync(Items);
     }
 
-    [Fact]
-    public async Task AnApprovedBatchSaysWhoApprovedAndOffersNothingToDo()
+    [Theory]
+    [InlineData("aprovada", ".notice--success", "Lote aprovado por zqx-curadoria", "O lote já foi aprovado.")]
+    [InlineData("reprovada", ".notice--info", "Lote reprovado por zqx-curadoria", "O lote já foi reprovado.")]
+    public async Task ADecidedBatchSaysWhoDecidedAndOffersNothingToDo(string state, string notice, string who, string conclusion)
     {
-        await using var tab = await OpenAsync($"{Review}?e=aprovada", ReviewTitle);
+        await using var tab = await OpenAsync($"{Review}?e={state}", ReviewTitle);
 
-        await Expect(tab.Page.Locator(".notice--success")).ToContainTextAsync("Lote aprovado por zqx-curadoria");
-        await Expect(tab.Page.GetByText("O lote já foi aprovado.")).ToBeVisibleAsync();
+        await Expect(tab.Page.Locator(notice)).ToContainTextAsync(who);
+        await Expect(tab.Page.GetByText(conclusion)).ToBeVisibleAsync();
         await Expect(tab.Page.Locator("#aprovar")).ToHaveCountAsync(0);
         await Expect(tab.Page.Locator("main form")).ToHaveCountAsync(0);
+        await Expect(tab.Page.GetByRole(AriaRole.Link, new() { Name = Finding })).ToHaveCountAsync(0);
+    }
+
+    [Fact]
+    public async Task ARejectedBatchSaysTheKindFoundAndTheItemNeverTheData()
+    {
+        await using var tab = await OpenAsync($"{Review}?e=reprovada", ReviewTitle);
+
+        await Expect(tab.Page.Locator(".notice--info")).ToContainTextAsync("Contato: telefone, e-mail ou perfil no item 3 da amostra");
+        await Expect(tab.Page.GetByText("Não revisado: o lote já foi decidido.")).ToHaveCountAsync(Items - 2);
     }
 
     [Fact]
@@ -86,37 +100,36 @@ public sealed class SampleReviewPieceTests(BrowserFixture browser, SampleReviewH
 
         for (var position = 1; position <= Items; position++)
         {
-            Assert.Equal([$"revisado-{position}", Finding], await StopsInMainAsync(tab.Page));
+            Assert.Equal(StopsAt(position), await StopsInMainAsync(tab.Page));
 
-            await FocusTheTitleAsync(tab.Page);
-            await tab.Page.Keyboard.PressAsync("Tab");
+            await PressTabAsync(tab.Page, position);
             await tab.Page.Keyboard.PressAsync("Enter");
 
             await Expect(tab.Page).ToHaveURLAsync(new Regex($"e=revisados-{position}$"));
             await Expect(tab.Page.GetByRole(AriaRole.Heading, new() { Name = ReviewTitle, Level = 1 })).ToBeVisibleAsync();
         }
 
-        Assert.Equal(["aprovar"], await StopsInMainAsync(tab.Page));
-        await FocusTheTitleAsync(tab.Page);
-        await tab.Page.Keyboard.PressAsync("Tab");
+        Assert.Equal([.. FindingsBetween(1, Items), "aprovar"], await StopsInMainAsync(tab.Page));
+        await PressTabAsync(tab.Page, Items + 1);
         await tab.Page.Keyboard.PressAsync("Enter");
 
         await Expect(tab.Page).ToHaveURLAsync(new Regex("e=aprovada$"));
         await Expect(tab.Page.Locator(".notice--success")).ToContainTextAsync("Lote aprovado por");
     }
 
-    [Fact]
-    public async Task TheKeyboardAloneReachesTheRejectionOfTheItemAndComesBackWithoutRejecting()
+    [Theory]
+    [InlineData(4, 3)]
+    [InlineData(1, 1)]
+    public async Task TheKeyboardAloneReachesTheRejectionOfAnItemReviewedOrNotAndComesBackWithoutRejecting(int tabs, int item)
     {
         await using var tab = await OpenAsync($"{Review}?e=revisados-2", ReviewTitle);
 
-        await FocusTheTitleAsync(tab.Page);
-        await tab.Page.Keyboard.PressAsync("Tab");
-        await tab.Page.Keyboard.PressAsync("Tab");
+        await PressTabAsync(tab.Page, tabs);
+        Assert.Equal($"achado-{item}", await tab.Page.EvaluateAsync<string>(StopInMain));
         await tab.Page.Keyboard.PressAsync("Enter");
 
         await Expect(tab.Page.GetByRole(AriaRole.Heading, new() { Name = RejectTitle, Level = 1 })).ToBeVisibleAsync();
-        await Expect(tab.Page.Locator(".notice")).ToContainTextAsync("item 3 da amostra");
+        await Expect(tab.Page.Locator(".notice")).ToContainTextAsync($"item {item} da amostra");
         var kinds = await tab.Page.Locator("input[type=radio]").EvaluateAllAsync<string[]>("inputs => inputs.map(input => input.value)");
         Assert.Equal(["contato", "documento", "endereco", "nome", "outro", "sensivel"], kinds.Order(StringComparer.Ordinal));
         var stops = await StopsInMainAsync(tab.Page);
@@ -126,8 +139,8 @@ public sealed class SampleReviewPieceTests(BrowserFixture browser, SampleReviewH
         await tab.Page.GetByRole(AriaRole.Link, new() { Name = "Voltar à amostra sem reprovar" }).FocusAsync();
         await tab.Page.Keyboard.PressAsync("Enter");
 
-        await Expect(tab.Page).ToHaveURLAsync(new Regex("e=revisados-2$"));
-        await Expect(tab.Page.Locator("#revisado-3")).ToBeVisibleAsync();
+        await Expect(tab.Page).ToHaveURLAsync(new Regex($"e=revisados-{item - 1}$"));
+        await Expect(tab.Page.Locator($"#revisado-{item}")).ToBeVisibleAsync();
     }
 
     [Fact]
@@ -170,6 +183,8 @@ public sealed class SampleReviewPieceTests(BrowserFixture browser, SampleReviewH
     [InlineData("Dark", "revisados-5")]
     [InlineData("Light", "aprovada")]
     [InlineData("Dark", "aprovada")]
+    [InlineData("Light", "reprovada")]
+    [InlineData("Dark", "reprovada")]
     public async Task TheReviewHasNoViolationOfWcagAAndAaInTheLightAndInTheDark(string name, string state)
     {
         var mode = MediaMode.Named(name);
@@ -238,6 +253,22 @@ public sealed class SampleReviewPieceTests(BrowserFixture browser, SampleReviewH
     }
 
     private static async Task FocusTheTitleAsync(IPage page) => _ = await page.EvaluateAsync(FocusTheTitle);
+
+    /// <summary>From the title, the keyboard goes forward a number of stops.</summary>
+    private static async Task PressTabAsync(IPage page, int stops)
+    {
+        await FocusTheTitleAsync(page);
+        for (var press = 0; press < stops; press++)
+        {
+            await page.Keyboard.PressAsync("Tab");
+        }
+    }
+
+    /// <summary>The finding of every item from the first to the last given, which stays on until the batch is decided.</summary>
+    private static IEnumerable<string> FindingsBetween(int first, int last) => Enumerable.Range(first, last - first + 1).Select(position => $"achado-{position}");
+
+    /// <summary>The stops of the review with the item at the position as the next: the findings before it, its mark, and the findings from it to the end.</summary>
+    private static List<string> StopsAt(int position) => [.. FindingsBetween(1, position - 1), $"revisado-{position}", .. FindingsBetween(position, Items)];
 
     private async Task<BrowserTab> OpenAsync(string route, string title)
     {

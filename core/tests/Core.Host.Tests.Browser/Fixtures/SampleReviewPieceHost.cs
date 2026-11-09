@@ -12,7 +12,8 @@ namespace Core.Host.Tests.Browser.Fixtures;
 /// <summary>
 /// The host of the pieces of the review by sample (issue 610), which have no route of their own yet: the review and the rejection at addresses that exist for the test, behind the real
 /// session and screen gates, over a sample of five items drawn for the batch 41. The state is in the address (<c>e=revisados-N</c> says N items reviewed, <c>e=aprovada</c> the sample
-/// reviewed and the batch approved), and the posts answer as the server will: the mark of an item and the approval go back to the review by a redirect.
+/// reviewed and the batch approved, <c>e=reprovada</c> two items reviewed and the batch rejected at the third), and the posts answer as the server will: the mark of an item and the
+/// approval go back to the review by a redirect.
 /// </summary>
 internal sealed class SampleReviewPieceHost : ScreenHostBase
 {
@@ -26,6 +27,8 @@ internal sealed class SampleReviewPieceHost : ScreenHostBase
     public const int Items = 5;
 
     private const string ReviewedState = "revisados-";
+
+    private static readonly SampleReviewScreen.Rejection Finding = new("zqx-curadoria", new DateTimeOffset(2026, 11, 9, 9, 45, 0, TimeSpan.Zero), 3, "contato");
 
     private SampleReviewPieceHost(ScratchDatabase database)
         : base(database)
@@ -55,12 +58,13 @@ internal sealed class SampleReviewPieceHost : ScreenHostBase
     {
         var state = context.Request.Query["e"].ToString();
         var approved = state == "aprovada";
-        var reviewed = approved ? Items : ReviewedIn(state);
+        var rejected = state == "reprovada";
+        var reviewed = state switch { "aprovada" => Items, "reprovada" => 2, _ => ReviewedIn(state) };
         var items = Enumerable.Range(1, Items).Select(position => new SampleReviewScreen.Item(position, TextOf(position), position != 4, position <= reviewed)).ToList();
         SampleReviewScreen.Approval? approval = approved ? new("zqx-curadoria", new DateTimeOffset(2026, 11, 9, 9, 30, 0, TimeSpan.Zero), "amostra-41") : null;
         return ScreenResult.Of(context, typeof(SampleReviewScreen), SampleReviewScreen.Title, new Dictionary<string, object?>(StringComparer.Ordinal)
         {
-            [nameof(SampleReviewScreen.Sample)] = new SampleReviewScreen.Drawn(41, "ZQX-dominio-amostra", Items, items, approval),
+            [nameof(SampleReviewScreen.Sample)] = new SampleReviewScreen.Drawn(41, "ZQX-dominio-amostra", Items, items, approval) { Rejected = rejected ? Finding : null },
             [nameof(SampleReviewScreen.Action)] = Review,
         });
     }

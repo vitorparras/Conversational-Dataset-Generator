@@ -135,7 +135,7 @@ public sealed partial class PhaseThreeFinishTests(BrowserFixture browser, PhaseT
     {
         var hidden = new List<string>();
         var stop = 0;
-        double[]? at = null;
+        double[]? at;
         do
         {
             await page.Keyboard.PressAsync(key);

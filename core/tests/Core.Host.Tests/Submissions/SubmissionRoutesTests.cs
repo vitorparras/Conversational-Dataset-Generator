@@ -1,9 +1,11 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net;
 using System.Text;
 using System.Text.Json;
 using Core.Host.Endpoints;
 using Core.Host.Submissions;
+using Core.Persistence.Tests.Fixtures;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -32,8 +34,12 @@ public sealed class SubmissionRoutesTests
 
         Assert.Equal(
             (HttpStatusCode.Created, "accepted", "declared", JsonValueKind.Null, 1L),
-            (response.StatusCode, json.RootElement.GetProperty("state").GetString(), json.RootElement.GetProperty("origin").GetString(),
-                json.RootElement.GetProperty("reason").ValueKind, await world.BatchCountAsync()));
+            (
+                response.StatusCode,
+                json.RootElement.GetProperty("state").GetString(),
+                json.RootElement.GetProperty("origin").GetString(),
+                json.RootElement.GetProperty("reason").ValueKind,
+                await world.BatchCountAsync()));
         Assert.DoesNotContain("ZQXPRIMEIRO", body, StringComparison.Ordinal);
         Assert.DoesNotContain(SubmissionWorld.Origin, body, StringComparison.Ordinal);
         Assert.DoesNotContain("conversa.json", body, StringComparison.Ordinal);
@@ -58,9 +64,8 @@ public sealed class SubmissionRoutesTests
         var cancellationToken = TestContext.Current.CancellationToken;
         await using var world = await SubmissionWorld.CreateAsync();
         await using var host = await StartAsync(world, cancellationToken);
-        using var form = new MultipartFormDataContent { { new StringContent("conversation"), "declaredForm" } };
-
-        using var response = await host.SendAsync(new HttpRequestMessage(HttpMethod.Post, Submit) { Content = form }, host.SeedSession(), encrypted: true, cancellationToken);
+        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(Submit, UriKind.Relative)) { Content = OnlyTheForm() };
+        using var response = await host.SendAsync(request, host.SeedSession(), encrypted: true, cancellationToken);
         var fields = await FieldsOfAsync(response, cancellationToken);
 
         Assert.Equal((HttpStatusCode.BadRequest, 0L), (response.StatusCode, await world.BatchCountAsync()));
@@ -145,8 +150,13 @@ public sealed class SubmissionRoutesTests
 
         Assert.Equal(
             (HttpStatusCode.Created, 1, 0, 0, HttpStatusCode.OK, HttpStatusCode.NotFound),
-            (created.StatusCode, await CountAsync(accepted, cancellationToken), await CountAsync(rejected, cancellationToken),
-                await CountAsync(hidden, cancellationToken), detail.StatusCode, hiddenDetail.StatusCode));
+            (
+                created.StatusCode,
+                await CountAsync(accepted, cancellationToken),
+                await CountAsync(rejected, cancellationToken),
+                await CountAsync(hidden, cancellationToken),
+                detail.StatusCode,
+                hiddenDetail.StatusCode));
         Assert.DoesNotContain(SubmissionWorld.Origin, await detail.Content.ReadAsStringAsync(cancellationToken), StringComparison.Ordinal);
     }
 
@@ -161,7 +171,7 @@ public sealed class SubmissionRoutesTests
         var fields = await FieldsOfAsync(response, cancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        Assert.Equal(new[] { "state:invalid", "from:invalid", "page:invalid" }, fields);
+        Assert.Equal(["state:invalid", "from:invalid", "page:invalid"], fields);
     }
 
     [DatabaseTheory]
@@ -181,7 +191,7 @@ public sealed class SubmissionRoutesTests
             },
             cancellationToken);
 
-        using var response = await host.SendAsync(new HttpRequestMessage(new HttpMethod(method), route), host.SeedSession(), encrypted: true, cancellationToken);
+        using var response = await host.SendAsync(new HttpRequestMessage(new HttpMethod(method), new Uri(route, UriKind.Relative)), host.SeedSession(), encrypted: true, cancellationToken);
 
         Assert.Equal((HttpStatusCode.NotFound, 0L, 0L), (response.StatusCode, (await response.Content.ReadAsByteArrayAsync(cancellationToken)).LongLength, await world.BatchCountAsync()));
     }
@@ -201,6 +211,10 @@ public sealed class SubmissionRoutesTests
         ["originUnknown"] = originUnknown ? "true" : null,
     };
 
+    [SuppressMessage("Reliability", "CA2000", Justification = "The form takes the parts it is given and lets go of them with itself.")]
+    private static MultipartFormDataContent OnlyTheForm() => new() { { new StringContent("conversation"), "declaredForm" } };
+
+    [SuppressMessage("Reliability", "CA2000", Justification = "The form takes the parts it is given and lets go of them with itself, and the request lets go of the form.")]
     private static HttpRequestMessage Form(Dictionary<string, string?> fields)
     {
         var form = new MultipartFormDataContent();
@@ -210,13 +224,13 @@ public sealed class SubmissionRoutesTests
         }
 
         form.Add(new ByteArrayContent(Encoding.UTF8.GetBytes(SubmissionWorld.Conversation)), "file", "conversa.json");
-        return new HttpRequestMessage(HttpMethod.Post, Submit) { Content = form };
+        return new HttpRequestMessage(HttpMethod.Post, new Uri(Submit, UriKind.Relative)) { Content = form };
     }
 
     private static async Task<string[]> FieldsOfAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
-        return json.RootElement.GetProperty("fields").EnumerateArray().Select(field => $"{field.GetProperty("field").GetString()}:{field.GetProperty("code").GetString()}").ToArray();
+        return [.. json.RootElement.GetProperty("fields").EnumerateArray().Select(field => $"{field.GetProperty("field").GetString()}:{field.GetProperty("code").GetString()}")];
     }
 
     private static async Task<int> CountAsync(HttpResponseMessage response, CancellationToken cancellationToken)

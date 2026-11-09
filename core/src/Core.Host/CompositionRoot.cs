@@ -117,16 +117,6 @@ internal static class CompositionRoot
     internal static ItemKeys KeysOf(MasterKeyReading reading) => new(new KeyDerivation(reading.Key!, reading.Labels), reading.Epochs);
     internal static EpochRotation RotationOf(NpgsqlDataSource dataSource, ItemKeys keys) => new(dataSource, keys);
 
-    /// <summary>The service of the submissions over the key a reading holds, or over none when it failed: it then registers and turns back; the intake and the register are built here.</summary>
-    internal static Submissions.SubmissionService SubmissionsOf(NpgsqlDataSource source, MasterKeyReading reading, Submissions.SubmissionSettings settings) => new(
-        new Submissions.SubmissionIntake(new Core.Ingestion.Entrance.SubmissionGate(Core.Ingestion.Reading.SourceReaders.Default(), settings.MaxBytes),
-            new Core.Ingestion.FormConference(new Core.Boundary.Text.TextBoundaries()), settings.Conditions, SealingOf(reading, settings),
-            reading.Failure is null ? new Core.Persistence.Content.Writing.ContentWriter(source, SealingOf(reading, settings)!) : null),
-        settings.Batches, new Core.Persistence.Ingestion.BatchRegister(source), source);
-
-    private static ProtectedContent? SealingOf(MasterKeyReading reading, Submissions.SubmissionSettings settings) =>
-        reading.Failure is null ? new(reading.Labels, KeysOf(reading), settings.Registered, settings.Revoked) : null;
-
     /// <summary>The rehearsal of the recovery over a source that was read, opening content with the labels the database registers.</summary>
     internal static RecoveryRehearsal RehearsalOf(NpgsqlDataSource dataSource, MasterKeyReading reading, IReadOnlySet<string> registered) =>
         new(dataSource, new ProtectedContent(reading.Labels, KeysOf(reading), registered), TimeProvider.System);
@@ -192,10 +182,10 @@ internal static class CompositionRoot
         _ = builder.Services.AddHostedService(provider => new SealSendingService(provider));
         _ = builder.Services.AddSingleton(provider => new ChainVerificationService(provider)).AddHostedService(provider => provider.GetRequiredService<ChainVerificationService>());
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source ? new DomainListing(source) : null!);
-        _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source
-            ? new OperatorAdministration(new PersonRegistry(source), new PersonCredentials(source, provider.GetRequiredService<PasswordDerivation>()), provider.GetRequiredService<SessionStore>())
-            : null!);
-        _ = builder.Services.AddSingleton(provider => new SignInDelay(provider.GetRequiredService<TimeProvider>())).AddSingleton(provider => provider.GetService<OperatorAdministration>() is { } staff
+        _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source ? new OperatorAdministration(
+            new PersonRegistry(source), CredentialsOf(source, provider.GetRequiredService<PasswordDerivation>()), provider.GetRequiredService<SessionStore>(), new PersonNotices(source)) : null!);
+        _ = builder.Services.AddSingleton(provider => new SignInDelay(provider.GetRequiredService<TimeProvider>()));
+        _ = builder.Services.AddSingleton(provider => provider.GetService<OperatorAdministration>() is { } staff
             ? new PasswordChange(staff.Credentials, provider.GetRequiredService<SessionStore>(), provider.GetRequiredService<SignInDelay>()) : null!);
         _ = builder.Services.AddSingleton(provider => provider.GetService<OperatorAdministration>() is { } people
             ? new SignIn(people.Registry, people.Credentials, provider.GetRequiredService<SessionStore>(), provider.GetRequiredService<SignInDelay>(),

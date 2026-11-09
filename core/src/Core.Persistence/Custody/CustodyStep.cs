@@ -99,6 +99,9 @@ public enum CustodyStep
     /// <summary>A person changed their own password: the item and the author are that person and the reference is how many of their other sessions it ended, never a value of a password.</summary>
     PasswordChanged,
 
+    /// <summary>A person submitted a change of configuration on the screen; the item is the submission, which holds the key, the value and the motive, and the event has no reference.</summary>
+    ConfigurationSubmitted,
+
     /// <summary>The origin that a submission declared for its batch was read; the item is the batch.</summary>
     OriginRead,
 }

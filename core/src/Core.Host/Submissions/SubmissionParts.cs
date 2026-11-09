@@ -1,3 +1,9 @@
+using Core.Boundary.Text;
+using Core.Ingestion;
+using Core.Ingestion.Entrance;
+using Core.Ingestion.Reading;
+using Core.Persistence.Content.Sealing;
+using Core.Persistence.Content.Writing;
 using Core.Persistence.Domains;
 using Core.Persistence.Ingestion;
 using Core.Platform.Keys;
@@ -33,8 +39,18 @@ internal static class SubmissionParts
             ? new SubmissionServiceHolder(AdmissionConfiguration.MaxBytes(values), token => LoadAsync(startup, source, provider.GetRequiredService<IngestionBatches>(), values, token))
             : null!;
 
+    /// <summary>The service over the key a reading holds, or over none when it failed: it then registers and turns back; the gate, the conference, the intake and the register are built here.</summary>
+    private static SubmissionService ServiceOf(NpgsqlDataSource source, MasterKeyReading reading, SubmissionSettings settings)
+    {
+        var sealing = reading.Failure is null ? new ProtectedContent(reading.Labels, CompositionRoot.KeysOf(reading), settings.Registered, settings.Revoked) : null;
+        var writer = sealing is null ? null : new ContentWriter(source, sealing);
+        var intake = new SubmissionIntake(
+            new SubmissionGate(SourceReaders.Default(), settings.MaxBytes), new FormConference(new TextBoundaries()), settings.Conditions, sealing, writer);
+        return new SubmissionService(intake, settings.Batches, new BatchRegister(source), source);
+    }
+
     private static async Task<SubmissionServiceHolder.Loaded> LoadAsync(
-        ServiceProvider startup, NpgsqlDataSource source, IngestionBatches batches, IReadOnlyDictionary<string, string> values, CancellationToken cancellationToken)
+        IServiceProvider startup, NpgsqlDataSource source, IngestionBatches batches, IReadOnlyDictionary<string, string> values, CancellationToken cancellationToken)
     {
         var reading = await startup.GetRequiredService<IMasterKeySource>().ReadAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -43,7 +59,7 @@ internal static class SubmissionParts
             IReadOnlySet<string> registered = failed ? new HashSet<string>() : await RegisteredLabels.ReadAsync(source, cancellationToken).ConfigureAwait(false);
             IReadOnlySet<string> revoked = failed ? new HashSet<string>() : await LabelRevocations.ReadAsync(source, cancellationToken).ConfigureAwait(false);
             var settings = new SubmissionSettings(batches, AdmissionConfiguration.Conditions(values), AdmissionConfiguration.MaxBytes(values), registered, revoked);
-            var service = CompositionRoot.SubmissionsOf(source, reading, settings);
+            var service = ServiceOf(source, reading, settings);
             return reading.Failure is { } failure ? throw new ContentKeyUnavailableException(failure.Kind, service) : new SubmissionServiceHolder.Loaded(service, reading);
         }
         catch

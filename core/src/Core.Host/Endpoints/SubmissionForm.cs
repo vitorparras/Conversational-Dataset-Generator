@@ -74,7 +74,7 @@ internal static class SubmissionForm
         return new string(buffer, 0, read);
     }
 
-    private static SubmissionRequest Request(Dictionary<string, string> fields, long author, Stream content, string? receivedName) => new()
+    private static SubmissionRequest Request(IReadOnlyDictionary<string, string> fields, long author, Stream content, string? receivedName) => new()
     {
         DomainId = int.TryParse(Field(fields, "domain"), NumberStyles.None, CultureInfo.InvariantCulture, out var domain) ? domain : 0,
         AuthorId = author,
@@ -87,5 +87,5 @@ internal static class SubmissionForm
         ReceivedName = receivedName,
     };
 
-    private static string Field(Dictionary<string, string> fields, string name) => fields.GetValueOrDefault(name, string.Empty);
+    private static string Field(IReadOnlyDictionary<string, string> fields, string name) => fields.GetValueOrDefault(name, string.Empty);
 }

@@ -19,7 +19,7 @@ internal static class ScreenResult
         var withSession = context.GetEndpoint()?.Metadata.GetMetadata<SessionOpen>() is null;
         var reach = context.Features.Get<ScreenReach>() ?? ScreenReach.Nothing;
         var menu = ScreenMenu.Of(context, reach);
-        return new(new { Title = title, Screen = screen, ScreenParameters = parameters, WithSession = withSession, Menu = menu, reach.Granted, Current = context.Request.Path.Value });
+        return new(new { Title = title, Screen = screen, ScreenParameters = parameters, WithSession = withSession, Menu = menu, reach.Granted, reach.Unread, Current = context.Request.Path.Value });
     }
 
     /// <summary>
@@ -38,6 +38,14 @@ internal static class ScreenResult
     {
         var page = Of(context, typeof(FailureScreen), FailureScreen.Title);
         page.StatusCode = StatusCodes.Status500InternalServerError;
+        return page;
+    }
+
+    /// <summary>The same page with 503, for a screen whose service the host does not have or whose session ended meanwhile: what to do, and nothing of why.</summary>
+    internal static RazorComponentResult<ScreenFrame> Unavailable(HttpContext context)
+    {
+        var page = Failure(context);
+        page.StatusCode = StatusCodes.Status503ServiceUnavailable;
         return page;
     }
 }

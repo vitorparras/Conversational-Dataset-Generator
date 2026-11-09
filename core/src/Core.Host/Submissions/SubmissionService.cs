@@ -1,5 +1,4 @@
 using Core.Ingestion.Entrance;
-using Core.Persistence.Custody;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Recovery;
 using Npgsql;
@@ -69,7 +68,7 @@ internal sealed class SubmissionService
 
     /// <summary>The fields of the request that are missing or invalid, by name and by code; none when the request can be taken in.</summary>
     /// <param name="request">The request, whose file is not read.</param>
-    public IReadOnlyList<FieldProblem> Check(SubmissionRequest request)
+    internal IReadOnlyList<FieldProblem> Check(SubmissionRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
         return Problems(request);
@@ -141,33 +140,30 @@ internal sealed class SubmissionService
             return new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = BatchOutcome.DomainUnknown };
         }
 
-        var opened = await batches.OpenAsync(new BatchOpening(request.DomainId, request.AuthorId, request.Condition, receipt, origin), cancellationToken).ConfigureAwait(false);
-        return opened.Outcome == BatchOutcome.Opened
-            ? await ClosingAsync(request, new Opened(received, opened.BatchId!.Value, warning, origin.State), reason, cancellationToken).ConfigureAwait(false)
-            : new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = opened.Outcome };
-    }
-
-    /// <summary>A file that was turned back is rejected with the reason and no item; one that was not has its items written and is accepted, or is rejected with no item when they cannot be.</summary>
-    private async Task<SubmissionOutcome> ClosingAsync(SubmissionRequest request, Opened opened, SubmissionReason? reason, CancellationToken cancellationToken)
-    {
-        var closing = new BatchClosing(request.DomainId, opened.Batch, CustodyAuthor.System);
-        if (reason is null)
+        var opening = new BatchOpening(request.DomainId, request.AuthorId, request.Condition, receipt, origin, reason?.Code);
+        var opened = await batches.OpenAsync(opening, cancellationToken).ConfigureAwait(false);
+        if (opened.Outcome != (reason is null ? BatchOutcome.Opened : BatchOutcome.Rejected))
         {
-            var place = new SubmissionStoring.BatchRef(request.DomainId, opened.Batch);
-            var stored = await SubmissionStoring.StoreAsync(intake.Writer!, place, opened.Received.Material!, cancellationToken).ConfigureAwait(false);
-            if (stored && (await batches.AcceptAsync(closing, cancellationToken).ConfigureAwait(false)).Outcome == BatchOutcome.Accepted)
-            {
-                return Answer(opened.Received, opened.Batch, (null, opened.Warning), opened.Origin);
-            }
-
-            _ = await batches.RejectAsync(closing, SubmissionStoring.WriteFailed, cancellationToken).ConfigureAwait(false);
-            return new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = SubmissionStoring.WriteFailed, Batch = opened.Batch };
+            return new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = opened.Outcome };
         }
 
-        var closed = await batches.RejectAsync(closing, reason.Code, cancellationToken).ConfigureAwait(false);
-        return closed.Outcome == BatchOutcome.Rejected
-            ? Turned(opened, reason)
-            : new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = closed.Outcome, Batch = opened.Batch };
+        var kept = new Opened(received, opened.BatchId!.Value, warning, origin.State);
+        return reason is null ? await StoringAsync(request, kept, cancellationToken).ConfigureAwait(false) : Turned(kept, reason);
+    }
+
+    /// <summary>A file that was not turned back has its items written and is accepted, or is rejected with no item when they cannot be.</summary>
+    private async Task<SubmissionOutcome> StoringAsync(SubmissionRequest request, Opened opened, CancellationToken cancellationToken)
+    {
+        var closing = new BatchClosing(request.DomainId, opened.Batch, CustodyAuthor.System);
+        var place = new SubmissionStoring.BatchRef(request.DomainId, opened.Batch);
+        var stored = await SubmissionStoring.StoreAsync(intake.Writer!, place, opened.Received.Material!, cancellationToken).ConfigureAwait(false);
+        if (stored && (await batches.AcceptAsync(closing, cancellationToken).ConfigureAwait(false)).Outcome == BatchOutcome.Accepted)
+        {
+            return Answer(opened.Received, opened.Batch, (null, opened.Warning), opened.Origin);
+        }
+
+        _ = await batches.RejectAsync(closing, SubmissionStoring.WriteFailed, cancellationToken).ConfigureAwait(false);
+        return new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = SubmissionStoring.WriteFailed, Batch = opened.Batch };
     }
 
     /// <summary>What there is to say of a submission that was registered as rejected: the key that was missing is a failure of the service, not a defect of the file.</summary>

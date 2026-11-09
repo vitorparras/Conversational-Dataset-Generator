@@ -1,0 +1,62 @@
+<form class="form" method="post" action="@Action" enctype="multipart/form-data" data-wait="envio-espera" novalidate>
+    @if (Errors is { Count: > 0 })
+    {
+        <Notice Kind="Notice.Tone.Error">O envio não foi feito e nada foi gravado. Corrija os campos marcados e escolha o arquivo de novo: o navegador não o guarda depois de um erro.</Notice>
+    }
+    <ChoiceGroup Name="domain" Legend="Domínio" Options="Offer.Domains" Value="@Given.Domain" Required="true" Error="@ErrorOf("domain")" />
+    <Field Id="arquivo" Name="file" Type="file" Caption="Arquivo" Required="true" Error="@ErrorOf(SubmissionTexts.FileField)"
+           Hint="@($"Até {SubmissionTexts.SizeOf(Offer.MaxBytes)}. O formato é conferido pelo conteúdo, não pela extensão, e o nome do arquivo não é guardado.")" />
+    <ChoiceGroup Name="declaredForm" Legend="Forma do material" Options="SubmissionTexts.Forms" Value="@Given.Form" Required="true" Error="@ErrorOf("declared_form")" />
+    <ChoiceGroup Name="sourceFormat" Legend="Formato do arquivo" Options="Formats()" Value="@(Given.Format ?? Offer.Formats.FirstOrDefault())" Required="true" Error="@ErrorOf("source_format")" />
+    <ChoiceGroup Name="condition" Legend="Condição de entrada" Options="Conditions()" Value="@(Given.Condition ?? Offer.Conditions.FirstOrDefault())" Required="true" Error="@ErrorOf("condition")" />
+    <Field Id="origem" Name="origin" Caption="Origem do material" Value="@Given.Origin" Autocomplete="off" Error="@ErrorOf("origin")"
+           Hint="Obrigatória: diga de onde o material veio, ou marque abaixo que a origem é desconhecida. Ela fica guardada selada e não aparece em registro do sistema nem em exportação." />
+    <Checkbox Id="originUnknown" Caption="A origem é desconhecida" Checked="@Given.OriginUnknown" ErrorOf="@(ErrorOf("origin") is null ? null : "origem-erro")" />
+    <WaitNotice Id="envio-espera" Text="Enviando e conferindo o arquivo. A espera cresce com o tamanho dele; não feche a página." />
+    <div class="actions">
+        <Button Id="enviar">Enviar material</Button>
+    </div>
+</form>
+
+@code {
+    /// <summary>What the form offers: the domains granted, the formats this version reads, the conditions of the installation, the most restrictive first, and the most bytes a file may have.</summary>
+    public sealed record Choices(IReadOnlyList<ChoiceGroup.Option> Domains, IReadOnlyList<string> Formats, IReadOnlyList<string> Conditions, long MaxBytes);
+
+    /// <summary>
+    /// What the person chose and typed, given back when the form is refused, to the same person on a page no cache keeps. The file is never among it.
+    /// A condition not given is the most restrictive, so the form never leaves it to an omission.
+    /// </summary>
+    public sealed record Typed(string? Domain, string? Form, string? Format, string? Condition, string? Origin, bool OriginUnknown)
+    {
+        /// <summary>Nothing chosen yet: the first open of the form.</summary>
+        public static Typed Nothing { get; } = new(null, null, null, null, null, false);
+    }
+
+    /// <summary>Where the form posts.</summary>
+    [Parameter, EditorRequired]
+    public string Action { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public Choices Offer { get; set; } = null!;
+
+    [Parameter]
+    public Typed Given { get; set; } = Typed.Nothing;
+
+    /// <summary>The code of what is wrong in each field, by the name of the field in the contract; none before the first sending.</summary>
+    [Parameter]
+    public IReadOnlyDictionary<string, string>? Errors { get; set; }
+
+    private IReadOnlyList<ChoiceGroup.Option> Formats() => Offer.Formats.Select(format => new ChoiceGroup.Option(format, format)).ToList();
+
+    private IReadOnlyList<ChoiceGroup.Option> Conditions() => Offer.Conditions.Select((name, rank) => new ChoiceGroup.Option(name, CaptionOf(name, rank))).ToList();
+
+    private string CaptionOf(string name, int rank) => (rank, Offer.Conditions.Count) switch
+    {
+        (_, 1) => name,
+        (0, _) => $"{name} (a mais restrita)",
+        var (last, count) when last == count - 1 => $"{name} (a mais permissiva)",
+        _ => name,
+    };
+
+    private string? ErrorOf(string field) => Errors is not null && Errors.TryGetValue(field, out var code) ? SubmissionTexts.FieldErrorOf(field, code) : null;
+}

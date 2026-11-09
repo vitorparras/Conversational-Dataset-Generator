@@ -57,6 +57,12 @@ else
             <Fact Term="O que protege">@Protection</Fact>
             <Fact Term="Último selo">@if (LastSeal is { } seal) { <Moment At="seal" /> } else { <StateMark>Nenhum selo registrado</StateMark> }</Fact>
         </FactList>
+        @if (SealAction)
+        {
+            <div class="actions">
+                <Button Id="selo-emitir" Href="@ScreenPaths.Seal" Kind="Button.Look.Secondary">Selo: emitir e confirmar</Button>
+            </div>
+        }
     </Panel>
     if (History.Count > 0)
     {
@@ -110,6 +116,10 @@ else
 
     [Parameter]
     public string? SealWarning { get; set; }
+
+    /// <summary>Whether the page leads to the screen of the seal: the installation keeps the seal by hand and whoever entered operates it.</summary>
+    [Parameter]
+    public bool SealAction { get; set; }
 
     /// <summary>Whether the chain could not be read now, so that the page shows nothing of a verification.</summary>
     [Parameter]

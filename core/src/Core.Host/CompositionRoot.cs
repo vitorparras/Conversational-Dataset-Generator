@@ -69,11 +69,7 @@ internal static class CompositionRoot
         }
         finally
         {
-            if (startup is not null)
-            {
-                await startup.DisposeAsync();
-            }
-
+            await (startup?.DisposeAsync() ?? ValueTask.CompletedTask);
             fileLog?.Dispose();
         }
     }
@@ -214,8 +210,7 @@ internal static class CompositionRoot
     private static ProtectedContentReader ContentReader(NpgsqlDataSource source, MasterKeyReading reading) =>
         new(source, new ProtectedContent(reading.Labels, KeysOf(reading), new HashSet<string>()), new CustodyChain(source));
 
-    /// <summary>The recognizer of the service the supervisor has alive now, with its secret and the client that never goes through a proxy;
-    /// with no such service, one that refuses without connecting, so that nothing goes to the port a service that is gone once held.</summary>
+    /// <summary>The recognizer of the live service, with its secret and a client that skips proxies; with no service, one that refuses without connecting.</summary>
     private static IRecognizer Recognizer(IServiceProvider host, TimeSpan analyzeTimeout)
     {
         var startup = host.GetRequiredService<ServiceProvider>();

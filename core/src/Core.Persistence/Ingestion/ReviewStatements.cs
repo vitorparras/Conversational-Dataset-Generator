@@ -42,24 +42,14 @@ internal static class ReviewStatements
     internal static async Task<long[]> NumbersAsync(CustodyScope scope, int domainId, long batchId, CancellationToken cancellationToken)
     {
         _ = await ChangeAsync(scope, ReviewQueries.TakeTurn, cancellationToken, Id("id", batchId)).ConfigureAwait(false);
-        var numbers = new List<long>();
         var command = scope.CreateCommand(ReviewQueries.ItemNumbers);
         await using (command.ConfigureAwait(false))
         {
             _ = command.Parameters.Add(Id("id", batchId));
             _ = command.Parameters.Add(new NpgsqlParameter("domain", NpgsqlDbType.Integer) { Value = domainId });
-            var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-            await using (reader.ConfigureAwait(false))
-            {
-                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-                {
-                    numbers.Add(reader.GetInt64(0));
-                }
-            }
+            var listed = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+            return listed is long[] numbers ? numbers : throw new InvalidOperationException("The list of the items of the batch did not come back as numbers.");
         }
-
-        var listed = numbers.ToArray();
-        return listed;
     }
 
     internal static async Task<BatchReview?> HeldAsync(CustodyScope scope, long batchId, CancellationToken cancellationToken)

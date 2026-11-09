@@ -10,8 +10,7 @@ using Npgsql;
 namespace Core.Persistence.Ingestion;
 
 /// <summary>
-/// The sample of a batch for review (issue 83): the system draws it, with a generator that cannot be guessed and without the one who asks choosing an item or how many.
-/// The draw is an event of the chain, written in the very transaction that writes the sample, and the sample, once written, is never changed.
+/// The sample of a batch for review (issue 83): drawn by the system with a generator that cannot be guessed, in the very transaction that records the draw in the chain.
 /// </summary>
 public sealed class BatchReviews
 {
@@ -52,20 +51,13 @@ public sealed class BatchReviews
         return ReadingAsync(domainId, batchId, cancellationToken);
     }
 
-    private static BatchReviewOutcome? Refusal(BatchReview? held)
+    private static BatchReviewOutcome? Refusal(BatchReview? held) => held switch
     {
-        if (held is null)
-        {
-            return BatchReviewOutcome.NotFound;
-        }
-
-        if (held.State != BatchState.Open)
-        {
-            return BatchReviewOutcome.NotOpen;
-        }
-
-        return held.Sample is null ? null : BatchReviewOutcome.AlreadySampled;
-    }
+        null => BatchReviewOutcome.NotFound,
+        { State: not BatchState.Open } => BatchReviewOutcome.NotOpen,
+        { Sample: not null } => BatchReviewOutcome.AlreadySampled,
+        _ => null,
+    };
 
     private static long[] Drawn(long[] numbers, int size)
     {

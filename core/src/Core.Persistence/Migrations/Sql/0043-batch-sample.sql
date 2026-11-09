@@ -1,8 +1,5 @@
--- The sample of a batch for review (issue 83): before a batch is accepted, a person reviews a sample of it that the system drew; here is the draw. The sample is the database's, like everything the review needs:
--- drawn once, with its event in the chain, and never changed after.
---
--- The chain learns the draw: the step batch_sampled, by the person who asks for the review, with the reason of an administrative act. Only the checks change, from the last ones the earlier steps left (the
--- steps from the 0042, the reasons and the shape of the batch from the 0034): everything they list and every clause they fix stays, and the draw comes in beside it.
+-- The sample of a batch for review (issue 83): drawn once by the system, with its event in the chain, and never changed after. The chain learns the step batch_sampled, by the person who asks for the
+-- review; the checks change from the last ones the earlier steps left (the steps from the 0042, the shape of the batch from the 0034), and everything they list stays.
 ALTER TABLE public.custody_event
     DROP CONSTRAINT custody_event_step_listed,
     DROP CONSTRAINT custody_event_batch_shape,
@@ -21,13 +18,12 @@ ALTER TABLE public.custody_event
         AND (step <> 'batch_closed' OR (reason = 'batch_rejected') = (reference IS NOT NULL))
         AND (step <> 'batch_closed' OR reference IS NULL OR reference ~ '^[a-z][a-z0-9_]{0,62}$'));
 
--- The sample in the row of the batch: the numbers of the items, drawn once (empty for a batch with no item, which has nothing to sample), and when it was drawn, the server's moment.
+-- The sample in the row of the batch: the numbers of the items (empty for a batch with no item) and the server's moment of the draw.
 ALTER TABLE content.ingestion_batch
     ADD COLUMN review_sample text,
     ADD COLUMN sampled_at timestamptz,
     ADD CONSTRAINT ingestion_batch_sample CHECK ((review_sample IS NULL) = (sampled_at IS NULL) AND (review_sample IS NULL OR review_sample ~ '^([0-9]+(,[0-9]+)*)?$'));
 
--- The application names the sample and nothing else of it: the moment is the server's, in the trigger below.
 GRANT UPDATE (review_sample) ON content.ingestion_batch TO app;
 
 -- The numbers of the items of an open batch, which the row policy hides from whoever did not write them in this very transaction: the numbers only, never what the items hold. The sample is drawn from them.
@@ -43,8 +39,7 @@ $ids$;
 REVOKE ALL ON FUNCTION public.batch_item_ids(bigint, integer) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.batch_item_ids(bigint, integer) TO app;
 
--- A batch changes in two ways, and only these: the draw of its sample (once, while open) and the closing (from open, once, accepted or rejected, as the 0034 had it). Each needs its event in this
--- transaction. The moments of the draw and of the closing are the server's.
+-- A batch changes in two ways: the draw of its sample (once, while open) and the closing (as the 0034 had it). Each needs its event in this transaction; the moments are the server's.
 CREATE OR REPLACE FUNCTION public.refuse_batch_change() RETURNS trigger
 LANGUAGE plpgsql
 AS $refuse$
@@ -80,8 +75,7 @@ BEGIN
 END
 $refuse$;
 
--- Content is added only to a batch that is open and whose sample was not drawn yet (the 0035 as it was, with the draw among the things that close the door): an item that came after the draw would be an item the
--- sample could not have picked.
+-- Content is added only to a batch that is open and not yet sampled (the 0035, with the draw closing the door): an item that came after the draw is one the sample could not have picked.
 CREATE OR REPLACE FUNCTION public.refuse_content_outside_open_batch() RETURNS trigger
 LANGUAGE plpgsql
 AS $refuse$

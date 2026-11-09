@@ -56,6 +56,8 @@ e por quem ela roda.
 | [042](042-roteiro-de-usabilidade-da-tela-de-pessoas.md) | Roteiro de usabilidade da tela de pessoas, listar e cadastrar |
 | [043](043-roteiro-de-usabilidade-dos-dominios-e-da-custodia.md) | Roteiro de usabilidade dos domínios e da custódia |
 | [045](045-roteiro-de-usabilidade-dos-avisos.md) | Roteiro de usabilidade dos avisos |
-| [049](049-aplicador-da-configuracao.md) | O aplicador da configuração: a conta que escreve o arquivo, o papel do banco que só lê e o serviço |
+| [049](049-aplicador-da-configuracao.md) | O aplicador da configuração: a conta que escreve o arquivo e o papel do banco que só lê |
+| [050](050-arquivo-e-servico-do-aplicador.md) | O arquivo e o serviço do aplicador |
+| [051](051-o-que-o-aplicador-faz-e-recusa.md) | O que o aplicador faz, o que recusa e o que fica registrado |
 
 Ver [regras de escrita](../regras-de-escrita.md).

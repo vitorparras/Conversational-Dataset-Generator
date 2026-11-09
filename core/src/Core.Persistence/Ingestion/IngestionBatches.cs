@@ -47,11 +47,6 @@ public sealed class IngestionBatches
         ArgumentNullException.ThrowIfNull(opening);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(opening.DomainId);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(opening.AuthorId);
-        if ((opening.Receipt is null) != (opening.Origin is null))
-        {
-            throw new ArgumentException("A batch that a submission opens has its receipt and its origin together, and one that none opens has neither.", nameof(opening));
-        }
-
         if (opening.RejectedFor is { } motive && !CustodyEvent.IsBatchMotive(motive))
         {
             return Task.FromResult(new BatchResult { Outcome = BatchOutcome.MotiveRefused });

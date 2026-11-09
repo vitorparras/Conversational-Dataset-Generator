@@ -56,8 +56,11 @@ internal static class IngestionWorld
             ("item", item)))!;
 
     /// <summary>The batch of the domain of the tests, closed by the system as accepted.</summary>
-    public static Task<BatchResult> AcceptAsync(BatchesWorld world, long batch) =>
-        BatchesOf(world).AcceptAsync(new BatchClosing(Domain, batch, CustodyAuthor.System), TestContext.Current.CancellationToken);
+    public static async Task<BatchResult> AcceptAsync(BatchesWorld world, long batch)
+    {
+        await ReviewedBatches.ReviewCleanAsync(world.DataSource, Domain, batch, Person);
+        return await BatchesOf(world).AcceptAsync(new BatchClosing(Domain, batch, CustodyAuthor.System), TestContext.Current.CancellationToken);
+    }
 
     /// <summary>The batch of the domain of the tests, closed by the system as rejected for the motive.</summary>
     public static Task<BatchResult> RejectAsync(BatchesWorld world, long batch, string motive) =>

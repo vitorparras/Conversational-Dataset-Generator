@@ -9,9 +9,13 @@ namespace Core.Persistence.Ingestion;
 /// <summary>What the review of a batch asks of the database inside a transaction of the chain: declare the domain, read the batch, list the items, change the row.</summary>
 internal static class ReviewStatements
 {
+    private const string AcceptedState = "accepted";
     private const int StateColumn = 0;
     private const int SampleColumn = 1;
     private const int SampledAtColumn = 2;
+    private const int ReviewerColumn = 3;
+    private const int ReviewedAtColumn = 4;
+    private const int FindingColumn = 5;
 
     internal static NpgsqlParameter Id(string name, long value) => new(name, NpgsqlDbType.Bigint) { Value = value };
 
@@ -66,6 +70,19 @@ internal static class ReviewStatements
         }
     }
 
+    /// <summary>Why a batch cannot be closed as asked, or null when it can: it is not there, it is not open, or it would be accepted without a review that found nothing.</summary>
+    internal static async Task<BatchOutcome?> ClosingRefusalAsync(CustodyScope scope, IngestionBatch? held, string state, long batchId, CancellationToken cancellationToken)
+    {
+        if (held is null || held.State != BatchState.Open)
+        {
+            return held is null ? BatchOutcome.NotFound : BatchOutcome.AlreadyClosed;
+        }
+
+        var accepting = state == AcceptedState;
+        var review = accepting ? await HeldAsync(scope, batchId, cancellationToken).ConfigureAwait(false) : null;
+        return accepting && review is not { ReviewerId: not null, Finding: null } ? BatchOutcome.ReviewMissing : null;
+    }
+
     private static List<long> Numbers(string sample) => sample.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(number => long.Parse(number, CultureInfo.InvariantCulture)).ToList();
 
     private static DateTimeOffset? Moment(NpgsqlDataReader reader, int column) => reader.IsDBNull(column) ? null : reader.GetFieldValue<DateTimeOffset>(column);
@@ -73,5 +90,8 @@ internal static class ReviewStatements
     private static BatchReview Row(NpgsqlDataReader reader) => new(
         Enum.Parse<BatchState>(reader.GetString(StateColumn), ignoreCase: true),
         reader[SampleColumn] is string sample ? Numbers(sample) : null,
-        Moment(reader, SampledAtColumn));
+        Moment(reader, SampledAtColumn),
+        reader[ReviewerColumn] as long?,
+        Moment(reader, ReviewedAtColumn),
+        reader[FindingColumn] as string);
 }

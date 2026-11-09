@@ -46,6 +46,19 @@ public sealed partial record CustodyEvent
         return new CustodyEvent(CustodyAuthor.Person(personId), new CustodyItem(CustodyItemKind.IngestionBatch, batchId), CustodyStep.BatchSampled, CustodyReason.AdministrativeAct);
     }
 
+    /// <summary>The event of the review of the sample of a batch, by the person who reviewed it; the item is the batch,
+    /// the reason says whether personal data not treated was found, and the event has no reference.</summary>
+    /// <param name="personId">The person who reviewed the sample.</param>
+    /// <param name="batchId">The batch.</param>
+    /// <param name="found">Whether the review found personal data not treated.</param>
+    public static CustodyEvent BatchReviewed(long personId, long batchId, bool found)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(personId);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(batchId);
+        var reason = found ? CustodyReason.ReviewFound : CustodyReason.ReviewClean;
+        return new CustodyEvent(CustodyAuthor.Person(personId), new CustodyItem(CustodyItemKind.IngestionBatch, batchId), CustodyStep.BatchReviewed, reason);
+    }
+
     /// <summary>Whether the text is a motive the database takes: a lowercase letter, then lowercase letters, digits and underscores, up to 63 characters in all.</summary>
     /// <param name="motive">The text to judge.</param>
     public static bool IsBatchMotive(string? motive) =>

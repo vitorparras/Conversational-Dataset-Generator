@@ -54,6 +54,7 @@ internal static class CustodyNames
         [CustodyStep.ConfigurationSubmitted] = "configuration_submitted",
         [CustodyStep.OccurrencesRead] = "occurrences_read",
         [CustodyStep.BatchSampled] = "batch_sampled",
+        [CustodyStep.BatchReviewed] = "batch_reviewed",
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<CustodyReason, string> Reasons = new Dictionary<CustodyReason, string>
@@ -72,6 +73,8 @@ internal static class CustodyNames
         [CustodyReason.AccountNotRecognized] = "account_not_recognized",
         [CustodyReason.BatchAccepted] = "batch_accepted",
         [CustodyReason.BatchRejected] = "batch_rejected",
+        [CustodyReason.ReviewClean] = "review_clean",
+        [CustodyReason.ReviewFound] = "review_found",
     }.ToFrozenDictionary();
 
     internal static string Of(CustodyItemKind kind) => Kinds[kind];

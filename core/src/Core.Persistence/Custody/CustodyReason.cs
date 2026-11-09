@@ -44,4 +44,10 @@ public enum CustodyReason
 
     /// <summary>The batch of ingestion was rejected: what it held was removed, and the motive is in the reference of the event.</summary>
     BatchRejected,
+
+    /// <summary>The review of the sample of a batch found nothing.</summary>
+    ReviewClean,
+
+    /// <summary>The review of the sample of a batch found personal data not treated, and the whole batch was rejected.</summary>
+    ReviewFound,
 }

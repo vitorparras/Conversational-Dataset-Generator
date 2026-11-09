@@ -53,10 +53,10 @@ public sealed partial class CustodyNamesTests
                 "raw_text_read", "sanitized_text_read", "reversal_entries_read", "verify_chain", "item_emptied", "item_emptying_refused", "epoch_rotated", "domain_created", "seal_recorded",
                 "domain_label_rotated", "sign_in_accepted", "sign_in_refused", "credential_recomputed", "key_loss_declared", "recovery_tested", "verify_guarantees",
                 "owner_window_opened", "owner_window_closed", "restored", "restore_rehearsed", "domain_label_revoked", "domain_rewrapped", "batch_opened", "batch_closed", "password_changed",
-                "configuration_submitted", "occurrences_read", "batch_sampled",
+                "configuration_submitted", "occurrences_read", "batch_sampled", "batch_reviewed",
                 "administrative_act", "correction_of_record", "content_read", "verification_passed", "verification_failed",
                 "removal_requested_by_subject", "contract_requirement", "author_without_function", "item_already_emptied", "credentials_accepted", "password_wrong", "account_not_recognized",
-                "batch_accepted", "batch_rejected",
+                "batch_accepted", "batch_rejected", "review_clean", "review_found",
             ],
             [.. Enum.GetValues<CustodyItemKind>().Select(CustodyNames.Of), .. Enum.GetValues<CustodyStep>().Select(CustodyNames.Of), .. Enum.GetValues<CustodyReason>().Select(CustodyNames.Of)]);
     }

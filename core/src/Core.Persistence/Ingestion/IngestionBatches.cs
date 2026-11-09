@@ -173,9 +173,9 @@ public sealed class IngestionBatches
     {
         await DeclareDomainAsync(scope, closing.Request.DomainId, cancellationToken).ConfigureAwait(false);
         var held = await ReadStateAsync(scope, closing.Request.BatchId, cancellationToken).ConfigureAwait(false);
-        if (held is not { } current || current.State != BatchState.Open)
+        if (await ReviewStatements.ClosingRefusalAsync(scope, held, closing.State, closing.Request.BatchId, cancellationToken).ConfigureAwait(false) is { } refused)
         {
-            early.Value = held is null ? BatchOutcome.NotFound : BatchOutcome.AlreadyClosed;
+            early.Value = refused;
             return null;
         }
 

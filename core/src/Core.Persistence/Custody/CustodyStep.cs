@@ -107,4 +107,7 @@ public enum CustodyStep
 
     /// <summary>The sample of a batch was drawn by the system, once, at the request of the person who reviews it; the item is the batch.</summary>
     BatchSampled,
+
+    /// <summary>The sample of a batch was reviewed, by a person: the item is the batch, and the reason says whether the review found personal data not treated.</summary>
+    BatchReviewed,
 }

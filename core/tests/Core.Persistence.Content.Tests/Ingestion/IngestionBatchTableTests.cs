@@ -101,6 +101,7 @@ public sealed class IngestionBatchTableTests
         var accepted = await OpenAsync(world);
         var rejected = await OpenAsync(world);
 
+        await ReviewedBatches.ReviewCleanAsync(world.DataSource, 1, accepted, 1);
         _ = await world.InDomainAfterAsync(AcceptedEvent, 1, Accept, ("event", accepted), ("id", accepted));
         _ = await world.InDomainAfterAsync(RejectedEvent, 1, Reject, ("event", rejected), ("id", rejected));
 
@@ -153,6 +154,7 @@ public sealed class IngestionBatchTableTests
     {
         await using var world = await IngestionWorld.CreateAsync();
         var accepted = await OpenAsync(world);
+        await ReviewedBatches.ReviewCleanAsync(world.DataSource, 1, accepted, 1);
         _ = await world.InDomainAfterAsync(AcceptedEvent, 1, Accept, ("event", accepted), ("id", accepted));
         var rejected = await OpenAsync(world);
         _ = await world.InDomainAfterAsync(RejectedEvent, 1, Reject, ("event", rejected), ("id", rejected));

@@ -80,5 +80,8 @@ public static class ContentColumns
         new(IngestionBatch, "warning", ClearKind.Motive),
         new(IngestionBatch, "review_sample", ClearKind.Motive),
         new(IngestionBatch, "sampled_at", ClearKind.Moment),
+        new(IngestionBatch, "reviewed_by", ClearKind.Identifier),
+        new(IngestionBatch, "reviewed_at", ClearKind.Moment),
+        new(IngestionBatch, "review_finding", ClearKind.Motive),
     ];
 }

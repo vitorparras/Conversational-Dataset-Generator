@@ -2,7 +2,10 @@ using Core.Boundary.Contracts;
 
 namespace Core.Boundary.Tests;
 
-/// <summary>The vocabulary of the kinds is the one the language service emits, written exactly so: a name that drifts turns every occurrence of it into one that is removed, and nothing else would say it.</summary>
+/// <summary>
+/// The vocabulary of the kinds is the one the language service emits, written exactly so: a name that drifts
+/// turns every occurrence of it into one that is removed, and nothing else would say it.
+/// </summary>
 public sealed class OccurrenceKindsTests
 {
     [Theory]

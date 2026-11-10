@@ -53,6 +53,10 @@ internal sealed class SubmissionWorld : IAsyncDisposable
 
     internal ProtectedContentReader Reader { get; }
 
+    /// <summary>The name the world gave to the domain, as the grants name it.</summary>
+    /// <param name="domain">The identifier of the domain.</param>
+    internal static string NameOf(int domain) => domain == Domain ? "zqx-domain-a" : "zqx-domain-b";
+
     internal static async Task<SubmissionWorld> CreateAsync(long maxBytes = 1_000_000, bool gateOpen = true)
     {
         var database = await ScratchDatabase.CreateAsync();

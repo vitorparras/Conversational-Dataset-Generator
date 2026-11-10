@@ -8,6 +8,10 @@
 @if (Status.SealWarning is { } warning)
 {
     <Notice Kind="Notice.Tone.Pending">@warning</Notice>
+    if (SealLink)
+    {
+        <p><Button Id="selo-estado" Href="@ScreenPaths.Seal" Kind="Button.Look.Secondary">Selo: emitir e confirmar</Button></p>
+    }
 }
 <Panel Id="agora" Title="Situação agora">
     <FactList>
@@ -67,6 +71,10 @@
     /// <summary>What the versions route answers, from the same call.</summary>
     [Parameter, EditorRequired]
     public VersionReport Versions { get; set; } = default!;
+
+    /// <summary>Whether the page leads to the screen of the seal: there is a warning and whoever entered operates the seal.</summary>
+    [Parameter]
+    public bool SealLink { get; set; }
 
     private StatusResponse Status => (StatusResponse)State;
 

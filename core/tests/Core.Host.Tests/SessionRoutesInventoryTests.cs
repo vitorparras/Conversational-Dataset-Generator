@@ -29,7 +29,8 @@ public sealed class SessionRoutesInventoryTests
         string[] expected =
         [
             "DELETE /account/sessions/{id}", "DELETE /session", "GET /", "GET /account/sessions", "GET /audit/server", "GET /avisos", "GET /configuracao", "GET /configuration",
-            "GET /custodia", "GET /custodia/verificar", "GET /custody/seal", "GET /custody/verification", "GET /dominios", "GET /estado-do-sistema",
+            "GET /custodia", "GET /custodia/selo", "GET /custodia/verificar", "GET /custody/seal", "GET /custody/verification", "GET /dominios", "GET /estado-do-sistema",
+            "GET /ingestion/batches", "GET /ingestion/batches/{id:long}", "GET /ingestion/gate", "GET /lotes",
             "GET /minha-conta", "GET /minha-conta/senha", "GET /minha-conta/sessoes/encerrar", "GET /minha-conta/sessoes/encerrar-outras", "GET /pessoas", "GET /pessoas/nova", "GET /session",
             "GET /versions",
         ];
@@ -39,9 +40,12 @@ public sealed class SessionRoutesInventoryTests
                 "POST /account/password",
                 "POST /analysis",
                 "POST /avisos/{id}/lido",
+                "POST /custodia/selo/confirmar",
+                "POST /custodia/selo/emitir",
                 "POST /custodia/verificar",
                 "POST /custody/seal/confirmation",
                 "POST /custody/verification",
+                "POST /ingestion/submissions",
                 "POST /minha-conta/senha",
                 "POST /minha-conta/sessoes/encerrar",
                 "POST /minha-conta/sessoes/encerrar-outras",

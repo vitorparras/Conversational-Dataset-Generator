@@ -4,7 +4,19 @@
 
 Na instalação que declarou o selo `Manual`, ninguém envia o selo por ela: quem opera o guarda fora
 do alcance da base. A verificação que o usa está em
-[007](007-verificacao-da-custodia.md). O fluxo é este, com a sessão de quem opera:
+[007](007-verificacao-da-custodia.md). Quem opera faz tudo pela tela, em **Custódia, Selo**
+(`/custodia/selo`, só para a Administração técnica); as rotas abaixo continuam, com a mesma
+lógica, para quem integra por programa:
+
+- **Emitir selo** mostra o texto do selo, com a frase "Guarde este texto onde quem controla a base
+  não alcance". O texto vai no corpo da resposta, nunca no endereço nem no registro, e só aparece
+  nessa resposta.
+- **Confirmar selo** recebe o texto guardado em "Selo guardado" e grava o evento. Um selo alterado
+  volta com o motivo ao lado do campo, e o que foi digitado fica no campo.
+- Fora da situação `Manual`, a tela diz que o núcleo envia o selo sozinho e não oferece a ação.
+  Quem não é da Administração técnica recebe a mesma 404 de um endereço que não existe.
+
+O fluxo das rotas é este, com a sessão de quem opera:
 
 1. `GET /custody/seal` emite o selo do topo atual, em texto, para imprimir ou copiar. Não grava
    nada. Guarde o texto onde quem controla a base não alcance.

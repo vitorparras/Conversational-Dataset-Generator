@@ -109,6 +109,6 @@ public sealed class SubmissionReplicationTests
         var refused = await Record.ExceptionAsync(() => Task.WhenAll(runs));
         var states = string.Join(',', runs.Select(run => run.IsCompletedSuccessfully ? run.Result.State.ToString() : "faulted"));
         var seen = (states, await world.OccurrenceRowsAsync(), await world.MarkRowsAsync());
-        Assert.True(seen == ("Accepted,Accepted", 4L, 4L) , "error: " + seen + " " + refused?.ToString().ReplaceLineEndings(" | "));
+        Assert.True(seen == ("Accepted,Accepted", 4L, 4L), "error: " + seen + " " + refused?.ToString().ReplaceLineEndings(" | "));
     }
 }

@@ -30,30 +30,29 @@ public sealed class ReplicationStore
     }
 
     /// <summary>Writes the occurrences of the messages that came in with the batch and the marks they brought, together: either everything is written or nothing is.</summary>
-    /// <param name="domainId">The domain of the batch.</param>
-    /// <param name="batchId">The batch, which must be open.</param>
+    /// <param name="target">The batch, which must be open, with its domain.</param>
     /// <param name="occurrences">The messages of the batch, in the order the criterion settled them.</param>
     /// <param name="marks">The marks the batch brought, to its messages and to the ones kept before.</param>
     /// <param name="cancellationToken">Cancels the writing.</param>
-    public Task RecordAsync(int domainId, long batchId, IReadOnlyList<StoredOccurrence> occurrences, IReadOnlyList<StoredMark> marks, CancellationToken cancellationToken)
+    public Task RecordAsync(ReplicationTarget target, IReadOnlyList<StoredOccurrence> occurrences, IReadOnlyList<StoredMark> marks, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(occurrences);
         ArgumentNullException.ThrowIfNull(marks);
-        return RecordingAsync(domainId, batchId, (occurrences, marks), cancellationToken);
+        ArgumentNullException.ThrowIfNull(target);
+        return RecordingAsync(target, (occurrences, marks), cancellationToken);
     }
 
     private async Task RecordingAsync(
-        int domainId,
-        long batchId,
+        ReplicationTarget target,
         (IReadOnlyCollection<StoredOccurrence> Occurrences, IReadOnlyCollection<StoredMark> Marks) written,
         CancellationToken cancellationToken)
     {
         try
         {
-            var transaction = await ContentTransaction.BeginAsync(dataSource, domainId, cancellationToken).ConfigureAwait(false);
+            var transaction = await ContentTransaction.BeginAsync(dataSource, target.DomainId, cancellationToken).ConfigureAwait(false);
             await using (transaction.ConfigureAwait(false))
             {
-                await WriteAsync(transaction, domainId, batchId, written, cancellationToken).ConfigureAwait(false);
+                await WriteAsync(transaction, target, written, cancellationToken).ConfigureAwait(false);
                 await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             }
         }
@@ -104,8 +103,7 @@ public sealed class ReplicationStore
 
     private static async Task WriteAsync(
         ContentTransaction transaction,
-        int domainId,
-        long batchId,
+        ReplicationTarget target,
         (IReadOnlyCollection<StoredOccurrence> Occurrences, IReadOnlyCollection<StoredMark> Marks) written,
         CancellationToken cancellationToken)
     {
@@ -115,7 +113,7 @@ public sealed class ReplicationStore
             var command = transaction.CreateCommand(ContentQueries.InsertReplicationOccurrences);
             await using (command.ConfigureAwait(false))
             {
-                Common(command, domainId, batchId);
+                Common(command, target);
                 ArrayOf(command, "items", NpgsqlDbType.Bigint, occurrences.Select(one => one.Item).ToArray());
                 ArrayOf(command, "positions", NpgsqlDbType.Integer, occurrences.Select(one => one.Position).ToArray());
                 ArrayOf(command, "texts", NpgsqlDbType.Text, occurrences.Select(one => one.TextDigest).ToArray());
@@ -131,7 +129,7 @@ public sealed class ReplicationStore
             var command = transaction.CreateCommand(ContentQueries.InsertReplicationMarks);
             await using (command.ConfigureAwait(false))
             {
-                Common(command, domainId, batchId);
+                Common(command, target);
                 ArrayOf(command, "items", NpgsqlDbType.Bigint, marks.Select(one => one.Item).ToArray());
                 ArrayOf(command, "positions", NpgsqlDbType.Integer, marks.Select(one => one.Position).ToArray());
                 ArrayOf(command, "first_items", NpgsqlDbType.Bigint, marks.Select(one => one.FirstItem).ToArray());
@@ -141,10 +139,10 @@ public sealed class ReplicationStore
         }
     }
 
-    private static void Common(NpgsqlCommand command, int domainId, long batchId)
+    private static void Common(NpgsqlCommand command, ReplicationTarget target)
     {
-        _ = command.Parameters.Add(new NpgsqlParameter("domain", NpgsqlDbType.Integer) { Value = domainId });
-        _ = command.Parameters.Add(new NpgsqlParameter("batch", NpgsqlDbType.Bigint) { Value = batchId });
+        _ = command.Parameters.Add(new NpgsqlParameter("domain", NpgsqlDbType.Integer) { Value = target.DomainId });
+        _ = command.Parameters.Add(new NpgsqlParameter("batch", NpgsqlDbType.Bigint) { Value = target.BatchId });
     }
 
     private static void ArrayOf(NpgsqlCommand command, string name, NpgsqlDbType element, Array values) =>
@@ -158,14 +156,19 @@ public sealed class ReplicationStore
             var command = transaction.CreateCommand(statement);
             await using (command.ConfigureAwait(false))
             {
-                var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-                await using (reader.ConfigureAwait(false))
-                {
-                    while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-                    {
-                        each(reader);
-                    }
-                }
+                await EachRowAsync(command, each, cancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
+
+    private static async Task EachRowAsync(NpgsqlCommand command, Action<NpgsqlDataReader> each, CancellationToken cancellationToken)
+    {
+        var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        await using (reader.ConfigureAwait(false))
+        {
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                each(reader);
             }
         }
     }

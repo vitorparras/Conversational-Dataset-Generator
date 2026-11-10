@@ -71,6 +71,7 @@ public sealed class CredentialPrivilegesTests : IClassFixture<PeopleDatabase>
         await using var connection = await Sql.OpenAsync(ownerConnectionString);
         // nosemgrep: sql-concatenation-csharp interpolates the name of a role the fixture made itself, never input.
         await using var command = new NpgsqlCommand(
+            // nosemgrep: sql-concatenation-csharp interpolates the name of a role the fixture made itself, never input.
             $"""
             CREATE TABLE IF NOT EXISTS content.zqx_credential_6340 (id integer);
             GRANT USAGE ON SCHEMA content TO {role};

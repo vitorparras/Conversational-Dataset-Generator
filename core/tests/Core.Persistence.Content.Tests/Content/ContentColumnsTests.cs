@@ -76,6 +76,8 @@ public sealed class ContentColumnsTests
                 new ClearColumn("item_text", "dek_epoch", ClearKind.Epoch),
                 new ClearColumn("item_text", "batch_id", ClearKind.Identifier),
                 new ClearColumn("item_text", "written_in", ClearKind.Transaction),
+                new ClearColumn("item_text", "accommodated_into", ClearKind.Motive),
+                new ClearColumn("item_text", "losses", ClearKind.Motive),
                 new ClearColumn("reversal_map", "id", ClearKind.Identifier),
                 new ClearColumn("reversal_map", "domain_id", ClearKind.Domain),
                 new ClearColumn("reversal_map", "item_id", ClearKind.Identifier),

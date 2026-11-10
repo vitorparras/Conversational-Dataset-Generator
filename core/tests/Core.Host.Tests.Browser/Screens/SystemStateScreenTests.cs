@@ -118,7 +118,7 @@ public sealed class SystemStateScreenTests(BrowserFixture browser, SystemHostFix
         var missingPage = await tab.Page.ContentAsync();
 
         Assert.Equal((StatusNotFound, StatusNotFound), (refused?.Status, missing?.Status));
-        Assert.Equal(missingPage.Replace(Missing.TrimStart('/'), string.Empty, StringComparison.Ordinal), refusedPage.Replace(route.TrimStart('/'), string.Empty, StringComparison.Ordinal));
+        Assert.Equal(missingPage.Replace(Missing, string.Empty, StringComparison.Ordinal), refusedPage.Replace(route, string.Empty, StringComparison.Ordinal));
         Assert.DoesNotContain("Estado do sistema", refusedPage, StringComparison.Ordinal);
         Assert.DoesNotContain("Configuração em vigor", refusedPage, StringComparison.Ordinal);
         Assert.DoesNotContain(system.Host.Secret, refusedPage, StringComparison.Ordinal);
@@ -196,10 +196,10 @@ public sealed class SystemStateScreenTests(BrowserFixture browser, SystemHostFix
         Assert.DoesNotContain(false, seen);
     }
 
-    /// <summary>The detail of a term of the lists of facts, found by the term and not by the markup that holds it.</summary>
     /// <summary>The message of a check as the page says it: with the first letter in capital.</summary>
     private static string Sentence(string text) => char.ToUpperInvariant(text[0]) + text[1..];
 
+    /// <summary>The detail of a term of the lists of facts, found by the term and not by the markup that holds it.</summary>
     private static ILocator FactOf(IPage page, string term) => page.Locator($"dl > div:has(dt:text-is('{term}')) dd");
 
     private async Task<BrowserTab> OpenAsync(string name)

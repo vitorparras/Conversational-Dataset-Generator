@@ -2,6 +2,10 @@
 
 <header class="header">
     <a class="header__name" href="@ScreenPaths.Home">@Name</a>
+    @if (Demonstration)
+    {
+        <p class="header__demo" role="note">Instalação de demonstração: não envie material real.</p>
+    }
     @if (Collapses)
     {
         <button id="cabecalho-abrir" class="button button--secondary header__toggle" type="button" aria-expanded="false" aria-controls="cabecalho-menu">Menu@(ToggleNote)</button>
@@ -40,6 +44,10 @@
 
     [Parameter]
     public int Unread { get; set; }
+
+    /// <summary>Whether the installation is a demonstration, which the band under the name says.</summary>
+    [Parameter]
+    public bool Demonstration { get; set; }
 
     /// <summary>Whether the page stands behind a session, and so offers to end it on the server.</summary>
     [Parameter]

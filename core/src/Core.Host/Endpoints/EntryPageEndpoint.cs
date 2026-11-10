@@ -68,7 +68,7 @@ internal static class EntryPageEndpoint
             [nameof(SignInScreen.Unavailable)] = notice == EntryNotice.Busy,
             [nameof(SignInScreen.Unregistered)] = unregistered,
         };
-        var page = ScreenResult.Of(context, typeof(SignInScreen), "Entrada", screen);
+        var page = ScreenResult.Of(context, typeof(SignInScreen), SignInScreen.Title, screen);
         if (notice == EntryNotice.Busy)
         {
             page.StatusCode = StatusCodes.Status503ServiceUnavailable;

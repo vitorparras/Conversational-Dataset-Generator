@@ -1,13 +1,8 @@
--- The replicated content (issue 82, decision 0024): the database keeps, for every message of every item, the keyed digest of its text and of its sender, and, for the messages whose content is replicated,
--- the mark that points to the first occurrence. Nothing of the text or of the sender is here in clear: the digests are HMACs under a key of the master key that the application holds, and they do not
--- come undone without it. Nothing is removed or merged: a mark is one more row, and the message it marks stays in its item with its sender, its moment and its conversation.
---
--- Both tables are written once. A row never changes, the owner and a replica session included, and a row is removed only with its batch rejected, in the transaction that records the rejection, as
--- the items and the maps are (0035): a batch that is not accepted leaves no digest and no mark behind. An old message that becomes replicated when another sender says the same text later gets a row
--- in replication_mark and the occurrence stays as it was; a mark once written is never undone.
+-- The replicated content (issue 82, decision 0024): for every message of every item, the keyed digest of its text and of its sender (HMACs under a key of the master key, undone only with it) and, for the messages whose content is replicated,
+-- the mark that points to the first occurrence. Nothing is removed or merged: a mark is one more row, and a content that becomes replicated later gets its marks without any occurrence changing.
+-- Both tables are written once, for every session; a row is removed only with its batch rejected, in the transaction that records the rejection, as the items and the maps are (0035).
 
--- The occurrences: one row for each message of an item, by item and position in its conversation, with the digests, the length of the text (the criterion compares it with a minimum) and the moment
--- the message was said (the first occurrence is the earliest). The item and the batch go together as the maps do, so that a message belongs to the batch of its item.
+-- The occurrences: one row for each message of an item, by item and position, with the digests, the length of the text (the criterion compares it with a minimum) and the moment it was said (the first occurrence is the earliest). The item and the batch go together as in the maps.
 SELECT public.create_content_table('replication_occurrence',
     $columns$batch_id bigint NOT NULL,
      item_id bigint NOT NULL,
@@ -24,8 +19,7 @@ SELECT public.create_content_table('replication_occurrence',
      CONSTRAINT replication_occurrence_length CHECK (text_length >= 0),
      CONSTRAINT replication_occurrence_digests CHECK (text_digest ~ '^[0-9a-f]{64}$' AND sender_digest ~ '^[0-9a-f]{64}$')$columns$);
 
--- The marks: one row for each occurrence that is replicated, with the first occurrence of its content, which is marked too and points to itself. The batch is the one that brought the occurrence
--- that made the content replicated, which is not always the batch of the marked message: the foreign keys carry the domain, so that a mark never points to the occurrence of another domain.
+-- The marks: one row for each replicated occurrence, with the first occurrence of its content, which is marked too and points to itself. The batch is the one that brought the occurrence that made the content replicated; the foreign keys carry the domain, so a mark never points to another domain.
 SELECT public.create_content_table('replication_mark',
     $columns$batch_id bigint NOT NULL,
      item_id bigint NOT NULL,
@@ -74,8 +68,7 @@ ALTER TABLE content.replication_mark ENABLE ALWAYS TRIGGER content_needs_open_ba
 ALTER TABLE content.replication_occurrence ENABLE ALWAYS TRIGGER content_removal_needs_rejection;
 ALTER TABLE content.replication_mark ENABLE ALWAYS TRIGGER content_removal_needs_rejection;
 
--- Visible as the content is (0035): when the batch is accepted; or, while it is open, to the transaction that wrote the row; or to the transaction that rejected the batch; or in the scope of the system,
--- the one of the operations that copy the data. A message of a batch still open or rejected is not compared with by another batch.
+-- Visible as the content is (0035): when the batch is accepted; while it is open, to the transaction that wrote the row or to the one that rejected the batch; or in the scope of the system, which copies the data.
 CREATE POLICY batch_accepted_only ON content.replication_occurrence AS RESTRICTIVE FOR SELECT
     USING (written_in = pg_catalog.pg_current_xact_id()
         OR EXISTS (SELECT 1 FROM content.ingestion_batch b WHERE b.id = replication_occurrence.batch_id AND b.domain_id = replication_occurrence.domain_id

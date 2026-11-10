@@ -33,6 +33,7 @@ internal static class SystemScreensEndpoint
         var screen = new Dictionary<string, object?>(StringComparer.Ordinal)
         {
             [nameof(SystemStateScreen.State)] = status,
+            [nameof(SystemStateScreen.SealLink)] = status.SealWarning is not null && context.Features.Get<ScreenReach>() is { } reach && reach.Reaches(SealScreensEndpoint.Access),
             [nameof(SystemStateScreen.Versions)] = await SystemState.VersionsAsync(versions, service, context.RequestAborted),
         };
         return ScreenResult.Of(context, typeof(SystemStateScreen), SystemStateScreen.Title, screen);

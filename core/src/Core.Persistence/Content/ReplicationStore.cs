@@ -30,30 +30,27 @@ public sealed class ReplicationStore
     }
 
     /// <summary>Writes the occurrences of the messages that came in with the batch and the marks they brought, together: either everything is written or nothing is.</summary>
-    /// <param name="domainId">The domain of the batch.</param>
-    /// <param name="batchId">The batch, which must be open.</param>
+    /// <param name="target">The batch, which must be open, with its domain.</param>
     /// <param name="occurrences">The messages of the batch, in the order the criterion settled them.</param>
     /// <param name="marks">The marks the batch brought, to its messages and to the ones kept before.</param>
     /// <param name="cancellationToken">Cancels the writing.</param>
-    public Task RecordAsync(int domainId, long batchId, IReadOnlyList<StoredOccurrence> occurrences, IReadOnlyList<StoredMark> marks, CancellationToken cancellationToken)
+    public Task RecordAsync(ReplicationTarget target, IReadOnlyList<StoredOccurrence> occurrences, IReadOnlyList<StoredMark> marks, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(occurrences);
         ArgumentNullException.ThrowIfNull(marks);
-        return RecordingAsync(domainId, batchId, (occurrences, marks), cancellationToken);
+        ArgumentNullException.ThrowIfNull(target);
+        return RecordingAsync(target, occurrences, marks, cancellationToken);
     }
 
-    private async Task RecordingAsync(
-        int domainId,
-        long batchId,
-        (IReadOnlyCollection<StoredOccurrence> Occurrences, IReadOnlyCollection<StoredMark> Marks) written,
-        CancellationToken cancellationToken)
+    private async Task RecordingAsync(ReplicationTarget target, IReadOnlyList<StoredOccurrence> occurrences, IReadOnlyList<StoredMark> marks, CancellationToken cancellationToken)
     {
         try
         {
-            var transaction = await ContentTransaction.BeginAsync(dataSource, domainId, cancellationToken).ConfigureAwait(false);
+            var transaction = await ContentTransaction.BeginAsync(dataSource, target.DomainId, cancellationToken).ConfigureAwait(false);
             await using (transaction.ConfigureAwait(false))
             {
-                await WriteAsync(transaction, domainId, batchId, written, cancellationToken).ConfigureAwait(false);
+                await WriteOccurrencesAsync(transaction, target, occurrences, cancellationToken).ConfigureAwait(false);
+                await WriteMarksAsync(transaction, target, marks, cancellationToken).ConfigureAwait(false);
                 await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             }
         }
@@ -70,102 +67,92 @@ public sealed class ReplicationStore
     /// <summary>The occurrences of the domain that the batches accepted left, in the order they were written: the first of a content is the first of these.</summary>
     /// <param name="domainId">The domain.</param>
     /// <param name="cancellationToken">Cancels the reading.</param>
-    public async Task<IReadOnlyList<StoredOccurrence>> OccurrencesAsync(int domainId, CancellationToken cancellationToken)
-    {
-        var found = new List<StoredOccurrence>();
-        await ReadAsync(
+    public Task<IReadOnlyList<StoredOccurrence>> OccurrencesAsync(int domainId, CancellationToken cancellationToken) =>
+        ReadAsync(
             domainId,
             ContentQueries.ReadReplicationOccurrences,
-            reader => found.Add(
-                new StoredOccurrence(
-                    reader.GetInt64(0),
-                    reader.GetInt32(1),
-                    reader.GetString(TextColumn),
-                    reader.GetString(SenderColumn),
-                    reader.GetInt32(LengthColumn),
-                    reader.GetFieldValue<DateTimeOffset>(SaidColumn))),
-            cancellationToken).ConfigureAwait(false);
-        return found;
-    }
+            reader => new StoredOccurrence(
+                reader.GetInt64(0),
+                reader.GetInt32(1),
+                reader.GetString(TextColumn),
+                reader.GetString(SenderColumn),
+                reader.GetInt32(LengthColumn),
+                reader.GetFieldValue<DateTimeOffset>(SaidColumn)),
+            cancellationToken);
 
     /// <summary>The marks of the domain that the batches accepted left, in the order they were written.</summary>
     /// <param name="domainId">The domain.</param>
     /// <param name="cancellationToken">Cancels the reading.</param>
-    public async Task<IReadOnlyList<StoredMark>> MarksAsync(int domainId, CancellationToken cancellationToken)
-    {
-        var found = new List<StoredMark>();
-        await ReadAsync(
+    public Task<IReadOnlyList<StoredMark>> MarksAsync(int domainId, CancellationToken cancellationToken) =>
+        ReadAsync(
             domainId,
             ContentQueries.ReadReplicationMarks,
-            reader => found.Add(new StoredMark(reader.GetInt64(0), reader.GetInt32(1), reader.GetInt64(FirstItemColumn), reader.GetInt32(FirstPositionColumn))),
-            cancellationToken).ConfigureAwait(false);
-        return found;
-    }
+            reader => new StoredMark(reader.GetInt64(0), reader.GetInt32(1), reader.GetInt64(FirstItemColumn), reader.GetInt32(FirstPositionColumn)),
+            cancellationToken);
 
-    private static async Task WriteAsync(
-        ContentTransaction transaction,
-        int domainId,
-        long batchId,
-        (IReadOnlyCollection<StoredOccurrence> Occurrences, IReadOnlyCollection<StoredMark> Marks) written,
-        CancellationToken cancellationToken)
+    private static async Task WriteOccurrencesAsync(ContentTransaction transaction, ReplicationTarget target, IReadOnlyList<StoredOccurrence> occurrences, CancellationToken cancellationToken)
     {
-        var (occurrences, marks) = written;
-        if (occurrences.Count > 0)
+        var command = transaction.CreateCommand(ContentQueries.InsertReplicationOccurrences);
+        await using (command.ConfigureAwait(false))
         {
-            var command = transaction.CreateCommand(ContentQueries.InsertReplicationOccurrences);
-            await using (command.ConfigureAwait(false))
-            {
-                Common(command, domainId, batchId);
-                ArrayOf(command, "items", NpgsqlDbType.Bigint, occurrences.Select(one => one.Item).ToArray());
-                ArrayOf(command, "positions", NpgsqlDbType.Integer, occurrences.Select(one => one.Position).ToArray());
-                ArrayOf(command, "texts", NpgsqlDbType.Text, occurrences.Select(one => one.TextDigest).ToArray());
-                ArrayOf(command, "senders", NpgsqlDbType.Text, occurrences.Select(one => one.SenderDigest).ToArray());
-                ArrayOf(command, "lengths", NpgsqlDbType.Integer, occurrences.Select(one => one.Length).ToArray());
-                ArrayOf(command, "saids", NpgsqlDbType.TimestampTz, occurrences.Select(one => one.SaidAt.UtcDateTime).ToArray());
-                _ = await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-            }
-        }
-
-        if (marks.Count > 0)
-        {
-            var command = transaction.CreateCommand(ContentQueries.InsertReplicationMarks);
-            await using (command.ConfigureAwait(false))
-            {
-                Common(command, domainId, batchId);
-                ArrayOf(command, "items", NpgsqlDbType.Bigint, marks.Select(one => one.Item).ToArray());
-                ArrayOf(command, "positions", NpgsqlDbType.Integer, marks.Select(one => one.Position).ToArray());
-                ArrayOf(command, "first_items", NpgsqlDbType.Bigint, marks.Select(one => one.FirstItem).ToArray());
-                ArrayOf(command, "first_positions", NpgsqlDbType.Integer, marks.Select(one => one.FirstPosition).ToArray());
-                _ = await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-            }
+            Common(command, target);
+            ArrayOf(command, "items", NpgsqlDbType.Bigint, occurrences.Select(one => one.Item).ToArray());
+            ArrayOf(command, "positions", NpgsqlDbType.Integer, occurrences.Select(one => one.Position).ToArray());
+            ArrayOf(command, "texts", NpgsqlDbType.Text, occurrences.Select(one => one.TextDigest).ToArray());
+            ArrayOf(command, "senders", NpgsqlDbType.Text, occurrences.Select(one => one.SenderDigest).ToArray());
+            ArrayOf(command, "lengths", NpgsqlDbType.Integer, occurrences.Select(one => one.Length).ToArray());
+            ArrayOf(command, "saids", NpgsqlDbType.TimestampTz, occurrences.Select(one => one.SaidAt.UtcDateTime).ToArray());
+            _ = await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 
-    private static void Common(NpgsqlCommand command, int domainId, long batchId)
+    private static async Task WriteMarksAsync(ContentTransaction transaction, ReplicationTarget target, IReadOnlyList<StoredMark> marks, CancellationToken cancellationToken)
     {
-        _ = command.Parameters.Add(new NpgsqlParameter("domain", NpgsqlDbType.Integer) { Value = domainId });
-        _ = command.Parameters.Add(new NpgsqlParameter("batch", NpgsqlDbType.Bigint) { Value = batchId });
+        var command = transaction.CreateCommand(ContentQueries.InsertReplicationMarks);
+        await using (command.ConfigureAwait(false))
+        {
+            Common(command, target);
+            ArrayOf(command, "items", NpgsqlDbType.Bigint, marks.Select(one => one.Item).ToArray());
+            ArrayOf(command, "positions", NpgsqlDbType.Integer, marks.Select(one => one.Position).ToArray());
+            ArrayOf(command, "first_items", NpgsqlDbType.Bigint, marks.Select(one => one.FirstItem).ToArray());
+            ArrayOf(command, "first_positions", NpgsqlDbType.Integer, marks.Select(one => one.FirstPosition).ToArray());
+            _ = await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static void Common(NpgsqlCommand command, ReplicationTarget target)
+    {
+        _ = command.Parameters.Add(new NpgsqlParameter("domain", NpgsqlDbType.Integer) { Value = target.DomainId });
+        _ = command.Parameters.Add(new NpgsqlParameter("batch", NpgsqlDbType.Bigint) { Value = target.BatchId });
     }
 
     private static void ArrayOf(NpgsqlCommand command, string name, NpgsqlDbType element, Array values) =>
         _ = command.Parameters.Add(new NpgsqlParameter(name, (NpgsqlDbType)((int)NpgsqlDbType.Array + (int)element)) { Value = values });
 
-    private async Task ReadAsync(int domainId, string statement, Action<NpgsqlDataReader> each, CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<T>> ReadAsync<T>(int domainId, string statement, Func<NpgsqlDataReader, T> map, CancellationToken cancellationToken)
     {
+        var found = new List<T>();
         var transaction = await ContentTransaction.BeginAsync(dataSource, domainId, cancellationToken).ConfigureAwait(false);
         await using (transaction.ConfigureAwait(false))
         {
             var command = transaction.CreateCommand(statement);
             await using (command.ConfigureAwait(false))
             {
-                var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-                await using (reader.ConfigureAwait(false))
-                {
-                    while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-                    {
-                        each(reader);
-                    }
-                }
+                await EachRowAsync(command, reader => found.Add(map(reader)), cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        return found;
+    }
+
+    private static async Task EachRowAsync(NpgsqlCommand command, Action<NpgsqlDataReader> each, CancellationToken cancellationToken)
+    {
+        var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        await using (reader.ConfigureAwait(false))
+        {
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                each(reader);
             }
         }
     }

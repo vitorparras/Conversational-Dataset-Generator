@@ -55,6 +55,10 @@ internal sealed class SubmissionWorld : IAsyncDisposable
 
     internal ProtectedContentReader Reader { get; }
 
+    /// <summary>The name the world gave to the domain, as the grants name it.</summary>
+    /// <param name="domain">The identifier of the domain.</param>
+    internal static string NameOf(int domain) => domain == Domain ? "zqx-domain-a" : "zqx-domain-b";
+
     internal static async Task<SubmissionWorld> CreateAsync(long maxBytes = 1_000_000, bool gateOpen = true, IReadOnlyList<string>? labels = null, ReplicationRule? replication = null)
     {
         var database = await ScratchDatabase.CreateAsync();
@@ -134,6 +138,8 @@ internal sealed class SubmissionWorld : IAsyncDisposable
     internal Task<long> MarkRowsAsync() => RowsAsync("SELECT count(*) FROM content.replication_mark");
 
     internal Task<long> OccurrenceRowsAsync() => RowsAsync("SELECT count(*) FROM content.replication_occurrence");
+
+    internal Task<long> AccommodatedRowsAsync() => RowsAsync("SELECT count(*) FROM content.item_text WHERE accommodated_into = 'document' AND losses = 'author,instant'");
 
     [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "The statements are constants of the tests, never input.")]
     private async Task<long> RowsAsync(string count)

@@ -11,15 +11,15 @@ namespace Core.Persistence.Content;
 public static class ContentQueries
 {
     /// <summary>The sealed raw text of an item, whether the item was emptied, and the key of the item wrapped with its epoch.</summary>
-    internal const string ReadRawText = "SELECT raw_text, emptied_at IS NOT NULL, dek_epoch, dek_wrapped FROM content.item_text WHERE id = @id";
+    internal const string ReadRawText = "SELECT raw_text, emptied_at IS NOT NULL, dek_epoch, dek_wrapped, accommodated_into, losses FROM content.item_text WHERE id = @id";
 
     /// <summary>The sealed sanitized text of an item, whether the item was emptied, and the key of the item wrapped with its epoch.</summary>
-    internal const string ReadSanitizedText = "SELECT sanitized_text, emptied_at IS NOT NULL, dek_epoch, dek_wrapped FROM content.item_text WHERE id = @id";
+    internal const string ReadSanitizedText = "SELECT sanitized_text, emptied_at IS NOT NULL, dek_epoch, dek_wrapped, accommodated_into, losses FROM content.item_text WHERE id = @id";
 
     /// <summary>The sealed map of a reversal, whether it was emptied, and the key of the map wrapped with its epoch.</summary>
     internal const string ReadReversalEntries = "SELECT entries, emptied_at IS NOT NULL, dek_epoch, dek_wrapped FROM content.reversal_map WHERE id = @id";
 
-    internal const string ReadFirstRawText = "SELECT id, raw_text, dek_epoch, dek_wrapped FROM content.item_text WHERE emptied_at IS NULL AND id > @id ORDER BY id LIMIT 1";
+    internal const string ReadFirstRawText = "SELECT id, raw_text, dek_epoch, dek_wrapped, accommodated_into, losses FROM content.item_text WHERE emptied_at IS NULL AND id > @id ORDER BY id LIMIT 1";
 
     internal const string ReadFirstEntries = "SELECT id, entries, dek_epoch, dek_wrapped FROM content.reversal_map WHERE emptied_at IS NULL AND id > @id ORDER BY id LIMIT 1";
 
@@ -37,25 +37,22 @@ public static class ContentQueries
     /// <summary>Writes the occurrences of a batch of the domain declared, in the order given; the identifier and the transaction are the database's.</summary>
     internal const string InsertReplicationOccurrences =
         "INSERT INTO content.replication_occurrence (domain_id, batch_id, item_id, message_position, text_digest, sender_digest, text_length, said_at) "
-        + "SELECT @domain, @batch, t.i, t.p, t.tx, t.sn, t.ln, t.sd FROM unnest(@items, @positions, @texts, @senders, @lengths, @saids) "
+        + "SELECT @domain, @batch, t.i, t.p, t.tx, t.sn, t.ln, t.sd FROM unnest(@items::bigint[], @positions::integer[], @texts::text[], @senders::text[], @lengths::integer[], @saids::timestamptz[]) "
         + "WITH ORDINALITY AS t(i, p, tx, sn, ln, sd, n) ORDER BY t.n";
 
     /// <summary>Writes the marks a batch brings; a message already marked keeps the mark it has, since a mark is never undone.</summary>
     internal const string InsertReplicationMarks =
         "INSERT INTO content.replication_mark (domain_id, batch_id, item_id, message_position, first_item_id, first_message_position) "
-        + "SELECT @domain, @batch, t.i, t.p, t.fi, t.fp FROM unnest(@items, @positions, @first_items, @first_positions) "
+        + "SELECT @domain, @batch, t.i, t.p, t.fi, t.fp FROM unnest(@items::bigint[], @positions::integer[], @first_items::bigint[], @first_positions::integer[]) "
         + "WITH ORDINALITY AS t(i, p, fi, fp, n) ORDER BY t.n ON CONFLICT (item_id, message_position) DO NOTHING";
 
-    /// <summary>The occurrences of the domain declared that the reader may see, in the order they were written.</summary>
     internal const string ReadReplicationOccurrences = "SELECT item_id, message_position, text_digest, sender_digest, text_length, said_at FROM content.replication_occurrence ORDER BY id";
-
-    /// <summary>The marks of the domain declared that the reader may see, in the order they were written.</summary>
     internal const string ReadReplicationMarks = "SELECT item_id, message_position, first_item_id, first_message_position FROM content.replication_mark ORDER BY id";
 
     /// <summary>Adds an item; the texts that are sealed arrive sealed, with the key of the item wrapped.</summary>
     internal const string InsertItemText =
-        "INSERT INTO content.item_text (domain_id, batch_id, raw_text, sanitized_text, pseudonymized_text, dek_epoch, dek_wrapped) "
-        + "VALUES (@domain, @batch, @raw, @sanitized, @pseudonymized, @epoch, @wrapped) RETURNING id";
+        "INSERT INTO content.item_text (domain_id, batch_id, raw_text, sanitized_text, pseudonymized_text, dek_epoch, dek_wrapped, accommodated_into, losses) "
+        + "VALUES (@domain, @batch, @raw, @sanitized, @pseudonymized, @epoch, @wrapped, @accommodated, @losses) RETURNING id";
 
     /// <summary>Adds the map that reverses the pseudonyms of an item.</summary>
     internal const string InsertReversalMap =
@@ -120,6 +117,15 @@ public static class ContentQueries
 
     /// <summary>The row of an item of the domain that was emptied, none when it was not; asked of the table of the items emptied, so that the audit sees no read of a text.</summary>
     internal const string ReadItemEmptied = "SELECT true FROM content.item_emptied WHERE item_id = @id";
+
+    /// <summary>
+    /// When, by whom, why and for which protocol an item of the domain was emptied, none when it was not:
+    /// the table of the items emptied joined to the event of the chain, with no text read.
+    /// </summary>
+    internal const string ReadEmptiedItem =
+        "SELECT e.occurred_at, p.name, e.reason, e.reference FROM content.item_emptied i "
+        + "JOIN public.custody_event e ON e.item_id = i.item_id AND e.item_kind = 'item_text' AND e.step = 'item_emptied' "
+        + "JOIN public.person p ON p.id = e.actor_person_id WHERE i.item_id = @id ORDER BY e.sequence LIMIT 1";
 
     /// <summary>
     /// Empties an item: the marker is set and every column of content is cleared, the key of the item with them, in one statement; an item emptied already is left as it is.

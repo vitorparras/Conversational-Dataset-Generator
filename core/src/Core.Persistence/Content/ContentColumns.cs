@@ -70,6 +70,8 @@ public static class ContentColumns
         new(ItemText, "dek_epoch", ClearKind.Epoch),
         new(ItemText, BatchColumn, ClearKind.Identifier),
         new(ItemText, WrittenInColumn, ClearKind.Transaction),
+        new(ItemText, "accommodated_into", ClearKind.Motive),
+        new(ItemText, "losses", ClearKind.Motive),
         new(ReversalMap, "id", ClearKind.Identifier),
         new(ReversalMap, DomainColumn, ClearKind.Domain),
         new(ReversalMap, ItemColumn, ClearKind.Identifier),

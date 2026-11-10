@@ -7,6 +7,9 @@
 @if (Unreadable)
 {
     <Notice Kind="Notice.Tone.Error">Não foi possível ler a cadeia agora. Tente de novo em instantes; se repetir, quem administra o servidor vê a causa no registro do sistema.</Notice>
+    <div class="actions">
+        <Button Id="cadeia-tentar-de-novo" Href="" Kind="Button.Look.Secondary">Tentar de novo</Button>
+    </div>
 }
 else
 {
@@ -42,7 +45,7 @@ else
             </FactList>
         }
         <div class="actions">
-            <Button Href="@ScreenPaths.ChainCheck" Kind="Button.Look.Secondary">Pedir uma verificação agora</Button>
+            <Button Href="@ScreenPaths.ChainCheck" Kind="Button.Look.Secondary">Verificar a cadeia agora</Button>
         </div>
     </Panel>
     <Panel Id="selo" Title="Selo externo">
@@ -54,19 +57,25 @@ else
             <Fact Term="O que protege">@Protection</Fact>
             <Fact Term="Último selo">@if (LastSeal is { } seal) { <Moment At="seal" /> } else { <StateMark>Nenhum selo registrado</StateMark> }</Fact>
         </FactList>
+        @if (SealAction)
+        {
+            <div class="actions">
+                <Button Id="selo-emitir" Href="@ScreenPaths.Seal" Kind="Button.Look.Secondary">Selo: emitir e confirmar</Button>
+            </div>
+        }
     </Panel>
     if (History.Count > 0)
     {
         <Panel Id="historico" Title="Histórico das verificações">
             <DataTable Id="historico-tabela" Caption="@($"As {History.Count} mais recentes, da mais nova para a mais antiga.")" Headers="Columns">
-                <tbody>
+                <tbody role="rowgroup">
                     @foreach (var past in History)
                     {
-                        <tr>
-                            <th scope="row"><Moment At="past.RecordedAt" /></th>
-                            <td>@(past.Passed ? Mark(StateMark.Tone.Good, "Passou") : Mark(StateMark.Tone.Bad, $"Quebrada no evento nº {past.FirstInconsistent}"))</td>
-                            <td>@past.EventsRead.ToString("N0", Format)</td>
-                            <td>@Asker(past)</td>
+                        <tr role="row">
+                            <th scope="row" role="rowheader"><Moment At="past.RecordedAt" /></th>
+                            <td role="cell">@(past.Passed ? Mark(StateMark.Tone.Good, "Passou") : Mark(StateMark.Tone.Bad, $"Quebrada no evento nº {past.FirstInconsistent}"))</td>
+                            <td role="cell">@past.EventsRead.ToString("N0", Format)</td>
+                            <td role="cell">@Asker(past)</td>
                         </tr>
                     }
                 </tbody>
@@ -107,6 +116,10 @@ else
 
     [Parameter]
     public string? SealWarning { get; set; }
+
+    /// <summary>Whether the page leads to the screen of the seal: the installation keeps the seal by hand and whoever entered operates it.</summary>
+    [Parameter]
+    public bool SealAction { get; set; }
 
     /// <summary>Whether the chain could not be read now, so that the page shows nothing of a verification.</summary>
     [Parameter]

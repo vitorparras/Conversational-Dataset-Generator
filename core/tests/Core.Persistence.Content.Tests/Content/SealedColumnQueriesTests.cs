@@ -33,6 +33,9 @@ public sealed class SealedColumnQueriesTests
     [InlineData("SELECT id FROM content.item_text WHERE dek_wrapped IS NULL")]
     [InlineData("UPDATE content.item_text SET dek_epoch = @e WHERE raw_text = @x")]
     [InlineData("DELETE FROM content.item_text WHERE raw_text = @x")]
+    [InlineData("SELECT id FROM content.batch_origin WHERE origin = @origin")]
+    [InlineData("SELECT id FROM content.reversal_map WHERE entries IS NOT NULL AND id = @entries")]
+    [InlineData("SELECT DISTINCT origin FROM content.batch_origin WHERE id = @origin")]
     public void FilterOrderGroupJoinComparisonOrFunctionOverASealedColumnIsFound(string statement) =>
         Assert.NotEmpty(SealedColumnUse.Beyond(statement, Sealed));
 
@@ -41,6 +44,9 @@ public sealed class SealedColumnQueriesTests
     [InlineData("INSERT INTO content.item_text (domain_id, raw_text, dek_wrapped) VALUES (@d, @r, @w) RETURNING id")]
     [InlineData("UPDATE content.item_text SET raw_text = NULL, dek_wrapped = NULL WHERE id = @id")]
     [InlineData("SELECT pg_catalog.to_jsonb(t)::text FROM content.batch_origin t ORDER BY id")]
+    [InlineData("INSERT INTO content.batch_origin (batch_id, domain_id, origin, dek_wrapped) VALUES (@batch, @domain, @origin, @wrapped)")]
+    [InlineData("INSERT INTO content.reversal_map (domain_id, entries, dek_wrapped) VALUES (@domain, @entries, @wrapped) RETURNING id")]
+    [InlineData("UPDATE content.batch_origin SET origin = @origin, dek_wrapped = @wrapped WHERE id = @id")]
     public void ColumnThatOnlyPassesThroughIsNotFound(string statement) =>
         Assert.Empty(SealedColumnUse.Beyond(statement, Sealed));
 }

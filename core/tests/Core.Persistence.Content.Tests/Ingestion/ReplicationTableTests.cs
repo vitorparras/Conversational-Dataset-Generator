@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Core.Persistence.Content;
 using Core.Persistence.Content.Writing;
+using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Content;
 using Core.Persistence.Tests.Fixtures;
 using Npgsql;
@@ -28,7 +29,7 @@ public sealed class ReplicationTableTests
         StoredOccurrence[] occurrences = [Occurrence(item, 0, 'a', 'b'), Occurrence(item, 1, 'a', 'c')];
         StoredMark[] marks = [new(item, 0, item, 0), new(item, 1, item, 0)];
 
-        await store.RecordAsync(1, batch, occurrences, marks, TestContext.Current.CancellationToken);
+        await store.RecordAsync(new(1, batch), occurrences, marks, TestContext.Current.CancellationToken);
         var before = (await store.OccurrencesAsync(1, TestContext.Current.CancellationToken)).Count + (await store.MarksAsync(1, TestContext.Current.CancellationToken)).Count;
         _ = await IngestionWorld.AcceptAsync(world, batch);
 
@@ -44,7 +45,7 @@ public sealed class ReplicationTableTests
         var store = new ReplicationStore(world.DataSource);
         var batch = await IngestionWorld.OpenAsync(world);
         var item = await IngestionWorld.AddItemAsync(world, batch);
-        await store.RecordAsync(1, batch, [Occurrence(item, 0, 'a', 'b')], [], TestContext.Current.CancellationToken);
+        await store.RecordAsync(new(1, batch), [Occurrence(item, 0, 'a', 'b')], [], TestContext.Current.CancellationToken);
         _ = await IngestionWorld.AcceptAsync(world, batch);
 
         Assert.Empty(await store.OccurrencesAsync(2, TestContext.Current.CancellationToken));
@@ -59,13 +60,13 @@ public sealed class ReplicationTableTests
         var firstBatch = await IngestionWorld.OpenAsync(world);
         var first = await IngestionWorld.AddItemAsync(world, firstBatch);
         var original = Occurrence(first, 0, 'a', 'b');
-        await store.RecordAsync(1, firstBatch, [original], [], token);
+        await store.RecordAsync(new(1, firstBatch), [original], [], token);
         _ = await IngestionWorld.AcceptAsync(world, firstBatch);
         var secondBatch = await IngestionWorld.OpenAsync(world);
         var second = await IngestionWorld.AddItemAsync(world, secondBatch);
         var forwarded = Occurrence(second, 0, 'a', 'c');
 
-        await store.RecordAsync(1, secondBatch, [forwarded], [new(first, 0, first, 0), new(second, 0, first, 0)], token);
+        await store.RecordAsync(new(1, secondBatch), [forwarded], [new(first, 0, first, 0), new(second, 0, first, 0)], token);
         _ = await IngestionWorld.AcceptAsync(world, secondBatch);
 
         Assert.Equal([original, forwarded], await store.OccurrencesAsync(1, token));
@@ -82,12 +83,12 @@ public sealed class ReplicationTableTests
         var token = TestContext.Current.CancellationToken;
         var firstBatch = await IngestionWorld.OpenAsync(world);
         var first = await IngestionWorld.AddItemAsync(world, firstBatch);
-        await store.RecordAsync(1, firstBatch, [Occurrence(first, 0, 'a', 'b'), Occurrence(first, 1, 'a', 'c')], [new(first, 1, first, 0)], token);
+        await store.RecordAsync(new(1, firstBatch), [Occurrence(first, 0, 'a', 'b'), Occurrence(first, 1, 'a', 'c')], [new(first, 1, first, 0)], token);
         _ = await IngestionWorld.AcceptAsync(world, firstBatch);
         var secondBatch = await IngestionWorld.OpenAsync(world);
         var second = await IngestionWorld.AddItemAsync(world, secondBatch);
 
-        await store.RecordAsync(1, secondBatch, [Occurrence(second, 0, 'a', 'd')], [new(first, 1, second, 0)], token);
+        await store.RecordAsync(new(1, secondBatch), [Occurrence(second, 0, 'a', 'd')], [new(first, 1, second, 0)], token);
         _ = await IngestionWorld.AcceptAsync(world, secondBatch);
 
         Assert.Equal([new StoredMark(first, 1, first, 0)], await store.MarksAsync(1, token));
@@ -101,7 +102,7 @@ public sealed class ReplicationTableTests
         var batch = await IngestionWorld.OpenAsync(world);
         var item = await IngestionWorld.AddItemAsync(world, batch);
         StoredOccurrence[] written = [Occurrence(item, 0, 'a', 'b'), Occurrence(item, 1, 'a', 'c')];
-        await store.RecordAsync(1, batch, written, [new(item, 1, item, 0)], TestContext.Current.CancellationToken);
+        await store.RecordAsync(new(1, batch), written, [new(item, 1, item, 0)], TestContext.Current.CancellationToken);
         _ = await IngestionWorld.AcceptAsync(world, batch);
         const string ChangeOccurrence = "UPDATE content.replication_occurrence SET text_digest = repeat('f', 64) WHERE item_id = @id";
         const string ChangeMark = "UPDATE content.replication_mark SET first_message_position = 1 WHERE item_id = @id";
@@ -136,11 +137,11 @@ public sealed class ReplicationTableTests
         var token = TestContext.Current.CancellationToken;
         var firstBatch = await IngestionWorld.OpenAsync(world);
         var first = await IngestionWorld.AddItemAsync(world, firstBatch);
-        await store.RecordAsync(1, firstBatch, [Occurrence(first, 0, 'a', 'b')], [], token);
+        await store.RecordAsync(new(1, firstBatch), [Occurrence(first, 0, 'a', 'b')], [], token);
         _ = await IngestionWorld.AcceptAsync(world, firstBatch);
         var secondBatch = await IngestionWorld.OpenAsync(world);
         var second = await IngestionWorld.AddItemAsync(world, secondBatch);
-        await store.RecordAsync(1, secondBatch, [Occurrence(second, 0, 'a', 'c')], [new(first, 0, first, 0), new(second, 0, first, 0)], token);
+        await store.RecordAsync(new(1, secondBatch), [Occurrence(second, 0, 'a', 'c')], [new(first, 0, first, 0), new(second, 0, first, 0)], token);
 
         _ = await IngestionWorld.RejectAsync(world, secondBatch, "invalid_rows");
 
@@ -158,7 +159,7 @@ public sealed class ReplicationTableTests
         _ = await IngestionWorld.AcceptAsync(world, batch);
 
         _ = await Assert.ThrowsAsync<BatchNotOpenException>(
-            () => store.RecordAsync(1, batch, [Occurrence(item, 0, 'a', 'b')], [], TestContext.Current.CancellationToken));
+            () => store.RecordAsync(new(1, batch), [Occurrence(item, 0, 'a', 'b')], [], TestContext.Current.CancellationToken));
 
         Assert.Equal("0,0", await world.OwnerInDomainAsync(1, Counts) as string);
     }
@@ -170,14 +171,33 @@ public sealed class ReplicationTableTests
         var store = new ReplicationStore(world.DataSource);
         var batch = await IngestionWorld.OpenAsync(world);
         var item = await IngestionWorld.AddItemAsync(world, batch);
-        await store.RecordAsync(1, batch, [Occurrence(item, 0, 'a', 'b')], [], TestContext.Current.CancellationToken);
+        await store.RecordAsync(new(1, batch), [Occurrence(item, 0, 'a', 'b')], [], TestContext.Current.CancellationToken);
 
         var twice = await Assert.ThrowsAsync<PostgresException>(
-            () => store.RecordAsync(1, batch, [Occurrence(item, 0, 'c', 'd')], [], TestContext.Current.CancellationToken));
+            () => store.RecordAsync(new(1, batch), [Occurrence(item, 0, 'c', 'd')], [], TestContext.Current.CancellationToken));
         var nowhere = await Assert.ThrowsAsync<PostgresException>(
-            () => store.RecordAsync(1, batch, [], [new(item, 0, item, 7)], TestContext.Current.CancellationToken));
+            () => store.RecordAsync(new(1, batch), [], [new(item, 0, item, 7)], TestContext.Current.CancellationToken));
 
         Assert.Equal((PostgresErrorCodes.UniqueViolation, PostgresErrorCodes.ForeignKeyViolation), (twice.SqlState, nowhere.SqlState));
+    }
+
+    [DatabaseFact]
+    public async Task AMarkOfOneDomainNeverPointsToTheOccurrenceOfAnotherDomain()
+    {
+        await using var world = await IngestionWorld.CreateAsync();
+        var store = new ReplicationStore(world.DataSource);
+        var batch = await IngestionWorld.OpenAsync(world);
+        var item = await IngestionWorld.AddItemAsync(world, batch);
+        await store.RecordAsync(new(1, batch), [Occurrence(item, 0, 'a', 'b')], [], TestContext.Current.CancellationToken);
+        var opened = await IngestionWorld.BatchesOf(world).OpenAsync(new BatchOpening(2, IngestionWorld.Person), TestContext.Current.CancellationToken);
+        var otherBatch = opened.BatchId!.Value;
+        var otherItem = await world.RealWriter.AddItemTextAsync(2, otherBatch, new NewItemText("texto bruto sintetico zqx"), TestContext.Current.CancellationToken);
+        await store.RecordAsync(new(2, otherBatch), [Occurrence(otherItem, 0, 'c', 'd')], [], TestContext.Current.CancellationToken);
+
+        var across = await Assert.ThrowsAsync<PostgresException>(
+            () => store.RecordAsync(new(2, otherBatch), [], [new(otherItem, 0, item, 0)], TestContext.Current.CancellationToken));
+
+        Assert.Equal(PostgresErrorCodes.ForeignKeyViolation, across.SqlState);
     }
 
     [DatabaseFact]
@@ -202,7 +222,7 @@ public sealed class ReplicationTableTests
     }
 
     private static Task RecordAsync(ReplicationStore store, long batch, StoredOccurrence occurrence) =>
-        store.RecordAsync(1, batch, [occurrence], [], TestContext.Current.CancellationToken);
+        store.RecordAsync(new(1, batch), [occurrence], [], TestContext.Current.CancellationToken);
 
     private static StoredOccurrence Occurrence(long item, int position, char text, char sender) =>
         new(item, position, new string(text, 64), new string(sender, 64), 40, Said.AddMinutes(position));

@@ -9,7 +9,6 @@ namespace Core.Host.Settings;
 /// </summary>
 internal sealed class ConfigurationApplier
 {
-    private readonly ConfigurationFile file;
     private readonly ILoggerFactory loggers;
 
     /// <summary>The applier over the file at the path, which it writes, and the log it tells in.</summary>
@@ -19,12 +18,12 @@ internal sealed class ConfigurationApplier
     internal ConfigurationApplier(string path, TimeProvider time, ILoggerFactory loggers)
     {
         ArgumentNullException.ThrowIfNull(loggers);
-        file = new ConfigurationFile(path, time);
+        Target = new ConfigurationFile(path, time);
         this.loggers = loggers;
     }
 
     /// <summary>The file this applier writes, for whoever needs to read what it holds.</summary>
-    internal ConfigurationFile Target => file;
+    internal ConfigurationFile Target { get; }
 
     /// <summary>Judges the change and, when nothing stops it, writes it into the file; <see cref="ApplicationRefusal.None" /> says it was written.</summary>
     /// <param name="change">The change approved, as the database holds it.</param>
@@ -36,7 +35,7 @@ internal sealed class ConfigurationApplier
         ArgumentNullException.ThrowIfNull(facts);
         ArgumentNullException.ThrowIfNull(inForce);
         var refusal = Judge(change, facts, inForce);
-        if (refusal == ApplicationRefusal.None && !file.TryChange(change.Key, change.Value))
+        if (refusal == ApplicationRefusal.None && !Target.TryChange(change.Key, change.Value))
         {
             refusal = ApplicationRefusal.FileUnreadable;
         }

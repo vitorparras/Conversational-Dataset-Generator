@@ -122,18 +122,44 @@ internal sealed class SubmissionService
         }
 
         var received = await intake.Gate.ReceiveAsync(new Submission(request.Content, request.SourceFormat, request.ReceivedName), cancellationToken).ConfigureAwait(false);
-        var reason = SubmissionJudgement.Of(intake, received, request.DeclaredForm);
+        return await OpeningAsync(request, received, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Judges what was received and opens the batch that keeps it, rejected with the reason when it was turned back.</summary>
+    private async Task<SubmissionOutcome> OpeningAsync(SubmissionRequest request, SubmissionResult received, CancellationToken cancellationToken)
+    {
+        var reason = SubmissionJudgement.Of(intake, received, request.DeclaredForm) ?? SubmissionStoring.Unsealed(intake.Sealing);
         var warning = HasPath(request.ReceivedName) ? NameWithPath : null;
         var receipt = new SubmissionReceipt(received.Id.ToString(), received.BytesRead, received.Digest, warning);
-        if (SubmissionOrigin.Opening(intake, request, receipt) is not { } opening)
+        if (SubmissionOrigin.Opening(intake, request, receipt) is not { } opening || (reason is null && !SubmissionStoring.CanSeal(intake.Sealing, request.DomainId)))
         {
             return new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = BatchOutcome.DomainUnknown };
         }
 
         var opened = await batches.OpenAsync(opening with { RejectedFor = reason?.Code }, cancellationToken).ConfigureAwait(false);
-        var done = reason is null ? BatchOutcome.Opened : BatchOutcome.Rejected;
-        return opened.Outcome == done
-            ? Answer(received, opened.BatchId!.Value, (reason, warning), opening.Origin!.State)
-            : new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = opened.Outcome };
+        if (opened.Outcome != (reason is null ? BatchOutcome.Opened : BatchOutcome.Rejected))
+        {
+            return new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = opened.Outcome };
+        }
+
+        var kept = new Opened(received, opened.BatchId!.Value, warning, opening.Origin!.State);
+        return reason is null ? await StoringAsync(request, kept, cancellationToken).ConfigureAwait(false) : Turned(kept, reason);
     }
+
+    /// <summary>A file that was not turned back has its items written and is accepted, or is rejected with no item when they cannot be.</summary>
+    private async Task<SubmissionOutcome> StoringAsync(SubmissionRequest request, Opened opened, CancellationToken cancellationToken)
+    {
+        var place = new SubmissionStoring.Kept(request.DomainId, opened.Batch, opened.Received.Material!);
+        var kept = await SubmissionStoring.KeepAsync(batches, intake.Writer!, place, cancellationToken).ConfigureAwait(false);
+        return kept
+            ? Answer(opened.Received, opened.Batch, (null, opened.Warning), opened.Origin)
+            : new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = SubmissionStoring.WriteFailed, Batch = opened.Batch };
+    }
+
+    /// <summary>What there is to say of a submission that was registered as rejected: the key that was missing is a failure of the service, not a defect of the file.</summary>
+    private static SubmissionOutcome Turned(Opened opened, SubmissionReason reason) => reason.Code == SubmissionStoring.KeyUnavailable
+        ? new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = reason.Code, Batch = opened.Batch }
+        : Answer(opened.Received, opened.Batch, (reason, opened.Warning), opened.Origin);
+
+    private sealed record Opened(SubmissionResult Received, long Batch, string? Warning, string Origin);
 }

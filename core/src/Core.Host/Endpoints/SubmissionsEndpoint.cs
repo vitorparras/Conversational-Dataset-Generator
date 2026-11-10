@@ -72,7 +72,9 @@ internal static class SubmissionsEndpoint
             return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
 
-        return read.HasFile ? SubmissionAnswer.Of(await loaded.Service.SubmitAsync(read.Request, context.RequestAborted)) : SubmissionAnswer.NoFile(loaded.Service.Check(read.Request));
+        return read.HasFile
+            ? SubmissionAnswer.Of(await loaded.Service.SubmitAsync(read.Request, context.RequestAborted), loaded.Unsealed)
+            : SubmissionAnswer.NoFile(loaded.Service.Check(read.Request));
     }
 
     private static async Task<IResult> ListAsync([FromServices] BatchRegister? register, HttpContext context)

@@ -10,12 +10,12 @@ internal static class PublishedHost
 
     /// <summary>
     /// Publishes into the folder and returns the full path of every file it wrote; a publish that fails fails with its cause and the end of what it said (PublishFailure).
-    /// It builds in a tree of its own (obj and bin under a temporary artifacts path, restored in locked mode), so that nothing it writes is read or rewritten
-    /// by the rest of the run, which uses the obj and bin of core/src at the same time.
+    /// It builds in a tree of its own (obj and bin under an artifacts path in the temporary folder, restored in locked mode), so that nothing it writes is read or rewritten
+    /// by the rest of the run, which uses the obj and bin of core/src at the same time; the tree outlives the process (PublishTree), so that only the first publish of a machine builds from nothing.
     /// </summary>
     public static async Task<IReadOnlyList<string>> IntoAsync(string folder, CancellationToken cancellationToken)
     {
-        using var tree = new TemporaryDirectory();
+        using var tree = await PublishTree.TakeAsync(RepositoryFiles.Root(), cancellationToken);
         var info = new ProcessStartInfo("dotnet")
         {
             WorkingDirectory = RepositoryFiles.Root(),

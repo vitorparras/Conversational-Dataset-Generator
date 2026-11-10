@@ -16,11 +16,12 @@ internal static class BatchRetry
 
     /// <summary>Makes the attempt, and makes it again while the chain refuses it for a collision and there are attempts left; the last answer is the one that comes back.</summary>
     /// <param name="attempt">The write, which opens its own transaction each time it runs.</param>
+    /// <param name="attempts">The attempts in all, the first included.</param>
     /// <param name="cancellationToken">Cancels the waiting between the attempts.</param>
-    internal static async Task<BatchResult> RunAsync(Func<Task<BatchResult>> attempt, CancellationToken cancellationToken)
+    internal static async Task<BatchResult> RunAsync(Func<Task<BatchResult>> attempt, int attempts, CancellationToken cancellationToken)
     {
         var result = await attempt().ConfigureAwait(false);
-        for (var made = 1; made < Attempts && result.Collided; made++)
+        for (var made = 1; made < attempts && result.Collided; made++)
         {
             await Task.Delay(RandomNumberGenerator.GetInt32(ShortestWait, LongestWait), cancellationToken).ConfigureAwait(false);
             result = await attempt().ConfigureAwait(false);

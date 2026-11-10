@@ -20,7 +20,10 @@ internal enum SubmissionKind
     /// <summary>The path could not keep the material: nothing is kept, and the code says why.</summary>
     Unavailable,
 
-    /// <summary>Another submission reached the same link of the chain first, again and again; nothing was kept and the same file may be sent again. <see cref="SubmissionOutcome.Batch" /> is the batch rejected for it, when one was opened.</summary>
+    /// <summary>
+    /// Another submission reached the same link of the chain first, again and again; nothing was kept and the same file may be sent again.
+    /// <see cref="SubmissionOutcome.Batch" /> is the batch rejected for it, when one was opened.
+    /// </summary>
     Collided,
 }
 

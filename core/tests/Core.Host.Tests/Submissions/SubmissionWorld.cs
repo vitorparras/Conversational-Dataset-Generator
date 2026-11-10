@@ -14,6 +14,7 @@ using Core.Persistence.Ingestion;
 using Core.Persistence.Migrations;
 using Core.Persistence.Tests.Fixtures;
 using Core.Platform.Keys;
+using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
 
 namespace Core.Host.Tests.Submissions;
@@ -36,12 +37,13 @@ internal sealed class SubmissionWorld : IAsyncDisposable
         /*lang=json*/ """{"formato":"cdg-conversa/1","mensagens":[{"id":"a","remetente":"ZQXUM","instante":"2031-03-04T08:00:00Z","texto":"ZQXPRIMEIRO"},""" +
         /*lang=json*/ """{"id":"b","remetente":"ZQXDOIS","instante":"2031-03-04T08:01:00Z","texto":"ZQXSEGUNDO"}]}""";
 
-    private SubmissionWorld(ScratchDatabase database, NpgsqlDataSource dataSource, (SubmissionService Service, ProtectedContent Content) service)
+    private SubmissionWorld(ScratchDatabase database, NpgsqlDataSource dataSource, (SubmissionService Service, ProtectedContent Content, IngestionBatches Batches) service)
     {
         Database = database;
         DataSource = dataSource;
         Service = service.Service;
         Content = service.Content;
+        Batches = service.Batches;
         Reader = new ProtectedContentReader(dataSource, service.Content, new CustodyChain(dataSource));
     }
 
@@ -53,13 +55,15 @@ internal sealed class SubmissionWorld : IAsyncDisposable
 
     internal ProtectedContent Content { get; }
 
+    internal IngestionBatches Batches { get; }
+
     internal ProtectedContentReader Reader { get; }
 
     /// <summary>The name the world gave to the domain, as the grants name it.</summary>
     /// <param name="domain">The identifier of the domain.</param>
     internal static string NameOf(int domain) => domain == Domain ? "zqx-domain-a" : "zqx-domain-b";
 
-    internal static async Task<SubmissionWorld> CreateAsync(long maxBytes = 1_000_000, bool gateOpen = true, IReadOnlyList<string>? labels = null)
+    internal static async Task<SubmissionWorld> CreateAsync(long maxBytes = 1_000_000, bool gateOpen = true, IReadOnlyList<string>? labels = null, int? attempts = null)
     {
         var database = await ScratchDatabase.CreateAsync();
         _ = await database.MigrateAsync(EmbeddedMigrations.Load());
@@ -76,8 +80,9 @@ internal sealed class SubmissionWorld : IAsyncDisposable
         var conditions = OriginConditions.Of([Strictest, "zqx_media", Loosest]);
         var content = SealingOf(labels ?? ["texto-bruto/1/v1", "texto-bruto/2/v1"]);
         var intake = Intake(maxBytes, conditions, content, dataSource);
-        var service = new SubmissionService(intake, new IngestionBatches(dataSource, conditions), new BatchRegister(dataSource), dataSource);
-        return new SubmissionWorld(database, dataSource, (service, content));
+        var batches = attempts is { } made ? new IngestionBatches(dataSource, conditions, made) : new IngestionBatches(dataSource, conditions);
+        var service = new SubmissionService(intake, batches, new BatchRegister(dataSource), dataSource, NullLogger.Instance);
+        return new SubmissionWorld(database, dataSource, (service, content, batches));
     }
 
     /// <summary>The path of protected content over a synthetic key that holds the labels given, as the installation would load them.</summary>

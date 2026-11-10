@@ -22,16 +22,28 @@ public sealed class IngestionBatches
 
     private readonly NpgsqlDataSource dataSource;
     private readonly OriginConditions conditions;
+    private readonly int attempts;
 
     /// <summary>The batches are written through the data source built with the application's credential, and open under one of the conditions the installation knows.</summary>
     /// <param name="dataSource">The application's data source.</param>
     /// <param name="conditions">The conditions the installation knows, the most restrictive first.</param>
     public IngestionBatches(NpgsqlDataSource dataSource, OriginConditions conditions)
+        : this(dataSource, conditions, BatchRetry.Attempts)
+    {
+    }
+
+    /// <summary>The batches as above, and a write that collides is made again until <paramref name="attempts" /> attempts have been made in all.</summary>
+    /// <param name="dataSource">The application's data source.</param>
+    /// <param name="conditions">The conditions the installation knows, the most restrictive first.</param>
+    /// <param name="attempts">The attempts in all, the first included: at least one.</param>
+    public IngestionBatches(NpgsqlDataSource dataSource, OriginConditions conditions, int attempts)
     {
         ArgumentNullException.ThrowIfNull(dataSource);
         ArgumentNullException.ThrowIfNull(conditions);
+        ArgumentOutOfRangeException.ThrowIfLessThan(attempts, 1);
         this.dataSource = dataSource;
         this.conditions = conditions;
+        this.attempts = attempts;
     }
 
     /// <summary>
@@ -116,7 +128,7 @@ public sealed class IngestionBatches
     private static NpgsqlParameter Id(string name, long value) => new(name, NpgsqlDbType.Bigint) { Value = value };
 
     private Task<BatchResult> OpeningAsync(BatchOpening opening, CancellationToken cancellationToken) =>
-        BatchRetry.RunAsync(() => OpenOnceAsync(opening, cancellationToken), cancellationToken);
+        BatchRetry.RunAsync(() => OpenOnceAsync(opening, cancellationToken), attempts, cancellationToken);
 
     private async Task<BatchResult> OpenOnceAsync(BatchOpening opening, CancellationToken cancellationToken)
     {
@@ -163,7 +175,7 @@ public sealed class IngestionBatches
     }
 
     private Task<BatchResult> ClosingAsync(Closing closing, CancellationToken cancellationToken) =>
-        BatchRetry.RunAsync(() => CloseOnceAsync(closing, cancellationToken), cancellationToken);
+        BatchRetry.RunAsync(() => CloseOnceAsync(closing, cancellationToken), attempts, cancellationToken);
 
     private async Task<BatchResult> CloseOnceAsync(Closing closing, CancellationToken cancellationToken)
     {

@@ -18,22 +18,26 @@ internal sealed class SubmissionService
     private readonly IngestionBatches batches;
     private readonly BatchRegister register;
     private readonly NpgsqlDataSource dataSource;
+    private readonly ILogger logger;
 
     /// <summary>The service over the database and the pieces that take a file in.</summary>
     /// <param name="intake">The barrier, the conference and the conditions.</param>
     /// <param name="batches">Opens and closes the batches.</param>
     /// <param name="register">Reads the register of the submissions.</param>
     /// <param name="dataSource">The source of the connections, for the gate.</param>
-    internal SubmissionService(SubmissionIntake intake, IngestionBatches batches, BatchRegister register, NpgsqlDataSource dataSource)
+    /// <param name="logger">Says, by the batch and the domain only, that a batch could not be tidied.</param>
+    internal SubmissionService(SubmissionIntake intake, IngestionBatches batches, BatchRegister register, NpgsqlDataSource dataSource, ILogger logger)
     {
         ArgumentNullException.ThrowIfNull(intake);
         ArgumentNullException.ThrowIfNull(batches);
         ArgumentNullException.ThrowIfNull(register);
         ArgumentNullException.ThrowIfNull(dataSource);
+        ArgumentNullException.ThrowIfNull(logger);
         this.intake = intake;
         this.batches = batches;
         this.register = register;
         this.dataSource = dataSource;
+        this.logger = logger;
     }
 
     /// <summary>Whether the ingestion takes material in: open, or blocked by the code of what is missing (decision 0014).</summary>
@@ -137,30 +141,38 @@ internal sealed class SubmissionService
         }
 
         var opened = await batches.OpenAsync(opening with { RejectedFor = reason?.Code }, cancellationToken).ConfigureAwait(false);
-        if (opened.Collided)
+        if (Unrecorded(opened, reason is not null) is { } unrecorded)
         {
-            return new SubmissionOutcome { Kind = SubmissionKind.Collided };
-        }
-
-        if (opened.Outcome != (reason is null ? BatchOutcome.Opened : BatchOutcome.Rejected))
-        {
-            return new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = opened.Outcome };
+            return unrecorded;
         }
 
         var kept = new Opened(received, opened.BatchId!.Value, warning, opening.Origin!.State);
         return reason is null ? await StoringAsync(request, kept, cancellationToken).ConfigureAwait(false) : Turned(kept, reason);
     }
 
+    /// <summary>What there is to say when the opening did not do what was asked: a collision that the batches gave up on, or the outcome that kept it; none when it did.</summary>
+    private static SubmissionOutcome? Unrecorded(BatchResult opened, bool turnedBack)
+    {
+        if (opened.Collided)
+        {
+            return new SubmissionOutcome { Kind = SubmissionKind.Collided };
+        }
+
+        var wanted = turnedBack ? BatchOutcome.Rejected : BatchOutcome.Opened;
+        return opened.Outcome == wanted ? null : new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = opened.Outcome };
+    }
+
     /// <summary>A file that was not turned back has its items written and is accepted, or is rejected with no item when they cannot be.</summary>
     private async Task<SubmissionOutcome> StoringAsync(SubmissionRequest request, Opened opened, CancellationToken cancellationToken)
     {
         var place = new SubmissionStoring.Kept(request.DomainId, opened.Batch, opened.Received.Material!, request.DeclaredForm);
-        var kept = await SubmissionStoring.KeepAsync(batches, intake.Writer!, place, cancellationToken).ConfigureAwait(false);
+        var kept = await SubmissionStoring.KeepAsync(batches, intake.Writer!, place, logger, cancellationToken).ConfigureAwait(false);
         return kept switch
         {
             SubmissionStoring.Keeping.Kept => Answer(opened.Received, opened.Batch, (null, opened.Warning), opened.Origin),
             SubmissionStoring.Keeping.Collided => new SubmissionOutcome { Kind = SubmissionKind.Collided, Batch = opened.Batch },
-            _ => new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = SubmissionStoring.WriteFailed, Batch = opened.Batch },
+            SubmissionStoring.Keeping.WriteFailed => new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = SubmissionStoring.WriteFailed, Batch = opened.Batch },
+            _ => throw new ArgumentOutOfRangeException(nameof(kept), kept, "The keeping of the file ended in a way the service does not answer."),
         };
     }
 

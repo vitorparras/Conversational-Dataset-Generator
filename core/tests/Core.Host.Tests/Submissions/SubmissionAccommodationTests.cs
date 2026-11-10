@@ -3,6 +3,7 @@ using Core.Ingestion;
 using Core.Persistence.Content.Writing;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Fixtures;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Core.Host.Tests.Submissions;
 
@@ -33,9 +34,9 @@ public sealed class SubmissionAccommodationTests
         var material = new ReadMaterial([new ReadUnit("ZQXTERCEIRO", "ZQXUM", instant, null, []), new ReadUnit("ZQXQUARTO", "ZQXDOIS", instant, null, [])]);
         var kept = new SubmissionStoring.Kept(SubmissionWorld.Domain, opened.BatchId!.Value, material, MaterialForm.Document);
 
-        var stored = await SubmissionStoring.KeepAsync(batches, new ContentWriter(world.DataSource, world.Content), kept, TestContext.Current.CancellationToken);
+        var stored = await SubmissionStoring.KeepAsync(batches, new ContentWriter(world.DataSource, world.Content), kept, NullLogger.Instance, TestContext.Current.CancellationToken);
 
-        Assert.Equal((true, 2L, 2L), (stored, await world.ItemRowsAsync(), await world.AccommodatedRowsAsync()));
+        Assert.Equal((SubmissionStoring.Keeping.Kept, 2L, 2L), (stored, await world.ItemRowsAsync(), await world.AccommodatedRowsAsync()));
     }
 
     [DatabaseFact]

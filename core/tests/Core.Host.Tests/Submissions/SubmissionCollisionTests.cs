@@ -2,6 +2,8 @@ using System.Text;
 using System.Text.Json;
 using Core.Host.Endpoints;
 using Core.Host.Submissions;
+using Core.Ingestion;
+using Core.Persistence.Content.Writing;
 using Core.Persistence.Ingestion;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,6 +17,7 @@ namespace Core.Host.Tests.Submissions;
 public sealed class SubmissionCollisionTests
 {
     private const int Simultaneous = 8;
+    private const string ChainInOrder = "SELECT (count(*) = max(sequence) AND min(sequence) = 1)::text FROM public.custody_event";
 
     [Fact]
     public async Task CollisionIsA503ThatAsksToTryAgainAndSaysItByItsCodeAndNothingElse()
@@ -47,7 +50,7 @@ public sealed class SubmissionCollisionTests
     }
 
     [DatabaseFact]
-    public async Task EightSubmissionsMadeTogetherAreEachKeptOrToldToTryAgainAndNoneIsRejectedAsAFailureOfTheWriting()
+    public async Task EightSubmissionsMadeTogetherAreEachKeptOrToldToTryAgainAndEveryBatchThatWasNotKeptIsRejectedForTheCollisionAndTheChainIsWhole()
     {
         await using var world = await SubmissionWorld.CreateAsync();
 
@@ -55,8 +58,41 @@ public sealed class SubmissionCollisionTests
 
         var kept = outcomes.Count(outcome => outcome.Kind == SubmissionKind.Done);
         var told = outcomes.Count(outcome => outcome.Kind == SubmissionKind.Collided);
-        var opened = outcomes.Count(outcome => outcome.Batch is not null);
-        Assert.Equal((Simultaneous, opened, false), (kept + told, await world.BatchCountAsync(), outcomes.Any(outcome => outcome.Code == "write_failed")));
+        var entries = await world.Service.ListAsync(new BatchFilter { Domains = [SubmissionWorld.Domain], Take = 100 }, TestContext.Current.CancellationToken);
+        var accepted = entries.Count(entry => entry.State == BatchState.Accepted);
+        var rejected = entries.Where(entry => entry.State == BatchState.Rejected).Select(entry => entry.Reason).ToArray();
+        var chain = string.Join(',', await world.Database.FirstColumnAsOwnerAsync(ChainInOrder));
+        Assert.Equal(
+            (Simultaneous, kept, 0, kept * 2L, "true", true),
+            (kept + told, accepted, entries.Count(entry => entry.State == BatchState.Open), await world.ItemRowsAsync(), chain, rejected.Length <= told && entries.Count == kept + rejected.Length));
+        Assert.All(rejected, reason => Assert.Equal(SubmissionStoring.Collision, reason));
+    }
+
+    [DatabaseFact]
+    public async Task OpeningThatMeetsAnotherEventOfTheChainIsToldToTryAgainWithNoBatch()
+    {
+        await using var world = await SubmissionWorld.CreateAsync(attempts: 1);
+
+        var outcome = await SubmissionContention.WhilePendingAsync(world, () => world.SubmitAsync(SubmissionWorld.Request()));
+
+        Assert.Equal((SubmissionKind.Collided, (long?)null, 0L, 0L), (outcome.Kind, outcome.Batch, await world.BatchCountAsync(), await world.ItemRowsAsync()));
+    }
+
+    [DatabaseFact]
+    public async Task AcceptanceThatMeetsAnotherEventOfTheChainRejectsTheBatchForTheCollisionWithNoItemAndSaysItCollided()
+    {
+        await using var world = await SubmissionWorld.CreateAsync(attempts: 1);
+        var opened = await world.Batches.OpenAsync(new BatchOpening(SubmissionWorld.Domain, SubmissionWorld.Person), TestContext.Current.CancellationToken);
+        var instant = new DateTimeOffset(2031, 3, 4, 8, 0, 0, TimeSpan.Zero);
+        var material = new ReadMaterial([new ReadUnit("ZQXTERCEIRO", "ZQXUM", instant, null, []), new ReadUnit("ZQXQUARTO", "ZQXDOIS", instant, null, [])]);
+        var kept = new SubmissionStoring.Kept(SubmissionWorld.Domain, opened.BatchId!.Value, material, MaterialForm.Conversation);
+        var log = new SubmissionLog();
+        var writer = new ContentWriter(world.DataSource, world.Content);
+
+        var keeping = await SubmissionContention.WhilePendingAsync(world, () => SubmissionStoring.KeepAsync(world.Batches, writer, kept, log, TestContext.Current.CancellationToken));
+
+        var entry = await world.Service.DetailAsync([SubmissionWorld.Domain], kept.BatchId, TestContext.Current.CancellationToken);
+        Assert.Equal((SubmissionStoring.Keeping.Collided, BatchState.Rejected, SubmissionStoring.Collision, 0L, 0), (keeping, entry?.State, entry?.Reason, await world.ItemRowsAsync(), log.Lines.Count));
     }
 
     private static async Task<(int Status, string RetryAfter, string Body)> AnswerAsync(SubmissionOutcome outcome)

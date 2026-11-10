@@ -15,7 +15,7 @@ public sealed class BatchRetryTests
     {
         var made = 0;
 
-        var result = await BatchRetry.RunAsync(() => Task.FromResult(Count(ref made, Written)), TestContext.Current.CancellationToken);
+        var result = await BatchRetry.RunAsync(() => Task.FromResult(Count(ref made, Written)), BatchRetry.Attempts, TestContext.Current.CancellationToken);
 
         Assert.Equal((Written, 1), (result, made));
     }
@@ -25,7 +25,7 @@ public sealed class BatchRetryTests
     {
         var made = 0;
 
-        var result = await BatchRetry.RunAsync(() => Task.FromResult(Count(ref made, made < 2 ? Collided : Written)), TestContext.Current.CancellationToken);
+        var result = await BatchRetry.RunAsync(() => Task.FromResult(Count(ref made, made < 2 ? Collided : Written)), BatchRetry.Attempts, TestContext.Current.CancellationToken);
 
         Assert.Equal((Written, 3), (result, made));
     }
@@ -35,7 +35,7 @@ public sealed class BatchRetryTests
     {
         var made = 0;
 
-        var result = await BatchRetry.RunAsync(() => Task.FromResult(Count(ref made, Collided)), TestContext.Current.CancellationToken);
+        var result = await BatchRetry.RunAsync(() => Task.FromResult(Count(ref made, Collided)), BatchRetry.Attempts, TestContext.Current.CancellationToken);
 
         Assert.Equal((BatchRetry.Attempts, true), (made, result.Collided));
     }
@@ -45,7 +45,7 @@ public sealed class BatchRetryTests
     {
         var made = 0;
 
-        var result = await BatchRetry.RunAsync(() => Task.FromResult(Count(ref made, Refused)), TestContext.Current.CancellationToken);
+        var result = await BatchRetry.RunAsync(() => Task.FromResult(Count(ref made, Refused)), BatchRetry.Attempts, TestContext.Current.CancellationToken);
 
         Assert.Equal((1, false, CustodyOutcome.ActorUnknown), (made, result.Collided, result.Refusal?.Outcome));
     }

@@ -1,23 +1,25 @@
 using Core.Persistence.People;
 using Core.Persistence.Settings;
-using Core.Platform.Configuration;
 using Npgsql;
 
 namespace Core.Host.Settings;
 
-/// <summary>
-/// The two desks of the changes of configuration (decision 0053), over the configuration the host started with and the database of the startup container. With no database declared
-/// there is no desk, and the screen says it is the host that cannot, as the other screens do.
-/// </summary>
-internal static class ChangeParts
+/// <summary>What the two desks of the changes of configuration (decision 0053) take from the database; the root builds the desks over it. With no database there are no parts.</summary>
+internal sealed class ChangeParts
 {
-    /// <summary>Adds the desk of the submissions and the desk of the decisions.</summary>
-    internal static void Register(IServiceCollection services, ConfigurationLoadResult inForce) =>
-        _ = services
-            .AddSingleton(provider => SourceOf(provider) is { } source
-                ? new ConfigurationChangeDesk(inForce, new ConfigurationChanges(source), new PersonRegistry(source)) : null!)
-            .AddSingleton(provider => SourceOf(provider) is { } source
-                ? new ChangeDecisionDesk(inForce, new ConfigurationChanges(source), new PersonRegistry(source), provider.GetRequiredService<TimeProvider>()) : null!);
+    private ChangeParts(NpgsqlDataSource source)
+    {
+        Changes = new ConfigurationChanges(source);
+        People = new PersonRegistry(source);
+    }
 
-    private static NpgsqlDataSource? SourceOf(IServiceProvider provider) => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>();
+    /// <summary>The ledger of the changes.</summary>
+    internal ConfigurationChanges Changes { get; }
+
+    /// <summary>The people who submit and decide.</summary>
+    internal PersonRegistry People { get; }
+
+    /// <summary>The parts over the startup container's data source; none when no database is declared.</summary>
+    internal static ChangeParts? Of(IServiceProvider provider) =>
+        provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source ? new ChangeParts(source) : null;
 }

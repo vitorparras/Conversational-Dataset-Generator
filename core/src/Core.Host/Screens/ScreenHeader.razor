@@ -2,19 +2,29 @@
 
 <header class="header">
     <a class="header__name" href="@ScreenPaths.Home">@Name</a>
-    <DomainPicker Granted="Granted" />
-    @if (Unread > 0)
+    @if (Demonstration)
     {
-        <a class="header__notices" href="@ScreenPaths.Notices">@Unread @(Unread == 1 ? "aviso não lido" : "avisos não lidos")</a>
+        <p class="header__demo" role="note">Instalação de demonstração: não envie material real.</p>
     }
-    @if (WithSession)
+    @if (Collapses)
     {
-        <a class="nav__link header__account" href="@ScreenPaths.Account" aria-current="@AccountCurrent">@AccountScreen.Title</a>
-        <form class="header__leave" method="post" action="@ScreenPaths.SignOut">
-            <Button Id="sair" Kind="Button.Look.Secondary">Sair</Button>
-        </form>
+        <button id="cabecalho-abrir" class="button button--secondary header__toggle" type="button" aria-expanded="false" aria-controls="cabecalho-menu">Menu@(ToggleNote)</button>
     }
-    <ScreenNav Entries="Menu" Current="@Current" />
+    <div id="cabecalho-menu" class="header__menu">
+        <DomainPicker Granted="Granted" />
+        @if (Unread > 0)
+        {
+            <a class="header__notices" href="@ScreenPaths.Notices">@Unread @(Unread == 1 ? "aviso não lido" : "avisos não lidos")</a>
+        }
+        @if (WithSession)
+        {
+            <a class="nav__link header__account" href="@ScreenPaths.Account" aria-current="@AccountCurrent">@AccountScreen.Title</a>
+            <form class="header__leave" method="post" action="@ScreenPaths.SignOut">
+                <Button Id="sair" Kind="Button.Look.Secondary">Sair</Button>
+            </form>
+        }
+        <ScreenNav Entries="Menu" Current="@Current" />
+    </div>
 </header>
 
 @code {
@@ -35,9 +45,19 @@
     [Parameter]
     public int Unread { get; set; }
 
+    /// <summary>Whether the installation is a demonstration, which the band under the name says.</summary>
+    [Parameter]
+    public bool Demonstration { get; set; }
+
     /// <summary>Whether the page stands behind a session, and so offers to end it on the server.</summary>
     [Parameter]
     public bool WithSession { get; set; }
+
+    /// <summary>Whether there is anything past the name, which on a phone folds behind the button of the menu so that the header keeps a line of its own.</summary>
+    private bool Collapses => WithSession || Menu.Count > 0 || Granted.Any();
+
+    /// <summary>The notices not read, said on the folded button too, so that a phone sees them without opening the menu.</summary>
+    private string? ToggleNote => Unread switch { <= 0 => null, 1 => " (1 não lido)", _ => $" ({Unread} não lidos)" };
 
     /// <summary>The account is the page itself on its own route and the place the page stands in on its own pages, named one by one so that an address that leads nowhere marks nothing.</summary>
     private string? AccountCurrent => Current switch

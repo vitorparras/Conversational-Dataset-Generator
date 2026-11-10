@@ -55,6 +55,10 @@ e por quem ela roda.
 | [041](041-roteiro-de-usabilidade-da-configuracao-e-do-estado.md) | Roteiro de usabilidade da configuração em vigor e do estado do sistema |
 | [042](042-roteiro-de-usabilidade-da-tela-de-pessoas.md) | Roteiro de usabilidade da tela de pessoas, listar e cadastrar |
 | [043](043-roteiro-de-usabilidade-dos-dominios-e-da-custodia.md) | Roteiro de usabilidade dos domínios e da custódia |
+| [044](044-roteiro-de-usabilidade-do-esvaziamento.md) | Roteiro de usabilidade do esvaziamento do item por identificador |
 | [045](045-roteiro-de-usabilidade-dos-avisos.md) | Roteiro de usabilidade dos avisos |
+| [046](046-roteiro-de-usabilidade-dos-lotes.md) | Roteiro de usabilidade da lista de lotes |
+| [047](047-roteiro-de-usabilidade-do-selo.md) | Roteiro de usabilidade do selo da custódia |
+| [048](048-roteiro-de-usabilidade-da-alteracao-de-configuracao.md) | Roteiro de usabilidade da alteração de configuração pela tela |
 
 Ver [regras de escrita](../regras-de-escrita.md).

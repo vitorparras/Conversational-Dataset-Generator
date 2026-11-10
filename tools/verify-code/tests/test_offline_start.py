@@ -262,10 +262,10 @@ class OfflineStartTests(unittest.TestCase):
     ) -> None:
         text = RUNNER_DOCKERFILE.read_text(encoding="utf-8")
 
-        installs = [line for line in text.splitlines() if "apt-get install" in line]
+        installs = [line for line in text.splitlines() if "apt-get" in line and " install " in line]
 
         self.assertEqual(len(installs), 1)
-        self.assertNotIn("=", installs[0])
+        self.assertNotIn("=", installs[0].replace("-o Acquire::Retries=3", ""))
 
     def test_the_versions_the_runner_image_got_are_shown_when_the_step_passes(self) -> None:
         result = self.run_step(DockerRunner(evidence()))
@@ -456,7 +456,11 @@ class OfflineStartWorkflowTests(unittest.TestCase):
 
     def test_the_job_also_runs_in_the_scheduled_execution(self) -> None:
         self.assertNotIn("schedule", self.job)
-        self.assertIn("if: ${{ !cancelled() && needs.changes.outputs.heavy != 'false' }}", self.job)
+        self.assertIn(
+            "if: ${{ !cancelled() && needs.changes.outputs.heavy != 'false' "
+            "&& github.event.pull_request.draft != true }}",
+            self.job,
+        )
 
     def test_the_job_has_the_sdk_the_publish_needs(self) -> None:
         self.assertIn("actions/setup-dotnet@", self.job)

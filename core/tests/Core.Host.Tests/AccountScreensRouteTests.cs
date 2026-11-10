@@ -1,6 +1,7 @@
 using System.Net;
 using Core.Host.Endpoints;
 using Core.Host.Screens;
+using Core.Platform.Sessions;
 
 namespace Core.Host.Tests;
 
@@ -13,6 +14,19 @@ public sealed class AccountScreensRouteTests
     private const string Browser = "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8";
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
+
+    [Fact]
+    public void TheSessionsAreListedFromTheMostRecentlyUsedToTheOldestWhateverTheOrderOfTheStore()
+    {
+        var start = DateTimeOffset.Parse("2026-11-09T10:00:00Z", System.Globalization.CultureInfo.InvariantCulture);
+        var oldestUsedLast = new SessionListing("a", start, start.AddHours(3), Current: false);
+        var newestUsedFirst = new SessionListing("b", start.AddHours(1), start.AddHours(1), Current: true);
+        var middle = new SessionListing("c", start.AddHours(2), start.AddHours(2), Current: false);
+
+        var listed = AccountScreensEndpoint.MostRecentFirst([oldestUsedLast, newestUsedFirst, middle]);
+
+        Assert.Equal(["a", "c", "b"], listed.Select(session => session.ListingId));
+    }
 
     [Fact]
     public async Task TheActEndsAnotherSessionOfTheAskerAndTakesTheBrowserBackToTheAccount()

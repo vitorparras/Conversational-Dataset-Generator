@@ -66,7 +66,7 @@
     [Parameter]
     public int Ended { get; set; }
 
-    private string Caption => Sessions.Count == 1 ? "Só esta sessão está aberta." : $"{Sessions.Count} sessões abertas, contando esta. Horários em UTC.";
+    private string Caption => Sessions.Count == 1 ? "Só esta sessão está aberta." : $"{Sessions.Count} sessões abertas, contando esta, da usada há menos tempo para a mais antiga. Horários em UTC.";
 
     private string? DoneText => Done switch
     {

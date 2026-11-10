@@ -58,8 +58,27 @@ public sealed class PasswordScreenTests(BrowserFixture browser, AccountHostFixtu
         await Expect(tab.Page).ToHaveURLAsync(new Regex("/minha-conta/senha$", RegexOptions.None, TimeSpan.FromSeconds(1)));
         await Expect(tab.Page.Locator("#senha-atual")).ToHaveValueAsync(string.Empty);
         await Expect(tab.Page.Locator("#senha-nova")).ToHaveValueAsync(string.Empty);
+        await Expect(tab.Page.Locator("#senha-repetida")).ToHaveValueAsync(string.Empty);
         await Expect(tab.Page.Locator("#senha-atual")).ToHaveAttributeAsync("aria-invalid", "true");
         await AssertNoPasswordAsync(tab.Page, host.Log, wrong, replacement);
+        await AssertCanEnterAsync(host, person, host.Password);
+    }
+
+    [Fact]
+    public async Task TwoNewPasswordsThatDifferAreRefusedBesideTheRepeatFieldAndNothingChanges()
+    {
+        var host = account.Host;
+        var person = await host.AddPersonAsync();
+        var replacement = Made("NOVA");
+        await using var tab = await OpenAsync(person);
+
+        await tab.Page.Locator("#senha-atual").FillAsync(host.Password);
+        await tab.Page.Locator("#senha-nova").FillAsync(replacement);
+        await tab.Page.Locator("#senha-repetida").FillAsync(Made("OUTRA"));
+        await tab.Page.Locator("#trocar-senha").ClickAsync();
+
+        await Expect(tab.Page.Locator("#senha-repetida-erro")).ToContainTextAsync("As duas senhas novas não são iguais");
+        await Expect(tab.Page.Locator("#senha-repetida")).ToHaveAttributeAsync("aria-invalid", "true");
         await AssertCanEnterAsync(host, person, host.Password);
     }
 
@@ -166,7 +185,7 @@ public sealed class PasswordScreenTests(BrowserFixture browser, AccountHostFixtu
     }
 
     [Fact]
-    public async Task TheKeyboardAloneFillsTheTwoFieldsReachesTheButtonWithTheFocusSeenAndSendsTheChange()
+    public async Task TheKeyboardAloneFillsTheThreeFieldsReachesTheButtonWithTheFocusSeenAndSendsTheChange()
     {
         var host = account.Host;
         await using var tab = await OpenAsync(await host.AddPersonAsync());
@@ -177,18 +196,18 @@ public sealed class PasswordScreenTests(BrowserFixture browser, AccountHostFixtu
         // The first field takes the focus from its autofocus, which can come after the heading is seen on a loaded machine; a key typed before that is lost, and the password goes cut and is refused.
         await Expect(tab.Page.Locator("#senha-atual")).ToBeFocusedAsync();
         await tab.Page.Keyboard.TypeAsync(host.Password);
-        for (var stop = 0; stop < 3; stop++)
+        for (var stop = 0; stop < 4; stop++)
         {
             await tab.Page.Keyboard.PressAsync("Tab");
             order.Add(await tab.Page.EvaluateAsync<string>(FocusedId));
             seen.Add(await tab.Page.EvaluateAsync<bool>(FocusIsSeen));
-            if (stop == 0)
+            if (stop <= 1)
             {
                 await tab.Page.Keyboard.TypeAsync(replacement);
             }
         }
 
-        Assert.Equal(["senha-nova", "trocar-senha", "Voltar à minha conta"], order);
+        Assert.Equal(["senha-nova", "senha-repetida", "trocar-senha", "Voltar à minha conta"], order);
         Assert.DoesNotContain(false, seen);
         await tab.Page.Keyboard.PressAsync("Shift+Tab");
         await tab.Page.Keyboard.PressAsync("Enter");
@@ -202,6 +221,7 @@ public sealed class PasswordScreenTests(BrowserFixture browser, AccountHostFixtu
     {
         await page.Locator("#senha-atual").FillAsync(current);
         await page.Locator("#senha-nova").FillAsync(replacement);
+        await page.Locator("#senha-repetida").FillAsync(replacement);
     }
 
     private static async Task AssertNoPasswordAsync(IPage page, string log, params string[] passwords)

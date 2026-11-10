@@ -1,0 +1,135 @@
+name: Build remoto
+
+# Só sob demanda, e nunca entre os checks de um pull request: o Dev confere num runner do GitHub o
+# que o build local com trava conferia (o build em Release com analisadores, o formato e, se pedido,
+# os testes de arquitetura e os projetos de teste da lista `tests`), sem depender da memória da máquina
+# dele. Roda a partir do main e faz o checkout da branch recebida; por isso funciona para uma branch
+# antiga, que não tem este arquivo. Não grava nada: o token só lê o conteúdo.
+# Dispara com `bash C:/tmp/build-remoto.sh <branch> [--architecture] [--tests "A.Tests;B.Tests"]`.
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch (ou commit) a construir
+        required: true
+        type: string
+      architecture:
+        description: Rodar também o Core.Tests.Architecture
+        required: false
+        default: false
+        type: boolean
+      tests:
+        description: 'Projetos de teste a rodar depois do build, separados por ponto e vírgula (nome do diretório em core/tests/; vazio: nenhum)'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+  MSBUILDDISABLENODEREUSE: '1'
+
+jobs:
+  build:
+    name: Build, formato, arquitetura e testes da branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.branch }}
+          persist-credentials: false
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+      # Reprova antes de construir um nome que não é projeto de teste da solução (o teste roda com --no-build, então só vale quem a solução constrói)
+      # e diz se algum projeto pedido usa o banco de teste: o que referencia Core.Tests.Database precisa da imagem; os outros não pagam a construção dela.
+      - id: plan
+        name: Conferir os projetos de teste pedidos e se algum precisa do banco
+        env:
+          TESTS: ${{ inputs.tests }}
+        run: |
+          database=false
+          projects=
+          IFS=';' read -ra wanted <<< "$TESTS"
+          for raw in "${wanted[@]}"; do
+            project=$(echo "$raw" | xargs)
+            [ -z "$project" ] && continue
+            if ! [[ "$project" =~ ^[A-Za-z0-9.]+$ ]] || ! grep -qF "tests/$project/$project.csproj" core/Core.slnx; then
+              echo "error: '$project' não é um projeto de teste da Core.slnx; use o nome do diretório em core/tests/, separados por ponto e vírgula"
+              echo "### error: '$project' não é um projeto de teste da Core.slnx" >> "$GITHUB_STEP_SUMMARY"
+              exit 1
+            fi
+            if grep -qF 'Core.Tests.Database' "core/tests/$project/$project.csproj"; then database=true; fi
+            projects="$projects$project;"
+          done
+          echo "database=$database" >> "$GITHUB_OUTPUT"
+          echo "projects=$projects" >> "$GITHUB_OUTPUT"
+      - uses: ./.github/actions/build-database-image
+        if: steps.plan.outputs.database == 'true'
+      - name: Construir em Release com analisadores, verificar o formato e, se pedido, rodar a arquitetura e os testes
+        env:
+          ARCHITECTURE: ${{ inputs.architecture }}
+          BRANCH: ${{ inputs.branch }}
+          PROJECTS: ${{ steps.plan.outputs.projects }}
+        run: |
+          set +e
+          dotnet build core/Core.slnx -c Release -m:2 -nodeReuse:false -p:UseSharedCompilation=false -nologo -clp:ErrorsOnly > "$RUNNER_TEMP/build.log" 2>&1
+          build=$?
+          dotnet format core/Core.slnx --verify-no-changes --no-restore > "$RUNNER_TEMP/format.log" 2>&1
+          format=$?
+          architecture=skipped
+          tests=skipped
+          shown() {
+            line="build=$build format=$format"
+            [ "$architecture" = skipped ] || line="$line architecture=$architecture"
+            [ "$tests" = skipped ] || line="$line tests=$tests"
+            echo "$line"
+          }
+          : > "$RUNNER_TEMP/architecture.log"
+          : > "$RUNNER_TEMP/tests.log"
+          if [ "$ARCHITECTURE" = true ]; then
+            dotnet test --project core/tests/Core.Tests.Architecture/Core.Tests.Architecture.csproj -c Release --no-build > "$RUNNER_TEMP/architecture.log" 2>&1
+            architecture=$?
+          fi
+          # Cada projeto na sua vez, sem o serviço real (não há uv no runner), como o passo test_core; `tests` guarda o primeiro código diferente de zero.
+          failing=
+          if [ -n "$PROJECTS" ]; then
+            tests=0
+            IFS=';' read -ra listed <<< "$PROJECTS"
+            for project in "${listed[@]}"; do
+              [ -z "$project" ] && continue
+              dotnet test --project "core/tests/$project/$project.csproj" -c Release --no-build --filter-not-trait "Category=RealService" > "$RUNNER_TEMP/test-$project.log" 2>&1
+              code=$?
+              echo "tests $project exit=$code $(sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/test-$project.log" | grep -hE '^ *(total|failed|succeeded|skipped):' | tr -d '\n' | tr -s ' ')" >> "$RUNNER_TEMP/tests.log"
+              if [ "$code" != 0 ]; then
+                sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/test-$project.log" | grep -hE "error|Failed!|^ *failed " | sort -u | head -40 >> "$RUNNER_TEMP/tests.log"
+                [ "$tests" = 0 ] && { tests=$code; failing="$RUNNER_TEMP/test-$project.log"; }
+              fi
+            done
+          fi
+          errors() {
+            extra=
+            [ "$1" = "$RUNNER_TEMP/format.log" ] && extra='|warning'
+            [ "$1" = "$RUNNER_TEMP/tests.log" ] && { head -80 "$1"; return; }
+            grep -E "error|Failed|failed|Passed!|Build succeeded$extra" "$1" | sort -u | head -60
+          }
+          {
+            echo "### $(shown)"
+            echo
+            echo "- branch: \`$BRANCH\` em \`$(git rev-parse --short HEAD)\`"
+            for part in build format architecture tests; do
+              echo
+              echo "#### $part"
+              echo '```'
+              errors "$RUNNER_TEMP/$part.log"
+              echo '```'
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+          shown
+          for part in build format architecture tests; do errors "$RUNNER_TEMP/$part.log"; done
+          if [ "$architecture" != skipped ] && [ "$architecture" != 0 ]; then tail -n 25 "$RUNNER_TEMP/architecture.log"; fi
+          if [ -n "$failing" ]; then tail -n 25 "$failing"; fi
+          [ "$build" = 0 ] && [ "$format" = 0 ] && { [ "$architecture" = skipped ] || [ "$architecture" = 0 ]; } && { [ "$tests" = skipped ] || [ "$tests" = 0 ]; }

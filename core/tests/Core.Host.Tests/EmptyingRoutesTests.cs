@@ -233,7 +233,7 @@ public sealed partial class EmptyingRoutesTests
             services => services
                 .AddSingleton(new ServiceCollection().AddSingleton(world.Source).BuildServiceProvider())
                 .AddSingleton(provider => new OperatorAdministration(
-                    new PersonRegistry(world.Source), new PersonCredentials(world.Source, new PasswordDerivation(1)), provider.GetRequiredService<SessionStore>()))
+                    new PersonRegistry(world.Source), new PersonCredentials(world.Source, new PasswordDerivation(1)), provider.GetRequiredService<SessionStore>(), new PersonNotices(world.Source)))
                 .AddSingleton<DomainGrants>(new GrantedTo(world.Curator, world.Annotator)),
             routes =>
             {

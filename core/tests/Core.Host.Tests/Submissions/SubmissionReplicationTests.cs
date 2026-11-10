@@ -107,8 +107,11 @@ public sealed class SubmissionReplicationTests
 
         var runs = new[] { world.SubmitAsync(SubmissionWorld.Request(first)), world.SubmitAsync(SubmissionWorld.Request(second)) };
         var refused = await Record.ExceptionAsync(() => Task.WhenAll(runs));
-        var states = string.Join(',', runs.Select(run => run.IsCompletedSuccessfully ? run.Result.Kind + "/" + run.Result.State + "/" + run.Result.Code + "/" + run.Result.BlockedBy + "/" + run.Result.Failure : "faulted"));
+        var states = string.Join(',', runs.Select(Described));
         var seen = (states, await world.OccurrenceRowsAsync(), await world.MarkRowsAsync());
         Assert.True(seen == ("Accepted,Accepted", 4L, 4L), "error: " + seen + " " + refused?.ToString().ReplaceLineEndings(" | "));
     }
+
+    private static string Described(Task<SubmissionOutcome> run) =>
+        run.IsCompletedSuccessfully ? run.Result.Kind + "/" + run.Result.State + "/" + run.Result.Code + "/" + run.Result.BlockedBy + "/" + run.Result.Failure : "faulted";
 }

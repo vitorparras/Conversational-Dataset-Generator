@@ -1,18 +1,18 @@
 @using Core.Host.Endpoints
 
-<h1>E-mail de @Person.Name</h1>
+<h1>E-mail de @Subject.Name</h1>
 <p class="lead">
     Corrija aqui o endereço de quem não consegue entrar para corrigi-lo, como quem esqueceu a senha: ele serve só para receber o link de reposição.
     A correção fica registrada na cadeia de custódia sem o endereço, e a pessoa vê o endereço novo na própria conta.
 </p>
 @if (Saved)
 {
-    <Notice Kind="Notice.Tone.Success">@(Person.Address is null ? $"{Person.Name} está sem endereço de e-mail." : $"Endereço de e-mail de {Person.Name} corrigido.")</Notice>
+    <Notice Kind="Notice.Tone.Success">@(Subject.Address is null ? $"{Subject.Name} está sem endereço de e-mail." : $"Endereço de e-mail de {Subject.Name} corrigido.")</Notice>
 }
-@if (Person.Active)
+@if (Subject.Active)
 {
-    <form class="form" method="post" action="@OperatorEmailEndpoint.Of(Person.Id)" novalidate>
-        <Field Id="pessoa-email" Name="@AccountEmailScreen.EmailField" Caption="E-mail (opcional)" Type="email" Value="@Person.Address" Autocomplete="off" Error="@Error"
+    <form class="form" method="post" action="@OperatorEmailEndpoint.Of(Subject.Id)" novalidate>
+        <Field Id="pessoa-email" Name="@AccountEmailScreen.EmailField" Caption="E-mail (opcional)" Type="email" Value="@Subject.Address" Autocomplete="off" Error="@Error"
                Hint="Um endereço só, como nome@exemplo.org. Deixe o campo em branco para a pessoa ficar sem endereço." />
         <div class="actions">
             <Button Id="corrigir-email">Corrigir o e-mail</Button>
@@ -38,7 +38,7 @@ else
     public sealed record Shown(long Id, string Name, bool Active, string? Address);
 
     [Parameter, EditorRequired]
-    public Shown Person { get; set; } = null!;
+    public Shown Subject { get; set; } = null!;
 
     /// <summary>Whether the page comes back from a correction, which it then says.</summary>
     [Parameter]

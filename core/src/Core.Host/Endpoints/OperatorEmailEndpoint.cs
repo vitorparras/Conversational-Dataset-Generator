@@ -45,8 +45,9 @@ internal static class OperatorEmailEndpoint
     }
 
     private static async Task<IResult> CorrectAsync(
-        long id, HttpContext context, [FromServices] OperatorAdministration? staff, [FromServices] PersonEmails? emails, [FromServices] SessionStore sessions)
+        long id, HttpContext context, [FromServices] OperatorAdministration? staff, [FromServices] PersonEmails? emails)
     {
+        var sessions = context.RequestServices.GetRequiredService<SessionStore>();
         if (staff is null || emails is null || sessions.Resolve(SessionCookie.Read(context.Request)) is not { } author)
         {
             return ScreenResult.Unavailable(context);
@@ -78,10 +79,10 @@ internal static class OperatorEmailEndpoint
         return page;
     }
 
-    private static RazorComponentResult<ScreenFrame> Page(HttpContext context, OperatorEmailScreen.Shown person, bool saved, string? error) =>
+    private static RazorComponentResult<ScreenFrame> Page(HttpContext context, OperatorEmailScreen.Shown target, bool saved, string? error) =>
         ScreenResult.Of(context, typeof(OperatorEmailScreen), OperatorEmailScreen.Title, new Dictionary<string, object?>(StringComparer.Ordinal)
         {
-            [nameof(OperatorEmailScreen.Person)] = person,
+            [nameof(OperatorEmailScreen.Subject)] = target,
             [nameof(OperatorEmailScreen.Saved)] = saved,
             [nameof(OperatorEmailScreen.Error)] = error,
         });

@@ -81,7 +81,7 @@ public sealed class OperatorEmailScreenTests
     }
 
     private static Task<string> ShownAsync(OperatorEmailScreen.Shown person, bool saved, string? error) =>
-        RenderAsync(typeof(OperatorEmailScreen), new Dictionary<string, object?> { ["Person"] = person, ["Saved"] = saved, ["Error"] = error });
+        RenderAsync(typeof(OperatorEmailScreen), new Dictionary<string, object?> { ["Subject"] = person, ["Saved"] = saved, ["Error"] = error });
 
     private static async Task<string> RenderAsync(Type screen, IDictionary<string, object?> given)
     {

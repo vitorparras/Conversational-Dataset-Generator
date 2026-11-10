@@ -230,9 +230,9 @@ public sealed class ReplicationTableTests
         ReplicationTarget target = new(1, 1);
         StoredOccurrence[] occurrences = [Occurrence(1, 0, 'a', 'b')];
 
-        var withoutOccurrences = Assert.Throws<ArgumentNullException>(() => store.RecordAsync(target, null!, [], token));
-        var withoutMarks = Assert.Throws<ArgumentNullException>(() => store.RecordAsync(target, occurrences, null!, token));
-        var withoutTarget = Assert.Throws<ArgumentNullException>(() => store.RecordAsync(null!, occurrences, [], token));
+        var withoutOccurrences = Assert.Throws<ArgumentNullException>(() => { _ = store.RecordAsync(target, null!, [], token); });
+        var withoutMarks = Assert.Throws<ArgumentNullException>(() => { _ = store.RecordAsync(target, occurrences, null!, token); });
+        var withoutTarget = Assert.Throws<ArgumentNullException>(() => { _ = store.RecordAsync(null!, occurrences, [], token); });
 
         Assert.Equal("occurrences", withoutOccurrences.ParamName);
         Assert.Equal("marks", withoutMarks.ParamName);

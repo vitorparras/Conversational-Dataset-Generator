@@ -6,7 +6,7 @@ namespace Core.Host.Endpoints;
 
 /// <summary>
 /// Stands after the session gate and holds to the access policy (006) every request to a screen and every request for a page behind the session. It reads the function
-/// of whoever entered from the registry, and the domains granted from <see cref="DomainGrants"/>, and keeps them for the page, whose menu asks the same question.
+/// of whoever entered from the registry, and the domains granted from the <see cref="DomainGrants"/> registered, and keeps them for the page, whose menu asks the same question.
 /// A screen the function does not reach, a page asked of a route that declares no access and a page asked of a route that does not exist get one answer, from
 /// <see cref="NotFoundAsync"/>: 404, with the page of an address that leads nowhere when a page was asked for and with no body otherwise, so nothing tells them apart.
 /// </summary>
@@ -25,7 +25,7 @@ internal static class ScreenGate
 
             var reach = await ReachOfAsync(context).ConfigureAwait(false);
             context.Features.Set(reach);
-            await (endpoint is not null && reach.Reaches(access) ? next(context) : NotFoundAsync(context)).ConfigureAwait(false);
+            await (endpoint is not null && reach.Opens(access) ? next(context) : NotFoundAsync(context)).ConfigureAwait(false);
         });
 
     /// <summary>The one answer of an address that leads nowhere the one who entered may go.</summary>
@@ -50,6 +50,9 @@ internal static class ScreenGate
         }
 
         var function = await administration.Registry.ActiveFunctionOfAsync(entered, context.RequestAborted).ConfigureAwait(false);
-        return new ScreenReach(function, DomainGrants.None);
+        var grants = context.RequestServices.GetService<DomainGrants>();
+        var granted = grants is null ? DomainGrants.None : await grants.GrantedToAsync(entered, context.RequestAborted).ConfigureAwait(false);
+        var unread = await administration.Notices.UnreadCountAsync(entered, context.RequestAborted).ConfigureAwait(false);
+        return new ScreenReach(function, granted) { Unread = unread };
     }
 }

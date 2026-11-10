@@ -1,8 +1,14 @@
 name: Verifica código
 
+# While a pull request is a draft, the five slowest jobs (package, offline_start, service_folder,
+# mutation_modules and its matrix) are skipped, and the aggregator `mutation` reports green with them
+# skipped. A skipped job counts as green for the ruleset, which is safe: a draft is not merged, and
+# `ready_for_review` starts a run of the whole ruler on the same head. Push and schedule have no
+# draft, so nothing changes for them.
 on:
   workflow_dispatch:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main]
   schedule:
@@ -74,7 +80,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -228,7 +234,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -250,7 +256,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
       - name: Construir o projeto de navegador nos pacotes travados (as versões do Playwright e do axe estão em core/Directory.Packages.props)
@@ -270,11 +276,11 @@ jobs:
   package:
     name: Construção reproduzível (duas cópias limpas)
     needs: changes
-    if: ${{ !cancelled() && github.event_name != 'schedule' && needs.changes.outputs.heavy != 'false' }}
+    if: ${{ !cancelled() && github.event_name != 'schedule' && needs.changes.outputs.heavy != 'false' && github.event.pull_request.draft != true }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -295,12 +301,12 @@ jobs:
   offline_start:
     name: Partida sem rota de rede (contêineres, strace)
     needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.heavy != 'false' }}
+    if: ${{ !cancelled() && needs.changes.outputs.heavy != 'false' && github.event.pull_request.draft != true }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -312,7 +318,7 @@ jobs:
   service_folder:
     name: Pasta do serviço reproduzível (linux-x64)
     needs: changes
-    if: ${{ !cancelled() && github.event_name != 'schedule' && needs.changes.outputs.heavy != 'false' }}
+    if: ${{ !cancelled() && github.event_name != 'schedule' && needs.changes.outputs.heavy != 'false' && github.event.pull_request.draft != true }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -328,7 +334,7 @@ jobs:
   mutation_modules:
     name: Módulos críticos da mutação
     needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.heavy != 'false' }}
+    if: ${{ !cancelled() && needs.changes.outputs.heavy != 'false' && github.event.pull_request.draft != true }}
     runs-on: ubuntu-latest
     outputs:
       modules: ${{ steps.list.outputs.modules }}
@@ -351,7 +357,7 @@ jobs:
   mutation_module:
     name: Mutação (${{ matrix.module }})
     needs: mutation_modules
-    if: needs.mutation_modules.outputs.modules != '[]'
+    if: needs.mutation_modules.outputs.modules != '[]' && github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     # The step cuts the module at the ceiling of docs/operacao/017; the rest is setup and restore.
     timeout-minutes: 35
@@ -361,7 +367,7 @@ jobs:
         module: ${{ fromJSON(needs.mutation_modules.outputs.modules) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -373,10 +379,27 @@ jobs:
         env:
           MODULE: ${{ matrix.module }}
         run: python tools/verify-code/verify.py --step mutation --module "$MODULE"
+      - id: log
+        name: Dar ao artefato do log um nome sem barra nem arroba
+        if: failure()
+        env:
+          MODULE: ${{ matrix.module }}
+        run: echo "name=log-da-mutacao-$(echo "$MODULE" | tr '/@' '--')-${{ github.run_attempt }}" >> "$GITHUB_OUTPUT"
+      - name: Guardar o log do Stryker e o do host de teste quando o passo reprova
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ steps.log.outputs.name }}
+          path: |
+            .verify-code/mutation/core/*/logs
+            .verify-code/mutation/core/*/stryker-config.json
+          include-hidden-files: true
+          retention-days: 14
+          if-no-files-found: ignore
 
   # Aggregates the matrix under the name the check always had. It always reports: everything skipped
-  # when the classification dispensed it, an empty matrix when the list declared that no module is
-  # reached, green otherwise (a failed classification or list is a failure).
+  # when the classification dispensed it or the pull request is a draft, an empty matrix when the list
+  # declared that no module is reached, green otherwise (a failed classification or list is a failure).
   mutation:
     name: Mutação nos módulos críticos
     needs: [changes, mutation_modules, mutation_module]
@@ -390,11 +413,12 @@ jobs:
           LISTED: ${{ needs.mutation_modules.result }}
           MODULES: ${{ needs.mutation_modules.outputs.modules }}
           MATRIX: ${{ needs.mutation_module.result }}
+          DRAFT: ${{ github.event.pull_request.draft }}
         run: |
-          echo "classificação: $CLASSIFICATION, heavy=$HEAVY, lista: $LISTED, módulos: $MODULES, matriz: $MATRIX"
+          echo "classificação: $CLASSIFICATION, heavy=$HEAVY, rascunho: $DRAFT, lista: $LISTED, módulos: $MODULES, matriz: $MATRIX"
           list=success
           matrix=success
-          if [ "$CLASSIFICATION" = success ] && [ "$HEAVY" = false ]; then
+          if [ "$CLASSIFICATION" = success ] && { [ "$HEAVY" = false ] || [ "$DRAFT" = true ]; }; then
             list=skipped
             matrix=skipped
           elif [ "$CLASSIFICATION" = success ] && [ "$LISTED" = success ] && [ "$MODULES" = '[]' ]; then
@@ -409,7 +433,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -425,7 +449,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -447,8 +471,10 @@ jobs:
         with:
           python-version: '3.12'
       - uses: ./.github/actions/install-gitleaks
-      - name: Varrer o diff do pull request, ou o histórico inteiro fora dele
-        run: python tools/verify-code/verify.py --step secrets ${{ github.event_name == 'pull_request' && format('--base origin/{0}', github.base_ref) || '' }}
+      # The push to main answers for the main alone: the clone holds every branch, and an old one
+      # with a finding (#722) must not turn the main red. The schedule still reads them all.
+      - name: Varrer o diff do pull request, o histórico do main no push e o de todas as branches fora deles
+        run: python tools/verify-code/verify.py --step secrets ${{ github.event_name == 'pull_request' && format('--base origin/{0}', github.base_ref) || github.event_name == 'push' && '--head-only' || '' }}
 
   trivy:
     name: Dependências, segredos e configuração (trivy)

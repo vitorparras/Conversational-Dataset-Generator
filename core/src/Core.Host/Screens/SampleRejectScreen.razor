@@ -1,0 +1,50 @@
+@using System.Globalization
+
+<h1>Reprovar o lote @Number(Batch)</h1>
+
+<Panel Id="reprovar" Title="O que acontece">
+    <Notice>
+        Um dado pessoal no item @Number(Position) da amostra reprova o lote @Number(Batch) inteiro: nenhum item dele entrará no acervo, nem os que não estão na amostra.
+    </Notice>
+    <p>O registro guarda quem revisou, o que foi achado, em qual item da amostra e quando. Ele não guarda o texto do item nem o dado achado.</p>
+    <form class="form" method="post" action="@Action">
+        <ChoiceGroup Name="@FindingField" Legend="O que foi achado" Options="SampleTexts.Findings" Value="@Finding" Required="true" Error="@Error" />
+        <div class="actions">
+            <Button Id="reprovar-lote" Kind="Button.Look.Danger">Reprovar o lote inteiro</Button>
+            <Button Href="@Back" Kind="Button.Look.Secondary">Voltar à amostra sem reprovar</Button>
+        </div>
+    </form>
+</Panel>
+
+@code {
+    /// <summary>The title of the page.</summary>
+    internal const string Title = "Reprovar o lote";
+
+    /// <summary>The field the kind of finding is sent in.</summary>
+    internal const string FindingField = "achado";
+
+    [Parameter, EditorRequired]
+    public long Batch { get; set; }
+
+    /// <summary>The place in the sample of the item where the personal data was found.</summary>
+    [Parameter, EditorRequired]
+    public int Position { get; set; }
+
+    /// <summary>Where the rejection is posted.</summary>
+    [Parameter, EditorRequired]
+    public string Action { get; set; } = "";
+
+    /// <summary>The review of the sample, where nothing was decided yet.</summary>
+    [Parameter, EditorRequired]
+    public string Back { get; set; } = "";
+
+    /// <summary>The kind chosen, given back when the server refuses the form.</summary>
+    [Parameter]
+    public string? Finding { get; set; }
+
+    /// <summary>Why the server refused the kind, bound to its group.</summary>
+    [Parameter]
+    public string? Error { get; set; }
+
+    private static string Number(long value) => value.ToString(CultureInfo.InvariantCulture);
+}

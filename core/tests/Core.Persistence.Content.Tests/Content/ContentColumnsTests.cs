@@ -59,6 +59,8 @@ public sealed class ContentColumnsTests
                 new ProtectedColumn("item_text", "dek_wrapped", LabelPurpose.RawText),
                 new ProtectedColumn("reversal_map", "entries", LabelPurpose.ReversalMap),
                 new ProtectedColumn("reversal_map", "dek_wrapped", LabelPurpose.ReversalMap),
+                new ProtectedColumn("batch_origin", "origin", LabelPurpose.RawText),
+                new ProtectedColumn("batch_origin", "dek_wrapped", LabelPurpose.RawText),
             ],
             ContentColumns.Protected);
 
@@ -74,6 +76,8 @@ public sealed class ContentColumnsTests
                 new ClearColumn("item_text", "dek_epoch", ClearKind.Epoch),
                 new ClearColumn("item_text", "batch_id", ClearKind.Identifier),
                 new ClearColumn("item_text", "written_in", ClearKind.Transaction),
+                new ClearColumn("item_text", "accommodated_into", ClearKind.Motive),
+                new ClearColumn("item_text", "losses", ClearKind.Motive),
                 new ClearColumn("reversal_map", "id", ClearKind.Identifier),
                 new ClearColumn("reversal_map", "domain_id", ClearKind.Domain),
                 new ClearColumn("reversal_map", "item_id", ClearKind.Identifier),
@@ -89,9 +93,38 @@ public sealed class ContentColumnsTests
                 new ClearColumn("ingestion_batch", "domain_id", ClearKind.Domain),
                 new ClearColumn("ingestion_batch", "state", ClearKind.Status),
                 new ClearColumn("ingestion_batch", "motive", ClearKind.Motive),
+                new ClearColumn("ingestion_batch", "condition", ClearKind.Motive),
                 new ClearColumn("ingestion_batch", "opened_by", ClearKind.Identifier),
                 new ClearColumn("ingestion_batch", "opened_at", ClearKind.Moment),
                 new ClearColumn("ingestion_batch", "closed_at", ClearKind.Moment),
+                new ClearColumn("ingestion_batch", "submission", ClearKind.Motive),
+                new ClearColumn("ingestion_batch", "received_bytes", ClearKind.Identifier),
+                new ClearColumn("ingestion_batch", "received_digest", ClearKind.Motive),
+                new ClearColumn("ingestion_batch", "warning", ClearKind.Motive),
+                new ClearColumn("ingestion_batch", "origin_state", ClearKind.Motive),
+                new ClearColumn("batch_origin", "id", ClearKind.Identifier),
+                new ClearColumn("batch_origin", "domain_id", ClearKind.Domain),
+                new ClearColumn("batch_origin", "batch_id", ClearKind.Identifier),
+                new ClearColumn("batch_origin", "recorded_at", ClearKind.Moment),
+                new ClearColumn("batch_origin", "dek_epoch", ClearKind.Epoch),
+                new ClearColumn("replication_occurrence", "id", ClearKind.Identifier),
+                new ClearColumn("replication_occurrence", "domain_id", ClearKind.Domain),
+                new ClearColumn("replication_occurrence", "batch_id", ClearKind.Identifier),
+                new ClearColumn("replication_occurrence", "item_id", ClearKind.Identifier),
+                new ClearColumn("replication_occurrence", "message_position", ClearKind.Epoch),
+                new ClearColumn("replication_occurrence", "text_digest", ClearKind.Motive),
+                new ClearColumn("replication_occurrence", "sender_digest", ClearKind.Motive),
+                new ClearColumn("replication_occurrence", "text_length", ClearKind.Epoch),
+                new ClearColumn("replication_occurrence", "said_at", ClearKind.Moment),
+                new ClearColumn("replication_occurrence", "written_in", ClearKind.Transaction),
+                new ClearColumn("replication_mark", "id", ClearKind.Identifier),
+                new ClearColumn("replication_mark", "domain_id", ClearKind.Domain),
+                new ClearColumn("replication_mark", "batch_id", ClearKind.Identifier),
+                new ClearColumn("replication_mark", "item_id", ClearKind.Identifier),
+                new ClearColumn("replication_mark", "message_position", ClearKind.Epoch),
+                new ClearColumn("replication_mark", "first_item_id", ClearKind.Identifier),
+                new ClearColumn("replication_mark", "first_message_position", ClearKind.Epoch),
+                new ClearColumn("replication_mark", "written_in", ClearKind.Transaction),
             ],
             ContentColumns.Clear);
 
@@ -102,6 +135,9 @@ public sealed class ContentColumnsTests
     [Fact]
     public void MarkOfAColumnSaysTheLabelOfItsPurposeAndNothingOfTheDomain() =>
         Assert.Equal(
-            ["protected:texto-bruto", "protected:texto-bruto", "protected:texto-bruto", "protected:mapa-reversao", "protected:mapa-reversao"],
+            [
+                "protected:texto-bruto", "protected:texto-bruto", "protected:texto-bruto", "protected:mapa-reversao", "protected:mapa-reversao",
+                "protected:texto-bruto", "protected:texto-bruto",
+            ],
             ContentColumns.Protected.Select(column => column.Mark));
 }

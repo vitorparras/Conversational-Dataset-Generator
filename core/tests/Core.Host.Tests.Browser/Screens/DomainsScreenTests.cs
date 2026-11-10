@@ -105,9 +105,9 @@ public sealed class DomainsScreenTests(BrowserFixture browser, DomainsHostFixtur
         var missing = await tab.Page.GotoAsync(Missing);
         var missingPage = await tab.Page.ContentAsync();
         Assert.Equal((StatusNotFound, StatusNotFound), (answer?.Status, missing?.Status));
-        Assert.Equal(missingPage.Replace(Missing.TrimStart('/'), string.Empty, StringComparison.Ordinal), page.Replace(Route.TrimStart('/'), string.Empty, StringComparison.Ordinal));
+        Assert.Equal(missingPage.Replace(Missing, string.Empty, StringComparison.Ordinal), page.Replace(Route, string.Empty, StringComparison.Ordinal));
         Assert.All(DomainScreenHost.Domains.Append("Domínios").Append("create-domain"), text => Assert.DoesNotContain(text, page, StringComparison.Ordinal));
-        Assert.Empty(await tab.Page.Locator(".nav__link").AllInnerTextsAsync());
+        Assert.Empty(await tab.Page.Locator("nav .nav__link").AllInnerTextsAsync());
     }
 
     [Theory]
@@ -151,14 +151,14 @@ public sealed class DomainsScreenTests(BrowserFixture browser, DomainsHostFixtur
         var reached = new List<string>();
         var seen = new List<bool>();
 
-        for (var stop = 0; stop < 5; stop++)
+        for (var stop = 0; stop < HeaderStops.Count + 2; stop++)
         {
             await tab.Page.Keyboard.PressAsync("Tab");
             reached.Add(await tab.Page.EvaluateAsync<string>(FocusedId));
             seen.Add(await tab.Page.EvaluateAsync<bool>(FocusIsSeen));
         }
 
-        Assert.Equal(["skip-link", "header__name", "sair", "nav__link", "data-table"], reached);
+        Assert.Equal(HeaderStops.Then("nav__link", HeaderStops.TableStop), reached);
         Assert.DoesNotContain(false, seen);
     }
 

@@ -28,6 +28,9 @@ public sealed record ConfigurationKey
 
     internal bool IsSensitive { get; private init; }
 
+    /// <summary>What the configuration in force says about the value of this key, beside it; null when it says nothing.</summary>
+    internal Func<string, string>? Marker { get; private init; }
+
     internal bool IsRequired => Obligation is not KeyObligation.Optional;
 
     /// <summary>A key some source must declare.</summary>
@@ -61,6 +64,13 @@ public sealed record ConfigurationKey
         }
 
         return this with { AcceptedValues = [.. values] };
+    }
+
+    /// <summary>The same key, with a note about its value that the configuration in force shows beside it.</summary>
+    public ConfigurationKey Marking(Func<string, string> marker)
+    {
+        ArgumentNullException.ThrowIfNull(marker);
+        return this with { Marker = marker };
     }
 
     /// <summary>The same key, its value never shown.</summary>

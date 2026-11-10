@@ -6,7 +6,8 @@ namespace Core.Host.Tests.Browser.Accessibility;
 /// The contrast of every text of the page measured over the background as it is drawn (issue 658, CA-3). A tool that reads the style cannot see through a glass that blurs and lets
 /// the background pass; so the text is hidden, the page is photographed, and the colour of the text is held against the darkest and the lightest pixel under it. Normal text needs 4.5,
 /// large text 3 (WCAG 2.1, 1.4.3), and the transparency of the text itself and of the elements around it is counted. Text off the page and text of a disabled control are left out,
-/// as the criterion leaves out the inactive component, and text that another element covers is not read by anyone; the link to skip to the content is measured with the focus on it.
+/// as the criterion leaves out the inactive component, and text that another element covers or that is clipped to a pixel for readers of screens alone is not read by anyone;
+/// the link to skip to the content is measured with the focus on it.
 /// </summary>
 internal static class RealBackgroundContrast
 {
@@ -18,6 +19,13 @@ internal static class RealBackgroundContrast
           const channels = (c) => c.match(/[0-9.]+/g).map(Number);
           const runs = [];
           const opacityOf = (e) => { let o = 1; for (; e; e = e.parentElement) { o *= Number(getComputedStyle(e).opacity); } return o; };
+          const clippedAway = (e) => {
+            for (; e; e = e.parentElement) {
+              const box = e.getBoundingClientRect();
+              if (getComputedStyle(e).clipPath !== 'none' && box.width <= 1 && box.height <= 1) { return true; }
+            }
+            return false;
+          };
           const covered = (e, rect) => {
             const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
             return hit !== null && !e.contains(hit) && !hit.contains(e);
@@ -34,14 +42,14 @@ internal static class RealBackgroundContrast
           const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
           for (let node = walker.nextNode(); node; node = walker.nextNode()) {
             const e = node.parentElement;
-            if (!node.textContent.trim() || !e.checkVisibility() || e.closest('script,style,noscript,option,:disabled,[aria-disabled=true]')) { continue; }
+            if (!node.textContent.trim() || !e.checkVisibility() || clippedAway(e) || e.closest('script,style,noscript,option,:disabled,[aria-disabled=true]')) { continue; }
             const range = document.createRange();
             range.selectNodeContents(node);
             for (const rect of range.getClientRects()) {
               if (rect.width >= 1 && rect.height >= 1 && rect.right > 0 && rect.bottom > 0) { add(e, node.textContent.trim(), rect, getComputedStyle(e).color); }
             }
           }
-          for (const e of document.querySelectorAll('input:not([type=hidden]),textarea')) {
+          for (const e of document.querySelectorAll('input:not([type=hidden],[type=radio],[type=checkbox],[type=file],[type=range],[type=color],[type=image]),textarea')) {
             const shown = e.value || e.placeholder;
             if (!shown || !e.checkVisibility()) { continue; }
             const s = getComputedStyle(e);

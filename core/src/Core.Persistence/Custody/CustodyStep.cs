@@ -98,4 +98,19 @@ public enum CustodyStep
 
     /// <summary>A person changed their own password: the item and the author are that person and the reference is how many of their other sessions it ended, never a value of a password.</summary>
     PasswordChanged,
+
+    /// <summary>A person submitted a change of configuration on the screen; the item is the submission, which holds the key, the value and the motive, and the event has no reference.</summary>
+    ConfigurationSubmitted,
+
+    /// <summary>The origin that a submission declared for its batch was read; the item is the batch.</summary>
+    OriginRead,
+
+    /// <summary>Another person approved a change of configuration submitted; the item is the submission and the reference is the sequence of the event of the submission.</summary>
+    ConfigurationApproved,
+
+    /// <summary>Another person refused a change of configuration submitted; the item is the submission and the reference is the sequence of the event of the submission.</summary>
+    ConfigurationRefused,
+
+    /// <summary>The core started with the value an approved change asked for; the item is the submission, the author the system and the reference the sequence of the approval.</summary>
+    ConfigurationInForce,
 }

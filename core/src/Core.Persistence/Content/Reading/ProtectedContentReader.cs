@@ -17,12 +17,15 @@ public sealed class ProtectedContentReader(NpgsqlDataSource dataSource, Protecte
 {
     private const int EpochColumn = 2;
     private const int WrappedColumn = 3;
+    private const int FormColumn = 4;
+    private const int LossesColumn = 5;
 
     private static readonly FrozenDictionary<ProtectedColumn, ColumnReading> Readings = new Dictionary<ProtectedColumn, ColumnReading>
     {
         [ContentColumns.RawText] = new(CustodyItemKind.ItemText, CustodyStep.RawTextRead, ContentQueries.ReadRawText, ContentQueries.ReadFirstRawText),
         [ContentColumns.SanitizedText] = new(CustodyItemKind.ItemText, CustodyStep.SanitizedTextRead, ContentQueries.ReadSanitizedText),
         [ContentColumns.Entries] = new(CustodyItemKind.ReversalMap, CustodyStep.ReversalEntriesRead, ContentQueries.ReadReversalEntries, ContentQueries.ReadFirstEntries),
+        [ContentColumns.Origin] = new(CustodyItemKind.IngestionBatch, CustodyStep.OriginRead, ContentQueries.ReadBatchOrigin),
     }.ToFrozenDictionary();
 
     /// <summary>Reads the column of the row under the domain, recording the reading before the content is opened.</summary>
@@ -63,7 +66,13 @@ public sealed class ProtectedContentReader(NpgsqlDataSource dataSource, Protecte
         var recorded = await chain.AppendAsync(CustodyEvent.Of(request.Author, new CustodyItem(reading.Kind, stored.RowId), reading.Step, CustodyReason.ContentRead), cancellationToken)
             .ConfigureAwait(false);
         return recorded.Outcome == CustodyOutcome.Appended
-            ? new ContentReadResult { Outcome = ContentReadOutcome.Read, Text = protectedContent.Open(request.Column, request.DomainId, stored.Envelope, stored.Key!), RowId = stored.RowId }
+            ? new ContentReadResult
+            {
+                Outcome = ContentReadOutcome.Read,
+                Text = protectedContent.Open(request.Column, request.DomainId, stored.Envelope, stored.Key!),
+                RowId = stored.RowId,
+                Accommodation = stored.Accommodation,
+            }
             : new ContentReadResult { Outcome = ContentReadOutcome.NotRecorded, Refusal = recorded, RowId = stored.RowId };
     }
 
@@ -128,7 +137,19 @@ public sealed class ProtectedContentReader(NpgsqlDataSource dataSource, Protecte
             first ? reader.GetInt64(0) : lookup.Id,
             held ? (byte[])reader.GetValue(valueAt) : null,
             Emptied: !first && reader.GetBoolean(1),
-            held ? new ContentKey(reader.GetInt32(EpochColumn), (byte[])reader.GetValue(WrappedColumn)) : null);
+            held ? new ContentKey(reader.GetInt32(EpochColumn), (byte[])reader.GetValue(WrappedColumn)) : null,
+            await AccommodationOfAsync(reader, cancellationToken).ConfigureAwait(false));
+    }
+
+    // The reading of an item selects, after its key, the form it received and the codes of its losses; the reading of a map or of an origin selects neither.
+    private static async Task<ItemAccommodation?> AccommodationOfAsync(DbDataReader reader, CancellationToken cancellationToken)
+    {
+        if (reader.FieldCount <= LossesColumn || await reader.IsDBNullAsync(FormColumn, cancellationToken).ConfigureAwait(false))
+        {
+            return null;
+        }
+
+        return new ItemAccommodation(reader.GetString(FormColumn), reader.GetString(LossesColumn).Split(','));
     }
 
     private static ContentReadOutcome Unread(StoredValue stored) => stored switch
@@ -142,5 +163,5 @@ public sealed class ProtectedContentReader(NpgsqlDataSource dataSource, Protecte
 
     private sealed record Lookup(string Statement, long Id, bool First);
 
-    private sealed record StoredValue(bool Found, long RowId, byte[]? Envelope, bool Emptied, ContentKey? Key = null);
+    private sealed record StoredValue(bool Found, long RowId, byte[]? Envelope, bool Emptied, ContentKey? Key = null, ItemAccommodation? Accommodation = null);
 }

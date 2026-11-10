@@ -51,7 +51,17 @@ e por quem ela roda.
 | [037](037-roteiro-de-usabilidade-da-entrada-e-da-saida.md) | Roteiro de usabilidade da entrada e da saída |
 | [038](038-roteiro-de-usabilidade-da-navegacao.md) | Roteiro de usabilidade da navegação e da página inicial |
 | [039](039-repartir-a-mutacao.md) | Repartir a mutação de uma área em partes: a unidade, o peso e o corte da lista estática |
+| [040](040-roteiro-de-usabilidade-da-conta.md) | Roteiro de usabilidade da conta, da troca da senha e das sessões |
 | [041](041-roteiro-de-usabilidade-da-configuracao-e-do-estado.md) | Roteiro de usabilidade da configuração em vigor e do estado do sistema |
+| [042](042-roteiro-de-usabilidade-da-tela-de-pessoas.md) | Roteiro de usabilidade da tela de pessoas, listar e cadastrar |
 | [043](043-roteiro-de-usabilidade-dos-dominios-e-da-custodia.md) | Roteiro de usabilidade dos domínios e da custódia |
+| [044](044-roteiro-de-usabilidade-do-esvaziamento.md) | Roteiro de usabilidade do esvaziamento do item por identificador |
+| [045](045-roteiro-de-usabilidade-dos-avisos.md) | Roteiro de usabilidade dos avisos |
+| [046](046-roteiro-de-usabilidade-dos-lotes.md) | Roteiro de usabilidade da lista de lotes |
+| [047](047-roteiro-de-usabilidade-do-selo.md) | Roteiro de usabilidade do selo da custódia |
+| [048](048-roteiro-de-usabilidade-da-alteracao-de-configuracao.md) | Roteiro de usabilidade da alteração de configuração pela tela |
+| [049](049-aplicador-da-configuracao.md) | O aplicador da configuração: a conta que escreve o arquivo e o papel do banco que só lê |
+| [050](050-arquivo-e-servico-do-aplicador.md) | O arquivo e o serviço do aplicador |
+| [051](051-o-que-o-aplicador-faz-e-recusa.md) | O que o aplicador faz, o que recusa e o que fica registrado |
 
 Ver [regras de escrita](../regras-de-escrita.md).

@@ -14,9 +14,9 @@ public sealed class SessionStoreCloseOfTests
         var second = store.Open(7);
         var other = store.Open(8);
 
-        store.CloseOf(7);
+        var ended = store.CloseOf(7);
 
-        Assert.Equal((null, null, 8), (store.Resolve(first), store.Resolve(second), store.Resolve(other)));
+        Assert.Equal((2, null, null, 8), (ended, store.Resolve(first), store.Resolve(second), store.Resolve(other)));
     }
 
     [Fact]
@@ -24,8 +24,8 @@ public sealed class SessionStoreCloseOfTests
     {
         var other = store.Open(8);
 
-        store.CloseOf(7);
+        var ended = store.CloseOf(7);
 
-        Assert.Equal(8, store.Resolve(other));
+        Assert.Equal((0, 8), (ended, store.Resolve(other)));
     }
 }

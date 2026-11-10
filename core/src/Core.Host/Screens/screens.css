@@ -4,7 +4,8 @@
 *, *::before, *::after { box-sizing: border-box; }
 
 /* What takes the focus or the anchor never hides under the sticky header. */
-html { scroll-padding-top: var(--header-clearance); }
+/* The script writes the height the header really has, which the menu of a phone changes; without it the token is the floor. */
+html { scroll-padding-top: var(--header-measured, var(--header-clearance)); }
 
 body {
     margin: 0;
@@ -49,6 +50,9 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
 
 .skip-link:focus { transform: none; }
 
+/* Words only a reader of screens hears, such as the session a link of a row ends. */
+.visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+
 [data-region]:focus { outline: none; }
 [data-region][aria-busy="true"] { opacity: var(--opacity-busy); cursor: progress; transition: opacity var(--motion) var(--ease); }
 
@@ -64,22 +68,39 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
     gap: var(--space-3) var(--space-5);
     padding: var(--space-3) var(--space-5);
     border-bottom: var(--line) solid var(--edge-soft);
-    background: var(--glass);
+    background: var(--glass-header);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
     backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
 }
 
 .header__name { margin: 0 auto 0 0; font: var(--weight-strong) var(--text-md) / var(--leading-tight) var(--font-display); color: var(--ink); text-decoration: none; }
 .header__leave { margin: 0; }
-.sign-in { max-width: var(--field-width); }
-.sign-in > .notice { margin-bottom: var(--space-5); }
+
+/* The menu of the header: on a wide screen its pieces sit in the header as if the box were not there; on a phone, once the script runs, it folds behind the
+   button of the menu, so the header keeps one line and covers nothing, and opened it stops following the page, so it never hides what takes the focus. */
+.header__menu { display: contents; }
+.header .header__toggle { display: none; }
+.header__demo { flex-basis: 100%; margin: 0; padding: var(--space-1) var(--space-3); color: var(--pending); background: var(--pending-surface); border: var(--line) dashed currentColor; font-weight: var(--weight-strong); }
+@media (max-width: 40rem) {
+    .header { padding: var(--space-2) var(--space-4); gap: var(--space-2) var(--space-3); }
+    .header__name { flex: 1 1 0; min-width: 0; font-size: var(--text-sm); }
+    .scripted .header .header__toggle { display: inline-flex; }
+    .scripted .header:not([data-open]) .header__menu { display: none; }
+    .header[data-open] { position: relative; }
+    .header__menu { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); flex-basis: 100%; }
+    .header__menu > .nav__link, .header__notices { margin-left: calc(-1 * var(--space-3)); }
+    .nav__list { flex-direction: column; }
+}
+.sign-in, .form { max-width: var(--field-width); }
+.sign-in > .notice, .form > .notice { margin-bottom: var(--space-5); }
 
 /* Menu of the functions: a row of its own under the name, the domain and the exit, in the order the focus walks; the entry of the page is marked
    by its shape, a thick underline, and not by colour alone. */
 .nav { flex-basis: 100%; margin-left: calc(-1 * var(--space-3)); }
 .nav__list { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-2); margin: 0; padding: 0; list-style: none; }
 
-.nav__link {
+.nav__link,
+.header__notices {
     display: inline-flex;
     align-items: center;
     min-height: var(--control-height);
@@ -90,8 +111,8 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
     text-decoration: none;
 }
 
-.nav__link:hover { color: var(--accent-hover); text-decoration: underline; }
-.nav__link[aria-current="page"] { color: var(--accent); text-decoration: underline; text-decoration-thickness: var(--line-strong); }
+.nav__link:hover, .header__notices:hover { color: var(--accent-hover); text-decoration: underline; }
+.nav__link[aria-current] { color: var(--accent); text-decoration: underline; text-decoration-thickness: var(--line-strong); }
 
 /* Domain picker: shown only with a domain granted. */
 .domain { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin: 0; }
@@ -118,7 +139,9 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
     backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
 }
 
-.panel > :last-child { margin-bottom: 0; }
+/* The pieces of a panel stand at one interval, set here and never by a margin of a screen. */
+.panel > * { margin-block: 0; }
+.panel > * + * { margin-top: var(--space-4); }
 
 /* Button: the colour eases only into the hover, so a change of theme, or of anything else, takes effect at once and never half way. */
 .button {
@@ -154,14 +177,15 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
 }
 
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+.data-table + .actions { margin-top: var(--space-4); }
 
 /* Field with label and error */
-.field { display: grid; gap: var(--space-2); max-width: var(--field-width); margin-bottom: var(--space-5); }
+.field { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-2); max-width: var(--field-width); margin-bottom: var(--space-5); }
 .field__label { font-weight: var(--weight-strong); }
 .field__required { margin-left: var(--space-1); font-weight: var(--weight-text); color: var(--ink-muted); }
 .field__hint { margin: 0; color: var(--ink-muted); font-size: var(--text-sm); }
 
-.field__input {
+.field__input { max-width: 100%;
     min-height: var(--control-height);
     padding: var(--space-2) var(--space-3);
     border: var(--line) solid var(--edge);
@@ -173,10 +197,17 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
 }
 
 .field__input[aria-invalid="true"] { border: var(--line-error) double var(--error); }
+.field__input--text { font-family: var(--font-mono); overflow-wrap: anywhere; resize: vertical; }
 
 /* An error is told by text and by shape, never by colour alone. */
 .field__error { display: flex; gap: var(--space-2); margin: 0; color: var(--error); font-weight: var(--weight-strong); }
 .field__error::before { content: "\26A0"; }
+
+/* Group of choices: one legend for the group, each choice a whole row to click, the error bound to the group. */
+.choices { display: grid; gap: var(--space-2); max-width: var(--field-width); margin: 0 0 var(--space-5); padding: 0; border: 0; }
+.choices > legend { margin-bottom: var(--space-2); padding: 0; }
+.choices__option { display: flex; gap: var(--space-3); align-items: center; min-height: var(--control-height); cursor: pointer; }
+.choices__option > input { width: 1.25rem; height: 1.25rem; margin: 0; accent-color: var(--accent); }
 
 /* Status notice: the kind is said in words and drawn as a shape; the colour only repeats it. */
 .notice {
@@ -219,7 +250,6 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
 .paged-list > li { padding: var(--space-3) 0; border-bottom: var(--line) solid var(--edge-soft); }
 
 .pager { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4); margin-top: var(--space-4); color: var(--ink-muted); font-variant-numeric: tabular-nums; }
-.pager__edge { color: var(--ink-muted); }
 
 /* Empty state: what is empty, then why and what makes something appear. */
 .empty-state { max-width: var(--measure); padding: var(--space-5); border: var(--line-strong) dashed var(--edge); border-radius: var(--radius-md); }
@@ -268,15 +298,68 @@ h1 + .lead { margin-top: 0; }
 .facts__note { display: block; margin-top: var(--space-1); color: var(--ink-muted); font-size: var(--text-sm); }
 
 /* Data table: on a screen narrower than its columns the table scrolls inside its region, which the keyboard reaches, and never the page. */
-.data-table { max-width: 100%; overflow-x: auto; }
+.data-table { position: relative; max-width: 100%; overflow-x: auto; }
 .data-table > table { width: 100%; min-width: var(--table-min-width); border-collapse: collapse; }
 .data-table caption { padding-bottom: var(--space-3); color: var(--ink-muted); font-size: var(--text-sm); text-align: left; }
 .data-table th, .data-table td { padding: var(--space-3); border-bottom: var(--line) solid var(--edge-soft); text-align: left; vertical-align: top; }
 .data-table thead th { border-bottom: var(--line-strong) solid var(--edge); font-size: var(--text-sm); }
 .data-table__group { padding-top: var(--space-5); font-family: var(--font-display); font-size: var(--text-lg); }
+.data-table__plain { font-weight: var(--weight-text); }
+.data-table__mark { display: inline-block; margin-left: var(--space-2); }
 .data-table code { font-family: var(--font-mono); font-size: var(--text-sm); overflow-wrap: anywhere; }
+.data-table .button { white-space: nowrap; }
+
+/* A digest cut to its start for the eye; the whole value stays in the page, for a reader of screens and for whoever copies it. */
+.digest { display: inline-block; max-width: 16ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+
+/* A table that stacks: in a box narrower than --table-min-width (36rem) each row is a block and each cell carries the header of its column, so no column is out of sight. */
+.data-table--stacks { container-type: inline-size; }
+@container (max-width: 36rem) {
+    .data-table--stacks > table, .data-table--stacks caption, .data-table--stacks tbody, .data-table--stacks tr, .data-table--stacks th, .data-table--stacks td { display: block; min-width: 0; }
+    .data-table--stacks thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .data-table--stacks tbody > tr { padding: var(--space-2) 0; border-bottom: var(--line) solid var(--edge-soft); }
+    .data-table--stacks tbody > tr > * { padding: var(--space-1) 0; border-bottom: 0; }
+    .data-table--stacks tbody > tr > *::before { display: block; color: var(--ink-muted); font-size: var(--text-sm); font-weight: var(--weight-text); }
+    .data-table--stacks tbody > tr > :nth-child(1)::before { content: var(--data-table-header-1); }
+    .data-table--stacks tbody > tr > :nth-child(2)::before { content: var(--data-table-header-2); }
+    .data-table--stacks tbody > tr > :nth-child(3)::before { content: var(--data-table-header-3); }
+    .data-table--stacks tbody > tr > :nth-child(4)::before { content: var(--data-table-header-4); }
+    .data-table--stacks tbody > tr > :nth-child(5)::before { content: var(--data-table-header-5); }
+    .data-table--stacks tbody > tr > :nth-child(6)::before { content: var(--data-table-header-6); }
+    .data-table--stacks tbody > tr > .data-table__group::before { content: none; }
+}
 
 @media (forced-colors: active) {
     .button, .notice, .panel, .header, .destinations__link { border-color: CanvasText; }
     .button__key { border-color: currentColor; }
 }
+
+/* Filter of a list: the fields side by side where there is room, one under the other where there is not, the actions on a row of their own. */
+.filter { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0 var(--space-5); }
+.filter > .field { flex: 1 1 var(--term-width); }
+.filter > .actions { flex-basis: 100%; }
+.filter > .choices { flex-basis: 100%; margin-bottom: var(--space-3); }
+
+/* Options in a row, as a segmented group: each a box of its own, the one chosen marked by its border and not by colour alone. */
+.choices--inline { display: flex; flex-wrap: wrap; gap: var(--space-2); max-width: none; }
+.choices--inline .choices__option { gap: var(--space-2); padding: 0 var(--space-3); border: var(--line) solid var(--edge); border-radius: var(--radius-sm); }
+.choices--inline .choices__option:has(input:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 var(--line) var(--accent); }
+
+/* A filter that folds so the list comes first, and opens by itself when a filter is in use. */
+.filter-box > .filter-box__summary { display: flex; align-items: center; min-height: var(--control-height); font-weight: var(--weight-strong); cursor: pointer; }
+.filter-box[open] > .filter-box__summary { margin-bottom: var(--space-4); }
+
+/* The whole digest, shown on asking and selected at once, for whoever copies it. */
+.digest-box > summary { cursor: pointer; }
+.digest-box__full { display: block; margin-top: var(--space-2); overflow-wrap: anywhere; user-select: all; }
+
+/* Row of a list: the name first and strong, then what describes it, each in a column of its own width, so that on a wide screen what describes the name stays near it. */
+.row { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-5); }
+.row > strong, .row > strong + span { flex: 0 1 var(--term-width); min-width: 0; overflow-wrap: anywhere; }
+.form > .notice { margin-bottom: var(--space-5); }
+
+/* The sample of a review: the items in the order of the draw, each in its panel, and the text as it is, in its lines, never cut. */
+.sample { display: grid; gap: var(--space-4); margin: var(--space-5) 0; padding: 0; list-style: none; }
+.sample__version { color: var(--ink-muted); font-size: var(--text-sm); }
+.sample__text { margin: 0 0 var(--space-4); padding: var(--space-3) var(--space-4); border-left: var(--line-strong) solid var(--edge); white-space: pre-wrap; overflow-wrap: anywhere; }
+.row--stacked > strong { flex-basis: 100%; }

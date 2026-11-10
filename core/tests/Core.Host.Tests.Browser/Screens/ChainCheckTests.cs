@@ -50,7 +50,7 @@ public sealed class ChainCheckTests(BrowserFixture browser, IntactChainHostFixtu
         var before = await tab.Page.Context.APIRequest.GetAsync(new Uri(new Uri(tab.Page.Url), Chain).AbsoluteUri, new() { Headers = Html() });
         var rowsBefore = Rows(await before.TextAsync());
 
-        await tab.Page.GetByRole(AriaRole.Button, new() { Name = "Verificar agora" }).ClickAsync();
+        await tab.Page.GetByRole(AriaRole.Button, new() { Name = "Verificar a cadeia agora", Exact = true }).ClickAsync();
 
         await Expect(tab.Page).ToHaveURLAsync(new Regex(@"/custodia\?pedida$"));
         await Expect(tab.Page.Locator(".notice--success")).ToContainTextAsync("A verificação que você pediu terminou");
@@ -64,15 +64,18 @@ public sealed class ChainCheckTests(BrowserFixture browser, IntactChainHostFixtu
     public async Task Ca4ASecondRequestOfTheSameSessionWithinTheWindowIsRefusedWithTheSecondsToWaitAndRecordsNothing()
     {
         await using var tab = await OpenCheckAsync(intact.Host, intact.Host.Administrator);
-        await tab.Page.GetByRole(AriaRole.Button, new() { Name = "Verificar agora" }).ClickAsync();
+        await tab.Page.GetByRole(AriaRole.Button, new() { Name = "Verificar a cadeia agora", Exact = true }).ClickAsync();
         await Expect(tab.Page.Locator(".notice--success")).ToBeVisibleAsync();
         var rows = await tab.Page.Locator(FirstRow).CountAsync();
 
         _ = await tab.Page.GotoAsync(Check);
-        await tab.Page.GetByRole(AriaRole.Button, new() { Name = "Verificar agora" }).ClickAsync();
+        await tab.Page.GetByRole(AriaRole.Button, new() { Name = "Verificar a cadeia agora", Exact = true }).ClickAsync();
 
-        await Expect(tab.Page.Locator(".notice--error")).ToContainTextAsync("Você pediu uma verificação há pouco. Espere");
-        await Expect(tab.Page.Locator(".notice--error")).ToContainTextAsync("segundos e peça de novo.");
+        await Expect(tab.Page.Locator(".notice--pending")).ToContainTextAsync("Você pediu uma verificação há pouco. Tente de novo a partir de");
+        await Expect(tab.Page.Locator(".notice--pending time")).ToHaveTextAsync(new Regex(@"^\d{2}/\d{2}/\d{4}\sàs\s\d{2}:\d{2}\sUTC$"));
+        await Expect(tab.Page.Locator(".notice--pending")).ToContainTextAsync(new Regex(@"daqui a \d+ segundos\."));
+        await Expect(tab.Page.Locator(".notice--pending .notice__kind")).ToHaveTextAsync("Pendente:");
+        await Expect(tab.Page.Locator(".notice--error")).ToHaveCountAsync(0);
         await Expect(tab.Page.GetByRole(AriaRole.Heading, new() { Name = "Verificar a cadeia agora", Level = 1 })).ToBeVisibleAsync();
         _ = await tab.Page.GotoAsync(Chain);
         await Expect(tab.Page.Locator(FirstRow)).ToHaveCountAsync(rows);
@@ -83,7 +86,7 @@ public sealed class ChainCheckTests(BrowserFixture browser, IntactChainHostFixtu
     {
         await using var tab = await OpenCheckAsync(broken.Host, broken.Host.Administrator);
 
-        await tab.Page.GetByRole(AriaRole.Button, new() { Name = "Verificar agora" }).ClickAsync();
+        await tab.Page.GetByRole(AriaRole.Button, new() { Name = "Verificar a cadeia agora", Exact = true }).ClickAsync();
 
         await Expect(tab.Page).ToHaveURLAsync(new Regex(@"/custodia\?pedida$"));
         await Expect(FactOf(tab.Page, "Resultado")).ToContainTextAsync("Quebrada: um elo não confere");
@@ -109,7 +112,7 @@ public sealed class ChainCheckTests(BrowserFixture browser, IntactChainHostFixtu
         var posted = await tab.Page.Context.APIRequest.PostAsync(new Uri(new Uri(tab.Page.Url), Check).AbsoluteUri, new() { Headers = Html(), Form = tab.Page.Context.APIRequest.CreateFormData() });
 
         Assert.Equal((StatusNotFound, StatusNotFound, StatusNotFound), (refused?.Status, missing?.Status, posted.Status));
-        Assert.Equal(missingPage.Replace(Missing.TrimStart('/'), string.Empty, StringComparison.Ordinal), refusedPage.Replace(route.TrimStart('/'), string.Empty, StringComparison.Ordinal));
+        Assert.Equal(missingPage.Replace(Missing, string.Empty, StringComparison.Ordinal), refusedPage.Replace(route, string.Empty, StringComparison.Ordinal));
         Assert.DoesNotContain("Custódia", refusedPage, StringComparison.Ordinal);
         Assert.DoesNotContain("verificação", refusedPage, StringComparison.Ordinal);
     }
@@ -148,14 +151,14 @@ public sealed class ChainCheckTests(BrowserFixture browser, IntactChainHostFixtu
     {
         await using var tab = await SignedAtAsync(intact.Host, intact.Host.Administrator, Chain);
 
-        for (var stop = 0; stop < 5 && !await tab.Page.EvaluateAsync<bool>("() => document.activeElement.textContent.trim() === 'Pedir uma verificação agora'"); stop++)
+        for (var stop = 0; stop < HeaderStops.Count + 2 && !await tab.Page.EvaluateAsync<bool>("() => document.activeElement.textContent.trim() === 'Verificar a cadeia agora'"); stop++)
         {
             await tab.Page.Keyboard.PressAsync("Tab");
         }
 
         await tab.Page.Keyboard.PressAsync("Enter");
         await Expect(tab.Page.GetByRole(AriaRole.Heading, new() { Name = "Verificar a cadeia agora", Level = 1 })).ToBeVisibleAsync();
-        for (var stop = 0; stop < 6 && !await tab.Page.EvaluateAsync<bool>("() => document.activeElement.id === 'verificar-agora'"); stop++)
+        for (var stop = 0; stop < HeaderStops.Count + 3 && !await tab.Page.EvaluateAsync<bool>("() => document.activeElement.id === 'verificar-agora'"); stop++)
         {
             await tab.Page.Keyboard.PressAsync("Tab");
         }

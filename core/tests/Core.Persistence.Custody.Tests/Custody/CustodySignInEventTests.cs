@@ -9,10 +9,11 @@ public sealed class CustodySignInEventTests
 
     private const string OfTheirOwnMessage =
         "A correction, a verification, an emptying, a rotation, the creation of a domain, a seal, an entry, the loss of a key, a rehearsal of the recovery, "
-        + "a conference of the guarantees, a window of the owner, a restore, a rehearsal of it, a revocation of a label, a rewrap of a domain and the opening and the closing of a batch "
-        + "have an event of their own; "
+        + "a conference of the guarantees, a window of the owner, a restore, a rehearsal of it, a revocation of a label, a rewrap of a domain, the opening and the closing of a batch "
+        + "and the submission of a change of configuration, the decision on it and its being in force have an event of their own; "
         + "use Correction, Verification, Emptied, EmptyingRefused, EpochRotated, DomainCreated, DomainLabelRotated, DomainLabelRevoked, DomainRewrapped, SealRecorded, SignInAccepted, "
-        + "SignInRefused, KeyLossDeclared, RecoveryRehearsed, GuaranteesVerified, OwnerWindowOpened, OwnerWindowClosed, Restored, RestoreRehearsed, BatchOpened, BatchAccepted or BatchRejected.";
+        + "SignInRefused, KeyLossDeclared, RecoveryRehearsed, GuaranteesVerified, OwnerWindowOpened, OwnerWindowClosed, Restored, RestoreRehearsed, BatchOpened, BatchAccepted, "
+        + "BatchRejected, ConfigurationSubmitted, ConfigurationDecided or ConfigurationInForce.";
 
     [Fact]
     public void AcceptedEntryIsThePersonsAboutThatAttemptForAcceptedCredentials()

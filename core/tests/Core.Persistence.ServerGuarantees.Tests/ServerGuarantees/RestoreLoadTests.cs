@@ -35,13 +35,14 @@ public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<Resto
         foreach (var table in new[]
         {
             "public.domain", "public.derivation_label", "public.derivation_label_revocation", "public.person", "public.person_credential", "public.person_change", "public.sign_in_attempt",
+            "public.configuration_change",
         })
         {
             _ = await destination.LoadAsync(table, source.Copy[table]);
         }
 
         Assert.Equal(7, await destination.EventsAsync(source.Copy["public.custody_event"]));
-        foreach (var table in new[] { "content.ingestion_batch", "content.item_text", "content.reversal_map", "content.item_emptied" })
+        foreach (var table in new[] { "content.ingestion_batch", "content.item_text", "content.reversal_map", "content.item_emptied", "content.replication_occurrence", "content.replication_mark" })
         {
             _ = await destination.LoadAsync(table, source.Copy[table]);
         }
@@ -60,6 +61,7 @@ public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<Resto
             ("public.person_credential", "person_id"),
             ("public.person_change", "id"),
             ("public.sign_in_attempt", "id"),
+            ("public.configuration_change", "id"),
         })
         {
             Assert.Equal(source.Copy[table], Assert.Single(await destination.Database.FirstColumnAsOwnerAsync($"SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY {key}), '[]') FROM {table} t")));
@@ -74,6 +76,7 @@ public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<Resto
                 "SELECT last_value::text FROM content.item_text_id_seq"
                 + " UNION ALL SELECT last_value::text FROM public.person_id_seq"));
         Assert.Equal("1,0", (string?)await destination.InDomainAsync(1, "SELECT count(*) || ',' || (SELECT count(*) FROM content.item_emptied) FROM content.item_text"));
+        Assert.Equal("2,2", (string?)await destination.InDomainAsync(1, "SELECT (SELECT count(*) FROM content.replication_occurrence) || ',' || (SELECT count(*) FROM content.replication_mark)"));
         Assert.Equal(
             "1,1,0",
             (string?)await destination.InDomainAsync(
@@ -110,7 +113,7 @@ public sealed class RestoreLoadTests(RestoreSource source) : IClassFixture<Resto
         }
 
         _ = await destination.EventsAsync(source.Copy["public.custody_event"]);
-        foreach (var table in new[] { "content.ingestion_batch", "content.item_text", "content.reversal_map", "content.item_emptied" })
+        foreach (var table in new[] { "content.ingestion_batch", "content.item_text", "content.reversal_map", "content.item_emptied", "content.replication_occurrence", "content.replication_mark" })
         {
             _ = await destination.LoadAsync(table, source.Copy[table]);
         }

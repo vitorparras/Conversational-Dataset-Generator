@@ -9,7 +9,7 @@
 </head>
 <body>
     <a class="skip-link" href="#content">Ir para o conteúdo</a>
-    <ScreenHeader WithSession="WithSession" Menu="Menu" Granted="Granted" Current="@Current" />
+    <ScreenHeader WithSession="WithSession" Menu="Menu" Granted="Granted" Current="@Current" Unread="Unread" Demonstration="Demonstration" />
     <main id="content" class="page" tabindex="-1">
         <CascadingValue Value="this" IsFixed="true">
             <DynamicComponent Type="Screen" Parameters="ScreenParameters" />
@@ -46,4 +46,11 @@
     /// <summary>The route of the page, which marks its own entry in the menu.</summary>
     [Parameter]
     public string? Current { get; set; }
+
+    /// <summary>Whether the installation is a demonstration, which the header says on every page.</summary>
+    [Parameter]
+    public bool Demonstration { get; set; }
+
+    [Parameter]
+    public int Unread { get; set; }
 }

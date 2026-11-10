@@ -146,7 +146,7 @@ public sealed class PasswordConfigurationTests
                 [PasswordConfiguration.Section, InstallationConfiguration.Section, SafekeepingConfiguration.Section, LanguageServiceConfiguration.Section]),
             new StrictArgumentsSource([$"--{Key}=0", "--Installation:Kind=demonstracao"]));
 
-        var refusals = HostConfiguration.Refusals(loaded.Values, TimeSpan.FromSeconds(1));
+        var refusals = HostRefusals.Of(loaded.Values, TimeSpan.FromSeconds(1));
 
         Assert.Contains(refusals, problem => problem.Key == Key);
     }

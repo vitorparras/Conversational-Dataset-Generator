@@ -17,11 +17,20 @@ public sealed class DatabaseToolFilesTests
     }
 
     [Fact]
-    public void DockerfilePinsThePgauditPackageVersion()
+    public void DockerfileInstallsThePgauditPackageOfTheServerMajorWithoutAVersionTheRepositoryCanDrop()
     {
         var dockerfile = DatabaseTool.ReadText("Dockerfile");
 
-        Assert.Matches(@"""postgresql-17-pgaudit=\d+\.\d+-\S+""", dockerfile);
+        Assert.Contains("install -y --no-install-recommends postgresql-17-pgaudit;", dockerfile, StringComparison.Ordinal);
+        Assert.DoesNotContain("postgresql-17-pgaudit=", dockerfile, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DockerfilePrintsTheVersionOfPgauditThatTheBuildInstalled()
+    {
+        var dockerfile = DatabaseTool.ReadText("Dockerfile");
+
+        Assert.Matches(@"dpkg-query -W -f='[^']*\$\{Version\}[^']*' postgresql-17-pgaudit", dockerfile);
     }
 
     [Fact]

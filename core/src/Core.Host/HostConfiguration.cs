@@ -1,3 +1,4 @@
+using Core.Host.Settings;
 using Core.Host.Supervision;
 using Core.Persistence.Connection;
 using Core.Platform.Configuration;
@@ -52,43 +53,33 @@ internal static class HostConfiguration
     /// the migration mode, and the comparison mode that loads as one, require neither the kind of installation nor the custody files.
     /// </summary>
     internal static ConfigurationLoadResult Load(string[] args, bool migrating, bool comparing = false) =>
-        ClosedConfiguration.Load(
-            new ConfigurationSchema(
-                [
-                    Section,
-                    migrating ? InstallationConfiguration.SectionWhenMigrating : InstallationConfiguration.Section,
-                    migrating ? MasterKeyConfiguration.SectionWhenMigrating : MasterKeyConfiguration.Section,
-                    migrating ? TlsConfiguration.SectionWhenMigrating : TlsConfiguration.Section,
-                    SafekeepingConfiguration.Section,
-                    migrating ? PasswordConfiguration.SectionWhenMigrating : PasswordConfiguration.Section,
-                    migrating ? SessionConfiguration.SectionWhenMigrating : SessionConfiguration.Section,
-                    migrating ? VerificationConfiguration.SectionWhenMigrating : VerificationConfiguration.Section,
-                    migrating ? SealConfiguration.SectionWhenMigrating : SealConfiguration.Section,
-                    AuditSection(migrating, comparing),
-                    LanguageServiceConfiguration.Section,
-                    RecognizerConfiguration.Section,
-                    DatabaseConfiguration.Section
-                ]),
-            new JsonFileSource(SettingsPath),
-            EnvironmentSource.FromProcess(),
-            new StrictArgumentsSource(args));
+        ClosedConfiguration.Load(Schema(migrating, comparing), new JsonFileSource(SettingsPath), EnvironmentSource.FromProcess(), new StrictArgumentsSource(args));
+
+    /// <summary>The keys the host declares in the mode asked: the one schema the start and the trial of a change judge by.</summary>
+    internal static ConfigurationSchema Schema(bool migrating, bool comparing) =>
+        new(
+            [
+                Section,
+                migrating ? InstallationConfiguration.SectionWhenMigrating : InstallationConfiguration.Section,
+                migrating ? MasterKeyConfiguration.SectionWhenMigrating : MasterKeyConfiguration.Section,
+                migrating ? TlsConfiguration.SectionWhenMigrating : TlsConfiguration.Section,
+                SafekeepingConfiguration.Section,
+                migrating ? PasswordConfiguration.SectionWhenMigrating : PasswordConfiguration.Section,
+                migrating ? SessionConfiguration.SectionWhenMigrating : SessionConfiguration.Section,
+                migrating ? AdmissionConfiguration.SectionWhenMigrating : AdmissionConfiguration.Section,
+                migrating ? VerificationConfiguration.SectionWhenMigrating : VerificationConfiguration.Section,
+                migrating ? SealConfiguration.SectionWhenMigrating : SealConfiguration.Section,
+                MailConfiguration.Section,
+                AuditSection(migrating, comparing),
+                LanguageServiceConfiguration.Section,
+                RecognizerConfiguration.Section,
+                ChangeDeadlineConfiguration.Section,
+                DatabaseConfiguration.Section
+            ]);
 
     /// <summary>Runs before the configuration is read: an executable built for another target is refused whatever it is configured with.</summary>
     internal static RuntimeTargetCheck TargetCheck() =>
         new(BuildInfo.Of(typeof(HostConfiguration).Assembly).RuntimeIdentifier, RuntimeTarget.Current);
-
-    /// <summary>What the values of the language service, of the safekeeping declaration, of the work factor, of the addresses and of the audit folder refuse, together.</summary>
-    internal static IReadOnlyList<ConfigurationProblem> Refusals(IReadOnlyDictionary<string, string> values, TimeSpan? analyzeTimeout) =>
-    [
-        .. LanguageServiceConfiguration.Refusals(values, analyzeTimeout),
-        .. SafekeepingConfiguration.Refusals(values, InstallationConfiguration.Of(values).Kind),
-        .. PasswordConfiguration.Refusals(values),
-        .. SessionConfiguration.Refusals(values),
-        .. VerificationConfiguration.Refusals(values),
-        .. SealConfiguration.Refusals(values),
-        .. TlsConfiguration.Refusals(values),
-        .. AuditConfiguration.Refusals(values),
-    ];
 
     private static ConfigurationSection AuditSection(bool migrating, bool comparing)
     {

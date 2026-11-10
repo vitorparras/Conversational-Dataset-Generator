@@ -15,6 +15,9 @@ from steps.common import OUTPUT_DIRECTORY, CommandOutcome, Context, StepResult
 from . import support
 
 START_SCRIPT = support.VERIFY_CODE / "offline_start" / "start.sh"
+RUNNER_DOCKERFILE = support.VERIFY_CODE / "offline_start" / "start.Dockerfile"
+INSTALLED = "strace=6.8-0ubuntu2.1\nopenssl=3.0.13-0ubuntu3.21\n"
+SHOWN = "pacotes da imagem de partida: strace=6.8-0ubuntu2.1 openssl=3.0.13-0ubuntu3.21"
 WORKFLOW = support.VERIFY_CODE.parents[1] / ".github" / "workflows" / "verify-code.yml"
 LISTENING = (
     "2026-01-01T00:00:00.000Z INFO  Microsoft.Hosting.Lifetime[14] "
@@ -81,6 +84,8 @@ class DockerRunner:
             return FAILURE
         if command[:2] == ["git", "rev-parse"]:
             return CommandOutcome(True, COMMIT + "\n")
+        if "dpkg-query" in command:
+            return CommandOutcome(True, INSTALLED)
         if "publish" in command:
             output = Path(command[command.index("--output") + 1])
             (output / package.executable(containers.SYSTEM)).write_bytes(b"host")
@@ -252,6 +257,34 @@ class OfflineStartTests(unittest.TestCase):
 
         self.assertEqual(len({*vars(first).values(), *vars(second).values()}), 6)
 
+    def test_the_runner_image_installs_its_packages_without_a_version_the_archive_can_drop(
+        self,
+    ) -> None:
+        text = RUNNER_DOCKERFILE.read_text(encoding="utf-8")
+
+        installs = [line for line in text.splitlines() if "apt-get" in line and " install " in line]
+
+        self.assertEqual(len(installs), 1)
+        self.assertNotIn("=", installs[0].replace("-o Acquire::Retries=3", ""))
+
+    def test_the_versions_the_runner_image_got_are_shown_when_the_step_passes(self) -> None:
+        result = self.run_step(DockerRunner(evidence()))
+
+        self.assertIn(SHOWN, result.details)
+
+    def test_the_versions_are_shown_when_the_step_fails_too(self) -> None:
+        details = self.fails_with(**{"serve.log": ""})
+
+        self.assertIn(SHOWN, details)
+
+    def test_versions_that_cannot_be_read_are_said_so_and_do_not_fail_the_step(self) -> None:
+        runner = DockerRunner(evidence(), breaks=lambda command: "dpkg-query" in command)
+
+        result = self.run_step(runner)
+
+        self.assertTrue(result.ok, result.details)
+        self.assertIn("pacotes da imagem de partida: versões não lidas da imagem", result.details)
+
     def test_every_container_and_the_volume_are_removed_when_the_step_ends(self) -> None:
         runner = DockerRunner(evidence())
 
@@ -341,7 +374,7 @@ class OfflineStartTests(unittest.TestCase):
         result = self.run_step(DockerRunner({}))
 
         self.assertFalse(result.ok)
-        self.assertEqual(len(result.details), 9, result.details)
+        self.assertEqual(len(result.details), 10, result.details)
 
     def test_every_problem_is_reported_not_only_the_first(self) -> None:
         details = self.fails_with(**{"serve.strace": traced(EXTERNAL, QUERY), "serve.log": ""})
@@ -423,7 +456,11 @@ class OfflineStartWorkflowTests(unittest.TestCase):
 
     def test_the_job_also_runs_in_the_scheduled_execution(self) -> None:
         self.assertNotIn("schedule", self.job)
-        self.assertIn("if: ${{ !cancelled() && needs.changes.outputs.heavy != 'false' }}", self.job)
+        self.assertIn(
+            "if: ${{ !cancelled() && needs.changes.outputs.heavy != 'false' "
+            "&& github.event.pull_request.draft != true }}",
+            self.job,
+        )
 
     def test_the_job_has_the_sdk_the_publish_needs(self) -> None:
         self.assertIn("actions/setup-dotnet@", self.job)

@@ -14,6 +14,7 @@ namespace Core.Persistence.Ingestion;
 /// and closes once, accepted or rejected. The opening and the closing are each written with the event of the chain in one serializable transaction, and the database
 /// refuses either without its event; a rejection removes the content of the batch in that same transaction, so that no partial material stays reachable.
 /// What the batch holds is not readable as stock until it is accepted: the database sees to that, not this class.
+/// A write that the chain refuses for a collision with another writer is made again, up to three attempts in all (see <see cref="BatchRetry" />); the result of the last one is the answer.
 /// </summary>
 public sealed class IngestionBatches
 {
@@ -114,7 +115,10 @@ public sealed class IngestionBatches
 
     private static NpgsqlParameter Id(string name, long value) => new(name, NpgsqlDbType.Bigint) { Value = value };
 
-    private async Task<BatchResult> OpeningAsync(BatchOpening opening, CancellationToken cancellationToken)
+    private Task<BatchResult> OpeningAsync(BatchOpening opening, CancellationToken cancellationToken) =>
+        BatchRetry.RunAsync(() => OpenOnceAsync(opening, cancellationToken), cancellationToken);
+
+    private async Task<BatchResult> OpenOnceAsync(BatchOpening opening, CancellationToken cancellationToken)
     {
         var run = new StrongBox<(long Batch, BatchOutcome? Failure)>();
         var recorded = await CustodyTransaction.RunAsync(dataSource, scope => OpenInAsync(scope, opening, run, cancellationToken), cancellationToken).ConfigureAwait(false);
@@ -158,7 +162,10 @@ public sealed class IngestionBatches
         return appended;
     }
 
-    private async Task<BatchResult> ClosingAsync(Closing closing, CancellationToken cancellationToken)
+    private Task<BatchResult> ClosingAsync(Closing closing, CancellationToken cancellationToken) =>
+        BatchRetry.RunAsync(() => CloseOnceAsync(closing, cancellationToken), cancellationToken);
+
+    private async Task<BatchResult> CloseOnceAsync(Closing closing, CancellationToken cancellationToken)
     {
         var early = new StrongBox<BatchOutcome?>(null);
         var recorded = await CustodyTransaction.RunAsync(dataSource, scope => CloseInAsync(scope, closing, early, cancellationToken), cancellationToken).ConfigureAwait(false);

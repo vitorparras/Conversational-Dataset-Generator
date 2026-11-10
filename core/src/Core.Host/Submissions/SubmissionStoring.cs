@@ -17,6 +17,9 @@ internal static class SubmissionStoring
     /// <summary>The motive of a batch that was opened and could not keep its items; the items written are removed with the rejection.</summary>
     internal const string WriteFailed = "write_failed";
 
+    /// <summary>The motive of a batch that was opened and whose closing met another submission at the same link of the chain, after the attempts the batches make; nothing of it is kept.</summary>
+    internal const string Collision = "concurrent_submission";
+
     /// <summary>The motive of the batch registered as rejected when the key that seals the content could not be read.</summary>
     internal const string KeyUnavailable = "content_key_unavailable";
 
@@ -63,22 +66,23 @@ internal static class SubmissionStoring
         }
     }
 
-    /// <summary>Writes the items of a file that was not turned back and accepts the batch; when that fails, rejects it with no item and says so.</summary>
+    /// <summary>Writes the items of a file that was not turned back and accepts the batch; when that fails, rejects it with no item and says why: a write that failed, or a collision of the closing.</summary>
     /// <param name="batches">Accepts and rejects the batch.</param>
     /// <param name="writer">Writes the items.</param>
     /// <param name="kept">The domain and the batch, open, and what the reader gave.</param>
     /// <param name="cancellationToken">Cancels the writing.</param>
-    internal static async Task<bool> KeepAsync(IngestionBatches batches, ContentWriter writer, Kept kept, CancellationToken cancellationToken)
+    internal static async Task<Keeping> KeepAsync(IngestionBatches batches, ContentWriter writer, Kept kept, CancellationToken cancellationToken)
     {
         var closing = new BatchClosing(kept.DomainId, kept.BatchId, CustodyAuthor.System);
-        if (await StoreAsync(writer, kept, cancellationToken).ConfigureAwait(false)
-            && (await batches.AcceptAsync(closing, cancellationToken).ConfigureAwait(false)).Outcome == BatchOutcome.Accepted)
+        var accepted = await StoreAsync(writer, kept, cancellationToken).ConfigureAwait(false) ? await batches.AcceptAsync(closing, cancellationToken).ConfigureAwait(false) : null;
+        if (accepted?.Outcome == BatchOutcome.Accepted)
         {
-            return true;
+            return Keeping.Kept;
         }
 
-        _ = await batches.RejectAsync(closing, WriteFailed, cancellationToken).ConfigureAwait(false);
-        return false;
+        var collided = accepted?.Collided == true;
+        _ = await batches.RejectAsync(closing, collided ? Collision : WriteFailed, cancellationToken).ConfigureAwait(false);
+        return collided ? Keeping.Collided : Keeping.WriteFailed;
     }
 
     /// <summary>The reason of a service with no key to seal with: whatever the file is, nothing of it is kept; none when there is a key.</summary>
@@ -87,6 +91,19 @@ internal static class SubmissionStoring
     {
         var none = new List<SubmissionFinding>();
         return sealing is null ? new SubmissionReason(KeyUnavailable, none) : null;
+    }
+
+    /// <summary>How the keeping of a file ended.</summary>
+    internal enum Keeping
+    {
+        /// <summary>The items were written and the batch was accepted.</summary>
+        Kept,
+
+        /// <summary>Some item could not be written, or the batch could not be accepted for a reason other than a collision; the batch was rejected as <see cref="WriteFailed" />.</summary>
+        WriteFailed,
+
+        /// <summary>The acceptance met another submission at the same link of the chain and gave up after the attempts; the batch was rejected as <see cref="Collision" />.</summary>
+        Collided,
     }
 
     /// <summary>The batch an item is written to, and what is written there.</summary>

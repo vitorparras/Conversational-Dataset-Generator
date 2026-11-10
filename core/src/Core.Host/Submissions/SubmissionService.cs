@@ -137,6 +137,11 @@ internal sealed class SubmissionService
         }
 
         var opened = await batches.OpenAsync(opening with { RejectedFor = reason?.Code }, cancellationToken).ConfigureAwait(false);
+        if (opened.Collided)
+        {
+            return new SubmissionOutcome { Kind = SubmissionKind.Collided };
+        }
+
         if (opened.Outcome != (reason is null ? BatchOutcome.Opened : BatchOutcome.Rejected))
         {
             return new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = opened.Outcome };
@@ -151,9 +156,12 @@ internal sealed class SubmissionService
     {
         var place = new SubmissionStoring.Kept(request.DomainId, opened.Batch, opened.Received.Material!, request.DeclaredForm);
         var kept = await SubmissionStoring.KeepAsync(batches, intake.Writer!, place, cancellationToken).ConfigureAwait(false);
-        return kept
-            ? Answer(opened.Received, opened.Batch, (null, opened.Warning), opened.Origin)
-            : new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = SubmissionStoring.WriteFailed, Batch = opened.Batch };
+        return kept switch
+        {
+            SubmissionStoring.Keeping.Kept => Answer(opened.Received, opened.Batch, (null, opened.Warning), opened.Origin),
+            SubmissionStoring.Keeping.Collided => new SubmissionOutcome { Kind = SubmissionKind.Collided, Batch = opened.Batch },
+            _ => new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = SubmissionStoring.WriteFailed, Batch = opened.Batch },
+        };
     }
 
     /// <summary>What there is to say of a submission that was registered as rejected: the key that was missing is a failure of the service, not a defect of the file.</summary>

@@ -61,7 +61,7 @@ internal sealed record BatchShown(
 internal sealed record BatchesShown(int Page, int PageSize, IReadOnlyList<BatchShown> Batches);
 
 /// <summary>The answer when the path could not keep the material: nothing of it was kept, the batch is registered as rejected, and the code says why, never a word of the material.</summary>
-/// <param name="Code">The code: <c>content_key_unavailable</c> or <c>write_failed</c>.</param>
+/// <param name="Code">The code: <c>content_key_unavailable</c> or <c>write_failed</c>; <c>concurrent_submission</c> when another submission reached the same link first, again and again, and the same file may be sent again.</param>
 /// <param name="Reason">What was wrong with the key when it is the key: <c>absent</c>, <c>unreadable</c> or <c>wrong_size</c>; null otherwise.</param>
-/// <param name="Batch">The batch registered as rejected, with no item; null when none could be registered.</param>
+/// <param name="Batch">The batch registered as rejected, with no item; null when none could be registered. Null also when the collision was in the opening.</param>
 internal sealed record SubmissionUnavailable(string Code, string? Reason, long? Batch);

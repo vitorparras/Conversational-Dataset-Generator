@@ -57,5 +57,6 @@ e por quem ela roda.
 | [043](043-roteiro-de-usabilidade-dos-dominios-e-da-custodia.md) | Roteiro de usabilidade dos domínios e da custódia |
 | [044](044-roteiro-de-usabilidade-do-esvaziamento.md) | Roteiro de usabilidade do esvaziamento do item por identificador |
 | [045](045-roteiro-de-usabilidade-dos-avisos.md) | Roteiro de usabilidade dos avisos |
+| [046](046-roteiro-de-usabilidade-dos-lotes.md) | Roteiro de usabilidade da lista de lotes |
 
 Ver [regras de escrita](../regras-de-escrita.md).

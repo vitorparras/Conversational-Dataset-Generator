@@ -20,8 +20,13 @@ public sealed class CredentialPrivilegesTests : IClassFixture<PeopleDatabase>
     }
 
     [DatabaseFact]
-    public async Task Ca7TheCredentialOfTheApplicationWritesAndIsFound() =>
-        Assert.True(await CredentialPrivileges.CanWriteAsync(await database.ApplicationAsync(), TestContext.Current.CancellationToken));
+    public async Task Ca7TheCredentialOfTheOwnerWritesAndIsFound()
+    {
+        var scratch = await database.ScratchAsync();
+        await using var source = NpgsqlDataSource.Create(scratch.OwnerConnectionString);
+
+        Assert.True(await CredentialPrivileges.CanWriteAsync(source, TestContext.Current.CancellationToken));
+    }
 
     [DatabaseFact]
     public async Task Ca7ARoleThatOnlyReadsIsNotFoundWritingStillReadsTheApprovedChangesAndIsRefusedAWrite()

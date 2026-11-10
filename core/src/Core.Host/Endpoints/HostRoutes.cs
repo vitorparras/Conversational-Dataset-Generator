@@ -32,7 +32,6 @@ internal static class HostRoutes
         AccountEndpoint.Map(app);
         SubmissionsEndpoint.Map(app);
         AccountScreensEndpoint.Map(app);
-        AccountEmailEndpoint.Map(app);
         ChainVerificationEndpoint.Map(app);
         SealVerificationEndpoint.Map(app);
         SealEndpoint.Map(app);

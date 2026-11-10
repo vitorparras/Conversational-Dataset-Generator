@@ -212,7 +212,6 @@ internal static class CompositionRoot
         HostRoutes.Map(app, recognizer);
         return app;
     }
-
     /// <summary>The store of passwords, built here because it is a service and only the root builds services.</summary>
     internal static PersonCredentials CredentialsOf(NpgsqlDataSource source, PasswordDerivation derivation) => new(source, derivation);
 

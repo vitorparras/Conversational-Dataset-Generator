@@ -437,13 +437,23 @@ public sealed partial class ContentDomainTests
     private static NpgsqlCommand Unbound(string statement, NpgsqlConnection connection)
     {
         var command = new NpgsqlCommand(statement, connection);
-        foreach (var parameter in Placeholder().Matches(statement).Select(match => match.Groups[1].Value).Distinct(StringComparer.Ordinal))
+        foreach (var match in Placeholder().Matches(statement).DistinctBy(found => found.Groups[1].Value, StringComparer.Ordinal))
         {
-            _ = command.Parameters.AddWithValue(parameter, DBNull.Value);
+            _ = command.Parameters.AddWithValue(match.Groups[1].Value, ValueOf(match.Groups[2].Value));
         }
 
         return command;
     }
+
+    // A parameter an unnest statement reads as an array of the type it is cast to gets one element: with none, the statement would write no row and no policy would ever be asked.
+    private static object ValueOf(string arrayElement) => arrayElement switch
+    {
+        "bigint" => new long[] { 0 },
+        "integer" => new[] { 0 },
+        "text" => new[] { "x" },
+        "timestamptz" => new[] { DateTimeOffset.UtcNow },
+        _ => DBNull.Value,
+    };
 
     private static NpgsqlDataSource SingleConnectionSource(string connectionString) =>
         NpgsqlDataSource.Create(new NpgsqlConnectionStringBuilder(connectionString) { Pooling = true, MaxPoolSize = 1, Timeout = 3 }.ConnectionString);
@@ -502,6 +512,6 @@ public sealed partial class ContentDomainTests
     private static Task<CheckResult> CheckAsync(ScratchDatabase database) =>
         AppStartup.CheckAsync(database, dataSource => new RlsForceCheck(dataSource));
 
-    [GeneratedRegex(@"@(\w+)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex(@"@(\w+)(?:::(\w+)\[\])?", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex Placeholder();
 }

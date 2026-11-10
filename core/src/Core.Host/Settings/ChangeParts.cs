@@ -10,14 +10,14 @@ internal sealed class ChangeParts
     private ChangeParts(NpgsqlDataSource source)
     {
         Changes = new ConfigurationChanges(source);
-        People = new PersonRegistry(source);
+        Registry = new PersonRegistry(source);
     }
 
     /// <summary>The ledger of the changes.</summary>
     internal ConfigurationChanges Changes { get; }
 
-    /// <summary>The people who submit and decide.</summary>
-    internal PersonRegistry People { get; }
+    /// <summary>The registry of who submits and decides.</summary>
+    internal PersonRegistry Registry { get; }
 
     /// <summary>The parts over the startup container's data source; none when no database is declared.</summary>
     internal static ChangeParts? Of(IServiceProvider provider) =>

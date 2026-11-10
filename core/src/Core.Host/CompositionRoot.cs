@@ -181,8 +181,8 @@ internal static class CompositionRoot
             provider.GetRequiredService<AuditComparisonState>(), provider.GetRequiredService<TimeProvider>()));
         _ = builder.Services.AddSingleton(provider => new SessionStore(SessionConfiguration.Lifetimes(loaded.Values), provider.GetRequiredService<TimeProvider>()));
         _ = builder.Services.AddSingleton(InstallationConfiguration.Of(loaded.Values)).AddSingleton(provider => InstallationConfiguration.Shown(StartupVersions.Of(checks), provider))
-            .AddSingleton(provider => Settings.ChangeParts.Of(provider) is { } p ? new Settings.ConfigurationChangeDesk(loaded, p.Changes, p.People) : null!)
-            .AddSingleton(provider => Settings.ChangeParts.Of(provider) is { } p ? new Settings.ChangeDecisionDesk(loaded, p.Changes, p.People, provider.GetRequiredService<TimeProvider>()) : null!);
+            .AddSingleton(provider => Settings.ChangeParts.Of(provider) is { } p ? new Settings.ConfigurationChangeDesk(loaded, p.Changes, p.Registry) : null!)
+            .AddSingleton(provider => Settings.ChangeParts.Of(provider) is { } p ? new Settings.ChangeDecisionDesk(loaded, p.Changes, p.Registry, provider.GetRequiredService<TimeProvider>()) : null!);
         _ = SafekeepingConfiguration.Declaration(loaded.Values) is { } declaration ? builder.Services.AddSingleton(declaration) : builder.Services;
         return builder;
     }

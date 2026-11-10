@@ -113,4 +113,10 @@ public enum ExitCode
 
     /// <summary>The load of a copy in a new database did not restore it: the copy, the database or a check of the result refused.</summary>
     RestoreRefused = 36,
+
+    /// <summary>The applier of the configuration was refused and nothing was written: its file, its commands or its credential of the database did not hold.</summary>
+    ApplierRefused = 42,
+
+    /// <summary>The applier could not talk to the database, or applied and the restart of the core did not happen.</summary>
+    ApplierFailed = 43,
 }

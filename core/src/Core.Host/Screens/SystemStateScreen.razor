@@ -1,18 +1,29 @@
 @using Core.Host.Endpoints
+@using Core.Platform
 @using Core.Host.Supervision
 @using Core.Platform.Startup
 @using Core.Platform.Versions
 
 <h1>@Title</h1>
-<p class="lead">As conferências são as da subida, em <Moment At="Status.CheckedAt" />; o serviço de linguagem e a comparação do registro mostram o estado de agora.</p>
+<p class="lead">As conferências são as feitas quando o sistema iniciou, em <Moment At="Status.CheckedAt" />; o serviço de linguagem e a comparação do registro mostram o estado de agora.</p>
 @if (Status.SealWarning is { } warning)
 {
     <Notice Kind="Notice.Tone.Pending">@warning</Notice>
+    if (SealLink)
+    {
+        <p><Button Id="selo-estado" Href="@ScreenPaths.Seal" Kind="Button.Look.Secondary">Selo: emitir e confirmar</Button></p>
+    }
 }
 <Panel Id="agora" Title="Situação agora">
     <FactList>
         <Fact Term="Vivo">@Mark(StateMark.Tone.Good, "Sim: o sistema responde")</Fact>
-        <Fact Term="Apto">@Readiness</Fact>
+        <Fact Term="Apto">
+            @Readiness
+            @if (Failed > 0)
+            {
+                <a class="facts__note" href="#conferencia-que-falhou">Ver a conferência que falhou</a>
+            }
+        </Fact>
         <Fact Term="Serviço de linguagem">@Service</Fact>
         <Fact Term="Registro do servidor contra a cadeia">
             @Comparison
@@ -25,19 +36,19 @@
                 <span class="facts__note">Arquivos que a queda do servidor cortou: @string.Join(", ", Status.AuditComparison.CutOffFiles).</span>
             }
         </Fact>
-        <Fact Term="Instalação">@Status.Installation.Name</Fact>
+        <Fact Term="Instalação">@ScreenHeader.Name@(Status.Installation.Kind == InstallationKind.Demonstration ? " (demonstração)" : null)</Fact>
     </FactList>
 </Panel>
-<Panel Id="conferencias" Title="Conferências da subida">
+<Panel Id="conferencias" Title="Conferências ao iniciar">
     <p>@(Status.Checks.Count - Failed) de @Status.Checks.Count passaram.</p>
     <DataTable Id="conferencias-tabela" Caption="Uma conferência por linha." Headers="Columns">
         <tbody role="rowgroup">
             @foreach (var check in Status.Checks)
             {
-                <tr role="row">
+                <tr role="row" id="@(IsFirstFailed(check) ? FirstFailedId : null)" tabindex="@(IsFirstFailed(check) ? "-1" : null)" aria-current="@(IsFirstFailed(check) ? "true" : null)">
                     <th scope="row" role="rowheader">@check.Name</th>
                     <td role="cell">@(check.Status == CheckStatus.Passed ? Mark(StateMark.Tone.Good, "Passou") : Mark(StateMark.Tone.Bad, "Falhou"))</td>
-                    <td role="cell">@check.Message@(check.Observed is { } observed ? $". Encontrado: {observed}" : "")</td>
+                    <td role="cell">@Sentence(check.Message)@(check.Observed is { } observed ? $". Encontrado: {observed}" : "")</td>
                     <td role="cell"><code>@check.ExpectedSource</code></td>
                 </tr>
             }
@@ -68,7 +79,17 @@
     [Parameter, EditorRequired]
     public VersionReport Versions { get; set; } = default!;
 
+    private static string Sentence(string text) => text.Length == 0 ? text : char.ToUpperInvariant(text[0]) + text[1..];
+
+    /// <summary>Whether the page leads to the screen of the seal: there is a warning and whoever entered operates the seal.</summary>
+    [Parameter]
+    public bool SealLink { get; set; }
+
     private StatusResponse Status => (StatusResponse)State;
+
+    private const string FirstFailedId = "conferencia-que-falhou";
+
+    private bool IsFirstFailed(CheckResult check) => ReferenceEquals(check, Status.Checks.FirstOrDefault(other => other.Status == CheckStatus.Failed));
 
     private int Failed => Status.Checks.Count(check => check.Status == CheckStatus.Failed);
 
@@ -76,8 +97,8 @@
     {
         _ when Status.Ready => Mark(StateMark.Tone.Good, "Sim: pronto para trabalhar"),
         0 => Mark(StateMark.Tone.Bad, "Não: o serviço de linguagem não está disponível"),
-        1 => Mark(StateMark.Tone.Bad, "Não: uma conferência da subida falhou"),
-        var failed => Mark(StateMark.Tone.Bad, $"Não: {failed} conferências da subida falharam"),
+        1 => Mark(StateMark.Tone.Bad, "Não: uma conferência feita ao iniciar falhou"),
+        var failed => Mark(StateMark.Tone.Bad, $"Não: {failed} conferências feitas ao iniciar falharam"),
     };
 
     private RenderFragment Service => Status.LanguageService switch

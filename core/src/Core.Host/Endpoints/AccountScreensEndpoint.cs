@@ -55,6 +55,11 @@ internal static class AccountScreensEndpoint
         }
 
         var form = context.Request.HasFormContentType ? await context.Request.ReadFormAsync(context.RequestAborted) : null;
+        if (Typed(form, PasswordScreen.RepeatField) != Typed(form, PasswordScreen.ReplacementField))
+        {
+            return PasswordPage(context, PasswordScreen.Problem.Mismatch);
+        }
+
         var who = new PasswordChangeRequest(account, identifier, context.Connection.RemoteIpAddress);
         return Answer(context, await change.ChangeAsync(who, Typed(form, PasswordScreen.CurrentField), Typed(form, PasswordScreen.ReplacementField), context.RequestAborted));
     }
@@ -111,12 +116,15 @@ internal static class AccountScreensEndpoint
         return sessions.Resolve(identifier) is { } account ? Back(context, AccountScreen.SessionsDone, sessions.CloseOthersOf(account, identifier)) : ScreenResult.NotFound(context);
     }
 
-    /// <summary>The sessions of the one who entered, the current one marked; none when the session is gone meanwhile.</summary>
+    /// <summary>The sessions of the one who entered, the current one marked and the most recently used first; none when the session is gone meanwhile.</summary>
     private static IReadOnlyList<SessionListing>? Of(HttpContext context, SessionStore sessions)
     {
         var identifier = SessionCookie.Read(context.Request);
-        return sessions.Resolve(identifier) is { } account ? sessions.ListOf(account, identifier) : null;
+        return sessions.Resolve(identifier) is { } account ? MostRecentFirst(sessions.ListOf(account, identifier)) : null;
     }
+
+    /// <summary>The sessions as the page lists them: the one used most recently first, whatever the order the store keeps.</summary>
+    internal static IReadOnlyList<SessionListing> MostRecentFirst(IEnumerable<SessionListing> listed) => [.. listed.OrderByDescending(session => session.LastActivity)];
 
     private static IResult Back(HttpContext context, string done, int ended)
     {

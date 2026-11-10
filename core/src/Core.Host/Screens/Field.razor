@@ -10,7 +10,11 @@
     {
         <p id="@HintId" class="field__hint">@Hint</p>
     }
-    @if (Options is null)
+    @if (Rows > 0)
+    {
+        <textarea id="@Id" class="field__input field__input--text" name="@(Name ?? Id)" rows="@Rows" readonly="@ReadOnly" aria-describedby="@DescribedBy">@Value</textarea>
+    }
+    else if (Options is null)
     {
         <input id="@Id" class="field__input" name="@(Name ?? Id)" type="@Type" value="@Value" autocomplete="@Autocomplete" autofocus="@Autofocus" inputmode="@InputMode"
                aria-required="@(Required ? "true" : null)" aria-invalid="@(Error is null ? null : "true")" aria-describedby="@DescribedBy" />
@@ -55,6 +59,14 @@
     /// <summary>What the field holds, given back as typed when the server refuses the form (decision 0051).</summary>
     [Parameter]
     public string? Value { get; set; }
+
+    /// <summary>How many lines a field that shows a text to copy takes; above zero it is a box of text that is read and not typed in, never sent back to be trusted.</summary>
+    [Parameter]
+    public int Rows { get; set; }
+
+    /// <summary>Whether the text of the box can be selected and copied but not changed.</summary>
+    [Parameter]
+    public bool ReadOnly { get; set; }
 
     /// <summary>What helps fill the field, said before the person types.</summary>
     [Parameter]

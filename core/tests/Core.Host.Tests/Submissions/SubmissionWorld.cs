@@ -123,6 +123,8 @@ internal sealed class SubmissionWorld : IAsyncDisposable
 
     internal Task<long> ItemRowsAsync() => RowsAsync("SELECT count(*) FROM content.item_text");
 
+    internal Task<long> AccommodatedRowsAsync() => RowsAsync("SELECT count(*) FROM content.item_text WHERE accommodated_into = 'document' AND losses = 'author,instant'");
+
     [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "The statements are constants of the tests, never input.")]
     private async Task<long> RowsAsync(string count)
     {

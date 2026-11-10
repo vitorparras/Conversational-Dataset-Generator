@@ -42,6 +42,9 @@ public sealed record BatchOpening
     /// <summary>The condition the material comes under; null when none is declared.</summary>
     public string? Condition { get; init; }
 
+    /// <summary>The motive (a name of lowercase letters, digits and underscores) when the batch is turned back as it opens, in the same transaction; null when it stays open.</summary>
+    public string? RejectedFor { get; init; }
+
     /// <summary>What the submission brought, receipt and origin together; null for a batch that no submission opens.</summary>
     public SubmissionOpening? Submission { get; }
 

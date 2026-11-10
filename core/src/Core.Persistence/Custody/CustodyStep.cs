@@ -104,4 +104,10 @@ public enum CustodyStep
 
     /// <summary>The origin that a submission declared for its batch was read; the item is the batch.</summary>
     OriginRead,
+
+    /// <summary>Another person approved a change of configuration submitted; the item is the submission and the reference is the sequence of the event of the submission.</summary>
+    ConfigurationApproved,
+
+    /// <summary>Another person refused a change of configuration submitted; the item is the submission and the reference is the sequence of the event of the submission.</summary>
+    ConfigurationRefused,
 }

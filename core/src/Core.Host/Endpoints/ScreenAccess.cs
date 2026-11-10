@@ -7,8 +7,9 @@ namespace Core.Host.Endpoints;
 /// </summary>
 internal sealed class ScreenAccess
 {
-    private ScreenAccess(IEnumerable<string>? functions, string? caption, int place)
+    private ScreenAccess(IEnumerable<string>? functions, string? caption, int place, bool withoutGrant = false)
     {
+        WithoutGrant = withoutGrant;
         Functions = functions;
         Caption = caption;
         Place = place;
@@ -26,11 +27,17 @@ internal sealed class ScreenAccess
     /// <summary>Where the entry stands in the menu, which lists the entries by this place and never by the order the routes were mapped in.</summary>
     internal int Place { get; }
 
+    /// <summary>Whether the route answers its functions with no domain granted, as a list that is then empty and says why; the menu still lists it only with a domain granted.</summary>
+    internal bool WithoutGrant { get; }
+
     /// <summary>The screen of the functions given and no entry in the menu, such as the page that confirms an act, which one reaches from the screen that asks for it.</summary>
     internal static ScreenAccess WithoutEntry(params string[] functions) => new(functions, caption: null, place: 0);
 
     /// <summary>The screen of the functions given, with its entry in the menu at the place given.</summary>
     internal static ScreenAccess Of(string caption, int place, params string[] functions) => new(functions, caption, place);
+
+    /// <summary>The screen of the functions given that answers them with no domain granted, with its entry in the menu at the place given for whoever has a domain granted.</summary>
+    internal static ScreenAccess OfFunction(string caption, int place, params string[] functions) => new(functions, caption, place, withoutGrant: true);
 
     /// <summary>A page of the functions given with no entry in the menu, such as the confirmation of an action that a screen of the menu leads to.</summary>
     internal static ScreenAccess Unlisted(params string[] functions) => new(functions, caption: null, place: 0);

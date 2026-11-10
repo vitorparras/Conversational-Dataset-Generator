@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using Core.Boundary.Text;
 using Core.Host.Submissions;
@@ -6,6 +7,7 @@ using Core.Ingestion.Entrance;
 using Core.Ingestion.Reading;
 using Core.Persistence.Content.Reading;
 using Core.Persistence.Content.Sealing;
+using Core.Persistence.Content.Writing;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
 using Core.Persistence.Ingestion;
@@ -53,7 +55,11 @@ internal sealed class SubmissionWorld : IAsyncDisposable
 
     internal ProtectedContentReader Reader { get; }
 
-    internal static async Task<SubmissionWorld> CreateAsync(long maxBytes = 1_000_000, bool gateOpen = true)
+    /// <summary>The name the world gave to the domain, as the grants name it.</summary>
+    /// <param name="domain">The identifier of the domain.</param>
+    internal static string NameOf(int domain) => domain == Domain ? "zqx-domain-a" : "zqx-domain-b";
+
+    internal static async Task<SubmissionWorld> CreateAsync(long maxBytes = 1_000_000, bool gateOpen = true, IReadOnlyList<string>? labels = null)
     {
         var database = await ScratchDatabase.CreateAsync();
         _ = await database.MigrateAsync(EmbeddedMigrations.Load());
@@ -68,8 +74,8 @@ internal sealed class SubmissionWorld : IAsyncDisposable
         }
 
         var conditions = OriginConditions.Of([Strictest, "zqx_media", Loosest]);
-        var content = SealingOf(["texto-bruto/1/v1", "texto-bruto/2/v1"]);
-        var intake = Intake(maxBytes, conditions, content);
+        var content = SealingOf(labels ?? ["texto-bruto/1/v1", "texto-bruto/2/v1"]);
+        var intake = Intake(maxBytes, conditions, content, dataSource);
         var service = new SubmissionService(intake, new IngestionBatches(dataSource, conditions), new BatchRegister(dataSource), dataSource);
         return new SubmissionWorld(database, dataSource, (service, content));
     }
@@ -84,8 +90,8 @@ internal sealed class SubmissionWorld : IAsyncDisposable
         return new ProtectedContent(loaded, new ItemKeys(new KeyDerivation(reading.Key!, loaded), reading.Epochs), new HashSet<string>(labels, StringComparer.Ordinal));
     }
 
-    internal static SubmissionIntake Intake(long maxBytes, OriginConditions conditions, ProtectedContent content) =>
-        new(new SubmissionGate(SourceReaders.Default(), maxBytes), new FormConference(new TextBoundaries()), conditions, content);
+    internal static SubmissionIntake Intake(long maxBytes, OriginConditions conditions, ProtectedContent content, NpgsqlDataSource dataSource) =>
+        new(new SubmissionGate(SourceReaders.Default(), maxBytes), new FormConference(new TextBoundaries()), conditions, content, new ContentWriter(dataSource, content));
 
     internal static SubmissionRequest Request(string content = Conversation, string? name = "conversa.json", string? condition = null) => new()
     {
@@ -113,7 +119,12 @@ internal sealed class SubmissionWorld : IAsyncDisposable
         return total;
     }
 
-    internal async Task<long> OriginRowsAsync()
+    internal Task<long> OriginRowsAsync() => RowsAsync("SELECT count(*) FROM content.batch_origin");
+
+    internal Task<long> ItemRowsAsync() => RowsAsync("SELECT count(*) FROM content.item_text");
+
+    [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "The statements are constants of the tests, never input.")]
+    private async Task<long> RowsAsync(string count)
     {
         var total = 0L;
         foreach (var domain in new[] { Domain, OtherDomain })
@@ -123,11 +134,35 @@ internal sealed class SubmissionWorld : IAsyncDisposable
             await using var command = new NpgsqlCommand("SELECT set_config('app.domain', @domain, true)", connection, transaction);
             _ = command.Parameters.AddWithValue("domain", domain.ToString(System.Globalization.CultureInfo.InvariantCulture));
             _ = await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
-            command.CommandText = "SELECT count(*) FROM content.batch_origin";
+            command.CommandText = count;
             total += (long)(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken))!;
         }
 
         return total;
+    }
+
+    /// <summary>The first column of a query over content as the owner reads it, inside the domain of the tests; the sealed bytes come as the database holds them.</summary>
+    /// <param name="select">The query, with no parameters.</param>
+    /// <param name="domain">The domain the query runs in.</param>
+    [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities", Justification = "The statements are constants of the tests, never input.")]
+    internal async Task<IReadOnlyList<string>> StoredAsync(string select, int domain = Domain)
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var connection = new NpgsqlConnection(Database.OwnerConnectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+        await using var command = new NpgsqlCommand("SELECT set_config('app.domain', @domain, true)", connection, transaction);
+        _ = command.Parameters.AddWithValue("domain", domain.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        _ = await command.ExecuteScalarAsync(cancellationToken);
+        command.CommandText = select;
+        var found = new List<string>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            found.Add(reader.GetString(0));
+        }
+
+        return found;
     }
 
     internal Task<IReadOnlyList<string>> OriginEventsAsync() => Database.FirstColumnAsOwnerAsync(

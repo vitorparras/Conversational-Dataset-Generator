@@ -80,6 +80,7 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
    button of the menu, so the header keeps one line and covers nothing, and opened it stops following the page, so it never hides what takes the focus. */
 .header__menu { display: contents; }
 .header .header__toggle { display: none; }
+.header__demo { flex-basis: 100%; margin: 0; padding: var(--space-1) var(--space-3); color: var(--pending); background: var(--pending-surface); border: var(--line) dashed currentColor; font-weight: var(--weight-strong); }
 @media (max-width: 40rem) {
     .header { padding: var(--space-2) var(--space-4); gap: var(--space-2) var(--space-3); }
     .header__name { flex: 1 1 0; min-width: 0; font-size: var(--text-sm); }
@@ -196,6 +197,7 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
 }
 
 .field__input[aria-invalid="true"] { border: var(--line-error) double var(--error); }
+.field__input--text { font-family: var(--font-mono); overflow-wrap: anywhere; resize: vertical; }
 
 /* An error is told by text and by shape, never by colour alone. */
 .field__error { display: flex; gap: var(--space-2); margin: 0; color: var(--error); font-weight: var(--weight-strong); }
@@ -302,6 +304,8 @@ h1 + .lead { margin-top: 0; }
 .data-table th, .data-table td { padding: var(--space-3); border-bottom: var(--line) solid var(--edge-soft); text-align: left; vertical-align: top; }
 .data-table thead th { border-bottom: var(--line-strong) solid var(--edge); font-size: var(--text-sm); }
 .data-table__group { padding-top: var(--space-5); font-family: var(--font-display); font-size: var(--text-lg); }
+.data-table__plain { font-weight: var(--weight-text); }
+.data-table__mark { display: inline-block; margin-left: var(--space-2); }
 .data-table code { font-family: var(--font-mono); font-size: var(--text-sm); overflow-wrap: anywhere; }
 .data-table .button { white-space: nowrap; }
 
@@ -334,8 +338,23 @@ h1 + .lead { margin-top: 0; }
 .filter { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0 var(--space-5); }
 .filter > .field { flex: 1 1 var(--term-width); }
 .filter > .actions { flex-basis: 100%; }
+.filter > .choices { flex-basis: 100%; margin-bottom: var(--space-3); }
+
+/* Options in a row, as a segmented group: each a box of its own, the one chosen marked by its border and not by colour alone. */
+.choices--inline { display: flex; flex-wrap: wrap; gap: var(--space-2); max-width: none; }
+.choices--inline .choices__option { gap: var(--space-2); padding: 0 var(--space-3); border: var(--line) solid var(--edge); border-radius: var(--radius-sm); }
+.choices--inline .choices__option:has(input:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 var(--line) var(--accent); }
+
+/* A filter that folds so the list comes first, and opens by itself when a filter is in use. */
+.filter-box > .filter-box__summary { display: flex; align-items: center; min-height: var(--control-height); font-weight: var(--weight-strong); cursor: pointer; }
+.filter-box[open] > .filter-box__summary { margin-bottom: var(--space-4); }
+
+/* The whole digest, shown on asking and selected at once, for whoever copies it. */
+.digest-box > summary { cursor: pointer; }
+.digest-box__full { display: block; margin-top: var(--space-2); overflow-wrap: anywhere; user-select: all; }
 
 /* Row of a list: the name first and strong, then what describes it, each in a column of its own width, so that on a wide screen what describes the name stays near it. */
 .row { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-5); }
 .row > strong, .row > strong + span { flex: 0 1 var(--term-width); min-width: 0; overflow-wrap: anywhere; }
 .form > .notice { margin-bottom: var(--space-5); }
+.row--stacked > strong { flex-basis: 100%; }

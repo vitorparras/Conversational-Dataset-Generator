@@ -1,0 +1,55 @@
+@using System.Globalization
+@using Core.Host.Endpoints
+
+<h1>@Title</h1>
+<p>O item <strong>@Number</strong> do domínio @Domain perde @EmptyingScreen.Loss, de uma vez e sem volta.
+    Ficam o identificador, a marca de esvaziado e o registro de quem executou, quando e por quê.</p>
+<form class="form" method="post" action="@ScreenPaths.EmptyingConfirm">
+    @if (NotWritten)
+    {
+        <Notice Kind="Notice.Tone.Error">O item não foi esvaziado. Tente de novo em instantes; se a falha se repetir, avise quem administra o sistema.</Notice>
+    }
+    <input type="hidden" name="@EmptyingScreen.ItemField" value="@Number" />
+    <ChoiceGroup Name="@MotiveField" Legend="Motivo" Options="EmptyingMotives.Options" Value="@Motive" Required="true"
+                 Error="@(MotiveMissing ? "Escolha o motivo do esvaziamento." : null)" />
+    <Field Id="@ReferenceField" Caption="Protocolo do pedido" Value="@Reference" Autocomplete="off" Required="true"
+           Hint="O número do pedido no protocolo de fora do sistema: letras, dígitos e . _ / -, até 64 caracteres. Nenhum nome nem dado de quem pediu."
+           Error="@(ReferenceRefused ? "O protocolo aceita só letras, dígitos e . _ / -, até 64 caracteres." : null)" />
+    <div class="actions">
+        <Button Id="esvaziar" Kind="Button.Look.Danger">Esvaziar o item @Number</Button>
+        <Button Href="@($"{ScreenPaths.Emptying}?{EmptyingScreen.ItemField}={Number}")" Kind="Button.Look.Quiet">Não esvaziar</Button>
+    </div>
+</form>
+
+@code {
+    internal const string Title = "Confirmar o esvaziamento";
+
+    internal const string MotiveField = "motivo";
+
+    internal const string ReferenceField = "protocolo";
+
+    [Parameter, EditorRequired]
+    public long ItemId { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Domain { get; set; } = "";
+
+    /// <summary>The motive and the protocol as they were sent, given back when the server refuses the form.</summary>
+    [Parameter]
+    public string? Motive { get; set; }
+
+    [Parameter]
+    public string? Reference { get; set; }
+
+    [Parameter]
+    public bool MotiveMissing { get; set; }
+
+    [Parameter]
+    public bool ReferenceRefused { get; set; }
+
+    /// <summary>Whether the chain did not take the event, so that nothing was emptied.</summary>
+    [Parameter]
+    public bool NotWritten { get; set; }
+
+    private string Number => ItemId.ToString(CultureInfo.InvariantCulture);
+}

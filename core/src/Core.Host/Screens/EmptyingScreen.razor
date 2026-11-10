@@ -1,0 +1,81 @@
+@using System.Globalization
+@using Core.Host.Endpoints
+@using Core.Persistence.Content.Emptying
+
+<h1>@Title</h1>
+<p class="lead">Atende a um pedido de remoção: o conteúdo do item deixa de existir, e o registro do esvaziamento fica. O item é achado só pelo identificador.</p>
+<form class="form" method="get" action="@ScreenPaths.Emptying">
+    <Field Id="@ItemField" Caption="Identificador do item" InputMode="numeric" Autocomplete="off" Required="true" Autofocus="@(Shown is null)"
+           Value="@Typed" Hint="@($"O número do item no domínio {Domain}.")" Error="@LookupError" />
+    <Button Id="ver-item" Kind="Button.Look.Secondary">Ver item</Button>
+</form>
+@if (Shown is { } item)
+{
+    <Panel Id="item-alvo" Title="@($"Item {Number(item.ItemId)}")">
+        @if (item.Emptied is { } record)
+        {
+            <Notice Kind="@(JustEmptied ? Notice.Tone.Success : Notice.Tone.Info)">@(JustEmptied ? "O item foi esvaziado." : "Este item já está esvaziado.")</Notice>
+            <FactList>
+                <Fact Term="Estado"><StateMark Kind="StateMark.Tone.Hidden">Esvaziado</StateMark></Fact>
+                <Fact Term="Quando"><Moment At="record.At" /></Fact>
+                <Fact Term="Quem executou">@record.Executor</Fact>
+                <Fact Term="Motivo">@EmptyingMotives.CaptionOf(record.Motive)</Fact>
+                <Fact Term="Quem pediu (protocolo)"><code>@record.Reference</code></Fact>
+            </FactList>
+        }
+        else
+        {
+            <p>Ao esvaziar, o item perde @Loss. Ficam o identificador, a marca de esvaziado e o registro.</p>
+            <FactList>
+                <Fact Term="Domínio">@Domain</Fact>
+                <Fact Term="Estado"><StateMark Kind="StateMark.Tone.Plain">Sem esvaziamento registrado</StateMark></Fact>
+            </FactList>
+            <div class="actions">
+                <Button Href="@ConfirmAddress(item.ItemId)" Kind="Button.Look.Secondary">Seguir para o esvaziamento</Button>
+            </div>
+        }
+    </Panel>
+}
+
+@code {
+    /// <summary>The title of the page and of its entry in the menu.</summary>
+    internal const string Title = "Esvaziar item";
+
+    /// <summary>The field of the address that carries the identifier, the only way to find an item: there is no search by name, pseudonym or text.</summary>
+    internal const string ItemField = "item";
+
+    /// <summary>The field of the address that says the emptying was just done.</summary>
+    internal const string DoneField = "feito";
+
+    /// <summary>What the screen shows of an item: its identifier and, once emptied, the record. It does not say whether the item exists or how many maps it has: that is not read without a reading of a text. Never a text of it.</summary>
+    public sealed record Item(long ItemId, Record? Emptied);
+
+    /// <summary>The emptying as recorded: when, who did it, why and the number of the protocol of whoever asked, never their name.</summary>
+    public sealed record Record(DateTimeOffset At, string Executor, EmptyingMotive Motive, string Reference);
+
+    /// <summary>The active domain, which the identifier is looked for in.</summary>
+    [Parameter, EditorRequired]
+    public string Domain { get; set; } = "";
+
+    /// <summary>The identifier as it was typed, given back.</summary>
+    [Parameter]
+    public string? Typed { get; set; }
+
+    /// <summary>The item found, none before a search or when nothing was found.</summary>
+    [Parameter]
+    public Item? Shown { get; set; }
+
+    /// <summary>Whether the identifier typed is not a number, or no item of the domain has it.</summary>
+    [Parameter]
+    public string? LookupError { get; set; }
+
+    [Parameter]
+    public bool JustEmptied { get; set; }
+
+    private static string Number(long id) => id.ToString(CultureInfo.InvariantCulture);
+
+    /// <summary>What an emptying takes from the item, said the same on the item and on the confirmation.</summary>
+    internal const string Loss = "os textos bruto, sanitizado e pseudonimizado e os mapas de reversão que tiver";
+
+    private static string ConfirmAddress(long id) => $"{ScreenPaths.EmptyingConfirm}?{ItemField}={Number(id)}";
+}

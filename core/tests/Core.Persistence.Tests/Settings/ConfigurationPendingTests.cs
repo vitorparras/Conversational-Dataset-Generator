@@ -1,6 +1,7 @@
 using Core.Persistence.Custody;
 using Core.Persistence.People;
 using Core.Persistence.Settings;
+using Core.Persistence.Tests.Fixtures;
 using Core.Persistence.Tests.People;
 
 namespace Core.Persistence.Tests.Settings;

@@ -79,7 +79,7 @@ class TestRealServiceTests(unittest.TestCase):
         self.assertFalse(result.ok)
         self.assertIn("1 teste(s) do serviço real falharam", result.details)
 
-    def test_a_failed_test_is_named_with_the_first_line_of_its_message(self) -> None:
+    def test_a_failed_test_is_named_and_the_rest_of_its_message_follows(self) -> None:
         files = {
             "a.trx": support.trx_failing(
                 "Alpha.Tests", 3, "Ns.Classe.Metodo", "Esperado 1\nmas foi 2\n  em x.cs:9"
@@ -91,7 +91,8 @@ class TestRealServiceTests(unittest.TestCase):
 
         self.assertFalse(result.ok)
         self.assertIn("  Alpha.Tests: Ns.Classe.Metodo: Esperado 1", result.details)
-        self.assertNotIn("mas foi 2", "".join(result.details))
+        self.assertIn("    | mas foi 2", result.details)
+        self.assertIn("    |   em x.cs:9", result.details)
 
     def test_a_failed_test_without_message_is_still_named(self) -> None:
         files = {"a.trx": support.trx_failing("Alpha.Tests", 3, "Ns.Classe.Metodo", "")}

@@ -221,6 +221,24 @@ public sealed class ReplicationTableTests
         Assert.Equal("0,0", await world.OwnerInDomainAsync(1, Counts) as string);
     }
 
+    [Fact]
+    public async Task WhatIsMissingIsRefusedAtTheDoorAndNeverBecomesAFailureOfTheWriting()
+    {
+        await using var dataSource = NpgsqlDataSource.Create("Host=localhost");
+        var store = new ReplicationStore(dataSource);
+        var token = TestContext.Current.CancellationToken;
+        ReplicationTarget target = new(1, 1);
+        StoredOccurrence[] occurrences = [Occurrence(1, 0, 'a', 'b')];
+
+        var withoutOccurrences = Assert.Throws<ArgumentNullException>(() => store.RecordAsync(target, null!, [], token));
+        var withoutMarks = Assert.Throws<ArgumentNullException>(() => store.RecordAsync(target, occurrences, null!, token));
+        var withoutTarget = Assert.Throws<ArgumentNullException>(() => store.RecordAsync(null!, occurrences, [], token));
+
+        Assert.Equal("occurrences", withoutOccurrences.ParamName);
+        Assert.Equal("marks", withoutMarks.ParamName);
+        Assert.Equal("target", withoutTarget.ParamName);
+    }
+
     private static Task RecordAsync(ReplicationStore store, long batch, StoredOccurrence occurrence) =>
         store.RecordAsync(new(1, batch), [occurrence], [], TestContext.Current.CancellationToken);
 

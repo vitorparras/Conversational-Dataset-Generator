@@ -30,7 +30,7 @@ public sealed class ConfigurationChangeScreenTests(BrowserFixture browser, Chang
         await ProposeAsync(tab.Page, "00:21:00");
 
         await Expect(tab.Page.GetByText("Alteração enviada.")).ToBeVisibleAsync();
-        await Expect(tab.Page.Locator("#pendentes li", new() { HasText = "00:21:00" })).ToContainTextAsync("Proposta sua: outra pessoa decide");
+        await Expect(tab.Page.Locator("ul[aria-label='Alterações aguardando decisão'] li", new() { HasText = "00:21:00" })).ToContainTextAsync("Proposta sua: outra pessoa decide");
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public sealed class ConfigurationChangeScreenTests(BrowserFixture browser, Chang
 
         await Expect(tab.Page.Locator("main")).ToContainTextAsync("A partida recusaria este valor");
         await Expect(tab.Page.Locator("#valor")).ToHaveValueAsync("zqx-nao-e-tempo");
-        await Expect(tab.Page.Locator("#pendentes li", new() { HasText = "zqx-nao-e-tempo" })).ToHaveCountAsync(0);
+        await Expect(tab.Page.Locator("ul[aria-label='Alterações aguardando decisão'] li", new() { HasText = "zqx-nao-e-tempo" })).ToHaveCountAsync(0);
     }
 
     [Fact]
@@ -63,6 +63,35 @@ public sealed class ConfigurationChangeScreenTests(BrowserFixture browser, Chang
         await tab.Page.Locator($"#aprovar-{id}").ClickAsync();
 
         await Expect(tab.Page.GetByText("Alteração aprovada.")).ToBeVisibleAsync();
+        await Expect(tab.Page.Locator($"#aprovar-{id}")).ToHaveCountAsync(0);
+    }
+
+    [Fact]
+    public async Task Ca2TheServerRefusesTheDecisionOfWhoProposedEvenWhenTheFormIsForgedAndTheProposalStillWaits()
+    {
+        var id = await changes.Host.ProposeAsync("00:27:00");
+        await using var tab = await OpenAsync(changes.Host.Administrator);
+
+        const string forge = "([route, id]) => { const form = document.createElement('form'); form.method = 'post'; "
+            + "form.action = route + '/decisao'; "
+            + "form.innerHTML = '<input name=alteracao value=' + id + '><input name=decisao value=aprovar>'; "
+            + "document.body.append(form); form.submit(); }";
+        _ = await tab.Page.EvaluateAsync(forge, new object[] { Route, id });
+
+        await Expect(tab.Page.Locator("main")).ToContainTextAsync("Quem propôs a alteração não a decide");
+        await using var other = await OpenAsync(changes.Host.SecondAdministrator);
+        await Expect(other.Page.Locator($"#aprovar-{id}")).ToBeVisibleAsync();
+    }
+
+    [Fact]
+    public async Task Ca3AnotherPersonOfTheAdministrationRefusesAndTheProposalLeavesTheListWithoutChangingTheConfiguration()
+    {
+        var id = await changes.Host.ProposeAsync("00:28:00");
+        await using var tab = await OpenAsync(changes.Host.SecondAdministrator);
+
+        await tab.Page.Locator($"#recusar-{id}").ClickAsync();
+
+        await Expect(tab.Page.GetByText("Alteração recusada.")).ToBeVisibleAsync();
         await Expect(tab.Page.Locator($"#aprovar-{id}")).ToHaveCountAsync(0);
     }
 

@@ -18,6 +18,7 @@ internal static class ScreenPaths
     internal const string SealConfirm = "/custodia/selo/confirmar";
     internal const string Account = "/minha-conta";
     internal const string AccountChange = "/minha-conta/senha";
+    internal const string AccountEmail = "/minha-conta/email";
     internal const string AccountEnd = "/minha-conta/sessoes/encerrar";
     internal const string AccountEndOthers = "/minha-conta/sessoes/encerrar-outras";
     internal const string Operators = "/pessoas";

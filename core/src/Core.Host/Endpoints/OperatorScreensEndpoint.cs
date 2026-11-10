@@ -2,7 +2,6 @@ using System.Globalization;
 using Core.Host.Operators;
 using Core.Host.Screens;
 using Core.Persistence.People;
-using Core.Platform.Sessions;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,7 +20,7 @@ internal static class OperatorScreensEndpoint
     {
         _ = endpoints.MapGet(ScreenPaths.Operators, ListAsync).WithMetadata(ScreenAccess.Of(OperatorsScreen.Title, OperatorsPlace, PersonFunctions.Administration));
         _ = endpoints.MapGet(ScreenPaths.OperatorNew, Form).WithMetadata(ScreenAccess.Unlisted(PersonFunctions.Administration));
-        _ = endpoints.MapPost(ScreenPaths.OperatorNew, RegisterAsync).WithMetadata(ScreenAccess.Unlisted(PersonFunctions.Administration));
+        _ = endpoints.MapPost(ScreenPaths.OperatorNew, OperatorRegistration.RegisterAsync).WithMetadata(ScreenAccess.Unlisted(PersonFunctions.Administration));
     }
 
     /// <summary>With no database declared there is nobody to list, and the page says it is the host that cannot, as the route of JSON does.</summary>
@@ -47,38 +46,6 @@ internal static class OperatorScreensEndpoint
     }
 
     private static RazorComponentResult<ScreenFrame> Form(HttpContext context) => ScreenResult.Of(context, typeof(OperatorFormScreen), OperatorFormScreen.Title);
-
-    /// <summary>The password is read from the body of the post and goes to the registration, nowhere else: not to the page, the address nor the log.</summary>
-    private static async Task<IResult> RegisterAsync(HttpContext context, [FromServices] OperatorAdministration? staff, [FromServices] SessionStore sessions)
-    {
-        if (staff is null || sessions.Resolve(SessionCookie.Read(context.Request)) is not { } author)
-        {
-            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
-        }
-
-        var form = context.Request.HasFormContentType ? await context.Request.ReadFormAsync(context.RequestAborted) : null;
-        var (name, function) = (ValueOf(form, OperatorFormScreen.NameField), ValueOf(form, OperatorFormScreen.FunctionField));
-        var (made, password) = await staff.RegisterAsync(author, new NewPerson(name, function), ValueOf(form, OperatorFormScreen.SecretField), context.RequestAborted);
-        var registered = OperatorAnswer.Registered(made, password);
-        if (registered.Refusal is not { } refusal)
-        {
-            RegisteredNotice.Issue(context.Response, registered.Id!.Value);
-            return PageRedirect.Of(context, $"{ScreenPaths.Operators}?{OperatorsScreen.NameKey}={Uri.EscapeDataString(name)}");
-        }
-
-        var screen = new Dictionary<string, object?>(StringComparer.Ordinal)
-        {
-            [nameof(OperatorFormScreen.Name)] = name,
-            [nameof(OperatorFormScreen.Function)] = function,
-            [nameof(OperatorFormScreen.ErrorField)] = refusal.Field,
-            [nameof(OperatorFormScreen.ErrorReason)] = refusal.Reason,
-        };
-        var page = ScreenResult.Of(context, typeof(OperatorFormScreen), OperatorFormScreen.Title, screen);
-        page.StatusCode = registered.Status;
-        return page;
-    }
-
-    private static string ValueOf(IFormCollection? form, string field) => form is null ? string.Empty : form[field].ToString();
 
     /// <summary>The filter the address asks for; a function the registry does not accept is left out, as the list of choices shows, instead of leaving nobody.</summary>
     internal static PersonFilter FilterOf(IQueryCollection query)

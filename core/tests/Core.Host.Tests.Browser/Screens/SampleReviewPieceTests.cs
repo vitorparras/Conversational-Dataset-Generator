@@ -26,7 +26,10 @@ public sealed class SampleReviewPieceTests(BrowserFixture browser, SampleReviewH
     private const string Material = "ZQX-texto-do-item";
     private const string Overflow = "() => document.documentElement.scrollWidth - document.documentElement.clientWidth";
     private const string FocusTheTitle = "() => { const title = document.querySelector('main h1'); title.setAttribute('tabindex', '-1'); title.focus(); }";
-    private const string StopInMain = "() => { const stop = document.activeElement; return stop && stop.closest('main') ? (stop.id || stop.textContent.trim()) : ''; }";
+    private const string StopInMain =
+        "() => { const stop = document.activeElement; if (!stop || !stop.closest('main')) { return ''; } " +
+        "const label = stop.labels && stop.labels.length > 0 ? stop.labels[0].textContent.trim() : ''; " +
+        "return stop.id || stop.textContent.trim() || label; }";
     private const string WithoutTheItems =
         "() => { const main = document.querySelector('main').cloneNode(true); " +
         "main.querySelectorAll('.sample__text').forEach(text => text.remove()); return main.innerText; }";

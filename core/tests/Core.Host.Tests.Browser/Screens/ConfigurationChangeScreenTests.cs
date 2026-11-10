@@ -157,6 +157,7 @@ public sealed class ConfigurationChangeScreenTests(BrowserFixture browser, Chang
         await tab.Page.SetViewportSizeAsync(PhoneWidth, PhoneHeight);
         await mode.ApplyAsync(tab.Page);
         await ProposeAsync(tab.Page, "zqx-recusado");
+        await Expect(tab.Page.Locator("main")).ToContainTextAsync("A partida recusaria este valor");
 
         var overflow = await tab.Page.EvaluateAsync<int>(Overflow);
 

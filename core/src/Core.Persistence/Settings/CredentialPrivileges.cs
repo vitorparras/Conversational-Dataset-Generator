@@ -3,8 +3,10 @@ using Npgsql;
 namespace Core.Persistence.Settings;
 
 /// <summary>
-/// What the credential of a connection may do to the database: the applier of the configuration reads and nothing else (decision 0053), and it asks before it applies anything. Only what is granted to the
-/// role or to a role it belongs to counts, or owned by one: the grants to PUBLIC of the migrations are what the application's own role works through and every role holds them.
+/// What the credential of a connection may do to the database: the applier of the configuration reads and
+/// nothing else (decision 0053), and it asks before it applies anything. Only what is granted to the role or
+/// to a role it belongs to counts, or owned by one: the grants to PUBLIC of the migrations are what the
+/// application's own role works through and every role holds them.
 /// </summary>
 public static class CredentialPrivileges
 {

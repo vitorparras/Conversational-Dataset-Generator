@@ -16,6 +16,9 @@ internal enum SubmissionKind
 
     /// <summary>The batch could not be opened or could not be closed; <see cref="SubmissionOutcome.Failure" /> says why.</summary>
     NotRecorded,
+
+    /// <summary>The path could not keep the material: nothing is kept, and the code says why.</summary>
+    Unavailable,
 }
 
 /// <summary>Whether the barrier and the form accepted the material, or turned it back; both are recorded.</summary>
@@ -54,6 +57,9 @@ internal sealed record SubmissionOutcome
 
     /// <summary>The code of what keeps the gate closed, for <see cref="SubmissionKind.Blocked" />.</summary>
     internal string? BlockedBy { get; init; }
+
+    /// <summary>The code of what made the path unavailable, for <see cref="SubmissionKind.Unavailable"/>.</summary>
+    internal string? Code { get; init; }
 
     /// <summary>Why the batch was not recorded, for <see cref="SubmissionKind.NotRecorded" />.</summary>
     internal BatchOutcome? Failure { get; init; }

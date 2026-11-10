@@ -118,7 +118,7 @@ public sealed partial class ChainScreenTests(BrowserFixture browser, IntactChain
     public async Task TheKeyboardAloneReachesTheHeaderTheMenuTheRequestAndTheHistoryInOrderWithTheFocusSeen()
     {
         await using var tab = await OpenAsync(intact.Host, intact.Host.Auditor);
-        var expected = HeaderStops.Then("Custódia", "Pedir uma verificação agora", HeaderStops.TableStop);
+        var expected = HeaderStops.Then("Custódia", "Verificar a cadeia agora", HeaderStops.TableStop);
         var reached = new List<string>();
         var seen = new List<bool>();
 

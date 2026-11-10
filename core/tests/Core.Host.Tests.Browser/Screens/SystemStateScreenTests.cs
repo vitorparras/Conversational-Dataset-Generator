@@ -105,7 +105,7 @@ public sealed class SystemStateScreenTests(BrowserFixture browser, SystemHostFix
         var missingPage = await tab.Page.ContentAsync();
 
         Assert.Equal((StatusNotFound, StatusNotFound), (refused?.Status, missing?.Status));
-        Assert.Equal(missingPage.Replace(Missing.TrimStart('/'), string.Empty, StringComparison.Ordinal), refusedPage.Replace(route.TrimStart('/'), string.Empty, StringComparison.Ordinal));
+        Assert.Equal(missingPage.Replace(Missing, string.Empty, StringComparison.Ordinal), refusedPage.Replace(route, string.Empty, StringComparison.Ordinal));
         Assert.DoesNotContain("Estado do sistema", refusedPage, StringComparison.Ordinal);
         Assert.DoesNotContain("Configuração em vigor", refusedPage, StringComparison.Ordinal);
         Assert.DoesNotContain(system.Host.Secret, refusedPage, StringComparison.Ordinal);

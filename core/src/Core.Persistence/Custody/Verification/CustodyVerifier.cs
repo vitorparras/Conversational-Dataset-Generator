@@ -66,6 +66,15 @@ public sealed class CustodyVerifier
         };
     }
 
+    /// <summary>Whether every link of the chain holds, read in one consistent, read-only view and recorded nowhere: for whoever has no credential to write, such as the applier.</summary>
+    /// <param name="cancellationToken">Cancels the reading.</param>
+    public async Task<bool> HoldsAsync(CancellationToken cancellationToken)
+    {
+        var judge = new ChainJudge();
+        _ = await ReadAsync(judge, cancellationToken).ConfigureAwait(false);
+        return judge.First is null;
+    }
+
     private async Task<DateTimeOffset> ReadAsync(ChainJudge judge, CancellationToken cancellationToken)
     {
         var connection = await dataSource.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);

@@ -52,6 +52,10 @@ internal static class CustodyNames
         [CustodyStep.BatchClosed] = "batch_closed",
         [CustodyStep.PasswordChanged] = "password_changed",
         [CustodyStep.ConfigurationSubmitted] = "configuration_submitted",
+        [CustodyStep.OriginRead] = "origin_read",
+        [CustodyStep.ConfigurationApproved] = "configuration_approved",
+        [CustodyStep.ConfigurationRefused] = "configuration_refused",
+        [CustodyStep.ConfigurationInForce] = "configuration_in_force",
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<CustodyReason, string> Reasons = new Dictionary<CustodyReason, string>

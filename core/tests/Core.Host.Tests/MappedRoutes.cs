@@ -23,7 +23,10 @@ internal static class MappedRoutes
 
     /// <summary>The routes behind the gate, as the arguments of a theory: the method and the route.</summary>
     public static TheoryData<string, string> Gated() =>
-        [.. Read().Where(route => !route.Open).Select(route => (route.Method, route.Pattern))];
+        [.. Read().Where(route => !route.Open).Select(route => (route.Method, Requested(route.Pattern)))];
+
+    /// <summary>The route as it is asked for: a number where the pattern holds an identifier of a batch, since a constrained placeholder is not a path that reaches it.</summary>
+    private static string Requested(string pattern) => pattern.Replace("{id:long}", "1", StringComparison.Ordinal);
 
     private static MappedRoute Described(RouteEndpoint endpoint) =>
         new(

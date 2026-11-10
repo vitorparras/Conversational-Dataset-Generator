@@ -1,6 +1,8 @@
 using System.Text;
 using Core.Persistence.Content.Writing;
+using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Fixtures;
+using Core.Persistence.Tests.Ingestion;
 using Npgsql;
 
 namespace Core.Persistence.Tests.Content;
@@ -34,9 +36,15 @@ internal static class OpaqueStorage
     /// <summary>The column of the key of the map, wrapped.</summary>
     public const string MapKey = "content.reversal_map.dek_wrapped";
 
-    private static readonly string[] Seedable = [RawText, SanitizedText, Entries];
+    /// <summary>The column of the origin a submission declared, sealed as the raw text is.</summary>
+    public const string Origin = "content.batch_origin.origin";
 
-    private static readonly string[] KeyColumns = [ItemKey, MapKey];
+    /// <summary>The column of the key of the origin, wrapped.</summary>
+    public const string OriginKey = "content.batch_origin.dek_wrapped";
+
+    private static readonly string[] Seedable = [RawText, SanitizedText, Entries, Origin];
+
+    private static readonly string[] KeyColumns = [ItemKey, MapKey, OriginKey];
 
     /// <summary>The columns the catalog marks as protected, as schema.table.column; the marks are the ones the migrations write.</summary>
     public static Task<IReadOnlyList<string>> MarkedColumnsAsync(ContentWorld world)
@@ -79,8 +87,18 @@ internal static class OpaqueStorage
         var pseudonymized = $"zqx-{Guid.NewGuid():N}";
         var item = await world.Writer.AddItemTextAsync(1, new NewItemText(texts[RawText], texts[SanitizedText], pseudonymized), TestContext.Current.CancellationToken);
         _ = await world.Writer.AddReversalMapAsync(1, item, texts[Entries], TestContext.Current.CancellationToken);
+        await OpenWithOriginAsync(world, texts[Origin]);
         await AssertEveryMarkedColumnHoldsSomethingAsync(world, marked);
         return new Material(texts, pseudonymized) { Keys = await KeysInClearAsync(world) };
+    }
+
+    /// <summary>Opens a batch whose submission declared an origin, which the application seals in a row of its own with a key of its own.</summary>
+    private static async Task OpenWithOriginAsync(ContentWorld world, string origin)
+    {
+        var receipt = new SubmissionReceipt("0123456789abcdef0123456789abcdef", 1, new string('0', 64));
+        var opening = new BatchOpening(IngestionWorld.Domain, IngestionWorld.Person, null, new SubmissionOpening(receipt, OriginDeclaration.Declared(world.Content, IngestionWorld.Domain, origin)));
+        var opened = await IngestionWorld.BatchesOf(world).OpenAsync(opening, TestContext.Current.CancellationToken);
+        Assert.Equal(BatchOutcome.Opened, opened.Outcome);
     }
 
     /// <summary>
@@ -148,32 +166,33 @@ internal static class OpaqueStorage
     }
 
     /// <summary>
-    /// What the search of the files takes for a key, one needle at a time so that a match names its column: the bytes raw, as the server writes a bytea into its files,
-    /// and the two ways of writing them as hex. The search reads line by line, so a key that holds a line break is searched by its longest run without one,
-    /// which no other key shares; a key too broken to leave a run of twelve bytes stops the test.
+    /// What the search of the files takes for a key, all together so that a match names its column: the bytes raw, as the server writes a bytea into its files, and the two
+    /// ways of writing them as hex, which never hold a line break. The search reads line by line, so a key that holds line breaks is searched by every run without one that is
+    /// long enough not to match by chance, and a key whose runs are all too short is searched by its hex alone: what is drawn for the key never stops the test, and no needle is
+    /// shorter than the minimum.
     /// </summary>
-    private static byte[][] KeyNeedles(byte[] key)
+    internal static byte[][] KeyNeedles(byte[] key)
     {
-        var run = LongestRunWithoutLineBreak(key);
-        return run.Length < MinimumRun
-            ? throw new InvalidOperationException("The key holds line breaks that leave no run the search of the files could match.")
-            : [run, Encoding.ASCII.GetBytes(Convert.ToHexStringLower(key)), Encoding.ASCII.GetBytes(Convert.ToHexString(key))];
+        ArgumentNullException.ThrowIfNull(key);
+        return
+        [
+            .. RunsWithoutLineBreak(key).Where(run => run.Length >= MinimumRun),
+            Encoding.ASCII.GetBytes(Convert.ToHexStringLower(key)),
+            Encoding.ASCII.GetBytes(Convert.ToHexString(key)),
+        ];
     }
 
-    private static byte[] LongestRunWithoutLineBreak(byte[] key)
+    private static IEnumerable<byte[]> RunsWithoutLineBreak(byte[] key)
     {
-        var best = (Start: 0, Length: 0);
         var start = 0;
         for (var index = 0; index <= key.Length; index++)
         {
             if (index == key.Length || key[index] == LineBreak)
             {
-                best = index - start > best.Length ? (start, index - start) : best;
+                yield return key[start..index];
                 start = index + 1;
             }
         }
-
-        return key[best.Start..(best.Start + best.Length)];
     }
 
     /// <summary>The columns, among those given, whose text the observation shows, in the dump as text or as the hex a bytea is dumped in, or in any file of the server.</summary>

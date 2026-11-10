@@ -30,5 +30,5 @@ else
 @code {
     /// <summary>The page around the screen, whose menu is what the one who entered has to do: the start lists the same entries, from the same place.</summary>
     [CascadingParameter]
-    public ScreenFrame Frame { get; set; } = default!;
+    public required ScreenFrame Frame { get; set; }
 }

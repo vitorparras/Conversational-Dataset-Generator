@@ -26,6 +26,33 @@ public sealed class PublishFailureTests
     }
 
     [Fact]
+    public void TheClosingLinesOfMsBuildAreNotTheCause()
+    {
+        var output = "  Core.Platform -> bin/Core.Platform.dll\n  Killed\n\nBuild FAILED.\n    0 Warning(s)\n    1 Error(s)\n\nTime Elapsed 00:00:41.12\n";
+
+        var first = PublishFailure.Describe(137, output).Split(Environment.NewLine)[0];
+
+        Assert.Equal("dotnet publish exited with 137: Killed", first);
+    }
+
+    [Fact]
+    public void OutputOfOnlyMsBuildClosingLinesStillGivesItsLastLine()
+    {
+        var first = PublishFailure.Describe(1, "    1 Error(s)\nTime Elapsed 00:00:01.00\n").Split(Environment.NewLine)[0];
+
+        Assert.Equal("dotnet publish exited with 1: Time Elapsed 00:00:01.00", first);
+    }
+
+    [Fact]
+    public void TheLastLineOfTheStdoutDoesNotRunIntoTheFirstLineOfTheStderr()
+    {
+        var message = PublishFailure.Describe(1, "  Core.Platform -> bin/Core.Platform.dll", "error MSB4018: The task failed");
+
+        Assert.Equal("dotnet publish exited with 1: error MSB4018: The task failed", message.Split(Environment.NewLine)[0]);
+        Assert.Contains($"Core.Platform.dll{Environment.NewLine}error MSB4018", message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void OnlyTheLastTwoHundredLinesFollowTheFirstLine()
     {
         var output = string.Join('\n', Enumerable.Range(1, 500).Select(number => $"line {number}"));

@@ -39,9 +39,9 @@ internal static class PublishedHost
             }
         }
 
-        var text = string.Concat(await said);
+        var streams = await said;
         return publish.ExitCode == 0
             ? [.. Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories)]
-            : throw new InvalidOperationException(PublishFailure.Describe(publish.ExitCode, text));
+            : throw new InvalidOperationException(PublishFailure.Describe(publish.ExitCode, streams[0], streams[1]));
     }
 }

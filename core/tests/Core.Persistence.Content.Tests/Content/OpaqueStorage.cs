@@ -166,32 +166,33 @@ internal static class OpaqueStorage
     }
 
     /// <summary>
-    /// What the search of the files takes for a key, one needle at a time so that a match names its column: the bytes raw, as the server writes a bytea into its files,
-    /// and the two ways of writing them as hex. The search reads line by line, so a key that holds a line break is searched by its longest run without one,
-    /// which no other key shares; a key too broken to leave a run of twelve bytes stops the test.
+    /// What the search of the files takes for a key, all together so that a match names its column: the bytes raw, as the server writes a bytea into its files, and the two
+    /// ways of writing them as hex, which never hold a line break. The search reads line by line, so a key that holds line breaks is searched by every run without one that is
+    /// long enough not to match by chance, and a key whose runs are all too short is searched by its hex alone: what is drawn for the key never stops the test, and no needle is
+    /// shorter than the minimum.
     /// </summary>
-    private static byte[][] KeyNeedles(byte[] key)
+    internal static byte[][] KeyNeedles(byte[] key)
     {
-        var run = LongestRunWithoutLineBreak(key);
-        return run.Length < MinimumRun
-            ? throw new InvalidOperationException("The key holds line breaks that leave no run the search of the files could match.")
-            : [run, Encoding.ASCII.GetBytes(Convert.ToHexStringLower(key)), Encoding.ASCII.GetBytes(Convert.ToHexString(key))];
+        ArgumentNullException.ThrowIfNull(key);
+        return
+        [
+            .. RunsWithoutLineBreak(key).Where(run => run.Length >= MinimumRun),
+            Encoding.ASCII.GetBytes(Convert.ToHexStringLower(key)),
+            Encoding.ASCII.GetBytes(Convert.ToHexString(key)),
+        ];
     }
 
-    private static byte[] LongestRunWithoutLineBreak(byte[] key)
+    private static IEnumerable<byte[]> RunsWithoutLineBreak(byte[] key)
     {
-        var best = (Start: 0, Length: 0);
         var start = 0;
         for (var index = 0; index <= key.Length; index++)
         {
             if (index == key.Length || key[index] == LineBreak)
             {
-                best = index - start > best.Length ? (start, index - start) : best;
+                yield return key[start..index];
                 start = index + 1;
             }
         }
-
-        return key[best.Start..(best.Start + best.Length)];
     }
 
     /// <summary>The columns, among those given, whose text the observation shows, in the dump as text or as the hex a bytea is dumped in, or in any file of the server.</summary>

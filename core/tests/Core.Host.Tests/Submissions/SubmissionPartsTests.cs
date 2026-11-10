@@ -129,12 +129,16 @@ public sealed class SubmissionPartsTests
         await using var host = Hosted(startup);
         var holder = host.GetRequiredService<SubmissionServiceHolder>();
 
-        var absent = await holder.GetAsync(TestContext.Current.CancellationToken);
+        using var absent = await holder.GetAsync(TestContext.Current.CancellationToken);
         source.Present = true;
         using var present = await holder.GetAsync(TestContext.Current.CancellationToken);
 
-        Assert.Null(absent);
+        Assert.NotNull(absent);
+        Assert.Null(absent.Key);
+        Assert.True(absent.Unsealed.HasValue);
         Assert.NotNull(present);
+        Assert.NotNull(present.Key);
+        Assert.Null(present.Unsealed);
         Assert.Equal(2, source.Reads);
     }
 

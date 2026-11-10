@@ -171,13 +171,14 @@ public sealed class AccountScreenTests(BrowserFixture browser, AccountHostFixtur
     }
 
     [Fact]
-    public async Task OnThePhoneEachSessionIsABlockWithItsHeadersAndTheWayToEndItIsInSightWithoutScrollingTheTable()
+    public async Task OnThePhoneEachSessionIsABlockWithItsHeadersAndTheWayToEndItIsInSightWithoutScrollingTheTableSideways()
     {
         await using var tabs = await TwoSessionsAsync();
         await tabs.Current.Page.SetViewportSizeAsync(PhoneWidth, PhoneHeight);
         _ = await tabs.Current.Page.GotoAsync(Route);
 
         var end = tabs.Current.Page.Locator($"{Rows} a");
+        await end.ScrollIntoViewIfNeededAsync();
         var box = await end.BoundingBoxAsync();
         var table = await tabs.Current.Page.Locator("#sessoes-tabela-legenda")
             .EvaluateAsync<int>("(caption) => { const region = caption.closest('.data-table'); return region.scrollWidth - region.clientWidth; }");

@@ -16,6 +16,8 @@ public sealed class ReplicationDigestsTests : IDisposable
 
     public void Dispose() => reading.Dispose();
 
+    private static MeasuredMessage Measured(string author, DateTimeOffset instant, string text, int rank, int length) => new(new Message(author, instant, null, text, rank), length);
+
     [Fact]
     public void TheSameTextInTheSameDomainGivesTheSameDigestAndInAnotherDomainAnotherOne()
     {
@@ -32,7 +34,7 @@ public sealed class ReplicationDigestsTests : IDisposable
     {
         var message = new Message("ZQX-ana-silva", Start, RepliesTo: null, "ZQX-texto da mensagem", Rank: 0);
 
-        var occurrence = ReplicationDigests.OccurrenceOf(Derivation, 7, new ReplicationPlace(3, 1), message);
+        var occurrence = ReplicationDigests.OccurrenceOf(Derivation, 7, new ReplicationPlace(3, 1), new MeasuredMessage(message, 21));
 
         Assert.Equal((new ReplicationPlace(3, 1), 21, Start), (occurrence.Place, occurrence.Length, occurrence.Instant));
         Assert.Equal(ReplicationDigests.OfText(Derivation, 7, "ZQX-texto da mensagem"), occurrence.Text);
@@ -41,22 +43,49 @@ public sealed class ReplicationDigestsTests : IDisposable
     }
 
     [Fact]
-    public void TheLengthOfTheOccurrenceCountsCodePointsAndNotUtf16Units()
+    public void TheLengthOfTheOccurrenceIsTheOneCountedInCodePointsAndGivenAndNeverCountedHere()
     {
-        var message = new Message("ZQX-ana", Start, RepliesTo: null, "ZQX-\U0001F600\U0001F600", Rank: 0);
+        var message = new Message("ZQX-ana", Start, RepliesTo: null, "ZQX-\U0001F600", Rank: 0);
 
-        var occurrence = ReplicationDigests.OccurrenceOf(Derivation, 7, new ReplicationPlace(3, 1), message);
+        var occurrence = ReplicationDigests.OccurrenceOf(Derivation, 7, new ReplicationPlace(3, 1), new MeasuredMessage(message, 5));
 
-        Assert.Equal(6, occurrence.Length);
+        Assert.Equal(5, occurrence.Length);
+        Assert.Equal(6, message.Text.Length);
+    }
+
+    [Theory]
+    [InlineData(5, false)]
+    [InlineData(6, true)]
+    public void AnEmojiCountsOnceSoATextOfFiveCodePointsIsBelowTheLengthOfSixThatSixUtf16UnitsWouldReach(int codePoints, bool marked)
+    {
+        var rule = new ReplicationRule(minLength: 6, minSenders: 2);
+        var kept = ReplicationDigests.OccurrenceOf(Derivation, 7, new ReplicationPlace(1, 0), Measured("ZQX-ana", Start, "ZQX-\U0001F600", 0, codePoints));
+        var arriving = ReplicationDigests.OccurrenceOf(Derivation, 7, new ReplicationPlace(9, 4), Measured("ZQX-bia", Start.AddDays(2), "ZQX-\U0001F600", 4, codePoints));
+
+        Assert.Equal(marked, Replication.Marks(rule, [kept], [arriving]).Count > 0);
+    }
+
+    [Fact]
+    public void AMessageNotMeasuredIsRefusedByTheMeasuredParameter() =>
+        _ = Assert.Throws<ArgumentNullException>(() => ReplicationDigests.OccurrenceOf(Derivation, 7, new ReplicationPlace(3, 1), null!));
+
+    [Fact]
+    public void ALengthBelowZeroIsRefusedByTheLengthParameter()
+    {
+        var message = new Message("ZQX-ana", Start, RepliesTo: null, "ZQX-texto", Rank: 0);
+
+        var refused = Assert.Throws<ArgumentOutOfRangeException>(() => ReplicationDigests.OccurrenceOf(Derivation, 7, new ReplicationPlace(3, 1), new MeasuredMessage(message, -1)));
+
+        Assert.Equal("measured.Length", refused.ParamName);
     }
 
     [Fact]
     public void AForwardedMessageInTwoBatchesIsMarkedByTheDigestsOfTheDomain()
     {
         var rule = new ReplicationRule(minLength: 10, minSenders: 2);
-        var kept = ReplicationDigests.OccurrenceOf(Derivation, 7, new ReplicationPlace(1, 0), new Message("ZQX-ana", Start, null, "ZQX-ordem repassada em cadeia", 0));
-        var arriving = ReplicationDigests.OccurrenceOf(Derivation, 7, new ReplicationPlace(9, 4), new Message("ZQX-bia", Start.AddDays(2), null, "ZQX-ordem repassada em cadeia", 4));
-        var other = ReplicationDigests.OccurrenceOf(Derivation, 7, new ReplicationPlace(9, 5), new Message("ZQX-caio", Start.AddDays(2), null, "ZQX-outra coisa totalmente", 5));
+        var kept = ReplicationDigests.OccurrenceOf(Derivation, 7, new ReplicationPlace(1, 0), Measured("ZQX-ana", Start, "ZQX-ordem repassada em cadeia", 0, 29));
+        var arriving = ReplicationDigests.OccurrenceOf(Derivation, 7, new ReplicationPlace(9, 4), Measured("ZQX-bia", Start.AddDays(2), "ZQX-ordem repassada em cadeia", 4, 29));
+        var other = ReplicationDigests.OccurrenceOf(Derivation, 7, new ReplicationPlace(9, 5), Measured("ZQX-caio", Start.AddDays(2), "ZQX-outra coisa totalmente", 5, 26));
 
         var marks = Replication.Marks(rule, [kept], [other, arriving]);
 
@@ -67,8 +96,8 @@ public sealed class ReplicationDigestsTests : IDisposable
     public void TheSameTextWithTheDigestsOfAnotherDomainIsNotTheSameContent()
     {
         var rule = new ReplicationRule(minLength: 10, minSenders: 2);
-        var here = ReplicationDigests.OccurrenceOf(Derivation, 7, new ReplicationPlace(1, 0), new Message("ZQX-ana", Start, null, "ZQX-ordem repassada em cadeia", 0));
-        var there = ReplicationDigests.OccurrenceOf(Derivation, 8, new ReplicationPlace(2, 0), new Message("ZQX-bia", Start, null, "ZQX-ordem repassada em cadeia", 0));
+        var here = ReplicationDigests.OccurrenceOf(Derivation, 7, new ReplicationPlace(1, 0), Measured("ZQX-ana", Start, "ZQX-ordem repassada em cadeia", 0, 29));
+        var there = ReplicationDigests.OccurrenceOf(Derivation, 8, new ReplicationPlace(2, 0), Measured("ZQX-bia", Start, "ZQX-ordem repassada em cadeia", 0, 29));
 
         Assert.Empty(Replication.Marks(rule, [here], [there]));
     }

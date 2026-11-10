@@ -4,7 +4,8 @@ using Core.Platform.Configuration;
 namespace Core.Ingestion;
 
 /// <summary>
-/// The two values of the criterion of the replicated content in the configuration of the domain (decision 0024): each has a default and is shown with its origin in the effective configuration,
+/// The two values of the criterion of the replicated content in the configuration of the installation, the same for every domain (decision 0024):
+/// each has a default and is shown with its origin in the effective configuration,
 /// so that whoever reads the marks of a domain knows which values made them.
 /// </summary>
 public static class ReplicationConfiguration

@@ -95,6 +95,7 @@ public sealed class PeopleFormScreenTests(BrowserFixture browser, PeopleHostFixt
         var order = new List<string>();
         var seen = new List<bool>();
 
+        await Expect(tab.Page.Locator("#pessoa-nome")).ToBeFocusedAsync();
         await tab.Page.Keyboard.TypeAsync(name);
         for (var stop = 0; stop < 4; stop++)
         {

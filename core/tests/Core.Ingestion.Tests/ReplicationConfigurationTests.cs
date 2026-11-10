@@ -32,10 +32,10 @@ public sealed class ReplicationConfigurationTests
     }
 
     [Theory]
-    [InlineData("Replication:MinLength", "0", "um número inteiro de caracteres")]
-    [InlineData("Replication:MinLength", "-3", "um número inteiro de caracteres")]
-    [InlineData("Replication:MinLength", "100001", "um número inteiro de caracteres")]
-    [InlineData("Replication:MinLength", "vinte", "um número inteiro de caracteres")]
+    [InlineData("Replication:MinLength", "0", "um número inteiro de pontos de código")]
+    [InlineData("Replication:MinLength", "-3", "um número inteiro de pontos de código")]
+    [InlineData("Replication:MinLength", "100001", "um número inteiro de pontos de código")]
+    [InlineData("Replication:MinLength", "vinte", "um número inteiro de pontos de código")]
     [InlineData("Replication:MinSenders", "1", "um número inteiro de remetentes")]
     [InlineData("Replication:MinSenders", "0", "um número inteiro de remetentes")]
     [InlineData("Replication:MinSenders", "1001", "um número inteiro de remetentes")]

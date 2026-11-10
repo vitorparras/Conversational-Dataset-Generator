@@ -1,6 +1,7 @@
 using Core.Persistence.Custody.Verification;
 using Core.Persistence.People;
 using Core.Persistence.Settings;
+using Npgsql;
 
 namespace Core.Host.Settings;
 
@@ -10,13 +11,14 @@ internal sealed class ApplicationFactsReader
     private readonly CustodyVerifier verifier;
     private readonly PersonRegistry registry;
 
-    /// <summary>The reader over the verifier and the registry, both on the applier's credential, which only reads.</summary>
-    internal ApplicationFactsReader(CustodyVerifier verifier, PersonRegistry registry)
+    /// <summary>The reader over the database of the applier's credential, which only reads.</summary>
+    /// <param name="dataSource">The connections of that credential.</param>
+    /// <param name="time">The clock the verification reads.</param>
+    internal ApplicationFactsReader(NpgsqlDataSource dataSource, TimeProvider time)
     {
-        ArgumentNullException.ThrowIfNull(verifier);
-        ArgumentNullException.ThrowIfNull(registry);
-        this.verifier = verifier;
-        this.registry = registry;
+        ArgumentNullException.ThrowIfNull(dataSource);
+        verifier = new CustodyVerifier(dataSource, time);
+        registry = new PersonRegistry(dataSource);
     }
 
     /// <summary>The facts about the change now, as the database tells them.</summary>

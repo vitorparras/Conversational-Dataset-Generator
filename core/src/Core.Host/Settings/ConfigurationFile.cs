@@ -61,12 +61,9 @@ internal sealed class ConfigurationFile
         var values = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var section in Read() is { } root ? root : Enumerable.Empty<KeyValuePair<string, JsonNode?>>())
         {
-            foreach (var entry in SectionEntries(section.Value))
+            foreach (var entry in SectionEntries(section.Value).Where(entry => entry.Value is JsonValue))
             {
-                if (entry.Value is JsonValue value)
-                {
-                    values[$"{section.Key}:{entry.Key}"] = value.ToString();
-                }
+                values[$"{section.Key}:{entry.Key}"] = entry.Value!.ToString();
             }
         }
 

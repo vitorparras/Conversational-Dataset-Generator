@@ -1,6 +1,4 @@
 using Core.Persistence.Connection;
-using Core.Persistence.Custody.Verification;
-using Core.Persistence.People;
 using Core.Persistence.Settings;
 using Core.Platform.Configuration;
 using Core.Platform.Configuration.Sources;
@@ -70,9 +68,9 @@ internal static class ApplyConfigurationMode
     private static async Task<int> AppliedAsync(NpgsqlDataSource dataSource, IReadOnlyDictionary<string, string> values, TextWriter error)
     {
         using var loggers = LoggerFactory.Create(builder => builder.AddProvider(new WriterLogProvider(error)));
-        var file = new ConfigurationFile(values[ApplierConfiguration.SettingsFilePath], TimeProvider.System);
-        var applier = new ConfigurationApplier(file, loggers);
-        var facts = new ApplicationFactsReader(new CustodyVerifier(dataSource, TimeProvider.System), new PersonRegistry(dataSource));
+        var applier = new ConfigurationApplier(values[ApplierConfiguration.SettingsFilePath], TimeProvider.System, loggers);
+        var file = applier.Target;
+        var facts = new ApplicationFactsReader(dataSource, TimeProvider.System);
         var owed = 0;
         foreach (var change in await new ApprovedChanges(dataSource).PendingAsync(CancellationToken.None).ConfigureAwait(false))
         {

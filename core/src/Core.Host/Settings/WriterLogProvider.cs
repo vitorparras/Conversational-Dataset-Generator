@@ -13,7 +13,7 @@ internal sealed class WriterLogProvider : ILoggerProvider
     }
 
     /// <inheritdoc />
-    public ILogger CreateLogger(string categoryName) => new Lines(writeLine);
+    ILogger ILoggerProvider.CreateLogger(string categoryName) => new Lines(writeLine);
 
     /// <inheritdoc />
     public void Dispose()

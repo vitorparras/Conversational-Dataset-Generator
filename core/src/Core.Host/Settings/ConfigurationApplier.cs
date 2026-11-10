@@ -12,14 +12,19 @@ internal sealed class ConfigurationApplier
     private readonly ConfigurationFile file;
     private readonly ILoggerFactory loggers;
 
-    /// <summary>The applier over the file it writes and the log it tells in.</summary>
-    internal ConfigurationApplier(ConfigurationFile file, ILoggerFactory loggers)
+    /// <summary>The applier over the file at the path, which it writes, and the log it tells in.</summary>
+    /// <param name="path">The settings file of the server.</param>
+    /// <param name="time">The clock that stamps the copy of the file kept before a write.</param>
+    /// <param name="loggers">Where the applier tells what it did or refused.</param>
+    internal ConfigurationApplier(string path, TimeProvider time, ILoggerFactory loggers)
     {
-        ArgumentNullException.ThrowIfNull(file);
         ArgumentNullException.ThrowIfNull(loggers);
-        this.file = file;
+        file = new ConfigurationFile(path, time);
         this.loggers = loggers;
     }
+
+    /// <summary>The file this applier writes, for whoever needs to read what it holds.</summary>
+    internal ConfigurationFile Target => file;
 
     /// <summary>Judges the change and, when nothing stops it, writes it into the file; <see cref="ApplicationRefusal.None" /> says it was written.</summary>
     /// <param name="change">The change approved, as the database holds it.</param>

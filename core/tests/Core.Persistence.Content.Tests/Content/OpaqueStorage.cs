@@ -96,7 +96,7 @@ internal static class OpaqueStorage
     private static async Task OpenWithOriginAsync(ContentWorld world, string origin)
     {
         var receipt = new SubmissionReceipt("0123456789abcdef0123456789abcdef", 1, new string('0', 64));
-        var opening = new BatchOpening(IngestionWorld.Domain, IngestionWorld.Person, null, receipt, OriginDeclaration.Declared(world.Content, IngestionWorld.Domain, origin));
+        var opening = new BatchOpening(IngestionWorld.Domain, IngestionWorld.Person, null, new SubmissionOpening(receipt, OriginDeclaration.Declared(world.Content, IngestionWorld.Domain, origin)));
         var opened = await IngestionWorld.BatchesOf(world).OpenAsync(opening, TestContext.Current.CancellationToken);
         Assert.Equal(BatchOutcome.Opened, opened.Outcome);
     }

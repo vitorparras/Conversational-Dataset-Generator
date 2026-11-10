@@ -42,7 +42,7 @@ public sealed class SystemStateScreenTests(BrowserFixture browser, SystemHostFix
         await Expect(tab.Page.Locator(ChecksRows).Nth(1)).ToContainTextAsync("Falhou");
         await Expect(FactOf(tab.Page, "Apto").GetByRole(AriaRole.Link, new() { Name = "Ver a conferência que falhou" })).ToHaveAttributeAsync("href", "#conferencia-que-falhou");
         await Expect(tab.Page.Locator(ChecksRows).Nth(1)).ToHaveAttributeAsync("aria-current", "true");
-        await Expect(tab.Page.Locator(ChecksRows).Nth(1)).ToContainTextAsync($"{char.ToUpperInvariant(SystemScreenHost.FailedMessage[0])}{SystemScreenHost.FailedMessage[1..]}. Encontrado: {SystemScreenHost.FailedObserved}");
+        await Expect(tab.Page.Locator(ChecksRows).Nth(1)).ToContainTextAsync($"{Sentence(SystemScreenHost.FailedMessage)}. Encontrado: {SystemScreenHost.FailedObserved}");
         await Expect(tab.Page.Locator("[aria-labelledby=conferencias-titulo]")).ToContainTextAsync("1 de 2 passaram");
     }
 
@@ -197,6 +197,9 @@ public sealed class SystemStateScreenTests(BrowserFixture browser, SystemHostFix
     }
 
     /// <summary>The detail of a term of the lists of facts, found by the term and not by the markup that holds it.</summary>
+    /// <summary>The message of a check as the page says it: with the first letter in capital.</summary>
+    private static string Sentence(string text) => char.ToUpperInvariant(text[0]) + text[1..];
+
     private static ILocator FactOf(IPage page, string term) => page.Locator($"dl > div:has(dt:text-is('{term}')) dd");
 
     private async Task<BrowserTab> OpenAsync(string name)

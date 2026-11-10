@@ -8,9 +8,10 @@ internal static class PublishedHost
     private const string Project = "core/src/Core.Host/Core.Host.csproj";
     private static readonly TimeSpan Limit = TimeSpan.FromMinutes(10);
 
-    /// <summary>Publishes into the folder and returns the full path of every file it wrote; a publish that fails fails with its cause and the end of what it said (PublishFailure).</summary>
+    /// <summary>Publishes into the folder and returns the full path of every file it wrote; a publish that fails fails with its cause and the end of what it said (PublishFailure). It builds in a tree of its own (obj and bin under a temporary artifacts path, restored in locked mode), so that nothing it writes is read or rewritten by the rest of the run, which uses the obj and bin of core/src at the same time.</summary>
     public static async Task<IReadOnlyList<string>> IntoAsync(string folder, CancellationToken cancellationToken)
     {
+        using var tree = new TemporaryDirectory();
         var info = new ProcessStartInfo("dotnet")
         {
             WorkingDirectory = RepositoryFiles.Root(),
@@ -18,7 +19,7 @@ internal static class PublishedHost
             RedirectStandardError = true,
             UseShellExecute = false,
         };
-        foreach (var argument in new[] { "publish", Project, "--no-restore", "--configuration", "Release", "--output", folder, "-nodeReuse:false", "-p:UseSharedCompilation=false" })
+        foreach (var argument in new[] { "publish", Project, "--artifacts-path", tree.Path, "-p:RestoreLockedMode=true", "--configuration", "Release", "--output", folder, "-nodeReuse:false", "-p:UseSharedCompilation=false" })
         {
             info.ArgumentList.Add(argument);
         }

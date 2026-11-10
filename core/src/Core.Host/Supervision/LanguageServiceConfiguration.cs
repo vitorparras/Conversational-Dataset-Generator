@@ -82,9 +82,13 @@ internal static class LanguageServiceConfiguration
     internal static ConfigurationProblem AnalyzeTimeoutRefused(IReadOnlyDictionary<string, string> values) =>
         new(ConfigurationProblemKind.ValueNotAccepted, AnalyzeTimeoutPath, values[AnalyzeTimeoutPath], [AcceptedSeconds]);
 
-    /// <summary>The refusal of a start time limit that is not a whole positive number of seconds, the rule <see cref="LanguageServiceStartupCheck" /> applies; null for one that is.</summary>
+    /// <summary>The seconds a start time limit declares; null when it is not a whole number of seconds greater than zero. The one rule of the loader and of the check of the start.</summary>
+    internal static int? StartupSeconds(string declared) =>
+        int.TryParse(declared, NumberStyles.None, CultureInfo.InvariantCulture, out var seconds) && seconds > 0 ? seconds : null;
+
+    /// <summary>The refusal of a start time limit that is not a whole positive number of seconds; null for one that is.</summary>
     private static ConfigurationProblem? StartupTimeoutRefused(IReadOnlyDictionary<string, string> values) =>
-        values.TryGetValue(StartupTimeoutPath, out var declared) && !(int.TryParse(declared, NumberStyles.None, CultureInfo.InvariantCulture, out var seconds) && seconds > 0)
+        values.TryGetValue(StartupTimeoutPath, out var declared) && StartupSeconds(declared) is null
             ? new(ConfigurationProblemKind.ValueNotAccepted, StartupTimeoutPath, declared, new[] { AcceptedStartupSeconds }.AsReadOnly())
             : null;
 }

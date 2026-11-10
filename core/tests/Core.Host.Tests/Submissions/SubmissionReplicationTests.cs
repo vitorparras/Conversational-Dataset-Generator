@@ -106,14 +106,8 @@ public sealed class SubmissionReplicationTests
         var second = SubmissionWorld.Messages(("ZQXTRES", Forwarded), ("ZQXQUATRO", Forwarded));
 
         var runs = new[] { world.SubmitAsync(SubmissionWorld.Request(first)), world.SubmitAsync(SubmissionWorld.Request(second)) };
-        try
-        {
-            _ = await Task.WhenAll(runs);
-        }
-        catch (Exception refused)
-        {
-            Assert.Fail(refused.ToString());
-        }
+        var refused = await Record.ExceptionAsync(() => Task.WhenAll(runs));
+        Assert.Null(refused?.ToString());
 
         var states = string.Join(',', runs.Select(run => run.Result.State));
         Assert.Equal(("Accepted,Accepted", 4L, 4L), (states, await world.OccurrenceRowsAsync(), await world.MarkRowsAsync()));

@@ -72,7 +72,7 @@ internal static class OperatorEmailEndpoint
         return corrected.Outcome == PersonOutcome.Done ? PageRedirect.Of(context, $"{Of(id)}?{SavedKey}") : ScreenResult.Failure(context);
     }
 
-    private static RazorComponentResult<ScreenFrame> WithStatus(RazorComponentResult<ScreenFrame> page, int status)
+    private static RazorComponentResult WithStatus(RazorComponentResult page, int status)
     {
         page.StatusCode = status;
         return page;

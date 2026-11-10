@@ -50,7 +50,6 @@ internal sealed class PeopleScreenHost : ScreenHostBase
     {
         OperatorScreensEndpoint.Map(routes);
         AccountScreensEndpoint.Map(routes);
-        OperatorEmailEndpoint.Map(routes);
     }
 
     private async Task SeedAsync()

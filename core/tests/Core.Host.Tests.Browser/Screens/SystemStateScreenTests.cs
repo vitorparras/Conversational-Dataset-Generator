@@ -42,7 +42,7 @@ public sealed class SystemStateScreenTests(BrowserFixture browser, SystemHostFix
         await Expect(tab.Page.Locator(ChecksRows).Nth(1)).ToContainTextAsync("Falhou");
         await Expect(FactOf(tab.Page, "Apto").GetByRole(AriaRole.Link, new() { Name = "Ver a conferência que falhou" })).ToHaveAttributeAsync("href", "#conferencia-que-falhou");
         await Expect(tab.Page.Locator(ChecksRows).Nth(1)).ToHaveAttributeAsync("aria-current", "true");
-        await Expect(tab.Page.Locator(ChecksRows).Nth(1)).ToContainTextAsync($"{SystemScreenHost.FailedMessage}. Encontrado: {SystemScreenHost.FailedObserved}");
+        await Expect(tab.Page.Locator(ChecksRows).Nth(1)).ToContainTextAsync($"{char.ToUpperInvariant(SystemScreenHost.FailedMessage[0])}{SystemScreenHost.FailedMessage[1..]}. Encontrado: {SystemScreenHost.FailedObserved}");
         await Expect(tab.Page.Locator("[aria-labelledby=conferencias-titulo]")).ToContainTextAsync("1 de 2 passaram");
     }
 
@@ -185,14 +185,14 @@ public sealed class SystemStateScreenTests(BrowserFixture browser, SystemHostFix
         var reached = new List<string>();
         var seen = new List<bool>();
 
-        for (var stop = 0; stop < HeaderStops.Count + 3; stop++)
+        for (var stop = 0; stop < HeaderStops.Count + 4; stop++)
         {
             await tab.Page.Keyboard.PressAsync("Tab");
             reached.Add(await tab.Page.EvaluateAsync<string>(FocusedId));
             seen.Add(await tab.Page.EvaluateAsync<bool>(FocusIsSeen));
         }
 
-        Assert.Equal(HeaderStops.Then("nav__link", "nav__link", HeaderStops.TableStop), reached);
+        Assert.Equal(HeaderStops.Then("nav__link", "nav__link", "facts__note", HeaderStops.TableStop), reached);
         Assert.DoesNotContain(false, seen);
     }
 

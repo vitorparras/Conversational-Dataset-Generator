@@ -200,7 +200,7 @@ public sealed class PeopleListTests(BrowserFixture browser, PeopleHostFixture pe
             seen.Add(await tab.Page.EvaluateAsync<bool>(FocusIsSeen));
         }
 
-        Assert.Equal(["filter-box__summary", "filtro-funcao", "filtro-estado", "filtrar", "Limpar filtro"], order);
+        Assert.Equal(["Filtrar por nome, função e estado", "filtro-funcao", "filtro-estado", "filtrar", "Limpar filtro"], order);
         Assert.DoesNotContain(false, seen);
         await tab.Page.Locator("#filtro-nome").FocusAsync();
         await tab.Page.Keyboard.TypeAsync("zqx-lista-0");

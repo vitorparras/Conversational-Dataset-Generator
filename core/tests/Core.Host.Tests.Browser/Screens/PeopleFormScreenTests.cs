@@ -97,7 +97,7 @@ public sealed class PeopleFormScreenTests(BrowserFixture browser, PeopleHostFixt
 
         await Expect(tab.Page.Locator("#pessoa-nome")).ToBeFocusedAsync();
         await tab.Page.Keyboard.TypeAsync(name);
-        for (var stop = 0; stop < 4; stop++)
+        for (var stop = 0; stop < 5; stop++)
         {
             await tab.Page.Keyboard.PressAsync("Tab");
             order.Add(await tab.Page.EvaluateAsync<string>(Focused));
@@ -105,7 +105,7 @@ public sealed class PeopleFormScreenTests(BrowserFixture browser, PeopleHostFixt
             await tab.Page.Keyboard.TypeAsync(stop switch { 0 => "Audit", 1 => people.Host.Password, _ => string.Empty });
         }
 
-        Assert.Equal(["pessoa-funcao", "pessoa-senha", "cadastrar", "Voltar à lista"], order);
+        Assert.Equal(["pessoa-funcao", "pessoa-senha", "pessoa-email", "cadastrar", "Voltar à lista"], order);
         Assert.DoesNotContain(false, seen);
         await tab.Page.Keyboard.PressAsync("Shift+Tab");
         await tab.Page.Keyboard.PressAsync("Enter");

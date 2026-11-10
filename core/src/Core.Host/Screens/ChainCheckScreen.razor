@@ -4,7 +4,7 @@
 <p class="lead">Confira o que a verificação faz antes de pedir. Ela não se desfaz: o resultado fica no histórico.</p>
 @if (WaitSeconds is { } wait)
 {
-    <Notice Kind="Notice.Tone.Error">Você pediu uma verificação há pouco. Espere @wait segundos e peça de novo.</Notice>
+    <Notice Kind="Notice.Tone.Pending">Você pediu uma verificação há pouco. Tente de novo a partir de @if (RetryAt is { } retry) { <Moment At="retry" /> }, daqui a @wait segundos.</Notice>
 }
 @if (Unfinished)
 {
@@ -20,7 +20,7 @@
     <form method="post" action="@ScreenPaths.ChainCheck" data-wait="verificar-espera">
         <WaitNotice Id="verificar-espera" Text="Verificando a cadeia. A espera cresce com o tamanho dela; o resultado aparece na tela da custódia." />
         <div class="actions">
-            <Button Id="verificar-agora">Verificar agora</Button>
+            <Button Id="verificar-agora">Verificar a cadeia agora</Button>
             <Button Href="@ScreenPaths.Chain" Kind="Button.Look.Secondary">Voltar sem verificar</Button>
         </div>
     </form>
@@ -33,6 +33,10 @@
     /// <summary>The seconds to wait when the verification was refused for coming too soon after the last one asked.</summary>
     [Parameter]
     public int? WaitSeconds { get; set; }
+
+    /// <summary>The first whole minute at which asking again is not too soon, said as a time so that nobody has to count.</summary>
+    [Parameter]
+    public DateTimeOffset? RetryAt { get; set; }
 
     /// <summary>Whether the verification asked did not reach its end, so that nothing was recorded.</summary>
     [Parameter]

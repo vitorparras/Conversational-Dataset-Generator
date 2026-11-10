@@ -15,8 +15,8 @@ public sealed class BatchReceiptTests
     private const string Hex32 = "0123456789abcdef0123456789abcdef";
     private const string Hex64 = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
     private const string Insert =
-        "INSERT INTO content.ingestion_batch (domain_id, opened_by, condition, submission, received_bytes, received_digest, warning) "
-        + "VALUES (1, 1, 'restrita', @s, @b, @d, @w)";
+        "INSERT INTO content.ingestion_batch (domain_id, opened_by, condition, submission, received_bytes, received_digest, warning, origin_state) "
+        + "VALUES (1, 1, 'restrita', @s, @b, @d, @w, CASE WHEN @s::text IS NULL THEN NULL ELSE 'unknown' END)";
 
     [DatabaseFact]
     public async Task ReceiptIsKeptWithTheBatchTheSubmissionOpened()
@@ -24,7 +24,7 @@ public sealed class BatchReceiptTests
         await using var world = await IngestionWorld.CreateAsync();
         var receipt = new SubmissionReceipt(Hex32, 1234, Hex64, "name_with_path");
 
-        var opened = await IngestionWorld.BatchesOf(world).OpenAsync(new BatchOpening(1, 1, null, receipt), TestContext.Current.CancellationToken);
+        var opened = await IngestionWorld.BatchesOf(world).OpenAsync(new BatchOpening(1, 1, null, new SubmissionOpening(receipt, OriginDeclaration.Unknown)), TestContext.Current.CancellationToken);
         var entry = await new BatchRegister(world.DataSource).ReadAsync([1], opened.BatchId!.Value, TestContext.Current.CancellationToken);
 
         Assert.Equal(receipt, entry!.Receipt);
@@ -71,9 +71,10 @@ public sealed class BatchReceiptTests
         await using var world = await IngestionWorld.CreateAsync();
         var batches = IngestionWorld.BatchesOf(world);
         var receipt = new SubmissionReceipt(Hex32, 1, Hex64);
-        _ = await batches.OpenAsync(new BatchOpening(1, 1, null, receipt), TestContext.Current.CancellationToken);
+        _ = await batches.OpenAsync(new BatchOpening(1, 1, null, new SubmissionOpening(receipt, OriginDeclaration.Unknown)), TestContext.Current.CancellationToken);
 
-        var second = await Record.ExceptionAsync(() => batches.OpenAsync(new BatchOpening(1, 1, null, receipt), TestContext.Current.CancellationToken));
+        var again = new BatchOpening(1, 1, null, new SubmissionOpening(receipt, OriginDeclaration.Unknown));
+        var second = await Record.ExceptionAsync(() => batches.OpenAsync(again, TestContext.Current.CancellationToken));
 
         Assert.Equal(PostgresErrorCodes.UniqueViolation, Assert.IsType<PostgresException>(second).SqlState);
     }
@@ -83,7 +84,7 @@ public sealed class BatchReceiptTests
     {
         await using var world = await IngestionWorld.CreateAsync();
         var opened = await IngestionWorld.BatchesOf(world).OpenAsync(
-            new BatchOpening(1, 1, null, new SubmissionReceipt(Hex32, 5, Hex64)), TestContext.Current.CancellationToken);
+            new BatchOpening(1, 1, null, new SubmissionOpening(new SubmissionReceipt(Hex32, 5, Hex64), OriginDeclaration.Unknown)), TestContext.Current.CancellationToken);
         await world.Database.RunAsOwnerAsync("ALTER TABLE content.ingestion_batch DISABLE TRIGGER batch_change_needs_event");
         const string Change = "UPDATE content.ingestion_batch SET received_bytes = 6 WHERE id = @id";
 

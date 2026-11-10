@@ -22,6 +22,7 @@ internal static class TrialRoutes
     public const string List = "/ensaio/lista";
     public const string Choice = "/ensaio/caixa";
     public const string Failure = "/ensaio/falha";
+    public const string Unavailable = "/ensaio/indisponivel";
     public const string InternalDetail = "ZQX-detalhe-interno-6710";
     public const string ShortcutMessage = "O atalho foi acionado.";
     public const string NameRefusal = "Informe o nome.";
@@ -37,6 +38,7 @@ internal static class TrialRoutes
         _ = routes.MapGet(List, ShowList);
         _ = routes.MapGet(Choice, (HttpContext context) => Show(context, typeof(ChoiceScreen), "Tela de escolha"));
         _ = routes.MapGet(Failure, Fail);
+        _ = routes.MapGet(Unavailable, (HttpContext context) => ScreenResult.Unavailable(context));
         _ = routes.MapPost(Form, AnswerAsync);
         _ = routes.MapGet(Submit + "/{mode}", ShowSubmit);
         _ = routes.MapPost(Submit + "/{mode}", ReceiveAsync);

@@ -49,7 +49,6 @@ internal sealed class PeopleScreenHost : ScreenHostBase
     protected override void MapScreens(IEndpointRouteBuilder routes)
     {
         OperatorScreensEndpoint.Map(routes);
-        AccountEmailEndpoint.Map(routes);
         AccountScreensEndpoint.Map(routes);
     }
 

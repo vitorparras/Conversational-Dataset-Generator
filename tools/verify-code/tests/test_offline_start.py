@@ -456,7 +456,10 @@ class OfflineStartWorkflowTests(unittest.TestCase):
 
     def test_the_job_also_runs_in_the_scheduled_execution(self) -> None:
         self.assertNotIn("schedule", self.job)
-        self.assertIn("if: ${{ !cancelled() && needs.changes.outputs.heavy != 'false' }}", self.job)
+        self.assertIn(
+            "if: ${{ !cancelled() && needs.changes.outputs.heavy != 'false' && github.event.pull_request.draft != true }}",
+            self.job,
+        )
 
     def test_the_job_has_the_sdk_the_publish_needs(self) -> None:
         self.assertIn("actions/setup-dotnet@", self.job)

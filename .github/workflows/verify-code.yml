@@ -1,8 +1,14 @@
 name: Verifica código
 
+# While a pull request is a draft, the five slowest jobs (package, offline_start, service_folder,
+# mutation_modules and its matrix) are skipped, and the aggregator `mutation` reports green with them
+# skipped. A skipped job counts as green for the ruleset, which is safe: a draft is not merged, and
+# `ready_for_review` starts a run of the whole ruler on the same head. Push and schedule have no
+# draft, so nothing changes for them.
 on:
   workflow_dispatch:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main]
   schedule:
@@ -270,7 +276,7 @@ jobs:
   package:
     name: Construção reproduzível (duas cópias limpas)
     needs: changes
-    if: ${{ !cancelled() && github.event_name != 'schedule' && needs.changes.outputs.heavy != 'false' }}
+    if: ${{ !cancelled() && github.event_name != 'schedule' && needs.changes.outputs.heavy != 'false' && github.event.pull_request.draft != true }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -295,7 +301,7 @@ jobs:
   offline_start:
     name: Partida sem rota de rede (contêineres, strace)
     needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.heavy != 'false' }}
+    if: ${{ !cancelled() && needs.changes.outputs.heavy != 'false' && github.event.pull_request.draft != true }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -312,7 +318,7 @@ jobs:
   service_folder:
     name: Pasta do serviço reproduzível (linux-x64)
     needs: changes
-    if: ${{ !cancelled() && github.event_name != 'schedule' && needs.changes.outputs.heavy != 'false' }}
+    if: ${{ !cancelled() && github.event_name != 'schedule' && needs.changes.outputs.heavy != 'false' && github.event.pull_request.draft != true }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -328,7 +334,7 @@ jobs:
   mutation_modules:
     name: Módulos críticos da mutação
     needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.heavy != 'false' }}
+    if: ${{ !cancelled() && needs.changes.outputs.heavy != 'false' && github.event.pull_request.draft != true }}
     runs-on: ubuntu-latest
     outputs:
       modules: ${{ steps.list.outputs.modules }}
@@ -351,7 +357,7 @@ jobs:
   mutation_module:
     name: Mutação (${{ matrix.module }})
     needs: mutation_modules
-    if: needs.mutation_modules.outputs.modules != '[]'
+    if: needs.mutation_modules.outputs.modules != '[]' && github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     # The step cuts the module at the ceiling of docs/operacao/017; the rest is setup and restore.
     timeout-minutes: 35
@@ -392,8 +398,8 @@ jobs:
           if-no-files-found: ignore
 
   # Aggregates the matrix under the name the check always had. It always reports: everything skipped
-  # when the classification dispensed it, an empty matrix when the list declared that no module is
-  # reached, green otherwise (a failed classification or list is a failure).
+  # when the classification dispensed it or the pull request is a draft, an empty matrix when the list
+  # declared that no module is reached, green otherwise (a failed classification or list is a failure).
   mutation:
     name: Mutação nos módulos críticos
     needs: [changes, mutation_modules, mutation_module]
@@ -407,11 +413,12 @@ jobs:
           LISTED: ${{ needs.mutation_modules.result }}
           MODULES: ${{ needs.mutation_modules.outputs.modules }}
           MATRIX: ${{ needs.mutation_module.result }}
+          DRAFT: ${{ github.event.pull_request.draft }}
         run: |
-          echo "classificação: $CLASSIFICATION, heavy=$HEAVY, lista: $LISTED, módulos: $MODULES, matriz: $MATRIX"
+          echo "classificação: $CLASSIFICATION, heavy=$HEAVY, rascunho: $DRAFT, lista: $LISTED, módulos: $MODULES, matriz: $MATRIX"
           list=success
           matrix=success
-          if [ "$CLASSIFICATION" = success ] && [ "$HEAVY" = false ]; then
+          if [ "$CLASSIFICATION" = success ] && { [ "$HEAVY" = false ] || [ "$DRAFT" = true ]; }; then
             list=skipped
             matrix=skipped
           elif [ "$CLASSIFICATION" = success ] && [ "$LISTED" = success ] && [ "$MODULES" = '[]' ]; then

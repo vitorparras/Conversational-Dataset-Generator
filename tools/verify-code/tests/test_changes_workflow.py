@@ -7,6 +7,8 @@ import shutil
 import subprocess
 import unittest
 
+import yaml
+
 from steps import tested_tree
 
 from . import support
@@ -35,6 +37,8 @@ ALWAYS = (
 )
 HEAVY_ONLY = "needs.changes.outputs.heavy != 'false'"
 NOT_CANCELLED = "!cancelled()"
+NOT_DRAFT = "github.event.pull_request.draft != true"
+SLOW = ("package", "offline_start", "service_folder", "mutation_modules", "mutation_module")
 BASH = shutil.which("bash")
 
 
@@ -49,14 +53,14 @@ def aggregator_script() -> str:
     return "\n".join(line[10:] for line in block.splitlines())
 
 
-def aggregate(*results: str) -> int:
+def aggregate(*results: str, draft: str = "") -> int:
     """The exit code of the aggregator for the results GitHub would hand it, in the order of
-    CLASSIFICATION, HEAVY, LISTED, MODULES and MATRIX."""
+    CLASSIFICATION, HEAVY, LISTED, MODULES and MATRIX; DRAFT is empty outside a pull request."""
     assert BASH is not None
     names = ("CLASSIFICATION", "HEAVY", "LISTED", "MODULES", "MATRIX")
     done = subprocess.run(
         [BASH, "-c", aggregator_script()],
-        env={**dict(zip(names, results, strict=True)), "PATH": "/usr/bin:/bin"},
+        env={**dict(zip(names, results, strict=True)), "DRAFT": draft, "PATH": "/usr/bin:/bin"},
         capture_output=True,
         text=True,
         check=False,
@@ -173,6 +177,52 @@ class ChangesWorkflowTests(unittest.TestCase):
         self.assertLess(base.index("needs.changes.result == 'success'"), base.index("format("))
         self.assertTrue(base.rstrip().endswith("|| '' }}"))
 
+    def test_the_pull_request_run_starts_when_it_leaves_the_draft_too(self) -> None:
+        document = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
+        triggers = document[True]  # PyYAML reads the key `on` as True.
+
+        self.assertEqual(
+            triggers["pull_request"]["types"],
+            ["opened", "synchronize", "reopened", "ready_for_review"],
+        )
+
+    def test_push_schedule_and_the_manual_run_keep_their_triggers(self) -> None:
+        document = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
+        triggers = document[True]
+
+        self.assertEqual(list(triggers), ["workflow_dispatch", "pull_request", "push", "schedule"])
+        self.assertEqual(triggers["push"], {"branches": ["main"]})
+        self.assertEqual(triggers["schedule"], [{"cron": "17 4 * * 1"}])
+
+    def test_the_slow_jobs_wait_for_the_pull_request_to_leave_the_draft(self) -> None:
+        for name in SLOW:
+            with self.subTest(job=name):
+                condition = next(
+                    line for line in job(name).splitlines() if line.startswith("    if:")
+                )
+                self.assertIn(NOT_DRAFT, condition)
+
+    def test_the_other_jobs_do_not_look_at_the_draft(self) -> None:
+        for name in set(DISPENSED) - set(SLOW):
+            with self.subTest(job=name):
+                self.assertNotIn("draft", job(name))
+        for name in ALWAYS:
+            with self.subTest(job=name):
+                self.assertNotIn("draft", job(name))
+
+    def test_the_draft_never_dispenses_what_push_and_schedule_run(self) -> None:
+        # Outside a pull request the draft is null, and `null != true`; nothing else mentions it.
+        for name in SLOW:
+            with self.subTest(job=name):
+                condition = next(
+                    line for line in job(name).splitlines() if line.startswith("    if:")
+                )
+                self.assertIn(f"&& {NOT_DRAFT}", condition)
+                self.assertNotIn("== true", condition)
+
+    def test_the_aggregator_reads_the_draft_of_the_pull_request(self) -> None:
+        self.assertIn("DRAFT: ${{ github.event.pull_request.draft }}", job("mutation"))
+
     def test_the_light_jobs_never_wait_for_the_classification_nor_depend_on_it(self) -> None:
         for name in ALWAYS:
             with self.subTest(job=name):
@@ -242,6 +292,33 @@ class AggregatorTests(unittest.TestCase):
             with self.subTest(classification=classification):
                 self.assertEqual(aggregate(classification, "", "success", "[]", "skipped"), 1)
         self.assertEqual(aggregate("success", "true", "success", "[]", "skipped"), 0)
+
+    def test_a_draft_passes_with_the_list_and_the_matrix_skipped(self) -> None:
+        for heavy in ("true", "false", ""):
+            with self.subTest(heavy=heavy):
+                self.assertEqual(
+                    aggregate("success", heavy, "skipped", "", "skipped", draft="true"), 0
+                )
+
+    def test_a_draft_does_not_accept_a_list_or_a_matrix_that_ran(self) -> None:
+        self.assertEqual(
+            aggregate("success", "true", "success", '["a"]', "success", draft="true"), 1
+        )
+        self.assertEqual(aggregate("success", "true", "success", "[]", "skipped", draft="true"), 1)
+        self.assertEqual(aggregate("success", "true", "skipped", "", "success", draft="true"), 1)
+
+    def test_a_draft_with_a_failed_classification_still_reproves(self) -> None:
+        self.assertEqual(aggregate("failure", "", "skipped", "", "skipped", draft="true"), 1)
+
+    def test_a_pull_request_that_is_not_a_draft_runs_the_whole_ruler(self) -> None:
+        self.assertEqual(aggregate("success", "true", "skipped", "", "skipped", draft="false"), 1)
+        self.assertEqual(
+            aggregate("success", "true", "success", '["a"]', "success", draft="false"), 0
+        )
+
+    def test_a_run_outside_a_pull_request_is_unchanged_by_the_draft(self) -> None:
+        self.assertEqual(aggregate("success", "true", "skipped", "", "skipped", draft=""), 1)
+        self.assertEqual(aggregate("success", "true", "success", '["a"]', "success", draft=""), 0)
 
     def test_a_failed_classification_reproves_a_skipped_list_and_accepts_a_green_run(self) -> None:
         self.assertEqual(aggregate("failure", "", "skipped", "", "skipped"), 1)

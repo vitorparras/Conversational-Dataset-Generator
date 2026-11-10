@@ -95,7 +95,9 @@ class TestCoreTests(unittest.TestCase):
         self.assertFalse(result.ok)
         self.assertIn("1 teste(s) do núcleo falharam", result.details)
 
-    def test_a_failed_test_is_named_with_the_first_line_of_its_message(self) -> None:
+    def test_a_failed_test_is_named_with_the_first_line_of_its_message_and_the_rest_follows(
+        self,
+    ) -> None:
         files = {
             "a.trx": support.trx_failing(
                 "Alpha.Tests", 3, "Ns.Classe.Metodo", "Esperado 1\nmas foi 2\n  em x.cs:9"
@@ -105,8 +107,44 @@ class TestCoreTests(unittest.TestCase):
 
         result = test_core.run(support.context(self.root, self.runner(files, ok=False)))
 
-        self.assertIn("  Alpha.Tests: Ns.Classe.Metodo: Esperado 1", result.details)
-        self.assertNotIn("mas foi 2", "".join(result.details))
+        named = result.details.index("  Alpha.Tests: Ns.Classe.Metodo: Esperado 1")
+        self.assertEqual(
+            ("    | mas foi 2", "    |   em x.cs:9"), result.details[named + 1 : named + 3]
+        )
+
+    def test_the_whole_message_of_a_failed_test_reaches_the_report(self) -> None:
+        message = "dotnet publish exited with 1: Killed\n" + "\n".join(
+            f"line {number}" for number in range(1, 51)
+        )
+        files = {
+            "a.trx": support.trx_failing("Alpha.Tests", 3, "Ns.Classe.Metodo", message),
+            "b.trx": support.trx("Beta.Tests", 2, 0),
+        }
+
+        result = test_core.run(support.context(self.root, self.runner(files, ok=False)))
+
+        self.assertIn(
+            "  Alpha.Tests: Ns.Classe.Metodo: dotnet publish exited with 1: Killed", result.details
+        )
+        self.assertIn("    | line 1", result.details)
+        self.assertIn("    | line 50", result.details)
+
+    def test_a_message_longer_than_the_limit_keeps_its_end_and_says_how_much_was_left_out(
+        self,
+    ) -> None:
+        total = test_core.MESSAGE_LINES + 15
+        message = "headline\n" + "\n".join(f"line {number}" for number in range(1, total + 1))
+        files = {
+            "a.trx": support.trx_failing("Alpha.Tests", 3, "Ns.Classe.Metodo", message),
+            "b.trx": support.trx("Beta.Tests", 2, 0),
+        }
+
+        result = test_core.run(support.context(self.root, self.runner(files, ok=False)))
+
+        self.assertIn("    | (15 linha(s) anteriores omitidas)", result.details)
+        self.assertNotIn("    | line 15", result.details)
+        self.assertIn("    | line 16", result.details)
+        self.assertIn(f"    | line {total}", result.details)
 
     def test_a_failed_test_without_message_is_still_named(self) -> None:
         files = {

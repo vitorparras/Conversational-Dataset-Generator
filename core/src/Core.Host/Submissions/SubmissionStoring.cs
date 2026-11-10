@@ -49,9 +49,10 @@ internal static class SubmissionStoring
     {
         try
         {
-            foreach (var unit in kept.Material.Units)
+            foreach (var (unit, declared) in kept.Material.Units.Zip(Accommodating.Of(kept.Material, kept.Form)))
             {
-                _ = await writer.AddItemTextAsync(kept.DomainId, kept.BatchId, new NewItemText(unit.Text), cancellationToken).ConfigureAwait(false);
+                var accommodation = declared is null ? null : new ItemAccommodation(declared.FormCode, declared.Codes);
+                _ = await writer.AddItemTextAsync(kept.DomainId, kept.BatchId, new NewItemText(unit.Text, Accommodation: accommodation), cancellationToken).ConfigureAwait(false);
             }
 
             return true;
@@ -92,5 +93,6 @@ internal static class SubmissionStoring
     /// <param name="DomainId">The domain.</param>
     /// <param name="BatchId">The batch.</param>
     /// <param name="Material">What the reader gave.</param>
-    internal sealed record Kept(int DomainId, long BatchId, ReadMaterial Material);
+    /// <param name="Form">The form the material is accommodated into, which says what each item declares it lost.</param>
+    internal sealed record Kept(int DomainId, long BatchId, ReadMaterial Material, MaterialForm Form);
 }

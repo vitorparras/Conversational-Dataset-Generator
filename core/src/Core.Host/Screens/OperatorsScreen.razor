@@ -69,7 +69,7 @@
 
     /// <summary>The page the registry answered, already filtered and cut to its fixed size by the server.</summary>
     [Parameter, EditorRequired]
-    public PersonPage Page { get; set; } = default!;
+    public required PersonPage Page { get; set; }
 
     /// <summary>The filter as it is in the address, given back to its fields.</summary>
     [Parameter]

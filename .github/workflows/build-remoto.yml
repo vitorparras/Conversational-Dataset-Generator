@@ -105,7 +105,7 @@ jobs:
               code=$?
               echo "tests $project exit=$code $(sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/test-$project.log" | grep -hE '^ *(total|failed|succeeded|skipped):' | tr -d '\n' | tr -s ' ')" >> "$RUNNER_TEMP/tests.log"
               if [ "$code" != 0 ]; then
-                grep -hE "error|Failed!|^ *failed " "$RUNNER_TEMP/test-$project.log" | sort -u | head -40 >> "$RUNNER_TEMP/tests.log"
+                sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/test-$project.log" | grep -hE "error|Failed!|^ *failed " | sort -u | head -40 >> "$RUNNER_TEMP/tests.log"
                 [ "$tests" = 0 ] && { tests=$code; failing="$RUNNER_TEMP/test-$project.log"; }
               fi
             done

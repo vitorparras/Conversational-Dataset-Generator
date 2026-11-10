@@ -3,8 +3,8 @@
 > Operacional. 2026-11-09.
 
 Preenche o modelo de [034](034-roteiro-de-usabilidade.md) para a alteração de configuração pela tela
-(`/configuracao/alteracoes`, issue 634, parte 2c), conferido com a decisão 0053 e com a tela do
-commit cc473d42, fora do main. As pessoas de teste são `operador-23` e `operador-24`, com a função
+(`/configuracao/alteracoes`, issue 634, parte 2c), conferido com a decisão 0053 e com a tela no
+main (#781). As pessoas de teste são `operador-23` e `operador-24`, com a função
 de Administração técnica, e `operador-25`, com a de Auditoria, criadas para o ensaio, com a senha
 combinada, e descartadas no fim. Quem executa não é quem escreveu a tela. O aplicador não tem tela.
 

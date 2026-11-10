@@ -20,7 +20,7 @@ public sealed class ConfigurationPendingTests : IClassFixture<PeopleDatabase>
     }
 
     [DatabaseFact]
-    public async Task ASubmissionWaitingForADecisionIsListedWithTheNameOfWhoSubmittedIt()
+    public async Task ASubmissionWaitingForADecisionIsListedWithTheNameOfWhoSubmittedItAsync()
     {
         var changes = new ConfigurationChanges(await database.ApplicationAsync());
         var name = PeopleDatabase.NewName();
@@ -35,7 +35,7 @@ public sealed class ConfigurationPendingTests : IClassFixture<PeopleDatabase>
     }
 
     [DatabaseFact]
-    public async Task ADecidedSubmissionIsNotListed()
+    public async Task ADecidedSubmissionIsNotListedAsync()
     {
         var changes = new ConfigurationChanges(await database.ApplicationAsync());
         var written = await SubmitAsync(changes, await NewPersonAsync(PeopleDatabase.NewName()));
@@ -48,7 +48,7 @@ public sealed class ConfigurationPendingTests : IClassFixture<PeopleDatabase>
     }
 
     [DatabaseFact]
-    public async Task ASubmissionTakenBeforeTheMomentGivenIsNotListed()
+    public async Task ASubmissionTakenBeforeTheMomentGivenIsNotListedAsync()
     {
         var changes = new ConfigurationChanges(await database.ApplicationAsync());
         var written = await SubmitAsync(changes, await NewPersonAsync(PeopleDatabase.NewName()));

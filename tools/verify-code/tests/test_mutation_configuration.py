@@ -55,7 +55,11 @@ class MutationModuleJobTests(unittest.TestCase):
         self.assertIn("MODULE: ${{ matrix.module }}", module_job())
 
     def test_the_job_runs_unless_the_list_declared_that_no_module_is_reached(self) -> None:
-        self.assertIn("if: needs.mutation_modules.outputs.modules != '[]'\n", module_job())
+        self.assertIn(
+            "if: needs.mutation_modules.outputs.modules != '[]' "
+            "&& github.event.pull_request.draft != true\n",
+            module_job(),
+        )
         self.assertNotIn("schedule", module_job())
 
     def test_one_failing_module_does_not_cancel_the_others(self) -> None:
@@ -114,7 +118,11 @@ class MutationAggregateJobTests(unittest.TestCase):
         self.assertIn("LISTED: ${{ needs.mutation_modules.result }}", job)
         self.assertIn("MATRIX: ${{ needs.mutation_module.result }}", job)
         self.assertIn("MODULES: ${{ needs.mutation_modules.outputs.modules }}", job)
-        self.assertIn('if [ "$CLASSIFICATION" = success ] && [ "$HEAVY" = false ]; then', job)
+        self.assertIn(
+            'if [ "$CLASSIFICATION" = success ] '
+            '&& { [ "$HEAVY" = false ] || [ "$DRAFT" = true ]; }; then',
+            job,
+        )
         self.assertIn('[ "$LISTED" = "$list" ] && [ "$MATRIX" = "$matrix" ] || exit 1', job)
 
     def test_the_aggregate_never_continues_on_error(self) -> None:

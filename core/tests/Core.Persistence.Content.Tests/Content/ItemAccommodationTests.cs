@@ -102,6 +102,67 @@ public sealed class ItemAccommodationTests
     }
 
     [Fact]
+    public void EachRefusalOfTheBuildingSaysWhichArgumentIsWrongAndWhy()
+    {
+        var noForm = Assert.Throws<ArgumentException>(() => new ItemAccommodation("Document", ["author"]));
+        var noLoss = Assert.Throws<ArgumentException>(() => new ItemAccommodation("document", []));
+        var badLoss = Assert.Throws<ArgumentException>(() => new ItemAccommodation("document", ["author", "Instant"]));
+
+        Assert.Equal(("form", "losses", "losses"), (noForm.ParamName, noLoss.ParamName, badLoss.ParamName));
+        Assert.StartsWith("The form is a code in lowercase, digits and underscores.", noForm.Message, StringComparison.Ordinal);
+        Assert.StartsWith("An item accommodated declares at least one loss.", noLoss.Message, StringComparison.Ordinal);
+        Assert.StartsWith("A loss is a code in lowercase, digits and underscores.", badLoss.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("author", "instant")]
+    [InlineData("instant", "author")]
+    public void OneLossThatIsNotACodeAmongLossesThatAreRefusesTheWholeWhicheverPlaceItTakes(string first, string second)
+    {
+        _ = Assert.Throws<ArgumentException>(() => new ItemAccommodation("document", [first, second, "Not a code"]));
+        _ = Assert.Throws<ArgumentException>(() => new ItemAccommodation("document", ["Not a code", first, second]));
+        Assert.Equal([first, second], new ItemAccommodation("document", [first, second]).Losses);
+    }
+
+    [Theory]
+    [InlineData("a0")]
+    [InlineData("a9")]
+    [InlineData("a_")]
+    [InlineData("az")]
+    [InlineData("a0z9_5")]
+    public void CodesMadeOfLowercaseDigitsAndUnderscoresAreAcceptedAtTheEdgesOfEachRange(string code)
+    {
+        var accommodation = new ItemAccommodation(code, [code]);
+
+        Assert.Equal((code, code), (accommodation.Form, Assert.Single(accommodation.Losses)));
+    }
+
+    [Theory]
+    [InlineData("a/")]
+    [InlineData("a:")]
+    [InlineData("a`")]
+    [InlineData("a{")]
+    [InlineData("a@")]
+    [InlineData("a[")]
+    [InlineData("0a")]
+    [InlineData("_a")]
+    public void CharactersJustOutsideEachRangeAndADigitOrUnderscoreFirstAreRefusedAsFormAndAsLoss(string code)
+    {
+        var asForm = Assert.Throws<ArgumentException>(() => new ItemAccommodation(code, ["author"]));
+        var asLoss = Assert.Throws<ArgumentException>(() => new ItemAccommodation("document", [code]));
+
+        Assert.Equal(("form", "losses"), (asForm.ParamName, asLoss.ParamName));
+    }
+
+    [Fact]
+    public void CodeOfSixtyThreeCharactersIsAcceptedAndOneOfSixtyFourIsNot()
+    {
+        var longest = new string('a', 63);
+
+        Assert.Equal(longest, new ItemAccommodation(longest, [longest]).Form);
+        _ = Assert.Throws<ArgumentException>(() => new ItemAccommodation(longest + "a", ["author"]));
+    }
+    [Fact]
     public void NoWayOfBuildingTheAccommodationLeavesTheLossesOut()
     {
         var constructors = typeof(ItemAccommodation).GetConstructors();

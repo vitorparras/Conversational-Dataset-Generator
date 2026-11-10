@@ -97,7 +97,7 @@ internal sealed class SubmissionWorld : IAsyncDisposable
             conditions,
             content,
             new ContentWriter(dataSource, content),
-            replication is null ? null : new ReplicationMarking(new ReplicationStore(dataSource), MarkingDerivation(), replication));
+            replication is null ? null : new ReplicationMarking(new ReplicationStore(dataSource), MarkingDerivation(), replication, new TextBoundaries()));
 
     private static KeyDerivation MarkingDerivation()
     {

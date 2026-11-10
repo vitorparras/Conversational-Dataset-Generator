@@ -1,3 +1,4 @@
+using Core.Boundary.Contracts;
 using Core.Ingestion;
 using Core.Persistence.Content;
 using Core.Platform.Keys;
@@ -13,16 +14,20 @@ internal sealed class ReplicationMarking
     private readonly ReplicationStore store;
     private readonly KeyDerivation derivation;
     private readonly ReplicationRule rule;
+    private readonly ITextBoundaries boundaries;
 
     /// <summary>The marking over the store of the digests, the derivation of the key and the criterion the configuration gave.</summary>
     /// <param name="store">Keeps the digests and the marks.</param>
     /// <param name="derivation">The derivation of the master key, which gives the digest of each domain.</param>
     /// <param name="rule">The size from which a text counts and the number of senders from which it is replicated.</param>
-    internal ReplicationMarking(ReplicationStore store, KeyDerivation derivation, ReplicationRule rule)
+    /// <param name="boundaries">Counts the code points of a text, the one unit the size is measured in.</param>
+    internal ReplicationMarking(ReplicationStore store, KeyDerivation derivation, ReplicationRule rule, ITextBoundaries boundaries)
     {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(derivation);
         ArgumentNullException.ThrowIfNull(rule);
+        ArgumentNullException.ThrowIfNull(boundaries);
+        this.boundaries = boundaries;
         this.store = store;
         this.derivation = derivation;
         this.rule = rule;
@@ -37,13 +42,16 @@ internal sealed class ReplicationMarking
     {
         var arriving = items
             .Where(stored => stored.Unit.Author is not null && stored.Unit.Instant is not null)
-            .Select((stored, rank) => ReplicationDigests.OccurrenceOf(
-                derivation, domainId, new ReplicationPlace(stored.Item, 0), new Message(stored.Unit.Author!, stored.Unit.Instant!.Value, stored.Unit.RepliesTo, stored.Unit.Text, rank)))
+            .Select((stored, rank) => ReplicationDigests.OccurrenceOf(derivation, domainId, new ReplicationPlace(stored.Item, 0), Measured(stored.Unit, rank)))
             .ToList();
-        var kept = await store.OccurrencesAsync(domainId, cancellationToken).ConfigureAwait(false);
+        var digests = arriving.Select(arrived => arrived.Text).Distinct(StringComparer.Ordinal).ToList();
+        var kept = await store.OccurrencesAsync(domainId, digests, cancellationToken).ConfigureAwait(false);
         var known = kept.Select(found => new ReplicationOccurrence(new ReplicationPlace(found.Item, found.Position), found.TextDigest, found.SenderDigest, found.Length, found.SaidAt)).ToList();
         var marks = Replication.Marks(rule, known, arriving).Select(mark => new StoredMark(mark.Of.Item, mark.Of.Position, mark.First.Item, mark.First.Position)).ToList();
         var occurrences = arriving.Select(arrived => new StoredOccurrence(arrived.Place.Item, arrived.Place.Position, arrived.Text, arrived.Sender, arrived.Length, arrived.Instant)).ToList();
-        await store.RecordAsync(domainId, batchId, occurrences, marks, cancellationToken).ConfigureAwait(false);
+        await store.RecordAsync(new ReplicationTarget(domainId, batchId), occurrences, marks, cancellationToken).ConfigureAwait(false);
     }
+
+    private MeasuredMessage Measured(ReadUnit unit, int rank) =>
+        new(new Message(unit.Author!, unit.Instant!.Value, unit.RepliesTo, unit.Text, rank), boundaries.CodePointCount(unit.Text));
 }

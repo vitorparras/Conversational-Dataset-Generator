@@ -17,4 +17,10 @@
   As tabelas `ContentColumns.ReplicationOccurrence` e `ContentColumns.ReplicationMark` (#82,
   decisão 0024) guardam o resumo com chave do texto e do remetente de cada mensagem e a marca
   que aponta para a primeira ocorrência; são só de inserção, valem pelo lote como o conteúdo, e
-  a rejeição do lote as remove com ele
+  a rejeição do lote as remove com ele.
+  Na parte 3 da #82, `OccurrencesAsync` e `MarksAsync` leem só o que casa com os resumos do
+  lote (`= ANY(@digests)`), nunca o domínio inteiro. Limite conhecido: dois lotes simultâneos
+  do mesmo domínio não se veem, porque cada um só enxerga o que o outro já gravou; o mesmo
+  texto neles não se marca entre si e a marca chega no próximo lote, sem falha nem duplicata
+  (`ON CONFLICT DO NOTHING`). O tamanho gravado, `Length`, e o instante, `SaidAt`, valem em
+  pontos de código e em microssegundos.

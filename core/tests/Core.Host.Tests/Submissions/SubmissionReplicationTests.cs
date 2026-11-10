@@ -1,6 +1,9 @@
+using System.Globalization;
 using Core.Host.Submissions;
 using Core.Ingestion;
 using Core.Persistence.Tests.Fixtures;
+using Core.Platform.Configuration;
+using Core.Platform.Configuration.Sources;
 
 namespace Core.Host.Tests.Submissions;
 
@@ -63,6 +66,48 @@ public sealed class SubmissionReplicationTests
         var outcome = await world.SubmitAsync(SubmissionWorld.Request(Messages(("ZQXUM", Forwarded), ("ZQXDOIS", Forwarded))));
 
         Assert.Equal((SubmissionState.Accepted, 0L, 0L), (outcome.State, await world.OccurrenceRowsAsync(), await world.MarkRowsAsync()));
+    }
+
+    [DatabaseTheory]
+    [InlineData("ZQXa\U0001F642", 0L)]
+    [InlineData("ZQXab\U0001F642", 2L)]
+    public async Task AnEmojiCountsAsOneCodePointAgainstTheMinimumOfTheDomain(string text, long marks)
+    {
+        await using var world = await SubmissionWorld.CreateAsync(replication: new ReplicationRule(minLength: 6, minSenders: 2));
+
+        _ = await world.SubmitAsync(SubmissionWorld.Request(Messages(("ZQXUM", text), ("ZQXDOIS", text))));
+
+        Assert.Equal(marks, await world.MarkRowsAsync());
+    }
+
+    [DatabaseTheory]
+    [DatabaseTheory]
+    [InlineData(10, 2, 2L)]
+    [InlineData(29, 2, 0L)]
+    [InlineData(10, 3, 0L)]
+    public async Task TheSameMaterialUnderOtherValuesOfTheConfigurationGivesOtherMarksAndTheOriginOfEachValueIsShown(int length, int senders, long marks)
+    {
+        var loaded = ClosedConfiguration.Load(
+            new ConfigurationSchema([ReplicationConfiguration.Section]),
+            new StrictArgumentsSource([$"--Replication:MinLength={length}", $"--Replication:MinSenders={senders}"]));
+        await using var world = await SubmissionWorld.CreateAsync(replication: ReplicationConfiguration.Rule(loaded.Values));
+
+        _ = await world.SubmitAsync(SubmissionWorld.Request(Messages(("ZQXUM", Forwarded), ("ZQXDOIS", Forwarded))));
+
+        Assert.Equal(marks, await world.MarkRowsAsync());
+        Assert.Contains(new EffectiveEntry("Replication:MinLength", length.ToString(CultureInfo.InvariantCulture), ConfigurationOrigin.Argument), loaded.View.Entries);
+        Assert.Contains(new EffectiveEntry("Replication:MinSenders", senders.ToString(CultureInfo.InvariantCulture), ConfigurationOrigin.Argument), loaded.View.Entries);
+    }
+
+    [DatabaseFact]
+    public async Task TwoBatchesOfTheSameDomainAtTheSameTimeBothComeInAndNeitherSeesTheOther()
+    {
+        await using var world = await SubmissionWorld.CreateAsync(replication: Rule);
+        var request = Messages(("ZQXUM", Forwarded), ("ZQXDOIS", Forwarded));
+
+        var outcomes = await Task.WhenAll(world.SubmitAsync(SubmissionWorld.Request(request)), world.SubmitAsync(SubmissionWorld.Request(request)));
+
+        Assert.Equal((true, 4L, 4L), (outcomes.All(outcome => outcome.State == SubmissionState.Accepted), await world.OccurrenceRowsAsync(), await world.MarkRowsAsync()));
     }
 
     private static string Messages(params (string Sender, string Text)[] messages) =>

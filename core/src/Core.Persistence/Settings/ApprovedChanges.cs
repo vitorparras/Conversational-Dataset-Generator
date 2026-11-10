@@ -1,5 +1,4 @@
 using System.Data.Common;
-using System.Data;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
 using Npgsql;
@@ -69,7 +68,7 @@ public sealed class ApprovedChanges
         return found;
     }
 
-    private static ApprovedChange Read(IDataRecord reader) => new()
+    private static ApprovedChange Read(DbDataReader reader) => new()
     {
         Id = (long)reader["id"],
         Key = (string)reader["config_key"],

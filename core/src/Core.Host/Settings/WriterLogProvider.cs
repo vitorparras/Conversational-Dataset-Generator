@@ -30,12 +30,11 @@ internal sealed class WriterLogProvider : ILoggerProvider
             this.writeLine = writeLine;
         }
 
-        public IDisposable? BeginScope<TState>(TState state)
-            where TState : notnull => null;
+        IDisposable? ILogger.BeginScope<TState>(TState state) => null;
 
-        public bool IsEnabled(LogLevel logLevel) => true;
+        bool ILogger.IsEnabled(LogLevel logLevel) => true;
 
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
+        void ILogger.Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
             writeLine($"{logLevel}: {formatter(state, exception)}");
     }
 }

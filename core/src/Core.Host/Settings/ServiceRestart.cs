@@ -38,7 +38,7 @@ internal sealed class ServiceRestart
             using var process = Process.Start(start);
             using var limit = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             limit.CancelAfter(Limit);
-            return process is not null && await Ended(process, limit.Token).ConfigureAwait(false);
+            return process is not null && await EndedAsync(process, limit.Token).ConfigureAwait(false);
         }
         catch (Win32Exception)
         {
@@ -46,7 +46,7 @@ internal sealed class ServiceRestart
         }
     }
 
-    private static async Task<bool> Ended(Process process, CancellationToken limit)
+    private static async Task<bool> EndedAsync(Process process, CancellationToken limit)
     {
         try
         {

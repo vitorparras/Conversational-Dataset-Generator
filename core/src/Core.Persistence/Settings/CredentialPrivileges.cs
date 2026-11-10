@@ -18,9 +18,14 @@ public static class CredentialPrivileges
     /// <summary>Whether the credential can insert, update, delete or truncate in a table of any schema of the application, or create in one of them.</summary>
     /// <param name="dataSource">The source of the connections whose credential is asked about.</param>
     /// <param name="cancellationToken">Cancels the reading.</param>
-    public static async Task<bool> CanWriteAsync(NpgsqlDataSource dataSource, CancellationToken cancellationToken)
+    public static Task<bool> CanWriteAsync(NpgsqlDataSource dataSource, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(dataSource);
+        return AskAsync(dataSource, cancellationToken);
+    }
+
+    private static async Task<bool> AskAsync(NpgsqlDataSource dataSource, CancellationToken cancellationToken)
+    {
         var command = dataSource.CreateCommand(Writes);
         await using (command.ConfigureAwait(false))
         {

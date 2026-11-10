@@ -135,10 +135,7 @@ public sealed class ConfigurationApplierTests : IDisposable
         return ClosedConfiguration.Load(HostConfiguration.Schema(migrating: false, comparing: false), new TrialSource(values, Key, "00:30:00")).Values;
     }
 
-    private ConfigurationApplier Applier(string path)
-    {
-        return new ConfigurationApplier(new ConfigurationFile(path, new ManualClock()), loggers);
-    }
+    private ConfigurationApplier Applier(string path) => new(new ConfigurationFile(path, new ManualClock()), loggers);
 
     private string Written()
     {

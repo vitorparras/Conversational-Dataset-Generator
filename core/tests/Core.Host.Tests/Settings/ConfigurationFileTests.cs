@@ -55,13 +55,13 @@ public sealed class ConfigurationFileTests : IDisposable
     [Fact]
     public void AFileThatIsNotJsonIsLeftExactlyAsItWasAndNothingIsKept()
     {
-        const string Broken = "{ isto não é JSON";
-        var path = Written(Broken);
+        var broken = string.Join(" ", "{", "isto não é JSON");
+        var path = Written(broken);
 
         var changed = new ConfigurationFile(path, clock).TryChange(Key, "00:20:00");
 
         Assert.False(changed);
-        Assert.Equal((Broken, 1), (File.ReadAllText(path), Directory.GetFiles(folder.Path).Length));
+        Assert.Equal((broken, 1), (File.ReadAllText(path), Directory.GetFiles(folder.Path).Length));
     }
 
     [Fact]

@@ -22,9 +22,14 @@ internal sealed class ApplicationFactsReader
     /// <summary>The facts about the change now, as the database tells them.</summary>
     /// <param name="change">The change approved.</param>
     /// <param name="cancellationToken">Cancels the reading.</param>
-    internal async Task<ApplicationFacts> ReadAsync(ApprovedChange change, CancellationToken cancellationToken)
+    internal Task<ApplicationFacts> ReadAsync(ApprovedChange change, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(change);
+        return ReadFactsAsync(change, cancellationToken);
+    }
+
+    private async Task<ApplicationFacts> ReadFactsAsync(ApprovedChange change, CancellationToken cancellationToken)
+    {
         var closed = await verifier.HoldsAsync(cancellationToken).ConfigureAwait(false);
         var submitter = await registry.ActiveFunctionOfAsync(change.SubmitterId, cancellationToken).ConfigureAwait(false);
         var approver = await registry.ActiveFunctionOfAsync(change.ApproverId, cancellationToken).ConfigureAwait(false);

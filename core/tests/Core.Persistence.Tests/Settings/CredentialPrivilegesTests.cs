@@ -52,6 +52,7 @@ public sealed class CredentialPrivilegesTests : IClassFixture<PeopleDatabase>
         Assert.True(await CredentialPrivileges.CanWriteAsync(source, TestContext.Current.CancellationToken));
     }
 
+#pragma warning disable CA2100 // the text interpolates the name of a role the fixture made itself, never input
     private static async Task GrantReadAsync(string ownerConnectionString, string role)
     {
         await using var connection = await Sql.OpenAsync(ownerConnectionString);
@@ -73,6 +74,7 @@ public sealed class CredentialPrivilegesTests : IClassFixture<PeopleDatabase>
             connection);
         _ = await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
     }
+#pragma warning restore CA2100
 
     private static async Task WriteAsync(NpgsqlDataSource source)
     {

@@ -19,8 +19,8 @@ O que ele não aplica fica no log do servidor (a saída de erro, que o gerenciad
 motivo e as duas sequências, nunca nome nem endereço de pessoa: `ChainBroken`, `SameAuthor`,
 `SubmitterNotAllowed`, `ApproverNotAllowed`, `KeyOnlyOnServer`, `ValueRefused` e `FileUnreadable`.
 
-Códigos de saída: 0 (aplicou ou não havia o que aplicar), 37 (recusado, nada gravado) e 38 (o
-banco não respondeu ou o núcleo não reiniciou). No 38 por falta de reinício o arquivo já tem o
+Códigos de saída: 0 (aplicou ou não havia o que aplicar), 42 (recusado, nada gravado) e 43 (o
+banco não respondeu ou o núcleo não reiniciou). No 43 por falta de reinício o arquivo já tem o
 valor: reinicie o núcleo pelo gerenciador de serviço.
 
 ## A recusa que fica registrada

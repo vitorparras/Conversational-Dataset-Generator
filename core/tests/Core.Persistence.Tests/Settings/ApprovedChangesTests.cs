@@ -34,7 +34,8 @@ public sealed class ApprovedChangesTests : IClassFixture<PeopleDatabase>
 
         var found = Assert.Single(await (await RegisterAsync()).PendingAsync(TestContext.Current.CancellationToken), pending => pending.Id == change.Id);
 
-        Assert.Equal(("Session:IdleTimeout", "00:20:00", submitter, change.Sequence, approver, approval), (found.Key, found.Value, found.SubmitterId, found.SubmissionSequence, found.ApproverId, found.ApprovalSequence));
+        var expected = ("Session:IdleTimeout", "00:20:00", submitter, change.Sequence, approver, approval);
+        Assert.Equal(expected, (found.Key, found.Value, found.SubmitterId, found.SubmissionSequence, found.ApproverId, found.ApprovalSequence));
     }
 
     [DatabaseFact]

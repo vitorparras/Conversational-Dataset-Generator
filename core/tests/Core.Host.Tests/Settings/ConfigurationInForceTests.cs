@@ -12,12 +12,14 @@ namespace Core.Host.Tests.Settings;
 public sealed class ConfigurationInForceTests : IDisposable
 {
     private readonly RecordedLog log = new();
+    private readonly ILoggerFactory factory;
     private readonly NpgsqlDataSource nowhere = NpgsqlDataSource.Create("Host=zqx-nenhum-6340.invalid;Database=zqx;Username=zqx;Password=ZQX-SENHA-6340;Timeout=1");
 
     [Fact]
     public async Task AHostWithNoDatabaseMarksNothingAndWritesNothingInTheLog()
     {
-        var marked = await Service(changes: null).RecordAsync(TestContext.Current.CancellationToken);
+        using var service = Service(changes: null);
+        var marked = await service.RecordAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal((0, 0), (marked, log.Lines.Count));
     }
@@ -25,7 +27,8 @@ public sealed class ConfigurationInForceTests : IDisposable
     [Fact]
     public async Task ADatabaseThatCannotBeReachedMarksNothingAndTheLogTellsOnlyTheTypeOfTheFailure()
     {
-        var marked = await Service(new ApprovedChanges(nowhere)).RecordAsync(TestContext.Current.CancellationToken);
+        using var service = Service(new ApprovedChanges(nowhere));
+        var marked = await service.RecordAsync(TestContext.Current.CancellationToken);
 
         var line = Assert.Single(log.Lines);
         Assert.Equal(0, marked);
@@ -33,15 +36,21 @@ public sealed class ConfigurationInForceTests : IDisposable
         Assert.DoesNotContain("zqx", line, StringComparison.Ordinal);
     }
 
+    public ConfigurationInForceTests()
+    {
+        factory = LoggerFactory.Create(builder => builder.AddProvider(log));
+    }
+
     public void Dispose()
     {
         nowhere.Dispose();
+        factory.Dispose();
         log.Dispose();
     }
 
     private ConfigurationInForce Service(ApprovedChanges? changes)
     {
         var entries = new[] { new EffectiveEntry("Session:IdleTimeout", "00:20:00", ConfigurationOrigin.File) };
-        return new ConfigurationInForce(changes, entries, LoggerFactory.Create(builder => builder.AddProvider(log)));
+        return new ConfigurationInForce(changes, entries, factory);
     }
 }

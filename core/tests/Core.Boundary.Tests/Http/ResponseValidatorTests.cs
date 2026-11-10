@@ -147,4 +147,35 @@ public sealed class ResponseValidatorTests
 
         Assert.Equal("ResponseValidation { Response = AnalysisResponse { Occurrences = 1, ModelVersion = zqx-model-1 }, Problem =  }", description);
     }
+
+    [Theory]
+    [InlineData("PERSON")]
+    [InlineData("LOCATION")]
+    [InlineData("ORGANIZATION")]
+    [InlineData("CREDENTIAL")]
+    [InlineData("SECRET")]
+    [InlineData("PASSWORD")]
+    [InlineData("TOKEN")]
+    [InlineData("API_KEY")]
+    [InlineData("PRIVATE_KEY")]
+    public void EveryKindOfTheClosedListIsAccepted(string kind)
+    {
+        var validation = Validate(Answer.WithKind(kind));
+
+        Assert.Equal(kind, Assert.Single(validation.Response!.Occurrences).Kind);
+    }
+
+    [Theory]
+    [InlineData("PER")]
+    [InlineData("LOC")]
+    [InlineData("person")]
+    [InlineData(" PERSON")]
+    [InlineData("CPF")]
+    [InlineData("")]
+    public void AKindOutsideTheClosedListRefusesTheWholeAnswer(string kind)
+    {
+        var validation = Validate(Answer.WithKind(kind));
+
+        Assert.Equal((null, ValidationProblem.KindOutsideVocabulary), (validation.Response, validation.Problem));
+    }
 }

@@ -40,7 +40,7 @@ else
         {
             <li class="sample__item">
                 <Panel Id="@($"item-{item.Position}")" Title="@($"Item {Number(item.Position)} de {Number(Sample.Items.Count)}")">
-                    <p class="sample__version">@SampleTexts.VersionOf(item.Sanitized)</p>
+                    <p class="sample__version">@SampleTexts.VersionOf(item.Cleaned)</p>
                     <blockquote class="sample__text">@item.Text</blockquote>
                     @if (item.Reviewed)
                     {
@@ -99,7 +99,7 @@ else
     internal const string Title = "Revisão da amostra";
 
     /// <summary>One item of the sample, at its place in the draw, in the most treated version that exists, and whether it was reviewed.</summary>
-    public sealed record Item(int Position, string Text, bool Sanitized, bool Reviewed);
+    public sealed record Item(int Position, string Text, bool Cleaned, bool Reviewed);
 
     /// <summary>The approval the register keeps: who, when and which sample.</summary>
     public sealed record Approval(string By, DateTimeOffset At, string Draw);

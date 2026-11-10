@@ -170,26 +170,34 @@ public sealed class SampleReviewScreenTests
         "zqx-dominio",
         3,
         [
-            new(1, "zqx-texto-sanitizado-1", Sanitized: true, Reviewed: reviewed >= 1),
-            new(2, "zqx-texto-bruto-2", Sanitized: false, Reviewed: reviewed >= 2),
-            new(3, "zqx-texto-sanitizado-3", Sanitized: true, Reviewed: reviewed >= 3),
+            new(1, "zqx-texto-sanitizado-1", Cleaned: true, Reviewed: reviewed >= 1),
+            new(2, "zqx-texto-bruto-2", Cleaned: false, Reviewed: reviewed >= 2),
+            new(3, "zqx-texto-sanitizado-3", Cleaned: true, Reviewed: reviewed >= 3),
         ],
         null);
 
     private static Task<string> ReviewAsync(SampleReviewScreen.Drawn sample) =>
-        RenderAsync<SampleReviewScreen>(new Dictionary<string, object?> { ["Sample"] = sample, ["Action"] = Action });
+        RenderAsync(typeof(SampleReviewScreen), new Dictionary<string, object?> { ["Sample"] = sample, ["Action"] = Action });
 
-    private static Task<string> RejectAsync(string? error) => RenderAsync<SampleRejectScreen>(new Dictionary<string, object?>
+    private static Task<string> RejectAsync(string? error)
     {
-        ["Batch"] = 7L, ["Position"] = 2, ["Action"] = $"{Action}/itens/2/achado", ["Back"] = Action, ["Error"] = error,
-    });
+        var given = new Dictionary<string, object?>
+        {
+            ["Batch"] = 7L,
+            ["Position"] = 2,
+            ["Action"] = $"{Action}/itens/2/achado",
+            ["Back"] = Action,
+            ["Error"] = error,
+        };
+        return RenderAsync(typeof(SampleRejectScreen), given);
+    }
 
-    private static async Task<string> RenderAsync<TScreen>(IDictionary<string, object?> given)
-        where TScreen : IComponent
+    private static async Task<string> RenderAsync(Type screen, IDictionary<string, object?> given)
     {
         await using var services = new ServiceCollection().BuildServiceProvider();
         await using var renderer = new HtmlRenderer(services, NullLoggerFactory.Instance);
-        var html = await renderer.Dispatcher.InvokeAsync(async () => (await renderer.RenderComponentAsync<TScreen>(ParameterView.FromDictionary(given))).ToHtmlString());
+        var html = await renderer.Dispatcher.InvokeAsync(async () =>
+            (await renderer.RenderComponentAsync(screen, ParameterView.FromDictionary(given))).ToHtmlString());
         return WebUtility.HtmlDecode(html);
     }
 }

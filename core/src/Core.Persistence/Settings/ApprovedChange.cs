@@ -7,23 +7,23 @@ namespace Core.Persistence.Settings;
 public sealed record ApprovedChange
 {
     /// <summary>The submission.</summary>
-    internal required long Id { get; init; }
+    public required long Id { get; init; }
 
     /// <summary>The key, as <c>Section:Name</c>.</summary>
-    internal required string Key { get; init; }
+    public required string Key { get; init; }
 
     /// <summary>The new value.</summary>
-    internal required string Value { get; init; }
+    public required string Value { get; init; }
 
     /// <summary>The person who submitted.</summary>
-    internal required long SubmitterId { get; init; }
+    public required long SubmitterId { get; init; }
 
     /// <summary>The sequence of the event of the submission.</summary>
-    internal required long SubmissionSequence { get; init; }
+    public required long SubmissionSequence { get; init; }
 
     /// <summary>The person who approved.</summary>
-    internal required long ApproverId { get; init; }
+    public required long ApproverId { get; init; }
 
     /// <summary>The sequence of the event of the approval.</summary>
-    internal required long ApprovalSequence { get; init; }
+    public required long ApprovalSequence { get; init; }
 }

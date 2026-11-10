@@ -1,3 +1,4 @@
+using System.Data.Common;
 using System.Data;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
@@ -57,7 +58,7 @@ public sealed class ApprovedChanges
         return new CustodyChain(dataSource).AppendAsync(CustodyEvent.ConfigurationInForce(change.Id, change.ApprovalSequence), cancellationToken);
     }
 
-    private static async Task<IReadOnlyList<ApprovedChange>> AllAsync(NpgsqlDataReader reader, CancellationToken cancellationToken)
+    private static async Task<IReadOnlyList<ApprovedChange>> AllAsync(DbDataReader reader, CancellationToken cancellationToken)
     {
         var found = new List<ApprovedChange>();
         while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))

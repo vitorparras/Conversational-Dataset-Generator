@@ -3,7 +3,7 @@
 > Operacional. 2026-11-09.
 
 Preenche o modelo de [034](034-roteiro-de-usabilidade.md) para a tela do selo (`/custodia/selo`,
-issue 736), conferido com a tela do commit 8fbf77fd, ainda fora do main. As pessoas de teste são
+issue 736), conferido com a tela do selo no main (#751). As pessoas de teste são
 `operador-21`, com a função de Administração técnica, e `operador-22`, com a de Auditoria, criadas
 para o ensaio, com a senha combinada, e descartadas no fim. Quem executa não é quem escreveu a tela.
 

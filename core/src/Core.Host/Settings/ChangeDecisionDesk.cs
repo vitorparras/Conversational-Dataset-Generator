@@ -31,6 +31,10 @@ internal sealed class ChangeDecisionDesk
     /// <summary>How long a submission waits for a decision, as the host started with.</summary>
     internal TimeSpan Deadline { get; }
 
+    /// <summary>The submissions still waiting for a decision within the deadline, the latest first, each with the name of who submitted.</summary>
+    internal Task<IReadOnlyList<PendingChange>> PendingAsync(CancellationToken cancellationToken) =>
+        register.PendingAsync(time.GetUtcNow() - Deadline, cancellationToken);
+
     /// <summary>Records the decision when nothing refuses it; nothing is written for a decision refused.</summary>
     internal Task<DecisionOutcome> DecideAsync(DecisionRequest request, CancellationToken cancellationToken)
     {

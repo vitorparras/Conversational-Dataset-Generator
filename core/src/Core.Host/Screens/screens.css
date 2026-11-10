@@ -180,12 +180,12 @@ kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
 .data-table + .actions { margin-top: var(--space-4); }
 
 /* Field with label and error */
-.field { display: grid; gap: var(--space-2); max-width: var(--field-width); margin-bottom: var(--space-5); }
+.field { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-2); max-width: var(--field-width); margin-bottom: var(--space-5); }
 .field__label { font-weight: var(--weight-strong); }
 .field__required { margin-left: var(--space-1); font-weight: var(--weight-text); color: var(--ink-muted); }
 .field__hint { margin: 0; color: var(--ink-muted); font-size: var(--text-sm); }
 
-.field__input {
+.field__input { max-width: 100%;
     min-height: var(--control-height);
     padding: var(--space-2) var(--space-3);
     border: var(--line) solid var(--edge);

@@ -19,7 +19,7 @@ public sealed class ConfigurationChanges
         "INSERT INTO public.configuration_change (config_key, new_value, motive, submitted_by) VALUES (@key, @value, @motive, @author) RETURNING id";
 
     private const string Submitted = """
-        SELECT c.id, c.config_key, c.new_value, c.motive, c.submitted_by, c.submitted_at, e.sequence,
+        SELECT c.config_key, c.new_value, c.motive, c.submitted_by, c.submitted_at, e.sequence,
                EXISTS (SELECT 1 FROM public.custody_event d
                        WHERE d.item_kind = 'configuration_change' AND d.item_id = c.id AND d.step IN ('configuration_approved', 'configuration_refused')) AS decided
         FROM public.configuration_change c
@@ -71,7 +71,7 @@ public sealed class ConfigurationChanges
             var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             await using (reader.ConfigureAwait(false))
             {
-                return await reader.ReadAsync(cancellationToken).ConfigureAwait(false) ? Read(name => reader[name]) : null;
+                return await reader.ReadAsync(cancellationToken).ConfigureAwait(false) ? Read(changeId, name => reader[name]) : null;
             }
         }
     }
@@ -109,15 +109,15 @@ public sealed class ConfigurationChanges
         var pending = new List<PendingChange>();
         while (await next(cancellationToken).ConfigureAwait(false))
         {
-            pending.Add(new PendingChange(Read(column), (string)column("name")));
+            pending.Add(new PendingChange(Read((long)column("id"), column), (string)column("name")));
         }
 
         return pending.AsReadOnly();
     }
 
-    private static SubmittedChange Read(Func<string, object> column) => new()
+    private static SubmittedChange Read(long changeId, Func<string, object> column) => new()
     {
-        Id = (long)column("id"),
+        Id = changeId,
         Key = (string)column("config_key"),
         Value = (string)column("new_value"),
         Motive = (string)column("motive"),

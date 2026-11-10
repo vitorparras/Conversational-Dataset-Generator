@@ -9,8 +9,8 @@ FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-noble@sha256:62028293921f5bd6db3
 USER root
 
 RUN set -eux; \
-    apt-get update; \
-    apt-get install -y --no-install-recommends strace openssl; \
+    apt-get -o Acquire::Retries=3 update; \
+    apt-get -o Acquire::Retries=3 install -y --no-install-recommends strace openssl; \
     rm -rf /var/lib/apt/lists/*; \
     mkdir /app /work /trace; \
     chown app:app /work /trace

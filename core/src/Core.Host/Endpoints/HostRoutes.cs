@@ -22,11 +22,15 @@ internal static class HostRoutes
         ConfigurationChangeScreensEndpoint.Map(app);
         DomainScreensEndpoint.Map(app);
         ChainScreensEndpoint.Map(app);
+        SealScreensEndpoint.Map(app);
         NoticeScreensEndpoint.Map(app);
         OperatorScreensEndpoint.Map(app);
+        EmptyingScreensEndpoint.Map(app);
+        BatchScreensEndpoint.Map(app);
         AuditEndpoint.Map(app);
         OperatorsEndpoint.Map(app);
         AccountEndpoint.Map(app);
+        SubmissionsEndpoint.Map(app);
         AccountScreensEndpoint.Map(app);
         ChainVerificationEndpoint.Map(app);
         SealVerificationEndpoint.Map(app);

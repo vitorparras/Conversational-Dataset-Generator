@@ -13,14 +13,14 @@ internal static class EventsOfTheirOwn
         + "SignInRefused, KeyLossDeclared, RecoveryRehearsed, GuaranteesVerified, OwnerWindowOpened, OwnerWindowClosed, Restored, RestoreRehearsed, BatchOpened, BatchAccepted, "
         + "BatchRejected, ConfigurationSubmitted or ConfigurationDecided.";
 
-    private static readonly FrozenSet<CustodyStep> Steps = Enumerable.Repeat(CustodyStep.Correction, 1)
-        .Append(CustodyStep.VerifyChain).Append(CustodyStep.ItemEmptied).Append(CustodyStep.ItemEmptyingRefused).Append(CustodyStep.EpochRotated).Append(CustodyStep.DomainCreated)
-        .Append(CustodyStep.SealRecorded).Append(CustodyStep.DomainLabelRotated)
-        .Append(CustodyStep.SignInAccepted).Append(CustodyStep.SignInRefused).Append(CustodyStep.KeyLossDeclared).Append(CustodyStep.RecoveryTested)
-        .Append(CustodyStep.VerifyGuarantees).Append(CustodyStep.OwnerWindowOpened).Append(CustodyStep.OwnerWindowClosed)
-        .Append(CustodyStep.Restored).Append(CustodyStep.RestoreRehearsed).Append(CustodyStep.DomainLabelRevoked).Append(CustodyStep.DomainRewrapped)
-        .Append(CustodyStep.BatchOpened).Append(CustodyStep.BatchClosed).Append(CustodyStep.PasswordChanged).Append(CustodyStep.ConfigurationSubmitted)
-        .Append(CustodyStep.ConfigurationApproved).Append(CustodyStep.ConfigurationRefused).ToFrozenSet();
+    private static readonly FrozenSet<CustodyStep> Steps = new HashSet<CustodyStep>
+    {
+        CustodyStep.Correction, CustodyStep.VerifyChain, CustodyStep.ItemEmptied, CustodyStep.ItemEmptyingRefused, CustodyStep.EpochRotated, CustodyStep.DomainCreated,
+        CustodyStep.SealRecorded, CustodyStep.DomainLabelRotated, CustodyStep.SignInAccepted, CustodyStep.SignInRefused, CustodyStep.KeyLossDeclared, CustodyStep.RecoveryTested,
+        CustodyStep.VerifyGuarantees, CustodyStep.OwnerWindowOpened, CustodyStep.OwnerWindowClosed, CustodyStep.Restored, CustodyStep.RestoreRehearsed,
+        CustodyStep.DomainLabelRevoked, CustodyStep.DomainRewrapped, CustodyStep.BatchOpened, CustodyStep.BatchClosed, CustodyStep.PasswordChanged,
+        CustodyStep.ConfigurationSubmitted, CustodyStep.ConfigurationApproved, CustodyStep.ConfigurationRefused,
+    }.ToFrozenSet();
 
     /// <summary>Whether the step has a factory of its own.</summary>
     /// <param name="step">The step asked for as a plain event.</param>

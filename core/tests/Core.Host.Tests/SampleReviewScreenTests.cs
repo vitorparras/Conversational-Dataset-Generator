@@ -51,8 +51,8 @@ public sealed class SampleReviewScreenTests
         var page = await ReviewAsync(Drawn(reviewed: 0));
 
         Assert.Contains("zqx-texto-sanitizado-1", page, StringComparison.Ordinal);
-        Assert.Contains(SampleTexts.VersionOf(sanitized: true), page, StringComparison.Ordinal);
-        Assert.Contains(SampleTexts.VersionOf(sanitized: false), page, StringComparison.Ordinal);
+        Assert.Contains(SampleTexts.VersionOf(cleaned: true), page, StringComparison.Ordinal);
+        Assert.Contains(SampleTexts.VersionOf(cleaned: false), page, StringComparison.Ordinal);
     }
 
     [Theory]

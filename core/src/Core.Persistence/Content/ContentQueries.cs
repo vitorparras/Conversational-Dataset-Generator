@@ -37,13 +37,13 @@ public static class ContentQueries
     /// <summary>Writes the occurrences of a batch of the domain declared, in the order given; the identifier and the transaction are the database's.</summary>
     internal const string InsertReplicationOccurrences =
         "INSERT INTO content.replication_occurrence (domain_id, batch_id, item_id, message_position, text_digest, sender_digest, text_length, said_at) "
-        + "SELECT @domain, @batch, t.i, t.p, t.tx, t.sn, t.ln, t.sd FROM unnest(@items, @positions, @texts, @senders, @lengths, @saids) "
+        + "SELECT @domain, @batch, t.i, t.p, t.tx, t.sn, t.ln, t.sd FROM unnest(@items::bigint[], @positions::integer[], @texts::text[], @senders::text[], @lengths::integer[], @saids::timestamptz[]) "
         + "WITH ORDINALITY AS t(i, p, tx, sn, ln, sd, n) ORDER BY t.n";
 
     /// <summary>Writes the marks a batch brings; a message already marked keeps the mark it has, since a mark is never undone.</summary>
     internal const string InsertReplicationMarks =
         "INSERT INTO content.replication_mark (domain_id, batch_id, item_id, message_position, first_item_id, first_message_position) "
-        + "SELECT @domain, @batch, t.i, t.p, t.fi, t.fp FROM unnest(@items, @positions, @first_items, @first_positions) "
+        + "SELECT @domain, @batch, t.i, t.p, t.fi, t.fp FROM unnest(@items::bigint[], @positions::integer[], @first_items::bigint[], @first_positions::integer[]) "
         + "WITH ORDINALITY AS t(i, p, fi, fp, n) ORDER BY t.n ON CONFLICT (item_id, message_position) DO NOTHING";
 
     /// <summary>The occurrences of the domain declared that the reader may see, in the order they were written.</summary>

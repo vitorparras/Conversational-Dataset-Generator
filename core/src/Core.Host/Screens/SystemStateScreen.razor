@@ -73,11 +73,11 @@
 
     /// <summary>What the status route answers, from the same call; its record is internal to the host, which a public parameter cannot name, so it comes as an object.</summary>
     [Parameter, EditorRequired]
-    public object State { get; set; } = default!;
+    public required object State { get; set; }
 
     /// <summary>What the versions route answers, from the same call.</summary>
     [Parameter, EditorRequired]
-    public VersionReport Versions { get; set; } = default!;
+    public required VersionReport Versions { get; set; }
 
     private static string Sentence(string text) => text.Length == 0 ? text : char.ToUpperInvariant(text[0]) + text[1..];
 

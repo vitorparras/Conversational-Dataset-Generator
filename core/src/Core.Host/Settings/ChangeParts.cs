@@ -15,7 +15,6 @@ internal sealed class ChangeParts
 
     /// <summary>The ledger of the changes.</summary>
     internal ConfigurationChanges Changes { get; }
-
     /// <summary>The registry of who submits and decides.</summary>
     internal PersonRegistry Registry { get; }
 

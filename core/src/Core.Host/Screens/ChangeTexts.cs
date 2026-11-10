@@ -16,7 +16,6 @@ internal static class ChangeTexts
         RefusedDone => "Alteração recusada. Nada muda na configuração.",
         _ => null,
     };
-
     internal static string Key(string name) => name switch
     {
         "Session:IdleTimeout" => "Tempo de inatividade da sessão",
@@ -28,7 +27,6 @@ internal static class ChangeTexts
         "LanguageService:AnalyzeTimeoutSeconds" => "Prazo de cada análise do serviço de linguagem, em segundos",
         _ => name,
     };
-
     internal static string Motive(string reason) => reason switch
     {
         "hardening" => "Endurecer a proteção",
@@ -38,7 +36,6 @@ internal static class ChangeTexts
         "incident_response" => "Resposta a incidente",
         _ => reason,
     };
-
     internal static string? Refused(ChangeAnswer answer) => answer.Outcome switch
     {
         ChangeOutcome.OnlyOnServer => "Essa chave só muda no servidor, no arquivo de configuração.",
@@ -49,7 +46,6 @@ internal static class ChangeTexts
         ChangeOutcome.Recorded or ChangeOutcome.ValueRefused => null,
         _ => null,
     };
-
     /// <summary>What the start would refuse in the value, naming the key, the value and what it takes; null when the value was not refused.</summary>
     internal static string? Value(ChangeAnswer? answer) =>
         answer is { Outcome: ChangeOutcome.ValueRefused, Problems: { Count: > 0 } problems }

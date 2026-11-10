@@ -98,20 +98,23 @@ public sealed class SubmissionReplicationTests
         Assert.Contains(new EffectiveEntry("Replication:MinSenders", senders.ToString(CultureInfo.InvariantCulture), ConfigurationOrigin.Argument), loaded.View.Entries);
     }
 
+    /// <summary>The chain of the domain writes one event at a time and turns one of two openings at the same time back with nothing written: that one is sent again, as a client does.</summary>
     [DatabaseFact]
-    public async Task TwoBatchesOfTheSameDomainAtTheSameTimeBothComeInAndNeitherSeesTheOther()
+    public async Task TwoBatchesOfTheSameDomainAtTheSameTimeBothComeInAndNeitherMarkIsWrittenTwice()
     {
         await using var world = await SubmissionWorld.CreateAsync(replication: Rule);
         var first = SubmissionWorld.Messages(("ZQXUM", Forwarded), ("ZQXDOIS", Forwarded));
         var second = SubmissionWorld.Messages(("ZQXTRES", Forwarded), ("ZQXQUATRO", Forwarded));
 
-        var runs = new[] { world.SubmitAsync(SubmissionWorld.Request(first)), world.SubmitAsync(SubmissionWorld.Request(second)) };
-        var refused = await Record.ExceptionAsync(() => Task.WhenAll(runs));
-        var states = string.Join(',', runs.Select(Described));
-        var seen = (states, await world.OccurrenceRowsAsync(), await world.MarkRowsAsync());
-        Assert.True(seen == ("Accepted,Accepted", 4L, 4L), "error: " + seen + " " + refused?.ToString().ReplaceLineEndings(" | "));
+        var outcomes = await Task.WhenAll(SubmitUntilOpenedAsync(world, first), SubmitUntilOpenedAsync(world, second));
+
+        var states = string.Join(',', outcomes.Select(outcome => outcome.State));
+        Assert.Equal(("Accepted,Accepted", 4L, 4L), (states, await world.OccurrenceRowsAsync(), await world.MarkRowsAsync()));
     }
 
-    private static string Described(Task<SubmissionOutcome> run) =>
-        run.IsCompletedSuccessfully ? run.Result.Kind + "/" + run.Result.State + "/" + run.Result.Code + "/" + run.Result.BlockedBy + "/" + run.Result.Failure : "faulted";
+    private static async Task<SubmissionOutcome> SubmitUntilOpenedAsync(SubmissionWorld world, string content)
+    {
+        var outcome = await world.SubmitAsync(SubmissionWorld.Request(content));
+        return outcome.Kind == SubmissionKind.NotRecorded ? await world.SubmitAsync(SubmissionWorld.Request(content)) : outcome;
+    }
 }

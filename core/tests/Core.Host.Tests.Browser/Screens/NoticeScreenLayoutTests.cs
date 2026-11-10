@@ -82,7 +82,7 @@ public sealed class NoticeScreenLayoutTests(BrowserFixture browser, SoundNoticeH
             seen.Add(await tab.Page.EvaluateAsync<bool>(FocusIsSeen));
         }
 
-        Assert.Equal(["skip-link", "header__name", "header__notices", "nav__link header__account", "sair", "data-table", $"lido-{unread[0]}", $"lido-{unread[1]}"], reached);
+        Assert.Equal(["skip-link", "header__name", "header__notices", "nav__link header__account", "sair", HeaderStops.TableStop, $"lido-{unread[0]}", $"lido-{unread[1]}"], reached);
         Assert.DoesNotContain(false, seen);
         await tab.Page.Keyboard.PressAsync("Shift+Tab");
         await tab.Page.Keyboard.PressAsync("Enter");

@@ -102,10 +102,12 @@ public sealed class SubmissionReplicationTests
     public async Task TwoBatchesOfTheSameDomainAtTheSameTimeBothComeInAndNeitherSeesTheOther()
     {
         await using var world = await SubmissionWorld.CreateAsync(replication: Rule);
-        var request = SubmissionWorld.Messages(("ZQXUM", Forwarded), ("ZQXDOIS", Forwarded));
+        var first = SubmissionWorld.Messages(("ZQXUM", Forwarded), ("ZQXDOIS", Forwarded));
+        var second = SubmissionWorld.Messages(("ZQXTRES", Forwarded), ("ZQXQUATRO", Forwarded));
 
-        var outcomes = await Task.WhenAll(world.SubmitAsync(SubmissionWorld.Request(request)), world.SubmitAsync(SubmissionWorld.Request(request)));
+        var outcomes = await Task.WhenAll(world.SubmitAsync(SubmissionWorld.Request(first)), world.SubmitAsync(SubmissionWorld.Request(second)));
 
-        Assert.Equal((true, 4L, 4L), (Array.TrueForAll(outcomes, outcome => outcome.State == SubmissionState.Accepted), await world.OccurrenceRowsAsync(), await world.MarkRowsAsync()));
+        var states = string.Join(',', outcomes.Select(outcome => outcome.State));
+        Assert.Equal(("Accepted,Accepted", 4L, 4L), (states, await world.OccurrenceRowsAsync(), await world.MarkRowsAsync()));
     }
 }

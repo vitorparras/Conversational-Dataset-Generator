@@ -28,20 +28,14 @@ public static class Accommodating
     private static List<Loss> LossesOf(ReadUnit unit, MaterialForm form, bool thread)
     {
         var withoutAuthor = form is MaterialForm.Document or MaterialForm.LabeledSequence;
-        var losses = new List<Loss>();
-        AddWhen(losses, Loss.Author, unit.Author is not null && withoutAuthor);
-        AddWhen(losses, Loss.Instant, unit.Instant is not null && withoutAuthor);
-        AddWhen(losses, Loss.RepliesTo, unit.RepliesTo is not null && form != MaterialForm.Conversation);
-        AddWhen(losses, Loss.Passages, unit.Passages.Count > 0 && form != MaterialForm.LabeledSequence);
-        AddWhen(losses, Loss.Thread, thread);
-        return losses;
-    }
-
-    private static void AddWhen(ICollection<Loss> losses, Loss loss, bool lost)
-    {
-        if (lost)
-        {
-            losses.Add(loss);
-        }
+        (Loss Which, bool Lost)[] candidates =
+        [
+            (Loss.Author, unit.Author is not null && withoutAuthor),
+            (Loss.Instant, unit.Instant is not null && withoutAuthor),
+            (Loss.RepliesTo, unit.RepliesTo is not null && form != MaterialForm.Conversation),
+            (Loss.Passages, unit.Passages.Count > 0 && form != MaterialForm.LabeledSequence),
+            (Loss.Thread, thread),
+        ];
+        return [.. candidates.Where(candidate => candidate.Lost).Select(candidate => candidate.Which)];
     }
 }

@@ -42,7 +42,9 @@ public sealed record ItemAccommodation
     public IReadOnlyList<string> Losses { get; }
 
     private static bool IsCode(string? text) =>
-        text is { Length: > 0 and <= MostCharacters } && text[0] is >= 'a' and <= 'z' && text.All(IsCodeCharacter);
+        text is { Length: > 0 and <= MostCharacters } && IsLowercase(text[0]) && text.All(IsCodeCharacter);
 
-    private static bool IsCodeCharacter(char character) => character is (>= 'a' and <= 'z') or (>= '0' and <= '9') or '_';
+    private static bool IsCodeCharacter(char character) => IsLowercase(character) || character is (>= '0' and <= '9') or '_';
+
+    private static bool IsLowercase(char character) => character is >= 'a' and <= 'z';
 }

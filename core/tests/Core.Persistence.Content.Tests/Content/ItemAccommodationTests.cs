@@ -49,11 +49,12 @@ public sealed class ItemAccommodationTests
         var first = await ReadAsync(world, item, ContentColumns.RawText);
         var again = await ReadAsync(world, item, ContentColumns.RawText);
         var sanitized = await ReadAsync(world, item, ContentColumns.SanitizedText);
-        var elsewhere = await new ProtectedContentReader(world.DataSource, SyntheticCustody.Holding(ContentWorld.Labels).Content, new CustodyChain(world.DataSource))
+        using var custody = SyntheticCustody.Holding(ContentWorld.Labels);
+        var elsewhere = await new ProtectedContentReader(world.DataSource, custody.Content, new CustodyChain(world.DataSource))
             .ReadAsync(new ContentRead(CustodyAuthor.System, ContentColumns.RawText, 1, item), TestContext.Current.CancellationToken);
 
         Assert.All(
-            new[] { first, again, sanitized, elsewhere },
+            [first, again, sanitized, elsewhere],
             read => Assert.Equal("labeled_sequence:author", Declared(read)));
     }
 
@@ -91,12 +92,12 @@ public sealed class ItemAccommodationTests
     [Fact]
     public void AccommodationCannotBeBuiltWithoutALossOrWithAnythingButCodes()
     {
-        Assert.Throws<ArgumentException>(() => new ItemAccommodation("document", []));
-        Assert.Throws<ArgumentException>(() => new ItemAccommodation("Document", ["author"]));
-        Assert.Throws<ArgumentException>(() => new ItemAccommodation("document", ["o autor foi perdido"]));
-        Assert.Throws<ArgumentException>(() => new ItemAccommodation("document", [string.Empty]));
-        Assert.Throws<ArgumentNullException>(() => new ItemAccommodation("document", null!));
-        Assert.Throws<ArgumentNullException>(() => new ItemAccommodation(null!, ["author"]));
+        _ = Assert.Throws<ArgumentException>(() => new ItemAccommodation("document", []));
+        _ = Assert.Throws<ArgumentException>(() => new ItemAccommodation("Document", ["author"]));
+        _ = Assert.Throws<ArgumentException>(() => new ItemAccommodation("document", ["o autor foi perdido"]));
+        _ = Assert.Throws<ArgumentException>(() => new ItemAccommodation("document", [string.Empty]));
+        _ = Assert.Throws<ArgumentNullException>(() => new ItemAccommodation("document", null!));
+        _ = Assert.Throws<ArgumentNullException>(() => new ItemAccommodation(null!, ["author"]));
         Assert.Equal(["author"], new ItemAccommodation("document", ["author", "author"]).Losses);
     }
 

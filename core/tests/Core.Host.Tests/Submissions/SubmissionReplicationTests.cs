@@ -14,6 +14,7 @@ namespace Core.Host.Tests.Submissions;
 public sealed class SubmissionReplicationTests
 {
     private const string Forwarded = "ZQXordem repassada em cadeia";
+    private const int MostAttempts = 5;
 
     private static readonly ReplicationRule Rule = new(minLength: 10, minSenders: 2);
 
@@ -98,7 +99,8 @@ public sealed class SubmissionReplicationTests
         Assert.Contains(new EffectiveEntry("Replication:MinSenders", senders.ToString(CultureInfo.InvariantCulture), ConfigurationOrigin.Argument), loaded.View.Entries);
     }
 
-    /// <summary>The chain of the domain writes one event at a time and turns one of two openings at the same time back with nothing written: that one is sent again, as a client does.</summary>
+    /// <summary>The chain of the domain writes one event at a time, so of two batches at the same time one may be turned back when it opens (<c>NotRecorded</c>, nothing written)
+    /// or when it closes (<c>Unavailable</c>, the batch rejected with its items gone): each is sent again, as a client does, up to a ceiling.</summary>
     [DatabaseFact]
     public async Task TwoBatchesOfTheSameDomainAtTheSameTimeBothComeInAndNeitherMarkIsWrittenTwice()
     {
@@ -106,15 +108,20 @@ public sealed class SubmissionReplicationTests
         var first = SubmissionWorld.Messages(("ZQXUM", Forwarded), ("ZQXDOIS", Forwarded));
         var second = SubmissionWorld.Messages(("ZQXTRES", Forwarded), ("ZQXQUATRO", Forwarded));
 
-        var outcomes = await Task.WhenAll(SubmitUntilOpenedAsync(world, first), SubmitUntilOpenedAsync(world, second));
+        var outcomes = await Task.WhenAll(SubmitUntilKeptAsync(world, first), SubmitUntilKeptAsync(world, second));
 
         var states = string.Join(',', outcomes.Select(outcome => outcome.State));
         Assert.Equal(("Accepted,Accepted", 4L, 4L), (states, await world.OccurrenceRowsAsync(), await world.MarkRowsAsync()));
     }
 
-    private static async Task<SubmissionOutcome> SubmitUntilOpenedAsync(SubmissionWorld world, string content)
+    private static async Task<SubmissionOutcome> SubmitUntilKeptAsync(SubmissionWorld world, string content)
     {
         var outcome = await world.SubmitAsync(SubmissionWorld.Request(content));
-        return outcome.Kind == SubmissionKind.NotRecorded ? await world.SubmitAsync(SubmissionWorld.Request(content)) : outcome;
+        for (var attempt = 1; attempt < MostAttempts && outcome.Kind is SubmissionKind.NotRecorded or SubmissionKind.Unavailable; attempt++)
+        {
+            outcome = await world.SubmitAsync(SubmissionWorld.Request(content));
+        }
+
+        return outcome;
     }
 }

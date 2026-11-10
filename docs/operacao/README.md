@@ -59,6 +59,7 @@ e por quem ela roda.
 | [045](045-roteiro-de-usabilidade-dos-avisos.md) | Roteiro de usabilidade dos avisos |
 | [046](046-roteiro-de-usabilidade-dos-lotes.md) | Roteiro de usabilidade da lista de lotes |
 | [047](047-roteiro-de-usabilidade-do-selo.md) | Roteiro de usabilidade do selo da custódia |
+| [048](048-roteiro-de-usabilidade-da-alteracao-de-configuracao.md) | Roteiro de usabilidade da alteração de configuração pela tela |
 | [049](049-aplicador-da-configuracao.md) | O aplicador da configuração: a conta que escreve o arquivo e o papel do banco que só lê |
 | [050](050-arquivo-e-servico-do-aplicador.md) | O arquivo e o serviço do aplicador |
 | [051](051-o-que-o-aplicador-faz-e-recusa.md) | O que o aplicador faz, o que recusa e o que fica registrado |

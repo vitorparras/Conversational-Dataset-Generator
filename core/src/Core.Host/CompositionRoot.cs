@@ -15,6 +15,7 @@ using Core.Persistence.Connection;
 using Core.Persistence.Content.Reading;
 using Core.Persistence.Content.Rotation;
 using Core.Persistence.Content.Sealing;
+using Core.Persistence.Content.Writing;
 using Core.Persistence.Custody.Chain;
 using Core.Persistence.Domains;
 using Core.Persistence.Migrations;
@@ -119,10 +120,17 @@ internal static class CompositionRoot
     internal static ItemKeys KeysOf(MasterKeyReading reading) => new(new KeyDerivation(reading.Key!, reading.Labels), reading.Epochs);
     internal static EpochRotation RotationOf(NpgsqlDataSource dataSource, ItemKeys keys) => new(dataSource, keys);
 
-    /// <summary>What takes a file in over the key a reading holds: the barrier, the conference and the path that seals what a submission declares are services, and so are built here.</summary>
-    internal static SubmissionIntake IntakeOf(MasterKeyReading reading, SubmissionSettings settings) => new(
-        new SubmissionGate(SourceReaders.Default(), settings.MaxBytes), new FormConference(new TextBoundaries()), settings.Conditions,
-        new ProtectedContent(reading.Labels, KeysOf(reading), settings.Registered, settings.Revoked));
+    /// <summary>What takes a file in over the key a reading holds: the gate, the conference, the sealing and the writer are services, built here; the last two are none without the key.</summary>
+    internal static SubmissionIntake IntakeOf(NpgsqlDataSource source, MasterKeyReading reading, SubmissionSettings settings)
+    {
+        var sealing = reading.Failure is null ? new ProtectedContent(reading.Labels, KeysOf(reading), settings.Registered, settings.Revoked) : null;
+        return new SubmissionIntake(
+            new SubmissionGate(SourceReaders.Default(), settings.MaxBytes),
+            new FormConference(new TextBoundaries()),
+            settings.Conditions,
+            sealing,
+            sealing is null ? null : new ContentWriter(source, sealing));
+    }
 
     /// <summary>The rehearsal of the recovery over a source that was read, opening content with the labels the database registers.</summary>
     internal static RecoveryRehearsal RehearsalOf(NpgsqlDataSource dataSource, MasterKeyReading reading, IReadOnlySet<string> registered) =>
@@ -158,11 +166,9 @@ internal static class CompositionRoot
         _ = builder.Services.Configure<CookiePolicyOptions>(TransportSecurity.CookiePolicy);
         Compose(builder, loaded.View, fileLog);
         AddAnalysis(builder.Services, loaded.Values, analyzeTimeout);
-        _ = builder.Services.AddSingleton(PasswordConfiguration.Derivation(loaded.Values)).AddSingleton(VerificationConfiguration.Schedule(loaded.Values));
-        _ = builder.Services.AddSingleton(SealConfiguration.Declaration(loaded.Values))
-            .AddSingleton(provider => SubmissionParts.BatchesOf(provider, loaded.Values))
-            .AddSingleton(SubmissionParts.RegisterOf)
-            .AddSingleton(SubmissionParts.DoorOf)
+        _ = builder.Services.AddSingleton(PasswordConfiguration.Derivation(loaded.Values)).AddSingleton(VerificationConfiguration.Schedule(loaded.Values))
+            .AddSingleton(SealConfiguration.Declaration(loaded.Values))
+            .AddSingleton(provider => SubmissionParts.BatchesOf(provider, loaded.Values)).AddSingleton(SubmissionParts.RegisterOf).AddSingleton(SubmissionParts.DoorOf)
             .AddSingleton(provider => SubmissionParts.ServicesOf(provider, loaded.Values));
         _ = builder.Services.AddSingleton(_ => new ServerAuditLog(AuditConfiguration.ServerLogDirectory(loaded.Values))).AddSingleton<AuditComparisonState>();
         _ = builder.Services.AddHostedService(provider => new AuditComparisonService(
@@ -172,8 +178,7 @@ internal static class CompositionRoot
                     provider.GetRequiredService<ServiceProvider>().GetRequiredService<NpgsqlDataSource>(), AuditConfiguration.ServerLogDirectory(loaded.Values))
                     .CompareAsync(from, to, token),
                 provider.GetRequiredService<ILogger<AuditComparisonService>>()),
-            provider.GetRequiredService<AuditComparisonState>(),
-            provider.GetRequiredService<TimeProvider>()));
+            provider.GetRequiredService<AuditComparisonState>(), provider.GetRequiredService<TimeProvider>()));
         _ = builder.Services.AddSingleton(provider => new SessionStore(SessionConfiguration.Lifetimes(loaded.Values), provider.GetRequiredService<TimeProvider>()));
         _ = builder.Services.AddSingleton(InstallationConfiguration.Of(loaded.Values)).AddSingleton(provider => InstallationConfiguration.Shown(StartupVersions.Of(checks), provider));
         _ = SafekeepingConfiguration.Declaration(loaded.Values) is { } declaration ? builder.Services.AddSingleton(declaration) : builder.Services;

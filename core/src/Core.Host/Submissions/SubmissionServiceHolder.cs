@@ -1,3 +1,5 @@
+using Core.Platform.Keys;
+
 namespace Core.Host.Submissions;
 
 /// <summary>
@@ -34,7 +36,8 @@ internal sealed class SubmissionServiceHolder
     /// <summary>The service and what it holds that must be let go of with it.</summary>
     /// <param name="Service">The service.</param>
     /// <param name="Key">The key the sealing holds; null when the service holds none.</param>
-    internal sealed record Loaded(SubmissionService Service, IDisposable? Key) : IDisposable
+    /// <param name="Unsealed">Why the key could not be read, when it could not: the service then has no key to seal with and only registers the submission as turned back.</param>
+    internal sealed record Loaded(SubmissionService Service, IDisposable? Key, MasterKeyFailureKind? Unsealed = null) : IDisposable
     {
         /// <summary>Lets go of the key.</summary>
         public void Dispose() => Key?.Dispose();

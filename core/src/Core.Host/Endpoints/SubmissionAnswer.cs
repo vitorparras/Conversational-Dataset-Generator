@@ -1,19 +1,23 @@
 using Core.Host.Submissions;
 using Core.Persistence.Ingestion;
+using Core.Platform.Keys;
 
 namespace Core.Host.Endpoints;
 
 /// <summary>
 /// How the outcome of the service is answered: <c>201</c> with what the submission brought, <c>413</c> with the same body and the state rejected, <c>400</c> with the fields at fault,
-/// <c>409</c> with the code of what keeps the gate closed, and nothing in any of them that is a word of the material, the name the file came with or the text of the origin.
+/// <c>409</c> with the code of what keeps the gate closed, <c>503</c> with the code and the batch when the material could not be kept,
+/// and nothing in any of them that is a word of the material, the name the file came with or the text of the origin.
 /// </summary>
 internal static class SubmissionAnswer
 {
-    internal static IResult Of(SubmissionOutcome outcome) => outcome.Kind switch
+    internal static IResult Of(SubmissionOutcome outcome, MasterKeyFailureKind? unsealed = null) => outcome.Kind switch
     {
         SubmissionKind.Invalid => Results.Json(new FieldsRefused([.. outcome.Fields!.Select(Field)]), statusCode: StatusCodes.Status400BadRequest),
         SubmissionKind.Blocked => Results.Json(new SubmissionBlocked(outcome.BlockedBy), statusCode: StatusCodes.Status409Conflict),
         SubmissionKind.NotRecorded => NotRecorded(outcome.Failure),
+        SubmissionKind.Unavailable => Results.Json(
+            new SubmissionUnavailable(outcome.Code!, unsealed is { } kind ? ReasonCodes.Of(kind) : null, outcome.Batch), statusCode: StatusCodes.Status503ServiceUnavailable),
         SubmissionKind.Done => Results.Json(Done(outcome), statusCode: outcome.IsTooLarge ? StatusCodes.Status413PayloadTooLarge : StatusCodes.Status201Created),
         _ => throw new ArgumentOutOfRangeException(nameof(outcome), outcome.Kind, "The kind of the outcome is not one the service answers."),
     };

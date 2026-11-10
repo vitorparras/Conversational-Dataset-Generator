@@ -144,7 +144,7 @@ public sealed class SubmissionRoutesTests
         await using var other = await StartAsync(world, cancellationToken, granted: SubmissionWorld.OtherDomain);
         var otherIdentifier = other.SeedSession();
 
-        using var opened = await granted.GetAsync($"{Batches}?state=open", identifier, encrypted: true, cancellationToken);
+        using var accepted = await granted.GetAsync($"{Batches}?state=accepted", identifier, encrypted: true, cancellationToken);
         using var rejected = await granted.GetAsync($"{Batches}?state=rejected", identifier, encrypted: true, cancellationToken);
         using var hidden = await other.GetAsync(Batches, otherIdentifier, encrypted: true, cancellationToken);
         using var detail = await granted.GetAsync($"{Batches}/1", identifier, encrypted: true, cancellationToken);
@@ -154,7 +154,7 @@ public sealed class SubmissionRoutesTests
             (HttpStatusCode.Created, 1, 0, 0, HttpStatusCode.OK, HttpStatusCode.NotFound),
             (
                 created.StatusCode,
-                await CountAsync(opened, cancellationToken),
+                await CountAsync(accepted, cancellationToken),
                 await CountAsync(rejected, cancellationToken),
                 await CountAsync(hidden, cancellationToken),
                 detail.StatusCode,

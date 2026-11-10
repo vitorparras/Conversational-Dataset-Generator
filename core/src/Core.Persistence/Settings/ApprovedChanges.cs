@@ -62,20 +62,20 @@ public sealed class ApprovedChanges
         var found = new List<ApprovedChange>();
         while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
-            found.Add(Read(reader));
+            found.Add(Read(name => reader[name]));
         }
 
         return found;
     }
 
-    private static ApprovedChange Read(DbDataReader reader) => new()
+    private static ApprovedChange Read(Func<string, object> column) => new()
     {
-        Id = (long)reader["id"],
-        Key = (string)reader["config_key"],
-        Value = (string)reader["new_value"],
-        SubmitterId = (long)reader["submitted_by"],
-        SubmissionSequence = (long)reader["submission_sequence"],
-        ApproverId = (long)reader["approver"],
-        ApprovalSequence = (long)reader["approval_sequence"],
+        Id = (long)column("id"),
+        Key = (string)column("config_key"),
+        Value = (string)column("new_value"),
+        SubmitterId = (long)column("submitted_by"),
+        SubmissionSequence = (long)column("submission_sequence"),
+        ApproverId = (long)column("approver"),
+        ApprovalSequence = (long)column("approval_sequence"),
     };
 }

@@ -254,9 +254,9 @@ o valor tem de ser inteiro, de 1 a 1073741824, senão recusa a partida.
 
 `Replication:MinLength` e `Replication:MinSenders` são opcionais e valem 20 e 2: o critério do
 conteúdo replicado, o mesmo para todo domínio. Um texto vira replicado (é marcado, sem sair do
-conjunto) quando tem ao menos `MinLength` pontos de código (de 1 a 100000) e foi enviado por ao menos
-`MinSenders` remetentes distintos (de 2 a 1000); valor fora disso recusa a partida. `/configuration`
-mostra os dois valores em vigor, com a origem.
+conjunto) quando tem ao menos `MinLength` pontos de código (de 1 a 100000) e foi enviado por ao
+menos `MinSenders` remetentes distintos (de 2 a 1000); valor fora disso recusa a partida.
+`/configuration` mostra os dois valores em vigor, com a origem.
 
 `Custody:VerificationInterval` é obrigatória ao servir, sem valor padrão, e leva uma duração maior
 que zero, no mesmo formato dos prazos da sessão (`00:05:00`, ou `1.00:00:00`, com dias); o `migrate`

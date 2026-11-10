@@ -1,7 +1,9 @@
 using Core.Boundary.Contracts;
+using Core.Boundary.Text;
 using Core.Ingestion;
 using Core.Persistence.Content;
 using Core.Platform.Keys;
+using Npgsql;
 
 namespace Core.Host.Submissions;
 
@@ -32,6 +34,13 @@ internal sealed class ReplicationMarking
         this.derivation = derivation;
         this.rule = rule;
     }
+
+    /// <summary>The marking over a source of data and the key a reading holds, with the code points counted by the boundaries of the system.</summary>
+    /// <param name="source">The data source whose store keeps the digests.</param>
+    /// <param name="reading">The reading of the master key, which must hold the key.</param>
+    /// <param name="rule">The criterion the configuration gave.</param>
+    internal static ReplicationMarking Over(NpgsqlDataSource source, MasterKeyReading reading, ReplicationRule rule) =>
+        new(new ReplicationStore(source), new KeyDerivation(reading.Key!, reading.Labels), rule, new TextBoundaries());
 
     /// <summary>Writes the occurrences of the messages of the batch and the marks they bring, together; the items that carry no author or no moment are not messages and are left out.</summary>
     /// <param name="domainId">The domain of the batch.</param>

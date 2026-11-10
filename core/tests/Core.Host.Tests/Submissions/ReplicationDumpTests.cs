@@ -1,4 +1,3 @@
-using Core.Host.Submissions;
 using Core.Ingestion;
 using Core.Persistence.Tests.Fixtures;
 
@@ -24,6 +23,6 @@ public sealed class ReplicationDumpTests
             "SELECT to_char(o.said_at AT TIME ZONE 'UTC', 'HH24:MI') || ',' || (length(o.sender_digest) > 0) || ',' || (i.batch_id = o.batch_id) "
             + "FROM content.replication_occurrence o JOIN content.item_text i ON i.id = o.item_id ORDER BY o.id");
         var senders = await world.StoredAsync("SELECT count(DISTINCT sender_digest)::text FROM content.replication_occurrence");
-        Assert.Equal((new[] { "08:00,true,true", "08:01,true,true", "08:02,true,true" }, "3", 3L, 2L), (dumped.ToArray(), senders[0], await world.ItemRowsAsync(), await world.MarkRowsAsync()));
+        Assert.Equal(("08:00,true,true;08:01,true,true;08:02,true,true", "3", 3L, 2L), (string.Join(';', dumped), senders[0], await world.ItemRowsAsync(), await world.MarkRowsAsync()));
     }
 }

@@ -12,7 +12,6 @@ using Core.Ingestion;
 using Core.Ingestion.Entrance;
 using Core.Ingestion.Reading;
 using Core.Persistence.Connection;
-using Core.Persistence.Content;
 using Core.Persistence.Content.Reading;
 using Core.Persistence.Content.Rotation;
 using Core.Persistence.Content.Sealing;
@@ -126,12 +125,11 @@ internal static class CompositionRoot
     {
         var sealing = reading.Failure is null ? new ProtectedContent(reading.Labels, KeysOf(reading), settings.Registered, settings.Revoked) : null;
         return new SubmissionIntake(
-            new SubmissionGate(SourceReaders.Default(), settings.MaxBytes),
-            new FormConference(new TextBoundaries()),
+            new SubmissionGate(SourceReaders.Default(), settings.MaxBytes), new FormConference(new TextBoundaries()),
             settings.Conditions,
             sealing,
             sealing is null ? null : new ContentWriter(source, sealing),
-            sealing is null ? null : new ReplicationMarking(new ReplicationStore(source), new KeyDerivation(reading.Key!, reading.Labels), settings.Replication, new TextBoundaries()));
+            sealing is null ? null : ReplicationMarking.Over(source, reading, settings.Replication));
     }
 
     /// <summary>The rehearsal of the recovery over a source that was read, opening content with the labels the database registers.</summary>

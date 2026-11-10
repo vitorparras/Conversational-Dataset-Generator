@@ -3,7 +3,7 @@
 > Operacional. 2026-11-09.
 
 Preenche o modelo de [034](034-roteiro-de-usabilidade.md) para a lista de lotes (`/lotes`, issue
-608), conferido com a tela do commit 735536eb, que ainda não está no main. As pessoas de teste são
+608), conferido com a tela da lista de lotes no main (#765). As pessoas de teste são
 `operador-18`, com a função de Curadoria do acervo e concessão em um domínio, `operador-19`, com a
 mesma função e nenhum domínio concedido, e `operador-20`, com a de Auditoria, criadas só para o
 ensaio, com a senha combinada para o ensaio e descartadas no fim. Quem executa não é quem escreveu a

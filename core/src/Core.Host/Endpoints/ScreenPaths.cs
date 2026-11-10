@@ -21,5 +21,7 @@ internal static class ScreenPaths
     internal const string Operators = "/pessoas";
     internal const string OperatorNew = "/pessoas/nova";
     internal const string Notices = "/avisos";
+    internal const string Emptying = "/esvaziamento";
+    internal const string EmptyingConfirm = "/esvaziamento/confirmar";
     internal const string Batches = "/lotes";
 }

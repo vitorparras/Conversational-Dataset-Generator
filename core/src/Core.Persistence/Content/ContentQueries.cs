@@ -46,10 +46,7 @@ public static class ContentQueries
         + "SELECT @domain, @batch, t.i, t.p, t.fi, t.fp FROM unnest(@items::bigint[], @positions::integer[], @first_items::bigint[], @first_positions::integer[]) "
         + "WITH ORDINALITY AS t(i, p, fi, fp, n) ORDER BY t.n ON CONFLICT (item_id, message_position) DO NOTHING";
 
-    /// <summary>The occurrences of the domain declared that the reader may see, in the order they were written.</summary>
     internal const string ReadReplicationOccurrences = "SELECT item_id, message_position, text_digest, sender_digest, text_length, said_at FROM content.replication_occurrence ORDER BY id";
-
-    /// <summary>The marks of the domain declared that the reader may see, in the order they were written.</summary>
     internal const string ReadReplicationMarks = "SELECT item_id, message_position, first_item_id, first_message_position FROM content.replication_mark ORDER BY id";
 
     /// <summary>Adds an item; the texts that are sealed arrive sealed, with the key of the item wrapped.</summary>

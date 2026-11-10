@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Core.Persistence.Content;
 using Core.Persistence.Content.Writing;
+using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Content;
 using Core.Persistence.Tests.Fixtures;
 using Npgsql;
@@ -178,6 +179,25 @@ public sealed class ReplicationTableTests
             () => store.RecordAsync(new(1, batch), [], [new(item, 0, item, 7)], TestContext.Current.CancellationToken));
 
         Assert.Equal((PostgresErrorCodes.UniqueViolation, PostgresErrorCodes.ForeignKeyViolation), (twice.SqlState, nowhere.SqlState));
+    }
+
+    [DatabaseFact]
+    public async Task AMarkOfOneDomainNeverPointsToTheOccurrenceOfAnotherDomain()
+    {
+        await using var world = await IngestionWorld.CreateAsync();
+        var store = new ReplicationStore(world.DataSource);
+        var batch = await IngestionWorld.OpenAsync(world);
+        var item = await IngestionWorld.AddItemAsync(world, batch);
+        await store.RecordAsync(new(1, batch), [Occurrence(item, 0, 'a', 'b')], [], TestContext.Current.CancellationToken);
+        var opened = await IngestionWorld.BatchesOf(world).OpenAsync(new BatchOpening(2, IngestionWorld.Person), TestContext.Current.CancellationToken);
+        var otherBatch = opened.BatchId!.Value;
+        var otherItem = await world.RealWriter.AddItemTextAsync(2, otherBatch, new NewItemText("texto bruto sintetico zqx"), TestContext.Current.CancellationToken);
+        await store.RecordAsync(new(2, otherBatch), [Occurrence(otherItem, 0, 'c', 'd')], [], TestContext.Current.CancellationToken);
+
+        var across = await Assert.ThrowsAsync<PostgresException>(
+            () => store.RecordAsync(new(2, otherBatch), [], [new(otherItem, 0, item, 0)], TestContext.Current.CancellationToken));
+
+        Assert.Equal(PostgresErrorCodes.ForeignKeyViolation, across.SqlState);
     }
 
     [DatabaseFact]

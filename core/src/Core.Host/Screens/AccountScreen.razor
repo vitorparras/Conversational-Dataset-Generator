@@ -11,7 +11,7 @@
     <Button Href="@ScreenPaths.AccountChange" Kind="Button.Look.Secondary">Trocar senha</Button>
 </Panel>
 <Panel Id="email" Title="E-mail">
-    <p>Um endereço opcional, só para receber o link de reposição de senha. Só você e a administração técnica o veem.</p>
+    <p>Um e-mail opcional, só para receber o link de reposição de senha. Só você e a administração técnica o veem.</p>
     <Button Href="@ScreenPaths.AccountEmail" Kind="Button.Look.Secondary">Ver ou mudar o e-mail</Button>
 </Panel>
 <Panel Id="sessoes" Title="Sessões abertas">
@@ -66,7 +66,7 @@
     [Parameter]
     public int Ended { get; set; }
 
-    private string Caption => Sessions.Count == 1 ? "Só esta sessão está aberta." : $"{Sessions.Count} sessões abertas, contando esta. Horários em UTC.";
+    private string Caption => Sessions.Count == 1 ? "Só esta sessão está aberta." : $"{Sessions.Count} sessões abertas, contando esta, da usada há menos tempo para a mais antiga. Horários em UTC.";
 
     private string? DoneText => Done switch
     {

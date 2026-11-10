@@ -54,12 +54,12 @@ public sealed class MailConfigurationTests
     }
 
     [Theory]
-    [InlineData("CDG_Mail__User", MailConfiguration.PasswordPath)]
-    [InlineData("CDG_Mail__Password", MailConfiguration.UserPath)]
-    public void Ca2AUserWithoutItsPasswordOrAPasswordWithoutItsUserIsRefused(string left, string named)
+    [InlineData("CDG_Mail__Password", MailConfiguration.PasswordPath)]
+    [InlineData("CDG_Mail__User", MailConfiguration.UserPath)]
+    public void Ca2AUserWithoutItsPasswordOrAPasswordWithoutItsUserIsRefused(string removed, string named)
     {
         var values = Whole();
-        _ = values.Remove(left);
+        _ = values.Remove(removed);
 
         var problem = Assert.Single(MailConfiguration.Refusals(Load(values).Values));
 

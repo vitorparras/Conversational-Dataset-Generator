@@ -8,4 +8,7 @@ internal static class PasswordChangeWords
 
     /// <summary>The new password is empty.</summary>
     internal const string BlankReplacement = "Informe a nova senha.";
+
+    /// <summary>The two new passwords typed are not the same, so none is written.</summary>
+    internal const string Mismatch = "As duas senhas novas não são iguais. Digite de novo.";
 }

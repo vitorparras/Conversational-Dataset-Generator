@@ -34,13 +34,15 @@ public sealed class SystemStateScreenTests(BrowserFixture browser, SystemHostFix
 
         await Expect(tab.Page.Locator("[aria-labelledby=agora-titulo]")).ToContainTextAsync("Vivo");
         await Expect(FactOf(tab.Page, "Vivo")).ToContainTextAsync("Sim: o sistema responde");
-        await Expect(FactOf(tab.Page, "Apto")).ToContainTextAsync("Não: uma conferência da subida falhou");
+        await Expect(FactOf(tab.Page, "Apto")).ToContainTextAsync("Não: uma conferência feita ao iniciar falhou");
         await Expect(tab.Page.Locator(ChecksRows)).ToHaveCountAsync(2);
         await Expect(tab.Page.Locator(ChecksRows).Nth(0)).ToContainTextAsync(SystemScreenHost.PassedCheck);
         await Expect(tab.Page.Locator(ChecksRows).Nth(0)).ToContainTextAsync("Passou");
         await Expect(tab.Page.Locator(ChecksRows).Nth(1)).ToContainTextAsync(SystemScreenHost.FailedCheck);
         await Expect(tab.Page.Locator(ChecksRows).Nth(1)).ToContainTextAsync("Falhou");
-        await Expect(tab.Page.Locator(ChecksRows).Nth(1)).ToContainTextAsync($"{SystemScreenHost.FailedMessage}. Encontrado: {SystemScreenHost.FailedObserved}");
+        await Expect(FactOf(tab.Page, "Apto").GetByRole(AriaRole.Link, new() { Name = "Ver a conferência que falhou" })).ToHaveAttributeAsync("href", "#conferencia-que-falhou");
+        await Expect(tab.Page.Locator(ChecksRows).Nth(1)).ToHaveAttributeAsync("aria-current", "true");
+        await Expect(tab.Page.Locator(ChecksRows).Nth(1)).ToContainTextAsync($"{Sentence(SystemScreenHost.FailedMessage)}. Encontrado: {SystemScreenHost.FailedObserved}");
         await Expect(tab.Page.Locator("[aria-labelledby=conferencias-titulo]")).ToContainTextAsync("1 de 2 passaram");
     }
 
@@ -79,6 +81,17 @@ public sealed class SystemStateScreenTests(BrowserFixture browser, SystemHostFix
         await Expect(FactOf(tab.Page, "Modelo")).ToContainTextAsync("Não obtida");
     }
 
+    [Fact]
+    public async Task TheInstallationIsNamedInPortugueseWithTheMarkOfADemonstrationAndTheHeaderSaysItOnEveryPage()
+    {
+        await using var tab = await OpenAsync(system.Host.Administrator);
+
+        await Expect(FactOf(tab.Page, "Instalação")).ToHaveTextAsync("Gerador de bases conversacionais (demonstração)");
+        await Expect(tab.Page.Locator(".header .header__demo")).ToContainTextAsync("Instalação de demonstração: não envie material real.");
+        _ = await tab.Page.GotoAsync("/");
+        await Expect(tab.Page.Locator(".header .header__demo")).ToHaveCountAsync(1);
+    }
+
     [Theory]
     [InlineData("Administrator")]
     [InlineData("Auditor")]
@@ -105,7 +118,7 @@ public sealed class SystemStateScreenTests(BrowserFixture browser, SystemHostFix
         var missingPage = await tab.Page.ContentAsync();
 
         Assert.Equal((StatusNotFound, StatusNotFound), (refused?.Status, missing?.Status));
-        Assert.Equal(missingPage.Replace(Missing.TrimStart('/'), string.Empty, StringComparison.Ordinal), refusedPage.Replace(route.TrimStart('/'), string.Empty, StringComparison.Ordinal));
+        Assert.Equal(missingPage.Replace(Missing, string.Empty, StringComparison.Ordinal), refusedPage.Replace(route, string.Empty, StringComparison.Ordinal));
         Assert.DoesNotContain("Estado do sistema", refusedPage, StringComparison.Ordinal);
         Assert.DoesNotContain("Configuração em vigor", refusedPage, StringComparison.Ordinal);
         Assert.DoesNotContain(system.Host.Secret, refusedPage, StringComparison.Ordinal);
@@ -172,16 +185,19 @@ public sealed class SystemStateScreenTests(BrowserFixture browser, SystemHostFix
         var reached = new List<string>();
         var seen = new List<bool>();
 
-        for (var stop = 0; stop < HeaderStops.Count + 3; stop++)
+        for (var stop = 0; stop < HeaderStops.Count + 4; stop++)
         {
             await tab.Page.Keyboard.PressAsync("Tab");
             reached.Add(await tab.Page.EvaluateAsync<string>(FocusedId));
             seen.Add(await tab.Page.EvaluateAsync<bool>(FocusIsSeen));
         }
 
-        Assert.Equal(HeaderStops.Then("nav__link", "nav__link", "data-table"), reached);
+        Assert.Equal(HeaderStops.Then("nav__link", "nav__link", "facts__note", HeaderStops.TableStop), reached);
         Assert.DoesNotContain(false, seen);
     }
+
+    /// <summary>The message of a check as the page says it: with the first letter in capital.</summary>
+    private static string Sentence(string text) => char.ToUpperInvariant(text[0]) + text[1..];
 
     /// <summary>The detail of a term of the lists of facts, found by the term and not by the markup that holds it.</summary>
     private static ILocator FactOf(IPage page, string term) => page.Locator($"dl > div:has(dt:text-is('{term}')) dd");

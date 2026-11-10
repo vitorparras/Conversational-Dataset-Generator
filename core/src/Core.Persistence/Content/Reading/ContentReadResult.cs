@@ -11,6 +11,9 @@ public sealed record ContentReadResult
     /// <summary>The content, only when <see cref="ContentReadOutcome.Read"/>.</summary>
     public string? Text { get; init; }
 
+    /// <summary>What the item declares when its material was accommodated into a form that is not its own, only when <see cref="ContentReadOutcome.Read"/>; null when it fits exactly.</summary>
+    public ItemAccommodation? Accommodation { get; init; }
+
     /// <summary>The refusal of the chain, only when <see cref="ContentReadOutcome.NotRecorded"/>.</summary>
     public CustodyResult? Refusal { get; init; }
 

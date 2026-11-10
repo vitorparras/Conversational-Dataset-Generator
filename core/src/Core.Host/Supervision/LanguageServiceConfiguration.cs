@@ -22,6 +22,7 @@ internal static class LanguageServiceConfiguration
     private const string ExecutableKey = "Executable";
     private const string StartupTimeoutKey = "StartupTimeoutSeconds";
     private const string AnalyzeTimeoutKey = "AnalyzeTimeoutSeconds";
+    private const string AcceptedStartupSeconds = "número inteiro de segundos maior que zero";
 
     /// <summary>How long the versions route waits for the service to give its versions, so a service that hangs does not hang the route.</summary>
     internal static readonly TimeSpan VersionsTimeout = TimeSpan.FromSeconds(5);
@@ -62,9 +63,12 @@ internal static class LanguageServiceConfiguration
                 values[ExecutablePath],
                 [$"nenhum fora do ambiente {DevelopmentEnvironment} ({EnvironmentVariable}={DevelopmentEnvironment})"]);
 
-    /// <summary>Every reason the supervision keys are refused: the executable written outside development, then an analysis time limit out of range.</summary>
+    /// <summary>
+    /// Every reason the supervision keys are refused: the executable written outside development, a start time limit that is not a whole positive number of seconds,
+    /// then an analysis time limit out of range.
+    /// </summary>
     internal static IReadOnlyList<ConfigurationProblem> Refusals(IReadOnlyDictionary<string, string> values, TimeSpan? analyzeTimeout) =>
-        [.. new[] { ExecutableRefused(values, InDevelopment()), analyzeTimeout is null ? AnalyzeTimeoutRefused(values) : null }.OfType<ConfigurationProblem>()];
+        [.. new[] { ExecutableRefused(values, InDevelopment()), StartupTimeoutRefused(values), analyzeTimeout is null ? AnalyzeTimeoutRefused(values) : null }.OfType<ConfigurationProblem>()];
 
     /// <summary>The time one analysis may take; null when the value is not a whole number of seconds from one to the longest the recognizer accepts.</summary>
     internal static TimeSpan? AnalyzeTimeout(IReadOnlyDictionary<string, string> values) =>
@@ -77,4 +81,14 @@ internal static class LanguageServiceConfiguration
     /// <summary>The refusal of an analysis time limit outside the accepted range.</summary>
     internal static ConfigurationProblem AnalyzeTimeoutRefused(IReadOnlyDictionary<string, string> values) =>
         new(ConfigurationProblemKind.ValueNotAccepted, AnalyzeTimeoutPath, values[AnalyzeTimeoutPath], [AcceptedSeconds]);
+
+    /// <summary>The seconds a start time limit declares; null when it is not a whole number of seconds greater than zero. The one rule of the loader and of the check of the start.</summary>
+    internal static int? StartupSeconds(string declared) =>
+        int.TryParse(declared, NumberStyles.None, CultureInfo.InvariantCulture, out var seconds) && seconds > 0 ? seconds : null;
+
+    /// <summary>The refusal of a start time limit that is not a whole positive number of seconds; null for one that is.</summary>
+    private static ConfigurationProblem? StartupTimeoutRefused(IReadOnlyDictionary<string, string> values) =>
+        values.TryGetValue(StartupTimeoutPath, out var declared) && StartupSeconds(declared) is null
+            ? new(ConfigurationProblemKind.ValueNotAccepted, StartupTimeoutPath, declared, new[] { AcceptedStartupSeconds }.AsReadOnly())
+            : null;
 }

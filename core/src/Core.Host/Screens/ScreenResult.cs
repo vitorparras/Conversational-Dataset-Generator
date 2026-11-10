@@ -1,4 +1,5 @@
 using Core.Host.Endpoints;
+using Core.Platform;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Core.Host.Screens;
@@ -19,8 +20,24 @@ internal static class ScreenResult
         var withSession = context.GetEndpoint()?.Metadata.GetMetadata<SessionOpen>() is null;
         var reach = context.Features.Get<ScreenReach>() ?? ScreenReach.Nothing;
         var menu = ScreenMenu.Of(context, reach);
-        return new(new { Title = title, Screen = screen, ScreenParameters = parameters, WithSession = withSession, Menu = menu, reach.Granted, reach.Unread, Current = context.Request.Path.Value });
+        var current = context.Request.Path.Value;
+        return new(
+            new
+            {
+                Title = title,
+                Screen = screen,
+                ScreenParameters = parameters,
+                WithSession = withSession,
+                Menu = menu,
+                reach.Granted,
+                reach.Unread,
+                Current = current,
+                Demonstration = DemonstrationOf(context),
+            });
     }
+
+    /// <summary>Whether the installation is a demonstration, which every page says in its header so that nobody sends real material to it.</summary>
+    private static bool DemonstrationOf(HttpContext context) => context.RequestServices.GetService<Installation>() is { Kind: InstallationKind.Demonstration };
 
     /// <summary>
     /// The page of an address that leads nowhere, with 404: the one answer of a route that does not exist and of a screen the function does not reach,

@@ -20,8 +20,8 @@ internal static class SampleTexts
     internal static IReadOnlyList<ChoiceGroup.Option> Findings => Kinds;
 
     /// <summary>Which version of the text the item shows: the most treated that exists.</summary>
-    internal static string VersionOf(bool sanitized) =>
-        sanitized ? "Texto sanitizado, a versão mais tratada que existe." : "Texto bruto: o item ainda não tem versão sanitizada.";
+    internal static string VersionOf(bool cleaned) =>
+        cleaned ? "Texto sanitizado, a versão mais tratada que existe." : "Texto bruto: o item ainda não tem versão sanitizada.";
 
     /// <summary>The kind of a finding in words; one the screen does not know is said by its name.</summary>
     internal static string FindingOf(string code) => Array.Find(Kinds, kind => kind.Value == code)?.Caption ?? $"Achado registrado: {code}";

@@ -82,7 +82,6 @@ public sealed class AccommodationTests
     public void DeclarationCannotBeBuiltWithoutAtLeastOneLossOrWithOneThatIsNotInTheSet()
     {
         _ = Assert.Throws<ArgumentException>(() => new Accommodation(MaterialForm.Document, []));
-        _ = Assert.Throws<ArgumentException>(() => new Accommodation(MaterialForm.Document, []));
         _ = Assert.Throws<ArgumentException>(() => new Accommodation(MaterialForm.Document, [(Loss)99]));
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => new Accommodation((MaterialForm)99, [Loss.Author]));
         _ = Assert.Throws<ArgumentNullException>(() => new Accommodation(MaterialForm.Document, null!));

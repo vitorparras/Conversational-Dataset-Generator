@@ -119,6 +119,7 @@ public sealed class EmptyingScreenTests(BrowserFixture browser, EmptyingHostFixt
         var order = new List<string>();
         var seen = new List<bool>();
 
+        await Expect(tab.Page.Locator("#item")).ToBeFocusedAsync();
         await tab.Page.Keyboard.TypeAsync($"{item}");
         await tab.Page.Keyboard.PressAsync("Enter");
         await Expect(tab.Page.Locator(Target)).ToBeVisibleAsync();

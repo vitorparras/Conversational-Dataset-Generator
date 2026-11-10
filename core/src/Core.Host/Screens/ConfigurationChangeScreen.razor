@@ -15,7 +15,7 @@
         {
             <Notice Kind="Notice.Tone.Error">@refused</Notice>
         }
-        <Field Id="@KeyField" Caption="Chave" Options="KeyChoices" Value="@Key" Required="true" Error="@KeyError"
+        <Field Id="@KeyField" Caption="Chave" Options="ChoicesOfKeys()" Value="@Key" Required="true" Error="@KeyError"
                Hint="Só as chaves de tempo e de trabalho mudam aqui. Segredos, certificado, endereço e banco mudam só no servidor." />
         <Field Id="@ValueField" Caption="Valor novo" Value="@Value" Required="true" Autocomplete="off" Error="@ValueError"
                Hint="Durações como 00:30:00 (horas:minutos:segundos); prazos em segundos e o custo das senhas como números inteiros." />
@@ -125,7 +125,7 @@
     [Parameter]
     public string? DecisionError { get; set; }
 
-    private IReadOnlyList<Field.Option> KeyChoices => new List<Field.Option>(Keys.Prepend(new Field.Option("", "Escolha a chave")));
+    private IReadOnlyList<Field.Option> ChoicesOfKeys() => new List<Field.Option>(Keys.Prepend(new Field.Option("", "Escolha a chave")));
 
     private static IReadOnlyList<Field.Option> MotiveChoices { get; } =
         new List<Field.Option>(Settings.ChangeMotives.All.Select(motive => new Field.Option(motive, ChangeTexts.Motive(motive))).Prepend(new Field.Option("", "Escolha o motivo")));

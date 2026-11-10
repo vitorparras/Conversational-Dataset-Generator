@@ -45,18 +45,25 @@ internal static class ConfigurationChangeScreensEndpoint
         var request = new ChangeRequest(
             form[ConfigurationChangeScreen.KeyField].ToString(), form[ConfigurationChangeScreen.ValueField].ToString(), form[ConfigurationChangeScreen.MotiveField].ToString(), actor);
         var answer = await desk.SubmitAsync(request, context.RequestAborted);
-        return answer.Outcome == ChangeOutcome.Recorded
-            ? Back(context, ChangeTexts.SubmittedDone)
-            : await PageAsync(context, decisions, configuration, actor, new Dictionary<string, object?>(StringComparer.Ordinal)
-            {
-                [nameof(ConfigurationChangeScreen.Key)] = request.Key,
-                [nameof(ConfigurationChangeScreen.Value)] = request.Value,
-                [nameof(ConfigurationChangeScreen.Motive)] = request.Motive,
-                [nameof(ConfigurationChangeScreen.KeyError)] = answer.Outcome is ChangeOutcome.OnlyOnServer or ChangeOutcome.OverriddenOnServer ? ChangeTexts.Refused(answer) : null,
-                [nameof(ConfigurationChangeScreen.ValueError)] = ChangeTexts.Value(answer),
-                [nameof(ConfigurationChangeScreen.MotiveError)] = answer.Outcome == ChangeOutcome.MotiveUnknown ? ChangeTexts.Refused(answer) : null,
-                [nameof(ConfigurationChangeScreen.FormError)] = answer.Outcome is ChangeOutcome.WithoutFunction or ChangeOutcome.NotRecorded ? ChangeTexts.Refused(answer) : null,
-            });
+        if (answer.Outcome == ChangeOutcome.Recorded)
+        {
+            return Back(context, ChangeTexts.SubmittedDone);
+        }
+
+        var refusedKey = answer.Outcome is ChangeOutcome.OnlyOnServer or ChangeOutcome.OverriddenOnServer;
+        var refusedMotive = answer.Outcome == ChangeOutcome.MotiveUnknown;
+        var refusedForm = answer.Outcome is ChangeOutcome.WithoutFunction or ChangeOutcome.NotRecorded;
+        IDictionary<string, object?> screen = new Dictionary<string, object?>(StringComparer.Ordinal)
+        {
+            [nameof(ConfigurationChangeScreen.Key)] = request.Key,
+            [nameof(ConfigurationChangeScreen.Value)] = request.Value,
+            [nameof(ConfigurationChangeScreen.Motive)] = request.Motive,
+            [nameof(ConfigurationChangeScreen.KeyError)] = refusedKey ? ChangeTexts.Refused(answer) : null,
+            [nameof(ConfigurationChangeScreen.ValueError)] = ChangeTexts.Value(answer),
+            [nameof(ConfigurationChangeScreen.MotiveError)] = refusedMotive ? ChangeTexts.Refused(answer) : null,
+            [nameof(ConfigurationChangeScreen.FormError)] = refusedForm ? ChangeTexts.Refused(answer) : null,
+        };
+        return await PageAsync(context, decisions, configuration, actor, screen);
     }
 
     /// <summary>Approves or refuses the submission the form names; an identifier that is not a number, or a decision that is neither, leads nowhere and decides nothing.</summary>
@@ -77,17 +84,21 @@ internal static class ConfigurationChangeScreensEndpoint
 
         var approved = decision == ConfigurationChangeScreen.Approve;
         var outcome = await decisions.DecideAsync(new DecisionRequest(changeId, approved, actor), context.RequestAborted);
-        return outcome == DecisionOutcome.Decided
-            ? Back(context, approved ? ChangeTexts.ApprovedDone : ChangeTexts.RefusedDone)
-            : await PageAsync(context, decisions, configuration, actor, new Dictionary<string, object?>(StringComparer.Ordinal)
-            {
-                [nameof(ConfigurationChangeScreen.DecisionError)] = ChangeTexts.Decision(outcome),
-            });
+        if (outcome == DecisionOutcome.Decided)
+        {
+            return Back(context, approved ? ChangeTexts.ApprovedDone : ChangeTexts.RefusedDone);
+        }
+
+        IDictionary<string, object?> screen = new Dictionary<string, object?>(StringComparer.Ordinal)
+        {
+            [nameof(ConfigurationChangeScreen.DecisionError)] = ChangeTexts.Decision(outcome),
+        };
+        return await PageAsync(context, decisions, configuration, actor, screen);
     }
 
     /// <summary>The page with what waits for a decision and the keys the screen changes, each with its value in force, besides what the act being answered gives.</summary>
     private static async Task<IResult> PageAsync(
-        HttpContext context, ChangeDecisionDesk decisions, EffectiveConfiguration configuration, long actor, Dictionary<string, object?> screen)
+        HttpContext context, ChangeDecisionDesk decisions, EffectiveConfiguration configuration, long actor, IDictionary<string, object?> screen)
     {
         var inForce = configuration.Entries.ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.Ordinal);
         screen[nameof(ConfigurationChangeScreen.Actor)] = actor;

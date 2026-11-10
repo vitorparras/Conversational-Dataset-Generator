@@ -22,7 +22,7 @@ public sealed class SubmissionReplicationTests
     {
         await using var world = await SubmissionWorld.CreateAsync(replication: Rule);
 
-        var outcome = await world.SubmitAsync(SubmissionWorld.Request(Messages(("ZQXUM", Forwarded), ("ZQXDOIS", Forwarded))));
+        var outcome = await world.SubmitAsync(SubmissionWorld.Request(SubmissionWorld.Messages(("ZQXUM", Forwarded), ("ZQXDOIS", Forwarded))));
 
         Assert.Equal((SubmissionState.Accepted, 2L, 2L, 2L), (outcome.State, await world.ItemRowsAsync(), await world.OccurrenceRowsAsync(), await world.MarkRowsAsync()));
     }
@@ -32,7 +32,7 @@ public sealed class SubmissionReplicationTests
     {
         await using var world = await SubmissionWorld.CreateAsync(replication: Rule);
 
-        var outcome = await world.SubmitAsync(SubmissionWorld.Request(Messages(("ZQXUM", Forwarded), ("ZQXUM", Forwarded))));
+        var outcome = await world.SubmitAsync(SubmissionWorld.Request(SubmissionWorld.Messages(("ZQXUM", Forwarded), ("ZQXUM", Forwarded))));
 
         Assert.Equal((SubmissionState.Accepted, 2L, 0L), (outcome.State, await world.OccurrenceRowsAsync(), await world.MarkRowsAsync()));
     }
@@ -42,7 +42,7 @@ public sealed class SubmissionReplicationTests
     {
         await using var world = await SubmissionWorld.CreateAsync(replication: Rule);
 
-        var outcome = await world.SubmitAsync(SubmissionWorld.Request(Messages(("ZQXUM", "ZQXok"), ("ZQXDOIS", "ZQXok"))));
+        var outcome = await world.SubmitAsync(SubmissionWorld.Request(SubmissionWorld.Messages(("ZQXUM", "ZQXok"), ("ZQXDOIS", "ZQXok"))));
 
         Assert.Equal((SubmissionState.Accepted, 0L), (outcome.State, await world.MarkRowsAsync()));
     }
@@ -52,8 +52,8 @@ public sealed class SubmissionReplicationTests
     {
         await using var world = await SubmissionWorld.CreateAsync(replication: Rule);
 
-        _ = await world.SubmitAsync(SubmissionWorld.Request(Messages(("ZQXUM", Forwarded), ("ZQXTRES", "ZQXoutra coisa totalmente"))));
-        _ = await world.SubmitAsync(SubmissionWorld.Request(Messages(("ZQXDOIS", Forwarded), ("ZQXQUATRO", "ZQXmais uma coisa distinta"))));
+        _ = await world.SubmitAsync(SubmissionWorld.Request(SubmissionWorld.Messages(("ZQXUM", Forwarded), ("ZQXTRES", "ZQXoutra coisa totalmente"))));
+        _ = await world.SubmitAsync(SubmissionWorld.Request(SubmissionWorld.Messages(("ZQXDOIS", Forwarded), ("ZQXQUATRO", "ZQXmais uma coisa distinta"))));
 
         Assert.Equal((4L, 2L), (await world.OccurrenceRowsAsync(), await world.MarkRowsAsync()));
     }
@@ -63,7 +63,7 @@ public sealed class SubmissionReplicationTests
     {
         await using var world = await SubmissionWorld.CreateAsync();
 
-        var outcome = await world.SubmitAsync(SubmissionWorld.Request(Messages(("ZQXUM", Forwarded), ("ZQXDOIS", Forwarded))));
+        var outcome = await world.SubmitAsync(SubmissionWorld.Request(SubmissionWorld.Messages(("ZQXUM", Forwarded), ("ZQXDOIS", Forwarded))));
 
         Assert.Equal((SubmissionState.Accepted, 0L, 0L), (outcome.State, await world.OccurrenceRowsAsync(), await world.MarkRowsAsync()));
     }
@@ -75,12 +75,11 @@ public sealed class SubmissionReplicationTests
     {
         await using var world = await SubmissionWorld.CreateAsync(replication: new ReplicationRule(minLength: 6, minSenders: 2));
 
-        _ = await world.SubmitAsync(SubmissionWorld.Request(Messages(("ZQXUM", text), ("ZQXDOIS", text))));
+        _ = await world.SubmitAsync(SubmissionWorld.Request(SubmissionWorld.Messages(("ZQXUM", text), ("ZQXDOIS", text))));
 
         Assert.Equal(marks, await world.MarkRowsAsync());
     }
 
-    [DatabaseTheory]
     [DatabaseTheory]
     [InlineData(10, 2, 2L)]
     [InlineData(29, 2, 0L)]
@@ -92,7 +91,7 @@ public sealed class SubmissionReplicationTests
             new StrictArgumentsSource([$"--Replication:MinLength={length}", $"--Replication:MinSenders={senders}"]));
         await using var world = await SubmissionWorld.CreateAsync(replication: ReplicationConfiguration.Rule(loaded.Values));
 
-        _ = await world.SubmitAsync(SubmissionWorld.Request(Messages(("ZQXUM", Forwarded), ("ZQXDOIS", Forwarded))));
+        _ = await world.SubmitAsync(SubmissionWorld.Request(SubmissionWorld.Messages(("ZQXUM", Forwarded), ("ZQXDOIS", Forwarded))));
 
         Assert.Equal(marks, await world.MarkRowsAsync());
         Assert.Contains(new EffectiveEntry("Replication:MinLength", length.ToString(CultureInfo.InvariantCulture), ConfigurationOrigin.Argument), loaded.View.Entries);
@@ -103,14 +102,10 @@ public sealed class SubmissionReplicationTests
     public async Task TwoBatchesOfTheSameDomainAtTheSameTimeBothComeInAndNeitherSeesTheOther()
     {
         await using var world = await SubmissionWorld.CreateAsync(replication: Rule);
-        var request = Messages(("ZQXUM", Forwarded), ("ZQXDOIS", Forwarded));
+        var request = SubmissionWorld.Messages(("ZQXUM", Forwarded), ("ZQXDOIS", Forwarded));
 
         var outcomes = await Task.WhenAll(world.SubmitAsync(SubmissionWorld.Request(request)), world.SubmitAsync(SubmissionWorld.Request(request)));
 
-        Assert.Equal((true, 4L, 4L), (outcomes.All(outcome => outcome.State == SubmissionState.Accepted), await world.OccurrenceRowsAsync(), await world.MarkRowsAsync()));
+        Assert.Equal((true, 4L, 4L), (Array.TrueForAll(outcomes, outcome => outcome.State == SubmissionState.Accepted), await world.OccurrenceRowsAsync(), await world.MarkRowsAsync()));
     }
-
-    private static string Messages(params (string Sender, string Text)[] messages) =>
-        /*lang=json*/ """{"formato":"cdg-conversa/1","mensagens":[""" +
-        string.Join(",", messages.Select((message, at) => $$"""{"id":"m{{at}}","remetente":"{{message.Sender}}","instante":"2031-03-04T08:0{{at}}:00Z","texto":"{{message.Text}}"}""")) + "]}";
 }

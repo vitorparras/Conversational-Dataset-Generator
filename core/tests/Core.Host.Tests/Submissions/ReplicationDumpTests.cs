@@ -13,14 +13,10 @@ public sealed class ReplicationDumpTests
     private const string Forwarded = "ZQXordem repassada em cadeia";
 
     [DatabaseFact]
-    public async Task EveryOccurrenceStaysWithItsSenderItsMomentAndItsConversationWhetherMarkedOrNot()
+    public async Task EveryOccurrenceStaysWithItsSenderItsMomentAndItsConversationWhetherMarkedOrNotAsync()
     {
         await using var world = await SubmissionWorld.CreateAsync(replication: new ReplicationRule(minLength: 10, minSenders: 2));
-        var body = $$"""{"formato":"cdg-conversa/1","mensagens":[
-            {"id":"m0","remetente":"ZQXUM","instante":"2031-03-04T08:00:00Z","texto":"{{Forwarded}}"},
-            {"id":"m1","remetente":"ZQXDOIS","instante":"2031-03-04T08:01:00Z","texto":"{{Forwarded}}"},
-            {"id":"m2","remetente":"ZQXTRES","instante":"2031-03-04T08:02:00Z","texto":"ZQXoutra coisa totalmente"}]}
-            """;
+        var body = SubmissionWorld.Messages(("ZQXUM", Forwarded), ("ZQXDOIS", Forwarded), ("ZQXTRES", "ZQXoutra coisa totalmente"));
 
         _ = await world.SubmitAsync(SubmissionWorld.Request(body));
 

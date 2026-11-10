@@ -64,7 +64,10 @@ public sealed class ReplicationStore
         }
     }
 
-    /// <summary>The occurrences of the domain that the batches accepted left and whose text is one of the digests given, in the order they were written: the first of a content is the first of these.</summary>
+    /// <summary>
+    /// The occurrences of the domain that the batches accepted left and whose text is one of the digests given, in the order they were written:
+    /// the first of a content is the first of these.
+    /// </summary>
     /// <param name="domainId">The domain.</param>
     /// <param name="textDigests">The digests of the texts that arrive: nothing else is read, so the cost follows the batch and not the domain.</param>
     /// <param name="cancellationToken">Cancels the reading.</param>

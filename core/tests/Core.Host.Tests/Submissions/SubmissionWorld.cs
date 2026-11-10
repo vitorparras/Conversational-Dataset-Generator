@@ -5,6 +5,7 @@ using Core.Host.Submissions;
 using Core.Ingestion;
 using Core.Ingestion.Entrance;
 using Core.Ingestion.Reading;
+using Core.Persistence.Content;
 using Core.Persistence.Content.Reading;
 using Core.Persistence.Content.Sealing;
 using Core.Persistence.Content.Writing;
@@ -104,6 +105,11 @@ internal sealed class SubmissionWorld : IAsyncDisposable
         var key = Enumerable.Range(0, MasterKey.Length).Select(index => (byte)(0x3C ^ ((index * 17) + 5))).ToArray();
         return new KeyDerivation(MasterKeyReading.FromBytes(key, DerivationLabels.None).Key!, DerivationLabels.None);
     }
+
+    /// <summary>A conversation of the format with one message per pair, in order, a minute apart from 08:00.</summary>
+    internal static string Messages(params (string Sender, string Text)[] entries) =>
+        """{"formato":"cdg-conversa/1","mensagens":[""" +
+        string.Join(",", entries.Select((entry, at) => $$"""{"id":"m{{at}}","remetente":"{{entry.Sender}}","instante":"2031-03-04T08:0{{at}}:00Z","texto":"{{entry.Text}}"}""")) + "]}";
 
     internal static SubmissionRequest Request(string content = Conversation, string? name = "conversa.json", string? condition = null) => new()
     {

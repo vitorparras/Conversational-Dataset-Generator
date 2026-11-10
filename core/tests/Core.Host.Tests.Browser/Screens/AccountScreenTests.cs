@@ -285,7 +285,7 @@ public sealed class AccountScreenTests(BrowserFixture browser, AccountHostFixtur
         await Expect(tab.Page.GetByRole(AriaRole.Heading, new() { Name = "Minha conta", Level = 1 })).ToBeVisibleAsync();
     }
 
-    private static string StripAddress(string page, string route) => page.Replace(route.TrimStart('/'), string.Empty, StringComparison.Ordinal);
+    private static string StripAddress(string page, string route) => page.Replace(route, string.Empty, StringComparison.Ordinal);
 
     private async Task<Sessions> TwoSessionsAsync()
     {

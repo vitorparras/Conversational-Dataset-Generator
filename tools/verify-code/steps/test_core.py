@@ -23,6 +23,7 @@ REAL_SERVICE_TRAIT = "Category=RealService"
 WITHOUT_REAL_SERVICE = ("--filter-not-trait", REAL_SERVICE_TRAIT)
 MSBUILD_LOG_VARIABLE = "ARCHITECTURE_MSBUILD_LOG"
 MSBUILD_LOG = "architecture-msbuild.log"
+MESSAGE_LINES = 200
 MSBUILD_LINE = re.compile(r"^\[msbuild\] (\S+) (\S+) ([0-9]+(?:\.[0-9]+)?)s$")
 
 
@@ -81,20 +82,33 @@ def read_trx(path: Path) -> TestRun:
 
 
 def failed_tests(root: ElementTree.Element) -> tuple[str, ...]:
-    """Each failed test as `name: first line of its message`, in the order the report lists them."""
+    """Each failed test as `name: first line of its message`, then the rest of the message.
+
+    The rest is kept to the last `MESSAGE_LINES` lines: a test that carries the output of a
+    command (the cause of its failure) says it at the end, and the TRX is no place the CI shows."""
     found: list[str] = []
     for result in root.iter():
         if not result.tag.endswith("}UnitTestResult") or result.get("outcome") != "Failed":
             continue
         message = (result.findtext("*/{*}ErrorInfo/{*}Message") or "").strip()
-        first_line = message.splitlines()[0].strip() if message else "sem mensagem"
-        found.append(f"{result.get('testName', '?')}: {first_line}")
+        lines = [line.rstrip() for line in message.splitlines()] or ["sem mensagem"]
+        rest = [line for line in lines[1:] if line.strip()]
+        if len(rest) > MESSAGE_LINES:
+            omitted = len(rest) - MESSAGE_LINES
+            rest = [f"({omitted} linha(s) anteriores omitidas)", *rest[-MESSAGE_LINES:]]
+        found.append("\n".join([f"{result.get('testName', '?')}: {lines[0].strip()}", *rest]))
     return tuple(found)
 
 
 def describe_failures(runs: tuple[TestRun, ...]) -> tuple[str, ...]:
-    """One line per failed test: `  project: name: first line of its message`; none if green."""
-    return tuple(f"  {run.project}: {test}" for run in runs for test in run.failures)
+    """Per failed test: `  project: name: first line`, then its message as `    | line`."""
+    described: list[str] = []
+    for run in runs:
+        for test in run.failures:
+            headline, *rest = test.split("\n")
+            described.append(f"  {run.project}: {headline}")
+            described.extend(f"    | {line}" for line in rest)
+    return tuple(described)
 
 
 def describe_skips(run: TestRun) -> str:

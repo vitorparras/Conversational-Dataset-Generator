@@ -8,6 +8,7 @@ import subprocess
 import unittest
 
 import yaml
+
 from steps import tested_tree
 
 from . import support
@@ -196,7 +197,9 @@ class ChangesWorkflowTests(unittest.TestCase):
     def test_the_slow_jobs_wait_for_the_pull_request_to_leave_the_draft(self) -> None:
         for name in SLOW:
             with self.subTest(job=name):
-                condition = next(line for line in job(name).splitlines() if line.startswith("    if:"))
+                condition = next(
+                    line for line in job(name).splitlines() if line.startswith("    if:")
+                )
                 self.assertIn(NOT_DRAFT, condition)
 
     def test_the_other_jobs_do_not_look_at_the_draft(self) -> None:
@@ -211,7 +214,9 @@ class ChangesWorkflowTests(unittest.TestCase):
         # Outside a pull request the draft is null, and `null != true`; nothing else mentions it.
         for name in SLOW:
             with self.subTest(job=name):
-                condition = next(line for line in job(name).splitlines() if line.startswith("    if:"))
+                condition = next(
+                    line for line in job(name).splitlines() if line.startswith("    if:")
+                )
                 self.assertIn(f"&& {NOT_DRAFT}", condition)
                 self.assertNotIn("== true", condition)
 
@@ -291,10 +296,14 @@ class AggregatorTests(unittest.TestCase):
     def test_a_draft_passes_with_the_list_and_the_matrix_skipped(self) -> None:
         for heavy in ("true", "false", ""):
             with self.subTest(heavy=heavy):
-                self.assertEqual(aggregate("success", heavy, "skipped", "", "skipped", draft="true"), 0)
+                self.assertEqual(
+                    aggregate("success", heavy, "skipped", "", "skipped", draft="true"), 0
+                )
 
     def test_a_draft_does_not_accept_a_list_or_a_matrix_that_ran(self) -> None:
-        self.assertEqual(aggregate("success", "true", "success", '["a"]', "success", draft="true"), 1)
+        self.assertEqual(
+            aggregate("success", "true", "success", '["a"]', "success", draft="true"), 1
+        )
         self.assertEqual(aggregate("success", "true", "success", "[]", "skipped", draft="true"), 1)
         self.assertEqual(aggregate("success", "true", "skipped", "", "success", draft="true"), 1)
 
@@ -303,7 +312,9 @@ class AggregatorTests(unittest.TestCase):
 
     def test_a_pull_request_that_is_not_a_draft_runs_the_whole_ruler(self) -> None:
         self.assertEqual(aggregate("success", "true", "skipped", "", "skipped", draft="false"), 1)
-        self.assertEqual(aggregate("success", "true", "success", '["a"]', "success", draft="false"), 0)
+        self.assertEqual(
+            aggregate("success", "true", "success", '["a"]', "success", draft="false"), 0
+        )
 
     def test_a_run_outside_a_pull_request_is_unchanged_by_the_draft(self) -> None:
         self.assertEqual(aggregate("success", "true", "skipped", "", "skipped", draft=""), 1)

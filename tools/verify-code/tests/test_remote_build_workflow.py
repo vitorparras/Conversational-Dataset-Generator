@@ -21,12 +21,15 @@ SOLUTION = (
     '<Solution><Project Path="tests/Core.Host.Tests/Core.Host.Tests.csproj" />'
     '<Project Path="tests/Core.Ingestion.Tests/Core.Ingestion.Tests.csproj" /></Solution>'
 )
-PROJECTS = (("Core.Host.Tests", "Core.Tests.Database"), ("Core.Ingestion.Tests", "Core.Tests.Support"))
+PROJECTS = (
+    ("Core.Host.Tests", "Core.Tests.Database"),
+    ("Core.Ingestion.Tests", "Core.Tests.Support"),
+)
 
 
 @contextmanager
 def workspace() -> Iterator[Path]:
-    """A working copy with the solution and two test projects, only the first referencing the database."""
+    """A working copy with two test projects, only the first referencing the database."""
     with tempfile.TemporaryDirectory() as folder:
         root = Path(folder)
         (root / "core").mkdir()
@@ -35,7 +38,8 @@ def workspace() -> Iterator[Path]:
             project = root / "core" / "tests" / name
             project.mkdir(parents=True)
             (project / f"{name}.csproj").write_text(
-                f'<Project><ItemGroup><ProjectReference Include="..\\{reference}\\{reference}.csproj" /></ItemGroup></Project>',
+                "<Project><ItemGroup><ProjectReference "
+                f'Include="..\\{reference}\\{reference}.csproj" /></ItemGroup></Project>',
                 encoding="utf-8",
             )
         yield root
@@ -91,10 +95,14 @@ class RemoteBuildWorkflowTests(unittest.TestCase):
         self.assertEqual(tests["default"], "")
         self.assertEqual(tests["type"], "string")
 
-    def test_runs_each_listed_project_on_the_build_it_made_and_without_the_real_service(self) -> None:
+    def test_runs_each_listed_project_on_the_build_it_made_and_without_the_real_service(
+        self,
+    ) -> None:
         run = self.runs()
 
-        self.assertIn('dotnet test --project "core/tests/$project/$project.csproj" -c Release --no-build', run)
+        self.assertIn(
+            'dotnet test --project "core/tests/$project/$project.csproj" -c Release --no-build', run
+        )
         self.assertIn('--filter-not-trait "Category=RealService"', run)
 
     def test_the_summary_line_gains_tests_only_when_some_were_asked_for(self) -> None:
@@ -107,11 +115,15 @@ class RemoteBuildWorkflowTests(unittest.TestCase):
         self.assertIn('{ [ "$tests" = skipped ] || [ "$tests" = 0 ]; }', self.runs())
 
     def test_builds_the_database_image_only_for_a_plan_that_needs_it(self) -> None:
-        image = next(s for s in self.steps if s.get("uses") == "./.github/actions/build-database-image")
+        image = next(
+            s for s in self.steps if s.get("uses") == "./.github/actions/build-database-image"
+        )
 
         self.assertEqual(image["if"], "steps.plan.outputs.database == 'true'")
 
-    def test_the_list_reaches_the_shell_through_the_environment_and_not_through_the_text(self) -> None:
+    def test_the_list_reaches_the_shell_through_the_environment_and_not_through_the_text(
+        self,
+    ) -> None:
         plan = next(step for step in self.steps if step.get("id") == "plan")
 
         self.assertEqual(plan["env"], {"TESTS": "${{ inputs.tests }}"})
@@ -151,7 +163,9 @@ class PlanStepTests(unittest.TestCase):
         lines = (root / "output").read_text(encoding="utf-8").splitlines()
         return dict(line.split("=", 1) for line in lines)
 
-    def test_names_the_projects_and_says_the_database_is_needed_when_one_references_it(self) -> None:
+    def test_names_the_projects_and_says_the_database_is_needed_when_one_references_it(
+        self,
+    ) -> None:
         with workspace() as root:
             done = self.plan("Core.Host.Tests; Core.Ingestion.Tests;", root)
 
@@ -166,7 +180,9 @@ class PlanStepTests(unittest.TestCase):
             done = self.plan("Core.Ingestion.Tests", root)
 
             self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
-            self.assertEqual(self.outputs(root), {"database": "false", "projects": "Core.Ingestion.Tests;"})
+            self.assertEqual(
+                self.outputs(root), {"database": "false", "projects": "Core.Ingestion.Tests;"}
+            )
 
     def test_an_empty_list_asks_for_nothing(self) -> None:
         with workspace() as root:
@@ -175,7 +191,9 @@ class PlanStepTests(unittest.TestCase):
             self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
             self.assertEqual(self.outputs(root), {"database": "false", "projects": ""})
 
-    def test_a_name_that_is_not_a_project_of_the_solution_fails_before_anything_is_built(self) -> None:
+    def test_a_name_that_is_not_a_project_of_the_solution_fails_before_anything_is_built(
+        self,
+    ) -> None:
         for name in ("Core.Nao.Existe", "Core.Host.Tests.Browser", "../x", "A B"):
             with self.subTest(name=name), workspace() as root:
                 done = self.plan(f"Core.Ingestion.Tests;{name}", root)

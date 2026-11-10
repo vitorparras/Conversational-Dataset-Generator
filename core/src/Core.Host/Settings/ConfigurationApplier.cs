@@ -47,7 +47,7 @@ internal sealed class ConfigurationApplier
         }
         else
         {
-            log.ChangeNotApplied(change.Id, refusal, change.SubmissionSequence, change.ApprovalSequence);
+            log.ChangeNotApplied(change.Id, refusal, $"submissão de sequência {change.SubmissionSequence}, aprovação de sequência {change.ApprovalSequence}");
         }
 
         return refusal;

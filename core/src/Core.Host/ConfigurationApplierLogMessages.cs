@@ -16,6 +16,6 @@ internal static partial class ConfigurationApplierLogMessages
     [LoggerMessage(
         EventId = 344,
         Level = LogLevel.Error,
-        Message = "Alteração de configuração {Change} NÃO aplicada, o arquivo ficou como estava: {Reason}; submissão de sequência {SubmissionSequence}, aprovação de sequência {ApprovalSequence}")]
-    internal static partial void ChangeNotApplied(this ILogger logger, long change, ApplicationRefusal reason, long submissionSequence, long approvalSequence);
+        Message = "Alteração de configuração {Change} NÃO aplicada, o arquivo ficou como estava: {Reason}; {Sequences}")]
+    internal static partial void ChangeNotApplied(this ILogger logger, long change, ApplicationRefusal reason, string sequences);
 }

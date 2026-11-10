@@ -36,7 +36,7 @@ internal sealed class ConfigurationFile
             return false;
         }
 
-        if (root[parts[0]]?[parts[1]] is JsonValue current && current.ToString() == value)
+        if (root[parts[0]] is JsonObject section && section[parts[1]] is JsonValue current && current.ToString() == value)
         {
             return true;
         }

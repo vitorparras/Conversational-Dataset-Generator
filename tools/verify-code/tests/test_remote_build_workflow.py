@@ -6,7 +6,7 @@ import shutil
 import subprocess
 import tempfile
 import unittest
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, cast
@@ -28,7 +28,7 @@ PROJECTS = (
 
 
 @contextmanager
-def workspace() -> Iterator[Path]:
+def workspace() -> Generator[Path]:
     """A working copy with two test projects, only the first referencing the database."""
     with tempfile.TemporaryDirectory() as folder:
         root = Path(folder)

@@ -62,8 +62,18 @@ internal static class ChainScreensEndpoint
         var screen = new Dictionary<string, object?>(StringComparer.Ordinal)
         {
             [nameof(ChainCheckScreen.WaitSeconds)] = asked.WaitSeconds,
+            [nameof(ChainCheckScreen.RetryAt)] = asked.WaitSeconds is { } wait ? RetryMinute(context, wait) : null,
             [nameof(ChainCheckScreen.Unfinished)] = asked.WaitSeconds is null,
         };
         return ScreenResult.Of(context, typeof(ChainCheckScreen), ChainCheckScreen.Title, screen);
+    }
+
+    /// <summary>The first whole minute at or after the end of the wait, which is the precision the page writes a time in, so that asking at it is never too soon.</summary>
+    private static DateTimeOffset RetryMinute(HttpContext context, int waitSeconds)
+    {
+        var clock = context.RequestServices.GetService<TimeProvider>() ?? TimeProvider.System;
+        var end = clock.GetUtcNow().AddSeconds(waitSeconds);
+        var minute = new DateTimeOffset(end.Year, end.Month, end.Day, end.Hour, end.Minute, 0, TimeSpan.Zero);
+        return minute < end ? minute.AddMinutes(1) : minute;
     }
 }

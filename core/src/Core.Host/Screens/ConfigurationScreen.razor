@@ -4,16 +4,19 @@
 <p class="lead">Os valores com que o sistema está rodando agora e de onde veio cada um.</p>
 
 <Panel Id="chaves" Title="Chaves em vigor">
-    <Notice>
-        Esta tela só mostra; nada se altera aqui. Para mudar um valor, quem administra o servidor o grava no arquivo de configuração,
-        numa variável de ambiente ou num argumento da linha de comando, nessa ordem de precedência crescente,
-        e o valor novo vale quando o sistema reinicia. De uma chave de segredo aparecem só o nome e a origem.
-    </Notice>
+    <Notice>Esta tela só mostra. Quem administra o servidor altera os valores; o novo vale quando o sistema reinicia.</Notice>
+    <details class="filter-box">
+        <summary class="filter-box__summary">Como se altera um valor</summary>
+        <p>
+            O valor se grava no arquivo de configuração, numa variável de ambiente ou num argumento da linha de comando, nessa ordem de precedência crescente.
+            De uma chave de segredo aparecem só o nome e a origem.
+        </p>
+    </details>
     <DataTable Id="chaves-tabela" Caption="@($"{Entries.Count} chaves, uma por linha, agrupadas por seção.")" Headers="Columns">
         @foreach (var section in Entries.GroupBy(entry => entry.Key.Split(':')[0]))
         {
             <tbody role="rowgroup">
-                <tr role="row"><th role="rowheader" class="data-table__group" colspan="@Columns.Length" scope="rowgroup">@section.Key</th></tr>
+                <tr role="row"><th role="rowheader" class="data-table__group" colspan="@Columns.Length" scope="rowgroup">@SectionTitle(section.Key)</th></tr>
                 @foreach (var entry in section)
                 {
                     <tr role="row">
@@ -22,7 +25,7 @@
                             @Value(entry.Value)
                             @if (entry.Mark is { } mark)
                             {
-                                <StateMark>@mark</StateMark>
+                                <span class="data-table__mark"><StateMark>@mark</StateMark></span>
                             }
                         </td>
                         <td role="cell">@Origin(entry.Origin)</td>
@@ -43,6 +46,26 @@
     /// <summary>Every key in force, as the route of the configuration returns it: a secret already redacted, so its value never reaches the page.</summary>
     [Parameter, EditorRequired]
     public IReadOnlyList<EffectiveEntry> Entries { get; set; } = Array.Empty<EffectiveEntry>();
+
+    /// <summary>The name of a section in words, with the name in the file beside it; every section the host declares has one, which a test walks.</summary>
+    internal static string SectionTitle(string key) => key switch
+    {
+        "Host" => "Servidor (Host)",
+        "Session" => "Sessões (Session)",
+        "Custody" => "Guarda da chave e selo (Custody)",
+        "Passwords" => "Senhas (Passwords)",
+        "Installation" => "Instalação (Installation)",
+        "Database" => "Banco de dados (Database)",
+        "Ingestion" => "Ingestão (Ingestion)",
+        "Audit" => "Auditoria (Audit)",
+        "MasterKey" => "Chave mestra (MasterKey)",
+        "Recognizer" => "Reconhecedor (Recognizer)",
+        "LanguageService" => "Serviço de linguagem (LanguageService)",
+        "Tls" => "Certificado e chave de TLS (Tls)",
+        "ConfigurationChange" => "Prazo da alteração de configuração (ConfigurationChange)",
+        "Mail" => "Envio de e-mail (Mail)",
+        _ => key,
+    };
 
     private static RenderFragment Value(string? value) => value switch
     {

@@ -1,4 +1,3 @@
-using System.Data;
 using System.Data.Common;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
@@ -96,18 +95,18 @@ public sealed class ApprovedChanges
         var found = new List<RefusedChange>();
         while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
-            found.Add(ReadRefused(reader));
+            found.Add(ReadRefused(name => reader[name]));
         }
 
         return found;
     }
 
-    private static RefusedChange ReadRefused(IDataRecord reader) => new()
+    private static RefusedChange ReadRefused(Func<string, object> column) => new()
     {
-        Id = (long)reader["id"],
-        Key = (string)reader["config_key"],
-        ReasonCode = (string)reader["reason_code"],
-        ApprovalSequence = (long)reader["approval_sequence"],
+        Id = (long)column("id"),
+        Key = (string)column("config_key"),
+        ReasonCode = (string)column("reason_code"),
+        ApprovalSequence = (long)column("approval_sequence"),
     };
 
     private static async Task<IReadOnlyList<ApprovedChange>> AllAsync(DbDataReader reader, CancellationToken cancellationToken)

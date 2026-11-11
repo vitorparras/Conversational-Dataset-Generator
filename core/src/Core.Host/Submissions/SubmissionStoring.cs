@@ -42,17 +42,24 @@ internal static class SubmissionStoring
     }
 
     /// <summary>Writes each unit of the material as an item of the batch; false when some item could not be written, the ones before it still standing for the rejection to remove.</summary>
-    /// <param name="writer">Writes the items.</param>
-    /// <param name="kept">The domain and the batch, open, and what the reader gave.</param>
+    /// <param name="intake">Holds the writer of the items and the marking of the replicated content.</param>
+    /// <param name="kept">The domain and the batch, open, what the reader gave and the form it was declared in.</param>
     /// <param name="cancellationToken">Cancels the writing.</param>
-    internal static async Task<bool> StoreAsync(ContentWriter writer, Kept kept, CancellationToken cancellationToken)
+    internal static async Task<bool> StoreAsync(SubmissionIntake intake, Kept kept, CancellationToken cancellationToken)
     {
         try
         {
+            var written = new List<(long Item, ReadUnit Unit)>();
             foreach (var (unit, declared) in kept.Material.Units.Zip(Accommodating.Of(kept.Material, kept.Form)))
             {
                 var accommodation = declared is null ? null : new ItemAccommodation(declared.FormCode, declared.Codes);
-                _ = await writer.AddItemTextAsync(kept.DomainId, kept.BatchId, new NewItemText(unit.Text, Accommodation: accommodation), cancellationToken).ConfigureAwait(false);
+                var item = await intake.Writer!.AddItemTextAsync(kept.DomainId, kept.BatchId, new NewItemText(unit.Text, Accommodation: accommodation), cancellationToken).ConfigureAwait(false);
+                written.Add((item, unit));
+            }
+
+            if (kept.Form == MaterialForm.Conversation && intake.Marking is { } marking)
+            {
+                await marking.MarkAsync(kept.DomainId, kept.BatchId, written, cancellationToken).ConfigureAwait(false);
             }
 
             return true;
@@ -65,13 +72,13 @@ internal static class SubmissionStoring
 
     /// <summary>Writes the items of a file that was not turned back and accepts the batch; when that fails, rejects it with no item and says so.</summary>
     /// <param name="batches">Accepts and rejects the batch.</param>
-    /// <param name="writer">Writes the items.</param>
-    /// <param name="kept">The domain and the batch, open, and what the reader gave.</param>
+    /// <param name="intake">Holds the writer of the items and the marking of the replicated content.</param>
+    /// <param name="kept">The domain and the batch, open, what the reader gave and the form it was declared in.</param>
     /// <param name="cancellationToken">Cancels the writing.</param>
-    internal static async Task<bool> KeepAsync(IngestionBatches batches, ContentWriter writer, Kept kept, CancellationToken cancellationToken)
+    internal static async Task<bool> KeepAsync(IngestionBatches batches, SubmissionIntake intake, Kept kept, CancellationToken cancellationToken)
     {
         var closing = new BatchClosing(kept.DomainId, kept.BatchId, CustodyAuthor.System);
-        if (await StoreAsync(writer, kept, cancellationToken).ConfigureAwait(false)
+        if (await StoreAsync(intake, kept, cancellationToken).ConfigureAwait(false)
             && (await batches.AcceptAsync(closing, cancellationToken).ConfigureAwait(false)).Outcome == BatchOutcome.Accepted)
         {
             return true;

@@ -106,7 +106,7 @@ internal sealed class ConfigurationRefusals : BackgroundService
             return 0;
         }
 
-        logger.ChangeWillNotBeApplied(change.Id, refusal, change.ApprovalSequence, recorded.Sequence);
+        logger.ChangeWillNotBeApplied(change.Id, refusal, recorded.Sequence);
         return 1;
     }
 }

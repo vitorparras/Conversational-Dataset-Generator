@@ -11,8 +11,8 @@ internal static partial class ConfigurationRefusalsLogMessages
     [LoggerMessage(
         EventId = 348,
         Level = LogLevel.Warning,
-        Message = "Alteração de configuração {Change} não será aplicada: {Reason}; aprovação de sequência {ApprovalSequence}, registro de sequência {Sequence}")]
-    internal static partial void ChangeWillNotBeApplied(this ILogger logger, long change, ApplicationRefusal reason, long approvalSequence, long? sequence);
+        Message = "Alteração de configuração {Change} não será aplicada: {Reason}; registro de sequência {Sequence}")]
+    internal static partial void ChangeWillNotBeApplied(this ILogger logger, long change, ApplicationRefusal reason, long? sequence);
 
     [LoggerMessage(
         EventId = 349,

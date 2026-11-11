@@ -21,36 +21,36 @@ public sealed class ConfigurationRefusalsTests : IDisposable
         loggers = LoggerFactory.Create(builder => builder.AddProvider(log));
     }
 
-    public static TheoryData<ApplicationRefusal, bool> Kinds() => new()
+    public static TheoryData<string, bool> Kinds() => new()
     {
-        { ApplicationRefusal.SameAuthor, true },
-        { ApplicationRefusal.SubmitterNotAllowed, true },
-        { ApplicationRefusal.ApproverNotAllowed, true },
-        { ApplicationRefusal.KeyOnlyOnServer, true },
-        { ApplicationRefusal.ValueRefused, true },
-        { ApplicationRefusal.None, false },
-        { ApplicationRefusal.ChainBroken, false },
-        { ApplicationRefusal.FileUnreadable, false },
+        { nameof(ApplicationRefusal.SameAuthor), true },
+        { nameof(ApplicationRefusal.SubmitterNotAllowed), true },
+        { nameof(ApplicationRefusal.ApproverNotAllowed), true },
+        { nameof(ApplicationRefusal.KeyOnlyOnServer), true },
+        { nameof(ApplicationRefusal.ValueRefused), true },
+        { nameof(ApplicationRefusal.None), false },
+        { nameof(ApplicationRefusal.ChainBroken), false },
+        { nameof(ApplicationRefusal.FileUnreadable), false },
     };
 
     [Theory]
     [MemberData(nameof(Kinds))]
-    public void ARefusalThatLastsIsTheOnlyOneThatIsRecorded(ApplicationRefusal refusal, bool definitive) =>
-        Assert.Equal(definitive, refusal.IsDefinitive());
+    public void ARefusalThatLastsIsTheOnlyOneThatIsRecorded(string refusal, bool definitive) =>
+        Assert.Equal(definitive, Enum.Parse<ApplicationRefusal>(refusal).IsDefinitive());
 
-    public static TheoryData<ApplicationRefusal, string> Codes() => new()
+    public static TheoryData<string, string> Codes() => new()
     {
-        { ApplicationRefusal.SameAuthor, "same_author" },
-        { ApplicationRefusal.SubmitterNotAllowed, "submitter_not_allowed" },
-        { ApplicationRefusal.ApproverNotAllowed, "approver_not_allowed" },
-        { ApplicationRefusal.KeyOnlyOnServer, "key_only_on_server" },
-        { ApplicationRefusal.ValueRefused, "value_refused" },
+        { nameof(ApplicationRefusal.SameAuthor), "same_author" },
+        { nameof(ApplicationRefusal.SubmitterNotAllowed), "submitter_not_allowed" },
+        { nameof(ApplicationRefusal.ApproverNotAllowed), "approver_not_allowed" },
+        { nameof(ApplicationRefusal.KeyOnlyOnServer), "key_only_on_server" },
+        { nameof(ApplicationRefusal.ValueRefused), "value_refused" },
     };
 
     [Theory]
     [MemberData(nameof(Codes))]
-    public void TheCodeTheChainCarriesIsFixedAndNotDerivedFromTheNameOfTheMember(ApplicationRefusal refusal, string code) =>
-        Assert.Equal(code, refusal.CodeOf());
+    public void TheCodeTheChainCarriesIsFixedAndNotDerivedFromTheNameOfTheMember(string refusal, string code) =>
+        Assert.Equal(code, Enum.Parse<ApplicationRefusal>(refusal).CodeOf());
 
     [Fact]
     public void EveryDefinitiveRefusalHasACodeAndOnlyThoseHaveOne()

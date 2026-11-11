@@ -101,7 +101,7 @@ public sealed class SubmissionCollisionTests
     private static async Task<(int Status, string RetryAfter, string Body)> AnswerAsync(SubmissionOutcome outcome)
     {
         using var body = new MemoryStream();
-        var context = new DefaultHttpContext { RequestServices = new ServiceCollection().BuildServiceProvider() };
+        var context = new DefaultHttpContext { RequestServices = new ServiceCollection().AddLogging().BuildServiceProvider() };
         context.Response.Body = body;
 
         await SubmissionAnswer.Of(outcome).ExecuteAsync(context);

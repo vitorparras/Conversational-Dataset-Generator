@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
+using Core.Host.Screens;
 using Core.Host.Tests.Browser.Accessibility;
 using Core.Host.Tests.Browser.Fixtures;
 using Microsoft.Playwright;
@@ -16,7 +18,7 @@ namespace Core.Host.Tests.Browser.Screens;
 /// phone and is used by the keyboard alone.
 /// </summary>
 [Trait("Category", "Browser")]
-public sealed class PeopleEmailCorrectionTests(BrowserFixture browser, PeopleHostFixture people) : IClassFixture<PeopleHostFixture>
+public sealed partial class PeopleEmailCorrectionTests(BrowserFixture browser, PeopleHostFixture people) : IClassFixture<PeopleHostFixture>
 {
     private const string Own = "/minha-conta/email";
     private const string Field = "#pessoa-email";
@@ -25,6 +27,7 @@ public sealed class PeopleEmailCorrectionTests(BrowserFixture browser, PeopleHos
     private const string FocusTheTitle = "() => { const title = document.querySelector('main h1'); title.setAttribute('tabindex', '-1'); title.focus(); }";
     private const string StopInMain = "() => { const stop = document.activeElement; return stop && stop.closest('main') ? (stop.id || stop.textContent.trim()) : ''; }";
     private const string TextOfMain = "() => document.querySelector('main').innerText";
+    private const string Send = "async ([path, method, name, typed]) => { const init = { method, credentials: 'same-origin', redirect: 'manual' }; if (method === 'POST') { init.body = new URLSearchParams({ [name]: typed }); } const answer = await fetch(path, init); return [String(answer.status), await answer.text()]; }";
 
     [Fact]
     public async Task TheAdministrationCorrectsTheAddressOfAnotherPersonAndThePersonSeesTheNewOneOnTheAccount()
@@ -130,8 +133,40 @@ public sealed class PeopleEmailCorrectionTests(BrowserFixture browser, PeopleHos
 
         await Expect(other.Page.Locator(Field)).ToHaveCountAsync(0);
         Assert.DoesNotContain(address, await other.Page.ContentAsync(), StringComparison.Ordinal);
+
+        foreach (var method in new[] { "GET", "POST" })
+        {
+            var refused = await SendAsync(other.Page, method, new Uri(admin.Page.Url).AbsolutePath, "alheio-novo@exemplo.org");
+            var missing = await SendAsync(other.Page, method, "/zqx-nao-existe-6351", "alheio-novo@exemplo.org");
+            Assert.Equal(("404", missing.Body), (refused.Status, refused.Body));
+            Assert.Equal("404", missing.Status);
+        }
+
         _ = await admin.Page.ReloadAsync();
         await Expect(admin.Page.Locator(Field)).ToHaveValueAsync(address);
+    }
+
+    [Theory]
+    [InlineData("GET", null)]
+    [InlineData("POST", "novo@exemplo.org")]
+    [InlineData("POST", "sem-arroba")]
+    [InlineData("POST", "")]
+    public async Task ThePageOfADeactivatedPersonSaysSoWithNoFieldAndTheSendingGets409AndKeepsTheAddress(string method, string? typed)
+    {
+        var kept = Address("desativada");
+        await using var admin = await RegisteredAsync(Made("desativada"), kept);
+        var page = new Uri(admin.Page.Url).AbsolutePath;
+        await people.Host.DeactivateAsync(long.Parse(IdOfThePage().Match(page).Groups[1].Value, CultureInfo.InvariantCulture));
+
+        var answer = await SendAsync(admin.Page, method, page, typed);
+
+        Assert.Equal(method == "GET" ? "200" : "409", answer.Status);
+        Assert.DoesNotContain("id=\"pessoa-email\"", answer.Body, StringComparison.Ordinal);
+        Assert.DoesNotContain("id=\"corrigir-email\"", answer.Body, StringComparison.Ordinal);
+        Assert.DoesNotContain(Refusal, answer.Body, StringComparison.Ordinal);
+        var dump = await people.Host.DumpAsync();
+        Assert.Contains(kept, dump, StringComparison.Ordinal);
+        Assert.DoesNotContain("novo@exemplo.org", dump, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -213,6 +248,16 @@ public sealed class PeopleEmailCorrectionTests(BrowserFixture browser, PeopleHos
     }
 
     private static async Task FocusTheTitleAsync(IPage page) => _ = await page.EvaluateAsync(FocusTheTitle);
+
+    [GeneratedRegex(@"/pessoas/(\d+)/email", RegexOptions.None, 2000)]
+    private static partial Regex IdOfThePage();
+
+    /// <summary>Sends the request from the page itself, with its cookie and its origin, and reads what comes back without following a redirect: the status as text and the body.</summary>
+    private static async Task<(string Status, string Body)> SendAsync(IPage page, string method, string path, string? typed)
+    {
+        var sent = await page.EvaluateAsync<string[]>(Send, new object?[] { path, method, AccountEmailScreen.EmailField, typed });
+        return (sent[0], sent[1]);
+    }
 
     /// <summary>The administration registers a person with the address given and, from the list it lands on, opens the page of the address of that person.</summary>
     private async Task<BrowserTab> RegisteredAsync(string name, string address)

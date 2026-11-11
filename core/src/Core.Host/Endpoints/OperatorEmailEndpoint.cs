@@ -58,6 +58,11 @@ internal static class OperatorEmailEndpoint
             return ScreenResult.NotFound(context);
         }
 
+        if (await staff.Registry.ActiveFunctionOfAsync(id, context.RequestAborted) is null)
+        {
+            return Deactivated(context, id, name);
+        }
+
         var address = AccountEmailEndpoint.Typed(context.Request.HasFormContentType ? await context.Request.ReadFormAsync(context.RequestAborted) : null);
         if (address is not null && !PersonEmails.IsAddress(address))
         {
@@ -67,11 +72,14 @@ internal static class OperatorEmailEndpoint
         var corrected = await emails.CorrectAsync(id, address, CustodyAuthor.Person(author), context.RequestAborted);
         if (corrected.Outcome == PersonOutcome.Deactivated)
         {
-            return WithStatus(Page(context, new OperatorEmailScreen.Shown(id, name, Active: false, Address: null), saved: false, error: null), StatusCodes.Status409Conflict);
+            return Deactivated(context, id, name);
         }
 
         return corrected.Outcome == PersonOutcome.Done ? PageRedirect.Of(context, $"{Of(id)}?{SavedKey}") : ScreenResult.Failure(context);
     }
+
+    private static RazorComponentResult Deactivated(HttpContext context, long id, string name) =>
+        WithStatus(Page(context, new OperatorEmailScreen.Shown(id, name, Active: false, Address: null), saved: false, error: null), StatusCodes.Status409Conflict);
 
     private static RazorComponentResult WithStatus(RazorComponentResult page, int status)
     {

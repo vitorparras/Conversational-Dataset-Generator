@@ -19,8 +19,8 @@ opcional: sem ele, ou sem servidor declarado, a reposição é entregue por fora
 A administração técnica, que cadastra, e a própria pessoa, na tela da sua conta. Depois do cadastro,
 a administração técnica vê e corrige o endereço de outra pessoa ativa, na página de e-mail que a
 lista de pessoas abre, porque quem esqueceu a senha não entra para corrigi-lo. A correção entra na
-cadeia de custódia como ato da administração sobre a pessoa, sem o endereço, e a pessoa vê o endereço
-novo na própria conta. Nenhuma outra função o vê, nem em lista, nem em detalhe.
+cadeia de custódia como ato da administração sobre a pessoa, sem o endereço, e a pessoa vê o
+endereço novo na própria conta. Nenhuma outra função o vê, nem em lista, nem em detalhe.
 
 ## Onde ele não aparece
 

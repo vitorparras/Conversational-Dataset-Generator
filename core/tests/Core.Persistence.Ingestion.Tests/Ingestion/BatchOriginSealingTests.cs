@@ -1,7 +1,9 @@
+using System.Diagnostics.CodeAnalysis;
 using Core.Persistence.Content;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Content;
 using Core.Persistence.Tests.Fixtures;
+using Npgsql;
 
 namespace Core.Persistence.Tests.Ingestion;
 
@@ -15,6 +17,7 @@ public sealed class BatchOriginSealingTests
     private const string Hex32 = "0123456789abcdef0123456789abcdef";
     private const string Hex64 = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
     private const string OriginState = "SELECT origin_state FROM content.ingestion_batch WHERE id = @id";
+    private const string Counted = "SELECT (SELECT count(*) FROM content.replication_occurrence) || ',' || (SELECT count(*) FROM content.replication_mark)";
     private const string OriginRow = "SELECT domain_id || '|' || batch_id || '|' || dek_epoch || '|' || length(origin) || '|' || length(dek_wrapped) FROM content.batch_origin";
 
     private static readonly string[] Labels = ["texto-bruto/1/v1", "mapa-reversao/1/v1", "texto-bruto/2/v1", "mapa-reversao/2/v1"];
@@ -82,7 +85,7 @@ public sealed class BatchOriginSealingTests
         await using var world = await IngestionWorld.CreateAsync();
 
         var unknown = await OpenAsync(world, OriginDeclaration.Unknown);
-        var notKept = await OpenAsync(world, OriginDeclaration.DeclaredNotKept);
+        var notKept = await OpenAsync(world, OriginDeclaration.DeclaredNotKept, new string('1', 32));
 
         var states = (await StateAsync(world, unknown), await StateAsync(world, notKept));
         var rows = await world.InDomainAsync(IngestionWorld.Domain, "SELECT count(*)::text FROM content.batch_origin") as string;
@@ -109,13 +112,18 @@ public sealed class BatchOriginSealingTests
     private static async Task<string?> StateAsync(BatchesWorld world, long batch) =>
         await world.InDomainAsync(IngestionWorld.Domain, OriginState, ("id", batch)) as string;
 
-    private static async Task<object?> CountsAsync(BatchesWorld world) =>
-        await world.InDomainAsync(IngestionWorld.Domain, "SELECT (SELECT count(*) FROM content.replication_occurrence) || ',' || (SELECT count(*) FROM content.replication_mark)");
+    [SuppressMessage("Security", "CA2100", Justification = "The statement is a literal of the test, never input.")]
+    private static async Task<object?> CountsAsync(BatchesWorld world)
+    {
+        await using var connection = await Sql.OpenAsync(world.Database.SuperuserConnectionString);
+        await using var command = new NpgsqlCommand(Counted, connection);
+        return await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
+    }
 
-    private static async Task<long> OpenAsync(BatchesWorld world, OriginDeclaration origin)
+    private static async Task<long> OpenAsync(BatchesWorld world, OriginDeclaration origin, string submission = Hex32)
     {
         var opened = await IngestionWorld.BatchesOf(world).OpenAsync(
-            new BatchOpening(IngestionWorld.Domain, IngestionWorld.Person, null, new SubmissionOpening(new SubmissionReceipt(Hex32, 1, Hex64), origin)), TestContext.Current.CancellationToken);
+            new BatchOpening(IngestionWorld.Domain, IngestionWorld.Person, null, new SubmissionOpening(new SubmissionReceipt(submission, 1, Hex64), origin)), TestContext.Current.CancellationToken);
         Assert.Equal(BatchOutcome.Opened, opened.Outcome);
         return opened.BatchId!.Value;
     }

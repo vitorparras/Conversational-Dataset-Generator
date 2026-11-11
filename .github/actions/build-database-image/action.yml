@@ -11,7 +11,7 @@ runs:
       run: |
         set -o pipefail
         log="$RUNNER_TEMP/database-image-build.log"
-        if ! docker build --progress=plain --tag cdg-test-database:ci tools/database 2>&1 | tee "$log"; then
+        if ! python3 tools/verify-code/retry.py -- docker build --progress=plain --tag cdg-test-database:ci tools/database 2>&1 | tee "$log"; then
           {
             echo '### A imagem do banco de teste não foi construída'
             echo

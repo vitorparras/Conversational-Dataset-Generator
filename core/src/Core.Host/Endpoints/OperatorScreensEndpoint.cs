@@ -21,6 +21,7 @@ internal static class OperatorScreensEndpoint
         _ = endpoints.MapGet(ScreenPaths.Operators, ListAsync).WithMetadata(ScreenAccess.Of(OperatorsScreen.Title, OperatorsPlace, PersonFunctions.Administration));
         _ = endpoints.MapGet(ScreenPaths.OperatorNew, Form).WithMetadata(ScreenAccess.Unlisted(PersonFunctions.Administration));
         _ = endpoints.MapPost(ScreenPaths.OperatorNew, OperatorRegistration.RegisterAsync).WithMetadata(ScreenAccess.Unlisted(PersonFunctions.Administration));
+        OperatorEmailEndpoint.Map(endpoints);
     }
 
     /// <summary>With no database declared there is nobody to list, and the page says it is the host that cannot, as the route of JSON does.</summary>

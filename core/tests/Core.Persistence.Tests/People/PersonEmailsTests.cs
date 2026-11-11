@@ -21,6 +21,12 @@ public sealed class PersonEmailsTests : IClassFixture<PeopleDatabase>
             || coalesce((SELECT string_agg(pg_catalog.to_jsonb(e)::text, '') FROM public.custody_event e), '')
         """;
 
+    private const string Corrections =
+        """
+        SELECT ',' || coalesce(string_agg(item_id::text || ':' || actor_person_id::text || ':' || reason || ':' || coalesce(reference, ''), ','), '') || ','
+        FROM public.custody_event WHERE step = 'person_email_corrected'
+        """;
+
     private static readonly string Annotation = PersonFunctions.Accepted[0];
 
     private readonly PeopleDatabase database;
@@ -92,6 +98,61 @@ public sealed class PersonEmailsTests : IClassFixture<PeopleDatabase>
         log.Dispose();
         Assert.DoesNotContain(Address, log.Everything, StringComparison.Ordinal);
         Assert.DoesNotContain(Address, await OwnerTextAsync(Everything), StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
+    public async Task TheAdministrationCorrectsTheAddressAndTheChainRecordsTheActByItAboutThePersonWithoutTheAddress()
+    {
+        var (emails, id) = await NewPersonAsync();
+        var (_, admin) = await NewPersonAsync();
+        await emails.SetAsync(id, "zqx-antes@example.test", Token);
+
+        var corrected = await emails.CorrectAsync(id, Address, CustodyAuthor.Person(admin), Token);
+
+        Assert.Equal(PersonOutcome.Done, corrected.Outcome);
+        Assert.Equal(Address, await emails.AddressOfAsync(id, Token));
+        Assert.Contains($",{id}:{admin}:administrative_act:,", await OwnerTextAsync(Corrections), StringComparison.Ordinal);
+        Assert.DoesNotContain(Address, await OwnerTextAsync(Everything), StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
+    public async Task NoAddressInACorrectionRemovesTheOneKeptAndIsRecordedToo()
+    {
+        var (emails, id) = await NewPersonAsync();
+        var (_, admin) = await NewPersonAsync();
+        await emails.SetAsync(id, Address, Token);
+
+        var corrected = await emails.CorrectAsync(id, address: null, CustodyAuthor.Person(admin), Token);
+
+        Assert.Equal(PersonOutcome.Done, corrected.Outcome);
+        Assert.Null(await emails.AddressOfAsync(id, Token));
+        Assert.Contains($",{id}:{admin}:", await OwnerTextAsync(Corrections), StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
+    public async Task ADeactivatedPersonIsRefusedAndNeitherTheAddressNorTheChainIsWritten()
+    {
+        var (emails, id) = await NewPersonAsync();
+        var (_, admin) = await NewPersonAsync();
+        _ = await (await database.RegistryAsync()).DeactivateAsync(id, CustodyAuthor.System, Token);
+
+        var corrected = await emails.CorrectAsync(id, Address, CustodyAuthor.Person(admin), Token);
+        var removed = await emails.CorrectAsync(id, address: null, CustodyAuthor.Person(admin), Token);
+
+        Assert.Equal(PersonOutcome.Deactivated, corrected.Outcome);
+        Assert.Equal(PersonOutcome.Deactivated, removed.Outcome);
+        Assert.Null(await emails.AddressOfAsync(id, Token));
+        Assert.DoesNotContain($",{id}:", await OwnerTextAsync(Corrections), StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
+    public async Task APersonNobodyHasIsNotFound()
+    {
+        var (emails, admin) = await NewPersonAsync();
+
+        var corrected = await emails.CorrectAsync(long.MaxValue, Address, CustodyAuthor.Person(admin), Token);
+
+        Assert.Equal(PersonOutcome.NotFound, corrected.Outcome);
     }
 
     [Theory]

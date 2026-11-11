@@ -43,6 +43,13 @@ internal sealed class PeopleScreenHost : ScreenHostBase
     /// <summary>The whole database as text, as a copy of it would be taken, for a test to look for what must not be in it.</summary>
     public Task<string> DumpAsync() => Database.DumpAsync();
 
+    /// <summary>Deactivates the person of the id, as the administration would elsewhere, so that a test reaches the page of a person who was active a moment ago.</summary>
+    public async Task DeactivateAsync(long id)
+    {
+        await using var source = NpgsqlDataSource.Create(Database.AppConnectionString);
+        _ = await new PersonRegistry(source).DeactivateAsync(id, CustodyAuthor.System, CancellationToken.None);
+    }
+
     protected override void AddServices(IServiceCollection services) =>
         _ = services.AddLogging(logging => logging.AddProvider(keeper)).AddSingleton(provider => new PersonEmails(provider.GetRequiredService<NpgsqlDataSource>()));
 

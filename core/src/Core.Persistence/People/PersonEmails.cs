@@ -1,4 +1,5 @@
 using System.Net.Mail;
+using Core.Persistence.Custody;
 using Npgsql;
 using NpgsqlTypes;
 
@@ -16,6 +17,12 @@ public sealed class PersonEmails
     private const string Keep =
         "INSERT INTO public.person_email (person_id, address) VALUES (@person, @address) ON CONFLICT (person_id) DO UPDATE SET address = EXCLUDED.address, changed_at = clock_timestamp()";
     private const string Forget = "DELETE FROM public.person_email WHERE person_id = @person";
+    private const string Correct = """
+        INSERT INTO public.person_email (person_id, address) SELECT id, @address FROM public.person WHERE id = @person AND active
+        ON CONFLICT (person_id) DO UPDATE SET address = EXCLUDED.address, changed_at = clock_timestamp() RETURNING person_id
+        """;
+    private const string CorrectToNone =
+        "WITH forgotten AS (DELETE FROM public.person_email WHERE person_id = @person) SELECT id FROM public.person WHERE id = @person AND active";
     private const string PersonParameter = "person";
     private readonly NpgsqlDataSource dataSource;
 
@@ -62,22 +69,52 @@ public sealed class PersonEmails
         return SettingAsync(personId, address, cancellationToken);
     }
 
+    /// <summary>
+    /// The technical administration corrects the address of another person after the registration (decision 11 of the owner): the address is kept as <see cref="SetAsync" /> keeps it, and the
+    /// chain records the act by the author about the person, in the same transaction and never with the address. A person not found or deactivated is refused, and nothing is written.
+    /// </summary>
+    /// <param name="personId">The person whose address is corrected.</param>
+    /// <param name="address">The address, or none to remove it.</param>
+    /// <param name="author">The person of the administration who corrects.</param>
+    /// <param name="cancellationToken">Cancels the writing.</param>
+    public Task<PersonResult> CorrectAsync(long personId, string? address, CustodyAuthor author, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(author);
+        if (address is not null && !IsAddress(address))
+        {
+            throw new ArgumentException("The address is not one the registry takes.", nameof(address));
+        }
+
+        return CorrectingAsync(personId, address, author, cancellationToken);
+    }
+
     /// <summary>Within the sizes, with no white space and with one at sign, as the constraint of the database asks.</summary>
     private static bool IsShaped(string address) =>
         address.Length is >= Shortest and <= Longest && !address.Any(char.IsWhiteSpace) && address.Count(letter => letter == '@') == 1;
+
+    private static void Bind(NpgsqlCommand command, long personId, string? address)
+    {
+        PersonQueries.Add(command, PersonParameter, NpgsqlDbType.Bigint, personId);
+        if (address is not null)
+        {
+            PersonQueries.Add(command, "address", NpgsqlDbType.Text, address);
+        }
+    }
 
     private async Task SettingAsync(long personId, string? address, CancellationToken cancellationToken)
     {
         var command = dataSource.CreateCommand(address is null ? Forget : Keep);
         await using (command.ConfigureAwait(false))
         {
-            PersonQueries.Add(command, PersonParameter, NpgsqlDbType.Bigint, personId);
-            if (address is not null)
-            {
-                PersonQueries.Add(command, "address", NpgsqlDbType.Text, address);
-            }
-
+            Bind(command, personId, address);
             _ = await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
+    }
+
+    private async Task<PersonResult> CorrectingAsync(long personId, string? address, CustodyAuthor author, CancellationToken cancellationToken)
+    {
+        var statement = new PersonStatement(address is null ? CorrectToNone : Correct, command => Bind(command, personId, address), CustodyStep.PersonEmailCorrected, personId);
+        return await dataSource.WriteChainedAsync(statement, author, cancellationToken).ConfigureAwait(false)
+            ?? (await dataSource.ReadActiveAsync(personId, cancellationToken).ConfigureAwait(false) is null ? PersonRefusals.NotFound() : PersonRefusals.Deactivated());
     }
 }

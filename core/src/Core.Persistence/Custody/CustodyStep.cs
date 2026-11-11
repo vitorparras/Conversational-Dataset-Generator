@@ -113,4 +113,7 @@ public enum CustodyStep
 
     /// <summary>The core started with the value an approved change asked for; the item is the submission, the author the system and the reference the sequence of the approval.</summary>
     ConfigurationInForce,
+
+    /// <summary>The technical administration corrected the e-mail address of a person; the item is that person, the author the one who corrected, and the event holds no address.</summary>
+    PersonEmailCorrected,
 }

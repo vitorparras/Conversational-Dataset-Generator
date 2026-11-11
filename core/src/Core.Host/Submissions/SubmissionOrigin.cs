@@ -61,5 +61,5 @@ internal static class SubmissionOrigin
     internal static string? WarningOf(string? name) =>
         name is not null && (HasSeparator(name) || name.Contains("..", StringComparison.Ordinal) || name.Any(char.IsControl)) ? "name_with_path" : null;
 
-    private static bool HasSeparator(string name) => name.Contains('/', StringComparison.Ordinal) || name.Contains('\', StringComparison.Ordinal);
+    private static bool HasSeparator(string name) => name.Contains('/', StringComparison.Ordinal) || name.Contains('\\', StringComparison.Ordinal);
 }

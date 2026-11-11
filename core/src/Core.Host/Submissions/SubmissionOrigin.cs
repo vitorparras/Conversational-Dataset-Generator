@@ -59,7 +59,9 @@ internal static class SubmissionOrigin
     /// <summary>The warning of a name that came with a path: the separators of a folder, a step up, or a control character; none when the name is plain or absent.</summary>
     /// <param name="name">The name the file was received with.</param>
     internal static string? WarningOf(string? name) =>
-        name is not null && (HasSeparator(name) || name.Contains("..", StringComparison.Ordinal) || name.Any(char.IsControl)) ? "name_with_path" : null;
+        name is not null && HasPath(name) ? "name_with_path" : null;
+
+    private static bool HasPath(string name) => HasSeparator(name) || name.Contains("..", StringComparison.Ordinal) || name.Any(char.IsControl);
 
     private static bool HasSeparator(string name) => name.Contains('/', StringComparison.Ordinal) || name.Contains('\\', StringComparison.Ordinal);
 }

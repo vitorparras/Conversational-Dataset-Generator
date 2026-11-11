@@ -52,7 +52,7 @@ internal sealed class SubmissionService
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(request.Content);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(request.AuthorId);
-        return Problems(request) is { Count: > 0 } fields
+        return SubmissionFields.Of(intake, request) is { Count: > 0 } fields
             ? Task.FromResult(new SubmissionOutcome { Kind = SubmissionKind.Invalid, Fields = fields })
             : SubmittingAsync(request, cancellationToken);
     }
@@ -62,7 +62,7 @@ internal sealed class SubmissionService
     internal IReadOnlyList<FieldProblem> Check(SubmissionRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Problems(request);
+        return SubmissionFields.Of(intake, request);
     }
 
     /// <summary>The batches of the domains granted, newest first, by state and by period, in a page the server cuts and never larger than the most a page may hold.</summary>
@@ -93,21 +93,6 @@ internal sealed class SubmissionService
         Warning = judged.Warning,
         Origin = origin,
     };
-
-    private static FieldProblem? When(bool wrong, string field, string code) => wrong ? new FieldProblem(field, code) : null;
-
-    private List<FieldProblem> Problems(SubmissionRequest request)
-    {
-        var problems = new[]
-        {
-            When(request.DomainId <= 0, "domain", "missing"),
-            When(!Enum.IsDefined(request.DeclaredForm), "declared_form", "invalid"),
-            When(string.IsNullOrWhiteSpace(request.SourceFormat), "source_format", "missing"),
-            When(request.Condition is { } declared && intake.Conditions.RankOf(declared) < 0, "condition", "unknown"),
-            SubmissionOrigin.Problem(request) is { } origin ? new FieldProblem("origin", origin) : null,
-        }.OfType<FieldProblem>().ToList();
-        return problems;
-    }
 
     private async Task<SubmissionOutcome> SubmittingAsync(SubmissionRequest request, CancellationToken cancellationToken)
     {

@@ -64,9 +64,9 @@ internal static class OperatorEmailEndpoint
         }
 
         var address = AccountEmailEndpoint.Typed(context.Request.HasFormContentType ? await context.Request.ReadFormAsync(context.RequestAborted) : null);
-        if (address is not null && !PersonEmails.IsAddress(address))
+        if (Refused(context, id, name, address) is { } refusal)
         {
-            return WithStatus(Page(context, new OperatorEmailScreen.Shown(id, name, Active: true, address), saved: false, AccountEmailScreen.Invalid), StatusCodes.Status400BadRequest);
+            return refusal;
         }
 
         var corrected = await emails.CorrectAsync(id, address, CustodyAuthor.Person(author), context.RequestAborted);
@@ -77,6 +77,11 @@ internal static class OperatorEmailEndpoint
 
         return corrected.Outcome == PersonOutcome.Done ? PageRedirect.Of(context, $"{Of(id)}?{SavedKey}") : ScreenResult.Failure(context);
     }
+
+    private static RazorComponentResult? Refused(HttpContext context, long id, string name, string? address) =>
+        address is not null && !PersonEmails.IsAddress(address)
+            ? WithStatus(Page(context, new OperatorEmailScreen.Shown(id, name, Active: true, address), saved: false, AccountEmailScreen.Invalid), StatusCodes.Status400BadRequest)
+            : null;
 
     private static RazorComponentResult Deactivated(HttpContext context, long id, string name) =>
         WithStatus(Page(context, new OperatorEmailScreen.Shown(id, name, Active: false, Address: null), saved: false, error: null), StatusCodes.Status409Conflict);

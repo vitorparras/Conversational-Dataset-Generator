@@ -27,7 +27,10 @@ public sealed partial class PeopleEmailCorrectionTests(BrowserFixture browser, P
     private const string FocusTheTitle = "() => { const title = document.querySelector('main h1'); title.setAttribute('tabindex', '-1'); title.focus(); }";
     private const string StopInMain = "() => { const stop = document.activeElement; return stop && stop.closest('main') ? (stop.id || stop.textContent.trim()) : ''; }";
     private const string TextOfMain = "() => document.querySelector('main').innerText";
-    private const string Send = "async ([path, method, name, typed]) => { const init = { method, credentials: 'same-origin', redirect: 'manual' }; if (method === 'POST') { init.body = new URLSearchParams({ [name]: typed }); } const answer = await fetch(path, init); return [String(answer.status), await answer.text()]; }";
+    private const string Send =
+        "async ([path, method, name, typed]) => { const init = { method, credentials: 'same-origin', redirect: 'manual' }; "
+        + "if (method === 'POST') { init.body = new URLSearchParams({ [name]: typed }); } "
+        + "const answer = await fetch(path, init); return [String(answer.status), await answer.text()]; }";
 
     [Fact]
     public async Task TheAdministrationCorrectsTheAddressOfAnotherPersonAndThePersonSeesTheNewOneOnTheAccount()
@@ -136,10 +139,10 @@ public sealed partial class PeopleEmailCorrectionTests(BrowserFixture browser, P
 
         foreach (var method in new[] { "GET", "POST" })
         {
-            var refused = await SendAsync(other.Page, method, new Uri(admin.Page.Url).AbsolutePath, "alheio-novo@exemplo.org");
-            var missing = await SendAsync(other.Page, method, "/zqx-nao-existe-6351", "alheio-novo@exemplo.org");
-            Assert.Equal(("404", missing.Body), (refused.Status, refused.Body));
-            Assert.Equal("404", missing.Status);
+            var (refusedStatus, refusedBody) = await SendAsync(other.Page, method, new Uri(admin.Page.Url).AbsolutePath, "alheio-novo@exemplo.org");
+            var (missingStatus, missingBody) = await SendAsync(other.Page, method, "/zqx-nao-existe-6351", "alheio-novo@exemplo.org");
+            Assert.Equal(("404", missingBody), (refusedStatus, refusedBody));
+            Assert.Equal("404", missingStatus);
         }
 
         _ = await admin.Page.ReloadAsync();
@@ -158,12 +161,12 @@ public sealed partial class PeopleEmailCorrectionTests(BrowserFixture browser, P
         var page = new Uri(admin.Page.Url).AbsolutePath;
         await people.Host.DeactivateAsync(long.Parse(IdOfThePage().Match(page).Groups[1].Value, CultureInfo.InvariantCulture));
 
-        var answer = await SendAsync(admin.Page, method, page, typed);
+        var (status, body) = await SendAsync(admin.Page, method, page, typed);
 
-        Assert.Equal(method == "GET" ? "200" : "409", answer.Status);
-        Assert.DoesNotContain("id=\"pessoa-email\"", answer.Body, StringComparison.Ordinal);
-        Assert.DoesNotContain("id=\"corrigir-email\"", answer.Body, StringComparison.Ordinal);
-        Assert.DoesNotContain(Refusal, answer.Body, StringComparison.Ordinal);
+        Assert.Equal(method == "GET" ? "200" : "409", status);
+        Assert.DoesNotContain("id=\"pessoa-email\"", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("id=\"corrigir-email\"", body, StringComparison.Ordinal);
+        Assert.DoesNotContain(Refusal, body, StringComparison.Ordinal);
         var dump = await people.Host.DumpAsync();
         Assert.Contains(kept, dump, StringComparison.Ordinal);
         Assert.DoesNotContain("novo@exemplo.org", dump, StringComparison.Ordinal);

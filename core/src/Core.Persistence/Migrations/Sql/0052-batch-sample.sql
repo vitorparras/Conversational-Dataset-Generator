@@ -1,5 +1,5 @@
 -- The sample of a batch for review (issue 83): drawn once by the system, with its event in the chain, and never changed after. The chain learns the step batch_sampled, by the person who asks for the
--- review; the checks change from the last ones the earlier steps left (the steps from the 0044, the shape of the batch from the 0042), and everything they list stays.
+-- review; the checks change from the last ones the earlier steps left (the steps from the 0051, the shape of the batch from the 0042), and everything they list stays.
 ALTER TABLE public.custody_event
     DROP CONSTRAINT custody_event_step_listed,
     DROP CONSTRAINT custody_event_batch_shape,
@@ -9,7 +9,8 @@ ALTER TABLE public.custody_event
          'domain_created', 'seal_recorded', 'domain_label_rotated',
          'sign_in_accepted', 'sign_in_refused', 'credential_recomputed', 'key_loss_declared', 'recovery_tested', 'verify_guarantees',
          'owner_window_opened', 'owner_window_closed', 'restored', 'restore_rehearsed', 'domain_label_revoked', 'domain_rewrapped',
-         'batch_opened', 'batch_closed', 'password_changed', 'configuration_submitted', 'origin_read', 'occurrences_read', 'batch_sampled')),
+         'batch_opened', 'batch_closed', 'password_changed', 'configuration_submitted', 'origin_read', 'configuration_approved', 'configuration_refused',
+         'configuration_in_force', 'person_email_corrected', 'configuration_not_applied', 'occurrences_read', 'batch_sampled')),
     ADD CONSTRAINT custody_event_batch_shape CHECK (
         (step IN ('batch_opened', 'batch_closed', 'batch_sampled', 'origin_read')) = (item_kind = 'ingestion_batch')
         AND (step = 'batch_closed') = (reason IN ('batch_accepted', 'batch_rejected'))

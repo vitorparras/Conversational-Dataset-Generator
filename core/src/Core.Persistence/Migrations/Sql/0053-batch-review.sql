@@ -1,6 +1,6 @@
 -- The review of the sample (issue 83): a person reviews the sample the system drew, and one finding of personal data not treated rejects the whole batch. The review is a gate and not an estimate: there is
 -- no rate to reach, and no path accepts a batch whose sample was not reviewed, the owner included. The chain learns the step batch_reviewed (by the reviewer, with the reason review_clean or review_found);
--- the checks change from the ones the 0046 left, and a finding is also the rejection of the batch, in the same transaction.
+-- the checks change from the ones the 0052 left, and a finding is also the rejection of the batch, in the same transaction.
 ALTER TABLE public.custody_event
     DROP CONSTRAINT custody_event_step_listed,
     DROP CONSTRAINT custody_event_reason_listed,
@@ -11,7 +11,8 @@ ALTER TABLE public.custody_event
          'domain_created', 'seal_recorded', 'domain_label_rotated',
          'sign_in_accepted', 'sign_in_refused', 'credential_recomputed', 'key_loss_declared', 'recovery_tested', 'verify_guarantees',
          'owner_window_opened', 'owner_window_closed', 'restored', 'restore_rehearsed', 'domain_label_revoked', 'domain_rewrapped',
-         'batch_opened', 'batch_closed', 'password_changed', 'configuration_submitted', 'origin_read', 'occurrences_read', 'batch_sampled', 'batch_reviewed')),
+         'batch_opened', 'batch_closed', 'password_changed', 'configuration_submitted', 'origin_read', 'configuration_approved', 'configuration_refused',
+         'configuration_in_force', 'person_email_corrected', 'configuration_not_applied', 'occurrences_read', 'batch_sampled', 'batch_reviewed')),
     ADD CONSTRAINT custody_event_reason_listed CHECK (reason IN
         ('administrative_act', 'correction_of_record', 'content_read', 'verification_passed', 'verification_failed',
          'removal_requested_by_subject', 'contract_requirement', 'author_without_function', 'item_already_emptied',

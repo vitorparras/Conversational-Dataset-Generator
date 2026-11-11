@@ -12,6 +12,7 @@ using Core.Ingestion;
 using Core.Ingestion.Entrance;
 using Core.Ingestion.Reading;
 using Core.Persistence.Connection;
+using Core.Persistence.Content;
 using Core.Persistence.Content.Reading;
 using Core.Persistence.Content.Rotation;
 using Core.Persistence.Content.Sealing;
@@ -120,16 +121,15 @@ internal static class CompositionRoot
     internal static ItemKeys KeysOf(MasterKeyReading reading) => new(new KeyDerivation(reading.Key!, reading.Labels), reading.Epochs);
     internal static EpochRotation RotationOf(NpgsqlDataSource dataSource, ItemKeys keys) => new(dataSource, keys);
 
-    /// <summary>What takes a file in over the key a reading holds: the gate, the conference, the sealing and the writer are services, built here; the last two are none without the key.</summary>
+    /// <summary>What takes a file in over the key a reading holds: the gate, the conference, the sealing and the writer are services, built here; the last three are none without the key.</summary>
     internal static SubmissionIntake IntakeOf(NpgsqlDataSource source, MasterKeyReading reading, SubmissionSettings settings)
     {
         var sealing = reading.Failure is null ? new ProtectedContent(reading.Labels, KeysOf(reading), settings.Registered, settings.Revoked) : null;
         return new SubmissionIntake(
-            new SubmissionGate(SourceReaders.Default(), settings.MaxBytes),
-            new FormConference(new TextBoundaries()),
-            settings.Conditions,
-            sealing,
-            sealing is null ? null : new ContentWriter(source, sealing));
+            new SubmissionGate(SourceReaders.Default(), settings.MaxBytes), new FormConference(new TextBoundaries()),
+            settings.Conditions, sealing,
+            sealing is null ? null : new ContentWriter(source, sealing),
+            sealing is null ? null : new ReplicationMarking(new ReplicationStore(source), new KeyDerivation(reading.Key!, reading.Labels), settings.Replication, new TextBoundaries()));
     }
 
     /// <summary>The rehearsal of the recovery over a source that was read, opening content with the labels the database registers.</summary>

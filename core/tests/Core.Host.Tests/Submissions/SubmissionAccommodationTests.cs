@@ -1,6 +1,5 @@
 using Core.Host.Submissions;
 using Core.Ingestion;
-using Core.Persistence.Content.Writing;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Fixtures;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -28,13 +27,14 @@ public sealed class SubmissionAccommodationTests
     public async Task StoringAMaterialTheConferenceAcceptedIntoAFormThatDoesNotKeepEverythingDeclaresTheFormAndTheLossOfEachItem()
     {
         await using var world = await SubmissionWorld.CreateAsync();
-        var batches = new IngestionBatches(world.DataSource, OriginConditions.Of([SubmissionWorld.Strictest, "zqx_media", SubmissionWorld.Loosest]));
+        var conditions = OriginConditions.Of([SubmissionWorld.Strictest, "zqx_media", SubmissionWorld.Loosest]);
+        var batches = new IngestionBatches(world.DataSource, conditions);
         var opened = await batches.OpenAsync(new BatchOpening(SubmissionWorld.Domain, SubmissionWorld.Person), TestContext.Current.CancellationToken);
         var instant = new DateTimeOffset(2031, 3, 4, 8, 0, 0, TimeSpan.Zero);
         var material = new ReadMaterial([new ReadUnit("ZQXTERCEIRO", "ZQXUM", instant, null, []), new ReadUnit("ZQXQUARTO", "ZQXDOIS", instant, null, [])]);
         var kept = new SubmissionStoring.Kept(SubmissionWorld.Domain, opened.BatchId!.Value, material, MaterialForm.Document);
 
-        var stored = await new SubmissionStoring.Keeper(batches, new ContentWriter(world.DataSource, world.Content), NullLogger.Instance).KeepAsync(kept, TestContext.Current.CancellationToken);
+        var stored = await new SubmissionStoring.Keeper(batches, SubmissionWorld.Intake(1_000_000, conditions, world.Content, world.DataSource), NullLogger.Instance).KeepAsync(kept, TestContext.Current.CancellationToken);
 
         Assert.Equal((SubmissionStoring.Keeping.Kept, 2L, 2L), (stored, await world.ItemRowsAsync(), await world.AccommodatedRowsAsync()));
     }

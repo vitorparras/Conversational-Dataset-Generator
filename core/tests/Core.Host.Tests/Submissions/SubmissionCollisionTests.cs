@@ -3,7 +3,6 @@ using System.Text.Json;
 using Core.Host.Endpoints;
 using Core.Host.Submissions;
 using Core.Ingestion;
-using Core.Persistence.Content.Writing;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Fixtures;
 using Microsoft.AspNetCore.Http;
@@ -90,9 +89,9 @@ public sealed class SubmissionCollisionTests
         var material = new ReadMaterial([new ReadUnit("ZQXTERCEIRO", "ZQXUM", instant, null, []), new ReadUnit("ZQXQUARTO", "ZQXDOIS", instant, null, [])]);
         var kept = new SubmissionStoring.Kept(SubmissionWorld.Domain, opened.BatchId!.Value, material, MaterialForm.Conversation);
         var log = new SubmissionLog();
-        var writer = new ContentWriter(world.DataSource, world.Content);
+        var intake = SubmissionWorld.Intake(1_000_000, OriginConditions.Of([SubmissionWorld.Strictest, SubmissionWorld.Loosest]), world.Content, world.DataSource);
 
-        var keeping = await SubmissionContention.WhilePendingAsync(world, () => new SubmissionStoring.Keeper(world.Batches, writer, log).KeepAsync(kept, TestContext.Current.CancellationToken));
+        var keeping = await SubmissionContention.WhilePendingAsync(world, () => new SubmissionStoring.Keeper(world.Batches, intake, log).KeepAsync(kept, TestContext.Current.CancellationToken));
 
         var entry = await world.Service.DetailAsync([SubmissionWorld.Domain], kept.BatchId, TestContext.Current.CancellationToken);
         var items = await world.ItemRowsAsync();

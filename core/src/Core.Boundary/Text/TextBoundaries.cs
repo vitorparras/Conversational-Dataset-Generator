@@ -10,4 +10,11 @@ public sealed class TextBoundaries : ITextBoundaries
 
     /// <inheritdoc />
     public string Slice(string text, Occurrence occurrence) => TextSlicer.Slice(text, occurrence);
+
+    /// <inheritdoc />
+    public int CodePointCount(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        return OffsetConverter.ToCodePointOffset(text, text.Length);
+    }
 }

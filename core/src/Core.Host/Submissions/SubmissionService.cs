@@ -34,7 +34,7 @@ internal sealed class SubmissionService
         this.batches = batches;
         register = new BatchRegister(dataSource);
         this.dataSource = dataSource;
-        keeper = new SubmissionStoring.Keeper(batches, intake.Writer, logger);
+        keeper = new SubmissionStoring.Keeper(batches, intake, logger);
     }
 
     /// <summary>Whether the ingestion takes material in: open, or blocked by the code of what is missing (decision 0014).</summary>

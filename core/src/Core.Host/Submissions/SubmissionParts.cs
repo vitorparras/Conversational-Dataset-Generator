@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Core.Ingestion;
 using Core.Persistence.Domains;
 using Core.Persistence.Ingestion;
 using Core.Platform.Keys;
@@ -54,7 +55,8 @@ internal static class SubmissionParts
             var failed = reading.Failure is not null;
             var registered = failed ? ImmutableHashSet<string>.Empty : await RegisteredLabels.ReadAsync(source, cancellationToken).ConfigureAwait(false);
             var revoked = failed ? ImmutableHashSet<string>.Empty : await LabelRevocations.ReadAsync(source, cancellationToken).ConfigureAwait(false);
-            var settings = new SubmissionSettings(shared.Batches, AdmissionConfiguration.Conditions(values), AdmissionConfiguration.MaxBytes(values), registered, revoked);
+            var admission = (AdmissionConfiguration.Conditions(values), AdmissionConfiguration.MaxBytes(values), ReplicationConfiguration.Rule(values));
+            var settings = new SubmissionSettings(shared.Batches, admission.Item1, admission.Item2, registered, revoked, admission.Item3);
             var service = ServiceOf(source, reading, settings, shared.Logger);
             if (reading.Failure is not { } failure)
             {

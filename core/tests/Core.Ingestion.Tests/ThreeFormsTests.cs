@@ -221,5 +221,7 @@ public sealed class ThreeFormsTests
         }
 
         public string Slice(string text, Occurrence occurrence) => real.Slice(text, occurrence);
+
+        public int CodePointCount(string text) => real.CodePointCount(text);
     }
 }

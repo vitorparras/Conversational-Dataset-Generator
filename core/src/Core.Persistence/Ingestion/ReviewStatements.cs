@@ -1,6 +1,6 @@
 using System.Globalization;
 using Core.Persistence.Content;
-using Core.Persistence.Custody;
+using Core.Persistence.Custody.Chain;
 using Npgsql;
 using NpgsqlTypes;
 
@@ -83,7 +83,7 @@ internal static class ReviewStatements
         return accepting && review is not { ReviewerId: not null, Finding: null } ? BatchOutcome.ReviewMissing : null;
     }
 
-    private static List<long> Numbers(string sample) => sample.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(number => long.Parse(number, CultureInfo.InvariantCulture)).ToList();
+    private static List<long> Numbers(string sample) => [.. sample.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(number => long.Parse(number, CultureInfo.InvariantCulture))];
 
     private static DateTimeOffset? Moment(NpgsqlDataReader reader, int column) => reader.IsDBNull(column) ? null : reader.GetFieldValue<DateTimeOffset>(column);
 

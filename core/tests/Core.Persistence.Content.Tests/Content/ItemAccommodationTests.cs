@@ -31,7 +31,7 @@ public sealed class ItemAccommodationTests
         await using var world = await ContentWorld.CreateAsync();
         var accommodation = new ItemAccommodation("document", ["author", "instant", "replies_to"]);
 
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, Accommodation: accommodation), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, accommodation: accommodation), TestContext.Current.CancellationToken);
         var result = await ReadAsync(world, item, ContentColumns.RawText);
 
         Assert.Equal((ContentReadOutcome.Read, Raw, "document:author,instant,replies_to"), (result.Outcome, result.Text, Declared(result)));
@@ -43,7 +43,7 @@ public sealed class ItemAccommodationTests
     {
         await using var world = await ContentWorld.CreateAsync();
         var item = await world.Writer.AddItemTextAsync(
-            1, new NewItemText(Raw, Sanitized, Accommodation: new ItemAccommodation("labeled_sequence", ["author"])), TestContext.Current.CancellationToken);
+            1, new NewItemText(Raw, Sanitized, accommodation: new ItemAccommodation("labeled_sequence", ["author"])), TestContext.Current.CancellationToken);
         _ = await world.Writer.AddItemTextAsync(1, new NewItemText("outro texto sintetico zqx"), TestContext.Current.CancellationToken);
 
         var first = await ReadAsync(world, item, ContentColumns.RawText);
@@ -63,8 +63,8 @@ public sealed class ItemAccommodationTests
     {
         await using var world = await ContentWorld.CreateAsync();
         var token = TestContext.Current.CancellationToken;
-        var asDocument = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, Accommodation: new ItemAccommodation("document", ["author", "instant"])), token);
-        var asComment = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, Accommodation: new ItemAccommodation("comment", ["replies_to"])), token);
+        var asDocument = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, accommodation: new ItemAccommodation("document", ["author", "instant"])), token);
+        var asComment = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, accommodation: new ItemAccommodation("comment", ["replies_to"])), token);
         var exact = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw), token);
 
         var document = await ReadAsync(world, asDocument, ContentColumns.RawText);
@@ -192,7 +192,7 @@ public sealed class ItemAccommodationTests
     {
         await using var world = await ContentWorld.CreateAsync();
         var item = await world.Writer.AddItemTextAsync(
-            1, new NewItemText(Raw, Accommodation: new ItemAccommodation("document", ["author"])), TestContext.Current.CancellationToken);
+            1, new NewItemText(Raw, accommodation: new ItemAccommodation("document", ["author"])), TestContext.Current.CancellationToken);
 
         var erased = await Assert.ThrowsAsync<PostgresException>(() => world.OwnerInDomainAsync(
             1, "UPDATE content.item_text SET accommodated_into = NULL, losses = '' WHERE id = @id RETURNING id", ("id", item)));

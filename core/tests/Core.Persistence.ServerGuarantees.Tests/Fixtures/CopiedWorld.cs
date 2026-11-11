@@ -1,10 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Core.Persistence.ServerGuarantees;
-using Core.Persistence.Content.Writing;
-using Core.Persistence.Tests.Fixtures;
-using Npgsql;
 using Core.Platform.Configuration;
+using Npgsql;
 
 namespace Core.Persistence.Tests.Fixtures;
 

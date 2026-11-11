@@ -25,7 +25,7 @@ public sealed class DecidedItemTextsTests
         var texts = DecidedItemTexts.Of(decided, 0, Text, null, null);
 
         Assert.Equal(Text, texts.Raw);
-        var stored = Assert.Single(texts.Occurrences);
+        var stored = Assert.Single(texts.Occurrences!);
         Assert.Equal((10, 10 + Marker.Length, "PERSON", OccurrenceDestination.Pseudonymize), (stored.Start, stored.End, stored.Kind, stored.Destination));
     }
 
@@ -37,7 +37,7 @@ public sealed class DecidedItemTextsTests
 
         var texts = DecidedItemTexts.Of(decided, 0, plain, null, null);
 
-        Assert.Empty(texts.Occurrences);
+        Assert.Empty(texts.Occurrences!);
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public sealed class DecidedItemTextsTests
     private static async Task<DecidedMaterial> DecidedAsync(string text)
     {
         var read = ReadOutcome.Read(new ReadMaterial([new ReadUnit(text, null, null, null, [])]));
-        var material = Assert.IsAssignableFrom<Material>(new FormConference(new TextBoundaries()).Confer(MaterialForm.Comment, read).Accepted);
+        var material = Assert.IsAssignableFrom<Material>(new FormConference(new TextBoundaries()).Confer(MaterialForm.Document, read).Accepted);
         var request = new AnalysisRequest(text, "pt", "ZQX-REF-0001", ContractVersion.Current);
         var analysis = await new FakeRecognizer().RecognizeAsync(request, TestContext.Current.CancellationToken);
 

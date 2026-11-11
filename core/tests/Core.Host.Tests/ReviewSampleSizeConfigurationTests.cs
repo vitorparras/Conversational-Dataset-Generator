@@ -1,6 +1,5 @@
 using Core.Platform.Configuration;
 using Core.Platform.Configuration.Sources;
-using ConfigurationSection = Core.Platform.Configuration.ConfigurationSection;
 
 namespace Core.Host.Tests;
 
@@ -23,7 +22,7 @@ public sealed class ReviewSampleSizeConfigurationTests
 
         Assert.Equal(size, AdmissionConfiguration.ReviewSampleSize(loaded.Values));
         Assert.Empty(AdmissionConfiguration.Refusals(loaded.Values));
-        Assert.Contains(loaded.View.Entries, entry => entry.Key == Key && entry.Origin == ConfigurationOrigin.Environment);
+        Assert.Contains(loaded.View.Entries, entry => entry.Key == Key && entry.Origin == ConfigurationOrigin.Argument);
     }
 
     [Fact]

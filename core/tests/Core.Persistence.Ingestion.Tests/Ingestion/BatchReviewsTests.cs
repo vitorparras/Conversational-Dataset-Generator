@@ -51,7 +51,7 @@ public sealed class BatchReviewsTests
         var whole = await DrawAsync(world, small, 5);
         var nothing = await DrawAsync(world, empty, 5);
 
-        Assert.Equal(items, whole.Sample!.Order().ToList());
+        Assert.Equal(items, [.. whole.Sample!.Order()]);
         Assert.Empty(nothing.Sample!);
     }
 
@@ -99,7 +99,7 @@ public sealed class BatchReviewsTests
 
         Assert.Equal((BatchReviewOutcome.Reviewed, BatchOutcome.Accepted), (reviewed.Outcome, accepted.Outcome));
         Assert.Equal(drawn.Sample, read!.Sample);
-        Assert.Equal((BatchState.Accepted, (long?)IngestionWorld.Person, null, true), (read.State, read.ReviewerId, read.Finding, read.ReviewedAt is not null));
+        Assert.Equal((BatchState.Accepted, IngestionWorld.Person, null, true), (read.State, read.ReviewerId, read.Finding, read.ReviewedAt is not null));
         Assert.Equal($"batch_opened:administrative_act:-,{TheDraw},batch_reviewed:review_clean:-,batch_closed:batch_accepted:-", await world.ScalarAsync(IngestionWorld.Events));
     }
 
@@ -133,7 +133,7 @@ public sealed class BatchReviewsTests
         var verified = await new CustodyVerifier(world.DataSource, TimeProvider.System).VerifyAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(drawn.Sample, read!.Sample);
-        Assert.Equal((BatchState.Rejected, (long?)IngestionWorld.Person, Finding, true), (read.State, read.ReviewerId, read.Finding, read.ReviewedAt is not null));
+        Assert.Equal((BatchState.Rejected, IngestionWorld.Person, Finding, true), (read.State, read.ReviewerId, read.Finding, read.ReviewedAt is not null));
         Assert.Equal($"batch_opened:administrative_act:-,{TheDraw},{TheFinding}", await world.ScalarAsync(IngestionWorld.Events));
         Assert.True(verified.Passed);
     }

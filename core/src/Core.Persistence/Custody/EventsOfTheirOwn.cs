@@ -7,7 +7,8 @@ internal static class EventsOfTheirOwn
 {
     internal const string Message =
         "A correction, a verification, an emptying, a rotation, the creation of a domain, a seal, an entry, the loss of a key, a rehearsal of the recovery, "
-        + "a conference of the guarantees, a window of the owner, a restore, a rehearsal of it, a revocation of a label, a rewrap of a domain, the opening, the sample, the review and the closing of a batch "
+        + "a conference of the guarantees, a window of the owner, a restore, a rehearsal of it, a revocation of a label, a rewrap of a domain, "
+        + "the opening, the sample, the review and the closing of a batch "
         + "and the submission of a change of configuration, the decision on it and its being in force and its never being applied have an event of their own; "
         + "use Correction, Verification, Emptied, EmptyingRefused, EpochRotated, DomainCreated, DomainLabelRotated, DomainLabelRevoked, DomainRewrapped, SealRecorded, SignInAccepted, "
         + "SignInRefused, KeyLossDeclared, RecoveryRehearsed, GuaranteesVerified, OwnerWindowOpened, OwnerWindowClosed, Restored, RestoreRehearsed, BatchOpened, BatchAccepted, "

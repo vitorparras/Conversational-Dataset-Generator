@@ -1,17 +1,16 @@
 using System.Diagnostics.CodeAnalysis;
 using Core.Persistence.Content;
-using Core.Persistence.Content.Sealing;
 using Core.Persistence.Content.Reading;
-using Core.Persistence.Migrations;
-using Core.Persistence.Ingestion;
-using Core.Persistence.Custody.Chain;
+using Core.Persistence.Content.Sealing;
 using Core.Persistence.Content.Writing;
-using Core.Persistence.Tests.Fixtures;
-using Npgsql;
-using Core.Platform.Keys;
-using Core.Persistence.Tests.Content;
-using Core.Persistence.ServerGuarantees;
+using Core.Persistence.Custody.Chain;
+using Core.Persistence.Ingestion;
+using Core.Persistence.Migrations;
 using Core.Persistence.People;
+using Core.Persistence.ServerGuarantees;
+using Core.Persistence.Tests.Content;
+using Core.Platform.Keys;
+using Npgsql;
 
 namespace Core.Persistence.Tests.Fixtures;
 

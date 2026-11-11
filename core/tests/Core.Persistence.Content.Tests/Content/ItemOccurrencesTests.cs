@@ -61,7 +61,7 @@ public sealed class ItemOccurrencesTests
         var read = await new ItemOccurrenceReader(world.Reader).ReadAsync(CustodyAuthor.System, 1, item, TestContext.Current.CancellationToken);
 
         Assert.Equal(ContentReadOutcome.Read, read.Reading.Outcome);
-        Assert.Equal<int?>(0, read.Occurrences?.Count);
+        Assert.Equal(0, read.Occurrences?.Count);
     }
 
     [DatabaseFact]
@@ -69,7 +69,8 @@ public sealed class ItemOccurrencesTests
     {
         await using var world = await ContentWorld.CreateAsync();
 
-        var defect = await Assert.ThrowsAsync<ArgumentNullException>(() => world.Writer.AddItemTextAsync(1, new NewItemText(Raw, null, null, null!), TestContext.Current.CancellationToken));
+        var defect = await Assert.ThrowsAsync<ArgumentNullException>(
+            () => world.Writer.AddItemTextAsync(1, new NewItemText(Raw, null, null, (IReadOnlyList<ItemOccurrence>)null!), TestContext.Current.CancellationToken));
 
         Assert.Equal(("occurrences", 0L), (defect.ParamName, await world.ScalarAsync("SELECT count(*) FROM content.item_text")));
     }

@@ -53,7 +53,7 @@ internal static class SubmissionStoring
             foreach (var (unit, declared) in kept.Material.Units.Zip(Accommodating.Of(kept.Material, kept.Form)))
             {
                 var accommodation = declared is null ? null : new ItemAccommodation(declared.FormCode, declared.Codes);
-                var item = await intake.Writer!.AddItemTextAsync(kept.DomainId, kept.BatchId, new NewItemText(unit.Text, Accommodation: accommodation), cancellationToken).ConfigureAwait(false);
+                var item = await intake.Writer!.AddItemTextAsync(kept.DomainId, kept.BatchId, new NewItemText(unit.Text, accommodation: accommodation), cancellationToken).ConfigureAwait(false);
                 written.Add((item, unit));
             }
 

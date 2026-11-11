@@ -48,7 +48,11 @@ public sealed class ContentWriter(NpgsqlDataSource dataSource, ProtectedContent 
         var occurrences = item.Occurrences is null ? null : sealing.Seal(ContentColumns.Occurrences, OccurrenceJson.Write(item.Occurrences));
         var insertion = new Insertion(
             ContentQueries.InsertItemText,
-            () => [Batch(batchId), Bytes("raw", raw), Bytes("sanitized", sanitized), Bytes("occurrences", occurrences), Text("pseudonymized", item.Pseudonymized), .. KeyOf(sealing), .. Declared(item.Accommodation)],
+            () =>
+            [
+                Batch(batchId), Bytes("raw", raw), Bytes("sanitized", sanitized), Bytes("occurrences", occurrences), Text("pseudonymized", item.Pseudonymized),
+                .. KeyOf(sealing), .. Declared(item.Accommodation),
+            ],
             IsolationLevel.ReadCommitted);
         return await InsertAsync(domainId, insertion, cancellationToken).ConfigureAwait(false);
     }

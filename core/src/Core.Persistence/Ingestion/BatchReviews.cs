@@ -17,7 +17,7 @@ namespace Core.Persistence.Ingestion;
 public sealed class BatchReviews
 {
     /// <summary>The motive with which a finding rejects the batch, the same in the row and in the chain.</summary>
-    public const string RejectionMotive = "review_found_personal_data";
+    internal const string RejectionMotive = "review_found_personal_data";
 
     private readonly NpgsqlDataSource dataSource;
     private readonly int? sampleSize;
@@ -82,11 +82,23 @@ public sealed class BatchReviews
             return BatchReviewOutcome.NotOpen;
         }
 
-        return drawing ? (held.Sample is null ? null : BatchReviewOutcome.AlreadySampled) : ReviewRefusal(held);
+        if (drawing)
+        {
+            return held.Sample is null ? null : BatchReviewOutcome.AlreadySampled;
+        }
+
+        return ReviewRefusal(held);
     }
 
-    private static BatchReviewOutcome? ReviewRefusal(BatchReview held) =>
-        held.Sample is null ? BatchReviewOutcome.NotSampled : (held.ReviewerId is null ? null : BatchReviewOutcome.AlreadyReviewed);
+    private static BatchReviewOutcome? ReviewRefusal(BatchReview held)
+    {
+        if (held.Sample is null)
+        {
+            return BatchReviewOutcome.NotSampled;
+        }
+
+        return held.ReviewerId is null ? null : BatchReviewOutcome.AlreadyReviewed;
+    }
 
     private static long[] Drawn(long[] numbers, int size)
     {
@@ -118,14 +130,14 @@ public sealed class BatchReviews
     private async Task<CustodyResult?> DrawInAsync(
         CustodyScope scope, BatchSampling request, StrongBox<(BatchReviewOutcome? Early, long[]? Sample)> run, CancellationToken cancellationToken)
     {
-        var numbers = new StrongBox<long[]>();
+        var numbers = new StrongBox<long[]>([]);
         if (await DrawRefusalAsync(scope, request, numbers, cancellationToken).ConfigureAwait(false) is { } early)
         {
             run.Value = (early, null);
             return null;
         }
 
-        var sample = Drawn(numbers.Value, sampleSize.GetValueOrDefault());
+        var sample = Drawn(numbers.Value ?? [], sampleSize.GetValueOrDefault());
         run.Value = (null, sample);
         var appended = await CustodyAppend.AppendAsync(scope, CustodyEvent.BatchSampled(request.ReviewerId, request.BatchId), cancellationToken).ConfigureAwait(false);
         if (appended.Outcome != CustodyOutcome.Appended)

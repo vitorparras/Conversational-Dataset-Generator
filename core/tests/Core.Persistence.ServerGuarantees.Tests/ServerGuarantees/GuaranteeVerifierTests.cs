@@ -1,5 +1,4 @@
 using Core.Persistence.Content.Emptying;
-using Core.Persistence.Content.Writing;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
 using Core.Persistence.Custody.Verification;

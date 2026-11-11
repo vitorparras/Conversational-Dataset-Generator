@@ -11,7 +11,6 @@ namespace Core.Host.Submissions;
 /// </summary>
 internal sealed class SubmissionService
 {
-    private const string NameWithPath = "name_with_path";
     private const int MostPerPage = 100;
 
     private readonly SubmissionIntake intake;
@@ -23,19 +22,17 @@ internal sealed class SubmissionService
     /// <summary>The service over the database and the pieces that take a file in.</summary>
     /// <param name="intake">The barrier, the conference and the conditions.</param>
     /// <param name="batches">Opens and closes the batches.</param>
-    /// <param name="register">Reads the register of the submissions.</param>
-    /// <param name="dataSource">The source of the connections, for the gate.</param>
+    /// <param name="dataSource">The source of the connections, for the gate and for the register of the submissions.</param>
     /// <param name="logger">Says, by the batch and the domain only, that a batch could not be tidied.</param>
-    internal SubmissionService(SubmissionIntake intake, IngestionBatches batches, BatchRegister register, NpgsqlDataSource dataSource, ILogger logger)
+    internal SubmissionService(SubmissionIntake intake, IngestionBatches batches, NpgsqlDataSource dataSource, ILogger logger)
     {
         ArgumentNullException.ThrowIfNull(intake);
         ArgumentNullException.ThrowIfNull(batches);
-        ArgumentNullException.ThrowIfNull(register);
         ArgumentNullException.ThrowIfNull(dataSource);
         ArgumentNullException.ThrowIfNull(logger);
         this.intake = intake;
         this.batches = batches;
-        this.register = register;
+        register = new BatchRegister(dataSource);
         this.dataSource = dataSource;
         keeper = new SubmissionStoring.Keeper(batches, intake.Writer, logger);
     }
@@ -84,11 +81,6 @@ internal sealed class SubmissionService
     internal Task<BatchEntry?> DetailAsync(IEnumerable<int> granted, long batchId, CancellationToken cancellationToken) =>
         register.ReadAsync(granted, batchId, cancellationToken);
 
-    private static bool HasPath(string? name) =>
-        name is not null && (HasSeparator(name) || name.Contains("..", StringComparison.Ordinal) || name.Any(char.IsControl));
-
-    private static bool HasSeparator(string name) => name.Contains('/', StringComparison.Ordinal) || name.Contains('\\', StringComparison.Ordinal);
-
     private static SubmissionOutcome Answer(SubmissionResult received, long batch, (SubmissionReason? Reason, string? Warning) judged, string origin) => new()
     {
         Kind = SubmissionKind.Done,
@@ -133,7 +125,7 @@ internal sealed class SubmissionService
     private async Task<SubmissionOutcome> OpeningAsync(SubmissionRequest request, SubmissionResult received, CancellationToken cancellationToken)
     {
         var reason = SubmissionJudgement.Of(intake, received, request.DeclaredForm) ?? SubmissionStoring.Unsealed(intake.Sealing);
-        var warning = HasPath(request.ReceivedName) ? NameWithPath : null;
+        var warning = SubmissionOrigin.WarningOf(request.ReceivedName);
         var receipt = new SubmissionReceipt(received.Id.ToString(), received.BytesRead, received.Digest, warning);
         if (SubmissionOrigin.Opening(intake, request, receipt) is not { } opening || (reason is null && !SubmissionStoring.CanSeal(intake.Sealing, request.DomainId)))
         {

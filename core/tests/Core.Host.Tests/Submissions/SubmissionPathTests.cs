@@ -85,7 +85,7 @@ public sealed class SubmissionPathTests
         var conditions = OriginConditions.Of([SubmissionWorld.Strictest]);
         await using var broken = NpgsqlDataSource.Create("Host=127.0.0.1;Port=1;Username=u;Password=p;Database=d;Timeout=2");
         var intake = SubmissionWorld.Intake(1_000_000, conditions, world.Content, broken);
-        var service = new SubmissionService(intake, new IngestionBatches(world.DataSource, conditions), new BatchRegister(world.DataSource), world.DataSource, NullLogger.Instance);
+        var service = new SubmissionService(intake, new IngestionBatches(world.DataSource, conditions), world.DataSource, NullLogger.Instance);
 
         var outcome = await service.SubmitAsync(SubmissionWorld.Request(), TestContext.Current.CancellationToken);
         var entry = await service.DetailAsync([SubmissionWorld.Domain], outcome.Batch!.Value, TestContext.Current.CancellationToken);

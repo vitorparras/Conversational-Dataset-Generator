@@ -81,7 +81,7 @@ internal sealed class SubmissionWorld : IAsyncDisposable
         var content = SealingOf(labels ?? ["texto-bruto/1/v1", "texto-bruto/2/v1"]);
         var intake = Intake(maxBytes, conditions, content, dataSource);
         var batches = attempts is { } made ? new IngestionBatches(dataSource, conditions, made) : new IngestionBatches(dataSource, conditions);
-        var service = new SubmissionService(intake, batches, new BatchRegister(dataSource), dataSource, NullLogger.Instance);
+        var service = new SubmissionService(intake, batches, dataSource, NullLogger.Instance);
         return new SubmissionWorld(database, dataSource, (service, content, batches));
     }
 

@@ -72,16 +72,14 @@ public sealed class SubmissionPartsTests
         var conditions = OriginConditions.Of(["a"]);
         var intake = SubmissionWorld.Intake(1, conditions, SubmissionWorld.SealingOf(["texto-bruto/1/v1"]), dataSource);
         var batches = new IngestionBatches(dataSource, conditions);
-        var register = new BatchRegister(dataSource);
 
         Assert.Equal(
-            ["intake", "batches", "register", "dataSource", "logger"],
+            ["intake", "batches", "dataSource", "logger"],
             [
-                Assert.Throws<ArgumentNullException>(() => new SubmissionService(null!, batches, register, dataSource, NullLogger.Instance)).ParamName,
-                Assert.Throws<ArgumentNullException>(() => new SubmissionService(intake, null!, register, dataSource, NullLogger.Instance)).ParamName,
-                Assert.Throws<ArgumentNullException>(() => new SubmissionService(intake, batches, null!, dataSource, NullLogger.Instance)).ParamName,
-                Assert.Throws<ArgumentNullException>(() => new SubmissionService(intake, batches, register, null!, NullLogger.Instance)).ParamName,
-                Assert.Throws<ArgumentNullException>(() => new SubmissionService(intake, batches, register, dataSource, null!)).ParamName,
+                Assert.Throws<ArgumentNullException>(() => new SubmissionService(null!, batches, dataSource, NullLogger.Instance)).ParamName,
+                Assert.Throws<ArgumentNullException>(() => new SubmissionService(intake, null!, dataSource, NullLogger.Instance)).ParamName,
+                Assert.Throws<ArgumentNullException>(() => new SubmissionService(intake, batches, null!, NullLogger.Instance)).ParamName,
+                Assert.Throws<ArgumentNullException>(() => new SubmissionService(intake, batches, dataSource, null!)).ParamName,
             ]);
     }
 
@@ -91,7 +89,7 @@ public sealed class SubmissionPartsTests
         using var dataSource = NpgsqlDataSource.Create("Host=127.0.0.1;Port=1;Username=u;Password=p;Database=d");
         var conditions = OriginConditions.Of(["a"]);
         var intake = SubmissionWorld.Intake(1, conditions, SubmissionWorld.SealingOf(["texto-bruto/1/v1"]), dataSource);
-        var service = new SubmissionService(intake, new IngestionBatches(dataSource, conditions), new BatchRegister(dataSource), dataSource, NullLogger.Instance);
+        var service = new SubmissionService(intake, new IngestionBatches(dataSource, conditions), dataSource, NullLogger.Instance);
         var request = SubmissionWorld.Request();
 
         Assert.Equal(

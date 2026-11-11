@@ -16,7 +16,10 @@ public sealed class ConfigurationRefusalsTests : IDisposable
     private readonly NpgsqlDataSource nowhere = NpgsqlDataSource.Create("Host=zqx-nenhum-6340.invalid;Database=zqx;Username=zqx;Password=ZQX-SENHA-6340;Timeout=1");
     private readonly ILoggerFactory loggers;
 
-    public ConfigurationRefusalsTests() => loggers = LoggerFactory.Create(builder => builder.AddProvider(log));
+    public ConfigurationRefusalsTests()
+    {
+        loggers = LoggerFactory.Create(builder => builder.AddProvider(log));
+    }
 
     public static TheoryData<ApplicationRefusal, bool> Kinds() => new()
     {

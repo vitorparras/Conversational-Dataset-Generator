@@ -1,3 +1,4 @@
+using System.Data;
 using System.Data.Common;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
@@ -101,7 +102,7 @@ public sealed class ApprovedChanges
         return found;
     }
 
-    private static RefusedChange ReadRefused(DbDataReader reader) => new()
+    private static RefusedChange ReadRefused(IDataRecord reader) => new()
     {
         Id = (long)reader["id"],
         Key = (string)reader["config_key"],

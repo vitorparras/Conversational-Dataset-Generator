@@ -39,7 +39,7 @@ internal sealed class ChangeDecisionDesk
 
     /// <summary>The latest approved changes the core recorded as never to be applied, at most twenty.</summary>
     internal async Task<IReadOnlyList<RefusedChange>> NotAppliedAsync(CancellationToken cancellationToken) =>
-        (await register.NotAppliedAsync(cancellationToken).ConfigureAwait(false)).Take(ShownNotApplied).ToList();
+        [.. (await register.NotAppliedAsync(cancellationToken).ConfigureAwait(false)).Take(ShownNotApplied)];
 
     /// <summary>Records the decision when nothing refuses it; nothing is written for a decision refused.</summary>
     internal Task<DecisionOutcome> DecideAsync(DecisionRequest request, CancellationToken cancellationToken)

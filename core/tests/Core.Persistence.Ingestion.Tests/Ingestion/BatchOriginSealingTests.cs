@@ -84,9 +84,10 @@ public sealed class BatchOriginSealingTests
         var unknown = await OpenAsync(world, OriginDeclaration.Unknown);
         var notKept = await OpenAsync(world, OriginDeclaration.DeclaredNotKept);
 
-        Assert.Equal(
-            ("unknown", "declared", "0"),
-            (await world.InDomainAsync(IngestionWorld.Domain, OriginState, ("id", unknown)), await world.InDomainAsync(IngestionWorld.Domain, OriginState, ("id", notKept)), await world.InDomainAsync(IngestionWorld.Domain, "SELECT count(*)::text FROM content.batch_origin")));
+        var states = (await StateAsync(world, unknown), await StateAsync(world, notKept));
+        var rows = await world.InDomainAsync(IngestionWorld.Domain, "SELECT count(*)::text FROM content.batch_origin") as string;
+
+        Assert.Equal((("unknown", "declared"), "0"), (states, rows));
     }
 
     [DatabaseFact]
@@ -104,6 +105,9 @@ public sealed class BatchOriginSealingTests
 
         Assert.Equal((BatchOutcome.Rejected, "1,1", "0,0"), (rejected.Outcome, before, await CountsAsync(world)));
     }
+
+    private static async Task<string?> StateAsync(BatchesWorld world, long batch) =>
+        await world.InDomainAsync(IngestionWorld.Domain, OriginState, ("id", batch)) as string;
 
     private static async Task<object?> CountsAsync(BatchesWorld world) =>
         await world.InDomainAsync(IngestionWorld.Domain, "SELECT (SELECT count(*) FROM content.replication_occurrence) || ',' || (SELECT count(*) FROM content.replication_mark)");

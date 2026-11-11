@@ -65,6 +65,25 @@
     }
 </Panel>
 
+@if (NotApplied.Count > 0)
+{
+    <Panel Id="nao-aplicadas" Title="@(NotApplied.Count == 1 ? "1 alteração aprovada não será aplicada" : $"{NotApplied.Count} alterações aprovadas não serão aplicadas")">
+        <ul class="paged-list" aria-label="Alterações aprovadas que não serão aplicadas">
+            @foreach (var refused in NotApplied)
+            {
+                <li>
+                    <span class="row">
+                        <strong>@ChangeTexts.Key(refused.Key)</strong>
+                        <span><code>@refused.Key</code></span>
+                        <span>@ChangeTexts.NotApplied(refused.ReasonCode)</span>
+                    </span>
+                    <StateMark Kind="StateMark.Tone.Bad">Não aplicada</StateMark>
+                </li>
+            }
+        </ul>
+    </Panel>
+}
+
 @code {
     /// <summary>The title of the page and of its entry in the menu.</summary>
     internal const string Title = "Alterar configuração";
@@ -85,6 +104,10 @@
     /// <summary>What waits for a decision within the deadline, the latest first.</summary>
     [Parameter, EditorRequired]
     public IReadOnlyList<PendingChange> Pending { get; set; } = Array.Empty<PendingChange>();
+
+    /// <summary>What was approved and will never be applied, the latest first, each with the reason the core recorded in the chain; no value and no person.</summary>
+    [Parameter]
+    public IReadOnlyList<RefusedChange> NotApplied { get; set; } = Array.Empty<RefusedChange>();
 
     /// <summary>The one the session names, who never decides what they proposed.</summary>
     [Parameter, EditorRequired]

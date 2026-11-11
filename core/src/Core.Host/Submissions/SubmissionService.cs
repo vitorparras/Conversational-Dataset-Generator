@@ -18,7 +18,7 @@ internal sealed class SubmissionService
     private readonly IngestionBatches batches;
     private readonly BatchRegister register;
     private readonly NpgsqlDataSource dataSource;
-    private readonly Diary diary;
+    private readonly SubmissionStoring.Keeper keeper;
 
     /// <summary>The service over the database and the pieces that take a file in.</summary>
     /// <param name="intake">The barrier, the conference and the conditions.</param>
@@ -37,7 +37,7 @@ internal sealed class SubmissionService
         this.batches = batches;
         this.register = register;
         this.dataSource = dataSource;
-        diary = new Diary(logger);
+        keeper = new SubmissionStoring.Keeper(batches, intake.Writer, logger);
     }
 
     /// <summary>Whether the ingestion takes material in: open, or blocked by the code of what is missing (decision 0014).</summary>
@@ -166,14 +166,8 @@ internal sealed class SubmissionService
     private async Task<SubmissionOutcome> StoringAsync(SubmissionRequest request, Opened opened, CancellationToken cancellationToken)
     {
         var place = new SubmissionStoring.Kept(request.DomainId, opened.Batch, opened.Received.Material!, request.DeclaredForm);
-        var kept = await SubmissionStoring.KeepAsync(batches, intake.Writer!, place, diary.Logger, cancellationToken).ConfigureAwait(false);
-        return kept switch
-        {
-            SubmissionStoring.Keeping.Kept => Answer(opened.Received, opened.Batch, (null, opened.Warning), opened.Origin),
-            SubmissionStoring.Keeping.Collided => new SubmissionOutcome { Kind = SubmissionKind.Collided, Batch = opened.Batch },
-            SubmissionStoring.Keeping.WriteFailed => new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = SubmissionStoring.WriteFailed, Batch = opened.Batch },
-            _ => throw new InvalidOperationException("The keeping of the file ended in a way the service does not answer."),
-        };
+        var kept = await keeper.KeepAsync(place, cancellationToken).ConfigureAwait(false);
+        return SubmissionStoring.Failure(kept, opened.Batch) ?? Answer(opened.Received, opened.Batch, (null, opened.Warning), opened.Origin);
     }
 
     /// <summary>What there is to say of a submission that was registered as rejected: the key that was missing is a failure of the service, not a defect of the file.</summary>
@@ -182,7 +176,4 @@ internal sealed class SubmissionService
         : Answer(opened.Received, opened.Batch, (reason, opened.Warning), opened.Origin);
 
     private sealed record Opened(SubmissionResult Received, long Batch, string? Warning, string Origin);
-
-    /// <summary>The logger of the service, held apart so that it is not a field of the type of the loggers the rules ask to be static.</summary>
-    private sealed record Diary(ILogger Logger);
 }

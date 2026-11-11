@@ -34,7 +34,7 @@ public sealed class SubmissionAccommodationTests
         var material = new ReadMaterial([new ReadUnit("ZQXTERCEIRO", "ZQXUM", instant, null, []), new ReadUnit("ZQXQUARTO", "ZQXDOIS", instant, null, [])]);
         var kept = new SubmissionStoring.Kept(SubmissionWorld.Domain, opened.BatchId!.Value, material, MaterialForm.Document);
 
-        var stored = await SubmissionStoring.KeepAsync(batches, new ContentWriter(world.DataSource, world.Content), kept, NullLogger.Instance, TestContext.Current.CancellationToken);
+        var stored = await new SubmissionStoring.Keeper(batches, new ContentWriter(world.DataSource, world.Content), NullLogger.Instance).KeepAsync(kept, TestContext.Current.CancellationToken);
 
         Assert.Equal((SubmissionStoring.Keeping.Kept, 2L, 2L), (stored, await world.ItemRowsAsync(), await world.AccommodatedRowsAsync()));
     }

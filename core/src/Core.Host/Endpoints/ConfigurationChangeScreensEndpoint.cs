@@ -2,6 +2,7 @@ using System.Globalization;
 using Core.Host.Screens;
 using Core.Host.Settings;
 using Core.Persistence.People;
+using Core.Persistence.Settings;
 using Core.Platform.Configuration;
 using Core.Platform.Sessions;
 using Microsoft.AspNetCore.Mvc;
@@ -16,6 +17,7 @@ namespace Core.Host.Endpoints;
 internal static class ConfigurationChangeScreensEndpoint
 {
     private const int ChangesPlace = 92;
+    private const int ShownNotApplied = 20;
 
     internal static void Map(IEndpointRouteBuilder endpoints)
     {
@@ -105,10 +107,17 @@ internal static class ConfigurationChangeScreensEndpoint
     {
         var inForce = configuration.Entries.ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.Ordinal);
         screen[nameof(ConfigurationChangeScreen.Pending)] = await decisions.PendingAsync(context.RequestAborted);
+        screen[nameof(ConfigurationChangeScreen.NotApplied)] = await NotAppliedAsync(context);
         screen[nameof(ConfigurationChangeScreen.Keys)] = new List<Field.Option>(
             ChangeableKeys.All.Select(key => new Field.Option(key, $"{ChangeTexts.Key(key)} (em vigor: {inForce.GetValueOrDefault(key) ?? "sem valor"})"))).AsReadOnly();
         return ScreenResult.Of(context, typeof(ConfigurationChangeScreen), ConfigurationChangeScreen.Title, screen);
     }
+
+    /// <summary>The latest approved changes the core recorded as never to be applied; none when there is no database.</summary>
+    private static async Task<IReadOnlyList<RefusedChange>> NotAppliedAsync(HttpContext context) =>
+        context.RequestServices.GetService<ApprovedChanges>() is { } approved
+            ? (await approved.RefusedAsync(context.RequestAborted)).Take(ShownNotApplied).ToList().AsReadOnly()
+            : Array.Empty<RefusedChange>();
 
     private static long? ActorOf(HttpContext context) => context.RequestServices.GetRequiredService<SessionStore>().Resolve(SessionCookie.Read(context.Request));
 

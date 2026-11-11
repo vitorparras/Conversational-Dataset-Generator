@@ -64,13 +64,16 @@ public sealed class ReplicationStore
         }
     }
 
-    /// <summary>The occurrences of the domain that the batches accepted left, in the order they were written: the first of a content is the first of these.</summary>
+    /// <summary>
+    /// The occurrences of the domain that the batches accepted left and whose text is one of the digests given, in the order they were written:
+    /// the first of a content is the first of these.
+    /// </summary>
     /// <param name="domainId">The domain.</param>
+    /// <param name="textDigests">The digests of the texts that arrive: nothing else is read, so the cost follows the batch and not the domain.</param>
     /// <param name="cancellationToken">Cancels the reading.</param>
-    public Task<IReadOnlyList<StoredOccurrence>> OccurrencesAsync(int domainId, CancellationToken cancellationToken) =>
+    public Task<IReadOnlyList<StoredOccurrence>> OccurrencesAsync(int domainId, IReadOnlyCollection<string> textDigests, CancellationToken cancellationToken) =>
         ReadAsync(
-            domainId,
-            ContentQueries.ReadReplicationOccurrences,
+            new Reading(domainId, ContentQueries.ReadReplicationOccurrences, textDigests),
             reader => new StoredOccurrence(
                 reader.GetInt64(0),
                 reader.GetInt32(1),
@@ -80,13 +83,13 @@ public sealed class ReplicationStore
                 reader.GetFieldValue<DateTimeOffset>(SaidColumn)),
             cancellationToken);
 
-    /// <summary>The marks of the domain that the batches accepted left, in the order they were written.</summary>
+    /// <summary>The marks of the domain that the batches accepted left, on messages whose text is one of the digests given, in the order they were written.</summary>
     /// <param name="domainId">The domain.</param>
+    /// <param name="textDigests">The digests of the texts that arrive.</param>
     /// <param name="cancellationToken">Cancels the reading.</param>
-    public Task<IReadOnlyList<StoredMark>> MarksAsync(int domainId, CancellationToken cancellationToken) =>
+    public Task<IReadOnlyList<StoredMark>> MarksAsync(int domainId, IReadOnlyCollection<string> textDigests, CancellationToken cancellationToken) =>
         ReadAsync(
-            domainId,
-            ContentQueries.ReadReplicationMarks,
+            new Reading(domainId, ContentQueries.ReadReplicationMarks, textDigests),
             reader => new StoredMark(reader.GetInt64(0), reader.GetInt32(1), reader.GetInt64(FirstItemColumn), reader.GetInt32(FirstPositionColumn)),
             cancellationToken);
 
@@ -129,15 +132,16 @@ public sealed class ReplicationStore
     private static void ArrayOf(NpgsqlCommand command, string name, NpgsqlDbType element, Array values) =>
         _ = command.Parameters.Add(new NpgsqlParameter(name, (NpgsqlDbType)((int)NpgsqlDbType.Array + (int)element)) { Value = values });
 
-    private async Task<IReadOnlyList<T>> ReadAsync<T>(int domainId, string statement, Func<NpgsqlDataReader, T> map, CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<T>> ReadAsync<T>(Reading reading, Func<NpgsqlDataReader, T> map, CancellationToken cancellationToken)
     {
         var found = new List<T>();
-        var transaction = await ContentTransaction.BeginAsync(dataSource, domainId, cancellationToken).ConfigureAwait(false);
+        var transaction = await ContentTransaction.BeginAsync(dataSource, reading.DomainId, cancellationToken).ConfigureAwait(false);
         await using (transaction.ConfigureAwait(false))
         {
-            var command = transaction.CreateCommand(statement);
+            var command = transaction.CreateCommand(reading.Statement);
             await using (command.ConfigureAwait(false))
             {
+                ArrayOf(command, "digests", NpgsqlDbType.Text, reading.Digests.ToArray());
                 await EachRowAsync(command, reader => found.Add(map(reader)), cancellationToken).ConfigureAwait(false);
             }
         }
@@ -156,4 +160,6 @@ public sealed class ReplicationStore
             }
         }
     }
+
+    private sealed record Reading(int DomainId, string Statement, IReadOnlyCollection<string> Digests);
 }

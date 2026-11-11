@@ -28,7 +28,7 @@ internal static class SessionEndpoint
             return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
 
-        var entry = await signIn.OpenAsync(asked.Name, asked.Password, context.Connection.RemoteIpAddress, cancellationToken, context.Request.Headers.UserAgent.ToString());
+        var entry = await signIn.OpenAsync(new SignInRequest(asked.Name, asked.Password, context.Connection.RemoteIpAddress, context.Request.Headers.UserAgent.ToString()), cancellationToken);
         if (entry.ChainBusy)
         {
             return Results.Json(new SessionUnavailable(Unavailable), statusCode: StatusCodes.Status503ServiceUnavailable);

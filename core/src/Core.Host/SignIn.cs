@@ -24,8 +24,13 @@ internal sealed class SignIn(PersonRegistry registry, PersonCredentials credenti
     internal Task<bool> NobodyRegisteredAsync(CancellationToken cancellationToken) => registry.IsEmptyAsync(cancellationToken);
 
     /// <summary>The identifier of the session that was opened; none when the entry is refused, whatever the reason, or when the chain stayed busy, which the result tells apart.</summary>
-    internal async Task<SignInEntry> OpenAsync(string name, string password, IPAddress? origin, CancellationToken cancellationToken, string? userAgent = null)
+    internal Task<SignInEntry> OpenAsync(string name, string password, IPAddress? origin, CancellationToken cancellationToken) =>
+        OpenAsync(new SignInRequest(name, password, origin), cancellationToken);
+
+    /// <summary>The same entry, with the browser that asked, whose description the session keeps until it closes.</summary>
+    internal async Task<SignInEntry> OpenAsync(SignInRequest request, CancellationToken cancellationToken)
     {
+        var (name, password, origin, userAgent) = request;
         using var admission = delay.Admit(origin);
         if (admission is null)
         {

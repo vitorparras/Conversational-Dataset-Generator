@@ -35,7 +35,7 @@ internal static class EntryPageEndpoint
         var form = context.Request.HasFormContentType ? await context.Request.ReadFormAsync(context.RequestAborted) : null;
         var name = form?[SignInScreen.NameField].ToString() ?? string.Empty;
         var password = form?[SignInScreen.SecretField].ToString() ?? string.Empty;
-        var entry = await signIn.OpenAsync(name, password, context.Connection.RemoteIpAddress, context.RequestAborted, context.Request.Headers.UserAgent.ToString());
+        var entry = await signIn.OpenAsync(new SignInRequest(name, password, context.Connection.RemoteIpAddress, context.Request.Headers.UserAgent.ToString()), context.RequestAborted);
         if (entry.ChainBusy)
         {
             return await PageAsync(context, signIn, name, EntryNotice.Busy);

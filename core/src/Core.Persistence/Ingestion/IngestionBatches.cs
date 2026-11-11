@@ -14,6 +14,7 @@ namespace Core.Persistence.Ingestion;
 /// and closes once, accepted or rejected. The opening and the closing are each written with the event of the chain in one serializable transaction, and the database
 /// refuses either without its event; a rejection removes the content of the batch in that same transaction, so that no partial material stays reachable.
 /// What the batch holds is not readable as stock until it is accepted: the database sees to that, not this class.
+/// A write that the chain refuses for a collision with another writer is made again, up to three attempts in all (see <see cref="BatchRetry" />); the result of the last one is the answer.
 /// </summary>
 public sealed class IngestionBatches
 {
@@ -21,16 +22,28 @@ public sealed class IngestionBatches
 
     private readonly NpgsqlDataSource dataSource;
     private readonly OriginConditions conditions;
+    private readonly int attempts;
 
     /// <summary>The batches are written through the data source built with the application's credential, and open under one of the conditions the installation knows.</summary>
     /// <param name="dataSource">The application's data source.</param>
     /// <param name="conditions">The conditions the installation knows, the most restrictive first.</param>
     public IngestionBatches(NpgsqlDataSource dataSource, OriginConditions conditions)
+        : this(dataSource, conditions, BatchRetry.Attempts)
+    {
+    }
+
+    /// <summary>The batches as above, and a write that collides is made again until <paramref name="attempts" /> attempts have been made in all.</summary>
+    /// <param name="dataSource">The application's data source.</param>
+    /// <param name="conditions">The conditions the installation knows, the most restrictive first.</param>
+    /// <param name="attempts">The attempts in all, the first included: at least one.</param>
+    public IngestionBatches(NpgsqlDataSource dataSource, OriginConditions conditions, int attempts)
     {
         ArgumentNullException.ThrowIfNull(dataSource);
         ArgumentNullException.ThrowIfNull(conditions);
+        ArgumentOutOfRangeException.ThrowIfLessThan(attempts, 1);
         this.dataSource = dataSource;
         this.conditions = conditions;
+        this.attempts = attempts;
     }
 
     /// <summary>
@@ -114,7 +127,10 @@ public sealed class IngestionBatches
 
     private static NpgsqlParameter Id(string name, long value) => new(name, NpgsqlDbType.Bigint) { Value = value };
 
-    private async Task<BatchResult> OpeningAsync(BatchOpening opening, CancellationToken cancellationToken)
+    private Task<BatchResult> OpeningAsync(BatchOpening opening, CancellationToken cancellationToken) =>
+        BatchRetry.RunAsync(() => OpenOnceAsync(opening, cancellationToken), attempts, cancellationToken);
+
+    private async Task<BatchResult> OpenOnceAsync(BatchOpening opening, CancellationToken cancellationToken)
     {
         var run = new StrongBox<(long Batch, BatchOutcome? Failure)>();
         var recorded = await CustodyTransaction.RunAsync(dataSource, scope => OpenInAsync(scope, opening, run, cancellationToken), cancellationToken).ConfigureAwait(false);
@@ -158,7 +174,10 @@ public sealed class IngestionBatches
         return appended;
     }
 
-    private async Task<BatchResult> ClosingAsync(Closing closing, CancellationToken cancellationToken)
+    private Task<BatchResult> ClosingAsync(Closing closing, CancellationToken cancellationToken) =>
+        BatchRetry.RunAsync(() => CloseOnceAsync(closing, cancellationToken), attempts, cancellationToken);
+
+    private async Task<BatchResult> CloseOnceAsync(Closing closing, CancellationToken cancellationToken)
     {
         var early = new StrongBox<BatchOutcome?>(null);
         var recorded = await CustodyTransaction.RunAsync(dataSource, scope => CloseInAsync(scope, closing, early, cancellationToken), cancellationToken).ConfigureAwait(false);

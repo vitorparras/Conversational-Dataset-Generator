@@ -100,6 +100,16 @@ public sealed class BatchConditionTests
         Assert.Equal("conditions", Assert.Throws<ArgumentNullException>(() => new IngestionBatches(dataSource, null!)).ParamName);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void BatchesThatWouldNeverTryAreRefusedByName(int attempts)
+    {
+        using var dataSource = NpgsqlDataSource.Create("Host=127.0.0.1;Port=1;Username=u;Password=p;Database=d");
+
+        Assert.Equal("attempts", Assert.Throws<ArgumentOutOfRangeException>(() => new IngestionBatches(dataSource, TestConditions.Known, attempts)).ParamName);
+    }
+
     [DatabaseFact]
     public async Task ItemHasTheConditionOfTheBatchItCameInWithOnceTheBatchIsAccepted()
     {

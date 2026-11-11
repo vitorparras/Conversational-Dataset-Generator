@@ -17,6 +17,10 @@ else
     {
         <Notice Kind="Notice.Tone.Error">@SubmissionTexts.NotRecorded</Notice>
     }
+    else if (Collided)
+    {
+        <Notice Kind="Notice.Tone.Pending">@SubmissionTexts.Collided</Notice>
+    }
     <SubmissionFields Action="@Action" Offer="Offer" Given="Given" Errors="Errors" />
 }
 
@@ -42,6 +46,10 @@ else
     /// <summary>Whether the sending reached the service and no batch could be recorded, so the form opens again.</summary>
     [Parameter]
     public bool NotRecorded { get; set; }
+
+    /// <summary>Whether the sending met another one at the same time, again and again, so that nothing of it was kept and the same file may be sent again; the form opens again.</summary>
+    [Parameter]
+    public bool Collided { get; set; }
 
     [Parameter]
     public SubmissionFields.Typed Given { get; set; } = SubmissionFields.Typed.Nothing;

@@ -22,4 +22,7 @@ public sealed record BatchResult
 
     /// <summary>What the chain answered when it refused the event; null otherwise.</summary>
     public CustodyResult? Refusal { get; init; }
+
+    /// <summary>Whether the chain refused the event because another writer reached the same link first, so that nothing was written and the same request may be made again.</summary>
+    public bool Collided => Outcome == BatchOutcome.NotRecorded && Refusal?.Outcome == CustodyOutcome.Conflict;
 }

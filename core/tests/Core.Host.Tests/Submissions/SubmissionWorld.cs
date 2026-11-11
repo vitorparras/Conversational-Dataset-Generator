@@ -64,7 +64,8 @@ internal sealed class SubmissionWorld : IAsyncDisposable
     /// <param name="domain">The identifier of the domain.</param>
     internal static string NameOf(int domain) => domain == Domain ? "zqx-domain-a" : "zqx-domain-b";
 
-    internal static async Task<SubmissionWorld> CreateAsync(long maxBytes = 1_000_000, bool gateOpen = true, IReadOnlyList<string>? labels = null, ReplicationRule? replication = null, int? attempts = null)
+    internal static async Task<SubmissionWorld> CreateAsync(
+        long maxBytes = 1_000_000, bool gateOpen = true, IReadOnlyList<string>? labels = null, ReplicationRule? replication = null, int? attempts = null)
     {
         var database = await ScratchDatabase.CreateAsync();
         _ = await database.MigrateAsync(EmbeddedMigrations.Load());

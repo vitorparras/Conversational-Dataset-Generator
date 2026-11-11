@@ -105,10 +105,12 @@ internal static class ConfigurationChangeScreensEndpoint
     {
         var inForce = configuration.Entries.ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.Ordinal);
         screen[nameof(ConfigurationChangeScreen.Pending)] = await decisions.PendingAsync(context.RequestAborted);
+        screen[nameof(ConfigurationChangeScreen.NotApplied)] = await decisions.NotAppliedAsync(context.RequestAborted);
         screen[nameof(ConfigurationChangeScreen.Keys)] = new List<Field.Option>(
             ChangeableKeys.All.Select(key => new Field.Option(key, $"{ChangeTexts.Key(key)} (em vigor: {inForce.GetValueOrDefault(key) ?? "sem valor"})"))).AsReadOnly();
         return ScreenResult.Of(context, typeof(ConfigurationChangeScreen), ConfigurationChangeScreen.Title, screen);
     }
+
 
     private static long? ActorOf(HttpContext context) => context.RequestServices.GetRequiredService<SessionStore>().Resolve(SessionCookie.Read(context.Request));
 

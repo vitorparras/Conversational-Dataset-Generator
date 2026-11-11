@@ -93,6 +93,11 @@ public sealed class ConfigurationChanges
         }
     }
 
+    /// <summary>The approved changes the core recorded as never to be applied, the latest first.</summary>
+    /// <param name="cancellationToken">Cancels the reading.</param>
+    public Task<IReadOnlyList<RefusedChange>> NotAppliedAsync(CancellationToken cancellationToken) =>
+        new ApprovedChanges(dataSource).RefusedAsync(cancellationToken);
+
     /// <summary>Records the decision on the submission, by a person other than the one who submitted, as the event that points at the submission; nothing else is written.</summary>
     /// <param name="deciderId">The person who decides.</param>
     /// <param name="change">The submission decided, as <see cref="SubmittedAsync" /> read it.</param>

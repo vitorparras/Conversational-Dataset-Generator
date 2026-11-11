@@ -24,7 +24,7 @@ internal sealed class SignIn(PersonRegistry registry, PersonCredentials credenti
     internal Task<bool> NobodyRegisteredAsync(CancellationToken cancellationToken) => registry.IsEmptyAsync(cancellationToken);
 
     /// <summary>The identifier of the session that was opened; none when the entry is refused, whatever the reason, or when the chain stayed busy, which the result tells apart.</summary>
-    internal async Task<SignInEntry> OpenAsync(string name, string password, IPAddress? origin, CancellationToken cancellationToken)
+    internal async Task<SignInEntry> OpenAsync(string name, string password, IPAddress? origin, CancellationToken cancellationToken, string? userAgent = null)
     {
         using var admission = delay.Admit(origin);
         if (admission is null)
@@ -41,7 +41,7 @@ internal sealed class SignIn(PersonRegistry registry, PersonCredentials credenti
             if (accepted.Outcome == CustodyOutcome.Appended)
             {
                 delay.Accepted(name, origin);
-                return new SignInEntry(sessions.Open(admitted), ChainBusy: false);
+                return new SignInEntry(sessions.Open(admitted, SessionDevice.Describe(userAgent)), ChainBusy: false);
             }
 
             if (accepted.Outcome == CustodyOutcome.Conflict)

@@ -165,4 +165,37 @@ public sealed class SessionStoreListingTests
         Assert.Equal(0, store.CloseOthersOf(7, kept));
         Assert.Equal(7, store.Resolve(kept));
     }
+
+    [Fact]
+    public void TheListingCarriesTheDescriptionGivenAtTheEntryAndASessionOpenedWithoutOneIsNotIdentified()
+    {
+        _ = store.Open(7, "Firefox no Windows");
+        clock.Advance(TimeSpan.FromMinutes(1));
+        _ = store.Open(7);
+
+        Assert.Equal(["Firefox no Windows", SessionDevice.Unknown], store.ListOf(7, null).Select(session => session.Device));
+    }
+
+    [Fact]
+    public void TheDescriptionGoesWithTheSessionWhicheverWayItEnds()
+    {
+        var closed = store.Open(7, "Firefox no Windows");
+        _ = store.Open(7, "Chrome no Android");
+        _ = store.Open(7, "Safari no iOS");
+        var kept = store.Open(7, "Edge no Linux");
+
+        store.Close(closed);
+        Assert.DoesNotContain(store.ListOf(7, kept), session => session.Device == "Firefox no Windows");
+
+        Assert.True(store.CloseListed(7, store.ListOf(7, kept).Single(session => session.Device == "Chrome no Android").ListingId));
+        Assert.DoesNotContain(store.ListOf(7, kept), session => session.Device == "Chrome no Android");
+
+        Assert.Equal(1, store.CloseOthersOf(7, kept));
+        Assert.Equal(["Edge no Linux"], store.ListOf(7, kept).Select(session => session.Device));
+
+        Assert.Equal(1, store.CloseOf(7));
+        Assert.Empty(store.ListOf(7, kept));
+        _ = store.Open(7);
+        Assert.Equal([SessionDevice.Unknown], store.ListOf(7, null).Select(session => session.Device));
+    }
 }

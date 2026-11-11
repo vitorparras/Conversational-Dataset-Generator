@@ -20,7 +20,8 @@
             @foreach (var session in Sessions)
             {
                 <tr role="row">
-                    <th scope="row" role="rowheader"><Moment At="session.Start" /></th>
+                    <th scope="row" role="rowheader">@session.Device</th>
+                    <td role="cell"><Moment At="session.Start" /></td>
                     <td role="cell"><Moment At="session.LastActivity" /></td>
                     <td role="cell">
                         @if (session.Current)
@@ -53,9 +54,9 @@
 
     internal const string SessionsDone = "sessoes";
 
-    private static readonly string[] Columns = { "Início", "Última atividade", "Ação" };
+    private static readonly string[] Columns = { "Aparelho", "Início", "Última atividade", "Ação" };
 
-    /// <summary>The open sessions of the one who entered, the current one marked; nothing of the network or of the browser.</summary>
+    /// <summary>The open sessions of the one who entered, the current one marked; the browser and system only, no network address.</summary>
     [Parameter, EditorRequired]
     public IReadOnlyList<SessionListing> Sessions { get; set; } = Array.Empty<SessionListing>();
 

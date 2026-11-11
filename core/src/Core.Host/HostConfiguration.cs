@@ -1,5 +1,6 @@
 using Core.Host.Settings;
 using Core.Host.Supervision;
+using Core.Ingestion;
 using Core.Persistence.Connection;
 using Core.Platform.Configuration;
 using Core.Platform.Configuration.Sources;
@@ -67,6 +68,7 @@ internal static class HostConfiguration
                 migrating ? PasswordConfiguration.SectionWhenMigrating : PasswordConfiguration.Section,
                 migrating ? SessionConfiguration.SectionWhenMigrating : SessionConfiguration.Section,
                 migrating ? AdmissionConfiguration.SectionWhenMigrating : AdmissionConfiguration.Section,
+                ReplicationConfiguration.Section,
                 migrating ? VerificationConfiguration.SectionWhenMigrating : VerificationConfiguration.Section,
                 migrating ? SealConfiguration.SectionWhenMigrating : SealConfiguration.Section,
                 MailConfiguration.Section,

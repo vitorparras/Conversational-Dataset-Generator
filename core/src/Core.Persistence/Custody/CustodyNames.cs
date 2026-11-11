@@ -57,6 +57,7 @@ internal static class CustodyNames
         [CustodyStep.ConfigurationRefused] = "configuration_refused",
         [CustodyStep.ConfigurationInForce] = "configuration_in_force",
         [CustodyStep.ConfigurationNotApplied] = "configuration_not_applied",
+        [CustodyStep.PersonEmailCorrected] = "person_email_corrected",
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<CustodyReason, string> Reasons = new Dictionary<CustodyReason, string>

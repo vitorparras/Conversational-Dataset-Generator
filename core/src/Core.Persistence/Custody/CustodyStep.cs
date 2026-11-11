@@ -116,4 +116,7 @@ public enum CustodyStep
 
     /// <summary>The core judged that an approved change of configuration will never be applied; the author is the system and the reference the reason code and the approval sequence.</summary>
     ConfigurationNotApplied,
+
+    /// <summary>The technical administration corrected the e-mail address of a person; the item is that person, the author the one who corrected, and the event holds no address.</summary>
+    PersonEmailCorrected,
 }

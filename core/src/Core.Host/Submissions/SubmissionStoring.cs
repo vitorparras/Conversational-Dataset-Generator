@@ -17,6 +17,15 @@ internal static class SubmissionStoring
     /// <summary>The motive of a batch that was opened and could not keep its items; the items written are removed with the rejection.</summary>
     internal const string WriteFailed = "write_failed";
 
+    /// <summary>
+    /// The motive of a batch that was opened and whose closing met another submission at the same link of the chain, after the attempts the batches make;
+    /// nothing of it is kept.
+    /// </summary>
+    internal const string Collision = "concurrent_submission";
+
+    /// <summary>The rounds of the rejection that cleans a batch up, each with the attempts the batches make, while the chain keeps refusing it for a collision.</summary>
+    internal const int RejectionRounds = 3;
+
     /// <summary>The motive of the batch registered as rejected when the key that seals the content could not be read.</summary>
     internal const string KeyUnavailable = "content_key_unavailable";
 
@@ -71,30 +80,42 @@ internal static class SubmissionStoring
     }
 
     /// <summary>
-    /// Writes the items of a file that was not turned back and accepts the batch; when that fails, rejects it with no item, and says why: null when the batch was accepted,
-    /// the repeat when another batch accepted the same file first, which the database decides at the acceptance, and the failure to write otherwise.
+    /// Rejects the batch that could not be kept, and again for a few rounds while the chain refuses the rejection for a collision.
+    /// When the last round is refused too, the batch is left open and the log says so by the batch, the domain and how the rejection ended, never by the material.
     /// </summary>
-    /// <param name="batches">Accepts and rejects the batch.</param>
-    /// <param name="intake">Holds the writer of the items and the marking of the replicated content.</param>
-    /// <param name="kept">The domain and the batch, open, what the reader gave and the form it was declared in.</param>
-    /// <param name="cancellationToken">Cancels the writing.</param>
-    internal static async Task<string?> KeepAsync(IngestionBatches batches, SubmissionIntake intake, Kept kept, CancellationToken cancellationToken)
-    {
-        var closing = new BatchClosing(kept.DomainId, kept.BatchId, CustodyAuthor.System);
-        var motive = WriteFailed;
-        if (await StoreAsync(intake, kept, cancellationToken).ConfigureAwait(false))
-        {
-            var accepted = await batches.AcceptAsync(closing, cancellationToken).ConfigureAwait(false);
-            if (accepted.Outcome == BatchOutcome.Accepted)
-            {
-                return null;
-            }
+    /// <param name="reject">Rejects the batch for the motive it is given, with the attempts the batches make.</param>
+    /// <param name="collided">Whether the batch could not be kept because its acceptance met another submission at the same link of the chain.</param>
+    /// <param name="kept">The domain and the batch.</param>
+    /// <param name="logger">Says that the batch was left open.</param>
+    internal static Task<Keeping> CleanUpAsync(Func<string, Task<BatchResult>> reject, bool collided, Kept kept, ILogger logger) =>
+        CleanUpAsync(reject, collided ? Keeping.Collided : Keeping.WriteFailed, kept, logger);
 
-            motive = accepted.Outcome == BatchOutcome.AlreadyReceived ? ReasonCodes.AlreadyReceived : WriteFailed;
+    /// <summary>The same clean-up for the cause the keeping failed by: a write that failed, a collision of the closing, or a repeat of a file another batch accepted first.</summary>
+    /// <param name="reject">Rejects the batch for the motive it is given, with the attempts the batches make.</param>
+    /// <param name="cause">Why the batch could not be kept; it is what comes back when the batch is rejected.</param>
+    /// <param name="kept">The domain and the batch.</param>
+    /// <param name="logger">Says that the batch was left open.</param>
+    internal static async Task<Keeping> CleanUpAsync(Func<string, Task<BatchResult>> reject, Keeping cause, Kept kept, ILogger logger)
+    {
+        var motive = cause switch
+        {
+            Keeping.Collided => Collision,
+            Keeping.Repeated => ReasonCodes.AlreadyReceived,
+            _ => WriteFailed,
+        };
+        var rejected = await reject(motive).ConfigureAwait(false);
+        for (var round = 1; round < RejectionRounds && rejected.Collided; round++)
+        {
+            rejected = await reject(motive).ConfigureAwait(false);
         }
 
-        _ = await batches.RejectAsync(closing, motive, cancellationToken).ConfigureAwait(false);
-        return motive;
+        if (rejected.Outcome == BatchOutcome.Rejected)
+        {
+            return cause;
+        }
+
+        logger.BatchLeftOpen(kept.BatchId, kept.DomainId, rejected.Outcome);
+        return Keeping.WriteFailed;
     }
 
     /// <summary>The reason of a service with no key to seal with: whatever the file is, nothing of it is kept; none when there is a key.</summary>
@@ -105,10 +126,75 @@ internal static class SubmissionStoring
         return sealing is null ? new SubmissionReason(KeyUnavailable, none) : null;
     }
 
+    private static Keeping CauseOf(BatchResult? accepted) => accepted switch
+    {
+        { Collided: true } => Keeping.Collided,
+        { Outcome: BatchOutcome.AlreadyReceived } => Keeping.Repeated,
+        _ => Keeping.WriteFailed,
+    };
+
+    /// <summary>What there is to answer of a keeping that did not keep the file; none when it did.</summary>
+    /// <param name="keeping">How the keeping ended.</param>
+    /// <param name="batch">The batch the file was opened as.</param>
+    internal static SubmissionOutcome? Failure(Keeping keeping, long batch) => keeping switch
+    {
+        Keeping.Kept => null,
+        Keeping.Collided => new SubmissionOutcome { Kind = SubmissionKind.Collided, Batch = batch },
+        Keeping.WriteFailed => new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = WriteFailed, Batch = batch },
+        _ => throw new InvalidOperationException("The keeping of the file ended in a way the service does not answer."),
+    };
+
+    /// <summary>How the keeping of a file ended.</summary>
+    internal enum Keeping
+    {
+        /// <summary>The items were written and the batch was accepted.</summary>
+        Kept,
+
+        /// <summary>
+        /// Some item could not be written, or the batch could not be accepted for a reason other than a collision; the batch was rejected as <see cref="WriteFailed" />,
+        /// or was left open when not even the rejection could be made.
+        /// </summary>
+        WriteFailed,
+
+        /// <summary>The acceptance found that another batch had accepted the same file first, which the database decides; the batch was rejected as a repeat and nothing of it is kept.</summary>
+        Repeated,
+
+        /// <summary>
+        /// The acceptance met another submission at the same link of the chain and gave up after the attempts; the batch was rejected as <see cref="Collision" />,
+        /// so nothing of it is kept.
+        /// </summary>
+        Collided,
+    }
+
     /// <summary>The batch an item is written to, and what is written there.</summary>
     /// <param name="DomainId">The domain.</param>
     /// <param name="BatchId">The batch.</param>
     /// <param name="Material">What the reader gave.</param>
     /// <param name="Form">The form the material is accommodated into, which says what each item declares it lost.</param>
     internal sealed record Kept(int DomainId, long BatchId, ReadMaterial Material, MaterialForm Form);
+
+    /// <summary>What keeps a file: the batches that accept and reject, the writer of the items, and the log that says a batch was left open.</summary>
+    /// <param name="Batches">Accepts and rejects the batch.</param>
+    /// <param name="Intake">Holds the writer of the items, none when the key was not read and then nothing is kept, and the marking of the replicated content.</param>
+    /// <param name="Logger">Says, by the batch and the domain only, that a batch could not be rejected.</param>
+    internal sealed record Keeper(IngestionBatches Batches, SubmissionIntake Intake, ILogger Logger)
+    {
+        /// <summary>
+        /// Writes the items of a file that was not turned back and accepts the batch; when that fails, rejects it with no item and says why: a write that failed, or a collision of the closing.
+        /// When not even the rejection is made, the batch is left open with its items: the log says so by the batch and the domain only, and the answer is a write that failed.
+        /// </summary>
+        /// <param name="kept">The domain and the batch, open, and what the reader gave.</param>
+        /// <param name="cancellationToken">Cancels the writing.</param>
+        internal async Task<Keeping> KeepAsync(Kept kept, CancellationToken cancellationToken)
+        {
+            var closing = new BatchClosing(kept.DomainId, kept.BatchId, CustodyAuthor.System);
+            var accepted = await StoreAsync(Intake, kept, cancellationToken).ConfigureAwait(false) ? await Batches.AcceptAsync(closing, cancellationToken).ConfigureAwait(false) : null;
+            if (accepted?.Outcome == BatchOutcome.Accepted)
+            {
+                return Keeping.Kept;
+            }
+
+            return await CleanUpAsync(motive => Batches.RejectAsync(closing, motive, cancellationToken), CauseOf(accepted), kept, Logger).ConfigureAwait(false);
+        }
+    }
 }

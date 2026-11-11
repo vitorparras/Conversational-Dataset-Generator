@@ -100,7 +100,7 @@ public sealed class EffectiveConditionTests
     {
         var refused = Assert.Throws<ArgumentException>(() => EffectiveCondition.Of(Known, []));
 
-        Assert.Equal("present", refused.ParamName);
+        Assert.Equal(("present", true), (refused.ParamName, refused.Message.StartsWith("A set with no item has no condition.", StringComparison.Ordinal)));
     }
 
     [Fact]
@@ -110,6 +110,7 @@ public sealed class EffectiveConditionTests
         var last = Assert.Throws<ArgumentException>(() => EffectiveCondition.Of(Known, ["restrita", "zqx_desconhecida"]));
 
         Assert.Equal(("present", "present"), (first.ParamName, last.ParamName));
+        Assert.All([first, last], refused => Assert.StartsWith("A condition the installation does not know.", refused.Message, StringComparison.Ordinal));
     }
 
     [Fact]

@@ -15,6 +15,10 @@ internal static class SubmissionTexts
     internal const string NotRecorded =
         "O envio não foi registrado e nenhum lote foi aberto. Envie de novo; se repetir, quem administra o servidor vê a causa no registro do sistema.";
 
+    /// <summary>What the screen says when the sending met another one at the same time: nothing of the file was kept, and sending it again is safe.</summary>
+    internal const string Collided =
+        "O envio esbarrou em outro que chegou ao mesmo tempo e nada do arquivo foi gravado. Envie o mesmo arquivo de novo; não há nada a limpar antes.";
+
     private const long Mebibyte = 1_048_576;
     private const long Kibibyte = 1_024;
 

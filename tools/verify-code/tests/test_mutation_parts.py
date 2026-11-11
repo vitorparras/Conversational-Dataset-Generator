@@ -488,6 +488,7 @@ class RepositoryAreaTests(unittest.TestCase):
         self.assertEqual(areas["Core.Persistence.Content"].parts, 16)
         self.assertEqual(areas["Core.Persistence.Content.Writing"].parts, 3)
         self.assertEqual(areas["Core.Persistence.Content.Reading"].parts, 1)
+        self.assertEqual(areas["Core.Persistence.Ingestion"].parts, 8)
 
     def test_the_content_areas_of_the_repository_have_files_for_their_parts(self) -> None:
         root = support.VERIFY_CODE.parents[1]
@@ -498,9 +499,15 @@ class RepositoryAreaTests(unittest.TestCase):
         writing = [name for name in names if name.startswith("Core.Persistence.Content.Writing@")]
 
         expected = [f"Core.Persistence.Content@{n}/16" for n in range(1, 17)]
+        ingestion = [name for name in names if name.startswith("Core.Persistence.Ingestion@")]
         self.assertEqual(
-            (problems, content, writing),
-            ((), expected, [f"Core.Persistence.Content.Writing@{n}/3" for n in (1, 2, 3)]),
+            (problems, content, writing, ingestion),
+            (
+                (),
+                expected,
+                [f"Core.Persistence.Content.Writing@{n}/3" for n in (1, 2, 3)],
+                [f"Core.Persistence.Ingestion@{n}/8" for n in range(1, 9)],
+            ),
         )
 
 

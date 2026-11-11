@@ -154,10 +154,10 @@ public sealed partial class PeopleEmailCorrectionTests(BrowserFixture browser, P
     [InlineData("POST", "novo@exemplo.org")]
     [InlineData("POST", "sem-arroba")]
     [InlineData("POST", "")]
-    public async Task ThePageOfADeactivatedPersonSaysSoWithNoFieldAndTheSendingGets409AndKeepsTheAddress(string method, string? typed)
+    public async Task ThePageOfADeactivatedPersonSaysSoWithNoFieldAndTheSendingGets409AndTheAddressIsGone(string method, string? typed)
     {
-        var kept = Address("desativada");
-        await using var admin = await RegisteredAsync(Made("desativada"), kept);
+        var erased = Address("desativada");
+        await using var admin = await RegisteredAsync(Made("desativada"), erased);
         var page = new Uri(admin.Page.Url).AbsolutePath;
         await people.Host.DeactivateAsync(long.Parse(IdOfThePage().Match(page).Groups[1].Value, CultureInfo.InvariantCulture));
 
@@ -168,7 +168,7 @@ public sealed partial class PeopleEmailCorrectionTests(BrowserFixture browser, P
         Assert.DoesNotContain("id=\"corrigir-email\"", body, StringComparison.Ordinal);
         Assert.DoesNotContain(Refusal, body, StringComparison.Ordinal);
         var dump = await people.Host.DumpAsync();
-        Assert.Contains(kept, dump, StringComparison.Ordinal);
+        Assert.DoesNotContain(erased, dump, StringComparison.Ordinal);
         Assert.DoesNotContain("novo@exemplo.org", dump, StringComparison.Ordinal);
     }
 

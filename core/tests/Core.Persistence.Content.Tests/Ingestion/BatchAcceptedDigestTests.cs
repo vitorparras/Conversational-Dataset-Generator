@@ -1,6 +1,6 @@
 using Core.Persistence.Custody;
 using Core.Persistence.Ingestion;
-using Core.Persistence.Tests.Content;
+using Core.Persistence.Tests.Fixtures;
 
 namespace Core.Persistence.Tests.Ingestion;
 

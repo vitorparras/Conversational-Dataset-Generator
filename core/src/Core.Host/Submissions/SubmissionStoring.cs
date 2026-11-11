@@ -101,6 +101,7 @@ internal static class SubmissionStoring
         {
             Keeping.Collided => Collision,
             Keeping.Repeated => ReasonCodes.AlreadyReceived,
+            Keeping.Kept or Keeping.WriteFailed => WriteFailed,
             _ => WriteFailed,
         };
         var rejected = await reject(motive).ConfigureAwait(false);
@@ -126,12 +127,9 @@ internal static class SubmissionStoring
         return sealing is null ? new SubmissionReason(KeyUnavailable, none) : null;
     }
 
-    private static Keeping CauseOf(BatchResult? accepted) => accepted switch
-    {
-        { Collided: true } => Keeping.Collided,
-        { Outcome: BatchOutcome.AlreadyReceived } => Keeping.Repeated,
-        _ => Keeping.WriteFailed,
-    };
+    /// <summary>Whether the keeping found that another batch had accepted the same file first.</summary>
+    /// <param name="keeping">How the keeping ended.</param>
+    internal static bool IsRepeat(Keeping keeping) => keeping == Keeping.Repeated;
 
     /// <summary>What there is to answer of a keeping that did not keep the file; none when it did.</summary>
     /// <param name="keeping">How the keeping ended.</param>
@@ -141,6 +139,7 @@ internal static class SubmissionStoring
         Keeping.Kept => null,
         Keeping.Collided => new SubmissionOutcome { Kind = SubmissionKind.Collided, Batch = batch },
         Keeping.WriteFailed => new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = WriteFailed, Batch = batch },
+        Keeping.Repeated => throw new InvalidOperationException("A repeated file is answered by the service, which knows the batch it repeats."),
         _ => throw new InvalidOperationException("The keeping of the file ended in a way the service does not answer."),
     };
 
@@ -196,5 +195,12 @@ internal static class SubmissionStoring
 
             return await CleanUpAsync(motive => Batches.RejectAsync(closing, motive, cancellationToken), CauseOf(accepted), kept, Logger).ConfigureAwait(false);
         }
+
+        private static Keeping CauseOf(BatchResult? accepted) => accepted switch
+        {
+            { Collided: true } => Keeping.Collided,
+            { Outcome: BatchOutcome.AlreadyReceived } => Keeping.Repeated,
+            _ => Keeping.WriteFailed,
+        };
     }
 }

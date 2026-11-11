@@ -99,7 +99,7 @@ public static class ContentQueries
 
     private const string BatchColumns =
         "SELECT b.id, b.state, b.motive, b.opened_by, b.opened_at, b.submission, b.received_bytes, b.received_digest, b.warning, b.origin_state, "
-        + "(SELECT min(p.id) FROM content.ingestion_batch p WHERE b.motive = '" + BatchMotives.AlreadyReceived + "' AND p.state = 'accepted' AND p.received_digest = b.received_digest)";
+        + "(SELECT min(p.id) FROM content.ingestion_batch p WHERE b.motive = '" + BatchMotives.AlreadyReceivedMotive + "' AND p.state = 'accepted' AND p.received_digest = b.received_digest)";
 
     /// <summary>The batches of the domain declared, newest first, by state and by the moment of the submission, with what each submission brought.</summary>
     internal const string ReadIngestionBatchPage =

@@ -21,6 +21,9 @@ public sealed class BatchRegister
     private const int WarningColumn = 8;
     private const int OriginColumn = 9;
     private const int PreviousColumn = 10;
+    private const int ProvenanceSubmittedAtColumn = 1;
+    private const int ProvenanceSubmittedByColumn = 2;
+    private const int ProvenanceSubmissionColumn = 3;
     private const int SkipCeiling = 10_000;
     private const int TakeCeiling = 1_000;
 
@@ -94,9 +97,14 @@ public sealed class BatchRegister
     /// <param name="domainId">The domain.</param>
     /// <param name="digest">The SHA-256 of the file, in lowercase hexadecimal.</param>
     /// <param name="cancellationToken">Cancels the reading.</param>
-    public async Task<long?> PreviousAsync(int domainId, string digest, CancellationToken cancellationToken)
+    public Task<long?> PreviousAsync(int domainId, string digest, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrEmpty(digest);
+        return PreviousInAsync(domainId, digest, cancellationToken);
+    }
+
+    private async Task<long?> PreviousInAsync(int domainId, string digest, CancellationToken cancellationToken)
+    {
         var transaction = await ContentTransaction.BeginAsync(dataSource, domainId, cancellationToken).ConfigureAwait(false);
         await using (transaction.ConfigureAwait(false))
         {
@@ -113,10 +121,15 @@ public sealed class BatchRegister
     /// <param name="domains">The domains that may be seen.</param>
     /// <param name="itemId">The item.</param>
     /// <param name="cancellationToken">Cancels the reading.</param>
-    public async Task<ItemProvenance?> ProvenanceAsync(IEnumerable<int> domains, long itemId, CancellationToken cancellationToken)
+    public Task<ItemProvenance?> ProvenanceAsync(IEnumerable<int> domains, long itemId, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(domains);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(itemId);
+        return ProvenancesAsync(domains, itemId, cancellationToken);
+    }
+
+    private async Task<ItemProvenance?> ProvenancesAsync(IEnumerable<int> domains, long itemId, CancellationToken cancellationToken)
+    {
         foreach (var domain in domains.Distinct())
         {
             var found = await ProvenanceInAsync(domain, itemId, cancellationToken).ConfigureAwait(false);
@@ -141,9 +154,13 @@ public sealed class BatchRegister
                 var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
                 await using (reader.ConfigureAwait(false))
                 {
-                    return await reader.ReadAsync(cancellationToken).ConfigureAwait(false)
-                        ? new ItemProvenance(reader.GetInt64(0), reader.GetFieldValue<DateTimeOffset>(1), reader.GetInt64(2), reader[3] as string)
-                        : null;
+                    if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                    {
+                        return null;
+                    }
+
+                    var submittedAt = await reader.GetFieldValueAsync<DateTimeOffset>(ProvenanceSubmittedAtColumn, cancellationToken).ConfigureAwait(false);
+                    return new ItemProvenance(reader.GetInt64(IdColumn), submittedAt, reader.GetInt64(ProvenanceSubmittedByColumn), reader[ProvenanceSubmissionColumn] as string);
                 }
             }
         }

@@ -13,7 +13,7 @@ internal static class ReasonCodes
     internal const string TooLarge = "too_large";
 
     /// <summary>The code of a file a batch of the domain already accepted, recognized by the digest of what came and never by the name of the file.</summary>
-    internal const string AlreadyReceived = BatchMotives.AlreadyReceived;
+    internal static string AlreadyReceived => BatchMotives.AlreadyReceived;
 
     /// <summary>The code of a value of an enumeration, as <c>too_large</c> for <c>TooLarge</c>.</summary>
     internal static string Of<TValue>(TValue value)

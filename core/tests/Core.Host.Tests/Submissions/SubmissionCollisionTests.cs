@@ -123,7 +123,8 @@ public sealed class SubmissionCollisionTests
         var material = new ReadMaterial([new ReadUnit("ZQXTERCEIRO", "ZQXUM", instant, null, []), new ReadUnit("ZQXQUARTO", "ZQXDOIS", instant, null, [])]);
         var kept = new SubmissionStoring.Kept(SubmissionWorld.Domain, opened.BatchId!.Value, material, MaterialForm.Conversation);
         var intake = SubmissionWorld.Intake(1_000_000, OriginConditions.Of([SubmissionWorld.Strictest, SubmissionWorld.Loosest]), world.Content, world.DataSource);
-        var keeping = await SubmissionContention.WhilePendingAsync(world, () => new SubmissionStoring.Keeper(world.Batches, intake, new SubmissionLog()).KeepAsync(kept, TestContext.Current.CancellationToken));
+        var keeper = new SubmissionStoring.Keeper(world.Batches, intake, new SubmissionLog());
+        var keeping = await SubmissionContention.WhilePendingAsync(world, () => keeper.KeepAsync(kept, TestContext.Current.CancellationToken));
 
         var again = await world.SubmitAsync(SubmissionWorld.Request());
         var third = await world.SubmitAsync(SubmissionWorld.Request());

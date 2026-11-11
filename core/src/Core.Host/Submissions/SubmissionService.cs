@@ -74,13 +74,6 @@ internal sealed class SubmissionService
         return register.ListAsync(filter with { Take = filter.Take > MostPerPage ? MostPerPage : filter.Take }, cancellationToken);
     }
 
-    /// <summary>Where an item came from: the batch that kept it, when the submission came and who submitted it, if the item is in one of the domains granted.</summary>
-    /// <param name="granted">The domains granted.</param>
-    /// <param name="itemId">The item.</param>
-    /// <param name="cancellationToken">Cancels the reading.</param>
-    internal Task<ItemProvenance?> ProvenanceAsync(IEnumerable<int> granted, long itemId, CancellationToken cancellationToken) =>
-        register.ProvenanceAsync(granted, itemId, cancellationToken);
-
     /// <summary>One batch with what its submission brought, if it is in one of the domains granted.</summary>
     /// <param name="granted">The domains granted.</param>
     /// <param name="batchId">The batch.</param>
@@ -116,7 +109,7 @@ internal sealed class SubmissionService
     /// <summary>Judges what was received and opens the batch that keeps it, rejected with the reason when it was turned back.</summary>
     private async Task<SubmissionOutcome> OpeningAsync(SubmissionRequest request, SubmissionResult received, CancellationToken cancellationToken)
     {
-        var reason = await JudgedAsync(request, received, cancellationToken).ConfigureAwait(false);
+        var reason = await SubmissionJudgement.OfAsync(intake, register, request, received, cancellationToken).ConfigureAwait(false);
         var warning = SubmissionOrigin.WarningOf(request.ReceivedName);
         var receipt = new SubmissionReceipt(received.Id.ToString(), received.BytesRead, received.Digest, warning);
         if (SubmissionOrigin.Opening(intake, request, receipt) is not { } opening || (reason is null && !SubmissionStoring.CanSeal(intake.Sealing, request.DomainId)))
@@ -132,19 +125,6 @@ internal sealed class SubmissionService
 
         var kept = new Opened(received, opened.BatchId!.Value, warning, opening.Origin!.State);
         return reason is null ? await StoringAsync(request, kept, cancellationToken).ConfigureAwait(false) : Turned(kept, reason);
-    }
-
-    /// <summary>Why the file is turned back, if it is: the barrier and the form, then the key that seals, and last the digest, since a file already accepted in the domain is a repeat.</summary>
-    private async Task<SubmissionReason?> JudgedAsync(SubmissionRequest request, SubmissionResult received, CancellationToken cancellationToken)
-    {
-        var reason = SubmissionJudgement.Of(intake, received, request.DeclaredForm) ?? SubmissionStoring.Unsealed(intake.Sealing);
-        if (reason is not null)
-        {
-            return reason;
-        }
-
-        var previous = await register.PreviousAsync(request.DomainId, received.Digest, cancellationToken).ConfigureAwait(false);
-        return previous is null ? null : new SubmissionReason(ReasonCodes.AlreadyReceived, new List<SubmissionFinding>(), previous);
     }
 
     /// <summary>What there is to say when the opening did not do what was asked: a collision that the batches gave up on, or the outcome that kept it; none when it did.</summary>
@@ -164,7 +144,7 @@ internal sealed class SubmissionService
     {
         var place = new SubmissionStoring.Kept(request.DomainId, opened.Batch, opened.Received.Material!, request.DeclaredForm);
         var kept = await keeper.KeepAsync(place, cancellationToken).ConfigureAwait(false);
-        return kept == SubmissionStoring.Keeping.Repeated
+        return SubmissionStoring.IsRepeat(kept)
             ? await RepeatedAsync(request, opened, cancellationToken).ConfigureAwait(false)
             : SubmissionStoring.Failure(kept, opened.Batch) ?? Answer(opened.Received, opened.Batch, (null, opened.Warning), opened.Origin);
     }
@@ -173,7 +153,7 @@ internal sealed class SubmissionService
     private async Task<SubmissionOutcome> RepeatedAsync(SubmissionRequest request, Opened opened, CancellationToken cancellationToken)
     {
         var previous = await register.PreviousAsync(request.DomainId, opened.Received.Digest, cancellationToken).ConfigureAwait(false);
-        return Turned(opened, new SubmissionReason(ReasonCodes.AlreadyReceived, new List<SubmissionFinding>(), previous));
+        return Turned(opened, SubmissionJudgement.RepeatOf(previous));
     }
 
     /// <summary>What there is to say of a submission that was registered as rejected: the key that was missing is a failure of the service, not a defect of the file.</summary>

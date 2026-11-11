@@ -14,6 +14,7 @@ namespace Core.Host.Tests.Browser.Screens;
 public sealed class NotAppliedChangesScreenTests(BrowserFixture browser, ChangeHostFixture changes) : IClassFixture<ChangeHostFixture>
 {
     private const string Route = "/configuracao/alteracoes";
+    private const string Panel = "[aria-labelledby=nao-aplicadas-titulo]";
     private const string Overflow = "() => document.documentElement.scrollWidth - document.documentElement.clientWidth";
     private const int PhoneWidth = 390;
     private const int PhoneHeight = 844;
@@ -26,13 +27,13 @@ public sealed class NotAppliedChangesScreenTests(BrowserFixture browser, ChangeH
         var key = await changes.Host.RefuseAsync("approver_not_allowed");
         await using var tab = await OpenAsync();
 
-        var item = tab.Page.Locator("#nao-aplicadas li").First;
+        var item = tab.Page.Locator(Panel + " li").First;
 
         await Expect(item).ToContainTextAsync("Tempo de inatividade da sessão");
         await Expect(item).ToContainTextAsync(key);
         await Expect(item).ToContainTextAsync("Quem aprovou deixou de estar ativo na Administração técnica.");
         await Expect(item).ToContainTextAsync("Não aplicada");
-        var text = await tab.Page.Locator("#nao-aplicadas").InnerTextAsync();
+        var text = await tab.Page.Locator(Panel).InnerTextAsync();
         Assert.DoesNotContain("00:25:00", text, StringComparison.Ordinal);
         Assert.DoesNotContain(changes.Host.Administrator, text, StringComparison.Ordinal);
         Assert.DoesNotContain(changes.Host.SecondAdministrator, text, StringComparison.Ordinal);

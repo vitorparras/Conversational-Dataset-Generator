@@ -29,7 +29,8 @@ public sealed class SubmissionCollisionTests
         Assert.Equal(
             (StatusCodes.Status503ServiceUnavailable, "1", "concurrent_submission", 7L),
             (status, retryAfter, json.RootElement.GetProperty("code").GetString(), json.RootElement.GetProperty("batch").GetInt64()));
-        Assert.DoesNotContain(names, name => name is "file" or "name" or "origin" or "text" or "material");
+        Assert.DoesNotContain(names, name => name is "file" or "name" or "origin");
+        Assert.DoesNotContain(names, name => name is "text" or "material");
     }
 
     [Fact]
@@ -38,7 +39,8 @@ public sealed class SubmissionCollisionTests
         var (status, _, body) = await AnswerAsync(new SubmissionOutcome { Kind = SubmissionKind.Collided });
 
         using var json = JsonDocument.Parse(body);
-        Assert.Equal((StatusCodes.Status503ServiceUnavailable, "concurrent_submission", JsonValueKind.Null), (status, json.RootElement.GetProperty("code").GetString(), json.RootElement.GetProperty("batch").ValueKind));
+        var root = json.RootElement;
+        Assert.Equal((StatusCodes.Status503ServiceUnavailable, "concurrent_submission", JsonValueKind.Null), (status, root.GetProperty("code").GetString(), root.GetProperty("batch").ValueKind));
     }
 
     [Fact]
@@ -75,7 +77,7 @@ public sealed class SubmissionCollisionTests
 
         var outcome = await SubmissionContention.WhilePendingAsync(world, () => world.SubmitAsync(SubmissionWorld.Request()));
 
-        Assert.Equal((SubmissionKind.Collided, (long?)null, 0L, 0L), (outcome.Kind, outcome.Batch, await world.BatchCountAsync(), await world.ItemRowsAsync()));
+        Assert.Equal((SubmissionKind.Collided, null, 0L, 0L), (outcome.Kind, outcome.Batch, await world.BatchCountAsync(), await world.ItemRowsAsync()));
     }
 
     [DatabaseFact]
@@ -92,7 +94,8 @@ public sealed class SubmissionCollisionTests
         var keeping = await SubmissionContention.WhilePendingAsync(world, () => SubmissionStoring.KeepAsync(world.Batches, writer, kept, log, TestContext.Current.CancellationToken));
 
         var entry = await world.Service.DetailAsync([SubmissionWorld.Domain], kept.BatchId, TestContext.Current.CancellationToken);
-        Assert.Equal((SubmissionStoring.Keeping.Collided, BatchState.Rejected, SubmissionStoring.Collision, 0L, 0), (keeping, entry?.State, entry?.Reason, await world.ItemRowsAsync(), log.Lines.Count));
+        var items = await world.ItemRowsAsync();
+        Assert.Equal((SubmissionStoring.Keeping.Collided, BatchState.Rejected, SubmissionStoring.Collision, 0L, 0), (keeping, entry?.State, entry?.Reason, items, log.Lines.Count));
     }
 
     private static async Task<(int Status, string RetryAfter, string Body)> AnswerAsync(SubmissionOutcome outcome)

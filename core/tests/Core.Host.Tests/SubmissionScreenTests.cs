@@ -118,7 +118,12 @@ public sealed class SubmissionScreenTests
     {
         var page = await RenderAsync(new Dictionary<string, object?> { ["Collided"] = true });
 
-        Assert.Equal((true, false, true), (page.Contains(SubmissionTexts.Collided, StringComparison.Ordinal), page.Contains(SubmissionTexts.NotRecorded, StringComparison.Ordinal), page.Contains("<form", StringComparison.Ordinal)));
+        var shown = (
+            page.Contains(SubmissionTexts.Collided, StringComparison.Ordinal),
+            page.Contains(SubmissionTexts.NotRecorded, StringComparison.Ordinal),
+            page.Contains("<form", StringComparison.Ordinal));
+
+        Assert.Equal((true, false, true), shown);
     }
 
     [Fact]

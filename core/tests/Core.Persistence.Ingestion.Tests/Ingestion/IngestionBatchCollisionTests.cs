@@ -1,4 +1,5 @@
 using Core.Persistence.Ingestion;
+using Core.Persistence.Tests.Fixtures;
 
 namespace Core.Persistence.Tests.Ingestion;
 
@@ -44,7 +45,8 @@ public sealed class IngestionBatchCollisionTests
 
         var rejected = await ChainContention.WhilePendingAsync(world, () => IngestionWorld.RejectAsync(world, batch, "concurrent_submission"));
 
-        Assert.Equal((BatchOutcome.Rejected, false, "concurrent_submission"), (rejected.Outcome, rejected.Collided, await world.InDomainAsync(IngestionWorld.Domain, RejectedMotive, ("batch", batch)) as string));
+        var motive = await world.InDomainAsync(IngestionWorld.Domain, RejectedMotive, ("batch", batch)) as string;
+        Assert.Equal((BatchOutcome.Rejected, false, "concurrent_submission"), (rejected.Outcome, rejected.Collided, motive));
     }
 
     [DatabaseFact]
@@ -58,6 +60,8 @@ public sealed class IngestionBatchCollisionTests
 
         var opened = results.Count(result => result.Outcome == BatchOutcome.Opened);
         var told = results.Count(result => result.Collided && result.BatchId is null);
-        Assert.Equal((Simultaneous, opened.ToString(System.Globalization.CultureInfo.InvariantCulture), "true"), (opened + told, await world.InDomainAsync(IngestionWorld.Domain, BatchesOfTheDomain) as string, await world.ScalarAsync(ChainInOrder) as string));
+        var recorded = await world.InDomainAsync(IngestionWorld.Domain, BatchesOfTheDomain) as string;
+        var inOrder = await world.ScalarAsync(ChainInOrder) as string;
+        Assert.Equal((Simultaneous, opened.ToString(System.Globalization.CultureInfo.InvariantCulture), "true"), (opened + told, recorded, inOrder));
     }
 }

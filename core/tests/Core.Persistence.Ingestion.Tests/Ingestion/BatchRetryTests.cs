@@ -51,10 +51,8 @@ public sealed class BatchRetryTests
     }
 
     [Fact]
-    public void OnlyTheNotRecordedForAConflictIsACollision()
-    {
+    public void OnlyTheNotRecordedForAConflictIsACollision() =>
         Assert.Equal((false, false, true), (Written.Collided, Refused.Collided, Collided.Collided));
-    }
 
     private static BatchResult Count(ref int made, BatchResult answer)
     {

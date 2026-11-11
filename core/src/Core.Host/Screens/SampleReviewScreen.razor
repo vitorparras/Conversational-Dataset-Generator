@@ -1,0 +1,138 @@
+@using System.Globalization
+
+<h1>Revisão da amostra do lote @Number(Sample.Batch)</h1>
+<p class="lead">
+    Leia cada item da amostra, na ordem, e marque-o como revisado. A amostra é a sorteada para o lote, com o tamanho que o domínio declara; ela não se escolhe, não se troca e não se pula.
+    Um dado pessoal em qualquer item reprova o lote inteiro.
+</p>
+
+@if (Sample.Approved is { } approval)
+{
+    <Notice Kind="Notice.Tone.Success">Lote aprovado por @approval.By em <Moment At="approval.At" />, com a amostra @approval.Draw revisada.</Notice>
+}
+@if (Sample.Rejected is { } rejection)
+{
+    <Notice Kind="Notice.Tone.Info">
+        Lote reprovado por @rejection.By em <Moment At="rejection.At" />: @SampleTexts.FindingOf(rejection.Kind) no item @Number(rejection.Position) da amostra. Nenhum item dele entrará no acervo.
+    </Notice>
+}
+
+<Panel Id="amostra-resumo" Title="Amostra">
+    <FactList>
+        <Fact Term="Domínio">@Sample.Domain</Fact>
+        <Fact Term="Tamanho declarado">@ItemCount(Sample.Declared)</Fact>
+        <Fact Term="Revisados">@Number(ReviewedCount) de @Number(Sample.Items.Count)</Fact>
+    </FactList>
+    @if (Sample.Items.Count > 0 && Sample.Items.Count < Sample.Declared)
+    {
+        <p>O lote tem menos itens que o tamanho declarado, e por isso a amostra são todos os @ItemCount(Sample.Items.Count) dele.</p>
+    }
+</Panel>
+
+@if (Sample.Items.Count == 0)
+{
+    <EmptyState Title="A amostra não tem item."><p>O lote não tem nenhum item gravado para sortear, e sem amostra não há o que revisar nem aprovar.</p></EmptyState>
+}
+else
+{
+    <ol class="sample">
+        @foreach (var item in Sample.Items)
+        {
+            <li class="sample__item">
+                <Panel Id="@($"item-{item.Position}")" Title="@($"Item {Number(item.Position)} de {Number(Sample.Items.Count)}")">
+                    <p class="sample__version">@SampleTexts.VersionOf(item.Cleaned)</p>
+                    <blockquote class="sample__text">@item.Text</blockquote>
+                    @if (item.Reviewed)
+                    {
+                        <StateMark Kind="StateMark.Tone.Good">Revisado</StateMark>
+                    }
+                    else if (Decided)
+                    {
+                        <p>Não revisado: o lote já foi decidido.</p>
+                    }
+                    else if (item.Position != Next)
+                    {
+                        <p>Revise os itens anteriores primeiro.</p>
+                    }
+                    @if (!Decided)
+                    {
+                        <div class="actions">
+                            @if (item.Position == Next)
+                            {
+                                <form method="post" action="@($"{Action}/itens/{Number(item.Position)}/revisado")">
+                                    <Button Id="@($"revisado-{item.Position}")">Revisado, sem dado pessoal</Button>
+                                </form>
+                            }
+                            <Button Id="@($"achado-{item.Position}")" Href="@($"{Action}/itens/{Number(item.Position)}/achado")" Kind="Button.Look.Danger">Achei dado pessoal</Button>
+                        </div>
+                    }
+                </Panel>
+            </li>
+        }
+    </ol>
+
+    <Panel Id="amostra-conclusao" Title="Concluir">
+        @if (Sample.Approved is not null)
+        {
+            <p>O lote já foi aprovado.</p>
+        }
+        else if (Sample.Rejected is not null)
+        {
+            <p>O lote já foi reprovado.</p>
+        }
+        else if (Complete)
+        {
+            <p>Os @Number(Sample.Items.Count) itens foram revisados sem dado pessoal. A aprovação fica registrada com a amostra, quem aprovou e quando.</p>
+            <form method="post" action="@($"{Action}/aprovar")">
+                <Button Id="aprovar">Aprovar o lote @Number(Sample.Batch)</Button>
+            </form>
+        }
+        else
+        {
+            <EmptyState Title="Aprovar ainda não é possível."><p>A aprovação aparece quando todos os itens da amostra estiverem revisados.</p></EmptyState>
+        }
+    </Panel>
+}
+
+@code {
+    /// <summary>The title of the page.</summary>
+    internal const string Title = "Revisão da amostra";
+
+    /// <summary>One item of the sample, at its place in the draw, in the most treated version that exists, and whether it was reviewed.</summary>
+    public sealed record Item(int Position, string Text, bool Cleaned, bool Reviewed);
+
+    /// <summary>The approval the register keeps: who, when and which sample.</summary>
+    public sealed record Approval(string By, DateTimeOffset At, string Draw);
+
+    /// <summary>The rejection the register keeps: who, when, at which item of the sample and the kind of what was found, never the data itself.</summary>
+    public sealed record Rejection(string By, DateTimeOffset At, int Position, string Kind);
+
+    /// <summary>The sample drawn for a batch, with the size the domain declares, in the order of the draw; none of it is chosen by the screen.</summary>
+    public sealed record Drawn(long Batch, string Domain, int Declared, IReadOnlyList<Item> Items, Approval? Approved)
+    {
+        /// <summary>The rejection of the batch, when a finding decided it; a decided batch offers nothing more to do.</summary>
+        public Rejection? Rejected { get; init; }
+    }
+
+    [Parameter, EditorRequired]
+    public Drawn Sample { get; set; } = null!;
+
+    /// <summary>The address of the review of this batch, under which each item is marked, a finding is told and the batch approved.</summary>
+    [Parameter, EditorRequired]
+    public string Action { get; set; } = "";
+
+    private int ReviewedCount => Sample.Items.Count(item => item.Reviewed);
+
+    /// <summary>The one item that can be marked now: the first not reviewed, so that no item is skipped.</summary>
+    private int? Next => Sample.Items.FirstOrDefault(item => !item.Reviewed)?.Position;
+
+    /// <summary>Whether the batch was already approved or rejected; until then a finding can be told at any item, reviewed or not, since one found late still rejects the batch.</summary>
+    private bool Decided => Sample.Approved is not null || Sample.Rejected is not null;
+
+    /// <summary>Whether every item of the sample was reviewed, which alone offers the approval (CA-4).</summary>
+    private bool Complete => Sample.Items.Count > 0 && Sample.Items.All(item => item.Reviewed);
+
+    private static string Number(long value) => value.ToString(CultureInfo.InvariantCulture);
+
+    private static string ItemCount(int count) => count == 1 ? "1 item" : $"{Number(count)} itens";
+}

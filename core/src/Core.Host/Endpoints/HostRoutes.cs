@@ -19,11 +19,13 @@ internal static class HostRoutes
         SessionEndpoint.Map(app);
         EntryPageEndpoint.Map(app);
         SystemScreensEndpoint.Map(app, recognizer);
+        ConfigurationChangeScreensEndpoint.Map(app);
         DomainScreensEndpoint.Map(app);
         ChainScreensEndpoint.Map(app);
         SealScreensEndpoint.Map(app);
         NoticeScreensEndpoint.Map(app);
         OperatorScreensEndpoint.Map(app);
+        EmptyingScreensEndpoint.Map(app);
         BatchScreensEndpoint.Map(app);
         AuditEndpoint.Map(app);
         OperatorsEndpoint.Map(app);

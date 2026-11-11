@@ -42,16 +42,24 @@ internal static class SubmissionStoring
     }
 
     /// <summary>Writes each unit of the material as an item of the batch; false when some item could not be written, the ones before it still standing for the rejection to remove.</summary>
-    /// <param name="writer">Writes the items.</param>
-    /// <param name="kept">The domain and the batch, open, and what the reader gave.</param>
+    /// <param name="intake">Holds the writer of the items and the marking of the replicated content.</param>
+    /// <param name="kept">The domain and the batch, open, what the reader gave and the form it was declared in.</param>
     /// <param name="cancellationToken">Cancels the writing.</param>
-    internal static async Task<bool> StoreAsync(ContentWriter writer, Kept kept, CancellationToken cancellationToken)
+    internal static async Task<bool> StoreAsync(SubmissionIntake intake, Kept kept, CancellationToken cancellationToken)
     {
         try
         {
-            foreach (var unit in kept.Material.Units)
+            var written = new List<(long Item, ReadUnit Unit)>();
+            foreach (var (unit, declared) in kept.Material.Units.Zip(Accommodating.Of(kept.Material, kept.Form)))
             {
-                _ = await writer.AddItemTextAsync(kept.DomainId, kept.BatchId, new NewItemText(unit.Text), cancellationToken).ConfigureAwait(false);
+                var accommodation = declared is null ? null : new ItemAccommodation(declared.FormCode, declared.Codes);
+                var item = await intake.Writer!.AddItemTextAsync(kept.DomainId, kept.BatchId, new NewItemText(unit.Text, Accommodation: accommodation), cancellationToken).ConfigureAwait(false);
+                written.Add((item, unit));
+            }
+
+            if (kept.Form == MaterialForm.Conversation && intake.Marking is { } marking)
+            {
+                await marking.MarkAsync(kept.DomainId, kept.BatchId, written, cancellationToken).ConfigureAwait(false);
             }
 
             return true;
@@ -67,14 +75,14 @@ internal static class SubmissionStoring
     /// the repeat when another batch accepted the same file first, which the database decides at the acceptance, and the failure to write otherwise.
     /// </summary>
     /// <param name="batches">Accepts and rejects the batch.</param>
-    /// <param name="writer">Writes the items.</param>
-    /// <param name="kept">The domain and the batch, open, and what the reader gave.</param>
+    /// <param name="intake">Holds the writer of the items and the marking of the replicated content.</param>
+    /// <param name="kept">The domain and the batch, open, what the reader gave and the form it was declared in.</param>
     /// <param name="cancellationToken">Cancels the writing.</param>
-    internal static async Task<string?> KeepAsync(IngestionBatches batches, ContentWriter writer, Kept kept, CancellationToken cancellationToken)
+    internal static async Task<string?> KeepAsync(IngestionBatches batches, SubmissionIntake intake, Kept kept, CancellationToken cancellationToken)
     {
         var closing = new BatchClosing(kept.DomainId, kept.BatchId, CustodyAuthor.System);
         var motive = WriteFailed;
-        if (await StoreAsync(writer, kept, cancellationToken).ConfigureAwait(false))
+        if (await StoreAsync(intake, kept, cancellationToken).ConfigureAwait(false))
         {
             var accepted = await batches.AcceptAsync(closing, cancellationToken).ConfigureAwait(false);
             if (accepted.Outcome == BatchOutcome.Accepted)
@@ -101,5 +109,6 @@ internal static class SubmissionStoring
     /// <param name="DomainId">The domain.</param>
     /// <param name="BatchId">The batch.</param>
     /// <param name="Material">What the reader gave.</param>
-    internal sealed record Kept(int DomainId, long BatchId, ReadMaterial Material);
+    /// <param name="Form">The form the material is accommodated into, which says what each item declares it lost.</param>
+    internal sealed record Kept(int DomainId, long BatchId, ReadMaterial Material, MaterialForm Form);
 }

@@ -29,7 +29,11 @@ public sealed class PeopleListTests(BrowserFixture browser, PeopleHostFixture pe
         Assert.Contains(rows, row => row[2] == "Inativa");
         Assert.Contains(rows, row => row[2] == "Ativa");
         await Expect(tab.Page.Locator("#lista-titulo")).ToHaveTextAsync($"{rows.Count} pessoas");
-        await Expect(tab.Page.Locator(".paged-list a, .paged-list button, .paged-list input")).ToHaveCountAsync(0);
+        var links = tab.Page.Locator(".paged-list a, .paged-list button, .paged-list input");
+        var names = await links.AllInnerTextsAsync();
+        Assert.Equal(rows.Count(row => row[2] == "Ativa"), names.Count);
+        Assert.All(names, name => Assert.StartsWith("E-mail de ", name, StringComparison.Ordinal));
+        Assert.All(names, name => Assert.DoesNotContain('@', name));
         Assert.All(await tab.Page.Locator(".paged-list li").AllInnerTextsAsync(), text => Assert.DoesNotMatch(@"\d{4}|senha|domínio|conteúdo", text));
     }
 

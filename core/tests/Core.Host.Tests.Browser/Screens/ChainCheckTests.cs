@@ -112,7 +112,7 @@ public sealed class ChainCheckTests(BrowserFixture browser, IntactChainHostFixtu
         var posted = await tab.Page.Context.APIRequest.PostAsync(new Uri(new Uri(tab.Page.Url), Check).AbsoluteUri, new() { Headers = Html(), Form = tab.Page.Context.APIRequest.CreateFormData() });
 
         Assert.Equal((StatusNotFound, StatusNotFound, StatusNotFound), (refused?.Status, missing?.Status, posted.Status));
-        Assert.Equal(missingPage.Replace(Missing.TrimStart('/'), string.Empty, StringComparison.Ordinal), refusedPage.Replace(route.TrimStart('/'), string.Empty, StringComparison.Ordinal));
+        Assert.Equal(missingPage.Replace(Missing, string.Empty, StringComparison.Ordinal), refusedPage.Replace(route, string.Empty, StringComparison.Ordinal));
         Assert.DoesNotContain("Custódia", refusedPage, StringComparison.Ordinal);
         Assert.DoesNotContain("verificação", refusedPage, StringComparison.Ordinal);
     }

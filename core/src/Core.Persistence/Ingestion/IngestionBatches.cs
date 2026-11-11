@@ -210,6 +210,8 @@ public sealed class IngestionBatches
 
         if (closing.Motive is not null)
         {
+            await RemoveAsync(scope, ContentQueries.RemoveBatchMarks, closing.Request.BatchId, cancellationToken).ConfigureAwait(false);
+            await RemoveAsync(scope, ContentQueries.RemoveBatchOccurrences, closing.Request.BatchId, cancellationToken).ConfigureAwait(false);
             await RemoveAsync(scope, ContentQueries.RemoveBatchMaps, closing.Request.BatchId, cancellationToken).ConfigureAwait(false);
             await RemoveAsync(scope, ContentQueries.RemoveBatchItems, closing.Request.BatchId, cancellationToken).ConfigureAwait(false);
         }

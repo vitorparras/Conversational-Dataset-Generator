@@ -16,6 +16,7 @@ internal static class AccountScreensEndpoint
 {
     internal static void Map(IEndpointRouteBuilder endpoints)
     {
+        AccountEmailEndpoint.Map(endpoints);
         _ = endpoints.MapGet(ScreenPaths.Account, Show).WithMetadata(ScreenAccess.Everyone);
         _ = endpoints.MapGet(ScreenPaths.AccountChange, AskPassword).WithMetadata(ScreenAccess.Everyone);
         _ = endpoints.MapPost(ScreenPaths.AccountChange, ChangePasswordAsync).WithMetadata(ScreenAccess.Everyone);

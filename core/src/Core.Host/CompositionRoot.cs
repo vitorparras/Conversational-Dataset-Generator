@@ -12,6 +12,7 @@ using Core.Ingestion;
 using Core.Ingestion.Entrance;
 using Core.Ingestion.Reading;
 using Core.Persistence.Connection;
+using Core.Persistence.Content;
 using Core.Persistence.Content.Reading;
 using Core.Persistence.Content.Rotation;
 using Core.Persistence.Content.Sealing;
@@ -120,16 +121,15 @@ internal static class CompositionRoot
     internal static ItemKeys KeysOf(MasterKeyReading reading) => new(new KeyDerivation(reading.Key!, reading.Labels), reading.Epochs);
     internal static EpochRotation RotationOf(NpgsqlDataSource dataSource, ItemKeys keys) => new(dataSource, keys);
 
-    /// <summary>What takes a file in over the key a reading holds: the gate, the conference, the sealing and the writer are services, built here; the last two are none without the key.</summary>
+    /// <summary>What takes a file in over the key a reading holds: the gate, the conference, the sealing and the writer are services, built here; the last three are none without the key.</summary>
     internal static SubmissionIntake IntakeOf(NpgsqlDataSource source, MasterKeyReading reading, SubmissionSettings settings)
     {
         var sealing = reading.Failure is null ? new ProtectedContent(reading.Labels, KeysOf(reading), settings.Registered, settings.Revoked) : null;
         return new SubmissionIntake(
-            new SubmissionGate(SourceReaders.Default(), settings.MaxBytes),
-            new FormConference(new TextBoundaries()),
-            settings.Conditions,
-            sealing,
-            sealing is null ? null : new ContentWriter(source, sealing));
+            new SubmissionGate(SourceReaders.Default(), settings.MaxBytes), new FormConference(new TextBoundaries()),
+            settings.Conditions, sealing,
+            sealing is null ? null : new ContentWriter(source, sealing),
+            sealing is null ? null : new ReplicationMarking(new ReplicationStore(source), new KeyDerivation(reading.Key!, reading.Labels), settings.Replication, new TextBoundaries()));
     }
 
     /// <summary>The rehearsal of the recovery over a source that was read, opening content with the labels the database registers.</summary>
@@ -180,7 +180,9 @@ internal static class CompositionRoot
                 provider.GetRequiredService<ILogger<AuditComparisonService>>()),
             provider.GetRequiredService<AuditComparisonState>(), provider.GetRequiredService<TimeProvider>()));
         _ = builder.Services.AddSingleton(provider => new SessionStore(SessionConfiguration.Lifetimes(loaded.Values), provider.GetRequiredService<TimeProvider>()));
-        _ = builder.Services.AddSingleton(InstallationConfiguration.Of(loaded.Values)).AddSingleton(provider => InstallationConfiguration.Shown(StartupVersions.Of(checks), provider));
+        _ = builder.Services.AddSingleton(InstallationConfiguration.Of(loaded.Values)).AddSingleton(provider => InstallationConfiguration.Shown(StartupVersions.Of(checks), provider))
+            .AddSingleton(provider => Settings.ChangeParts.Of(provider) is { } p ? new Settings.ConfigurationChangeDesk(loaded, p.Changes, p.Registry) : null!)
+            .AddSingleton(provider => Settings.ChangeParts.Of(provider) is { } p ? new Settings.ChangeDecisionDesk(loaded, p.Changes, p.Registry, provider.GetRequiredService<TimeProvider>()) : null!);
         _ = SafekeepingConfiguration.Declaration(loaded.Values) is { } declaration ? builder.Services.AddSingleton(declaration) : builder.Services;
         return builder;
     }
@@ -191,11 +193,12 @@ internal static class CompositionRoot
         _ = builder.Services.AddSingleton(report).AddSingleton(_ => startup).AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetRequiredService<ServiceProcessWatch>());
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<GuaranteeVerifier>()!).AddSingleton<SealWarningState>();
         _ = builder.Services.AddSingleton(provider => new ChainVerificationService(provider)).AddHostedService(provider => provider.GetRequiredService<ChainVerificationService>());
-        _ = builder.Services.AddHostedService(provider => new SealSendingService(provider));
-        _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source ? new DomainListing(source) : null!);
+        _ = builder.Services.AddHostedService(provider => new SealSendingService(provider)).AddHostedService(provider => new ConfigurationInForce(provider));
+        _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source ? new DomainListing(source) : null!)
+            .AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source ? new PersonEmails(source) : null!);
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source ? new OperatorAdministration(
             new PersonRegistry(source), CredentialsOf(source, provider.GetRequiredService<PasswordDerivation>()), provider.GetRequiredService<SessionStore>(), new PersonNotices(source)) : null!);
-        _ = builder.Services.AddSingleton(provider => new SignInDelay(provider.GetRequiredService<TimeProvider>()));
+        _ = builder.Services.AddSingleton(provider => new SignInDelay(provider.GetRequiredService<TimeProvider>())).AddHostedService(provider => new ConfigurationRefusals(provider));
         _ = builder.Services.AddSingleton(provider => provider.GetService<OperatorAdministration>() is { } staff
             ? new PasswordChange(staff.Credentials, provider.GetRequiredService<SessionStore>(), provider.GetRequiredService<SignInDelay>()) : null!);
         _ = builder.Services.AddSingleton(provider => provider.GetService<OperatorAdministration>() is { } people
@@ -209,7 +212,6 @@ internal static class CompositionRoot
         HostRoutes.Map(app, recognizer);
         return app;
     }
-
     /// <summary>The store of passwords, built here because it is a service and only the root builds services.</summary>
     internal static PersonCredentials CredentialsOf(NpgsqlDataSource source, PasswordDerivation derivation) => new(source, derivation);
 

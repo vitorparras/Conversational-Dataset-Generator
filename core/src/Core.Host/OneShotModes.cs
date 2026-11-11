@@ -3,13 +3,14 @@ using Core.Host.Loss;
 using Core.Host.Operators;
 using Core.Host.Restore;
 using Core.Host.Rotation;
+using Core.Host.Settings;
 
 namespace Core.Host;
 
 /// <summary>
 /// The modes that run once and serve nothing, other than the migration, in two groups by the credential each one uses. With the owner credential: the rotation of the epoch, the creation of a
 /// domain, the rotation, the revocation and the rewrap of its label, the declaration of the loss of a key, the record of the recovery test and the copy of the data. With the application one: the
-/// first person, the rehearsal of a restore and the rehearsal of the recovery.
+/// first person, the rehearsal of a restore and the rehearsal of the recovery; and the applier of the configuration, with a credential of its own that only reads.
 /// </summary>
 internal static class OneShotModes
 {
@@ -66,6 +67,11 @@ internal static class OneShotModes
         if (RecoveryRehearsalMode.Requested(args))
         {
             return RecoveryRehearsalMode.RunAsync(args, Console.Out, Console.Error);
+        }
+
+        if (ApplyConfigurationMode.Requested(args))
+        {
+            return ApplyConfigurationMode.RunAsync(args, Console.Out, Console.Error);
         }
 
         return RehearsalMode.Requested(args) ? RehearsalMode.RunAsync(args, Console.Out, Console.Error) : null;

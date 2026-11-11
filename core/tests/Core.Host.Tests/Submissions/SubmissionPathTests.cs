@@ -28,6 +28,8 @@ public sealed class SubmissionPathTests
     {
         ["Ingestion:Conditions"] = Declared,
         ["Ingestion:MaxBytes"] = "1000000",
+        ["Replication:MinLength"] = "20",
+        ["Replication:MinSenders"] = "2",
     };
 
     [DatabaseFact]

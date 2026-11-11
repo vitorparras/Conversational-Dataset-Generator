@@ -56,5 +56,9 @@ public static class AuditMap
         [CustodyStep.RestoreRehearsed] = "o ensaio lê a cadeia (CustodyVerifier) e o catálogo e grava só o resultado nela: não toca tabela de domínio",
         [CustodyStep.ConfigurationApproved] = "a decisão sobre uma alteração de configuração é só o evento na cadeia, que aponta a submissão: não toca tabela de domínio nem o arquivo",
         [CustodyStep.ConfigurationRefused] = "a recusa de uma alteração de configuração é só o evento na cadeia, que aponta a submissão: não toca tabela de domínio nem o arquivo",
+        [CustodyStep.ConfigurationInForce] = "o valor em vigor é só o evento na cadeia, escrito pelo núcleo ao partir com o valor aprovado: não toca tabela de domínio nem o arquivo",
+        [CustodyStep.ConfigurationNotApplied] = "a alteração que não será aplicada é só o evento na cadeia, escrito pelo núcleo com o motivo: não toca tabela de domínio nem o arquivo",
+        [CustodyStep.PersonEmailCorrected] =
+            "a tabela public.person_email fica fora do mapa: a própria pessoa muda o endereço sem passo da cadeia (política 009), e os comandos do log não casam com os eventos",
     };
 }

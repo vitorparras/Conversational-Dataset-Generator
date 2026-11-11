@@ -8,6 +8,8 @@ internal static class ScreenPaths
     internal const string Home = "/";
     internal const string State = "/estado-do-sistema";
     internal const string Configuration = "/configuracao";
+    internal const string ConfigurationChanges = "/configuracao/alteracoes";
+    internal const string ConfigurationDecision = "/configuracao/alteracoes/decisao";
     internal const string Domains = "/dominios";
     internal const string Chain = "/custodia";
     internal const string ChainCheck = "/custodia/verificar";
@@ -16,10 +18,14 @@ internal static class ScreenPaths
     internal const string SealConfirm = "/custodia/selo/confirmar";
     internal const string Account = "/minha-conta";
     internal const string AccountChange = "/minha-conta/senha";
+    internal const string AccountEmail = "/minha-conta/email";
     internal const string AccountEnd = "/minha-conta/sessoes/encerrar";
     internal const string AccountEndOthers = "/minha-conta/sessoes/encerrar-outras";
     internal const string Operators = "/pessoas";
     internal const string OperatorNew = "/pessoas/nova";
+    internal const string OperatorEmail = "/pessoas/{id}/email";
     internal const string Notices = "/avisos";
+    internal const string Emptying = "/esvaziamento";
+    internal const string EmptyingConfirm = "/esvaziamento/confirmar";
     internal const string Batches = "/lotes";
 }

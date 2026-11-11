@@ -11,6 +11,8 @@ namespace Core.Host.Settings;
 /// </summary>
 internal sealed class ChangeDecisionDesk
 {
+    private const int ShownNotApplied = 20;
+
     private readonly ConfigurationChanges register;
     private readonly PersonRegistry registry;
     private readonly TimeProvider time;
@@ -30,6 +32,14 @@ internal sealed class ChangeDecisionDesk
 
     /// <summary>How long a submission waits for a decision, as the host started with.</summary>
     internal TimeSpan Deadline { get; }
+
+    /// <summary>The submissions still waiting for a decision within the deadline, the latest first, each with the name of who submitted.</summary>
+    internal Task<IReadOnlyList<PendingChange>> PendingAsync(CancellationToken cancellationToken) =>
+        register.PendingAsync(time.GetUtcNow() - Deadline, cancellationToken);
+
+    /// <summary>The latest approved changes the core recorded as never to be applied, at most twenty.</summary>
+    internal async Task<IReadOnlyList<RefusedChange>> NotAppliedAsync(CancellationToken cancellationToken) =>
+        [.. (await register.NotAppliedAsync(cancellationToken).ConfigureAwait(false)).Take(ShownNotApplied)];
 
     /// <summary>Records the decision when nothing refuses it; nothing is written for a decision refused.</summary>
     internal Task<DecisionOutcome> DecideAsync(DecisionRequest request, CancellationToken cancellationToken)

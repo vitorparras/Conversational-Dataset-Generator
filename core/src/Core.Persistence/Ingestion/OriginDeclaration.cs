@@ -22,17 +22,23 @@ public sealed record OriginDeclaration
     /// <summary>The most characters the text of an origin may have, counted before it is sealed.</summary>
     public static int MostCharacters => CharacterCeiling;
 
-    private OriginDeclaration(SealedContent? content, ContentKey? key)
+    private OriginDeclaration(SealedContent? content, ContentKey? key, bool declared)
     {
         Content = content;
         Key = key;
+        IsDeclared = declared;
     }
 
     /// <summary>The submission that chose to say the origin is unknown; nothing is sealed for it.</summary>
-    public static OriginDeclaration Unknown { get; } = new(null, null);
+    public static OriginDeclaration Unknown { get; } = new(null, null, declared: false);
+
+    /// <summary>The submission declared an origin, but there was no key to seal its text with: the declaration stands as declared and the text is not kept anywhere.</summary>
+    public static OriginDeclaration DeclaredNotKept { get; } = new(null, null, declared: true);
 
     /// <summary>The state kept in clear with the batch: declared or unknown, never the text.</summary>
-    public string State => Content is null ? UnknownState : DeclaredState;
+    public string State => IsDeclared ? DeclaredState : UnknownState;
+
+    private bool IsDeclared { get; }
 
     internal SealedContent? Content { get; }
 
@@ -48,6 +54,6 @@ public sealed record OriginDeclaration
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(text.Length, MostCharacters);
         using var row = sealing.Begin(ContentColumns.OriginKey, domainId);
-        return new OriginDeclaration(row.Seal(ContentColumns.Origin, text), row.Stored);
+        return new OriginDeclaration(row.Seal(ContentColumns.Origin, text), row.Stored, declared: true);
     }
 }

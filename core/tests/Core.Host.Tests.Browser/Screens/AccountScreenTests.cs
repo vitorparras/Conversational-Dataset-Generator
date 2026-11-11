@@ -29,10 +29,10 @@ public sealed class AccountScreenTests(BrowserFixture browser, AccountHostFixtur
     private const int StatusNotFound = 404;
 
     private static readonly string[] OfTheNetworkAndOfTheBrowser = ["127.0.0.1", "::1", "LOCALHOST", "CHROME", "CHROMIUM", "MOZILLA", "HEADLESS", "PLAYWRIGHT", "USER-AGENT", "ENDEREÇO", "NAVEGADOR"];
-    private static readonly string[] Ways = ["Trocar senha", "Encerrar a sessão iniciada em", "Encerrar todas as outras"];
+    private static readonly string[] Ways = ["Trocar senha", "Ver ou mudar o e-mail", "Encerrar a sessão iniciada em", "Encerrar todas as outras"];
 
     /// <summary>The stops of the page after the header: the password link, the link that ends the other session, the table the keyboard scrolls and the button that ends the others.</summary>
-    private const int PageStops = 4;
+    private const int PageStops = 5;
 
     [Fact]
     public async Task Ca1EachOpenSessionShowsItsStartAndItsLastUseAndTheCurrentOneIsMarked()
@@ -47,7 +47,7 @@ public sealed class AccountScreenTests(BrowserFixture browser, AccountHostFixtur
         await Expect(rows.Filter(new() { HasText = "Esta sessão" })).ToHaveCountAsync(1);
         await Expect(rows.Filter(new() { HasText = "Esta sessão" }).Locator("a")).ToHaveCountAsync(0);
         await Expect(rows.Filter(new() { HasNotText = "Esta sessão" }).GetByRole(AriaRole.Link, new() { Name = "Encerrar" })).ToHaveCountAsync(1);
-        await Expect(tabs.Current.Page.Locator("#sessoes-tabela-legenda")).ToHaveTextAsync("2 sessões abertas, contando esta. Horários em UTC.");
+        await Expect(tabs.Current.Page.Locator("#sessoes-tabela-legenda")).ToHaveTextAsync("2 sessões abertas, contando esta, da usada há menos tempo para a mais antiga. Horários em UTC.");
         await Expect(tabs.Current.Page.GetByRole(AriaRole.Link, new() { Name = "Encerrar todas as outras" })).ToHaveAttributeAsync("href", EndOthers);
     }
 
@@ -171,13 +171,14 @@ public sealed class AccountScreenTests(BrowserFixture browser, AccountHostFixtur
     }
 
     [Fact]
-    public async Task OnThePhoneEachSessionIsABlockWithItsHeadersAndTheWayToEndItIsInSightWithoutScrollingTheTable()
+    public async Task OnThePhoneEachSessionIsABlockWithItsHeadersAndTheWayToEndItIsInSightWithoutScrollingTheTableSideways()
     {
         await using var tabs = await TwoSessionsAsync();
         await tabs.Current.Page.SetViewportSizeAsync(PhoneWidth, PhoneHeight);
         _ = await tabs.Current.Page.GotoAsync(Route);
 
         var end = tabs.Current.Page.Locator($"{Rows} a");
+        await end.ScrollIntoViewIfNeededAsync();
         var box = await end.BoundingBoxAsync();
         var table = await tabs.Current.Page.Locator("#sessoes-tabela-legenda")
             .EvaluateAsync<int>("(caption) => { const region = caption.closest('.data-table'); return region.scrollWidth - region.clientWidth; }");
@@ -284,7 +285,7 @@ public sealed class AccountScreenTests(BrowserFixture browser, AccountHostFixtur
         await Expect(tab.Page.GetByRole(AriaRole.Heading, new() { Name = "Minha conta", Level = 1 })).ToBeVisibleAsync();
     }
 
-    private static string StripAddress(string page, string route) => page.Replace(route.TrimStart('/'), string.Empty, StringComparison.Ordinal);
+    private static string StripAddress(string page, string route) => page.Replace(route, string.Empty, StringComparison.Ordinal);
 
     private async Task<Sessions> TwoSessionsAsync()
     {

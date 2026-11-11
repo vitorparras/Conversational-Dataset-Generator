@@ -1,8 +1,14 @@
 name: Verifica código
 
+# While a pull request is a draft, the five slowest jobs (package, offline_start, service_folder,
+# mutation_modules and its matrix) are skipped, and the aggregator `mutation` reports green with them
+# skipped. A skipped job counts as green for the ruleset, which is safe: a draft is not merged, and
+# `ready_for_review` starts a run of the whole ruler on the same head. Push and schedule have no
+# draft, so nothing changes for them.
 on:
   workflow_dispatch:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main]
   schedule:
@@ -82,12 +88,14 @@ jobs:
           python-version: '3.12'
       - uses: ./.github/actions/install-gitleaks
       - name: Instalar ruff, pyright e coverage nas versões fixadas (ainda sem uv no PATH)
-        run: pip install -r tools/verify-code/lint-requirements.txt
+        run: python3 tools/verify-code/retry.py -- pip install -r tools/verify-code/lint-requirements.txt
       - uses: ./.github/actions/build-database-image
       - name: Construir e testar o núcleo sem o serviço real, e sem uv no PATH
         run: python tools/verify-code/verify.py --step build_core test_core
       - name: Instalar uv na versão fixada (test_real_service chama `uv run --frozen`)
-        run: pip install -r tools/verify-code/service-requirements.txt
+        run: python3 tools/verify-code/retry.py -- pip install -r tools/verify-code/service-requirements.txt
+      - name: Sincronizar o ambiente do serviço (o modelo do spaCy vem do GitHub; só baixar repete, nunca o pytest)
+        run: python3 tools/verify-code/retry.py -- uv sync --locked --directory language-service
       - name: 'Restaurar a cobertura por área que o main guardou (cache vazio: o passo compara sem ela)'
         if: github.event_name == 'pull_request'
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -142,7 +150,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Instalar uv, ruff, pyright e coverage nas versões fixadas
-        run: pip install -r tools/verify-code/service-requirements.txt -r tools/verify-code/lint-requirements.txt
+        run: python3 tools/verify-code/retry.py -- pip install -r tools/verify-code/service-requirements.txt -r tools/verify-code/lint-requirements.txt
       - name: 'Restaurar a cobertura por área que o main guardou (cache vazio: o passo compara sem ela)'
         if: github.event_name == 'pull_request'
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -205,7 +213,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           NAME: cobertura-pr-${{ matrix.language }}-${{ needs.changes.outputs.tested_head }}
           RUN: ${{ needs.changes.outputs.tested_run }}
-        run: gh run download "$RUN" --repo "$GITHUB_REPOSITORY" -n "$NAME" -D "$RUNNER_TEMP/cobertura-main"
+        run: python3 tools/verify-code/retry.py -- gh run download "$RUN" --repo "$GITHUB_REPOSITORY" -n "$NAME" -D "$RUNNER_TEMP/cobertura-main"
       - name: Guardar em cache a cobertura por área do main, que o pull request restaura
         if: contains(needs.changes.outputs.promote, matrix.language)
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -235,7 +243,9 @@ jobs:
         with:
           python-version: '3.12'
       - name: Instalar uv na versão fixada
-        run: pip install -r tools/verify-code/service-requirements.txt
+        run: python3 tools/verify-code/retry.py -- pip install -r tools/verify-code/service-requirements.txt
+      - name: Sincronizar o ambiente do serviço (o modelo do spaCy vem do GitHub; só baixar repete, nunca o pytest)
+        run: python3 tools/verify-code/retry.py -- uv sync --locked --directory language-service
       - uses: ./.github/actions/build-database-image
       - name: Exigir que o núcleo e o serviço executem propriedades
         run: python tools/verify-code/verify.py --step properties
@@ -256,10 +266,10 @@ jobs:
       - name: Construir o projeto de navegador nos pacotes travados (as versões do Playwright e do axe estão em core/Directory.Packages.props)
         run: |
           echo "inicio=$(date +%s)" >> "$GITHUB_ENV"
-          dotnet restore core/tests/Core.Host.Tests.Browser/Core.Host.Tests.Browser.csproj --locked-mode
+          python3 tools/verify-code/retry.py -- dotnet restore core/tests/Core.Host.Tests.Browser/Core.Host.Tests.Browser.csproj --locked-mode
           dotnet build core/tests/Core.Host.Tests.Browser/Core.Host.Tests.Browser.csproj -c Release --no-restore
       - name: Instalar o Chromium da versão que o pacote fixa, sem latest e sem outro navegador
-        run: pwsh core/tests/Core.Host.Tests.Browser/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+        run: python3 tools/verify-code/retry.py -- pwsh core/tests/Core.Host.Tests.Browser/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
       - uses: ./.github/actions/build-database-image
       - name: Rodar os testes de navegador
         run: dotnet run --project core/tests/Core.Host.Tests.Browser/Core.Host.Tests.Browser.csproj -c Release --no-build
@@ -270,7 +280,7 @@ jobs:
   package:
     name: Construção reproduzível (duas cópias limpas)
     needs: changes
-    if: ${{ !cancelled() && github.event_name != 'schedule' && needs.changes.outputs.heavy != 'false' }}
+    if: ${{ !cancelled() && github.event_name != 'schedule' && needs.changes.outputs.heavy != 'false' && github.event.pull_request.draft != true }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -295,7 +305,7 @@ jobs:
   offline_start:
     name: Partida sem rota de rede (contêineres, strace)
     needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.heavy != 'false' }}
+    if: ${{ !cancelled() && needs.changes.outputs.heavy != 'false' && github.event.pull_request.draft != true }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -312,7 +322,7 @@ jobs:
   service_folder:
     name: Pasta do serviço reproduzível (linux-x64)
     needs: changes
-    if: ${{ !cancelled() && github.event_name != 'schedule' && needs.changes.outputs.heavy != 'false' }}
+    if: ${{ !cancelled() && github.event_name != 'schedule' && needs.changes.outputs.heavy != 'false' && github.event.pull_request.draft != true }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -321,14 +331,14 @@ jobs:
         with:
           python-version: '3.12'
       - name: Instalar uv na versão fixada
-        run: pip install -r tools/verify-code/service-requirements.txt
+        run: python3 tools/verify-code/retry.py -- pip install -r tools/verify-code/service-requirements.txt
       - name: Montar a pasta em duas cópias limpas, a segunda sem rede, e comparar byte a byte
         run: python tools/build-service/reproduce.py --system linux-x64 --model pt_core_news_md
 
   mutation_modules:
     name: Módulos críticos da mutação
     needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.heavy != 'false' }}
+    if: ${{ !cancelled() && needs.changes.outputs.heavy != 'false' && github.event.pull_request.draft != true }}
     runs-on: ubuntu-latest
     outputs:
       modules: ${{ steps.list.outputs.modules }}
@@ -351,7 +361,7 @@ jobs:
   mutation_module:
     name: Mutação (${{ matrix.module }})
     needs: mutation_modules
-    if: needs.mutation_modules.outputs.modules != '[]'
+    if: needs.mutation_modules.outputs.modules != '[]' && github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     # The step cuts the module at the ceiling of docs/operacao/017; the rest is setup and restore.
     timeout-minutes: 35
@@ -368,7 +378,9 @@ jobs:
         with:
           python-version: '3.12'
       - name: Instalar uv na versão fixada (o mutmut vem de language-service/uv.lock)
-        run: pip install -r tools/verify-code/service-requirements.txt
+        run: python3 tools/verify-code/retry.py -- pip install -r tools/verify-code/service-requirements.txt
+      - name: Sincronizar o ambiente do serviço (o modelo do spaCy vem do GitHub; só baixar repete, nunca o pytest)
+        run: python3 tools/verify-code/retry.py -- uv sync --locked --directory language-service
       - name: Mutar o módulo crítico da matriz (Stryker.NET ou mutmut, um worker)
         env:
           MODULE: ${{ matrix.module }}
@@ -392,8 +404,8 @@ jobs:
           if-no-files-found: ignore
 
   # Aggregates the matrix under the name the check always had. It always reports: everything skipped
-  # when the classification dispensed it, an empty matrix when the list declared that no module is
-  # reached, green otherwise (a failed classification or list is a failure).
+  # when the classification dispensed it or the pull request is a draft, an empty matrix when the list
+  # declared that no module is reached, green otherwise (a failed classification or list is a failure).
   mutation:
     name: Mutação nos módulos críticos
     needs: [changes, mutation_modules, mutation_module]
@@ -407,11 +419,12 @@ jobs:
           LISTED: ${{ needs.mutation_modules.result }}
           MODULES: ${{ needs.mutation_modules.outputs.modules }}
           MATRIX: ${{ needs.mutation_module.result }}
+          DRAFT: ${{ github.event.pull_request.draft }}
         run: |
-          echo "classificação: $CLASSIFICATION, heavy=$HEAVY, lista: $LISTED, módulos: $MODULES, matriz: $MATRIX"
+          echo "classificação: $CLASSIFICATION, heavy=$HEAVY, rascunho: $DRAFT, lista: $LISTED, módulos: $MODULES, matriz: $MATRIX"
           list=success
           matrix=success
-          if [ "$CLASSIFICATION" = success ] && [ "$HEAVY" = false ]; then
+          if [ "$CLASSIFICATION" = success ] && { [ "$HEAVY" = false ] || [ "$DRAFT" = true ]; }; then
             list=skipped
             matrix=skipped
           elif [ "$CLASSIFICATION" = success ] && [ "$LISTED" = success ] && [ "$MODULES" = '[]' ]; then
@@ -433,7 +446,9 @@ jobs:
         with:
           python-version: '3.12'
       - name: Instalar uv na versão fixada
-        run: pip install -r tools/verify-code/service-requirements.txt
+        run: python3 tools/verify-code/retry.py -- pip install -r tools/verify-code/service-requirements.txt
+      - name: Sincronizar o ambiente do serviço (o modelo do spaCy vem do GitHub; só baixar repete, nunca o pytest)
+        run: python3 tools/verify-code/retry.py -- uv sync --locked --directory language-service
       - name: Semear numa cópia descartável uma propriedade falsa, um defeito em módulo crítico, código sem teste e testes fracos, e exigir a recusa de cada um
         run: python tools/verify-code/verify.py --step ruler_proof
 
@@ -449,7 +464,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Instalar uv e pip-audit nas versões fixadas
-        run: pip install -r tools/verify-code/service-requirements.txt -r tools/verify-code/audit-requirements.txt
+        run: python3 tools/verify-code/retry.py -- pip install -r tools/verify-code/service-requirements.txt -r tools/verify-code/audit-requirements.txt
       - name: Auditar a árvore completa do núcleo e do serviço, também na execução semanal
         run: python tools/verify-code/verify.py --step dependencies
 
@@ -496,7 +511,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Instalar o semgrep na versão fixada
-        run: pip install -r tools/verify-code/static-analysis-requirements.txt
+        run: python3 tools/verify-code/retry.py -- pip install -r tools/verify-code/static-analysis-requirements.txt
       - name: Reprovar o que as regras próprias acusarem no núcleo, no serviço e nas ferramentas
         run: python tools/verify-code/verify.py --step static_analysis
 

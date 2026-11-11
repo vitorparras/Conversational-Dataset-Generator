@@ -2,7 +2,7 @@
 @using Core.Persistence.People
 
 <h1>@Title</h1>
-<p class="lead">O que o sistema precisa que você saiba. Ao marcar um aviso como lido, ele sai desta lista e continua registrado.</p>
+<p class="lead">O que o sistema precisa que você saiba. Ao marcar um aviso como lido, ele sai desta lista.</p>
 @if (Marked)
 {
     <Notice Kind="Notice.Tone.Success">O aviso foi marcado como lido.</Notice>
@@ -21,7 +21,7 @@ else
                 @foreach (var notice in Notices)
                 {
                     <tr role="row">
-                        <th scope="row" role="rowheader" id="aviso-@notice.Id">@NoticeText.Of(notice)</th>
+                        <th scope="row" role="rowheader" class="data-table__plain" id="aviso-@notice.Id">@NoticeText.Of(notice)</th>
                         <td role="cell"><Moment At="notice.CreatedAt" /></td>
                         <td role="cell">
                             <form method="post" action="@NoticeScreensEndpoint.ReadPath(notice.Id)">

@@ -113,4 +113,15 @@ public enum CustodyStep
 
     /// <summary>The sample of a batch was reviewed, by a person: the item is the batch, and the reason says whether the review found personal data not treated.</summary>
     BatchReviewed,
+    /// <summary>Another person approved a change of configuration submitted; the item is the submission and the reference is the sequence of the event of the submission.</summary>
+    ConfigurationApproved,
+
+    /// <summary>Another person refused a change of configuration submitted; the item is the submission and the reference is the sequence of the event of the submission.</summary>
+    ConfigurationRefused,
+
+    /// <summary>The core started with the value an approved change asked for; the item is the submission, the author the system and the reference the sequence of the approval.</summary>
+    ConfigurationInForce,
+
+    /// <summary>The technical administration corrected the e-mail address of a person; the item is that person, the author the one who corrected, and the event holds no address.</summary>
+    PersonEmailCorrected,
 }

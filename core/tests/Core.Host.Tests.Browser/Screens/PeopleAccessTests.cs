@@ -78,7 +78,7 @@ public sealed class PeopleAccessTests(BrowserFixture browser, PeopleHostFixture 
 
     private static IFormData Asked(IPage page, string name) => page.Context.APIRequest.CreateFormData().Set("nome", name).Set("função", "Anotação").Set("senha", "ZQX-x");
 
-    private static string Stripped(string page, string route) => page.Replace(route.TrimStart('/'), string.Empty, StringComparison.Ordinal);
+    private static string Stripped(string page, string route) => page.Replace(route, string.Empty, StringComparison.Ordinal);
 
     private string Person(string who) => who switch
     {

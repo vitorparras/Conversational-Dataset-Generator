@@ -303,22 +303,54 @@ internal sealed class AuthenticatedHost : IAsyncDisposable
         return await client.SendAsync(request, cancellationToken);
     }
 
+    /// <summary>
+    /// What a start that never finished its round left to read: whether the host is still up, the steps the chain holds and the end of what the host wrote.
+    /// It goes to the diagnostic messages of the test, beside the timeout that is thrown.
+    /// </summary>
+    private async Task<string> WhatTheStartLeftAsync()
+    {
+        var exited = process.HasExited ? $"exited with {process.ExitCode}" : "still running";
+        var steps = string.Join(", ", await database.FirstColumnAsOwnerAsync("SELECT sequence || ':' || step FROM public.custody_event ORDER BY sequence"));
+        var (stdout, stderr) = await StopAsync();
+        return $"{Environment.NewLine}host: {exited}; chain: [{steps}]{Environment.NewLine}stdout (end): {End(stdout)}{Environment.NewLine}stderr (end): {End(stderr)}";
+    }
+
+    private static string End(string text) => text.Length <= 3000 ? text : text[^3000..];
+
     private async Task PrepareAsync(HostSetup setup, CancellationToken cancellationToken)
     {
-        await StartupVerification.WaitUntilRecordedAsync(application, cancellationToken);
+        try
+        {
+            await StartupVerification.WaitUntilRecordedAsync(application, cancellationToken);
+        }
+        catch (TimeoutException)
+        {
+            TestContext.Current.SendDiagnosticMessage(await WhatTheStartLeftAsync());
+            throw;
+        }
+
         Task<PersonResult> Write(Func<Task<PersonResult>> change) => StartupVerification.WriteAsync(change, cancellationToken);
 
         var registry = new PersonRegistry(application);
         var credentials = new PersonCredentials(application, new PasswordDerivation(setup.WorkFactor));
-        var person = (await Write(() => registry.CreateAsync(new NewPerson(Name, setup.Function), CustodyAuthor.System, cancellationToken))).PersonId!.Value;
-        _ = await Write(() => credentials.SetPasswordAsync(person, Password, CustodyAuthor.System, cancellationToken));
+        var created = await Write(() => registry.CreateAsync(new NewPerson(Name, setup.Function), CustodyAuthor.System, cancellationToken));
+        var person = Done(created, "making the administrator").PersonId!.Value;
+        var password = await Write(() => credentials.SetPasswordAsync(person, Password, CustodyAuthor.System, cancellationToken));
+        _ = Done(password, "setting the password of the administrator");
         _ = await KeyedHost.StatusAsync(Address, process, cancellationToken);
         using var entry = new HttpRequestMessage(HttpMethod.Post, new Uri("/session", UriKind.Relative))
         {
             Content = new StringContent($$"""{"name":"{{Name}}","password":"{{Password}}"}""", Encoding.UTF8, new MediaTypeHeaderValue("application/json")),
         };
         using var response = await client.SendAsync(entry, cancellationToken);
-        _ = response.EnsureSuccessStatusCode();
-        Identifier = SessionIdentifier(response);
+        Identifier = response.IsSuccessStatusCode
+            ? SessionIdentifier(response)
+            : throw new InvalidOperationException(
+                $"The first entry of the administrator was answered {(int)response.StatusCode}: {await response.Content.ReadAsStringAsync(cancellationToken)}");
     }
+
+    private static PersonResult Done(PersonResult result, string step) =>
+        result.Outcome == PersonOutcome.Done
+            ? result
+            : throw new InvalidOperationException($"The set-up stopped at {step}: the registry answered {result.Outcome}, and the entry that follows would be refused for it.");
 }

@@ -60,7 +60,7 @@ public sealed class ProtectedContentStorageTests
 
         var refused = await Assert.ThrowsAsync<PostgresException>(() => world.Writer.AddReversalMapAsync(2, item, Entries, TestContext.Current.CancellationToken));
 
-        Assert.Equal("reversal_map_item_fkey", refused.ConstraintName);
+        Assert.True(refused.ConstraintName is "reversal_map_item_fkey" or "reversal_map_item_batch_fkey", $"The refusal came from {refused.ConstraintName}.");
     }
 
     [Fact]

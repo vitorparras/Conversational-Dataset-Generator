@@ -1,4 +1,3 @@
-using System.Data;
 using System.Runtime.CompilerServices;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
@@ -28,6 +27,17 @@ public sealed class ConfigurationChanges
         WHERE c.id = @id
         """;
 
+    private const string Pending = """
+        SELECT c.id, c.config_key, c.new_value, c.motive, c.submitted_by, c.submitted_at, e.sequence, false AS decided, p.name
+        FROM public.configuration_change c
+        JOIN public.custody_event e ON e.item_kind = 'configuration_change' AND e.item_id = c.id AND e.step = 'configuration_submitted'
+        JOIN public.person p ON p.id = c.submitted_by
+        WHERE c.submitted_at > @since AND NOT EXISTS (SELECT 1 FROM public.custody_event d
+            WHERE d.item_kind = 'configuration_change' AND d.item_id = c.id AND d.step IN ('configuration_approved', 'configuration_refused'))
+        ORDER BY c.submitted_at DESC, c.id DESC
+        LIMIT 50
+        """;
+
     private readonly NpgsqlDataSource dataSource;
 
     /// <summary>The register over the database the application reaches.</summary>
@@ -54,18 +64,31 @@ public sealed class ConfigurationChanges
     /// <param name="cancellationToken">Cancels the reading.</param>
     public async Task<SubmittedChange?> SubmittedAsync(long changeId, CancellationToken cancellationToken)
     {
-        var connection = await dataSource.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
-        await using (connection.ConfigureAwait(false))
+        var command = dataSource.CreateCommand(Submitted);
+        await using (command.ConfigureAwait(false))
         {
-            var command = new NpgsqlCommand(Submitted, connection);
-            await using (command.ConfigureAwait(false))
+            _ = command.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Bigint) { Value = changeId });
+            var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            await using (reader.ConfigureAwait(false))
             {
-                _ = command.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Bigint) { Value = changeId });
-                var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-                await using (reader.ConfigureAwait(false))
-                {
-                    return await reader.ReadAsync(cancellationToken).ConfigureAwait(false) ? Read(changeId, reader) : null;
-                }
+                return await reader.ReadAsync(cancellationToken).ConfigureAwait(false) ? Read(changeId, name => reader[name]) : null;
+            }
+        }
+    }
+
+    /// <summary>The submissions still waiting for a decision, taken after the moment given, the latest first and at most fifty, each with the name of who submitted.</summary>
+    /// <param name="since">The oldest moment a pending submission may have been taken at: before it, the submission expired.</param>
+    /// <param name="cancellationToken">Cancels the reading.</param>
+    public async Task<IReadOnlyList<PendingChange>> PendingAsync(DateTimeOffset since, CancellationToken cancellationToken)
+    {
+        var command = dataSource.CreateCommand(Pending);
+        await using (command.ConfigureAwait(false))
+        {
+            _ = command.Parameters.Add(new NpgsqlParameter("since", NpgsqlDbType.TimestampTz) { Value = since.UtcDateTime });
+            var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            await using (reader.ConfigureAwait(false))
+            {
+                return await AllAsync(reader.ReadAsync, name => reader[name], cancellationToken).ConfigureAwait(false);
             }
         }
     }
@@ -81,16 +104,27 @@ public sealed class ConfigurationChanges
         return new CustodyChain(dataSource).AppendAsync(CustodyEvent.ConfigurationDecided(deciderId, change.Id, change.Sequence, approved), cancellationToken);
     }
 
-    private static SubmittedChange Read(long changeId, IDataRecord reader) => new()
+    private static async Task<IReadOnlyList<PendingChange>> AllAsync(Func<CancellationToken, Task<bool>> next, Func<string, object> column, CancellationToken cancellationToken)
+    {
+        var pending = new List<PendingChange>();
+        while (await next(cancellationToken).ConfigureAwait(false))
+        {
+            pending.Add(new PendingChange(Read((long)column("id"), column), (string)column("name")));
+        }
+
+        return pending.AsReadOnly();
+    }
+
+    private static SubmittedChange Read(long changeId, Func<string, object> column) => new()
     {
         Id = changeId,
-        Key = (string)reader["config_key"],
-        Value = (string)reader["new_value"],
-        Motive = (string)reader["motive"],
-        AuthorId = (long)reader["submitted_by"],
-        SubmittedAt = new DateTimeOffset((DateTime)reader["submitted_at"]),
-        Sequence = (long)reader["sequence"],
-        Decided = (bool)reader["decided"],
+        Key = (string)column("config_key"),
+        Value = (string)column("new_value"),
+        Motive = (string)column("motive"),
+        AuthorId = (long)column("submitted_by"),
+        SubmittedAt = new DateTimeOffset((DateTime)column("submitted_at")),
+        Sequence = (long)column("sequence"),
+        Decided = (bool)column("decided"),
     };
 
     private async Task<ConfigurationChangeResult> SubmittingAsync(ConfigurationSubmission submission, CancellationToken cancellationToken)

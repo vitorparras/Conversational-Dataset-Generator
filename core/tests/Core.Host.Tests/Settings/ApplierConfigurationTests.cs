@@ -28,6 +28,7 @@ public sealed class ApplierConfigurationTests : IDisposable
     [InlineData("zqx-nao-existe-6340")]
     public void ARestartCommandThatIsRelativeOrDoesNotExistIsRefusedNamingTheKey(string command)
     {
+        ArgumentNullException.ThrowIfNull(command);
         var given = command.StartsWith("zqx", StringComparison.Ordinal) ? Path.Combine(folder.Path, command) : command;
         var values = Values(settings: Existing(), command: given);
 
@@ -46,15 +47,15 @@ public sealed class ApplierConfigurationTests : IDisposable
         var values = Values(settings: Existing(), command: Existing());
         values[ApplierConfiguration.RestartArgumentsPath] = "restart|nucleo.service";
 
-        Assert.Equal(new[] { "restart", "nucleo.service" }, ApplierConfiguration.RestartArguments(values));
+        Assert.Equal(["restart", "nucleo.service"], ApplierConfiguration.RestartArguments(values));
         Assert.Empty(ApplierConfiguration.RestartArguments(Values(settings: Existing(), command: Existing())));
     }
 
     [Fact]
     public void TheModeIsAskedForByItsWordAsTheFirstArgumentOnly()
     {
-        Assert.True(ApplyConfigurationMode.Requested(new[] { "apply-configuration" }));
-        Assert.False(ApplyConfigurationMode.Requested(new[] { "--Database:Host=zqx", "apply-configuration" }));
+        Assert.True(ApplyConfigurationMode.Requested(["apply-configuration"]));
+        Assert.False(ApplyConfigurationMode.Requested(["--Database:Host=zqx", "apply-configuration"]));
     }
 
     [Fact]
@@ -70,21 +71,22 @@ public sealed class ApplierConfigurationTests : IDisposable
     [Fact]
     public async Task ADatabaseThatCannotBeReachedEndsTheModeWithItsOwnCode()
     {
+        using var error = new StringWriter();
         var file = Applier(settings: Existing(), command: Existing());
 
-        var launch = await ApplyConfigurationMode.RunAsync(DatabaseArguments(), file, TextWriter.Null, new StringWriter());
+        var launch = await ApplyConfigurationMode.RunAsync(DatabaseArguments(), file, TextWriter.Null, error);
 
         Assert.Equal(ExitCode.ApplierFailed, await launch.RunAsync());
     }
 
     [Fact]
     public async Task ARestartCommandThatDoesNotStartIsARestartThatDidNotHappen() =>
-        Assert.False(await new ServiceRestart(Path.Combine(folder.Path, "zqx-nao-existe-6340"), new List<string>()).RunAsync(TestContext.Current.CancellationToken));
+        Assert.False(await new ServiceRestart(Path.Combine(folder.Path, "zqx-nao-existe-6340"), []).RunAsync(TestContext.Current.CancellationToken));
 
     public void Dispose() => folder.Dispose();
 
     private static string[] DatabaseArguments() =>
-        new[] { "--Database:Host=127.0.0.1:1", "--Database:Name=zqx", "--Database:Username=zqx_leitura", "--Database:Password=ZQX-SENHA-6340" };
+        ["--Database:Host=127.0.0.1:1", "--Database:Name=zqx", "--Database:Username=zqx_leitura", "--Database:Password=ZQX-SENHA-6340"];
 
     private static Dictionary<string, string> Values(string settings, string command) => new(StringComparer.Ordinal)
     {

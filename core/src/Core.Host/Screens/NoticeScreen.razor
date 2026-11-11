@@ -2,14 +2,14 @@
 @using Core.Persistence.People
 
 <h1>@Title</h1>
-<p class="lead">O que o sistema precisa que você saiba. Ao marcar um aviso como lido, ele sai desta lista e continua registrado.</p>
+<p class="lead">O que o sistema precisa que você saiba. Ao marcar um aviso como lido, ele sai desta lista.</p>
 @if (Marked)
 {
     <Notice Kind="Notice.Tone.Success">O aviso foi marcado como lido.</Notice>
 }
 @if (Notices.Count == 0)
 {
-    <EmptyState Title="Nenhum aviso novo">
+    <EmptyState Title="Nenhum aviso não lido">
         <p>Quando o sistema tiver algo a dizer sobre a sua conta ou sobre os domínios, aparece aqui.</p>
     </EmptyState>
 }
@@ -17,13 +17,13 @@ else
 {
     <Panel Id="avisos" Title="Avisos não lidos">
         <DataTable Id="avisos-tabela" Caption="@(Notices.Count == 1 ? "Um aviso, o mais recente primeiro." : $"{Notices.Count} avisos, o mais recente primeiro.")" Headers="Columns">
-            <tbody>
+            <tbody role="rowgroup">
                 @foreach (var notice in Notices)
                 {
-                    <tr>
-                        <th scope="row" id="aviso-@notice.Id">@NoticeText.Of(notice)</th>
-                        <td><Moment At="notice.CreatedAt" /></td>
-                        <td>
+                    <tr role="row">
+                        <th scope="row" role="rowheader" class="data-table__plain" id="aviso-@notice.Id">@NoticeText.Of(notice)</th>
+                        <td role="cell"><Moment At="notice.CreatedAt" /></td>
+                        <td role="cell">
                             <form method="post" action="@NoticeScreensEndpoint.ReadPath(notice.Id)">
                                 <Button Id="@($"lido-{notice.Id}")" Kind="Button.Look.Secondary" DescribedBy="@($"aviso-{notice.Id}")">Marcar como lido</Button>
                             </form>

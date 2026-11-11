@@ -5,10 +5,9 @@
 ## Contexto
 
 O [requisito 032](../requisitos/032-configuracao-falha-fechada.md) faz a configuração falhar
-fechada e trata a mudança do que protege como operação deliberada, sem recarga. A #634 pede que a
-administração técnica a proponha pela tela, sem que o processo da rede escreva no arquivo, e com
-duas pessoas, como o [requisito 030](../requisitos/030-exportacao-exige-duas-pessoas.md) pede para
-a exportação.
+fechada, e a mudança do que protege é deliberada, sem recarga. A #634 pede que a administração
+técnica a proponha pela tela, sem escrita no arquivo pela rede e com duas pessoas, como o
+[requisito 030](../requisitos/030-exportacao-exige-duas-pessoas.md) pede para a exportação.
 
 ## Decisão
 
@@ -34,12 +33,11 @@ de escuta e o banco. Fora da lista, a recusa avisa que a chave só muda no servi
 **Em aberto para o dono**, com a recomendada (a) valendo até a escolha:
 - **Motivos:** (a) cinco códigos: endurecer proteção, ajuste operacional, correção de valor errado,
   exigência de contrato ou norma, resposta a incidente; (b) três: correção, ajuste, incidente.
-- **Prazo da pendente:** (a) chave com padrão de 72 h, de 1 a 168 h, que só muda no servidor;
-  (b) chave obrigatória, sem padrão; (c) fixo no código.
+- **Prazo:** (a) chave, 72 h por padrão, de 1 a 168 h, só no servidor; (b) sem padrão; (c) fixo.
 - **Chaves da tela:** (a) tempos e trabalho: `Session:IdleTimeout`, `Session:AbsoluteTimeout`,
   `Passwords:WorkFactor`, `Custody:VerificationInterval`, `Audit:CompareInterval` e os dois prazos
-  do serviço de linguagem; (b) a lista (a) mais `Ingestion:Conditions` (as condições de origem do
-  roteiro 023) e `Custody:SealSituation` (a situação do selo).
+  do serviço de linguagem; (b) a (a) mais `Ingestion:Conditions` (condições de origem, roteiro 023)
+  e `Custody:SealSituation` (situação do selo).
 
 ## Alternativas recusadas
 

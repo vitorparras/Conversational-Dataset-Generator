@@ -8,9 +8,14 @@ internal static class PublishedHost
     private const string Project = "core/src/Core.Host/Core.Host.csproj";
     private static readonly TimeSpan Limit = TimeSpan.FromMinutes(10);
 
-    /// <summary>Publishes into the folder and returns the full path of every file it wrote; a publish that fails fails with what it said.</summary>
+    /// <summary>
+    /// Publishes into the folder and returns the full path of every file it wrote; a publish that fails fails with its cause and the end of what it said (PublishFailure).
+    /// It builds in a tree of its own (obj and bin under an artifacts path in the temporary folder, restored in locked mode), so that nothing it writes is read or rewritten
+    /// by the rest of the run, which uses the obj and bin of core/src at the same time; the tree outlives the process (PublishTree), so that only the first publish of a machine builds from nothing.
+    /// </summary>
     public static async Task<IReadOnlyList<string>> IntoAsync(string folder, CancellationToken cancellationToken)
     {
+        using var tree = await PublishTree.TakeAsync(RepositoryFiles.Root(), cancellationToken);
         var info = new ProcessStartInfo("dotnet")
         {
             WorkingDirectory = RepositoryFiles.Root(),
@@ -18,7 +23,12 @@ internal static class PublishedHost
             RedirectStandardError = true,
             UseShellExecute = false,
         };
-        foreach (var argument in new[] { "publish", Project, "--no-restore", "--configuration", "Release", "--output", folder, "-nodeReuse:false", "-p:UseSharedCompilation=false" })
+        string[] arguments =
+        [
+            "publish", Project, "--artifacts-path", tree.Path, "-p:RestoreLockedMode=true", "--configuration", "Release",
+            "--output", folder, "-nodeReuse:false", "-p:UseSharedCompilation=false",
+        ];
+        foreach (var argument in arguments)
         {
             info.ArgumentList.Add(argument);
         }
@@ -39,9 +49,9 @@ internal static class PublishedHost
             }
         }
 
-        var text = string.Concat(await said);
+        var streams = await said;
         return publish.ExitCode == 0
             ? [.. Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories)]
-            : throw new InvalidOperationException($"dotnet publish exited with {publish.ExitCode}: {text[^Math.Min(text.Length, 2000)..]}");
+            : throw new InvalidOperationException(PublishFailure.Describe(publish.ExitCode, streams[0], streams[1]));
     }
 }

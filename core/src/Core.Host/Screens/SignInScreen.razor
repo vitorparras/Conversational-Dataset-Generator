@@ -1,6 +1,6 @@
 @using Core.Host.Endpoints
 
-<h1>Entrar</h1>
+<h1>@Title</h1>
 
 <form class="sign-in" method="post" action="@ScreenPaths.SignIn" data-wait="entrada-espera" novalidate>
     @if (Unregistered)
@@ -13,7 +13,7 @@
     }
     @if (Refused)
     {
-        <Notice Kind="Notice.Tone.Error">Nome ou senha não conferem. Confira os dois e tente de novo.</Notice>
+        <Notice Kind="Notice.Tone.Error">Nome ou senha não conferem. Confira os dois e tente de novo. Se esqueceu a senha, peça a reposição a quem administra o sistema.</Notice>
     }
     <Field Id="entrada-nome" Name="@NameField" Caption="Nome" Value="@Name" Autocomplete="username" Autofocus="true" />
     <Field Id="entrada-senha" Name="@SecretField" Caption="Senha" Type="password" Autocomplete="current-password" />
@@ -22,6 +22,9 @@
 </form>
 
 @code {
+    /// <summary>The title of the page, the same words in the tab and in the heading.</summary>
+    internal const string Title = "Entrar";
+
     /// <summary>The name the form sends; the password goes in the body of the post alone and is never written back.</summary>
     internal const string NameField = "nome";
 

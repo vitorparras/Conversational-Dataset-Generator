@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Core.Host.Settings;
 using Core.Persistence.Settings;
 using Core.Platform.Configuration;
@@ -13,12 +14,19 @@ namespace Core.Host.Tests.Settings;
 public sealed class ConfigurationApplierTests : IDisposable
 {
     private const string Key = "Session:IdleTimeout";
+    [StringSyntax(StringSyntaxAttribute.Json)]
     private const string File0 = """{ "Session": { "IdleTimeout": "00:30:00" } }""";
     private const long SubmissionSequence = 41;
     private const long ApprovalSequence = 57;
 
     private readonly TemporaryDirectory folder = new();
     private readonly RecordedLog log = new();
+    private readonly ILoggerFactory loggers;
+
+    public ConfigurationApplierTests()
+    {
+        loggers = LoggerFactory.Create(builder => builder.AddProvider(log));
+    }
 
     [Fact]
     public void AChangeTheChainAndTheRegistryStandBehindIsWrittenWithTheVersionBeforeKept()
@@ -34,16 +42,16 @@ public sealed class ConfigurationApplierTests : IDisposable
     }
 
     [Theory]
-    [InlineData(false, true, true, ApplicationRefusal.ChainBroken)]
-    [InlineData(true, false, true, ApplicationRefusal.SubmitterNotAllowed)]
-    [InlineData(true, true, false, ApplicationRefusal.ApproverNotAllowed)]
-    public void Ca6AChainThatDoesNotCloseOrAnAuthorWhoLostTheFunctionIsNotAppliedAndTheFileStaysAsItWas(bool closed, bool submitter, bool approver, ApplicationRefusal expected)
+    [InlineData(false, true, true, nameof(ApplicationRefusal.ChainBroken))]
+    [InlineData(true, false, true, nameof(ApplicationRefusal.SubmitterNotAllowed))]
+    [InlineData(true, true, false, nameof(ApplicationRefusal.ApproverNotAllowed))]
+    public void Ca6AChainThatDoesNotCloseOrAnAuthorWhoLostTheFunctionIsNotAppliedAndTheFileStaysAsItWas(bool closed, bool submitter, bool approver, string expected)
     {
         var path = Written();
 
         var refusal = Applier(path).Apply(Change(Key, "00:20:00"), new ApplicationFacts(submitter, approver, closed), InForce());
 
-        Assert.Equal(expected, refusal);
+        Assert.Equal(Enum.Parse<ApplicationRefusal>(expected), refusal);
         Assert.Equal((File0, 1), (File.ReadAllText(path), Directory.GetFiles(folder.Path).Length));
     }
 
@@ -59,17 +67,17 @@ public sealed class ConfigurationApplierTests : IDisposable
     }
 
     [Theory]
-    [InlineData("Host:Urls", "https://127.0.0.1:6000", ApplicationRefusal.KeyOnlyOnServer)]
-    [InlineData("Database:Password", "x", ApplicationRefusal.KeyOnlyOnServer)]
-    [InlineData(Key, "zqx-nao-e-tempo", ApplicationRefusal.ValueRefused)]
-    [InlineData("LanguageService:StartupTimeoutSeconds", "0", ApplicationRefusal.ValueRefused)]
-    public void AKeyOnlyTheServerChangesOrAValueTheStartWouldRefuseIsNotApplied(string key, string value, ApplicationRefusal expected)
+    [InlineData("Host:Urls", "https://127.0.0.1:6000", nameof(ApplicationRefusal.KeyOnlyOnServer))]
+    [InlineData("Database:Password", "x", nameof(ApplicationRefusal.KeyOnlyOnServer))]
+    [InlineData(Key, "zqx-nao-e-tempo", nameof(ApplicationRefusal.ValueRefused))]
+    [InlineData("LanguageService:StartupTimeoutSeconds", "0", nameof(ApplicationRefusal.ValueRefused))]
+    public void AKeyOnlyTheServerChangesOrAValueTheStartWouldRefuseIsNotApplied(string key, string value, string expected)
     {
         var path = Written();
 
         var refusal = Applier(path).Apply(Change(key, value), Standing(), InForce());
 
-        Assert.Equal(expected, refusal);
+        Assert.Equal(Enum.Parse<ApplicationRefusal>(expected), refusal);
         Assert.Equal(File0, File.ReadAllText(path));
     }
 
@@ -101,6 +109,7 @@ public sealed class ConfigurationApplierTests : IDisposable
 
     public void Dispose()
     {
+        loggers.Dispose();
         folder.Dispose();
         log.Dispose();
     }
@@ -126,11 +135,7 @@ public sealed class ConfigurationApplierTests : IDisposable
         return ClosedConfiguration.Load(HostConfiguration.Schema(migrating: false, comparing: false), new TrialSource(values, Key, "00:30:00")).Values;
     }
 
-    private ConfigurationApplier Applier(string path)
-    {
-        var loggers = LoggerFactory.Create(builder => builder.AddProvider(log));
-        return new ConfigurationApplier(new ConfigurationFile(path, new ManualClock()), loggers);
-    }
+    private ConfigurationApplier Applier(string path) => new(path, new ManualClock(), loggers);
 
     private string Written()
     {

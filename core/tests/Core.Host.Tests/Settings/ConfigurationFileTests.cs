@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Nodes;
 using Core.Host.Settings;
 
@@ -29,6 +30,7 @@ public sealed class ConfigurationFileTests : IDisposable
     [Fact]
     public void TheVersionBeforeIsKeptWithTheMomentInItsNameAndItsContentAsItWas()
     {
+        // language=json
         const string Before = """{ "Session": { "IdleTimeout": "00:30:00" } }""";
         var path = Written(Before);
 
@@ -53,18 +55,19 @@ public sealed class ConfigurationFileTests : IDisposable
     [Fact]
     public void AFileThatIsNotJsonIsLeftExactlyAsItWasAndNothingIsKept()
     {
-        const string Broken = "{ isto não é JSON";
-        var path = Written(Broken);
+        var broken = string.Join(" ", "{", "isto não é JSON");
+        var path = Written(broken);
 
         var changed = new ConfigurationFile(path, clock).TryChange(Key, "00:20:00");
 
         Assert.False(changed);
-        Assert.Equal((Broken, 1), (File.ReadAllText(path), Directory.GetFiles(folder.Path).Length));
+        Assert.Equal((broken, 1), (File.ReadAllText(path), Directory.GetFiles(folder.Path).Length));
     }
 
     [Fact]
     public void ASectionThatIsNotAnObjectIsLeftExactlyAsItWas()
     {
+        // language=json
         const string Odd = """{ "Session": "texto" }""";
         var path = Written(Odd);
 
@@ -104,13 +107,39 @@ public sealed class ConfigurationFileTests : IDisposable
         Assert.Equal((Same, 1), (File.ReadAllText(path), Directory.GetFiles(folder.Path).Length));
     }
 
+    [Fact]
+    public void TheFileKeepsTheModeOfTheOneItReplacedAndSoDoesTheVersionKept()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var path = Written("""{ "Session": { "IdleTimeout": "00:30:00" } }""");
+        File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+
+        _ = new ConfigurationFile(path, clock).TryChange(Key, "00:20:00");
+
+        var kept = Assert.Single(Directory.GetFiles(folder.Path, "*.previous"));
+        Assert.Equal((UnixFileMode.UserRead | UnixFileMode.UserWrite, UnixFileMode.UserRead | UnixFileMode.UserWrite), (File.GetUnixFileMode(path), File.GetUnixFileMode(kept)));
+    }
+
+    [Fact]
+    public void TheFileHoldsAValueOnlyWhenTheKeyHasExactlyThatValue()
+    {
+        var path = Written("""{ "Session": { "IdleTimeout": "00:20:00" } }""");
+        var file = new ConfigurationFile(path, clock);
+
+        Assert.Equal((true, false, false), (file.Holds(Key, "00:20:00"), file.Holds(Key, "00:30:00"), file.Holds("Session:Outra", "00:20:00")));
+    }
+
     public void Dispose() => folder.Dispose();
 
     private static JsonObject Read(string path) => (JsonObject)JsonNode.Parse(File.ReadAllText(path))!;
 
-    private static string Text(JsonObject root, string section, string name) => (string)root[section]![name]!;
+    private static string Text(JsonNode root, string section, string name) => (string)root[section]![name]!;
 
-    private string Written(string content)
+    private string Written([StringSyntax(StringSyntaxAttribute.Json)] string content)
     {
         var path = Path.Combine(folder.Path, "appsettings.json");
         File.WriteAllText(path, content);

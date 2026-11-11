@@ -22,6 +22,8 @@ public sealed class ConfigurationDecisionTests : IClassFixture<PeopleDatabase>
         WHERE item_kind = 'configuration_change' AND step IN ('configuration_approved', 'configuration_refused') AND sequence = @sequence
         """;
 
+    private const string Rows = "SELECT count(*) FROM public.configuration_change";
+
     private readonly PeopleDatabase database;
 
     public ConfigurationDecisionTests(PeopleDatabase database)
@@ -36,13 +38,13 @@ public sealed class ConfigurationDecisionTests : IClassFixture<PeopleDatabase>
     {
         var (changes, change) = await SubmittedAsync();
         var decider = await NewPersonAsync();
-        var rows = await database.CountAsync("public.configuration_change");
+        var rows = await OwnerScalarAsync(Rows);
 
         var recorded = await changes.DecideAsync(decider, change, approved, TestContext.Current.CancellationToken);
 
         Assert.Equal(CustodyOutcome.Appended, recorded.Outcome);
         Assert.Equal($"{step}|administrative_act|{decider}|{change.Id}|{change.Sequence}", await DecisionAsync(recorded.Sequence!.Value));
-        Assert.Equal(rows, await database.CountAsync("public.configuration_change"));
+        Assert.Equal(rows, await OwnerScalarAsync(Rows));
         Assert.True((await changes.SubmittedAsync(change.Id, TestContext.Current.CancellationToken))!.Decided);
     }
 

@@ -30,11 +30,10 @@ internal static class ApplierConfiguration
 
     /// <summary>The keys the applier declares, with the database it reads.</summary>
     internal static ConfigurationSchema Schema { get; } = new(
-        new[]
-        {
-            new ConfigurationSection(SectionName, new[] { ConfigurationKey.Required(SettingsFileKey), ConfigurationKey.Required(RestartCommandKey), ConfigurationKey.Optional(RestartArgumentsKey) }),
+        [
+            new ConfigurationSection(SectionName, [ConfigurationKey.Required(SettingsFileKey), ConfigurationKey.Required(RestartCommandKey), ConfigurationKey.Optional(RestartArgumentsKey)]),
             DatabaseConfiguration.Section
-        });
+        ]);
 
     /// <summary>What refuses the paths the applier was given: both must be absolute and exist.</summary>
     internal static IReadOnlyList<ConfigurationProblem> Refusals(IReadOnlyDictionary<string, string> values)

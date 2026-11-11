@@ -33,6 +33,16 @@ public sealed class RestoreSource : IAsyncLifetime
         var first = await world.Writer.AddItemTextAsync(1, new NewItemText("texto bruto sintetico zqx"), token);
         _ = await world.Writer.AddReversalMapAsync(1, first, "mapa sintetico zqx", token);
         var second = await world.Writer.AddItemTextAsync(2, new NewItemText("texto bruto sintetico zqx"), token);
+        await world.RunAsOwnerAsync(
+            "ALTER TABLE content.replication_occurrence DISABLE TRIGGER content_needs_open_batch",
+            "ALTER TABLE content.replication_mark DISABLE TRIGGER content_needs_open_batch",
+            "SELECT set_config('app.domain', '1', false)",
+            "INSERT INTO content.replication_occurrence (domain_id, batch_id, item_id, message_position, text_digest, sender_digest, text_length, said_at) "
+            + "VALUES (1, 1, 1, 0, repeat('a', 64), repeat('b', 64), 40, now()), (1, 1, 1, 1, repeat('a', 64), repeat('c', 64), 40, now())",
+            "INSERT INTO content.replication_mark (domain_id, batch_id, item_id, message_position, first_item_id, first_message_position) VALUES (1, 1, 1, 0, 1, 0), (1, 1, 1, 1, 1, 0)",
+            "SELECT set_config('app.domain', '', false)",
+            "ALTER TABLE content.replication_occurrence ENABLE ALWAYS TRIGGER content_needs_open_batch",
+            "ALTER TABLE content.replication_mark ENABLE ALWAYS TRIGGER content_needs_open_batch");
         Assert.Equal(PersonOutcome.Done, (await world.Registry.ChangeFunctionAsync(1, PersonFunctions.Curation, CustodyAuthor.System, token)).Outcome);
         var emptying = new ItemEmptying(CustodyAuthor.Person(1), 2, second, EmptyingMotive.RemovalRequestedBySubject, "PROT-2026/0042");
         Assert.Equal(EmptyingOutcome.Emptied, (await new ContentEmptier(world.DataSource).EmptyAsync(emptying, token)).Outcome);
@@ -62,6 +72,8 @@ public sealed class RestoreSource : IAsyncLifetime
             ["content.item_text"] = await ContentRowsAsync("content.item_text"),
             ["content.reversal_map"] = await ContentRowsAsync("content.reversal_map"),
             ["content.item_emptied"] = await ContentRowsAsync("content.item_emptied"),
+            ["content.replication_occurrence"] = await ContentRowsAsync("content.replication_occurrence"),
+            ["content.replication_mark"] = await ContentRowsAsync("content.replication_mark"),
         };
     }
 

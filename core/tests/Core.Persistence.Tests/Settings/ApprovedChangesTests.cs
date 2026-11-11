@@ -16,7 +16,7 @@ namespace Core.Persistence.Tests.Settings;
 public sealed class ApprovedChangesTests : IClassFixture<PeopleDatabase>
 {
     private const string InForce = """
-        SELECT concat_ws('|', step, reason, actor_system, item_id, reference) FROM public.custody_event
+        SELECT concat_ws('|', step, reason, actor_system::text, item_id, reference) FROM public.custody_event
         WHERE item_kind = 'configuration_change' AND step = 'configuration_in_force' AND sequence = @sequence
         """;
 
@@ -34,7 +34,8 @@ public sealed class ApprovedChangesTests : IClassFixture<PeopleDatabase>
 
         var found = Assert.Single(await (await RegisterAsync()).PendingAsync(TestContext.Current.CancellationToken), pending => pending.Id == change.Id);
 
-        Assert.Equal(("Session:IdleTimeout", "00:20:00", submitter, change.Sequence, approver, approval), (found.Key, found.Value, found.SubmitterId, found.SubmissionSequence, found.ApproverId, found.ApprovalSequence));
+        var expected = ("Session:IdleTimeout", "00:20:00", submitter, change.Sequence, approver, approval);
+        Assert.Equal(expected, (found.Key, found.Value, found.SubmitterId, found.SubmissionSequence, found.ApproverId, found.ApprovalSequence));
     }
 
     [DatabaseFact]
@@ -48,6 +49,18 @@ public sealed class ApprovedChangesTests : IClassFixture<PeopleDatabase>
         var read = await (await RegisterAsync()).PendingAsync(TestContext.Current.CancellationToken);
 
         Assert.DoesNotContain(read, change => change.Id == pending.Id || change.Id == refused.Id);
+    }
+
+    [DatabaseFact]
+    public async Task AnApprovalThatALaterOneOfTheSameKeyHasSupersededIsNotReadAndTheLaterOneIs()
+    {
+        var (older, _, _, _) = await ApprovedAsync();
+        var (newer, _, _, _) = await ApprovedAsync();
+
+        var read = await (await RegisterAsync()).PendingAsync(TestContext.Current.CancellationToken);
+
+        Assert.DoesNotContain(read, pending => pending.Id == older.Id);
+        Assert.Contains(read, pending => pending.Id == newer.Id);
     }
 
     [DatabaseFact]

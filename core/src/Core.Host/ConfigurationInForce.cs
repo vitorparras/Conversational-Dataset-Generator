@@ -66,7 +66,7 @@ internal sealed class ConfigurationInForce : BackgroundService
         host.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source ? new ApprovedChanges(source) : null;
 
     private async Task<IReadOnlyList<ApprovedChange>> PendingAsync(CancellationToken cancellationToken) =>
-        changes is null ? new List<ApprovedChange>() : await changes.PendingAsync(cancellationToken).ConfigureAwait(false);
+        changes is null ? [] : await changes.PendingAsync(cancellationToken).ConfigureAwait(false);
 
     private async Task<int> MarkAsync(ApprovedChange change, ILogger logger, CancellationToken cancellationToken)
     {

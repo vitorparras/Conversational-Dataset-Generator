@@ -1,23 +1,3 @@
-        var parts = key.Split(':');
-        if (parts.Length != 2 || Read() is not { } root)
-        {
-            return false;
-        }
-
-        if (root[parts[0]]?[parts[1]] is JsonValue current && current.ToString() == value)
-        {
-            return true;
-        }
-
-        if (!TrySet(root, parts[0], parts[1], value))
-        {
-            return false;
-        }
-
-        if (root[parts[0]]?[parts[1]] is JsonValue current && current.ToString() == value)
-        {
-            return true;
-        }
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
@@ -56,7 +36,7 @@ internal sealed class ConfigurationFile
             return false;
         }
 
-        if (root[parts[0]]?[parts[1]] is JsonValue current && current.ToString() == value)
+        if (root[parts[0]] is JsonObject section && section[parts[1]] is JsonValue current && current.ToString() == value)
         {
             return true;
         }
@@ -67,52 +47,71 @@ internal sealed class ConfigurationFile
         }
 
         var written = path + ".new";
-        File.WriteAllText(written, root.ToJsonString(Indented), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        Create(written, root.ToJsonString(Indented));
         Replace(written);
         return true;
     }
+
+    /// <summary>Whether the file already holds the value for the key, which then needs no write and, with it, no restart.</summary>
+    internal bool Holds(string key, string value) => Values().TryGetValue(key, out var current) && string.Equals(current, value, StringComparison.Ordinal);
 
     /// <summary>Every value the file holds as <c>Section:Name</c>, the one level of sections the host reads; none from a file that is not a JSON object.</summary>
     internal IReadOnlyDictionary<string, string> Values()
     {
         var values = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var section in Read() ?? new JsonObject())
+        foreach (var section in Read() is { } root ? root : Enumerable.Empty<KeyValuePair<string, JsonNode?>>())
         {
-            foreach (var entry in section.Value as JsonObject ?? new JsonObject())
+            foreach (var entry in SectionEntries(section.Value).Where(entry => entry.Value is JsonValue))
             {
-                if (entry.Value is JsonValue value)
-                {
-                    values[$"{section.Key}:{entry.Key}"] = value.ToString();
-                }
+                values[$"{section.Key}:{entry.Key}"] = entry.Value!.ToString();
             }
         }
 
         return values;
     }
 
-    private static bool TrySet(JsonObject root, string section, string name, string value)
-    {
-        if (root[section] is not (null or JsonObject))
-        {
-            return false;
-        }
+    private static IEnumerable<KeyValuePair<string, JsonNode?>> SectionEntries(JsonNode? section) =>
+        section is JsonObject entries ? entries : Enumerable.Empty<KeyValuePair<string, JsonNode?>>();
 
-        var target = root[section] as JsonObject ?? new JsonObject();
-        target[name] = value;
-        root[section] = target;
-        return true;
+    private static bool TrySet(JsonNode root, string section, string name, string value)
+    {
+        switch (root[section])
+        {
+            case null:
+                root[section] = new JsonObject { [name] = value };
+                return true;
+            case JsonObject target:
+                target[name] = value;
+                return true;
+            default:
+                return false;
+        }
     }
 
     private JsonObject? Read()
     {
         try
         {
-            return File.Exists(path) ? JsonNode.Parse(File.ReadAllText(path)) as JsonObject : new JsonObject();
+            return JsonNode.Parse(File.Exists(path) ? File.ReadAllText(path) : "{}") as JsonObject;
         }
         catch (JsonException)
         {
             return null;
         }
+    }
+
+    /// <summary>Writes the new file already with the mode of the old one, or readable by its owner alone when there is none, so that it is never readable by others, not even for an instant.</summary>
+    private void Create(string written, string content)
+    {
+        File.Delete(written);
+        var options = new FileStreamOptions { Mode = FileMode.CreateNew, Access = FileAccess.Write };
+        if (!OperatingSystem.IsWindows())
+        {
+            options.UnixCreateMode = File.Exists(path) ? File.GetUnixFileMode(path) : UnixFileMode.UserRead | UnixFileMode.UserWrite;
+        }
+
+        using var stream = new FileStream(written, options);
+        stream.Write(new UTF8Encoding(encoderShouldEmitUTF8Identifier: false).GetBytes(content));
     }
 
     private void Replace(string written)

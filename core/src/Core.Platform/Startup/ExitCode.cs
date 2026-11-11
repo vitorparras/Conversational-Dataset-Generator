@@ -115,8 +115,8 @@ public enum ExitCode
     RestoreRefused = 36,
 
     /// <summary>The applier of the configuration was refused and nothing was written: its file, its commands or its credential of the database did not hold.</summary>
-    ApplierRefused = 37,
+    ApplierRefused = 42,
 
     /// <summary>The applier could not talk to the database, or applied and the restart of the core did not happen.</summary>
-    ApplierFailed = 38,
+    ApplierFailed = 43,
 }

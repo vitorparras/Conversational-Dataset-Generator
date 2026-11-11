@@ -101,6 +101,6 @@ public sealed class AccountScreensRouteTests
         Assert.Contains("Firefox no Windows", page, StringComparison.Ordinal);
         Assert.Contains("Chrome no Android", page, StringComparison.Ordinal);
         Assert.Contains("Esta sessão", page, StringComparison.Ordinal);
-        Assert.True(page.IndexOf("Aparelho", StringComparison.Ordinal) < page.IndexOf("Início", StringComparison.Ordinal));
+        Assert.True(page.IndexOf("Aparelho", StringComparison.Ordinal) < page.IndexOf("In&#xED;cio", StringComparison.Ordinal));
     }
 }

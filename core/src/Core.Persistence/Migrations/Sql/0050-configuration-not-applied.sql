@@ -1,6 +1,5 @@
--- PROVISIONAL NUMBER: the definitive one is taken when the pull request opens, after the change in force (0045).
 -- An approved change of configuration that will never be applied (issue 748; decision 0053): the core, which runs the same rules as the applier, writes one event, by the system, that says why:
--- the item is the submission and the reference is the code of the reason and the sequence of the event of the approval. Only the checks change, from the last ones the 0045 left: everything they
+-- the item is the submission and the reference is the code of the reason and the sequence of the event of the approval. Only the checks change, from the last ones the 0047 and the 0049 left: everything they
 -- list and every clause they fix stays, and the new step comes in beside it.
 ALTER TABLE public.custody_event
     DROP CONSTRAINT custody_event_step_listed,
@@ -13,7 +12,7 @@ ALTER TABLE public.custody_event
          'sign_in_accepted', 'sign_in_refused', 'credential_recomputed', 'key_loss_declared', 'recovery_tested', 'verify_guarantees',
          'owner_window_opened', 'owner_window_closed', 'restored', 'restore_rehearsed', 'domain_label_revoked', 'domain_rewrapped',
          'batch_opened', 'batch_closed', 'password_changed', 'configuration_submitted', 'origin_read', 'configuration_approved', 'configuration_refused',
-         'configuration_in_force', 'configuration_not_applied')),
+         'configuration_in_force', 'person_email_corrected', 'configuration_not_applied')),
     ADD CONSTRAINT custody_event_configuration_shape CHECK (
         (step IN ('configuration_submitted', 'configuration_approved', 'configuration_refused', 'configuration_in_force', 'configuration_not_applied')) = (item_kind = 'configuration_change')
         AND (item_kind <> 'configuration_change'

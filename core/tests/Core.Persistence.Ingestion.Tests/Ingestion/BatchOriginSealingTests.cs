@@ -56,7 +56,7 @@ public sealed class BatchOriginSealingTests
             Assert.Throws<ArgumentOutOfRangeException>(() => OriginDeclaration.Declared(custody.Content, IngestionWorld.Domain, new string('a', OriginDeclaration.MostCharacters + 1))).ParamName,
         ];
 
-        Assert.Equal(["sealing", "text", "text", "text"], refused);
+        Assert.Equal(["sealing", "text", "text", "text.Length"], refused);
         Assert.Equal("declared", OriginDeclaration.Declared(custody.Content, IngestionWorld.Domain, new string('a', OriginDeclaration.MostCharacters)).State);
     }
 
@@ -68,12 +68,12 @@ public sealed class BatchOriginSealingTests
         var declared = OriginDeclaration.Declared(custody.Content, IngestionWorld.Domain, Origin);
 
         var batch = await OpenAsync(world, declared);
-        var stored = (string?)await world.ScalarAsync(OriginRow);
+        var stored = (string?)await world.InDomainAsync(IngestionWorld.Domain, OriginRow);
 
         Assert.Equal($"{IngestionWorld.Domain}|{batch}|{declared.Key!.Epoch}|{declared.Content!.Envelope.Length}|{declared.Key.Wrapped.Length}", stored);
-        Assert.Equal("declared", await world.ScalarAsync(OriginState, ("id", batch)));
-        Assert.Equal(declared.Content.Envelope.ToArray(), (byte[]?)await world.ScalarAsync("SELECT origin FROM content.batch_origin WHERE batch_id = @id", ("id", batch)));
-        Assert.Equal(declared.Key.Wrapped.ToArray(), (byte[]?)await world.ScalarAsync("SELECT dek_wrapped FROM content.batch_origin WHERE batch_id = @id", ("id", batch)));
+        Assert.Equal("declared", await world.InDomainAsync(IngestionWorld.Domain, OriginState, ("id", batch)));
+        Assert.Equal(declared.Content.Envelope.ToArray(), (byte[]?)await world.InDomainAsync(IngestionWorld.Domain, "SELECT origin FROM content.batch_origin WHERE batch_id = @id", ("id", batch)));
+        Assert.Equal(declared.Key.Wrapped.ToArray(), (byte[]?)await world.InDomainAsync(IngestionWorld.Domain, "SELECT dek_wrapped FROM content.batch_origin WHERE batch_id = @id", ("id", batch)));
     }
 
     [DatabaseFact]
@@ -85,8 +85,8 @@ public sealed class BatchOriginSealingTests
         var notKept = await OpenAsync(world, OriginDeclaration.DeclaredNotKept);
 
         Assert.Equal(
-            ("unknown", "declared", 0L),
-            (await world.ScalarAsync(OriginState, ("id", unknown)), await world.ScalarAsync(OriginState, ("id", notKept)), await world.ScalarAsync("SELECT count(*) FROM content.batch_origin")));
+            ("unknown", "declared", "0"),
+            (await world.InDomainAsync(IngestionWorld.Domain, OriginState, ("id", unknown)), await world.InDomainAsync(IngestionWorld.Domain, OriginState, ("id", notKept)), await world.InDomainAsync(IngestionWorld.Domain, "SELECT count(*)::text FROM content.batch_origin")));
     }
 
     [DatabaseFact]
@@ -106,7 +106,7 @@ public sealed class BatchOriginSealingTests
     }
 
     private static async Task<object?> CountsAsync(BatchesWorld world) =>
-        await world.ScalarAsync("SELECT (SELECT count(*) FROM content.replication_occurrence) || ',' || (SELECT count(*) FROM content.replication_mark)");
+        await world.InDomainAsync(IngestionWorld.Domain, "SELECT (SELECT count(*) FROM content.replication_occurrence) || ',' || (SELECT count(*) FROM content.replication_mark)");
 
     private static async Task<long> OpenAsync(BatchesWorld world, OriginDeclaration origin)
     {

@@ -17,13 +17,12 @@ são da [0051](../decisoes/0051-navegacao-gestao-e-relatorio.md); a tecnologia e
 |---|---|---|
 | Toda pessoa | Entrar, ver o que alcança, trabalhar, sair | [014](014-telas-entrada-sessao-e-conta.md) |
 | Administração técnica | Cadastrar pessoas, repor senha por link, ver domínios, estado e custódia, alterar a configuração com aprovação | [015](015-telas-administracao-tecnica.md) |
-| Curadoria do acervo | Submeter, acompanhar, revisar, ler o acervo, declarar campanha, pedir exportação e reversão, autorizar a reversão de outra pessoa, decidir relatos de dado pessoal | [016](016-telas-ingestao-e-acervo.md), [019](019-telas-campanha-avaliacao-e-parecer.md), [020](020-telas-exportacao-e-comparacao.md) |
+| Curadoria do acervo | Submeter, acompanhar, revisar, ler o acervo, declarar campanha, pedir exportação e reversão, autorizar a reversão de outra pessoa, decidir relatos de dado pessoal, esvaziar um item por identificador | [016](016-telas-ingestao-e-acervo.md), [017](017-telas-reversao-esvaziamento-e-relatos.md), [019](019-telas-campanha-avaliacao-e-parecer.md), [020](020-telas-exportacao-e-comparacao.md) |
 | Anotação | Lista de trabalho, anotar, relatar dado pessoal | [018](018-telas-anotacao-e-arbitragem.md) |
 | Arbitragem | Fila de divergências, arbitrar às cegas | [018](018-telas-anotacao-e-arbitragem.md) |
 | Avaliação | Andamento, concordância, parecer do recorte | [019](019-telas-campanha-avaliacao-e-parecer.md) |
 | Auditoria | Eventos e acessos, registro do servidor, conferir a custódia | [021](021-telas-auditoria.md), [015](015-telas-administracao-tecnica.md) |
 | Quem responde pelo acervo | Conceder, renovar e revogar acesso (nunca a si mesmo); aprovar exportação | [015](015-telas-administracao-tecnica.md), [020](020-telas-exportacao-e-comparacao.md) |
-| Função própria do esvaziamento | Esvaziar um item por identificador | [017](017-telas-reversao-esvaziamento-e-relatos.md) |
 
 ## Áreas
 

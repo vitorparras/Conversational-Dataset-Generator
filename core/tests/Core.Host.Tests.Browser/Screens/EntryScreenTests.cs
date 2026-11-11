@@ -42,6 +42,9 @@ public sealed class EntryScreenTests(BrowserFixture browser, EntryHostFixture en
         await FillAsync(tab.Page, entry.Host.Name, "zqx-senha-errada");
         await tab.Page.Locator("#entrar").ClickAsync();
         await Expect(tab.Page.GetByText(Refusal)).ToBeVisibleAsync();
+        await Expect(tab.Page.GetByText("peça a reposição a quem administra o sistema")).ToBeVisibleAsync();
+        await Expect(tab.Page.GetByRole(AriaRole.Heading, new() { Name = "Entrar", Level = 1 })).ToBeVisibleAsync();
+        await Expect(tab.Page).ToHaveTitleAsync(new Regex("^Entrar"));
         await AccessibilityCheck.AssertNoViolationsAsync(tab.Page);
         await ModeCapture.SaveAsync(tab.Page, mode, "entrada-recusa");
 

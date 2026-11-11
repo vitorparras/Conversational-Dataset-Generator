@@ -219,5 +219,9 @@ public sealed class ThreeFormsTests
             indexes.Add(utf16Index);
             return real.SplitsPair(text, utf16Index);
         }
+
+        public string Slice(string text, Occurrence occurrence) => real.Slice(text, occurrence);
+
+        public int CodePointCount(string text) => real.CodePointCount(text);
     }
 }

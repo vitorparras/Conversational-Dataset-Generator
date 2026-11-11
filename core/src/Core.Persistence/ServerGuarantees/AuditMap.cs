@@ -25,6 +25,7 @@ public static class AuditMap
             [CustodyStep.PersonCreated, CustodyStep.PersonDeactivated, CustodyStep.PersonFunctionChanged, CustodyStep.PersonPasswordSet, CustodyStep.PasswordChanged]),
         new("content.item_text", ["SELECT"], [CustodyStep.RawTextRead, CustodyStep.SanitizedTextRead]),
         new("content.reversal_map", ["SELECT"], [CustodyStep.ReversalEntriesRead]),
+        new("content.batch_origin", Of("SELECT"), Of(CustodyStep.OriginRead)),
         new("content.item_text", [Update], [CustodyStep.ItemEmptied]),
         new("content.reversal_map", [Update], [CustodyStep.ItemEmptied]),
         new("content.ingestion_batch", Of(Insert), Of(CustodyStep.BatchOpened)),
@@ -53,5 +54,10 @@ public static class AuditMap
         [CustodyStep.OwnerWindowClosed] = "o fechamento da janela grava só o veredito na cadeia, depois de verificar a cadeia e conferir as garantias",
         [CustodyStep.Restored] = "a restauração grava as linhas pelas funções do dono, que a cadeia não vê, e termina com este evento depois de verificar a cadeia e conferir as garantias",
         [CustodyStep.RestoreRehearsed] = "o ensaio lê a cadeia (CustodyVerifier) e o catálogo e grava só o resultado nela: não toca tabela de domínio",
+        [CustodyStep.ConfigurationApproved] = "a decisão sobre uma alteração de configuração é só o evento na cadeia, que aponta a submissão: não toca tabela de domínio nem o arquivo",
+        [CustodyStep.ConfigurationRefused] = "a recusa de uma alteração de configuração é só o evento na cadeia, que aponta a submissão: não toca tabela de domínio nem o arquivo",
+        [CustodyStep.ConfigurationInForce] = "o valor em vigor é só o evento na cadeia, escrito pelo núcleo ao partir com o valor aprovado: não toca tabela de domínio nem o arquivo",
+        [CustodyStep.PersonEmailCorrected] =
+            "a tabela public.person_email fica fora do mapa: a própria pessoa muda o endereço sem passo da cadeia (política 009), e os comandos do log não casam com os eventos",
     };
 }

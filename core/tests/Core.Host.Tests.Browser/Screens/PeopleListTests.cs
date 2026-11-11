@@ -29,7 +29,11 @@ public sealed class PeopleListTests(BrowserFixture browser, PeopleHostFixture pe
         Assert.Contains(rows, row => row[2] == "Inativa");
         Assert.Contains(rows, row => row[2] == "Ativa");
         await Expect(tab.Page.Locator("#lista-titulo")).ToHaveTextAsync($"{rows.Count} pessoas");
-        await Expect(tab.Page.Locator(".paged-list a, .paged-list button, .paged-list input")).ToHaveCountAsync(0);
+        var links = tab.Page.Locator(".paged-list a, .paged-list button, .paged-list input");
+        var names = await links.AllInnerTextsAsync();
+        Assert.Equal(rows.Count(row => row[2] == "Ativa"), names.Count);
+        Assert.All(names, name => Assert.StartsWith("E-mail de ", name, StringComparison.Ordinal));
+        Assert.All(names, name => Assert.DoesNotContain('@', name));
         Assert.All(await tab.Page.Locator(".paged-list li").AllInnerTextsAsync(), text => Assert.DoesNotMatch(@"\d{4}|senha|domínio|conteúdo", text));
     }
 
@@ -47,11 +51,24 @@ public sealed class PeopleListTests(BrowserFixture browser, PeopleHostFixture pe
     }
 
     [Fact]
+    public async Task TheFilterIsFoldedUntilItIsInUseAndThenItOpensItselfAndSaysSo()
+    {
+        await using var folded = await OpenAsync(browser, people.Host, people.Host.Administrator, List);
+        await using var inUse = await OpenAsync(browser, people.Host, people.Host.Administrator, $"{Listed}&estado=ativas");
+
+        await Expect(folded.Page.Locator("details#filtro")).Not.ToHaveAttributeAsync("open", new Regex(".*"));
+        await Expect(folded.Page.Locator("#filtro > summary")).ToHaveTextAsync("Filtrar por nome, função e estado");
+        await Expect(inUse.Page.Locator("details#filtro")).ToHaveAttributeAsync("open", new Regex(".*"));
+        await Expect(inUse.Page.Locator("#filtro > summary")).ToContainTextAsync("(filtro em uso)");
+    }
+
+    [Fact]
     public async Task TheFunctionTheFormFiltersByAndTheAddressKeepsLeavesOnlyThePeopleOfThatFunction()
     {
         await using var tab = await OpenAsync(browser, people.Host, people.Host.Administrator, List);
         var function = PeopleScreenHost.Listed[1].Function;
 
+        await tab.Page.Locator("#filtro > summary").ClickAsync();
         await tab.Page.Locator("#filtro-nome").FillAsync("zqx-lista-");
         _ = await tab.Page.Locator("#filtro-funcao").SelectOptionAsync(function);
         await tab.Page.Locator("#filtrar").ClickAsync();
@@ -175,6 +192,7 @@ public sealed class PeopleListTests(BrowserFixture browser, PeopleHostFixture pe
         var order = new List<string>();
         var seen = new List<bool>();
 
+        await tab.Page.Locator("#filtro > summary").ClickAsync();
         await tab.Page.Locator("#filtro-nome").FocusAsync();
         await tab.Page.Keyboard.PressAsync("Shift+Tab");
         order.Add(await tab.Page.EvaluateAsync<string>(Focused));
@@ -186,7 +204,7 @@ public sealed class PeopleListTests(BrowserFixture browser, PeopleHostFixture pe
             seen.Add(await tab.Page.EvaluateAsync<bool>(FocusIsSeen));
         }
 
-        Assert.Equal(["Cadastrar pessoa", "filtro-funcao", "filtro-estado", "filtrar", "Limpar filtro"], order);
+        Assert.Equal(["Filtrar por nome, função e estado", "filtro-funcao", "filtro-estado", "filtrar", "Limpar filtro"], order);
         Assert.DoesNotContain(false, seen);
         await tab.Page.Locator("#filtro-nome").FocusAsync();
         await tab.Page.Keyboard.TypeAsync("zqx-lista-0");

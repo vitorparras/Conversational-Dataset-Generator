@@ -9,6 +9,9 @@ internal static class HeaderStops
     /// <summary>How a stop is read: its identifier, or its class when it has none; the body when nothing holds the focus.</summary>
     public const string FocusedId = "() => document.activeElement === document.body ? 'body' : (document.activeElement.id || document.activeElement.className)";
 
+    /// <summary>The stop of a table the keyboard scrolls, as <see cref="FocusedId"/> reads it: the class of its region, which stacks its rows on a phone.</summary>
+    public const string TableStop = "data-table data-table--stacks";
+
     /// <summary>The stops as <see cref="FocusedId"/> reads them: the link that skips to the content, the name of the system, the link of the own account and the button that leaves.</summary>
     public static IReadOnlyList<string> Signed { get; } = ["skip-link", "header__name", "nav__link header__account", "sair"];
 

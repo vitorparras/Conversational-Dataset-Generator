@@ -1,7 +1,7 @@
 namespace Core.Boundary.Contracts;
 
 /// <summary>
-/// What the core asks about where a text can be cut. The question is answered in one place of the boundary, the one that knows what a code point is,
+/// What the core asks about where a text can be cut and what an occurrence points at. The questions are answered in one place of the boundary, the one that knows what a code point is,
 /// so that no other code of the core counts them.
 /// </summary>
 public interface ITextBoundaries
@@ -11,4 +11,14 @@ public interface ITextBoundaries
     /// <param name="utf16Index">An index of the text as the core holds it, from zero to its length.</param>
     /// <exception cref="ArgumentOutOfRangeException">The index is outside the text.</exception>
     bool SplitsPair(string text, int utf16Index);
+
+    /// <summary>The span of the text an occurrence points at, exactly the code points the service analysed.</summary>
+    /// <param name="text">The text that was sent to the service.</param>
+    /// <param name="occurrence">An occurrence the service found in that text, with its offsets in code points.</param>
+    /// <exception cref="ArgumentOutOfRangeException">The occurrence ends before it starts or falls outside the text.</exception>
+    string Slice(string text, Occurrence occurrence);
+
+    /// <summary>How many code points the text has, which is what a length is in the core: a surrogate pair counts as one.</summary>
+    /// <param name="text">The text to count.</param>
+    int CodePointCount(string text);
 }

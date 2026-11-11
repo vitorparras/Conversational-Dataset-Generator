@@ -17,10 +17,6 @@ namespace Core.Persistence.Ingestion;
 /// </summary>
 public sealed class IngestionBatches
 {
-    private const int StateColumn = 0;
-    private const int MotiveColumn = 1;
-    private const int OpenedByColumn = 2;
-    private const int ConditionColumn = 3;
     private const string AuthorConstraint = "ingestion_batch_opened_by_fkey";
 
     private readonly NpgsqlDataSource dataSource;
@@ -42,6 +38,7 @@ public sealed class IngestionBatches
     /// The batch takes the condition the opening declares, which must be one the installation
     /// knows; when it declares none, the batch takes the most restrictive one, and never the most permissive.
     /// A condition the installation does not know refuses the opening, and the result says the value found and the ones accepted.
+    /// A batch opened with a motive to be rejected is opened and rejected in one transaction, with the two events of the chain, and the result says it was rejected.
     /// </summary>
     /// <param name="opening">The domain, the person and the condition, if declared.</param>
     /// <param name="cancellationToken">Cancels the opening.</param>
@@ -50,6 +47,11 @@ public sealed class IngestionBatches
         ArgumentNullException.ThrowIfNull(opening);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(opening.DomainId);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(opening.AuthorId);
+        if (opening.RejectedFor is { } motive && !CustodyEvent.IsBatchMotive(motive))
+        {
+            return Task.FromResult(new BatchResult { Outcome = BatchOutcome.MotiveRefused });
+        }
+
         return opening.Condition is { } declared && conditions.RankOf(declared) < 0
             ? Task.FromResult(new BatchResult { Outcome = BatchOutcome.ConditionUnknown, ConditionFound = declared, ConditionsAccepted = conditions.Names })
             : OpeningAsync(opening with { Condition = opening.Condition ?? conditions.MostRestrictive }, cancellationToken);
@@ -116,7 +118,8 @@ public sealed class IngestionBatches
     {
         var run = new StrongBox<(long Batch, BatchOutcome? Failure)>();
         var recorded = await CustodyTransaction.RunAsync(dataSource, scope => OpenInAsync(scope, opening, run, cancellationToken), cancellationToken).ConfigureAwait(false);
-        return run.Value.Failure is { } outcome ? new BatchResult { Outcome = outcome } : Answered(recorded, BatchOutcome.Opened, run.Value.Batch);
+        var done = opening.RejectedFor is null ? BatchOutcome.Opened : BatchOutcome.Rejected;
+        return run.Value.Failure is { } outcome ? new BatchResult { Outcome = outcome } : Answered(recorded, done, run.Value.Batch);
     }
 
     private static async Task<CustodyResult?> OpenInAsync(
@@ -125,7 +128,7 @@ public sealed class IngestionBatches
         await DeclareDomainAsync(scope, opening.DomainId, cancellationToken).ConfigureAwait(false);
         try
         {
-            run.Value = (await InsertAsync(scope, opening, cancellationToken).ConfigureAwait(false), null);
+            run.Value = (await BatchInsertion.InsertAsync(scope, opening, cancellationToken).ConfigureAwait(false), null);
         }
         catch (PostgresException refused) when (refused.SqlState == PostgresErrorCodes.ForeignKeyViolation)
         {
@@ -134,30 +137,25 @@ public sealed class IngestionBatches
         }
 
         var appended = await CustodyAppend.AppendAsync(scope, CustodyEvent.BatchOpened(opening.AuthorId, run.Value.Batch), cancellationToken).ConfigureAwait(false);
+        if (appended.Outcome == CustodyOutcome.Appended && opening.RejectedFor is { } motive)
+        {
+            var batch = run.Value.Batch;
+            var rejection = new Closing(new BatchClosing(opening.DomainId, batch, CustodyAuthor.System), CustodyEvent.BatchRejected(CustodyAuthor.System, batch, motive), "rejected", motive);
+            appended = await RejectInAsync(scope, rejection, cancellationToken).ConfigureAwait(false);
+        }
+
         return await CustodyAppend.CommitIfAppendedAsync(scope, appended, cancellationToken).ConfigureAwait(false);
     }
 
-    private static void AddReceipt(NpgsqlCommand command, SubmissionReceipt? receipt)
+    private static async Task<CustodyResult> RejectInAsync(CustodyScope scope, Closing rejection, CancellationToken cancellationToken)
     {
-        _ = command.Parameters.Add(Nullable("submission", NpgsqlDbType.Text, receipt?.Submission));
-        _ = command.Parameters.Add(Nullable("bytes", NpgsqlDbType.Bigint, receipt?.Bytes));
-        _ = command.Parameters.Add(Nullable("digest", NpgsqlDbType.Text, receipt?.Digest));
-        _ = command.Parameters.Add(Nullable("warning", NpgsqlDbType.Text, receipt?.Warning));
-    }
-
-    private static NpgsqlParameter Nullable(string name, NpgsqlDbType type, object? value) => new(name, type) { Value = value ?? DBNull.Value };
-
-    private static async Task<long> InsertAsync(CustodyScope scope, BatchOpening opening, CancellationToken cancellationToken)
-    {
-        var command = scope.CreateCommand(ContentQueries.InsertIngestionBatch);
-        await using (command.ConfigureAwait(false))
+        var appended = await CustodyAppend.AppendAsync(scope, rejection.Event, cancellationToken).ConfigureAwait(false);
+        if (appended.Outcome == CustodyOutcome.Appended)
         {
-            _ = command.Parameters.Add(new NpgsqlParameter("domain", NpgsqlDbType.Integer) { Value = opening.DomainId });
-            _ = command.Parameters.Add(Id("author", opening.AuthorId));
-            _ = command.Parameters.Add(new NpgsqlParameter("condition", NpgsqlDbType.Text) { Value = opening.Condition });
-            AddReceipt(command, opening.Receipt);
-            return (long)(await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false))!;
+            await ChangeAsync(scope, rejection, cancellationToken).ConfigureAwait(false);
         }
+
+        return appended;
     }
 
     private async Task<BatchResult> ClosingAsync(Closing closing, CancellationToken cancellationToken)
@@ -172,7 +170,7 @@ public sealed class IngestionBatches
     private static async Task<CustodyResult?> CloseInAsync(CustodyScope scope, Closing closing, StrongBox<BatchOutcome?> early, CancellationToken cancellationToken)
     {
         await DeclareDomainAsync(scope, closing.Request.DomainId, cancellationToken).ConfigureAwait(false);
-        var held = await ReadStateAsync(scope, closing.Request.BatchId, cancellationToken).ConfigureAwait(false);
+        var held = await BatchStateReading.ReadAsync(scope, closing.Request.BatchId, cancellationToken).ConfigureAwait(false);
         if (held is not { } current || current.State != BatchState.Open)
         {
             early.Value = held is null ? BatchOutcome.NotFound : BatchOutcome.AlreadyClosed;
@@ -202,6 +200,8 @@ public sealed class IngestionBatches
 
         if (closing.Motive is not null)
         {
+            await RemoveAsync(scope, ContentQueries.RemoveBatchMarks, closing.Request.BatchId, cancellationToken).ConfigureAwait(false);
+            await RemoveAsync(scope, ContentQueries.RemoveBatchOccurrences, closing.Request.BatchId, cancellationToken).ConfigureAwait(false);
             await RemoveAsync(scope, ContentQueries.RemoveBatchMaps, closing.Request.BatchId, cancellationToken).ConfigureAwait(false);
             await RemoveAsync(scope, ContentQueries.RemoveBatchItems, closing.Request.BatchId, cancellationToken).ConfigureAwait(false);
         }
@@ -217,30 +217,12 @@ public sealed class IngestionBatches
         }
     }
 
-    private static async Task<IngestionBatch?> ReadStateAsync(CustodyScope scope, long batchId, CancellationToken cancellationToken)
-    {
-        var command = scope.CreateCommand(ContentQueries.ReadIngestionBatch);
-        await using (command.ConfigureAwait(false))
-        {
-            _ = command.Parameters.Add(Id("id", batchId));
-            var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-            await using (reader.ConfigureAwait(false))
-            {
-                return await reader.ReadAsync(cancellationToken).ConfigureAwait(false)
-                    ? new IngestionBatch(StateOf(reader.GetString(StateColumn)), reader[MotiveColumn] as string, reader.GetInt64(OpenedByColumn), reader.GetString(ConditionColumn))
-                    : null;
-            }
-        }
-    }
-
-    private static BatchState StateOf(string state) => Enum.Parse<BatchState>(state, ignoreCase: true);
-
     private async Task<IngestionBatch?> ReadingAsync(int domainId, long batchId, CancellationToken cancellationToken)
     {
         var transaction = await ContentTransaction.BeginAsync(dataSource, domainId, cancellationToken).ConfigureAwait(false);
         await using (transaction.ConfigureAwait(false))
         {
-            return await ReadStateAsync(transaction.AsCustodyScope(), batchId, cancellationToken).ConfigureAwait(false);
+            return await BatchStateReading.ReadAsync(transaction.AsCustodyScope(), batchId, cancellationToken).ConfigureAwait(false);
         }
     }
 

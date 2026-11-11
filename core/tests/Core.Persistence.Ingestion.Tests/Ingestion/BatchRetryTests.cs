@@ -51,6 +51,31 @@ public sealed class BatchRetryTests
     }
 
     [Fact]
+    public async Task TheWaitBetweenTheAttemptsFollowsTheCancellationOfTheCallerAndNoAttemptIsMadeAfterIt()
+    {
+        using var cancelled = new CancellationTokenSource();
+        await cancelled.CancelAsync();
+        var made = 0;
+
+        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => BatchRetry.RunAsync(() => Task.FromResult(Count(ref made, Collided)), BatchRetry.Attempts, cancelled.Token));
+
+        Assert.Equal(1, made);
+    }
+
+    [Fact]
+    public async Task TheWaitBetweenTwoAttemptsIsNeverShorterThanTheShortestWait()
+    {
+        var made = 0;
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+
+        _ = await BatchRetry.RunAsync(() => Task.FromResult(Count(ref made, made < 2 ? Collided : Written)), BatchRetry.Attempts, TestContext.Current.CancellationToken);
+        watch.Stop();
+
+        Assert.True(watch.ElapsedMilliseconds >= 15, $"Two waits of at least ten milliseconds took {watch.ElapsedMilliseconds} ms.");
+    }
+
+    [Fact]
     public void OnlyTheNotRecordedForAConflictIsACollision() =>
         Assert.Equal((false, false, true), (Written.Collided, Refused.Collided, Collided.Collided));
 

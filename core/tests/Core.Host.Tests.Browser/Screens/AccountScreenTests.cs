@@ -209,7 +209,7 @@ public sealed class AccountScreenTests(BrowserFixture browser, AccountHostFixtur
             .Where(node => !node.TryGetProperty("ignored", out var ignored) || !ignored.GetBoolean())
             .Select(node => node.TryGetProperty("role", out var role) ? role.GetProperty("value").GetString() : null)
             .ToList();
-        Assert.Equal((1, 3, 3, 2, 4), (roles.Count(role => role == "table"), roles.Count(role => role == "row"), roles.Count(role => role == "columnheader"),
+        Assert.Equal((1, 3, 4, 2, 6), (roles.Count(role => role == "table"), roles.Count(role => role == "row"), roles.Count(role => role == "columnheader"),
             roles.Count(role => role == "rowheader"), roles.Count(role => role == "cell")));
     }
 

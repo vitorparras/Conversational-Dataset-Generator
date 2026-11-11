@@ -30,7 +30,7 @@
                         }
                         else
                         {
-                            <a href="@EndAddress(session)">Encerrar<span class="visually-hidden"> a sessão iniciada em <Moment At="session.Start" /></span></a>
+                            <a href="@EndAddress(session)">Encerrar<span class="visually-hidden"> a sessão de @session.Device iniciada em <Moment At="session.Start" /></span></a>
                         }
                     </td>
                 </tr>
@@ -56,7 +56,7 @@
 
     private static readonly string[] Columns = { "Aparelho", "Início", "Última atividade", "Ação" };
 
-    /// <summary>The open sessions of the one who entered, the current one marked; the browser and system only, no network address.</summary>
+    /// <summary>The open sessions of the one who entered, the current one marked; only a short description of the browser and the system, nothing of the network.</summary>
     [Parameter, EditorRequired]
     public IReadOnlyList<SessionListing> Sessions { get; set; } = Array.Empty<SessionListing>();
 

@@ -1,7 +1,7 @@
 name: Construir a imagem do banco de teste
 description: >-
   Constrói uma vez a imagem de tools/database e a entrega pelo nome em TEST_DATABASE_IMAGE, para que os projetos de teste a usem
-  sem construí-la cada um. Se a construção cai, cai aqui, com o log dela.
+  sem construí-la cada um. Se a construção cai, cai aqui, com o log dela e, no resumo do job, as linhas `E:` do apt.
 
 runs:
   using: composite
@@ -9,5 +9,17 @@ runs:
     - name: Construir a imagem com o log inteiro
       shell: bash
       run: |
-        python3 tools/verify-code/retry.py -- docker build --progress=plain --tag cdg-test-database:ci tools/database
+        set -o pipefail
+        log="$RUNNER_TEMP/database-image-build.log"
+        if ! python3 tools/verify-code/retry.py -- docker build --progress=plain --tag cdg-test-database:ci tools/database 2>&1 | tee "$log"; then
+          {
+            echo '### A imagem do banco de teste não foi construída'
+            echo
+            echo '```'
+            grep -E '^(#[0-9]+ +[0-9.]+ +)?E: ' "$log" | sed -E 's/^#[0-9]+ +[0-9.]+ +//' | awk '!seen[$0]++' \
+              || echo 'o apt não escreveu nenhuma linha `E:`; a causa está no fim do log do build'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+        fi
         echo "TEST_DATABASE_IMAGE=cdg-test-database:ci" >> "$GITHUB_ENV"

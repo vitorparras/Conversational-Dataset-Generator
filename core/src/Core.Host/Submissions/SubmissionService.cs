@@ -1,7 +1,5 @@
 using Core.Ingestion.Entrance;
-using Core.Persistence.Custody;
 using Core.Persistence.Ingestion;
-using Core.Persistence.Recovery;
 using Npgsql;
 
 namespace Core.Host.Submissions;
@@ -40,16 +38,7 @@ internal sealed class SubmissionService
 
     /// <summary>Whether the ingestion takes material in: open, or blocked by the code of what is missing (decision 0014).</summary>
     /// <param name="cancellationToken">Cancels the question.</param>
-    internal async Task<SubmissionGateStatus> GateAsync(CancellationToken cancellationToken)
-    {
-        var status = await RecoveryGate.StatusAsync(dataSource, cancellationToken).ConfigureAwait(false);
-        if (status.Tested)
-        {
-            return new SubmissionGateStatus(true, null);
-        }
-
-        return new SubmissionGateStatus(false, status.Missing == RecoveryGate.StaleWords ? "recovery_rehearsal_stale" : "recovery_not_rehearsed");
-    }
+    internal Task<SubmissionGateStatus> GateAsync(CancellationToken cancellationToken) => new IntakeDoor(dataSource).StatusAsync(cancellationToken);
 
     /// <summary>
     /// Takes a file in: validates the fields, passes the file through the barrier and the conference, and records the submission in a batch,
@@ -67,13 +56,21 @@ internal sealed class SubmissionService
             : SubmittingAsync(request, cancellationToken);
     }
 
+    /// <summary>The fields of the request that are missing or invalid, by name and by code; none when the request can be taken in.</summary>
+    /// <param name="request">The request, whose file is not read.</param>
+    internal IReadOnlyList<FieldProblem> Check(SubmissionRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return Problems(request);
+    }
+
     /// <summary>The batches of the domains granted, newest first, by state and by period, in a page the server cuts and never larger than the most a page may hold.</summary>
     /// <param name="filter">The domains granted, the state, the period and the page.</param>
     /// <param name="cancellationToken">Cancels the reading.</param>
     internal Task<IReadOnlyList<BatchEntry>> ListAsync(BatchFilter filter, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(filter);
-        return register.ListAsync(filter with { Take = Math.Min(filter.Take, MostPerPage) }, cancellationToken);
+        return register.ListAsync(filter with { Take = filter.Take > MostPerPage ? MostPerPage : filter.Take }, cancellationToken);
     }
 
     /// <summary>One batch with what its submission brought, if it is in one of the domains granted.</summary>
@@ -88,16 +85,17 @@ internal sealed class SubmissionService
 
     private static bool HasSeparator(string name) => name.Contains('/', StringComparison.Ordinal) || name.Contains('\\', StringComparison.Ordinal);
 
-    private static SubmissionOutcome Answer(SubmissionResult received, long batch, SubmissionReason? reason, string? warning) => new()
+    private static SubmissionOutcome Answer(SubmissionResult received, long batch, (SubmissionReason? Reason, string? Warning) judged, string origin) => new()
     {
         Kind = SubmissionKind.Done,
         Submission = received.Id.ToString(),
         Batch = batch,
-        State = reason is null ? SubmissionState.Accepted : SubmissionState.Rejected,
-        Reason = reason,
+        State = judged.Reason is null ? SubmissionState.Accepted : SubmissionState.Rejected,
+        Reason = judged.Reason,
         Size = received.BytesRead,
         Sha256 = received.Digest,
-        Warning = warning,
+        Warning = judged.Warning,
+        Origin = origin,
     };
 
     private static FieldProblem? When(bool wrong, string field, string code) => wrong ? new FieldProblem(field, code) : null;
@@ -110,6 +108,7 @@ internal sealed class SubmissionService
             When(!Enum.IsDefined(request.DeclaredForm), "declared_form", "invalid"),
             When(string.IsNullOrWhiteSpace(request.SourceFormat), "source_format", "missing"),
             When(request.Condition is { } declared && intake.Conditions.RankOf(declared) < 0, "condition", "unknown"),
+            SubmissionOrigin.Problem(request) is { } origin ? new FieldProblem("origin", origin) : null,
         }.OfType<FieldProblem>().ToList();
         return problems;
     }
@@ -123,24 +122,44 @@ internal sealed class SubmissionService
         }
 
         var received = await intake.Gate.ReceiveAsync(new Submission(request.Content, request.SourceFormat, request.ReceivedName), cancellationToken).ConfigureAwait(false);
-        var reason = SubmissionJudgement.Of(intake, received, request.DeclaredForm);
+        return await OpeningAsync(request, received, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Judges what was received and opens the batch that keeps it, rejected with the reason when it was turned back.</summary>
+    private async Task<SubmissionOutcome> OpeningAsync(SubmissionRequest request, SubmissionResult received, CancellationToken cancellationToken)
+    {
+        var reason = SubmissionJudgement.Of(intake, received, request.DeclaredForm) ?? SubmissionStoring.Unsealed(intake.Sealing);
         var warning = HasPath(request.ReceivedName) ? NameWithPath : null;
         var receipt = new SubmissionReceipt(received.Id.ToString(), received.BytesRead, received.Digest, warning);
-        var opened = await batches.OpenAsync(new BatchOpening(request.DomainId, request.AuthorId, request.Condition, receipt), cancellationToken).ConfigureAwait(false);
-        if (opened.Outcome != BatchOutcome.Opened)
+        if (SubmissionOrigin.Opening(intake, request, receipt) is not { } opening || (reason is null && !SubmissionStoring.CanSeal(intake.Sealing, request.DomainId)))
+        {
+            return new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = BatchOutcome.DomainUnknown };
+        }
+
+        var opened = await batches.OpenAsync(opening with { RejectedFor = reason?.Code }, cancellationToken).ConfigureAwait(false);
+        if (opened.Outcome != (reason is null ? BatchOutcome.Opened : BatchOutcome.Rejected))
         {
             return new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = opened.Outcome };
         }
 
-        var batch = opened.BatchId!.Value;
-        if (reason is null)
-        {
-            return Answer(received, batch, null, warning);
-        }
-
-        var closed = await batches.RejectAsync(new BatchClosing(request.DomainId, batch, CustodyAuthor.System), reason.Code, cancellationToken).ConfigureAwait(false);
-        return closed.Outcome == BatchOutcome.Rejected
-            ? Answer(received, batch, reason, warning)
-            : new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = closed.Outcome, Batch = batch };
+        var kept = new Opened(received, opened.BatchId!.Value, warning, opening.Origin!.State);
+        return reason is null ? await StoringAsync(request, kept, cancellationToken).ConfigureAwait(false) : Turned(kept, reason);
     }
+
+    /// <summary>A file that was not turned back has its items written and is accepted, or is rejected with no item when they cannot be.</summary>
+    private async Task<SubmissionOutcome> StoringAsync(SubmissionRequest request, Opened opened, CancellationToken cancellationToken)
+    {
+        var place = new SubmissionStoring.Kept(request.DomainId, opened.Batch, opened.Received.Material!, request.DeclaredForm);
+        var kept = await SubmissionStoring.KeepAsync(batches, intake, place, cancellationToken).ConfigureAwait(false);
+        return kept
+            ? Answer(opened.Received, opened.Batch, (null, opened.Warning), opened.Origin)
+            : new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = SubmissionStoring.WriteFailed, Batch = opened.Batch };
+    }
+
+    /// <summary>What there is to say of a submission that was registered as rejected: the key that was missing is a failure of the service, not a defect of the file.</summary>
+    private static SubmissionOutcome Turned(Opened opened, SubmissionReason reason) => reason.Code == SubmissionStoring.KeyUnavailable
+        ? new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = reason.Code, Batch = opened.Batch }
+        : Answer(opened.Received, opened.Batch, (reason, opened.Warning), opened.Origin);
+
+    private sealed record Opened(SubmissionResult Received, long Batch, string? Warning, string Origin);
 }

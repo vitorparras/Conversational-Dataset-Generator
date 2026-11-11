@@ -16,6 +16,9 @@ internal enum SubmissionKind
 
     /// <summary>The batch could not be opened or could not be closed; <see cref="SubmissionOutcome.Failure" /> says why.</summary>
     NotRecorded,
+
+    /// <summary>The path could not keep the material: nothing is kept, and the code says why.</summary>
+    Unavailable,
 }
 
 /// <summary>Whether the barrier and the form accepted the material, or turned it back; both are recorded.</summary>
@@ -30,7 +33,7 @@ internal enum SubmissionState
 
 /// <summary>A field of the request that is missing or invalid, by name and by code, never by value.</summary>
 /// <param name="Field">The field.</param>
-/// <param name="Code">Why: <c>missing</c>, <c>invalid</c> or <c>unknown</c>.</param>
+/// <param name="Code">Why: <c>missing</c>, <c>invalid</c>, <c>conflict</c>, <c>too_long</c> or <c>unknown</c>.</param>
 internal sealed record FieldProblem(string Field, string Code);
 
 /// <summary>Where a refusal points: the position of the unit and the field of it, never what it says.</summary>
@@ -55,6 +58,9 @@ internal sealed record SubmissionOutcome
     /// <summary>The code of what keeps the gate closed, for <see cref="SubmissionKind.Blocked" />.</summary>
     internal string? BlockedBy { get; init; }
 
+    /// <summary>The code of what made the path unavailable, for <see cref="SubmissionKind.Unavailable"/>.</summary>
+    internal string? Code { get; init; }
+
     /// <summary>Why the batch was not recorded, for <see cref="SubmissionKind.NotRecorded" />.</summary>
     internal BatchOutcome? Failure { get; init; }
 
@@ -75,6 +81,9 @@ internal sealed record SubmissionOutcome
 
     /// <summary>The SHA-256 of the bytes read.</summary>
     internal string? Sha256 { get; init; }
+
+    /// <summary>Whether the origin was <c>declared</c> or <c>unknown</c>; the text of it is never answered.</summary>
+    internal string? Origin { get; init; }
 
     /// <summary>The code of what the service noticed and let pass, as a name that had a path in it; null when it noticed nothing.</summary>
     internal string? Warning { get; init; }

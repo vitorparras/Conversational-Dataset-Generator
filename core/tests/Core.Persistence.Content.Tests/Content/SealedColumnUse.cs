@@ -15,10 +15,10 @@ internal static partial class SealedColumnUse
     {
         var found = new List<string>();
         var names = string.Join('|', sealedColumns.Select(Regex.Escape));
-        var distinct = new Regex($@"SELECT\s+DISTINCT\s[^;]*?\b({names})\b[^;]*?\sFROM\s", RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.CultureInvariant);
+        var distinct = new Regex($@"SELECT\s+DISTINCT\s[^;]*?(?<![@\w])({names})\b[^;]*?\sFROM\s", RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.CultureInvariant);
         found.AddRange(distinct.Matches(statement).Select(match => match.Groups[1].Value));
         var carried = Assignments().Replace(InsertColumns().Replace(Projection().Replace(statement, "SELECT FROM "), "INSERT INTO t "), " SET ");
-        var uses = new Regex($@"\b({names})\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        var uses = new Regex($@"(?<![@\w])({names})\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         found.AddRange(uses.Matches(carried).Select(match => match.Groups[1].Value));
         return found;
     }

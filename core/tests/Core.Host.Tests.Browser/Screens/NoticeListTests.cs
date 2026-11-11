@@ -69,7 +69,7 @@ public sealed class NoticeListTests(BrowserFixture browser, SoundNoticeHostFixtu
 
         _ = await administrator.Page.GotoAsync(List);
 
-        await Expect(administrator.Page.Locator(".empty-state__title")).ToHaveTextAsync("Nenhum aviso novo");
+        await Expect(administrator.Page.Locator(".empty-state__title")).ToHaveTextAsync("Nenhum aviso não lido");
         _ = Assert.Single(await host.UnreadIdsOfAsync(person.Id));
     }
 
@@ -104,7 +104,7 @@ public sealed class NoticeListTests(BrowserFixture browser, SoundNoticeHostFixtu
 
         await tab.Page.GetByRole(AriaRole.Button, new() { Name = "Marcar como lido" }).ClickAsync();
 
-        await Expect(tab.Page.Locator(".empty-state__title")).ToHaveTextAsync("Nenhum aviso novo");
+        await Expect(tab.Page.Locator(".empty-state__title")).ToHaveTextAsync("Nenhum aviso não lido");
         await Expect(tab.Page.Locator("table")).ToHaveCountAsync(0);
         Assert.Equal((1, 1), await host.RecordOfAsync(person.Id));
         Assert.Empty(await host.UnreadIdsOfAsync(person.Id));
@@ -124,7 +124,7 @@ public sealed class NoticeListTests(BrowserFixture browser, SoundNoticeHostFixtu
         await Expect(count).ToHaveAttributeAsync("href", List);
         _ = await tab.Page.GotoAsync("/");
         await Expect(tab.Page.Locator(".notice a[href='/avisos']")).ToBeVisibleAsync();
-        await Expect(tab.Page.Locator("main .notice")).ToContainTextAsync("Você tem 2 avisos novos.");
+        await Expect(tab.Page.Locator("main .notice")).ToContainTextAsync("Você tem 2 avisos não lidos.");
         _ = await tab.Page.GotoAsync(List);
         await tab.Page.GetByRole(AriaRole.Button, new() { Name = "Marcar como lido" }).First.ClickAsync();
         await Expect(count).ToHaveTextAsync("1 aviso não lido");
@@ -143,7 +143,7 @@ public sealed class NoticeListTests(BrowserFixture browser, SoundNoticeHostFixtu
         await using var tab = await OpenListAsync(browser, host, person.Name);
 
         await Expect(tab.Page.Locator(".empty-state")).ToBeVisibleAsync();
-        await Expect(tab.Page.Locator(".empty-state__title")).ToHaveTextAsync("Nenhum aviso novo");
+        await Expect(tab.Page.Locator(".empty-state__title")).ToHaveTextAsync("Nenhum aviso não lido");
         await Expect(tab.Page.Locator("main form, main button, main table")).ToHaveCountAsync(0);
         await Expect(tab.Page.Locator(".notice--error, [role=alert]")).ToHaveCountAsync(0);
         await Expect(tab.Page.Locator(".header__notices")).ToHaveCountAsync(0);

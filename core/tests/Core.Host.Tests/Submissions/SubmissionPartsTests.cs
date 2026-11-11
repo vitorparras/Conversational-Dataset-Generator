@@ -15,7 +15,7 @@ public sealed class SubmissionPartsTests
 {
     private const string Declared = "zqx_sigilosa, zqx_media,zqx_livre";
 
-    private static readonly Dictionary<string, string> Values = new() { ["Ingestion:Conditions"] = Declared };
+    private static readonly Dictionary<string, string> Values = new() { ["Ingestion:Conditions"] = Declared, [AdmissionConfiguration.MaxBytesPath] = "10485760" };
 
     [DatabaseFact]
     public async Task BatchOpenedByTheServiceTakesTheFirstConditionOfTheConfiguredList()
@@ -106,6 +106,7 @@ public sealed class SubmissionPartsTests
     {
         await using var world = await SubmissionWorld.CreateAsync();
         await using var startup = new ServiceCollection().AddSingleton(world.DataSource).AddSingleton<IMasterKeySource>(new FixedKeySource(present: true)).BuildServiceProvider();
+        await world.Database.RunAsOwnerAsync("INSERT INTO public.derivation_label (label) VALUES ('texto-bruto/1/v1'), ('texto-bruto/2/v1')");
         await using var host = Hosted(startup);
         var holder = host.GetRequiredService<SubmissionServiceHolder>();
 
@@ -128,12 +129,16 @@ public sealed class SubmissionPartsTests
         await using var host = Hosted(startup);
         var holder = host.GetRequiredService<SubmissionServiceHolder>();
 
-        var absent = await holder.GetAsync(TestContext.Current.CancellationToken);
+        using var absent = await holder.GetAsync(TestContext.Current.CancellationToken);
         source.Present = true;
         using var present = await holder.GetAsync(TestContext.Current.CancellationToken);
 
-        Assert.Null(absent);
+        Assert.NotNull(absent);
+        Assert.Null(absent.Key);
+        Assert.True(absent.Unsealed.HasValue);
         Assert.NotNull(present);
+        Assert.NotNull(present.Key);
+        Assert.Null(present.Unsealed);
         Assert.Equal(2, source.Reads);
     }
 

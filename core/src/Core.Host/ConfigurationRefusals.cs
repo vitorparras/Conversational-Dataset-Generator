@@ -19,7 +19,7 @@ internal sealed class ConfigurationRefusals : BackgroundService
 
     private readonly ApprovedChanges? changes;
     private readonly ApplicationFactsReader? facts;
-    private readonly IReadOnlyDictionary<string, string> inForce;
+    private readonly Dictionary<string, string> inForce;
     private readonly ILoggerFactory loggers;
 
     /// <summary>The service as the host builds it: over the data source of the startup container, which a host with no database does not have.</summary>

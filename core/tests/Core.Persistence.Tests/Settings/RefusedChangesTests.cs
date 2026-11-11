@@ -16,7 +16,7 @@ namespace Core.Persistence.Tests.Settings;
 public sealed class RefusedChangesTests : IClassFixture<PeopleDatabase>
 {
     private const string Recorded = """
-        SELECT concat_ws('|', step, reason, actor_system, item_id, reference) FROM public.custody_event
+        SELECT concat_ws('|', step, reason, actor_system::text, item_id, reference) FROM public.custody_event
         WHERE item_kind = 'configuration_change' AND step = 'configuration_not_applied' AND sequence = @sequence
         """;
 

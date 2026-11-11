@@ -1,6 +1,5 @@
 using Core.Host.Settings;
 using Core.Persistence.Custody;
-using Core.Persistence.Custody.Verification;
 using Core.Persistence.Migrations;
 using Core.Persistence.People;
 using Core.Persistence.Settings;
@@ -32,7 +31,9 @@ public sealed class ConfigurationRefusalsDatabaseTests
         await using var source = NpgsqlDataSource.Create(database.AppConnectionString);
         await ApprovedWithSubmitterDeactivatedAsync(source);
 
-        var recorded = await Service(source, "00:30:00").RecordAsync(Token);
+        using var loggers = LoggerFactory.Create(_ => { });
+        using var service = Service(source, "00:30:00", loggers);
+        var recorded = await service.RecordAsync(Token);
 
         Assert.Equal((1, 1L), (recorded, await CountAsync(database)));
     }
@@ -45,16 +46,18 @@ public sealed class ConfigurationRefusalsDatabaseTests
         await using var source = NpgsqlDataSource.Create(database.AppConnectionString);
         await ApprovedWithSubmitterDeactivatedAsync(source);
 
-        var recorded = await Service(source, Asked).RecordAsync(Token);
+        using var loggers = LoggerFactory.Create(_ => { });
+        using var service = Service(source, Asked, loggers);
+        var recorded = await service.RecordAsync(Token);
 
         Assert.Equal((0, 0L), (recorded, await CountAsync(database)));
     }
 
-    private static ConfigurationRefusals Service(NpgsqlDataSource source, string inForce)
+    private static ConfigurationRefusals Service(NpgsqlDataSource source, string inForce, ILoggerFactory loggers)
     {
-        var facts = new ApplicationFactsReader(new CustodyVerifier(source, TimeProvider.System), new PersonRegistry(source));
+        var facts = new ApplicationFactsReader(source, TimeProvider.System);
         var entries = new[] { new EffectiveEntry(Key, inForce, ConfigurationOrigin.File) };
-        return new ConfigurationRefusals(new ApprovedChanges(source), facts, entries, LoggerFactory.Create(_ => { }));
+        return new ConfigurationRefusals(new ApprovedChanges(source), facts, entries, loggers);
     }
 
     /// <summary>A change of the session limit proposed by an administrator, approved by another, and then the proposer deactivated.</summary>

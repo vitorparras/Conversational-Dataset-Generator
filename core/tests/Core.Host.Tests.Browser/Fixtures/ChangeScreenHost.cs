@@ -60,8 +60,7 @@ internal sealed class ChangeScreenHost : ScreenHostBase
         var inForce = InForce();
         _ = services
             .AddSingleton(provider => new ConfigurationChangeDesk(inForce, Changes(provider), new PersonRegistry(provider.GetRequiredService<NpgsqlDataSource>())))
-            .AddSingleton(provider => new ChangeDecisionDesk(inForce, Changes(provider), new PersonRegistry(provider.GetRequiredService<NpgsqlDataSource>()), TimeProvider.System))
-            .AddSingleton(provider => new ApprovedChanges(provider.GetRequiredService<NpgsqlDataSource>()));
+            .AddSingleton(provider => new ChangeDecisionDesk(inForce, Changes(provider), new PersonRegistry(provider.GetRequiredService<NpgsqlDataSource>()), TimeProvider.System));
     }
 
     protected override void MapScreens(IEndpointRouteBuilder routes) => ConfigurationChangeScreensEndpoint.Map(routes);

@@ -1,7 +1,5 @@
 using Core.Host.Settings;
 using Core.Persistence.Custody;
-using Core.Persistence.Custody.Verification;
-using Core.Persistence.People;
 using Core.Persistence.Settings;
 using Core.Platform.Configuration;
 using Npgsql;
@@ -33,7 +31,7 @@ internal sealed class ConfigurationRefusals : BackgroundService
     private ConfigurationRefusals(NpgsqlDataSource? source, IServiceProvider host)
         : this(
               source is null ? null : new ApprovedChanges(source),
-              source is null ? null : new ApplicationFactsReader(new CustodyVerifier(source, TimeProvider.System), new PersonRegistry(source)),
+              source is null ? null : new ApplicationFactsReader(source, TimeProvider.System),
               host.GetRequiredService<EffectiveConfiguration>().Entries,
               host.GetRequiredService<ILoggerFactory>())
     {
@@ -56,7 +54,7 @@ internal sealed class ConfigurationRefusals : BackgroundService
         var recorded = 0;
         try
         {
-            foreach (var change in changes is null ? new List<ApprovedChange>() : await changes.PendingAsync(cancellationToken).ConfigureAwait(false))
+            foreach (var change in await PendingAsync(cancellationToken).ConfigureAwait(false))
             {
                 recorded += await JudgeAsync(change, logger, cancellationToken).ConfigureAwait(false);
             }
@@ -84,6 +82,9 @@ internal sealed class ConfigurationRefusals : BackgroundService
             // The host is stopping: ending is not a failure.
         }
     }
+
+    private async Task<IReadOnlyList<ApprovedChange>> PendingAsync(CancellationToken cancellationToken) =>
+        changes is null ? [] : await changes.PendingAsync(cancellationToken).ConfigureAwait(false);
 
     private async Task<int> JudgeAsync(ApprovedChange change, ILogger logger, CancellationToken cancellationToken)
     {

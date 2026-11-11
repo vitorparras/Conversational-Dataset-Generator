@@ -6,8 +6,8 @@ internal static class ApplicationRefusals
     /// <summary>Whether the refusal will not change by itself: a change refused for this reason is not applied ever, and the core says so in the chain. The others may pass.</summary>
     internal static bool IsDefinitive(this ApplicationRefusal refusal) => refusal switch
     {
-        ApplicationRefusal.SameAuthor or ApplicationRefusal.SubmitterNotAllowed or ApplicationRefusal.ApproverNotAllowed
-            or ApplicationRefusal.KeyOnlyOnServer or ApplicationRefusal.ValueRefused => true,
+        ApplicationRefusal.SameAuthor or ApplicationRefusal.SubmitterNotAllowed or ApplicationRefusal.ApproverNotAllowed => true,
+        ApplicationRefusal.KeyOnlyOnServer or ApplicationRefusal.ValueRefused => true,
         ApplicationRefusal.None or ApplicationRefusal.ChainBroken or ApplicationRefusal.FileUnreadable => false,
         _ => throw new ArgumentOutOfRangeException(nameof(refusal), refusal, "The refusal is not one the applier knows."),
     };

@@ -90,7 +90,7 @@ public sealed class ApprovedChanges
         }
     }
 
-    private static async Task<IReadOnlyList<RefusedChange>> AllRefusedAsync(NpgsqlDataReader reader, CancellationToken cancellationToken)
+    private static async Task<IReadOnlyList<RefusedChange>> AllRefusedAsync(DbDataReader reader, CancellationToken cancellationToken)
     {
         var found = new List<RefusedChange>();
         while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
@@ -101,7 +101,7 @@ public sealed class ApprovedChanges
         return found;
     }
 
-    private static RefusedChange ReadRefused(NpgsqlDataReader reader) => new()
+    private static RefusedChange ReadRefused(DbDataReader reader) => new()
     {
         Id = (long)reader["id"],
         Key = (string)reader["config_key"],

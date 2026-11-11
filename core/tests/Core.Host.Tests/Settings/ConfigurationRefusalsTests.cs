@@ -14,6 +14,9 @@ public sealed class ConfigurationRefusalsTests : IDisposable
 {
     private readonly RecordedLog log = new();
     private readonly NpgsqlDataSource nowhere = NpgsqlDataSource.Create("Host=zqx-nenhum-6340.invalid;Database=zqx;Username=zqx;Password=ZQX-SENHA-6340;Timeout=1");
+    private readonly ILoggerFactory loggers;
+
+    public ConfigurationRefusalsTests() => loggers = LoggerFactory.Create(builder => builder.AddProvider(log));
 
     public static TheoryData<ApplicationRefusal, bool> Kinds() => new()
     {
@@ -53,15 +56,16 @@ public sealed class ConfigurationRefusalsTests : IDisposable
 
         Assert.Equal(5, definitive.Select(refusal => refusal.CodeOf()).Distinct(StringComparer.Ordinal).Count());
         Assert.Equal(5, Codes().Count);
-        Assert.Throws<ArgumentOutOfRangeException>(() => ApplicationRefusal.ChainBroken.CodeOf());
-        Assert.Throws<ArgumentOutOfRangeException>(() => ApplicationRefusal.None.CodeOf());
-        Assert.Throws<ArgumentOutOfRangeException>(() => ApplicationRefusal.FileUnreadable.CodeOf());
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => ApplicationRefusal.ChainBroken.CodeOf());
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => ApplicationRefusal.None.CodeOf());
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => ApplicationRefusal.FileUnreadable.CodeOf());
     }
 
     [Fact]
     public async Task AHostWithNoDatabaseRecordsNothingAndWritesNothingInTheLog()
     {
-        var recorded = await Service(null).RecordAsync(TestContext.Current.CancellationToken);
+        using var service = Service(null);
+        var recorded = await service.RecordAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal((0, 0), (recorded, log.Lines.Count));
     }
@@ -69,7 +73,8 @@ public sealed class ConfigurationRefusalsTests : IDisposable
     [Fact]
     public async Task ADatabaseThatCannotBeReachedRecordsNothingAndTheLogTellsOnlyTheTypeOfTheFailure()
     {
-        var recorded = await Service(new ApprovedChanges(nowhere)).RecordAsync(TestContext.Current.CancellationToken);
+        using var service = Service(new ApprovedChanges(nowhere));
+        var recorded = await service.RecordAsync(TestContext.Current.CancellationToken);
 
         var line = Assert.Single(log.Lines);
         Assert.Equal(0, recorded);
@@ -79,6 +84,7 @@ public sealed class ConfigurationRefusalsTests : IDisposable
 
     public void Dispose()
     {
+        loggers.Dispose();
         nowhere.Dispose();
         log.Dispose();
     }
@@ -86,6 +92,6 @@ public sealed class ConfigurationRefusalsTests : IDisposable
     private ConfigurationRefusals Service(ApprovedChanges? changes)
     {
         var entries = new[] { new EffectiveEntry("Session:IdleTimeout", "00:20:00", ConfigurationOrigin.File) };
-        return new ConfigurationRefusals(changes, null, entries, LoggerFactory.Create(builder => builder.AddProvider(log)));
+        return new ConfigurationRefusals(changes, null, entries, loggers);
     }
 }

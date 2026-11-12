@@ -40,7 +40,8 @@ internal static class SubmissionAnswer
         entry.Receipt?.Bytes,
         entry.Receipt?.Digest,
         WarningsOf(entry.Receipt?.Warning),
-        entry.OriginState);
+        entry.OriginState,
+        entry.PreviousBatch);
 
     /// <summary>The field as the form names it, which is the name the caller sent, not the one the service keeps.</summary>
     private static FieldShown Field(FieldProblem problem) => new(problem.Field switch { "declared_form" => "declaredForm", "source_format" => "sourceFormat", _ => problem.Field }, problem.Code);
@@ -78,5 +79,6 @@ internal static class SubmissionAnswer
         outcome.Size,
         outcome.Sha256!,
         WarningsOf(outcome.Warning),
-        outcome.Origin!);
+        outcome.Origin!,
+        outcome.Reason?.PreviousBatch);
 }

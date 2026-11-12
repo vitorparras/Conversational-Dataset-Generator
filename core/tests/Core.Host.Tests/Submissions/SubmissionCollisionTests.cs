@@ -51,12 +51,15 @@ public sealed class SubmissionCollisionTests
         Assert.Equal((StatusCodes.Status503ServiceUnavailable, string.Empty, string.Empty), (status, retryAfter, body));
     }
 
+    /// <summary>A file of its own for each submission, so that none of them is a repeat of another.</summary>
+    private static SubmissionRequest Distinct(int at) => SubmissionWorld.Request(SubmissionWorld.Messages(("ZQXUM", $"ZQXum {at}"), ("ZQXDOIS", $"ZQXdois {at}")));
+
     [DatabaseFact]
     public async Task EightSubmissionsMadeTogetherAreEachKeptOrToldToTryAgainAndEveryBatchThatWasNotKeptIsRejectedForTheCollisionAndTheChainIsWhole()
     {
         await using var world = await SubmissionWorld.CreateAsync();
 
-        var outcomes = await Task.WhenAll(Enumerable.Range(0, Simultaneous).Select(_ => Task.Run(() => world.SubmitAsync(SubmissionWorld.Request()), TestContext.Current.CancellationToken)));
+        var outcomes = await Task.WhenAll(Enumerable.Range(0, Simultaneous).Select(at => Task.Run(() => world.SubmitAsync(Distinct(at)), TestContext.Current.CancellationToken)));
 
         var kept = outcomes.Count(outcome => outcome.Kind == SubmissionKind.Done);
         var told = outcomes.Count(outcome => outcome.Kind == SubmissionKind.Collided);
@@ -96,6 +99,43 @@ public sealed class SubmissionCollisionTests
         var entry = await world.Service.DetailAsync([SubmissionWorld.Domain], kept.BatchId, TestContext.Current.CancellationToken);
         var items = await world.ItemRowsAsync();
         Assert.Equal((SubmissionStoring.Keeping.Collided, BatchState.Rejected, SubmissionStoring.Collision, 0L, 0), (keeping, entry?.State, entry?.Reason, items, log.Lines.Count));
+    }
+
+    [DatabaseFact]
+    public async Task FileSentAgainAfterACollisionOfTheOpeningIsKeptOnceAndTheNextSendOfItIsARepeatWithNoSecondAcceptedBatch()
+    {
+        await using var world = await SubmissionWorld.CreateAsync(attempts: 1);
+
+        var collided = await SubmissionContention.WhilePendingAsync(world, () => world.SubmitAsync(SubmissionWorld.Request()));
+        var again = await world.SubmitAsync(SubmissionWorld.Request());
+        var third = await world.SubmitAsync(SubmissionWorld.Request());
+
+        var entries = await world.Service.ListAsync(new BatchFilter { Domains = [SubmissionWorld.Domain], Take = 100 }, TestContext.Current.CancellationToken);
+        var accepted = entries.Where(entry => entry.State == BatchState.Accepted).ToArray();
+        Assert.Equal(
+            (SubmissionKind.Collided, SubmissionState.Accepted, SubmissionState.Rejected, ReasonCodes.AlreadyReceived, again.Batch, 1, 2L),
+            (collided.Kind, again.State, third.State, third.Reason!.Code, third.Reason.PreviousBatch, accepted.Length, await world.ItemRowsAsync()));
+    }
+
+    [DatabaseFact]
+    public async Task FileWhoseBatchWasRejectedForTheCollisionOfTheAcceptanceIsKeptWhenSentAgainAndOnlyOnce()
+    {
+        await using var world = await SubmissionWorld.CreateAsync(attempts: 1);
+        var opened = await world.Batches.OpenAsync(new BatchOpening(SubmissionWorld.Domain, SubmissionWorld.Person), TestContext.Current.CancellationToken);
+        var instant = new DateTimeOffset(2031, 3, 4, 8, 0, 0, TimeSpan.Zero);
+        var material = new ReadMaterial([new ReadUnit("ZQXTERCEIRO", "ZQXUM", instant, null, []), new ReadUnit("ZQXQUARTO", "ZQXDOIS", instant, null, [])]);
+        var kept = new SubmissionStoring.Kept(SubmissionWorld.Domain, opened.BatchId!.Value, material, MaterialForm.Conversation);
+        var intake = SubmissionWorld.Intake(1_000_000, OriginConditions.Of([SubmissionWorld.Strictest, SubmissionWorld.Loosest]), world.Content, world.DataSource);
+        var keeper = new SubmissionStoring.Keeper(world.Batches, intake, new SubmissionLog());
+        var keeping = await SubmissionContention.WhilePendingAsync(world, () => keeper.KeepAsync(kept, TestContext.Current.CancellationToken));
+
+        var again = await world.SubmitAsync(SubmissionWorld.Request());
+        var third = await world.SubmitAsync(SubmissionWorld.Request());
+
+        var entries = await world.Service.ListAsync(new BatchFilter { Domains = [SubmissionWorld.Domain], Take = 100 }, TestContext.Current.CancellationToken);
+        Assert.Equal(
+            (SubmissionStoring.Keeping.Collided, SubmissionState.Accepted, SubmissionState.Rejected, again.Batch, 1),
+            (keeping, again.State, third.State, third.Reason!.PreviousBatch, entries.Count(entry => entry.State == BatchState.Accepted)));
     }
 
     private static async Task<(int Status, string RetryAfter, string Body)> AnswerAsync(SubmissionOutcome outcome)

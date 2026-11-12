@@ -37,13 +37,29 @@ internal static class IngestionWorld
     }
 
     /// <summary>Adds an item to the batch with a statement of its own, which the batch rules judge as they judge the writer of the system, and answers its identifier.</summary>
-    public static async Task<long> AddItemAsync(BatchesWorld world, long batch) =>
+    public static Task<long> AddItemAsync(BatchesWorld world, long batch) => AddItemAsync(world, Domain, batch);
+
+    /// <summary>Adds an item to the batch of the domain, as <see cref="AddItemAsync(BatchesWorld, long)"/> does for the domain of the tests.</summary>
+    public static async Task<long> AddItemAsync(BatchesWorld world, int domain, long batch) =>
         (long)(await world.InDomainAsync(
-            Domain,
+            domain,
             "INSERT INTO content.item_text (domain_id, batch_id, raw_text, dek_epoch, dek_wrapped) "
             + "VALUES (@domain, @batch, decode('a1', 'hex'), 1, decode('c3', 'hex')) RETURNING id",
-            ("domain", Domain),
+            ("domain", domain),
             ("batch", batch)))!;
+
+    /// <summary>Opens a batch of the domain for a file whose digest is the digit repeated, and answers its identifier, after judging that it opened.</summary>
+    public static async Task<long> OpenFileAsync(BatchesWorld world, int domain, char digit)
+    {
+        var receipt = new SubmissionReceipt(new string(digit, 32), 10, new string(digit, 64));
+        var opened = await BatchesOf(world).OpenAsync(new BatchOpening(domain, Person, null, new SubmissionOpening(receipt, OriginDeclaration.Unknown)), TestContext.Current.CancellationToken);
+        Assert.Equal(BatchOutcome.Opened, opened.Outcome);
+        return opened.BatchId!.Value;
+    }
+
+    /// <summary>The batch of the domain, closed by the system as accepted.</summary>
+    public static Task<BatchResult> AcceptInAsync(BatchesWorld world, int domain, long batch) =>
+        BatchesOf(world).AcceptAsync(new BatchClosing(domain, batch, CustodyAuthor.System), TestContext.Current.CancellationToken);
 
     /// <summary>Adds the map of the item to the batch with a statement of its own, and answers its identifier.</summary>
     public static async Task<long> AddMapAsync(BatchesWorld world, long batch, long item) =>

@@ -87,9 +87,23 @@ internal static class SubmissionStoring
     /// <param name="collided">Whether the batch could not be kept because its acceptance met another submission at the same link of the chain.</param>
     /// <param name="kept">The domain and the batch.</param>
     /// <param name="logger">Says that the batch was left open.</param>
-    internal static async Task<Keeping> CleanUpAsync(Func<string, Task<BatchResult>> reject, bool collided, Kept kept, ILogger logger)
+    internal static Task<Keeping> CleanUpAsync(Func<string, Task<BatchResult>> reject, bool collided, Kept kept, ILogger logger) =>
+        CleanUpAsync(reject, collided ? Keeping.Collided : Keeping.WriteFailed, kept, logger);
+
+    /// <summary>The same clean-up for the cause the keeping failed by: a write that failed, a collision of the closing, or a repeat of a file another batch accepted first.</summary>
+    /// <param name="reject">Rejects the batch for the motive it is given, with the attempts the batches make.</param>
+    /// <param name="cause">Why the batch could not be kept; it is what comes back when the batch is rejected.</param>
+    /// <param name="kept">The domain and the batch.</param>
+    /// <param name="logger">Says that the batch was left open.</param>
+    internal static async Task<Keeping> CleanUpAsync(Func<string, Task<BatchResult>> reject, Keeping cause, Kept kept, ILogger logger)
     {
-        var motive = collided ? Collision : WriteFailed;
+        var motive = cause switch
+        {
+            Keeping.Collided => Collision,
+            Keeping.Repeated => ReasonCodes.AlreadyReceived,
+            Keeping.Kept or Keeping.WriteFailed => WriteFailed,
+            _ => WriteFailed,
+        };
         var rejected = await reject(motive).ConfigureAwait(false);
         for (var round = 1; round < RejectionRounds && rejected.Collided; round++)
         {
@@ -98,7 +112,7 @@ internal static class SubmissionStoring
 
         if (rejected.Outcome == BatchOutcome.Rejected)
         {
-            return collided ? Keeping.Collided : Keeping.WriteFailed;
+            return cause;
         }
 
         logger.BatchLeftOpen(kept.BatchId, kept.DomainId, rejected.Outcome);
@@ -113,6 +127,10 @@ internal static class SubmissionStoring
         return sealing is null ? new SubmissionReason(KeyUnavailable, none) : null;
     }
 
+    /// <summary>Whether the keeping found that another batch had accepted the same file first.</summary>
+    /// <param name="keeping">How the keeping ended.</param>
+    internal static bool IsRepeat(Keeping keeping) => keeping == Keeping.Repeated;
+
     /// <summary>What there is to answer of a keeping that did not keep the file; none when it did.</summary>
     /// <param name="keeping">How the keeping ended.</param>
     /// <param name="batch">The batch the file was opened as.</param>
@@ -121,6 +139,7 @@ internal static class SubmissionStoring
         Keeping.Kept => null,
         Keeping.Collided => new SubmissionOutcome { Kind = SubmissionKind.Collided, Batch = batch },
         Keeping.WriteFailed => new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = WriteFailed, Batch = batch },
+        Keeping.Repeated => throw new InvalidOperationException("A repeated file is answered by the service, which knows the batch it repeats."),
         _ => throw new InvalidOperationException("The keeping of the file ended in a way the service does not answer."),
     };
 
@@ -135,6 +154,9 @@ internal static class SubmissionStoring
         /// or was left open when not even the rejection could be made.
         /// </summary>
         WriteFailed,
+
+        /// <summary>The acceptance found that another batch had accepted the same file first, which the database decides; the batch was rejected as a repeat and nothing of it is kept.</summary>
+        Repeated,
 
         /// <summary>
         /// The acceptance met another submission at the same link of the chain and gave up after the attempts; the batch was rejected as <see cref="Collision" />,
@@ -171,7 +193,14 @@ internal static class SubmissionStoring
                 return Keeping.Kept;
             }
 
-            return await CleanUpAsync(motive => Batches.RejectAsync(closing, motive, cancellationToken), accepted?.Collided == true, kept, Logger).ConfigureAwait(false);
+            return await CleanUpAsync(motive => Batches.RejectAsync(closing, motive, cancellationToken), CauseOf(accepted), kept, Logger).ConfigureAwait(false);
         }
+
+        private static Keeping CauseOf(BatchResult? accepted) => accepted switch
+        {
+            { Collided: true } => Keeping.Collided,
+            { Outcome: BatchOutcome.AlreadyReceived } => Keeping.Repeated,
+            _ => Keeping.WriteFailed,
+        };
     }
 }

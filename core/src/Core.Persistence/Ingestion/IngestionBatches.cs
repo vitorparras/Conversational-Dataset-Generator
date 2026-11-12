@@ -5,7 +5,6 @@ using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
 using Core.Persistence.Custody.Chain.Append;
 using Npgsql;
-using NpgsqlTypes;
 
 namespace Core.Persistence.Ingestion;
 
@@ -19,6 +18,7 @@ namespace Core.Persistence.Ingestion;
 public sealed class IngestionBatches
 {
     private const string AuthorConstraint = "ingestion_batch_opened_by_fkey";
+    private const string AcceptedDigestIndex = "ingestion_batch_accepted_digest";
 
     private readonly NpgsqlDataSource dataSource;
     private readonly OriginConditions conditions;
@@ -125,8 +125,6 @@ public sealed class IngestionBatches
         }
     }
 
-    private static NpgsqlParameter Id(string name, long value) => new(name, NpgsqlDbType.Bigint) { Value = value };
-
     private Task<BatchResult> OpeningAsync(BatchOpening opening, CancellationToken cancellationToken) =>
         BatchRetry.RunAsync(() => OpenOnceAsync(opening, cancellationToken), attempts, cancellationToken);
 
@@ -168,7 +166,7 @@ public sealed class IngestionBatches
         var appended = await CustodyAppend.AppendAsync(scope, rejection.Event, cancellationToken).ConfigureAwait(false);
         if (appended.Outcome == CustodyOutcome.Appended)
         {
-            await ChangeAsync(scope, rejection, cancellationToken).ConfigureAwait(false);
+            await new BatchStateChange(rejection.Request.BatchId, rejection.State, rejection.Motive).ChangeAsync(scope, cancellationToken).ConfigureAwait(false);
         }
 
         return appended;
@@ -202,38 +200,17 @@ public sealed class IngestionBatches
             return appended;
         }
 
-        await ChangeAsync(scope, closing, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await new BatchStateChange(closing.Request.BatchId, closing.State, closing.Motive).ChangeAsync(scope, cancellationToken).ConfigureAwait(false);
+        }
+        catch (PostgresException repeated) when (repeated.SqlState == PostgresErrorCodes.UniqueViolation && repeated.ConstraintName == AcceptedDigestIndex)
+        {
+            early.Value = BatchOutcome.AlreadyReceived;
+            return null;
+        }
+
         return await CustodyAppend.CommitIfAppendedAsync(scope, appended, cancellationToken).ConfigureAwait(false);
-    }
-
-    private static async Task ChangeAsync(CustodyScope scope, Closing closing, CancellationToken cancellationToken)
-    {
-        var command = scope.CreateCommand(ContentQueries.CloseIngestionBatch);
-        await using (command.ConfigureAwait(false))
-        {
-            _ = command.Parameters.Add(new NpgsqlParameter("state", NpgsqlDbType.Text) { Value = closing.State });
-            _ = command.Parameters.Add(new NpgsqlParameter("motive", NpgsqlDbType.Text) { Value = (object?)closing.Motive ?? DBNull.Value });
-            _ = command.Parameters.Add(Id("id", closing.Request.BatchId));
-            _ = await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-        }
-
-        if (closing.Motive is not null)
-        {
-            await RemoveAsync(scope, ContentQueries.RemoveBatchMarks, closing.Request.BatchId, cancellationToken).ConfigureAwait(false);
-            await RemoveAsync(scope, ContentQueries.RemoveBatchOccurrences, closing.Request.BatchId, cancellationToken).ConfigureAwait(false);
-            await RemoveAsync(scope, ContentQueries.RemoveBatchMaps, closing.Request.BatchId, cancellationToken).ConfigureAwait(false);
-            await RemoveAsync(scope, ContentQueries.RemoveBatchItems, closing.Request.BatchId, cancellationToken).ConfigureAwait(false);
-        }
-    }
-
-    private static async Task RemoveAsync(CustodyScope scope, string statement, long batchId, CancellationToken cancellationToken)
-    {
-        var command = scope.CreateCommand(statement);
-        await using (command.ConfigureAwait(false))
-        {
-            _ = command.Parameters.Add(Id("id", batchId));
-            _ = await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-        }
     }
 
     private async Task<IngestionBatch?> ReadingAsync(int domainId, long batchId, CancellationToken cancellationToken)

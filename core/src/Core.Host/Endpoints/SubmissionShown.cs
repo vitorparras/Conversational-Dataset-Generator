@@ -25,9 +25,10 @@ internal sealed record ReasonShown(string Code, IReadOnlyList<FindingShown> Find
 /// <param name="Size">How many bytes were read.</param>
 /// <param name="Sha256">The SHA-256 of the bytes read, in lowercase hexadecimal.</param>
 /// <param name="Warnings">The codes of what the service noticed and let pass.</param>
+/// <param name="PreviousBatch">For a repeat, the batch that accepted the same file before (<c>previous_batch</c>); null for any other submission.</param>
 /// <param name="Origin"><c>declared</c> or <c>unknown</c>.</param>
 internal sealed record SubmissionAnswered(
-    string Submission, long Batch, string State, ReasonShown? Reason, long Size, string Sha256, IReadOnlyList<string> Warnings, string Origin);
+    string Submission, long Batch, string State, ReasonShown? Reason, long Size, string Sha256, IReadOnlyList<string> Warnings, string Origin, long? PreviousBatch);
 
 /// <summary>The answer when the gate of the ingestion is closed: nothing was read and nothing was recorded.</summary>
 /// <param name="BlockedBy">The code of what keeps the gate closed.</param>
@@ -50,9 +51,10 @@ internal sealed record GateShown(string State, string? Code);
 /// <param name="Sha256">The SHA-256 of what came; null for a batch no submission opened.</param>
 /// <param name="Warnings">The codes of what the service noticed and let pass.</param>
 /// <param name="Origin"><c>declared</c> or <c>unknown</c>; null for a batch no submission opened.</param>
+/// <param name="PreviousBatch">For a repeat, the batch that accepted the same file before (<c>previous_batch</c>); null for any other batch.</param>
 internal sealed record BatchShown(
     long Id, int Domain, string State, string? Reason, DateTimeOffset SubmittedAt, long SubmittedBy, string? Submission, long? Size, string? Sha256,
-    IReadOnlyList<string> Warnings, string? Origin);
+    IReadOnlyList<string> Warnings, string? Origin, long? PreviousBatch);
 
 /// <summary>A page of the list: the batches of the domains granted, newest first.</summary>
 /// <param name="Page">The page, from one.</param>

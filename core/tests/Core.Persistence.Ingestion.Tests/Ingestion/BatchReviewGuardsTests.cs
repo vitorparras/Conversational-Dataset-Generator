@@ -10,12 +10,10 @@ namespace Core.Persistence.Tests.Ingestion;
 /// </summary>
 public sealed class BatchReviewGuardsTests
 {
-    private const string Offline = "Host=127.0.0.1;Port=1;Username=u;Database=d";
-
     [Fact]
     public async Task ASamplingWithoutARequestIsRefused()
     {
-        await using var dataSource = NpgsqlDataSource.Create(Offline);
+        await using var dataSource = NpgsqlDataSource.Create("Host=127.0.0.1;Port=1;Username=u;Password=p;Database=d");
 
         var refused = await Assert.ThrowsAsync<ArgumentNullException>(() => new BatchReviews(dataSource, 3).DrawAsync(null!, TestContext.Current.CancellationToken));
 
@@ -28,7 +26,7 @@ public sealed class BatchReviewGuardsTests
     [InlineData(1, 1, 0, "request.ReviewerId")]
     public async Task ASamplingNamedByAnIdentifierThatIsNotPositiveIsRefusedByThatIdentifier(int domain, long batch, long reviewer, string name)
     {
-        await using var dataSource = NpgsqlDataSource.Create(Offline);
+        await using var dataSource = NpgsqlDataSource.Create("Host=127.0.0.1;Port=1;Username=u;Password=p;Database=d");
 
         var reviews = new BatchReviews(dataSource, 3);
         var request = new BatchSampling(domain, batch, reviewer);
@@ -44,7 +42,7 @@ public sealed class BatchReviewGuardsTests
     [InlineData(1, 1, 0, "request.ReviewerId")]
     public async Task AReviewNamedByAnIdentifierThatIsNotPositiveIsRefusedByThatIdentifier(int domain, long batch, long reviewer, string name)
     {
-        await using var dataSource = NpgsqlDataSource.Create(Offline);
+        await using var dataSource = NpgsqlDataSource.Create("Host=127.0.0.1;Port=1;Username=u;Password=p;Database=d");
 
         var reviews = new BatchReviews(dataSource, 3);
         var request = new BatchReviewing(domain, batch, reviewer);
@@ -59,7 +57,7 @@ public sealed class BatchReviewGuardsTests
     [InlineData(1, 0, "batchId")]
     public async Task AReadingOfAnIdentifierThatIsNotPositiveIsRefusedByThatIdentifier(int domain, long batch, string name)
     {
-        await using var dataSource = NpgsqlDataSource.Create(Offline);
+        await using var dataSource = NpgsqlDataSource.Create("Host=127.0.0.1;Port=1;Username=u;Password=p;Database=d");
 
         var refused = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => new BatchReviews(dataSource, 3).ReadAsync(domain, batch, TestContext.Current.CancellationToken));
 

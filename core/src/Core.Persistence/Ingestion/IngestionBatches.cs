@@ -166,7 +166,7 @@ public sealed class IngestionBatches
         var appended = await CustodyAppend.AppendAsync(scope, rejection.Event, cancellationToken).ConfigureAwait(false);
         if (appended.Outcome == CustodyOutcome.Appended)
         {
-            await ChangeAsync(scope, rejection, cancellationToken).ConfigureAwait(false);
+            await BatchStateChange.ChangeAsync(scope, rejection.Request.BatchId, rejection.State, rejection.Motive, cancellationToken).ConfigureAwait(false);
         }
 
         return appended;

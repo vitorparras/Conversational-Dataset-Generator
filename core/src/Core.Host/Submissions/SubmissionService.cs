@@ -109,7 +109,8 @@ internal sealed class SubmissionService
     /// <summary>Judges what was received and opens the batch that keeps it, rejected with the reason when it was turned back.</summary>
     private async Task<SubmissionOutcome> OpeningAsync(SubmissionRequest request, SubmissionResult received, CancellationToken cancellationToken)
     {
-        var reason = await SubmissionJudgement.OfAsync(intake, register, request, received, cancellationToken).ConfigureAwait(false);
+        var reason = SubmissionJudgement.Turned(intake, request, received)
+            ?? await SubmissionJudgement.PreviousAsync(register, request.DomainId, received.Digest, cancellationToken).ConfigureAwait(false);
         var warning = SubmissionOrigin.WarningOf(request.ReceivedName);
         var receipt = new SubmissionReceipt(received.Id.ToString(), received.BytesRead, received.Digest, warning);
         if (SubmissionOrigin.Opening(intake, request, receipt) is not { } opening || (reason is null && !SubmissionStoring.CanSeal(intake.Sealing, request.DomainId)))

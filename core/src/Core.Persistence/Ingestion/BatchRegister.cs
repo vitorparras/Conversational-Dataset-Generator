@@ -151,18 +151,23 @@ public sealed class BatchRegister
             await using (command.ConfigureAwait(false))
             {
                 _ = command.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Bigint) { Value = itemId });
-                var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-                await using (reader.ConfigureAwait(false))
-                {
-                    if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-                    {
-                        return null;
-                    }
-
-                    var submittedAt = await reader.GetFieldValueAsync<DateTimeOffset>(ProvenanceSubmittedAtColumn, cancellationToken).ConfigureAwait(false);
-                    return new ItemProvenance(reader.GetInt64(IdColumn), submittedAt, reader.GetInt64(ProvenanceSubmittedByColumn), reader[ProvenanceSubmissionColumn] as string);
-                }
+                return await ReadProvenanceAsync(command, cancellationToken).ConfigureAwait(false);
             }
+        }
+    }
+
+    private static async Task<ItemProvenance?> ReadProvenanceAsync(NpgsqlCommand command, CancellationToken cancellationToken)
+    {
+        var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        await using (reader.ConfigureAwait(false))
+        {
+            if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                return null;
+            }
+
+            var submittedAt = await reader.GetFieldValueAsync<DateTimeOffset>(ProvenanceSubmittedAtColumn, cancellationToken).ConfigureAwait(false);
+            return new ItemProvenance(reader.GetInt64(IdColumn), submittedAt, reader.GetInt64(ProvenanceSubmittedByColumn), reader[ProvenanceSubmissionColumn] as string);
         }
     }
 

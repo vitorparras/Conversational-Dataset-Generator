@@ -14,21 +14,21 @@ internal static class SubmissionJudgement
     internal static SubmissionReason? Of(SubmissionIntake intake, SubmissionResult received, MaterialForm form) =>
         Barred(received) ?? (intake.Conference.Confer(form, ReadOutcome.Read(received.Material!)).Refusal is { } refused ? ReasonOf(refused) : null);
 
-    /// <summary>Why the file is turned back, if it is: the barrier and the form, then the key that seals, and last the digest, since a file already accepted in the domain is a repeat.</summary>
+    /// <summary>Why the file is turned back before the digest is looked at: the barrier and the form, then the key that seals; none when it holds up to them.</summary>
     /// <param name="intake">The conference of the forms and the path that seals.</param>
-    /// <param name="register">Finds the batch of the domain that accepted the same file.</param>
     /// <param name="request">Where the file goes and the form declared.</param>
     /// <param name="received">What the barrier answered.</param>
-    /// <param name="cancellationToken">Cancels the reading.</param>
-    internal static async Task<SubmissionReason?> OfAsync(SubmissionIntake intake, BatchRegister register, SubmissionRequest request, SubmissionResult received, CancellationToken cancellationToken)
-    {
-        var reason = Of(intake, received, request.DeclaredForm) ?? SubmissionStoring.Unsealed(intake.Sealing);
-        if (reason is not null)
-        {
-            return reason;
-        }
+    internal static SubmissionReason? Turned(SubmissionIntake intake, SubmissionRequest request, SubmissionResult received) =>
+        Of(intake, received, request.DeclaredForm) ?? SubmissionStoring.Unsealed(intake.Sealing);
 
-        var previous = await register.PreviousAsync(request.DomainId, received.Digest, cancellationToken).ConfigureAwait(false);
+    /// <summary>The reason of a repeat when a file already accepted in the domain has the digest; none when no batch accepted it.</summary>
+    /// <param name="register">Finds the batch of the domain that accepted the same file.</param>
+    /// <param name="domainId">The domain of the batch.</param>
+    /// <param name="digest">The digest of the file.</param>
+    /// <param name="cancellationToken">Cancels the reading.</param>
+    internal static async Task<SubmissionReason?> PreviousAsync(BatchRegister register, int domainId, string digest, CancellationToken cancellationToken)
+    {
+        var previous = await register.PreviousAsync(domainId, digest, cancellationToken).ConfigureAwait(false);
         return previous is null ? null : RepeatOf(previous);
     }
 

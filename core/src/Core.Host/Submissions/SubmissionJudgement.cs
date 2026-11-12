@@ -16,7 +16,6 @@ internal static class SubmissionJudgement
 
     /// <summary>Why the file is turned back, if it is: the barrier and the form, then the key that seals, and last the digest, since a file already accepted in the domain is a repeat.</summary>
     /// <param name="intake">The conference of the forms and the path that seals.</param>
-    /// <summary>The reason of a repeat, found by looking up the batch that accepted the same file.</summary>
     /// <param name="register">Finds the batch of the domain that accepted the same file.</param>
     /// <param name="request">Where the file goes and the form declared.</param>
     /// <param name="received">What the barrier answered.</param>

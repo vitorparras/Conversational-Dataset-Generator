@@ -2,4 +2,5 @@
 -- that digest, and the index answers it without reading the batches of the domain one by one. It holds only the accepted ones, which are the only ones that can recognize a repeat.
 -- It is unique, so that two identical files sent at the same time do not both get accepted: the batch that closes second is refused the acceptance by the database itself, and the application
 -- turns that refusal into a repeat. A batch whose submission brought no digest (written before the receipt of the submission) is outside it, since a null equals nothing.
+-- In a database that is new there is nothing to clean up before this index: the CREATE UNIQUE INDEX fails only in one that already holds two accepted batches of the same digest in the same domain.
 CREATE UNIQUE INDEX ingestion_batch_accepted_digest ON content.ingestion_batch (domain_id, received_digest) WHERE state = 'accepted';

@@ -17,7 +17,12 @@ internal static class BatchStateReading
     internal static async Task<BatchOutcome?> ClosingRefusalAsync(CustodyScope scope, long batchId, string state, CancellationToken cancellationToken)
     {
         var held = await ReadAsync(scope, batchId, cancellationToken).ConfigureAwait(false);
-        return await ReviewStatements.ClosingRefusalAsync(scope, held, state, batchId, cancellationToken).ConfigureAwait(false);
+        if (held is null || held.State != BatchState.Open)
+        {
+            return held is null ? BatchOutcome.NotFound : BatchOutcome.AlreadyClosed;
+        }
+
+        return state == ReviewStatements.AcceptedState ? await ReviewStatements.AcceptanceRefusalAsync(scope, batchId, cancellationToken).ConfigureAwait(false) : null;
     }
 
     internal static async Task<IngestionBatch?> ReadAsync(CustodyScope scope, long batchId, CancellationToken cancellationToken)

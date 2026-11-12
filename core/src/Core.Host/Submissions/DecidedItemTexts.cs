@@ -14,13 +14,11 @@ internal static class DecidedItemTexts
     /// <param name="material">The material with the destination decided for every occurrence of every text.</param>
     /// <param name="text">The position of the text in the material.</param>
     /// <param name="raw">The text as it arrived.</param>
-    /// <param name="sanitized">The sanitized text, if it exists.</param>
-    /// <param name="pseudonymized">The pseudonymized text, if it exists.</param>
-    internal static NewItemText Of(DecidedMaterial material, int text, string raw, string? sanitized, string? pseudonymized)
+    internal static NewItemText Of(DecidedMaterial material, int text, string raw)
     {
         ArgumentNullException.ThrowIfNull(material);
         var stored = material.Of(text).Select(Stored).ToList();
-        return new NewItemText(raw, sanitized, pseudonymized, stored);
+        return new NewItemText(raw, null, null, stored);
     }
 
     private static ItemOccurrence Stored(DecidedOccurrence decided) =>

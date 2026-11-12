@@ -131,6 +131,15 @@ internal sealed class SubmissionWorld : IAsyncDisposable
 
     internal Task<SubmissionOutcome> SubmitAsync(SubmissionRequest request) => Service.SubmitAsync(request, TestContext.Current.CancellationToken);
 
+    /// <summary>Reviews the sample of the batch with nothing found and accepts it, as the person who reviews it would.</summary>
+    /// <param name="batch">The batch the submission left open.</param>
+    internal async Task AcceptReviewedAsync(long batch)
+    {
+        await ReviewedBatches.ReviewCleanAsync(DataSource, Domain, batch, Person);
+        var accepted = await Batches.AcceptAsync(new BatchClosing(Domain, batch, CustodyAuthor.System), TestContext.Current.CancellationToken);
+        Assert.Equal(BatchOutcome.Accepted, accepted.Outcome);
+    }
+
     internal async Task<long> BatchCountAsync()
     {
         var total = 0L;
@@ -161,7 +170,7 @@ internal sealed class SubmissionWorld : IAsyncDisposable
         {
             await using var connection = await DataSource.OpenConnectionAsync(TestContext.Current.CancellationToken);
             await using var transaction = await connection.BeginTransactionAsync(TestContext.Current.CancellationToken);
-            await using var command = new NpgsqlCommand("SELECT set_config('app.domain', @domain, true)", connection, transaction);
+            await using var command = new NpgsqlCommand("SELECT set_config('app.domain', @domain, true), set_config('app.content_scope', 'system', true)", connection, transaction);
             _ = command.Parameters.AddWithValue("domain", domain.ToString(System.Globalization.CultureInfo.InvariantCulture));
             _ = await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
             command.CommandText = count;
@@ -181,7 +190,7 @@ internal sealed class SubmissionWorld : IAsyncDisposable
         await using var connection = new NpgsqlConnection(Database.OwnerConnectionString);
         await connection.OpenAsync(cancellationToken);
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
-        await using var command = new NpgsqlCommand("SELECT set_config('app.domain', @domain, true)", connection, transaction);
+        await using var command = new NpgsqlCommand("SELECT set_config('app.domain', @domain, true), set_config('app.content_scope', 'system', true)", connection, transaction);
         _ = command.Parameters.AddWithValue("domain", domain.ToString(System.Globalization.CultureInfo.InvariantCulture));
         _ = await command.ExecuteScalarAsync(cancellationToken);
         command.CommandText = select;

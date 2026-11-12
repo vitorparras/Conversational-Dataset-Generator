@@ -30,13 +30,17 @@ GRANT UPDATE (review_sample) ON content.ingestion_batch TO app;
 
 -- The numbers of the items of an open batch, which the row policy hides from whoever did not write them in this very transaction: the numbers only, never what the items hold, read in the scope of the system for the length of the function only. The sample is drawn from them.
 CREATE FUNCTION public.batch_item_ids(of_batch bigint, of_domain integer) RETURNS SETOF bigint
-LANGUAGE sql
-STABLE
+LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = pg_catalog
-SET app.content_scope = 'system'
 AS $ids$
-    SELECT i.id FROM content.item_text i WHERE i.batch_id = of_batch AND i.domain_id = of_domain AND i.emptied_at IS NULL ORDER BY i.id
+DECLARE
+    previous text := pg_catalog.current_setting('app.content_scope', true);
+BEGIN
+    PERFORM pg_catalog.set_config('app.content_scope', 'system', true);
+    RETURN QUERY SELECT i.id FROM content.item_text i WHERE i.batch_id = of_batch AND i.domain_id = of_domain AND i.emptied_at IS NULL ORDER BY i.id;
+    PERFORM pg_catalog.set_config('app.content_scope', COALESCE(previous, ''), true);
+END
 $ids$;
 
 REVOKE ALL ON FUNCTION public.batch_item_ids(bigint, integer) FROM PUBLIC;

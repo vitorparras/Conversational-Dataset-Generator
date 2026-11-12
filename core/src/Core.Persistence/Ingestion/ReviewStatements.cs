@@ -9,7 +9,7 @@ namespace Core.Persistence.Ingestion;
 /// <summary>What the review of a batch asks of the database inside a transaction of the chain: declare the domain, read the batch, list the items, change the row.</summary>
 internal static class ReviewStatements
 {
-    private const string AcceptedState = "accepted";
+    internal const string AcceptedState = "accepted";
     private const int StateColumn = 0;
     private const int SampleColumn = 1;
     private const int SampledAtColumn = 2;
@@ -58,7 +58,7 @@ internal static class ReviewStatements
 
     internal static async Task<BatchReview?> HeldAsync(CustodyScope scope, long batchId, CancellationToken cancellationToken)
     {
-        var command = scope.CreateCommand(ReviewQueries.Read);
+        var command = scope.CreateCommand(ContentQueries.ReadBatchReview);
         await using (command.ConfigureAwait(false))
         {
             _ = command.Parameters.Add(Id("id", batchId));
@@ -70,17 +70,14 @@ internal static class ReviewStatements
         }
     }
 
-    /// <summary>Why a batch cannot be closed as asked, or null when it can: it is not there, it is not open, or it would be accepted without a review that found nothing.</summary>
-    internal static async Task<BatchOutcome?> ClosingRefusalAsync(CustodyScope scope, IngestionBatch? held, string state, long batchId, CancellationToken cancellationToken)
+    /// <summary>Why an open batch cannot be accepted, or null when it can: it would be accepted without a review that found nothing.</summary>
+    /// <param name="scope">The transaction that closes the batch.</param>
+    /// <param name="batchId">The batch.</param>
+    /// <param name="cancellationToken">Cancels the reading.</param>
+    internal static async Task<BatchOutcome?> AcceptanceRefusalAsync(CustodyScope scope, long batchId, CancellationToken cancellationToken)
     {
-        if (held is null || held.State != BatchState.Open)
-        {
-            return held is null ? BatchOutcome.NotFound : BatchOutcome.AlreadyClosed;
-        }
-
-        var accepting = state == AcceptedState;
-        var review = accepting ? await HeldAsync(scope, batchId, cancellationToken).ConfigureAwait(false) : null;
-        return accepting && review is not { ReviewerId: not null, Finding: null } ? BatchOutcome.ReviewMissing : null;
+        var review = await HeldAsync(scope, batchId, cancellationToken).ConfigureAwait(false);
+        return review is { ReviewerId: not null, Finding: null } ? null : BatchOutcome.ReviewMissing;
     }
 
     private static List<long> Numbers(string sample) => [.. sample.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(number => long.Parse(number, CultureInfo.InvariantCulture))];

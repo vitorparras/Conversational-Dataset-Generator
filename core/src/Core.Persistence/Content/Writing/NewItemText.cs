@@ -27,13 +27,21 @@ public sealed record NewItemText
     /// <param name="sanitized">The sanitized text, sealed like the raw one; null while it does not exist.</param>
     /// <param name="pseudonymized">The pseudonymized text, the one text stored in clear; null while it does not exist.</param>
     /// <param name="accommodation">What the item declares when its material was accommodated into a form that is not exactly its own; null when it fits exactly and nothing was lost.</param>
-    public NewItemText(string raw, string? sanitized = null, string? pseudonymized = null, ItemAccommodation? accommodation = null)
+    internal NewItemText(string raw, string? sanitized = null, string? pseudonymized = null, ItemAccommodation? accommodation = null)
     {
         ArgumentNullException.ThrowIfNull(raw);
         Raw = raw;
         Sanitized = sanitized;
         Pseudonymized = pseudonymized;
         Accommodation = accommodation;
+    }
+
+    /// <summary>The raw text of an item whose occurrences were not decided, with what the item declares when its material was accommodated.</summary>
+    /// <param name="raw">The text as it arrived; sealed on its way to the database.</param>
+    /// <param name="accommodation">What the item declares when its material was accommodated into a form that is not exactly its own; null when it fits exactly.</param>
+    public NewItemText(string raw, ItemAccommodation? accommodation)
+        : this(raw, null, null, accommodation)
+    {
     }
 
     /// <summary>The text as it arrived; sealed on its way to the database.</summary>

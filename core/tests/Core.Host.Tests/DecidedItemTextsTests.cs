@@ -22,7 +22,7 @@ public sealed class DecidedItemTextsTests
     {
         var decided = await DecidedAsync(Text);
 
-        var texts = DecidedItemTexts.Of(decided, 0, Text, null, null);
+        var texts = DecidedItemTexts.Of(decided, 0, Text);
 
         Assert.Equal(Text, texts.Raw);
         var stored = Assert.Single(texts.Occurrences!);
@@ -35,7 +35,7 @@ public sealed class DecidedItemTextsTests
         var plain = "ZQX-FAKE-NOTHING sem ninguem";
         var decided = await DecidedAsync(plain);
 
-        var texts = DecidedItemTexts.Of(decided, 0, plain, null, null);
+        var texts = DecidedItemTexts.Of(decided, 0, plain);
 
         Assert.Empty(texts.Occurrences!);
     }
@@ -43,7 +43,7 @@ public sealed class DecidedItemTextsTests
     [Fact]
     public void NoMaterialIsADefect()
     {
-        var defect = Assert.Throws<ArgumentNullException>(() => DecidedItemTexts.Of(null!, 0, Text, null, null));
+        var defect = Assert.Throws<ArgumentNullException>(() => DecidedItemTexts.Of(null!, 0, Text));
 
         Assert.Equal("material", defect.ParamName);
     }

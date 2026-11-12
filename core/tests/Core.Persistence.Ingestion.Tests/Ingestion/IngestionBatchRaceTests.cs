@@ -42,9 +42,9 @@ public sealed class IngestionBatchRaceTests
         await ReviewedBatches.ReviewCleanAsync(world.DataSource, IngestionWorld.Domain, batch, IngestionWorld.Person);
 
         var closing = new BatchClosing(IngestionWorld.Domain, batch, CustodyAuthor.System);
-        var first = await CloseWhileAWriterCommitsAsync(world, batch, () => IngestionWorld.BatchesOf(world).AcceptAsync(closing, TestContext.Current.CancellationToken));
+        var first = await ChainContention.WhilePendingAsync(world, () => IngestionWorld.BatchesOf(world).AcceptAsync(closing, TestContext.Current.CancellationToken));
 
-        Assert.Equal((BatchOutcome.Accepted, "2"), (first.Outcome, await world.ScalarAsync(Counted) as string));
+        Assert.Equal((BatchOutcome.Accepted, "1"), (first.Outcome, await world.ScalarAsync(Counted) as string));
     }
 
     /// <summary>An item that is committed before the review, so the sample has something to draw.</summary>

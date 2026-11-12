@@ -175,6 +175,22 @@ public static class ContentQueries
         "SELECT dek_epoch FROM content.item_text WHERE emptied_at IS NULL UNION SELECT dek_epoch FROM content.reversal_map WHERE emptied_at IS NULL "
         + "UNION SELECT dek_epoch FROM content.batch_origin";
 
+    /// <summary>The state, the sample and the review of the batch of the domain declared, whatever its state.</summary>
+    internal const string ReadBatchReview =
+        "SELECT state, review_sample, sampled_at, reviewed_by, reviewed_at, review_finding FROM content.ingestion_batch WHERE id = @id";
+
+    /// <summary>Writes the sample of an open batch that has none.</summary>
+    internal const string DrawBatchSample = "UPDATE content.ingestion_batch SET review_sample = @sample WHERE id = @id AND state = 'open' AND review_sample IS NULL";
+
+    /// <summary>Records a review that found nothing, for an open batch whose sample was drawn and not reviewed.</summary>
+    internal const string ReviewBatchClean =
+        "UPDATE content.ingestion_batch SET reviewed_by = @reviewer WHERE id = @id AND state = 'open' AND review_sample IS NOT NULL AND reviewed_by IS NULL";
+
+    /// <summary>Records a review that found something and rejects the batch with it, in the one statement.</summary>
+    internal const string ReviewBatchFound =
+        "UPDATE content.ingestion_batch SET reviewed_by = @reviewer, review_finding = @finding, state = 'rejected', motive = @motive "
+        + "WHERE id = @id AND state = 'open' AND review_sample IS NOT NULL AND reviewed_by IS NULL";
+
     /// <summary>The queries over content, as the statement each one runs, by the name of its constant.</summary>
     public static IReadOnlyDictionary<string, string> All { get; } = Declared(typeof(ContentQueries));
 

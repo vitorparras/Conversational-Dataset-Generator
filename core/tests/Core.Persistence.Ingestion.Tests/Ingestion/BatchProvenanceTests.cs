@@ -4,7 +4,9 @@ using Npgsql;
 
 namespace Core.Persistence.Tests.Ingestion;
 
-/// <summary>Where an item came from (issue 80, CA-1): the batch that kept it, when the submission came and who sent it, found in the first domain given that holds it and nowhere else.</summary>
+/// <summary>
+/// Where an item came from (issue 80, CA-1): the batch that kept it, when the submission came and who sent it, found in the first domain given that holds it.
+/// </summary>
 public sealed class BatchProvenanceTests
 {
     private const int Other = IngestionWorld.Domain + 1;

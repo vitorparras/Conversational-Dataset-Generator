@@ -4,7 +4,9 @@ using Npgsql;
 
 namespace Core.Persistence.Tests.Ingestion;
 
-/// <summary>The batch that accepted a file before (issue 80, CA-2), as the register finds it: only an accepted batch of the domain asked, by the digest of the file, and the digest is never missing.</summary>
+/// <summary>
+/// The batch that accepted a file before (issue 80, CA-2), as the register finds it: only an accepted batch of the domain asked, by the digest of the file.
+/// </summary>
 public sealed class BatchPreviousTests
 {
     private const int Other = IngestionWorld.Domain + 1;

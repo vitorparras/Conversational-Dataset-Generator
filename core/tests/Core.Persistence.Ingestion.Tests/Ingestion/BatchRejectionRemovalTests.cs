@@ -6,11 +6,14 @@ using Npgsql;
 
 namespace Core.Persistence.Tests.Ingestion;
 
-/// <summary>What the rejection of a batch with a motive removes (issue 80) and how the register names the states: each of the four kinds of row of the batch is gone, and each state is found by its own name.</summary>
+/// <summary>
+/// What the rejection of a batch with a motive removes (issue 80) and how the register names the states: each kind of row of the batch is gone, each state has its own name.
+/// </summary>
 public sealed class BatchRejectionRemovalTests
 {
     private const string Counted =
-        "SELECT (SELECT count(*) FROM content.replication_mark) || ',' || (SELECT count(*) FROM content.replication_occurrence) || ',' || (SELECT count(*) FROM content.reversal_map) || ',' || (SELECT count(*) FROM content.item_text)";
+        "SELECT (SELECT count(*) FROM content.replication_mark) || ',' || (SELECT count(*) FROM content.replication_occurrence) || ',' || "
+        + "(SELECT count(*) FROM content.reversal_map) || ',' || (SELECT count(*) FROM content.item_text)";
 
     private static readonly DateTimeOffset Said = new(2031, 5, 6, 9, 0, 0, TimeSpan.Zero);
 

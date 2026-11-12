@@ -114,6 +114,19 @@ public sealed class SubmissionScreenTests
     }
 
     [Fact]
+    public async Task ASendingThatCollidedOpensTheFormAgainWithAnAdviceOfItsOwnApartFromTheOneOfTheServer()
+    {
+        var page = await RenderAsync(new Dictionary<string, object?> { ["Collided"] = true });
+
+        var shown = (
+            page.Contains(SubmissionTexts.Collided, StringComparison.Ordinal),
+            page.Contains(SubmissionTexts.NotRecorded, StringComparison.Ordinal),
+            page.Contains("<form", StringComparison.Ordinal));
+
+        Assert.Equal((true, false, true), shown);
+    }
+
+    [Fact]
     public void NothingThePiecesTakeCanHoldTheNameOfAFileOrAWordOfTheMaterial()
     {
         var taken = new[]

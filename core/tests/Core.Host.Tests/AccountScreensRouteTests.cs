@@ -19,9 +19,9 @@ public sealed class AccountScreensRouteTests
     public void TheSessionsAreListedFromTheMostRecentlyUsedToTheOldestWhateverTheOrderOfTheStore()
     {
         var start = DateTimeOffset.Parse("2026-11-09T10:00:00Z", System.Globalization.CultureInfo.InvariantCulture);
-        var oldestUsedLast = new SessionListing("a", start, start.AddHours(3), Current: false);
-        var newestUsedFirst = new SessionListing("b", start.AddHours(1), start.AddHours(1), Current: true);
-        var middle = new SessionListing("c", start.AddHours(2), start.AddHours(2), Current: false);
+        var oldestUsedLast = new SessionListing("a", start, start.AddHours(3), Current: false, Device: "x");
+        var newestUsedFirst = new SessionListing("b", start.AddHours(1), start.AddHours(1), Current: true, Device: "x");
+        var middle = new SessionListing("c", start.AddHours(2), start.AddHours(2), Current: false, Device: "x");
 
         var listed = AccountScreensEndpoint.MostRecentFirst([oldestUsedLast, newestUsedFirst, middle]);
 
@@ -83,4 +83,24 @@ public sealed class AccountScreensRouteTests
     }
 
     private static Task<SessionedHost> StartAsync() => SessionedHost.StartAsync(services => services, AccountScreensEndpoint.Map, Token);
+
+    [Fact]
+    public async Task TheAccountShowsEachSessionWithItsBrowserAndSystemAndMarksTheCurrentOne()
+    {
+        await using var host = await StartAsync();
+        _ = host.Sessions.Open(7, "Firefox no Windows");
+        var mine = host.Sessions.Open(7, "Chrome no Android");
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(ScreenPaths.Account, UriKind.Relative));
+        request.Headers.Accept.ParseAdd(Browser);
+        using var answer = await host.SendAsync(request, mine, encrypted: true, Token);
+        var page = await answer.Content.ReadAsStringAsync(Token);
+
+        Assert.Equal(HttpStatusCode.OK, answer.StatusCode);
+        Assert.Contains("Aparelho", page, StringComparison.Ordinal);
+        Assert.Contains("Firefox no Windows", page, StringComparison.Ordinal);
+        Assert.Contains("Chrome no Android", page, StringComparison.Ordinal);
+        Assert.Contains("Esta sessão", page, StringComparison.Ordinal);
+        Assert.True(page.IndexOf("Aparelho", StringComparison.Ordinal) < page.IndexOf("In&#xED;cio", StringComparison.Ordinal));
+    }
 }

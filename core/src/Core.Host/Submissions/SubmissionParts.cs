@@ -36,15 +36,17 @@ internal static class SubmissionParts
     /// </summary>
     internal static SubmissionServiceHolder ServicesOf(IServiceProvider provider, IReadOnlyDictionary<string, string> values) =>
         provider.GetRequiredService<ServiceProvider>() is var startup && startup.GetService<NpgsqlDataSource>() is not null
-            ? new SubmissionServiceHolder(AdmissionConfiguration.MaxBytes(values), token => LoadAsync(startup, provider.GetRequiredService<IngestionBatches>(), values, token))
+            ? new SubmissionServiceHolder(AdmissionConfiguration.MaxBytes(values), token => LoadAsync(startup, (provider.GetRequiredService<IngestionBatches>(), LoggerOf(provider)), values, token))
             : null!;
 
+    private static ILogger LoggerOf(IServiceProvider provider) => provider.GetRequiredService<ILogger<SubmissionService>>();
+
     /// <summary>The service over the key a reading holds: or over none when it failed: it then registers and turns back; the intake is built by the composition root, the register here.</summary>
-    private static SubmissionService ServiceOf(NpgsqlDataSource source, MasterKeyReading reading, SubmissionSettings settings) =>
-        new(CompositionRoot.IntakeOf(source, reading, settings), settings.Batches, new BatchRegister(source), source);
+    private static SubmissionService ServiceOf(NpgsqlDataSource source, MasterKeyReading reading, SubmissionSettings settings, ILogger logger) =>
+        new(CompositionRoot.IntakeOf(source, reading, settings), settings.Batches, source, logger);
 
     private static async Task<SubmissionServiceHolder.Loaded?> LoadAsync(
-        IServiceProvider startup, IngestionBatches batches, IReadOnlyDictionary<string, string> values, CancellationToken cancellationToken)
+        IServiceProvider startup, (IngestionBatches Batches, ILogger Logger) shared, IReadOnlyDictionary<string, string> values, CancellationToken cancellationToken)
     {
         var source = startup.GetRequiredService<NpgsqlDataSource>();
         var reading = await startup.GetRequiredService<IMasterKeySource>().ReadAsync(cancellationToken).ConfigureAwait(false);
@@ -54,8 +56,8 @@ internal static class SubmissionParts
             var registered = failed ? ImmutableHashSet<string>.Empty : await RegisteredLabels.ReadAsync(source, cancellationToken).ConfigureAwait(false);
             var revoked = failed ? ImmutableHashSet<string>.Empty : await LabelRevocations.ReadAsync(source, cancellationToken).ConfigureAwait(false);
             var admission = (AdmissionConfiguration.Conditions(values), AdmissionConfiguration.MaxBytes(values), ReplicationConfiguration.Rule(values));
-            var settings = new SubmissionSettings(batches, admission.Item1, admission.Item2, registered, revoked, admission.Item3);
-            var service = ServiceOf(source, reading, settings);
+            var settings = new SubmissionSettings(shared.Batches, admission.Item1, admission.Item2, registered, revoked, admission.Item3);
+            var service = ServiceOf(source, reading, settings, shared.Logger);
             if (reading.Failure is not { } failure)
             {
                 return new SubmissionServiceHolder.Loaded(service, reading);

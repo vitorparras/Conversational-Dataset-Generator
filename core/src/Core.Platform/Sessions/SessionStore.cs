@@ -15,14 +15,17 @@ public sealed class SessionStore(SessionLifetimes lifetimes, TimeProvider clock)
     private readonly Dictionary<string, Entry> sessions = new(StringComparer.Ordinal);
 
     /// <summary>Starts a session for the person and returns the identifier that names it.</summary>
-    public string Open(long personId)
+    public string Open(long personId) => Open(personId, SessionDevice.Unknown);
+
+    /// <summary>Starts a session for the person, keeping with it only the short description of the device; it goes when the session does.</summary>
+    public string Open(long personId, string device)
     {
         var now = clock.GetUtcNow();
         var identifier = NewIdentifier();
         lock (gate)
         {
             Forget(now);
-            sessions[identifier] = new Entry(personId, now, now, NewIdentifier());
+            sessions[identifier] = new Entry(personId, now, now, NewIdentifier(), device);
         }
 
         return identifier;
@@ -101,7 +104,8 @@ public sealed class SessionStore(SessionLifetimes lifetimes, TimeProvider clock)
                     session.Value.ListingId,
                     session.Value.Start,
                     session.Value.LastActivity,
-                    string.Equals(session.Key, currentIdentifier, StringComparison.Ordinal)))
+                    string.Equals(session.Key, currentIdentifier, StringComparison.Ordinal),
+                    session.Value.Device))
                 .ToList();
             return listed;
         }
@@ -160,5 +164,5 @@ public sealed class SessionStore(SessionLifetimes lifetimes, TimeProvider clock)
         }
     }
 
-    private sealed record Entry(long PersonId, DateTimeOffset Start, DateTimeOffset LastActivity, string ListingId);
+    private sealed record Entry(long PersonId, DateTimeOffset Start, DateTimeOffset LastActivity, string ListingId, string Device);
 }

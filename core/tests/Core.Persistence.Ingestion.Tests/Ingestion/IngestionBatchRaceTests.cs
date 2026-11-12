@@ -8,7 +8,7 @@ namespace Core.Persistence.Tests.Ingestion;
 /// <summary>
 /// A batch that closes while a writer is still adding to it (issue 74, criteria 2 and 5): the writer is not serializable and the closing is,
 /// and the database must not let the closing work from a snapshot that does not hold what the writer added.
-/// The closing that ran into such a writer is told to repeat and leaves the batch as it was; the repeated one takes everything.
+/// The closing that ran into such a writer is refused by the chain and leaves the batch as it was; the batches repeat it (issue 75), and the repeated one takes everything.
 /// </summary>
 public sealed class IngestionBatchRaceTests
 {
@@ -21,29 +21,25 @@ public sealed class IngestionBatchRaceTests
     private const string Counted = "SELECT coalesce(sum(delta), 0)::text FROM public.content_domain WHERE domain_id = 1 AND table_name = 'item_text'";
 
     [DatabaseFact]
-    public async Task RejectionThatMeetsAWriterNotYetCommittedFailsAndTheRepeatedOneLeavesNoItemInTheRejectedBatch()
+    public async Task RejectionThatMeetsAWriterNotYetCommittedIsRepeatedAndLeavesNoItemInTheRejectedBatch()
     {
         await using var world = await IngestionWorld.CreateAsync();
         var batch = await IngestionWorld.OpenAsync(world);
 
         var first = await CloseWhileAWriterCommitsAsync(world, batch, () => IngestionWorld.RejectAsync(world, batch, "write_failed"));
-        var whileOpen = await ItemsInTheBatchAsync(world, batch);
-        var again = await IngestionWorld.RejectAsync(world, batch, "write_failed");
 
-        Assert.Equal((BatchOutcome.NotRecorded, 1L, BatchOutcome.Rejected, 0L), (first.Outcome, whileOpen, again.Outcome, await ItemsInTheBatchAsync(world, batch)));
+        Assert.Equal((BatchOutcome.Rejected, 0L), (first.Outcome, await ItemsInTheBatchAsync(world, batch)));
     }
 
     [DatabaseFact]
-    public async Task AcceptanceThatMeetsAWriterNotYetCommittedFailsAndTheRepeatedOneCountsEveryItem()
+    public async Task AcceptanceThatMeetsAWriterNotYetCommittedIsRepeatedAndCountsEveryItem()
     {
         await using var world = await IngestionWorld.CreateAsync();
         var batch = await IngestionWorld.OpenAsync(world);
 
         var first = await CloseWhileAWriterCommitsAsync(world, batch, () => IngestionWorld.AcceptAsync(world, batch));
-        var notCounted = await world.ScalarAsync(Counted) as string;
-        var again = await IngestionWorld.AcceptAsync(world, batch);
 
-        Assert.Equal((BatchOutcome.NotRecorded, "0", BatchOutcome.Accepted, "1"), (first.Outcome, notCounted, again.Outcome, await world.ScalarAsync(Counted) as string));
+        Assert.Equal((BatchOutcome.Accepted, "1"), (first.Outcome, await world.ScalarAsync(Counted) as string));
     }
 
     /// <summary>

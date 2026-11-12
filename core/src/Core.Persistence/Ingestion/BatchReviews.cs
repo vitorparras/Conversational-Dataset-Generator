@@ -151,7 +151,7 @@ public sealed class BatchReviews
 
         var written = string.Join(',', sample.Select(number => number.ToString(CultureInfo.InvariantCulture)));
         var rows = await ReviewStatements.ChangeAsync(
-            scope, ContentQueries.InsertBatchSample, cancellationToken, ReviewStatements.Id("id", request.BatchId), new NpgsqlParameter("sample", written)).ConfigureAwait(false);
+            scope, ContentQueries.CloseBatchSample, cancellationToken, ReviewStatements.Id("id", request.BatchId), new NpgsqlParameter("sample", written)).ConfigureAwait(false);
         if (rows == 1)
         {
             return await CustodyAppend.CommitIfAppendedAsync(scope, appended, cancellationToken).ConfigureAwait(false);

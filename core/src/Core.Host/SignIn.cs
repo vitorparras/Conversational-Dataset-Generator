@@ -1,4 +1,3 @@
-using System.Net;
 using Core.Persistence.Custody;
 using Core.Persistence.People;
 using Core.Platform.Sessions;
@@ -23,9 +22,10 @@ internal sealed class SignIn(PersonRegistry registry, PersonCredentials credenti
     /// <summary>Whether nobody is registered yet, which the entry says so that the person knows the step is on the server.</summary>
     internal Task<bool> NobodyRegisteredAsync(CancellationToken cancellationToken) => registry.IsEmptyAsync(cancellationToken);
 
-    /// <summary>The identifier of the session that was opened; none when the entry is refused, whatever the reason, or when the chain stayed busy, which the result tells apart.</summary>
-    internal async Task<SignInEntry> OpenAsync(string name, string password, IPAddress? origin, CancellationToken cancellationToken)
+    /// <summary>The identifier of the session opened, which keeps a short description of the browser until it closes; none when refused or when the chain stayed busy.</summary>
+    internal async Task<SignInEntry> OpenAsync(SignInRequest request, CancellationToken cancellationToken)
     {
+        var (name, password, origin, userAgent) = request;
         using var admission = delay.Admit(origin);
         if (admission is null)
         {
@@ -41,7 +41,7 @@ internal sealed class SignIn(PersonRegistry registry, PersonCredentials credenti
             if (accepted.Outcome == CustodyOutcome.Appended)
             {
                 delay.Accepted(name, origin);
-                return new SignInEntry(sessions.Open(admitted), ChainBusy: false);
+                return new SignInEntry(sessions.Open(admitted, SessionDevice.Describe(userAgent)), ChainBusy: false);
             }
 
             if (accepted.Outcome == CustodyOutcome.Conflict)

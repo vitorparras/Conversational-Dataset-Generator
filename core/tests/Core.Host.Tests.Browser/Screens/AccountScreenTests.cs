@@ -28,8 +28,8 @@ public sealed class AccountScreenTests(BrowserFixture browser, AccountHostFixtur
     private const int PhoneHeight = 844;
     private const int StatusNotFound = 404;
 
-    private static readonly string[] OfTheNetworkAndOfTheBrowser = ["127.0.0.1", "::1", "LOCALHOST", "CHROME", "CHROMIUM", "MOZILLA", "HEADLESS", "PLAYWRIGHT", "USER-AGENT", "ENDEREÇO", "NAVEGADOR"];
-    private static readonly string[] Ways = ["Trocar senha", "Ver ou mudar o e-mail", "Encerrar a sessão iniciada em", "Encerrar todas as outras"];
+    private static readonly string[] OfTheNetworkAndOfTheBrowser = ["127.0.0.1", "::1", "LOCALHOST", "CHROMIUM", "MOZILLA", "HEADLESS", "PLAYWRIGHT", "USER-AGENT", "ENDEREÇO"];
+    private static readonly string[] Ways = ["Trocar senha", "Ver ou mudar o e-mail", "Encerrar a sessão de", "Encerrar todas as outras"];
 
     /// <summary>The stops of the page after the header: the password link, the link that ends the other session, the table the keyboard scrolls and the button that ends the others.</summary>
     private const int PageStops = 5;
@@ -41,9 +41,11 @@ public sealed class AccountScreenTests(BrowserFixture browser, AccountHostFixtur
 
         var rows = tabs.Current.Page.Locator(Rows);
         await Expect(rows).ToHaveCountAsync(2);
-        Assert.Equal(["Início", "Última atividade", "Ação"], await tabs.Current.Page.Locator("[aria-labelledby=sessoes-titulo] thead th").AllInnerTextsAsync());
-        await Expect(rows.Locator("th time")).ToHaveCountAsync(2);
+        Assert.Equal(["Aparelho", "Início", "Última atividade", "Ação"], await tabs.Current.Page.Locator("[aria-labelledby=sessoes-titulo] thead th").AllInnerTextsAsync());
+        await Expect(rows.Locator("th")).ToHaveTextAsync([new Regex("^[^0-9]+$"), new Regex("^[^0-9]+$")]);
+        await Expect(rows.Locator("th")).ToHaveTextAsync([new Regex(" no (Windows|macOS|Linux)$"), new Regex(" no (Windows|macOS|Linux)$")]);
         await Expect(rows.Locator("td:nth-child(2) time")).ToHaveCountAsync(2);
+        await Expect(rows.Locator("td:nth-child(3) time")).ToHaveCountAsync(2);
         await Expect(rows.Filter(new() { HasText = "Esta sessão" })).ToHaveCountAsync(1);
         await Expect(rows.Filter(new() { HasText = "Esta sessão" }).Locator("a")).ToHaveCountAsync(0);
         await Expect(rows.Filter(new() { HasNotText = "Esta sessão" }).GetByRole(AriaRole.Link, new() { Name = "Encerrar" })).ToHaveCountAsync(1);
@@ -188,7 +190,7 @@ public sealed class AccountScreenTests(BrowserFixture browser, AccountHostFixtur
         Assert.NotNull(box);
         Assert.InRange(box.X + box.Width, 0, PhoneWidth);
         Assert.True(table <= 0, $"The table scrolls {table} px sideways on the phone.");
-        Assert.Equal(["\"Início\"", "\"Última atividade\"", "\"Ação\""], labels.Take(3));
+        Assert.Equal(["\"Aparelho\"", "\"Início\"", "\"Última atividade\"", "\"Ação\""], labels.Take(4));
         Assert.Equal("block", await tabs.Current.Page.Locator(Rows).First.EvaluateAsync<string>("(row) => getComputedStyle(row).display"));
     }
 
@@ -207,7 +209,7 @@ public sealed class AccountScreenTests(BrowserFixture browser, AccountHostFixtur
             .Where(node => !node.TryGetProperty("ignored", out var ignored) || !ignored.GetBoolean())
             .Select(node => node.TryGetProperty("role", out var role) ? role.GetProperty("value").GetString() : null)
             .ToList();
-        Assert.Equal((1, 3, 3, 2, 4), (roles.Count(role => role == "table"), roles.Count(role => role == "row"), roles.Count(role => role == "columnheader"),
+        Assert.Equal((1, 3, 4, 2, 6), (roles.Count(role => role == "table"), roles.Count(role => role == "row"), roles.Count(role => role == "columnheader"),
             roles.Count(role => role == "rowheader"), roles.Count(role => role == "cell")));
     }
 

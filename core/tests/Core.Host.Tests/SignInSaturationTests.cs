@@ -76,7 +76,7 @@ public sealed class SignInSaturationTests
         using var cancel = new CancellationTokenSource(DeadlineOfAWait);
 
         var entries = Enumerable.Range(0, Parallel)
-            .Select(index => signIn.OpenAsync($"ana-{index}", "a senha certa ou errada", Here, cancel.Token)).ToList();
+            .Select(index => signIn.OpenAsync(new SignInRequest($"ana-{index}", "a senha certa ou errada", Here), cancel.Token)).ToList();
         await database.WaitForAsync(SignInDelay.MaxWaitingPerOrigin, TestContext.Current.CancellationToken);
         await Task.Delay(Settling, TestContext.Current.CancellationToken);
 
@@ -100,7 +100,7 @@ public sealed class SignInSaturationTests
         using var database = new SilentDatabase();
         var signIn = Entry(database.ConnectionString, clock, delay);
 
-        var fromElsewhere = await signIn.OpenAsync("bia", "a senha certa ou errada", SignInDelayTests.NetworkNumber(700), TestContext.Current.CancellationToken);
+        var fromElsewhere = await signIn.OpenAsync(new SignInRequest("bia", "a senha certa ou errada", SignInDelayTests.NetworkNumber(700)), TestContext.Current.CancellationToken);
 
         Assert.Equal(SignInEntry.Refused, fromElsewhere);
         Assert.Equal(0, database.Connections);
@@ -117,7 +117,7 @@ public sealed class SignInSaturationTests
 
         for (var attempt = 0; attempt < SignInDelay.MaxWaitingPerOrigin + 1; attempt++)
         {
-            _ = await Assert.ThrowsAnyAsync<Exception>(() => signIn.OpenAsync("ana", "senha", Here, TestContext.Current.CancellationToken));
+            _ = await Assert.ThrowsAnyAsync<Exception>(() => signIn.OpenAsync(new SignInRequest("ana", "senha", Here), TestContext.Current.CancellationToken));
         }
     }
 

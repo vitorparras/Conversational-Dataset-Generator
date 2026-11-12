@@ -148,7 +148,7 @@ public sealed class SessionEndTests(BrowserFixture browser, AccountHostFixture a
     public async Task TheKeyboardAloneReachesTheConfirmationAndSendsItWithTheFocusSeenAndTheOtherSessionStopsCounting()
     {
         await using var tabs = await SessionsAsync(1);
-        await TabToAsync(tabs.Current.Page, "() => document.activeElement.textContent.trim().startsWith('Encerrar a sessão iniciada em')");
+        await TabToAsync(tabs.Current.Page, "() => document.activeElement.textContent.trim().startsWith('Encerrar a sessão de')");
         await tabs.Current.Page.Keyboard.PressAsync("Enter");
         await Expect(tabs.Current.Page.GetByRole(AriaRole.Heading, new() { Name = "Encerrar sessão", Level = 1 })).ToBeVisibleAsync();
 

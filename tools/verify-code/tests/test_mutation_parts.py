@@ -485,7 +485,7 @@ class RepositoryAreaTests(unittest.TestCase):
         root = support.VERIFY_CODE.parents[1]
         areas = {a.prefix: a for a in areas_doc.read_areas(root).areas}
 
-        self.assertEqual(areas["Core.Persistence.Content"].parts, 22)
+        self.assertEqual(areas["Core.Persistence.Content"].parts, 32)
         self.assertEqual(areas["Core.Persistence.Content.Writing"].parts, 6)
         self.assertEqual(areas["Core.Persistence.Content.Sealing"].parts, 3)
         self.assertEqual(areas["Core.Persistence.Content.Reading"].parts, 1)
@@ -500,7 +500,7 @@ class RepositoryAreaTests(unittest.TestCase):
         writing = [name for name in names if name.startswith("Core.Persistence.Content.Writing@")]
         sealing = [name for name in names if name.startswith("Core.Persistence.Content.Sealing@")]
 
-        expected = [f"Core.Persistence.Content@{n}/22" for n in range(1, 23)]
+        expected = [f"Core.Persistence.Content@{n}/32" for n in range(1, 33)]
         ingestion = [name for name in names if name.startswith("Core.Persistence.Ingestion@")]
         self.assertEqual(
             (problems, content, writing, sealing, ingestion),

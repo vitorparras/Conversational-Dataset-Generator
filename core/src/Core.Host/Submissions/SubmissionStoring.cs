@@ -111,6 +111,10 @@ internal static class SubmissionStoring
         return sealing is null ? new SubmissionReason(KeyUnavailable, none) : null;
     }
 
+    /// <summary>Whether the keeping found that another batch had accepted the same file first.</summary>
+    /// <param name="keeping">How the keeping ended.</param>
+    internal static bool IsRepeat(Keeping keeping) => keeping == Keeping.Repeated;
+
     /// <summary>What there is to answer of a keeping that did not keep the file; none when it did.</summary>
     /// <param name="keeping">How the keeping ended.</param>
     /// <param name="batch">The batch the file was opened as.</param>
@@ -118,6 +122,7 @@ internal static class SubmissionStoring
     {
         Keeping.Kept => null,
         Keeping.WriteFailed => new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = WriteFailed, Batch = batch },
+        Keeping.Repeated => throw new InvalidOperationException("A repeated file is answered by the service, which knows the batch it repeats."),
         _ => throw new InvalidOperationException("The keeping of the file ended in a way the service does not answer."),
     };
 
@@ -132,6 +137,9 @@ internal static class SubmissionStoring
         /// or was left open when not even the rejection could be made.
         /// </summary>
         WriteFailed,
+
+        /// <summary>Another batch had accepted the same file first, which the database decides; the batch was rejected as a repeat and nothing of it is kept.</summary>
+        Repeated,
     }
 
     /// <summary>The batch an item is written to, and what is written there.</summary>

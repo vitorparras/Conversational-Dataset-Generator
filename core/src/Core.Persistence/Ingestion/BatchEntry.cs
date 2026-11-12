@@ -27,6 +27,9 @@ public sealed record BatchEntry
     /// <summary>What the submission brought; null for a batch no submission opened.</summary>
     public SubmissionReceipt? Receipt { get; init; }
 
+    /// <summary>For a repeat, the first batch of the domain that accepted the same file: the one that recognized it by the digest and not by the name; null for any other batch.</summary>
+    public long? PreviousBatch { get; init; }
+
     /// <summary>
     /// Whether the submission declared where the material came from, or chose to say it is unknown: <c>declared</c> or <c>unknown</c>, never the text; null for a batch no submission opened.
     /// </summary>

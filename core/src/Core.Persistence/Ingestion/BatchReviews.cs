@@ -151,7 +151,7 @@ public sealed class BatchReviews
 
         var written = string.Join(',', sample.Select(number => number.ToString(CultureInfo.InvariantCulture)));
         var rows = await ReviewStatements.ChangeAsync(
-            scope, ContentQueries.DrawBatchSample, cancellationToken, ReviewStatements.Id("id", request.BatchId), new NpgsqlParameter("sample", written)).ConfigureAwait(false);
+            scope, ContentQueries.InsertBatchSample, cancellationToken, ReviewStatements.Id("id", request.BatchId), new NpgsqlParameter("sample", written)).ConfigureAwait(false);
         if (rows == 1)
         {
             return await CustodyAppend.CommitIfAppendedAsync(scope, appended, cancellationToken).ConfigureAwait(false);
@@ -201,12 +201,12 @@ public sealed class BatchReviews
         var reviewer = ReviewStatements.Id("reviewer", request.ReviewerId);
         if (request.Finding is null)
         {
-            return await ReviewStatements.ChangeAsync(scope, ContentQueries.ReviewBatchClean, cancellationToken, batch, reviewer).ConfigureAwait(false);
+            return await ReviewStatements.ChangeAsync(scope, ContentQueries.CloseBatchReviewClean, cancellationToken, batch, reviewer).ConfigureAwait(false);
         }
 
         var finding = new NpgsqlParameter("finding", request.Finding);
         var motive = new NpgsqlParameter("motive", RejectionMotive);
-        var rows = await ReviewStatements.ChangeAsync(scope, ContentQueries.ReviewBatchFound, cancellationToken, batch, reviewer, finding, motive).ConfigureAwait(false);
+        var rows = await ReviewStatements.ChangeAsync(scope, ContentQueries.CloseBatchReviewFound, cancellationToken, batch, reviewer, finding, motive).ConfigureAwait(false);
         _ = await ReviewStatements.ChangeAsync(scope, ContentQueries.RemoveBatchMaps, cancellationToken, ReviewStatements.Id("id", request.BatchId)).ConfigureAwait(false);
         _ = await ReviewStatements.ChangeAsync(scope, ContentQueries.RemoveBatchItems, cancellationToken, ReviewStatements.Id("id", request.BatchId)).ConfigureAwait(false);
         return rows;

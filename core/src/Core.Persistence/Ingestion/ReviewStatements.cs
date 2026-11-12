@@ -52,7 +52,7 @@ internal static class ReviewStatements
             _ = command.Parameters.Add(Id("id", batchId));
             _ = command.Parameters.Add(new NpgsqlParameter("domain", NpgsqlDbType.Integer) { Value = domainId });
             var listed = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
-            return listed is long[] numbers ? numbers : throw new InvalidOperationException("The list of the items of the batch did not come back as numbers.");
+            return (long[])listed!;
         }
     }
 

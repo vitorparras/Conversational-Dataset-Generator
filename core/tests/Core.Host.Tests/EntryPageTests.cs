@@ -114,6 +114,23 @@ public sealed class EntryPageTests
         Assert.NotEmpty(entry.Log.Lines);
     }
 
+    [Fact]
+    public async Task TheAgentOfTheEntryIsKeptAsAShortDescriptionOnlyAndTheLogNeverHasIt()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var entry = await EntryPagesHost.StartAsync(withPerson: true, cancellationToken);
+        const string Marked = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:999.1) Gecko/20100101 Firefox/999.1 zqxmarca";
+
+        var entered = await EnterAsync(entry, entry.Name, entry.Password, cancellationToken, Marked);
+        var person = entry.Host.Sessions.Resolve(Identifier(entered)) ?? throw new InvalidOperationException("The entry opened no session.");
+        var listed = Assert.Single(entry.Host.Sessions.ListOf(person, null));
+        var log = string.Join("\n", entry.Log.Lines);
+
+        Assert.Equal("Firefox no Windows", listed.Device);
+        Assert.DoesNotContain("zqxmarca", entered.Everything + log, StringComparison.Ordinal);
+        Assert.DoesNotContain("999.1", log, StringComparison.Ordinal);
+    }
+
     private static HttpRequestMessage Request(HttpMethod method, string route)
     {
         var request = new HttpRequestMessage(method, new Uri(route, UriKind.Relative));
@@ -134,10 +151,15 @@ public sealed class EntryPageTests
     }
 
     /// <summary>The form of the entry sent as a browser sends it: the name and the password in the body, as a form.</summary>
-    private static async Task<Answer> EnterAsync(EntryPagesHost entry, string name, string password, CancellationToken cancellationToken)
+    private static async Task<Answer> EnterAsync(EntryPagesHost entry, string name, string password, CancellationToken cancellationToken, string? userAgent = null)
     {
         var form = Request(HttpMethod.Post, ScreenPaths.SignIn);
         form.Content = new FormUrlEncodedContent([KeyValuePair.Create(SignInScreen.NameField, name), KeyValuePair.Create(SignInScreen.SecretField, password)]);
+        if (userAgent is not null)
+        {
+            _ = form.Headers.UserAgent.TryParseAdd(userAgent);
+        }
+
         using var response = await entry.Host.SendAsync(form, identifier: null, encrypted: true, cancellationToken);
         return new Answer(
             response.StatusCode,

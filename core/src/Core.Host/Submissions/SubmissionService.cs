@@ -152,8 +152,7 @@ internal sealed class SubmissionService
     /// <summary>A file sent at the same time as an identical one, which the database let the other one accept: it is a repeat of that one, rejected with no item as any other.</summary>
     private async Task<SubmissionOutcome> RepeatedAsync(SubmissionRequest request, Opened opened, CancellationToken cancellationToken)
     {
-        var previous = await register.PreviousAsync(request.DomainId, opened.Received.Digest, cancellationToken).ConfigureAwait(false);
-        return Turned(opened, SubmissionJudgement.RepeatOf(previous));
+        return Turned(opened, await SubmissionJudgement.RepeatAsync(register, request.DomainId, opened.Received.Digest, cancellationToken).ConfigureAwait(false));
     }
 
     /// <summary>What there is to say of a submission that was registered as rejected: the key that was missing is a failure of the service, not a defect of the file.</summary>

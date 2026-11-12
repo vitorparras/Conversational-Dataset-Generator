@@ -13,6 +13,13 @@ internal static class BatchStateReading
     private const int OpenedByColumn = 2;
     private const int ConditionColumn = 3;
 
+    /// <summary>Why the batch cannot be closed to the state asked, or null when it can.</summary>
+    internal static async Task<BatchOutcome?> ClosingRefusalAsync(CustodyScope scope, long batchId, string state, CancellationToken cancellationToken)
+    {
+        var held = await ReadAsync(scope, batchId, cancellationToken).ConfigureAwait(false);
+        return await ReviewStatements.ClosingRefusalAsync(scope, held, state, batchId, cancellationToken).ConfigureAwait(false);
+    }
+
     internal static async Task<IngestionBatch?> ReadAsync(CustodyScope scope, long batchId, CancellationToken cancellationToken)
     {
         var command = scope.CreateCommand(ContentQueries.ReadIngestionBatch);

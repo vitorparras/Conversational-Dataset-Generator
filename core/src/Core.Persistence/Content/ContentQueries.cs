@@ -98,7 +98,7 @@ public static class ContentQueries
     internal const string ReadCopyIngestionBatch = "SELECT pg_catalog.to_jsonb(t)::text FROM content.ingestion_batch t ORDER BY id";
 
     /// <summary>The columns of a batch as the register shows it, with the first batch that accepted the same file when the motive is a repeat.</summary>
-    public const string BatchColumns =
+    internal const string BatchColumns =
         "SELECT b.id, b.state, b.motive, b.opened_by, b.opened_at, b.submission, b.received_bytes, b.received_digest, b.warning, b.origin_state, "
         + "(SELECT min(p.id) FROM content.ingestion_batch p WHERE b.motive = '" + BatchMotives.AlreadyReceivedMotive + "' AND p.state = 'accepted' AND p.received_digest = b.received_digest)";
 

@@ -5,7 +5,6 @@ using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
 using Core.Persistence.Custody.Chain.Append;
 using Npgsql;
-using NpgsqlTypes;
 
 namespace Core.Persistence.Ingestion;
 
@@ -126,8 +125,6 @@ public sealed class IngestionBatches
         }
     }
 
-    private static NpgsqlParameter Id(string name, long value) => new(name, NpgsqlDbType.Bigint) { Value = value };
-
     private Task<BatchResult> OpeningAsync(BatchOpening opening, CancellationToken cancellationToken) =>
         BatchRetry.RunAsync(() => OpenOnceAsync(opening, cancellationToken), attempts, cancellationToken);
 
@@ -205,7 +202,7 @@ public sealed class IngestionBatches
 
         try
         {
-            await ChangeAsync(scope, closing, cancellationToken).ConfigureAwait(false);
+            await BatchStateChange.ChangeAsync(scope, closing.Request.BatchId, closing.State, closing.Motive, cancellationToken).ConfigureAwait(false);
         }
         catch (PostgresException repeated) when (repeated.SqlState == PostgresErrorCodes.UniqueViolation && repeated.ConstraintName == AcceptedDigestIndex)
         {
@@ -214,23 +211,6 @@ public sealed class IngestionBatches
         }
 
         return await CustodyAppend.CommitIfAppendedAsync(scope, appended, cancellationToken).ConfigureAwait(false);
-    }
-
-    private static async Task ChangeAsync(CustodyScope scope, Closing closing, CancellationToken cancellationToken)
-    {
-        var command = scope.CreateCommand(ContentQueries.CloseIngestionBatch);
-        await using (command.ConfigureAwait(false))
-        {
-            _ = command.Parameters.Add(new NpgsqlParameter("state", NpgsqlDbType.Text) { Value = closing.State });
-            _ = command.Parameters.Add(new NpgsqlParameter("motive", NpgsqlDbType.Text) { Value = (object?)closing.Motive ?? DBNull.Value });
-            _ = command.Parameters.Add(Id("id", closing.Request.BatchId));
-            _ = await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-        }
-
-        if (closing.Motive is not null)
-        {
-            await BatchRemoval.RemoveAsync(scope, closing.Request.BatchId, cancellationToken).ConfigureAwait(false);
-        }
     }
 
     private async Task<IngestionBatch?> ReadingAsync(int domainId, long batchId, CancellationToken cancellationToken)

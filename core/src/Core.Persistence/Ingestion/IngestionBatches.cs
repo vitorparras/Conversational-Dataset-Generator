@@ -166,7 +166,7 @@ public sealed class IngestionBatches
         var appended = await CustodyAppend.AppendAsync(scope, rejection.Event, cancellationToken).ConfigureAwait(false);
         if (appended.Outcome == CustodyOutcome.Appended)
         {
-            await BatchStateChange.ChangeAsync(scope, rejection.Request.BatchId, rejection.State, rejection.Motive, cancellationToken).ConfigureAwait(false);
+            await new BatchStateChange(rejection.Request.BatchId, rejection.State, rejection.Motive).ChangeAsync(scope, cancellationToken).ConfigureAwait(false);
         }
 
         return appended;
@@ -202,7 +202,7 @@ public sealed class IngestionBatches
 
         try
         {
-            await BatchStateChange.ChangeAsync(scope, closing.Request.BatchId, closing.State, closing.Motive, cancellationToken).ConfigureAwait(false);
+            await new BatchStateChange(closing.Request.BatchId, closing.State, closing.Motive).ChangeAsync(scope, cancellationToken).ConfigureAwait(false);
         }
         catch (PostgresException repeated) when (repeated.SqlState == PostgresErrorCodes.UniqueViolation && repeated.ConstraintName == AcceptedDigestIndex)
         {

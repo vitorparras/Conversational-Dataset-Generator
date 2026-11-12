@@ -98,18 +98,18 @@ public static class ContentQueries
     internal const string ReadCopyIngestionBatch = "SELECT pg_catalog.to_jsonb(t)::text FROM content.ingestion_batch t ORDER BY id";
 
     /// <summary>The columns of a batch as the register shows it, with the first batch that accepted the same file when the motive is a repeat.</summary>
-    internal const string BatchColumns =
+    internal const string ReadBatchColumns =
         "SELECT b.id, b.state, b.motive, b.opened_by, b.opened_at, b.submission, b.received_bytes, b.received_digest, b.warning, b.origin_state, "
         + "(SELECT min(p.id) FROM content.ingestion_batch p WHERE b.motive = '" + BatchMotives.AlreadyReceivedMotive + "' AND p.state = 'accepted' AND p.received_digest = b.received_digest)";
 
     /// <summary>The batches of the domain declared, newest first, by state and by the moment of the submission, with what each submission brought.</summary>
     internal const string ReadIngestionBatchPage =
-        BatchColumns + " FROM content.ingestion_batch b "
+        ReadBatchColumns + " FROM content.ingestion_batch b "
         + "WHERE (@state::text IS NULL OR b.state = @state) AND (@from::timestamptz IS NULL OR b.opened_at >= @from) AND (@until::timestamptz IS NULL OR b.opened_at < @until) "
         + "ORDER BY b.opened_at DESC, b.id DESC LIMIT @limit";
 
     /// <summary>One batch of the domain declared, as the register shows it.</summary>
-    internal const string ReadIngestionBatchEntry = BatchColumns + " FROM content.ingestion_batch b WHERE b.id = @id";
+    internal const string ReadIngestionBatchEntry = ReadBatchColumns + " FROM content.ingestion_batch b WHERE b.id = @id";
 
     /// <summary>The first batch of the domain declared that accepted a file with the digest, which makes the next one with it a repeat.</summary>
     internal const string ReadPreviousBatch = "SELECT id FROM content.ingestion_batch WHERE state = 'accepted' AND received_digest = @digest ORDER BY id LIMIT 1";

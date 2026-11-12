@@ -9,28 +9,28 @@ namespace Core.Persistence.Ingestion;
 /// Writes the closing of a batch in the transaction that appends its event: the state and the motive, and, for a rejection with a motive,
 /// the removal of what the batch holds (the marks, the occurrences, the maps and the items, in that order).
 /// </summary>
-internal static class BatchStateChange
+/// <param name="BatchId">The batch.</param>
+/// <param name="State">The state it closes in.</param>
+/// <param name="Motive">The motive of a rejection; none for an acceptance.</param>
+internal sealed record BatchStateChange(long BatchId, string State, string? Motive)
 {
     /// <summary>Sets the state and the motive of the batch and, when there is a motive, removes what it holds.</summary>
     /// <param name="scope">The transaction that closes the batch.</param>
-    /// <param name="batchId">The batch.</param>
-    /// <param name="state">The state it closes in.</param>
-    /// <param name="motive">The motive of a rejection; none for an acceptance.</param>
     /// <param name="cancellationToken">Cancels the writing.</param>
-    internal static async Task ChangeAsync(CustodyScope scope, long batchId, string state, string? motive, CancellationToken cancellationToken)
+    internal async Task ChangeAsync(CustodyScope scope, CancellationToken cancellationToken)
     {
         var command = scope.CreateCommand(ContentQueries.CloseIngestionBatch);
         await using (command.ConfigureAwait(false))
         {
-            _ = command.Parameters.Add(new NpgsqlParameter("state", NpgsqlDbType.Text) { Value = state });
-            _ = command.Parameters.Add(new NpgsqlParameter("motive", NpgsqlDbType.Text) { Value = (object?)motive ?? DBNull.Value });
-            _ = command.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Bigint) { Value = batchId });
+            _ = command.Parameters.Add(new NpgsqlParameter("state", NpgsqlDbType.Text) { Value = State });
+            _ = command.Parameters.Add(new NpgsqlParameter("motive", NpgsqlDbType.Text) { Value = (object?)Motive ?? DBNull.Value });
+            _ = command.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Bigint) { Value = BatchId });
             _ = await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        if (motive is not null)
+        if (Motive is not null)
         {
-            await RemoveAsync(scope, batchId, cancellationToken).ConfigureAwait(false);
+            await RemoveAsync(scope, BatchId, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -47,7 +47,7 @@ internal static class BatchStateChange
         var command = scope.CreateCommand(statement);
         await using (command.ConfigureAwait(false))
         {
-            _ = command.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Bigint) { Value = batchId });
+            _ = command.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Bigint) { Value = BatchId });
             _ = await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
     }

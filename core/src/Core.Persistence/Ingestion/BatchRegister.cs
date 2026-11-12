@@ -21,9 +21,6 @@ public sealed class BatchRegister
     private const int WarningColumn = 8;
     private const int OriginColumn = 9;
     private const int PreviousColumn = 10;
-    private const int ProvenanceSubmittedAtColumn = 1;
-    private const int ProvenanceSubmittedByColumn = 2;
-    private const int ProvenanceSubmissionColumn = 3;
     private const int SkipCeiling = 10_000;
     private const int TakeCeiling = 1_000;
 
@@ -132,7 +129,7 @@ public sealed class BatchRegister
     {
         foreach (var domain in domains.Distinct())
         {
-            var found = await ProvenanceInAsync(domain, itemId, cancellationToken).ConfigureAwait(false);
+            var found = await ProvenanceRead.InAsync(dataSource, domain, itemId, cancellationToken).ConfigureAwait(false);
             if (found is not null)
             {
                 return found;
@@ -140,35 +137,6 @@ public sealed class BatchRegister
         }
 
         return null;
-    }
-
-    private async Task<ItemProvenance?> ProvenanceInAsync(int domain, long itemId, CancellationToken cancellationToken)
-    {
-        var transaction = await ContentTransaction.BeginAsync(dataSource, domain, cancellationToken).ConfigureAwait(false);
-        await using (transaction.ConfigureAwait(false))
-        {
-            var command = transaction.CreateCommand(ContentQueries.ReadItemProvenance);
-            await using (command.ConfigureAwait(false))
-            {
-                _ = command.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Bigint) { Value = itemId });
-                return await ReadProvenanceAsync(command, cancellationToken).ConfigureAwait(false);
-            }
-        }
-    }
-
-    private static async Task<ItemProvenance?> ReadProvenanceAsync(NpgsqlCommand command, CancellationToken cancellationToken)
-    {
-        var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-        await using (reader.ConfigureAwait(false))
-        {
-            if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-            {
-                return null;
-            }
-
-            var submittedAt = await reader.GetFieldValueAsync<DateTimeOffset>(ProvenanceSubmittedAtColumn, cancellationToken).ConfigureAwait(false);
-            return new ItemProvenance(reader.GetInt64(IdColumn), submittedAt, reader.GetInt64(ProvenanceSubmittedByColumn), reader[ProvenanceSubmissionColumn] as string);
-        }
     }
 
     private async Task<IReadOnlyList<BatchEntry>> ListOneAsync(int domain, BatchFilter filter, CancellationToken cancellationToken)

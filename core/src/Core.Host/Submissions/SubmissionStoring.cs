@@ -101,6 +101,7 @@ internal static class SubmissionStoring
         {
             Keeping.Collided => Collision,
             Keeping.Repeated => ReasonCodes.AlreadyReceived,
+            Keeping.Kept or Keeping.WriteFailed => WriteFailed,
             _ => WriteFailed,
         };
         var rejected = await reject(motive).ConfigureAwait(false);

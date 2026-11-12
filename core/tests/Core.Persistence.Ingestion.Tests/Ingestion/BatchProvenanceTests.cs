@@ -72,9 +72,11 @@ public sealed class BatchProvenanceTests
         Assert.Equal(
             ["domains", "itemId", "itemId"],
             [
-                Assert.ThrowsAny<ArgumentException>(() => register.ProvenanceAsync(null!, 1, CancellationToken.None)).ParamName,
-                Assert.ThrowsAny<ArgumentException>(() => register.ProvenanceAsync([1], 0, CancellationToken.None)).ParamName,
-                Assert.ThrowsAny<ArgumentException>(() => register.ProvenanceAsync([1], -1, CancellationToken.None)).ParamName,
+                Param(() => register.ProvenanceAsync(null!, 1, CancellationToken.None)),
+                Param(() => register.ProvenanceAsync([1], 0, CancellationToken.None)),
+                Param(() => register.ProvenanceAsync([1], -1, CancellationToken.None)),
             ]);
     }
+
+    private static string? Param(Func<object?> call) => Assert.ThrowsAny<ArgumentException>(call).ParamName;
 }

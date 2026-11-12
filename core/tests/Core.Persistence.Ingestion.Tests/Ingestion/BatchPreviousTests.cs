@@ -44,10 +44,12 @@ public sealed class BatchPreviousTests
         Assert.Equal(
             ["digest", "digest"],
             [
-                Assert.ThrowsAny<ArgumentException>(() => register.PreviousAsync(1, null!, CancellationToken.None)).ParamName,
-                Assert.ThrowsAny<ArgumentException>(() => register.PreviousAsync(1, string.Empty, CancellationToken.None)).ParamName,
+                Param(() => register.PreviousAsync(1, null!, CancellationToken.None)),
+                Param(() => register.PreviousAsync(1, string.Empty, CancellationToken.None)),
             ]);
     }
 
     private static string Digest(char digit) => new(digit, 64);
+
+    private static string? Param(Func<object?> call) => Assert.ThrowsAny<ArgumentException>(call).ParamName;
 }

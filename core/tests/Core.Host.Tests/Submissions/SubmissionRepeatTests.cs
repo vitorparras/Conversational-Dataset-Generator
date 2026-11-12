@@ -84,7 +84,7 @@ public sealed class SubmissionRepeatTests
         await using var world = await SubmissionWorld.CreateAsync();
         var outcome = await world.SubmitAsync(SubmissionWorld.Request());
         await world.AcceptReviewedAsync(outcome.Batch!.Value);
-        var batch = await world.Service.DetailAsync(Granted, outcome.Batch!.Value, TestContext.Current.CancellationToken);
+        var batch = await world.Service.DetailAsync(Granted, outcome.Batch.Value, TestContext.Current.CancellationToken);
         var item = long.Parse(Assert.Single(await world.StoredAsync("SELECT id::text FROM content.item_text ORDER BY id LIMIT 1")), CultureInfo.InvariantCulture);
 
         var provenance = await new BatchRegister(world.DataSource).ProvenanceAsync(Granted, item, TestContext.Current.CancellationToken);

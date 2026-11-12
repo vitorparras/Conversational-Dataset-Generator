@@ -10,7 +10,7 @@ namespace Core.Persistence.Tests.Ingestion;
 /// </summary>
 public sealed class BatchReviewGuardsTests
 {
-    private const string Offline = "Host=127.0.0.1;Port=1;Username=u;Password=p;Database=d";
+    private const string Offline = "Host=127.0.0.1;Port=1;Username=u;Database=d";
 
     [Fact]
     public async Task ASamplingWithoutARequestIsRefused()

@@ -12,7 +12,7 @@ public sealed record NewItemText
     /// <param name="sanitized">The sanitized text, sealed like the raw one; null while it does not exist.</param>
     /// <param name="pseudonymized">The pseudonymized text, the one text stored in clear; null while it does not exist.</param>
     /// <param name="occurrences">The occurrences with their destination, sealed with the item and never changed; an empty list is the decision that none was found.</param>
-    internal NewItemText(string raw, string? sanitized, string? pseudonymized, IReadOnlyList<ItemOccurrence> occurrences)
+    public NewItemText(string raw, string? sanitized, string? pseudonymized, IReadOnlyList<ItemOccurrence> occurrences)
     {
         ArgumentNullException.ThrowIfNull(raw);
         ArgumentNullException.ThrowIfNull(occurrences);
@@ -27,7 +27,7 @@ public sealed record NewItemText
     /// <param name="sanitized">The sanitized text, sealed like the raw one; null while it does not exist.</param>
     /// <param name="pseudonymized">The pseudonymized text, the one text stored in clear; null while it does not exist.</param>
     /// <param name="accommodation">What the item declares when its material was accommodated into a form that is not exactly its own; null when it fits exactly and nothing was lost.</param>
-    internal NewItemText(string raw, string? sanitized = null, string? pseudonymized = null, ItemAccommodation? accommodation = null)
+    public NewItemText(string raw, string? sanitized = null, string? pseudonymized = null, ItemAccommodation? accommodation = null)
     {
         ArgumentNullException.ThrowIfNull(raw);
         Raw = raw;

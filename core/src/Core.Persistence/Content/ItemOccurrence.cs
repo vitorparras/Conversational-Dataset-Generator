@@ -8,7 +8,7 @@ public sealed record ItemOccurrence
     /// <param name="end">The code point offset just past the occurrence.</param>
     /// <param name="kind">What the occurrence is, as the recognizer names it.</param>
     /// <param name="destination">What becomes of it.</param>
-    internal ItemOccurrence(int start, int end, string kind, OccurrenceDestination destination)
+    public ItemOccurrence(int start, int end, string kind, OccurrenceDestination destination)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(start);
         ArgumentOutOfRangeException.ThrowIfLessThan(end, start);

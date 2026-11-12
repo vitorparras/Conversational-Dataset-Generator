@@ -51,12 +51,15 @@ public sealed class SubmissionCollisionTests
         Assert.Equal((StatusCodes.Status503ServiceUnavailable, string.Empty, string.Empty), (status, retryAfter, body));
     }
 
+    /// <summary>A file of its own for each submission, so that none of them is a repeat of another.</summary>
+    private static SubmissionRequest Distinct(int at) => SubmissionWorld.Request(SubmissionWorld.Messages(("ZQXUM", $"ZQXum {at}"), ("ZQXDOIS", $"ZQXdois {at}")));
+
     [DatabaseFact]
     public async Task EightSubmissionsMadeTogetherAreEachKeptOrToldToTryAgainAndEveryBatchThatWasNotKeptIsRejectedForTheCollisionAndTheChainIsWhole()
     {
         await using var world = await SubmissionWorld.CreateAsync();
 
-        var outcomes = await Task.WhenAll(Enumerable.Range(0, Simultaneous).Select(_ => Task.Run(() => world.SubmitAsync(SubmissionWorld.Request()), TestContext.Current.CancellationToken)));
+        var outcomes = await Task.WhenAll(Enumerable.Range(0, Simultaneous).Select(at => Task.Run(() => world.SubmitAsync(Distinct(at)), TestContext.Current.CancellationToken)));
 
         var kept = outcomes.Count(outcome => outcome.Kind == SubmissionKind.Done);
         var told = outcomes.Count(outcome => outcome.Kind == SubmissionKind.Collided);

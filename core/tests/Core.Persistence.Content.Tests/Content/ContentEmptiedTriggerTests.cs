@@ -12,7 +12,7 @@ public sealed class ContentEmptiedTriggerTests
 {
     private const string Emptied = "CE004";
     private const string EmptyItem = "UPDATE content.item_text SET emptied_at = now(), raw_text = NULL, sanitized_text = NULL, pseudonymized_text = NULL, "
-        + "dek_epoch = NULL, dek_wrapped = NULL WHERE id = @id RETURNING id";
+        + "occurrences = NULL, dek_epoch = NULL, dek_wrapped = NULL WHERE id = @id RETURNING id";
     private const string InsertMap = "INSERT INTO content.reversal_map (domain_id, batch_id, item_id, entries, dek_epoch, dek_wrapped) VALUES (1, 1, @id, '\\x01', 1, '\\x01') RETURNING id";
     private const string EmptyMap = "UPDATE content.reversal_map SET emptied_at = now(), entries = NULL, dek_epoch = NULL, dek_wrapped = NULL WHERE item_id = @id RETURNING id";
 

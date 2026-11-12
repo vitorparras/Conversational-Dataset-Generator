@@ -142,7 +142,7 @@ public sealed class ContentColumnsTests
     public void MarkOfAColumnSaysTheLabelOfItsPurposeAndNothingOfTheDomain() =>
         Assert.Equal(
             [
-                "protected:texto-bruto", "protected:texto-bruto", "protected:texto-bruto", "protected:mapa-reversao", "protected:mapa-reversao",
+                "protected:texto-bruto", "protected:texto-bruto", "protected:texto-bruto", "protected:texto-bruto", "protected:mapa-reversao", "protected:mapa-reversao",
                 "protected:texto-bruto", "protected:texto-bruto",
             ],
             ContentColumns.Protected.Select(column => column.Mark));

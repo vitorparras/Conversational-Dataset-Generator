@@ -1,3 +1,4 @@
+using Core.Persistence.Content;
 using Core.Persistence.Content.Writing;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Fixtures;
@@ -77,6 +78,10 @@ public sealed class BatchReviewGateTests
 
         _ = await Assert.ThrowsAsync<BatchNotOpenException>(() => IngestionWorld.AddItemAsync(world, batch));
 
-        Assert.Equal(1L, await world.OwnerInDomainAsync(1, "SELECT count(*) FROM content.item_text WHERE batch_id = @id", ("id", batch)));
+        await using var transaction = await ContentTransaction.BeginSystemAsync(world.DataSource, IngestionWorld.Domain, TestContext.Current.CancellationToken);
+        await using var count = transaction.CreateCommand("SELECT count(*) FROM content.item_text WHERE batch_id = @id");
+        _ = count.Parameters.AddWithValue("id", batch);
+
+        Assert.Equal(1L, await count.ExecuteScalarAsync(TestContext.Current.CancellationToken));
     }
 }

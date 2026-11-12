@@ -11,7 +11,7 @@ namespace Core.Persistence.Tests.Content;
 public sealed class ProtectedContentEmptyingTests
 {
     private const string Empty = "UPDATE content.item_text SET emptied_at = now(), raw_text = NULL, sanitized_text = NULL, pseudonymized_text = NULL, "
-        + "dek_epoch = NULL, dek_wrapped = NULL WHERE id = @id RETURNING id";
+        + "occurrences = NULL, dek_epoch = NULL, dek_wrapped = NULL WHERE id = @id RETURNING id";
     private const string EmptyMap = "UPDATE content.reversal_map SET emptied_at = now(), entries = NULL, dek_epoch = NULL, dek_wrapped = NULL WHERE id = @id RETURNING id";
 
     [DatabaseFact]

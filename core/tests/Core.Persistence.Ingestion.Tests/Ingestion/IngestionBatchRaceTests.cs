@@ -1,4 +1,5 @@
 using Core.Persistence.Content;
+using Core.Persistence.Custody;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Fixtures;
 using Npgsql;
@@ -40,7 +41,8 @@ public sealed class IngestionBatchRaceTests
         await AddCommittedItemAsync(world, batch);
         await ReviewedBatches.ReviewCleanAsync(world.DataSource, IngestionWorld.Domain, batch, IngestionWorld.Person);
 
-        var first = await CloseWhileAWriterCommitsAsync(world, batch, () => IngestionWorld.BatchesOf(world).AcceptAsync(new BatchClosing(IngestionWorld.Domain, batch, CustodyAuthor.System), TestContext.Current.CancellationToken));
+        var closing = new BatchClosing(IngestionWorld.Domain, batch, CustodyAuthor.System);
+        var first = await CloseWhileAWriterCommitsAsync(world, batch, () => IngestionWorld.BatchesOf(world).AcceptAsync(closing, TestContext.Current.CancellationToken));
 
         Assert.Equal((BatchOutcome.Accepted, "2"), (first.Outcome, await world.ScalarAsync(Counted) as string));
     }

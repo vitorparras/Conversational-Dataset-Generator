@@ -84,21 +84,19 @@ internal static class SubmissionStoring
     /// When the last round is refused too, the batch is left open and the log says so by the batch, the domain and how the rejection ended, never by the material.
     /// </summary>
     /// <param name="reject">Rejects the batch for the motive it is given, with the attempts the batches make.</param>
-    /// <param name="collided">Whether the batch could not be kept because its acceptance met another submission at the same link of the chain.</param>
     /// <param name="kept">The domain and the batch.</param>
     /// <param name="logger">Says that the batch was left open.</param>
-    internal static async Task<Keeping> CleanUpAsync(Func<string, Task<BatchResult>> reject, bool collided, Kept kept, ILogger logger)
+    internal static async Task<Keeping> CleanUpAsync(Func<string, Task<BatchResult>> reject, Kept kept, ILogger logger)
     {
-        var motive = collided ? Collision : WriteFailed;
-        var rejected = await reject(motive).ConfigureAwait(false);
+        var rejected = await reject(WriteFailed).ConfigureAwait(false);
         for (var round = 1; round < RejectionRounds && rejected.Collided; round++)
         {
-            rejected = await reject(motive).ConfigureAwait(false);
+            rejected = await reject(WriteFailed).ConfigureAwait(false);
         }
 
         if (rejected.Outcome == BatchOutcome.Rejected)
         {
-            return collided ? Keeping.Collided : Keeping.WriteFailed;
+            return Keeping.WriteFailed;
         }
 
         logger.BatchLeftOpen(kept.BatchId, kept.DomainId, rejected.Outcome);
@@ -119,7 +117,6 @@ internal static class SubmissionStoring
     internal static SubmissionOutcome? Failure(Keeping keeping, long batch) => keeping switch
     {
         Keeping.Kept => null,
-        Keeping.Collided => new SubmissionOutcome { Kind = SubmissionKind.Collided, Batch = batch },
         Keeping.WriteFailed => new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = WriteFailed, Batch = batch },
         _ => throw new InvalidOperationException("The keeping of the file ended in a way the service does not answer."),
     };
@@ -135,12 +132,6 @@ internal static class SubmissionStoring
         /// or was left open when not even the rejection could be made.
         /// </summary>
         WriteFailed,
-
-        /// <summary>
-        /// The acceptance met another submission at the same link of the chain and gave up after the attempts; the batch was rejected as <see cref="Collision" />,
-        /// so nothing of it is kept.
-        /// </summary>
-        Collided,
     }
 
     /// <summary>The batch an item is written to, and what is written there.</summary>
@@ -157,7 +148,7 @@ internal static class SubmissionStoring
     internal sealed record Keeper(IngestionBatches Batches, SubmissionIntake Intake, ILogger Logger)
     {
         /// <summary>
-        /// Writes the items of a file that was not turned back and leaves the batch open for the review; when that fails, rejects it with no item and says why: a write that failed, or a collision of the closing.
+        /// Writes the items of a file that was not turned back and leaves the batch open for the review; when that fails, rejects it with no item and says why: a write that failed.
         /// When not even the rejection is made, the batch is left open with its items: the log says so by the batch and the domain only, and the answer is a write that failed.
         /// </summary>
         /// <param name="kept">The domain and the batch, open, and what the reader gave.</param>
@@ -170,7 +161,7 @@ internal static class SubmissionStoring
                 return Keeping.Kept;
             }
 
-            return await CleanUpAsync(motive => Batches.RejectAsync(closing, motive, cancellationToken), false, kept, Logger).ConfigureAwait(false);
+            return await CleanUpAsync(motive => Batches.RejectAsync(closing, motive, cancellationToken), kept, Logger).ConfigureAwait(false);
         }
     }
 }

@@ -1,5 +1,5 @@
 -- The sample of a batch for review (issue 83): drawn once by the system, with its event in the chain, and never changed after. The chain learns the step batch_sampled, by the person who asks for the
--- review; the checks change from the last ones the earlier steps left (the steps from the 0051, the shape of the batch from the 0042), and everything they list stays.
+-- review; the checks change from the last ones the earlier steps left (the steps from the 0052, the shape of the batch from the 0042), and everything they list stays.
 ALTER TABLE public.custody_event
     DROP CONSTRAINT custody_event_step_listed,
     DROP CONSTRAINT custody_event_batch_shape,

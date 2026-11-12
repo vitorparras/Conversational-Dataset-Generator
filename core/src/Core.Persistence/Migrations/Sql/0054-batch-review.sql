@@ -1,6 +1,6 @@
 -- The review of the sample (issue 83): a person reviews the sample the system drew, and one finding of personal data not treated rejects the whole batch. The review is a gate and not an estimate: there is
 -- no rate to reach, and no path accepts a batch whose sample was not reviewed, the owner included. The chain learns the step batch_reviewed (by the reviewer, with the reason review_clean or review_found);
--- the checks change from the ones the 0052 left, and a finding is also the rejection of the batch, in the same transaction.
+-- the checks change from the ones the 0053 left, and a finding is also the rejection of the batch, in the same transaction.
 ALTER TABLE public.custody_event
     DROP CONSTRAINT custody_event_step_listed,
     DROP CONSTRAINT custody_event_reason_listed,

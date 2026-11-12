@@ -270,7 +270,7 @@ public sealed class IngestionBatchesTests
         var held = await batches.ReadAsync(IngestionWorld.Domain, batch, TestContext.Current.CancellationToken);
 
         Assert.Equal(
-            (BatchOutcome.NotRecorded, CustodyOutcome.ActorDeactivated, BatchOutcome.NotRecorded, CustodyOutcome.ActorDeactivated, BatchState.Open, OnlyTheOpening),
+            (BatchOutcome.NotRecorded, CustodyOutcome.ActorDeactivated, BatchOutcome.NotRecorded, CustodyOutcome.ActorDeactivated, BatchState.Open, $"{OnlyTheOpening},{TheReview}"),
             (accepted.Outcome, accepted.Refusal?.Outcome, rejected.Outcome, rejected.Refusal?.Outcome, held?.State, await world.ScalarAsync(IngestionWorld.Events) as string));
     }
 

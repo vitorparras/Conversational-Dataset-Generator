@@ -37,9 +37,26 @@ public sealed class IngestionBatchRaceTests
         await using var world = await IngestionWorld.CreateAsync();
         var batch = await IngestionWorld.OpenAsync(world);
 
-        var first = await CloseWhileAWriterCommitsAsync(world, batch, () => IngestionWorld.AcceptAsync(world, batch));
+        await AddCommittedItemAsync(world, batch);
+        await ReviewedBatches.ReviewCleanAsync(world.DataSource, IngestionWorld.Domain, batch, IngestionWorld.Person);
 
-        Assert.Equal((BatchOutcome.Accepted, "1"), (first.Outcome, await world.ScalarAsync(Counted) as string));
+        var first = await CloseWhileAWriterCommitsAsync(world, batch, () => IngestionWorld.BatchesOf(world).AcceptAsync(new BatchClosing(IngestionWorld.Domain, batch, CustodyAuthor.System), TestContext.Current.CancellationToken));
+
+        Assert.Equal((BatchOutcome.Accepted, "2"), (first.Outcome, await world.ScalarAsync(Counted) as string));
+    }
+
+    /// <summary>An item that is committed before the review, so the sample has something to draw.</summary>
+    private static async Task AddCommittedItemAsync(BatchesWorld world, long batch)
+    {
+        var token = TestContext.Current.CancellationToken;
+        await using var writer = await ContentTransaction.BeginAsync(world.DataSource, IngestionWorld.Domain, token);
+        await using (var insert = writer.CreateCommand(AddItem))
+        {
+            _ = insert.Parameters.AddWithValue("batch", batch);
+            _ = await insert.ExecuteNonQueryAsync(token);
+        }
+
+        await writer.CommitAsync(token);
     }
 
     /// <summary>

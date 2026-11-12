@@ -34,14 +34,14 @@ public sealed class SubmissionPathTests
     };
 
     [DatabaseFact]
-    public async Task FileConferredIsKeptAsOneItemPerUnitAndTheBatchIsAccepted()
+    public async Task FileConferredIsKeptAsOneItemPerUnitAndTheBatchStaysOpenForTheReview()
     {
         await using var world = await SubmissionWorld.CreateAsync();
 
         var outcome = await world.SubmitAsync(SubmissionWorld.Request());
         var entry = await world.Service.DetailAsync([SubmissionWorld.Domain], outcome.Batch!.Value, TestContext.Current.CancellationToken);
 
-        Assert.Equal((SubmissionState.Accepted, BatchState.Accepted, 2L), (outcome.State, entry!.State, await world.ItemRowsAsync()));
+        Assert.Equal((SubmissionState.Accepted, BatchState.Open, 2L), (outcome.State, entry!.State, await world.ItemRowsAsync()));
     }
 
     [DatabaseFact]

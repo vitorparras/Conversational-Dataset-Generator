@@ -73,7 +73,7 @@ internal static class SubmissionAnswer
     private static SubmissionAnswered Done(SubmissionOutcome outcome) => new(
         outcome.Submission!,
         outcome.Batch!.Value,
-        outcome.State == SubmissionState.Accepted ? "accepted" : "rejected",
+        outcome.State == SubmissionState.Accepted ? "awaiting_review" : "rejected",
         outcome.Reason is { } reason ? new ReasonShown(reason.Code, [.. reason.Findings.Select(finding => new FindingShown(finding.Unit, finding.Field))]) : null,
         outcome.Size,
         outcome.Sha256!,

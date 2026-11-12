@@ -127,11 +127,11 @@ internal static class SubmissionStoring
     /// <summary>How the keeping of a file ended.</summary>
     internal enum Keeping
     {
-        /// <summary>The items were written and the batch was accepted.</summary>
+        /// <summary>The items were written and the batch stays open, awaiting the review of its sample (CA-5 of issue 83).</summary>
         Kept,
 
         /// <summary>
-        /// Some item could not be written, or the batch could not be accepted for a reason other than a collision; the batch was rejected as <see cref="WriteFailed" />,
+        /// Some item could not be written, or the batch could not be kept for a reason other than a collision; the batch was rejected as <see cref="WriteFailed" />,
         /// or was left open when not even the rejection could be made.
         /// </summary>
         WriteFailed,
@@ -157,7 +157,7 @@ internal static class SubmissionStoring
     internal sealed record Keeper(IngestionBatches Batches, SubmissionIntake Intake, ILogger Logger)
     {
         /// <summary>
-        /// Writes the items of a file that was not turned back and accepts the batch; when that fails, rejects it with no item and says why: a write that failed, or a collision of the closing.
+        /// Writes the items of a file that was not turned back and leaves the batch open for the review; when that fails, rejects it with no item and says why: a write that failed, or a collision of the closing.
         /// When not even the rejection is made, the batch is left open with its items: the log says so by the batch and the domain only, and the answer is a write that failed.
         /// </summary>
         /// <param name="kept">The domain and the batch, open, and what the reader gave.</param>
@@ -165,13 +165,12 @@ internal static class SubmissionStoring
         internal async Task<Keeping> KeepAsync(Kept kept, CancellationToken cancellationToken)
         {
             var closing = new BatchClosing(kept.DomainId, kept.BatchId, CustodyAuthor.System);
-            var accepted = await StoreAsync(Intake, kept, cancellationToken).ConfigureAwait(false) ? await Batches.AcceptAsync(closing, cancellationToken).ConfigureAwait(false) : null;
-            if (accepted?.Outcome == BatchOutcome.Accepted)
+            if (await StoreAsync(Intake, kept, cancellationToken).ConfigureAwait(false))
             {
                 return Keeping.Kept;
             }
 
-            return await CleanUpAsync(motive => Batches.RejectAsync(closing, motive, cancellationToken), accepted?.Collided == true, kept, Logger).ConfigureAwait(false);
+            return await CleanUpAsync(motive => Batches.RejectAsync(closing, motive, cancellationToken), false, kept, Logger).ConfigureAwait(false);
         }
     }
 }

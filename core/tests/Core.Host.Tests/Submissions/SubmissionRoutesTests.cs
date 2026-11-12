@@ -24,7 +24,7 @@ public sealed class SubmissionRoutesTests
     private const string Submit = SubmissionsEndpoint.SubmissionsRoute;
 
     [DatabaseFact]
-    public async Task FileAcceptedIsAnswered201WithTheReceiptAndNoWordOfTheMaterialOfTheOriginOrOfTheNameOfTheFile()
+    public async Task FileKeptIsAnswered201WithTheReceiptAndNoWordOfTheMaterialOfTheOriginOrOfTheNameOfTheFile()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         await using var world = await SubmissionWorld.CreateAsync();
@@ -35,7 +35,7 @@ public sealed class SubmissionRoutesTests
         using var json = JsonDocument.Parse(body);
 
         Assert.Equal(
-            (HttpStatusCode.Created, "accepted", "declared", JsonValueKind.Null, 1L),
+            (HttpStatusCode.Created, "awaiting_review", "declared", JsonValueKind.Null, 1L),
             (
                 response.StatusCode,
                 json.RootElement.GetProperty("state").GetString(),

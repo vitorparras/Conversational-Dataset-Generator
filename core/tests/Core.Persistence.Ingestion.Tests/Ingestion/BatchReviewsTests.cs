@@ -130,11 +130,12 @@ public sealed class BatchReviewsTests
 
         _ = await ReviewAsync(world, batch, Finding);
         var read = await Reviews(world).ReadAsync(IngestionWorld.Domain, batch, TestContext.Current.CancellationToken);
+        var events = await world.ScalarAsync(IngestionWorld.Events);
         var verified = await new CustodyVerifier(world.DataSource, TimeProvider.System).VerifyAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(drawn.Sample, read!.Sample);
         Assert.Equal((BatchState.Rejected, IngestionWorld.Person, Finding, true), (read.State, read.ReviewerId, read.Finding, read.ReviewedAt is not null));
-        Assert.Equal($"batch_opened:administrative_act:-,{TheDraw},{TheFinding}", await world.ScalarAsync(IngestionWorld.Events));
+        Assert.Equal($"batch_opened:administrative_act:-,{TheDraw},{TheFinding}", events);
         Assert.True(verified.Passed);
     }
 

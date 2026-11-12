@@ -28,7 +28,11 @@ public sealed class BatchReviews
     public BatchReviews(NpgsqlDataSource dataSource, int? sampleSize)
     {
         ArgumentNullException.ThrowIfNull(dataSource);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sampleSize ?? 1);
+        if (sampleSize is <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(sampleSize), sampleSize, "The size of the sample is positive when declared.");
+        }
+
         this.dataSource = dataSource;
         this.sampleSize = sampleSize;
     }

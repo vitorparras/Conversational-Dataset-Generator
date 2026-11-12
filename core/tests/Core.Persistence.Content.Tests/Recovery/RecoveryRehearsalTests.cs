@@ -1,4 +1,3 @@
-using Core.Persistence.Content.Writing;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
 using Core.Persistence.Recovery;
@@ -135,7 +134,7 @@ public sealed class RecoveryRehearsalTests
     {
         for (var index = 0; index < items; index++)
         {
-            var item = await world.Writer.AddItemTextAsync(domain, new NewItemText(Raw), TestContext.Current.CancellationToken);
+            var item = await world.Writer.AddItemTextAsync(domain, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
             _ = await world.Writer.AddReversalMapAsync(domain, item, Entries, TestContext.Current.CancellationToken);
         }
     }

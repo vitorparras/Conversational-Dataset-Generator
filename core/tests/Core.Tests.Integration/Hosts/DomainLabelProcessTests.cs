@@ -212,7 +212,7 @@ public sealed class DomainLabelProcessTests
         await using var app = NpgsqlDataSource.Create(database.AppConnectionString);
         await SeededBatches.SeedAsync(database, 1);
         var writer = new SeededWriter(new ContentWriter(app, new ProtectedContent(reading.Labels, keys, new HashSet<string>(first, StringComparer.Ordinal))));
-        _ = await writer.AddItemTextAsync(1, new NewItemText("zqx-texto"), TestContext.Current.CancellationToken);
+        _ = await writer.AddItemTextAsync(1, ItemTexts.Of("zqx-texto"), TestContext.Current.CancellationToken);
     }
 
     private static string[] Arguments(CustodyFiles files, string mode, string? option, string[] labels, string? flag = null)

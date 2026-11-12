@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using Core.Persistence.Content.Writing;
 using Core.Persistence.ServerGuarantees;
 using Core.Platform.Configuration;
 using Npgsql;
@@ -49,7 +48,7 @@ internal sealed class CopiedWorld : IAsyncDisposable
             await world.RunAsOwnerAsync(beforeCopy);
         }
 
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Marker, "texto sanitizado sintetico zqx"), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Marker, "texto sanitizado sintetico zqx"), TestContext.Current.CancellationToken);
         _ = await world.Writer.AddReversalMapAsync(1, item, "mapa sintetico zqx", TestContext.Current.CancellationToken);
         if (openBatch)
         {

@@ -1,3 +1,4 @@
+using Core.Persistence.Custody;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Fixtures;
 
@@ -32,7 +33,11 @@ public sealed class IngestionBatchCollisionTests
         await using var world = await IngestionWorld.CreateAsync();
         var batch = await IngestionWorld.OpenAsync(world);
 
-        var accepted = await ChainContention.WhilePendingAsync(world, () => IngestionWorld.AcceptAsync(world, batch));
+        await ReviewedBatches.ReviewCleanAsync(world.DataSource, IngestionWorld.Domain, batch, IngestionWorld.Person);
+
+        var accepted = await ChainContention.WhilePendingAsync(
+            world,
+            () => IngestionWorld.BatchesOf(world).AcceptAsync(new BatchClosing(IngestionWorld.Domain, batch, CustodyAuthor.System), TestContext.Current.CancellationToken));
 
         Assert.Equal((BatchOutcome.Accepted, false), (accepted.Outcome, accepted.Collided));
     }

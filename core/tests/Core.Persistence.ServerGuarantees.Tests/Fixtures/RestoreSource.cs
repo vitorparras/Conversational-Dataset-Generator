@@ -1,7 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Nodes;
 using Core.Persistence.Content.Emptying;
-using Core.Persistence.Content.Writing;
 using Core.Persistence.Custody;
 using Core.Persistence.People;
 
@@ -30,9 +29,9 @@ public sealed class RestoreSource : IAsyncLifetime
             "INSERT INTO public.custody_event (actor_person_id, item_kind, item_id, step, reason) VALUES (1, 'person', 2, 'person_deactivated', 'administrative_act')",
             "INSERT INTO public.custody_event (actor_system, item_kind, item_id, step, reason) VALUES (true, 'custody_chain', 3, 'verify_chain', 'verification_passed')");
         var token = TestContext.Current.CancellationToken;
-        var first = await world.Writer.AddItemTextAsync(1, new NewItemText("texto bruto sintetico zqx"), token);
+        var first = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("texto bruto sintetico zqx"), token);
         _ = await world.Writer.AddReversalMapAsync(1, first, "mapa sintetico zqx", token);
-        var second = await world.Writer.AddItemTextAsync(2, new NewItemText("texto bruto sintetico zqx"), token);
+        var second = await world.Writer.AddItemTextAsync(2, ItemTexts.Of("texto bruto sintetico zqx"), token);
         await world.RunAsOwnerAsync(
             "ALTER TABLE content.replication_occurrence DISABLE TRIGGER content_needs_open_batch",
             "ALTER TABLE content.replication_mark DISABLE TRIGGER content_needs_open_batch",

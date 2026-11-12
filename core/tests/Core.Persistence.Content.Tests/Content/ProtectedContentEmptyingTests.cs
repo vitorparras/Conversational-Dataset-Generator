@@ -1,4 +1,3 @@
-using Core.Persistence.Content.Writing;
 using Core.Persistence.Tests.Fixtures;
 using Npgsql;
 
@@ -12,14 +11,14 @@ namespace Core.Persistence.Tests.Content;
 public sealed class ProtectedContentEmptyingTests
 {
     private const string Empty = "UPDATE content.item_text SET emptied_at = now(), raw_text = NULL, sanitized_text = NULL, pseudonymized_text = NULL, "
-        + "dek_epoch = NULL, dek_wrapped = NULL WHERE id = @id RETURNING id";
+        + "occurrences = NULL, dek_epoch = NULL, dek_wrapped = NULL WHERE id = @id RETURNING id";
     private const string EmptyMap = "UPDATE content.reversal_map SET emptied_at = now(), entries = NULL, dek_epoch = NULL, dek_wrapped = NULL WHERE id = @id RETURNING id";
 
     [DatabaseFact]
     public async Task ItemIsEmptiedByMarkingItAndClearingEveryContentColumn()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText("bruto", "sanitizado", "pseudonimizado"), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("bruto", "sanitizado", "pseudonimizado"), TestContext.Current.CancellationToken);
 
         var emptied = await world.OwnerInDomainAfterAsync(ContentWorld.EmptiedEvent, 1, Empty, ("id", item));
 
@@ -30,7 +29,7 @@ public sealed class ProtectedContentEmptyingTests
     public async Task EmptiedItemIsFoundByItsMarkerWithoutReadingASealedColumn()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText("bruto"), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("bruto"), TestContext.Current.CancellationToken);
         _ = await world.OwnerInDomainAfterAsync(ContentWorld.EmptiedEvent, 1, Empty, ("id", item));
 
         var found = await world.InDomainAsync(1, "SELECT id FROM content.item_text WHERE emptied_at IS NOT NULL");
@@ -42,7 +41,7 @@ public sealed class ProtectedContentEmptyingTests
     public async Task MarkingAnItemEmptiedWhileItStillHoldsTheTextIsRefused()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText("bruto"), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("bruto"), TestContext.Current.CancellationToken);
 
         var refused = await Assert.ThrowsAsync<PostgresException>(
             () => world.OwnerInDomainAfterAsync(ContentWorld.EmptiedEvent, 1, "UPDATE content.item_text SET emptied_at = now() WHERE id = @id", ("id", item)));
@@ -54,7 +53,7 @@ public sealed class ProtectedContentEmptyingTests
     public async Task ClearingTheSealedTextWithoutMarkingTheItemIsRefused()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText("bruto", "sanitizado"), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("bruto", "sanitizado"), TestContext.Current.CancellationToken);
 
         var refused = await Assert.ThrowsAsync<PostgresException>(() => world.OwnerInDomainAsync(1, "UPDATE content.item_text SET raw_text = NULL WHERE id = @id", ("id", item)));
 
@@ -65,7 +64,7 @@ public sealed class ProtectedContentEmptyingTests
     public async Task EmptyingTheMapNeedsTheMarkerAndTheClearedEntriesTogetherAndTheItemEmptiedFirst()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText("bruto"), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("bruto"), TestContext.Current.CancellationToken);
         var map = await world.Writer.AddReversalMapAsync(1, item, "entradas", TestContext.Current.CancellationToken);
         var clearedOnly = await Assert.ThrowsAsync<PostgresException>(() => world.OwnerInDomainAsync(1, "UPDATE content.reversal_map SET entries = NULL WHERE id = @id", ("id", map)));
         var beforeItem = await Assert.ThrowsAsync<PostgresException>(() => world.OwnerInDomainAfterAsync(ContentWorld.EmptiedEventOfItem, 1, EmptyMap, ("id", map), ("item", item)));
@@ -82,7 +81,7 @@ public sealed class ProtectedContentEmptyingTests
     public async Task ApplicationRoleChangesNothingOfAnItemButTheMarkerAndTheContentColumns()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText("bruto"), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("bruto"), TestContext.Current.CancellationToken);
 
         var refused = await Assert.ThrowsAsync<PostgresException>(() => world.InDomainAsync(1, "UPDATE content.item_text SET recorded_at = now() WHERE id = @id", ("id", item)));
 

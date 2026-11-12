@@ -54,6 +54,7 @@ public sealed class SubmissionReplicationTests
         await using var world = await SubmissionWorld.CreateAsync(replication: Rule);
 
         _ = await world.SubmitAsync(SubmissionWorld.Request(SubmissionWorld.Messages(("ZQXUM", Forwarded), ("ZQXTRES", "ZQXoutra coisa totalmente"))));
+        await world.AcceptReviewedAsync(1);
         _ = await world.SubmitAsync(SubmissionWorld.Request(SubmissionWorld.Messages(("ZQXDOIS", Forwarded), ("ZQXQUATRO", "ZQXmais uma coisa distinta"))));
 
         Assert.Equal((4L, 2L), (await world.OccurrenceRowsAsync(), await world.MarkRowsAsync()));

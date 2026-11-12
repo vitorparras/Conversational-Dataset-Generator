@@ -140,7 +140,7 @@ internal sealed class SubmissionService
         return opened.Outcome == wanted ? null : new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = opened.Outcome };
     }
 
-    /// <summary>A file that was not turned back has its items written and is accepted, or is rejected with no item when they cannot be.</summary>
+    /// <summary>A file that was not turned back has its items written and its batch left open for the review, or is rejected with no item when they cannot be.</summary>
     private async Task<SubmissionOutcome> StoringAsync(SubmissionRequest request, Opened opened, CancellationToken cancellationToken)
     {
         var place = new SubmissionStoring.Kept(request.DomainId, opened.Batch, opened.Received.Material!, request.DeclaredForm);

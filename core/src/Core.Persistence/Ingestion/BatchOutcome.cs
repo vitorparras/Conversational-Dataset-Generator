@@ -33,6 +33,9 @@ public enum BatchOutcome
     /// <summary>The condition declared to open the batch is not one the installation knows, so nothing was written.</summary>
     ConditionUnknown,
 
+    /// <summary>The batch was not accepted: its sample was not reviewed, or the review found something, and no path accepts a batch without a review that found nothing.</summary>
+    ReviewMissing,
+
     /// <summary>Another batch of the domain accepted the same file first, so this one was left open, with its items, for whoever closes it to reject.</summary>
     AlreadyReceived,
 }

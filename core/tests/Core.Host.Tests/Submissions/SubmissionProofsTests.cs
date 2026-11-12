@@ -63,6 +63,7 @@ public sealed class SubmissionProofsTests
         var cancellationToken = TestContext.Current.CancellationToken;
         await using var world = await SubmissionWorld.CreateAsync();
         _ = await world.SubmitAsync(SubmissionWorld.Request(content: Material()));
+        await world.AcceptReviewedAsync(1);
         var ids = (await world.StoredAsync(Items)).Select(id => long.Parse(id, CultureInfo.InvariantCulture)).ToList();
         var before = await world.Database.FirstColumnAsOwnerAsync(RawReads);
 

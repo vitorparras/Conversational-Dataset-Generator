@@ -20,7 +20,7 @@ public sealed class SealedColumnQueriesTests
 
     [Fact]
     public void TheSealedColumnsAreTheOnesTheContentMarks() =>
-        Assert.Equal(["raw_text", "sanitized_text", "dek_wrapped", "entries", "origin"], Sealed);
+        Assert.Equal(["raw_text", "sanitized_text", "occurrences", "dek_wrapped", "entries", "origin"], Sealed);
 
     [Theory]
     [InlineData("SELECT id FROM content.item_text WHERE raw_text = @x")]

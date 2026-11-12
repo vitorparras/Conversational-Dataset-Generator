@@ -82,7 +82,7 @@ public sealed class RecoveryRehearsalProcessTests
         var writer = new SeededWriter(new ContentWriter(app, new ProtectedContent(labels, keys, new HashSet<string>(Labels, StringComparer.Ordinal))));
         foreach (var domain in (int[])[1, 2])
         {
-            var item = await writer.AddItemTextAsync(domain, new NewItemText(Raw), TestContext.Current.CancellationToken);
+            var item = await writer.AddItemTextAsync(domain, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
             _ = await writer.AddReversalMapAsync(domain, item, Entries, TestContext.Current.CancellationToken);
         }
 

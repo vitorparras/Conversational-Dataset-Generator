@@ -58,8 +58,11 @@ internal static class IngestionWorld
     }
 
     /// <summary>The batch of the domain, closed by the system as accepted.</summary>
-    public static Task<BatchResult> AcceptInAsync(BatchesWorld world, int domain, long batch) =>
-        BatchesOf(world).AcceptAsync(new BatchClosing(domain, batch, CustodyAuthor.System), TestContext.Current.CancellationToken);
+    public static async Task<BatchResult> AcceptInAsync(BatchesWorld world, int domain, long batch)
+    {
+        await ReviewedBatches.ReviewCleanAsync(world.DataSource, domain, batch, Person);
+        return await BatchesOf(world).AcceptAsync(new BatchClosing(domain, batch, CustodyAuthor.System), TestContext.Current.CancellationToken);
+    }
 
     /// <summary>Adds the map of the item to the batch with a statement of its own, and answers its identifier.</summary>
     public static async Task<long> AddMapAsync(BatchesWorld world, long batch, long item) =>
@@ -72,8 +75,7 @@ internal static class IngestionWorld
             ("item", item)))!;
 
     /// <summary>The batch of the domain of the tests, closed by the system as accepted.</summary>
-    public static Task<BatchResult> AcceptAsync(BatchesWorld world, long batch) =>
-        BatchesOf(world).AcceptAsync(new BatchClosing(Domain, batch, CustodyAuthor.System), TestContext.Current.CancellationToken);
+    public static Task<BatchResult> AcceptAsync(BatchesWorld world, long batch) => AcceptInAsync(world, Domain, batch);
 
     /// <summary>The batch of the domain of the tests, closed by the system as rejected for the motive.</summary>
     public static Task<BatchResult> RejectAsync(BatchesWorld world, long batch, string motive) =>

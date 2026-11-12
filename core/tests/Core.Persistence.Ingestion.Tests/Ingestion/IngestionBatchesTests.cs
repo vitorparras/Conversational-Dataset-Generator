@@ -12,6 +12,7 @@ public sealed class IngestionBatchesTests
 {
     private const string Reason = "invalid_rows";
     private const string OnlyTheOpening = "batch_opened:administrative_act:-";
+    private const string TheReview = "batch_sampled:administrative_act:-,batch_reviewed:review_clean:-";
     private const string Unreachable = "0,0";
 
     [Fact]
@@ -69,7 +70,7 @@ public sealed class IngestionBatchesTests
         var events = await world.ScalarAsync(IngestionWorld.Events) as string;
         var verified = await new CustodyVerifier(world.DataSource, TimeProvider.System).VerifyAsync(TestContext.Current.CancellationToken);
 
-        Assert.Equal($"{OnlyTheOpening},batch_closed:batch_accepted:-,{OnlyTheOpening},batch_closed:batch_rejected:{Reason}", events);
+        Assert.Equal($"{OnlyTheOpening},{TheReview},batch_closed:batch_accepted:-,{OnlyTheOpening},batch_closed:batch_rejected:{Reason}", events);
         Assert.True(verified.Passed);
     }
 
@@ -262,13 +263,14 @@ public sealed class IngestionBatchesTests
         var batch = await IngestionWorld.OpenAsync(world);
         var closing = new BatchClosing(IngestionWorld.Domain, batch, CustodyAuthor.Person(await world.PersonAsync("zqx-gone")));
         var batches = IngestionWorld.BatchesOf(world);
+        await ReviewedBatches.ReviewCleanAsync(world.DataSource, IngestionWorld.Domain, batch, IngestionWorld.Person);
 
         var accepted = await batches.AcceptAsync(closing, TestContext.Current.CancellationToken);
         var rejected = await batches.RejectAsync(closing, Reason, TestContext.Current.CancellationToken);
         var held = await batches.ReadAsync(IngestionWorld.Domain, batch, TestContext.Current.CancellationToken);
 
         Assert.Equal(
-            (BatchOutcome.NotRecorded, CustodyOutcome.ActorDeactivated, BatchOutcome.NotRecorded, CustodyOutcome.ActorDeactivated, BatchState.Open, OnlyTheOpening),
+            (BatchOutcome.NotRecorded, CustodyOutcome.ActorDeactivated, BatchOutcome.NotRecorded, CustodyOutcome.ActorDeactivated, BatchState.Open, $"{OnlyTheOpening},{TheReview}"),
             (accepted.Outcome, accepted.Refusal?.Outcome, rejected.Outcome, rejected.Refusal?.Outcome, held?.State, await world.ScalarAsync(IngestionWorld.Events) as string));
     }
 

@@ -35,11 +35,11 @@ public sealed class ContentColumnsTests
     }
 
     [Fact]
-    public void RawAndSanitizedTextShareThePurposeAndTheMapHasItsOwn()
+    public void RawSanitizedAndOccurrencesShareThePurposeAndTheMapHasItsOwn()
     {
         Assert.Equal(
-            [LabelPurpose.RawText, LabelPurpose.RawText, LabelPurpose.ReversalMap],
-            [ContentColumns.RawText.Purpose, ContentColumns.SanitizedText.Purpose, ContentColumns.Entries.Purpose]);
+            [LabelPurpose.RawText, LabelPurpose.RawText, LabelPurpose.RawText, LabelPurpose.ReversalMap],
+            [ContentColumns.RawText.Purpose, ContentColumns.SanitizedText.Purpose, ContentColumns.Occurrences.Purpose, ContentColumns.Entries.Purpose]);
     }
 
     [Fact]
@@ -56,6 +56,7 @@ public sealed class ContentColumnsTests
             [
                 new ProtectedColumn("item_text", "raw_text", LabelPurpose.RawText),
                 new ProtectedColumn("item_text", "sanitized_text", LabelPurpose.RawText),
+                new ProtectedColumn("item_text", "occurrences", LabelPurpose.RawText),
                 new ProtectedColumn("item_text", "dek_wrapped", LabelPurpose.RawText),
                 new ProtectedColumn("reversal_map", "entries", LabelPurpose.ReversalMap),
                 new ProtectedColumn("reversal_map", "dek_wrapped", LabelPurpose.ReversalMap),
@@ -107,6 +108,11 @@ public sealed class ContentColumnsTests
                 new ClearColumn("batch_origin", "batch_id", ClearKind.Identifier),
                 new ClearColumn("batch_origin", "recorded_at", ClearKind.Moment),
                 new ClearColumn("batch_origin", "dek_epoch", ClearKind.Epoch),
+                new ClearColumn("ingestion_batch", "review_sample", ClearKind.Motive),
+                new ClearColumn("ingestion_batch", "sampled_at", ClearKind.Moment),
+                new ClearColumn("ingestion_batch", "reviewed_by", ClearKind.Identifier),
+                new ClearColumn("ingestion_batch", "reviewed_at", ClearKind.Moment),
+                new ClearColumn("ingestion_batch", "review_finding", ClearKind.Motive),
                 new ClearColumn("replication_occurrence", "id", ClearKind.Identifier),
                 new ClearColumn("replication_occurrence", "domain_id", ClearKind.Domain),
                 new ClearColumn("replication_occurrence", "batch_id", ClearKind.Identifier),
@@ -136,7 +142,7 @@ public sealed class ContentColumnsTests
     public void MarkOfAColumnSaysTheLabelOfItsPurposeAndNothingOfTheDomain() =>
         Assert.Equal(
             [
-                "protected:texto-bruto", "protected:texto-bruto", "protected:texto-bruto", "protected:mapa-reversao", "protected:mapa-reversao",
+                "protected:texto-bruto", "protected:texto-bruto", "protected:texto-bruto", "protected:texto-bruto", "protected:mapa-reversao", "protected:mapa-reversao",
                 "protected:texto-bruto", "protected:texto-bruto",
             ],
             ContentColumns.Protected.Select(column => column.Mark));

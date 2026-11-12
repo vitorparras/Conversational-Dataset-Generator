@@ -20,7 +20,7 @@ internal sealed record ReasonShown(string Code, IReadOnlyList<FindingShown> Find
 /// </summary>
 /// <param name="Submission">The identifier the system generated.</param>
 /// <param name="Batch">The batch the submission opened.</param>
-/// <param name="State">The state: <c>accepted</c> or <c>rejected</c>.</param>
+/// <param name="State">The state: <c>awaiting_review</c> (the batch stays open until its sample is reviewed) or <c>rejected</c>.</param>
 /// <param name="Reason">Why it was rejected; null when it was accepted.</param>
 /// <param name="Size">How many bytes were read.</param>
 /// <param name="Sha256">The SHA-256 of the bytes read, in lowercase hexadecimal.</param>
@@ -42,7 +42,7 @@ internal sealed record GateShown(string State, string? Code);
 /// <summary>A batch as the list shows it: nothing in it is a word of the material or the name of the file. The instants are UTC.</summary>
 /// <param name="Id">The batch.</param>
 /// <param name="Domain">The domain it belongs to.</param>
-/// <param name="State"><c>open</c>, <c>accepted</c> or <c>rejected</c>.</param>
+/// <param name="State"><c>open</c>, <c>awaiting_review</c> (the batch stays open until its sample is reviewed) or <c>rejected</c>.</param>
 /// <param name="Reason">The code of the rejection; null while the batch is not rejected.</param>
 /// <param name="SubmittedAt">When the submission came.</param>
 /// <param name="SubmittedBy">The person who submitted.</param>

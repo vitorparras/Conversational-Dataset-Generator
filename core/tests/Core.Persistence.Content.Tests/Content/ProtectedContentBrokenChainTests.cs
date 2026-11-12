@@ -29,11 +29,11 @@ public sealed class ProtectedContentBrokenChainTests
     public async Task ItemAndMapAreRefusedVisiblyAndNothingIsLeftOfThem()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
         await BreakAsync(world);
 
         var refusedItem = await Assert.ThrowsAsync<CustodyChainBrokenException>(
-            () => world.Writer.AddItemTextAsync(1, new NewItemText("outro texto sintetico zqx"), TestContext.Current.CancellationToken));
+            () => world.Writer.AddItemTextAsync(1, ItemTexts.Of("outro texto sintetico zqx"), TestContext.Current.CancellationToken));
         var refusedMap = await Assert.ThrowsAsync<CustodyChainBrokenException>(
             () => world.Writer.AddReversalMapAsync(1, item, "mapa sintetico zqx", TestContext.Current.CancellationToken));
 
@@ -45,7 +45,7 @@ public sealed class ProtectedContentBrokenChainTests
     public async Task ContentThatNeedsNoEventIsStillReadAndSoIsTheChain()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, null, Pseudonymized), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw, null, Pseudonymized), TestContext.Current.CancellationToken);
         await BreakAsync(world);
 
         var text = await world.InDomainAsync(1, "SELECT pseudonymized_text FROM content.item_text WHERE id = @id", ("id", item));
@@ -58,7 +58,7 @@ public sealed class ProtectedContentBrokenChainTests
     public async Task ProtectedContentIsStillReadWhileTheChainIsBrokenAndTheReadingIsRecordedWithoutTheContent()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
         await BreakAsync(world);
 
         var result = await world.Reader.ReadAsync(new ContentRead(CustodyAuthor.System, ContentColumns.RawText, 1, item), TestContext.Current.CancellationToken);
@@ -69,10 +69,25 @@ public sealed class ProtectedContentBrokenChainTests
     }
 
     [DatabaseFact]
+    public async Task TheDestinationsOfAnItemAreStillReadWhileTheChainIsBrokenAndTheReadingIsRecorded()
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        ItemOccurrence[] decided = [new(0, 5, "PERSON", OccurrenceDestination.Pseudonymize)];
+        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, null, null, decided), TestContext.Current.CancellationToken);
+        await BreakAsync(world);
+
+        var read = await new ItemOccurrenceReader(world.Reader).ReadAsync(CustodyAuthor.System, 1, item, TestContext.Current.CancellationToken);
+
+        Assert.Equal(ContentReadOutcome.Read, read.Reading.Outcome);
+        Assert.Equal(decided, read.Occurrences);
+        Assert.Equal("occurrences_read", await world.ScalarAsync("SELECT step FROM public.custody_event ORDER BY sequence DESC LIMIT 1"));
+    }
+
+    [DatabaseFact]
     public async Task ChainRestoredWithoutTheFailureAndVerifiedAgainLetsContentBeWrittenAndReadAgain()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw), TestContext.Current.CancellationToken);
         await BreakAsync(world);
         await RunAsSuperuserAsync(
             world,
@@ -80,7 +95,7 @@ public sealed class ProtectedContentBrokenChainTests
             + $"DELETE FROM public.custody_event WHERE step = 'verify_chain' AND reason = 'verification_failed'{Trusted}");
 
         var passed = await new CustodyVerifier(world.DataSource, TimeProvider.System).VerifyAsync(TestContext.Current.CancellationToken);
-        var added = await world.Writer.AddItemTextAsync(1, new NewItemText("outro texto sintetico zqx"), TestContext.Current.CancellationToken);
+        var added = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("outro texto sintetico zqx"), TestContext.Current.CancellationToken);
         var read = await world.Reader.ReadAsync(new ContentRead(CustodyAuthor.System, ContentColumns.RawText, 1, item), TestContext.Current.CancellationToken);
 
         Assert.True(passed.Passed);

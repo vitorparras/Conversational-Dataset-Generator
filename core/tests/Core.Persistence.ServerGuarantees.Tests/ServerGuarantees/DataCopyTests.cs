@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text.Json.Nodes;
-using Core.Persistence.Content.Writing;
 using Core.Persistence.ServerGuarantees;
 using Core.Persistence.ServerGuarantees.Restore;
 using Core.Persistence.Tests.Content;
@@ -113,7 +112,7 @@ public sealed class DataCopyTests
         {
             if (table == "content.item_text")
             {
-                var added = await world.Writer.AddItemTextAsync(1, new NewItemText("texto bruto de depois zqx"), token);
+                var added = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("texto bruto de depois zqx"), token);
                 _ = await world.Writer.AddReversalMapAsync(1, added, "mapa de depois zqx", token);
             }
         });

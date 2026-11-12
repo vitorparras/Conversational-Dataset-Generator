@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using Core.Persistence.Content.Writing;
 using Core.Persistence.Tests.Fixtures;
 using Npgsql;
 
@@ -14,7 +13,7 @@ public sealed class ContentChangeNeedsEventTests
 {
     private const string Unbound = "CE005";
     private const string Empty = "UPDATE content.item_text SET emptied_at = now(), raw_text = NULL, sanitized_text = NULL, pseudonymized_text = NULL, "
-        + "dek_epoch = NULL, dek_wrapped = NULL WHERE id = @id RETURNING id";
+        + "occurrences = NULL, dek_epoch = NULL, dek_wrapped = NULL WHERE id = @id RETURNING id";
     private const string EmptyMap = "UPDATE content.reversal_map SET emptied_at = now(), entries = NULL, dek_epoch = NULL, dek_wrapped = NULL WHERE item_id = @id RETURNING id";
     private const string RewrapItem = "UPDATE content.item_text SET dek_epoch = 2, dek_wrapped = '\\x02' WHERE id = @id RETURNING id";
     private const string RewrapMap = "UPDATE content.reversal_map SET dek_epoch = 2, dek_wrapped = '\\x02' WHERE item_id = @id RETURNING id";
@@ -238,7 +237,7 @@ public sealed class ContentChangeNeedsEventTests
 
     private static async Task<long> ItemWithMapAsync(ContentWorld world)
     {
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText("texto bruto zqx", "texto sanitizado zqx", "texto pseudonimizado zqx"), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("texto bruto zqx", "texto sanitizado zqx", "texto pseudonimizado zqx"), TestContext.Current.CancellationToken);
         _ = await world.Writer.AddReversalMapAsync(1, item, "mapa de reversao zqx", TestContext.Current.CancellationToken);
         return item;
     }

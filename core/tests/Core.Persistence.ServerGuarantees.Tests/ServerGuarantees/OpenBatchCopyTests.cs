@@ -30,6 +30,7 @@ public sealed class OpenBatchCopyTests
         var held = await batches.ReadAsync(1, 3, TestContext.Current.CancellationToken);
         var after = await FidelityWorld.InSystemScopeAsync(restored.App, 1, OfTheOpenBatch) as string;
         var hiddenWhileOpen = await InTheStockOfAsync(restored, 1);
+        await ReviewedBatches.ReviewCleanAsync(restored.App, 1, 3, 1);
         var accepted = await batches.AcceptAsync(new BatchClosing(1, 3, CustodyAuthor.System), TestContext.Current.CancellationToken);
 
         Assert.StartsWith("2:1:", before, StringComparison.Ordinal);

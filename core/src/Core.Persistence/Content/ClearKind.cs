@@ -26,7 +26,8 @@ public enum ClearKind
 
     /// <summary>
     /// A value the table checks by its form, never free text: a name of lowercase letters, digits and underscores (the motive of a rejection and the condition of origin of a batch)
-    /// or an identifier or digest in lowercase hexadecimal (the submission and the digest of what it brought, which may begin with a digit and run to 64 characters).
+    /// or an identifier or digest in lowercase hexadecimal (the submission and the digest of what it brought, which may begin with a digit and run to 64 characters),
+    /// or the numbers of the items of a sample, in digits separated by commas.
     /// </summary>
     Motive = 6,
 

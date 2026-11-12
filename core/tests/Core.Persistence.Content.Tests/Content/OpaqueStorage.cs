@@ -1,4 +1,5 @@
 using System.Text;
+using Core.Persistence.Content;
 using Core.Persistence.Content.Writing;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Fixtures;
@@ -27,6 +28,9 @@ internal static class OpaqueStorage
     /// <summary>The column of the sanitized text.</summary>
     public const string SanitizedText = "content.item_text.sanitized_text";
 
+    /// <summary>The column of the occurrences found in the item and the destination of each.</summary>
+    public const string Occurrences = "content.item_text.occurrences";
+
     /// <summary>The column of the entries of the reversal map.</summary>
     public const string Entries = "content.reversal_map.entries";
 
@@ -42,7 +46,7 @@ internal static class OpaqueStorage
     /// <summary>The column of the key of the origin, wrapped.</summary>
     public const string OriginKey = "content.batch_origin.dek_wrapped";
 
-    private static readonly string[] Seedable = [RawText, SanitizedText, Entries, Origin];
+    private static readonly string[] Seedable = [RawText, SanitizedText, Occurrences, Entries, Origin];
 
     private static readonly string[] KeyColumns = [ItemKey, MapKey, OriginKey];
 
@@ -85,7 +89,9 @@ internal static class OpaqueStorage
         Assert.Empty(known.Except(marked, StringComparer.Ordinal));
         var texts = Seedable.ToDictionary(column => column, column => $"zqx-{Guid.NewGuid():N}", StringComparer.Ordinal);
         var pseudonymized = $"zqx-{Guid.NewGuid():N}";
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(texts[RawText], texts[SanitizedText], pseudonymized), TestContext.Current.CancellationToken);
+        ItemOccurrence[] occurrences = [new(0, 1, texts[Occurrences], OccurrenceDestination.Remove)];
+        var written = new NewItemText(texts[RawText], texts[SanitizedText], pseudonymized, occurrences);
+        var item = await world.Writer.AddItemTextAsync(1, written, TestContext.Current.CancellationToken);
         _ = await world.Writer.AddReversalMapAsync(1, item, texts[Entries], TestContext.Current.CancellationToken);
         await OpenWithOriginAsync(world, texts[Origin]);
         await AssertEveryMarkedColumnHoldsSomethingAsync(world, marked);

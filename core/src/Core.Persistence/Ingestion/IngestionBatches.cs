@@ -187,10 +187,9 @@ public sealed class IngestionBatches
     private static async Task<CustodyResult?> CloseInAsync(CustodyScope scope, Closing closing, StrongBox<BatchOutcome?> early, CancellationToken cancellationToken)
     {
         await DeclareDomainAsync(scope, closing.Request.DomainId, cancellationToken).ConfigureAwait(false);
-        var held = await BatchStateReading.ReadAsync(scope, closing.Request.BatchId, cancellationToken).ConfigureAwait(false);
-        if (held is not { } current || current.State != BatchState.Open)
+        if (await BatchStateReading.ClosingRefusalAsync(scope, closing.Request.BatchId, closing.State, cancellationToken).ConfigureAwait(false) is { } refused)
         {
-            early.Value = held is null ? BatchOutcome.NotFound : BatchOutcome.AlreadyClosed;
+            early.Value = refused;
             return null;
         }
 

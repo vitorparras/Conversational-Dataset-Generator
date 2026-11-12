@@ -37,15 +37,18 @@ internal static class IngestionWorld
 
     /// <summary>Adds an item to the batch, as the system does, and answers its identifier.</summary>
     public static Task<long> AddItemAsync(ContentWorld world, long batch) =>
-        world.RealWriter.AddItemTextAsync(Domain, batch, new NewItemText("texto bruto sintetico zqx"), TestContext.Current.CancellationToken);
+        world.RealWriter.AddItemTextAsync(Domain, batch, ItemTexts.Of("texto bruto sintetico zqx"), TestContext.Current.CancellationToken);
 
     /// <summary>Adds the map of the item to the batch, as the system does, and answers its identifier.</summary>
     public static Task<long> AddMapAsync(ContentWorld world, long batch, long item) =>
         world.RealWriter.AddReversalMapAsync(Domain, new NewReversalMap(batch, item, "mapa sintetico zqx"), TestContext.Current.CancellationToken);
 
     /// <summary>The batch of the domain of the tests, closed by the system as accepted.</summary>
-    public static Task<BatchResult> AcceptAsync(ContentWorld world, long batch) =>
-        BatchesOf(world).AcceptAsync(new BatchClosing(Domain, batch, CustodyAuthor.System), TestContext.Current.CancellationToken);
+    public static async Task<BatchResult> AcceptAsync(ContentWorld world, long batch)
+    {
+        await ReviewedBatches.ReviewCleanAsync(world.DataSource, Domain, batch, Person);
+        return await BatchesOf(world).AcceptAsync(new BatchClosing(Domain, batch, CustodyAuthor.System), TestContext.Current.CancellationToken);
+    }
 
     /// <summary>The batch of the domain of the tests, closed by the system as rejected for the motive.</summary>
     public static Task<BatchResult> RejectAsync(ContentWorld world, long batch, string motive) =>

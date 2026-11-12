@@ -17,6 +17,9 @@ public static class ContentQueries
     /// <summary>The sealed sanitized text of an item, whether the item was emptied, and the key of the item wrapped with its epoch.</summary>
     internal const string ReadSanitizedText = "SELECT sanitized_text, emptied_at IS NOT NULL, dek_epoch, dek_wrapped, accommodated_into, losses FROM content.item_text WHERE id = @id";
 
+    /// <summary>The sealed occurrences of an item, whether the item was emptied, and the key of the item wrapped with its epoch.</summary>
+    internal const string ReadOccurrences = "SELECT occurrences, emptied_at IS NOT NULL, dek_epoch, dek_wrapped FROM content.item_text WHERE id = @id";
+
     /// <summary>The sealed map of a reversal, whether it was emptied, and the key of the map wrapped with its epoch.</summary>
     internal const string ReadReversalEntries = "SELECT entries, emptied_at IS NOT NULL, dek_epoch, dek_wrapped FROM content.reversal_map WHERE id = @id";
 
@@ -58,8 +61,8 @@ public static class ContentQueries
 
     /// <summary>Adds an item; the texts that are sealed arrive sealed, with the key of the item wrapped.</summary>
     internal const string InsertItemText =
-        "INSERT INTO content.item_text (domain_id, batch_id, raw_text, sanitized_text, pseudonymized_text, dek_epoch, dek_wrapped, accommodated_into, losses) "
-        + "VALUES (@domain, @batch, @raw, @sanitized, @pseudonymized, @epoch, @wrapped, @accommodated, @losses) RETURNING id";
+        "INSERT INTO content.item_text (domain_id, batch_id, raw_text, sanitized_text, pseudonymized_text, occurrences, dek_epoch, dek_wrapped, accommodated_into, losses) "
+        + "VALUES (@domain, @batch, @raw, @sanitized, @pseudonymized, @occurrences, @epoch, @wrapped, @accommodated, @losses) RETURNING id";
 
     /// <summary>Adds the map that reverses the pseudonyms of an item.</summary>
     internal const string InsertReversalMap =
@@ -149,7 +152,7 @@ public static class ContentQueries
     /// Empties an item: the marker is set and every column of content is cleared, the key of the item with them, in one statement; an item emptied already is left as it is.
     /// </summary>
     internal const string EmptyItemText =
-        "UPDATE content.item_text SET emptied_at = now(), raw_text = NULL, sanitized_text = NULL, pseudonymized_text = NULL, dek_epoch = NULL, dek_wrapped = NULL "
+        "UPDATE content.item_text SET emptied_at = now(), raw_text = NULL, sanitized_text = NULL, pseudonymized_text = NULL, occurrences = NULL, dek_epoch = NULL, dek_wrapped = NULL "
         + "WHERE id = @id AND emptied_at IS NULL RETURNING id";
 
     /// <summary>Empties the maps of an item, with the item: the marker is set and the entries and the key of the map are cleared.</summary>
@@ -183,6 +186,22 @@ public static class ContentQueries
     internal const string ReadEpochsInUse =
         "SELECT dek_epoch FROM content.item_text WHERE emptied_at IS NULL UNION SELECT dek_epoch FROM content.reversal_map WHERE emptied_at IS NULL "
         + "UNION SELECT dek_epoch FROM content.batch_origin";
+
+    /// <summary>The state, the sample and the review of the batch of the domain declared, whatever its state.</summary>
+    internal const string ReadBatchReview =
+        "SELECT state, review_sample, sampled_at, reviewed_by, reviewed_at, review_finding FROM content.ingestion_batch WHERE id = @id";
+
+    /// <summary>Writes the sample of an open batch that has none.</summary>
+    internal const string CloseBatchSample = "UPDATE content.ingestion_batch SET review_sample = @sample WHERE id = @id AND state = 'open' AND review_sample IS NULL";
+
+    /// <summary>Records a review that found nothing, for an open batch whose sample was drawn and not reviewed.</summary>
+    internal const string CloseBatchReviewClean =
+        "UPDATE content.ingestion_batch SET reviewed_by = @reviewer WHERE id = @id AND state = 'open' AND review_sample IS NOT NULL AND reviewed_by IS NULL";
+
+    /// <summary>Records a review that found something and rejects the batch with it, in the one statement.</summary>
+    internal const string CloseBatchReviewFound =
+        "UPDATE content.ingestion_batch SET reviewed_by = @reviewer, review_finding = @finding, state = 'rejected', motive = @motive "
+        + "WHERE id = @id AND state = 'open' AND review_sample IS NOT NULL AND reviewed_by IS NULL";
 
     /// <summary>The queries over content, as the statement each one runs, by the name of its constant.</summary>
     public static IReadOnlyDictionary<string, string> All { get; } = Declared(typeof(ContentQueries));

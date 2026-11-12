@@ -105,6 +105,14 @@ public enum CustodyStep
     /// <summary>The origin that a submission declared for its batch was read; the item is the batch.</summary>
     OriginRead,
 
+    /// <summary>The occurrences found in an item, with the destination of each, were read; the item is the one read from.</summary>
+    OccurrencesRead,
+
+    /// <summary>The sample of a batch was drawn by the system, once, at the request of the person who reviews it; the item is the batch.</summary>
+    BatchSampled,
+
+    /// <summary>The sample of a batch was reviewed, by a person: the item is the batch, and the reason says whether the review found personal data not treated.</summary>
+    BatchReviewed,
     /// <summary>Another person approved a change of configuration submitted; the item is the submission and the reference is the sequence of the event of the submission.</summary>
     ConfigurationApproved,
 

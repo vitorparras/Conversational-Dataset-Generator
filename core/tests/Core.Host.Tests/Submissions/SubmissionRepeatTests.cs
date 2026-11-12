@@ -1,6 +1,7 @@
 using System.Globalization;
 using Core.Host.Submissions;
 using Core.Ingestion;
+using Core.Persistence.Custody;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Fixtures;
 
@@ -20,6 +21,7 @@ public sealed class SubmissionRepeatTests
         await using var world = await SubmissionWorld.CreateAsync();
 
         var first = await world.SubmitAsync(SubmissionWorld.Request());
+        await world.AcceptReviewedAsync(first.Batch!.Value);
         var again = await world.SubmitAsync(SubmissionWorld.Request());
         var detail = await world.Service.DetailAsync(Granted, again.Batch!.Value, TestContext.Current.CancellationToken);
 
@@ -29,16 +31,16 @@ public sealed class SubmissionRepeatTests
     }
 
     [DatabaseFact]
-    public async Task TwoIdenticalFilesSentAtTheSameTimeAreNotBothAcceptedAndTheOtherIsARepeatOfTheOneThatWasWithNoItem()
+    public async Task TwoIdenticalFilesSentAtTheSameTimeBothStayOpenAndTheDatabaseLetsOnlyTheFirstToBeAcceptedHoldTheDigest()
     {
         await using var world = await SubmissionWorld.CreateAsync();
 
         var both = await Task.WhenAll(world.SubmitAsync(SubmissionWorld.Request()), world.SubmitAsync(SubmissionWorld.Request()));
+        await world.AcceptReviewedAsync(both[0].Batch!.Value);
+        await ReviewedBatches.ReviewCleanAsync(world.DataSource, SubmissionWorld.Domain, both[1].Batch!.Value, SubmissionWorld.Person);
+        var repeated = await world.Batches.AcceptAsync(new BatchClosing(SubmissionWorld.Domain, both[1].Batch!.Value, CustodyAuthor.System), TestContext.Current.CancellationToken);
 
-        var accepted = both.Single(outcome => outcome.State == SubmissionState.Accepted);
-        var repeated = both.Single(outcome => outcome.State == SubmissionState.Rejected);
-        Assert.Equal((ReasonCodes.AlreadyReceived, accepted.Batch), (repeated.Reason!.Code, repeated.Reason.PreviousBatch));
-        Assert.Equal((2L, 2L), (await world.ItemRowsAsync(), await world.BatchCountAsync()));
+        Assert.Equal((SubmissionState.Accepted, SubmissionState.Accepted, BatchOutcome.AlreadyReceived, 2L), (both[0].State, both[1].State, repeated.Outcome, await world.BatchCountAsync()));
     }
 
     [DatabaseFact]
@@ -48,6 +50,7 @@ public sealed class SubmissionRepeatTests
         var other = SubmissionWorld.Conversation.Replace("ZQXPRIMEIRO", "ZQXOUTRO", StringComparison.Ordinal);
 
         var first = await world.SubmitAsync(SubmissionWorld.Request(name: "um.json"));
+        await world.AcceptReviewedAsync(first.Batch!.Value);
         var renamed = await world.SubmitAsync(SubmissionWorld.Request(name: "dois.json"));
         var changed = await world.SubmitAsync(SubmissionWorld.Request(content: other, name: "um.json"));
 
@@ -65,6 +68,7 @@ public sealed class SubmissionRepeatTests
 
         var refused = await world.SubmitAsync(turnedBack);
         var accepted = await world.SubmitAsync(SubmissionWorld.Request());
+        await world.AcceptReviewedAsync(accepted.Batch!.Value);
         var elsewhere = await world.SubmitAsync(SubmissionWorld.Request() with { DomainId = SubmissionWorld.OtherDomain });
 
         Assert.Equal(
@@ -79,7 +83,8 @@ public sealed class SubmissionRepeatTests
     {
         await using var world = await SubmissionWorld.CreateAsync();
         var outcome = await world.SubmitAsync(SubmissionWorld.Request());
-        var batch = await world.Service.DetailAsync(Granted, outcome.Batch!.Value, TestContext.Current.CancellationToken);
+        await world.AcceptReviewedAsync(outcome.Batch!.Value);
+        var batch = await world.Service.DetailAsync(Granted, outcome.Batch.Value, TestContext.Current.CancellationToken);
         var item = long.Parse(Assert.Single(await world.StoredAsync("SELECT id::text FROM content.item_text ORDER BY id LIMIT 1")), CultureInfo.InvariantCulture);
 
         var provenance = await new BatchRegister(world.DataSource).ProvenanceAsync(Granted, item, TestContext.Current.CancellationToken);

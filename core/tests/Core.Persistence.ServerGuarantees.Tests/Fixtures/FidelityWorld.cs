@@ -117,8 +117,8 @@ internal sealed class FidelityWorld : IAsyncDisposable
         var token = TestContext.Current.CancellationToken;
         var opened = await new IngestionBatches(DataSource, TestConditions.Known).OpenAsync(new BatchOpening(1, 1), token);
         Assert.Equal((BatchOutcome.Opened, 3L), (opened.Outcome, opened.BatchId));
-        var first = await RealWriter.AddItemTextAsync(1, 3, new NewItemText("texto do lote aberto zqx"), token);
-        _ = await RealWriter.AddItemTextAsync(1, 3, new NewItemText("outro texto do lote aberto zqx"), token);
+        var first = await RealWriter.AddItemTextAsync(1, 3, ItemTexts.Of("texto do lote aberto zqx"), token);
+        _ = await RealWriter.AddItemTextAsync(1, 3, ItemTexts.Of("outro texto do lote aberto zqx"), token);
         _ = await RealWriter.AddReversalMapAsync(1, new NewReversalMap(3, first, "mapa do lote aberto zqx"), token);
     }
 

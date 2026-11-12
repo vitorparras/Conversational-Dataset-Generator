@@ -1,6 +1,7 @@
 using Core.Persistence.Custody;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Fixtures;
+using Npgsql;
 
 namespace Core.Persistence.Tests.Ingestion;
 
@@ -22,8 +23,8 @@ public sealed class BatchAcceptedDigestTests
         var first = await OpenAsync(batches, 'a', Digest);
         var second = await OpenAsync(batches, 'b', Digest);
 
-        var accepted = await batches.AcceptAsync(Closing(first), cancellationToken);
-        var refused = await batches.AcceptAsync(Closing(second), cancellationToken);
+        var accepted = await AcceptAsync(world.DataSource, batches, first, cancellationToken);
+        var refused = await AcceptAsync(world.DataSource, batches, second, cancellationToken);
         var stillOpen = await batches.ReadAsync(1, second.BatchId!.Value, cancellationToken);
         var rejected = await batches.RejectAsync(Closing(second), BatchMotives.AlreadyReceived, cancellationToken);
 
@@ -41,8 +42,8 @@ public sealed class BatchAcceptedDigestTests
         var different = await OpenAsync(batches, 'c', Other);
 
         var rejected = await batches.RejectAsync(Closing(turnedBack), "unsupported_format", cancellationToken);
-        var accepted = await batches.AcceptAsync(Closing(same), cancellationToken);
-        var another = await batches.AcceptAsync(Closing(different), cancellationToken);
+        var accepted = await AcceptAsync(world.DataSource, batches, same, cancellationToken);
+        var another = await AcceptAsync(world.DataSource, batches, different, cancellationToken);
 
         Assert.Equal((BatchOutcome.Rejected, BatchOutcome.Accepted, BatchOutcome.Accepted), (rejected.Outcome, accepted.Outcome, another.Outcome));
     }
@@ -51,6 +52,12 @@ public sealed class BatchAcceptedDigestTests
         batches.OpenAsync(
             new BatchOpening(1, 1, null, new SubmissionOpening(new SubmissionReceipt(new string(submission, 32), 10, digest, null), OriginDeclaration.Unknown)),
             TestContext.Current.CancellationToken);
+
+    private static async Task<BatchResult> AcceptAsync(NpgsqlDataSource dataSource, IngestionBatches batches, BatchResult opened, CancellationToken cancellationToken)
+    {
+        await ReviewedBatches.ReviewCleanAsync(dataSource, 1, opened.BatchId!.Value, 1);
+        return await batches.AcceptAsync(Closing(opened), cancellationToken);
+    }
 
     private static BatchClosing Closing(BatchResult opened) => new(1, opened.BatchId!.Value, CustodyAuthor.System);
 }

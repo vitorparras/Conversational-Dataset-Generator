@@ -1,7 +1,6 @@
 using Core.Persistence.Content;
 using Core.Persistence.Content.Emptying;
 using Core.Persistence.Content.Reading;
-using Core.Persistence.Content.Writing;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Verification;
 using Core.Persistence.Tests.Fixtures;
@@ -203,7 +202,7 @@ public sealed class ContentEmptierTests
     public async Task ItemThatWasNeverEmptiedAndHoldsNoSanitizedTextIsReadAsEmptyAndNotAsEmptied()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText("bruto"), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("bruto"), TestContext.Current.CancellationToken);
 
         var sanitized = await world.Reader.ReadAsync(new ContentRead(CustodyAuthor.System, ContentColumns.SanitizedText, 1, item), TestContext.Current.CancellationToken);
 
@@ -240,7 +239,7 @@ public sealed class ContentEmptierTests
 
     private static async Task<(long Curator, long Item)> ItemWithMapAsync(ContentWorld world)
     {
-        var texts = new NewItemText("texto bruto zqx", "texto sanitizado zqx", "texto pseudonimizado zqx");
+        var texts = ItemTexts.Of("texto bruto zqx", "texto sanitizado zqx", "texto pseudonimizado zqx");
         var item = await world.Writer.AddItemTextAsync(1, texts, TestContext.Current.CancellationToken);
         _ = await world.Writer.AddReversalMapAsync(1, item, "mapa de reversao zqx", TestContext.Current.CancellationToken);
         return (await world.PersonAsync("zqx-curator"), item);

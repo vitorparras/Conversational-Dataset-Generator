@@ -30,19 +30,19 @@ internal sealed record BatchStateChange(long BatchId, string State, string? Moti
 
         if (Motive is not null)
         {
-            await RemoveAsync(scope, BatchId, cancellationToken).ConfigureAwait(false);
+            await RemoveAsync(scope, cancellationToken).ConfigureAwait(false);
         }
     }
 
-    private static async Task RemoveAsync(CustodyScope scope, long batchId, CancellationToken cancellationToken)
+    private async Task RemoveAsync(CustodyScope scope, CancellationToken cancellationToken)
     {
-        await RemoveAsync(scope, ContentQueries.RemoveBatchMarks, batchId, cancellationToken).ConfigureAwait(false);
-        await RemoveAsync(scope, ContentQueries.RemoveBatchOccurrences, batchId, cancellationToken).ConfigureAwait(false);
-        await RemoveAsync(scope, ContentQueries.RemoveBatchMaps, batchId, cancellationToken).ConfigureAwait(false);
-        await RemoveAsync(scope, ContentQueries.RemoveBatchItems, batchId, cancellationToken).ConfigureAwait(false);
+        await RemoveAsync(scope, ContentQueries.RemoveBatchMarks, cancellationToken).ConfigureAwait(false);
+        await RemoveAsync(scope, ContentQueries.RemoveBatchOccurrences, cancellationToken).ConfigureAwait(false);
+        await RemoveAsync(scope, ContentQueries.RemoveBatchMaps, cancellationToken).ConfigureAwait(false);
+        await RemoveAsync(scope, ContentQueries.RemoveBatchItems, cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task RemoveAsync(CustodyScope scope, string statement, long batchId, CancellationToken cancellationToken)
+    private async Task RemoveAsync(CustodyScope scope, string statement, CancellationToken cancellationToken)
     {
         var command = scope.CreateCommand(statement);
         await using (command.ConfigureAwait(false))

@@ -1,7 +1,4 @@
-"""Checks the titles of the commits a branch adds: Conventional Commits, at most 72 characters.
-
-Merge commits are left out: git writes their title, nobody does.
-"""
+"""Titles of the commits a branch adds: Conventional Commits, at most 72 characters (no merges)."""
 
 from __future__ import annotations
 
@@ -12,33 +9,20 @@ from steps.common import Context, StepResult, failed, passed, tail
 
 NAME = "titulos"
 CEILING = 72
-TYPES = (
-    "build",
-    "chore",
-    "ci",
-    "docs",
-    "feat",
-    "fix",
-    "perf",
-    "refactor",
-    "revert",
-    "style",
-    "test",
-)
-TITLE = re.compile(rf"^({'|'.join(TYPES)})(\([a-z0-9][a-z0-9,. -]*\))?!?: \S")
+TYPES = "build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test"
+TITLE = re.compile(rf"^({TYPES})(\([a-z0-9][a-z0-9,. -]*\))?!?: \S")
 SHOWN = 50
+
+
+def why(title: str) -> str:
+    if len(title) > CEILING:
+        return f"título de {len(title)} caracteres passa do teto de {CEILING}"
+    return "" if TITLE.match(title) else "fora do Conventional Commits (tipo(escopo): resumo)"
 
 
 def problems(titles: Sequence[str]) -> list[str]:
     """One line per title that breaks the format or the ceiling, with the start of the title."""
-    found: list[str] = []
-    for title in titles:
-        start = title[:SHOWN] + ("…" if len(title) > SHOWN else "")
-        if len(title) > CEILING:
-            found.append(f"título de {len(title)} caracteres passa do teto de {CEILING}: {start}")
-        elif not TITLE.match(title):
-            found.append(f"fora do Conventional Commits (tipo(escopo): resumo): {start}")
-    return found
+    return [f"{reason}: {title[:SHOWN]}" for title in titles if (reason := why(title))]
 
 
 def run(ctx: Context) -> StepResult:

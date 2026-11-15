@@ -1,14 +1,10 @@
 #!/usr/bin/env python3
-"""The check of a branch before the push, in minutes and on the machine of whoever pushes.
+"""The check of a branch before the push: `python tools/dev/check.py [--base origin/main]`.
 
-    python tools/dev/check.py [--base origin/main]
-
-Runs, over the diff of the base to HEAD: the titles of the commits, the size of the pull request,
-the documentation, the build of the .NET projects the diff reaches (analyzers as errors), the format
-of the C# files it changes and the tests without a database of the reached projects. One build at a
-time on the machine (`maquina.lock`). The report fits 40 lines; the whole output goes to
-`.verify-code/check.log`. Exit code 0 only when every step passes. Tests with a database and the
-browser stay with the CI.
+Over the diff of the base to HEAD: commit titles, size of the PR, docs, build of the reached .NET
+projects (analyzers as errors), format of the changed C# files and tests without a database, one
+build at a time on the machine. The report fits 40 lines; the rest goes to `.verify-code/check.log`.
+Exit 0 only when every step passes. Tests with a database and the browser stay with the CI.
 """
 
 from __future__ import annotations
@@ -27,87 +23,65 @@ from steps import pr_size
 from steps.common import OUTPUT_DIRECTORY, Context, StepResult, failed, passed, run_process, tail
 
 ROOT = bootstrap.ROOT
-DEFAULT_BASE = "origin/main"
-LOG_NAME = "check.log"
+LOG = f"{OUTPUT_DIRECTORY}/check.log"
 REPORT_LINES = 40
-DOCS_SCRIPT = "tools/verify-docs/verify.py"
-Step = Callable[[Context], StepResult]
 
 
 def docs(ctx: Context) -> StepResult:
-    """The verifier of the documents, run as the CI runs it."""
-    outcome = ctx.run([sys.executable, DOCS_SCRIPT], ctx.root)
+    outcome = ctx.run([sys.executable, "tools/verify-docs/verify.py"], ctx.root)
     if outcome.ok:
         return passed("docs", "documentação conforme")
     return failed("docs", "verify-docs reprovou:", *tail(outcome.text))
 
 
-def timed(step: Step, ctx: Context) -> StepResult:
-    """Runs a step and records how long it took."""
+def timed(step: Callable[..., StepResult], ctx: Context, *args: object) -> StepResult:
     start = time.monotonic()
-    result = step(ctx)
+    result = step(ctx, *args)
     return StepResult(result.name, result.ok, result.details, time.monotonic() - start)
 
 
 def dotnet_run(ctx: Context) -> list[StepResult]:
     """Build, format and tests; tests need the build, so a broken build stops them."""
     reach = scope.compute(ctx)
-    header = f"{len(reach.reached)} projetos alcançados" + (
-        " (diff geral)" if reach.everything else ""
+    header = f"{len(reach.reached)} projetos alcançados" + (" (tudo)" if reach.everything else "")
+    built = timed(dotnet_steps.build, ctx, reach)
+    formatted = timed(dotnet_steps.format_check, ctx, reach)
+    tested = (
+        timed(dotnet_steps.tests, ctx, reach)
+        if built.ok
+        else failed(dotnet_steps.TESTS, "não rodaram: o build falhou")
     )
-    results = [timed(lambda c: dotnet_steps.build(c, reach), ctx)]
-    results.append(timed(lambda c: dotnet_steps.format_check(c, reach), ctx))
-    if results[0].ok:
-        results.append(timed(lambda c: dotnet_steps.tests(c, reach), ctx))
-    else:
-        results.append(failed(dotnet_steps.TESTS, "não rodaram: o build falhou"))
-    return [StepResult("escopo", True, (header,)), *results]
+    return [StepResult("escopo", True, (header,)), built, formatted, tested]
 
 
-def render(results: Sequence[StepResult]) -> list[str]:
-    """One line per step and, under a failed one, the lines that say what to fix."""
+def render(results: Sequence[StepResult], seconds: float) -> list[str]:
+    """One line per step, the lines that say what to fix under a failed one, and the verdict."""
     lines: list[str] = []
     for result in results:
-        mark = "ok   " if result.ok else "FALHA"
         first, *rest = result.details or ("",)
+        mark = "ok   " if result.ok else "FALHA"
         lines.append(f"{mark} {result.name:<8} {result.elapsed:5.1f}s  {first}")
         lines += [f"        {line}" for line in rest]
-    return lines
-
-
-def summary(results: Sequence[StepResult], seconds: float) -> list[str]:
     bad = [r.name for r in results if not r.ok]
     verdict = "reprovado em " + ", ".join(bad) if bad else "tudo certo para o push"
-    return [f"--- {verdict} ({seconds:.0f}s)"]
-
-
-def report(results: Sequence[StepResult], seconds: float, log: str) -> list[str]:
-    """The lines to print: all of them when they fit, else the head and a pointer to the log."""
-    lines = render(results)
-    last = summary(results, seconds)
-    if len(lines) + len(last) > REPORT_LINES:
-        lines = [*lines[: REPORT_LINES - len(last) - 1], f"... (resto em {log})"]
-    return [*lines, *last]
-
-
-def parse(argv: Sequence[str] | None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Verificação local antes do push")
-    parser.add_argument("--base", default=DEFAULT_BASE, help="ref de comparação (origin/main)")
-    return parser.parse_args(argv)
+    return [*lines, f"--- {verdict} ({seconds:.0f}s)"]
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    args = parse(argv)
+    parser = argparse.ArgumentParser(description="Verificação local antes do push")
+    parser.add_argument("--base", default="origin/main", help="ref de comparação (origin/main)")
     out_dir = ROOT / OUTPUT_DIRECTORY
     out_dir.mkdir(exist_ok=True)
-    ctx = Context(ROOT, out_dir, run_process, args.base)
+    ctx = Context(ROOT, out_dir, run_process, parser.parse_args(argv).base)
     start = time.monotonic()
     results = [timed(step, ctx) for step in (commit_titles.run, pr_size.run, docs)]
     with machine_lock.machine_lock(machine_lock.lock_path(), lambda text: print(text, flush=True)):
         results += dotnet_run(ctx)
-    log = out_dir / LOG_NAME
-    log.write_text("\n".join(render(results)) + "\n", encoding="utf-8")
-    print("\n".join(report(results, time.monotonic() - start, f"{OUTPUT_DIRECTORY}/{LOG_NAME}")))
+    lines = render(results, time.monotonic() - start)
+    (ROOT / LOG).write_text("\n".join(lines) + "\n", encoding="utf-8")
+    if len(lines) > REPORT_LINES:
+        lines = [*lines[: REPORT_LINES - 2], f"... (resto em {LOG})", lines[-1]]
+    print("\n".join(lines))
     return 0 if all(result.ok for result in results) else 1
 
 

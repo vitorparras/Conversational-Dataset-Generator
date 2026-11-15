@@ -1,8 +1,7 @@
-"""The .NET projects a diff reaches: the ones it touches and every project that depends on them.
+"""The .NET projects a diff reaches: the touched ones and every project that depends on them.
 
-The graph and the reading of the diff are the verifier's (`steps.reach`, `steps.changes`). A path
-the graph cannot place under a project (`Directory.Build.props`, `global.json`, `.editorconfig`,
-the solution, a lock file, a folder of `core/` that is no project) reaches every project, and so
+Graph and diff reading are the verifier's (`steps.reach`, `steps.changes`). A path under no project
+(`Directory.Build.props`, `global.json`, `.editorconfig`, the solution) reaches every project, as
 does a diff that cannot be read: on doubt, the whole core.
 """
 
@@ -21,13 +20,12 @@ SOURCES = (CORE, "src")
 DATABASE = "Core.Tests.Database"
 NOT_RUN = {"Core.Tests.Architecture": "roda o msbuild várias vezes: fica no job da CI"}
 WHOLE = (*reach.WHOLE_NAMES, ".editorconfig")
+WITH_DATABASE = "precisa do banco: fica no job rápido da CI"
 PROJECT_DEPTH = 3
 
 
 @dataclass(frozen=True)
 class Scope:
-    """What check.py builds, formats and tests for one diff."""
-
     everything: bool
     reached: tuple[str, ...]
     leaves: tuple[str, ...]
@@ -55,7 +53,7 @@ def reaches_all(path: str, graph: Mapping[str, object]) -> bool:
 def csharp_by_owner(
     root: Path, paths: list[str], graph: Mapping[str, object]
 ) -> dict[str, tuple[str, ...]]:
-    """The C# files of the diff that still exist, under the project that owns each."""
+    """The C# files of the diff that still exist, by owning project."""
     found: dict[str, list[str]] = {}
     for path in paths:
         project = owner(path, graph)
@@ -65,12 +63,11 @@ def csharp_by_owner(
 
 
 def depending_on(graph: Mapping[str, set[str]], touched: set[str]) -> set[str]:
-    """The touched projects and every project that reaches one of them through its references."""
     return {name for name in graph if reach.closure(graph, [name]) & touched}
 
 
 def leaves_of(graph: Mapping[str, set[str]], reached: set[str]) -> tuple[str, ...]:
-    """The reached projects no other reached project references: building them builds the rest."""
+    """The reached projects no other reached one references: building them builds the rest."""
     referenced = {ref for name in reached for ref in graph[name]}
     return tuple(sorted(reached - referenced))
 
@@ -85,28 +82,25 @@ def split_tests(
         project = root / CORE / "tests" / name / f"{name}.csproj"
         if not project.is_file() or not test_core.is_test_project(project):
             continue
-        if name in NOT_RUN:
-            left.append(f"{name}: {NOT_RUN[name]}")
-        elif DATABASE in reach.closure(graph, [name]):
-            left.append(f"{name}: precisa do banco: fica no job rápido da CI")
+        why = NOT_RUN.get(name) or (
+            WITH_DATABASE if DATABASE in reach.closure(graph, [name]) else ""
+        )
+        if why:
+            left.append(f"{name}: {why}")
         else:
             run.append(name)
     return run, left
 
 
 def compute(ctx: Context) -> Scope:
-    """The scope of the diff of ``ctx.base`` to HEAD."""
     graph = reach.projects(ctx.root)
-    paths = changes.changed_paths(ctx)
-    if isinstance(paths, str) or not paths:
-        reached, files = set(graph), {}
-        everything = True
-    else:
-        everything = any(reaches_all(path, graph) for path in paths)
-        touched = {name for path in paths if (name := owner(path, graph))}
-        reached = set(graph) if everything else depending_on(graph, touched)
-        files = csharp_by_owner(ctx.root, list(paths), graph)
+    found = changes.changed_paths(ctx)
+    paths = [] if isinstance(found, str) else list(found)
+    everything = not paths or any(reaches_all(path, graph) for path in paths)
+    touched = {name for path in paths if (name := owner(path, graph))}
+    reached = set(graph) if everything else depending_on(graph, touched)
     run, left = split_tests(ctx.root, graph, reached)
+    files = csharp_by_owner(ctx.root, paths, graph)
     return Scope(
         everything,
         tuple(sorted(reached)),

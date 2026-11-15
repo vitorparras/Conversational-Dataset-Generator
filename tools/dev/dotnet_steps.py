@@ -1,6 +1,5 @@
-"""The .NET steps of check.py: build of the reached projects, format of the files of the diff and
-tests without a database. Each runs the `dotnet` of the machine without a resident server
-(no MSBuild node reuse, no shared compiler), the way the CI does, so a finding here is one there."""
+"""The .NET steps of check.py: build, format and tests without a database, with the machine's
+`dotnet` and no resident server (no node reuse, no shared compiler), as the CI runs them."""
 
 from __future__ import annotations
 
@@ -21,46 +20,40 @@ LINE_WIDTH = 170
 
 
 def project_file(name: str) -> str:
-    """The path of a project under core/, from its name: tests have `Tests` in it."""
     folder = "tests" if ".Tests" in name else "src"
     return f"core/{folder}/{name}/{name}.csproj"
 
 
-def lines_of(text: str, pattern: re.Pattern[str]) -> list[str]:
-    """The distinct lines of ``text`` the pattern finds, cut to a width, the first ``SHOWN``."""
-    seen: dict[str, None] = {}
-    for line in text.splitlines():
-        if pattern.search(line):
-            seen.setdefault(line.strip()[:LINE_WIDTH])
-    return list(seen)[:SHOWN]
+def findings(text: str, pattern: re.Pattern[str]) -> list[str]:
+    """The first distinct lines ``pattern`` finds or, when none, the first lines: never silent."""
+    lines = [line.strip()[:LINE_WIDTH] for line in text.splitlines() if line.strip()]
+    hits = [line for line in lines if pattern.search(line)] or lines
+    return list(dict.fromkeys(hits))[:SHOWN]
 
 
 def build(ctx: Context, scope: Scope) -> StepResult:
-    """Builds in Release, with the analyzers as errors, each leaf of the reached projects."""
     if not scope.leaves:
         return passed(BUILD, "nenhum projeto .NET alcançado")
     for name in scope.leaves:
         command = ["dotnet", "build", project_file(name), "-c", "Release", "-m:2", *NO_SERVER]
         outcome = ctx.run([*command, "-nologo", "-clp:ErrorsOnly"], ctx.root)
         if not outcome.ok:
-            found = lines_of(outcome.text, DIAGNOSTIC) or lines_of(outcome.text, re.compile("."))
-            return failed(BUILD, f"{name} não compila:", *found)
+            return failed(BUILD, f"{name} não compila:", *findings(outcome.text, DIAGNOSTIC))
     return passed(
         BUILD, f"{len(scope.leaves)} projetos construídos ({len(scope.reached)} alcançados)"
     )
 
 
 def format_check(ctx: Context, scope: Scope) -> StepResult:
-    """`dotnet format --verify-no-changes` over the C# files of the diff, project by project."""
     if not scope.files:
         return passed(FORMAT, "nenhum arquivo C# no diff")
     for name, files in scope.files.items():
         command = ["dotnet", "format", project_file(name), "--verify-no-changes", "--no-restore"]
         outcome = ctx.run([*command, "--include", *files], ctx.root)
         if not outcome.ok:
-            found = lines_of(outcome.text, DIAGNOSTIC) or lines_of(outcome.text, re.compile("."))
+            wrong = findings(outcome.text, DIAGNOSTIC)
             return failed(
-                FORMAT, f"{name} fora do formato (`dotnet format core/Core.slnx`):", *found
+                FORMAT, f"{name} fora do formato (`dotnet format core/Core.slnx`):", *wrong
             )
     count = sum(len(files) for files in scope.files.values())
     return passed(FORMAT, f"{count} arquivos C# conformes")
@@ -73,6 +66,5 @@ def tests(ctx: Context, scope: Scope) -> StepResult:
         command = ["dotnet", "test", "--project", project_file(name), "-c", "Release", "--no-build"]
         outcome = ctx.run([*command, *WITHOUT_REAL_SERVICE, "--no-progress"], ctx.root)
         if not outcome.ok:
-            found = lines_of(outcome.text, FAILED_TEST) or lines_of(outcome.text, re.compile("."))
-            return failed(TESTS, f"{name} reprovou:", *found, *left)
+            return failed(TESTS, f"{name} reprovou:", *findings(outcome.text, FAILED_TEST), *left)
     return passed(TESTS, f"{len(scope.tests)} projetos de teste sem banco passaram", *left)

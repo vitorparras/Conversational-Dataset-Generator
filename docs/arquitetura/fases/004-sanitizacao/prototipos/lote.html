@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lote 13 · Gerador de bases conversacionais</title>
+    <link rel="stylesheet" href="../../../../../core/src/Core.Host/Screens/tokens.css" />
+    <link rel="stylesheet" href="../../../../../core/src/Core.Host/Screens/screens.css" />
+</head>
+<!--
+    Protótipo da tela I3 (GET /lotes/{id}) só com o que a fase 4 acrescenta: a seção da sanitização,
+    com a versão da lista de passos e as contagens por passo, e os dois motivos novos de rejeição na
+    entrada. O resto da tela é o da fase 3. Nenhum texto do material, nem o que foi removido, aparece
+    nesta tela: só números e nomes de passo.
+    Na tela real só um estado aparece por vez; aqui os estados vêm em sequência, cada um na sua âncora.
+    Os dados são sintéticos.
+-->
+<body>
+    <a class="skip-link" href="#content">Ir para o conteúdo</a>
+    <p role="note">Protótipo para aprovação do dono. Não é a tela final. <a href="index.html">Índice dos protótipos</a>.</p>
+    <header class="header">
+        <a class="header__name" href="index.html">Gerador de bases conversacionais</a>
+        <button id="cabecalho-abrir" class="button button--secondary header__toggle" type="button" aria-expanded="false" aria-controls="cabecalho-menu">Menu</button>
+        <div id="cabecalho-menu" class="header__menu">
+            <form class="domain" method="get">
+                <label class="domain__label" for="dominio">Domínio de trabalho</label>
+                <select id="dominio" class="domain__choice" name="dominio">
+                    <option value="DOMINIO_A">DOMINIO_A</option>
+                    <option value="DOMINIO_B">DOMINIO_B</option>
+                </select>
+                <button id="dominio-trocar" class="button button--secondary" type="submit">Trocar domínio</button>
+            </form>
+            <a class="nav__link header__account" href="index.html">Minha conta</a>
+            <form class="header__leave" method="get" action="index.html">
+                <button id="sair" class="button button--secondary" type="submit">Sair</button>
+            </form>
+            <nav class="nav" aria-label="Telas da sua função">
+                <ul class="nav__list">
+                    <li><a class="nav__link" href="../../003-ingestao/prototipos/submissao.html">Enviar material</a></li>
+                    <li><a class="nav__link" href="lote.html" aria-current="page">Lotes</a></li>
+                    <li><a class="nav__link" href="reexecucao.html">Sanitização</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    <main id="content" class="page" tabindex="-1">
+        <h1>Lote 13</h1>
+        <p class="lead">O que a sanitização fez neste lote, em números por passo. O resto do detalhe é o da <a href="../../003-ingestao/prototipos/lote.html">fase 3</a>.</p>
+
+        <nav aria-label="Estados do protótipo">
+            <ul>
+                <li><a href="#sanitizado">Sanitizado, com as contagens por passo</a></li>
+                <li><a href="#so-destinos">Só a aplicação dos destinos, com um passo em zero</a></li>
+                <li><a href="#indisponivel">Rejeitado: serviço de linguagem indisponível</a></li>
+                <li><a href="#falha-no-passo">Rejeitado: falha num passo da sanitização</a></li>
+            </ul>
+        </nav>
+
+        <section id="sanitizado" aria-labelledby="sanitizado-estado">
+            <p id="sanitizado-estado"><strong>Estado: aberto e sanitizado.</strong> Lista completa, depois das fatias C e D. Todo item nasceu com o texto sanitizado, cifrado.</p>
+            <section class="panel" aria-labelledby="sanitizado-titulo">
+                <h2 id="sanitizado-titulo">Sanitização</h2>
+                <dl class="facts">
+                    <div class="facts__item">
+                        <dt>Versão da lista de passos</dt>
+                        <dd>VERSAO_3</dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Itens sanitizados</dt>
+                        <dd>40 de 40</dd>
+                    </div>
+                </dl>
+                <div class="data-table" role="region" aria-labelledby="sanitizado-legenda" tabindex="0">
+                    <table>
+                        <caption id="sanitizado-legenda">Cada linha é um passo, na ordem em que rodou</caption>
+                        <thead><tr><th scope="col">Passo</th><th scope="col">Edições</th><th scope="col">Itens alterados</th></tr></thead>
+                        <tbody>
+                            <tr><th scope="row" class="data-table__plain">1. Reparo da codificação</th><td>6</td><td>4</td></tr>
+                            <tr><th scope="row" class="data-table__plain">2. Retirada do artefato de formato</th><td>11</td><td>9</td></tr>
+                            <tr><th scope="row" class="data-table__plain">3. Remoção do identificador estruturado</th><td>2</td><td>2</td></tr>
+                            <tr><th scope="row" class="data-table__plain">4. Aplicação dos destinos</th><td>7</td><td>5</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="facts__note">Só números. O que foi removido não aparece em lugar nenhum; os trechos que vão ser pseudonimizados seguem no texto até a fase 5.</p>
+            </section>
+        </section>
+        <hr />
+
+        <section id="so-destinos" aria-labelledby="so-destinos-estado">
+            <p id="so-destinos-estado"><strong>Estado: aberto e sanitizado, lista da fatia B.</strong> Um passo que rodou e não mudou nada aparece com zero; nunca some da tabela.</p>
+            <section class="panel" aria-labelledby="so-destinos-titulo">
+                <h2 id="so-destinos-titulo">Sanitização</h2>
+                <dl class="facts">
+                    <div class="facts__item">
+                        <dt>Versão da lista de passos</dt>
+                        <dd>VERSAO_1</dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Itens sanitizados</dt>
+                        <dd>12 de 12</dd>
+                    </div>
+                </dl>
+                <div class="data-table" role="region" aria-labelledby="so-destinos-legenda" tabindex="0">
+                    <table>
+                        <caption id="so-destinos-legenda">Cada linha é um passo, na ordem em que rodou</caption>
+                        <thead><tr><th scope="col">Passo</th><th scope="col">Edições</th><th scope="col">Itens alterados</th></tr></thead>
+                        <tbody>
+                            <tr><th scope="row" class="data-table__plain">1. Aplicação dos destinos</th><td>0</td><td>0</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </section>
+        <hr />
+
+        <section id="indisponivel" aria-labelledby="indisponivel-estado">
+            <p id="indisponivel-estado"><strong>Estado: rejeitado na entrada.</strong> O serviço de linguagem não respondeu (fatia A).</p>
+            <section class="panel" aria-labelledby="indisponivel-titulo">
+                <h2 id="indisponivel-titulo">Resumo</h2>
+                <dl class="facts">
+                    <div class="facts__item">
+                        <dt>Estado</dt>
+                        <dd>
+                            <span class="mark mark--bad"><span class="mark__shape" aria-hidden="true">✕</span>Rejeitado</span>
+                            <p>O serviço de análise de linguagem não respondeu, e sem a análise não há como saber o que remover. Nenhum item foi gravado. Envie o mesmo arquivo de novo quando o serviço voltar.</p>
+                        </dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Itens</dt>
+                        <dd>Nenhum</dd>
+                    </div>
+                </dl>
+            </section>
+            <div class="actions">
+                <a class="button button--primary" href="../../003-ingestao/prototipos/submissao.html#formulario">Enviar o arquivo de novo</a>
+            </div>
+        </section>
+        <hr />
+
+        <section id="falha-no-passo" aria-labelledby="falha-no-passo-estado">
+            <p id="falha-no-passo-estado"><strong>Estado: rejeitado na entrada.</strong> Um passo da sanitização falhou num item; o lote inteiro fica sem itens.</p>
+            <section class="panel" aria-labelledby="falha-no-passo-titulo">
+                <h2 id="falha-no-passo-titulo">Resumo</h2>
+                <dl class="facts">
+                    <div class="facts__item">
+                        <dt>Estado</dt>
+                        <dd>
+                            <span class="mark mark--bad"><span class="mark__shape" aria-hidden="true">✕</span>Rejeitado</span>
+                            <p>O passo "Remoção do identificador estruturado" falhou. Nenhum item foi gravado. O registro de diagnóstico guarda o lote, a posição do item e o passo, sem texto.</p>
+                        </dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Itens</dt>
+                        <dd>Nenhum</dd>
+                    </div>
+                </dl>
+            </section>
+        </section>
+    </main>
+</body>
+</html>

@@ -9,13 +9,16 @@ Teste num Chromium real, pelo Playwright, contra o host real. Vive em
 
 `core/tests/Core.Host.Tests.Browser/Screens/NotAppliedChangesScreenTests.cs`.
 
-- O navegador e o host vêm de fixtures (`BrowserFixture` e uma fixture de host que herda de
-  `ScreenHostBase`), injetadas pelo construtor primário (linha 14).
+- O navegador e o host vêm de fixtures de classe do xunit (`BrowserFixture` e
+  `ChangeHostFixture`), injetadas pelo construtor primário (linha 14). A fixture de host é selada
+  e compõe o host: guarda a instância, sobe uma vez e descarta no fim.
 - A sessão entra por `ScreenSession.SignedInAsync`, com uma pessoa que o host já criou
   (linha 65).
 - `OpenAsync` abre a tela e espera o título pelo papel de cabeçalho, não por tempo; se falhar,
   descarta a aba antes de relançar (linhas 63 a 77).
-- O localizador é por papel ou por `aria-labelledby`, a mesma marca que o leitor de tela usa.
+- O teste localiza por papel ou por `aria-labelledby` (linha 17), a mesma marca que o leitor de
+  tela usa. O auxiliar comum de entrada (`ScreenSession`, linhas 21 a 24) localiza por id do
+  formulário de entrada; é o único lugar em que isso vale.
 - A acessibilidade se confere com `AccessibilityCheck.AssertNoViolationsAsync` e
   `RealBackgroundContrast.AssertAaAsync`, em claro e escuro (`MediaMode`), a 1280 px e na largura de
   celular, com a verificação de transbordo (linhas 42 a 61).
@@ -26,11 +29,17 @@ Teste num Chromium real, pelo Playwright, contra o host real. Vive em
 O teste de navegador verifica o que só o navegador mostra: foco, papel, contraste, largura. A regra
 do negócio já foi testada abaixo ([002](002-servico-de-dominio.md), [005](005-teste-com-banco.md)).
 
+## Exceção transitória
+
+O host do exemplar (`ChangeScreenHost`) herda de `ScreenHostBase`, classe abstrata com estado, o
+que fere a composição sobre herança da regra 1 de [regras de código](../../regras-de-codigo.md).
+Até a #819 trazer o host por composição, host novo é mais uma subclasse de `ScreenHostBase`.
+
 ## Proibido
 
 - `Task.Delay` para esperar a tela (`EntryScreenTests`, linhas 89 e 177;
   `ResponseWithoutRegionTests`, linha 44): use `Expect` do Playwright, que espera a condição.
-- Host de teste que não herda de `ScreenHostBase`; hoje `SystemScreenHost`, `NavigationScreenHost` e
-  `EntryScreenHost` montam o host à parte.
+- Classe abstrata nova com estado para herdar, ou mais um host montado à parte como
+  `SystemScreenHost`, `NavigationScreenHost` e `EntryScreenHost`.
 - Entrar com login copiado (`SystemSession`) em vez de `ScreenSession`.
-- Localizar por classe CSS ou por texto de layout quando há papel acessível.
+- Localizar por classe CSS, por id ou por texto de layout no teste quando há papel acessível.

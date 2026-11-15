@@ -15,7 +15,8 @@ própria e não conhece HTTP.
 - `SubmissionGate` recebe pelo construtor tudo de que depende (leitores, limite, gerador de
   identificador; linhas 22 a 39), valida os argumentos na entrada e devolve `SubmissionResult`, com
   a recusa e o motivo como valor (linha 60).
-- O comentário de classe diz a regra em uma frase e cita a decisão que a autoriza.
+- O comentário de classe diz a regra e cita a decisão que a autoriza (`DestinationPolicy`, linhas 5
+  a 9, decisão 0018). `SubmissionGate` não cita decisão e não é exemplar nesse ponto.
 
 ## Princípio
 

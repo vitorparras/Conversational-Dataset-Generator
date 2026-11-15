@@ -10,8 +10,8 @@ Peça que lê e grava uma tabela. Vive em `core/src/Core.Persistence`, uma class
 `core/src/Core.Persistence/People/SignInStatements.cs`.
 
 - O SQL fica todo numa classe `internal static` de constantes (`SignInStatements`); a classe de
-  armazenamento só monta o comando, passa parâmetros nomeados e lê colunas por constante (linhas
-  17 a 25 e 97 a 110).
+  armazenamento só monta o comando, passa parâmetros nomeados e lê colunas por constante
+  (declaradas nas linhas 18 a 21, lidas nas linhas 100 a 106).
 - A escrita que precisa de registro na cadeia roda em `CustodyTransaction.AppendAfterAsync`, na
   mesma transação da linha: ou entra nas duas, ou em nenhuma (linhas 122 a 137).
 - O resultado é tipo de resultado (`CustodyResult`), nunca exceção nem `null` para falha esperada.
@@ -23,6 +23,12 @@ Responsabilidade única: a peça traduz entre linha e objeto. A regra do negóci
 serviço de domínio ([002](002-servico-de-dominio.md)) ou num tipo pequeno que a peça devolve, como
 `LabelState` em `core/src/Core.Persistence/Domains/LabelState.cs`, que se testa sem banco.
 
+## Exceção transitória
+
+O laço de nova tentativa do exemplar (linhas 125 a 134) é um dos cinco jeitos de hoje, o que fere
+o DRY da regra 1 de [regras de código](../../regras-de-codigo.md). Até a #816 trazer o laço único,
+peça nova copia o do exemplar e não cria um sexto jeito.
+
 ## Proibido
 
 - SQL fora de uma classe de `Statements`. Hoje 42 arquivos de `core/src` ainda o têm, contra 6
@@ -33,6 +39,5 @@ serviço de domínio ([002](002-servico-de-dominio.md)) ou num tipo pequeno que 
   não copie nenhum dos dois trechos.
 - Estado como texto livre, comparado com literal
   (`core/src/Core.Persistence/Ingestion/IngestionBatches.cs`, linha 182): estado é enumeração.
-- Laço de nova tentativa próprio. Hoje há cinco jeitos, o do exemplar (linhas 125 a 134) entre
-  eles; o jeito único sai da refatoração proposta na issue 810. Até lá, copie o do exemplar.
-- Falha esperada por exceção ou por `null`/`bool` (`ContentWriter`, `SessionStore`).
+- Falha esperada por exceção: `ContentWriter` lança `BatchNotOpenException` e
+  `ItemEmptiedException` para recusa do banco (linhas 100 a 110).

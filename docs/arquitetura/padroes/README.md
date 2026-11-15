@@ -15,6 +15,10 @@ Cada documento tem três partes: o exemplar (arquivo e linhas), o princípio que
 proibido, com um caso do código atual que ainda não segue o padrão, para que ninguém o tome por
 modelo.
 
+Alguns trazem ainda uma **exceção transitória**: um desvio que o próprio exemplar ainda tem e que
+peça nova copia só enquanto a issue citada estiver aberta, para não criar mais um jeito. Quando a
+issue fecha, a exceção sai do documento na mesma mudança. Não há outra exceção.
+
 ## Índice
 
 | # | Documento |

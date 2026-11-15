@@ -16,15 +16,23 @@ Componente Razor que a rota entrega dentro da moldura comum das telas. Vive em
 - Os nomes dos campos e o título são constantes da tela (linhas 35 a 42), que a rota e o teste usam;
   nenhum texto de campo se repete fora dela.
 - Peças comuns em vez de HTML solto: `Field`, `Button`, `Notice`. Formulário com `novalidate`,
-  `autocomplete` correto e aviso de espera ligado por `data-wait` (linhas 6 e 17).
+  `autocomplete` correto em cada campo (linhas 11, 13 e 15) e aviso de espera ligado por
+  `data-wait` (linhas 6 e 17).
 - O texto ao usuário é português, diz o que aconteceu e o que fazer, e não revela o que não deve
   (uma só mensagem para senha errada e para espera, comentário da linha 25).
 
 ## Princípio
 
 Separação entre apresentação e decisão: a rota ([003](003-rota.md)) decide o estado e a tela o
-mostra, o que deixa a tela testável por renderização e a regra testável sem navegador. O mapa de
-padrões visuais está em [013](../013-mapa-de-telas.md).
+mostra, o que deixa a tela testável por renderização e a regra testável sem navegador. Os padrões
+comuns de navegação, formulário, confirmação e acessibilidade são da
+[0051](../../decisoes/0051-navegacao-gestao-e-relatorio.md).
+
+## Exceção transitória
+
+Há dois jeitos de aviso de espera: o componente WaitNotice e o parágrafo com `class="wait"` do
+exemplar (seis telas entre os dois). Até a #818 escolher o jeito único, tela nova copia o do
+exemplar e não cria um terceiro.
 
 ## Proibido
 
@@ -32,6 +40,4 @@ padrões visuais está em [013](../013-mapa-de-telas.md).
   Tela nova usa uma enumeração como `Problem`.
 - Aviso de resultado por cookie em tela nova: o retorno de um POST bem-sucedido é marca no endereço,
   como `RecordedMark` em `core/src/Core.Host/Endpoints/SealScreensEndpoint.cs`.
-- Dois jeitos de aviso de espera: há o componente WaitNotice e o parágrafo com `class="wait"`
-  (seis telas entre os dois). Até a escolha do jeito único, copie o do exemplar.
 - Nome de pessoa, valor de configuração ou segredo no HTML que não é o próprio campo da pessoa.

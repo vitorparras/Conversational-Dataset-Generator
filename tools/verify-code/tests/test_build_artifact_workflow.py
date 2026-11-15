@@ -15,7 +15,6 @@ DOTNET_JOBS = (
     "browser",
     "package",
     "offline_start",
-    "ruler_proof",
     "dependencies",
 )
 CONSUMERS = ("properties", "browser")
@@ -31,6 +30,10 @@ class BuildArtifactWorkflowTests(unittest.TestCase):
             with self.subTest(job=name):
                 self.assertIn("cache: true", job(name))
                 self.assertIn(CACHE, job(name))
+
+    def test_the_ruler_proof_has_no_cache_because_it_restores_no_package(self) -> None:
+        # setup-dotnet fails its post step when the cache folder was never created.
+        self.assertNotIn("cache: true", job("ruler_proof"))
 
     def test_the_build_job_makes_the_build_with_the_step_of_the_ruler_and_packs_it(self) -> None:
         text = job("build")

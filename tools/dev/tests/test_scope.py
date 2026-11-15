@@ -10,7 +10,7 @@ import scope
 
 from . import support
 
-GRAPH = {
+GRAPH: dict[str, set[str]] = {
     "Core.Domain": set(),
     "Core.Platform": {"Core.Domain"},
     "Core.Host": {"Core.Platform"},

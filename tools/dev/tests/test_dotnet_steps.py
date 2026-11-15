@@ -1,5 +1,5 @@
 """The .NET steps against a small project of its own: the analyzers fail the build, a badly
-formatted file fails the format. They need the `dotnet` of the machine and are skipped without it."""
+formatted file fails the format. They need the `dotnet` of the machine and skip without it."""
 
 from __future__ import annotations
 
@@ -20,10 +20,16 @@ PROPS = """<Project>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 </Project>
 """
-EDITORCONFIG = "[*.cs]\ndotnet_analyzer_diagnostic.category-Style.severity = error\n"
+EDITORCONFIG = (
+    "[*.cs]\n"
+    "dotnet_analyzer_diagnostic.category-Style.severity = error\n"
+    "csharp_style_namespace_declarations = file_scoped:error\n"
+)
 PROJECT = '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup /></Project>\n'
 CLEAN = "namespace Planted;\n\ninternal enum Color\n{\n    Red,\n    Green,\n}\n"
 ENUM_SWITCH = (

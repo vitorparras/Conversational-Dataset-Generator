@@ -1,15 +1,14 @@
 # AGENTS.md
 
-Ponto de entrada único do repositório. Vale para pessoas e para agentes de IA. Arquivos específicos
-de ferramenta apenas redirecionam para cá e não contêm instruções próprias — duas cópias divergem.
+Ponto de entrada único do repositório, para pessoas e agentes de IA. Arquivos específicos de
+ferramenta só redirecionam para cá, sem instruções próprias: duas cópias divergem.
 
 ## O que é o projeto
 
 Uma ferramenta para construir bases conversacionais anotadas em português brasileiro: ingestão,
 sanitização, pseudonimização que preserva contexto, anotação humana assistida, validação por
-métricas de concordância e exportação rastreável. O domínio forense é o caso mais exigente.
-
-A ferramenta e o dataset são **as duas contribuições** do projeto, e nenhuma é meio para a outra.
+métricas de concordância e exportação rastreável. O domínio forense é o caso mais exigente. A
+ferramenta e o dataset são **as duas contribuições**, e nenhuma é meio para a outra.
 
 ## Hierarquia de autoridade
 
@@ -23,33 +22,34 @@ Quando duas fontes discordam, a de cima ganha.
 | 4 | `docs/arquitetura/`, `docs/operacao/`, `docs/pesquisa/` | Descrevem. Não mandam |
 | 5 | `docs/historico/` | Autoridade zero. Nunca é norma |
 
-Duas decisões vigentes em contradição são **defeito a resolver por substituição**, não hierarquia a
-interpretar. Nenhuma vence por ser mais recente.
-
-**Divergência não se resolve sozinha.** Pare, cite os dois arquivos, peça decisão.
+Duas decisões vigentes em contradição são **defeito a resolver por substituição**; nenhuma vence
+por ser mais recente. **Divergência não se resolve sozinha:** pare, cite os arquivos, peça decisão.
 
 ## Regras invioláveis
 
-**Zero dado pessoal, segredo ou caminho de máquina** em qualquer arquivo — inclusive exemplo e
-teste. Exemplos usam identificadores sintéticos, nunca nomes plausíveis. É a regra sem discussão.
-
-**Se você não leu, você não sabe.** Afirmação sobre documento ou código é rastreável a arquivo
-aberto nesta execução, citado por caminho. Número afirmado é número contado.
-
-**Nada de fora do repositório.** Não cite projeto, prazo, medição ou documento que quem clona não
-possa consultar. Argumento que precisa de referência externa não se sustenta.
-
-**Merge é do operador.** Agente commita em branch própria e abre PR; nunca force, reset ou merge.
-
-**Na dúvida entre assumir e perguntar, pergunte.** Silêncio não é aprovação.
+- **Zero dado pessoal, segredo ou caminho de máquina** em qualquer arquivo — inclusive exemplo e
+  teste. Exemplos usam identificadores sintéticos, nunca nomes plausíveis. É a regra sem discussão.
+- **Se você não leu, você não sabe.** Afirmação sobre documento ou código é rastreável a arquivo
+  aberto nesta execução, citado por caminho. Número afirmado é número contado.
+- **Nada de fora do repositório.** Não cite projeto, prazo, medição ou documento que quem clona não
+  possa consultar. Argumento que precisa de referência externa não se sustenta.
+- **Merge é do operador.** Agente commita em branch própria e abre PR; nunca force, reset ou merge.
+- **Na dúvida entre assumir e perguntar, pergunte.** Silêncio não é aprovação.
 
 ## Texto e código
 
-Texto: `docs/regras-de-escrita.md`, imposta por `tools/verify-docs/`; rode antes de propor mudança.
-Código: `docs/regras-de-codigo.md`; o mensurável reprova o build, o resto é lista de revisão. O teto
-de pull request está na §9.
-Árvore (`core/`, `language-service/`, `tools/`), comandos, fronteiras e o que reprova o código:
-`docs/operacao/020-codigo-no-repositorio.md`. Rode `tools/verify-code/verify.py` antes de propor.
+Texto: `docs/regras-de-escrita.md`, imposta por `tools/verify-docs/`. Código:
+`docs/regras-de-codigo.md` (teto de PR na §9). Árvore, comandos e fronteiras:
+`docs/operacao/020-codigo-no-repositorio.md`. **Antes de todo push, rode
+`python tools/dev/check.py`**: títulos, tamanho, documentos, build, formato e testes sem banco do
+diff; o resto fica na CI.
+
+## Armadilhas
+
+- `switch` sobre enum sem todos os casos reprova o build (IDE0072): liste cada caso, sem `_`.
+- Analisadores e estilo são erro: aviso novo, API obsoleta (CS0619) ou `using` sobrando quebra.
+- Nome em `ContentQueries` começa por `Read`, `Insert`, `Empty`, `Rewrap`, `Close` ou `Remove`.
+- Migração: o número é o próximo livre em `core/src/Core.Persistence/Migrations/Sql` ao abrir o PR.
 
 ## O que reprova um trabalho
 

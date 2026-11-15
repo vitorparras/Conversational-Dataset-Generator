@@ -20,18 +20,26 @@ from collections.abc import Callable, Sequence
 
 import bootstrap
 import commit_titles
-import docs_step
 import dotnet_steps
 import machine_lock
 import scope
 from steps import pr_size
-from steps.common import OUTPUT_DIRECTORY, Context, StepResult, failed, run_process
+from steps.common import OUTPUT_DIRECTORY, Context, StepResult, failed, passed, run_process, tail
 
 ROOT = bootstrap.ROOT
 DEFAULT_BASE = "origin/main"
 LOG_NAME = "check.log"
 REPORT_LINES = 40
+DOCS_SCRIPT = "tools/verify-docs/verify.py"
 Step = Callable[[Context], StepResult]
+
+
+def docs(ctx: Context) -> StepResult:
+    """The verifier of the documents, run as the CI runs it."""
+    outcome = ctx.run([sys.executable, DOCS_SCRIPT], ctx.root)
+    if outcome.ok:
+        return passed("docs", "documentação conforme")
+    return failed("docs", "verify-docs reprovou:", *tail(outcome.text))
 
 
 def timed(step: Step, ctx: Context) -> StepResult:
@@ -94,7 +102,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     out_dir.mkdir(exist_ok=True)
     ctx = Context(ROOT, out_dir, run_process, args.base)
     start = time.monotonic()
-    results = [timed(step, ctx) for step in (commit_titles.run, pr_size.run, docs_step.run)]
+    results = [timed(step, ctx) for step in (commit_titles.run, pr_size.run, docs)]
     with machine_lock.machine_lock(machine_lock.lock_path(), lambda text: print(text, flush=True)):
         results += dotnet_run(ctx)
     log = out_dir / LOG_NAME

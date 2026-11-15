@@ -9,6 +9,8 @@ from pathlib import Path
 
 import machine_lock
 
+RELEASED_AFTER = 3
+
 
 class MachineLockTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -35,13 +37,13 @@ class MachineLockTests(unittest.TestCase):
 
         def sleep(seconds: float) -> None:
             waits.append(seconds)
-            if len(waits) == 3:
+            if len(waits) == RELEASED_AFTER:
                 self.path.rmdir()
 
         with machine_lock.machine_lock(self.path, said.append, sleep):
             pass
 
-        self.assertEqual(3, len(waits))
+        self.assertEqual(RELEASED_AFTER, len(waits))
         self.assertEqual(1, len(said))
 
     def test_a_lock_nobody_touched_for_forty_minutes_is_taken_over(self) -> None:

@@ -5,7 +5,6 @@ tests without a database. Each runs the `dotnet` of the machine without a reside
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable
 
 from scope import Scope
 from steps.common import Context, StepResult, failed, passed
@@ -77,7 +76,3 @@ def tests(ctx: Context, scope: Scope) -> StepResult:
             found = lines_of(outcome.text, FAILED_TEST) or lines_of(outcome.text, re.compile("."))
             return failed(TESTS, f"{name} reprovou:", *found, *left)
     return passed(TESTS, f"{len(scope.tests)} projetos de teste sem banco passaram", *left)
-
-
-def names(projects: Iterable[str]) -> str:
-    return ", ".join(projects) or "nenhum"

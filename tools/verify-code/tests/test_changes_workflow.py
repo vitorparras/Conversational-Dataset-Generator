@@ -25,7 +25,9 @@ DISPENSED = (
     "mutation_modules",
     "ruler_proof",
     "browser",
+    "build",
 )
+WAITS_FOR_THE_BUILD = ("properties", "browser")
 ALWAYS = (
     "dependencies",
     "secrets",
@@ -143,7 +145,9 @@ class ChangesWorkflowTests(unittest.TestCase):
         for name in DISPENSED:
             with self.subTest(job=name):
                 text = job(name)
-                self.assertIn("needs: changes", text)
+                waits = name in WAITS_FOR_THE_BUILD
+                needs = "needs: [changes, build]" if waits else "needs: changes"
+                self.assertIn(needs, text)
                 condition = next(line for line in text.splitlines() if line.startswith("    if:"))
                 self.assertIn(HEAVY_ONLY, condition)
                 self.assertIn(NOT_CANCELLED, condition)

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Protótipos da ingestão · Gerador de bases conversacionais</title>
+    <link rel="stylesheet" href="../../../../../core/src/Core.Host/Screens/tokens.css" />
+    <link rel="stylesheet" href="../../../../../core/src/Core.Host/Screens/screens.css" />
+</head>
+<body>
+    <a class="skip-link" href="#content">Ir para o conteúdo</a>
+    <p role="note">Protótipo para aprovação do dono. Não é a tela final. <a href="index.html">Índice dos protótipos</a>.</p>
+    <main id="content" class="page" tabindex="-1">
+        <h1>Protótipos das telas da ingestão</h1>
+        <p class="lead">Quatro telas da fase 3, cada uma com os seus estados em âncoras. Os protótipos usam o estilo real das telas e não têm script; os dados são sintéticos.</p>
+
+        <section class="panel" aria-labelledby="tela-submissao-titulo">
+            <h2 id="tela-submissao-titulo"><a href="submissao.html">I1 · Enviar material</a></h2>
+            <p>Rota GET e POST /lotes/novo.</p>
+            <ul>
+                <li><a href="submissao.html#formulario">Formulário vazio</a></li>
+                <li><a href="submissao.html#erro-de-campo">Erro ligado ao campo</a></li>
+                <li><a href="submissao.html#recusa">Recusa por código fixo, sem eco do nome do arquivo</a></li>
+                <li><a href="submissao.html#nome-descartado">Aceito, com o nome do arquivo descartado</a></li>
+                <li><a href="submissao.html#nao-registrado">Envio não registrado</a></li>
+                <li><a href="submissao.html#esbarrou">Envio que esbarrou em outro</a></li>
+                <li><a href="submissao.html#porta-bloqueada">Porta bloqueada, sem formulário</a></li>
+            </ul>
+        </section>
+
+        <section class="panel" aria-labelledby="tela-lote-titulo">
+            <h2 id="tela-lote-titulo"><a href="lote.html">I3 · Lote</a></h2>
+            <p>Rota GET /lotes/{id}.</p>
+            <ul>
+                <li><a href="lote.html#aberto">Aberto, com o detalhe inteiro</a></li>
+                <li><a href="lote.html#reenvio">Reconhecido como reenvio</a></li>
+                <li><a href="lote.html#perda">Forma acomodada, com perda declarada</a></li>
+                <li><a href="lote.html#aceito">Aceito</a></li>
+                <li><a href="lote.html#rejeitado">Rejeitado na revisão por amostra</a></li>
+                <li><a href="lote.html#rejeitado-na-entrada">Rejeitado na entrada</a></li>
+                <li><a href="lote.html#cancelado">Rejeitado: submissão cancelada no meio da gravação</a></li>
+            </ul>
+        </section>
+
+        <section class="panel" aria-labelledby="tela-revisao-titulo">
+            <h2 id="tela-revisao-titulo"><a href="revisao.html">I4 · Revisão da amostra</a></h2>
+            <p>Rota GET /lotes/{id}/revisao.</p>
+            <ul>
+                <li><a href="revisao.html#nao-sorteada">Amostra ainda não sorteada</a></li>
+                <li><a href="revisao.html#sorteada">Amostra sorteada, em revisão</a></li>
+                <li><a href="revisao.html#todos-revisados">Todos os itens revisados</a></li>
+                <li><a href="revisao.html#outra-pessoa">Revisada por outra pessoa</a></li>
+                <li><a href="revisao.html#aprovado">Aprovado</a></li>
+                <li><a href="revisao.html#reprovado">Reprovado</a></li>
+                <li><a href="revisao.html#vazia">Lote sem item para sortear</a></li>
+            </ul>
+        </section>
+
+        <section class="panel" aria-labelledby="tela-reprovacao-titulo">
+            <h2 id="tela-reprovacao-titulo"><a href="reprovacao.html">Reprovar o lote</a></h2>
+            <p>Rota GET e POST /lotes/{id}/revisao/itens/{n}/achado.</p>
+            <ul>
+                <li><a href="reprovacao.html#formulario">Formulário</a></li>
+                <li><a href="reprovacao.html#erro-de-campo">Erro ligado ao campo</a></li>
+            </ul>
+        </section>
+    </main>
+</body>
+</html>

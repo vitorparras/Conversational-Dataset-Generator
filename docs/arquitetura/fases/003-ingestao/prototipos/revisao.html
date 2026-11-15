@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Revisão da amostra do lote 13 · Gerador de bases conversacionais</title>
+    <link rel="stylesheet" href="../../../../../core/src/Core.Host/Screens/tokens.css" />
+    <link rel="stylesheet" href="../../../../../core/src/Core.Host/Screens/screens.css" />
+</head>
+<!--
+    Protótipo da tela I4 (GET /lotes/{id}/revisao). Na tela real só um estado aparece por vez; aqui os estados vêm em sequência, cada um na sua âncora.
+    O estado "sorteada" traz os ids da tela real; os outros levam o nome do estado como prefixo dos ids.
+    Os textos de amostra são sintéticos: [NOME_1] marca o trecho já pseudonimizado.
+-->
+<body>
+    <a class="skip-link" href="#content">Ir para o conteúdo</a>
+    <p role="note">Protótipo para aprovação do dono. Não é a tela final. <a href="index.html">Índice dos protótipos</a>.</p>
+    <header class="header">
+        <a class="header__name" href="index.html">Gerador de bases conversacionais</a>
+        <button id="cabecalho-abrir" class="button button--secondary header__toggle" type="button" aria-expanded="false" aria-controls="cabecalho-menu">Menu</button>
+        <div id="cabecalho-menu" class="header__menu">
+            <form class="domain" method="get">
+                <label class="domain__label" for="dominio">Domínio de trabalho</label>
+                <select id="dominio" class="domain__choice" name="dominio">
+                    <option value="DOMINIO_A">DOMINIO_A</option>
+                    <option value="DOMINIO_B">DOMINIO_B</option>
+                </select>
+                <button id="dominio-trocar" class="button button--secondary" type="submit">Trocar domínio</button>
+            </form>
+            <a class="nav__link header__account" href="index.html">Minha conta</a>
+            <form class="header__leave" method="get" action="index.html">
+                <button id="sair" class="button button--secondary" type="submit">Sair</button>
+            </form>
+            <nav class="nav" aria-label="Telas da sua função">
+                <ul class="nav__list">
+                    <li><a class="nav__link" href="submissao.html">Enviar material</a></li>
+                    <li><a class="nav__link" href="lote.html" aria-current="page">Lotes</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    <main id="content" class="page" tabindex="-1">
+        <h1>Revisão da amostra do lote 13</h1>
+        <p class="lead">Leia cada item da amostra, na ordem, e marque-o como revisado. A amostra é a sorteada para o lote, com o tamanho que o domínio declara; ela não se escolhe, não se troca e não se pula. Um dado pessoal em qualquer item reprova o lote inteiro.</p>
+
+        <nav aria-label="Estados do protótipo">
+            <ul>
+                <li><a href="#nao-sorteada">Amostra ainda não sorteada</a></li>
+                <li><a href="#sorteada">Amostra sorteada, em revisão</a></li>
+                <li><a href="#todos-revisados">Todos os itens revisados</a></li>
+                <li><a href="#outra-pessoa">Revisada por outra pessoa</a></li>
+                <li><a href="#aprovado">Aprovado</a></li>
+                <li><a href="#reprovado">Reprovado</a></li>
+                <li><a href="#vazia">Lote sem item para sortear</a></li>
+            </ul>
+        </nav>
+
+        <section id="nao-sorteada" aria-labelledby="nao-sorteada-estado">
+            <p id="nao-sorteada-estado"><strong>Estado: amostra ainda não sorteada.</strong> Quem revisa só pede o sorteio; não escolhe item nenhum.</p>
+            <section class="panel" aria-labelledby="amostra-sorteio-titulo">
+                <h2 id="amostra-sorteio-titulo">Sorteio</h2>
+                <div class="notice notice--pending" role="status">
+                    <span class="notice__mark" aria-hidden="true">◷</span>
+                    <p><span class="notice__kind">Pendente:</span> A amostra deste lote ainda não foi sorteada.</p>
+                </div>
+                <p>O sorteio tira 3 itens dos 40 do lote, o tamanho que DOMINIO_A declara. Depois de sorteada, a amostra não se troca.</p>
+                <form class="form" method="get" action="revisao.html#sorteada">
+                    <div class="actions">
+                        <button id="sortear" class="button button--primary" type="submit">Sortear a amostra</button>
+                    </div>
+                </form>
+            </section>
+        </section>
+        <hr />
+
+        <section id="sorteada" aria-labelledby="sorteada-estado">
+            <p id="sorteada-estado"><strong>Estado: amostra sorteada, em revisão.</strong> O item 1 já foi revisado; o item 2 é o próximo; o item 3 espera os anteriores.</p>
+            <section class="panel" aria-labelledby="amostra-resumo-titulo">
+                <h2 id="amostra-resumo-titulo">Amostra</h2>
+                <dl class="facts">
+                    <div class="facts__item">
+                        <dt>Domínio</dt>
+                        <dd>DOMINIO_A</dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Tamanho declarado</dt>
+                        <dd>3</dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Revisados</dt>
+                        <dd>1 de 3</dd>
+                    </div>
+                </dl>
+            </section>
+            <ol class="sample">
+                <li id="item-1" class="sample__item">
+                    <section class="panel" aria-labelledby="item-1-titulo">
+                        <h2 id="item-1-titulo">Item 1 de 3</h2>
+                        <p class="sample__version">Texto sanitizado, a versão mais tratada que existe.</p>
+                        <blockquote class="sample__text">Trecho sintético de conversa número 1. [NOME_1] pergunta quando o pedido sintético chega.</blockquote>
+                        <span class="mark mark--good"><span class="mark__shape" aria-hidden="true">✓</span>Revisado</span>
+                    </section>
+                </li>
+                <li id="item-2" class="sample__item">
+                    <section class="panel" aria-labelledby="item-2-titulo">
+                        <h2 id="item-2-titulo">Item 2 de 3</h2>
+                        <p class="sample__version">Texto bruto: o item ainda não tem versão sanitizada.</p>
+                        <blockquote class="sample__text">Trecho sintético de conversa número 2. A resposta sintética diz que o prazo é de dois dias.</blockquote>
+                        <form class="form" method="get" action="revisao.html#todos-revisados">
+                            <div class="actions">
+                                <button id="revisado-2" class="button button--primary" type="submit">Revisado, sem dado pessoal</button>
+                                <a id="achado-2" class="button button--danger" href="reprovacao.html">Achei dado pessoal</a>
+                            </div>
+                        </form>
+                    </section>
+                </li>
+                <li id="item-3" class="sample__item">
+                    <section class="panel" aria-labelledby="item-3-titulo">
+                        <h2 id="item-3-titulo">Item 3 de 3</h2>
+                        <p class="sample__version">Texto sanitizado, a versão mais tratada que existe.</p>
+                        <blockquote class="sample__text">Trecho sintético de conversa número 3. [NOME_2] agradece e encerra a conversa sintética.</blockquote>
+                        <p>Revise os itens anteriores primeiro.</p>
+                    </section>
+                </li>
+            </ol>
+            <section class="panel" aria-labelledby="amostra-conclusao-titulo">
+                <h2 id="amostra-conclusao-titulo">Concluir</h2>
+                <div class="empty-state" role="status">
+                    <p class="empty-state__title">Aprovar ainda não é possível.</p>
+                    <p>A aprovação aparece quando todos os itens da amostra estiverem revisados.</p>
+                </div>
+            </section>
+        </section>
+        <hr />
+
+        <section id="todos-revisados" aria-labelledby="todos-revisados-estado">
+            <p id="todos-revisados-estado"><strong>Estado: todos os itens revisados.</strong> Só agora o botão de aprovar aparece.</p>
+            <section class="panel" aria-labelledby="todos-revisados-amostra-conclusao-titulo">
+                <h2 id="todos-revisados-amostra-conclusao-titulo">Concluir</h2>
+                <p>Os 3 itens foram revisados sem dado pessoal. A aprovação fica registrada com a amostra, quem aprovou e quando.</p>
+                <form class="form" method="get" action="revisao.html#aprovado">
+                    <div class="actions">
+                        <button id="aprovar" class="button button--primary" type="submit">Aprovar o lote 13</button>
+                    </div>
+                </form>
+            </section>
+        </section>
+        <hr />
+
+        <section id="outra-pessoa" aria-labelledby="outra-pessoa-estado">
+            <p id="outra-pessoa-estado"><strong>Estado: revisada por outra pessoa.</strong> Duas pessoas revisavam o mesmo lote; a decisão de PESSOA_2 chegou primeiro.</p>
+            <div class="notice notice--info" role="status">
+                <span class="notice__mark" aria-hidden="true">ℹ</span>
+                <p><span class="notice__kind">Aviso:</span> Outra pessoa decidiu este lote enquanto você revisava. O seu registro não foi feito; veja abaixo a decisão que valeu.</p>
+            </div>
+            <div class="notice notice--success" role="status">
+                <span class="notice__mark" aria-hidden="true">✓</span>
+                <p><span class="notice__kind">Concluído:</span> Lote aprovado por PESSOA_2 em <time datetime="2026-11-15T14:05:00.0000000+00:00">15/11/2026 às 14:05 UTC</time>, com a amostra 1 revisada.</p>
+            </div>
+            <section class="panel" aria-labelledby="outra-pessoa-amostra-conclusao-titulo">
+                <h2 id="outra-pessoa-amostra-conclusao-titulo">Concluir</h2>
+                <p>O lote já foi aprovado.</p>
+                <div class="actions">
+                    <a class="button button--secondary" href="lote.html#aceito">Ver o lote</a>
+                </div>
+            </section>
+        </section>
+        <hr />
+
+        <section id="aprovado" aria-labelledby="aprovado-estado">
+            <p id="aprovado-estado"><strong>Estado: aprovado.</strong> A tela diz qual amostra, quem aprovou e quando.</p>
+            <div class="notice notice--success" role="status">
+                <span class="notice__mark" aria-hidden="true">✓</span>
+                <p><span class="notice__kind">Concluído:</span> Lote aprovado por PESSOA_1 em <time datetime="2026-11-15T14:10:00.0000000+00:00">15/11/2026 às 14:10 UTC</time>, com a amostra 1 revisada.</p>
+            </div>
+            <section class="panel" aria-labelledby="aprovado-amostra-resumo-titulo">
+                <h2 id="aprovado-amostra-resumo-titulo">Amostra</h2>
+                <dl class="facts">
+                    <div class="facts__item">
+                        <dt>Domínio</dt>
+                        <dd>DOMINIO_A</dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Tamanho declarado</dt>
+                        <dd>3</dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Revisados</dt>
+                        <dd>3 de 3</dd>
+                    </div>
+                </dl>
+            </section>
+            <section class="panel" aria-labelledby="aprovado-amostra-conclusao-titulo">
+                <h2 id="aprovado-amostra-conclusao-titulo">Concluir</h2>
+                <p>O lote já foi aprovado.</p>
+                <div class="actions">
+                    <a class="button button--secondary" href="lote.html#aceito">Ver o lote</a>
+                </div>
+            </section>
+        </section>
+        <hr />
+
+        <section id="reprovado" aria-labelledby="reprovado-estado">
+            <p id="reprovado-estado"><strong>Estado: reprovado.</strong> Os itens que faltavam ficam sem revisão, porque o lote já foi decidido.</p>
+            <div class="notice notice--info" role="status">
+                <span class="notice__mark" aria-hidden="true">ℹ</span>
+                <p><span class="notice__kind">Aviso:</span> Lote reprovado por PESSOA_1 em <time datetime="2026-11-15T14:12:00.0000000+00:00">15/11/2026 às 14:12 UTC</time>: Nome de pessoa no item 2 da amostra. Nenhum item dele entrará no acervo.</p>
+            </div>
+            <ol class="sample">
+                <li id="reprovado-item-3" class="sample__item">
+                    <section class="panel" aria-labelledby="reprovado-item-3-titulo">
+                        <h2 id="reprovado-item-3-titulo">Item 3 de 3</h2>
+                        <p class="sample__version">Texto sanitizado, a versão mais tratada que existe.</p>
+                        <blockquote class="sample__text">Trecho sintético de conversa número 3. [NOME_2] agradece e encerra a conversa sintética.</blockquote>
+                        <p>Não revisado: o lote já foi decidido.</p>
+                    </section>
+                </li>
+            </ol>
+            <section class="panel" aria-labelledby="reprovado-amostra-conclusao-titulo">
+                <h2 id="reprovado-amostra-conclusao-titulo">Concluir</h2>
+                <p>O lote já foi reprovado.</p>
+                <div class="actions">
+                    <a class="button button--secondary" href="lote.html#rejeitado">Ver o lote</a>
+                </div>
+            </section>
+        </section>
+        <hr />
+
+        <section id="vazia" aria-labelledby="vazia-estado">
+            <p id="vazia-estado"><strong>Estado: lote sem item para sortear.</strong></p>
+            <div class="empty-state" role="status">
+                <p class="empty-state__title">A amostra não tem item.</p>
+                <p>O lote não tem nenhum item gravado para sortear, e sem amostra não há o que revisar nem aprovar.</p>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

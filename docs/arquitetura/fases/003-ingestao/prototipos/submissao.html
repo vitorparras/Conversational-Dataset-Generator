@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Enviar material · Gerador de bases conversacionais</title>
+    <link rel="stylesheet" href="../../../../../core/src/Core.Host/Screens/tokens.css" />
+    <link rel="stylesheet" href="../../../../../core/src/Core.Host/Screens/screens.css" />
+</head>
+<!--
+    Protótipo da tela I1 (GET/POST /lotes/novo). Na tela real só um estado aparece por vez; aqui os estados vêm em sequência, cada um na sua âncora.
+    Um id que se repete entre estados fica como na tela real na primeira vez e leva o nome do estado como prefixo nas seguintes.
+    Os formulários usam method="get" e apontam para o próximo protótipo; na tela real é method="post" action="/lotes/novo".
+-->
+<body>
+    <a class="skip-link" href="#content">Ir para o conteúdo</a>
+    <p role="note">Protótipo para aprovação do dono. Não é a tela final. <a href="index.html">Índice dos protótipos</a>.</p>
+    <header class="header">
+        <a class="header__name" href="index.html">Gerador de bases conversacionais</a>
+        <button id="cabecalho-abrir" class="button button--secondary header__toggle" type="button" aria-expanded="false" aria-controls="cabecalho-menu">Menu</button>
+        <div id="cabecalho-menu" class="header__menu">
+            <form class="domain" method="get">
+                <label class="domain__label" for="dominio">Domínio de trabalho</label>
+                <select id="dominio" class="domain__choice" name="dominio">
+                    <option value="DOMINIO_A">DOMINIO_A</option>
+                    <option value="DOMINIO_B">DOMINIO_B</option>
+                </select>
+                <button id="dominio-trocar" class="button button--secondary" type="submit">Trocar domínio</button>
+            </form>
+            <a class="nav__link header__account" href="index.html">Minha conta</a>
+            <form class="header__leave" method="get" action="index.html">
+                <button id="sair" class="button button--secondary" type="submit">Sair</button>
+            </form>
+            <nav class="nav" aria-label="Telas da sua função">
+                <ul class="nav__list">
+                    <li><a class="nav__link" href="submissao.html" aria-current="page">Enviar material</a></li>
+                    <li><a class="nav__link" href="lote.html">Lotes</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    <main id="content" class="page" tabindex="-1">
+        <h1>Enviar material</h1>
+        <p class="lead">Envie um arquivo de material a um domínio, dizendo de onde ele veio e sob qual condição entra. O arquivo é conferido antes de ser gravado.</p>
+
+        <nav aria-label="Estados do protótipo">
+            <ul>
+                <li><a href="#formulario">Formulário vazio</a></li>
+                <li><a href="#erro-de-campo">Erro ligado ao campo</a></li>
+                <li><a href="#recusa">Recusa por código fixo</a></li>
+                <li><a href="#nome-descartado">Aceito, com o nome do arquivo descartado</a></li>
+                <li><a href="#nao-registrado">Envio não registrado</a></li>
+                <li><a href="#esbarrou">Envio que esbarrou em outro</a></li>
+                <li><a href="#porta-bloqueada">Porta bloqueada</a></li>
+            </ul>
+        </nav>
+
+        <section id="formulario" aria-labelledby="formulario-estado">
+            <p id="formulario-estado"><strong>Estado: formulário vazio.</strong> A primeira abertura da tela.</p>
+            <form class="form" method="get" action="lote.html" enctype="multipart/form-data" data-wait="envio-espera" novalidate>
+                <fieldset class="choices">
+                    <legend class="field__label">
+                        Domínio
+                        <span class="field__required">(obrigatório)</span>
+                    </legend>
+                    <label class="choices__option">
+                        <input type="radio" name="domain" value="DOMINIO_A" />
+                        DOMINIO_A
+                    </label>
+                    <label class="choices__option">
+                        <input type="radio" name="domain" value="DOMINIO_B" />
+                        DOMINIO_B
+                    </label>
+                </fieldset>
+                <div class="field">
+                    <label class="field__label" for="arquivo">
+                        Arquivo
+                        <span class="field__required">(obrigatório)</span>
+                    </label>
+                    <p id="arquivo-dica" class="field__hint">Até 10 MiB. O formato é conferido pelo conteúdo, não pela extensão, e o nome do arquivo não é guardado.</p>
+                    <input id="arquivo" class="field__input" name="file" type="file" aria-required="true" aria-describedby="arquivo-dica" />
+                </div>
+                <fieldset class="choices">
+                    <legend class="field__label">
+                        Forma do material
+                        <span class="field__required">(obrigatório)</span>
+                    </legend>
+                    <label class="choices__option">
+                        <input type="radio" name="declaredForm" value="conversation" />
+                        Conversa: mensagens, cada uma com autor e instante
+                    </label>
+                    <label class="choices__option">
+                        <input type="radio" name="declaredForm" value="comment" />
+                        Comentário: uma manifestação de um autor, sem conversa
+                    </label>
+                    <label class="choices__option">
+                        <input type="radio" name="declaredForm" value="document" />
+                        Documento: texto corrido, sem autor por parte
+                    </label>
+                    <label class="choices__option">
+                        <input type="radio" name="declaredForm" value="labeled-sequence" />
+                        Sequência anotada: texto com a anotação em trechos
+                    </label>
+                </fieldset>
+                <fieldset class="choices">
+                    <legend class="field__label">
+                        Formato do arquivo
+                        <span class="field__required">(obrigatório)</span>
+                    </legend>
+                    <label class="choices__option">
+                        <input type="radio" name="sourceFormat" value="cdg-conversa/1" checked />
+                        cdg-conversa/1
+                    </label>
+                </fieldset>
+                <fieldset class="choices">
+                    <legend class="field__label">
+                        Condição de entrada
+                        <span class="field__required">(obrigatório)</span>
+                    </legend>
+                    <label class="choices__option">
+                        <input type="radio" name="condition" value="CONDICAO_A" checked />
+                        CONDICAO_A (a mais restrita)
+                    </label>
+                    <label class="choices__option">
+                        <input type="radio" name="condition" value="CONDICAO_B" />
+                        CONDICAO_B
+                    </label>
+                    <label class="choices__option">
+                        <input type="radio" name="condition" value="CONDICAO_C" />
+                        CONDICAO_C (a mais permissiva)
+                    </label>
+                </fieldset>
+                <div class="field">
+                    <label class="field__label" for="origem">
+                        Origem do material
+                    </label>
+                    <p id="origem-dica" class="field__hint">Obrigatória: diga de onde o material veio, ou marque abaixo que a origem é desconhecida. Ela fica guardada selada e não aparece em registro do sistema nem em exportação.</p>
+                    <input id="origem" class="field__input" name="origin" type="text" autocomplete="off" aria-describedby="origem-dica" />
+                </div>
+                <div class="field">
+                    <label class="choices__option">
+                        <input id="originUnknown" type="checkbox" name="originUnknown" value="true" />
+                        A origem é desconhecida
+                    </label>
+                </div>
+                <p id="envio-espera" class="wait" role="status" data-wait-text="Enviando e conferindo o arquivo. A espera cresce com o tamanho dele; não feche a página."></p>
+                <div class="actions">
+                    <button id="enviar" class="button button--primary" type="submit">Enviar material</button>
+                </div>
+            </form>
+        </section>
+        <hr />
+
+        <section id="erro-de-campo" aria-labelledby="erro-de-campo-estado">
+            <p id="erro-de-campo-estado"><strong>Estado: erro ligado ao campo.</strong> O servidor recusou o formulário; cada erro fica no seu campo e o que foi escolhido volta marcado, menos o arquivo.</p>
+            <form class="form" method="get" action="lote.html" enctype="multipart/form-data" data-wait="erro-de-campo-envio-espera" novalidate>
+                <div class="notice notice--error" role="alert">
+                    <span class="notice__mark" aria-hidden="true">✕</span>
+                    <p><span class="notice__kind">Erro:</span> O envio não foi feito e nada foi gravado. Corrija os campos marcados e escolha o arquivo de novo: o navegador não o guarda depois de um erro.</p>
+                </div>
+                <fieldset class="choices" aria-describedby="domain-erro">
+                    <legend class="field__label">
+                        Domínio
+                        <span class="field__required">(obrigatório)</span>
+                    </legend>
+                    <label class="choices__option">
+                        <input type="radio" name="domain" value="DOMINIO_A" aria-invalid="true" />
+                        DOMINIO_A
+                    </label>
+                    <label class="choices__option">
+                        <input type="radio" name="domain" value="DOMINIO_B" aria-invalid="true" />
+                        DOMINIO_B
+                    </label>
+                    <p id="domain-erro" class="field__error" role="alert">Escolha o domínio do material.</p>
+                </fieldset>
+                <div class="field">
+                    <label class="field__label" for="erro-de-campo-arquivo">
+                        Arquivo
+                        <span class="field__required">(obrigatório)</span>
+                    </label>
+                    <p id="erro-de-campo-arquivo-dica" class="field__hint">Até 10 MiB. O formato é conferido pelo conteúdo, não pela extensão, e o nome do arquivo não é guardado.</p>
+                    <input id="erro-de-campo-arquivo" class="field__input" name="file" type="file" aria-required="true" aria-invalid="true" aria-describedby="erro-de-campo-arquivo-dica erro-de-campo-arquivo-erro" />
+                    <p id="erro-de-campo-arquivo-erro" class="field__error" role="alert">Escolha o arquivo do material.</p>
+                </div>
+                <fieldset class="choices">
+                    <legend class="field__label">
+                        Forma do material
+                        <span class="field__required">(obrigatório)</span>
+                    </legend>
+                    <label class="choices__option">
+                        <input type="radio" name="declaredForm" value="conversation" checked />
+                        Conversa: mensagens, cada uma com autor e instante
+                    </label>
+                    <label class="choices__option">
+                        <input type="radio" name="declaredForm" value="comment" />
+                        Comentário: uma manifestação de um autor, sem conversa
+                    </label>
+                    <label class="choices__option">
+                        <input type="radio" name="declaredForm" value="document" />
+                        Documento: texto corrido, sem autor por parte
+                    </label>
+                    <label class="choices__option">
+                        <input type="radio" name="declaredForm" value="labeled-sequence" />
+                        Sequência anotada: texto com a anotação em trechos
+                    </label>
+                </fieldset>
+                <fieldset class="choices">
+                    <legend class="field__label">
+                        Formato do arquivo
+                        <span class="field__required">(obrigatório)</span>
+                    </legend>
+                    <label class="choices__option">
+                        <input type="radio" name="sourceFormat" value="cdg-conversa/1" checked />
+                        cdg-conversa/1
+                    </label>
+                </fieldset>
+                <fieldset class="choices">
+                    <legend class="field__label">
+                        Condição de entrada
+                        <span class="field__required">(obrigatório)</span>
+                    </legend>
+                    <label class="choices__option">
+                        <input type="radio" name="condition" value="CONDICAO_A" checked />
+                        CONDICAO_A (a mais restrita)
+                    </label>
+                    <label class="choices__option">
+                        <input type="radio" name="condition" value="CONDICAO_B" />
+                        CONDICAO_B
+                    </label>
+                    <label class="choices__option">
+                        <input type="radio" name="condition" value="CONDICAO_C" />
+                        CONDICAO_C (a mais permissiva)
+                    </label>
+                </fieldset>
+                <div class="field">
+                    <label class="field__label" for="erro-de-campo-origem">
+                        Origem do material
+                    </label>
+                    <p id="erro-de-campo-origem-dica" class="field__hint">Obrigatória: diga de onde o material veio, ou marque abaixo que a origem é desconhecida. Ela fica guardada selada e não aparece em registro do sistema nem em exportação.</p>
+                    <input id="erro-de-campo-origem" class="field__input" name="origin" type="text" value="Exportação sintética do canal A" autocomplete="off" aria-invalid="true" aria-describedby="erro-de-campo-origem-dica erro-de-campo-origem-erro" />
+                    <p id="erro-de-campo-origem-erro" class="field__error" role="alert">Escreva a origem ou marque que ela é desconhecida, não os dois.</p>
+                </div>
+                <div class="field">
+                    <label class="choices__option">
+                        <input id="erro-de-campo-originUnknown" type="checkbox" name="originUnknown" value="true" checked aria-invalid="true" aria-describedby="erro-de-campo-origem-erro" />
+                        A origem é desconhecida
+                    </label>
+                </div>
+                <p id="erro-de-campo-envio-espera" class="wait" role="status" data-wait-text="Enviando e conferindo o arquivo. A espera cresce com o tamanho dele; não feche a página."></p>
+                <div class="actions">
+                    <button id="erro-de-campo-enviar" class="button button--primary" type="submit">Enviar material</button>
+                </div>
+            </form>
+        </section>
+        <hr />
+
+        <section id="recusa" aria-labelledby="recusa-estado">
+            <p id="recusa-estado"><strong>Estado: recusa por código fixo.</strong> O texto sai só do código da recusa; nem o nome do arquivo nem uma palavra do material aparecem.</p>
+            <section class="panel" aria-labelledby="envio-desfecho-titulo">
+                <h2 id="envio-desfecho-titulo">Material recusado</h2>
+                <div class="notice notice--error" role="alert">
+                    <span class="notice__mark" aria-hidden="true">✕</span>
+                    <p><span class="notice__kind">Erro:</span> Uma unidade não traz algo que a forma escolhida exige.</p>
+                </div>
+                <h3>Onde corrigir</h3>
+                <ul>
+                    <li>Na unidade 3, campo autor</li>
+                    <li>Na unidade 7, campo instante</li>
+                </ul>
+                <dl class="facts">
+                    <div class="facts__item">
+                        <dt>Lote</dt>
+                        <dd>12, recusado e registrado</dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Tamanho lido</dt>
+                        <dd>240 KiB</dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Resumo SHA-256</dt>
+                        <dd><code>a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4</code></dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Origem</dt>
+                        <dd>declarada e guardada selada</dd>
+                    </div>
+                </dl>
+                <div class="actions">
+                    <a id="enviar-de-novo" class="button button--primary" href="submissao.html#formulario">Enviar outro arquivo</a>
+                    <a class="button button--secondary" href="lote.html#rejeitado-na-entrada">Ver o lote recusado</a>
+                </div>
+            </section>
+        </section>
+        <hr />
+
+        <section id="nome-descartado" aria-labelledby="nome-descartado-estado">
+            <p id="nome-descartado-estado"><strong>Estado: aceito, com o nome do arquivo descartado.</strong> O nome trazia um caminho de pastas; o envio seguiu e o fato ficou no lote.</p>
+            <section class="panel" aria-labelledby="nome-descartado-envio-desfecho-titulo">
+                <h2 id="nome-descartado-envio-desfecho-titulo">Material aceito</h2>
+                <div class="notice notice--success" role="status">
+                    <span class="notice__mark" aria-hidden="true">✓</span>
+                    <p><span class="notice__kind">Concluído:</span> O material passou pela conferência e o lote 13 está aberto.</p>
+                </div>
+                <div class="notice notice--info" role="status">
+                    <span class="notice__mark" aria-hidden="true">ℹ</span>
+                    <p><span class="notice__kind">Aviso:</span> O nome do arquivo trazia um caminho de pastas. Ele foi descartado, como todo nome de arquivo, e o fato ficou registrado no lote. O envio não foi recusado por isso.</p>
+                </div>
+                <dl class="facts">
+                    <div class="facts__item">
+                        <dt>Lote</dt>
+                        <dd>13, aberto</dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Tamanho lido</dt>
+                        <dd>1,2 MiB</dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Resumo SHA-256</dt>
+                        <dd><code>0f1e2d3c0f1e2d3c0f1e2d3c0f1e2d3c0f1e2d3c0f1e2d3c0f1e2d3c0f1e2d3c</code></dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Origem</dt>
+                        <dd>desconhecida</dd>
+                    </div>
+                </dl>
+                <div class="actions">
+                    <a id="abrir-lote" class="button button--primary" href="lote.html">Abrir o lote 13</a>
+                    <a class="button button--secondary" href="submissao.html#formulario">Enviar outro arquivo</a>
+                </div>
+            </section>
+        </section>
+        <hr />
+
+        <section id="nao-registrado" aria-labelledby="nao-registrado-estado">
+            <p id="nao-registrado-estado"><strong>Estado: envio não registrado.</strong> O aviso vem acima do formulário, que abre de novo como no estado vazio.</p>
+            <div class="notice notice--error" role="alert">
+                <span class="notice__mark" aria-hidden="true">✕</span>
+                <p><span class="notice__kind">Erro:</span> O envio não foi registrado e nenhum lote foi aberto. Envie de novo; se repetir, quem administra o servidor vê a causa no registro do sistema.</p>
+            </div>
+            <p><a href="#formulario">Ver o formulário que segue o aviso</a></p>
+        </section>
+        <hr />
+
+        <section id="esbarrou" aria-labelledby="esbarrou-estado">
+            <p id="esbarrou-estado"><strong>Estado: envio que esbarrou em outro.</strong> Duas submissões ao mesmo tempo; nada foi gravado e o formulário abre de novo.</p>
+            <div class="notice notice--pending" role="status">
+                <span class="notice__mark" aria-hidden="true">◷</span>
+                <p><span class="notice__kind">Pendente:</span> O envio esbarrou em outro que chegou ao mesmo tempo e nada do arquivo foi gravado. Envie o mesmo arquivo de novo; não há nada a limpar antes.</p>
+            </div>
+            <p><a href="#formulario">Ver o formulário que segue o aviso</a></p>
+        </section>
+        <hr />
+
+        <section id="porta-bloqueada" aria-labelledby="porta-bloqueada-estado">
+            <p id="porta-bloqueada-estado"><strong>Estado: porta bloqueada.</strong> Falta o ensaio de recuperação; a tela não oferece formulário nenhum.</p>
+            <section class="panel" aria-labelledby="envio-fechado-titulo">
+                <h2 id="envio-fechado-titulo">Entrada fechada</h2>
+                <div class="notice notice--pending" role="status">
+                    <span class="notice__mark" aria-hidden="true">◷</span>
+                    <p><span class="notice__kind">Pendente:</span> A entrada de material está fechada: a recuperação da cópia de segurança ainda não foi ensaiada nesta instalação.</p>
+                </div>
+                <p>Nenhum arquivo pode ser enviado agora. Quem administra o servidor faz o ensaio de recuperação; depois dele, esta tela volta a oferecer o envio.</p>
+            </section>
+        </section>
+    </main>
+</body>
+</html>

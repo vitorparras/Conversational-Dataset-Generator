@@ -85,6 +85,7 @@ public sealed class PeopleEmailTests(BrowserFixture browser, PeopleHostFixture p
         await Expect(tab.Page.Locator(".notice--success")).ToContainTextAsync(Saved);
         await Expect(tab.Page.Locator(OwnField)).ToHaveValueAsync(first);
         _ = await SaveAsync(tab.Page, second);
+        await Expect(tab.Page.Locator(".notice--success")).ToContainTextAsync(Saved);
         _ = await tab.Page.ReloadAsync();
         await Expect(tab.Page.Locator(OwnField)).ToHaveValueAsync(second);
 

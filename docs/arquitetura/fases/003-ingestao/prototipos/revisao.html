@@ -41,11 +41,12 @@
     </header>
     <main id="content" class="page" tabindex="-1">
         <h1>Revisão da amostra do lote 13</h1>
-        <p class="lead">Leia cada item da amostra, na ordem, e marque-o como revisado. A amostra é a sorteada para o lote, com o tamanho que o domínio declara; ela não se escolhe, não se troca e não se pula. Um dado pessoal em qualquer item reprova o lote inteiro.</p>
+        <p class="lead">Leia cada item da amostra, na ordem, e marque-o como revisado. A amostra é a sorteada para o lote, com o tamanho que a instalação declara; ela não se escolhe, não se troca e não se pula. Um dado pessoal em qualquer item reprova o lote inteiro.</p>
 
         <nav aria-label="Estados do protótipo">
             <ul>
                 <li><a href="#nao-sorteada">Amostra ainda não sorteada</a></li>
+                <li><a href="#sem-tamanho">Tamanho da amostra não declarado</a></li>
                 <li><a href="#sorteada">Amostra sorteada, em revisão</a></li>
                 <li><a href="#todos-revisados">Todos os itens revisados</a></li>
                 <li><a href="#outra-pessoa">Revisada por outra pessoa</a></li>
@@ -63,12 +64,25 @@
                     <span class="notice__mark" aria-hidden="true">◷</span>
                     <p><span class="notice__kind">Pendente:</span> A amostra deste lote ainda não foi sorteada.</p>
                 </div>
-                <p>O sorteio tira 3 itens dos 40 do lote, o tamanho que DOMINIO_A declara. Depois de sorteada, a amostra não se troca.</p>
+                <p>O sorteio tira 3 itens dos 40 do lote, o tamanho que a instalação declara. Depois de sorteada, a amostra não se troca.</p>
                 <form class="form" method="get" action="revisao.html#sorteada">
                     <div class="actions">
                         <button id="sortear" class="button button--primary" type="submit">Sortear a amostra</button>
                     </div>
                 </form>
+            </section>
+        </section>
+        <hr />
+
+        <section id="sem-tamanho" aria-labelledby="sem-tamanho-estado">
+            <p id="sem-tamanho-estado"><strong>Estado: tamanho da amostra não declarado.</strong> A instalação não declara o tamanho, e a tela não oferece o sorteio.</p>
+            <section class="panel" aria-labelledby="sem-tamanho-titulo">
+                <h2 id="sem-tamanho-titulo">Sorteio</h2>
+                <div class="notice notice--info" role="status">
+                    <span class="notice__mark" aria-hidden="true">ℹ</span>
+                    <p><span class="notice__kind">Aviso:</span> A instalação não declara o tamanho da amostra. Sem ele, o lote não pode ser sorteado nem revisado.</p>
+                </div>
+                <p>Peça a quem administra a instalação que declare o tamanho da amostra. O lote segue aberto, e nenhum item entra até a revisão.</p>
             </section>
         </section>
         <hr />

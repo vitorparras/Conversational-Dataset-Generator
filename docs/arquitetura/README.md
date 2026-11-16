@@ -45,6 +45,7 @@ Comece pela visão geral; os três seguintes dão o desenho inteiro, e os módul
 | [022](022-revisao-manual-de-acessibilidade.md) | Revisão manual de acessibilidade |
 
 Como se escreve cada tipo de peça, com exemplar real e o que é proibido, está em
-[padrões de peça](padroes/README.md), que vincula ao contrário do resto da pasta.
+[padrões de peça](padroes/README.md), que vincula ao contrário do resto da pasta. O pacote de
+desenho de cada fase, antes do código, está em [fase 3](fases/003-ingestao/README.md).
 
 Ver [regras de escrita](../regras-de-escrita.md).

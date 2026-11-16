@@ -67,7 +67,7 @@ class MutationModuleJobTests(unittest.TestCase):
 
     def test_the_matrix_comes_from_the_job_that_reads_the_document(self) -> None:
         self.assertIn(MATRIX, module_job())
-        self.assertIn("needs: mutation_modules\n", module_job())
+        self.assertIn("needs: [mutation_modules, database_image]\n", module_job())
 
     def test_the_job_limit_outlasts_the_ceiling_of_one_module(self) -> None:
         self.assertGreater(limit_minutes(), policy().minutes)

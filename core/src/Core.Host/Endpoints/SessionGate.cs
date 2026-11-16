@@ -43,7 +43,7 @@ internal static class SessionGate
 
     /// <summary>Whether the request is a browser asking for a page: HTML with a GET or with a form.</summary>
     internal static bool AsksForPage(HttpRequest request) =>
-        (HttpMethods.IsGet(request.Method) || (HttpMethods.IsPost(request.Method) && request.HasFormContentType))
+        (HttpMethods.IsGet(request.Method) || (HttpMethods.IsPost(request.Method) && RequestReader.CarriesForm(request)))
         && request.GetTypedHeaders().Accept.Any(accepted => accepted.MediaType.Equals(Html, StringComparison.OrdinalIgnoreCase));
 
     private static Task RefuseAsync(HttpContext context)

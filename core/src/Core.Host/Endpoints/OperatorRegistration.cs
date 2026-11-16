@@ -1,7 +1,6 @@
 using Core.Host.Operators;
 using Core.Host.Screens;
 using Core.Persistence.People;
-using Core.Platform.Sessions;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,14 +14,14 @@ internal static class OperatorRegistration
 {
     /// <summary>The password is read from the body of the post and goes to the registration, nowhere else: not to the page, the address nor the log.</summary>
     internal static async Task<IResult> RegisterAsync(
-        HttpContext context, [FromServices] OperatorAdministration? staff, [FromServices] PersonEmails? emails, [FromServices] SessionStore sessions)
+        HttpContext context, [FromServices] OperatorAdministration? staff, [FromServices] PersonEmails? emails)
     {
-        if (staff is null || sessions.Resolve(SessionCookie.Read(context.Request)) is not { } author)
+        if (staff is null || RequestReader.SessionOf(context) is not { } author)
         {
             return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
 
-        var form = context.Request.HasFormContentType ? await context.Request.ReadFormAsync(context.RequestAborted) : null;
+        var form = await RequestReader.FormAsync(context);
         var typed = (Name: ValueOf(form, OperatorFormScreen.NameField), Function: ValueOf(form, OperatorFormScreen.FunctionField), Email: AccountEmailEndpoint.Typed(form));
         if (typed.Email is { } given && !PersonEmails.IsAddress(given))
         {

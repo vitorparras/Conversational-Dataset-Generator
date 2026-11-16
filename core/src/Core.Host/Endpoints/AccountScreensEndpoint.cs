@@ -55,7 +55,7 @@ internal static class AccountScreensEndpoint
             return ScreenResult.Unavailable(context);
         }
 
-        var form = context.Request.HasFormContentType ? await context.Request.ReadFormAsync(context.RequestAborted) : null;
+        var form = await RequestReader.FormAsync(context);
         if (Typed(form, PasswordScreen.RepeatField) != Typed(form, PasswordScreen.ReplacementField))
         {
             return PasswordPage(context, PasswordScreen.Problem.Mismatch);
@@ -94,9 +94,9 @@ internal static class AccountScreensEndpoint
     /// </summary>
     private static async Task<IResult> EndAsync(HttpContext context, [FromServices] SessionStore sessions)
     {
-        var form = context.Request.HasFormContentType ? await context.Request.ReadFormAsync(context.RequestAborted) : null;
+        var form = await RequestReader.FormAsync(context);
         var chosen = Offered(context, sessions, form?[SessionEndScreen.SessionField].ToString());
-        return chosen is not null && sessions.Resolve(SessionCookie.Read(context.Request)) is { } account && sessions.CloseListed(account, chosen.ListingId)
+        return chosen is not null && RequestReader.SessionOf(context) is { } account && sessions.CloseListed(account, chosen.ListingId)
             ? Back(context, AccountScreen.SessionsDone, 1)
             : ScreenResult.NotFound(context);
     }

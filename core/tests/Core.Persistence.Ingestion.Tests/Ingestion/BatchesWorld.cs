@@ -47,6 +47,23 @@ internal sealed class BatchesWorld : IAsyncDisposable
         return result is DBNull ? null : result;
     }
 
+    /// <summary>
+    /// The first value of the first row of the statement, as the superuser, whom no row policy holds and every trigger still answers: a guard that refuses it refuses whoever writes.
+    /// </summary>
+    [SuppressMessage("Security", "CA2100", Justification = "The statements are literals of the calling tests, never input.")]
+    public async Task<object?> AsSuperuserAsync(string statement, params (string Name, object Value)[] parameters)
+    {
+        await using var connection = await Sql.OpenAsync(Database.SuperuserConnectionString);
+        await using var command = new NpgsqlCommand(statement, connection);
+        foreach (var (name, value) in parameters)
+        {
+            _ = command.Parameters.AddWithValue(name, value);
+        }
+
+        var result = await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
+        return result is DBNull ? null : result;
+    }
+
     /// <summary>The first value of the first row of the statement, as the application and under the domain.</summary>
     [SuppressMessage("Security", "CA2100", Justification = "The statements are literals of the calling tests, never input.")]
     public async Task<object?> InDomainAsync(int domainId, string statement, params (string Name, object Value)[] parameters)

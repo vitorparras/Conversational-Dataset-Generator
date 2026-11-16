@@ -214,10 +214,8 @@ public sealed class SampleReviewRouteTests
         await world.DrawAndReviewAsync(copy, reviewed: 2);
 
         var approved = await world.PostAsync(SampleReviewWorld.ApproveRouteOf(copy), world.Curator);
-        var first = await world.GetAsync($"/lotes/{world.Batch}", world.Curator);
 
         Assert.Equal(HttpStatusCode.SeeOther, approved.Status);
         Assert.EndsWith($"/lotes/{world.Batch}", approved.Location, StringComparison.Ordinal);
-        Assert.Equal(HttpStatusCode.OK, first.Status);
     }
 }

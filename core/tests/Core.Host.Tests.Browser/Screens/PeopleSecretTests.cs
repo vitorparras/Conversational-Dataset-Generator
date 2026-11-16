@@ -100,7 +100,7 @@ public sealed class PeopleSecretTests(BrowserFixture browser, PeopleHostFixture 
     private async Task AssertAbsentAsync(IPage page, IResponse response, string password)
     {
         var headers = string.Join('\n', (await response.AllHeadersAsync()).Select(header => $"{header.Key}: {header.Value}"));
-        var seen = string.Join('\n', page.Url, await page.ContentAsync(), headers, people.Host.Log, await people.Host.DumpAsync());
+        var seen = string.Join('\n', page.Url, await page.ContentAsync(), headers, people.Case.Log, await people.Case.DumpAsync());
 
         Assert.DoesNotContain(password, seen, StringComparison.Ordinal);
         Assert.DoesNotContain(Uri.EscapeDataString(password), seen, StringComparison.Ordinal);

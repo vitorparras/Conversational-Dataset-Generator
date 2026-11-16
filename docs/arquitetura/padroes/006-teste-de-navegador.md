@@ -29,17 +29,20 @@ Teste num Chromium real, pelo Playwright, contra o host real. Vive em
 O teste de navegador verifica o que só o navegador mostra: foco, papel, contraste, largura. A regra
 do negócio já foi testada abaixo ([002](002-servico-de-dominio.md), [005](005-teste-com-banco.md)).
 
-## Exceção transitória
+## Host por composição
 
-O host do exemplar (`ChangeScreenHost`) herda de `ScreenHostBase`, classe abstrata com estado, o
-que fere a composição sobre herança da regra 1 de [regras de código](../../regras-de-codigo.md).
-Até a #819 trazer o host por composição, host novo é mais uma subclasse de `ScreenHostBase`.
+Todo host de teste é um `ScreenHost` selado, montado por `ScreenParts`: os serviços da tela
+(`Services`), as rotas (`Screens`), o que roda antes e depois de subir (`Prepare`, `Finish`) e o
+que solta no fim (`Disposing`). O que é próprio de uma tela (a pessoa extra, o log, o banco
+semeado) vive num `*Case` que compõe o `ScreenHost`, e a fixture de classe do xunit expõe o `Case`.
+Não existe classe-base para herdar: host novo é um `*Case` novo com o seu `ScreenParts`
+(exemplar: `ChangeCase`), conforme a regra 1 de [regras de código](../../regras-de-codigo.md).
 
 ## Proibido
 
 - `Task.Delay` para esperar a tela (`EntryScreenTests`, linhas 89 e 177;
   `ResponseWithoutRegionTests`, linha 44): use `Expect` do Playwright, que espera a condição.
-- Classe abstrata nova com estado para herdar, ou mais um host montado à parte como
-  `SystemScreenHost`, `NavigationScreenHost` e `EntryScreenHost`.
-- Entrar com login copiado (`SystemSession`) em vez de `ScreenSession`.
+- Classe abstrata nova com estado para herdar, ou mais um host montado à parte do `ScreenHost`
+  e do `ScreenParts`.
+- Entrar com login copiado em vez de `ScreenSession`.
 - Localizar por classe CSS, por id ou por texto de layout no teste quando há papel acessível.

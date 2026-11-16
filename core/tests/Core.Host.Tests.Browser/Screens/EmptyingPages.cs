@@ -38,7 +38,7 @@ internal static class EmptyingPages
     public static string Protocol() => $"ZQX-{Guid.NewGuid():N}"[..20];
 
     /// <summary>A page, in a context of its own, of a person who entered by the form and opened the route given.</summary>
-    public static async Task<BrowserTab> OpenAsync(BrowserFixture browser, ScreenHostBase host, string person, string route)
+    public static async Task<BrowserTab> OpenAsync(BrowserFixture browser, ScreenHost host, string person, string route)
     {
         var tab = await ScreenSession.SignedInAsync(browser, host, person);
         try

@@ -24,7 +24,7 @@ public sealed class PasswordDelayTests(BrowserFixture browser, AccountHostFixtur
     public async Task Ca1ARefusalCountsInTheDelayOfTheEntryAndTheAnswerWaitsWithTheNoticeOnThePageAndSaysWhatEveryRefusalSays()
     {
         var host = account.Host;
-        await using var tab = await ScreenSession.SignedInAsync(browser, host, await host.AddPersonAsync());
+        await using var tab = await ScreenSession.SignedInAsync(browser, host, await account.Case.AddPersonAsync());
         _ = await tab.Page.AddInitScriptAsync(SubmitRecorder);
         _ = await tab.Page.GotoAsync(Route);
         var waits = new List<long>();

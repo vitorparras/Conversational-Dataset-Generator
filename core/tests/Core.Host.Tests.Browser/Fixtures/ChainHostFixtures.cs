@@ -6,11 +6,11 @@ namespace Core.Host.Tests.Browser.Fixtures;
 [SuppressMessage("Design", "CA1515", Justification = "xunit builds the class fixture and the public test classes take it in their constructors.")]
 public sealed class IntactChainHostFixture : IAsyncLifetime
 {
-    private ChainScreenHost? host;
+    private ScreenHost? host;
 
-    internal ChainScreenHost Host => host ?? throw new InvalidOperationException("The host with the chain intact was not started.");
+    internal ScreenHost Host => host ?? throw new InvalidOperationException("The host with the chain intact was not started.");
 
-    public async ValueTask InitializeAsync() => host = await ChainScreenHost.StartAsync(broken: false, CancellationToken.None);
+    public async ValueTask InitializeAsync() => host = await ScreenHost.StartAsync(ChainCase.Parts(broken: false, CancellationToken.None), CancellationToken.None);
 
     public async ValueTask DisposeAsync()
     {
@@ -25,11 +25,11 @@ public sealed class IntactChainHostFixture : IAsyncLifetime
 [SuppressMessage("Design", "CA1515", Justification = "xunit builds the class fixture and the public test classes take it in their constructors.")]
 public sealed class BrokenChainHostFixture : IAsyncLifetime
 {
-    private ChainScreenHost? host;
+    private ScreenHost? host;
 
-    internal ChainScreenHost Host => host ?? throw new InvalidOperationException("The host with the broken chain was not started.");
+    internal ScreenHost Host => host ?? throw new InvalidOperationException("The host with the broken chain was not started.");
 
-    public async ValueTask InitializeAsync() => host = await ChainScreenHost.StartAsync(broken: true, CancellationToken.None);
+    public async ValueTask InitializeAsync() => host = await ScreenHost.StartAsync(ChainCase.Parts(broken: true, CancellationToken.None), CancellationToken.None);
 
     public async ValueTask DisposeAsync()
     {

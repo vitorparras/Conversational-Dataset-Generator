@@ -40,7 +40,7 @@ public sealed class EmptyingAccessTests(BrowserFixture browser, EmptyingHostFixt
     [InlineData("UngrantedCurator")]
     public async Task Ca5TheActAnswersNotFoundForAPersonWhoIsNotOfTheCurationWithADomainAndEmptiesNothing(string who)
     {
-        var item = emptying.Host.NextItem();
+        var item = emptying.Case.NextItem();
         await using var tab = await OpenAsync(browser, emptying.Host, Person(who), "/");
 
         var posted = await tab.Page.Context.APIRequest.PostAsync(
@@ -48,7 +48,7 @@ public sealed class EmptyingAccessTests(BrowserFixture browser, EmptyingHostFixt
             new() { Headers = new Dictionary<string, string> { ["Accept"] = "text/html" }, Form = Asked(tab.Page, item), MaxRedirects = 0 });
 
         Assert.Equal(StatusNotFound, posted.Status);
-        Assert.Empty(await emptying.Host.EventsOfAsync(item));
+        Assert.Empty(await emptying.Case.EventsOfAsync(item));
     }
 
     [Theory]
@@ -66,14 +66,14 @@ public sealed class EmptyingAccessTests(BrowserFixture browser, EmptyingHostFixt
     [Fact]
     public async Task TheCurationWithADomainReachesTheEntryAndTheConfirmationWithStatusOk()
     {
-        var item = emptying.Host.NextItem();
+        var item = emptying.Case.NextItem();
         await using var tab = await OpenAsync(browser, emptying.Host, emptying.Host.Curator, "/");
 
         var entry = await tab.Page.GotoAsync(Entry);
         var confirmation = await tab.Page.GotoAsync(ConfirmOf(item));
 
         Assert.Equal([200, 200], [entry?.Status, confirmation?.Status]);
-        Assert.Empty(await emptying.Host.EventsOfAsync(item));
+        Assert.Empty(await emptying.Case.EventsOfAsync(item));
     }
 
     private static IFormData Asked(IPage page, int item) =>
@@ -84,6 +84,6 @@ public sealed class EmptyingAccessTests(BrowserFixture browser, EmptyingHostFixt
         "Administrator" => emptying.Host.Administrator,
         "Auditor" => emptying.Host.Auditor,
         "Annotator" => emptying.Host.Annotator,
-        _ => emptying.Host.UngrantedCurator,
+        _ => emptying.Case.UngrantedCurator,
     };
 }

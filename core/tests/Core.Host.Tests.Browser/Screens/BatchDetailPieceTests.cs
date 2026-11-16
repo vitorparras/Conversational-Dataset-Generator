@@ -14,7 +14,7 @@ namespace Core.Host.Tests.Browser.Screens;
 [Trait("Category", "Browser")]
 public sealed class BatchDetailPieceTests(BrowserFixture browser, BatchDetailHostFixture detail) : IClassFixture<BatchDetailHostFixture>
 {
-    private const string Detail = BatchDetailPieceHost.Detail;
+    private const string Detail = BatchDetailPieceCase.Detail;
     private const string Back = "Voltar para os lotes";
     private const int MostStops = 12;
     private const string Overflow = "() => document.documentElement.scrollWidth - document.documentElement.clientWidth";
@@ -30,9 +30,9 @@ public sealed class BatchDetailPieceTests(BrowserFixture browser, BatchDetailHos
 
         Assert.Equal(Panels, await tab.Page.Locator("main h2").AllInnerTextsAsync());
         var main = tab.Page.Locator("main");
-        await Expect(main).ToContainTextAsync(BatchDetailPieceHost.Domain);
+        await Expect(main).ToContainTextAsync(BatchDetailPieceCase.Domain);
         await Expect(main).ToContainTextAsync("Aceito");
-        await Expect(main).ToContainTextAsync(BatchDetailPieceHost.Submitter);
+        await Expect(main).ToContainTextAsync(BatchDetailPieceCase.Submitter);
         await Expect(main).ToContainTextAsync("UTC");
         await Expect(main).ToContainTextAsync("Declarada e guardada selada");
         await Expect(main).ToContainTextAsync("Não é reenvio de um lote anterior.");
@@ -117,7 +117,7 @@ public sealed class BatchDetailPieceTests(BrowserFixture browser, BatchDetailHos
         await tab.Page.Keyboard.PressAsync("Tab");
         await tab.Page.Keyboard.PressAsync("Enter");
 
-        await Expect(tab.Page).ToHaveURLAsync(new Regex($"{Regex.Escape(BatchDetailPieceHost.List)}$"));
+        await Expect(tab.Page).ToHaveURLAsync(new Regex($"{Regex.Escape(BatchDetailPieceCase.List)}$"));
     }
 
     [Fact]

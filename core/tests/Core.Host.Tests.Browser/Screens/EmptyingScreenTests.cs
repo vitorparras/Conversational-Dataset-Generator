@@ -24,7 +24,7 @@ public sealed class EmptyingScreenTests(BrowserFixture browser, EmptyingHostFixt
     public async Task TheEntryWithAnItemHasNoViolationOfWcagAAndAaAndItsTextReadsOverTheGlass(string name)
     {
         var mode = MediaMode.Named(name);
-        await using var tab = await OpenAsync(browser, emptying.Host, emptying.Host.Curator, EntryOf(emptying.Host.NextItem()));
+        await using var tab = await OpenAsync(browser, emptying.Host, emptying.Host.Curator, EntryOf(emptying.Case.NextItem()));
         await mode.ApplyAsync(tab.Page);
 
         await CheckAsync(tab.Page, mode, "esvaziamento");
@@ -53,8 +53,8 @@ public sealed class EmptyingScreenTests(BrowserFixture browser, EmptyingHostFixt
     public async Task TheEntryWithAnItemAlreadyEmptiedHasNoViolationOfWcagAAndAaAndTheRecordReadsOverTheGlass(string name)
     {
         var mode = MediaMode.Named(name);
-        var item = emptying.Host.NextItem();
-        await emptying.Host.EmptyAsync(item, EmptyingMotive.RemovalRequestedBySubject, Protocol());
+        var item = emptying.Case.NextItem();
+        await emptying.Case.EmptyAsync(item, EmptyingMotive.RemovalRequestedBySubject, Protocol());
         await using var tab = await OpenAsync(browser, emptying.Host, emptying.Host.Curator, EntryOf(item));
         await mode.ApplyAsync(tab.Page);
 
@@ -69,7 +69,7 @@ public sealed class EmptyingScreenTests(BrowserFixture browser, EmptyingHostFixt
     public async Task TheConfirmationHasNoViolationOfWcagAAndAaAndItsTextReadsOverTheGlass(string name)
     {
         var mode = MediaMode.Named(name);
-        await using var tab = await OpenAsync(browser, emptying.Host, emptying.Host.Curator, ConfirmOf(emptying.Host.NextItem()));
+        await using var tab = await OpenAsync(browser, emptying.Host, emptying.Host.Curator, ConfirmOf(emptying.Case.NextItem()));
         await mode.ApplyAsync(tab.Page);
 
         await CheckAsync(tab.Page, mode, "confirmacao");
@@ -81,7 +81,7 @@ public sealed class EmptyingScreenTests(BrowserFixture browser, EmptyingHostFixt
     public async Task TheConfirmationRefusedHasNoViolationOfWcagAAndAaAndTheErrorsReadOverTheGlass(string name)
     {
         var mode = MediaMode.Named(name);
-        await using var tab = await OpenAsync(browser, emptying.Host, emptying.Host.Curator, ConfirmOf(emptying.Host.NextItem()));
+        await using var tab = await OpenAsync(browser, emptying.Host, emptying.Host.Curator, ConfirmOf(emptying.Case.NextItem()));
         await mode.ApplyAsync(tab.Page);
         await FillAsync(tab.Page, string.Empty, "Maria da Silva");
         _ = await SendAsync(tab.Page);
@@ -93,9 +93,9 @@ public sealed class EmptyingScreenTests(BrowserFixture browser, EmptyingHostFixt
     [Fact]
     public async Task TheScreensFitThePhoneWidthWithoutScrollingSidewaysAndHaveNoViolation()
     {
-        var item = emptying.Host.NextItem();
-        var emptied = emptying.Host.NextItem();
-        await emptying.Host.EmptyAsync(emptied, EmptyingMotive.ContractRequirement, Protocol());
+        var item = emptying.Case.NextItem();
+        var emptied = emptying.Case.NextItem();
+        await emptying.Case.EmptyAsync(emptied, EmptyingMotive.ContractRequirement, Protocol());
         await using var tab = await OpenAsync(browser, emptying.Host, emptying.Host.Curator, Entry);
         await tab.Page.SetViewportSizeAsync(PhoneWidth, PhoneHeight);
 
@@ -114,7 +114,7 @@ public sealed class EmptyingScreenTests(BrowserFixture browser, EmptyingHostFixt
     [Fact]
     public async Task TheKeyboardAloneTypesTheIdentifierSeesTheItemReachesTheWayOnAndTheConfirmationWithTheFocusSeen()
     {
-        var item = emptying.Host.NextItem();
+        var item = emptying.Case.NextItem();
         await using var tab = await OpenAsync(browser, emptying.Host, emptying.Host.Curator, Entry);
         var order = new List<string>();
         var seen = new List<bool>();
@@ -140,7 +140,7 @@ public sealed class EmptyingScreenTests(BrowserFixture browser, EmptyingHostFixt
     [Fact]
     public async Task TheKeyboardAloneChoosesTheMotiveTypesTheProtocolReachesTheDangerButtonWithTheFocusSeenAndEmpties()
     {
-        var (item, protocol) = (emptying.Host.NextItem(), Protocol());
+        var (item, protocol) = (emptying.Case.NextItem(), Protocol());
         await using var tab = await OpenAsync(browser, emptying.Host, emptying.Host.Curator, ConfirmOf(item));
         var order = new List<string>();
         var seen = new List<bool>();
@@ -161,7 +161,7 @@ public sealed class EmptyingScreenTests(BrowserFixture browser, EmptyingHostFixt
         await tab.Page.Keyboard.PressAsync("Shift+Tab");
         await tab.Page.Keyboard.PressAsync("Enter");
         await Expect(tab.Page).ToHaveURLAsync(new Regex($"{Entry}\\?item={item}&feito=1$", RegexOptions.None, TimeSpan.FromSeconds(1)));
-        _ = Assert.Single(await emptying.Host.EventsOfAsync(item));
+        _ = Assert.Single(await emptying.Case.EventsOfAsync(item));
     }
 
     private static async Task CheckAsync(IPage page, MediaMode mode, string screen)

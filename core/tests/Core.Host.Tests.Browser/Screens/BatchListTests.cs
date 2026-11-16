@@ -27,9 +27,9 @@ public sealed class BatchListTests(BrowserFixture browser, GrantedBatchesHostFix
         await using var tab = await OpenAsync(granted.Host);
 
         Assert.Equal(["Lote\u00A01"], await tab.Page.Locator($"{Rows} th[scope=row]").AllInnerTextsAsync());
-        await Expect(tab.Page.Locator($"{Rows} td").Nth(0)).ToHaveTextAsync(BatchScreenHost.Granted);
+        await Expect(tab.Page.Locator($"{Rows} td").Nth(0)).ToHaveTextAsync(BatchCase.Granted);
         await Expect(tab.Page.Locator($"{Rows} td").Nth(2)).ToHaveTextAsync("zqx-seed");
-        await Expect(tab.Page.Locator("main")).Not.ToContainTextAsync(BatchScreenHost.Other);
+        await Expect(tab.Page.Locator("main")).Not.ToContainTextAsync(BatchCase.Other);
         await Expect(tab.Page.GetByRole(AriaRole.Link, new() { Name = "Lotes" })).ToHaveAttributeAsync("aria-current", "page");
     }
 
@@ -118,7 +118,7 @@ public sealed class BatchListTests(BrowserFixture browser, GrantedBatchesHostFix
         await ModeCapture.SaveAsync(tab.Page, width < 1280 ? "celular" : "1280", withGrant ? "lotes" : "lotes-sem-concessao");
     }
 
-    private async Task<BrowserTab> OpenAsync(ScreenHostBase host)
+    private async Task<BrowserTab> OpenAsync(ScreenHost host)
     {
         var tab = await ScreenSession.SignedInAsync(browser, host, host.Curator);
         try

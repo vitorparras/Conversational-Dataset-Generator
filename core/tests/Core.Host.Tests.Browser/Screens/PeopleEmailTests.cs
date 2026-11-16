@@ -203,7 +203,7 @@ public sealed class PeopleEmailTests(BrowserFixture browser, PeopleHostFixture p
 
         Assert.Equal(StatusRefused, response.Status);
         await AssertOnlyInTheFieldAsync(tab.Page, response, address, allowedInRecords: false);
-        Assert.DoesNotContain(address, await people.Host.DumpAsync(), StringComparison.Ordinal);
+        Assert.DoesNotContain(address, await people.Case.DumpAsync(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -221,7 +221,7 @@ public sealed class PeopleEmailTests(BrowserFixture browser, PeopleHostFixture p
         await Expect(tab.Page.Locator("#pessoa-nome")).ToHaveValueAsync(name);
         await Expect(tab.Page.Locator("#pessoa-senha")).ToHaveValueAsync(string.Empty);
         await AssertOnlyInTheFieldAsync(tab.Page, response, address, allowedInRecords: false);
-        var seen = await people.Host.DumpAsync();
+        var seen = await people.Case.DumpAsync();
         Assert.DoesNotContain(address, seen, StringComparison.Ordinal);
         Assert.DoesNotContain(name, seen, StringComparison.Ordinal);
     }
@@ -363,18 +363,18 @@ public sealed class PeopleEmailTests(BrowserFixture browser, PeopleHostFixture p
     private async Task AssertOnlyInTheFieldAsync(IPage page, IResponse response, string address, bool allowedInRecords)
     {
         var headers = string.Join('\n', (await response.AllHeadersAsync()).Select(header => $"{header.Key}: {header.Value}"));
-        var seen = string.Join('\n', page.Url, await page.TitleAsync(), headers, await page.EvaluateAsync<string>(TextOfMain), people.Host.Log);
+        var seen = string.Join('\n', page.Url, await page.TitleAsync(), headers, await page.EvaluateAsync<string>(TextOfMain), people.Case.Log);
 
         Assert.DoesNotContain(address, seen, StringComparison.Ordinal);
         Assert.DoesNotContain(Uri.EscapeDataString(address), seen, StringComparison.Ordinal);
         Assert.DoesNotMatch(new Regex(Regex.Escape(address), RegexOptions.IgnoreCase, TimeSpan.FromSeconds(5)), seen);
-        Assert.True(allowedInRecords || !(await people.Host.DumpAsync()).Contains(address, StringComparison.Ordinal), "A refused address reached the database.");
+        Assert.True(allowedInRecords || !(await people.Case.DumpAsync()).Contains(address, StringComparison.Ordinal), "A refused address reached the database.");
     }
 
     /// <summary>The database holds the address in the table of the addresses and nowhere else: not in the chain of custody, not in the people, not in the sessions, not in a notice.</summary>
     private async Task AssertOnlyInTheAddressRecordsAsync(string address)
     {
-        var lines = (await people.Host.DumpAsync()).Split('\n').Where(line => line.Contains(address, StringComparison.Ordinal)).ToList();
+        var lines = (await people.Case.DumpAsync()).Split('\n').Where(line => line.Contains(address, StringComparison.Ordinal)).ToList();
 
         Assert.NotEmpty(lines);
         Assert.All(lines, line => Assert.StartsWith("INSERT INTO public.person_email ", line, StringComparison.Ordinal));

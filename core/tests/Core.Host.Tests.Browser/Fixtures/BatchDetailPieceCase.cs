@@ -2,21 +2,19 @@ using Core.Host.Endpoints;
 using Core.Host.Screens;
 using Core.Host.Tests.Browser.Trial;
 using Core.Persistence.Ingestion;
-using Core.Persistence.Tests.Fixtures;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Core.Host.Tests.Browser.Fixtures;
 
 /// <summary>
-/// The host of the pieces of the detail of a batch (issue 609), which have no route of their own yet: the screen at an address that exists for the test, behind the real session and screen
+/// The case of the pieces of the detail of a batch (issue 609), which have no route of their own yet: the screen at an address that exists for the test, behind the real session and screen
 /// gates, over counts made up for the run. The state is in the address (<c>e</c>): an accepted batch, a rejected one with its motive, one still open with no item, one that lost something
 /// when the form was accommodated and one recognized as the resending of another, whose detail is the state <c>anterior</c>.
 /// </summary>
-internal sealed class BatchDetailPieceHost : ScreenHostBase
+internal static class BatchDetailPieceCase
 {
     /// <summary>The address of the detail, with the state in the query.</summary>
     public const string Detail = "/captura/lote";
@@ -32,19 +30,10 @@ internal sealed class BatchDetailPieceHost : ScreenHostBase
 
     private static readonly DateTimeOffset SubmittedAt = new(2026, 11, 8, 9, 30, 0, TimeSpan.Zero);
 
-    private BatchDetailPieceHost(ScratchDatabase database)
-        : base(database)
-    {
-    }
+    /// <summary>The screens of the case, behind the real session and screen gates.</summary>
+    public static ScreenParts Parts { get; } = new() { Screens = MapScreens };
 
-    public static Task<BatchDetailPieceHost> StartAsync(CancellationToken cancellationToken) =>
-        StartAsync(database => new BatchDetailPieceHost(database), _ => Task.CompletedTask, cancellationToken);
-
-    protected override void AddServices(IServiceCollection services)
-    {
-    }
-
-    protected override void MapScreens(IEndpointRouteBuilder routes)
+    private static void MapScreens(IEndpointRouteBuilder routes)
     {
         _ = routes.MapGet(Detail, Show).WithMetadata(ScreenAccess.Everyone);
         _ = routes.MapGet(List, (HttpContext context) => ScreenResult.Of(context, typeof(BareScreen), "Lotes")).WithMetadata(ScreenAccess.Everyone);

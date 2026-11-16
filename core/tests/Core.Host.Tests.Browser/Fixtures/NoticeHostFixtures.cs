@@ -6,11 +6,13 @@ namespace Core.Host.Tests.Browser.Fixtures;
 [SuppressMessage("Design", "CA1515", Justification = "xunit builds the class fixture and the public test classes take it in their constructors.")]
 public sealed class SoundNoticeHostFixture : IAsyncLifetime
 {
-    private NoticeScreenHost? host;
+    private NoticeCase? host;
 
-    internal NoticeScreenHost Host => host ?? throw new InvalidOperationException("The host of the notices was not started.");
+    internal NoticeCase Case => host ?? throw new InvalidOperationException("The host of the notices was not started.");
 
-    public async ValueTask InitializeAsync() => host = await NoticeScreenHost.StartAsync(broken: false, CancellationToken.None);
+    internal ScreenHost Host => Case.Host;
+
+    public async ValueTask InitializeAsync() => host = await NoticeCase.StartAsync(broken: false, CancellationToken.None);
 
     public async ValueTask DisposeAsync()
     {
@@ -25,11 +27,13 @@ public sealed class SoundNoticeHostFixture : IAsyncLifetime
 [SuppressMessage("Design", "CA1515", Justification = "xunit builds the class fixture and the public test classes take it in their constructors.")]
 public sealed class BrokenNoticeHostFixture : IAsyncLifetime
 {
-    private NoticeScreenHost? host;
+    private NoticeCase? host;
 
-    internal NoticeScreenHost Host => host ?? throw new InvalidOperationException("The host of the notices was not started.");
+    internal NoticeCase Case => host ?? throw new InvalidOperationException("The host of the notices was not started.");
 
-    public async ValueTask InitializeAsync() => host = await NoticeScreenHost.StartAsync(broken: true, CancellationToken.None);
+    internal ScreenHost Host => Case.Host;
+
+    public async ValueTask InitializeAsync() => host = await NoticeCase.StartAsync(broken: true, CancellationToken.None);
 
     public async ValueTask DisposeAsync()
     {

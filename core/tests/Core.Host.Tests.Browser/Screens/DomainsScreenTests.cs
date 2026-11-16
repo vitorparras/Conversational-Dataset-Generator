@@ -32,7 +32,7 @@ public sealed class DomainsScreenTests(BrowserFixture browser, DomainsHostFixtur
     {
         await using var tab = await OpenAsync(withDomains.Host, withDomains.Host.Administrator);
 
-        Assert.Equal(DomainScreenHost.Domains, await tab.Page.Locator($"{Rows} th[scope=row]").AllInnerTextsAsync());
+        Assert.Equal(DomainCase.Domains, await tab.Page.Locator($"{Rows} th[scope=row]").AllInnerTextsAsync());
         Assert.Equal(["Domínio", "Criado em", "Versão da taxonomia", "Versão das dimensões"], await tab.Page.Locator("[aria-labelledby=dominios-titulo] thead th").AllInnerTextsAsync());
         await Expect(tab.Page.Locator("#dominios-tabela-legenda")).ToHaveTextAsync("2 domínios, na ordem em que foram criados.");
         Assert.All(await tab.Page.Locator($"{Rows} td:nth-child(2)").AllInnerTextsAsync(), when => Assert.NotEmpty(when.Trim()));
@@ -106,7 +106,7 @@ public sealed class DomainsScreenTests(BrowserFixture browser, DomainsHostFixtur
         var missingPage = await tab.Page.ContentAsync();
         Assert.Equal((StatusNotFound, StatusNotFound), (answer?.Status, missing?.Status));
         Assert.Equal(missingPage.Replace(Missing, string.Empty, StringComparison.Ordinal), page.Replace(Route, string.Empty, StringComparison.Ordinal));
-        Assert.All(DomainScreenHost.Domains.Append("Domínios").Append("create-domain"), text => Assert.DoesNotContain(text, page, StringComparison.Ordinal));
+        Assert.All(DomainCase.Domains.Append("Domínios").Append("create-domain"), text => Assert.DoesNotContain(text, page, StringComparison.Ordinal));
         Assert.Empty(await tab.Page.Locator("nav .nav__link").AllInnerTextsAsync());
     }
 
@@ -162,7 +162,7 @@ public sealed class DomainsScreenTests(BrowserFixture browser, DomainsHostFixtur
         Assert.DoesNotContain(false, seen);
     }
 
-    private async Task<BrowserTab> OpenAsync(ScreenHostBase host, string name)
+    private async Task<BrowserTab> OpenAsync(ScreenHost host, string name)
     {
         var tab = await ScreenSession.SignedInAsync(browser, host, name);
         try

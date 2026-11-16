@@ -75,6 +75,22 @@ public sealed class SubmissionCleanUpTests
         Assert.Equal((SubmissionStoring.Keeping.WriteFailed, 1, 1), (cleaned, rejections.Motives.Count, log.Lines.Count));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RejectionThatFailsLeavesTheBatchOpenWithTheLogAndAnswersHowTheWritingEnded(bool cancelled)
+    {
+        var log = new SubmissionLog();
+        var failed = cancelled ? SubmissionStoring.Keeping.Cancelled : SubmissionStoring.Keeping.WriteFailed;
+        Task<BatchResult> Failing(string _) => cancelled ? Task.FromCanceled<BatchResult>(new CancellationToken(true)) : Task.FromException<BatchResult>(new InvalidOperationException("zqx"));
+
+        var cleaned = await SubmissionStoring.CleanUpAsync(Failing, failed, KeptBatch(), log);
+
+        var line = Assert.Single(log.Lines);
+        Assert.Equal((failed, 350), (cleaned, line.EventId));
+        Assert.Contains(nameof(BatchOutcome.NotRecorded), line.Line, StringComparison.Ordinal);
+    }
+
     private static SubmissionStoring.Kept KeptBatch()
     {
         var instant = new DateTimeOffset(2031, 3, 4, 8, 0, 0, TimeSpan.Zero);

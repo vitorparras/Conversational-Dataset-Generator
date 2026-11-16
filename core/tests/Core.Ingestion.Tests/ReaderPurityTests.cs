@@ -45,7 +45,7 @@ public sealed class ReaderPurityTests
         Assert.Equal([typeof(ReadOnlyMemory<byte>)], [.. read.GetParameters().Select(parameter => parameter.ParameterType)]);
         Assert.Equal((typeof(bool), 2), (recognizes.ReturnType, methods.Count));
         Assert.Equal([typeof(ReadOnlySpan<byte>)], [.. recognizes.GetParameters().Select(parameter => parameter.ParameterType)]);
-        Assert.Equal(["Format", "Limits"], [.. typeof(ISourceReader).GetProperties().Select(property => property.Name).Order(StringComparer.Ordinal)]);
+        Assert.Equal(["Form", "Format", "Limits"], [.. typeof(ISourceReader).GetProperties().Select(property => property.Name).Order(StringComparer.Ordinal)]);
     }
 
     private static string CoreRoot()

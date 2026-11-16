@@ -113,6 +113,7 @@ public static class ContentColumns
         new(IngestionBatch, "reviewed_at", ClearKind.Moment),
         new(IngestionBatch, "review_finding", ClearKind.Motive),
         new(IngestionBatch, "declared_form", ClearKind.Motive),
+        new(IngestionBatch, "source_form", ClearKind.Motive),
         new(ReplicationOccurrence, "id", ClearKind.Identifier),
         new(ReplicationOccurrence, DomainColumn, ClearKind.Domain),
         new(ReplicationOccurrence, BatchColumn, ClearKind.Identifier),

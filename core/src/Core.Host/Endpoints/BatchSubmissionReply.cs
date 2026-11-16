@@ -39,7 +39,7 @@ internal static class BatchSubmissionReply
         SubmissionKind.Invalid => Shown(context, offer, (read, nameof(SubmissionScreen.Errors), ErrorsOf(outcome.Fields!)), StatusCodes.Status400BadRequest),
         SubmissionKind.Blocked => Shown(context, offer, (read, nameof(SubmissionScreen.BlockedBy), outcome.BlockedBy), StatusCodes.Status503ServiceUnavailable),
         SubmissionKind.Unavailable => Troubled(context, offer, read, SubmissionScreen.Troubles.NotKept),
-        SubmissionKind.NotRecorded when outcome.Failure == BatchOutcome.DomainUnknown => Results.NotFound(),
+        SubmissionKind.NotRecorded when outcome.Failure == BatchOutcome.DomainUnknown => ScreenResult.NotFound(context),
         SubmissionKind.NotRecorded => Troubled(context, offer, read, SubmissionScreen.Troubles.NotRecorded),
         SubmissionKind.Collided => Troubled(context, offer, read, SubmissionScreen.Troubles.Collided),
         _ => throw new ArgumentOutOfRangeException(nameof(outcome), outcome.Kind, "The kind of the outcome is not one the service answers."),
@@ -51,18 +51,10 @@ internal static class BatchSubmissionReply
     private static IResult Shown(HttpContext context, SubmissionFields.Choices offer, (SubmissionRead Read, string Key, object? Value) answer, int status) =>
         SubmissionPageView.Page(context, offer, SubmissionPageView.Answered(answer.Read, answer.Key, answer.Value), status);
 
-    /// <summary>
-    /// The fields at fault before the file is read: the ones the service finds, a condition left out, which the service would take as the most restrictive and the form asks to be chosen,
-    /// and a sending with no file.
-    /// </summary>
+    /// <summary>The fields at fault before the file is read: the ones the service finds when the condition must be chosen, and a sending with no file.</summary>
     private static Dictionary<string, string> Problems(SubmissionService service, SubmissionRead read)
     {
-        var problems = ErrorsOf(service.Check(read.Request));
-        if (read.Request.Condition is null)
-        {
-            _ = problems.TryAdd("condition", "missing");
-        }
-
+        var problems = ErrorsOf(service.CheckChosen(read.Request));
         if (!read.HasFile)
         {
             _ = problems.TryAdd(SubmissionTexts.FileField, "missing");

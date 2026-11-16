@@ -68,6 +68,14 @@ internal sealed class SubmissionService
         return SubmissionFields.Of(intake, request);
     }
 
+    /// <summary>The fields at fault of a request whose condition must be chosen, as the form of the screen asks; a condition left out is missing there, not the most restrictive.</summary>
+    /// <param name="request">The request, whose file is not read.</param>
+    internal IReadOnlyList<FieldProblem> CheckChosen(SubmissionRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return SubmissionFields.Chosen(intake, request);
+    }
+
     /// <summary>The batches of the domains granted, newest first, by state and by period, in a page the server cuts and never larger than the most a page may hold.</summary>
     /// <param name="filter">The domains granted, the state, the period and the page.</param>
     /// <param name="cancellationToken">Cancels the reading.</param>

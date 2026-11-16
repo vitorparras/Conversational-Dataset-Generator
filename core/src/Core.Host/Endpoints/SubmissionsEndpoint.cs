@@ -18,7 +18,8 @@ internal static class SubmissionsEndpoint
     internal const string BatchesRoute = "/ingestion/batches";
     internal const string GateRoute = "/ingestion/gate";
 
-    private const int BodyMargin = 64 * 1024;
+    /// <summary>What the body may carry beyond the file: the fields and the boundaries of the parts.</summary>
+    internal const int BodyMargin = 64 * 1024;
 
     private static readonly ScreenAccess Access = ScreenAccess.Unlisted(PersonFunctions.Curation);
 
@@ -131,12 +132,18 @@ internal static class SubmissionsEndpoint
         return (await GrantedDomains.OfAsync(listing, names, context.RequestAborted)).Keys;
     }
 
-    /// <summary>The body is bounded by the most bytes a file may have, and a margin for the fields and the boundaries, before a byte of it is read.</summary>
-    private static void Bound(HttpContext context, long maxBytes)
+    /// <summary>
+    /// The body is bounded by the most bytes a file may have, a margin for the fields and the boundaries and the excess the caller tolerates, before a byte of it is read; the gate still refuses a
+    /// file past the most bytes. When the server already read the body or set its own bound the feature is read only, and the bound of the server stands.
+    /// </summary>
+    /// <param name="context">The request.</param>
+    /// <param name="maxBytes">The most bytes a file may have.</param>
+    /// <param name="excess">What the caller lets through past the file and the margin, so the gate can judge a file too large instead of the server cutting the body.</param>
+    internal static void Bound(HttpContext context, long maxBytes, long excess = 0)
     {
         if (context.Features.Get<IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } feature)
         {
-            feature.MaxRequestBodySize = maxBytes + BodyMargin;
+            feature.MaxRequestBodySize = maxBytes + BodyMargin + excess;
         }
     }
 }

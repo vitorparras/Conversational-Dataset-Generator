@@ -21,7 +21,8 @@ public sealed class BatchRegister
     private const int WarningColumn = 8;
     private const int OriginColumn = 9;
     private const int DeclaredColumn = 10;
-    private const int PreviousColumn = 11;
+    private const int SourceColumn = 11;
+    private const int PreviousColumn = 12;
     private const int SkipCeiling = 10_000;
     private const int TakeCeiling = 1_000;
 
@@ -219,5 +220,6 @@ public sealed class BatchRegister
         OriginState = reader[OriginColumn] as string,
         PreviousBatch = reader.IsDBNull(PreviousColumn) ? null : reader.GetInt64(PreviousColumn),
         DeclaredForm = reader[DeclaredColumn] as string,
+        SourceForm = reader[SourceColumn] as string,
     };
 }

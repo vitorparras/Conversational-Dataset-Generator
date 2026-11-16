@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Text;
 using Core.Host.Endpoints;
 using Core.Host.Operators;
@@ -26,6 +27,8 @@ namespace Core.Host.Tests.Submissions;
 public sealed class SubmissionScreensRouteTests
 {
     private const string Path = "zqx-pasta/conversa.json";
+
+    private static readonly string[] EmptyReasons = ["format_not_confirmed", "unreadable", "no_units"];
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -145,7 +148,8 @@ public sealed class SubmissionScreensRouteTests
 
         var batch = Assert.Single(await world.BatchesAsync());
         Assert.Equal((HttpStatusCode.OK, BatchState.Rejected), (status, batch.State));
-        Assert.Contains("Material recusado", page, StringComparison.Ordinal);
+        Assert.Contains(batch.Reason, EmptyReasons);
+        Assert.Contains(SubmissionTexts.ReasonOf(batch.Reason!), page, StringComparison.Ordinal);
     }
 
     [DatabaseFact]
@@ -158,6 +162,7 @@ public sealed class SubmissionScreensRouteTests
 
         Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
         Assert.Contains(SubmissionTexts.BlockedOf("recovery_not_rehearsed"), page, StringComparison.Ordinal);
+        Assert.DoesNotContain("type=\"file\"", page, StringComparison.Ordinal);
     }
 
     [DatabaseFact]
@@ -194,7 +199,8 @@ public sealed class SubmissionScreensRouteTests
         var detail = await world.PageAsync(location!);
 
         Assert.Matches(@"<dt>Conversa</dt>\s*<dd>2 itens</dd>", detail);
-        Assert.Matches(@"<dt>Removidos</dt>\s*<dd>0 trechos</dd>", detail);
+        Assert.Contains(BatchDetailTexts.NotCounted, detail, StringComparison.Ordinal);
+        Assert.DoesNotContain("<dt>Removidos</dt>", detail, StringComparison.Ordinal);
         Assert.Matches(@"<dt>Mensagens marcadas como réplica</dt>\s*<dd>2</dd>", detail);
     }
 
@@ -223,6 +229,7 @@ public sealed class SubmissionScreensRouteTests
 
         Assert.Contains("lote-perda", detail, StringComparison.Ordinal);
         Assert.Contains(BatchDetailTexts.LossOf("author"), detail, StringComparison.Ordinal);
+        Assert.Contains($"veio como {BatchDetailTexts.FormOf("conversation")} e foi acomodado como {BatchDetailTexts.FormOf("document")}", detail, StringComparison.Ordinal);
     }
 
     [DatabaseFact]
@@ -271,6 +278,41 @@ public sealed class SubmissionScreensRouteTests
         using var response = await world.Host.GetAsync(ScreenPaths.BatchOf(other.BatchId!.Value), world.Host.Sessions.Open(SubmissionWorld.Person), encrypted: true, Token);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Contains(NotFoundScreen.Title, WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync(Token)), StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
+    public async Task BatchZeroAnswersNotFound()
+    {
+        await using var world = await World.StartAsync();
+
+        using var response = await world.Host.GetAsync(ScreenPaths.BatchOf(0), world.Host.Sessions.Open(SubmissionWorld.Person), encrypted: true, Token);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Contains(NotFoundScreen.Title, WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync(Token)), StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
+    public async Task FileNotChosenReturnsTheErrorOnTheFileAndWritesNothing()
+    {
+        await using var world = await World.StartAsync();
+
+        var (status, _, page) = await world.PostAsync(Fields(), content: string.Empty, name: string.Empty);
+
+        Assert.Equal((HttpStatusCode.BadRequest, 0L), (status, await world.Inner.BatchCountAsync()));
+        Assert.Contains(SubmissionTexts.FieldErrorOf(SubmissionTexts.FileField, "missing"), page, StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
+    public async Task FileFarPastTheLimitIsRecordedAsTooLargeAndAnsweredByTheScreen()
+    {
+        await using var world = await World.StartAsync(maxBytes: 16);
+
+        var (status, _, page) = await world.PostAsync(Fields(), content: new string('z', 300_000));
+
+        var batch = Assert.Single(await world.BatchesAsync());
+        Assert.Equal((HttpStatusCode.OK, BatchState.Rejected, ReasonCodes.TooLarge), (status, batch.State, batch.Reason));
+        Assert.Contains(SubmissionTexts.ReasonOf(ReasonCodes.TooLarge), page, StringComparison.Ordinal);
     }
 
     [DatabaseFact]
@@ -348,7 +390,16 @@ public sealed class SubmissionScreensRouteTests
                 form.Add(new StringContent(field.Value!), field.Key);
             }
 
-            form.Add(new ByteArrayContent(Encoding.UTF8.GetBytes(content)), "file", name);
+            var file = new ByteArrayContent(Encoding.UTF8.GetBytes(content));
+            if (name.Length == 0)
+            {
+                file.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data") { Name = "\"file\"", FileName = "\"\"" };
+                form.Add(file);
+            }
+            else
+            {
+                form.Add(file, "file", name);
+            }
             using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(ScreenPaths.BatchNew, UriKind.Relative)) { Content = form };
             using var response = await Host.SendAsync(request, Host.Sessions.Open(person), encrypted: true, Token);
             return (response.StatusCode, response.Headers.Location?.OriginalString, WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync(Token)));
@@ -369,7 +420,7 @@ public sealed class SubmissionScreensRouteTests
         internal async Task<long> AccommodatedAsync()
         {
             var conditions = OriginConditions.Of([SubmissionWorld.Strictest, "zqx_media", SubmissionWorld.Loosest]);
-            var opened = await Inner.Batches.OpenAsync(new BatchOpening(SubmissionWorld.Domain, SubmissionWorld.Person) { DeclaredForm = "document" }, Token);
+            var opened = await Inner.Batches.OpenAsync(new BatchOpening(SubmissionWorld.Domain, SubmissionWorld.Person) { DeclaredForm = "document", SourceForm = "conversation" }, Token);
             var instant = new DateTimeOffset(2031, 3, 4, 8, 0, 0, TimeSpan.Zero);
             var material = new ReadMaterial([new ReadUnit("ZQXTERCEIRO", "ZQXUM", instant, null, []), new ReadUnit("ZQXQUARTO", "ZQXDOIS", instant, null, [])]);
             var kept = new SubmissionStoring.Kept(SubmissionWorld.Domain, opened.BatchId!.Value, material, MaterialForm.Document);

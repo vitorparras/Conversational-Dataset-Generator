@@ -1,7 +1,6 @@
 using Core.Host.Screens;
 using Core.Host.Submissions;
 using Core.Persistence.Domains;
-using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Core.Host.Endpoints;
@@ -13,21 +12,25 @@ namespace Core.Host.Endpoints;
 /// </summary>
 internal static class BatchSubmissionPage
 {
-    private const int BodyMargin = 64 * 1024;
+    /// <summary>
+    /// What the page lets through past the file and its margin, so a file a little too large reaches the gate, is refused with its code and is recorded as the route of JSON records it
+    /// (risk of the phase 003, "Arquivo grande"); past it the server cuts the body and answers 413 alone.
+    /// </summary>
+    private const long Excess = 32L * 1024 * 1024;
 
     /// <summary>The form, or what keeps the ingestion closed; with no database declared the host cannot, and says so.</summary>
     internal static async Task<IResult> FormAsync(HttpContext context, [FromServices] SubmissionServiceHolder? services, [FromServices] DomainListing? listing)
     {
         if (services is null || listing is null)
         {
-            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+            return ScreenResult.Unavailable(context);
         }
 
-        var granted = await GrantedAsync(context, listing);
+        var granted = await GrantedDomains.OfScreenAsync(listing, context);
         using var loaded = await services.GetAsync(context.RequestAborted);
         if (loaded is null)
         {
-            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+            return ScreenResult.Unavailable(context);
         }
 
         var gate = await loaded.Service.GateAsync(context.RequestAborted);
@@ -36,12 +39,15 @@ internal static class BatchSubmissionPage
         return SubmissionPageView.Page(context, offer, fields, gate.Open ? StatusCodes.Status200OK : StatusCodes.Status503ServiceUnavailable);
     }
 
-    /// <summary>The sending: the session, the body bounded before a byte is read, the domain among the granted ones, the gate, the fields, and then the service.</summary>
+    /// <summary>
+    /// The sending: the session, the body bounded before a byte is read, the domain among the granted ones, and then the reply. It starts as the route of JSON does, and answers as a screen does:
+    /// the page of the host for what the screen cannot show. What the reply left unread is drained, so the browser reads the page instead of a connection cut.
+    /// </summary>
     internal static async Task<IResult> SubmitAsync(HttpContext context, [FromServices] SubmissionServiceHolder? services, [FromServices] DomainListing? listing)
     {
         if (services is null || listing is null)
         {
-            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+            return ScreenResult.Unavailable(context);
         }
 
         if (RequestReader.SessionOf(context) is not { } author)
@@ -49,34 +55,23 @@ internal static class BatchSubmissionPage
             return Results.Unauthorized();
         }
 
-        Bound(context, services.MaxBytes);
+        SubmissionsEndpoint.Bound(context, services.MaxBytes, Excess);
         if (await SubmissionForm.ReadAsync(context.Request, author, context.RequestAborted) is not { } read)
         {
             return Results.StatusCode(StatusCodes.Status415UnsupportedMediaType);
         }
 
-        var granted = await GrantedAsync(context, listing);
+        var granted = await GrantedDomains.OfScreenAsync(listing, context);
         if (read.Request.DomainId > 0 && !granted.ContainsKey(read.Request.DomainId))
         {
-            return Results.NotFound();
+            return ScreenResult.NotFound(context);
         }
 
         using var loaded = await services.GetAsync(context.RequestAborted);
-        return loaded is null
-            ? Results.StatusCode(StatusCodes.Status503ServiceUnavailable)
+        var reply = loaded is null
+            ? ScreenResult.Unavailable(context)
             : await BatchSubmissionReply.SendAsync(context, (loaded.Service, SubmissionPageView.OfferOf(granted, loaded.Service, services.MaxBytes)), read);
-    }
-
-    /// <summary>The domains granted to the one who entered, by identifier, as the gate of the screens read them for the request.</summary>
-    private static Task<Dictionary<int, string>> GrantedAsync(HttpContext context, DomainListing listing) =>
-        GrantedDomains.OfAsync(listing, (context.Features.Get<ScreenReach>() ?? ScreenReach.Nothing).Granted, context.RequestAborted);
-
-    /// <summary>The body is bounded by the most bytes a file may have, and a margin for the fields and the boundaries, before a byte of it is read.</summary>
-    private static void Bound(HttpContext context, long maxBytes)
-    {
-        if (context.Features.Get<IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } feature)
-        {
-            feature.MaxRequestBodySize = maxBytes + BodyMargin;
-        }
+        await context.Request.Body.CopyToAsync(Stream.Null, context.RequestAborted);
+        return reply;
     }
 }

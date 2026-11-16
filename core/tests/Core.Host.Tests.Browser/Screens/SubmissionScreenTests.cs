@@ -56,6 +56,8 @@ public sealed partial class SubmissionScreenTests(BrowserFixture browser, Submis
     {
         await mode.ApplyAsync(page);
         await page.SetViewportSizeAsync(1280, 800);
+        var wide = await page.EvaluateAsync<int>(Overflow);
+        Assert.True(wide <= 0, $"The page is {wide} px wider than 1280 px.");
         await AccessibilityCheck.AssertNoViolationsAsync(page);
         await RealBackgroundContrast.AssertAaAsync(page);
         await ModeCapture.SaveAsync(page, mode, capture);

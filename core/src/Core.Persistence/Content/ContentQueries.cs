@@ -71,8 +71,8 @@ public static class ContentQueries
 
     /// <summary>Opens a batch of ingestion for the domain declared, under its condition of origin: it holds no content, and the state, the moments and the identifier are the database's.</summary>
     internal const string InsertIngestionBatch =
-        "INSERT INTO content.ingestion_batch (domain_id, opened_by, condition, submission, received_bytes, received_digest, warning, origin_state, declared_form) "
-        + "VALUES (@domain, @author, @condition, @submission, @bytes, @digest, @warning, @origin, @form) RETURNING id";
+        "INSERT INTO content.ingestion_batch (domain_id, opened_by, condition, submission, received_bytes, received_digest, warning, origin_state, declared_form, source_form) "
+        + "VALUES (@domain, @author, @condition, @submission, @bytes, @digest, @warning, @origin, @form, @source) RETURNING id";
 
     /// <summary>Keeps the origin of a batch sealed, with the key of the row wrapped, in the transaction that opens the batch.</summary>
     internal const string InsertBatchOrigin =
@@ -103,7 +103,7 @@ public static class ContentQueries
 
     /// <summary>The batches of the domain declared, newest first, by state and by the moment of the submission, with what each submission brought.</summary>
     internal const string ReadIngestionBatchPage =
-        "SELECT b.id, b.state, b.motive, b.opened_by, b.opened_at, b.submission, b.received_bytes, b.received_digest, b.warning, b.origin_state, b.declared_form, "
+        "SELECT b.id, b.state, b.motive, b.opened_by, b.opened_at, b.submission, b.received_bytes, b.received_digest, b.warning, b.origin_state, b.declared_form, b.source_form, "
         + "(SELECT min(p.id) FROM content.ingestion_batch p WHERE b.motive = '" + BatchMotives.AlreadyReceivedMotive + "' AND p.state = 'accepted' AND p.received_digest = b.received_digest) "
         + "FROM content.ingestion_batch b "
         + "WHERE (@state::text IS NULL OR b.state = @state) AND (@from::timestamptz IS NULL OR b.opened_at >= @from) AND (@until::timestamptz IS NULL OR b.opened_at < @until) "
@@ -111,7 +111,7 @@ public static class ContentQueries
 
     /// <summary>One batch of the domain declared, as the register shows it.</summary>
     internal const string ReadIngestionBatchEntry =
-        "SELECT b.id, b.state, b.motive, b.opened_by, b.opened_at, b.submission, b.received_bytes, b.received_digest, b.warning, b.origin_state, b.declared_form, "
+        "SELECT b.id, b.state, b.motive, b.opened_by, b.opened_at, b.submission, b.received_bytes, b.received_digest, b.warning, b.origin_state, b.declared_form, b.source_form, "
         + "(SELECT min(p.id) FROM content.ingestion_batch p WHERE b.motive = '" + BatchMotives.AlreadyReceivedMotive + "' AND p.state = 'accepted' AND p.received_digest = b.received_digest) "
         + "FROM content.ingestion_batch b WHERE b.id = @id";
 

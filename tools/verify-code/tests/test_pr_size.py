@@ -47,7 +47,9 @@ class PrSizeTests(unittest.TestCase):
         result = pr_size.run(support.context(self.repo, base="main"))
 
         self.assertTrue(result.ok, result.details)
-        self.assertIn("produção: 60 arquivos, 60 linhas (teto 400 linhas, o padrão)", result.details)
+        self.assertIn(
+            "produção: 60 arquivos, 60 linhas (teto 400 linhas, o padrão)", result.details
+        )
 
     def test_four_hundred_and_one_production_lines_fail_naming_the_number(self) -> None:
         support.commit_files(self.repo, ["src/a.cs"], 401)
@@ -63,7 +65,9 @@ class PrSizeTests(unittest.TestCase):
         result = pr_size.run(support.context(self.repo, base="main"))
 
         self.assertTrue(result.ok, result.details)
-        self.assertIn("produção: 1 arquivos, 400 linhas (teto 400 linhas, o padrão)", result.details)
+        self.assertIn(
+            "produção: 1 arquivos, 400 linhas (teto 400 linhas, o padrão)", result.details
+        )
 
     def test_tests_locks_and_fixtures_are_not_counted(self) -> None:
         excluded = [
@@ -137,7 +141,9 @@ class PrSizeTests(unittest.TestCase):
         result = self.run_with("Teto da fatia: 1.501 linhas")
 
         self.assertFalse(result.ok)
-        self.assertIn("o teto de 1501 linhas da issue #12 passa do limite duro de 1500", result.details)
+        self.assertIn(
+            "o teto de 1501 linhas da issue #12 passa do limite duro de 1500", result.details
+        )
 
     def test_the_hard_limit_itself_is_accepted(self) -> None:
         support.commit_files(self.repo, ["src/a.cs"], 5)

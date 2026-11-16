@@ -95,7 +95,8 @@ def measure(changed: tuple[ChangedFile, ...], ceiling: Ceiling) -> StepResult:
     excluded = [c for c in changed if is_excluded(c.path)]
     files, lines = len(counted), sum(c.lines for c in counted)
     report = [
-        f"produção: {files} arquivos, {lines} linhas (teto {ceiling.lines} linhas, {ceiling.source})",
+        f"produção: {files} arquivos, {lines} linhas "
+        f"(teto {ceiling.lines} linhas, {ceiling.source})",
         f"fora da conta: {len(excluded)} arquivos",
         *(f"  - {c.path} ({c.lines} linhas)" for c in excluded),
     ]

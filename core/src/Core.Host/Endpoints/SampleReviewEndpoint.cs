@@ -37,7 +37,17 @@ internal static class SampleReviewEndpoint
 
     private static Task<IResult> ApproveAsync(HttpContext context, long id, [AsParameters] SampleReviewSources sources) =>
         GuardedAsync(context, sources, async (found, reviewer) =>
-            Answered(context, id, await sources.Desk!.ApproveAsync(found.Batch, reviewer, context.RequestAborted).ConfigureAwait(false)));
+        {
+            var outcome = await sources.Desk!.ApproveAsync(found.Batch, reviewer, context.RequestAborted).ConfigureAwait(false);
+            return outcome == BatchReviewOutcome.AlreadyReceived ? await FirstOfAsync(context, id, found, sources).ConfigureAwait(false) : Answered(context, id, outcome);
+        });
+
+    /// <summary>The copy of a file already accepted was rejected as such, and the person is taken to the batch that holds the file, or to the copy when that one cannot be read.</summary>
+    private static async Task<IResult> FirstOfAsync(HttpContext context, long id, (BatchEntry Batch, string Domain) found, SampleReviewSources sources)
+    {
+        var rejected = await sources.Register!.ReadAsync([found.Batch.DomainId], id, context.RequestAborted).ConfigureAwait(false);
+        return PageRedirect.Of(context, rejected?.PreviousBatch is { } first ? ScreenPaths.BatchOf(first) : ScreenPaths.BatchOf(id));
+    }
 
     private static Task<IResult> ReviewAsync(HttpContext context, long id, [AsParameters] SampleReviewSources sources) =>
         GuardedAsync(context, sources, async (found, reviewer) =>

@@ -11,11 +11,11 @@ internal sealed class SampleReviewDesk
 {
     private const string Removed = "Pessoa removida";
 
-    private readonly (BatchReviews Reviews, SampleMarks Marks, BatchApprovals Approvals) steps;
+    private readonly (BatchReviews Reviews, SampleMarks Marks, CopyClosing Closing) steps;
     private readonly (PersonRegistry Registry, Func<CancellationToken, Task<SampleTextAccess>> Texts, int? Declared) around;
 
     internal SampleReviewDesk(
-        (BatchReviews Reviews, SampleMarks Marks, BatchApprovals Approvals) steps,
+        (BatchReviews Reviews, SampleMarks Marks, CopyClosing Closing) steps,
         (PersonRegistry Registry, Func<CancellationToken, Task<SampleTextAccess>> Texts, int? Declared) around)
     {
         ArgumentNullException.ThrowIfNull(around.Registry);
@@ -41,10 +41,13 @@ internal sealed class SampleReviewDesk
         await TurnedBackAsync(batch, progress => progress.Find(found.Place), cancellationToken).ConfigureAwait(false)
             ?? (await steps.Reviews.ReviewAsync(new BatchReviewing(batch.DomainId, batch.Id, found.Reviewer, found.Kind), cancellationToken).ConfigureAwait(false)).Outcome;
 
-    /// <summary>Approves the batch, only when every item of the sample was reviewed.</summary>
+    /// <summary>
+    /// Approves the batch, only when every item of the sample was reviewed. A copy of a file the domain already accepted is not approved: the database turns the approval back,
+    /// and the copy is rejected as already received, so that the batch that holds the file can be shown in its place.
+    /// </summary>
     internal async Task<BatchReviewOutcome> ApproveAsync(BatchEntry batch, long reviewer, CancellationToken cancellationToken) =>
         await TurnedBackAsync(batch, progress => progress.Approve(), cancellationToken).ConfigureAwait(false)
-            ?? (await steps.Approvals.ApproveAsync(new BatchApproval(batch.DomainId, batch.Id, reviewer), cancellationToken).ConfigureAwait(false)).Outcome;
+            ?? await steps.Closing.ApproveAsync(batch, reviewer, cancellationToken).ConfigureAwait(false);
 
     /// <summary>
     /// The sample for the screen: the items with their text, in the order of the draw, and who decided and when once the batch is decided. The outcome says not sampled when no draw was made,

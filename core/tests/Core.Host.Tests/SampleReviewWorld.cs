@@ -12,6 +12,7 @@ using Core.Persistence.People;
 using Core.Platform.Sessions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 
 namespace Core.Host.Tests;
@@ -66,8 +67,9 @@ internal sealed class SampleReviewWorld : IAsyncDisposable
     /// <summary>A world with the batch open and its sample not drawn yet.</summary>
     /// <param name="size">The size of the sample the installation declares; none when it declares none.</param>
     /// <param name="messages">How many messages the conversation of the batch has, which is how many items.</param>
+    /// <param name="log">A provider the host also writes its log to, to judge what the routes write there; none when the test does not look at the log.</param>
     [SuppressMessage("Reliability", "CA2000", Justification = "The world takes the submissions and the host it is given and lets go of them with itself.")]
-    internal static async Task<SampleReviewWorld> StartAsync(int? size = 2, int messages = 4)
+    internal static async Task<SampleReviewWorld> StartAsync(int? size = 2, int messages = 4, ILoggerProvider? log = null)
     {
         var submissions = await SubmissionWorld.CreateAsync();
         await submissions.Database.RunAsOwnerAsync(
@@ -84,10 +86,10 @@ internal sealed class SampleReviewWorld : IAsyncDisposable
             new PersonNotices(source));
         var held = NpgsqlDataSource.Create(submissions.Database.AppConnectionString);
         var desk = new SampleReviewDesk(
-            (new BatchReviews(held, size), new SampleMarks(held), new BatchApprovals(held)),
+            (new BatchReviews(held, size), new SampleMarks(held), new CopyClosing(new BatchApprovals(held), new IngestionBatches(held, OriginConditions.Of(["zqx_media"])))),
             (new PersonRegistry(held), _ => Task.FromResult(new SampleTextAccess(new SampleTextReader(held, submissions.Content), null)), size));
         var host = await SessionedHost.StartAsync(
-            services => services
+            services => (log is null ? services : services.AddSingleton(log))
                 .AddSingleton(staff).AddSingleton(new BatchRegister(held)).AddSingleton(new DomainListing(held)).AddSingleton(desk)
                 .AddSingleton<DomainGrants>(new CuratorGrants(curator, SubmissionWorld.NameOf(SubmissionWorld.Domain))),
             routes =>

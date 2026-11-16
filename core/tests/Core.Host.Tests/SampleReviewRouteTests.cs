@@ -1,4 +1,5 @@
 using System.Net;
+using Core.Host.Tests.Submissions;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Fixtures;
 
@@ -187,7 +188,7 @@ public sealed class SampleReviewRouteTests
     }
 
     [DatabaseFact]
-    public async Task ApprovingACopyOfAnAcceptedFileLeavesTheCopyOpenAndWritesNoAcceptance()
+    public async Task ApprovingACopyOfAnAcceptedFileRejectsItAsAlreadyReceived()
     {
         await using var world = await SampleReviewWorld.StartAsync(size: 2, messages: 4);
         var copy = await world.SubmitCopyAsync();
@@ -195,10 +196,28 @@ public sealed class SampleReviewRouteTests
         await world.DrawAndReviewAsync(copy, reviewed: 2);
 
         var approved = await world.PostAsync(SampleReviewWorld.ApproveRouteOf(copy), world.Curator);
-        var held = (await world.StateAsync(copy))!;
+        var steps = await world.StepsAsync("ingestion_batch");
+        var detail = await world.Submissions.Service.DetailAsync([SubmissionWorld.Domain], copy, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.SeeOther, approved.Status);
-        Assert.Equal(BatchState.Open, held.State);
-        Assert.Equal(1, (await world.StepsAsync("ingestion_batch")).Count(step => step.Contains("batch_accepted", StringComparison.Ordinal)));
+        Assert.Equal((BatchState.Rejected, BatchMotives.AlreadyReceived, world.Batch), (detail!.State, detail.Reason, detail.PreviousBatch));
+        Assert.Equal(1, steps.Count(step => step.Contains("batch_accepted", StringComparison.Ordinal)));
+        Assert.Contains(steps, step => step.StartsWith($"{world.Curator},", StringComparison.Ordinal) && step.Contains("batch_rejected", StringComparison.Ordinal));
+    }
+
+    [DatabaseFact]
+    public async Task ApprovingACopyLeadsToTheFirstBatch()
+    {
+        await using var world = await SampleReviewWorld.StartAsync(size: 2, messages: 4);
+        var copy = await world.SubmitCopyAsync();
+        await world.Submissions.AcceptReviewedAsync(world.Batch);
+        await world.DrawAndReviewAsync(copy, reviewed: 2);
+
+        var approved = await world.PostAsync(SampleReviewWorld.ApproveRouteOf(copy), world.Curator);
+        var first = await world.GetAsync($"/lotes/{world.Batch}", world.Curator);
+
+        Assert.Equal(HttpStatusCode.SeeOther, approved.Status);
+        Assert.EndsWith($"/lotes/{world.Batch}", approved.Location, StringComparison.Ordinal);
+        Assert.Equal(HttpStatusCode.OK, first.Status);
     }
 }

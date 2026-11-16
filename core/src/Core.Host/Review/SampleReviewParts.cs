@@ -1,3 +1,4 @@
+using Core.Host.Submissions;
 using Core.Persistence.Domains;
 using Core.Persistence.Ingestion;
 using Core.Persistence.People;
@@ -13,7 +14,8 @@ internal static class SampleReviewParts
     internal static SampleReviewDesk DeskOf(IServiceProvider provider, IReadOnlyDictionary<string, string> values) =>
         provider.GetRequiredService<ServiceProvider>() is var startup && startup.GetService<NpgsqlDataSource>() is { } source
             ? new SampleReviewDesk(
-                (new BatchReviews(source, AdmissionConfiguration.ReviewSampleSize(values)), new SampleMarks(source), new BatchApprovals(source)),
+                (new BatchReviews(source, AdmissionConfiguration.ReviewSampleSize(values)), new SampleMarks(source),
+                    new CopyClosing(new BatchApprovals(source), SubmissionParts.BatchesOf(source, values))),
                 (new PersonRegistry(source), token => AccessAsync(startup, source, token), AdmissionConfiguration.ReviewSampleSize(values)))
             : null!;
 

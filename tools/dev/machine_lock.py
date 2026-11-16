@@ -1,8 +1,6 @@
 """One build at a time on the machine, by a lock directory (`mkdir` is atomic).
 
 The holder touches it every ``BEAT_SECONDS``; one untouched for ``STALE_SECONDS`` is a dead one's.
-The holder's mark lives beside the directory (never inside it, so a script that only knows
-`mkdir`/`rmdir` keeps working), and a holder releases only the lock that still carries its mark.
 `CDG_MACHINE_LOCK` points the lock elsewhere, to share it with another tool."""
 
 from __future__ import annotations
@@ -11,7 +9,6 @@ import os
 import tempfile
 import threading
 import time
-import uuid
 from collections.abc import Callable, Generator
 from contextlib import contextmanager, suppress
 from pathlib import Path
@@ -27,44 +24,31 @@ def lock_path() -> Path:
     return Path(os.environ.get(OVERRIDE) or Path(tempfile.gettempdir()) / "maquina.lock")
 
 
-def try_take(path: Path, now: float) -> bool:
-    """Creates the lock after taking a stale one by rename, which only one contender wins."""
+def clear_stale(path: Path, now: float) -> None:
+    """Takes a stale lock away by rename, which only one contender wins; a renewed one goes back."""
     grave = path.with_name(f"{path.name}.{os.getpid()}")
     with suppress(OSError):
-        if now - path.stat().st_mtime > STALE_SECONDS:
-            path.rename(grave)
-            if now - grave.stat().st_mtime > STALE_SECONDS:
-                grave.rmdir()
-            else:  # renewed in between: it was alive, give it back
-                grave.rename(path)
-    try:
+        if now - path.stat().st_mtime <= STALE_SECONDS:
+            return
+        path.rename(grave)
+        if now - grave.stat().st_mtime > STALE_SECONDS:
+            grave.rmdir()
+        else:  # renewed in between: it was alive, give it back
+            grave.rename(path)
+
+
+def try_take(path: Path, now: float) -> bool:
+    clear_stale(path, now)
+    with suppress(FileExistsError):
         path.mkdir()
         return True
-    except FileExistsError:
-        return False
+    return False
 
 
-def mark_file(path: Path) -> Path:
-    return path.with_name(f"{path.name}.dono")
-
-
-def claim(path: Path) -> str:
-    """Writes the holder's mark: a token of this run and the identity of the lock directory."""
-    mark = f"{uuid.uuid4().hex} {path.stat().st_ino}"
-    mark_file(path).write_text(mark, encoding="utf-8")
-    return mark
-
-
-def release(path: Path, mark: str) -> None:
-    """Removes the lock only if it is still the one ``mark`` was written for."""
+def release(path: Path, identity: int) -> None:
     with suppress(OSError):
-        _, identity = mark.split()
-        if (
-            mark_file(path).read_text(encoding="utf-8") == mark
-            and str(path.stat().st_ino) == identity
-        ):
+        if path.stat().st_ino == identity:
             path.rmdir()
-            mark_file(path).unlink()
 
 
 def beat(path: Path, stop: threading.Event) -> None:
@@ -90,10 +74,10 @@ def machine_lock(
         sleep(POLL_SECONDS)
         waited += POLL_SECONDS
     stop = threading.Event()
-    mark = claim(path)
+    identity = path.stat().st_ino
     threading.Thread(target=beat, args=(path, stop), daemon=True).start()
     try:
         yield
     finally:
         stop.set()
-        release(path, mark)
+        release(path, identity)

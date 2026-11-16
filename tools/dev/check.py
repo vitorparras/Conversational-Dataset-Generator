@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
-"""The check of a branch before the push: `python tools/dev/check.py [--base origin/main]`.
+"""The check before the push: `python tools/dev/check.py [--base origin/main]`, over base..HEAD.
 
-Over the diff of the base to HEAD: commit titles, PR size, docs, build of the reached .NET projects
-(analyzers as errors), format and tests without a database, one build at a time on the machine.
-The report fits 40 lines, the rest goes to `.verify-code/check.log`; exit 0 only if all pass.
-"""
+Titles, PR size, docs, build, format and tests without a database, one build at a time on the
+machine. The report fits 40 lines (the rest in `.verify-code/check.log`); exit 0 if all pass."""
 
 from __future__ import annotations
 
@@ -41,7 +39,6 @@ def timed(step: Callable[..., StepResult], ctx: Context, *args: object) -> StepR
 
 
 def dotnet_run(ctx: Context) -> list[StepResult]:
-    """Build, format and tests; both of the last need the build, so a broken one stops them."""
     reach = scope.compute(ctx)
     built = timed(dotnet_steps.build, ctx, reach)
     after = {dotnet_steps.FORMAT: dotnet_steps.format_check, dotnet_steps.TESTS: dotnet_steps.tests}
@@ -52,18 +49,13 @@ def dotnet_run(ctx: Context) -> list[StepResult]:
     return [built, *rest]
 
 
-def say(waited: list[str], line: str) -> None:
-    """Shows the wait as it starts and keeps it for the report, which must not lose it."""
-    print(line, flush=True)
-    waited.append(line)
-
-
 def render(results: Sequence[StepResult], seconds: float) -> list[str]:
     lines: list[str] = []
     for result in results:
         first, *rest = result.details or ("",)
-        mark = "ok   " if result.ok else "FALHA"
-        lines.append(f"{mark} {result.name:<8} {result.elapsed:5.1f}s  {first}")
+        lines.append(
+            f"{'ok   ' if result.ok else 'FALHA'} {result.name:<8} {result.elapsed:5.1f}s  {first}"
+        )
         lines += [f"        {line}" for line in rest]
     bad = [r.name for r in results if not r.ok]
     verdict = "reprovado em " + ", ".join(bad) if bad else "tudo certo para o push"
@@ -82,14 +74,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
     start = time.monotonic()
     results = [timed(step, ctx) for step in (commit_titles.run, pr_size.run, docs)]
-    waited: list[str] = []
     try:
-        with machine_lock.machine_lock(machine_lock.lock_path(), partial(say, waited)):
+        with machine_lock.machine_lock(machine_lock.lock_path(), partial(print, flush=True)):
             results += dotnet_run(ctx)
     except TimeoutError as busy:
         results.append(failed("trava", str(busy)))
-    if waited:
-        results.append(passed("trava", *waited))
     lines = render(results, time.monotonic() - start)
     (ROOT / LOG).write_text("\n".join(lines) + "\n", encoding="utf-8")
     if len(lines) > REPORT_LINES:

@@ -34,18 +34,14 @@ Graph = Mapping[str, Iterable[str]]
 Touched = defaultdict[str, set[str]]
 
 
-def project_files(root: Path) -> dict[str, Path]:
-    """The project file of each project of core/src and core/tests, by name."""
-    trees = (mutation_core.SOURCES, mutation_core.TESTS)
-    return {c.stem: c for tree in trees for c in sorted((root / tree).glob("*/*.csproj"))}
-
-
 def projects(root: Path) -> dict[str, set[str]]:
     """Each project of core/src and core/tests with the names of the projects it references."""
-    return {
-        name: {PureWindowsPath(p).stem for p in REFERENCE.findall(c.read_text(encoding="utf-8"))}
-        for name, c in project_files(root).items()
-    }
+    found: dict[str, set[str]] = {}
+    for tree in (mutation_core.SOURCES, mutation_core.TESTS):
+        for csproj in sorted((root / tree).glob("*/*.csproj")):
+            text = csproj.read_text(encoding="utf-8")
+            found[csproj.stem] = {PureWindowsPath(p).stem for p in REFERENCE.findall(text)}
+    return found
 
 
 def units(root: Path) -> dict[str, Path]:
@@ -139,9 +135,8 @@ def in_service(root: Path, path: str, known: Mapping[str, Path]) -> tuple[str, s
 
 def project_of(path: str, graph: Graph) -> str | None:
     parts = PurePosixPath(path).parts
-    if parts[:2] in CORE_TREES and len(parts) > PROJECT_FILE and parts[2] in graph:
-        return parts[2]
-    return None
+    inside = parts[:2] in CORE_TREES and len(parts) > PROJECT_FILE
+    return parts[2] if inside and parts[2] in graph else None
 
 
 def classify(

@@ -1,5 +1,4 @@
-"""Puts tools/dev and tools/verify-code on the import path, so `check.py` reuses the verifier.
-They go at the end, so that they never shadow the `tests` package of tools/."""
+"""Puts tools/dev and tools/verify-code at the end of the import path (never shadowing `tests`)."""
 
 from __future__ import annotations
 
@@ -8,6 +7,4 @@ from pathlib import Path
 
 DEV = Path(__file__).resolve().parent
 ROOT = DEV.parents[1]
-for folder in (DEV, ROOT / "tools" / "verify-code"):
-    if str(folder) not in sys.path:
-        sys.path.append(str(folder))
+sys.path += [p for p in (str(DEV), str(ROOT / "tools" / "verify-code")) if p not in sys.path]

@@ -1,8 +1,5 @@
-"""The .NET projects a diff reaches: the touched ones and every project that depends on them.
-
-A path under no project (`Directory.Build.props`, `global.json`, the solution) reaches every
-project, as does a diff that cannot be read: on doubt, the whole core.
-"""
+"""The .NET projects a diff reaches: the touched ones and those that depend on them.
+A path under no project (props, `global.json`, the solution) or an unreadable diff reaches all."""
 
 from __future__ import annotations
 
@@ -16,7 +13,6 @@ CORE = PurePosixPath(mutation_core.SOURCES).parts[0]
 DATABASE = "Core.Tests.Database"
 NOT_RUN = {"Core.Tests.Architecture": "roda o msbuild várias vezes: fica no job da CI"}
 WHOLE = (*reach.WHOLE_NAMES, ".editorconfig")
-WITH_DATABASE = "precisa do banco: fica no job rápido da CI"
 
 
 @dataclass(frozen=True)
@@ -36,11 +32,8 @@ def reaches_all(path: str, graph: reach.Graph) -> bool:
 
 
 def csharp_files(root: Path, paths: list[str], graph: reach.Graph) -> tuple[str, ...]:
-    return tuple(
-        path
-        for path in paths
-        if path.endswith(".cs") and reach.project_of(path, graph) and (root / path).is_file()
-    )
+    placed = (p for p in paths if p.endswith(".cs") and reach.project_of(p, graph))
+    return tuple(p for p in placed if (root / p).is_file())
 
 
 def depending_on(graph: reach.Graph, touched: set[str]) -> set[str]:
@@ -60,7 +53,9 @@ def split_tests(root: Path, graph: reach.Graph, reached: set[str]) -> tuple[list
         if not project.is_file() or not test_core.is_test_project(project):
             continue
         why = NOT_RUN.get(name) or (
-            WITH_DATABASE if DATABASE in reach.closure(graph, [name]) else ""
+            "precisa do banco: fica no job rápido da CI"
+            if DATABASE in reach.closure(graph, [name])
+            else ""
         )
         if why:
             left.append(f"{name}: {why}")
@@ -77,6 +72,5 @@ def compute(ctx: Context) -> Scope:
     touched = {name for path in paths if (name := reach.project_of(path, graph))}
     reached = set(graph) if everything else depending_on(graph, touched)
     run, left = split_tests(ctx.root, graph, reached)
-    files = csharp_files(ctx.root, paths, graph)
-    leaves = leaves_of(graph, reached)
+    leaves, files = leaves_of(graph, reached), csharp_files(ctx.root, paths, graph)
     return Scope(everything, tuple(sorted(reached)), leaves, tuple(run), tuple(left), files)

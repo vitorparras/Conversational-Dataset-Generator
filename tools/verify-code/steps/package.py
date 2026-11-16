@@ -31,13 +31,13 @@ REFUSAL = "publicado para o alvo {target}, mas o destino em que roda é"
 UNKNOWN_KEY = "--ZQX:Unknown=1"
 NOT_CLEAN = "a cópia não está limpa: o artefato não sairia só do commit"
 LOCK_FAILED = "restauração travada falhou: lock divergente ou pacote ausente do cache e da fonte"
-NO_SERVER = ("-nodeReuse:false", "-p:UseSharedCompilation=false")
 PUBLISH = (
     "--no-restore",
     "--configuration",
     "Release",
     "-p:ContinuousIntegrationBuild=true",
-    *NO_SERVER,
+    "-nodeReuse:false",
+    "-p:UseSharedCompilation=false",
 )
 
 

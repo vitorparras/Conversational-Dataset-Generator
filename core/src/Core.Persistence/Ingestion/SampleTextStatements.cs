@@ -27,7 +27,7 @@ internal static class SampleTextStatements
 
     internal static async Task<string?> StepAsync(CustodyScope scope, SampleReading request, CancellationToken cancellationToken)
     {
-        var command = Command(scope, ContentQueries.SampleStep, request);
+        var command = Command(scope, ContentQueries.ReadSampleStep, request);
         await using (command.ConfigureAwait(false))
         {
             return await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) as string;
@@ -36,7 +36,7 @@ internal static class SampleTextStatements
 
     internal static async Task<(string Step, byte[] Sealed, ContentKey Key)?> SealedAsync(CustodyScope scope, SampleReading request, CancellationToken cancellationToken)
     {
-        var command = Command(scope, ContentQueries.SampleText, request);
+        var command = Command(scope, ContentQueries.ReadSampleText, request);
         await using (command.ConfigureAwait(false))
         {
             var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);

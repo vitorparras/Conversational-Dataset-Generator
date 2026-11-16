@@ -1,4 +1,3 @@
-using Core.Persistence.Content.Sealing;
 using Core.Persistence.Domains;
 using Core.Persistence.Ingestion;
 using Core.Persistence.People;
@@ -30,8 +29,7 @@ internal static class SampleReviewParts
             }
 
             var registered = await RegisteredLabels.ReadAsync(source, cancellationToken).ConfigureAwait(false);
-            var content = new ProtectedContent(reading.Labels, CompositionRoot.KeysOf(reading), registered);
-            return new SampleTextAccess(new SampleTextReader(source, content), reading);
+            return new SampleTextAccess(CompositionRoot.SampleTextOf(source, reading, registered), reading);
         }
         catch
         {

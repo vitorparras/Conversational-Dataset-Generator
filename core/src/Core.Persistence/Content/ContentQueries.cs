@@ -208,15 +208,15 @@ public static class ContentQueries
         + "AND reviewed_position < cardinality(string_to_array(review_sample, ','))";
 
     /// <summary>Marks the next place of the sample as reviewed, only if the place before it is the last one marked, so that the second of two who mark the same place writes nothing.</summary>
-    internal const string MarkBatchPlace =
+    internal const string CloseBatchPlace =
         "UPDATE content.ingestion_batch SET reviewed_position = @position WHERE id = @id AND state = 'open' AND review_sample IS NOT NULL AND reviewed_by IS NULL "
         + "AND reviewed_position = @position - 1 AND @position <= cardinality(string_to_array(review_sample, ','))";
 
     /// <summary>Which reading the item of the sample takes, the sanitized text or the raw one; null when the item is not one the review may read.</summary>
-    internal const string SampleStep = "SELECT public.batch_sample_step(@batch, @domain, @item)";
+    internal const string ReadSampleStep = "SELECT step FROM public.batch_sample_step(@batch, @domain, @item) AS step WHERE step IS NOT NULL";
 
     /// <summary>The sealed text of the item of the sample and the key that opens it, only after the event of its reading was written by the same transaction.</summary>
-    internal const string SampleText = "SELECT read_step, sealed_text, key_epoch, key_wrapped FROM public.batch_sample_text(@batch, @domain, @item)";
+    internal const string ReadSampleText = "SELECT read_step, sealed_text, key_epoch, key_wrapped FROM public.batch_sample_text(@batch, @domain, @item)";
 
     /// <summary>The queries over content, as the statement each one runs, by the name of its constant.</summary>
     public static IReadOnlyDictionary<string, string> All { get; } = Declared(typeof(ContentQueries));

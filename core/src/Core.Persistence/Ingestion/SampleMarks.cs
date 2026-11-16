@@ -50,7 +50,7 @@ public sealed class SampleMarks
             }
 
             var rows = await ReviewStatements.ChangeAsync(
-                scope, ContentQueries.MarkBatchPlace, cancellationToken, ReviewStatements.Id("id", request.BatchId), new NpgsqlParameter("position", request.Place)).ConfigureAwait(false);
+                scope, ContentQueries.CloseBatchPlace, cancellationToken, ReviewStatements.Id("id", request.BatchId), new NpgsqlParameter("position", request.Place)).ConfigureAwait(false);
             if (rows != 1)
             {
                 return new BatchReviewResult { Outcome = BatchReviewOutcome.AlreadyMarked };

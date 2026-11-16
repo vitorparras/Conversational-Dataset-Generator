@@ -118,9 +118,11 @@ internal static class CompositionRoot
         return services.BuildServiceProvider();
     }
 
-    /// <summary>The keys of the epochs file over a source that was read, and the rotation of the rows over them: the mode that rotates is not a root, and the services come from here.</summary>
+    /// <summary>The keys of the epochs file over a source that was read and what is built over them: the rotation, the protected content and the sample reader; services come from here.</summary>
     internal static ItemKeys KeysOf(MasterKeyReading reading) => new(new KeyDerivation(reading.Key!, reading.Labels), reading.Epochs);
     internal static EpochRotation RotationOf(NpgsqlDataSource dataSource, ItemKeys keys) => new(dataSource, keys);
+    internal static ProtectedContent ContentOf(MasterKeyReading reading, IReadOnlySet<string> known) => new(reading.Labels, KeysOf(reading), known);
+    internal static Core.Persistence.Ingestion.SampleTextReader SampleTextOf(NpgsqlDataSource source, MasterKeyReading reading, IReadOnlySet<string> known) => new(source, ContentOf(reading, known));
 
     /// <summary>What takes a file in over the key a reading holds: the gate, the conference, the sealing and the writer are services, built here; the last three are none without the key.</summary>
     internal static SubmissionIntake IntakeOf(NpgsqlDataSource source, MasterKeyReading reading, SubmissionSettings settings)
@@ -134,8 +136,7 @@ internal static class CompositionRoot
     }
 
     /// <summary>The rehearsal of the recovery over a source that was read, opening content with the labels the database registers.</summary>
-    internal static RecoveryRehearsal RehearsalOf(NpgsqlDataSource dataSource, MasterKeyReading reading, IReadOnlySet<string> registered) =>
-        new(dataSource, new ProtectedContent(reading.Labels, KeysOf(reading), registered), TimeProvider.System);
+    internal static RecoveryRehearsal RehearsalOf(NpgsqlDataSource source, MasterKeyReading reading, IReadOnlySet<string> known) => new(source, ContentOf(reading, known), TimeProvider.System);
 
     /// <summary>The record of the rehearsal in the chain of the production, and the load of a restored copy.</summary>
     internal static RecoveryRecording RecordingOf(NpgsqlDataSource dataSource) => new(dataSource);
@@ -148,7 +149,9 @@ internal static class CompositionRoot
         _ = services.AddSingleton<IStartupCheck>(provider => new PrivilegeCheck(provider.GetRequiredService<NpgsqlDataSource>()));
         _ = services.AddSingleton(provider => new GuaranteeVerifier(
             provider.GetRequiredService<NpgsqlDataSource>(), provider.GetRequiredService<IMasterKeySource>().ReadAsync,
-            reading => ContentReader(provider.GetRequiredService<NpgsqlDataSource>(), reading))).AddSingleton<IStartupCheck, OwnerWindowCheck>();
+            reading => new ProtectedContentReader(
+                provider.GetRequiredService<NpgsqlDataSource>(), ContentOf(reading, new HashSet<string>()), new CustodyChain(provider.GetRequiredService<NpgsqlDataSource>()))))
+            .AddSingleton<IStartupCheck, OwnerWindowCheck>();
         _ = services.AddSingleton<IStartupCheck>(provider => new RlsForceCheck(provider.GetRequiredService<NpgsqlDataSource>())).AddSingleton<IStartupCheck, RestoreWindowCheck>();
         _ = services.AddSingleton<IStartupCheck>(provider => new SerializableCheck(provider.GetRequiredService<NpgsqlDataSource>()));
         _ = services.AddSingleton<IStartupCheck>(provider => new PgAuditCheck(provider.GetRequiredService<NpgsqlDataSource>()));
@@ -168,9 +171,8 @@ internal static class CompositionRoot
         Compose(builder, loaded.View, fileLog);
         AddAnalysis(builder.Services, loaded.Values, analyzeTimeout);
         _ = builder.Services.AddSingleton(PasswordConfiguration.Derivation(loaded.Values)).AddSingleton(VerificationConfiguration.Schedule(loaded.Values))
-            .AddSingleton(SealConfiguration.Declaration(loaded.Values))
-            .AddSingleton(provider => SubmissionParts.BatchesOf(provider, loaded.Values)).AddSingleton(SubmissionParts.RegisterOf).AddSingleton(SubmissionParts.DoorOf)
-            .AddSingleton(SubmissionParts.CountsOf).AddSingleton(provider => SubmissionParts.ServicesOf(provider, loaded.Values))
+            .AddSingleton(SealConfiguration.Declaration(loaded.Values)).AddSingleton(SubmissionParts.RegisterOf).AddSingleton(SubmissionParts.DoorOf).AddSingleton(SubmissionParts.CountsOf)
+            .AddSingleton(provider => SubmissionParts.BatchesOf(provider, loaded.Values)).AddSingleton(provider => SubmissionParts.ServicesOf(provider, loaded.Values))
             .AddSingleton(provider => SampleReviewParts.DeskOf(provider, loaded.Values));
         _ = builder.Services.AddSingleton(_ => new ServerAuditLog(AuditConfiguration.ServerLogDirectory(loaded.Values))).AddSingleton<AuditComparisonState>();
         _ = builder.Services.AddHostedService(provider => new AuditComparisonService(
@@ -216,10 +218,6 @@ internal static class CompositionRoot
     }
     /// <summary>The store of passwords, built here because it is a service and only the root builds services.</summary>
     internal static PersonCredentials CredentialsOf(NpgsqlDataSource source, PasswordDerivation derivation) => new(source, derivation);
-
-    /// <summary>The path that reads protected content over the key a reading holds, which the conference of the guarantees opens its sample with and lets go of.</summary>
-    private static ProtectedContentReader ContentReader(NpgsqlDataSource source, MasterKeyReading reading) =>
-        new(source, new ProtectedContent(reading.Labels, KeysOf(reading), new HashSet<string>()), new CustodyChain(source));
 
     /// <summary>The recognizer of the live service, with its secret and a client that skips proxies; with no service, one that refuses without connecting.</summary>
     private static IRecognizer Recognizer(IServiceProvider host, TimeSpan analyzeTimeout)

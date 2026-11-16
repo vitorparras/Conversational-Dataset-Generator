@@ -119,3 +119,14 @@ class OutputTests(unittest.TestCase):
 
         self.assertFalse(result.ok)
         self.assertIn("failed Foo.Bar", result.details)
+
+    def test_projects_that_pass_are_counted_and_the_ones_left_out_are_said(self) -> None:
+        reach = scope.Scope(False, ("A.Tests",), (), ("A.Tests",), ("B.Tests: banco",), ())
+
+        def run(command: Sequence[str], cwd: Path) -> CommandOutcome:
+            return CommandOutcome(True, "")
+
+        result = dotnet_steps.tests(Context(Path("."), Path("."), run), reach)
+
+        self.assertTrue(result.ok)
+        self.assertIn("fora: B.Tests: banco", result.details)

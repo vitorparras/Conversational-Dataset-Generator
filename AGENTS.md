@@ -45,7 +45,7 @@ possa consultar. Argumento que precisa de referência externa não se sustenta.
 
 Texto: `docs/regras-de-escrita.md`. Código: `docs/regras-de-codigo.md` (teto de PR na §9).
 Árvore, comandos e fronteiras: `docs/operacao/020-codigo-no-repositorio.md`.
-**Antes de todo push, rode `python tools/dev/check.py`** (build, formato, testes sem banco do diff).
+**Antes do push: `python tools/dev/check.py`.** Antes da revisão: `tools/verify-code/verify.py`.
 
 - Analisadores são erro: `switch` de enum sem todo caso (IDE0072), API obsoleta (CS0619).
 - Nome em `ContentQueries` começa por `Read`, `Insert`, `Empty`, `Rewrap`, `Close` ou `Remove`.

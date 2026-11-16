@@ -1,7 +1,6 @@
 using Core.Host.Screens;
 using Core.Host.Submissions;
 using Core.Persistence.Domains;
-using Core.Platform.Sessions;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 
@@ -45,7 +44,7 @@ internal static class BatchSubmissionPage
             return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
 
-        if (context.RequestServices.GetRequiredService<SessionStore>().Resolve(SessionCookie.Read(context.Request)) is not { } author)
+        if (RequestReader.SessionOf(context) is not { } author)
         {
             return Results.Unauthorized();
         }

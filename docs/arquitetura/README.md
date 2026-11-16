@@ -44,4 +44,7 @@ Comece pela visão geral; os três seguintes dão o desenho inteiro, e os módul
 | [021](021-telas-auditoria.md) | Telas de auditoria |
 | [022](022-revisao-manual-de-acessibilidade.md) | Revisão manual de acessibilidade |
 
+Como se escreve cada tipo de peça, com exemplar real e o que é proibido, está em
+[padrões de peça](padroes/README.md), que vincula ao contrário do resto da pasta.
+
 Ver [regras de escrita](../regras-de-escrita.md).

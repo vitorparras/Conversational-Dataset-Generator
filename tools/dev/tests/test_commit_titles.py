@@ -23,6 +23,12 @@ class ProblemsTests(unittest.TestCase):
         self.assertEqual(1, len(found))
         self.assertIn("100 caracteres", found[0])
 
+    def test_a_title_of_seventy_two_characters_passes_and_seventy_three_does_not(self) -> None:
+        at_the_ceiling = "feat: " + "x" * (commit_titles.CEILING - 6)
+
+        self.assertEqual([], commit_titles.problems([at_the_ceiling]))
+        self.assertEqual(1, len(commit_titles.problems([at_the_ceiling + "x"])))
+
     def test_a_title_without_type_is_outside_the_format(self) -> None:
         found = commit_titles.problems(["ajusta uma coisa"])
 
@@ -48,6 +54,32 @@ class RunTests(unittest.TestCase):
         support.commit(self.repo, {"a.txt": "a"}, "fix(dev): corrige o escopo")
 
         self.assertTrue(commit_titles.run(support.context(self.repo)).ok)
+
+    def test_a_branch_without_commits_has_nothing_to_judge(self) -> None:
+        result = commit_titles.run(support.context(self.repo))
+
+        self.assertTrue(result.ok)
+        self.assertIn("nenhum commit novo", result.details[0])
+
+    def test_a_commit_already_pushed_is_not_judged_but_a_new_one_is(self) -> None:
+        support.commit(self.repo, {"a.txt": "a"}, "wip(dev): " + "z" * 90)
+        support.git(self.repo, "branch", "published")
+        support.git(self.repo, "branch", "--set-upstream-to=published")
+
+        self.assertTrue(commit_titles.run(support.context(self.repo)).ok)
+
+        support.commit(self.repo, {"b.txt": "b"}, "ajusta sem tipo")
+
+        result = commit_titles.run(support.context(self.repo))
+
+        self.assertFalse(result.ok)
+        self.assertEqual(1, len(result.details))
+
+    def test_a_missing_base_fails_naming_the_command(self) -> None:
+        result = commit_titles.run(support.context(self.repo, "nao-existe"))
+
+        self.assertFalse(result.ok)
+        self.assertIn("git log", result.details[0])
 
     def test_a_merge_commit_is_not_judged(self) -> None:
         support.commit(self.repo, {"a.txt": "a"}, "fix: um")

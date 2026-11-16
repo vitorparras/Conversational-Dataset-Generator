@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """The check of a branch before the push: `python tools/dev/check.py [--base origin/main]`.
 
-Over the diff of the base to HEAD: commit titles, size of the PR, docs, build of the reached .NET
-projects (analyzers as errors), format of the changed C# files and tests without a database, one
-build at a time on the machine. The report fits 40 lines; the rest goes to `.verify-code/check.log`.
-Exit 0 only when every step passes. Tests with a database and the browser stay with the CI.
+Over the diff of the base to HEAD: commit titles, PR size, docs, build of the reached .NET projects
+(analyzers as errors), format and tests without a database, one build at a time on the machine.
+The report fits 40 lines, the rest goes to `.verify-code/check.log`; exit 0 only if all pass.
 """
 
 from __future__ import annotations
@@ -13,6 +12,7 @@ import argparse
 import sys
 import time
 from collections.abc import Callable, Sequence
+from functools import partial
 
 import bootstrap
 import commit_titles
@@ -41,21 +41,18 @@ def timed(step: Callable[..., StepResult], ctx: Context, *args: object) -> StepR
 
 
 def dotnet_run(ctx: Context) -> list[StepResult]:
-    """Build, format and tests; tests need the build, so a broken build stops them."""
+    """Build, format and tests; both of the last need the build, so a broken one stops them."""
     reach = scope.compute(ctx)
-    header = f"{len(reach.reached)} projetos alcançados" + (" (tudo)" if reach.everything else "")
     built = timed(dotnet_steps.build, ctx, reach)
-    formatted = timed(dotnet_steps.format_check, ctx, reach)
-    tested = (
-        timed(dotnet_steps.tests, ctx, reach)
-        if built.ok
-        else failed(dotnet_steps.TESTS, "não rodaram: o build falhou")
-    )
-    return [StepResult("escopo", True, (header,)), built, formatted, tested]
+    after = {dotnet_steps.FORMAT: dotnet_steps.format_check, dotnet_steps.TESTS: dotnet_steps.tests}
+    rest = [
+        timed(step, ctx, reach) if built.ok else failed(name, "não rodou: o build falhou")
+        for name, step in after.items()
+    ]
+    return [built, *rest]
 
 
 def render(results: Sequence[StepResult], seconds: float) -> list[str]:
-    """One line per step, the lines that say what to fix under a failed one, and the verdict."""
     lines: list[str] = []
     for result in results:
         first, *rest = result.details or ("",)
@@ -70,13 +67,20 @@ def render(results: Sequence[StepResult], seconds: float) -> list[str]:
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Verificação local antes do push")
     parser.add_argument("--base", default="origin/main", help="ref de comparação (origin/main)")
+    base = parser.parse_args(argv).base
     out_dir = ROOT / OUTPUT_DIRECTORY
     out_dir.mkdir(exist_ok=True)
-    ctx = Context(ROOT, out_dir, run_process, parser.parse_args(argv).base)
+    ctx = Context(ROOT, out_dir, run_process, base)
+    if not ctx.run(["git", "rev-parse", "--verify", "--quiet", f"{base}^{{commit}}"], ROOT).ok:
+        print(f"a base {base} não existe: rode `git fetch origin main` ou passe --base <ref>")
+        return 1
     start = time.monotonic()
     results = [timed(step, ctx) for step in (commit_titles.run, pr_size.run, docs)]
-    with machine_lock.machine_lock(machine_lock.lock_path(), lambda text: print(text, flush=True)):
-        results += dotnet_run(ctx)
+    try:
+        with machine_lock.machine_lock(machine_lock.lock_path(), partial(print, flush=True)):
+            results += dotnet_run(ctx)
+    except TimeoutError as busy:
+        results.append(failed("trava", str(busy)))
     lines = render(results, time.monotonic() - start)
     (ROOT / LOG).write_text("\n".join(lines) + "\n", encoding="utf-8")
     if len(lines) > REPORT_LINES:

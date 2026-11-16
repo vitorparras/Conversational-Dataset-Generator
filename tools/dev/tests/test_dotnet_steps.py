@@ -6,11 +6,12 @@ from __future__ import annotations
 import shutil
 import tempfile
 import unittest
+from collections.abc import Sequence
 from pathlib import Path
 
 import dotnet_steps
 import scope
-from steps.common import Context
+from steps.common import CommandOutcome, Context
 
 from . import support
 
@@ -39,6 +40,7 @@ ENUM_SWITCH = (
     "    internal static int Code(Color color) => color switch { Color.Red => 1, _ => 2 };\n}\n"
 )
 BADLY_FORMATTED = "namespace Planted;\n\ninternal enum Color{Red,Green}\n"
+SOLUTION = '<Solution><Project Path="src/Planted/Planted.csproj" /></Solution>\n'
 SOURCE = "core/src/Planted/Planted.cs"
 
 
@@ -51,6 +53,7 @@ class DotnetStepsTests(unittest.TestCase):
         base = {
             "core/Directory.Build.props": PROPS,
             ".editorconfig": EDITORCONFIG,
+            "core/Core.slnx": SOLUTION,
             "core/src/Planted/Planted.csproj": PROJECT,
             SOURCE: CLEAN,
         }
@@ -79,9 +82,40 @@ class DotnetStepsTests(unittest.TestCase):
 
     def test_a_file_out_of_format_fails_the_format_step(self) -> None:
         ctx, reach = self.reached(BADLY_FORMATTED)
-        restore = ctx.run(["dotnet", "restore", "core/src/Planted/Planted.csproj"], self.repo)
+        restore = ctx.run(["dotnet", "restore", "core/Core.slnx"], self.repo)
         self.assertTrue(restore.ok, restore.text)
 
         result = dotnet_steps.format_check(ctx, reach)
 
         self.assertFalse(result.ok)
+        self.assertTrue(any("Planted.cs" in line for line in result.details), result.details)
+
+
+class OutputTests(unittest.TestCase):
+    def test_colors_are_stripped_from_the_findings(self) -> None:
+        text = "\x1b[31mA.cs(1,1): error IDE0072: falta caso\x1b[0m\nruído\n"
+
+        self.assertEqual(
+            ["A.cs(1,1): error IDE0072: falta caso"],
+            dotnet_steps.findings(text, dotnet_steps.DIAGNOSTIC),
+        )
+
+    def test_without_a_match_the_first_lines_show_instead_of_silence(self) -> None:
+        self.assertEqual(["boom"], dotnet_steps.findings("boom\n", dotnet_steps.DIAGNOSTIC))
+
+    def test_the_project_file_follows_the_folder_of_its_kind(self) -> None:
+        self.assertEqual("core/src/A/A.csproj", dotnet_steps.project_file("A"))
+        self.assertEqual("core/tests/A.Tests/A.Tests.csproj", dotnet_steps.project_file("A.Tests"))
+
+    def test_the_failed_test_is_named(self) -> None:
+        reach = scope.Scope(False, ("A.Tests",), (), ("A.Tests",), (), ())
+
+        def run(command: Sequence[str], cwd: Path) -> CommandOutcome:
+            return CommandOutcome(False, "  failed Foo.Bar\n")
+
+        ctx = Context(Path("."), Path("."), run)
+
+        result = dotnet_steps.tests(ctx, reach)
+
+        self.assertFalse(result.ok)
+        self.assertIn("failed Foo.Bar", result.details)

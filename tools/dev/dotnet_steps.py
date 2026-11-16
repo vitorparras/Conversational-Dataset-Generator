@@ -15,18 +15,20 @@ TESTS = "testes"
 NO_SERVER = ("-nodeReuse:false", "-p:UseSharedCompilation=false", "-p:UseRazorBuildServer=false")
 DIAGNOSTIC = re.compile(r": (error|warning) ")
 FAILED_TEST = re.compile(r"^\s*failed\s+(.+)$", re.MULTILINE)
+ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
+SOLUTION = "core/Core.slnx"
+MAX_INCLUDED = 150  # more paths than this would not fit the command line of Windows
 SHOWN = 8
 LINE_WIDTH = 170
 
 
 def project_file(name: str) -> str:
-    folder = "tests" if ".Tests" in name else "src"
-    return f"core/{folder}/{name}/{name}.csproj"
+    return f"core/{'tests' if '.Tests' in name else 'src'}/{name}/{name}.csproj"
 
 
 def findings(text: str, pattern: re.Pattern[str]) -> list[str]:
     """The first distinct lines ``pattern`` finds or, when none, the first lines: never silent."""
-    lines = [line.strip()[:LINE_WIDTH] for line in text.splitlines() if line.strip()]
+    lines = [line.strip()[:LINE_WIDTH] for line in ANSI.sub("", text).splitlines() if line.strip()]
     hits = [line for line in lines if pattern.search(line)] or lines
     return list(dict.fromkeys(hits))[:SHOWN]
 
@@ -39,28 +41,23 @@ def build(ctx: Context, scope: Scope) -> StepResult:
         outcome = ctx.run([*command, "-nologo", "-clp:ErrorsOnly"], ctx.root)
         if not outcome.ok:
             return failed(BUILD, f"{name} não compila:", *findings(outcome.text, DIAGNOSTIC))
-    return passed(
-        BUILD, f"{len(scope.leaves)} projetos construídos ({len(scope.reached)} alcançados)"
-    )
+    return passed(BUILD, f"{len(scope.leaves)} construídos ({len(scope.reached)} alcançados)")
 
 
 def format_check(ctx: Context, scope: Scope) -> StepResult:
     if not scope.files:
         return passed(FORMAT, "nenhum arquivo C# no diff")
-    for name, files in scope.files.items():
-        command = ["dotnet", "format", project_file(name), "--verify-no-changes", "--no-restore"]
-        outcome = ctx.run([*command, "--include", *files], ctx.root)
-        if not outcome.ok:
-            wrong = findings(outcome.text, DIAGNOSTIC)
-            return failed(
-                FORMAT, f"{name} fora do formato (`dotnet format core/Core.slnx`):", *wrong
-            )
-    count = sum(len(files) for files in scope.files.values())
-    return passed(FORMAT, f"{count} arquivos C# conformes")
+    command = ["dotnet", "format", SOLUTION, "--verify-no-changes", "--no-restore"]
+    only = ["--include", *scope.files] if len(scope.files) <= MAX_INCLUDED else []
+    outcome = ctx.run([*command, *only], ctx.root)
+    if not outcome.ok:
+        return failed(
+            FORMAT, f"rode `dotnet format {SOLUTION}`:", *findings(outcome.text, DIAGNOSTIC)
+        )
+    return passed(FORMAT, f"{len(scope.files)} arquivos C# conformes")
 
 
 def tests(ctx: Context, scope: Scope) -> StepResult:
-    """Runs, project by project and without rebuilding, the reached tests that need no database."""
     left = [f"fora: {line}" for line in scope.not_run]
     for name in scope.tests:
         command = ["dotnet", "test", "--project", project_file(name), "-c", "Release", "--no-build"]

@@ -8,6 +8,7 @@ de ferramenta apenas redirecionam para cá e não contêm instruções próprias
 Uma ferramenta para construir bases conversacionais anotadas em português brasileiro: ingestão,
 sanitização, pseudonimização que preserva contexto, anotação humana assistida, validação por
 métricas de concordância e exportação rastreável. O domínio forense é o caso mais exigente.
+
 A ferramenta e o dataset são **as duas contribuições** do projeto, e nenhuma é meio para a outra.
 
 ## Hierarquia de autoridade
@@ -29,6 +30,7 @@ por ser mais recente. **Divergência não se resolve sozinha:** pare, cite os ar
 
 **Zero dado pessoal, segredo ou caminho de máquina** em qualquer arquivo — inclusive exemplo e
 teste. Exemplos usam identificadores sintéticos, nunca nomes plausíveis. É a regra sem discussão.
+
 **Se você não leu, você não sabe.** Afirmação sobre documento ou código é rastreável a arquivo
 aberto nesta execução, citado por caminho. Número afirmado é número contado.
 
@@ -36,16 +38,14 @@ aberto nesta execução, citado por caminho. Número afirmado é número contado
 possa consultar. Argumento que precisa de referência externa não se sustenta.
 
 **Merge é do operador.** Agente commita em branch própria e abre PR; nunca force, reset ou merge.
+
 **Na dúvida entre assumir e perguntar, pergunte.** Silêncio não é aprovação.
 
 ## Texto e código
 
-Texto: `docs/regras-de-escrita.md`, imposta por `tools/verify-docs/`. Código:
-`docs/regras-de-codigo.md`; o mensurável reprova o build. O teto de pull request está na §9.
-Árvore, comandos, fronteiras e o que reprova o código: `docs/operacao/020-codigo-no-repositorio.md`.
+Texto: `docs/regras-de-escrita.md`. Código: `docs/regras-de-codigo.md` (teto de PR na §9).
+Árvore, comandos e fronteiras: `docs/operacao/020-codigo-no-repositorio.md`.
 **Antes de todo push, rode `python tools/dev/check.py`** (build, formato, testes sem banco do diff).
-
-## Armadilhas
 
 - Analisadores são erro: `switch` de enum sem todo caso (IDE0072), API obsoleta (CS0619).
 - Nome em `ContentQueries` começa por `Read`, `Insert`, `Empty`, `Rewrap`, `Close` ou `Remove`.

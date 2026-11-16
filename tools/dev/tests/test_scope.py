@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 
 import scope
+from steps import reach
 
 from . import support
 
@@ -29,14 +30,16 @@ def project(*references: str) -> str:
 
 class OwnerTests(unittest.TestCase):
     def test_a_file_of_a_source_project_belongs_to_it(self) -> None:
-        self.assertEqual("Core.Host", scope.owner("core/src/Core.Host/A.cs", GRAPH))
+        self.assertEqual("Core.Host", reach.project_of("core/src/Core.Host/A.cs", GRAPH))
 
     def test_a_file_of_a_test_project_belongs_to_it(self) -> None:
-        self.assertEqual("Core.Host.Tests", scope.owner("core/tests/Core.Host.Tests/A.cs", GRAPH))
+        owner = reach.project_of("core/tests/Core.Host.Tests/A.cs", GRAPH)
+
+        self.assertEqual("Core.Host.Tests", owner)
 
     def test_a_file_outside_the_projects_has_no_owner(self) -> None:
-        self.assertIsNone(scope.owner("docs/a.md", GRAPH))
-        self.assertIsNone(scope.owner("core/Core.slnx", GRAPH))
+        self.assertIsNone(reach.project_of("docs/a.md", GRAPH))
+        self.assertIsNone(reach.project_of("core/Core.slnx", GRAPH))
 
     def test_shared_settings_and_unplaced_core_files_reach_everything(self) -> None:
         for path in ("core/Directory.Build.props", "global.json", ".editorconfig", "core/x.txt"):
@@ -101,7 +104,7 @@ class ComputeTests(unittest.TestCase):
 
         self.assertFalse(found.everything)
         self.assertEqual(("Core.Host.Tests",), found.tests)
-        self.assertEqual({"Core.Host": ("core/src/Core.Host/A.cs",)}, dict(found.files))
+        self.assertEqual(("core/src/Core.Host/A.cs",), found.files)
         self.assertTrue(any("Core.Db.Tests" in line and "banco" in line for line in found.not_run))
 
     def test_a_change_in_the_domain_reaches_what_depends_on_it(self) -> None:
@@ -127,3 +130,15 @@ class ComputeTests(unittest.TestCase):
 
         self.assertEqual((), found.reached)
         self.assertEqual((), found.leaves)
+
+    def test_a_diff_that_cannot_be_read_reaches_the_whole_core(self) -> None:
+        found = scope.compute(support.context(self.repo, "nao-existe"))
+
+        self.assertTrue(found.everything)
+        self.assertEqual(6, len(found.reached))
+
+    def test_an_empty_diff_reaches_nothing(self) -> None:
+        found = scope.compute(support.context(self.repo, "feature"))
+
+        self.assertFalse(found.everything)
+        self.assertEqual((), found.reached)

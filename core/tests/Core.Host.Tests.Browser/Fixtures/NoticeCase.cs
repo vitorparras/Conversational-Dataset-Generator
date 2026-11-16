@@ -1,7 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Core.Host.Endpoints;
-using Core.Persistence.Custody;
 using Core.Persistence.Domains;
 using Core.Persistence.People;
 using Microsoft.Extensions.DependencyInjection;
@@ -83,11 +82,7 @@ internal sealed class NoticeCase : IAsyncDisposable
             return pool.Take(function);
         }
 
-        var source = NpgsqlDataSource.Create(Host.Database.AppConnectionString);
-        await using (source.ConfigureAwait(false))
-        {
-            return await MakePersonAsync(source, Host.Password, function, cancellationToken);
-        }
+        return await MakePersonAsync(Host, function, cancellationToken);
     }
 
     /// <summary>Tells the person that their password was set again and how many sessions that ended, as the act does, for the tests that read the list and not the act.</summary>
@@ -142,29 +137,22 @@ internal sealed class NoticeCase : IAsyncDisposable
 
     private static async Task MakePoolAsync(ScreenHost host, PersonPool pool, CancellationToken cancellationToken)
     {
-        var source = NpgsqlDataSource.Create(host.Database.AppConnectionString);
-        await using (source.ConfigureAwait(false))
+        foreach (var function in new[] { PersonFunctions.Audit, PersonFunctions.Accepted[0] })
         {
-            foreach (var function in new[] { PersonFunctions.Audit, PersonFunctions.Accepted[0] })
+            var made = new Queue<PersonOfTheRun>();
+            for (var person = 0; person < PoolPerFunction; person++)
             {
-                var made = new Queue<PersonOfTheRun>();
-                for (var person = 0; person < PoolPerFunction; person++)
-                {
-                    made.Enqueue(await MakePersonAsync(source, host.Password, function, cancellationToken));
-                }
-
-                pool.Keep(function, made);
+                made.Enqueue(await MakePersonAsync(host, function, cancellationToken));
             }
+
+            pool.Keep(function, made);
         }
     }
 
-    private static async Task<PersonOfTheRun> MakePersonAsync(NpgsqlDataSource source, string password, string function, CancellationToken cancellationToken)
+    private static async Task<PersonOfTheRun> MakePersonAsync(ScreenHost host, string function, CancellationToken cancellationToken)
     {
         var name = $"zqx-aviso-{Guid.NewGuid():N}";
-        var created = await new PersonRegistry(source).CreateAsync(new NewPerson(name, function), CustodyAuthor.System, cancellationToken);
-        var id = created.PersonId!.Value;
-        _ = await new PersonCredentials(source, new PasswordDerivation(1)).SetPasswordAsync(id, password, CustodyAuthor.System, cancellationToken);
-        return new PersonOfTheRun(name, id);
+        return new PersonOfTheRun(name, await host.AddPersonAsync(name, function, cancellationToken));
     }
 
     /// <summary>The people made before the chain is broken, which the tests take one by one, by function.</summary>

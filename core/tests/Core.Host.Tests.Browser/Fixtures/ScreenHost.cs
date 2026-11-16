@@ -24,30 +24,31 @@ internal sealed class ScreenHost : IAsyncDisposable
 {
     private readonly WebApplication app;
     private readonly Action disposing;
+    private readonly ScreenPeople people;
 
     private ScreenHost(ScratchDatabase database, ScreenPeople people, WebApplication app, Action disposing)
     {
         Database = database;
-        People = people;
+        this.people = people;
         this.app = app;
         this.disposing = disposing;
         Address = new Uri(app.Urls.Single());
     }
 
     /// <summary>The password every person of the run has, made up for it.</summary>
-    public string Password => People.Password;
+    public string Password => people.Password;
 
     /// <summary>The person of the technical administration.</summary>
-    public string Administrator => People.Administrator;
+    public string Administrator => people.Administrator;
 
     /// <summary>The person of the audit.</summary>
-    public string Auditor => People.Auditor;
+    public string Auditor => people.Auditor;
 
     /// <summary>The person of the curation of the collection, with no domain granted.</summary>
-    public string Curator => People.Curator;
+    public string Curator => people.Curator;
 
     /// <summary>The person of an annotation, with no domain granted.</summary>
-    public string Annotator => People.Annotator;
+    public string Annotator => people.Annotator;
 
     /// <summary>The address the server listens on, with the port it was given.</summary>
     public Uri Address { get; }
@@ -55,8 +56,11 @@ internal sealed class ScreenHost : IAsyncDisposable
     /// <summary>The database of the run, migrated.</summary>
     public ScratchDatabase Database { get; }
 
-    /// <summary>The password and the names of the run.</summary>
-    public ScreenPeople People { get; }
+    /// <summary>The identifier of <see cref="Administrator"/>, once the host has made its people.</summary>
+    public long AdministratorId { get; private set; }
+
+    /// <summary>The identifier of <see cref="Curator"/>, once the host has made its people.</summary>
+    public long CuratorId { get; private set; }
 
     /// <summary>The services of the running host, as a screen asks for them.</summary>
     public IServiceProvider Services => app.Services;
@@ -66,6 +70,16 @@ internal sealed class ScreenHost : IAsyncDisposable
     {
         ArgumentNullException.ThrowIfNull(parts);
         return StartCoreAsync(parts, cancellationToken);
+    }
+
+    /// <summary>A person with the password of the run, made up for it; the host makes the four of its menu this way, and so does a case that needs one of its own. Gives back the identifier.</summary>
+    public async Task<long> AddPersonAsync(string name, string function, CancellationToken cancellationToken)
+    {
+        await using var source = NpgsqlDataSource.Create(Database.AppConnectionString);
+        var created = await new PersonRegistry(source).CreateAsync(new NewPerson(name, function), CustodyAuthor.System, cancellationToken);
+        var id = created.PersonId!.Value;
+        _ = await new PersonCredentials(source, new PasswordDerivation(1)).SetPasswordAsync(id, Password, CustodyAuthor.System, cancellationToken);
+        return id;
     }
 
     public async ValueTask DisposeAsync()
@@ -154,19 +168,11 @@ internal sealed class ScreenHost : IAsyncDisposable
             new SignInRecord(new SignInAttempts(provider.GetRequiredService<NpgsqlDataSource>()), provider.GetRequiredService<ILoggerFactory>()));
     }
 
-    /// <summary>A person with the password of the run, made up for it; the host makes the four of its menu this way, and a case that needs one of its own does too.</summary>
-    public async Task AddPersonAsync(string name, string function, CancellationToken cancellationToken)
-    {
-        await using var source = NpgsqlDataSource.Create(Database.AppConnectionString);
-        var created = await new PersonRegistry(source).CreateAsync(new NewPerson(name, function), CustodyAuthor.System, cancellationToken);
-        _ = await new PersonCredentials(source, new PasswordDerivation(1)).SetPasswordAsync(created.PersonId!.Value, Password, CustodyAuthor.System, cancellationToken);
-    }
-
     private async Task AddPeopleAsync(CancellationToken cancellationToken)
     {
-        await AddPersonAsync(Administrator, PersonFunctions.Administration, cancellationToken);
-        await AddPersonAsync(Auditor, PersonFunctions.Audit, cancellationToken);
-        await AddPersonAsync(Curator, PersonFunctions.Curation, cancellationToken);
-        await AddPersonAsync(Annotator, PersonFunctions.Accepted[0], cancellationToken);
+        AdministratorId = await AddPersonAsync(Administrator, PersonFunctions.Administration, cancellationToken);
+        _ = await AddPersonAsync(Auditor, PersonFunctions.Audit, cancellationToken);
+        CuratorId = await AddPersonAsync(Curator, PersonFunctions.Curation, cancellationToken);
+        _ = await AddPersonAsync(Annotator, PersonFunctions.Accepted[0], cancellationToken);
     }
 }

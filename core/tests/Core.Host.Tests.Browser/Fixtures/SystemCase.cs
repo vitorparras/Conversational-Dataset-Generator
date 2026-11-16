@@ -14,7 +14,7 @@ namespace Core.Host.Tests.Browser.Fixtures;
 
 /// <summary>
 /// The host of the screens of the configuration in force and of the state of the system (issues 603 and 604) on a real Kestrel, behind the real session gate and the real screen
-/// gate, with the real routes of both screens, over a migrated database of its own that holds three people made up for the run: the administration, the audit and an annotation. The
+/// gate, with the real routes of both screens, over a migrated database of its own that holds the four people of the run: the administration, the curation, the audit and an annotation. The
 /// configuration is the one of the host with the keys of the safekeeping copy, one of them secret, written as an argument with a value made up for the run, <see cref="Secret"/>,
 /// which no page may show. The startup report is what the test sets. The channel is told to be encrypted, which the loopback of the test cannot be.
 /// </summary>

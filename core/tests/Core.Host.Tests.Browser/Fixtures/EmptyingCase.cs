@@ -75,8 +75,7 @@ internal sealed class EmptyingCase : IAsyncDisposable
     public async Task EmptyAsync(int item, EmptyingMotive motive, string protocol)
     {
         await using var source = NpgsqlDataSource.Create(Host.Database.AppConnectionString);
-        var curator = await PersonIdOfAsync(Host.Curator);
-        var result = await ItemEmptyingDesk.On(source).EmptyAsync(curator, new ItemEmptyingDesk.EmptyingRequest(1, item, motive, protocol), CancellationToken.None);
+        var result = await ItemEmptyingDesk.On(source).EmptyAsync(Host.CuratorId, new ItemEmptyingDesk.EmptyingRequest(1, item, motive, protocol), CancellationToken.None);
         if (result.Outcome != EmptyingOutcome.Emptied)
         {
             throw new InvalidOperationException($"The emptying of item {item} ended in {result.Outcome}.");
@@ -109,9 +108,6 @@ internal sealed class EmptyingCase : IAsyncDisposable
                 ContentOf(2, 1),
                 "SELECT set_config('app.domain', '', false)",
             ]);
-
-    private async Task<long> PersonIdOfAsync(string name) =>
-        long.Parse((await Host.Database.FirstColumnAsOwnerAsync($"SELECT id::text FROM public.person WHERE name = '{name}'")).Single(), CultureInfo.InvariantCulture);
 
     /// <summary>The source of grants of the test: the first domain to the person of the curation and none to anyone else.</summary>
     private sealed class GrantedToTheCurator(NpgsqlDataSource source, string curator) : DomainGrants

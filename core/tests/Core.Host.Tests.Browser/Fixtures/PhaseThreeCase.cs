@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using Core.Boundary.Fake;
 using Core.Boundary.Http;
 using Core.Host.Endpoints;
@@ -98,11 +97,10 @@ internal sealed class PhaseThreeCase : IAsyncDisposable
             Assert.NotNull(await chain.VerifyAsync(seal: null, requestedBy: null, cancellationToken));
         }
 
-        await host.AddPersonAsync(noticed, PersonFunctions.Audit, cancellationToken);
+        var id = await host.AddPersonAsync(noticed, PersonFunctions.Audit, cancellationToken);
         var source = NpgsqlDataSource.Create(host.Database.AppConnectionString);
         await using (source.ConfigureAwait(false))
         {
-            var id = long.Parse((await host.Database.FirstColumnAsOwnerAsync($"SELECT id::text FROM public.person WHERE name = '{noticed}'")).Single(), CultureInfo.InvariantCulture);
             var notices = new PersonNotices(source);
             await notices.RecordPasswordResetAsync(id, 2, cancellationToken);
             await notices.RecordPasswordResetAsync(id, 0, cancellationToken);

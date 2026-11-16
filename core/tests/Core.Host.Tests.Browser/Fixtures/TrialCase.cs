@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 namespace Core.Host.Tests.Browser.Fixtures;
 
 /// <summary>
-/// The host composition on a real Kestrel, on a loopback port the system gives, over a migrated database of its own, with the routes of the screens
+/// The case of the trial: a host composition on a real Kestrel, on a loopback port the system gives, over a migrated database of its own, with the routes of the screens
 /// and the ones that exist for the test alone. A browser reaches it by <see cref="Address"/>; the database and the server go with the object.
 /// </summary>
 internal sealed class TrialCase : IAsyncDisposable

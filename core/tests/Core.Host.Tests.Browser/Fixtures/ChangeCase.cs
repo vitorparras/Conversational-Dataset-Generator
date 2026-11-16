@@ -18,10 +18,11 @@ namespace Core.Host.Tests.Browser.Fixtures;
 /// </summary>
 internal sealed class ChangeCase : IAsyncDisposable
 {
-    private ChangeCase(ScreenHost host, string secondAdministrator)
+    private ChangeCase(ScreenHost host, string secondAdministrator, long secondAdministratorId)
     {
         Host = host;
         SecondAdministrator = secondAdministrator;
+        SecondAdministratorId = secondAdministratorId;
     }
 
     /// <summary>The host of the case.</summary>
@@ -30,11 +31,15 @@ internal sealed class ChangeCase : IAsyncDisposable
     /// <summary>A second person of the technical administration, with the password of the run.</summary>
     public string SecondAdministrator { get; }
 
+    /// <summary>The identifier of <see cref="SecondAdministrator"/>.</summary>
+    public long SecondAdministratorId { get; }
+
     [SuppressMessage("Reliability", "CA2000", Justification = "The host goes to the case that is returned, which disposes it.")]
     public static async Task<ChangeCase> StartAsync(CancellationToken cancellationToken)
     {
         var second = $"zqx-administracao-2-{Guid.NewGuid():N}";
         var inForce = InForce();
+        var secondId = 0L;
         var host = await ScreenHost.StartAsync(
             new ScreenParts
             {
@@ -42,19 +47,18 @@ internal sealed class ChangeCase : IAsyncDisposable
                     .AddSingleton(provider => new ConfigurationChangeDesk(inForce, Changes(provider), new PersonRegistry(provider.GetRequiredService<NpgsqlDataSource>())))
                     .AddSingleton(provider => new ChangeDecisionDesk(inForce, Changes(provider), new PersonRegistry(provider.GetRequiredService<NpgsqlDataSource>()), TimeProvider.System)),
                 Screens = ConfigurationChangeScreensEndpoint.Map,
-                Finish = started => started.AddPersonAsync(second, PersonFunctions.Administration, cancellationToken),
+                Finish = async started => secondId = await started.AddPersonAsync(second, PersonFunctions.Administration, cancellationToken),
             },
             cancellationToken);
-        return new ChangeCase(host, second);
+        return new ChangeCase(host, second, secondId);
     }
 
     /// <summary>A proposal of the first administrator, written as the screen writes it, so that a test finds it waiting.</summary>
     public async Task<long> ProposeAsync(string value)
     {
         await using var source = NpgsqlDataSource.Create(Host.Database.AppConnectionString);
-        var author = (await new PersonRegistry(source).IdOfAsync(Host.Administrator, CancellationToken.None))!.Value;
         var written = await new ConfigurationChanges(source).SubmitAsync(
-            new ConfigurationSubmission { Key = "Session:IdleTimeout", Value = value, Motive = "operational_adjustment", AuthorId = author }, CancellationToken.None);
+            new ConfigurationSubmission { Key = "Session:IdleTimeout", Value = value, Motive = "operational_adjustment", AuthorId = Host.AdministratorId }, CancellationToken.None);
         return written.ChangeId!.Value;
     }
 
@@ -64,8 +68,7 @@ internal sealed class ChangeCase : IAsyncDisposable
         var id = await ProposeAsync("00:25:00");
         await using var source = NpgsqlDataSource.Create(Host.Database.AppConnectionString);
         var changes = new ConfigurationChanges(source);
-        var decider = (await new PersonRegistry(source).IdOfAsync(SecondAdministrator, CancellationToken.None))!.Value;
-        _ = await changes.DecideAsync(decider, (await changes.SubmittedAsync(id, CancellationToken.None))!, approved: true, CancellationToken.None);
+        _ = await changes.DecideAsync(SecondAdministratorId, (await changes.SubmittedAsync(id, CancellationToken.None))!, approved: true, CancellationToken.None);
         var approved = new ApprovedChanges(source);
         var found = (await approved.PendingAsync(CancellationToken.None)).Single(change => change.Id == id);
         _ = await approved.RecordNotAppliedAsync(found, reasonCode, CancellationToken.None);

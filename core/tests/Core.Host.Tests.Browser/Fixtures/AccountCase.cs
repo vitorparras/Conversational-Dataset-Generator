@@ -52,7 +52,7 @@ internal sealed class AccountCase : IAsyncDisposable
     public async Task<string> AddPersonAsync()
     {
         var name = $"zqx-conta-{Guid.NewGuid():N}";
-        await Host.AddPersonAsync(name, PersonFunctions.Accepted[0], CancellationToken.None);
+        _ = await Host.AddPersonAsync(name, PersonFunctions.Accepted[0], CancellationToken.None);
         return name;
     }
 

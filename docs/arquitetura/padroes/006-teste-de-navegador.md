@@ -31,12 +31,23 @@ do negócio já foi testada abaixo ([002](002-servico-de-dominio.md), [005](005-
 
 ## Host por composição
 
-Todo host de teste é um `ScreenHost` selado, montado por `ScreenParts`: os serviços da tela
-(`Services`), as rotas (`Screens`), o que roda antes e depois de subir (`Prepare`, `Finish`) e o
-que solta no fim (`Disposing`). O que é próprio de uma tela (a pessoa extra, o log, o banco
-semeado) vive num `*Case` que compõe o `ScreenHost`, e a fixture de classe do xunit expõe o `Case`.
-Não existe classe-base para herdar: host novo é um `*Case` novo com o seu `ScreenParts`
-(exemplar: `ChangeCase`), conforme a regra 1 de [regras de código](../../regras-de-codigo.md).
+Todo host de teste é um `ScreenHost` selado, montado por `ScreenParts`. As partes são:
+
+- `Services` e `Screens`: os serviços e as rotas da tela, atrás do pipeline padrão.
+- `Pipeline`: o pipeline inteiro, só quando o padrão não serve (entrada, prova sem guarda de tela).
+- `Prepare` e `Finish`: o que se escreve antes de subir e depois de existirem as pessoas.
+- `Configuration`, `WithPeople` (falso quando o caso faz as próprias pessoas) e `Disposing`.
+
+O `*Case` tem duas formas, pelo que o teste precisa guardar:
+
+- `sealed class` que envolve o `ScreenHost`: o caso tem estado ou ajudantes próprios (a pessoa
+  extra, o log, o banco semeado). A fixture de classe expõe o `Case` (exemplar: `ChangeCase`).
+- `static class` que só devolve o `ScreenParts`: o host basta como está. A fixture sobe o
+  `ScreenHost` com `ScreenHost.StartAsync` e expõe o próprio host (exemplar: `ChainCase`).
+
+A pessoa extra de um caso nasce com `ScreenHost.AddPersonAsync`, que devolve o identificador; não
+releia o id por nome. Não existe classe-base para herdar: host novo é um `*Case` novo com o seu
+`ScreenParts`, conforme a regra 1 de [regras de código](../../regras-de-codigo.md).
 
 ## Proibido
 

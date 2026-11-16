@@ -49,7 +49,13 @@ internal sealed class EntryCase : IAsyncDisposable
             {
                 WithPeople = false,
                 Pipeline = (started, _) => Serve(started, gate),
-                Finish = started => withPerson ? started.AddPersonAsync(name, PersonFunctions.Accepted[0], cancellationToken) : Task.CompletedTask,
+                Finish = async started =>
+                {
+                    if (withPerson)
+                    {
+                        _ = await started.AddPersonAsync(name, PersonFunctions.Accepted[0], cancellationToken);
+                    }
+                },
                 Disposing = gate.Release,
             },
             cancellationToken);

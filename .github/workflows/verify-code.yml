@@ -209,6 +209,11 @@ jobs:
       matrix:
         language: [dotnet, python]
     steps:
+      - name: Trazer o repetidor de downloads
+        if: contains(needs.changes.outputs.promote, matrix.language)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: tools/verify-code
       - name: Baixar o by-area.md que o pull request guardou
         if: contains(needs.changes.outputs.promote, matrix.language)
         env:

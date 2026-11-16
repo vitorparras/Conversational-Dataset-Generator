@@ -49,6 +49,7 @@ Os testes do #775 ficam em `Core.Host.Tests` porque `SubmissionStoring` é `inte
   [riscos](riscos.md).
 - **Raia:** a submissão (`core/src/Core.Host/Submissions`), o registro do lote e as duas telas.
   Não toca `BatchReviews` nem as telas da amostra.
-- **Depende de:** nada aberto (#801 já está no main). **Bloqueia:** a fatia B.
+- **Depende de:** #817 (leitor único de formulário nas rotas de tela) e #819 (host de teste de
+  navegador por composição), que entram antes. **Bloqueia:** a fatia B.
 
 Ver [contratos](contratos.md) e [modelo de dados](modelo-de-dados.md).

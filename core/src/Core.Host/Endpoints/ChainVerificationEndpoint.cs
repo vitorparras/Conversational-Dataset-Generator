@@ -12,8 +12,10 @@ internal static class ChainVerificationEndpoint
 {
     internal const string Route = "/custody/verification";
 
-    internal static void Map(IEndpointRouteBuilder endpoints) =>
-        _ = endpoints.MapGet(Route, ShowAsync).WithMetadata(ScreenAccess.Unlisted(PersonFunctions.Administration, PersonFunctions.Audit));
+    /// <summary>Who reaches the route, to read the last verification and to ask for a new one: the functions that reach the screen of the chain.</summary>
+    internal static readonly ScreenAccess Access = ScreenAccess.Unlisted(PersonFunctions.Administration, PersonFunctions.Audit);
+
+    internal static void Map(IEndpointRouteBuilder endpoints) => _ = endpoints.MapGet(Route, ShowAsync).WithMetadata(Access);
 
     /// <summary>With no database declared there is no chain to read, and one that cannot be read answers 503, with the type of the failure in the host's log.</summary>
     private static async Task<IResult> ShowAsync([AsParameters] ChainSources sources, CancellationToken cancellationToken) =>

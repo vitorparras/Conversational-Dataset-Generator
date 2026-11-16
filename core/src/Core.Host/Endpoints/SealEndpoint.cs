@@ -1,3 +1,4 @@
+using Core.Persistence.People;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Core.Host.Endpoints;
@@ -12,10 +13,13 @@ internal static class SealEndpoint
     internal const string Route = "/custody/seal";
     internal const string ConfirmationRoute = Route + "/confirmation";
 
+    /// <summary>The functions that reach the screen of the seal (policy 006): the same two routes of the same act, by JSON.</summary>
+    private static readonly ScreenAccess Access = ScreenAccess.Unlisted(PersonFunctions.Administration);
+
     internal static void Map(IEndpointRouteBuilder endpoints)
     {
-        _ = endpoints.MapGet(Route, IssueAsync);
-        _ = endpoints.MapPost(ConfirmationRoute, ConfirmAsync);
+        _ = endpoints.MapGet(Route, IssueAsync).WithMetadata(Access);
+        _ = endpoints.MapPost(ConfirmationRoute, ConfirmAsync).WithMetadata(Access);
     }
 
     /// <summary>With no database declared, or one that cannot be read, the answer is 503.</summary>

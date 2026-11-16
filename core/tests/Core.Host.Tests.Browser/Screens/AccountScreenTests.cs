@@ -56,7 +56,7 @@ public sealed class AccountScreenTests(BrowserFixture browser, AccountHostFixtur
     [Fact]
     public async Task Ca1WithOnlyTheCurrentSessionThePageSaysSoAndOffersNothingToEnd()
     {
-        await using var tab = await OpenAsync(await account.Host.AddPersonAsync());
+        await using var tab = await OpenAsync(await account.Case.AddPersonAsync());
 
         await Expect(tab.Page.Locator(Rows)).ToHaveCountAsync(1);
         await Expect(tab.Page.Locator(Rows)).ToContainTextAsync("Esta sessão");
@@ -227,7 +227,7 @@ public sealed class AccountScreenTests(BrowserFixture browser, AccountHostFixtur
     [Fact]
     public async Task AnAddressThatSaysAnActWasDoneShowsNoNoticeWhateverItsCount()
     {
-        await using var tab = await OpenAsync(await account.Host.AddPersonAsync());
+        await using var tab = await OpenAsync(await account.Case.AddPersonAsync());
 
         _ = await tab.Page.GotoAsync($"{Route}?feito=senha&encerradas=-3");
         await Expect(tab.Page.GetByRole(AriaRole.Heading, new() { Name = "Minha conta", Level = 1 })).ToBeVisibleAsync();
@@ -275,7 +275,7 @@ public sealed class AccountScreenTests(BrowserFixture browser, AccountHostFixtur
     [Fact]
     public async Task TheLinkOfTheAccountInTheHeaderMarksThePageItOpensAndLeadsToItFromTheStart()
     {
-        await using var tab = await OpenAsync(await account.Host.AddPersonAsync());
+        await using var tab = await OpenAsync(await account.Case.AddPersonAsync());
         var link = tab.Page.GetByRole(AriaRole.Link, new() { Name = "Minha conta" });
         await Expect(link).ToHaveAttributeAsync("aria-current", "page");
 
@@ -291,7 +291,7 @@ public sealed class AccountScreenTests(BrowserFixture browser, AccountHostFixtur
 
     private async Task<Sessions> TwoSessionsAsync()
     {
-        var person = await account.Host.AddPersonAsync();
+        var person = await account.Case.AddPersonAsync();
         var other = await ScreenSession.SignedInAsync(browser, account.Host, person);
         try
         {

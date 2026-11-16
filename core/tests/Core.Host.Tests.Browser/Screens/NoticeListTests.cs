@@ -25,7 +25,7 @@ public sealed class NoticeListTests(BrowserFixture browser, SoundNoticeHostFixtu
     public async Task Ca2ThePasswordSetAgainByAnotherIsToldWithTheNumberOfSessionsItEnded(int open, string told)
     {
         var host = sound.Host;
-        var person = await host.AddPersonAsync(PersonFunctions.Audit, TestContext.Current.CancellationToken);
+        var person = await sound.Case.AddPersonAsync(PersonFunctions.Audit, TestContext.Current.CancellationToken);
         var sessions = new List<BrowserTab>();
         try
         {
@@ -63,23 +63,23 @@ public sealed class NoticeListTests(BrowserFixture browser, SoundNoticeHostFixtu
     public async Task Ca2WhoSetsThePasswordOfAnotherIsNotToldAndTheNoticeIsOnlyOfThePersonWhosePasswordItWas()
     {
         var host = sound.Host;
-        var person = await host.AddPersonAsync(PersonFunctions.Audit, TestContext.Current.CancellationToken);
+        var person = await sound.Case.AddPersonAsync(PersonFunctions.Audit, TestContext.Current.CancellationToken);
         await using var administrator = await ScreenSession.SignedInAsync(browser, host, host.Administrator);
         await ResetPasswordAsync(administrator, person.Id, NewPassword);
 
         _ = await administrator.Page.GotoAsync(List);
 
         await Expect(administrator.Page.Locator(".empty-state__title")).ToHaveTextAsync("Nenhum aviso não lido");
-        _ = Assert.Single(await host.UnreadIdsOfAsync(person.Id));
+        _ = Assert.Single(await sound.Case.UnreadIdsOfAsync(person.Id));
     }
 
     [Fact]
     public async Task Ca4MarkingANoticeAsReadTakesItFromTheListKeepsTheRecordAndReloadingDoesNotMarkAgain()
     {
         var host = sound.Host;
-        var person = await host.AddPersonAsync(PersonFunctions.Audit, TestContext.Current.CancellationToken);
-        await host.TellPasswordResetAsync(person.Id, 2, TestContext.Current.CancellationToken);
-        await host.TellPasswordResetAsync(person.Id, 5, TestContext.Current.CancellationToken);
+        var person = await sound.Case.AddPersonAsync(PersonFunctions.Audit, TestContext.Current.CancellationToken);
+        await sound.Case.TellPasswordResetAsync(person.Id, 2, TestContext.Current.CancellationToken);
+        await sound.Case.TellPasswordResetAsync(person.Id, 5, TestContext.Current.CancellationToken);
         await using var tab = await OpenListAsync(browser, host, person.Name);
         Assert.Equal([ResetWords + "5 sessões abertas foram encerradas.", ResetWords + "2 sessões abertas foram encerradas."], await WordsOfRows(tab.Page).AllInnerTextsAsync());
 
@@ -91,32 +91,32 @@ public sealed class NoticeListTests(BrowserFixture browser, SoundNoticeHostFixtu
         await Expect(WordsOfRows(tab.Page)).ToHaveTextAsync(ResetWords + "2 sessões abertas foram encerradas.");
         _ = await tab.Page.ReloadAsync();
         await Expect(tab.Page.Locator(Rows)).ToHaveCountAsync(1);
-        Assert.Equal((2, 1), await host.RecordOfAsync(person.Id));
+        Assert.Equal((2, 1), await sound.Case.RecordOfAsync(person.Id));
     }
 
     [Fact]
     public async Task Ca4MarkingTheLastNoticeLeavesThePageSayingThereIsNoneNewAndTheRecordWhole()
     {
         var host = sound.Host;
-        var person = await host.AddPersonAsync(PersonFunctions.Audit, TestContext.Current.CancellationToken);
-        await host.TellPasswordResetAsync(person.Id, 1, TestContext.Current.CancellationToken);
+        var person = await sound.Case.AddPersonAsync(PersonFunctions.Audit, TestContext.Current.CancellationToken);
+        await sound.Case.TellPasswordResetAsync(person.Id, 1, TestContext.Current.CancellationToken);
         await using var tab = await OpenListAsync(browser, host, person.Name);
 
         await tab.Page.GetByRole(AriaRole.Button, new() { Name = "Marcar como lido" }).ClickAsync();
 
         await Expect(tab.Page.Locator(".empty-state__title")).ToHaveTextAsync("Nenhum aviso não lido");
         await Expect(tab.Page.Locator("table")).ToHaveCountAsync(0);
-        Assert.Equal((1, 1), await host.RecordOfAsync(person.Id));
-        Assert.Empty(await host.UnreadIdsOfAsync(person.Id));
+        Assert.Equal((1, 1), await sound.Case.RecordOfAsync(person.Id));
+        Assert.Empty(await sound.Case.UnreadIdsOfAsync(person.Id));
     }
 
     [Fact]
     public async Task Ca4TheHeaderAndTheStartSayHowManyAreUnreadAndTheCountFallsAsEachIsMarkedUntilItIsGone()
     {
         var host = sound.Host;
-        var person = await host.AddPersonAsync(PersonFunctions.Audit, TestContext.Current.CancellationToken);
-        await host.TellPasswordResetAsync(person.Id, 2, TestContext.Current.CancellationToken);
-        await host.TellPasswordResetAsync(person.Id, 5, TestContext.Current.CancellationToken);
+        var person = await sound.Case.AddPersonAsync(PersonFunctions.Audit, TestContext.Current.CancellationToken);
+        await sound.Case.TellPasswordResetAsync(person.Id, 2, TestContext.Current.CancellationToken);
+        await sound.Case.TellPasswordResetAsync(person.Id, 5, TestContext.Current.CancellationToken);
         await using var tab = await OpenListAsync(browser, host, person.Name);
         var count = tab.Page.Locator(".header__notices");
 
@@ -139,7 +139,7 @@ public sealed class NoticeListTests(BrowserFixture browser, SoundNoticeHostFixtu
     public async Task Ca4WithNoNoticeThePageSaysSoAndOffersNothingToDo()
     {
         var host = sound.Host;
-        var person = await host.AddPersonAsync(PersonFunctions.Audit, TestContext.Current.CancellationToken);
+        var person = await sound.Case.AddPersonAsync(PersonFunctions.Audit, TestContext.Current.CancellationToken);
         await using var tab = await OpenListAsync(browser, host, person.Name);
 
         await Expect(tab.Page.Locator(".empty-state")).ToBeVisibleAsync();
@@ -156,11 +156,11 @@ public sealed class NoticeListTests(BrowserFixture browser, SoundNoticeHostFixtu
     public async Task Ca4ANoticeThatIsNotTheirsOrIsGoneIsAnsweredOnThePostAsForAnAddressThatDoesNotExist(string which)
     {
         var host = sound.Host;
-        var owner = await host.AddPersonAsync(PersonFunctions.Audit, TestContext.Current.CancellationToken);
-        var reader = await host.AddPersonAsync(PersonFunctions.Audit, TestContext.Current.CancellationToken);
-        await host.TellPasswordResetAsync(owner.Id, 4, TestContext.Current.CancellationToken);
-        await host.TellPasswordResetAsync(reader.Id, 1, TestContext.Current.CancellationToken);
-        var ofOwner = Assert.Single(await host.UnreadIdsOfAsync(owner.Id));
+        var owner = await sound.Case.AddPersonAsync(PersonFunctions.Audit, TestContext.Current.CancellationToken);
+        var reader = await sound.Case.AddPersonAsync(PersonFunctions.Audit, TestContext.Current.CancellationToken);
+        await sound.Case.TellPasswordResetAsync(owner.Id, 4, TestContext.Current.CancellationToken);
+        await sound.Case.TellPasswordResetAsync(reader.Id, 1, TestContext.Current.CancellationToken);
+        var ofOwner = Assert.Single(await sound.Case.UnreadIdsOfAsync(owner.Id));
         await using var tab = await ScreenSession.SignedInAsync(browser, host, reader.Name);
         var identifier = which switch
         {
@@ -173,7 +173,7 @@ public sealed class NoticeListTests(BrowserFixture browser, SoundNoticeHostFixtu
 
         Assert.Equal((StatusNotFound, StatusNotFound), (posted.Status, missing.Status));
         Assert.Equal(await missing.TextAsync(), await posted.TextAsync());
-        Assert.Equal([ofOwner], await host.UnreadIdsOfAsync(owner.Id));
+        Assert.Equal([ofOwner], await sound.Case.UnreadIdsOfAsync(owner.Id));
     }
 
     private static Dictionary<string, string> Html() => new() { ["Accept"] = "text/html" };

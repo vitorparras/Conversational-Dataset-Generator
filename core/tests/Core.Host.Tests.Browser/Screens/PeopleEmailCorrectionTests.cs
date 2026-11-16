@@ -72,10 +72,10 @@ public sealed partial class PeopleEmailCorrectionTests(BrowserFixture browser, P
         var response = await CorrectAsync(admin.Page, address);
 
         var headers = string.Join('\n', (await response.AllHeadersAsync()).Select(header => $"{header.Key}: {header.Value}"));
-        var seen = string.Join('\n', admin.Page.Url, await admin.Page.TitleAsync(), headers, await admin.Page.EvaluateAsync<string>(TextOfMain), people.Host.Log);
+        var seen = string.Join('\n', admin.Page.Url, await admin.Page.TitleAsync(), headers, await admin.Page.EvaluateAsync<string>(TextOfMain), people.Case.Log);
         Assert.DoesNotContain(address, seen, StringComparison.Ordinal);
         Assert.DoesNotContain(Uri.EscapeDataString(address), seen, StringComparison.Ordinal);
-        var dump = await people.Host.DumpAsync();
+        var dump = await people.Case.DumpAsync();
         Assert.Contains("person_email_corrected", dump, StringComparison.Ordinal);
         var lines = dump.Split('\n').Where(line => line.Contains(address, StringComparison.Ordinal)).ToList();
         Assert.NotEmpty(lines);
@@ -105,8 +105,8 @@ public sealed partial class PeopleEmailCorrectionTests(BrowserFixture browser, P
     [Fact]
     public async Task TheListLeadsToThePageOfEachActivePersonAndOfNoDeactivatedOne()
     {
-        await using var admin = await OpenAsync(browser, people.Host, people.Host.Administrator, $"{List}?nome={PeopleScreenHost.Prefix}1");
-        var shown = PeopleScreenHost.Listed.Where(seed => seed.Name.StartsWith($"{PeopleScreenHost.Prefix}1", StringComparison.Ordinal)).ToList();
+        await using var admin = await OpenAsync(browser, people.Host, people.Host.Administrator, $"{List}?nome={PeopleCase.Prefix}1");
+        var shown = PeopleCase.Listed.Where(seed => seed.Name.StartsWith($"{PeopleCase.Prefix}1", StringComparison.Ordinal)).ToList();
 
         foreach (var seed in shown)
         {
@@ -159,7 +159,7 @@ public sealed partial class PeopleEmailCorrectionTests(BrowserFixture browser, P
         var erased = Address("desativada");
         await using var admin = await RegisteredAsync(Made("desativada"), erased);
         var page = new Uri(admin.Page.Url).AbsolutePath;
-        await people.Host.DeactivateAsync(long.Parse(IdOfThePage().Match(page).Groups[1].Value, CultureInfo.InvariantCulture));
+        await people.Case.DeactivateAsync(long.Parse(IdOfThePage().Match(page).Groups[1].Value, CultureInfo.InvariantCulture));
 
         var (status, body) = await SendAsync(admin.Page, method, page, typed);
 
@@ -167,7 +167,7 @@ public sealed partial class PeopleEmailCorrectionTests(BrowserFixture browser, P
         Assert.DoesNotContain("id=\"pessoa-email\"", body, StringComparison.Ordinal);
         Assert.DoesNotContain("id=\"corrigir-email\"", body, StringComparison.Ordinal);
         Assert.DoesNotContain(Refusal, body, StringComparison.Ordinal);
-        var dump = await people.Host.DumpAsync();
+        var dump = await people.Case.DumpAsync();
         Assert.DoesNotContain(erased, dump, StringComparison.Ordinal);
         Assert.DoesNotContain("novo@exemplo.org", dump, StringComparison.Ordinal);
     }

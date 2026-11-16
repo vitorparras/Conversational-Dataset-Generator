@@ -6,11 +6,13 @@ namespace Core.Host.Tests.Browser.Fixtures;
 [SuppressMessage("Design", "CA1515", Justification = "xunit builds the class fixture and the public test classes take it in their constructors.")]
 public sealed class ManualSealHostFixture : IAsyncLifetime
 {
-    private SealScreenHost? host;
+    private SealCase? host;
 
-    internal SealScreenHost Host => host ?? throw new InvalidOperationException("The host of the manual seal was not started.");
+    internal SealCase Case => host ?? throw new InvalidOperationException("The host of the manual seal was not started.");
 
-    public async ValueTask InitializeAsync() => host = await SealScreenHost.StartAsync(manual: true, CancellationToken.None);
+    internal ScreenHost Host => Case.Host;
+
+    public async ValueTask InitializeAsync() => host = await SealCase.StartAsync(manual: true, CancellationToken.None);
 
     public async ValueTask DisposeAsync()
     {
@@ -25,11 +27,13 @@ public sealed class ManualSealHostFixture : IAsyncLifetime
 [SuppressMessage("Design", "CA1515", Justification = "xunit builds the class fixture and the public test classes take it in their constructors.")]
 public sealed class SentSealHostFixture : IAsyncLifetime
 {
-    private SealScreenHost? host;
+    private SealCase? host;
 
-    internal SealScreenHost Host => host ?? throw new InvalidOperationException("The host of the sent seal was not started.");
+    internal SealCase Case => host ?? throw new InvalidOperationException("The host of the sent seal was not started.");
 
-    public async ValueTask InitializeAsync() => host = await SealScreenHost.StartAsync(manual: false, CancellationToken.None);
+    internal ScreenHost Host => Case.Host;
+
+    public async ValueTask InitializeAsync() => host = await SealCase.StartAsync(manual: false, CancellationToken.None);
 
     public async ValueTask DisposeAsync()
     {

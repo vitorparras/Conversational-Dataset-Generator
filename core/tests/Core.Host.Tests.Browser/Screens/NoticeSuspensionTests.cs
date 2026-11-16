@@ -28,7 +28,7 @@ public sealed partial class NoticeSuspensionTests(BrowserFixture browser, Broken
         await Expect(warning.Locator(".notice__kind")).ToHaveTextAsync("Aviso:");
         await Expect(tab.Page.Locator(".notice--error, [role=alert]")).ToHaveCountAsync(0);
         await Expect(warning).ToContainTextAsync(SuspendedBanner);
-        Assert.Equal(NoticeScreenHost.Domains, await tab.Page.Locator("[aria-labelledby=dominios-titulo] tbody th[scope=row]").AllInnerTextsAsync());
+        Assert.Equal(NoticeCase.Domains, await tab.Page.Locator("[aria-labelledby=dominios-titulo] tbody th[scope=row]").AllInnerTextsAsync());
         await Expect(tab.Page.Locator("main form, main input, main textarea, main select, main button")).ToHaveCountAsync(0);
     }
 
@@ -41,19 +41,19 @@ public sealed partial class NoticeSuspensionTests(BrowserFixture browser, Broken
 
         await Expect(tab.Page.Locator(".notice a")).ToHaveCountAsync(0);
         Assert.DoesNotMatch(Detail(), text);
-        Assert.DoesNotContain(NoticeScreenHost.BrokenSequence.ToString(System.Globalization.CultureInfo.InvariantCulture), text, StringComparison.Ordinal);
+        Assert.DoesNotContain(NoticeCase.BrokenSequence.ToString(System.Globalization.CultureInfo.InvariantCulture), text, StringComparison.Ordinal);
     }
 
     [Fact]
     public async Task Ca3WithTheChainIntactTheScreenOfTheDomainsHasNoWarningAndNobodyHasTheNotice()
     {
-        var person = await sound.Host.AddPersonAsync(PersonFunctions.Audit, TestContext.Current.CancellationToken);
+        var person = await sound.Case.AddPersonAsync(PersonFunctions.Audit, TestContext.Current.CancellationToken);
         await using var domains = await OpenDomainsAsync(browser, sound.Host, sound.Host.Administrator);
         await using var list = await OpenListAsync(browser, sound.Host, person.Name);
 
         await Expect(domains.Page.Locator(".notice--error, [role=alert]")).ToHaveCountAsync(0);
         await Expect(list.Page.Locator(".empty-state__title")).ToHaveTextAsync("Nenhum aviso não lido");
-        Assert.Empty(await sound.Host.UnreadIdsOfAsync(person.Id));
+        Assert.Empty(await sound.Case.UnreadIdsOfAsync(person.Id));
     }
 
     [Theory]
@@ -62,45 +62,45 @@ public sealed partial class NoticeSuspensionTests(BrowserFixture browser, Broken
     public async Task Ca3EveryActivePersonFindsTheNoticeInTheListWithTheFixedWordsAndNoDetailWhateverTheFunction(string function)
     {
         var host = broken.Host;
-        var person = await host.AddPersonAsync(function == "Audit" ? PersonFunctions.Audit : PersonFunctions.Accepted[0], TestContext.Current.CancellationToken);
+        var person = await broken.Case.AddPersonAsync(function == "Audit" ? PersonFunctions.Audit : PersonFunctions.Accepted[0], TestContext.Current.CancellationToken);
         await using var tab = await OpenListAsync(browser, host, person.Name);
 
         await Expect(tab.Page.Locator(Rows)).ToHaveCountAsync(1);
         await Expect(WordsOfRows(tab.Page)).ToHaveTextAsync(SuspendedWords);
         await Expect(tab.Page.Locator($"{Rows} a")).ToHaveCountAsync(0);
         Assert.DoesNotMatch(Detail(), await WordsOfRows(tab.Page).InnerTextAsync());
-        Assert.DoesNotContain(NoticeScreenHost.BrokenSequence.ToString(System.Globalization.CultureInfo.InvariantCulture), await WordsOfRows(tab.Page).InnerTextAsync(), StringComparison.Ordinal);
+        Assert.DoesNotContain(NoticeCase.BrokenSequence.ToString(System.Globalization.CultureInfo.InvariantCulture), await WordsOfRows(tab.Page).InnerTextAsync(), StringComparison.Ordinal);
     }
 
     [Fact]
     public async Task Ca3AFurtherFailedVerificationDoesNotTellThePersonASecondTimeWhileTheNoticeIsUnread()
     {
         var host = broken.Host;
-        var person = await host.AddPersonAsync(PersonFunctions.Audit, TestContext.Current.CancellationToken);
-        await host.VerifyAsync(TestContext.Current.CancellationToken);
-        await host.VerifyAsync(TestContext.Current.CancellationToken);
+        var person = await broken.Case.AddPersonAsync(PersonFunctions.Audit, TestContext.Current.CancellationToken);
+        await broken.Case.VerifyAsync(TestContext.Current.CancellationToken);
+        await broken.Case.VerifyAsync(TestContext.Current.CancellationToken);
         await using var tab = await OpenListAsync(browser, host, person.Name);
 
         await Expect(tab.Page.Locator(Rows)).ToHaveCountAsync(1);
-        Assert.Equal((1, 0), await host.RecordOfAsync(person.Id));
+        Assert.Equal((1, 0), await broken.Case.RecordOfAsync(person.Id));
     }
 
     [Fact]
     public async Task Ca4AfterTheNoticeIsReadItLeavesTheListKeepsTheRecordAndTheNextFailedVerificationTellsAgain()
     {
         var host = broken.Host;
-        var person = await host.AddPersonAsync(PersonFunctions.Audit, TestContext.Current.CancellationToken);
+        var person = await broken.Case.AddPersonAsync(PersonFunctions.Audit, TestContext.Current.CancellationToken);
         await using var tab = await OpenListAsync(browser, host, person.Name);
 
         await tab.Page.GetByRole(AriaRole.Button, new() { Name = "Marcar como lido" }).ClickAsync();
 
         await Expect(tab.Page).ToHaveURLAsync(new Regex(@"/avisos\?lido$"));
         await Expect(tab.Page.Locator(".empty-state__title")).ToHaveTextAsync("Nenhum aviso não lido");
-        Assert.Equal((1, 1), await host.RecordOfAsync(person.Id));
-        await host.VerifyAsync(TestContext.Current.CancellationToken);
+        Assert.Equal((1, 1), await broken.Case.RecordOfAsync(person.Id));
+        await broken.Case.VerifyAsync(TestContext.Current.CancellationToken);
         _ = await tab.Page.GotoAsync(List);
         await Expect(tab.Page.Locator(Rows)).ToHaveCountAsync(1);
-        Assert.Equal((2, 1), await host.RecordOfAsync(person.Id));
+        Assert.Equal((2, 1), await broken.Case.RecordOfAsync(person.Id));
     }
 
     [GeneratedRegex(@"\b(evento|elo|elos|sequência|item|itens|hash|selo)\b|nº", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]

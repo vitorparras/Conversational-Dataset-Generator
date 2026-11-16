@@ -6,14 +6,14 @@ namespace Core.Host.Tests.Browser.Fixtures;
 internal static class ScreenSession
 {
     /// <summary>A page, in a context of its own, of a person who entered by the form and stands on the start page.</summary>
-    public static Task<BrowserTab> SignedInAsync(BrowserFixture browser, ScreenHostBase host, string name)
+    public static Task<BrowserTab> SignedInAsync(BrowserFixture browser, ScreenHost host, string name)
     {
         ArgumentNullException.ThrowIfNull(browser);
         ArgumentNullException.ThrowIfNull(host);
         return EnterAsync(browser, host, name);
     }
 
-    private static async Task<BrowserTab> EnterAsync(BrowserFixture browser, ScreenHostBase host, string name)
+    private static async Task<BrowserTab> EnterAsync(BrowserFixture browser, ScreenHost host, string name)
     {
         var tab = await browser.OpenAtAsync(host.Address, "/entrada");
         try

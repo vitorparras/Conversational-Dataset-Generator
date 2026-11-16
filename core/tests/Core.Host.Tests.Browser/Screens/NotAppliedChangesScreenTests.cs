@@ -24,7 +24,7 @@ public sealed class NotAppliedChangesScreenTests(BrowserFixture browser, ChangeH
     [Fact]
     public async Task AChangeApprovedAndNeverToBeAppliedIsShownAsNotAppliedWithTheReasonInWordsAndNoValueNorName()
     {
-        var key = await changes.Host.RefuseAsync("approver_not_allowed");
+        var key = await changes.Case.RefuseAsync("approver_not_allowed");
         await using var tab = await OpenAsync();
 
         var item = tab.Page.Locator(Panel + " li").First;
@@ -36,7 +36,7 @@ public sealed class NotAppliedChangesScreenTests(BrowserFixture browser, ChangeH
         var text = await tab.Page.Locator(Panel).InnerTextAsync();
         Assert.DoesNotContain("00:25:00", text, StringComparison.Ordinal);
         Assert.DoesNotContain(changes.Host.Administrator, text, StringComparison.Ordinal);
-        Assert.DoesNotContain(changes.Host.SecondAdministrator, text, StringComparison.Ordinal);
+        Assert.DoesNotContain(changes.Case.SecondAdministrator, text, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -45,7 +45,7 @@ public sealed class NotAppliedChangesScreenTests(BrowserFixture browser, ChangeH
     public async Task TheScreenWithTheNotAppliedPanelHasNoViolationAt1280AndOnThePhoneWidth(string name)
     {
         var mode = MediaMode.Named(name);
-        _ = await changes.Host.RefuseAsync("same_author");
+        _ = await changes.Case.RefuseAsync("same_author");
         await using var tab = await OpenAsync();
         await mode.ApplyAsync(tab.Page);
         await tab.Page.SetViewportSizeAsync(WideWidth, WideHeight);

@@ -35,7 +35,7 @@ public sealed class EmptyingEntryTests(BrowserFixture browser, EmptyingHostFixtu
     [Fact]
     public async Task Ca1AnItemSaysWhatWillBeEmptiedAndOffersTheWayOnToTheConfirmationAndNothingElse()
     {
-        var item = emptying.Host.NextItem();
+        var item = emptying.Case.NextItem();
         await using var tab = await OpenAsync(browser, emptying.Host, emptying.Host.Curator, Entry);
 
         await tab.Page.Locator("#item").FillAsync(item.ToString(CultureInfo.InvariantCulture));
@@ -47,7 +47,7 @@ public sealed class EmptyingEntryTests(BrowserFixture browser, EmptyingHostFixtu
         await Expect(tab.Page.Locator(Target)).ToContainTextAsync("Ficam o identificador, a marca de esvaziado e o registro.");
         var facts = await FactsAsync(tab.Page);
         Assert.Equal(["Domínio", "Estado"], facts.Keys);
-        Assert.Equal(EmptyingScreenHost.Domain, facts["Domínio"]);
+        Assert.Equal(EmptyingCase.Domain, facts["Domínio"]);
         Assert.EndsWith(NotEmptied, facts["Estado"], StringComparison.Ordinal);
         await Expect(tab.Page.GetByRole(AriaRole.Link, new() { Name = "Seguir para o esvaziamento" })).ToHaveAttributeAsync("href", ConfirmOf(item));
         await Expect(tab.Page.Locator("#item")).ToHaveValueAsync(item.ToString(CultureInfo.InvariantCulture));
@@ -92,8 +92,8 @@ public sealed class EmptyingEntryTests(BrowserFixture browser, EmptyingHostFixtu
     [Fact]
     public async Task Ca4AnItemAlreadyEmptiedIsToldSoWithTheRecordOfWhoExecutedItWhenWhyAndForWhichProtocolAndNoWayToEmptyItAgain()
     {
-        var (item, protocol) = (emptying.Host.NextItem(), Protocol());
-        await emptying.Host.EmptyAsync(item, EmptyingMotive.ContractRequirement, protocol);
+        var (item, protocol) = (emptying.Case.NextItem(), Protocol());
+        await emptying.Case.EmptyAsync(item, EmptyingMotive.ContractRequirement, protocol);
         var before = DateTimeOffset.UtcNow;
         await using var tab = await OpenAsync(browser, emptying.Host, emptying.Host.Curator, EntryOf(item));
 
@@ -114,8 +114,8 @@ public sealed class EmptyingEntryTests(BrowserFixture browser, EmptyingHostFixtu
     [Fact]
     public async Task Ca4TheAddressOfTheConfirmationOfAnItemAlreadyEmptiedLeadsToTheEntryThatSaysSo()
     {
-        var item = emptying.Host.NextItem();
-        await emptying.Host.EmptyAsync(item, EmptyingMotive.RemovalRequestedBySubject, Protocol());
+        var item = emptying.Case.NextItem();
+        await emptying.Case.EmptyAsync(item, EmptyingMotive.RemovalRequestedBySubject, Protocol());
         await using var tab = await OpenAsync(browser, emptying.Host, emptying.Host.Curator, Entry);
 
         _ = await tab.Page.GotoAsync(ConfirmOf(item));
@@ -128,8 +128,8 @@ public sealed class EmptyingEntryTests(BrowserFixture browser, EmptyingHostFixtu
     [Fact]
     public async Task TheRecordNamesWhoExecutedItAndOnlyTheProtocolOfWhoAskedNeverTheirName()
     {
-        var (item, protocol) = (emptying.Host.NextItem(), Protocol());
-        await emptying.Host.EmptyAsync(item, EmptyingMotive.RemovalRequestedBySubject, protocol);
+        var (item, protocol) = (emptying.Case.NextItem(), Protocol());
+        await emptying.Case.EmptyAsync(item, EmptyingMotive.RemovalRequestedBySubject, protocol);
         await using var tab = await OpenAsync(browser, emptying.Host, emptying.Host.Curator, EntryOf(item));
 
         var facts = await FactsAsync(tab.Page);

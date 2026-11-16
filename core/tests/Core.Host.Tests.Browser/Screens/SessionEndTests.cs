@@ -193,7 +193,7 @@ public sealed class SessionEndTests(BrowserFixture browser, AccountHostFixture a
     /// <summary>The current session and the number of others of the same person that the test asks for, each in a context of its own.</summary>
     private async Task<Sessions> SessionsAsync(int others)
     {
-        var person = await account.Host.AddPersonAsync();
+        var person = await account.Case.AddPersonAsync();
         var opened = new List<BrowserTab>();
         try
         {

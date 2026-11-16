@@ -63,7 +63,7 @@ public sealed class EntryScreenTests(BrowserFixture browser, EntryHostFixture en
     public async Task Ca6TheEntryOfAnEmptyRegistryHasNoViolationAndSaysSo(string name)
     {
         var mode = MediaMode.Named(name);
-        await using var empty = await EntryScreenHost.StartAsync(withPerson: false, TestContext.Current.CancellationToken);
+        await using var empty = await EntryCase.StartAsync(withPerson: false, TestContext.Current.CancellationToken);
         await using var tab = await browser.OpenAtAsync(empty.Address, Entry);
         await mode.ApplyAsync(tab.Page);
 

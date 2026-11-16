@@ -1,22 +1,21 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Core.Host.Endpoints;
 using Core.Persistence.Content.Emptying;
-using Core.Persistence.Custody;
 using Core.Persistence.People;
 using Core.Persistence.Tests.Fixtures;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 
 namespace Core.Host.Tests.Browser.Fixtures;
 
 /// <summary>
-/// The host of the screens of the emptying of an item (issue 617) with the real routes, the real desk and the real emptier, over a database that holds two domains, <see cref="Domain"/>, which the
+/// The case of the screens of the emptying of an item (issue 617) with the real routes, the real desk and the real emptier, over a database that holds two domains, <see cref="Domain"/>, which the
 /// curation has granted, and <see cref="OtherDomain"/>, which it has not, with <see cref="Items"/> items with content in the first and one in the second, put in by the owner outside the system.
 /// Besides the four people of the run it has a person of the curation with no domain granted, <see cref="UngrantedCurator"/>. A test takes an item of its own with <see cref="NextItem"/>, because
 /// an emptying cannot be undone.
 /// </summary>
-internal sealed class EmptyingScreenHost : ScreenHostBase
+internal sealed class EmptyingCase : IAsyncDisposable
 {
     /// <summary>The domain the curation has granted, which is the active one.</summary>
     public const string Domain = "zqx-dominio-a";
@@ -35,29 +34,34 @@ internal sealed class EmptyingScreenHost : ScreenHostBase
 
     private int taken;
 
-    private EmptyingScreenHost(ScratchDatabase database)
-        : base(database)
+    private EmptyingCase(ScreenHost host, string ungrantedCurator)
     {
+        Host = host;
+        UngrantedCurator = ungrantedCurator;
     }
 
-    /// <summary>The person of the curation of the collection with no domain granted, who reaches nothing of the emptying.</summary>
-    public string UngrantedCurator { get; } = $"zqx-curadoria-sem-dominio-{Guid.NewGuid():N}";
+    /// <summary>The host of the case.</summary>
+    public ScreenHost Host { get; }
 
-    public static async Task<EmptyingScreenHost> StartAsync(CancellationToken cancellationToken)
+    /// <summary>The person of the curation of the collection with no domain granted, who reaches nothing of the emptying.</summary>
+    public string UngrantedCurator { get; }
+
+    [SuppressMessage("Reliability", "CA2000", Justification = "The host goes to the case that is returned, which disposes it.")]
+    public static async Task<EmptyingCase> StartAsync(CancellationToken cancellationToken)
     {
-        var host = await StartAsync(database => new EmptyingScreenHost(database), host => host.SeedAsync(), cancellationToken);
-        try
-        {
-            await using var source = NpgsqlDataSource.Create(host.Database.AppConnectionString);
-            var created = await new PersonRegistry(source).CreateAsync(new NewPerson(host.UngrantedCurator, PersonFunctions.Curation), CustodyAuthor.System, cancellationToken);
-            _ = await new PersonCredentials(source, new PasswordDerivation(1)).SetPasswordAsync(created.PersonId!.Value, host.Password, CustodyAuthor.System, cancellationToken);
-            return host;
-        }
-        catch
-        {
-            await host.DisposeAsync();
-            throw;
-        }
+        var ungranted = $"zqx-curadoria-sem-dominio-{Guid.NewGuid():N}";
+        var host = await ScreenHost.StartAsync(
+            new ScreenParts
+            {
+                Services = (services, setup) =>
+                    _ = services.AddSingleton<DomainGrants>(provider => new GrantedToTheCurator(provider.GetRequiredService<NpgsqlDataSource>(), setup.People.Curator))
+                        .AddSingleton(provider => ItemEmptyingDesk.On(provider.GetRequiredService<NpgsqlDataSource>())),
+                Screens = EmptyingScreensEndpoint.Map,
+                Prepare = SeedAsync,
+                Finish = started => started.AddPersonAsync(ungranted, PersonFunctions.Curation, cancellationToken),
+            },
+            cancellationToken);
+        return new EmptyingCase(host, ungranted);
     }
 
     /// <summary>An item of the first domain no other test has taken, with content and not emptied.</summary>
@@ -70,9 +74,8 @@ internal sealed class EmptyingScreenHost : ScreenHostBase
     /// <summary>Empties the item as the person of the curation, as the screen would, so that a test starts from an item that is emptied already.</summary>
     public async Task EmptyAsync(int item, EmptyingMotive motive, string protocol)
     {
-        await using var source = NpgsqlDataSource.Create(Database.AppConnectionString);
-        var curator = await PersonIdOfAsync(Curator);
-        var result = await ItemEmptyingDesk.On(source).EmptyAsync(curator, new ItemEmptyingDesk.EmptyingRequest(1, item, motive, protocol), CancellationToken.None);
+        await using var source = NpgsqlDataSource.Create(Host.Database.AppConnectionString);
+        var result = await ItemEmptyingDesk.On(source).EmptyAsync(Host.CuratorId, new ItemEmptyingDesk.EmptyingRequest(1, item, motive, protocol), CancellationToken.None);
         if (result.Outcome != EmptyingOutcome.Emptied)
         {
             throw new InvalidOperationException($"The emptying of item {item} ended in {result.Outcome}.");
@@ -81,28 +84,21 @@ internal sealed class EmptyingScreenHost : ScreenHostBase
 
     /// <summary>The events of the chain about the emptying of the item, each as the step, the reason, the protocol and the name of the person, in the order of the chain.</summary>
     public Task<IReadOnlyList<string>> EventsOfAsync(int item) =>
-        Database.FirstColumnAsOwnerAsync(
+        Host.Database.FirstColumnAsOwnerAsync(
             "SELECT e.step || '|' || e.reason || '|' || e.reference || '|' || COALESCE(p.name, '') FROM public.custody_event e "
             + $"LEFT JOIN public.person p ON p.id = e.actor_person_id WHERE e.item_id = {item} AND e.step LIKE 'item_empt%' ORDER BY e.sequence");
 
     /// <summary>How many events the chain holds, of any kind.</summary>
-    public async Task<int> ChainLengthAsync() => int.Parse((await Database.FirstColumnAsOwnerAsync("SELECT count(*)::text FROM public.custody_event")).Single(), CultureInfo.InvariantCulture);
+    public async Task<int> ChainLengthAsync() => int.Parse((await Host.Database.FirstColumnAsOwnerAsync("SELECT count(*)::text FROM public.custody_event")).Single(), CultureInfo.InvariantCulture);
 
-    protected override void AddServices(IServiceCollection services) =>
-        _ = services.AddSingleton<DomainGrants>(provider => new GrantedToTheCurator(provider.GetRequiredService<NpgsqlDataSource>(), Curator))
-            .AddSingleton(provider => ItemEmptyingDesk.On(provider.GetRequiredService<NpgsqlDataSource>()));
-
-    protected override void MapScreens(IEndpointRouteBuilder routes) => EmptyingScreensEndpoint.Map(routes);
-
-    private async Task<long> PersonIdOfAsync(string name) =>
-        long.Parse((await Database.FirstColumnAsOwnerAsync($"SELECT id::text FROM public.person WHERE name = '{name}'")).Single(), CultureInfo.InvariantCulture);
+    public ValueTask DisposeAsync() => Host.DisposeAsync();
 
     private static string ContentOf(int domain, int count) =>
         "INSERT INTO content.item_text (domain_id, batch_id, raw_text, sanitized_text, pseudonymized_text, dek_epoch, dek_wrapped) "
         + $"SELECT {domain}, {domain}, '\x01', '\x02', 'zqx', 1, '\x03' FROM generate_series(1, {count})";
 
-    private async Task SeedAsync() =>
-        await Database.RunAsOwnerAsync(
+    private static Task SeedAsync(ScratchDatabase database) =>
+        database.RunAsOwnerAsync(
             [
                 $"INSERT INTO public.domain (name) VALUES ('{Domain}'), ('{OtherDomain}')",
                 .. SeededBatches.Statements(1, 2),

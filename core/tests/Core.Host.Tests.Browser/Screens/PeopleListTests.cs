@@ -66,7 +66,7 @@ public sealed class PeopleListTests(BrowserFixture browser, PeopleHostFixture pe
     public async Task TheFunctionTheFormFiltersByAndTheAddressKeepsLeavesOnlyThePeopleOfThatFunction()
     {
         await using var tab = await OpenAsync(browser, people.Host, people.Host.Administrator, List);
-        var function = PeopleScreenHost.Listed[1].Function;
+        var function = PeopleCase.Listed[1].Function;
 
         await tab.Page.Locator("#filtro > summary").ClickAsync();
         await tab.Page.Locator("#filtro-nome").FillAsync("zqx-lista-");
@@ -126,7 +126,7 @@ public sealed class PeopleListTests(BrowserFixture browser, PeopleHostFixture pe
     {
         await using var tab = await OpenAsync(browser, people.Host, people.Host.Administrator, $"{Listed}&funcao=Inexistente");
 
-        await Expect(tab.Page.Locator("#lista-titulo")).ToHaveTextAsync($"{PeopleScreenHost.Listed.Count} pessoas");
+        await Expect(tab.Page.Locator("#lista-titulo")).ToHaveTextAsync($"{PeopleCase.Listed.Count} pessoas");
         await Expect(tab.Page.Locator("#filtro-funcao")).ToHaveValueAsync(string.Empty);
     }
 

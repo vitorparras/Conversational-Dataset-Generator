@@ -90,7 +90,7 @@ public sealed class ChainCheckTests(BrowserFixture browser, IntactChainHostFixtu
 
         await Expect(tab.Page).ToHaveURLAsync(new Regex(@"/custodia\?pedida$"));
         await Expect(FactOf(tab.Page, "Resultado")).ToContainTextAsync("Quebrada: um elo não confere");
-        await Expect(FactOf(tab.Page, "Incidente")).ToContainTextAsync($"evento nº {ChainScreenHost.BrokenSequence}");
+        await Expect(FactOf(tab.Page, "Incidente")).ToContainTextAsync($"evento nº {ChainCase.BrokenSequence}");
         await Expect(FactOf(tab.Page, "Pedida por")).ToHaveTextAsync(broken.Host.Administrator);
     }
 
@@ -174,9 +174,9 @@ public sealed class ChainCheckTests(BrowserFixture browser, IntactChainHostFixtu
 
     private static int Rows(string page) => Regex.Count(page, "<tr", RegexOptions.None, TimeSpan.FromSeconds(1)) - 1;
 
-    private Task<BrowserTab> OpenCheckAsync(ScreenHostBase host, string name) => SignedAtAsync(host, name, Check);
+    private Task<BrowserTab> OpenCheckAsync(ScreenHost host, string name) => SignedAtAsync(host, name, Check);
 
-    private async Task<BrowserTab> SignedAtAsync(ScreenHostBase host, string name, string route)
+    private async Task<BrowserTab> SignedAtAsync(ScreenHost host, string name, string route)
     {
         var tab = await ScreenSession.SignedInAsync(browser, host, name);
         try

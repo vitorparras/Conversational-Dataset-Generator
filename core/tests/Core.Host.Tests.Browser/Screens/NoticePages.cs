@@ -24,15 +24,15 @@ internal static class NoticePages
     public const string SuspendedBanner = "A escrita está suspensa nos domínios: a última verificação da cadeia de custódia não conferiu. A leitura continua.";
 
     /// <summary>The list of the notices, open for the person who entered.</summary>
-    public static Task<BrowserTab> OpenListAsync(BrowserFixture browser, ScreenHostBase host, string name) =>
+    public static Task<BrowserTab> OpenListAsync(BrowserFixture browser, ScreenHost host, string name) =>
         OpenAsync(browser, host, name, List, "Avisos");
 
     /// <summary>The screen of the domains, open for the person who entered.</summary>
-    public static Task<BrowserTab> OpenDomainsAsync(BrowserFixture browser, ScreenHostBase host, string name) =>
+    public static Task<BrowserTab> OpenDomainsAsync(BrowserFixture browser, ScreenHost host, string name) =>
         OpenAsync(browser, host, name, DomainsRoute, "Domínios");
 
     /// <summary>Enters with the name and the password given, in a context of its own, as the person does after a password set again.</summary>
-    public static async Task<BrowserTab> EnterAsync(BrowserFixture browser, ScreenHostBase host, string name, string password)
+    public static async Task<BrowserTab> EnterAsync(BrowserFixture browser, ScreenHost host, string name, string password)
     {
         var tab = await browser.OpenAtAsync(host.Address, "/entrada");
         try
@@ -61,7 +61,7 @@ internal static class NoticePages
     /// <summary>The words a row of the list says of its notice, without the button.</summary>
     public static ILocator WordsOfRows(IPage page) => page.Locator($"{Rows} th[scope=row]");
 
-    private static async Task<BrowserTab> OpenAsync(BrowserFixture browser, ScreenHostBase host, string name, string route, string title)
+    private static async Task<BrowserTab> OpenAsync(BrowserFixture browser, ScreenHost host, string name, string route, string title)
     {
         var tab = await ScreenSession.SignedInAsync(browser, host, name);
         try

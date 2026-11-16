@@ -37,11 +37,10 @@ alcançado por omissão (`core/src/Core.Host/Endpoints/ScreenAccess.cs`, linhas 
 - `Results.StatusCode(503)` cru numa tela (`DomainScreensEndpoint`, linhas 24 a 26); use a página.
   A rota de JSON responde o código cru (`ChainVerificationEndpoint`, linha 20).
 - Duas escritas sem transação na mesma rota (`OperatorRegistration`, linhas 32 e 38).
-- Ler o corpo do formulário (`HasFormContentType`, `ReadFormAsync`, `Request.Form`) ou obter a
-  pessoa da sessão com `Resolve(SessionCookie.Read(...))` na rota; o leitor é o único caminho, e
-  `RequestReaderTests` reprova o resto. Exceção: o ato sobre as sessões da pessoa (`ListOf`,
-  `CloseOthersOf`, a troca de senha) precisa também do identificador do cookie; ele guarda o
-  identificador numa variável, e a pessoa vem do leitor sempre que o ato não precisa do identificador
-  (`AccountEndpoint.EndSession`).
+- Ler o corpo do formulário (`Request.Form`) ou obter a pessoa da sessão com
+  `Resolve(SessionCookie.Read(...))` na rota; o leitor é o único caminho, e `RequestReaderTests`
+  reprova o resto. Exceção: o ato sobre as sessões da pessoa (`ListOf`, `CloseOthersOf`, a troca de
+  senha) precisa também do identificador do cookie; ele guarda o identificador numa variável, e a
+  pessoa vem do leitor sempre que o ato não precisa do identificador (`AccountEndpoint.EndSession`).
 - Proteção contra envio forjado é o `SameSite=Strict` do cookie (`SessionCookie`, linha 8); rota
   que mude estado por GET quebra essa defesa.

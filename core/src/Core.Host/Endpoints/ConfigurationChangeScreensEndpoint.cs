@@ -3,7 +3,6 @@ using Core.Host.Screens;
 using Core.Host.Settings;
 using Core.Persistence.People;
 using Core.Platform.Configuration;
-using Core.Platform.Sessions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Core.Host.Endpoints;
@@ -26,7 +25,7 @@ internal static class ConfigurationChangeScreensEndpoint
     }
 
     private static async Task<IResult> ShowAsync(HttpContext context, [FromServices] ChangeDecisionDesk? decisions, [FromServices] EffectiveConfiguration configuration) =>
-        decisions is null || ActorOf(context) is not { } actor
+        decisions is null || RequestReader.SessionOf(context) is not { } actor
             ? ScreenResult.Unavailable(context)
             : await PageAsync(context, decisions, configuration, new Dictionary<string, object?>(StringComparer.Ordinal)
             {
@@ -37,12 +36,12 @@ internal static class ConfigurationChangeScreensEndpoint
     private static async Task<IResult> SubmitAsync(
         HttpContext context, [FromServices] ConfigurationChangeDesk? desk, [FromServices] ChangeDecisionDesk? decisions, [FromServices] EffectiveConfiguration configuration)
     {
-        if (desk is null || decisions is null || ActorOf(context) is not { } actor)
+        if (desk is null || decisions is null || RequestReader.SessionOf(context) is not { } actor)
         {
             return ScreenResult.Unavailable(context);
         }
 
-        var form = await context.Request.ReadFormAsync(context.RequestAborted);
+        var form = await FormOrEmptyAsync(context);
         var request = new ChangeRequest(
             form[ConfigurationChangeScreen.KeyField].ToString(), form[ConfigurationChangeScreen.ValueField].ToString(), form[ConfigurationChangeScreen.MotiveField].ToString(), actor);
         var answer = await desk.SubmitAsync(request, context.RequestAborted);
@@ -71,12 +70,12 @@ internal static class ConfigurationChangeScreensEndpoint
     /// <summary>Approves or refuses the submission the form names; an identifier that is not a number, or a decision that is neither, leads nowhere and decides nothing.</summary>
     private static async Task<IResult> DecideAsync(HttpContext context, [FromServices] ChangeDecisionDesk? decisions, [FromServices] EffectiveConfiguration configuration)
     {
-        if (decisions is null || ActorOf(context) is not { } actor)
+        if (decisions is null || RequestReader.SessionOf(context) is not { } actor)
         {
             return ScreenResult.Unavailable(context);
         }
 
-        var form = await context.Request.ReadFormAsync(context.RequestAborted);
+        var form = await FormOrEmptyAsync(context);
         var decision = form[ConfigurationChangeScreen.DecisionField].ToString();
         if (!long.TryParse(form[ConfigurationChangeScreen.ChangeField], NumberStyles.None, CultureInfo.InvariantCulture, out var changeId)
             || decision is not (ConfigurationChangeScreen.Approve or ConfigurationChangeScreen.Refuse))
@@ -111,8 +110,7 @@ internal static class ConfigurationChangeScreensEndpoint
         return ScreenResult.Of(context, typeof(ConfigurationChangeScreen), ConfigurationChangeScreen.Title, screen);
     }
 
-
-    private static long? ActorOf(HttpContext context) => context.RequestServices.GetRequiredService<SessionStore>().Resolve(SessionCookie.Read(context.Request));
+    private static async Task<IFormCollection> FormOrEmptyAsync(HttpContext context) => await RequestReader.FormAsync(context) ?? FormCollection.Empty;
 
     private static IResult Back(HttpContext context, string done)
     {

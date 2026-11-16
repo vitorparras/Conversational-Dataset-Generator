@@ -1,7 +1,6 @@
 using System.Globalization;
 using Core.Host.Operators;
 using Core.Host.Screens;
-using Core.Platform.Sessions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Core.Host.Endpoints;
@@ -24,14 +23,14 @@ internal static class NoticeScreensEndpoint
 
     internal static string ReadPath(long id) => string.Create(CultureInfo.InvariantCulture, $"{ScreenPaths.Notices}/{id}/{ReadMark}");
 
-    private static async Task<IResult> ListAsync(HttpContext context, [FromServices] OperatorAdministration? staff, [FromServices] SessionStore sessions)
+    private static async Task<IResult> ListAsync(HttpContext context, [FromServices] OperatorAdministration? staff)
     {
         if (staff is null)
         {
             return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
 
-        if (sessions.Resolve(SessionCookie.Read(context.Request)) is not { } person)
+        if (RequestReader.SessionOf(context) is not { } person)
         {
             return ScreenResult.NotFound(context);
         }
@@ -44,14 +43,14 @@ internal static class NoticeScreensEndpoint
         return ScreenResult.Of(context, typeof(NoticeScreen), NoticeScreen.Title, screen);
     }
 
-    private static async Task<IResult> ReadAsync(string id, HttpContext context, [FromServices] OperatorAdministration? staff, [FromServices] SessionStore sessions)
+    private static async Task<IResult> ReadAsync(string id, HttpContext context, [FromServices] OperatorAdministration? staff)
     {
         if (staff is null)
         {
             return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
 
-        var marked = sessions.Resolve(SessionCookie.Read(context.Request)) is { } person
+        var marked = RequestReader.SessionOf(context) is { } person
             && long.TryParse(id, NumberStyles.None, CultureInfo.InvariantCulture, out var notice)
             && await staff.Notices.MarkReadAsync(person, notice, context.RequestAborted);
         return marked ? PageRedirect.Of(context, $"{ScreenPaths.Notices}?{ReadMark}") : ScreenResult.NotFound(context);

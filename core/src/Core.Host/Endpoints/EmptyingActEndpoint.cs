@@ -1,6 +1,5 @@
 using Core.Host.Screens;
 using Core.Persistence.Content.Emptying;
-using Core.Platform.Sessions;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
@@ -46,13 +45,13 @@ internal static class EmptyingActEndpoint
         }
 
         var domain = await EmptyingScreensEndpoint.ActiveAsync(context, desk);
-        var entered = context.RequestServices.GetRequiredService<SessionStore>().Resolve(SessionCookie.Read(context.Request));
+        var entered = RequestReader.SessionOf(context);
         if (domain is null || entered is not { } identifier)
         {
             return ScreenResult.NotFound(context);
         }
 
-        var form = context.Request.HasFormContentType ? await context.Request.ReadFormAsync(context.RequestAborted) : null;
+        var form = await RequestReader.FormAsync(context);
         var typed = form?[EmptyingScreen.ItemField].ToString() ?? string.Empty;
         return EmptyingScreensEndpoint.TryItem(typed, out var item)
             ? await ActAsync(context, (desk, domain, identifier), new Posted(item, form))

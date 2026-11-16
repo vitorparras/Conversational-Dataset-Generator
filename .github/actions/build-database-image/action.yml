@@ -2,13 +2,17 @@ name: Dar a imagem do banco de teste
 description: >-
   Entrega pelo nome em TEST_DATABASE_IMAGE a imagem de tools/database, para que os projetos de teste a usem sem construí-la cada um.
   A imagem tem como etiqueta o hash dos arquivos que a definem e vive no GHCR: se a etiqueta existe, o job só a baixa; se não, constrói
-  e publica. Sem permissão de pacote (pull request de fork) constrói local e não publica. Se a construção cai, cai aqui, com o log dela
-  e, no resumo do job, as linhas `E:` do apt.
+  aqui e, só com `publish: true`, a publica. Sem login (pull request de fork) constrói local. O login some ao fim do passo, antes de o
+  job rodar código do pull request. Se a construção cai, cai aqui, com o log dela e, no resumo do job, as linhas `E:` do apt.
 
 inputs:
   token:
-    description: Token com permissão de ler (e, se houver, de escrever) pacotes do repositório.
+    description: Token com permissão de ler pacotes do repositório (e de escrevê-los, se `publish`).
     default: ${{ github.token }}
+  publish:
+    description: >-
+      `true` só no job que roda no main e tem `packages: write`: publica a imagem que construiu. Em pull request e no build remoto fica `false`.
+    default: 'false'
 
 runs:
   using: composite
@@ -17,30 +21,5 @@ runs:
       shell: bash
       env:
         TOKEN: ${{ inputs.token }}
-      run: |
-        set -o pipefail
-        image=$(python3 tools/verify-code/database_image.py "$GITHUB_REPOSITORY")
-        logged=false
-        if echo "$TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin > /dev/null 2>&1; then logged=true; fi
-        if [ "$logged" = true ] && docker pull --quiet "$image" > /dev/null 2>&1; then
-          echo "Imagem do banco baixada do GHCR: $image"
-          echo "TEST_DATABASE_IMAGE=$image" >> "$GITHUB_ENV"
-          exit 0
-        fi
-        log="$RUNNER_TEMP/database-image-build.log"
-        source="https://github.com/$GITHUB_REPOSITORY"
-        if ! python3 tools/verify-code/retry.py -- docker build --progress=plain --label "org.opencontainers.image.source=$source" --tag "$image" tools/database 2>&1 | tee "$log"; then
-          {
-            echo '### A imagem do banco de teste não foi construída'
-            echo
-            echo '```'
-            grep -E '^(#[0-9]+ +[0-9.]+ +)?E: ' "$log" | sed -E 's/^#[0-9]+ +[0-9.]+ +//' | awk '!seen[$0]++' \
-              || echo 'o apt não escreveu nenhuma linha `E:`; a causa está no fim do log do build'
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-          exit 1
-        fi
-        if [ "$logged" = true ]; then
-          docker push --quiet "$image" > /dev/null || echo '::warning::a imagem do banco não foi publicada no GHCR (sem permissão de pacote?); este job usa a construída aqui'
-        fi
-        echo "TEST_DATABASE_IMAGE=$image" >> "$GITHUB_ENV"
+        PUBLISH: ${{ inputs.publish }}
+      run: python3 tools/verify-code/database_image.py --provide "$GITHUB_REPOSITORY"

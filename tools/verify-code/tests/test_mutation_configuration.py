@@ -56,8 +56,9 @@ class MutationModuleJobTests(unittest.TestCase):
 
     def test_the_job_runs_unless_the_list_declared_that_no_module_is_reached(self) -> None:
         self.assertIn(
-            "if: needs.mutation_modules.outputs.modules != '[]' "
-            "&& github.event.pull_request.draft != true\n",
+            "if: ${{ !cancelled() && needs.mutation_modules.result == 'success' "
+            "&& needs.mutation_modules.outputs.modules != '[]' "
+            "&& github.event.pull_request.draft != true }}\n",
             module_job(),
         )
         self.assertNotIn("schedule", module_job())

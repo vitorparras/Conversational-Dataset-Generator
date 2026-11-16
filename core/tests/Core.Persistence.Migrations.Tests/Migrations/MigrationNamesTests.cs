@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using Core.Persistence.Migrations;
 
 namespace Core.Persistence.Tests.Migrations;
@@ -57,6 +56,17 @@ public sealed class MigrationNamesTests
         Assert.Equal(onDisk, EmbeddedMigrations.Load().Select(step => step.Name));
     }
 
-    private static string SqlFolder([CallerFilePath] string testFile = "") =>
-        Path.GetFullPath(Path.Combine(Path.GetDirectoryName(testFile)!, "..", "..", "..", "src", "Core.Persistence", "Migrations", "Sql"));
+    private static string SqlFolder()
+    {
+        var folder = Path.Combine("core", "src", "Core.Persistence", "Migrations", "Sql");
+        for (var up = new DirectoryInfo(AppContext.BaseDirectory); up is not null; up = up.Parent)
+        {
+            if (Directory.Exists(Path.Combine(up.FullName, folder)))
+            {
+                return Path.Combine(up.FullName, folder);
+            }
+        }
+
+        throw new DirectoryNotFoundException($"No parent of the test binaries holds {folder}.");
+    }
 }

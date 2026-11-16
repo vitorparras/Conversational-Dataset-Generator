@@ -4,10 +4,7 @@ using Core.Persistence.Ingestion;
 
 namespace Core.Host.Review;
 
-/// <summary>
-/// The items of the sample as the screen shows them. While the batch is open each text is read through the door of the sample, which records the reading of each one;
-/// once the batch is decided no text is read again, and the items say so.
-/// </summary>
+/// <summary>The items of the sample as the screen shows them: while the batch is open each text is read through the door of the sample, which records each reading; once it is decided no text is read again.</summary>
 internal static class SampleItems
 {
     private const string Decided = "O texto deste item não é mais mostrado: o lote já foi decidido.";

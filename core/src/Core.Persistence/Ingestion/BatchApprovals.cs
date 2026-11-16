@@ -7,13 +7,18 @@ using Npgsql;
 
 namespace Core.Persistence.Ingestion;
 
-/// <summary>
-/// The approval of a batch after the review of its whole sample found nothing (issue 822): the review and the acceptance
-/// are two events of the chain and two changes of the row in one transaction, so that a batch is never reviewed and left open
-/// by an approval, nor accepted without the review. When the material is already in an accepted batch of the domain, the batch is not accepted.
-/// </summary>
-public sealed class BatchApprovals(NpgsqlDataSource dataSource)
+/// <summary>The approval of a batch after its whole sample was reviewed with no finding (issue 822): the review and the acceptance are two events of the chain and two changes of the row in one transaction; a batch whose material is already in an accepted batch of the domain is not accepted.</summary>
+public sealed class BatchApprovals
 {
+    private readonly NpgsqlDataSource dataSource;
+
+    /// <summary>Approvals over the database of the application.</summary>
+    /// <param name="dataSource">The data source with the credential of the application.</param>
+    public BatchApprovals(NpgsqlDataSource dataSource)
+    {
+        this.dataSource = dataSource;
+    }
+
     /// <summary>Records the clean review of the whole sample and accepts the batch with it.</summary>
     /// <param name="request">The batch and the person who approves.</param>
     /// <param name="cancellationToken">Cancels the request.</param>

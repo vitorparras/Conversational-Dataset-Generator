@@ -3,13 +3,18 @@ using Npgsql;
 
 namespace Core.Persistence.Ingestion;
 
-/// <summary>
-/// The progress of the review of the sample (issue 822): each item of the sample is marked as reviewed in the order it was drawn,
-/// one by one, and the database refuses a mark that is not the next. The mark has no event of its own in the chain:
-/// each text read is an event, and the review that follows (clean or with a finding) is another.
-/// </summary>
-public sealed class SampleMarks(NpgsqlDataSource dataSource)
+/// <summary>The progress of the review of the sample (issue 822): each item is marked as reviewed in the order it was drawn, and the database refuses a mark that is not the next; the mark has no event of its own, since each text read and the review that follows are events.</summary>
+public sealed class SampleMarks
 {
+    private readonly NpgsqlDataSource dataSource;
+
+    /// <summary>Marks over the database of the application.</summary>
+    /// <param name="dataSource">The data source with the credential of the application.</param>
+    public SampleMarks(NpgsqlDataSource dataSource)
+    {
+        this.dataSource = dataSource;
+    }
+
     /// <summary>Marks the place of the sample as reviewed, when it is the one right after the last marked.</summary>
     /// <param name="request">The batch and the place to mark.</param>
     /// <param name="cancellationToken">Cancels the request.</param>

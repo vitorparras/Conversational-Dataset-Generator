@@ -9,13 +9,21 @@ using Npgsql;
 
 namespace Core.Persistence.Ingestion;
 
-/// <summary>
-/// The reading of the text of an item of the sample, while the batch is open (issue 822): the row policy hides the items of an open batch, so the door is a function of the database that answers
-/// only for an item the sample drew and only after the event of the reading was written in this very transaction. The event, the text and its opening are one transaction: when anything after
-/// the event refuses, nothing is recorded, because nothing was read.
-/// </summary>
-public sealed class SampleTextReader(NpgsqlDataSource dataSource, ProtectedContent protectedContent)
+/// <summary>The reading of the text of an item of the sample while the batch is open (issue 822): a door of the database that answers only for an item the sample drew and only after the event of the reading was written in the same transaction; when anything after the event refuses, nothing is recorded.</summary>
+public sealed class SampleTextReader
 {
+    private readonly NpgsqlDataSource dataSource;
+    private readonly ProtectedContent protectedContent;
+
+    /// <summary>Reads over the database of the application, opening the text with the keys the host holds.</summary>
+    /// <param name="dataSource">The data source with the credential of the application.</param>
+    /// <param name="protectedContent">The protected content that opens the sealed text.</param>
+    public SampleTextReader(NpgsqlDataSource dataSource, ProtectedContent protectedContent)
+    {
+        this.dataSource = dataSource;
+        this.protectedContent = protectedContent;
+    }
+
     /// <summary>Reads the text of the item of the sample, recording who read it before the text is opened.</summary>
     /// <param name="request">The batch, the item of its sample and the person who reads.</param>
     /// <param name="cancellationToken">Cancels the reading.</param>

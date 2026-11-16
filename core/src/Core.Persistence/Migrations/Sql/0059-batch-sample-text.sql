@@ -1,5 +1,5 @@
--- The text of an item of the sample for its review (issue 822). The row policy hides the items of an open batch from everyone but the transaction that wrote them, and the review reads them while the batch is
--- still open, so these two functions open exactly that door and no wider: the item must belong to the batch and the domain, be listed in the sample the batch drew, not be emptied, and the batch must be open
+-- The text of an item of the sample for its review (issue 822). The row policy hides the items of an open batch from everyone but the transaction that wrote them (batch_accepted_only), and the review reads
+-- them while the batch is still open, so these two functions open exactly that door and no wider, by reading under the content scope of the system, which the policy lets through: the item must belong to the batch and the domain, be listed in the sample the batch drew, not be emptied, and the batch must be open
 -- and sampled and not yet reviewed. The first tells which reading the item takes, the sanitized text when the item has it and the raw one when it has not, and nothing else about it, so that the event of
 -- the reading can be written with the right step. The second answers the sealed text and the key that opens it, and only when this very transaction already wrote the event of that reading, so that no
 -- text leaves without the chain saying who read which item. Both answer nothing otherwise. They run as their owner, under the row policy of the domain the caller declared, and give the scope back as they found it.

@@ -11,8 +11,11 @@ public sealed record SampleProgress(int Size, int Reviewed)
     /// <summary>Whether a place of the sample is marked as reviewed.</summary>
     public SampleDecision Mark(int position) => PlaceDecision(position);
 
-    /// <summary>Whether a finding of personal data can be told at a place: only at the one being reviewed, since the ones before it were read and marked as clean.</summary>
-    public SampleDecision Find(int position) => PlaceDecision(position);
+    /// <summary>
+    /// Whether a finding of personal data can be told at a place: at the one being reviewed or at one already marked, since one found late still rejects the batch; never at one not reached.
+    /// </summary>
+    public SampleDecision Find(int position) =>
+        position >= 1 && position <= Math.Min(Size, Reviewed + 1) ? SampleDecision.Allowed : PlaceDecision(position);
 
     /// <summary>Whether the batch can be approved: only when the sample has items and every one was reviewed.</summary>
     public SampleDecision Approve() => Size > 0 && Reviewed == Size ? SampleDecision.Allowed : SampleDecision.ReviewIncomplete;

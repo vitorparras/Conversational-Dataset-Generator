@@ -32,7 +32,6 @@ internal static class ScreenPaths
     internal const string Batches = "/lotes";
     internal const string BatchNew = "/lotes/novo";
     internal const string BatchDetail = "/lotes/{id:long}";
-    internal const string ReviewSuffix = "/revisao";
     internal const string BatchDraw = "/lotes/{id:long}/amostra";
     internal const string BatchReview = "/lotes/{id:long}/revisao";
     internal const string BatchReviewMark = "/lotes/{id:long}/revisao/itens/{place:int}/revisado";
@@ -41,4 +40,13 @@ internal static class ScreenPaths
 
     /// <summary>The address of the detail of a batch.</summary>
     internal static string BatchOf(long id) => string.Create(CultureInfo.InvariantCulture, $"/lotes/{id}");
+
+    /// <summary>The address of the review of the sample of a batch.</summary>
+    internal static string BatchReviewOf(long id) => string.Create(CultureInfo.InvariantCulture, $"/lotes/{id}/revisao");
+
+    /// <summary>The address where the sample of a batch is drawn.</summary>
+    internal static string BatchDrawOf(long id) => string.Create(CultureInfo.InvariantCulture, $"/lotes/{id}/amostra");
+
+    /// <summary>The address where a finding of personal data is told at a place of the sample.</summary>
+    internal static string BatchFindingOf(long id, int place) => string.Create(CultureInfo.InvariantCulture, $"/lotes/{id}/revisao/itens/{place}/achado");
 }

@@ -36,10 +36,10 @@ internal sealed class SampleReviewDesk
         await TurnedBackAsync(batch, progress => progress.Mark(place), cancellationToken).ConfigureAwait(false)
             ?? (await steps.Marks.MarkAsync(new BatchMarking(batch.DomainId, batch.Id, place), cancellationToken).ConfigureAwait(false)).Outcome;
 
-    /// <summary>Rejects the whole batch for the kind of personal data found at the place, which must be the next item of the sample.</summary>
+    /// <summary>Rejects the whole batch for the kind of personal data found at the place, which must be one already marked or the next item of the sample.</summary>
     internal async Task<BatchReviewOutcome> RejectAsync(BatchEntry batch, (int Place, string Kind, long Reviewer) found, CancellationToken cancellationToken) =>
         await TurnedBackAsync(batch, progress => progress.Find(found.Place), cancellationToken).ConfigureAwait(false)
-            ?? (await steps.Reviews.ReviewAsync(new BatchReviewing(batch.DomainId, batch.Id, found.Reviewer, found.Kind), cancellationToken).ConfigureAwait(false)).Outcome;
+            ?? (await steps.Reviews.ReviewAsync(new BatchReviewing(batch.DomainId, batch.Id, found.Reviewer, found.Kind, found.Place), cancellationToken).ConfigureAwait(false)).Outcome;
 
     /// <summary>
     /// Approves the batch, only when every item of the sample was reviewed. A copy of a file the domain already accepted is not approved: the database turns the approval back,

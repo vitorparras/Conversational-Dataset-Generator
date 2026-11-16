@@ -13,11 +13,16 @@ internal static class SampleReviewParts
     /// <summary>The desk over the database the startup container holds; none when no database is declared.</summary>
     internal static SampleReviewDesk DeskOf(IServiceProvider provider, IReadOnlyDictionary<string, string> values) =>
         provider.GetRequiredService<ServiceProvider>() is var startup && startup.GetService<NpgsqlDataSource>() is { } source
-            ? new SampleReviewDesk(
-                (new BatchReviews(source, AdmissionConfiguration.ReviewSampleSize(values)), new SampleMarks(source),
-                    new CopyClosing(new BatchApprovals(source), SubmissionParts.BatchesOf(source, values))),
-                (new PersonRegistry(source), token => AccessAsync(startup, source, token), AdmissionConfiguration.ReviewSampleSize(values)))
+            ? DeskOver(startup, source, values)
             : null!;
+
+    private static SampleReviewDesk DeskOver(IServiceProvider startup, NpgsqlDataSource source, IReadOnlyDictionary<string, string> values)
+    {
+        var size = AdmissionConfiguration.ReviewSampleSize(values);
+        return new SampleReviewDesk(
+            (new BatchReviews(source, size), new SampleMarks(source), new CopyClosing(new BatchApprovals(source), SubmissionParts.BatchesOf(source, values))),
+            (new PersonRegistry(source), token => AccessAsync(startup, source, token), size));
+    }
 
     private static async Task<SampleTextAccess> AccessAsync(IServiceProvider startup, NpgsqlDataSource source, CancellationToken cancellationToken)
     {

@@ -1,4 +1,4 @@
-using System.Globalization;
+using System.Collections.Frozen;
 using Core.Host.Screens;
 using Core.Persistence.Ingestion;
 using Core.Persistence.People;
@@ -21,22 +21,50 @@ internal static class SampleReviewEndpoint
         _ = endpoints.MapPost(ScreenPaths.BatchReviewFinding, RejectAsync).WithMetadata(access);
     }
 
-    private static string ReviewOf(long id) => $"{ScreenPaths.Batches}/{id.ToString(CultureInfo.InvariantCulture)}{ScreenPaths.ReviewSuffix}";
+    /// <summary>Every outcome of a step goes back to the review with the mark of what became of it in the address; an outcome this does not know is a defect, not a page.</summary>
+    private static IResult Answered(HttpContext context, long id, BatchReviewOutcome outcome)
+    {
+        if (outcome is BatchReviewOutcome.NotRecorded or BatchReviewOutcome.NotFound)
+        {
+            return outcome == BatchReviewOutcome.NotFound ? ScreenResult.NotFound(context) : ScreenResult.Unavailable(context);
+        }
 
-    private static IResult Answered(HttpContext context, long id, BatchReviewOutcome outcome) =>
-        outcome == BatchReviewOutcome.NotRecorded ? ScreenResult.Unavailable(context) : PageRedirect.Of(context, ReviewOf(id));
+        return Back(context, id, Marks[outcome]);
+    }
+
+    /// <summary>The mark of each outcome that goes back to the review; one missing from here is a defect that fails at once, not a page that says nothing.</summary>
+    private static readonly FrozenDictionary<BatchReviewOutcome, string> Marks = new Dictionary<BatchReviewOutcome, string>
+    {
+        [BatchReviewOutcome.Drawn] = SampleReviewScreen.DrawnMark,
+        [BatchReviewOutcome.Marked] = SampleReviewScreen.MarkedMark,
+        [BatchReviewOutcome.Reviewed] = SampleReviewScreen.MarkedMark,
+        [BatchReviewOutcome.Approved] = SampleReviewScreen.ApprovedMark,
+        [BatchReviewOutcome.AlreadyReceived] = SampleReviewScreen.ApprovedMark,
+        [BatchReviewOutcome.Rejected] = SampleReviewScreen.RejectedMark,
+        [BatchReviewOutcome.AlreadySampled] = SampleReviewScreen.RepeatedMark,
+        [BatchReviewOutcome.AlreadyMarked] = SampleReviewScreen.RepeatedMark,
+        [BatchReviewOutcome.AlreadyReviewed] = SampleReviewScreen.RepeatedMark,
+        [BatchReviewOutcome.NotOpen] = SampleReviewScreen.RefusedMark,
+        [BatchReviewOutcome.NotSampled] = SampleReviewScreen.RefusedMark,
+        [BatchReviewOutcome.SizeNotDeclared] = SampleReviewScreen.RefusedMark,
+        [BatchReviewOutcome.FindingRefused] = SampleReviewScreen.RefusedMark,
+        [BatchReviewOutcome.PlaceNotNext] = SampleReviewScreen.RefusedMark,
+        [BatchReviewOutcome.ReviewIncomplete] = SampleReviewScreen.RefusedMark,
+    }.ToFrozenDictionary();
+
+    private static IResult Back(HttpContext context, long id, string mark) => PageRedirect.Of(context, $"{ScreenPaths.BatchReviewOf(id)}?{SampleReviewScreen.ResultKey}={mark}");
 
     private static Task<IResult> DrawAsync(HttpContext context, long id, [AsParameters] SampleReviewSources sources) =>
-        GuardedAsync(context, sources, async (found, reviewer) =>
+        GuardedAsync(context, (id, sources), async (found, reviewer) =>
             Answered(context, id, (await sources.Desk!.DrawAsync(found.Batch, reviewer, context.RequestAborted).ConfigureAwait(false)).Outcome));
 
     private static Task<IResult> MarkAsync(
         HttpContext context, long id, int place, [AsParameters] SampleReviewSources sources) =>
-        GuardedAsync(context, sources, async (found, _) =>
+        GuardedAsync(context, (id, sources), async (found, _) =>
             Answered(context, id, await sources.Desk!.MarkAsync(found.Batch, place, context.RequestAborted).ConfigureAwait(false)));
 
     private static Task<IResult> ApproveAsync(HttpContext context, long id, [AsParameters] SampleReviewSources sources) =>
-        GuardedAsync(context, sources, async (found, reviewer) =>
+        GuardedAsync(context, (id, sources), async (found, reviewer) =>
         {
             var outcome = await sources.Desk!.ApproveAsync(found.Batch, reviewer, context.RequestAborted).ConfigureAwait(false);
             return outcome == BatchReviewOutcome.AlreadyReceived ? await FirstOfAsync(context, id, found, sources).ConfigureAwait(false) : Answered(context, id, outcome);
@@ -50,13 +78,17 @@ internal static class SampleReviewEndpoint
     }
 
     private static Task<IResult> ReviewAsync(HttpContext context, long id, [AsParameters] SampleReviewSources sources) =>
-        GuardedAsync(context, sources, async (found, reviewer) =>
+        GuardedAsync(context, (id, sources), async (found, reviewer) =>
         {
             var (outcome, screen) = await sources.Desk!.ViewAsync(found.Batch, found.Domain, reviewer, context.RequestAborted).ConfigureAwait(false);
             if (outcome == BatchReviewOutcome.Drawn)
             {
-                return ScreenResult.Of(context, typeof(SampleReviewScreen), SampleReviewScreen.Title,
-                    new Dictionary<string, object?>(StringComparer.Ordinal) { [nameof(SampleReviewScreen.Sample)] = screen, [nameof(SampleReviewScreen.Action)] = ReviewOf(id) });
+                return ScreenResult.Of(context, typeof(SampleReviewScreen), SampleReviewScreen.Title, new Dictionary<string, object?>(StringComparer.Ordinal)
+                {
+                    [nameof(SampleReviewScreen.Sample)] = screen,
+                    [nameof(SampleReviewScreen.Action)] = ScreenPaths.BatchReviewOf(id),
+                    [nameof(SampleReviewScreen.Result)] = context.Request.Query[SampleReviewScreen.ResultKey].ToString(),
+                });
             }
 
             return outcome == BatchReviewOutcome.NotSampled
@@ -66,11 +98,11 @@ internal static class SampleReviewEndpoint
 
     private static Task<IResult> FindingAsync(
         HttpContext context, long id, int place, [AsParameters] SampleReviewSources sources) =>
-        GuardedAsync(context, sources, (_, _) => Task.FromResult<IResult>(RejectionScreen(context, id, place, (null, null))));
+        GuardedAsync(context, (id, sources), (_, _) => Task.FromResult<IResult>(RejectionScreen(context, id, place, (null, null))));
 
     private static Task<IResult> RejectAsync(
         HttpContext context, long id, int place, [AsParameters] SampleReviewSources sources) =>
-        GuardedAsync(context, sources, async (found, reviewer) =>
+        GuardedAsync(context, (id, sources), async (found, reviewer) =>
         {
             var kind = (await RequestReader.FormAsync(context).ConfigureAwait(false))?[SampleRejectScreen.FindingField].ToString();
             if (SampleTexts.Findings.All(option => option.Value != kind))
@@ -86,8 +118,8 @@ internal static class SampleReviewEndpoint
         {
             [nameof(SampleRejectScreen.Batch)] = id,
             [nameof(SampleRejectScreen.Position)] = place,
-            [nameof(SampleRejectScreen.Action)] = $"{ReviewOf(id)}/itens/{place.ToString(CultureInfo.InvariantCulture)}/achado",
-            [nameof(SampleRejectScreen.Back)] = ReviewOf(id),
+            [nameof(SampleRejectScreen.Action)] = ScreenPaths.BatchFindingOf(id, place),
+            [nameof(SampleRejectScreen.Back)] = ScreenPaths.BatchReviewOf(id),
             [nameof(SampleRejectScreen.Finding)] = shown.Finding,
             [nameof(SampleRejectScreen.Error)] = shown.Error,
         });
@@ -99,14 +131,15 @@ internal static class SampleReviewEndpoint
             [nameof(SampleDrawScreen.Domain)] = found.Domain,
             [nameof(SampleDrawScreen.Declared)] = declared,
             [nameof(SampleDrawScreen.Open)] = found.Batch.State == BatchState.Open,
-            [nameof(SampleDrawScreen.Action)] = $"{ScreenPaths.Batches}/{found.Batch.Id.ToString(CultureInfo.InvariantCulture)}/amostra",
+            [nameof(SampleDrawScreen.Action)] = ScreenPaths.BatchDrawOf(found.Batch.Id),
             [nameof(SampleDrawScreen.Back)] = ScreenPaths.Batches,
         };
 
     /// <summary>Runs a step for the batch the person may see: one outside the grants is not found, and a database that does not answer leaves the page unavailable, with nothing written.</summary>
     private static async Task<IResult> GuardedAsync(
-        HttpContext context, SampleReviewSources services, Func<(BatchEntry Batch, string Domain), long, Task<IResult>> step)
+        HttpContext context, (long Id, SampleReviewSources Sources) request, Func<(BatchEntry Batch, string Domain), long, Task<IResult>> step)
     {
+        var services = request.Sources;
         if (services.Desk is null || services.Register is null || services.Listing is null || RequestReader.SessionOf(context) is not { } reviewer)
         {
             return ScreenResult.Unavailable(context);
@@ -115,8 +148,7 @@ internal static class SampleReviewEndpoint
         try
         {
             var granted = await GrantedDomains.OfAsync(services.Listing, (context.Features.Get<ScreenReach>() ?? ScreenReach.Nothing).Granted, context.RequestAborted).ConfigureAwait(false);
-            var id = long.Parse((string)context.Request.RouteValues["id"]!, CultureInfo.InvariantCulture);
-            return await services.Register.ReadAsync(granted.Keys, id, context.RequestAborted).ConfigureAwait(false) is { } batch
+            return await services.Register.ReadAsync(granted.Keys, request.Id, context.RequestAborted).ConfigureAwait(false) is { } batch
                 ? await step((batch, granted[batch.DomainId]), reviewer).ConfigureAwait(false)
                 : ScreenResult.NotFound(context);
         }

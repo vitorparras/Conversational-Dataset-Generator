@@ -42,7 +42,7 @@ public sealed class BatchApprovals
     {
         await ReviewStatements.DeclareDomainAsync(scope, request.DomainId, cancellationToken).ConfigureAwait(false);
         var held = await ReviewStatements.HeldAsync(scope, request.BatchId, cancellationToken).ConfigureAwait(false);
-        return BatchReviews.Refusal(held, drawing: false) ?? (held!.ReviewedPosition < held.Sample!.Count ? BatchReviewOutcome.ReviewIncomplete : null);
+        return BatchReviews.Refusal(held, drawing: false);
     }
 
     private static async Task<BatchReviewOutcome?> CloseAsync(CustodyScope scope, BatchApproval request, CancellationToken cancellationToken)

@@ -8,8 +8,9 @@ ALTER TABLE content.ingestion_batch
 
 GRANT UPDATE (reviewed_position, finding_position) ON content.ingestion_batch TO app;
 
--- The same function the 0055 left, with the progress of the review among what only moves one way: marking a place is the only change of an open batch that is neither the draw nor the review, it takes
--- the place right after the last one marked, and the finding of a review takes the place right after it too.
+-- The function of the 0055 with everything it refused still refused (the form the file came in included), and the progress of the review among what only moves one way: marking a place is the only
+-- change of an open batch that is neither the draw nor the review and it takes the place right after the last one marked; the finding of a review names a
+-- place already seen or the one right after the last seen, never beyond the sample.
 CREATE OR REPLACE FUNCTION public.refuse_batch_change() RETURNS trigger
 LANGUAGE plpgsql
 AS $refuse$
@@ -22,7 +23,7 @@ BEGIN
     IF OLD.state IS DISTINCT FROM 'open' OR NEW.state IS NULL OR NEW.state NOT IN ('open', 'accepted', 'rejected')
         OR NEW.id IS DISTINCT FROM OLD.id OR NEW.domain_id IS DISTINCT FROM OLD.domain_id
         OR NEW.opened_by IS DISTINCT FROM OLD.opened_by OR NEW.opened_at IS DISTINCT FROM OLD.opened_at
-        OR NEW.declared_form IS DISTINCT FROM OLD.declared_form
+        OR NEW.declared_form IS DISTINCT FROM OLD.declared_form OR NEW.source_form IS DISTINCT FROM OLD.source_form
         OR (OLD.review_sample IS NOT NULL AND NEW.review_sample IS DISTINCT FROM OLD.review_sample)
         OR (OLD.reviewed_by IS NOT NULL AND NEW.reviewed_by IS DISTINCT FROM OLD.reviewed_by)
         OR NEW.sampled_at IS DISTINCT FROM OLD.sampled_at OR NEW.reviewed_at IS DISTINCT FROM OLD.reviewed_at
@@ -36,7 +37,7 @@ BEGIN
         OR (reviewing AND (NEW.state = 'rejected') <> (NEW.review_finding IS NOT NULL))
         OR (NEW.finding_position IS DISTINCT FROM OLD.finding_position AND NOT reviewing)
         OR (reviewing AND (NEW.finding_position IS NOT NULL) <> (NEW.review_finding IS NOT NULL))
-        OR (reviewing AND NEW.finding_position IS NOT NULL AND (NEW.finding_position <> OLD.reviewed_position + 1 OR NEW.finding_position > places)) THEN
+        OR (reviewing AND NEW.finding_position IS NOT NULL AND (NEW.finding_position < 1 OR NEW.finding_position > OLD.reviewed_position + 1 OR NEW.finding_position > places)) THEN
         RAISE EXCEPTION 'a batch passes from open to accepted or to rejected, once, and its sample is drawn, marked place by place and reviewed once; nothing else of it changes'
             USING ERRCODE = 'CE006', SCHEMA = TG_TABLE_SCHEMA, TABLE = TG_TABLE_NAME;
     END IF;

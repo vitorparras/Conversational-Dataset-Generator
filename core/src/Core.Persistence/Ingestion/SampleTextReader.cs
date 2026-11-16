@@ -69,19 +69,9 @@ public sealed class SampleTextReader
             return null;
         }
 
-        var lost = await DeclaredKeyLoss.ScopesAsync(dataSource, cancellationToken).ConfigureAwait(false);
-        var carried = ProtectedContent.LabelsCarried(held.Sealed, held.Key);
-        var scopeLost = lost.Contains(KeyLossScope.MasterText) ? KeyLossScope.MasterText : carried.FirstOrDefault(lost.Contains);
-        if (scopeLost is not null)
+        if (await SealedValueRefusal.OfAsync((dataSource, protectedContent), (held.Sealed, held.Key), cancellationToken).ConfigureAwait(false) is { } refused)
         {
-            read.Answer.Value = new ContentReadResult { Outcome = ContentReadOutcome.KeyLossDeclared, Label = scopeLost, RowId = request.ItemId };
-            return null;
-        }
-
-        var missing = carried.FirstOrDefault(label => !protectedContent.IsLoaded(label));
-        if (missing is not null)
-        {
-            read.Answer.Value = new ContentReadResult { Outcome = ContentReadOutcome.LabelMissing, Label = missing, RowId = request.ItemId };
+            read.Answer.Value = refused with { RowId = request.ItemId };
             return null;
         }
 

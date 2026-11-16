@@ -203,9 +203,9 @@ public static class ContentQueries
 
     /// <summary>Records a review that found something and rejects the batch with it, in the one statement.</summary>
     internal const string CloseBatchReviewFound =
-        "UPDATE content.ingestion_batch SET reviewed_by = @reviewer, review_finding = @finding, finding_position = reviewed_position + 1, state = 'rejected', motive = @motive "
+        "UPDATE content.ingestion_batch SET reviewed_by = @reviewer, review_finding = @finding, finding_position = @place, state = 'rejected', motive = @motive "
         + "WHERE id = @id AND state = 'open' AND review_sample IS NOT NULL AND reviewed_by IS NULL "
-        + "AND reviewed_position < cardinality(string_to_array(review_sample, ','))";
+        + "AND @place BETWEEN 1 AND least(reviewed_position + 1, cardinality(string_to_array(review_sample, ',')))";
 
     /// <summary>Marks the next place of the sample as reviewed, only if the place before it is the last one marked, so that the second of two who mark the same place writes nothing.</summary>
     internal const string CloseBatchPlace =

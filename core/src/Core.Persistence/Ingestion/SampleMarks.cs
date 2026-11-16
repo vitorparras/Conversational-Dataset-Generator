@@ -26,16 +26,6 @@ public sealed class SampleMarks
         return MarkingAsync(request, cancellationToken);
     }
 
-    private static BatchReviewOutcome? PlaceRefusal(BatchReview held, int place)
-    {
-        if (place <= held.ReviewedPosition)
-        {
-            return BatchReviewOutcome.AlreadyMarked;
-        }
-
-        return place == held.ReviewedPosition + 1 && place <= held.Sample!.Count ? null : BatchReviewOutcome.PlaceNotNext;
-    }
-
     private async Task<BatchReviewResult> MarkingAsync(BatchMarking request, CancellationToken cancellationToken)
     {
         var transaction = await ContentTransaction.BeginAsync(dataSource, request.DomainId, cancellationToken).ConfigureAwait(false);
@@ -43,7 +33,7 @@ public sealed class SampleMarks
         {
             var scope = transaction.AsCustodyScope();
             var held = await ReviewStatements.HeldAsync(scope, request.BatchId, cancellationToken).ConfigureAwait(false);
-            var refused = BatchReviews.Refusal(held, drawing: false) ?? PlaceRefusal(held!, request.Place);
+            var refused = BatchReviews.Refusal(held, drawing: false);
             if (refused is not null)
             {
                 return new BatchReviewResult { Outcome = refused.Value };

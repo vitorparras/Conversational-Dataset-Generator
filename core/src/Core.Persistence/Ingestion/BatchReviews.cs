@@ -76,7 +76,7 @@ public sealed class BatchReviews
         return ReadingAsync(domainId, batchId, cancellationToken);
     }
 
-    internal static BatchReviewOutcome? Refusal(BatchReview? held, bool drawing, bool finding = false)
+    internal static BatchReviewOutcome? Refusal(BatchReview? held, bool drawing)
     {
         if (held is null)
         {
@@ -93,22 +93,17 @@ public sealed class BatchReviews
             return held.Sample is null ? null : BatchReviewOutcome.AlreadySampled;
         }
 
-        return ReviewRefusal(held, finding);
+        return ReviewRefusal(held);
     }
 
-    private static BatchReviewOutcome? ReviewRefusal(BatchReview held, bool finding)
+    private static BatchReviewOutcome? ReviewRefusal(BatchReview held)
     {
         if (held.Sample is null)
         {
             return BatchReviewOutcome.NotSampled;
         }
 
-        if (held.ReviewerId is not null)
-        {
-            return BatchReviewOutcome.AlreadyReviewed;
-        }
-
-        return finding && held.ReviewedPosition >= held.Sample.Count ? BatchReviewOutcome.FindingRefused : null;
+        return held.ReviewerId is not null ? BatchReviewOutcome.AlreadyReviewed : null;
     }
 
     private static long[] Drawn(long[] numbers, int size)
@@ -172,7 +167,7 @@ public sealed class BatchReviews
     {
         await ReviewStatements.DeclareDomainAsync(scope, request.DomainId, cancellationToken).ConfigureAwait(false);
         var held = await ReviewStatements.HeldAsync(scope, request.BatchId, cancellationToken).ConfigureAwait(false);
-        if (Refusal(held, drawing: false, request.Finding is not null) is { } refused)
+        if (Refusal(held, drawing: false) is { } refused)
         {
             early.Value = refused;
             return null;
@@ -184,7 +179,7 @@ public sealed class BatchReviews
             return appended;
         }
 
-        if (await RecordAsync(scope, request, cancellationToken).ConfigureAwait(false) == 1)
+        if (await RecordAsync(scope, request, PlaceOf(request, held!), cancellationToken).ConfigureAwait(false) == 1)
         {
             return await CustodyAppend.CommitIfAppendedAsync(scope, appended, cancellationToken).ConfigureAwait(false);
         }
@@ -202,7 +197,9 @@ public sealed class BatchReviews
             : reviewed;
     }
 
-    private static async Task<int> RecordAsync(CustodyScope scope, BatchReviewing request, CancellationToken cancellationToken)
+    private static int PlaceOf(BatchReviewing request, BatchReview held) => request.Place ?? Math.Min(held.ReviewedPosition + 1, held.Sample!.Count);
+
+    private static async Task<int> RecordAsync(CustodyScope scope, BatchReviewing request, int place, CancellationToken cancellationToken)
     {
         var batch = ReviewStatements.Id("id", request.BatchId);
         var reviewer = ReviewStatements.Id("reviewer", request.ReviewerId);
@@ -213,7 +210,8 @@ public sealed class BatchReviews
 
         var finding = new NpgsqlParameter("finding", request.Finding);
         var motive = new NpgsqlParameter("motive", RejectionMotive);
-        var rows = await ReviewStatements.ChangeAsync(scope, ContentQueries.CloseBatchReviewFound, cancellationToken, batch, reviewer, finding, motive).ConfigureAwait(false);
+        var where = new NpgsqlParameter("place", place);
+        var rows = await ReviewStatements.ChangeAsync(scope, ContentQueries.CloseBatchReviewFound, cancellationToken, batch, reviewer, finding, motive, where).ConfigureAwait(false);
         _ = await ReviewStatements.ChangeAsync(scope, ContentQueries.RemoveBatchMarks, cancellationToken, ReviewStatements.Id("id", request.BatchId)).ConfigureAwait(false);
         _ = await ReviewStatements.ChangeAsync(scope, ContentQueries.RemoveBatchOccurrences, cancellationToken, ReviewStatements.Id("id", request.BatchId)).ConfigureAwait(false);
         _ = await ReviewStatements.ChangeAsync(scope, ContentQueries.RemoveBatchMaps, cancellationToken, ReviewStatements.Id("id", request.BatchId)).ConfigureAwait(false);

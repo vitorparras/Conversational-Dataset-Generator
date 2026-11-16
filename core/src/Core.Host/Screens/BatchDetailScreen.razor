@@ -149,7 +149,7 @@
     [Parameter, EditorRequired]
     public string ListAddress { get; set; } = "";
 
-    private string ReviewAddress => $"{ScreenPaths.Batches}/{Number(Batch.Id)}{ScreenPaths.ReviewSuffix}";
+    private string ReviewAddress => ScreenPaths.BatchReviewOf(Batch.Id);
 
     private static string Number(long value) => value.ToString(CultureInfo.InvariantCulture);
 

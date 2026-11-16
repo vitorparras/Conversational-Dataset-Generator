@@ -28,4 +28,10 @@ internal static class ScreenPaths
     internal const string Emptying = "/esvaziamento";
     internal const string EmptyingConfirm = "/esvaziamento/confirmar";
     internal const string Batches = "/lotes";
+    internal const string ReviewSuffix = "/revisao";
+    internal const string BatchDraw = "/lotes/{id:long}/amostra";
+    internal const string BatchReview = "/lotes/{id:long}/revisao";
+    internal const string BatchReviewMark = "/lotes/{id:long}/revisao/itens/{place:int}/revisado";
+    internal const string BatchReviewApprove = "/lotes/{id:long}/revisao/aprovar";
+    internal const string BatchReviewFinding = "/lotes/{id:long}/revisao/itens/{place:int}/achado";
 }

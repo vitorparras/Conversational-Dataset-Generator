@@ -79,7 +79,8 @@ public sealed class SampleTextReader(NpgsqlDataSource dataSource, ProtectedConte
             return null;
         }
 
-        answer.Value = new ContentReadResult { Outcome = ContentReadOutcome.Read, Text = protectedContent.Open(read.Column, request.DomainId, held.Sealed, held.Key), RowId = request.ItemId };
+        var text = protectedContent.Open(read.Column, request.DomainId, held.Sealed, held.Key);
+        answer.Value = new ContentReadResult { Outcome = ContentReadOutcome.Read, Text = text, Cleaned = held.Step == CustodyNames.Of(CustodyStep.SanitizedTextRead), RowId = request.ItemId };
         return await CustodyAppend.CommitIfAppendedAsync(scope, read.Appended, cancellationToken).ConfigureAwait(false);
     }
 

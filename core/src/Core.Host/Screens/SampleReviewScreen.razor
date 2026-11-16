@@ -40,7 +40,10 @@ else
         {
             <li class="sample__item">
                 <Panel Id="@($"item-{item.Position}")" Title="@($"Item {Number(item.Position)} de {Number(Sample.Items.Count)}")">
-                    <p class="sample__version">@SampleTexts.VersionOf(item.Cleaned)</p>
+                    @if (!Decided)
+                    {
+                        <p class="sample__version">@SampleTexts.VersionOf(item.Cleaned)</p>
+                    }
                     <blockquote class="sample__text">@item.Text</blockquote>
                     @if (item.Reviewed)
                     {

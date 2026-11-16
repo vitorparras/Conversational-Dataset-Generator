@@ -16,8 +16,11 @@ internal static class BatchScreensEndpoint
 {
     private const int BatchesPlace = 20;
 
-    internal static void Map(IEndpointRouteBuilder endpoints) =>
+    internal static void Map(IEndpointRouteBuilder endpoints)
+    {
         _ = endpoints.MapGet(ScreenPaths.Batches, ListAsync).WithMetadata(ScreenAccess.OfFunction(BatchesScreen.Title, BatchesPlace, PersonFunctions.Curation));
+        SampleReviewEndpoint.Map(endpoints);
+    }
 
     /// <summary>With no database declared there is no batch to list, and the page says it is the host that cannot, as the other screens do.</summary>
     private static async Task<IResult> ListAsync(

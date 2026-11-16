@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using Core.Host.Tests;
 using Core.Host.Tests.Privacy;
 using Core.Host.Tests.Supervision;
+using Core.Persistence.People;
 using Core.Tests.Integration.Hosts;
 
 namespace Core.Tests.Integration.Privacy;
@@ -41,7 +42,7 @@ internal sealed partial class LoggedHost : IAsyncDisposable
         var beginning = new SweepMarker();
         try
         {
-            var host = await AuthenticatedHost.StartAsync(new HostSetup { RealService = realService, WithLogFile = true }, cancellationToken);
+            var host = await AuthenticatedHost.StartAsync(new HostSetup { RealService = realService, WithLogFile = true, Function = PersonFunctions.Administration }, cancellationToken);
             return new LoggedHost(beginning, host);
         }
         catch

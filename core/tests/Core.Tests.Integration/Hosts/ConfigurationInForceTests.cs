@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using Core.Persistence.People;
 using Core.Persistence.Tests.Fixtures;
 using Core.Platform.Configuration;
 
@@ -58,7 +59,13 @@ public sealed class ConfigurationInForceTests(DefaultHostFixture fixture) : ICla
     [DatabaseFact]
     public async Task FactorGivenAsAnArgumentIsShownWithTheValueAndTheArgumentAsOrigin()
     {
-        var shown = await ShownAsync(new HostSetup { Arguments = [$"--{Key}={Factor}"], WorkFactor = int.Parse(Factor, System.Globalization.CultureInfo.InvariantCulture) });
+        var setup = new HostSetup
+        {
+            Arguments = [$"--{Key}={Factor}"],
+            WorkFactor = int.Parse(Factor, System.Globalization.CultureInfo.InvariantCulture),
+            Function = PersonFunctions.Administration,
+        };
+        var shown = await ShownAsync(setup);
 
         Assert.Equal((Factor, "Argument"), shown);
     }
@@ -68,6 +75,7 @@ public sealed class ConfigurationInForceTests(DefaultHostFixture fixture) : ICla
     {
         var setup = new HostSetup
         {
+            Function = PersonFunctions.Administration,
             Omit = [Key],
             Environment = new Dictionary<string, string> { ["CDG_Passwords__WorkFactor"] = Factor },
             WorkFactor = int.Parse(Factor, System.Globalization.CultureInfo.InvariantCulture),
@@ -83,6 +91,7 @@ public sealed class ConfigurationInForceTests(DefaultHostFixture fixture) : ICla
     {
         var setup = new HostSetup
         {
+            Function = PersonFunctions.Administration,
             Omit = [Key],
             SettingsJson = /*lang=json*/ $$"""{ "Passwords": { "WorkFactor": "{{Factor}}" } }""",
             WorkFactor = int.Parse(Factor, System.Globalization.CultureInfo.InvariantCulture),
@@ -98,6 +107,7 @@ public sealed class ConfigurationInForceTests(DefaultHostFixture fixture) : ICla
     {
         var setup = new HostSetup
         {
+            Function = PersonFunctions.Administration,
             Arguments = [$"--{Key}={Factor}"],
             Environment = new Dictionary<string, string> { ["CDG_Passwords__WorkFactor"] = "3" },
             WorkFactor = int.Parse(Factor, System.Globalization.CultureInfo.InvariantCulture),
@@ -113,6 +123,7 @@ public sealed class ConfigurationInForceTests(DefaultHostFixture fixture) : ICla
     {
         var setup = new HostSetup
         {
+            Function = PersonFunctions.Administration,
             Arguments = ["--Installation:Kind=real", "--Custody:LastRecoveryTest=2026-10-01", "--Custody:Holder=PESSOA_1"],
             WorkFactor = RealInstallationFloor,
         };

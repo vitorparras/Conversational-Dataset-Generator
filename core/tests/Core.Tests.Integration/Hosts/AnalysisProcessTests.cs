@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using Core.Host.Tests;
+using Core.Persistence.People;
 using Core.Persistence.Tests.Fixtures;
 
 namespace Core.Tests.Integration.Hosts;
@@ -21,7 +22,7 @@ public sealed class AnalysisProcessTests
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         Assert.SkipWhen(LanguageServiceInterpreter.Available is null, "Real service route skipped: uv could not resolve the language-service environment.");
-        await using var host = await AuthenticatedHost.StartAsync(new HostSetup { RealService = true }, cancellationToken);
+        await using var host = await AuthenticatedHost.StartAsync(new HostSetup { RealService = true, Function = PersonFunctions.Administration }, cancellationToken);
 
         using var response = await host.PostAsync(Route, Body($"falei com PESSOA_1 ontem {Marker}"), cancellationToken);
         using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
@@ -35,7 +36,7 @@ public sealed class AnalysisProcessTests
     public async Task RetryNamingTheInterruptedAnalysisIsLoggedWithBothReferences()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await AuthenticatedHost.StartAsync(new HostSetup(), cancellationToken);
+        await using var host = await AuthenticatedHost.StartAsync(new HostSetup { Function = PersonFunctions.Administration }, cancellationToken);
         var interrupted = await ReferenceOfAsync(host, Body(Marker), cancellationToken);
 
         var resumed = await ReferenceOfAsync(host, Body("ZQX-FAKE-NOTHING", interrupted), cancellationToken);
@@ -49,7 +50,7 @@ public sealed class AnalysisProcessTests
     public async Task NoLineTheHostWritesHoldsTheTextItAnalysedRefusedOrRejected()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await using var host = await AuthenticatedHost.StartAsync(new HostSetup(), cancellationToken);
+        await using var host = await AuthenticatedHost.StartAsync(new HostSetup { Function = PersonFunctions.Administration }, cancellationToken);
         var interrupted = await ReferenceOfAsync(host, Body($"PESSOA_1 {Marker}"), cancellationToken);
         _ = await ReferenceOfAsync(host, Body($"ZQX-FAKE-PERSON PESSOA_1 {Marker}", interrupted), cancellationToken);
         using var rejected = await host.PostAsync(Route, $$"""{"text":"PESSOA_1 {{Marker}}","language":"pt","zqx":1}""", cancellationToken);
@@ -67,7 +68,7 @@ public sealed class AnalysisProcessTests
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         Assert.SkipWhen(LanguageServiceInterpreter.Available is null, "Real service route skipped: uv could not resolve the language-service environment.");
-        await using var host = await AuthenticatedHost.StartAsync(new HostSetup { RealService = true }, cancellationToken);
+        await using var host = await AuthenticatedHost.StartAsync(new HostSetup { RealService = true, Function = PersonFunctions.Administration }, cancellationToken);
         _ = await ReferenceOfAsync(host, Body($"falei com PESSOA_1 ontem {Marker}"), cancellationToken);
 
         var output = (await host.StopAsync()).Stdout;

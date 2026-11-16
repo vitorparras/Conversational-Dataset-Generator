@@ -8,7 +8,8 @@ internal static class ConfigurationEndpoint
 {
     internal const string Route = "/configuration";
 
-    internal static void Map(IEndpointRouteBuilder endpoints) => _ = endpoints.MapGet(Route, InForce).WithMetadata(ScreenAccess.Everyone);
+    /// <summary>Reached by the functions of the screen of the configuration (policy 006), declared once in <see cref="SystemScreensEndpoint"/>.</summary>
+    internal static void Map(IEndpointRouteBuilder endpoints) => _ = endpoints.MapGet(Route, InForce).WithMetadata(SystemScreensEndpoint.Access);
 
     private static EffectiveConfiguration InForce([FromServices] EffectiveConfiguration configuration) => configuration;
 }

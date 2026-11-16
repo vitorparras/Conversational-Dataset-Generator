@@ -192,7 +192,7 @@ public static class ContentQueries
 
     /// <summary>The state, the sample and the review of the batch of the domain declared, whatever its state.</summary>
     internal const string ReadBatchReview =
-        "SELECT state, review_sample, sampled_at, reviewed_by, reviewed_at, review_finding FROM content.ingestion_batch WHERE id = @id";
+        "SELECT state, review_sample, sampled_at, reviewed_by, reviewed_at, review_finding, reviewed_position, finding_position FROM content.ingestion_batch WHERE id = @id";
 
     /// <summary>Writes the sample of an open batch that has none.</summary>
     internal const string CloseBatchSample = "UPDATE content.ingestion_batch SET review_sample = @sample WHERE id = @id AND state = 'open' AND review_sample IS NULL";
@@ -203,8 +203,20 @@ public static class ContentQueries
 
     /// <summary>Records a review that found something and rejects the batch with it, in the one statement.</summary>
     internal const string CloseBatchReviewFound =
-        "UPDATE content.ingestion_batch SET reviewed_by = @reviewer, review_finding = @finding, state = 'rejected', motive = @motive "
-        + "WHERE id = @id AND state = 'open' AND review_sample IS NOT NULL AND reviewed_by IS NULL";
+        "UPDATE content.ingestion_batch SET reviewed_by = @reviewer, review_finding = @finding, finding_position = reviewed_position + 1, state = 'rejected', motive = @motive "
+        + "WHERE id = @id AND state = 'open' AND review_sample IS NOT NULL AND reviewed_by IS NULL "
+        + "AND reviewed_position < cardinality(string_to_array(review_sample, ','))";
+
+    /// <summary>Marks the next place of the sample as reviewed, only if the place before it is the last one marked, so that the second of two who mark the same place writes nothing.</summary>
+    internal const string MarkBatchPlace =
+        "UPDATE content.ingestion_batch SET reviewed_position = @position WHERE id = @id AND state = 'open' AND review_sample IS NOT NULL AND reviewed_by IS NULL "
+        + "AND reviewed_position = @position - 1 AND @position <= cardinality(string_to_array(review_sample, ','))";
+
+    /// <summary>Which reading the item of the sample takes, the sanitized text or the raw one; null when the item is not one the review may read.</summary>
+    internal const string SampleStep = "SELECT public.batch_sample_step(@batch, @domain, @item)";
+
+    /// <summary>The sealed text of the item of the sample and the key that opens it, only after the event of its reading was written by the same transaction.</summary>
+    internal const string SampleText = "SELECT read_step, sealed_text, key_epoch, key_wrapped FROM public.batch_sample_text(@batch, @domain, @item)";
 
     /// <summary>The queries over content, as the statement each one runs, by the name of its constant.</summary>
     public static IReadOnlyDictionary<string, string> All { get; } = Declared(typeof(ContentQueries));

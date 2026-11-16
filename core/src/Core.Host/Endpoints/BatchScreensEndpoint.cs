@@ -15,9 +15,17 @@ namespace Core.Host.Endpoints;
 internal static class BatchScreensEndpoint
 {
     private const int BatchesPlace = 20;
+    private const int SubmissionPlace = 21;
 
-    internal static void Map(IEndpointRouteBuilder endpoints) =>
+    private static readonly ScreenAccess Unlisted = ScreenAccess.Unlisted(PersonFunctions.Curation);
+
+    internal static void Map(IEndpointRouteBuilder endpoints)
+    {
         _ = endpoints.MapGet(ScreenPaths.Batches, ListAsync).WithMetadata(ScreenAccess.OfFunction(BatchesScreen.Title, BatchesPlace, PersonFunctions.Curation));
+        _ = endpoints.MapGet(ScreenPaths.BatchNew, BatchSubmissionPage.FormAsync).WithMetadata(ScreenAccess.Of(SubmissionScreen.Title, SubmissionPlace, PersonFunctions.Curation));
+        _ = endpoints.MapPost(ScreenPaths.BatchNew, BatchSubmissionPage.SubmitAsync).WithMetadata(Unlisted);
+        _ = endpoints.MapGet(ScreenPaths.BatchDetail, BatchDetailPage.DetailAsync).WithMetadata(Unlisted);
+    }
 
     /// <summary>With no database declared there is no batch to list, and the page says it is the host that cannot, as the other screens do.</summary>
     private static async Task<IResult> ListAsync(

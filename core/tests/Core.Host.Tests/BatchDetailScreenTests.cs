@@ -117,7 +117,7 @@ public sealed class BatchDetailScreenTests
 
         Assert.Equal(
             [
-                "Detail.Domain", "Detail.Motive", "Detail.SubmittedBy", "FormCount.Form", "DestinationCount.Destination", "Recognition.Address",
+                "Detail.Domain", "Detail.Motive", "Detail.SubmittedBy", "Detail.Warning", "FormCount.Form", "DestinationCount.Destination", "Recognition.Address",
                 "Accommodated.Declared", "Accommodated.Into", "Accommodated.Losses",
             ],
             texts);

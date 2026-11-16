@@ -107,7 +107,7 @@ public sealed class SubmissionScreenTests
     [Fact]
     public async Task ASendingNotRecordedOpensTheFormAgainWithWhatToDo()
     {
-        var page = await RenderAsync(new Dictionary<string, object?> { ["NotRecorded"] = true });
+        var page = await RenderAsync(new Dictionary<string, object?> { ["Trouble"] = SubmissionScreen.Troubles.NotRecorded });
 
         Assert.Contains(SubmissionTexts.NotRecorded, page, StringComparison.Ordinal);
         Assert.Contains("<form", page, StringComparison.Ordinal);
@@ -116,7 +116,7 @@ public sealed class SubmissionScreenTests
     [Fact]
     public async Task ASendingThatCollidedOpensTheFormAgainWithAnAdviceOfItsOwnApartFromTheOneOfTheServer()
     {
-        var page = await RenderAsync(new Dictionary<string, object?> { ["Collided"] = true });
+        var page = await RenderAsync(new Dictionary<string, object?> { ["Trouble"] = SubmissionScreen.Troubles.Collided });
 
         var shown = (
             page.Contains(SubmissionTexts.Collided, StringComparison.Ordinal),

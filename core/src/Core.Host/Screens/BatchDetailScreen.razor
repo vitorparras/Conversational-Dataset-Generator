@@ -17,6 +17,10 @@
         <Fact Term="Enviado por">@Batch.SubmittedBy</Fact>
         <Fact Term="Quando"><Moment At="Batch.SubmittedAt" /></Fact>
         <Fact Term="Procedência">@BatchDetailTexts.OriginOf(Batch.OriginDeclared)</Fact>
+        @if (Batch.Warning is { } warning)
+        {
+            <Fact Term="Aviso">@BatchTexts.WarningOf(warning)</Fact>
+        }
         <Fact Term="Reenvio">
             @if (Batch.Recognized is { } prior)
             {
@@ -120,6 +124,9 @@
         public Recognition? Recognized { get; init; }
 
         public Accommodated? Accommodation { get; init; }
+
+        /// <summary>The code of the warning the receipt kept about the name of the file, such as <c>name_with_path</c>; the name itself is never shown.</summary>
+        public string? Warning { get; init; }
 
         /// <summary>The passages of a destination; a destination with none counts zero, so that all three are always said.</summary>
         internal int PassagesOf(string destination) => Destinations.Where(count => count.Destination == destination).Sum(count => count.Passages);

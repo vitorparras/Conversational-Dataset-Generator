@@ -37,6 +37,7 @@ public sealed class SubmissionScreenTests
         Assert.Contains("zqx_restrita (a mais restrita)", page, StringComparison.Ordinal);
         Assert.Contains("zqx_aberta (a mais permissiva)", page, StringComparison.Ordinal);
         Assert.Contains("type=\"file\"", page, StringComparison.Ordinal);
+        Assert.True(page.LastIndexOf(" name=\"", StringComparison.Ordinal) == page.IndexOf(" name=\"file\"", StringComparison.Ordinal), "The file is not the last field sent.");
         Assert.Contains("Até 10 MiB.", page, StringComparison.Ordinal);
         Assert.DoesNotContain("role=\"alert\"", page, StringComparison.Ordinal);
         Assert.Contains("id=\"originUnknown\" type=\"checkbox\" name=\"originUnknown\" value=\"true\" />", page, StringComparison.Ordinal);

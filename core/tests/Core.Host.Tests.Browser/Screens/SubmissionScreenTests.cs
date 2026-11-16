@@ -79,10 +79,6 @@ public sealed partial class SubmissionScreenTests(BrowserFixture browser, Submis
         await page.Keyboard.PressAsync("Space");
         await Expect(domain).ToBeCheckedAsync();
 
-        var file = page.GetByLabel("Arquivo");
-        await file.SetInputFilesAsync(new FilePayload { Name = "conversa.json", MimeType = "application/json", Buffer = Encoding.UTF8.GetBytes(SubmissionCase.Conversation) });
-        await file.FocusAsync();
-
         await page.Keyboard.PressAsync("Tab");
         var form = page.GetByRole(AriaRole.Radio, new() { Name = "Conversa: mensagens, cada uma com autor e instante" });
         await Expect(form).ToBeFocusedAsync();
@@ -90,9 +86,16 @@ public sealed partial class SubmissionScreenTests(BrowserFixture browser, Submis
         await Expect(form).ToBeCheckedAsync();
 
         await page.Keyboard.PressAsync("Tab");
-        await Expect(page.GetByRole(AriaRole.Radio, new() { Name = SubmissionCase.Format })).ToBeFocusedAsync();
+        var format = page.GetByRole(AriaRole.Radio, new() { Name = SubmissionCase.Format });
+        await Expect(format).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Space");
+        await Expect(format).ToBeCheckedAsync();
+
         await page.Keyboard.PressAsync("Tab");
-        await Expect(page.GetByRole(AriaRole.Radio, new() { Name = "zqx_sigilosa (a mais restrita)" })).ToBeFocusedAsync();
+        var condition = page.GetByRole(AriaRole.Radio, new() { Name = "zqx_sigilosa (a mais restrita)" });
+        await Expect(condition).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Space");
+        await Expect(condition).ToBeCheckedAsync();
 
         await page.Keyboard.PressAsync("Tab");
         await Expect(page.GetByLabel("Origem do material")).ToBeFocusedAsync();
@@ -100,14 +103,18 @@ public sealed partial class SubmissionScreenTests(BrowserFixture browser, Submis
         await page.Keyboard.PressAsync("Tab");
         await Expect(page.GetByLabel("A origem é desconhecida")).ToBeFocusedAsync();
         await page.Keyboard.PressAsync("Tab");
+        var file = page.GetByLabel("Arquivo");
+        await Expect(file).ToBeFocusedAsync();
+        await file.SetInputFilesAsync(new FilePayload { Name = "conversa.json", MimeType = "application/json", Buffer = Encoding.UTF8.GetBytes(SubmissionCase.Conversation) });
+        await page.Keyboard.PressAsync("Tab");
         await Expect(page.GetByRole(AriaRole.Button, new() { Name = "Enviar material" })).ToBeFocusedAsync();
         await page.Keyboard.PressAsync("Enter");
 
         await Expect(page).ToHaveURLAsync(BatchAddress());
-        return BatchAddress().Match(page.Url).Groups["id"].Value;
+        return BatchAddress().Match(page.Url).Groups[1].Value;
     }
 
-    [GeneratedRegex(@"/lotes/(?<id>\d+)$", RegexOptions.ExplicitCapture, 1000)]
+    [GeneratedRegex(@"/lotes/(\d+)$", RegexOptions.None, 1000)]
     private static partial Regex BatchAddress();
 
     private async Task<BrowserTab> OpenAsync()

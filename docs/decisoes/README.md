@@ -65,6 +65,7 @@ deliberada e justificada.
 | [0051](0051-navegacao-gestao-e-relatorio.md) | Navegação, gestão e relatório: padrões comuns, acessibilidade e teste de navegador | Decisão vigente |
 | [0052](0052-montagem-das-telas.md) | Montagem das telas e base do sistema de design | Decisão vigente |
 | [0053](0053-configuracao-alterada-pela-tela.md) | Configuração alterada pela tela, com aprovação de outra pessoa | Decisão vigente |
+| [0054](0054-teto-por-fatia-e-migracao-por-data.md) | Teto do PR por fatia e migração nomeada por data e hora | Decisão vigente |
 
 ## Formato
 

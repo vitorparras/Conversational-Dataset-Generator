@@ -53,7 +53,7 @@ Da raiz do repositório. Cada passo do `verify-code` é a mesma conferência da 
 - A mutação de módulo crítico acima do teto de sobreviventes ou de tempo, da
   [017](017-teste-de-mutacao.md).
 - O teste que sobe o serviço real sem a marca `Category=RealService`.
-- O pull request acima de 30 arquivos ou 400 linhas de produção (`pr_size`).
+- O pull request acima do teto da fatia: 400 linhas de produção ou o da issue (`pr_size`).
 - O commit com `Co-authored-by` de assistente de IA ou a linha "Generated with" (`ai_attribution`).
 - Segredo (`secrets`), dependência vulnerável (`dependencies`) e achado do `trivy` ou do
   `static_analysis`, salvo risco aceito em `tools/verify-code/accepted-risks.toml`.

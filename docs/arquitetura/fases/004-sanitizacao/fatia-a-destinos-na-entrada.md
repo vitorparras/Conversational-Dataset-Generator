@@ -26,6 +26,7 @@ Sem esta fatia, a #87 CA-5 não tem como ser cumprida: hoje nenhum item nasce co
 `Core.Persistence.Content.Tests`, com banco:
 
 - OccurrencesAreSealedWithTheRawPurpose
+- DestinationCountsMatchTheDecidedOccurrences (0056 da fase 3)
 
 `Core.Host.Tests.Browser`:
 

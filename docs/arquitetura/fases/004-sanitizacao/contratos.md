@@ -19,7 +19,8 @@ analysis_unavailable e nenhum item é gravado.
 O construtor com ocorrências (`core/src/Core.Persistence/Content/Writing/NewItemText.cs`,
 linha 15) não leva a acomodação (linha 42); a fatia junta os dois. O plano da fatia confere, por
 forma, que os textos de `MaterialTexts.Of` e as unidades de `ReadMaterial.Units` têm a mesma
-contagem e a mesma ordem.
+contagem e a mesma ordem. As contagens por destino da 0056 da fase 3, zeradas até aqui, passam a
+sair das mesmas ocorrências, no mesmo comando que grava o item.
 
 ## Fatia B
 

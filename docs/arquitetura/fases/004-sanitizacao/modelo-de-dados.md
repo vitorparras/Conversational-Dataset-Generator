@@ -24,10 +24,11 @@ passos rodaram (#87 CA-1), e a tela do lote não tem o nome de cada contagem. Ne
 
 O sanitizado e as três são gravados no mesmo comando que grava o item, como as ocorrências
 (0052, linha 1). Um CHECK exige as quatro juntas ou nenhuma, e um gatilho exige uma contagem por
-passo da versão. O esvaziamento limpa o rastro e as contagens com o resto: item_text_emptied
-(0052, linhas 12 a 15), o GRANT de UPDATE (linha 18) e emptied_content_is_final (linhas 21 a 28)
-são refeitos com elas. As colunas entram em `ContentColumns` (`Protected`, linha 63; `Clear`,
-linhas 66 a 77), e a contagem pede um `ClearKind` novo, pois nenhum dos oito de hoje é número.
+passo da versão. O esvaziamento limpa o rastro e as contagens com o resto: item_text_emptied,
+o GRANT de UPDATE e emptied_content_is_final, na versão da 0056 da fase 3, que já os refez com as
+contagens por destino (0052, linhas 12 a 28), são refeitos com elas. As colunas entram em
+`ContentColumns` (`Protected`, linha 63; `Clear`, linhas 66 a 77), e a contagem pede um
+`ClearKind` novo, pois nenhum dos oito de hoje é número.
 
 **`0062-batch-sanitized-event`.** O passo batch_sanitized na cadeia, com a versão como
 referência, entra em custody_event_step_listed e em custody_event_batch_shape, como a 0054 fez

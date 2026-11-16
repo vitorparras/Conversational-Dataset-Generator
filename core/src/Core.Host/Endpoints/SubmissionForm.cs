@@ -32,7 +32,8 @@ internal static class SubmissionForm
     /// <summary>The value the form sends for a form of material, to give back what was chosen; null for one the form does not offer.</summary>
     internal static string? ValueOf(MaterialForm form) => Forms.FirstOrDefault(pair => pair.Value == form).Key;
 
-    /// <summary>Reads the fields up to the file; null when the body is not <c>multipart/form-data</c> with a boundary, and a body with too many parts before the file has none read.</summary>
+    /// <summary>Reads the fields up to the file; null when the body is not <c>multipart/form-data</c> with a boundary, and a body with too many parts before the file has none read. A part of the file
+    /// with an empty name is the one a browser sends when no file was chosen, and is no file.</summary>
     /// <param name="request">The request.</param>
     /// <param name="author">The person of the session.</param>
     /// <param name="cancellationToken">Cancels the reading.</param>
@@ -55,14 +56,18 @@ internal static class SubmissionForm
 
             if (name == FileField)
             {
-                return new SubmissionRead(Request(fields, author, section.Body, HeaderUtilities.RemoveQuotes(disposition.FileName).Value), true);
+                var received = HeaderUtilities.RemoveQuotes(disposition.FileName).Value;
+                return received is { Length: 0 } ? NoFile(fields, author) : new SubmissionRead(Request(fields, author, section.Body, received), true);
             }
 
             fields[name] = await ValueAsync(section, cancellationToken).ConfigureAwait(false);
         }
 
-        return new SubmissionRead(Request(fields, author, Stream.Null, receivedName: null), false);
+        return NoFile(fields, author);
     }
+
+    /// <summary>A sending with no file: no part of it, or the part a browser sends when no file was chosen, with an empty name and nothing in it.</summary>
+    private static SubmissionRead NoFile(IReadOnlyDictionary<string, string> fields, long author) => new(Request(fields, author, Stream.Null, receivedName: null), false);
 
     private static string? BoundaryOf(HttpRequest request) =>
         MediaTypeHeaderValue.TryParse(request.ContentType, out var type)

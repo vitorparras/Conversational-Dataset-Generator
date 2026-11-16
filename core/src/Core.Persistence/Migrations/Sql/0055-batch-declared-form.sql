@@ -1,12 +1,14 @@
--- The form a submission declares (issue 821): one of the four forms the pipeline knows, or none for a batch opened before the submission declared one. It is written at the opening and never changes
--- after, whoever writes; the detail of the batch counts its items by it, beside the form each accommodated item took.
+-- The form a submission declares and the form its format carries (issue 821): each one of the four forms the pipeline knows, or none for a batch opened before the submission said them. Both
+-- are written at the opening and never change after, whoever writes; the detail of the batch says the material came in the form of its format and was accommodated into the form declared.
 ALTER TABLE content.ingestion_batch
     ADD COLUMN declared_form text,
-    ADD CONSTRAINT ingestion_batch_declared_form_listed CHECK (declared_form IS NULL OR declared_form IN ('conversation', 'comment', 'document', 'labeled_sequence'));
+    ADD COLUMN source_form text,
+    ADD CONSTRAINT ingestion_batch_declared_form_listed CHECK (declared_form IS NULL OR declared_form IN ('conversation', 'comment', 'document', 'labeled_sequence')),
+    ADD CONSTRAINT ingestion_batch_source_form_listed CHECK (source_form IS NULL OR source_form IN ('conversation', 'comment', 'document', 'labeled_sequence'));
 
-GRANT INSERT (declared_form) ON content.ingestion_batch TO app;
+GRANT INSERT (declared_form, source_form) ON content.ingestion_batch TO app;
 
--- The same function the 0054 left, with the declared form among what never changes.
+-- The same function the 0054 left, with the declared form and the form of the format among what never changes.
 CREATE OR REPLACE FUNCTION public.refuse_batch_change() RETURNS trigger
 LANGUAGE plpgsql
 AS $refuse$
@@ -17,7 +19,7 @@ BEGIN
     IF OLD.state IS DISTINCT FROM 'open' OR NEW.state IS NULL OR NEW.state NOT IN ('open', 'accepted', 'rejected')
         OR NEW.id IS DISTINCT FROM OLD.id OR NEW.domain_id IS DISTINCT FROM OLD.domain_id
         OR NEW.opened_by IS DISTINCT FROM OLD.opened_by OR NEW.opened_at IS DISTINCT FROM OLD.opened_at
-        OR NEW.declared_form IS DISTINCT FROM OLD.declared_form
+        OR NEW.declared_form IS DISTINCT FROM OLD.declared_form OR NEW.source_form IS DISTINCT FROM OLD.source_form
         OR (OLD.review_sample IS NOT NULL AND NEW.review_sample IS DISTINCT FROM OLD.review_sample)
         OR (OLD.reviewed_by IS NOT NULL AND NEW.reviewed_by IS DISTINCT FROM OLD.reviewed_by)
         OR NEW.sampled_at IS DISTINCT FROM OLD.sampled_at OR NEW.reviewed_at IS DISTINCT FROM OLD.reviewed_at

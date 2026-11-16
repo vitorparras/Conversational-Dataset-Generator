@@ -4,7 +4,6 @@ namespace Core.Ingestion.Reading;
 public sealed class SourceReaders
 {
     private readonly Dictionary<string, ISourceReader> byFormat = new(StringComparer.Ordinal);
-    private readonly List<string> formats;
 
     /// <summary>The registry holds the readers given; two readers for one format is a defect.</summary>
     /// <param name="readers">The readers, one for each format.</param>
@@ -20,15 +19,18 @@ public sealed class SourceReaders
             }
         }
 
-        var sorted = byFormat.Keys.Order(StringComparer.Ordinal).ToList();
-        formats = sorted;
+        Formats = byFormat.Keys.Order(StringComparer.Ordinal).ToList().AsReadOnly();
     }
 
     /// <summary>The formats this version reads, in ordinal order, so the screen offers them the same way every time.</summary>
-    public IReadOnlyList<string> Formats => formats;
+    public IReadOnlyList<string> Formats { get; }
 
     /// <summary>The registry with the readers of the first version.</summary>
     public static SourceReaders Default() => new(Enumerable.Repeat<ISourceReader>(new ExportedConversationReader(), 1));
+
+    /// <summary>The form the material of the format comes in; none when the version has no reader of it.</summary>
+    /// <param name="format">The format declared.</param>
+    public MaterialForm? FormOf(string format) => TryGet(format, out var reader) ? reader.Form : null;
 
     /// <summary>The reader of the format given, when the version has one.</summary>
     /// <param name="format">The format declared.</param>

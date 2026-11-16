@@ -117,6 +117,7 @@ public sealed class ContentColumnsTests
                 new ClearColumn("ingestion_batch", "reviewed_at", ClearKind.Moment),
                 new ClearColumn("ingestion_batch", "review_finding", ClearKind.Motive),
                 new ClearColumn("ingestion_batch", "declared_form", ClearKind.Motive),
+                new ClearColumn("ingestion_batch", "source_form", ClearKind.Motive),
                 new ClearColumn("ingestion_batch", "reviewed_position", ClearKind.Epoch),
                 new ClearColumn("ingestion_batch", "finding_position", ClearKind.Epoch),
                 new ClearColumn("replication_occurrence", "id", ClearKind.Identifier),

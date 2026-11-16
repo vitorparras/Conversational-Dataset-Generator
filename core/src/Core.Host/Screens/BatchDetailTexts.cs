@@ -17,6 +17,10 @@ internal static class BatchDetailTexts
     /// <summary>The three destinations of a passage detected as identifiable (#84), in the order the detail says them, with the code and the words.</summary>
     internal static IReadOnlyList<(string Code, string Caption)> Destinations => Known;
 
+    /// <summary>What the detail says while no passage of the batch was counted by destination: the submission of this version does not yet recognize the passages.</summary>
+    internal const string NotCounted = "Nenhum trecho identificável foi contado neste lote. "
+        + "A contagem por destino (removidos, pseudonimizados e preservados) entra quando o envio reconhecer os trechos.";
+
     /// <summary>The name of a form, as a heading of its count.</summary>
     internal static string FormNameOf(string code) => code switch
     {

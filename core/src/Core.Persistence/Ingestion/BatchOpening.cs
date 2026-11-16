@@ -48,6 +48,9 @@ public sealed record BatchOpening
     /// <summary>The form the submission declared (conversation, comment, document or labeled_sequence), kept with the batch and never changed; null when none is declared.</summary>
     public string? DeclaredForm { get; init; }
 
+    /// <summary>The form the format of the file carries (the form its reader gives), kept with the batch and never changed; null when the format is not one the gate reads.</summary>
+    public string? SourceForm { get; init; }
+
     /// <summary>What the submission brought, receipt and origin together; null for a batch that no submission opens.</summary>
     public SubmissionOpening? Submission { get; }
 

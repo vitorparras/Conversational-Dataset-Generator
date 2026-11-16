@@ -8,12 +8,15 @@ namespace Core.Host.Endpoints;
 /// <summary>The screen of the submission (#607) as a result: what the form offers, what was typed coming back after a sending, and the status of the answer. The file never comes back.</summary>
 internal static class SubmissionPageView
 {
-    /// <summary>The page with the parameters given, its address of sending and its offer, answered with the status given.</summary>
-    internal static IResult Page(HttpContext context, SubmissionFields.Choices offer, IDictionary<string, object?> fields, int status)
+    /// <summary>The page with the parameters given, its address of sending and its offer, answered with the status given; the parameters given are not changed.</summary>
+    internal static IResult Page(HttpContext context, SubmissionFields.Choices offer, IReadOnlyDictionary<string, object?> fields, int status)
     {
-        fields[nameof(SubmissionScreen.Action)] = ScreenPaths.BatchNew;
-        fields[nameof(SubmissionScreen.Offer)] = offer;
-        var result = ScreenResult.Of(context, typeof(SubmissionScreen), SubmissionScreen.Title, fields);
+        var shown = new Dictionary<string, object?>(fields, StringComparer.Ordinal)
+        {
+            [nameof(SubmissionScreen.Action)] = ScreenPaths.BatchNew,
+            [nameof(SubmissionScreen.Offer)] = offer,
+        };
+        var result = ScreenResult.Of(context, typeof(SubmissionScreen), SubmissionScreen.Title, shown);
         result.StatusCode = status;
         return result;
     }

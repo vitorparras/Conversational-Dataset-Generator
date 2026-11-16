@@ -13,7 +13,6 @@ public sealed class BatchCounts
     private const int KindColumn = 0;
     private const int CodeColumn = 1;
     private const int ValueColumn = 2;
-    private const string Statement = "SELECT count_kind, count_code, count_value FROM public.batch_detail_counts(@batch, @domain)";
 
     private static readonly string[] DestinationCodes = Codes("remove", "pseudonymize", "preserve");
 
@@ -42,7 +41,7 @@ public sealed class BatchCounts
         var transaction = await ContentTransaction.BeginAsync(dataSource, domainId, cancellationToken).ConfigureAwait(false);
         await using (transaction.ConfigureAwait(false))
         {
-            var command = transaction.CreateCommand(Statement);
+            var command = transaction.CreateCommand(BatchCountStatements.Read);
             await using (command.ConfigureAwait(false))
             {
                 _ = command.Parameters.Add(new NpgsqlParameter("batch", NpgsqlDbType.Bigint) { Value = batchId });

@@ -37,4 +37,7 @@ public sealed record BatchEntry
 
     /// <summary>The form the submission declared the material in, by its code (migration 0055); null for a batch opened before the form was kept.</summary>
     public string? DeclaredForm { get; init; }
+
+    /// <summary>The form the material came in, the one its format carries, by its code (migration 0055); null for a batch opened before the form was kept.</summary>
+    public string? SourceForm { get; init; }
 }

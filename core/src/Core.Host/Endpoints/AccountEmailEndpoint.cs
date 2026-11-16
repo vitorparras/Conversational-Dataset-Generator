@@ -1,6 +1,5 @@
 using Core.Host.Screens;
 using Core.Persistence.People;
-using Core.Platform.Sessions;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
@@ -27,9 +26,9 @@ internal static class AccountEmailEndpoint
         return string.IsNullOrEmpty(typed) ? null : typed;
     }
 
-    private static async Task<IResult> ShowAsync(HttpContext context, [FromServices] PersonEmails? emails, [FromServices] SessionStore sessions)
+    private static async Task<IResult> ShowAsync(HttpContext context, [FromServices] PersonEmails? emails)
     {
-        if (emails is null || sessions.Resolve(SessionCookie.Read(context.Request)) is not { } person)
+        if (emails is null || RequestReader.SessionOf(context) is not { } person)
         {
             return ScreenResult.Unavailable(context);
         }
@@ -37,14 +36,14 @@ internal static class AccountEmailEndpoint
         return Page(context, await emails.AddressOfAsync(person, context.RequestAborted), context.Request.Query.ContainsKey(SavedKey), error: null);
     }
 
-    private static async Task<IResult> SaveAsync(HttpContext context, [FromServices] PersonEmails? emails, [FromServices] SessionStore sessions)
+    private static async Task<IResult> SaveAsync(HttpContext context, [FromServices] PersonEmails? emails)
     {
-        if (emails is null || sessions.Resolve(SessionCookie.Read(context.Request)) is not { } person)
+        if (emails is null || RequestReader.SessionOf(context) is not { } person)
         {
             return ScreenResult.Unavailable(context);
         }
 
-        var address = Typed(context.Request.HasFormContentType ? await context.Request.ReadFormAsync(context.RequestAborted) : null);
+        var address = Typed(await RequestReader.FormAsync(context));
         if (address is not null && !PersonEmails.IsAddress(address))
         {
             var refused = Page(context, address, saved: false, AccountEmailScreen.Invalid);

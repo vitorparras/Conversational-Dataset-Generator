@@ -2,7 +2,6 @@ using Core.Host.Submissions;
 using Core.Persistence.Domains;
 using Core.Persistence.Ingestion;
 using Core.Persistence.People;
-using Core.Platform.Sessions;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 
@@ -49,7 +48,7 @@ internal static class SubmissionsEndpoint
             return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
 
-        if (SessionOf(context) is not { } author)
+        if (RequestReader.SessionOf(context) is not { } author)
         {
             return Results.Unauthorized();
         }
@@ -84,7 +83,7 @@ internal static class SubmissionsEndpoint
             return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
 
-        if (SessionOf(context) is not { } requester)
+        if (RequestReader.SessionOf(context) is not { } requester)
         {
             return Results.Unauthorized();
         }
@@ -106,7 +105,7 @@ internal static class SubmissionsEndpoint
             return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
 
-        if (SessionOf(context) is not { } requester)
+        if (RequestReader.SessionOf(context) is not { } requester)
         {
             return Results.Unauthorized();
         }
@@ -132,7 +131,6 @@ internal static class SubmissionsEndpoint
         return (await GrantedDomains.OfAsync(listing, names, context.RequestAborted)).Keys;
     }
 
-    private static long? SessionOf(HttpContext context) => context.RequestServices.GetRequiredService<SessionStore>().Resolve(SessionCookie.Read(context.Request));
 
     /// <summary>The body is bounded by the most bytes a file may have, and a margin for the fields and the boundaries, before a byte of it is read.</summary>
     private static void Bound(HttpContext context, long maxBytes)

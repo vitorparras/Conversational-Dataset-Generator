@@ -1,6 +1,5 @@
 using Core.Host.Operators;
 using Core.Host.Screens;
-using Core.Platform.Sessions;
 
 namespace Core.Host.Endpoints;
 
@@ -43,7 +42,7 @@ internal static class ScreenGate
     /// <summary>With no database declared there is no registry, so no function and no screen but the pages of everyone.</summary>
     internal static async Task<ScreenReach> ReachOfAsync(HttpContext context)
     {
-        var subject = context.RequestServices.GetRequiredService<SessionStore>().Resolve(SessionCookie.Read(context.Request));
+        var subject = RequestReader.SessionOf(context);
         if (subject is not { } entered || context.RequestServices.GetService<OperatorAdministration>() is not { } administration)
         {
             return ScreenReach.Nothing;

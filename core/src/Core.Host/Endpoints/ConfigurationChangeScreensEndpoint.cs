@@ -3,7 +3,6 @@ using Core.Host.Screens;
 using Core.Host.Settings;
 using Core.Persistence.People;
 using Core.Platform.Configuration;
-using Core.Platform.Sessions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Core.Host.Endpoints;
@@ -42,7 +41,7 @@ internal static class ConfigurationChangeScreensEndpoint
             return ScreenResult.Unavailable(context);
         }
 
-        var form = await context.Request.ReadFormAsync(context.RequestAborted);
+        var form = await FormAsync(context);
         var request = new ChangeRequest(
             form[ConfigurationChangeScreen.KeyField].ToString(), form[ConfigurationChangeScreen.ValueField].ToString(), form[ConfigurationChangeScreen.MotiveField].ToString(), actor);
         var answer = await desk.SubmitAsync(request, context.RequestAborted);
@@ -76,7 +75,7 @@ internal static class ConfigurationChangeScreensEndpoint
             return ScreenResult.Unavailable(context);
         }
 
-        var form = await context.Request.ReadFormAsync(context.RequestAborted);
+        var form = await FormAsync(context);
         var decision = form[ConfigurationChangeScreen.DecisionField].ToString();
         if (!long.TryParse(form[ConfigurationChangeScreen.ChangeField], NumberStyles.None, CultureInfo.InvariantCulture, out var changeId)
             || decision is not (ConfigurationChangeScreen.Approve or ConfigurationChangeScreen.Refuse))
@@ -112,7 +111,9 @@ internal static class ConfigurationChangeScreensEndpoint
     }
 
 
-    private static long? ActorOf(HttpContext context) => context.RequestServices.GetRequiredService<SessionStore>().Resolve(SessionCookie.Read(context.Request));
+    private static async Task<IFormCollection> FormAsync(HttpContext context) => await RequestReader.FormAsync(context) ?? FormCollection.Empty;
+
+    private static long? ActorOf(HttpContext context) => RequestReader.SessionOf(context);
 
     private static IResult Back(HttpContext context, string done)
     {

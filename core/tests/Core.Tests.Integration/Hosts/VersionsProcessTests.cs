@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Core.Host.Tests;
+using Core.Persistence.People;
 using Core.Persistence.Tests.Fixtures;
 
 namespace Core.Tests.Integration.Hosts;
@@ -68,7 +69,7 @@ public sealed class VersionsProcessTests(DefaultHostFixture fixture) : IClassFix
     public async Task TwoStartsOfTheSameBuildAnswerTheSameVersions()
     {
         var first = await VersionsTextAsync(fixture.Host);
-        await using var other = await AuthenticatedHost.StartAsync(new HostSetup(), TestContext.Current.CancellationToken);
+        await using var other = await AuthenticatedHost.StartAsync(new HostSetup { Function = PersonFunctions.Administration }, TestContext.Current.CancellationToken);
 
         var second = await VersionsTextAsync(other);
 

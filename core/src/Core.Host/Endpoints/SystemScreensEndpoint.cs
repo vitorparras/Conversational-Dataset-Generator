@@ -17,15 +17,21 @@ internal static class SystemScreensEndpoint
     private const int StatePlace = 90;
     private const int ConfigurationPlace = 91;
 
+    /// <summary>The functions that read the state and the configuration of the system, which the routes of JSON of the same data declare too (policy 006).</summary>
+    internal static string[] Readers { get; } = [PersonFunctions.Administration, PersonFunctions.Audit];
+
+    /// <summary>What the routes of JSON of the state of the system declare: the functions of its screens and no entry in the menu.</summary>
+    internal static ScreenAccess Access { get; } = ScreenAccess.Unlisted(Readers);
+
     internal static void Map(IEndpointRouteBuilder endpoints, RecognizerKind recognizer)
     {
         _ = endpoints.MapGet(
                 ScreenPaths.State,
                 (HttpContext context, [AsParameters] StatusSources sources, [FromServices] VersionReport versions, [FromServices] IServiceVersionReader service) =>
                     StateAsync(context, SystemState.Status(sources, recognizer), versions, service))
-            .WithMetadata(ScreenAccess.Of(SystemStateScreen.Title, StatePlace, PersonFunctions.Administration, PersonFunctions.Audit));
+            .WithMetadata(ScreenAccess.Of(SystemStateScreen.Title, StatePlace, Readers));
         _ = endpoints.MapGet(ScreenPaths.Configuration, InForce)
-            .WithMetadata(ScreenAccess.Of(ConfigurationScreen.Title, ConfigurationPlace, PersonFunctions.Administration, PersonFunctions.Audit));
+            .WithMetadata(ScreenAccess.Of(ConfigurationScreen.Title, ConfigurationPlace, Readers));
     }
 
     private static async Task<RazorComponentResult<ScreenFrame>> StateAsync(HttpContext context, StatusResponse status, VersionReport versions, IServiceVersionReader service)

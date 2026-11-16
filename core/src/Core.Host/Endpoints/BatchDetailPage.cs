@@ -15,10 +15,9 @@ internal static class BatchDetailPage
     private const string Removed = "Pessoa removida";
 
     /// <summary>With no database declared there is no batch to show, and the page says it is the host that cannot, as the other screens do.</summary>
-    internal static async Task<IResult> DetailAsync(
-        long id, HttpContext context, [FromServices] BatchRegister? register, [FromServices] BatchCounts? counts, [FromServices] DomainListing? listing, [FromServices] OperatorAdministration? staff)
+    internal static async Task<IResult> DetailAsync(long id, HttpContext context, [AsParameters] Sources sources)
     {
-        if (register is null || counts is null || listing is null || staff is null)
+        if (sources is not { Register: { } register, Counts: { } counts, Listing: { } listing, Staff: { } staff })
         {
             return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
@@ -39,6 +38,13 @@ internal static class BatchDetailPage
         };
         return ScreenResult.Of(context, typeof(BatchDetailScreen), BatchDetailScreen.Title, screen);
     }
+
+    /// <summary>What the detail reads, each from the services of the host, absent when no database was declared.</summary>
+    internal sealed record Sources(
+        [FromServices] BatchRegister? Register,
+        [FromServices] BatchCounts? Counts,
+        [FromServices] DomainListing? Listing,
+        [FromServices] OperatorAdministration? Staff);
 
     private static BatchDetailScreen.Detail DetailOf(BatchEntry entry, (string Domain, string SubmittedBy) named, BatchDetailCounts numbers)
     {

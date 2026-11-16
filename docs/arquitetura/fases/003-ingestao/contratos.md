@@ -2,58 +2,59 @@
 
 > Norma pendente. 2026-11-15. Os nomes novos valem como proposta até o plano da fatia.
 
-A rota de tela chama o mesmo serviço que a rota de JSON já chama, e nunca o armazenamento direto
-([rota](../../padroes/003-rota.md)). Quem alcança cada rota é `PersonFunctions.Curation`.
+A rota de tela chama o serviço, nunca o armazenamento ([rota](../../padroes/003-rota.md)). Toda
+rota nova declara `PersonFunctions.Curation` em `ScreenAccess`; cada POST novo tem um teste de
+pessoa sem Curadoria, recusada sem gravar nada.
 
 ## Fatia A
 
-**Tela → serviço da submissão.** `SubmissionService.SubmitAsync` (linha 50) e `GateAsync`
-(linha 42) já existem, e `SubmissionsEndpoint` (linha 76) já os chama com RequestAborted. A rota
-de tela lê o formulário em `SubmissionRequest` e traduz o `SubmissionOutcome`:
+**Tela → submissão.** A rota usa o portão de `SubmissionsEndpoint` (linhas 34 a 42, que chamam
+`IntakeDoor.StatusAsync`) e `SubmissionService.SubmitAsync` (linha 50) com RequestAborted. Aceito
+ou com nome descartado, 303 para `/lotes/{id}`; recusado, a tela com o código fixo; porta
+fechada, a tela com 503.
 
-- aceito: 303 para `/lotes/{id}`;
-- recusado: a tela de novo, com o código fixo;
-- nome descartado: 303 para o lote, que mostra o aviso;
-- porta fechada: a tela com 503.
+**Submissão → armazenamento (#775).** `SubmissionStoring.StoreAsync` (linha 57) passa a tratar
+também o OperationCanceledException, que hoje escapa. O fechamento de `KeepAsync` (linha 172)
+rejeita com submission_cancelled, num token próprio da limpeza, porque o da requisição já caiu.
 
-**Serviço → armazenamento (#775).** `SubmissionStoring.StoreAsync` (linha 76) também trata o
-OperationCanceledException, que hoje escapa. `CleanUpAsync` passa a receber o motivo e rejeita
-com submission_cancelled num token próprio, porque o da requisição já foi cancelado. Um lote
-cancelado não fica aberto.
+**Repetição.** A submissão só reconhece a cópia de um lote aceito, por `SubmissionJudgement`
+(linhas 29 a 33) e pelo índice parcial da 0051. Duas cópias abertas entram as duas, e quem decide
+é a aprovação (fatia B). A fatia A apaga o que nunca roda: `Keeping.Repeated`,
+`SubmissionStoring.IsRepeat`, `SubmissionService.RepeatedAsync` e `SubmissionJudgement.RepeatAsync`.
 
-**Tela → leitura do lote.** `BatchRegister.ReadAsync` (linha 72) e `PreviousAsync` (linha 97)
-seguem como estão. Entra `BatchRegister.CountsAsync(domains, batchId)`, que chama a função da 0057
-e devolve BatchCounts: forma, destino e replicado, só números. O destino sai do banco como
-`OccurrenceDestination` e chega à tela pelos códigos de `BatchDetailTexts` (linha 14), num mapa
-único na rota.
+**Tela → leitura do lote.** `BatchRegister.ReadAsync` (linha 72) segue, e uma leitura nova chama
+a 0057: só números de forma, destino e replicado, com os códigos de `BatchDetailTexts` (linha 14).
 
 ## Fatia B
 
-**Host → revisão.** `BatchReviews` entra na injeção do host com o tamanho de
-`AdmissionConfiguration.ReviewSampleSize` (linha 47), como o construtor já pede (linha 28).
+**Decisão separada da gravação** ([serviço de domínio](../../padroes/002-servico-de-dominio.md)):
+- O progresso da amostra, um tipo puro novo em `Core.Ingestion`, decide o próximo item, se o
+  achado cabe, se o lote pode ser aprovado e as recusas de `BatchReviews` (linhas 77 a 105, que
+  saem de lá). É testado sem banco.
+- Um serviço da revisão em `Core.Host`, como o `SubmissionService`, lê o lote com
+  `BatchReviews.ReadAsync`, pede a decisão e chama a gravação.
+- `BatchReviews` fica só com gravações condicionais: cada UPDATE só pega a linha se a posição
+  revisada for a esperada, com o SQL numa classe de `Statements`. Sem linha pega, a gravação
+  devolve o fato e o serviço relê. Cada uma copia o laço de nova tentativa do exemplar do padrão
+  001 no `Conflict` (`CustodyTransaction`, linha 55): quem perde a disputa vê
+  `AlreadyReviewed` ou o item já marcado, nunca `NotRecorded`.
 
-**Tela → revisão.** A tela da amostra já existe e revisa item a item, na ordem
-(SampleReviewScreen.razor, linhas 44 a 66). Além do que já existe (`DrawAsync`, linha 43;
-`ReadAsync`, linha 70; `ReviewAsync`, linha 55), entram três operações:
+**Aprovação de uma cópia.** A aprovação revisa e aceita na mesma transação. Se o aceite esbarrar no
+índice da 0051, a gravação captura a UniqueViolation como `IngestionBatches` (linhas 206 a 208),
+tudo volta, e `BatchReviewOutcome` ganha o valor novo "já recebido". Numa transação nova, o
+serviço rejeita o lote com already_received (`IngestionBatches.RejectAsync`, linha 86) e acha o
+primeiro por `BatchRegister.PreviousAsync`; a tela leva ao lote, que aponta para o primeiro.
 
-- MarkAsync: marca o próximo item como revisado, e só ele (0058);
-- ReadTextAsync: grava o evento de leitura e lê o texto pela 0059, na mesma transação, sem log;
-- ApproveAsync: revisa sem achado e aceita o lote numa transação só, como a 0054 permite.
+**Reprovação → remoção.** É mudança: hoje a reprovação remove só mapas e itens (`BatchReviews`,
+linhas 210 e 211). Ela passa a remover também marcas e ocorrências, como `BatchStateChange`
+(linhas 39 a 42), na mesma transação.
 
-`BatchReviewing` passa a levar a posição do achado. A rota traduz cada `BatchReviewOutcome` num
-`switch` completo; `AlreadyReviewed` e `AlreadySampled` mostram quem chegou antes, nunca 500.
-
-**Reprovação → remoção.** A reprovação por achado remove as marcas, as ocorrências, os mapas e os
-itens, como `BatchStateChange` já faz (linhas 38 a 41), na mesma transação.
-
-## Rotas
-
-O endereço da revisão é o `Action` das duas telas (SampleReviewScreen.razor, linha 122).
+**Leitura por GET.** Abrir a revisão grava um evento por item mostrado, pois a #610 CA-5 pede o
+registro de cada leitura; o evento não muda o lote nem o item, e o padrão 003 proíbe só isso.
 
 | Rota | Verbo | Fatia |
 |---|---|---|
 | `/lotes/novo` e `/lotes/{id}` | GET, POST; GET | A |
-| `/lotes/{id}/amostra` | POST | B |
+| `/lotes/{id}/amostra`, `/lotes/{id}/revisao/aprovar`, `/lotes/{id}/revisao/itens/{n}/revisado` | POST | B |
 | `/lotes/{id}/revisao` | GET | B |
-| `/lotes/{id}/revisao/itens/{n}/revisado` e `/lotes/{id}/revisao/aprovar` | POST | B |
 | `/lotes/{id}/revisao/itens/{n}/achado` | GET, POST | B |

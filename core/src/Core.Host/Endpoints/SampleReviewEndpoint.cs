@@ -30,24 +30,21 @@ internal static class SampleReviewEndpoint
 
     private static string ReviewOf(long id) => $"{ScreenPaths.Batches}/{id.ToString(CultureInfo.InvariantCulture)}{ScreenPaths.ReviewSuffix}";
 
+    private static IResult Answered(HttpContext context, long id, BatchReviewOutcome outcome) =>
+        outcome == BatchReviewOutcome.NotRecorded ? ScreenResult.Unavailable(context) : PageRedirect.Of(context, ReviewOf(id));
+
     private static Task<IResult> DrawAsync(HttpContext context, long id, [FromServices] SampleReviewDesk? desk, [FromServices] BatchRegister? register, [FromServices] DomainListing? listing) =>
         GuardedAsync(context, (desk, register, listing), async (found, person) =>
-            await desk!.DrawAsync(found.Batch, person, context.RequestAborted).ConfigureAwait(false) is { Outcome: BatchReviewOutcome.NotRecorded }
-                ? ScreenResult.Unavailable(context)
-                : PageRedirect.Of(context, ReviewOf(id)));
+            Answered(context, id, (await desk!.DrawAsync(found.Batch, person, context.RequestAborted).ConfigureAwait(false)).Outcome));
 
     private static Task<IResult> MarkAsync(
         HttpContext context, long id, int place, [FromServices] SampleReviewDesk? desk, [FromServices] BatchRegister? register, [FromServices] DomainListing? listing) =>
         GuardedAsync(context, (desk, register, listing), async (found, _) =>
-            await desk!.MarkAsync(found.Batch, place, context.RequestAborted).ConfigureAwait(false) == BatchReviewOutcome.NotRecorded
-                ? ScreenResult.Unavailable(context)
-                : PageRedirect.Of(context, ReviewOf(id)));
+            Answered(context, id, await desk!.MarkAsync(found.Batch, place, context.RequestAborted).ConfigureAwait(false)));
 
     private static Task<IResult> ApproveAsync(HttpContext context, long id, [FromServices] SampleReviewDesk? desk, [FromServices] BatchRegister? register, [FromServices] DomainListing? listing) =>
         GuardedAsync(context, (desk, register, listing), async (found, person) =>
-            await desk!.ApproveAsync(found.Batch, person, context.RequestAborted).ConfigureAwait(false) == BatchReviewOutcome.NotRecorded
-                ? ScreenResult.Unavailable(context)
-                : PageRedirect.Of(context, ReviewOf(id)));
+            Answered(context, id, await desk!.ApproveAsync(found.Batch, person, context.RequestAborted).ConfigureAwait(false)));
 
     private static Task<IResult> ReviewAsync(HttpContext context, long id, [FromServices] SampleReviewDesk? desk, [FromServices] BatchRegister? register, [FromServices] DomainListing? listing) =>
         GuardedAsync(context, (desk, register, listing), async (found, person) =>
@@ -78,8 +75,7 @@ internal static class SampleReviewEndpoint
                 return RejectionScreen(context, id, place, (kind, "Escolha o que foi achado."));
             }
 
-            var outcome = await desk!.RejectAsync(found.Batch, (place, kind!, person), context.RequestAborted).ConfigureAwait(false);
-            return outcome == BatchReviewOutcome.NotRecorded ? ScreenResult.Unavailable(context) : PageRedirect.Of(context, ReviewOf(id));
+            return Answered(context, id, await desk!.RejectAsync(found.Batch, (place, kind!, person), context.RequestAborted).ConfigureAwait(false));
         });
 
     private static RazorComponentResult<ScreenFrame> RejectionScreen(HttpContext context, long id, int place, (string? Finding, string? Error) shown) =>
@@ -104,10 +100,7 @@ internal static class SampleReviewEndpoint
             [nameof(SampleDrawScreen.Back)] = ScreenPaths.Batches,
         };
 
-    /// <summary>
-    /// Runs a step for the batch the person may see: the services and the session are what the step needs, a batch outside the grants is not found, and a database that does not answer
-    /// leaves the page unavailable, with nothing written that the register does not hold.
-    /// </summary>
+    /// <summary>Runs a step for the batch the person may see: one outside the grants is not found, and a database that does not answer leaves the page unavailable, with nothing written.</summary>
     private static async Task<IResult> GuardedAsync(
         HttpContext context, (SampleReviewDesk? Desk, BatchRegister? Register, DomainListing? Listing) services, Func<(BatchEntry Batch, string Domain), long, Task<IResult>> step)
     {

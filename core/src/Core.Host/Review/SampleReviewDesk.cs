@@ -6,7 +6,7 @@ using Core.Persistence.People;
 
 namespace Core.Host.Review;
 
-/// <summary>The review of the sample (#610) as the screens ask for it: what the sample is and the four things a person does with it. The domain decides whether a step is allowed before it writes, and the database decides again, so a step that is not the next one never reaches the register.</summary>
+/// <summary>The review of the sample (#610) as the screens ask for it: the domain decides whether a step is allowed before it writes, and the database decides again.</summary>
 internal sealed class SampleReviewDesk
 {
     private const string Removed = "Pessoa removida";

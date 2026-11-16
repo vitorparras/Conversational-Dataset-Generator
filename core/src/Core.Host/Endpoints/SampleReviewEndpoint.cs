@@ -10,7 +10,7 @@ using Npgsql;
 
 namespace Core.Host.Endpoints;
 
-/// <summary>The routes of the review of the sample (#610), for the curation and none in the menu: the draw, the review item by item, the finding that rejects the batch and the approval. A batch outside the grants is not found, a step is answered by sending the person back to the review, and a step the database could not take is unavailable.</summary>
+/// <summary>The routes of the review of the sample (#610), for the curation, none in the menu: draw, review item by item, finding that rejects the batch, approval.</summary>
 internal static class SampleReviewEndpoint
 {
     internal static void Map(IEndpointRouteBuilder endpoints)

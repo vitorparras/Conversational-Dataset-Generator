@@ -3,13 +3,12 @@ using Npgsql;
 
 namespace Core.Persistence.Ingestion;
 
-/// <summary>The progress of the review of the sample (issue 822): each item is marked as reviewed in the order it was drawn, and the database refuses a mark that is not the next; the mark has no event of its own, since each text read and the review that follows are events.</summary>
+/// <summary>The progress of the review of the sample (#822): each item is marked reviewed in the order of the draw, and the database refuses a mark that is not the next.</summary>
 public sealed class SampleMarks
 {
     private readonly NpgsqlDataSource dataSource;
 
     /// <summary>Marks over the database of the application.</summary>
-    /// <param name="dataSource">The data source with the credential of the application.</param>
     public SampleMarks(NpgsqlDataSource dataSource)
     {
         this.dataSource = dataSource;

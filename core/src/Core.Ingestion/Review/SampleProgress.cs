@@ -1,9 +1,6 @@
 namespace Core.Ingestion.Review;
 
-/// <summary>
-/// Where the review of a drawn sample stands (#610): the places of the sample go from 1 to its size, in the order of the draw, and each is reviewed once, right after the one before it.
-/// It decides what a request may do and writes nothing, so that it is tested without a database; the writing repeats the same rule in a condition of its own, which is what settles two people at once.
-/// </summary>
+/// <summary>Where the review of a drawn sample stands (#610): places go from 1 to the size, in the order of the draw, each reviewed once right after the one before; it only decides.</summary>
 /// <param name="Size">How many items the sample holds.</param>
 /// <param name="Reviewed">How many of them, from the first, were already marked as reviewed.</param>
 public sealed record SampleProgress(int Size, int Reviewed)
@@ -12,11 +9,9 @@ public sealed record SampleProgress(int Size, int Reviewed)
     public int? Next => Reviewed < Size ? Reviewed + 1 : null;
 
     /// <summary>Whether a place of the sample is marked as reviewed.</summary>
-    /// <param name="position">The place in the sample, from 1.</param>
     public SampleDecision Mark(int position) => PlaceDecision(position);
 
     /// <summary>Whether a finding of personal data can be told at a place: only at the one being reviewed, since the ones before it were read and marked as clean.</summary>
-    /// <param name="position">The place in the sample, from 1.</param>
     public SampleDecision Find(int position) => PlaceDecision(position);
 
     /// <summary>Whether the batch can be approved: only when the sample has items and every one was reviewed.</summary>

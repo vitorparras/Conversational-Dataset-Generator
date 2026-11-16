@@ -7,7 +7,7 @@ using Npgsql;
 
 namespace Core.Host.Review;
 
-/// <summary>What the desk of the review takes from the installation: the database the startup container holds, the size of the sample the configuration declares and the master key, read at each screen that shows a text. With no database there is no desk.</summary>
+/// <summary>What the desk of the review takes from the installation: the database, the size of the sample the configuration declares and the master key. With no database there is no desk.</summary>
 internal static class SampleReviewParts
 {
     /// <summary>The desk over the database the startup container holds; none when no database is declared.</summary>

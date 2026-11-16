@@ -9,15 +9,13 @@ using Npgsql;
 
 namespace Core.Persistence.Ingestion;
 
-/// <summary>The reading of the text of an item of the sample while the batch is open (issue 822): a door of the database that answers only for an item the sample drew and only after the event of the reading was written in the same transaction; when anything after the event refuses, nothing is recorded.</summary>
+/// <summary>The reading of the text of an item of the sample while the batch is open (#822): the event goes first, in the same transaction, and when anything refuses nothing is recorded.</summary>
 public sealed class SampleTextReader
 {
     private readonly NpgsqlDataSource dataSource;
     private readonly ProtectedContent protectedContent;
 
     /// <summary>Reads over the database of the application, opening the text with the keys the host holds.</summary>
-    /// <param name="dataSource">The data source with the credential of the application.</param>
-    /// <param name="protectedContent">The protected content that opens the sealed text.</param>
     public SampleTextReader(NpgsqlDataSource dataSource, ProtectedContent protectedContent)
     {
         this.dataSource = dataSource;

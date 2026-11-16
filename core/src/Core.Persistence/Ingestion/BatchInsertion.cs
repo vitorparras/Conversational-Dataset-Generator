@@ -32,6 +32,8 @@ internal static class BatchInsertion
             _ = command.Parameters.Add(Nullable("digest", NpgsqlDbType.Text, opening.Receipt?.Digest));
             _ = command.Parameters.Add(Nullable("warning", NpgsqlDbType.Text, opening.Receipt?.Warning));
             _ = command.Parameters.Add(Nullable("origin", NpgsqlDbType.Text, opening.Origin?.State));
+            _ = command.Parameters.Add(Nullable("form", NpgsqlDbType.Text, opening.DeclaredForm));
+            _ = command.Parameters.Add(Nullable("source", NpgsqlDbType.Text, opening.SourceForm));
             return (long)(await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false))!;
         }
     }

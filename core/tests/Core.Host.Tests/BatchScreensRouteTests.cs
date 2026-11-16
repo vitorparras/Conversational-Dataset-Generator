@@ -62,11 +62,11 @@ public sealed class BatchScreensRouteTests
         var second = await world.PageAsync("/lotes?pagina=2", world.Curator);
 
         Assert.Equal(20, Rows(first));
-        Assert.Contains("Lote\u00A022</th>", first, StringComparison.Ordinal);
-        Assert.DoesNotContain("Lote\u00A01</th>", first, StringComparison.Ordinal);
+        Assert.Contains("Lote\u00A022</a></th>", first, StringComparison.Ordinal);
+        Assert.DoesNotContain("Lote\u00A01</a></th>", first, StringComparison.Ordinal);
         Assert.Contains("rel=\"next\"", first, StringComparison.Ordinal);
         Assert.Equal(1, Rows(second));
-        Assert.Contains("Lote\u00A01</th>", second, StringComparison.Ordinal);
+        Assert.Contains("Lote\u00A01</a></th>", second, StringComparison.Ordinal);
         Assert.Contains("rel=\"prev\"", second, StringComparison.Ordinal);
         Assert.DoesNotContain("rel=\"next\"", second, StringComparison.Ordinal);
     }
@@ -80,10 +80,10 @@ public sealed class BatchScreensRouteTests
         var before = await world.PageAsync("/lotes?ate=2000-01-01", world.Curator);
         var after = await world.PageAsync("/lotes?de=2999-01-01", world.Curator);
 
-        Assert.Contains("Lote\u00A01</th>", since, StringComparison.Ordinal);
-        Assert.DoesNotContain("Lote\u00A01</th>", before, StringComparison.Ordinal);
+        Assert.Contains("Lote\u00A01</a></th>", since, StringComparison.Ordinal);
+        Assert.DoesNotContain("Lote\u00A01</a></th>", before, StringComparison.Ordinal);
         Assert.Contains("Nenhum lote com esse filtro.", before, StringComparison.Ordinal);
-        Assert.DoesNotContain("Lote\u00A01</th>", after, StringComparison.Ordinal);
+        Assert.DoesNotContain("Lote\u00A01</a></th>", after, StringComparison.Ordinal);
     }
 
     [DatabaseFact]
@@ -131,7 +131,7 @@ public sealed class BatchScreensRouteTests
         Assert.Equal(HttpStatusCode.ServiceUnavailable, listed.StatusCode);
     }
 
-    private static int Rows(string page) => page.Split("<th scope=\"row\" role=\"rowheader\">Lote", StringSplitOptions.None).Length - 1;
+    private static int Rows(string page) => page.Split("<th scope=\"row\" role=\"rowheader\"><a href=\"/lotes/", StringSplitOptions.None).Length - 1;
 
     private sealed class World : IAsyncDisposable
     {

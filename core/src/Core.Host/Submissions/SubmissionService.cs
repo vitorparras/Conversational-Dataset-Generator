@@ -37,6 +37,9 @@ internal sealed class SubmissionService
         keeper = new SubmissionStoring.Keeper(batches, intake, logger);
     }
 
+    /// <summary>What the form of the screen offers from the service: the formats the barrier reads and the conditions of the installation, the most restrictive first.</summary>
+    internal (IReadOnlyList<string> Formats, IReadOnlyList<string> Conditions) Offered => (intake.Gate.Formats, intake.Conditions.Names);
+
     /// <summary>Whether the ingestion takes material in: open, or blocked by the code of what is missing (decision 0014).</summary>
     /// <param name="cancellationToken">Cancels the question.</param>
     internal Task<SubmissionGateStatus> GateAsync(CancellationToken cancellationToken) => new IntakeDoor(dataSource).StatusAsync(cancellationToken);
@@ -63,6 +66,14 @@ internal sealed class SubmissionService
     {
         ArgumentNullException.ThrowIfNull(request);
         return SubmissionFields.Of(intake, request);
+    }
+
+    /// <summary>The fields at fault of a request whose condition must be chosen, as the form of the screen asks; a condition left out is missing there, not the most restrictive.</summary>
+    /// <param name="request">The request, whose file is not read.</param>
+    internal IReadOnlyList<FieldProblem> CheckChosen(SubmissionRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return SubmissionFields.Chosen(intake, request);
     }
 
     /// <summary>The batches of the domains granted, newest first, by state and by period, in a page the server cuts and never larger than the most a page may hold.</summary>
@@ -145,14 +156,8 @@ internal sealed class SubmissionService
     {
         var place = new SubmissionStoring.Kept(request.DomainId, opened.Batch, opened.Received.Material!, request.DeclaredForm);
         var kept = await keeper.KeepAsync(place, cancellationToken).ConfigureAwait(false);
-        return SubmissionStoring.IsRepeat(kept)
-            ? await RepeatedAsync(request, opened, cancellationToken).ConfigureAwait(false)
-            : SubmissionStoring.Failure(kept, opened.Batch) ?? Answer(opened.Received, opened.Batch, (null, opened.Warning), opened.Origin);
+        return SubmissionStoring.Failure(kept, opened.Batch) ?? Answer(opened.Received, opened.Batch, (null, opened.Warning), opened.Origin);
     }
-
-    /// <summary>A file sent at the same time as an identical one, which the database let the other one accept: it is a repeat of that one, rejected with no item as any other.</summary>
-    private async Task<SubmissionOutcome> RepeatedAsync(SubmissionRequest request, Opened opened, CancellationToken cancellationToken) =>
-        Turned(opened, await SubmissionJudgement.RepeatAsync(register, request.DomainId, opened.Received.Digest, cancellationToken).ConfigureAwait(false));
 
     /// <summary>What there is to say of a submission that was registered as rejected: the key that was missing is a failure of the service, not a defect of the file.</summary>
     private static SubmissionOutcome Turned(Opened opened, SubmissionReason reason) => reason.Code == SubmissionStoring.KeyUnavailable

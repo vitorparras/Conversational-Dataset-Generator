@@ -51,7 +51,7 @@ public sealed class ContentWriter(NpgsqlDataSource dataSource, ProtectedContent 
             () =>
             [
                 Batch(batchId), Bytes("raw", raw), Bytes("sanitized", sanitized), Bytes("occurrences", occurrences), Text("pseudonymized", item.Pseudonymized),
-                .. KeyOf(sealing), .. Declared(item.Accommodation),
+                .. KeyOf(sealing), .. Declared(item.Accommodation), .. Counted(item.Occurrences),
             ],
             IsolationLevel.ReadCommitted);
         return await InsertAsync(domainId, insertion, cancellationToken).ConfigureAwait(false);
@@ -62,6 +62,16 @@ public sealed class ContentWriter(NpgsqlDataSource dataSource, ProtectedContent 
         yield return Text("accommodated", accommodation?.Form);
         yield return new NpgsqlParameter("losses", NpgsqlDbType.Text) { Value = accommodation is null ? string.Empty : string.Join(',', accommodation.Losses) };
     }
+
+    private static IEnumerable<NpgsqlParameter> Counted(IReadOnlyList<ItemOccurrence>? occurrences)
+    {
+        yield return Count("removed_count", occurrences, OccurrenceDestination.Remove);
+        yield return Count("pseudonymized_count", occurrences, OccurrenceDestination.Pseudonymize);
+        yield return Count("preserved_count", occurrences, OccurrenceDestination.Preserve);
+    }
+
+    private static NpgsqlParameter Count(string name, IReadOnlyList<ItemOccurrence>? occurrences, OccurrenceDestination destination) =>
+        new(name, NpgsqlDbType.Integer) { Value = occurrences?.Count(occurrence => occurrence.Destination == destination) ?? 0 };
 
     private async Task<long> AddMapAsync(int domainId, NewReversalMap map, CancellationToken cancellationToken)
     {

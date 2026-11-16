@@ -38,6 +38,13 @@ public sealed class SubmissionGate
         this.newId = newId;
     }
 
+    /// <summary>The formats the barrier reads, which are the ones of its readers.</summary>
+    public IReadOnlyList<string> Formats => readers.Formats;
+
+    /// <summary>The form the material of the format comes in, by its reader; none for a format the gate does not read.</summary>
+    /// <param name="format">The format declared.</param>
+    public MaterialForm? FormOf(string format) => readers.FormOf(format);
+
     /// <summary>Receives the submission: the material read whole, or the refusal with its reason; the identifier, the digest and the count of bytes come either way.</summary>
     /// <param name="submission">The stream, the format declared and the name received.</param>
     /// <param name="cancellationToken">Cancels the reading.</param>

@@ -16,6 +16,15 @@ internal static class GrantedDomains
         return FindingAsync(listing, names, cancellationToken);
     }
 
+    /// <summary>The domains granted to the one who entered a screen, by identifier, as the gate of the screens read them for the request; none when the gate read nothing.</summary>
+    /// <param name="listing">The listing of the domains.</param>
+    /// <param name="context">The request of the screen.</param>
+    internal static Task<Dictionary<int, string>> OfScreenAsync(DomainListing listing, HttpContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        return OfAsync(listing, (context.Features.Get<ScreenReach>() ?? ScreenReach.Nothing).Granted, context.RequestAborted);
+    }
+
     private static async Task<Dictionary<int, string>> FindingAsync(DomainListing listing, IEnumerable<string> names, CancellationToken cancellationToken)
     {
         var wanted = names.ToHashSet(StringComparer.Ordinal);

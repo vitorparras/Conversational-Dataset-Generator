@@ -9,6 +9,9 @@ public interface ISourceReader
     /// <summary>The format this reader reads, as the content declares it.</summary>
     string Format { get; }
 
+    /// <summary>The form the material of this format comes in, as its export lays it out; the submission may declare another, and then the material is accommodated into it.</summary>
+    MaterialForm Form { get; }
+
     /// <summary>Reads the content whole; a content that cannot be read whole is unreadable, and nothing of it is handed over.</summary>
     /// <param name="content">The bytes of the content.</param>
     ReadOutcome Read(ReadOnlyMemory<byte> content);

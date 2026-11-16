@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lote 13 · Gerador de bases conversacionais</title>
+    <link rel="stylesheet" href="../../../../../core/src/Core.Host/Screens/tokens.css" />
+    <link rel="stylesheet" href="../../../../../core/src/Core.Host/Screens/screens.css" />
+</head>
+<!--
+    Protótipo da tela I3 (GET /lotes/{id}). Na tela real só um estado aparece por vez; aqui os estados vêm em sequência, cada um na sua âncora.
+    O estado "aberto" traz o detalhe inteiro com os ids da tela real; os outros mostram só o painel que muda, com o nome do estado como prefixo dos ids.
+    Nenhum texto do material aparece nesta tela: só contagens, procedência e estado.
+-->
+<body>
+    <a class="skip-link" href="#content">Ir para o conteúdo</a>
+    <p role="note">Protótipo para aprovação do dono. Não é a tela final. <a href="index.html">Índice dos protótipos</a>.</p>
+    <header class="header">
+        <a class="header__name" href="index.html">Gerador de bases conversacionais</a>
+        <button id="cabecalho-abrir" class="button button--secondary header__toggle" type="button" aria-expanded="false" aria-controls="cabecalho-menu">Menu</button>
+        <div id="cabecalho-menu" class="header__menu">
+            <form class="domain" method="get">
+                <label class="domain__label" for="dominio">Domínio de trabalho</label>
+                <select id="dominio" class="domain__choice" name="dominio">
+                    <option value="DOMINIO_A">DOMINIO_A</option>
+                    <option value="DOMINIO_B">DOMINIO_B</option>
+                </select>
+                <button id="dominio-trocar" class="button button--secondary" type="submit">Trocar domínio</button>
+            </form>
+            <a class="nav__link header__account" href="index.html">Minha conta</a>
+            <form class="header__leave" method="get" action="index.html">
+                <button id="sair" class="button button--secondary" type="submit">Sair</button>
+            </form>
+            <nav class="nav" aria-label="Telas da sua função">
+                <ul class="nav__list">
+                    <li><a class="nav__link" href="submissao.html">Enviar material</a></li>
+                    <li><a class="nav__link" href="lote.html" aria-current="page">Lotes</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    <main id="content" class="page" tabindex="-1">
+        <h1>Lote 13</h1>
+        <p class="lead">O que o lote trouxe, em contagens: os itens por forma, os trechos identificáveis por destino e o conteúdo replicado. Nenhum texto do material aparece aqui.</p>
+
+        <nav aria-label="Estados do protótipo">
+            <ul>
+                <li><a href="#aberto">Aberto, com o detalhe inteiro</a></li>
+                <li><a href="#reenvio">Reconhecido como reenvio</a></li>
+                <li><a href="#perda">Forma acomodada, com perda declarada</a></li>
+                <li><a href="#aceito">Aceito</a></li>
+                <li><a href="#rejeitado">Rejeitado na revisão por amostra</a></li>
+                <li><a href="#rejeitado-na-entrada">Rejeitado na entrada</a></li>
+                <li><a href="#cancelado">Rejeitado: submissão cancelada no meio da gravação</a></li>
+            </ul>
+        </nav>
+
+        <section id="aberto" aria-labelledby="aberto-estado">
+            <p id="aberto-estado"><strong>Estado: aberto.</strong> O lote foi gravado e espera a revisão por amostra.</p>
+            <section class="panel" aria-labelledby="lote-resumo-titulo">
+                <h2 id="lote-resumo-titulo">Resumo</h2>
+                <dl class="facts">
+                    <div class="facts__item">
+                        <dt>Domínio</dt>
+                        <dd>DOMINIO_A</dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Estado</dt>
+                        <dd><span class="mark mark--waiting"><span class="mark__shape" aria-hidden="true">◷</span>Em curso</span></dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Enviado por</dt>
+                        <dd>PESSOA_1</dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Quando</dt>
+                        <dd><time datetime="2026-11-15T13:40:00.0000000+00:00">15/11/2026 às 13:40 UTC</time></dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Procedência</dt>
+                        <dd>Declarada e guardada selada</dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Reenvio</dt>
+                        <dd>Não é reenvio de um lote anterior.</dd>
+                    </div>
+                </dl>
+            </section>
+            <section class="panel" aria-labelledby="lote-formas-titulo">
+                <h2 id="lote-formas-titulo">Itens por forma</h2>
+                <dl class="facts">
+                    <div class="facts__item">
+                        <dt>Conversa</dt>
+                        <dd>40 itens</dd>
+                    </div>
+                </dl>
+            </section>
+            <section class="panel" aria-labelledby="lote-destinos-titulo">
+                <h2 id="lote-destinos-titulo">Trechos identificáveis por destino</h2>
+                <dl class="facts">
+                    <div class="facts__item">
+                        <dt>Removidos</dt>
+                        <dd>3 trechos</dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Pseudonimizados</dt>
+                        <dd>12 trechos</dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Preservados</dt>
+                        <dd>5 trechos</dd>
+                    </div>
+                </dl>
+            </section>
+            <section class="panel" aria-labelledby="lote-replicado-titulo">
+                <h2 id="lote-replicado-titulo">Conteúdo replicado</h2>
+                <dl class="facts">
+                    <div class="facts__item">
+                        <dt>Mensagens marcadas como réplica</dt>
+                        <dd>2</dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Primeiras ocorrências desse conteúdo</dt>
+                        <dd>1</dd>
+                    </div>
+                </dl>
+                <p>Nada replicado é removido nem fundido: cada réplica fica marcada e aponta para a primeira ocorrência.</p>
+            </section>
+            <div class="actions">
+                <a id="revisar-amostra" class="button button--primary" href="revisao.html">Revisar a amostra</a>
+                <a class="button button--secondary" href="index.html">Voltar para os lotes</a>
+            </div>
+        </section>
+        <hr />
+
+        <section id="reenvio" aria-labelledby="reenvio-estado">
+            <p id="reenvio-estado"><strong>Estado: reconhecido como reenvio.</strong> O mesmo arquivo chegou de novo e o lote aponta para o anterior, sem abrir lote novo.</p>
+            <section class="panel" aria-labelledby="reenvio-lote-resumo-titulo">
+                <h2 id="reenvio-lote-resumo-titulo">Resumo</h2>
+                <dl class="facts">
+                    <div class="facts__item">
+                        <dt>Procedência</dt>
+                        <dd>Desconhecida, como declarado no envio</dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Reenvio</dt>
+                        <dd>Reconhecido como reenvio do material do <a href="lote.html#aberto">lote 9</a>.</dd>
+                    </div>
+                </dl>
+            </section>
+        </section>
+        <hr />
+
+        <section id="perda" aria-labelledby="perda-estado">
+            <p id="perda-estado"><strong>Estado: forma acomodada, com perda declarada.</strong> O material veio numa forma e foi guardado em outra que guarda menos.</p>
+            <section class="panel" aria-labelledby="lote-perda-titulo">
+                <h2 id="lote-perda-titulo">Perda declarada</h2>
+                <div class="notice notice--info" role="status">
+                    <span class="notice__mark" aria-hidden="true">ℹ</span>
+                    <p><span class="notice__kind">Aviso:</span> O material veio como uma conversa e foi acomodado como um documento, em 40 itens. O que se perdeu:</p>
+                </div>
+                <ul>
+                    <li>A autoria por mensagem: o material trazia o autor de cada unidade, e a forma recebida não guarda autor.</li>
+                    <li>O instante de cada unidade e, com ele, a ordem no tempo: a forma recebida não guarda quando cada unidade foi dita.</li>
+                    <li>A estrutura de respostas: o material dizia qual unidade respondia a qual, e a forma recebida não guarda a relação.</li>
+                </ul>
+            </section>
+        </section>
+        <hr />
+
+        <section id="aceito" aria-labelledby="aceito-estado">
+            <p id="aceito-estado"><strong>Estado: aceito.</strong> A amostra foi revisada sem dado pessoal e o lote entrou.</p>
+            <section class="panel" aria-labelledby="aceito-lote-resumo-titulo">
+                <h2 id="aceito-lote-resumo-titulo">Resumo</h2>
+                <dl class="facts">
+                    <div class="facts__item">
+                        <dt>Estado</dt>
+                        <dd><span class="mark mark--good"><span class="mark__shape" aria-hidden="true">✓</span>Aceito</span></dd>
+                    </div>
+                </dl>
+            </section>
+            <div class="actions">
+                <a class="button button--secondary" href="revisao.html#aprovado">Ver a aprovação</a>
+                <a class="button button--secondary" href="index.html">Voltar para os lotes</a>
+            </div>
+        </section>
+        <hr />
+
+        <section id="rejeitado" aria-labelledby="rejeitado-estado">
+            <p id="rejeitado-estado"><strong>Estado: rejeitado na revisão por amostra.</strong> Um dado pessoal num item da amostra reprovou o lote inteiro.</p>
+            <section class="panel" aria-labelledby="rejeitado-lote-resumo-titulo">
+                <h2 id="rejeitado-lote-resumo-titulo">Resumo</h2>
+                <dl class="facts">
+                    <div class="facts__item">
+                        <dt>Estado</dt>
+                        <dd>
+                            <span class="mark mark--bad"><span class="mark__shape" aria-hidden="true">✕</span>Rejeitado</span>
+                            <p>Reprovado na revisão por amostra: dado pessoal achado em um item da amostra.</p>
+                        </dd>
+                    </div>
+                </dl>
+            </section>
+            <div class="actions">
+                <a class="button button--secondary" href="revisao.html#reprovado">Ver a reprovação</a>
+                <a class="button button--secondary" href="index.html">Voltar para os lotes</a>
+            </div>
+        </section>
+        <hr />
+
+        <section id="rejeitado-na-entrada" aria-labelledby="rejeitado-na-entrada-estado">
+            <p id="rejeitado-na-entrada-estado"><strong>Estado: rejeitado na entrada.</strong> A conferência recusou o arquivo; o lote existe só como registro.</p>
+            <section class="panel" aria-labelledby="rejeitado-na-entrada-lote-resumo-titulo">
+                <h2 id="rejeitado-na-entrada-lote-resumo-titulo">Resumo</h2>
+                <dl class="facts">
+                    <div class="facts__item">
+                        <dt>Estado</dt>
+                        <dd>
+                            <span class="mark mark--bad"><span class="mark__shape" aria-hidden="true">✕</span>Rejeitado</span>
+                            <p>Uma unidade não trazia algo que a forma escolhida exige.</p>
+                        </dd>
+                    </div>
+                </dl>
+            </section>
+            <section class="panel" aria-labelledby="rejeitado-na-entrada-lote-formas-titulo">
+                <h2 id="rejeitado-na-entrada-lote-formas-titulo">Itens por forma</h2>
+                <div class="empty-state" role="status">
+                    <p class="empty-state__title">Nenhum item neste lote.</p>
+                    <p>O lote foi rejeitado na entrada, e nenhum item do material foi gravado.</p>
+                </div>
+            </section>
+        </section>
+        <hr />
+
+        <section id="cancelado" aria-labelledby="cancelado-estado">
+            <p id="cancelado-estado"><strong>Estado: rejeitado porque a submissão foi cancelada no meio da gravação.</strong> A conexão caiu ou a pessoa fechou a página; nada ficou pela metade.</p>
+            <section class="panel" aria-labelledby="cancelado-lote-resumo-titulo">
+                <h2 id="cancelado-lote-resumo-titulo">Resumo</h2>
+                <dl class="facts">
+                    <div class="facts__item">
+                        <dt>Estado</dt>
+                        <dd>
+                            <span class="mark mark--bad"><span class="mark__shape" aria-hidden="true">✕</span>Rejeitado</span>
+                            <p>A submissão foi cancelada no meio da gravação; nenhum item ficou gravado. Envie o mesmo arquivo de novo.</p>
+                        </dd>
+                    </div>
+                </dl>
+            </section>
+            <section class="panel" aria-labelledby="cancelado-lote-formas-titulo">
+                <h2 id="cancelado-lote-formas-titulo">Itens por forma</h2>
+                <div class="empty-state" role="status">
+                    <p class="empty-state__title">Nenhum item neste lote.</p>
+                    <p>O lote foi rejeitado na entrada, e nenhum item do material foi gravado.</p>
+                </div>
+            </section>
+            <div class="actions">
+                <a class="button button--primary" href="submissao.html#formulario">Enviar o arquivo de novo</a>
+                <a class="button button--secondary" href="index.html">Voltar para os lotes</a>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

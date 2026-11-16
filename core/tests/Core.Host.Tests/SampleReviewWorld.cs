@@ -84,7 +84,7 @@ internal sealed class SampleReviewWorld : IAsyncDisposable
             routes =>
             {
                 ScreenGate.Use((IApplicationBuilder)routes);
-                BatchScreensEndpoint.Map(routes);
+                BatchRoutes.Map(routes);
             },
             Token);
         return new SampleReviewWorld(submissions, host, (outcome.Batch!.Value, curator, stranger), (size, messages));

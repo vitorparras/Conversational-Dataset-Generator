@@ -25,7 +25,6 @@ internal static class BatchScreensEndpoint
         _ = endpoints.MapGet(ScreenPaths.BatchNew, BatchSubmissionPage.FormAsync).WithMetadata(ScreenAccess.Of(SubmissionScreen.Title, SubmissionPlace, PersonFunctions.Curation));
         _ = endpoints.MapPost(ScreenPaths.BatchNew, BatchSubmissionPage.SubmitAsync).WithMetadata(Unlisted);
         _ = endpoints.MapGet(ScreenPaths.BatchDetail, BatchDetailPage.DetailAsync).WithMetadata(Unlisted);
-        SampleReviewEndpoint.Map(endpoints);
     }
 
     /// <summary>With no database declared there is no batch to list, and the page says it is the host that cannot, as the other screens do.</summary>

@@ -115,8 +115,8 @@ public sealed class ConfigurationChangeScreenTests(BrowserFixture browser, Chang
     [Fact]
     public async Task ABodyThatIsNoFormIsTakenAsAnEmptyOneAndAnswersAsTheFormEmptyDoes()
     {
-        var id = await changes.Host.ProposeAsync("00:29:00");
-        await using var tab = await OpenAsync(changes.Host.SecondAdministrator);
+        var id = await changes.Case.ProposeAsync("00:29:00");
+        await using var tab = await OpenAsync(changes.Case.SecondAdministrator);
 
         var submitted = await tab.Page.EvaluateAsync<int>(PostJson, new object[] { Route });
         var decided = await tab.Page.EvaluateAsync<int>(PostJson, new object[] { Route + "/decisao" });

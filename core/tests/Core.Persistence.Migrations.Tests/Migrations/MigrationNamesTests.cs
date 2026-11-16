@@ -21,18 +21,10 @@ public sealed class MigrationNamesTests
     [InlineData("0055")]
     [InlineData("202611161500")]
     [InlineData("name-only")]
-    public void ANameOutsideBothFormatsIsADefectOfTheBuild(string name)
-    {
-        var failure = Assert.Throws<InvalidOperationException>(() => MigrationNames.Ordered([name]));
-
-        Assert.Contains(name, failure.Message, StringComparison.Ordinal);
-    }
-
-    [Theory]
     [InlineData("202613161500-month-thirteen")]
     [InlineData("202611321500-day-thirty-two")]
     [InlineData("202611162500-hour-twenty-five")]
-    public void ADatedNameThatIsNoMomentOfTheCalendarIsADefectOfTheBuild(string name)
+    public void ANameInNeitherFormatOrThatIsNoMomentOfTheCalendarIsADefectOfTheBuild(string name)
     {
         var failure = Assert.Throws<InvalidOperationException>(() => MigrationNames.Ordered([name]));
 

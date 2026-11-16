@@ -1,5 +1,4 @@
 using System.Globalization;
-using Core.Host.Review;
 using Core.Host.Screens;
 using Core.Persistence.Ingestion;
 using Core.Persistence.People;
@@ -51,7 +50,7 @@ internal static class SampleReviewEndpoint
             }
 
             return outcome == BatchReviewOutcome.NotSampled
-                ? ScreenResult.Of(context, typeof(SampleDrawScreen), SampleDrawScreen.Title, DrawOf(found, sources.Desk!.Declared))
+                ? ScreenResult.Of(context, typeof(SampleDrawScreen), SampleDrawScreen.Title, DrawOf(found, sources.Desk.Declared))
                 : ScreenResult.Unavailable(context);
         });
 

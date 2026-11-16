@@ -56,16 +56,16 @@ public sealed class SampleTextReader
             return appended;
         }
 
-        return await OpenedAsync(scope, request, (appended, sanitized ? ContentColumns.SanitizedText : ContentColumns.RawText), answer, cancellationToken).ConfigureAwait(false);
+        return await OpenedAsync(scope, request, (appended, sanitized ? ContentColumns.SanitizedText : ContentColumns.RawText, answer), cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<CustodyResult?> OpenedAsync(
-        CustodyScope scope, SampleReading request, (CustodyResult Appended, ProtectedColumn Column) read, StrongBox<ContentReadResult> answer, CancellationToken cancellationToken)
+        CustodyScope scope, SampleReading request, (CustodyResult Appended, ProtectedColumn Column, StrongBox<ContentReadResult> Answer) read, CancellationToken cancellationToken)
     {
         var stored = await SampleTextStatements.SealedAsync(scope, request, cancellationToken).ConfigureAwait(false);
         if (stored is not { } held)
         {
-            answer.Value = new ContentReadResult { Outcome = ContentReadOutcome.NotFound, RowId = request.ItemId };
+            read.Answer.Value = new ContentReadResult { Outcome = ContentReadOutcome.NotFound, RowId = request.ItemId };
             return null;
         }
 
@@ -74,19 +74,19 @@ public sealed class SampleTextReader
         var scopeLost = lost.Contains(KeyLossScope.MasterText) ? KeyLossScope.MasterText : carried.FirstOrDefault(lost.Contains);
         if (scopeLost is not null)
         {
-            answer.Value = new ContentReadResult { Outcome = ContentReadOutcome.KeyLossDeclared, Label = scopeLost, RowId = request.ItemId };
+            read.Answer.Value = new ContentReadResult { Outcome = ContentReadOutcome.KeyLossDeclared, Label = scopeLost, RowId = request.ItemId };
             return null;
         }
 
         var missing = carried.FirstOrDefault(label => !protectedContent.IsLoaded(label));
         if (missing is not null)
         {
-            answer.Value = new ContentReadResult { Outcome = ContentReadOutcome.LabelMissing, Label = missing, RowId = request.ItemId };
+            read.Answer.Value = new ContentReadResult { Outcome = ContentReadOutcome.LabelMissing, Label = missing, RowId = request.ItemId };
             return null;
         }
 
         var text = protectedContent.Open(read.Column, request.DomainId, held.Sealed, held.Key);
-        answer.Value = new ContentReadResult { Outcome = ContentReadOutcome.Read, Text = text, Cleaned = held.Step == CustodyNames.Of(CustodyStep.SanitizedTextRead), RowId = request.ItemId };
+        read.Answer.Value = new ContentReadResult { Outcome = ContentReadOutcome.Read, Text = text, Cleaned = held.Step == CustodyNames.Of(CustodyStep.SanitizedTextRead), RowId = request.ItemId };
         return await CustodyAppend.CommitIfAppendedAsync(scope, read.Appended, cancellationToken).ConfigureAwait(false);
     }
 

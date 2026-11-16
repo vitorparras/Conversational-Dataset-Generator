@@ -33,7 +33,7 @@ internal static class SubmissionCase
     private const long MaxBytes = 1_000_000;
     private const int MinLength = 24;
 
-    private static readonly string[] Labels = ["texto-bruto/1/v1", "texto-bruto/2/v1"];
+    internal static readonly string[] Labels = ["texto-bruto/1/v1", "texto-bruto/2/v1"];
 
     public static ScreenParts Parts() => new()
     {

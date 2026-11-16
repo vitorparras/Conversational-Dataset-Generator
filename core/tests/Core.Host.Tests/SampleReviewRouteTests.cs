@@ -1,4 +1,5 @@
 using System.Net;
+using Core.Host.Screens;
 using Core.Host.Tests.Submissions;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Fixtures;
@@ -35,8 +36,8 @@ public sealed class SampleReviewRouteTests
         _ = await world.PostAsync(world.DrawRoute, world.Curator, ("itens", "1,2,3,4"), ("tamanho", "4"));
         var after = await world.GetAsync(world.ReviewRoute, world.Curator);
 
-        Assert.DoesNotContain("name=\"itens\"", before.Page, StringComparison.Ordinal);
-        Assert.DoesNotContain("name=\"itens\"", after.Page, StringComparison.Ordinal);
+        Assert.All([before.Page, after.Page], page => Assert.DoesNotContain("type=\"checkbox\"", page, StringComparison.Ordinal));
+        Assert.All([before.Page, after.Page], page => Assert.DoesNotContain("name=\"tamanho\"", page, StringComparison.Ordinal));
         Assert.Equal(2, (await world.StateAsync())!.Sample!.Count);
     }
 
@@ -90,7 +91,7 @@ public sealed class SampleReviewRouteTests
     }
 
     [DatabaseFact]
-    public async Task RejectionRecordsWhoRejectedTheFindingAndWhen()
+    public async Task RejectionRecordsWhoRejected()
     {
         await using var world = await SampleReviewWorld.StartAsync();
         await world.DrawAndReviewAsync(reviewed: 1);
@@ -99,9 +100,59 @@ public sealed class SampleReviewRouteTests
         var held = (await world.StateAsync())!;
 
         Assert.Equal(HttpStatusCode.SeeOther, rejected.Status);
-        Assert.Equal((BatchState.Rejected, world.Curator, "nome", 2), (held.State, held.ReviewerId, held.Finding, held.FindingPosition));
-        _ = Assert.NotNull(held.ReviewedAt);
+        Assert.Equal((BatchState.Rejected, world.Curator), (held.State, held.ReviewerId));
         Assert.Contains($"{world.Curator},batch_reviewed,review_found", await world.StepsAsync("ingestion_batch"));
+    }
+
+    [DatabaseFact]
+    public async Task RejectionRecordsTheFinding()
+    {
+        await using var world = await SampleReviewWorld.StartAsync();
+        await world.DrawAndReviewAsync(reviewed: 1);
+
+        _ = await world.PostAsync(world.FindingRoute(2), world.Curator, ("achado", "nome"));
+        var held = (await world.StateAsync())!;
+
+        Assert.Equal(("nome", 2), (held.Finding, held.FindingPosition));
+    }
+
+    [DatabaseFact]
+    public async Task RejectionRecordsWhen()
+    {
+        await using var world = await SampleReviewWorld.StartAsync();
+        await world.DrawAndReviewAsync(reviewed: 1);
+        var before = DateTimeOffset.UtcNow.AddMinutes(-1);
+
+        _ = await world.PostAsync(world.FindingRoute(2), world.Curator, ("achado", "nome"));
+        var held = (await world.StateAsync())!;
+
+        Assert.InRange(held.ReviewedAt!.Value, before, DateTimeOffset.UtcNow.AddMinutes(1));
+    }
+
+    [DatabaseFact]
+    public async Task FindingOnAnItemAlreadySeenRejectsTheBatch()
+    {
+        await using var world = await SampleReviewWorld.StartAsync();
+        await world.DrawAndReviewAsync(reviewed: 1);
+
+        var rejected = await world.PostAsync(world.FindingRoute(1), world.Curator, ("achado", "endereco"));
+        var held = (await world.StateAsync())!;
+
+        Assert.Equal(HttpStatusCode.SeeOther, rejected.Status);
+        Assert.Equal((BatchState.Rejected, "endereco", 1), (held.State, held.Finding, held.FindingPosition));
+    }
+
+    [DatabaseFact]
+    public async Task FindingOnAnItemBeyondTheNextRejectsNothing()
+    {
+        await using var world = await SampleReviewWorld.StartAsync(size: 3, messages: 6);
+        await world.DrawAndReviewAsync(reviewed: 1);
+
+        var refused = await world.PostAsync(world.FindingRoute(3), world.Curator, ("achado", "endereco"));
+        var held = (await world.StateAsync())!;
+
+        Assert.EndsWith($"?{SampleReviewScreen.ResultKey}={SampleReviewScreen.RefusedMark}", refused.Location, StringComparison.Ordinal);
+        Assert.Equal((BatchState.Open, null), (held.State, held.Finding));
     }
 
     [DatabaseFact]
@@ -132,22 +183,47 @@ public sealed class SampleReviewRouteTests
     }
 
     [DatabaseFact]
-    public async Task ApprovalRecordsTheReviewedSampleWhoApprovedAndWhen()
+    public async Task ApprovalRecordsTheReviewedSample()
+    {
+        await using var world = await SampleReviewWorld.StartAsync();
+        await world.DrawAndReviewAsync(reviewed: 2);
+        var drawn = (await world.StateAsync())!.Sample;
+
+        _ = await world.PostAsync(world.ApproveRoute, world.Curator);
+        var held = (await world.StateAsync())!;
+
+        Assert.Equal((BatchState.Accepted, 2), (held.State, held.ReviewedPosition));
+        Assert.Equal(drawn, held.Sample);
+    }
+
+    [DatabaseFact]
+    public async Task ApprovalRecordsWhoApproved()
     {
         await using var world = await SampleReviewWorld.StartAsync();
         await world.DrawAndReviewAsync(reviewed: 2);
 
         var approved = await world.PostAsync(world.ApproveRoute, world.Curator);
-        var held = (await world.StateAsync())!;
         var page = await world.GetAsync(world.ReviewRoute, world.Curator);
+        var steps = await world.StepsAsync("ingestion_batch");
 
         Assert.Equal(HttpStatusCode.SeeOther, approved.Status);
-        Assert.Equal((BatchState.Accepted, world.Curator), (held.State, held.ReviewerId));
-        _ = Assert.NotNull(held.ReviewedAt);
+        Assert.Equal(world.Curator, (await world.StateAsync())!.ReviewerId);
         Assert.Contains("Lote aprovado por zqx-curadora", page.Page, StringComparison.Ordinal);
-        var steps = await world.StepsAsync("ingestion_batch");
         Assert.Contains($"{world.Curator},batch_reviewed,review_clean", steps);
         Assert.Contains(steps, step => step.Contains("batch_accepted", StringComparison.Ordinal));
+    }
+
+    [DatabaseFact]
+    public async Task ApprovalRecordsWhen()
+    {
+        await using var world = await SampleReviewWorld.StartAsync();
+        await world.DrawAndReviewAsync(reviewed: 2);
+        var before = DateTimeOffset.UtcNow.AddMinutes(-1);
+
+        _ = await world.PostAsync(world.ApproveRoute, world.Curator);
+        var held = (await world.StateAsync())!;
+
+        Assert.InRange(held.ReviewedAt!.Value, before, DateTimeOffset.UtcNow.AddMinutes(1));
     }
 
     [DatabaseFact]
@@ -178,13 +254,90 @@ public sealed class SampleReviewRouteTests
         await using var world = await SampleReviewWorld.StartAsync();
         await world.DrawAndReviewAsync(reviewed: 0);
 
+        var next = (await world.StateAsync())!.Sample![0];
+
         var page = await world.GetAsync(world.ReviewRoute, world.Curator);
-        var reads = (await world.StepsAsync("item_text")).Where(step => step.Contains("text_read", StringComparison.Ordinal)).ToList();
+        var reads = await world.Submissions.Database.FirstColumnAsOwnerAsync(
+            "SELECT coalesce(actor_person_id::text, '-') || ',' || item_id || ',' || step || ',' || reason FROM public.custody_event WHERE item_kind = 'item_text' ORDER BY step");
 
         Assert.Contains("ZQXTEXTO", page.Page, StringComparison.Ordinal);
         Assert.Equal(2, reads.Count);
-        Assert.All(reads, read => Assert.StartsWith($"{world.Curator},", read, StringComparison.Ordinal));
+        Assert.All(reads, read => Assert.StartsWith($"{world.Curator},{next},", read, StringComparison.Ordinal));
+        Assert.Equal(["raw_text_read", "sanitized_text_read"], reads.Select(read => read.Split(',')[2]));
         Assert.DoesNotContain(reads, read => read.Contains("ZQXTEXTO", StringComparison.Ordinal));
+    }
+
+    [DatabaseFact]
+    public async Task DrawGoesBackToTheReviewWithItsMark()
+    {
+        await using var world = await SampleReviewWorld.StartAsync();
+
+        var drawn = await world.PostAsync(world.DrawRoute, world.Curator);
+        var page = await world.GetAsync(drawn.Location!, world.Curator);
+
+        Assert.EndsWith($"{world.ReviewRoute}?{SampleReviewScreen.ResultKey}={SampleReviewScreen.DrawnMark}", drawn.Location, StringComparison.Ordinal);
+        Assert.Contains("A amostra foi sorteada.", page.Page, StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
+    public async Task MarkGoesBackToTheReviewWithItsMark()
+    {
+        await using var world = await SampleReviewWorld.StartAsync();
+        await world.DrawAndReviewAsync(reviewed: 0);
+
+        var marked = await world.PostAsync(world.MarkRoute(1), world.Curator);
+        var page = await world.GetAsync(marked.Location!, world.Curator);
+
+        Assert.EndsWith($"?{SampleReviewScreen.ResultKey}={SampleReviewScreen.MarkedMark}", marked.Location, StringComparison.Ordinal);
+        Assert.Contains("O item foi marcado como revisado.", page.Page, StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
+    public async Task StepAlreadyDoneGoesBackWithTheRepeatedMark()
+    {
+        await using var world = await SampleReviewWorld.StartAsync();
+        await world.DrawAndReviewAsync(reviewed: 1);
+
+        var again = await world.PostAsync(world.MarkRoute(1), world.Curator);
+        var page = await world.GetAsync(again.Location!, world.Curator);
+
+        Assert.EndsWith($"?{SampleReviewScreen.ResultKey}={SampleReviewScreen.RepeatedMark}", again.Location, StringComparison.Ordinal);
+        Assert.Contains("Esse passo já estava feito", page.Page, StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
+    public async Task StepNotAllowedGoesBackWithTheRefusedMark()
+    {
+        await using var world = await SampleReviewWorld.StartAsync();
+        await world.DrawAndReviewAsync(reviewed: 1);
+
+        var early = await world.PostAsync(world.ApproveRoute, world.Curator);
+        var page = await world.GetAsync(early.Location!, world.Curator);
+
+        Assert.EndsWith($"?{SampleReviewScreen.ResultKey}={SampleReviewScreen.RefusedMark}", early.Location, StringComparison.Ordinal);
+        Assert.Contains("O passo não foi feito", page.Page, StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
+    public async Task ApprovalGoesBackWithItsMark()
+    {
+        await using var world = await SampleReviewWorld.StartAsync();
+        await world.DrawAndReviewAsync(reviewed: 2);
+
+        var approved = await world.PostAsync(world.ApproveRoute, world.Curator);
+
+        Assert.EndsWith($"?{SampleReviewScreen.ResultKey}={SampleReviewScreen.ApprovedMark}", approved.Location, StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
+    public async Task RejectionGoesBackWithItsMark()
+    {
+        await using var world = await SampleReviewWorld.StartAsync();
+        await world.DrawAndReviewAsync(reviewed: 1);
+
+        var rejected = await world.PostAsync(world.FindingRoute(1), world.Curator, ("achado", "nome"));
+
+        Assert.EndsWith($"?{SampleReviewScreen.ResultKey}={SampleReviewScreen.RejectedMark}", rejected.Location, StringComparison.Ordinal);
     }
 
     [DatabaseFact]

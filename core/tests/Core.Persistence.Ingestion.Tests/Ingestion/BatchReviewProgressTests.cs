@@ -95,6 +95,31 @@ public sealed class BatchReviewProgressTests
         Assert.Equal(("CE006", BatchReviewOutcome.Reviewed, null), (refused.SqlState, reviewed.Outcome, await FindingPlaceAsync(world, clean)));
     }
 
+    [DatabaseFact]
+    public async Task FindingKeepsThePlaceOfTheItemItWasToldAt()
+    {
+        await using var world = await IngestionWorld.CreateAsync();
+        var batch = await DrawnAsync(world);
+        await MarkAsync(world, batch, 1);
+        await MarkAsync(world, batch, 2);
+
+        var found = await Reviews(world).ReviewAsync(new BatchReviewing(IngestionWorld.Domain, batch, IngestionWorld.Person, "contact_not_treated", 1), TestContext.Current.CancellationToken);
+
+        Assert.Equal((BatchReviewOutcome.Rejected, 1), (found.Outcome, await FindingPlaceAsync(world, batch)));
+    }
+
+    [DatabaseFact]
+    public async Task SourceFormCannotChangeAfterTheDraw()
+    {
+        await using var world = await IngestionWorld.CreateAsync();
+        var batch = await DrawnAsync(world);
+        const string Change = "UPDATE content.ingestion_batch SET source_form = 'comment', reviewed_position = 1 WHERE id = @id";
+
+        var refused = await Assert.ThrowsAsync<PostgresException>(() => world.AsSuperuserAsync(Change, ("id", batch)));
+
+        Assert.Equal(("CE006", 0), (refused.SqlState, await PositionAsync(world, batch)));
+    }
+
     private static BatchReviews Reviews(BatchesWorld world) => new(world.DataSource, 3);
 
     private static async Task<int> PositionAsync(BatchesWorld world, long batch) => (int)(await world.AsSuperuserAsync(Position, ("id", batch)))!;

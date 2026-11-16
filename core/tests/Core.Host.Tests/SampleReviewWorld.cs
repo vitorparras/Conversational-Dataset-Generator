@@ -6,6 +6,7 @@ using Core.Host.Operators;
 using Core.Host.Review;
 using Core.Host.Submissions;
 using Core.Host.Tests.Submissions;
+using Core.Persistence.Content;
 using Core.Persistence.Domains;
 using Core.Persistence.Ingestion;
 using Core.Persistence.People;
@@ -14,6 +15,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Npgsql;
+using NpgsqlTypes;
 
 namespace Core.Host.Tests;
 
@@ -25,14 +27,17 @@ internal sealed class SampleReviewWorld : IAsyncDisposable
 {
     internal const string Browser = "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8";
 
-    private SampleReviewWorld(SubmissionWorld submissions, SessionedHost host, (long Batch, long Curator, long Stranger) ids, (int? Size, int Messages, NpgsqlDataSource Desk) shape)
+    private SampleReviewWorld(SubmissionWorld submissions, SessionedHost host,
+        (long Batch, (long Curator, long Colleague, long Stranger) people) ids,
+        (int? Size, int Messages, NpgsqlDataSource Desk) shape)
     {
         DeskSource = shape.Desk;
         Submissions = submissions;
         Host = host;
         Batch = ids.Batch;
-        Curator = ids.Curator;
-        Stranger = ids.Stranger;
+        Curator = ids.people.Curator;
+        Colleague = ids.people.Colleague;
+        Stranger = ids.people.Stranger;
         Reviews = new BatchReviews(submissions.DataSource, shape.Size);
         Messages = shape.Messages;
     }
@@ -43,6 +48,9 @@ internal sealed class SampleReviewWorld : IAsyncDisposable
 
     /// <summary>The person of the curation granted the domain of the batch.</summary>
     internal long Curator { get; }
+
+    /// <summary>Another person of the curation granted the domain of the batch, who reviews the same batch from a screen of their own.</summary>
+    internal long Colleague { get; }
 
     /// <summary>A person of the curation that no domain is granted to.</summary>
     internal long Stranger { get; }
@@ -73,8 +81,10 @@ internal sealed class SampleReviewWorld : IAsyncDisposable
     {
         var submissions = await SubmissionWorld.CreateAsync();
         await submissions.Database.RunAsOwnerAsync(
-            "INSERT INTO public.person (name, function_name) VALUES ('zqx-curadora', 'Curadoria do acervo'), ('zqx-curadora-sem-concessao', 'Curadoria do acervo')");
+            "INSERT INTO public.person (name, function_name) VALUES ('zqx-curadora', 'Curadoria do acervo'), ('zqx-colega', 'Curadoria do acervo'), "
+            + "('zqx-curadora-sem-concessao', 'Curadoria do acervo')");
         var curator = await PersonAsync(submissions, "zqx-curadora");
+        var colleague = await PersonAsync(submissions, "zqx-colega");
         var stranger = await PersonAsync(submissions, "zqx-curadora-sem-concessao");
         var outcome = await submissions.SubmitAsync(SubmissionWorld.Request(SubmissionWorld.Messages(Entries(messages))));
         Assert.Equal(SubmissionKind.Done, outcome.Kind);
@@ -91,14 +101,14 @@ internal sealed class SampleReviewWorld : IAsyncDisposable
         var host = await SessionedHost.StartAsync(
             services => (log is null ? services : services.AddSingleton(log))
                 .AddSingleton(staff).AddSingleton(new BatchRegister(held)).AddSingleton(new DomainListing(held)).AddSingleton(desk)
-                .AddSingleton<DomainGrants>(new CuratorGrants(curator, SubmissionWorld.NameOf(SubmissionWorld.Domain))),
+                .AddSingleton<DomainGrants>(new CuratorGrants([curator, colleague], SubmissionWorld.NameOf(SubmissionWorld.Domain))),
             routes =>
             {
                 ScreenGate.Use((IApplicationBuilder)routes);
                 BatchRoutes.Map(routes);
             },
             Token);
-        return new SampleReviewWorld(submissions, host, (outcome.Batch!.Value, curator, stranger), (size, messages, held));
+        return new SampleReviewWorld(submissions, host, (outcome.Batch!.Value, (curator, colleague, stranger)), (size, messages, held));
     }
 
     internal string ReviewRoute => RouteOf(Batch);
@@ -156,6 +166,28 @@ internal sealed class SampleReviewWorld : IAsyncDisposable
         return outcome.Batch!.Value;
     }
 
+    /// <summary>Sends the requests while the turn of the batch is held, and lets it go only when every one of them waits for it: they reach the chain together, not one after the other.</summary>
+    /// <param name="requests">What each person does to the batch.</param>
+    internal async Task<Reply[]> TogetherAsync(params Func<Task<Reply>>[] requests)
+    {
+        List<Task<Reply>> running;
+        var holder = await ContentTransaction.BeginAsync(Submissions.DataSource, SubmissionWorld.Domain, Token);
+        await using (holder.ConfigureAwait(false))
+        {
+            var turn = holder.CreateCommand("SELECT public.take_batch_turn(@id)");
+            await using (turn.ConfigureAwait(false))
+            {
+                _ = turn.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Bigint) { Value = Batch });
+                _ = await turn.ExecuteScalarAsync(Token);
+            }
+
+            running = [.. requests.Select(request => Task.Run(request, Token))];
+            await WaitingForTheTurnAsync(requests.Length);
+        }
+
+        return await Task.WhenAll(running);
+    }
+
     internal Task<BatchReview?> StateAsync() => StateAsync(Batch);
 
     internal Task<BatchReview?> StateAsync(long batch) => Reviews.ReadAsync(SubmissionWorld.Domain, batch, Token);
@@ -164,6 +196,19 @@ internal sealed class SampleReviewWorld : IAsyncDisposable
     /// <param name="kind">The kind of the item the events are about.</param>
     internal Task<IReadOnlyList<string>> StepsAsync(string kind) => Submissions.Database.FirstColumnAsOwnerAsync(
         $"SELECT coalesce(actor_person_id::text, '-') || ',' || step || ',' || reason FROM public.custody_event WHERE item_kind = '{kind}' ORDER BY sequence");
+
+    private async Task WaitingForTheTurnAsync(int waiting)
+    {
+        await using var connection = new NpgsqlConnection(Submissions.Database.SuperuserConnectionString);
+        await connection.OpenAsync(Token);
+        await using var count = new NpgsqlCommand("SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock'", connection);
+        var deadline = DateTimeOffset.UtcNow.AddSeconds(30);
+        while ((long)(await count.ExecuteScalarAsync(Token))! < waiting)
+        {
+            Assert.True(DateTimeOffset.UtcNow < deadline, "The requests did not wait for the turn of the batch.");
+            await Task.Delay(50, Token);
+        }
+    }
 
     public async ValueTask DisposeAsync()
     {
@@ -177,10 +222,10 @@ internal sealed class SampleReviewWorld : IAsyncDisposable
     private static async Task<long> PersonAsync(SubmissionWorld submissions, string name) =>
         long.Parse((await submissions.Database.FirstColumnAsOwnerAsync($"SELECT id::text FROM public.person WHERE name = '{name}'"))[0], CultureInfo.InvariantCulture);
 
-    private sealed class CuratorGrants(long person, string domain) : DomainGrants
+    private sealed class CuratorGrants(long[] people, string domain) : DomainGrants
     {
         internal override Task<IEnumerable<string>> GrantedToAsync(long entered, CancellationToken cancellationToken) =>
-            Task.FromResult(entered == person ? new[] { domain }.AsEnumerable() : None);
+            Task.FromResult(people.Contains(entered) ? new[] { domain }.AsEnumerable() : None);
     }
 }
 

@@ -39,14 +39,25 @@ public sealed class SampleProgressTests
     }
 
     [Theory]
-    [InlineData(5, 2, 1)]
     [InlineData(5, 2, 4)]
     [InlineData(5, 0, 3)]
-    public void FindingOnAnItemOtherThanTheNextIsRefused(int size, int reviewed, int position)
+    public void FindingOnAnItemNotReachedIsRefused(int size, int reviewed, int position)
     {
         var decision = new SampleProgress(size, reviewed).Find(position);
 
         Assert.Equal(SampleDecision.ItemIsNotNext, decision);
+    }
+
+    [Theory]
+    [InlineData(5, 2, 1)]
+    [InlineData(5, 2, 3)]
+    [InlineData(5, 5, 5)]
+    [InlineData(5, 0, 1)]
+    public void FindingOnAnItemReviewedOrBeingReviewedIsAllowed(int size, int reviewed, int position)
+    {
+        var decision = new SampleProgress(size, reviewed).Find(position);
+
+        Assert.Equal(SampleDecision.Allowed, decision);
     }
 
     [Fact]

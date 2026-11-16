@@ -18,6 +18,7 @@ DOTNET_JOBS = (
     "dependencies",
 )
 CONSUMERS = ("properties", "browser")
+OTHER_WORKFLOWS = ("codeql.yml", "build-remoto.yml")
 
 
 def job(name: str) -> str:
@@ -30,6 +31,13 @@ class BuildArtifactWorkflowTests(unittest.TestCase):
             with self.subTest(job=name):
                 self.assertIn("cache: true", job(name))
                 self.assertIn(CACHE, job(name))
+
+    def test_the_other_workflows_that_restore_the_solution_cache_the_packages_too(self) -> None:
+        for name in OTHER_WORKFLOWS:
+            with self.subTest(workflow=name):
+                text = (WORKFLOW.parent / name).read_text(encoding="utf-8")
+                self.assertIn("cache: true", text)
+                self.assertIn(CACHE, text)
 
     def test_the_ruler_proof_has_no_cache_because_it_restores_no_package(self) -> None:
         # setup-dotnet fails its post step when the cache folder was never created.
@@ -50,6 +58,10 @@ class BuildArtifactWorkflowTests(unittest.TestCase):
                 self.assertIn("needs: [changes, build]", text)
                 self.assertIn("actions/download-artifact@", text)
                 self.assertIn("name: build-nucleo", text)
+                self.assertIn("tar -xf", text)
+
+    def test_the_package_outlives_a_rerun_of_the_failed_jobs_a_few_days_later(self) -> None:
+        self.assertIn("retention-days: 7", job("build"))
 
     def test_the_consumers_neither_restore_nor_build(self) -> None:
         for name in CONSUMERS:

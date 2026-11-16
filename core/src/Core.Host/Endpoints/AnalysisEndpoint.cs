@@ -8,7 +8,7 @@ internal static class AnalysisEndpoint
 {
     internal const string Route = "/analysis";
 
-    internal static void Map(IEndpointRouteBuilder endpoints) => _ = endpoints.MapPost(Route, AnalyzeAsync);
+    internal static void Map(IEndpointRouteBuilder endpoints) => _ = endpoints.MapPost(Route, AnalyzeAsync).WithMetadata(ScreenAccess.Everyone);
 
     /// <summary>A refusal answers 503, since what failed is the service the analysis depends on.</summary>
     private static async Task<IResult> AnalyzeAsync(

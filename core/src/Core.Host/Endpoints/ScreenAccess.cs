@@ -2,8 +2,8 @@ namespace Core.Host.Endpoints;
 
 /// <summary>
 /// What the route of a screen declares of who reaches it (policy 006, decision 0051): the functions, and the caption and the place of its entry in the menu.
-/// Nothing is reached by omission: a page asked of a route behind the session that declares nothing is answered as a route that does not exist, so the pages
-/// everyone who entered may open, the start and the exit, say so with <see cref="Everyone"/>, never by leaving the mark out.
+/// Nothing is reached by omission: a page asked of a route behind the session that declares nothing is answered as a route that does not exist, so the pages and the routes
+/// everyone who entered may open, the start and the exit, the own account and the routes that judge the function inside, say so with <see cref="Everyone"/>, never by leaving the mark out.
 /// </summary>
 internal sealed class ScreenAccess
 {
@@ -15,7 +15,7 @@ internal sealed class ScreenAccess
         Place = place;
     }
 
-    /// <summary>The mark of a page everyone who entered may open, whatever the function; it has no entry in the menu.</summary>
+    /// <summary>The mark of a page or a route everyone who entered may open, whatever the function; it has no entry in the menu.</summary>
     internal static ScreenAccess Everyone { get; } = new(functions: null, caption: null, place: 0);
 
     /// <summary>The functions that reach the screen; none for a page of everyone.</summary>

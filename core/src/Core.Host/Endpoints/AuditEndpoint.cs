@@ -1,11 +1,12 @@
+using Core.Persistence.People;
 using Core.Persistence.ServerGuarantees;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Core.Host.Endpoints;
 
 /// <summary>
-/// Lists what the database server's audit log says it saw in an interval. A route of a live session; that the session is of a person with the
-/// Auditoria function is judged in phase 6, which is where the sessions come to carry a function.
+/// Lists what the database server's audit log says it saw in an interval. A route of a live session, reached by the functions that reach the screens of the chain and of the state
+/// (policy 006): who has any other gets the answer of a route that does not exist.
 /// </summary>
 internal static class AuditEndpoint
 {
@@ -21,7 +22,7 @@ internal static class AuditEndpoint
 
     private const string TooMany = "o intervalo tem mais de 10000 linhas de auditoria: peça um intervalo menor, de no máximo 7 dias";
 
-    internal static void Map(IEndpointRouteBuilder endpoints) => _ = endpoints.MapGet(Route, ListAsync);
+    internal static void Map(IEndpointRouteBuilder endpoints) => _ = endpoints.MapGet(Route, ListAsync).WithMetadata(ScreenAccess.Unlisted(PersonFunctions.Administration, PersonFunctions.Audit));
 
     /// <summary>
     /// An interval that is not two instants in order, or is wider than a week, or holds more lines than an answer carries, is a request refused

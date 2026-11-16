@@ -3,7 +3,6 @@ using Core.Host.Operators;
 using Core.Host.Screens;
 using Core.Persistence.Custody;
 using Core.Persistence.People;
-using Core.Platform.Sessions;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
@@ -47,8 +46,7 @@ internal static class OperatorEmailEndpoint
     private static async Task<IResult> CorrectAsync(
         long id, HttpContext context, [FromServices] OperatorAdministration? staff, [FromServices] PersonEmails? emails)
     {
-        var sessions = context.RequestServices.GetRequiredService<SessionStore>();
-        if (staff is null || emails is null || sessions.Resolve(SessionCookie.Read(context.Request)) is not { } author)
+        if (staff is null || emails is null || RequestReader.SessionOf(context) is not { } author)
         {
             return ScreenResult.Unavailable(context);
         }
@@ -63,7 +61,7 @@ internal static class OperatorEmailEndpoint
             return Deactivated(context, id, name);
         }
 
-        var address = AccountEmailEndpoint.Typed(context.Request.HasFormContentType ? await context.Request.ReadFormAsync(context.RequestAborted) : null);
+        var address = AccountEmailEndpoint.Typed(await RequestReader.FormAsync(context));
         if (Refused(context, id, name, address) is { } refusal)
         {
             return refusal;

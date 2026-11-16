@@ -32,7 +32,7 @@ internal static class EntryPageEndpoint
             return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
 
-        var form = context.Request.HasFormContentType ? await context.Request.ReadFormAsync(context.RequestAborted) : null;
+        var form = await RequestReader.FormAsync(context);
         var name = form?[SignInScreen.NameField].ToString() ?? string.Empty;
         var password = form?[SignInScreen.SecretField].ToString() ?? string.Empty;
         var entry = await signIn.OpenAsync(new SignInRequest(name, password, context.Connection.RemoteIpAddress, context.Request.Headers.UserAgent.ToString()), context.RequestAborted);

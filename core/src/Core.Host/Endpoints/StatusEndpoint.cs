@@ -1,6 +1,4 @@
 using Core.Persistence.People;
-using Core.Platform.Sessions;
-using Microsoft.AspNetCore.Mvc;
 
 namespace Core.Host.Endpoints;
 
@@ -18,12 +16,12 @@ internal static class StatusEndpoint
     internal static void Map(IEndpointRouteBuilder endpoints, RecognizerKind recognizer) =>
         _ = endpoints.MapGet(
             Route,
-            (HttpContext context, [AsParameters] StatusSources sources, [FromServices] SessionStore sessions) =>
-                ShowAsync(context, SystemState.Status(sources, recognizer), sessions)).WithMetadata(new SessionOpen());
+            (HttpContext context, [AsParameters] StatusSources sources) =>
+                ShowAsync(context, SystemState.Status(sources, recognizer))).WithMetadata(new SessionOpen());
 
-    private static async Task<IResult> ShowAsync(HttpContext context, StatusResponse status, SessionStore sessions)
+    private static async Task<IResult> ShowAsync(HttpContext context, StatusResponse status)
     {
-        if (sessions.Resolve(SessionCookie.Read(context.Request)) is null)
+        if (RequestReader.SessionOf(context) is null)
         {
             return Results.Ok(new StatusSummary(status.Alive, status.Ready));
         }

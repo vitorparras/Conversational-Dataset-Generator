@@ -78,6 +78,9 @@ jobs:
     needs: changes
     if: ${{ !cancelled() && github.event_name != 'schedule' && needs.changes.outputs.heavy != 'false' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
@@ -275,6 +278,9 @@ jobs:
     needs: [changes, build]
     if: ${{ !cancelled() && github.event_name != 'schedule' && needs.changes.outputs.heavy != 'false' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
@@ -307,6 +313,9 @@ jobs:
     needs: [changes, build]
     if: ${{ !cancelled() && github.event_name != 'schedule' && needs.changes.outputs.heavy != 'false' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -418,11 +427,34 @@ jobs:
           echo "modules=$modules" >> "$GITHUB_OUTPUT"
           { echo "### Mutação: módulos alcançados e o motivo de cada um"; cat "$RUNNER_TEMP/alcance.md"; } >> "$GITHUB_STEP_SUMMARY"
 
+  # Publishes the database image of the content, from main only: a pull request runs code of its own
+  # and never holds a token that writes packages. The jobs of a pull request pull what main published
+  # and build locally what it did not. Nothing waits for this job but the matrix, and a failure here
+  # does not stop it.
+  database_image:
+    name: Imagem do banco de teste
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.heavy != 'false' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/build-database-image
+        with:
+          publish: 'true'
+
   mutation_module:
     name: Mutação (${{ matrix.module }})
-    needs: mutation_modules
-    if: needs.mutation_modules.outputs.modules != '[]' && github.event.pull_request.draft != true
+    needs: [mutation_modules, database_image]
+    if: ${{ !cancelled() && needs.mutation_modules.result == 'success' && needs.mutation_modules.outputs.modules != '[]' && github.event.pull_request.draft != true }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     # The step cuts the module at the ceiling of docs/operacao/017; the rest is setup and restore.
     timeout-minutes: 35
     strategy:
@@ -437,6 +469,8 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
+      - uses: ./.github/actions/build-database-image
+        if: startsWith(matrix.module, 'Core.')
       - name: Instalar uv na versão fixada (o mutmut vem de language-service/uv.lock)
         run: python3 tools/verify-code/retry.py -- pip install -r tools/verify-code/service-requirements.txt
       - name: Sincronizar o ambiente do serviço (o modelo do spaCy vem do GitHub; só baixar repete, nunca o pytest)

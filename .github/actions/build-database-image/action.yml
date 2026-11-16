@@ -1,25 +1,25 @@
-name: Construir a imagem do banco de teste
+name: Dar a imagem do banco de teste
 description: >-
-  Constrói uma vez a imagem de tools/database e a entrega pelo nome em TEST_DATABASE_IMAGE, para que os projetos de teste a usem
-  sem construí-la cada um. Se a construção cai, cai aqui, com o log dela e, no resumo do job, as linhas `E:` do apt.
+  Entrega pelo nome em TEST_DATABASE_IMAGE a imagem de tools/database, para que os projetos de teste a usem sem construí-la cada um.
+  A imagem tem como etiqueta o hash dos arquivos que a definem e vive no GHCR: se a etiqueta existe, o job só a baixa; se não, constrói
+  aqui e, só com `publish: true`, a publica. Sem login (pull request de fork) constrói local. O login some ao fim do passo, antes de o
+  job rodar código do pull request. Se a construção cai, cai aqui, com o log dela e, no resumo do job, as linhas `E:` do apt.
+
+inputs:
+  token:
+    description: Token com permissão de ler pacotes do repositório (e de escrevê-los, se `publish`).
+    default: ${{ github.token }}
+  publish:
+    description: >-
+      `true` só no job que roda no main e tem `packages: write`: publica a imagem que construiu. Em pull request e no build remoto fica `false`.
+    default: 'false'
 
 runs:
   using: composite
   steps:
-    - name: Construir a imagem com o log inteiro
+    - name: Baixar a imagem desta versão do banco ou construí-la com o log inteiro
       shell: bash
-      run: |
-        set -o pipefail
-        log="$RUNNER_TEMP/database-image-build.log"
-        if ! python3 tools/verify-code/retry.py -- docker build --progress=plain --tag cdg-test-database:ci tools/database 2>&1 | tee "$log"; then
-          {
-            echo '### A imagem do banco de teste não foi construída'
-            echo
-            echo '```'
-            grep -E '^(#[0-9]+ +[0-9.]+ +)?E: ' "$log" | sed -E 's/^#[0-9]+ +[0-9.]+ +//' | awk '!seen[$0]++' \
-              || echo 'o apt não escreveu nenhuma linha `E:`; a causa está no fim do log do build'
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-          exit 1
-        fi
-        echo "TEST_DATABASE_IMAGE=cdg-test-database:ci" >> "$GITHUB_ENV"
+      env:
+        TOKEN: ${{ inputs.token }}
+        PUBLISH: ${{ inputs.publish }}
+      run: python3 tools/verify-code/database_image.py --provide "$GITHUB_REPOSITORY"

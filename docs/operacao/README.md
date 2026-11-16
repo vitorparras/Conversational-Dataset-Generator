@@ -63,5 +63,6 @@ e por quem ela roda.
 | [049](049-aplicador-da-configuracao.md) | O aplicador da configuração: a conta que escreve o arquivo e o papel do banco que só lê |
 | [050](050-arquivo-e-servico-do-aplicador.md) | O arquivo e o serviço do aplicador |
 | [051](051-o-que-o-aplicador-faz-e-recusa.md) | O que o aplicador faz, o que recusa e o que fica registrado |
+| [052](052-imagem-do-banco-de-teste.md) | A imagem do banco de teste na verificação: quem publica e quem só lê |
 
 Ver [regras de escrita](../regras-de-escrita.md).

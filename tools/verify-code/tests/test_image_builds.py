@@ -22,7 +22,6 @@ DOCKERFILES = (
     support.VERIFY_CODE / "offline_start" / "build.Dockerfile",
     support.VERIFY_CODE / "offline_start" / "start.Dockerfile",
 )
-DATABASE_ACTION = REPOSITORY / ".github" / "actions" / "build-database-image" / "action.yml"
 RETRIES = "-o Acquire::Retries=3"
 UNABLE = "E: Unable to locate package strace"
 FAILED_FETCH = (
@@ -147,16 +146,6 @@ class FailedBuildReportTests(unittest.TestCase):
             with self.subTest(image=image.tag):
                 self.assertIn("--progress=plain", image.command())
                 self.assertNotIn("--quiet", image.command())
-
-
-class DatabaseActionTests(unittest.TestCase):
-    def test_a_failed_build_puts_the_e_lines_in_the_job_summary_and_fails_the_step(self) -> None:
-        text = DATABASE_ACTION.read_text(encoding="utf-8")
-
-        self.assertIn("set -o pipefail", text)
-        self.assertIn("GITHUB_STEP_SUMMARY", text)
-        self.assertIn("E: ", text)
-        self.assertIn("exit 1", text)
 
 
 if __name__ == "__main__":

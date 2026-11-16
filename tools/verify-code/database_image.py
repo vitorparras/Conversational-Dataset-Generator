@@ -47,6 +47,7 @@ def image_name(root: Path, repository: str) -> str:
     """The registry name of the image of this content; the registry wants it in lower case."""
     return f"{REGISTRY}/{repository.lower()}/{IMAGE}:{content_hash(root)}"
 
+
 def run(args: list[str], stdin: str | None = None) -> tuple[int, str]:
     """Runs a command, printing what it writes as it writes it; returns its code and its output."""
     process = subprocess.Popen(
@@ -69,7 +70,7 @@ def run(args: list[str], stdin: str | None = None) -> tuple[int, str]:
 
 @dataclass(frozen=True)
 class Provision:
-    """What a job asks of the image: where it lives, who may read it, whether this run may write it."""
+    """What a job asks of the image: where it lives, who reads it, whether this run may write it."""
 
     image: str
     token: str
@@ -98,7 +99,8 @@ def pulled(job: Provision, runner: Runner) -> bool:
     code, output = runner(["docker", "pull", "--quiet", job.image], None)
     if code != 0:
         if not any(text in output.lower() for text in MISSING):
-            print(f"::notice::the pull of the database image failed, it is built here: {output.strip()[-200:]}")
+            tail = output.strip()[-200:]
+            print(f"::notice::the pull of the database image failed, it is built here: {tail}")
         return False
     print(f"Imagem do banco baixada do GHCR: {job.image}")
     export(job)
@@ -107,13 +109,22 @@ def pulled(job: Provision, runner: Runner) -> bool:
 
 def built(job: Provision, runner: Runner, logged: bool) -> int:
     build = [sys.executable, str(RETRY), "--", "docker", "build", "--progress=plain"]
-    build += ["--label", f"org.opencontainers.image.source={job.source}", "--tag", job.image, str(DEFINITION)]
+    build += [
+        "--label",
+        f"org.opencontainers.image.source={job.source}",
+        "--tag",
+        job.image,
+        str(DEFINITION),
+    ]
     code, output = runner(build, None)
     if code != 0:
         explain(job, output)
         return 1
     if job.publish and logged and runner(["docker", "push", "--quiet", job.image], None)[0] != 0:
-        print("::warning::a imagem do banco não foi publicada no GHCR (sem permissão de pacote?); este job usa a construída aqui")
+        print(
+            "::warning::a imagem do banco não foi publicada no GHCR (sem permissão de pacote?); "
+            "este job usa a construída aqui"
+        )
     export(job)
     return 0
 

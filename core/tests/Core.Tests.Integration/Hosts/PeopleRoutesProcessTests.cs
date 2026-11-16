@@ -43,7 +43,7 @@ public sealed class PeopleRoutesProcessTests
     [DatabaseTheory]
     [InlineData("Anotação")]
     [InlineData("Auditoria")]
-    public async Task Ca2APersonWithoutTheFunctionIsRefusedWithForbiddenAndNothingIsWritten(string function)
+    public async Task Ca2APersonWithoutTheFunctionIsAnsweredAsARouteThatDoesNotExistAndNothingIsWritten(string function)
     {
         await using var host = await AuthenticatedHost.StartAsync(new HostSetup { Function = function }, Token);
         var other = await CreatedBySystemAsync(host, "zqx-other");
@@ -56,7 +56,7 @@ public sealed class PeopleRoutesProcessTests
             await StatusAsync(host.SendAsAsync(HttpMethod.Put, $"/people/{other}/password", PasswordBody(Another), host.Identifier, Token)),
         };
 
-        Assert.Equal(3, answers.Count(status => status == HttpStatusCode.Forbidden));
+        Assert.Equal(3, answers.Count(status => status == HttpStatusCode.NotFound));
         Assert.Equal(before, (await CountAsync(host, "public.person"), await CountAsync(host, "public.custody_event")));
     }
 

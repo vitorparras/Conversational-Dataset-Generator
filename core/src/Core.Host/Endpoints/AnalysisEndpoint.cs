@@ -4,12 +4,14 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Core.Host.Endpoints;
 
-/// <summary>Analyses one text: the concluded analysis, or the refusal with its cause and the reference a retry names to resume it.</summary>
+/// <summary>
+/// Analyses one text: the concluded analysis, or the refusal with its cause and the reference a retry names to resume it. Only the technical administration reaches it (policy 006),
+/// since the text is content which the audit does not read; it has no screen of its own.
+/// </summary>
 internal static class AnalysisEndpoint
 {
     internal const string Route = "/analysis";
 
-    /// <summary>Only the technical administration analyses a text (policy 006): the text is content, which the audit does not read.</summary>
     private static readonly ScreenAccess Access = ScreenAccess.Unlisted(PersonFunctions.Administration);
 
     internal static void Map(IEndpointRouteBuilder endpoints) => _ = endpoints.MapPost(Route, AnalyzeAsync).WithMetadata(Access);

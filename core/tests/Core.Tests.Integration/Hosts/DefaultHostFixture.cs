@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Core.Persistence.People;
 using Core.Persistence.Tests.Fixtures;
 
 namespace Core.Tests.Integration.Hosts;
@@ -15,7 +16,7 @@ public sealed class DefaultHostFixture : IAsyncLifetime
     {
         if (DockerAvailability.ShouldRun)
         {
-            started = await AuthenticatedHost.StartAsync(new HostSetup(), CancellationToken.None);
+            started = await AuthenticatedHost.StartAsync(new HostSetup { Function = PersonFunctions.Administration }, CancellationToken.None);
         }
     }
 

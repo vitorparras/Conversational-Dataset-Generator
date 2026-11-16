@@ -6,8 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace Core.Host.Endpoints;
 
 /// <summary>
-/// The routes of a session that make a person, deactivate one and set a password again. Each is done by the person of the session, who is the author of the event, and only if that person
-/// holds the administration function, which is judged here until phase 6 brings the authorization. With no database declared the host cannot, and says so.
+/// The routes of a session that make a person, deactivate one and set a password again. Each is done by the person of the session, who is the author of the event. The gate of the screens
+/// lets only the administration function reach them and answers anyone else as a route that does not exist (policy 006). With no database declared the host cannot, and says so.
 /// </summary>
 internal static class OperatorsEndpoint
 {
@@ -17,9 +17,9 @@ internal static class OperatorsEndpoint
 
     internal static void Map(IEndpointRouteBuilder endpoints)
     {
-        _ = endpoints.MapPost(Route, MakeAsync).WithMetadata(ScreenAccess.Unlisted(PersonFunctions.Administration));
-        _ = endpoints.MapPost(Route + "/{id}/deactivate", DeactivateAsync).WithMetadata(ScreenAccess.Unlisted(PersonFunctions.Administration));
-        _ = endpoints.MapPut(Route + "/{id}/password", SetPasswordAsync).WithMetadata(ScreenAccess.Unlisted(PersonFunctions.Administration));
+        _ = endpoints.MapPost(Route, MakeAsync).WithMetadata(OperatorScreensEndpoint.Access);
+        _ = endpoints.MapPost(Route + "/{id}/deactivate", DeactivateAsync).WithMetadata(OperatorScreensEndpoint.Access);
+        _ = endpoints.MapPut(Route + "/{id}/password", SetPasswordAsync).WithMetadata(OperatorScreensEndpoint.Access);
     }
 
     private static Task<IResult> MakeAsync([FromBody] OperatorAsked asked, [FromServices] OperatorAdministration? staff, HttpContext context) =>
@@ -40,7 +40,7 @@ internal static class OperatorsEndpoint
         ActAsync(staff, context, async (administration, author) =>
             Of(await administration.SetPasswordAsync(author, id, asked.Password, context.RequestAborted), id));
 
-    /// <summary>Runs the act as the person of the session when they hold the administration function; otherwise refuses with 403 and the act never starts.</summary>
+    /// <summary>Runs the act as the person of the session. The gate answered 404 to whoever lacks the function; the 403 only defends against one withdrawn after it.</summary>
     private static async Task<IResult> ActAsync(OperatorAdministration? staff, HttpContext context, Func<OperatorAdministration, long, Task<IResult>> act)
     {
         if (staff is null)

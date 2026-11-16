@@ -29,6 +29,9 @@ internal static class SubmissionForm
         ["labeled-sequence"] = MaterialForm.LabeledSequence,
     };
 
+    /// <summary>The value the form sends for a form of material, to give back what was chosen; null for one the form does not offer.</summary>
+    internal static string? ValueOf(MaterialForm form) => Forms.FirstOrDefault(pair => pair.Value == form).Key;
+
     /// <summary>Reads the fields up to the file; null when the body is not <c>multipart/form-data</c> with a boundary, and a body with too many parts before the file has none read.</summary>
     /// <param name="request">The request.</param>
     /// <param name="author">The person of the session.</param>

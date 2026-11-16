@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Core.Host.Endpoints;
 
 /// <summary>The routes of the pages a person walks through, written once so that the forms and the links of the screens and the routes that answer them cannot drift apart.</summary>
@@ -28,10 +30,15 @@ internal static class ScreenPaths
     internal const string Emptying = "/esvaziamento";
     internal const string EmptyingConfirm = "/esvaziamento/confirmar";
     internal const string Batches = "/lotes";
+    internal const string BatchNew = "/lotes/novo";
+    internal const string BatchDetail = "/lotes/{id:long}";
     internal const string ReviewSuffix = "/revisao";
     internal const string BatchDraw = "/lotes/{id:long}/amostra";
     internal const string BatchReview = "/lotes/{id:long}/revisao";
     internal const string BatchReviewMark = "/lotes/{id:long}/revisao/itens/{place:int}/revisado";
     internal const string BatchReviewApprove = "/lotes/{id:long}/revisao/aprovar";
     internal const string BatchReviewFinding = "/lotes/{id:long}/revisao/itens/{place:int}/achado";
+
+    /// <summary>The address of the detail of a batch.</summary>
+    internal static string BatchOf(long id) => string.Create(CultureInfo.InvariantCulture, $"/lotes/{id}");
 }

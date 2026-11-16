@@ -170,7 +170,8 @@ internal static class CompositionRoot
         _ = builder.Services.AddSingleton(PasswordConfiguration.Derivation(loaded.Values)).AddSingleton(VerificationConfiguration.Schedule(loaded.Values))
             .AddSingleton(SealConfiguration.Declaration(loaded.Values))
             .AddSingleton(provider => SubmissionParts.BatchesOf(provider, loaded.Values)).AddSingleton(SubmissionParts.RegisterOf).AddSingleton(SubmissionParts.DoorOf)
-            .AddSingleton(provider => SubmissionParts.ServicesOf(provider, loaded.Values)).AddSingleton(provider => SampleReviewParts.DeskOf(provider, loaded.Values));
+            .AddSingleton(SubmissionParts.CountsOf).AddSingleton(provider => SubmissionParts.ServicesOf(provider, loaded.Values))
+            .AddSingleton(provider => SampleReviewParts.DeskOf(provider, loaded.Values));
         _ = builder.Services.AddSingleton(_ => new ServerAuditLog(AuditConfiguration.ServerLogDirectory(loaded.Values))).AddSingleton<AuditComparisonState>();
         _ = builder.Services.AddHostedService(provider => new AuditComparisonService(
             new AuditComparisonPlan(

@@ -4,6 +4,7 @@ namespace Core.Ingestion.Reading;
 public sealed class SourceReaders
 {
     private readonly Dictionary<string, ISourceReader> byFormat = new(StringComparer.Ordinal);
+    private readonly List<string> formats;
 
     /// <summary>The registry holds the readers given; two readers for one format is a defect.</summary>
     /// <param name="readers">The readers, one for each format.</param>
@@ -18,7 +19,13 @@ public sealed class SourceReaders
                 throw new ArgumentException("There are two readers for the same format.", nameof(readers));
             }
         }
+
+        var sorted = byFormat.Keys.Order(StringComparer.Ordinal).ToList();
+        formats = sorted;
     }
+
+    /// <summary>The formats this version reads, in ordinal order, so the screen offers them the same way every time.</summary>
+    public IReadOnlyList<string> Formats => formats;
 
     /// <summary>The registry with the readers of the first version.</summary>
     public static SourceReaders Default() => new(Enumerable.Repeat<ISourceReader>(new ExportedConversationReader(), 1));

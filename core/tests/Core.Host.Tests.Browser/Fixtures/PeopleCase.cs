@@ -3,7 +3,6 @@ using Core.Host.Endpoints;
 using Core.Persistence.Custody;
 using Core.Persistence.People;
 using Core.Persistence.Tests.Fixtures;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Npgsql;
@@ -15,7 +14,7 @@ namespace Core.Host.Tests.Browser.Fixtures;
 /// reaches a different part of the menu, it holds the people of <see cref="Listed"/>, enough of them for three pages of the list, with their functions turning among the six of the
 /// policy and every tenth one deactivated. Everything the host writes in its log is kept in <see cref="Log"/>, so that a test can look for a password in it.
 /// </summary>
-internal sealed class PeopleScreenHost : ScreenHostBase
+internal sealed class PeopleCase : IAsyncDisposable
 {
     /// <summary>The common start of the names of the people of the list, which a filter by name reaches and no person made by a test has.</summary>
     public const string Prefix = "zqx-lista-";
@@ -23,12 +22,16 @@ internal sealed class PeopleScreenHost : ScreenHostBase
     private const int ListedCount = 46;
     private const int DeactivatedEvery = 10;
 
-    private readonly LogKeeper keeper = new();
+    private readonly LogKeeper keeper;
 
-    private PeopleScreenHost(ScratchDatabase database)
-        : base(database)
+    private PeopleCase(ScreenHost host, LogKeeper keeper)
     {
+        Host = host;
+        this.keeper = keeper;
     }
+
+    /// <summary>The host of the case.</summary>
+    public ScreenHost Host { get; }
 
     /// <summary>The people of the list, in the order of their names, which is the order the screen shows them in.</summary>
     public static IReadOnlyList<Seed> Listed { get; } =
@@ -37,31 +40,39 @@ internal sealed class PeopleScreenHost : ScreenHostBase
     /// <summary>Every line the host logged, with its category and its message, as text.</summary>
     public string Log => string.Join('\n', keeper.Lines);
 
-    public static Task<PeopleScreenHost> StartAsync(CancellationToken cancellationToken) =>
-        StartAsync(database => new PeopleScreenHost(database), host => host.SeedAsync(), cancellationToken);
+    public static async Task<PeopleCase> StartAsync(CancellationToken cancellationToken)
+    {
+        var keeper = new LogKeeper();
+        var host = await ScreenHost.StartAsync(
+            new ScreenParts
+            {
+                Services = (services, _) => services.AddLogging(logging => logging.AddProvider(keeper)).AddSingleton(provider => new PersonEmails(provider.GetRequiredService<NpgsqlDataSource>())),
+                Screens = routes =>
+                {
+                    OperatorScreensEndpoint.Map(routes);
+                    AccountScreensEndpoint.Map(routes);
+                },
+                Prepare = SeedAsync,
+            },
+            cancellationToken);
+        return new PeopleCase(host, keeper);
+    }
 
     /// <summary>The whole database as text, as a copy of it would be taken, for a test to look for what must not be in it.</summary>
-    public Task<string> DumpAsync() => Database.DumpAsync();
+    public Task<string> DumpAsync() => Host.Database.DumpAsync();
 
     /// <summary>Deactivates the person of the id, as the administration would elsewhere, so that a test reaches the page of a person who was active a moment ago.</summary>
     public async Task DeactivateAsync(long id)
     {
-        await using var source = NpgsqlDataSource.Create(Database.AppConnectionString);
+        await using var source = NpgsqlDataSource.Create(Host.Database.AppConnectionString);
         _ = await new PersonRegistry(source).DeactivateAsync(id, CustodyAuthor.System, CancellationToken.None);
     }
 
-    protected override void AddServices(IServiceCollection services) =>
-        _ = services.AddLogging(logging => logging.AddProvider(keeper)).AddSingleton(provider => new PersonEmails(provider.GetRequiredService<NpgsqlDataSource>()));
+    public ValueTask DisposeAsync() => Host.DisposeAsync();
 
-    protected override void MapScreens(IEndpointRouteBuilder routes)
+    private static async Task SeedAsync(ScratchDatabase database)
     {
-        OperatorScreensEndpoint.Map(routes);
-        AccountScreensEndpoint.Map(routes);
-    }
-
-    private async Task SeedAsync()
-    {
-        await using var source = NpgsqlDataSource.Create(Database.AppConnectionString);
+        await using var source = NpgsqlDataSource.Create(database.AppConnectionString);
         var registry = new PersonRegistry(source);
         foreach (var seed in Listed)
         {

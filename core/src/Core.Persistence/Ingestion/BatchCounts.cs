@@ -39,7 +39,6 @@ public sealed class BatchCounts
 
     private async Task<BatchDetailCounts> ReadingAsync(int domainId, long batchId, CancellationToken cancellationToken)
     {
-        var rows = new List<(string Kind, BatchCount Count)>();
         var transaction = await ContentTransaction.BeginAsync(dataSource, domainId, cancellationToken).ConfigureAwait(false);
         await using (transaction.ConfigureAwait(false))
         {
@@ -48,18 +47,25 @@ public sealed class BatchCounts
             {
                 _ = command.Parameters.Add(new NpgsqlParameter("batch", NpgsqlDbType.Bigint) { Value = batchId });
                 _ = command.Parameters.Add(new NpgsqlParameter("domain", NpgsqlDbType.Integer) { Value = domainId });
-                var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-                await using (reader.ConfigureAwait(false))
-                {
-                    while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-                    {
-                        rows.Add((reader.GetString(KindColumn), new BatchCount(reader.GetString(CodeColumn), reader.GetInt64(ValueColumn))));
-                    }
-                }
+                return Counted(await RowsAsync(command, cancellationToken).ConfigureAwait(false));
+            }
+        }
+    }
+
+    /// <summary>The rows of the counts, each with its kind.</summary>
+    private static async Task<List<(string Kind, BatchCount Count)>> RowsAsync(NpgsqlCommand command, CancellationToken cancellationToken)
+    {
+        var rows = new List<(string Kind, BatchCount Count)>();
+        var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        await using (reader.ConfigureAwait(false))
+        {
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                rows.Add((reader.GetString(KindColumn), new BatchCount(reader.GetString(CodeColumn), reader.GetInt64(ValueColumn))));
             }
         }
 
-        return Counted(rows);
+        return rows;
     }
 
     private static BatchDetailCounts Counted(List<(string Kind, BatchCount Count)> rows)

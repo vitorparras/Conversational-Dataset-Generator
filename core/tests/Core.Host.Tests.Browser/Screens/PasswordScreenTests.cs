@@ -30,7 +30,7 @@ public sealed class PasswordScreenTests(BrowserFixture browser, AccountHostFixtu
     [Fact]
     public async Task ThePageAsksForTheCurrentAndTheNewPasswordWithTheRightAutocompleteAndTheFocusOnTheFirstField()
     {
-        await using var tab = await OpenAsync(await account.Host.AddPersonAsync());
+        await using var tab = await OpenAsync(await account.Case.AddPersonAsync());
 
         await Expect(tab.Page.GetByRole(AriaRole.Heading, new() { Name = "Trocar senha", Level = 1 })).ToBeVisibleAsync();
         await Expect(tab.Page.Locator("#senha-atual")).ToBeFocusedAsync();
@@ -46,7 +46,7 @@ public sealed class PasswordScreenTests(BrowserFixture browser, AccountHostFixtu
     public async Task Ca1AWrongCurrentPasswordIsRefusedWithTheTextOfEveryRefusalAndNothingChangesNorIsWrittenBack()
     {
         var host = account.Host;
-        var person = await host.AddPersonAsync();
+        var person = await account.Case.AddPersonAsync();
         var wrong = Made("ERRADA");
         var replacement = Made("NOVA");
         await using var tab = await OpenAsync(person);
@@ -60,7 +60,7 @@ public sealed class PasswordScreenTests(BrowserFixture browser, AccountHostFixtu
         await Expect(tab.Page.Locator("#senha-nova")).ToHaveValueAsync(string.Empty);
         await Expect(tab.Page.Locator("#senha-repetida")).ToHaveValueAsync(string.Empty);
         await Expect(tab.Page.Locator("#senha-atual")).ToHaveAttributeAsync("aria-invalid", "true");
-        await AssertNoPasswordAsync(tab.Page, host.Log, wrong, replacement);
+        await AssertNoPasswordAsync(tab.Page, account.Case.Log, wrong, replacement);
         await AssertCanEnterAsync(host, person, host.Password);
     }
 
@@ -68,7 +68,7 @@ public sealed class PasswordScreenTests(BrowserFixture browser, AccountHostFixtu
     public async Task TwoNewPasswordsThatDifferAreRefusedBesideTheRepeatFieldAndNothingChanges()
     {
         var host = account.Host;
-        var person = await host.AddPersonAsync();
+        var person = await account.Case.AddPersonAsync();
         var replacement = Made("NOVA");
         await using var tab = await OpenAsync(person);
 
@@ -86,7 +86,7 @@ public sealed class PasswordScreenTests(BrowserFixture browser, AccountHostFixtu
     public async Task AnEmptyNewPasswordIsRefusedWithTheTextThatSaysSoAndNothingChanges()
     {
         var host = account.Host;
-        var person = await host.AddPersonAsync();
+        var person = await account.Case.AddPersonAsync();
         await using var tab = await OpenAsync(person);
 
         await FillAsync(tab.Page, host.Password, string.Empty);
@@ -94,7 +94,7 @@ public sealed class PasswordScreenTests(BrowserFixture browser, AccountHostFixtu
 
         await Expect(tab.Page.GetByText("Informe a nova senha.")).ToBeVisibleAsync();
         await Expect(tab.Page.Locator("#senha-atual")).ToHaveValueAsync(string.Empty);
-        await AssertNoPasswordAsync(tab.Page, host.Log, host.Password);
+        await AssertNoPasswordAsync(tab.Page, account.Case.Log, host.Password);
         await AssertCanEnterAsync(host, person, host.Password);
     }
 
@@ -102,7 +102,7 @@ public sealed class PasswordScreenTests(BrowserFixture browser, AccountHostFixtu
     public async Task Ca2AChangeAcceptedEndsTheOtherSessionsAtOnceKeepsTheCurrentOneAndTellsHowManyEndedWithNoPasswordAnywhere()
     {
         var host = account.Host;
-        var person = await host.AddPersonAsync();
+        var person = await account.Case.AddPersonAsync();
         var replacement = Made("NOVA");
         await using var other = await ScreenSession.SignedInAsync(browser, host, person);
         await using var tab = await OpenAsync(person);
@@ -113,7 +113,7 @@ public sealed class PasswordScreenTests(BrowserFixture browser, AccountHostFixtu
         await Expect(tab.Page).ToHaveURLAsync(new Regex("/minha-conta$", RegexOptions.None, TimeSpan.FromSeconds(1)));
         await Expect(tab.Page.Locator(".notice--success")).ToContainTextAsync("Senha trocada. A outra sessão aberta foi encerrada; esta continua aberta.");
         await Expect(tab.Page.Locator("[aria-labelledby=sessoes-titulo] tbody tr")).ToHaveCountAsync(1);
-        await AssertNoPasswordAsync(tab.Page, host.Log, host.Password, replacement);
+        await AssertNoPasswordAsync(tab.Page, account.Case.Log, host.Password, replacement);
         _ = await tab.Page.GotoAsync(Account);
         await Expect(tab.Page.GetByRole(AriaRole.Heading, new() { Name = "Minha conta", Level = 1 })).ToBeVisibleAsync();
         _ = await other.Page.GotoAsync(Account);
@@ -127,7 +127,7 @@ public sealed class PasswordScreenTests(BrowserFixture browser, AccountHostFixtu
     public async Task Ca2AChangeAcceptedWithNoOtherSessionSaysThereWasNoneToEnd()
     {
         var host = account.Host;
-        var person = await host.AddPersonAsync();
+        var person = await account.Case.AddPersonAsync();
         await using var tab = await OpenAsync(person);
         await FillAsync(tab.Page, host.Password, Made("NOVA"));
 
@@ -144,7 +144,7 @@ public sealed class PasswordScreenTests(BrowserFixture browser, AccountHostFixtu
     public async Task ThePageHasNoViolationOfWcagAAndAaAndItsTextReadsOverTheGlass(string name)
     {
         var mode = MediaMode.Named(name);
-        await using var tab = await OpenAsync(await account.Host.AddPersonAsync());
+        await using var tab = await OpenAsync(await account.Case.AddPersonAsync());
         await mode.ApplyAsync(tab.Page);
 
         await AccessibilityCheck.AssertNoViolationsAsync(tab.Page);
@@ -158,7 +158,7 @@ public sealed class PasswordScreenTests(BrowserFixture browser, AccountHostFixtu
     public async Task ThePageAfterARefusalHasNoViolationOfWcagAAndAaAndTheErrorReadsOverTheGlass(string name)
     {
         var mode = MediaMode.Named(name);
-        await using var tab = await OpenAsync(await account.Host.AddPersonAsync());
+        await using var tab = await OpenAsync(await account.Case.AddPersonAsync());
         await mode.ApplyAsync(tab.Page);
         await FillAsync(tab.Page, Made("ERRADA"), Made("NOVA"));
         await tab.Page.Locator("#trocar-senha").ClickAsync();
@@ -172,7 +172,7 @@ public sealed class PasswordScreenTests(BrowserFixture browser, AccountHostFixtu
     [Fact]
     public async Task ThePageFitsThePhoneWidthWithoutScrollingSidewaysAndHasNoViolation()
     {
-        await using var tab = await OpenAsync(await account.Host.AddPersonAsync());
+        await using var tab = await OpenAsync(await account.Case.AddPersonAsync());
         await tab.Page.SetViewportSizeAsync(PhoneWidth, PhoneHeight);
         _ = await tab.Page.GotoAsync(Route);
 
@@ -188,7 +188,7 @@ public sealed class PasswordScreenTests(BrowserFixture browser, AccountHostFixtu
     public async Task TheKeyboardAloneFillsTheThreeFieldsReachesTheButtonWithTheFocusSeenAndSendsTheChange()
     {
         var host = account.Host;
-        await using var tab = await OpenAsync(await host.AddPersonAsync());
+        await using var tab = await OpenAsync(await account.Case.AddPersonAsync());
         var replacement = Made("NOVA");
         var order = new List<string>();
         var seen = new List<bool>();
@@ -231,7 +231,7 @@ public sealed class PasswordScreenTests(BrowserFixture browser, AccountHostFixtu
         Assert.All(passwords.Where(password => password.Length > 0), password => Assert.DoesNotContain(Uri.EscapeDataString(password), seen, StringComparison.Ordinal));
     }
 
-    private async Task AssertCanEnterAsync(ScreenHostBase host, string person, string password)
+    private async Task AssertCanEnterAsync(ScreenHost host, string person, string password)
     {
         await using var tab = await browser.OpenAtAsync(host.Address, "/entrada");
         await tab.Page.Locator("#entrada-nome").FillAsync(person);
@@ -240,7 +240,7 @@ public sealed class PasswordScreenTests(BrowserFixture browser, AccountHostFixtu
         await Expect(tab.Page.Locator("#sair")).ToBeVisibleAsync();
     }
 
-    private async Task AssertCannotEnterAsync(ScreenHostBase host, string person, string password)
+    private async Task AssertCannotEnterAsync(ScreenHost host, string person, string password)
     {
         await using var tab = await browser.OpenAtAsync(host.Address, "/entrada");
         await tab.Page.Locator("#entrada-nome").FillAsync(person);

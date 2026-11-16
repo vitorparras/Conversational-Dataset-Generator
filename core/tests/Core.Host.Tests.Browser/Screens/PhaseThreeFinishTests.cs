@@ -154,7 +154,7 @@ public sealed partial class PhaseThreeFinishTests(BrowserFixture browser, PhaseT
 
     private async Task<BrowserTab> OpenAsync(string route, bool noticed, int width, int height)
     {
-        var tab = await ScreenSession.SignedInAsync(browser, phase.Host, noticed ? phase.Host.Noticed : phase.Host.Administrator);
+        var tab = await ScreenSession.SignedInAsync(browser, phase.Host, noticed ? phase.Case.Noticed : phase.Host.Administrator);
         try
         {
             await tab.Page.SetViewportSizeAsync(width, height);

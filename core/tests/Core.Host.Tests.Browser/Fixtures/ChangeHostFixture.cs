@@ -6,11 +6,13 @@ namespace Core.Host.Tests.Browser.Fixtures;
 [SuppressMessage("Design", "CA1515", Justification = "xunit builds the class fixture and the public test classes take it in their constructors.")]
 public sealed class ChangeHostFixture : IAsyncLifetime
 {
-    private ChangeScreenHost? host;
+    private ChangeCase? host;
 
-    internal ChangeScreenHost Host => host ?? throw new InvalidOperationException("The host of the changes was not started.");
+    internal ChangeCase Case => host ?? throw new InvalidOperationException("The host of the changes was not started.");
 
-    public async ValueTask InitializeAsync() => host = await ChangeScreenHost.StartAsync(CancellationToken.None);
+    internal ScreenHost Host => Case.Host;
+
+    public async ValueTask InitializeAsync() => host = await ChangeCase.StartAsync(CancellationToken.None);
 
     public async ValueTask DisposeAsync()
     {

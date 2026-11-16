@@ -32,10 +32,10 @@ public sealed class ConfigurationScreenTests(BrowserFixture browser, SystemHostF
 
         var keys = await tab.Page.Locator($"{Rows} th[scope=row] code").AllInnerTextsAsync();
 
-        Assert.Equal([.. system.Host.Configuration.Entries.Select(entry => entry.Key)], keys);
+        Assert.Equal([.. system.Case.Configuration.Entries.Select(entry => entry.Key)], keys);
         await Expect(tab.Page.Locator($"{Rows}:has(code:text-is('{SecretKey}')) td").Nth(1)).ToHaveTextAsync("Argumento da linha de comando");
         await Expect(tab.Page.Locator($"{Rows}:has(code:text-is('Host:Urls')) td").Nth(1)).ToHaveTextAsync("Padrão do sistema");
-        await Expect(tab.Page.Locator($"{Rows}:has(code:text-is('Custody:LastRecoveryTest')) td").First).ToHaveTextAsync(SystemScreenHost.DeclaredDate);
+        await Expect(tab.Page.Locator($"{Rows}:has(code:text-is('Custody:LastRecoveryTest')) td").First).ToHaveTextAsync(SystemCase.DeclaredDate);
     }
 
     [Fact]
@@ -50,7 +50,7 @@ public sealed class ConfigurationScreenTests(BrowserFixture browser, SystemHostF
         var text = await tab.Page.Locator("body").InnerTextAsync();
 
         Assert.Equal(StatusOk, answer.Status);
-        Assert.All([body, shown, text], page => Assert.DoesNotContain(system.Host.Secret, page, StringComparison.Ordinal));
+        Assert.All([body, shown, text], page => Assert.DoesNotContain(system.Case.Secret, page, StringComparison.Ordinal));
         var row = tab.Page.Locator($"{Rows}:has(code:text-is('{SecretKey}'))");
         await Expect(row.Locator("td").First).ToContainTextAsync("Segredo, valor oculto");
         await Expect(row.Locator("td").Nth(1)).ToHaveTextAsync("Argumento da linha de comando");
@@ -63,7 +63,7 @@ public sealed class ConfigurationScreenTests(BrowserFixture browser, SystemHostF
 
         await Expect(tab.Page.Locator("main form, main input, main textarea, main select, main button")).ToHaveCountAsync(0);
         var where = await tab.Page.Locator($"{Rows} td:nth-child(4)").AllInnerTextsAsync();
-        Assert.Equal(system.Host.Configuration.Entries.Count, where.Count);
+        Assert.Equal(system.Case.Configuration.Entries.Count, where.Count);
         Assert.All(where, text => Assert.Equal("No servidor", text));
     }
 
@@ -119,7 +119,7 @@ public sealed class ConfigurationScreenTests(BrowserFixture browser, SystemHostF
 
     private async Task<BrowserTab> OpenAsync(string name)
     {
-        var tab = await SystemSession.SignedInAsync(browser, system.Host, name);
+        var tab = await ScreenSession.SignedInAsync(browser, system.Host, name);
         try
         {
             _ = await tab.Page.GotoAsync(Route);

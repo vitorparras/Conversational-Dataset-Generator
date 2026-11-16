@@ -4,14 +4,15 @@
         <Notice Kind="Notice.Tone.Error">O envio não foi feito e nada foi gravado. Corrija os campos marcados e escolha o arquivo de novo: o navegador não o guarda depois de um erro.</Notice>
     }
     <ChoiceGroup Name="domain" Legend="Domínio" Options="Offer.Domains" Value="@Given.Domain" Required="true" Error="@ErrorOf("domain")" />
-    <Field Id="arquivo" Name="file" Type="file" Caption="Arquivo" Required="true" Error="@ErrorOf(SubmissionTexts.FileField)"
-           Hint="@($"Até {SubmissionTexts.SizeOf(Offer.MaxBytes)}. O formato é conferido pelo conteúdo, não pela extensão, e o nome do arquivo não é guardado.")" />
     <ChoiceGroup Name="declaredForm" Legend="Forma do material" Options="SubmissionTexts.Forms" Value="@Given.Form" Required="true" Error="@ErrorOf("declared_form")" />
     <ChoiceGroup Name="sourceFormat" Legend="Formato do arquivo" Options="Formats()" Value="@(Given.Format ?? Offer.Formats.FirstOrDefault())" Required="true" Error="@ErrorOf("source_format")" />
     <ChoiceGroup Name="condition" Legend="Condição de entrada" Options="Conditions()" Value="@(Given.Condition ?? Offer.Conditions.FirstOrDefault())" Required="true" Error="@ErrorOf("condition")" />
     <Field Id="origem" Name="origin" Caption="Origem do material" Value="@Given.Origin" Autocomplete="off" Error="@ErrorOf("origin")"
            Hint="Obrigatória: diga de onde o material veio, ou marque abaixo que a origem é desconhecida. Ela fica guardada selada e não aparece em registro do sistema nem em exportação." />
     <Checkbox Id="originUnknown" Caption="A origem é desconhecida" Checked="@Given.OriginUnknown" ErrorOf="@(ErrorOf("origin") is null ? null : "origem-erro")" />
+    @* The file comes last: the reading streams it and takes no field sent after it. *@
+    <Field Id="arquivo" Name="file" Type="file" Caption="Arquivo" Required="true" Error="@ErrorOf(SubmissionTexts.FileField)"
+           Hint="@($"Até {SubmissionTexts.SizeOf(Offer.MaxBytes)}. O formato é conferido pelo conteúdo, não pela extensão, e o nome do arquivo não é guardado.")" />
     <WaitNotice Id="envio-espera" Text="Enviando e conferindo o arquivo. A espera cresce com o tamanho dele; não feche a página." />
     <div class="actions">
         <Button Id="enviar">Enviar material</Button>

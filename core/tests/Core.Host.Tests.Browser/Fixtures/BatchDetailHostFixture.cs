@@ -6,11 +6,11 @@ namespace Core.Host.Tests.Browser.Fixtures;
 [SuppressMessage("Design", "CA1515", Justification = "xunit builds the class fixture and the public test classes take it in their constructors.")]
 public sealed class BatchDetailHostFixture : IAsyncLifetime
 {
-    private BatchDetailPieceHost? host;
+    private ScreenHost? host;
 
-    internal BatchDetailPieceHost Host => host ?? throw new InvalidOperationException("The host of the detail of the batch was not started.");
+    internal ScreenHost Host => host ?? throw new InvalidOperationException("The host of the detail of the batch was not started.");
 
-    public async ValueTask InitializeAsync() => host = await BatchDetailPieceHost.StartAsync(CancellationToken.None);
+    public async ValueTask InitializeAsync() => host = await ScreenHost.StartAsync(BatchDetailPieceCase.Parts, CancellationToken.None);
 
     public async ValueTask DisposeAsync()
     {

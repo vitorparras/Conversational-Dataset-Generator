@@ -15,10 +15,16 @@ namespace Core.Host.Endpoints;
 internal static class BatchScreensEndpoint
 {
     private const int BatchesPlace = 20;
+    private const int SubmissionPlace = 21;
+
+    private static readonly ScreenAccess Unlisted = ScreenAccess.Unlisted(PersonFunctions.Curation);
 
     internal static void Map(IEndpointRouteBuilder endpoints)
     {
         _ = endpoints.MapGet(ScreenPaths.Batches, ListAsync).WithMetadata(ScreenAccess.OfFunction(BatchesScreen.Title, BatchesPlace, PersonFunctions.Curation));
+        _ = endpoints.MapGet(ScreenPaths.BatchNew, BatchSubmissionPage.FormAsync).WithMetadata(ScreenAccess.Of(SubmissionScreen.Title, SubmissionPlace, PersonFunctions.Curation));
+        _ = endpoints.MapPost(ScreenPaths.BatchNew, BatchSubmissionPage.SubmitAsync).WithMetadata(Unlisted);
+        _ = endpoints.MapGet(ScreenPaths.BatchDetail, BatchDetailPage.DetailAsync).WithMetadata(Unlisted);
         SampleReviewEndpoint.Map(endpoints);
     }
 

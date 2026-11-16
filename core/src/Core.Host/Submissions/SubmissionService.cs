@@ -37,6 +37,9 @@ internal sealed class SubmissionService
         keeper = new SubmissionStoring.Keeper(batches, intake, logger);
     }
 
+    /// <summary>What the form of the screen offers from the service: the formats the barrier reads and the conditions of the installation, the most restrictive first.</summary>
+    internal (IReadOnlyList<string> Formats, IReadOnlyList<string> Conditions) Offered => (intake.Gate.Formats, intake.Conditions.Names);
+
     /// <summary>Whether the ingestion takes material in: open, or blocked by the code of what is missing (decision 0014).</summary>
     /// <param name="cancellationToken">Cancels the question.</param>
     internal Task<SubmissionGateStatus> GateAsync(CancellationToken cancellationToken) => new IntakeDoor(dataSource).StatusAsync(cancellationToken);

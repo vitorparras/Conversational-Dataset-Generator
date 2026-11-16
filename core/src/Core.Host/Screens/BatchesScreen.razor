@@ -1,4 +1,5 @@
 @using System.Globalization
+@using Core.Host.Endpoints
 @using Core.Persistence.Ingestion
 
 <h1>@Title</h1>
@@ -40,7 +41,7 @@ else
                     @foreach (var row in Rows)
                     {
                         <tr role="row">
-                            <th scope="row" role="rowheader">Lote&nbsp;@row.Id.ToString(CultureInfo.InvariantCulture)</th>
+                            <th scope="row" role="rowheader"><a href="@ScreenPaths.BatchOf(row.Id)">Lote&nbsp;@row.Id.ToString(CultureInfo.InvariantCulture)</a></th>
                             <td role="cell">@row.Domain</td>
                             <td role="cell">
                                 <StateMark Kind="BatchTexts.ToneOf(row.State)">@BatchTexts.StateOf(row.State)</StateMark>

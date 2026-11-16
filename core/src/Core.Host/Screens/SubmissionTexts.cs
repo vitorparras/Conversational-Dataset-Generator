@@ -19,6 +19,10 @@ internal static class SubmissionTexts
     internal const string Collided =
         "O envio esbarrou em outro que chegou ao mesmo tempo e nada do arquivo foi gravado. Envie o mesmo arquivo de novo; não há nada a limpar antes.";
 
+    /// <summary>What the screen says when the batch opened and the material could not be written: the batch was rejected and nothing of the file was kept.</summary>
+    internal const string NotKept =
+        "O envio não pôde ser gravado e nada do material foi guardado; o lote ficou registrado como recusado. Envie de novo; se repetir, quem administra o servidor vê a causa no registro do sistema.";
+
     private const long Mebibyte = 1_048_576;
     private const long Kibibyte = 1_024;
 
@@ -33,6 +37,7 @@ internal static class SubmissionTexts
         "unknown_format" => "Esta versão do sistema não lê o formato escolhido.",
         "format_not_confirmed" => "O começo do arquivo não confirma o formato escolhido. Confira se é um arquivo desse formato, em UTF-8.",
         "unreadable" => "O arquivo não pôde ser lido inteiro: ele está malformado ou incompleto.",
+        "already_received" => "Este mesmo arquivo já entrou neste domínio num lote aceito; nada foi gravado de novo.",
         _ => UnitReasonOf(code),
     };
 

@@ -6,11 +6,11 @@ namespace Core.Host.Tests.Browser.Fixtures;
 [SuppressMessage("Design", "CA1515", Justification = "xunit builds the class fixture and the public test classes take it in their constructors.")]
 public sealed class DomainsHostFixture : IAsyncLifetime
 {
-    private DomainScreenHost? host;
+    private ScreenHost? host;
 
-    internal DomainScreenHost Host => host ?? throw new InvalidOperationException("The host of the domains was not started.");
+    internal ScreenHost Host => host ?? throw new InvalidOperationException("The host of the domains was not started.");
 
-    public async ValueTask InitializeAsync() => host = await DomainScreenHost.StartAsync(withDomains: true, CancellationToken.None);
+    public async ValueTask InitializeAsync() => host = await ScreenHost.StartAsync(DomainCase.Parts(withDomains: true), CancellationToken.None);
 
     public async ValueTask DisposeAsync()
     {
@@ -25,11 +25,11 @@ public sealed class DomainsHostFixture : IAsyncLifetime
 [SuppressMessage("Design", "CA1515", Justification = "xunit builds the class fixture and the public test classes take it in their constructors.")]
 public sealed class NoDomainsHostFixture : IAsyncLifetime
 {
-    private DomainScreenHost? host;
+    private ScreenHost? host;
 
-    internal DomainScreenHost Host => host ?? throw new InvalidOperationException("The host with no domain was not started.");
+    internal ScreenHost Host => host ?? throw new InvalidOperationException("The host with no domain was not started.");
 
-    public async ValueTask InitializeAsync() => host = await DomainScreenHost.StartAsync(withDomains: false, CancellationToken.None);
+    public async ValueTask InitializeAsync() => host = await ScreenHost.StartAsync(DomainCase.Parts(withDomains: false), CancellationToken.None);
 
     public async ValueTask DisposeAsync()
     {

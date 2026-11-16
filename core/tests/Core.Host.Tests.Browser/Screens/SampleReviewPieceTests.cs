@@ -15,9 +15,9 @@ namespace Core.Host.Tests.Browser.Screens;
 [Trait("Category", "Browser")]
 public sealed class SampleReviewPieceTests(BrowserFixture browser, SampleReviewHostFixture review) : IClassFixture<SampleReviewHostFixture>
 {
-    private const string Review = SampleReviewPieceHost.Review;
-    private const string Reject = SampleReviewPieceHost.Reject;
-    private const int Items = SampleReviewPieceHost.Items;
+    private const string Review = SampleReviewPieceCase.Review;
+    private const string Reject = SampleReviewPieceCase.Reject;
+    private const int Items = SampleReviewPieceCase.Items;
     private const int MostStops = 20;
     private const string Mark = "Revisado, sem dado pessoal";
     private const string Finding = "Achei dado pessoal";
@@ -152,7 +152,7 @@ public sealed class SampleReviewPieceTests(BrowserFixture browser, SampleReviewH
         await using var tab = await OpenAsync($"{Review}?e=revisados-2", ReviewTitle);
 
         await Expect(tab.Page.Locator(".sample__text")).ToHaveCountAsync(Items);
-        Assert.Equal(Enumerable.Range(1, Items).Select(SampleReviewPieceHost.TextOf), await tab.Page.Locator(".sample__text").AllInnerTextsAsync());
+        Assert.Equal(Enumerable.Range(1, Items).Select(SampleReviewPieceCase.TextOf), await tab.Page.Locator(".sample__text").AllInnerTextsAsync());
         Assert.DoesNotContain(Material, await tab.Page.EvaluateAsync<string>(WithoutTheItems), StringComparison.Ordinal);
         Assert.DoesNotContain(Material, await tab.Page.TitleAsync(), StringComparison.Ordinal);
         Assert.DoesNotContain(Material, tab.Page.Url, StringComparison.Ordinal);

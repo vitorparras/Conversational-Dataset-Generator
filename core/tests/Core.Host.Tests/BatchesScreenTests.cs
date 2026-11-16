@@ -46,8 +46,8 @@ public sealed class BatchesScreenTests
         Assert.Contains("class=\"data-table data-table--stacks\"", page, StringComparison.Ordinal);
         Assert.Contains("--data-table-header-2: \"Domínio\";", page, StringComparison.Ordinal);
         Assert.Contains("--data-table-header-6: \"Recibo do envio\";", page, StringComparison.Ordinal);
-        Assert.Matches(new Regex(@"Lote 43</th>\s*<td role=""cell"">zqx-dominio-a</td>", RegexOptions.None, TimeSpan.FromSeconds(1)), page);
-        Assert.Matches(new Regex(@"Lote 42</th>\s*<td role=""cell"">zqx-dominio-b</td>", RegexOptions.None, TimeSpan.FromSeconds(1)), page);
+        Assert.Matches(new Regex(@"Lote 43</a></th>\s*<td role=""cell"">zqx-dominio-a</td>", RegexOptions.None, TimeSpan.FromSeconds(1)), page);
+        Assert.Matches(new Regex(@"Lote 42</a></th>\s*<td role=""cell"">zqx-dominio-b</td>", RegexOptions.None, TimeSpan.FromSeconds(1)), page);
         Assert.Contains("Em curso", page, StringComparison.Ordinal);
         Assert.Contains("Aceito", page, StringComparison.Ordinal);
         Assert.Contains("zqx-bia", page, StringComparison.Ordinal);

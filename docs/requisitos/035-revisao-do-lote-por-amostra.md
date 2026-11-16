@@ -24,7 +24,7 @@ falhou naquele material, e nada garante que falhou só ali.
 ## Critérios de aceitação
 
 **CA-1** — *Dado* um lote aguardando aprovação, *quando* a revisão for feita, *então* ela cobre uma
-amostra de tamanho declarado na configuração do domínio, sorteada sem que quem revisa a escolha.
+amostra de tamanho declarado na configuração da instalação, sorteada sem que quem revisa a escolha.
 
 **CA-2** — *Dado* que a revisão encontrou dado pessoal não tratado, *quando* for registrada,
 *então* o lote inteiro é reprovado, e nenhum item dele entra no acervo.
@@ -45,6 +45,9 @@ que foi tratado.
 
 Não exige corrigir o lote reprovado dentro do sistema. A correção acontece fora — ajustando o
 reconhecimento, ou o material de origem — e o lote é submetido de novo, como lote novo.
+
+Não exige tamanho de amostra por domínio: o tamanho é um só para a instalação, e o código o lê de
+`core/src/Core.Host/AdmissionConfiguration.cs` (`ReviewSampleSize`, linha 47).
 
 Não exige amostra representativa de cada categoria ou forma: a amostra é do lote, e lote não tem
 categoria antes de ser anotado.

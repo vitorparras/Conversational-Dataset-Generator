@@ -80,6 +80,13 @@ class ImageNameTests(unittest.TestCase):
 
         self.assertNotEqual(self.name(), first)
 
+    def test_a_file_the_image_does_not_copy_does_not_change_the_tag(self) -> None:
+        first = self.name()
+
+        definition(self.root, {"compose.yml": "services: {}\n"})
+
+        self.assertEqual(self.name(), first)
+
     def test_the_line_ending_of_the_checkout_does_not_change_the_tag(self) -> None:
         first = self.name()
 

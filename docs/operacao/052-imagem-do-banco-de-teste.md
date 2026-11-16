@@ -4,8 +4,8 @@
 
 Os testes de banco e a [mutação](017-teste-de-mutacao.md) sobem um Postgres de teste a partir de
 `tools/database`. A verificação não o constrói a cada job: usa uma imagem do GHCR, com a etiqueta
-igual a um hash de 16 caracteres dos arquivos dessa pasta (caminho e conteúdo). Arquivo mudou, a
-etiqueta muda; nada mudou, a imagem é a mesma.
+igual a um hash de 16 caracteres do `Dockerfile` e do `init/` dessa pasta (caminho e conteúdo; o
+`compose.yml` fica de fora). Arquivo mudou, a etiqueta muda; nada mudou, a imagem é a mesma.
 
 ## Quem publica e quem só lê
 

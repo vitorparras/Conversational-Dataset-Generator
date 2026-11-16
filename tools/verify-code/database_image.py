@@ -1,13 +1,14 @@
 """The name of the test database image: the registry path of the repository plus a tag that is the
-hash of the files that define the image.
+hash of the files that define the image (the Dockerfile and its init/).
 
     python tools/verify-code/database_image.py owner/repository
     python tools/verify-code/database_image.py --provide owner/repository
 
 The image is built once for a content and published under that name, so a job pulls it instead of
-building it. Any change to a file of tools/database gives another tag; nothing else does. Only a
-run of main publishes (PUBLISH=true); a pull request pulls what main published and builds locally
-what it did not, and the registry login is dropped before the job goes on to run code of the PR.
+building it. Any change to a file of the image (tools/database/Dockerfile and init/) gives another
+tag; nothing else does. Only a run of main publishes (PUBLISH=true); a pull request pulls what main
+published and builds locally what it did not, and the registry login is dropped before the job goes
+on to run code of the PR.
 """
 
 from __future__ import annotations
@@ -24,6 +25,8 @@ from pathlib import Path
 REGISTRY = "ghcr.io"
 IMAGE = "cdg-test-database"
 DEFINITION = Path("tools") / "database"
+# What the image is made of (the Dockerfile and what it copies); compose.yml is not part of it.
+PARTS = ("Dockerfile", "init")
 TAG_LENGTH = 16
 USAGE = 2
 RETRY = Path(__file__).with_name("retry.py")
@@ -37,7 +40,9 @@ def content_hash(root: Path) -> str:
     """The first hex digits of the hash of the definition files, by relative path and bytes."""
     digest = hashlib.sha256()
     folder = root / DEFINITION
-    for path in sorted(p for p in folder.rglob("*") if p.is_file()):
+    members = [folder / part for part in PARTS]
+    files = [p for m in members for p in (m, *m.rglob("*")) if p.is_file()]
+    for path in sorted(files):
         digest.update(path.relative_to(folder).as_posix().encode("utf-8") + b"\0")
         digest.update(hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).digest())
     return digest.hexdigest()[:TAG_LENGTH]

@@ -21,6 +21,8 @@ public sealed class ConfigurationChangeScreenTests(BrowserFixture browser, Chang
     private const int WideWidth = 1280;
     private const int WideHeight = 800;
     private const int NotFound = 404;
+    private const int Ok = 200;
+    private const string PostJson = "async ([route]) => (await fetch(route, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).status";
 
     [Fact]
     public async Task Ca1AProposalTheStartTakesIsSentAndWaitsForAnotherPerson()
@@ -106,6 +108,20 @@ public sealed class ConfigurationChangeScreenTests(BrowserFixture browser, Chang
             () => tab.Page.Locator($"#recusar-{id}").ClickAsync(), response => response.Request.Method == "POST");
 
         Assert.Equal(NotFound, answer.Status);
+        _ = await tab.Page.GotoAsync(Route);
+        await Expect(tab.Page.Locator($"#aprovar-{id}")).ToBeVisibleAsync();
+    }
+
+    [Fact]
+    public async Task ABodyThatIsNoFormIsTakenAsAnEmptyOneAndAnswersAsTheFormEmptyDoes()
+    {
+        var id = await changes.Host.ProposeAsync("00:29:00");
+        await using var tab = await OpenAsync(changes.Host.SecondAdministrator);
+
+        var submitted = await tab.Page.EvaluateAsync<int>(PostJson, new object[] { Route });
+        var decided = await tab.Page.EvaluateAsync<int>(PostJson, new object[] { Route + "/decisao" });
+
+        Assert.Equal((Ok, NotFound), (submitted, decided));
         _ = await tab.Page.GotoAsync(Route);
         await Expect(tab.Page.Locator($"#aprovar-{id}")).ToBeVisibleAsync();
     }

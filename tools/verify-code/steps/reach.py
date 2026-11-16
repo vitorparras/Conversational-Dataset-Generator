@@ -133,20 +133,25 @@ def in_service(root: Path, path: str, known: Mapping[str, Path]) -> tuple[str, s
     return None
 
 
+def project_of(path: str, graph: Graph) -> str | None:
+    parts = PurePosixPath(path).parts
+    inside = parts[:2] in CORE_TREES and len(parts) > PROJECT_FILE
+    return parts[2] if inside and parts[2] in graph else None
+
+
 def classify(
     ctx: Context, path: str, known: Mapping[str, Path], graph: Graph
 ) -> tuple[str, str] | None:
     """The (kind, name) the graph knows a changed path by, or None when it cannot place it."""
     pure = PurePosixPath(path)
-    parts = pure.parts
     if pure.name.startswith(WHOLE_NAMES) or pure.name in WHOLE_NAMES:
         return None
     if path.startswith(f"{FOLDER}/") and pure.suffix == ".md":
         return "area", pure.stem
     if changes.is_documentation(path):
         return None if changes.read_by_code(ctx, path) else ("doc", path)
-    if parts[:2] in CORE_TREES and len(parts) > PROJECT_FILE and parts[2] in graph:
-        return "project", parts[2]
+    if project := project_of(path, graph):
+        return "project", project
     return in_service(ctx.root, path, known)
 
 

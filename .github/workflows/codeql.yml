@@ -41,6 +41,8 @@ jobs:
       - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
+          cache: true
+          cache-dependency-path: core/**/packages.lock.json
         if: matrix.language == 'csharp'
       - uses: github/codeql-action/init@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
         with:

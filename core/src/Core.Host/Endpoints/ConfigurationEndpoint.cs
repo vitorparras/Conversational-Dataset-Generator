@@ -8,7 +8,7 @@ internal static class ConfigurationEndpoint
 {
     internal const string Route = "/configuration";
 
-    internal static void Map(IEndpointRouteBuilder endpoints) => _ = endpoints.MapGet(Route, InForce);
+    internal static void Map(IEndpointRouteBuilder endpoints) => _ = endpoints.MapGet(Route, InForce).WithMetadata(ScreenAccess.Everyone);
 
     private static EffectiveConfiguration InForce([FromServices] EffectiveConfiguration configuration) => configuration;
 }

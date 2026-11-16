@@ -1,6 +1,5 @@
 using Core.Host.Operators;
 using Core.Persistence.People;
-using Core.Platform.Sessions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Core.Host.Endpoints;
@@ -17,9 +16,9 @@ internal static class OperatorsEndpoint
 
     internal static void Map(IEndpointRouteBuilder endpoints)
     {
-        _ = endpoints.MapPost(Route, MakeAsync);
-        _ = endpoints.MapPost(Route + "/{id}/deactivate", DeactivateAsync);
-        _ = endpoints.MapPut(Route + "/{id}/password", SetPasswordAsync);
+        _ = endpoints.MapPost(Route, MakeAsync).WithMetadata(ScreenAccess.Everyone);
+        _ = endpoints.MapPost(Route + "/{id}/deactivate", DeactivateAsync).WithMetadata(ScreenAccess.Everyone);
+        _ = endpoints.MapPut(Route + "/{id}/password", SetPasswordAsync).WithMetadata(ScreenAccess.Everyone);
     }
 
     private static Task<IResult> MakeAsync([FromBody] OperatorAsked asked, [FromServices] OperatorAdministration? staff, HttpContext context) =>
@@ -48,8 +47,7 @@ internal static class OperatorsEndpoint
             return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
 
-        var sessions = context.RequestServices.GetRequiredService<SessionStore>();
-        return sessions.Resolve(SessionCookie.Read(context.Request)) is { } author && await staff.IsAdministratorAsync(author, context.RequestAborted)
+        return RequestReader.SessionOf(context) is { } author && await staff.IsAdministratorAsync(author, context.RequestAborted)
             ? await act(staff, author)
             : OperatorAnswer.Forbidden(NotAdministrator);
     }

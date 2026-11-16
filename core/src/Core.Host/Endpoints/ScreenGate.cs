@@ -1,13 +1,12 @@
 using Core.Host.Operators;
 using Core.Host.Screens;
-using Core.Platform.Sessions;
 
 namespace Core.Host.Endpoints;
 
 /// <summary>
-/// Stands after the session gate and holds to the access policy (006) every request to a screen and every request for a page behind the session. It reads the function
+/// Stands after the session gate and holds to the access policy (006) every request to a route behind the session, screen, page or JSON, and every request for a page. It reads the function
 /// of whoever entered from the registry, and the domains granted from the <see cref="DomainGrants"/> registered, and keeps them for the page, whose menu asks the same question.
-/// A screen the function does not reach, a page asked of a route that declares no access and a page asked of a route that does not exist get one answer, from
+/// A screen the function does not reach, a route that declares no access, page or not, and a page asked of a route that does not exist get one answer, from
 /// <see cref="NotFoundAsync"/>: 404, with the page of an address that leads nowhere when a page was asked for and with no body otherwise, so nothing tells them apart.
 /// </summary>
 internal static class ScreenGate
@@ -17,7 +16,7 @@ internal static class ScreenGate
         {
             var endpoint = context.GetEndpoint();
             var access = endpoint?.Metadata.GetMetadata<ScreenAccess>();
-            if (endpoint?.Metadata.GetMetadata<SessionOpen>() is not null || (access is null && !SessionGate.AsksForPage(context.Request)))
+            if (endpoint?.Metadata.GetMetadata<SessionOpen>() is not null || (endpoint is null && !SessionGate.AsksForPage(context.Request)))
             {
                 await next(context).ConfigureAwait(false);
                 return;
@@ -43,7 +42,7 @@ internal static class ScreenGate
     /// <summary>With no database declared there is no registry, so no function and no screen but the pages of everyone.</summary>
     internal static async Task<ScreenReach> ReachOfAsync(HttpContext context)
     {
-        var subject = context.RequestServices.GetRequiredService<SessionStore>().Resolve(SessionCookie.Read(context.Request));
+        var subject = RequestReader.SessionOf(context);
         if (subject is not { } entered || context.RequestServices.GetService<OperatorAdministration>() is not { } administration)
         {
             return ScreenReach.Nothing;

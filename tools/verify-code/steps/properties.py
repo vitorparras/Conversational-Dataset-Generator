@@ -2,6 +2,8 @@
 
 The core side runs the whole solution filtered by the trait, so a property is found wherever its
 module keeps it, in any test project; a project with none is no failure, only a side with none is.
+The core is not built here: like `test_core`, the step runs on the build `build_core` made (in the
+workflow, the one the `build` job packed).
 """
 
 from __future__ import annotations
@@ -17,7 +19,7 @@ NAME = "properties"
 RESULTS = "properties"
 CORE_SIDE = "núcleo (.NET)"
 SERVICE_SIDE = "serviço (Python)"
-CORE_FILTER = ("--filter-trait", "Kind=Property")
+CORE_FILTER = ("--no-build", "--filter-trait", "Kind=Property")
 # a test project the filter leaves without a test exits with 8; the side as a whole must run one
 CORE_TOLERANCE = ("--ignore-exit-code", "8")
 SERVICE_FILTER = ("-m", "property")

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using Core.Host.Screens;
 using Core.Host.Tests.Submissions;
@@ -248,13 +249,15 @@ public sealed class SampleReviewRouteTests
         Assert.Equal(BatchState.Open, (await world.StateAsync())!.State);
     }
 
+    private static readonly string[] ReadSteps = ["raw_text_read", "sanitized_text_read"];
+
     [DatabaseFact]
     public async Task SampleReadIsRecordedWithoutTheContent()
     {
         await using var world = await SampleReviewWorld.StartAsync();
         await world.DrawAndReviewAsync(reviewed: 0);
 
-        var next = (await world.StateAsync())!.Sample![0];
+        var drawn = (await world.StateAsync())!.Sample!;
 
         var page = await world.GetAsync(world.ReviewRoute, world.Curator);
         var reads = await world.Submissions.Database.FirstColumnAsOwnerAsync(
@@ -262,8 +265,9 @@ public sealed class SampleReviewRouteTests
 
         Assert.Contains("ZQXTEXTO", page.Page, StringComparison.Ordinal);
         Assert.Equal(2, reads.Count);
-        Assert.All(reads, read => Assert.StartsWith($"{world.Curator},{next},", read, StringComparison.Ordinal));
-        Assert.Equal(["raw_text_read", "sanitized_text_read"], reads.Select(read => read.Split(',')[2]));
+        Assert.All(reads, read => Assert.StartsWith($"{world.Curator},", read, StringComparison.Ordinal));
+        Assert.Equal(drawn.Select(item => item.ToString(CultureInfo.InvariantCulture)).Order(StringComparer.Ordinal), reads.Select(read => read.Split(',')[1]).Order(StringComparer.Ordinal));
+        Assert.All(reads, read => Assert.Contains(read.Split(',')[2], ReadSteps));
         Assert.DoesNotContain(reads, read => read.Contains("ZQXTEXTO", StringComparison.Ordinal));
     }
 

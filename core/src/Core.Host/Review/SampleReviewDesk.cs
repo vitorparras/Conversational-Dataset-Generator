@@ -31,9 +31,9 @@ internal sealed class SampleReviewDesk
     internal Task<BatchReviewResult> DrawAsync(BatchEntry batch, long reviewer, CancellationToken cancellationToken) =>
         steps.Reviews.DrawAsync(new BatchSampling(batch.DomainId, batch.Id, reviewer), cancellationToken);
 
-    /// <summary>Marks the item at the place as reviewed, only when it is the next one of the sample.</summary>
+    /// <summary>Marks the item at the place as reviewed, only when it is the next one of the sample; one already marked goes to the database, which answers that it is repeated.</summary>
     internal async Task<BatchReviewOutcome> MarkAsync(BatchEntry batch, int place, CancellationToken cancellationToken) =>
-        await TurnedBackAsync(batch, progress => progress.Mark(place), cancellationToken).ConfigureAwait(false)
+        await TurnedBackAsync(batch, progress => place >= 1 && place <= progress.Reviewed ? SampleDecision.Allowed : progress.Mark(place), cancellationToken).ConfigureAwait(false)
             ?? (await steps.Marks.MarkAsync(new BatchMarking(batch.DomainId, batch.Id, place), cancellationToken).ConfigureAwait(false)).Outcome;
 
     /// <summary>Rejects the whole batch for the kind of personal data found at the place, which must be one already marked or the next item of the sample.</summary>

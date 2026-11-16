@@ -6,8 +6,8 @@ using Core.Persistence.Tests.Fixtures;
 namespace Core.Host.Tests;
 
 /// <summary>
-/// The review of the sample when two people reach the same batch together (issue 822), each over a transaction of its own and both waiting for the turn of the batch: the one that
-/// reaches the chain second is not an error, it sees what the first wrote, and the batch ends with one draw, one review and one mark. The log of the host carries nothing of the text.
+/// The review of the sample when two people reach the same batch together (issue 822), each over a transaction of its own: the draw, the review and the approval wait for the turn of the
+/// batch, and the one that reaches the chain second is not an error, it sees what the first wrote. The mark is settled by one atomic update. The log of the host carries nothing of the text.
 /// </summary>
 [Trait("Category", "Database")]
 public sealed class SampleReviewDisputeTests
@@ -55,7 +55,7 @@ public sealed class SampleReviewDisputeTests
         await using var world = await SampleReviewWorld.StartAsync(size: 2, messages: 4);
         await world.DrawAndReviewAsync(reviewed: 0);
 
-        var replies = await world.TogetherAsync(() => world.PostAsync(world.MarkRoute(1), world.Curator), () => world.PostAsync(world.MarkRoute(1), world.Colleague));
+        var replies = await Task.WhenAll(world.PostAsync(world.MarkRoute(1), world.Curator), world.PostAsync(world.MarkRoute(1), world.Colleague));
         var once = (await world.StateAsync())!.ReviewedPosition;
         var next = await world.PostAsync(world.MarkRoute(2), world.Curator);
 

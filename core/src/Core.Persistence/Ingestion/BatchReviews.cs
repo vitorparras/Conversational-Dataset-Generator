@@ -83,7 +83,7 @@ public sealed class BatchReviews
             return BatchReviewOutcome.NotFound;
         }
 
-        if (held.State != BatchState.Open)
+        if (held.State != BatchState.Open && (drawing || held.ReviewerId is null))
         {
             return BatchReviewOutcome.NotOpen;
         }

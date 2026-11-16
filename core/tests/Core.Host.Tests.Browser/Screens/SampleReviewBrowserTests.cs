@@ -257,7 +257,7 @@ public sealed class SampleReviewBrowserTests(BrowserFixture browser, SampleRevie
 
     /// <summary>The stops of the review with the item at the position as the next: the mark and the finding of each item before it, its mark, and what follows.</summary>
     private static List<string> StopsAt(int position) =>
-        [.. Enumerable.Range(1, position - 1).Select(before => $"achado-{before}"), $"revisado-{position}", .. FindingsBetween(position, Items)];
+        [.. Enumerable.Range(1, position - 1).Select(before => $"achado-{before}"), $"revisado-{position}", $"achado-{position}"];
 
     private static string Tag() => Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture).ToUpperInvariant();
 

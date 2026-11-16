@@ -47,8 +47,8 @@ else
                     @if (!Decided)
                     {
                         <p class="sample__version">@SampleTexts.VersionOf(item.Cleaned)</p>
+                        <blockquote class="sample__text">@item.Text</blockquote>
                     }
-                    <blockquote class="sample__text">@item.Text</blockquote>
                     @if (item.Reviewed)
                     {
                         <StateMark Kind="StateMark.Tone.Good">Revisado</StateMark>

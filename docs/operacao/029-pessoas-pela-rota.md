@@ -4,9 +4,9 @@
 
 Depois da primeira pessoa ([028](028-criar-primeira-pessoa.md)), as demais entram, saem e trocam
 de senha por três rotas que pedem sessão. Só quem tem a função **Administração técnica** as usa:
-a guarda de tela confere a função a cada pedido (política 006) e responde 404 a quem não a tem. O autor de
-cada evento (`PersonCreated`, `PersonDeactivated`, `PersonPasswordSet`) é a pessoa da sessão,
-nunca o sistema.
+a guarda de tela confere a função a cada pedido (política 006) e responde 404 a quem não a tem.
+O autor de cada evento (`PersonCreated`, `PersonDeactivated`, `PersonPasswordSet`) é a pessoa da
+sessão, nunca o sistema.
 
 | Rota | O que faz | Corpo |
 |---|---|---|
@@ -16,7 +16,8 @@ nunca o sistema.
 
 ## O que cada resposta diz
 
-- **401**: sem sessão. **404**: sessão de quem não tem a função, como a de uma rota que não existe; nada é gravado. **403** só se a função for retirada entre a guarda e o ato.
+- **401**: sem sessão. **404**: sessão de quem não tem a função, como a de uma rota que não
+  existe; nada é gravado. **403** só se a função for retirada entre a guarda e o ato.
 - **400**: o campo fora da regra vem nomeado em `field` (`nome`, `função` ou `senha`).
 - **409**: nome repetido, pessoa já desativada ou a **última pessoa ativa com Administração
   técnica**, que não se desativa, porque a instalação ficaria sem quem cria ou repõe pessoas.

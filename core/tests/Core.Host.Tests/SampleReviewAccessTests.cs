@@ -101,7 +101,7 @@ public sealed class SampleReviewAccessTests
     {
         await using var world = await SampleReviewWorld.StartAsync();
         await world.DrawAndReviewAsync(reviewed: 2);
-        await world.Submissions.DataSource.DisposeAsync();
+        await world.LoseDatabaseAsync();
 
         var lost = await world.PostAsync(world.ApproveRoute, world.Curator);
 
@@ -113,7 +113,7 @@ public sealed class SampleReviewAccessTests
     {
         await using var world = await SampleReviewWorld.StartAsync();
         await world.DrawAndReviewAsync(reviewed: 2);
-        await world.Submissions.DataSource.DisposeAsync();
+        await world.LoseDatabaseAsync();
         _ = await world.PostAsync(world.ApproveRoute, world.Curator);
 
         await using var fresh = Npgsql.NpgsqlDataSource.Create(world.Submissions.Database.AppConnectionString);

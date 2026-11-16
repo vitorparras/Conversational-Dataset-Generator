@@ -12,6 +12,7 @@ using Core.Persistence.People;
 using Core.Platform.Sessions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 
 namespace Core.Host.Tests;
 
@@ -23,8 +24,9 @@ internal sealed class SampleReviewWorld : IAsyncDisposable
 {
     internal const string Browser = "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8";
 
-    private SampleReviewWorld(SubmissionWorld submissions, SessionedHost host, (long Batch, long Curator, long Stranger) ids, (int? Size, int Messages) shape)
+    private SampleReviewWorld(SubmissionWorld submissions, SessionedHost host, (long Batch, long Curator, long Stranger) ids, (int? Size, int Messages, NpgsqlDataSource Desk) shape)
     {
+        DeskSource = shape.Desk;
         Submissions = submissions;
         Host = host;
         Batch = ids.Batch;
@@ -55,6 +57,12 @@ internal sealed class SampleReviewWorld : IAsyncDisposable
 
     private int Messages { get; }
 
+    /// <summary>The connection of the desk and of the register of the batches, apart from the one of the gates so that losing it leaves the person signed in.</summary>
+    private NpgsqlDataSource DeskSource { get; }
+
+    /// <summary>Takes the database away from the desk and from the register, as a server that stops answering does, while the session of the person still holds.</summary>
+    internal ValueTask LoseDatabaseAsync() => DeskSource.DisposeAsync();
+
     /// <summary>A world with the batch open and its sample not drawn yet.</summary>
     /// <param name="size">The size of the sample the installation declares; none when it declares none.</param>
     /// <param name="messages">How many messages the conversation of the batch has, which is how many items.</param>
@@ -74,12 +82,13 @@ internal sealed class SampleReviewWorld : IAsyncDisposable
             new PersonCredentials(source, new PasswordDerivation(1)),
             new SessionStore(new SessionLifetimes(TimeSpan.FromMinutes(30), TimeSpan.FromHours(8)), TimeProvider.System),
             new PersonNotices(source));
+        var held = NpgsqlDataSource.Create(submissions.Database.AppConnectionString);
         var desk = new SampleReviewDesk(
-            (new BatchReviews(source, size), new SampleMarks(source), new BatchApprovals(source)),
-            (new PersonRegistry(source), _ => Task.FromResult(new SampleTextAccess(new SampleTextReader(source, submissions.Content), null)), size));
+            (new BatchReviews(held, size), new SampleMarks(held), new BatchApprovals(held)),
+            (new PersonRegistry(held), _ => Task.FromResult(new SampleTextAccess(new SampleTextReader(held, submissions.Content), null)), size));
         var host = await SessionedHost.StartAsync(
             services => services
-                .AddSingleton(staff).AddSingleton(new BatchRegister(source)).AddSingleton(new DomainListing(source)).AddSingleton(desk)
+                .AddSingleton(staff).AddSingleton(new BatchRegister(held)).AddSingleton(new DomainListing(held)).AddSingleton(desk)
                 .AddSingleton<DomainGrants>(new CuratorGrants(curator, SubmissionWorld.NameOf(SubmissionWorld.Domain))),
             routes =>
             {
@@ -87,7 +96,7 @@ internal sealed class SampleReviewWorld : IAsyncDisposable
                 BatchRoutes.Map(routes);
             },
             Token);
-        return new SampleReviewWorld(submissions, host, (outcome.Batch!.Value, curator, stranger), (size, messages));
+        return new SampleReviewWorld(submissions, host, (outcome.Batch!.Value, curator, stranger), (size, messages, held));
     }
 
     internal string ReviewRoute => RouteOf(Batch);
@@ -157,6 +166,7 @@ internal sealed class SampleReviewWorld : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         await Host.DisposeAsync();
+        await DeskSource.DisposeAsync();
         await Submissions.DisposeAsync();
     }
 

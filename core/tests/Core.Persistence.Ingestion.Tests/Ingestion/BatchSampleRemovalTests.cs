@@ -62,12 +62,15 @@ public sealed class BatchSampleRemovalTests
     public async Task RejectionForFindingRemovesMarksAndOccurrences()
     {
         await using var world = await IngestionWorld.CreateAsync();
-        var batch = await DrawnAsync(world, 2);
-        var item = (await new BatchReviews(world.DataSource, 3).ReadAsync(IngestionWorld.Domain, batch, TestContext.Current.CancellationToken))!.Sample![0];
+        var batch = await IngestionWorld.OpenAsync(world);
+        var item = await IngestionWorld.AddItemAsync(world, batch);
+        _ = await IngestionWorld.AddItemAsync(world, batch);
         _ = await IngestionWorld.AddMapAsync(world, batch, item);
         var occurrence = new StoredOccurrence(item, 0, new string('a', 64), new string('b', 64), 40, Said);
         var target = new ReplicationTarget(IngestionWorld.Domain, batch);
         await new ReplicationStore(world.DataSource).RecordAsync(target, [occurrence], [new StoredMark(item, 0, item, 0)], TestContext.Current.CancellationToken);
+        var drawn = await new BatchReviews(world.DataSource, 3).DrawAsync(new BatchSampling(IngestionWorld.Domain, batch, IngestionWorld.Person), TestContext.Current.CancellationToken);
+        Assert.Equal(BatchReviewOutcome.Drawn, drawn.Outcome);
         var before = await world.AsSuperuserAsync(Counted);
 
         var reviewed = await ReviewAsync(world, batch, Finding, TestContext.Current.CancellationToken);

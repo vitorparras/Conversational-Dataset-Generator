@@ -61,8 +61,9 @@ public static class ContentQueries
 
     /// <summary>Adds an item; the texts that are sealed arrive sealed, with the key of the item wrapped.</summary>
     internal const string InsertItemText =
-        "INSERT INTO content.item_text (domain_id, batch_id, raw_text, sanitized_text, pseudonymized_text, occurrences, dek_epoch, dek_wrapped, accommodated_into, losses) "
-        + "VALUES (@domain, @batch, @raw, @sanitized, @pseudonymized, @occurrences, @epoch, @wrapped, @accommodated, @losses) RETURNING id";
+        "INSERT INTO content.item_text (domain_id, batch_id, raw_text, sanitized_text, pseudonymized_text, occurrences, dek_epoch, dek_wrapped, accommodated_into, losses, "
+        + "removed_passages, pseudonymized_passages, preserved_passages) "
+        + "VALUES (@domain, @batch, @raw, @sanitized, @pseudonymized, @occurrences, @epoch, @wrapped, @accommodated, @losses, @removed_count, @pseudonymized_count, @preserved_count) RETURNING id";
 
     /// <summary>Adds the map that reverses the pseudonyms of an item.</summary>
     internal const string InsertReversalMap =
@@ -70,8 +71,8 @@ public static class ContentQueries
 
     /// <summary>Opens a batch of ingestion for the domain declared, under its condition of origin: it holds no content, and the state, the moments and the identifier are the database's.</summary>
     internal const string InsertIngestionBatch =
-        "INSERT INTO content.ingestion_batch (domain_id, opened_by, condition, submission, received_bytes, received_digest, warning, origin_state) "
-        + "VALUES (@domain, @author, @condition, @submission, @bytes, @digest, @warning, @origin) RETURNING id";
+        "INSERT INTO content.ingestion_batch (domain_id, opened_by, condition, submission, received_bytes, received_digest, warning, origin_state, declared_form, source_form) "
+        + "VALUES (@domain, @author, @condition, @submission, @bytes, @digest, @warning, @origin, @form, @source) RETURNING id";
 
     /// <summary>Keeps the origin of a batch sealed, with the key of the row wrapped, in the transaction that opens the batch.</summary>
     internal const string InsertBatchOrigin =
@@ -102,7 +103,7 @@ public static class ContentQueries
 
     /// <summary>The batches of the domain declared, newest first, by state and by the moment of the submission, with what each submission brought.</summary>
     internal const string ReadIngestionBatchPage =
-        "SELECT b.id, b.state, b.motive, b.opened_by, b.opened_at, b.submission, b.received_bytes, b.received_digest, b.warning, b.origin_state, "
+        "SELECT b.id, b.state, b.motive, b.opened_by, b.opened_at, b.submission, b.received_bytes, b.received_digest, b.warning, b.origin_state, b.declared_form, b.source_form, "
         + "(SELECT min(p.id) FROM content.ingestion_batch p WHERE b.motive = '" + BatchMotives.AlreadyReceivedMotive + "' AND p.state = 'accepted' AND p.received_digest = b.received_digest) "
         + "FROM content.ingestion_batch b "
         + "WHERE (@state::text IS NULL OR b.state = @state) AND (@from::timestamptz IS NULL OR b.opened_at >= @from) AND (@until::timestamptz IS NULL OR b.opened_at < @until) "
@@ -110,7 +111,7 @@ public static class ContentQueries
 
     /// <summary>One batch of the domain declared, as the register shows it.</summary>
     internal const string ReadIngestionBatchEntry =
-        "SELECT b.id, b.state, b.motive, b.opened_by, b.opened_at, b.submission, b.received_bytes, b.received_digest, b.warning, b.origin_state, "
+        "SELECT b.id, b.state, b.motive, b.opened_by, b.opened_at, b.submission, b.received_bytes, b.received_digest, b.warning, b.origin_state, b.declared_form, b.source_form, "
         + "(SELECT min(p.id) FROM content.ingestion_batch p WHERE b.motive = '" + BatchMotives.AlreadyReceivedMotive + "' AND p.state = 'accepted' AND p.received_digest = b.received_digest) "
         + "FROM content.ingestion_batch b WHERE b.id = @id";
 
@@ -152,7 +153,9 @@ public static class ContentQueries
     /// Empties an item: the marker is set and every column of content is cleared, the key of the item with them, in one statement; an item emptied already is left as it is.
     /// </summary>
     internal const string EmptyItemText =
-        "UPDATE content.item_text SET emptied_at = now(), raw_text = NULL, sanitized_text = NULL, pseudonymized_text = NULL, occurrences = NULL, dek_epoch = NULL, dek_wrapped = NULL "
+        "UPDATE content.item_text SET emptied_at = now(), raw_text = NULL, sanitized_text = NULL, pseudonymized_text = NULL, occurrences = NULL, "
+        + "removed_passages = 0, pseudonymized_passages = 0, preserved_passages = 0, "
+        + "dek_epoch = NULL, dek_wrapped = NULL "
         + "WHERE id = @id AND emptied_at IS NULL RETURNING id";
 
     /// <summary>Empties the maps of an item, with the item: the marker is set and the entries and the key of the map are cleared.</summary>

@@ -1,3 +1,4 @@
+using Core.Ingestion;
 using Core.Persistence.Ingestion;
 
 namespace Core.Host.Submissions;
@@ -47,14 +48,25 @@ internal static class SubmissionOrigin
         }
     }
 
-    /// <summary>The opening of the batch that keeps the submission: its receipt and its origin; null when the origin cannot be declared, which is a domain that cannot take the material.</summary>
+    /// <summary>
+    /// The opening of the batch that keeps the submission: its receipt, its origin, the form it declared and the form its format carries;
+    /// null when the origin cannot be declared, which is a domain that cannot take the material.
+    /// </summary>
     /// <param name="intake">What takes the file in, with the path that seals protected content.</param>
     /// <param name="request">The request, already valid.</param>
     /// <param name="receipt">What the submission brought.</param>
     internal static BatchOpening? Opening(SubmissionIntake intake, SubmissionRequest request, SubmissionReceipt receipt) =>
         Declaration(intake, request) is { } origin
             ? new BatchOpening(request.DomainId, request.AuthorId, request.Condition, new SubmissionOpening(receipt, origin))
+            {
+                DeclaredForm = LossCodes.Code(request.DeclaredForm),
+                SourceForm = SourceOf(intake, request),
+            }
             : null;
+
+    /// <summary>The code of the form the declared format carries; none when the version has no reader of it.</summary>
+    private static string? SourceOf(SubmissionIntake intake, SubmissionRequest request) =>
+        intake.Gate.FormOf(request.SourceFormat) is { } source ? LossCodes.Code(source) : null;
 
     /// <summary>The warning of a name that came with a path: the separators of a folder, a step up, or a control character; none when the name is plain or absent.</summary>
     /// <param name="name">The name the file was received with.</param>

@@ -19,8 +19,8 @@ rejeita com submission_cancelled, num token próprio da limpeza, porque o da req
 
 **Repetição.** A submissão só reconhece a cópia de um lote aceito, por `SubmissionJudgement`
 (linhas 29 a 33) e pelo índice parcial da 0051. Duas cópias abertas entram as duas, e quem decide
-é a aprovação (fatia B). A fatia A apaga o que nunca roda: `Keeping.Repeated`,
-`SubmissionStoring.IsRepeat`, `SubmissionService.RepeatedAsync` e `SubmissionJudgement.RepeatAsync`.
+é a aprovação (fatia B). A fatia A apagou o que nunca rodava: a repetição em Keeping,
+no armazenamento, no serviço e no julgamento da submissão.
 
 **Tela → leitura do lote.** `BatchRegister.ReadAsync` (linha 72) segue, e uma leitura nova chama
 a 0057: só números de forma, destino e replicado, com os códigos de `BatchDetailTexts` (linha 14).

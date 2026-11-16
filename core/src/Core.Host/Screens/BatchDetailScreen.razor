@@ -2,7 +2,7 @@
 @using Core.Persistence.Ingestion
 
 <h1>Lote @Number(Batch.Id)</h1>
-<p class="lead">O que o lote trouxe, em contagens: os itens por forma, os trechos identificáveis por destino e o conteúdo replicado. Nenhum texto do material aparece aqui.</p>
+<p class="lead">O que o lote trouxe, em contagens: os itens por forma, o conteúdo replicado e, quando contados, os trechos identificáveis por destino. Nenhum texto do material aparece aqui.</p>
 
 <Panel Id="lote-resumo" Title="Resumo">
     <FactList>
@@ -17,6 +17,10 @@
         <Fact Term="Enviado por">@Batch.SubmittedBy</Fact>
         <Fact Term="Quando"><Moment At="Batch.SubmittedAt" /></Fact>
         <Fact Term="Procedência">@BatchDetailTexts.OriginOf(Batch.OriginDeclared)</Fact>
+        @if (Batch.Warning is { } warning)
+        {
+            <Fact Term="Aviso">@BatchTexts.WarningOf(warning)</Fact>
+        }
         <Fact Term="Reenvio">
             @if (Batch.Recognized is { } prior)
             {
@@ -34,7 +38,7 @@
 {
     <Panel Id="lote-perda" Title="Perda declarada">
         <Notice>
-            O material veio como @BatchDetailTexts.FormOf(accommodation.Declared) e foi acomodado como @BatchDetailTexts.FormOf(accommodation.Into), em @ItemCount(accommodation.Items). O que se perdeu:
+            O material veio como @BatchDetailTexts.FormOf(accommodation.Source) e foi acomodado como @BatchDetailTexts.FormOf(accommodation.Into), em @ItemCount(accommodation.Items). O que se perdeu:
         </Notice>
         <ul>
             @foreach (var loss in accommodation.Losses)
@@ -62,12 +66,19 @@
 </Panel>
 
 <Panel Id="lote-destinos" Title="Trechos identificáveis por destino">
-    <FactList>
-        @foreach (var destination in BatchDetailTexts.Destinations)
-        {
-            <Fact Term="@destination.Caption">@PassageCount(Batch.PassagesOf(destination.Code))</Fact>
-        }
-    </FactList>
+    @if (Batch.Destinations is null)
+    {
+        <p id="destinos-nao-contados">@BatchDetailTexts.NotCounted</p>
+    }
+    else
+    {
+        <FactList>
+            @foreach (var destination in BatchDetailTexts.Destinations)
+            {
+                <Fact Term="@destination.Caption">@PassageCount(Batch.PassagesOf(destination.Code))</Fact>
+            }
+        </FactList>
+    }
 </Panel>
 
 <Panel Id="lote-replicado" Title="Conteúdo replicado">
@@ -102,8 +113,8 @@
     /// <summary>The earlier batch that recognized the material of this one as sent before, with the address of its detail.</summary>
     public sealed record Recognition(long Batch, string Address);
 
-    /// <summary>The form the material was declared as, the form it was accommodated into, how many items, and the codes of what that loses (decision 0024).</summary>
-    public sealed record Accommodated(string Declared, string Into, int Items, IReadOnlyList<string> Losses);
+    /// <summary>The form the material came in, the one its format carries, the form it was accommodated into, the one the submission declared, how many items, and the codes of what that loses (decision 0024).</summary>
+    public sealed record Accommodated(string Source, string Into, int Items, IReadOnlyList<string> Losses);
 
     /// <summary>
     /// One batch as the detail shows it: who sent it, when, its state, whether the origin was declared, and counts alone. Nothing in it is a word of the material,
@@ -113,7 +124,8 @@
     {
         public IReadOnlyList<FormCount> Forms { get; init; } = Array.Empty<FormCount>();
 
-        public IReadOnlyList<DestinationCount> Destinations { get; init; } = Array.Empty<DestinationCount>();
+        /// <summary>The passages by destination; null when none was counted, for the submission of this version does not yet recognize the passages.</summary>
+        public IReadOnlyList<DestinationCount>? Destinations { get; init; }
 
         public ReplicaCount Replicas { get; init; } = ReplicaCount.None;
 
@@ -121,8 +133,11 @@
 
         public Accommodated? Accommodation { get; init; }
 
+        /// <summary>The code of the warning the receipt kept about the name of the file, such as <c>name_with_path</c>; the name itself is never shown.</summary>
+        public string? Warning { get; init; }
+
         /// <summary>The passages of a destination; a destination with none counts zero, so that all three are always said.</summary>
-        internal int PassagesOf(string destination) => Destinations.Where(count => count.Destination == destination).Sum(count => count.Passages);
+        internal int PassagesOf(string destination) => Destinations?.Where(count => count.Destination == destination).Sum(count => count.Passages) ?? 0;
     }
 
     [Parameter, EditorRequired]

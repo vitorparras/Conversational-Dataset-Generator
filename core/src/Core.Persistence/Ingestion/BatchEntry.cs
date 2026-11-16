@@ -34,4 +34,10 @@ public sealed record BatchEntry
     /// Whether the submission declared where the material came from, or chose to say it is unknown: <c>declared</c> or <c>unknown</c>, never the text; null for a batch no submission opened.
     /// </summary>
     public string? OriginState { get; init; }
+
+    /// <summary>The form the submission declared the material in, by its code (migration 0055); null for a batch opened before the form was kept.</summary>
+    public string? DeclaredForm { get; init; }
+
+    /// <summary>The form the material came in, the one its format carries, by its code (migration 0055); null for a batch opened before the form was kept.</summary>
+    public string? SourceForm { get; init; }
 }

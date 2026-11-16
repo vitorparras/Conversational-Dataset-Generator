@@ -28,6 +28,9 @@ public sealed class ExportedConversationReader : ISourceReader
     public string Format => FormatName;
 
     /// <inheritdoc />
+    public MaterialForm Form => MaterialForm.Conversation;
+
+    /// <inheritdoc />
     public ReadLimits Limits => Declared;
 
     /// <inheritdoc />

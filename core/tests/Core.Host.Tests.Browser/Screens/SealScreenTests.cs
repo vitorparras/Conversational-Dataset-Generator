@@ -38,7 +38,7 @@ public sealed class SealScreenTests(BrowserFixture browser, ManualSealHostFixtur
         _ = await tab.Page.GotoAsync(Seal);
         await Expect(tab.Page.Locator(Text)).ToHaveCountAsync(0);
         Assert.DoesNotContain(text, await tab.Page.ContentAsync(), StringComparison.Ordinal);
-        Assert.DoesNotContain(text, manual.Host.Log, StringComparison.Ordinal);
+        Assert.DoesNotContain(text, manual.Case.Log, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -77,8 +77,8 @@ public sealed class SealScreenTests(BrowserFixture browser, ManualSealHostFixtur
         await Expect(tab.Page.Locator(Kept)).ToHaveAttributeAsync("aria-describedby", new Regex("selo-guardado-erro"));
         await Expect(tab.Page.Locator(Kept)).ToHaveValueAsync(altered);
         Assert.DoesNotContain("registrado", tab.Page.Url, StringComparison.Ordinal);
-        Assert.DoesNotContain(altered, manual.Host.Log, StringComparison.Ordinal);
-        Assert.DoesNotContain(altered[..^1], manual.Host.Log, StringComparison.Ordinal);
+        Assert.DoesNotContain(altered, manual.Case.Log, StringComparison.Ordinal);
+        Assert.DoesNotContain(altered[..^1], manual.Case.Log, StringComparison.Ordinal);
         await Expect(tab.Page.Locator(".notice--success")).ToHaveCountAsync(0);
     }
 
@@ -132,7 +132,7 @@ public sealed class SealScreenTests(BrowserFixture browser, ManualSealHostFixtur
         await Expect(automatic.Page.Locator("#selo-emitir")).ToHaveCountAsync(0);
     }
 
-    private static string Named(ScreenHostBase host, string who) => who switch
+    private static string Named(ScreenHost host, string who) => who switch
     {
         "Auditor" => host.Auditor,
         "Curator" => host.Curator,
@@ -144,7 +144,7 @@ public sealed class SealScreenTests(BrowserFixture browser, ManualSealHostFixtur
             new Uri(new Uri(tab.Page.Url), route).AbsoluteUri,
             new() { Headers = new Dictionary<string, string> { ["Accept"] = "text/html" }, Form = tab.Page.Context.APIRequest.CreateFormData() });
 
-    private async Task<BrowserTab> OpenAsync(ScreenHostBase host, string name)
+    private async Task<BrowserTab> OpenAsync(ScreenHost host, string name)
     {
         var tab = await ScreenSession.SignedInAsync(browser, host, name);
         try

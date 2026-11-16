@@ -1,43 +1,64 @@
+using System.Diagnostics.CodeAnalysis;
 using Core.Host.Endpoints;
 using Core.Host.Settings;
-using Core.Persistence.Custody;
 using Core.Persistence.People;
 using Core.Persistence.Settings;
-using Core.Persistence.Tests.Fixtures;
 using Core.Platform.Configuration;
 using Core.Tests.Support.Audit;
 using Core.Tests.Support.Custody;
 using Core.Tests.Support.Net;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 
 namespace Core.Host.Tests.Browser.Fixtures;
 
 /// <summary>
-/// The host of the screen of the changes of configuration (#634, part 2c) with the real route, the real desks over the database and a configuration in force the start takes, so that the
+/// The case of the screen of the changes of configuration (#634, part 2c) with the real route, the real desks over the database and a configuration in force the start takes, so that the
 /// trial of a change runs the rules of the start. Besides the people of every host, a second person of the technical administration decides what the first one proposes.
 /// </summary>
-internal sealed class ChangeScreenHost : ScreenHostBase
+internal sealed class ChangeCase : IAsyncDisposable
 {
-    private ChangeScreenHost(ScratchDatabase database)
-        : base(database)
+    private ChangeCase(ScreenHost host, string secondAdministrator, long secondAdministratorId)
     {
+        Host = host;
+        SecondAdministrator = secondAdministrator;
+        SecondAdministratorId = secondAdministratorId;
     }
 
-    /// <summary>A second person of the technical administration, with the password of the run.</summary>
-    public string SecondAdministrator { get; } = $"zqx-administracao-2-{Guid.NewGuid():N}";
+    /// <summary>The host of the case.</summary>
+    public ScreenHost Host { get; }
 
-    public static Task<ChangeScreenHost> StartAsync(CancellationToken cancellationToken) =>
-        StartAsync(database => new ChangeScreenHost(database), _ => Task.CompletedTask, host => host.AddSecondAsync(), cancellationToken);
+    /// <summary>A second person of the technical administration, with the password of the run.</summary>
+    public string SecondAdministrator { get; }
+
+    /// <summary>The identifier of <see cref="SecondAdministrator"/>.</summary>
+    public long SecondAdministratorId { get; }
+
+    [SuppressMessage("Reliability", "CA2000", Justification = "The host goes to the case that is returned, which disposes it.")]
+    public static async Task<ChangeCase> StartAsync(CancellationToken cancellationToken)
+    {
+        var second = $"zqx-administracao-2-{Guid.NewGuid():N}";
+        var inForce = InForce();
+        var secondId = 0L;
+        var host = await ScreenHost.StartAsync(
+            new ScreenParts
+            {
+                Services = (services, _) => services
+                    .AddSingleton(provider => new ConfigurationChangeDesk(inForce, Changes(provider), new PersonRegistry(provider.GetRequiredService<NpgsqlDataSource>())))
+                    .AddSingleton(provider => new ChangeDecisionDesk(inForce, Changes(provider), new PersonRegistry(provider.GetRequiredService<NpgsqlDataSource>()), TimeProvider.System)),
+                Screens = ConfigurationChangeScreensEndpoint.Map,
+                Finish = async started => secondId = await started.AddPersonAsync(second, PersonFunctions.Administration, cancellationToken),
+            },
+            cancellationToken);
+        return new ChangeCase(host, second, secondId);
+    }
 
     /// <summary>A proposal of the first administrator, written as the screen writes it, so that a test finds it waiting.</summary>
     public async Task<long> ProposeAsync(string value)
     {
-        await using var source = NpgsqlDataSource.Create(Database.AppConnectionString);
-        var author = (await new PersonRegistry(source).IdOfAsync(Administrator, CancellationToken.None))!.Value;
+        await using var source = NpgsqlDataSource.Create(Host.Database.AppConnectionString);
         var written = await new ConfigurationChanges(source).SubmitAsync(
-            new ConfigurationSubmission { Key = "Session:IdleTimeout", Value = value, Motive = "operational_adjustment", AuthorId = author }, CancellationToken.None);
+            new ConfigurationSubmission { Key = "Session:IdleTimeout", Value = value, Motive = "operational_adjustment", AuthorId = Host.AdministratorId }, CancellationToken.None);
         return written.ChangeId!.Value;
     }
 
@@ -45,25 +66,16 @@ internal sealed class ChangeScreenHost : ScreenHostBase
     public async Task<string> RefuseAsync(string reasonCode)
     {
         var id = await ProposeAsync("00:25:00");
-        await using var source = NpgsqlDataSource.Create(Database.AppConnectionString);
+        await using var source = NpgsqlDataSource.Create(Host.Database.AppConnectionString);
         var changes = new ConfigurationChanges(source);
-        var decider = (await new PersonRegistry(source).IdOfAsync(SecondAdministrator, CancellationToken.None))!.Value;
-        _ = await changes.DecideAsync(decider, (await changes.SubmittedAsync(id, CancellationToken.None))!, approved: true, CancellationToken.None);
+        _ = await changes.DecideAsync(SecondAdministratorId, (await changes.SubmittedAsync(id, CancellationToken.None))!, approved: true, CancellationToken.None);
         var approved = new ApprovedChanges(source);
         var found = (await approved.PendingAsync(CancellationToken.None)).Single(change => change.Id == id);
         _ = await approved.RecordNotAppliedAsync(found, reasonCode, CancellationToken.None);
         return found.Key;
     }
 
-    protected override void AddServices(IServiceCollection services)
-    {
-        var inForce = InForce();
-        _ = services
-            .AddSingleton(provider => new ConfigurationChangeDesk(inForce, Changes(provider), new PersonRegistry(provider.GetRequiredService<NpgsqlDataSource>())))
-            .AddSingleton(provider => new ChangeDecisionDesk(inForce, Changes(provider), new PersonRegistry(provider.GetRequiredService<NpgsqlDataSource>()), TimeProvider.System));
-    }
-
-    protected override void MapScreens(IEndpointRouteBuilder routes) => ConfigurationChangeScreensEndpoint.Map(routes);
+    public ValueTask DisposeAsync() => Host.DisposeAsync();
 
     /// <summary>A configuration in force the start takes, with synthetic values and the shared material of the tests, read as the file hands it over.</summary>
     private static ConfigurationLoadResult InForce()
@@ -82,11 +94,4 @@ internal sealed class ChangeScreenHost : ScreenHostBase
     }
 
     private static ConfigurationChanges Changes(IServiceProvider provider) => new(provider.GetRequiredService<NpgsqlDataSource>());
-
-    private async Task AddSecondAsync()
-    {
-        await using var source = NpgsqlDataSource.Create(Database.AppConnectionString);
-        var created = await new PersonRegistry(source).CreateAsync(new NewPerson(SecondAdministrator, PersonFunctions.Administration), CustodyAuthor.System, CancellationToken.None);
-        _ = await new PersonCredentials(source, new PasswordDerivation(1)).SetPasswordAsync(created.PersonId!.Value, Password, CustodyAuthor.System, CancellationToken.None);
-    }
 }

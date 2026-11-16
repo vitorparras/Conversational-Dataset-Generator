@@ -6,11 +6,13 @@ namespace Core.Host.Tests.Browser.Fixtures;
 [SuppressMessage("Design", "CA1515", Justification = "xunit builds the class fixture and the public test classes take it in their constructors.")]
 public sealed class PeopleHostFixture : IAsyncLifetime
 {
-    private PeopleScreenHost? host;
+    private PeopleCase? host;
 
-    internal PeopleScreenHost Host => host ?? throw new InvalidOperationException("The host of the people was not started.");
+    internal PeopleCase Case => host ?? throw new InvalidOperationException("The host of the people was not started.");
 
-    public async ValueTask InitializeAsync() => host = await PeopleScreenHost.StartAsync(CancellationToken.None);
+    internal ScreenHost Host => Case.Host;
+
+    public async ValueTask InitializeAsync() => host = await PeopleCase.StartAsync(CancellationToken.None);
 
     public async ValueTask DisposeAsync()
     {

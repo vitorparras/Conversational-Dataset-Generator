@@ -67,10 +67,10 @@ public sealed class NoticeScreenLayoutTests(BrowserFixture browser, SoundNoticeH
     public async Task TheKeyboardAloneReachesTheHeaderTheMenuTheTableAndEachButtonInOrderAndMarksANoticeWithTheFocusSeen()
     {
         var host = sound.Host;
-        var person = await host.AddPersonAsync(PersonFunctions.Audit, TestContext.Current.CancellationToken);
-        await host.TellPasswordResetAsync(person.Id, 2, TestContext.Current.CancellationToken);
-        await host.TellPasswordResetAsync(person.Id, 4, TestContext.Current.CancellationToken);
-        var unread = await host.UnreadIdsOfAsync(person.Id);
+        var person = await sound.Case.AddPersonAsync(PersonFunctions.Audit, TestContext.Current.CancellationToken);
+        await sound.Case.TellPasswordResetAsync(person.Id, 2, TestContext.Current.CancellationToken);
+        await sound.Case.TellPasswordResetAsync(person.Id, 4, TestContext.Current.CancellationToken);
+        var unread = await sound.Case.UnreadIdsOfAsync(person.Id);
         await using var tab = await OpenListAsync(browser, host, person.Name);
         var reached = new List<string>();
         var seen = new List<bool>();
@@ -88,7 +88,7 @@ public sealed class NoticeScreenLayoutTests(BrowserFixture browser, SoundNoticeH
         await tab.Page.Keyboard.PressAsync("Enter");
         await Expect(tab.Page).ToHaveURLAsync(new Regex(@"/avisos\?lido$"));
         await Expect(tab.Page.Locator(Rows)).ToHaveCountAsync(1);
-        Assert.Equal([unread[1]], await host.UnreadIdsOfAsync(person.Id));
+        Assert.Equal([unread[1]], await sound.Case.UnreadIdsOfAsync(person.Id));
     }
 
     /// <summary>The page a name stands for, open for a person made for it, with what it shows made by the facts of its host.</summary>
@@ -101,12 +101,13 @@ public sealed class NoticeScreenLayoutTests(BrowserFixture browser, SoundNoticeH
         }
 
         var host = page == "avisos-dominio" ? broken.Host : sound.Host;
-        var person = await host.AddPersonAsync(PersonFunctions.Audit, token);
+        var notices = page == "avisos-dominio" ? broken.Case : sound.Case;
+        var person = await notices.AddPersonAsync(PersonFunctions.Audit, token);
         if (page == "avisos")
         {
-            await host.TellPasswordResetAsync(person.Id, 0, token);
-            await host.TellPasswordResetAsync(person.Id, 1, token);
-            await host.TellPasswordResetAsync(person.Id, 3, token);
+            await notices.TellPasswordResetAsync(person.Id, 0, token);
+            await notices.TellPasswordResetAsync(person.Id, 1, token);
+            await notices.TellPasswordResetAsync(person.Id, 3, token);
         }
 
         return await OpenListAsync(browser, host, person.Name);

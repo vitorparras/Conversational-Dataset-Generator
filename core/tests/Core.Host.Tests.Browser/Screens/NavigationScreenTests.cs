@@ -62,7 +62,7 @@ public sealed class NavigationScreenTests(BrowserFixture browser, NavigationHost
         var mode = MediaMode.Named(name);
         await using var tab = await SignedInAsync(navigation.Host.Annotator);
         await mode.ApplyAsync(tab.Page);
-        var response = await tab.Page.GotoAsync(NavigationScreenHost.OfAdministration);
+        var response = await tab.Page.GotoAsync(NavigationCase.OfAdministration);
 
         Assert.Equal(StatusNotFound, response?.Status);
         await Expect(tab.Page.GetByRole(AriaRole.Heading, new() { Name = "Página não encontrada" })).ToBeVisibleAsync();
@@ -77,7 +77,7 @@ public sealed class NavigationScreenTests(BrowserFixture browser, NavigationHost
         {
             (navigation.Host.Administrator, "/", "inicio-com-menu"),
             (navigation.Host.Annotator, "/", "inicio-sem-menu"),
-            (navigation.Host.Annotator, NavigationScreenHost.OfAdministration, "pagina-nao-encontrada"),
+            (navigation.Host.Annotator, NavigationCase.OfAdministration, "pagina-nao-encontrada"),
         })
         {
             await using var tab = await SignedInAsync(person);
@@ -151,10 +151,10 @@ public sealed class NavigationScreenTests(BrowserFixture browser, NavigationHost
         await using var auditor = await SignedInAsync(navigation.Host.Auditor);
         await using var annotator = await SignedInAsync(navigation.Host.Annotator);
 
-        Assert.Equal([NavigationScreenHost.AdministrationCaption, NavigationScreenHost.AuditCaption], await administrator.Page.Locator("nav .nav__link").AllInnerTextsAsync());
-        Assert.Equal([NavigationScreenHost.AdministrationCaption, NavigationScreenHost.AuditCaption], await administrator.Page.Locator(".destinations__link").AllInnerTextsAsync());
-        Assert.Equal([NavigationScreenHost.AuditCaption], await auditor.Page.Locator("nav .nav__link").AllInnerTextsAsync());
-        Assert.Equal([NavigationScreenHost.AuditCaption], await auditor.Page.Locator(".destinations__link").AllInnerTextsAsync());
+        Assert.Equal([NavigationCase.AdministrationCaption, NavigationCase.AuditCaption], await administrator.Page.Locator("nav .nav__link").AllInnerTextsAsync());
+        Assert.Equal([NavigationCase.AdministrationCaption, NavigationCase.AuditCaption], await administrator.Page.Locator(".destinations__link").AllInnerTextsAsync());
+        Assert.Equal([NavigationCase.AuditCaption], await auditor.Page.Locator("nav .nav__link").AllInnerTextsAsync());
+        Assert.Equal([NavigationCase.AuditCaption], await auditor.Page.Locator(".destinations__link").AllInnerTextsAsync());
         Assert.Empty(await annotator.Page.Locator("nav .nav__link").AllInnerTextsAsync());
         Assert.Empty(await annotator.Page.Locator(".destinations__link").AllInnerTextsAsync());
     }
@@ -168,18 +168,18 @@ public sealed class NavigationScreenTests(BrowserFixture browser, NavigationHost
         await using var tab = await SignedInAsync(navigation.Host.Administrator);
         await mode.ApplyAsync(tab.Page);
 
-        _ = await tab.Page.GotoAsync(NavigationScreenHost.OfAudit);
+        _ = await tab.Page.GotoAsync(NavigationCase.OfAudit);
 
-        await Expect(tab.Page.GetByRole(AriaRole.Link, new() { Name = NavigationScreenHost.AuditCaption })).ToHaveAttributeAsync("aria-current", "page");
-        await Expect(tab.Page.GetByRole(AriaRole.Link, new() { Name = NavigationScreenHost.AdministrationCaption })).Not.ToHaveAttributeAsync("aria-current", "page");
+        await Expect(tab.Page.GetByRole(AriaRole.Link, new() { Name = NavigationCase.AuditCaption })).ToHaveAttributeAsync("aria-current", "page");
+        await Expect(tab.Page.GetByRole(AriaRole.Link, new() { Name = NavigationCase.AdministrationCaption })).Not.ToHaveAttributeAsync("aria-current", "page");
         await AccessibilityCheck.AssertNoViolationsAsync(tab.Page);
         await ModeCapture.SaveAsync(tab.Page, mode, "menu-pagina-atual");
     }
 
     [Theory]
-    [InlineData(NavigationScreenHost.OfAdministration, "Auditor")]
-    [InlineData(NavigationScreenHost.OfAnnotation, "Administrator")]
-    [InlineData(NavigationScreenHost.OfAdministration, "Annotator")]
+    [InlineData(NavigationCase.OfAdministration, "Auditor")]
+    [InlineData(NavigationCase.OfAnnotation, "Administrator")]
+    [InlineData(NavigationCase.OfAdministration, "Annotator")]
     public async Task Ca2AScreenTheFunctionDoesNotReachIsAnsweredAsAnAddressThatDoesNotExistAndTheAddressAskedIsNotInTheAnswer(string route, string who)
     {
         Assert.NotNull(route);
@@ -193,13 +193,13 @@ public sealed class NavigationScreenTests(BrowserFixture browser, NavigationHost
 
         var refused = await tab.Page.GotoAsync(route);
         var refusedPage = await tab.Page.ContentAsync();
-        var missing = await tab.Page.GotoAsync(NavigationScreenHost.Missing);
+        var missing = await tab.Page.GotoAsync(NavigationCase.Missing);
         var missingPage = await tab.Page.ContentAsync();
 
         Assert.Equal((StatusNotFound, StatusNotFound), (refused?.Status, missing?.Status));
         Assert.Equal(missingPage, refusedPage);
         Assert.DoesNotContain(route.TrimStart('/'), refusedPage, StringComparison.Ordinal);
-        Assert.DoesNotContain(NavigationScreenHost.Missing.TrimStart('/'), missingPage, StringComparison.Ordinal);
+        Assert.DoesNotContain(NavigationCase.Missing.TrimStart('/'), missingPage, StringComparison.Ordinal);
     }
 
     /// <summary>A page, in a context of its own, of a person who entered by the form, on the start page.</summary>

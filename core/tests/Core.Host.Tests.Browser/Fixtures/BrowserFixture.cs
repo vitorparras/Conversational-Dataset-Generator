@@ -10,13 +10,13 @@ namespace Core.Host.Tests.Browser.Fixtures;
 [SuppressMessage("Design", "CA1515", Justification = "xunit builds the assembly fixture and the public test classes take it in their constructors.")]
 public sealed class BrowserFixture : IAsyncLifetime
 {
-    private TrialScreenHost? host;
+    private TrialCase? host;
     private IPlaywright? playwright;
     private IBrowser? browser;
 
     public async ValueTask InitializeAsync()
     {
-        host = await TrialScreenHost.StartAsync(CancellationToken.None);
+        host = await TrialCase.StartAsync(CancellationToken.None);
         playwright = await Playwright.CreateAsync();
         browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = true });
     }

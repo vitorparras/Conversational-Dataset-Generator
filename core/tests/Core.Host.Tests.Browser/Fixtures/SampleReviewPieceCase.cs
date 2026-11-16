@@ -1,22 +1,20 @@
 using System.Globalization;
 using Core.Host.Endpoints;
 using Core.Host.Screens;
-using Core.Persistence.Tests.Fixtures;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Core.Host.Tests.Browser.Fixtures;
 
 /// <summary>
-/// The host of the pieces of the review by sample (issue 610), which have no route of their own yet: the review and the rejection at addresses that exist for the test, behind the real
+/// The case of the pieces of the review by sample (issue 610), which have no route of their own yet: the review and the rejection at addresses that exist for the test, behind the real
 /// session and screen gates, over a sample of five items drawn for the batch 41. The state is in the address (<c>e=revisados-N</c> says N items reviewed, <c>e=aprovada</c> the sample
 /// reviewed and the batch approved, <c>e=reprovada</c> two items reviewed and the batch rejected at the third), and the posts answer as the server will: the mark of an item and the
 /// approval go back to the review by a redirect.
 /// </summary>
-internal sealed class SampleReviewPieceHost : ScreenHostBase
+internal static class SampleReviewPieceCase
 {
     /// <summary>The review of the sample, and the base of the addresses under it that the screen posts and links to.</summary>
     public const string Review = "/captura/revisao";
@@ -31,22 +29,13 @@ internal sealed class SampleReviewPieceHost : ScreenHostBase
 
     private static readonly SampleReviewScreen.Rejection Finding = new("zqx-curadoria", new DateTimeOffset(2026, 11, 9, 9, 45, 0, TimeSpan.Zero), 3, "contato");
 
-    private SampleReviewPieceHost(ScratchDatabase database)
-        : base(database)
-    {
-    }
-
     /// <summary>The text of an item of the sample, made up for the run: it must appear beside the item and nowhere else.</summary>
     public static string TextOf(int position) => $"ZQX-texto-do-item-{position}-da-amostra";
 
-    public static Task<SampleReviewPieceHost> StartAsync(CancellationToken cancellationToken) =>
-        StartAsync(database => new SampleReviewPieceHost(database), _ => Task.CompletedTask, cancellationToken);
+    /// <summary>The screens of the case, behind the real session and screen gates.</summary>
+    public static ScreenParts Parts { get; } = new() { Screens = MapScreens };
 
-    protected override void AddServices(IServiceCollection services)
-    {
-    }
-
-    protected override void MapScreens(IEndpointRouteBuilder routes)
+    private static void MapScreens(IEndpointRouteBuilder routes)
     {
         _ = routes.MapGet(Review, ShowReview).WithMetadata(ScreenAccess.Everyone);
         _ = routes.MapGet(Reject, ShowReject).WithMetadata(ScreenAccess.Everyone);

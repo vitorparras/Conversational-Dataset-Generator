@@ -17,6 +17,7 @@ public sealed class ScreenGateTests
 {
     private const string OfAudit = "/zqx-auditoria-5940";
     private const string Unmarked = "/zqx-sem-marca-5940";
+    private const string UnmarkedJson = "/zqx-json-sem-marca-8140";
     private const string Missing = "/zqx-nao-existe-5940";
     private const string BrowserAccept = "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8";
 
@@ -53,6 +54,22 @@ public sealed class ScreenGateTests
              (missing.StatusCode, (await missing.Content.ReadAsByteArrayAsync(cancellationToken)).LongLength)]);
     }
 
+    [Theory]
+    [InlineData("GET")]
+    [InlineData("POST")]
+    public async Task RouteWithoutScreenAccessIsRefused(string method)
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var host = await StartAsync(cancellationToken);
+        var identifier = host.SeedSession();
+
+        using var refused = await host.SendAsync(new HttpRequestMessage(new HttpMethod(method), new Uri(UnmarkedJson, UriKind.Relative)), identifier, encrypted: true, cancellationToken);
+        using var missing = await host.GetAsync(Missing, identifier, encrypted: true, cancellationToken);
+
+        Assert.Equal((HttpStatusCode.NotFound, HttpStatusCode.NotFound), (refused.StatusCode, missing.StatusCode));
+        Assert.Equal(await missing.Content.ReadAsByteArrayAsync(cancellationToken), await refused.Content.ReadAsByteArrayAsync(cancellationToken));
+    }
+
     [Fact]
     public async Task TheStartOfWhoeverHasNoFunctionAndNoDomainListsNothingWithNoMenuAndNoSelectorAndNoError()
     {
@@ -86,6 +103,8 @@ public sealed class ScreenGateTests
                 _ = routes.MapGet(ScreenPaths.Home, Start).WithMetadata(ScreenAccess.Everyone);
                 _ = routes.MapGet(OfAudit, Start).WithMetadata(ScreenAccess.Of("Auditoria", 1, PersonFunctions.Audit));
                 _ = routes.MapGet(Unmarked, Start);
+                _ = routes.MapGet(UnmarkedJson, () => Results.Ok(new { reached = true }));
+                _ = routes.MapPost(UnmarkedJson, () => Results.Ok(new { reached = true }));
             },
             cancellationToken);
 

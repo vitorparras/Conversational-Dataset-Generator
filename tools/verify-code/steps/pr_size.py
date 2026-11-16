@@ -11,8 +11,12 @@ from steps.common import Context, StepResult, failed, passed, tail
 NAME = "pr_size"
 DEFAULT_CEILING = 400
 HARD_CEILING = 1500
-CEILING_LINE = re.compile(r"^Teto da fatia:\s*(\d[\d.]*)\s+linhas\s*$", re.MULTILINE)
-CLOSES = re.compile(r"\bcloses\s+#(\d+)", re.IGNORECASE)
+CEILING_LINE = re.compile(
+    r"^\**Teto da fatia:\**\s*(\d{1,3}(?:\.\d{3})+|\d+)\s+linhas\**\s*$", re.MULTILINE
+)
+CHECKED_PLAN = re.compile(r"^\**Plano conferido pelo Arquiteto:\**\s*sim\b", re.MULTILINE | re.I)
+CLOSES = re.compile(r"\b(?:closes|fixes|resolves):?\s+#(\d+)", re.IGNORECASE)
+HIDDEN = re.compile(r"<!--.*?-->|```.*?```", re.DOTALL)
 BRANCH_ISSUE = re.compile(r"^[a-z]+/(\d+)-")
 EXCLUDED_SUFFIXES = (".lock.json",)
 EXCLUDED_NAMES = ("uv.lock",)
@@ -59,33 +63,40 @@ class Ceiling:
     lines: int
     source: str
     issue: str | None = None
+    unread: bool = False
 
 
 def issue_number(pr_body: str, branch: str) -> str | None:
-    """The issue the pull request closes: the first `Closes #n` of the body, else `type/n-slug`."""
-    closing = CLOSES.search(pr_body)
+    """The issue the pull request closes: the first `Closes #n` outside comments and code blocks
+    of the body, else the number of a `type/n-slug` branch."""
+    closing = CLOSES.search(HIDDEN.sub("", pr_body))
     named = BRANCH_ISSUE.match(branch)
     return closing.group(1) if closing else named.group(1) if named else None
 
 
 def slice_ceiling(issue_text: str) -> int | None:
-    """The number of the line `Teto da fatia: N linhas` of the issue; dots group thousands."""
-    found = CEILING_LINE.search(issue_text)
-    return int(found.group(1).replace(".", "")) if found else None
+    """The number of the line `Teto da fatia: N linhas`, only from an issue whose plan the
+    Arquiteto checked; dots group thousands."""
+    found = CEILING_LINE.search(HIDDEN.sub("", issue_text))
+    checked = CHECKED_PLAN.search(issue_text)
+    return int(found.group(1).replace(".", "")) if found and checked else None
 
 
 def ceiling_for(ctx: Context) -> Ceiling:
-    """The ceiling of the issue this pull request closes; the default when none can be read."""
-    branch = ctx.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], ctx.root).text.strip()
+    """The ceiling of the issue this pull request closes; the default when none is declared."""
+    branch = (
+        os.environ.get("GITHUB_HEAD_REF")
+        or ctx.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], ctx.root).text.strip()
+    )
     number = issue_number(os.environ.get("CDG_PR_BODY", ""), branch)
     if number is None:
-        return Ceiling(DEFAULT_CEILING, "o padrão")
+        return Ceiling(DEFAULT_CEILING, "o padrão: nenhuma issue achada")
     issue = ctx.run(["gh", "issue", "view", number, "--json", "body", "--jq", ".body"], ctx.root)
     if not issue.ok:
-        return Ceiling(DEFAULT_CEILING, f"o padrão: a issue #{number} não foi lida")
+        return Ceiling(DEFAULT_CEILING, f"a issue #{number} não foi lida", number, unread=True)
     declared = slice_ceiling(issue.text)
     if declared is None:
-        return Ceiling(DEFAULT_CEILING, "o padrão")
+        return Ceiling(DEFAULT_CEILING, f"o padrão: a issue #{number} sem teto e plano conferido")
     return Ceiling(declared, f"da issue #{number}", number)
 
 
@@ -101,6 +112,8 @@ def measure(changed: tuple[ChangedFile, ...], ceiling: Ceiling) -> StepResult:
         *(f"  - {c.path} ({c.lines} linhas)" for c in excluded),
     ]
     problems: list[str] = []
+    if ceiling.unread:
+        problems.append(f"{ceiling.source}: o teto dela vale e não se sabe qual é")
     if ceiling.lines > HARD_CEILING:
         problems.append(
             f"o teto de {ceiling.lines} linhas da issue #{ceiling.issue} passa do limite duro "

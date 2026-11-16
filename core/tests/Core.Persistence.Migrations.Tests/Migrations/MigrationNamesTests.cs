@@ -5,6 +5,8 @@ namespace Core.Persistence.Tests.Migrations;
 /// <summary>A step is named by its order: four digits for the numbered ones, twelve (year to minute) for the ones dated by the author.</summary>
 public sealed class MigrationNamesTests
 {
+    private const int LastNumbered = 54;
+
     [Fact]
     public void NumberedStepsComeFirstAndDatedStepsFollowByTheirMoment()
     {
@@ -31,21 +33,20 @@ public sealed class MigrationNamesTests
     }
 
     [Fact]
-    public void TheStepsTheBuildCarriesAreInStrictlyIncreasingOrderOfName()
+    public void TheNumberedStepsRunFromOneToTheLastNumberedWithoutGapsAndNoNewOneJoinsThem()
     {
         var names = EmbeddedMigrations.Load().Select(step => step.Name).ToList();
+        var numbered = names.TakeWhile(name => name.IndexOf('-', StringComparison.Ordinal) == MigrationNames.NumberWidth).ToList();
 
-        Assert.Equal(names.Order(StringComparer.Ordinal).Distinct(), names);
+        Assert.Equal(Enumerable.Range(1, LastNumbered).Select(number => $"{number:0000}"), numbered.Select(name => name[..MigrationNames.NumberWidth]));
     }
 
     [Fact]
-    public void TheNumberedStepsRunFromOneWithoutGapsAndNoDatedStepPrecedesThem()
+    public void EveryStepAfterTheNumberedOnesIsDatedByItsAuthor()
     {
-        var names = EmbeddedMigrations.Load().Select(step => step.Name).ToList();
-        var numbered = names.TakeWhile(name => name.IndexOf('-', StringComparison.Ordinal) == 4).ToList();
+        var names = EmbeddedMigrations.Load().Select(step => step.Name).Skip(LastNumbered).ToList();
 
-        Assert.Equal(Enumerable.Range(1, numbered.Count).Select(number => $"{number:0000}-"), numbered.Select(name => name[..5]));
-        Assert.All(names.Skip(numbered.Count), name => Assert.Equal(12, name.IndexOf('-', StringComparison.Ordinal)));
+        Assert.All(names, name => Assert.Equal(MigrationNames.MomentWidth, name.IndexOf('-', StringComparison.Ordinal)));
     }
 
     [Fact]

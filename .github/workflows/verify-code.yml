@@ -590,7 +590,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           CDG_PR_BODY: ${{ github.event.pull_request.body }}
-        run: python tools/verify-code/verify.py --step pr_size --base origin/${{ github.base_ref }}
+        run: python tools/verify-code/verify.py --step pr_size migration_order --base origin/${{ github.base_ref }}
 
   ai_attribution:
     name: Commits sem atribuição a IA

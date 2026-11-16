@@ -17,7 +17,7 @@ import commit_titles
 import dotnet_steps
 import machine_lock
 import scope
-from steps import pr_size
+from steps import migration_order, pr_size
 from steps.common import OUTPUT_DIRECTORY, Context, StepResult, failed, passed, run_process, tail
 
 ROOT = bootstrap.ROOT
@@ -73,7 +73,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"a base {base} não existe: rode `git fetch origin main` ou passe --base <ref>")
         return 1
     start = time.monotonic()
-    results = [timed(step, ctx) for step in (commit_titles.run, pr_size.run, docs)]
+    results = [
+        timed(step, ctx) for step in (commit_titles.run, pr_size.run, migration_order.run, docs)
+    ]
     try:
         with machine_lock.machine_lock(machine_lock.lock_path(), partial(print, flush=True)):
             results += dotnet_run(ctx)

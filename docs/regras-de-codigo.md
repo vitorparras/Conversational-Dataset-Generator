@@ -28,7 +28,8 @@ arquitetura declara substituição (revisão); o resto é classe concreta injeta
 
 ## 4. Sem gancho de teste (imposto: `NoTestHookTests`, teste do serviço)
 
-Nenhum membro público existe para teste. O teste observa comportamento; interno só ao seu teste.
+Nenhum membro público existe para teste. O teste observa comportamento. Internos visíveis só ao
+projeto de teste do próprio módulo.
 
 ## 5. Estado e erros (revisão; impostos no `.editorconfig`: logger, S1312; captura, S2221)
 
@@ -53,8 +54,7 @@ Arrange-Act-Assert; um comportamento por teste, nomeado por ele; sem condicional
 Documentação de API só na fronteira pública entre módulos; nos outros métodos, no máximo um sumário
 de uma frase. Comentário no corpo é raro, curto, diz o porquê e nunca cita regra ou issue.
 
-## 9. Pull request (limite imposto por `pr_size`; task única e descrição, em revisão)
+## 9. Pull request (impostos: `pr_size`, `migration_order`; task única e descrição, em revisão)
 
-Até 400 linhas de produção, ou o "Teto da fatia: N linhas" da issue que o PR fecha, no máximo 1.500;
-sem limite de arquivos; teste, lockfile e fixture não contam, mas são listados. Migração nova:
-`AAAAMMDDHHMM-nome` ([0054](decisoes/0054-teto-por-fatia-e-migracao-por-data.md)). Uma task por PR.
+Até 400 linhas de produção ou o "Teto da fatia: N linhas" da issue do PR (no máximo 1.500); sem
+limite de arquivos; teste, lockfile e fixture só listados. Migração nova: `AAAAMMDDHHMM-nome`.

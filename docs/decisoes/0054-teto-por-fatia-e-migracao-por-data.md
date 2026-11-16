@@ -11,13 +11,15 @@ cortava fatias verticais que cabem em 400 linhas. A fila colidia por regra, não
 
 **O teto vem da issue da fatia, e a ordem das migrações vem do nome.**
 
-1. **Teto:** o `pr_size` lê a linha "Teto da fatia: N linhas" da issue que o PR fecha (`Closes #n`,
-   ou o número da branch). Sem a linha, ou com a issue ilegível, vale 400. O limite duro é 1.500
-   linhas de produção, e a issue que declara mais reprova. Não há limite de arquivos.
-2. **Migração nova:** `AAAAMMDDHHMM-nome`, com um instante real do calendário. As 54 numeradas
-   ficam como estão e vêm antes. A versão registrada é a posição na ordem do nome, de um em diante.
-3. **Teste:** exige ordem estritamente crescente, cada arquivo registrado no build, numeradas sem
-   lacuna e nenhuma datada antes da última numerada.
+1. **Teto:** o `pr_size` lê a linha "Teto da fatia: N linhas" da issue que o PR fecha (`Closes #n`
+   fora de comentário e de bloco de código, ou o número da branch), só se a issue tiver a linha
+   "Plano conferido pelo Arquiteto: sim". Sem a linha vale 400; issue ilegível reprova. O limite
+   duro é 1.500 linhas de produção. Não há limite de arquivos.
+2. **Migração nova:** `AAAAMMDDHHMM-nome`, com um instante real do calendário. As numeradas que o
+   main já tem ficam como estão e vêm antes. A versão registrada é a posição na ordem do nome.
+3. **Teste e passo:** o teste exige cada arquivo registrado, numeradas sem lacuna até a última do
+   main e nenhuma numerada nova. O passo `migration_order` reprova a migração do PR que não seja
+   datada ou que ordene antes de uma que a base já tem; o PR traz o main e renomeia.
 
 ## Alternativas recusadas
 
@@ -28,7 +30,8 @@ cortava fatias verticais que cabem em 400 linhas. A fila colidia por regra, não
 ## Consequências
 
 Duas fatias não disputam número. **Piora:** uma migração datada anterior a uma já aplicada desloca
-as posições, e o registro acusa divergência na partida em vez de aplicar fora de ordem.
+as posições; o `migration_order` barra isso no PR, e o registro acusa divergência na partida.
+Editar a issue ou a descrição não roda o job: refaça o job ou empurre outro commit.
 
 ## O que reabre esta decisão
 

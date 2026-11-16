@@ -103,6 +103,19 @@ class MachineLockTests(unittest.TestCase):
         with machine_lock.machine_lock(self.path, print):
             self.path.rmdir()
 
+    def test_the_mark_of_the_holder_lives_beside_the_lock_and_goes_with_it(self) -> None:
+        with machine_lock.machine_lock(self.path, print):
+            self.assertEqual([], list(self.path.iterdir()))
+            self.assertTrue(machine_lock.mark_file(self.path).is_file())
+
+        self.assertFalse(machine_lock.mark_file(self.path).exists())
+
+    def test_a_lock_that_carries_the_mark_of_another_holder_is_left_alone(self) -> None:
+        with machine_lock.machine_lock(self.path, print):
+            machine_lock.mark_file(self.path).write_text("another-holder 1", encoding="utf-8")
+
+        self.assertTrue(self.path.is_dir())
+
     def test_without_an_override_the_lock_lives_in_the_temp_dir(self) -> None:
         os.environ.pop(machine_lock.OVERRIDE, None)
 

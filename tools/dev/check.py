@@ -52,6 +52,12 @@ def dotnet_run(ctx: Context) -> list[StepResult]:
     return [built, *rest]
 
 
+def say(waited: list[str], line: str) -> None:
+    """Shows the wait as it starts and keeps it for the report, which must not lose it."""
+    print(line, flush=True)
+    waited.append(line)
+
+
 def render(results: Sequence[StepResult], seconds: float) -> list[str]:
     lines: list[str] = []
     for result in results:
@@ -76,11 +82,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
     start = time.monotonic()
     results = [timed(step, ctx) for step in (commit_titles.run, pr_size.run, docs)]
+    waited: list[str] = []
     try:
-        with machine_lock.machine_lock(machine_lock.lock_path(), partial(print, flush=True)):
+        with machine_lock.machine_lock(machine_lock.lock_path(), partial(say, waited)):
             results += dotnet_run(ctx)
     except TimeoutError as busy:
         results.append(failed("trava", str(busy)))
+    if waited:
+        results.append(passed("trava", *waited))
     lines = render(results, time.monotonic() - start)
     (ROOT / LOG).write_text("\n".join(lines) + "\n", encoding="utf-8")
     if len(lines) > REPORT_LINES:

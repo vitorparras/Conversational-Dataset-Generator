@@ -20,12 +20,12 @@ escrever**. Trabalho descartado desmotiva mais que espera.
 ## Commits e branches
 
 Branch `<tipo>/<slug>`, com o mesmo tipo do commit (`feat`, `fix`, `docs`, `chore`, `ci`, `test`,
-`build`, `refactor`); slug curto, minúsculas, hífens, sem acento; issue única vai na frente, como em
-feat/37-comando-unico. [Conventional Commits](https://www.conventionalcommits.org) no commit:
-`tipo(escopo): descrição`, imperativo, minúscula, sem ponto final, até 72 caracteres. Um assunto
-por commit; corpo só quando acrescenta o que o título não diz. **Nenhuma linha de atribuição a
-ferramenta ou agente de IA** — quem assina responde; a declaração de uso vai no gabarito de PR.
-Um pull request resolve uma task, dentro do teto das regras de código; o merge é do dono.
+`build`, `refactor`); slug curto, minúsculas, hífens, sem acento; issue única vai na frente
+(feat/37-comando-unico). [Conventional Commits](https://www.conventionalcommits.org) no commit:
+`tipo(escopo): descrição`, imperativo, minúscula, sem ponto final, até 72, o título do PR também
+(vira o commit do squash). Um assunto por commit; corpo só se acrescenta ao título. **Nenhuma linha
+de atribuição a ferramenta ou agente de IA** — quem assina responde; a declaração de uso vai no
+gabarito de PR. Um PR resolve uma task, dentro do teto das regras de código; o merge é do dono.
 
 ## Se você discorda de uma decisão
 

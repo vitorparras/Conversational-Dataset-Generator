@@ -66,10 +66,14 @@ class DotnetStepsTests(unittest.TestCase):
         ctx = support.context(self.repo, "base")
         return ctx, scope.compute(ctx)
 
-    def test_a_clean_change_builds_and_is_formatted(self) -> None:
+    def test_a_clean_change_builds(self) -> None:
         ctx, reach = self.reached(CLEAN.replace("Green", "Blue"))
 
         self.assertTrue(dotnet_steps.build(ctx, reach).ok)
+
+    def test_a_clean_change_is_formatted(self) -> None:
+        ctx, reach = self.reached(CLEAN.replace("Green", "Blue"))
+
         self.assertTrue(dotnet_steps.format_check(ctx, reach).ok)
 
     def test_an_enum_switch_that_is_not_exhaustive_fails_the_build_naming_ide0072(self) -> None:
@@ -103,30 +107,76 @@ class OutputTests(unittest.TestCase):
     def test_without_a_match_the_first_lines_show_instead_of_silence(self) -> None:
         self.assertEqual(["boom"], dotnet_steps.findings("boom\n", dotnet_steps.DIAGNOSTIC))
 
-    def test_the_project_file_follows_the_folder_of_its_kind(self) -> None:
-        self.assertEqual("core/src/A/A.csproj", dotnet_steps.project_file("A"))
-        self.assertEqual("core/tests/A.Tests/A.Tests.csproj", dotnet_steps.project_file("A.Tests"))
+    def test_the_project_file_is_the_one_found_in_the_tree(self) -> None:
+        ctx = self.tree("A", "A.Tests")
 
-    def test_the_failed_test_is_named(self) -> None:
+        self.assertEqual("core/src/A/A.csproj", dotnet_steps.project_file(ctx, "A"))
+        self.assertEqual(
+            "core/tests/A.Tests/A.Tests.csproj", dotnet_steps.project_file(ctx, "A.Tests")
+        )
+
+    def test_the_failed_test_is_named_and_the_noise_around_it_is_not(self) -> None:
         reach = scope.Scope(False, ("A.Tests",), (), ("A.Tests",), (), ())
+        noise = "Build succeeded.\n  passed Foo.Ok\n  failed Foo.Bar\n  skipped Foo.Later\n"
 
-        def run(command: Sequence[str], cwd: Path) -> CommandOutcome:
-            return CommandOutcome(False, "  failed Foo.Bar\n")
-
-        ctx = Context(Path("."), Path("."), run)
-
-        result = dotnet_steps.tests(ctx, reach)
+        result = dotnet_steps.tests(self.tree("A.Tests", output=noise, ok=False), reach)
 
         self.assertFalse(result.ok)
-        self.assertIn("failed Foo.Bar", result.details)
+        self.assertEqual(
+            ["A.Tests reprovou:", "failed Foo.Bar"], [line for line in result.details if line]
+        )
 
     def test_projects_that_pass_are_counted_and_the_ones_left_out_are_said(self) -> None:
         reach = scope.Scope(False, ("A.Tests",), (), ("A.Tests",), ("B.Tests: banco",), ())
 
-        def run(command: Sequence[str], cwd: Path) -> CommandOutcome:
-            return CommandOutcome(True, "")
-
-        result = dotnet_steps.tests(Context(Path("."), Path("."), run), reach)
+        result = dotnet_steps.tests(self.tree("A.Tests"), reach)
 
         self.assertTrue(result.ok)
         self.assertIn("fora: B.Tests: banco", result.details)
+
+    def test_the_build_says_when_the_diff_reaches_the_whole_core(self) -> None:
+        reach = scope.Scope(True, ("A", "B"), ("A",), (), (), ())
+
+        result = dotnet_steps.build(self.tree("A"), reach)
+
+        self.assertTrue(result.ok)
+        self.assertIn("o core inteiro", " ".join(result.details))
+
+    def test_the_build_of_a_narrow_diff_does_not_claim_the_whole_core(self) -> None:
+        reach = scope.Scope(False, ("A",), ("A",), (), (), ())
+
+        result = dotnet_steps.build(self.tree("A"), reach)
+
+        self.assertNotIn("o core inteiro", " ".join(result.details))
+
+    def test_the_format_says_when_it_ran_over_the_whole_solution(self) -> None:
+        many = tuple(f"core/src/A/F{n}.cs" for n in range(dotnet_steps.MAX_INCLUDED + 1))
+        seen: list[Sequence[str]] = []
+
+        def run(command: Sequence[str], cwd: Path) -> CommandOutcome:
+            seen.append(command)
+            return CommandOutcome(True, "")
+
+        ctx = Context(Path("."), Path("."), run)
+        wide = dotnet_steps.format_check(ctx, scope.Scope(False, (), (), (), (), many))
+        narrow = dotnet_steps.format_check(ctx, scope.Scope(False, (), (), (), (), many[:1]))
+
+        self.assertIn("a solução inteira", " ".join(wide.details))
+        self.assertNotIn("--include", seen[0])
+        self.assertNotIn("a solução inteira", " ".join(narrow.details))
+        self.assertIn("--include", seen[1])
+
+    def tree(self, *names: str, output: str = "", ok: bool = True) -> Context:
+        """A context over a temporary tree that holds the named projects, whose commands answer
+        with ``output``."""
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        root = Path(folder.name)
+        for name in names:
+            kind = "tests" if ".Tests" in name else "src"
+            support.write(root, f"core/{kind}/{name}/{name}.csproj", PROJECT)
+
+        def run(command: Sequence[str], cwd: Path) -> CommandOutcome:
+            return CommandOutcome(ok, output)
+
+        return Context(root, root, run)

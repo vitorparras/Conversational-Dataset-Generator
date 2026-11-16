@@ -33,7 +33,7 @@ Da raiz do repositório. Cada passo do `verify-code` é a mesma conferência da 
 
 | Comando | O que faz |
 |---|---|
-| `python tools/dev/check.py` | Antes do push: título dos commits novos (Conventional Commits, até 72), tamanho, docs, build, formato e testes sem banco do diff |
+| `python tools/dev/check.py` | Antes do push: título dos commits novos (Conventional Commits, até 72), tamanho, docs, build, formato e testes sem banco do diff; um build por vez na máquina, pela trava `maquina.lock` da pasta temporária, que `CDG_MACHINE_LOCK` desloca para dividi-la com outra ferramenta |
 | `python tools/verify-code/verify.py` | Todos os passos que não pedem `--base`, na ordem da CI |
 | `python tools/verify-code/verify.py --list` | Lista os passos |
 | `python tools/verify-code/verify.py --step <nome>` | Um passo; veja a ordem em `--list` |

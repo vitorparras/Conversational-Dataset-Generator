@@ -7,7 +7,7 @@ import io
 import os
 import tempfile
 import unittest
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from pathlib import Path
 from unittest import mock
 
@@ -99,6 +99,19 @@ class CheckMainTests(unittest.TestCase):
 
         self.assertEqual(1, code)
         self.assertIn("reprovado em trava", lines[-1])
+
+    def test_the_wait_for_the_machine_stays_in_the_report(self) -> None:
+        @contextlib.contextmanager
+        def busy_then_free(_path: Path, say: Callable[[str], None]) -> Generator[None]:
+            say("outro build usa a máquina; aguardando a vez")
+            yield
+
+        with mock.patch.object(check.machine_lock, "machine_lock", busy_then_free):
+            code, lines = self.run_main()
+
+        self.assertEqual(0, code)
+        self.assertEqual(2, sum("aguardando a vez" in line for line in lines))
+        self.assertTrue(any("trava" in line for line in lines[1:]))
 
 
 class DotnetRunTests(unittest.TestCase):

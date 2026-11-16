@@ -9,10 +9,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
-from steps import changes, reach, test_core
+from steps import changes, mutation_core, reach, test_core
 from steps.common import Context
 
-CORE = "core"
+CORE = PurePosixPath(mutation_core.SOURCES).parts[0]
 DATABASE = "Core.Tests.Database"
 NOT_RUN = {"Core.Tests.Architecture": "roda o msbuild várias vezes: fica no job da CI"}
 WHOLE = (*reach.WHOLE_NAMES, ".editorconfig")
@@ -56,7 +56,7 @@ def split_tests(root: Path, graph: reach.Graph, reached: set[str]) -> tuple[list
     run: list[str] = []
     left: list[str] = []
     for name in sorted(reached):
-        project = root / CORE / "tests" / name / f"{name}.csproj"
+        project = root / mutation_core.TESTS / name / f"{name}.csproj"
         if not project.is_file() or not test_core.is_test_project(project):
             continue
         why = NOT_RUN.get(name) or (

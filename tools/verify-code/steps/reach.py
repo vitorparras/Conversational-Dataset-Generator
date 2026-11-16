@@ -34,14 +34,18 @@ Graph = Mapping[str, Iterable[str]]
 Touched = defaultdict[str, set[str]]
 
 
+def project_files(root: Path) -> dict[str, Path]:
+    """The project file of each project of core/src and core/tests, by name."""
+    trees = (mutation_core.SOURCES, mutation_core.TESTS)
+    return {c.stem: c for tree in trees for c in sorted((root / tree).glob("*/*.csproj"))}
+
+
 def projects(root: Path) -> dict[str, set[str]]:
     """Each project of core/src and core/tests with the names of the projects it references."""
-    found: dict[str, set[str]] = {}
-    for tree in (mutation_core.SOURCES, mutation_core.TESTS):
-        for csproj in sorted((root / tree).glob("*/*.csproj")):
-            text = csproj.read_text(encoding="utf-8")
-            found[csproj.stem] = {PureWindowsPath(p).stem for p in REFERENCE.findall(text)}
-    return found
+    return {
+        name: {PureWindowsPath(p).stem for p in REFERENCE.findall(c.read_text(encoding="utf-8"))}
+        for name, c in project_files(root).items()
+    }
 
 
 def units(root: Path) -> dict[str, Path]:

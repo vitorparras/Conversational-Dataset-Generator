@@ -163,6 +163,11 @@ class PropertiesTests(unittest.TestCase):
         self.assertIn("Kind=Property", runner.commands[0])
         self.assertEqual(runner.commands[1][5:8], ["pytest", "-m", "property"])
 
+    def test_the_core_side_runs_on_the_build_already_made_and_does_not_build_again(self) -> None:
+        _, _, runner = self.run_step(trx((PROPERTY_CLASS, "Passed")), junit((SERVICE_PROPERTY, "")))
+
+        self.assertIn("--no-build", runner.commands[0])
+
     def test_the_core_side_runs_the_solution_and_not_a_fixed_test_project(self) -> None:
         _, _, runner = self.run_step(trx((PROPERTY_CLASS, "Passed")), junit((SERVICE_PROPERTY, "")))
 

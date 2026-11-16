@@ -17,9 +17,9 @@ internal static class OperatorsEndpoint
 
     internal static void Map(IEndpointRouteBuilder endpoints)
     {
-        _ = endpoints.MapPost(Route, MakeAsync);
-        _ = endpoints.MapPost(Route + "/{id}/deactivate", DeactivateAsync);
-        _ = endpoints.MapPut(Route + "/{id}/password", SetPasswordAsync);
+        _ = endpoints.MapPost(Route, MakeAsync).WithMetadata(ScreenAccess.Everyone);
+        _ = endpoints.MapPost(Route + "/{id}/deactivate", DeactivateAsync).WithMetadata(ScreenAccess.Everyone);
+        _ = endpoints.MapPut(Route + "/{id}/password", SetPasswordAsync).WithMetadata(ScreenAccess.Everyone);
     }
 
     private static Task<IResult> MakeAsync([FromBody] OperatorAsked asked, [FromServices] OperatorAdministration? staff, HttpContext context) =>

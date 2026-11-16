@@ -33,5 +33,6 @@ internal static class MappedRoutes
             endpoint.Metadata.GetMetadata<HttpMethodMetadata>()!.HttpMethods.Single(),
             endpoint.RoutePattern.RawText!,
             endpoint.Metadata.GetMetadata<SessionOpen>() is not null,
-            endpoint.Metadata.Any(mark => mark.GetType().Name == ShortCircuitMark));
+            endpoint.Metadata.Any(mark => mark.GetType().Name == ShortCircuitMark),
+            endpoint.Metadata.GetMetadata<ScreenAccess>());
 }

@@ -34,8 +34,8 @@ inventa um nono jeito.
 
 ## Proibido
 
-- Rota sem `ScreenAccess`. Hoje a guarda deixa passar a rota que não é página e não declara
-  acesso; a correção é a #814, e até ela entrar a declaração é obrigatória no plano e na revisão.
+- Rota sem `ScreenAccess`. A guarda responde 404 à rota que não declara acesso, página ou JSON, e
+  `ScreenAccessDeclarationTests` reprova a rota mapeada sem a declaração.
 - `Results.StatusCode(503)` cru numa tela (`DomainScreensEndpoint`, linhas 24 a 26); use a página.
   A rota de JSON responde o código cru (`ChainVerificationEndpoint`, linha 20).
 - Duas escritas sem transação na mesma rota (`OperatorRegistration`, linhas 32 e 38).

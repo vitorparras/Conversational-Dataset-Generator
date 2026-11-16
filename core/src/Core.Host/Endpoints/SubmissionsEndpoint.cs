@@ -131,7 +131,6 @@ internal static class SubmissionsEndpoint
         return (await GrantedDomains.OfAsync(listing, names, context.RequestAborted)).Keys;
     }
 
-
     /// <summary>The body is bounded by the most bytes a file may have, and a margin for the fields and the boundaries, before a byte of it is read.</summary>
     private static void Bound(HttpContext context, long maxBytes)
     {

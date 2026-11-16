@@ -96,7 +96,7 @@ internal static class AccountScreensEndpoint
     {
         var form = await RequestReader.FormAsync(context);
         var chosen = Offered(context, sessions, form?[SessionEndScreen.SessionField].ToString());
-        return chosen is not null && sessions.Resolve(SessionCookie.Read(context.Request)) is { } account && sessions.CloseListed(account, chosen.ListingId)
+        return chosen is not null && RequestReader.SessionOf(context) is { } account && sessions.CloseListed(account, chosen.ListingId)
             ? Back(context, AccountScreen.SessionsDone, 1)
             : ScreenResult.NotFound(context);
     }

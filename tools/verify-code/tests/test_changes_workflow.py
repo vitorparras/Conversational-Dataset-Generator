@@ -115,12 +115,18 @@ class ChangesWorkflowTests(unittest.TestCase):
             "if: ${{ github.event_name == 'push' && needs.changes.outputs.tested_run", text
         )
         steps = re.split(r"^      - ", text, flags=re.MULTILINE)[1:]
-        self.assertEqual(len(steps), 3)
+        self.assertEqual(len(steps), 4)
         for step in steps:
             self.assertIn("if: contains(needs.changes.outputs.promote, matrix.language)", step)
         self.assertIn("key: cobertura-${{ matrix.language }}-${{ github.sha }}", text)
         self.assertIn("path: ${{ runner.temp }}/cobertura-main\n", text)
         self.assertNotIn('run: gh run download "${{', text)
+
+    def test_the_promotion_brings_the_downloader_it_runs_before_it_runs_it(self) -> None:
+        text = job("promote_coverage")
+
+        self.assertIn("sparse-checkout: tools/verify-code", text)
+        self.assertLess(text.index("actions/checkout@"), text.index("tools/verify-code/retry.py"))
 
     def test_one_language_failing_does_not_cancel_the_promotion_of_the_other(self) -> None:
         self.assertIn("fail-fast: false", job("promote_coverage"))

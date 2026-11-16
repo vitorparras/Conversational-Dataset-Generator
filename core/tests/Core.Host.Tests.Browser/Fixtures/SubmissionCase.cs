@@ -7,7 +7,6 @@ using Core.Persistence.Domains;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Fixtures;
 using Core.Platform.Keys;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
@@ -15,10 +14,10 @@ using Npgsql;
 namespace Core.Host.Tests.Browser.Fixtures;
 
 /// <summary>
-/// The host of the submission and of the batch (issue 821) with the real routes and the real service of the submissions over a synthetic key: one domain granted to everyone who enters, the
-/// recovery rehearsed so the ingestion is open, the format of the conversation and two conditions. Until #819 gives the hosts one shape, it is one more subclass of the base, as the others are.
+/// The case of the submission and of the batch (issue 821): the real routes of the batches and the real service of the submissions over a synthetic key, one domain granted to everyone who
+/// enters, the recovery rehearsed so the ingestion is open, the format of the conversation and two conditions.
 /// </summary>
-internal sealed class SubmissionScreenHost : ScreenHostBase
+internal static class SubmissionCase
 {
     /// <summary>The domain granted, the only one the form offers.</summary>
     public const string Granted = "ZQX-dominio-envio";
@@ -36,23 +35,18 @@ internal sealed class SubmissionScreenHost : ScreenHostBase
 
     private static readonly string[] Labels = ["texto-bruto/1/v1", "texto-bruto/2/v1"];
 
-    private SubmissionScreenHost(ScratchDatabase database)
-        : base(database)
+    public static ScreenParts Parts() => new()
     {
-    }
-
-    public static Task<SubmissionScreenHost> StartAsync(CancellationToken cancellationToken) =>
-        StartAsync(database => new SubmissionScreenHost(database), host => host.SeedAsync(cancellationToken), cancellationToken);
-
-    protected override void AddServices(IServiceCollection services) =>
-        _ = services.AddSingleton(provider => new DomainListing(provider.GetRequiredService<NpgsqlDataSource>()))
+        Services = (services, _) => services
+            .AddSingleton<DomainGrants>(new FirstGranted())
+            .AddSingleton(provider => new DomainListing(provider.GetRequiredService<NpgsqlDataSource>()))
             .AddSingleton(provider => new BatchRegister(provider.GetRequiredService<NpgsqlDataSource>()))
             .AddSingleton(provider => new BatchCounts(provider.GetRequiredService<NpgsqlDataSource>()))
             .AddSingleton(_ => SyntheticReading())
-            .AddSingleton(provider => SubmissionServiceHolder.Of(ServiceOf(provider.GetRequiredService<NpgsqlDataSource>(), provider.GetRequiredService<MasterKeyReading>()), MaxBytes))
-            .AddSingleton<DomainGrants>(new FirstGranted());
-
-    protected override void MapScreens(IEndpointRouteBuilder routes) => BatchScreensEndpoint.Map(routes);
+            .AddSingleton(provider => SubmissionServiceHolder.Of(ServiceOf(provider.GetRequiredService<NpgsqlDataSource>(), provider.GetRequiredService<MasterKeyReading>()), MaxBytes)),
+        Screens = BatchScreensEndpoint.Map,
+        Prepare = SeedAsync,
+    };
 
     /// <summary>The key of the tests, which the container keeps and disposes with the host, as the installation keeps the reading of the master key.</summary>
     private static MasterKeyReading SyntheticReading()
@@ -74,11 +68,11 @@ internal sealed class SubmissionScreenHost : ScreenHostBase
     }
 
     /// <summary>The domain and the rehearsal of the recovery, the event that opens the ingestion.</summary>
-    private async Task SeedAsync(CancellationToken cancellationToken)
+    private static async Task SeedAsync(ScratchDatabase database)
     {
-        await Database.RunAsOwnerAsync("INSERT INTO public.domain (name) VALUES ('ZQX-dominio-envio')");
-        await using var source = NpgsqlDataSource.Create(Database.AppConnectionString);
-        var rehearsed = await new CustodyChain(source).AppendAsync(CustodyEvent.RecoveryRehearsed(1, new string('0', 64)), cancellationToken);
+        await database.RunAsOwnerAsync($"INSERT INTO public.domain (name) VALUES ('{Granted}')");
+        await using var source = NpgsqlDataSource.Create(database.AppConnectionString);
+        var rehearsed = await new CustodyChain(source).AppendAsync(CustodyEvent.RecoveryRehearsed(1, new string('0', 64)), CancellationToken.None);
         if (rehearsed.Outcome != CustodyOutcome.Appended)
         {
             throw new InvalidOperationException($"The rehearsal of the recovery was not appended: {rehearsed.Outcome}.");
@@ -89,24 +83,5 @@ internal sealed class SubmissionScreenHost : ScreenHostBase
     private sealed class FirstGranted : DomainGrants
     {
         internal override Task<IEnumerable<string>> GrantedToAsync(long entered, CancellationToken cancellationToken) => Task.FromResult(Enumerable.Repeat(Granted, 1));
-    }
-}
-
-/// <summary>The host of the submission and of the batch, started once for the tests of a class and discarded with it.</summary>
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1515", Justification = "xunit builds the class fixture and the public test classes take it in their constructors.")]
-public sealed class SubmissionHostFixture : IAsyncLifetime
-{
-    private SubmissionScreenHost? host;
-
-    internal SubmissionScreenHost Host => host ?? throw new InvalidOperationException("The host of the submission was not started.");
-
-    public async ValueTask InitializeAsync() => host = await SubmissionScreenHost.StartAsync(CancellationToken.None);
-
-    public async ValueTask DisposeAsync()
-    {
-        if (host is not null)
-        {
-            await host.DisposeAsync();
-        }
     }
 }

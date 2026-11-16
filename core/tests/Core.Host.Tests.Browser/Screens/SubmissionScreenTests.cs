@@ -74,13 +74,13 @@ public sealed partial class SubmissionScreenTests(BrowserFixture browser, Submis
     /// </summary>
     private static async Task<string> SubmitByKeyboardAsync(IPage page)
     {
-        var domain = page.GetByRole(AriaRole.Radio, new() { Name = SubmissionScreenHost.Granted });
+        var domain = page.GetByRole(AriaRole.Radio, new() { Name = SubmissionCase.Granted });
         await domain.FocusAsync();
         await page.Keyboard.PressAsync("Space");
         await Expect(domain).ToBeCheckedAsync();
 
         var file = page.GetByLabel("Arquivo");
-        await file.SetInputFilesAsync(new FilePayload { Name = "conversa.json", MimeType = "application/json", Buffer = Encoding.UTF8.GetBytes(SubmissionScreenHost.Conversation) });
+        await file.SetInputFilesAsync(new FilePayload { Name = "conversa.json", MimeType = "application/json", Buffer = Encoding.UTF8.GetBytes(SubmissionCase.Conversation) });
         await file.FocusAsync();
 
         await page.Keyboard.PressAsync("Tab");
@@ -90,7 +90,7 @@ public sealed partial class SubmissionScreenTests(BrowserFixture browser, Submis
         await Expect(form).ToBeCheckedAsync();
 
         await page.Keyboard.PressAsync("Tab");
-        await Expect(page.GetByRole(AriaRole.Radio, new() { Name = SubmissionScreenHost.Format })).ToBeFocusedAsync();
+        await Expect(page.GetByRole(AriaRole.Radio, new() { Name = SubmissionCase.Format })).ToBeFocusedAsync();
         await page.Keyboard.PressAsync("Tab");
         await Expect(page.GetByRole(AriaRole.Radio, new() { Name = "zqx_sigilosa (a mais restrita)" })).ToBeFocusedAsync();
 

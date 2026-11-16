@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Core.Host.Screens;
 using Core.Host.Tests.Browser.Accessibility;
 using Core.Host.Tests.Browser.Fixtures;
 using Microsoft.Playwright;
@@ -57,14 +58,15 @@ public sealed class BatchDetailPieceTests(BrowserFixture browser, BatchDetailHos
     }
 
     [Fact]
-    public async Task ABatchStillOpenHasNoItemAndSaysSoWithZeroPassagesInEveryDestination()
+    public async Task ABatchStillOpenHasNoItemAndSaysNoPassageWasCountedByDestination()
     {
         await using var tab = await OpenAsync("em-curso", "Lote 40");
 
         await Expect(tab.Page.Locator("main")).ToContainTextAsync("Em curso");
         await Expect(tab.Page.Locator(".empty-state__title")).ToHaveTextAsync("Nenhum item neste lote.");
         await Expect(tab.Page.Locator("main")).ToContainTextAsync("O lote ainda está em curso; os itens aparecem aqui quando forem gravados.");
-        await Expect(tab.Page.GetByText("0 trechos", new() { Exact = true })).ToHaveCountAsync(3);
+        await Expect(tab.Page.Locator("#destinos-nao-contados")).ToHaveTextAsync(BatchDetailTexts.NotCounted);
+        await Expect(tab.Page.GetByText("0 trechos", new() { Exact = true })).ToHaveCountAsync(0);
     }
 
     [Fact]

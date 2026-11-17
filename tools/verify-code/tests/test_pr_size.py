@@ -36,7 +36,7 @@ class PrSizeTests(unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
         self.repo = support.git_repository(Path(self._tmp.name))
-        environment = mock.patch.dict(os.environ, {"CDG_PR_BODY": ""})
+        environment = mock.patch.dict(os.environ, {"CDG_PR_BODY": "", "GITHUB_HEAD_REF": ""})
         environment.start()
         self.addCleanup(environment.stop)
 

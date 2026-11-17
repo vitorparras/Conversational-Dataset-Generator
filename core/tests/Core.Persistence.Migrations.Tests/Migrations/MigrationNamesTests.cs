@@ -5,7 +5,7 @@ namespace Core.Persistence.Tests.Migrations;
 /// <summary>A step is named by its order: four digits for the numbered ones, twelve (year to minute) for the ones dated by the author.</summary>
 public sealed class MigrationNamesTests
 {
-    private const int LastNumbered = 54;
+    private const int LastNumbered = 59;
 
     [Fact]
     public void NumberedStepsComeFirstAndDatedStepsFollowByTheirMoment()

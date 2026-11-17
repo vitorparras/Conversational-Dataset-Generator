@@ -41,7 +41,7 @@ class MigrationOrderTests(unittest.TestCase):
         self.assertIn("202611161500-b.sql: ordena antes de 202611171000-a.sql", result.details[0])
 
     def test_a_migration_dated_after_every_one_of_the_base_passes(self) -> None:
-        self.publish_on_main("0054-old.sql", "202611171000-a.sql")
+        self.publish_on_main("0059-old.sql", "202611171000-a.sql")
         self.add_on_branch("202611181200-b.sql")
 
         result = self.step()

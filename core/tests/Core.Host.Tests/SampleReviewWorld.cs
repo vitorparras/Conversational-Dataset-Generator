@@ -29,9 +29,10 @@ internal sealed class SampleReviewWorld : IAsyncDisposable
 
     private SampleReviewWorld(SubmissionWorld submissions, SessionedHost host,
         (long Batch, (long Curator, long Colleague, long Stranger) people) ids,
-        (int? Size, int Messages, NpgsqlDataSource Desk) shape)
+        (int? Size, int Messages, NpgsqlDataSource Desk, SampleReviewDesk Review) shape)
     {
         DeskSource = shape.Desk;
+        Desk = shape.Review;
         Submissions = submissions;
         Host = host;
         Batch = ids.Batch;
@@ -59,6 +60,9 @@ internal sealed class SampleReviewWorld : IAsyncDisposable
     internal static long Annotator => SubmissionWorld.Person;
 
     internal BatchReviews Reviews { get; }
+
+    /// <summary>The desk the screens ask the steps of the review of, the one the host holds, to judge what it answers without a route in between.</summary>
+    internal SampleReviewDesk Desk { get; }
 
     internal SubmissionWorld Submissions { get; }
 
@@ -108,7 +112,7 @@ internal sealed class SampleReviewWorld : IAsyncDisposable
                 BatchRoutes.Map(routes);
             },
             Token);
-        return new SampleReviewWorld(submissions, host, (outcome.Batch!.Value, (curator, colleague, stranger)), (size, messages, held));
+        return new SampleReviewWorld(submissions, host, (outcome.Batch!.Value, (curator, colleague, stranger)), (size, messages, held, desk));
     }
 
     internal string ReviewRoute => RouteOf(Batch);

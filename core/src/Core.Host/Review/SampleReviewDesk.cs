@@ -58,7 +58,8 @@ internal sealed class SampleReviewDesk
         var held = await steps.Reviews.ReadAsync(batch.DomainId, batch.Id, cancellationToken).ConfigureAwait(false);
         if (held?.Sample is null)
         {
-            return (BatchReviewOutcome.NotSampled, null);
+            // Whether the batch exists is the rule of the review; that no draw was made is the question of the screen, which shows a closed batch the steps refuse.
+            return (BatchReviews.Refusal(held, drawing: false) is BatchReviewOutcome.NotFound ? BatchReviewOutcome.NotFound : BatchReviewOutcome.NotSampled, null);
         }
 
         List<SampleReviewScreen.Item>? items;
@@ -78,15 +79,19 @@ internal sealed class SampleReviewDesk
     private static BatchReviewOutcome Refused(SampleDecision decision) =>
         decision == SampleDecision.ReviewIncomplete ? BatchReviewOutcome.ReviewIncomplete : BatchReviewOutcome.PlaceNotNext;
 
-    /// <summary>The outcome that turns a step back before any write: not sampled when no draw was made, or the reason the domain refuses the step; none when the step may go on.</summary>
+    /// <summary>
+    /// The outcome that turns a step back before any write: what the state of the batch refuses, by the one rule the database takes (<see cref="BatchReviews.Refusal" />),
+    /// or the reason the order of the places refuses it; none when the step may go on.
+    /// </summary>
     private async Task<BatchReviewOutcome?> TurnedBackAsync(BatchEntry batch, Func<SampleProgress, SampleDecision> decide, CancellationToken cancellationToken)
     {
-        if (await steps.Reviews.ReadAsync(batch.DomainId, batch.Id, cancellationToken).ConfigureAwait(false) is not { Sample: { } sample } held)
+        var held = await steps.Reviews.ReadAsync(batch.DomainId, batch.Id, cancellationToken).ConfigureAwait(false);
+        if (BatchReviews.Refusal(held, drawing: false) is { } refusal)
         {
-            return BatchReviewOutcome.NotSampled;
+            return refusal;
         }
 
-        var decision = decide(new SampleProgress(sample.Count, held.ReviewedPosition));
+        var decision = decide(new SampleProgress(held!.Sample!.Count, held.ReviewedPosition));
         return decision == SampleDecision.Allowed ? null : Refused(decision);
     }
 

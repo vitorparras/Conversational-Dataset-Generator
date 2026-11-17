@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- What the ingestion and the database both decide by: types and pure functions, no I/O and no reach into either. The platform is the one reference, as for every project of the core: the build the guard of the build mirrors (GateMirror) puts a canary in every source that needs Microsoft.Extensions, and it only arrives through Core.Platform. Taking it out breaks UnseenBuildTests for this project. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Core.Platform\Core.Platform.csproj" />
+  </ItemGroup>
+</Project>

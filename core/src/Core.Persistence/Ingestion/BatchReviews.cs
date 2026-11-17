@@ -1,6 +1,8 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
+using Core.Ingestion.Contracts;
 using Core.Persistence.Content;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
@@ -76,35 +78,30 @@ public sealed class BatchReviews
         return ReadingAsync(domainId, batchId, cancellationToken);
     }
 
-    internal static BatchReviewOutcome? Refusal(BatchReview? held, bool drawing)
-    {
-        if (held is null)
+    /// <summary>
+    /// What the state of a batch refuses of the review of its sample, in the words of the outcomes: the one rule (<see cref="SampleStateRules" />) that the steps of the database
+    /// and the desk of the screens take alike, over the batch as it was read. Null when the state allows the step.
+    /// </summary>
+    /// <param name="held">The review as it was read, or null when the domain has no such batch.</param>
+    /// <param name="drawing">True for the draw of the sample, false for a step that reviews it.</param>
+    public static BatchReviewOutcome? Refusal(BatchReview? held, bool drawing) =>
+        Outcome(SampleStateRules.Refusal(
+            held is null ? null : new SampledBatch(held.State == BatchState.Open, held.Sample is not null, held.ReviewerId is not null),
+            drawing));
+
+    /// <summary>The outcome that tells each refusal of the rule; a refusal no outcome tells is a defect and fails at once, not an answer guessed.</summary>
+    /// <param name="refusal">What the rule refused, or null when it allowed the step.</param>
+    internal static BatchReviewOutcome? Outcome(SampleRefusal? refusal) =>
+        refusal switch
         {
-            return BatchReviewOutcome.NotFound;
-        }
-
-        if (held.State != BatchState.Open && (drawing || held.ReviewerId is null))
-        {
-            return BatchReviewOutcome.NotOpen;
-        }
-
-        if (drawing)
-        {
-            return held.Sample is null ? null : BatchReviewOutcome.AlreadySampled;
-        }
-
-        return ReviewRefusal(held);
-    }
-
-    private static BatchReviewOutcome? ReviewRefusal(BatchReview held)
-    {
-        if (held.Sample is null)
-        {
-            return BatchReviewOutcome.NotSampled;
-        }
-
-        return held.ReviewerId is not null ? BatchReviewOutcome.AlreadyReviewed : null;
-    }
+            null => null,
+            SampleRefusal.NotFound => BatchReviewOutcome.NotFound,
+            SampleRefusal.NotOpen => BatchReviewOutcome.NotOpen,
+            SampleRefusal.AlreadySampled => BatchReviewOutcome.AlreadySampled,
+            SampleRefusal.NotSampled => BatchReviewOutcome.NotSampled,
+            SampleRefusal.AlreadyReviewed => BatchReviewOutcome.AlreadyReviewed,
+            _ => throw new UnreachableException(),
+        };
 
     internal static long[] Drawn(long[] numbers, int size)
     {

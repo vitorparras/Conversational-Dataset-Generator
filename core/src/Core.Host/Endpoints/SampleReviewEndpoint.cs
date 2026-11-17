@@ -91,6 +91,11 @@ internal static class SampleReviewEndpoint
                 });
             }
 
+            if (outcome == BatchReviewOutcome.NotFound)
+            {
+                return ScreenResult.NotFound(context);
+            }
+
             return outcome == BatchReviewOutcome.NotSampled
                 ? ScreenResult.Of(context, typeof(SampleDrawScreen), SampleDrawScreen.Title, DrawOf(found, sources.Desk.Declared))
                 : ScreenResult.Unavailable(context);

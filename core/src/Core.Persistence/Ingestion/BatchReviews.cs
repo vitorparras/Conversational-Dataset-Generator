@@ -106,7 +106,7 @@ public sealed class BatchReviews
         return held.ReviewerId is not null ? BatchReviewOutcome.AlreadyReviewed : null;
     }
 
-    private static long[] Drawn(long[] numbers, int size)
+    internal static long[] Drawn(long[] numbers, int size)
     {
         var shuffled = (long[])numbers.Clone();
         RandomNumberGenerator.Shuffle(shuffled.AsSpan());

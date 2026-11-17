@@ -20,7 +20,7 @@ internal static class SampleReviewParts
     {
         var size = AdmissionConfiguration.ReviewSampleSize(values);
         return new SampleReviewDesk(
-            (new BatchReviews(source, size), new SampleMarks(source), new CopyClosing(new BatchApprovals(source), SubmissionParts.BatchesOf(source, values))),
+            (new BatchReviews(source, size), new SampleMarks(source), CompositionRoot.ClosingOf(source, SubmissionParts.BatchesOf(source, values))),
             (new PersonRegistry(source), token => AccessAsync(startup, source, token), size));
     }
 

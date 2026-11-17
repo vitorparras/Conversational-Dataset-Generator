@@ -80,7 +80,7 @@ internal static class SampleReviewRealCase
         var reader = CompositionRoot.SampleTextOf(source, provider.GetRequiredService<MasterKeyReading>(), new HashSet<string>(SubmissionCase.Labels, StringComparer.Ordinal));
         var batches = new IngestionBatches(source, OriginConditions.Of(["zqx_sigilosa", "zqx_livre"]));
         return new SampleReviewDesk(
-            (new BatchReviews(source, Items), new SampleMarks(source), new CopyClosing(new BatchApprovals(source), batches)),
+            (new BatchReviews(source, Items), new SampleMarks(source), CompositionRoot.ClosingOf(source, batches)),
             (new PersonRegistry(source), _ => Task.FromResult(new SampleTextAccess(reader, null)), Items));
     }
 }

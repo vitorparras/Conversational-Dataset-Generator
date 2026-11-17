@@ -1,0 +1,129 @@
+using Core.Persistence.Custody;
+using Core.Persistence.Ingestion;
+using Core.Persistence.Tests.Fixtures;
+
+namespace Core.Persistence.Tests.Ingestion;
+
+/// <summary>
+/// The mark of an item of the sample and the approval of the batch, by their own services (issue 822): a mark is the next place and nothing else, it is written for good,
+/// an approval writes the review and the acceptance together and a file already accepted is not accepted twice.
+/// </summary>
+public sealed class SampleMarksAndApprovalsTests
+{
+    private const string Digest = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    private const string Position = "SELECT reviewed_position FROM content.ingestion_batch WHERE id = @id";
+    private const string State = "SELECT state || ',' || coalesce(reviewed_by::text, '-') FROM content.ingestion_batch WHERE id = @id";
+    private const string Closings = "SELECT count(*) FROM public.custody_event WHERE step IN ('batch_reviewed', 'batch_closed')";
+
+    [DatabaseFact]
+    public async Task AMarkIsTheNextPlaceAndIsWrittenForGood()
+    {
+        await using var world = await IngestionWorld.CreateAsync();
+        var batch = await DrawnAsync(world, await IngestionWorld.OpenAsync(world));
+
+        var first = await MarkAsync(world, batch, 1);
+        var repeated = await MarkAsync(world, batch, 1);
+        var skipped = await MarkAsync(world, batch, 3);
+        var second = await MarkAsync(world, batch, 2);
+        var third = await MarkAsync(world, batch, 3);
+        var beyond = await MarkAsync(world, batch, 4);
+
+        Assert.Equal(
+            (BatchReviewOutcome.Marked, BatchReviewOutcome.AlreadyMarked, BatchReviewOutcome.AlreadyMarked, BatchReviewOutcome.Marked, BatchReviewOutcome.Marked, BatchReviewOutcome.AlreadyMarked, 3),
+            (first.Outcome, repeated.Outcome, skipped.Outcome, second.Outcome, third.Outcome, beyond.Outcome, (int)(await world.AsSuperuserAsync(Position, ("id", batch)))!));
+    }
+
+    [DatabaseFact]
+    public async Task AMarkIsRefusedForABatchThatIsMissingClosedNotSampledOrReviewed()
+    {
+        await using var world = await IngestionWorld.CreateAsync();
+        var closed = await IngestionWorld.OpenAsync(world);
+        _ = await IngestionWorld.RejectAsync(world, closed, "invalid_rows");
+        var undrawn = await IngestionWorld.OpenAsync(world);
+        var reviewed = await DrawnAsync(world, await IngestionWorld.OpenAsync(world));
+        _ = await new BatchReviews(world.DataSource, 3).ReviewAsync(new BatchReviewing(IngestionWorld.Domain, reviewed, IngestionWorld.Person), TestContext.Current.CancellationToken);
+
+        var outcomes = new[]
+        {
+            (await MarkAsync(world, 9_999, 1)).Outcome,
+            (await MarkAsync(world, closed, 1)).Outcome,
+            (await MarkAsync(world, undrawn, 1)).Outcome,
+            (await MarkAsync(world, reviewed, 1)).Outcome,
+        };
+
+        Assert.Equal([BatchReviewOutcome.NotFound, BatchReviewOutcome.NotOpen, BatchReviewOutcome.NotSampled, BatchReviewOutcome.AlreadyReviewed], outcomes);
+    }
+
+    [DatabaseFact]
+    public async Task AnApprovalWritesTheReviewAndTheAcceptanceTogetherAndOnlyOnce()
+    {
+        await using var world = await IngestionWorld.CreateAsync();
+        var batch = await DrawnAsync(world, await IngestionWorld.OpenAsync(world));
+
+        var approved = await ApproveAsync(world, batch);
+        var again = await ApproveAsync(world, batch);
+
+        Assert.Equal(
+            (BatchReviewOutcome.Approved, BatchReviewOutcome.AlreadyReviewed, $"accepted,{IngestionWorld.Person}", 2L),
+            (approved.Outcome, again.Outcome, (string)(await world.AsSuperuserAsync(State, ("id", batch)))!, (long)(await world.AsSuperuserAsync(Closings))!));
+    }
+
+    [DatabaseFact]
+    public async Task AnApprovalOfAFileAlreadyAcceptedIsRefusedAsReceivedAndLeavesTheBatchOpen()
+    {
+        await using var world = await IngestionWorld.CreateAsync();
+        var batches = IngestionWorld.BatchesOf(world);
+        var first = await DrawnAsync(world, await OpenFileAsync(batches, 'a'));
+        var second = await DrawnAsync(world, await OpenFileAsync(batches, 'b'));
+        var events = (long)(await world.AsSuperuserAsync(Closings))!;
+
+        var accepted = await ApproveAsync(world, first);
+        var repeated = await ApproveAsync(world, second);
+
+        Assert.Equal(
+            (BatchReviewOutcome.Approved, BatchReviewOutcome.AlreadyReceived, "open,-", events + 2),
+            (accepted.Outcome, repeated.Outcome, (string)(await world.AsSuperuserAsync(State, ("id", second)))!, (long)(await world.AsSuperuserAsync(Closings))!));
+    }
+
+    [Fact]
+    public void ARefusalByCollisionIsOneThatWroteNothingAndMayBeAskedAgain()
+    {
+        var conflict = new CustodyResult { Outcome = CustodyOutcome.Conflict, Refusal = "same link" };
+        var other = new CustodyResult { Outcome = CustodyOutcome.Appended, Sequence = 1 };
+
+        Assert.Equal(
+            (true, false, false, false),
+            (
+                new BatchReviewResult { Outcome = BatchReviewOutcome.NotRecorded, Refusal = conflict }.Collided,
+                new BatchReviewResult { Outcome = BatchReviewOutcome.NotRecorded, Refusal = other }.Collided,
+                new BatchReviewResult { Outcome = BatchReviewOutcome.NotRecorded }.Collided,
+                new BatchReviewResult { Outcome = BatchReviewOutcome.Rejected, Refusal = conflict }.Collided));
+    }
+
+    private static Task<BatchReviewResult> MarkAsync(BatchesWorld world, long batch, int place) =>
+        new SampleMarks(world.DataSource).MarkAsync(new BatchMarking(IngestionWorld.Domain, batch, place), TestContext.Current.CancellationToken);
+
+    private static Task<BatchReviewResult> ApproveAsync(BatchesWorld world, long batch) =>
+        new BatchApprovals(world.DataSource).ApproveAsync(new BatchApproval(IngestionWorld.Domain, batch, IngestionWorld.Person), TestContext.Current.CancellationToken);
+
+    private static async Task<long> OpenFileAsync(IngestionBatches batches, char submission)
+    {
+        var opened = await batches.OpenAsync(
+            new BatchOpening(IngestionWorld.Domain, IngestionWorld.Person, null, new SubmissionOpening(new SubmissionReceipt(new string(submission, 32), 10, Digest, null), OriginDeclaration.Unknown)),
+            TestContext.Current.CancellationToken);
+        Assert.Equal(BatchOutcome.Opened, opened.Outcome);
+        return opened.BatchId!.Value;
+    }
+
+    private static async Task<long> DrawnAsync(BatchesWorld world, long batch)
+    {
+        for (var item = 0; item < 3; item++)
+        {
+            _ = await IngestionWorld.AddItemAsync(world, batch);
+        }
+
+        var drawn = await new BatchReviews(world.DataSource, 3).DrawAsync(new BatchSampling(IngestionWorld.Domain, batch, IngestionWorld.Person), TestContext.Current.CancellationToken);
+        Assert.Equal(BatchReviewOutcome.Drawn, drawn.Outcome);
+        return batch;
+    }
+}

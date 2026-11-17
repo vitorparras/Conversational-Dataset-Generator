@@ -77,8 +77,9 @@ def issue_number(pr_body: str, branch: str) -> str | None:
 def slice_ceiling(issue_text: str) -> int | None:
     """The number of the line `Teto da fatia: N linhas`, only from an issue whose plan the
     Arquiteto checked; dots group thousands."""
-    found = CEILING_LINE.search(HIDDEN.sub("", issue_text))
-    checked = CHECKED_PLAN.search(issue_text)
+    visible = HIDDEN.sub("", issue_text)
+    found = CEILING_LINE.search(visible)
+    checked = CHECKED_PLAN.search(visible)
     return int(found.group(1).replace(".", "")) if found and checked else None
 
 

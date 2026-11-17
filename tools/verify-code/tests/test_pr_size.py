@@ -19,13 +19,16 @@ PLAN = "Plano conferido pelo Arquiteto: sim"
 GH_TAIL = ("--json", "body", "--jq", ".body")
 
 
-def with_issue(text: str | None) -> Callable[[Sequence[str], Path], CommandOutcome]:
-    """Runs git for real; `gh issue view` answers with the issue text, or fails when it is None."""
+def with_issue(
+    text: str | None, number: str = "12"
+) -> Callable[[Sequence[str], Path], CommandOutcome]:
+    """Runs git for real; `gh issue view <number>` answers with the issue text, or fails when it is
+    None; any other command or number is not answered."""
 
     def run(command: Sequence[str], cwd: Path) -> CommandOutcome:
         if command[0] != "gh":
             return run_process(command, cwd)
-        asked = [*command[:3], *command[4:]] == ["gh", "issue", "view", *GH_TAIL]
+        asked = list(command) == ["gh", "issue", "view", number, *GH_TAIL]
         return CommandOutcome(asked and text is not None, text or "")
 
     return run
@@ -40,9 +43,11 @@ class PrSizeTests(unittest.TestCase):
         environment.start()
         self.addCleanup(environment.stop)
 
-    def run_with(self, issue: str | None, env: dict[str, str] = CLOSING) -> pr_size.StepResult:
+    def run_with(
+        self, issue: str | None, env: dict[str, str] = CLOSING, number: str = "12"
+    ) -> pr_size.StepResult:
         with mock.patch.dict(os.environ, env):
-            return pr_size.run(support.context(self.repo, with_issue(issue), base="main"))
+            return pr_size.run(support.context(self.repo, with_issue(issue, number), base="main"))
 
     def test_many_small_files_pass_because_there_is_no_file_ceiling(self) -> None:
         support.commit_files(self.repo, support.numbered_files("src/file_", 60), 1)
@@ -139,7 +144,7 @@ class PrSizeTests(unittest.TestCase):
         support.git(self.repo, "checkout", "-q", "-b", "feat/77-fatia")
         support.commit_files(self.repo, ["src/a.cs"], 5)
 
-        result = self.run_with(f"Teto da fatia: 900 linhas\n{PLAN}", env={})
+        result = self.run_with(f"Teto da fatia: 900 linhas\n{PLAN}", env={}, number="77")
 
         self.assertIn("(teto 900 linhas, da issue #77)", result.details[0])
 
@@ -221,3 +226,11 @@ class PrSizeTests(unittest.TestCase):
 
     def test_fecha_does_not_name_an_issue_and_main_has_no_number(self) -> None:
         self.assertIsNone(pr_size.issue_number("Fecha #8", "main"))
+
+    def test_a_checked_plan_mark_inside_a_comment_does_not_release_the_ceiling(self) -> None:
+        support.commit_files(self.repo, ["src/a.cs"], 401)
+
+        result = self.run_with(f"Teto da fatia: 900 linhas\n<!-- {PLAN} -->")
+
+        self.assertFalse(result.ok)
+        self.assertIn("a issue #12 sem teto e plano conferido", " ".join(result.details))

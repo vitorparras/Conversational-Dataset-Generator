@@ -7,5 +7,7 @@ namespace Core.Persistence.Ingestion;
 /// <param name="ReviewerId">Who reviewed the sample; null while it was not reviewed.</param>
 /// <param name="ReviewedAt">When the sample was reviewed, the server's moment.</param>
 /// <param name="Finding">What the review found, which rejected the batch; null when it found nothing or was not done.</param>
+/// <param name="ReviewedPosition">How many places of the sample were marked as reviewed, 0 before the first.</param>
+/// <param name="FindingPosition">The place of the sample where the finding was told; null when the review found nothing or was not done.</param>
 public sealed record BatchReview(
-    BatchState State, IReadOnlyList<long>? Sample, DateTimeOffset? SampledAt, long? ReviewerId, DateTimeOffset? ReviewedAt, string? Finding);
+    BatchState State, IReadOnlyList<long>? Sample, DateTimeOffset? SampledAt, long? ReviewerId, DateTimeOffset? ReviewedAt, string? Finding, int ReviewedPosition = 0, int? FindingPosition = null);

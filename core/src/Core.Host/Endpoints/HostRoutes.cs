@@ -26,7 +26,7 @@ internal static class HostRoutes
         NoticeScreensEndpoint.Map(app);
         OperatorScreensEndpoint.Map(app);
         EmptyingScreensEndpoint.Map(app);
-        BatchScreensEndpoint.Map(app);
+        BatchRoutes.Map(app);
         AuditEndpoint.Map(app);
         OperatorsEndpoint.Map(app);
         AccountEndpoint.Map(app);

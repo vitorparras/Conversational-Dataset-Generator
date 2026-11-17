@@ -21,7 +21,7 @@ public sealed class SubmissionCleanUpTests
         var rejections = new Rejections(Collision(), Collision(), Collision(), Rejected());
         var log = new SubmissionLog();
 
-        var cleaned = await SubmissionStoring.CleanUpAsync(rejections.RejectAsync, KeptBatch(), log);
+        var cleaned = await SubmissionStoring.CleanUpAsync(rejections.RejectAsync, SubmissionStoring.Keeping.WriteFailed, KeptBatch(), log);
 
         Assert.Equal((SubmissionStoring.Keeping.WriteFailed, SubmissionStoring.RejectionRounds), (cleaned, rejections.Motives.Count));
     }
@@ -31,7 +31,7 @@ public sealed class SubmissionCleanUpTests
     {
         var log = new SubmissionLog();
 
-        _ = await SubmissionStoring.CleanUpAsync(new Rejections(Collision(), Collision(), Collision()).RejectAsync, KeptBatch(), log);
+        _ = await SubmissionStoring.CleanUpAsync(new Rejections(Collision(), Collision(), Collision()).RejectAsync, SubmissionStoring.Keeping.WriteFailed, KeptBatch(), log);
 
         var line = Assert.Single(log.Lines);
         Assert.Equal((350, LogLevel.Error), (line.EventId, line.Level));
@@ -46,7 +46,7 @@ public sealed class SubmissionCleanUpTests
         var rejections = new Rejections(Collision(), Collision(), Rejected());
         var log = new SubmissionLog();
 
-        var cleaned = await SubmissionStoring.CleanUpAsync(rejections.RejectAsync, KeptBatch(), log);
+        var cleaned = await SubmissionStoring.CleanUpAsync(rejections.RejectAsync, SubmissionStoring.Keeping.WriteFailed, KeptBatch(), log);
 
         Assert.Equal(
             (SubmissionStoring.Keeping.WriteFailed, 0, string.Join(',', Enumerable.Repeat(SubmissionStoring.WriteFailed, 3))),
@@ -58,7 +58,7 @@ public sealed class SubmissionCleanUpTests
     {
         var rejections = new Rejections(Rejected());
 
-        var cleaned = await SubmissionStoring.CleanUpAsync(rejections.RejectAsync, KeptBatch(), new SubmissionLog());
+        var cleaned = await SubmissionStoring.CleanUpAsync(rejections.RejectAsync, SubmissionStoring.Keeping.WriteFailed, KeptBatch(), new SubmissionLog());
 
         Assert.Equal((SubmissionStoring.Keeping.WriteFailed, SubmissionStoring.WriteFailed), (cleaned, string.Join(',', rejections.Motives)));
     }
@@ -70,9 +70,25 @@ public sealed class SubmissionCleanUpTests
         var rejections = new Rejections(refused, Rejected());
         var log = new SubmissionLog();
 
-        var cleaned = await SubmissionStoring.CleanUpAsync(rejections.RejectAsync, KeptBatch(), log);
+        var cleaned = await SubmissionStoring.CleanUpAsync(rejections.RejectAsync, SubmissionStoring.Keeping.WriteFailed, KeptBatch(), log);
 
         Assert.Equal((SubmissionStoring.Keeping.WriteFailed, 1, 1), (cleaned, rejections.Motives.Count, log.Lines.Count));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RejectionThatFailsLeavesTheBatchOpenWithTheLogAndAnswersHowTheWritingEnded(bool cancelled)
+    {
+        var log = new SubmissionLog();
+        var failed = cancelled ? SubmissionStoring.Keeping.Cancelled : SubmissionStoring.Keeping.WriteFailed;
+        Task<BatchResult> Failing(string _) => cancelled ? Task.FromCanceled<BatchResult>(new CancellationToken(true)) : Task.FromException<BatchResult>(new InvalidOperationException("zqx"));
+
+        var cleaned = await SubmissionStoring.CleanUpAsync(Failing, failed, KeptBatch(), log);
+
+        var line = Assert.Single(log.Lines);
+        Assert.Equal((failed, 350), (cleaned, line.EventId));
+        Assert.Contains(nameof(BatchOutcome.NotRecorded), line.Line, StringComparison.Ordinal);
     }
 
     private static SubmissionStoring.Kept KeptBatch()

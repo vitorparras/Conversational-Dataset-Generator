@@ -1,0 +1,59 @@
+@using System.Globalization
+
+<h1>Revisão da amostra do lote @Number(Batch)</h1>
+
+<Panel Id="amostra-sorteio" Title="Amostra ainda não sorteada">
+    <FactList>
+        <Fact Term="Domínio">@Domain</Fact>
+        <Fact Term="Tamanho declarado">@(Declared is { } size ? ItemCount(size) : "Não declarado")</Fact>
+    </FactList>
+    @if (!Open)
+    {
+        <p>O lote já foi decidido, e por isso nenhuma amostra se sorteia mais para ele.</p>
+    }
+    else if (Declared is null)
+    {
+        <Notice Kind="Notice.Tone.Info">
+            A instalação não declara o tamanho da amostra de revisão. Sem esse tamanho a amostra não se sorteia, e o lote fica aberto até que ele seja declarado na configuração.
+        </Notice>
+    }
+    else
+    {
+        <p>O sorteio escolhe @ItemCount(Declared.Value) do lote, ou todos os itens dele se forem menos. A amostra não se escolhe, não se troca e não se sorteia de novo.</p>
+        <form class="form" method="post" action="@Action">
+            <div class="actions">
+                <Button Id="sortear">Sortear a amostra</Button>
+                <Button Href="@Back" Kind="Button.Look.Secondary">Voltar para os lotes</Button>
+            </div>
+        </form>
+    }
+</Panel>
+
+@code {
+    /// <summary>The title of the page.</summary>
+    internal const string Title = "Revisão da amostra";
+
+    [Parameter, EditorRequired]
+    public long Batch { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Domain { get; set; } = "";
+
+    /// <summary>The size of the sample the installation declares; none when it declares none.</summary>
+    [Parameter]
+    public int? Declared { get; set; }
+
+    /// <summary>Whether the batch is still open, which alone lets a sample be drawn.</summary>
+    [Parameter]
+    public bool Open { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Action { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public string Back { get; set; } = "";
+
+    private static string Number(long value) => value.ToString(CultureInfo.InvariantCulture);
+
+    private static string ItemCount(int count) => count == 1 ? "1 item" : $"{Number(count)} itens";
+}

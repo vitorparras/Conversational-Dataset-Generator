@@ -18,7 +18,7 @@ namespace Core.Persistence.Ingestion;
 public sealed class IngestionBatches
 {
     private const string AuthorConstraint = "ingestion_batch_opened_by_fkey";
-    private const string AcceptedDigestIndex = "ingestion_batch_accepted_digest";
+    internal const string AcceptedDigestIndex = "ingestion_batch_accepted_digest";
 
     private readonly NpgsqlDataSource dataSource;
     private readonly OriginConditions conditions;

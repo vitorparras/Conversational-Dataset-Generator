@@ -78,19 +78,8 @@ public sealed class ProtectedContentReader(NpgsqlDataSource dataSource, Protecte
     }
 
     /// <summary>What a reading is told before anything is recorded: the loss of the key it is sealed under, which was declared, or a label the installation does not hold.</summary>
-    private async Task<ContentReadResult?> RefusedBeforeRecordingAsync(StoredValue stored, CancellationToken cancellationToken)
-    {
-        var lost = await DeclaredKeyLoss.ScopesAsync(dataSource, cancellationToken).ConfigureAwait(false);
-        var carried = ProtectedContent.LabelsCarried(stored.Envelope!, stored.Key!);
-        var scope = lost.Contains(KeyLossScope.MasterText) ? KeyLossScope.MasterText : carried.FirstOrDefault(lost.Contains);
-        if (scope is not null)
-        {
-            return new ContentReadResult { Outcome = ContentReadOutcome.KeyLossDeclared, Label = scope };
-        }
-
-        var missing = carried.FirstOrDefault(label => !protectedContent.IsLoaded(label));
-        return missing is null ? null : new ContentReadResult { Outcome = ContentReadOutcome.LabelMissing, Label = missing };
-    }
+    private Task<ContentReadResult?> RefusedBeforeRecordingAsync(StoredValue stored, CancellationToken cancellationToken) =>
+        SealedValueRefusal.OfAsync((dataSource, protectedContent), (stored.Envelope!, stored.Key!), cancellationToken);
 
     private async Task<StoredValue> FetchAsync(ContentRead request, Lookup lookup, CancellationToken cancellationToken)
     {

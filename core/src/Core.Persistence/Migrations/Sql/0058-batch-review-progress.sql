@@ -1,0 +1,71 @@
+-- How far the review of the sample went (issue 822): the last place of the sample marked as reviewed, which grows by one while the batch is open, drawn and not yet reviewed, and the place where the
+-- finding was told, which exists only in a review that found something. The sample item numbers stay in review_sample (0053); the places are their order there, from 1.
+ALTER TABLE content.ingestion_batch
+    ADD COLUMN reviewed_position integer NOT NULL DEFAULT 0,
+    ADD COLUMN finding_position integer,
+    ADD CONSTRAINT ingestion_batch_progress CHECK (reviewed_position >= 0 AND (review_sample IS NOT NULL OR reviewed_position = 0)),
+    ADD CONSTRAINT ingestion_batch_finding_place CHECK (finding_position IS NULL OR (review_finding IS NOT NULL AND finding_position >= 1));
+
+GRANT UPDATE (reviewed_position, finding_position) ON content.ingestion_batch TO app;
+
+-- The function of the 0055 with everything it refused still refused (the form the file came in included), and the progress of the review among what only moves one way: marking a place is the only
+-- change of an open batch that is neither the draw nor the review and it takes the place right after the last one marked; the finding of a review names a
+-- place already seen or the one right after the last seen, never beyond the sample.
+CREATE OR REPLACE FUNCTION public.refuse_batch_change() RETURNS trigger
+LANGUAGE plpgsql
+AS $refuse$
+DECLARE
+    sampling boolean := OLD.review_sample IS NULL AND NEW.review_sample IS NOT NULL;
+    reviewing boolean := OLD.reviewed_by IS NULL AND NEW.reviewed_by IS NOT NULL;
+    marking boolean := NEW.reviewed_position IS DISTINCT FROM OLD.reviewed_position;
+    places integer := COALESCE(pg_catalog.cardinality(pg_catalog.string_to_array(OLD.review_sample, ',')), 0);
+BEGIN
+    IF OLD.state IS DISTINCT FROM 'open' OR NEW.state IS NULL OR NEW.state NOT IN ('open', 'accepted', 'rejected')
+        OR NEW.id IS DISTINCT FROM OLD.id OR NEW.domain_id IS DISTINCT FROM OLD.domain_id
+        OR NEW.opened_by IS DISTINCT FROM OLD.opened_by OR NEW.opened_at IS DISTINCT FROM OLD.opened_at
+        OR NEW.declared_form IS DISTINCT FROM OLD.declared_form OR NEW.source_form IS DISTINCT FROM OLD.source_form
+        OR (OLD.review_sample IS NOT NULL AND NEW.review_sample IS DISTINCT FROM OLD.review_sample)
+        OR (OLD.reviewed_by IS NOT NULL AND NEW.reviewed_by IS DISTINCT FROM OLD.reviewed_by)
+        OR NEW.sampled_at IS DISTINCT FROM OLD.sampled_at OR NEW.reviewed_at IS DISTINCT FROM OLD.reviewed_at
+        OR (sampling AND (reviewing OR marking OR NEW.state <> 'open'))
+        OR (reviewing AND (OLD.review_sample IS NULL OR marking))
+        OR (marking AND (OLD.review_sample IS NULL OR OLD.reviewed_by IS NOT NULL OR NEW.state <> 'open' OR NEW.review_finding IS NOT NULL
+            OR NEW.reviewed_position <> OLD.reviewed_position + 1 OR NEW.reviewed_position > places))
+        OR (NEW.state = 'open' AND NOT (sampling OR reviewing OR marking))
+        OR (NEW.state = 'open' AND NEW.review_finding IS NOT NULL)
+        OR (reviewing AND NEW.state = 'accepted')
+        OR (reviewing AND (NEW.state = 'rejected') <> (NEW.review_finding IS NOT NULL))
+        OR (NEW.finding_position IS DISTINCT FROM OLD.finding_position AND NOT reviewing)
+        OR (reviewing AND (NEW.finding_position IS NOT NULL) <> (NEW.review_finding IS NOT NULL))
+        OR (reviewing AND NEW.finding_position IS NOT NULL AND (NEW.finding_position < 1 OR NEW.finding_position > OLD.reviewed_position + 1 OR NEW.finding_position > places)) THEN
+        RAISE EXCEPTION 'a batch passes from open to accepted or to rejected, once, and its sample is drawn, marked place by place and reviewed once; nothing else of it changes'
+            USING ERRCODE = 'CE006', SCHEMA = TG_TABLE_SCHEMA, TABLE = TG_TABLE_NAME;
+    END IF;
+
+    IF NEW.state = 'accepted' AND (OLD.reviewed_by IS NULL OR OLD.review_finding IS NOT NULL) THEN
+        RAISE EXCEPTION 'a batch is accepted only after the review of its sample, and the review found nothing'
+            USING ERRCODE = 'CE005', SCHEMA = TG_TABLE_SCHEMA, TABLE = TG_TABLE_NAME;
+    END IF;
+
+    IF (sampling AND NOT public.batch_event_of_this_transaction(NEW.id, 'batch_sampled', 'administrative_act', NULL))
+        OR (reviewing AND NOT public.batch_event_by(NEW.id, 'batch_reviewed', CASE WHEN NEW.review_finding IS NULL THEN 'review_clean' ELSE 'review_found' END, NEW.reviewed_by))
+        OR (NEW.state <> 'open' AND NOT public.batch_event_of_this_transaction(NEW.id, 'batch_closed', CASE NEW.state WHEN 'accepted' THEN 'batch_accepted' ELSE 'batch_rejected' END, NEW.motive)) THEN
+        RAISE EXCEPTION 'a batch changes only with the event of the change, with the same outcome and motive, in the same transaction'
+            USING ERRCODE = 'CE005', SCHEMA = TG_TABLE_SCHEMA, TABLE = TG_TABLE_NAME;
+    END IF;
+
+    IF sampling THEN
+        NEW.sampled_at := pg_catalog.now();
+    END IF;
+
+    IF reviewing THEN
+        NEW.reviewed_at := pg_catalog.now();
+    END IF;
+
+    IF NEW.state <> 'open' THEN
+        NEW.closed_at := pg_catalog.now();
+    END IF;
+
+    RETURN NEW;
+END
+$refuse$;

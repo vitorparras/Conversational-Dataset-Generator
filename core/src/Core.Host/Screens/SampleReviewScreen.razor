@@ -6,6 +6,10 @@
     Um dado pessoal em qualquer item reprova o lote inteiro.
 </p>
 
+@if (ResultNotice is { } result)
+{
+    <Notice Kind="@(Result == RefusedMark ? Notice.Tone.Error : Notice.Tone.Info)">@result</Notice>
+}
 @if (Sample.Approved is { } approval)
 {
     <Notice Kind="Notice.Tone.Success">Lote aprovado por @approval.By em <Moment At="approval.At" />, com a amostra @approval.Draw revisada.</Notice>
@@ -40,8 +44,11 @@ else
         {
             <li class="sample__item">
                 <Panel Id="@($"item-{item.Position}")" Title="@($"Item {Number(item.Position)} de {Number(Sample.Items.Count)}")">
-                    <p class="sample__version">@SampleTexts.VersionOf(item.Cleaned)</p>
-                    <blockquote class="sample__text">@item.Text</blockquote>
+                    @if (!Decided)
+                    {
+                        <p class="sample__version">@SampleTexts.VersionOf(item.Cleaned)</p>
+                        <blockquote class="sample__text">@item.Text</blockquote>
+                    }
                     @if (item.Reviewed)
                     {
                         <StateMark Kind="StateMark.Tone.Good">Revisado</StateMark>
@@ -63,7 +70,10 @@ else
                                     <Button Id="@($"revisado-{item.Position}")">Revisado, sem dado pessoal</Button>
                                 </form>
                             }
-                            <Button Id="@($"achado-{item.Position}")" Href="@($"{Action}/itens/{Number(item.Position)}/achado")" Kind="Button.Look.Danger">Achei dado pessoal</Button>
+                            @if (item.Reviewed || item.Position == Next)
+                            {
+                                <Button Id="@($"achado-{item.Position}")" Href="@($"{Action}/itens/{Number(item.Position)}/achado")" Kind="Button.Look.Danger">Achei dado pessoal</Button>
+                            }
                         </div>
                     }
                 </Panel>
@@ -98,6 +108,16 @@ else
     /// <summary>The title of the page.</summary>
     internal const string Title = "Revisão da amostra";
 
+    /// <summary>The key of the address that carries the mark of what became of the last step.</summary>
+    internal const string ResultKey = "resultado";
+
+    internal const string DrawnMark = "sorteada";
+    internal const string MarkedMark = "revisado";
+    internal const string ApprovedMark = "aprovado";
+    internal const string RejectedMark = "reprovado";
+    internal const string RepeatedMark = "repetido";
+    internal const string RefusedMark = "recusado";
+
     /// <summary>One item of the sample, at its place in the draw, in the most treated version that exists, and whether it was reviewed.</summary>
     public sealed record Item(int Position, string Text, bool Cleaned, bool Reviewed);
 
@@ -121,12 +141,25 @@ else
     [Parameter, EditorRequired]
     public string Action { get; set; } = "";
 
+    /// <summary>The mark of what became of the last step, from the address; none when the page was opened without one.</summary>
+    [Parameter]
+    public string? Result { get; set; }
+
+    private string? ResultNotice => Result switch
+    {
+        DrawnMark => "A amostra foi sorteada. Revise os itens, na ordem.",
+        MarkedMark => "O item foi marcado como revisado.",
+        RepeatedMark => "Esse passo já estava feito: a tela mostra o que ficou registrado.",
+        RefusedMark => "O passo não foi feito: o item não está na vez ou o lote não aceita mais esse passo. Confira o estado abaixo.",
+        _ => null,
+    };
+
     private int ReviewedCount => Sample.Items.Count(item => item.Reviewed);
 
     /// <summary>The one item that can be marked now: the first not reviewed, so that no item is skipped.</summary>
     private int? Next => Sample.Items.FirstOrDefault(item => !item.Reviewed)?.Position;
 
-    /// <summary>Whether the batch was already approved or rejected; until then a finding can be told at any item, reviewed or not, since one found late still rejects the batch.</summary>
+    /// <summary>Whether the batch was already approved or rejected; until then a finding can be told at the item being reviewed or at one already reviewed, since one found late still rejects the batch.</summary>
     private bool Decided => Sample.Approved is not null || Sample.Rejected is not null;
 
     /// <summary>Whether every item of the sample was reviewed, which alone offers the approval (CA-4).</summary>

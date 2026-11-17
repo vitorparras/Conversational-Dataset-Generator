@@ -92,11 +92,13 @@ public sealed class SampleReviewScreenTests
     [InlineData(0)]
     [InlineData(1)]
     [InlineData(3)]
-    public async Task Ca2AFindingCanBeToldAtEveryItemReviewedOrNotWhileTheBatchIsUndecided(int reviewed)
+    public async Task Ca2AFindingCanBeToldAtTheItemsReviewedAndAtTheNextOneOnly(int reviewed)
     {
         var page = await ReviewAsync(Drawn(reviewed));
+        var offered = Math.Min(3, reviewed + 1);
 
-        Assert.All(Enumerable.Range(1, 3), position => Assert.Contains($"href=\"{Action}/itens/{position}/achado\"", page, StringComparison.Ordinal));
+        Assert.All(Enumerable.Range(1, offered), position => Assert.Contains($"href=\"{Action}/itens/{position}/achado\"", page, StringComparison.Ordinal));
+        Assert.All(Enumerable.Range(offered + 1, 3 - offered), position => Assert.DoesNotContain($"/itens/{position}/achado", page, StringComparison.Ordinal));
     }
 
     [Fact]

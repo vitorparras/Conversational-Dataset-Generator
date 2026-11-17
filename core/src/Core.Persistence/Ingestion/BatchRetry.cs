@@ -18,10 +18,19 @@ internal static class BatchRetry
     /// <param name="attempt">The write, which opens its own transaction each time it runs.</param>
     /// <param name="attempts">The attempts in all, the first included.</param>
     /// <param name="cancellationToken">Cancels the waiting between the attempts.</param>
-    internal static async Task<BatchResult> RunAsync(Func<Task<BatchResult>> attempt, int attempts, CancellationToken cancellationToken)
+    internal static Task<BatchResult> RunAsync(Func<Task<BatchResult>> attempt, int attempts, CancellationToken cancellationToken) =>
+        RunAsync(attempt, result => result.Collided, attempts, cancellationToken);
+
+    /// <summary>The same repeating for an answer that tells by itself whether it was a collision.</summary>
+    /// <typeparam name="T">The answer of the write.</typeparam>
+    /// <param name="attempt">The write, which opens its own transaction each time it runs.</param>
+    /// <param name="collided">Whether the answer is the refusal for a collision.</param>
+    /// <param name="attempts">The attempts in all, the first included.</param>
+    /// <param name="cancellationToken">Cancels the waiting between the attempts.</param>
+    internal static async Task<T> RunAsync<T>(Func<Task<T>> attempt, Func<T, bool> collided, int attempts, CancellationToken cancellationToken)
     {
         var result = await attempt().ConfigureAwait(false);
-        for (var made = 1; made < attempts && result.Collided; made++)
+        for (var made = 1; made < attempts && collided(result); made++)
         {
             await Task.Delay(RandomNumberGenerator.GetInt32(ShortestWait, LongestWait), cancellationToken).ConfigureAwait(false);
             result = await attempt().ConfigureAwait(false);

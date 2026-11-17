@@ -1,4 +1,5 @@
 @using System.Globalization
+@using Core.Host.Endpoints
 @using Core.Persistence.Ingestion
 
 <h1>Lote @Number(Batch.Id)</h1>
@@ -90,6 +91,7 @@
 </Panel>
 
 <div class="actions">
+    <Button Id="revisar-amostra" Href="@ReviewAddress">Revisão da amostra</Button>
     <Button Href="@ListAddress" Kind="Button.Look.Secondary">Voltar para os lotes</Button>
 </div>
 
@@ -146,6 +148,8 @@
     /// <summary>The address of the list of batches, with the filter it was opened from.</summary>
     [Parameter, EditorRequired]
     public string ListAddress { get; set; } = "";
+
+    private string ReviewAddress => ScreenPaths.BatchReviewOf(Batch.Id);
 
     private static string Number(long value) => value.ToString(CultureInfo.InvariantCulture);
 

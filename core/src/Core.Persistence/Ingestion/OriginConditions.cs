@@ -22,11 +22,8 @@ public sealed class OriginConditions
 
     /// <summary>The conditions in the order given, which must be a list with no repeated name and only names.</summary>
     /// <param name="ordered">The names, the most restrictive first.</param>
-    public static OriginConditions Of(IReadOnlyList<string> ordered)
-    {
-        ArgumentNullException.ThrowIfNull(ordered);
-        return Refusal(ordered) is { } reason ? throw new ArgumentException(reason, nameof(ordered)) : new OriginConditions([.. ordered]);
-    }
+    public static OriginConditions Of(IReadOnlyList<string> ordered) =>
+        Refusal(ordered) is { } reason ? throw new ArgumentException(reason, nameof(ordered)) : new OriginConditions([.. ordered]);
 
     /// <summary>Why the list is not one the installation can run with; null when it is.</summary>
     /// <param name="ordered">The names, the most restrictive first.</param>

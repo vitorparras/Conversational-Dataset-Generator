@@ -44,7 +44,7 @@ public sealed class SampleReviewPieceTests(BrowserFixture browser, SampleReviewH
 
         await Expect(tab.Page.GetByRole(AriaRole.Button, new() { Name = Mark })).ToHaveCountAsync(1);
         await Expect(tab.Page.Locator($"#revisado-{next}")).ToBeVisibleAsync();
-        await Expect(tab.Page.GetByRole(AriaRole.Link, new() { Name = Finding })).ToHaveCountAsync(Items);
+        await Expect(tab.Page.GetByRole(AriaRole.Link, new() { Name = Finding })).ToHaveCountAsync(next);
         await Expect(tab.Page.Locator(".mark--good")).ToHaveCountAsync(reviewed);
         await Expect(tab.Page.GetByText("Revise os itens anteriores primeiro.")).ToHaveCountAsync(Items - reviewed - 1);
     }
@@ -267,7 +267,7 @@ public sealed class SampleReviewPieceTests(BrowserFixture browser, SampleReviewH
     private static IEnumerable<string> FindingsBetween(int first, int last) => Enumerable.Range(first, last - first + 1).Select(position => $"achado-{position}");
 
     /// <summary>The stops of the review with the item at the position as the next: the findings before it, its mark, and the findings from it to the end.</summary>
-    private static List<string> StopsAt(int position) => [.. FindingsBetween(1, position - 1), $"revisado-{position}", .. FindingsBetween(position, Items)];
+    private static List<string> StopsAt(int position) => [.. FindingsBetween(1, position - 1), $"revisado-{position}", $"achado-{position}"];
 
     private async Task<BrowserTab> OpenAsync(string route, string title)
     {

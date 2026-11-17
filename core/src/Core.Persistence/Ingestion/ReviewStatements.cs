@@ -16,6 +16,8 @@ internal static class ReviewStatements
     private const int ReviewerColumn = 3;
     private const int ReviewedAtColumn = 4;
     private const int FindingColumn = 5;
+    private const int ReviewedPositionColumn = 6;
+    private const int FindingPositionColumn = 7;
 
     internal static NpgsqlParameter Id(string name, long value) => new(name, NpgsqlDbType.Bigint) { Value = value };
 
@@ -90,5 +92,7 @@ internal static class ReviewStatements
         Moment(reader, SampledAtColumn),
         reader[ReviewerColumn] as long?,
         Moment(reader, ReviewedAtColumn),
-        reader[FindingColumn] as string);
+        reader[FindingColumn] as string,
+        reader.GetInt32(ReviewedPositionColumn),
+        reader[FindingPositionColumn] as int?);
 }

@@ -14,6 +14,9 @@ public sealed record ContentReadResult
     /// <summary>What the item declares when its material was accommodated into a form that is not its own, only when <see cref="ContentReadOutcome.Read"/>; null when it fits exactly.</summary>
     public ItemAccommodation? Accommodation { get; init; }
 
+    /// <summary>Whether the text read is the sanitized version; only the reading of the sample says it, and it is false when the item has only the raw text.</summary>
+    public bool Cleaned { get; init; }
+
     /// <summary>The refusal of the chain, only when <see cref="ContentReadOutcome.NotRecorded"/>.</summary>
     public CustodyResult? Refusal { get; init; }
 

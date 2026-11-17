@@ -35,5 +35,23 @@ public enum BatchReviewOutcome
 
     /// <summary>The installation declares no size for the sample, and nothing is drawn without it.</summary>
     SizeNotDeclared,
+
+    /// <summary>The place of the sample was marked as reviewed.</summary>
+    Marked,
+
+    /// <summary>The place was marked before, and a place is marked once.</summary>
+    AlreadyMarked,
+
+    /// <summary>The place is not the one right after the last marked: the review goes from the first item of the sample to the last, one by one.</summary>
+    PlaceNotNext,
+
+    /// <summary>The review found nothing, the batch was accepted with it, and both are in the chain.</summary>
+    Approved,
+
+    /// <summary>The material of the batch is already in an accepted batch of the domain: this one was not accepted.</summary>
+    AlreadyReceived,
+
+    /// <summary>Some places of the sample were not marked yet, and a batch is approved only after the review of the whole sample.</summary>
+    ReviewIncomplete,
 }
 

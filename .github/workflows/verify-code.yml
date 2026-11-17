@@ -615,6 +615,9 @@ jobs:
     name: Teto do pull request
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -623,7 +626,10 @@ jobs:
         with:
           python-version: '3.12'
       - name: Medir o diff de produção contra a base do pull request
-        run: python tools/verify-code/verify.py --step pr_size --base origin/${{ github.base_ref }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CDG_PR_BODY: ${{ github.event.pull_request.body }}
+        run: python tools/verify-code/verify.py --step pr_size migration_order --base origin/${{ github.base_ref }}
 
   ai_attribution:
     name: Commits sem atribuição a IA

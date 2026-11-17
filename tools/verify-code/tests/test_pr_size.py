@@ -2,13 +2,36 @@
 
 from __future__ import annotations
 
+import os
 import tempfile
 import unittest
+from collections.abc import Callable, Sequence
 from pathlib import Path
+from unittest import mock
 
 from steps import pr_size
+from steps.common import CommandOutcome, run_process
 
 from . import support
+
+CLOSING = {"CDG_PR_BODY": "Closes #12"}
+PLAN = "Plano conferido pelo Arquiteto: sim"
+GH_TAIL = ("--json", "body", "--jq", ".body")
+
+
+def with_issue(
+    text: str | None, number: str = "12"
+) -> Callable[[Sequence[str], Path], CommandOutcome]:
+    """Runs git for real; `gh issue view <number>` answers with the issue text, or fails when it is
+    None; any other command or number is not answered."""
+
+    def run(command: Sequence[str], cwd: Path) -> CommandOutcome:
+        if command[0] != "gh":
+            return run_process(command, cwd)
+        asked = list(command) == ["gh", "issue", "view", number, *GH_TAIL]
+        return CommandOutcome(asked and text is not None, text or "")
+
+    return run
 
 
 class PrSizeTests(unittest.TestCase):
@@ -16,14 +39,26 @@ class PrSizeTests(unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
         self.repo = support.git_repository(Path(self._tmp.name))
+        environment = mock.patch.dict(os.environ, {"CDG_PR_BODY": "", "GITHUB_HEAD_REF": ""})
+        environment.start()
+        self.addCleanup(environment.stop)
 
-    def test_thirty_one_production_files_fail_naming_the_number(self) -> None:
-        support.commit_files(self.repo, support.numbered_files("src/file_", 31), 1)
+    def run_with(
+        self, issue: str | None, env: dict[str, str] = CLOSING, number: str = "12"
+    ) -> pr_size.StepResult:
+        with mock.patch.dict(os.environ, env):
+            return pr_size.run(support.context(self.repo, with_issue(issue, number), base="main"))
+
+    def test_many_small_files_pass_because_there_is_no_file_ceiling(self) -> None:
+        support.commit_files(self.repo, support.numbered_files("src/file_", 60), 1)
 
         result = pr_size.run(support.context(self.repo, base="main"))
 
-        self.assertFalse(result.ok)
-        self.assertIn("31 arquivos de produção passam do teto de 30", result.details)
+        self.assertTrue(result.ok, result.details)
+        self.assertIn(
+            "produção: 60 arquivos, 60 linhas (teto 400 linhas, o padrão: nenhuma issue achada)",
+            result.details,
+        )
 
     def test_four_hundred_and_one_production_lines_fail_naming_the_number(self) -> None:
         support.commit_files(self.repo, ["src/a.cs"], 401)
@@ -33,15 +68,15 @@ class PrSizeTests(unittest.TestCase):
         self.assertFalse(result.ok)
         self.assertIn("401 linhas de produção passam do teto de 400", result.details)
 
-    def test_thirty_files_and_four_hundred_lines_pass(self) -> None:
-        support.commit_files(self.repo, support.numbered_files("src/file_", 29), 1)
-        support.commit_files(self.repo, ["src/big.cs"], 371)
+    def test_four_hundred_lines_pass_under_the_default_ceiling(self) -> None:
+        support.commit_files(self.repo, ["src/big.cs"], 400)
 
         result = pr_size.run(support.context(self.repo, base="main"))
 
         self.assertTrue(result.ok, result.details)
         self.assertIn(
-            "produção: 30 arquivos, 400 linhas (teto 30 arquivos, 400 linhas)", result.details
+            "produção: 1 arquivos, 400 linhas (teto 400 linhas, o padrão: nenhuma issue achada)",
+            result.details,
         )
 
     def test_tests_locks_and_fixtures_are_not_counted(self) -> None:
@@ -58,7 +93,8 @@ class PrSizeTests(unittest.TestCase):
 
         self.assertTrue(result.ok, result.details)
         self.assertIn(
-            "produção: 0 arquivos, 0 linhas (teto 30 arquivos, 400 linhas)", result.details
+            "produção: 0 arquivos, 0 linhas (teto 400 linhas, o padrão: nenhuma issue achada)",
+            result.details,
         )
 
     def test_excluded_files_are_listed_with_their_lines(self) -> None:
@@ -85,3 +121,116 @@ class PrSizeTests(unittest.TestCase):
         changed = pr_size.parse_numstat("-\t-\tsrc/image.png\n3\t1\tsrc/a.cs\n")
 
         self.assertEqual((changed[0].lines, changed[1].lines), (0, 4))
+
+    def test_the_ceiling_is_read_from_the_issue_the_pull_request_closes(self) -> None:
+        support.commit_files(self.repo, ["src/a.cs"], 450)
+
+        result = self.run_with(f"Contexto\n\nTeto da fatia: 500 linhas\n{PLAN}\nOutra linha")
+
+        self.assertTrue(result.ok, result.details)
+        self.assertIn(
+            "produção: 1 arquivos, 450 linhas (teto 500 linhas, da issue #12)", result.details
+        )
+
+    def test_a_line_over_the_issue_ceiling_fails_naming_both_numbers(self) -> None:
+        support.commit_files(self.repo, ["src/a.cs"], 301)
+
+        result = self.run_with(f"Teto da fatia: 300 linhas\n{PLAN}")
+
+        self.assertFalse(result.ok)
+        self.assertIn("301 linhas de produção passam do teto de 300", result.details)
+
+    def test_the_issue_number_comes_from_the_branch_when_the_body_has_none(self) -> None:
+        support.git(self.repo, "checkout", "-q", "-b", "feat/77-fatia")
+        support.commit_files(self.repo, ["src/a.cs"], 5)
+
+        result = self.run_with(f"Teto da fatia: 900 linhas\n{PLAN}", env={}, number="77")
+
+        self.assertIn("(teto 900 linhas, da issue #77)", result.details[0])
+
+    def test_a_ceiling_over_the_hard_limit_fails_even_when_the_lines_fit(self) -> None:
+        support.commit_files(self.repo, ["src/a.cs"], 5)
+
+        result = self.run_with(f"Teto da fatia: 1.501 linhas\n{PLAN}")
+
+        self.assertFalse(result.ok)
+        self.assertIn(
+            "o teto de 1501 linhas da issue #12 passa do limite duro de 1500", result.details
+        )
+
+    def test_the_hard_limit_itself_is_accepted(self) -> None:
+        support.commit_files(self.repo, ["src/a.cs"], 5)
+
+        result = self.run_with(f"Teto da fatia: 1.500 linhas\n{PLAN}")
+
+        self.assertTrue(result.ok, result.details)
+
+    def test_an_issue_without_the_ceiling_line_keeps_the_default(self) -> None:
+        support.commit_files(self.repo, ["src/a.cs"], 401)
+
+        result = self.run_with("sem a linha")
+
+        self.assertIn("401 linhas de produção passam do teto de 400", result.details)
+
+    def test_an_issue_that_cannot_be_read_fails_instead_of_using_the_default(self) -> None:
+        support.commit_files(self.repo, ["src/a.cs"], 5)
+
+        result = self.run_with(None)
+
+        self.assertFalse(result.ok)
+        self.assertIn("a issue #12 não foi lida", result.details[0])
+
+    def test_a_ceiling_in_an_issue_without_the_checked_plan_is_ignored(self) -> None:
+        support.commit_files(self.repo, ["src/a.cs"], 401)
+
+        result = self.run_with("Teto da fatia: 900 linhas")
+
+        self.assertFalse(result.ok)
+        self.assertIn("a issue #12 sem teto e plano conferido", " ".join(result.details))
+
+    def test_the_branch_of_the_pull_request_event_wins_over_the_detached_head(self) -> None:
+        support.commit_files(self.repo, ["src/a.cs"], 5)
+        env = {"GITHUB_HEAD_REF": "feat/12-fatia"}
+
+        result = self.run_with(f"Teto da fatia: 700 linhas\n{PLAN}", env=env)
+
+        self.assertIn("(teto 700 linhas, da issue #12)", result.details[0])
+
+    def test_the_body_wins_over_the_number_of_the_branch(self) -> None:
+        self.assertEqual("8", pr_size.issue_number("Closes #8", "feat/77-fatia"))
+
+    def test_a_closes_inside_a_comment_or_code_block_does_not_count(self) -> None:
+        body = "<!-- Closes #1 -->\n```\nCloses #2\n```\nCloses #3"
+
+        self.assertEqual("3", pr_size.issue_number(body, "main"))
+
+    def test_fixes_and_resolves_with_colon_name_the_issue(self) -> None:
+        self.assertEqual("4", pr_size.issue_number("Fixes: #4", ""))
+        self.assertEqual("5", pr_size.issue_number("resolves #5", ""))
+
+    def test_the_ceiling_line_accepts_bold_and_does_not_read_one_point_five_as_fifteen(
+        self,
+    ) -> None:
+        text = f"**Teto da fatia: 1.5 linhas**\n{PLAN}"
+
+        self.assertIsNone(pr_size.slice_ceiling(text))
+        self.assertEqual(1500, pr_size.slice_ceiling(f"**Teto da fatia: 1.500 linhas**\n{PLAN}"))
+
+    def test_a_ceiling_inside_a_code_block_of_the_issue_does_not_count(self) -> None:
+        text = f"```\nTeto da fatia: 900 linhas\n```\n{PLAN}"
+
+        self.assertIsNone(pr_size.slice_ceiling(text))
+
+    def test_closes_is_found_in_any_case_and_the_first_issue_wins(self) -> None:
+        self.assertEqual("8", pr_size.issue_number("texto\nCLOSES #8 e closes #9", ""))
+
+    def test_fecha_does_not_name_an_issue_and_main_has_no_number(self) -> None:
+        self.assertIsNone(pr_size.issue_number("Fecha #8", "main"))
+
+    def test_a_checked_plan_mark_inside_a_comment_does_not_release_the_ceiling(self) -> None:
+        support.commit_files(self.repo, ["src/a.cs"], 401)
+
+        result = self.run_with(f"Teto da fatia: 900 linhas\n<!-- {PLAN} -->")
+
+        self.assertFalse(result.ok)
+        self.assertIn("a issue #12 sem teto e plano conferido", " ".join(result.details))

@@ -47,7 +47,7 @@ O código passa pelo mesmo comando que a verificação contínua executa, na mes
 ```
 python tools/verify-code/verify.py
 python tools/verify-code/verify.py --list
-python tools/verify-code/verify.py --step pr_size --base origin/main
+python tools/verify-code/verify.py --step pr_size migration_order --base origin/main
 ```
 
 Num pull request que só muda Markdown de `docs/` ou da raiz que nenhum código, teste ou ferramenta

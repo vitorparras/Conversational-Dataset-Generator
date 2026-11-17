@@ -9,8 +9,7 @@ naturezas, e confundi-las é o jeito mais comum de perder a independência que o
 ## Entre o núcleo e o serviço de linguagem
 
 É a única fronteira de processo, e a única em que dado pessoal sai do processo que detém a chave. O
-contrato está na [decisão 0011](../decisoes/0011-protocolo-com-o-servico-de-linguagem.md); o que
-importa aqui é a forma dele.
+contrato está na [decisão 0011](../decisoes/0011-protocolo-com-o-servico-de-linguagem.md); aqui importa a forma.
 
 O serviço devolve apontamentos — onde começa e termina cada trecho reconhecido, de que tipo, e a
 classe gramatical e a função sintática do núcleo da ocorrência

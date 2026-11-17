@@ -1,6 +1,6 @@
 # 002 — Fronteiras e contratos
 
-> Descrição. 2026-10-04.
+> Descrição. 2026-11-17.
 > Estado no código: a fronteira com o serviço existe (`core/src/Core.Boundary`); do banco, só o esquema (`core/src/Core.Persistence/Migrations/Sql`). Ver a [fundação](../roadmap/001-fundacao-verificavel.md).
 
 Fronteira explícita é o que permite trocar uma parte sem reabrir as outras. Aqui ela tem quatro
@@ -9,8 +9,7 @@ naturezas, e confundi-las é o jeito mais comum de perder a independência que o
 ## Entre o núcleo e o serviço de linguagem
 
 É a única fronteira de processo, e a única em que dado pessoal sai do processo que detém a chave. O
-contrato está na [decisão 0011](../decisoes/0011-protocolo-com-o-servico-de-linguagem.md); o que
-importa aqui é a forma dele.
+contrato está na [decisão 0011](../decisoes/0011-protocolo-com-o-servico-de-linguagem.md); aqui importa a forma.
 
 O serviço devolve apontamentos — onde começa e termina cada trecho reconhecido, de que tipo, e a
 classe gramatical e a função sintática do núcleo da ocorrência
@@ -42,7 +41,8 @@ novo cita essa referência para retomar, e o registro liga as duas.
 Nenhum módulo lê a tabela interna de outro. O que atravessa é o material como o anterior o deixou,
 mais o registro do que foi feito com ele — e cada módulo declara três coisas, por onde se verifica
 se é substituível: a condição de entrada que exige, a garantia que dá na saída, e o que registra. A
-exportação não sabe como a concordância foi calculada; sabe se o recorte atende ao critério.
+exportação não sabe como a concordância foi calculada; sabe se o recorte atende ao critério. O
+`Contracts` do módulo leva tipos e funções puras, sem E/S: a decisão que banco e domínio tomam igual mora ali ([0055](../decisoes/0055-recusas-da-revisao-em-contrato-da-ingestao.md)).
 
 ## Com o banco
 

@@ -29,8 +29,8 @@ a 0057: só números de forma, destino e replicado, com os códigos de `BatchDet
 
 **Decisão separada da gravação** ([serviço de domínio](../../padroes/002-servico-de-dominio.md)):
 - O progresso da amostra, um tipo puro novo em `Core.Ingestion`, decide o próximo item, se o
-  achado cabe, se o lote pode ser aprovado e as recusas de `BatchReviews` (linhas 77 a 105, que
-  saem de lá). É testado sem banco.
+  achado cabe e se o lote pode ser aprovado. As recusas de estado de `BatchReviews` viram uma
+  função pura em `Core.Ingestion.Contracts`, chamada pelo banco e pelo progresso, testada sem banco ([0055](../../../decisoes/0055-recusas-da-revisao-em-contrato-da-ingestao.md)).
 - Um serviço da revisão em `Core.Host`, como o `SubmissionService`, lê o lote com
   `BatchReviews.ReadAsync`, pede a decisão e chama a gravação.
 - `BatchReviews` fica só com gravações condicionais: cada UPDATE só pega a linha se a posição

@@ -1,6 +1,8 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
+using Core.Ingestion.Contracts;
 using Core.Persistence.Content;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
@@ -76,35 +78,22 @@ public sealed class BatchReviews
         return ReadingAsync(domainId, batchId, cancellationToken);
     }
 
-    internal static BatchReviewOutcome? Refusal(BatchReview? held, bool drawing)
-    {
-        if (held is null)
+    internal static BatchReviewOutcome? Refusal(BatchReview? held, bool drawing) =>
+        Outcome(SampleStateRules.Refusal(
+            held is null ? null : new SampledBatch(held.State == BatchState.Open, held.Sample is not null, held.ReviewerId is not null),
+            drawing));
+
+    internal static BatchReviewOutcome? Outcome(SampleRefusal? refusal) =>
+        refusal switch
         {
-            return BatchReviewOutcome.NotFound;
-        }
-
-        if (held.State != BatchState.Open && (drawing || held.ReviewerId is null))
-        {
-            return BatchReviewOutcome.NotOpen;
-        }
-
-        if (drawing)
-        {
-            return held.Sample is null ? null : BatchReviewOutcome.AlreadySampled;
-        }
-
-        return ReviewRefusal(held);
-    }
-
-    private static BatchReviewOutcome? ReviewRefusal(BatchReview held)
-    {
-        if (held.Sample is null)
-        {
-            return BatchReviewOutcome.NotSampled;
-        }
-
-        return held.ReviewerId is not null ? BatchReviewOutcome.AlreadyReviewed : null;
-    }
+            null => null,
+            SampleRefusal.NotFound => BatchReviewOutcome.NotFound,
+            SampleRefusal.NotOpen => BatchReviewOutcome.NotOpen,
+            SampleRefusal.AlreadySampled => BatchReviewOutcome.AlreadySampled,
+            SampleRefusal.NotSampled => BatchReviewOutcome.NotSampled,
+            SampleRefusal.AlreadyReviewed => BatchReviewOutcome.AlreadyReviewed,
+            _ => throw new UnreachableException(),
+        };
 
     internal static long[] Drawn(long[] numbers, int size)
     {

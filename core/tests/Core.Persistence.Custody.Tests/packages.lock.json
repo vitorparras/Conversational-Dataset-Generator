@@ -306,9 +306,16 @@
           "xunit.v3.runner.common": "[4.0.2]"
         }
       },
+      "core.ingestion.contracts": {
+        "type": "Project",
+        "dependencies": {
+          "Core.Platform": "[0.1.0, )"
+        }
+      },
       "core.persistence": {
         "type": "Project",
         "dependencies": {
+          "Core.Ingestion.Contracts": "[0.1.0, )",
           "Core.Platform": "[0.1.0, )",
           "Npgsql": "[10.0.3, )"
         }

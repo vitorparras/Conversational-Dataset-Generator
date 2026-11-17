@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using Core.Ingestion.Contracts;
 using Core.Persistence.Custody;
 using Core.Persistence.Ingestion;
 using Npgsql;
@@ -49,6 +51,10 @@ public sealed class BatchReviewRulesTests
                 BatchReviews.Refusal(Held(BatchState.Accepted, sample: Sample, reviewer: 3), drawing: false),
                 BatchReviews.Refusal(Held(BatchState.Rejected, sample: Sample, reviewer: 3), drawing: false),
             ]);
+
+    [Fact]
+    public void ARefusalThatNoRuleDeclaresIsNeitherAnsweredNorGuessed() =>
+        Assert.Throws<UnreachableException>(() => BatchReviews.Outcome((SampleRefusal)99));
 
     [Fact]
     public void ADrawnSampleHasTheSizeAskedIsInAscendingOrderHasNoRepeatedNumberAndIsNotAlwaysTheSame()

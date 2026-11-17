@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <ProjectReference Include="..\Core.Ingestion.Contracts\Core.Ingestion.Contracts.csproj" />
     <ProjectReference Include="..\Core.Platform\Core.Platform.csproj" />
   </ItemGroup>
 

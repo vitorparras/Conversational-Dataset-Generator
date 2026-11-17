@@ -2,7 +2,6 @@
   <!-- The domain of the ingestion: what a reader hands over, the four forms and the conference of the form declared. It reaches no database, no host and no network. -->
   <ItemGroup>
     <ProjectReference Include="..\Core.Boundary.Contracts\Core.Boundary.Contracts.csproj" />
-    <ProjectReference Include="..\Core.Ingestion.Contracts\Core.Ingestion.Contracts.csproj" />
     <ProjectReference Include="..\Core.Platform\Core.Platform.csproj" />
   </ItemGroup>
 

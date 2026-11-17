@@ -1,6 +1,3 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- What the ingestion and the database both decide by: types and pure functions, no I/O, no reach into either. -->
-  <ItemGroup>
-    <ProjectReference Include="..\Core.Platform\Core.Platform.csproj" />
-  </ItemGroup>
+  <!-- What the ingestion and the database both decide by: types and pure functions, no I/O, no reach into either, and so no reference at all. -->
 </Project>

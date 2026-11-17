@@ -42,7 +42,7 @@ Nenhum módulo lê a tabela interna de outro. O que atravessa é o material como
 mais o registro do que foi feito com ele — e cada módulo declara três coisas, por onde se verifica
 se é substituível: a condição de entrada que exige, a garantia que dá na saída, e o que registra. A
 exportação não sabe como a concordância foi calculada; sabe se o recorte atende ao critério. O
-`Contracts` do módulo leva tipos e funções puras, sem E/S: a decisão que banco e domínio tomam igual mora ali ([0055](../decisoes/0055-recusas-da-revisao-em-contrato-da-ingestao.md)).
+projeto `<Módulo>.Contracts` do módulo leva tipos e funções puras, sem E/S: a decisão que banco e domínio tomam igual mora ali ([0055](../decisoes/0055-recusas-da-revisao-em-contrato-da-ingestao.md)).
 
 ## Com o banco
 

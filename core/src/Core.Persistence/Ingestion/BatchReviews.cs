@@ -78,11 +78,19 @@ public sealed class BatchReviews
         return ReadingAsync(domainId, batchId, cancellationToken);
     }
 
-    internal static BatchReviewOutcome? Refusal(BatchReview? held, bool drawing) =>
+    /// <summary>
+    /// What the state of a batch refuses of the review of its sample, in the words of the outcomes: the one rule (<see cref="SampleStateRules" />) that the steps of the database
+    /// and the desk of the screens take alike, over the batch as it was read. Null when the state allows the step.
+    /// </summary>
+    /// <param name="held">The review as it was read, or null when the domain has no such batch.</param>
+    /// <param name="drawing">True for the draw of the sample, false for a step that reviews it.</param>
+    public static BatchReviewOutcome? Refusal(BatchReview? held, bool drawing) =>
         Outcome(SampleStateRules.Refusal(
             held is null ? null : new SampledBatch(held.State == BatchState.Open, held.Sample is not null, held.ReviewerId is not null),
             drawing));
 
+    /// <summary>The outcome that tells each refusal of the rule; a refusal no outcome tells is a defect and fails at once, not an answer guessed.</summary>
+    /// <param name="refusal">What the rule refused, or null when it allowed the step.</param>
     internal static BatchReviewOutcome? Outcome(SampleRefusal? refusal) =>
         refusal switch
         {

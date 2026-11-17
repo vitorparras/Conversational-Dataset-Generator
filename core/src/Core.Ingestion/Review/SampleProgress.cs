@@ -1,5 +1,3 @@
-using Core.Ingestion.Contracts;
-
 namespace Core.Ingestion.Review;
 
 /// <summary>Where the review of a drawn sample stands (#610): places go from 1 to the size, in the order of the draw, each reviewed once right after the one before; it only decides.</summary>
@@ -21,11 +19,6 @@ public sealed record SampleProgress(int Size, int Reviewed)
 
     /// <summary>Whether the batch can be approved: only when the sample has items and every one was reviewed.</summary>
     public SampleDecision Approve() => Size > 0 && Reviewed == Size ? SampleDecision.Allowed : SampleDecision.ReviewIncomplete;
-
-    /// <summary>Why the state of a batch refuses a step of the review, by the same decision the database takes (<see cref="SampleStateRules"/>), or null when it allows it.</summary>
-    /// <param name="batch">The batch as it is held, or null when it does not exist.</param>
-    /// <param name="drawing">True for the draw of the sample, false for a step that reviews it.</param>
-    public static SampleRefusal? Refusal(SampledBatch? batch, bool drawing) => SampleStateRules.Refusal(batch, drawing);
 
     private SampleDecision PlaceDecision(int position)
     {

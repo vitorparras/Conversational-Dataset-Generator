@@ -307,10 +307,7 @@
         }
       },
       "core.ingestion.contracts": {
-        "type": "Project",
-        "dependencies": {
-          "Core.Platform": "[0.1.0, )"
-        }
+        "type": "Project"
       },
       "core.persistence": {
         "type": "Project",

@@ -20,7 +20,8 @@ o banco e o domínio divergirem em silêncio.
    ou nada. Não lê nem escreve.
 2. **Quem chama:** `BatchReviews` a chama dentro da mesma transação, sobre o lote que leu ali, e
    traduz o motivo em `BatchReviewOutcome`; o `UPDATE` condicional continua fechando a corrida.
-   `SampleProgress` chama a mesma função.
+   A mesa da revisão (`SampleReviewDesk`) chama a mesma tradução, `BatchReviews.Refusal`, antes de
+   gravar; só a ordem dos lugares da amostra fica no `SampleProgress`.
 3. **O que o módulo de contratos leva:** tipos e funções puras, sem E/S. A regra de fronteira e o
    `ModuleBoundaryTests` não mudam, e não há exceção.
 
@@ -34,7 +35,9 @@ o banco e o domínio divergirem em silêncio.
 
 ## Consequências
 
-Uma regra, um lugar, testada sem banco. **Piora:** mais um projeto, com área de cobertura e de
+Uma regra, um lugar, testada sem banco. **Muda:** um lote que não existe passa a responder
+`NotFound` na mesa, e não `NotSampled`, e um passo sobre lote fechado ou já revisado é recusado pela
+mesma regra antes de chegar ao banco. **Piora:** mais um projeto, com área de cobertura e de
 mutação próprias, e a tradução fina de `SampleRefusal` para `BatchReviewOutcome` no banco.
 
 ## O que reabre esta decisão

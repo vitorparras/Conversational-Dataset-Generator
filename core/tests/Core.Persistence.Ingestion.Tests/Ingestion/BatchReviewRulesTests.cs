@@ -43,18 +43,23 @@ public sealed class BatchReviewRulesTests
             ]);
 
     [Fact]
-    public void ABatchThatClosedWithoutAReviewIsNotOpenAndOneThatClosedAfterTheReviewIsAlreadyReviewed() =>
+    public void ABatchThatClosedWithoutAReviewWhateverItHoldsIsNotOpenAndOneThatClosedAfterTheReviewIsAlreadyReviewed() =>
         Assert.Equal(
-            [BatchReviewOutcome.NotOpen, BatchReviewOutcome.AlreadyReviewed, BatchReviewOutcome.AlreadyReviewed],
+            [BatchReviewOutcome.NotOpen, BatchReviewOutcome.NotOpen, BatchReviewOutcome.AlreadyReviewed, BatchReviewOutcome.AlreadyReviewed],
             [
                 BatchReviews.Refusal(Held(BatchState.Rejected, sample: null), drawing: false),
+                BatchReviews.Refusal(Held(BatchState.Accepted, sample: Sample), drawing: false),
                 BatchReviews.Refusal(Held(BatchState.Accepted, sample: Sample, reviewer: 3), drawing: false),
                 BatchReviews.Refusal(Held(BatchState.Rejected, sample: Sample, reviewer: 3), drawing: false),
             ]);
 
     [Fact]
-    public void ARefusalThatNoRuleDeclaresIsNeitherAnsweredNorGuessed() =>
-        Assert.Throws<UnreachableException>(() => BatchReviews.Outcome((SampleRefusal)99));
+    public void ARefusalThatNoRuleDeclaresIsNeitherAnsweredNorGuessed()
+    {
+        var undeclared = (SampleRefusal)99;
+
+        _ = Assert.Throws<UnreachableException>(() => BatchReviews.Outcome(undeclared));
+    }
 
     [Fact]
     public void ADrawnSampleHasTheSizeAskedIsInAscendingOrderHasNoRepeatedNumberAndIsNotAlwaysTheSame()

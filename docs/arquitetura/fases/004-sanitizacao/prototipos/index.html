@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Protótipos da sanitização · Gerador de bases conversacionais</title>
+    <link rel="stylesheet" href="../../../../../core/src/Core.Host/Screens/tokens.css" />
+    <link rel="stylesheet" href="../../../../../core/src/Core.Host/Screens/screens.css" />
+</head>
+<body>
+    <a class="skip-link" href="#content">Ir para o conteúdo</a>
+    <p role="note">Protótipo para aprovação do dono. Não é a tela final. <a href="index.html">Índice dos protótipos</a>.</p>
+    <main id="content" class="page" tabindex="-1">
+        <h1>Protótipos das telas da sanitização</h1>
+        <p class="lead">Três telas da fase 4: duas da fase 3 com o que a sanitização acrescenta, e uma nova, da Curadoria. Cada uma traz os seus estados em âncoras. Os protótipos usam o estilo real das telas e não têm script; os dados são sintéticos.</p>
+
+        <section class="panel" aria-labelledby="tela-lote-titulo">
+            <h2 id="tela-lote-titulo"><a href="lote.html">I3 · Lote, seção Sanitização</a></h2>
+            <p>Rota GET /lotes/{id}. Fatias A, B, C e D.</p>
+            <ul>
+                <li><a href="lote.html#sanitizado">Sanitizado, com as contagens por passo</a></li>
+                <li><a href="lote.html#so-destinos">Só a aplicação dos destinos, com um passo em zero</a></li>
+                <li><a href="lote.html#indisponivel">Rejeitado: serviço de linguagem indisponível</a></li>
+                <li><a href="lote.html#falha-no-passo">Rejeitado: falha num passo da sanitização</a></li>
+            </ul>
+        </section>
+
+        <section class="panel" aria-labelledby="tela-revisao-titulo">
+            <h2 id="tela-revisao-titulo"><a href="revisao.html">I4 · Revisão da amostra, texto sanitizado</a></h2>
+            <p>Rota GET e POST /lotes/{id}/revisao. Fatias B e E.</p>
+            <ul>
+                <li><a href="revisao.html#sanitizada">Amostra sanitizada, em revisão</a></li>
+                <li><a href="revisao.html#versao-nova">Item lido depois de uma reexecução</a></li>
+            </ul>
+        </section>
+
+        <section class="panel" aria-labelledby="tela-reexecucao-titulo">
+            <h2 id="tela-reexecucao-titulo"><a href="reexecucao.html">Sanitização · reexecução sobre o bruto</a></h2>
+            <p>Rotas GET /sanitizacao e GET e POST /sanitizacao/reexecutar. Fatia E, só a Curadoria.</p>
+            <ul>
+                <li><a href="reexecucao.html#em-dia">Nada a reexecutar</a></li>
+                <li><a href="reexecucao.html#versao-nova">Versão nova disponível</a></li>
+                <li><a href="reexecucao.html#confirmacao">Confirmar a reexecução</a></li>
+                <li><a href="reexecucao.html#interrompida">Reexecução interrompida</a></li>
+                <li><a href="reexecucao.html#concluida">Reexecução concluída</a></li>
+                <li><a href="reexecucao.html#sem-permissao">Sem a função de Curadoria</a></li>
+            </ul>
+        </section>
+
+        <section class="panel" aria-labelledby="tela-envio-titulo">
+            <h2 id="tela-envio-titulo"><a href="../../003-ingestao/prototipos/submissao.html">I1 · Enviar material</a></h2>
+            <p>Sem mudança nesta fase, salvo a decisão pendente do dono sobre o idioma da análise: se ele for um campo do envio, o protótipo da I1 ganha o campo antes do código da fatia A.</p>
+        </section>
+    </main>
+</body>
+</html>

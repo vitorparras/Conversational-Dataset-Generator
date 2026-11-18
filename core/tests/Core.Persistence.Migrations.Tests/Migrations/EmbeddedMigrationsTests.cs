@@ -3,7 +3,7 @@ using Core.Persistence.Migrations;
 
 namespace Core.Persistence.Tests.Migrations;
 
-/// <summary>The steps the build carries are the resources under Sql, in numeric order, each with the digest of its own bytes.</summary>
+/// <summary>The steps the build carries are the resources under Sql, in the order of their names, each with the digest of its own bytes.</summary>
 public sealed class EmbeddedMigrationsTests
 {
     [Fact]

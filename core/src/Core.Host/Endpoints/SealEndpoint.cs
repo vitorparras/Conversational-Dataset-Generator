@@ -14,8 +14,8 @@ internal static class SealEndpoint
 
     internal static void Map(IEndpointRouteBuilder endpoints)
     {
-        _ = endpoints.MapGet(Route, IssueAsync);
-        _ = endpoints.MapPost(ConfirmationRoute, ConfirmAsync);
+        _ = endpoints.MapGet(Route, IssueAsync).WithMetadata(SealScreensEndpoint.Access);
+        _ = endpoints.MapPost(ConfirmationRoute, ConfirmAsync).WithMetadata(SealScreensEndpoint.Access);
     }
 
     /// <summary>With no database declared, or one that cannot be read, the answer is 503.</summary>

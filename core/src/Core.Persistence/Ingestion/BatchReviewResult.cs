@@ -16,4 +16,7 @@ public sealed record BatchReviewResult
 
     /// <summary>Why the event was not recorded, when it was not.</summary>
     public CustodyResult? Refusal { get; init; }
+
+    /// <summary>Whether the chain refused the event because another writer reached the same link first, so that nothing was written and the same request may be made again.</summary>
+    public bool Collided => Outcome == BatchReviewOutcome.NotRecorded && Refusal?.Outcome == CustodyOutcome.Conflict;
 }

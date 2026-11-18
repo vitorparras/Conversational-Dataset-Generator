@@ -51,7 +51,7 @@ internal static class SealScreensEndpoint
             return await PageAsync(context, sources, new SealShown());
         }
 
-        var form = context.Request.HasFormContentType ? await context.Request.ReadFormAsync(context.RequestAborted) : null;
+        var form = await RequestReader.FormAsync(context);
         var typed = form is null ? string.Empty : form[SealScreen.KeptField].ToString();
         var confirmation = await SealState.ConfirmAsync(sources, SessionCookie.Read(context.Request), typed, context.RequestAborted);
         return confirmation.Outcome switch

@@ -13,18 +13,38 @@ else if (Answer is { } answer)
 }
 else
 {
-    @if (NotRecorded)
+    @switch (Trouble)
     {
-        <Notice Kind="Notice.Tone.Error">@SubmissionTexts.NotRecorded</Notice>
-    }
-    else if (Collided)
-    {
-        <Notice Kind="Notice.Tone.Pending">@SubmissionTexts.Collided</Notice>
+        case Troubles.NotRecorded:
+            <Notice Kind="Notice.Tone.Error">@SubmissionTexts.NotRecorded</Notice>
+            break;
+        case Troubles.NotKept:
+            <Notice Kind="Notice.Tone.Error">@SubmissionTexts.NotKept</Notice>
+            break;
+        case Troubles.Collided:
+            <Notice Kind="Notice.Tone.Pending">@SubmissionTexts.Collided</Notice>
+            break;
     }
     <SubmissionFields Action="@Action" Offer="Offer" Given="Given" Errors="Errors" />
 }
 
 @code {
+    /// <summary>What went wrong with a sending that reached the service and was not answered with a verdict.</summary>
+    public enum Troubles
+    {
+        /// <summary>Nothing went wrong, or nothing was sent yet.</summary>
+        None,
+
+        /// <summary>No batch could be opened or closed, so nothing was recorded.</summary>
+        NotRecorded,
+
+        /// <summary>The sending met another one at the same time, again and again, so nothing of it was kept and the same file may be sent again.</summary>
+        Collided,
+
+        /// <summary>The batch opened and the material could not be written, so it was rejected and nothing of the material was kept.</summary>
+        NotKept,
+    }
+
     /// <summary>The title of the page and of its entry in the menu.</summary>
     internal const string Title = "Enviar material";
 
@@ -43,13 +63,9 @@ else
     [Parameter]
     public SubmissionVerdict.Result? Answer { get; set; }
 
-    /// <summary>Whether the sending reached the service and no batch could be recorded, so the form opens again.</summary>
+    /// <summary>What went wrong on the side of the host with a sending that reached the service, so the form opens again and says what to do; none before a sending.</summary>
     [Parameter]
-    public bool NotRecorded { get; set; }
-
-    /// <summary>Whether the sending met another one at the same time, again and again, so that nothing of it was kept and the same file may be sent again; the form opens again.</summary>
-    [Parameter]
-    public bool Collided { get; set; }
+    public Troubles Trouble { get; set; }
 
     [Parameter]
     public SubmissionFields.Typed Given { get; set; } = SubmissionFields.Typed.Nothing;

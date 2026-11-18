@@ -26,12 +26,13 @@ internal static class MappedRoutes
         [.. Read().Where(route => !route.Open).Select(route => (route.Method, Requested(route.Pattern)))];
 
     /// <summary>The route as it is asked for: a number where the pattern holds an identifier of a batch, since a constrained placeholder is not a path that reaches it.</summary>
-    private static string Requested(string pattern) => pattern.Replace("{id:long}", "1", StringComparison.Ordinal);
+    private static string Requested(string pattern) => pattern.Replace("{id:long}", "1", StringComparison.Ordinal).Replace("{place:int}", "1", StringComparison.Ordinal);
 
     private static MappedRoute Described(RouteEndpoint endpoint) =>
         new(
             endpoint.Metadata.GetMetadata<HttpMethodMetadata>()!.HttpMethods.Single(),
             endpoint.RoutePattern.RawText!,
             endpoint.Metadata.GetMetadata<SessionOpen>() is not null,
-            endpoint.Metadata.Any(mark => mark.GetType().Name == ShortCircuitMark));
+            endpoint.Metadata.Any(mark => mark.GetType().Name == ShortCircuitMark),
+            endpoint.Metadata.GetMetadata<ScreenAccess>());
 }

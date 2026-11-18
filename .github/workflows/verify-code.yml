@@ -78,11 +78,16 @@ jobs:
     needs: changes
     if: ${{ !cancelled() && github.event_name != 'schedule' && needs.changes.outputs.heavy != 'false' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
+          cache: true
+          cache-dependency-path: core/**/packages.lock.json
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
@@ -207,6 +212,11 @@ jobs:
       matrix:
         language: [dotnet, python]
     steps:
+      - name: Trazer o repetidor de downloads
+        if: contains(needs.changes.outputs.promote, matrix.language)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: tools/verify-code
       - name: Baixar o by-area.md que o pull request guardou
         if: contains(needs.changes.outputs.promote, matrix.language)
         env:
@@ -229,8 +239,11 @@ jobs:
           retention-days: 90
           if-no-files-found: error
 
-  properties:
-    name: Propriedades nas duas linguagens
+  # The one build of the core that `properties` and `browser` run on: they only download it. It also
+  # builds the browser project in Release, the configuration that job always ran. One tar.zst, not
+  # thousands of files, so the upload and the download cost seconds.
+  build:
+    name: Construir o núcleo uma vez (artefato das propriedades e do navegador)
     needs: changes
     if: ${{ !cancelled() && github.event_name != 'schedule' && needs.changes.outputs.heavy != 'false' }}
     runs-on: ubuntu-latest
@@ -239,9 +252,52 @@ jobs:
       - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
+          cache: true
+          cache-dependency-path: core/**/packages.lock.json
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
+      - name: Restaurar travado e construir o núcleo (a mesma etapa da régua)
+        run: python tools/verify-code/verify.py --step build_core
+      - name: Construir o projeto de navegador em Release, nos pacotes já restaurados (as versões do Playwright e do axe estão em core/Directory.Packages.props)
+        run: dotnet build core/tests/Core.Host.Tests.Browser/Core.Host.Tests.Browser.csproj -c Release --no-restore
+      - name: Empacotar bin e obj do núcleo
+        run: find core -type d \( -name bin -o -name obj \) -prune -print0 | tar --null -T - -cf - | zstd -T0 -3 -q -o "$RUNNER_TEMP/build-nucleo.tar.zst"
+      - name: Guardar o pacote para os jobs que só executam
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: build-nucleo
+          path: ${{ runner.temp }}/build-nucleo.tar.zst
+          compression-level: 0
+          retention-days: 7
+          overwrite: true
+          if-no-files-found: error
+
+  properties:
+    name: Propriedades nas duas linguagens
+    needs: [changes, build]
+    if: ${{ !cancelled() && github.event_name != 'schedule' && needs.changes.outputs.heavy != 'false' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: core/**/packages.lock.json
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Baixar o núcleo construído pelo job `build`
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: build-nucleo
+          path: ${{ runner.temp }}/build-nucleo
+      - name: Desempacotar bin e obj no lugar
+        run: zstd -d -q -c "$RUNNER_TEMP/build-nucleo/build-nucleo.tar.zst" | tar -xf -
       - name: Instalar uv na versão fixada
         run: python3 tools/verify-code/retry.py -- pip install -r tools/verify-code/service-requirements.txt
       - name: Sincronizar o ambiente do serviço (o modelo do spaCy vem do GitHub; só baixar repete, nunca o pytest)
@@ -254,20 +310,29 @@ jobs:
   # (it is no test project of the solution): this is the only place it runs, so a failing browser test fails this job.
   browser:
     name: Navegador (Playwright)
-    needs: changes
+    needs: [changes, build]
     if: ${{ !cancelled() && github.event_name != 'schedule' && needs.changes.outputs.heavy != 'false' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
-      - name: Construir o projeto de navegador nos pacotes travados (as versões do Playwright e do axe estão em core/Directory.Packages.props)
-        run: |
-          echo "inicio=$(date +%s)" >> "$GITHUB_ENV"
-          python3 tools/verify-code/retry.py -- dotnet restore core/tests/Core.Host.Tests.Browser/Core.Host.Tests.Browser.csproj --locked-mode
-          dotnet build core/tests/Core.Host.Tests.Browser/Core.Host.Tests.Browser.csproj -c Release --no-restore
+          cache: true
+          cache-dependency-path: core/**/packages.lock.json
+      - name: Baixar o núcleo construído pelo job `build`
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: build-nucleo
+          path: ${{ runner.temp }}/build-nucleo
+      - name: Desempacotar bin e obj no lugar
+        run: zstd -d -q -c "$RUNNER_TEMP/build-nucleo/build-nucleo.tar.zst" | tar -xf -
+      - name: Anotar o início do job (o tempo conta o download, o Chromium e os testes)
+        run: echo "inicio=$(date +%s)" >> "$GITHUB_ENV"
       - name: Instalar o Chromium da versão que o pacote fixa, sem latest e sem outro navegador
         run: python3 tools/verify-code/retry.py -- pwsh core/tests/Core.Host.Tests.Browser/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
       - uses: ./.github/actions/build-database-image
@@ -275,7 +340,7 @@ jobs:
         run: dotnet run --project core/tests/Core.Host.Tests.Browser/Core.Host.Tests.Browser.csproj -c Release --no-build
       - name: Anotar o tempo do job
         if: always()
-        run: echo "Tempo do job de navegador (construir, instalar o Chromium e testar) - $(( $(date +%s) - inicio )) s" >> "$GITHUB_STEP_SUMMARY"
+        run: echo "Tempo do job de navegador (baixar o núcleo, instalar o Chromium e testar) - $(( $(date +%s) - inicio )) s" >> "$GITHUB_STEP_SUMMARY"
 
   package:
     name: Construção reproduzível (duas cópias limpas)
@@ -287,6 +352,8 @@ jobs:
       - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
+          cache: true
+          cache-dependency-path: core/**/packages.lock.json
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
@@ -313,6 +380,8 @@ jobs:
       - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
+          cache: true
+          cache-dependency-path: core/**/packages.lock.json
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
@@ -358,11 +427,34 @@ jobs:
           echo "modules=$modules" >> "$GITHUB_OUTPUT"
           { echo "### Mutação: módulos alcançados e o motivo de cada um"; cat "$RUNNER_TEMP/alcance.md"; } >> "$GITHUB_STEP_SUMMARY"
 
+  # Publishes the database image of the content, from main only: a pull request runs code of its own
+  # and never holds a token that writes packages. The jobs of a pull request pull what main published
+  # and build locally what it did not. Nothing waits for this job but the matrix, and a failure here
+  # does not stop it.
+  database_image:
+    name: Imagem do banco de teste
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.heavy != 'false' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/build-database-image
+        with:
+          publish: 'true'
+
   mutation_module:
     name: Mutação (${{ matrix.module }})
-    needs: mutation_modules
-    if: needs.mutation_modules.outputs.modules != '[]' && github.event.pull_request.draft != true
+    needs: [mutation_modules, database_image]
+    if: ${{ !cancelled() && needs.mutation_modules.result == 'success' && needs.mutation_modules.outputs.modules != '[]' && github.event.pull_request.draft != true }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     # The step cuts the module at the ceiling of docs/operacao/017; the rest is setup and restore.
     timeout-minutes: 35
     strategy:
@@ -377,6 +469,8 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
+      - uses: ./.github/actions/build-database-image
+        if: startsWith(matrix.module, 'Core.')
       - name: Instalar uv na versão fixada (o mutmut vem de language-service/uv.lock)
         run: python3 tools/verify-code/retry.py -- pip install -r tools/verify-code/service-requirements.txt
       - name: Sincronizar o ambiente do serviço (o modelo do spaCy vem do GitHub; só baixar repete, nunca o pytest)
@@ -460,6 +554,8 @@ jobs:
       - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
+          cache: true
+          cache-dependency-path: core/**/packages.lock.json
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
@@ -519,6 +615,9 @@ jobs:
     name: Teto do pull request
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -527,7 +626,10 @@ jobs:
         with:
           python-version: '3.12'
       - name: Medir o diff de produção contra a base do pull request
-        run: python tools/verify-code/verify.py --step pr_size --base origin/${{ github.base_ref }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CDG_PR_BODY: ${{ github.event.pull_request.body }}
+        run: python tools/verify-code/verify.py --step pr_size migration_order --base origin/${{ github.base_ref }}
 
   ai_attribution:
     name: Commits sem atribuição a IA

@@ -2,7 +2,6 @@ using Core.Host.Submissions;
 using Core.Persistence.Domains;
 using Core.Persistence.Ingestion;
 using Core.Persistence.People;
-using Core.Platform.Sessions;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,7 +18,8 @@ internal static class SubmissionsEndpoint
     internal const string BatchesRoute = "/ingestion/batches";
     internal const string GateRoute = "/ingestion/gate";
 
-    private const int BodyMargin = 64 * 1024;
+    /// <summary>What the body may carry beyond the file: the fields and the boundaries of the parts.</summary>
+    internal const int BodyMargin = 64 * 1024;
 
     private static readonly ScreenAccess Access = ScreenAccess.Unlisted(PersonFunctions.Curation);
 
@@ -49,7 +49,7 @@ internal static class SubmissionsEndpoint
             return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
 
-        if (SessionOf(context) is not { } author)
+        if (RequestReader.SessionOf(context) is not { } author)
         {
             return Results.Unauthorized();
         }
@@ -84,7 +84,7 @@ internal static class SubmissionsEndpoint
             return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
 
-        if (SessionOf(context) is not { } requester)
+        if (RequestReader.SessionOf(context) is not { } requester)
         {
             return Results.Unauthorized();
         }
@@ -106,7 +106,7 @@ internal static class SubmissionsEndpoint
             return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
         }
 
-        if (SessionOf(context) is not { } requester)
+        if (RequestReader.SessionOf(context) is not { } requester)
         {
             return Results.Unauthorized();
         }
@@ -132,14 +132,18 @@ internal static class SubmissionsEndpoint
         return (await GrantedDomains.OfAsync(listing, names, context.RequestAborted)).Keys;
     }
 
-    private static long? SessionOf(HttpContext context) => context.RequestServices.GetRequiredService<SessionStore>().Resolve(SessionCookie.Read(context.Request));
-
-    /// <summary>The body is bounded by the most bytes a file may have, and a margin for the fields and the boundaries, before a byte of it is read.</summary>
-    private static void Bound(HttpContext context, long maxBytes)
+    /// <summary>
+    /// The body is bounded by the most bytes a file may have, a margin for the fields and the boundaries and the excess the caller tolerates, before a byte of it is read; the gate still refuses a
+    /// file past the most bytes. When the server already read the body or set its own bound the feature is read only, and the bound of the server stands.
+    /// </summary>
+    /// <param name="context">The request.</param>
+    /// <param name="maxBytes">The most bytes a file may have.</param>
+    /// <param name="excess">What the caller lets through past the file and the margin, so the gate can judge a file too large instead of the server cutting the body.</param>
+    internal static void Bound(HttpContext context, long maxBytes, long excess = 0)
     {
         if (context.Features.Get<IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } feature)
         {
-            feature.MaxRequestBodySize = maxBytes + BodyMargin;
+            feature.MaxRequestBodySize = maxBytes + BodyMargin + excess;
         }
     }
 }

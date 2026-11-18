@@ -15,9 +15,9 @@ namespace Core.Host.Tests.Browser.Screens;
 [Trait("Category", "Browser")]
 public sealed class SampleReviewPieceTests(BrowserFixture browser, SampleReviewHostFixture review) : IClassFixture<SampleReviewHostFixture>
 {
-    private const string Review = SampleReviewPieceHost.Review;
-    private const string Reject = SampleReviewPieceHost.Reject;
-    private const int Items = SampleReviewPieceHost.Items;
+    private const string Review = SampleReviewPieceCase.Review;
+    private const string Reject = SampleReviewPieceCase.Reject;
+    private const int Items = SampleReviewPieceCase.Items;
     private const int MostStops = 20;
     private const string Mark = "Revisado, sem dado pessoal";
     private const string Finding = "Achei dado pessoal";
@@ -44,7 +44,7 @@ public sealed class SampleReviewPieceTests(BrowserFixture browser, SampleReviewH
 
         await Expect(tab.Page.GetByRole(AriaRole.Button, new() { Name = Mark })).ToHaveCountAsync(1);
         await Expect(tab.Page.Locator($"#revisado-{next}")).ToBeVisibleAsync();
-        await Expect(tab.Page.GetByRole(AriaRole.Link, new() { Name = Finding })).ToHaveCountAsync(Items);
+        await Expect(tab.Page.GetByRole(AriaRole.Link, new() { Name = Finding })).ToHaveCountAsync(next);
         await Expect(tab.Page.Locator(".mark--good")).ToHaveCountAsync(reviewed);
         await Expect(tab.Page.GetByText("Revise os itens anteriores primeiro.")).ToHaveCountAsync(Items - reviewed - 1);
     }
@@ -152,7 +152,7 @@ public sealed class SampleReviewPieceTests(BrowserFixture browser, SampleReviewH
         await using var tab = await OpenAsync($"{Review}?e=revisados-2", ReviewTitle);
 
         await Expect(tab.Page.Locator(".sample__text")).ToHaveCountAsync(Items);
-        Assert.Equal(Enumerable.Range(1, Items).Select(SampleReviewPieceHost.TextOf), await tab.Page.Locator(".sample__text").AllInnerTextsAsync());
+        Assert.Equal(Enumerable.Range(1, Items).Select(SampleReviewPieceCase.TextOf), await tab.Page.Locator(".sample__text").AllInnerTextsAsync());
         Assert.DoesNotContain(Material, await tab.Page.EvaluateAsync<string>(WithoutTheItems), StringComparison.Ordinal);
         Assert.DoesNotContain(Material, await tab.Page.TitleAsync(), StringComparison.Ordinal);
         Assert.DoesNotContain(Material, tab.Page.Url, StringComparison.Ordinal);
@@ -267,7 +267,7 @@ public sealed class SampleReviewPieceTests(BrowserFixture browser, SampleReviewH
     private static IEnumerable<string> FindingsBetween(int first, int last) => Enumerable.Range(first, last - first + 1).Select(position => $"achado-{position}");
 
     /// <summary>The stops of the review with the item at the position as the next: the findings before it, its mark, and the findings from it to the end.</summary>
-    private static List<string> StopsAt(int position) => [.. FindingsBetween(1, position - 1), $"revisado-{position}", .. FindingsBetween(position, Items)];
+    private static List<string> StopsAt(int position) => [.. FindingsBetween(1, position - 1), $"revisado-{position}", $"achado-{position}"];
 
     private async Task<BrowserTab> OpenAsync(string route, string title)
     {

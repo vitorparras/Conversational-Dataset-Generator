@@ -90,7 +90,8 @@ public sealed class BatchDetailScreenTests
         Assert.Contains("Nenhum item neste lote.", page, StringComparison.Ordinal);
         Assert.Contains(BatchTexts.MotiveOf("no_units"), page, StringComparison.Ordinal);
         Assert.Contains("Desconhecida, como declarado no envio", page, StringComparison.Ordinal);
-        Assert.Matches(Fact("Removidos", "0 trechos"), page);
+        Assert.Contains(BatchDetailTexts.NotCounted, page, StringComparison.Ordinal);
+        Assert.DoesNotMatch(Fact("Removidos", "0 trechos"), page);
     }
 
     [Fact]
@@ -117,8 +118,8 @@ public sealed class BatchDetailScreenTests
 
         Assert.Equal(
             [
-                "Detail.Domain", "Detail.Motive", "Detail.SubmittedBy", "FormCount.Form", "DestinationCount.Destination", "Recognition.Address",
-                "Accommodated.Declared", "Accommodated.Into", "Accommodated.Losses",
+                "Detail.Domain", "Detail.Motive", "Detail.SubmittedBy", "Detail.Warning", "FormCount.Form", "DestinationCount.Destination", "Recognition.Address",
+                "Accommodated.Source", "Accommodated.Into", "Accommodated.Losses",
             ],
             texts);
     }

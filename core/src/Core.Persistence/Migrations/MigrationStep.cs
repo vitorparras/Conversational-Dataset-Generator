@@ -3,7 +3,7 @@ using System.Text;
 
 namespace Core.Persistence.Migrations;
 
-/// <summary>One numbered change to the schema: its text and the SHA-256 of the bytes that text came from.</summary>
+/// <summary>One change to the schema, named by its order: its text and the SHA-256 of the bytes that text came from.</summary>
 public sealed class MigrationStep
 {
     private MigrationStep(int version, string name, byte[] content)

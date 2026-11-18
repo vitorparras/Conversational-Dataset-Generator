@@ -26,6 +26,10 @@ internal static class SubmissionParts
     internal static BatchRegister RegisterOf(IServiceProvider provider) =>
         provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source ? new BatchRegister(source) : null!;
 
+    /// <summary>The counts of the detail of a batch over the database the startup container holds; none when no database is declared.</summary>
+    internal static BatchCounts CountsOf(IServiceProvider provider) =>
+        provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source ? new BatchCounts(source) : null!;
+
     /// <summary>The door of the ingestion over the database the startup container holds; none when no database is declared.</summary>
     internal static IntakeDoor DoorOf(IServiceProvider provider) =>
         provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source ? new IntakeDoor(source) : null!;

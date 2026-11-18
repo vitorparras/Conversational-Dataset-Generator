@@ -9,6 +9,15 @@ public sealed class SourceReadersTests
     private static readonly byte[] Content = [1, 2, 3];
 
     [Fact]
+    public void TheFormOfAFormatIsTheOneOfItsReaderAndAFormatWithNoReaderHasNone()
+    {
+        var readers = new SourceReaders([new FakeReader("primeiro/1", ReadOutcome.Unreadable(UnreadableReason.UnsupportedFormat))]);
+
+        Assert.Equal([MaterialForm.Comment, null], [readers.FormOf("primeiro/1"), readers.FormOf("segundo/1")]);
+        Assert.Equal(MaterialForm.Conversation, SourceReaders.Default().FormOf("cdg-conversa/1"));
+    }
+
+    [Fact]
     public void TheReaderOfTheFormatReadsAndNoOtherIsAsked()
     {
         var first = new FakeReader("primeiro/1", ReadOutcome.Read(new ReadMaterial([Units.Plain("um")])));
@@ -89,6 +98,8 @@ public sealed class SourceReadersTests
         public byte[]? Received { get; private set; }
 
         public string Format { get; } = format;
+
+        public MaterialForm Form => MaterialForm.Comment;
 
         public ReadLimits Limits { get; } = new(4, 10, 100, 64);
 

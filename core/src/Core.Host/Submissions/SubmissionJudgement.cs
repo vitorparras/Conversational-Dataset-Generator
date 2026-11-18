@@ -32,14 +32,6 @@ internal static class SubmissionJudgement
         return previous is null ? null : RepeatOf(previous);
     }
 
-    /// <summary>The reason of a repeat, found by looking up the batch that accepted the same file.</summary>
-    /// <param name="register">Finds the batch of the domain that accepted the same file.</param>
-    /// <param name="domainId">The domain of the batch.</param>
-    /// <param name="digest">The digest of the file.</param>
-    /// <param name="cancellationToken">Cancels the reading.</param>
-    internal static async Task<SubmissionReason> RepeatAsync(BatchRegister register, int domainId, string digest, CancellationToken cancellationToken) =>
-        RepeatOf(await register.PreviousAsync(domainId, digest, cancellationToken).ConfigureAwait(false));
-
     /// <summary>The reason of a repeat, with the batch that accepted the file before.</summary>
     /// <param name="previous">That batch; none when it cannot be found any more.</param>
     private static SubmissionReason RepeatOf(long? previous) => new(ReasonCodes.AlreadyReceived, [], previous);

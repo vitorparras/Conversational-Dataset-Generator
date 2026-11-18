@@ -24,14 +24,14 @@ internal static class PeoplePages
     /// <summary>The people the list shows, each as its name, its function and its state, read from the rows of the page.</summary>
     public static async Task<IReadOnlyList<string[]>> RowsAsync(IPage page) => await page.Locator(".paged-list li .row").EvaluateAllAsync<string[][]>(ReadRows);
 
-    /// <summary>The people of <see cref="PeopleScreenHost.Listed"/> the name given is part of, as the rows the list shows them as.</summary>
+    /// <summary>The people of <see cref="PeopleCase.Listed"/> the name given is part of, as the rows the list shows them as.</summary>
     public static IEnumerable<string[]> ListedWith(string part) =>
-        PeopleScreenHost.Listed.Where(seed => seed.Name.Contains(part, StringComparison.OrdinalIgnoreCase)).Select(Row);
+        PeopleCase.Listed.Where(seed => seed.Name.Contains(part, StringComparison.OrdinalIgnoreCase)).Select(Row);
 
-    public static string[] Row(PeopleScreenHost.Seed seed) => [seed.Name, seed.Function, seed.Active ? "Ativa" : "Inativa"];
+    public static string[] Row(PeopleCase.Seed seed) => [seed.Name, seed.Function, seed.Active ? "Ativa" : "Inativa"];
 
     /// <summary>A page, in a context of its own, of a person who entered by the form and opened the route given.</summary>
-    public static async Task<BrowserTab> OpenAsync(BrowserFixture browser, ScreenHostBase host, string person, string route)
+    public static async Task<BrowserTab> OpenAsync(BrowserFixture browser, ScreenHost host, string person, string route)
     {
         var tab = await ScreenSession.SignedInAsync(browser, host, person);
         try

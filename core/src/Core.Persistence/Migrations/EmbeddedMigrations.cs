@@ -1,31 +1,28 @@
-using System.Globalization;
 using System.Reflection;
 
 namespace Core.Persistence.Migrations;
 
-/// <summary>The steps this build carries: the <c>Sql/NNNN-name.sql</c> resources, in numeric order.</summary>
+/// <summary>The steps this build carries: the <c>Sql/name.sql</c> resources, in the order of <see cref="MigrationNames"/>; a step's version is its position, from one.</summary>
 public static class EmbeddedMigrations
 {
     private const string Folder = "Sql/";
     private const string Extension = ".sql";
-    private const int NumberWidth = 4;
 
-    /// <summary>Every embedded step; a resource that does not start with its four-digit number is a defect of the build.</summary>
+    /// <summary>Every embedded step; a resource that is named in neither format is a defect of the build.</summary>
     public static IReadOnlyList<MigrationStep> Load()
     {
         var assembly = typeof(EmbeddedMigrations).Assembly;
-        return [.. assembly.GetManifestResourceNames()
+        var names = MigrationNames.Ordered(assembly.GetManifestResourceNames()
             .Where(resource => resource.StartsWith(Folder, StringComparison.Ordinal) && resource.EndsWith(Extension, StringComparison.Ordinal))
-            .Select(resource => StepOf(assembly, resource))
-            .OrderBy(step => step.Version)];
+            .Select(resource => resource[Folder.Length..^Extension.Length]));
+        return [.. names.Select((name, index) => StepOf(assembly, name, index + 1))];
     }
 
-    private static MigrationStep StepOf(Assembly assembly, string resource)
+    private static MigrationStep StepOf(Assembly assembly, string name, int version)
     {
-        var name = resource[Folder.Length..^Extension.Length];
-        using var stream = assembly.GetManifestResourceStream(resource)!;
+        using var stream = assembly.GetManifestResourceStream(Folder + name + Extension)!;
         using var content = new MemoryStream();
         stream.CopyTo(content);
-        return MigrationStep.Of(int.Parse(name[..NumberWidth], NumberStyles.None, CultureInfo.InvariantCulture), name, content.ToArray());
+        return MigrationStep.Of(version, name, content.ToArray());
     }
 }

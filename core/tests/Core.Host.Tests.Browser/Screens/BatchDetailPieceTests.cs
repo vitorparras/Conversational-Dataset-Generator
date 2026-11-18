@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Core.Host.Screens;
 using Core.Host.Tests.Browser.Accessibility;
 using Core.Host.Tests.Browser.Fixtures;
 using Microsoft.Playwright;
@@ -14,8 +15,9 @@ namespace Core.Host.Tests.Browser.Screens;
 [Trait("Category", "Browser")]
 public sealed class BatchDetailPieceTests(BrowserFixture browser, BatchDetailHostFixture detail) : IClassFixture<BatchDetailHostFixture>
 {
-    private const string Detail = BatchDetailPieceHost.Detail;
+    private const string Detail = BatchDetailPieceCase.Detail;
     private const string Back = "Voltar para os lotes";
+    private const string Review = "Revisão da amostra";
     private const int MostStops = 12;
     private const string Overflow = "() => document.documentElement.scrollWidth - document.documentElement.clientWidth";
     private const string FocusTheTitle = "() => { const title = document.querySelector('main h1'); title.setAttribute('tabindex', '-1'); title.focus(); }";
@@ -30,9 +32,9 @@ public sealed class BatchDetailPieceTests(BrowserFixture browser, BatchDetailHos
 
         Assert.Equal(Panels, await tab.Page.Locator("main h2").AllInnerTextsAsync());
         var main = tab.Page.Locator("main");
-        await Expect(main).ToContainTextAsync(BatchDetailPieceHost.Domain);
+        await Expect(main).ToContainTextAsync(BatchDetailPieceCase.Domain);
         await Expect(main).ToContainTextAsync("Aceito");
-        await Expect(main).ToContainTextAsync(BatchDetailPieceHost.Submitter);
+        await Expect(main).ToContainTextAsync(BatchDetailPieceCase.Submitter);
         await Expect(main).ToContainTextAsync("UTC");
         await Expect(main).ToContainTextAsync("Declarada e guardada selada");
         await Expect(main).ToContainTextAsync("Não é reenvio de um lote anterior.");
@@ -56,14 +58,15 @@ public sealed class BatchDetailPieceTests(BrowserFixture browser, BatchDetailHos
     }
 
     [Fact]
-    public async Task ABatchStillOpenHasNoItemAndSaysSoWithZeroPassagesInEveryDestination()
+    public async Task ABatchStillOpenHasNoItemAndSaysNoPassageWasCountedByDestination()
     {
         await using var tab = await OpenAsync("em-curso", "Lote 40");
 
         await Expect(tab.Page.Locator("main")).ToContainTextAsync("Em curso");
         await Expect(tab.Page.Locator(".empty-state__title")).ToHaveTextAsync("Nenhum item neste lote.");
         await Expect(tab.Page.Locator("main")).ToContainTextAsync("O lote ainda está em curso; os itens aparecem aqui quando forem gravados.");
-        await Expect(tab.Page.GetByText("0 trechos", new() { Exact = true })).ToHaveCountAsync(3);
+        await Expect(tab.Page.Locator("#destinos-nao-contados")).ToHaveTextAsync(BatchDetailTexts.NotCounted);
+        await Expect(tab.Page.GetByText("0 trechos", new() { Exact = true })).ToHaveCountAsync(0);
     }
 
     [Fact]
@@ -104,7 +107,7 @@ public sealed class BatchDetailPieceTests(BrowserFixture browser, BatchDetailHos
 
         await Expect(tab.Page.Locator("main blockquote, main pre, main code, main textarea, main input, main form")).ToHaveCountAsync(0);
         var addresses = await tab.Page.Locator("main a").EvaluateAllAsync<string[]>("links => links.map(link => link.getAttribute('href'))");
-        Assert.All(addresses, address => Assert.Matches("^/captura/(lotes|lote\\?e=anterior)$", address));
+        Assert.All(addresses, address => Assert.Matches("^(/captura/(lotes|lote\\?e=anterior)|/lotes/[0-9]+/revisao)$", address));
     }
 
     [Fact]
@@ -112,12 +115,13 @@ public sealed class BatchDetailPieceTests(BrowserFixture browser, BatchDetailHos
     {
         await using var tab = await OpenAsync("aceito", "Lote 41");
 
-        Assert.Equal([Back], await StopsInMainAsync(tab.Page));
+        Assert.Equal([Review, Back], await StopsInMainAsync(tab.Page));
         await FocusTheTitleAsync(tab.Page);
+        await tab.Page.Keyboard.PressAsync("Tab");
         await tab.Page.Keyboard.PressAsync("Tab");
         await tab.Page.Keyboard.PressAsync("Enter");
 
-        await Expect(tab.Page).ToHaveURLAsync(new Regex($"{Regex.Escape(BatchDetailPieceHost.List)}$"));
+        await Expect(tab.Page).ToHaveURLAsync(new Regex($"{Regex.Escape(BatchDetailPieceCase.List)}$"));
     }
 
     [Fact]
@@ -125,7 +129,7 @@ public sealed class BatchDetailPieceTests(BrowserFixture browser, BatchDetailHos
     {
         await using var tab = await OpenAsync("reenvio", "Lote 42");
 
-        Assert.Equal(["lote 33", Back], await StopsInMainAsync(tab.Page));
+        Assert.Equal(["lote 33", Review, Back], await StopsInMainAsync(tab.Page));
         await FocusTheTitleAsync(tab.Page);
         await tab.Page.Keyboard.PressAsync("Tab");
         await tab.Page.Keyboard.PressAsync("Enter");

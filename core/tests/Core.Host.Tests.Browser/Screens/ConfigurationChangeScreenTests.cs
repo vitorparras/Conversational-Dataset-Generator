@@ -21,6 +21,8 @@ public sealed class ConfigurationChangeScreenTests(BrowserFixture browser, Chang
     private const int WideWidth = 1280;
     private const int WideHeight = 800;
     private const int NotFound = 404;
+    private const int Ok = 200;
+    private const string PostJson = "async ([route]) => (await fetch(route, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).status";
 
     [Fact]
     public async Task Ca1AProposalTheStartTakesIsSentAndWaitsForAnotherPerson()
@@ -48,7 +50,7 @@ public sealed class ConfigurationChangeScreenTests(BrowserFixture browser, Chang
     [Fact]
     public async Task Ca2WhoProposedFindsNoButtonToDecideIt()
     {
-        var id = await changes.Host.ProposeAsync("00:22:00");
+        var id = await changes.Case.ProposeAsync("00:22:00");
         await using var tab = await OpenAsync(changes.Host.Administrator);
 
         await Expect(tab.Page.Locator($"#aprovar-{id}, #recusar-{id}")).ToHaveCountAsync(0);
@@ -57,8 +59,8 @@ public sealed class ConfigurationChangeScreenTests(BrowserFixture browser, Chang
     [Fact]
     public async Task Ca3AnotherPersonOfTheAdministrationApprovesAndTheProposalLeavesTheList()
     {
-        var id = await changes.Host.ProposeAsync("00:23:00");
-        await using var tab = await OpenAsync(changes.Host.SecondAdministrator);
+        var id = await changes.Case.ProposeAsync("00:23:00");
+        await using var tab = await OpenAsync(changes.Case.SecondAdministrator);
 
         await tab.Page.Locator($"#aprovar-{id}").ClickAsync();
 
@@ -69,7 +71,7 @@ public sealed class ConfigurationChangeScreenTests(BrowserFixture browser, Chang
     [Fact]
     public async Task Ca2TheServerRefusesTheDecisionOfWhoProposedEvenWhenTheFormIsForgedAndTheProposalStillWaits()
     {
-        var id = await changes.Host.ProposeAsync("00:27:00");
+        var id = await changes.Case.ProposeAsync("00:27:00");
         await using var tab = await OpenAsync(changes.Host.Administrator);
 
         const string forge = "([route, id]) => { const form = document.createElement('form'); form.method = 'post'; "
@@ -79,15 +81,15 @@ public sealed class ConfigurationChangeScreenTests(BrowserFixture browser, Chang
         _ = await tab.Page.EvaluateAsync(forge, new object[] { Route, id });
 
         await Expect(tab.Page.Locator("main")).ToContainTextAsync("Quem propôs a alteração não a decide");
-        await using var other = await OpenAsync(changes.Host.SecondAdministrator);
+        await using var other = await OpenAsync(changes.Case.SecondAdministrator);
         await Expect(other.Page.Locator($"#aprovar-{id}")).ToBeVisibleAsync();
     }
 
     [Fact]
     public async Task Ca3AnotherPersonOfTheAdministrationRefusesAndTheProposalLeavesTheListWithoutChangingTheConfiguration()
     {
-        var id = await changes.Host.ProposeAsync("00:28:00");
-        await using var tab = await OpenAsync(changes.Host.SecondAdministrator);
+        var id = await changes.Case.ProposeAsync("00:28:00");
+        await using var tab = await OpenAsync(changes.Case.SecondAdministrator);
 
         await tab.Page.Locator($"#recusar-{id}").ClickAsync();
 
@@ -98,14 +100,28 @@ public sealed class ConfigurationChangeScreenTests(BrowserFixture browser, Chang
     [Fact]
     public async Task ADecisionOtherThanToApproveOrToRefuseLeadsNowhereAndTheProposalStillWaits()
     {
-        var id = await changes.Host.ProposeAsync("00:26:00");
-        await using var tab = await OpenAsync(changes.Host.SecondAdministrator);
+        var id = await changes.Case.ProposeAsync("00:26:00");
+        await using var tab = await OpenAsync(changes.Case.SecondAdministrator);
         _ = await tab.Page.EvaluateAsync($"() => document.querySelector('#recusar-{id}').form.querySelector('[name=decisao]').value = 'zqx'");
 
         var answer = await tab.Page.RunAndWaitForResponseAsync(
             () => tab.Page.Locator($"#recusar-{id}").ClickAsync(), response => response.Request.Method == "POST");
 
         Assert.Equal(NotFound, answer.Status);
+        _ = await tab.Page.GotoAsync(Route);
+        await Expect(tab.Page.Locator($"#aprovar-{id}")).ToBeVisibleAsync();
+    }
+
+    [Fact]
+    public async Task ABodyThatIsNoFormIsTakenAsAnEmptyOneAndAnswersAsTheFormEmptyDoes()
+    {
+        var id = await changes.Case.ProposeAsync("00:29:00");
+        await using var tab = await OpenAsync(changes.Case.SecondAdministrator);
+
+        var submitted = await tab.Page.EvaluateAsync<int>(PostJson, new object[] { Route });
+        var decided = await tab.Page.EvaluateAsync<int>(PostJson, new object[] { Route + "/decisao" });
+
+        Assert.Equal((Ok, NotFound), (submitted, decided));
         _ = await tab.Page.GotoAsync(Route);
         await Expect(tab.Page.Locator($"#aprovar-{id}")).ToBeVisibleAsync();
     }
@@ -137,8 +153,8 @@ public sealed class ConfigurationChangeScreenTests(BrowserFixture browser, Chang
     public async Task TheScreenHasNoViolationOfWcagAAndAaAt1280AndItsTextReadsOverTheGlass(string name)
     {
         var mode = MediaMode.Named(name);
-        _ = await changes.Host.ProposeAsync("00:24:00");
-        await using var tab = await OpenAsync(changes.Host.SecondAdministrator);
+        _ = await changes.Case.ProposeAsync("00:24:00");
+        await using var tab = await OpenAsync(changes.Case.SecondAdministrator);
         await tab.Page.SetViewportSizeAsync(WideWidth, WideHeight);
         await mode.ApplyAsync(tab.Page);
 

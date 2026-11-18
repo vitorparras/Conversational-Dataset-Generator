@@ -9,7 +9,8 @@ internal static class VersionsEndpoint
 {
     internal const string Route = "/versions";
 
-    internal static void Map(IEndpointRouteBuilder endpoints) => _ = endpoints.MapGet(Route, InForceAsync);
+    /// <summary>Reached by the functions of the screen of the state of the system (policy 006), declared once in <see cref="SystemScreensEndpoint"/>.</summary>
+    internal static void Map(IEndpointRouteBuilder endpoints) => _ = endpoints.MapGet(Route, InForceAsync).WithMetadata(SystemScreensEndpoint.Access);
 
     private static Task<VersionReport> InForceAsync(
         [FromServices] VersionReport versions, [FromServices] IServiceVersionReader service, CancellationToken cancellationToken) =>

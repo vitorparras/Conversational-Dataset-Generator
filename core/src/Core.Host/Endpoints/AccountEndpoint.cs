@@ -15,9 +15,9 @@ internal static class AccountEndpoint
 
     internal static void Map(IEndpointRouteBuilder endpoints)
     {
-        _ = endpoints.MapGet(Route + "/sessions", ListSessions);
-        _ = endpoints.MapDelete(Route + "/sessions/{id}", EndSession);
-        _ = endpoints.MapPost(Route + "/password", ChangeAsync);
+        _ = endpoints.MapGet(Route + "/sessions", ListSessions).WithMetadata(ScreenAccess.Everyone);
+        _ = endpoints.MapDelete(Route + "/sessions/{id}", EndSession).WithMetadata(ScreenAccess.Everyone);
+        _ = endpoints.MapPost(Route + "/password", ChangeAsync).WithMetadata(ScreenAccess.Everyone);
     }
 
     private static IResult ListSessions(HttpContext context, [FromServices] SessionStore sessions)
@@ -30,7 +30,7 @@ internal static class AccountEndpoint
         listed.Select(session => new AccountSessionShown(session.ListingId, session.Start, session.LastActivity, session.Current));
 
     private static IResult EndSession(string id, HttpContext context, [FromServices] SessionStore sessions) =>
-        sessions.Resolve(SessionCookie.Read(context.Request)) is { } account && sessions.CloseListed(account, id) ? Results.NoContent() : Results.NotFound();
+        RequestReader.SessionOf(context) is { } account && sessions.CloseListed(account, id) ? Results.NoContent() : Results.NotFound();
 
     private static async Task<IResult> ChangeAsync(
         [FromBody] PasswordChangeAsked asked, [FromServices] PasswordChange? change, HttpContext context, CancellationToken cancellationToken)

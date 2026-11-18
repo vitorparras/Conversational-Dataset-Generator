@@ -1,6 +1,8 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
+using Core.Ingestion.Contracts;
 using Core.Persistence.Content;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
@@ -46,7 +48,9 @@ public sealed class BatchReviews
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(request.DomainId);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(request.BatchId);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(request.ReviewerId);
-        return sampleSize is null ? Task.FromResult(new BatchReviewResult { Outcome = BatchReviewOutcome.SizeNotDeclared }) : DrawingAsync(request, cancellationToken);
+        return sampleSize is null
+            ? Task.FromResult(new BatchReviewResult { Outcome = BatchReviewOutcome.SizeNotDeclared })
+            : BatchRetry.RunAsync(() => DrawingAsync(request, cancellationToken), result => result.Collided, BatchRetry.Attempts, cancellationToken);
     }
 
     /// <summary>Records the review of the sample: a clean one lets the batch be accepted, and a finding rejects the whole batch, with its material, in the same transaction.</summary>
@@ -60,7 +64,7 @@ public sealed class BatchReviews
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(request.ReviewerId);
         return request.Finding is not null && !CustodyEvent.IsBatchMotive(request.Finding)
             ? Task.FromResult(new BatchReviewResult { Outcome = BatchReviewOutcome.FindingRefused })
-            : ReviewingAsync(request, cancellationToken);
+            : BatchRetry.RunAsync(() => ReviewingAsync(request, cancellationToken), result => result.Collided, BatchRetry.Attempts, cancellationToken);
     }
 
     /// <summary>The review of a batch as it stands, whatever the state of the batch; null when the domain has no such batch.</summary>
@@ -74,37 +78,32 @@ public sealed class BatchReviews
         return ReadingAsync(domainId, batchId, cancellationToken);
     }
 
-    private static BatchReviewOutcome? Refusal(BatchReview? held, bool drawing)
-    {
-        if (held is null)
+    /// <summary>
+    /// What the state of a batch refuses of the review of its sample, in the words of the outcomes: the one rule (<see cref="SampleStateRules" />) that the steps of the database
+    /// and the desk of the screens take alike, over the batch as it was read. Null when the state allows the step.
+    /// </summary>
+    /// <param name="held">The review as it was read, or null when the domain has no such batch.</param>
+    /// <param name="drawing">True for the draw of the sample, false for a step that reviews it.</param>
+    public static BatchReviewOutcome? Refusal(BatchReview? held, bool drawing) =>
+        Outcome(SampleStateRules.Refusal(
+            held is null ? null : new SampledBatch(held.State == BatchState.Open, held.Sample is not null, held.ReviewerId is not null),
+            drawing));
+
+    /// <summary>The outcome that tells each refusal of the rule; a refusal no outcome tells is a defect and fails at once, not an answer guessed.</summary>
+    /// <param name="refusal">What the rule refused, or null when it allowed the step.</param>
+    internal static BatchReviewOutcome? Outcome(SampleRefusal? refusal) =>
+        refusal switch
         {
-            return BatchReviewOutcome.NotFound;
-        }
+            null => null,
+            SampleRefusal.NotFound => BatchReviewOutcome.NotFound,
+            SampleRefusal.NotOpen => BatchReviewOutcome.NotOpen,
+            SampleRefusal.AlreadySampled => BatchReviewOutcome.AlreadySampled,
+            SampleRefusal.NotSampled => BatchReviewOutcome.NotSampled,
+            SampleRefusal.AlreadyReviewed => BatchReviewOutcome.AlreadyReviewed,
+            _ => throw new UnreachableException(),
+        };
 
-        if (held.State != BatchState.Open)
-        {
-            return BatchReviewOutcome.NotOpen;
-        }
-
-        if (drawing)
-        {
-            return held.Sample is null ? null : BatchReviewOutcome.AlreadySampled;
-        }
-
-        return ReviewRefusal(held);
-    }
-
-    private static BatchReviewOutcome? ReviewRefusal(BatchReview held)
-    {
-        if (held.Sample is null)
-        {
-            return BatchReviewOutcome.NotSampled;
-        }
-
-        return held.ReviewerId is null ? null : BatchReviewOutcome.AlreadyReviewed;
-    }
-
-    private static long[] Drawn(long[] numbers, int size)
+    internal static long[] Drawn(long[] numbers, int size)
     {
         var shuffled = (long[])numbers.Clone();
         RandomNumberGenerator.Shuffle(shuffled.AsSpan());
@@ -113,7 +112,7 @@ public sealed class BatchReviews
         return drawn;
     }
 
-    private static BatchReviewResult Answered(CustodyResult? recorded, BatchReviewOutcome done, IReadOnlyList<long>? sample) =>
+    internal static BatchReviewResult Answered(CustodyResult? recorded, BatchReviewOutcome done, IReadOnlyList<long>? sample) =>
         recorded?.Outcome == CustodyOutcome.Appended
             ? new BatchReviewResult { Outcome = done, Sample = sample, Sequence = recorded.Sequence }
             : new BatchReviewResult { Outcome = BatchReviewOutcome.NotRecorded, Refusal = recorded };
@@ -177,7 +176,7 @@ public sealed class BatchReviews
             return appended;
         }
 
-        if (await RecordAsync(scope, request, cancellationToken).ConfigureAwait(false) == 1)
+        if (await RecordAsync(scope, request, PlaceOf(request, held!), cancellationToken).ConfigureAwait(false) == 1)
         {
             return await CustodyAppend.CommitIfAppendedAsync(scope, appended, cancellationToken).ConfigureAwait(false);
         }
@@ -195,7 +194,9 @@ public sealed class BatchReviews
             : reviewed;
     }
 
-    private static async Task<int> RecordAsync(CustodyScope scope, BatchReviewing request, CancellationToken cancellationToken)
+    private static int PlaceOf(BatchReviewing request, BatchReview held) => request.Place ?? Math.Min(held.ReviewedPosition + 1, held.Sample!.Count);
+
+    private static async Task<int> RecordAsync(CustodyScope scope, BatchReviewing request, int place, CancellationToken cancellationToken)
     {
         var batch = ReviewStatements.Id("id", request.BatchId);
         var reviewer = ReviewStatements.Id("reviewer", request.ReviewerId);
@@ -206,7 +207,10 @@ public sealed class BatchReviews
 
         var finding = new NpgsqlParameter("finding", request.Finding);
         var motive = new NpgsqlParameter("motive", RejectionMotive);
-        var rows = await ReviewStatements.ChangeAsync(scope, ContentQueries.CloseBatchReviewFound, cancellationToken, batch, reviewer, finding, motive).ConfigureAwait(false);
+        var where = new NpgsqlParameter("place", place);
+        var rows = await ReviewStatements.ChangeAsync(scope, ContentQueries.CloseBatchReviewFound, cancellationToken, batch, reviewer, finding, motive, where).ConfigureAwait(false);
+        _ = await ReviewStatements.ChangeAsync(scope, ContentQueries.RemoveBatchMarks, cancellationToken, ReviewStatements.Id("id", request.BatchId)).ConfigureAwait(false);
+        _ = await ReviewStatements.ChangeAsync(scope, ContentQueries.RemoveBatchOccurrences, cancellationToken, ReviewStatements.Id("id", request.BatchId)).ConfigureAwait(false);
         _ = await ReviewStatements.ChangeAsync(scope, ContentQueries.RemoveBatchMaps, cancellationToken, ReviewStatements.Id("id", request.BatchId)).ConfigureAwait(false);
         _ = await ReviewStatements.ChangeAsync(scope, ContentQueries.RemoveBatchItems, cancellationToken, ReviewStatements.Id("id", request.BatchId)).ConfigureAwait(false);
         return rows;

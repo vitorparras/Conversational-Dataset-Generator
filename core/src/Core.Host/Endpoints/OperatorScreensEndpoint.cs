@@ -16,11 +16,14 @@ internal static class OperatorScreensEndpoint
 {
     private const int OperatorsPlace = 80;
 
+    /// <summary>What the routes of the people declare, the screen of the list and the one that registers included: the technical administration alone (policy 006).</summary>
+    internal static ScreenAccess Access { get; } = ScreenAccess.Unlisted(PersonFunctions.Administration);
+
     internal static void Map(IEndpointRouteBuilder endpoints)
     {
         _ = endpoints.MapGet(ScreenPaths.Operators, ListAsync).WithMetadata(ScreenAccess.Of(OperatorsScreen.Title, OperatorsPlace, PersonFunctions.Administration));
-        _ = endpoints.MapGet(ScreenPaths.OperatorNew, Form).WithMetadata(ScreenAccess.Unlisted(PersonFunctions.Administration));
-        _ = endpoints.MapPost(ScreenPaths.OperatorNew, OperatorRegistration.RegisterAsync).WithMetadata(ScreenAccess.Unlisted(PersonFunctions.Administration));
+        _ = endpoints.MapGet(ScreenPaths.OperatorNew, Form).WithMetadata(Access);
+        _ = endpoints.MapPost(ScreenPaths.OperatorNew, OperatorRegistration.RegisterAsync).WithMetadata(Access);
         OperatorEmailEndpoint.Map(endpoints);
     }
 

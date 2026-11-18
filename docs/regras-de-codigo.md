@@ -54,7 +54,7 @@ Arrange-Act-Assert; um comportamento por teste, nomeado por ele; sem condicional
 Documentação de API só na fronteira pública entre módulos; nos outros métodos, no máximo um sumário
 de uma frase. Comentário no corpo é raro, curto, diz o porquê e nunca cita regra ou issue.
 
-## 9. Pull request (limite imposto por `pr_size`; task única e descrição, em revisão)
+## 9. Pull request (impostos: `pr_size`, `migration_order`; task única e descrição, em revisão)
 
-Até 30 arquivos e 400 linhas de diff de produção; teste, lockfile e fixture ficam fora da conta, mas
-listados. Uma task por pull request; a descrição cita o princípio de cada escolha não óbvia.
+Até 400 linhas de produção ou o "Teto da fatia: N linhas" da issue do PR (no máximo 1.500); sem
+limite de arquivos; teste, lockfile e fixture só listados. Migração nova: `AAAAMMDDHHMM-nome`.

@@ -56,8 +56,9 @@ class MutationModuleJobTests(unittest.TestCase):
 
     def test_the_job_runs_unless_the_list_declared_that_no_module_is_reached(self) -> None:
         self.assertIn(
-            "if: needs.mutation_modules.outputs.modules != '[]' "
-            "&& github.event.pull_request.draft != true\n",
+            "if: ${{ !cancelled() && needs.mutation_modules.result == 'success' "
+            "&& needs.mutation_modules.outputs.modules != '[]' "
+            "&& github.event.pull_request.draft != true }}\n",
             module_job(),
         )
         self.assertNotIn("schedule", module_job())
@@ -67,7 +68,7 @@ class MutationModuleJobTests(unittest.TestCase):
 
     def test_the_matrix_comes_from_the_job_that_reads_the_document(self) -> None:
         self.assertIn(MATRIX, module_job())
-        self.assertIn("needs: mutation_modules\n", module_job())
+        self.assertIn("needs: [mutation_modules, database_image]\n", module_job())
 
     def test_the_job_limit_outlasts_the_ceiling_of_one_module(self) -> None:
         self.assertGreater(limit_minutes(), policy().minutes)

@@ -36,20 +36,20 @@ public sealed class SystemStateScreenTests(BrowserFixture browser, SystemHostFix
         await Expect(FactOf(tab.Page, "Vivo")).ToContainTextAsync("Sim: o sistema responde");
         await Expect(FactOf(tab.Page, "Apto")).ToContainTextAsync("Não: uma conferência feita ao iniciar falhou");
         await Expect(tab.Page.Locator(ChecksRows)).ToHaveCountAsync(2);
-        await Expect(tab.Page.Locator(ChecksRows).Nth(0)).ToContainTextAsync(SystemScreenHost.PassedCheck);
+        await Expect(tab.Page.Locator(ChecksRows).Nth(0)).ToContainTextAsync(SystemCase.PassedCheck);
         await Expect(tab.Page.Locator(ChecksRows).Nth(0)).ToContainTextAsync("Passou");
-        await Expect(tab.Page.Locator(ChecksRows).Nth(1)).ToContainTextAsync(SystemScreenHost.FailedCheck);
+        await Expect(tab.Page.Locator(ChecksRows).Nth(1)).ToContainTextAsync(SystemCase.FailedCheck);
         await Expect(tab.Page.Locator(ChecksRows).Nth(1)).ToContainTextAsync("Falhou");
         await Expect(FactOf(tab.Page, "Apto").GetByRole(AriaRole.Link, new() { Name = "Ver a conferência que falhou" })).ToHaveAttributeAsync("href", "#conferencia-que-falhou");
         await Expect(tab.Page.Locator(ChecksRows).Nth(1)).ToHaveAttributeAsync("aria-current", "true");
-        await Expect(tab.Page.Locator(ChecksRows).Nth(1)).ToContainTextAsync($"{Sentence(SystemScreenHost.FailedMessage)}. Encontrado: {SystemScreenHost.FailedObserved}");
+        await Expect(tab.Page.Locator(ChecksRows).Nth(1)).ToContainTextAsync($"{Sentence(SystemCase.FailedMessage)}. Encontrado: {SystemCase.FailedObserved}");
         await Expect(tab.Page.Locator("[aria-labelledby=conferencias-titulo]")).ToContainTextAsync("1 de 2 passaram");
     }
 
     [Fact]
     public async Task Ca1FitIsYesOnlyWhenEveryCheckPassed()
     {
-        system.Host.Report = new StartupReport([CheckResult.Passed(SystemScreenHost.PassedCheck, "a chave foi lida e confere", "arquivo de chaves do servidor")], DateTimeOffset.UtcNow);
+        system.Case.Report = new StartupReport([CheckResult.Passed(SystemCase.PassedCheck, "a chave foi lida e confere", "arquivo de chaves do servidor")], DateTimeOffset.UtcNow);
         try
         {
             await using var tab = await OpenAsync(system.Host.Administrator);
@@ -59,10 +59,10 @@ public sealed class SystemStateScreenTests(BrowserFixture browser, SystemHostFix
         }
         finally
         {
-            system.Host.Report = new StartupReport(
+            system.Case.Report = new StartupReport(
                 [
-                    CheckResult.Passed(SystemScreenHost.PassedCheck, "a chave foi lida e confere", "arquivo de chaves do servidor"),
-                    CheckResult.Failed(SystemScreenHost.FailedCheck, SystemScreenHost.FailedMessage, "servidor de banco da instalação") with { Observed = SystemScreenHost.FailedObserved },
+                    CheckResult.Passed(SystemCase.PassedCheck, "a chave foi lida e confere", "arquivo de chaves do servidor"),
+                    CheckResult.Failed(SystemCase.FailedCheck, SystemCase.FailedMessage, "servidor de banco da instalação") with { Observed = SystemCase.FailedObserved },
                 ],
                 DateTimeOffset.UtcNow);
         }
@@ -110,7 +110,7 @@ public sealed class SystemStateScreenTests(BrowserFixture browser, SystemHostFix
     public async Task Ca3WhoHasNeitherTheTechnicalAdministrationNorTheAuditIsAnsweredAsForAnAddressThatDoesNotExist(string route)
     {
         Assert.NotNull(route);
-        await using var tab = await SystemSession.SignedInAsync(browser, system.Host, system.Host.Annotator);
+        await using var tab = await ScreenSession.SignedInAsync(browser, system.Host, system.Host.Annotator);
 
         var refused = await tab.Page.GotoAsync(route);
         var refusedPage = await tab.Page.ContentAsync();
@@ -121,7 +121,7 @@ public sealed class SystemStateScreenTests(BrowserFixture browser, SystemHostFix
         Assert.Equal(missingPage.Replace(Missing, string.Empty, StringComparison.Ordinal), refusedPage.Replace(route, string.Empty, StringComparison.Ordinal));
         Assert.DoesNotContain("Estado do sistema", refusedPage, StringComparison.Ordinal);
         Assert.DoesNotContain("Configuração em vigor", refusedPage, StringComparison.Ordinal);
-        Assert.DoesNotContain(system.Host.Secret, refusedPage, StringComparison.Ordinal);
+        Assert.DoesNotContain(system.Case.Secret, refusedPage, StringComparison.Ordinal);
         Assert.Empty(await tab.Page.Locator("nav .nav__link").AllInnerTextsAsync());
     }
 
@@ -204,7 +204,7 @@ public sealed class SystemStateScreenTests(BrowserFixture browser, SystemHostFix
 
     private async Task<BrowserTab> OpenAsync(string name)
     {
-        var tab = await SystemSession.SignedInAsync(browser, system.Host, name);
+        var tab = await ScreenSession.SignedInAsync(browser, system.Host, name);
         try
         {
             _ = await tab.Page.GotoAsync(Route);

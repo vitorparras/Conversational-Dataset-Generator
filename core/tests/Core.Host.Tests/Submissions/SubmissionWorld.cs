@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using Core.Boundary.Contracts;
 using Core.Boundary.Text;
 using Core.Host.Submissions;
 using Core.Ingestion;
@@ -97,14 +98,15 @@ internal sealed class SubmissionWorld : IAsyncDisposable
         return new ProtectedContent(loaded, new ItemKeys(new KeyDerivation(reading.Key!, loaded), reading.Epochs), new HashSet<string>(labels, StringComparer.Ordinal));
     }
 
-    internal static SubmissionIntake Intake(long maxBytes, OriginConditions conditions, ProtectedContent content, NpgsqlDataSource dataSource, ReplicationRule? replication = null) =>
+    internal static SubmissionIntake Intake(
+        long maxBytes, OriginConditions conditions, ProtectedContent content, NpgsqlDataSource dataSource, ReplicationRule? replication = null, ITextBoundaries? marking = null) =>
         new(
             new SubmissionGate(SourceReaders.Default(), maxBytes),
             new FormConference(new TextBoundaries()),
             conditions,
             content,
             new ContentWriter(dataSource, content),
-            replication is null ? null : new ReplicationMarking(new ReplicationStore(dataSource), MarkingDerivation(), replication, new TextBoundaries()));
+            replication is null ? null : new ReplicationMarking(new ReplicationStore(dataSource), MarkingDerivation(), replication, marking ?? new TextBoundaries()));
 
     private static KeyDerivation MarkingDerivation()
     {

@@ -19,8 +19,8 @@ rejeita com submission_cancelled, num token próprio da limpeza, porque o da req
 
 **Repetição.** A submissão só reconhece a cópia de um lote aceito, por `SubmissionJudgement`
 (linhas 29 a 33) e pelo índice parcial da 0051. Duas cópias abertas entram as duas, e quem decide
-é a aprovação (fatia B). A fatia A apaga o que nunca roda: `Keeping.Repeated`,
-`SubmissionStoring.IsRepeat`, `SubmissionService.RepeatedAsync` e `SubmissionJudgement.RepeatAsync`.
+é a aprovação (fatia B). A fatia A apagou o que nunca rodava: a repetição em Keeping,
+no armazenamento, no serviço e no julgamento da submissão.
 
 **Tela → leitura do lote.** `BatchRegister.ReadAsync` (linha 72) segue, e uma leitura nova chama
 a 0057: só números de forma, destino e replicado, com os códigos de `BatchDetailTexts` (linha 14).
@@ -29,8 +29,8 @@ a 0057: só números de forma, destino e replicado, com os códigos de `BatchDet
 
 **Decisão separada da gravação** ([serviço de domínio](../../padroes/002-servico-de-dominio.md)):
 - O progresso da amostra, um tipo puro novo em `Core.Ingestion`, decide o próximo item, se o
-  achado cabe, se o lote pode ser aprovado e as recusas de `BatchReviews` (linhas 77 a 105, que
-  saem de lá). É testado sem banco.
+  achado cabe e se o lote pode ser aprovado. As recusas de estado de `BatchReviews` viram uma
+  função pura em `Core.Ingestion.Contracts`, chamada pelo banco e pela mesa da revisão (`BatchReviews.Refusal`), testada sem banco ([0055](../../../decisoes/0055-recusas-da-revisao-em-contrato-da-ingestao.md)).
 - Um serviço da revisão em `Core.Host`, como o `SubmissionService`, lê o lote com
   `BatchReviews.ReadAsync`, pede a decisão e chama a gravação.
 - `BatchReviews` fica só com gravações condicionais: cada UPDATE só pega a linha se a posição

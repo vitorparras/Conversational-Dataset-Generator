@@ -36,6 +36,9 @@ jobs:
     name: Build, formato, arquitetura e testes da branch
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    permissions:
+      contents: read
+      packages: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -44,6 +47,8 @@ jobs:
       - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
+          cache: true
+          cache-dependency-path: core/**/packages.lock.json
       # Reprova antes de construir um nome que não é projeto de teste da solução (o teste roda com --no-build, então só vale quem a solução constrói)
       # e diz se algum projeto pedido usa o banco de teste: o que referencia Core.Tests.Database precisa da imagem; os outros não pagam a construção dela.
       - id: plan

@@ -33,7 +33,7 @@ tentativa e vê o fato, nunca `NotRecorded`.
 | Peça | Arquivos | Padrão |
 |---|---|---|
 | Migrações | 0058 e 0059 em `core/src/Core.Persistence/Migrations/Sql` | [001](../../padroes/001-armazenamento.md) |
-| Progresso | um tipo puro novo em `Core.Ingestion`, com as recusas que saem de `BatchReviews` (linhas 77 a 105) | [002](../../padroes/002-servico-de-dominio.md) |
+| Progresso | um tipo puro novo em `Core.Ingestion`; as recusas de `BatchReviews` vão para `Core.Ingestion.Contracts` (decisão 0055) | [002](../../padroes/002-servico-de-dominio.md) |
 | Serviço | um serviço da revisão novo em `Core.Host`, como `SubmissionService` | [002](../../padroes/002-servico-de-dominio.md) |
 | Gravações | `BatchReviews` só com gravações condicionais, o SQL numa classe de Statements nova e o laço de nova tentativa | [001](../../padroes/001-armazenamento.md) |
 | Resultado | `BatchReviewOutcome` ganha o valor "já recebido" | [001](../../padroes/001-armazenamento.md) |

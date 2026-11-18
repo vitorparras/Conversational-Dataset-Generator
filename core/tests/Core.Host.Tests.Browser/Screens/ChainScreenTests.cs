@@ -45,9 +45,9 @@ public sealed partial class ChainScreenTests(BrowserFixture browser, IntactChain
         await using var tab = await OpenAsync(broken.Host, broken.Host.Administrator);
 
         await Expect(FactOf(tab.Page, "Resultado")).ToContainTextAsync("Quebrada: um elo não confere");
-        await Expect(FactOf(tab.Page, "Incidente")).ToContainTextAsync($"Aberto desde o evento nº {ChainScreenHost.BrokenSequence}, o primeiro que não confere");
+        await Expect(FactOf(tab.Page, "Incidente")).ToContainTextAsync($"Aberto desde o evento nº {ChainCase.BrokenSequence}, o primeiro que não confere");
         await Expect(FactOf(tab.Page, "Incidente")).ToContainTextAsync("o domínio afetado só aceita leitura");
-        await Expect(tab.Page.Locator("[aria-labelledby=historico-titulo] tbody tr").First).ToContainTextAsync($"Quebrada no evento nº {ChainScreenHost.BrokenSequence}");
+        await Expect(tab.Page.Locator("[aria-labelledby=historico-titulo] tbody tr").First).ToContainTextAsync($"Quebrada no evento nº {ChainCase.BrokenSequence}");
     }
 
     [Theory]
@@ -142,7 +142,7 @@ public sealed partial class ChainScreenTests(BrowserFixture browser, IntactChain
     [GeneratedRegex(@"^A cadeia inteira: \d+(\.\d{3})* eventos lidos$", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex EventsRead();
 
-    private async Task<BrowserTab> OpenAsync(ScreenHostBase host, string name)
+    private async Task<BrowserTab> OpenAsync(ScreenHost host, string name)
     {
         var tab = await ScreenSession.SignedInAsync(browser, host, name);
         try

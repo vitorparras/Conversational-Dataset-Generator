@@ -29,6 +29,7 @@ from steps import (
     format_core,
     lint_service,
     lint_tools,
+    migration_order,
     mutation,
     offline_start,
     package,
@@ -82,6 +83,7 @@ STEPS: tuple[StepSpec, ...] = (
     StepSpec(trivy.NAME, trivy.run),
     StepSpec(static_analysis.NAME, static_analysis.run),
     StepSpec(pr_size.NAME, pr_size.run, needs_base=True),
+    StepSpec(migration_order.NAME, migration_order.run, needs_base=True),
     StepSpec(ai_attribution.NAME, ai_attribution.run, needs_base=True),
 )
 

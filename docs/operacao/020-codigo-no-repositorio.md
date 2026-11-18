@@ -13,12 +13,12 @@ Onde cada parte do código vive, os comandos que a verificam e o que reprova. Os
 | `language-service/` | O serviço de linguagem Python: `language-service/src/language_service` |
 | `tools/` | `verify-code`, `verify-docs`, `build-service`, `database` e os testes deles |
 
-O núcleo tem cinco projetos em `core/src`: `Core.Platform` (registro, configuração, partida),
-`Core.Boundary.Contracts` e `Core.Boundary` (a fronteira com o serviço), `Core.Persistence` (o
-banco) e `Core.Host`, o executável que os compõe. Cada um tem o projeto de teste de mesmo nome em
-`core/tests`, salvo o `Core.Boundary.Contracts`, testado em `Core.Boundary.Tests`; há ainda
-`Core.Tests.Architecture`, `Core.Tests.Integration`, `Core.Tests.Properties` e `Core.Tests.Support`.
-Os testes do serviço ficam em `language-service/tests`.
+O núcleo tem projetos em `core/src`: `Core.Platform` (registro, configuração, partida),
+`Core.Boundary.Contracts` e `Core.Boundary` (a fronteira com o serviço), `Core.Ingestion` e
+`Core.Ingestion.Contracts` (a ingestão), `Core.Persistence` (o banco) e `Core.Host`, o executável
+que os compõe. Cada um tem o teste de mesmo nome em `core/tests`, e os `Contracts` são testados com
+o módulo; há ainda `Core.Tests.Architecture`, `Core.Tests.Integration`, `Core.Tests.Properties` e
+`Core.Tests.Support`. Os testes do serviço ficam em `language-service/tests`.
 
 ## Fronteiras
 
@@ -33,10 +33,11 @@ Da raiz do repositório. Cada passo do `verify-code` é a mesma conferência da 
 
 | Comando | O que faz |
 |---|---|
+| `python tools/dev/check.py` | Antes do push: título dos commits novos (Conventional Commits, até 72), tamanho, docs, build, formato e testes sem banco do diff; um build por vez na máquina, pela trava `maquina.lock` da pasta temporária, que `CDG_MACHINE_LOCK` desloca para dividi-la com outra ferramenta |
 | `python tools/verify-code/verify.py` | Todos os passos que não pedem `--base`, na ordem da CI |
 | `python tools/verify-code/verify.py --list` | Lista os passos |
 | `python tools/verify-code/verify.py --step <nome>` | Um passo; veja a ordem em `--list` |
-| `python tools/verify-code/verify.py --step pr_size ai_attribution --base origin/main` | O tamanho do PR e a atribuição a IA |
+| `python tools/verify-code/verify.py --step pr_size migration_order ai_attribution --base origin/main` | Tamanho, migração e atribuição; o teto vem da issue do `CDG_PR_BODY` (`gh` autenticado), e editar a issue ou o corpo do PR não roda o job de novo: refaça-o ou empurre outro commit |
 | `python tools/verify-code/verify.py --changes --base origin/main` | Se o diff pede os jobs pesados da CI |
 | `python tools/verify-code/verify.py --mutation-modules --base origin/main` | Os módulos de mutação que o diff alcança |
 | `python tools/verify-docs/verify.py` | A verificação de texto |
@@ -52,7 +53,7 @@ Da raiz do repositório. Cada passo do `verify-code` é a mesma conferência da 
 - A mutação de módulo crítico acima do teto de sobreviventes ou de tempo, da
   [017](017-teste-de-mutacao.md).
 - O teste que sobe o serviço real sem a marca `Category=RealService`.
-- O pull request acima de 30 arquivos ou 400 linhas de produção (`pr_size`).
+- O PR acima do teto da fatia (`pr_size`) ou com migração fora de ordem (`migration_order`).
 - O commit com `Co-authored-by` de assistente de IA ou a linha "Generated with" (`ai_attribution`).
 - Segredo (`secrets`), dependência vulnerável (`dependencies`) e achado do `trivy` ou do
   `static_analysis`, salvo risco aceito em `tools/verify-code/accepted-risks.toml`.

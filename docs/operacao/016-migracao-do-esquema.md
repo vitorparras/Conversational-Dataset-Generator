@@ -18,7 +18,7 @@ unset CDG_Database__Host CDG_Database__Name CDG_Database__Username CDG_Database_
 ```
 
 Os passos são os arquivos de `core/src/Core.Persistence/Migrations/Sql`, embutidos no executável e
-aplicados em ordem numérica, cada um em transação própria com a sua linha em `public.schema_version`
+aplicados na ordem do nome, cada um em transação própria com a sua linha em `public.schema_version`
 (versão, nome, SHA-256, quando e quem).
 
 ## Como termina
@@ -56,5 +56,5 @@ reconstruído ([006](006-restauracao.md)). Registro e log não levam a credencia
 
 ## Passo novo
 
-Um arquivo `NNNN-nome.sql` em `core/src/Core.Persistence/Migrations/Sql`, com o número seguinte.
+Um arquivo `AAAAMMDDHHMM-nome` na pasta dos passos, depois da última do main: [0054](../decisoes/0054-teto-por-fatia-e-migracao-por-data.md).
 **Passo aplicado nunca se edita**: o resumo muda e a partida recusa o banco; corrija em passo novo.

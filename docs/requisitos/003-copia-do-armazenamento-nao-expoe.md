@@ -35,6 +35,6 @@ fica em claro de propósito é achado.
 
 ## O que não exige
 
-Não exige proteger o texto sanitizado nem as anotações, que a decisão 0003 mantém em claro de
-propósito. Não exige que a proteção do sistema de arquivos seja a única camada — ela é a segunda, e
+Não exige proteger as anotações nem o texto pseudonimizado, que a decisão 0030 mantém em claro até
+a fase 5; o sanitizado, ao contrário, é cifrado junto com o bruto. Não exige que a proteção do sistema de arquivos seja a única camada — ela é a segunda, e
 nunca basta sozinha.

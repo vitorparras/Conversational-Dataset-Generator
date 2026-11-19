@@ -14,6 +14,14 @@ from steps.csharp_tokens import Token
 #: 24 mutants of ``ContentColumns`` took 22 min, 304 tests each, while the same weight in tokens
 #: anywhere else took 4 to 11 min). Measured between 4 and 5.
 STATIC_COST = 5
+#: The members of a file, by its path in the project and their name, that every test of the area
+#: runs through, so that Stryker tests each of their mutants against the whole suite as it does
+#: for a static initializer; nothing in the text says so, hence the names. Every overload of a
+#: name weighs alike (#849: ``ContentTransaction.OpenAsync`` opens every content transaction, and
+#: weighed by its tokens it shared a part that took 15,4 min of the 20 with 40 parts).
+SUITE_WIDE: dict[str, frozenset[str]] = {
+    "Content/ContentTransaction.cs": frozenset({"OpenAsync"}),
+}
 OPENERS = frozenset("{([")
 CLOSERS = frozenset("})]")
 ANGLES = frozenset("<>")
@@ -52,6 +60,19 @@ def static_initializer(member: list[Token]) -> bool:
         elif after_static >= 0 and kind == "=":
             return True
     return False
+
+
+def declared(member: list[Token]) -> str | None:
+    """The name of the method or constructor ``member`` declares: the word before its first
+    parenthesis outside every group, when no ``=`` nor ``=>`` comes before it; None for anything
+    else, so a call in an initializer or an expression body names nothing."""
+    for position in top_level(member, 0, len(member)):
+        kind = member[position].kind
+        if kind in {"=", "=>", ";"}:
+            return None
+        if kind == "(":
+            return member[position - 1].kind if position > 0 else None
+    return None
 
 
 def closing(found: list[Token], opened: int, last: int) -> int | None:
@@ -113,3 +134,9 @@ def pieces(text: str, found: list[Token], first: int, last: int) -> list[tuple[i
     marks = [first, *inner, last]
     factor = STATIC_COST if static else 1
     return [(b, max(1, b - a) * factor) for a, b in pairwise(marks)]
+
+
+def suite_factor(member: list[Token], suite: frozenset[str]) -> int:
+    """``STATIC_COST`` for a method named in ``suite``, which every test runs through; 1 for any
+    other member."""
+    return STATIC_COST if declared(member) in suite else 1

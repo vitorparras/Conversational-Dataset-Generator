@@ -225,6 +225,46 @@ class WeightTests(unittest.TestCase):
         )
 
 
+SUITE = frozenset({"OpenAsync"})
+
+
+class SuiteWideTests(unittest.TestCase):
+    """A member every test runs through weighs the factor, as Stryker tests each of its mutants
+    against the whole suite; it is named, since nothing in the text says so (#849)."""
+
+    def test_a_named_method_weighs_the_factor_times_its_tokens_and_another_does_not(self) -> None:
+        text = (
+            "class A { int first; Task OpenAsync(int a) { Run(a); } Task Other(int a) { Run(a); } }"
+        )
+
+        named = [w for _, _, w in slices(text, SUITE)]
+        plain = [w for _, _, w in slices(text)]
+
+        self.assertEqual(named[1], STATIC_COST * plain[1])
+        self.assertEqual(named[2], plain[2])
+
+    def test_every_overload_of_the_name_weighs_the_factor(self) -> None:
+        text = (
+            "class A { int first; Task OpenAsync(int a) => OpenAsync(a, 1);"
+            " Task OpenAsync(int a, int b) { Run(a); } }"
+        )
+
+        named = [w for _, _, w in slices(text, SUITE)]
+        plain = [w for _, _, w in slices(text)]
+
+        self.assertEqual(named[1:3], [STATIC_COST * plain[1], STATIC_COST * plain[2]])
+
+    def test_a_call_or_an_initializer_that_names_it_does_not_weigh_the_factor(self) -> None:
+        text = (
+            "class A { int first; Task M() { return OpenAsync(1); }"
+            " Task F = OpenAsync(2); int P => OpenAsync(3); }"
+        )
+
+        named = [w for _, _, w in slices(text, SUITE)]
+
+        self.assertEqual(named, [w for _, _, w in slices(text)])
+
+
 class ListCutTests(unittest.TestCase):
     """A long list that initializes a static member is cut between its elements (#683)."""
 

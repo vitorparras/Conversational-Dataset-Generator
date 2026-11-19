@@ -7,18 +7,20 @@
 - Crítica: sim
 - Partes da mutação: 40
 - Motivo: Declara o domínio que o banco usa para decidir o que uma consulta de conteúdo vê (decisão
-  0006); inteira, a área estoura o teto da 017 (#580) e por isso muta em 40 partes, cada uma em até
-  15 min (#557, #716: com 5 partes a 3 passou dos 20 min; #726: com 8, a 2 levou 17 a 20 min por
-  17 mutantes de 41 a 61 s cada, que rodam a suíte do banco; #791: com 12, a 6 testou 26
-  mutantes de 65 a 93 s cada, a suíte inteira, e passou dos 20 min com 0 mutantes; #801: com 16, a
-  3 testou 15 mutantes de 70 a 95 s e estourou; com 22, a 18 tinha 14 mutantes de 75 a 90 s mais
-  5,7 min de preparo e passou dos 20 min: cabem 9 ou 10 por parte; #849: com 32, depois das
-  colunas da sanitização (#842), a 28 levou 14 min no PR e passou dos 20 min duas vezes na main,
-  run 44589285439). A unidade da
-  repartição é o trecho de arquivo cortado entre membros, pelo peso (#585, #683), não o arquivo
-  nem a contagem de trechos: assim nenhuma parte fica com a maioria dos mutantes. A leitura
-  do conteúdo protegido é a área `Core.Persistence.Content.Reading`, a escrita é a
-  `Core.Persistence.Content.Writing` e a cifra é a `Core.Persistence.Content.Sealing`.
+  0006); inteira, a área estoura o teto da 017 (#580) e por isso muta em 40 partes (#557, #716:
+  com 5 partes a 3 passou dos 20 min; #726: com 8, a 2 levou 17 a 20 min por 17 mutantes de 41 a
+  61 s cada, que rodam a suíte do banco; #791: com 12, a 6 testou 26 mutantes de 65 a 93 s cada,
+  a suíte inteira, e passou dos 20 min com 0 mutantes; #801: com 16, a 3 testou 15 mutantes de 70
+  a 95 s e estourou; com 22, a 18 tinha 14 mutantes de 75 a 90 s mais 5,7 min de preparo e passou
+  dos 20 min: cabem 9 ou 10 por parte; #849: com 32, depois das colunas da sanitização (#842), a
+  28 passou dos 20 min duas vezes na main, e com 40 a parte do `OpenAsync` de
+  `ContentTransaction` levou 15,4 min). O `OpenAsync`, por onde passa todo teste de conteúdo,
+  pesa como um inicializador estático (`SUITE_WIDE` em `tools/verify-code/steps/mutation_cost.py`)
+  e fica sozinho numa parte. A unidade da repartição é o trecho de arquivo cortado entre membros,
+  pelo peso (#585, #683), não o arquivo nem a contagem de trechos: assim nenhuma parte fica com
+  a maioria dos mutantes. A leitura do conteúdo protegido é a área
+  `Core.Persistence.Content.Reading`, a escrita é a `Core.Persistence.Content.Writing` e a cifra
+  é a `Core.Persistence.Content.Sealing`.
   Guarda com cada item as ocorrências e o destino de cada uma, seladas com a chave do item, e a
   leitura delas é um evento da cadeia (#84).
   As tabelas `ContentColumns.ReplicationOccurrence` e `ContentColumns.ReplicationMark` (#82,

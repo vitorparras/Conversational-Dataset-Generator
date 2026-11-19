@@ -491,6 +491,26 @@ class RepositoryAreaTests(unittest.TestCase):
         self.assertEqual(areas["Core.Persistence.Content.Reading"].parts, 1)
         self.assertEqual(areas["Core.Persistence.Ingestion"].parts, 10)
 
+    def test_the_member_that_opens_every_content_transaction_is_alone_in_its_part(self) -> None:
+        root = support.VERIFY_CODE.parents[1]
+        table = areas_doc.read_areas(root).areas
+        area = next(a for a in table if a.prefix == "Core.Persistence.Content")
+        core = mutation_core.whole(root, area, table)
+        assert core is not None
+        found = mutation_core.pieces(root, core)
+        name = "Content/ContentTransaction.cs"
+        text = (root / mutation_core.SOURCES / core.project / name).read_text(encoding="utf-8-sig")
+        declaration = "private static async Task<ContentTransaction> OpenAsync("
+        opens = next(
+            piece
+            for piece in found
+            if piece.file == name and declaration in text[piece.start : piece.end]
+        )
+
+        held = [mutation_parts.dealt(found, Part(n, area.parts)) for n in range(1, area.parts + 1)]
+
+        self.assertIn([opens], held)
+
     def test_the_content_areas_of_the_repository_have_files_for_their_parts(self) -> None:
         root = support.VERIFY_CODE.parents[1]
         names, problems = mutation.names(root)

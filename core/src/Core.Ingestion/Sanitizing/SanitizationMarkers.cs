@@ -10,4 +10,7 @@ internal static class SanitizationMarkers
         SanitizationMarker.Data => "[dado]",
         _ => throw new ArgumentOutOfRangeException(nameof(marker), marker, "The marker is not known."),
     };
+
+    /// <summary>How many code points the marker takes in the sanitized text.</summary>
+    internal static int Width(SanitizationMarker marker) => Text(marker).Length;
 }

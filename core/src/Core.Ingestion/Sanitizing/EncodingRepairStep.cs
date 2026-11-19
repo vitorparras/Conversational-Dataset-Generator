@@ -1,4 +1,5 @@
 using System.Text;
+using Core.Boundary.Contracts;
 
 namespace Core.Ingestion.Sanitizing;
 
@@ -11,6 +12,7 @@ namespace Core.Ingestion.Sanitizing;
 public sealed class EncodingRepairStep : ISanitizationStep
 {
     private const int NotAByte = -1;
+    private const int NotOneUnit = -1;
     private const int LostByte = -2;
     private const int ReplacementCharacter = 0xFFFD;
     private const int FirstContinuation = 0x80;
@@ -30,11 +32,11 @@ public sealed class EncodingRepairStep : ISanitizationStep
     /// <summary>The bytes Windows-1252 does not define, one of which a lost byte was.</summary>
     private static readonly int[] UndefinedBytes = [0x81, 0x8D, 0x8F, 0x90, 0x9D];
 
-    /// <summary>The characters Windows-1252 writes for the bytes 0x80 to 0x9F, in that order; a zero where the byte is not defined.</summary>
+    /// <summary>The characters Windows-1252 writes for the bytes 0x80 to 0x9F, in that order; minus one, which no character is, where the byte is not defined.</summary>
     private static readonly int[] Windows1252 =
     [
-        0x20AC, 0, 0x201A, 0x0192, 0x201E, 0x2026, 0x2020, 0x2021, 0x02C6, 0x2030, 0x0160, 0x2039, 0x0152, 0, 0x017D, 0,
-        0, 0x2018, 0x2019, 0x201C, 0x201D, 0x2022, 0x2013, 0x2014, 0x02DC, 0x2122, 0x0161, 0x203A, 0x0153, 0, 0x017E, 0x0178,
+        0x20AC, -1, 0x201A, 0x0192, 0x201E, 0x2026, 0x2020, 0x2021, 0x02C6, 0x2030, 0x0160, 0x2039, 0x0152, -1, 0x017D, -1,
+        -1, 0x2018, 0x2019, 0x201C, 0x201D, 0x2022, 0x2013, 0x2014, 0x02DC, 0x2122, 0x0161, 0x203A, 0x0153, -1, 0x017E, 0x0178,
     ];
 
     private const int NoBreakSpace = 0xA0;
@@ -44,6 +46,16 @@ public sealed class EncodingRepairStep : ISanitizationStep
     /// misread letters Portuguese does not write.
     /// </summary>
     private static readonly int[] WrittenMarks = [0x2026, 0x2018, 0x2019, 0x201C, 0x201D, 0x2013, 0x2014, 0x2022, 0xBB, 0xB7, 0xB0];
+
+    private readonly ITextBoundaries boundaries;
+
+    /// <summary>The repair, which walks the text by the code points the boundary gives.</summary>
+    /// <param name="boundaries">Splits the text into its code points and counts what the repair writes.</param>
+    public EncodingRepairStep(ITextBoundaries boundaries)
+    {
+        ArgumentNullException.ThrowIfNull(boundaries);
+        this.boundaries = boundaries;
+    }
 
     /// <inheritdoc />
     public string Name => "codificacao";
@@ -58,15 +70,15 @@ public sealed class EncodingRepairStep : ISanitizationStep
 
     /// <inheritdoc />
     public IReadOnlyList<SanitizationEdit> Edits(StepInput input) =>
-        [.. Repair(input).Points.Where(point => point.Repaired).Select(point => SanitizationEdit.Rewriting(point.From, point.To, char.ConvertFromUtf32(point.Value)))];
+        [.. Repair(input).Points.Where(point => point.Repaired).Select(point => SanitizationEdit.Rewriting(point.From, point.To, point.Text, boundaries))];
 
     /// <inheritdoc />
     public int Untreated(StepInput input) => Repair(input).Ambiguous;
 
-    private static (List<Point> Points, int Ambiguous) Repair(StepInput input)
+    private (List<Point> Points, int Ambiguous) Repair(StepInput input)
     {
         ArgumentNullException.ThrowIfNull(input);
-        var points = input.Text.EnumerateRunes().Select((rune, at) => new Point(rune.Value, at, at + 1, false)).ToList();
+        var points = boundaries.CodePoints(input.Text).Select((text, at) => new Point(text, text.Length == 1 ? text[0] : NotOneUnit, at, at + 1, false)).ToList();
         while (true)
         {
             var (changed, ambiguous) = Pass(points);
@@ -92,7 +104,7 @@ public sealed class EncodingRepairStep : ISanitizationStep
 
             if (readings.Count == 1 && !ReadsAsWritten(points, at, sequence))
             {
-                points[at] = new Point(readings[0], points[at].From, points[at + sequence.Width - 1].To, true);
+                points[at] = new Point(readings[0].Text, readings[0].Value, points[at].From, points[at + sequence.Width - 1].To, true);
                 points.RemoveRange(at + 1, sequence.Width - 1);
                 changed = true;
             }
@@ -112,15 +124,15 @@ public sealed class EncodingRepairStep : ISanitizationStep
     private static bool ReadsAsWritten(IList<Point> points, int at, Sequence sequence)
     {
         var next = points[at + 1].Value;
-        var endsCapitals = at > 0 && Rune.IsUpper(new Rune(points[at - 1].Value));
+        var endsCapitals = at > 0 && char.IsUpper(points[at - 1].Text, 0);
         return sequence.TakesWrittenMarks && (WrittenMarks.Contains(next) || (endsCapitals && next == NoBreakSpace));
     }
 
     /// <summary>The sequence that starts here and every character its bytes may have been; none when it is no misread sequence.</summary>
-    private static (Sequence Sequence, List<int> Readings) ReadingsAt(IList<Point> points, int at)
+    private static (Sequence Sequence, List<Reading> Readings) ReadingsAt(IList<Point> points, int at)
     {
         var sequence = Array.Find(Sequences, candidate => candidate.Lead == points[at].Value);
-        var found = new List<int>();
+        var found = new List<Reading>();
         if (sequence is null || at + sequence.Width > points.Count)
         {
             return (Sequences[0], found);
@@ -136,14 +148,15 @@ public sealed class EncodingRepairStep : ISanitizationStep
     }
 
     /// <summary>The characters the bytes may have been, trying every undefined byte where one was lost.</summary>
-    private static void Collect(Sequence sequence, int[] bytes, List<int> found)
+    private static void Collect(Sequence sequence, int[] bytes, List<Reading> found)
     {
-        var lost = Array.IndexOf(bytes, LostByte);
-        if (lost < 0)
+        if (!bytes.Contains(LostByte))
         {
-            found.AddRange(Decoded(sequence, bytes) is { } value ? [value] : []);
+            found.AddRange(Decoded(sequence, bytes) is { } value ? [new Reading(value, Encoding.UTF8.GetString([.. bytes.Select(item => (byte)item)]))] : []);
             return;
         }
+
+        var lost = Array.IndexOf(bytes, LostByte);
 
         foreach (var undefined in UndefinedBytes)
         {
@@ -183,12 +196,18 @@ public sealed class EncodingRepairStep : ISanitizationStep
             return LostByte;
         }
 
-        var windows = value == 0 ? -1 : Array.IndexOf(Windows1252, value);
+        var windows = Array.IndexOf(Windows1252, value);
         return windows < 0 ? NotAByte : FirstContinuation + windows;
     }
 
-    /// <summary>A character of the text, with the span of the received text it stands for and whether it was repaired.</summary>
-    private readonly record struct Point(int Value, int From, int To, bool Repaired);
+    /// <summary>
+    /// A code point of the text, as the text that writes it and as the value of its one UTF-16 unit, when it has one, with the span of the received text it stands for and
+    /// whether it was repaired.
+    /// </summary>
+    private readonly record struct Point(string Text, int Value, int From, int To, bool Repaired);
+
+    /// <summary>A character the bytes of a sequence may have been: its value and the text that writes it.</summary>
+    private readonly record struct Reading(int Value, string Text);
 
     /// <summary>How a misread sequence is read: the character that opens it, how many it takes, the bits its lead gives and where its second byte may fall.</summary>
     private sealed record Sequence(int Lead, int Width, int Base, int SecondFrom, int SecondTo, bool TakesWrittenMarks);

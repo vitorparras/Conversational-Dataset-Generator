@@ -26,7 +26,7 @@ public sealed class TrailJsonTests
     public void TrailOfWrittenTextReadBackTranslatesAsTheOneWritten()
     {
         const string raw = "x\u00C3\u00A9y\u000Cpg\u000Cw";
-        var rewriting = new FixedStep("reescreve", _ => [SanitizationEdit.Rewriting(1, 3, "\u00E9"), SanitizationEdit.Rewriting(4, 7, string.Empty)]);
+        var rewriting = new FixedStep("reescreve", _ => [SanitizationEdit.Rewriting(1, 3, "\u00E9", Boundaries), SanitizationEdit.Rewriting(4, 7, string.Empty, Boundaries)]);
         var sanitized = Sanitized(Sanitizer(rewriting), raw);
 
         var read = TrailJson.Read(TrailJson.Write(sanitized.Trail));

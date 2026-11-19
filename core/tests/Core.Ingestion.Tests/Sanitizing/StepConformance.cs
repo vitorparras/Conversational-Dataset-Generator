@@ -1,4 +1,5 @@
 using System.Text;
+using Core.Boundary.Contracts;
 using Core.Ingestion.Deciding;
 using Core.Ingestion.Sanitizing;
 
@@ -38,7 +39,7 @@ internal static class StepConformance
     [
         .. typeof(ISanitizationStep).Assembly.GetTypes()
             .Where(type => type is { IsClass: true, IsAbstract: false } && type.IsAssignableTo(typeof(ISanitizationStep)))
-            .Select(type => (ISanitizationStep)Activator.CreateInstance(type)!)
+            .Select(type => (ISanitizationStep)(type.GetConstructor([typeof(ITextBoundaries)])?.Invoke([Sanitizing.Boundaries]) ?? Activator.CreateInstance(type)!))
             .OrderBy(step => Scopes.Select(scope => scope.Step).ToList().IndexOf(step.Name)),
     ];
 

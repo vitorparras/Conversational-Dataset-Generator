@@ -67,11 +67,17 @@ public sealed class Sanitizer
     /// <summary>The version of the list of steps every text sanitized here carries.</summary>
     public string Version => steps.Version;
 
-    private static (TrailStep Applied, int Untreated) Run(ISanitizationStep step, StepInput input, int length)
+    private (TrailStep Applied, int Untreated) Run(ISanitizationStep step, StepInput input, int length)
     {
         try
         {
-            return (TrailStep.Of(length, step.Edits(input)), step.Untreated(input));
+            var edits = step.Edits(input);
+            if (edits.Any(edit => edit?.Replacement is { } written && boundaries.CodePointCount(written) != edit.ReplacementWidth))
+            {
+                throw new ArgumentException("An edit does not take the code points it says it takes.", nameof(step));
+            }
+
+            return (TrailStep.Of(length, edits), step.Untreated(input));
         }
         catch (Exception failure) when (failure is not OperationCanceledException)
         {

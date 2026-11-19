@@ -6,18 +6,19 @@ namespace Core.Ingestion.Tests.Sanitizing;
 /// <summary>The repair puts back what a wrong encoding misread and nothing else; where two readings stand and none dominates, it leaves the text and counts it (issue 88).</summary>
 public sealed class EncodingRepairStepTests
 {
-    private static SanitizedText Repaired(string raw) => Sanitized(Sanitizer(new EncodingRepairStep()), raw);
+    private static SanitizedText Repaired(string raw) => Sanitized(Sanitizer(new EncodingRepairStep(Boundaries)), raw);
 
     [Fact]
     public void SwappedAccentsReturnToTheirSpellingAndNothingElseChanges()
     {
         const string raw = "Ele n\u00C3\u00A3o foi \u00C3\u00A0 reuni\u00C3\u00A3o, voc\u00C3\u00AA viu?"
-            + " A\u00C3\u2021\u00C3\u0192O \u00E2\u20AC\u0153zqx\u00E2\u20AC\u009D \u00F0\u0178\u02DC\u20AC  fim";
+            + " A\u00C3\u2021\u00C3\u0192O \u00E2\u20AC\u0153zqx\u00E2\u20AC\u009D \u00F0\u0178\u02DC\u20AC  fim"
+            + " 30\u00C2\u00B0C \u00E2\u201D\u20AC \u00C2\u00BFqu\u00E9? \u00C3\u0080 zqx";
 
         var repaired = Repaired(raw);
 
-        Assert.Equal("Ele n\u00E3o foi \u00E0 reuni\u00E3o, voc\u00EA viu? A\u00C7\u00C3O \u201Czqx\u201D \U0001F600  fim", repaired.Text);
-        Assert.Equal(("codificacao", 9, 0), (repaired.Report[0].Name, repaired.Report[0].Count, repaired.Report[0].Untreated));
+        Assert.Equal("Ele n\u00E3o foi \u00E0 reuni\u00E3o, voc\u00EA viu? A\u00C7\u00C3O \u201Czqx\u201D \U0001F600  fim 30\u00B0C \u2500 \u00BFqu\u00E9? \u00C0 zqx", repaired.Text);
+        Assert.Equal(("codificacao", 13, 0), (repaired.Report[0].Name, repaired.Report[0].Count, repaired.Report[0].Untreated));
     }
 
     [Fact]

@@ -46,7 +46,7 @@ public sealed class SanitizationStepsTests
     [Fact]
     public async Task StepsThatAllDeclareTheirScopePassTheStartupCheck()
     {
-        var steps = new SanitizationSteps([FixedStep.Nothing("primeiro"), new EncodingRepairStep(), new FormatArtifactStep(), new DestinationsStep()]);
+        var steps = new SanitizationSteps([FixedStep.Nothing("primeiro"), new EncodingRepairStep(Boundaries), new FormatArtifactStep(Boundaries), new DestinationsStep()]);
 
         var result = await new StepsHaveScope(steps).RunAsync(TestContext.Current.CancellationToken);
 

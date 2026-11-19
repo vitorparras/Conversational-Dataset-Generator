@@ -1,4 +1,5 @@
 using System.Text;
+using Core.Boundary.Contracts;
 
 namespace Core.Ingestion.Sanitizing;
 
@@ -11,11 +12,21 @@ namespace Core.Ingestion.Sanitizing;
 public sealed class FormatArtifactStep : ISanitizationStep
 {
     private const int MinimumPages = 3;
-    private const int PageBreak = '\f';
-    private const int LineBreak = '\n';
+    private const string PageBreak = "\f";
+    private const string LineBreak = "\n";
 
     /// <summary>The words a tool writes in place of a message that was taken out before the export.</summary>
     private static readonly string[] AbsentContent = ["Esta mensagem foi apagada", "Mensagem apagada"];
+
+    private readonly ITextBoundaries boundaries;
+
+    /// <summary>The removal, which walks the text by the code points the boundary gives.</summary>
+    /// <param name="boundaries">Splits the text into its code points and counts what the removal writes.</param>
+    public FormatArtifactStep(ITextBoundaries boundaries)
+    {
+        ArgumentNullException.ThrowIfNull(boundaries);
+        this.boundaries = boundaries;
+    }
 
     /// <inheritdoc />
     public string Name => "artefatos";
@@ -30,15 +41,15 @@ public sealed class FormatArtifactStep : ISanitizationStep
 
     /// <inheritdoc />
     public IReadOnlyList<SanitizationEdit> Edits(StepInput input) =>
-        [.. Found(input).Removed.Select(line => SanitizationEdit.Rewriting(line.From, line.Next, string.Empty))];
+        [.. Found(input).Removed.Select(line => SanitizationEdit.Rewriting(line.From, line.Next, string.Empty, boundaries))];
 
     /// <inheritdoc />
     public int Untreated(StepInput input) => Found(input).Coincidences;
 
-    private static (List<Line> Removed, int Coincidences) Found(StepInput input)
+    private (List<Line> Removed, int Coincidences) Found(StepInput input)
     {
         ArgumentNullException.ThrowIfNull(input);
-        var pages = Pages(input.Text);
+        var pages = Pages(boundaries.CodePoints(input.Text));
         if (pages.Count < MinimumPages)
         {
             return ([], 0);
@@ -72,23 +83,23 @@ public sealed class FormatArtifactStep : ISanitizationStep
     }
 
     /// <summary>The written lines of each page, those with a character besides spaces, in order.</summary>
-    private static List<Page> Pages(string text)
+    private static List<Page> Pages(IEnumerable<string> points)
     {
         var pages = new List<Page> { new() };
         var line = new StringBuilder();
         var from = 0;
         var at = 0;
-        foreach (var rune in text.EnumerateRunes().Append(new Rune(PageBreak)))
+        foreach (var point in points.Append(PageBreak))
         {
-            if (rune.Value is PageBreak or LineBreak)
+            if (point is PageBreak or LineBreak)
             {
-                AddWritten(pages[^1], line.ToString(), from, rune.Value == LineBreak ? at + 1 : at);
-                pages.AddRange(rune.Value == PageBreak ? [new Page()] : []);
+                AddWritten(pages[^1], line.ToString(), from, point == LineBreak ? at + 1 : at);
+                pages.AddRange(point == PageBreak ? [new Page()] : []);
                 (line, from) = (new StringBuilder(), at + 1);
             }
             else
             {
-                _ = line.Append(rune.ToString());
+                _ = line.Append(point);
             }
 
             at++;

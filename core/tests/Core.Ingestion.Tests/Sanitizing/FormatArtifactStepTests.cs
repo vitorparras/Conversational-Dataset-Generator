@@ -8,7 +8,7 @@ public sealed class FormatArtifactStepTests
 {
     private const string Header = "Relatório ZQX-7 — cópia";
 
-    private static SanitizedText Treated(string raw) => Sanitized(Sanitizer(new FormatArtifactStep()), raw);
+    private static SanitizedText Treated(string raw) => Sanitized(Sanitizer(new FormatArtifactStep(Boundaries)), raw);
 
     [Fact]
     public void HeaderRepeatedOnEveryPageLeavesEveryPageAndNoOtherLine()
@@ -46,15 +46,15 @@ public sealed class FormatArtifactStepTests
     [Fact]
     public void PlaceholderForMissingContentStays()
     {
-        const string raw = Header + "\nEsta mensagem foi apagada\nzqx1: texto a\n<Mídia oculta>\f"
-            + Header + "\nEsta mensagem foi apagada\nzqx2: texto b\n<Mídia oculta>\f"
-            + Header + "\nEsta mensagem foi apagada\nzqx1: texto c\n<Mídia oculta>";
+        const string raw = Header + "\nEsta mensagem foi apagada\nzqx1: texto a\n<Mídia oculta>\n<ZQX rodapé\f"
+            + Header + "\nEsta mensagem foi apagada\nzqx2: texto b\n<Mídia oculta>\n<ZQX rodapé\f"
+            + Header + "\nEsta mensagem foi apagada\nzqx1: texto c\n<Mídia oculta>\n<ZQX rodapé";
 
         var treated = Treated(raw);
 
         Assert.Equal(
-            "Esta mensagem foi apagada\nzqx1: texto a\n<Mídia oculta>\fEsta mensagem foi apagada\nzqx2: texto b\n<Mídia oculta>\f"
-                + "Esta mensagem foi apagada\nzqx1: texto c\n<Mídia oculta>",
+            "Esta mensagem foi apagada\nzqx1: texto a\n<Mídia oculta>\n\fEsta mensagem foi apagada\nzqx2: texto b\n<Mídia oculta>\n\f"
+                + "Esta mensagem foi apagada\nzqx1: texto c\n<Mídia oculta>\n",
             treated.Text);
     }
 

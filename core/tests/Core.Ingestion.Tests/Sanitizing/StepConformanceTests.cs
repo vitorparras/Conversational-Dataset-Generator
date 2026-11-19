@@ -27,9 +27,9 @@ public sealed class StepConformanceTests
     /// <summary>A step under the scope of the repair that, besides repairing, evens out typographic quotes.</summary>
     private static FixedStep RepairThatFlattensQuotes() => new("codificacao", input =>
     [
-        SanitizationEdit.Rewriting(3, 4, "\""),
-        SanitizationEdit.Rewriting(5, 7, "ã"),
-        SanitizationEdit.Rewriting(8, 9, "\""),
+        SanitizationEdit.Rewriting(3, 4, "\"", Boundaries),
+        SanitizationEdit.Rewriting(5, 7, "ã", Boundaries),
+        SanitizationEdit.Rewriting(8, 9, "\"", Boundaries),
     ]);
 
     private const string Quoted = "oi “nÃ£o” fim";

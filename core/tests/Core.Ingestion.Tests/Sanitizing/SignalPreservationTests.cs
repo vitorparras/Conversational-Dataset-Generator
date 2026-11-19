@@ -84,7 +84,7 @@ public sealed class SignalPreservationTests
         [
             .. input.Text.EnumerateRunes().Select((rune, at) => (rune, at))
                 .Where(point => point.rune.Value is 0x201C or 0x201D)
-                .Select(point => SanitizationEdit.Rewriting(point.at, point.at + 1, "\"")),
+                .Select(point => SanitizationEdit.Rewriting(point.at, point.at + 1, "\"", Boundaries)),
         ]);
         var quoted = new SignalMark(10, 17, "“assim”", TypographicQuotes);
         var sample = new SignalSample("ela disse “assim” e foi", [quoted]);

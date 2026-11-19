@@ -30,7 +30,7 @@ public sealed class BatchDetailScreenTests
 
     private static readonly BatchDetailScreen.Detail Sanitized = Accepted with
     {
-        SanitizationVersion = Version,
+        StepsVersion = Version,
         Steps = [new("destinos", 6, 3), new("zqx", 0, 0)],
     };
 
@@ -153,7 +153,7 @@ public sealed class BatchDetailScreenTests
 
         Assert.Equal(
             [
-                "Detail.Domain", "Detail.Motive", "Detail.SubmittedBy", "Detail.Warning", "Detail.SanitizationVersion", "FormCount.Form", "DestinationCount.Destination", "Recognition.Address",
+                "Detail.Domain", "Detail.Motive", "Detail.SubmittedBy", "Detail.Warning", "Detail.StepsVersion", "FormCount.Form", "DestinationCount.Destination", "Recognition.Address",
                 "Accommodated.Source", "Accommodated.Into", "Accommodated.Losses", "StepCount.Step",
             ],
             texts);

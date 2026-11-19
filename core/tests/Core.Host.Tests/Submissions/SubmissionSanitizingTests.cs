@@ -1,5 +1,6 @@
 using Core.Boundary.Contracts;
 using Core.Host.Submissions;
+using Core.Ingestion;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Fixtures;
 using Microsoft.Extensions.Logging;
@@ -78,7 +79,7 @@ public sealed class SubmissionSanitizingTests
         _ = await world.SubmitAsync(SubmissionWorld.Request(Seeded));
 
         Assert.Equal(
-            [$"{DeclaredSanitization.Sanitizer.Version},{SubmissionWorld.Person}"],
+            [$"{CompositionRoot.StepsOf().Version},{SubmissionWorld.Person}"],
             await world.Database.FirstColumnAsOwnerAsync("SELECT reference || ',' || coalesce(actor_person_id::text, '-') FROM public.custody_event WHERE step = 'batch_sanitized'"));
     }
 
@@ -92,7 +93,7 @@ public sealed class SubmissionSanitizingTests
         Assert.Equal(SubmissionKind.Done, outcome.Kind);
         var report = await world.StoredAsync(
             $"SELECT f::text FROM public.batch_sanitization_counts({outcome.Batch!.Value}, {SubmissionWorld.Domain}) f");
-        Assert.Equal(["(" + DeclaredSanitization.Sanitizer.Version + ",destinos,3,3)"], report);
+        Assert.Equal(["(" + CompositionRoot.StepsOf().Version + ",destinos,3,3)"], report);
         string[] swept =
         [
             .. world.Log.Lines.Select(entry => entry.Line),
@@ -112,8 +113,22 @@ public sealed class SubmissionSanitizingTests
         var outcome = await world.SubmitAsync(SubmissionWorld.Request(Seeded));
         var counts = await new BatchCounts(world.DataSource).ReadAsync(SubmissionWorld.Domain, outcome.Batch!.Value, Token);
 
-        Assert.Equal(DeclaredSanitization.Sanitizer.Version, counts.SanitizationVersion);
+        Assert.Equal(CompositionRoot.StepsOf().Version, counts.SanitizationVersion);
         Assert.Equal([new BatchStepCount("destinos", 3, 3)], counts.Steps);
+    }
+
+    [DatabaseFact]
+    public async Task RecordOfTheStepsThatMeetsAnotherEventOfTheChainIsACollisionAndNotAWriteThatFailed()
+    {
+        await using var world = await SubmissionWorld.CreateAsync(attempts: 1, recognizer: WholeSeed());
+        var outcome = await world.SubmitAsync(SubmissionWorld.Request(Seeded));
+        var material = new ReadMaterial([new ReadUnit("ZQXUM", "ZQXREMETENTE", new DateTimeOffset(2031, 3, 4, 8, 0, 0, TimeSpan.Zero), null, [])]);
+        var accepted = SubmissionWorld.AcceptedAs(MaterialForm.Conversation, material);
+        var kept = new SubmissionStoring.Kept(SubmissionWorld.Domain, outcome.Batch!.Value, material, MaterialForm.Conversation, accepted, SubmissionWorld.Person);
+
+        var recorded = await SubmissionContention.WhilePendingAsync(world, () => SubmissionCleaning.RecordedAsync(world.Batches, CompositionRoot.StepsOf().Version, kept, Token));
+
+        Assert.Equal(SubmissionStoring.Keeping.Collided, recorded);
     }
 
     /// <summary>A recognizer that finds, in every text, one credential that covers it whole: the seeded texts are all of the same length.</summary>

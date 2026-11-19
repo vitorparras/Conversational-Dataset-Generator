@@ -91,6 +91,18 @@ public sealed class SubmissionCleanUpTests
         Assert.Contains(nameof(BatchOutcome.NotRecorded), line.Line, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task RecordOfTheStepsThatCollidedRejectsTheBatchForTheCollisionAndAnswersTryAgainWithTheBatch()
+    {
+        var rejections = new Rejections(Rejected());
+
+        var cleaned = await SubmissionStoring.CleanUpAsync(rejections.RejectAsync, SubmissionStoring.Keeping.Collided, KeptBatch(), new SubmissionLog());
+        var answer = SubmissionStoring.Failure(cleaned, Batch);
+
+        Assert.Equal([SubmissionStoring.Collision], rejections.Motives);
+        Assert.Equal((SubmissionKind.Collided, Batch, null), (answer!.Kind, answer.Batch, answer.Code));
+    }
+
     private static SubmissionStoring.Kept KeptBatch()
     {
         var instant = new DateTimeOffset(2031, 3, 4, 8, 0, 0, TimeSpan.Zero);

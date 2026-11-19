@@ -15,22 +15,22 @@ internal static class DecidedItemTexts
     /// <param name="material">The material with the destination decided for every occurrence of every text.</param>
     /// <param name="text">The position of the text in the material.</param>
     /// <param name="raw">The text as it arrived.</param>
-    /// <param name="sanitized">The sanitized text, its trail and the report of each step.</param>
-    internal static NewItemText Of(DecidedMaterial material, int text, string raw, SanitizedText sanitized)
+    /// <param name="clean">The sanitized text, its trail and the report of each step.</param>
+    internal static NewItemText Of(DecidedMaterial material, int text, string raw, SanitizedText clean)
     {
         ArgumentNullException.ThrowIfNull(material);
-        ArgumentNullException.ThrowIfNull(sanitized);
+        ArgumentNullException.ThrowIfNull(clean);
         var stored = material.Of(text).Select(Stored).ToList();
-        return new NewItemText(raw, null, stored) { Sanitization = Stored(sanitized) };
+        return new NewItemText(raw, null, stored) { Sanitization = Stored(clean) };
     }
 
-    private static ItemSanitization Stored(SanitizedText sanitized) => new()
+    private static ItemSanitization Stored(SanitizedText clean) => new()
     {
-        Text = sanitized.Text,
-        Version = sanitized.Version,
-        Steps = string.Join("\n", sanitized.Order.Select(step => $"{step.Name}@{step.Version}")),
-        Trail = TrailJson.Write(sanitized.Trail),
-        Counts = [.. sanitized.Report.Select(step => step.Count)],
+        Text = clean.Text,
+        Version = clean.Version,
+        Steps = string.Join("\n", clean.Order.Select(step => $"{step.Name}@{step.Version}")),
+        Trail = TrailJson.Write(clean.Trail),
+        Counts = [.. clean.Report.Select(step => step.Count)],
     };
 
     private static ItemOccurrence Stored(DecidedOccurrence decided) =>

@@ -16,6 +16,6 @@ internal static partial class SubmissionLogMessages
     [LoggerMessage(
         EventId = 351,
         Level = LogLevel.Error,
-        Message = "Lote {Batch} do domínio {Domain}: o passo {Step} da sanitização falhou no item da posição {Position} ({Failure}); nenhum item foi gravado")]
-    internal static partial void SanitizationFailed(this ILogger logger, long batch, int domain, string step, int position, string failure);
+        Message = "Lote {Batch}: o passo {Step} falhou no item da posição {Position}; nenhum item foi gravado")]
+    internal static partial void StepFailed(this ILogger logger, long batch, string step, int position);
 }

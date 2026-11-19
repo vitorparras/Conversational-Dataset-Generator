@@ -24,7 +24,7 @@ internal static class SubmissionStoring
     internal const string AnalysisUnavailable = "analysis_unavailable";
 
     /// <summary>The motive of a batch with a text a step of the sanitization failed on; no item is written, since no text may be kept without its sanitized form.</summary>
-    internal const string SanitizationFailed = "sanitization_failed";
+    internal const string StepFailed = "sanitization_failed";
 
     /// <summary>The seconds the rejection of a batch has, under a token of its own, since the token of the submission may have been cancelled already.</summary>
     internal const int CleanUpSeconds = 30;
@@ -81,9 +81,9 @@ internal static class SubmissionStoring
             }
 
             var positions = MaterialTexts.PositionsOf(kept.Accepted, kept.Material);
-            if (SubmissionSanitizing.Of(intake.Sanitizer, decided, kept, positions, logger) is not { } sanitized)
+            if (SubmissionCleaning.Of(intake.Cleaner, decided, kept, logger) is not { } sanitized)
             {
-                return Keeping.SanitizationFailed;
+                return Keeping.StepFailed;
             }
 
             var written = new List<(long Item, ReadUnit Unit)>();
@@ -122,15 +122,7 @@ internal static class SubmissionStoring
     /// <param name="logger">Says that the batch was left open.</param>
     internal static async Task<Keeping> CleanUpAsync(Func<string, Task<BatchResult>> reject, Keeping failed, Kept kept, ILogger logger)
     {
-        var motive = failed switch
-        {
-            Keeping.Cancelled => SubmissionCancelled,
-            Keeping.AnalysisUnavailable => AnalysisUnavailable,
-            Keeping.SanitizationFailed => SanitizationFailed,
-            Keeping.WriteFailed => WriteFailed,
-            Keeping.Kept => throw new ArgumentOutOfRangeException(nameof(failed), failed, "A batch that was kept is not cleaned up."),
-            _ => throw new ArgumentOutOfRangeException(nameof(failed), failed, "The writing ended in a way that names no motive."),
-        };
+        var motive = MotiveOf(failed);
         var rejected = await RejectingAsync(reject, motive).ConfigureAwait(false);
         for (var round = 1; round < RejectionRounds && rejected.Collided; round++)
         {
@@ -144,6 +136,18 @@ internal static class SubmissionStoring
 
         return failed;
     }
+
+    /// <summary>The motive of the rejection that names how the writing ended; a batch that was kept has none.</summary>
+    private static string MotiveOf(Keeping failed) => failed switch
+    {
+        Keeping.Cancelled => SubmissionCancelled,
+        Keeping.AnalysisUnavailable => AnalysisUnavailable,
+        Keeping.StepFailed => StepFailed,
+        Keeping.WriteFailed => WriteFailed,
+        Keeping.Collided => Collision,
+        Keeping.Kept => throw new ArgumentOutOfRangeException(nameof(failed), failed, "A batch that was kept is not cleaned up."),
+        _ => throw new ArgumentOutOfRangeException(nameof(failed), failed, "The writing ended in a way that names no motive."),
+    };
 
     /// <summary>
     /// One round of the rejection. A database gone or a rejection past its own time is a rejection not recorded, which leaves the batch open as a refused one does, and the answer is still
@@ -164,11 +168,8 @@ internal static class SubmissionStoring
 
     /// <summary>The reason of a service with no key to seal with: whatever the file is, nothing of it is kept; none when there is a key.</summary>
     /// <param name="sealing">The path that seals; none when the key could not be read.</param>
-    internal static SubmissionReason? Unsealed(ProtectedContent? sealing)
-    {
-        var none = new List<SubmissionFinding>();
-        return sealing is null ? new SubmissionReason(KeyUnavailable, none) : null;
-    }
+    internal static SubmissionReason? Unsealed(ProtectedContent? sealing) =>
+        sealing is null ? new SubmissionReason(KeyUnavailable, []) : null;
 
     /// <summary>What there is to answer of a keeping that did not keep the file; none when it did.</summary>
     /// <param name="keeping">How the keeping ended.</param>
@@ -179,7 +180,8 @@ internal static class SubmissionStoring
         Keeping.WriteFailed => new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = WriteFailed, Batch = batch },
         Keeping.Cancelled => new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = SubmissionCancelled, Batch = batch },
         Keeping.AnalysisUnavailable => new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = AnalysisUnavailable, Batch = batch },
-        Keeping.SanitizationFailed => new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = SanitizationFailed, Batch = batch },
+        Keeping.StepFailed => new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = StepFailed, Batch = batch },
+        Keeping.Collided => new SubmissionOutcome { Kind = SubmissionKind.Collided, Batch = batch },
         _ => throw new InvalidOperationException("The keeping of the file ended in a way the service does not answer."),
     };
 
@@ -201,8 +203,11 @@ internal static class SubmissionStoring
         /// <summary>A text of the material had no analysis; the batch was rejected as <see cref="AnalysisUnavailable" /> before any item was written, or was left open with the log.</summary>
         AnalysisUnavailable,
 
-        /// <summary>A step of the sanitization failed on a text; the batch was rejected as <see cref="SanitizationFailed" /> before any item was written, or was left open with the log.</summary>
-        SanitizationFailed,
+        /// <summary>A step of the sanitization failed on a text; the batch was rejected as <see cref="StepFailed" /> before any item was written, or was left open with the log.</summary>
+        StepFailed,
+
+        /// <summary>The record of the steps met another event of the chain; the batch was rejected as <see cref="Collision" />, or was left open with the log.</summary>
+        Collided,
     }
 
     /// <summary>The batch an item is written to, and what is written there.</summary>
@@ -231,7 +236,7 @@ internal static class SubmissionStoring
         {
             var closing = new BatchClosing(kept.DomainId, kept.BatchId, CustodyAuthor.System);
             var stored = await StoreAsync(Intake, kept, Logger, cancellationToken).ConfigureAwait(false);
-            stored = stored == Keeping.Kept ? await SubmissionSanitizing.RecordedAsync(Batches, Intake.Sanitizer, kept, cancellationToken).ConfigureAwait(false) : stored;
+            stored = stored == Keeping.Kept ? await SubmissionCleaning.RecordedAsync(Batches, Intake.Cleaner.Version, kept, cancellationToken).ConfigureAwait(false) : stored;
             if (stored == Keeping.Kept)
             {
                 return stored;

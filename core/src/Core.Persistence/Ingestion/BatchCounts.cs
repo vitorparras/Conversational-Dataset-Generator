@@ -44,8 +44,8 @@ public sealed class BatchCounts
         var transaction = await ContentTransaction.BeginAsync(dataSource, domainId, cancellationToken).ConfigureAwait(false);
         await using (transaction.ConfigureAwait(false))
         {
-            var rows = await RowsAsync(transaction, BatchCountStatements.Read, (domainId, batchId), Count, cancellationToken).ConfigureAwait(false);
-            var steps = await RowsAsync(transaction, BatchCountStatements.Steps, (domainId, batchId), Step, cancellationToken).ConfigureAwait(false);
+            var rows = await RowsAsync(transaction, (BatchCountStatements.Read, domainId, batchId), Count, cancellationToken).ConfigureAwait(false);
+            var steps = await RowsAsync(transaction, (BatchCountStatements.Steps, domainId, batchId), Step, cancellationToken).ConfigureAwait(false);
             var version = steps.Count == 0 ? null : steps[0].Version;
             return Counted(rows) with { SanitizationVersion = version, Steps = [.. steps.Where(step => step.Version == version).Select(step => step.Count)] };
         }
@@ -53,25 +53,21 @@ public sealed class BatchCounts
 
     /// <summary>The rows a statement answers about the batch of the domain, each read by the function given.</summary>
     private static async Task<List<T>> RowsAsync<T>(
-        ContentTransaction transaction, string statement, (int Domain, long Batch) of, Func<IDataRecord, T> read, CancellationToken cancellationToken)
+        ContentTransaction transaction, (string Statement, int Domain, long Batch) query, Func<IDataRecord, T> read, CancellationToken cancellationToken)
     {
-        var command = transaction.CreateCommand(statement);
-        await using (command.ConfigureAwait(false))
+        var command = transaction.CreateCommand(query.Statement);
+        await using var commandScope = command.ConfigureAwait(false);
+        _ = command.Parameters.Add(new NpgsqlParameter("batch", NpgsqlDbType.Bigint) { Value = query.Batch });
+        _ = command.Parameters.Add(new NpgsqlParameter("domain", NpgsqlDbType.Integer) { Value = query.Domain });
+        var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        await using var readerScope = reader.ConfigureAwait(false);
+        var rows = new List<T>();
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
-            _ = command.Parameters.Add(new NpgsqlParameter("batch", NpgsqlDbType.Bigint) { Value = of.Batch });
-            _ = command.Parameters.Add(new NpgsqlParameter("domain", NpgsqlDbType.Integer) { Value = of.Domain });
-            var rows = new List<T>();
-            var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-            await using (reader.ConfigureAwait(false))
-            {
-                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-                {
-                    rows.Add(read(reader));
-                }
-            }
-
-            return rows;
+            rows.Add(read(reader));
         }
+
+        return rows;
     }
 
     private static (string Kind, BatchCount Count) Count(IDataRecord reader) =>

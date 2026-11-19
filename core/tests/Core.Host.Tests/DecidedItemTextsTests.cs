@@ -59,7 +59,7 @@ public sealed class DecidedItemTextsTests
 
         var defect = Assert.Throws<ArgumentNullException>(() => DecidedItemTexts.Of(decided, 0, Text, null!));
 
-        Assert.Equal("sanitized", defect.ParamName);
+        Assert.Equal("clean", defect.ParamName);
     }
 
     [Fact]
@@ -70,13 +70,13 @@ public sealed class DecidedItemTextsTests
         var sanitization = DecidedItemTexts.Of(decided, 0, Text, Sanitized(decided, Text)).Sanitization;
 
         Assert.NotNull(sanitization);
-        Assert.Equal((Text, DeclaredSanitization.Sanitizer.Version, "destinos@1"), (sanitization.Text, sanitization.Version, sanitization.Steps));
+        Assert.Equal((Text, CompositionRoot.StepsOf().Version, "destinos@1"), (sanitization.Text, sanitization.Version, sanitization.Steps));
         Assert.Equal([0], sanitization.Counts);
         Assert.Equal(Text.Length, TrailJson.Read(sanitization.Trail).RawLength);
     }
 
     private static SanitizedText Sanitized(DecidedMaterial decided, string text) =>
-        Assert.IsType<SanitizedText>(DeclaredSanitization.Sanitizer.Sanitize(text, decided.Of(0)).Sanitized);
+        Assert.IsType<SanitizedText>(new Sanitizer(CompositionRoot.StepsOf(), new TextBoundaries()).Sanitize(text, decided.Of(0)).Sanitized);
 
     private static async Task<DecidedMaterial> DecidedAsync(string text)
     {

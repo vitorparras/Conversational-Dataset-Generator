@@ -1,6 +1,4 @@
-using Core.Host.Submissions;
 using Core.Host.Supervision;
-using Core.Ingestion.Sanitizing;
 using Core.Platform.Configuration;
 using Core.Platform.Startup;
 
@@ -13,11 +11,14 @@ namespace Core.Host;
 internal static class StartupChecks
 {
     /// <summary>The language service comes last, and only when the recognizer is not the fake, which asks none and so does not start it.</summary>
-    internal static IStartupCheck[] Of(ConfigurationLoadResult loaded, IServiceProvider startup) =>
+    /// <param name="loaded">The configuration that was read.</param>
+    /// <param name="startup">The startup container, whose checks run after the declared steps'.</param>
+    /// <param name="steps">The check of the scope of every declared step, built in the composition root.</param>
+    internal static IStartupCheck[] Of(ConfigurationLoadResult loaded, IServiceProvider startup, IStartupCheck steps) =>
         RecognizerConfiguration.UsesFake(loaded.Values)
-            ? [BundledFile(loaded), new StepsHaveScope(DeclaredSanitization.Steps), .. startup.GetServices<IStartupCheck>()]
+            ? [BundledFile(loaded), steps, .. startup.GetServices<IStartupCheck>()]
             : [
-                BundledFile(loaded), new StepsHaveScope(DeclaredSanitization.Steps), .. startup.GetServices<IStartupCheck>(),
+                BundledFile(loaded), steps, .. startup.GetServices<IStartupCheck>(),
                 LanguageServiceFolder(loaded), startup.GetRequiredService<LanguageServiceStartupCheck>(),
             ];
 

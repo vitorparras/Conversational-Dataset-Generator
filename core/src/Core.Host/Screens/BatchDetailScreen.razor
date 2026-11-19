@@ -90,7 +90,7 @@
     <p>Nada replicado é removido nem fundido: cada réplica fica marcada e aponta para a primeira ocorrência.</p>
 </Panel>
 
-@if (Batch.SanitizationVersion is { } version)
+@if (Batch.StepsVersion is { } version)
 {
     <Panel Id="lote-sanitizacao" Title="Sanitização">
         <FactList>
@@ -164,7 +164,7 @@
         public string? Warning { get; init; }
 
         /// <summary>The version of the list of steps that sanitized the items; null when the batch has no sanitized item.</summary>
-        public string? SanitizationVersion { get; init; }
+        public string? StepsVersion { get; init; }
 
         /// <summary>The counts of each step of that version, in the order the steps ran.</summary>
         public IReadOnlyList<StepCount> Steps { get; init; } = Array.Empty<StepCount>();

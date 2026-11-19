@@ -57,7 +57,13 @@ internal static class BatchDetailTexts
         + "o que foi removido não aparece em lugar nenhum; os trechos que vão ser pseudonimizados seguem no texto até a fase 5.";
 
     /// <summary>The name of a step of the sanitization, by its code; one the screen does not know is said by its code.</summary>
-    internal static string StepOf(string code) => code == "destinos" ? "Aplicação dos destinos" : $"Passo {code}";
+    internal static string StepOf(string code) => code switch
+    {
+        "codificacao" => "Reparo da codificação",
+        "artefatos" => "Retirada do artefato de formato",
+        "destinos" => "Aplicação dos destinos",
+        _ => $"Passo {code}",
+    };
 
     /// <summary>Whether the submission declared where the material came from; the origin itself is kept sealed and never shown.</summary>
     internal static string OriginOf(bool declared) => declared ? "Declarada e guardada selada" : "Desconhecida, como declarado no envio";

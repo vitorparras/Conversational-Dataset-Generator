@@ -18,6 +18,13 @@ public interface ITextBoundaries
     /// <exception cref="ArgumentOutOfRangeException">The occurrence ends before it starts or falls outside the text.</exception>
     string Slice(string text, Occurrence occurrence);
 
+    /// <summary>The span of the text between two positions in code points, so that a code outside the boundary cuts a text without counting them.</summary>
+    /// <param name="text">The text to cut.</param>
+    /// <param name="start">Where the span starts, in code points.</param>
+    /// <param name="until">Where the span ends, in code points, not included.</param>
+    /// <exception cref="ArgumentOutOfRangeException">The span ends before it starts or falls outside the text.</exception>
+    string Span(string text, int start, int until);
+
     /// <summary>How many code points the text has, which is what a length is in the core: a surrogate pair counts as one.</summary>
     /// <param name="text">The text to count.</param>
     int CodePointCount(string text);

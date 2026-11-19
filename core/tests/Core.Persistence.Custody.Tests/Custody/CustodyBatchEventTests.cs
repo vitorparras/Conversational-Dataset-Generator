@@ -6,6 +6,7 @@ namespace Core.Persistence.Tests.Custody;
 public sealed class CustodyBatchEventTests
 {
     private static readonly CustodyAuthor Person = CustodyAuthor.Person(7);
+    private const string Version = "49ca4d5854062508ba965bbec6169a7898d926b3570c4deae45250f5a36d8700";
 
     [Theory]
     [InlineData(1, 1)]
@@ -54,6 +55,25 @@ public sealed class CustodyBatchEventTests
 
         Assert.Equal(("author", "batchId", "batchId"), (author.ParamName, batch.ParamName, negativeBatch.ParamName));
     }
+
+    [Fact]
+    public void TheSanitizationIsTheAuthorsAboutThatBatchAndTheVersionOfTheStepsIsTheReference()
+    {
+        var sanitized = CustodyEvent.BatchSanitized(Person, 5, Version);
+
+        Assert.Equal(
+            (Person, new CustodyItem(CustodyItemKind.IngestionBatch, 5), CustodyStep.BatchSanitized, CustodyReason.AdministrativeAct, Version, null),
+            (sanitized.Author, sanitized.Item, sanitized.Step, sanitized.Reason, sanitized.Reference, sanitized.Corrects));
+    }
+
+    [Theory]
+    [InlineData("49CA4D5854062508BA965BBEC6169A7898D926B3570C4DEAE45250F5A36D8700")]
+    [InlineData("49ca4d5854062508ba965bbec6169a7898d926b3570c4deae45250f5a36d870")]
+    [InlineData("49ca4d5854062508ba965bbec6169a7898d926b3570c4deae45250f5a36d8700a")]
+    [InlineData("destinations@1")]
+    [InlineData(null)]
+    public void TheSanitizationWithAVersionThatIsNotAFingerprintIsRefusedByTheVersionParameter(string? version) =>
+        Assert.Equal("version", Assert.Throws<ArgumentException>(() => CustodyEvent.BatchSanitized(Person, 5, version!)).ParamName);
 
     [Theory]
     [InlineData("invalid_rows")]
@@ -135,6 +155,7 @@ public sealed class CustodyBatchEventTests
     [InlineData(CustodyStep.BatchOpened, CustodyReason.AdministrativeAct)]
     [InlineData(CustodyStep.BatchClosed, CustodyReason.BatchAccepted)]
     [InlineData(CustodyStep.BatchClosed, CustodyReason.BatchRejected)]
+    [InlineData(CustodyStep.BatchSanitized, CustodyReason.AdministrativeAct)]
     public void TheEventsOfABatchAsPlainEventsAreRefused(CustodyStep step, CustodyReason reason) =>
         _ = Assert.Throws<ArgumentException>(() => CustodyEvent.Of(Person, new CustodyItem(CustodyItemKind.IngestionBatch, 9), step, reason));
 }

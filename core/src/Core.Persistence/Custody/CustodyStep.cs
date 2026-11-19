@@ -113,6 +113,10 @@ public enum CustodyStep
 
     /// <summary>The sample of a batch was reviewed, by a person: the item is the batch, and the reason says whether the review found personal data not treated.</summary>
     BatchReviewed,
+
+    /// <summary>The items of a batch were sanitized by the submission: the item is the batch and the reference is the version of the list of steps, never a word of the content.</summary>
+    BatchSanitized,
+
     /// <summary>Another person approved a change of configuration submitted; the item is the submission and the reference is the sequence of the event of the submission.</summary>
     ConfigurationApproved,
 

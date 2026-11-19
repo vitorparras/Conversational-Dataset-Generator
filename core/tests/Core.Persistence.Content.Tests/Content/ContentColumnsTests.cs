@@ -57,6 +57,7 @@ public sealed class ContentColumnsTests
                 new ProtectedColumn("item_text", "raw_text", LabelPurpose.RawText),
                 new ProtectedColumn("item_text", "sanitized_text", LabelPurpose.RawText),
                 new ProtectedColumn("item_text", "occurrences", LabelPurpose.RawText),
+                new ProtectedColumn("item_text", "sanitization_trail", LabelPurpose.RawText),
                 new ProtectedColumn("item_text", "dek_wrapped", LabelPurpose.RawText),
                 new ProtectedColumn("reversal_map", "entries", LabelPurpose.ReversalMap),
                 new ProtectedColumn("reversal_map", "dek_wrapped", LabelPurpose.ReversalMap),
@@ -82,6 +83,12 @@ public sealed class ContentColumnsTests
                 new ClearColumn("item_text", "removed_passages", ClearKind.Epoch),
                 new ClearColumn("item_text", "pseudonymized_passages", ClearKind.Epoch),
                 new ClearColumn("item_text", "preserved_passages", ClearKind.Epoch),
+                new ClearColumn("item_text", "sanitization_version", ClearKind.Motive),
+                new ClearColumn("item_text", "sanitization_counts", ClearKind.Counts),
+                new ClearColumn("sanitization_version", "id", ClearKind.Identifier),
+                new ClearColumn("sanitization_version", "domain_id", ClearKind.Domain),
+                new ClearColumn("sanitization_version", "version", ClearKind.Motive),
+                new ClearColumn("sanitization_version", "steps", ClearKind.Steps),
                 new ClearColumn("reversal_map", "id", ClearKind.Identifier),
                 new ClearColumn("reversal_map", "domain_id", ClearKind.Domain),
                 new ClearColumn("reversal_map", "item_id", ClearKind.Identifier),
@@ -149,7 +156,8 @@ public sealed class ContentColumnsTests
     public void MarkOfAColumnSaysTheLabelOfItsPurposeAndNothingOfTheDomain() =>
         Assert.Equal(
             [
-                "protected:texto-bruto", "protected:texto-bruto", "protected:texto-bruto", "protected:texto-bruto", "protected:mapa-reversao", "protected:mapa-reversao",
+                "protected:texto-bruto", "protected:texto-bruto", "protected:texto-bruto", "protected:texto-bruto", "protected:texto-bruto", "protected:mapa-reversao",
+                "protected:mapa-reversao",
                 "protected:texto-bruto", "protected:texto-bruto",
             ],
             ContentColumns.Protected.Select(column => column.Mark));

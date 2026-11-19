@@ -34,7 +34,7 @@ public sealed class ItemOccurrencesTests
     public async Task TheDestinationStoredIsTheOneAStageAfterReads()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, null, null, Decided), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, null, Decided), TestContext.Current.CancellationToken);
 
         var read = await new ItemOccurrenceReader(world.Reader).ReadAsync(CustodyAuthor.System, 1, item, TestContext.Current.CancellationToken);
 
@@ -46,7 +46,7 @@ public sealed class ItemOccurrencesTests
     public async Task TheReadingIsAnEventOfTheChainAboutTheItemAndNeverCarriesWhatWasRead()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, null, null, Decided), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, null, Decided), TestContext.Current.CancellationToken);
 
         _ = await new ItemOccurrenceReader(world.Reader).ReadAsync(CustodyAuthor.System, 1, item, TestContext.Current.CancellationToken);
 
@@ -57,7 +57,7 @@ public sealed class ItemOccurrencesTests
     public async Task ATextAnalysedWithNothingFoundIsStoredAsDecidedWithNoOccurrences()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, null, null, []), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, null, []), TestContext.Current.CancellationToken);
 
         var read = await new ItemOccurrenceReader(world.Reader).ReadAsync(CustodyAuthor.System, 1, item, TestContext.Current.CancellationToken);
 
@@ -71,7 +71,7 @@ public sealed class ItemOccurrencesTests
         await using var world = await ContentWorld.CreateAsync();
 
         var defect = await Assert.ThrowsAsync<ArgumentNullException>(
-            () => world.Writer.AddItemTextAsync(1, new NewItemText(Raw, null, null, (IReadOnlyList<ItemOccurrence>)null!), TestContext.Current.CancellationToken));
+            () => world.Writer.AddItemTextAsync(1, new NewItemText(Raw, null, (IReadOnlyList<ItemOccurrence>)null!), TestContext.Current.CancellationToken));
 
         Assert.Equal(("occurrences", 0L), (defect.ParamName, await world.ScalarAsync("SELECT count(*) FROM content.item_text")));
     }
@@ -82,7 +82,7 @@ public sealed class ItemOccurrencesTests
     public async Task TheOccurrencesOfAnItemNotEmptiedNeverChangeWhoeverWrites(string change)
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, null, null, Decided), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, null, Decided), TestContext.Current.CancellationToken);
 
         var byApplication = await Assert.ThrowsAsync<PostgresException>(() => world.InDomainAsync(1, change, ("id", item)));
         var byOwner = await Assert.ThrowsAsync<PostgresException>(() => world.OwnerInDomainAsync(1, change, ("id", item)));
@@ -94,7 +94,7 @@ public sealed class ItemOccurrencesTests
     public async Task EmptyingTheItemClearsTheOccurrencesAndTheyAreReadAsEmptied()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, null, null, Decided), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, null, Decided), TestContext.Current.CancellationToken);
         var curator = await world.PersonAsync("zqx-curator");
 
         _ = await world.Emptier.EmptyAsync(
@@ -111,7 +111,7 @@ public sealed class ItemOccurrencesTests
     public async Task TheOccurrencesAreStoredSealedAndNeverWithTheKindOrTheDestinationInClear()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, null, null, Decided), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, null, Decided), TestContext.Current.CancellationToken);
 
         var stored = await world.StoredAsync(1, "SELECT occurrences FROM content.item_text WHERE id = @id", item);
 
@@ -123,7 +123,7 @@ public sealed class ItemOccurrencesTests
     public async Task OccurrencesAreSealedWithTheRawPurpose()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, null, null, Decided), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, null, Decided), TestContext.Current.CancellationToken);
 
         var occurrences = await world.StoredAsync(1, "SELECT occurrences FROM content.item_text WHERE id = @id", item);
         var raw = await world.StoredAsync(1, "SELECT raw_text FROM content.item_text WHERE id = @id", item);
@@ -136,7 +136,7 @@ public sealed class ItemOccurrencesTests
     public async Task DestinationCountsMatchTheDecidedOccurrences()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, null, null, [.. Decided, Decided[0]]), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, null, [.. Decided, Decided[0]]), TestContext.Current.CancellationToken);
 
         var counted = await world.OwnerInDomainAsync(
             1, "SELECT removed_passages || ',' || pseudonymized_passages || ',' || preserved_passages FROM content.item_text WHERE id = @id", ("id", item));

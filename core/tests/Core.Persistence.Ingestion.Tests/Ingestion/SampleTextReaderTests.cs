@@ -36,7 +36,7 @@ public sealed class SampleTextReaderTests
     {
         await using var world = await IngestionWorld.CreateAsync();
         using var custody = SyntheticCustody.Holding(Labels);
-        var (batch, item) = await SampledAsync(world, custody, new NewItemText("texto bruto zqx", "texto sanitizado zqx"));
+        var (batch, item) = await SampledAsync(world, custody, new NewItemText("texto bruto zqx") { Sanitization = ItemTexts.Sanitization("texto sanitizado zqx") });
 
         var read = await ReadAsync(world, custody, batch, item);
 

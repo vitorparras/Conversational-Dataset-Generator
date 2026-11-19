@@ -18,7 +18,7 @@ public sealed class DataCopyTests
     private static readonly string[] Files =
     [
         "configuration.json", "content.batch_origin.jsonl", "content.ingestion_batch.jsonl", "content.item_emptied.jsonl", "content.item_text.jsonl", "content.replication_mark.jsonl",
-        "content.replication_occurrence.jsonl", "content.reversal_map.jsonl", "manifest.json", "public.configuration_change.jsonl", "public.custody_event.jsonl",
+        "content.replication_occurrence.jsonl", "content.reversal_map.jsonl", "content.sanitization_version.jsonl", "manifest.json", "public.configuration_change.jsonl", "public.custody_event.jsonl",
         "public.derivation_label.jsonl", "public.derivation_label_revocation.jsonl", "public.domain.jsonl", "public.person.jsonl", "public.person_change.jsonl",
         "public.person_credential.jsonl",
         "public.sign_in_attempt.jsonl",
@@ -34,7 +34,7 @@ public sealed class DataCopyTests
 
         Assert.Equal(DataCopyOutcome.Made, copied.Result.Outcome);
         Assert.Equal(Files, Directory.GetFiles(copied.Folder).Select(file => Path.GetFileName(file)).Order(StringComparer.Ordinal));
-        Assert.Equal((1, int.Parse(version, CultureInfo.InvariantCulture), 16), ((int)manifest["format"]!, (int)manifest["schemaVersion"]!, manifest["files"]!.AsArray().Count));
+        Assert.Equal((1, int.Parse(version, CultureInfo.InvariantCulture), 17), ((int)manifest["format"]!, (int)manifest["schemaVersion"]!, manifest["files"]!.AsArray().Count));
     }
 
     [DatabaseFact]
@@ -50,7 +50,8 @@ public sealed class DataCopyTests
                 "public.domain.jsonl", "public.derivation_label.jsonl", "public.derivation_label_revocation.jsonl", "public.person.jsonl", "public.person_credential.jsonl",
                 "public.person_change.jsonl",
                 "public.sign_in_attempt.jsonl", "public.configuration_change.jsonl", "public.custody_event.jsonl",
-                "content.ingestion_batch.jsonl", "content.batch_origin.jsonl", "content.item_text.jsonl", "content.reversal_map.jsonl", "content.item_emptied.jsonl",
+                "content.ingestion_batch.jsonl", "content.batch_origin.jsonl", "content.sanitization_version.jsonl", "content.item_text.jsonl", "content.reversal_map.jsonl",
+                "content.item_emptied.jsonl",
                 "content.replication_occurrence.jsonl", "content.replication_mark.jsonl",
             ],
             manifest["files"]!.AsArray().Select(file => (string)file!));

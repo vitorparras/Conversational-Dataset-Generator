@@ -28,6 +28,9 @@ internal static class OpaqueStorage
     /// <summary>The column of the sanitized text.</summary>
     public const string SanitizedText = "content.item_text.sanitized_text";
 
+    /// <summary>The column of the trail that translates the positions of the sanitized text back to the raw one.</summary>
+    public const string SanitizationTrail = "content.item_text.sanitization_trail";
+
     /// <summary>The column of the occurrences found in the item and the destination of each.</summary>
     public const string Occurrences = "content.item_text.occurrences";
 
@@ -46,7 +49,7 @@ internal static class OpaqueStorage
     /// <summary>The column of the key of the origin, wrapped.</summary>
     public const string OriginKey = "content.batch_origin.dek_wrapped";
 
-    private static readonly string[] Seedable = [RawText, SanitizedText, Occurrences, Entries, Origin];
+    private static readonly string[] Seedable = [RawText, SanitizedText, SanitizationTrail, Occurrences, Entries, Origin];
 
     private static readonly string[] KeyColumns = [ItemKey, MapKey, OriginKey];
 
@@ -90,7 +93,7 @@ internal static class OpaqueStorage
         var texts = Seedable.ToDictionary(column => column, column => $"zqx-{Guid.NewGuid():N}", StringComparer.Ordinal);
         var pseudonymized = $"zqx-{Guid.NewGuid():N}";
         ItemOccurrence[] occurrences = [new(0, 1, texts[Occurrences], OccurrenceDestination.Remove)];
-        var written = new NewItemText(texts[RawText], texts[SanitizedText], pseudonymized, occurrences);
+        var written = new NewItemText(texts[RawText], pseudonymized, occurrences) { Sanitization = ItemTexts.Sanitization(texts[SanitizedText]) with { Trail = texts[SanitizationTrail] } };
         var item = await world.Writer.AddItemTextAsync(1, written, TestContext.Current.CancellationToken);
         _ = await world.Writer.AddReversalMapAsync(1, item, texts[Entries], TestContext.Current.CancellationToken);
         await OpenWithOriginAsync(world, texts[Origin]);

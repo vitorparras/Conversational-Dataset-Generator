@@ -18,7 +18,7 @@ internal static class DecidedItemTexts
     {
         ArgumentNullException.ThrowIfNull(material);
         var stored = material.Of(text).Select(Stored).ToList();
-        return new NewItemText(raw, null, null, stored);
+        return new NewItemText(raw, null, stored);
     }
 
     private static ItemOccurrence Stored(DecidedOccurrence decided) =>

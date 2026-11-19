@@ -33,4 +33,10 @@ public enum ClearKind
 
     /// <summary>The number of the transaction that wrote a row, which the row policy compares with the transaction that reads.</summary>
     Transaction = 7,
+
+    /// <summary>The list of the steps of a sanitization, one name of lowercase letters, digits and underscores with its version per line, which the table checks by form.</summary>
+    Steps = 8,
+
+    /// <summary>Whole numbers the table checks are not negative, one for each step of a sanitization: how many edits it made, never a position.</summary>
+    Counts = 9,
 }

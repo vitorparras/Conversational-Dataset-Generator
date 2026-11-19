@@ -83,7 +83,10 @@ public sealed class BatchDetailCountsTests
 
     private static async Task<long> WriteAsync(BatchesWorld world, SyntheticCustody custody, long batch, IReadOnlyList<ItemOccurrence> occurrences) =>
         await new ContentWriter(world.DataSource, custody.Content).AddItemTextAsync(
-            IngestionWorld.Domain, batch, new NewItemText("texto bruto zqx", "texto sanitizado zqx", "texto pseudonimizado zqx", occurrences), TestContext.Current.CancellationToken);
+            IngestionWorld.Domain,
+            batch,
+            new NewItemText("texto bruto zqx", "texto pseudonimizado zqx", occurrences) { Sanitization = ItemTexts.Sanitization("texto sanitizado zqx") },
+            TestContext.Current.CancellationToken);
 
     private static async Task<long> OpenAsync(BatchesWorld world, string form)
     {

@@ -54,7 +54,7 @@ segue cifrado (#93). A amostra lê pela 0059 da fase 3, que devolve a versão ma
 
 **Tela → fila → reexecução.** A confirmação grava o pedido, enfileira os itens de lotes aceitos de
 versão diferente da vigente (0064) e leva ao acompanhamento, sem tratar item; se todos já estão num
-pedido aberto da versão vigente, não grava pedido e leva ao acompanhamento dele. Um serviço em segundo plano toma a
-posse de um item por vez, com prazo, e SanitizationRerun decifra o bruto e reexecuta numa transação
+pedido aberto da versão vigente, não grava pedido e leva a ele. Um serviço de fundo toma a posse de
+um item por vez, com prazo, e SanitizationRerun decifra o bruto e reexecuta numa transação
 serializável com o UPDATE, o evento item_resanitized e a conclusão do item na fila. Posse vencida
 volta à fila, a última tentativa recusa o item e, na subida, o trabalhador retoma o que ficou.

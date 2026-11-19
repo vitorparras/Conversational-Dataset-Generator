@@ -37,11 +37,13 @@ public sealed class EncodingRepairStep : ISanitizationStep
         0, 0x2018, 0x2019, 0x201C, 0x201D, 0x2022, 0x2013, 0x2014, 0x02DC, 0x2122, 0x0161, 0x203A, 0x0153, 0, 0x017E, 0x0178,
     ];
 
-    /// <summary>The typographic marks a writer puts after a capital A with tilde as often as a misreading does: ellipsis, quotes, dashes and bullet.</summary>
-    private static readonly int[] WrittenMarks = [0x2026, 0x2018, 0x2019, 0x201C, 0x201D, 0x2013, 0x2014, 0x2022];
+    private const int NoBreakSpace = 0xA0;
 
-    /// <summary>The marks a writer puts right after a word, which follow a capital A with tilde that ends a word in capitals: no-break space, closing guillemet, middle dot, degree.</summary>
-    private static readonly int[] AfterWordMarks = [0xA0, 0xBB, 0xB7, 0xB0];
+    /// <summary>
+    /// The marks a writer puts after a capital A with tilde as often as a misreading does: ellipsis, quotes, dashes, bullet, closing guillemet, middle dot and degree, whose
+    /// misread letters Portuguese does not write.
+    /// </summary>
+    private static readonly int[] WrittenMarks = [0x2026, 0x2018, 0x2019, 0x201C, 0x201D, 0x2013, 0x2014, 0x2022, 0xBB, 0xB7, 0xB0];
 
     /// <inheritdoc />
     public string Name => "codificacao";
@@ -104,13 +106,14 @@ public sealed class EncodingRepairStep : ISanitizationStep
     }
 
     /// <summary>
-    /// Whether the sequence reads as well as written: a capital A with tilde before a typographic mark, or ending a word in capitals before a mark that follows a word.
+    /// Whether the sequence reads as well as written: a capital A with tilde before a mark a writer puts after it, or ending a word in capitals before a no-break space, which
+    /// after anything else is the a with grave accent misread.
     /// </summary>
     private static bool ReadsAsWritten(IList<Point> points, int at, Sequence sequence)
     {
         var next = points[at + 1].Value;
         var endsCapitals = at > 0 && Rune.IsUpper(new Rune(points[at - 1].Value));
-        return sequence.TakesWrittenMarks && (WrittenMarks.Contains(next) || (endsCapitals && AfterWordMarks.Contains(next)));
+        return sequence.TakesWrittenMarks && (WrittenMarks.Contains(next) || (endsCapitals && next == NoBreakSpace));
     }
 
     /// <summary>The sequence that starts here and every character its bytes may have been; none when it is no misread sequence.</summary>

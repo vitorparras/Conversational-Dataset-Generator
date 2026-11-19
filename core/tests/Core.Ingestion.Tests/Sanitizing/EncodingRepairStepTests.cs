@@ -24,7 +24,7 @@ public sealed class EncodingRepairStepTests
     [Fact]
     public void TextWithoutCorruptionLeavesIdentical()
     {
-        const string raw = "Bom dia, tudo bem? At\u00E9 amanh\u00E3 \u00E0s 10h, na sala \u00C1GUA 3. N\u00C3O \u00C9 \u00D3BVIO. \u00C3\u0001";
+        const string raw = "Bom dia, tudo bem? At\u00E9 amanh\u00E3 \u00E0s 10h, na sala \u00C1GUA 3. N\u00C3O \u00C9 \u00D3BVIO. \u00C3\u0001 \u00C3\uD800x";
 
         var repaired = Repaired(raw);
 
@@ -57,12 +57,14 @@ public sealed class EncodingRepairStepTests
     [Fact]
     public void AmbiguousRepairIsLeftAsWrittenAndCounted()
     {
-        const string raw = "\u00C3\uFFFDGUA fria, IRM\u00C3\u201D e AMANH\u00C3\u2026 mas n\u00C3\u00A3o \u00ABAMANH\u00C3\u00BB e IRM\u00C3\u00A0 fim";
+        const string raw = "\u00C3\uFFFDGUA fria, IRM\u00C3\u201D e AMANH\u00C3\u2026 mas n\u00C3\u00A3o \u00ABAMANH\u00C3\u00BB e IRM\u00C3\u00A0 e \U0001D408\U0001D411\U0001D40C\u00C3\u00A0 fim";
 
         var repaired = Repaired(raw);
 
-        Assert.Equal("\u00C3\uFFFDGUA fria, IRM\u00C3\u201D e AMANH\u00C3\u2026 mas n\u00E3o \u00ABAMANH\u00C3\u00BB e IRM\u00C3\u00A0 fim", repaired.Text);
-        Assert.Equal((1, 5), (repaired.Report[0].Count, repaired.Report[0].Untreated));
+        Assert.Equal(
+            "\u00C3\uFFFDGUA fria, IRM\u00C3\u201D e AMANH\u00C3\u2026 mas n\u00E3o \u00ABAMANH\u00C3\u00BB e IRM\u00C3\u00A0 e \U0001D408\U0001D411\U0001D40C\u00C3\u00A0 fim",
+            repaired.Text);
+        Assert.Equal((1, 6), (repaired.Report[0].Count, repaired.Report[0].Untreated));
     }
 
     [Fact]

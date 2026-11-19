@@ -75,6 +75,33 @@ public sealed class BatchDetailCountsTests
         Assert.Equal([new BatchStepCount("destinations", 0, 0)], counts.Steps);
     }
 
+    [DatabaseFact]
+    public async Task BatchDetailCountsSetTheEditsApartFromTheItemsAndKeepToTheVersionTheyName()
+    {
+        await using var world = await IngestionWorld.CreateAsync();
+        using var custody = SyntheticCustody.Holding(Labels);
+        var batch = await OpenAsync(world, "conversation");
+        const string RerunSteps = "destinations@1\nzqx_review@1";
+        var rerun = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(RerunSteps)));
+        foreach (var edits in new[] { 2, 0, 3 })
+        {
+            _ = await WriteAsync(world, custody, batch, [], ItemTexts.Sanitization("texto sanitizado zqx") with { Counts = [edits] });
+        }
+
+        _ = await WriteAsync(world, custody, batch, [], ItemTexts.Sanitization("texto sanitizado zqx") with { Version = rerun, Steps = RerunSteps, Counts = [7, 1] });
+
+        var counts = await new BatchCounts(world.DataSource).ReadAsync(IngestionWorld.Domain, batch, TestContext.Current.CancellationToken);
+        var byVersion = new Dictionary<string, BatchStepCount[]>(StringComparer.Ordinal)
+        {
+            [ItemTexts.Version] = [new BatchStepCount("destinations", 5, 2)],
+            [rerun] = [new BatchStepCount("destinations", 7, 1), new BatchStepCount("zqx_review", 1, 1)],
+        };
+
+        // Which version the detail names when a batch has two is not this slice's to decide (only a rerun gives two); the steps shown must be the ones of that version.
+        Assert.True(byVersion.ContainsKey(counts.SanitizationVersion ?? string.Empty), counts.SanitizationVersion);
+        Assert.Equal(byVersion[counts.SanitizationVersion!], counts.Steps);
+    }
+
     private static StoredOccurrence Said(long item, int position) =>
         new(item, position, new string('a', 64), new string('b', 64), 20, new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
 
@@ -83,11 +110,12 @@ public sealed class BatchDetailCountsTests
     private static IReadOnlyList<ItemOccurrence> Decided(params OccurrenceDestination[] destinations) =>
         [.. destinations.Select((destination, index) => new ItemOccurrence(index * 4, (index * 4) + 3, "person", destination))];
 
-    private static async Task<long> WriteAsync(BatchesWorld world, SyntheticCustody custody, long batch, IReadOnlyList<ItemOccurrence> occurrences) =>
+    private static async Task<long> WriteAsync(
+        BatchesWorld world, SyntheticCustody custody, long batch, IReadOnlyList<ItemOccurrence> occurrences, ItemSanitization? sanitization = null) =>
         await new ContentWriter(world.DataSource, custody.Content).AddItemTextAsync(
             IngestionWorld.Domain,
             batch,
-            new NewItemText("texto bruto zqx", "texto pseudonimizado zqx", occurrences) { Sanitization = ItemTexts.Sanitization("texto sanitizado zqx") },
+            new NewItemText("texto bruto zqx", "texto pseudonimizado zqx", occurrences) { Sanitization = sanitization ?? ItemTexts.Sanitization("texto sanitizado zqx") },
             TestContext.Current.CancellationToken);
 
     private static async Task<long> OpenAsync(BatchesWorld world, string form)

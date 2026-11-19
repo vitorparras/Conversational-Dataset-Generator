@@ -45,12 +45,12 @@ public sealed class Sanitizer
         var report = new List<StepReport>(steps.Steps.Count);
         foreach (var step in steps.Steps)
         {
-            var applied = Run(step, new StepInput(text, occurrences), length);
+            var (applied, untreated) = Run(step, new StepInput(text, occurrences), length);
             text = Apply(text, applied);
             occurrences = Carried(occurrences, applied);
             length = applied.OutputLength;
             trail.Add(applied);
-            report.Add(new StepReport(step.Name, step.Version, applied.Edits));
+            report.Add(new StepReport(step.Name, step.Version, applied.Edits) { Untreated = untreated });
         }
 
         return SanitizationResult.Of(new SanitizedText
@@ -67,11 +67,11 @@ public sealed class Sanitizer
     /// <summary>The version of the list of steps every text sanitized here carries.</summary>
     public string Version => steps.Version;
 
-    private static TrailStep Run(ISanitizationStep step, StepInput input, int length)
+    private static (TrailStep Applied, int Untreated) Run(ISanitizationStep step, StepInput input, int length)
     {
         try
         {
-            return TrailStep.Of(length, step.Edits(input));
+            return (TrailStep.Of(length, step.Edits(input)), step.Untreated(input));
         }
         catch (Exception failure) when (failure is not OperationCanceledException)
         {
@@ -114,7 +114,7 @@ public sealed class Sanitizer
         var at = 0;
         foreach (var edit in step.Edits)
         {
-            _ = builder.Append(boundaries.Span(text, at, edit.Start)).Append(SanitizationMarkers.Text(edit.Marker));
+            _ = builder.Append(boundaries.Span(text, at, edit.Start)).Append(edit.Written);
             at = edit.End;
         }
 

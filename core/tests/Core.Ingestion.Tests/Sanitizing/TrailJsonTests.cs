@@ -23,6 +23,22 @@ public sealed class TrailJsonTests
     }
 
     [Fact]
+    public void TrailOfWrittenTextReadBackTranslatesAsTheOneWritten()
+    {
+        const string raw = "x\u00C3\u00A9y\u000Cpg\u000Cw";
+        var rewriting = new FixedStep("reescreve", _ => [SanitizationEdit.Rewriting(1, 3, "\u00E9"), SanitizationEdit.Rewriting(4, 7, string.Empty)]);
+        var sanitized = Sanitized(Sanitizer(rewriting), raw);
+
+        var read = TrailJson.Read(TrailJson.Write(sanitized.Trail));
+
+        Assert.Equal("x\u00E9y\u000Cw", sanitized.Text);
+        Assert.Equal(sanitized.Trail.Steps, read.Steps);
+        Assert.Equal((9, 5), (read.RawLength, read.SanitizedLength));
+        Assert.Equal((true, 4, 5), (read.Forward(8, 9).Exists, read.Forward(8, 9).Start, read.Forward(8, 9).End));
+        Assert.False(read.Forward(5, 6).Exists);
+    }
+
+    [Fact]
     public void TrailOfAStepThatEditedNothingIsWrittenAsTheStorageExpects()
     {
         var trail = Sanitized("texto sem nada zqx").Trail;
@@ -39,6 +55,8 @@ public sealed class TrailJsonTests
     [InlineData(/*lang=json,strict*/ """{"raw":6,"steps":[[{"start":0,"end":3,"marker":"Data"},{"start":2,"end":4,"marker":"Data"}]]}""")]
     [InlineData(/*lang=json,strict*/ """{"raw":3,"steps":[null]}""")]
     [InlineData("null")]
+    [InlineData(/*lang=json,strict*/ """{"raw":4,"steps":[[{"start":0,"end":2,"marker":null}]]}""")]
+    [InlineData(/*lang=json,strict*/ """{"raw":4,"steps":[[{"start":0,"end":2,"marker":"Data","replacement":"x"}]]}""")]
     [InlineData(/*lang=json,strict*/ """{"raw":4,"steps":[[{"start":0,"end":2,"marker":0}]]}""")]
     [InlineData(/*lang=json,strict*/ """{"raw":4,"steps":[[{"start":-1,"end":2,"marker":"Data"}]]}""")]
     [InlineData(/*lang=json,strict*/ """{"raw":-1,"steps":[[]]}""")]

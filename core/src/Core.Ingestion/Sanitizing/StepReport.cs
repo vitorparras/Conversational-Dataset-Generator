@@ -9,6 +9,9 @@ public sealed record StepReport(string Name, int Version, IReadOnlyList<Sanitiza
     /// <summary>How many edits the step made, zero included.</summary>
     public int Count => Edits.Count;
 
-    /// <summary>The name, version and count; never the positions.</summary>
-    public override string ToString() => $"StepReport {{ Name = {Name}, Version = {Version}, Count = {Count} }}";
+    /// <summary>How many spans the step left as written because it could not tell what to do with them; a number, never the span.</summary>
+    public int Untreated { get; init; }
+
+    /// <summary>The name, version and counts; never the positions.</summary>
+    public override string ToString() => $"StepReport {{ Name = {Name}, Version = {Version}, Count = {Count}, Untreated = {Untreated} }}";
 }

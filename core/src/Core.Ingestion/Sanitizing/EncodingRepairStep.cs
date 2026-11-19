@@ -12,7 +12,6 @@ namespace Core.Ingestion.Sanitizing;
 public sealed class EncodingRepairStep : ISanitizationStep
 {
     private const int NotAByte = -1;
-    private const int NotOneUnit = -1;
     private const int LostByte = -2;
     private const int ReplacementCharacter = 0xFFFD;
     private const int FirstContinuation = 0x80;
@@ -78,7 +77,7 @@ public sealed class EncodingRepairStep : ISanitizationStep
     private (List<Point> Points, int Ambiguous) Repair(StepInput input)
     {
         ArgumentNullException.ThrowIfNull(input);
-        var points = boundaries.CodePoints(input.Text).Select((text, at) => new Point(text, text.Length == 1 ? text[0] : NotOneUnit, at, at + 1, false)).ToList();
+        var points = boundaries.CodePoints(input.Text).Select((text, at) => new Point(text, text[0], at, at + 1, false)).ToList();
         while (true)
         {
             var (changed, ambiguous) = Pass(points);
@@ -201,8 +200,8 @@ public sealed class EncodingRepairStep : ISanitizationStep
     }
 
     /// <summary>
-    /// A code point of the text, as the text that writes it and as the value of its one UTF-16 unit, when it has one, with the span of the received text it stands for and
-    /// whether it was repaired.
+    /// A code point of the text, as the text that writes it and as the value of its first UTF-16 unit, which for a surrogate pair matches no lead, byte or mark, with the span
+    /// of the received text it stands for and whether it was repaired.
     /// </summary>
     private readonly record struct Point(string Text, int Value, int From, int To, bool Repaired);
 

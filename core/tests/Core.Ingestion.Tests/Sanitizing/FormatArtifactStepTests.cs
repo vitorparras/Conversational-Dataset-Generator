@@ -70,4 +70,23 @@ public sealed class FormatArtifactStepTests
         Assert.Equal("Texto um.\n\fTexto dois.\n\fTexto três.\n", once);
         Assert.Equal(once, twice);
     }
+
+    [Fact]
+    public void FooterNumberedWithAnyCountOfDigitsLeavesEveryPage()
+    {
+        const string raw = "Abre a nove.\nSegue a nove.\nPágina 9 de 11\fAbre a dez.\nSegue a dez.\nPágina 10 de 11\fAbre a onze.\nSegue a onze.\nPágina 11 de 11";
+
+        var treated = Treated(raw);
+
+        Assert.Equal("Abre a nove.\nSegue a nove.\n\fAbre a dez.\nSegue a dez.\n\fAbre a onze.\nSegue a onze.\n", treated.Text);
+        Assert.Equal((3, 0), (treated.Report[0].Count, treated.Report[0].Untreated));
+    }
+
+    [Fact]
+    public void NoBoundariesOrNoInputIsADefect()
+    {
+        _ = Assert.Throws<ArgumentNullException>(() => new FormatArtifactStep(null!));
+        _ = Assert.Throws<ArgumentNullException>(() => new FormatArtifactStep(Boundaries).Edits(null!));
+        _ = Assert.Throws<ArgumentNullException>(() => new FormatArtifactStep(Boundaries).Untreated(null!));
+    }
 }

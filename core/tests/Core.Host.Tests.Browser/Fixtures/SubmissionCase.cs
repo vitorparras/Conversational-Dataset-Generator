@@ -1,3 +1,4 @@
+using Core.Boundary.Contracts;
 using Core.Host.Endpoints;
 using Core.Host.Submissions;
 using Core.Ingestion;
@@ -63,7 +64,8 @@ internal static class SubmissionCase
         var batches = new IngestionBatches(source, conditions);
         var registered = new HashSet<string>(Labels, StringComparer.Ordinal);
         var settings = new SubmissionSettings(
-            batches, conditions, MaxBytes, registered, new HashSet<string>(StringComparer.Ordinal), new ReplicationRule(MinLength, ReplicationRule.FewestSenders));
+            batches, conditions, MaxBytes, registered, new HashSet<string>(StringComparer.Ordinal), new ReplicationRule(MinLength, ReplicationRule.FewestSenders),
+            new CleanRecognizer());
         return new SubmissionService(CompositionRoot.IntakeOf(source, reading, settings), batches, source, NullLogger.Instance);
     }
 
@@ -77,6 +79,13 @@ internal static class SubmissionCase
         {
             throw new InvalidOperationException($"The rehearsal of the recovery was not appended: {rehearsed.Outcome}.");
         }
+    }
+
+    /// <summary>A recognizer that finds nothing in any text, so every submission of the screens is kept as the composition keeps a clean one.</summary>
+    private sealed class CleanRecognizer : IRecognizer
+    {
+        public Task<RecognitionOutcome> RecognizeAsync(AnalysisRequest request, CancellationToken cancellationToken) =>
+            Task.FromResult(RecognitionOutcome.Analyzed(new AnalysisResponse([], "zqx-model-clean")));
     }
 
     /// <summary>The domain granted to whoever enters, whatever the function; the function still decides what the gate opens.</summary>

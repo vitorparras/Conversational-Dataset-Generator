@@ -44,6 +44,7 @@ internal static class BatchDetailPieceCase
         var batch = context.Request.Query["e"].ToString() switch
         {
             "rejeitado" => Counted(39, BatchState.Rejected, "order_incoherent"),
+            "sem-analise" => Counted(43, BatchState.Rejected, "analysis_unavailable"),
             "em-curso" => new BatchDetailScreen.Detail(40, Domain, BatchState.Open, null, Submitter, SubmittedAt, true),
             "perda" => Counted(38, BatchState.Accepted, null) with { Accommodation = new BatchDetailScreen.Accommodated("conversation", "comment", 12, ["author", "instant", "replies_to"]) },
             "reenvio" => Counted(42, BatchState.Accepted, null) with { Recognized = new BatchDetailScreen.Recognition(33, $"{Detail}?e=anterior") },

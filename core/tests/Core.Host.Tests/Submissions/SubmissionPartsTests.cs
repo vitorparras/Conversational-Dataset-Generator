@@ -1,4 +1,6 @@
+using Core.Boundary.Contracts;
 using Core.Host.Submissions;
+using Core.Host.Tests.Analysis;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Fixtures;
 using Core.Platform.Keys;
@@ -164,6 +166,7 @@ public sealed class SubmissionPartsTests
         new ServiceCollection()
             .AddSingleton(startup)
             .AddLogging()
+            .AddSingleton<IRecognizer>(AnsweringRecognizer.Finding())
             .AddSingleton(provider => SubmissionParts.BatchesOf(provider, Values))
             .AddSingleton(SubmissionParts.RegisterOf)
             .AddSingleton(SubmissionParts.DoorOf)

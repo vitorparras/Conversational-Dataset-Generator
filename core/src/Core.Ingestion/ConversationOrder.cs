@@ -47,6 +47,19 @@ internal static class ConversationOrder
         return positions;
     }
 
+    /// <summary>Where each unit of the file stands in the conversation, by its position in the file: the inverse of the sequence.</summary>
+    /// <param name="sequence">The positions of the units in the order of the conversation.</param>
+    internal static int[] Placed(IReadOnlyList<int> sequence)
+    {
+        var placed = new int[sequence.Count];
+        for (var at = 0; at < sequence.Count; at++)
+        {
+            placed[sequence[at]] = at;
+        }
+
+        return placed;
+    }
+
     private static int Compare(ReadMaterial read, int left, int right)
     {
         var byMoment = Nullable.Compare(read.Units[left].Instant, read.Units[right].Instant);

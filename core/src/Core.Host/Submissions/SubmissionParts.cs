@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Core.Boundary.Contracts;
 using Core.Ingestion;
 using Core.Persistence.Domains;
 using Core.Persistence.Ingestion;
@@ -40,7 +41,9 @@ internal static class SubmissionParts
     /// </summary>
     internal static SubmissionServiceHolder ServicesOf(IServiceProvider provider, IReadOnlyDictionary<string, string> values) =>
         provider.GetRequiredService<ServiceProvider>() is var startup && startup.GetService<NpgsqlDataSource>() is not null
-            ? new SubmissionServiceHolder(AdmissionConfiguration.MaxBytes(values), token => LoadAsync(startup, (provider.GetRequiredService<IngestionBatches>(), LoggerOf(provider)), values, token))
+            ? new SubmissionServiceHolder(
+                AdmissionConfiguration.MaxBytes(values),
+                token => LoadAsync(startup, (provider.GetRequiredService<IngestionBatches>(), LoggerOf(provider), provider.GetRequiredService<IRecognizer>()), values, token))
             : null!;
 
     private static ILogger LoggerOf(IServiceProvider provider) => provider.GetRequiredService<ILogger<SubmissionService>>();
@@ -50,7 +53,7 @@ internal static class SubmissionParts
         new(CompositionRoot.IntakeOf(source, reading, settings), settings.Batches, source, logger);
 
     private static async Task<SubmissionServiceHolder.Loaded?> LoadAsync(
-        IServiceProvider startup, (IngestionBatches Batches, ILogger Logger) shared, IReadOnlyDictionary<string, string> values, CancellationToken cancellationToken)
+        IServiceProvider startup, (IngestionBatches Batches, ILogger Logger, IRecognizer Recognizer) shared, IReadOnlyDictionary<string, string> values, CancellationToken cancellationToken)
     {
         var source = startup.GetRequiredService<NpgsqlDataSource>();
         var reading = await startup.GetRequiredService<IMasterKeySource>().ReadAsync(cancellationToken).ConfigureAwait(false);
@@ -60,7 +63,7 @@ internal static class SubmissionParts
             var registered = failed ? ImmutableHashSet<string>.Empty : await RegisteredLabels.ReadAsync(source, cancellationToken).ConfigureAwait(false);
             var revoked = failed ? ImmutableHashSet<string>.Empty : await LabelRevocations.ReadAsync(source, cancellationToken).ConfigureAwait(false);
             var admission = (AdmissionConfiguration.Conditions(values), AdmissionConfiguration.MaxBytes(values), ReplicationConfiguration.Rule(values));
-            var settings = new SubmissionSettings(shared.Batches, admission.Item1, admission.Item2, registered, revoked, admission.Item3);
+            var settings = new SubmissionSettings(shared.Batches, admission.Item1, admission.Item2, registered, revoked, admission.Item3, shared.Recognizer);
             var service = ServiceOf(source, reading, settings, shared.Logger);
             if (reading.Failure is not { } failure)
             {

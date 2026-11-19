@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
+using Core.Boundary.Contracts;
 using Core.Host.Endpoints;
 using Core.Host.Operators;
 using Core.Host.Screens;
@@ -325,7 +326,7 @@ public sealed class SubmissionScreensRouteTests
         Assert.Equal((HttpStatusCode.NotFound, 0L), (status, await world.Inner.BatchCountAsync()));
     }
 
-    private static Dictionary<string, string?> Fields(string? origin = SubmissionWorld.Origin, string? condition = SubmissionWorld.Loosest, string format = SubmissionWorld.Format) =>
+    internal static Dictionary<string, string?> Fields(string? origin = SubmissionWorld.Origin, string? condition = SubmissionWorld.Loosest, string format = SubmissionWorld.Format) =>
         new(StringComparer.Ordinal)
         {
             ["domain"] = "1",
@@ -336,7 +337,7 @@ public sealed class SubmissionScreensRouteTests
         };
 
     /// <summary>The host with the screens of the batches over the world of the submissions, where person 1 curates the domain granted and person 2 annotates.</summary>
-    private sealed class World : IAsyncDisposable
+    internal sealed class World : IAsyncDisposable
     {
         internal const long Annotator = 2;
 
@@ -353,9 +354,10 @@ public sealed class SubmissionScreensRouteTests
 
         internal SessionedHost Host { get; }
 
-        internal static async Task<World> StartAsync(long maxBytes = 1_000_000, bool gateOpen = true, ReplicationRule? replication = null, bool lostWhileWriting = false)
+        internal static async Task<World> StartAsync(
+            long maxBytes = 1_000_000, bool gateOpen = true, ReplicationRule? replication = null, bool lostWhileWriting = false, IRecognizer? recognizer = null)
         {
-            var inner = await SubmissionWorld.CreateAsync(maxBytes, gateOpen, replication: replication);
+            var inner = await SubmissionWorld.CreateAsync(maxBytes, gateOpen, replication: replication, recognizer: recognizer);
             await inner.Database.RunAsOwnerAsync(
                 "UPDATE public.person SET function_name = 'Curadoria do acervo' WHERE id = 1",
                 "INSERT INTO public.person (name, function_name) VALUES ('zqx-anotadora', 'Anotação')");
@@ -423,7 +425,7 @@ public sealed class SubmissionScreensRouteTests
             var opened = await Inner.Batches.OpenAsync(new BatchOpening(SubmissionWorld.Domain, SubmissionWorld.Person) { DeclaredForm = "document", SourceForm = "conversation" }, Token);
             var instant = new DateTimeOffset(2031, 3, 4, 8, 0, 0, TimeSpan.Zero);
             var material = new ReadMaterial([new ReadUnit("ZQXTERCEIRO", "ZQXUM", instant, null, []), new ReadUnit("ZQXQUARTO", "ZQXDOIS", instant, null, [])]);
-            var kept = new SubmissionStoring.Kept(SubmissionWorld.Domain, opened.BatchId!.Value, material, MaterialForm.Document);
+            var kept = new SubmissionStoring.Kept(SubmissionWorld.Domain, opened.BatchId!.Value, material, MaterialForm.Document, SubmissionWorld.AccommodatedAsDocument(material));
             var intake = SubmissionWorld.Intake(1_000_000, conditions, Inner.Content, Inner.DataSource);
             Assert.Equal(SubmissionStoring.Keeping.Kept, await new SubmissionStoring.Keeper(Inner.Batches, intake, NullLogger.Instance).KeepAsync(kept, Token));
             return opened.BatchId.Value;

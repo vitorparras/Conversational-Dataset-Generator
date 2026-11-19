@@ -17,12 +17,12 @@ das edições são cifrados como o bruto; só números ficam em claro
 |---|---|
 | [Modelo de dados](modelo-de-dados.md) | Migrações das fatias, com nome e motivo |
 | [Contratos](contratos.md) | O que cada módulo oferece ao outro, e quem chama quem |
-| [Riscos](riscos.md) | Concorrência, cancelamento no meio, falha de rede, dado pessoal |
+| [Riscos](riscos.md) | Concorrência, cancelamento no meio, falha de rede, fila travada, queda do processo, dado pessoal |
 | [Fatia A](fatia-a-destinos-na-entrada.md) | A entrada reconhece e grava os destinos (issue nova) |
 | [Fatia B](fatia-b-passos-e-destinos.md) | Passos declarados e aplicação dos destinos (#87, #90, #92, #93, #98) |
 | [Fatia C](fatia-c-normalizacao.md) | Normalização sem achatar o sinal (#88, #89, #95, #96) |
 | [Fatia D](fatia-d-identificador-e-residuo.md) | Identificador partido e sem resíduo (#91, #94) |
-| [Fatia E](fatia-e-reexecucao.md) | Reexecução sobre o bruto, pela tela (#97) |
+| [Fatia E](fatia-e-reexecucao.md) | Reexecução sobre o bruto, em segundo plano, com fila e acompanhamento (#97) |
 | [Protótipos](prototipos/index.html) | As telas navegáveis, com todos os estados |
 
 ## Roteiro
@@ -34,7 +34,7 @@ das edições são cifrados como o bruto; só números ficam em claro
    declarados e uma versão derivada. O item nasce com o sanitizado e o rastro, cifrados; a tela do
    lote mostra as contagens por passo e a amostra lê o sanitizado.
 3. **Fatias C, D e E, em paralelo.** C e D somam passos à lista; E reexecuta a lista vigente sobre
-   o bruto, pela tela da Curadoria.
+   o bruto, em segundo plano: a Curadoria confirma, a fila guarda e a tela acompanha.
 
 A B depende da A, e C, D e E dependem da B. As raias de C, D e E não colidem: C e D escrevem cada
 uma os seus passos, e a única linha em comum é a lista de passos; E toca a reexecução e a tela dela.

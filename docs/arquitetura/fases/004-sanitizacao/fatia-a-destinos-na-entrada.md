@@ -16,6 +16,7 @@ Sem esta fatia, a #87 CA-5 não tem como ser cumprida: hoje nenhum item nasce co
 `Core.Host.Tests`, com o reconhecedor falso:
 
 - EachUnitIsAnalyzedOnceInTheOrderOfTheMaterial
+- EveryAnalysisIsAskedInPortuguese
 - EveryItemIsBornWithItsDecidedOccurrences (#84 CA-1)
 - AccommodatedItemKeepsItsAccommodationAndItsOccurrences
 - LanguageServiceDownRejectsTheBatchAsAnalysisUnavailable
@@ -45,7 +46,7 @@ Sem esta fatia, a #87 CA-5 não tem como ser cumprida: hoje nenhum item nasce co
 ## Riscos, raia e dependências
 
 - **Riscos:** cancelamento durante a análise e serviço de linguagem caído, nas linhas da fatia A
-  em [riscos](riscos.md). O idioma da análise depende de decisão do dono.
+  em [riscos](riscos.md). O idioma é fixo, como diz a fatia A dos [contratos](contratos.md).
 - **Raia:** a submissão (`core/src/Core.Host/Submissions`) e a decisão de destino
   (`core/src/Core.Ingestion/Deciding`). Não cria pasta nova.
 - **Depende de:** a fatia A da fase 3. **Bloqueia:** a fatia B.

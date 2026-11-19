@@ -9,7 +9,7 @@
 </head>
 <!--
     Protótipo da tela I4 (GET e POST /lotes/{id}/revisao) só com o que a fase 4 muda: todo item tem
-    o texto sanitizado, que é o que a revisão lê, com o marcador "[removido]" no lugar do que saiu e
+    o texto sanitizado, que é o que a revisão lê, com o marcador do tipo no lugar do que saiu e
     a versão da lista de passos que o produziu. O texto bruto deixa de aparecer nesta tela. O resto
     da tela (sorteio, ordem, reprovação, aprovação) é o da fase 3.
     Na tela real só um estado aparece por vez; aqui os estados vêm em sequência, cada um na sua âncora.
@@ -45,7 +45,7 @@
     </header>
     <main id="content" class="page" tabindex="-1">
         <h1>Revisão da amostra do lote 13</h1>
-        <p class="lead">Leia cada item da amostra, na ordem, e marque-o como revisado. O texto é o sanitizado: onde aparece "[removido]", um valor saiu e nada dele ficou. Um dado pessoal em qualquer item reprova o lote inteiro. O resto da tela é o da <a href="../../003-ingestao/prototipos/revisao.html">fase 3</a>.</p>
+        <p class="lead">Leia cada item da amostra, na ordem, e marque-o como revisado. O texto é o sanitizado: onde aparece um tipo entre colchetes, como [credencial] ou [dado], um valor saiu e nada dele ficou, nem um caractere; [documento] e [contato] chegam com a fatia D. Um dado pessoal em qualquer item reprova o lote inteiro. O resto da tela é o da <a href="../../003-ingestao/prototipos/revisao.html">fase 3</a>.</p>
 
         <nav aria-label="Estados do protótipo">
             <ul>
@@ -82,7 +82,7 @@
                     <section class="panel" aria-labelledby="sanitizada-item-2-titulo">
                         <h2 id="sanitizada-item-2-titulo">Item 2 de 3</h2>
                         <p class="sample__version">Texto sanitizado pela versão VERSAO_3 da lista de passos.</p>
-                        <blockquote class="sample__text">Trecho sintético de conversa número 2. O documento informado é [removido] e a senha enviada é [removido]. A resposta sintética diz que o prazo é de dois dias.</blockquote>
+                        <blockquote class="sample__text">Trecho sintético de conversa número 2. O documento informado é [documento] e a senha enviada é [credencial]. A resposta sintética diz que o prazo é de dois dias.</blockquote>
                         <form class="form" method="get" action="revisao.html#versao-nova">
                             <div class="actions">
                                 <button id="sanitizada-revisado-2" class="button button--primary" type="submit">Revisado, sem dado pessoal</button>
@@ -110,7 +110,7 @@
                     <section class="panel" aria-labelledby="versao-nova-item-2-titulo">
                         <h2 id="versao-nova-item-2-titulo">Item 2 de 3</h2>
                         <p class="sample__version">Texto sanitizado pela versão VERSAO_4 da lista de passos.</p>
-                        <blockquote class="sample__text">Trecho sintético de conversa número 2. O documento informado é [removido] e a senha enviada é [removido]. A resposta sintética diz que o prazo é de dois dias.</blockquote>
+                        <blockquote class="sample__text">Trecho sintético de conversa número 2. O documento informado é [documento] e a senha enviada é [credencial]. A resposta sintética diz que o prazo é de dois dias.</blockquote>
                         <form class="form" method="get" action="revisao.html#sanitizada">
                             <div class="actions">
                                 <button id="versao-nova-revisado-2" class="button button--primary" type="submit">Revisado, sem dado pessoal</button>

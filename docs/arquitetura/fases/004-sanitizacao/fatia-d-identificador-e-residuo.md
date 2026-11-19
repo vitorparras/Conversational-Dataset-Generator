@@ -3,7 +3,8 @@
 > Norma pendente. 2026-11-15. Fecha #91 e #94. Teto da fatia: 900 linhas de produção.
 
 Um passo entra na lista, antes da aplicação dos destinos: a remoção do identificador estruturado,
-inclusive quando partido por caractere invisível ou separador incomum. A propriedade de que não
+inclusive quando partido por caractere invisível ou separador incomum. Ele produz [documento] e
+[contato], pela tabela da fatia B dos [contratos](contratos.md). A propriedade de que não
 sobra resíduo passa a valer para a lista inteira, e é medida com um defeito plantado. O protótipo é
 `lote.html`, em [protótipos](prototipos/index.html).
 

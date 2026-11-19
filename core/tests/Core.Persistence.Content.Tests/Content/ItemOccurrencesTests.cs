@@ -4,6 +4,7 @@ using Core.Persistence.Content.Reading;
 using Core.Persistence.Content.Writing;
 using Core.Persistence.Custody;
 using Core.Persistence.Tests.Fixtures;
+using Core.Platform.Keys;
 using Npgsql;
 
 namespace Core.Persistence.Tests.Content;
@@ -116,5 +117,30 @@ public sealed class ItemOccurrencesTests
 
         var shown = System.Text.Encoding.UTF8.GetString(stored);
         Assert.Equal([false, false], [shown.Contains("PERSON", StringComparison.Ordinal), shown.Contains("Pseudonymize", StringComparison.Ordinal)]);
+    }
+
+    [DatabaseFact]
+    public async Task OccurrencesAreSealedWithTheRawPurpose()
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, null, null, Decided), TestContext.Current.CancellationToken);
+
+        var occurrences = await world.StoredAsync(1, "SELECT occurrences FROM content.item_text WHERE id = @id", item);
+        var raw = await world.StoredAsync(1, "SELECT raw_text FROM content.item_text WHERE id = @id", item);
+
+        Assert.StartsWith("texto-bruto/1/", EnvelopeCipher.LabelOf(occurrences), StringComparison.Ordinal);
+        Assert.Equal(EnvelopeCipher.LabelOf(raw), EnvelopeCipher.LabelOf(occurrences));
+    }
+
+    [DatabaseFact]
+    public async Task DestinationCountsMatchTheDecidedOccurrences()
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        var item = await world.Writer.AddItemTextAsync(1, new NewItemText(Raw, null, null, [.. Decided, Decided[0]]), TestContext.Current.CancellationToken);
+
+        var counted = await world.OwnerInDomainAsync(
+            1, "SELECT removed_passages || ',' || pseudonymized_passages || ',' || preserved_passages FROM content.item_text WHERE id = @id", ("id", item));
+
+        Assert.Equal("1,2,1", counted);
     }
 }

@@ -150,7 +150,7 @@ def slices(text: str, suite: frozenset[str] = frozenset()) -> tuple[tuple[int, i
     """The slices of a file as ``(start, end, weight)``: offsets from the first character to
     ``UNBOUNDED``, cut after each member and, in a static list, after each element; the weight is
     the tokens, so comments weigh nothing, times ``STATIC_COST`` for a static initializer or a
-    method named in ``suite``, which every test runs through."""
+    method whose signature is in ``suite``, which every test runs through."""
     found = tokens(text)
     ends = [token.end for token in found]
     members = [0, *(bisect_right(ends, cut) for cut in ends_of(found)), len(ends)]

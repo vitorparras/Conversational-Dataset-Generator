@@ -7,20 +7,26 @@ from __future__ import annotations
 from collections.abc import Iterator
 from itertools import pairwise
 
-from steps.csharp_tokens import Token
+from steps.csharp_tokens import Token, tokens
 
 #: What one token of a static initializer costs against one of any other code. Stryker cannot say
 #: which tests reach a static initializer, so each of its mutants runs the whole suite (#683: the
 #: 24 mutants of ``ContentColumns`` took 22 min, 304 tests each, while the same weight in tokens
 #: anywhere else took 4 to 11 min). Measured between 4 and 5.
 STATIC_COST = 5
-#: The members of a file, by its path in the project and their name, that every test of the area
-#: runs through, so that Stryker tests each of their mutants against the whole suite as it does
-#: for a static initializer; nothing in the text says so, hence the names. Every overload of a
-#: name weighs alike (#849: ``ContentTransaction.OpenAsync`` opens every content transaction, and
-#: weighed by its tokens it shared a part that took 15,4 min of the 20 with 40 parts).
+#: The methods of a file, by its path in the project and their signature (name and parameters),
+#: that every test of the area runs through, so that Stryker tests each of their mutants against
+#: the whole suite as it does for a static initializer; nothing in the text says so, hence the
+#: signatures, and an overload that only passes the call on is not one of them (#849: the
+#: ``OpenAsync`` that opens every content transaction, weighed by its tokens, shared a part that
+#: took 15,4 min of the 20 with 40 parts).
 SUITE_WIDE: dict[str, frozenset[str]] = {
-    "Content/ContentTransaction.cs": frozenset({"OpenAsync"}),
+    "Content/ContentTransaction.cs": frozenset(
+        {
+            "OpenAsync(NpgsqlDataSource dataSource, Declaration declare, IsolationLevel isolation,"
+            " CancellationToken cancellationToken)"
+        }
+    ),
 }
 OPENERS = frozenset("{([")
 CLOSERS = frozenset("})]")
@@ -62,17 +68,21 @@ def static_initializer(member: list[Token]) -> bool:
     return False
 
 
-def declared(member: list[Token]) -> str | None:
-    """The name of the method or constructor ``member`` declares: the word before its first
-    parenthesis outside every group, when no ``=`` nor ``=>`` comes before it; None for anything
-    else, so a call in an initializer or an expression body names nothing."""
+def signature(member: list[Token]) -> tuple[str, ...]:
+    """The tokens of the signature of the method or constructor ``member`` declares: from the word
+    before its first parenthesis outside every group to the one that closes it, when no ``=``
+    nor ``=>`` comes before it; none for anything else, so a call in an initializer or an
+    expression body declares nothing."""
     for position in top_level(member, 0, len(member)):
         kind = member[position].kind
         if kind in {"=", "=>", ";"}:
-            return None
+            return ()
         if kind == "(":
-            return member[position - 1].kind if position > 0 else None
-    return None
+            closed = closing(member, position, len(member))
+            if position == 0 or closed is None:
+                return ()
+            return tuple(token.kind for token in member[position - 1 : closed + 1])
+    return ()
 
 
 def closing(found: list[Token], opened: int, last: int) -> int | None:
@@ -137,6 +147,12 @@ def pieces(text: str, found: list[Token], first: int, last: int) -> list[tuple[i
 
 
 def suite_factor(member: list[Token], suite: frozenset[str]) -> int:
-    """``STATIC_COST`` for a method named in ``suite``, which every test runs through; 1 for any
-    other member."""
-    return STATIC_COST if declared(member) in suite else 1
+    """``STATIC_COST`` for a method whose signature is in ``suite``, which every test runs
+    through; 1 for any other member."""
+    declared = signature(member)
+    return STATIC_COST if any(declared == signed(entry) for entry in suite) else 1
+
+
+def signed(entry: str) -> tuple[str, ...]:
+    """The tokens of a signature written in ``SUITE_WIDE``."""
+    return tuple(token.kind for token in tokens(entry))

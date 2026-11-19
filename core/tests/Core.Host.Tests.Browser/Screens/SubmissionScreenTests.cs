@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using Core.Host.Tests.Browser.Accessibility;
 using Core.Host.Tests.Browser.Fixtures;
 using Microsoft.Playwright;
+using static Core.Host.Tests.Browser.Screens.ScreenAccessibility;
 using static Microsoft.Playwright.Assertions;
 
 namespace Core.Host.Tests.Browser.Screens;
@@ -16,7 +17,6 @@ namespace Core.Host.Tests.Browser.Screens;
 public sealed partial class SubmissionScreenTests(BrowserFixture browser, SubmissionHostFixture host) : IClassFixture<SubmissionHostFixture>
 {
     private const string Route = "/lotes/novo";
-    private const string Overflow = "() => document.documentElement.scrollWidth - document.documentElement.clientWidth";
 
     [Fact]
     public async Task SubmissionReachesTheBatchByKeyboard()
@@ -49,25 +49,6 @@ public sealed partial class SubmissionScreenTests(BrowserFixture browser, Submis
         await Expect(tab.Page.GetByRole(AriaRole.Heading, new() { Name = $"Lote {batch}", Level = 1 })).ToBeVisibleAsync();
 
         await AssertAccessibleAsync(tab.Page, MediaMode.Named(name), "lote");
-    }
-
-    /// <summary>The checks of the screen in the mode given, on the desktop and on the phone, which must not scroll sideways.</summary>
-    private static async Task AssertAccessibleAsync(IPage page, MediaMode mode, string capture)
-    {
-        await mode.ApplyAsync(page);
-        await page.SetViewportSizeAsync(1280, 800);
-        var wide = await page.EvaluateAsync<int>(Overflow);
-        Assert.True(wide <= 0, $"The page is {wide} px wider than 1280 px.");
-        await AccessibilityCheck.AssertNoViolationsAsync(page);
-        await RealBackgroundContrast.AssertAaAsync(page);
-        await ModeCapture.SaveAsync(page, mode, capture);
-
-        await page.SetViewportSizeAsync(390, 844);
-        var overflow = await page.EvaluateAsync<int>(Overflow);
-
-        Assert.True(overflow <= 0, $"The page is {overflow} px wider than 390 px.");
-        await AccessibilityCheck.AssertNoViolationsAsync(page);
-        await RealBackgroundContrast.AssertAaAsync(page);
     }
 
     /// <summary>

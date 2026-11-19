@@ -44,14 +44,15 @@ public sealed class ContentWriter(NpgsqlDataSource dataSource, ProtectedContent 
     {
         using var sealing = protectedContent.Begin(ContentColumns.ItemKey, domainId);
         var raw = sealing.Seal(ContentColumns.RawText, item.Raw);
-        var sanitized = item.Sanitized is null ? null : sealing.Seal(ContentColumns.SanitizedText, item.Sanitized);
+        var sanitized = item.Sanitization is null ? null : sealing.Seal(ContentColumns.SanitizedText, item.Sanitization.Text);
+        var trail = item.Sanitization is null ? null : sealing.Seal(ContentColumns.SanitizationTrail, item.Sanitization.Trail);
         var occurrences = item.Occurrences is null ? null : sealing.Seal(ContentColumns.Occurrences, OccurrenceJson.Write(item.Occurrences));
         var insertion = new Insertion(
             ContentQueries.InsertItemText,
             () =>
             [
                 Batch(batchId), Bytes("raw", raw), Bytes("sanitized", sanitized), Bytes("occurrences", occurrences), Text("pseudonymized", item.Pseudonymized),
-                .. KeyOf(sealing), .. Declared(item.Accommodation), .. Counted(item.Occurrences),
+                .. KeyOf(sealing), .. Declared(item.Accommodation), .. Counted(item.Occurrences), .. Sanitized(item.Sanitization, trail),
             ],
             IsolationLevel.ReadCommitted);
         return await InsertAsync(domainId, insertion, cancellationToken).ConfigureAwait(false);
@@ -61,6 +62,14 @@ public sealed class ContentWriter(NpgsqlDataSource dataSource, ProtectedContent 
     {
         yield return Text("accommodated", accommodation?.Form);
         yield return new NpgsqlParameter("losses", NpgsqlDbType.Text) { Value = accommodation is null ? string.Empty : string.Join(',', accommodation.Losses) };
+    }
+
+    private static IEnumerable<NpgsqlParameter> Sanitized(ItemSanitization? sanitization, SealedContent? trail)
+    {
+        yield return Text("version", sanitization?.Version);
+        yield return Text("steps", sanitization?.Steps);
+        yield return Bytes("trail", trail);
+        yield return new NpgsqlParameter("counts", (NpgsqlDbType)((int)NpgsqlDbType.Array + (int)NpgsqlDbType.Integer)) { Value = (object?)sanitization?.Counts.ToArray() ?? DBNull.Value };
     }
 
     private static IEnumerable<NpgsqlParameter> Counted(IReadOnlyList<ItemOccurrence>? occurrences)

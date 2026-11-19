@@ -12,9 +12,9 @@ internal sealed class EmptyingWorld : IAsyncDisposable
 {
     internal const long Item = 1;
 
-    private const string WithContent =
-        "INSERT INTO content.item_text (domain_id, batch_id, raw_text, sanitized_text, pseudonymized_text, dek_epoch, dek_wrapped) "
-        + "VALUES (1, 1, '\x01', '\x02', 'zqx', 1, '\x03')";
+    private static readonly string WithContent =
+        "INSERT INTO content.item_text (domain_id, batch_id, raw_text, sanitized_text, pseudonymized_text, dek_epoch, dek_wrapped, sanitization_version, sanitization_trail, "
+        + $"sanitization_counts) VALUES (1, 1, '\x01', '\x02', 'zqx', 1, '\x03', '{ItemTexts.Version}', '\x04', '{{0}}')";
 
     private const string PersonOf = "SELECT id FROM public.person WHERE name = @name";
 
@@ -47,7 +47,11 @@ internal sealed class EmptyingWorld : IAsyncDisposable
         await database.RunAsOwnerAsync(
             "INSERT INTO public.domain (name) VALUES ('zqx-domain-a'), ('zqx-domain-b')",
             "INSERT INTO public.person (name, function_name) VALUES ('zqx-annotator', 'Anotação'), ('zqx-curator', 'Curadoria do acervo'), ('zqx-auditor', 'Auditoria')");
-        await database.RunAsOwnerAsync([.. SeededBatches.Statements(1, 2), "SELECT set_config('app.domain', '1', false)", WithContent, "SELECT set_config('app.domain', '', false)"]);
+        await database.RunAsOwnerAsync(
+        [
+            .. SeededBatches.Statements(1, 2), "SELECT set_config('app.domain', '1', false)", ItemTexts.VersionRow(1), WithContent,
+            "SELECT set_config('app.domain', '', false)",
+        ]);
         long[] people =
         [
             await PersonIdAsync(database, "zqx-curator"),

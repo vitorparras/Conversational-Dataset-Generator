@@ -56,6 +56,7 @@ internal static class CustodyNames
         [CustodyStep.OccurrencesRead] = "occurrences_read",
         [CustodyStep.BatchSampled] = "batch_sampled",
         [CustodyStep.BatchReviewed] = "batch_reviewed",
+        [CustodyStep.BatchSanitized] = "batch_sanitized",
         [CustodyStep.ConfigurationApproved] = "configuration_approved",
         [CustodyStep.ConfigurationRefused] = "configuration_refused",
         [CustodyStep.ConfigurationInForce] = "configuration_in_force",

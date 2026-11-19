@@ -1,6 +1,6 @@
 # Fatia B — passos declarados e aplicação dos destinos
 
-> Norma pendente. 2026-11-15. Fecha #87, #90, #92, #93 e #98. Teto da fatia: 1.300 linhas de
+> Norma pendente. 2026-11-15. Fecha #87, #90, #92, #93 e #98. Teto da fatia: 1.480 linhas de
 > produção.
 
 A sanitização roda síncrona na submissão, antes de gravar o item e, portanto, antes da amostra. Cada
@@ -44,6 +44,8 @@ Cada nome é um teste; as propriedades levam `[Trait("Kind", "Property")]`.
 - **Requisito:** a fatia corrige a linha 38 do
   [requisito 003](../../../requisitos/003-copia-do-armazenamento-nao-expoe.md), que dispensa
   proteger o sanitizado; a [0030](../../../decisoes/0030-qual-texto-fica-em-claro.md) o cifra.
+- **Adiado:** o fato "Itens sanitizados N de M" da I3 e a versão no texto da I4, dos protótipos,
+  ficam para depois; nenhum critério de aceite da fatia os exige (revisão do PR #847).
 - **Depende de:** a fatia A e a fatia B da fase 3 (a 0059). **Bloqueia:** C, D e E.
 
 Ver [contratos](contratos.md) e [modelo de dados](modelo-de-dados.md).

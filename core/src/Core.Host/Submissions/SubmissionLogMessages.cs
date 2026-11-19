@@ -12,4 +12,10 @@ internal static partial class SubmissionLogMessages
         Level = LogLevel.Error,
         Message = "Lote {Batch} do domínio {Domain} ficou aberto com os itens gravados: a rejeição terminou em {Outcome}; quem administra o servidor decide o que fazer com ele")]
     internal static partial void BatchLeftOpen(this ILogger logger, long batch, int domain, BatchOutcome outcome);
+
+    [LoggerMessage(
+        EventId = 351,
+        Level = LogLevel.Error,
+        Message = "Lote {Batch}: o passo {Step} falhou no item da posição {Position}; nenhum item foi gravado")]
+    internal static partial void StepFailed(this ILogger logger, long batch, string step, int position);
 }

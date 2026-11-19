@@ -12,6 +12,7 @@ using Core.Host.Supervision;
 using Core.Ingestion;
 using Core.Ingestion.Entrance;
 using Core.Ingestion.Reading;
+using Core.Ingestion.Sanitizing;
 using Core.Persistence.Connection;
 using Core.Persistence.Content;
 using Core.Persistence.Content.Reading;
@@ -55,7 +56,7 @@ internal static class CompositionRoot
         var startup = StartupServices(loaded, fileLog, database);
         try
         {
-            IStartupCheck[] checks = [.. HostLogFile.Checks(loaded, fileLog), .. StartupChecks.Of(loaded, startup)];
+            IStartupCheck[] checks = [.. HostLogFile.Checks(loaded, fileLog), .. StartupChecks.Of(loaded, startup, new StepsHaveScope(StepsOf()))];
             var report = await new StartupRunner(checks, startup.GetRequiredService<TimeProvider>()).RunAsync(CancellationToken.None);
             if (!report.Ready)
             {
@@ -92,8 +93,7 @@ internal static class CompositionRoot
     {
         _ = RecognizerConfiguration.UsesFake(values)
             ? services.AddSingleton<IRecognizer, FakeRecognizer>().AddSingleton<IServiceVersionReader, NoServiceVersionReader>()
-            : services.AddTransient(provider => Recognizer(provider, analyzeTimeout))
-                .AddTransient(ServiceVersionReader);
+            : services.AddTransient(provider => Recognizer(provider, analyzeTimeout)).AddTransient(ServiceVersionReader);
         _ = services.AddTransient<MaterialAnalysis>();
     }
 
@@ -103,8 +103,7 @@ internal static class CompositionRoot
         var services = new ServiceCollection();
         _ = services.AddSingleton<IMasterKeySource>(MasterKeyConfiguration.SourceOf(loaded.Values));
         _ = services.AddSingleton<IStartupCheck>(provider => new MasterKeyCheck(provider.GetRequiredService<IMasterKeySource>()));
-        _ = services.AddSingleton(_ => new TlsMaterialCheck(TlsConfiguration.SourceOf(loaded.Values)))
-            .AddSingleton<IStartupCheck>(provider => provider.GetRequiredService<TlsMaterialCheck>());
+        _ = services.AddSingleton(_ => new TlsMaterialCheck(TlsConfiguration.SourceOf(loaded.Values))).AddSingleton<IStartupCheck>(provider => provider.GetRequiredService<TlsMaterialCheck>());
         AddServerGuarantees(services, database);
         _ = services.AddSingleton<IStartupCheck>(_ => new ServerLogCheck(AuditConfiguration.ServerLogDirectory(loaded.Values))).AddSingleton(TimeProvider.System);
         _ = services.AddLogging(logging => HostLogFile.WithFile(logging, fileLog)).AddRedaction(PlatformLogging.EraseSensitiveData);
@@ -124,6 +123,7 @@ internal static class CompositionRoot
     internal static ProtectedContent ContentOf(MasterKeyReading reading, IReadOnlySet<string> known) => new(reading.Labels, KeysOf(reading), known);
     internal static Persistence.Ingestion.SampleTextReader SampleTextOf(NpgsqlDataSource source, MasterKeyReading reading, IReadOnlySet<string> known) => new(source, ContentOf(reading, known));
     internal static CopyClosing ClosingOf(NpgsqlDataSource source, Persistence.Ingestion.IngestionBatches batches) => new(new Persistence.Ingestion.BatchApprovals(source), batches);
+    internal static SanitizationSteps StepsOf() => new([new DestinationsStep()]);
     /// <summary>What takes a file in over the key a reading holds: the gate, the conference, the sealing and the writer are services, built here; the last three are none without the key.</summary>
     internal static SubmissionIntake IntakeOf(NpgsqlDataSource source, MasterKeyReading reading, SubmissionSettings settings)
     {
@@ -132,7 +132,7 @@ internal static class CompositionRoot
             new SubmissionGate(SourceReaders.Default(), settings.MaxBytes), new FormConference(new TextBoundaries()), settings.Conditions, sealing,
             sealing is null ? null : new ContentWriter(source, sealing),
             sealing is null ? null : new ReplicationMarking(new ReplicationStore(source), new KeyDerivation(reading.Key!, reading.Labels), settings.Replication, new TextBoundaries()),
-            settings.Recognizer);
+            settings.Recognizer, new Sanitizer(StepsOf(), new TextBoundaries()));
     }
 
     /// <summary>The rehearsal of the recovery over a source that was read, opening content with the labels the database registers.</summary>
@@ -224,8 +224,7 @@ internal static class CompositionRoot
     {
         var startup = host.GetRequiredService<ServiceProvider>();
         return startup.GetRequiredService<LanguageServiceSupervisor>().Endpoint is { } endpoint
-            ? new HttpRecognizer(
-                startup.GetRequiredService<HttpClient>(),
+            ? new HttpRecognizer(startup.GetRequiredService<HttpClient>(),
                 new HttpRecognizerSettings(endpoint.Port, endpoint.Secret, analyzeTimeout),
                 host.GetRequiredService<ILogger<HttpRecognizer>>())
             : new StoppedServiceRecognizer(host.GetRequiredService<ILogger<StoppedServiceRecognizer>>());

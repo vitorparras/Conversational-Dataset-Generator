@@ -36,7 +36,8 @@ internal static class SubmissionCase
 
     internal static readonly string[] Labels = ["texto-bruto/1/v1", "texto-bruto/2/v1"];
 
-    public static ScreenParts Parts() => new()
+    /// <summary>The parts of the host, whose service of the submissions asks the recognizer given or, without one, one that finds nothing.</summary>
+    public static ScreenParts Parts(IRecognizer? recognizer = null) => new()
     {
         Services = (services, _) => services
             .AddSingleton<DomainGrants>(new FirstGranted())
@@ -44,7 +45,8 @@ internal static class SubmissionCase
             .AddSingleton(provider => new BatchRegister(provider.GetRequiredService<NpgsqlDataSource>()))
             .AddSingleton(provider => new BatchCounts(provider.GetRequiredService<NpgsqlDataSource>()))
             .AddSingleton(_ => SyntheticReading())
-            .AddSingleton(provider => SubmissionServiceHolder.Of(ServiceOf(provider.GetRequiredService<NpgsqlDataSource>(), provider.GetRequiredService<MasterKeyReading>()), MaxBytes)),
+            .AddSingleton(provider => SubmissionServiceHolder.Of(
+                ServiceOf(provider.GetRequiredService<NpgsqlDataSource>(), provider.GetRequiredService<MasterKeyReading>(), recognizer ?? new CleanRecognizer()), MaxBytes)),
         Screens = BatchScreensEndpoint.Map,
         Prepare = SeedAsync,
     };
@@ -58,14 +60,14 @@ internal static class SubmissionCase
     }
 
     /// <summary>The service of the submissions as the composition builds it, over the conditions of the tests, the most restrictive first.</summary>
-    private static SubmissionService ServiceOf(NpgsqlDataSource source, MasterKeyReading reading)
+    private static SubmissionService ServiceOf(NpgsqlDataSource source, MasterKeyReading reading, IRecognizer recognizer)
     {
         var conditions = OriginConditions.Of(["zqx_sigilosa", "zqx_livre"]);
         var batches = new IngestionBatches(source, conditions);
         var registered = new HashSet<string>(Labels, StringComparer.Ordinal);
         var settings = new SubmissionSettings(
             batches, conditions, MaxBytes, registered, new HashSet<string>(StringComparer.Ordinal), new ReplicationRule(MinLength, ReplicationRule.FewestSenders),
-            new CleanRecognizer());
+            recognizer);
         return new SubmissionService(CompositionRoot.IntakeOf(source, reading, settings), batches, source, NullLogger.Instance);
     }
 
@@ -86,6 +88,13 @@ internal static class SubmissionCase
     {
         public Task<RecognitionOutcome> RecognizeAsync(AnalysisRequest request, CancellationToken cancellationToken) =>
             Task.FromResult(RecognitionOutcome.Analyzed(new AnalysisResponse([], "zqx-model-clean")));
+    }
+
+    /// <summary>A recognizer that finds a credential in the first character of every text, which the destinations remove and the sanitized text shows by its marker.</summary>
+    internal sealed class FirstCharacterCredential : IRecognizer
+    {
+        public Task<RecognitionOutcome> RecognizeAsync(AnalysisRequest request, CancellationToken cancellationToken) =>
+            Task.FromResult(RecognitionOutcome.Analyzed(new AnalysisResponse([new Occurrence(0, 1, "CREDENTIAL", "PROPN", "nsubj")], "zqx-model-credential")));
     }
 
     /// <summary>The domain granted to whoever enters, whatever the function; the function still decides what the gate opens.</summary>

@@ -35,6 +35,10 @@ internal static class BatchTexts
             "analysis_unavailable",
             "O serviço de análise de linguagem não respondeu, e sem a análise não há como saber o que remover. Nenhum item foi gravado. Envie o mesmo arquivo de novo quando o serviço voltar."
         },
+        {
+            "sanitization_failed",
+            "Um passo da sanitização falhou. Nenhum item foi gravado. O registro de diagnóstico guarda o lote, a posição do item e o passo, sem texto."
+        },
     };
 
     /// <summary>The state in words, as the list and the filter say it.</summary>

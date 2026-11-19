@@ -26,7 +26,7 @@ internal static class SubmissionJudgement
     /// <param name="batch">The batch the file was opened as.</param>
     /// <param name="judged">The judgement that let the file through, with the material accepted.</param>
     internal static SubmissionStoring.Kept KeptOf(SubmissionRequest request, SubmissionResult received, long batch, Judged judged) =>
-        new(request.DomainId, batch, received.Material!, request.DeclaredForm, judged.Accepted!);
+        new(request.DomainId, batch, received.Material!, request.DeclaredForm, judged.Accepted!, request.AuthorId);
 
     /// <summary>The reason of a repeat when a file already accepted in the domain has the digest; none when no batch accepted it.</summary>
     /// <param name="register">Finds the batch of the domain that accepted the same file.</param>

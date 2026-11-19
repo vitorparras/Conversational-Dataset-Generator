@@ -91,11 +91,23 @@ public sealed class SubmissionCleanUpTests
         Assert.Contains(nameof(BatchOutcome.NotRecorded), line.Line, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task RecordOfTheStepsThatCollidedRejectsTheBatchForTheCollisionAndAnswersTryAgainWithTheBatch()
+    {
+        var rejections = new Rejections(Rejected());
+
+        var cleaned = await SubmissionStoring.CleanUpAsync(rejections.RejectAsync, SubmissionStoring.Keeping.Collided, KeptBatch(), new SubmissionLog());
+        var answer = SubmissionStoring.Failure(cleaned, Batch);
+
+        Assert.Equal([SubmissionStoring.Collision], rejections.Motives);
+        Assert.Equal((SubmissionKind.Collided, Batch, null), (answer!.Kind, answer.Batch, answer.Code));
+    }
+
     private static SubmissionStoring.Kept KeptBatch()
     {
         var instant = new DateTimeOffset(2031, 3, 4, 8, 0, 0, TimeSpan.Zero);
         var material = new ReadMaterial([new ReadUnit("ZQXSEGREDO", "ZQXREMETENTE", instant, null, [])]);
-        return new SubmissionStoring.Kept(Domain, Batch, material, MaterialForm.Conversation, SubmissionWorld.AcceptedAs(MaterialForm.Conversation, material));
+        return new SubmissionStoring.Kept(Domain, Batch, material, MaterialForm.Conversation, SubmissionWorld.AcceptedAs(MaterialForm.Conversation, material), 9001);
     }
 
     private static BatchResult Collision() => new() { Outcome = BatchOutcome.NotRecorded, Refusal = new CustodyResult { Outcome = CustodyOutcome.Conflict, Refusal = "zqx" } };

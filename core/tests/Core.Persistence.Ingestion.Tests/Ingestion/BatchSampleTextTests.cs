@@ -12,9 +12,9 @@ namespace Core.Persistence.Tests.Ingestion;
 /// </summary>
 public sealed class BatchSampleTextTests
 {
-    private const string Both =
-        "INSERT INTO content.item_text (domain_id, batch_id, raw_text, sanitized_text, dek_epoch, dek_wrapped) "
-        + "VALUES (@domain, @batch, decode('a1', 'hex'), decode('d4', 'hex'), 1, decode('c3', 'hex')) RETURNING id";
+    private static readonly string Both =
+        "INSERT INTO content.item_text (domain_id, batch_id, raw_text, sanitized_text, dek_epoch, dek_wrapped, sanitization_version, sanitization_trail, sanitization_counts) "
+        + $"VALUES (@domain, @batch, decode('a1', 'hex'), decode('d4', 'hex'), 1, decode('c3', 'hex'), '{ItemTexts.Version}', decode('e5', 'hex'), '{{0}}') RETURNING id";
 
     [DatabaseFact]
     public async Task SampleTextOfAnOpenSampledBatchIsReadOnlyAfterTheReadEvent()
@@ -50,6 +50,7 @@ public sealed class BatchSampleTextTests
     {
         await using var world = await IngestionWorld.CreateAsync();
         var batch = await IngestionWorld.OpenAsync(world);
+        _ = await world.InDomainAsync(IngestionWorld.Domain, ItemTexts.VersionRow(IngestionWorld.Domain));
         var item = (long)(await world.InDomainAsync(IngestionWorld.Domain, Both, ("domain", IngestionWorld.Domain), ("batch", batch)))!;
         await DrawAsync(world, batch);
 

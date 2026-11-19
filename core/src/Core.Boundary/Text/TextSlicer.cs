@@ -18,8 +18,24 @@ internal static class TextSlicer
             throw new ArgumentOutOfRangeException(nameof(occurrence), "The occurrence ends before it starts.");
         }
 
-        var start = OffsetConverter.ToUtf16Index(text, occurrence.Start);
-        var end = OffsetConverter.ToUtf16Index(text, occurrence.End);
-        return text[start..end];
+        return Cut(text, occurrence.Start, occurrence.End);
     }
+
+    /// <summary>The text of the half-open span between two positions in code points.</summary>
+    /// <param name="text">The text to cut.</param>
+    /// <param name="start">Where the span starts, in code points.</param>
+    /// <param name="end">Where the span ends, in code points, not included.</param>
+    /// <returns>The code points from the start up to, and not including, the end.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">The span ends before it starts or falls outside the text.</exception>
+    internal static string Span(string text, int start, int end)
+    {
+        if (end < start)
+        {
+            throw new ArgumentOutOfRangeException(nameof(end), "The span ends before it starts.");
+        }
+
+        return Cut(text, start, end);
+    }
+
+    private static string Cut(string text, int start, int end) => text[OffsetConverter.ToUtf16Index(text, start)..OffsetConverter.ToUtf16Index(text, end)];
 }

@@ -32,7 +32,7 @@ public sealed class SubmissionAccommodationTests
         var opened = await batches.OpenAsync(new BatchOpening(SubmissionWorld.Domain, SubmissionWorld.Person), TestContext.Current.CancellationToken);
         var instant = new DateTimeOffset(2031, 3, 4, 8, 0, 0, TimeSpan.Zero);
         var material = new ReadMaterial([new ReadUnit("ZQXTERCEIRO", "ZQXUM", instant, null, []), new ReadUnit("ZQXQUARTO", "ZQXDOIS", instant, null, [])]);
-        var kept = new SubmissionStoring.Kept(SubmissionWorld.Domain, opened.BatchId!.Value, material, MaterialForm.Document, SubmissionWorld.AccommodatedAsDocument(material));
+        var kept = new SubmissionStoring.Kept(SubmissionWorld.Domain, opened.BatchId!.Value, material, MaterialForm.Document, SubmissionWorld.AccommodatedAsDocument(material), SubmissionWorld.Person);
 
         var intake = SubmissionWorld.Intake(1_000_000, conditions, world.Content, world.DataSource);
         var stored = await new SubmissionStoring.Keeper(batches, intake, NullLogger.Instance).KeepAsync(kept, TestContext.Current.CancellationToken);

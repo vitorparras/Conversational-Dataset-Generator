@@ -61,9 +61,12 @@ public static class ContentQueries
 
     /// <summary>Adds an item; the texts that are sealed arrive sealed, with the key of the item wrapped.</summary>
     internal const string InsertItemText =
-        "INSERT INTO content.item_text (domain_id, batch_id, raw_text, sanitized_text, pseudonymized_text, occurrences, dek_epoch, dek_wrapped, accommodated_into, losses, "
-        + "removed_passages, pseudonymized_passages, preserved_passages) "
-        + "VALUES (@domain, @batch, @raw, @sanitized, @pseudonymized, @occurrences, @epoch, @wrapped, @accommodated, @losses, @removed_count, @pseudonymized_count, @preserved_count) RETURNING id";
+        "WITH version AS (INSERT INTO content.sanitization_version (domain_id, version, steps) SELECT @domain::integer, @version::text, @steps::text WHERE @version::text IS NOT NULL "
+        + "ON CONFLICT (version, domain_id) DO NOTHING) "
+        + "INSERT INTO content.item_text (domain_id, batch_id, raw_text, sanitized_text, pseudonymized_text, occurrences, dek_epoch, dek_wrapped, accommodated_into, losses, "
+        + "removed_passages, pseudonymized_passages, preserved_passages, sanitization_version, sanitization_trail, sanitization_counts) "
+        + "VALUES (@domain, @batch, @raw, @sanitized, @pseudonymized, @occurrences, @epoch, @wrapped, @accommodated, @losses, @removed_count, @pseudonymized_count, @preserved_count, "
+        + "@version, @trail, @counts) RETURNING id";
 
     /// <summary>Adds the map that reverses the pseudonyms of an item.</summary>
     internal const string InsertReversalMap =
@@ -83,6 +86,7 @@ public static class ContentQueries
 
     /// <summary>The origins of the domain declared, as the database writes them, for the copy of the data.</summary>
     internal const string ReadCopyBatchOrigin = "SELECT pg_catalog.to_jsonb(t)::text FROM content.batch_origin t ORDER BY id";
+    internal const string ReadCopySanitizationVersion = "SELECT pg_catalog.to_jsonb(t)::text FROM content.sanitization_version t ORDER BY id";
 
     /// <summary>The keys, wrapped, that an epoch older than the newest wraps, among the origins; a page of them.</summary>
     internal const string ReadOlderOriginKeys = "SELECT id, dek_epoch, dek_wrapped FROM content.batch_origin WHERE dek_epoch < @newest ORDER BY id LIMIT 500";
@@ -154,7 +158,7 @@ public static class ContentQueries
     /// </summary>
     internal const string EmptyItemText =
         "UPDATE content.item_text SET emptied_at = now(), raw_text = NULL, sanitized_text = NULL, pseudonymized_text = NULL, occurrences = NULL, "
-        + "removed_passages = 0, pseudonymized_passages = 0, preserved_passages = 0, "
+        + "removed_passages = 0, pseudonymized_passages = 0, preserved_passages = 0, sanitization_version = NULL, sanitization_trail = NULL, sanitization_counts = NULL, "
         + "dek_epoch = NULL, dek_wrapped = NULL "
         + "WHERE id = @id AND emptied_at IS NULL RETURNING id";
 

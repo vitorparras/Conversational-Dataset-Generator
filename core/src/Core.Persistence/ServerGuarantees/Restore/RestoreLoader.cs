@@ -17,11 +17,12 @@ public sealed class RestoreLoader
 
     /// <summary>
     /// The tables in the order they come back: the keys and their revocations, the people, sign-in attempts and changes of configuration, the chain, then the content
-    /// (the batches first, maps after texts, emptied after both).
+    /// (the batches first, the versions of the sanitization before the texts, maps after texts, emptied after both).
     /// </summary>
     private static readonly IEnumerable<string> Tables = Enumerable.Repeat("public.domain", 1).Append("public.derivation_label").Append("public.derivation_label_revocation")
         .Append("public.person").Append("public.person_credential").Append("public.person_change").Append("public.sign_in_attempt").Append("public.configuration_change").Append(Chain)
-        .Append("content.ingestion_batch").Append("content.batch_origin").Append("content.item_text").Append("content.reversal_map").Append("content.item_emptied")
+        .Append("content.ingestion_batch").Append("content.batch_origin").Append("content.sanitization_version").Append("content.item_text")
+        .Append("content.reversal_map").Append("content.item_emptied")
         .Append("content.replication_occurrence").Append("content.replication_mark");
 
     private readonly NpgsqlDataSource dataSource;

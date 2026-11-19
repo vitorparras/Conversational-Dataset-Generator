@@ -1,4 +1,5 @@
 using Core.Ingestion.Deciding;
+using Core.Ingestion.Sanitizing;
 using Core.Persistence.Content;
 using Core.Persistence.Content.Writing;
 
@@ -10,16 +11,27 @@ namespace Core.Host.Submissions;
 /// </summary>
 internal static class DecidedItemTexts
 {
-    /// <summary>The texts of the item that is the text of the material at the position given.</summary>
+    /// <summary>The texts of the item that is the text of the material at the position given, with what the sanitization left of it.</summary>
     /// <param name="material">The material with the destination decided for every occurrence of every text.</param>
     /// <param name="text">The position of the text in the material.</param>
     /// <param name="raw">The text as it arrived.</param>
-    internal static NewItemText Of(DecidedMaterial material, int text, string raw)
+    /// <param name="clean">The sanitized text, its trail and the report of each step.</param>
+    internal static NewItemText Of(DecidedMaterial material, int text, string raw, SanitizedText clean)
     {
         ArgumentNullException.ThrowIfNull(material);
+        ArgumentNullException.ThrowIfNull(clean);
         var stored = material.Of(text).Select(Stored).ToList();
-        return new NewItemText(raw, null, null, stored);
+        return new NewItemText(raw, null, stored) { Sanitization = Stored(clean) };
     }
+
+    private static ItemSanitization Stored(SanitizedText clean) => new()
+    {
+        Text = clean.Text,
+        Version = clean.Version,
+        Steps = string.Join("\n", clean.Order.Select(step => $"{step.Name}@{step.Version}")),
+        Trail = TrailJson.Write(clean.Trail),
+        Counts = [.. clean.Report.Select(step => step.Count)],
+    };
 
     private static ItemOccurrence Stored(DecidedOccurrence decided) =>
         new(decided.Occurrence.Start, decided.Occurrence.End, decided.Occurrence.Kind, Stored(decided.Destination));

@@ -4,6 +4,7 @@ using Core.Boundary.Text;
 using Core.Host.Submissions;
 using Core.Ingestion;
 using Core.Ingestion.Deciding;
+using Core.Ingestion.Sanitizing;
 using Core.Persistence.Content;
 
 namespace Core.Host.Tests;
@@ -22,7 +23,7 @@ public sealed class DecidedItemTextsTests
     {
         var decided = await DecidedAsync(Text);
 
-        var texts = DecidedItemTexts.Of(decided, 0, Text);
+        var texts = DecidedItemTexts.Of(decided, 0, Text, Sanitized(decided, Text));
 
         Assert.Equal(Text, texts.Raw);
         var stored = Assert.Single(texts.Occurrences!);
@@ -35,18 +36,47 @@ public sealed class DecidedItemTextsTests
         var plain = "ZQX-FAKE-NOTHING sem ninguem";
         var decided = await DecidedAsync(plain);
 
-        var texts = DecidedItemTexts.Of(decided, 0, plain);
+        var texts = DecidedItemTexts.Of(decided, 0, plain, Sanitized(decided, plain));
 
         Assert.Empty(texts.Occurrences!);
     }
 
     [Fact]
-    public void NoMaterialIsADefect()
+    public async Task NoMaterialIsADefect()
     {
-        var defect = Assert.Throws<ArgumentNullException>(() => DecidedItemTexts.Of(null!, 0, Text));
+        var decided = await DecidedAsync(Text);
+        var sanitized = Sanitized(decided, Text);
+
+        var defect = Assert.Throws<ArgumentNullException>(() => DecidedItemTexts.Of(null!, 0, Text, sanitized));
 
         Assert.Equal("material", defect.ParamName);
     }
+
+    [Fact]
+    public async Task NoSanitizedTextIsADefect()
+    {
+        var decided = await DecidedAsync(Text);
+
+        var defect = Assert.Throws<ArgumentNullException>(() => DecidedItemTexts.Of(decided, 0, Text, null!));
+
+        Assert.Equal("clean", defect.ParamName);
+    }
+
+    [Fact]
+    public async Task TheItemCarriesTheSanitizedTextWithTheVersionAndOneCountForEachDeclaredStep()
+    {
+        var decided = await DecidedAsync(Text);
+
+        var sanitization = DecidedItemTexts.Of(decided, 0, Text, Sanitized(decided, Text)).Sanitization;
+
+        Assert.NotNull(sanitization);
+        Assert.Equal((Text, CompositionRoot.StepsOf().Version, "destinos@1"), (sanitization.Text, sanitization.Version, sanitization.Steps));
+        Assert.Equal([0], sanitization.Counts);
+        Assert.Equal(Text.Length, TrailJson.Read(sanitization.Trail).RawLength);
+    }
+
+    private static SanitizedText Sanitized(DecidedMaterial decided, string text) =>
+        Assert.IsType<SanitizedText>(new Sanitizer(CompositionRoot.StepsOf(), new TextBoundaries()).Sanitize(text, decided.Of(0)).Sanitized);
 
     private static async Task<DecidedMaterial> DecidedAsync(string text)
     {

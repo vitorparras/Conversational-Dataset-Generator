@@ -94,8 +94,8 @@ internal sealed class EmptyingCase : IAsyncDisposable
     public ValueTask DisposeAsync() => Host.DisposeAsync();
 
     private static string ContentOf(int domain, int count) =>
-        "INSERT INTO content.item_text (domain_id, batch_id, raw_text, sanitized_text, pseudonymized_text, dek_epoch, dek_wrapped) "
-        + $"SELECT {domain}, {domain}, '\x01', '\x02', 'zqx', 1, '\x03' FROM generate_series(1, {count})";
+        "INSERT INTO content.item_text (domain_id, batch_id, raw_text, sanitized_text, pseudonymized_text, dek_epoch, dek_wrapped, sanitization_version, sanitization_trail, "
+        + $"sanitization_counts) SELECT {domain}, {domain}, '\x01', '\x02', 'zqx', 1, '\x03', '{ItemTexts.Version}', '\x04', '{{0}}' FROM generate_series(1, {count})";
 
     private static Task SeedAsync(ScratchDatabase database) =>
         database.RunAsOwnerAsync(
@@ -103,8 +103,10 @@ internal sealed class EmptyingCase : IAsyncDisposable
                 $"INSERT INTO public.domain (name) VALUES ('{Domain}'), ('{OtherDomain}')",
                 .. SeededBatches.Statements(1, 2),
                 "SELECT set_config('app.domain', '1', false)",
+                ItemTexts.VersionRow(1),
                 ContentOf(1, Items),
                 "SELECT set_config('app.domain', '2', false)",
+                ItemTexts.VersionRow(2),
                 ContentOf(2, 1),
                 "SELECT set_config('app.domain', '', false)",
             ]);

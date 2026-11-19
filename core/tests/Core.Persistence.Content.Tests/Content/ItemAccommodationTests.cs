@@ -43,7 +43,7 @@ public sealed class ItemAccommodationTests
     {
         await using var world = await ContentWorld.CreateAsync();
         var item = await world.Writer.AddItemTextAsync(
-            1, new NewItemText(Raw, Sanitized, accommodation: new ItemAccommodation("labeled_sequence", ["author"])), TestContext.Current.CancellationToken);
+            1, new NewItemText(Raw, accommodation: new ItemAccommodation("labeled_sequence", ["author"])) { Sanitization = ItemTexts.Sanitization(Sanitized) }, TestContext.Current.CancellationToken);
         _ = await world.Writer.AddItemTextAsync(1, new NewItemText("outro texto sintetico zqx"), TestContext.Current.CancellationToken);
 
         var first = await ReadAsync(world, item, ContentColumns.RawText);

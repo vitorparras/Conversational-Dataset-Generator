@@ -66,6 +66,8 @@ internal static class BatchDetailPage
             Recognized = entry.PreviousBatch is { } previous ? new BatchDetailScreen.Recognition(previous, ScreenPaths.BatchOf(previous)) : null,
             Accommodation = AccommodationOf(entry.SourceForm, numbers.Accommodations),
             Warning = entry.Receipt?.Warning,
+            StepsVersion = numbers.SanitizationVersion,
+            Steps = [.. numbers.Steps.Select(step => new BatchDetailScreen.StepCount(step.Name, step.Edits, step.Items))],
         };
     }
 

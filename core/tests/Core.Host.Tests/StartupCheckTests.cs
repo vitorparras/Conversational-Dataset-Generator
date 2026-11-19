@@ -40,16 +40,18 @@ public sealed class StartupCheckTests
         Assert.Equal("Passed", checks[0].Outcome);
         Assert.Equal("Host:BundledFile", checks[1].Name);
         Assert.Equal("Passed", checks[1].Outcome);
-        Assert.Equal("MasterKey", checks[2].Name);
+        Assert.Equal("SanitizationStepScopes", checks[2].Name);
         Assert.Equal("Passed", checks[2].Outcome);
-        Assert.Equal("Tls", checks[3].Name);
+        Assert.Equal("MasterKey", checks[3].Name);
         Assert.Equal("Passed", checks[3].Outcome);
-        Assert.Equal("Privilege", checks[4].Name);
-        Assert.Equal("ServerLog", checks[16].Name);
-        Assert.Equal("Passed", checks[16].Outcome);
-        Assert.Equal("LanguageServiceFolder", checks[17].Name);
+        Assert.Equal("Tls", checks[4].Name);
+        Assert.Equal("Passed", checks[4].Outcome);
+        Assert.Equal("Privilege", checks[5].Name);
+        Assert.Equal("ServerLog", checks[17].Name);
         Assert.Equal("Passed", checks[17].Outcome);
-        Assert.Equal("LanguageService", checks[18].Name);
+        Assert.Equal("LanguageServiceFolder", checks[18].Name);
         Assert.Equal("Passed", checks[18].Outcome);
+        Assert.Equal("LanguageService", checks[19].Name);
+        Assert.Equal("Passed", checks[19].Outcome);
     }
 }

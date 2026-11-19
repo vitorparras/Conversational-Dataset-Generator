@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using Core.Host.Tests.Browser.Accessibility;
 using Core.Host.Tests.Browser.Fixtures;
 using Microsoft.Playwright;
+using static Core.Host.Tests.Browser.Screens.ScreenAccessibility;
 using static Microsoft.Playwright.Assertions;
 
 namespace Core.Host.Tests.Browser.Screens;
@@ -17,7 +18,6 @@ public sealed class SampleReviewBrowserTests(BrowserFixture browser, SampleRevie
 {
     private const int Items = SampleReviewRealCase.Items;
     private const int MostStops = 20;
-    private const string Overflow = "() => document.documentElement.scrollWidth - document.documentElement.clientWidth";
     private const string FocusTheTitle = "() => { const title = document.querySelector('main h1'); title.setAttribute('tabindex', '-1'); title.focus(); }";
     private const string StopInMain =
         "() => { const stop = document.activeElement; if (!stop || !stop.closest('main')) { return ''; } " +
@@ -184,25 +184,6 @@ public sealed class SampleReviewBrowserTests(BrowserFixture browser, SampleRevie
         await Expect(tab.Page.Locator(".notice--success")).ToContainTextAsync("Lote aprovado por");
         await Expect(tab.Page.Locator(".sample__text")).ToHaveCountAsync(0);
         Assert.DoesNotContain("ZQXTEXTO", await tab.Page.ContentAsync(), StringComparison.Ordinal);
-    }
-
-    /// <summary>The checks of the screen in the mode given, on the desktop and on the phone, which must not scroll sideways.</summary>
-    private static async Task AssertAccessibleAsync(IPage page, MediaMode mode, string capture)
-    {
-        await mode.ApplyAsync(page);
-        await page.SetViewportSizeAsync(1280, 800);
-        var wide = await page.EvaluateAsync<int>(Overflow);
-        Assert.True(wide <= 0, $"The page is {wide} px wider than 1280 px.");
-        await AccessibilityCheck.AssertNoViolationsAsync(page);
-        await RealBackgroundContrast.AssertAaAsync(page);
-        await ModeCapture.SaveAsync(page, mode, capture);
-
-        await page.SetViewportSizeAsync(390, 844);
-        var overflow = await page.EvaluateAsync<int>(Overflow);
-
-        Assert.True(overflow <= 0, $"The page is {overflow} px wider than 390 px.");
-        await AccessibilityCheck.AssertNoViolationsAsync(page);
-        await RealBackgroundContrast.AssertAaAsync(page);
     }
 
     /// <summary>Draws the sample with the keyboard alone, from the title to the button, and waits for the first item.</summary>

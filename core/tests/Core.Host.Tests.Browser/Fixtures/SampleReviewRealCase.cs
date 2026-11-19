@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using Core.Boundary.Contracts;
 using Core.Host.Endpoints;
 using Core.Host.Review;
 using Core.Host.Submissions;
@@ -22,21 +23,23 @@ internal static class SampleReviewRealCase
     /// <summary>How many items the sample has, which is also how many messages a conversation of the case has.</summary>
     public const int Items = 3;
 
-    private static readonly ScreenParts Submission = SubmissionCase.Parts();
-
     /// <summary>The text of an item of a conversation made up for the run: it must appear beside the item and nowhere else.</summary>
     public static string TextOf(string tag, int position) => $"ZQXTEXTO{tag}ITEM{position.ToString(CultureInfo.InvariantCulture)}";
 
-    /// <summary>The parts of the host: those of the submission, the desk of the review and every route of the batches and of the review.</summary>
-    public static ScreenParts Parts() => Submission with
+    /// <summary>The parts of the host: those of the submission, over the recognizer given, the desk of the review and every route of the batches and of the review.</summary>
+    public static ScreenParts Parts(IRecognizer? recognizer = null)
     {
-        Services = (services, setup) =>
+        var submission = SubmissionCase.Parts(recognizer);
+        return submission with
         {
-            Submission.Services(services, setup);
-            _ = services.AddSingleton(DeskOf);
-        },
-        Screens = BatchRoutes.Map,
-    };
+            Services = (services, setup) =>
+            {
+                submission.Services(services, setup);
+                _ = services.AddSingleton(DeskOf);
+            },
+            Screens = BatchRoutes.Map,
+        };
+    }
 
     /// <summary>Opens a batch with a conversation of its own, by the service the form of the submission uses, and answers its number; the batch has no sample drawn.</summary>
     /// <param name="host">The host of the run, whose curator is the author of the batch.</param>

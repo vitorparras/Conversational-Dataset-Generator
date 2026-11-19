@@ -35,6 +35,9 @@ public static class ContentColumns
     /// <summary>The table of the marks of the messages whose content is replicated, each pointing to the first occurrence.</summary>
     public static string ReplicationMark { get; } = "replication_mark";
 
+    /// <summary>The table of the versions of the list of sanitization steps, written once per domain: names of steps and numbers, never material.</summary>
+    public static string SanitizationVersion { get; } = "sanitization_version";
+
     /// <summary>The text as it arrived.</summary>
     public static ProtectedColumn RawText { get; } = new(ItemText, "raw_text", LabelPurpose.RawText);
 
@@ -43,6 +46,9 @@ public static class ContentColumns
 
     /// <summary>The occurrences found in the raw text and the destination of each; with the offsets they rebuild what was found, so they are sealed like the raw text.</summary>
     public static ProtectedColumn Occurrences { get; } = new(ItemText, "occurrences", LabelPurpose.RawText);
+
+    /// <summary>The trail of the sanitization of an item: with the raw text its positions rebuild what was removed, so it is sealed like the raw text.</summary>
+    public static ProtectedColumn SanitizationTrail { get; } = new(ItemText, "sanitization_trail", LabelPurpose.RawText);
 
     /// <summary>What each pseudonym replaced.</summary>
     public static ProtectedColumn Entries { get; } = new(ReversalMap, "entries", LabelPurpose.ReversalMap);
@@ -60,7 +66,7 @@ public static class ContentColumns
     public static ProtectedColumn OriginKey { get; } = new(BatchOrigin, "dek_wrapped", LabelPurpose.RawText);
 
     /// <summary>The columns stored sealed.</summary>
-    public static IReadOnlyList<ProtectedColumn> Protected { get; } = [RawText, SanitizedText, Occurrences, ItemKey, Entries, MapKey, Origin, OriginKey];
+    public static IReadOnlyList<ProtectedColumn> Protected { get; } = [RawText, SanitizedText, Occurrences, SanitizationTrail, ItemKey, Entries, MapKey, Origin, OriginKey];
 
     /// <summary>The columns stored in clear: identifiers, the domain, dates and the pseudonymized text.</summary>
     public static IReadOnlyList<ClearColumn> Clear { get; } =
@@ -78,6 +84,12 @@ public static class ContentColumns
         new(ItemText, "removed_passages", ClearKind.Epoch),
         new(ItemText, "pseudonymized_passages", ClearKind.Epoch),
         new(ItemText, "preserved_passages", ClearKind.Epoch),
+        new(ItemText, "sanitization_version", ClearKind.Motive),
+        new(ItemText, "sanitization_counts", ClearKind.Counts),
+        new(SanitizationVersion, "id", ClearKind.Identifier),
+        new(SanitizationVersion, DomainColumn, ClearKind.Domain),
+        new(SanitizationVersion, "version", ClearKind.Motive),
+        new(SanitizationVersion, "steps", ClearKind.Steps),
         new(ReversalMap, "id", ClearKind.Identifier),
         new(ReversalMap, DomainColumn, ClearKind.Domain),
         new(ReversalMap, ItemColumn, ClearKind.Identifier),

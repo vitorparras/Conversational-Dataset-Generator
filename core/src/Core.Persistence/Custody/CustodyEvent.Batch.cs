@@ -3,6 +3,7 @@ namespace Core.Persistence.Custody;
 public sealed partial record CustodyEvent
 {
     private const int MaxMotive = 63;
+    private const int VersionLength = 64;
 
     /// <summary>The event of a batch of ingestion opened by a person, who must be active; the item is the batch, and nothing of what it will hold travels in the event.</summary>
     /// <param name="personId">The person who opened the batch.</param>
@@ -57,6 +58,19 @@ public sealed partial record CustodyEvent
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(batchId);
         var reason = found ? CustodyReason.ReviewFound : CustodyReason.ReviewClean;
         return new CustodyEvent(CustodyAuthor.Person(personId), new CustodyItem(CustodyItemKind.IngestionBatch, batchId), CustodyStep.BatchReviewed, reason);
+    }
+
+    /// <summary>The event of the sanitization of the items of a batch, by whoever submitted them; the item is the batch and the reference the version of the list of steps.</summary>
+    /// <param name="author">Who submitted the items.</param>
+    /// <param name="batchId">The batch.</param>
+    /// <param name="version">The version of the list of steps: 64 lowercase hexadecimal digits.</param>
+    public static CustodyEvent BatchSanitized(CustodyAuthor author, long batchId, string version)
+    {
+        ArgumentNullException.ThrowIfNull(author);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(batchId);
+        return version is { Length: VersionLength } && version.All(char.IsAsciiHexDigitLower)
+            ? new CustodyEvent(author, new CustodyItem(CustodyItemKind.IngestionBatch, batchId), CustodyStep.BatchSanitized, CustodyReason.AdministrativeAct) { Reference = version }
+            : throw new ArgumentException("The version of the steps is 64 lowercase hexadecimal digits.", nameof(version));
     }
 
     /// <summary>Whether the text is a motive the database takes: a lowercase letter, then lowercase letters, digits and underscores, up to 63 characters in all.</summary>

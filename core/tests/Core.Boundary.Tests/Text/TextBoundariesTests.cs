@@ -46,6 +46,20 @@ public sealed class TextBoundariesTests
     public void TheSliceOfAnOccurrenceIsCutByCodePointsAndNeverByUtf16Units(int start, int end, string expected) =>
         Assert.Equal(expected, boundaries.Slice(Emoji, new Occurrence(start, end, "PERSON", "PROPN", "obl")));
 
+    [Theory]
+    [InlineData(1, 2, "\U0001F642")]
+    [InlineData(1, 3, "\U0001F642b")]
+    [InlineData(3, 3, "")]
+    public void TheSpanBetweenTwoPositionsIsCutByCodePoints(int start, int end, string expected) =>
+        Assert.Equal(expected, boundaries.Span(Emoji, start, end));
+
+    [Theory]
+    [InlineData(2, 1)]
+    [InlineData(0, 4)]
+    [InlineData(-1, 1)]
+    public void ASpanThatEndsBeforeItStartsOrLeavesTheTextIsADefect(int start, int end) =>
+        Assert.Throws<ArgumentOutOfRangeException>(() => boundaries.Span(Emoji, start, end));
+
     [Fact]
     public void NoTextIsADefect()
     {

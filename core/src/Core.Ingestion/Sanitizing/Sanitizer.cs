@@ -94,7 +94,8 @@ public sealed class Sanitizer(SanitizationSteps steps, ITextBoundaries boundarie
             var span = step.Forward(decided.Occurrence.Start, decided.Occurrence.End);
             if (span.Exists)
             {
-                carried.Add(decided with { Occurrence = decided.Occurrence with { Start = span.Start, End = span.End } });
+                var moved = decided.Occurrence with { Start = span.Start, End = span.End };
+                carried.Add(decided with { Occurrence = moved });
             }
         }
 

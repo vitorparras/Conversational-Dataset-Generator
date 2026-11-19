@@ -54,11 +54,13 @@
             <ul>
                 <li><a href="#em-dia">Nada a reexecutar</a></li>
                 <li><a href="#versao-nova">Versão nova disponível</a></li>
+                <li><a href="#ja-aberta">Reexecução já aberta</a></li>
                 <li><a href="#confirmacao">Confirmar a reexecução</a></li>
                 <li><a href="#na-fila">Na fila</a></li>
                 <li><a href="#em-andamento">Em andamento</a></li>
                 <li><a href="#parado">Parado</a></li>
                 <li><a href="#retomada">Retomada depois de uma queda</a></li>
+                <li><a href="#superada">Superada por uma versão nova</a></li>
                 <li><a href="#concluida">Reexecução concluída</a></li>
                 <li><a href="#sem-permissao">Sem a função de Curadoria</a></li>
             </ul>
@@ -113,12 +115,34 @@
         </section>
         <hr />
 
+        <section id="ja-aberta" aria-labelledby="ja-aberta-estado">
+            <p id="ja-aberta-estado"><strong>Estado: reexecução já aberta.</strong> Os itens de versão anterior já estão num pedido aberto para a versão em uso; não há botão, e uma segunda confirmação leva ao mesmo acompanhamento.</p>
+            <div class="notice notice--info" role="status">
+                <span class="notice__mark" aria-hidden="true">ℹ</span>
+                <p><span class="notice__kind">Aviso:</span> Os 120 itens de VERSAO_3 já estão na fila para VERSAO_4. <a href="#em-andamento">Acompanhar a reexecução</a></p>
+            </div>
+            <section class="panel" aria-labelledby="ja-aberta-titulo">
+                <h2 id="ja-aberta-titulo">Situação em DOMINIO_A</h2>
+                <dl class="facts">
+                    <div class="facts__item">
+                        <dt>Versão em uso</dt>
+                        <dd>VERSAO_4</dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Itens na versão VERSAO_3</dt>
+                        <dd>120, numa reexecução aberta</dd>
+                    </div>
+                </dl>
+            </section>
+        </section>
+        <hr />
+
         <section id="confirmacao" aria-labelledby="confirmacao-estado">
             <p id="confirmacao-estado"><strong>Estado: confirmar a reexecução.</strong> Página própria, GET /sanitizacao/reexecutar; o envio é o POST do mesmo endereço, que só enfileira e redireciona ao acompanhamento.</p>
             <section class="panel" aria-labelledby="confirmacao-titulo">
                 <h2 id="confirmacao-titulo">Confirmar a reexecução</h2>
                 <p>Os <strong>120</strong> itens de DOMINIO_A na versão VERSAO_3 entram na fila para voltar a ser sanitizados a partir do texto bruto, pela versão VERSAO_4. O texto sanitizado de cada um é trocado; o bruto não muda. Item esvaziado, ou com a chave perdida, é recusado com o motivo, e o resto segue.</p>
-                <p>A reexecução roda em segundo plano: você pode sair desta tela. Um item já na fila de outro pedido não entra de novo.</p>
+                <p>A reexecução roda em segundo plano: você pode sair desta tela. Um item já na fila de outro pedido não entra de novo. Uma reexecução aberta para outra versão é encerrada como superada.</p>
                 <form class="form" method="get" action="reexecucao.html#na-fila">
                     <div class="actions">
                         <button id="reexecutar" class="button button--primary" type="submit">Pôr 120 itens na fila</button>
@@ -180,10 +204,10 @@
         <hr />
 
         <section id="parado" aria-labelledby="parado-estado">
-            <p id="parado-estado"><strong>Estado: parado.</strong> A posse vencida volta à fila sozinha; não há o que fazer nesta tela.</p>
+            <p id="parado-estado"><strong>Estado: parado.</strong> Nenhum item foi concluído no prazo de uma posse, contado do último concluído ou, sem nenhum, do pedido. A posse vencida volta à fila sozinha; não há o que fazer nesta tela.</p>
             <div class="notice notice--error" role="alert">
                 <span class="notice__mark" aria-hidden="true">✕</span>
-                <p><span class="notice__kind">Erro:</span> Nenhum item foi concluído dentro do prazo da posse. Os itens já tratados ficam; o próximo é tentado de novo, e um item que falhar na última tentativa é recusado com o motivo.</p>
+                <p><span class="notice__kind">Erro:</span> Nenhum item foi concluído no prazo de uma posse desde o último concluído. Os itens já tratados ficam; o próximo é tentado de novo, e um item que falhar na última tentativa é recusado com o motivo.</p>
             </div>
             <section class="panel" aria-labelledby="parado-titulo">
                 <h2 id="parado-titulo">Reexecução de VERSAO_3 para VERSAO_4</h2>
@@ -233,6 +257,32 @@
         </section>
         <hr />
 
+        <section id="superada" aria-labelledby="superada-estado">
+            <p id="superada-estado"><strong>Estado: superada por uma versão nova.</strong> Um deploy mudou a lista de passos com o pedido aberto. O serviço não toma mais itens dele; os que faltam são concluídos como superados, sem tocar o texto, quando a Curadoria pede de novo.</p>
+            <div class="notice notice--info" role="status">
+                <span class="notice__mark" aria-hidden="true">ℹ</span>
+                <p><span class="notice__kind">Aviso:</span> A versão em uso mudou para VERSAO_5; esta reexecução não anda mais. <a href="#versao-nova">Pedir a reexecução pela versão em uso</a></p>
+            </div>
+            <section class="panel" aria-labelledby="superada-titulo">
+                <h2 id="superada-titulo">Reexecução de VERSAO_3 para VERSAO_4</h2>
+                <dl class="facts">
+                    <div class="facts__item">
+                        <dt>Situação</dt>
+                        <dd>Superada</dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Tratados</dt>
+                        <dd>80 de 120</dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Faltam</dt>
+                        <dd>40, entram no próximo pedido</dd>
+                    </div>
+                </dl>
+            </section>
+        </section>
+        <hr />
+
         <section id="concluida" aria-labelledby="concluida-estado">
             <p id="concluida-estado"><strong>Estado: reexecução concluída.</strong> O último estado do acompanhamento; não há mais link para atualizar.</p>
             <div class="notice notice--success" role="status">
@@ -248,11 +298,11 @@
                     </div>
                     <div class="facts__item">
                         <dt>Substituídos</dt>
-                        <dd>48</dd>
+                        <dd>47</dd>
                     </div>
                     <div class="facts__item">
                         <dt>Recusados</dt>
-                        <dd>2</dd>
+                        <dd>3</dd>
                     </div>
                 </dl>
                 <div class="data-table" role="region" aria-labelledby="concluida-legenda" tabindex="0">
@@ -262,6 +312,7 @@
                         <tbody>
                             <tr><th scope="row" class="data-table__plain">17</th><td>13</td><td>Esvaziado: o texto não existe mais.</td></tr>
                             <tr><th scope="row" class="data-table__plain">52</th><td>14</td><td>A chave do texto bruto foi perdida.</td></tr>
+                            <tr><th scope="row" class="data-table__plain">88</th><td>14</td><td>Falhou em todas as tentativas.</td></tr>
                         </tbody>
                     </table>
                 </div>

@@ -44,16 +44,17 @@ batch_accepted_only esconde.
 
 **`0064-sanitization-rerun`.** A fila: content.sanitization_rerun, o pedido (versão alvo, quem pediu
 e quando), e content.sanitization_rerun_item, com chave (pedido, item), estado (na fila, com posse
-ou concluído), prazo da posse, tentativas e resultado; um índice único parcial deixa o item em um
-só pedido aberto, e pedido repetido não o enfileira de novo. A troca: o GRANT de UPDATE do
-sanitizado e das três colunas da 0061, e um gatilho que só a deixa passar quando a mesma transação
-gravou o evento item_resanitized e concluiu o item da fila, e nunca num item esvaziado. A cadeia: os
-passos sanitization_rerun (um por pedido) e item_resanitized (um por item), e os motivos
-sanitization_identical, sanitization_replaced e sanitization_refused.
+ou concluído), prazo da posse, tentativas, quando foi concluído e resultado (idêntico, substituído,
+recusado ou superado); um índice único parcial deixa o item em um só pedido aberto, e pedido
+repetido não o enfileira de novo. A troca: o GRANT de UPDATE do sanitizado e das três colunas da
+0061, e um gatilho que só a deixa passar quando a mesma transação gravou o evento item_resanitized e
+concluiu o item da fila, e nunca num item esvaziado. A cadeia: os passos sanitization_rerun (um por
+pedido) e item_resanitized (um por item), e os motivos sanitization_identical,
+sanitization_replaced, sanitization_refused e sanitization_superseded, este sem UPDATE.
 
 ## O que não muda
 
-- A coluna em claro do pseudonimizado fica nula em toda a fase (critério 4 do roadmap).
-- O bruto e as ocorrências (0052) não mudam; a reexecução só lê o bruto.
+A coluna em claro do pseudonimizado fica nula em toda a fase (critério 4 do roadmap); o bruto e as
+ocorrências (0052) não mudam, e a reexecução só lê o bruto.
 
 Ver [riscos](riscos.md) para o que cada migração precisa provar em teste de banco.

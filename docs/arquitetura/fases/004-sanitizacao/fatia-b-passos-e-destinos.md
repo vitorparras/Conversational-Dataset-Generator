@@ -6,8 +6,9 @@
 A sanitização roda síncrona na submissão, antes de gravar o item e, portanto, antes da amostra. Cada
 item nasce com o sanitizado e o rastro, cifrados, e com a versão da lista de passos. A tela do lote
 mostra a versão e só as contagens por passo; o rastro com as posições fica cifrado. A revisão por
-amostra lê o sanitizado, com o marcador no lugar do removido: o tipo, da lista fixa dos
-[contratos](contratos.md), nunca um caractere do original. Os protótipos são
+amostra lê o sanitizado, com o marcador no lugar do removido: o tipo, pela tabela da fatia B dos
+[contratos](contratos.md), nunca um caractere do original. Sozinha, a fatia só gera [credencial] e
+[dado]; [documento] e [contato] chegam com a fatia D. Os protótipos são
 `lote.html` e `revisao.html`, em [protótipos](prototipos/index.html).
 
 ## Critérios de aceite
@@ -17,7 +18,7 @@ Cada nome é um teste; as propriedades levam `[Trait("Kind", "Property")]`.
 | Projeto | Testes |
 |---|---|
 | `Core.Ingestion.Tests` (#87) | ResultCarriesSanitizedTextVersionAndStepOrder (CA-1); StepWithoutDeclaredScopeIsRefusedAtStartupByName (CA-2); ChangingTheStepOrderChangesTheVersion (CA-3); SameMaterialAndVersionGiveTheSameTextInAnyProcess (CA-4, propriedade); MaterialWithoutDecidedDestinationsIsRefused (CA-5) |
-| `Core.Ingestion.Tests` (#90) | RemovedValueLeavesATypedMarkerWithNoCharacterOfIt (CA-1); PseudonymizedSpanStaysAndItsPositionResolves (CA-2); CredentialIsRemovedAndNeverOfferedAsPseudonym (CA-3); UnmarkedProperNameIsLeftAsWritten (CA-4); PreservedSpanLeavesAsItCame (CA-5) |
+| `Core.Ingestion.Tests` (#90) | RemovedValueLeavesATypedMarkerWithNoCharacterOfIt (CA-1, só [credencial] e [dado]); PseudonymizedSpanStaysAndItsPositionResolves (CA-2); CredentialIsRemovedAndNeverOfferedAsPseudonym (CA-3); UnmarkedProperNameIsLeftAsWritten (CA-4); PreservedSpanLeavesAsItCame (CA-5) |
 | `Core.Ingestion.Tests` (#92) | TranslatedPositionResolvesToTheSameSpanOrFailsVisibly (CA-1, propriedade); RemovedSpanTranslatesToNoLongerExists (CA-2); TranslationIsComposedFromReturnedEdits (CA-3); SanitizedSpanTranslatesBackToTheRawSpan (CA-4); PositionsCountCodePointsWithEmojiAndCombiningMarks (CA-5) |
 | `Core.Ingestion.Tests` (#93) | ReportCountsEveryStepIncludingThoseWithZero (CA-1, CA-2) |
 | `Core.Persistence.Content.Tests` | SanitizedAndTrailAreSealedWithTheRawPurpose (#98 CA-1, 0061); DatabaseCopyHasNoReadableSanitizedText (#98 CA-2); ClearTextColumnHoldsNoMaterialAtTheEndOfThePhase (#98 CA-4); SanitizedContentCannotBeFilteredOrOrderedInTheDatabase (#98 CA-5); SanitizationColumnsComeTogetherOrNotAtAll (0061); SameVersionFromTwoBatchesIsStoredOnce (0060); SanitizationEventCarriesTheVersionAndCannotChange (#93 CA-5, 0062); BatchSanitizationCountsReturnOnlyNumbers (0063) |

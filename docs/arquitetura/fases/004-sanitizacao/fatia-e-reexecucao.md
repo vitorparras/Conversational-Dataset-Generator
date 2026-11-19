@@ -1,9 +1,8 @@
 # Fatia E — reexecução sobre o bruto, em segundo plano
 
-> Norma pendente. 2026-11-15. Fecha #97. Teto da fatia: 1.500 linhas de produção, o máximo da
-> seção 9 das [regras de código](../../../regras-de-codigo.md): a 0064 e a fila, perto de 450; a
-> reexecução e o trabalhador, 350; as rotas e as três telas, 550; o resto é folga. Se o plano da
-> fatia estimar mais, ele para e pede o corte antes do código.
+> Norma pendente. 2026-11-15. Fecha #97. Teto da fatia: 1.500 linhas de produção, o máximo das
+> [regras de código](../../../regras-de-codigo.md): a 0064 e a fila, 450; a reexecução e o
+> trabalhador, 350; rotas e telas, 550; o resto é folga. Estimado mais, o plano pede o corte.
 
 A Curadoria abre `/sanitizacao` e vê, por versão da lista de passos, quantos itens de lotes aceitos
 estão nela. Com uma versão nova, ela confirma a reexecução numa página própria, como no

@@ -135,5 +135,23 @@ public sealed class SanitizationTrailTests
         _ = Assert.Throws<InvalidOperationException>(() => _ = trail.Forward(3, 7).Start);
     }
 
+    [Fact]
+    public void TrailOfTheReportsHasTheLengthTheirEditsLeave()
+    {
+        var untouched = SanitizationTrail.Of(7, []);
+        var edited = SanitizationTrail.Of(5, [new StepReport("primeiro", 1, [new SanitizationEdit(1, 3, SanitizationMarker.Data)])]);
+
+        Assert.Equal((7, 7, 0), (untouched.RawLength, untouched.SanitizedLength, untouched.Steps.Count));
+        Assert.Equal((5, 9, 1), (edited.RawLength, edited.SanitizedLength, edited.Steps.Count));
+    }
+
+    [Fact]
+    public void TrailOfReportsThatCannotBeTextIsRefused()
+    {
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => SanitizationTrail.Of(-1, []));
+        _ = Assert.Throws<ArgumentNullException>(() => SanitizationTrail.Of(5, null!));
+        _ = Assert.Throws<ArgumentException>(() => SanitizationTrail.Of(5, [null!]));
+    }
+
     private static (bool Exists, int Start, int End) Resolved(TrailSpan span) => (span.Exists, span.Start, span.End);
 }

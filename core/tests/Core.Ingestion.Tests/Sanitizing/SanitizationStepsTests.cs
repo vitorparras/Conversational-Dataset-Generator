@@ -53,6 +53,24 @@ public sealed class SanitizationStepsTests
         Assert.Equal(CheckStatus.Passed, result.Status);
     }
 
+    [Theory]
+    [InlineData(-1, 2)]
+    [InlineData(5, 3)]
+    [InlineData(0, 11)]
+    public void OccurrenceOutsideTheTextIsRefusedBeforeAnyStep(int start, int end)
+    {
+        var step = new FixedStep("primeiro", _ => throw new InvalidOperationException("o passo não devia rodar"));
+
+        _ = Assert.Throws<ArgumentException>(() => Sanitizer(step).Sanitize(Raw, [Data(start, end)]));
+    }
+
+    [Fact]
+    public void ListWithoutItsStepsOrWithAMissingOneIsRefused()
+    {
+        _ = Assert.Throws<ArgumentNullException>(() => new SanitizationSteps(null!));
+        _ = Assert.Throws<ArgumentException>(() => new SanitizationSteps([FixedStep.Nothing("primeiro"), null!]));
+    }
+
     [Fact]
     public void ChangingTheStepOrderChangesTheVersion()
     {

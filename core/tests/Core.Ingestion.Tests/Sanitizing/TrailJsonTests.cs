@@ -35,7 +35,13 @@ public sealed class TrailJsonTests
     [InlineData(/*lang=json,strict*/ """{"raw":4,"steps":[[{"start":0,"end":2,"marker":"Outro"}]]}""")]
     [InlineData(/*lang=json,strict*/ """{"raw":4,"steps":[[]],"extra":1}""")]
     [InlineData(/*lang=json,strict*/ """{"steps":[[]]}""")]
+    [InlineData(/*lang=json,strict*/ """{"raw":4,"steps":[[{"start":2,"end":2,"marker":"Data"}]]}""")]
+    [InlineData(/*lang=json,strict*/ """{"raw":6,"steps":[[{"start":0,"end":3,"marker":"Data"},{"start":2,"end":4,"marker":"Data"}]]}""")]
+    [InlineData(/*lang=json,strict*/ """{"raw":3,"steps":[null]}""")]
     [InlineData("null")]
     public void TrailThatDoesNotFitItsTextIsADefect(string json) =>
         Assert.Throws<InvalidDataException>(() => TrailJson.Read(json));
+
+    [Fact]
+    public void NoTrailIsWritten() => Assert.Throws<ArgumentNullException>(() => TrailJson.Write(null!));
 }

@@ -55,6 +55,16 @@ public sealed class DestinationsStepTests
     }
 
     [Fact]
+    public void OverlappingOccurrencesBecomeOneMarkerThatKeepsTheCredential()
+    {
+        var withPseudonym = Sanitized("ab QXZ7KW cd", Credential(3, 7), Pseudonymized(5, 9));
+        var withData = Sanitized("ab QXZ7KW cd", Credential(3, 7), Data(5, 9));
+
+        Assert.Equal(("ab [credencial] cd", "ab [credencial] cd"), (withPseudonym.Text, withData.Text));
+        Assert.Empty(withPseudonym.Pseudonyms);
+    }
+
+    [Fact]
     public void UnmarkedProperNameIsLeftAsWritten()
     {
         const string raw = "Zqvx e Wvkt, o Kvrtinho, foram";

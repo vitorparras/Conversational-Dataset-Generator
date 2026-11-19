@@ -1,10 +1,12 @@
+using System.Text;
+
 namespace Core.Ingestion.Sanitizing;
 
 /// <summary>
 /// Repairs the text that was read in the wrong encoding and does nothing else: a sequence of Latin characters that an accent, a typographic mark or an emoji became when its UTF-8
 /// bytes were read as Windows-1252 or Latin-1 goes back to the character it was, as many times as it was misread, and every other character stays as it came, since evening out
 /// quotes, width, invisible characters, decomposed accents or ellipses is normalization, which loses signal (requirement 005). A sequence with two readings and none dominant,
-/// because a byte was lost or because it reads as well as written, is left as it is and counted.
+/// because a byte was lost or because it reads as well as written after a capital A with tilde, is left as it is and counted.
 /// </summary>
 public sealed class EncodingRepairStep : ISanitizationStep
 {
@@ -37,6 +39,9 @@ public sealed class EncodingRepairStep : ISanitizationStep
 
     /// <summary>The typographic marks a writer puts after a capital A with tilde as often as a misreading does: ellipsis, quotes, dashes and bullet.</summary>
     private static readonly int[] WrittenMarks = [0x2026, 0x2018, 0x2019, 0x201C, 0x201D, 0x2013, 0x2014, 0x2022];
+
+    /// <summary>The marks a writer puts right after a word, which follow a capital A with tilde that ends a word in capitals: no-break space, closing guillemet, middle dot, degree.</summary>
+    private static readonly int[] AfterWordMarks = [0xA0, 0xBB, 0xB7, 0xB0];
 
     /// <inheritdoc />
     public string Name => "codificacao";
@@ -83,7 +88,7 @@ public sealed class EncodingRepairStep : ISanitizationStep
                 continue;
             }
 
-            if (readings.Count == 1 && !(sequence.TakesWrittenMarks && WrittenMarks.Contains(points[at + 1].Value)))
+            if (readings.Count == 1 && !ReadsAsWritten(points, at, sequence))
             {
                 points[at] = new Point(readings[0], points[at].From, points[at + sequence.Width - 1].To, true);
                 points.RemoveRange(at + 1, sequence.Width - 1);
@@ -96,6 +101,16 @@ public sealed class EncodingRepairStep : ISanitizationStep
         }
 
         return (changed, ambiguous);
+    }
+
+    /// <summary>
+    /// Whether the sequence reads as well as written: a capital A with tilde before a typographic mark, or ending a word in capitals before a mark that follows a word.
+    /// </summary>
+    private static bool ReadsAsWritten(IList<Point> points, int at, Sequence sequence)
+    {
+        var next = points[at + 1].Value;
+        var endsCapitals = at > 0 && Rune.IsUpper(new Rune(points[at - 1].Value));
+        return sequence.TakesWrittenMarks && (WrittenMarks.Contains(next) || (endsCapitals && AfterWordMarks.Contains(next)));
     }
 
     /// <summary>The sequence that starts here and every character its bytes may have been; none when it is no misread sequence.</summary>

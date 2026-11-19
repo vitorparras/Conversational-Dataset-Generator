@@ -5,7 +5,8 @@ namespace Core.Tests.Support.Harness;
 /// <summary>
 /// Texts loaded with the marks of how people write: slang, misspelling, repeated letters, abbreviations, expressive punctuation, capitals, mixed case, emoji, symbols, a mix of
 /// languages, typographic quotes, the shape of a character and irregular spacing. Each mark comes with its span, in code points, so that a property can say which one a step lost.
-/// No piece holds a sequence a wrong encoding leaves, a page break or anything marked for removal.
+/// No piece holds a sequence a wrong encoding leaves, a page break or anything marked for removal; the capitals bring a final A with tilde glued to the mark after it,
+/// which reads both as written and as misread.
 /// </summary>
 public static class SignalTexts
 {
@@ -30,7 +31,7 @@ public static class SignalTexts
         [Repetition] = ["siiiim", "nããão", "booom", "aaaah", "éééé", "TÁÁÁ"],
         [Abbreviation] = ["q", "tb", "hj", "msg", "vlw", "pq", "vc"],
         [ExpressivePunctuation] = ["!!!", "?!?!", "...", "…", "!!11", "??", "?!"],
-        [Capitals] = ["NÃO", "SOCORRO", "PARA COM ISSO", "ÓBVIO", "AMANHÃ", "AÇÃO"],
+        [Capitals] = ["NÃO", "SOCORRO", "PARA COM ISSO", "ÓBVIO", "AMANHÃ", "AÇÃO", "\u00ABAMANH\u00C3\u00BB", "IRM\u00C3\u00A0", "AMANH\u00C3\u2026", "MAM\u00C3\u201D"],
         [MixedCase] = ["ViU", "nUnCa", "Tá BoM", "sEi lÁ", "oBriGaDo"],
         [Emoji] = ["\U0001F602", "\U0001F525\U0001F525", "\U0001F44D\U0001F3FD", "❤\uFE0F", "\U0001F468\u200D\U0001F469\u200D\U0001F467", "\U0001F64F"],
         [Symbol] = ["→", "©", "%", "#tbt", "@zqx", "R$", "★", "°", "½", "™"],

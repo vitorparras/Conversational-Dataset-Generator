@@ -154,4 +154,16 @@ public sealed class SanitizationTrailTests
     }
 
     private static (bool Exists, int Start, int End) Resolved(TrailSpan span) => (span.Exists, span.Start, span.End);
+
+    [Fact]
+    public void PositionsAfterARepairedEmojiCountCodePoints()
+    {
+        const string raw = "\u00F0\u0178\u02DC\u20AC QZX7KW fim";
+
+        var sanitized = Sanitized(Sanitizer(new EncodingRepairStep(), new DestinationsStep()), raw, Data(5, 11));
+
+        var end = sanitized.Trail.Forward(12, 15);
+        Assert.Equal("\U0001F600 [dado] fim", sanitized.Text);
+        Assert.Equal((true, 9, 12), (end.Exists, end.Start, end.End));
+    }
 }

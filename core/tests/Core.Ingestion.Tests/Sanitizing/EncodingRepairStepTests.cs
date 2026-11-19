@@ -33,7 +33,8 @@ public sealed class EncodingRepairStepTests
     [Fact]
     public void EmojiCaseRepetitionQuotesAndLanguageMixSurviveTheRepair()
     {
-        const string raw = "\u201CEEEEEita\u201D N\u00C3O!!! \U0001F602\U0001F602 so cute\u2026 \u2018t\u00E1\u2019 \uFF21\uFF22 e\u0301 a\u200Bb \uFB01m \u2014 vamo?!";
+        const string raw = "\u201CEEEEEita\u201D N\u00C3O!!! \U0001F602\U0001F602 so cute\u2026 \u2018t\u00E1\u2019 \uFF21\uFF22 e\u0301 a\u200Bb \uFB01m \u2014 vamo?!"
+            + " gritou \u00ABAMANH\u00C3\u00BB e IRM\u00C3\u00A0 noite";
 
         var repaired = Repaired(raw);
 

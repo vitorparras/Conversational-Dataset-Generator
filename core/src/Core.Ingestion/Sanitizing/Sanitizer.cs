@@ -10,10 +10,19 @@ namespace Core.Ingestion.Sanitizing;
 /// occurrence that survived to the positions of the new text, so that the pseudonymized can be resolved and reversed through the trail (decision 0012). A material whose
 /// destinations were not decided is refused, since nothing then says what may stay.
 /// </summary>
-public sealed class Sanitizer(SanitizationSteps steps, ITextBoundaries boundaries)
+public sealed class Sanitizer
 {
-    private readonly SanitizationSteps steps = steps ?? throw new ArgumentNullException(nameof(steps));
-    private readonly ITextBoundaries boundaries = boundaries ?? throw new ArgumentNullException(nameof(boundaries));
+    private readonly SanitizationSteps steps;
+    private readonly ITextBoundaries boundaries;
+
+    /// <summary>The sanitizer of the declared steps, which counts and cuts the text by code points.</summary>
+    /// <param name="steps">The steps in their order, with the version of the list.</param>
+    /// <param name="boundaries">Counts and cuts the text by code points.</param>
+    public Sanitizer(SanitizationSteps steps, ITextBoundaries boundaries)
+    {
+        this.steps = steps ?? throw new ArgumentNullException(nameof(steps));
+        this.boundaries = boundaries ?? throw new ArgumentNullException(nameof(boundaries));
+    }
 
     /// <summary>The sanitized text, its trail and the report of each step, or the refusal when no destination was decided.</summary>
     /// <param name="raw">The text as it came, whose positions count code points.</param>
@@ -44,17 +53,15 @@ public sealed class Sanitizer(SanitizationSteps steps, ITextBoundaries boundarie
             report.Add(new StepReport(step.Name, step.Version, applied.Edits));
         }
 
-        var pseudonyms = occurrences.Where(occurrence => occurrence.Destination == Destination.Pseudonymize).Select(occurrence => occurrence.Occurrence).ToList();
-        var sanitized = new SanitizedText
+        return SanitizationResult.Of(new SanitizedText
         {
             Text = text,
             Version = steps.Version,
             Order = steps.Order,
             Trail = new SanitizationTrail(rawLength, trail),
             Report = report,
-            Pseudonyms = pseudonyms,
-        };
-        return SanitizationResult.Of(sanitized);
+            Pseudonyms = [.. occurrences.Where(occurrence => occurrence.Destination == Destination.Pseudonymize).Select(occurrence => occurrence.Occurrence)],
+        });
     }
 
     /// <summary>The version of the list of steps every text sanitized here carries.</summary>
@@ -94,8 +101,7 @@ public sealed class Sanitizer(SanitizationSteps steps, ITextBoundaries boundarie
             var span = step.Forward(decided.Occurrence.Start, decided.Occurrence.End);
             if (span.Exists)
             {
-                var moved = decided.Occurrence with { Start = span.Start, End = span.End };
-                carried.Add(decided with { Occurrence = moved });
+                carried.Add(decided with { Occurrence = decided.Occurrence with { Start = span.Start, End = span.End } });
             }
         }
 

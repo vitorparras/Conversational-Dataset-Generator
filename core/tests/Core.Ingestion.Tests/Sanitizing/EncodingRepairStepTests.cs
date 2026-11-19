@@ -11,7 +11,8 @@ public sealed class EncodingRepairStepTests
     [Fact]
     public void SwappedAccentsReturnToTheirSpellingAndNothingElseChanges()
     {
-        const string raw = "Ele n\u00C3\u00A3o foi \u00C3\u00A0 reuni\u00C3\u00A3o, voc\u00C3\u00AA viu? A\u00C3\u2021\u00C3\u0192O \u00E2\u20AC\u0153zqx\u00E2\u20AC\u009D \u00F0\u0178\u02DC\u20AC  fim";
+        const string raw = "Ele n\u00C3\u00A3o foi \u00C3\u00A0 reuni\u00C3\u00A3o, voc\u00C3\u00AA viu?"
+            + " A\u00C3\u2021\u00C3\u0192O \u00E2\u20AC\u0153zqx\u00E2\u20AC\u009D \u00F0\u0178\u02DC\u20AC  fim";
 
         var repaired = Repaired(raw);
 

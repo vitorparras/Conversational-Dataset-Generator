@@ -58,6 +58,25 @@ public sealed class BatchDetailPieceTests(BrowserFixture browser, BatchDetailHos
     }
 
     [Fact]
+    public async Task RejectedForAnalysisIsReadByKeyboardAndPassesTheAccessibilityCheck()
+    {
+        await using var tab = await OpenAsync("sem-analise", "Lote 43");
+
+        await Expect(tab.Page.Locator("main")).ToContainTextAsync("Rejeitado");
+        await Expect(tab.Page.Locator("main")).ToContainTextAsync(
+            "O serviço de análise de linguagem não respondeu, e sem a análise não há como saber o que remover. Nenhum item foi gravado. Envie o mesmo arquivo de novo quando o serviço voltar.");
+        await Expect(tab.Page.Locator("main")).Not.ToContainTextAsync("analysis_unavailable");
+        await AccessibilityCheck.AssertNoViolationsAsync(tab.Page);
+        Assert.Equal([Review, Back], await StopsInMainAsync(tab.Page));
+        await FocusTheTitleAsync(tab.Page);
+        await tab.Page.Keyboard.PressAsync("Tab");
+        await tab.Page.Keyboard.PressAsync("Tab");
+        await tab.Page.Keyboard.PressAsync("Enter");
+
+        await Expect(tab.Page).ToHaveURLAsync(new Regex($"{Regex.Escape(BatchDetailPieceCase.List)}$"));
+    }
+
+    [Fact]
     public async Task ABatchStillOpenHasNoItemAndSaysNoPassageWasCountedByDestination()
     {
         await using var tab = await OpenAsync("em-curso", "Lote 40");
@@ -98,6 +117,7 @@ public sealed class BatchDetailPieceTests(BrowserFixture browser, BatchDetailHos
     [Theory]
     [InlineData("aceito")]
     [InlineData("rejeitado")]
+    [InlineData("sem-analise")]
     [InlineData("em-curso")]
     [InlineData("perda")]
     [InlineData("reenvio")]
@@ -143,6 +163,8 @@ public sealed class BatchDetailPieceTests(BrowserFixture browser, BatchDetailHos
     [InlineData("Dark", "aceito")]
     [InlineData("Light", "rejeitado")]
     [InlineData("Dark", "rejeitado")]
+    [InlineData("Light", "sem-analise")]
+    [InlineData("Dark", "sem-analise")]
     [InlineData("Light", "em-curso")]
     [InlineData("Dark", "em-curso")]
     [InlineData("Light", "perda")]

@@ -21,10 +21,16 @@ public static class MaterialTexts
     /// <summary>For each unit of the file, in the order of the file, the position of its text among the texts of the item: only the conversation puts its messages in another order.</summary>
     /// <param name="material">The item the units were accepted as.</param>
     /// <param name="read">The units as they were read, in the order of the file.</param>
+    /// <exception cref="ArgumentException">The units read are not one for each text of the item.</exception>
     public static IReadOnlyList<int> PositionsOf(Material material, ReadMaterial read)
     {
         ArgumentNullException.ThrowIfNull(material);
         ArgumentNullException.ThrowIfNull(read);
+        if (Of(material).Count != read.Units.Count)
+        {
+            throw new ArgumentException("The units read are not one for each text of the item.", nameof(read));
+        }
+
         return material is Conversation ? ConversationOrder.Placed(ConversationOrder.Sequence(read)) : [.. Enumerable.Range(0, read.Units.Count)];
     }
 

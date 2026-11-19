@@ -41,4 +41,15 @@ public sealed class MaterialTextsTests
 
         Assert.Equal([0], positions);
     }
+
+    [Fact]
+    public void UnitsThatAreNotTheTextsOfTheItemAreRefused()
+    {
+        ReadUnit[] units = [Units.Plain("ZQXUM"), Units.Plain("ZQXDOIS"), Units.Plain("ZQXTRES")];
+        var material = Found.Accepted(MaterialForm.Document, units);
+
+        var refused = Assert.Throws<ArgumentException>(() => MaterialTexts.PositionsOf(material, new ReadMaterial(units[..2])));
+
+        Assert.Equal("read", refused.ParamName);
+    }
 }

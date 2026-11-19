@@ -1,6 +1,9 @@
 using System.Net;
 using Core.Host.Screens;
+using Core.Host.Submissions;
 using Core.Host.Tests.Analysis;
+using Core.Host.Tests.Submissions;
+using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Fixtures;
 
 namespace Core.Host.Tests;
@@ -43,6 +46,27 @@ public sealed class SampleReviewSanitizedTests
              .. await world.Submissions.StoredAsync("SELECT count(*)::text FROM content.item_text WHERE sanitized_text IS NULL")]);
         Assert.Equal(2, Occurrences(page.Page, SampleTexts.VersionOf(cleaned: true)));
         Assert.DoesNotContain(SampleTexts.VersionOf(cleaned: false), page.Page, StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
+    public async Task BatchWhoseSanitizationFailedHasNoItemAndItsDrawIsRefused()
+    {
+        await using var world = await SampleReviewWorld.StartAsync(messages: 4);
+        var submissions = world.Submissions;
+        var intake = SubmissionWorld.Intake(1_000_000, OriginConditions.Of([SubmissionWorld.Loosest]), submissions.Content, submissions.DataSource);
+        var failing = intake with { Cleaner = SanitizingStep.FailingAt(2).Alone() };
+        var service = new SubmissionService(failing, submissions.Batches, submissions.DataSource, new SubmissionLog());
+        var content = SubmissionWorld.Messages(("ZQXUM", "ZQXOUTRO01"), ("ZQXDOIS", "ZQXOUTRO02"), ("ZQXUM", "ZQXOUTRO03"));
+        var outcome = await service.SubmitAsync(SubmissionWorld.Request(content), TestContext.Current.CancellationToken);
+        var rejected = outcome.Batch!.Value;
+
+        var drawn = await world.PostAsync($"/lotes/{rejected}/amostra", world.Curator);
+
+        Assert.EndsWith($"?{SampleReviewScreen.ResultKey}={SampleReviewScreen.RefusedMark}", drawn.Location, StringComparison.Ordinal);
+        Assert.Equal(["0"], await submissions.StoredAsync($"SELECT count(*)::text FROM content.item_text WHERE batch_id = {rejected}"));
+        var held = await world.StateAsync(rejected);
+        Assert.Equal(BatchState.Rejected, held!.State);
+        Assert.Null(held.Sample);
     }
 
     [DatabaseFact]

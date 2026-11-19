@@ -132,7 +132,7 @@ internal static class CompositionRoot
             new SubmissionGate(SourceReaders.Default(), settings.MaxBytes), new FormConference(new TextBoundaries()), settings.Conditions, sealing,
             sealing is null ? null : new ContentWriter(source, sealing),
             sealing is null ? null : new ReplicationMarking(new ReplicationStore(source), new KeyDerivation(reading.Key!, reading.Labels), settings.Replication, new TextBoundaries()),
-            settings.Recognizer);
+            settings.Recognizer, DeclaredSanitization.Sanitizer);
     }
 
     /// <summary>The rehearsal of the recovery over a source that was read, opening content with the labels the database registers.</summary>

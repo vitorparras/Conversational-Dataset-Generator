@@ -1,3 +1,4 @@
+using System.Data;
 using Core.Persistence.Content;
 using Npgsql;
 using NpgsqlTypes;
@@ -6,13 +7,15 @@ namespace Core.Persistence.Ingestion;
 
 /// <summary>
 /// The numbers of a batch for its detail (issue 821), read by a function of the database that answers numbers and codes alone (migration 0057), so the reading needs no scope of the system and opens
-/// no content. The database judges the domain, so a batch of another domain reads as one with no number.
+/// no content; since issue 842 also the version of the steps that sanitized the batch, with what each step did. The database judges the domain, so a batch of another domain reads
+/// as one with no number.
 /// </summary>
 public sealed class BatchCounts
 {
     private const int KindColumn = 0;
     private const int CodeColumn = 1;
     private const int ValueColumn = 2;
+    private const int ItemsColumn = 3;
 
     private static readonly string[] DestinationCodes = Codes("remove", "pseudonymize", "preserve");
 
@@ -41,31 +44,41 @@ public sealed class BatchCounts
         var transaction = await ContentTransaction.BeginAsync(dataSource, domainId, cancellationToken).ConfigureAwait(false);
         await using (transaction.ConfigureAwait(false))
         {
-            var command = transaction.CreateCommand(BatchCountStatements.Read);
-            await using (command.ConfigureAwait(false))
-            {
-                _ = command.Parameters.Add(new NpgsqlParameter("batch", NpgsqlDbType.Bigint) { Value = batchId });
-                _ = command.Parameters.Add(new NpgsqlParameter("domain", NpgsqlDbType.Integer) { Value = domainId });
-                return Counted(await RowsAsync(command, cancellationToken).ConfigureAwait(false));
-            }
+            var rows = await RowsAsync(transaction, BatchCountStatements.Read, (domainId, batchId), Count, cancellationToken).ConfigureAwait(false);
+            var steps = await RowsAsync(transaction, BatchCountStatements.Steps, (domainId, batchId), Step, cancellationToken).ConfigureAwait(false);
+            var version = steps.Count == 0 ? null : steps[0].Version;
+            return Counted(rows) with { SanitizationVersion = version, Steps = [.. steps.Where(step => step.Version == version).Select(step => step.Count)] };
         }
     }
 
-    /// <summary>The rows of the counts, each with its kind.</summary>
-    private static async Task<List<(string Kind, BatchCount Count)>> RowsAsync(NpgsqlCommand command, CancellationToken cancellationToken)
+    /// <summary>The rows a statement answers about the batch of the domain, each read by the function given.</summary>
+    private static async Task<List<T>> RowsAsync<T>(
+        ContentTransaction transaction, string statement, (int Domain, long Batch) of, Func<IDataRecord, T> read, CancellationToken cancellationToken)
     {
-        var rows = new List<(string Kind, BatchCount Count)>();
-        var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-        await using (reader.ConfigureAwait(false))
+        var command = transaction.CreateCommand(statement);
+        await using (command.ConfigureAwait(false))
         {
-            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            _ = command.Parameters.Add(new NpgsqlParameter("batch", NpgsqlDbType.Bigint) { Value = of.Batch });
+            _ = command.Parameters.Add(new NpgsqlParameter("domain", NpgsqlDbType.Integer) { Value = of.Domain });
+            var rows = new List<T>();
+            var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            await using (reader.ConfigureAwait(false))
             {
-                rows.Add((reader.GetString(KindColumn), new BatchCount(reader.GetString(CodeColumn), reader.GetInt64(ValueColumn))));
+                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    rows.Add(read(reader));
+                }
             }
-        }
 
-        return rows;
+            return rows;
+        }
     }
+
+    private static (string Kind, BatchCount Count) Count(IDataRecord reader) =>
+        (reader.GetString(KindColumn), new BatchCount(reader.GetString(CodeColumn), reader.GetInt64(ValueColumn)));
+
+    private static (string Version, BatchStepCount Count) Step(IDataRecord reader) =>
+        (reader.GetString(KindColumn), new BatchStepCount(reader.GetString(CodeColumn), reader.GetInt64(ValueColumn), reader.GetInt64(ItemsColumn)));
 
     private static BatchDetailCounts Counted(List<(string Kind, BatchCount Count)> rows)
     {

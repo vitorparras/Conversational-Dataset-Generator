@@ -73,7 +73,7 @@ public sealed class SubmissionDestinationsTests
         var opened = await world.Batches.OpenAsync(new BatchOpening(SubmissionWorld.Domain, SubmissionWorld.Person) { DeclaredForm = "document", SourceForm = "conversation" }, Token);
         var instant = new DateTimeOffset(2031, 3, 4, 8, 0, 0, TimeSpan.Zero);
         var material = new ReadMaterial([new ReadUnit("ZQXTERCEIRO ZQX-FAKE-PERSON", "ZQXUM", instant, null, []), new ReadUnit("ZQX-FAKE-PERSON ZQXQUARTO", "ZQXDOIS", instant, null, [])]);
-        var kept = new SubmissionStoring.Kept(SubmissionWorld.Domain, opened.BatchId!.Value, material, MaterialForm.Document, SubmissionWorld.AccommodatedAsDocument(material));
+        var kept = new SubmissionStoring.Kept(SubmissionWorld.Domain, opened.BatchId!.Value, material, MaterialForm.Document, SubmissionWorld.AccommodatedAsDocument(material), SubmissionWorld.Person);
         var conditions = OriginConditions.Of([SubmissionWorld.Strictest, "zqx_media", SubmissionWorld.Loosest]);
         var intake = SubmissionWorld.Intake(1_000_000, conditions, world.Content, world.DataSource, recognizer: new FakeRecognizer());
 

@@ -102,6 +102,26 @@ public sealed class IngestionBatches
         return ReadingAsync(domainId, batchId, cancellationToken);
     }
 
+    /// <summary>Records in the chain that the items of an open batch were sanitized under a version of the list of steps; nothing of the batch itself changes.</summary>
+    /// <param name="batch">The batch, its domain and who submitted the items.</param>
+    /// <param name="version">The version of the list of steps the items hold.</param>
+    /// <param name="cancellationToken">Cancels the writing.</param>
+    public Task<CustodyResult?> SanitizedAsync(BatchClosing batch, string version, CancellationToken cancellationToken)
+    {
+        Check(batch);
+        var sanitized = CustodyEvent.BatchSanitized(batch.Author, batch.BatchId, version);
+        return BatchRetry.RunAsync(
+            () => CustodyTransaction.RunAsync(dataSource, scope => SanitizedInAsync(scope, batch.DomainId, sanitized, cancellationToken), cancellationToken),
+            result => result?.Outcome == CustodyOutcome.Conflict, attempts, cancellationToken);
+    }
+
+    private static async Task<CustodyResult?> SanitizedInAsync(CustodyScope scope, int domainId, CustodyEvent sanitized, CancellationToken cancellationToken)
+    {
+        await DeclareDomainAsync(scope, domainId, cancellationToken).ConfigureAwait(false);
+        var appended = await CustodyAppend.AppendAsync(scope, sanitized, cancellationToken).ConfigureAwait(false);
+        return await CustodyAppend.CommitIfAppendedAsync(scope, appended, cancellationToken).ConfigureAwait(false);
+    }
+
     private static void Check(BatchClosing closing)
     {
         ArgumentNullException.ThrowIfNull(closing);

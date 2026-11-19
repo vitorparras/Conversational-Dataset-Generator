@@ -11,17 +11,27 @@ namespace Core.Host.Tests;
 
 /// <summary>
 /// The pieces of the detail of a batch (#609), rendered as the server renders them, before any route: the counts by form, by destination of a passage and by replica (CA-1), the earlier
-/// batch that recognized a resubmission (CA-2), the loss declared when the form was accommodated (CA-3), and nothing of the material, which the model has no place for (CA-4).
+/// batch that recognized a resubmission (CA-2), the loss declared when the form was accommodated (CA-3), and nothing of the material, which the model has no place for (CA-4); and,
+/// since #842, the version of the steps that sanitized the batch with the counts of each step, never a position of the trail.
 /// </summary>
 public sealed class BatchDetailScreenTests
 {
     private static readonly DateTimeOffset At = new(2026, 11, 9, 10, 0, 0, TimeSpan.Zero);
+
+    /// <summary>A synthetic digest in the form of the version of the steps, which is a digest and never a word of the material.</summary>
+    private static readonly string Version = string.Concat(Enumerable.Repeat("0a", 32));
 
     private static readonly BatchDetailScreen.Detail Accepted = new(7, "zqx-dominio-a", BatchState.Accepted, null, "zqx-ana", At, OriginDeclared: true)
     {
         Forms = [new("conversation", 12), new("comment", 1)],
         Destinations = [new("remove", 4), new("pseudonymize", 9)],
         Replicas = new BatchDetailScreen.ReplicaCount(3, 1),
+    };
+
+    private static readonly BatchDetailScreen.Detail Sanitized = Accepted with
+    {
+        SanitizationVersion = Version,
+        Steps = [new("destinos", 6, 3), new("zqx", 0, 0)],
     };
 
     [Fact]
@@ -80,6 +90,31 @@ public sealed class BatchDetailScreenTests
     {
         Assert.Equal("Perda registrada: zqx.", BatchDetailTexts.LossOf("zqx"));
         Assert.Equal("Forma zqx", BatchDetailTexts.FormNameOf("zqx"));
+        Assert.Equal("Passo zqx", BatchDetailTexts.StepOf("zqx"));
+    }
+
+    [Fact]
+    public async Task BatchScreenShowsTheVersionAndTheCountsByStep()
+    {
+        var page = await RenderAsync(Sanitized);
+        var before = await RenderAsync(Accepted);
+
+        Assert.Matches(Fact("Versão da lista de passos", Version), page);
+        Assert.Contains("Cada linha é um passo, na ordem em que rodou", page, StringComparison.Ordinal);
+        Assert.Matches(Row("1. Aplicação dos destinos", "6", "3"), page);
+        Assert.Matches(Row("2. Passo zqx", "0", "0"), page);
+        Assert.DoesNotContain("lote-sanitizacao", before, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task BatchScreenShowsNoPositionOfTheTrail()
+    {
+        var page = await RenderAsync(Sanitized);
+
+        Assert.Contains("O rastro com as posições de cada edição fica cifrado e não vem a esta tela", page, StringComparison.Ordinal);
+        Assert.Equal(["Step", "Edits", "Items"], typeof(BatchDetailScreen.StepCount).GetProperties().Select(property => property.Name));
+        Assert.Equal(["Name", "Edits", "Items"], typeof(BatchStepCount).GetProperties().Select(property => property.Name));
+        Assert.DoesNotContain(typeof(BatchDetailScreen.Detail).GetProperties(), property => property.Name.Contains("Trail", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -111,15 +146,15 @@ public sealed class BatchDetailScreenTests
         var types = new[]
         {
             typeof(BatchDetailScreen.Detail), typeof(BatchDetailScreen.FormCount), typeof(BatchDetailScreen.DestinationCount), typeof(BatchDetailScreen.ReplicaCount),
-            typeof(BatchDetailScreen.Recognition), typeof(BatchDetailScreen.Accommodated),
+            typeof(BatchDetailScreen.Recognition), typeof(BatchDetailScreen.Accommodated), typeof(BatchDetailScreen.StepCount),
         };
 
         var texts = types.SelectMany(type => type.GetProperties().Where(property => Holds(property.PropertyType)).Select(property => $"{type.Name}.{property.Name}"));
 
         Assert.Equal(
             [
-                "Detail.Domain", "Detail.Motive", "Detail.SubmittedBy", "Detail.Warning", "FormCount.Form", "DestinationCount.Destination", "Recognition.Address",
-                "Accommodated.Source", "Accommodated.Into", "Accommodated.Losses",
+                "Detail.Domain", "Detail.Motive", "Detail.SubmittedBy", "Detail.Warning", "Detail.SanitizationVersion", "FormCount.Form", "DestinationCount.Destination", "Recognition.Address",
+                "Accommodated.Source", "Accommodated.Into", "Accommodated.Losses", "StepCount.Step",
             ],
             texts);
     }
@@ -127,6 +162,9 @@ public sealed class BatchDetailScreenTests
     /// <summary>Whether a property can carry text: a string, or a collection of strings, such as the codes of the losses.</summary>
     private static bool Holds(Type type) =>
         type == typeof(string) || (type.IsAssignableTo(typeof(System.Collections.IEnumerable)) && Array.Exists(type.GetGenericArguments(), Holds));
+
+    private static string Row(string step, string edits, string items) =>
+        $@"<th[^>]*>\s*{Regex.Escape(step)}\s*</th>\s*<td[^>]*>\s*{Regex.Escape(edits)}\s*</td>\s*<td[^>]*>\s*{Regex.Escape(items)}\s*</td>";
 
     private static string Fact(string term, string value) => $@"<dt>\s*{Regex.Escape(term)}\s*</dt>\s*<dd>\s*{Regex.Escape(value)}\s*</dd>";
 

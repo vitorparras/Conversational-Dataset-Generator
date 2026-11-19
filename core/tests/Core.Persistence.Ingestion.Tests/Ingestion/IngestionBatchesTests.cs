@@ -22,13 +22,27 @@ public sealed class IngestionBatchesTests
             typeof(IngestionBatches).GetMethod(nameof(IngestionBatches.OpenAsync))!.GetParameters().Select(parameter => parameter.ParameterType));
 
     [Fact]
-    public void NoMethodOfTheBatchesTakesBytesAndOnlyTheRejectionTakesText()
+    public void NoMethodOfTheBatchesTakesBytesAndOnlyTheRejectionAndTheSanitizationTakeText()
     {
         var methods = typeof(IngestionBatches).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
         var texts = methods.SelectMany(method => method.GetParameters().Select(parameter => (method.Name, parameter.ParameterType)))
-            .Where(taken => taken.ParameterType == typeof(string) || taken.ParameterType == typeof(byte[]) || taken.ParameterType == typeof(ReadOnlyMemory<byte>));
+            .Where(taken => taken.ParameterType == typeof(string) || taken.ParameterType == typeof(byte[]) || taken.ParameterType == typeof(ReadOnlyMemory<byte>))
+            .OrderBy(taken => taken.Name, StringComparer.Ordinal);
 
-        Assert.Equal([(nameof(IngestionBatches.RejectAsync), typeof(string))], texts);
+        Assert.Equal([(nameof(IngestionBatches.RejectAsync), typeof(string)), (nameof(IngestionBatches.SanitizedAsync), typeof(string))], texts);
+    }
+
+    [Fact]
+    public async Task VersionThatIsNotSixtyFourLowercaseHexDigitsIsRefusedBeforeAnyConnectionOpens()
+    {
+        await using var dataSource = NpgsqlDataSource.Create("Host=127.0.0.1;Port=1;Username=u;Password=p;Database=d");
+        var batches = new IngestionBatches(dataSource, TestConditions.Known);
+        var closing = new BatchClosing(1, 1, CustodyAuthor.System);
+
+        var refused = new[] { string.Empty, new string('a', 63), new string('a', 65), new string('A', 64), new string('g', 64), "texto livre zqx" }
+            .Select(version => Record.Exception(() => { _ = batches.SanitizedAsync(closing, version, TestContext.Current.CancellationToken); }));
+
+        Assert.All(refused, failure => Assert.Equal("version", Assert.IsType<ArgumentException>(failure).ParamName));
     }
 
     [Fact]

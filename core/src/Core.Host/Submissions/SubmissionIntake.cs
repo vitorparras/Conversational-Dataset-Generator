@@ -1,6 +1,7 @@
 using Core.Boundary.Contracts;
 using Core.Ingestion;
 using Core.Ingestion.Entrance;
+using Core.Ingestion.Sanitizing;
 using Core.Persistence.Content.Sealing;
 using Core.Persistence.Content.Writing;
 using Core.Persistence.Ingestion;
@@ -18,5 +19,7 @@ namespace Core.Host.Submissions;
 /// <param name="Writer">Writes an item of the batch, its raw text sealed by the application before it reaches the database; none when the key was not read.</param>
 /// <param name="Marking">Marks the replicated content of a conversation that was kept; none when the key was not read.</param>
 /// <param name="Recognizer">Analyzes each text of the material before its items are written, which decides the destination of each occurrence found.</param>
+/// <param name="Sanitizer">Runs the declared steps over each text once its destinations are decided, before its item is written.</param>
 internal sealed record SubmissionIntake(
-    SubmissionGate Gate, FormConference Conference, OriginConditions Conditions, ProtectedContent? Sealing, ContentWriter? Writer, ReplicationMarking? Marking, IRecognizer Recognizer);
+    SubmissionGate Gate, FormConference Conference, OriginConditions Conditions, ProtectedContent? Sealing, ContentWriter? Writer, ReplicationMarking? Marking, IRecognizer Recognizer,
+    Sanitizer Sanitizer);

@@ -18,7 +18,8 @@ public sealed class Sanitizer(SanitizationSteps steps, ITextBoundaries boundarie
     /// <summary>The sanitized text, its trail and the report of each step, or the refusal when no destination was decided.</summary>
     /// <param name="raw">The text as it came, whose positions count code points.</param>
     /// <param name="decided">Every occurrence found in the text, with its destination; null when the destinations were not decided.</param>
-    /// <exception cref="ArgumentException">An occurrence falls outside the text, or a step returned edits that do not fit the text it received.</exception>
+    /// <exception cref="ArgumentException">An occurrence falls outside the text.</exception>
+    /// <exception cref="SanitizationStepFailedException">A step failed, or returned edits that do not fit the text it received; a cancellation passes as it came.</exception>
     public SanitizationResult Sanitize(string raw, IReadOnlyList<DecidedOccurrence>? decided)
     {
         ArgumentNullException.ThrowIfNull(raw);
@@ -35,7 +36,7 @@ public sealed class Sanitizer(SanitizationSteps steps, ITextBoundaries boundarie
         var report = new List<StepReport>(steps.Steps.Count);
         foreach (var step in steps.Steps)
         {
-            var applied = TrailStep.Of(length, step.Edits(new StepInput(text, occurrences)));
+            var applied = Run(step, new StepInput(text, occurrences), length);
             text = Apply(text, applied);
             occurrences = Carried(occurrences, applied);
             length = applied.OutputLength;
@@ -54,6 +55,21 @@ public sealed class Sanitizer(SanitizationSteps steps, ITextBoundaries boundarie
             Pseudonyms = pseudonyms,
         };
         return SanitizationResult.Of(sanitized);
+    }
+
+    /// <summary>The version of the list of steps every text sanitized here carries.</summary>
+    public string Version => steps.Version;
+
+    private static TrailStep Run(ISanitizationStep step, StepInput input, int length)
+    {
+        try
+        {
+            return TrailStep.Of(length, step.Edits(input));
+        }
+        catch (Exception failure) when (failure is not OperationCanceledException)
+        {
+            throw SanitizationStepFailedException.Of(step.Name, failure);
+        }
     }
 
     private static List<DecidedOccurrence> Checked(IReadOnlyList<DecidedOccurrence> decided, int length)

@@ -1,17 +1,25 @@
+using Core.Host.Submissions;
 using Core.Host.Supervision;
+using Core.Ingestion.Sanitizing;
 using Core.Platform.Configuration;
 using Core.Platform.Startup;
 
 namespace Core.Host;
 
-/// <summary>The checks the host runs once the log file's own is done: the bundled file, the server's, then the language service folder and the service.</summary>
+/// <summary>
+/// The checks the host runs once the log file's own is done: the bundled file, the scope of every declared sanitization step, the server's, then the language service folder and the
+/// service.
+/// </summary>
 internal static class StartupChecks
 {
     /// <summary>The language service comes last, and only when the recognizer is not the fake, which asks none and so does not start it.</summary>
     internal static IStartupCheck[] Of(ConfigurationLoadResult loaded, IServiceProvider startup) =>
         RecognizerConfiguration.UsesFake(loaded.Values)
-            ? [BundledFile(loaded), .. startup.GetServices<IStartupCheck>()]
-            : [BundledFile(loaded), .. startup.GetServices<IStartupCheck>(), LanguageServiceFolder(loaded), startup.GetRequiredService<LanguageServiceStartupCheck>()];
+            ? [BundledFile(loaded), new StepsHaveScope(DeclaredSanitization.Steps), .. startup.GetServices<IStartupCheck>()]
+            : [
+                BundledFile(loaded), new StepsHaveScope(DeclaredSanitization.Steps), .. startup.GetServices<IStartupCheck>(),
+                LanguageServiceFolder(loaded), startup.GetRequiredService<LanguageServiceStartupCheck>(),
+            ];
 
     private static ServiceFolderCheck LanguageServiceFolder(ConfigurationLoadResult loaded) =>
         new(ServiceFolder.Beside(), LanguageServiceConfiguration.GivenExecutable(loaded.Values));

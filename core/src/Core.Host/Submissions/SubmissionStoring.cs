@@ -23,6 +23,9 @@ internal static class SubmissionStoring
     /// <summary>The motive of a batch with a text the language service gave no analysis for; no item is written, since without it nothing says what to remove.</summary>
     internal const string AnalysisUnavailable = "analysis_unavailable";
 
+    /// <summary>The motive of a batch with a text a step of the sanitization failed on; no item is written, since no text may be kept without its sanitized form.</summary>
+    internal const string SanitizationFailed = "sanitization_failed";
+
     /// <summary>The seconds the rejection of a batch has, under a token of its own, since the token of the submission may have been cancelled already.</summary>
     internal const int CleanUpSeconds = 30;
 
@@ -60,14 +63,15 @@ internal static class SubmissionStoring
     }
 
     /// <summary>
-    /// Analyses every text of the material before the first item, then writes each unit as an item of the batch with the occurrences decided in it, and says how it ended:
-    /// kept, a text with no analysis, a write that failed or a submission cancelled while it analysed or wrote (issue 775);
+    /// Analyses and sanitizes every text of the material before the first item, then writes each unit as an item of the batch with the occurrences decided in it and its sanitized text,
+    /// and says how it ended: kept, a text with no analysis, a step that failed, a write that failed or a submission cancelled while it analysed or wrote (issue 775);
     /// when it was not kept, the items before the one that failed still stand for the rejection to remove.
     /// </summary>
     /// <param name="intake">Holds the writer of the items and the marking of the replicated content.</param>
     /// <param name="kept">The domain and the batch, open, what the reader gave and the form it was declared in.</param>
+    /// <param name="logger">Says which step of the sanitization failed, and at which item.</param>
     /// <param name="cancellationToken">Cancels the writing.</param>
-    internal static async Task<Keeping> StoreAsync(SubmissionIntake intake, Kept kept, CancellationToken cancellationToken)
+    internal static async Task<Keeping> StoreAsync(SubmissionIntake intake, Kept kept, ILogger logger, CancellationToken cancellationToken)
     {
         try
         {
@@ -76,12 +80,17 @@ internal static class SubmissionStoring
                 return Keeping.AnalysisUnavailable;
             }
 
-            var written = new List<(long Item, ReadUnit Unit)>();
             var positions = MaterialTexts.PositionsOf(kept.Accepted, kept.Material);
-            foreach (var (unit, declared, position) in kept.Material.Units.Zip(Accommodating.Of(kept.Material, kept.Form), positions))
+            if (SubmissionSanitizing.Of(intake.Sanitizer, decided, kept, positions, logger) is not { } sanitized)
+            {
+                return Keeping.SanitizationFailed;
+            }
+
+            var written = new List<(long Item, ReadUnit Unit)>();
+            foreach (var ((unit, declared, position), clean) in kept.Material.Units.Zip(Accommodating.Of(kept.Material, kept.Form), positions).Zip(sanitized))
             {
                 var accommodation = declared is null ? null : new ItemAccommodation(declared.FormCode, declared.Codes);
-                var text = DecidedItemTexts.Of(decided, position, unit.Text) with { Accommodation = accommodation };
+                var text = DecidedItemTexts.Of(decided, position, unit.Text, clean) with { Accommodation = accommodation };
                 written.Add((await intake.Writer!.AddItemTextAsync(kept.DomainId, kept.BatchId, text, cancellationToken).ConfigureAwait(false), unit));
             }
 
@@ -117,6 +126,7 @@ internal static class SubmissionStoring
         {
             Keeping.Cancelled => SubmissionCancelled,
             Keeping.AnalysisUnavailable => AnalysisUnavailable,
+            Keeping.SanitizationFailed => SanitizationFailed,
             Keeping.WriteFailed => WriteFailed,
             Keeping.Kept => throw new ArgumentOutOfRangeException(nameof(failed), failed, "A batch that was kept is not cleaned up."),
             _ => throw new ArgumentOutOfRangeException(nameof(failed), failed, "The writing ended in a way that names no motive."),
@@ -169,6 +179,7 @@ internal static class SubmissionStoring
         Keeping.WriteFailed => new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = WriteFailed, Batch = batch },
         Keeping.Cancelled => new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = SubmissionCancelled, Batch = batch },
         Keeping.AnalysisUnavailable => new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = AnalysisUnavailable, Batch = batch },
+        Keeping.SanitizationFailed => new SubmissionOutcome { Kind = SubmissionKind.Unavailable, Code = SanitizationFailed, Batch = batch },
         _ => throw new InvalidOperationException("The keeping of the file ended in a way the service does not answer."),
     };
 
@@ -189,6 +200,9 @@ internal static class SubmissionStoring
 
         /// <summary>A text of the material had no analysis; the batch was rejected as <see cref="AnalysisUnavailable" /> before any item was written, or was left open with the log.</summary>
         AnalysisUnavailable,
+
+        /// <summary>A step of the sanitization failed on a text; the batch was rejected as <see cref="SanitizationFailed" /> before any item was written, or was left open with the log.</summary>
+        SanitizationFailed,
     }
 
     /// <summary>The batch an item is written to, and what is written there.</summary>
@@ -197,7 +211,8 @@ internal static class SubmissionStoring
     /// <param name="Material">What the reader gave.</param>
     /// <param name="Form">The form the material is accommodated into, which says what each item declares it lost.</param>
     /// <param name="Accepted">The material as the conference of the form accepted it, whose texts are analysed.</param>
-    internal sealed record Kept(int DomainId, long BatchId, ReadMaterial Material, MaterialForm Form, Material Accepted);
+    /// <param name="AuthorId">The person who submitted the file, who the batch records as having sanitized it.</param>
+    internal sealed record Kept(int DomainId, long BatchId, ReadMaterial Material, MaterialForm Form, Material Accepted, long AuthorId);
 
     /// <summary>What keeps a file: the batches that accept and reject, the writer of the items, and the log that says a batch was left open.</summary>
     /// <param name="Batches">Accepts and rejects the batch.</param>
@@ -215,7 +230,8 @@ internal static class SubmissionStoring
         internal async Task<Keeping> KeepAsync(Kept kept, CancellationToken cancellationToken)
         {
             var closing = new BatchClosing(kept.DomainId, kept.BatchId, CustodyAuthor.System);
-            var stored = await StoreAsync(Intake, kept, cancellationToken).ConfigureAwait(false);
+            var stored = await StoreAsync(Intake, kept, Logger, cancellationToken).ConfigureAwait(false);
+            stored = stored == Keeping.Kept ? await SubmissionSanitizing.RecordedAsync(Batches, Intake.Sanitizer, kept, cancellationToken).ConfigureAwait(false) : stored;
             if (stored == Keeping.Kept)
             {
                 return stored;

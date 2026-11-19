@@ -71,6 +71,8 @@ public sealed class BatchDetailCountsTests
             ("conversation:2,document:1", "remove:1,pseudonymize:2,preserve:1", "2,1", "document:author,thread:1"),
             (Joined(counts.Forms), Joined(counts.Destinations), $"{counts.Marked},{counts.Firsts}", Joined(counts.Accommodations)));
         Assert.Equal("TABLE(count_kind text, count_code text, count_value bigint)", shape);
+        Assert.Equal(ItemTexts.Version, counts.SanitizationVersion);
+        Assert.Equal([new BatchStepCount("destinations", 0, 0)], counts.Steps);
     }
 
     private static StoredOccurrence Said(long item, int position) =>

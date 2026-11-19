@@ -7,6 +7,7 @@ using Core.Host.Tests.Analysis;
 using Core.Ingestion;
 using Core.Ingestion.Entrance;
 using Core.Ingestion.Reading;
+using Core.Ingestion.Sanitizing;
 using Core.Persistence.Content;
 using Core.Persistence.Content.Reading;
 using Core.Persistence.Content.Sealing;
@@ -17,7 +18,6 @@ using Core.Persistence.Ingestion;
 using Core.Persistence.Migrations;
 using Core.Persistence.Tests.Fixtures;
 using Core.Platform.Keys;
-using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
 
 namespace Core.Host.Tests.Submissions;
@@ -40,13 +40,14 @@ internal sealed class SubmissionWorld : IAsyncDisposable
         /*lang=json*/ """{"formato":"cdg-conversa/1","mensagens":[{"id":"a","remetente":"ZQXUM","instante":"2031-03-04T08:00:00Z","texto":"ZQXPRIMEIRO"},""" +
         /*lang=json*/ """{"id":"b","remetente":"ZQXDOIS","instante":"2031-03-04T08:01:00Z","texto":"ZQXSEGUNDO"}]}""";
 
-    private SubmissionWorld(ScratchDatabase database, NpgsqlDataSource dataSource, (SubmissionService Service, ProtectedContent Content, IngestionBatches Batches) service)
+    private SubmissionWorld(ScratchDatabase database, NpgsqlDataSource dataSource, (SubmissionService Service, ProtectedContent Content, IngestionBatches Batches, SubmissionLog Log) service)
     {
         Database = database;
         DataSource = dataSource;
         Service = service.Service;
         Content = service.Content;
         Batches = service.Batches;
+        Log = service.Log;
         Reader = new ProtectedContentReader(dataSource, service.Content, new CustodyChain(dataSource));
     }
 
@@ -55,6 +56,9 @@ internal sealed class SubmissionWorld : IAsyncDisposable
     internal NpgsqlDataSource DataSource { get; }
 
     internal SubmissionService Service { get; }
+
+    /// <summary>Every line the submissions of the world wrote.</summary>
+    internal SubmissionLog Log { get; }
 
     internal ProtectedContent Content { get; }
 
@@ -67,7 +71,8 @@ internal sealed class SubmissionWorld : IAsyncDisposable
     internal static string NameOf(int domain) => domain == Domain ? "zqx-domain-a" : "zqx-domain-b";
 
     internal static async Task<SubmissionWorld> CreateAsync(
-        long maxBytes = 1_000_000, bool gateOpen = true, IReadOnlyList<string>? labels = null, ReplicationRule? replication = null, int? attempts = null, IRecognizer? recognizer = null)
+        long maxBytes = 1_000_000, bool gateOpen = true, IReadOnlyList<string>? labels = null, ReplicationRule? replication = null, int? attempts = null, IRecognizer? recognizer = null,
+        Sanitizer? sanitizer = null)
     {
         var database = await ScratchDatabase.CreateAsync();
         _ = await database.MigrateAsync(EmbeddedMigrations.Load());
@@ -84,9 +89,11 @@ internal sealed class SubmissionWorld : IAsyncDisposable
         var conditions = OriginConditions.Of([Strictest, "zqx_media", Loosest]);
         var content = SealingOf(labels ?? ["texto-bruto/1/v1", "texto-bruto/2/v1"]);
         var intake = Intake(maxBytes, conditions, content, dataSource, replication, recognizer: recognizer);
+        intake = sanitizer is null ? intake : intake with { Sanitizer = sanitizer };
         var batches = attempts is { } made ? new IngestionBatches(dataSource, conditions, made) : new IngestionBatches(dataSource, conditions);
-        var service = new SubmissionService(intake, batches, dataSource, NullLogger.Instance);
-        return new SubmissionWorld(database, dataSource, (service, content, batches));
+        var log = new SubmissionLog();
+        var service = new SubmissionService(intake, batches, dataSource, log);
+        return new SubmissionWorld(database, dataSource, (service, content, batches, log));
     }
 
     /// <summary>The path of protected content over a synthetic key that holds the labels given, as the installation would load them.</summary>
@@ -109,7 +116,8 @@ internal sealed class SubmissionWorld : IAsyncDisposable
             content,
             new ContentWriter(dataSource, content),
             replication is null ? null : new ReplicationMarking(new ReplicationStore(dataSource), MarkingDerivation(), replication, marking ?? new TextBoundaries()),
-            recognizer ?? AnsweringRecognizer.Finding());
+            recognizer ?? AnsweringRecognizer.Finding(),
+            DeclaredSanitization.Sanitizer);
 
     private static KeyDerivation MarkingDerivation()
     {

@@ -95,7 +95,7 @@ public sealed class SubmissionCleanUpTests
     {
         var instant = new DateTimeOffset(2031, 3, 4, 8, 0, 0, TimeSpan.Zero);
         var material = new ReadMaterial([new ReadUnit("ZQXSEGREDO", "ZQXREMETENTE", instant, null, [])]);
-        return new SubmissionStoring.Kept(Domain, Batch, material, MaterialForm.Conversation, SubmissionWorld.AcceptedAs(MaterialForm.Conversation, material));
+        return new SubmissionStoring.Kept(Domain, Batch, material, MaterialForm.Conversation, SubmissionWorld.AcceptedAs(MaterialForm.Conversation, material), 9001);
     }
 
     private static BatchResult Collision() => new() { Outcome = BatchOutcome.NotRecorded, Refusal = new CustodyResult { Outcome = CustodyOutcome.Conflict, Refusal = "zqx" } };

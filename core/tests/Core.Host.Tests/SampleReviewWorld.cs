@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net;
+using Core.Boundary.Contracts;
 using Core.Host.Endpoints;
 using Core.Host.Operators;
 using Core.Host.Review;
@@ -80,10 +81,11 @@ internal sealed class SampleReviewWorld : IAsyncDisposable
     /// <param name="size">The size of the sample the installation declares; none when it declares none.</param>
     /// <param name="messages">How many messages the conversation of the batch has, which is how many items.</param>
     /// <param name="log">A provider the host also writes its log to, to judge what the routes write there; none when the test does not look at the log.</param>
+    /// <param name="recognizer">What the recognition finds in the texts of the batch; none when the world answers with the one every submission uses.</param>
     [SuppressMessage("Reliability", "CA2000", Justification = "The world takes the submissions and the host it is given and lets go of them with itself.")]
-    internal static async Task<SampleReviewWorld> StartAsync(int? size = 2, int messages = 4, ILoggerProvider? log = null)
+    internal static async Task<SampleReviewWorld> StartAsync(int? size = 2, int messages = 4, ILoggerProvider? log = null, IRecognizer? recognizer = null)
     {
-        var submissions = await SubmissionWorld.CreateAsync();
+        var submissions = await SubmissionWorld.CreateAsync(recognizer: recognizer);
         await submissions.Database.RunAsOwnerAsync(
             "INSERT INTO public.person (name, function_name) VALUES ('zqx-curadora', 'Curadoria do acervo'), ('zqx-colega', 'Curadoria do acervo'), "
             + "('zqx-curadora-sem-concessao', 'Curadoria do acervo')");

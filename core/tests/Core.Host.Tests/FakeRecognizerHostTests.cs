@@ -22,8 +22,8 @@ public sealed class FakeRecognizerHostTests
         var names = StartupCheckLog.Of(await host.StopAsync()).Select(check => check.Name);
         Assert.Equal(
             [
-                "RuntimeIdentifier", "Host:BundledFile", "MasterKey", "Tls", "Privilege", "OwnerWindow", "RlsForce", "RestoreWindow", "Serializable", "PgAudit", "ColumnRevoke",
-                "SchemaVersion", "Immutability", "ProtectedColumns", "DerivationLabels", "ContentEpochs", "ServerLog"
+                "RuntimeIdentifier", "Host:BundledFile", "SanitizationStepScopes", "MasterKey", "Tls", "Privilege", "OwnerWindow", "RlsForce", "RestoreWindow", "Serializable", "PgAudit",
+                "ColumnRevoke", "SchemaVersion", "Immutability", "ProtectedColumns", "DerivationLabels", "ContentEpochs", "ServerLog"
             ], names);
     }
 

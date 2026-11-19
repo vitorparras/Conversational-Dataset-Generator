@@ -6,8 +6,8 @@
 A sanitização roda síncrona na submissão, antes de gravar o item e, portanto, antes da amostra. Cada
 item nasce com o sanitizado e o rastro, cifrados, e com a versão da lista de passos. A tela do lote
 mostra a versão e só as contagens por passo; o rastro com as posições fica cifrado. A revisão por
-amostra lê o sanitizado, com o marcador no lugar do removido: o tipo, de uma lista curta e fixa
-(documento, contato, credencial e dado), nunca um caractere do original. Os protótipos são
+amostra lê o sanitizado, com o marcador no lugar do removido: o tipo, da lista fixa dos
+[contratos](contratos.md), nunca um caractere do original. Os protótipos são
 `lote.html` e `revisao.html`, em [protótipos](prototipos/index.html).
 
 ## Critérios de aceite

@@ -180,10 +180,10 @@
         <hr />
 
         <section id="parado" aria-labelledby="parado-estado">
-            <p id="parado-estado"><strong>Estado: parado.</strong> Nenhum item avançou dentro do prazo da posse. A posse vencida volta à fila sozinha; não há o que fazer nesta tela.</p>
+            <p id="parado-estado"><strong>Estado: parado.</strong> A posse vencida volta à fila sozinha; não há o que fazer nesta tela.</p>
             <div class="notice notice--error" role="alert">
                 <span class="notice__mark" aria-hidden="true">✕</span>
-                <p><span class="notice__kind">Erro:</span> A reexecução não avança desde a última atualização. Os itens já tratados ficam; o próximo é tentado de novo, e um item que falhar na última tentativa é recusado com o motivo.</p>
+                <p><span class="notice__kind">Erro:</span> Nenhum item foi concluído dentro do prazo da posse. Os itens já tratados ficam; o próximo é tentado de novo, e um item que falhar na última tentativa é recusado com o motivo.</p>
             </div>
             <section class="panel" aria-labelledby="parado-titulo">
                 <h2 id="parado-titulo">Reexecução de VERSAO_3 para VERSAO_4</h2>
@@ -209,11 +209,7 @@
         <hr />
 
         <section id="retomada" aria-labelledby="retomada-estado">
-            <p id="retomada-estado"><strong>Estado: retomada depois de uma queda.</strong> O processo reiniciou no meio. Na subida, o serviço retomou a fila de onde ela parou.</p>
-            <div class="notice notice--info" role="status">
-                <span class="notice__mark" aria-hidden="true">ℹ</span>
-                <p><span class="notice__kind">Aviso:</span> A reexecução foi retomada depois de um reinício. Os 80 itens tratados antes ficaram na versão nova; os 40 que faltam seguem na fila.</p>
-            </div>
+            <p id="retomada-estado"><strong>Estado: retomada depois de uma queda.</strong> O processo reiniciou no meio. Na subida, o serviço retomou a fila de onde ela parou; o reinício não fica gravado, e a tela mostra o mesmo que em andamento.</p>
             <section class="panel" aria-labelledby="retomada-titulo">
                 <h2 id="retomada-titulo">Reexecução de VERSAO_3 para VERSAO_4</h2>
                 <dl class="facts">
@@ -223,7 +219,7 @@
                     </div>
                     <div class="facts__item">
                         <dt>Tratados</dt>
-                        <dd>80 de 120, antes da queda</dd>
+                        <dd>80 de 120</dd>
                     </div>
                     <div class="facts__item">
                         <dt>Na fila</dt>
@@ -276,7 +272,7 @@
         </section>
 
         <section id="sem-permissao" aria-labelledby="sem-permissao-estado">
-            <p id="sem-permissao-estado"><strong>Estado: sem a função de Curadoria.</strong> Os dois endereços respondem 404 com a página de endereço inexistente, sem dizer que a tela existe; o menu não tem "Sanitização".</p>
+            <p id="sem-permissao-estado"><strong>Estado: sem a função de Curadoria.</strong> Os três endereços respondem 404 com a página de endereço inexistente, sem dizer que a tela existe; o menu não tem "Sanitização".</p>
             <section class="panel" aria-labelledby="sem-permissao-titulo">
                 <h2 id="sem-permissao-titulo">Página não encontrada</h2>
                 <p>Este endereço não leva a uma página. Confira se ele está completo ou volte ao início.</p>

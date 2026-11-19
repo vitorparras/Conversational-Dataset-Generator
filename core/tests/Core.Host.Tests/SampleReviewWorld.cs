@@ -106,7 +106,7 @@ internal sealed class SampleReviewWorld : IAsyncDisposable
             (new PersonRegistry(held), _ => Task.FromResult(new SampleTextAccess(new SampleTextReader(held, submissions.Content), null)), size));
         var host = await SessionedHost.StartAsync(
             services => (log is null ? services : services.AddSingleton(log))
-                .AddSingleton(staff).AddSingleton(new BatchRegister(held)).AddSingleton(new DomainListing(held)).AddSingleton(desk)
+                .AddSingleton(staff).AddSingleton(new BatchRegister(held)).AddSingleton(new BatchCounts(held)).AddSingleton(new DomainListing(held)).AddSingleton(desk)
                 .AddSingleton<DomainGrants>(new CuratorGrants([curator, colleague], SubmissionWorld.NameOf(SubmissionWorld.Domain))),
             routes =>
             {

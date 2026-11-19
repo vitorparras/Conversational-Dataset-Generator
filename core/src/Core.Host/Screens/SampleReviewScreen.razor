@@ -46,7 +46,7 @@ else
                 <Panel Id="@($"item-{item.Position}")" Title="@($"Item {Number(item.Position)} de {Number(Sample.Items.Count)}")">
                     @if (!Decided)
                     {
-                        <p class="sample__version">@SampleTexts.VersionOf(item.Cleaned)</p>
+                        <p class="sample__version">@SampleTexts.VersionOf(item.Cleaned, Version)</p>
                         <blockquote class="sample__text">@item.Text</blockquote>
                     }
                     @if (item.Reviewed)
@@ -144,6 +144,10 @@ else
     /// <summary>The mark of what became of the last step, from the address; none when the page was opened without one.</summary>
     [Parameter]
     public string? Result { get; set; }
+
+    /// <summary>The version of the list of steps that sanitized the items of the batch; none when it was not read.</summary>
+    [Parameter]
+    public string? Version { get; set; }
 
     private string? ResultNotice => Result switch
     {

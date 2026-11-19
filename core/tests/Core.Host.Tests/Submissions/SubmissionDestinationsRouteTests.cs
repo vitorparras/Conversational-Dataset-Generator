@@ -15,7 +15,8 @@ namespace Core.Host.Tests.Submissions;
 public sealed class SubmissionDestinationsRouteTests
 {
     private const string AnalysisUnavailable =
-        "O serviço de análise de linguagem não respondeu, e sem a análise não há como saber o que remover.";
+        "O serviço de análise de linguagem não respondeu, e sem a análise não há como saber o que remover. " +
+        "Nenhum item foi gravado. Envie o mesmo arquivo de novo quando o serviço voltar.";
 
     [DatabaseFact]
     public async Task RejectedForAnalysisShowsTheReasonOnTheBatchScreen()

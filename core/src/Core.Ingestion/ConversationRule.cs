@@ -46,12 +46,7 @@ internal sealed class ConversationRule : IFormRule
     private static List<Message> InOrder(ReadMaterial read)
     {
         var ordered = ConversationOrder.Sequence(read);
-        var placed = new int[ordered.Count];
-        for (var at = 0; at < ordered.Count; at++)
-        {
-            placed[ordered[at]] = at;
-        }
-
+        var placed = ConversationOrder.Placed(ordered);
         var messages = new List<Message>();
         foreach (var position in ordered)
         {

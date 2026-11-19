@@ -52,8 +52,7 @@ public sealed class BatchCounts
     }
 
     /// <summary>The rows a statement answers about the batch of the domain, each read by the function given.</summary>
-    private static async Task<List<T>> RowsAsync<T>(
-        ContentTransaction transaction, (string Statement, int Domain, long Batch) query, Func<IDataRecord, T> read, CancellationToken cancellationToken)
+    private static async Task<List<T>> RowsAsync<T>(ContentTransaction transaction, (string Statement, int Domain, long Batch) query, Func<IDataRecord, T> read, CancellationToken cancellationToken)
     {
         var command = transaction.CreateCommand(query.Statement);
         await using var commandScope = command.ConfigureAwait(false);
@@ -70,8 +69,7 @@ public sealed class BatchCounts
         return rows;
     }
 
-    private static (string Kind, BatchCount Count) Count(IDataRecord reader) =>
-        (reader.GetString(KindColumn), new BatchCount(reader.GetString(CodeColumn), reader.GetInt64(ValueColumn)));
+    private static (string Kind, BatchCount Count) Count(IDataRecord reader) => (reader.GetString(KindColumn), new BatchCount(reader.GetString(CodeColumn), reader.GetInt64(ValueColumn)));
 
     private static (string Version, BatchStepCount Count) Step(IDataRecord reader) =>
         (reader.GetString(KindColumn), new BatchStepCount(reader.GetString(CodeColumn), reader.GetInt64(ValueColumn), reader.GetInt64(ItemsColumn)));

@@ -27,6 +27,5 @@ public sealed record SanitizedText
     public IReadOnlyList<Occurrence> Pseudonyms { get; internal init; } = [];
 
     /// <summary>The version and the count of each step; never the text nor a position.</summary>
-    public override string ToString() =>
-        $"SanitizedText {{ Version = {Version}, Steps = {string.Join(", ", Report.Select(step => $"{step.Name}: {step.Count}"))} }}";
+    public override string ToString() => $"SanitizedText {{ Version = {Version}, Steps = {string.Join(", ", Report.Select(step => $"{step.Name}: {step.Count}"))} }}";
 }

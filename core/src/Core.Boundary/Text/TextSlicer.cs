@@ -37,6 +37,5 @@ internal static class TextSlicer
         return Cut(text, start, end);
     }
 
-    private static string Cut(string text, int start, int end) =>
-        text[OffsetConverter.ToUtf16Index(text, start)..OffsetConverter.ToUtf16Index(text, end)];
+    private static string Cut(string text, int start, int end) => text[OffsetConverter.ToUtf16Index(text, start)..OffsetConverter.ToUtf16Index(text, end)];
 }

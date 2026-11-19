@@ -35,6 +35,16 @@ public sealed class SanitizationDeterminismTests
         });
 
     [Fact]
+    public void KnownMaterialGivesTheSameWrittenTextInEveryProcessThatRunsIt()
+    {
+        const string raw = "token Kq7Zx9 do Wvkt é \U0001F600 fim";
+
+        var sanitized = Sanitized(OfDestinations(), raw, Credential(6, 12), Data(10, 15), Pseudonymized(16, 20), Preserved(21, 23), Data(24, 25));
+
+        Assert.Equal((DestinationsOnly, "token [credencial] Wvkt é [dado] fim"), (sanitized.Version, sanitized.Text));
+    }
+
+    [Fact]
     public void TheVersionIsDerivedFromTheDeclaredStepsAloneAndNotFromTheProcess() =>
         Assert.Equal(DestinationsOnly, new SanitizationSteps([new DestinationsStep()]).Version);
 

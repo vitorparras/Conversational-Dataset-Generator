@@ -44,6 +44,17 @@ public sealed class DestinationsStepTests
     }
 
     [Fact]
+    public void OccurrencesThatOnlyTouchLeaveApartAndKeepEachItsDestination()
+    {
+        var beside = Sanitized("chave QXZ7Wvkt fim", Credential(6, 10), Pseudonymized(10, 14));
+        var removedTwice = Sanitized("QXZ7Wvkt", Credential(0, 4), Data(4, 8));
+
+        var pseudonym = Assert.Single(beside.Pseudonyms);
+        Assert.Equal(("chave [credencial]Wvkt fim", "[credencial][dado]"), (beside.Text, removedTwice.Text));
+        Assert.Equal("Wvkt", Boundaries.Slice(beside.Text, pseudonym));
+    }
+
+    [Fact]
     public void UnmarkedProperNameIsLeftAsWritten()
     {
         const string raw = "Zqvx e Wvkt, o Kvrtinho, foram";

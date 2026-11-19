@@ -80,6 +80,7 @@ public sealed class SubmissionDestinationsTests
         var keeping = await new SubmissionStoring.Keeper(world.Batches, intake, NullLogger.Instance).KeepAsync(kept, Token);
 
         Assert.Equal((SubmissionStoring.Keeping.Kept, 2L), (keeping, await world.AccommodatedRowsAsync()));
+        Assert.Equal(["document/author,instant", "document/author,instant"], await world.StoredAsync("SELECT accommodated_into || '/' || losses FROM content.item_text ORDER BY id"));
         Assert.Equal(
             [(0, 12, 27, "PERSON", OccurrenceDestination.Pseudonymize), (1, 0, 15, "PERSON", OccurrenceDestination.Pseudonymize)],
             await OccurrencesAsync(world, opened.BatchId.Value));
@@ -106,6 +107,22 @@ public sealed class SubmissionDestinationsTests
         var outcome = await world.SubmitAsync(SubmissionWorld.Request());
         var detail = await world.Service.DetailAsync(Granted, outcome.Batch!.Value, Token);
 
+        Assert.Equal(
+            (SubmissionKind.Unavailable, AnalysisUnavailable, BatchState.Rejected, AnalysisUnavailable, 0L),
+            (outcome.Kind, outcome.Code, detail!.State, detail.Reason, await world.ItemRowsAsync()));
+    }
+
+    [DatabaseFact]
+    public async Task AnalysisStopsAtTheFirstTextLeftUnanalyzed()
+    {
+        var recognizer = new FirstOnlyRecognizer();
+        await using var world = await SubmissionWorld.CreateAsync(recognizer: recognizer);
+        var content = SubmissionWorld.Messages(("ZQXUM", "ZQXUM ZQX-FAKE-PERSON"), ("ZQXDOIS", "ZQXDOIS ZQX-FAKE-PERSON"), ("ZQXTRES", "ZQXTRES ZQX-FAKE-PERSON"));
+
+        var outcome = await world.SubmitAsync(SubmissionWorld.Request(content));
+        var detail = await world.Service.DetailAsync(Granted, outcome.Batch!.Value, Token);
+
+        Assert.Equal(["ZQXUM ZQX-FAKE-PERSON", "ZQXDOIS ZQX-FAKE-PERSON"], recognizer.Asked.Select(request => request.Text));
         Assert.Equal(
             (SubmissionKind.Unavailable, AnalysisUnavailable, BatchState.Rejected, AnalysisUnavailable, 0L),
             (outcome.Kind, outcome.Code, detail!.State, detail.Reason, await world.ItemRowsAsync()));
@@ -142,6 +159,18 @@ public sealed class SubmissionDestinationsTests
         }
 
         return found;
+    }
+
+    /// <summary>A recognizer that analyzes the first text it is asked for and cannot reach the service for every text after it, keeping the requests it was asked.</summary>
+    private sealed class FirstOnlyRecognizer : IRecognizer
+    {
+        private readonly AnsweringRecognizer first = AnsweringRecognizer.Finding("PERSON");
+        private readonly AnsweringRecognizer rest = AnsweringRecognizer.Unavailable(UnavailabilityReason.ConnectionRefused);
+
+        public IEnumerable<AnalysisRequest> Asked => first.Asked.Concat(rest.Asked);
+
+        public Task<RecognitionOutcome> RecognizeAsync(AnalysisRequest request, CancellationToken cancellationToken) =>
+            (first.Asked.Count == 0 ? first : rest).RecognizeAsync(request, cancellationToken);
     }
 
     /// <summary>A recognizer that cancels the submission when it is first asked, and then answers as the fake one does to a request whose token is cancelled.</summary>

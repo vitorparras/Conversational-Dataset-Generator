@@ -25,5 +25,6 @@ public sealed record DestinationResult
     }
 
     /// <summary>A text was not analysed, for the reason given, and no destination is guessed in its place.</summary>
-    internal static DestinationResult Unavailable(UnavailabilityReason reason) => new(null, reason);
+    /// <param name="reason">Why the service gave no analysis of the text.</param>
+    public static DestinationResult Unavailable(UnavailabilityReason reason) => new(null, reason);
 }

@@ -6,7 +6,7 @@ namespace Core.Host.Submissions;
 
 /// <summary>
 /// The analysis of a file before any of its items is written: one request per text of the material, in the order the material gives them, each in Portuguese and under a new
-/// opaque reference, and the destinations decided over every answer; a text with no analysis leaves the whole material undecided.
+/// opaque reference, and the destinations decided over every answer; the first text with no analysis leaves the whole material undecided, and no text after it is asked for.
 /// </summary>
 internal static class SubmissionAnalysis
 {
@@ -24,7 +24,13 @@ internal static class SubmissionAnalysis
         foreach (var text in MaterialTexts.Of(material))
         {
             var request = new AnalysisRequest(text, Language, Guid.NewGuid().ToString(), ContractVersion.Current);
-            outcomes.Add(await recognizer.RecognizeAsync(request, cancellationToken).ConfigureAwait(false));
+            var outcome = await recognizer.RecognizeAsync(request, cancellationToken).ConfigureAwait(false);
+            if (outcome.Response is null)
+            {
+                return DestinationResult.Unavailable(outcome.Reason!.Value);
+            }
+
+            outcomes.Add(outcome);
         }
 
         return DecidedMaterial.Decide(material, outcomes);

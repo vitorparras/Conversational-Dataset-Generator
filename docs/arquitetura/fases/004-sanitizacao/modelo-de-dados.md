@@ -2,11 +2,11 @@
 
 > Norma pendente. 2026-11-15. Os números são provisórios: o número se fixa quando o PR abre.
 
-A última migração do main é a 0054
-(`core/src/Core.Persistence/Migrations/Sql/0054-batch-review.sql`), e o pacote da fase 3 reserva
-da 0055 à 0059. As cinco abaixo seguem dela, sem lacuna; se outra entrar antes, todas andam juntas.
-A fatia A não tem migração: o motivo analysis_unavailable cabe na regra de motivo da 0034
-(linha 57), e as ocorrências já têm coluna (0052, linha 7).
+A última migração do main é a 0054 (`core/src/Core.Persistence/Migrations/Sql`), e a fase 3
+reserva da 0055 à 0059. As cinco abaixo seguem sem lacuna e andam juntas se outra entrar antes. A
+fatia A não tem migração: analysis_unavailable cabe na regra de motivo da 0034 (linha 57), e as
+ocorrências já têm coluna (0052, linha 7). C e D também não: um passo novo muda a versão, e a 0060
+guarda a versão nova na primeira vez.
 
 ## Fatia B
 
@@ -42,15 +42,14 @@ batch_accepted_only esconde.
 
 ## Fatia E
 
-**`0064-sanitization-rerun`.** O GRANT de UPDATE do sanitizado e das três colunas da 0061, e um
-gatilho que só deixa a troca passar quando a mesma transação gravou o evento item_resanitized do
-item, e nunca num item esvaziado. Entram os passos sanitization_rerun (um por pedido) e
-item_resanitized (um por item), e os motivos sanitization_identical, sanitization_replaced e
-sanitization_refused.
-
-## Fatias C e D
-
-Sem migração: um passo novo muda a versão, e a 0060 guarda a versão nova na primeira vez.
+**`0064-sanitization-rerun`.** A fila: content.sanitization_rerun, o pedido (versão alvo, quem pediu
+e quando), e content.sanitization_rerun_item, com chave (pedido, item), estado (na fila, com posse
+ou concluído), prazo da posse, tentativas e resultado; um índice único parcial deixa o item em um
+só pedido aberto, e pedido repetido não o enfileira de novo. A troca: o GRANT de UPDATE do
+sanitizado e das três colunas da 0061, e um gatilho que só a deixa passar quando a mesma transação
+gravou o evento item_resanitized e concluiu o item da fila, e nunca num item esvaziado. A cadeia: os
+passos sanitization_rerun (um por pedido) e item_resanitized (um por item), e os motivos
+sanitization_identical, sanitization_replaced e sanitization_refused.
 
 ## O que não muda
 

@@ -36,12 +36,15 @@
 
         <section class="panel" aria-labelledby="tela-reexecucao-titulo">
             <h2 id="tela-reexecucao-titulo"><a href="reexecucao.html">Sanitização · reexecução sobre o bruto</a></h2>
-            <p>Rotas GET /sanitizacao e GET e POST /sanitizacao/reexecutar. Fatia E, só a Curadoria.</p>
+            <p>Rotas GET /sanitizacao, GET e POST /sanitizacao/reexecutar e GET /sanitizacao/reexecucoes/{id}, o acompanhamento. A reexecução roda em segundo plano, com fila. Fatia E, só a Curadoria.</p>
             <ul>
                 <li><a href="reexecucao.html#em-dia">Nada a reexecutar</a></li>
                 <li><a href="reexecucao.html#versao-nova">Versão nova disponível</a></li>
                 <li><a href="reexecucao.html#confirmacao">Confirmar a reexecução</a></li>
-                <li><a href="reexecucao.html#interrompida">Reexecução interrompida</a></li>
+                <li><a href="reexecucao.html#na-fila">Na fila</a></li>
+                <li><a href="reexecucao.html#em-andamento">Em andamento</a></li>
+                <li><a href="reexecucao.html#parado">Parado</a></li>
+                <li><a href="reexecucao.html#retomada">Retomada depois de uma queda</a></li>
                 <li><a href="reexecucao.html#concluida">Reexecução concluída</a></li>
                 <li><a href="reexecucao.html#sem-permissao">Sem a função de Curadoria</a></li>
             </ul>
@@ -49,7 +52,7 @@
 
         <section class="panel" aria-labelledby="tela-envio-titulo">
             <h2 id="tela-envio-titulo"><a href="../../003-ingestao/prototipos/submissao.html">I1 · Enviar material</a></h2>
-            <p>Sem mudança nesta fase, salvo a decisão pendente do dono sobre o idioma da análise: se ele for um campo do envio, o protótipo da I1 ganha o campo antes do código da fatia A.</p>
+            <p>Sem mudança nesta fase. O idioma da análise é fixo em pt-BR: a I1 não ganha campo de idioma e não há escolha por domínio.</p>
         </section>
     </main>
 </body>

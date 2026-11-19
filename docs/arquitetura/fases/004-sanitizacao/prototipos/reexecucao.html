@@ -8,9 +8,12 @@
     <link rel="stylesheet" href="../../../../../core/src/Core.Host/Screens/screens.css" />
 </head>
 <!--
-    Protótipo da tela nova da fatia E: GET /sanitizacao, a situação por versão da lista de passos, e
-    GET e POST /sanitizacao/reexecutar, a confirmação numa página própria, como a do esvaziamento.
-    Só a Curadoria chega aqui; para qualquer outra função o endereço responde a página não
+    Protótipo da tela nova da fatia E: GET /sanitizacao, a situação por versão da lista de passos;
+    GET e POST /sanitizacao/reexecutar, a confirmação numa página própria, como a do esvaziamento; e
+    GET /sanitizacao/reexecucoes/{id}, o acompanhamento. A confirmação só enfileira os itens e
+    redireciona ao acompanhamento; um serviço em segundo plano trata a fila, item a item. Sem script,
+    o acompanhamento se atualiza pelo link "Atualizar", que recarrega a página.
+    Só a Curadoria chega aqui; para qualquer outra função os endereços respondem a página não
     encontrada, igual à de um endereço que não existe. Nenhum texto de item aparece: só números,
     versões, a posição do item e o motivo de cada recusa.
     Na tela real só um estado aparece por vez; aqui os estados vêm em sequência, cada um na sua âncora.
@@ -45,14 +48,17 @@
     </header>
     <main id="content" class="page" tabindex="-1">
         <h1>Sanitização</h1>
-        <p class="lead">Quantos itens de lotes aceitos estão em cada versão da lista de passos, e a reexecução sobre o texto bruto quando há versão nova. O texto bruto nunca muda; só o sanitizado é trocado.</p>
+        <p class="lead">Quantos itens de lotes aceitos estão em cada versão da lista de passos, e a reexecução sobre o texto bruto quando há versão nova. A reexecução roda em segundo plano: você confirma, os itens entram na fila e esta tela acompanha. O texto bruto nunca muda; só o sanitizado é trocado.</p>
 
         <nav aria-label="Estados do protótipo">
             <ul>
                 <li><a href="#em-dia">Nada a reexecutar</a></li>
                 <li><a href="#versao-nova">Versão nova disponível</a></li>
                 <li><a href="#confirmacao">Confirmar a reexecução</a></li>
-                <li><a href="#interrompida">Reexecução interrompida</a></li>
+                <li><a href="#na-fila">Na fila</a></li>
+                <li><a href="#em-andamento">Em andamento</a></li>
+                <li><a href="#parado">Parado</a></li>
+                <li><a href="#retomada">Retomada depois de uma queda</a></li>
                 <li><a href="#concluida">Reexecução concluída</a></li>
                 <li><a href="#sem-permissao">Sem a função de Curadoria</a></li>
             </ul>
@@ -108,14 +114,14 @@
         <hr />
 
         <section id="confirmacao" aria-labelledby="confirmacao-estado">
-            <p id="confirmacao-estado"><strong>Estado: confirmar a reexecução.</strong> Página própria, GET /sanitizacao/reexecutar; o envio é o POST do mesmo endereço.</p>
+            <p id="confirmacao-estado"><strong>Estado: confirmar a reexecução.</strong> Página própria, GET /sanitizacao/reexecutar; o envio é o POST do mesmo endereço, que só enfileira e redireciona ao acompanhamento.</p>
             <section class="panel" aria-labelledby="confirmacao-titulo">
                 <h2 id="confirmacao-titulo">Confirmar a reexecução</h2>
-                <p>Os <strong>120</strong> itens de DOMINIO_A na versão VERSAO_3 voltam a ser sanitizados a partir do texto bruto, pela versão VERSAO_4. O texto sanitizado de cada um é trocado; o bruto não muda. Item esvaziado, ou com a chave perdida, é recusado com o motivo, e o resto segue.</p>
-                <p>A reexecução trata os itens em blocos. Se ela parar no meio, os já tratados ficam, e esta tela oferece continuar.</p>
-                <form class="form" method="get" action="reexecucao.html#concluida">
+                <p>Os <strong>120</strong> itens de DOMINIO_A na versão VERSAO_3 entram na fila para voltar a ser sanitizados a partir do texto bruto, pela versão VERSAO_4. O texto sanitizado de cada um é trocado; o bruto não muda. Item esvaziado, ou com a chave perdida, é recusado com o motivo, e o resto segue.</p>
+                <p>A reexecução roda em segundo plano: você pode sair desta tela. Um item já na fila de outro pedido não entra de novo.</p>
+                <form class="form" method="get" action="reexecucao.html#na-fila">
                     <div class="actions">
-                        <button id="reexecutar" class="button button--primary" type="submit">Reexecutar 120 itens</button>
+                        <button id="reexecutar" class="button button--primary" type="submit">Pôr 120 itens na fila</button>
                         <a class="button button--quiet" href="#versao-nova">Não reexecutar</a>
                     </div>
                 </form>
@@ -123,33 +129,116 @@
         </section>
         <hr />
 
-        <section id="interrompida" aria-labelledby="interrompida-estado">
-            <p id="interrompida-estado"><strong>Estado: reexecução interrompida.</strong> O banco caiu no meio; cada item tratado tem texto e versão da mesma passagem.</p>
-            <div class="notice notice--error" role="alert">
-                <span class="notice__mark" aria-hidden="true">✕</span>
-                <p><span class="notice__kind">Erro:</span> A reexecução parou antes do fim. Os 80 itens já tratados ficaram na versão nova; os 40 que faltam seguem na anterior.</p>
-            </div>
-            <section class="panel" aria-labelledby="interrompida-titulo">
-                <h2 id="interrompida-titulo">Situação em DOMINIO_A</h2>
+        <section id="na-fila" aria-labelledby="na-fila-estado">
+            <p id="na-fila-estado"><strong>Estado: na fila.</strong> Para onde o POST redireciona, GET /sanitizacao/reexecucoes/{id}. Nenhum item foi tratado ainda.</p>
+            <section class="panel" aria-labelledby="na-fila-titulo">
+                <h2 id="na-fila-titulo">Reexecução de VERSAO_3 para VERSAO_4</h2>
                 <dl class="facts">
+                    <div class="facts__item">
+                        <dt>Situação</dt>
+                        <dd>Na fila</dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Na fila</dt>
+                        <dd>120 de 120</dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Tratados</dt>
+                        <dd>0</dd>
+                    </div>
+                </dl>
+            </section>
+            <div class="actions">
+                <a class="button button--secondary" href="#na-fila">Atualizar</a>
+            </div>
+        </section>
+        <hr />
+
+        <section id="em-andamento" aria-labelledby="em-andamento-estado">
+            <p id="em-andamento-estado"><strong>Estado: em andamento.</strong> O serviço em segundo plano trata um item por vez; cada item tratado tem texto e versão da mesma passagem.</p>
+            <section class="panel" aria-labelledby="em-andamento-titulo">
+                <h2 id="em-andamento-titulo">Reexecução de VERSAO_3 para VERSAO_4</h2>
+                <dl class="facts">
+                    <div class="facts__item">
+                        <dt>Situação</dt>
+                        <dd>Em andamento</dd>
+                    </div>
                     <div class="facts__item">
                         <dt>Tratados</dt>
                         <dd>80 de 120</dd>
                     </div>
                     <div class="facts__item">
-                        <dt>Faltam</dt>
-                        <dd>40, na versão VERSAO_3</dd>
+                        <dt>Na fila</dt>
+                        <dd>40</dd>
                     </div>
                 </dl>
             </section>
             <div class="actions">
-                <a class="button button--primary" href="#confirmacao">Continuar a reexecução</a>
+                <a class="button button--secondary" href="#em-andamento">Atualizar</a>
+            </div>
+        </section>
+        <hr />
+
+        <section id="parado" aria-labelledby="parado-estado">
+            <p id="parado-estado"><strong>Estado: parado.</strong> Nenhum item avançou dentro do prazo da posse. A posse vencida volta à fila sozinha; não há o que fazer nesta tela.</p>
+            <div class="notice notice--error" role="alert">
+                <span class="notice__mark" aria-hidden="true">✕</span>
+                <p><span class="notice__kind">Erro:</span> A reexecução não avança desde a última atualização. Os itens já tratados ficam; o próximo é tentado de novo, e um item que falhar na última tentativa é recusado com o motivo.</p>
+            </div>
+            <section class="panel" aria-labelledby="parado-titulo">
+                <h2 id="parado-titulo">Reexecução de VERSAO_3 para VERSAO_4</h2>
+                <dl class="facts">
+                    <div class="facts__item">
+                        <dt>Situação</dt>
+                        <dd>Parado</dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Tratados</dt>
+                        <dd>80 de 120</dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Na fila</dt>
+                        <dd>40, a posse vencida volta à fila</dd>
+                    </div>
+                </dl>
+            </section>
+            <div class="actions">
+                <a class="button button--secondary" href="#parado">Atualizar</a>
+            </div>
+        </section>
+        <hr />
+
+        <section id="retomada" aria-labelledby="retomada-estado">
+            <p id="retomada-estado"><strong>Estado: retomada depois de uma queda.</strong> O processo reiniciou no meio. Na subida, o serviço retomou a fila de onde ela parou.</p>
+            <div class="notice notice--info" role="status">
+                <span class="notice__mark" aria-hidden="true">ℹ</span>
+                <p><span class="notice__kind">Aviso:</span> A reexecução foi retomada depois de um reinício. Os 80 itens tratados antes ficaram na versão nova; os 40 que faltam seguem na fila.</p>
+            </div>
+            <section class="panel" aria-labelledby="retomada-titulo">
+                <h2 id="retomada-titulo">Reexecução de VERSAO_3 para VERSAO_4</h2>
+                <dl class="facts">
+                    <div class="facts__item">
+                        <dt>Situação</dt>
+                        <dd>Em andamento</dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Tratados</dt>
+                        <dd>80 de 120, antes da queda</dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Na fila</dt>
+                        <dd>40</dd>
+                    </div>
+                </dl>
+            </section>
+            <div class="actions">
+                <a class="button button--secondary" href="#retomada">Atualizar</a>
             </div>
         </section>
         <hr />
 
         <section id="concluida" aria-labelledby="concluida-estado">
-            <p id="concluida-estado"><strong>Estado: reexecução concluída.</strong> Para onde o POST redireciona.</p>
+            <p id="concluida-estado"><strong>Estado: reexecução concluída.</strong> O último estado do acompanhamento; não há mais link para atualizar.</p>
             <div class="notice notice--success" role="status">
                 <span class="notice__mark" aria-hidden="true">✓</span>
                 <p><span class="notice__kind">Concluído:</span> 120 itens tratados pela versão VERSAO_4.</p>
@@ -185,7 +274,6 @@
                 <a class="button button--secondary" href="#em-dia">Voltar para a situação</a>
             </div>
         </section>
-        <hr />
 
         <section id="sem-permissao" aria-labelledby="sem-permissao-estado">
             <p id="sem-permissao-estado"><strong>Estado: sem a função de Curadoria.</strong> Os dois endereços respondem 404 com a página de endereço inexistente, sem dizer que a tela existe; o menu não tem "Sanitização".</p>

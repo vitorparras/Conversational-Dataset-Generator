@@ -18,6 +18,8 @@ public sealed class SanitizationStorageTests
     private const string Trail = "SELECT sanitization_trail FROM content.item_text WHERE id = @id";
     private const string CheckViolation = "23514";
     private const string KeptWhoeverWrites = "CE004";
+    private const string Empty = "UPDATE content.item_text SET emptied_at = now(), raw_text = NULL, sanitized_text = NULL, pseudonymized_text = NULL, "
+        + "occurrences = NULL, dek_epoch = NULL, dek_wrapped = NULL, sanitization_version = NULL, sanitization_trail = NULL, sanitization_counts = NULL WHERE id = @id RETURNING id";
     private const string SanitizedEvent = "INSERT INTO public.custody_event (actor_person_id, actor_system, item_kind, item_id, step, reason, reference) "
         + "VALUES (NULL, true, 'ingestion_batch', 1, 'batch_sanitized', 'administrative_act', @reference) RETURNING sequence";
 
@@ -142,5 +144,46 @@ public sealed class SanitizationStorageTests
             1, "SELECT string_agg(sanitization_version || '|' || step_name || '|' || step_edits || '|' || items_changed, ',') FROM public.batch_sanitization_counts(1, 1)");
 
         Assert.Equal($"{ItemTexts.Version}|destinations|3|1", counts);
+    }
+
+    [DatabaseFact]
+    public async Task BatchSanitizationCountsLeaveOutOtherBatchesAndEmptiedItems()
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        var second = (long)(await world.OwnerInDomainAfterAsync(
+            "ALTER TABLE content.ingestion_batch DISABLE TRIGGER batch_is_born_open; ALTER TABLE content.ingestion_batch DISABLE TRIGGER batch_open_needs_event",
+            1,
+            "INSERT INTO content.ingestion_batch (domain_id, state, opened_by, condition, closed_at) SELECT 1, 'accepted', min(id), 'restrita', now() FROM public.person RETURNING id"))!;
+        static NewItemText Counted(int edits) => new(Raw, null, []) { Sanitization = ItemTexts.Sanitization(Sanitized) with { Counts = [edits] } };
+        _ = await world.RealWriter.AddItemTextAsync(1, 1, Counted(3), TestContext.Current.CancellationToken);
+        _ = await world.RealWriter.AddItemTextAsync(1, second, Counted(5), TestContext.Current.CancellationToken);
+        var emptied = await world.RealWriter.AddItemTextAsync(1, 1, Counted(7), TestContext.Current.CancellationToken);
+        _ = await world.OwnerInDomainAfterAsync(ContentWorld.EmptiedEvent, 1, Empty, ("id", emptied));
+
+        const string Counts = "SELECT string_agg(step_edits || '|' || items_changed, ',') FROM public.batch_sanitization_counts(@batch, 1)";
+        var first = await world.InDomainAsync(1, Counts, ("batch", 1L));
+        var other = await world.InDomainAsync(1, Counts, ("batch", second));
+
+        Assert.Equal(("3|1", "5|1"), (first, other));
+    }
+
+    [DatabaseTheory]
+    [InlineData("sanitization_version", "@version", "item_text_sanitization_together")]
+    [InlineData("sanitization_trail", "decode('d4', 'hex')", "item_text_sanitization_together")]
+    [InlineData("sanitization_counts", "'{1}'", "item_text_sanitization_together")]
+    [InlineData("sanitized_text, sanitization_version, sanitization_trail", "decode('b2', 'hex'), @version, decode('d4', 'hex')", "item_text_sanitization_together")]
+    [InlineData("sanitized_text, sanitization_version, sanitization_counts", "decode('b2', 'hex'), @version, '{1}'", "item_text_sanitization_together")]
+    [InlineData("sanitized_text, sanitization_version, sanitization_trail, sanitization_counts", "decode('b2', 'hex'), @version, decode('d4', 'hex'), '{-1}'", "item_text_sanitization_counts")]
+    [InlineData("sanitized_text, sanitization_version, sanitization_trail, sanitization_counts", "decode('b2', 'hex'), @version, decode('d4', 'hex'), '{NULL}'", "item_text_sanitization_counts")]
+    public async Task SanitizationColumnsMissingOneOrCountingBelowZeroAreRefused(string columns, string values, string constraint)
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        _ = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw, Sanitized), TestContext.Current.CancellationToken);
+        var insert = $"INSERT INTO content.item_text (domain_id, batch_id, raw_text, dek_epoch, dek_wrapped, {columns}) "
+            + $"VALUES (1, 1, decode('a1', 'hex'), 1, decode('c3', 'hex'), {values}) RETURNING id";
+
+        var refused = await Assert.ThrowsAsync<PostgresException>(() => world.OwnerInDomainAsync(1, insert, ("version", ItemTexts.Version)));
+
+        Assert.Equal((CheckViolation, constraint), (refused.SqlState, refused.ConstraintName));
     }
 }

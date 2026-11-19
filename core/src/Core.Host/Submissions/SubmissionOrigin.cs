@@ -1,4 +1,5 @@
 using Core.Ingestion;
+using Core.Ingestion.Entrance;
 using Core.Persistence.Ingestion;
 
 namespace Core.Host.Submissions;
@@ -54,15 +55,18 @@ internal static class SubmissionOrigin
     /// </summary>
     /// <param name="intake">What takes the file in, with the path that seals protected content.</param>
     /// <param name="request">The request, already valid.</param>
-    /// <param name="receipt">What the submission brought.</param>
-    internal static BatchOpening? Opening(SubmissionIntake intake, SubmissionRequest request, SubmissionReceipt receipt) =>
+    /// <param name="received">What the barrier answered, whose receipt the batch keeps.</param>
+    /// <param name="warning">What the name received carries that is worth a warning; none when nothing is.</param>
+    internal static BatchOpening? Opening(SubmissionIntake intake, SubmissionRequest request, SubmissionResult received, string? warning) =>
         Declaration(intake, request) is { } origin
-            ? new BatchOpening(request.DomainId, request.AuthorId, request.Condition, new SubmissionOpening(receipt, origin))
+            ? new BatchOpening(request.DomainId, request.AuthorId, request.Condition, new SubmissionOpening(ReceiptOf(received, warning), origin))
             {
                 DeclaredForm = LossCodes.Code(request.DeclaredForm),
                 SourceForm = SourceOf(intake, request),
             }
             : null;
+
+    private static SubmissionReceipt ReceiptOf(SubmissionResult received, string? warning) => new(received.Id.ToString(), received.BytesRead, received.Digest, warning);
 
     /// <summary>The code of the form the declared format carries; none when the version has no reader of it.</summary>
     private static string? SourceOf(SubmissionIntake intake, SubmissionRequest request) =>

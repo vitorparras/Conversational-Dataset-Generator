@@ -7,30 +7,26 @@ namespace Core.Host.Submissions;
 /// <summary>Why a file received is turned back, if it is: the barrier first, then the conference of the material against the form declared.</summary>
 internal static class SubmissionJudgement
 {
-    /// <summary>The reason the barrier or the conference gives, or null when the file holds up to both.</summary>
-    /// <param name="intake">The conference of the forms.</param>
-    /// <param name="received">What the barrier answered.</param>
-    /// <param name="form">The form the person declared.</param>
-    internal static SubmissionReason? Of(SubmissionIntake intake, SubmissionResult received, MaterialForm form) =>
-        Barred(received) ?? (intake.Conference.Confer(form, ReadOutcome.Read(received.Material!)).Refusal is { } refused ? ReasonOf(refused) : null);
-
-    /// <summary>What is kept of a file that was not turned back: what the reader gave and, for the analysis to read, the material as the conference of the form declared accepts it.</summary>
-    /// <param name="intake">The conference of the forms.</param>
-    /// <param name="request">Where the file goes and the form declared.</param>
-    /// <param name="received">What the barrier answered, read whole.</param>
-    /// <param name="batch">The batch the file was opened as.</param>
-    internal static SubmissionStoring.Kept KeptOf(SubmissionIntake intake, SubmissionRequest request, SubmissionResult received, long batch)
-    {
-        var accepted = intake.Conference.Confer(request.DeclaredForm, ReadOutcome.Read(received.Material!)).Accepted!;
-        return new SubmissionStoring.Kept(request.DomainId, batch, received.Material!, request.DeclaredForm, accepted);
-    }
-
-    /// <summary>Why the file is turned back before the digest is looked at: the barrier and the form, then the key that seals; none when it holds up to them.</summary>
+    /// <summary>
+    /// Why the file is turned back before the digest is looked at: the barrier and the form, then the key that seals; and the material as the one conference of the form declared
+    /// accepts it, for the analysis to read; no reason when it holds up to them all.
+    /// </summary>
     /// <param name="intake">The conference of the forms and the path that seals.</param>
     /// <param name="request">Where the file goes and the form declared.</param>
     /// <param name="received">What the barrier answered.</param>
-    internal static SubmissionReason? Turned(SubmissionIntake intake, SubmissionRequest request, SubmissionResult received) =>
-        Of(intake, received, request.DeclaredForm) ?? SubmissionStoring.Unsealed(intake.Sealing);
+    internal static Judged Turned(SubmissionIntake intake, SubmissionRequest request, SubmissionResult received)
+    {
+        var judged = Of(intake, received, request.DeclaredForm);
+        return judged.Reason is null && SubmissionStoring.Unsealed(intake.Sealing) is { } unsealed ? judged with { Reason = unsealed } : judged;
+    }
+
+    /// <summary>What is kept of a file that was not turned back: what the reader gave and, for the analysis to read, the material its one conference accepted.</summary>
+    /// <param name="request">Where the file goes and the form declared.</param>
+    /// <param name="received">What the barrier answered, read whole.</param>
+    /// <param name="batch">The batch the file was opened as.</param>
+    /// <param name="judged">The judgement that let the file through, with the material accepted.</param>
+    internal static SubmissionStoring.Kept KeptOf(SubmissionRequest request, SubmissionResult received, long batch, Judged judged) =>
+        new(request.DomainId, batch, received.Material!, request.DeclaredForm, judged.Accepted!);
 
     /// <summary>The reason of a repeat when a file already accepted in the domain has the digest; none when no batch accepted it.</summary>
     /// <param name="register">Finds the batch of the domain that accepted the same file.</param>
@@ -47,6 +43,17 @@ internal static class SubmissionJudgement
     /// <param name="previous">That batch; none when it cannot be found any more.</param>
     private static SubmissionReason RepeatOf(long? previous) => new(ReasonCodes.AlreadyReceived, [], previous);
 
+    private static Judged Of(SubmissionIntake intake, SubmissionResult received, MaterialForm form)
+    {
+        if (Barred(received) is { } barred)
+        {
+            return new Judged(barred, null);
+        }
+
+        var conferred = intake.Conference.Confer(form, ReadOutcome.Read(received.Material!));
+        return new Judged(conferred.Refusal is { } refused ? ReasonOf(refused) : null, conferred.Accepted);
+    }
+
     private static SubmissionReason? Barred(SubmissionResult received)
     {
         var none = new List<SubmissionFinding>();
@@ -58,4 +65,9 @@ internal static class SubmissionJudgement
         var findings = refusal.Findings.Select(finding => new SubmissionFinding(finding.Unit, finding.Field is { } field ? ReasonCodes.Of(field) : null)).ToList();
         return new SubmissionReason(ReasonCodes.Of(refusal.Code), findings);
     }
+
+    /// <summary>What the judgement of a file gives: why it is turned back, if it is, and the material the conference accepted, if it did.</summary>
+    /// <param name="Reason">Why the file is turned back; null when it is not.</param>
+    /// <param name="Accepted">The material as the conference of the form declared accepts it; null when the barrier or the conference turned it back.</param>
+    internal sealed record Judged(SubmissionReason? Reason, Material? Accepted);
 }

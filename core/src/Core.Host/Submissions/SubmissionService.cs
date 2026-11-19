@@ -120,11 +120,11 @@ internal sealed class SubmissionService
     /// <summary>Judges what was received and opens the batch that keeps it, rejected with the reason when it was turned back.</summary>
     private async Task<SubmissionOutcome> OpeningAsync(SubmissionRequest request, SubmissionResult received, CancellationToken cancellationToken)
     {
-        var reason = SubmissionJudgement.Turned(intake, request, received)
+        var judged = SubmissionJudgement.Turned(intake, request, received);
+        var reason = judged.Reason
             ?? await SubmissionJudgement.PreviousAsync(register, request.DomainId, received.Digest, cancellationToken).ConfigureAwait(false);
         var warning = SubmissionOrigin.WarningOf(request.ReceivedName);
-        var receipt = new SubmissionReceipt(received.Id.ToString(), received.BytesRead, received.Digest, warning);
-        if (SubmissionOrigin.Opening(intake, request, receipt) is not { } opening || (reason is null && !SubmissionStoring.CanSeal(intake.Sealing, request.DomainId)))
+        if (SubmissionOrigin.Opening(intake, request, received, warning) is not { } opening || (reason is null && !SubmissionStoring.CanSeal(intake.Sealing, request.DomainId)))
         {
             return new SubmissionOutcome { Kind = SubmissionKind.NotRecorded, Failure = BatchOutcome.DomainUnknown };
         }
@@ -136,7 +136,7 @@ internal sealed class SubmissionService
         }
 
         var kept = new Opened(received, opened.BatchId!.Value, warning, opening.Origin!.State);
-        return reason is null ? await StoringAsync(request, kept, cancellationToken).ConfigureAwait(false) : Turned(kept, reason);
+        return reason is null ? await StoringAsync(request, kept, judged, cancellationToken).ConfigureAwait(false) : Turned(kept, reason);
     }
 
     /// <summary>What there is to say when the opening did not do what was asked: a collision that the batches gave up on, or the outcome that kept it; none when it did.</summary>
@@ -152,9 +152,9 @@ internal sealed class SubmissionService
     }
 
     /// <summary>A file that was not turned back has its items written and its batch left open for the review, or is rejected with no item when they cannot be.</summary>
-    private async Task<SubmissionOutcome> StoringAsync(SubmissionRequest request, Opened opened, CancellationToken cancellationToken)
+    private async Task<SubmissionOutcome> StoringAsync(SubmissionRequest request, Opened opened, SubmissionJudgement.Judged judged, CancellationToken cancellationToken)
     {
-        var place = SubmissionJudgement.KeptOf(intake, request, opened.Received, opened.Batch);
+        var place = SubmissionJudgement.KeptOf(request, opened.Received, opened.Batch, judged);
         var kept = await keeper.KeepAsync(place, cancellationToken).ConfigureAwait(false);
         return SubmissionStoring.Failure(kept, opened.Batch) ?? Answer(opened.Received, opened.Batch, (null, opened.Warning), opened.Origin);
     }

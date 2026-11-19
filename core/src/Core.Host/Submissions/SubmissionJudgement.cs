@@ -14,6 +14,17 @@ internal static class SubmissionJudgement
     internal static SubmissionReason? Of(SubmissionIntake intake, SubmissionResult received, MaterialForm form) =>
         Barred(received) ?? (intake.Conference.Confer(form, ReadOutcome.Read(received.Material!)).Refusal is { } refused ? ReasonOf(refused) : null);
 
+    /// <summary>What is kept of a file that was not turned back: what the reader gave and, for the analysis to read, the material as the conference of the form declared accepts it.</summary>
+    /// <param name="intake">The conference of the forms.</param>
+    /// <param name="request">Where the file goes and the form declared.</param>
+    /// <param name="received">What the barrier answered, read whole.</param>
+    /// <param name="batch">The batch the file was opened as.</param>
+    internal static SubmissionStoring.Kept KeptOf(SubmissionIntake intake, SubmissionRequest request, SubmissionResult received, long batch)
+    {
+        var accepted = intake.Conference.Confer(request.DeclaredForm, ReadOutcome.Read(received.Material!)).Accepted!;
+        return new SubmissionStoring.Kept(request.DomainId, batch, received.Material!, request.DeclaredForm, accepted);
+    }
+
     /// <summary>Why the file is turned back before the digest is looked at: the barrier and the form, then the key that seals; none when it holds up to them.</summary>
     /// <param name="intake">The conference of the forms and the path that seals.</param>
     /// <param name="request">Where the file goes and the form declared.</param>

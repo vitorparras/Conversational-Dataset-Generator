@@ -3,6 +3,7 @@ using System.Text;
 using Core.Boundary.Contracts;
 using Core.Boundary.Text;
 using Core.Host.Submissions;
+using Core.Host.Tests.Analysis;
 using Core.Ingestion;
 using Core.Ingestion.Entrance;
 using Core.Ingestion.Reading;
@@ -66,7 +67,7 @@ internal sealed class SubmissionWorld : IAsyncDisposable
     internal static string NameOf(int domain) => domain == Domain ? "zqx-domain-a" : "zqx-domain-b";
 
     internal static async Task<SubmissionWorld> CreateAsync(
-        long maxBytes = 1_000_000, bool gateOpen = true, IReadOnlyList<string>? labels = null, ReplicationRule? replication = null, int? attempts = null)
+        long maxBytes = 1_000_000, bool gateOpen = true, IReadOnlyList<string>? labels = null, ReplicationRule? replication = null, int? attempts = null, IRecognizer? recognizer = null)
     {
         var database = await ScratchDatabase.CreateAsync();
         _ = await database.MigrateAsync(EmbeddedMigrations.Load());
@@ -82,7 +83,7 @@ internal sealed class SubmissionWorld : IAsyncDisposable
 
         var conditions = OriginConditions.Of([Strictest, "zqx_media", Loosest]);
         var content = SealingOf(labels ?? ["texto-bruto/1/v1", "texto-bruto/2/v1"]);
-        var intake = Intake(maxBytes, conditions, content, dataSource, replication);
+        var intake = Intake(maxBytes, conditions, content, dataSource, replication, recognizer: recognizer);
         var batches = attempts is { } made ? new IngestionBatches(dataSource, conditions, made) : new IngestionBatches(dataSource, conditions);
         var service = new SubmissionService(intake, batches, dataSource, NullLogger.Instance);
         return new SubmissionWorld(database, dataSource, (service, content, batches));
@@ -99,20 +100,33 @@ internal sealed class SubmissionWorld : IAsyncDisposable
     }
 
     internal static SubmissionIntake Intake(
-        long maxBytes, OriginConditions conditions, ProtectedContent content, NpgsqlDataSource dataSource, ReplicationRule? replication = null, ITextBoundaries? marking = null) =>
+        long maxBytes, OriginConditions conditions, ProtectedContent content, NpgsqlDataSource dataSource, ReplicationRule? replication = null, ITextBoundaries? marking = null,
+        IRecognizer? recognizer = null) =>
         new(
             new SubmissionGate(SourceReaders.Default(), maxBytes),
             new FormConference(new TextBoundaries()),
             conditions,
             content,
             new ContentWriter(dataSource, content),
-            replication is null ? null : new ReplicationMarking(new ReplicationStore(dataSource), MarkingDerivation(), replication, marking ?? new TextBoundaries()));
+            replication is null ? null : new ReplicationMarking(new ReplicationStore(dataSource), MarkingDerivation(), replication, marking ?? new TextBoundaries()),
+            recognizer ?? AnsweringRecognizer.Finding());
 
     private static KeyDerivation MarkingDerivation()
     {
         var key = Enumerable.Range(0, MasterKey.Length).Select(index => (byte)(0x3C ^ ((index * 17) + 5))).ToArray();
         return new KeyDerivation(MasterKeyReading.FromBytes(key, DerivationLabels.None).Key!, DerivationLabels.None);
     }
+
+    /// <summary>The item the conference accepts the material as, in the form given.</summary>
+    /// <param name="form">The form declared.</param>
+    /// <param name="material">What the reader gave.</param>
+    internal static Material AcceptedAs(MaterialForm form, ReadMaterial material) =>
+        new FormConference(new TextBoundaries()).Confer(form, ReadOutcome.Read(material)).Accepted!;
+
+    /// <summary>The document the units of a conversation are accommodated into: their texts as the sections, with no author, since a document has none by part.</summary>
+    /// <param name="material">The units as read from the conversation.</param>
+    internal static Material AccommodatedAsDocument(ReadMaterial material) =>
+        AcceptedAs(MaterialForm.Document, new ReadMaterial([.. material.Units.Select(unit => unit with { Author = null })]));
 
     /// <summary>A conversation of the format with one message per pair, in order, a minute apart from 08:00.</summary>
     internal static string Messages(params (string Sender, string Text)[] entries) =>

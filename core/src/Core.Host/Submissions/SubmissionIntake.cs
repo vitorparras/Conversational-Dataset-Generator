@@ -1,3 +1,4 @@
+using Core.Boundary.Contracts;
 using Core.Ingestion;
 using Core.Ingestion.Entrance;
 using Core.Persistence.Content.Sealing;
@@ -16,4 +17,6 @@ namespace Core.Host.Submissions;
 /// <param name="Sealing">The path that seals the origin a submission declares, as the raw text of an item is sealed; none when the key was not read.</param>
 /// <param name="Writer">Writes an item of the batch, its raw text sealed by the application before it reaches the database; none when the key was not read.</param>
 /// <param name="Marking">Marks the replicated content of a conversation that was kept; none when the key was not read.</param>
-internal sealed record SubmissionIntake(SubmissionGate Gate, FormConference Conference, OriginConditions Conditions, ProtectedContent? Sealing, ContentWriter? Writer, ReplicationMarking? Marking);
+/// <param name="Recognizer">Analyzes each text of the material before its items are written, which decides the destination of each occurrence found.</param>
+internal sealed record SubmissionIntake(
+    SubmissionGate Gate, FormConference Conference, OriginConditions Conditions, ProtectedContent? Sealing, ContentWriter? Writer, ReplicationMarking? Marking, IRecognizer Recognizer);

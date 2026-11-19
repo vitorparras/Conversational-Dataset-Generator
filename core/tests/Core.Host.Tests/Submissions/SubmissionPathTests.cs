@@ -3,8 +3,10 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Core.Boundary.Contracts;
 using Core.Host.Endpoints;
 using Core.Host.Submissions;
+using Core.Host.Tests.Analysis;
 using Core.Ingestion;
 using Core.Persistence.Domains;
 using Core.Persistence.Ingestion;
@@ -161,6 +163,7 @@ public sealed class SubmissionPathTests
     private static Task<SessionedHost> NoKeyHostAsync(ServiceProvider startup, CancellationToken cancellationToken) =>
         SessionedHost.StartAsync(
             services => services.AddSingleton(startup)
+                .AddSingleton<IRecognizer>(AnsweringRecognizer.Finding())
                 .AddSingleton(provider => SubmissionParts.BatchesOf(provider, Values))
                 .AddSingleton(provider => SubmissionParts.ServicesOf(provider, Values))
                 .AddSingleton<DomainGrants>(new GrantsByName(SubmissionWorld.NameOf(SubmissionWorld.Domain)))

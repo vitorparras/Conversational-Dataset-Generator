@@ -31,6 +31,10 @@ internal static class BatchTexts
         { "authorship_by_part", "O material dava autor a uma parte de uma forma cujas partes não têm autor." },
         { "passage_splits_pair", "O limite de um trecho caía no meio de um caractere." },
         { "order_incoherent", "Uma resposta vinha antes da mensagem que ela responde, ou as respostas formavam um ciclo." },
+        {
+            "analysis_unavailable",
+            "O serviço de análise de linguagem não respondeu, e sem a análise não há como saber o que remover. Nenhum item foi gravado. Envie o mesmo arquivo de novo quando o serviço voltar."
+        },
     };
 
     /// <summary>The state in words, as the list and the filter say it.</summary>

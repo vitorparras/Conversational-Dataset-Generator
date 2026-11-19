@@ -154,7 +154,7 @@ internal sealed class SubmissionService
     /// <summary>A file that was not turned back has its items written and its batch left open for the review, or is rejected with no item when they cannot be.</summary>
     private async Task<SubmissionOutcome> StoringAsync(SubmissionRequest request, Opened opened, CancellationToken cancellationToken)
     {
-        var place = new SubmissionStoring.Kept(request.DomainId, opened.Batch, opened.Received.Material!, request.DeclaredForm);
+        var place = SubmissionJudgement.KeptOf(intake, request, opened.Received, opened.Batch);
         var kept = await keeper.KeepAsync(place, cancellationToken).ConfigureAwait(false);
         return SubmissionStoring.Failure(kept, opened.Batch) ?? Answer(opened.Received, opened.Batch, (null, opened.Warning), opened.Origin);
     }

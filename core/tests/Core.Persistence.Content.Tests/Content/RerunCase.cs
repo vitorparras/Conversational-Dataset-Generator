@@ -62,31 +62,28 @@ internal sealed class RerunCase
     public static string VersionOf(string steps) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(steps)));
 
     /// <summary>What the domain answers for the item under the target: the text given, and whether it is the one the item holds.</summary>
-    public static Func<RerunSource, Resanitized> Rerunning(string text, string? version = null) => source => new Resanitized
-    {
-        Text = text,
-        Version = version ?? Target,
-        Steps = version is null ? TargetSteps : ItemTexts.Steps,
-        Trail = $$"""{"raw":{{source.Raw.Length}},"steps":[[],[]]}""",
-        Counts = version is null ? [1, 0] : [0],
-        Untreated = version is null ? [0, 2] : [0],
-        Identical = string.Equals(text, source.StoredText, StringComparison.Ordinal),
-    };
+    public static Func<RerunSource, Resanitized> Rerunning(string text, string? version = null) => source => new Resanitized(
+        text,
+        version ?? Target,
+        version is null ? TargetSteps : ItemTexts.Steps,
+        $$"""{"raw":{{source.Raw.Length}},"steps":[[],[]]}""",
+        version is null ? [1, 0] : [0],
+        version is null ? [0, 2] : [0],
+        string.Equals(text, source.StoredText, StringComparison.Ordinal));
 
     /// <summary>An item of the accepted batch of the domain, sanitized by the list the tests of the content write with.</summary>
     public Task<long> ItemAsync(string sanitized) =>
         new ContentWriter(application, custody.Content).AddItemTextAsync(DomainId, DomainId, ItemTexts.Of(Raw, sanitized), TestContext.Current.CancellationToken);
 
     /// <summary>The request of the curator to rerun the domain to the steps given.</summary>
-    public async Task<RerunRequestResult> RequestAsync(string steps = TargetSteps, SanitizationReruns? queue = null) =>
+    public async Task<RerunResult> RequestAsync(string steps = TargetSteps, SanitizationReruns? queue = null) =>
         await (queue ?? Queue).RequestAsync(new RerunRequest(DomainId, await CuratorAsync(), VersionOf(steps), steps), TestContext.Current.CancellationToken);
 
     /// <summary>The item a worker of the target takes, which must be there.</summary>
     public async Task<RerunHold> TakenAsync()
     {
         var hold = await Queue.TakeAsync(DomainId, Target, TestContext.Current.CancellationToken);
-        Assert.NotNull(hold);
-        return hold;
+        return Assert.NotNull(hold);
     }
 
     /// <summary>The progress of the request, which must be there.</summary>

@@ -1,6 +1,7 @@
 namespace Core.Persistence.Content.Rerun;
 
-/// <summary>The items of a domain by version, the most recent first, and the newest open request, none when no request is open.</summary>
+/// <summary>The items of the accepted batches of a domain by version, the most recent first, and the newest open request with its version.</summary>
 /// <param name="Versions">The items by version.</param>
-/// <param name="Open">The newest open request.</param>
-public sealed record RerunSituation(IReadOnlyList<VersionItems> Versions, OpenRerun? Open);
+/// <param name="OpenRerunId">The newest open request; none when none is open.</param>
+/// <param name="OpenVersion">The version it reruns to.</param>
+public sealed record RerunSituation(IReadOnlyList<VersionItems> Versions, long? OpenRerunId, string? OpenVersion);

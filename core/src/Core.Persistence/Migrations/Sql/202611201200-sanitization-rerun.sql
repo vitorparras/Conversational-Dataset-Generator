@@ -1,6 +1,5 @@
--- The rerun of the sanitization over the raw text (issue 97): a person of the curation asks it for a version of the list of steps, the request queues the items of the accepted batches whose
--- version is another, and a worker treats them one at a time. Each item is treated in one transaction that writes its new sanitization, the event item_resanitized and its conclusion in the queue,
--- and the database lets the sanitization of an item change only then. The queue holds identifiers, states, moments and codes, never a word of the material.
+-- The rerun of the sanitization over the raw text (issue 97): a request queues the accepted items of another version, and a worker treats each in one transaction with its event and
+-- its conclusion, the only one in which its sanitization may change. The queue holds identifiers, states, moments and codes, never a word of the material.
 
 -- What each step left untreated, one number for each step of the version, as the counts are; null in the items written before the step. The emptying clears it with the rest.
 ALTER TABLE content.item_text
@@ -140,9 +139,8 @@ ALTER TABLE public.custody_event
         AND (step <> 'sanitization_rerun' OR (reason = 'administrative_act' AND actor_person_id IS NOT NULL AND corrects IS NULL AND reference ~ '^[0-9a-f]{64}$'))
         AND (step <> 'item_resanitized' OR (item_kind = 'item_text' AND actor_system AND corrects IS NULL AND reference ~ '^[0-9a-f]{64}$')));
 
--- The numbers of the sanitization of a batch (the 0063 as it was, with three columns more): how many items not emptied have a sanitization and how many there are, the same on every row, and how
--- many occurrences each step left untreated. The versions come the most recent first (the greatest id of the version in the domain), and a batch with no sanitized item still answers one row,
--- with no version and no step, so that its items are counted.
+-- The numbers of the sanitization of a batch (the 0063 with three columns more): items sanitized and items not emptied on every row, and what each step left untreated; the most recent
+-- version first, and a batch with no sanitized item still answers one row, with no version, so that its items are counted.
 DROP FUNCTION public.batch_sanitization_counts(bigint, integer);
 CREATE FUNCTION public.batch_sanitization_counts(of_batch bigint, of_domain integer)
     RETURNS TABLE (sanitization_version text, step_name text, step_edits bigint, items_changed bigint, step_untreated bigint, items_sanitized bigint, items_total bigint)

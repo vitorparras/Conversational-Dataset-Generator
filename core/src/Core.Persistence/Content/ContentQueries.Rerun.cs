@@ -40,11 +40,11 @@ public static partial class ContentQueries
         "UPDATE content.sanitization_rerun_item q SET state = 'held', hold_until = @until::timestamptz, tries = q.tries + (q.state = 'held')::integer "
         + "FROM (SELECT c.id FROM content.sanitization_rerun_item c JOIN content.sanitization_rerun r ON r.id = c.rerun_id WHERE r.target_version = @version "
         + "AND (c.state = 'queued' OR (c.state = 'held' AND c.hold_until <= @now::timestamptz)) ORDER BY c.id LIMIT 1 FOR UPDATE OF c SKIP LOCKED) t "
-        + "WHERE q.id = t.id RETURNING q.id, q.rerun_id, q.item_id, q.tries, q.hold_until";
+        + "WHERE q.id = t.id RETURNING q.id, q.rerun_id, q.item_id, q.hold_until, q.tries";
 
     /// <summary>Gives back to the queue an item still under the hold given, spending no try.</summary>
     internal const string CloseRerunReturned =
-        "UPDATE content.sanitization_rerun_item SET state = 'queued', hold_until = NULL WHERE id = @entry AND state = 'held' AND hold_until = @held::timestamptz";
+        "UPDATE content.sanitization_rerun_item SET state = 'queued', hold_until = NULL WHERE id = @entry AND state = 'held' AND hold_until = @held::timestamptz RETURNING state";
 
     /// <summary>Spends a try of an item still under the hold given: back to the queue, or refused at the last try; answers the state it is left in.</summary>
     internal const string CloseRerunFailed =
@@ -57,9 +57,9 @@ public static partial class ContentQueries
         "UPDATE content.sanitization_rerun_item SET state = 'done', result = @result::text, refusal = @refusal::text, concluded_at = @now::timestamptz, hold_until = NULL "
         + "WHERE id = @entry AND state = 'held' AND hold_until = @held::timestamptz RETURNING id";
 
-    /// <summary>What the rerun reads of an item: the sealed raw text, occurrences and sanitized text, the version, whether it was emptied, and the key wrapped with its epoch.</summary>
+    /// <summary>What the rerun reads of an item not emptied: the sealed raw text, occurrences and sanitized text, the version, and the key wrapped with its epoch.</summary>
     internal const string ReadResanitizationSource =
-        "SELECT raw_text, occurrences, sanitized_text, sanitization_version, emptied_at IS NOT NULL, dek_epoch, dek_wrapped FROM content.item_text WHERE id = @id";
+        "SELECT raw_text, occurrences, sanitized_text, sanitization_version, dek_epoch, dek_wrapped FROM content.item_text WHERE id = @id AND emptied_at IS NULL";
 
     /// <summary>Writes the new sanitization of an item not emptied, its version once per domain; the database lets it through only with the rerun in the same transaction.</summary>
     internal const string CloseItemResanitization =

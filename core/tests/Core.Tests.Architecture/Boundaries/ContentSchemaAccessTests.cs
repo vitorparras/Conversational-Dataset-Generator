@@ -89,6 +89,17 @@ public sealed class ContentSchemaAccessTests
     }
 
     [Fact]
+    public void ConstantOfANestedOrOtherClassInAPartOfTheListIsRefusedBecauseTheListWouldNotSeeIt()
+    {
+        var text = SourceTree.FixtureText(Path.Combine(Fixtures, "BesideTheList.cs"));
+        var part = SourceFile.FromText("core/src/Core.Persistence/Content/ContentQueries.Rerun.cs", text);
+
+        var lines = ContentSchemaAccessRules.Check([part]).Select(violation => violation.Line).Order();
+
+        Assert.Equal([9, 15], lines);
+    }
+
+    [Fact]
     public void ConstantOfAPartOfTheListInAFileNamedAfterItIsLeftAlone()
     {
         var text = SourceTree.FixtureText(Path.Combine(Fixtures, "QueryList.cs"));
@@ -104,6 +115,8 @@ public sealed class ContentSchemaAccessTests
     [InlineData("core/src/Core.Persistence/Content/ContentQueriesRerun.cs")]
     [InlineData("core/src/Core.Persistence/Content/ContentQueries.rerun.cs")]
     [InlineData("core/src/Core.Persistence/Content/Rerun/ContentQueries.Rerun.cs")]
+    [InlineData("core/src/Core.Persistence/Content/RerunStatements.cs")]
+    [InlineData("core/src/Core.Persistence/Content/ContentQueriesX.cs")]
     public void PartOfTheListOutsideTheContentFolderOrNotNamedAfterItIsRefused(string path)
     {
         var text = SourceTree.FixtureText(Path.Combine(Fixtures, "QueryList.cs"));

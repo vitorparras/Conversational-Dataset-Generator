@@ -1,6 +1,10 @@
 using System.Data;
 using Core.Persistence.Custody;
+using Core.Persistence.Custody.Chain;
+using Core.Persistence.Custody.Chain.Append;
 using Npgsql;
+using NpgsqlTypes;
+using static Core.Persistence.Content.Rerun.RerunRows;
 
 namespace Core.Persistence.Content.Rerun;
 
@@ -10,83 +14,137 @@ namespace Core.Persistence.Content.Rerun;
 /// </summary>
 public sealed class SanitizationReruns(NpgsqlDataSource dataSource, TimeProvider time)
 {
+    private const int Attempts = 3;
+
     /// <summary>How long a worker holds an item before another may take it.</summary>
     public static TimeSpan Hold { get; } = TimeSpan.FromMinutes(5);
 
     /// <summary>How many tries an item has; the last one that fails, or whose hold expires, refuses it.</summary>
     public static int Tries { get; } = 3;
 
-    /// <summary>Queues the items the request reruns, or answers the open request when none is left to queue.</summary>
-    public Task<RerunRequestResult> RequestAsync(RerunRequest request, CancellationToken cancellationToken)
+    /// <summary>Queues the items the request reruns, or answers the open request when none is left to queue; a conflict is tried again, up to three times.</summary>
+    public async Task<RerunResult> RequestAsync(RerunRequest request, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(request);
-        return RerunRequesting.RequestAsync((dataSource, time), request, cancellationToken);
+        var tries = 0;
+        (RerunResult Result, CustodyResult? Recorded) answer;
+        do
+        {
+            answer = await RequestingAsync(request, cancellationToken).ConfigureAwait(false);
+        }
+        while (answer.Recorded?.Outcome == CustodyOutcome.Conflict && ++tries < Attempts);
+
+        return answer.Recorded is null or { Outcome: CustodyOutcome.Appended } ? answer.Result : new RerunResult(RerunOutcome.NotRecorded);
     }
 
     /// <summary>Holds one item of a request to the version, queued or whose hold expired, after refusing those whose last hold expired; none when there is none.</summary>
-    public Task<RerunHold?> TakeAsync(int domainId, string version, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(version);
-        return TakingAsync(domainId, version, cancellationToken);
-    }
-
-    /// <summary>Gives the held item back to the queue without spending a try; false when the hold expired and is no longer this one.</summary>
-    public Task<bool> ReturnAsync(RerunHold hold, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(hold);
-        return RerunCommands.ReturnAsync(dataSource, hold, time.GetUtcNow(), cancellationToken);
-    }
-
-    /// <summary>Spends a try of the held item: <see cref="RerunOutcome.Failed"/> when it goes back to the queue, <see cref="RerunOutcome.Refused"/> at the last try.</summary>
-    public Task<RerunOutcome> FailAsync(RerunHold hold, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(hold);
-        return RerunCommands.FailAsync(dataSource, hold, time.GetUtcNow(), cancellationToken);
-    }
-
-    /// <summary>The items of the accepted batches of the domain by version, and the open request.</summary>
-    public async Task<RerunSituation> SituationAsync(int domainId, CancellationToken cancellationToken)
-    {
-        var transaction = await ContentTransaction.BeginAsync(dataSource, domainId, cancellationToken).ConfigureAwait(false);
-        await using (transaction.ConfigureAwait(false))
-        {
-            var scope = transaction.AsCustodyScope();
-            var versions = await RerunReading.RowsAsync(scope, (ContentQueries.ReadRerunSituation, _ => { }), VersionOf, cancellationToken).ConfigureAwait(false);
-            return new RerunSituation(versions, await RerunReading.OpenAsync(scope, cancellationToken).ConfigureAwait(false));
-        }
-    }
-
-    /// <summary>Where the request of the domain stands; none when the domain has no such request.</summary>
-    public Task<RerunProgress?> ProgressAsync(int domainId, long rerunId, CancellationToken cancellationToken) => RerunReading.ProgressAsync(dataSource, domainId, rerunId, cancellationToken);
-
-    private static VersionItems VersionOf(IDataRecord row) => new(row.IsDBNull(0) ? null : row.GetString(0), row.GetInt64(1));
-
-    // The columns of the hold: entry, request, item, tries and the moment it expires.
-    private static RerunHold HoldOf(NpgsqlDataReader row, int domainId, string version)
-    {
-        const int Item = 2;
-        const int TriesSpent = 3;
-        const int Until = 4;
-        return new RerunHold(domainId, row.GetInt64(0), row.GetInt64(1), row.GetInt64(Item), version, row.GetFieldValue<DateTimeOffset>(Until), row.GetInt32(TriesSpent));
-    }
-
-    private async Task<RerunHold?> TakingAsync(int domainId, string version, CancellationToken cancellationToken)
+    public async Task<RerunHold?> TakeAsync(int domainId, string version, CancellationToken cancellationToken)
     {
         var now = time.GetUtcNow();
         var transaction = await ContentTransaction.BeginAsync(dataSource, domainId, IsolationLevel.ReadCommitted, cancellationToken).ConfigureAwait(false);
         await using (transaction.ConfigureAwait(false))
         {
             var scope = transaction.AsCustodyScope();
-            var exhausted = await RerunCommands.ConcludedAsync(scope, (ContentQueries.CloseRerunExhausted, RerunCommands.Over(version, now)), version, cancellationToken).ConfigureAwait(false);
-            if (await RerunCommands.RecordEachAsync(scope, exhausted, CustodyReason.SanitizationRefused, cancellationToken).ConfigureAwait(false) is { Outcome: not CustodyOutcome.Appended })
+            var exhausted = await RowsAsync(scope, (ContentQueries.CloseRerunExhausted, Over(version, now)), row => (row.GetInt64(0), version), cancellationToken).ConfigureAwait(false);
+            if (await RecordEachAsync(scope, exhausted, CustodyReason.SanitizationRefused, cancellationToken).ConfigureAwait(false) is { Outcome: not CustodyOutcome.Appended })
             {
                 return null;
             }
 
-            var held = await RerunReading.RowsAsync(scope, (ContentQueries.CloseRerunHold, RerunCommands.Over(version, now)), row => HoldOf(row, domainId, version), cancellationToken)
-                .ConfigureAwait(false);
+            var held = await RowsAsync(scope, (ContentQueries.CloseRerunHold, Over(version, now)), row =>
+            {
+                var at = 0;
+                return new RerunHold(domainId, row.GetInt64(at++), row.GetInt64(at++), row.GetInt64(at++), version, row.GetFieldValue<DateTimeOffset>(at++), row.GetInt32(at));
+            }, cancellationToken).ConfigureAwait(false);
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             return held.Count == 0 ? null : held[0];
         }
+    }
+
+    /// <summary>Gives the held item back to the queue without spending a try: <see cref="RerunOutcome.Returned"/>, or <see cref="RerunOutcome.NotHeld"/> when the hold expired.</summary>
+    public Task<RerunOutcome> ReturnAsync(RerunHold hold, CancellationToken cancellationToken) =>
+        SpendAsync(dataSource, hold, (ContentQueries.CloseRerunReturned, RerunOutcome.Returned, time.GetUtcNow()), cancellationToken);
+
+    /// <summary>Spends a try of the held item: <see cref="RerunOutcome.Failed"/> when it goes back to the queue, <see cref="RerunOutcome.Refused"/> at the last try.</summary>
+    public Task<RerunOutcome> FailAsync(RerunHold hold, CancellationToken cancellationToken) =>
+        SpendAsync(dataSource, hold, (ContentQueries.CloseRerunFailed, RerunOutcome.Failed, time.GetUtcNow()), cancellationToken);
+
+    /// <summary>The items of the accepted batches of the domain by version, and the open request.</summary>
+    public Task<RerunSituation> SituationAsync(int domainId, CancellationToken cancellationToken) => InDomainAsync(domainId, async scope =>
+    {
+        var versions = await RowsAsync(scope, (ContentQueries.ReadRerunSituation, []), row => new VersionItems(row.IsDBNull(0) ? null : row.GetString(0), row.GetInt64(1)), cancellationToken)
+            .ConfigureAwait(false);
+        var open = await RowsAsync(scope, (ContentQueries.ReadRerunOpen, []), row => (Id: row.GetInt64(0), Version: row.GetString(1)), cancellationToken).ConfigureAwait(false);
+        return open.Count == 0 ? new RerunSituation(versions, null, null) : new RerunSituation(versions, open[0].Id, open[0].Version);
+    }, cancellationToken);
+
+    /// <summary>Where the request of the domain stands; none when the domain has no such request.</summary>
+    public Task<RerunProgress?> ProgressAsync(int domainId, long rerunId, CancellationToken cancellationToken) => InDomainAsync(domainId, async scope =>
+    {
+        Bound[] rerun = [new("rerun", NpgsqlDbType.Bigint, rerunId)];
+        var progress = await RowsAsync(scope, (ContentQueries.ReadRerunProgress, rerun), row =>
+        {
+            var at = 0;
+            return new RerunProgress(
+                row.GetString(at++), row.GetFieldValue<DateTimeOffset>(at++), row.GetInt64(at++), row.GetInt64(at++), row.GetInt64(at++), row.GetInt64(at++), row.GetInt64(at++),
+                row.GetInt64(at++), row.IsDBNull(at) ? null : row.GetFieldValue<DateTimeOffset>(at), []);
+        }, cancellationToken).ConfigureAwait(false);
+        var refusals = await RowsAsync(
+            scope, (ContentQueries.ReadRerunRefusals, rerun), row => new RerunItemRefusal(row.GetInt64(0), row.GetInt64(1), RefusalOf(row.GetString(row.FieldCount - 1))), cancellationToken)
+            .ConfigureAwait(false);
+        return progress.Count == 0 ? null : progress[0] with { Refusals = refusals };
+    }, cancellationToken);
+
+    private async Task<T> InDomainAsync<T>(int domainId, Func<CustodyScope, Task<T>> read, CancellationToken cancellationToken)
+    {
+        var transaction = await ContentTransaction.BeginAsync(dataSource, domainId, cancellationToken).ConfigureAwait(false);
+        await using (transaction.ConfigureAwait(false))
+        {
+            return await read(transaction.AsCustodyScope()).ConfigureAwait(false);
+        }
+    }
+
+    private async Task<(RerunResult, CustodyResult?)> RequestingAsync(RerunRequest request, CancellationToken cancellationToken)
+    {
+        var answer = new RerunResult(RerunOutcome.NotRecorded);
+        try
+        {
+            var recorded = await CustodyTransaction.RunAsync(dataSource, async scope =>
+            {
+                (answer, var appended) = await RequestInAsync(scope, (request, time.GetUtcNow()), cancellationToken).ConfigureAwait(false);
+                return appended;
+            }, cancellationToken).ConfigureAwait(false);
+            return (answer, recorded);
+        }
+        catch (PostgresException failed) when (failed.SqlState == PostgresErrorCodes.UniqueViolation)
+        {
+            // Another request queued the same item first; the next attempt finds it in the open request.
+            return (answer, CustodyRefusals.Conflict());
+        }
+    }
+
+    private static async Task<(RerunResult, CustodyResult?)> RequestInAsync(CustodyScope scope, (RerunRequest Request, DateTimeOffset Now) asked, CancellationToken cancellationToken)
+    {
+        var (request, now) = asked;
+        await DeclareAsync(scope, request.DomainId, cancellationToken).ConfigureAwait(false);
+        var superseded = await RowsAsync(scope, (ContentQueries.CloseRerunSuperseded, Over(request.Version, now)), row => (row.GetInt64(0), row.GetString(1)), cancellationToken).ConfigureAwait(false);
+        var recorded = await RecordEachAsync(scope, superseded, CustodyReason.SanitizationSuperseded, cancellationToken).ConfigureAwait(false);
+        if (recorded is { Outcome: not CustodyOutcome.Appended })
+        {
+            return (new RerunResult(RerunOutcome.NotRecorded), recorded);
+        }
+
+        if ((await RowsAsync(scope, (ContentQueries.ReadRerunPending, Over(request.Version, now)), row => row.GetInt64(0), cancellationToken).ConfigureAwait(false)).Count == 0)
+        {
+            var open = await RowsAsync(scope, (ContentQueries.ReadRerunOpen, []), row => row.GetInt64(0), cancellationToken).ConfigureAwait(false);
+            var answer = open.Count == 0 ? new RerunResult(RerunOutcome.NothingToRerun) : new RerunResult(RerunOutcome.AlreadyOpen, open[0]);
+            return (answer, recorded is null ? null : await CustodyAppend.CommitIfAppendedAsync(scope, recorded, cancellationToken).ConfigureAwait(false));
+        }
+
+        Bound[] asking =
+            [.. Over(request.Version, now), new("domain", NpgsqlDbType.Integer, request.DomainId), new("steps", NpgsqlDbType.Text, request.Steps),
+                new("person", NpgsqlDbType.Bigint, request.PersonId)];
+        var rerunId = (long)(await ScalarAsync(scope, (ContentQueries.InsertSanitizationRerun, asking), cancellationToken).ConfigureAwait(false))!;
+        var appended = await CustodyAppend.AppendAsync(scope, CustodyEvent.SanitizationRerun(request.PersonId, rerunId, request.Version), cancellationToken).ConfigureAwait(false);
+        return (new RerunResult(RerunOutcome.Queued, rerunId), await CustodyAppend.CommitIfAppendedAsync(scope, appended, cancellationToken).ConfigureAwait(false));
     }
 }

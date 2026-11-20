@@ -40,7 +40,7 @@ public sealed class SanitizationRerunsTests : IClassFixture<RerunDatabase>
 
         var second = await rerun.RequestAsync();
 
-        Assert.Equal((RerunRequestOutcome.AlreadyOpen, first.RerunId), (second.Outcome, second.RerunId));
+        Assert.Equal((RerunOutcome.AlreadyOpen, first.RerunId), (second.Outcome, second.RerunId));
     }
 
     [DatabaseFact]
@@ -50,8 +50,8 @@ public sealed class SanitizationRerunsTests : IClassFixture<RerunDatabase>
 
         var requested = await rerun.RequestAsync();
 
-        Assert.Equal(new RerunRequestResult(RerunRequestOutcome.NothingToRerun), requested);
-        Assert.Null((await rerun.Queue.SituationAsync(rerun.DomainId, TestContext.Current.CancellationToken)).Open);
+        Assert.Equal(new RerunResult(RerunOutcome.NothingToRerun), requested);
+        Assert.Null((await rerun.Queue.SituationAsync(rerun.DomainId, TestContext.Current.CancellationToken)).OpenRerunId);
     }
 
     [DatabaseFact]
@@ -65,7 +65,7 @@ public sealed class SanitizationRerunsTests : IClassFixture<RerunDatabase>
         var situation = await rerun.Queue.SituationAsync(rerun.DomainId, TestContext.Current.CancellationToken);
 
         Assert.Equal([new VersionItems(ItemTexts.Version, 2)], situation.Versions);
-        Assert.Equal(new OpenRerun(requested.RerunId!.Value, RerunCase.Target), situation.Open);
+        Assert.Equal((requested.RerunId, RerunCase.Target), (situation.OpenRerunId, situation.OpenVersion));
     }
 
     [DatabaseFact]
@@ -79,7 +79,7 @@ public sealed class SanitizationRerunsTests : IClassFixture<RerunDatabase>
             rerun.Queue.TakeAsync(rerun.DomainId, RerunCase.Target, TestContext.Current.CancellationToken),
             rerun.OtherQueue().TakeAsync(rerun.DomainId, RerunCase.Target, TestContext.Current.CancellationToken));
 
-        Assert.Equal(items, holds.Select(hold => hold!.ItemId).Order());
+        Assert.Equal(items, holds.Select(hold => Assert.NotNull(hold).ItemId).Order());
         Assert.Null(await rerun.Queue.TakeAsync(rerun.DomainId, RerunCase.Target, TestContext.Current.CancellationToken));
     }
 
@@ -92,9 +92,9 @@ public sealed class SanitizationRerunsTests : IClassFixture<RerunDatabase>
         _ = await rerun.TakenAsync();
         rerun.Clock.Advance(SanitizationReruns.Hold + TimeSpan.FromSeconds(1));
 
-        var again = await rerun.OtherQueue().TakeAsync(rerun.DomainId, RerunCase.Target, TestContext.Current.CancellationToken);
+        var again = Assert.NotNull(await rerun.OtherQueue().TakeAsync(rerun.DomainId, RerunCase.Target, TestContext.Current.CancellationToken));
 
-        Assert.Equal((item, 1), (again!.ItemId, again.Tries));
+        Assert.Equal((item, 1), (again.ItemId, again.Tries));
     }
 
     [DatabaseFact]
@@ -139,7 +139,7 @@ public sealed class SanitizationRerunsTests : IClassFixture<RerunDatabase>
         var item = await rerun.ItemAsync(Sanitized);
         _ = await rerun.RequestAsync();
 
-        Assert.True(await rerun.Queue.ReturnAsync(await rerun.TakenAsync(), TestContext.Current.CancellationToken));
+        Assert.Equal(RerunOutcome.Returned, await rerun.Queue.ReturnAsync(await rerun.TakenAsync(), TestContext.Current.CancellationToken));
 
         var again = await rerun.TakenAsync();
         Assert.Equal((item, 0), (again.ItemId, again.Tries));

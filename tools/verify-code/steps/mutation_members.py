@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from itertools import pairwise
 
 from steps.csharp_tokens import ARROW, Token, tokens
-from steps.mutation_cost import pieces
+from steps.mutation_cost import pieces, suite_factor
 
 #: The largest index of a file: the last slice runs to it, as a pattern with no span does.
 UNBOUNDED = 2**31 - 1
@@ -146,13 +146,18 @@ def units(text: str, index: int) -> int:
     return len(text[:index].encode("utf-16-le")) // 2
 
 
-def slices(text: str) -> tuple[tuple[int, int, int], ...]:
+def slices(text: str, suite: frozenset[str] = frozenset()) -> tuple[tuple[int, int, int], ...]:
     """The slices of a file as ``(start, end, weight)``: offsets from the first character to
     ``UNBOUNDED``, cut after each member and, in a static list, after each element; the weight is
-    the tokens, so comments weigh nothing, times ``STATIC_COST`` for a static initializer."""
+    the tokens, so comments weigh nothing, plus ``SUITE_MUTANT`` for each literal of a static
+    initializer, and times it for a method whose signature is in ``suite``."""
     found = tokens(text)
     ends = [token.end for token in found]
     members = [0, *(bisect_right(ends, cut) for cut in ends_of(found)), len(ends)]
-    cut = [item for a, b in pairwise(members) for item in pieces(text, found, a, b)]
+    cut = [
+        (end, weight * suite_factor(found[a:b], suite))
+        for a, b in pairwise(members)
+        for end, weight in pieces(text, found, a, b)
+    ]
     bounds = (0, *(units(text, found[end - 1].end) for end, _ in cut[:-1]), UNBOUNDED)
     return tuple((a, b, w) for (a, b), (_, w) in zip(pairwise(bounds), cut, strict=True))

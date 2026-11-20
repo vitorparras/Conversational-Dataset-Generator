@@ -46,6 +46,21 @@ public sealed class IngestionBatchesTests
     }
 
     [Fact]
+    public async Task SanitizingOfNoBatchOrOfAnIdentifierThatIsNotPositiveIsRefusedBeforeAnyConnectionOpens()
+    {
+        await using var dataSource = NpgsqlDataSource.Create("Host=127.0.0.1;Port=1;Username=u;Password=p;Database=d");
+        var batches = new IngestionBatches(dataSource, TestConditions.Known);
+        var version = new string('a', 64);
+
+        var none = Record.Exception(() => { _ = batches.SanitizedAsync(null!, version, TestContext.Current.CancellationToken); });
+        var refused = new[] { new BatchClosing(0, 1, CustodyAuthor.System), new BatchClosing(1, 0, CustodyAuthor.System) }
+            .Select(closing => Record.Exception(() => { _ = batches.SanitizedAsync(closing, version, TestContext.Current.CancellationToken); }));
+
+        Assert.Equal("closing", Assert.IsType<ArgumentNullException>(none).ParamName);
+        Assert.All(refused, failure => Assert.IsType<ArgumentOutOfRangeException>(failure));
+    }
+
+    [Fact]
     public async Task MotiveThatIsNotAWordOfTheClosedFormIsRefusedBeforeAnyConnectionOpens()
     {
         await using var dataSource = NpgsqlDataSource.Create("Host=127.0.0.1;Port=1;Username=u;Password=p;Database=d");

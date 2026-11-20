@@ -8,8 +8,10 @@ import json
 import re
 import unittest
 from pathlib import Path
+from unittest import mock
 
-from steps import areas_doc, mutation, mutation_core, mutation_parts
+from steps import areas_doc, mutation, mutation_core, mutation_cost, mutation_parts
+from steps.mutation_cost import SUITE_MUTANT
 from steps.mutation_members import UNBOUNDED
 from steps.mutation_parts import Part, Slice
 
@@ -485,11 +487,38 @@ class RepositoryAreaTests(unittest.TestCase):
         root = support.VERIFY_CODE.parents[1]
         areas = {a.prefix: a for a in areas_doc.read_areas(root).areas}
 
-        self.assertEqual(areas["Core.Persistence.Content"].parts, 32)
+        self.assertEqual(areas["Core.Persistence.Content"].parts, 40)
         self.assertEqual(areas["Core.Persistence.Content.Writing"].parts, 6)
         self.assertEqual(areas["Core.Persistence.Content.Sealing"].parts, 3)
         self.assertEqual(areas["Core.Persistence.Content.Reading"].parts, 1)
         self.assertEqual(areas["Core.Persistence.Ingestion"].parts, 10)
+
+    def test_each_content_part_holds_two_mutants_of_the_suite_at_most(self) -> None:
+        root = support.VERIFY_CODE.parents[1]
+        table = areas_doc.read_areas(root).areas
+        area = next(a for a in table if a.prefix == "Core.Persistence.Content")
+        core = mutation_core.whole(root, area, table)
+        assert core is not None
+        found = mutation_core.pieces(root, core)
+        name = "Content/ContentTransaction.cs"
+        text = (root / mutation_core.SOURCES / core.project / name).read_text(encoding="utf-8-sig")
+        declarations = ("async Task<ContentTransaction> OpenAsync(", "async Task DeclareAsync(")
+        wide = [
+            piece
+            for piece in found
+            if piece.file == name
+            and any(declared in text[piece.start : piece.end] for declared in declarations)
+        ]
+
+        with mock.patch.object(mutation_cost, "SUITE_MUTANT", 0):
+            tokens = {(p.file, p.start): p.weight for p in mutation_core.pieces(root, core)}
+        held = [mutation_parts.dealt(found, Part(n, area.parts)) for n in range(1, area.parts + 1)]
+        rest = [part for part in held if not set(part) & set(wide)]
+        suite = [sum(p.weight - tokens[p.file, p.start] for p in part) for part in rest]
+
+        self.assertEqual(len(wide), len(declarations))
+        self.assertTrue(all([piece] in held for piece in wide))
+        self.assertLessEqual(max(suite), 2 * SUITE_MUTANT)
 
     def test_the_content_areas_of_the_repository_have_files_for_their_parts(self) -> None:
         root = support.VERIFY_CODE.parents[1]
@@ -500,7 +529,7 @@ class RepositoryAreaTests(unittest.TestCase):
         writing = [name for name in names if name.startswith("Core.Persistence.Content.Writing@")]
         sealing = [name for name in names if name.startswith("Core.Persistence.Content.Sealing@")]
 
-        expected = [f"Core.Persistence.Content@{n}/32" for n in range(1, 33)]
+        expected = [f"Core.Persistence.Content@{n}/40" for n in range(1, 41)]
         ingestion = [name for name in names if name.startswith("Core.Persistence.Ingestion@")]
         self.assertEqual(
             (problems, content, writing, sealing, ingestion),

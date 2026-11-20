@@ -7,13 +7,31 @@ from __future__ import annotations
 from collections.abc import Iterator
 from itertools import pairwise
 
-from steps.csharp_tokens import Token
+from steps.csharp_tokens import Token, strings, tokens
 
-#: What one token of a static initializer costs against one of any other code. Stryker cannot say
-#: which tests reach a static initializer, so each of its mutants runs the whole suite (#683: the
-#: 24 mutants of ``ContentColumns`` took 22 min, 304 tests each, while the same weight in tokens
-#: anywhere else took 4 to 11 min). Measured between 4 and 5.
-STATIC_COST = 5
+#: What one mutant that runs the whole suite weighs, in tokens of other code. Stryker cannot say
+#: which tests reach a static initializer, so each of its mutants runs the whole suite (#683).
+#: Measured on ``Core.Persistence.Content`` (#849): in run 44646098427 the parts with two of these
+#: mutants and some 18 tokens took 8,8 to 9 min and those with one and 674 tokens, 11,1 to 18; the
+#: preparation takes 4,5 to 5 min, so one of these mutants costs about 2,1 min and a token about
+#: 0,011, some 190 tokens. Each literal of a static initializer, a string or a boolean, is one.
+SUITE_MUTANT = 200
+BOOLEANS = frozenset({"true", "false"})
+#: The methods of a file, by its path in the project and their signature (name and parameters),
+#: that every test of the area runs through, so that Stryker tests each of their mutants against
+#: the whole suite; nothing in the text says so, hence the signatures. Each of their tokens weighs
+#: a mutant of the suite, so each is alone in its part (#849: alone, the ``OpenAsync`` that opened
+#: every content transaction took 15,5 min of the 20, and was cut in two).
+SUITE_WIDE: dict[str, frozenset[str]] = {
+    "Content/ContentTransaction.cs": frozenset(
+        {
+            "OpenAsync(NpgsqlDataSource dataSource, Declaration declare, IsolationLevel isolation,"
+            " CancellationToken cancellationToken)",
+            "DeclareAsync(NpgsqlConnection connection, NpgsqlTransaction transaction,"
+            " Declaration declare, CancellationToken cancellationToken)",
+        }
+    ),
+}
 OPENERS = frozenset("{([")
 CLOSERS = frozenset("})]")
 ANGLES = frozenset("<>")
@@ -52,6 +70,30 @@ def static_initializer(member: list[Token]) -> bool:
         elif after_static >= 0 and kind == "=":
             return True
     return False
+
+
+def signature(member: list[Token]) -> tuple[str, ...]:
+    """The tokens of the signature of the method or constructor ``member`` declares: from the word
+    before its first parenthesis outside every group to the one that closes it, when no ``=``
+    nor ``=>`` comes before it; none for anything else, so a call in an initializer or an
+    expression body declares nothing."""
+    opened = parameters(member)
+    closed = None if opened is None else closing(member, opened, len(member))
+    if not opened or closed is None:
+        return ()
+    return tuple(token.kind for token in member[opened - 1 : closed + 1])
+
+
+def parameters(member: list[Token]) -> int | None:
+    """The position of the first parenthesis of ``member`` outside every group, or None when an
+    ``=``, an ``=>`` or a ``;`` comes first."""
+    for position in top_level(member, 0, len(member)):
+        kind = member[position].kind
+        if kind in {"=", "=>", ";"}:
+            return None
+        if kind == "(":
+            return position
+    return None
 
 
 def closing(found: list[Token], opened: int, last: int) -> int | None:
@@ -105,11 +147,32 @@ def element_cuts(text: str, found: list[Token], first: int, last: int) -> list[i
 
 def pieces(text: str, found: list[Token], first: int, last: int) -> list[tuple[int, int]]:
     """The cuts of one member as ``(end, weight)``: the member itself, or its elements when it is
-    a static initializer holding a list; the weight is the tokens, times ``STATIC_COST`` for a
-    static initializer, wherever it is cut."""
+    a static initializer holding a list; the weight is the tokens, plus ``SUITE_MUTANT`` for each
+    literal of a static initializer, wherever it is cut."""
     member = found[first:last]
     static = static_initializer(member)
     inner = element_cuts(text, found, first, last) if static else []
     marks = [first, *inner, last]
-    factor = STATIC_COST if static else 1
-    return [(b, max(1, b - a) * factor) for a, b in pairwise(marks)]
+    return [
+        (b, max(1, b - a) + (literals(text, found, a, b) * SUITE_MUTANT if static else 0))
+        for a, b in pairwise(marks)
+    ]
+
+
+def literals(text: str, found: list[Token], first: int, last: int) -> int:
+    """The literals Stryker mutates in ``found[first:last]``: its strings and its booleans."""
+    start = found[first - 1].end if first > 0 else 0
+    words = sum(token.kind in BOOLEANS for token in found[first:last])
+    return words + strings(text, start, found[last - 1].end if last > first else start)
+
+
+def suite_factor(member: list[Token], suite: frozenset[str]) -> int:
+    """``SUITE_MUTANT`` for a method whose signature is in ``suite``, which every test runs
+    through; 1 for any other member."""
+    declared = signature(member)
+    return SUITE_MUTANT if any(declared == signed(entry) for entry in suite) else 1
+
+
+def signed(entry: str) -> tuple[str, ...]:
+    """The tokens of a signature written in ``SUITE_WIDE``."""
+    return tuple(token.kind for token in tokens(entry))

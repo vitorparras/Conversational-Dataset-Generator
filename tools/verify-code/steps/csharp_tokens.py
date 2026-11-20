@@ -11,6 +11,7 @@ PREFIX = re.compile(r'[$@]+(?=")')
 QUOTES = re.compile(r'"+')
 BRACES = re.compile(r"\{+")
 ARROW = "=>"
+STRING_STARTS = frozenset('"$@')
 RAW_QUOTES = 3
 
 
@@ -29,6 +30,18 @@ def tokens(text: str) -> list[Token]:
         skipped = skipped_end(text, i)
         i = take(text, i, found) if skipped is None else skipped
     return found
+
+
+def strings(text: str, start: int, end: int) -> int:
+    """How many string literals start in ``text[start:end]``: comments, directives and character
+    literals aside, each with its ``$`` or ``@`` read as one."""
+    count = 0
+    i = start
+    while i < end:
+        skipped = skipped_end(text, i)
+        count += skipped is not None and text[i] in STRING_STARTS
+        i = i + 1 if skipped is None else skipped
+    return count
 
 
 def take(text: str, i: int, found: list[Token]) -> int:

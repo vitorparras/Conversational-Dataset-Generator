@@ -4,15 +4,15 @@ using System.Text;
 namespace Core.Ingestion.Sanitizing;
 
 /// <summary>
-/// Finds the identifiers made of digits by the sequence of their digits, whatever stands between them: invisible characters, as many as there are, and up to three separators in a
-/// row, so that a number split by a space of zero width, an odd dot or irregular spacing is the same number. A run of eight digits or more is an identifier, and so is a run closed by
-/// a check digit after a dash; a date, a time, and a plain number after a currency or before a unit stay, since the policy keeps them on purpose.
+/// Finds the identifiers made of digits by the sequence of their digits, whatever stands between them on the line, invisible characters and separators, as many as there are, so
+/// that a number split by a space of zero width, an odd dot, a comma or irregular spacing is the same number; only a comma or a semicolon followed by a space, which closes an item
+/// of a list as prose writes it, ends the number. A run of eight digits or more is an identifier, and so is a run closed by a check digit after a dash; a date, a time, and a plain
+/// number after a currency or before a unit stay, since the policy keeps them on purpose.
 /// </summary>
 internal static class IdentifierNumbers
 {
     private const int IdentifierDigits = 8;
     private const int AccountDigits = 6;
-    private const int MaximumSeparators = 3;
     private const int MaximumSpacesToContext = 2;
 
     /// <summary>The units a quantity is written with, each between bars, read in any case.</summary>
@@ -43,24 +43,32 @@ internal static class IdentifierNumbers
 
     private static Run RunFrom(string[] text, int start)
     {
-        var (end, digits, separators, at) = (start + 1, 1, 0, start + 1);
-        for (; at < text.Length && Continues(text[at], separators); at++)
+        var (end, digits, at) = (start + 1, 1, start + 1);
+        for (; at < text.Length && Continues(text, at); at++)
         {
             if (IdentifierPoints.IsDigit(text[at]))
             {
-                (end, digits, separators) = (at + 1, digits + 1, 0);
-            }
-            else
-            {
-                separators += IdentifierPoints.IsInvisible(text[at]) ? 0 : 1;
+                (end, digits) = (at + 1, digits + 1);
             }
         }
 
         return new Run(start, end, digits, at);
     }
 
-    private static bool Continues(string point, int separators) =>
-        IdentifierPoints.IsDigit(point) || IdentifierPoints.IsInvisible(point) || (separators < MaximumSeparators && IdentifierPoints.IsSeparator(point));
+    private static bool Continues(string[] text, int at) =>
+        IdentifierPoints.IsDigit(text[at]) || IdentifierPoints.IsInvisible(text[at]) || (IdentifierPoints.IsSeparator(text[at]) && !ClosesAnItem(text, at));
+
+    /// <summary>A comma or a semicolon followed, across invisible characters, by a space or the end of the text: the end of an item of a list, as prose writes it.</summary>
+    private static bool ClosesAnItem(string[] text, int at)
+    {
+        if (!IdentifierPoints.IsListMark(text[at]))
+        {
+            return false;
+        }
+
+        var next = IdentifierPoints.Visible(text, at + 1, 1);
+        return next >= text.Length || char.IsWhiteSpace(text[next], 0);
+    }
 
     private static SanitizationMarker? MarkerOf(string[] text, Run run)
     {

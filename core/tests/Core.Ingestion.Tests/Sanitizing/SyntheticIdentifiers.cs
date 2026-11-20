@@ -10,9 +10,15 @@ namespace Core.Ingestion.Tests.Sanitizing;
 /// </summary>
 internal static class SyntheticIdentifiers
 {
-    private static readonly string[] Invisibles = ["\u200B", "\u200C", "\u200D", "\u2060", "\uFEFF", "\u00AD"];
+    /// <summary>The characters that show nothing: of format, marks of no width, variation selectors and the fillers of Hangul.</summary>
+    internal static readonly string[] Invisibles =
+        ["\u200B", "\u200C", "\u200D", "\u2060", "\uFEFF", "\u00AD", "\uFE0F", "\u034F", "\u180B", "\U000E0100", "\u3164", "\u115F"];
 
-    private static readonly string[] Spread = ["", " ", "  ", "   ", " \t", "\u00A0", "\u2009", "/", "\u2024", "\u00B7", "\u2027", "\u2011", "\u2013", "\u2014", "\uFF0E", "\u2212"];
+    private static readonly string[] Spread =
+    [
+        "", " ", "  ", "   ", "    ", " \t", "\u00A0", "\u2009", "\u2003\u2003\u2003\u2003", "/", "\u2024", "\u00B7", "\u2027", "\u2011", "\u2013", "\u2014", "\uFF0E",
+        "\u2212", ",", ";", "|", "\u2800",
+    ];
 
     private static readonly string[] Dashes = ["-", "\u2010", "\u2011", "\u2013", "\u2212"];
 
@@ -36,7 +42,8 @@ internal static class SyntheticIdentifiers
         Gen.Select(Digits(3), Gen.Bool, Gen.Char['A', 'Z'], (digits, mercosul, letter) =>
             new Form(string.Empty, ["QZX", $"{digits[0]}{(mercosul ? letter : digits[1])}{digits[1..]}"], [string.Empty], PlateSeparators)),
         Gen.Int[0, 255].Select(last => new Form(string.Empty, ["00", "00", "5E", "00", "53", $"{last:X2}"], [":", ":", ":", ":", ":"], DeviceSeparators)),
-        Gen.Char['a', 'z'].Array[3].Select(letters => new Form(string.Empty, [$"zqx{new string(letters)}", "exemplo", "invalid"], ["@", "."], [])));
+        Gen.Select(Gen.Char['a', 'z'].Array[3], Gen.OneOf("", "\u00E3", "\u00E9", "\u00E7"), (letters, accent) =>
+            new Form(string.Empty, [$"zqx{accent}{new string(letters)}", "exemplo", "invalid"], ["@", "."], [])));
 
     /// <summary>An identifier written in an arbitrary variation, split by at least one invisible character when asked.</summary>
     public static Gen<Planted> Variants(bool split) =>
@@ -76,6 +83,7 @@ internal static class SyntheticIdentifiers
             for (var time = 0; time < invisibles; time++)
             {
                 var at = 1 + (picks[^(time + 1)] % (text.Length - 1));
+                at += char.IsLowSurrogate(text[at]) ? 1 : 0;
                 text = text.Insert(at, Invisibles[picks[time] % Invisibles.Length]);
             }
 

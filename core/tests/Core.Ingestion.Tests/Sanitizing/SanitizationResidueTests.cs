@@ -4,6 +4,7 @@ using Core.Ingestion.Deciding;
 using Core.Ingestion.Sanitizing;
 using Core.Tests.Support.Harness;
 using CsCheck;
+using Xunit.Sdk;
 using static Core.Ingestion.Tests.Sanitizing.Sanitizing;
 
 namespace Core.Ingestion.Tests.Sanitizing;
@@ -76,13 +77,13 @@ public sealed class SanitizationResidueTests
     [Fact]
     public void ResidueCheckRejectsARemovalStepWithAPlantedDefect()
     {
-        var naive = new FixedStep(Removal.Name, input => [.. Removal.Edits(input).Where(edit => !Cut(input.Text, edit.Start, edit.End).Any(IsInvisible))]);
+        var naive = new FixedStep(Removal.Name, input => [.. Removal.Edits(input).Where(edit => !HoldsAnInvisible(Cut(input.Text, edit.Start, edit.End)))]);
         var defective = Sanitizer([.. StepConformance.Registered().Select(step => step.Name == Removal.Name ? naive : step)]);
 
         var failure = Record.Exception(() => PropertyRunner.FromProcess().Check(WithIdentifiers(split: true), material => LeavesNoResidue(defective, material)));
 
-        Assert.NotNull(failure);
-        Assert.IsNotType<TimeoutException>(failure);
+        var property = Assert.IsType<CsCheckException>(failure);
+        _ = Assert.IsType<AllException>(property.InnerException);
     }
 
     /// <summary>No planted identifier is in the sanitized text: its digits, joined across whatever is not a letter, nor its letters and digits together, in ASCII capitals.</summary>
@@ -101,13 +102,17 @@ public sealed class SanitizationResidueTests
         var skeleton = new StringBuilder();
         foreach (var rune in text.EnumerateRunes())
         {
-            _ = skeleton.Append(Rune.IsLetter(rune) && !letters ? "|" : SkeletonOf(rune));
+            if (!SyntheticIdentifiers.Invisibles.Contains(rune.ToString()))
+            {
+                _ = skeleton.Append(Rune.IsLetter(rune) && !letters ? "|" : SkeletonOf(rune));
+            }
         }
 
         return skeleton.ToString();
     }
 
-    private static bool IsInvisible(char character) => char.GetUnicodeCategory(character) == UnicodeCategory.Format;
+    /// <summary>Whether the cut holds one of the invisible characters the identifiers are split by, as the generator writes them and not as the removal reads them.</summary>
+    private static bool HoldsAnInvisible(string cut) => Array.Exists(SyntheticIdentifiers.Invisibles, invisible => cut.Contains(invisible, StringComparison.Ordinal));
 
     /// <summary>A digit in ASCII, a letter in capitals, and nothing for the rest.</summary>
     private static string SkeletonOf(Rune rune) => rune switch

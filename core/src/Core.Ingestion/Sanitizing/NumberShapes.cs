@@ -26,17 +26,18 @@ internal static class NumberShapes
         return parts.Count > 0 && parts.TrueForAll(part => IsDate(part) || IsTime(part));
     }
 
-    /// <summary>Digits alone, or one to three digits followed by groups of three, all split by the same dot or space.</summary>
+    /// <summary>Digits alone, or one to three digits followed by groups of three, all split by the same dot, comma or space; with or without decimals after a last comma.</summary>
     internal static bool IsPlainNumber(string shape)
     {
-        var separator = SeparatorOf(shape);
+        var whole = WithoutDecimals(shape);
+        var separator = SeparatorOf(whole);
         if (separator == default)
         {
             return true;
         }
 
-        var groups = shape.Split(separator);
-        return separator is '.' or ' ' && groups[0].Length is >= 1 and <= GroupWidth && Array.TrueForAll(groups[1..], group => group.Length == GroupWidth) && Array.TrueForAll(groups, IsDigits);
+        var groups = whole.Split(separator);
+        return separator is '.' or ',' or ' ' && groups[0].Length is >= 1 and <= GroupWidth && Array.TrueForAll(groups[1..], group => group.Length == GroupWidth) && Array.TrueForAll(groups, IsDigits);
     }
 
     /// <summary>A number closed by a dash and one check digit.</summary>
@@ -47,6 +48,13 @@ internal static class NumberShapes
     {
         var tail = shape.Length - 1 - shape.LastIndexOf(shape.LastOrDefault(character => !char.IsAsciiDigit(character)));
         return digits is >= MinimumPhoneDigits and <= MaximumPhoneDigits && !shape.Contains('.', StringComparison.Ordinal) && tail == PhoneTail;
+    }
+
+    /// <summary>The number without the one or two decimals a last comma sets apart.</summary>
+    private static string WithoutDecimals(string shape)
+    {
+        var comma = shape.LastIndexOf(',');
+        return comma > 0 && shape.Length - comma - 1 <= FieldWidth && IsDigits(shape[(comma + 1)..]) ? shape[..comma] : shape;
     }
 
     private static bool IsTime(string part)

@@ -29,6 +29,11 @@ internal static class IdentifierWords
     {
         for (var at = 0; at < text.Length; at++)
         {
+            if (IdentifierPoints.IsInvisible(text[at]))
+            {
+                continue; // a form starts at a visible code point, and starting from each invisible one would read a long run of them once per position
+            }
+
             foreach (var end in Forms.Select(form => Matched(text, at, form)).Where(end => end > at && !IsMonthAndYear(text, at, end)))
             {
                 yield return new IdentifierSpan(at, end, SanitizationMarker.Document);
@@ -83,7 +88,10 @@ internal static class IdentifierWords
         return Months.Contains($"|{visible[..MonthLetters].ToUpperInvariant()}|", StringComparison.Ordinal) && visible[^YearDigits..] is ['1' or '2', '9' or '0', _, _];
     }
 
-    /// <summary>The electronic address around the at sign: a local part of letters, digits and the usual signs, and a domain of two labels or more whose last one is letters only.</summary>
+    /// <summary>
+    /// The electronic address around the at sign: a local part of letters of any script, digits and the usual signs, and a domain of two labels or more whose last one is ASCII
+    /// letters only.
+    /// </summary>
     private static IdentifierSpan? Address(string[] text, int at)
     {
         var start = LocalStart(text, at);
@@ -111,7 +119,7 @@ internal static class IdentifierWords
             end++;
         }
 
-        while (end > at + 1 && !LetterOrDigit(text[end - 1]))
+        while (end > at + 1 && !IsAddressWord(text[end - 1]))
         {
             end--;
         }
@@ -125,7 +133,10 @@ internal static class IdentifierWords
         return labels.Length > 1 && Array.TrueForAll(labels, label => label.Length > 0) && labels[^1].Length >= MinimumTopLevel && labels[^1].All(char.IsAsciiLetter);
     }
 
-    private static bool IsLocal(string point) => LetterOrDigit(point) || LocalSigns.Contains(point, StringComparison.Ordinal);
+    /// <summary>A visible letter of any script or a digit.</summary>
+    private static bool IsAddressWord(string point) => !IdentifierPoints.IsInvisible(point) && IdentifierPoints.IsWord(point);
 
-    private static bool IsDomain(string point) => LetterOrDigit(point) || point is "." or "-";
+    private static bool IsLocal(string point) => IsAddressWord(point) || LocalSigns.Contains(point, StringComparison.Ordinal);
+
+    private static bool IsDomain(string point) => IsAddressWord(point) || point is "." or "-";
 }

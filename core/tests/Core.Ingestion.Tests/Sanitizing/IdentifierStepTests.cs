@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Core.Ingestion.Sanitizing;
 using static Core.Ingestion.Tests.Sanitizing.Sanitizing;
 
@@ -37,6 +38,16 @@ public sealed class IdentifierStepTests
     [InlineData("placa ZQX\u200B-1A23 ok", "placa [documento] ok")]
     [InlineData("placa zqx\u200B1234 ok", "placa [documento] ok")]
     [InlineData("MAC 0A:1B:2C\u200B:3D:4E:5F ok", "MAC [documento] ok")]
+    [InlineData("CPF 100\uFE0F200\uFE0F300\uFE0F00 ok", "CPF [documento] ok")]
+    [InlineData("CPF 100\u034F200\u034F300\u034F00 ok", "CPF [documento] ok")]
+    [InlineData("CPF 100\u180B200\u180B300\u180B00 ok", "CPF [documento] ok")]
+    [InlineData("CPF 100\U000E0100200\U000E0100300\U000E010000 ok", "CPF [documento] ok")]
+    [InlineData("CPF 100\u3164200\u1160300\uFFA000 ok", "CPF [documento] ok")]
+    [InlineData("CPF 100\u2800200\u2800300\u280000 ok", "CPF [documento] ok")]
+    [InlineData("CPF 100,200,300,00 ok", "CPF [documento] ok")]
+    [InlineData("CPF 100;200;300;00 ok", "CPF [documento] ok")]
+    [InlineData("CPF 100    200    300    00 ok", "CPF [documento] ok")]
+    [InlineData("CPF 100\u2003\u2003\u2003\u2003200.300-00 ok", "CPF [documento] ok")]
     public void NumberSplitByZeroWidthOrOddSeparatorLeavesWithTheSeparators(string raw, string expected) =>
         Assert.Equal(expected, Removed(raw).Text);
 
@@ -50,6 +61,9 @@ public sealed class IdentifierStepTests
     [InlineData("escreve zqx@exemplo.invalid.", "escreve [contato].")]
     [InlineData("zqx@exemplo.io fim", "[contato] fim")]
     [InlineData("manda \u200Bzqx@exemplo.invalid ok", "manda \u200B[contato] ok")]
+    [InlineData("manda jo\u00E3o.silva@exemplo.invalid ok", "manda [contato] ok")]
+    [InlineData("manda joa\u0303o.silva@exemplo.invalid ok", "manda [contato] ok")]
+    [InlineData("manda zqx@ex\u00E9mplo.invalid ok", "manda [contato] ok")]
     public void ContactAndDeviceLeaveUnderTheirMarker(string raw, string expected) =>
         Assert.Equal(expected, Removed(raw).Text);
 
@@ -78,7 +92,7 @@ public sealed class IdentifierStepTests
     [InlineData("cartão 0000 1000 0000 fim", "cartão [documento] fim")]
     [InlineData("CPF 10020030000", "CPF [documento]")]
     [InlineData("c\u00F3digo x12345678", "c\u00F3digo x[documento]")]
-    [InlineData("1000    20003000 fim", "1000    [documento] fim")]
+    [InlineData("1000    20003000 fim", "[documento] fim")]
     public void NumberThatIsNoDateTimeMoneyNorQuantityLeaves(string raw, string expected) =>
         Assert.Equal(expected, Removed(raw).Text);
 
@@ -89,6 +103,7 @@ public sealed class IdentifierStepTests
     [InlineData("zz:yy:xx:ww:vv:uu e manda @exemplo.invalid no dia 12//2024")]
     [InlineData("A12345678B em mar-2024 e JAN2019, zqx@exemplo..invalid e zqx@exemplo.c0m")]
     [InlineData("Página 1 de 3\n2\n3\n4\n5\n6\n7\n8\n9 e a\u200Bb e x@y.z")]
+    [InlineData("lotes 1200; 3400, 5600;\u200B 7800 e notas 9,5, 8,0, 7,5")]
     public void TextWithoutIdentifierLeavesUnchanged(string raw)
     {
         var removed = Removed(raw);
@@ -129,6 +144,18 @@ public sealed class IdentifierStepTests
         var sanitized = Sanitized(Sanitizer(new IdentifierStep(Boundaries), new DestinationsStep()), raw, Pseudonymized(0, 8), Pseudonymized(23, 27));
 
         Assert.Equal(("[documento] fim Wvkt", 1), (sanitized.Text, sanitized.Pseudonyms.Count));
+    }
+
+    [Fact]
+    public void LongRunOfInvisibleCharactersIsReadInLinearTime()
+    {
+        var raw = $"ok {new string('\u200B', 200_000)} fim";
+        var clock = Stopwatch.StartNew();
+
+        var removed = Removed(raw);
+
+        Assert.Equal(raw, removed.Text);
+        Assert.InRange(clock.Elapsed, TimeSpan.Zero, TimeSpan.FromSeconds(2));
     }
 
     [Fact]

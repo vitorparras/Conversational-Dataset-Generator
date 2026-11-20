@@ -16,12 +16,20 @@ internal static class IdentifierWords
     /// <summary>The month abbreviations, each between bars.</summary>
     private const string Months = "|JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ|";
 
+    /// <summary>The forms read code point by code point: the old plate, the plate of the common market, both with or without a separator, and the physical address of a device.</summary>
+    private static readonly Func<string, bool>[][] Forms =
+    [
+        [Letter, Letter, Letter, Digit, LetterOrDigit, Digit, Digit],
+        [Letter, Letter, Letter, PlateSeparator, Digit, LetterOrDigit, Digit, Digit],
+        [Hex, Hex, DeviceSeparator, Hex, Hex, DeviceSeparator, Hex, Hex, DeviceSeparator, Hex, Hex, DeviceSeparator, Hex, Hex, DeviceSeparator, Hex, Hex],
+    ];
+
     /// <summary>The plates, the device addresses and the electronic addresses in the text, each as a contact or a document.</summary>
     internal static IEnumerable<IdentifierSpan> Find(string[] text)
     {
         for (var at = 0; at < text.Length; at++)
         {
-            foreach (var end in Forms().Select(form => Matched(text, at, form)).Where(end => end > at && !IsMonthAndYear(text, at, end)))
+            foreach (var end in Forms.Select(form => Matched(text, at, form)).Where(end => end > at && !IsMonthAndYear(text, at, end)))
             {
                 yield return new IdentifierSpan(at, end, SanitizationMarker.Document);
             }
@@ -32,14 +40,6 @@ internal static class IdentifierWords
             }
         }
     }
-
-    /// <summary>The forms read code point by code point: the old plate, the plate of the common market, both with or without a separator, and the physical address of a device.</summary>
-    private static Func<string, bool>[][] Forms() =>
-    [
-        [Letter, Letter, Letter, Digit, LetterOrDigit, Digit, Digit],
-        [Letter, Letter, Letter, PlateSeparator, Digit, LetterOrDigit, Digit, Digit],
-        [Hex, Hex, DeviceSeparator, Hex, Hex, DeviceSeparator, Hex, Hex, DeviceSeparator, Hex, Hex, DeviceSeparator, Hex, Hex, DeviceSeparator, Hex, Hex],
-    ];
 
     private static bool Letter(string point) => IdentifierPoints.IsAsciiLetter(point);
 

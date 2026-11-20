@@ -16,7 +16,7 @@ internal static class IdentifierNumbers
     private const int MaximumSpacesToContext = 2;
 
     /// <summary>The units a quantity is written with, each between bars, read in any case.</summary>
-    private const string Units = "|kg|g|mg|t|ton|tonelada|toneladas|quilo|quilos|grama|gramas|l|ml|litro|litros|m|km|cm|mm|metro|metros|m²|m³|km²|ha|hectare|hectares|"
+    private const string Units = "|kg|g|mg|t|ton|tonelada|toneladas|quilo|quilos|grama|gramas|l|ml|litro|litros|m|km|cm|mm|metro|metros|ha|hectare|hectares|"
         + "real|reais|dólar|dólares|euro|euros|mil|milhão|milhões|bilhão|bilhões|un|unidade|unidades|";
 
     /// <summary>The identifiers of digits in the text, each with the separators between its digits and the plus sign or parenthesis that opens it.</summary>
@@ -113,7 +113,7 @@ internal static class IdentifierNumbers
     {
         var at = Beside(text, end, 1);
         var word = new StringBuilder();
-        while (at < text.Length && (char.IsLetter(text[at], 0) || text[at] is "%" or "²" or "³"))
+        while (at < text.Length && (char.IsLetter(text[at], 0) || text[at] == "%"))
         {
             _ = word.Append(text[at]);
             at++;

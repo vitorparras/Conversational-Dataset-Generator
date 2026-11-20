@@ -70,8 +70,8 @@ public sealed class DecidedItemTextsTests
         var sanitization = DecidedItemTexts.Of(decided, 0, Text, Sanitized(decided, Text)).Sanitization;
 
         Assert.NotNull(sanitization);
-        Assert.Equal((Text, CompositionRoot.StepsOf().Version, "codificacao@1\nartefatos@1\ndestinos@1"), (sanitization.Text, sanitization.Version, sanitization.Steps));
-        Assert.Equal([0, 0, 0], sanitization.Counts);
+        Assert.Equal((Text, CompositionRoot.StepsOf().Version, "codificacao@1\nartefatos@1\nidentificadores@1\ndestinos@1"), (sanitization.Text, sanitization.Version, sanitization.Steps));
+        Assert.Equal([0, 0, 0, 0], sanitization.Counts);
         Assert.Equal(Text.Length, TrailJson.Read(sanitization.Trail).RawLength);
     }
 

@@ -62,5 +62,8 @@ public static class AuditMap
             "o evento acompanha a inserção dos itens do lote, que o mapa não compara; a versão dos passos vai uma vez por domínio a uma tabela que o mapa também não compara",
         [CustodyStep.PersonEmailCorrected] =
             "a tabela public.person_email fica fora do mapa: a própria pessoa muda o endereço sem passo da cadeia (política 009), e os comandos do log não casam com os eventos",
+        [CustodyStep.SanitizationRerun] = "o pedido de reexecução grava a fila, tabelas que o mapa não compara: a cadeia guarda o evento do pedido",
+        [CustodyStep.ItemResanitized] =
+            "a reexecução lê o item e troca a sanitização só quando há o que trocar; o recusado e o superado não alteram a tabela, então os comandos do log não casam com os eventos",
     };
 }

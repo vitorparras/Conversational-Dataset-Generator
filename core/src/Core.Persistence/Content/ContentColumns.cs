@@ -13,6 +13,8 @@ public static class ContentColumns
     private const string BatchColumn = "batch_id";
     private const string WrittenInColumn = "written_in";
     private const string ItemColumn = "item_id";
+    private const string RerunTable = "sanitization_rerun";
+    private const string RerunItemTable = "sanitization_rerun_item";
 
     /// <summary>The table of the texts of an item.</summary>
     public static string ItemText { get; } = "item_text";
@@ -86,6 +88,7 @@ public static class ContentColumns
         new(ItemText, "preserved_passages", ClearKind.Epoch),
         new(ItemText, "sanitization_version", ClearKind.Motive),
         new(ItemText, "sanitization_counts", ClearKind.Counts),
+        new(ItemText, "sanitization_untreated", ClearKind.Counts),
         new(SanitizationVersion, "id", ClearKind.Identifier),
         new(SanitizationVersion, DomainColumn, ClearKind.Domain),
         new(SanitizationVersion, "version", ClearKind.Motive),
@@ -146,5 +149,20 @@ public static class ContentColumns
         new(ReplicationMark, "first_item_id", ClearKind.Identifier),
         new(ReplicationMark, "first_message_position", ClearKind.Epoch),
         new(ReplicationMark, WrittenInColumn, ClearKind.Transaction),
+        new(RerunTable, "id", ClearKind.Identifier),
+        new(RerunTable, DomainColumn, ClearKind.Domain),
+        new(RerunTable, "target_version", ClearKind.Motive),
+        new(RerunTable, "requested_by", ClearKind.Identifier),
+        new(RerunTable, "requested_at", ClearKind.Moment),
+        new(RerunItemTable, "id", ClearKind.Identifier),
+        new(RerunItemTable, DomainColumn, ClearKind.Domain),
+        new(RerunItemTable, "rerun_id", ClearKind.Identifier),
+        new(RerunItemTable, ItemColumn, ClearKind.Identifier),
+        new(RerunItemTable, "state", ClearKind.Status),
+        new(RerunItemTable, "hold_until", ClearKind.Moment),
+        new(RerunItemTable, "tries", ClearKind.Epoch),
+        new(RerunItemTable, "concluded_at", ClearKind.Moment),
+        new(RerunItemTable, "result", ClearKind.Motive),
+        new(RerunItemTable, "refusal", ClearKind.Motive),
     ];
 }

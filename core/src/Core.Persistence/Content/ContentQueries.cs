@@ -64,9 +64,9 @@ public static class ContentQueries
         "WITH version AS (INSERT INTO content.sanitization_version (domain_id, version, steps) SELECT @domain::integer, @version::text, @steps::text WHERE @version::text IS NOT NULL "
         + "ON CONFLICT (version, domain_id) DO NOTHING) "
         + "INSERT INTO content.item_text (domain_id, batch_id, raw_text, sanitized_text, pseudonymized_text, occurrences, dek_epoch, dek_wrapped, accommodated_into, losses, "
-        + "removed_passages, pseudonymized_passages, preserved_passages, sanitization_version, sanitization_trail, sanitization_counts) "
+        + "removed_passages, pseudonymized_passages, preserved_passages, sanitization_version, sanitization_trail, sanitization_counts, sanitization_untreated) "
         + "VALUES (@domain, @batch, @raw, @sanitized, @pseudonymized, @occurrences, @epoch, @wrapped, @accommodated, @losses, @removed_count, @pseudonymized_count, @preserved_count, "
-        + "@version, @trail, @counts) RETURNING id";
+        + "@version, @trail, @counts, @untreated) RETURNING id";
 
     /// <summary>Adds the map that reverses the pseudonyms of an item.</summary>
     internal const string InsertReversalMap =
@@ -159,7 +159,7 @@ public static class ContentQueries
     internal const string EmptyItemText =
         "UPDATE content.item_text SET emptied_at = now(), raw_text = NULL, sanitized_text = NULL, pseudonymized_text = NULL, occurrences = NULL, "
         + "removed_passages = 0, pseudonymized_passages = 0, preserved_passages = 0, sanitization_version = NULL, sanitization_trail = NULL, sanitization_counts = NULL, "
-        + "dek_epoch = NULL, dek_wrapped = NULL "
+        + "sanitization_untreated = NULL, dek_epoch = NULL, dek_wrapped = NULL "
         + "WHERE id = @id AND emptied_at IS NULL RETURNING id";
 
     /// <summary>Empties the maps of an item, with the item: the marker is set and the entries and the key of the map are cleared.</summary>

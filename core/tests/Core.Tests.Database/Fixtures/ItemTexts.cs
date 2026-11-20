@@ -37,6 +37,6 @@ public static class ItemTexts
     public static ItemSanitization Sanitization(string sanitized)
     {
         ArgumentNullException.ThrowIfNull(sanitized);
-        return new() { Text = sanitized, Version = Version, Steps = Steps, Trail = $$"""{"raw":{{sanitized.Length}},"steps":[[]]}""", Counts = [0] };
+        return new() { Text = sanitized, Version = Version, Steps = Steps, Trail = $$"""{"raw":{{sanitized.Length}},"steps":[[]]}""", Counts = [0], Untreated = [0] };
     }
 }

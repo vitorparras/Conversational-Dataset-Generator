@@ -31,6 +31,7 @@ internal static class DecidedItemTexts
         Steps = string.Join("\n", clean.Order.Select(step => $"{step.Name}@{step.Version}")),
         Trail = TrailJson.Write(clean.Trail),
         Counts = [.. clean.Report.Select(step => step.Count)],
+        Untreated = [.. clean.Report.Select(step => step.Untreated)],
     };
 
     private static ItemOccurrence Stored(DecidedOccurrence decided) =>

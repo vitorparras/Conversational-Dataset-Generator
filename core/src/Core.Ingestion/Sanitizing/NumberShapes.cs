@@ -19,6 +19,9 @@ internal static class NumberShapes
     private const int HoursInADay = 24;
     private const int MinutesInAnHour = 60;
 
+    /// <summary>The marks a decimal part follows: the comma, as Portuguese writes it, or the dot.</summary>
+    private static readonly char[] DecimalPoints = [',', '.'];
+
     /// <summary>Every part between spaces that holds a digit is a date or a time, as a date followed by its hour, or a list of dates.</summary>
     internal static bool IsDateOrTime(string shape)
     {
@@ -26,7 +29,7 @@ internal static class NumberShapes
         return parts.Count > 0 && parts.TrueForAll(part => IsDate(part) || IsTime(part));
     }
 
-    /// <summary>Digits alone, or one to three digits followed by groups of three, all split by the same dot, comma or space; with or without decimals after a last comma.</summary>
+    /// <summary>Digits alone, or one to three digits followed by groups of three, all split by the same dot, comma or space; with or without decimals after a last comma or dot.</summary>
     internal static bool IsPlainNumber(string shape)
     {
         var whole = WithoutDecimals(shape);
@@ -50,11 +53,11 @@ internal static class NumberShapes
         return digits is >= MinimumPhoneDigits and <= MaximumPhoneDigits && !shape.Contains('.', StringComparison.Ordinal) && tail == PhoneTail;
     }
 
-    /// <summary>The number without the one or two decimals a last comma sets apart.</summary>
+    /// <summary>The number without the one or two decimals a last comma or dot sets apart.</summary>
     private static string WithoutDecimals(string shape)
     {
-        var comma = shape.LastIndexOf(',');
-        return comma > 0 && shape.Length - comma - 1 <= FieldWidth && IsDigits(shape[(comma + 1)..]) ? shape[..comma] : shape;
+        var point = shape.LastIndexOfAny(DecimalPoints);
+        return point > 0 && shape.Length - point - 1 <= FieldWidth && IsDigits(shape[(point + 1)..]) ? shape[..point] : shape;
     }
 
     private static bool IsTime(string part)

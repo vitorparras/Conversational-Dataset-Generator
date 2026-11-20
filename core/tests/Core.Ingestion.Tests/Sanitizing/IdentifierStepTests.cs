@@ -44,6 +44,7 @@ public sealed class IdentifierStepTests
     [InlineData("CPF 100\U000E0100200\U000E0100300\U000E010000 ok", "CPF [documento] ok")]
     [InlineData("CPF 100\u3164200\u1160300\uFFA000 ok", "CPF [documento] ok")]
     [InlineData("CPF 100\u2800200\u2800300\u280000 ok", "CPF [documento] ok")]
+    [InlineData("CPF 100\u20DD200\u20DD300\u20DD00 ok", "CPF [documento] ok")]
     [InlineData("CPF 100,200,300,00 ok", "CPF [documento] ok")]
     [InlineData("CPF 100;200;300;00 ok", "CPF [documento] ok")]
     [InlineData("CPF 100    200    300    00 ok", "CPF [documento] ok")]
@@ -64,6 +65,7 @@ public sealed class IdentifierStepTests
     [InlineData("manda jo\u00E3o.silva@exemplo.invalid ok", "manda [contato] ok")]
     [InlineData("manda joa\u0303o.silva@exemplo.invalid ok", "manda [contato] ok")]
     [InlineData("manda zqx@ex\u00E9mplo.invalid ok", "manda [contato] ok")]
+    [InlineData("manda zqx@exemplo.\u0440\u0444 ok", "manda [contato] ok")]
     public void ContactAndDeviceLeaveUnderTheirMarker(string raw, string expected) =>
         Assert.Equal(expected, Removed(raw).Text);
 
@@ -73,6 +75,7 @@ public sealed class IdentifierStepTests
     [InlineData("foi em 12/03/2024 às 10:30, ou 2024-03-12 15:45, ou 15/03/2024 - 10:30:15")]
     [InlineData("datas 12/03 15/03 20/03/24 e 31.12.2023 e 01-01-2024 14:00")]
     [InlineData("R$ \u200B\u200B 12.345.678,90 em 15/03/2024 23:59")]
+    [InlineData("paguei US$ 1,234,567.89 e $1,234,567.89 e R$ 1 234 567,8")]
     public void MoneyQuantityAndDateStay(string raw)
     {
         var removed = Removed(raw);
@@ -104,6 +107,7 @@ public sealed class IdentifierStepTests
     [InlineData("A12345678B em mar-2024 e JAN2019, zqx@exemplo..invalid e zqx@exemplo.c0m")]
     [InlineData("Página 1 de 3\n2\n3\n4\n5\n6\n7\n8\n9 e a\u200Bb e x@y.z")]
     [InlineData("lotes 1200; 3400, 5600;\u200B 7800 e notas 9,5, 8,0, 7,5")]
+    [InlineData("ganhei 1000!!! 2000?! anos 2023 \U0001F602\U0001F602 2024, 1000 + 2000 = 3000, | 2023 | 1500 | 3000 | e #1234 #5678")]
     public void TextWithoutIdentifierLeavesUnchanged(string raw)
     {
         var removed = Removed(raw);

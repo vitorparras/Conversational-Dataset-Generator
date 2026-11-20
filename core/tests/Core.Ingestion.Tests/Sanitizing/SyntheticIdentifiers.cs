@@ -17,7 +17,7 @@ internal static class SyntheticIdentifiers
     private static readonly string[] Spread =
     [
         "", " ", "  ", "   ", "    ", " \t", "\u00A0", "\u2009", "\u2003\u2003\u2003\u2003", "/", "\u2024", "\u00B7", "\u2027", "\u2011", "\u2013", "\u2014", "\uFF0E",
-        "\u2212", ",", ";", "|", "\u2800",
+        "\u2212", ",", ";", "\u2800",
     ];
 
     private static readonly string[] Dashes = ["-", "\u2010", "\u2011", "\u2013", "\u2212"];

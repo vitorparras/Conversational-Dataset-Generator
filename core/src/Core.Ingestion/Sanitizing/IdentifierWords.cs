@@ -89,7 +89,7 @@ internal static class IdentifierWords
     }
 
     /// <summary>
-    /// The electronic address around the at sign: a local part of letters of any script, digits and the usual signs, and a domain of two labels or more whose last one is ASCII
+    /// The electronic address around the at sign: a local part of letters of any script, digits and the usual signs, and a domain of two labels or more whose last one is
     /// letters only.
     /// </summary>
     private static IdentifierSpan? Address(string[] text, int at)
@@ -130,7 +130,7 @@ internal static class IdentifierWords
     private static bool IsDomainName(string domain)
     {
         var labels = domain.Split('.');
-        return labels.Length > 1 && Array.TrueForAll(labels, label => label.Length > 0) && labels[^1].Length >= MinimumTopLevel && labels[^1].All(char.IsAsciiLetter);
+        return labels.Length > 1 && Array.TrueForAll(labels, label => label.Length > 0) && labels[^1].Length >= MinimumTopLevel && labels[^1].All(char.IsLetter);
     }
 
     /// <summary>A visible letter of any script or a digit.</summary>

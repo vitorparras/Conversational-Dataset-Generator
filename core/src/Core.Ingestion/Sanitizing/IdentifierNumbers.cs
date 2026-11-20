@@ -5,9 +5,9 @@ namespace Core.Ingestion.Sanitizing;
 
 /// <summary>
 /// Finds the identifiers made of digits by the sequence of their digits, whatever stands between them on the line, invisible characters and separators, as many as there are, so
-/// that a number split by a space of zero width, an odd dot, a comma or irregular spacing is the same number; only a comma or a semicolon followed by a space, which closes an item
-/// of a list as prose writes it, ends the number. A run of eight digits or more is an identifier, and so is a run closed by a check digit after a dash; a date, a time, and a plain
-/// number after a currency or before a unit stay, since the policy keeps them on purpose.
+/// that a number split by a space of zero width, an odd dot, a comma or irregular spacing is the same number; a comma, a semicolon or a mark of exclamation or question followed
+/// by a space, which closes an item of a list or a sentence as prose writes it, ends the number. A run of eight digits or more is an identifier, and so is a run closed by a
+/// check digit after a dash; a date, a time, and a plain number after a currency or before a unit stay, since the policy keeps them on purpose.
 /// </summary>
 internal static class IdentifierNumbers
 {
@@ -58,10 +58,10 @@ internal static class IdentifierNumbers
     private static bool Continues(string[] text, int at) =>
         IdentifierPoints.IsDigit(text[at]) || IdentifierPoints.IsInvisible(text[at]) || (IdentifierPoints.IsSeparator(text[at]) && !ClosesAnItem(text, at));
 
-    /// <summary>A comma or a semicolon followed, across invisible characters, by a space or the end of the text: the end of an item of a list, as prose writes it.</summary>
+    /// <summary>A comma, a semicolon or a mark of exclamation or question followed, across invisible characters, by a space or the end of the text: the end of an item, as prose writes it.</summary>
     private static bool ClosesAnItem(string[] text, int at)
     {
-        if (!IdentifierPoints.IsListMark(text[at]))
+        if (!IdentifierPoints.IsItemEnd(text[at]))
         {
             return false;
         }

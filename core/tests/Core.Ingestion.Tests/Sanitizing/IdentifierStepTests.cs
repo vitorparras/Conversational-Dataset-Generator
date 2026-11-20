@@ -45,6 +45,8 @@ public sealed class IdentifierStepTests
     [InlineData("CPF 100\u3164200\u1160300\uFFA000 ok", "CPF [documento] ok")]
     [InlineData("CPF 100\u2800200\u2800300\u280000 ok", "CPF [documento] ok")]
     [InlineData("CPF 100\u20DD200\u20DD300\u20DD00 ok", "CPF [documento] ok")]
+    [InlineData("CPF 100\u2219200\u22C5300\u221500 ok", "CPF [documento] ok")]
+    [InlineData("CPF 100\u2044200\u2044300\u204400 ok", "CPF [documento] ok")]
     [InlineData("CPF 100,200,300,00 ok", "CPF [documento] ok")]
     [InlineData("CPF 100;200;300;00 ok", "CPF [documento] ok")]
     [InlineData("CPF 100    200    300    00 ok", "CPF [documento] ok")]
@@ -108,6 +110,7 @@ public sealed class IdentifierStepTests
     [InlineData("Página 1 de 3\n2\n3\n4\n5\n6\n7\n8\n9 e a\u200Bb e x@y.z")]
     [InlineData("lotes 1200; 3400, 5600;\u200B 7800 e notas 9,5, 8,0, 7,5")]
     [InlineData("ganhei 1000!!! 2000?! anos 2023 \U0001F602\U0001F602 2024, 1000 + 2000 = 3000, | 2023 | 1500 | 3000 | e #1234 #5678")]
+    [InlineData("ganhou 1000. 2000 ficaram, 1000\u2026 2000\u2026 e 10% 20% 30% 40%")]
     public void TextWithoutIdentifierLeavesUnchanged(string raw)
     {
         var removed = Removed(raw);

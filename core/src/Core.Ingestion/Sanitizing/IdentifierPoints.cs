@@ -15,8 +15,8 @@ internal static class IdentifierPoints
     /// <summary>The symbols that stand in the place of a dot, a slash or a dash, and the blank of braille, which shows as a space.</summary>
     private const string SeparatorSymbols = "\u2219\u22C5\u2215\u2044\u2212\u2800";
 
-    /// <summary>The commas, semicolons and the marks of exclamation and question that, followed by a space, close an item of a list or a sentence.</summary>
-    private const string ItemEnds = ",;!?\uFF0C\uFF1B\u3001\uFF01\uFF1F";
+    /// <summary>The commas, semicolons, full stops, ellipses and the marks of exclamation and question that, followed by a space, close an item of a list or a sentence.</summary>
+    private const string ItemEnds = ",;.!?\u2026\uFF0C\uFF1B\u3001\uFF01\uFF1F\u3002\uFF0E";
 
     /// <summary>The ends of a line or a page.</summary>
     private const string Breaks = "\n\r\f\v\u0085\u2028\u2029";
@@ -46,7 +46,7 @@ internal static class IdentifierPoints
     internal static bool IsSeparator(string point) =>
         (IsSpace(point) || char.IsPunctuation(point, 0) || SeparatorSymbols.Contains(point, StringComparison.Ordinal)) && !IsSignOfValue(point);
 
-    /// <summary>A comma, a semicolon or a mark of exclamation or question, of any width.</summary>
+    /// <summary>A comma, a semicolon, a full stop, an ellipsis or a mark of exclamation or question, of any width.</summary>
     internal static bool IsItemEnd(string point) => ItemEnds.Contains(point, StringComparison.Ordinal);
 
     /// <summary>A letter or a digit, which glues to an identifier and so bounds none.</summary>

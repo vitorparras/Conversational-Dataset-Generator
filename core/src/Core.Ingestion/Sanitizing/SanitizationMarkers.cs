@@ -8,6 +8,8 @@ internal static class SanitizationMarkers
     {
         SanitizationMarker.Credential => "[credencial]",
         SanitizationMarker.Data => "[dado]",
+        SanitizationMarker.Document => "[documento]",
+        SanitizationMarker.Contact => "[contato]",
         _ => throw new ArgumentOutOfRangeException(nameof(marker), marker, "The marker is not known."),
     };
 

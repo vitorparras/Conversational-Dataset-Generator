@@ -28,7 +28,8 @@ internal static class StepConformance
     [
         ("codificacao", new ConformanceScope("o caractere que a codificação errada leu como sequência latina", IsMisreading)),
         ("artefatos", new ConformanceScope("uma linha inteira, retirada sem escrever nada", IsWholeLineTakenAway)),
-        ("destinos", new ConformanceScope("uma ocorrência trocada pelo marcador [credencial] ou [dado]", (_, written) => written is "[credencial]" or "[dado]")),
+        ("identificadores", new ConformanceScope("um identificador trocado pelo marcador [documento] ou [contato]", (_, written) => written is "[documento]" or "[contato]")),
+        ("destinos",new ConformanceScope("uma ocorrência trocada pelo marcador [credencial] ou [dado]", (_, written) => written is "[credencial]" or "[dado]")),
     ];
 
     /// <summary>The scope declared for the step, or none when the step is not covered.</summary>

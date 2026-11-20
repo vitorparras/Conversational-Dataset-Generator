@@ -10,4 +10,10 @@ public enum SanitizationMarker
 
     /// <summary>Any other occurrence the policy removes; written as [dado].</summary>
     Data = 1,
+
+    /// <summary>A document number, a bank account, a plate or a device identifier, removed by its form; written as [documento].</summary>
+    Document = 2,
+
+    /// <summary>A telephone or an electronic address, removed by its form; written as [contato].</summary>
+    Contact = 3,
 }

@@ -7,7 +7,8 @@ namespace Core.Ingestion.Tests.Sanitizing;
 /// documentation range of the physical addresses or the reporting body 00 of the test devices, an electronic address ends in the reserved domain .invalid, and a plate has the
 /// letters QZX. Each one is written in an arbitrary variation of case, separator, spacing and digit script, of category Nd or No, split or not by invisible characters, and carries
 /// its skeleton: its letters and digits, in ASCII and in capitals, which no recognizable variation of it leaves out. A mark of a list or a long spacing joins only the groups of a
-/// layout a list does not take: the card number, whose four groups of four a list of years also takes, is split only by the usual separators.
+/// layout a list does not take, all of them: a form split by one keeps every group apart, and the card number, whose four groups of four a list of years also takes, is split
+/// only by the usual separators.
 /// </summary>
 internal static class SyntheticIdentifiers
 {
@@ -21,8 +22,11 @@ internal static class SyntheticIdentifiers
         "\u2212", ",", ";", "\u2800", "\u2219", "\u22C5", "\u2215", "\u2044",
     ];
 
+    /// <summary>The separators of the spread that a list writes: the semicolon and the long spacing.</summary>
+    private static readonly string[] OfAList = [";", "    ", "\u2003\u2003\u2003\u2003"];
+
     /// <summary>The separators of the spread that stand in the place of a dot or a space, without the mark of a list and the long spacing.</summary>
-    private static readonly string[] Usual = [.. Spread.Except([";", "    ", "\u2003\u2003\u2003\u2003"])];
+    private static readonly string[] Usual = [.. Spread.Except(OfAList)];
 
     private static readonly string[] Dashes = ["-", "\u2010", "\u2011", "\u2013", "\u2212"];
 
@@ -75,7 +79,7 @@ internal static class SyntheticIdentifiers
     {
         public Planted Written(int[] picks, int invisibles, int writing)
         {
-            var separators = Separators.Select((usual, at) => Alternatives.Length == 0 || picks[at] % 2 == 0 ? usual : Alternatives[picks[at] / 2 % Alternatives.Length]);
+            var separators = SeparatorsOf(picks);
             var text = Opening + string.Concat(Groups.Zip(separators.Append(string.Empty), (group, separator) => group + separator));
             text = writing switch
             {
@@ -92,6 +96,13 @@ internal static class SyntheticIdentifiers
             }
 
             return new Planted(text, string.Concat(Groups).ToUpperInvariant());
+        }
+
+        /// <summary>The separators of the variation: each the usual one or an alternative, and the usual one in place of none when a list splits the form.</summary>
+        private string[] SeparatorsOf(int[] picks)
+        {
+            var chosen = Separators.Select((usual, at) => Alternatives.Length == 0 || picks[at] % 2 == 0 ? usual : Alternatives[picks[at] / 2 % Alternatives.Length]).ToArray();
+            return Array.Exists(chosen, OfAList.Contains) ? [.. chosen.Select((separator, at) => separator.Length == 0 ? Separators[at] : separator)] : chosen;
         }
 
         /// <summary>The digit in the script of the writing: fullwidth, of category Nd; circled or superscript, of category No.</summary>

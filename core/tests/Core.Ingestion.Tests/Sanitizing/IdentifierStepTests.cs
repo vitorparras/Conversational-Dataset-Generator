@@ -56,13 +56,20 @@ public sealed class IdentifierStepTests
     [InlineData("CPF 100, 200, 300-00 ok", "CPF [documento] ok")]
     [InlineData("CPF 100. 200. 300-00 ok", "CPF [documento] ok")]
     [InlineData("CPF 100&200&300&00 ok", "CPF [documento] ok")]
-    [InlineData("CPF 100200;300-00 ok", "CPF [documento] ok")]
+    [InlineData("CPF 100;200300;00 ok", "CPF 100;200300;00 ok")]
     [InlineData("CNPJ 10; 200; 300; 0001; 00 ok", "CNPJ [documento] ok")]
     [InlineData("IMEI 00    000000    000000    1 ok", "IMEI [documento] ok")]
-    [InlineData("liga 00; 0000; 0000 ok", "liga [contato] ok")]
-    [InlineData("liga (00) 90000; 0000 ok", "liga [contato] ok")]
-    [InlineData("liga +55; 00; 90000; 0000 ok", "liga [contato] ok")]
-    [InlineData("liga 00; 90000; 00\u206000 ok", "liga [contato] ok")]
+    [InlineData("liga 00;0000;0000 ok", "liga [contato] ok")]
+    [InlineData("liga (00) 90000;0000 e liga 00; 90000; 0000 ok", "liga [contato] e liga 00; 90000; 0000 ok")]
+    [InlineData("liga +55    00    90000    0000 ok", "liga [contato] ok")]
+    [InlineData("liga 00;90000;00\u206000 e 90000; 0000 e 10000, 2000 ok", "liga [contato] e 90000; 0000 e 10000, 2000 ok")]
+    [InlineData("CPF 100;200;300;00;1 ok", "CPF [documento];1 ok")]
+    [InlineData("CPF 100;200;300-00;5 ok", "CPF [documento];5 ok")]
+    [InlineData("CPFs 100;200;300;00;400;500;600;00 ok", "CPFs [documento];[documento] ok")]
+    [InlineData("IMEI 00;000000;000000;1;2 ok", "IMEI [documento];2 ok")]
+    [InlineData("tabela 100    200    300    00    7 ok", "tabela [documento]    7 ok")]
+    [InlineData("RG 10;200;300;0 e RG 10    200    300    0 ok", "RG [documento] e RG [documento] ok")]
+    [InlineData("PIS 100;20030;00;0 ok", "PIS [documento] ok")]
     public void NumberSplitByZeroWidthOrOddSeparatorLeavesWithTheSeparators(string raw, string expected) =>
         Assert.Equal(expected, Removed(raw).Text);
 
@@ -110,6 +117,7 @@ public sealed class IdentifierStepTests
     [InlineData("em 15/03/2024 10:60 fim", "em [documento] fim")]
     [InlineData("nº 100.2000-0000 fim", "nº [documento] fim")]
     [InlineData("cartão 0000 1000 0000 fim", "cartão [documento] fim")]
+    [InlineData("cartão 0000   1000   0000 fim", "cartão [documento] fim")]
     [InlineData("CPF 10020030000", "CPF [documento]")]
     [InlineData("c\u00F3digo x12345678", "c\u00F3digo x[documento]")]
     [InlineData("1000    20003000 fim", "1000    [documento] fim")]
@@ -132,6 +140,8 @@ public sealed class IdentifierStepTests
     [InlineData("\"1234\" \"5678\" e 1234 & 5678 e [12][13][14][15] e itens 12;13;14;15 e local -23.5505,-46.6333 fim")]
     [InlineData("anos 2019, 2020, 2021, 2022, tabela 1200    3400    5600 e itens 1000; 2000; 300 fim")]
     [InlineData("x\u00B2 e nota\u00B9 e \u2460 \u2461 \u2462 e 1\u00BD kg e \u2469\u246A\u246B\u246C\u246D\u246E\u246F\u2470")]
+    [InlineData("fra\u00E7\u00F5es \u00BD \u2153 \u00BC \u2155 \u2159 \u215B \u2154 \u00BE e N = 6,022\u00B710\u00B2\u00B3 e c\u00F3digo A100;200;300;00B")]
+    [InlineData("R$ 10; 1500; 2000 e R$ 100, 200, 300, 10 e pesos 10, 2000, 3000 kg e nos anos 90, 2000, 2010 e 2020")]
     public void TextWithoutIdentifierLeavesUnchanged(string raw)
     {
         var removed = Removed(raw);
@@ -174,30 +184,36 @@ public sealed class IdentifierStepTests
         Assert.Equal(("[documento] fim Wvkt", 1), (sanitized.Text, sanitized.Pseudonyms.Count));
     }
 
-    [Fact]
-    public void LongRunOfInvisibleCharactersIsReadInLinearTime()
+    [Theory]
+    [InlineData("\u200B", false)]
+    [InlineData("1-", true)]
+    [InlineData("1;", false)]
+    [InlineData("1 ", true)]
+    public void LongRunOfInvisibleCharactersOrDigitsIsReadInLinearTime(string unit, bool removed)
     {
-        var single = Fastest(50_000);
+        var single = Fastest(unit, 50_000, removed);
 
-        var sixteenfold = Fastest(800_000);
+        var sixteenfold = Fastest(unit, 800_000, removed);
 
         Assert.InRange(sixteenfold / single, 0, 64);
     }
 
     /// <summary>
-    /// The shortest of five readings, in milliseconds, of a run of invisible characters of the length given, which comes out unchanged. Read in linear time, sixteen times the
-    /// length takes about sixteen times as long, twice that once the run no longer fits the cache; read in quadratic time, 256 times.
+    /// The shortest of five readings, in milliseconds, of a run of the unit given repeated as many times as the length given, as invisible characters or digits joined by the
+    /// writing of a number or of a list. Read in linear time, sixteen times the length takes about sixteen times as long, twice that once the run no longer fits the cache;
+    /// read in quadratic time, 256 times. The run comes out whole, or under one marker when it is removed.
     /// </summary>
-    private static double Fastest(int length)
+    private static double Fastest(string unit, int length, bool removed)
     {
-        var raw = $"ok {new string('\u200B', length)} fim";
+        var raw = $"ok {string.Concat(Enumerable.Repeat(unit, length))} fim";
+        var expected = removed ? $"ok [documento]{unit[1..]} fim" : raw;
         var readings = new List<double>();
         for (var reading = 0; reading < 5; reading++)
         {
             var clock = Stopwatch.StartNew();
-            var removed = Removed(raw);
+            var sanitized = Removed(raw);
             readings.Add(clock.Elapsed.TotalMilliseconds);
-            Assert.Equal(raw, removed.Text);
+            Assert.Equal(expected, sanitized.Text);
         }
 
         return readings.Min();

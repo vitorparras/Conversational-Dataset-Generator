@@ -9,7 +9,7 @@ namespace Core.Persistence.Content;
 /// nothing. A query is a <c>public</c> or <c>internal const string</c> field of this class, and the list is read from the fields, so adding one is all it takes
 /// to be tested; the architecture rule keeps every statement over content in such a constant of this file.
 /// </summary>
-public static class ContentQueries
+public static partial class ContentQueries
 {
     /// <summary>The sealed raw text of an item, whether the item was emptied, and the key of the item wrapped with its epoch.</summary>
     internal const string ReadRawText = "SELECT raw_text, emptied_at IS NOT NULL, dek_epoch, dek_wrapped, accommodated_into, losses FROM content.item_text WHERE id = @id";

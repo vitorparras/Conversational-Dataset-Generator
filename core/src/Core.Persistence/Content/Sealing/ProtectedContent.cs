@@ -56,6 +56,14 @@ public sealed class ProtectedContent
         return Encoding.UTF8.GetString(EnvelopeCipher.OpenWith(item.AsSpan(), label.Text, stored));
     }
 
+    /// <summary>The text sealed for the column of a row that keeps its key: the key the row stores seals again, under its label, so the content changes and the key does not.</summary>
+    internal SealedContent Reseal(ProtectedColumn column, int domainId, ContentKey key, string text)
+    {
+        var label = Checked(column, domainId, key.Wrapped.Span);
+        using var item = keys.Unwrap(key.Epoch, key.Wrapped.Span);
+        return new SealedContent(column, domainId, EnvelopeCipher.SealWith(item.AsSpan(), label.Text, Encoding.UTF8.GetBytes(text)));
+    }
+
     /// <summary>The labels an envelope and the wrapped key of its row say they were sealed under, which nothing yet proves: what a reading asks before it records anything.</summary>
     public static IReadOnlyList<string> LabelsCarried(ReadOnlySpan<byte> stored, ContentKey key)
     {

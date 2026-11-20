@@ -20,6 +20,9 @@ internal static class IdentifierNumbers
     private const int AccountDigits = 6;
     private const int MaximumSpacesToContext = 2;
 
+    /// <summary>The most digits a layout holds, the IMEI's.</summary>
+    private const int LongestLayout = 15;
+
     /// <summary>The units a quantity is written with, each between bars, read in any case.</summary>
     private const string Units = "|kg|g|mg|t|ton|tonelada|toneladas|quilo|quilos|grama|gramas|l|ml|litro|litros|m|km|cm|mm|metro|metros|ha|hectare|hectares|"
         + "real|reais|dólar|dólares|euro|euros|mil|milhão|milhões|bilhão|bilhões|un|unidade|unidades|";
@@ -32,18 +35,17 @@ internal static class IdentifierNumbers
     /// </summary>
     private static readonly Layout[] Layouts =
     [
-        new([3, 3, 3, 2], SanitizationMarker.Document, AcrossItems: true),
-        new([2, 3, 3, 4, 2], SanitizationMarker.Document, AcrossItems: true),
-        new([2, 3, 3, 1], SanitizationMarker.Document, AcrossItems: true),
-        new([3, 5, 2, 1], SanitizationMarker.Document, AcrossItems: true),
-        new([2, 6, 6, 1], SanitizationMarker.Document, AcrossItems: true),
-        new([2, 4, 4], SanitizationMarker.Contact, AcrossItems: false),
-        new([2, 5, 4], SanitizationMarker.Contact, AcrossItems: false),
-        new([2, 2, 5, 4], SanitizationMarker.Contact, AcrossItems: false),
+        new([3, 3, 3, 2], SanitizationMarker.Document),
+        new([2, 3, 3, 4, 2], SanitizationMarker.Document),
+        new([2, 3, 3, 1], SanitizationMarker.Document),
+        new([3, 5, 2, 1], SanitizationMarker.Document),
+        new([2, 6, 6, 1], SanitizationMarker.Document),
+        new([2, 4, 4], SanitizationMarker.Contact),
+        new([2, 5, 4], SanitizationMarker.Contact),
+        new([2, 2, 5, 4], SanitizationMarker.Contact),
     ];
 
-    /// <summary>The most digits a layout holds.</summary>
-    private static readonly int LongestLayout = Layouts.Max(layout => layout.Digits);
+
 
     /// <summary>The identifiers of digits in the text, each with the separators between its digits and the plus sign or parenthesis that opens it.</summary>
     internal static IEnumerable<IdentifierSpan> Find(string[] text)
@@ -211,17 +213,23 @@ internal static class IdentifierNumbers
 
     private static bool Passes(string point, int spaces) => IdentifierPoints.IsInvisible(point) || (IdentifierPoints.IsSpace(point) && spaces < MaximumSpacesToContext);
 
-    /// <summary>A layout by the widths of its groups, the marker of what it is, and whether it joins across the end of an item.</summary>
-    private sealed record Layout(int[] Widths, SanitizationMarker Marker, bool AcrossItems)
+    /// <summary>A layout by the widths of its groups, and the marker of what it is.</summary>
+    /// <remarks>
+    /// Nothing here is computed when the layouts are built, since Stryker cannot say which tests reach a static initializer and would run the whole suite for each of its
+    /// mutants (#683).
+    /// </remarks>
+    private sealed record Layout(int[] Widths, SanitizationMarker Marker)
     {
-        internal int Digits { get; } = Widths.Sum();
-
-        /// <summary>The counts of digits between two groups, where a gap may fall.</summary>
-        private int[] Bounds { get; } = [.. Widths[..^1].Select((_, at) => Widths[..(at + 1)].Sum())];
+        /// <summary>A document ends in its check digits, which a list in prose does not take, and so joins across the end of an item; a telephone does not.</summary>
+        private bool AcrossItems => Marker == SanitizationMarker.Document;
 
         /// <summary>Its groups and no other, a gap between every two of them and none inside one, and no end of an item unless the layout joins across it.</summary>
-        internal bool Fits(int digits, List<int> cuts, bool crossesAnItem) => digits == Digits && (AcrossItems || !crossesAnItem) && HasItsGroups(cuts);
+        internal bool Fits(int digits, List<int> cuts, bool crossesAnItem) => digits == Widths.Sum() && (AcrossItems || !crossesAnItem) && HasItsGroups(cuts);
 
-        private bool HasItsGroups(List<int> cuts) => cuts.Count == Bounds.Length && cuts.TrueForAll(cut => Bounds.Contains(cut));
+        /// <summary>A gap after each group but the last, as the counts of digits before it, and no other.</summary>
+        private bool HasItsGroups(List<int> cuts) => cuts.Count == Widths.Length - 1 && cuts.TrueForAll(cut => Bounds().Contains(cut));
+
+        /// <summary>The counts of digits between two groups, where a gap falls.</summary>
+        private int[] Bounds() => [.. Widths[..^1].Select((_, at) => Widths[..(at + 1)].Sum())];
     }
 }

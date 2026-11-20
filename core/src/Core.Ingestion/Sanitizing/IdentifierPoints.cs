@@ -34,9 +34,6 @@ internal static class IdentifierPoints
     internal static bool IsDigit(string point) =>
         char.IsDigit(point, 0) || (CharUnicodeInfo.GetUnicodeCategory(point, 0) == UnicodeCategory.OtherNumber && IsOneDigit(CharUnicodeInfo.GetNumericValue(point, 0)));
 
-    /// <summary>Two digits both of category Nd or both of category No: a superscript after a digit of the line is its exponent, not one more digit of it.</summary>
-    internal static bool AreOfOneKind(string first, string second) => char.IsDigit(first, 0) == char.IsDigit(second, 0);
-
     /// <summary>
     /// A character no reading shows: of format, as the space of zero width or the soft hyphen; a mark of no width, as the variation selectors or the grapheme joiner; or a
     /// filler of Hangul.

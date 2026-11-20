@@ -60,10 +60,11 @@ public sealed class IdentifierStepTests
     [InlineData("CNPJ 10; 200; 300; 0001; 00 ok", "CNPJ [documento] ok")]
     [InlineData("IMEI 00    000000    000000    1 ok", "IMEI [documento] ok")]
     [InlineData("liga 00;0000;0000 ok", "liga [contato] ok")]
-    [InlineData("liga (00) 90000;0000 e liga 00; 90000; 0000 ok", "liga [contato] e liga 00; 90000; 0000 ok")]
+    [InlineData("liga (00) 90000;0000 e liga 00; 90000; 0000 e liga 00; 90000;0000 ok", "liga [contato] e liga 00; 90000; 0000 e liga 00; 90000;0000 ok")]
     [InlineData("liga +55    00    90000    0000 ok", "liga [contato] ok")]
     [InlineData("liga 00;90000;00\u206000 e 90000; 0000 e 10000, 2000 ok", "liga [contato] e 90000; 0000 e 10000, 2000 ok")]
     [InlineData("CPF 100;200;300;00;1 ok", "CPF [documento];1 ok")]
+    [InlineData("CPF 1\u2070\u2070.2\u2070\u2070.3\u2070\u2070-\u2070\u2070 e CPF \u246000.\u246100.\u246200-00 ok", "CPF [documento] e CPF [documento] ok")]
     [InlineData("CPF 100;200;300-00;5 ok", "CPF [documento];5 ok")]
     [InlineData("CPFs 100;200;300;00;400;500;600;00 ok", "CPFs [documento];[documento] ok")]
     [InlineData("IMEI 00;000000;000000;1;2 ok", "IMEI [documento];2 ok")]
@@ -124,6 +125,7 @@ public sealed class IdentifierStepTests
     [InlineData("de 01/03/2024-15/13/2024 fim", "de [documento] fim")]
     [InlineData("de 2020-2024 fim", "de [contato] fim")]
     [InlineData("safra 2019/2020 fim", "safra [contato] fim")]
+    [InlineData("N = 6,022\u00B710\u00B2\u00B3 fim", "N = [contato] fim")]
     public void NumberThatIsNoDateTimeMoneyNorQuantityLeaves(string raw, string expected) =>
         Assert.Equal(expected, Removed(raw).Text);
 
@@ -140,8 +142,8 @@ public sealed class IdentifierStepTests
     [InlineData("\"1234\" \"5678\" e 1234 & 5678 e [12][13][14][15] e itens 12;13;14;15 e local -23.5505,-46.6333 fim")]
     [InlineData("anos 2019, 2020, 2021, 2022, tabela 1200    3400    5600 e itens 1000; 2000; 300 fim")]
     [InlineData("x\u00B2 e nota\u00B9 e \u2460 \u2461 \u2462 e 1\u00BD kg e \u2469\u246A\u246B\u246C\u246D\u246E\u246F\u2470")]
-    [InlineData("fra\u00E7\u00F5es \u00BD \u2153 \u00BC \u2155 \u2159 \u215B \u2154 \u00BE e N = 6,022\u00B710\u00B2\u00B3 e c\u00F3digo A100;200;300;00B")]
-    [InlineData("R$ 10; 1500; 2000 e R$ 100, 200, 300, 10 e pesos 10, 2000, 3000 kg e nos anos 90, 2000, 2010 e 2020")]
+    [InlineData("fra\u00E7\u00F5es \u00BD \u2153 \u00BC \u2155 \u2159 \u215B \u2154 \u00BE e N = 6,022 \u00D7 10\u00B2\u00B3 e c\u00F3digo A100;200;300;00B")]
+    [InlineData("R$ 10; 1500; 2000 e R$ 100, 200, 300, 10 e pesos 10, 2000, 3000 kg e nos anos 90, 2000, 2010 e 2020 e medidas 100, 200, 300, 10 kg")]
     public void TextWithoutIdentifierLeavesUnchanged(string raw)
     {
         var removed = Removed(raw);

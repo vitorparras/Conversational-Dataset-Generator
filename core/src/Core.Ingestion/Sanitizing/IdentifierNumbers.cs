@@ -7,7 +7,7 @@ namespace Core.Ingestion.Sanitizing;
 /// Finds the identifiers made of digits by the sequence of their digits, whatever stands between them on the line. An invisible character is nothing; a gap of at most one mark
 /// a number is punctuated with and at most three spaces is the usual writing, which joins any groups, so that a number split by a space of zero width, an odd dot or irregular
 /// spacing is the same number. Any other gap of spaces and punctuation, a list's, as a semicolon, a comma or a full stop followed by a space, a quote, a bracket or a long
-/// spacing, and two digits of different kinds side by side, as an exponent after its base, split the run into parts; consecutive parts join only into the groups of a layout a
+/// spacing, splits the run into parts; consecutive parts join only into the groups of a layout a
 /// list does not take, a document with its check digits or a telephone with its area code, and not after a currency or before a unit. A part of eight digits or more is an
 /// identifier, and so is a part closed by a check digit after a dash; a date, a time, a range of them, and a plain number after a currency or before a unit stay, since the
 /// policy keeps them on purpose.
@@ -146,13 +146,13 @@ internal static class IdentifierNumbers
         }
     }
 
-    /// <summary>What stands between the digit given and the next one: nothing seen, between two digits of one kind; a list's, between two of different kinds; or a gap.</summary>
+    /// <summary>What stands between the digit given and the next one: nothing seen, or a gap.</summary>
     private static Gap GapAfter(string[] text, int last)
     {
         var next = IdentifierPoints.Visible(text, last + 1, 1);
         if (next < text.Length && IdentifierPoints.IsDigit(text[next]))
         {
-            return IdentifierPoints.AreOfOneKind(text[last], text[next]) ? new Gap.None(next) : new Gap.List(next, ClosesAnItem: false);
+            return new Gap.None(next);
         }
 
         return GapFrom(text, last + 1);

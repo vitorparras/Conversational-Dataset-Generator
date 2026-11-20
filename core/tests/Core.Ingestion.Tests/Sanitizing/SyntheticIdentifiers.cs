@@ -44,6 +44,8 @@ internal static class SyntheticIdentifiers
         Gen.Select(Digits(4), Digits(4), Gen.Bool, (first, last, country) => country
             ? Digit("+", ["55", "00", $"9{first}", last], [" (", ") ", "-"])
             : Digit("(", ["00", $"9{first}", last], [") ", "-"])),
+        Digits(8).Select(body => Digit(string.Empty, [body[..2], body[2..5], body[5..], Wrong(body, [2, 3, 4, 5, 6, 7, 8, 9])], [".", ".", "-"])),
+        Digits(10).Select(body => Digit(string.Empty, [body[..3], body[3..8], body[8..], Wrong(body, [3, 2, 9, 8, 7, 6, 5, 4, 3, 2])], [".", ".", "-"])),
         Digits(13).Select(rest => Digit(string.Empty, ["00", rest[..6], rest[6..12], rest[12..]], ["-", "-", "-"])),
         Digits(12).Select(rest => new Form(string.Empty, ["0000", rest[..4], rest[4..8], rest[8..]], [" ", " ", " "], Usual)),
         Gen.Select(Digits(5), Digits(1), (body, check) => new Form(string.Empty, [body, check], ["-"], Dashes)),
@@ -53,13 +55,21 @@ internal static class SyntheticIdentifiers
         Gen.Select(Gen.Char['a', 'z'].Array[3], Gen.OneOf("", "\u00E3", "\u00E9", "\u00E7"), (letters, accent) =>
             new Form(string.Empty, [$"zqx{accent}{new string(letters)}", "exemplo", "invalid"], ["@", "."], [])));
 
-    /// <summary>An identifier written in an arbitrary variation, split by at least one invisible character when asked.</summary>
-    public static Gen<Planted> Variants(bool split) =>
-        Gen.Select(Forms, Gen.Int[0, int.MaxValue].Array[8], Gen.Int[split ? 1 : 0, 3], Gen.Int[0, 5], (form, picks, invisibles, writing) => form.Written(picks, invisibles, writing));
+    /// <summary>An identifier written in an arbitrary variation, split by at least one invisible character when asked, with or without a number beside it after a mark of a list.</summary>
+    public static Gen<Planted> Variants(bool split) => Gen.Select(
+        Forms,
+        Gen.Int[0, int.MaxValue].Array[8],
+        Gen.Int[split ? 1 : 0, 3],
+        Gen.Int[0, 5],
+        Gen.Int[0, 2],
+        (form, picks, invisibles, writing, neighbor) => form.Written(picks, invisibles, writing, neighbor));
 
     private static Gen<string> Digits(int count) => Gen.Char['0', '9'].Array[count].Select(digits => new string(digits));
 
     private static Form Digit(string opening, string[] groups, string[] separators) => new(opening, groups, separators, Spread);
+
+    /// <summary>The one check digit of the body by the weights given, moved by one, so that no real number comes out.</summary>
+    private static string Wrong(string body, int[] weights) => $"{(Check(body, weights) + 1) % 10}";
 
     /// <summary>The two check digits of the body by the weights given, the first one moved by one, so that no real number comes out.</summary>
     private static string Wrong(string body, int[] first, int[] second)
@@ -77,7 +87,10 @@ internal static class SyntheticIdentifiers
     /// <summary>A closed form: what opens it, its groups and the separators of its usual writing, and the separators a variation may put in their place.</summary>
     internal sealed record Form(string Opening, string[] Groups, string[] Separators, string[] Alternatives)
     {
-        public Planted Written(int[] picks, int invisibles, int writing)
+        /// <summary>Whether the form is a number whose separators a variation spreads.</summary>
+        private bool IsNumeric => Alternatives == Spread || Alternatives == Usual;
+
+        public Planted Written(int[] picks, int invisibles, int writing, int neighbor)
         {
             var separators = SeparatorsOf(picks);
             var text = Opening + string.Concat(Groups.Zip(separators.Append(string.Empty), (group, separator) => group + separator));
@@ -85,9 +98,10 @@ internal static class SyntheticIdentifiers
             {
                 1 => text.ToUpperInvariant(),
                 2 => string.Concat(text.Select(char.ToLowerInvariant)),
-                > 2 => new string([.. text.Select(character => char.IsAsciiDigit(character) && (Alternatives == Spread || Alternatives == Usual) ? InScript(character - '0', writing) : character)]),
+                > 2 => new string([.. text.Select(character => char.IsAsciiDigit(character) && IsNumeric ? InScript(character - '0', writing) : character)]),
                 _ => text,
             };
+            text = Beside(text, neighbor);
             for (var time = 0; time < invisibles; time++)
             {
                 var at = 1 + (picks[^(time + 1)] % (text.Length - 1));
@@ -97,6 +111,14 @@ internal static class SyntheticIdentifiers
 
             return new Planted(text, string.Concat(Groups).ToUpperInvariant());
         }
+
+        /// <summary>The number, with a number of one digit after it or before it across a semicolon, which is a list's and leaves the number whole and the neighbor apart.</summary>
+        private string Beside(string text, int neighbor) => (IsNumeric, neighbor) switch
+        {
+            (true, 1) => $"{text};7",
+            (true, 2) => $"7;{text}",
+            _ => text,
+        };
 
         /// <summary>The separators of the variation: each the usual one or an alternative, and the usual one in place of none when a list splits the form.</summary>
         private string[] SeparatorsOf(int[] picks)

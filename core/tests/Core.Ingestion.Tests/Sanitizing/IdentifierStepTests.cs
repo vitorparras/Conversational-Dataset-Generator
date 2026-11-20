@@ -106,7 +106,7 @@ public sealed class IdentifierStepTests
     [InlineData("de 01/03/2024-15/03/2024, de 01.03.2024-15.03.2024, de 01/03-15/03 e de 2024-03-01\u20132024-03-15")]
     [InlineData("safra 2019/20, de 2020 a 2024 e 15/03/2024 08:00-12:00")]
     [InlineData("assinado em 15/03/2024\u00B9, aberto 08:00-12:00\u00B2, R$ 12.345.678,90\u00B9 e R$ 1.234.567\u00B2 por 1.500.000\u00B9 litros")]
-    [InlineData("assinado em 15/03/2024\u00B9\u2070, aberto 08:00-12:00\u00B2\u00B3 e R$ 1.234.567\u00B9\u00B2")]
+    [InlineData("assinado em 15/03/2024\u00B9\u200B\u2070, aberto 08:00-12:00\u00B2\u00B3 e R$ 1.234.567\u00B9\u00B2")]
     public void MoneyQuantityAndDateStay(string raw)
     {
         var removed = Removed(raw);

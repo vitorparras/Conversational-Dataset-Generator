@@ -193,10 +193,10 @@ public sealed class IdentifierStepTests
     }
 
     [Theory]
-    [InlineData("\u200B", 100_000, false)]
-    [InlineData("1-", 2_000, true)]
+    [InlineData("\u200B", 1_000_000, false)]
+    [InlineData("1-", 20_000, true)]
     [InlineData("1;", 2_000, false)]
-    [InlineData("1 ", 2_000, true)]
+    [InlineData("1 ", 20_000, true)]
     public void LongRunOfInvisibleCharactersOrDigitsIsReadInLinearTime(string unit, int length, bool removed)
     {
         var single = Fastest(unit, length, removed);
@@ -208,7 +208,7 @@ public sealed class IdentifierStepTests
 
     /// <summary>
     /// The shortest of three readings, in milliseconds, of a run of the unit given repeated as many times as the length given, as invisible characters or digits joined by the
-    /// writing of a number or of a list, long enough for a reading of some milliseconds. Read in linear time, eight times the length takes about eight times as long, twice
+    /// writing of a number or of a list, long enough for a reading of 15 milliseconds or more. Read in linear time, eight times the length takes about eight times as long, twice
     /// that once the run no longer fits the cache; read in quadratic time, 64 times. The run comes out whole, or under one marker when it is removed.
     /// </summary>
     private static double Fastest(string unit, int length, bool removed)

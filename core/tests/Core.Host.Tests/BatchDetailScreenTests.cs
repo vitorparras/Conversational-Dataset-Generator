@@ -121,6 +121,19 @@ public sealed class BatchDetailScreenTests
     }
 
     [Fact]
+    public async Task BatchScreenShowsTheIdentifierCount()
+    {
+        var page = await RenderAsync(Accepted with
+        {
+            StepsVersion = Version,
+            Steps = [new("codificacao", 6, 4), new("artefatos", 11, 9), new("identificadores", 2, 2), new("destinos", 7, 5)],
+        });
+
+        Assert.Matches(Row("3. Remoção do identificador estruturado", "2", "2"), page);
+        Assert.Matches(Row("4. Aplicação dos destinos", "7", "5"), page);
+    }
+
+    [Fact]
     public async Task BatchScreenShowsNoPositionOfTheTrail()
     {
         var page = await RenderAsync(Sanitized);

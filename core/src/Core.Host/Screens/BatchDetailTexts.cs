@@ -61,6 +61,7 @@ internal static class BatchDetailTexts
     {
         "codificacao" => "Reparo da codificação",
         "artefatos" => "Retirada do artefato de formato",
+        "identificadores" => "Remoção do identificador estruturado",
         "destinos" => "Aplicação dos destinos",
         _ => $"Passo {code}",
     };

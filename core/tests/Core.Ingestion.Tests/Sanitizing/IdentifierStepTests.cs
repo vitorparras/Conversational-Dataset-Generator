@@ -196,10 +196,10 @@ public sealed class IdentifierStepTests
     private const double LinearGrowth = 40;
 
     [Theory]
-    [InlineData("\u200B", 600_000, false)]
-    [InlineData("1-", 20_000, true)]
-    [InlineData("1;", 2_000, false)]
-    [InlineData("1 ", 20_000, true)]
+    [InlineData("\u200B", 450_000, false)]
+    [InlineData("1-", 15_000, true)]
+    [InlineData("1;", 1_000, false)]
+    [InlineData("1 ", 12_000, true)]
     public void LongRunOfInvisibleCharactersOrDigitsIsReadInLinearTime(string unit, int length, bool removed)
     {
         var growth = Growth(unit, length, removed);

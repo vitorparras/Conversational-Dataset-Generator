@@ -57,6 +57,6 @@ public sealed class SubmissionDestinationsRouteTests
 
         var detail = await world.PageAsync(location!);
 
-        Assert.Matches(@"<th[^>]*>\s*1\. Aplicação dos destinos\s*</th>\s*<td[^>]*>\s*4\s*</td>\s*<td[^>]*>\s*2\s*</td>", detail);
+        Assert.Matches(@"<th[^>]*>\s*3\. Aplicação dos destinos\s*</th>\s*<td[^>]*>\s*4\s*</td>\s*<td[^>]*>\s*2\s*</td>", detail);
     }
 }

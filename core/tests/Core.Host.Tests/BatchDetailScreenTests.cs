@@ -107,6 +107,20 @@ public sealed class BatchDetailScreenTests
     }
 
     [Fact]
+    public async Task BatchScreenShowsTheRepairAndArtifactCounts()
+    {
+        var page = await RenderAsync(Accepted with
+        {
+            StepsVersion = Version,
+            Steps = [new("codificacao", 6, 4), new("artefatos", 11, 9), new("destinos", 7, 5)],
+        });
+
+        Assert.Matches(Row("1. Reparo da codificação", "6", "4"), page);
+        Assert.Matches(Row("2. Retirada do artefato de formato", "11", "9"), page);
+        Assert.Matches(Row("3. Aplicação dos destinos", "7", "5"), page);
+    }
+
+    [Fact]
     public async Task BatchScreenShowsNoPositionOfTheTrail()
     {
         var page = await RenderAsync(Sanitized);

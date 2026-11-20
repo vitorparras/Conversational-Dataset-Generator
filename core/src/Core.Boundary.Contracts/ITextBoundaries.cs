@@ -28,4 +28,8 @@ public interface ITextBoundaries
     /// <summary>How many code points the text has, which is what a length is in the core: a surrogate pair counts as one.</summary>
     /// <param name="text">The text to count.</param>
     int CodePointCount(string text);
+
+    /// <summary>The code points of the text, in order, each as the text that writes it, so that a code outside the boundary walks a text without counting them.</summary>
+    /// <param name="text">The text to walk.</param>
+    IReadOnlyList<string> CodePoints(string text);
 }

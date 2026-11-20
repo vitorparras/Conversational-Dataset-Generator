@@ -24,7 +24,7 @@ internal sealed class TrailStep
 
     internal int OutputLength { get; }
 
-    /// <summary>The edits of a step, refused unless they are ordered, disjoint, not empty and inside the text the step received.</summary>
+    /// <summary>The edits of a step, refused unless they are ordered, disjoint, not empty, inside the text the step received and write either a marker or a text.</summary>
     internal static TrailStep Of(int inputLength, IReadOnlyList<SanitizationEdit> edits)
     {
         ArgumentNullException.ThrowIfNull(edits);
@@ -34,13 +34,13 @@ internal sealed class TrailStep
         for (var index = 0; index < edits.Count; index++)
         {
             var edit = edits[index] ?? throw new ArgumentException("An edit is missing.", nameof(edits));
-            if (edit.Start < previousEnd || edit.End <= edit.Start || edit.End > inputLength)
+            if (edit.Start < previousEnd || edit.End <= edit.Start || edit.End > inputLength || !edit.IsWellFormed)
             {
-                throw new ArgumentException("The edits must be ordered, disjoint, not empty and inside the text.", nameof(edits));
+                throw new ArgumentException("The edits must be ordered, disjoint, not empty, inside the text and write a marker or a text.", nameof(edits));
             }
 
             var to = edit.Start + shift;
-            segments[index] = new Segment(edit.Start, edit.End, to, to + SanitizationMarkers.Width(edit.Marker));
+            segments[index] = new Segment(edit.Start, edit.End, to, to + edit.Width);
             shift = segments[index].ToEnd - edit.End;
             previousEnd = edit.End;
         }

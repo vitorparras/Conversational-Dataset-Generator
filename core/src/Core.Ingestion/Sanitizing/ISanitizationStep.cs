@@ -15,7 +15,11 @@ public interface ISanitizationStep
     /// <summary>What the step alters and what it leaves; null or blank is refused at startup.</summary>
     StepScope? Scope { get; }
 
-    /// <summary>The spans to replace, ordered, disjoint and inside the text the step received.</summary>
+    /// <summary>The spans to replace, ordered, disjoint and inside the text the step received, each with a marker or with the text written in its place.</summary>
     /// <param name="input">The text the earlier steps left, and the occurrences still in it.</param>
     IReadOnlyList<SanitizationEdit> Edits(StepInput input);
+
+    /// <summary>How many spans the step left as written because it could not tell what to do with them; zero for a step that never doubts.</summary>
+    /// <param name="input">The same input <see cref="Edits" /> received.</param>
+    int Untreated(StepInput input) => 0;
 }

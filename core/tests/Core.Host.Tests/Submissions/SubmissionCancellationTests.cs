@@ -82,6 +82,8 @@ public sealed class SubmissionCancellationTests
 
         public string Span(string text, int start, int until) => real.Span(text, start, until);
 
+        public IReadOnlyList<string> CodePoints(string text) => real.CodePoints(text);
+
         public int CodePointCount(string text)
         {
             cancelling.Cancel();

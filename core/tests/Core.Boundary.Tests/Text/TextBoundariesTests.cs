@@ -67,4 +67,18 @@ public sealed class TextBoundariesTests
 
         Assert.Equal("text", defect.ParamName);
     }
+
+    [Fact]
+    public void CodePointsKeepEachPairWholeEachLoneHalfAndEachMarkApartAndCountAsTheLength()
+    {
+        const string text = "a\U0001F642\uD800e\u0301\uDC00";
+
+        var points = boundaries.CodePoints(text);
+
+        Assert.Equal(["a", "\U0001F642", "\uD800", "e", "\u0301", "\uDC00"], points);
+        Assert.Equal(boundaries.CodePointCount(text), points.Count);
+    }
+
+    [Fact]
+    public void NoTextHasNoCodePoints() => Assert.Throws<ArgumentNullException>(() => boundaries.CodePoints(null!));
 }

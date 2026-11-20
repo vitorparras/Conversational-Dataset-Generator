@@ -83,9 +83,11 @@ internal static class SampleReviewEndpoint
             var (outcome, screen) = await sources.Desk!.ViewAsync(found.Batch, found.Domain, reviewer, context.RequestAborted).ConfigureAwait(false);
             if (outcome == BatchReviewOutcome.Drawn)
             {
+                var counts = sources.Counts is { } reading ? await reading.ReadAsync(found.Batch.DomainId, id, context.RequestAborted).ConfigureAwait(false) : null;
                 return ScreenResult.Of(context, typeof(SampleReviewScreen), SampleReviewScreen.Title, new Dictionary<string, object?>(StringComparer.Ordinal)
                 {
                     [nameof(SampleReviewScreen.Sample)] = screen,
+                    [nameof(SampleReviewScreen.Version)] = counts?.SanitizationVersion,
                     [nameof(SampleReviewScreen.Action)] = ScreenPaths.BatchReviewOf(id),
                     [nameof(SampleReviewScreen.Result)] = context.Request.Query[SampleReviewScreen.ResultKey].ToString(),
                 });

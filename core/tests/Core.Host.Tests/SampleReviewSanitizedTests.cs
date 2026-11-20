@@ -44,8 +44,19 @@ public sealed class SampleReviewSanitizedTests
             ["4", "0"],
             [.. await world.Submissions.StoredAsync("SELECT count(*)::text FROM content.item_text"),
              .. await world.Submissions.StoredAsync("SELECT count(*)::text FROM content.item_text WHERE sanitized_text IS NULL")]);
-        Assert.Equal(2, Occurrences(page.Page, SampleTexts.VersionOf(cleaned: true)));
+        Assert.Equal(2, Occurrences(page.Page, SampleTexts.VersionOf(cleaned: true, CompositionRoot.StepsOf().Version)));
         Assert.DoesNotContain(SampleTexts.VersionOf(cleaned: false), page.Page, StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
+    public async Task SampleReviewShowsTheVersionOfTheStepsThatSanitizedTheText()
+    {
+        await using var world = await SampleReviewWorld.StartAsync();
+        await world.DrawAndReviewAsync(reviewed: 0);
+
+        var page = await world.GetAsync(world.ReviewRoute, world.Curator);
+
+        Assert.Equal(2, Occurrences(page.Page, $"Texto sanitizado pela versão {CompositionRoot.StepsOf().Version} da lista de passos."));
     }
 
     [DatabaseFact]
@@ -80,7 +91,7 @@ public sealed class SampleReviewSanitizedTests
         Assert.Equal(HttpStatusCode.OK, page.Status);
         Assert.Equal(2, Occurrences(page.Page, "[credencial]QXTEXTO"));
         Assert.DoesNotContain("ZQXTEXTO", page.Page, StringComparison.Ordinal);
-        Assert.Contains(SampleTexts.VersionOf(cleaned: true), page.Page, StringComparison.Ordinal);
+        Assert.Contains(SampleTexts.VersionOf(cleaned: true, CompositionRoot.StepsOf().Version), page.Page, StringComparison.Ordinal);
     }
 
     /// <summary>Who read which text of the items, and why, one line per read, as the owner sees the chain.</summary>

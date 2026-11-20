@@ -95,7 +95,8 @@ public sealed class SubmissionSanitizingTests
         Assert.Equal(SubmissionKind.Done, outcome.Kind);
         var report = await world.StoredAsync(
             $"SELECT f::text FROM public.batch_sanitization_counts({outcome.Batch!.Value}, {SubmissionWorld.Domain}) f");
-        Assert.Equal(["(" + CompositionRoot.StepsOf().Version + ",destinos,3,3)"], report);
+        var version = CompositionRoot.StepsOf().Version;
+        Assert.Equal([$"({version},codificacao,0,0)", $"({version},artefatos,0,0)", $"({version},destinos,3,3)"], report);
         string[] swept =
         [
             .. world.Log.Lines.Select(entry => entry.Line),
@@ -118,7 +119,7 @@ public sealed class SubmissionSanitizingTests
         var counts = await new BatchCounts(world.DataSource).ReadAsync(SubmissionWorld.Domain, outcome.Batch!.Value, Token);
 
         Assert.Equal(CompositionRoot.StepsOf().Version, counts.SanitizationVersion);
-        Assert.Equal([new BatchStepCount("destinos", 3, 3)], counts.Steps);
+        Assert.Equal([new BatchStepCount("codificacao", 0, 0), new BatchStepCount("artefatos", 0, 0), new BatchStepCount("destinos", 3, 3)], counts.Steps);
     }
 
     [DatabaseFact]

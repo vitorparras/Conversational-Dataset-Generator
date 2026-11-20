@@ -19,9 +19,13 @@ internal static class SampleTexts
     /// <summary>The kinds of personal data a finding names, with the code the register keeps.</summary>
     internal static IReadOnlyList<ChoiceGroup.Option> Findings => Kinds;
 
-    /// <summary>Which version of the text the item shows: the most treated that exists.</summary>
-    internal static string VersionOf(bool cleaned) =>
-        cleaned ? "Texto sanitizado, a versão mais tratada que existe." : "Texto bruto: o item ainda não tem versão sanitizada.";
+    /// <summary>Which version of the text the item shows: the most treated that exists, with the version of the list of steps that produced it when it is known.</summary>
+    internal static string VersionOf(bool cleaned, string? version = null) => (cleaned, version) switch
+    {
+        (true, { } steps) => $"Texto sanitizado pela versão {steps} da lista de passos.",
+        (true, null) => "Texto sanitizado, a versão mais tratada que existe.",
+        (false, _) => "Texto bruto: o item ainda não tem versão sanitizada.",
+    };
 
     /// <summary>The kind of a finding in words; one the screen does not know is said by its name.</summary>
     internal static string FindingOf(string code) => Array.Find(Kinds, kind => kind.Value == code)?.Caption ?? $"Achado registrado: {code}";

@@ -17,7 +17,7 @@ repartem dos mais pesados aos mais leves, sempre para a parte de menos peso, de 
 só depende dos arquivos (#585: repartir por contagem deu a uma parte 40 mutantes).
 
 O peso mede o custo de testar o trecho, não só o tamanho. É o número de tokens, sem comentário,
-**mais o peso de um mutante de suíte (`SUITE_MUTANT`, 1000) por literal de um inicializador
+**mais o peso de um mutante de suíte (`SUITE_MUTANT`, 200) por literal de um inicializador
 estático**: cada texto e cada `true` ou `false` de um campo ou propriedade estática com valor, ou de
 um construtor estático. O Stryker não sabe quais testes alcançam o que roda uma vez, antes de
 qualquer teste, e roda a suíte inteira para cada mutante dele. Um método por onde passa todo teste
@@ -35,13 +35,13 @@ relatório do Stryker em `--verbosity debug` traz o tempo de cada mutante.
 
 ## A medição que trocou o fator pelo mutante de suíte (#849)
 
-No run 44636875465 (40 partes de `Core.Persistence.Content`, fator de 5 por token), o preparo de
-cada parte levou de 4,5 a 5 min; a parte com 13 mutantes de código comum, de uns 35 tokens cada,
-levou 4,9 min, e a com 1 mutante de suíte, 7,1: um mutante de suíte custa de 2 a 2,5 min, e um
-comum, segundos. Daí 1000 tokens por mutante de suíte. Com o fator, uma parte juntou três elementos
-estáticos e levou 17,7 min, e o método que abria toda transação, sozinho, 15,5 min; ele foi cortado
-em dois. O Stryker testa também o que o passo filtra do relatório, como o `ConfigureAwait(false)`
-trocado por `true`, e por isso a contagem de gerados não diz o tempo. O teste
+Em `Core.Persistence.Content`, o preparo de cada parte leva de 4,5 a 5 min. No run 44636875465
+(fator de 5 por token), uma parte juntou três elementos estáticos e levou 17,7 min, e o método que
+abria toda transação, sozinho, 15,5; ele foi cortado em dois. No run 44646098427 (1000 por
+literal), as partes com dois mutantes de suíte e uns 18 tokens levaram de 8,8 a 9 min, e as com um
+e 674 tokens, de 11,1 a 18: um mutante de suíte custa uns 2,1 min, e um token, uns 0,011, cerca de
+190 tokens; daí 200. O Stryker testa também o que o passo filtra do relatório, como o
+`ConfigureAwait(false)` trocado por `true`, e a contagem de gerados não diz o tempo. O teste
 `test_each_content_part_holds_two_mutants_of_the_suite_at_most` confere o teto de dois por parte.
 
 ## O corte dentro da lista

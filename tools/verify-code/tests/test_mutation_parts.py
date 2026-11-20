@@ -8,8 +8,9 @@ import json
 import re
 import unittest
 from pathlib import Path
+from unittest import mock
 
-from steps import areas_doc, mutation, mutation_core, mutation_parts
+from steps import areas_doc, mutation, mutation_core, mutation_cost, mutation_parts
 from steps.mutation_cost import SUITE_MUTANT
 from steps.mutation_members import UNBOUNDED
 from steps.mutation_parts import Part, Slice
@@ -509,12 +510,15 @@ class RepositoryAreaTests(unittest.TestCase):
             and any(declared in text[piece.start : piece.end] for declared in declarations)
         ]
 
+        with mock.patch.object(mutation_cost, "SUITE_MUTANT", 0):
+            tokens = {(p.file, p.start): p.weight for p in mutation_core.pieces(root, core)}
         held = [mutation_parts.dealt(found, Part(n, area.parts)) for n in range(1, area.parts + 1)]
         rest = [part for part in held if not set(part) & set(wide)]
+        suite = [sum(p.weight - tokens[p.file, p.start] for p in part) for part in rest]
 
         self.assertEqual(len(wide), len(declarations))
         self.assertTrue(all([piece] in held for piece in wide))
-        self.assertLessEqual(max(sum(p.weight // SUITE_MUTANT for p in part) for part in rest), 2)
+        self.assertLessEqual(max(suite), 2 * SUITE_MUTANT)
 
     def test_the_content_areas_of_the_repository_have_files_for_their_parts(self) -> None:
         root = support.VERIFY_CODE.parents[1]

@@ -10,12 +10,12 @@ from itertools import pairwise
 from steps.csharp_tokens import Token, strings, tokens
 
 #: What one mutant that runs the whole suite weighs, in tokens of other code. Stryker cannot say
-#: which tests reach a static initializer, so each of its mutants runs the whole suite (#683), and
-#: a part takes as long as the mutants of the suite it holds: in run 44636875465 (#849) one took
-#: 2 to 2,5 min, while a part of 13 mutants of other code, some 35 tokens each, took no more than
-#: the 4,5 to 5 min of the preparation. Each literal of a static initializer, a string or a
-#: boolean, is such a mutant.
-SUITE_MUTANT = 1000
+#: which tests reach a static initializer, so each of its mutants runs the whole suite (#683).
+#: Measured on ``Core.Persistence.Content`` (#849): in run 44646098427 the parts with two of these
+#: mutants and some 18 tokens took 8,8 to 9 min and those with one and 674 tokens, 11,1 to 18; the
+#: preparation takes 4,5 to 5 min, so one of these mutants costs about 2,1 min and a token about
+#: 0,011, some 190 tokens. Each literal of a static initializer, a string or a boolean, is one.
+SUITE_MUTANT = 200
 BOOLEANS = frozenset({"true", "false"})
 #: The methods of a file, by its path in the project and their signature (name and parameters),
 #: that every test of the area runs through, so that Stryker tests each of their mutants against

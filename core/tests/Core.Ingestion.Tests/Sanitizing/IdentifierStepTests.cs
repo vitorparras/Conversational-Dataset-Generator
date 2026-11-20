@@ -192,39 +192,48 @@ public sealed class IdentifierStepTests
         Assert.Equal(("[documento] fim Wvkt", 1), (sanitized.Text, sanitized.Pseudonyms.Count));
     }
 
+    /// <summary>The ceiling of the growth of a reading eight times as long, of over ten milliseconds: 8 when linear, twice that with the cache missed, 64 when quadratic.</summary>
+    private const double LinearGrowth = 40;
+
     [Theory]
-    [InlineData("\u200B", 1_000_000, false)]
+    [InlineData("\u200B", 600_000, false)]
     [InlineData("1-", 20_000, true)]
     [InlineData("1;", 2_000, false)]
     [InlineData("1 ", 20_000, true)]
     public void LongRunOfInvisibleCharactersOrDigitsIsReadInLinearTime(string unit, int length, bool removed)
     {
-        var single = Fastest(unit, length, removed);
+        var growth = Growth(unit, length, removed);
 
-        var eightfold = Fastest(unit, 8 * length, removed);
-
-        Assert.InRange(eightfold / single, 0, 40);
+        Assert.InRange(growth, 0, LinearGrowth);
     }
 
-    /// <summary>
-    /// The shortest of three readings, in milliseconds, of a run of the unit given repeated as many times as the length given, as invisible characters or digits joined by the
-    /// writing of a number or of a list, long enough for a reading of 15 milliseconds or more. Read in linear time, eight times the length takes about eight times as long, twice
-    /// that once the run no longer fits the cache; read in quadratic time, 64 times. The run comes out whole, or under one marker when it is removed.
-    /// </summary>
-    private static double Fastest(string unit, int length, bool removed)
+    /// <summary>The shortest of up to three readings of eight times the length, stopped once within the ceiling, over the shortest of three readings of the length.</summary>
+    private static double Growth(string unit, int length, bool removed)
     {
-        var raw = $"ok {string.Concat(Enumerable.Repeat(unit, length))} fim";
-        var expected = removed ? $"ok [documento]{unit[1..]} fim" : raw;
-        var readings = new List<double>();
-        for (var reading = 0; reading < 3; reading++)
+        var (shortRun, longRun) = (Run(unit, length), Run(unit, 8 * length));
+        var marker = $"ok [documento]{unit[1..]} fim";
+        var (shortOut, longOut) = removed ? (marker, marker) : (shortRun, longRun);
+        var single = Enumerable.Range(0, 3).Min(_ => Reading(shortRun, shortOut));
+        var eightfold = double.MaxValue;
+        for (var attempt = 0; attempt < 3 && eightfold / single > LinearGrowth; attempt++)
         {
-            var clock = Stopwatch.StartNew();
-            var sanitized = Removed(raw);
-            readings.Add(clock.Elapsed.TotalMilliseconds);
-            Assert.Equal(expected, sanitized.Text);
+            eightfold = Math.Min(eightfold, Reading(longRun, longOut));
         }
 
-        return readings.Min();
+        return eightfold / single;
+    }
+
+    /// <summary>A text with the unit repeated as many times as the length, as invisible characters or digits joined by the writing of a number or of a list.</summary>
+    private static string Run(string unit, int length) => $"ok {string.Concat(Enumerable.Repeat(unit, length))} fim";
+
+    /// <summary>One reading, in milliseconds, of the text given, which comes out as the text expected: whole, or under one marker when removed.</summary>
+    private static double Reading(string raw, string expected)
+    {
+        var clock = Stopwatch.StartNew();
+        var sanitized = Removed(raw);
+        var elapsed = clock.Elapsed.TotalMilliseconds;
+        Assert.Equal(expected, sanitized.Text);
+        return elapsed;
     }
 
     [Fact]

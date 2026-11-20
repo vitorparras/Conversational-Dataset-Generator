@@ -14,6 +14,7 @@ from steps.areas_doc import Area, within
 from steps.common import Context, reset_directory, tail
 from steps.coverage_by_area import summarize
 from steps.mutant import Mutant
+from steps.mutation_cost import SUITE_WIDE
 from steps.mutation_database import DOCKER, discard_database, reusing, starts_database
 from steps.mutation_initial import explain, summary
 from steps.mutation_judge import LanguageRun, ModuleResult, each
@@ -90,7 +91,9 @@ def pieces(root: Path, core: CoreTarget) -> list[Slice]:
     texts = {
         name: (project / name).read_bytes().decode("utf-8-sig") for name in sources(root, core)
     }
-    return [Slice(name, a, b, w) for name, text in texts.items() for a, b, w in slices(text)]
+    named = {name: SUITE_WIDE.get(name, frozenset()) for name in texts}
+    found = ((name, slices(text, named[name])) for name, text in texts.items())
+    return [Slice(name, a, b, w) for name, cut in found for a, b, w in cut]
 
 
 def part_count(root: Path, area: Area, areas: tuple[Area, ...]) -> int:

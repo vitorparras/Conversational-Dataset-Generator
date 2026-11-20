@@ -106,6 +106,40 @@ public sealed class RecordedVerificationReaderTests
         Assert.Equal(2L, last.FirstInconsistent);
     }
 
+    [DatabaseFact]
+    public async Task OpenOwnerWindowIsReadWithItsVersionsTipAndLateness()
+    {
+        await using var database = new CustodyDatabase();
+        await AppendEventsAsync(database, 2);
+        _ = await (await database.ChainAsync()).AppendAsync(CustodyEvent.OwnerWindowOpened(15, "from=12;to=15;tip=2;digest=abc;late=1"), TestContext.Current.CancellationToken);
+
+        var open = await (await ReaderAsync(database)).OwnerWindowAsync(TestContext.Current.CancellationToken);
+
+        Assert.NotNull(open);
+        Assert.Equal((3L, 12, 15, 2L, true, false), (open.OpenedSequence, open.From, open.To, open.TipSequence, open.AfterTheStep, open.ClosingFailed));
+    }
+
+    [DatabaseFact]
+    public async Task ReferenceWithAPieceThatIsNotANumberReadsItAsZeroAndTheWindowAsOnTime()
+    {
+        await using var database = new CustodyDatabase();
+        _ = await (await database.ChainAsync()).AppendAsync(CustodyEvent.OwnerWindowOpened(5, "junk;from=4;to=5=6;to=5;tip=x;digest=d"), TestContext.Current.CancellationToken);
+
+        var open = await (await ReaderAsync(database)).OwnerWindowAsync(TestContext.Current.CancellationToken);
+
+        Assert.NotNull(open);
+        Assert.Equal((1L, 4, 5, 0L, false), (open.OpenedSequence, open.From, open.To, open.TipSequence, open.AfterTheStep));
+    }
+
+    [DatabaseFact]
+    public async Task ChainWithNoOwnerWindowGivesNone()
+    {
+        await using var database = new CustodyDatabase();
+        await AppendEventsAsync(database, 2);
+
+        Assert.Null(await (await ReaderAsync(database)).OwnerWindowAsync(TestContext.Current.CancellationToken));
+    }
+
     [Fact]
     public void ReaderRefusesANullDataSource() => _ = Assert.Throws<ArgumentNullException>(() => new RecordedVerificationReader(null!));
 

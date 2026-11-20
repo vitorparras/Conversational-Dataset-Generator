@@ -74,26 +74,27 @@ public sealed class ContentTransaction : IAsyncDisposable
     private static async Task<ContentTransaction> OpenAsync(NpgsqlDataSource dataSource, Declaration declare, IsolationLevel isolation, CancellationToken cancellationToken)
     {
         var connection = await dataSource.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
-        var opened = false;
         try
         {
             var transaction = await connection.BeginTransactionAsync(isolation, cancellationToken).ConfigureAwait(false);
-            var declaration = new NpgsqlCommand(declare.Statement, connection, transaction);
-            await using (declaration.ConfigureAwait(false))
-            {
-                _ = declaration.Parameters.AddWithValue("domain", declare.DomainId.ToString(CultureInfo.InvariantCulture));
-                _ = await declaration.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
-            }
-
-            opened = true;
+            await DeclareAsync(connection, transaction, declare, cancellationToken).ConfigureAwait(false);
             return new ContentTransaction(connection, transaction);
         }
-        finally
+        catch
         {
-            if (!opened)
-            {
-                await connection.DisposeAsync().ConfigureAwait(false);
-            }
+            await connection.DisposeAsync().ConfigureAwait(false);
+            throw;
+        }
+    }
+
+    /// <summary>Runs the statement that declares the domain, in the transaction just begun; every content transaction goes through it.</summary>
+    private static async Task DeclareAsync(NpgsqlConnection connection, NpgsqlTransaction transaction, Declaration declare, CancellationToken cancellationToken)
+    {
+        var declaration = new NpgsqlCommand(declare.Statement, connection, transaction);
+        await using (declaration.ConfigureAwait(false))
+        {
+            _ = declaration.Parameters.AddWithValue("domain", declare.DomainId.ToString(CultureInfo.InvariantCulture));
+            _ = await declaration.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 

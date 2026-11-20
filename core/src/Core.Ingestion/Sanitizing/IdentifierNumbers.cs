@@ -188,8 +188,8 @@ internal static class IdentifierNumbers
 
     private static SanitizationMarker? MarkerOf(string[] text, Part part)
     {
-        var shape = string.Concat(text[part.Start..part.End].Select(ShapeOf));
-        if (part.Digits < AccountDigits || IsEnclosed(text, part) || IsKept(text, part, shape))
+        var shape = ShapeBetween(text, part.Start, part.End);
+        if (part.Digits < AccountDigits || IsEnclosed(text, part) || IsKept(text, part, shape) || IsKept(text, part, ShapeBetween(text, part.Start, NoteAt(text, part))))
         {
             return null;
         }
@@ -202,6 +202,23 @@ internal static class IdentifierNumbers
         return NumberShapes.IsAccount(shape) ? SanitizationMarker.Document : null;
     }
 
+    /// <summary>
+    /// Where a note or an exponent written in digits of category No starts, glued to the last digit of category Nd of the part, as the footnote after a date or a value; the end
+    /// of the part when there is none.
+    /// </summary>
+    private static int NoteAt(string[] text, Part part)
+    {
+        var at = part.End;
+        while (at > part.Start && (IdentifierPoints.IsInvisible(text[at - 1]) || (IdentifierPoints.IsDigit(text[at - 1]) && !char.IsDigit(text[at - 1], 0))))
+        {
+            at--;
+        }
+
+        return at > part.Start && at < part.End && char.IsDigit(text[at - 1], 0) ? at : part.End;
+    }
+
+    private static string ShapeBetween(string[] text, int start, int end) => string.Concat(text[start..end].Select(ShapeOf));
+
     /// <summary>A part glued to a letter on both sides, across invisible characters, which is part of a code and not a closed form.</summary>
     private static bool IsEnclosed(string[] text, Part part)
     {
@@ -210,7 +227,7 @@ internal static class IdentifierNumbers
         return before >= 0 && after < text.Length && char.IsLetter(text[before], 0) && char.IsLetter(text[after], 0);
     }
 
-    /// <summary>A date or a time, or a plain number after a currency or before a unit: what the policy keeps on purpose.</summary>
+    /// <summary>A date or a time, or a plain number after a currency or before a unit: what the policy keeps on purpose, read with or without its note.</summary>
     private static bool IsKept(string[] text, Part part, string shape) =>
         NumberShapes.IsDateOrTime(shape) || (NumberShapes.IsPlainNumber(shape) && (CurrencyBefore(text, part.Start) || UnitAfter(text, part.End)));
 

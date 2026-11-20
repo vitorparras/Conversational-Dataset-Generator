@@ -64,6 +64,7 @@ public sealed class IdentifierStepTests
     [InlineData("liga +55    00    90000    0000 ok", "liga [contato] ok")]
     [InlineData("liga 00;90000;00\u206000 e 90000; 0000 e 10000, 2000 ok", "liga [contato] e 90000; 0000 e 10000, 2000 ok")]
     [InlineData("CPF 100;200;300;00;1 ok", "CPF [documento];1 ok")]
+    [InlineData("CPF 100200300\u2070\u2070 ok", "CPF [documento] ok")]
     [InlineData("CPF 1\u2070\u2070.2\u2070\u2070.3\u2070\u2070-\u2070\u2070 e CPF \u246000.\u246100.\u246200-00 ok", "CPF [documento] e CPF [documento] ok")]
     [InlineData("CPF 100;200;300-00;5 ok", "CPF [documento];5 ok")]
     [InlineData("CPFs 100;200;300;00;400;500;600;00 ok", "CPFs [documento];[documento] ok")]
@@ -101,6 +102,7 @@ public sealed class IdentifierStepTests
     [InlineData("aberto 08:00-12:00 e 14:00\u201318:00, hor\u00E1rio 10:30-11:45 e 08:00/12:00:30 fim")]
     [InlineData("de 01/03/2024-15/03/2024, de 01.03.2024-15.03.2024, de 01/03-15/03 e de 2024-03-01\u20132024-03-15")]
     [InlineData("safra 2019/20, de 2020 a 2024 e 15/03/2024 08:00-12:00")]
+    [InlineData("assinado em 15/03/2024\u00B9, aberto 08:00-12:00\u00B2, R$ 12.345.678,90\u00B9 e R$ 1.234.567\u00B2 por 1.500.000\u00B9 litros")]
     public void MoneyQuantityAndDateStay(string raw)
     {
         var removed = Removed(raw);

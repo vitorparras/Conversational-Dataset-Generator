@@ -120,9 +120,17 @@ internal static class SyntheticIdentifiers
             _ => text,
         };
 
-        /// <summary>The separators of the variation: each the usual one or an alternative, and the usual one in place of none when a list splits the form.</summary>
+        /// <summary>
+        /// The separators of the variation: each the usual one or an alternative, and the usual one in place of none when a list splits the form; or, at times, one mark of a
+        /// list between every two groups.
+        /// </summary>
         private string[] SeparatorsOf(int[] picks)
         {
+            if (Alternatives == Spread && picks[4] % 4 == 0)
+            {
+                return [.. Separators.Select(_ => OfAList[picks[4] / 4 % OfAList.Length])];
+            }
+
             var chosen = Separators.Select((usual, at) => Alternatives.Length == 0 || picks[at] % 2 == 0 ? usual : Alternatives[picks[at] / 2 % Alternatives.Length]).ToArray();
             return Array.Exists(chosen, OfAList.Contains) ? [.. chosen.Select((separator, at) => separator.Length == 0 ? Separators[at] : separator)] : chosen;
         }

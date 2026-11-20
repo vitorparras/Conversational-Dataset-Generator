@@ -29,6 +29,7 @@ public sealed class IdentifierStepTests
     [InlineData("CPF 1\u200B0\u200C0\u2060200\uFEFF300\u00AD00 ok", "CPF [documento] ok")]
     [InlineData("CPF 100\u2024200\u2024300\u201100 ok", "CPF [documento] ok")]
     [InlineData("CPF 100 200   300 \t00 ok", "CPF [documento] ok")]
+    [InlineData("CPF 100\u200B\u200B\u200B.200.300-00 ok", "CPF [documento] ok")]
     [InlineData("CPF \uFF11\uFF10\uFF10.200.300\u221200 ok", "CPF [documento] ok")]
     [InlineData("liga (00)\u200B 90000\u00B70000 ok", "liga [contato] ok")]
     [InlineData("liga +55 (00) 9\u200B0000-0000 ok", "liga [contato] ok")]
@@ -46,6 +47,9 @@ public sealed class IdentifierStepTests
     [InlineData("o aparelho 0a-1b-2c-3d-4e-5f caiu", "o aparelho [documento] caiu")]
     [InlineData("liga 00 90000-0000 ok", "liga [contato] ok")]
     [InlineData("manda 10020030000@exemplo.invalid ok", "manda [contato] ok")]
+    [InlineData("escreve zqx@exemplo.invalid.", "escreve [contato].")]
+    [InlineData("zqx@exemplo.io fim", "[contato] fim")]
+    [InlineData("manda \u200Bzqx@exemplo.invalid ok", "manda \u200B[contato] ok")]
     public void ContactAndDeviceLeaveUnderTheirMarker(string raw, string expected) =>
         Assert.Equal(expected, Removed(raw).Text);
 
@@ -54,7 +58,7 @@ public sealed class IdentifierStepTests
     [InlineData("comprou 12345678 kg e 1 500 000 m² e 45% de 250 ml")]
     [InlineData("foi em 12/03/2024 às 10:30, ou 2024-03-12 15:45, ou 15/03/2024 - 10:30:15")]
     [InlineData("datas 12/03 15/03 20/03/24 e 31.12.2023 e 01-01-2024 14:00")]
-    [InlineData("R$​​ 12.345.678,90 em 15/03/2024 23:59")]
+    [InlineData("R$ \u200B\u200B 12.345.678,90 em 15/03/2024 23:59")]
     public void MoneyQuantityAndDateStay(string raw)
     {
         var removed = Removed(raw);
@@ -73,6 +77,8 @@ public sealed class IdentifierStepTests
     [InlineData("nº 100.2000-0000 fim", "nº [documento] fim")]
     [InlineData("cartão 0000 1000 0000 fim", "cartão [documento] fim")]
     [InlineData("CPF 10020030000", "CPF [documento]")]
+    [InlineData("c\u00F3digo x12345678", "c\u00F3digo x[documento]")]
+    [InlineData("1000    20003000 fim", "1000    [documento] fim")]
     public void NumberThatIsNoDateTimeMoneyNorQuantityLeaves(string raw, string expected) =>
         Assert.Equal(expected, Removed(raw).Text);
 
@@ -81,6 +87,7 @@ public sealed class IdentifierStepTests
     [InlineData("nota 10, 9, 8, 7, 6, 5, 4, 3 e 1234567 e 2020-1 e zqx@local e ABC12")]
     [InlineData("código ZQXA5FC2B2D00453986F570ITEM e lote QZX12345678ZQX")]
     [InlineData("zz:yy:xx:ww:vv:uu e manda @exemplo.invalid no dia 12//2024")]
+    [InlineData("A12345678B em mar-2024 e JAN2019, zqx@exemplo..invalid e zqx@exemplo.c0m")]
     [InlineData("Página 1 de 3\n2\n3\n4\n5\n6\n7\n8\n9 e a\u200Bb e x@y.z")]
     public void TextWithoutIdentifierLeavesUnchanged(string raw)
     {

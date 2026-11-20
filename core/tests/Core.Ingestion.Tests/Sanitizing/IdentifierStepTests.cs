@@ -62,6 +62,7 @@ public sealed class IdentifierStepTests
     [Theory]
     [InlineData("a reunião das 9 com 3 pessoas, sala 204, QZX7KW e kkkk @zqx #tbt")]
     [InlineData("nota 10, 9, 8, 7, 6, 5, 4, 3 e 1234567 e 2020-1 e zqx@local e ABC12")]
+    [InlineData("código ZQXA5FC2B2D00453986F570ITEM e lote QZX12345678ZQX")]
     [InlineData("Página 1 de 3\n2\n3\n4\n5\n6\n7\n8\n9 e a\u200Bb e x@y.z")]
     public void TextWithoutIdentifierLeavesUnchanged(string raw)
     {

@@ -1,6 +1,3 @@
-using System.Globalization;
-using System.Text;
-
 namespace Core.Ingestion.Sanitizing;
 
 /// <summary>
@@ -16,46 +13,53 @@ internal static class IdentifierWords
     /// <summary>The signs a local part holds besides letters and digits.</summary>
     private const string LocalSigns = "._%+-";
 
-    private static readonly Func<Rune, bool> Letter = IdentifierRunes.IsAsciiLetter;
-    private static readonly Func<Rune, bool> Digit = IdentifierRunes.IsDigit;
-    private static readonly Func<Rune, bool> LetterOrDigit = rune => IdentifierRunes.IsAsciiLetter(rune) || IdentifierRunes.IsDigit(rune);
-    private static readonly Func<Rune, bool> Hex = IdentifierRunes.IsHex;
-    private static readonly Func<Rune, bool> PlateSeparator = rune => rune.Value == '.' || Rune.GetUnicodeCategory(rune) == UnicodeCategory.DashPunctuation;
-    private static readonly Func<Rune, bool> DeviceSeparator = rune => rune.Value == ':' || Rune.GetUnicodeCategory(rune) == UnicodeCategory.DashPunctuation;
-
-    private static readonly Func<Rune, bool>[][] Forms =
-    [
-        [Letter, Letter, Letter, Digit, LetterOrDigit, Digit, Digit],
-        [Letter, Letter, Letter, PlateSeparator, Digit, LetterOrDigit, Digit, Digit],
-        [Hex, Hex, DeviceSeparator, Hex, Hex, DeviceSeparator, Hex, Hex, DeviceSeparator, Hex, Hex, DeviceSeparator, Hex, Hex, DeviceSeparator, Hex, Hex],
-    ];
-
-    private static readonly HashSet<string> Months = new(["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"], StringComparer.Ordinal);
+    /// <summary>The month abbreviations, each between bars.</summary>
+    private const string Months = "|JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ|";
 
     /// <summary>The plates, the device addresses and the electronic addresses in the text, each as a contact or a document.</summary>
-    internal static IEnumerable<IdentifierSpan> Find(Rune[] text)
+    internal static IEnumerable<IdentifierSpan> Find(string[] text)
     {
         for (var at = 0; at < text.Length; at++)
         {
-            foreach (var end in Forms.Select(form => Matched(text, at, form)).Where(end => end > at && !IsMonthAndYear(text, at, end)))
+            foreach (var end in Forms().Select(form => Matched(text, at, form)).Where(end => end > at && !IsMonthAndYear(text, at, end)))
             {
                 yield return new IdentifierSpan(at, end, SanitizationMarker.Document);
             }
 
-            if (text[at].Value == '@' && Address(text, at) is { } address)
+            if (text[at] == "@" && Address(text, at) is { } address)
             {
                 yield return address;
             }
         }
     }
 
+    /// <summary>The forms read code point by code point: the old plate, the plate of the common market, both with or without a separator, and the physical address of a device.</summary>
+    private static Func<string, bool>[][] Forms() =>
+    [
+        [Letter, Letter, Letter, Digit, LetterOrDigit, Digit, Digit],
+        [Letter, Letter, Letter, PlateSeparator, Digit, LetterOrDigit, Digit, Digit],
+        [Hex, Hex, DeviceSeparator, Hex, Hex, DeviceSeparator, Hex, Hex, DeviceSeparator, Hex, Hex, DeviceSeparator, Hex, Hex, DeviceSeparator, Hex, Hex],
+    ];
+
+    private static bool Letter(string point) => IdentifierPoints.IsAsciiLetter(point);
+
+    private static bool Digit(string point) => IdentifierPoints.IsDigit(point);
+
+    private static bool LetterOrDigit(string point) => Letter(point) || Digit(point);
+
+    private static bool Hex(string point) => IdentifierPoints.IsHex(point);
+
+    private static bool PlateSeparator(string point) => point == "." || IdentifierPoints.IsDash(point);
+
+    private static bool DeviceSeparator(string point) => point == ":" || IdentifierPoints.IsDash(point);
+
     /// <summary>Just past the last code point of the form, read from the position given across invisible characters and bounded on both sides; the position itself when it does not match.</summary>
-    private static int Matched(Rune[] text, int start, Func<Rune, bool>[] form)
+    private static int Matched(string[] text, int start, Func<string, bool>[] form)
     {
         var at = start;
         foreach (var slot in form)
         {
-            at = IdentifierRunes.Visible(text, at, 1);
+            at = IdentifierPoints.Visible(text, at, 1);
             if (at >= text.Length || !slot(text[at++]))
             {
                 return start;
@@ -66,31 +70,31 @@ internal static class IdentifierWords
     }
 
     /// <summary>Whether the visible code point from the position given, in the direction given, is outside the text or neither a letter nor a digit.</summary>
-    private static bool Bounded(Rune[] text, int at, int step)
+    private static bool Bounded(string[] text, int at, int step)
     {
-        at = IdentifierRunes.Visible(text, at, step);
-        return at < 0 || at >= text.Length || !IdentifierRunes.IsWord(text[at]);
+        at = IdentifierPoints.Visible(text, at, step);
+        return at < 0 || at >= text.Length || !IdentifierPoints.IsWord(text[at]);
     }
 
     /// <summary>A month abbreviation and a year of this century or the last, the plate form a date takes.</summary>
-    private static bool IsMonthAndYear(Rune[] text, int start, int end)
+    private static bool IsMonthAndYear(string[] text, int start, int end)
     {
-        var visible = IdentifierRunes.VisibleText(text, start, end);
-        return Months.Contains(visible[..MonthLetters].ToUpperInvariant()) && visible[^YearDigits..] is ['1' or '2', '9' or '0', _, _];
+        var visible = IdentifierPoints.VisibleText(text, start, end);
+        return Months.Contains($"|{visible[..MonthLetters].ToUpperInvariant()}|", StringComparison.Ordinal) && visible[^YearDigits..] is ['1' or '2', '9' or '0', _, _];
     }
 
     /// <summary>The electronic address around the at sign: a local part of letters, digits and the usual signs, and a domain of two labels or more whose last one is letters only.</summary>
-    private static IdentifierSpan? Address(Rune[] text, int at)
+    private static IdentifierSpan? Address(string[] text, int at)
     {
         var start = LocalStart(text, at);
         var end = DomainEnd(text, at);
-        return start < at && IsDomainName(IdentifierRunes.VisibleText(text, at + 1, end)) ? new IdentifierSpan(start, end, SanitizationMarker.Contact) : null;
+        return start < at && IsDomainName(IdentifierPoints.VisibleText(text, at + 1, end)) ? new IdentifierSpan(start, end, SanitizationMarker.Contact) : null;
     }
 
-    private static int LocalStart(Rune[] text, int at)
+    private static int LocalStart(string[] text, int at)
     {
         var start = at;
-        for (var back = at - 1; back >= 0 && (IsLocal(text[back]) || IdentifierRunes.IsInvisible(text[back])); back--)
+        for (var back = at - 1; back >= 0 && (IsLocal(text[back]) || IdentifierPoints.IsInvisible(text[back])); back--)
         {
             start = IsLocal(text[back]) ? back : start;
         }
@@ -99,10 +103,10 @@ internal static class IdentifierWords
     }
 
     /// <summary>Just past the last letter or digit of the domain, its closing dots and dashes left out.</summary>
-    private static int DomainEnd(Rune[] text, int at)
+    private static int DomainEnd(string[] text, int at)
     {
         var end = at + 1;
-        while (end < text.Length && (IsDomain(text[end]) || IdentifierRunes.IsInvisible(text[end])))
+        while (end < text.Length && (IsDomain(text[end]) || IdentifierPoints.IsInvisible(text[end])))
         {
             end++;
         }
@@ -121,7 +125,7 @@ internal static class IdentifierWords
         return labels.Length > 1 && Array.TrueForAll(labels, label => label.Length > 0) && labels[^1].Length >= MinimumTopLevel && labels[^1].All(char.IsAsciiLetter);
     }
 
-    private static bool IsLocal(Rune rune) => LetterOrDigit(rune) || LocalSigns.Contains(rune.ToString(), StringComparison.Ordinal);
+    private static bool IsLocal(string point) => LetterOrDigit(point) || LocalSigns.Contains(point, StringComparison.Ordinal);
 
-    private static bool IsDomain(Rune rune) => LetterOrDigit(rune) || rune.Value is '.' or '-';
+    private static bool IsDomain(string point) => LetterOrDigit(point) || point is "." or "-";
 }

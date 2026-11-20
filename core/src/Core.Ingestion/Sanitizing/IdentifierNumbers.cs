@@ -15,22 +15,17 @@ internal static class IdentifierNumbers
     private const int MaximumSeparators = 3;
     private const int MaximumSpacesToContext = 2;
 
-    /// <summary>The units a quantity is written with, in any case.</summary>
-    private static readonly HashSet<string> Units = new(
-        [
-            "kg", "g", "mg", "t", "ton", "tonelada", "toneladas", "quilo", "quilos", "grama", "gramas", "l", "ml", "litro", "litros", "m", "km", "cm", "mm", "metro", "metros",
-            "m²", "m³", "km²", "ha", "hectare", "hectares", "real", "reais", "dólar", "dólares", "euro", "euros", "mil", "milhão", "milhões", "bilhão", "bilhões", "un", "unidade",
-            "unidades",
-        ],
-        StringComparer.OrdinalIgnoreCase);
+    /// <summary>The units a quantity is written with, each between bars, read in any case.</summary>
+    private const string Units = "|kg|g|mg|t|ton|tonelada|toneladas|quilo|quilos|grama|gramas|l|ml|litro|litros|m|km|cm|mm|metro|metros|m²|m³|km²|ha|hectare|hectares|"
+        + "real|reais|dólar|dólares|euro|euros|mil|milhão|milhões|bilhão|bilhões|un|unidade|unidades|";
 
     /// <summary>The identifiers of digits in the text, each with the separators between its digits and the plus sign or parenthesis that opens it.</summary>
-    internal static IEnumerable<IdentifierSpan> Find(Rune[] text)
+    internal static IEnumerable<IdentifierSpan> Find(string[] text)
     {
         var at = 0;
         while (at < text.Length)
         {
-            if (!IdentifierRunes.IsDigit(text[at]))
+            if (!IdentifierPoints.IsDigit(text[at]))
             {
                 at++;
                 continue;
@@ -46,31 +41,31 @@ internal static class IdentifierNumbers
         }
     }
 
-    private static Run RunFrom(Rune[] text, int start)
+    private static Run RunFrom(string[] text, int start)
     {
         var (end, digits, separators, at) = (start + 1, 1, 0, start + 1);
         for (; at < text.Length && Continues(text[at], separators); at++)
         {
-            if (IdentifierRunes.IsDigit(text[at]))
+            if (IdentifierPoints.IsDigit(text[at]))
             {
                 (end, digits, separators) = (at + 1, digits + 1, 0);
             }
             else
             {
-                separators += IdentifierRunes.IsInvisible(text[at]) ? 0 : 1;
+                separators += IdentifierPoints.IsInvisible(text[at]) ? 0 : 1;
             }
         }
 
         return new Run(start, end, digits, at);
     }
 
-    private static bool Continues(Rune rune, int separators) =>
-        IdentifierRunes.IsDigit(rune) || IdentifierRunes.IsInvisible(rune) || (separators < MaximumSeparators && IdentifierRunes.IsSeparator(rune));
+    private static bool Continues(string point, int separators) =>
+        IdentifierPoints.IsDigit(point) || IdentifierPoints.IsInvisible(point) || (separators < MaximumSeparators && IdentifierPoints.IsSeparator(point));
 
-    private static SanitizationMarker? MarkerOf(Rune[] text, Run run)
+    private static SanitizationMarker? MarkerOf(string[] text, Run run)
     {
         var shape = string.Concat(text[run.Start..run.End].Select(ShapeOf));
-        if (run.Digits < AccountDigits || IsKept(text, run, shape))
+        if (run.Digits < AccountDigits || IsEnclosed(text, run) || IsKept(text, run, shape))
         {
             return null;
         }
@@ -83,57 +78,65 @@ internal static class IdentifierNumbers
         return NumberShapes.IsAccount(shape) ? SanitizationMarker.Document : null;
     }
 
+    /// <summary>A run glued to a letter on both sides, across invisible characters, which is part of a code and not a closed form.</summary>
+    private static bool IsEnclosed(string[] text, Run run)
+    {
+        var before = IdentifierPoints.Visible(text, run.Start - 1, -1);
+        var after = IdentifierPoints.Visible(text, run.End, 1);
+        return before >= 0 && after < text.Length && char.IsLetter(text[before], 0) && char.IsLetter(text[after], 0);
+    }
+
     /// <summary>A date or a time, or a plain number after a currency or before a unit: what the policy keeps on purpose.</summary>
-    private static bool IsKept(Rune[] text, Run run, string shape) =>
+    private static bool IsKept(string[] text, Run run, string shape) =>
         NumberShapes.IsDateOrTime(shape) || (NumberShapes.IsPlainNumber(shape) && (CurrencyBefore(text, run.Start) || UnitAfter(text, run.End)));
 
     /// <summary>The code point as the shapes read it: nothing when invisible, the digit in ASCII, one dash for any dash, one space for any space, and itself otherwise.</summary>
-    private static string ShapeOf(Rune rune) => rune switch
+    private static string ShapeOf(string point) => point switch
     {
-        _ when IdentifierRunes.IsInvisible(rune) => string.Empty,
-        _ when IdentifierRunes.IsDigit(rune) => ((int)Rune.GetNumericValue(rune)).ToString(CultureInfo.InvariantCulture),
-        _ when IdentifierRunes.IsDash(rune) => "-",
-        _ when Rune.IsWhiteSpace(rune) => " ",
-        _ => rune.ToString(),
+        _ when IdentifierPoints.IsInvisible(point) => string.Empty,
+        _ when IdentifierPoints.IsDigit(point) => ((int)CharUnicodeInfo.GetNumericValue(point, 0)).ToString(CultureInfo.InvariantCulture),
+        _ when IdentifierPoints.IsDash(point) => "-",
+        _ when char.IsWhiteSpace(point, 0) => " ",
+        _ => point,
     };
 
     /// <summary>Where the identifier starts: one back when a plus sign or an opening parenthesis comes right before its first digit.</summary>
-    private static int Opened(Rune[] text, int start) => start > 0 && text[start - 1].Value is '+' or '(' ? start - 1 : start;
+    private static int Opened(string[] text, int start) => start > 0 && text[start - 1] is "+" or "(" ? start - 1 : start;
 
-    private static bool CurrencyBefore(Rune[] text, int start)
+    private static bool CurrencyBefore(string[] text, int start)
     {
         var at = Beside(text, start - 1, -1);
-        return at >= 0 && Rune.GetUnicodeCategory(text[at]) == UnicodeCategory.CurrencySymbol;
+        return at >= 0 && CharUnicodeInfo.GetUnicodeCategory(text[at], 0) == UnicodeCategory.CurrencySymbol;
     }
 
-    private static bool UnitAfter(Rune[] text, int end)
+    private static bool UnitAfter(string[] text, int end)
     {
         var at = Beside(text, end, 1);
         var word = new StringBuilder();
-        while (at < text.Length && (Rune.IsLetter(text[at]) || text[at].Value is '%' or '²' or '³'))
+        while (at < text.Length && (char.IsLetter(text[at], 0) || text[at] is "%" or "²" or "³"))
         {
-            _ = word.Append(text[at].ToString());
+            _ = word.Append(text[at]);
             at++;
         }
 
         var unit = word.ToString();
-        return unit.StartsWith('%') || Units.Contains(unit);
+        return unit.StartsWith('%') || Units.Contains($"|{unit}|", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>The first position, from the one given and in the direction given, past invisible characters and at most two spaces on the same line.</summary>
-    private static int Beside(Rune[] text, int at, int step)
+    private static int Beside(string[] text, int at, int step)
     {
         var spaces = 0;
         while (at >= 0 && at < text.Length && Passes(text[at], spaces))
         {
-            spaces += IdentifierRunes.IsSpace(text[at]) ? 1 : 0;
+            spaces += IdentifierPoints.IsSpace(text[at]) ? 1 : 0;
             at += step;
         }
 
         return at;
     }
 
-    private static bool Passes(Rune rune, int spaces) => IdentifierRunes.IsInvisible(rune) || (IdentifierRunes.IsSpace(rune) && spaces < MaximumSpacesToContext);
+    private static bool Passes(string point, int spaces) => IdentifierPoints.IsInvisible(point) || (IdentifierPoints.IsSpace(point) && spaces < MaximumSpacesToContext);
 
     /// <summary>A run of digits: where its first digit is, just past its last digit, how many digits it holds and where the search goes on.</summary>
     private readonly record struct Run(int Start, int End, int Digits, int Next);

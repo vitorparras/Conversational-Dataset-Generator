@@ -36,7 +36,7 @@ public sealed class IdentifierStep : ISanitizationStep
     public IReadOnlyList<SanitizationEdit> Edits(StepInput input)
     {
         ArgumentNullException.ThrowIfNull(input);
-        var text = IdentifierRunes.Of(boundaries.CodePoints(input.Text));
+        var text = IdentifierPoints.Of(boundaries.CodePoints(input.Text));
         var touching = input.Occurrences
             .Where(decided => decided.Occurrence.Start < decided.Occurrence.End)
             .Select(decided => new IdentifierSpan(decided.Occurrence.Start, decided.Occurrence.End, null));

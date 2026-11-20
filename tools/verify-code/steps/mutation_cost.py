@@ -73,16 +73,23 @@ def signature(member: list[Token]) -> tuple[str, ...]:
     before its first parenthesis outside every group to the one that closes it, when no ``=``
     nor ``=>`` comes before it; none for anything else, so a call in an initializer or an
     expression body declares nothing."""
+    opened = parameters(member)
+    closed = None if opened is None else closing(member, opened, len(member))
+    if not opened or closed is None:
+        return ()
+    return tuple(token.kind for token in member[opened - 1 : closed + 1])
+
+
+def parameters(member: list[Token]) -> int | None:
+    """The position of the first parenthesis of ``member`` outside every group, or None when an
+    ``=``, an ``=>`` or a ``;`` comes first."""
     for position in top_level(member, 0, len(member)):
         kind = member[position].kind
         if kind in {"=", "=>", ";"}:
-            return ()
+            return None
         if kind == "(":
-            closed = closing(member, position, len(member))
-            if position == 0 or closed is None:
-                return ()
-            return tuple(token.kind for token in member[position - 1 : closed + 1])
-    return ()
+            return position
+    return None
 
 
 def closing(found: list[Token], opened: int, last: int) -> int | None:

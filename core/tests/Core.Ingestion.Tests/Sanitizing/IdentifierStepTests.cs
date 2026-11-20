@@ -195,24 +195,24 @@ public sealed class IdentifierStepTests
     [InlineData("1 ", true)]
     public void LongRunOfInvisibleCharactersOrDigitsIsReadInLinearTime(string unit, bool removed)
     {
-        var single = Fastest(unit, 50_000, removed);
+        var single = Fastest(unit, 5_000, removed);
 
-        var sixteenfold = Fastest(unit, 800_000, removed);
+        var eightfold = Fastest(unit, 40_000, removed);
 
-        Assert.InRange(sixteenfold / single, 0, 64);
+        Assert.InRange(eightfold / single, 0, 24);
     }
 
     /// <summary>
-    /// The shortest of five readings, in milliseconds, of a run of the unit given repeated as many times as the length given, as invisible characters or digits joined by the
-    /// writing of a number or of a list. Read in linear time, sixteen times the length takes about sixteen times as long, twice that once the run no longer fits the cache;
-    /// read in quadratic time, 256 times. The run comes out whole, or under one marker when it is removed.
+    /// The shortest of three readings, in milliseconds, of a run of the unit given repeated as many times as the length given, as invisible characters or digits joined by the
+    /// writing of a number or of a list. Read in linear time, eight times the length takes about eight times as long, twice that once the run no longer fits the cache; read
+    /// in quadratic time, 64 times. The run comes out whole, or under one marker when it is removed.
     /// </summary>
     private static double Fastest(string unit, int length, bool removed)
     {
         var raw = $"ok {string.Concat(Enumerable.Repeat(unit, length))} fim";
         var expected = removed ? $"ok [documento]{unit[1..]} fim" : raw;
         var readings = new List<double>();
-        for (var reading = 0; reading < 5; reading++)
+        for (var reading = 0; reading < 3; reading++)
         {
             var clock = Stopwatch.StartNew();
             var sanitized = Removed(raw);

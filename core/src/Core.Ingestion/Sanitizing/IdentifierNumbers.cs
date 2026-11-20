@@ -23,6 +23,9 @@ internal static class IdentifierNumbers
     /// <summary>The most digits a layout holds, the IMEI's.</summary>
     private const int LongestLayout = 15;
 
+    /// <summary>The most digits a note or an exponent glued to a number holds: more could hide an identifier behind a date or a value.</summary>
+    private const int LongestNote = 2;
+
     /// <summary>The units a quantity is written with, each between bars, read in any case.</summary>
     private const string Units = "|kg|g|mg|t|ton|tonelada|toneladas|quilo|quilos|grama|gramas|l|ml|litro|litros|m|km|cm|mm|metro|metros|ha|hectare|hectares|"
         + "real|reais|dólar|dólares|euro|euros|mil|milhão|milhões|bilhão|bilhões|un|unidade|unidades|";
@@ -44,8 +47,6 @@ internal static class IdentifierNumbers
         new([2, 5, 4], SanitizationMarker.Contact),
         new([2, 2, 5, 4], SanitizationMarker.Contact),
     ];
-
-
 
     /// <summary>The identifiers of digits in the text, each with the separators between its digits and the plus sign or parenthesis that opens it.</summary>
     internal static IEnumerable<IdentifierSpan> Find(string[] text)
@@ -137,18 +138,20 @@ internal static class IdentifierNumbers
     }
 
     /// <summary>
-    /// Where a note or an exponent written in digits of category No starts, glued to the last digit of category Nd of the part, as the footnote after a date or a value; the end
-    /// of the part when there is none.
+    /// Where a note or an exponent of at most two digits of category No starts, glued to the last digit of category Nd of the part, as the footnote after a date or a value; the
+    /// end of the part when there is none, or when the digits after the last of category Nd are more.
     /// </summary>
     private static int NoteAt(string[] text, Part part)
     {
-        var at = part.End;
+        var (at, digits) = (part.End, 0);
         while (at > part.Start && (IdentifierPoints.IsInvisible(text[at - 1]) || (IdentifierPoints.IsDigit(text[at - 1]) && !char.IsDigit(text[at - 1], 0))))
         {
+            digits += IdentifierPoints.IsInvisible(text[at - 1]) ? 0 : 1;
             at--;
         }
 
-        return at > part.Start && at < part.End && char.IsDigit(text[at - 1], 0) ? at : part.End;
+        var glued = at > part.Start && at < part.End && char.IsDigit(text[at - 1], 0);
+        return glued && digits <= LongestNote ? at : part.End;
     }
 
     private static string ShapeBetween(string[] text, int start, int end) => string.Concat(text[start..end].Select(ShapeOf));

@@ -67,6 +67,9 @@ public sealed class IdentifierStepTests
     [InlineData("CPF 100200300\u2070\u2070 ok", "CPF [documento] ok")]
     [InlineData("CPF 1\u2070\u2070.2\u2070\u2070.3\u2070\u2070-\u2070\u2070 e CPF \u246000.\u246100.\u246200-00 ok", "CPF [documento] e CPF [documento] ok")]
     [InlineData("CPF 100;200;300-00;5 ok", "CPF [documento];5 ok")]
+    [InlineData("nasc 01/01/2000\u00B9\u2070\u2070\u00B2\u2070\u2070\u00B3\u2070\u2070\u2070\u2070 ok", "nasc [documento] ok")]
+    [InlineData("R$ 12,90\u00B9\u2070\u2070\u00B2\u2070\u2070\u00B3\u2070\u2070\u2070\u2070 ok", "R$ [documento] ok")]
+    [InlineData("nasc 15/03/2024\u00B9\u2070\u2070 e R$ 1.234.567\u00B9\u2070\u2070 ok", "nasc [documento] e R$ [documento] ok")]
     [InlineData("CPFs 100;200;300;00;400;500;600;00 ok", "CPFs [documento];[documento] ok")]
     [InlineData("IMEI 00;000000;000000;1;2 ok", "IMEI [documento];2 ok")]
     [InlineData("tabela 100    200    300    00    7 ok", "tabela [documento]    7 ok")]
@@ -103,6 +106,7 @@ public sealed class IdentifierStepTests
     [InlineData("de 01/03/2024-15/03/2024, de 01.03.2024-15.03.2024, de 01/03-15/03 e de 2024-03-01\u20132024-03-15")]
     [InlineData("safra 2019/20, de 2020 a 2024 e 15/03/2024 08:00-12:00")]
     [InlineData("assinado em 15/03/2024\u00B9, aberto 08:00-12:00\u00B2, R$ 12.345.678,90\u00B9 e R$ 1.234.567\u00B2 por 1.500.000\u00B9 litros")]
+    [InlineData("assinado em 15/03/2024\u00B9\u2070, aberto 08:00-12:00\u00B2\u00B3 e R$ 1.234.567\u00B9\u00B2")]
     public void MoneyQuantityAndDateStay(string raw)
     {
         var removed = Removed(raw);

@@ -73,6 +73,6 @@ internal static class IdentifierPoints
     /// <summary>The visible code points between the two positions, as a string.</summary>
     internal static string VisibleText(string[] text, int start, int end) => string.Concat(text[start..end].Where(point => !IsInvisible(point)));
 
-    /// <summary>A currency sign, the percent sign or the number sign, which make a number a value or an ordinal and so split none.</summary>
-    private static bool IsSignOfValue(string point) => point is "%" or "#" || CharUnicodeInfo.GetUnicodeCategory(point, 0) == UnicodeCategory.CurrencySymbol;
+    /// <summary>A currency sign, the percent sign, the number sign or the asterisk, which make a number a value, an ordinal or a note, or join it in arithmetic, and so split none.</summary>
+    private static bool IsSignOfValue(string point) => point is "%" or "#" or "*" || CharUnicodeInfo.GetUnicodeCategory(point, 0) == UnicodeCategory.CurrencySymbol;
 }

@@ -18,15 +18,16 @@ internal static class NumberShapes
     private const int LastMonth = 12;
     private const int HoursInADay = 24;
     private const int MinutesInAnHour = 60;
+    private const int LongestRange = 21;
 
     /// <summary>The marks a decimal part follows: the comma, as Portuguese writes it, or the dot.</summary>
     private static readonly char[] DecimalPoints = [',', '.'];
 
-    /// <summary>Every part between spaces that holds a digit is a date or a time, as a date followed by its hour, or a list of dates.</summary>
+    /// <summary>Every part between spaces that holds a digit is a date or a time, or a range of two of them, as a date followed by its hour, a list of dates or opening hours.</summary>
     internal static bool IsDateOrTime(string shape)
     {
         var parts = shape.Split(' ', StringSplitOptions.RemoveEmptyEntries).Where(part => part.Any(char.IsAsciiDigit)).ToList();
-        return parts.Count > 0 && parts.TrueForAll(part => IsDate(part) || IsTime(part));
+        return parts.Count > 0 && parts.TrueForAll(part => IsDateOrTimeAlone(part) || IsRange(part));
     }
 
     /// <summary>Digits alone, or one to three digits followed by groups of three, all split by the same dot, comma or space; with or without decimals after a last comma or dot.</summary>
@@ -59,6 +60,12 @@ internal static class NumberShapes
         var point = shape.LastIndexOfAny(DecimalPoints);
         return point > 0 && shape.Length - point - 1 <= FieldWidth && IsDigits(shape[(point + 1)..]) ? shape[..point] : shape;
     }
+
+    private static bool IsDateOrTimeAlone(string part) => IsDate(part) || IsTime(part);
+
+    /// <summary>Two dates or two times joined by a dash or a slash, as from one day to another or opening hours; no longer than two dates of ten characters and what joins them.</summary>
+    private static bool IsRange(string part) =>
+        part.Length <= LongestRange && Enumerable.Range(0, part.Length).Any(at => part[at] is '-' or '/' && IsDateOrTimeAlone(part[..at]) && IsDateOrTimeAlone(part[(at + 1)..]));
 
     private static bool IsTime(string part)
     {

@@ -51,6 +51,18 @@ public sealed class IdentifierStepTests
     [InlineData("CPF 100;200;300;00 ok", "CPF [documento] ok")]
     [InlineData("CPF 100    200    300    00 ok", "CPF [documento] ok")]
     [InlineData("CPF 100\u2003\u2003\u2003\u2003200.300-00 ok", "CPF [documento] ok")]
+    [InlineData("CPF \u2460\u24EA\u24EA.\u2461\u24EA\u24EA.\u2462\u24EA\u24EA-\u24EA\u24EA ok", "CPF [documento] ok")]
+    [InlineData("CPF \u00B9\u2070\u2070.\u00B2\u2070\u2070.\u00B3\u2070\u2070-\u2070\u2070 ok", "CPF [documento] ok")]
+    [InlineData("CPF 100, 200, 300-00 ok", "CPF [documento] ok")]
+    [InlineData("CPF 100. 200. 300-00 ok", "CPF [documento] ok")]
+    [InlineData("CPF 100&200&300&00 ok", "CPF [documento] ok")]
+    [InlineData("CPF 100200;300-00 ok", "CPF [documento] ok")]
+    [InlineData("CNPJ 10; 200; 300; 0001; 00 ok", "CNPJ [documento] ok")]
+    [InlineData("IMEI 00    000000    000000    1 ok", "IMEI [documento] ok")]
+    [InlineData("liga 00; 0000; 0000 ok", "liga [contato] ok")]
+    [InlineData("liga (00) 90000; 0000 ok", "liga [contato] ok")]
+    [InlineData("liga +55; 00; 90000; 0000 ok", "liga [contato] ok")]
+    [InlineData("liga 00; 90000; 00\u206000 ok", "liga [contato] ok")]
     public void NumberSplitByZeroWidthOrOddSeparatorLeavesWithTheSeparators(string raw, string expected) =>
         Assert.Equal(expected, Removed(raw).Text);
 
@@ -78,6 +90,9 @@ public sealed class IdentifierStepTests
     [InlineData("datas 12/03 15/03 20/03/24 e 31.12.2023 e 01-01-2024 14:00")]
     [InlineData("R$ \u200B\u200B 12.345.678,90 em 15/03/2024 23:59")]
     [InlineData("paguei US$ 1,234,567.89 e $1,234,567.89 e R$ 1 234 567,8")]
+    [InlineData("aberto 08:00-12:00 e 14:00\u201318:00, hor\u00E1rio 10:30-11:45 e 08:00/12:00:30 fim")]
+    [InlineData("de 01/03/2024-15/03/2024, de 01.03.2024-15.03.2024, de 01/03-15/03 e de 2024-03-01\u20132024-03-15")]
+    [InlineData("safra 2019/20, de 2020 a 2024 e 15/03/2024 08:00-12:00")]
     public void MoneyQuantityAndDateStay(string raw)
     {
         var removed = Removed(raw);
@@ -97,7 +112,10 @@ public sealed class IdentifierStepTests
     [InlineData("cartão 0000 1000 0000 fim", "cartão [documento] fim")]
     [InlineData("CPF 10020030000", "CPF [documento]")]
     [InlineData("c\u00F3digo x12345678", "c\u00F3digo x[documento]")]
-    [InlineData("1000    20003000 fim", "[documento] fim")]
+    [InlineData("1000    20003000 fim", "1000    [documento] fim")]
+    [InlineData("de 01/03/2024-15/13/2024 fim", "de [documento] fim")]
+    [InlineData("de 2020-2024 fim", "de [contato] fim")]
+    [InlineData("safra 2019/2020 fim", "safra [contato] fim")]
     public void NumberThatIsNoDateTimeMoneyNorQuantityLeaves(string raw, string expected) =>
         Assert.Equal(expected, Removed(raw).Text);
 
@@ -111,6 +129,9 @@ public sealed class IdentifierStepTests
     [InlineData("lotes 1200; 3400, 5600;\u200B 7800 e notas 9,5, 8,0, 7,5")]
     [InlineData("ganhei 1000!!! 2000?! anos 2023 \U0001F602\U0001F602 2024, 1000 + 2000 = 3000, | 2023 | 1500 | 3000 | e #1234 #5678")]
     [InlineData("ganhou 1000. 2000 ficaram, 1000\u2026 2000\u2026 e 10% 20% 30% 40% e nota 1000* 2000* 3000*")]
+    [InlineData("\"1234\" \"5678\" e 1234 & 5678 e [12][13][14][15] e itens 12;13;14;15 e local -23.5505,-46.6333 fim")]
+    [InlineData("anos 2019, 2020, 2021, 2022, tabela 1200    3400    5600 e itens 1000; 2000; 300 fim")]
+    [InlineData("x\u00B2 e nota\u00B9 e \u2460 \u2461 \u2462 e 1\u00BD kg e \u2469\u246A\u246B\u246C\u246D\u246E\u246F\u2470")]
     public void TextWithoutIdentifierLeavesUnchanged(string raw)
     {
         var removed = Removed(raw);
@@ -156,13 +177,30 @@ public sealed class IdentifierStepTests
     [Fact]
     public void LongRunOfInvisibleCharactersIsReadInLinearTime()
     {
-        var raw = $"ok {new string('\u200B', 200_000)} fim";
-        var clock = Stopwatch.StartNew();
+        var single = Fastest(50_000);
 
-        var removed = Removed(raw);
+        var sixteenfold = Fastest(800_000);
 
-        Assert.Equal(raw, removed.Text);
-        Assert.InRange(clock.Elapsed, TimeSpan.Zero, TimeSpan.FromSeconds(2));
+        Assert.InRange(sixteenfold / single, 0, 64);
+    }
+
+    /// <summary>
+    /// The shortest of five readings, in milliseconds, of a run of invisible characters of the length given, which comes out unchanged. Read in linear time, sixteen times the
+    /// length takes about sixteen times as long, twice that once the run no longer fits the cache; read in quadratic time, 256 times.
+    /// </summary>
+    private static double Fastest(int length)
+    {
+        var raw = $"ok {new string('\u200B', length)} fim";
+        var readings = new List<double>();
+        for (var reading = 0; reading < 5; reading++)
+        {
+            var clock = Stopwatch.StartNew();
+            var removed = Removed(raw);
+            readings.Add(clock.Elapsed.TotalMilliseconds);
+            Assert.Equal(raw, removed.Text);
+        }
+
+        return readings.Min();
     }
 
     [Fact]

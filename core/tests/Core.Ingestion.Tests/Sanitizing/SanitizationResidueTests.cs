@@ -117,10 +117,14 @@ public sealed class SanitizationResidueTests
     /// <summary>A digit in ASCII, a letter in capitals, and nothing for the rest.</summary>
     private static string SkeletonOf(Rune rune) => rune switch
     {
-        _ when Rune.IsDigit(rune) => ((int)Rune.GetNumericValue(rune)).ToString(CultureInfo.InvariantCulture),
+        _ when Rune.IsDigit(rune) || IsDigitOfOtherNumber(rune) => ((int)Rune.GetNumericValue(rune)).ToString(CultureInfo.InvariantCulture),
         _ when Rune.IsLetter(rune) => rune.ToString().ToUpperInvariant(),
         _ => string.Empty,
     };
+
+    /// <summary>A number of category No with the value of one digit, as the circled and the superscript ones, which reads as a digit.</summary>
+    private static bool IsDigitOfOtherNumber(Rune rune) =>
+        Rune.GetUnicodeCategory(rune) == UnicodeCategory.OtherNumber && Rune.GetNumericValue(rune) is >= 0 and <= 9 && double.IsInteger(Rune.GetNumericValue(rune));
 
     private static Segment Plain(string written) => new(written, null, null);
 

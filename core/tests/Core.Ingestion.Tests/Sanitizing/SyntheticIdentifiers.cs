@@ -5,8 +5,9 @@ namespace Core.Ingestion.Tests.Sanitizing;
 /// <summary>
 /// Identifiers in closed form, synthetic by construction: the check digits of a document are always wrong, a telephone has the area code 00, which does not exist, a device has the
 /// documentation range of the physical addresses or the reporting body 00 of the test devices, an electronic address ends in the reserved domain .invalid, and a plate has the
-/// letters QZX. Each one is written in an arbitrary variation of case, separator, spacing and digit script, split or not by invisible characters, and carries its skeleton: its
-/// letters and digits, in ASCII and in capitals, which no recognizable variation of it leaves out.
+/// letters QZX. Each one is written in an arbitrary variation of case, separator, spacing and digit script, of category Nd or No, split or not by invisible characters, and carries
+/// its skeleton: its letters and digits, in ASCII and in capitals, which no recognizable variation of it leaves out. A mark of a list or a long spacing joins only the groups of a
+/// layout a list does not take: the card number, whose four groups of four a list of years also takes, is split only by the usual separators.
 /// </summary>
 internal static class SyntheticIdentifiers
 {
@@ -19,6 +20,9 @@ internal static class SyntheticIdentifiers
         "", " ", "  ", "   ", "    ", " \t", "\u00A0", "\u2009", "\u2003\u2003\u2003\u2003", "/", "\u2024", "\u00B7", "\u2027", "\u2011", "\u2013", "\u2014", "\uFF0E",
         "\u2212", ",", ";", "\u2800", "\u2219", "\u22C5", "\u2215", "\u2044",
     ];
+
+    /// <summary>The separators of the spread that stand in the place of a dot or a space, without the mark of a list and the long spacing.</summary>
+    private static readonly string[] Usual = [.. Spread.Except([";", "    ", "\u2003\u2003\u2003\u2003"])];
 
     private static readonly string[] Dashes = ["-", "\u2010", "\u2011", "\u2013", "\u2212"];
 
@@ -37,7 +41,7 @@ internal static class SyntheticIdentifiers
             ? Digit("+", ["55", "00", $"9{first}", last], [" (", ") ", "-"])
             : Digit("(", ["00", $"9{first}", last], [") ", "-"])),
         Digits(13).Select(rest => Digit(string.Empty, ["00", rest[..6], rest[6..12], rest[12..]], ["-", "-", "-"])),
-        Digits(12).Select(rest => Digit(string.Empty, ["0000", rest[..4], rest[4..8], rest[8..]], [" ", " ", " "])),
+        Digits(12).Select(rest => new Form(string.Empty, ["0000", rest[..4], rest[4..8], rest[8..]], [" ", " ", " "], Usual)),
         Gen.Select(Digits(5), Digits(1), (body, check) => new Form(string.Empty, [body, check], ["-"], Dashes)),
         Gen.Select(Digits(3), Gen.Bool, Gen.Char['A', 'Z'], (digits, mercosul, letter) =>
             new Form(string.Empty, ["QZX", $"{digits[0]}{(mercosul ? letter : digits[1])}{digits[1..]}"], [string.Empty], PlateSeparators)),
@@ -47,7 +51,7 @@ internal static class SyntheticIdentifiers
 
     /// <summary>An identifier written in an arbitrary variation, split by at least one invisible character when asked.</summary>
     public static Gen<Planted> Variants(bool split) =>
-        Gen.Select(Forms, Gen.Int[0, int.MaxValue].Array[8], Gen.Int[split ? 1 : 0, 3], Gen.Int[0, 3], (form, picks, invisibles, writing) => form.Written(picks, invisibles, writing));
+        Gen.Select(Forms, Gen.Int[0, int.MaxValue].Array[8], Gen.Int[split ? 1 : 0, 3], Gen.Int[0, 5], (form, picks, invisibles, writing) => form.Written(picks, invisibles, writing));
 
     private static Gen<string> Digits(int count) => Gen.Char['0', '9'].Array[count].Select(digits => new string(digits));
 
@@ -77,7 +81,7 @@ internal static class SyntheticIdentifiers
             {
                 1 => text.ToUpperInvariant(),
                 2 => string.Concat(text.Select(char.ToLowerInvariant)),
-                3 => new string([.. text.Select(character => char.IsAsciiDigit(character) && Alternatives == Spread ? (char)(character - '0' + '\uFF10') : character)]),
+                > 2 => new string([.. text.Select(character => char.IsAsciiDigit(character) && (Alternatives == Spread || Alternatives == Usual) ? InScript(character - '0', writing) : character)]),
                 _ => text,
             };
             for (var time = 0; time < invisibles; time++)
@@ -89,6 +93,18 @@ internal static class SyntheticIdentifiers
 
             return new Planted(text, string.Concat(Groups).ToUpperInvariant());
         }
+
+        /// <summary>The digit in the script of the writing: fullwidth, of category Nd; circled or superscript, of category No.</summary>
+        private static char InScript(int digit, int writing) => (writing, digit) switch
+        {
+            (3, _) => (char)('\uFF10' + digit),
+            (4, 0) => '\u24EA',
+            (4, _) => (char)('\u2460' + digit - 1),
+            (_, 0) => '\u2070',
+            (_, 1) => '\u00B9',
+            (_, <= 3) => (char)('\u00B0' + digit),
+            _ => (char)('\u2070' + digit),
+        };
     }
 }
 

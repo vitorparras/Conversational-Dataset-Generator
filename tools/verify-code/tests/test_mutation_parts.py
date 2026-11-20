@@ -10,6 +10,7 @@ import unittest
 from pathlib import Path
 
 from steps import areas_doc, mutation, mutation_core, mutation_parts
+from steps.mutation_cost import SUITE_MUTANT
 from steps.mutation_members import UNBOUNDED
 from steps.mutation_parts import Part, Slice
 
@@ -491,7 +492,7 @@ class RepositoryAreaTests(unittest.TestCase):
         self.assertEqual(areas["Core.Persistence.Content.Reading"].parts, 1)
         self.assertEqual(areas["Core.Persistence.Ingestion"].parts, 10)
 
-    def test_the_member_that_opens_every_content_transaction_is_alone_in_its_part(self) -> None:
+    def test_each_content_part_holds_two_mutants_of_the_suite_at_most(self) -> None:
         root = support.VERIFY_CODE.parents[1]
         table = areas_doc.read_areas(root).areas
         area = next(a for a in table if a.prefix == "Core.Persistence.Content")
@@ -500,16 +501,20 @@ class RepositoryAreaTests(unittest.TestCase):
         found = mutation_core.pieces(root, core)
         name = "Content/ContentTransaction.cs"
         text = (root / mutation_core.SOURCES / core.project / name).read_text(encoding="utf-8-sig")
-        declaration = "private static async Task<ContentTransaction> OpenAsync("
-        opens = next(
+        declarations = ("async Task<ContentTransaction> OpenAsync(", "async Task DeclareAsync(")
+        wide = [
             piece
             for piece in found
-            if piece.file == name and declaration in text[piece.start : piece.end]
-        )
+            if piece.file == name
+            and any(declared in text[piece.start : piece.end] for declared in declarations)
+        ]
 
         held = [mutation_parts.dealt(found, Part(n, area.parts)) for n in range(1, area.parts + 1)]
+        rest = [part for part in held if not set(part) & set(wide)]
 
-        self.assertIn([opens], held)
+        self.assertEqual(len(wide), len(declarations))
+        self.assertTrue(all([piece] in held for piece in wide))
+        self.assertLessEqual(max(sum(p.weight // SUITE_MUTANT for p in part) for part in rest), 2)
 
     def test_the_content_areas_of_the_repository_have_files_for_their_parts(self) -> None:
         root = support.VERIFY_CODE.parents[1]

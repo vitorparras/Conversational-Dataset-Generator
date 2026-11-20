@@ -8,7 +8,7 @@ from itertools import pairwise
 from pathlib import Path
 
 from steps import mutation_members
-from steps.mutation_cost import STATIC_COST
+from steps.mutation_cost import SUITE_MUTANT
 from steps.mutation_members import UNBOUNDED, member_ends, slices
 
 from . import support
@@ -180,20 +180,37 @@ def weight_of(member: str) -> int:
 
 
 class WeightTests(unittest.TestCase):
-    """What Stryker tests against the whole suite weighs the factor, the rest its tokens (#683)."""
+    """What Stryker tests against the whole suite weighs a mutant of the suite for each literal it
+    mutates; the rest weighs its tokens (#683, #849)."""
 
-    def test_a_static_property_or_field_with_an_initializer_weighs_the_factor_times_its_tokens(
-        self,
-    ) -> None:
-        property_ = weight_of("static int P { get; } = 1;")
-        field = weight_of("static readonly int F = 1;")
+    def test_each_literal_of_a_static_initializer_weighs_a_mutant_of_the_suite(self) -> None:
+        field = weight_of('static readonly string F = "x";')
+        property_ = weight_of("static bool P { get; } = true;")
+        two = weight_of('static readonly string F = $"a{b}" + @"c";')
 
-        self.assertEqual(property_, STATIC_COST * (weight_of("int P { get; } = 1;") + 1))
-        self.assertEqual(field, STATIC_COST * (weight_of("readonly int F = 1;") + 1))
-
-    def test_a_static_constructor_weighs_the_factor_and_a_static_method_does_not(self) -> None:
+        self.assertEqual(field, weight_of('readonly string F = "x";') + 1 + SUITE_MUTANT)
+        self.assertEqual(property_, weight_of("bool P { get; } = true;") + 1 + SUITE_MUTANT)
         self.assertEqual(
-            weight_of("static A() { Init(); }"), STATIC_COST * (weight_of("A() { Init(); }") + 1)
+            two, weight_of('readonly string F = $"a{b}" + @"c";') + 1 + 2 * SUITE_MUTANT
+        )
+
+    def test_a_static_initializer_without_a_literal_weighs_its_tokens(self) -> None:
+        self.assertEqual(
+            weight_of("static int P { get; } = 1;"), weight_of("int P { get; } = 1;") + 1
+        )
+        self.assertEqual(
+            weight_of("static readonly char C = 'x'; /* \"y\" */"),
+            weight_of("readonly char C = 'x';") + 1,
+        )
+
+    def test_a_literal_outside_a_static_initializer_weighs_no_mutant_of_the_suite(self) -> None:
+        self.assertLess(weight_of('readonly string F = "x";'), SUITE_MUTANT)
+        self.assertLess(weight_of('static string M() { return "x"; }'), SUITE_MUTANT)
+
+    def test_a_static_constructor_weighs_its_literals_and_a_static_method_does_not(self) -> None:
+        self.assertEqual(
+            weight_of('static A() { Init("x"); }'),
+            weight_of('A() { Init("x"); }') + 1 + SUITE_MUTANT,
         )
         self.assertEqual(
             weight_of("static int M() { return 1; }"), weight_of("int M() { return 1; }") + 1
@@ -242,7 +259,7 @@ class SuiteWideTests(unittest.TestCase):
         named = [w for _, _, w in slices(text, SUITE)]
         plain = [w for _, _, w in slices(text)]
 
-        self.assertEqual(named[1], STATIC_COST * plain[1])
+        self.assertEqual(named[1], SUITE_MUTANT * plain[1])
         self.assertEqual(named[2], plain[2])
 
     def test_an_overload_with_other_parameters_does_not_weigh_the_factor(self) -> None:
@@ -254,7 +271,7 @@ class SuiteWideTests(unittest.TestCase):
         named = [w for _, _, w in slices(text, SUITE)]
         plain = [w for _, _, w in slices(text)]
 
-        self.assertEqual(named[1:3], [plain[1], STATIC_COST * plain[2]])
+        self.assertEqual(named[1:3], [plain[1], SUITE_MUTANT * plain[2]])
 
     def test_a_call_or_an_initializer_that_names_it_does_not_weigh_the_factor(self) -> None:
         text = (
@@ -291,10 +308,10 @@ class ListCutTests(unittest.TestCase):
         self.assertTrue(all(a[1] == b[0] for a, b in pairwise(found)))
         self.assertTrue(all(LIST[end - 1] in ",;}" for _, end, _ in found[:-1]))
 
-    def test_every_slice_of_the_list_weighs_the_factor_and_the_next_member_does_not(self) -> None:
+    def test_every_slice_of_the_list_weighs_its_literal_and_the_next_member_does_not(self) -> None:
         weights = [w for _, _, w in slices(LIST)]
 
-        self.assertTrue(all(w % STATIC_COST == 0 for w in weights[1:4]))
+        self.assertTrue(all(SUITE_MUTANT < w < 2 * SUITE_MUTANT for w in weights[1:4]))
         self.assertEqual(weights[4], weight_of("int After() { return 1; }") + 1)
 
     def test_a_list_that_is_not_static_is_not_cut(self) -> None:

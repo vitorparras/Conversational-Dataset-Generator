@@ -149,8 +149,8 @@ def units(text: str, index: int) -> int:
 def slices(text: str, suite: frozenset[str] = frozenset()) -> tuple[tuple[int, int, int], ...]:
     """The slices of a file as ``(start, end, weight)``: offsets from the first character to
     ``UNBOUNDED``, cut after each member and, in a static list, after each element; the weight is
-    the tokens, so comments weigh nothing, times ``STATIC_COST`` for a static initializer or a
-    method whose signature is in ``suite``, which every test runs through."""
+    the tokens, so comments weigh nothing, plus ``SUITE_MUTANT`` for each literal of a static
+    initializer, and times it for a method whose signature is in ``suite``."""
     found = tokens(text)
     ends = [token.end for token in found]
     members = [0, *(bisect_right(ends, cut) for cut in ends_of(found)), len(ends)]

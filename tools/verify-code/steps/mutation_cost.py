@@ -7,24 +7,28 @@ from __future__ import annotations
 from collections.abc import Iterator
 from itertools import pairwise
 
-from steps.csharp_tokens import Token, tokens
+from steps.csharp_tokens import Token, strings, tokens
 
-#: What one token of a static initializer costs against one of any other code. Stryker cannot say
-#: which tests reach a static initializer, so each of its mutants runs the whole suite (#683: the
-#: 24 mutants of ``ContentColumns`` took 22 min, 304 tests each, while the same weight in tokens
-#: anywhere else took 4 to 11 min). Measured between 4 and 5.
-STATIC_COST = 5
+#: What one mutant that runs the whole suite weighs, in tokens of other code. Stryker cannot say
+#: which tests reach a static initializer, so each of its mutants runs the whole suite (#683), and
+#: a part takes as long as the mutants of the suite it holds: in run 44636875465 (#849) one took
+#: 2 to 2,5 min, while a part of 13 mutants of other code, some 35 tokens each, took no more than
+#: the 4,5 to 5 min of the preparation. Each literal of a static initializer, a string or a
+#: boolean, is such a mutant.
+SUITE_MUTANT = 1000
+BOOLEANS = frozenset({"true", "false"})
 #: The methods of a file, by its path in the project and their signature (name and parameters),
 #: that every test of the area runs through, so that Stryker tests each of their mutants against
-#: the whole suite as it does for a static initializer; nothing in the text says so, hence the
-#: signatures, and an overload that only passes the call on is not one of them (#849: the
-#: ``OpenAsync`` that opens every content transaction, weighed by its tokens, shared a part that
-#: took 15,4 min of the 20 with 40 parts).
+#: the whole suite; nothing in the text says so, hence the signatures. Each of their tokens weighs
+#: a mutant of the suite, so each is alone in its part (#849: alone, the ``OpenAsync`` that opened
+#: every content transaction took 15,5 min of the 20, and was cut in two).
 SUITE_WIDE: dict[str, frozenset[str]] = {
     "Content/ContentTransaction.cs": frozenset(
         {
             "OpenAsync(NpgsqlDataSource dataSource, Declaration declare, IsolationLevel isolation,"
-            " CancellationToken cancellationToken)"
+            " CancellationToken cancellationToken)",
+            "DeclareAsync(NpgsqlConnection connection, NpgsqlTransaction transaction,"
+            " Declaration declare, CancellationToken cancellationToken)",
         }
     ),
 }
@@ -143,21 +147,30 @@ def element_cuts(text: str, found: list[Token], first: int, last: int) -> list[i
 
 def pieces(text: str, found: list[Token], first: int, last: int) -> list[tuple[int, int]]:
     """The cuts of one member as ``(end, weight)``: the member itself, or its elements when it is
-    a static initializer holding a list; the weight is the tokens, times ``STATIC_COST`` for a
-    static initializer, wherever it is cut."""
+    a static initializer holding a list; the weight is the tokens, plus ``SUITE_MUTANT`` for each
+    literal of a static initializer, wherever it is cut."""
     member = found[first:last]
     static = static_initializer(member)
     inner = element_cuts(text, found, first, last) if static else []
     marks = [first, *inner, last]
-    factor = STATIC_COST if static else 1
-    return [(b, max(1, b - a) * factor) for a, b in pairwise(marks)]
+    return [
+        (b, max(1, b - a) + (literals(text, found, a, b) * SUITE_MUTANT if static else 0))
+        for a, b in pairwise(marks)
+    ]
+
+
+def literals(text: str, found: list[Token], first: int, last: int) -> int:
+    """The literals Stryker mutates in ``found[first:last]``: its strings and its booleans."""
+    start = found[first - 1].end if first > 0 else 0
+    words = sum(token.kind in BOOLEANS for token in found[first:last])
+    return words + strings(text, start, found[last - 1].end if last > first else start)
 
 
 def suite_factor(member: list[Token], suite: frozenset[str]) -> int:
-    """``STATIC_COST`` for a method whose signature is in ``suite``, which every test runs
+    """``SUITE_MUTANT`` for a method whose signature is in ``suite``, which every test runs
     through; 1 for any other member."""
     declared = signature(member)
-    return STATIC_COST if any(declared == signed(entry) for entry in suite) else 1
+    return SUITE_MUTANT if any(declared == signed(entry) for entry in suite) else 1
 
 
 def signed(entry: str) -> tuple[str, ...]:

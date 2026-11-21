@@ -488,7 +488,7 @@ class RepositoryAreaTests(unittest.TestCase):
         areas = {a.prefix: a for a in areas_doc.read_areas(root).areas}
 
         self.assertEqual(areas["Core.Persistence.Content"].parts, 46)
-        self.assertEqual(areas["Core.Persistence.Content.Writing"].parts, 6)
+        self.assertEqual(areas["Core.Persistence.Content.Writing"].parts, 7)
         self.assertEqual(areas["Core.Persistence.Content.Sealing"].parts, 3)
         self.assertEqual(areas["Core.Persistence.Content.Reading"].parts, 1)
         self.assertEqual(areas["Core.Persistence.Ingestion"].parts, 10)
@@ -536,7 +536,7 @@ class RepositoryAreaTests(unittest.TestCase):
             (
                 (),
                 expected,
-                [f"Core.Persistence.Content.Writing@{n}/6" for n in range(1, 7)],
+                [f"Core.Persistence.Content.Writing@{n}/7" for n in range(1, 8)],
                 [f"Core.Persistence.Content.Sealing@{n}/3" for n in range(1, 4)],
                 [f"Core.Persistence.Ingestion@{n}/10" for n in range(1, 11)],
             ),

@@ -181,6 +181,20 @@ public sealed class SanitizationRerunsTests : IClassFixture<RerunDatabase>
         Assert.Equal($"sanitization_rerun,sanitization_rerun,administrative_act,{RerunCase.Target},zqx-curator", await rerun.RequestEventsOfAsync(requested.RerunId!.Value));
     }
 
+    // The chain answers every try of the request with a conflict: the request gives up after its three tries and records nothing.
+    [DatabaseFact]
+    public async Task RequestThatMeetsAConflictAtEveryTryGivesUpAfterThreeAndRecordsNothing()
+    {
+        await using var own = new RerunDatabase();
+        var rerun = await own.CaseAsync();
+        _ = await rerun.ItemAsync(Sanitized);
+        await rerun.RequestsAlwaysConflictAsync();
+
+        var result = await rerun.RequestAsync();
+
+        Assert.Equal((RerunOutcome.NotRecorded, 3L), (result.Outcome, await rerun.ConflictedRequestsAsync()));
+    }
+
     [DatabaseFact]
     public async Task ARequestThatMeetsTheItemQueuedByAnotherAtTheSameTimeTriesAgainAndQueuesIt()
     {

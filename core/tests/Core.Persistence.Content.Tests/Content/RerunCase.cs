@@ -137,6 +137,25 @@ internal sealed class RerunCase
         Assert.Equal(1, failed.FirstInconsistent?.Sequence);
     }
 
+    /// <summary>
+    /// Makes the chain answer every event of a request as a serialization conflict, counting each try in a sequence that the rollback does not undo; the database is then of no use to
+    /// another test.
+    /// </summary>
+    public Task RequestsAlwaysConflictAsync() => database.ExecuteAsSuperuserAsync(
+        "CREATE SEQUENCE public.zqx_request_tries; "
+        + "CREATE FUNCTION public.zqx_request_conflicts() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $f$ "
+        + "BEGIN PERFORM pg_catalog.nextval('public.zqx_request_tries'); RAISE EXCEPTION 'conflict' USING ERRCODE = '40001'; END $f$; "
+        + "CREATE TRIGGER zqx_request_conflicts BEFORE INSERT ON public.custody_event FOR EACH ROW WHEN (NEW.step = 'sanitization_rerun') "
+        + "EXECUTE FUNCTION public.zqx_request_conflicts()");
+
+    /// <summary>How many times a request tried to record its event since <see cref="RequestsAlwaysConflictAsync"/>, read as the superuser.</summary>
+    public async Task<long> ConflictedRequestsAsync()
+    {
+        await using var connection = await Sql.OpenAsync(database.SuperuserConnectionString);
+        await using var command = new NpgsqlCommand("SELECT CASE WHEN is_called THEN last_value ELSE 0 END FROM public.zqx_request_tries", connection);
+        return (long)(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken))!;
+    }
+
     /// <summary>Another writer of the chain, which takes the link the rerun read.</summary>
     public void AppendElsewhere()
     {

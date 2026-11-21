@@ -32,4 +32,7 @@ public enum CustodyItemKind
 
     /// <summary>A change of configuration submitted on the screen, by its identifier: what its submission is about.</summary>
     ConfigurationChange,
+
+    /// <summary>A request of the rerun of the sanitization, by its identifier.</summary>
+    SanitizationRerun,
 }

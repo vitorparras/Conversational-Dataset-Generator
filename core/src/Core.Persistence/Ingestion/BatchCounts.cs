@@ -16,6 +16,9 @@ public sealed class BatchCounts
     private const int CodeColumn = 1;
     private const int ValueColumn = 2;
     private const int ItemsColumn = 3;
+    private const int UntreatedColumn = 4;
+    private const int SanitizedColumn = 5;
+    private const int TotalColumn = 6;
 
     private static readonly string[] DestinationCodes = Codes("remove", "pseudonymize", "preserve");
 
@@ -46,8 +49,14 @@ public sealed class BatchCounts
         {
             var rows = await RowsAsync(transaction, (BatchCountStatements.Read, domainId, batchId), Count, cancellationToken).ConfigureAwait(false);
             var steps = await RowsAsync(transaction, (BatchCountStatements.Steps, domainId, batchId), Step, cancellationToken).ConfigureAwait(false);
-            var version = steps.Count == 0 ? null : steps[0].Version;
-            return Counted(rows) with { SanitizationVersion = version, Steps = [.. steps.Where(step => step.Version == version).Select(step => step.Count)] };
+            var newest = steps.FirstOrDefault();
+            return Counted(rows) with
+            {
+                SanitizationVersion = newest?.Version,
+                Steps = [.. steps.Where(step => step.Version is not null && step.Version == newest?.Version).Select(step => step.Numbers!)],
+                SanitizedItems = newest?.Sanitized ?? 0,
+                Items = newest?.Items ?? 0,
+            };
         }
     }
 
@@ -71,8 +80,13 @@ public sealed class BatchCounts
 
     private static (string Kind, BatchCount Count) Count(IDataRecord reader) => (reader.GetString(KindColumn), new BatchCount(reader.GetString(CodeColumn), reader.GetInt64(ValueColumn)));
 
-    private static (string Version, BatchStepCount Count) Step(IDataRecord reader) =>
-        (reader.GetString(KindColumn), new BatchStepCount(reader.GetString(CodeColumn), reader.GetInt64(ValueColumn), reader.GetInt64(ItemsColumn)));
+    private static StepRow Step(IDataRecord reader) => reader.IsDBNull(KindColumn)
+        ? new StepRow(null, null, reader.GetInt64(SanitizedColumn), reader.GetInt64(TotalColumn))
+        : new StepRow(
+            reader.GetString(KindColumn),
+            new BatchStepCount(reader.GetString(CodeColumn), reader.GetInt64(ValueColumn), reader.GetInt64(ItemsColumn)) { Untreated = reader.GetInt64(UntreatedColumn) },
+            reader.GetInt64(SanitizedColumn),
+            reader.GetInt64(TotalColumn));
 
     private static BatchDetailCounts Counted(List<(string Kind, BatchCount Count)> rows)
     {
@@ -100,4 +114,7 @@ public sealed class BatchCounts
 
     private static long Replica(List<(string Kind, BatchCount Count)> rows, string code) =>
         rows.Find(row => row.Kind == "replica" && row.Count.Code == code).Count?.Value ?? 0;
+
+    /// <summary>One row of the numbers of the sanitization: a step of a version, or none when no item is sanitized, and the items sanitized out of the items not emptied.</summary>
+    private sealed record StepRow(string? Version, BatchStepCount? Numbers, long Sanitized, long Items);
 }

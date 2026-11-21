@@ -9,15 +9,14 @@ namespace Core.Tests.Architecture.Boundaries;
 /// <summary>
 /// Content lives in the content schema, and the domain a session declares is what the database judges it by. A statement over that schema
 /// is a public or internal constant of the top-level <c>ContentQueries</c>, the list the test with no domain declared runs, so one written anywhere else, or built at run
-/// time, would reach content outside that test. And no statement may move the search path: the schema is named in every statement, and
+/// time, would reach content outside that test. The class may be split in parts, each in a file of the content folder named after it
+/// (<c>ContentQueries.Part.cs</c>): the list reads the type, not the file. And no statement may move the search path: the schema is named in every statement, and
 /// naming it is what the rule above sees. The member that sets it on a connection string builder is refused by name. The server guarantees alone
 /// may hold the whole name of a table of the schema, as the server's log gives it, and nothing longer.
 /// </summary>
 internal static partial class ContentSchemaAccessRules
 {
     private const string ListName = "ContentQueries";
-    private const string QueriesFile = ListName + ".cs";
-    private const string AllowedFolder = "/Core.Persistence/Content/";
     private const string GuaranteesFolder = "/Core.Persistence/ServerGuarantees/";
 
     private static readonly SyntaxKind[] TextKinds =
@@ -69,12 +68,14 @@ internal static partial class ContentSchemaAccessRules
     private static bool IsSeenByTheList(MemberDeclarationSyntax field) =>
         field.Modifiers.Any(SyntaxKind.ConstKeyword) && field.Modifiers.Any(modifier => modifier.IsKind(SyntaxKind.PublicKeyword) || modifier.IsKind(SyntaxKind.InternalKeyword));
 
-    private static bool IsQueriesFile(SourceFile file) =>
-        file.Path.Replace(Path.DirectorySeparatorChar, '/').EndsWith(AllowedFolder + QueriesFile, StringComparison.Ordinal);
+    private static bool IsQueriesFile(SourceFile file) => QueriesFile().IsMatch(file.Path.Replace(Path.DirectorySeparatorChar, '/'));
 
     // SQL lets blanks surround the dot; a blank only after it must lead into a lowercase word, so the sentence "the content. Then" is not a table.
     [GeneratedRegex(@"(?<![\w.])""?content""?(?:\s*\.(?:[A-Za-z_""]|\s*(?-i:[a-z_""]))|\s+\.\s*[A-Za-z_""])", RegexOptions.IgnoreCase)]
     private static partial Regex ContentTable();
+
+    [GeneratedRegex(@"/Core\.Persistence/Content/" + ListName + @"(\.[A-Z][A-Za-z]*)?\.cs$")]
+    private static partial Regex QueriesFile();
 
     [GeneratedRegex(@"^content\.[a-z_]+$")]
     private static partial Regex QualifiedName();

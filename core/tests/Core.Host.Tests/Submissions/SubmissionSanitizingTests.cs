@@ -40,7 +40,7 @@ public sealed class SubmissionSanitizingTests
             (outcome.Kind, outcome.Code, detail!.State, detail.Reason, await world.ItemRowsAsync(), step.Calls));
         var line = Assert.Single(world.Log.Lines, entry => entry.EventId == 351);
         Assert.Equal(LogLevel.Error, line.Level);
-        Assert.Contains("passo-de-teste", line.Line, StringComparison.Ordinal);
+        Assert.Contains("passo_de_teste", line.Line, StringComparison.Ordinal);
         Assert.Contains("Position=1", line.Line, StringComparison.Ordinal);
         Assert.Contains($"Batch={outcome.Batch.Value}", line.Line, StringComparison.Ordinal);
         Assert.Contains(nameof(InvalidOperationException), line.Line, StringComparison.Ordinal);
@@ -96,7 +96,8 @@ public sealed class SubmissionSanitizingTests
         var report = await world.StoredAsync(
             $"SELECT f::text FROM public.batch_sanitization_counts({outcome.Batch!.Value}, {SubmissionWorld.Domain}) f");
         var version = CompositionRoot.StepsOf().Version;
-        Assert.Equal([$"({version},codificacao,0,0)", $"({version},artefatos,0,0)", $"({version},identificadores,0,0)", $"({version},destinos,3,3)"], report);
+        Assert.Equal(
+            [$"({version},codificacao,0,0,0,3,3)", $"({version},artefatos,0,0,0,3,3)", $"({version},identificadores,0,0,0,3,3)", $"({version},destinos,3,3,0,3,3)"], report);
         string[] swept =
         [
             .. world.Log.Lines.Select(entry => entry.Line),

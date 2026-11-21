@@ -88,18 +88,63 @@ public sealed class BatchDetailCountsTests
             _ = await WriteAsync(world, custody, batch, [], ItemTexts.Sanitization("texto sanitizado zqx") with { Counts = [edits] });
         }
 
-        _ = await WriteAsync(world, custody, batch, [], ItemTexts.Sanitization("texto sanitizado zqx") with { Version = rerun, Steps = RerunSteps, Counts = [7, 1] });
+        _ = await WriteAsync(world, custody, batch, [], ItemTexts.Sanitization("texto sanitizado zqx") with { Version = rerun, Steps = RerunSteps, Counts = [7, 1], Untreated = [0, 0] });
 
         var counts = await new BatchCounts(world.DataSource).ReadAsync(IngestionWorld.Domain, batch, TestContext.Current.CancellationToken);
-        var byVersion = new Dictionary<string, BatchStepCount[]>(StringComparer.Ordinal)
-        {
-            [ItemTexts.Version] = [new BatchStepCount("destinations", 5, 2)],
-            [rerun] = [new BatchStepCount("destinations", 7, 1), new BatchStepCount("zqx_review", 1, 1)],
-        };
 
-        // Which version the detail names when a batch has two is not this slice's to decide (only a rerun gives two); the steps shown must be the ones of that version.
-        Assert.True(byVersion.ContainsKey(counts.SanitizationVersion ?? string.Empty), counts.SanitizationVersion);
-        Assert.Equal(byVersion[counts.SanitizationVersion!], counts.Steps);
+        Assert.Equal(rerun, counts.SanitizationVersion);
+        Assert.Equal([new BatchStepCount("destinations", 7, 1), new BatchStepCount("zqx_review", 1, 1)], counts.Steps);
+    }
+
+    [DatabaseFact]
+    public async Task BatchDetailCountsNameTheMostRecentVersionEvenWhenItSortsBeforeTheOlderOne()
+    {
+        await using var world = await IngestionWorld.CreateAsync();
+        using var custody = SyntheticCustody.Holding(Labels);
+        var batch = await OpenAsync(world, "conversation");
+        const string NewerSteps = "destinations@1\nzqx_newer@18";
+        var newer = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(NewerSteps)));
+        _ = await WriteAsync(world, custody, batch, []);
+        _ = await WriteAsync(world, custody, batch, [], ItemTexts.Sanitization("texto sanitizado zqx") with { Version = newer, Steps = NewerSteps, Counts = [1, 0], Untreated = [0, 0] });
+
+        var counts = await new BatchCounts(world.DataSource).ReadAsync(IngestionWorld.Domain, batch, TestContext.Current.CancellationToken);
+
+        Assert.True(string.CompareOrdinal(newer, ItemTexts.Version) < 0, "The newer version must sort before the older one.");
+        Assert.Equal(newer, counts.SanitizationVersion);
+    }
+
+    [DatabaseFact]
+    public async Task BatchDetailCountsTellTheSanitizedItemsOutOfTheItemsNotEmptied()
+    {
+        await using var world = await IngestionWorld.CreateAsync();
+        using var custody = SyntheticCustody.Holding(Labels);
+        var batch = await OpenAsync(world, "conversation");
+        _ = await WriteAsync(world, custody, batch, []);
+        _ = await WriteAsync(world, custody, batch, []);
+        _ = await new ContentWriter(world.DataSource, custody.Content).AddItemTextAsync(IngestionWorld.Domain, batch, ItemTexts.Of("texto bruto zqx"), TestContext.Current.CancellationToken);
+        var emptied = await WriteAsync(world, custody, batch, []);
+        _ = await IngestionWorld.AcceptAsync(world, batch);
+        _ = await new ContentEmptier(world.DataSource).EmptyAsync(
+            new ItemEmptying(CustodyAuthor.Person(await world.PersonAsync("zqx-curator")), IngestionWorld.Domain, emptied, EmptyingMotive.ContractRequirement, "PROT-2026/0846"),
+            TestContext.Current.CancellationToken);
+
+        var counts = await new BatchCounts(world.DataSource).ReadAsync(IngestionWorld.Domain, batch, TestContext.Current.CancellationToken);
+
+        Assert.Equal((2L, 3L), (counts.SanitizedItems, counts.Items));
+    }
+
+    [DatabaseFact]
+    public async Task BatchDetailCountsAddWhatEachStepLeftUntreated()
+    {
+        await using var world = await IngestionWorld.CreateAsync();
+        using var custody = SyntheticCustody.Holding(Labels);
+        var batch = await OpenAsync(world, "conversation");
+        _ = await WriteAsync(world, custody, batch, [], ItemTexts.Sanitization("texto sanitizado zqx") with { Untreated = [2] });
+        _ = await WriteAsync(world, custody, batch, [], ItemTexts.Sanitization("texto sanitizado zqx") with { Untreated = [3] });
+
+        var counts = await new BatchCounts(world.DataSource).ReadAsync(IngestionWorld.Domain, batch, TestContext.Current.CancellationToken);
+
+        Assert.Equal(5L, Assert.Single(counts.Steps).Untreated);
     }
 
     private static StoredOccurrence Said(long item, int position) =>

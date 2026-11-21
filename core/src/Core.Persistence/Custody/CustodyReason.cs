@@ -50,4 +50,16 @@ public enum CustodyReason
 
     /// <summary>The review of the sample of a batch found personal data not treated, and the whole batch was rejected.</summary>
     ReviewFound,
+
+    /// <summary>The rerun produced the text the item already held.</summary>
+    SanitizationIdentical,
+
+    /// <summary>The rerun replaced the sanitized text of the item.</summary>
+    SanitizationReplaced,
+
+    /// <summary>The rerun was refused for the item; the queue keeps why.</summary>
+    SanitizationRefused,
+
+    /// <summary>A request to another version closed the item before it was treated, and nothing of it changed.</summary>
+    SanitizationSuperseded,
 }

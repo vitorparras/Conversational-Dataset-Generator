@@ -17,6 +17,7 @@ internal static class CustodyNames
         [CustodyItemKind.MasterKey] = "master_key",
         [CustodyItemKind.IngestionBatch] = "ingestion_batch",
         [CustodyItemKind.ConfigurationChange] = "configuration_change",
+        [CustodyItemKind.SanitizationRerun] = "sanitization_rerun",
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<CustodyStep, string> Steps = new Dictionary<CustodyStep, string>
@@ -62,6 +63,8 @@ internal static class CustodyNames
         [CustodyStep.ConfigurationInForce] = "configuration_in_force",
         [CustodyStep.ConfigurationNotApplied] = "configuration_not_applied",
         [CustodyStep.PersonEmailCorrected] = "person_email_corrected",
+        [CustodyStep.SanitizationRerun] = "sanitization_rerun",
+        [CustodyStep.ItemResanitized] = "item_resanitized",
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<CustodyReason, string> Reasons = new Dictionary<CustodyReason, string>
@@ -82,6 +85,10 @@ internal static class CustodyNames
         [CustodyReason.BatchRejected] = "batch_rejected",
         [CustodyReason.ReviewClean] = "review_clean",
         [CustodyReason.ReviewFound] = "review_found",
+        [CustodyReason.SanitizationIdentical] = "sanitization_identical",
+        [CustodyReason.SanitizationReplaced] = "sanitization_replaced",
+        [CustodyReason.SanitizationRefused] = "sanitization_refused",
+        [CustodyReason.SanitizationSuperseded] = "sanitization_superseded",
     }.ToFrozenDictionary();
 
     internal static string Of(CustodyItemKind kind) => Kinds[kind];

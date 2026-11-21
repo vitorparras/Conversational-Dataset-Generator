@@ -18,7 +18,13 @@ public sealed record BatchDetailCounts
     /// <summary>How many first messages the marked ones repeat.</summary>
     public required long Firsts { get; init; }
 
-    /// <summary>The version of the list of steps that sanitized the items of the batch; none when no item was sanitized.</summary>
+    /// <summary>How many items of the batch, not emptied, have a sanitization, whatever its version.</summary>
+    public long SanitizedItems { get; init; }
+
+    /// <summary>How many items of the batch are not emptied.</summary>
+    public long Items { get; init; }
+
+    /// <summary>The most recent version of the list of steps among the ones that sanitized the items of the batch; none when no item was sanitized.</summary>
     public string? SanitizationVersion { get; init; }
 
     /// <summary>What each step of that version did to the items, in the order the steps ran.</summary>

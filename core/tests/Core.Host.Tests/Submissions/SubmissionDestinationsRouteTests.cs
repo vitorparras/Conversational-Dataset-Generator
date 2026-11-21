@@ -59,4 +59,17 @@ public sealed class SubmissionDestinationsRouteTests
 
         Assert.Matches(@"<th[^>]*>\s*4\. Aplicação dos destinos\s*</th>\s*<td[^>]*>\s*4\s*</td>\s*<td[^>]*>\s*2\s*</td>", detail);
     }
+
+    [DatabaseFact]
+    public async Task BatchScreenReadsTheItemsSanitizedAndWhatEachStepLeftUntreatedFromTheDatabase()
+    {
+        await using var world = await SubmissionScreensRouteTests.World.StartAsync(recognizer: new FakeRecognizer());
+        var content = SubmissionWorld.Messages(("ZQXUM", "ZQX-FAKE-PERSON ZQX-FAKE-PERSON"), ("ZQXDOIS", "ZQX-FAKE-PERSON"));
+        var (_, location, _) = await world.PostAsync(SubmissionScreensRouteTests.Fields(), content: content);
+
+        var detail = await world.PageAsync(location!);
+
+        Assert.Matches(@"<dt>Itens sanitizados</dt>\s*<dd>2 de 2</dd>", detail);
+        Assert.Matches(@"<th[^>]*>\s*4\. Aplicação dos destinos\s*</th>(\s*<td[^>]*>\s*\d+\s*</td>){3}", detail);
+    }
 }

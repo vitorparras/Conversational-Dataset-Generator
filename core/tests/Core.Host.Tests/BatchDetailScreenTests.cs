@@ -134,13 +134,31 @@ public sealed class BatchDetailScreenTests
     }
 
     [Fact]
+    public async Task BatchScreenShowsHowManyItemsAreSanitizedOfTheItemsOfTheBatch()
+    {
+        var page = await RenderAsync(Sanitized with { VersionedItems = 3, Items = 4 });
+
+        Assert.Matches(Fact("Itens sanitizados", "3 de 4"), page);
+    }
+
+    [Fact]
+    public async Task BatchScreenShowsWhatEachStepLeftUntreated()
+    {
+        var page = await RenderAsync(Sanitized with { Steps = [new("destinos", 6, 3) { Untreated = 2 }, new("zqx", 0, 0)] });
+
+        Assert.Matches(@"<th[^>]*>\s*Não tratados\s*</th>", page);
+        Assert.Matches(Row("1. Aplicação dos destinos", "6", "3", "2"), page);
+        Assert.Matches(Row("2. Passo zqx", "0", "0", "0"), page);
+    }
+
+    [Fact]
     public async Task BatchScreenShowsNoPositionOfTheTrail()
     {
         var page = await RenderAsync(Sanitized);
 
         Assert.Contains("O rastro com as posições de cada edição fica cifrado e não vem a esta tela", page, StringComparison.Ordinal);
-        Assert.Equal(["Step", "Edits", "Items"], typeof(BatchDetailScreen.StepCount).GetProperties().Select(property => property.Name));
-        Assert.Equal(["Name", "Edits", "Items"], typeof(BatchStepCount).GetProperties().Select(property => property.Name));
+        Assert.Equal(["Step", "Edits", "Items", "Untreated"], typeof(BatchDetailScreen.StepCount).GetProperties().Select(property => property.Name));
+        Assert.Equal(["Name", "Edits", "Items", "Untreated"], typeof(BatchStepCount).GetProperties().Select(property => property.Name));
         Assert.DoesNotContain(typeof(BatchDetailScreen.Detail).GetProperties(), property => property.Name.Contains("Trail", StringComparison.Ordinal));
     }
 
@@ -190,8 +208,8 @@ public sealed class BatchDetailScreenTests
     private static bool Holds(Type type) =>
         type == typeof(string) || (type.IsAssignableTo(typeof(System.Collections.IEnumerable)) && Array.Exists(type.GetGenericArguments(), Holds));
 
-    private static string Row(string step, string edits, string items) =>
-        $@"<th[^>]*>\s*{Regex.Escape(step)}\s*</th>\s*<td[^>]*>\s*{Regex.Escape(edits)}\s*</td>\s*<td[^>]*>\s*{Regex.Escape(items)}\s*</td>";
+    private static string Row(string step, params string[] cells) =>
+        $@"<th[^>]*>\s*{Regex.Escape(step)}\s*</th>" + string.Concat(cells.Select(cell => $@"\s*<td[^>]*>\s*{Regex.Escape(cell)}\s*</td>"));
 
     private static string Fact(string term, string value) => $@"<dt>\s*{Regex.Escape(term)}\s*</dt>\s*<dd>\s*{Regex.Escape(value)}\s*</dd>";
 

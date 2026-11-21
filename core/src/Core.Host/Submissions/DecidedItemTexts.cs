@@ -1,13 +1,16 @@
+using Core.Boundary.Contracts;
 using Core.Ingestion.Deciding;
 using Core.Ingestion.Sanitizing;
 using Core.Persistence.Content;
+using Core.Persistence.Content.Rerun;
 using Core.Persistence.Content.Writing;
 
 namespace Core.Host.Submissions;
 
 /// <summary>
 /// The one place where the texts of an item are built for the writer: from the material the destinations were decided for, and from nothing else. The writer stores what it is given and
-/// decides nothing, and the constructors of what it stores are the host's alone, so that no item is recorded as clean by a caller that did not analyse its text (issue 84, CA-1).
+/// decides nothing, and the constructors of what it stores are the host's alone, so that no item is recorded as clean by a caller that did not analyse its text (issue 84, CA-1). The rerun
+/// builds them again from the raw text and the destinations decided when the item came in, which are not decided again (issue 97).
 /// </summary>
 internal static class DecidedItemTexts
 {
@@ -22,6 +25,15 @@ internal static class DecidedItemTexts
         ArgumentNullException.ThrowIfNull(clean);
         var stored = material.Of(text).Select(Stored).ToList();
         return new NewItemText(raw, null, stored) { Sanitization = Stored(clean) };
+    }
+
+    /// <summary>What the rerun of the steps in force makes of what the item holds; the occurrences held keep no part of speech nor role, which no step reads.</summary>
+    internal static Resanitized Rerun(SanitizationRerun steps, RerunSource held)
+    {
+        var decided = held.Occurrences.Select(occurrence => new DecidedOccurrence(new Occurrence(occurrence.Start, occurrence.End, occurrence.Kind, "", ""), Decided(occurrence.Destination)));
+        var produced = steps.Rerun(held.Raw, [.. decided], held.StoredText);
+        var stored = Stored(produced.Sanitized);
+        return new Resanitized(stored.Text, stored.Version, stored.Steps, stored.Trail, stored.Counts, stored.Untreated, produced.Identical);
     }
 
     private static ItemSanitization Stored(SanitizedText clean) => new()
@@ -42,6 +54,14 @@ internal static class DecidedItemTexts
         Destination.Remove => OccurrenceDestination.Remove,
         Destination.Pseudonymize => OccurrenceDestination.Pseudonymize,
         Destination.Preserve => OccurrenceDestination.Preserve,
+        _ => throw new ArgumentOutOfRangeException(nameof(destination), destination, "The destination is not one of the three."),
+    };
+
+    private static Destination Decided(OccurrenceDestination destination) => destination switch
+    {
+        OccurrenceDestination.Remove => Destination.Remove,
+        OccurrenceDestination.Pseudonymize => Destination.Pseudonymize,
+        OccurrenceDestination.Preserve => Destination.Preserve,
         _ => throw new ArgumentOutOfRangeException(nameof(destination), destination, "The destination is not one of the three."),
     };
 }

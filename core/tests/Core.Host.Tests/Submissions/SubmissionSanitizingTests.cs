@@ -40,7 +40,7 @@ public sealed class SubmissionSanitizingTests
             (outcome.Kind, outcome.Code, detail!.State, detail.Reason, await world.ItemRowsAsync(), step.Calls));
         var line = Assert.Single(world.Log.Lines, entry => entry.EventId == 351);
         Assert.Equal(LogLevel.Error, line.Level);
-        Assert.Contains("passo-de-teste", line.Line, StringComparison.Ordinal);
+        Assert.Contains("passo_de_teste", line.Line, StringComparison.Ordinal);
         Assert.Contains("Position=1", line.Line, StringComparison.Ordinal);
         Assert.Contains($"Batch={outcome.Batch.Value}", line.Line, StringComparison.Ordinal);
         Assert.Contains(nameof(InvalidOperationException), line.Line, StringComparison.Ordinal);

@@ -3,7 +3,10 @@ using Core.Ingestion.Sanitizing;
 
 namespace Core.Host.Tests.Submissions;
 
-/// <summary>A declared step for the tests: one that fails on the item at a given call, one that cancels the submission there, or one that removes every occurrence as a credential.</summary>
+/// <summary>
+/// A declared step for the tests: one that fails on the item at a given call or of a given text, one that cancels the submission there, or one that removes every occurrence as a
+/// credential.
+/// </summary>
 internal sealed class SanitizingStep : ISanitizationStep
 {
     private readonly Func<int, StepInput, IReadOnlyList<SanitizationEdit>> answer;
@@ -14,7 +17,7 @@ internal sealed class SanitizingStep : ISanitizationStep
         this.answer = answer;
     }
 
-    public string Name => "passo-de-teste";
+    public string Name => "passo_de_teste";
 
     public int Version => 1;
 
@@ -26,6 +29,10 @@ internal sealed class SanitizingStep : ISanitizationStep
     /// <summary>Fails on the item of the given call, counted from one; removes nothing before it.</summary>
     internal static SanitizingStep FailingAt(int call) =>
         new((at, _) => at == call ? throw new InvalidOperationException("falha sintética do passo") : []);
+
+    /// <summary>Fails on every item whose text holds the one given; removes nothing in the others.</summary>
+    internal static SanitizingStep FailingOn(string text) =>
+        new((_, input) => input.Text.Contains(text, StringComparison.Ordinal) ? throw new InvalidOperationException("falha sintética do passo") : []);
 
     /// <summary>Cancels the submission on the item of the given call, counted from one, as a cancellation would arrive while sanitizing.</summary>
     internal static SanitizingStep CancellingAt(int call, CancellationTokenSource cancelled) =>

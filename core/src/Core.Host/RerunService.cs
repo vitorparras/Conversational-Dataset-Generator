@@ -12,15 +12,28 @@ namespace Core.Host;
 /// the raw text and concludes it; a rerun that fails spends a try of the item, and with no item in any domain it waits <see cref="Pause"/>. A failure of the database is told in the log by its
 /// type and the next round tries again, while the item it held goes back to the queue when its hold expires. With no database there is no queue, and the service then does nothing.
 /// </summary>
-internal sealed class RerunService(RerunService.Parts? parts, TimeProvider time, ILogger<RerunService> logger) : BackgroundService
+internal sealed class RerunService : BackgroundService
 {
     /// <summary>How long the worker waits when no domain has an item for it.</summary>
     internal static readonly TimeSpan Pause = TimeSpan.FromSeconds(5);
 
+    private readonly Parts? parts;
+    private readonly TimeProvider time;
+    private readonly ILoggerFactory loggers;
+
     internal RerunService(IServiceProvider host, SanitizationRerun rerun)
-        : this(PartsOf(host, rerun), host.GetRequiredService<TimeProvider>(), host.GetRequiredService<ILogger<RerunService>>())
+        : this(PartsOf(host, rerun), host.GetRequiredService<TimeProvider>(), host.GetRequiredService<ILoggerFactory>())
     {
     }
+
+    internal RerunService(Parts? parts, TimeProvider time, ILoggerFactory loggers)
+    {
+        this.parts = parts;
+        this.time = time;
+        this.loggers = loggers;
+    }
+
+    private ILogger Logger => loggers.CreateLogger<RerunService>();
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -83,7 +96,7 @@ internal sealed class RerunService(RerunService.Parts? parts, TimeProvider time,
         }
         catch (Exception failure) when (ServingFailure.CanReport(failure) && !cancellationToken.IsCancellationRequested)
         {
-            logger.RerunInterrupted(failure.GetType().Name);
+            Logger.RerunInterrupted(failure.GetType().Name);
             return false;
         }
     }
@@ -99,7 +112,7 @@ internal sealed class RerunService(RerunService.Parts? parts, TimeProvider time,
         if (access.Resanitizer is not { } resanitizer)
         {
             _ = await work.Queue.ReturnAsync(hold, cancellationToken).ConfigureAwait(false);
-            logger.RerunKeyUnread(hold.ItemId, domainId);
+            Logger.RerunKeyUnread(hold.ItemId, domainId);
             return false;
         }
 
@@ -117,10 +130,10 @@ internal sealed class RerunService(RerunService.Parts? parts, TimeProvider time,
         }
         catch (Exception failure) when (failure is SanitizationStepFailedException or ArgumentException)
         {
-            logger.RerunFailed(hold.ItemId, hold.DomainId, failure.GetType().Name);
+            Logger.RerunFailed(hold.ItemId, hold.DomainId, failure.GetType().Name);
             if (await work.Queue.FailAsync(hold, cancellationToken).ConfigureAwait(false) == RerunOutcome.Refused)
             {
-                logger.RerunRefused(hold.ItemId, hold.DomainId, RerunRefusal.Failed);
+                Logger.RerunRefused(hold.ItemId, hold.DomainId, RerunRefusal.Failed);
             }
         }
     }
@@ -129,11 +142,11 @@ internal sealed class RerunService(RerunService.Parts? parts, TimeProvider time,
     {
         if (result.Refusal is { } refusal)
         {
-            logger.RerunRefused(hold.ItemId, hold.DomainId, refusal);
+            Logger.RerunRefused(hold.ItemId, hold.DomainId, refusal);
         }
         else
         {
-            logger.RerunConcluded(hold.ItemId, hold.DomainId, result.Outcome);
+            Logger.RerunConcluded(hold.ItemId, hold.DomainId, result.Outcome);
         }
     }
 

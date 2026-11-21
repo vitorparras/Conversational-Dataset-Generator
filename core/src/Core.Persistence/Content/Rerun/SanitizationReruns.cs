@@ -12,9 +12,21 @@ namespace Core.Persistence.Content.Rerun;
 /// The queue of the rerun of the sanitization (0064): a request queues the items of the accepted batches of another version, with its event in the same transaction, and closes as superseded what
 /// was left of a request to another version; a worker holds one item at a time, for <see cref="Hold"/>, and an item spends a try when its hold expires or it fails, until the last one refuses it.
 /// </summary>
-public sealed class SanitizationReruns(NpgsqlDataSource dataSource, TimeProvider time)
+public sealed class SanitizationReruns
 {
     private const int Attempts = 3;
+
+    private readonly NpgsqlDataSource dataSource;
+    private readonly TimeProvider time;
+
+    /// <summary>The queue over the database, at the moments the clock gives.</summary>
+    /// <param name="dataSource">The source of the connections, with the application's credential.</param>
+    /// <param name="time">The clock of the requests, the holds and the conclusions.</param>
+    public SanitizationReruns(NpgsqlDataSource dataSource, TimeProvider time)
+    {
+        this.dataSource = dataSource;
+        this.time = time;
+    }
 
     /// <summary>How long a worker holds an item before another may take it.</summary>
     public static TimeSpan Hold { get; } = TimeSpan.FromMinutes(5);

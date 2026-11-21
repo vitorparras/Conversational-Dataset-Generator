@@ -15,9 +15,24 @@ namespace Core.Persistence.Content.Rerun;
 /// the new sanitization are written together or not at all. An identical text is not written again; an emptied item, one whose key was declared lost or one never decided is refused with
 /// the reason; a transaction the database stopped for another gives the item back without spending a try, and a label the installation did not load spends one.
 /// </summary>
-public sealed class ItemResanitizer(NpgsqlDataSource dataSource, ProtectedContent protectedContent, TimeProvider time)
+public sealed class ItemResanitizer
 {
     private const NpgsqlDbType IntegerArray = (NpgsqlDbType)((int)NpgsqlDbType.Array + (int)NpgsqlDbType.Integer);
+
+    private readonly NpgsqlDataSource dataSource;
+    private readonly ProtectedContent protectedContent;
+    private readonly TimeProvider time;
+
+    /// <summary>The rerun over the database, opening and sealing the texts by the protected content, at the moments the clock gives.</summary>
+    /// <param name="dataSource">The source of the connections, with the application's credential.</param>
+    /// <param name="protectedContent">Opens the raw text and seals the new one with the key of the item.</param>
+    /// <param name="time">The clock of the holds and the conclusions.</param>
+    public ItemResanitizer(NpgsqlDataSource dataSource, ProtectedContent protectedContent, TimeProvider time)
+    {
+        this.dataSource = dataSource;
+        this.protectedContent = protectedContent;
+        this.time = time;
+    }
 
     /// <summary>Reruns the held item by the rerun of the domain, given what the item holds; none from it refuses the item as undecided, and an exception leaves it as it was, held.</summary>
     public Task<RerunResult> ResanitizeAsync(RerunHold hold, Func<RerunSource, Resanitized?> rerun, CancellationToken cancellationToken)

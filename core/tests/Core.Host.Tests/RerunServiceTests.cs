@@ -150,7 +150,7 @@ public sealed class RerunServiceTests
     public async Task WithNoDatabaseTheWorkerDoesNothingAndEnds()
     {
         using var loggers = new LoggerFactory();
-        using var worker = new RerunService(null, new ManualClock(), loggers.CreateLogger<RerunService>());
+        using var worker = new RerunService(null, new ManualClock(), loggers);
 
         await worker.StartAsync(TestContext.Current.CancellationToken);
         await worker.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);

@@ -83,7 +83,7 @@ internal sealed class RerunWorld : IAsyncDisposable
     internal Task StartAsync(SanitizationRerun rerun, Func<CancellationToken, Task<RerunService.Access>>? open = null)
     {
         var parts = new RerunService.Parts(new DomainListing(Submissions.DataSource), new SanitizationReruns(Submissions.DataSource, Clock), rerun, open ?? OpenAsync);
-        worker = new RerunService(parts, Clock, loggers.CreateLogger<RerunService>());
+        worker = new RerunService(parts, Clock, loggers);
         return worker.StartAsync(Token);
     }
 
@@ -93,7 +93,7 @@ internal sealed class RerunWorld : IAsyncDisposable
         host = new ServiceCollection()
             .AddSingleton(new ServiceCollection().AddSingleton(Submissions.DataSource).AddSingleton(key).BuildServiceProvider())
             .AddSingleton<TimeProvider>(Clock)
-            .AddSingleton(loggers.CreateLogger<RerunService>())
+            .AddSingleton<ILoggerFactory>(loggers)
             .BuildServiceProvider();
         worker = new RerunService(host, rerun);
         return worker.StartAsync(Token);

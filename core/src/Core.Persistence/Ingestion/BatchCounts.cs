@@ -50,13 +50,8 @@ public sealed class BatchCounts
             var rows = await RowsAsync(transaction, (BatchCountStatements.Read, domainId, batchId), Count, cancellationToken).ConfigureAwait(false);
             var steps = await RowsAsync(transaction, (BatchCountStatements.Steps, domainId, batchId), Step, cancellationToken).ConfigureAwait(false);
             var newest = steps.FirstOrDefault();
-            return Counted(rows) with
-            {
-                SanitizationVersion = newest?.Version,
-                Steps = [.. steps.Where(step => step.Version is not null && step.Version == newest?.Version).Select(step => step.Numbers!)],
-                SanitizedItems = newest?.Sanitized ?? 0,
-                Items = newest?.Items ?? 0,
-            };
+            var numbers = Counted(rows) with { SanitizationVersion = newest?.Version, SanitizedItems = newest?.Sanitized ?? 0, Items = newest?.Items ?? 0 };
+            return numbers with { Steps = [.. steps.Where(step => step.Version is not null && step.Version == newest?.Version).Select(step => step.Numbers!)] };
         }
     }
 

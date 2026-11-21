@@ -156,15 +156,18 @@ public sealed class SanitizationRerunsTests : IClassFixture<RerunDatabase>
     public async Task NewRequestClosesTheOpenRerunOfAnotherTargetAsSuperseded()
     {
         var rerun = await database.CaseAsync();
-        var item = await rerun.ItemAsync(Sanitized);
+        var items = new[] { await rerun.ItemAsync(Sanitized), await rerun.ItemAsync(Sanitized) };
         var first = await rerun.RequestAsync();
 
         var later = await rerun.RequestAsync(RerunCase.LaterSteps);
 
         var (closed, open) = (await rerun.ProgressAsync(first.RerunId!.Value), await rerun.ProgressAsync(later.RerunId!.Value));
-        Assert.Equal((1L, 0L, 1L), (closed.Superseded, closed.Queued, open.Queued));
+        Assert.Equal((2L, 0L, 2L), (closed.Superseded, closed.Queued, open.Queued));
         Assert.Null(await rerun.Queue.TakeAsync(rerun.DomainId, RerunCase.Target, TestContext.Current.CancellationToken));
-        Assert.Equal($"item_text,item_resanitized,sanitization_superseded,{RerunCase.Target},true", await rerun.RerunEventsOfAsync(item));
+        foreach (var item in items)
+        {
+            Assert.Equal($"item_text,item_resanitized,sanitization_superseded,{RerunCase.Target},true", await rerun.RerunEventsOfAsync(item));
+        }
     }
 
     [DatabaseFact]
@@ -176,6 +179,57 @@ public sealed class SanitizationRerunsTests : IClassFixture<RerunDatabase>
         var requested = await rerun.RequestAsync();
 
         Assert.Equal($"sanitization_rerun,sanitization_rerun,administrative_act,{RerunCase.Target},zqx-curator", await rerun.RequestEventsOfAsync(requested.RerunId!.Value));
+    }
+
+    [DatabaseFact]
+    public async Task ARequestThatMeetsTheItemQueuedByAnotherAtTheSameTimeTriesAgainAndQueuesIt()
+    {
+        var rerun = await database.CaseAsync();
+        var item = await rerun.ItemAsync(Sanitized);
+        var (elsewhere, other) = await rerun.QueuedElsewhereAsync(item);
+        RerunResult result;
+        await using (elsewhere)
+        {
+            var asked = rerun.RequestAsync();
+            while (!await rerun.SomeoneWaitsAsync())
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(20), TestContext.Current.CancellationToken);
+            }
+
+            await elsewhere.CommitAsync(TestContext.Current.CancellationToken);
+            result = await asked;
+        }
+
+        Assert.Equal(RerunOutcome.Queued, result.Outcome);
+        Assert.Equal((1L, 1L), ((await rerun.ProgressAsync(result.RerunId!.Value)).Queued, (await rerun.ProgressAsync(other)).Superseded));
+    }
+
+    // Another writer takes the link of the chain while the request waits to supersede: the event of the first item is a conflict, the attempt stops there, and the next one records both.
+    [DatabaseFact]
+    public async Task RequestWhoseEventOfSupersedingMeetsAnotherWriterStopsThereAndTriesAgain()
+    {
+        var rerun = await database.CaseAsync();
+        var items = new[] { await rerun.ItemAsync(Sanitized), await rerun.ItemAsync(Sanitized) };
+        var first = await rerun.RequestAsync();
+        RerunResult later;
+        await using (var locked = await rerun.QueueLockedAsync())
+        {
+            var asked = rerun.RequestAsync(RerunCase.LaterSteps);
+            while (!await rerun.SomeoneWaitsAsync())
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(20), TestContext.Current.CancellationToken);
+            }
+
+            rerun.AppendElsewhere();
+            await locked.CommitAsync(TestContext.Current.CancellationToken);
+            later = await asked;
+        }
+
+        Assert.Equal((RerunOutcome.Queued, 2L), (later.Outcome, (await rerun.ProgressAsync(first.RerunId!.Value)).Superseded));
+        foreach (var item in items)
+        {
+            Assert.Equal($"item_text,item_resanitized,sanitization_superseded,{RerunCase.Target},true", await rerun.RerunEventsOfAsync(item));
+        }
     }
 
     [DatabaseFact]

@@ -225,6 +225,58 @@ public sealed class ItemResanitizerTests : IClassFixture<RerunDatabase>
     }
 
     [DatabaseFact]
+    public async Task RerunWithoutTheRerunOfTheDomainIsRefusedBeforeAnythingIsRead()
+    {
+        var rerun = await database.CaseAsync();
+        _ = await rerun.ItemAsync(Sanitized);
+        _ = await rerun.RequestAsync();
+        var hold = await rerun.TakenAsync();
+
+        var refused = await Assert.ThrowsAsync<ArgumentNullException>(() => rerun.Resanitizer.ResanitizeAsync(hold, null!, TestContext.Current.CancellationToken));
+
+        Assert.Equal("rerun", refused.ParamName);
+    }
+
+    // The label of the raw text is not loaded and its loss was not declared: the item cannot be opened here, so each try is spent and the last one refuses it as failed.
+    [DatabaseFact]
+    public async Task AnItemThatCannotBeOpenedSpendsATryEachTimeAndIsRefusedAsFailedAtTheLast()
+    {
+        var rerun = await database.CaseAsync();
+        var item = await rerun.ItemAsync(Sanitized);
+        var requested = await rerun.RequestAsync();
+        using var others = SyntheticCustody.Holding($"mapa-reversao/{rerun.DomainId}/v1");
+        var unopened = rerun.ResanitizerOver(others);
+
+        var results = new List<(RerunOutcome, RerunRefusal?)>();
+        for (var tried = 0; tried < SanitizationReruns.Tries; tried++)
+        {
+            var result = await unopened.ResanitizeAsync(await rerun.TakenAsync(), RerunCase.Rerunning(Resanitized), TestContext.Current.CancellationToken);
+            results.Add((result.Outcome, result.Refusal));
+        }
+
+        Assert.Equal([(RerunOutcome.Failed, null), (RerunOutcome.Failed, null), (RerunOutcome.Refused, RerunRefusal.Failed)], results);
+        Assert.Equal([new RerunItemRefusal(item, rerun.DomainId, RerunRefusal.Failed)], (await rerun.ProgressAsync(requested.RerunId!.Value)).Refusals);
+    }
+
+    // The chain refuses the event for a reason that is not a conflict: nothing of the rerun is written, and the item is not told as rerun.
+    [DatabaseFact]
+    public async Task RerunWhoseEventTheChainRefusesIsNotRecordedAndWritesNothing()
+    {
+        await using var own = new RerunDatabase();
+        var rerun = await own.CaseAsync();
+        var item = await rerun.ItemAsync(Sanitized);
+        _ = await rerun.RequestAsync();
+        var hold = await rerun.TakenAsync();
+        var before = await rerun.SanitizationOfAsync(item);
+        await rerun.BreakChainAsync();
+
+        var result = await rerun.Resanitizer.ResanitizeAsync(hold, RerunCase.Rerunning(Resanitized), TestContext.Current.CancellationToken);
+
+        Assert.Equal(RerunOutcome.NotRecorded, result.Outcome);
+        Assert.Equal((before, string.Empty), (await rerun.SanitizationOfAsync(item), await rerun.RerunEventsOfAsync(item)));
+    }
+
+    [DatabaseFact]
     public async Task SerializationConflictReturnsTheItemWithoutSpendingATry()
     {
         var rerun = await database.CaseAsync();

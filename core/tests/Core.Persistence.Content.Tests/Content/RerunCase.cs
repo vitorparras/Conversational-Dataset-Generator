@@ -8,6 +8,7 @@ using Core.Persistence.Content.Rerun;
 using Core.Persistence.Content.Writing;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
+using Core.Persistence.Custody.Verification;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Fixtures;
 using Microsoft.Extensions.Time.Testing;
@@ -120,6 +121,22 @@ internal sealed class RerunCase
         Assert.Equal(CustodyOutcome.Appended, declared.Outcome);
     }
 
+    /// <summary>The rerun over a custody that holds the labels given and nothing else, as an installation that did not load the others.</summary>
+    public ItemResanitizer ResanitizerOver(SyntheticCustody other) => new(application, other.Content, Clock);
+
+    /// <summary>
+    /// Breaks the chain: an event changed outside the system and a verification that failed and was recorded, after which the chain refuses every event; the database is then of no use to
+    /// another test.
+    /// </summary>
+    public async Task BreakChainAsync()
+    {
+        await database.ExecuteAsSuperuserAsync(
+            "ALTER TABLE public.custody_event DISABLE TRIGGER custody_event_never_changed; UPDATE public.custody_event SET item_id = item_id + 1 WHERE sequence = 1; "
+            + "ALTER TABLE public.custody_event ENABLE ALWAYS TRIGGER custody_event_never_changed");
+        var failed = await new CustodyVerifier(application, TimeProvider.System).VerifyAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(1, failed.FirstInconsistent?.Sequence);
+    }
+
     /// <summary>Another writer of the chain, which takes the link the rerun read.</summary>
     public void AppendElsewhere()
     {
@@ -159,14 +176,50 @@ internal sealed class RerunCase
         await transaction.CommitAsync(TestContext.Current.CancellationToken);
     }
 
+    /// <summary>A transaction of another request, left open, that queued the item to the version the items hold, as a second worker of the curation would.</summary>
+    public async Task<(ContentTransaction Transaction, long RerunId)> QueuedElsewhereAsync(long item)
+    {
+        var transaction = await ContentTransaction.BeginAsync(application, DomainId, TestContext.Current.CancellationToken);
+        await using var request = transaction.CreateCommand(
+            "WITH rerun AS (INSERT INTO content.sanitization_rerun (domain_id, target_version, requested_by) VALUES (@domain, @version, @person) RETURNING id) "
+            + "INSERT INTO content.sanitization_rerun_item (domain_id, rerun_id, item_id) SELECT @domain, id, @item FROM rerun RETURNING rerun_id");
+        _ = request.Parameters.AddWithValue("domain", DomainId);
+        _ = request.Parameters.AddWithValue("version", ItemTexts.Version);
+        _ = request.Parameters.AddWithValue("person", await CuratorAsync());
+        _ = request.Parameters.AddWithValue("item", item);
+        return (transaction, (long)(await request.ExecuteScalarAsync(TestContext.Current.CancellationToken))!);
+    }
+
+    /// <summary>A transaction of another worker, left open, that locks every row of the queue of the domain, so that a statement over them waits until it ends.</summary>
+    public async Task<ContentTransaction> QueueLockedAsync()
+    {
+        var transaction = await ContentTransaction.BeginAsync(application, DomainId, TestContext.Current.CancellationToken);
+        await using var locking = transaction.CreateCommand("SELECT count(*) FROM (SELECT 1 FROM content.sanitization_rerun_item FOR UPDATE) AS locked");
+        _ = await locking.ExecuteScalarAsync(TestContext.Current.CancellationToken);
+        return transaction;
+    }
+
+    /// <summary>Whether a session of this database waits for a lock, as a statement held by an open transaction does; seen as the superuser, who sees what every session waits for.</summary>
+    public async Task<bool> SomeoneWaitsAsync()
+    {
+        await using var connection = await Sql.OpenAsync(database.SuperuserConnectionString);
+        await using var command = new NpgsqlCommand("SELECT count(*) FROM pg_catalog.pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock'", connection);
+        return (long)(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken))! > 0;
+    }
+
     [SuppressMessage("Security", "CA2100", Justification = "The statements are literals of this class, never input.")]
     private async Task<string> OwnerTextAsync(string statement, long item)
     {
         await using var connection = await Sql.OpenAsync(database.OwnerConnectionString);
-        await using var command = new NpgsqlCommand($"SELECT set_config('app.domain', '{DomainId}', false); {statement}", connection);
+        await using (var scope = new NpgsqlCommand("SELECT set_config('app.domain', @domain, false)", connection))
+        {
+            _ = scope.Parameters.AddWithValue("domain", DomainId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            _ = await scope.ExecuteScalarAsync(TestContext.Current.CancellationToken);
+        }
+
+        await using var command = new NpgsqlCommand(statement, connection);
         _ = command.Parameters.AddWithValue("item", item);
         await using var reader = await command.ExecuteReaderAsync(TestContext.Current.CancellationToken);
-        _ = await reader.NextResultAsync(TestContext.Current.CancellationToken);
         Assert.True(await reader.ReadAsync(TestContext.Current.CancellationToken));
         return reader.GetString(0);
     }

@@ -12,7 +12,7 @@ namespace Core.Persistence.Tests.Content;
 [SuppressMessage("Design", "CA1515", Justification = "xunit builds the class fixture and the public test classes take it in their constructors.")]
 public sealed class RerunDatabase : IAsyncDisposable
 {
-    private const int Domains = 16;
+    private const int Domains = 20;
 
     private ScratchDatabase? database;
     private NpgsqlDataSource? application;

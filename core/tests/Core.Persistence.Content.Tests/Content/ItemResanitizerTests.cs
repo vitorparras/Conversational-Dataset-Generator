@@ -67,6 +67,28 @@ public sealed class ItemResanitizerTests : IClassFixture<RerunDatabase>
     }
 
     [DatabaseFact]
+    public async Task RerunOfAnItemWithoutDecidedDestinationsIsRefusedWithTheReason()
+    {
+        var rerun = await database.CaseAsync();
+        var item = await rerun.UndecidedItemAsync();
+        var requested = await rerun.RequestAsync();
+        var before = await rerun.SanitizationOfAsync(item);
+        var given = new List<RerunSource>();
+
+        var result = await rerun.Resanitizer.ResanitizeAsync(await rerun.TakenAsync(), source =>
+        {
+            given.Add(source);
+            return null;
+        }, TestContext.Current.CancellationToken);
+
+        Assert.Equal((RerunOutcome.Refused, RerunRefusal.Undecided), (result.Outcome, result.Refusal));
+        Assert.Null(Assert.Single(given).Occurrences);
+        Assert.Equal([new RerunItemRefusal(item, rerun.DomainId, RerunRefusal.Undecided)], (await rerun.ProgressAsync(requested.RerunId!.Value)).Refusals);
+        Assert.Equal(before, await rerun.SanitizationOfAsync(item));
+        Assert.Equal($"item_text,item_resanitized,sanitization_refused,{RerunCase.Target},true", await rerun.RerunEventsOfAsync(item));
+    }
+
+    [DatabaseFact]
     public async Task RerunOfAnItemWithLostKeyIsRefusedWithTheReason()
     {
         var rerun = await database.CaseAsync();

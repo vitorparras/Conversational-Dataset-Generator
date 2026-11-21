@@ -27,12 +27,20 @@ internal static class DecidedItemTexts
         return new NewItemText(raw, null, stored) { Sanitization = Stored(clean) };
     }
 
-    /// <summary>What the rerun of the steps in force makes of what the item holds; the occurrences held keep no part of speech nor role, which no step reads.</summary>
-    internal static Resanitized Rerun(SanitizationRerun steps, RerunSource held)
+    /// <summary>
+    /// What the rerun of the steps in force makes of what the item holds, or none when the rerun refused an item whose destinations were never decided; the occurrences held keep no
+    /// part of speech nor role, which no step reads.
+    /// </summary>
+    internal static Resanitized? Rerun(SanitizationRerun steps, RerunSource held)
     {
-        var decided = held.Occurrences.Select(occurrence => new DecidedOccurrence(new Occurrence(occurrence.Start, occurrence.End, occurrence.Kind, "", ""), Decided(occurrence.Destination)));
-        var produced = steps.Rerun(held.Raw, [.. decided], held.StoredText);
-        var stored = Stored(produced.Sanitized);
+        var decided = held.Occurrences?.Select(occurrence => new DecidedOccurrence(new Occurrence(occurrence.Start, occurrence.End, occurrence.Kind, "", ""), Decided(occurrence.Destination)));
+        var produced = steps.Rerun(held.Raw, decided is null ? null : [.. decided], held.StoredText);
+        if (produced.Result.Sanitized is not { } sanitized)
+        {
+            return null;
+        }
+
+        var stored = Stored(sanitized);
         return new Resanitized(stored.Text, stored.Version, stored.Steps, stored.Trail, stored.Counts, stored.Untreated, produced.Identical);
     }
 

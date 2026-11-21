@@ -75,6 +75,10 @@ internal sealed class RerunCase
     public Task<long> ItemAsync(string sanitized) =>
         new ContentWriter(application, custody.Content).AddItemTextAsync(DomainId, DomainId, ItemTexts.Of(Raw, sanitized), TestContext.Current.CancellationToken);
 
+    /// <summary>An item of the accepted batch of the domain written before the destinations were decided: with no occurrences and no sanitization.</summary>
+    public Task<long> UndecidedItemAsync() =>
+        new ContentWriter(application, custody.Content).AddItemTextAsync(DomainId, DomainId, new NewItemText(Raw), TestContext.Current.CancellationToken);
+
     /// <summary>The request of the curator to rerun the domain to the steps given.</summary>
     public async Task<RerunResult> RequestAsync(string steps = TargetSteps, SanitizationReruns? queue = null) =>
         await (queue ?? Queue).RequestAsync(new RerunRequest(DomainId, await CuratorAsync(), VersionOf(steps), steps), TestContext.Current.CancellationToken);

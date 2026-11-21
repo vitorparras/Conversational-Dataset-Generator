@@ -11,4 +11,7 @@ public enum RerunRefusal
 
     /// <summary>The item spent every try.</summary>
     Failed,
+
+    /// <summary>The destinations of the occurrences of the item were never decided, so nothing says what may stay.</summary>
+    Undecided,
 }

@@ -8,11 +8,12 @@ namespace Core.Ingestion.Tests.Sanitizing;
 
 /// <summary>
 /// The rerun of the sanitization of an item (issue 97): the steps in force run again over the raw text with the destinations decided when it came in, so the same raw text and the same
-/// version give the text held, said identical (CA-1); and a text held that is not what the steps make of the raw text is not the starting point, but what the rerun replaces.
+/// version give the text held, said identical (CA-1); a text held that is not what the steps make of the raw text is not the starting point, but what the rerun replaces; and an item
+/// whose destinations were never decided is refused, never sanitized as if nothing had to go.
 /// </summary>
 public sealed class SanitizationRerunTests
 {
-    private static readonly Gen<string> Pieces = Gen.OneOf("Qz", "é", "é", "\U0001F600", "\U0001F468‍\U0001F469", " ", "7", "Kq7Zx9", "Ã©", "**");
+    private static readonly Gen<string> Pieces = Gen.OneOf("Qz", "\u00E9", "e\u0301", "\U0001F600", "\U0001F468\u200D\U0001F469", " ", "7", "Kq7Zx9", "\u00C3\u00A9", "**");
 
     private static readonly Gen<(string Raw, DecidedOccurrence[] Decided)> Materials = Gen.Int[1, 10].SelectMany(count => Pieces.Array[count]).SelectMany(pieces =>
     {
@@ -33,7 +34,7 @@ public sealed class SanitizationRerunTests
             var rerun = new SanitizationRerun(InForce()).Rerun(raw, decided, held.Text);
 
             Assert.True(rerun.Identical);
-            Assert.Equal((held.Version, held.Text), (rerun.Sanitized.Version, rerun.Sanitized.Text));
+            Assert.Equal((held.Version, held.Text), (rerun.Result.Sanitized?.Version, rerun.Result.Sanitized?.Text));
         });
 
     [Fact]
@@ -45,7 +46,16 @@ public sealed class SanitizationRerunTests
         var rerun = new SanitizationRerun(InForce()).Rerun(raw, decided, "zqx texto guardado de outra lista");
 
         Assert.False(rerun.Identical);
-        Assert.Equal(Sanitized(InForce(), raw, decided).Text, rerun.Sanitized.Text);
+        Assert.Equal(Sanitized(InForce(), raw, decided).Text, rerun.Result.Sanitized?.Text);
+    }
+
+    [Fact]
+    public void RerunOfAnItemWithoutDecidedDestinationsIsRefused()
+    {
+        var rerun = new SanitizationRerun(InForce()).Rerun("token Kq7Zx9 fim", null, "zqx texto guardado");
+
+        Assert.Equal((SanitizationRefusal.Undecided, false), (rerun.Result.Refusal, rerun.Identical));
+        Assert.Null(rerun.Result.Sanitized);
     }
 
     [Fact]

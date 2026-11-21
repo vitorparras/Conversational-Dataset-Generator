@@ -38,7 +38,7 @@ SELECT public.create_content_table('sanitization_rerun_item',
      CONSTRAINT sanitization_rerun_item_once UNIQUE (rerun_id, item_id),
      CONSTRAINT sanitization_rerun_item_state CHECK (state IN ('queued', 'held', 'done')),
      CONSTRAINT sanitization_rerun_item_result CHECK (result IN ('identical', 'replaced', 'refused', 'superseded')),
-     CONSTRAINT sanitization_rerun_item_refusal CHECK (refusal IN ('emptied', 'key_lost', 'failed')),
+     CONSTRAINT sanitization_rerun_item_refusal CHECK (refusal IN ('emptied', 'key_lost', 'failed', 'undecided')),
      CONSTRAINT sanitization_rerun_item_tries CHECK (tries >= 0),
      CONSTRAINT sanitization_rerun_item_shape CHECK ((state = 'done') = (result IS NOT NULL) AND (state = 'done') = (concluded_at IS NOT NULL)
          AND (state = 'held') = (hold_until IS NOT NULL) AND (refusal IS NOT NULL) = (result IS NOT DISTINCT FROM 'refused'))$columns$);

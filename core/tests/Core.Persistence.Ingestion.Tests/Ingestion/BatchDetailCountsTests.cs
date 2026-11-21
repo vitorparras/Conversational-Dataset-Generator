@@ -97,6 +97,23 @@ public sealed class BatchDetailCountsTests
     }
 
     [DatabaseFact]
+    public async Task BatchDetailCountsNameTheMostRecentVersionEvenWhenItSortsBeforeTheOlderOne()
+    {
+        await using var world = await IngestionWorld.CreateAsync();
+        using var custody = SyntheticCustody.Holding(Labels);
+        var batch = await OpenAsync(world, "conversation");
+        const string NewerSteps = "destinations@1\nzqx_newer@18";
+        var newer = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(NewerSteps)));
+        _ = await WriteAsync(world, custody, batch, []);
+        _ = await WriteAsync(world, custody, batch, [], ItemTexts.Sanitization("texto sanitizado zqx") with { Version = newer, Steps = NewerSteps, Counts = [1, 0], Untreated = [0, 0] });
+
+        var counts = await new BatchCounts(world.DataSource).ReadAsync(IngestionWorld.Domain, batch, TestContext.Current.CancellationToken);
+
+        Assert.True(string.CompareOrdinal(newer, ItemTexts.Version) < 0, "The newer version must sort before the older one.");
+        Assert.Equal(newer, counts.SanitizationVersion);
+    }
+
+    [DatabaseFact]
     public async Task BatchDetailCountsTellTheSanitizedItemsOutOfTheItemsNotEmptied()
     {
         await using var world = await IngestionWorld.CreateAsync();

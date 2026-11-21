@@ -50,6 +50,31 @@ public sealed class SanitizationRerunTests
     }
 
     [Fact]
+    public void ATextThatDiffersOnlyInCaseIsNotIdentical()
+    {
+        const string raw = "token Kq7Zx9 do Wvkt fim";
+        var decided = new[] { Credential(6, 12) };
+        var held = Sanitized(InForce(), raw, decided).Text.ToUpperInvariant();
+
+        var rerun = new SanitizationRerun(InForce()).Rerun(raw, decided, held);
+
+        Assert.NotEqual(held, rerun.Result.Sanitized?.Text);
+        Assert.False(rerun.Identical);
+    }
+
+    [Fact]
+    public void TheRerunShowsNoWordOfTheText()
+    {
+        const string raw = "token Kq7Zx9 do Wvkt fim";
+
+        var shown = new SanitizationRerun(InForce()).Rerun(raw, [Credential(6, 12)], "zqx guardado").ToString();
+
+        Assert.DoesNotContain("Wvkt", shown, StringComparison.Ordinal);
+        Assert.DoesNotContain("token", shown, StringComparison.Ordinal);
+        Assert.Contains(InForce().Version, shown, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RerunOfAnItemWithoutDecidedDestinationsIsRefused()
     {
         var rerun = new SanitizationRerun(InForce()).Rerun("token Kq7Zx9 fim", null, "zqx texto guardado");

@@ -34,6 +34,20 @@ public sealed class RerunServiceTests
     }
 
     [DatabaseFact]
+    public async Task WorkerRerunsTheRawTextAndNotTheSanitizedOne()
+    {
+        // The first letter of each text is a token, which both lists remove: from the raw text the steps in force make again the text held.
+        await using var world = await RerunWorld.CreateAsync(Analysis.AnsweringRecognizer.Finding("TOKEN"));
+        var rerun = await world.RequestAsync(CompositionRoot.StepsOf());
+        await world.StartAsync(InForce());
+
+        await world.IdleAsync();
+
+        var progress = await world.ProgressAsync(rerun);
+        Assert.Equal((2L, 0L, 0L), (progress.Identical, progress.Replaced, progress.Refused));
+    }
+
+    [DatabaseFact]
     public async Task WorkerLeavesTheItemsOfAnotherTargetUntaken()
     {
         await using var world = await RerunWorld.CreateAsync();

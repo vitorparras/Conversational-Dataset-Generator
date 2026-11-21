@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Core.Boundary.Contracts;
 using Core.Boundary.Text;
 using Core.Host.Tests.Submissions;
 using Core.Ingestion.Sanitizing;
@@ -48,9 +49,9 @@ internal sealed class RerunWorld : IAsyncDisposable
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     [SuppressMessage("Reliability", "CA2000", Justification = "The world takes the submissions and lets go of them with itself.")]
-    internal static async Task<RerunWorld> CreateAsync()
+    internal static async Task<RerunWorld> CreateAsync(IRecognizer? recognizer = null)
     {
-        var submissions = await SubmissionWorld.CreateAsync(sanitizer: new Sanitizer(Before, new TextBoundaries()));
+        var submissions = await SubmissionWorld.CreateAsync(recognizer: recognizer, sanitizer: new Sanitizer(Before, new TextBoundaries()));
         var outcome = await submissions.SubmitAsync(SubmissionWorld.Request());
         await submissions.AcceptReviewedAsync(outcome.Batch!.Value);
         return new RerunWorld(submissions, outcome.Batch.Value);

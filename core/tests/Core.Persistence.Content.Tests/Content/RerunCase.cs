@@ -27,7 +27,8 @@ internal sealed class RerunCase
     /// <summary>A third list, for a request that comes after a change of the steps.</summary>
     public const string LaterSteps = "destinations@1\nzqx_rerun@2";
 
-    private const string Raw = "texto bruto sintetico zqx";
+    /// <summary>The raw text of every item the case writes.</summary>
+    public const string Raw = "texto bruto sintetico zqx";
 
     private readonly ScratchDatabase database;
     private readonly NpgsqlDataSource application;
@@ -136,6 +137,12 @@ internal sealed class RerunCase
         "SELECT coalesce(string_agg(item_kind || ',' || step || ',' || reason || ',' || reference || ',' || actor_system, ';' ORDER BY sequence), '') "
         + "FROM public.custody_event WHERE item_kind = 'item_text' AND item_id = @item AND step = 'item_resanitized'",
         item);
+
+    /// <summary>The events of the request, each as kind, step, reason, reference and the name of who asked, read as the owner.</summary>
+    public Task<string> RequestEventsOfAsync(long rerunId) => OwnerTextAsync(
+        "SELECT coalesce(string_agg(e.item_kind || ',' || e.step || ',' || e.reason || ',' || e.reference || ',' || p.name, ';' ORDER BY e.sequence), '') "
+        + "FROM public.custody_event e JOIN public.person p ON p.id = e.actor_person_id WHERE e.item_kind = 'sanitization_rerun' AND e.item_id = @item",
+        rerunId);
 
     /// <summary>Runs the statement over the item as the application, under the domain, in a transaction that begins with the statement before, and commits.</summary>
     [SuppressMessage("Security", "CA2100", Justification = "The statements are literals of the calling tests, never input.")]

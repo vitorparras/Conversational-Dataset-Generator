@@ -1,5 +1,6 @@
 using Core.Persistence.Content.Rerun;
 using Core.Persistence.Tests.Fixtures;
+using Npgsql;
 
 namespace Core.Persistence.Tests.Content;
 
@@ -11,6 +12,10 @@ namespace Core.Persistence.Tests.Content;
 public sealed class SanitizationRerunsTests : IClassFixture<RerunDatabase>
 {
     private const string Sanitized = "texto sanitizado sintetico zqx";
+    private const string AnotherRequest = "INSERT INTO content.sanitization_rerun (domain_id, target_version, requested_by) SELECT r.domain_id, r.target_version, r.requested_by "
+        + "FROM content.sanitization_rerun r JOIN content.sanitization_rerun_item q ON q.rerun_id = r.id WHERE q.item_id = @item";
+    private const string TheItemAgain = "INSERT INTO content.sanitization_rerun_item (domain_id, rerun_id, item_id) "
+        + "SELECT domain_id, (SELECT max(id) FROM content.sanitization_rerun), id FROM content.item_text WHERE id = @item";
 
     private readonly RerunDatabase database;
 
@@ -113,6 +118,7 @@ public sealed class SanitizationRerunsTests : IClassFixture<RerunDatabase>
 
         Assert.Null(none);
         Assert.Equal([new RerunItemRefusal(item, rerun.DomainId, RerunRefusal.Failed)], (await rerun.ProgressAsync(requested.RerunId!.Value)).Refusals);
+        Assert.Equal($"item_text,item_resanitized,sanitization_refused,{RerunCase.Target},true", await rerun.RerunEventsOfAsync(item));
     }
 
     [DatabaseFact]
@@ -130,6 +136,7 @@ public sealed class SanitizationRerunsTests : IClassFixture<RerunDatabase>
 
         Assert.Equal([RerunOutcome.Failed, RerunOutcome.Failed, RerunOutcome.Refused], failures);
         Assert.Equal([new RerunItemRefusal(item, rerun.DomainId, RerunRefusal.Failed)], (await rerun.ProgressAsync(requested.RerunId!.Value)).Refusals);
+        Assert.Equal($"item_text,item_resanitized,sanitization_refused,{RerunCase.Target},true", await rerun.RerunEventsOfAsync(item));
     }
 
     [DatabaseFact]
@@ -149,7 +156,7 @@ public sealed class SanitizationRerunsTests : IClassFixture<RerunDatabase>
     public async Task NewRequestClosesTheOpenRerunOfAnotherTargetAsSuperseded()
     {
         var rerun = await database.CaseAsync();
-        _ = await rerun.ItemAsync(Sanitized);
+        var item = await rerun.ItemAsync(Sanitized);
         var first = await rerun.RequestAsync();
 
         var later = await rerun.RequestAsync(RerunCase.LaterSteps);
@@ -157,5 +164,29 @@ public sealed class SanitizationRerunsTests : IClassFixture<RerunDatabase>
         var (closed, open) = (await rerun.ProgressAsync(first.RerunId!.Value), await rerun.ProgressAsync(later.RerunId!.Value));
         Assert.Equal((1L, 0L, 1L), (closed.Superseded, closed.Queued, open.Queued));
         Assert.Null(await rerun.Queue.TakeAsync(rerun.DomainId, RerunCase.Target, TestContext.Current.CancellationToken));
+        Assert.Equal($"item_text,item_resanitized,sanitization_superseded,{RerunCase.Target},true", await rerun.RerunEventsOfAsync(item));
+    }
+
+    [DatabaseFact]
+    public async Task RequestEventRecordsWhoAskedAndTheTargetVersion()
+    {
+        var rerun = await database.CaseAsync();
+        _ = await rerun.ItemAsync(Sanitized);
+
+        var requested = await rerun.RequestAsync();
+
+        Assert.Equal($"sanitization_rerun,sanitization_rerun,administrative_act,{RerunCase.Target},zqx-curator", await rerun.RequestEventsOfAsync(requested.RerunId!.Value));
+    }
+
+    [DatabaseFact]
+    public async Task TheDatabaseKeepsAnItemInOneOpenRequestAtMost()
+    {
+        var rerun = await database.CaseAsync();
+        var item = await rerun.ItemAsync(Sanitized);
+        _ = await rerun.RequestAsync();
+
+        var refused = await Assert.ThrowsAsync<PostgresException>(() => rerun.AsApplicationAsync(AnotherRequest, TheItemAgain, item));
+
+        Assert.Equal((PostgresErrorCodes.UniqueViolation, "sanitization_rerun_item_open"), (refused.SqlState, refused.ConstraintName));
     }
 }

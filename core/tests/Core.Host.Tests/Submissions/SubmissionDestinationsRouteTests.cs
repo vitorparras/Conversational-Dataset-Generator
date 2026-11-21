@@ -1,8 +1,10 @@
 using System.Net;
 using Core.Boundary.Contracts;
 using Core.Boundary.Fake;
+using Core.Boundary.Text;
 using Core.Host.Endpoints;
 using Core.Host.Screens;
+using Core.Ingestion.Sanitizing;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Fixtures;
 
@@ -64,12 +66,14 @@ public sealed class SubmissionDestinationsRouteTests
     public async Task BatchScreenReadsTheItemsSanitizedAndWhatEachStepLeftUntreatedFromTheDatabase()
     {
         await using var world = await SubmissionScreensRouteTests.World.StartAsync(recognizer: new FakeRecognizer());
-        var content = SubmissionWorld.Messages(("ZQXUM", "ZQX-FAKE-PERSON ZQX-FAKE-PERSON"), ("ZQXDOIS", "ZQX-FAKE-PERSON"));
-        var (_, location, _) = await world.PostAsync(SubmissionScreensRouteTests.Fields(), content: content);
+        var texts = new[] { "ZQX-FAKE-PERSON e IRM\u00C3\u00A0 fim", "ZQX-FAKE-PERSON" };
+        var untreated = texts.Sum(text => new EncodingRepairStep(new TextBoundaries()).Untreated(new StepInput(text, [])));
+        var (_, location, _) = await world.PostAsync(SubmissionScreensRouteTests.Fields(), content: SubmissionWorld.Messages(("ZQXUM", texts[0]), ("ZQXDOIS", texts[1])));
 
         var detail = await world.PageAsync(location!);
 
+        Assert.True(untreated > 0, "The text must leave the repair of the encoding something untreated.");
         Assert.Matches(@"<dt>Itens sanitizados</dt>\s*<dd>2 de 2</dd>", detail);
-        Assert.Matches(@"<th[^>]*>\s*4\. Aplicação dos destinos\s*</th>(\s*<td[^>]*>\s*\d+\s*</td>){3}", detail);
+        Assert.Matches($@"<th[^>]*>\s*1\. Reparo da codificação\s*</th>(\s*<td[^>]*>\s*\d+\s*</td>){{2}}\s*<td[^>]*>\s*{untreated}\s*</td>", detail);
     }
 }

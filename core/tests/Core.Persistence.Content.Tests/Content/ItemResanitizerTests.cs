@@ -18,6 +18,9 @@ public sealed class ItemResanitizerTests : IClassFixture<RerunDatabase>
     private const string RerunEvent = "INSERT INTO public.custody_event (actor_system, item_kind, item_id, step, reason, reference) "
         + "VALUES (true, 'item_text', @item, 'item_resanitized', 'sanitization_replaced', '49ca4d5854062508ba965bbec6169a7898d926b3570c4deae45250f5a36d8700')";
 
+    private const string ConcludeInTheQueue =
+        "UPDATE content.sanitization_rerun_item SET state = 'done', hold_until = NULL, result = 'replaced', concluded_at = now() WHERE item_id = @item AND state <> 'done'";
+
     private readonly RerunDatabase database;
 
     public ItemResanitizerTests(RerunDatabase database)
@@ -64,6 +67,25 @@ public sealed class ItemResanitizerTests : IClassFixture<RerunDatabase>
 
         Assert.Equal((RerunOutcome.Refused, RerunRefusal.Emptied), (result.Outcome, result.Refusal));
         Assert.Equal([new RerunItemRefusal(item, rerun.DomainId, RerunRefusal.Emptied)], (await rerun.ProgressAsync(requested.RerunId!.Value)).Refusals);
+        Assert.Equal($"item_text,item_resanitized,sanitization_refused,{RerunCase.Target},true", await rerun.RerunEventsOfAsync(item));
+    }
+
+    [DatabaseFact]
+    public async Task TheRerunIsGivenTheRawTextAndTheSanitizedTextTheItemHolds()
+    {
+        var rerun = await database.CaseAsync();
+        _ = await rerun.ItemAsync(Sanitized);
+        _ = await rerun.RequestAsync();
+        var given = new List<RerunSource>();
+
+        _ = await rerun.Resanitizer.ResanitizeAsync(await rerun.TakenAsync(), source =>
+        {
+            given.Add(source);
+            return RerunCase.Rerunning(Resanitized)(source);
+        }, TestContext.Current.CancellationToken);
+
+        var source = Assert.Single(given);
+        Assert.Equal((RerunCase.Raw, Sanitized, ItemTexts.Version), (source.Raw, source.StoredText, source.StoredVersion));
     }
 
     [DatabaseFact]
@@ -100,6 +122,7 @@ public sealed class ItemResanitizerTests : IClassFixture<RerunDatabase>
 
         Assert.Equal((RerunOutcome.Refused, RerunRefusal.KeyLost), (result.Outcome, result.Refusal));
         Assert.Equal([new RerunItemRefusal(item, rerun.DomainId, RerunRefusal.KeyLost)], (await rerun.ProgressAsync(requested.RerunId!.Value)).Refusals);
+        Assert.Equal($"item_text,item_resanitized,sanitization_refused,{RerunCase.Target},true", await rerun.RerunEventsOfAsync(item));
     }
 
     [DatabaseFact]
@@ -149,6 +172,43 @@ public sealed class ItemResanitizerTests : IClassFixture<RerunDatabase>
         var item = await rerun.ItemAsync(Sanitized);
 
         var refused = await Assert.ThrowsAsync<PostgresException>(() => rerun.AsApplicationAsync(string.Empty, ChangeCounts, item));
+
+        Assert.Equal(KeptOutsideTheRerun, refused.SqlState);
+    }
+
+    [DatabaseFact]
+    public async Task ResanitizingWithTheConclusionInTheQueueButNoEventIsRefused()
+    {
+        var rerun = await database.CaseAsync();
+        var item = await rerun.ItemAsync(Sanitized);
+        _ = await rerun.RequestAsync();
+
+        var refused = await Assert.ThrowsAsync<PostgresException>(() => rerun.AsApplicationAsync(ConcludeInTheQueue, ChangeCounts, item));
+
+        Assert.Equal(KeptOutsideTheRerun, refused.SqlState);
+    }
+
+    [DatabaseFact]
+    public async Task ResanitizingWithTheEventAndTheItemOnlyQueuedIsRefused()
+    {
+        var rerun = await database.CaseAsync();
+        var item = await rerun.ItemAsync(Sanitized);
+        _ = await rerun.RequestAsync();
+
+        var refused = await Assert.ThrowsAsync<PostgresException>(() => rerun.AsApplicationAsync(RerunEvent, ChangeCounts, item));
+
+        Assert.Equal(KeptOutsideTheRerun, refused.SqlState);
+    }
+
+    [DatabaseFact]
+    public async Task ResanitizingWithTheEventAndAConclusionOfAnotherTransactionIsRefused()
+    {
+        var rerun = await database.CaseAsync();
+        var item = await rerun.ItemAsync(Sanitized);
+        _ = await rerun.RequestAsync();
+        _ = await rerun.Resanitizer.ResanitizeAsync(await rerun.TakenAsync(), RerunCase.Rerunning(Resanitized), TestContext.Current.CancellationToken);
+
+        var refused = await Assert.ThrowsAsync<PostgresException>(() => rerun.AsApplicationAsync(RerunEvent, ChangeCounts, item));
 
         Assert.Equal(KeptOutsideTheRerun, refused.SqlState);
     }

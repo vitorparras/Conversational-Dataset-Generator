@@ -1,0 +1,117 @@
+@using System.Globalization
+@using Core.Host.Endpoints
+@using Core.Persistence.Content.Rerun
+
+<h1>@Title</h1>
+@switch (Shown)
+{
+    case Phase.Stopped:
+        <Notice Kind="Notice.Tone.Error">Nenhum item foi concluído no prazo de uma posse, contado do último concluído ou, sem nenhum, do pedido. Os itens já tratados ficam; o próximo é tentado de novo, e um item que falhar na última tentativa é recusado com o motivo.</Notice>
+        break;
+    case Phase.Superseded:
+        <Notice>A versão em uso mudou; esta reexecução não anda mais. <a href="@ScreenPaths.Rerun">Pedir a reexecução pela versão em uso</a></Notice>
+        break;
+    case Phase.Done:
+        <Notice Kind="Notice.Tone.Success">@($"{Number(Treated)} itens tratados pela versão alvo.")</Notice>
+        break;
+}
+
+<Panel Id="andamento" Title="Andamento">
+    <FactList>
+        <Fact Term="Versão alvo"><code>@Progress.TargetVersion</code></Fact>
+        <Fact Term="Situação">@PhaseOf(Shown)</Fact>
+        <Fact Term="Tratados">@($"{Number(Treated)} de {Number(Treated + Progress.Superseded + Waiting)}")</Fact>
+        @if (Shown != Phase.Done)
+        {
+            <Fact Term="Na fila">@Number(Waiting)</Fact>
+        }
+    </FactList>
+</Panel>
+
+@if (Shown == Phase.Done)
+{
+    <Panel Id="resultado" Title="Resultado">
+        <FactList>
+            <Fact Term="Idênticos, não regravados">@Number(Progress.Identical)</Fact>
+            <Fact Term="Substituídos">@Number(Progress.Replaced)</Fact>
+            <Fact Term="Recusados">@Number(Progress.Refused)</Fact>
+        </FactList>
+        @if (Progress.Refusals.Count > 0)
+        {
+            <DataTable Id="recusados" Caption="Cada linha é um item recusado, com o motivo" Headers="RefusalColumns">
+                <tbody role="rowgroup">
+                    @foreach (var refused in Progress.Refusals)
+                    {
+                        <tr role="row">
+                            <th scope="row" role="rowheader" class="data-table__plain">@Number(refused.ItemId)</th>
+                            <td role="cell">@Number(refused.BatchId)</td>
+                            <td role="cell">@ReasonOf(refused.Refusal)</td>
+                        </tr>
+                    }
+                </tbody>
+            </DataTable>
+        }
+    </Panel>
+}
+
+<div class="actions">
+    @if (Shown is not (Phase.Done or Phase.Superseded))
+    {
+        <Button Id="atualizar" Href="@ScreenPaths.RerunProgressOf(Id)" Kind="Button.Look.Secondary">Atualizar</Button>
+    }
+    <Button Href="@ScreenPaths.Rerun" Kind="Button.Look.Quiet">Voltar para a situação</Button>
+</div>
+
+@code {
+    /// <summary>The phase of the request: nothing concluded nor held yet, items being treated, none concluded within a hold, to a version no longer in force, or every item concluded.</summary>
+    public enum Phase
+    {
+        Queued,
+        Running,
+        Stopped,
+        Superseded,
+        Done,
+    }
+
+    internal const string Title = "Reexecução";
+
+    private static readonly string[] RefusalColumns = { "Item", "Lote", "Motivo" };
+
+    [Parameter, EditorRequired]
+    public long Id { get; set; }
+
+    /// <summary>The version of the steps in force, which a superseded request no longer reruns to.</summary>
+    [Parameter, EditorRequired]
+    public string Current { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public RerunProgress Progress { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public Phase Shown { get; set; }
+
+    private long Treated => Progress.Identical + Progress.Replaced + Progress.Refused;
+
+    private long Waiting => Progress.Queued + Progress.Held;
+
+    private static string PhaseOf(Phase phase) => phase switch
+    {
+        Phase.Queued => "Na fila",
+        Phase.Running => "Em andamento",
+        Phase.Stopped => "Parado",
+        Phase.Superseded => "Superada",
+        Phase.Done => "Concluída",
+        _ => throw new ArgumentOutOfRangeException(nameof(phase), phase, "A phase the screen does not tell."),
+    };
+
+    private static string ReasonOf(RerunRefusal refusal) => refusal switch
+    {
+        RerunRefusal.Emptied => "Esvaziado: o texto não existe mais.",
+        RerunRefusal.KeyLost => "A chave do texto bruto foi perdida.",
+        RerunRefusal.Failed => "Falhou em todas as tentativas.",
+        RerunRefusal.Undecided => "Os destinos das ocorrências nunca foram decididos.",
+        _ => throw new ArgumentOutOfRangeException(nameof(refusal), refusal, "A refusal the screen does not tell."),
+    };
+
+    private static string Number(long value) => value.ToString(CultureInfo.InvariantCulture);
+}

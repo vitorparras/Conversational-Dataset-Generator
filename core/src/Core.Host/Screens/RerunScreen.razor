@@ -1,0 +1,77 @@
+@using System.Globalization
+@using Core.Host.Endpoints
+@using Core.Persistence.Content.Rerun
+
+<h1>@Title</h1>
+<p class="lead">Quantos itens de lotes aceitos estão em cada versão da lista de passos, e a reexecução sobre o texto bruto quando há versão nova. A reexecução roda em segundo plano: você confirma, os itens entram na fila e o acompanhamento mostra o andamento. O texto bruto nunca muda; só o sanitizado é trocado.</p>
+
+<Panel Id="situacao" Title="@($"Situação em {Domain}")">
+    <FactList>
+        <Fact Term="Versão em uso"><code>@Current</code></Fact>
+        @if (Waiting == 0)
+        {
+            <Fact Term="Itens nela">@($"{Number(Total - Waiting)} de {Number(Total)}")</Fact>
+        }
+    </FactList>
+    @if (Waiting == 0)
+    {
+        <EmptyState Title="Nada a reexecutar."><p>Todos os itens de lotes aceitos já foram sanitizados pela versão em uso.</p></EmptyState>
+    }
+    else
+    {
+        <DataTable Id="versoes" Caption="Cada linha é uma versão da lista de passos" Headers="VersionColumns">
+            <tbody role="rowgroup">
+                @foreach (var version in Situation.Versions)
+                {
+                    <tr role="row">
+                        <th scope="row" role="rowheader" class="data-table__plain">@NameOf(version.Version)</th>
+                        <td role="cell">@Number(version.Items)</td>
+                    </tr>
+                }
+            </tbody>
+        </DataTable>
+    }
+</Panel>
+
+@if (Situation.OpenRerunId is { } open)
+{
+    <Notice>Há uma reexecução aberta@(Situation.OpenVersion == Current ? " para a versão em uso" : " para outra versão"). <a href="@ScreenPaths.RerunProgressOf(open)">Acompanhar a reexecução</a></Notice>
+}
+@if (Waiting > 0 && Situation.OpenVersion != Current)
+{
+    <div class="actions">
+        <Button Id="reexecutar" Href="@ScreenPaths.RerunConfirm">@($"Reexecutar {Number(Waiting)} {(Waiting == 1 ? "item" : "itens")}")</Button>
+    </div>
+}
+
+@code {
+    internal const string Title = "Sanitização";
+
+    private static readonly string[] VersionColumns = { "Versão", "Itens" };
+
+    [Parameter, EditorRequired]
+    public string Domain { get; set; } = "";
+
+    /// <summary>The version of the steps in force, the one a rerun reruns to.</summary>
+    [Parameter, EditorRequired]
+    public string Current { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public RerunSituation Situation { get; set; } = null!;
+
+    /// <summary>How many items of the situation are in a version other than the one in force, the ones a rerun queues.</summary>
+    internal static long Behind(RerunSituation situation, string current) => situation.Versions.Where(version => version.Version != current).Sum(version => version.Items);
+
+    private long Waiting => Behind(Situation, Current);
+
+    private long Total => Situation.Versions.Sum(version => version.Items);
+
+    private string NameOf(string? version) => version switch
+    {
+        null => "Sem sanitização",
+        _ when version == Current => $"{version}, em uso",
+        _ => version,
+    };
+
+    private static string Number(long value) => value.ToString(CultureInfo.InvariantCulture);
+}

@@ -1,0 +1,55 @@
+@using System.Globalization
+@using Core.Host.Endpoints
+@using Core.Persistence.Content.Rerun
+
+<h1>@Title</h1>
+<p>@Items de @Domain em versão anterior entram na fila para voltar a ser sanitizados a partir do texto bruto, pela versão @Current. O texto sanitizado de cada um é trocado; o bruto não muda. Item esvaziado, ou com a chave perdida, é recusado com o motivo, e o resto segue.</p>
+<p>A reexecução roda em segundo plano: você pode sair desta tela. Um item já na fila de outro pedido não entra de novo. Uma reexecução aberta para outra versão é encerrada como superada.</p>
+<form class="form" method="post" action="@ScreenPaths.RerunConfirm" data-wait="reexecucao-espera" novalidate>
+    @if (Shown == Problem.NotWritten && Situation is { OpenRerunId: { } open } && Situation.OpenVersion == Current)
+    {
+        <Notice Kind="Notice.Tone.Error">Este pedido não foi gravado: os itens que já estão na reexecução aberta para a versão em uso seguem na fila, e os que não estão não foram postos nela. Tente de novo em instantes. <a href="@ScreenPaths.RerunProgressOf(open)">Acompanhar a reexecução aberta</a></Notice>
+    }
+    else if (Shown == Problem.NotWritten)
+    {
+        <Notice Kind="Notice.Tone.Error">Os itens não foram postos na fila. Tente de novo em instantes; se a falha se repetir, avise quem administra o sistema.</Notice>
+    }
+    <p id="reexecucao-espera" class="wait" role="status" data-wait-text="Pondo os itens na fila. A resposta pode levar alguns segundos."></p>
+    <div class="actions">
+        <Button Id="reexecutar">@($"Pôr {Items} na fila")</Button>
+        <Button Href="@ScreenPaths.Rerun" Kind="Button.Look.Quiet">Não reexecutar</Button>
+    </div>
+</form>
+
+@code {
+    /// <summary>What the page tells after a try: nothing, or a request the chain did not take; an open request to the version in force, read after it, is led to.</summary>
+    public enum Problem
+    {
+        None,
+        NotWritten,
+    }
+
+    internal const string Title = "Confirmar a reexecução";
+
+    [Parameter, EditorRequired]
+    public string Domain { get; set; } = "";
+
+    /// <summary>The version of the steps in force, the one the items are rerun to.</summary>
+    [Parameter, EditorRequired]
+    public string Current { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public RerunSituation Situation { get; set; } = null!;
+
+    [Parameter]
+    public Problem Shown { get; set; }
+
+    private string Items
+    {
+        get
+        {
+            var behind = RerunScreen.Behind(Situation, Current);
+            return $"{behind.ToString(CultureInfo.InvariantCulture)} {(behind == 1 ? "item" : "itens")}";
+        }
+    }
+}

@@ -228,6 +228,13 @@ public static partial class ContentQueries
     /// <summary>The public and internal string constants the type declares, by name; a public constant is refused by the analyzer, so the queries are internal.</summary>
     internal static FrozenDictionary<string, string> Declared(Type type) =>
         type.GetRuntimeFields()
-            .Where(field => field.DeclaringType == type && field.IsLiteral && !field.IsPrivate && field.FieldType == typeof(string))
+            .Where(field => Exposed(field, type))
+            .Where(IsQuery)
             .ToFrozenDictionary(field => field.Name, field => (string)field.GetRawConstantValue()!, StringComparer.Ordinal);
+
+    /// <summary>Whether the field is declared by the type itself and is not private.</summary>
+    private static bool Exposed(FieldInfo field, Type type) => field.DeclaringType == type && !field.IsPrivate;
+
+    /// <summary>Whether the field is a string constant.</summary>
+    private static bool IsQuery(FieldInfo field) => field.IsLiteral && field.FieldType == typeof(string);
 }

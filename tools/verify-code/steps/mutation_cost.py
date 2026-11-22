@@ -21,7 +21,9 @@ BOOLEANS = frozenset({"true", "false"})
 #: that every test of the area runs through, so that Stryker tests each of their mutants against
 #: the whole suite; nothing in the text says so, hence the signatures. Each of their tokens weighs
 #: a mutant of the suite, so each is alone in its part (#849: alone, the ``OpenAsync`` that opened
-#: every content transaction took 15,5 min of the 20, and was cut in two).
+#: every content transaction took 15,5 min of the 20, and was cut in two; #857: the static ``All``
+#: of ``ContentQueries`` runs ``Exposed`` and ``IsQuery`` before any test, six such mutants that
+#: took a part past the 20 min while counted as tokens).
 SUITE_WIDE: dict[str, frozenset[str]] = {
     "Content/ContentTransaction.cs": frozenset(
         {
@@ -30,6 +32,9 @@ SUITE_WIDE: dict[str, frozenset[str]] = {
             "DeclareAsync(NpgsqlConnection connection, NpgsqlTransaction transaction,"
             " Declaration declare, CancellationToken cancellationToken)",
         }
+    ),
+    "Content/ContentQueries.cs": frozenset(
+        {"Exposed(FieldInfo field, Type type)", "IsQuery(FieldInfo field)"}
     ),
 }
 OPENERS = frozenset("{([")

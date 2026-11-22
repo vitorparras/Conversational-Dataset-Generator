@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Core.Host.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Core.Host\Core.Host.csproj" />
+    <ProjectReference Include="..\..\src\Core.Ingestion\Core.Ingestion.csproj" />
+    <ProjectReference Include="..\Core.Tests.Database\Core.Tests.Database.csproj" />
+    <ProjectReference Include="..\Core.Tests.Support\Core.Tests.Support.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Telemetry.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+  </ItemGroup>
+
+  <!-- The analysis is mutated against this project alone, so its tests do not wait for the whole host suite; what the host's tests share stays there, linked. -->
+  <ItemGroup>
+    <Compile Include="..\Core.Host.Tests\Analysis\AnsweringRecognizer.cs" Link="Analysis\AnsweringRecognizer.cs" />
+    <Compile Include="..\Core.Host.Tests\Analysis\DyingService.cs" Link="Analysis\DyingService.cs" />
+    <Compile Include="..\Core.Host.Tests\Analysis\ProofAnswer.cs" Link="Analysis\ProofAnswer.cs" />
+    <Compile Include="..\Core.Host.Tests\HostExit.cs" Link="Host\HostExit.cs" />
+    <Compile Include="..\Core.Host.Tests\HostInstallation.cs" Link="Host\HostInstallation.cs" />
+    <Compile Include="..\Core.Host.Tests\HostPort.cs" Link="Host\HostPort.cs" />
+    <Compile Include="..\Core.Host.Tests\HostProcess.cs" Link="Host\HostProcess.cs" />
+    <Compile Include="..\Core.Host.Tests\HostStreams.cs" Link="Host\HostStreams.cs" />
+    <Compile Include="..\Core.Host.Tests\LanguageServiceInterpreter.cs" Link="Host\LanguageServiceInterpreter.cs" />
+    <Compile Include="..\Core.Host.Tests\MigratedDatabase.cs" Link="Host\MigratedDatabase.cs" />
+    <Compile Include="..\Core.Host.Tests\RecognizerContainer.cs" Link="Host\RecognizerContainer.cs" />
+    <Compile Include="..\Core.Host.Tests\SessionedHost.cs" Link="Host\SessionedHost.cs" />
+    <Compile Include="..\Core.Host.Tests\Supervision\Poll.cs" Link="Supervision\Poll.cs" />
+    <Compile Include="..\Core.Host.Tests\Supervision\PortTaken.cs" Link="Supervision\PortTaken.cs" />
+    <Compile Include="..\Core.Host.Tests\Supervision\ProcessIdentity.cs" Link="Supervision\ProcessIdentity.cs" />
+    <Compile Include="..\Core.Host.Tests\Supervision\RecordingLogger.cs" Link="Supervision\RecordingLogger.cs" />
+    <Compile Include="..\Core.Host.Tests\Supervision\StandInService.cs" Link="Supervision\StandInService.cs" />
+    <Compile Include="..\Core.Host.Tests\Supervision\SupervisionHarness.cs" Link="Supervision\SupervisionHarness.cs" />
+  </ItemGroup>
+</Project>

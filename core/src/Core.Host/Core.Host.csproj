@@ -36,6 +36,7 @@
   <Import Project="..\..\build\BuildInfo.targets" />
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Core.Host.Analysis.Tests" />
     <InternalsVisibleTo Include="Core.Host.Tests" />
     <InternalsVisibleTo Include="Core.Host.Tests.Browser" />
   </ItemGroup>

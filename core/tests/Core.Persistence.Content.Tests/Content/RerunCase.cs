@@ -219,7 +219,18 @@ internal sealed class RerunCase
     }
 
     /// <summary>Whether a session of this database waits for a lock, as a statement held by an open transaction does; seen as the superuser, who sees what every session waits for.</summary>
-    public async Task<bool> SomeoneWaitsAsync()
+    /// <summary>Waits until a session waits on a lock, failing after thirty seconds instead of leaving it to the timeout of the test.</summary>
+    public async Task UntilSomeoneWaitsAsync()
+    {
+        var deadline = DateTimeOffset.UtcNow.AddSeconds(30);
+        while (!await SomeoneWaitsAsync())
+        {
+            Assert.True(DateTimeOffset.UtcNow < deadline, "The request never waited on the lock.");
+            await Task.Delay(TimeSpan.FromMilliseconds(20), TestContext.Current.CancellationToken);
+        }
+    }
+
+    private async Task<bool> SomeoneWaitsAsync()
     {
         await using var connection = await Sql.OpenAsync(database.SuperuserConnectionString);
         await using var command = new NpgsqlCommand("SELECT count(*) FROM pg_catalog.pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock'", connection);

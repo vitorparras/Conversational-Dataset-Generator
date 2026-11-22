@@ -37,6 +37,9 @@ internal static class ScreenPaths
     internal const string BatchReviewMark = "/lotes/{id:long}/revisao/itens/{place:int}/revisado";
     internal const string BatchReviewApprove = "/lotes/{id:long}/revisao/aprovar";
     internal const string BatchReviewFinding = "/lotes/{id:long}/revisao/itens/{place:int}/achado";
+    internal const string Rerun = "/sanitizacao";
+    internal const string RerunConfirm = "/sanitizacao/reexecutar";
+    internal const string RerunProgress = "/sanitizacao/reexecucoes/{id:long}";
 
     /// <summary>The address of the detail of a batch.</summary>
     internal static string BatchOf(long id) => string.Create(CultureInfo.InvariantCulture, $"/lotes/{id}");
@@ -49,4 +52,7 @@ internal static class ScreenPaths
 
     /// <summary>The address where a finding of personal data is told at a place of the sample.</summary>
     internal static string BatchFindingOf(long id, int place) => string.Create(CultureInfo.InvariantCulture, $"/lotes/{id}/revisao/itens/{place}/achado");
+
+    /// <summary>The address where a request of the rerun is followed.</summary>
+    internal static string RerunProgressOf(long id) => string.Create(CultureInfo.InvariantCulture, $"/sanitizacao/reexecucoes/{id}");
 }

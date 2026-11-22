@@ -33,7 +33,8 @@ public sealed class SessionRoutesInventoryTests
             "GET /esvaziamento/confirmar", "GET /ingestion/batches", "GET /ingestion/batches/{id:long}", "GET /ingestion/gate", "GET /lotes", "GET /lotes/novo",
             "GET /lotes/{id:long}", "GET /lotes/{id:long}/revisao", "GET /lotes/{id:long}/revisao/itens/{place:int}/achado",
             "GET /minha-conta", "GET /minha-conta/email", "GET /minha-conta/senha",
-            "GET /minha-conta/sessoes/encerrar", "GET /minha-conta/sessoes/encerrar-outras", "GET /pessoas", "GET /pessoas/nova", "GET /pessoas/{id}/email", "GET /session",
+            "GET /minha-conta/sessoes/encerrar", "GET /minha-conta/sessoes/encerrar-outras", "GET /pessoas", "GET /pessoas/nova", "GET /pessoas/{id}/email",
+            "GET /sanitizacao", "GET /sanitizacao/reexecucoes/{id:long}", "GET /sanitizacao/reexecutar", "GET /session",
             "GET /versions",
         ];
         Assert.Equal(
@@ -65,6 +66,7 @@ public sealed class SessionRoutesInventoryTests
                 "POST /pessoas/nova",
                 "POST /pessoas/{id}/email",
                 "POST /saida",
+                "POST /sanitizacao/reexecutar",
                 "PUT /people/{id}/password",
             ],
             gated);

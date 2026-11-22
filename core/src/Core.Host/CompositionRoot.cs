@@ -84,7 +84,7 @@ internal static class CompositionRoot
         PlatformLogging.Configure(builder.Logging);
         _ = fileLog is null ? builder.Services : builder.Services.AddSingleton(_ => fileLog);
         _ = builder.Services.AddSingleton(TimeProvider.System).AddRedaction(PlatformLogging.EraseSensitiveData).AddSingleton(configuration)
-            .AddSingleton(ItemEmptyingServices.GrantsOf).AddSingleton(ItemEmptyingServices.DeskOf);
+            .AddSingleton(ItemEmptyingServices.GrantsOf).AddSingleton(ItemEmptyingServices.DeskOf).AddSingleton(RerunDesk.Of);
         _ = builder.Services.ConfigureHttpJsonOptions(HostJson.Strict).AddRazorComponents();
     }
 

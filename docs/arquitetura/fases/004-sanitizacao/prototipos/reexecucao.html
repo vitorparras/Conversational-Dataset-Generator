@@ -52,6 +52,8 @@
         <h1>Sanitização</h1>
         <p class="lead">Quantos itens de lotes aceitos estão em cada versão da lista de passos, e a reexecução sobre o texto bruto quando há versão nova. A reexecução roda em segundo plano: você confirma, os itens entram na fila e esta tela acompanha. O texto bruto nunca muda; só o sanitizado é trocado.</p>
 
+        <p>Cada estado abaixo é uma página própria, com o seu h1: <strong>Sanitização</strong> na situação, <strong>Confirmar a reexecução</strong> na confirmação e <strong>Reexecução</strong> no acompanhamento, cujo painel Andamento abre pela versão alvo. Aqui, numa página só, os estados são seções: a confirmação traz como h2 o título da sua página, e o acompanhamento mostra os painéis Andamento e Resultado, como na tela.</p>
+
         <nav aria-label="Estados do protótipo">
             <ul>
                 <li><a href="#em-dia">Nada a reexecutar</a></li>
@@ -145,8 +147,12 @@
         <section id="na-fila" aria-labelledby="na-fila-estado">
             <p id="na-fila-estado"><strong>Estado: na fila.</strong> Para onde o POST redireciona, GET /sanitizacao/reexecucoes/{id}. Nenhum item foi tratado ainda.</p>
             <section class="panel" aria-labelledby="na-fila-titulo">
-                <h2 id="na-fila-titulo">Reexecução para a versão VERSAO_4</h2>
+                <h2 id="na-fila-titulo">Andamento</h2>
                 <dl class="facts">
+                    <div class="facts__item">
+                        <dt>Versão alvo</dt>
+                        <dd><code>VERSAO_4</code></dd>
+                    </div>
                     <div class="facts__item">
                         <dt>Situação</dt>
                         <dd>Na fila</dd>
@@ -170,8 +176,12 @@
         <section id="em-andamento" aria-labelledby="em-andamento-estado">
             <p id="em-andamento-estado"><strong>Estado: em andamento.</strong> O serviço em segundo plano trata um item por vez; cada item tratado tem texto e versão da mesma passagem.</p>
             <section class="panel" aria-labelledby="em-andamento-titulo">
-                <h2 id="em-andamento-titulo">Reexecução para a versão VERSAO_4</h2>
+                <h2 id="em-andamento-titulo">Andamento</h2>
                 <dl class="facts">
+                    <div class="facts__item">
+                        <dt>Versão alvo</dt>
+                        <dd><code>VERSAO_4</code></dd>
+                    </div>
                     <div class="facts__item">
                         <dt>Situação</dt>
                         <dd>Em andamento</dd>
@@ -199,8 +209,12 @@
                 <p><span class="notice__kind">Erro:</span> Nenhum item foi concluído no prazo de uma posse, contado do último concluído ou, sem nenhum, do pedido. Os itens já tratados ficam; o próximo é tentado de novo, e um item que falhar na última tentativa é recusado com o motivo.</p>
             </div>
             <section class="panel" aria-labelledby="parado-titulo">
-                <h2 id="parado-titulo">Reexecução para a versão VERSAO_4</h2>
+                <h2 id="parado-titulo">Andamento</h2>
                 <dl class="facts">
+                    <div class="facts__item">
+                        <dt>Versão alvo</dt>
+                        <dd><code>VERSAO_4</code></dd>
+                    </div>
                     <div class="facts__item">
                         <dt>Situação</dt>
                         <dd>Parado</dd>
@@ -224,8 +238,12 @@
         <section id="retomada" aria-labelledby="retomada-estado">
             <p id="retomada-estado"><strong>Estado: retomada depois de uma queda.</strong> O processo reiniciou no meio. Na subida, o serviço retomou a fila de onde ela parou; o reinício não fica gravado, e a tela mostra o mesmo que em andamento.</p>
             <section class="panel" aria-labelledby="retomada-titulo">
-                <h2 id="retomada-titulo">Reexecução para a versão VERSAO_4</h2>
+                <h2 id="retomada-titulo">Andamento</h2>
                 <dl class="facts">
+                    <div class="facts__item">
+                        <dt>Versão alvo</dt>
+                        <dd><code>VERSAO_4</code></dd>
+                    </div>
                     <div class="facts__item">
                         <dt>Situação</dt>
                         <dd>Em andamento</dd>
@@ -253,8 +271,12 @@
                 <p><span class="notice__kind">Aviso:</span> A versão em uso mudou; esta reexecução não anda mais. <a href="#versao-nova">Pedir a reexecução pela versão em uso</a></p>
             </div>
             <section class="panel" aria-labelledby="superada-titulo">
-                <h2 id="superada-titulo">Reexecução para a versão VERSAO_4</h2>
+                <h2 id="superada-titulo">Andamento</h2>
                 <dl class="facts">
+                    <div class="facts__item">
+                        <dt>Versão alvo</dt>
+                        <dd><code>VERSAO_4</code></dd>
+                    </div>
                     <div class="facts__item">
                         <dt>Situação</dt>
                         <dd>Superada</dd>
@@ -279,8 +301,12 @@
                 <p><span class="notice__kind">Concluído:</span> 120 itens tratados pela versão alvo.</p>
             </div>
             <section class="panel" aria-labelledby="concluida-andamento-titulo">
-                <h2 id="concluida-andamento-titulo">Reexecução para a versão VERSAO_4</h2>
+                <h2 id="concluida-andamento-titulo">Andamento</h2>
                 <dl class="facts">
+                    <div class="facts__item">
+                        <dt>Versão alvo</dt>
+                        <dd><code>VERSAO_4</code></dd>
+                    </div>
                     <div class="facts__item">
                         <dt>Situação</dt>
                         <dd>Concluída</dd>

@@ -6,7 +6,7 @@
 @switch (Shown)
 {
     case Phase.Stopped:
-        <Notice Kind="Notice.Tone.Error">Nenhum item foi concluído no prazo de uma posse. Os itens já tratados ficam; o próximo é tentado de novo, e um item que falhar na última tentativa é recusado com o motivo.</Notice>
+        <Notice Kind="Notice.Tone.Error">Nenhum item foi concluído no prazo de uma posse, contado do último concluído ou, sem nenhum, do pedido. Os itens já tratados ficam; o próximo é tentado de novo, e um item que falhar na última tentativa é recusado com o motivo.</Notice>
         break;
     case Phase.Superseded:
         <Notice>A versão em uso mudou; esta reexecução não anda mais. <a href="@ScreenPaths.Rerun">Pedir a reexecução pela versão em uso</a></Notice>

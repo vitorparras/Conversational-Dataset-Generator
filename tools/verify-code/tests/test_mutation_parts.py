@@ -508,14 +508,19 @@ class RepositoryAreaTests(unittest.TestCase):
             "Content/ContentQueries.cs": ("static bool Exposed(", "static bool IsQuery("),
         }
         texts = {
-            name: (root / mutation_core.SOURCES / core.project / name).read_text(encoding="utf-8-sig")
+            name: (root / mutation_core.SOURCES / core.project / name).read_text(
+                encoding="utf-8-sig"
+            )
             for name in declarations
         }
         wide = [
             piece
             for piece in found
             if piece.file in declarations
-            and any(declared in texts[piece.file][piece.start : piece.end] for declared in declarations[piece.file])
+            and any(
+                declared in texts[piece.file][piece.start : piece.end]
+                for declared in declarations[piece.file]
+            )
         ]
 
         with mock.patch.object(mutation_cost, "SUITE_MUTANT", 0):

@@ -87,6 +87,25 @@ public sealed class SanitizationRerunsTests : IClassFixture<RerunDatabase>
     }
 
     [DatabaseFact]
+    public async Task NewItemJoinsTheOpenRerunBesideAnItemItRefused()
+    {
+        var rerun = await database.CaseAsync();
+        _ = await rerun.ItemAsync(Sanitized);
+        _ = await rerun.ItemAsync(Sanitized);
+        var first = await rerun.RequestAsync();
+        for (var attempt = 0; attempt < SanitizationReruns.Tries; attempt++)
+        {
+            _ = await rerun.Queue.FailAsync(await rerun.TakenAsync(), TestContext.Current.CancellationToken);
+        }
+
+        _ = await rerun.ItemAsync(Sanitized);
+        var second = await rerun.RequestAsync();
+
+        var progress = await rerun.ProgressAsync(first.RerunId!.Value);
+        Assert.Equal((RerunOutcome.AlreadyOpen, first.RerunId, 2L, 1L), (second.Outcome, second.RerunId, progress.Queued, progress.Refused));
+    }
+
+    [DatabaseFact]
     public async Task RequestWithNothingToRerunWritesNoRequest()
     {
         var rerun = await database.CaseAsync();

@@ -218,18 +218,23 @@ internal sealed class RerunCase
         return transaction;
     }
 
-    /// <summary>Whether a session of this database waits for a lock, as a statement held by an open transaction does; seen as the superuser, who sees what every session waits for.</summary>
-    /// <summary>Waits until a session waits on a lock, failing after thirty seconds instead of leaving it to the timeout of the test.</summary>
-    public async Task UntilSomeoneWaitsAsync()
+    /// <summary>Waits until a session waits on a lock, failing after thirty seconds, or with the failure of the request when it ends without waiting.</summary>
+    public async Task UntilSomeoneWaitsAsync(Task asked)
     {
         var deadline = DateTimeOffset.UtcNow.AddSeconds(30);
         while (!await SomeoneWaitsAsync())
         {
+            if (asked.IsCompleted)
+            {
+                Assert.Fail($"The request ended without waiting on the lock: {asked.Exception?.GetBaseException().ToString() ?? asked.Status.ToString()}");
+            }
+
             Assert.True(DateTimeOffset.UtcNow < deadline, "The request never waited on the lock.");
             await Task.Delay(TimeSpan.FromMilliseconds(20), TestContext.Current.CancellationToken);
         }
     }
 
+    /// <summary>Whether a session of this database waits for a lock, as a statement held by an open transaction does; seen as the superuser, who sees what every session waits for.</summary>
     private async Task<bool> SomeoneWaitsAsync()
     {
         await using var connection = await Sql.OpenAsync(database.SuperuserConnectionString);

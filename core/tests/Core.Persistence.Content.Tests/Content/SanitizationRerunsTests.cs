@@ -16,6 +16,7 @@ public sealed class SanitizationRerunsTests : IClassFixture<RerunDatabase>
         + "FROM content.sanitization_rerun r JOIN content.sanitization_rerun_item q ON q.rerun_id = r.id WHERE q.item_id = @item";
     private const string TheItemAgain = "INSERT INTO content.sanitization_rerun_item (domain_id, rerun_id, item_id) "
         + "SELECT domain_id, (SELECT max(id) FROM content.sanitization_rerun), id FROM content.item_text WHERE id = @item";
+    private static readonly string RequestEvent = $"sanitization_rerun,sanitization_rerun,administrative_act,{RerunCase.Target},zqx-curator";
 
     private readonly RerunDatabase database;
 
@@ -62,6 +63,27 @@ public sealed class SanitizationRerunsTests : IClassFixture<RerunDatabase>
         var situation = await rerun.Queue.SituationAsync(rerun.DomainId, TestContext.Current.CancellationToken);
         var progress = await rerun.ProgressAsync(first.RerunId!.Value);
         Assert.Equal((RerunOutcome.AlreadyOpen, first.RerunId, first.RerunId, 2L), (second.Outcome, second.RerunId, situation.OpenRerunId, progress.Queued));
+        Assert.Equal($"{RequestEvent};{RequestEvent}", await rerun.RequestEventsOfAsync(first.RerunId.Value));
+    }
+
+    // An item the open request refused waits for the request to conclude: queuing it again in the same request would break the queue for every later confirmation.
+    [DatabaseFact]
+    public async Task ItemRefusedByTheOpenRerunIsNotQueuedAgainInIt()
+    {
+        var rerun = await database.CaseAsync();
+        _ = await rerun.ItemAsync(Sanitized);
+        _ = await rerun.ItemAsync(Sanitized);
+        var first = await rerun.RequestAsync();
+        for (var attempt = 0; attempt < SanitizationReruns.Tries; attempt++)
+        {
+            _ = await rerun.Queue.FailAsync(await rerun.TakenAsync(), TestContext.Current.CancellationToken);
+        }
+
+        var second = await rerun.RequestAsync();
+
+        var progress = await rerun.ProgressAsync(first.RerunId!.Value);
+        Assert.Equal((RerunOutcome.AlreadyOpen, first.RerunId, 1L, 1L), (second.Outcome, second.RerunId, progress.Queued, progress.Refused));
+        Assert.Equal(RequestEvent, await rerun.RequestEventsOfAsync(first.RerunId.Value));
     }
 
     [DatabaseFact]
@@ -194,7 +216,7 @@ public sealed class SanitizationRerunsTests : IClassFixture<RerunDatabase>
 
         var requested = await rerun.RequestAsync();
 
-        Assert.Equal($"sanitization_rerun,sanitization_rerun,administrative_act,{RerunCase.Target},zqx-curator", await rerun.RequestEventsOfAsync(requested.RerunId!.Value));
+        Assert.Equal(RequestEvent, await rerun.RequestEventsOfAsync(requested.RerunId!.Value));
     }
 
     // The chain answers every try of the request with a conflict: the request gives up after its three tries and records nothing.
@@ -221,7 +243,7 @@ public sealed class SanitizationRerunsTests : IClassFixture<RerunDatabase>
         await using (elsewhere)
         {
             var asked = rerun.RequestAsync();
-            await rerun.UntilSomeoneWaitsAsync();
+            await rerun.UntilSomeoneWaitsAsync(asked);
 
             await elsewhere.CommitAsync(TestContext.Current.CancellationToken);
             result = await asked;
@@ -242,7 +264,7 @@ public sealed class SanitizationRerunsTests : IClassFixture<RerunDatabase>
         await using (var locked = await rerun.QueueLockedAsync())
         {
             var asked = rerun.RequestAsync(RerunCase.LaterSteps);
-            await rerun.UntilSomeoneWaitsAsync();
+            await rerun.UntilSomeoneWaitsAsync(asked);
 
             rerun.AppendElsewhere();
             await locked.CommitAsync(TestContext.Current.CancellationToken);

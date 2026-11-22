@@ -153,8 +153,8 @@ public sealed class RerunRoutesTests
         var refused = await world.ConfirmAsync();
 
         Assert.Equal(HttpStatusCode.ServiceUnavailable, refused.Status);
-        var told = "Este pedido não foi gravado. Já há uma reexecução aberta para a versão em uso, e os itens que ela tem seguem na fila. "
-            + $"<a href=\"{ScreenPaths.RerunProgressOf(open)}\">Acompanhar a reexecução</a>";
+        var told = "Este pedido não foi gravado: os itens que já estão na reexecução aberta para a versão em uso seguem na fila, e os que não estão não foram postos nela. "
+            + $"Tente de novo em instantes. <a href=\"{ScreenPaths.RerunProgressOf(open)}\">Acompanhar a reexecução aberta</a>";
         Assert.Contains(told, refused.Page, StringComparison.Ordinal);
         Assert.DoesNotContain("Os itens não foram postos na fila", refused.Page, StringComparison.Ordinal);
         Assert.Equal((open, 2L), ((await world.SituationAsync()).OpenRerunId, (await world.Rerun.ProgressAsync(open)).Queued));

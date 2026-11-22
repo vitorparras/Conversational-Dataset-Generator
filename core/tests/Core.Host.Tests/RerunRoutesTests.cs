@@ -317,6 +317,20 @@ public sealed class RerunRoutesTests
     }
 
     [DatabaseFact]
+    public async Task ProgressOfARequestOfAnotherDomainAnswersNotFound()
+    {
+        await using var world = await RerunScreensWorld.StartAsync();
+        var open = await world.Rerun.RequestAsync(CompositionRoot.StepsOf());
+        var absent = await world.GetAsync(Missing, world.OtherCurator);
+
+        var mine = await world.GetAsync(ScreenPaths.RerunProgressOf(open));
+        var theirs = await world.GetAsync(ScreenPaths.RerunProgressOf(open), world.OtherCurator);
+
+        Assert.Equal(HttpStatusCode.OK, mine.Status);
+        Assert.Equal((HttpStatusCode.NotFound, WithoutAddress(absent.Page)), (theirs.Status, WithoutAddress(theirs.Page)));
+    }
+
+    [DatabaseFact]
     public async Task RerunWithoutCurationAnswersNotFound()
     {
         await using var world = await RerunScreensWorld.StartAsync();

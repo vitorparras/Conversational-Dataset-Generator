@@ -24,11 +24,11 @@ namespace Core.Host.Tests;
 /// </summary>
 internal sealed partial class RerunScreensWorld : IAsyncDisposable
 {
-    private RerunScreensWorld(RerunWorld rerun, SessionedHost host, long curator)
+    private RerunScreensWorld(RerunWorld rerun, SessionedHost host, (long Curator, long OtherCurator) people)
     {
         Rerun = rerun;
         Host = host;
-        Curator = curator;
+        (Curator, OtherCurator) = people;
     }
 
     internal RerunWorld Rerun { get; }
@@ -37,6 +37,9 @@ internal sealed partial class RerunScreensWorld : IAsyncDisposable
 
     /// <summary>The person of the curation granted the domain of the batch.</summary>
     internal long Curator { get; }
+
+    /// <summary>A person of the curation granted only the other domain, which has no request of its own.</summary>
+    internal long OtherCurator { get; }
 
     /// <summary>The person of the annotation, who submitted the batch and is granted its domain, but whose function reaches no screen of the rerun.</summary>
     internal static long Annotator => SubmissionWorld.Person;
@@ -51,8 +54,9 @@ internal sealed partial class RerunScreensWorld : IAsyncDisposable
     {
         var rerun = await RerunWorld.CreateAsync();
         var database = rerun.Submissions.Database;
-        await database.RunAsOwnerAsync("INSERT INTO public.person (name, function_name) VALUES ('zqx-curadora', 'Curadoria do acervo')");
+        await database.RunAsOwnerAsync("INSERT INTO public.person (name, function_name) VALUES ('zqx-curadora', 'Curadoria do acervo'), ('zqx-curadora-b', 'Curadoria do acervo')");
         var curator = long.Parse((await database.FirstColumnAsOwnerAsync("SELECT id::text FROM public.person WHERE name = 'zqx-curadora'"))[0], CultureInfo.InvariantCulture);
+        var otherCurator = long.Parse((await database.FirstColumnAsOwnerAsync("SELECT id::text FROM public.person WHERE name = 'zqx-curadora-b'"))[0], CultureInfo.InvariantCulture);
         var source = rerun.Submissions.DataSource;
         var host = await SessionedHost.StartAsync(
             services => services
@@ -61,14 +65,14 @@ internal sealed partial class RerunScreensWorld : IAsyncDisposable
                 .AddSingleton(provider => new OperatorAdministration(
                     new PersonRegistry(source), new PersonCredentials(source, new PasswordDerivation(1)), provider.GetRequiredService<SessionStore>(), new PersonNotices(source)))
                 .AddSingleton(new BatchRegister(source)).AddSingleton(new BatchCounts(source)).AddSingleton(new DomainListing(source))
-                .AddSingleton<DomainGrants>(new GrantedTo(curator, Annotator)),
+                .AddSingleton<DomainGrants>(new GrantedTo((SubmissionWorld.Domain, [curator, Annotator]), (SubmissionWorld.OtherDomain, [otherCurator]))),
             routes =>
             {
                 ScreenGate.Use((IApplicationBuilder)routes);
                 BatchRoutes.Map(routes);
             },
             Token);
-        return new RerunScreensWorld(rerun, host, curator);
+        return new RerunScreensWorld(rerun, host, (curator, otherCurator));
     }
 
     /// <summary>The page of an address as the person sees it, with whatever status the host answered.</summary>
@@ -121,9 +125,9 @@ internal sealed partial class RerunScreensWorld : IAsyncDisposable
     [GeneratedRegex("<dt>Situação</dt>\\s*<dd>([^<]*)</dd>", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex PhaseShown();
 
-    private sealed class GrantedTo(params long[] people) : DomainGrants
+    private sealed class GrantedTo(params (int Domain, long[] People)[] grants) : DomainGrants
     {
         internal override Task<IEnumerable<string>> GrantedToAsync(long entered, CancellationToken cancellationToken) =>
-            Task.FromResult(people.Contains(entered) ? Enumerable.Repeat(SubmissionWorld.NameOf(SubmissionWorld.Domain), 1) : None);
+            Task.FromResult<IEnumerable<string>>([.. grants.Where(grant => grant.People.Contains(entered)).Select(grant => SubmissionWorld.NameOf(grant.Domain))]);
     }
 }

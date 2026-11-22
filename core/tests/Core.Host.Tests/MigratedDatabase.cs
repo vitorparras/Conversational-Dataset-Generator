@@ -22,15 +22,21 @@ internal static class MigratedDatabase
                 Assert.Skip(DockerAvailability.SkipReason);
             }
 
-            var connection = new NpgsqlConnectionStringBuilder(Shared.Value.AppConnectionString);
-            return new Dictionary<string, string>(StringComparer.Ordinal)
-            {
-                ["CDG_Database__Host"] = $"{connection.Host}:{connection.Port}",
-                ["CDG_Database__Name"] = connection.Database!,
-                ["CDG_Database__Username"] = connection.Username!,
-                ["CDG_Database__Password"] = connection.Password!,
-            };
+            return VariablesOf(Shared.Value);
         }
+    }
+
+    /// <summary>The variables that give a host the four keys of the database given, read by the application's role.</summary>
+    public static IReadOnlyDictionary<string, string> VariablesOf(ScratchDatabase database)
+    {
+        var connection = new NpgsqlConnectionStringBuilder(database.AppConnectionString);
+        return new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["CDG_Database__Host"] = $"{connection.Host}:{connection.Port}",
+            ["CDG_Database__Name"] = connection.Database!,
+            ["CDG_Database__Username"] = connection.Username!,
+            ["CDG_Database__Password"] = connection.Password!,
+        };
     }
 
     private static async Task<ScratchDatabase> CreateAsync()

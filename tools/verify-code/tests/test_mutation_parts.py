@@ -491,7 +491,7 @@ class RepositoryAreaTests(unittest.TestCase):
         self.assertEqual(areas["Core.Persistence.Content.Writing"].parts, 7)
         self.assertEqual(areas["Core.Persistence.Content.Sealing"].parts, 3)
         self.assertEqual(areas["Core.Persistence.Content.Reading"].parts, 1)
-        self.assertEqual(areas["Core.Persistence.Ingestion"].parts, 10)
+        self.assertEqual(areas["Core.Persistence.Ingestion"].parts, 12)
 
     def test_each_content_part_holds_two_mutants_of_the_suite_at_most(self) -> None:
         root = support.VERIFY_CODE.parents[1]
@@ -538,7 +538,7 @@ class RepositoryAreaTests(unittest.TestCase):
                 expected,
                 [f"Core.Persistence.Content.Writing@{n}/7" for n in range(1, 8)],
                 [f"Core.Persistence.Content.Sealing@{n}/3" for n in range(1, 4)],
-                [f"Core.Persistence.Ingestion@{n}/10" for n in range(1, 11)],
+                [f"Core.Persistence.Ingestion@{n}/12" for n in range(1, 13)],
             ),
         )
 

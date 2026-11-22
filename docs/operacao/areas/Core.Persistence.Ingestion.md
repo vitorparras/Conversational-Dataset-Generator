@@ -5,7 +5,7 @@
 - Projeto/pacote: `Core.Persistence.Ingestion`
 - Piso: 90 %
 - Crítica: sim
-- Partes da mutação: 10
+- Partes da mutação: 12
 - Motivo: Abre o lote sem conteúdo e o encerra, aceito ou rejeitado, cada passo com o evento da
   cadeia na mesma transação serializável; a rejeição remove o conteúdo do lote nessa transação, e o
   banco recusa a mudança sem o evento (#74). Decide o que vira acervo e o que é descartado, por isso
@@ -15,4 +15,6 @@
   130728997549), e por isso muta em 8 partes, no mesmo padrão da `Core.Persistence.Content` (#791),
   cada uma cortada entre membros pelo peso (#585, #683) e com a suíte do banco por mutante. Com
   as contagens por passo e o elo da sanitização (#842), a parte 1 de 8 passou dos 20 min, com 70
-  de 82 mutantes testados (job 135605785449), e por isso a área muta em 10 partes.
+  de 82 mutantes testados (job 135605785449), e por isso a área muta em 10 partes. Com o N de M
+  e os não tratados da reexecução (#846), a parte 2 de 10 levou 19,6 min, 20,3 min e depois
+  passou dos 20 (job 137025580657), e por isso a área muta em 12 partes.

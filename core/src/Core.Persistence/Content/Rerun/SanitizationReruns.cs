@@ -145,18 +145,21 @@ public sealed class SanitizationReruns
             return (new RerunResult(RerunOutcome.NotRecorded), recorded);
         }
 
-        if ((await RowsAsync(scope, (ContentQueries.ReadRerunPending, Over(request.Version, now)), row => row.GetInt64(0), cancellationToken).ConfigureAwait(false)).Count == 0)
+        var pending = await RowsAsync(scope, (ContentQueries.ReadRerunPending, Over(request.Version, now)), row => row.GetInt64(0), cancellationToken).ConfigureAwait(false);
+        var open = await RowsAsync(scope, (ContentQueries.ReadRerunOpen, []), row => row.GetInt64(0), cancellationToken).ConfigureAwait(false);
+        if (pending.Count == 0)
         {
-            var open = await RowsAsync(scope, (ContentQueries.ReadRerunOpen, []), row => row.GetInt64(0), cancellationToken).ConfigureAwait(false);
             var answer = open.Count == 0 ? new RerunResult(RerunOutcome.NothingToRerun) : new RerunResult(RerunOutcome.AlreadyOpen, open[0]);
             return (answer, recorded is null ? null : await CustodyAppend.CommitIfAppendedAsync(scope, recorded, cancellationToken).ConfigureAwait(false));
         }
 
+        // The requests to another version were just superseded, so an open one reruns to this version: the new items join it, and the trail says who queued them.
         Bound[] asking =
             [.. Over(request.Version, now), new("domain", NpgsqlDbType.Integer, request.DomainId), new("steps", NpgsqlDbType.Text, request.Steps),
-                new("person", NpgsqlDbType.Bigint, request.PersonId)];
+                new("person", NpgsqlDbType.Bigint, request.PersonId), new("rerun", NpgsqlDbType.Bigint, open.Count == 0 ? null : open[0])];
         var rerunId = (long)(await ScalarAsync(scope, (ContentQueries.InsertSanitizationRerun, asking), cancellationToken).ConfigureAwait(false))!;
         var appended = await CustodyAppend.AppendAsync(scope, CustodyEvent.SanitizationRerun(request.PersonId, rerunId, request.Version), cancellationToken).ConfigureAwait(false);
-        return (new RerunResult(RerunOutcome.Queued, rerunId), await CustodyAppend.CommitIfAppendedAsync(scope, appended, cancellationToken).ConfigureAwait(false));
+        var outcome = open.Count == 0 ? RerunOutcome.Queued : RerunOutcome.AlreadyOpen;
+        return (new RerunResult(outcome, rerunId), await CustodyAppend.CommitIfAppendedAsync(scope, appended, cancellationToken).ConfigureAwait(false));
     }
 }

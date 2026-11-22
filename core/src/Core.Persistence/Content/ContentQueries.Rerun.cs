@@ -14,15 +14,20 @@ public static partial class ContentQueries
         + "WHERE b.state = 'accepted' AND i.emptied_at IS NULL AND i.sanitization_version IS DISTINCT FROM @version "
         + "AND NOT EXISTS (SELECT 1 FROM content.sanitization_rerun_item q WHERE q.item_id = i.id AND q.state <> 'done') LIMIT 1";
 
-    /// <summary>Writes the request, the version once per domain, and queues every item <see cref="ReadRerunPending"/> would find; answers the request.</summary>
+    /// <summary>
+    /// Writes the request, unless it is given the open one, and the version once per domain, and queues in the request every item <see cref="ReadRerunPending"/> would find; answers
+    /// the request.
+    /// </summary>
     internal const string InsertSanitizationRerun =
         "WITH version AS (INSERT INTO content.sanitization_version (domain_id, version, steps) SELECT @domain::integer, @version::text, @steps::text WHERE @version::text IS NOT NULL "
         + "ON CONFLICT (version, domain_id) DO NOTHING), "
-        + "rerun AS (INSERT INTO content.sanitization_rerun (domain_id, target_version, requested_by, requested_at) VALUES (@domain, @version, @person, @now) RETURNING id), "
-        + "queued AS (INSERT INTO content.sanitization_rerun_item (domain_id, rerun_id, item_id) SELECT @domain, rerun.id, i.id FROM rerun, content.item_text i "
+        + "rerun AS (INSERT INTO content.sanitization_rerun (domain_id, target_version, requested_by, requested_at) "
+        + "SELECT @domain::integer, @version::text, @person::bigint, @now::timestamptz WHERE @rerun::bigint IS NULL RETURNING id), "
+        + "target AS (SELECT id FROM rerun UNION ALL SELECT @rerun::bigint WHERE @rerun::bigint IS NOT NULL), "
+        + "queued AS (INSERT INTO content.sanitization_rerun_item (domain_id, rerun_id, item_id) SELECT @domain, target.id, i.id FROM target, content.item_text i "
         + "JOIN content.ingestion_batch b ON b.id = i.batch_id AND b.domain_id = i.domain_id WHERE b.state = 'accepted' AND i.emptied_at IS NULL "
         + "AND i.sanitization_version IS DISTINCT FROM @version AND NOT EXISTS (SELECT 1 FROM content.sanitization_rerun_item q WHERE q.item_id = i.id AND q.state <> 'done') "
-        + "RETURNING rerun_id) SELECT id FROM rerun";
+        + "RETURNING rerun_id) SELECT id FROM target";
 
     /// <summary>Concludes as superseded the items not concluded of the requests to another version, answering each item and the version its request reran to.</summary>
     internal const string CloseRerunSuperseded =

@@ -48,6 +48,22 @@ public sealed class SanitizationRerunsTests : IClassFixture<RerunDatabase>
         Assert.Equal((RerunOutcome.AlreadyOpen, first.RerunId), (second.Outcome, second.RerunId));
     }
 
+    // A batch still open at the request, accepted after it: the new confirmation queues its item in the open request, never a second request the situation would hide.
+    [DatabaseFact]
+    public async Task RequestWithANewItemQueuesItInTheOpenRerun()
+    {
+        var rerun = await database.CaseAsync();
+        _ = await rerun.ItemAsync(Sanitized);
+        var first = await rerun.RequestAsync();
+        _ = await rerun.ItemAsync(Sanitized);
+
+        var second = await rerun.RequestAsync();
+
+        var situation = await rerun.Queue.SituationAsync(rerun.DomainId, TestContext.Current.CancellationToken);
+        var progress = await rerun.ProgressAsync(first.RerunId!.Value);
+        Assert.Equal((RerunOutcome.AlreadyOpen, first.RerunId, first.RerunId, 2L), (second.Outcome, second.RerunId, situation.OpenRerunId, progress.Queued));
+    }
+
     [DatabaseFact]
     public async Task RequestWithNothingToRerunWritesNoRequest()
     {
@@ -205,10 +221,7 @@ public sealed class SanitizationRerunsTests : IClassFixture<RerunDatabase>
         await using (elsewhere)
         {
             var asked = rerun.RequestAsync();
-            while (!await rerun.SomeoneWaitsAsync())
-            {
-                await Task.Delay(TimeSpan.FromMilliseconds(20), TestContext.Current.CancellationToken);
-            }
+            await rerun.UntilSomeoneWaitsAsync();
 
             await elsewhere.CommitAsync(TestContext.Current.CancellationToken);
             result = await asked;
@@ -229,10 +242,7 @@ public sealed class SanitizationRerunsTests : IClassFixture<RerunDatabase>
         await using (var locked = await rerun.QueueLockedAsync())
         {
             var asked = rerun.RequestAsync(RerunCase.LaterSteps);
-            while (!await rerun.SomeoneWaitsAsync())
-            {
-                await Task.Delay(TimeSpan.FromMilliseconds(20), TestContext.Current.CancellationToken);
-            }
+            await rerun.UntilSomeoneWaitsAsync();
 
             rerun.AppendElsewhere();
             await locked.CommitAsync(TestContext.Current.CancellationToken);

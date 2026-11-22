@@ -20,7 +20,7 @@ namespace Core.Host.Tests;
 
 /// <summary>
 /// The screens of the rerun (issue 97) behind the real gates, over the world of the worker: one accepted batch of two items sanitized by a list of steps older than the one in force, a person of the
-/// curation granted the domain, the person of the annotation that submitted it, and the host reading the clock of the world, with the desk the root registers and no worker of its own.
+/// curation and the person of the annotation that submitted it, both granted the domain, and the host reading the clock of the world, with the desk the root registers and no worker of its own.
 /// </summary>
 internal sealed partial class RerunScreensWorld : IAsyncDisposable
 {
@@ -38,7 +38,7 @@ internal sealed partial class RerunScreensWorld : IAsyncDisposable
     /// <summary>The person of the curation granted the domain of the batch.</summary>
     internal long Curator { get; }
 
-    /// <summary>The person of the annotation, who submitted the batch and whose function reaches no screen of the rerun.</summary>
+    /// <summary>The person of the annotation, who submitted the batch and is granted its domain, but whose function reaches no screen of the rerun.</summary>
     internal static long Annotator => SubmissionWorld.Person;
 
     /// <summary>The rerun of the steps in force, the one the host requests to.</summary>
@@ -61,7 +61,7 @@ internal sealed partial class RerunScreensWorld : IAsyncDisposable
                 .AddSingleton(provider => new OperatorAdministration(
                     new PersonRegistry(source), new PersonCredentials(source, new PasswordDerivation(1)), provider.GetRequiredService<SessionStore>(), new PersonNotices(source)))
                 .AddSingleton(new BatchRegister(source)).AddSingleton(new BatchCounts(source)).AddSingleton(new DomainListing(source))
-                .AddSingleton<DomainGrants>(new CuratorGrants(curator)),
+                .AddSingleton<DomainGrants>(new GrantedTo(curator, Annotator)),
             routes =>
             {
                 ScreenGate.Use((IApplicationBuilder)routes);
@@ -112,9 +112,9 @@ internal sealed partial class RerunScreensWorld : IAsyncDisposable
     [GeneratedRegex("<dt>Situação</dt>\\s*<dd>([^<]*)</dd>", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex PhaseShown();
 
-    private sealed class CuratorGrants(long curator) : DomainGrants
+    private sealed class GrantedTo(params long[] people) : DomainGrants
     {
         internal override Task<IEnumerable<string>> GrantedToAsync(long entered, CancellationToken cancellationToken) =>
-            Task.FromResult(entered == curator ? Enumerable.Repeat(SubmissionWorld.NameOf(SubmissionWorld.Domain), 1) : None);
+            Task.FromResult(people.Contains(entered) ? Enumerable.Repeat(SubmissionWorld.NameOf(SubmissionWorld.Domain), 1) : None);
     }
 }

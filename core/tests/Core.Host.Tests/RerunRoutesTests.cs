@@ -236,6 +236,33 @@ public sealed class RerunRoutesTests
     }
 
     [DatabaseFact]
+    public async Task RequestWhoseItemsAnotherRequestClosedIsShownSupersededEvenToTheVersionInForce()
+    {
+        await using var world = await RerunScreensWorld.StartAsync();
+        var rerun = await world.Rerun.RequestAsync(CompositionRoot.StepsOf());
+        _ = await world.Rerun.RequestAsync(new([new IdentifierStep(new TextBoundaries()), new DestinationsStep()]));
+
+        var page = await world.GetAsync(ScreenPaths.RerunProgressOf(rerun));
+
+        var progress = await world.Rerun.ProgressAsync(rerun);
+        Assert.Equal((Current, 2L, 0L), (progress.TargetVersion, progress.Superseded, progress.Queued + progress.Held));
+        Assert.Matches(Fact("Situação", "Superada"), page.Page);
+        Assert.Matches(Fact("Tratados", "0 de 2"), page.Page);
+    }
+
+    [DatabaseFact]
+    public async Task ProgressOfARequestTheDomainDoesNotHaveAnswersNotFound()
+    {
+        await using var world = await RerunScreensWorld.StartAsync();
+        var open = await world.Rerun.RequestAsync(CompositionRoot.StepsOf());
+        var absent = await world.GetAsync(Missing);
+
+        var page = await world.GetAsync(ScreenPaths.RerunProgressOf(open + 1));
+
+        Assert.Equal((HttpStatusCode.NotFound, WithoutAddress(absent.Page)), (page.Status, WithoutAddress(page.Page)));
+    }
+
+    [DatabaseFact]
     public async Task RerunWithoutCurationAnswersNotFound()
     {
         await using var world = await RerunScreensWorld.StartAsync();

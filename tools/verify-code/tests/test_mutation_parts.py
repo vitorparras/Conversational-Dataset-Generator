@@ -493,6 +493,13 @@ class RepositoryAreaTests(unittest.TestCase):
         self.assertEqual(areas["Core.Persistence.Content.Reading"].parts, 1)
         self.assertEqual(areas["Core.Persistence.Ingestion"].parts, 12)
 
+    def test_the_analysis_of_the_host_is_mutated_against_a_project_of_its_own(self) -> None:
+        root = support.VERIFY_CODE.parents[1]
+
+        found = mutation_core.test_projects(root, "Core.Host", "Core.Host.Analysis")
+
+        self.assertEqual([path.parent.name for path in found], ["Core.Host.Analysis.Tests"])
+
     def test_each_content_part_holds_two_mutants_of_the_suite_at_most(self) -> None:
         root = support.VERIFY_CODE.parents[1]
         table = areas_doc.read_areas(root).areas

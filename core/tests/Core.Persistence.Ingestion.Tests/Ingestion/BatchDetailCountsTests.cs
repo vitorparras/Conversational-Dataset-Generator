@@ -134,6 +134,20 @@ public sealed class BatchDetailCountsTests
     }
 
     [DatabaseFact]
+    public async Task BatchDetailCountsOfABatchWithNoSanitizedItemTellNoneOutOfItsItemsAndNoVersion()
+    {
+        await using var world = await IngestionWorld.CreateAsync();
+        using var custody = SyntheticCustody.Holding(Labels);
+        var batch = await OpenAsync(world, "conversation");
+        _ = await new ContentWriter(world.DataSource, custody.Content).AddItemTextAsync(IngestionWorld.Domain, batch, ItemTexts.Of("texto bruto zqx"), TestContext.Current.CancellationToken);
+        _ = await new ContentWriter(world.DataSource, custody.Content).AddItemTextAsync(IngestionWorld.Domain, batch, ItemTexts.Of("texto bruto zqx"), TestContext.Current.CancellationToken);
+
+        var counts = await new BatchCounts(world.DataSource).ReadAsync(IngestionWorld.Domain, batch, TestContext.Current.CancellationToken);
+
+        Assert.Equal((0L, 2L, null, 0), (counts.SanitizedItems, counts.Items, counts.SanitizationVersion, counts.Steps.Count));
+    }
+
+    [DatabaseFact]
     public async Task BatchDetailCountsAddWhatEachStepLeftUntreated()
     {
         await using var world = await IngestionWorld.CreateAsync();

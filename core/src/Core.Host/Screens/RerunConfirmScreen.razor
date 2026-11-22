@@ -6,7 +6,11 @@
 <p>@Items de @Domain em versão anterior entram na fila para voltar a ser sanitizados a partir do texto bruto, pela versão @Current. O texto sanitizado de cada um é trocado; o bruto não muda. Item esvaziado, ou com a chave perdida, é recusado com o motivo, e o resto segue.</p>
 <p>A reexecução roda em segundo plano: você pode sair desta tela. Um item já na fila de outro pedido não entra de novo. Uma reexecução aberta para outra versão é encerrada como superada.</p>
 <form class="form" method="post" action="@ScreenPaths.RerunConfirm" data-wait="reexecucao-espera" novalidate>
-    @if (Shown == Problem.NotWritten)
+    @if (Shown == Problem.NotWritten && Situation is { OpenRerunId: { } open } && Situation.OpenVersion == Current)
+    {
+        <Notice Kind="Notice.Tone.Error">Este pedido não foi gravado. Já há uma reexecução aberta para a versão em uso, e os itens que ela tem seguem na fila. <a href="@ScreenPaths.RerunProgressOf(open)">Acompanhar a reexecução</a></Notice>
+    }
+    else if (Shown == Problem.NotWritten)
     {
         <Notice Kind="Notice.Tone.Error">Os itens não foram postos na fila. Tente de novo em instantes; se a falha se repetir, avise quem administra o sistema.</Notice>
     }
@@ -18,7 +22,7 @@
 </form>
 
 @code {
-    /// <summary>What the page tells after a try: nothing, or a request the chain did not take, so that nothing was queued.</summary>
+    /// <summary>What the page tells after a try: nothing, or a request the chain did not take; an open request to the version in force, read after it, is led to.</summary>
     public enum Problem
     {
         None,

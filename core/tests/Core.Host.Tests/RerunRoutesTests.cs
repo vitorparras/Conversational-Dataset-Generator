@@ -139,6 +139,28 @@ public sealed class RerunRoutesTests
     }
 
     [DatabaseFact]
+    public async Task ConfirmationNotTakenWhileARerunToTheVersionInForceIsOpenLeadsToIt()
+    {
+        await using var world = await RerunScreensWorld.StartAsync();
+        var open = await world.Rerun.RequestAsync(CompositionRoot.StepsOf());
+        var later = await world.Rerun.Submissions.SubmitAsync(SubmissionWorld.Request(SubmissionWorld.Messages(("Ana", "Chegou depois do pedido."))));
+        await world.Rerun.Submissions.AcceptReviewedAsync(later.Batch!.Value);
+        await world.Rerun.Submissions.Database.ExecuteAsSuperuserAsync(
+            "CREATE FUNCTION public.zqx_request_conflicts() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $f$ "
+            + "BEGIN RAISE EXCEPTION 'conflict' USING ERRCODE = '40001'; END $f$; "
+            + "CREATE TRIGGER zqx_request_conflicts BEFORE INSERT ON public.custody_event FOR EACH ROW WHEN (NEW.step = 'sanitization_rerun') EXECUTE FUNCTION public.zqx_request_conflicts()");
+
+        var refused = await world.ConfirmAsync();
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, refused.Status);
+        var told = "Este pedido não foi gravado. Já há uma reexecução aberta para a versão em uso, e os itens que ela tem seguem na fila. "
+            + $"<a href=\"{ScreenPaths.RerunProgressOf(open)}\">Acompanhar a reexecução</a>";
+        Assert.Contains(told, refused.Page, StringComparison.Ordinal);
+        Assert.DoesNotContain("Os itens não foram postos na fila", refused.Page, StringComparison.Ordinal);
+        Assert.Equal((open, 2L), ((await world.SituationAsync()).OpenRerunId, (await world.Rerun.ProgressAsync(open)).Queued));
+    }
+
+    [DatabaseFact]
     public async Task ProgressShowsQueuedRunningStoppedAndDone()
     {
         await using var world = await RerunScreensWorld.StartAsync();

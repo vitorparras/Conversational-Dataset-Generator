@@ -56,17 +56,18 @@ internal sealed class RerunDesk
         await queue.ProgressAsync(domainId, rerunId, cancellationToken).ConfigureAwait(false) is { } progress ? new Followed(progress, PhaseOf(progress)) : null;
 
     /// <summary>
-    /// A request to another version, or whose items another request closed, is superseded; with nothing waiting it is done; with no item concluded within a hold, counted from the last one
-    /// concluded or, with none, from the request, it is stopped; with nothing concluded nor held it is queued, and otherwise running.
+    /// A request whose items another request closed is superseded; with nothing waiting it is done, whatever version it reran to; still open to another version it is superseded; with no
+    /// item concluded within a hold, counted from the last one concluded or, with none, from the request, it is stopped; with nothing concluded nor held it is queued, and otherwise running.
     /// </summary>
     private RerunProgressScreen.Phase PhaseOf(RerunProgress progress)
     {
         var since = time.GetUtcNow() - (progress.LastConcludedAt ?? progress.RequestedAt);
-        return (progress.TargetVersion != Version || progress.Superseded > 0, progress.Queued + progress.Held == 0, since > SanitizationReruns.Hold) switch
+        return (progress.Superseded > 0, progress.Queued + progress.Held == 0, progress.TargetVersion != Version, since > SanitizationReruns.Hold) switch
         {
-            (true, _, _) => RerunProgressScreen.Phase.Superseded,
-            (_, true, _) => RerunProgressScreen.Phase.Done,
-            (_, _, true) => RerunProgressScreen.Phase.Stopped,
+            (true, _, _, _) => RerunProgressScreen.Phase.Superseded,
+            (_, true, _, _) => RerunProgressScreen.Phase.Done,
+            (_, _, true, _) => RerunProgressScreen.Phase.Superseded,
+            (_, _, _, true) => RerunProgressScreen.Phase.Stopped,
             _ when progress.Held + progress.Identical + progress.Replaced + progress.Refused == 0 => RerunProgressScreen.Phase.Queued,
             _ => RerunProgressScreen.Phase.Running,
         };

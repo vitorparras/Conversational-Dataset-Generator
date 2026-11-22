@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Text.RegularExpressions;
 using Core.Boundary.Text;
@@ -161,6 +162,28 @@ public sealed class RerunRoutesTests
         Assert.Contains("2 itens tratados pela versão alvo.", done.Page, StringComparison.Ordinal);
         Assert.Matches(Fact("Versão alvo", $"<code>{Current}</code>"), done.Page);
         Assert.DoesNotContain(">Atualizar</a>", done.Page, StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
+    public async Task ConcludedRerunToAnOlderVersionStillShowsItsResult()
+    {
+        await using var world = await RerunScreensWorld.StartAsync();
+        SanitizationSteps older = new([new IdentifierStep(new TextBoundaries()), new DestinationsStep()]);
+        var rerun = await world.Rerun.RequestAsync(older);
+        await world.Rerun.StartAsync(new SanitizationRerun(new Sanitizer(older, new TextBoundaries())));
+        await world.Rerun.IdleAsync();
+
+        var progress = await world.Rerun.ProgressAsync(rerun);
+        var page = await world.GetAsync(ScreenPaths.RerunProgressOf(rerun));
+
+        Assert.Equal((older.Version, 0L, 0L), (progress.TargetVersion, progress.Queued + progress.Held, progress.Superseded));
+        Assert.NotEqual(Current, progress.TargetVersion);
+        Assert.Matches(Fact("Situação", "Concluída"), page.Page);
+        Assert.Matches(Fact("Tratados", "2 de 2"), page.Page);
+        Assert.Matches(Fact("Idênticos, não regravados", progress.Identical.ToString(CultureInfo.InvariantCulture)), page.Page);
+        Assert.Matches(Fact("Substituídos", progress.Replaced.ToString(CultureInfo.InvariantCulture)), page.Page);
+        Assert.Equal(2L, progress.Identical + progress.Replaced);
+        Assert.DoesNotContain("A versão em uso mudou", page.Page, StringComparison.Ordinal);
     }
 
     [DatabaseFact]

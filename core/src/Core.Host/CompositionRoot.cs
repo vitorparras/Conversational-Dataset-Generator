@@ -112,8 +112,7 @@ internal static class CompositionRoot
         _ = services.AddSingleton(new ServiceProcessLauncher(ServiceFolder.Beside().Executable(LanguageServiceConfiguration.GivenExecutable(loaded.Values)))).AddSingleton(new ServiceProcessWatch());
         _ = services.AddSingleton(provider => new LanguageServiceSupervisor(provider.GetRequiredService<ServiceProcessLauncher>(), provider.GetRequiredService<HealthWait>(),
             provider.GetRequiredService<ServiceProcessWatch>(), provider.GetRequiredService<ILogger<LanguageServiceSupervisor>>()));
-        _ = services.AddSingleton(provider => new LanguageServiceStartupCheck(
-            provider.GetRequiredService<LanguageServiceSupervisor>(), loaded.Values[LanguageServiceConfiguration.StartupTimeoutPath]));
+        _ = services.AddSingleton(p => new LanguageServiceStartupCheck(p.GetRequiredService<LanguageServiceSupervisor>(), loaded.Values[LanguageServiceConfiguration.StartupTimeoutPath]));
         return services.BuildServiceProvider();
     }
 
@@ -122,6 +121,7 @@ internal static class CompositionRoot
     internal static EpochRotation RotationOf(NpgsqlDataSource dataSource, ItemKeys keys) => new(dataSource, keys);
     internal static ProtectedContent ContentOf(MasterKeyReading reading, IReadOnlySet<string> known) => new(reading.Labels, KeysOf(reading), known);
     internal static Persistence.Ingestion.SampleTextReader SampleTextOf(NpgsqlDataSource source, MasterKeyReading reading, IReadOnlySet<string> known) => new(source, ContentOf(reading, known));
+    internal static Persistence.Content.Rerun.ItemResanitizer ResanitizerOf(NpgsqlDataSource source, ProtectedContent content, TimeProvider time) => new(source, content, time);
     internal static CopyClosing ClosingOf(NpgsqlDataSource source, Persistence.Ingestion.IngestionBatches batches) => new(new Persistence.Ingestion.BatchApprovals(source), batches);
     internal static SanitizationSteps StepsOf() =>
         new([new EncodingRepairStep(new TextBoundaries()), new FormatArtifactStep(new TextBoundaries()), new IdentifierStep(new TextBoundaries()), new DestinationsStep()]);
@@ -177,8 +177,7 @@ internal static class CompositionRoot
             .AddSingleton(provider => SampleReviewParts.DeskOf(provider, loaded.Values));
         _ = builder.Services.AddSingleton(_ => new ServerAuditLog(AuditConfiguration.ServerLogDirectory(loaded.Values))).AddSingleton<AuditComparisonState>();
         _ = builder.Services.AddHostedService(provider => new AuditComparisonService(
-            new AuditComparisonPlan(
-                AuditConfiguration.CompareInterval(loaded.Values),
+            new AuditComparisonPlan(AuditConfiguration.CompareInterval(loaded.Values),
                 (from, to, token) => new AuditComparer(
                     provider.GetRequiredService<ServiceProvider>().GetRequiredService<NpgsqlDataSource>(), AuditConfiguration.ServerLogDirectory(loaded.Values))
                     .CompareAsync(from, to, token),
@@ -198,7 +197,8 @@ internal static class CompositionRoot
         _ = builder.Services.AddSingleton(report).AddSingleton(_ => startup).AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetRequiredService<ServiceProcessWatch>());
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<GuaranteeVerifier>()!).AddSingleton<SealWarningState>();
         _ = builder.Services.AddSingleton(provider => new ChainVerificationService(provider)).AddHostedService(provider => provider.GetRequiredService<ChainVerificationService>());
-        _ = builder.Services.AddHostedService(provider => new SealSendingService(provider)).AddHostedService(provider => new ConfigurationInForce(provider));
+        _ = builder.Services.AddHostedService(provider => new SealSendingService(provider)).AddHostedService(provider => new ConfigurationInForce(provider))
+            .AddHostedService(provider => new RerunService(provider, new SanitizationRerun(new Sanitizer(StepsOf(), new TextBoundaries()))));
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source ? new DomainListing(source) : null!)
             .AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source ? new PersonEmails(source) : null!);
         _ = builder.Services.AddSingleton(provider => provider.GetRequiredService<ServiceProvider>().GetService<NpgsqlDataSource>() is { } source ? new OperatorAdministration(

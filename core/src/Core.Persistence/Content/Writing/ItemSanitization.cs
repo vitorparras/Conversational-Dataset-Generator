@@ -21,6 +21,9 @@ public sealed record ItemSanitization
     /// <summary>How many edits each step made, in the order of the steps.</summary>
     public required IReadOnlyList<int> Counts { get; init; }
 
+    /// <summary>How many occurrences each step left untreated, in the order of the steps, one for each count.</summary>
+    public required IReadOnlyList<int> Untreated { get; init; }
+
     /// <summary>The version and the counts; never the text nor the trail.</summary>
-    public override string ToString() => $"ItemSanitization {{ Version = {Version}, Counts = {string.Join(", ", Counts)} }}";
+    public override string ToString() => $"ItemSanitization {{ Version = {Version}, Counts = {string.Join(", ", Counts)}, Untreated = {string.Join(", ", Untreated)} }}";
 }

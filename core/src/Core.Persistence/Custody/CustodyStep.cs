@@ -131,4 +131,10 @@ public enum CustodyStep
 
     /// <summary>The technical administration corrected the e-mail address of a person; the item is that person, the author the one who corrected, and the event holds no address.</summary>
     PersonEmailCorrected,
+
+    /// <summary>A person of the curation asked the rerun of the sanitization to a version of the steps; the item is the request and the reference the version.</summary>
+    SanitizationRerun,
+
+    /// <summary>The system concluded the rerun of one item; the item is the item, the reason the result and the reference the version the request reruns to.</summary>
+    ItemResanitized,
 }

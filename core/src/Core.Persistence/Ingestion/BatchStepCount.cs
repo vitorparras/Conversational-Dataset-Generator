@@ -4,4 +4,8 @@ namespace Core.Persistence.Ingestion;
 /// <param name="Name">The name of the step, never a word of the material.</param>
 /// <param name="Edits">How many edits the step made over the items of the batch.</param>
 /// <param name="Items">How many items the step changed.</param>
-public sealed record BatchStepCount(string Name, long Edits, long Items);
+public sealed record BatchStepCount(string Name, long Edits, long Items)
+{
+    /// <summary>How many occurrences the step left untreated over the items of the batch; the items written before the count was kept add none.</summary>
+    public long Untreated { get; init; }
+}

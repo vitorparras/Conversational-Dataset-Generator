@@ -53,6 +53,18 @@ public sealed class ProtectedContentTests
         Assert.DoesNotContain(Text, Encoding.Latin1.GetString(envelope), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void LabelsCarriedAreAskedOfAnEnvelopeWithTheKeyOfItsRow()
+    {
+        using var custody = SyntheticCustody.Holding("texto-bruto/7/v1");
+        var row = custody.Seal(ContentColumns.RawText, 7, Text);
+
+        var refused = Assert.Throws<ArgumentNullException>(() => ProtectedContent.LabelsCarried(row.Envelope.Span, null!));
+
+        Assert.Equal("key", refused.ParamName);
+        Assert.Equal("texto-bruto/7/v1", ProtectedContent.LabelsCarried(row.Envelope.Span, row.Key)[0]);
+    }
+
     [Theory]
     [InlineData("raw_text", "texto-bruto/7/v1")]
     [InlineData("sanitized_text", "texto-bruto/7/v1")]

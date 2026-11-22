@@ -19,7 +19,8 @@ public sealed class SanitizationStorageTests
     private const string CheckViolation = "23514";
     private const string KeptWhoeverWrites = "CE004";
     private const string Empty = "UPDATE content.item_text SET emptied_at = now(), raw_text = NULL, sanitized_text = NULL, pseudonymized_text = NULL, "
-        + "occurrences = NULL, dek_epoch = NULL, dek_wrapped = NULL, sanitization_version = NULL, sanitization_trail = NULL, sanitization_counts = NULL WHERE id = @id RETURNING id";
+        + "occurrences = NULL, dek_epoch = NULL, dek_wrapped = NULL, sanitization_version = NULL, sanitization_trail = NULL, sanitization_counts = NULL, "
+        + "sanitization_untreated = NULL WHERE id = @id RETURNING id";
     private const string SanitizedEvent = "INSERT INTO public.custody_event (actor_person_id, actor_system, item_kind, item_id, step, reason, reference) "
         + "VALUES (NULL, true, 'ingestion_batch', 1, 'batch_sanitized', 'administrative_act', @reference) RETURNING sequence";
 
@@ -88,7 +89,7 @@ public sealed class SanitizationStorageTests
         var inserted = await Assert.ThrowsAsync<PostgresException>(() => world.OwnerInDomainAsync(1, Alone));
         var updated = await Assert.ThrowsAsync<PostgresException>(() => world.OwnerInDomainAsync(1, "UPDATE content.item_text SET sanitization_counts = NULL WHERE id = @id", ("id", item)));
         var miscounted = await Assert.ThrowsAsync<PostgresException>(() => world.RealWriter.AddItemTextAsync(
-            1, 1, new NewItemText(Raw, null, []) { Sanitization = ItemTexts.Sanitization(Sanitized) with { Counts = [0, 0] } }, TestContext.Current.CancellationToken));
+            1, 1, new NewItemText(Raw, null, []) { Sanitization = ItemTexts.Sanitization(Sanitized) with { Counts = [0, 0], Untreated = [0, 0] } }, TestContext.Current.CancellationToken));
 
         Assert.Equal(
             ((CheckViolation, "item_text_sanitization_together"), KeptWhoeverWrites, CheckViolation),

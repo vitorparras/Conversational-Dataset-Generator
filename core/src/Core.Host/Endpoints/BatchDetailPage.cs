@@ -67,7 +67,9 @@ internal static class BatchDetailPage
             Accommodation = AccommodationOf(entry.SourceForm, numbers.Accommodations),
             Warning = entry.Receipt?.Warning,
             StepsVersion = numbers.SanitizationVersion,
-            Steps = [.. numbers.Steps.Select(step => new BatchDetailScreen.StepCount(step.Name, step.Edits, step.Items))],
+            VersionedItems = numbers.SanitizedItems,
+            Items = numbers.Items,
+            Steps = [.. numbers.Steps.Select(step => new BatchDetailScreen.StepCount(step.Name, step.Edits, step.Items) { Untreated = step.Untreated })],
         };
     }
 

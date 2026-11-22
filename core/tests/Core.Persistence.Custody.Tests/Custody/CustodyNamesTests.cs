@@ -49,6 +49,7 @@ public sealed partial class CustodyNamesTests
         Assert.Equal(
             [
                 "person", "item_text", "reversal_map", "custody_chain", "content_epoch", "domain", "sign_in_attempt", "master_key", "ingestion_batch", "configuration_change",
+                "sanitization_rerun",
                 "person_created", "person_deactivated", "person_function_changed", "person_password_set", "correction",
                 "raw_text_read", "sanitized_text_read", "reversal_entries_read", "verify_chain", "item_emptied", "item_emptying_refused", "epoch_rotated", "domain_created", "seal_recorded",
                 "domain_label_rotated", "sign_in_accepted", "sign_in_refused", "credential_recomputed", "key_loss_declared", "recovery_tested", "verify_guarantees",
@@ -60,9 +61,11 @@ public sealed partial class CustodyNamesTests
                 "batch_reviewed",
                 "batch_sanitized",
                 "configuration_approved", "configuration_refused", "configuration_in_force", "configuration_not_applied", "person_email_corrected",
+                "sanitization_rerun", "item_resanitized",
                 "administrative_act", "correction_of_record", "content_read", "verification_passed", "verification_failed",
                 "removal_requested_by_subject", "contract_requirement", "author_without_function", "item_already_emptied", "credentials_accepted", "password_wrong", "account_not_recognized",
                 "batch_accepted", "batch_rejected", "review_clean", "review_found",
+                "sanitization_identical", "sanitization_replaced", "sanitization_refused", "sanitization_superseded",
             ],
             [.. Enum.GetValues<CustodyItemKind>().Select(CustodyNames.Of), .. Enum.GetValues<CustodyStep>().Select(CustodyNames.Of), .. Enum.GetValues<CustodyReason>().Select(CustodyNames.Of)]);
     }

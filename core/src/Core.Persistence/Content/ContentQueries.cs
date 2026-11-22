@@ -9,7 +9,7 @@ namespace Core.Persistence.Content;
 /// nothing. A query is a <c>public</c> or <c>internal const string</c> field of this class, and the list is read from the fields, so adding one is all it takes
 /// to be tested; the architecture rule keeps every statement over content in such a constant of this file.
 /// </summary>
-public static class ContentQueries
+public static partial class ContentQueries
 {
     /// <summary>The sealed raw text of an item, whether the item was emptied, and the key of the item wrapped with its epoch.</summary>
     internal const string ReadRawText = "SELECT raw_text, emptied_at IS NOT NULL, dek_epoch, dek_wrapped, accommodated_into, losses FROM content.item_text WHERE id = @id";
@@ -64,9 +64,9 @@ public static class ContentQueries
         "WITH version AS (INSERT INTO content.sanitization_version (domain_id, version, steps) SELECT @domain::integer, @version::text, @steps::text WHERE @version::text IS NOT NULL "
         + "ON CONFLICT (version, domain_id) DO NOTHING) "
         + "INSERT INTO content.item_text (domain_id, batch_id, raw_text, sanitized_text, pseudonymized_text, occurrences, dek_epoch, dek_wrapped, accommodated_into, losses, "
-        + "removed_passages, pseudonymized_passages, preserved_passages, sanitization_version, sanitization_trail, sanitization_counts) "
+        + "removed_passages, pseudonymized_passages, preserved_passages, sanitization_version, sanitization_trail, sanitization_counts, sanitization_untreated) "
         + "VALUES (@domain, @batch, @raw, @sanitized, @pseudonymized, @occurrences, @epoch, @wrapped, @accommodated, @losses, @removed_count, @pseudonymized_count, @preserved_count, "
-        + "@version, @trail, @counts) RETURNING id";
+        + "@version, @trail, @counts, @untreated) RETURNING id";
 
     /// <summary>Adds the map that reverses the pseudonyms of an item.</summary>
     internal const string InsertReversalMap =
@@ -159,7 +159,7 @@ public static class ContentQueries
     internal const string EmptyItemText =
         "UPDATE content.item_text SET emptied_at = now(), raw_text = NULL, sanitized_text = NULL, pseudonymized_text = NULL, occurrences = NULL, "
         + "removed_passages = 0, pseudonymized_passages = 0, preserved_passages = 0, sanitization_version = NULL, sanitization_trail = NULL, sanitization_counts = NULL, "
-        + "dek_epoch = NULL, dek_wrapped = NULL "
+        + "sanitization_untreated = NULL, dek_epoch = NULL, dek_wrapped = NULL "
         + "WHERE id = @id AND emptied_at IS NULL RETURNING id";
 
     /// <summary>Empties the maps of an item, with the item: the marker is set and the entries and the key of the map are cleared.</summary>

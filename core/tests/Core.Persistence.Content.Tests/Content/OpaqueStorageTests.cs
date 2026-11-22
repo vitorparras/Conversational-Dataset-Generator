@@ -79,12 +79,12 @@ public sealed class OpaqueStorageTests
     private static async Task WriteInClearAsync(ContentWorld world, string column, byte[] clear)
     {
         var parts = column.Split('.');
-        // The content changes only by the emptying (CE004) and a key is wrapped again only with the event of the rotation (CE005): triggers that fire for the owner too.
+        // The content changes only by the emptying or the rerun (CE004) and a key is wrapped again only with the event of the rotation (CE005): triggers that fire for the owner too.
         // Whoever writes in clear sets them aside for the one statement, as an owner would.
         var table = $"{parts[0]}.{parts[1]}";
         string[] gates = parts[1] switch
         {
-            "item_text" => ["emptied_content_is_final", "item_change_needs_event"],
+            "item_text" => ["emptied_content_is_final", "item_change_needs_event", "resanitization_needs_rerun"],
             "reversal_map" => ["emptied_content_is_final", "map_change_needs_event"],
             _ => ["origin_change_is_bounded"],
         };

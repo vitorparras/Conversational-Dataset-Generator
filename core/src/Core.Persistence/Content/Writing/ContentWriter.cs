@@ -18,6 +18,8 @@ public sealed class ContentWriter(NpgsqlDataSource dataSource, ProtectedContent 
     /// <summary>How many times a map is written when the database serializes it behind an emptying that committed first; the next attempt finds the item emptied and is refused.</summary>
     private const int MapAttempts = 3;
 
+    private const NpgsqlDbType IntegerArray = (NpgsqlDbType)((int)NpgsqlDbType.Array + (int)NpgsqlDbType.Integer);
+
     /// <summary>Adds an item to a batch of the domain, which must be open, and answers its identifier.</summary>
     /// <param name="domainId">The domain the item belongs to.</param>
     /// <param name="batchId">The batch the item comes in with; the database refuses a batch that is not open, or that is of another domain.</param>
@@ -69,7 +71,8 @@ public sealed class ContentWriter(NpgsqlDataSource dataSource, ProtectedContent 
         yield return Text("version", sanitization?.Version);
         yield return Text("steps", sanitization?.Steps);
         yield return Bytes("trail", trail);
-        yield return new NpgsqlParameter("counts", (NpgsqlDbType)((int)NpgsqlDbType.Array + (int)NpgsqlDbType.Integer)) { Value = (object?)sanitization?.Counts.ToArray() ?? DBNull.Value };
+        yield return new NpgsqlParameter("counts", IntegerArray) { Value = (object?)sanitization?.Counts.ToArray() ?? DBNull.Value };
+        yield return new NpgsqlParameter("untreated", IntegerArray) { Value = (object?)sanitization?.Untreated.ToArray() ?? DBNull.Value };
     }
 
     private static IEnumerable<NpgsqlParameter> Counted(IReadOnlyList<ItemOccurrence>? occurrences)

@@ -33,8 +33,13 @@ public sealed class SanitizationRerunsTests : IClassFixture<RerunDatabase>
 
         var requests = await Task.WhenAll(rerun.RequestAsync(), rerun.RequestAsync(queue: rerun.OtherQueue()));
 
-        var rerunId = Assert.Single(requests.Select(request => request.RerunId).Distinct());
-        Assert.Equal(1L, (await rerun.ProgressAsync(rerunId!.Value)).Queued);
+        // The one that loses the race may give up after its tries, writing nothing; the item is still queued once, in the one open request.
+        var rerunId = Assert.Single(requests.Select(request => request.RerunId).OfType<long>().Distinct());
+        RerunResult[] answers = [new(RerunOutcome.Queued, rerunId), new(RerunOutcome.AlreadyOpen, rerunId), new(RerunOutcome.NotRecorded)];
+        Assert.Contains(answers[0], requests);
+        Assert.All(requests, request => Assert.Contains(request, answers));
+        var situation = await rerun.Queue.SituationAsync(rerun.DomainId, TestContext.Current.CancellationToken);
+        Assert.Equal((1L, rerunId), ((await rerun.ProgressAsync(rerunId)).Queued, situation.OpenRerunId));
     }
 
     [DatabaseFact]

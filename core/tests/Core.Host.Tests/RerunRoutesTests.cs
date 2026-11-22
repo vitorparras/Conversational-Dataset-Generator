@@ -324,9 +324,12 @@ public sealed class RerunRoutesTests
         var absent = await world.GetAsync(Missing, world.OtherCurator);
 
         var mine = await world.GetAsync(ScreenPaths.RerunProgressOf(open));
+        var situation = await world.GetAsync(ScreenPaths.Rerun, world.OtherCurator);
         var theirs = await world.GetAsync(ScreenPaths.RerunProgressOf(open), world.OtherCurator);
 
-        Assert.Equal(HttpStatusCode.OK, mine.Status);
+        Assert.Equal((HttpStatusCode.OK, HttpStatusCode.OK), (mine.Status, situation.Status));
+        Assert.Contains(SubmissionWorld.NameOf(SubmissionWorld.OtherDomain), situation.Page, StringComparison.Ordinal);
+        Assert.DoesNotContain(ScreenPaths.RerunProgressOf(open), situation.Page, StringComparison.Ordinal);
         Assert.Equal((HttpStatusCode.NotFound, WithoutAddress(absent.Page)), (theirs.Status, WithoutAddress(theirs.Page)));
     }
 

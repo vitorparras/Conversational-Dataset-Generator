@@ -103,6 +103,15 @@ internal sealed partial class RerunScreensWorld : IAsyncDisposable
         _ = await resanitizer.ResanitizeAsync(hold, held => DecidedItemTexts.Rerun(InForce, held), Token);
     }
 
+    /// <summary>Spends every try of each item left in the queue, as a worker that keeps failing would, so that each is refused and the request ends.</summary>
+    internal async Task RefuseTheRestAsync()
+    {
+        while (await Rerun.Queue.TakeAsync(SubmissionWorld.Domain, CompositionRoot.StepsOf().Version, Token) is { } hold)
+        {
+            _ = await Rerun.Queue.FailAsync(hold, Token);
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         await Host.DisposeAsync();

@@ -38,6 +38,8 @@ public sealed class RerunScreenTests(BrowserFixture browser, RerunHostFixture re
 
         await Expect(tab.Page).ToHaveURLAsync(new Regex("/sanitizacao/reexecucoes/[0-9]+$", RegexOptions.None, TimeSpan.FromSeconds(1)));
         await Expect(tab.Page.Locator(".facts__item", new() { HasText = "Situação" }).Locator("dd")).ToHaveTextAsync("Na fila");
+        await ScreenAccessibility.AssertAccessibleAsync(tab.Page, MediaMode.Light, "reexecucao-na-fila");
+        await ScreenAccessibility.AssertAccessibleAsync(tab.Page, MediaMode.Dark, "reexecucao-na-fila");
     }
 
     [Fact]

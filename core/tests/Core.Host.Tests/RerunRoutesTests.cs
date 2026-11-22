@@ -26,13 +26,17 @@ public sealed class RerunRoutesTests
     public async Task RerunScreenShowsItemsByVersion()
     {
         await using var world = await RerunScreensWorld.StartAsync();
+        _ = await world.Rerun.RequestAsync(CompositionRoot.StepsOf());
+        await world.ConcludeOneAsync();
+        await world.RefuseTheRestAsync();
 
         var page = await world.GetAsync(ScreenPaths.Rerun);
 
         Assert.Equal(HttpStatusCode.OK, page.Status);
         Assert.Matches(Fact("Versão em uso", $"<code>{Current}</code>"), page.Page);
-        Assert.Matches(new Regex($">{Before}</th>\\s*<td role=\"cell\">2</td>", RegexOptions.None, TimeSpan.FromSeconds(1)), page.Page);
-        Assert.Matches(new Regex($"{ConfirmLink}[^>]*>Reexecutar 2 itens</a>", RegexOptions.None, TimeSpan.FromSeconds(1)), page.Page);
+        Assert.Matches(new Regex($">{Current}, em uso</th>\\s*<td role=\"cell\">1</td>", RegexOptions.None, TimeSpan.FromSeconds(1)), page.Page);
+        Assert.Matches(new Regex($">{Before}</th>\\s*<td role=\"cell\">1</td>", RegexOptions.None, TimeSpan.FromSeconds(1)), page.Page);
+        Assert.Matches(new Regex($"{ConfirmLink}[^>]*>Reexecutar 1 item</a>", RegexOptions.None, TimeSpan.FromSeconds(1)), page.Page);
     }
 
     [DatabaseFact]
@@ -151,6 +155,9 @@ public sealed class RerunRoutesTests
         Assert.Equal(("Na fila", "Em andamento", "Parado"), (queued, running, stopped));
         Assert.Matches(Fact("Situação", "Concluída"), done.Page);
         Assert.Matches(Fact("Tratados", "2 de 2"), done.Page);
+        Assert.Matches(Fact("Idênticos, não regravados", "2"), done.Page);
+        Assert.Matches(Fact("Substituídos", "0"), done.Page);
+        Assert.Matches(Fact("Recusados", "0"), done.Page);
         Assert.Contains("2 itens tratados pela versão alvo.", done.Page, StringComparison.Ordinal);
         Assert.Matches(Fact("Versão alvo", $"<code>{Current}</code>"), done.Page);
         Assert.DoesNotContain(">Atualizar</a>", done.Page, StringComparison.Ordinal);
@@ -162,7 +169,9 @@ public sealed class RerunRoutesTests
         await using var world = await RerunScreensWorld.StartAsync();
         var rerun = await world.Rerun.RequestAsync(CompositionRoot.StepsOf());
         world.Rerun.Clock.Advance(SanitizationReruns.Hold - TimeSpan.FromSeconds(1));
-        var withinTheHold = await world.PhaseAsync(rerun);
+        var withinTheHoldOfTheRequest = await world.PhaseAsync(rerun);
+        world.Rerun.Clock.Advance(TimeSpan.FromSeconds(2));
+        var pastTheHoldOfTheRequest = await world.PhaseAsync(rerun);
         await world.ConcludeOneAsync();
         world.Rerun.Clock.Advance(SanitizationReruns.Hold - TimeSpan.FromSeconds(1));
         var withinTheHoldOfTheLast = await world.PhaseAsync(rerun);
@@ -170,9 +179,9 @@ public sealed class RerunRoutesTests
 
         var page = await world.GetAsync(ScreenPaths.RerunProgressOf(rerun));
 
-        Assert.Equal(("Na fila", "Em andamento"), (withinTheHold, withinTheHoldOfTheLast));
+        Assert.Equal(("Na fila", "Parado", "Em andamento"), (withinTheHoldOfTheRequest, pastTheHoldOfTheRequest, withinTheHoldOfTheLast));
         Assert.Matches(Fact("Situação", "Parado"), page.Page);
-        Assert.Contains("Nenhum item foi concluído no prazo de uma posse.", page.Page, StringComparison.Ordinal);
+        Assert.Contains("Nenhum item foi concluído no prazo de uma posse, contado do último concluído ou, sem nenhum, do pedido.", page.Page, StringComparison.Ordinal);
         Assert.Contains($"href=\"{ScreenPaths.RerunProgressOf(rerun)}\"", page.Page, StringComparison.Ordinal);
     }
 

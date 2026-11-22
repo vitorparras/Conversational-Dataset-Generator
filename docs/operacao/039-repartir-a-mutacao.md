@@ -21,9 +21,9 @@ O peso mede o custo de testar o trecho, não só o tamanho. É o número de toke
 estático**: cada texto e cada `true` ou `false` de um campo ou propriedade estática com valor, ou de
 um construtor estático. O Stryker não sabe quais testes alcançam o que roda uma vez, antes de
 qualquer teste, e roda a suíte inteira para cada mutante dele. Um método por onde passa todo teste
-da área é declarado pela assinatura em `SUITE_WIDE` (`tools/verify-code/steps/mutation_cost.py`),
-porque nada no texto o diz; cada token dele pesa um mutante de suíte, e ele fica sozinho numa
-parte. O tempo de uma parte segue os mutantes de suíte que ela tem, não o total de mutantes.
+da área, ou que um inicializador estático chama (#857), é declarado pela assinatura em `SUITE_WIDE`
+(`tools/verify-code/steps/mutation_cost.py`), porque nada no texto o diz; cada token dele pesa um
+mutante de suíte, e ele fica sozinho numa parte. O tempo de uma parte segue os mutantes de suíte.
 
 ## A medição que fixou o primeiro fator (#683)
 

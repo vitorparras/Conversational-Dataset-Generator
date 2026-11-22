@@ -487,7 +487,7 @@ class RepositoryAreaTests(unittest.TestCase):
         root = support.VERIFY_CODE.parents[1]
         areas = {a.prefix: a for a in areas_doc.read_areas(root).areas}
 
-        self.assertEqual(areas["Core.Persistence.Content"].parts, 46)
+        self.assertEqual(areas["Core.Persistence.Content"].parts, 48)
         self.assertEqual(areas["Core.Persistence.Content.Writing"].parts, 7)
         self.assertEqual(areas["Core.Persistence.Content.Sealing"].parts, 3)
         self.assertEqual(areas["Core.Persistence.Content.Reading"].parts, 1)
@@ -500,14 +500,22 @@ class RepositoryAreaTests(unittest.TestCase):
         core = mutation_core.whole(root, area, table)
         assert core is not None
         found = mutation_core.pieces(root, core)
-        name = "Content/ContentTransaction.cs"
-        text = (root / mutation_core.SOURCES / core.project / name).read_text(encoding="utf-8-sig")
-        declarations = ("async Task<ContentTransaction> OpenAsync(", "async Task DeclareAsync(")
+        declarations = {
+            "Content/ContentTransaction.cs": (
+                "async Task<ContentTransaction> OpenAsync(",
+                "async Task DeclareAsync(",
+            ),
+            "Content/ContentQueries.cs": ("static bool Exposed(", "static bool IsQuery("),
+        }
+        texts = {
+            name: (root / mutation_core.SOURCES / core.project / name).read_text(encoding="utf-8-sig")
+            for name in declarations
+        }
         wide = [
             piece
             for piece in found
-            if piece.file == name
-            and any(declared in text[piece.start : piece.end] for declared in declarations)
+            if piece.file in declarations
+            and any(declared in texts[piece.file][piece.start : piece.end] for declared in declarations[piece.file])
         ]
 
         with mock.patch.object(mutation_cost, "SUITE_MUTANT", 0):
@@ -516,7 +524,7 @@ class RepositoryAreaTests(unittest.TestCase):
         rest = [part for part in held if not set(part) & set(wide)]
         suite = [sum(p.weight - tokens[p.file, p.start] for p in part) for part in rest]
 
-        self.assertEqual(len(wide), len(declarations))
+        self.assertEqual(len(wide), sum(len(signatures) for signatures in declarations.values()))
         self.assertTrue(all([piece] in held for piece in wide))
         self.assertLessEqual(max(suite), 2 * SUITE_MUTANT)
 
@@ -529,7 +537,7 @@ class RepositoryAreaTests(unittest.TestCase):
         writing = [name for name in names if name.startswith("Core.Persistence.Content.Writing@")]
         sealing = [name for name in names if name.startswith("Core.Persistence.Content.Sealing@")]
 
-        expected = [f"Core.Persistence.Content@{n}/46" for n in range(1, 47)]
+        expected = [f"Core.Persistence.Content@{n}/48" for n in range(1, 49)]
         ingestion = [name for name in names if name.startswith("Core.Persistence.Ingestion@")]
         self.assertEqual(
             (problems, content, writing, sealing, ingestion),

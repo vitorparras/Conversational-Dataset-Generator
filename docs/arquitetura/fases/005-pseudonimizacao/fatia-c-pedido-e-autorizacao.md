@@ -17,8 +17,9 @@ evento de recusa (#103 CA-3). Renovar é autorizar de novo o mesmo pedido depois
 venceu. Com a cadeia quebrada, nenhum ato é gravado, nem a recusa; a tela diz por quê. Os
 protótipos são `pedido.html`, `autorizacao.html` e a lista de `meus-pedidos.html`, em
 [protótipos](prototipos/index.html), e seguem a [0058](../../../decisoes/0058-padrao-de-usabilidade-e-visual.md).
-Na R1, o botão de enviar fica visível no celular (390x844) sem rolar, ou o mais perto disso: é
-critério da implementação, conferido na captura.
+Na R1, no estado vazio, o botão de enviar fica visível em 390x844 sem rolar; nos estados de erro, o
+foco vai ao primeiro campo com erro, e o botão pode pedir rolagem. O protótipo não cumpre (o botão
+termina em 873 px no estado vazio), e a #614 ajusta na implementação.
 
 ## Critérios de aceite
 
@@ -27,7 +28,7 @@ critério da implementação, conferido na captura.
 | `Core.Ingestion.Tests` | RequestWithoutReasonUseOrTermIsRefused (#103 CA-1); RequestReachingMoreThanOneMarkerOrItemIsRefusedByScope (#103 CA-2) |
 | `Core.Persistence.Content.Tests` | IncompleteRequestWritesNoRowAndNoEvent (#103 CA-1); RefusalIsItsOwnEventAndCannotBeRemovedOrChanged (#103 CA-4); EachReversalStepPointsToItsListedKindAndReference; RefusalReferenceCarriesNoText; OwnAuthorizationIsRefusedByTheDatabase (#104 CA-1); RenewalIsANewAuthorizationWithWhoWhenAndTerm (#104 CA-4); BrokenChainRefusesNewAuthorizations (#104 CA-5); SecondAuthorizationWhileOneIsValidIsRefused; AuthorizationWithATermInThePastIsRefused; RequestRowsCannotBeChanged; DatabaseCopyHasNoReadableRequestText |
 | `Core.Host.Tests` | MarkerNotInTheItemIsRefusedByScopeWithTheReason (#103 CA-2); AnnotatorRequestIsRefusedAndRecordedWithWhoWhenAndScope (#103 CA-3); AuthorizingOwnRequestIsRefusedByTheApplicationAndRecorded (#104 CA-1); AuthorizationByWhoIsNotCurationOfTheDomainIsRefused (#104); IncompleteRequestFormReturnsWithTheErrorsAndAsksNothing (#614 CA-1); DomainWideRequestIsRefusedOnTheScreenAndRecorded (#614 CA-2); AnnotatorOpeningTheRequestPageGetsNotFound e AnnotatorPostingTheRequestIsDeniedByThePolicy (#614 CA-3); SentRequestShowsWhoIsMissingAndNoIdentity (#614 CA-4); OwnRequestIsNotListedForApproval e DirectPostOnOwnRequestIsRefused (#615 CA-1); PendingRequestShowsReasonUseAndTermAndNoIdentity (#615 CA-2); ReadingTheRequestTextIsRecordedBeforeOpening; AuthorizationIsConfirmedOnItsOwnPageForThatRequestOnly e AuthorizationPastItsTermIsShownExpired (#615 CA-3); DeclineIsRecordedWithWhoWhenAndScope (#615 CA-4); MissingOrOtherDomainRequestAnswersNotFound; ListFilterAndPageStayInTheAddress |
-| `Core.Host.Tests.Browser` | RequestFormIsFilledByKeyboardAndPassesTheAccessibilityCheck; AuthorizationIsConfirmedByKeyboardAndPassesTheAccessibilityCheck |
+| `Core.Host.Tests.Browser` | RequestFormIsFilledByKeyboardAndPassesTheAccessibilityCheck; SendButtonIsVisibleWithoutScrollingOnAPhone (estado vazio); AuthorizationIsConfirmedByKeyboardAndPassesTheAccessibilityCheck |
 
 "Domínio inteiro" e "conjunto sem critério" (#614 CA-2) chegam como mais de um marcador ou item, ou
 nenhum: a tela só aceita um de cada, e o POST montado à mão com mais é recusado pelo escopo, com o

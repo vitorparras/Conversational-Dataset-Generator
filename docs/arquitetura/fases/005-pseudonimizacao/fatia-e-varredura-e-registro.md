@@ -4,19 +4,18 @@
 
 A fatia prova o que nenhum módulo prova sozinho: que o mapa é o único caminho de volta e que nenhum
 registro leva o material. É quase toda teste. A produção que entra é o que a prova achar faltando:
-um campo sem classificação, uma mensagem de erro que ecoa o texto.
+um campo sem classificação, uma mensagem de erro que ecoa o texto, um campo do registro do serviço.
 
 **Varredura (#106).** Material com originais sintéticos e improváveis entra pela submissão, passa
 por todo o fluxo, e o teste chama cada leitura do inventário como quem não tem autorização de
 reversão: telas, rotas, relatórios do lote, mensagens de erro, a página de endereço inexistente. Um
 original achado reprova e nomeia a leitura. O inventário fica ao lado do teste e é conferido contra
-as rotas que `ScreenAccessDeclarationTests` já lê: rota de conteúdo nova fora dele reprova sem
-depender de alguém lembrar.
+as rotas que `ScreenAccessDeclarationTests` já lê: rota de conteúdo nova fora dele reprova.
 
-**Registro (#107).** No núcleo, a redação já está no caminho do registro (`DataClassifications`);
-no serviço, os campos são fixos e não há opção que imprima o corpo da requisição
-(`language-service/tests/unit/test_no_debug_mode.py`). A fatia roda o fluxo completo com material
-semeado, a troca incluída, e lê o registro dos dois processos.
+**Registro (#107).** No núcleo, a redação já está no caminho do registro (`DataClassifications`). A
+troca roda antes de o item existir, então o registro dela traz lote, posição do item, passo e
+motivo, como o da sanitização na fase 4; depois de gravado, o id do item. No serviço, os campos são
+fixos; a fatia confere tamanho e versão do modelo, que os testes de hoje não afirmam.
 
 ## Critérios de aceite
 
@@ -24,12 +23,14 @@ semeado, a troca incluída, e lê o registro dos dois processos.
 |---|---|
 | `Core.Host.Tests` (#106) | NoReadWithoutReversalReturnsASeededValue (CA-1); ReadPlantedToReturnTheSanitizedTextFailsTheSweep (CA-2); FailureMidProcessingShowsNoSeededValue (CA-3); ContentReadOutsideTheInventoryFailsTheCheck (CA-4) |
 | `Core.Tests.Integration` (#107) | FullFlowLogsOfBothProcessesCarryNoSeededValue (CA-1) |
-| `Core.Host.Tests` (#107) | ExceptionWhilePseudonymizingLogsItemStepAndReasonOnly (CA-2); UnmarkedTextPassedToTheLogIsRedactedAnyway (CA-3) |
-| `language-service/tests/privacy` (#107) | CA-4 e CA-5: `language-service/tests/privacy/test_log_content.py` e `language-service/tests/unit/test_no_debug_mode.py` já os cobrem; o plano confere cada asserção e completa a que faltar |
+| `Core.Host.Tests` (#107) | ExceptionWhilePseudonymizingLogsBatchPositionStepAndReasonOnly (CA-2); UnmarkedTextPassedToTheLogIsRedactedAnyway (CA-3) |
+| `language-service/tests/privacy` (#107) | test_served_request_logs_id_size_time_model_and_counts_without_offsets (CA-4); test_no_option_prints_the_request_body (CA-5) |
 
 O CA-2 da #106 planta, só no teste, uma rota que devolve o sanitizado, e exige que a varredura a
 reprove nomeando-a. O CA-3 da #107 é o caso em que quem escreve a chamada esquece de marcar o campo:
-o teste passa o texto semeado sem classificação e exige a linha redigida.
+o teste passa o texto semeado sem classificação e exige a linha redigida. O CA-5 vai além de
+`language-service/tests/unit/test_no_debug_mode.py`, que procura só depuração e recarga: procura
+qualquer opção que leve o corpo ao registro.
 
 ## Peças e padrões
 

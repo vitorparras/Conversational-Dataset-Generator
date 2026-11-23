@@ -58,7 +58,7 @@
                 <li><a href="#autorizado">Autorizado</a></li>
                 <li><a href="#recusado">Recusado</a></li>
                 <li><a href="#proprio">Pedido próprio enviado direto</a></li>
-                <li><a href="#cadeia-quebrada">Cadeia do domínio quebrada</a></li>
+                <li><a href="#cadeia-quebrada">Cadeia de custódia quebrada</a></li>
                 <li><a href="#sem-permissao">Sem a função de Curadoria</a></li>
             </ul>
         </nav>
@@ -67,6 +67,15 @@
             <p id="lista-estado"><strong>Estado: pedidos pendentes.</strong> Lista paginada no servidor, 20 por página, com a página no endereço.</p>
             <section class="panel" aria-labelledby="lista-titulo">
                 <h2 id="lista-titulo">Pendentes</h2>
+                <form class="filter" method="get" action="autorizacao.html#lista">
+                    <div class="field">
+                        <label class="field__label" for="filtro-item">Item</label>
+                        <input id="filtro-item" class="field__input" name="item" type="text" inputmode="numeric" autocomplete="off" />
+                    </div>
+                    <div class="actions">
+                        <button id="filtrar-r2" class="button button--secondary" type="submit">Filtrar</button>
+                    </div>
+                </form>
                 <div class="data-table" role="region" aria-labelledby="lista-legenda" tabindex="0">
                     <table>
                         <caption id="lista-legenda">Cada linha é um pedido pendente de outra pessoa</caption>
@@ -77,7 +86,7 @@
                         </tbody>
                     </table>
                 </div>
-                <p>Página 1 de 1.</p>
+                <p>Página 1 de 1, 20 por página. <a href="autorizacao.html?pagina=1#lista">Endereço desta página</a>.</p>
             </section>
         </section>
         <hr />
@@ -232,10 +241,10 @@
         <hr />
 
         <section id="cadeia-quebrada" aria-labelledby="cadeia-quebrada-estado">
-            <p id="cadeia-quebrada-estado"><strong>Estado: cadeia do domínio quebrada.</strong> Enquanto a última verificação da cadeia falhou, nenhuma autorização é gravada.</p>
+            <p id="cadeia-quebrada-estado"><strong>Estado: cadeia de custódia quebrada.</strong> A cadeia é uma só na instalação. Enquanto a última verificação falhou, nenhum ato é gravado: nem a autorização, nem a recusa.</p>
             <div class="notice notice--error" role="alert">
                 <span class="notice__mark" aria-hidden="true">!</span>
-                <p><span class="notice__kind">Indisponível:</span> A cadeia de custódia deste domínio está quebrada. Nenhuma reversão é autorizada até a verificação voltar a passar.</p>
+                <p><span class="notice__kind">Indisponível:</span> A cadeia de custódia está quebrada. Nenhuma reversão é autorizada ou recusada até a verificação voltar a passar; o pedido continua pendente.</p>
             </div>
         </section>
         <hr />

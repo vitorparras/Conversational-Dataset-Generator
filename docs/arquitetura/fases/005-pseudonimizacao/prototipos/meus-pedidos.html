@@ -8,8 +8,8 @@
     <link rel="stylesheet" href="../../../../../core/src/Core.Host/Screens/screens.css" />
 </head>
 <!--
-    Protótipo da tela R3 (GET /reversao/meus-pedidos, GET /reversao/meus-pedidos/{id} e POST
-    /reversao/meus-pedidos/{id}/revelar), só de quem pediu. A identidade aparece uma vez, na resposta
+    Protótipo da tela R3 (GET /reversao/meus-pedidos e GET /reversao/meus-pedidos/{id}, da fatia C;
+    GET e POST /reversao/meus-pedidos/{id}/revelar, da fatia D), só de quem pediu. A identidade aparece uma vez, na resposta
     do POST, sem cache; depois o pedido mostra só quando foi revelado. O valor revelado é sintético.
     Na tela real só um estado aparece por vez; aqui os estados vêm em sequência, cada um na sua âncora.
     Os dados são sintéticos.
@@ -54,6 +54,7 @@
                 <li><a href="#lista">Lista dos pedidos</a></li>
                 <li><a href="#pendente">Pedido pendente</a></li>
                 <li><a href="#autorizado">Autorizado, pronto para revelar</a></li>
+                <li><a href="#confirmar-revelacao">Confirmar a revelação</a></li>
                 <li><a href="#revelada">Identidade revelada, uma vez</a></li>
                 <li><a href="#depois">O mesmo pedido, aberto de novo</a></li>
                 <li><a href="#vencido">Recusado: prazo vencido</a></li>
@@ -67,6 +68,22 @@
             <p id="lista-estado"><strong>Estado: lista dos pedidos.</strong> Lista paginada no servidor, 20 por página.</p>
             <section class="panel" aria-labelledby="lista-r3-titulo">
                 <h2 id="lista-r3-titulo">Pedidos</h2>
+                <form class="filter" method="get" action="meus-pedidos.html#lista">
+                    <div class="field">
+                        <label class="field__label" for="filtro-situacao">Situação</label>
+                        <select id="filtro-situacao" class="field__input" name="situacao">
+                            <option value="">Todas</option>
+                            <option value="pendente">Aguarda autorização</option>
+                            <option value="autorizado">Autorizado</option>
+                            <option value="revelado">Revelado</option>
+                            <option value="recusado">Recusado</option>
+                            <option value="vencido">Vencido</option>
+                        </select>
+                    </div>
+                    <div class="actions">
+                        <button id="filtrar-r3" class="button button--secondary" type="submit">Filtrar</button>
+                    </div>
+                </form>
                 <div class="data-table" role="region" aria-labelledby="lista-r3-legenda" tabindex="0">
                     <table>
                         <caption id="lista-r3-legenda">Cada linha é um pedido seu</caption>
@@ -80,7 +97,7 @@
                         </tbody>
                     </table>
                 </div>
-                <p>Página 1 de 1.</p>
+                <p>Página 1 de 1, 20 por página. <a href="meus-pedidos.html?pagina=1#lista">Endereço desta página</a>.</p>
             </section>
         </section>
         <hr />
@@ -112,7 +129,7 @@
         <hr />
 
         <section id="autorizado" aria-labelledby="autorizado-estado">
-            <p id="autorizado-estado"><strong>Estado: autorizado, pronto para revelar.</strong> O botão é o POST de revelar; ele grava o registro antes de abrir o mapa.</p>
+            <p id="autorizado-estado"><strong>Estado: autorizado, pronto para revelar.</strong> Página do pedido, da fatia C; o botão leva à confirmação, GET /reversao/meus-pedidos/{id}/revelar.</p>
             <section class="panel" aria-labelledby="autorizado-titulo">
                 <h2 id="autorizado-titulo">Pedido 7</h2>
                 <dl class="facts">
@@ -133,10 +150,21 @@
                         <dd>2026-12-21</dd>
                     </div>
                 </dl>
-                <p>A identidade aparece uma vez, nesta resposta. Recarregar ou voltar não a mostra de novo, e ela não é guardada. Anote o que precisar antes de sair da página.</p>
+                <a class="button button--primary" href="#confirmar-revelacao">Revelar a identidade de PESSOA_482913</a>
+            </section>
+        </section>
+        <hr />
+
+        <section id="confirmar-revelacao" aria-labelledby="confirmar-revelacao-estado">
+            <p id="confirmar-revelacao-estado"><strong>Estado: confirmar a revelação.</strong> Página própria; o envio é o POST do mesmo endereço, que grava o registro antes de abrir o mapa.</p>
+            <section class="panel" aria-labelledby="confirmar-revelacao-titulo">
+                <h2 id="confirmar-revelacao-titulo">Revelar a identidade de PESSOA_482913, no item 118</h2>
+                <p>Isto não se desfaz. A revelação fica registrada na cadeia com o pedido, quem autorizou e o momento; a identidade não fica guardada em lugar algum.</p>
+                <p>Ela aparece uma vez, na próxima página. Recarregar ou voltar não a mostra de novo. Anote o que precisar antes de sair dela.</p>
                 <form class="form" method="get" action="meus-pedidos.html#revelada">
                     <div class="actions">
-                        <button id="revelar" class="button button--danger" type="submit">Revelar a identidade de PESSOA_482913</button>
+                        <button id="revelar" class="button button--danger" type="submit">Revelar agora</button>
+                        <a class="button button--secondary" href="#autorizado">Voltar sem revelar</a>
                     </div>
                 </form>
             </section>

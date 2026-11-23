@@ -3,55 +3,55 @@
 > Norma pendente. 2026-11-22. Os nomes novos valem como proposta até o plano da fatia.
 
 A rota chama o serviço, nunca o armazenamento ([rota](../../padroes/003-rota.md)). A troca é
-domínio puro, numa pasta nova em `core/src/Core.Ingestion`, ao lado da sanitização. B muda
-`/lotes/{id}`; C cria `/reversao/pedir` (GET e POST), `/reversao/autorizar` e
-`/reversao/autorizar/{id}` (GET e POST); D cria `/reversao/meus-pedidos`,
-`/reversao/meus-pedidos/{id}` e o POST `/reversao/meus-pedidos/{id}/revelar`. Só a
-`PersonFunctions.Curation` as alcança; para as outras funções respondem como endereço inexistente.
+domínio puro, numa pasta nova em `core/src/Core.Ingestion`. B muda `/lotes/{id}`; C cria
+`/reversao/pedir`, `/reversao/autorizar`, `/reversao/autorizar/{id}`, `/reversao/meus-pedidos` e
+`/reversao/meus-pedidos/{id}`; D cria `/reversao/meus-pedidos/{id}/revelar` (GET confirma, POST
+revela). Só a `PersonFunctions.Curation` as alcança; id inexistente ou de outro domínio responde
+como endereço inexistente.
 
 ## Fatia A
 
-**Deslocamento.** `OffsetConverter` segue o único conversor, e `ResponseValidator` (linhas 54 e 99
-a 107) já recusa fim antes do início e trecho fora do texto. A fatia faz a troca aceitar só o
-trecho em ponto de código que sai da fronteira, um tipo que nada fora de `core/src/Core.Boundary`
-constrói; a unidade é declarada uma vez, nesse tipo, e a gravação a usa.
+**Deslocamento.** A conversão de unidade só acontece em `OffsetConverter`, e `ResponseValidator`
+(linhas 54 e 99 a 107) já recusa fim antes do início e trecho fora do texto. A troca recorta só por
+`ITextBoundaries`, como o `Sanitizer` (linha 40); a tradução pelo rastro muda a posição, não a
+unidade. Sobreposição entre duas ocorrências não é recusa: é fundida, como na fase 4.
 
 **Marcador.** Recebe o referente, o tipo e os marcadores já usados no domínio; devolve o marcador
-do referente se ele já tem um, ou sorteia outro com gerador criptográfico: o prefixo do tipo e um
-número de seis dígitos, fora dos já usados (PESSOA_482913, ORGANIZACAO_071554). O referente é o
-autor da mensagem, pelo identificador que o material traz (`Message`), ou a menção, por tipo e
-forma normalizada; duas menções de mesmo nome são um referente, porque o serviço não diz quem é
-quem. O autor não é gravado hoje em `core/src/Core.Persistence`: a fatia B grava o marcador dele.
+do referente se ele já tem um, ou sorteia outro com gerador criptográfico: o prefixo do tipo e seis
+dígitos, fora dos já usados (PESSOA_482913, ORGANIZACAO_071554). O referente proposto é o autor da
+mensagem, pela forma que o material traz (`Message`, linha 9), ou a menção, por tipo e forma
+normalizada no domínio; é pendente do dono, porque o serviço não diz quem é quem.
 
 **Datas.** Um deslocamento por domínio, sorteado uma vez em dias inteiros, nunca zero, selado; quem
 o lê recebe o valor ou "perdido", nunca um valor adivinhado.
 
 ## Fatia B
 
-**Submissão → pseudonimização.** Síncrona, logo depois da sanitização e antes de gravar o item:
-recebe o sanitizado, as ocorrências a pseudonimizar já levadas ao texto novo (`Sanitizer`, linhas
-63 e 107) e o mapa do domínio; devolve o pseudonimizado e as entradas do mapa do item. Ocorrência
-que não é de destino pseudonimizar nunca entra no mapa: a tentativa lança, o lote é rejeitado e o
-evento fica na cadeia.
+**Submissão → pseudonimização.** Síncrona, depois da sanitização e antes de gravar o item: recebe o
+sanitizado, as ocorrências a pseudonimizar já levadas ao texto novo (`Sanitizer`, linhas 63 e 107)
+e os mapas do domínio; devolve o pseudonimizado e as entradas do mapa do item. Ocorrência de outro
+destino nunca entra no mapa: a troca lança, o lote é rejeitado e o evento fica na cadeia. O
+registro de falha leva lote, posição do item, passo e motivo, porque o item ainda não existe.
 
-**Mapa do domínio.** Achar o marcador de um referente que já apareceu exige abrir os mapas do
-domínio na aplicação, porque o banco não filtra conteúdo selado; a leitura grava um evento por
-lote, com quantos mapas abriu, antes de abrir (`ProtectedContentReader`).
+**Mapas do domínio.** Achar o marcador de quem já apareceu exige abrir na aplicação os mapas do
+domínio, porque o banco não filtra selado; cada mapa aberto grava antes o evento de leitura de
+`ProtectedContentReader`. É pendente do dono: custo e eventos crescem com o acervo.
 
-**Gravador.** `ContentWriter.AddItemAsync` sela o pseudonimizado com a chave do item e grava o mapa
-(`ContentWriter.AddReversalMapAsync`) e os marcadores do item no mesmo comando. A reexecução da fase
-4 (`ItemResanitizer`) refaz o pseudonimizado e o mapa na mesma transação do sanitizado.
+**Gravador.** `ContentWriter.AddItemTextAsync` sela o pseudonimizado com a chave do item; o mapa
+(`ContentWriter.AddReversalMapAsync`) e os marcadores vão no mesmo comando. A reexecução da fase 4
+(`ItemResanitizer`) grava mapa novo e esvazia o anterior na transação do sanitizado.
 
 ## Fatias C e D
 
 **Pedido → autorização → revelação.** Cada ato é uma linha nova e um evento na mesma transação;
-nada se atualiza. O estado do pedido é projeção: pendente, recusado, autorizado até um instante,
-vencido ou revelado. Quem autoriza é da Curadoria do domínio e não é quem pediu; com a cadeia
-quebrada (`CustodyRefusals`, linha 27), nenhuma autorização é gravada.
+nada se atualiza. O evento aponta a linha do ato (o pedido, a autorização, a revelação), que guarda
+quem, quando e o escopo; o texto livre do pedido vai selado na linha, não no evento. O estado do
+pedido é projeção: pendente, recusado, autorizado até um instante, vencido ou revelado. Quem
+autoriza é da Curadoria do domínio e não é quem pediu. Com a cadeia quebrada (`CustodyRefusals`,
+linha 27), que é uma só na instalação, nenhum ato é gravado, nem a recusa.
 
-**Revelar.** O POST grava a revelação e o evento e confirma a transação; só depois abre a entrada
-do mapa do item e devolve a página com a identidade, sem cache (`ScreenResult`, linha 19). Falha
-ao gravar não abre nada; a identidade não é gravada nem registrada em lugar algum.
+**Revelar.** O GET confirma em página própria; o POST grava revelação e evento e confirma, só então
+abre o mapa e responde a identidade sem cache (`ScreenResult`, linha 19). Falha ao gravar não abre.
 
 ## Fatia E
 

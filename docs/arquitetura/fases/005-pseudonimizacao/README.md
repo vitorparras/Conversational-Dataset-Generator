@@ -12,7 +12,7 @@ aplica o que a entrada decidiu, sem decidir de novo
 ([dado pessoal](../../../privacidade/001-dado-pessoal.md), linhas 7 a 10). O marcador é sorteado,
 nunca calculado do original, e se repete no domínio pelo mapa de reversão, que já tem tabela e
 finalidade próprias (`core/src/Core.Persistence/Migrations/Sql/0010-content-text.sql`, linhas 14 a
-24). Onde os documentos divergem, o pacote segue a opção que a documentação recomenda e o PR a
+25). Onde os documentos divergem, o pacote segue a opção que a documentação recomenda e o PR a
 lista para o dono decidir; a principal é se o pseudonimizado fica em claro ou cifrado com a chave
 do item ([0030](../../../decisoes/0030-qual-texto-fica-em-claro.md), linha 24).
 

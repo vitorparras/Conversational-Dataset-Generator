@@ -9,20 +9,24 @@ reversão, cada um uma linha nova com o evento na mesma transação.
 
 | Risco | O que pode acontecer | Como o desenho responde | Teste |
 |---|---|---|---|
-| Concorrência | Dois lotes do mesmo domínio trazem o mesmo referente novo e sorteiam dois marcadores | A troca toma uma trava de transação por domínio antes de abrir os mapas; o segundo lote espera e acha o marcador do primeiro | B: TwoBatchesOfOneDomainAtOnceGiveOneMarkerPerReferent |
+| Concorrência | Dois lotes do mesmo domínio trazem o mesmo referente novo e sorteiam dois marcadores | A troca toma uma trava de transação por domínio antes de abrir os mapas; o segundo lote espera e acha o marcador do primeiro | F3: TwoBatchesOfOneDomainAtOnceGiveOneMarkerPerReferent |
 | Concorrência | Dois sorteios dão o mesmo número no domínio | content.domain_marker é único por domínio; o sorteio exclui os usados e, perdendo, sorteia de novo | A: RedrawnMarkerNeverRepeatsOneInUse; B: MarkerIsUniqueInTheDomain |
 | Concorrência | Duas pessoas autorizam o mesmo pedido ao mesmo tempo | O gatilho da reversal-request recusa a segunda autorização em vigor, em transação serializável | C: SecondAuthorizationWhileOneIsValidIsRefused |
 | Concorrência | O POST de revelar chega duas vezes | A revelação é única por autorização; a segunda perde e é negada como já revelada | D: TwoRevealPostsAtOnceRevealOnce |
 | Concorrência | Dois sorteios do deslocamento de datas do mesmo domínio | O índice único deixa o primeiro; o segundo lê o que ficou | A: TwoDrawsAtOnceKeepTheFirstShift |
-| Falha no meio | A requisição cai entre dois itens pseudonimizados | O item nasce com o pseudonimizado, o mapa e os marcadores no mesmo comando; o lote é rejeitado e a limpeza da fase 3 tira os itens | B: CancelledWhilePseudonymizingLeavesNoItemWithoutItsMap |
-| Falha no meio | A reexecução da fase 4 troca o sanitizado e não o pseudonimizado | O gatilho de item_resanitized exige os dois e o mapa novo na mesma transação | B: ResanitizedItemIsPseudonymizedAgainInTheSameTransaction |
+| Falha no meio | A requisição cai entre dois itens pseudonimizados | O item nasce com o pseudonimizado, o mapa e os marcadores no mesmo comando; o lote é rejeitado e a limpeza da fase 3 tira os itens | F3: CancelledWhilePseudonymizingLeavesNoItemWithoutItsMap |
+| Falha no meio | A reexecução da fase 4 troca o sanitizado e não o pseudonimizado | O gatilho de item_resanitized exige os dois e o mapa novo na mesma transação | F3: ResanitizedItemIsPseudonymizedAgainInTheSameTransaction |
 | Falha no meio | O evento da revelação não é gravado | A identidade só é lida depois de a transação do evento confirmar; falha deixa o pedido sem atendimento | D: FailureToRecordTheEventRevealsNothingAndLeavesTheRequestOpen (#105 CA-2) |
-| Falha de rede | O serviço de linguagem não responde | Lote rejeitado na entrada, como na fase 4: nenhum item e nenhum pseudonimizado | B: BatchRejectedForAnalysisLeavesNoPseudonymizedText (#102 CA-5) |
+| Falha de rede | O serviço de linguagem não responde | Lote rejeitado na entrada, como na fase 4: nenhum item e nenhum pseudonimizado | F3: BatchRejectedForAnalysisLeavesNoPseudonymizedText (#102 CA-5) |
 | Prazo vencido | Uma autorização vencida ainda revela | O POST confere o prazo na transação que grava a revelação; vencida, nega e grava a negativa | D: ExpiredAuthorizationDeniesAsIfItNeverExistedAndIsRecorded (#104 CA-2) |
 | Cadeia quebrada | Uma reversão é autorizada com a cadeia quebrada | A cadeia é uma só na instalação, e com ela quebrada nenhuma gravação passa (`CustodyRefusals`, linha 27), nem a recusa; a tela diz por quê | C: BrokenChainRefusesNewAuthorizations (#104 CA-5) |
-| Dado pessoal | Nome de lugar fica no pseudonimizado | `DestinationPolicy` passa a pseudonimizar nome próprio de lugar, com o prefixo LUGAR (0012, linhas 14 e 15); nenhuma ocorrência nova recebe `Preserve` | A: ProperNameOfAPlaceIsPseudonymized (#100 CA-5) |
+| Dado pessoal | Nome de lugar fica no pseudonimizado | `DestinationPolicy` passa a pseudonimizar nome próprio de lugar, com o prefixo LUGAR (0012, linhas 14 e 15); nenhuma ocorrência nova recebe `Preserve`, e o `Preserve` de lugar dos itens antigos vira `Pseudonymize` no primeiro pseudonimizado | A: ProperNameOfAPlaceIsPseudonymized (#100 CA-5); F3: PreservedPlaceOfAnOldItemBecomesAMarker |
+| Precisão | O grupo de correferência liga menções de entidades distintas, ou separa as da mesma, em pt-BR | A F1 mede a precisão em pt-BR; a decisão nova fixa o limiar, e modelo abaixo dele não entra | F1: CoreferenceMeasurementReportsPrecisionAndFusionApart; ModelBelowTheThresholdFailsTheMeasurement |
+| Precisão | Mensagem que mistura línguas passa pelo modelo de pt (`SubmissionAnalysis`, linha 14), e o grupo erra no trecho da outra língua | A medição da F1 inclui essas mensagens, cujo sinal o [requisito 005](../../../requisitos/005-sanitizacao-preserva-o-sinal.md) e a política 002 (linha 17) mandam preservar, e a precisão nelas entra no limiar | F1: MeasurementCoversMessagesMixingLanguages |
+| Dado pessoal | Duas pessoas distintas caem no mesmo grupo e dividem o marcador, o que quebra o CA-2 da #100 | A F1 mede a fusão à parte da precisão; no núcleo, o grupo vale só dentro do texto enviado e grupos distintos nunca dividem marcador | F1: CoreferenceMeasurementReportsPrecisionAndFusionApart; F3: DistinctGroupsWithTheSameNameGetDistinctMarkers (#100 CA-2) |
+| Dado pessoal | Item antigo ganha pseudonimizado com ocorrência que a resposta de agora não traz | Sem par de mesma posição e tipo, o item é recusado com o motivo e fica sem pseudonimizado | F3: OldItemWithAnOccurrenceWithoutPairIsRefusedWithTheReason |
 | Dado pessoal | O marcador revela algo do original | O número é sorteado, sem relação com o nome nem com a ordem de chegada | A: MarkerCarriesNoInitialLengthNorAlphabeticalPosition; MarkerDoesNotRevealTheOrderOfAppearance (#100 CA-4) |
-| Dado pessoal | Uma senha vai para o mapa | Entrada de destino remover lança antes de selar; o lote é rejeitado e o evento fica | B: RemovedSpanIsRefusedFromTheMapAndTheAttemptIsRecorded (#101 CA-5) |
+| Dado pessoal | Uma senha vai para o mapa | Entrada de destino remover lança antes de selar; o gravador a recusa e o evento fica | B: RemovedSpanIsRefusedFromTheMapAndTheAttemptIsRecorded (#101 CA-5) |
 | Dado pessoal | Uma cópia do banco expõe o mapa ou o porquê do pedido | As entradas e o texto do pedido vão selados com a finalidade do mapa e a chave da linha | B: DatabaseCopyHasNoReadableMapEntry (#101 CA-1); C: DatabaseCopyHasNoReadableRequestText |
 | Dado pessoal | Achar o marcador existente abre os mapas sem registro | Cada mapa aberto grava o evento de leitura antes de abrir | B: EveryMapOpeningAddsAnEventWithoutTheValue (#101 CA-3) |
 | Dado pessoal | A identidade revelada fica no registro, no log ou em cache | Nenhuma coluna a guarda; a página sai sem cache e o GET não a mostra de novo | D: RevealedValueIsInNoTableLogOrCache (#105 CA-4); RevealedPageIsNotCachedAndIsNotShownAgain (#616 CA-2) |
@@ -41,12 +45,11 @@ reversão, cada um uma linha nova com o evento na mesma transação.
 
 Ver [modelo de dados](modelo-de-dados.md) e [contratos](contratos.md).
 
-## Itens gravados antes da fatia A
+## Itens gravados antes da F3
 
-Cada item guarda, selado, o destino decidido na entrada (`OccurrenceJson`, linha 37), e o nome
-próprio de lugar está ali como `Preserve`: o sanitizado o traz como veio, cifrado
-([0030](../../../decisoes/0030-qual-texto-fica-em-claro.md)). A reexecução da fase 4 não decide
-destinos de novo (`SanitizationRerun`, linhas 5 a 8), e a política não entra na versão da lista de
-passos (`SanitizationSteps`, linhas 23 a 25), então mudá-la não oferece reexecução. Feito desses
-destinos, o pseudonimizado traria o lugar pelo nome. Como esses itens passam a ter o lugar marcado
-está em aberto, e nenhuma fatia o trata.
+Nenhum item tem pseudonimizado antes da F3, que o dá a cada um em segundo plano
+([fatia F](fatia-f-correferencia.md)). Os gravados antes da fatia A guardam o lugar como `Preserve`
+no destino selado (`OccurrenceJson`, linha 37), e a política não entra na versão da lista de passos
+(`SanitizationSteps`, linhas 23 a 25). Nesse primeiro pseudonimizado, o `Preserve` de lugar vira
+`Pseudonymize` sem chamar o serviço, exceção declarada à regra da reexecução
+(`SanitizationRerun`, linhas 5 a 8), pela [0056](../../../decisoes/0056-toponimo-vira-marcador.md).

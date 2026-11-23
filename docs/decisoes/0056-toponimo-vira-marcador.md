@@ -40,8 +40,11 @@ reversão, sob a mesma chave, finalidade e auditoria do nome de pessoa.
 Piora a análise que depende do lugar real (região, cidade grande ou pequena): ela passa a exigir
 reversão autorizada, item por item.
 
-O destino decidido na entrada fica guardado com cada item, então itens gravados antes da mudança
-guardam o lugar como preservado. Como eles passam a ter o lugar marcado não é decidido aqui.
+O destino decidido na entrada fica guardado com cada item, e os gravados antes da mudança guardam
+o lugar como preservado. No primeiro pseudonimizado deles, esse destino vira pseudonimizar sem
+chamar o serviço de linguagem: é exceção declarada à regra de que a reexecução não decide destino
+de novo (`core/src/Core.Ingestion/Sanitizing/SanitizationRerun.cs`, linhas 5 a 8), e vale só para o
+lugar, o único destino preservado.
 
 ## O que reabre
 

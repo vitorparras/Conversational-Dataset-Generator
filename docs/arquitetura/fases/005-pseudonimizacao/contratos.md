@@ -18,9 +18,9 @@ unidade. Sobreposição entre duas ocorrências não é recusa: é fundida, como
 
 **Marcador.** Recebe o referente, o tipo e os marcadores já usados no domínio; devolve o marcador
 do referente se ele já tem um, ou sorteia outro com gerador criptográfico: o prefixo do tipo e seis
-dígitos, fora dos já usados (PESSOA_482913, ORGANIZACAO_071554). O referente proposto é o autor da
-mensagem, pela forma que o material traz (`Message`, linha 9), ou a menção, por tipo e forma
-normalizada no domínio; é pendente do dono, porque o serviço não diz quem é quem.
+dígitos, fora dos já usados (PESSOA_482913, ORGANIZACAO_071554). O referente é o autor da
+mensagem, pela forma que o material traz (`Message`, linha 9), ou o grupo de correferência que o
+serviço devolve para a menção ([fatia F](fatia-f-correferencia.md)), sem reserva por nome.
 
 **Datas.** Um deslocamento por domínio, sorteado uma vez em dias inteiros, nunca zero, selado; quem
 o lê recebe o valor ou "perdido", nunca um valor adivinhado.

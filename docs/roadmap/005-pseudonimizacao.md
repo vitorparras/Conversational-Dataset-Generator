@@ -43,6 +43,9 @@ finalidade própria que o mapa exige.
 5. O pseudonimizado passa a receber material real, cifrado com a chave do item
    ([0030](../decisoes/0030-qual-texto-fica-em-claro.md)), e o que entra nele já passou pela
    sanitização e pela pseudonimização, nessa ordem.
+6. O referente de cada menção vem da correferência do serviço de linguagem, com a precisão em pt-BR
+   medida antes de entrar ([fatia F](../arquitetura/fases/005-pseudonimizacao/fatia-f-correferencia.md)
+   do pacote); a fase só fecha com ela.
 
 ## O que destrava
 

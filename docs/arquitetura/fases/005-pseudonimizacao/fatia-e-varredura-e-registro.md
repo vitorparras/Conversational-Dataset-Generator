@@ -45,7 +45,7 @@ qualquer opção que leve o corpo ao registro.
 - **Riscos:** leitura nova sem reversão e exceção que leva o texto ao log, nas linhas da fatia E em
   [riscos](riscos.md).
 - **Raia:** testes e o que eles acharem; não cria tela nem tabela.
-- **Depende de:** B, pela troca e pelo pseudonimizado, e D, pela leitura autorizada com que a
-  varredura compara (#106, "Depende de"). **Bloqueia:** nada; fecha a fase.
+- **Depende de:** B, pela troca, a F3, pela submissão que pseudonimiza, e D, pela leitura autorizada
+  com que a varredura compara (#106, "Depende de"). **Bloqueia:** nada; fecha a fase com a F3.
 
 Ver [contratos](contratos.md) e [modelo de dados](modelo-de-dados.md).

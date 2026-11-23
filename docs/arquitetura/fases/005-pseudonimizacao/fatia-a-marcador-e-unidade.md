@@ -16,7 +16,7 @@ fim não se cruzam"). Duas ocorrências que se sobrepõem não são recusa: a fa
 igual ao início da outra é adjacência, e as duas passam.
 
 **Lugar.** Nome próprio de lugar vira marcador LUGAR, pela 0012 (linhas 14 e 15); o efeito nos itens
-já gravados está em [riscos](riscos.md). **Pendente do dono:** o referente (contratos, fatia A).
+já gravados está em [riscos](riscos.md). O referente vem da [fatia F](fatia-f-correferencia.md).
 
 ## Critérios de aceite
 

@@ -10,7 +10,7 @@ reversão, cada um uma linha nova com o evento na mesma transação.
 | Risco | O que pode acontecer | Como o desenho responde | Teste |
 |---|---|---|---|
 | Concorrência | Dois lotes do mesmo domínio trazem o mesmo referente novo e sorteiam dois marcadores | A troca toma uma trava de transação por domínio antes de abrir os mapas; o segundo lote espera e acha o marcador do primeiro | B: TwoBatchesOfOneDomainAtOnceGiveOneMarkerPerReferent |
-| Concorrência | Dois sorteios dão o mesmo número no domínio | content.domain_marker é único por domínio; o sorteio exclui os usados e, perdendo, sorteia de novo | A: RedrawnMarkerNeverRepeatsOneInUse |
+| Concorrência | Dois sorteios dão o mesmo número no domínio | content.domain_marker é único por domínio; o sorteio exclui os usados e, perdendo, sorteia de novo | A: RedrawnMarkerNeverRepeatsOneInUse; B: MarkerIsUniqueInTheDomain |
 | Concorrência | Duas pessoas autorizam o mesmo pedido ao mesmo tempo | O gatilho da reversal-request recusa a segunda autorização em vigor, em transação serializável | C: SecondAuthorizationWhileOneIsValidIsRefused |
 | Concorrência | O POST de revelar chega duas vezes | A revelação é única por autorização; a segunda perde e é negada como já revelada | D: TwoRevealPostsAtOnceRevealOnce |
 | Concorrência | Dois sorteios do deslocamento de datas do mesmo domínio | O índice único deixa o primeiro; o segundo lê o que ficou | A: TwoDrawsAtOnceKeepTheFirstShift |

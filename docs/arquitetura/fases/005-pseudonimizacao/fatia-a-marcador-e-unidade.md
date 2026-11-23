@@ -24,13 +24,13 @@ Cada nome é um teste; as propriedades levam `[Trait("Kind", "Property")]`.
 
 | Projeto | Testes |
 |---|---|
-| `Core.Boundary.Tests` (#99) | OffsetOutsideTheSentTextIsRefusedAndTheItemDoesNotAdvance (CA-2); EndBeforeStartIsRefusedTheSameWay (CA-3); AdjacentOccurrencesPassTheBoundary |
+| `Core.Boundary.Tests` (#99) | OffsetOutsideTheSentTextIsRefused (CA-2); EndBeforeStartIsRefusedTheSameWay (CA-3); AdjacentOccurrencesPassTheBoundary |
 | `Core.Ingestion.Tests` (#99) | ReplacedSpanIsExactlyWhatTheRecognizerPointedPastEmojiAndCombiningMarks (CA-1); AdjacentOccurrencesAreBothReplaced |
 | `Core.Tests.Architecture` (#99) | NoOffsetReachesTheReplacementWithoutTheConverter (CA-4: a troca só recorta por `ITextBoundaries`); OffsetUnitIsDeclaredOnceAndUsedToStore (CA-5) |
 | `Core.Ingestion.Tests` (#100) | SameParticipantGetsTheSameMarkerAcrossConversationsOfADomain (CA-1, propriedade); DistinctAuthorsWithTheSameNameGetDistinctMarkers (CA-2, propriedade); SameNameInTwoDomainsGetsUnrelatedMarkers (CA-3); MarkerCarriesNoInitialLengthNorAlphabeticalPosition (CA-4, propriedade); MarkerDoesNotRevealTheOrderOfAppearance (CA-4, propriedade); MarkerNamesTheKindOfTheMention (CA-5); RedrawnMarkerNeverRepeatsOneInUse |
 | `Core.Ingestion.Tests` (#108) | ShiftKeepsEveryIntervalExact (CA-2, propriedade); LostShiftIsReportedAsDefinitive (CA-5) |
 | `Core.Persistence.Content.Tests` (#108) | DateShiftIsDrawnOnceAndNeverChanges (CA-1); TwoDrawsAtOnceKeepTheFirstShift; TwoDomainsHaveDifferentShiftsWithNothingInCommon (CA-3); DatabaseCopyHasNoReadableDateShift |
-| `Core.Host.Tests` (#108) | ShiftValueAppearsInNoLogScreenOrResponse (CA-4) |
+| `Core.Host.Tests` (#99, #108) | OffsetOutsideTheTextRejectsTheBatchWithNoItem (#99 CA-2: o item não avança); ShiftValueAppearsInNoLogScreenOrResponse (#108 CA-4) |
 
 O CA-3 da #100 e o CA-3 da #108 pedem valores diferentes entre domínios, e os sorteios são
 independentes: o teste prova que nenhuma função recebe o valor de outro domínio, e a coincidência

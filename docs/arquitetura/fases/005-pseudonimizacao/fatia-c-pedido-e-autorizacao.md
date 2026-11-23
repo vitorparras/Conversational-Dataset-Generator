@@ -24,7 +24,7 @@ protótipos são `pedido.html`, `autorizacao.html` e a lista de `meus-pedidos.ht
 |---|---|
 | `Core.Ingestion.Tests` | RequestWithoutReasonUseOrTermIsRefusedAndCreatesNothing (#103 CA-1); RequestReachingMoreThanOneMarkerOrItemIsRefusedByScope (#103 CA-2) |
 | `Core.Persistence.Content.Tests` | RefusalIsItsOwnEventAndCannotBeRemovedOrChanged (#103 CA-4); OwnAuthorizationIsRefusedByTheDatabase (#104 CA-1); RenewalIsANewAuthorizationWithWhoWhenAndTerm (#104 CA-4); BrokenChainRefusesNewAuthorizations (#104 CA-5); SecondAuthorizationWhileOneIsValidIsRefused; AuthorizationWithATermInThePastIsRefused; RequestRowsCannotBeChanged; DatabaseCopyHasNoReadableRequestText |
-| `Core.Host.Tests` | MarkerNotInTheItemIsRefusedByScopeWithTheReason (#103 CA-2); AnnotatorRequestIsRefusedAndRecordedWithWhoWhenAndScope (#103 CA-3); AuthorizingOwnRequestIsRefusedByTheApplicationAndRecorded (#104 CA-1); AuthorizationByWhoIsNotCurationOfTheDomainIsRefused (#104); IncompleteRequestFormReturnsWithTheErrorsAndAsksNothing (#614 CA-1); DomainWideRequestIsRefusedOnTheScreenAndRecorded (#614 CA-2); AnnotatorOpeningTheRequestPageGetsNotFound e AnnotatorPostingTheRequestIsDeniedByThePolicy (#614 CA-3); SentRequestShowsWhoIsMissingAndNoIdentity (#614 CA-4); OwnRequestIsNotListedAndDirectPostIsRefused (#615 CA-1); PendingRequestShowsReasonUseAndTermAndNoIdentity (#615 CA-2); AuthorizationIsConfirmedOnItsOwnPageForThatRequestOnly e AuthorizationPastItsTermIsShownExpired (#615 CA-3); DeclineIsRecordedWithWhoWhenAndScope (#615 CA-4); MissingOrOtherDomainRequestAnswersNotFound; ListFilterAndPageStayInTheAddress |
+| `Core.Host.Tests` | MarkerNotInTheItemIsRefusedByScopeWithTheReason (#103 CA-2); AnnotatorRequestIsRefusedAndRecordedWithWhoWhenAndScope (#103 CA-3); AuthorizingOwnRequestIsRefusedByTheApplicationAndRecorded (#104 CA-1); AuthorizationByWhoIsNotCurationOfTheDomainIsRefused (#104); IncompleteRequestFormReturnsWithTheErrorsAndAsksNothing (#614 CA-1); DomainWideRequestIsRefusedOnTheScreenAndRecorded (#614 CA-2); AnnotatorOpeningTheRequestPageGetsNotFound e AnnotatorPostingTheRequestIsDeniedByThePolicy (#614 CA-3); SentRequestShowsWhoIsMissingAndNoIdentity (#614 CA-4); OwnRequestIsNotListedForApproval e DirectPostOnOwnRequestIsRefused (#615 CA-1); PendingRequestShowsReasonUseAndTermAndNoIdentity (#615 CA-2); ReadingTheRequestTextIsRecordedBeforeOpening; AuthorizationIsConfirmedOnItsOwnPageForThatRequestOnly e AuthorizationPastItsTermIsShownExpired (#615 CA-3); DeclineIsRecordedWithWhoWhenAndScope (#615 CA-4); MissingOrOtherDomainRequestAnswersNotFound; ListFilterAndPageStayInTheAddress |
 | `Core.Host.Tests.Browser` | RequestFormIsFilledByKeyboardAndPassesTheAccessibilityCheck; AuthorizationIsConfirmedByKeyboardAndPassesTheAccessibilityCheck |
 
 "Domínio inteiro" e "conjunto sem critério" (#614 CA-2) chegam como mais de um marcador ou item, ou
@@ -46,7 +46,8 @@ evento. O registro de cada recusa se lê na cadeia, pelo tipo e id da linha que 
 
 - **Riscos:** duas autorizações ao mesmo tempo, cadeia quebrada e cópia do banco, nas linhas da
   fatia C em [riscos](riscos.md).
-- **Raia:** a pasta de reversão, a tabela nova, as rotas e as telas. Não abre o mapa.
+- **Raia:** a pasta de reversão, a tabela nova, as rotas e as telas. Não abre o mapa; abre só o
+  texto do pedido, com o evento de leitura.
 - **Depende de:** a fatia B, pelos marcadores do item. **Bloqueia:** a fatia D.
 
 Ver [contratos](contratos.md) e [modelo de dados](modelo-de-dados.md).

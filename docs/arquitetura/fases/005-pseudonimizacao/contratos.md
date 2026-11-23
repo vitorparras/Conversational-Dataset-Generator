@@ -13,7 +13,7 @@ como endereço inexistente.
 
 **Deslocamento.** A conversão de unidade só acontece em `OffsetConverter`, e `ResponseValidator`
 (linhas 54 e 99 a 107) já recusa fim antes do início e trecho fora do texto. A troca recorta só por
-`ITextBoundaries`, como o `Sanitizer` (linha 40); a tradução pelo rastro muda a posição, não a
+`ITextBoundaries`, como o `Sanitizer` (linha 123); a tradução pelo rastro muda a posição, não a
 unidade. Sobreposição entre duas ocorrências não é recusa: é fundida, como na fase 4.
 
 **Marcador.** Recebe o referente, o tipo e os marcadores já usados no domínio; devolve o marcador

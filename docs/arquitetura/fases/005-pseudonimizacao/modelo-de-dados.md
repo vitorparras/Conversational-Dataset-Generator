@@ -19,11 +19,11 @@ de cada domínio, pela custódia da [0013](../../../decisoes/0013-chave-de-cifra
 
 ## Fatia B
 
-**`pseudonymization`.** Cinco mudanças:
+**`pseudonymization`.** Quatro mudanças:
 
-- content.domain_marker: domínio, marcador e tipo, em claro, único por domínio, sem o original.
-- content.item_marker: item e marcador, em claro, e se é o autor; é o escopo que o pedido confere
-  sem abrir o mapa, e a fonte das contagens da tela do lote.
+- content.domain_marker (domínio, marcador e tipo, único, sem o original) e content.item_marker
+  (item, marcador e se é o autor), em claro: o escopo que o pedido confere sem abrir o mapa e a
+  fonte das contagens da tela do lote.
 - A coluna pseudonymized_text passa de text a bytea, selada com a chave do item e marcada
   `protected:texto-bruto` (hoje é nula em todo item). Sai de `Clear` e entra em `Protected` em
   `ContentColumns`. É a opção da 0030, pendente de decisão do dono.
@@ -43,8 +43,9 @@ em dias; o porquê e o uso selados com a finalidade do mapa e a chave da linha) 
 content.reversal_authorization (pedido, quem autorizou, quando e até quando), as duas só de INSERT.
 Um gatilho recusa quem autoriza igual a quem pediu, prazo no passado e segunda autorização em vigor.
 Os passos reversal_requested, reversal_request_refused, reversal_authorized,
-reversal_authorization_refused e reversal_declined; os motivos reversal_scope, reversal_function e
-reversal_self.
+reversal_authorization_refused, reversal_declined e reversal_request_read (a R2 abre o texto do
+pedido por `ProtectedContentReader`, um evento por leitura); os motivos reversal_scope,
+reversal_function e reversal_self.
 
 ## Fatia D
 

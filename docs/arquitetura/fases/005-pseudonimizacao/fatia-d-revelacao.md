@@ -23,7 +23,7 @@ teste derruba a gravação do evento e confere que o mapa não foi aberto.
 
 | Projeto | Testes |
 |---|---|
-| `Core.Persistence.Content.Tests` | RevelationEventIsInTheChainBeforeTheValueLeaves (#105 CA-1); FailureToRecordTheEventRevealsNothingAndLeavesTheRequestOpen (#105 CA-2); RevelationEventCannotBeRemovedOrChangedAndTheAttemptIsDetected (#105 CA-3); TwoRevelationsAreTwoEventsEachWithItsMarker (#105 CA-5); ExpiredAuthorizationDeniesAsIfItNeverExistedAndIsRecorded (#104 CA-2); AuthorizationServesOnlyItsOwnRequest (#104 CA-3); TwoRevealPostsAtOnceRevealOnce |
+| `Core.Persistence.Content.Tests` | RevelationEventIsInTheChainBeforeTheValueLeaves (#105 CA-1); FailureToRecordTheEventRevealsNothingAndLeavesTheRequestOpen (#105 CA-2); RevelationEventCannotBeRemovedOrChangedAndTheAttemptIsDetected (#105 CA-3); TwoRevelationsAreTwoEventsEachWithItsMarker (#105 CA-5); ExpiredAuthorizationDeniesAsIfItNeverExistedAndIsRecorded (#104 CA-2); AuthorizationServesOnlyItsOwnRequest (#104 CA-3); TwoRevealPostsAtOnceRevealOnce; EachReversalStepPointsToItsListedKindAndReference (as linhas da fatia D) |
 | `Core.Host.Tests` | RevealedValueIsInNoTableLogOrCache (#105 CA-4, semeado); RevealPostRecordsBeforeTheIdentityAppears (#616 CA-1); RevealedPageIsNotCachedAndIsNotShownAgain (#616 CA-2); ExpiredRequestIsRefusedOnReveal e AlreadyRevealedRequestIsRefusedOnReveal (#616 CA-3); RecordAndLogCarryNoRevealedIdentity (#616 CA-4); RevealIsConfirmedOnItsOwnPage; RevealOfAnEmptiedItemIsDeniedWithTheReason; OthersCannotOpenMyRequest |
 | `Core.Host.Tests.Browser` | RevelationIsReadByKeyboardAndPassesTheAccessibilityCheck |
 

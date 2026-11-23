@@ -13,9 +13,9 @@ migração.
 
 **`date-shift`.** content.date_shift, uma linha por domínio, criada como as outras tabelas de
 conteúdo: o deslocamento selado com a finalidade nova deslocamento-datas e a chave da linha (0049),
-e quando foi sorteado. A linha nunca muda: GRANT só de INSERT, e um índice único por domínio faz o
-segundo sorteio perder para o primeiro. A finalidade nova entra em `LabelPurpose` e nos rótulos
-de cada domínio, pela custódia da [0013](../../../decisoes/0013-chave-de-cifra-por-dominio.md).
+e quando foi sorteado. A linha nunca muda: GRANT de SELECT e INSERT, sem UPDATE nem DELETE; um
+índice único por domínio faz o segundo sorteio perder para o primeiro. A finalidade nova entra em
+`LabelPurpose` e nos rótulos de cada domínio, pela custódia da [0013](../../../decisoes/0013-chave-de-cifra-por-dominio.md).
 
 ## Fatia B
 
@@ -40,17 +40,16 @@ mapa. O esvaziamento já zera o mapa (0010, linha 21) e passa a apagar os marcad
 
 **`reversal-request`.** content.reversal_request (item, marcador, quem pediu e quando, prazo pedido
 em dias; o porquê e o uso selados com a finalidade do mapa e a chave da linha) e
-content.reversal_authorization (pedido, quem autorizou, quando e até quando), as duas só de INSERT.
+content.reversal_authorization (pedido, quem autorizou, quando e até quando), sem UPDATE nem DELETE.
 Um gatilho recusa quem autoriza igual a quem pediu, prazo no passado e segunda autorização em vigor.
-Os passos reversal_requested, reversal_request_refused, reversal_authorized,
-reversal_authorization_refused, reversal_declined e reversal_request_read (a R2 lê o texto do
-pedido por `ProtectedContentReader`); os motivos reversal_scope, reversal_function e reversal_self.
+Os passos, os tipos de item novos e o que cada evento aponta estão em
+[eventos da reversão](eventos-da-reversao.md); a R2 lê o texto do pedido por `ProtectedContentReader`.
 
 ## Fatia D
 
 **`reversal-revelation`.** content.reversal_revelation: a autorização, única, e quando. Uma linha
-por autorização é o uso único. Os passos reversal_revealed e reversal_denied; os motivos
-reversal_expired, reversal_used e reversal_emptied. Nenhuma coluna guarda o valor revelado.
+por autorização é o uso único, sem UPDATE nem DELETE. Os passos reversal_revealed e reversal_denied,
+em [eventos da reversão](eventos-da-reversao.md). Nenhuma coluna guarda o valor revelado.
 
 ## O que não muda
 

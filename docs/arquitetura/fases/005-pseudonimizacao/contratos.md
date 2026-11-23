@@ -44,7 +44,7 @@ domínio, porque o banco não filtra selado; cada mapa aberto grava antes o even
 ## Fatias C e D
 
 **Pedido → autorização → revelação.** Cada ato é uma linha nova e um evento na mesma transação;
-nada se atualiza. O evento aponta a linha do ato (o pedido, a autorização, a revelação), que guarda
+nada se atualiza. O evento aponta a linha do ato ([eventos](eventos-da-reversao.md)), que guarda
 quem, quando e o escopo; o texto livre do pedido vai selado na linha, não no evento. O estado do
 pedido é projeção: pendente, recusado, autorizado até um instante, vencido ou revelado. Quem
 autoriza é da Curadoria do domínio e não é quem pediu. Com a cadeia quebrada (`CustodyRefusals`,

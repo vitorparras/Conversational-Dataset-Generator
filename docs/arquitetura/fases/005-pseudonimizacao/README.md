@@ -22,6 +22,7 @@ do item ([0030](../../../decisoes/0030-qual-texto-fica-em-claro.md), linha 24).
 |---|---|
 | [Modelo de dados](modelo-de-dados.md) | Migrações das fatias, com nome e motivo |
 | [Contratos](contratos.md) | O que cada módulo oferece ao outro, e quem chama quem |
+| [Eventos da reversão](eventos-da-reversao.md) | O que cada evento das fatias C e D aponta na cadeia |
 | [Riscos](riscos.md) | Concorrência, falha no meio, rede, prazo vencido, cadeia quebrada, dado pessoal |
 | [Fatia A](fatia-a-marcador-e-unidade.md) | Marcador estável, unidade do deslocamento e deslocamento de datas (#99, #100, #108) |
 | [Fatia B](fatia-b-mapa-e-pseudonimizado.md) | Mapa cifrado e gravação do pseudonimizado (#101, #102) |

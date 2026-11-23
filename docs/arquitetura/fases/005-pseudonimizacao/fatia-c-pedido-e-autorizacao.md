@@ -22,14 +22,15 @@ protótipos são `pedido.html`, `autorizacao.html` e a lista de `meus-pedidos.ht
 
 | Projeto | Testes |
 |---|---|
-| `Core.Ingestion.Tests` | RequestWithoutReasonUseOrTermIsRefusedAndCreatesNothing (#103 CA-1); RequestReachingMoreThanOneMarkerOrItemIsRefusedByScope (#103 CA-2) |
-| `Core.Persistence.Content.Tests` | RefusalIsItsOwnEventAndCannotBeRemovedOrChanged (#103 CA-4); OwnAuthorizationIsRefusedByTheDatabase (#104 CA-1); RenewalIsANewAuthorizationWithWhoWhenAndTerm (#104 CA-4); BrokenChainRefusesNewAuthorizations (#104 CA-5); SecondAuthorizationWhileOneIsValidIsRefused; AuthorizationWithATermInThePastIsRefused; RequestRowsCannotBeChanged; DatabaseCopyHasNoReadableRequestText |
+| `Core.Ingestion.Tests` | RequestWithoutReasonUseOrTermIsRefused (#103 CA-1); RequestReachingMoreThanOneMarkerOrItemIsRefusedByScope (#103 CA-2) |
+| `Core.Persistence.Content.Tests` | IncompleteRequestWritesNoRowAndNoEvent (#103 CA-1); RefusalIsItsOwnEventAndCannotBeRemovedOrChanged (#103 CA-4); EachReversalStepPointsToItsListedKindAndReference; RefusalReferenceCarriesNoText; OwnAuthorizationIsRefusedByTheDatabase (#104 CA-1); RenewalIsANewAuthorizationWithWhoWhenAndTerm (#104 CA-4); BrokenChainRefusesNewAuthorizations (#104 CA-5); SecondAuthorizationWhileOneIsValidIsRefused; AuthorizationWithATermInThePastIsRefused; RequestRowsCannotBeChanged; DatabaseCopyHasNoReadableRequestText |
 | `Core.Host.Tests` | MarkerNotInTheItemIsRefusedByScopeWithTheReason (#103 CA-2); AnnotatorRequestIsRefusedAndRecordedWithWhoWhenAndScope (#103 CA-3); AuthorizingOwnRequestIsRefusedByTheApplicationAndRecorded (#104 CA-1); AuthorizationByWhoIsNotCurationOfTheDomainIsRefused (#104); IncompleteRequestFormReturnsWithTheErrorsAndAsksNothing (#614 CA-1); DomainWideRequestIsRefusedOnTheScreenAndRecorded (#614 CA-2); AnnotatorOpeningTheRequestPageGetsNotFound e AnnotatorPostingTheRequestIsDeniedByThePolicy (#614 CA-3); SentRequestShowsWhoIsMissingAndNoIdentity (#614 CA-4); OwnRequestIsNotListedForApproval e DirectPostOnOwnRequestIsRefused (#615 CA-1); PendingRequestShowsReasonUseAndTermAndNoIdentity (#615 CA-2); ReadingTheRequestTextIsRecordedBeforeOpening; AuthorizationIsConfirmedOnItsOwnPageForThatRequestOnly e AuthorizationPastItsTermIsShownExpired (#615 CA-3); DeclineIsRecordedWithWhoWhenAndScope (#615 CA-4); MissingOrOtherDomainRequestAnswersNotFound; ListFilterAndPageStayInTheAddress |
 | `Core.Host.Tests.Browser` | RequestFormIsFilledByKeyboardAndPassesTheAccessibilityCheck; AuthorizationIsConfirmedByKeyboardAndPassesTheAccessibilityCheck |
 
 "Domínio inteiro" e "conjunto sem critério" (#614 CA-2) chegam como mais de um marcador ou item, ou
 nenhum: a tela só aceita um de cada, e o POST montado à mão com mais é recusado pelo escopo, com o
-evento. O registro de cada recusa se lê na cadeia, pelo tipo e id da linha que o evento aponta.
+evento. O que cada recusa aponta (item, marcador ou classe do escopo amplo) está em
+[eventos da reversão](eventos-da-reversao.md).
 
 ## Peças e padrões
 

@@ -69,6 +69,7 @@ deliberada e justificada.
 | [0055](0055-recusas-da-revisao-em-contrato-da-ingestao.md) | Recusas da revisão por amostra em `Core.Ingestion.Contracts` | Decisão vigente |
 | [0056](0056-toponimo-vira-marcador.md) | O nome de lugar vira marcador | Decisão vigente |
 | [0057](0057-escopo-do-marcador-e-a-conversa.md) | O escopo do marcador é a conversa | Decisão vigente |
+| [0058](0058-padrao-de-usabilidade-e-visual.md) | Padrão de usabilidade e visual das telas | Decisão vigente |
 
 ## Formato
 

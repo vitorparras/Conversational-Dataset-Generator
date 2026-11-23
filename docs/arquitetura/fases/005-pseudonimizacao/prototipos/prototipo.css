@@ -1,7 +1,8 @@
 /*
     Só dos protótipos da fase 5. A barra de estados e a troca de estado por âncora (:target, sem script)
-    são andaime de protótipo e não vão para as telas. O resto (detalhes recolhidos, a situação em destaque
-    e a identidade revelada) é a proposta visual que, aprovada, entra em screens.css com tokens.
+    são andaime de protótipo e não vão para as telas. O resto (recolhido, linha de situação, lista em
+    linhas, identidade revelada) segue a decisão 0058 e entra em screens.css como componente quando a
+    fatia de tela precisar.
 */
 
 /* Andaime: a barra que troca o estado, discreta, acima da tela. */

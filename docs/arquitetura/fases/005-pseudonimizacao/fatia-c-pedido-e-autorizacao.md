@@ -16,7 +16,9 @@ Quem não é da Curadoria recebe a página de endereço inexistente (`ScreenGate
 evento de recusa (#103 CA-3). Renovar é autorizar de novo o mesmo pedido depois que a anterior
 venceu. Com a cadeia quebrada, nenhum ato é gravado, nem a recusa; a tela diz por quê. Os
 protótipos são `pedido.html`, `autorizacao.html` e a lista de `meus-pedidos.html`, em
-[protótipos](prototipos/index.html).
+[protótipos](prototipos/index.html), e seguem a [0058](../../../decisoes/0058-padrao-de-usabilidade-e-visual.md).
+Na R1, o botão de enviar fica visível no celular (390x844) sem rolar, ou o mais perto disso: é
+critério da implementação, conferido na captura.
 
 ## Critérios de aceite
 

@@ -1,22 +1,37 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="scripted">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Meus pedidos de reversão · Gerador de bases conversacionais</title>
     <link rel="stylesheet" href="../../../../../core/src/Core.Host/Screens/tokens.css" />
     <link rel="stylesheet" href="../../../../../core/src/Core.Host/Screens/screens.css" />
+    <link rel="stylesheet" href="prototipo.css" />
 </head>
 <!--
-    Protótipo da tela R3 (GET /reversao/meus-pedidos e GET /reversao/meus-pedidos/{id}, da fatia C;
-    GET e POST /reversao/meus-pedidos/{id}/revelar, da fatia D), só de quem pediu. A identidade aparece uma vez, na resposta
-    do POST, sem cache; depois o pedido mostra só quando foi revelado. O valor revelado é sintético.
-    Na tela real só um estado aparece por vez; aqui os estados vêm em sequência, cada um na sua âncora.
-    Os dados são sintéticos.
+    Protótipo da R3: a lista e a página do pedido (GET /reversao/meus-pedidos e /{id}, fatia C) e a revelação
+    (GET e POST /reversao/meus-pedidos/{id}/revelar, fatia D). A revelação grava o registro antes de mostrar a
+    identidade (#616 CA-1); a resposta vai sem cache e não se reapresenta (CA-2); vencido ou já revelado é
+    recusado (CA-3); o registro não guarda a identidade (CA-4). Um estado por vez; dados sintéticos.
 -->
 <body>
     <a class="skip-link" href="#content">Ir para o conteúdo</a>
-    <p role="note">Protótipo para aprovação do dono. Não é a tela final. <a href="index.html">Índice dos protótipos</a>.</p>
+    <nav class="proto" aria-label="Estados do protótipo">
+        <p>Protótipo · <a href="index.html">índice</a> · estado:</p>
+        <ul>
+            <li><a href="#lista">lista</a></li>
+            <li><a href="#pendente">pendente</a></li>
+            <li><a href="#recusado">recusado</a></li>
+            <li><a href="#autorizado">autorizado</a></li>
+            <li><a href="#confirmar">confirmar</a></li>
+            <li><a href="#revelada">revelada</a></li>
+            <li><a href="#depois">aberto depois</a></li>
+            <li><a href="#vencido">vencido</a></li>
+            <li><a href="#ja-revelado">já revelado</a></li>
+            <li><a href="#esvaziado">item esvaziado</a></li>
+            <li><a href="#sem-permissao">sem a função</a></li>
+        </ul>
+    </nav>
     <header class="header">
         <a class="header__name" href="index.html">Gerador de bases conversacionais</a>
         <button id="cabecalho-abrir" class="button button--secondary header__toggle" type="button" aria-expanded="false" aria-controls="cabecalho-menu">Menu</button>
@@ -46,28 +61,17 @@
         </div>
     </header>
     <main id="content" class="page" tabindex="-1">
-        <h1>Meus pedidos de reversão</h1>
-        <p class="lead">O estado de cada pedido seu. Autorizado e dentro do prazo, você pode revelar a identidade uma vez; o registro é gravado antes, e a identidade não fica guardada em lugar algum.</p>
-
-        <nav aria-label="Estados do protótipo">
-            <ul>
-                <li><a href="#lista">Lista dos pedidos</a></li>
-                <li><a href="#pendente">Pedido pendente</a></li>
-                <li><a href="#autorizado">Autorizado, pronto para revelar</a></li>
-                <li><a href="#confirmar-revelacao">Confirmar a revelação</a></li>
-                <li><a href="#revelada">Identidade revelada, uma vez</a></li>
-                <li><a href="#depois">O mesmo pedido, aberto de novo</a></li>
-                <li><a href="#vencido">Recusado: prazo vencido</a></li>
-                <li><a href="#ja-revelado">Recusado: já revelado</a></li>
-                <li><a href="#esvaziado">Recusado: item esvaziado</a></li>
-                <li><a href="#falha-registro">Falha ao registrar</a></li>
+        <section id="lista" class="state" aria-labelledby="lista-titulo">
+            <h1 id="lista-titulo">Meus pedidos de reversão</h1>
+            <ul class="rows" aria-label="Seus pedidos">
+                <li><a href="#autorizado"><span><strong>Pedido 7 · <code>PESSOA_48291307</code></strong><span><span class="mark mark--good"><span class="mark__shape" aria-hidden="true">✓</span>Autorizado até 21/12/2026</span></span></span></a></li>
+                <li><a href="#pendente"><span><strong>Pedido 6 · <code>PESSOA_31057762</code></strong><span><span class="mark mark--waiting"><span class="mark__shape" aria-hidden="true">…</span>Aguarda autorização</span></span></span></a></li>
+                <li><a href="#depois"><span><strong>Pedido 5 · <code>PESSOA_90421635</code></strong><span><span class="mark"><span class="mark__shape" aria-hidden="true">✓</span>Revelado em 18/11/2026</span></span></span></a></li>
+                <li><a href="#recusado"><span><strong>Pedido 4 · <code>ORGANIZACAO_11843056</code></strong><span><span class="mark mark--bad"><span class="mark__shape" aria-hidden="true">×</span>Recusado</span></span></span></a></li>
+                <li><a href="#vencido"><span><strong>Pedido 3 · <code>PESSOA_55720148</code></strong><span><span class="mark mark--hidden"><span class="mark__shape" aria-hidden="true">○</span>Vencido</span></span></span></a></li>
             </ul>
-        </nav>
-
-        <section id="lista" aria-labelledby="lista-estado">
-            <p id="lista-estado"><strong>Estado: lista dos pedidos.</strong> Lista paginada no servidor, 20 por página.</p>
-            <section class="panel" aria-labelledby="lista-r3-titulo">
-                <h2 id="lista-r3-titulo">Pedidos</h2>
+            <details class="more">
+                <summary>Filtrar por situação</summary>
                 <form class="filter" method="get" action="meus-pedidos.html#lista">
                     <div class="field">
                         <label class="field__label" for="filtro-situacao">Situação</label>
@@ -81,165 +85,131 @@
                         </select>
                     </div>
                     <div class="actions">
-                        <button id="filtrar-r3" class="button button--secondary" type="submit">Filtrar</button>
+                        <button id="filtrar" class="button button--secondary" type="submit">Filtrar</button>
                     </div>
                 </form>
-                <div class="data-table" role="region" aria-labelledby="lista-r3-legenda" tabindex="0">
-                    <table>
-                        <caption id="lista-r3-legenda">Cada linha é um pedido seu</caption>
-                        <thead><tr><th scope="col">Pedido</th><th scope="col">Item</th><th scope="col">Marcador</th><th scope="col">Situação</th><th scope="col">Válido até</th></tr></thead>
-                        <tbody>
-                            <tr><th scope="row" class="data-table__plain">7</th><td>118</td><td><code>PESSOA_48291307</code></td><td><a href="#autorizado">Autorizado</a></td><td>2026-12-21</td></tr>
-                            <tr><th scope="row" class="data-table__plain">6</th><td>96</td><td><code>PESSOA_31057762</code></td><td><a href="#pendente">Aguarda autorização</a></td><td>—</td></tr>
-                            <tr><th scope="row" class="data-table__plain">5</th><td>51</td><td><code>PESSOA_90421635</code></td><td><a href="#depois">Revelado em 2026-11-18</a></td><td>—</td></tr>
-                            <tr><th scope="row" class="data-table__plain">4</th><td>40</td><td><code>ORGANIZACAO_11843056</code></td><td>Recusado em 2026-11-10</td><td>—</td></tr>
-                            <tr><th scope="row" class="data-table__plain">3</th><td>22</td><td><code>PESSOA_55720148</code></td><td>Vencido em 2026-11-05</td><td>—</td></tr>
-                        </tbody>
-                    </table>
+            </details>
+        </section>
+
+        <section id="pendente" class="state" aria-labelledby="pendente-titulo">
+            <h1 id="pendente-titulo">Pedido 6</h1>
+            <p class="status"><span class="mark mark--waiting"><span class="mark__shape" aria-hidden="true">…</span>Aguarda autorização</span> Falta outra pessoa da Curadoria de DOMINIO_A.</p>
+            <dl class="facts">
+                <div class="facts__item">
+                    <dt>Marcador</dt>
+                    <dd><code>PESSOA_31057762</code></dd>
                 </div>
-                <p>Página 1 de 1, 20 por página. <a href="meus-pedidos.html?pagina=1#lista">Endereço desta página</a>.</p>
-            </section>
+                <div class="facts__item">
+                    <dt>Item</dt>
+                    <dd>96</dd>
+                </div>
+                <div class="facts__item">
+                    <dt>Prazo pedido</dt>
+                    <dd>15 dias</dd>
+                </div>
+            </dl>
+            <p><a href="#lista">Meus pedidos</a></p>
         </section>
-        <hr />
 
-        <section id="pendente" aria-labelledby="pendente-estado">
-            <p id="pendente-estado"><strong>Estado: pedido pendente.</strong> Diz quem falta, sem identidade.</p>
-            <div class="notice notice--pending" role="status">
-                <span class="notice__mark" aria-hidden="true">…</span>
-                <p><span class="notice__kind">Pendente:</span> Falta a autorização de outra pessoa da Curadoria de DOMINIO_A.</p>
+        <section id="autorizado" class="state" aria-labelledby="autorizado-titulo">
+            <h1 id="autorizado-titulo">Pedido 7</h1>
+            <p class="status"><span class="mark mark--good"><span class="mark__shape" aria-hidden="true">✓</span>Autorizado até 21/12/2026</span> <code>PESSOA_48291307</code> no item 118</p>
+            <div class="actions">
+                <a class="button button--primary" href="#confirmar">Revelar a identidade</a>
+                <a href="#lista">Meus pedidos</a>
             </div>
-            <section class="panel" aria-labelledby="pendente-titulo">
-                <h2 id="pendente-titulo">Pedido 6</h2>
+            <details class="more">
+                <summary>Detalhes do pedido</summary>
                 <dl class="facts">
                     <div class="facts__item">
-                        <dt>Item</dt>
-                        <dd>96</dd>
+                        <dt>Por que precisa</dt>
+                        <dd>Texto sintético: a troca do item 118 pode ter acertado o vizinho.</dd>
                     </div>
                     <div class="facts__item">
-                        <dt>Marcador</dt>
-                        <dd><code>PESSOA_31057762</code></dd>
-                    </div>
-                    <div class="facts__item">
-                        <dt>Situação</dt>
-                        <dd>Aguarda autorização</dd>
-                    </div>
-                </dl>
-            </section>
-        </section>
-        <hr />
-
-        <section id="autorizado" aria-labelledby="autorizado-estado">
-            <p id="autorizado-estado"><strong>Estado: autorizado, pronto para revelar.</strong> Página do pedido, da fatia C; o botão leva à confirmação, GET /reversao/meus-pedidos/{id}/revelar.</p>
-            <section class="panel" aria-labelledby="autorizado-titulo">
-                <h2 id="autorizado-titulo">Pedido 7</h2>
-                <dl class="facts">
-                    <div class="facts__item">
-                        <dt>Item</dt>
-                        <dd>118</dd>
-                    </div>
-                    <div class="facts__item">
-                        <dt>Marcador</dt>
-                        <dd><code>PESSOA_48291307</code></dd>
+                        <dt>O que fará</dt>
+                        <dd>Texto sintético: conferir o alvo e descartar.</dd>
                     </div>
                     <div class="facts__item">
                         <dt>Autorizado por</dt>
-                        <dd>PESSOA_CURADORIA_4, em 2026-11-21</dd>
-                    </div>
-                    <div class="facts__item">
-                        <dt>Válido até</dt>
-                        <dd>2026-12-21</dd>
+                        <dd>PESSOA_CURADORIA_4, em 22/11/2026</dd>
                     </div>
                 </dl>
-                <a class="button button--primary" href="#confirmar-revelacao">Revelar a identidade de PESSOA_48291307</a>
-            </section>
+            </details>
         </section>
-        <hr />
 
-        <section id="confirmar-revelacao" aria-labelledby="confirmar-revelacao-estado">
-            <p id="confirmar-revelacao-estado"><strong>Estado: confirmar a revelação.</strong> Página própria; o envio é o POST do mesmo endereço, que grava o registro antes de abrir o mapa.</p>
-            <section class="panel" aria-labelledby="confirmar-revelacao-titulo">
-                <h2 id="confirmar-revelacao-titulo">Revelar a identidade de PESSOA_48291307, no item 118</h2>
-                <p>Isto não se desfaz. A revelação fica registrada na cadeia com o pedido, quem autorizou e o momento; a identidade não fica guardada em lugar algum.</p>
-                <p>Ela aparece uma vez, na próxima página. Recarregar ou voltar não a mostra de novo. Anote o que precisar antes de sair dela.</p>
-                <form class="form" method="get" action="meus-pedidos.html#revelada">
-                    <div class="actions">
-                        <button id="revelar" class="button button--danger" type="submit">Revelar agora</button>
-                        <a class="button button--secondary" href="#autorizado">Voltar sem revelar</a>
-                    </div>
-                </form>
-            </section>
+        <section id="confirmar" class="state" aria-labelledby="confirmar-titulo">
+            <h1 id="confirmar-titulo">Revelar <code>PESSOA_48291307</code>?</h1>
+            <ul>
+                <li>A revelação fica registrada antes de a identidade aparecer.</li>
+                <li>Ela aparece uma só vez. Voltar ou recarregar não a mostra de novo.</li>
+            </ul>
+            <form class="actions" method="get" action="meus-pedidos.html#revelada">
+                <button id="revelar" class="button button--danger" type="submit">Revelar agora</button>
+                <a href="#autorizado">Voltar sem revelar</a>
+            </form>
         </section>
-        <hr />
 
-        <section id="revelada" aria-labelledby="revelada-estado">
-            <p id="revelada-estado"><strong>Estado: identidade revelada, uma vez.</strong> Resposta do POST, sem cache. O registro já está na cadeia.</p>
-            <div class="notice notice--success" role="status">
-                <span class="notice__mark" aria-hidden="true">✓</span>
-                <p><span class="notice__kind">Registrado:</span> A revelação foi registrada às 14:05 de 2026-11-22.</p>
+        <section id="revelada" class="state" aria-labelledby="revelada-titulo">
+            <h1 id="revelada-titulo"><code>PESSOA_48291307</code>, item 118</h1>
+            <p class="reveal">VALOR_SINTETICO_REVELADO_1</p>
+            <p class="status"><span class="mark mark--good"><span class="mark__shape" aria-hidden="true">✓</span>Registrado às 14:05 de 22/11/2026</span> Esta é a única vez que ela aparece.</p>
+            <p><a href="#lista">Meus pedidos</a></p>
+        </section>
+
+        <section id="depois" class="state" aria-labelledby="depois-titulo">
+            <h1 id="depois-titulo">Pedido 5</h1>
+            <p class="status"><span class="mark"><span class="mark__shape" aria-hidden="true">✓</span>Revelado em 18/11/2026, 09:40</span> <code>PESSOA_90421635</code> no item 51</p>
+            <p><a href="#lista">Meus pedidos</a></p>
+        </section>
+
+        <section id="recusado" class="state" aria-labelledby="recusado-titulo">
+            <h1 id="recusado-titulo">Pedido 4</h1>
+            <p class="status"><span class="mark mark--bad"><span class="mark__shape" aria-hidden="true">×</span>Recusado em 10/11/2026</span> <code>ORGANIZACAO_11843056</code> no item 40</p>
+            <div class="actions">
+                <a class="button button--primary" href="pedido.html">Fazer outro pedido</a>
+                <a href="#lista">Meus pedidos</a>
             </div>
-            <section class="panel" aria-labelledby="revelada-titulo">
-                <h2 id="revelada-titulo">PESSOA_48291307, no item 118</h2>
-                <p>Identidade: <strong>VALOR_SINTETICO_REVELADO_1</strong></p>
-                <p>Esta é a única vez que ela aparece.</p>
-            </section>
         </section>
-        <hr />
 
-        <section id="depois" aria-labelledby="depois-estado">
-            <p id="depois-estado"><strong>Estado: o mesmo pedido, aberto de novo.</strong> GET do pedido depois da revelação, ou o botão voltar: só a data.</p>
-            <section class="panel" aria-labelledby="depois-titulo">
-                <h2 id="depois-titulo">Pedido 7</h2>
-                <dl class="facts">
-                    <div class="facts__item">
-                        <dt>Item</dt>
-                        <dd>118</dd>
-                    </div>
-                    <div class="facts__item">
-                        <dt>Marcador</dt>
-                        <dd><code>PESSOA_48291307</code></dd>
-                    </div>
-                    <div class="facts__item">
-                        <dt>Situação</dt>
-                        <dd>Revelado em 2026-11-22, 14:05</dd>
-                    </div>
-                </dl>
-            </section>
-        </section>
-        <hr />
-
-        <section id="vencido" aria-labelledby="vencido-estado">
-            <p id="vencido-estado"><strong>Estado: recusado: prazo vencido.</strong> A autorização venceu; é negada como se não existisse, e a negativa é registrada.</p>
+        <section id="vencido" class="state" aria-labelledby="vencido-titulo">
+            <h1 id="vencido-titulo">Pedido 3</h1>
             <div class="notice notice--error" role="alert">
                 <span class="notice__mark" aria-hidden="true">!</span>
-                <p><span class="notice__kind">Recusado:</span> A autorização deste pedido venceu em 2026-11-05. Peça de novo; renovar é uma autorização nova.</p>
+                <p><span class="notice__kind">Não revelado:</span> a autorização venceu em 05/11/2026.</p>
+            </div>
+            <div class="actions">
+                <a class="button button--primary" href="pedido.html">Fazer outro pedido</a>
+                <a href="#lista">Meus pedidos</a>
             </div>
         </section>
-        <hr />
 
-        <section id="ja-revelado" aria-labelledby="ja-revelado-estado">
-            <p id="ja-revelado-estado"><strong>Estado: recusado: já revelado.</strong> Uma autorização serve uma revelação.</p>
+        <section id="ja-revelado" class="state" aria-labelledby="ja-revelado-titulo">
+            <h1 id="ja-revelado-titulo">Pedido 5</h1>
             <div class="notice notice--error" role="alert">
                 <span class="notice__mark" aria-hidden="true">!</span>
-                <p><span class="notice__kind">Recusado:</span> Este pedido já foi revelado em 2026-11-18. Para revelar de novo, faça outro pedido.</p>
+                <p><span class="notice__kind">Não revelado:</span> este pedido já foi revelado em 18/11/2026.</p>
+            </div>
+            <div class="actions">
+                <a class="button button--primary" href="pedido.html">Fazer outro pedido</a>
+                <a href="#lista">Meus pedidos</a>
             </div>
         </section>
-        <hr />
 
-        <section id="esvaziado" aria-labelledby="esvaziado-estado">
-            <p id="esvaziado-estado"><strong>Estado: recusado: item esvaziado.</strong> O item foi esvaziado e o mapa dele não existe mais.</p>
+        <section id="esvaziado" class="state" aria-labelledby="esvaziado-titulo">
+            <h1 id="esvaziado-titulo">Pedido 7</h1>
             <div class="notice notice--error" role="alert">
                 <span class="notice__mark" aria-hidden="true">!</span>
-                <p><span class="notice__kind">Recusado:</span> O item 118 foi esvaziado: o mapa dele não existe mais, e a reversão não é possível.</p>
+                <p><span class="notice__kind">Não revelado:</span> o item 118 foi esvaziado, e o mapa dele não existe mais.</p>
+            </div>
+            <div class="actions">
+                <a href="#lista">Meus pedidos</a>
             </div>
         </section>
-        <hr />
 
-        <section id="falha-registro" aria-labelledby="falha-registro-estado">
-            <p id="falha-registro-estado"><strong>Estado: falha ao registrar.</strong> O evento não foi gravado; o mapa não foi aberto, e o pedido continua autorizado.</p>
-            <div class="notice notice--error" role="alert">
-                <span class="notice__mark" aria-hidden="true">!</span>
-                <p><span class="notice__kind">Não revelado:</span> Não foi possível registrar a revelação, e nada foi revelado. O pedido continua autorizado até 2026-12-21; tente de novo.</p>
-            </div>
+        <section id="sem-permissao" class="state" aria-labelledby="sem-permissao-titulo">
+            <h1 id="sem-permissao-titulo">Página não encontrada</h1>
+            <p>Confira o endereço ou volte ao início.</p>
+            <a class="button button--secondary" href="index.html">Ir para o início</a>
         </section>
     </main>
 </body>

@@ -1,22 +1,36 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="scripted">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Autorizar reversão · Gerador de bases conversacionais</title>
     <link rel="stylesheet" href="../../../../../core/src/Core.Host/Screens/tokens.css" />
     <link rel="stylesheet" href="../../../../../core/src/Core.Host/Screens/screens.css" />
+    <link rel="stylesheet" href="prototipo.css" />
 </head>
 <!--
-    Protótipo da tela R2 (GET /reversao/autorizar e GET e POST /reversao/autorizar/{id}), da
-    Curadoria do mesmo domínio, nunca de quem pediu. O pedido aparece sem identidade: marcador,
-    item, justificativa, uso e prazo pedido. A autorização é confirmada numa página própria.
-    Na tela real só um estado aparece por vez; aqui os estados vêm em sequência, cada um na sua âncora.
-    Os dados são sintéticos.
+    Protótipo da R2 (GET /reversao/autorizar e GET e POST /reversao/autorizar/{id}), só da Curadoria. A lista
+    não traz os pedidos de quem a abre, e o envio direto de um deles é recusado (#615 CA-1). O pedido mostra
+    o porquê, o uso e o prazo, sem identidade (CA-2). A autorização se confirma na página do pedido, vale para
+    ele e expira (CA-3). A recusa fica registrada com quem, quando e escopo (CA-4). Com a cadeia quebrada,
+    nenhum ato é gravado. Um estado por vez; dados sintéticos.
 -->
 <body>
     <a class="skip-link" href="#content">Ir para o conteúdo</a>
-    <p role="note">Protótipo para aprovação do dono. Não é a tela final. <a href="index.html">Índice dos protótipos</a>.</p>
+    <nav class="proto" aria-label="Estados do protótipo">
+        <p>Protótipo · <a href="index.html">índice</a> · estado:</p>
+        <ul>
+            <li><a href="#lista">pendentes</a></li>
+            <li><a href="#vazia">nenhum</a></li>
+            <li><a href="#decidir">decidir</a></li>
+            <li><a href="#erro-prazo">erro na data</a></li>
+            <li><a href="#autorizado">autorizado</a></li>
+            <li><a href="#recusado">recusado</a></li>
+            <li><a href="#proprio">pedido próprio</a></li>
+            <li><a href="#cadeia">cadeia quebrada</a></li>
+            <li><a href="#sem-permissao">sem a função</a></li>
+        </ul>
+    </nav>
     <header class="header">
         <a class="header__name" href="index.html">Gerador de bases conversacionais</a>
         <button id="cabecalho-abrir" class="button button--secondary header__toggle" type="button" aria-expanded="false" aria-controls="cabecalho-menu">Menu</button>
@@ -46,216 +60,137 @@
         </div>
     </header>
     <main id="content" class="page" tabindex="-1">
-        <h1>Autorizar a reversão</h1>
-        <p class="lead">Pedidos de outras pessoas da Curadoria de DOMINIO_A; os seus não aparecem aqui. Autorizar dá a quem pediu uma revelação, deste marcador, até o prazo que você declarar.</p>
-
-        <nav aria-label="Estados do protótipo">
-            <ul>
-                <li><a href="#lista">Pedidos pendentes</a></li>
-                <li><a href="#lista-vazia">Nenhum pedido pendente</a></li>
-                <li><a href="#confirmar">Examinar e decidir</a></li>
-                <li><a href="#erro-de-prazo">Erro no prazo</a></li>
-                <li><a href="#autorizado">Autorizado</a></li>
-                <li><a href="#recusado">Recusado</a></li>
-                <li><a href="#proprio">Pedido próprio enviado direto</a></li>
-                <li><a href="#cadeia-quebrada">Cadeia de custódia quebrada</a></li>
-                <li><a href="#sem-permissao">Sem a função de Curadoria</a></li>
+        <section id="lista" class="state" aria-labelledby="lista-titulo">
+            <h1 id="lista-titulo">Autorizar reversão</h1>
+            <p class="status">2 pedidos de outras pessoas da Curadoria aguardam você.</p>
+            <ul class="rows" aria-label="Pedidos que aguardam você">
+                <li><a href="#decidir"><span><strong>Pedido 7 · <code>PESSOA_48291307</code></strong><span>Item 118 · 30 dias</span></span></a></li>
+                <li><a href="#decidir"><span><strong>Pedido 9 · <code>ORGANIZACAO_07155429</code></strong><span>Item 204 · 7 dias</span></span></a></li>
             </ul>
-        </nav>
-
-        <section id="lista" aria-labelledby="lista-estado">
-            <p id="lista-estado"><strong>Estado: pedidos pendentes.</strong> Lista paginada no servidor, 20 por página, com a página no endereço.</p>
-            <section class="panel" aria-labelledby="lista-titulo">
-                <h2 id="lista-titulo">Pendentes</h2>
+            <details class="more">
+                <summary>Filtrar por item</summary>
                 <form class="filter" method="get" action="autorizacao.html#lista">
                     <div class="field">
                         <label class="field__label" for="filtro-item">Item</label>
                         <input id="filtro-item" class="field__input" name="item" type="text" inputmode="numeric" autocomplete="off" />
                     </div>
                     <div class="actions">
-                        <button id="filtrar-r2" class="button button--secondary" type="submit">Filtrar</button>
+                        <button id="filtrar" class="button button--secondary" type="submit">Filtrar</button>
                     </div>
                 </form>
-                <div class="data-table" role="region" aria-labelledby="lista-legenda" tabindex="0">
-                    <table>
-                        <caption id="lista-legenda">Cada linha é um pedido pendente de outra pessoa</caption>
-                        <thead><tr><th scope="col">Pedido</th><th scope="col">Item</th><th scope="col">Marcador</th><th scope="col">Pedido por</th><th scope="col">Em</th><th scope="col">Prazo pedido</th><th scope="col">Decidir</th></tr></thead>
-                        <tbody>
-                            <tr><th scope="row" class="data-table__plain">7</th><td>118</td><td><code>PESSOA_48291307</code></td><td>PESSOA_CURADORIA_2</td><td>2026-11-21</td><td>30 dias</td><td><a href="#confirmar">Examinar o pedido 7</a></td></tr>
-                            <tr><th scope="row" class="data-table__plain">9</th><td>204</td><td><code>ORGANIZACAO_07155429</code></td><td>PESSOA_CURADORIA_3</td><td>2026-11-22</td><td>7 dias</td><td><a href="#confirmar">Examinar o pedido 9</a></td></tr>
-                        </tbody>
-                    </table>
+            </details>
+        </section>
+
+        <section id="vazia" class="state" aria-labelledby="vazia-titulo">
+            <h1 id="vazia-titulo">Autorizar reversão</h1>
+            <p class="status">Nenhum pedido aguarda você.</p>
+        </section>
+
+        <section id="decidir" class="state" aria-labelledby="decidir-titulo">
+            <h1 id="decidir-titulo">Pedido 7</h1>
+            <p class="status"><code>PESSOA_48291307</code> no item 118</p>
+            <dl class="facts">
+                <div class="facts__item">
+                    <dt>Por que precisa</dt>
+                    <dd>Texto sintético: a troca do item 118 pode ter acertado o vizinho, e só a identidade confirma.</dd>
                 </div>
-                <p>Página 1 de 1, 20 por página. <a href="autorizacao.html?pagina=1#lista">Endereço desta página</a>.</p>
-            </section>
+                <div class="facts__item">
+                    <dt>O que fará</dt>
+                    <dd>Texto sintético: conferir o alvo e descartar.</dd>
+                </div>
+                <div class="facts__item">
+                    <dt>Prazo pedido</dt>
+                    <dd>30 dias</dd>
+                </div>
+            </dl>
+            <details class="more">
+                <summary>Quem pediu e quando</summary>
+                <p>PESSOA_CURADORIA_2, em 21/11/2026.</p>
+            </details>
+            <form class="form" method="get" action="autorizacao.html#autorizado" novalidate>
+                <div class="field">
+                    <label class="field__label" for="decidir-validade">Autorizar este pedido até</label>
+                    <input id="decidir-validade" class="field__input" name="validade" type="date" value="2026-12-21" autocomplete="off" aria-required="true" />
+                </div>
+                <div class="actions">
+                    <button id="decidir-autorizar" class="button button--primary" type="submit">Autorizar</button>
+                    <a id="decidir-recusar" class="button button--secondary" href="#recusado">Recusar</a>
+                    <a href="#lista">Voltar</a>
+                </div>
+            </form>
         </section>
-        <hr />
 
-        <section id="lista-vazia" aria-labelledby="lista-vazia-estado">
-            <p id="lista-vazia-estado"><strong>Estado: nenhum pedido pendente.</strong></p>
-            <section class="empty-state" aria-labelledby="lista-vazia-titulo">
-                <h2 id="lista-vazia-titulo" class="empty-state__title">Nenhum pedido a decidir</h2>
-                <p>Quando outra pessoa da Curadoria deste domínio pedir uma reversão, o pedido aparece aqui.</p>
-            </section>
+        <section id="erro-prazo" class="state" aria-labelledby="erro-prazo-titulo">
+            <h1 id="erro-prazo-titulo">Pedido 7</h1>
+            <p class="status"><code>PESSOA_48291307</code> no item 118</p>
+            <dl class="facts">
+                <div class="facts__item">
+                    <dt>Por que precisa</dt>
+                    <dd>Texto sintético: a troca do item 118 pode ter acertado o vizinho, e só a identidade confirma.</dd>
+                </div>
+                <div class="facts__item">
+                    <dt>O que fará</dt>
+                    <dd>Texto sintético: conferir o alvo e descartar.</dd>
+                </div>
+                <div class="facts__item">
+                    <dt>Prazo pedido</dt>
+                    <dd>30 dias</dd>
+                </div>
+            </dl>
+            <form class="form" method="get" action="autorizacao.html#autorizado" novalidate>
+                <div class="field">
+                    <label class="field__label" for="erro-prazo-validade">Autorizar este pedido até</label>
+                    <input id="erro-prazo-validade" class="field__input" name="validade" type="date" value="2026-11-01" autocomplete="off" aria-required="true" aria-invalid="true" aria-describedby="erro-prazo-validade-erro" />
+                    <p id="erro-prazo-validade-erro" class="field__error" role="alert">Nada foi autorizado: escolha uma data futura.</p>
+                </div>
+                <div class="actions">
+                    <button id="erro-prazo-autorizar" class="button button--primary" type="submit">Autorizar</button>
+                    <a id="erro-prazo-recusar" class="button button--secondary" href="#recusado">Recusar</a>
+                    <a href="#lista">Voltar</a>
+                </div>
+            </form>
         </section>
-        <hr />
 
-        <section id="confirmar" aria-labelledby="confirmar-estado">
-            <p id="confirmar-estado"><strong>Estado: examinar e decidir.</strong> Página própria, GET /reversao/autorizar/{id}; o envio é o POST do mesmo endereço. Nenhuma identidade aparece.</p>
-            <section class="panel" aria-labelledby="confirmar-pedido-titulo">
-                <h2 id="confirmar-pedido-titulo">Pedido 7</h2>
-                <dl class="facts">
-                    <div class="facts__item">
-                        <dt>Item</dt>
-                        <dd>118</dd>
-                    </div>
-                    <div class="facts__item">
-                        <dt>Marcador</dt>
-                        <dd><code>PESSOA_48291307</code></dd>
-                    </div>
-                    <div class="facts__item">
-                        <dt>Pedido por</dt>
-                        <dd>PESSOA_CURADORIA_2, em 2026-11-21</dd>
-                    </div>
-                    <div class="facts__item">
-                        <dt>Por que a análise não avança sem a identidade</dt>
-                        <dd>Texto sintético: a troca do item 118 pode ter acertado o vizinho, e só a identidade confirma.</dd>
-                    </div>
-                    <div class="facts__item">
-                        <dt>O que será feito com ela</dt>
-                        <dd>Texto sintético: conferir o alvo e descartar.</dd>
-                    </div>
-                    <div class="facts__item">
-                        <dt>Prazo pedido</dt>
-                        <dd>30 dias</dd>
-                    </div>
-                </dl>
-            </section>
-            <section class="panel" aria-labelledby="confirmar-titulo">
-                <h2 id="confirmar-titulo">Decidir</h2>
-                <p>Autorizar vale só para este pedido e expira no prazo que você declarar, mesmo que o caso continue aberto. Renovar depois é autorizar de novo.</p>
-                <form class="form" method="get" action="autorizacao.html#autorizado" novalidate>
-                    <div class="field">
-                        <label class="field__label" for="confirmar-validade">
-                            Válida até
-                            <span class="field__required">(obrigatório)</span>
-                        </label>
-                        <p id="confirmar-validade-dica" class="field__hint">Uma data futura.</p>
-                        <input id="confirmar-validade" class="field__input" name="validade" type="date" value="2026-12-21" autocomplete="off" aria-required="true" aria-describedby="confirmar-validade-dica" />
-                    </div>
-                    <div class="actions">
-                        <button id="confirmar-autorizar" class="button button--primary" type="submit">Autorizar o pedido 7</button>
-                        <a id="confirmar-recusar" class="button button--danger" href="#recusado">Recusar o pedido 7</a>
-                        <a class="button button--secondary" href="#lista">Voltar sem decidir</a>
-                    </div>
-                </form>
-            </section>
-        </section>
-        <hr />
-
-        <section id="erro-de-prazo" aria-labelledby="erro-de-prazo-estado">
-            <p id="erro-de-prazo-estado"><strong>Estado: erro no prazo.</strong> O POST volta com o erro ligado ao campo; nada é autorizado.</p>
-            <div class="notice notice--error" role="alert">
-                <span class="notice__mark" aria-hidden="true">!</span>
-                <p><span class="notice__kind">Erro:</span> Nada foi autorizado. Corrija o campo marcado.</p>
-            </div>
-            <section class="panel" aria-labelledby="erro-de-prazo-pedido-titulo">
-                <h2 id="erro-de-prazo-pedido-titulo">Pedido 7</h2>
-                <dl class="facts">
-                    <div class="facts__item">
-                        <dt>Item</dt>
-                        <dd>118</dd>
-                    </div>
-                    <div class="facts__item">
-                        <dt>Marcador</dt>
-                        <dd><code>PESSOA_48291307</code></dd>
-                    </div>
-                    <div class="facts__item">
-                        <dt>Pedido por</dt>
-                        <dd>PESSOA_CURADORIA_2, em 2026-11-21</dd>
-                    </div>
-                    <div class="facts__item">
-                        <dt>Por que a análise não avança sem a identidade</dt>
-                        <dd>Texto sintético: a troca do item 118 pode ter acertado o vizinho, e só a identidade confirma.</dd>
-                    </div>
-                    <div class="facts__item">
-                        <dt>O que será feito com ela</dt>
-                        <dd>Texto sintético: conferir o alvo e descartar.</dd>
-                    </div>
-                    <div class="facts__item">
-                        <dt>Prazo pedido</dt>
-                        <dd>30 dias</dd>
-                    </div>
-                </dl>
-            </section>
-            <section class="panel" aria-labelledby="erro-de-prazo-titulo">
-                <h2 id="erro-de-prazo-titulo">Decidir</h2>
-                <p>Autorizar vale só para este pedido e expira no prazo que você declarar, mesmo que o caso continue aberto. Renovar depois é autorizar de novo.</p>
-                <form class="form" method="get" action="autorizacao.html#autorizado" novalidate>
-                    <div class="field">
-                        <label class="field__label" for="erro-de-prazo-validade">
-                            Válida até
-                            <span class="field__required">(obrigatório)</span>
-                        </label>
-                        <p id="erro-de-prazo-validade-dica" class="field__hint">Uma data futura.</p>
-                        <input id="erro-de-prazo-validade" class="field__input" name="validade" type="date" value="2026-11-01" autocomplete="off" aria-required="true" aria-invalid="true" aria-describedby="erro-de-prazo-validade-dica erro-de-prazo-validade-erro" />
-                        <p id="erro-de-prazo-validade-erro" class="field__error" role="alert">Declare uma data futura.</p>
-                    </div>
-                    <div class="actions">
-                        <button id="erro-de-prazo-autorizar" class="button button--primary" type="submit">Autorizar o pedido 7</button>
-                        <a id="erro-de-prazo-recusar" class="button button--danger" href="#recusado">Recusar o pedido 7</a>
-                        <a class="button button--secondary" href="#lista">Voltar sem decidir</a>
-                    </div>
-                </form>
-            </section>
-        </section>
-        <hr />
-
-        <section id="autorizado" aria-labelledby="autorizado-estado">
-            <p id="autorizado-estado"><strong>Estado: autorizado.</strong> Gravados a autorização e o evento, com quem, quando e até quando.</p>
+        <section id="autorizado" class="state" aria-labelledby="autorizado-titulo">
+            <h1 id="autorizado-titulo">Pedido 7 autorizado</h1>
             <div class="notice notice--success" role="status">
                 <span class="notice__mark" aria-hidden="true">✓</span>
-                <p><span class="notice__kind">Autorizado:</span> O pedido 7 foi autorizado até 2026-12-21. Quem pediu pode revelar uma vez, até lá.</p>
+                <p><span class="notice__kind">Registrado:</span> quem pediu pode revelar uma vez, até 21/12/2026.</p>
             </div>
-            <a class="button button--secondary" href="#lista">Voltar aos pendentes</a>
+            <p><a href="#lista">Voltar aos pendentes</a></p>
         </section>
-        <hr />
 
-        <section id="recusado" aria-labelledby="recusado-estado">
-            <p id="recusado-estado"><strong>Estado: recusado.</strong> A recusa é registrada com quem, quando e o escopo; o pedido sai da lista.</p>
+        <section id="recusado" class="state" aria-labelledby="recusado-titulo">
+            <h1 id="recusado-titulo">Pedido 7 recusado</h1>
             <div class="notice notice--success" role="status">
                 <span class="notice__mark" aria-hidden="true">✓</span>
-                <p><span class="notice__kind">Recusado:</span> O pedido 7 foi recusado, e a recusa foi registrada.</p>
+                <p><span class="notice__kind">Registrado:</span> a recusa ficou na cadeia de custódia.</p>
             </div>
-            <a class="button button--secondary" href="#lista">Voltar aos pendentes</a>
+            <p><a href="#lista">Voltar aos pendentes</a></p>
         </section>
-        <hr />
 
-        <section id="proprio" aria-labelledby="proprio-estado">
-            <p id="proprio-estado"><strong>Estado: pedido próprio enviado direto.</strong> O pedido próprio não aparece na lista; um POST montado à mão é recusado e registrado.</p>
+        <section id="proprio" class="state" aria-labelledby="proprio-titulo">
+            <h1 id="proprio-titulo">Pedido 6</h1>
             <div class="notice notice--error" role="alert">
                 <span class="notice__mark" aria-hidden="true">!</span>
-                <p><span class="notice__kind">Recusado:</span> Você não pode autorizar um pedido seu. Outra pessoa da Curadoria precisa decidir; a tentativa foi registrada.</p>
+                <p><span class="notice__kind">Recusado:</span> Você não autoriza o próprio pedido. A tentativa foi registrada.</p>
             </div>
+            <p><a href="#lista">Voltar aos pendentes</a></p>
         </section>
-        <hr />
 
-        <section id="cadeia-quebrada" aria-labelledby="cadeia-quebrada-estado">
-            <p id="cadeia-quebrada-estado"><strong>Estado: cadeia de custódia quebrada.</strong> A cadeia é uma só na instalação. Enquanto a última verificação falhou, nenhum ato é gravado: nem a autorização, nem a recusa.</p>
+        <section id="cadeia" class="state" aria-labelledby="cadeia-titulo">
+            <h1 id="cadeia-titulo">Pedido 7</h1>
             <div class="notice notice--error" role="alert">
                 <span class="notice__mark" aria-hidden="true">!</span>
-                <p><span class="notice__kind">Indisponível:</span> A cadeia de custódia está quebrada. Nenhuma reversão é autorizada ou recusada até a verificação voltar a passar; o pedido continua pendente.</p>
+                <p><span class="notice__kind">Indisponível:</span> A cadeia de custódia está quebrada. Nada é autorizado nem recusado até ela voltar; o pedido segue pendente.</p>
             </div>
+            <p><a href="#lista">Voltar aos pendentes</a></p>
         </section>
-        <hr />
 
-        <section id="sem-permissao" aria-labelledby="sem-permissao-estado">
-            <p id="sem-permissao-estado"><strong>Estado: sem a função de Curadoria.</strong> Os endereços respondem como inexistentes; o menu não tem a reversão.</p>
-            <section class="panel" aria-labelledby="sem-permissao-r2-titulo">
-                <h2 id="sem-permissao-r2-titulo">Página não encontrada</h2>
-                <p>Este endereço não leva a uma página. Confira se ele está completo ou volte ao início.</p>
-                <a class="button button--secondary" href="index.html">Ir para o início</a>
-            </section>
+        <section id="sem-permissao" class="state" aria-labelledby="sem-permissao-titulo">
+            <h1 id="sem-permissao-titulo">Página não encontrada</h1>
+            <p>Confira o endereço ou volte ao início.</p>
+            <a class="button button--secondary" href="index.html">Ir para o início</a>
         </section>
     </main>
 </body>

@@ -1,22 +1,28 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="scripted">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Lote 13 · Gerador de bases conversacionais</title>
     <link rel="stylesheet" href="../../../../../core/src/Core.Host/Screens/tokens.css" />
     <link rel="stylesheet" href="../../../../../core/src/Core.Host/Screens/screens.css" />
+    <link rel="stylesheet" href="prototipo.css" />
 </head>
 <!--
-    Protótipo da tela I3 (GET /lotes/{id}) só com o que a fase 5 acrescenta: a seção da
-    pseudonimização, com quantos marcadores por tipo e quantos itens, e o motivo novo de rejeição.
-    Nenhum texto do material, nenhum marcador e nenhum original aparecem nesta tela: só números.
-    Na tela real só um estado aparece por vez; aqui os estados vêm em sequência, cada um na sua âncora.
-    Os dados são sintéticos.
+    Protótipo da seção Pseudonimização na I3 (GET /lotes/{id}), fatia B. Só números: marcadores por tipo e itens
+    com marcador, contados dos marcadores do item; nenhum texto, posição nem marcador. O resto da página é o da
+    fase 3 e da fase 4. Um estado por vez; dados sintéticos.
 -->
 <body>
     <a class="skip-link" href="#content">Ir para o conteúdo</a>
-    <p role="note">Protótipo para aprovação do dono. Não é a tela final. <a href="index.html">Índice dos protótipos</a>.</p>
+    <nav class="proto" aria-label="Estados do protótipo">
+        <p>Protótipo · <a href="index.html">índice</a> · estado:</p>
+        <ul>
+            <li><a href="#pseudonimizado">pseudonimizado</a></li>
+            <li><a href="#sem-nome">sem nome no texto</a></li>
+            <li><a href="#falha">rejeitado</a></li>
+        </ul>
+    </nav>
     <header class="header">
         <a class="header__name" href="index.html">Gerador de bases conversacionais</a>
         <button id="cabecalho-abrir" class="button button--secondary header__toggle" type="button" aria-expanded="false" aria-controls="cabecalho-menu">Menu</button>
@@ -46,86 +52,59 @@
         </div>
     </header>
     <main id="content" class="page" tabindex="-1">
-        <h1>Lote 13</h1>
-        <p class="lead">O que a pseudonimização fez neste lote, em números por tipo. A sanitização é a da <a href="../../004-sanitizacao/prototipos/lote.html">fase 4</a>, e o resto do detalhe é o da <a href="../../003-ingestao/prototipos/lote.html">fase 3</a>.</p>
-
-        <nav aria-label="Estados do protótipo">
-            <ul>
-                <li><a href="#pseudonimizado">Aberto e pseudonimizado</a></li>
-                <li><a href="#sem-nome">Pseudonimizado sem nenhum nome no texto</a></li>
-                <li><a href="#falha">Rejeitado: falha na pseudonimização</a></li>
-            </ul>
-        </nav>
-
-        <section id="pseudonimizado" aria-labelledby="pseudonimizado-estado">
-            <p id="pseudonimizado-estado"><strong>Estado: aberto e pseudonimizado.</strong> Todo item nasceu com o texto pseudonimizado e o mapa dele, cifrados. As contagens saem dos marcadores de cada item, em claro.</p>
-            <section class="panel" aria-labelledby="pseudonimizado-titulo">
-                <h2 id="pseudonimizado-titulo">Pseudonimização</h2>
-                <dl class="facts">
-                    <div class="facts__item">
-                        <dt>Itens pseudonimizados</dt>
-                        <dd>40 de 40</dd>
-                    </div>
-                </dl>
-                <div class="data-table" role="region" aria-labelledby="pseudonimizado-legenda" tabindex="0">
-                    <table>
-                        <caption id="pseudonimizado-legenda">Cada linha é um tipo de marcador</caption>
-                        <thead><tr><th scope="col">Tipo</th><th scope="col">Marcadores</th><th scope="col">Itens com marcador</th></tr></thead>
-                        <tbody>
-                            <tr><th scope="row" class="data-table__plain">Pessoa</th><td>12</td><td>31</td></tr>
-                            <tr><th scope="row" class="data-table__plain">Organização</th><td>3</td><td>7</td></tr>
-                            <tr><th scope="row" class="data-table__plain">Autor de mensagem</th><td>5</td><td>40</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+        <section id="pseudonimizado" class="state" aria-labelledby="pseudonimizado-titulo">
+            <h1 id="pseudonimizado-titulo">Lote 13</h1>
+            <p class="status"><span class="mark mark--good"><span class="mark__shape" aria-hidden="true">✓</span>Pseudonimizado</span> 40 itens</p>
+            <h2>Pseudonimização</h2>
+            <div class="data-table data-table--compact">
+                <table aria-describedby="pseudonimizado-legenda">
+                    <caption id="pseudonimizado-legenda">Marcadores por tipo, só números</caption>
+                    <thead><tr><th scope="col">Tipo</th><th scope="col">Marcadores</th><th scope="col">Itens com marcador</th></tr></thead>
+                    <tbody>
+                    <tr><th scope="row" class="data-table__plain">Pessoa</th><td>12</td><td>31</td></tr>
+                    <tr><th scope="row" class="data-table__plain">Lugar</th><td>4</td><td>9</td></tr>
+                    <tr><th scope="row" class="data-table__plain">Organização</th><td>3</td><td>7</td></tr>
+                    <tr><th scope="row" class="data-table__plain">Autor de mensagem</th><td>5</td><td>40</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <details class="more">
+                <summary>Sanitização e detalhes do lote</summary>
+                <p>A sanitização segue o <a href="../../004-sanitizacao/prototipos/lote.html">lote da fase 4</a>; o resto, o <a href="../../003-ingestao/prototipos/lote.html">da fase 3</a>.</p>
+            </details>
         </section>
-        <hr />
 
-        <section id="sem-nome" aria-labelledby="sem-nome-estado">
-            <p id="sem-nome-estado"><strong>Estado: pseudonimizado sem nenhum nome no texto.</strong> Nenhuma ocorrência do texto era de destino pseudonimizar; só os autores viraram marcador, e as outras linhas ficam em zero.</p>
-            <section class="panel" aria-labelledby="sem-nome-titulo">
-                <h2 id="sem-nome-titulo">Pseudonimização</h2>
-                <dl class="facts">
-                    <div class="facts__item">
-                        <dt>Itens pseudonimizados</dt>
-                        <dd>12 de 12</dd>
-                    </div>
-                </dl>
-                <div class="data-table" role="region" aria-labelledby="sem-nome-legenda" tabindex="0">
-                    <table>
-                        <caption id="sem-nome-legenda">Cada linha é um tipo de marcador</caption>
-                        <thead><tr><th scope="col">Tipo</th><th scope="col">Marcadores</th><th scope="col">Itens com marcador</th></tr></thead>
-                        <tbody>
-                            <tr><th scope="row" class="data-table__plain">Pessoa</th><td>0</td><td>0</td></tr>
-                            <tr><th scope="row" class="data-table__plain">Organização</th><td>0</td><td>0</td></tr>
-                            <tr><th scope="row" class="data-table__plain">Autor de mensagem</th><td>2</td><td>12</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+        <section id="sem-nome" class="state" aria-labelledby="sem-nome-titulo">
+            <h1 id="sem-nome-titulo">Lote 14</h1>
+            <p class="status"><span class="mark mark--good"><span class="mark__shape" aria-hidden="true">✓</span>Pseudonimizado</span> 6 itens</p>
+            <h2>Pseudonimização</h2>
+            <p>Nenhum nome no texto: só os autores viraram marcador.</p>
+            <div class="data-table data-table--compact">
+                <table aria-describedby="sem-nome-legenda">
+                    <caption id="sem-nome-legenda">Marcadores por tipo, só números</caption>
+                    <thead><tr><th scope="col">Tipo</th><th scope="col">Marcadores</th><th scope="col">Itens com marcador</th></tr></thead>
+                    <tbody>
+                    <tr><th scope="row" class="data-table__plain">Autor de mensagem</th><td>2</td><td>6</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <details class="more">
+                <summary>Sanitização e detalhes do lote</summary>
+                <p>A sanitização segue o <a href="../../004-sanitizacao/prototipos/lote.html">lote da fase 4</a>; o resto, o <a href="../../003-ingestao/prototipos/lote.html">da fase 3</a>.</p>
+            </details>
         </section>
-        <hr />
 
-        <section id="falha" aria-labelledby="falha-estado">
-            <p id="falha-estado"><strong>Estado: rejeitado: falha na pseudonimização.</strong> O lote é rejeitado sem itens. O motivo não traz texto, posição nem marcador.</p>
+        <section id="falha" class="state" aria-labelledby="falha-titulo">
+            <h1 id="falha-titulo">Lote 15</h1>
             <div class="notice notice--error" role="alert">
                 <span class="notice__mark" aria-hidden="true">!</span>
-                <p><span class="notice__kind">Rejeitado:</span> A pseudonimização falhou e nenhum item foi gravado: uma ocorrência marcada para sair chegou ao mapa, e o mapa a recusou. Envie o material de novo; se repetir, avise a administração técnica com o número do lote.</p>
+                <p><span class="notice__kind">Rejeitado:</span> a pseudonimização falhou, e nenhum item foi gravado.</p>
             </div>
-            <section class="panel" aria-labelledby="falha-titulo">
-                <h2 id="falha-titulo">Pseudonimização</h2>
-                <dl class="facts">
-                    <div class="facts__item">
-                        <dt>Situação</dt>
-                        <dd>Rejeitado</dd>
-                    </div>
-                    <div class="facts__item">
-                        <dt>Motivo</dt>
-                        <dd>Ocorrência de destino remover recusada pelo mapa</dd>
-                    </div>
-                </dl>
-            </section>
+            <a class="button button--primary" href="../../003-ingestao/prototipos/submissao.html">Enviar de novo</a>
+            <details class="more">
+                <summary>Motivo</summary>
+                <p>Uma ocorrência marcada para sair chegou ao mapa, e o mapa a recusou. Se repetir, avise a administração técnica com o número do lote.</p>
+            </details>
         </section>
     </main>
 </body>

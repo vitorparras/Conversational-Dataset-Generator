@@ -1,21 +1,31 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="scripted">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Pedir reversão · Gerador de bases conversacionais</title>
     <link rel="stylesheet" href="../../../../../core/src/Core.Host/Screens/tokens.css" />
     <link rel="stylesheet" href="../../../../../core/src/Core.Host/Screens/screens.css" />
+    <link rel="stylesheet" href="prototipo.css" />
 </head>
 <!--
-    Protótipo da tela R1 (GET e POST /reversao/pedir), só da Curadoria do acervo. O pedido nomeia um
-    marcador num item e diz por que, para quê e por quanto tempo. A tela não mostra identidade alguma.
-    Na tela real só um estado aparece por vez; aqui os estados vêm em sequência, cada um na sua âncora.
-    Os dados são sintéticos.
+    Protótipo da R1 (GET e POST /reversao/pedir), só da Curadoria. Um marcador, em um item, com o porquê,
+    o uso e o prazo. Nenhuma identidade aparece. Um estado por vez, pela barra de estados; dados sintéticos.
+    Erro de campo: nada é pedido (#614 CA-1). Escopo amplo: recusado e registrado (CA-2). Sem a função:
+    endereço inexistente, e a política também nega (CA-3). Enviado: diz quem falta (CA-4).
 -->
 <body>
     <a class="skip-link" href="#content">Ir para o conteúdo</a>
-    <p role="note">Protótipo para aprovação do dono. Não é a tela final. <a href="index.html">Índice dos protótipos</a>.</p>
+    <nav class="proto" aria-label="Estados do protótipo">
+        <p>Protótipo · <a href="index.html">índice</a> · estado:</p>
+        <ul>
+            <li><a href="#vazio">vazio</a></li>
+            <li><a href="#erro">erro de campo</a></li>
+            <li><a href="#escopo">escopo recusado</a></li>
+            <li><a href="#enviado">enviado</a></li>
+            <li><a href="#sem-permissao">sem a função</a></li>
+        </ul>
+    </nav>
     <header class="header">
         <a class="header__name" href="index.html">Gerador de bases conversacionais</a>
         <button id="cabecalho-abrir" class="button button--secondary header__toggle" type="button" aria-expanded="false" aria-controls="cabecalho-menu">Menu</button>
@@ -45,224 +55,133 @@
         </div>
     </header>
     <main id="content" class="page" tabindex="-1">
-        <h1>Pedir a reversão de um marcador</h1>
-        <p class="lead">Um marcador, em um item. Escreva por que a análise não avança sem a identidade, o que será feito com ela e por quanto tempo. Outra pessoa da Curadoria deste domínio decide; você não autoriza o próprio pedido.</p>
-
-        <nav aria-label="Estados do protótipo">
-            <ul>
-                <li><a href="#vazio">Formulário vazio</a></li>
-                <li><a href="#erro-de-campo">Erro de campo</a></li>
-                <li><a href="#escopo">Recusado pelo escopo</a></li>
-                <li><a href="#enviado">Pedido enviado, pendente</a></li>
-                <li><a href="#sem-permissao">Sem a função de Curadoria</a></li>
-            </ul>
-        </nav>
-
-        <section id="vazio" aria-labelledby="vazio-estado">
-            <p id="vazio-estado"><strong>Estado: formulário vazio.</strong> GET /reversao/pedir.</p>
-            <section class="panel" aria-labelledby="vazio-titulo">
-                <h2 id="vazio-titulo">Pedido</h2>
-                <form class="form" method="get" action="pedido.html#enviado" novalidate>
+        <section id="vazio" class="state" aria-labelledby="vazio-titulo">
+            <h1 id="vazio-titulo">Pedir reversão</h1>
+            <form class="form" method="get" action="pedido.html#enviado" novalidate>
+                <p class="field__hint">Todos os campos são obrigatórios.</p>
+                <div class="pair">
                     <div class="field">
-                        <label class="field__label" for="vazio-item">
-                            Item
-                            <span class="field__required">(obrigatório)</span>
-                        </label>
-                        <p id="vazio-item-dica" class="field__hint">O número do item, como aparece no lote.</p>
-                        <input id="vazio-item" class="field__input" name="item" type="text" autocomplete="off" aria-required="true" aria-describedby="vazio-item-dica" />
+                        <label class="field__label" for="vazio-item">Item</label>
+                        <input id="vazio-item" class="field__input" name="item" type="text" autocomplete="off" aria-required="true" inputmode="numeric" />
                     </div>
                     <div class="field">
-                        <label class="field__label" for="vazio-marcador">
-                            Marcador
-                            <span class="field__required">(obrigatório)</span>
-                        </label>
-                        <p id="vazio-marcador-dica" class="field__hint">Um só marcador, como aparece no texto: PESSOA_48291307.</p>
-                        <input id="vazio-marcador" class="field__input" name="marcador" type="text" autocomplete="off" aria-required="true" aria-describedby="vazio-marcador-dica" />
+                        <label class="field__label" for="vazio-marcador">Marcador</label>
+                        <input id="vazio-marcador" class="field__input" name="marcador" type="text" autocomplete="off" aria-required="true" />
                     </div>
                     <div class="field">
-                        <label class="field__label" for="vazio-motivo">
-                            Por que a análise não avança sem a identidade
-                            <span class="field__required">(obrigatório)</span>
-                        </label>
-                        <textarea id="vazio-motivo" class="field__input field__input--text" name="motivo" rows="4" aria-required="true"></textarea>
+                        <label class="field__label" for="vazio-prazo">Prazo, em dias</label>
+                        <input id="vazio-prazo" class="field__input" name="prazo" type="number" autocomplete="off" aria-required="true" inputmode="numeric" />
                     </div>
-                    <div class="field">
-                        <label class="field__label" for="vazio-uso">
-                            O que será feito com ela
-                            <span class="field__required">(obrigatório)</span>
-                        </label>
-                        <textarea id="vazio-uso" class="field__input field__input--text" name="uso" rows="4" aria-required="true"></textarea>
-                    </div>
-                    <div class="field">
-                        <label class="field__label" for="vazio-prazo">
-                            Por quanto tempo
-                            <span class="field__required">(obrigatório)</span>
-                        </label>
-                        <p id="vazio-prazo-dica" class="field__hint">Em dias. Depois disso, a identidade não pode mais ser usada.</p>
-                        <input id="vazio-prazo" class="field__input" name="prazo" type="number" autocomplete="off" aria-required="true" aria-describedby="vazio-prazo-dica" />
-                    </div>
-                    <div class="actions">
-                        <button id="vazio-enviar" class="button button--primary" type="submit">Enviar o pedido</button>
-                    </div>
-                </form>
-            </section>
+                </div>
+                <div class="field">
+                    <label class="field__label" for="vazio-motivo">Por que precisa da identidade</label>
+                    <textarea id="vazio-motivo" class="field__input" name="motivo" rows="2" aria-required="true"></textarea>
+                </div>
+                <div class="field">
+                    <label class="field__label" for="vazio-uso">O que fará com ela</label>
+                    <textarea id="vazio-uso" class="field__input" name="uso" rows="2" aria-required="true"></textarea>
+                </div>
+                <div class="actions">
+                    <button id="vazio-enviar" class="button button--primary" type="submit">Enviar pedido</button>
+                </div>
+            </form>
+            <details class="more">
+                <summary>Como funciona</summary>
+                <p>Um pedido vale para um marcador, em um item. Outra pessoa da Curadoria deste domínio decide; você não autoriza o próprio pedido.</p>
+            </details>
         </section>
-        <hr />
 
-        <section id="erro-de-campo" aria-labelledby="erro-de-campo-estado">
-            <p id="erro-de-campo-estado"><strong>Estado: erro de campo.</strong> O POST volta com os erros ligados aos campos e com o que foi digitado; nada é pedido e nada é registrado.</p>
-            <div class="notice notice--error" role="alert">
-                <span class="notice__mark" aria-hidden="true">!</span>
-                <p><span class="notice__kind">Erro:</span> O pedido não foi enviado. Corrija os campos marcados.</p>
-            </div>
-            <section class="panel" aria-labelledby="erro-de-campo-titulo">
-                <h2 id="erro-de-campo-titulo">Pedido</h2>
-                <form class="form" method="get" action="pedido.html#enviado" novalidate>
+        <section id="erro" class="state" aria-labelledby="erro-titulo">
+            <h1 id="erro-titulo">Pedir reversão</h1>
+            <form class="form" method="get" action="pedido.html#enviado" novalidate>
+                <p class="field__hint">Todos os campos são obrigatórios.</p>
+                <div class="pair">
                     <div class="field">
-                        <label class="field__label" for="erro-de-campo-item">
-                            Item
-                            <span class="field__required">(obrigatório)</span>
-                        </label>
-                        <p id="erro-de-campo-item-dica" class="field__hint">O número do item, como aparece no lote.</p>
-                        <input id="erro-de-campo-item" class="field__input" name="item" type="text" value="118" autocomplete="off" aria-required="true" aria-describedby="erro-de-campo-item-dica" />
+                        <label class="field__label" for="erro-item">Item</label>
+                        <input id="erro-item" class="field__input" name="item" type="text" value="118" autocomplete="off" aria-required="true" inputmode="numeric" />
                     </div>
                     <div class="field">
-                        <label class="field__label" for="erro-de-campo-marcador">
-                            Marcador
-                            <span class="field__required">(obrigatório)</span>
-                        </label>
-                        <p id="erro-de-campo-marcador-dica" class="field__hint">Um só marcador, como aparece no texto: PESSOA_48291307.</p>
-                        <input id="erro-de-campo-marcador" class="field__input" name="marcador" type="text" value="PESSOA_48291307" autocomplete="off" aria-required="true" aria-describedby="erro-de-campo-marcador-dica" />
+                        <label class="field__label" for="erro-marcador">Marcador</label>
+                        <input id="erro-marcador" class="field__input" name="marcador" type="text" value="PESSOA_48291307" autocomplete="off" aria-required="true" />
                     </div>
                     <div class="field">
-                        <label class="field__label" for="erro-de-campo-motivo">
-                            Por que a análise não avança sem a identidade
-                            <span class="field__required">(obrigatório)</span>
-                        </label>
-                        <textarea id="erro-de-campo-motivo" class="field__input field__input--text" name="motivo" rows="4" aria-required="true" aria-invalid="true" aria-describedby="erro-de-campo-motivo-erro"></textarea>
-                        <p id="erro-de-campo-motivo-erro" class="field__error" role="alert">Escreva por que a análise não avança sem a identidade.</p>
+                        <label class="field__label" for="erro-prazo">Prazo, em dias</label>
+                        <input id="erro-prazo" class="field__input" name="prazo" type="number" autocomplete="off" aria-required="true" aria-invalid="true" aria-describedby="erro-prazo-erro" inputmode="numeric" />
+                        <p id="erro-prazo-erro" class="field__error" role="alert">Diga quantos dias.</p>
                     </div>
-                    <div class="field">
-                        <label class="field__label" for="erro-de-campo-uso">
-                            O que será feito com ela
-                            <span class="field__required">(obrigatório)</span>
-                        </label>
-                        <textarea id="erro-de-campo-uso" class="field__input field__input--text" name="uso" rows="4" aria-required="true">Texto sintético: conferir se a troca acertou o alvo no item 118.</textarea>
-                    </div>
-                    <div class="field">
-                        <label class="field__label" for="erro-de-campo-prazo">
-                            Por quanto tempo
-                            <span class="field__required">(obrigatório)</span>
-                        </label>
-                        <p id="erro-de-campo-prazo-dica" class="field__hint">Em dias. Depois disso, a identidade não pode mais ser usada.</p>
-                        <input id="erro-de-campo-prazo" class="field__input" name="prazo" type="number" autocomplete="off" aria-required="true" aria-invalid="true" aria-describedby="erro-de-campo-prazo-dica erro-de-campo-prazo-erro" />
-                        <p id="erro-de-campo-prazo-erro" class="field__error" role="alert">Diga por quantos dias.</p>
-                    </div>
-                    <div class="actions">
-                        <button id="erro-de-campo-enviar" class="button button--primary" type="submit">Enviar o pedido</button>
-                    </div>
-                </form>
-            </section>
+                </div>
+                <div class="field">
+                    <label class="field__label" for="erro-motivo">Por que precisa da identidade</label>
+                    <textarea id="erro-motivo" class="field__input" name="motivo" rows="2" aria-required="true" aria-invalid="true" aria-describedby="erro-motivo-erro"></textarea>
+                    <p id="erro-motivo-erro" class="field__error" role="alert">Diga por que precisa da identidade.</p>
+                </div>
+                <div class="field">
+                    <label class="field__label" for="erro-uso">O que fará com ela</label>
+                    <textarea id="erro-uso" class="field__input" name="uso" rows="2" aria-required="true">Texto sintético: conferir o alvo da troca.</textarea>
+                </div>
+                <div class="actions">
+                    <button id="erro-enviar" class="button button--primary" type="submit">Enviar pedido</button>
+                </div>
+            </form>
         </section>
-        <hr />
 
-        <section id="escopo" aria-labelledby="escopo-estado">
-            <p id="escopo-estado"><strong>Estado: recusado pelo escopo.</strong> Um POST com mais de um marcador ou item, ou com marcador que não está no item, é recusado; a recusa é registrada na cadeia com quem pediu, quando e o escopo.</p>
-            <div class="notice notice--error" role="alert">
-                <span class="notice__mark" aria-hidden="true">!</span>
-                <p><span class="notice__kind">Recusado:</span> O pedido alcança mais de um marcador ou mais de um item. A reversão é de um marcador, em um item; a recusa foi registrada.</p>
-            </div>
-            <section class="panel" aria-labelledby="escopo-titulo">
-                <h2 id="escopo-titulo">Pedido</h2>
-                <form class="form" method="get" action="pedido.html#enviado" novalidate>
+        <section id="escopo" class="state" aria-labelledby="escopo-titulo">
+            <h1 id="escopo-titulo">Pedir reversão</h1>
+            <form class="form" method="get" action="pedido.html#enviado" novalidate>
+                <p class="field__hint">Todos os campos são obrigatórios.</p>
+                <div class="pair">
                     <div class="field">
-                        <label class="field__label" for="escopo-item">
-                            Item
-                            <span class="field__required">(obrigatório)</span>
-                        </label>
-                        <p id="escopo-item-dica" class="field__hint">O número do item, como aparece no lote.</p>
-                        <input id="escopo-item" class="field__input" name="item" type="text" value="118" autocomplete="off" aria-required="true" aria-describedby="escopo-item-dica" />
+                        <label class="field__label" for="escopo-item">Item</label>
+                        <input id="escopo-item" class="field__input" name="item" type="text" value="118, 204" autocomplete="off" aria-required="true" aria-invalid="true" aria-describedby="escopo-item-erro" inputmode="numeric" />
+                        <p id="escopo-item-erro" class="field__error" role="alert">Um item só. A recusa foi registrada.</p>
                     </div>
                     <div class="field">
-                        <label class="field__label" for="escopo-marcador">
-                            Marcador
-                            <span class="field__required">(obrigatório)</span>
-                        </label>
-                        <p id="escopo-marcador-dica" class="field__hint">Um só marcador, como aparece no texto: PESSOA_48291307.</p>
-                        <input id="escopo-marcador" class="field__input" name="marcador" type="text" value="PESSOA_48291307" autocomplete="off" aria-required="true" aria-describedby="escopo-marcador-dica" />
+                        <label class="field__label" for="escopo-marcador">Marcador</label>
+                        <input id="escopo-marcador" class="field__input" name="marcador" type="text" value="PESSOA_48291307" autocomplete="off" aria-required="true" />
                     </div>
                     <div class="field">
-                        <label class="field__label" for="escopo-motivo">
-                            Por que a análise não avança sem a identidade
-                            <span class="field__required">(obrigatório)</span>
-                        </label>
-                        <textarea id="escopo-motivo" class="field__input field__input--text" name="motivo" rows="4" aria-required="true"></textarea>
+                        <label class="field__label" for="escopo-prazo">Prazo, em dias</label>
+                        <input id="escopo-prazo" class="field__input" name="prazo" type="number" value="30" autocomplete="off" aria-required="true" inputmode="numeric" />
                     </div>
-                    <div class="field">
-                        <label class="field__label" for="escopo-uso">
-                            O que será feito com ela
-                            <span class="field__required">(obrigatório)</span>
-                        </label>
-                        <textarea id="escopo-uso" class="field__input field__input--text" name="uso" rows="4" aria-required="true"></textarea>
-                    </div>
-                    <div class="field">
-                        <label class="field__label" for="escopo-prazo">
-                            Por quanto tempo
-                            <span class="field__required">(obrigatório)</span>
-                        </label>
-                        <p id="escopo-prazo-dica" class="field__hint">Em dias. Depois disso, a identidade não pode mais ser usada.</p>
-                        <input id="escopo-prazo" class="field__input" name="prazo" type="number" autocomplete="off" aria-required="true" aria-describedby="escopo-prazo-dica" />
-                    </div>
-                    <div class="actions">
-                        <button id="escopo-enviar" class="button button--primary" type="submit">Enviar o pedido</button>
-                    </div>
-                </form>
-            </section>
+                </div>
+                <div class="field">
+                    <label class="field__label" for="escopo-motivo">Por que precisa da identidade</label>
+                    <textarea id="escopo-motivo" class="field__input" name="motivo" rows="2" aria-required="true">Texto sintético: confirmar o mesmo nome em dois itens.</textarea>
+                </div>
+                <div class="field">
+                    <label class="field__label" for="escopo-uso">O que fará com ela</label>
+                    <textarea id="escopo-uso" class="field__input" name="uso" rows="2" aria-required="true">Texto sintético: conferir o alvo da troca.</textarea>
+                </div>
+                <div class="actions">
+                    <button id="escopo-enviar" class="button button--primary" type="submit">Enviar pedido</button>
+                </div>
+            </form>
         </section>
-        <hr />
 
-        <section id="enviado" aria-labelledby="enviado-estado">
-            <p id="enviado-estado"><strong>Estado: pedido enviado, pendente.</strong> O POST redireciona à página do pedido. A tela diz quem falta e não mostra identidade alguma.</p>
-            <div class="notice notice--pending" role="status">
-                <span class="notice__mark" aria-hidden="true">…</span>
-                <p><span class="notice__kind">Pendente:</span> Pedido 7 enviado. Falta a autorização de outra pessoa da Curadoria de DOMINIO_A.</p>
-            </div>
-            <section class="panel" aria-labelledby="enviado-titulo">
-                <h2 id="enviado-titulo">Pedido 7</h2>
-                <dl class="facts">
-                    <div class="facts__item">
-                        <dt>Item</dt>
-                        <dd>118</dd>
-                    </div>
-                    <div class="facts__item">
-                        <dt>Marcador</dt>
-                        <dd><code>PESSOA_48291307</code></dd>
-                    </div>
-                    <div class="facts__item">
-                        <dt>Prazo pedido</dt>
-                        <dd>30 dias</dd>
-                    </div>
-                    <div class="facts__item">
-                        <dt>Situação</dt>
-                        <dd>Aguarda autorização</dd>
-                    </div>
-                    <div class="facts__item">
-                        <dt>Quem falta</dt>
-                        <dd>Outra pessoa da Curadoria de DOMINIO_A</dd>
-                    </div>
-                </dl>
-                <a class="button button--secondary" href="meus-pedidos.html#lista">Ver meus pedidos</a>
-            </section>
+        <section id="enviado" class="state" aria-labelledby="enviado-titulo">
+            <h1 id="enviado-titulo">Pedido 7 enviado</h1>
+            <p class="status"><span class="mark mark--waiting"><span class="mark__shape" aria-hidden="true">…</span>Aguarda autorização</span> Falta outra pessoa da Curadoria de DOMINIO_A.</p>
+            <dl class="facts">
+                <div class="facts__item">
+                    <dt>Marcador</dt>
+                    <dd><code>PESSOA_48291307</code></dd>
+                </div>
+                <div class="facts__item">
+                    <dt>Item</dt>
+                    <dd>118</dd>
+                </div>
+                <div class="facts__item">
+                    <dt>Prazo pedido</dt>
+                    <dd>30 dias</dd>
+                </div>
+            </dl>
+            <a class="button button--secondary" href="meus-pedidos.html">Ver meus pedidos</a>
         </section>
-        <hr />
 
-        <section id="sem-permissao" aria-labelledby="sem-permissao-estado">
-            <p id="sem-permissao-estado"><strong>Estado: sem a função de Curadoria.</strong> Quem só anota recebe a página de endereço inexistente; o menu não tem a reversão, e a tentativa fica registrada.</p>
-            <section class="panel" aria-labelledby="sem-permissao-r1-titulo">
-                <h2 id="sem-permissao-r1-titulo">Página não encontrada</h2>
-                <p>Este endereço não leva a uma página. Confira se ele está completo ou volte ao início.</p>
-                <a class="button button--secondary" href="index.html">Ir para o início</a>
-            </section>
+        <section id="sem-permissao" class="state" aria-labelledby="sem-permissao-titulo">
+            <h1 id="sem-permissao-titulo">Página não encontrada</h1>
+            <p>Confira o endereço ou volte ao início.</p>
+            <a class="button button--secondary" href="index.html">Ir para o início</a>
         </section>
     </main>
 </body>

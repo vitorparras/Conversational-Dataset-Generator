@@ -1,73 +1,60 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="scripted">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Protótipos da pseudonimização · Gerador de bases conversacionais</title>
     <link rel="stylesheet" href="../../../../../core/src/Core.Host/Screens/tokens.css" />
     <link rel="stylesheet" href="../../../../../core/src/Core.Host/Screens/screens.css" />
+    <link rel="stylesheet" href="prototipo.css" />
 </head>
+<!--
+    Índice dos protótipos da fase 5: a seção nova do lote e as três telas da reversão.
+-->
 <body>
     <a class="skip-link" href="#content">Ir para o conteúdo</a>
-    <p role="note">Protótipo para aprovação do dono. Não é a tela final. <a href="index.html">Índice dos protótipos</a>.</p>
+    <p class="proto" role="note">Protótipo para aprovação. Não é a tela final.</p>
+    <header class="header">
+        <a class="header__name" href="index.html">Gerador de bases conversacionais</a>
+        <button id="cabecalho-abrir" class="button button--secondary header__toggle" type="button" aria-expanded="false" aria-controls="cabecalho-menu">Menu</button>
+        <div id="cabecalho-menu" class="header__menu">
+            <form class="domain" method="get">
+                <label class="domain__label" for="dominio">Domínio de trabalho</label>
+                <select id="dominio" class="domain__choice" name="dominio">
+                    <option value="DOMINIO_A">DOMINIO_A</option>
+                    <option value="DOMINIO_B">DOMINIO_B</option>
+                </select>
+                <button id="dominio-trocar" class="button button--secondary" type="submit">Trocar domínio</button>
+            </form>
+            <a class="nav__link header__account" href="index.html">Minha conta</a>
+            <form class="header__leave" method="get" action="index.html">
+                <button id="sair" class="button button--secondary" type="submit">Sair</button>
+            </form>
+            <nav class="nav" aria-label="Telas da sua função">
+                <ul class="nav__list">
+                    <li><a class="nav__link" href="../../003-ingestao/prototipos/submissao.html">Enviar material</a></li>
+                    <li><a class="nav__link" href="lote.html">Lotes</a></li>
+                    <li><a class="nav__link" href="../../004-sanitizacao/prototipos/reexecucao.html">Sanitização</a></li>
+                    <li><a class="nav__link" href="pedido.html">Pedir reversão</a></li>
+                    <li><a class="nav__link" href="autorizacao.html">Autorizar reversão</a></li>
+                    <li><a class="nav__link" href="meus-pedidos.html">Meus pedidos de reversão</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
     <main id="content" class="page" tabindex="-1">
-        <h1>Protótipos das telas da pseudonimização</h1>
-        <p class="lead">Quatro telas da fase 5: a seção nova do lote e as três da reversão, todas da Curadoria do acervo. Cada uma traz os seus estados em âncoras. Os protótipos usam o estilo real das telas e não têm script; os dados são sintéticos.</p>
-
-        <section class="panel" aria-labelledby="tela-lote-titulo">
-            <h2 id="tela-lote-titulo"><a href="lote.html">I3 · Lote, seção Pseudonimização</a></h2>
-            <p>Rota GET /lotes/{id}. Fatia B.</p>
-            <ul>
-                <li><a href="lote.html#pseudonimizado">Aberto e pseudonimizado</a></li>
-                <li><a href="lote.html#sem-nome">Pseudonimizado sem nenhum nome no texto</a></li>
-                <li><a href="lote.html#falha">Rejeitado: falha na pseudonimização</a></li>
-            </ul>
-        </section>
-
-        <section class="panel" aria-labelledby="tela-pedido-titulo">
-            <h2 id="tela-pedido-titulo"><a href="pedido.html">R1 · Pedir reversão</a></h2>
-            <p>Rotas GET e POST /reversao/pedir. Fatia C.</p>
-            <ul>
-                <li><a href="pedido.html#vazio">Formulário vazio</a></li>
-                <li><a href="pedido.html#erro-de-campo">Erro de campo</a></li>
-                <li><a href="pedido.html#escopo">Recusado pelo escopo</a></li>
-                <li><a href="pedido.html#enviado">Pedido enviado, pendente</a></li>
-                <li><a href="pedido.html#sem-permissao">Sem a função de Curadoria</a></li>
-            </ul>
-        </section>
-
-        <section class="panel" aria-labelledby="tela-autorizacao-titulo">
-            <h2 id="tela-autorizacao-titulo"><a href="autorizacao.html">R2 · Autorizar reversão</a></h2>
-            <p>Rotas GET /reversao/autorizar e GET e POST /reversao/autorizar/{id}. Fatia C.</p>
-            <ul>
-                <li><a href="autorizacao.html#lista">Pedidos pendentes</a></li>
-                <li><a href="autorizacao.html#lista-vazia">Nenhum pedido pendente</a></li>
-                <li><a href="autorizacao.html#confirmar">Examinar e decidir</a></li>
-                <li><a href="autorizacao.html#erro-de-prazo">Erro no prazo</a></li>
-                <li><a href="autorizacao.html#autorizado">Autorizado</a></li>
-                <li><a href="autorizacao.html#recusado">Recusado</a></li>
-                <li><a href="autorizacao.html#proprio">Pedido próprio enviado direto</a></li>
-                <li><a href="autorizacao.html#cadeia-quebrada">Cadeia de custódia quebrada</a></li>
-                <li><a href="autorizacao.html#sem-permissao">Sem a função de Curadoria</a></li>
-            </ul>
-        </section>
-
-        <section class="panel" aria-labelledby="tela-meus-titulo">
-            <h2 id="tela-meus-titulo"><a href="meus-pedidos.html">R3 · Meus pedidos e entrega</a></h2>
-            <p>Rotas GET /reversao/meus-pedidos e GET /reversao/meus-pedidos/{id}, da fatia C, e GET e POST /reversao/meus-pedidos/{id}/revelar, da fatia D.</p>
-            <ul>
-                <li><a href="meus-pedidos.html#lista">Lista dos pedidos</a></li>
-                <li><a href="meus-pedidos.html#pendente">Pedido pendente</a></li>
-                <li><a href="meus-pedidos.html#autorizado">Autorizado, pronto para revelar</a></li>
-                <li><a href="meus-pedidos.html#confirmar-revelacao">Confirmar a revelação</a></li>
-                <li><a href="meus-pedidos.html#revelada">Identidade revelada, uma vez</a></li>
-                <li><a href="meus-pedidos.html#depois">O mesmo pedido, aberto de novo</a></li>
-                <li><a href="meus-pedidos.html#vencido">Recusado: prazo vencido</a></li>
-                <li><a href="meus-pedidos.html#ja-revelado">Recusado: já revelado</a></li>
-                <li><a href="meus-pedidos.html#esvaziado">Recusado: item esvaziado</a></li>
-                <li><a href="meus-pedidos.html#falha-registro">Falha ao registrar</a></li>
-            </ul>
-        </section>
+        <h1>Protótipos da pseudonimização</h1>
+        <p class="lead">Quatro telas da fase 5, da Curadoria. Cada uma troca de estado pela barra do topo.</p>
+        <ul class="rows">
+            <li><a href="lote.html"><span><strong>I3 · Lote, seção Pseudonimização</strong><span>Fatia B</span></span></a></li>
+            <li><a href="pedido.html"><span><strong>R1 · Pedir reversão</strong><span>Fatia C</span></span></a></li>
+            <li><a href="autorizacao.html"><span><strong>R2 · Autorizar reversão</strong><span>Fatia C</span></span></a></li>
+            <li><a href="meus-pedidos.html"><span><strong>R3 · Meus pedidos e revelação</strong><span>Fatias C e D</span></span></a></li>
+        </ul>
+        <details class="more">
+            <summary>Sobre os protótipos</summary>
+            <p>Usam o estilo real das telas, sem script, com dados sintéticos. A barra de estados é só do protótipo. As capturas em celular e computador estão na pasta capturas.</p>
+        </details>
     </main>
 </body>
 </html>

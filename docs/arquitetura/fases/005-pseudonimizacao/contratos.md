@@ -16,11 +16,11 @@ como endereço inexistente.
 `ITextBoundaries`, como o `Sanitizer` (linha 123); a tradução pelo rastro muda a posição, não a
 unidade. Sobreposição entre duas ocorrências não é recusa: é fundida, como na fase 4.
 
-**Marcador.** Recebe o referente, o tipo e os marcadores já usados no domínio; devolve o marcador
-do referente se ele já tem um, ou sorteia outro com gerador criptográfico: o prefixo do tipo e seis
-dígitos, fora dos já usados (PESSOA_482913, ORGANIZACAO_071554). O referente é o autor da
-mensagem, pela forma que o material traz (`Message`, linha 9), ou o grupo de correferência que o
-serviço devolve para a menção ([fatia F](fatia-f-correferencia.md)), sem reserva por nome.
+**Marcador.** Recebe o referente e o tipo; devolve o que o referente já tem na conversa, ou
+sorteia o prefixo do tipo e oito dígitos (PESSOA_48291307) com gerador criptográfico, aceito só se
+nenhum domínio usou o número. O referente é o autor, pelo nome que o material traz (`Message`, linha
+9), ou o grupo de correferência da menção ([fatia F](fatia-f-correferencia.md)), que dá à menção
+ligada ao nome de um autor o marcador dele.
 
 **Datas.** Um deslocamento por domínio, sorteado uma vez em dias inteiros, nunca zero, selado; quem
 o lê recebe o valor ou "perdido", nunca um valor adivinhado.
@@ -29,13 +29,13 @@ o lê recebe o valor ou "perdido", nunca um valor adivinhado.
 
 **Submissão → pseudonimização.** Síncrona, depois da sanitização e antes de gravar o item: recebe o
 sanitizado, as ocorrências a pseudonimizar já levadas ao texto novo (`Sanitizer`, linhas 63 e 107)
-e os mapas do domínio; devolve o pseudonimizado e as entradas do mapa do item. Ocorrência de outro
-destino nunca entra no mapa: a troca lança, o lote é rejeitado e o evento fica na cadeia. O
+e, na reexecução, o mapa do item; devolve o pseudonimizado e as entradas do mapa do item. Ocorrência
+de outro destino nunca entra no mapa: a troca lança, o lote é rejeitado e o evento fica na cadeia. O
 registro de falha leva lote, posição do item, passo e motivo, porque o item ainda não existe.
 
-**Mapas do domínio.** Achar o marcador de quem já apareceu exige abrir na aplicação os mapas do
-domínio, porque o banco não filtra selado; cada mapa aberto grava antes o evento de leitura de
-`ProtectedContentReader`. É pendente do dono: custo e eventos crescem com o acervo.
+**Mapa do item.** A troca resolve a conversa nela mesma, sem abrir mapa de outro item (0057). Só
+a reexecução abre o mapa do item, com o evento de leitura de `ProtectedContentReader` antes, para
+manter os mesmos marcadores.
 
 **Gravador.** `ContentWriter.AddItemTextAsync` sela o pseudonimizado com a chave do item; o mapa
 (`ContentWriter.AddReversalMapAsync`) e os marcadores vão no mesmo comando. A reexecução da fase 4

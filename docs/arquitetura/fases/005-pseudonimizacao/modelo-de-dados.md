@@ -11,19 +11,20 @@ e F2 não têm migração.
 
 ## Fatia A
 
-**`date-shift`.** content.date_shift, uma linha por domínio, criada como as outras tabelas de
-conteúdo: o deslocamento selado com a finalidade nova deslocamento-datas e a chave da linha (0049),
-e quando foi sorteado. A linha nunca muda: GRANT de SELECT e INSERT, sem UPDATE nem DELETE; um
-índice único por domínio faz o segundo sorteio perder para o primeiro. A finalidade nova entra em
-`LabelPurpose` e nos rótulos de cada domínio, pela custódia da [0013](../../../decisoes/0013-chave-de-cifra-por-dominio.md).
+**`date-shift`.** content.date_shift, uma linha por domínio, como as outras tabelas de conteúdo: o
+deslocamento selado com a finalidade nova deslocamento-datas e a chave da linha (0049), e quando foi
+sorteado. A linha nunca muda (SELECT e INSERT, sem UPDATE nem DELETE), e um índice único por domínio
+faz o segundo sorteio perder para o primeiro. A finalidade nova entra em `LabelPurpose` e nos
+rótulos de cada domínio (0013). Não é única entre domínios (fatia A, #108 CA-3).
 
 ## Fatia B
 
 **`pseudonymization`.** Três mudanças:
 
-- content.domain_marker (domínio, marcador e tipo, único, sem o original) e content.item_marker
-  (item, marcador e se é o autor), em claro: o escopo que o pedido confere sem abrir o mapa e a
-  fonte das contagens da tela do lote.
+- content.marker_in_use (marcador e tipo, único na instalação) e content.item_marker (item,
+  marcador e se é o autor, fonte do pedido e das contagens do lote), cada linha com o domínio, sob a
+  política de linha da 0006: o sorteio insere sem ler os outros domínios, e o índice único recusa o
+  número usado. Em claro, porque não guardam nada do original nem derivado dele (0003, linha 21).
 - A coluna pseudonymized_text passa de text a bytea, selada com a chave do item e marcada
   `protected:texto-bruto` (hoje é nula em todo item). Sai de `Clear` e entra em `Protected` em
   `ContentColumns`, como manda a 0030 (linha 24).
@@ -56,5 +57,4 @@ em [eventos da reversão](eventos-da-reversao.md). Nenhuma coluna guarda o valor
 ## O que não muda
 
 O bruto, o sanitizado, o rastro e as ocorrências não mudam. As datas do acervo ficam como vieram:
-o deslocamento só se aplica na exportação, da fase 9. Ver [riscos](riscos.md) para o que
-cada migração precisa provar em teste de banco.
+o deslocamento só se aplica na exportação, da fase 9.

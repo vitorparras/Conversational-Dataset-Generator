@@ -3,14 +3,13 @@
 > Norma pendente. 2026-11-22. Cada risco tem o teste que o ataca, com o nome da fatia.
 
 A troca é domínio puro: o mesmo sanitizado e o mesmo mapa dão o mesmo pseudonimizado. O sorteio é a
-única parte não determinística, e ele só roda para referente que o mapa ainda não tem. Os riscos de
-concorrência ficam na gravação do item, transação serializável como na fase 4, e nos atos da
+única parte não determinística, e ele só roda para referente que a conversa ainda não tem. Os riscos
+de concorrência ficam na gravação do item, transação serializável como na fase 4, e nos atos da
 reversão, cada um uma linha nova com o evento na mesma transação.
 
 | Risco | O que pode acontecer | Como o desenho responde | Teste |
 |---|---|---|---|
-| Concorrência | Dois lotes do mesmo domínio trazem o mesmo referente novo e sorteiam dois marcadores | A troca toma uma trava de transação por domínio antes de abrir os mapas; o segundo lote espera e acha o marcador do primeiro | F3: TwoBatchesOfOneDomainAtOnceGiveOneMarkerPerReferent |
-| Concorrência | Dois sorteios dão o mesmo número no domínio | content.domain_marker é único por domínio; o sorteio exclui os usados e, perdendo, sorteia de novo | A: RedrawnMarkerNeverRepeatsOneInUse; B: MarkerIsUniqueInTheDomain |
+| Concorrência | Dois itens, do mesmo domínio ou de outros, sorteiam o mesmo número | content.marker_in_use é única na instalação; o sorteio insere sem ler os outros domínios e, perdendo no índice, sorteia de novo | A: RedrawnMarkerNeverRepeatsOneInUse; B: MarkerIsUniqueInTheInstallation; DrawLosingToAnotherDomainDrawsAgainWithoutReadingIt |
 | Concorrência | Duas pessoas autorizam o mesmo pedido ao mesmo tempo | O gatilho da reversal-request recusa a segunda autorização em vigor, em transação serializável | C: SecondAuthorizationWhileOneIsValidIsRefused |
 | Concorrência | O POST de revelar chega duas vezes | A revelação é única por autorização; a segunda perde e é negada como já revelada | D: TwoRevealPostsAtOnceRevealOnce |
 | Concorrência | Dois sorteios do deslocamento de datas do mesmo domínio | O índice único deixa o primeiro; o segundo lê o que ficou | A: TwoDrawsAtOnceKeepTheFirstShift |
@@ -23,12 +22,15 @@ reversão, cada um uma linha nova com o evento na mesma transação.
 | Dado pessoal | Nome de lugar fica no pseudonimizado | `DestinationPolicy` passa a pseudonimizar nome próprio de lugar, com o prefixo LUGAR (0012, linhas 14 e 15); nenhuma ocorrência nova recebe `Preserve`, e o `Preserve` de lugar dos itens antigos vira `Pseudonymize` no primeiro pseudonimizado | A: ProperNameOfAPlaceIsPseudonymized (#100 CA-5); F3: PreservedPlaceOfAnOldItemBecomesAMarker |
 | Precisão | O grupo de correferência liga menções de entidades distintas, ou separa as da mesma, em pt-BR | A F1 mede a precisão em pt-BR; a decisão nova fixa o limiar, e modelo abaixo dele não entra | F1: CoreferenceMeasurementReportsPrecisionAndFusionApart; ModelBelowTheThresholdFailsTheMeasurement |
 | Precisão | Mensagem que mistura línguas passa pelo modelo de pt (`SubmissionAnalysis`, linha 14), e o grupo erra no trecho da outra língua | A medição da F1 inclui essas mensagens, cujo sinal o [requisito 005](../../../requisitos/005-sanitizacao-preserva-o-sinal.md) e a política 002 (linha 17) mandam preservar, e a precisão nelas entra no limiar | F1: MeasurementCoversMessagesMixingLanguages |
-| Dado pessoal | Duas pessoas distintas caem no mesmo grupo e dividem o marcador, o que quebra o CA-2 da #100 | A F1 mede a fusão à parte da precisão; no núcleo, o grupo vale só dentro do texto enviado e grupos distintos nunca dividem marcador | F1: CoreferenceMeasurementReportsPrecisionAndFusionApart; F3: DistinctGroupsWithTheSameNameGetDistinctMarkers (#100 CA-2) |
+| Dado pessoal | Duas pessoas distintas caem no mesmo grupo e dividem o marcador, o que quebra o CA-2 da #100 | A F1 mede a fusão à parte da precisão; no núcleo, o grupo vale só dentro da conversa, e grupos distintos nunca dividem marcador | F1: CoreferenceMeasurementReportsPrecisionAndFusionApart; F3: DistinctGroupsWithTheSameNameGetDistinctMarkers (#100 CA-2) |
+| Precisão | A correferência liga a menção ao nome do autor errado, ou não liga | A F1 mede a ligação ao autor à parte, e a decisão diz se ela vale; se não vale, é limite declarado: a menção ao autor recebe marcador próprio, distinto do dele | F1: MeasurementReportsTheLinkToAuthorsApart; F3: MentionLinkedToAnAuthorGetsTheAuthorMarker; MentionOfAnAuthorWithTheLinkOffGetsItsOwnMarker |
+| Precisão | Conversa longa demais para um pedido | A F1 mede tempo e memória pelo tamanho da conversa, e a decisão fixa o máximo do pedido | F1: MeasurementReportsTimeAndMemoryByConversationSize |
+| Dado pessoal | O mesmo marcador em duas conversas liga pessoas que o sistema não sabe ligar | Escopo na conversa (0057) e unicidade na instalação | A: NoMarkerAppearsInTwoConversations; B: MarkerIsUniqueInTheInstallation |
 | Dado pessoal | Item antigo ganha pseudonimizado com ocorrência que a resposta de agora não traz | Sem par de mesma posição e tipo, o item é recusado com o motivo e fica sem pseudonimizado | F3: OldItemWithAnOccurrenceWithoutPairIsRefusedWithTheReason |
 | Dado pessoal | O marcador revela algo do original | O número é sorteado, sem relação com o nome nem com a ordem de chegada | A: MarkerCarriesNoInitialLengthNorAlphabeticalPosition; MarkerDoesNotRevealTheOrderOfAppearance (#100 CA-4) |
 | Dado pessoal | Uma senha vai para o mapa | Entrada de destino remover lança antes de selar; o gravador a recusa e o evento fica | B: RemovedSpanIsRefusedFromTheMapAndTheAttemptIsRecorded (#101 CA-5) |
 | Dado pessoal | Uma cópia do banco expõe o mapa ou o porquê do pedido | As entradas e o texto do pedido vão selados com a finalidade do mapa e a chave da linha | B: DatabaseCopyHasNoReadableMapEntry (#101 CA-1); C: DatabaseCopyHasNoReadableRequestText |
-| Dado pessoal | Achar o marcador existente abre os mapas sem registro | Cada mapa aberto grava o evento de leitura antes de abrir | B: EveryMapOpeningAddsAnEventWithoutTheValue (#101 CA-3) |
+| Dado pessoal | A reexecução abre o mapa do item sem registro, ou abre outro mapa | Só a reexecução e a revelação abrem mapa, e só o do item, com o evento de leitura antes | B: EveryMapOpeningAddsAnEventWithoutTheValue (#101 CA-3); SwapTakesNoMapButTheOneOfItsItem |
 | Dado pessoal | A identidade revelada fica no registro, no log ou em cache | Nenhuma coluna a guarda; a página sai sem cache e o GET não a mostra de novo | D: RevealedValueIsInNoTableLogOrCache (#105 CA-4); RevealedPageIsNotCachedAndIsNotShownAgain (#616 CA-2) |
 | Dado pessoal | Uma leitura nova devolve o original sem reversão | A varredura semeia e procura em toda leitura do inventário; leitura fora dele reprova | E: NoReadWithoutReversalReturnsASeededValue; ContentReadOutsideTheInventoryFailsTheCheck |
 | Dado pessoal | Uma exceção na troca leva o texto ao log | O registro traz lote, posição do item, passo e motivo; a redação do núcleo apaga o campo marcado | E: ExceptionWhilePseudonymizingLogsBatchPositionStepAndReasonOnly (#107 CA-2) |

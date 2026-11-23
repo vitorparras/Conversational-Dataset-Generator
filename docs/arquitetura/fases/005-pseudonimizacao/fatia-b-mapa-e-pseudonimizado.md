@@ -16,19 +16,16 @@ números. A reexecução da fase 4 refaz o pseudonimizado e o mapa junto com o s
 referente dado no teste. O grupo que vira referente, a ligação da troca à submissão e à reexecução,
 o gatilho de item_resanitized e os testes que passam pela submissão são da F3, que fecha a #102.
 
-**Pendente do dono.** Abrir os mapas do domínio para achar o marcador existente
-([contratos](contratos.md), fatia B).
-
 **Prova da reexecução idêntica (#102 CA-2).** Rodar de novo no mesmo processo, sobre o mesmo
-sanitizado e o mapa gravado na primeira vez: os marcadores vêm do mapa, então outro processo não
-muda o resultado.
+sanitizado e o mapa do item, aberto com o evento de leitura: os marcadores vêm do mapa, então outro
+processo não muda o resultado. Nenhum outro mapa é aberto ([contratos](contratos.md), fatia B).
 
 ## Critérios de aceite
 
 | Projeto | Testes |
 |---|---|
-| `Core.Ingestion.Tests` | PseudonymizingAgainGivesTheSameBytesAndMarkers (#102 CA-2, propriedade); RemovedSpanNeverBecomesAMapEntry (#101 CA-5) |
-| `Core.Persistence.Content.Tests` | DatabaseCopyHasNoReadableMapEntry (#101 CA-1); MapOfOneDomainDoesNotOpenWithTheKeyOfAnother (#101 CA-2); EveryMapOpeningAddsAnEventWithoutTheValue (#101 CA-3); MapCannotBeFilteredInTheDatabase e MapCannotBeOrderedInTheDatabase (#101 CA-4); DatabaseCopyReadsNeitherSanitizedNorPseudonymized (#102 CA-3, opção da 0030); PseudonymizedWithoutItsMapIsRefused e PseudonymizedWithoutTheEventIsRefused (#102 CA-4, uma condição do gatilho cada); RemovedSpanIsRefusedFromTheMapAndTheAttemptIsRecorded (#101 CA-5); ItemMarkersAreEmptiedWithTheItem; MarkerIsUniqueInTheDomain |
+| `Core.Ingestion.Tests` | PseudonymizingAgainGivesTheSameBytesAndMarkers (#102 CA-2, propriedade); SwapTakesNoMapButTheOneOfItsItem; RemovedSpanNeverBecomesAMapEntry (#101 CA-5) |
+| `Core.Persistence.Content.Tests` | DatabaseCopyHasNoReadableMapEntry (#101 CA-1); MapOfOneDomainDoesNotOpenWithTheKeyOfAnother (#101 CA-2); EveryMapOpeningAddsAnEventWithoutTheValue (#101 CA-3); MapCannotBeFilteredInTheDatabase e MapCannotBeOrderedInTheDatabase (#101 CA-4); DatabaseCopyReadsNeitherSanitizedNorPseudonymized (#102 CA-3, opção da 0030); PseudonymizedWithoutItsMapIsRefused e PseudonymizedWithoutTheEventIsRefused (#102 CA-4, uma condição do gatilho cada); RemovedSpanIsRefusedFromTheMapAndTheAttemptIsRecorded (#101 CA-5); ItemMarkersAreEmptiedWithTheItem; MarkerIsUniqueInTheInstallation; DrawLosingToAnotherDomainDrawsAgainWithoutReadingIt |
 | `Core.Host.Tests` | EveryWritingPathRefusesTextThatWasNotPseudonymized (#102 CA-4); BatchScreenShowsMarkerCountsByKindAndNoText |
 | `Core.Host.Tests.Browser` | PseudonymizationSectionIsReadByKeyboardAndPassesTheAccessibilityCheck |
 
@@ -45,7 +42,7 @@ evento na cadeia.
 | Migração | a pseudonymization em `core/src/Core.Persistence/Migrations/Sql` | [001](../../padroes/001-armazenamento.md) |
 | Troca | a pasta Pseudonymizing da fatia A, depois de `Sanitizer` | [002](../../padroes/002-servico-de-dominio.md) |
 | Gravação | `ContentWriter`, `ContentColumns`, `NewReversalMap` | [001](../../padroes/001-armazenamento.md) |
-| Leitura do mapa | `ProtectedContentReader`, um evento por mapa | [001](../../padroes/001-armazenamento.md) |
+| Leitura do mapa | `ProtectedContentReader`, um evento por mapa, só na reexecução e na revelação | [001](../../padroes/001-armazenamento.md) |
 | Tela | a seção da pseudonimização na I3 (só números) | [004](../../padroes/004-tela.md) |
 | Testes | os nomes acima | [005](../../padroes/005-teste-com-banco.md), [006](../../padroes/006-teste-de-navegador.md) |
 

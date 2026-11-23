@@ -68,6 +68,7 @@ deliberada e justificada.
 | [0054](0054-teto-por-fatia-e-migracao-por-data.md) | Teto do PR por fatia e migração nomeada por data e hora | Decisão vigente |
 | [0055](0055-recusas-da-revisao-em-contrato-da-ingestao.md) | Recusas da revisão por amostra em `Core.Ingestion.Contracts` | Decisão vigente |
 | [0056](0056-toponimo-vira-marcador.md) | O nome de lugar vira marcador | Decisão vigente |
+| [0057](0057-escopo-do-marcador-e-a-conversa.md) | O escopo do marcador é a conversa | Decisão vigente |
 
 ## Formato
 

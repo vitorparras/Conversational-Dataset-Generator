@@ -8,11 +8,12 @@ verticais, a F em três partes. Cada fatia entrega o esquema, o domínio, a rota
 e o documento de uma funcionalidade usável.
 
 A pseudonimização roda na entrada, logo depois da sanitização e no mesmo comando que grava o item:
-aplica o que a entrada decidiu, sem decidir de novo
-([dado pessoal](../../../privacidade/001-dado-pessoal.md), linhas 7 a 10). O marcador é sorteado,
-nunca calculado do original, e se repete no domínio pelo mapa de reversão, que já tem tabela e
-finalidade próprias (`core/src/Core.Persistence/Migrations/Sql/0010-content-text.sql`, linhas 14 a
-25). O pseudonimizado é cifrado com a chave do item
+aplica o que a entrada decidiu, sem decidir de novo ([dado
+pessoal](../../../privacidade/001-dado-pessoal.md), linhas 7 a 10). O marcador é sorteado, nunca
+calculado do original, e se repete na conversa e nunca em outra
+([0057](../../../decisoes/0057-escopo-do-marcador-e-a-conversa.md)); o mapa de reversão já tem
+tabela e finalidade próprias (`core/src/Core.Persistence/Migrations/Sql/0010-content-text.sql`,
+linhas 14 a 25). O pseudonimizado é cifrado com a chave do item
 ([0030](../../../decisoes/0030-qual-texto-fica-em-claro.md), linha 24). Onde os documentos ainda
 divergem, o pacote segue a opção que a documentação recomenda e o PR a lista em aberto.
 

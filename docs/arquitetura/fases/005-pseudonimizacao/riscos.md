@@ -26,7 +26,7 @@ reversão, cada um uma linha nova com o evento na mesma transação.
 | Precisão | A correferência liga a menção ao nome do autor errado, ou não liga | A F1 mede a ligação ao autor à parte, e a decisão diz se ela vale; se não vale, é limite declarado: a menção ao autor recebe marcador próprio, distinto do dele | F1: MeasurementReportsTheLinkToAuthorsApart; F3: MentionLinkedToAnAuthorGetsTheAuthorMarker; MentionOfAnAuthorWithTheLinkOffGetsItsOwnMarker |
 | Precisão | Conversa longa demais para um pedido | A F1 mede tempo e memória pelo tamanho da conversa, e a decisão fixa o máximo do pedido | F1: MeasurementReportsTimeAndMemoryByConversationSize |
 | Dado pessoal | O mesmo marcador em duas conversas liga pessoas que o sistema não sabe ligar | Escopo na conversa (0057) e unicidade na instalação | A: NoMarkerAppearsInTwoConversations; B: MarkerIsUniqueInTheInstallation |
-| Dado pessoal | Item antigo ganha pseudonimizado com ocorrência que a resposta de agora não traz | Sem par de mesma posição e tipo, o item é recusado com o motivo e fica sem pseudonimizado | F3: OldItemWithAnOccurrenceWithoutPairIsRefusedWithTheReason |
+| Dado pessoal | Item antigo ganha pseudonimizado com ocorrência que a resposta de agora não traz | Sem par de mesmo texto, posição e tipo, o item é recusado e fica sem pseudonimizado, fora da anotação; o acompanhamento da fila o conta com o motivo, e um pedido novo o põe na fila outra vez | F3: OldItemWithAnOccurrenceWithoutPairIsRefusedWithTheReason |
 | Dado pessoal | O marcador revela algo do original | O número é sorteado, sem relação com o nome nem com a ordem de chegada | A: MarkerCarriesNoInitialLengthNorAlphabeticalPosition; MarkerDoesNotRevealTheOrderOfAppearance (#100 CA-4) |
 | Dado pessoal | Uma senha vai para o mapa | Entrada de destino remover lança antes de selar; o gravador a recusa e o evento fica | B: RemovedSpanIsRefusedFromTheMapAndTheAttemptIsRecorded (#101 CA-5) |
 | Dado pessoal | Uma cópia do banco expõe o mapa ou o porquê do pedido | As entradas e o texto do pedido vão selados com a finalidade do mapa e a chave da linha | B: DatabaseCopyHasNoReadableMapEntry (#101 CA-1); C: DatabaseCopyHasNoReadableRequestText |
@@ -53,5 +53,5 @@ Nenhum item tem pseudonimizado antes da F3, que o dá a cada um em segundo plano
 ([fatia F](fatia-f-correferencia.md)). Os gravados antes da fatia A guardam o lugar como `Preserve`
 no destino selado (`OccurrenceJson`, linha 37), e a política não entra na versão da lista de passos
 (`SanitizationSteps`, linhas 23 a 25). Nesse primeiro pseudonimizado, o `Preserve` de lugar vira
-`Pseudonymize` sem chamar o serviço, exceção declarada à regra da reexecução
+`Pseudonymize` sem que o serviço o decida, exceção declarada à regra da reexecução
 (`SanitizationRerun`, linhas 5 a 8), pela [0056](../../../decisoes/0056-toponimo-vira-marcador.md).

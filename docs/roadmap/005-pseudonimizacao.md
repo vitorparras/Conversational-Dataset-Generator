@@ -50,5 +50,5 @@ finalidade própria que o mapa exige.
 ## O que destrava
 
 A tela de anotação pode buscar e ordenar sobre o pseudonimizado, abrindo o item na aplicação
-([0030](../decisoes/0030-qual-texto-fica-em-claro.md)), que é o que torna o trabalho humano viável. E o controle de acesso passa a ter a operação que mais precisa ser negada por papel: a
-reversão.
+([0030](../decisoes/0030-qual-texto-fica-em-claro.md)), que é o que torna o trabalho humano viável.
+E o controle de acesso passa a ter a operação que mais precisa ser negada por papel: a reversão.

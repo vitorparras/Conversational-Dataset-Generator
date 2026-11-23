@@ -33,9 +33,10 @@ Os protótipos da fase 5 foram refeitos sem isso.
 8. Campo com rótulo curto; dica só quando o formato não é óbvio; "todos os campos são obrigatórios"
    uma vez, e não em cada campo.
 
-O PR de tela traz capturas em 390x844 e 1366x768, no tema do sistema, e quem revisa confere as
-regras nelas ([tela](../arquitetura/padroes/004-tela.md)). As telas que já existem são ajustadas
-depois da fase 5, uma issue por tela.
+No computador (1366x768), a tela cabe na primeira dobra, com a ação principal visível. O PR de tela
+traz capturas em 390x844 e 1366x768, no tema do sistema, e quem revisa confere as regras nelas
+([tela](../arquitetura/padroes/004-tela.md)). As telas que já existem são ajustadas depois da fase
+5, uma issue por tela.
 
 ## Alternativas recusadas
 

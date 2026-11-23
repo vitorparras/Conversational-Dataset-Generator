@@ -14,9 +14,8 @@ liga ao nome de um autor da mesma conversa recebe o marcador dele.
 ([medição](../../../historico/003-medicao-do-modelo.md), linha 18). F1 escolhe o modelo, mede em
 pt-BR sobre conversas inteiras ([015](../../../operacao/015-medicao-do-modelo-de-linguagem.md)) e
 escreve a decisão nova que substitui a [0018](../../../decisoes/0018-contrato-da-fronteira.md) na
-forma da resposta. A decisão fixa o
-limiar de precisão, o tamanho máximo do pedido e se a ligação ao nome do autor é confiável; modelo
-abaixo do limiar não entra. O modelo tem de caber na
+forma da resposta. A decisão fixa o limiar de precisão, o tamanho máximo do pedido e se a ligação ao
+nome do autor é confiável; modelo abaixo do limiar não entra. O modelo tem de caber na
 [0041](../../../decisoes/0041-distribuicao-do-servico-de-linguagem.md) e operar sem serviço externo.
 
 **F2 — serviço e contrato.** O pedido leva os textos do item na ordem de `MaterialTexts`, cada
@@ -29,13 +28,14 @@ a devolver grupos.
 **F3 — o núcleo usa o grupo.** Um pedido por item; o grupo vira o referente da troca da fatia B, e
 a F3 liga a troca à submissão e à reexecução da fase 4. Até ela, nenhum item recebe pseudonimizado.
 
-**Primeiro pseudonimizado.** A F3 o dá, em segundo plano, pela fila e pelo trabalhador da
-reexecução da fase 4 (`RerunService`), a todo item sem ele: os gravados antes da F3. O serviço é
-chamado sobre o bruto do item só pelo grupo; cada ocorrência guardada (`OccurrenceJson`, linha 37)
-toma o grupo da de mesmo texto, posição e tipo, e item com ocorrência sem par é recusado com o
-motivo. Nenhum destino é decidido de novo, com uma exceção declarada à regra da reexecução
-(`SanitizationRerun`, linhas 5 a 8): o `Preserve` de lugar dos itens anteriores à fatia A vira
-`Pseudonymize` sem chamar o serviço ([0056](../../../decisoes/0056-toponimo-vira-marcador.md)).
+**Primeiro pseudonimizado.** A F3 o dá, em segundo plano, pela fila e pelo trabalhador da reexecução
+da fase 4 (`RerunService`), a todo item gravado antes dela. O serviço é chamado sobre o bruto só
+pelo grupo; cada ocorrência guardada (`OccurrenceJson`, linha 37) toma o grupo da de mesmo texto,
+posição e tipo. Item com ocorrência sem par é recusado, fica sem pseudonimizado e fora da anotação,
+e o acompanhamento da fila o conta com o motivo; um pedido novo o põe na fila outra vez. Nenhum
+destino é decidido de novo, com uma exceção declarada (`SanitizationRerun`, linhas 5 a 8): o
+`Preserve` de lugar dos itens anteriores à fatia A vira `Pseudonymize` sem que o serviço o decida
+([0056](../../../decisoes/0056-toponimo-vira-marcador.md)).
 
 ## Critérios de aceite
 

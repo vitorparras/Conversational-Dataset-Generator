@@ -30,8 +30,8 @@ sanitização fez.
 
 **Pseudonimização.** O que resta apontando para pessoas é trocado por rótulos estáveis, e a
 correspondência vai para o mapa de reversão, cifrado com chave e finalidade próprias. Estável é a
-palavra que importa: a mesma pessoa é o mesmo rótulo em todo o domínio, porque é isso que mantém a
-conversa legível depois de anonimizada.
+palavra que importa: a mesma pessoa é o mesmo rótulo em toda a conversa, e só nela
+([0057](../decisoes/0057-escopo-do-marcador-e-a-conversa.md)), porque é isso que a mantém legível.
 
 **Anotação.** Pessoas atribuem categorias da taxonomia do domínio
 ([0004](../decisoes/0004-taxonomia-configuravel.md)). O texto não muda nesta etapa; o que se acumula

@@ -36,8 +36,8 @@ errada — consulta sem o filtro não devolve material de outro domínio, não d
 
 Quem administra o banco lê o que a função não concede, e a política limita o que esse acesso rende:
 a chave não está no banco ([0003](../decisoes/0003-cifra-em-repouso.md)), então quem o alcança obtém
-o texto **pseudonimizado** e bytes — não o bruto, não o sanitizado, não o mapa de reversão
-([0030](../decisoes/0030-qual-texto-fica-em-claro.md)).
+bytes — não o bruto, não o sanitizado, não o mapa de reversão e, a partir da fase 5, não o
+pseudonimizado, cifrado com a chave do item ([0030](../decisoes/0030-qual-texto-fica-em-claro.md)).
 
 Isso só continua verdade enquanto a guarda da chave e a credencial do banco estiverem em mãos
 diferentes. É separação de pessoas, não mecanismo, e é a condição que faz a cifra valer na prática.

@@ -9,12 +9,13 @@ pseudonimização: marcadores por tipo e itens com marcador, contados dos marcad
 números. A reexecução da fase 4 refaz o pseudonimizado e o mapa junto com o sanitizado. O protótipo
 é `lote.html`, em [protótipos](prototipos/index.html).
 
-**Pendentes do dono.** O pseudonimizado é selado com a chave do item, como mandam a
+**Pseudonimizado cifrado.** O pseudonimizado é selado com a chave do item, como mandam a
 [0030](../../../decisoes/0030-qual-texto-fica-em-claro.md) (linha 24) e a
-[0049](../../../decisoes/0049-chave-por-item-e-epoca.md) (linha 27); a #102 e o
-[roadmap](../../../roadmap/005-pseudonimizacao.md) (critério 5) o põem em claro. Escolhido o claro,
-só mudam o CA-3 e a coluna. Abrir os mapas do domínio para achar o marcador existente também é
-pendente ([contratos](contratos.md), fatia B).
+[0049](../../../decisoes/0049-chave-por-item-e-epoca.md) (linha 27); o
+[roadmap](../../../roadmap/005-pseudonimizacao.md) (critério 5) e o CA-3 da #102 dizem o mesmo.
+
+**Pendente do dono.** Abrir os mapas do domínio para achar o marcador existente
+([contratos](contratos.md), fatia B).
 
 **Prova da reexecução idêntica (#102 CA-2).** Rodar de novo no mesmo processo, sobre o mesmo
 sanitizado e o mapa gravado na primeira vez: os marcadores vêm do mapa, então outro processo não

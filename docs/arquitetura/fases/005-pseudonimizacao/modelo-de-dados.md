@@ -26,7 +26,7 @@ e quando foi sorteado. A linha nunca muda: GRANT de SELECT e INSERT, sem UPDATE 
   fonte das contagens da tela do lote.
 - A coluna pseudonymized_text passa de text a bytea, selada com a chave do item e marcada
   `protected:texto-bruto` (hoje é nula em todo item). Sai de `Clear` e entra em `Protected` em
-  `ContentColumns`. É a opção da 0030, pendente de decisão do dono.
+  `ContentColumns`, como manda a 0030 (linha 24).
 - O banco não lê o selado: um gatilho só aceita o pseudonimizado com o mapa do item e o evento da
   troca na mesma transação, e cada condição tem o seu teste.
 - O gatilho de item_resanitized da fase 4 passa a exigir o pseudonimizado e o mapa novos; o mapa

@@ -43,9 +43,8 @@ em dias; o porquê e o uso selados com a finalidade do mapa e a chave da linha) 
 content.reversal_authorization (pedido, quem autorizou, quando e até quando), as duas só de INSERT.
 Um gatilho recusa quem autoriza igual a quem pediu, prazo no passado e segunda autorização em vigor.
 Os passos reversal_requested, reversal_request_refused, reversal_authorized,
-reversal_authorization_refused, reversal_declined e reversal_request_read (a R2 abre o texto do
-pedido por `ProtectedContentReader`, um evento por leitura); os motivos reversal_scope,
-reversal_function e reversal_self.
+reversal_authorization_refused, reversal_declined e reversal_request_read (a R2 lê o texto do
+pedido por `ProtectedContentReader`); os motivos reversal_scope, reversal_function e reversal_self.
 
 ## Fatia D
 

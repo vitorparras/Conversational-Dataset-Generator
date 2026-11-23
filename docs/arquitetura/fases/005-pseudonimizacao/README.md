@@ -33,8 +33,8 @@ divergem, o pacote segue a opção que a documentação recomenda e o PR a lista
 
 ## Roteiro
 
-1. **Fatia A — o marcador e as unidades.** O sorteio do marcador por tipo, a recusa do
-   deslocamento que não passou pelo conversor e o deslocamento de datas de cada domínio.
+1. **Fatia A — o marcador e as unidades.** O sorteio do marcador por tipo, nome de lugar incluído,
+   a recusa do deslocamento que não passou pelo conversor e o deslocamento de datas de cada domínio.
 2. **Fatia B — o mapa e o pseudonimizado.** O item nasce com o pseudonimizado e com o mapa dele,
    cifrado; a tela do lote mostra quantos marcadores por tipo, só números.
 3. **Fatia C — pedir e autorizar.** A Curadoria pede a reversão de um marcador num item; outra

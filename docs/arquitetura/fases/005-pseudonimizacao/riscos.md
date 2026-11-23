@@ -20,6 +20,7 @@ reversão, cada um uma linha nova com o evento na mesma transação.
 | Falha de rede | O serviço de linguagem não responde | Lote rejeitado na entrada, como na fase 4: nenhum item e nenhum pseudonimizado | B: BatchRejectedForAnalysisLeavesNoPseudonymizedText (#102 CA-5) |
 | Prazo vencido | Uma autorização vencida ainda revela | O POST confere o prazo na transação que grava a revelação; vencida, nega e grava a negativa | D: ExpiredAuthorizationDeniesAsIfItNeverExistedAndIsRecorded (#104 CA-2) |
 | Cadeia quebrada | Uma reversão é autorizada com a cadeia quebrada | A cadeia é uma só na instalação, e com ela quebrada nenhuma gravação passa (`CustodyRefusals`, linha 27), nem a recusa; a tela diz por quê | C: BrokenChainRefusesNewAuthorizations (#104 CA-5) |
+| Dado pessoal | Nome de lugar fica no pseudonimizado | `DestinationPolicy` passa a pseudonimizar nome próprio de lugar, com o prefixo LUGAR (0012, linhas 14 e 15); nenhuma ocorrência nova recebe `Preserve` | A: ProperNameOfAPlaceIsPseudonymized (#100 CA-5) |
 | Dado pessoal | O marcador revela algo do original | O número é sorteado, sem relação com o nome nem com a ordem de chegada | A: MarkerCarriesNoInitialLengthNorAlphabeticalPosition; MarkerDoesNotRevealTheOrderOfAppearance (#100 CA-4) |
 | Dado pessoal | Uma senha vai para o mapa | Entrada de destino remover lança antes de selar; o lote é rejeitado e o evento fica | B: RemovedSpanIsRefusedFromTheMapAndTheAttemptIsRecorded (#101 CA-5) |
 | Dado pessoal | Uma cópia do banco expõe o mapa ou o porquê do pedido | As entradas e o texto do pedido vão selados com a finalidade do mapa e a chave da linha | B: DatabaseCopyHasNoReadableMapEntry (#101 CA-1); C: DatabaseCopyHasNoReadableRequestText |
@@ -39,3 +40,13 @@ reversão, cada um uma linha nova com o evento na mesma transação.
   classificação da [verificação](../../../privacidade/005-verificacao-da-custodia.md) não existe.
 
 Ver [modelo de dados](modelo-de-dados.md) e [contratos](contratos.md).
+
+## Itens gravados antes da fatia A
+
+Cada item guarda, selado, o destino decidido na entrada (`OccurrenceJson`, linha 37), e o nome
+próprio de lugar está ali como `Preserve`: o sanitizado o traz como veio, cifrado
+([0030](../../../decisoes/0030-qual-texto-fica-em-claro.md)). A reexecução da fase 4 não decide
+destinos de novo (`SanitizationRerun`, linhas 5 a 8), e a política não entra na versão da lista de
+passos (`SanitizationSteps`, linhas 23 a 25), então mudá-la não oferece reexecução. Feito desses
+destinos, o pseudonimizado traria o lugar pelo nome. Como esses itens passam a ter o lugar marcado
+está em aberto, e nenhuma fatia o trata.

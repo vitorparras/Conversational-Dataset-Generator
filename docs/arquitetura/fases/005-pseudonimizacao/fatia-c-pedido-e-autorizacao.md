@@ -18,8 +18,8 @@ venceu. Com a cadeia quebrada, nenhum ato é gravado, nem a recusa; a tela diz p
 protótipos são `pedido.html`, `autorizacao.html` e a lista de `meus-pedidos.html`, em
 [protótipos](prototipos/index.html), e seguem a [0058](../../../decisoes/0058-padrao-de-usabilidade-e-visual.md).
 Na R1, no estado vazio, o botão de enviar fica visível em 390x844 sem rolar; nos estados de erro, o
-foco vai ao primeiro campo com erro, e o botão pode pedir rolagem. O protótipo não cumpre (o botão
-termina em 873 px no estado vazio), e a #614 ajusta na implementação.
+foco vai ao primeiro campo com erro, e o botão pode pedir rolagem. Medido sem a barra do protótipo,
+o botão termina em 782 px no estado vazio e cabe; a #614 mantém isso na implementação.
 
 ## Critérios de aceite
 

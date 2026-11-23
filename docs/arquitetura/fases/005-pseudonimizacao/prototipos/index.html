@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Protótipos da pseudonimização · Gerador de bases conversacionais</title>
+    <link rel="stylesheet" href="../../../../../core/src/Core.Host/Screens/tokens.css" />
+    <link rel="stylesheet" href="../../../../../core/src/Core.Host/Screens/screens.css" />
+</head>
+<body>
+    <a class="skip-link" href="#content">Ir para o conteúdo</a>
+    <p role="note">Protótipo para aprovação do dono. Não é a tela final. <a href="index.html">Índice dos protótipos</a>.</p>
+    <main id="content" class="page" tabindex="-1">
+        <h1>Protótipos das telas da pseudonimização</h1>
+        <p class="lead">Quatro telas da fase 5: a seção nova do lote e as três da reversão, todas da Curadoria do acervo. Cada uma traz os seus estados em âncoras. Os protótipos usam o estilo real das telas e não têm script; os dados são sintéticos.</p>
+
+        <section class="panel" aria-labelledby="tela-lote-titulo">
+            <h2 id="tela-lote-titulo"><a href="lote.html">I3 · Lote, seção Pseudonimização</a></h2>
+            <p>Rota GET /lotes/{id}. Fatia B.</p>
+            <ul>
+                <li><a href="lote.html#pseudonimizado">Aberto e pseudonimizado</a></li>
+                <li><a href="lote.html#sem-nome">Pseudonimizado sem nenhum nome no texto</a></li>
+                <li><a href="lote.html#falha">Rejeitado: falha na pseudonimização</a></li>
+            </ul>
+        </section>
+
+        <section class="panel" aria-labelledby="tela-pedido-titulo">
+            <h2 id="tela-pedido-titulo"><a href="pedido.html">R1 · Pedir reversão</a></h2>
+            <p>Rotas GET e POST /reversao/pedir. Fatia C.</p>
+            <ul>
+                <li><a href="pedido.html#vazio">Formulário vazio</a></li>
+                <li><a href="pedido.html#erro-de-campo">Erro de campo</a></li>
+                <li><a href="pedido.html#escopo">Recusado pelo escopo</a></li>
+                <li><a href="pedido.html#enviado">Pedido enviado, pendente</a></li>
+                <li><a href="pedido.html#sem-permissao">Sem a função de Curadoria</a></li>
+            </ul>
+        </section>
+
+        <section class="panel" aria-labelledby="tela-autorizacao-titulo">
+            <h2 id="tela-autorizacao-titulo"><a href="autorizacao.html">R2 · Autorizar reversão</a></h2>
+            <p>Rotas GET /reversao/autorizar e GET e POST /reversao/autorizar/{id}. Fatia C.</p>
+            <ul>
+                <li><a href="autorizacao.html#lista">Pedidos pendentes</a></li>
+                <li><a href="autorizacao.html#lista-vazia">Nenhum pedido pendente</a></li>
+                <li><a href="autorizacao.html#confirmar">Examinar e decidir</a></li>
+                <li><a href="autorizacao.html#erro-de-prazo">Erro no prazo</a></li>
+                <li><a href="autorizacao.html#autorizado">Autorizado</a></li>
+                <li><a href="autorizacao.html#recusado">Recusado</a></li>
+                <li><a href="autorizacao.html#proprio">Pedido próprio enviado direto</a></li>
+                <li><a href="autorizacao.html#cadeia-quebrada">Cadeia do domínio quebrada</a></li>
+                <li><a href="autorizacao.html#sem-permissao">Sem a função de Curadoria</a></li>
+            </ul>
+        </section>
+
+        <section class="panel" aria-labelledby="tela-meus-titulo">
+            <h2 id="tela-meus-titulo"><a href="meus-pedidos.html">R3 · Meus pedidos e entrega</a></h2>
+            <p>Rotas GET /reversao/meus-pedidos, GET /reversao/meus-pedidos/{id} e POST /reversao/meus-pedidos/{id}/revelar. Fatia D.</p>
+            <ul>
+                <li><a href="meus-pedidos.html#lista">Lista dos pedidos</a></li>
+                <li><a href="meus-pedidos.html#pendente">Pedido pendente</a></li>
+                <li><a href="meus-pedidos.html#autorizado">Autorizado, pronto para revelar</a></li>
+                <li><a href="meus-pedidos.html#revelada">Identidade revelada, uma vez</a></li>
+                <li><a href="meus-pedidos.html#depois">O mesmo pedido, aberto de novo</a></li>
+                <li><a href="meus-pedidos.html#vencido">Recusado: prazo vencido</a></li>
+                <li><a href="meus-pedidos.html#ja-revelado">Recusado: já revelado</a></li>
+                <li><a href="meus-pedidos.html#esvaziado">Recusado: item esvaziado</a></li>
+                <li><a href="meus-pedidos.html#falha-registro">Falha ao registrar</a></li>
+            </ul>
+        </section>
+    </main>
+</body>
+</html>

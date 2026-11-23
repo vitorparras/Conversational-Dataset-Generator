@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Meus pedidos de reversão · Gerador de bases conversacionais</title>
+    <link rel="stylesheet" href="../../../../../core/src/Core.Host/Screens/tokens.css" />
+    <link rel="stylesheet" href="../../../../../core/src/Core.Host/Screens/screens.css" />
+</head>
+<!--
+    Protótipo da tela R3 (GET /reversao/meus-pedidos, GET /reversao/meus-pedidos/{id} e POST
+    /reversao/meus-pedidos/{id}/revelar), só de quem pediu. A identidade aparece uma vez, na resposta
+    do POST, sem cache; depois o pedido mostra só quando foi revelado. O valor revelado é sintético.
+    Na tela real só um estado aparece por vez; aqui os estados vêm em sequência, cada um na sua âncora.
+    Os dados são sintéticos.
+-->
+<body>
+    <a class="skip-link" href="#content">Ir para o conteúdo</a>
+    <p role="note">Protótipo para aprovação do dono. Não é a tela final. <a href="index.html">Índice dos protótipos</a>.</p>
+    <header class="header">
+        <a class="header__name" href="index.html">Gerador de bases conversacionais</a>
+        <button id="cabecalho-abrir" class="button button--secondary header__toggle" type="button" aria-expanded="false" aria-controls="cabecalho-menu">Menu</button>
+        <div id="cabecalho-menu" class="header__menu">
+            <form class="domain" method="get">
+                <label class="domain__label" for="dominio">Domínio de trabalho</label>
+                <select id="dominio" class="domain__choice" name="dominio">
+                    <option value="DOMINIO_A">DOMINIO_A</option>
+                    <option value="DOMINIO_B">DOMINIO_B</option>
+                </select>
+                <button id="dominio-trocar" class="button button--secondary" type="submit">Trocar domínio</button>
+            </form>
+            <a class="nav__link header__account" href="index.html">Minha conta</a>
+            <form class="header__leave" method="get" action="index.html">
+                <button id="sair" class="button button--secondary" type="submit">Sair</button>
+            </form>
+            <nav class="nav" aria-label="Telas da sua função">
+                <ul class="nav__list">
+                    <li><a class="nav__link" href="../../003-ingestao/prototipos/submissao.html">Enviar material</a></li>
+                    <li><a class="nav__link" href="lote.html">Lotes</a></li>
+                    <li><a class="nav__link" href="../../004-sanitizacao/prototipos/reexecucao.html">Sanitização</a></li>
+                    <li><a class="nav__link" href="pedido.html">Pedir reversão</a></li>
+                    <li><a class="nav__link" href="autorizacao.html">Autorizar reversão</a></li>
+                    <li><a class="nav__link" href="meus-pedidos.html" aria-current="page">Meus pedidos de reversão</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    <main id="content" class="page" tabindex="-1">
+        <h1>Meus pedidos de reversão</h1>
+        <p class="lead">O estado de cada pedido seu. Autorizado e dentro do prazo, você pode revelar a identidade uma vez; o registro é gravado antes, e a identidade não fica guardada em lugar algum.</p>
+
+        <nav aria-label="Estados do protótipo">
+            <ul>
+                <li><a href="#lista">Lista dos pedidos</a></li>
+                <li><a href="#pendente">Pedido pendente</a></li>
+                <li><a href="#autorizado">Autorizado, pronto para revelar</a></li>
+                <li><a href="#revelada">Identidade revelada, uma vez</a></li>
+                <li><a href="#depois">O mesmo pedido, aberto de novo</a></li>
+                <li><a href="#vencido">Recusado: prazo vencido</a></li>
+                <li><a href="#ja-revelado">Recusado: já revelado</a></li>
+                <li><a href="#esvaziado">Recusado: item esvaziado</a></li>
+                <li><a href="#falha-registro">Falha ao registrar</a></li>
+            </ul>
+        </nav>
+
+        <section id="lista" aria-labelledby="lista-estado">
+            <p id="lista-estado"><strong>Estado: lista dos pedidos.</strong> Lista paginada no servidor, 20 por página.</p>
+            <section class="panel" aria-labelledby="lista-r3-titulo">
+                <h2 id="lista-r3-titulo">Pedidos</h2>
+                <div class="data-table" role="region" aria-labelledby="lista-r3-legenda" tabindex="0">
+                    <table>
+                        <caption id="lista-r3-legenda">Cada linha é um pedido seu</caption>
+                        <thead><tr><th scope="col">Pedido</th><th scope="col">Item</th><th scope="col">Marcador</th><th scope="col">Situação</th><th scope="col">Válido até</th></tr></thead>
+                        <tbody>
+                            <tr><th scope="row" class="data-table__plain">7</th><td>118</td><td><code>PESSOA_482913</code></td><td><a href="#autorizado">Autorizado</a></td><td>2026-12-21</td></tr>
+                            <tr><th scope="row" class="data-table__plain">6</th><td>96</td><td><code>PESSOA_310577</code></td><td><a href="#pendente">Aguarda autorização</a></td><td>—</td></tr>
+                            <tr><th scope="row" class="data-table__plain">5</th><td>51</td><td><code>PESSOA_904216</code></td><td><a href="#depois">Revelado em 2026-11-18</a></td><td>—</td></tr>
+                            <tr><th scope="row" class="data-table__plain">4</th><td>40</td><td><code>ORGANIZACAO_118430</code></td><td>Recusado em 2026-11-10</td><td>—</td></tr>
+                            <tr><th scope="row" class="data-table__plain">3</th><td>22</td><td><code>PESSOA_557201</code></td><td>Vencido em 2026-11-05</td><td>—</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p>Página 1 de 1.</p>
+            </section>
+        </section>
+        <hr />
+
+        <section id="pendente" aria-labelledby="pendente-estado">
+            <p id="pendente-estado"><strong>Estado: pedido pendente.</strong> Diz quem falta, sem identidade.</p>
+            <div class="notice notice--pending" role="status">
+                <span class="notice__mark" aria-hidden="true">…</span>
+                <p><span class="notice__kind">Pendente:</span> Falta a autorização de outra pessoa da Curadoria de DOMINIO_A.</p>
+            </div>
+            <section class="panel" aria-labelledby="pendente-titulo">
+                <h2 id="pendente-titulo">Pedido 6</h2>
+                <dl class="facts">
+                    <div class="facts__item">
+                        <dt>Item</dt>
+                        <dd>96</dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Marcador</dt>
+                        <dd><code>PESSOA_310577</code></dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Situação</dt>
+                        <dd>Aguarda autorização</dd>
+                    </div>
+                </dl>
+            </section>
+        </section>
+        <hr />
+
+        <section id="autorizado" aria-labelledby="autorizado-estado">
+            <p id="autorizado-estado"><strong>Estado: autorizado, pronto para revelar.</strong> O botão é o POST de revelar; ele grava o registro antes de abrir o mapa.</p>
+            <section class="panel" aria-labelledby="autorizado-titulo">
+                <h2 id="autorizado-titulo">Pedido 7</h2>
+                <dl class="facts">
+                    <div class="facts__item">
+                        <dt>Item</dt>
+                        <dd>118</dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Marcador</dt>
+                        <dd><code>PESSOA_482913</code></dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Autorizado por</dt>
+                        <dd>PESSOA_CURADORIA_4, em 2026-11-21</dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Válido até</dt>
+                        <dd>2026-12-21</dd>
+                    </div>
+                </dl>
+                <p>A identidade aparece uma vez, nesta resposta. Recarregar ou voltar não a mostra de novo, e ela não é guardada. Anote o que precisar antes de sair da página.</p>
+                <form class="form" method="get" action="meus-pedidos.html#revelada">
+                    <div class="actions">
+                        <button id="revelar" class="button button--danger" type="submit">Revelar a identidade de PESSOA_482913</button>
+                    </div>
+                </form>
+            </section>
+        </section>
+        <hr />
+
+        <section id="revelada" aria-labelledby="revelada-estado">
+            <p id="revelada-estado"><strong>Estado: identidade revelada, uma vez.</strong> Resposta do POST, sem cache. O registro já está na cadeia.</p>
+            <div class="notice notice--success" role="status">
+                <span class="notice__mark" aria-hidden="true">✓</span>
+                <p><span class="notice__kind">Registrado:</span> A revelação foi registrada às 14:05 de 2026-11-22.</p>
+            </div>
+            <section class="panel" aria-labelledby="revelada-titulo">
+                <h2 id="revelada-titulo">PESSOA_482913, no item 118</h2>
+                <p>Identidade: <strong>VALOR_SINTETICO_REVELADO_1</strong></p>
+                <p>Esta é a única vez que ela aparece.</p>
+            </section>
+        </section>
+        <hr />
+
+        <section id="depois" aria-labelledby="depois-estado">
+            <p id="depois-estado"><strong>Estado: o mesmo pedido, aberto de novo.</strong> GET do pedido depois da revelação, ou o botão voltar: só a data.</p>
+            <section class="panel" aria-labelledby="depois-titulo">
+                <h2 id="depois-titulo">Pedido 7</h2>
+                <dl class="facts">
+                    <div class="facts__item">
+                        <dt>Item</dt>
+                        <dd>118</dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Marcador</dt>
+                        <dd><code>PESSOA_482913</code></dd>
+                    </div>
+                    <div class="facts__item">
+                        <dt>Situação</dt>
+                        <dd>Revelado em 2026-11-22, 14:05</dd>
+                    </div>
+                </dl>
+            </section>
+        </section>
+        <hr />
+
+        <section id="vencido" aria-labelledby="vencido-estado">
+            <p id="vencido-estado"><strong>Estado: recusado: prazo vencido.</strong> A autorização venceu; é negada como se não existisse, e a negativa é registrada.</p>
+            <div class="notice notice--error" role="alert">
+                <span class="notice__mark" aria-hidden="true">!</span>
+                <p><span class="notice__kind">Recusado:</span> A autorização deste pedido venceu em 2026-11-05. Peça de novo; renovar é uma autorização nova.</p>
+            </div>
+        </section>
+        <hr />
+
+        <section id="ja-revelado" aria-labelledby="ja-revelado-estado">
+            <p id="ja-revelado-estado"><strong>Estado: recusado: já revelado.</strong> Uma autorização serve uma revelação.</p>
+            <div class="notice notice--error" role="alert">
+                <span class="notice__mark" aria-hidden="true">!</span>
+                <p><span class="notice__kind">Recusado:</span> Este pedido já foi revelado em 2026-11-18. Para revelar de novo, faça outro pedido.</p>
+            </div>
+        </section>
+        <hr />
+
+        <section id="esvaziado" aria-labelledby="esvaziado-estado">
+            <p id="esvaziado-estado"><strong>Estado: recusado: item esvaziado.</strong> O item foi esvaziado e o mapa dele não existe mais.</p>
+            <div class="notice notice--error" role="alert">
+                <span class="notice__mark" aria-hidden="true">!</span>
+                <p><span class="notice__kind">Recusado:</span> O item 118 foi esvaziado: o mapa dele não existe mais, e a reversão não é possível.</p>
+            </div>
+        </section>
+        <hr />
+
+        <section id="falha-registro" aria-labelledby="falha-registro-estado">
+            <p id="falha-registro-estado"><strong>Estado: falha ao registrar.</strong> O evento não foi gravado; o mapa não foi aberto, e o pedido continua autorizado.</p>
+            <div class="notice notice--error" role="alert">
+                <span class="notice__mark" aria-hidden="true">!</span>
+                <p><span class="notice__kind">Não revelado:</span> Não foi possível registrar a revelação, e nada foi revelado. O pedido continua autorizado até 2026-12-21; tente de novo.</p>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

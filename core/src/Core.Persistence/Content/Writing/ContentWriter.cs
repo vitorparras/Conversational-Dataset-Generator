@@ -53,16 +53,19 @@ public sealed partial class ContentWriter(NpgsqlDataSource dataSource, Protected
     private static Func<NpgsqlParameter[]> ItemParameters(long batchId, NewItemText item, ItemSealing sealing)
     {
         var raw = sealing.Seal(ContentColumns.RawText, item.Raw);
-        var sanitized = item.Sanitization is null ? null : sealing.Seal(ContentColumns.SanitizedText, item.Sanitization.Text);
-        var trail = item.Sanitization is null ? null : sealing.Seal(ContentColumns.SanitizationTrail, item.Sanitization.Trail);
-        var occurrences = item.Occurrences is null ? null : sealing.Seal(ContentColumns.Occurrences, OccurrenceJson.Write(item.Occurrences));
-        var pseudonymized = item.Pseudonymized is null ? null : sealing.Seal(ContentColumns.PseudonymizedText, item.Pseudonymized);
+        var sanitized = SealedIfAny(sealing, ContentColumns.SanitizedText, item.Sanitization?.Text);
+        var trail = SealedIfAny(sealing, ContentColumns.SanitizationTrail, item.Sanitization?.Trail);
+        var occurrences = SealedIfAny(sealing, ContentColumns.Occurrences, item.Occurrences is null ? null : OccurrenceJson.Write(item.Occurrences));
+        var pseudonymized = SealedIfAny(sealing, ContentColumns.PseudonymizedText, item.Pseudonymized);
         return () =>
         [
             Batch(batchId), Bytes("raw", raw), Bytes("sanitized", sanitized), Bytes("occurrences", occurrences), Bytes("pseudonymized", pseudonymized),
             .. KeyOf(sealing), .. Declared(item.Accommodation), .. Counted(item.Occurrences), .. Sanitized(item.Sanitization, trail),
         ];
     }
+
+    /// <summary>The text sealed for its column, or nothing for a text the item does not have; one condition for the four texts every item passes through.</summary>
+    private static SealedContent? SealedIfAny(ItemSealing sealing, ProtectedColumn column, string? text) => text is null ? null : sealing.Seal(column, text);
 
     private static IEnumerable<NpgsqlParameter> Declared(ItemAccommodation? accommodation)
     {

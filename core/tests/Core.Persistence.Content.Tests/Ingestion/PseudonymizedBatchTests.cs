@@ -42,7 +42,7 @@ public sealed class PseudonymizedBatchTests
     {
         await using var world = await IngestionWorld.CreateAsync();
         var batch = await IngestionWorld.OpenAsync(world);
-        Assert.NotNull((await world.RealWriter.AddPseudonymizedItemAsync(IngestionWorld.Domain, batch, PseudonymizedTexts.Holding(PseudonymizedTexts.Draw(1)), Token)).ItemId);
+        _ = Assert.NotNull((await world.RealWriter.AddPseudonymizedItemAsync(IngestionWorld.Domain, batch, PseudonymizedTexts.Holding(PseudonymizedTexts.Draw(1)), Token)).ItemId);
         await ReviewedBatches.ReviewCleanAsync(world.DataSource, IngestionWorld.Domain, batch, IngestionWorld.Person);
 
         // The closing event is there and the review is clean: what is missing is only the event of the pseudonymization, which the batches of production append with the acceptance.
@@ -59,7 +59,7 @@ public sealed class PseudonymizedBatchTests
         var plain = await IngestionWorld.OpenAsync(world);
         _ = await IngestionWorld.AddItemAsync(world, plain);
         var pseudonymized = await IngestionWorld.OpenAsync(world);
-        Assert.NotNull((await world.RealWriter.AddPseudonymizedItemAsync(IngestionWorld.Domain, pseudonymized, PseudonymizedTexts.Holding(PseudonymizedTexts.Draw(1)), Token)).ItemId);
+        _ = Assert.NotNull((await world.RealWriter.AddPseudonymizedItemAsync(IngestionWorld.Domain, pseudonymized, PseudonymizedTexts.Holding(PseudonymizedTexts.Draw(1)), Token)).ItemId);
 
         var unreviewed = await IngestionWorld.BatchesOf(world).AcceptAsync(new BatchClosing(IngestionWorld.Domain, pseudonymized, CustodyAuthor.System), Token);
         var refusedEvents = await PseudonymizationEventsAsync(world);
@@ -92,9 +92,31 @@ public sealed class PseudonymizedBatchTests
         _ = await Assert.ThrowsAsync<ArgumentException>(() => world.RealWriter.AddPseudonymizedItemAsync(IngestionWorld.Domain, batch, item, Token));
         var added = await new PseudonymizedItems(world.RealWriter, IngestionWorld.BatchesOf(world)).AddAsync(closing, _ => item, Token);
 
-        Assert.Equal(((long?)null, (BatchOutcome?)BatchOutcome.Rejected), (added.ItemId, added.Rejection?.Outcome));
+        Assert.Equal((null, (BatchOutcome?)BatchOutcome.Rejected), (added.ItemId, added.Rejection?.Outcome));
         Assert.Equal(("0,0", 0L), ((string?)await world.ScalarAsync(IngestionWorld.Reachable), (long)(await world.ScalarAsync("SELECT count(*) FROM content.marker_in_use"))!));
         Assert.EndsWith("batch_closed:batch_rejected:pseudonym_of_removed", (string)(await world.ScalarAsync(IngestionWorld.Events))!, StringComparison.Ordinal);
+    }
+
+    [DatabaseFact]
+    public async Task RejectedBatchTakesTheMarkersOfItsItemsAndKeepsThemHeld()
+    {
+        await using var world = await IngestionWorld.CreateAsync();
+        var batch = await IngestionWorld.OpenAsync(world);
+        var markers = PseudonymizedTexts.Draw(2);
+        var items = new PseudonymizedItems(world.RealWriter, IngestionWorld.BatchesOf(world));
+        var closing = new BatchClosing(IngestionWorld.Domain, batch, CustodyAuthor.System);
+        var first = await items.AddAsync(closing, _ => PseudonymizedTexts.Holding(markers[0]), Token);
+        var removed = PseudonymizedTexts.WithMap([new NewMapEntry(markers[1], "zqx-credencial-sintetica", false, OccurrenceDestination.Remove)]);
+
+        var rejected = await items.AddAsync(closing, _ => removed, Token);
+
+        // The first item had its marker; the rejection takes the item and its marker rows, the marker stays held, and the chain tells no pseudonymization of the batch.
+        Assert.Equal((true, (BatchOutcome?)BatchOutcome.Rejected), (first.ItemId is not null, rejected.Rejection?.Outcome));
+        Assert.Equal(
+            ("0,0", 0L, markers[0]),
+            ((string?)await world.ScalarAsync(IngestionWorld.Reachable), (long)(await world.ScalarAsync("SELECT count(*) FROM content.item_marker"))!,
+                (string?)await world.ScalarAsync("SELECT string_agg(marker, ',') FROM content.marker_in_use")));
+        Assert.Equal(string.Empty, await PseudonymizationEventsAsync(world));
     }
 
     private static async Task<string> PseudonymizationEventsAsync(ContentWorld world) =>

@@ -1,5 +1,6 @@
 using Core.Persistence.Content.Rerun;
 using Core.Persistence.Content.Writing;
+using Core.Persistence.Tests.Fixtures;
 
 namespace Core.Persistence.Tests.Content;
 
@@ -51,7 +52,7 @@ public sealed class MarkerRerunTests : IClassFixture<RerunDatabase>
 
         Assert.Equal(RerunOutcome.Replaced, result.Outcome);
         Assert.Equal($"{stays}:false|{Joined(stays, gone)}", await rerun.MarkersOfAsync(item));
-        Assert.Equal(((long?)null, gone), (another.ItemId, Assert.Single(another.Taken)));
+        Assert.Equal((null, gone), (another.ItemId, Assert.Single(another.Taken)));
     }
 
     private static Func<RerunSource, Resanitized> Rerunning(IReadOnlyList<HeldMarker> markers) => source => RerunCase.Rerunning(NewText)(source) with { Markers = markers };

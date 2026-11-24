@@ -34,10 +34,10 @@ processo não muda o resultado. Nenhum outro mapa é aberto ([contratos](contrat
 | `Core.Host.Tests.Browser` | PseudonymizationSectionIsReadByKeyboardAndPassesTheAccessibilityCheck |
 
 O CA-4 da #102 percorre os caminhos que escrevem o item (`ContentWriter.AddItemTextAsync`, a
-reexecução e o esvaziamento) e, em cada um, tenta gravar o sanitizado onde vai o pseudonimizado,
-sem a troca; o banco não lê o selado, então o que barra é o gatilho que exige o mapa e o evento. O
-CA-5 da #101 tem dois testes: a troca lança antes de selar, e o gravador recusa a entrada e grava o
-evento na cadeia.
+reexecução e o esvaziamento) e, em cada um, tenta gravar o sanitizado onde vai o pseudonimizado, sem
+a troca. O banco não lê o selado: na gravação, barra a restrição que exige o mapa (CE005); na
+reexecução e no esvaziamento, o gatilho que já guarda o texto da linha (CE004). O CA-5 da #101 tem
+dois testes: a troca lança antes de selar, e o gravador recusa a entrada e grava o evento na cadeia.
 
 ## Peças e padrões
 

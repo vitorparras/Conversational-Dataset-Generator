@@ -2,6 +2,7 @@ using System.Text;
 using Core.Persistence.Content;
 using Core.Persistence.Content.Reading;
 using Core.Persistence.Custody;
+using Core.Persistence.Tests.Fixtures;
 using Core.Platform.Keys;
 using Npgsql;
 
@@ -60,15 +61,15 @@ public sealed class MapStorageTests
     {
         await using var world = await ContentWorld.CreateAsync();
         var markers = PseudonymizedTexts.Draw(2);
-        var one = await StoredMapAsync(world, 1, await PseudonymizedAsync(world, 1, markers[0]));
-        var two = await StoredMapAsync(world, 2, await PseudonymizedAsync(world, 2, markers[1]));
+        var (oneEntries, oneKey) = await StoredMapAsync(world, 1, await PseudonymizedAsync(world, 1, markers[0]));
+        var (twoEntries, _) = await StoredMapAsync(world, 2, await PseudonymizedAsync(world, 2, markers[1]));
 
-        var opened = world.Content.Open(ContentColumns.Entries, 1, one.Entries, one.Key);
+        var opened = world.Content.Open(ContentColumns.Entries, 1, oneEntries, oneKey);
 
         Assert.Contains(PseudonymizedTexts.OriginalOf(markers[0]), opened, StringComparison.Ordinal);
-        Assert.Equal(("mapa-reversao/1/v1", "mapa-reversao/2/v1"), (EnvelopeCipher.LabelOf(one.Entries), EnvelopeCipher.LabelOf(two.Entries)));
-        _ = Assert.Throws<EnvelopeRefusedException>(() => world.Content.Open(ContentColumns.Entries, 1, two.Entries, one.Key));
-        _ = Assert.Throws<EnvelopeRefusedException>(() => world.Content.Open(ContentColumns.Entries, 2, two.Entries, one.Key));
+        Assert.Equal(("mapa-reversao/1/v1", "mapa-reversao/2/v1"), (EnvelopeCipher.LabelOf(oneEntries), EnvelopeCipher.LabelOf(twoEntries)));
+        _ = Assert.Throws<EnvelopeRefusedException>(() => world.Content.Open(ContentColumns.Entries, 1, twoEntries, oneKey));
+        _ = Assert.Throws<EnvelopeRefusedException>(() => world.Content.Open(ContentColumns.Entries, 2, twoEntries, oneKey));
     }
 
     [DatabaseFact]

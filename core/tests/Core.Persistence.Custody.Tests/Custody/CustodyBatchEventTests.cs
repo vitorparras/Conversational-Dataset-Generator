@@ -72,7 +72,7 @@ public sealed class CustodyBatchEventTests
         var pseudonymized = CustodyEvent.BatchPseudonymized(Person, 5);
 
         Assert.Equal(
-            (Person, new CustodyItem(CustodyItemKind.IngestionBatch, 5), CustodyStep.BatchPseudonymized, CustodyReason.AdministrativeAct, (string?)null, (long?)null),
+            (Person, new CustodyItem(CustodyItemKind.IngestionBatch, 5), CustodyStep.BatchPseudonymized, CustodyReason.AdministrativeAct, null, null),
             (pseudonymized.Author, pseudonymized.Item, pseudonymized.Step, pseudonymized.Reason, pseudonymized.Reference, pseudonymized.Corrects));
     }
 

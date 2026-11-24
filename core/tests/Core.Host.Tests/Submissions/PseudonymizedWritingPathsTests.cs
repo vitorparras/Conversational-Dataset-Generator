@@ -20,6 +20,8 @@ public sealed class PseudonymizedWritingPathsTests
     private const string Emptied = "INSERT INTO public.custody_event (actor_person_id, actor_system, item_kind, item_id, step, reason, reference) "
         + "VALUES (@person, false, 'item_text', @item, 'item_emptied', 'contract_requirement', 'zqx-1')";
 
+    private const string ContentKept = "CE004";
+
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     [DatabaseFact]
@@ -35,9 +37,9 @@ public sealed class PseudonymizedWritingPathsTests
         var rerun = await Assert.ThrowsAsync<PostgresException>(() => InOneTransactionAsync(world, item, Resanitized, SanitizedAsPseudonymized));
         var emptying = await Assert.ThrowsAsync<PostgresException>(() => InOneTransactionAsync(world, item, Emptied, SanitizedAsPseudonymized));
 
-        // Each refusal is one of the guards of the content, never the shape of the event, and after all of them no item holds a pseudonymized text.
+        // The rerun and the emptying meet the guard that keeps the texts of a row not emptied, never the shape of the event, and after all of them no item holds a pseudonymized text.
         Assert.Equal("0,", submitted[..2]);
-        Assert.Equal(("CE", "CE"), (rerun.SqlState[..2], emptying.SqlState[..2]));
+        Assert.Equal((ContentKept, ContentKept), (rerun.SqlState, emptying.SqlState));
         Assert.Equal(submitted, Assert.Single(await world.StoredAsync(Pseudonymized)));
     }
 

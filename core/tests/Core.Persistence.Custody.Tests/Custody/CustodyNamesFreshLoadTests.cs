@@ -22,7 +22,7 @@ public sealed class CustodyNamesFreshLoadTests
         "owner_window_opened", "owner_window_closed", "restored", "restore_rehearsed", "domain_label_revoked", "domain_rewrapped", "batch_opened", "batch_closed", "password_changed",
         "configuration_submitted", "origin_read", "occurrences_read", "batch_sampled", "batch_reviewed", "batch_sanitized",
         "configuration_approved", "configuration_refused", "configuration_in_force", "configuration_not_applied", "person_email_corrected",
-        "sanitization_rerun", "item_resanitized",
+        "sanitization_rerun", "item_resanitized", "batch_pseudonymized",
         "administrative_act", "correction_of_record", "content_read", "verification_passed", "verification_failed",
         "removal_requested_by_subject", "contract_requirement", "author_without_function", "item_already_emptied", "credentials_accepted", "password_wrong", "account_not_recognized",
         "batch_accepted", "batch_rejected", "review_clean", "review_found",

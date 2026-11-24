@@ -8,12 +8,11 @@ namespace Core.Persistence.Tests.Content;
 public sealed class ContentColumnsTests
 {
     [Fact]
-    public void PseudonymizedTextIsTheOnlyTextStoredInClear()
-    {
-        var texts = ContentColumns.Clear.Where(column => column.Kind == ClearKind.PseudonymizedText);
-
-        Assert.Equal([(ContentColumns.ItemText, "pseudonymized_text")], texts.Select(column => (column.Table, column.Name)));
-    }
+    public void PseudonymizedTextIsSealedWithTheKeyOfTheItem() =>
+        Assert.Equal(
+            (true, false, LabelPurpose.RawText),
+            (ContentColumns.Protected.Contains(ContentColumns.PseudonymizedText), ContentColumns.Clear.Any(column => column.Name == "pseudonymized_text"),
+             ContentColumns.PseudonymizedText.Purpose));
 
     [Fact]
     public void NoColumnIsBothInClearAndProtected()
@@ -65,6 +64,7 @@ public sealed class ContentColumnsTests
                 new ProtectedColumn("batch_origin", "dek_wrapped", LabelPurpose.RawText),
                 new ProtectedColumn("date_shift", "shift", LabelPurpose.DateShift),
                 new ProtectedColumn("date_shift", "dek_wrapped", LabelPurpose.DateShift),
+                new ProtectedColumn("item_text", "pseudonymized_text", LabelPurpose.RawText),
             ],
             ContentColumns.Protected);
 
@@ -76,7 +76,6 @@ public sealed class ContentColumnsTests
                 new ClearColumn("item_text", "domain_id", ClearKind.Domain),
                 new ClearColumn("item_text", "recorded_at", ClearKind.Moment),
                 new ClearColumn("item_text", "emptied_at", ClearKind.Moment),
-                new ClearColumn("item_text", "pseudonymized_text", ClearKind.PseudonymizedText),
                 new ClearColumn("item_text", "dek_epoch", ClearKind.Epoch),
                 new ClearColumn("item_text", "batch_id", ClearKind.Identifier),
                 new ClearColumn("item_text", "written_in", ClearKind.Transaction),
@@ -157,6 +156,15 @@ public sealed class ContentColumnsTests
                 new ClearColumn("sanitization_rerun", "target_version", ClearKind.Motive),
                 new ClearColumn("sanitization_rerun", "requested_by", ClearKind.Identifier),
                 new ClearColumn("sanitization_rerun", "requested_at", ClearKind.Moment),
+                new ClearColumn("marker_in_use", "id", ClearKind.Identifier),
+                new ClearColumn("marker_in_use", "domain_id", ClearKind.Domain),
+                new ClearColumn("marker_in_use", "marker", ClearKind.Motive),
+                new ClearColumn("marker_in_use", "kind", ClearKind.Motive),
+                new ClearColumn("item_marker", "id", ClearKind.Identifier),
+                new ClearColumn("item_marker", "domain_id", ClearKind.Domain),
+                new ClearColumn("item_marker", "item_id", ClearKind.Identifier),
+                new ClearColumn("item_marker", "marker", ClearKind.Motive),
+                new ClearColumn("item_marker", "author", ClearKind.Flag),
                 new ClearColumn("sanitization_rerun_item", "id", ClearKind.Identifier),
                 new ClearColumn("sanitization_rerun_item", "domain_id", ClearKind.Domain),
                 new ClearColumn("sanitization_rerun_item", "rerun_id", ClearKind.Identifier),
@@ -181,7 +189,7 @@ public sealed class ContentColumnsTests
                 "protected:texto-bruto", "protected:texto-bruto", "protected:texto-bruto", "protected:texto-bruto", "protected:texto-bruto", "protected:mapa-reversao",
                 "protected:mapa-reversao",
                 "protected:texto-bruto", "protected:texto-bruto",
-                "protected:deslocamento-datas", "protected:deslocamento-datas",
+                "protected:deslocamento-datas", "protected:deslocamento-datas", "protected:texto-bruto",
             ],
             ContentColumns.Protected.Select(column => column.Mark));
 }

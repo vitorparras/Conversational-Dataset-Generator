@@ -65,6 +65,7 @@ internal static class CustodyNames
         [CustodyStep.PersonEmailCorrected] = "person_email_corrected",
         [CustodyStep.SanitizationRerun] = "sanitization_rerun",
         [CustodyStep.ItemResanitized] = "item_resanitized",
+        [CustodyStep.BatchPseudonymized] = "batch_pseudonymized",
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<CustodyReason, string> Reasons = new Dictionary<CustodyReason, string>

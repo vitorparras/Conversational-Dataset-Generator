@@ -8,11 +8,11 @@ internal static class EventsOfTheirOwn
     internal const string Message =
         "A correction, a verification, an emptying, a rotation, the creation of a domain, a seal, an entry, the loss of a key, a rehearsal of the recovery, "
         + "a conference of the guarantees, a window of the owner, a restore, a rehearsal of it, a revocation of a label, a rewrap of a domain, "
-        + "the opening, the sample, the review, the sanitization and the closing of a batch, the request of a rerun and the rerun of an item "
+        + "the opening, the sample, the review, the sanitization, the pseudonymization and the closing of a batch, the request of a rerun and the rerun of an item "
         + "and the submission of a change of configuration, the decision on it and its being in force and its never being applied have an event of their own; "
         + "use Correction, Verification, Emptied, EmptyingRefused, EpochRotated, DomainCreated, DomainLabelRotated, DomainLabelRevoked, DomainRewrapped, SealRecorded, SignInAccepted, "
         + "SignInRefused, KeyLossDeclared, RecoveryRehearsed, GuaranteesVerified, OwnerWindowOpened, OwnerWindowClosed, Restored, RestoreRehearsed, BatchOpened, BatchAccepted, "
-        + "BatchRejected, BatchSampled, BatchReviewed, BatchSanitized, SanitizationRerun, ItemResanitized, "
+        + "BatchRejected, BatchSampled, BatchReviewed, BatchSanitized, BatchPseudonymized, SanitizationRerun, ItemResanitized, "
         + "ConfigurationSubmitted, ConfigurationDecided, ConfigurationInForce or ConfigurationNotApplied.";
 
     private static readonly FrozenSet<CustodyStep> Steps = new HashSet<CustodyStep>
@@ -23,6 +23,7 @@ internal static class EventsOfTheirOwn
         CustodyStep.DomainLabelRevoked, CustodyStep.DomainRewrapped, CustodyStep.BatchOpened, CustodyStep.BatchClosed, CustodyStep.PasswordChanged,
         CustodyStep.ConfigurationSubmitted, CustodyStep.ConfigurationApproved, CustodyStep.ConfigurationRefused, CustodyStep.ConfigurationInForce, CustodyStep.ConfigurationNotApplied,
         CustodyStep.BatchSampled, CustodyStep.BatchReviewed, CustodyStep.BatchSanitized, CustodyStep.SanitizationRerun, CustodyStep.ItemResanitized,
+        CustodyStep.BatchPseudonymized,
     }.ToFrozenSet();
 
     /// <summary>Whether the step has a factory of its own.</summary>

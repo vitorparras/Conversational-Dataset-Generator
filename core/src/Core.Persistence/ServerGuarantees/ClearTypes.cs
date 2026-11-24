@@ -11,13 +11,13 @@ internal static class ClearTypes
         [ClearKind.Identifier] = "bigint",
         [ClearKind.Domain] = "integer",
         [ClearKind.Moment] = "timestamp with time zone",
-        [ClearKind.PseudonymizedText] = "text",
         [ClearKind.Epoch] = "integer",
         [ClearKind.Status] = "text",
         [ClearKind.Motive] = "text",
         [ClearKind.Transaction] = "xid8",
         [ClearKind.Steps] = "text",
         [ClearKind.Counts] = "integer[]",
+        [ClearKind.Flag] = "boolean",
     }.ToFrozenDictionary();
 
     internal static string Of(ClearKind kind) =>

@@ -18,12 +18,14 @@ WHOLE = 100
 
 @dataclass(frozen=True)
 class ModuleResult:
-    """The mutants of one module, what kept them from being read and how long the run took."""
+    """The mutants of one module, what kept them from being read, how long the run took and
+    whether it mutated the whole module or only the files of a diff."""
 
     area: Area
     mutants: tuple[Mutant, ...]
     problems: tuple[str, ...] = ()
     seconds: float = 0.0
+    whole: bool = True
 
 
 @dataclass(frozen=True)
@@ -102,7 +104,8 @@ def outside(by: dict[MutantStatus, list[Mutant]]) -> tuple[str, ...]:
 
 
 def judge_module(result: ModuleResult, policy: MutationPolicy) -> Verdict:
-    """Counts, survivors by place, and a failure above the ceiling, unchecked or empty."""
+    """Counts, survivors by place, and a failure above the ceiling, unchecked or empty; files of
+    a diff may hold no mutant, a whole module may not."""
     by = {status: [m for m in result.mutants if m.status is status] for status in MutantStatus}
     killed, survived = by[MutantStatus.KILLED], by[MutantStatus.SURVIVED]
     generated = len(killed) + len(survived)
@@ -114,8 +117,10 @@ def judge_module(result: ModuleResult, policy: MutationPolicy) -> Verdict:
     failures = [f"{name}: {problem}" for problem in result.problems]
     if by[MutantStatus.UNCHECKED]:
         failures.append(f"{name}: {len(by[MutantStatus.UNCHECKED])} mutantes não verificados")
-    if generated == 0:
+    if generated == 0 and result.whole:
         failures.append(f"{name}: nenhum mutante gerado; o passo não passa vazio")
+    if generated == 0 and not result.whole:
+        notes = (*notes, f"{name}: nenhum mutante nos arquivos do diff")
     if len(survived) * WHOLE > policy.survivor_ceiling * generated:
         ceiling = f"passa do limite de {policy.survivor_ceiling} %"
         failures.append(f"{name}: {share(len(survived), generated)} de sobreviventes {ceiling}")

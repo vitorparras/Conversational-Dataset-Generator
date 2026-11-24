@@ -1,0 +1,84 @@
+"""Usage: mutation_issue.py <reports folder> <run url>. Opens, or comments on, the issue of each
+module the nightly mutation of main failed (decisão 0059): `modulo.txt` and `relatorio.txt`."""
+
+from __future__ import annotations
+
+import json
+import sys
+from collections import defaultdict
+from pathlib import Path
+
+from steps.common import RunCommand, run_process
+from steps.mutation_parts import split_module
+
+TITLE = "Mutação noturna reprovou em `{}`"
+SURVIVOR = "sobrevivente:"
+UNREPORTED = "sem relatório"
+ARGUMENTS = 2
+SHOWN_LINES = 60
+NONE_LISTED = "- nenhum sobrevivente listado; a causa da reprovação está na saída abaixo"
+
+
+def reports(folder: Path) -> dict[str, list[tuple[str, list[str]]]]:
+    """The failing jobs by module: the name of each job and the lines its step printed."""
+    found: dict[str, list[tuple[str, list[str]]]] = defaultdict(list)
+    for module_file in sorted(folder.glob("*/modulo.txt")):
+        job = module_file.read_text(encoding="utf-8").strip()
+        report = module_file.with_name("relatorio.txt")
+        lines = report.read_text(encoding="utf-8").splitlines() if report.is_file() else []
+        found[split_module(job)[0] or job].append((job, lines))
+    return found
+
+
+def body(run: str, prefix: str, jobs: list[tuple[str, list[str]]]) -> str:
+    """The text of the issue or comment: the module, the run, the survivors and the output."""
+    survivors = [line.strip() for _, lines in jobs for line in lines if SURVIVOR in line]
+    listed = [f"- {line}" for line in survivors] or [NONE_LISTED]
+    output = (f"{job}:\n" + "\n".join(lines[:SHOWN_LINES]) for job, lines in jobs)
+    head = [f"Módulo: `{prefix}`", f"Run: {run}", f"Jobs: {', '.join(job for job, _ in jobs)}"]
+    return "\n".join((*head, "", "Mutantes sobreviventes:", *listed, "", "```", *output, "```", ""))
+
+
+def open_issue(title: str, folder: Path, run: RunCommand) -> int | str | None:
+    """The open issue titled exactly ``title``: its number, None, or why GitHub cannot say."""
+    asked = ["gh", "issue", "list", "--state", "open", "--json", "number,title"]
+    outcome = run([*asked, "--limit", "1000"], folder)
+    if not outcome.ok:
+        return f"o gh não listou as issues abertas: {outcome.text.strip()}"
+    issues = json.loads(outcome.text or "[]")
+    return next((int(issue["number"]) for issue in issues if issue["title"] == title), None)
+
+
+def file(prefix: str, text: str, folder: Path, run: RunCommand) -> str | None:
+    """Comments on the open issue of the module or opens one; the reason when neither happened."""
+    title = TITLE.format(prefix)
+    found = open_issue(title, folder, run)
+    if isinstance(found, str):
+        return found
+    written = folder / f"corpo-{prefix}.md"
+    written.write_text(text, encoding="utf-8")
+    create = ["gh", "issue", "create", "--title", title]
+    command = create if found is None else ["gh", "issue", "comment", str(found)]
+    outcome = run([*command, "--body-file", str(written)], folder)
+    return None if outcome.ok else f"`{prefix}`: o gh recusou: {outcome.text.strip()}"
+
+
+def main(argv: list[str], run: RunCommand = run_process) -> int:
+    """Files each failing module, or the run when no report came; 1 then or on any refusal."""
+    if len(argv) != ARGUMENTS:
+        print(__doc__)
+        return 2
+    folder, url = Path(argv[0]), argv[1]
+    folder.mkdir(parents=True, exist_ok=True)
+    found = reports(folder) or {UNREPORTED: [("nenhum job deixou relatório; veja o run", [])]}
+    problems = [
+        problem
+        for prefix, jobs in found.items()
+        if (problem := file(prefix, body(url, prefix, jobs), folder, run))
+    ]
+    print("\n".join(problems or ["mutação noturna: issues registradas"]))
+    return 1 if problems or UNREPORTED in found else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

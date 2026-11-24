@@ -20,6 +20,7 @@ from steps.floors import Verdict
 from steps.mutation_judge import judge_language
 from steps.mutation_parts import SEPARATOR, Part, module_name, parts_of, split_module
 from steps.mutation_policy import critical, read_policy
+from steps.mutation_scope import DiffScope, read
 
 NAME = "mutation"
 
@@ -32,11 +33,22 @@ def listed(table: AreaTable) -> tuple[tuple[Area, ...], tuple[str, ...]]:
     return modules, () if modules else (f"{FOLDER}: nenhuma área com Crítica `sim`",)
 
 
-def jobs(root: Path, area: Area, areas: tuple[Area, ...]) -> tuple[str, ...]:
-    """The names of the jobs of one module: its prefix, or one name per part when it has several."""
-    count = mutation_core.part_count(root, area, areas)
-    parts = parts_of(count)
-    return tuple(module_name(area.prefix, part) for part in parts)
+def jobs(
+    root: Path, area: Area, areas: tuple[Area, ...], scope: DiffScope | None = None
+) -> tuple[str, ...]:
+    """The names of the jobs of one module: its prefix, or one name per part when it has several;
+    none in a run of the diff that changed no file of it."""
+    if scope is not None and not scope.keeps(files(root, area, areas)):
+        return ()
+    count = mutation_core.part_count(root, area, areas, scope)
+    return tuple(module_name(area.prefix, part) for part in parts_of(count))
+
+
+def files(root: Path, area: Area, areas: tuple[Area, ...]) -> tuple[str, ...]:
+    """The files of the whole module, from the root of the repository, in either language."""
+    if within(area.prefix, mutation_core.ROOT):
+        return mutation_core.files(root, area, areas)
+    return mutation_service.files(root, area, areas)
 
 
 def names(root: Path) -> tuple[tuple[str, ...], tuple[str, ...]]:
@@ -46,11 +58,11 @@ def names(root: Path) -> tuple[tuple[str, ...], tuple[str, ...]]:
     return tuple(name for area in modules for name in jobs(root, area, table.areas)), problems
 
 
-def wrong_part(root: Path, area: Area, areas: tuple[Area, ...], part: Part | None) -> str | None:
+def wrong_part(ctx: Context, area: Area, areas: tuple[Area, ...], part: Part | None) -> str | None:
     """Why the part asked for is not one of the parts the area runs in, or None when it is."""
     if part is None:
         return None
-    count = mutation_core.part_count(root, area, areas)
+    count = mutation_core.part_count(ctx.root, area, areas, read(ctx))
     if part.holds(count):
         return None
     return f"`{area.prefix}` roda em {count} parte(s); `{SEPARATOR}{part.label}` não é uma delas"
@@ -71,7 +83,7 @@ def run(ctx: Context) -> StepResult:
     if not modules:
         known = ", ".join(f"`{area.prefix}`" for area in every)
         return failed(NAME, f"`{ctx.module}` não é módulo crítico de {FOLDER}; são: {known}")
-    if wrong := wrong_part(ctx.root, modules[0], table.areas, part):
+    if wrong := wrong_part(ctx, modules[0], table.areas, part):
         return failed(NAME, wrong)
     core = tuple(area for area in modules if within(area.prefix, mutation_core.ROOT))
     service = tuple(area for area in modules if within(area.prefix, mutation_service.ROOT))
@@ -90,6 +102,6 @@ def run(ctx: Context) -> StepResult:
     rule = f"{policy.survivor_ceiling} % de sobreviventes e {policy.minutes} min por módulo"
     which = f"módulo `{ctx.module}`" if ctx.module else f"{len(modules)} módulos críticos"
     scope = f"{which} (coluna Crítica, {len(every)} no total); limite {rule}"
-    lines = (scope, *failures, *notes)
+    lines = (scope, *((read(ctx).line,) if ctx.base else ()), *failures, *notes)
     summarize("\n".join(("### Mutação", "", *(f"- {line}" for line in lines), "")))
     return (failed if failures else passed)(NAME, *lines)

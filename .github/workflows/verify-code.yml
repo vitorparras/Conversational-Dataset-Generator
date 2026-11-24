@@ -12,7 +12,7 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: '17 4 * * 1'
+    - cron: '17 4 * * *'
 
 # A new push to a pull request cancels the run still going for the same PR; main and the schedule
 # have a group of their own per run (run_id), so they are never cancelled or queued.
@@ -407,10 +407,11 @@ jobs:
   mutation_modules:
     name: Módulos críticos da mutação
     needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.heavy != 'false' && github.event.pull_request.draft != true }}
+    if: ${{ !cancelled() && github.event_name != 'push' && needs.changes.outputs.heavy != 'false' && github.event.pull_request.draft != true }}
     runs-on: ubuntu-latest
     outputs:
       modules: ${{ steps.list.outputs.modules }}
+      base: ${{ steps.list.outputs.base }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -425,6 +426,7 @@ jobs:
         run: |
           modules=$(python tools/verify-code/verify.py --mutation-modules ${BASE:+--base "$BASE"} 2> "$RUNNER_TEMP/alcance.md")
           echo "modules=$modules" >> "$GITHUB_OUTPUT"
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
           { echo "### Mutação: módulos alcançados e o motivo de cada um"; cat "$RUNNER_TEMP/alcance.md"; } >> "$GITHUB_STEP_SUMMARY"
 
   # Publishes the database image of the content, from main only: a pull request runs code of its own
@@ -463,6 +465,8 @@ jobs:
         module: ${{ fromJSON(needs.mutation_modules.outputs.modules) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
@@ -478,7 +482,11 @@ jobs:
       - name: Mutar o módulo crítico da matriz (Stryker.NET ou mutmut, um worker)
         env:
           MODULE: ${{ matrix.module }}
-        run: python tools/verify-code/verify.py --step mutation --module "$MODULE"
+          BASE: ${{ needs.mutation_modules.outputs.base }}
+        run: |
+          set -o pipefail
+          mkdir -p "$RUNNER_TEMP/mutacao" && echo "$MODULE" > "$RUNNER_TEMP/mutacao/modulo.txt"
+          python tools/verify-code/verify.py --step mutation --module "$MODULE" ${BASE:+--base "$BASE"} | tee "$RUNNER_TEMP/mutacao/relatorio.txt"
       - id: log
         name: Dar ao artefato do log um nome sem barra nem arroba
         if: failure()
@@ -496,6 +504,39 @@ jobs:
           include-hidden-files: true
           retention-days: 14
           if-no-files-found: ignore
+      - name: Guardar o relatório do passo quando ele reprova
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: relatorio-${{ steps.log.outputs.name }}
+          path: ${{ runner.temp }}/mutacao
+
+  mutation_nightly:
+    name: Issue da mutação noturna
+    needs: mutation_module
+    if: ${{ !cancelled() && github.event_name == 'schedule' && needs.mutation_module.result == 'failure' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        continue-on-error: true
+        with:
+          pattern: relatorio-*
+          path: ${{ runner.temp }}/relatorios
+      - name: Abrir a issue de cada módulo reprovado, ou comentar na que segue aberta
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: python tools/verify-code/mutation_issue.py "$RUNNER_TEMP/relatorios" "$RUN_URL"
 
   # Aggregates the matrix under the name the check always had. It always reports: everything skipped
   # when the classification dispensed it or the pull request is a draft, an empty matrix when the list
@@ -514,11 +555,12 @@ jobs:
           MODULES: ${{ needs.mutation_modules.outputs.modules }}
           MATRIX: ${{ needs.mutation_module.result }}
           DRAFT: ${{ github.event.pull_request.draft }}
+          EVENT: ${{ github.event_name }}
         run: |
-          echo "classificação: $CLASSIFICATION, heavy=$HEAVY, rascunho: $DRAFT, lista: $LISTED, módulos: $MODULES, matriz: $MATRIX"
+          echo "evento: $EVENT, classificação: $CLASSIFICATION, heavy=$HEAVY, rascunho: $DRAFT, lista: $LISTED, módulos: $MODULES, matriz: $MATRIX"
           list=success
           matrix=success
-          if [ "$CLASSIFICATION" = success ] && { [ "$HEAVY" = false ] || [ "$DRAFT" = true ]; }; then
+          if [ "$EVENT" = push ] || { [ "$CLASSIFICATION" = success ] && { [ "$HEAVY" = false ] || [ "$DRAFT" = true ]; }; }; then
             list=skipped
             matrix=skipped
           elif [ "$CLASSIFICATION" = success ] && [ "$LISTED" = success ] && [ "$MODULES" = '[]' ]; then

@@ -139,6 +139,6 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn("uses: actions/setup-dotnet@", self.job)
         self.assertIn("verify.py --step dependencies", self.job)
 
-    def test_the_job_runs_on_every_event_including_the_weekly_schedule(self) -> None:
+    def test_the_job_runs_on_every_event_including_the_daily_schedule(self) -> None:
         self.assertNotIn("if:", self.job)
         self.assertIn("schedule:\n    - cron:", self.text)

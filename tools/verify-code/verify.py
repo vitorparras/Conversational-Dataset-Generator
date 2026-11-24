@@ -31,11 +31,11 @@ from steps import (
     lint_tools,
     migration_order,
     mutation,
+    mutation_diff,
     offline_start,
     package,
     pr_size,
     properties,
-    reach,
     ruler_proof,
     secrets,
     static_analysis,
@@ -138,7 +138,8 @@ def print_mutation_modules(base: str | None) -> int:
         return 1
     reasons = ["todos os módulos: não é pull request"]
     if base:
-        modules, reasons = reach.select(Context(ROOT, ROOT / OUTPUT_DIRECTORY, run_process, base))
+        ctx = Context(ROOT, ROOT / OUTPUT_DIRECTORY, run_process, base)
+        modules, reasons = mutation_diff.select(ctx)
     print("\n".join(reasons), file=sys.stderr)
     print(json.dumps(modules, ensure_ascii=False))
     return 0

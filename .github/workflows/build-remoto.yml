@@ -5,7 +5,9 @@ name: Build remoto
 # os testes de arquitetura e os projetos de teste da lista `tests`), sem depender da memória da máquina
 # dele. Roda a partir do main e faz o checkout da branch recebida; por isso funciona para uma branch
 # antiga, que não tem este arquivo. Não grava nada: o token só lê o conteúdo.
-# Dispara com `bash C:/tmp/build-remoto.sh <branch> [--architecture] [--tests "A.Tests;B.Tests"]`.
+# Com `mutation`, roda também a mutação do diff contra o main, a mesma lista e o mesmo passo do pull
+# request (decisão 0059), um job por módulo.
+# Dispara com `bash C:/tmp/build-remoto.sh <branch> [--architecture] [--tests "A.Tests;B.Tests"] [--mutation]`.
 on:
   workflow_dispatch:
     inputs:
@@ -23,6 +25,11 @@ on:
         required: false
         default: ''
         type: string
+      mutation:
+        description: Rodar também a mutação do diff contra o main, como no pull request
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -138,3 +145,62 @@ jobs:
           if [ "$architecture" != skipped ] && [ "$architecture" != 0 ]; then tail -n 25 "$RUNNER_TEMP/architecture.log"; fi
           if [ -n "$failing" ]; then tail -n 25 "$failing"; fi
           [ "$build" = 0 ] && [ "$format" = 0 ] && { [ "$architecture" = skipped ] || [ "$architecture" = 0 ]; } && { [ "$tests" = skipped ] || [ "$tests" = 0 ]; }
+
+  mutation_modules:
+    name: Módulos da mutação do diff
+    if: ${{ inputs.mutation }}
+    runs-on: ubuntu-latest
+    outputs:
+      modules: ${{ steps.list.outputs.modules }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.branch }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - id: list
+        name: Ler os módulos críticos que o diff contra o main alcança
+        run: |
+          modules=$(python tools/verify-code/verify.py --mutation-modules --base origin/main 2> "$RUNNER_TEMP/alcance.md")
+          echo "modules=$modules" >> "$GITHUB_OUTPUT"
+          { echo "### Mutação: módulos alcançados e o motivo de cada um"; cat "$RUNNER_TEMP/alcance.md"; } >> "$GITHUB_STEP_SUMMARY"
+          cat "$RUNNER_TEMP/alcance.md"
+
+  mutation_module:
+    name: Mutação do diff (${{ matrix.module }})
+    needs: mutation_modules
+    if: ${{ inputs.mutation && needs.mutation_modules.result == 'success' && needs.mutation_modules.outputs.modules != '[]' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJSON(needs.mutation_modules.outputs.modules) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.branch }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - uses: ./.github/actions/build-database-image
+        if: startsWith(matrix.module, 'Core.')
+      - name: Instalar uv na versão fixada (o mutmut vem de language-service/uv.lock)
+        run: python3 tools/verify-code/retry.py -- pip install -r tools/verify-code/service-requirements.txt
+      - name: Sincronizar o ambiente do serviço
+        run: python3 tools/verify-code/retry.py -- uv sync --locked --directory language-service
+      - name: Mutar só os arquivos do diff do módulo da matriz
+        env:
+          MODULE: ${{ matrix.module }}
+        run: python tools/verify-code/verify.py --step mutation --module "$MODULE" --base origin/main

@@ -24,8 +24,8 @@ public sealed class DomainLabelRevocationTests
 
     private static readonly string[] AllOfBoth =
     [
-        "texto-bruto/1/v1", "mapa-reversao/1/v1", "texto-bruto/2/v1", "mapa-reversao/2/v1",
-        "texto-bruto/1/v2", "mapa-reversao/1/v2", "texto-bruto/1/v3", "mapa-reversao/1/v3",
+        .. DomainCreation.LabelsOf(1), .. DomainCreation.LabelsOf(2),
+        .. DomainLabelRotation.LabelsOf(1, 2), .. DomainLabelRotation.LabelsOf(1, 3),
     ];
 
     [DatabaseFact]
@@ -38,7 +38,7 @@ public sealed class DomainLabelRevocationTests
 
         Assert.Equal((DomainLabelOutcome.Revoked, 1, 1), (result.Outcome, result.DomainId, result.Version));
         Assert.Equal("texto-bruto/1/v1", Assert.Single(await LabelRevocations.ReadAsync(world.DataSource, TestContext.Current.CancellationToken)));
-        Assert.Equal((6L, 1L), (await world.CountAsync(Labels), await world.CountAsync(Revocations)));
+        Assert.Equal((9L, 1L), (await world.CountAsync(Labels), await world.CountAsync(Revocations)));
     }
 
     [DatabaseFact]

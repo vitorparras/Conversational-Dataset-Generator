@@ -26,8 +26,8 @@ public sealed class DomainLabelRotationTests
 
     private static readonly string[] AllOfBoth =
     [
-        "texto-bruto/1/v1", "mapa-reversao/1/v1", "texto-bruto/2/v1", "mapa-reversao/2/v1",
-        "texto-bruto/1/v2", "mapa-reversao/1/v2", "texto-bruto/1/v3", "mapa-reversao/1/v3",
+        .. DomainCreation.LabelsOf(1), .. DomainCreation.LabelsOf(2),
+        .. DomainLabelRotation.LabelsOf(1, 2), .. DomainLabelRotation.LabelsOf(1, 3),
     ];
 
     [DatabaseFact]
@@ -39,7 +39,10 @@ public sealed class DomainLabelRotationTests
 
         Assert.Equal((DomainLabelOutcome.Rotated, 1, 2), (result.Outcome, result.DomainId, result.Version));
         Assert.Equal(
-            ["mapa-reversao/1/v1", "mapa-reversao/1/v2", "mapa-reversao/2/v1", "texto-bruto/1/v1", "texto-bruto/1/v2", "texto-bruto/2/v1"],
+            [
+                "deslocamento-datas/1/v1", "deslocamento-datas/1/v2", "deslocamento-datas/2/v1", "mapa-reversao/1/v1", "mapa-reversao/1/v2", "mapa-reversao/2/v1",
+                "texto-bruto/1/v1", "texto-bruto/1/v2", "texto-bruto/2/v1",
+            ],
             await world.Database.RecordedLabelsAsOwnerAsync());
     }
 
@@ -64,7 +67,7 @@ public sealed class DomainLabelRotationTests
         var second = await world.Rotation.RotateAsync(1, custody, TestContext.Current.CancellationToken);
         var third = await world.Rotation.RotateAsync(1, custody, TestContext.Current.CancellationToken);
 
-        Assert.Equal((2, 3, 8L), (second.Version, third.Version, await world.CountAsync(Labels)));
+        Assert.Equal((2, 3, 12L), (second.Version, third.Version, await world.CountAsync(Labels)));
     }
 
     [DatabaseFact]
@@ -74,7 +77,7 @@ public sealed class DomainLabelRotationTests
 
         _ = await world.Rotation.RotateAsync(1, DerivationLabels.Of(AllOfBoth), TestContext.Current.CancellationToken);
 
-        Assert.Equal(2L, await world.CountAsync("SELECT count(*) FROM public.derivation_label WHERE label LIKE '%/2/v%'"));
+        Assert.Equal(3L, await world.CountAsync("SELECT count(*) FROM public.derivation_label WHERE label LIKE '%/2/v%'"));
         Assert.Equal(
             ("1", "v2", 1L),
             (await world.TextAsync("SELECT item_id::text FROM public.custody_event WHERE step = 'domain_label_rotated'"),
@@ -89,7 +92,7 @@ public sealed class DomainLabelRotationTests
         await using var world = await World.CreateAsync();
         var before = (await world.CountAsync(Labels), await world.CountAsync(Events));
 
-        var result = await world.Rotation.RotateAsync(1, DerivationLabels.Of(["texto-bruto/1/v2"]), TestContext.Current.CancellationToken);
+        var result = await world.Rotation.RotateAsync(1, DerivationLabels.Of(["texto-bruto/1/v2", "deslocamento-datas/1/v2"]), TestContext.Current.CancellationToken);
 
         Assert.Equal((DomainLabelOutcome.LabelsMissing, 2), (result.Outcome, result.Version));
         Assert.Equal(["mapa-reversao/1/v2"], result.MissingLabels);
@@ -101,17 +104,17 @@ public sealed class DomainLabelRotationTests
     {
         await using var world = await World.CreateAsync();
 
-        var result = await world.Rotation.RotateAsync(9, DerivationLabels.Of(["texto-bruto/9/v2", "mapa-reversao/9/v2"]), TestContext.Current.CancellationToken);
+        var result = await world.Rotation.RotateAsync(9, DerivationLabels.Of(DomainLabelRotation.LabelsOf(9, 2)), TestContext.Current.CancellationToken);
 
         Assert.Equal(DomainLabelOutcome.DomainNotFound, result.Outcome);
-        Assert.Equal(4L, await world.CountAsync(Labels));
+        Assert.Equal(6L, await world.CountAsync(Labels));
     }
 
     [DatabaseFact]
     public async Task Ca5TheEventOfARotationSaysWhoWhenWhichDomainAndTheGenerationItPassedToAndTheChainVerifies()
     {
         await using var world = await World.CreateAsync();
-        var result = await world.Rotation.RotateAsync(2, DerivationLabels.Of(["texto-bruto/2/v2", "mapa-reversao/2/v2"]), TestContext.Current.CancellationToken);
+        var result = await world.Rotation.RotateAsync(2, DerivationLabels.Of(DomainLabelRotation.LabelsOf(2, 2)), TestContext.Current.CancellationToken);
 
         Assert.Equal(
             "system,domain,2,domain_label_rotated,administrative_act,v2,t",
@@ -129,7 +132,7 @@ public sealed class DomainLabelRotationTests
 
         var rotated = results.Count(result => result.Outcome == DomainLabelOutcome.Rotated);
         Assert.InRange(rotated, 1, 2);
-        Assert.Equal(2L + (2 * rotated), await world.CountAsync("SELECT count(*) FROM public.derivation_label WHERE label LIKE '%/1/v%'"));
+        Assert.Equal(3L + (3 * rotated), await world.CountAsync("SELECT count(*) FROM public.derivation_label WHERE label LIKE '%/1/v%'"));
         Assert.Equal(rotated, await world.CountAsync("SELECT count(*) FROM public.custody_event WHERE step = 'domain_label_rotated'"));
     }
 
@@ -142,7 +145,7 @@ public sealed class DomainLabelRotationTests
         var result = await world.Rotation.RotateAsync(1, DerivationLabels.Of(AllOfBoth), TestContext.Current.CancellationToken);
 
         Assert.Equal(DomainLabelOutcome.Conflict, result.Outcome);
-        Assert.Equal((4L, 2L), (await world.CountAsync(Labels), await world.CountAsync(Events)));
+        Assert.Equal((6L, 2L), (await world.CountAsync(Labels), await world.CountAsync(Events)));
     }
 
     [DatabaseFact]
@@ -153,7 +156,7 @@ public sealed class DomainLabelRotationTests
 
         _ = await Assert.ThrowsAnyAsync<Exception>(() => world.Rotation.RotateAsync(1, DerivationLabels.Of(AllOfBoth), TestContext.Current.CancellationToken));
 
-        Assert.Equal((4L, 2L), (await world.CountAsync(Labels), await world.CountAsync(Events)));
+        Assert.Equal((6L, 2L), (await world.CountAsync(Labels), await world.CountAsync(Events)));
     }
 
     [DatabaseFact]
@@ -165,7 +168,7 @@ public sealed class DomainLabelRotationTests
 
         var result = await world.Rotation.RotateAsync(1, DerivationLabels.Of(AllOfBoth), TestContext.Current.CancellationToken);
 
-        Assert.Equal((DomainLabelOutcome.ChainRefused, 4L), (result.Outcome, await world.CountAsync(Labels)));
+        Assert.Equal((DomainLabelOutcome.ChainRefused, 6L), (result.Outcome, await world.CountAsync(Labels)));
     }
 
     [DatabaseFact]
@@ -176,7 +179,7 @@ public sealed class DomainLabelRotationTests
 
         var result = await meeting.RotateAsync(1, DerivationLabels.Of(AllOfBoth), TestContext.Current.CancellationToken);
 
-        Assert.Equal((DomainLabelOutcome.Conflict, 4L), (result.Outcome, await world.CountAsync(Labels)));
+        Assert.Equal((DomainLabelOutcome.Conflict, 6L), (result.Outcome, await world.CountAsync(Labels)));
     }
 
     [Fact]
@@ -197,7 +200,7 @@ public sealed class DomainLabelRotationTests
 
     [Fact]
     public void TheLabelsOfAGenerationAreOneForEachPurposeInTheOrderOfThePurposes() =>
-        Assert.Equal(["texto-bruto/7/v3", "mapa-reversao/7/v3"], DomainLabelRotation.LabelsOf(7, 3));
+        Assert.Equal(["texto-bruto/7/v3", "mapa-reversao/7/v3", "deslocamento-datas/7/v3"], DomainLabelRotation.LabelsOf(7, 3));
 
     [Fact]
     public async Task TheRegisterOfLabelsIsReadOnlyFromADataSource() =>

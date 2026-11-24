@@ -22,7 +22,7 @@ public sealed class DecidedMaterialTests
         Assert.Equal(
             [
                 new DecidedOccurrence(Santos, Destination.Pseudonymize),
-                new DecidedOccurrence(Place, Destination.Preserve),
+                new DecidedOccurrence(Place, Destination.Pseudonymize),
                 new DecidedOccurrence(Key, Destination.Remove),
             ],
             decided.Of(0));

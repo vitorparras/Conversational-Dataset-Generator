@@ -28,8 +28,8 @@ internal static class Sanitizing
     /// <summary>A proper name of a person, which the policy pseudonymizes.</summary>
     public static DecidedOccurrence Pseudonymized(int start, int end) => Decided(OccurrenceKinds.Person, "PROPN", start, end);
 
-    /// <summary>A proper name of a place, which the policy preserves.</summary>
-    public static DecidedOccurrence Preserved(int start, int end) => Decided(OccurrenceKinds.Location, "PROPN", start, end);
+    /// <summary>A proper name of a place preserved, as the items decided before the place became a marker keep it.</summary>
+    public static DecidedOccurrence Preserved(int start, int end) => new(new Occurrence(start, end, OccurrenceKinds.Location, "PROPN", "obj"), Destination.Preserve);
 
     public static Sanitizer Sanitizer(params ISanitizationStep[] steps) => new(new SanitizationSteps(steps), Boundaries);
 

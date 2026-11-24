@@ -9,6 +9,7 @@ public sealed class KeyLossValueTests
     [InlineData("master")]
     [InlineData("texto-bruto/1/v1")]
     [InlineData("mapa-reversao/12/v3")]
+    [InlineData("deslocamento-datas/5/v2")]
     public void TheWholeKeyAndALabelAsTheCustodyFileWritesItAreScopes(string text)
     {
         Assert.True(KeyLossScope.TryRead(text, out var scope));

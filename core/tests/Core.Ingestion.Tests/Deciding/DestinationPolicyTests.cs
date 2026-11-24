@@ -4,8 +4,8 @@ using Core.Ingestion.Deciding;
 namespace Core.Ingestion.Tests.Deciding;
 
 /// <summary>
-/// The destination of one occurrence: three and no other, a secret always removed, and the same word of a person and of a place with different destinations,
-/// the kind separating them and the grammar breaking the tie (issue 84, CA-2 and CA-3).
+/// The destination of one occurrence: three and no other, a secret always removed, a proper name of a person, an organization or a place pseudonymized (decision 0056),
+/// and the grammar breaking the tie between a name and a word that is none (issue 84, CA-2 and CA-3; issue 100, CA-5).
 /// </summary>
 public sealed class DestinationPolicyTests
 {
@@ -20,12 +20,12 @@ public sealed class DestinationPolicyTests
         Assert.Equal(Destination.Remove, DestinationPolicy.Of(Found.Occurrence(kind, "PROPN", "nsubj")));
 
     [Fact]
-    public void ThePersonIsPseudonymizedAndThePlaceIsPreservedForTheSameWordInTheSameFunction()
+    public void ProperNameOfAPlaceIsPseudonymized()
     {
         var person = DestinationPolicy.Of(Found.Occurrence(OccurrenceKinds.Person, "PROPN", "obl"));
         var place = DestinationPolicy.Of(Found.Occurrence(OccurrenceKinds.Location, "PROPN", "obl"));
 
-        Assert.Equal((Destination.Pseudonymize, Destination.Preserve), (person, place));
+        Assert.Equal((Destination.Pseudonymize, Destination.Pseudonymize), (person, place));
     }
 
     [Theory]
@@ -37,8 +37,8 @@ public sealed class DestinationPolicyTests
     [InlineData("obl")]
     [InlineData("nmod")]
     [InlineData("")]
-    public void APlaceIsPreservedInWhateverFunctionItHasInTheSentence(string role) =>
-        Assert.Equal(Destination.Preserve, DestinationPolicy.Of(Found.Occurrence(OccurrenceKinds.Location, "PROPN", role)));
+    public void APlaceIsPseudonymizedInWhateverFunctionItHasInTheSentence(string role) =>
+        Assert.Equal(Destination.Pseudonymize, DestinationPolicy.Of(Found.Occurrence(OccurrenceKinds.Location, "PROPN", role)));
 
     [Theory]
     [InlineData("nsubj")]
@@ -80,4 +80,8 @@ public sealed class DestinationPolicyTests
 
         Assert.Equal("occurrence", defect.ParamName);
     }
+
+    [Fact]
+    public void ASecretIsRemovedBeforeItsGrammarIsRead() =>
+        Assert.Equal(Destination.Remove, DestinationPolicy.Of(new Occurrence(0, 8, "SECRET", null!, "obj")));
 }

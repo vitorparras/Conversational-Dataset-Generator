@@ -10,8 +10,8 @@ using NpgsqlTypes;
 namespace Core.Persistence.Domains;
 
 /// <summary>
-/// The creation of a domain (decision 0045, issue 54): the owner credential writes the domain, the derivation labels of its two purposes and the event of the chain in one
-/// serializable transaction, and either the three exist or none does. Before anything is written the custody has to hold both labels (operacao/002), since a domain whose
+/// The creation of a domain (decision 0045, issue 54): the owner credential writes the domain, the derivation labels of each of its purposes and the event of the chain in one
+/// serializable transaction, and either the three exist or none does. Before anything is written the custody has to hold every label (operacao/002), since a domain whose
 /// labels the custody lacks would write content nobody could open again. The identifier is the highest one plus one, written explicitly, so that the operator knows the labels
 /// to add before the domain exists.
 /// </summary>

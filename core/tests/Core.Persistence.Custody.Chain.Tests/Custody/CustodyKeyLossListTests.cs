@@ -23,6 +23,7 @@ public sealed class CustodyKeyLossListTests : IClassFixture<CustodyDatabase>
     [InlineData("master")]
     [InlineData("texto-bruto/1/v1")]
     [InlineData("mapa-reversao/12/v3")]
+    [InlineData("deslocamento-datas/5/v2")]
     public async Task Ca5TheStepIsTakenWithTheShapeOfTheLossForTheWholeKeyAndForALabel(string scope)
     {
         await database.RunAsOwnerAsync(Row($"NULL, true, 'master_key', 7, 'key_loss_declared', 'administrative_act', NULL, '{scope}'"));

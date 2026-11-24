@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Core.Platform.Text;
 
 namespace Core.Ingestion.Sanitizing;
 
@@ -24,7 +25,7 @@ public static class TrailJson
     public static string Write(SanitizationTrail trail)
     {
         ArgumentNullException.ThrowIfNull(trail);
-        return JsonSerializer.Serialize(new Row(trail.RawLength, trail.Steps), Options);
+        return JsonSerializer.Serialize(new Row(trail.RawLength, trail.Steps, OffsetUnit.CodePoint), Options);
     }
 
     /// <summary>The trail rebuilt from its text, checked against the text each step received.</summary>
@@ -35,6 +36,11 @@ public static class TrailJson
         try
         {
             var row = JsonSerializer.Deserialize<Row>(json, Options) ?? throw new InvalidDataException("The sealed trail is empty.");
+            if (row.Unit is not null && !string.Equals(row.Unit, OffsetUnit.CodePoint, StringComparison.Ordinal))
+            {
+                throw new InvalidDataException("The sealed trail counts its limits in another unit.");
+            }
+
             var steps = new List<TrailStep>(row.Steps.Count);
             ArgumentOutOfRangeException.ThrowIfNegative(row.Raw);
             var length = row.Raw;
@@ -52,5 +58,6 @@ public static class TrailJson
         }
     }
 
-    private sealed record Row(int Raw, IReadOnlyList<IReadOnlyList<SanitizationEdit>> Steps);
+    /// <summary>The trail as sealed; one sealed before the unit was written counted in code points, the only unit the core ever stored.</summary>
+    private sealed record Row(int Raw, IReadOnlyList<IReadOnlyList<SanitizationEdit>> Steps, string? Unit = null);
 }

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from math import ceil
 
 from steps.mutation_members import UNBOUNDED
 
@@ -96,3 +97,12 @@ def pattern(file: str, pieces: list[Slice]) -> str:
 def parts_of(count: int) -> tuple[Part | None, ...]:
     """The parts an area of ``count`` parts runs in; none to name when it is a single part."""
     return (None,) if count == 1 else tuple(Part(n, count) for n in range(1, count + 1))
+
+
+def portion(parts: int, every: list[Slice], mine: list[Slice]) -> int:
+    """How many parts the slices to mutate take: the share of the area's weight they hold of the
+    parts its file asks for, rounded up, so a part weighs what it weighs in the whole run; never
+    more parts than slices, and always one."""
+    total = sum(piece.weight for piece in every)
+    wanted = ceil(parts * sum(piece.weight for piece in mine) / total) if total else 1
+    return max(1, min(wanted, len(mine)))

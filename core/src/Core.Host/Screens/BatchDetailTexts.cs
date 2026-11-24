@@ -66,6 +66,29 @@ internal static class BatchDetailTexts
         _ => $"Passo {code}",
     };
 
+    /// <summary>What the pseudonymization says when the text named no one and only the authors became markers.</summary>
+    internal const string OnlyAuthors = "Nenhum nome no texto: só os autores viraram marcador.";
+
+    /// <summary>The kinds of marker in the order of the table.</summary>
+    private static readonly string[] MarkerOrder = ["person", "place", "organization", "author"];
+
+    /// <summary>The name of a kind of marker, by its code; one the screen does not know is said by its code.</summary>
+    internal static string MarkerKindOf(string kind) => kind switch
+    {
+        "person" => "Pessoa",
+        "place" => "Lugar",
+        "organization" => "Organização",
+        "author" => "Autor de mensagem",
+        _ => $"Tipo {kind}",
+    };
+
+    /// <summary>Where a kind of marker goes in the table: people, places, organizations, then authors, and one the screen does not know at the end.</summary>
+    internal static int MarkerOrderOf(string kind)
+    {
+        var known = Array.IndexOf(MarkerOrder, kind);
+        return known < 0 ? MarkerOrder.Length : known;
+    }
+
     /// <summary>Whether the submission declared where the material came from; the origin itself is kept sealed and never shown.</summary>
     internal static string OriginOf(bool declared) => declared ? "Declarada e guardada selada" : "Desconhecida, como declarado no envio";
 

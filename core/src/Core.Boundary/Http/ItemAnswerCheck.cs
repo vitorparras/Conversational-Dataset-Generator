@@ -38,7 +38,6 @@ internal static class ItemAnswerCheck
         return occurrence.Start < 0 || occurrence.End > textLength ? ValidationProblem.OffsetOutsideText : null;
     }
 
-    /// <summary>One group for each distinct author named in the request, none missing, none repeated and none for a name it did not send.</summary>
     private static ValidationProblem? FirstKindProblem(IEnumerable<GroupedOccurrence> occurrences)
     {
         if (occurrences.Any(occurrence => !OccurrenceKinds.IsKnown(occurrence.Kind)))
@@ -49,6 +48,7 @@ internal static class ItemAnswerCheck
         return null;
     }
 
+    /// <summary>One group for each distinct author named in the request, none missing, none repeated and none for a name it did not send.</summary>
     private static ValidationProblem? AuthorGroupProblem(IEnumerable<ItemText> texts, IReadOnlyCollection<AuthorGroup> groups)
     {
         var named = texts.Select(text => text.Author).OfType<string>().ToHashSet(StringComparer.Ordinal);

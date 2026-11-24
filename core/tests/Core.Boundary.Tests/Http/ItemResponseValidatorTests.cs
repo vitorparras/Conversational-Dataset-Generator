@@ -38,6 +38,8 @@ public sealed class ItemResponseValidatorTests
     [InlineData(-1, 0, 1, nameof(ValidationProblem.TextOutsideItem))]
     [InlineData(3, 0, 1, nameof(ValidationProblem.TextOutsideItem))]
     [InlineData(0, 2, 28, nameof(ValidationProblem.OffsetOutsideText))]
+    [InlineData(0, 0, 22, nameof(ValidationProblem.OffsetOutsideText))]
+    [InlineData(1, 0, 29, nameof(ValidationProblem.OffsetOutsideText))]
     [InlineData(2, 0, 16, nameof(ValidationProblem.OffsetOutsideText))]
     [InlineData(1, -1, 3, nameof(ValidationProblem.OffsetOutsideText))]
     [InlineData(1, 5, 4, nameof(ValidationProblem.EndBeforeStart))]

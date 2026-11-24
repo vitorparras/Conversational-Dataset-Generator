@@ -6,7 +6,7 @@ from http import HTTPStatus
 import pytest
 from fastapi.testclient import TestClient
 
-from language_service.contract import AnalyzeRequest
+from language_service.contract import AnalyzeItemRequest, AnalyzeRequest, ItemText
 from language_service.logging_ import RequestLog
 from language_service.routes import Routes
 from support.recognizers import OCCURRENCE, FixedRecognizer
@@ -51,6 +51,17 @@ def test_analyze_carries_the_recognizer_model_version() -> None:
     response = ROUTES.analyze(AnalyzeRequest(**ANALYZE_BODY))
 
     assert response.model_version == "m1"
+
+
+def test_analyze_item_carries_the_recognizer_model_version() -> None:
+    request = AnalyzeItemRequest(
+        texts=[ItemText(text="ok", author=None)],
+        language="pt",
+        reference="ref-0908",
+        contract_version="2",
+    )
+
+    assert ROUTES.analyze_item(request).model_version == "m1"
 
 
 def test_version_carries_the_recognizer_model_version() -> None:

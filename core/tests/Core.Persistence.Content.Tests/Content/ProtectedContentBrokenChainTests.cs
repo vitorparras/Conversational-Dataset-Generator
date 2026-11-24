@@ -42,6 +42,17 @@ public sealed class ProtectedContentBrokenChainTests
     }
 
     [DatabaseFact]
+    public async Task DateShiftIsRefusedVisiblyAndNothingIsKept()
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        await BreakAsync(world);
+
+        _ = await Assert.ThrowsAsync<CustodyChainBrokenException>(() => world.DateShifts.EstablishAsync(1, TestContext.Current.CancellationToken));
+
+        Assert.Equal(0L, await CountAsync(world, "SELECT count(*) FROM content.date_shift"));
+    }
+
+    [DatabaseFact]
     public async Task ContentThatNeedsNoEventIsStillReadAndSoIsTheChain()
     {
         await using var world = await ContentWorld.CreateAsync();

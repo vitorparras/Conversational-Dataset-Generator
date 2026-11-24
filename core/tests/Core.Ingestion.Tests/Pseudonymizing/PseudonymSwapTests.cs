@@ -15,10 +15,13 @@ public sealed class PseudonymSwapTests
 
     private static readonly TextBoundaries Boundaries = new();
 
+    /// <summary>The swap with the opening of the conversation the composition root gives it, over the draw of the test.</summary>
+    private static PseudonymSwap SwapOf(MarkerDraw draw) => new(Boundaries, (inUseElsewhere, known) => new ConversationMarkers(draw, inUseElsewhere, known));
+
     [Fact]
     public void SwapWritesTheMarkerOfEachReferentInPlaceOfItsSpanAndTheMapHoldsTheOriginal()
     {
-        var swap = new PseudonymSwap(Boundaries, Draws.Of(11, 22));
+        var swap = SwapOf(Draws.Of(11, 22));
         var request = new SwapRequest { Sanitized = Text, Occurrences = [Person(3, 7, Referent.Group(1)), Person(10, 14, Referent.Group(2)), Person(16, 20, Referent.Group(1))] };
 
         var swapped = swap.Swap(request, _ => false);
@@ -30,7 +33,7 @@ public sealed class PseudonymSwapTests
     [Fact]
     public void RemovedSpanNeverBecomesAMapEntry()
     {
-        var swap = new PseudonymSwap(Boundaries, Draws.Of());
+        var swap = SwapOf(Draws.Of());
         var removed = new ReferredOccurrence(new DecidedOccurrence(new Occurrence(3, 7, OccurrenceKinds.Person, "PROPN", "obj"), Destination.Remove), Referent.Group(1));
         var request = new SwapRequest { Sanitized = Text, Occurrences = [Person(10, 14, Referent.Group(2)), removed] };
 
@@ -40,7 +43,7 @@ public sealed class PseudonymSwapTests
     [Fact]
     public void PreservedSpanNeverBecomesAMapEntryEither()
     {
-        var swap = new PseudonymSwap(Boundaries, Draws.Of());
+        var swap = SwapOf(Draws.Of());
         var preserved = new ReferredOccurrence(new DecidedOccurrence(new Occurrence(3, 7, OccurrenceKinds.Location, "PROPN", "obj"), Destination.Preserve), Referent.Group(1));
         var request = new SwapRequest { Sanitized = Text, Occurrences = [preserved] };
 
@@ -50,7 +53,7 @@ public sealed class PseudonymSwapTests
     [Fact]
     public void SwapTakesNoMapButTheOneOfItsItem()
     {
-        var swap = new PseudonymSwap(Boundaries, Draws.Of());
+        var swap = SwapOf(Draws.Of());
         var ofAnother = new ItemMap(8, [new MapEntry(Referent.Group(1), new Marker(MarkerKind.Person, 5), "ZQXA")]);
         var request = new SwapRequest { Sanitized = Text, Occurrences = [Person(3, 7, Referent.Group(1))], ItemId = 7, Map = ofAnother };
 
@@ -62,7 +65,7 @@ public sealed class PseudonymSwapTests
     [Fact]
     public void MapOfTheItemGivesTheMarkersItAlreadyHasWithoutDrawing()
     {
-        var swap = new PseudonymSwap(Boundaries, Draws.Of(99));
+        var swap = SwapOf(Draws.Of(99));
         var map = new ItemMap(7, [new MapEntry(Referent.Group(1), new Marker(MarkerKind.Person, 5), "ZQXA")]);
         var request = new SwapRequest { Sanitized = Text, Occurrences = [Person(3, 7, Referent.Group(1))], ItemId = 7, Map = map };
 
@@ -74,7 +77,7 @@ public sealed class PseudonymSwapTests
     [Fact]
     public void OverlappingOccurrencesBecomeOneMarkerOverTheirUnion()
     {
-        var swap = new PseudonymSwap(Boundaries, Draws.Of(1, 2));
+        var swap = SwapOf(Draws.Of(1, 2));
         var request = new SwapRequest { Sanitized = Text, Occurrences = [Person(5, 9, Referent.Group(2)), Person(3, 7, Referent.Group(1))] };
 
         var swapped = swap.Swap(request, _ => false);
@@ -86,7 +89,7 @@ public sealed class PseudonymSwapTests
     [Fact]
     public void AdjacentOccurrencesAreBothSwapped()
     {
-        var swap = new PseudonymSwap(Boundaries, Draws.Of(1, 2));
+        var swap = SwapOf(Draws.Of(1, 2));
         var request = new SwapRequest { Sanitized = "ZQXAZQXB", Occurrences = [Person(4, 8, Referent.Group(2)), Person(0, 4, Referent.Group(1))] };
 
         var swapped = swap.Swap(request, _ => false);
@@ -97,7 +100,7 @@ public sealed class PseudonymSwapTests
     [Fact]
     public void SpanIsCutByCodePointsPastEmoji()
     {
-        var swap = new PseudonymSwap(Boundaries, Draws.Of(3));
+        var swap = SwapOf(Draws.Of(3));
         var request = new SwapRequest { Sanitized = "😀 ZQXA fim", Occurrences = [Person(2, 6, Referent.Author("ZQXA"))] };
 
         var swapped = swap.Swap(request, _ => false);
@@ -108,7 +111,7 @@ public sealed class PseudonymSwapTests
     [Fact]
     public void MarkerInUseElsewhereIsDrawnAgain()
     {
-        var swap = new PseudonymSwap(Boundaries, Draws.Of(4, 6));
+        var swap = SwapOf(Draws.Of(4, 6));
         var request = new SwapRequest { Sanitized = Text, Occurrences = [Person(3, 7, Referent.Group(1))] };
 
         var swapped = swap.Swap(request, marker => marker.Number == 4);

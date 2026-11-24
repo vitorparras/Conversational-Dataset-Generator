@@ -13,15 +13,15 @@ namespace Core.Ingestion.Pseudonymizing;
 public sealed class PseudonymSwap
 {
     private readonly ITextBoundaries boundaries;
-    private readonly MarkerDraw draw;
+    private readonly ConversationOpening conversation;
 
-    /// <summary>The swap that cuts the text by code points and draws the markers a referent does not have yet.</summary>
+    /// <summary>The swap that cuts the text by code points and draws, in the conversation of the item, the markers a referent does not have yet.</summary>
     /// <param name="boundaries">Counts and cuts the text by code points.</param>
-    /// <param name="draw">Draws the number of a new marker.</param>
-    public PseudonymSwap(ITextBoundaries boundaries, MarkerDraw draw)
+    /// <param name="conversation">Opens the markers of the conversation of an item, with the draw the composition root gives it.</param>
+    public PseudonymSwap(ITextBoundaries boundaries, ConversationOpening conversation)
     {
         this.boundaries = boundaries ?? throw new ArgumentNullException(nameof(boundaries));
-        this.draw = draw ?? throw new ArgumentNullException(nameof(draw));
+        this.conversation = conversation ?? throw new ArgumentNullException(nameof(conversation));
     }
 
     /// <summary>The pseudonymized text and the entries of the map of the item.</summary>
@@ -43,7 +43,7 @@ public sealed class PseudonymSwap
             throw new PseudonymOfRemovedException();
         }
 
-        var markers = new ConversationMarkers(draw, inUseElsewhere, Known(request.Map));
+        var markers = conversation(inUseElsewhere, Known(request.Map));
         return Written(request.Sanitized, Merged(request.Occurrences, boundaries.CodePointCount(request.Sanitized)), markers);
     }
 

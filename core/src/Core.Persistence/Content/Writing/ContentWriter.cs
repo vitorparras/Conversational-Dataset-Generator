@@ -132,11 +132,7 @@ public sealed partial class ContentWriter(NpgsqlDataSource dataSource, Protected
         {
             try
             {
-                var transaction = await ContentTransaction.BeginAsync(dataSource, on.DomainId, on.Isolation, cancellationToken).ConfigureAwait(false);
-                await using (transaction.ConfigureAwait(false))
-                {
-                    return await work(transaction).ConfigureAwait(false);
-                }
+                return await InTransactionAsync(on, work, cancellationToken).ConfigureAwait(false);
             }
             catch (PostgresException refused) when (refused.SqlState == CustodyStatements.ChainBrokenSqlState)
             {
@@ -161,6 +157,15 @@ public sealed partial class ContentWriter(NpgsqlDataSource dataSource, Protected
         }
 
         throw new UnreachableException();
+    }
+
+    private async Task<T> InTransactionAsync<T>((int DomainId, IsolationLevel Isolation) on, Func<ContentTransaction, Task<T>> work, CancellationToken cancellationToken)
+    {
+        var transaction = await ContentTransaction.BeginAsync(dataSource, on.DomainId, on.Isolation, cancellationToken).ConfigureAwait(false);
+        await using (transaction.ConfigureAwait(false))
+        {
+            return await work(transaction).ConfigureAwait(false);
+        }
     }
 
     private static async Task<object?> ScalarAsync(ContentTransaction transaction, int domainId, (string Statement, NpgsqlParameter[] Parameters) query, CancellationToken cancellationToken)

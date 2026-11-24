@@ -1,4 +1,5 @@
 using System.Data;
+using System.Data.Common;
 using Npgsql;
 using NpgsqlTypes;
 
@@ -72,15 +73,20 @@ public sealed partial class ContentWriter
             var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             await using (reader.ConfigureAwait(false))
             {
-                var held = new HashSet<string>(StringComparer.Ordinal);
-                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-                {
-                    _ = held.Add(reader.GetString(0));
-                }
-
-                return held;
+                return await HeldOfAsync(reader, cancellationToken).ConfigureAwait(false);
             }
         }
+    }
+
+    private static async Task<HashSet<string>> HeldOfAsync(DbDataReader reader, CancellationToken cancellationToken)
+    {
+        var held = new HashSet<string>(StringComparer.Ordinal);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            _ = held.Add(reader.GetString(0));
+        }
+
+        return held;
     }
 
     private static NpgsqlParameter ItemOf(long itemId) => new("item", NpgsqlDbType.Bigint) { Value = itemId };

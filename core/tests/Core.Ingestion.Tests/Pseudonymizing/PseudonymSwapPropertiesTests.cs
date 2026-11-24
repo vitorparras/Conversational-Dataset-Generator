@@ -16,6 +16,9 @@ public sealed class PseudonymSwapPropertiesTests
 {
     private static readonly TextBoundaries Boundaries = new();
 
+    /// <summary>The swap with the opening of the conversation the composition root gives it, over the draw of the test.</summary>
+    private static PseudonymSwap SwapOf(MarkerDraw draw) => new(Boundaries, (inUseElsewhere, known) => new ConversationMarkers(draw, inUseElsewhere, known));
+
     private static readonly Gen<string> Word = Gen.OneOf(Gen.String[Gen.Char['a', 'z'], 1, 6], Gen.Const("😀"), Gen.Const("é"));
 
     private static readonly Gen<(string Word, int? Group)[]> Segments = Gen.Select(Word, Gen.Int[0, 3], Gen.Bool, (word, group, named) => (word, named ? (int?)group : null)).Array[1, 20];
@@ -29,10 +32,10 @@ public sealed class PseudonymSwapPropertiesTests
         {
             var (segments, first, second) = generated;
             var (text, occurrences) = Material(segments);
-            var swapped = new PseudonymSwap(Boundaries, Draws.Of(first)).Swap(new SwapRequest { Sanitized = text, Occurrences = occurrences }, _ => false);
+            var swapped = SwapOf(Draws.Of(first)).Swap(new SwapRequest { Sanitized = text, Occurrences = occurrences }, _ => false);
             var again = new SwapRequest { Sanitized = text, Occurrences = occurrences, ItemId = 7, Map = new ItemMap(7, swapped.Entries) };
 
-            var rerun = new PseudonymSwap(Boundaries, Draws.Of(second)).Swap(again, _ => false);
+            var rerun = SwapOf(Draws.Of(second)).Swap(again, _ => false);
 
             Assert.Equal(Encoding.UTF8.GetBytes(swapped.Text), Encoding.UTF8.GetBytes(rerun.Text));
             Assert.Equal(swapped.Entries, rerun.Entries);

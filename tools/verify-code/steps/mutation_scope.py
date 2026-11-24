@@ -14,8 +14,7 @@ UNTOUCHED = "nenhum arquivo do módulo no diff; nada a mutar aqui"
 
 @dataclass(frozen=True)
 class DiffScope:
-    """The paths, from the root, the pull request changed (None: every file) and the line that
-    tells the reader which of the two the run is."""
+    """The paths the diff changed, from the root (None: every file), and the line saying which."""
 
     paths: frozenset[str] | None
     line: str
@@ -32,9 +31,8 @@ def read(ctx: Context) -> DiffScope:
     found = changes.changed_paths(ctx)
     if isinstance(found, str):
         return DiffScope(None, f"escopo: módulo inteiro, pois {found}")
-    return DiffScope(
-        frozenset(found), f"escopo: só os arquivos do diff contra {ctx.base}; {NIGHTLY}"
-    )
+    line = f"escopo: só os arquivos do diff contra {ctx.base}; {NIGHTLY}"
+    return DiffScope(frozenset(found), line)
 
 
 def mutated_notes(scope: DiffScope, chosen: dict[str, tuple[str, ...]]) -> tuple[str, ...]:

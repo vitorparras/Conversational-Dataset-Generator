@@ -6,7 +6,6 @@ name: Build remoto
 # dele. Roda a partir do main e faz o checkout da branch recebida; por isso funciona para uma branch
 # antiga, que não tem este arquivo. Não grava nada: o token só lê o conteúdo.
 # Com `mutation`, roda também a mutação do diff contra o main, como o pull request (decisão 0059).
-# Dispara com `bash C:/tmp/build-remoto.sh <branch> [--architecture] [--tests "A.Tests;B.Tests"] [--mutation]`.
 on:
   workflow_dispatch:
     inputs:
@@ -161,7 +160,6 @@ jobs:
         with:
           python-version: '3.12'
       - id: list
-        name: Ler os módulos críticos que o diff contra o main alcança
         run: |
           modules=$(python tools/verify-code/verify.py --mutation-modules --base origin/main 2> "$RUNNER_TEMP/alcance.md")
           echo "modules=$modules" >> "$GITHUB_OUTPUT"
@@ -198,7 +196,6 @@ jobs:
         run: |
           python3 tools/verify-code/retry.py -- pip install -r tools/verify-code/service-requirements.txt
           python3 tools/verify-code/retry.py -- uv sync --locked --directory language-service
-      - name: Mutar só os arquivos do diff do módulo da matriz
-        env:
+      - env:
           MODULE: ${{ matrix.module }}
         run: python tools/verify-code/verify.py --step mutation --module "$MODULE" --base origin/main

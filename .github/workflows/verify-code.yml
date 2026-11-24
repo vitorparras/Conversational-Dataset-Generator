@@ -479,15 +479,13 @@ jobs:
         run: python3 tools/verify-code/retry.py -- pip install -r tools/verify-code/service-requirements.txt
       - name: Sincronizar o ambiente do serviço (o modelo do spaCy vem do GitHub; só baixar repete, nunca o pytest)
         run: python3 tools/verify-code/retry.py -- uv sync --locked --directory language-service
-      # In a pull request, only the files of the module in the diff (decisão 0059).
       - name: Mutar o módulo crítico da matriz (Stryker.NET ou mutmut, um worker)
         env:
           MODULE: ${{ matrix.module }}
           BASE: ${{ needs.mutation_modules.outputs.base }}
         run: |
           set -o pipefail
-          mkdir -p "$RUNNER_TEMP/mutacao"
-          echo "$MODULE" > "$RUNNER_TEMP/mutacao/modulo.txt"
+          mkdir -p "$RUNNER_TEMP/mutacao" && echo "$MODULE" > "$RUNNER_TEMP/mutacao/modulo.txt"
           python tools/verify-code/verify.py --step mutation --module "$MODULE" ${BASE:+--base "$BASE"} | tee "$RUNNER_TEMP/mutacao/relatorio.txt"
       - id: log
         name: Dar ao artefato do log um nome sem barra nem arroba
@@ -512,10 +510,7 @@ jobs:
         with:
           name: relatorio-${{ steps.log.outputs.name }}
           path: ${{ runner.temp }}/mutacao
-          retention-days: 14
-          if-no-files-found: ignore
 
-  # A module that fails the nightly run of main gets an issue (decisão 0059).
   mutation_nightly:
     name: Issue da mutação noturna
     needs: mutation_module
@@ -540,7 +535,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          GH_NO_UPDATE_NOTIFIER: '1'
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: python tools/verify-code/mutation_issue.py "$RUNNER_TEMP/relatorios" "$RUN_URL"
 

@@ -41,8 +41,7 @@ def body(run: str, prefix: str, jobs: list[tuple[str, list[str]]]) -> str:
 
 
 def open_issue(title: str, folder: Path, run: RunCommand) -> int | str | None:
-    """The number of the open issue with exactly ``title``, None when there is none, and the
-    reason when GitHub cannot say."""
+    """The open issue titled exactly ``title``: its number, None, or why GitHub cannot say."""
     asked = ["gh", "issue", "list", "--state", "open", "--json", "number,title"]
     outcome = run([*asked, "--limit", "1000"], folder)
     if not outcome.ok:
@@ -67,8 +66,7 @@ def file(prefix: str, text: str, folder: Path, run: RunCommand) -> str | None:
 
 
 def main(argv: list[str], run: RunCommand = run_process) -> int:
-    """Files every failing module, or the run when no job left a report; 1 when any of them
-    could not be filed or no report came."""
+    """Files each failing module, or the run when no report came; 1 then or on any refusal."""
     if len(argv) != 2:
         print(__doc__)
         return 2

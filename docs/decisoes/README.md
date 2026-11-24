@@ -71,6 +71,7 @@ deliberada e justificada.
 | [0057](0057-escopo-do-marcador-e-a-conversa.md) | O escopo do marcador é a conversa | Decisão vigente |
 | [0058](0058-padrao-de-usabilidade-e-visual.md) | Padrão de usabilidade e visual das telas | Decisão vigente |
 | [0059](0059-mutacao-do-diff-e-noturna.md) | Mutação do diff no pull request e do módulo inteiro à noite | Decisão vigente |
+| [0060](0060-correferencia-na-resposta-da-fronteira.md) | A resposta da fronteira carrega o grupo de correferência | Decisão pendente |
 
 ## Formato
 

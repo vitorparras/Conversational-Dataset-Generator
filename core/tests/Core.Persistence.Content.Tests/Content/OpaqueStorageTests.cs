@@ -75,6 +75,20 @@ public sealed class OpaqueStorageTests
     }
 
     [DatabaseFact]
+    public async Task Ca4TwoColumnsWrittenInClearAreBothNamed()
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        var material = await OpaqueStorage.SeedAsync(world);
+        string[] tampered = [OpaqueStorage.Entries, OpaqueStorage.ItemKey];
+        await WriteInClearAsync(world, tampered[0], material.InClear(tampered[0]));
+        await WriteInClearAsync(world, tampered[1], material.InClear(tampered[1]));
+
+        var observation = await OpaqueStorage.ObserveAsync(world, material);
+
+        Assert.Equal(tampered.Order(StringComparer.Ordinal), OpaqueStorage.ColumnsShown(observation, material, [.. material.Columns]).Order(StringComparer.Ordinal));
+    }
+
+    [DatabaseFact]
     public async Task Ca5TheKeyInNoWayItIsWrittenIsInTheDumpOrInAnyFileOfTheServerWhileTheSearchStillFindsWhatIsThere()
     {
         await using var world = await ContentWorld.CreateAsync();

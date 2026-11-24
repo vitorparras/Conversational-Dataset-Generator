@@ -82,6 +82,7 @@ public sealed class ContentEmptier
     {
         var found = await ScalarAsync(scope, ContentQueries.EmptyItemText, itemId, cancellationToken).ConfigureAwait(false) is not null;
         _ = await ScalarAsync(scope, ContentQueries.EmptyReversalMaps, itemId, cancellationToken).ConfigureAwait(false);
+        _ = await ScalarAsync(scope, ContentQueries.EmptyItemMarkers, itemId, cancellationToken).ConfigureAwait(false);
         return found;
     }
 

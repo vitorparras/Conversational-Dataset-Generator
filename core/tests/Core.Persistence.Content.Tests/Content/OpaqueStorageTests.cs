@@ -41,7 +41,7 @@ public sealed class OpaqueStorageTests
 
         var observation = await OpaqueStorage.ObserveAsync(world, material);
 
-        Assert.Equal([true, true], [observation.ShowsInDump(material.Pseudonymized), observation.ShowsInFiles(material.Pseudonymized)]);
+        Assert.Equal([true, true], [observation.ShowsInDump(material.Marker), observation.ShowsInFiles(material.Marker)]);
     }
 
     // The columns in two groups, the texts and the keys, and not all in one test: each tampering takes a dump and a reading of every file of the server, and the whole list in one
@@ -64,7 +64,7 @@ public sealed class OpaqueStorageTests
 
         Assert.Equal(
             (false, false, true),
-            (observation.DumpShowsAny(OpaqueStorage.KeyAsText()), observation.FilesBeyond(material).Any(), observation.ShowsInFiles(material.Pseudonymized)));
+            (observation.DumpShowsAny(OpaqueStorage.KeyAsText()), observation.FilesBeyond(material).Any(), observation.ShowsInFiles(material.Marker)));
     }
 
     /// <summary>The defect the detector exists for: the column holds the text as it is, bytes of the text and no envelope, put there by whoever the path of the application does not bind.</summary>
@@ -90,12 +90,12 @@ public sealed class OpaqueStorageTests
     private static async Task WriteInClearAsync(ContentWorld world, string column, byte[] clear)
     {
         var parts = column.Split('.');
-        // The content changes only by the emptying or the rerun (CE004) and a key is wrapped again only with the event of the rotation (CE005): triggers that fire for the owner too.
-        // Whoever writes in clear sets them aside for the one statement, as an owner would.
+        // The content changes only by the emptying or the rerun (CE004), a key is wrapped again only with the event of the rotation (CE005) and a pseudonymized text comes only with its
+        // map (CE005): triggers that fire for the owner too. Whoever writes in clear sets them aside for the one statement, as an owner would.
         var table = $"{parts[0]}.{parts[1]}";
         string[] gates = parts[1] switch
         {
-            "item_text" => ["emptied_content_is_final", "item_change_needs_event", "resanitization_needs_rerun"],
+            "item_text" => ["emptied_content_is_final", "item_change_needs_event", "resanitization_needs_rerun", "pseudonymized_needs_map"],
             "reversal_map" => ["emptied_content_is_final", "map_change_needs_event"],
             "date_shift" => ["date_shift_change_is_bounded"],
             _ => ["origin_change_is_bounded"],

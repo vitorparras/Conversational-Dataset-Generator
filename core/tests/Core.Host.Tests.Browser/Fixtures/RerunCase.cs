@@ -66,7 +66,9 @@ internal sealed class RerunCase : IAsyncDisposable
                 "SELECT set_config('app.domain', '1', false)",
                 ItemTexts.VersionRow(1),
                 "INSERT INTO content.item_text (domain_id, batch_id, raw_text, sanitized_text, pseudonymized_text, dek_epoch, dek_wrapped, sanitization_version, sanitization_trail, "
-                + $"sanitization_counts) SELECT 1, 1, '\x01', '\x02', 'zqx', 1, '\x03', '{ItemTexts.Version}', '\x04', '{{0}}' FROM generate_series(1, {Items})",
+                + $"sanitization_counts) SELECT 1, 1, '\x01', '\x02', '\x05', 1, '\x03', '{ItemTexts.Version}', '\x04', '{{0}}' FROM generate_series(1, {Items})",
+                // An item holds a pseudonymized text only with a map of its own written in the same transaction, which the batch of statements is.
+                "INSERT INTO content.reversal_map (domain_id, batch_id, item_id, entries, dek_epoch, dek_wrapped) SELECT domain_id, batch_id, id, '\x06', 1, '\x07' FROM content.item_text",
                 "SELECT set_config('app.domain', '', false)",
             ]);
 

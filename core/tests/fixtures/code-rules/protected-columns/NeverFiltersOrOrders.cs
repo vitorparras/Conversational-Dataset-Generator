@@ -18,7 +18,7 @@ internal static class NeverFiltersOrOrders
 
     public const string Limited = "SELECT raw_text FROM t WHERE id = @id LIMIT 1";
 
-    public const string OtherColumns = "SELECT id FROM t WHERE pseudonymized_text = @text ORDER BY recorded_at";
+    public const string OtherColumns = "SELECT id FROM t WHERE emptied_at = @moment ORDER BY recorded_at";
 
     public static string Interpolated(int id) => $"SELECT raw_text FROM t WHERE id = {id}";
 

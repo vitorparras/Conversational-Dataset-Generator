@@ -13,7 +13,7 @@ namespace Core.Persistence.Content.Writing;
 /// Adds content to the database, and is the only way to: what a protected column receives is sealed here for the domain of the row, so the
 /// database never holds the text of a protected column in clear.
 /// </summary>
-public sealed class ContentWriter(NpgsqlDataSource dataSource, ProtectedContent protectedContent)
+public sealed partial class ContentWriter(NpgsqlDataSource dataSource, ProtectedContent protectedContent)
 {
     /// <summary>How many times a map is written when the database serializes it behind an emptying that committed first; the next attempt finds the item emptied and is refused.</summary>
     private const int MapAttempts = 3;
@@ -45,19 +45,23 @@ public sealed class ContentWriter(NpgsqlDataSource dataSource, ProtectedContent 
     private async Task<long> AddItemAsync(int domainId, long batchId, NewItemText item, CancellationToken cancellationToken)
     {
         using var sealing = protectedContent.Begin(ContentColumns.ItemKey, domainId);
+        var insertion = new Insertion(ContentQueries.InsertItemText, ItemParameters(batchId, item, sealing), IsolationLevel.ReadCommitted);
+        return await InsertAsync(domainId, insertion, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>The texts of the item sealed once, and the parameters of its row made anew for each attempt, since a parameter belongs to one command.</summary>
+    private static Func<NpgsqlParameter[]> ItemParameters(long batchId, NewItemText item, ItemSealing sealing)
+    {
         var raw = sealing.Seal(ContentColumns.RawText, item.Raw);
         var sanitized = item.Sanitization is null ? null : sealing.Seal(ContentColumns.SanitizedText, item.Sanitization.Text);
         var trail = item.Sanitization is null ? null : sealing.Seal(ContentColumns.SanitizationTrail, item.Sanitization.Trail);
         var occurrences = item.Occurrences is null ? null : sealing.Seal(ContentColumns.Occurrences, OccurrenceJson.Write(item.Occurrences));
-        var insertion = new Insertion(
-            ContentQueries.InsertItemText,
-            () =>
-            [
-                Batch(batchId), Bytes("raw", raw), Bytes("sanitized", sanitized), Bytes("occurrences", occurrences), Text("pseudonymized", item.Pseudonymized),
-                .. KeyOf(sealing), .. Declared(item.Accommodation), .. Counted(item.Occurrences), .. Sanitized(item.Sanitization, trail),
-            ],
-            IsolationLevel.ReadCommitted);
-        return await InsertAsync(domainId, insertion, cancellationToken).ConfigureAwait(false);
+        var pseudonymized = item.Pseudonymized is null ? null : sealing.Seal(ContentColumns.PseudonymizedText, item.Pseudonymized);
+        return () =>
+        [
+            Batch(batchId), Bytes("raw", raw), Bytes("sanitized", sanitized), Bytes("occurrences", occurrences), Bytes("pseudonymized", pseudonymized),
+            .. KeyOf(sealing), .. Declared(item.Accommodation), .. Counted(item.Occurrences), .. Sanitized(item.Sanitization, trail),
+        ];
     }
 
     private static IEnumerable<NpgsqlParameter> Declared(ItemAccommodation? accommodation)
@@ -110,14 +114,29 @@ public sealed class ContentWriter(NpgsqlDataSource dataSource, ProtectedContent 
     private static NpgsqlParameter Text(string name, string? value) =>
         new(name, NpgsqlDbType.Text) { Value = (object?)value ?? DBNull.Value };
 
+    private Task<long> InsertAsync(int domainId, Insertion insertion, CancellationToken cancellationToken) =>
+        WriteAsync(
+            (domainId, insertion.Isolation),
+            async transaction =>
+            {
+                var id = await ScalarAsync(transaction, domainId, (insertion.Statement, insertion.Parameters()), cancellationToken).ConfigureAwait(false);
+                await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+                return (long)id!;
+            },
+            cancellationToken);
+
     /// <summary>A map is written serializable, like the emptying that reads it: the database stops one of the two, and the map is written again, finding the item emptied.</summary>
-    private async Task<long> InsertAsync(int domainId, Insertion insertion, CancellationToken cancellationToken)
+    private async Task<T> WriteAsync<T>((int DomainId, IsolationLevel Isolation) on, Func<ContentTransaction, Task<T>> work, CancellationToken cancellationToken)
     {
         for (var attempt = 1; attempt <= MapAttempts; attempt++)
         {
             try
             {
-                return await InsertInTransactionAsync(domainId, insertion, cancellationToken).ConfigureAwait(false);
+                var transaction = await ContentTransaction.BeginAsync(dataSource, on.DomainId, on.Isolation, cancellationToken).ConfigureAwait(false);
+                await using (transaction.ConfigureAwait(false))
+                {
+                    return await work(transaction).ConfigureAwait(false);
+                }
             }
             catch (PostgresException refused) when (refused.SqlState == CustodyStatements.ChainBrokenSqlState)
             {
@@ -131,6 +150,10 @@ public sealed class ContentWriter(NpgsqlDataSource dataSource, ProtectedContent 
             {
                 throw new BatchNotOpenException();
             }
+            catch (PostgresException refused) when (refused.SqlState == CustodyStatements.WithoutEventSqlState && refused.TableName == "item_text")
+            {
+                throw new PseudonymizedRefusedException();
+            }
             catch (PostgresException refused) when (refused.SqlState == PostgresErrorCodes.SerializationFailure && attempt < MapAttempts)
             {
                 // The database serialized this write behind another; the attempt that follows sees what the other committed.
@@ -140,20 +163,14 @@ public sealed class ContentWriter(NpgsqlDataSource dataSource, ProtectedContent 
         throw new UnreachableException();
     }
 
-    private async Task<long> InsertInTransactionAsync(int domainId, Insertion insertion, CancellationToken cancellationToken)
+    private static async Task<object?> ScalarAsync(ContentTransaction transaction, int domainId, (string Statement, NpgsqlParameter[] Parameters) query, CancellationToken cancellationToken)
     {
-        var transaction = await ContentTransaction.BeginAsync(dataSource, domainId, insertion.Isolation, cancellationToken).ConfigureAwait(false);
-        await using (transaction.ConfigureAwait(false))
+        var command = transaction.CreateCommand(query.Statement);
+        await using (command.ConfigureAwait(false))
         {
-            var command = transaction.CreateCommand(insertion.Statement);
-            await using (command.ConfigureAwait(false))
-            {
-                _ = command.Parameters.Add(new NpgsqlParameter("domain", NpgsqlDbType.Integer) { Value = domainId });
-                command.Parameters.AddRange(insertion.Parameters());
-                var id = (long)(await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false))!;
-                await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
-                return id;
-            }
+            _ = command.Parameters.Add(new NpgsqlParameter("domain", NpgsqlDbType.Integer) { Value = domainId });
+            command.Parameters.AddRange(query.Parameters);
+            return await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 

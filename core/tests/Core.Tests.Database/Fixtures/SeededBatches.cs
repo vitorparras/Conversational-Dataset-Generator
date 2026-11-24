@@ -60,6 +60,13 @@ internal sealed class SeededWriter
     public Task<long> AddItemTextAsync(int domainId, NewItemText item, CancellationToken cancellationToken) =>
         inner.AddItemTextAsync(domainId, domainId, item, cancellationToken);
 
+    /// <summary>Adds the pseudonymized item to the batch of the domain with its map and its markers, in one transaction, and answers its identifier.</summary>
+    public async Task<long> AddPseudonymizedItemAsync(int domainId, NewItemText item, CancellationToken cancellationToken)
+    {
+        var written = await inner.AddPseudonymizedItemAsync(domainId, domainId, item, cancellationToken);
+        return written.ItemId ?? throw new InvalidOperationException($"The markers drawn for the test are held already: {string.Join(", ", written.Taken)}.");
+    }
+
     /// <summary>Adds the map of the item to the batch of the domain and answers its identifier.</summary>
     public Task<long> AddReversalMapAsync(int domainId, long itemId, string entries, CancellationToken cancellationToken)
     {

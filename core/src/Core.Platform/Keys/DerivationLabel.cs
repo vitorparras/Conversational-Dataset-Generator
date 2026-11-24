@@ -68,6 +68,7 @@ public sealed record DerivationLabel
     {
         LabelPurpose.RawText => "texto-bruto",
         LabelPurpose.ReversalMap => "mapa-reversao",
+        LabelPurpose.DateShift => "deslocamento-datas",
         _ => throw new ArgumentOutOfRangeException(nameof(purpose)),
     };
 }

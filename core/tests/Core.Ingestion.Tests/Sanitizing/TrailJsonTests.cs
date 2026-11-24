@@ -66,6 +66,13 @@ public sealed class TrailJsonTests
     public void TrailThatDoesNotFitItsTextIsADefect(string json) =>
         Assert.Throws<InvalidDataException>(() => TrailJson.Read(json));
 
+    [Theory]
+    [InlineData("null", "The sealed trail is empty.")]
+    [InlineData(/*lang=json,strict*/ """{"raw":4,"steps":[[]],"unit":"utf-16"}""", "The sealed trail counts its limits in another unit.")]
+    [InlineData(/*lang=json,strict*/ """{"raw":4,"steps":[[{"start":1,"end":9,"marker":"Data"}]]}""", "The sealed trail is not a trail whose edits fit the texts.")]
+    public void TrailThatIsADefectIsRefusedWithTheReason(string json, string reason) =>
+        Assert.Equal(reason, Assert.Throws<InvalidDataException>(() => TrailJson.Read(json)).Message);
+
     [Fact]
     public void TrailSealedBeforeTheUnitWasWrittenReadsInCodePoints()
     {

@@ -80,4 +80,8 @@ public sealed class DestinationPolicyTests
 
         Assert.Equal("occurrence", defect.ParamName);
     }
+
+    [Fact]
+    public void ASecretIsRemovedBeforeItsGrammarIsRead() =>
+        Assert.Equal(Destination.Remove, DestinationPolicy.Of(new Occurrence(0, 8, "SECRET", null!, "obj")));
 }

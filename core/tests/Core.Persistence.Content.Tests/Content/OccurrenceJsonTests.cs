@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Core.Persistence.Content;
 
 namespace Core.Persistence.Tests.Content;
@@ -60,6 +61,14 @@ public sealed class OccurrenceJsonTests
 
         Assert.Equal([new ItemOccurrence(2, 7, "email", OccurrenceDestination.Remove)], read);
     }
+
+    [Fact]
+    public void AnOccurrenceSealedWithoutOneOfItsLimitsIsNotRead() =>
+        Assert.Throws<JsonException>(() => OccurrenceJson.Read(/*lang=json,strict*/ """[{"End":7,"Kind":"email","Destination":"Remove"}]"""));
+
+    [Fact]
+    public void AnOccurrenceSealedWithAFieldTwiceIsNotRead() =>
+        Assert.Throws<JsonException>(() => OccurrenceJson.Read(/*lang=json*/ """[{"Start":2,"Start":3,"End":7,"Kind":"email","Destination":"Remove"}]"""));
 
     [Fact]
     public void WhatIsNotAListOfOccurrencesIsRefusedWithTheReason()

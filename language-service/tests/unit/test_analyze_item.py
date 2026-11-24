@@ -6,8 +6,8 @@ from http import HTTPStatus
 from fastapi.testclient import TestClient
 
 from language_service.contract import AnalyzeItemRequest, AuthorGroup, GroupedOccurrence, ItemText
-from language_service.recognizers.joined_item import join_item, place_mentions
 from language_service.recognizers.empty import EmptyRecognizer
+from language_service.recognizers.joined_item import join_item, place_mentions
 from language_service.recognizers.mention import Mention
 from language_service.recognizers.occurrence import Occurrence
 from support.contract_fixtures import fixture_text

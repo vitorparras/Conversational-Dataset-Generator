@@ -53,10 +53,10 @@ public sealed partial class ContentWriter(NpgsqlDataSource dataSource, Protected
     private static Func<NpgsqlParameter[]> ItemParameters(long batchId, NewItemText item, ItemSealing sealing)
     {
         var raw = sealing.Seal(ContentColumns.RawText, item.Raw);
-        var sanitized = item.Sanitization is null ? null : sealing.Seal(ContentColumns.SanitizedText, item.Sanitization.Text);
-        var trail = item.Sanitization is null ? null : sealing.Seal(ContentColumns.SanitizationTrail, item.Sanitization.Trail);
-        var occurrences = item.Occurrences is null ? null : sealing.Seal(ContentColumns.Occurrences, OccurrenceJson.Write(item.Occurrences));
-        var pseudonymized = item.Pseudonymized is null ? null : sealing.Seal(ContentColumns.PseudonymizedText, item.Pseudonymized);
+        var sanitized = sealing.SealIfAny(ContentColumns.SanitizedText, item.Sanitization?.Text);
+        var trail = sealing.SealIfAny(ContentColumns.SanitizationTrail, item.Sanitization?.Trail);
+        var occurrences = sealing.SealIfAny(ContentColumns.Occurrences, item.Occurrences is null ? null : OccurrenceJson.Write(item.Occurrences));
+        var pseudonymized = sealing.SealIfAny(ContentColumns.PseudonymizedText, item.Pseudonymized);
         return () =>
         [
             Batch(batchId), Bytes("raw", raw), Bytes("sanitized", sanitized), Bytes("occurrences", occurrences), Bytes("pseudonymized", pseudonymized),

@@ -30,7 +30,8 @@ public sealed class PseudonymizedBatchTests
         var marker = PseudonymizedTexts.Draw(1)[0];
         var withoutMap = ItemTexts.Of(PseudonymizedTexts.Raw, PseudonymizedTexts.Sanitized, PseudonymizedTexts.PseudonymizedOf([marker]));
 
-        _ = await Assert.ThrowsAsync<PseudonymizedRefusedException>(() => world.RealWriter.AddItemTextAsync(1, 1, withoutMap, Token));
+        var refused = await Assert.ThrowsAsync<PseudonymizedRefusedException>(() => world.RealWriter.AddItemTextAsync(1, 1, withoutMap, Token));
+        Assert.Equal("A pseudonymized text is written with its map, in the same transaction.", refused.Message);
         var refusedCount = (long)(await world.OwnerInDomainAsync(1, Pseudonymized))!;
         var written = await world.RealWriter.AddPseudonymizedItemAsync(1, 1, withoutMap with { Map = PseudonymizedTexts.Holding(marker).Map }, Token);
 

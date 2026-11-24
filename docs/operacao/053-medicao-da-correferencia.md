@@ -2,15 +2,11 @@
 
 > Operacional. 2026-11-24.
 
-A correferência diz quais menções de uma conversa são a mesma pessoa, e o grupo que ela devolve
-vira o referente do marcador ([0057](../decisoes/0057-escopo-do-marcador-e-a-conversa.md)). Aqui
-está como medir um modelo dela, ao lado do [015](015-medicao-do-modelo-de-linguagem.md), que mede
-o modelo de português. Os números vão a `docs/historico/`, como lá.
-
-## Quando medir
-
-Antes de escolher o modelo e a cada troca de modelo, de versão dele ou da biblioteca que o roda, ou
-de corpus. Medição de outra máquina ou versão não se compara sem dizer isso.
+O grupo de correferência vira o referente do marcador
+([0057](../decisoes/0057-escopo-do-marcador-e-a-conversa.md)). Mede-se o modelo antes de escolhê-lo
+e a cada troca dele, da sua versão, da biblioteca ou do corpus; o registro segue o
+[015](015-medicao-do-modelo-de-linguagem.md), mais o modelo, a base que ele carrega, o corpus e o
+limiar, sem nome de máquina nem caminho.
 
 ## O que a ferramenta mede
 
@@ -37,10 +33,5 @@ uv run --no-project --python 3.12 --with stanza==1.15.1 --with peft --with psuti
 ```
 
 Um modelo por vez, e só se a memória livre projetada com ele carregado ficar acima de 12%.
-
-## O que registrar
-
-O que o [015](015-medicao-do-modelo-de-linguagem.md) pede, mais o modelo de correferência e a base
-que ele carrega, o corpus e o limiar. Sem nome de máquina nem caminho.
 
 Ver [regras de escrita](../regras-de-escrita.md).

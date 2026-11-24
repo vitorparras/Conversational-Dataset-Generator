@@ -29,7 +29,7 @@ def test_version_reports_service_contract_and_model(client: TestClient) -> None:
 
     assert response.json() == {
         "service_version": "0.1.0",
-        "contract_version": "1",
+        "contract_version": "2",
         "model_version": None,
     }
 

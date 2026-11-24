@@ -1,9 +1,11 @@
 """A recognizer double that answers whatever the test gives it, so a route is seen passing it on."""
 
+import re
 import time
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from language_service.recognizers.mention import Mention
 from language_service.recognizers.occurrence import Occurrence
 from support.synthetic import MARKER
 
@@ -27,6 +29,9 @@ class FixedRecognizer:
     def recognize(self, text: str, language: str) -> Sequence[Occurrence]:
         return self.found
 
+    def resolve(self, text: str, language: str) -> Sequence[Mention]:
+        return ()
+
 
 @dataclass(frozen=True)
 class RaisingRecognizer:
@@ -36,6 +41,9 @@ class RaisingRecognizer:
 
     def recognize(self, text: str, language: str) -> Sequence[Occurrence]:
         raise ValueError(f"could not analyse {text!r}")
+
+    def resolve(self, text: str, language: str) -> Sequence[Mention]:
+        return ()
 
 
 @dataclass(frozen=True)
@@ -49,6 +57,9 @@ class RaisingVersionRecognizer:
     def recognize(self, text: str, language: str) -> Sequence[Occurrence]:
         return ()
 
+    def resolve(self, text: str, language: str) -> Sequence[Mention]:
+        return ()
+
 
 @dataclass(frozen=True)
 class SlowRecognizer:
@@ -60,3 +71,25 @@ class SlowRecognizer:
     def recognize(self, text: str, language: str) -> Sequence[Occurrence]:
         time.sleep(self.delay_seconds)
         return ()
+
+    def resolve(self, text: str, language: str) -> Sequence[Mention]:
+        return ()
+
+
+@dataclass(frozen=True)
+class ResolvingRecognizer:
+    """Finds every place of each word it was given in the joined text of an item, with its group."""
+
+    groups: tuple[tuple[str, int], ...]
+    model_version: str | None = None
+
+    def recognize(self, text: str, language: str) -> Sequence[Occurrence]:
+        return ()
+
+    def resolve(self, text: str, language: str) -> Sequence[Mention]:
+        found = (
+            Mention(Occurrence(match.start(), match.end(), "PERSON", "PROPN", "nsubj"), group)
+            for word, group in self.groups
+            for match in re.finditer(re.escape(word), text)
+        )
+        return sorted(found, key=lambda mention: mention.occurrence.start)

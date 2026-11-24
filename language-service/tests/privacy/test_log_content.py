@@ -7,7 +7,7 @@ from collections.abc import Iterator
 
 import pytest
 
-from language_service.contract import AnalyzeRequest
+from language_service.contract import AnalyzeItemRequest, AnalyzeRequest, ItemText
 from language_service.logging_ import RequestLog, install_root_handler
 from language_service.recognizers.base import Recognizer
 from language_service.recognizers.occurrence import Occurrence
@@ -16,12 +16,13 @@ from support.recognizers import (
     FixedRecognizer,
     RaisingRecognizer,
     RaisingVersionRecognizer,
+    ResolvingRecognizer,
     SlowRecognizer,
 )
 from support.synthetic import MARKER
 
 TEXT = f"before {MARKER} after"
-BODY = {"text": TEXT, "language": "pt", "reference": "ref-9", "contract_version": "1"}
+BODY = {"text": TEXT, "language": "pt", "reference": "ref-9", "contract_version": "2"}
 OFFSETS = (41917, 41933)
 FOUND = (Occurrence(OFFSETS[0], OFFSETS[1], "PERSON", "PROPN", "obj"),)
 SLOW_SECONDS = 0.1
@@ -122,3 +123,27 @@ def test_failure_while_building_the_response_names_the_respond_step(
     line = json.loads(captured.err.splitlines()[0])
 
     assert (line["step"], MARKER in captured.out + captured.err) == ("respond", False)
+
+
+def test_item_success_line_holds_no_text_and_no_author_name(
+    to_stderr: pytest.CaptureFixture[str],
+) -> None:
+    install_root_handler(sys.stderr)
+    routes = Routes(
+        ResolvingRecognizer(((MARKER, 0),), "m2"),
+        RequestLog(logging.getLogger("language_service")),
+    )
+    texts = [ItemText(text=TEXT, author=f"{MARKER}-AUTHOR"), ItemText(text="ok", author=None)]
+
+    routes.analyze_item(
+        AnalyzeItemRequest(texts=texts, language="pt", reference="ref-9", contract_version="2")
+    )
+
+    captured = to_stderr.readouterr()
+    line = json.loads(captured.err.splitlines()[-1])
+    assert MARKER not in captured.out + captured.err
+    assert (line["event"], line["reference"], line["count_by_kind"]) == (
+        "analyzed",
+        "ref-9",
+        {"PERSON": 1},
+    )

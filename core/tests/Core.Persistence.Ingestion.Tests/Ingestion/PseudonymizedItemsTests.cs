@@ -20,16 +20,21 @@ public sealed class PseudonymizedItemsTests
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     [DatabaseFact]
-    public async Task ItemsAreNotWrittenWithoutAWriterOrTheBatches()
+    public async Task MissingArgumentsAreRefusedByTheirNames()
     {
         await using var world = await IngestionWorld.CreateAsync();
         using var custody = SyntheticCustody.Holding(Labels);
         var writer = new ContentWriter(world.DataSource, custody.Content);
+        var items = ItemsOf(world, custody);
 
         var withoutWriter = Assert.Throws<ArgumentNullException>(() => new PseudonymizedItems(null!, IngestionWorld.BatchesOf(world)));
         var withoutBatches = Assert.Throws<ArgumentNullException>(() => new PseudonymizedItems(writer, null!));
+        var withoutBatch = await Assert.ThrowsAsync<ArgumentNullException>(() => items.AddAsync(null!, _ => Holding(ItemTexts.Marker()), Token));
+        var withoutSwap = await Assert.ThrowsAsync<ArgumentNullException>(() => items.AddAsync(ClosingOf(1), null!, Token));
 
-        Assert.Equal(("writer", "batches"), (withoutWriter.ParamName, withoutBatches.ParamName));
+        Assert.Equal(
+            ("writer", "batches", "batch", "pseudonymize"),
+            (withoutWriter.ParamName, withoutBatches.ParamName, withoutBatch.ParamName, withoutSwap.ParamName));
     }
 
     [DatabaseFact]

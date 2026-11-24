@@ -34,6 +34,9 @@ public sealed class ItemSealing : IDisposable
         return new SealedContent(column, Label.DomainId, EnvelopeCipher.SealWith(Created.Key.AsSpan(), Label.Text, Encoding.UTF8.GetBytes(text)));
     }
 
+    /// <summary>The text sealed for the column, or nothing for a text the row does not have.</summary>
+    internal SealedContent? SealIfAny(ProtectedColumn column, string? text) => text is null ? null : Seal(column, text);
+
     /// <summary>Releases the key.</summary>
     public void Dispose() => Created.Dispose();
 }

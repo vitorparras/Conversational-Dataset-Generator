@@ -13,7 +13,6 @@ public static class ContentColumns
     private const string BatchColumn = "batch_id";
     private const string WrittenInColumn = "written_in";
     private const string ItemColumn = "item_id";
-    private const string WrappedKeyColumn = "dek_wrapped";
     private const string EpochColumn = "dek_epoch";
     private const string RerunTable = "sanitization_rerun";
     private const string RerunItemTable = "sanitization_rerun_item";
@@ -58,16 +57,16 @@ public static class ContentColumns
     public static ProtectedColumn Entries { get; } = new(ReversalMap, "entries", LabelPurpose.ReversalMap);
 
     /// <summary>The key of an item, random and wrapped under the key of the domain and the epoch; it seals the raw and the sanitized text, and is destroyed with them.</summary>
-    public static ProtectedColumn ItemKey { get; } = new(ItemText, WrappedKeyColumn, LabelPurpose.RawText);
+    public static ProtectedColumn ItemKey { get; } = new(ItemText, "dek_wrapped", LabelPurpose.RawText);
 
     /// <summary>The key of a map, as the key of an item is, for the entries.</summary>
-    public static ProtectedColumn MapKey { get; } = new(ReversalMap, WrappedKeyColumn, LabelPurpose.ReversalMap);
+    public static ProtectedColumn MapKey { get; } = new(ReversalMap, "dek_wrapped", LabelPurpose.ReversalMap);
 
     /// <summary>Where the material of a batch came from, as its submission declared it, sealed as the raw text is (decision 0025).</summary>
     public static ProtectedColumn Origin { get; } = new(BatchOrigin, "origin", LabelPurpose.RawText);
 
     /// <summary>The key of an origin, as the key of an item is, for the origin.</summary>
-    public static ProtectedColumn OriginKey { get; } = new(BatchOrigin, WrappedKeyColumn, LabelPurpose.RawText);
+    public static ProtectedColumn OriginKey { get; } = new(BatchOrigin, "dek_wrapped", LabelPurpose.RawText);
 
     /// <summary>The table of the shift of the dates of each domain, one row for each, drawn once (decision 0020).</summary>
     public static string DateShiftTable { get; } = "date_shift";
@@ -75,8 +74,8 @@ public static class ContentColumns
     /// <summary>The shift of the dates of a domain, in days, which nobody is told: sealed with a purpose of its own.</summary>
     public static ProtectedColumn DateShift { get; } = new(DateShiftTable, "shift", LabelPurpose.DateShift);
 
-    /// <summary>The key of the shift, as the key of an item is, for the shift.</summary>
-    public static ProtectedColumn DateShiftKey { get; } = new(DateShiftTable, WrappedKeyColumn, LabelPurpose.DateShift);
+    /// <summary>The key of the shift, in the column every wrapped key has, as the key of an item is, for the shift.</summary>
+    public static ProtectedColumn DateShiftKey { get; } = new(DateShiftTable, ItemKey.Name, LabelPurpose.DateShift);
 
     /// <summary>The columns stored sealed.</summary>
     public static IReadOnlyList<ProtectedColumn> Protected { get; } =

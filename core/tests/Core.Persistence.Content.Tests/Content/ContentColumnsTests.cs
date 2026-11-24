@@ -181,6 +181,7 @@ public sealed class ContentColumnsTests
                 "protected:texto-bruto", "protected:texto-bruto", "protected:texto-bruto", "protected:texto-bruto", "protected:texto-bruto", "protected:mapa-reversao",
                 "protected:mapa-reversao",
                 "protected:texto-bruto", "protected:texto-bruto",
+                "protected:deslocamento-datas", "protected:deslocamento-datas",
             ],
             ContentColumns.Protected.Select(column => column.Mark));
 }

@@ -44,7 +44,7 @@ public sealed class ServiceProofTests : IDisposable
     [InlineData("Missing")]
     public async Task ServiceThatDoesNotProveHasNoVersionsAndGetsNoSecret(string mode)
     {
-        using var service = FakeService.Answering(Reply.Version("1"), Reply.Ok("{}"));
+        using var service = FakeService.Answering(Reply.Version("2"), Reply.Ok("{}"));
         service.Proof = Enum.Parse<ProofMode>(mode);
         using var client = LoopbackHttpClient.Create();
         var reader = new HttpServiceVersionReader(client, new HttpRecognizerSettings(service.Port, Reply.Secret, Generous));
@@ -116,7 +116,7 @@ public sealed class ServiceProofTests : IDisposable
     [Fact]
     public async Task RequestWithNoSecretFindsNoConnectionAndSendsNothing()
     {
-        using var service = FakeService.Answering(Reply.Version("1"), Reply.Ok("{}"));
+        using var service = FakeService.Answering(Reply.Version("2"), Reply.Ok("{}"));
         using var client = LoopbackHttpClient.Create();
 
         var refused = await Assert.ThrowsAsync<HttpRequestException>(

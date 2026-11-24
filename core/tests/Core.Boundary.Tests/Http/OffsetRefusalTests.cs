@@ -46,7 +46,7 @@ public sealed class OffsetRefusalTests : IDisposable
 
     public void Dispose() => recognition.Dispose();
 
-    private static ResponseValidation Validate(byte[] body) =>
+    private static ResponseValidation<AnalysisResponse> Validate(byte[] body) =>
         ResponseValidator.Validate(Answer.RequestFor(Answer.Text), ContractVersion.Current, body);
 
     private static string Body(int start, int end) =>

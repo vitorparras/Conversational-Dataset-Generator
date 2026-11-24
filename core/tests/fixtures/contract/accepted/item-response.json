@@ -1,0 +1,42 @@
+{
+  "occurrences": [
+    {
+      "text_index": 0,
+      "start": 2,
+      "end": 10,
+      "kind": "PERSON",
+      "part_of_speech": "PROPN",
+      "syntactic_role": "nsubj",
+      "group": 0
+    },
+    {
+      "text_index": 1,
+      "start": 0,
+      "end": 3,
+      "kind": "PERSON",
+      "part_of_speech": "PRON",
+      "syntactic_role": "nsubj",
+      "group": 0
+    },
+    {
+      "text_index": 1,
+      "start": 20,
+      "end": 28,
+      "kind": "PERSON",
+      "part_of_speech": "PROPN",
+      "syntactic_role": "obl",
+      "group": 1
+    }
+  ],
+  "author_groups": [
+    {
+      "author": "ZQX-AUTOR-A",
+      "group": 2
+    },
+    {
+      "author": "ZQX-AUTOR-B",
+      "group": 1
+    }
+  ],
+  "model_version": "zqx-model-2"
+}

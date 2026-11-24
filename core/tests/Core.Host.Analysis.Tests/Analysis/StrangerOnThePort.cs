@@ -11,7 +11,7 @@ namespace Core.Host.Tests.Analysis;
 /// </summary>
 internal sealed class StrangerOnThePort : IDisposable
 {
-    private const string VersionBody = /*lang=json,strict*/ """{"service_version":"0.1.0","contract_version":"1","model_version":null}""";
+    private const string VersionBody = /*lang=json,strict*/ """{"service_version":"0.1.0","contract_version":"2","model_version":null}""";
 
     private readonly TcpListener listener;
     private readonly CancellationTokenSource stop = new();

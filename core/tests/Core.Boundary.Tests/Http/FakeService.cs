@@ -48,13 +48,13 @@ internal sealed class FakeService : IDisposable
     /// <summary>The secret header each proof request carried, null when it carried none, which is what it must do.</summary>
     public IReadOnlyList<string?> ProofSecrets => [.. proofSecrets];
 
-    public static FakeService Answering(Reply analysis) => new([Reply.Version("1")], analysis);
+    public static FakeService Answering(Reply analysis) => new([Reply.Version("2")], analysis);
 
     public static FakeService Answering(Reply version, Reply analysis) => new([version], analysis);
 
     public static FakeService WithVersions(IReadOnlyList<Reply> versions, Reply analysis) => new(versions, analysis);
 
-    public static FakeService NeverAnalyzing() => new([Reply.Version("1")], analysis: null);
+    public static FakeService NeverAnalyzing() => new([Reply.Version("2")], analysis: null);
 
     public void Dispose()
     {

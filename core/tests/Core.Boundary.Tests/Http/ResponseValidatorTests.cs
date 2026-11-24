@@ -6,7 +6,7 @@ namespace Core.Boundary.Tests.Http;
 /// <summary>An answer is used whole only when the service speaks the core's contract and every offset falls inside the text sent.</summary>
 public sealed class ResponseValidatorTests
 {
-    private static ResponseValidation Validate(byte[] body) =>
+    private static ResponseValidation<AnalysisResponse> Validate(byte[] body) =>
         ResponseValidator.Validate(Answer.RequestFor(Answer.Text), ContractVersion.Current, body);
 
     [Fact]
@@ -56,7 +56,7 @@ public sealed class ResponseValidatorTests
     }
 
     [Theory]
-    [InlineData("2")]
+    [InlineData("1")]
     [InlineData("")]
     [InlineData(" 1")]
     [InlineData("1.0")]
@@ -107,7 +107,7 @@ public sealed class ResponseValidatorTests
     [Fact]
     public void ContractVersionIsCheckedBeforeTheBody()
     {
-        var validation = ResponseValidator.Validate(Answer.RequestFor(Answer.Text), "2", Answer.Body("{"));
+        var validation = ResponseValidator.Validate(Answer.RequestFor(Answer.Text), "1", Answer.Body("{"));
 
         Assert.Equal(ValidationProblem.UnknownContractVersion, validation.Problem);
     }

@@ -12,7 +12,7 @@ namespace Core.Host.Tests.Analysis;
 /// </summary>
 internal sealed class DyingService : IDisposable
 {
-    private const string VersionBody = /*lang=json,strict*/ """{"service_version":"0.1.0","contract_version":"1","model_version":null}""";
+    private const string VersionBody = /*lang=json,strict*/ """{"service_version":"0.1.0","contract_version":"2","model_version":null}""";
     private const string VersionHead = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nConnection: close\r\n";
 
     private static readonly string VersionAnswer =

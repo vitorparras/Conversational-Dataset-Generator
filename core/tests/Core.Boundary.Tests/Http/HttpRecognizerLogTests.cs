@@ -53,7 +53,7 @@ public sealed class HttpRecognizerLogTests : IDisposable
     [Fact]
     public async Task UnknownContractVersionIsWrittenAsTheReason()
     {
-        using var service = FakeService.Answering(Reply.Version("2"), Reply.Fixture("accepted/response-empty.json"));
+        using var service = FakeService.Answering(Reply.Version("1"), Reply.Fixture("accepted/response-empty.json"));
 
         _ = await recognition.AskAsync(service.Port);
 

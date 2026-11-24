@@ -6,7 +6,7 @@ namespace Core.Boundary.Tests.Http;
 /// <summary>An answer outside the shape of the contract is refused whole, and the refusal names what was wrong with it.</summary>
 public sealed class ResponseShapeTests
 {
-    private static ResponseValidation Validate(byte[] body) =>
+    private static ResponseValidation<AnalysisResponse> Validate(byte[] body) =>
         ResponseValidator.Validate(Answer.RequestFor(Answer.Text), ContractVersion.Current, body);
 
     [Fact]
@@ -55,7 +55,7 @@ public sealed class ResponseShapeTests
 
     [Theory]
     [InlineData(/*lang=json,strict*/ """{"occurrences":[],"model_version":null,"confidence":0.9}""")]
-    [InlineData(/*lang=json,strict*/ """{"occurrences":[],"model_version":null,"contract_version":"1"}""")]
+    [InlineData(/*lang=json,strict*/ """{"occurrences":[],"model_version":null,"contract_version":"2"}""")]
     [InlineData(/*lang=json,strict*/ """{"Occurrences":[],"model_version":null}""")]
     public void FieldTheContractDoesNotDeclareIsRefused(string body)
     {

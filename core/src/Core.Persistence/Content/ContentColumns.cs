@@ -9,6 +9,7 @@ namespace Core.Persistence.Content;
 /// </summary>
 public static class ContentColumns
 {
+    private const string IdColumn = "id";
     private const string DomainColumn = "domain_id";
     private const string BatchColumn = "batch_id";
     private const string WrittenInColumn = "written_in";
@@ -84,7 +85,7 @@ public static class ContentColumns
     /// <summary>The columns stored in clear: identifiers, the domain, dates and the pseudonymized text.</summary>
     public static IReadOnlyList<ClearColumn> Clear { get; } =
     [
-        new(ItemText, "id", ClearKind.Identifier),
+        new(ItemText, IdColumn, ClearKind.Identifier),
         new(ItemText, DomainColumn, ClearKind.Domain),
         new(ItemText, "recorded_at", ClearKind.Moment),
         new(ItemText, "emptied_at", ClearKind.Moment),
@@ -100,11 +101,11 @@ public static class ContentColumns
         new(ItemText, "sanitization_version", ClearKind.Motive),
         new(ItemText, "sanitization_counts", ClearKind.Counts),
         new(ItemText, "sanitization_untreated", ClearKind.Counts),
-        new(SanitizationVersion, "id", ClearKind.Identifier),
+        new(SanitizationVersion, IdColumn, ClearKind.Identifier),
         new(SanitizationVersion, DomainColumn, ClearKind.Domain),
         new(SanitizationVersion, "version", ClearKind.Motive),
         new(SanitizationVersion, "steps", ClearKind.Steps),
-        new(ReversalMap, "id", ClearKind.Identifier),
+        new(ReversalMap, IdColumn, ClearKind.Identifier),
         new(ReversalMap, DomainColumn, ClearKind.Domain),
         new(ReversalMap, ItemColumn, ClearKind.Identifier),
         new(ReversalMap, "recorded_at", ClearKind.Moment),
@@ -112,10 +113,10 @@ public static class ContentColumns
         new(ReversalMap, EpochColumn, ClearKind.Epoch),
         new(ReversalMap, BatchColumn, ClearKind.Identifier),
         new(ReversalMap, WrittenInColumn, ClearKind.Transaction),
-        new(ItemEmptied, "id", ClearKind.Identifier),
+        new(ItemEmptied, IdColumn, ClearKind.Identifier),
         new(ItemEmptied, DomainColumn, ClearKind.Domain),
         new(ItemEmptied, ItemColumn, ClearKind.Identifier),
-        new(IngestionBatch, "id", ClearKind.Identifier),
+        new(IngestionBatch, IdColumn, ClearKind.Identifier),
         new(IngestionBatch, DomainColumn, ClearKind.Domain),
         new(IngestionBatch, "state", ClearKind.Status),
         new(IngestionBatch, "motive", ClearKind.Motive),
@@ -128,12 +129,12 @@ public static class ContentColumns
         new(IngestionBatch, "received_digest", ClearKind.Motive),
         new(IngestionBatch, "warning", ClearKind.Motive),
         new(IngestionBatch, "origin_state", ClearKind.Motive),
-        new(BatchOrigin, "id", ClearKind.Identifier),
+        new(BatchOrigin, IdColumn, ClearKind.Identifier),
         new(BatchOrigin, DomainColumn, ClearKind.Domain),
         new(BatchOrigin, BatchColumn, ClearKind.Identifier),
         new(BatchOrigin, "recorded_at", ClearKind.Moment),
         new(BatchOrigin, EpochColumn, ClearKind.Epoch),
-        new(DateShiftTable, "id", ClearKind.Identifier),
+        new(DateShiftTable, IdColumn, ClearKind.Identifier),
         new(DateShiftTable, DomainColumn, ClearKind.Domain),
         new(DateShiftTable, "drawn_at", ClearKind.Moment),
         new(DateShiftTable, EpochColumn, ClearKind.Epoch),
@@ -146,7 +147,7 @@ public static class ContentColumns
         new(IngestionBatch, "source_form", ClearKind.Motive),
         new(IngestionBatch, "reviewed_position", ClearKind.Epoch),
         new(IngestionBatch, "finding_position", ClearKind.Epoch),
-        new(ReplicationOccurrence, "id", ClearKind.Identifier),
+        new(ReplicationOccurrence, IdColumn, ClearKind.Identifier),
         new(ReplicationOccurrence, DomainColumn, ClearKind.Domain),
         new(ReplicationOccurrence, BatchColumn, ClearKind.Identifier),
         new(ReplicationOccurrence, ItemColumn, ClearKind.Identifier),
@@ -156,7 +157,7 @@ public static class ContentColumns
         new(ReplicationOccurrence, "text_length", ClearKind.Epoch),
         new(ReplicationOccurrence, "said_at", ClearKind.Moment),
         new(ReplicationOccurrence, WrittenInColumn, ClearKind.Transaction),
-        new(ReplicationMark, "id", ClearKind.Identifier),
+        new(ReplicationMark, IdColumn, ClearKind.Identifier),
         new(ReplicationMark, DomainColumn, ClearKind.Domain),
         new(ReplicationMark, BatchColumn, ClearKind.Identifier),
         new(ReplicationMark, ItemColumn, ClearKind.Identifier),
@@ -164,12 +165,12 @@ public static class ContentColumns
         new(ReplicationMark, "first_item_id", ClearKind.Identifier),
         new(ReplicationMark, "first_message_position", ClearKind.Epoch),
         new(ReplicationMark, WrittenInColumn, ClearKind.Transaction),
-        new(RerunTable, "id", ClearKind.Identifier),
+        new(RerunTable, IdColumn, ClearKind.Identifier),
         new(RerunTable, DomainColumn, ClearKind.Domain),
         new(RerunTable, "target_version", ClearKind.Motive),
         new(RerunTable, "requested_by", ClearKind.Identifier),
         new(RerunTable, "requested_at", ClearKind.Moment),
-        new(RerunItemTable, "id", ClearKind.Identifier),
+        new(RerunItemTable, IdColumn, ClearKind.Identifier),
         new(RerunItemTable, DomainColumn, ClearKind.Domain),
         new(RerunItemTable, "rerun_id", ClearKind.Identifier),
         new(RerunItemTable, ItemColumn, ClearKind.Identifier),

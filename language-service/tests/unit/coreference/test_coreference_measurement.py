@@ -231,3 +231,17 @@ def test_model_at_the_threshold_passes_the_measurement(
     assert exit_code == 0
     assert json.loads(captured.out)["scores"]["precision"] == {"hits": 1, "total": 1}
     assert "reprovado" not in captured.err
+
+
+def test_the_report_names_the_model_file_without_its_folder(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], tmp_path: Path
+) -> None:
+    corpus = _one_mixed_message(tmp_path, "o [NOME_C|p3] and o [NOME_C|p3]")
+    monkeypatch.setattr(measure_coreference, "RESOLVERS", {"linked": _linking_model})
+    monkeypatch.setattr(measure_coreference, "PROBE", _steady_probe())
+
+    measure_coreference.main(["linked", "/home/PESSOA_1/modelos/coref.pt", "--corpus", str(corpus)])
+
+    captured = capsys.readouterr()
+    assert json.loads(captured.out)["model"] == "coref.pt"
+    assert "PESSOA_1" not in captured.out + captured.err

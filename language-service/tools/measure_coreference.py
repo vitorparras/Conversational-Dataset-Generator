@@ -64,7 +64,8 @@ def main(argv: list[str]) -> int:
     resolver = RESOLVERS[options.resolver](options.model)
     load_seconds = PROBE.clock() - started
     report = measure(load(options.corpus), resolver, options.sizes, PROBE)
-    document = {"model": options.model, "machine": _machine(), "load_seconds": load_seconds}
+    model = Path(options.model).name  # the folder may carry the operator's name
+    document = {"model": model, "machine": _machine(), "load_seconds": load_seconds}
     print(json.dumps({**document, **asdict(report)}, indent=2))
     print(_table(report, load_seconds), file=sys.stderr)
     refusals = shortfalls(report.scores, options.min_precision)

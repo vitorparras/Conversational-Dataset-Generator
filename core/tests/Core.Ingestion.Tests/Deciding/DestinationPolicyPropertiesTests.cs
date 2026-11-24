@@ -34,15 +34,14 @@ public sealed class DestinationPolicyPropertiesTests
 
     [Fact]
     [Trait("Kind", "Property")]
-    public void TheSameProperNameAsAPersonAndAsAPlaceNeverGetsTheSameDestinationWhateverTheFunction() =>
-        PropertyRunner.FromProcess().Check(Gen.Select(AnyRole, Gen.Int[0, 50], Gen.Int[1, 20]), generated =>
+    public void NoOccurrenceIsPreservedWhateverTheKindThePartOfSpeechAndTheRole() =>
+        PropertyRunner.FromProcess().Check(Gen.Select(Gen.OneOf(Name, Secret, AnyText), Gen.OneOf(Gen.Const("PROPN"), AnyText), AnyRole), generated =>
         {
-            var (role, start, length) = generated;
+            var (kind, partOfSpeech, role) = generated;
 
-            var person = DestinationPolicy.Of(Found.Occurrence(OccurrenceKinds.Person, "PROPN", role, start, start + length));
-            var place = DestinationPolicy.Of(Found.Occurrence(OccurrenceKinds.Location, "PROPN", role, start, start + length));
+            var destination = DestinationPolicy.Of(Found.Occurrence(kind, partOfSpeech, role));
 
-            Assert.NotEqual(person, place);
+            Assert.NotEqual(Destination.Preserve, destination);
         });
 
     [Fact]

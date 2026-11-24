@@ -62,7 +62,7 @@ public sealed class DateShiftStorageTests
 
             await drawing.CommitAsync(Token);
 
-            var kept = await second;
+            var kept = await second.WaitAsync(TimeSpan.FromSeconds(30), Token);
             Assert.Equal((DateShiftOutcome.Kept, -1234, 1L), (kept.Outcome, kept.Shift?.Days, (long)(await world.OwnerInDomainAsync(1, Rows))!));
         }
     }

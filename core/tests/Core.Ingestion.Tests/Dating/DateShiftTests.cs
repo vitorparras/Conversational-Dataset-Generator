@@ -90,14 +90,6 @@ public sealed class DateShiftTests
     }
 
     [Theory]
-    [InlineData(-3650, -3650)]
-    [InlineData(-1, -1)]
-    [InlineData(0, 1)]
-    [InlineData(3649, 3650)]
-    public void EveryDrawnNumberBecomesAShiftOfWholeDaysAndZeroNeverComes(int drawn, int days) =>
-        Assert.Equal(days, DateShift.FromDrawn(drawn).Days);
-
-    [Theory]
     [InlineData("3650", 3650)]
     [InlineData("-3650", -3650)]
     [InlineData("1", 1)]

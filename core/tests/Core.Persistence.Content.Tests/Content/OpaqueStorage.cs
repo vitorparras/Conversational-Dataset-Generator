@@ -66,6 +66,9 @@ internal static class OpaqueStorage
     /// </summary>
     private static readonly string[] Drawn = [DateShift];
 
+    /// <summary>Every column the seeding fills with something that can be searched for, a text or a key: what a test may write in clear, one at a time.</summary>
+    public static IReadOnlyList<string> Searchable => [.. Seedable, .. KeyColumns];
+
     /// <summary>The columns the catalog marks as protected, as schema.table.column; the marks are the ones the migrations write.</summary>
     public static Task<IReadOnlyList<string>> MarkedColumnsAsync(ContentWorld world)
     {

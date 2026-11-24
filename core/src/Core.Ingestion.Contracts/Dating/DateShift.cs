@@ -25,12 +25,17 @@ public sealed class DateShift
     /// <summary>The text a store seals, which <see cref="Read"/> takes back.</summary>
     public string Stored => Days.ToString(CultureInfo.InvariantCulture);
 
-    /// <summary>A shift drawn by the cryptographic generator, every allowed number of days, either way, equally likely.</summary>
-    public static DateShift Draw() => FromDrawn(RandomNumberGenerator.GetInt32(-MostDays, MostDays));
+    /// <summary>A shift drawn by the cryptographic generator, every allowed number of days, either way, equally likely: a zero is drawn again.</summary>
+    public static DateShift Draw()
+    {
+        var drawn = RandomNumberGenerator.GetInt32(-MostDays, MostDays + 1);
+        while (drawn == 0)
+        {
+            drawn = RandomNumberGenerator.GetInt32(-MostDays, MostDays + 1);
+        }
 
-    /// <summary>The shift of a number drawn from minus <see cref="MostDays"/> to <see cref="MostDays"/> less one: zero and every number above it move up by one, so zero never comes.</summary>
-    /// <param name="drawn">The number the generator gave.</param>
-    internal static DateShift FromDrawn(int drawn) => new(drawn >= 0 ? drawn + 1 : drawn);
+        return new DateShift(drawn);
+    }
 
     /// <summary>The shift a stored text says, or none when the text is not a number of days a shift may have.</summary>
     /// <param name="stored">The text as <see cref="Stored"/> wrote it.</param>

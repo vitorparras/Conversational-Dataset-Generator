@@ -17,7 +17,8 @@ forma do pedido, uma linha `Nome: texto` por mensagem. Em pares de menções das
 dá a precisão, a cobertura e a fusão (pessoas que dividem grupo com outra); as mesmas contas só nos
 pares que tocam mensagem mista; e a ligação ao nome do autor, com precisão e cobertura à parte.
 Depois, conversas de `--sizes` mensagens (padrão 10, 40, 160 e 640) dão tempo, RSS e pico de
-memória. O JSON vai à saída padrão; a tabela e o veredito, à de erro.
+memória; o pico é do processo, e o de cada tamanho inclui a carga e os anteriores. O JSON vai à
+saída padrão, só com o nome do arquivo do modelo; a tabela e o veredito, à de erro.
 
 A precisão geral e a do recorte misto abaixo de `--min-precision` (padrão 0,95), ou sem nenhum par
 ligado, reprovam: cada motivo numa linha e saída 1. Modelo reprovado não entra.
@@ -32,6 +33,7 @@ uv run --no-project --python 3.12 --with stanza==1.15.1 --with peft --with psuti
     python language-service/tools/measure_coreference.py stanza <arquivo do modelo .pt>
 ```
 
-Um modelo por vez, e só se a memória livre projetada com ele carregado ficar acima de 12%.
+Um modelo por vez, e só se a memória livre projetada com ele carregado ficar acima de 12%. O `.pt`
+é carregado por pickle, que executa código: só se mede modelo de origem conhecida.
 
 Ver [regras de escrita](../regras-de-escrita.md).

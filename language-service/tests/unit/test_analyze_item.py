@@ -6,7 +6,7 @@ from http import HTTPStatus
 from fastapi.testclient import TestClient
 
 from language_service.contract import AnalyzeItemRequest, AuthorGroup, GroupedOccurrence, ItemText
-from language_service.item.joined_item import join_item, place_mentions
+from language_service.recognizers.joined_item import join_item, place_mentions
 from language_service.recognizers.empty import EmptyRecognizer
 from language_service.recognizers.mention import Mention
 from language_service.recognizers.occurrence import Occurrence
@@ -67,6 +67,17 @@ def test_author_names_come_back_with_their_group_and_never_as_occurrences() -> N
 
     assert occurrences == (found(1, 10, 21, 4),)
     assert groups == (AuthorGroup(author=AUTHOR_A, group=4), AuthorGroup(author=AUTHOR_B, group=5))
+
+
+def test_each_occurrence_keeps_the_kind_and_analysis_the_recognizer_gave() -> None:
+    item = join_item((ItemText(text="PESSOA_1 vem", author=None),))
+    mention = Mention(Occurrence(0, 8, "LOC", "NOUN", "obl"), 0)
+
+    response = place_mentions(item, (mention,), None)
+
+    assert [(o.kind, o.part_of_speech, o.syntactic_role) for o in response.occurrences] == [
+        ("LOC", "NOUN", "obl")
+    ]
 
 
 def test_first_mention_over_a_name_gives_the_author_its_group() -> None:

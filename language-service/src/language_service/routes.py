@@ -16,7 +16,7 @@ from language_service.contract import (
     HealthResponse,
     VersionResponse,
 )
-from language_service.item.joined_item import join_item, place_mentions
+from language_service.recognizers.joined_item import join_item, place_mentions
 from language_service.logging_ import RequestLog, Step
 from language_service.recognizers.base import Recognizer
 

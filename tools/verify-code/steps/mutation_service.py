@@ -18,7 +18,7 @@ from steps.common import Context, reset_directory, tail
 from steps.mutant import Mutant, MutantStatus
 from steps.mutation_judge import LanguageRun, ModuleResult, each
 from steps.mutation_policy import MutationPolicy
-from steps.mutation_scope import mutated_notes, read
+from steps.mutation_scope import mutated_notes, read as read_scope
 from steps.mutmut_report import Entry, entries, status_of, survivor
 
 SIDE = "serviço (Python)"
@@ -222,7 +222,7 @@ def run_service(
     """Every service module with code in turn, each cut at the ceiling it has to itself."""
     found = tuple(s for area in areas if (s := target(ctx.root, area, everything)) is not None)
     absent = tuple(area for area in areas if area not in {s.area for s in found})
-    scope = read(ctx)
+    scope = read_scope(ctx)
     kept = {s.area.prefix: scope.keeps(files(ctx.root, s.area, everything)) for s in found}
     notes = mutated_notes(scope, kept)
     diffs = ((s, tuple(p.removeprefix(f"{SERVICE}/") for p in kept[s.area.prefix])) for s in found)

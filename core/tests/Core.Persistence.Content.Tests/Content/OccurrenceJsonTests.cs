@@ -36,6 +36,32 @@ public sealed class OccurrenceJsonTests
     }
 
     [Fact]
+    public void EveryOccurrenceIsWrittenWithItsLimitsInCodePoints()
+    {
+        var json = OccurrenceJson.Write([new(0, 5, "email", OccurrenceDestination.Remove)]);
+
+        Assert.Equal(/*lang=json,strict*/ """[{"Start":0,"End":5,"Kind":"email","Destination":"Remove","Unit":"code-point"}]""", json);
+    }
+
+    [Fact]
+    public void OccurrencesCountedInAnotherUnitAreRefusedWithTheReason()
+    {
+        var json = OccurrenceJson.Write([new(0, 5, "email", OccurrenceDestination.Remove)]).Replace("\"code-point\"", "\"utf-16\"", StringComparison.Ordinal);
+
+        var refused = Assert.Throws<InvalidDataException>(() => OccurrenceJson.Read(json));
+
+        Assert.Equal("The sealed occurrences count their limits in another unit.", refused.Message);
+    }
+
+    [Fact]
+    public void OccurrencesSealedBeforeTheUnitWasWrittenReadInCodePoints()
+    {
+        var read = OccurrenceJson.Read(/*lang=json,strict*/ """[{"Start":2,"End":7,"Kind":"email","Destination":"Remove"}]""");
+
+        Assert.Equal([new ItemOccurrence(2, 7, "email", OccurrenceDestination.Remove)], read);
+    }
+
+    [Fact]
     public void WhatIsNotAListOfOccurrencesIsRefusedWithTheReason()
     {
         var refused = Assert.Throws<InvalidDataException>(() => OccurrenceJson.Read("null"));

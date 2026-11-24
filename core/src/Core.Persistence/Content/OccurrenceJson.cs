@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Core.Platform.Text;
 
 namespace Core.Persistence.Content;
 
@@ -27,12 +28,20 @@ internal static class OccurrenceJson
         return occurrences;
     }
 
-    private static Row Written(ItemOccurrence occurrence) => new(occurrence.Start, occurrence.End, occurrence.Kind, occurrence.Destination.ToString());
+    private static Row Written(ItemOccurrence occurrence) => new(occurrence.Start, occurrence.End, occurrence.Kind, occurrence.Destination.ToString(), OffsetUnit.CodePoint);
 
-    private static ItemOccurrence Occurrence(Row row) =>
-        Enum.TryParse<OccurrenceDestination>(row.Destination, ignoreCase: false, out var destination)
+    private static ItemOccurrence Occurrence(Row row)
+    {
+        if (row.Unit is not null && !string.Equals(row.Unit, OffsetUnit.CodePoint, StringComparison.Ordinal))
+        {
+            throw new InvalidDataException("The sealed occurrences count their limits in another unit.");
+        }
+
+        return Enum.TryParse<OccurrenceDestination>(row.Destination, ignoreCase: false, out var destination)
             ? new ItemOccurrence(row.Start, row.End, row.Kind, destination)
             : throw new InvalidDataException("The sealed occurrences name a destination that is not one of the three.");
+    }
 
-    private sealed record Row(int Start, int End, string Kind, string Destination);
+    /// <summary>An occurrence as sealed; one sealed before the unit was written counted in code points, the only unit the core ever stored.</summary>
+    private sealed record Row(int Start, int End, string Kind, string Destination, string? Unit = null);
 }

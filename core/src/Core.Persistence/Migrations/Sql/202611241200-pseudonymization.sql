@@ -44,8 +44,8 @@ CREATE FUNCTION public.refuse_item_marker_outside_its_path() RETURNS trigger
 LANGUAGE plpgsql
 AS $refuse$
 BEGIN
-    -- A row of a domain other than the declared one, or with none declared, is the row policy's to refuse, with its own refusal.
-    IF TG_OP = 'INSERT' AND NEW.domain_id IS DISTINCT FROM public.declared_domain() THEN
+    -- A row of a domain other than the declared one, or with none declared (a row of no domain included), is the row policy's to refuse, with its own refusal.
+    IF TG_OP = 'INSERT' AND (public.declared_domain() IS NULL OR NEW.domain_id IS DISTINCT FROM public.declared_domain()) THEN
         RETURN NEW;
     END IF;
 

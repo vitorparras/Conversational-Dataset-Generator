@@ -71,7 +71,7 @@ public sealed class MarkerStorageTests
         var markers = PseudonymizedTexts.Draw(2);
         var item = Assert.NotNull((await world.RealWriter.AddPseudonymizedItemAsync(1, 1, PseudonymizedTexts.Holding(markers), Token)).ItemId);
         var expected = string.Join(',', markers.Order(StringComparer.Ordinal));
-        var curator = await world.PersonAsync("zqx-curador");
+        var curator = await world.PersonAsync("zqx-curator");
 
         var outside = await Assert.ThrowsAsync<PostgresException>(() => world.InDomainAsync(1, "DELETE FROM content.item_marker WHERE item_id = @id", ("id", item)));
         var added = await Assert.ThrowsAsync<PostgresException>(() => world.InDomainAsync(1, AddedLater, ("id", item), ("marker", PseudonymizedTexts.Draw(1)[0])));

@@ -29,7 +29,7 @@ deliberada e justificada.
 | [0015](0015-versionamento-e-compatibilidade.md) | Versionamento e compatibilidade | Decisão vigente |
 | [0016](0016-mudanca-de-taxonomia-com-anotacao-existente.md) | Mudança de taxonomia com anotação existente | Decisão vigente |
 | [0017](0017-dupla-anotacao-e-arbitragem.md) | Dupla anotação e arbitragem | Decisão vigente |
-| [0018](0018-contrato-da-fronteira.md) | O contrato da fronteira carrega a análise gramatical | Substituída por 0056 no destino do topônimo |
+| [0018](0018-contrato-da-fronteira.md) | O contrato da fronteira carrega a análise gramatical | Substituída por 0056 no destino do topônimo e por 0060 na forma da resposta |
 | [0019](0019-selo-externo-da-cadeia.md) | Onde mora o selo externo da cadeia | Decisão vigente |
 | [0020](0020-exportacao-desloca-datas.md) | A exportação desloca as datas | Decisão vigente |
 | [0021](0021-comunicacao-de-incidente.md) | A quem se comunica um incidente | Decisão vigente |

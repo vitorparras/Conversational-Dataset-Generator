@@ -202,7 +202,7 @@ class ChangesWorkflowTests(unittest.TestCase):
 
         self.assertEqual(list(triggers), ["workflow_dispatch", "pull_request", "push", "schedule"])
         self.assertEqual(triggers["push"], {"branches": ["main"]})
-        self.assertEqual(triggers["schedule"], [{"cron": "17 4 * * 1"}])
+        self.assertEqual(triggers["schedule"], [{"cron": "17 4 * * *"}])
 
     def test_the_slow_jobs_wait_for_the_pull_request_to_leave_the_draft(self) -> None:
         for name in SLOW:

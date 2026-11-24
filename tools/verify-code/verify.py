@@ -194,7 +194,9 @@ def build_parser() -> argparse.ArgumentParser:
         "--tested-sha", help="com --changes: um PR verde testou a árvore do commit?"
     )
     parser.add_argument("--repository", help="com --tested-sha: dono/nome do repositório")
-    parser.add_argument("--base", help="ref de comparação para pr_size (ex.: origin/main)")
+    parser.add_argument(
+        "--base", help="ref de comparação para pr_size e o diff da mutação (ex.: origin/main)"
+    )
     parser.add_argument("--previous", type=Path, help="by-area.md anterior: floors avisa queda")
     parser.add_argument(
         "--head-only",

@@ -89,6 +89,21 @@ public sealed class MarkerPropertiesTests
 
     [Fact]
     [Trait("Kind", "Property")]
+    public void MarkerNumberIsExactlyTheDrawnOneWhateverTheName() =>
+        PropertyRunner.FromProcess().Check(Gen.Select(Gen.Int[0, 99_999_999].Array[1, 30], Name.Array[30]), generated =>
+        {
+            var (numbers, candidates) = generated;
+            var names = candidates.Distinct(StringComparer.Ordinal).Take(numbers.Distinct().Count()).ToArray();
+            var drawn = numbers.Distinct().Take(names.Length).ToArray();
+            var conversation = Draws.Conversation(Draws.Of(drawn), new HashSet<Marker>());
+
+            var given = names.Select(name => conversation.Of(Referent.Author(name), MarkerKind.Person).Number).ToArray();
+
+            Assert.Equal(drawn, given);
+        });
+
+    [Fact]
+    [Trait("Kind", "Property")]
     public void MarkerDoesNotRevealTheOrderOfAppearance() =>
         PropertyRunner.FromProcess().Check(Names, names =>
         {

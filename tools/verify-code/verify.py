@@ -31,11 +31,11 @@ from steps import (
     lint_tools,
     migration_order,
     mutation,
+    mutation_diff,
     offline_start,
     package,
     pr_size,
     properties,
-    reach,
     ruler_proof,
     secrets,
     static_analysis,
@@ -131,14 +131,16 @@ def _print_utf8() -> None:
 
 def print_mutation_modules(base: str | None) -> int:
     """The critical modules as a JSON list for the matrix of the CI; with ``base``, only the ones
-    the diff reaches (the reasons go to stderr); 1 when the areas give none."""
+    the diff reaches with files of their own (the reasons go to stderr); 1 when the areas give
+    none."""
     modules, problems = mutation.names(ROOT)
     if problems:
         print("\n".join(problems))
         return 1
     reasons = ["todos os módulos: não é pull request"]
     if base:
-        modules, reasons = reach.select(Context(ROOT, ROOT / OUTPUT_DIRECTORY, run_process, base))
+        ctx = Context(ROOT, ROOT / OUTPUT_DIRECTORY, run_process, base)
+        modules, reasons = mutation_diff.select(ctx)
     print("\n".join(reasons), file=sys.stderr)
     print(json.dumps(modules, ensure_ascii=False))
     return 0

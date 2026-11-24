@@ -479,8 +479,7 @@ jobs:
         run: python3 tools/verify-code/retry.py -- pip install -r tools/verify-code/service-requirements.txt
       - name: Sincronizar o ambiente do serviço (o modelo do spaCy vem do GitHub; só baixar repete, nunca o pytest)
         run: python3 tools/verify-code/retry.py -- uv sync --locked --directory language-service
-      # In a pull request, only the files of the module the diff changed (decisão 0059); the report
-      # goes to a file too, which the nightly run of main turns into an issue when it fails.
+      # In a pull request, only the files of the module in the diff (decisão 0059).
       - name: Mutar o módulo crítico da matriz (Stryker.NET ou mutmut, um worker)
         env:
           MODULE: ${{ matrix.module }}
@@ -516,8 +515,7 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
-  # The nightly run of main mutates every module whole; a module that fails gets an issue, or a
-  # comment on the one still open for it (decisão 0059).
+  # A module that fails the nightly run of main gets an issue (decisão 0059).
   mutation_nightly:
     name: Issue da mutação noturna
     needs: mutation_module

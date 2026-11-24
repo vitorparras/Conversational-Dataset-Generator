@@ -5,8 +5,7 @@ name: Build remoto
 # os testes de arquitetura e os projetos de teste da lista `tests`), sem depender da memória da máquina
 # dele. Roda a partir do main e faz o checkout da branch recebida; por isso funciona para uma branch
 # antiga, que não tem este arquivo. Não grava nada: o token só lê o conteúdo.
-# Com `mutation`, roda também a mutação do diff contra o main, a mesma lista e o mesmo passo do pull
-# request (decisão 0059), um job por módulo.
+# Com `mutation`, roda também a mutação do diff contra o main, como o pull request (decisão 0059).
 # Dispara com `bash C:/tmp/build-remoto.sh <branch> [--architecture] [--tests "A.Tests;B.Tests"] [--mutation]`.
 on:
   workflow_dispatch:
@@ -167,7 +166,6 @@ jobs:
           modules=$(python tools/verify-code/verify.py --mutation-modules --base origin/main 2> "$RUNNER_TEMP/alcance.md")
           echo "modules=$modules" >> "$GITHUB_OUTPUT"
           { echo "### Mutação: módulos alcançados e o motivo de cada um"; cat "$RUNNER_TEMP/alcance.md"; } >> "$GITHUB_STEP_SUMMARY"
-          cat "$RUNNER_TEMP/alcance.md"
 
   mutation_module:
     name: Mutação do diff (${{ matrix.module }})
@@ -196,10 +194,10 @@ jobs:
           python-version: '3.12'
       - uses: ./.github/actions/build-database-image
         if: startsWith(matrix.module, 'Core.')
-      - name: Instalar uv na versão fixada (o mutmut vem de language-service/uv.lock)
-        run: python3 tools/verify-code/retry.py -- pip install -r tools/verify-code/service-requirements.txt
-      - name: Sincronizar o ambiente do serviço
-        run: python3 tools/verify-code/retry.py -- uv sync --locked --directory language-service
+      - name: Instalar o uv fixado e sincronizar o serviço (o mutmut vem de language-service/uv.lock)
+        run: |
+          python3 tools/verify-code/retry.py -- pip install -r tools/verify-code/service-requirements.txt
+          python3 tools/verify-code/retry.py -- uv sync --locked --directory language-service
       - name: Mutar só os arquivos do diff do módulo da matriz
         env:
           MODULE: ${{ matrix.module }}

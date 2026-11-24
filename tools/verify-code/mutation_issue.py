@@ -1,12 +1,6 @@
-"""Files the failures of the nightly mutation of main as issues (decisão 0059).
-
-    python tools/verify-code/mutation_issue.py <folder of the reports> <url of the run>
-
-Each failing job of the matrix leaves a report: the job's module in `modulo.txt` and what the step
-printed in `relatorio.txt`. The parts of a module make one issue, which names the module, the run
-and the surviving mutants. A module that already has an open issue with the same title gets a
-comment on it instead of a second issue.
-"""
+"""Usage: mutation_issue.py <folder of the reports> <url of the run>. Each failing module of the
+nightly mutation of main (decisão 0059) gets one issue, or a comment on its open one; a report is
+the job in `modulo.txt` and what the step printed in `relatorio.txt`."""
 
 from __future__ import annotations
 

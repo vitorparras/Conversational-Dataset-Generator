@@ -1,6 +1,5 @@
-"""What the mutation of a run covers (decisão 0059): with a base, the pull request, only the files
-of each critical module its diff changed; without one, or when the diff cannot be read, every file
-of the module, as the nightly run of main does."""
+"""What a mutation run covers (decisão 0059): with a base, only the files of each critical module
+the diff changed; without one, or when the diff cannot be read, the whole module."""
 
 from __future__ import annotations
 

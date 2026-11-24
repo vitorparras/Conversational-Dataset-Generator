@@ -40,7 +40,7 @@ TOKEN_BYTES = 8
 @dataclass(frozen=True)
 class CoreTarget:
     """A critical area as Stryker sees it: the project that holds it and the files to mutate, all of
-    them, only those the diff changed, or the share of one part."""
+    them or the share of one part."""
 
     area: Area
     project: str
@@ -194,7 +194,7 @@ def mutate(ctx: Context, core: CoreTarget, seconds: float, policy: MutationPolic
     output = ctx.out_dir / RESULTS / module_name(core.area.prefix, core.part).replace("/", "-")
     reset_directory(output)
     config = output / CONFIG
-    config.write_text(configuration(core, tests), encoding="utf-8")
+    config.write_text(configuration(core.project, core.patterns, tests), encoding="utf-8")
     command = [*STRYKER, "--config-file", str(config), "--output", str(output)]
     # Without the docker CLI the step could not remove what the run leaves, so nothing is reused.
     reuse = (

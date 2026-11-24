@@ -131,8 +131,7 @@ def _print_utf8() -> None:
 
 def print_mutation_modules(base: str | None) -> int:
     """The critical modules as a JSON list for the matrix of the CI; with ``base``, only the ones
-    the diff reaches with files of their own (the reasons go to stderr); 1 when the areas give
-    none."""
+    the diff reaches (the reasons go to stderr); 1 when the areas give none."""
     modules, problems = mutation.names(ROOT)
     if problems:
         print("\n".join(problems))
@@ -194,9 +193,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--tested-sha", help="com --changes: um PR verde testou a árvore do commit?"
     )
     parser.add_argument("--repository", help="com --tested-sha: dono/nome do repositório")
-    parser.add_argument(
-        "--base", help="ref de comparação para pr_size e o diff da mutação (ex.: origin/main)"
-    )
+    parser.add_argument("--base", help="ref de comparação para pr_size (ex.: origin/main)")
     parser.add_argument("--previous", type=Path, help="by-area.md anterior: floors avisa queda")
     parser.add_argument(
         "--head-only",

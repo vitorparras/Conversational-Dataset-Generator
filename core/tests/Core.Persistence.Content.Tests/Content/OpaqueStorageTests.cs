@@ -44,49 +44,15 @@ public sealed class OpaqueStorageTests
         Assert.Equal([true, true], [observation.ShowsInDump(material.Pseudonymized), observation.ShowsInFiles(material.Pseudonymized)]);
     }
 
-    public static TheoryData<int> SearchableColumns => [.. Enumerable.Range(0, OpaqueStorage.Searchable.Count)];
+    // The columns in two groups, the texts and the keys, and not all in one test: each tampering takes a dump and a reading of every file of the server, and the whole list in one
+    // test outgrew the time the mutation testing gives a single test; one test per column would seed the storage once per column for every mutant the seeding reaches.
+    [DatabaseFact]
+    public Task Ca4TextColumnsThatWriteInClearFailTheDetectorAndAreNamedTogether() =>
+        TamperOneAfterAnotherAsync(OpaqueStorage.TextColumns, material => material.Texts.Keys);
 
     [DatabaseFact]
-    public async Task Ca4EveryColumnTheSeedingFillsIsOneTheDetectorTriesInClear()
-    {
-        await using var world = await ContentWorld.CreateAsync();
-
-        var material = await OpaqueStorage.SeedAsync(world);
-
-        Assert.Equal(OpaqueStorage.Searchable.Order(StringComparer.Ordinal), material.Columns.Order(StringComparer.Ordinal));
-    }
-
-    // One column for each case, and not all in one: each tampering takes a dump and a reading of every file of the server, and the whole list in one case outgrew the time the
-    // mutation testing gives a single test.
-    [DatabaseTheory]
-    [MemberData(nameof(SearchableColumns))]
-    public async Task Ca4AProtectedColumnThatWritesInClearFailsTheDetectorAndIsNamed(int searchable)
-    {
-        var column = OpaqueStorage.Searchable[searchable];
-        await using var world = await ContentWorld.CreateAsync();
-        var material = await OpaqueStorage.SeedAsync(world);
-        await WriteInClearAsync(world, column, material.InClear(column));
-
-        var observation = await OpaqueStorage.ObserveAsync(world, material);
-
-        Assert.Equal([column], OpaqueStorage.ColumnsShown(observation, material, [.. material.Columns]));
-        // The files of the server hold the key written in clear, raw as a bytea is stored: a search that never matched raw bytes would let a key through while the dump alone caught it.
-        Assert.Equal(new[] { column }.Where(material.Keys.ContainsKey), observation.KeysInFiles.Order(StringComparer.Ordinal));
-    }
-
-    [DatabaseFact]
-    public async Task Ca4TwoColumnsWrittenInClearAreBothNamed()
-    {
-        await using var world = await ContentWorld.CreateAsync();
-        var material = await OpaqueStorage.SeedAsync(world);
-        string[] tampered = [OpaqueStorage.Entries, OpaqueStorage.ItemKey];
-        await WriteInClearAsync(world, tampered[0], material.InClear(tampered[0]));
-        await WriteInClearAsync(world, tampered[1], material.InClear(tampered[1]));
-
-        var observation = await OpaqueStorage.ObserveAsync(world, material);
-
-        Assert.Equal(tampered.Order(StringComparer.Ordinal), OpaqueStorage.ColumnsShown(observation, material, [.. material.Columns]).Order(StringComparer.Ordinal));
-    }
+    public Task Ca4KeyColumnsThatWriteInClearFailTheDetectorAndAreNamedTogether() =>
+        TamperOneAfterAnotherAsync(OpaqueStorage.KeyColumnsWrapped, material => material.Keys.Keys);
 
     [DatabaseFact]
     public async Task Ca5TheKeyInNoWayItIsWrittenIsInTheDumpOrInAnyFileOfTheServerWhileTheSearchStillFindsWhatIsThere()
@@ -102,6 +68,25 @@ public sealed class OpaqueStorageTests
     }
 
     /// <summary>The defect the detector exists for: the column holds the text as it is, bytes of the text and no envelope, put there by whoever the path of the application does not bind.</summary>
+    /// <summary>Writes the columns of the group in clear one after another, and after each the detector names exactly the ones written so far, the keys found in the files too.</summary>
+    private static async Task TamperOneAfterAnotherAsync(IReadOnlyList<string> group, Func<OpaqueStorage.Material, IEnumerable<string>> seeded)
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        var material = await OpaqueStorage.SeedAsync(world);
+        Assert.Equal(group.Order(StringComparer.Ordinal), seeded(material).Order(StringComparer.Ordinal));
+        var tampered = new List<string>();
+
+        foreach (var column in group.Order(StringComparer.Ordinal))
+        {
+            await WriteInClearAsync(world, column, material.InClear(column));
+            tampered.Add(column);
+            var observation = await OpaqueStorage.ObserveAsync(world, material);
+            Assert.Equal(tampered, OpaqueStorage.ColumnsShown(observation, material, [.. material.Columns]));
+            // The files of the server hold the key written in clear, raw as a bytea is stored: a search that never matched raw bytes would let a key through while the dump alone caught it.
+            Assert.Equal(tampered.Where(material.Keys.ContainsKey).Order(StringComparer.Ordinal), observation.KeysInFiles.Order(StringComparer.Ordinal));
+        }
+    }
+
     private static async Task WriteInClearAsync(ContentWorld world, string column, byte[] clear)
     {
         var parts = column.Split('.');

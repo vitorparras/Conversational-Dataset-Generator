@@ -55,14 +55,16 @@ def aggregator_script() -> str:
     return "\n".join(line[10:] for line in block.splitlines())
 
 
-def aggregate(*results: str, draft: str = "") -> int:
+def aggregate(*results: str, draft: str = "", event: str = "pull_request") -> int:
     """The exit code of the aggregator for the results GitHub would hand it, in the order of
-    CLASSIFICATION, HEAVY, LISTED, MODULES and MATRIX; DRAFT is empty outside a pull request."""
+    CLASSIFICATION, HEAVY, LISTED, MODULES and MATRIX; DRAFT is empty outside a pull request and
+    EVENT names what started the run."""
     assert BASH is not None
     names = ("CLASSIFICATION", "HEAVY", "LISTED", "MODULES", "MATRIX")
+    given = {"DRAFT": draft, "EVENT": event, "PATH": "/usr/bin:/bin"}
     done = subprocess.run(
         [BASH, "-c", aggregator_script()],
-        env={**dict(zip(names, results, strict=True)), "DRAFT": draft, "PATH": "/usr/bin:/bin"},
+        env={**dict(zip(names, results, strict=True)), **given},
         capture_output=True,
         text=True,
         check=False,
@@ -202,7 +204,7 @@ class ChangesWorkflowTests(unittest.TestCase):
 
         self.assertEqual(list(triggers), ["workflow_dispatch", "pull_request", "push", "schedule"])
         self.assertEqual(triggers["push"], {"branches": ["main"]})
-        self.assertEqual(triggers["schedule"], [{"cron": "17 4 * * 1"}])
+        self.assertEqual(triggers["schedule"], [{"cron": "17 4 * * *"}])
 
     def test_the_slow_jobs_wait_for_the_pull_request_to_leave_the_draft(self) -> None:
         for name in SLOW:
@@ -273,6 +275,15 @@ class AggregatorTests(unittest.TestCase):
     def test_a_dispensed_classification_does_not_accept_a_list_or_a_matrix_that_ran(self) -> None:
         self.assertEqual(aggregate("success", "false", "success", '["a"]', "success"), 1)
         self.assertEqual(aggregate("success", "false", "skipped", "", "success"), 1)
+
+    def test_a_push_to_main_passes_with_no_list_and_no_matrix(self) -> None:
+        self.assertEqual(aggregate("success", "true", "skipped", "", "skipped", event="push"), 0)
+        self.assertEqual(aggregate("failure", "", "skipped", "", "skipped", event="push"), 0)
+
+    def test_a_push_to_main_does_not_accept_a_mutation_that_ran(self) -> None:
+        ran = aggregate("success", "true", "success", '["a"]', "success", event="push")
+
+        self.assertEqual(ran, 1)
 
     def test_a_matrix_of_the_modules_the_list_named_passes_when_it_is_green(self) -> None:
         self.assertEqual(aggregate("success", "true", "success", '["a","b"]', "success"), 0)

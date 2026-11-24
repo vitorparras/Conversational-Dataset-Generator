@@ -21,12 +21,12 @@ A **estrutura temporal**: a ordem das mensagens e o intervalo entre elas. Silên
 resposta em dez segundos querem dizer coisas diferentes.
 
 O **papel e o vínculo**, pseudonimizados: que `PESSOA_1` manda e `PESSOA_2` executa é o achado;
-quem são elas, não.
+quem são elas, não. O mesmo vale para o lugar: bairro e cidade viram `LUGAR_1` (0056).
 
 A **quantidade**: valor, volume, unidade, moeda. Número não identifica quando não é documento nem
 contato, e é frequentemente o que a anotação classifica.
 
-A **referência geográfica genérica** — bairro, cidade, tipo de lugar. O endereço exato, não.
+A **referência geográfica genérica** — tipo de lugar. O endereço exato, não.
 
 ## Sai, mesmo parecendo contexto
 

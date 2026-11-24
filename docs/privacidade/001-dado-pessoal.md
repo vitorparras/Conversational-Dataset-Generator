@@ -44,10 +44,10 @@ talvez não tenha aplicado ali.
 —, quem tivesse o texto pseudonimizado e uma lista de nomes prováveis reverteria por tentativa, sem
 tocar no mapa, e o mapa deixaria de ser o único caminho de volta que a decisão 0003 estabelece.
 
-O pseudônimo é estável dentro de um domínio e **não atravessa domínios**: a mesma pessoa em dois
-domínios recebe dois pseudônimos. Pseudônimo comum seria uma ligação entre acervos que a
-[decisão 0006](../decisoes/0006-dominios-coexistem.md) isola no banco — e, ao contrário do
-isolamento do banco, essa ligação sobreviveria à exportação.
+O pseudônimo é estável dentro da conversa e **não a atravessa**, nem no mesmo domínio
+([0057](../decisoes/0057-escopo-do-marcador-e-a-conversa.md)). Entre domínios, pseudônimo comum
+seria ligação entre acervos que a [0006](../decisoes/0006-dominios-coexistem.md) isola no banco, e
+que sobreviveria à exportação.
 
 ## Quem impõe
 

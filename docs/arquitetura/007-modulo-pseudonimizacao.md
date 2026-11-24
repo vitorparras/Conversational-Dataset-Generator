@@ -23,12 +23,14 @@ guarda da correspondência. O serviço de linguagem devolve posição e tipo —
 como pessoa, como lugar ou como nada sempre foi decisão do núcleo
 ([fronteiras](002-fronteiras.md)).
 
-## Estável no domínio, e só nele
+## Estável na conversa, e só nela
 
-O mesmo participante é o mesmo rótulo em todo o material; participantes distintos nunca
-compartilham rótulo, ainda que os nomes de origem coincidam. O escopo dessa estabilidade é o
-domínio, e ela não o atravessa: a mesma pessoa em dois domínios recebe dois rótulos, porque rótulo
-comum seria uma ligação entre acervos que sobreviveria à exportação
+O mesmo participante é o mesmo rótulo em toda a conversa; participantes distintos nunca compartilham
+rótulo, ainda que os nomes de origem coincidam. O escopo dessa estabilidade é a conversa, e ela não
+a atravessa: um rótulo nunca se repete em outra conversa, de nenhum domínio
+([0057](../decisoes/0057-escopo-do-marcador-e-a-conversa.md)). Ligar conversas exige saber que dois
+nomes são a mesma pessoa, e o material só traz o nome salvo por quem exportou; entre domínios,
+rótulo comum seria ainda uma ligação entre acervos que sobreviveria à exportação
 ([0006](../decisoes/0006-dominios-coexistem.md)).
 
 O rótulo é atribuído, nunca calculado a partir do original. Não carrega inicial, tamanho nem posição

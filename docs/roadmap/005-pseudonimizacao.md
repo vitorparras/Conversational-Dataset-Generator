@@ -40,11 +40,15 @@ finalidade própria que o mapa exige.
    [003](../requisitos/003-copia-do-armazenamento-nao-expoe.md).
 4. [021](../requisitos/021-registro-sem-dado-pessoal.md) continua valendo com o serviço de
    linguagem em uso, e isso é verificado nos dois processos — não só no núcleo.
-5. A coluna em claro da decisão 0003 passa a receber material real, e o que entra nela já passou
-   pela sanitização e pela pseudonimização, nessa ordem.
+5. O pseudonimizado passa a receber material real, cifrado com a chave do item
+   ([0030](../decisoes/0030-qual-texto-fica-em-claro.md)), e o que entra nele já passou pela
+   sanitização e pela pseudonimização, nessa ordem.
+6. O referente de cada menção vem da correferência do serviço de linguagem, sobre a conversa
+   inteira, com a precisão em pt-BR medida antes de entrar; a fase só fecha com ela
+   ([fatia F](../arquitetura/fases/005-pseudonimizacao/fatia-f-correferencia.md) do pacote).
 
 ## O que destrava
 
-A tela de anotação pode buscar e ordenar sobre texto em claro, que é o que torna o trabalho humano
-viável. E o controle de acesso passa a ter a operação que mais precisa ser negada por papel: a
-reversão.
+A tela de anotação pode buscar e ordenar sobre o pseudonimizado, abrindo o item na aplicação
+([0030](../decisoes/0030-qual-texto-fica-em-claro.md)), que é o que torna o trabalho humano viável.
+E o controle de acesso passa a ter a operação que mais precisa ser negada por papel: a reversão.

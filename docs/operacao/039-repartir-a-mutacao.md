@@ -3,10 +3,10 @@
 > Operacional. 2026-11-06.
 
 A [017](017-teste-de-mutacao.md) dá o teto de 20 minutos por módulo. A área que não cabe nele
-declara `- Partes da mutação: N` no seu arquivo de áreas (a
-[014](014-modulos-criticos-e-pisos.md) diz o campo), e o passo `mutation` a reparte em N jobs,
-cada um com o mesmo teto, projeto de teste e limite de sobreviventes. Aqui está como a repartição
-decide, e por quê.
+declara `- Partes da mutação: N` no seu arquivo de áreas (a [014](014-modulos-criticos-e-pisos.md)
+diz o campo), e o passo `mutation` a reparte em N jobs, cada um com o mesmo teto, projeto de teste e
+limite de sobreviventes. No pull request, só os arquivos do diff se repartem, em partes na proporção
+do seu peso ([0059](../decisoes/0059-mutacao-do-diff-e-noturna.md)).
 
 ## A unidade e o peso
 

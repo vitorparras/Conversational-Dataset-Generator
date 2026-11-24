@@ -1,0 +1,79 @@
+/*
+    Só dos protótipos da fase 5. A barra de estados e a troca de estado por âncora (:target, sem script)
+    são andaime de protótipo e não vão para as telas. O resto (recolhido, linha de situação, lista em
+    linhas, identidade revelada) segue a decisão 0058 e entra em screens.css como componente quando a
+    fatia de tela precisar. A barra soma altura que a tela real não tem: a primeira dobra da 0058 se
+    mede sem ela.
+*/
+
+/* Andaime: a barra que troca o estado, discreta, acima da tela. */
+.proto {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-1) var(--space-3);
+    padding: var(--space-2) var(--space-5);
+    font-size: var(--text-sm);
+    color: var(--ink-muted);
+    border-bottom: var(--line) dashed var(--edge-soft);
+}
+.proto p { margin: 0; }
+.proto ul { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); margin: 0; padding: 0; list-style: none; }
+
+/* Andaime: um estado por vez. Sem âncora, vale o primeiro. */
+.state { display: none; }
+.state:target { display: block; }
+.state { scroll-margin-top: 100vh; } /* a âncora troca o estado sem rolar a página */
+.page:not(:has(.state:target)) > .state:first-of-type { display: block; }
+.state > * + * { margin-top: var(--space-5); }
+.state > h1 + * { margin-top: var(--space-3); }
+
+/* Proposta: o que é secundário fica recolhido, com um resumo curto e discreto. */
+.more { max-width: var(--measure); }
+.more > summary { display: inline-flex; align-items: center; min-height: var(--control-height); color: var(--accent); cursor: pointer; }
+.more > summary:hover { color: var(--accent-hover); text-decoration: underline; text-underline-offset: var(--underline-offset); }
+.more[open] > summary { margin-bottom: var(--space-2); }
+.more > :not(summary) { color: var(--ink-muted); }
+
+/* Proposta: a linha de situação logo abaixo do título, em vez de um parágrafo. */
+.status { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2) var(--space-4); margin: 0; color: var(--ink-muted); }
+
+/* Proposta: dois campos curtos lado a lado, onde couberem. */
+.pair { display: flex; flex-wrap: wrap; gap: 0 var(--space-5); max-width: var(--field-width); }
+.pair > .field { flex: 1 1 10rem; }
+
+/* Proposta: a identidade revelada, uma vez, grande, sozinha e numa linha também no celular. */
+.reveal { margin: 0; padding: var(--space-5) 0; font-family: var(--font-mono); font-size: clamp(1.125rem, 5.2vw, var(--text-title)); font-weight: var(--weight-strong); }
+
+/* Andaime: a barra ocupa a largura toda, e o estado sem permissão some com o menu da reversão. */
+.proto { max-width: none; }
+body:has(#sem-permissao:target) .nav__list > li:nth-child(n+4) { display: none; }
+body:has(#sem-permissao:target) .nav__link[aria-current] { text-decoration: none; color: inherit; }
+
+/* Proposta: uma coluna só, da mesma largura para aviso, campo, lista e fatos; o título não pula. */
+.page > .state { margin-top: 0; }
+.state { max-width: 40rem; }
+.state .form, .state .field, .state .pair, .state .notice, .state .rows, .state .facts { max-width: none; }
+.form > .field__hint:first-child { margin-bottom: var(--space-4); }
+.pair { align-items: start; }
+
+/* Proposta: o resumo do recolhido tem seta, para não parecer um link solto. */
+.more > summary { list-style: none; }
+.more > summary::-webkit-details-marker { display: none; }
+.more > summary::before { content: "\25B8" / ""; display: inline-block; width: 1.25em; }
+.more[open] > summary::before { content: "\25BE" / ""; }
+
+/* Proposta: cada registro de uma lista é uma linha inteira para abrir, separada por um fio, sem caixa. */
+.rows { margin: 0; padding: 0; list-style: none; border-top: var(--line) solid var(--edge-soft); }
+.state > h1 + .rows { margin-top: var(--space-5); }
+.rows > li { border-bottom: var(--line) solid var(--edge-soft); }
+.rows a { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) 0; color: var(--ink); text-decoration: none; }
+.rows a > span { display: grid; gap: var(--space-1); }
+.rows strong { color: var(--accent); }
+.rows a:hover strong { color: var(--accent-hover); text-decoration: underline; text-underline-offset: var(--underline-offset); }
+.rows a::after { content: "\2192" / ""; margin-left: auto; color: var(--accent); }
+
+/* Proposta: tabela de poucos números não se estica nem vira pilha. */
+.data-table--compact > table { width: auto; min-width: 0; }
+.data-table--compact td { text-align: right; font-variant-numeric: tabular-nums; }
+

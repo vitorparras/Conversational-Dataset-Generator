@@ -347,7 +347,7 @@ class CommandLineTests(unittest.TestCase):
 
     def test_with_a_base_only_the_reached_jobs_go_to_stdout_and_the_reasons_to_stderr(self) -> None:
         chosen = (("Core.Beta",), ["- `Core.Beta`: arquivo de Core.Beta"])
-        with mock.patch.object(verify.reach, "select", return_value=chosen):
+        with mock.patch.object(verify.mutation_diff, "select", return_value=chosen):
             code, out, err = self.main("--base", "origin/main")
 
         self.assertEqual((code, json.loads(out)), (0, ["Core.Beta"]))

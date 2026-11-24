@@ -1,6 +1,6 @@
 # 006 — A pseudonimização preserva o contexto
 
-> Norma vigente. 2026-10-04.
+> Norma vigente. 2026-11-23.
 
 **Trocar identidade por rótulo mantém o material legível: a mesma pessoa é o mesmo rótulo em todo
 o escopo, pessoas distintas nunca compartilham rótulo, e o tipo de cada menção continua
@@ -17,14 +17,16 @@ domínios diferentes, e a [decisão 0006](../decisoes/0006-dominios-coexistem.md
 mesma instalação precisamente para que se possa compará-los — não para que se ligue uma pessoa de um
 ao outro por acidente.
 
-**O escopo é o domínio: teto e piso.** Reiniciar o rótulo a cada conversa protegeria mais e
-apagaria a análise que justifica preservar relação — quem intermedia, quem conecta grupos que não se
-conhecem, quem aparece só numa ponta. Duas conversas da mesma pessoa virariam duas pessoas.
+**O escopo é a conversa** ([0057](../decisoes/0057-escopo-do-marcador-e-a-conversa.md)). Cada
+item tem os seus rótulos, e um rótulo nunca se repete em outra conversa; nas formas sem fio de
+conversa, cada item vale como uma. Ligar conversas exige saber que dois nomes são a mesma pessoa, e
+o material só traz o nome salvo por quem exportou. A análise entre conversas fica como melhoria
+futura.
 
 ## Critérios de aceitação
 
-- Dado o mesmo participante em duas mensagens do mesmo domínio, ainda que em conversas diferentes,
-  quando ele é pseudonimizado, então recebe o mesmo rótulo nas duas.
+- Dado o mesmo participante em duas mensagens da mesma conversa, quando ela é pseudonimizada,
+  então ele recebe o mesmo rótulo nas duas, e esse rótulo não aparece em nenhuma outra conversa.
 - Dado dois participantes distintos, quando são pseudonimizados, então os rótulos são distintos,
   ainda que os nomes de origem coincidam.
 - Dado o mesmo participante em dois domínios, quando é pseudonimizado em cada um, então os rótulos
@@ -34,9 +36,9 @@ conhecem, quem aparece só numa ponta. Duas conversas da mesma pessoa virariam d
 - Dado um texto pseudonimizado, quando ele é lido, então menção a pessoa, a lugar e a organização
   continuam distinguíveis entre si.
 
-A prova é uma propriedade: o mesmo original sempre produz o mesmo rótulo no escopo, e dois originais
-diferentes nunca produzem o mesmo. Fica prevista em testes/propriedades/pseudonimizacao, ainda
-inexistente.
+A prova é uma propriedade: o mesmo referente sempre produz o mesmo rótulo na conversa, dois
+referentes diferentes nunca produzem o mesmo, e nenhum rótulo aparece em duas conversas. Fica
+prevista em testes/propriedades/pseudonimizacao, ainda inexistente.
 
 ## O que não exige
 

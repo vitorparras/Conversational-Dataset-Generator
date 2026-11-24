@@ -8,7 +8,7 @@ import ast
 import shutil
 import sys
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from fnmatch import fnmatch
 from pathlib import Path, PurePosixPath
 
@@ -18,6 +18,7 @@ from steps.common import Context, reset_directory, tail
 from steps.mutant import Mutant, MutantStatus
 from steps.mutation_judge import LanguageRun, ModuleResult, each
 from steps.mutation_policy import MutationPolicy
+from steps.mutation_scope import mutated_notes, read
 from steps.mutmut_report import Entry, entries, status_of, survivor
 
 SIDE = "serviço (Python)"
@@ -47,12 +48,20 @@ def pattern(root: Path, area: Area) -> str | None:
 @dataclass(frozen=True)
 class ServiceTarget:
     """A critical module as mutmut sees it: its glob, the globs of the areas nested in it, which
-    own their own code, and the test files that import it."""
+    own their own code, the test files that import it and, in a run of the diff, its files the
+    diff changed, which mutmut mutates instead of the glob."""
 
     area: Area
     glob: str
     skip: tuple[str, ...]
     tests: tuple[str, ...]
+    files: tuple[str, ...] = ()
+
+    def result(self, mutants: tuple[Mutant, ...], problems: tuple[str, ...]) -> ModuleResult:
+        """What the run left, under the name the report gives the module."""
+        diff = ", só os arquivos do diff" if self.files else ""
+        shown = replace(self.area, name=f"{self.area.name}{diff}")
+        return ModuleResult(shown, mutants, problems, whole=not self.files)
 
 
 def imported(source: str) -> frozenset[str]:
@@ -100,6 +109,15 @@ def target(root: Path, area: Area, everything: tuple[Area, ...]) -> ServiceTarge
     return ServiceTarget(area, glob, skip, test_files(root, area, everything))
 
 
+def files(root: Path, area: Area, everything: tuple[Area, ...]) -> tuple[str, ...]:
+    """The Python files the module owns by longest prefix, from the root of the repository."""
+    base = root / SERVICE / SOURCES
+    found = sorted(base.rglob("*.py")) if base.is_dir() else []
+    dotted = ((p, ".".join(p.relative_to(base).with_suffix("").parts)) for p in found)
+    owned = (p for p, n in dotted if area_of(n.removesuffix(".__init__"), everything) == area)
+    return tuple(p.relative_to(root).as_posix() for p in owned)
+
+
 def option(key: str, values: tuple[str, ...]) -> str:
     """One multi-line option of setup.cfg; nothing when there is no value."""
     return f"{key} =" + "".join(f"\n    {value}" for value in values) + "\n" if values else ""
@@ -109,7 +127,7 @@ def configuration(service: ServiceTarget) -> str:
     """The setup.cfg that tells mutmut what to mutate and which tests to run; the repository holds
     no copy of it."""
     header = f"[mutmut]\nsource_paths = {SOURCES}\n"
-    only = option("only_mutate", (service.glob,))
+    only = option("only_mutate", service.files or (service.glob,))
     skip = option("do_not_mutate", service.skip)
     return header + only + skip + option("pytest_add_cli_args_test_selection", service.tests)
 
@@ -134,7 +152,7 @@ def unit(entry: Entry) -> str:
     return ".".join(PurePosixPath(entry.file).with_suffix("").parts[1:])
 
 
-def read(ctx: Context, folder: Path, entry: Entry) -> Mutant:
+def mutant(ctx: Context, folder: Path, entry: Entry) -> Mutant:
     """A killed or unchecked mutant as counted; a survivor placed by `mutmut show`."""
     status = status_of(entry.code)
     if status is not MutantStatus.SURVIVED:
@@ -150,7 +168,7 @@ def split(
 ) -> tuple[Mutant, ...]:
     """The mutants the run left in the files the area owns by longest prefix."""
     owned = (entry for entry in entries(folder) if area_of(unit(entry), everything) == area)
-    return tuple(read(ctx, folder, entry) for entry in owned)
+    return tuple(mutant(ctx, folder, entry) for entry in owned)
 
 
 def own_configuration(root: Path) -> tuple[str, ...]:
@@ -189,23 +207,28 @@ def mutate(
     """Writes the module's workspace, runs mutmut for at most ``seconds``, reads what it left."""
     area = service.area
     if not service.tests:
-        return ModuleResult(area, (), (f"nenhum teste de {TESTS}/ importa {area.prefix}",))
+        return service.result((), (f"nenhum teste de {TESTS}/ importa {area.prefix}",))
     folder = workspace(ctx, service)
     outcome = ctx.run_for(mutmut(ctx, "run", "--max-children", "1"), folder, seconds)
     mutants = split(ctx, folder, area, everything)
     install = f"uv ausente? instale com `pip install -r {REQUIREMENTS}`"
     problems = () if outcome.ok else ("o mutmut terminou com erro", install, *tail(outcome.text))
-    return ModuleResult(area, mutants, problems)
+    return service.result(mutants, problems)
 
 
 def run_service(
     ctx: Context, areas: tuple[Area, ...], everything: tuple[Area, ...], policy: MutationPolicy
 ) -> LanguageRun:
     """Every service module with code in turn, each cut at the ceiling it has to itself."""
-    targets = tuple(s for area in areas if (s := target(ctx.root, area, everything)) is not None)
-    absent = tuple(area for area in areas if area not in {s.area for s in targets})
+    found = tuple(s for area in areas if (s := target(ctx.root, area, everything)) is not None)
+    absent = tuple(area for area in areas if area not in {s.area for s in found})
+    scope = read(ctx)
+    kept = {s.area.prefix: scope.keeps(files(ctx.root, s.area, everything)) for s in found}
+    notes = mutated_notes(scope, kept)
+    diffs = ((s, tuple(p.removeprefix(f"{SERVICE}/") for p in kept[s.area.prefix])) for s in found)
+    targets = found if scope.paths is None else tuple(replace(s, files=f) for s, f in diffs if f)
     if not targets:
-        return LanguageRun(SIDE, absent=absent)
+        return LanguageRun(SIDE, absent=absent, notes=notes)
     if sys.platform != LINUX:
         skip = f"AVISO — {SIDE}: o mutmut só roda no Linux; pulado em {sys.platform}"
         return LanguageRun(SIDE, absent=absent, notes=(skip,))
@@ -219,4 +242,4 @@ def run_service(
         for s in targets
         if (n := pragmas(ctx.root, s))
     )
-    return LanguageRun(SIDE, results, absent, findings, tuple(off))
+    return LanguageRun(SIDE, results, absent, findings, (*notes, *off))

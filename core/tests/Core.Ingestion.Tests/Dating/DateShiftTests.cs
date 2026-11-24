@@ -80,6 +80,15 @@ public sealed class DateShiftTests
         Assert.Equal((DateShiftOutcome.Kept, -417), (reading.Outcome, reading.Shift?.Days));
     }
 
+    [Fact]
+    public void DrawnShiftsSpreadOverBothSignsAndTheWholeRange()
+    {
+        var days = Enumerable.Range(0, 2000).Select(_ => DateShift.Draw().Days).ToList();
+
+        Assert.Equal((true, true, true), (days.Exists(day => day < 0), days.Exists(day => day > 0), days.Exists(day => Math.Abs(day) > DateShift.MostDays / 2)));
+        Assert.InRange(days.Distinct().Count(), 1500, 2000);
+    }
+
     [Theory]
     [InlineData(-3650, -3650)]
     [InlineData(-1, -1)]

@@ -20,6 +20,19 @@ public sealed class PseudonymizedItemsTests
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     [DatabaseFact]
+    public async Task ItemsAreNotWrittenWithoutAWriterOrTheBatches()
+    {
+        await using var world = await IngestionWorld.CreateAsync();
+        using var custody = SyntheticCustody.Holding(Labels);
+        var writer = new ContentWriter(world.DataSource, custody.Content);
+
+        var withoutWriter = Assert.Throws<ArgumentNullException>(() => new PseudonymizedItems(null!, IngestionWorld.BatchesOf(world)));
+        var withoutBatches = Assert.Throws<ArgumentNullException>(() => new PseudonymizedItems(writer, null!));
+
+        Assert.Equal(("writer", "batches"), (withoutWriter.ParamName, withoutBatches.ParamName));
+    }
+
+    [DatabaseFact]
     public async Task ItemWhoseEveryEntryIsToPseudonymizeIsWrittenWithItsMarkers()
     {
         await using var world = await IngestionWorld.CreateAsync();
@@ -73,7 +86,8 @@ public sealed class PseudonymizedItemsTests
 
         Assert.Equal("Every draw of the markers lost to markers held already.", refused.Message);
         Assert.Equal(8, seen.Count);
-        Assert.Equal(1L, await world.InDomainAsync(IngestionWorld.Domain, "SELECT count(*) FROM content.item_text WHERE batch_id = @id", ("id", batch)));
+        // The row policy hides the items of a batch not yet accepted from the application, so the count is the owner's.
+        Assert.Equal(1L, await world.AsSuperuserAsync("SELECT count(*) FROM content.item_text WHERE batch_id = @id", ("id", batch)));
     }
 
     private static PseudonymizedItems ItemsOf(BatchesWorld world, SyntheticCustody custody) =>

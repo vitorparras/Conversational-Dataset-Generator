@@ -12,8 +12,22 @@ namespace Core.Persistence.Content.Dating;
 /// The shift of the dates of each domain, kept in a row of its own, sealed with the purpose of the shift and the key of the row (decision 0020). What the row comes to is the
 /// rule's (<see cref="DateShiftRule"/>): this only reads the row of the domain, opens it, and keeps the shift the rule drew.
 /// </summary>
-public sealed class DateShifts(NpgsqlDataSource dataSource, ProtectedContent protectedContent)
+public sealed class DateShifts
 {
+    private readonly NpgsqlDataSource dataSource;
+    private readonly ProtectedContent protectedContent;
+
+    /// <summary>The shifts of the domains, read and kept through the data source and sealed through the protected content.</summary>
+    /// <param name="dataSource">The data source of the application credential.</param>
+    /// <param name="protectedContent">Seals and opens the shift with the key of its row.</param>
+    public DateShifts(NpgsqlDataSource dataSource, ProtectedContent protectedContent)
+    {
+        ArgumentNullException.ThrowIfNull(dataSource);
+        ArgumentNullException.ThrowIfNull(protectedContent);
+        this.dataSource = dataSource;
+        this.protectedContent = protectedContent;
+    }
+
     /// <summary>
     /// The shift of the domain, drawn and kept the first time and read every time after; when two draw at once the second loses to the first and reads it. A row that does not open
     /// answers the loss, and nothing is drawn over it.

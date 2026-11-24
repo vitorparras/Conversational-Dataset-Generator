@@ -6,10 +6,10 @@ namespace Core.Ingestion.Contracts.Dating;
 public sealed record StoredDateShift(bool Held, string? Text)
 {
     /// <summary>The domain holds no row.</summary>
-    public static StoredDateShift None { get; } = new(false, null);
+    public static StoredDateShift None => new(false, null);
 
     /// <summary>The domain holds a row that did not open: its key or its label is not at hand, or it does not authenticate.</summary>
-    public static StoredDateShift Unopened { get; } = new(true, null);
+    public static StoredDateShift Unopened => new(true, null);
 
     /// <summary>The domain holds a row that opened to the text.</summary>
     public static StoredDateShift Opened(string text) => new(true, text);

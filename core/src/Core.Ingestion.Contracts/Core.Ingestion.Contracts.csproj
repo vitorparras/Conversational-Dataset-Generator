@@ -3,4 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Core.Platform\Core.Platform.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Core.Ingestion.Tests" />
+  </ItemGroup>
 </Project>

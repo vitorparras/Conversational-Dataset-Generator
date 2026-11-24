@@ -80,6 +80,25 @@ public sealed class DateShiftTests
         Assert.Equal((DateShiftOutcome.Kept, -417), (reading.Outcome, reading.Shift?.Days));
     }
 
+    [Theory]
+    [InlineData(-3650, -3650)]
+    [InlineData(-1, -1)]
+    [InlineData(0, 1)]
+    [InlineData(3649, 3650)]
+    public void EveryDrawnNumberBecomesAShiftOfWholeDaysAndZeroNeverComes(int drawn, int days) =>
+        Assert.Equal(days, DateShift.FromDrawn(drawn).Days);
+
+    [Theory]
+    [InlineData("3650", 3650)]
+    [InlineData("-3650", -3650)]
+    [InlineData("1", 1)]
+    public void ShiftUpToTheMostDaysEitherWayIsReadBack(string stored, int days) =>
+        Assert.Equal(days, DateShift.Read(stored)?.Days);
+
+    [Fact]
+    public void EstablishingWithoutTheRowIsADefectOfTheCaller() =>
+        Assert.Equal("stored", Assert.Throws<ArgumentNullException>(() => DateShiftRule.Establish(null!)).ParamName);
+
     [Fact]
     public void ShiftWrittenAsTextTellsNothingOfItsDays()
     {

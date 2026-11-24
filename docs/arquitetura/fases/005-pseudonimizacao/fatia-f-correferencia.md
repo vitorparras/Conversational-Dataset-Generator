@@ -1,7 +1,7 @@
 # Fatia F — o referente pela correferência
 
-> Norma pendente. 2026-11-23. Três partes, F1, F2 e F3, cada uma num PR. Tetos: F1, 500 linhas;
-> F2, 1.000; F3, 1.400 ([0054](../../../decisoes/0054-teto-por-fatia-e-migracao-por-data.md)).
+> Norma pendente. 2026-11-23. F1 em dois PRs, a ferramenta antes da medição e a decisão com o
+> registro depois; F2 e F3, um cada. Tetos: F1, 520 e depois o padrão; F2, 1.000; F3, 1.400 ([0054](../../../decisoes/0054-teto-por-fatia-e-migracao-por-data.md)).
 
 O referente de cada menção é o grupo de correferência que o serviço de linguagem devolve, sem
 reserva por nome padronizado. O grupo cobre a conversa inteira, porque o escopo do marcador é a

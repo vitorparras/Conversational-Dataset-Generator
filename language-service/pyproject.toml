@@ -36,7 +36,7 @@ branch = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["tests"]
+pythonpath = ["tests", "tools"]
 addopts = "--strict-markers --strict-config -ra"
 markers = [
     "integration: starts the service as a real process on a free loopback port",

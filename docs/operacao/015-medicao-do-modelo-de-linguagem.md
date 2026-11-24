@@ -5,7 +5,7 @@
 Disco, memória durante a análise e tempo de carga do modelo de português decidem o que a
 distribuição do serviço de linguagem pode prometer, como a [decisão 0041](../decisoes/0041-distribuicao-do-servico-de-linguagem.md) expõe.
 Aqui está como medir; os números vivem em [003](../historico/003-medicao-do-modelo.md) e nos
-registros que o seguirem, porque mudam com o modelo, o spaCy e a máquina.
+registros seguintes, que mudam com modelo, spaCy e máquina. Correferência: [053](053-medicao-da-correferencia.md).
 
 ## Quando medir
 

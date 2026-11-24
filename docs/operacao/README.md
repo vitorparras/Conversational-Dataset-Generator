@@ -64,5 +64,6 @@ e por quem ela roda.
 | [050](050-arquivo-e-servico-do-aplicador.md) | O arquivo e o serviço do aplicador |
 | [051](051-o-que-o-aplicador-faz-e-recusa.md) | O que o aplicador faz, o que recusa e o que fica registrado |
 | [052](052-imagem-do-banco-de-teste.md) | A imagem do banco de teste na verificação: quem publica e quem só lê |
+| [053](053-medicao-da-correferencia.md) | Medição da correferência |
 
 Ver [regras de escrita](../regras-de-escrita.md).

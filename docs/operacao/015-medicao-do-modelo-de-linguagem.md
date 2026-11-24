@@ -49,6 +49,26 @@ for d in $D/py/cpython-3.12.*/ $D/venv/lib/python3.12/site-packages; do
 done
 ```
 
+## A correferência
+
+`language-service/tools/measure_coreference.py` mede um modelo de correferência sobre conversas
+inteiras do corpus ouro `coreference/fixtures/conversas.json`: conversas sintéticas, cada pessoa
+num identificador (`NOME_A`), com 14 mensagens que misturam línguas. Cada conversa vai ao modelo
+na forma do pedido, uma linha `Nome: texto` por mensagem. A saída dá, em pares de menções das
+mensagens, a precisão, a cobertura e a fusão (pessoas que dividem grupo com outra); as mesmas
+contas só nos pares que tocam mensagem mista; e a ligação ao nome do autor, com precisão e
+cobertura à parte. Depois, conversas de `--sizes` mensagens (padrão 10, 40, 160 e 640) dão tempo,
+RSS e pico de memória. A precisão geral e a do recorte misto abaixo de `--min-precision` (padrão
+0,95), ou sem nenhum par ligado, reprovam: cada motivo numa linha e saída 1. Mede em Linux e em
+Windows. A partir da raiz, com os modelos pt `tokenize` e `mwt` do Stanza já baixados:
+
+```
+uv run --no-project --python 3.12 --with stanza==1.15.1 --with peft --with psutil \
+    python language-service/tools/measure_coreference.py stanza <arquivo do modelo .pt>
+```
+
+Rode um modelo por vez, e só se a memória livre projetada com ele carregado ficar acima de 12%.
+
 ## O que registrar
 
 Num documento novo de `docs/historico/`, em tabela: modelo, versão e licença (do meta.json),

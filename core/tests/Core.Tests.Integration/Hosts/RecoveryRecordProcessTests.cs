@@ -23,7 +23,7 @@ public sealed class RecoveryRecordProcessTests
     private const string Tip = "SELECT sequence || ',' || encode(digest, 'hex') FROM public.custody_event ORDER BY sequence DESC LIMIT 1";
     private const string Written = "SELECT count(*) FROM public.custody_event WHERE step = 'recovery_tested'";
     private static readonly TimeSpan Limit = TimeSpan.FromSeconds(120);
-    private static readonly string[] Labels = ["texto-bruto/1/v1", "mapa-reversao/1/v1"];
+    private static readonly string[] Labels = [.. DomainCreation.LabelsOf(1)];
 
     [DatabaseFact]
     public async Task Ca3TheCommandWritesTheStepWhenTheTopIsInTheChainAndTheKeyIsTheOneOfTheFilesAndTheGateSaysItIsTested()

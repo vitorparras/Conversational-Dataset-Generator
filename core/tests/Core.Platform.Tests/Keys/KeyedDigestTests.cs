@@ -48,6 +48,7 @@ public sealed class KeyedDigestTests : IDisposable
     [Theory]
     [InlineData("texto-bruto/7/v1")]
     [InlineData("mapa-reversao/1/v2")]
+    [InlineData("deslocamento-datas/3/v1")]
     public void APurposeThatIsTheTextOfALabelIsRefusedSoThatNoDigestSharesAKeyWithAContentKey(string label) =>
         _ = Assert.Throws<ArgumentException>(() => Derivation.Digest(label, "ZQX-conteudo"));
 

@@ -8,7 +8,7 @@ using Npgsql;
 namespace Core.Tests.Integration.Hosts;
 
 /// <summary>
-/// The built host asked to create a domain (issue 54, CA-4), as its own process over a database of its own and with the owner credential: with the two labels in the custody file it writes
+/// The built host asked to create a domain (issue 54, CA-4), as its own process over a database of its own and with the owner credential: with the labels of each purpose in the custody file it writes
 /// the domain, the labels and the event; with one missing it names it and exits with the code of the missing label; with the name taken it exits with the code of the repeated name.
 /// Only the exit code, the words and the rows are looked at, never a key.
 /// </summary>
@@ -24,11 +24,11 @@ public sealed class DomainCreationProcessTests
         _ = await database.MigrateAsync(EmbeddedMigrations.Load());
         using var files = new CustodyFiles();
 
-        var (exit, words) = await RunAsync(database, Arguments(files, "zqx-domain-a", "texto-bruto/1/v1", "mapa-reversao/1/v1"));
+        var (exit, words) = await RunAsync(database, Arguments(files, "zqx-domain-a", "texto-bruto/1/v1", "mapa-reversao/1/v1", "deslocamento-datas/1/v1"));
 
         Assert.Equal((0, true), (exit, words.Contains("domínio criado com o id 1", StringComparison.Ordinal)));
         Assert.Equal(
-            (1L, 2L, 1L),
+            (1L, 3L, 1L),
             (await ScalarAsync(database, "SELECT count(*) FROM public.domain"),
              await ScalarAsync(database, "SELECT count(*) FROM public.derivation_label"),
              await ScalarAsync(database, "SELECT count(*) FROM public.custody_event WHERE step = 'domain_created' AND item_kind = 'domain' AND item_id = 1")));
@@ -42,7 +42,7 @@ public sealed class DomainCreationProcessTests
         _ = await database.MigrateAsync(EmbeddedMigrations.Load());
         using var files = new CustodyFiles();
 
-        var (exit, words) = await RunAsync(database, Arguments(files, "zqx-domain-a", "texto-bruto/1/v1"));
+        var (exit, words) = await RunAsync(database, Arguments(files, "zqx-domain-a", "texto-bruto/1/v1", "deslocamento-datas/1/v1"));
 
         Assert.Equal((17, true, true), (exit, words.Contains("mapa-reversao/1/v1", StringComparison.Ordinal), words.Contains("id 1", StringComparison.Ordinal)));
         Assert.DoesNotContain("texto-bruto/1/v1", words, StringComparison.Ordinal);
@@ -55,13 +55,13 @@ public sealed class DomainCreationProcessTests
         await using var database = await ScratchDatabase.CreateAsync();
         _ = await database.MigrateAsync(EmbeddedMigrations.Load());
         using var files = new CustodyFiles();
-        var arguments = Arguments(files, "zqx-domain-a", "texto-bruto/1/v1", "mapa-reversao/1/v1", "texto-bruto/2/v1", "mapa-reversao/2/v1");
+        var arguments = Arguments(files, "zqx-domain-a", "texto-bruto/1/v1", "mapa-reversao/1/v1", "deslocamento-datas/1/v1", "texto-bruto/2/v1", "mapa-reversao/2/v1", "deslocamento-datas/2/v1");
 
         var (first, _) = await RunAsync(database, arguments);
         var (second, _) = await RunAsync(database, arguments);
 
         Assert.Equal((0, 18), (first, second));
-        Assert.Equal((1L, 2L, 1L), await CountsAsync(database));
+        Assert.Equal((1L, 3L, 1L), await CountsAsync(database));
     }
 
     [DatabaseFact]
@@ -70,7 +70,8 @@ public sealed class DomainCreationProcessTests
         await using var database = await ScratchDatabase.CreateAsync();
         _ = await database.MigrateAsync(EmbeddedMigrations.Load());
         using var files = new CustodyFiles();
-        var withoutName = Arguments(files, "zqx-domain-a", "texto-bruto/1/v1", "mapa-reversao/1/v1").Where(argument => !argument.StartsWith("--name", StringComparison.Ordinal)).ToArray();
+        var withoutName = Arguments(files, "zqx-domain-a", "texto-bruto/1/v1", "mapa-reversao/1/v1", "deslocamento-datas/1/v1")
+            .Where(argument => !argument.StartsWith("--name", StringComparison.Ordinal)).ToArray();
 
         var (exit, words) = await RunAsync(database, withoutName);
 

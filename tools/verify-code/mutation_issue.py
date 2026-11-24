@@ -15,8 +15,6 @@ from steps.mutation_parts import split_module
 TITLE = "Mutação noturna reprovou em `{}`"
 SURVIVOR = "sobrevivente:"
 SHOWN_LINES = 60
-LISTED = 1000
-USAGE = 2
 
 
 def reports(folder: Path) -> dict[str, list[tuple[str, list[str]]]]:
@@ -45,7 +43,7 @@ def open_issue(title: str, folder: Path, run: RunCommand) -> int | str | None:
     """The number of the open issue with exactly ``title``, None when there is none, and the
     reason when GitHub cannot say."""
     asked = ["gh", "issue", "list", "--state", "open", "--json", "number,title"]
-    outcome = run([*asked, "--limit", str(LISTED)], folder)
+    outcome = run([*asked, "--limit", "1000"], folder)
     if not outcome.ok:
         return f"o gh não listou as issues abertas: {outcome.text.strip()}"
     issues = json.loads(outcome.text or "[]")
@@ -71,7 +69,7 @@ def main(argv: list[str], run: RunCommand = run_process) -> int:
     """Files every failing module; 1 when any of them could not be filed."""
     if len(argv) != 2:
         print(__doc__)
-        return USAGE
+        return 2
     folder, url = Path(argv[0]), argv[1]
     problems = [
         problem

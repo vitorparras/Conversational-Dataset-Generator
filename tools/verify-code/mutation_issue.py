@@ -1,6 +1,5 @@
-"""Usage: mutation_issue.py <folder of the reports> <url of the run>. Each failing module of the
-nightly mutation of main (decisão 0059) gets one issue, or a comment on its open one; a report is
-the job in `modulo.txt` and what the step printed in `relatorio.txt`."""
+"""Usage: mutation_issue.py <reports folder> <run url>. Opens, or comments on, the issue of each
+module the nightly mutation of main failed (decisão 0059): `modulo.txt` and `relatorio.txt`."""
 
 from __future__ import annotations
 
@@ -15,7 +14,9 @@ from steps.mutation_parts import split_module
 TITLE = "Mutação noturna reprovou em `{}`"
 SURVIVOR = "sobrevivente:"
 UNREPORTED = "sem relatório"
+ARGUMENTS = 2
 SHOWN_LINES = 60
+NONE_LISTED = "- nenhum sobrevivente listado; a causa da reprovação está na saída abaixo"
 
 
 def reports(folder: Path) -> dict[str, list[tuple[str, list[str]]]]:
@@ -30,11 +31,9 @@ def reports(folder: Path) -> dict[str, list[tuple[str, list[str]]]]:
 
 
 def body(run: str, prefix: str, jobs: list[tuple[str, list[str]]]) -> str:
-    """The text of the issue or of the comment: the module, the run, the survivors and the output."""
+    """The text of the issue or comment: the module, the run, the survivors and the output."""
     survivors = [line.strip() for _, lines in jobs for line in lines if SURVIVOR in line]
-    listed = [f"- {line}" for line in survivors] or [
-        "- nenhum sobrevivente listado; a reprovação veio de outra causa, veja a saída abaixo"
-    ]
+    listed = [f"- {line}" for line in survivors] or [NONE_LISTED]
     output = (f"{job}:\n" + "\n".join(lines[:SHOWN_LINES]) for job, lines in jobs)
     head = [f"Módulo: `{prefix}`", f"Run: {run}", f"Jobs: {', '.join(job for job, _ in jobs)}"]
     return "\n".join((*head, "", "Mutantes sobreviventes:", *listed, "", "```", *output, "```", ""))
@@ -58,16 +57,15 @@ def file(prefix: str, text: str, folder: Path, run: RunCommand) -> str | None:
         return found
     written = folder / f"corpo-{prefix}.md"
     written.write_text(text, encoding="utf-8")
-    command = ["gh", "issue", "create", "--title", title]
-    if found is not None:
-        command = ["gh", "issue", "comment", str(found)]
+    create = ["gh", "issue", "create", "--title", title]
+    command = create if found is None else ["gh", "issue", "comment", str(found)]
     outcome = run([*command, "--body-file", str(written)], folder)
     return None if outcome.ok else f"`{prefix}`: o gh recusou: {outcome.text.strip()}"
 
 
 def main(argv: list[str], run: RunCommand = run_process) -> int:
     """Files each failing module, or the run when no report came; 1 then or on any refusal."""
-    if len(argv) != 2:
+    if len(argv) != ARGUMENTS:
         print(__doc__)
         return 2
     folder, url = Path(argv[0]), argv[1]

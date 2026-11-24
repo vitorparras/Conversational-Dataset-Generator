@@ -31,7 +31,7 @@ class DiffPartsTests(PartsFixture):
         self.assertEqual(names, (f"{LOGGING}@1/2", f"{LOGGING}@2/2"))
 
     def test_each_part_the_list_names_mutates_one_file_of_the_diff(self) -> None:
-        mutated = []
+        mutated: list[list[str]] = []
         for part in ("1/2", "2/2"):
             result = mutation.run(self.context(f"{LOGGING}@{part}"))
             self.assertTrue(result.ok, result.details)

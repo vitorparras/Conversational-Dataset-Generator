@@ -120,8 +120,8 @@ class MutationAggregateJobTests(unittest.TestCase):
         self.assertIn("MATRIX: ${{ needs.mutation_module.result }}", job)
         self.assertIn("MODULES: ${{ needs.mutation_modules.outputs.modules }}", job)
         self.assertIn(
-            'if [ "$CLASSIFICATION" = success ] '
-            '&& { [ "$HEAVY" = false ] || [ "$DRAFT" = true ]; }; then',
+            'if [ "$EVENT" = push ] || { [ "$CLASSIFICATION" = success ] '
+            '&& { [ "$HEAVY" = false ] || [ "$DRAFT" = true ]; }; }; then',
             job,
         )
         self.assertIn('[ "$LISTED" = "$list" ] && [ "$MATRIX" = "$matrix" ] || exit 1', job)

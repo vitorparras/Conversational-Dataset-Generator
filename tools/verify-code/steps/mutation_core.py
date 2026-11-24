@@ -93,9 +93,7 @@ def files(root: Path, area: Area, areas: tuple[Area, ...]) -> tuple[str, ...]:
     return tuple(sorted(f"{SOURCES}/{core.project}/{name}" for name in sources(root, core)))
 
 
-def scoped(
-    root: Path, area: Area, areas: tuple[Area, ...], scope: DiffScope
-) -> CoreTarget | None:
+def scoped(root: Path, area: Area, areas: tuple[Area, ...], scope: DiffScope) -> CoreTarget | None:
     """The area whole, or only its files the diff changed; None with no code or no such file."""
     core = whole(root, area, areas)
     if core is None or scope.paths is None:

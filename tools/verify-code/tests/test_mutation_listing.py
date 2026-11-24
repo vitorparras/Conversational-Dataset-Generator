@@ -76,4 +76,3 @@ class ListingTests(fixture.MutationFixture):
             names, lines = mutation_diff.select(context)
 
         self.assertEqual((names, lines), nothing)
-

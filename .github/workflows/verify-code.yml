@@ -407,7 +407,7 @@ jobs:
   mutation_modules:
     name: Módulos críticos da mutação
     needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.heavy != 'false' && github.event.pull_request.draft != true }}
+    if: ${{ !cancelled() && github.event_name != 'push' && needs.changes.outputs.heavy != 'false' && github.event.pull_request.draft != true }}
     runs-on: ubuntu-latest
     outputs:
       modules: ${{ steps.list.outputs.modules }}
@@ -532,6 +532,7 @@ jobs:
         with:
           python-version: '3.12'
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        continue-on-error: true
         with:
           pattern: relatorio-*
           path: ${{ runner.temp }}/relatorios
@@ -560,11 +561,12 @@ jobs:
           MODULES: ${{ needs.mutation_modules.outputs.modules }}
           MATRIX: ${{ needs.mutation_module.result }}
           DRAFT: ${{ github.event.pull_request.draft }}
+          EVENT: ${{ github.event_name }}
         run: |
-          echo "classificação: $CLASSIFICATION, heavy=$HEAVY, rascunho: $DRAFT, lista: $LISTED, módulos: $MODULES, matriz: $MATRIX"
+          echo "evento: $EVENT, classificação: $CLASSIFICATION, heavy=$HEAVY, rascunho: $DRAFT, lista: $LISTED, módulos: $MODULES, matriz: $MATRIX"
           list=success
           matrix=success
-          if [ "$CLASSIFICATION" = success ] && { [ "$HEAVY" = false ] || [ "$DRAFT" = true ]; }; then
+          if [ "$EVENT" = push ] || { [ "$CLASSIFICATION" = success ] && { [ "$HEAVY" = false ] || [ "$DRAFT" = true ]; }; }; then
             list=skipped
             matrix=skipped
           elif [ "$CLASSIFICATION" = success ] && [ "$LISTED" = success ] && [ "$MODULES" = '[]' ]; then

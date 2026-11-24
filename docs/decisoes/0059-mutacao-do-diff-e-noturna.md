@@ -24,10 +24,11 @@ mutado do que não foi: a lista da matriz diz, por módulo, quantos arquivos mut
 outros ficam para a noturna; o passo repete os arquivos mutados. Verde no pull request não quer
 dizer módulo inteiro coberto.
 
-**Todo dia, o agendamento da verificação muta inteiro cada módulo crítico do main.** Um módulo que
-reprova ganha uma issue com o módulo, o run e os mutantes sobreviventes; se já há uma aberta para
-ele, a reprovação vira comentário nela. Esta é a decisão escrita que a 017 exige para mutação fora
-do bloqueio: a noturna não bloqueia merge, porque o código já entrou.
+**Todo dia, o agendamento da verificação muta inteiro cada módulo crítico do main; o merge no main
+não muta.** Um módulo que reprova ganha uma issue com o módulo, o run e os mutantes sobreviventes;
+se já há uma aberta para ele, a reprovação vira comentário nela. Reprovação sem relatório ganha uma
+issue com o run. Esta é a decisão escrita que a 017 exige para mutação fora do bloqueio: a noturna
+não bloqueia merge, porque o código já entrou.
 
 O dono do projeto aprovou a troca da mutação completa em todo pull request pela mutação do diff no
 pull request mais a completa noturna no main.

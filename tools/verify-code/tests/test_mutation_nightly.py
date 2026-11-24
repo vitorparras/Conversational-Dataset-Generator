@@ -22,6 +22,7 @@ RUN = "https://example.invalid/runs/1"
 SURVIVOR = "  sobrevivente: core/src/Core.Alpha/Code.cs:12 — troca de + por -"
 REPORT = f"FALHOU  mutation       3.0 s\n       Alpha (`Core.Alpha`): 4 gerados\n{SURVIVOR}\n"
 TITLE = "Mutação noturna reprovou em `Core.Alpha`"
+TITLE_UNREPORTED = "Mutação noturna reprovou em `sem relatório`"
 
 
 def job(name: str) -> str:
@@ -136,11 +137,31 @@ class IssueTests(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertEqual(github.asked("create"), [])
 
-    def test_no_report_files_nothing(self) -> None:
+    def test_a_failure_that_left_no_report_files_the_run_and_fails(self) -> None:
         github = FakeGitHub()
 
-        self.assertEqual(self.file(github), 0)
-        self.assertEqual(github.calls, [])
+        code = self.file(github)
+
+        self.assertEqual(code, 1)
+        created = github.asked("create")
+        self.assertEqual(len(created), 1)
+        self.assertEqual(created[0][created[0].index("--title") + 1], TITLE_UNREPORTED)
+        self.assertIn(RUN, github.bodies[0])
+
+    def test_a_second_failure_with_no_report_comments_on_the_open_issue(self) -> None:
+        github = FakeGitHub(open_issues=[{"number": 9, "title": TITLE_UNREPORTED}])
+
+        self.assertEqual(self.file(github), 1)
+        self.assertEqual(github.asked("create"), [])
+        self.assertEqual([call[3] for call in github.asked("comment")], ["9"])
+
+    def test_a_missing_folder_is_a_failure_with_no_report(self) -> None:
+        github = FakeGitHub()
+
+        code = mutation_issue.main([str(self.folder / "ausente"), RUN], run=github)
+
+        self.assertEqual(code, 1)
+        self.assertEqual(len(github.asked("create")), 1)
 
 
 class NightlyWorkflowTests(unittest.TestCase):
@@ -156,6 +177,12 @@ class NightlyWorkflowTests(unittest.TestCase):
         self.assertIn('--step mutation --module "$MODULE" ${BASE:+--base "$BASE"}', matrix)
         self.assertIn("fetch-depth: 0", matrix)
         self.assertIn("base: ${{ steps.list.outputs.base }}", job("mutation_modules"))
+
+    def test_a_push_to_main_runs_no_mutation(self) -> None:
+        lines = job("mutation_modules").splitlines()
+        condition = next(line for line in lines if line.startswith("    if:"))
+
+        self.assertIn("github.event_name != 'push'", condition)
 
     def test_the_matrix_fails_when_the_step_fails_even_through_the_copy_of_its_report(self) -> None:
         self.assertIn("set -o pipefail", job("mutation_module"))
@@ -174,4 +201,5 @@ class NightlyWorkflowTests(unittest.TestCase):
         self.assertIn("needs.mutation_module.result == 'failure'", nightly)
         self.assertIn("issues: write", nightly)
         self.assertIn("pattern: relatorio-*", nightly)
+        self.assertIn("continue-on-error: true", nightly)
         self.assertIn("tools/verify-code/mutation_issue.py", nightly)

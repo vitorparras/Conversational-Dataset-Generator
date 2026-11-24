@@ -14,6 +14,7 @@ from steps.mutation_parts import split_module
 
 TITLE = "Mutação noturna reprovou em `{}`"
 SURVIVOR = "sobrevivente:"
+UNREPORTED = "sem relatório"
 SHOWN_LINES = 60
 
 
@@ -66,18 +67,21 @@ def file(prefix: str, text: str, folder: Path, run: RunCommand) -> str | None:
 
 
 def main(argv: list[str], run: RunCommand = run_process) -> int:
-    """Files every failing module; 1 when any of them could not be filed."""
+    """Files every failing module, or the run when no job left a report; 1 when any of them
+    could not be filed or no report came."""
     if len(argv) != 2:
         print(__doc__)
         return 2
     folder, url = Path(argv[0]), argv[1]
+    folder.mkdir(parents=True, exist_ok=True)
+    found = reports(folder) or {UNREPORTED: [("nenhum job deixou relatório; veja o run", [])]}
     problems = [
         problem
-        for prefix, jobs in reports(folder).items()
+        for prefix, jobs in found.items()
         if (problem := file(prefix, body(url, prefix, jobs), folder, run))
     ]
     print("\n".join(problems or ["mutação noturna: issues registradas"]))
-    return 1 if problems else 0
+    return 1 if problems or UNREPORTED in found else 0
 
 
 if __name__ == "__main__":

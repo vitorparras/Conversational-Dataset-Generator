@@ -29,7 +29,7 @@ deliberada e justificada.
 | [0015](0015-versionamento-e-compatibilidade.md) | Versionamento e compatibilidade | Decisão vigente |
 | [0016](0016-mudanca-de-taxonomia-com-anotacao-existente.md) | Mudança de taxonomia com anotação existente | Decisão vigente |
 | [0017](0017-dupla-anotacao-e-arbitragem.md) | Dupla anotação e arbitragem | Decisão vigente |
-| [0018](0018-contrato-da-fronteira.md) | O contrato da fronteira carrega a análise gramatical | Decisão vigente |
+| [0018](0018-contrato-da-fronteira.md) | O contrato da fronteira carrega a análise gramatical | Substituída por 0056 no destino do topônimo |
 | [0019](0019-selo-externo-da-cadeia.md) | Onde mora o selo externo da cadeia | Decisão vigente |
 | [0020](0020-exportacao-desloca-datas.md) | A exportação desloca as datas | Decisão vigente |
 | [0021](0021-comunicacao-de-incidente.md) | A quem se comunica um incidente | Decisão vigente |
@@ -67,6 +67,9 @@ deliberada e justificada.
 | [0053](0053-configuracao-alterada-pela-tela.md) | Configuração alterada pela tela, com aprovação de outra pessoa | Decisão vigente |
 | [0054](0054-teto-por-fatia-e-migracao-por-data.md) | Teto do PR por fatia e migração nomeada por data e hora | Decisão vigente |
 | [0055](0055-recusas-da-revisao-em-contrato-da-ingestao.md) | Recusas da revisão por amostra em `Core.Ingestion.Contracts` | Decisão vigente |
+| [0056](0056-toponimo-vira-marcador.md) | O nome de lugar vira marcador | Decisão vigente |
+| [0057](0057-escopo-do-marcador-e-a-conversa.md) | O escopo do marcador é a conversa | Decisão vigente |
+| [0058](0058-padrao-de-usabilidade-e-visual.md) | Padrão de usabilidade e visual das telas | Decisão vigente |
 
 ## Formato
 

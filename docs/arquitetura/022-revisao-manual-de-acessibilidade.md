@@ -20,6 +20,7 @@ nem julga ordem e texto. Quem revisa uma tela nova percorre esta lista e anota o
 | Ampliação | A 200% e a 320 px de largura, nada se corta e não há rolagem horizontal |
 | Preferências | Escuro, transparência reduzida, contraste alto, cores forçadas e movimento reduzido |
 | Sem script | Link e formulário funcionam com a página inteira |
+| Primeira dobra | No computador (1366x768), a tela cabe na primeira dobra, com a ação principal visível ([0058](../decisoes/0058-padrao-de-usabilidade-e-visual.md)) |
 
 ## Contraste medido
 

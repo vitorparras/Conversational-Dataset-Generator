@@ -1,6 +1,6 @@
 # Tela
 
-> Norma vigente. 2026-11-15.
+> Norma vigente. 2026-11-23.
 
 Componente Razor que a rota entrega dentro da moldura comum das telas. Vive em
 `core/src/Core.Host/Screens`.
@@ -20,6 +20,23 @@ Componente Razor que a rota entrega dentro da moldura comum das telas. Vive em
   `data-wait` (linhas 6 e 17).
 - O texto ao usuário é português, diz o que aconteceu e o que fazer, e não revela o que não deve
   (uma só mensagem para senha errada e para espera, comentário da linha 25).
+
+## Usabilidade e visual
+
+Tela nova, a partir da fase 5, segue a [0058](../../decisoes/0058-padrao-de-usabilidade-e-visual.md):
+
+- Título de até cinco palavras; abaixo dele, no máximo uma linha de situação (até 90 caracteres).
+  Sem parágrafo explicativo; regra de negócio vai num recolhido "Como funciona".
+- Um `Button` principal por tela; os outros, secundário ou link, depois dele; perigo só para o que
+  não se desfaz. O tipo de cada botão é escolhido na tela.
+- O secundário (quem fez e quando, detalhe do registro, filtro de lista curta) vai recolhido.
+- Nada de painéis seguidos; situação de registro é marca, e aviso é só retorno de ação, numa frase.
+- "Todos os campos são obrigatórios" uma vez; dica de campo só quando o formato não é óbvio.
+
+`screens.css` fica como está. As classes que os protótipos da fase 5 propõem (recolhido, linha de
+situação, lista em linhas) entram como componente quando a fatia de tela precisar delas. O PR de
+tela traz capturas em 390x844 e 1366x768, no tema do sistema; quem revisa confere nelas estas
+regras e a primeira dobra ([022](../022-revisao-manual-de-acessibilidade.md)).
 
 ## Princípio
 

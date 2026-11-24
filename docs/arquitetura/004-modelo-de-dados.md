@@ -23,10 +23,10 @@ cada parte é uma mensagem com autoria e posição na ordem. Num documento não 
 a divisão é só de leitura. Numa sequência rotulada é o trecho que a anotação recebe, e seus limites
 resolvem sempre para o mesmo texto ou falham à vista — ver [anotação](008-modulo-anotacao.md).
 
-O **participante** é quem fala, já pseudonimizado: um rótulo estável dentro do domínio, que não o
-atravessa — a mesma pessoa em dois domínios é dois participantes. A ligação com a pessoa real não
-está aqui; está no **mapa de reversão**, cifrado e separado, a única entidade do modelo cujo acesso
-revela identidade ([0003](../decisoes/0003-cifra-em-repouso.md)).
+O **participante** é quem fala, já pseudonimizado: um rótulo estável dentro da conversa, que não a
+atravessa ([0057](../decisoes/0057-escopo-do-marcador-e-a-conversa.md)). A ligação com a pessoa real
+não está aqui; está no **mapa de reversão**, cifrado e separado, a única entidade do modelo cujo
+acesso revela identidade ([0003](../decisoes/0003-cifra-em-repouso.md)).
 
 A **anotação** liga uma pessoa, um item ou uma parte, um conjunto de categorias com uma marcada como
 principal, os valores das dimensões e um momento ([0022](../decisoes/0022-forma-do-rotulo.md)).

@@ -1,6 +1,7 @@
 # 0018 — O contrato da fronteira carrega a análise gramatical
 
-> Decisão vigente. 2026-10-07. Substitui a decisão 0011 quanto ao formato da resposta.
+> Decisão substituída por 0056 quanto ao destino do topônimo. 2026-10-07. Substitui a decisão 0011
+> quanto ao formato da resposta.
 
 ## Contexto
 

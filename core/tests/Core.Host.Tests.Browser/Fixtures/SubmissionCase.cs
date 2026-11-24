@@ -88,6 +88,9 @@ internal static class SubmissionCase
     {
         public Task<RecognitionOutcome> RecognizeAsync(AnalysisRequest request, CancellationToken cancellationToken) =>
             Task.FromResult(RecognitionOutcome.Analyzed(new AnalysisResponse([], "zqx-model-clean")));
+
+        public Task<ItemRecognitionOutcome> RecognizeItemAsync(ItemAnalysisRequest request, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("No submission asks for a whole item yet.");
     }
 
     /// <summary>A recognizer that finds a credential in the first character of every text, which the destinations remove and the sanitized text shows by its marker.</summary>
@@ -95,6 +98,9 @@ internal static class SubmissionCase
     {
         public Task<RecognitionOutcome> RecognizeAsync(AnalysisRequest request, CancellationToken cancellationToken) =>
             Task.FromResult(RecognitionOutcome.Analyzed(new AnalysisResponse([new Occurrence(0, 1, "CREDENTIAL", "PROPN", "nsubj")], "zqx-model-credential")));
+
+        public Task<ItemRecognitionOutcome> RecognizeItemAsync(ItemAnalysisRequest request, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("No submission asks for a whole item yet.");
     }
 
     /// <summary>The domain granted to whoever enters, whatever the function; the function still decides what the gate opens.</summary>

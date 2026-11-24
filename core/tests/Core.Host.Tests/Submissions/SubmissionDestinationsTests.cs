@@ -171,6 +171,9 @@ public sealed class SubmissionDestinationsTests
 
         public Task<RecognitionOutcome> RecognizeAsync(AnalysisRequest request, CancellationToken cancellationToken) =>
             (first.Asked.Count == 0 ? first : rest).RecognizeAsync(request, cancellationToken);
+
+        public Task<ItemRecognitionOutcome> RecognizeItemAsync(ItemAnalysisRequest request, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("No submission asks for a whole item yet.");
     }
 
     /// <summary>A recognizer that cancels the submission when it is first asked, and then answers as the fake one does to a request whose token is cancelled.</summary>
@@ -183,5 +186,8 @@ public sealed class SubmissionDestinationsTests
             await cancelling.CancelAsync();
             return await fake.RecognizeAsync(request, cancellationToken);
         }
+
+        public Task<ItemRecognitionOutcome> RecognizeItemAsync(ItemAnalysisRequest request, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("No submission asks for a whole item yet.");
     }
 }

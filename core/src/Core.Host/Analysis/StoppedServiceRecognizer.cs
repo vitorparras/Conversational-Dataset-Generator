@@ -16,4 +16,12 @@ internal sealed class StoppedServiceRecognizer(ILogger<StoppedServiceRecognizer>
         logger.NotSent(request.Reference);
         return Task.FromResult(RecognitionOutcome.Unavailable(UnavailabilityReason.ConnectionRefused));
     }
+
+    /// <inheritdoc />
+    public Task<ItemRecognitionOutcome> RecognizeItemAsync(ItemAnalysisRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        logger.NotSent(request.Reference);
+        return Task.FromResult(ItemRecognitionOutcome.Unavailable(UnavailabilityReason.ConnectionRefused));
+    }
 }

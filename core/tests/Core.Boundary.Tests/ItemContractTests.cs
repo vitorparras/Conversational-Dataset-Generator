@@ -100,6 +100,33 @@ public sealed class ItemContractTests
     }
 
     [Fact]
-    public void ItemOutcomeRefusesAReasonOutsideTheEnumeration() =>
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() => ItemRecognitionOutcome.Unavailable((UnavailabilityReason)99));
+    public void ItemOutcomeRefusesAReasonOutsideTheEnumeration()
+    {
+        var defect = Assert.Throws<ArgumentOutOfRangeException>(() => ItemRecognitionOutcome.Unavailable((UnavailabilityReason)99));
+
+        Assert.Equal("reason", defect.ParamName);
+        Assert.Contains("The reason is not one of the enumeration.", defect.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ItemOutcomeWithoutItsAnalysisIsADefect()
+    {
+        var defect = Assert.Throws<ArgumentNullException>(() => ItemRecognitionOutcome.Analyzed(null!));
+
+        Assert.Equal("response", defect.ParamName);
+    }
+
+    [Theory]
+    [InlineData(Marker, "ItemText { TextChars = 5, HasAuthor = True }")]
+    [InlineData(null, "ItemText { TextChars = 5, HasAuthor = False }")]
+    public void ItemTextDescriptionGivesOnlyItsSizeAndWhetherItHasAnAuthor(string? author, string expected) =>
+        Assert.Equal(expected, new ItemText("texto", author).ToString());
+
+    [Fact]
+    public void ItemResponseDescriptionGivesTheCountsAndTheModelButNoName()
+    {
+        var response = new ItemAnalysisResponse([new GroupedOccurrence(0, 0, 5, "PERSON", "PROPN", "obl", 0)], [new AuthorGroup(Marker, 1)], "zqx-model-2");
+
+        Assert.Equal("ItemAnalysisResponse { Occurrences = 1, AuthorGroups = 1, ModelVersion = zqx-model-2 }", response.ToString());
+    }
 }

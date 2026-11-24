@@ -9,7 +9,7 @@ public enum DomainLabelOutcome
     /// <summary>The revocation of the label and its event are written.</summary>
     Revoked,
 
-    /// <summary>No domain has the identifier, or none with labels, which is the same since the creation writes both.</summary>
+    /// <summary>No domain has the identifier, or none with labels, which is the same since the creation writes them all.</summary>
     DomainNotFound,
 
     /// <summary>The custody does not hold the labels of the next generation; the result names them.</summary>

@@ -22,7 +22,7 @@ public sealed class DomainLabelProcessTests
     private static readonly TimeSpan Limit = TimeSpan.FromSeconds(120);
     private static readonly string[] Everything =
     [
-        "texto-bruto/1/v1", "mapa-reversao/1/v1", "texto-bruto/2/v1", "mapa-reversao/2/v1", "texto-bruto/1/v2", "mapa-reversao/1/v2",
+        .. DomainCreation.LabelsOf(1), .. DomainCreation.LabelsOf(2), .. DomainLabelRotation.LabelsOf(1, 2),
     ];
 
     [DatabaseFact]
@@ -35,7 +35,7 @@ public sealed class DomainLabelProcessTests
 
         Assert.Equal((0, true), (exit, words.Contains("domínio 1 cifra sob a geração v2", StringComparison.Ordinal)));
         Assert.Equal(
-            (6L, 2L, 1L, 0L),
+            (9L, 3L, 1L, 0L),
             (await ScalarAsync(database, "SELECT count(*) FROM public.derivation_label"),
              await ScalarAsync(database, "SELECT count(*) FROM public.derivation_label WHERE label LIKE '%/2/v%'"),
              await ScalarAsync(database, "SELECT count(*) FROM public.custody_event WHERE step = 'domain_label_rotated' AND item_kind = 'domain' AND item_id = 1 AND reference = 'v2'"),
@@ -51,7 +51,7 @@ public sealed class DomainLabelProcessTests
         var (exit, words) = await RunAsync(database, Arguments(files, "rotate-domain-label", "--domain=1", [.. Everything.Where(label => label != "mapa-reversao/1/v2")]));
 
         Assert.Equal((17, true, false), (exit, words.Contains("mapa-reversao/1/v2", StringComparison.Ordinal), words.Contains("texto-bruto/1/v2", StringComparison.Ordinal)));
-        Assert.Equal((4L, 2L), (await ScalarAsync(database, "SELECT count(*) FROM public.derivation_label"), await ScalarAsync(database, "SELECT count(*) FROM public.custody_event")));
+        Assert.Equal((6L, 2L), (await ScalarAsync(database, "SELECT count(*) FROM public.derivation_label"), await ScalarAsync(database, "SELECT count(*) FROM public.custody_event")));
     }
 
     [DatabaseFact]
@@ -63,7 +63,7 @@ public sealed class DomainLabelProcessTests
         var (exit, words) = await RunAsync(database, Arguments(files, "rotate-domain-label", "--domain=9", Everything));
 
         Assert.Equal((24, true), (exit, words.Contains("não há domínio", StringComparison.Ordinal)));
-        Assert.Equal(4L, await ScalarAsync(database, "SELECT count(*) FROM public.derivation_label"));
+        Assert.Equal(6L, await ScalarAsync(database, "SELECT count(*) FROM public.derivation_label"));
     }
 
     [DatabaseFact]
@@ -188,7 +188,7 @@ public sealed class DomainLabelProcessTests
         var (exit, words) = await RunAsync(database, Arguments(files, "rotate-domain-label", null, Everything));
 
         Assert.Equal((78, true), (exit, words.Contains("--domain", StringComparison.Ordinal)));
-        Assert.Equal(4L, await ScalarAsync(database, "SELECT count(*) FROM public.derivation_label"));
+        Assert.Equal(6L, await ScalarAsync(database, "SELECT count(*) FROM public.derivation_label"));
     }
 
     private static async Task<ScratchDatabase> WithTwoDomainsAsync()

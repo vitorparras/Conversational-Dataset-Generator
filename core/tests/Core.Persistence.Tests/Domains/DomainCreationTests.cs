@@ -11,7 +11,7 @@ using Npgsql;
 namespace Core.Persistence.Tests.Domains;
 
 /// <summary>
-/// The creation of a domain (issue 54, part 2), over a migrated database of its own and the credential of the owner: the domain, its two derivation labels and the event of the chain
+/// The creation of a domain (issue 54, part 2), over a migrated database of its own and the credential of the owner: the domain, its derivation labels and the event of the chain
 /// exist together or not at all (CA-4a to CA-4e).
 /// </summary>
 [Trait("Category", "Database")]
@@ -22,18 +22,18 @@ public sealed class DomainCreationTests
     private const string Events = "SELECT count(*) FROM public.custody_event";
     private const string Created = "SELECT count(*) FROM public.custody_event WHERE step = 'domain_created'";
 
-    private static readonly DerivationLabels First = DerivationLabels.Of(["texto-bruto/1/v1", "mapa-reversao/1/v1"]);
+    private static readonly DerivationLabels First = DerivationLabels.Of(DomainCreation.LabelsOf(1));
     private static readonly DomainCreationOutcome[] RefusedWhenSecond = [DomainCreationOutcome.Conflict, DomainCreationOutcome.LabelsMissing];
 
     [DatabaseFact]
-    public async Task Ca4aBothLabelsInTheCustodyCreateTheDomainWithTheAnnouncedIdTheTwoLabelsAndTheEvent()
+    public async Task Ca4aEveryLabelInTheCustodyCreatesTheDomainWithTheAnnouncedIdItsLabelsAndTheEvent()
     {
         await using var world = await World.CreateAsync();
 
         var result = await world.Creation.CreateAsync("zqx-domain-a", First, TestContext.Current.CancellationToken);
 
         Assert.Equal((DomainCreationOutcome.Created, 1), (result.Outcome, result.DomainId));
-        Assert.Equal(["mapa-reversao/1/v1", "texto-bruto/1/v1"], await world.Database.RecordedLabelsAsOwnerAsync());
+        Assert.Equal(["deslocamento-datas/1/v1", "mapa-reversao/1/v1", "texto-bruto/1/v1"], await world.Database.RecordedLabelsAsOwnerAsync());
         Assert.Equal(
             "system,domain,1,domain_created,administrative_act",
             await world.TextAsync("SELECT concat_ws(',', CASE WHEN actor_system THEN 'system' END, item_kind, item_id, step, reason) FROM public.custody_event"));
@@ -47,7 +47,7 @@ public sealed class DomainCreationTests
     public async Task Ca4aTheNextDomainTakesTheNextIdAndADomainAddedWithoutAnIdDoesNotTakeOneUsed()
     {
         await using var world = await World.CreateAsync();
-        var both = DerivationLabels.Of(["texto-bruto/1/v1", "mapa-reversao/1/v1", "texto-bruto/2/v1", "mapa-reversao/2/v1"]);
+        var both = DerivationLabels.Of([.. DomainCreation.LabelsOf(1), .. DomainCreation.LabelsOf(2)]);
 
         var first = await world.Creation.CreateAsync("zqx-domain-a", both, TestContext.Current.CancellationToken);
         var second = await world.Creation.CreateAsync("zqx-domain-b", both, TestContext.Current.CancellationToken);
@@ -61,9 +61,9 @@ public sealed class DomainCreationTests
     public async Task Ca4bALabelMissingRefusesNamesItWithTheIdAndLeavesTheDatabaseAndTheChainAsTheyWere()
     {
         await using var world = await World.CreateAsync();
-        var onlyTheText = DerivationLabels.Of(["texto-bruto/1/v1"]);
+        var withoutTheMap = DerivationLabels.Of(["texto-bruto/1/v1", "deslocamento-datas/1/v1"]);
 
-        var result = await world.Creation.CreateAsync("zqx-domain-a", onlyTheText, TestContext.Current.CancellationToken);
+        var result = await world.Creation.CreateAsync("zqx-domain-a", withoutTheMap, TestContext.Current.CancellationToken);
 
         Assert.Equal((DomainCreationOutcome.LabelsMissing, 1), (result.Outcome, result.DomainId));
         Assert.Equal(["mapa-reversao/1/v1"], result.MissingLabels);
@@ -71,13 +71,13 @@ public sealed class DomainCreationTests
     }
 
     [DatabaseFact]
-    public async Task Ca4bNoLabelAtAllNamesBothInOrder()
+    public async Task Ca4bNoLabelAtAllNamesEachInOrder()
     {
         await using var world = await World.CreateAsync();
 
         var result = await world.Creation.CreateAsync("zqx-domain-a", DerivationLabels.None, TestContext.Current.CancellationToken);
 
-        Assert.Equal(["mapa-reversao/1/v1", "texto-bruto/1/v1"], result.MissingLabels);
+        Assert.Equal(["deslocamento-datas/1/v1", "mapa-reversao/1/v1", "texto-bruto/1/v1"], result.MissingLabels);
         Assert.Equal((0L, 0L, 0L), await world.CountsAsync());
     }
 
@@ -90,21 +90,21 @@ public sealed class DomainCreationTests
         var result = await world.Creation.CreateAsync("zqx-domain-b", First, TestContext.Current.CancellationToken);
 
         Assert.Equal((DomainCreationOutcome.LabelsMissing, 2), (result.Outcome, result.DomainId));
-        Assert.Equal(["mapa-reversao/2/v1", "texto-bruto/2/v1"], result.MissingLabels);
-        Assert.Equal((1L, 2L, 1L), await world.CountsAsync());
+        Assert.Equal(["deslocamento-datas/2/v1", "mapa-reversao/2/v1", "texto-bruto/2/v1"], result.MissingLabels);
+        Assert.Equal((1L, 3L, 1L), await world.CountsAsync());
     }
 
     [DatabaseFact]
     public async Task Ca4cARepeatedNameIsRefusedWithoutWritingAnything()
     {
         await using var world = await World.CreateAsync();
-        var both = DerivationLabels.Of(["texto-bruto/1/v1", "mapa-reversao/1/v1", "texto-bruto/2/v1", "mapa-reversao/2/v1"]);
+        var both = DerivationLabels.Of([.. DomainCreation.LabelsOf(1), .. DomainCreation.LabelsOf(2)]);
         _ = await world.Creation.CreateAsync("zqx-domain-a", both, TestContext.Current.CancellationToken);
 
         var result = await world.Creation.CreateAsync("zqx-domain-a", both, TestContext.Current.CancellationToken);
 
         Assert.Equal(DomainCreationOutcome.NameTaken, result.Outcome);
-        Assert.Equal((1L, 2L, 1L), await world.CountsAsync());
+        Assert.Equal((1L, 3L, 1L), await world.CountsAsync());
     }
 
     [DatabaseTheory]
@@ -182,7 +182,7 @@ public sealed class DomainCreationTests
         Assert.Equal(1, results.Count(result => result.Outcome == DomainCreationOutcome.Created));
         var refused = results.Single(result => result.Outcome != DomainCreationOutcome.Created);
         Assert.Contains(refused.Outcome, RefusedWhenSecond);
-        Assert.Equal((1L, 2L, 1L), await world.CountsAsync());
+        Assert.Equal((1L, 3L, 1L), await world.CountsAsync());
         var verified = await new CustodyVerifier(world.DataSource, TimeProvider.System).VerifyAsync(TestContext.Current.CancellationToken);
         Assert.True(verified.Passed);
     }
@@ -200,7 +200,7 @@ public sealed class DomainCreationTests
 
     [Fact]
     public void LabelsOfADomainAreOneForEachPurposeInTheFormatOfTheDecision() =>
-        Assert.Equal(["texto-bruto/7/v1", "mapa-reversao/7/v1"], DomainCreation.LabelsOf(7));
+        Assert.Equal(["texto-bruto/7/v1", "mapa-reversao/7/v1", "deslocamento-datas/7/v1"], DomainCreation.LabelsOf(7));
 
     [Fact]
     public void ADataSourceThatIsNotGivenIsADefect() =>

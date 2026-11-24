@@ -1,0 +1,168 @@
+{
+  "about": "Conversas sintéticas em pt-BR, nomes trocados por identificadores (NOME_A, SOBRENOME_A); o mesmo identificador em duas pessoas é o mesmo nome em pessoas distintas. [texto|id] marca a menção de uma pessoa; o id liga as menções da mesma pessoa e o autor da mensagem. mixed: a mensagem mistura línguas.",
+  "conversations": [
+    {"messages": [
+      {"author": "p1", "name": "NOME_A", "text": "oi, a [NOME_B|p2] já chegou?"},
+      {"author": "p2", "name": "NOME_B", "text": "cheguei sim, tô na portaria esperando o [NOME_AR|p3]"},
+      {"author": "p1", "name": "NOME_A", "text": "o [NOME_AR|p3] disse que vai atrasar uns vinte minutos"},
+      {"author": "p2", "name": "NOME_B", "text": "de novo? fala pra ele que eu não vou esperar"},
+      {"author": "p1", "name": "NOME_A", "text": "já falei, [NOME_B|p2], ele tá preso no trânsito"},
+      {"author": "p2", "name": "NOME_B", "text": "tá bom, avisa o [NOME_AR|p3] que eu subo antes"},
+      {"author": "p1", "name": "NOME_A", "text": "beleza, eu e o [NOME_AR|p3] encontramos você lá em cima"}
+    ]},
+    {"messages": [
+      {"author": "p1", "name": "NOME_C", "text": "você viu o que a [NOME_D SOBRENOME_A|p3] postou ontem?"},
+      {"author": "p2", "name": "NOME_E", "text": "vi, a [NOME_D|p3] tá muito brava com o chefe dela"},
+      {"author": "p1", "name": "NOME_C", "text": "o chefe é o [NOME_AS|p4], né? ele sempre faz isso"},
+      {"author": "p2", "name": "NOME_E", "text": "é ele mesmo. a [SOBRENOME_A|p3] já reclamou no RH duas vezes"},
+      {"author": "p1", "name": "NOME_C", "text": "a [NOME_D|p3] devia sair de lá logo"},
+      {"author": "p2", "name": "NOME_E", "text": "concordo, [NOME_C|p1]. o [NOME_AS|p4] não vai mudar"}
+    ]},
+    {"messages": [
+      {"author": "p1", "name": "NOME_F", "text": "mano, the meeting got moved to friday, avisa o [NOME_AT|p2]", "mixed": true},
+      {"author": "p3", "name": "NOME_G", "text": "o [NOME_AT|p2] tá de férias, só volta segunda"},
+      {"author": "p1", "name": "NOME_F", "text": "então quem vai apresentar? [NOME_AT|p2] was supposed to do the slides", "mixed": true},
+      {"author": "p3", "name": "NOME_G", "text": "eu posso fazer, mas preciso do arquivo que ele mandou"},
+      {"author": "p1", "name": "NOME_F", "text": "vou pedir pro [NOME_AU|p4], he has a copy for sure", "mixed": true},
+      {"author": "p3", "name": "NOME_G", "text": "valeu, [NOME_F|p1]. se o [NOME_AU|p4] não tiver, eu refaço"},
+      {"author": "p1", "name": "NOME_F", "text": "o [NOME_AU|p4] respondeu: tem sim, manda hoje"}
+    ]},
+    {"messages": [
+      {"author": "p1", "name": "NOME_H", "text": "o [NOME_A|p3] do trabalho me ligou agora"},
+      {"author": "p2", "name": "NOME_I", "text": "qual [NOME_A|p3]? o primo da [NOME_AV|p4] também se chama [NOME_A|p5]"},
+      {"author": "p1", "name": "NOME_H", "text": "o do trabalho, o [NOME_A|p3] do financeiro"},
+      {"author": "p2", "name": "NOME_I", "text": "ah tá. o primo da [NOME_AV|p4] eu nem conheço direito"},
+      {"author": "p1", "name": "NOME_H", "text": "a [NOME_AV|p4] disse que o primo dela é gente boa"},
+      {"author": "p2", "name": "NOME_I", "text": "e o que o [NOME_A|p3] do financeiro queria?"},
+      {"author": "p1", "name": "NOME_H", "text": "queria saber da nota fiscal, falei que mando amanhã"}
+    ]},
+    {"messages": [
+      {"author": "p1", "name": "NOME_J", "text": "a [NOME_K|p2] vai levar o bolo e o [NOME_L|p3] leva o refri"},
+      {"author": "p2", "name": "NOME_K", "text": "levo sim! [NOME_J|p1], você leva os pratos?"},
+      {"author": "p1", "name": "NOME_J", "text": "levo. o [NOME_L|p3] confirmou?"},
+      {"author": "p3", "name": "NOME_L", "text": "confirmei agora, chego às sete"},
+      {"author": "p2", "name": "NOME_K", "text": "[NOME_L|p3], traz gelo também"},
+      {"author": "p3", "name": "NOME_L", "text": "trago. a [NOME_K|p2] sempre lembra de tudo"},
+      {"author": "p1", "name": "NOME_J", "text": "a [NOME_K|p2] é a organizadora oficial kkk"}
+    ]},
+    {"messages": [
+      {"author": "p1", "name": "NOME_M", "text": "el [NOME_N|p2] me dijo que vem amanhã, sabe?", "mixed": true},
+      {"author": "p2", "name": "NOME_N", "text": "falei sim, [NOME_M|p1], chego cedo"},
+      {"author": "p1", "name": "NOME_M", "text": "ótimo, a [NOME_AW|p3] quer falar contigo"},
+      {"author": "p2", "name": "NOME_N", "text": "sobre o quê? a [NOME_AW|p3] não me avisou nada"},
+      {"author": "p1", "name": "NOME_M", "text": "ella quiere hablar del contrato, pero não sei os detalhes", "mixed": true},
+      {"author": "p2", "name": "NOME_N", "text": "tá, eu procuro a [NOME_AW|p3] quando chegar"}
+    ]},
+    {"messages": [
+      {"author": "p1", "name": "NOME_O", "text": "alguém sabe se o [NOME_P SOBRENOME_B|p3] ainda trabalha na loja?"},
+      {"author": "p2", "name": "NOME_Q", "text": "o [SOBRENOME_B|p3]? saiu mês passado"},
+      {"author": "p1", "name": "NOME_O", "text": "putz, eu precisava falar com o [NOME_P|p3]"},
+      {"author": "p2", "name": "NOME_Q", "text": "a irmã dele, a [NOME_AX|p4], tem o número novo"},
+      {"author": "p1", "name": "NOME_O", "text": "você tem o contato da [NOME_AX|p4]?"},
+      {"author": "p2", "name": "NOME_Q", "text": "tenho, te mando. fala que fui eu que passei"},
+      {"author": "p1", "name": "NOME_O", "text": "valeu, [NOME_Q|p2]!"}
+    ]},
+    {"messages": [
+      {"author": "p1", "name": "NOME_R", "text": "o [NOME_AY|p2] e o [NOME_AZ|p3] brigaram de novo"},
+      {"author": "p4", "name": "NOME_S", "text": "por quê? o [NOME_AY|p2] tava calmo ontem"},
+      {"author": "p1", "name": "NOME_R", "text": "o [NOME_AZ|p3] pegou o carro sem pedir"},
+      {"author": "p4", "name": "NOME_S", "text": "aí o [NOME_AY|p2] surtou, imagino"},
+      {"author": "p1", "name": "NOME_R", "text": "surtou. o [NOME_AZ|p3] pediu desculpa mas ele não aceitou"},
+      {"author": "p4", "name": "NOME_S", "text": "[NOME_R|p1], tenta conversar com os dois amanhã"},
+      {"author": "p1", "name": "NOME_R", "text": "vou tentar, mas o [NOME_AY|p2] é cabeça dura"}
+    ]},
+    {"messages": [
+      {"author": "p1", "name": "NOME_T", "text": "ok so the package arrived, a [NOME_U|p2] assinou o recibo", "mixed": true},
+      {"author": "p2", "name": "NOME_U", "text": "assinei sim, tá na minha mesa"},
+      {"author": "p1", "name": "NOME_T", "text": "great, can you give it to [NOME_BA|p3] tomorrow?", "mixed": true},
+      {"author": "p2", "name": "NOME_U", "text": "posso, o [NOME_BA|p3] chega que horas?"},
+      {"author": "p1", "name": "NOME_T", "text": "acho que às nove. [NOME_U|p2], thanks a lot", "mixed": true},
+      {"author": "p2", "name": "NOME_U", "text": "imagina, [NOME_T|p1]"}
+    ]},
+    {"messages": [
+      {"author": "p1", "name": "NOME_V", "text": "a [NOME_BB|p2] passou na prova!"},
+      {"author": "p3", "name": "NOME_W", "text": "sério? a [NOME_BB|p2] estudou muito"},
+      {"author": "p1", "name": "NOME_V", "text": "estudou. o professor dela, o [NOME_BC|p4], elogiou bastante"},
+      {"author": "p3", "name": "NOME_W", "text": "o [NOME_BC|p4] é exigente, então vale muito"},
+      {"author": "p1", "name": "NOME_V", "text": "vamos fazer uma surpresa pra [NOME_BB|p2] no sábado?"},
+      {"author": "p3", "name": "NOME_W", "text": "bora, [NOME_V|p1]. eu chamo a mãe dela"}
+    ]},
+    {"messages": [
+      {"author": "p1", "name": "NOME_B", "text": "a [NOME_B|p3] da academia me mandou mensagem"},
+      {"author": "p2", "name": "NOME_X", "text": "kkk outra [NOME_B|p3]? tá cheio de [NOME_B|p3] por aí"},
+      {"author": "p1", "name": "NOME_B", "text": "pois é, a xará. ela quer marcar um treino"},
+      {"author": "p2", "name": "NOME_X", "text": "vai lá, [NOME_B|p1], depois me conta"},
+      {"author": "p1", "name": "NOME_B", "text": "vou. a [NOME_B|p3] da academia treina pesado"}
+    ]},
+    {"messages": [
+      {"author": "p1", "name": "NOME_Y", "text": "o [NOME_Z|p2] vendeu a moto pro [NOME_BD|p3]"},
+      {"author": "p2", "name": "NOME_Z", "text": "vendi, o [NOME_BD|p3] pagou à vista"},
+      {"author": "p1", "name": "NOME_Y", "text": "e o documento, [NOME_Z|p2]?"},
+      {"author": "p2", "name": "NOME_Z", "text": "o [NOME_BD|p3] vai no cartório comigo quinta"},
+      {"author": "p1", "name": "NOME_Y", "text": "beleza. depois o [NOME_BD|p3] me deixa dar uma volta"},
+      {"author": "p2", "name": "NOME_Z", "text": "pede pra ele, [NOME_Y|p1]"}
+    ]},
+    {"messages": [
+      {"author": "p1", "name": "NOME_AA", "text": "the doctor said que a [NOME_BE|p2] precisa de repouso", "mixed": true},
+      {"author": "p3", "name": "NOME_AB", "text": "quanto tempo? a [NOME_BE|p2] odeia ficar parada"},
+      {"author": "p1", "name": "NOME_AA", "text": "two weeks at least. o [NOME_AB|p3] pode ficar com ela de manhã?", "mixed": true},
+      {"author": "p3", "name": "NOME_AB", "text": "posso, eu fico. à tarde quem fica?"},
+      {"author": "p1", "name": "NOME_AA", "text": "o [NOME_BF|p4] disse que fica à tarde"},
+      {"author": "p3", "name": "NOME_AB", "text": "ótimo, o [NOME_BF|p4] mora perto dela"},
+      {"author": "p1", "name": "NOME_AA", "text": "vou avisar a [NOME_BE|p2] do esquema"}
+    ]},
+    {"messages": [
+      {"author": "p1", "name": "NOME_AC", "text": "[NOME_AD|p2], você pegou meu carregador?"},
+      {"author": "p2", "name": "NOME_AD", "text": "não peguei, deve ter sido o [NOME_BG|p3]"},
+      {"author": "p1", "name": "NOME_AC", "text": "o [NOME_BG|p3] sempre pega minhas coisas"},
+      {"author": "p2", "name": "NOME_AD", "text": "pergunta pra ele, eu vi o [NOME_BG|p3] na sala"},
+      {"author": "p1", "name": "NOME_AC", "text": "achei, tava com o [NOME_BG|p3] mesmo"},
+      {"author": "p2", "name": "NOME_AD", "text": "falei, [NOME_AC|p1] kkk"}
+    ]},
+    {"messages": [
+      {"author": "p1", "name": "NOME_AE", "text": "a [NOME_AF SOBRENOME_C|p2] foi promovida"},
+      {"author": "p3", "name": "NOME_AG", "text": "a [SOBRENOME_C|p2] do jurídico? merecido"},
+      {"author": "p1", "name": "NOME_AE", "text": "ela mesma. o [NOME_BH|p4] ficou com o lugar antigo da [NOME_AF|p2]"},
+      {"author": "p3", "name": "NOME_AG", "text": "o [NOME_BH|p4] tá pronto pra isso?"},
+      {"author": "p1", "name": "NOME_AE", "text": "a [NOME_AF|p2] vai treinar ele por um mês"},
+      {"author": "p3", "name": "NOME_AG", "text": "boa, [NOME_AE|p1]. manda parabéns pra ela por mim"}
+    ]},
+    {"messages": [
+      {"author": "p1", "name": "NOME_AH", "text": "bro, o [NOME_BI|p2] said he's not coming, tá doente", "mixed": true},
+      {"author": "p3", "name": "NOME_AI", "text": "de novo? o [NOME_BI|p2] sempre fica doente em dia de jogo"},
+      {"author": "p1", "name": "NOME_AH", "text": "kkk true. chama o [NOME_BJ|p4] then", "mixed": true},
+      {"author": "p3", "name": "NOME_AI", "text": "o [NOME_BJ|p4] não joga desde o ano passado"},
+      {"author": "p1", "name": "NOME_AH", "text": "então joga você, [NOME_AI|p3]"},
+      {"author": "p3", "name": "NOME_AI", "text": "jogo, mas o [NOME_AH|p1] vai no gol"}
+    ]},
+    {"messages": [
+      {"author": "p1", "name": "NOME_AJ", "text": "a [NOME_BK|p2] e a [NOME_BK|p3] da escola são primas?"},
+      {"author": "p4", "name": "NOME_AK", "text": "não, a [NOME_BK|p2] da padaria não tem nada a ver com a [NOME_BK|p3] da escola"},
+      {"author": "p1", "name": "NOME_AJ", "text": "achei que eram parentes. a [NOME_BK|p3] da escola é professora do meu filho"},
+      {"author": "p4", "name": "NOME_AK", "text": "e a [NOME_BK|p2] da padaria faz o melhor pão da rua"},
+      {"author": "p1", "name": "NOME_AJ", "text": "kkk vou passar na padaria da [NOME_BK|p2] amanhã"}
+    ]},
+    {"messages": [
+      {"author": "p1", "name": "NOME_AL", "text": "o [NOME_AM|p2] pediu dinheiro emprestado pra [NOME_BL|p3]"},
+      {"author": "p2", "name": "NOME_AM", "text": "pedi mesmo, [NOME_AL|p1], e vou pagar sexta"},
+      {"author": "p1", "name": "NOME_AL", "text": "a [NOME_BL|p3] ficou preocupada, só isso"},
+      {"author": "p2", "name": "NOME_AM", "text": "eu falo com a [NOME_BL|p3] hoje"},
+      {"author": "p1", "name": "NOME_AL", "text": "fala sim. ela confia em você, [NOME_AM|p2]"}
+    ]},
+    {"messages": [
+      {"author": "p1", "name": "NOME_AN", "text": "a reunião com o [NOME_BM|p2] foi cancelada, el se enfermó", "mixed": true},
+      {"author": "p3", "name": "NOME_AO", "text": "que pena. o [NOME_BM|p2] ia apresentar o projeto"},
+      {"author": "p1", "name": "NOME_AN", "text": "sí, la [NOME_BN|p4] va a presentar en su lugar", "mixed": true},
+      {"author": "p3", "name": "NOME_AO", "text": "a [NOME_BN|p4] conhece bem o projeto, vai dar certo"},
+      {"author": "p1", "name": "NOME_AN", "text": "espero, [NOME_AO|p3]. o [NOME_BM|p2] mandou as notas pra ela"}
+    ]},
+    {"messages": [
+      {"author": "p1", "name": "NOME_AP", "text": "o [NOME_BO|p2] do terceiro andar reclamou do barulho"},
+      {"author": "p3", "name": "NOME_AQ", "text": "de novo o [NOME_BO|p2]? ele reclama de tudo"},
+      {"author": "p1", "name": "NOME_AP", "text": "dessa vez a síndica, a [NOME_BP|p4], apoiou ele"},
+      {"author": "p3", "name": "NOME_AQ", "text": "a [NOME_BP|p4]? estranho, ela nunca liga"},
+      {"author": "p1", "name": "NOME_AP", "text": "pois é, [NOME_AQ|p3]. vou falar com a [NOME_BP|p4] amanhã"},
+      {"author": "p3", "name": "NOME_AQ", "text": "vai sim. leva o [NOME_BO|p2] junto pra resolver de vez"}
+    ]}
+  ]
+}

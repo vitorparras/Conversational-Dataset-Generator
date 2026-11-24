@@ -18,7 +18,7 @@ deliberada e justificada.
 | [0004](0004-taxonomia-configuravel.md) | A taxonomia é configuração, não código | Decisão vigente |
 | [0005](0005-unidades-de-analise.md) | As unidades de análise | Decisão vigente |
 | [0006](0006-dominios-coexistem.md) | Domínios coexistem; a exportação é que recorta | Decisão vigente |
-| [0007](0007-garantia-de-qualidade.md) | A garantia de qualidade dos testes | Decisão vigente |
+| [0007](0007-garantia-de-qualidade.md) | A garantia de qualidade dos testes | Substituída por 0059 em onde a mutação roda sobre o módulo inteiro |
 | [0008](0008-requisito-no-repositorio-tarefa-na-issue.md) | Requisito no repositório, tarefa na issue | Decisão vigente |
 | [0009](0009-licenca-do-software-e-dos-dados.md) | Licença do software e licença dos dados | Decisão vigente |
 | [0010](0010-tecnologia-da-interface.md) | A tecnologia da interface | Decisão vigente |
@@ -70,6 +70,7 @@ deliberada e justificada.
 | [0056](0056-toponimo-vira-marcador.md) | O nome de lugar vira marcador | Decisão vigente |
 | [0057](0057-escopo-do-marcador-e-a-conversa.md) | O escopo do marcador é a conversa | Decisão vigente |
 | [0058](0058-padrao-de-usabilidade-e-visual.md) | Padrão de usabilidade e visual das telas | Decisão vigente |
+| [0059](0059-mutacao-do-diff-e-noturna.md) | Mutação do diff no pull request e do módulo inteiro à noite | Decisão vigente |
 
 ## Formato
 

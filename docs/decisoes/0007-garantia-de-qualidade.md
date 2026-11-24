@@ -1,6 +1,7 @@
 # 0007 — A garantia de qualidade dos testes
 
-> Decisão vigente. 2026-10-04.
+> Decisão substituída por [0059](0059-mutacao-do-diff-e-noturna.md) quanto a onde a mutação roda
+> sobre o módulo inteiro. 2026-10-04.
 
 ## Decisão
 

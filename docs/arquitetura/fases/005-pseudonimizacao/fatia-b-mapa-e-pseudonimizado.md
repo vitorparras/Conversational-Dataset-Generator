@@ -6,8 +6,8 @@ A troca roda síncrona na submissão, logo depois da sanitização e antes de gr
 [fatia F](fatia-f-correferencia.md) a ligar. Cada item nasce com o pseudonimizado, com o mapa dele
 (marcador e original, selado com a finalidade do mapa) e com os marcadores em claro, o do autor
 incluído. A tela do lote ganha a seção da pseudonimização: marcadores por tipo e itens com marcador,
-contados dos marcadores do item, só números. A reexecução da fase 4 refaz o pseudonimizado e o mapa
-junto com o sanitizado. O protótipo é `lote.html`, em [protótipos](prototipos/index.html).
+contados dos marcadores do item, só números. Na reexecução, a B guarda os marcadores e a F3 refaz o
+pseudonimizado e o mapa. Protótipo: `lote.html`, em [protótipos](prototipos/index.html).
 
 **Pseudonimizado cifrado** com a chave do item: [0030](../../../decisoes/0030-qual-texto-fica-em-claro.md)
 (linha 24), [0049](../../../decisoes/0049-chave-por-item-e-epoca.md) (linha 27) e CA-3 da #102.

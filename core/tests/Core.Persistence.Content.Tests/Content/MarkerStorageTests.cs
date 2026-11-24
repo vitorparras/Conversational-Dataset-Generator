@@ -71,11 +71,12 @@ public sealed class MarkerStorageTests
         var markers = PseudonymizedTexts.Draw(2);
         var item = Assert.NotNull((await world.RealWriter.AddPseudonymizedItemAsync(1, 1, PseudonymizedTexts.Holding(markers), Token)).ItemId);
         var expected = string.Join(',', markers.Order(StringComparer.Ordinal));
+        var curator = await world.PersonAsync("zqx-curador");
 
         var outside = await Assert.ThrowsAsync<PostgresException>(() => world.InDomainAsync(1, "DELETE FROM content.item_marker WHERE item_id = @id", ("id", item)));
         var added = await Assert.ThrowsAsync<PostgresException>(() => world.InDomainAsync(1, AddedLater, ("id", item), ("marker", PseudonymizedTexts.Draw(1)[0])));
         var before = (string?)await world.InDomainAsync(1, OfItem, ("id", item));
-        var emptied = await world.Emptier.EmptyAsync(new ItemEmptying(CustodyAuthor.System, 1, item, EmptyingMotive.ContractRequirement, "PROT-2026/0846"), Token);
+        var emptied = await world.Emptier.EmptyAsync(new ItemEmptying(CustodyAuthor.Person(curator), 1, item, EmptyingMotive.ContractRequirement, "PROT-2026/0846"), Token);
 
         Assert.Equal((WithoutEvent, WithoutEvent, expected), (outside.SqlState, added.SqlState, before));
         Assert.Equal((EmptyingOutcome.Emptied, string.Empty, expected), (emptied.Outcome, (string?)await world.InDomainAsync(1, OfItem, ("id", item)), (string?)await world.InDomainAsync(1, Held)));

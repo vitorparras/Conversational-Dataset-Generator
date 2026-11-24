@@ -27,7 +27,7 @@ public static partial class ContentQueries
 
     /// <summary>
     /// Whether some item of the batch holds a pseudonymized text, asked when it is accepted, so that the event of the pseudonymization goes with the acceptance; the database answers by the
-    /// function its trigger of the acceptance asks, in the domain of the transaction.
+    /// function its trigger of the acceptance asks, in the domain of the transaction; with no domain declared it returns no row.
     /// </summary>
-    internal const string ReadBatchPseudonymized = "SELECT public.batch_holds_pseudonymized(@id, public.declared_domain())";
+    internal const string ReadBatchPseudonymized = "SELECT public.batch_holds_pseudonymized(@id, d) FROM public.declared_domain() AS d WHERE d IS NOT NULL";
 }

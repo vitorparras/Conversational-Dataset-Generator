@@ -44,6 +44,11 @@ CREATE FUNCTION public.refuse_item_marker_outside_its_path() RETURNS trigger
 LANGUAGE plpgsql
 AS $refuse$
 BEGIN
+    -- A row of a domain other than the declared one, or with none declared, is the row policy's to refuse, with its own refusal.
+    IF TG_OP = 'INSERT' AND NEW.domain_id IS DISTINCT FROM public.declared_domain() THEN
+        RETURN NEW;
+    END IF;
+
     IF TG_OP = 'INSERT' AND NOT (public.custody_event_of_this_transaction('item_text', NEW.item_id, 'item_resanitized')
         OR EXISTS (SELECT 1 FROM content.item_text i WHERE i.id = NEW.item_id AND i.domain_id = NEW.domain_id AND i.xmin = pg_catalog.pg_current_xact_id()::pg_catalog.xid)) THEN
         RAISE EXCEPTION 'the markers of an item are written with the item or with the event of its rerun, in the same transaction'

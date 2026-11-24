@@ -93,7 +93,8 @@ public sealed class PseudonymizedBatchTests
         var added = await new PseudonymizedItems(world.RealWriter, IngestionWorld.BatchesOf(world)).AddAsync(closing, _ => item, Token);
 
         Assert.Equal((null, (BatchOutcome?)BatchOutcome.Rejected), (added.ItemId, added.Rejection?.Outcome));
-        Assert.Equal(("0,0", 0L), ((string?)await world.ScalarAsync(IngestionWorld.Reachable), (long)(await world.ScalarAsync("SELECT count(*) FROM content.marker_in_use"))!));
+        Assert.Equal(("0,0", 0L), ((string?)await world.InDomainAsync(IngestionWorld.Domain, IngestionWorld.Reachable),
+            (long)(await world.InDomainAsync(IngestionWorld.Domain, "SELECT count(*) FROM content.marker_in_use"))!));
         Assert.EndsWith("batch_closed:batch_rejected:pseudonym_of_removed", (string)(await world.ScalarAsync(IngestionWorld.Events))!, StringComparison.Ordinal);
     }
 
@@ -114,8 +115,8 @@ public sealed class PseudonymizedBatchTests
         Assert.Equal((true, (BatchOutcome?)BatchOutcome.Rejected), (first.ItemId is not null, rejected.Rejection?.Outcome));
         Assert.Equal(
             ("0,0", 0L, markers[0]),
-            ((string?)await world.ScalarAsync(IngestionWorld.Reachable), (long)(await world.ScalarAsync("SELECT count(*) FROM content.item_marker"))!,
-                (string?)await world.ScalarAsync("SELECT string_agg(marker, ',') FROM content.marker_in_use")));
+            ((string?)await world.InDomainAsync(IngestionWorld.Domain, IngestionWorld.Reachable), (long)(await world.InDomainAsync(IngestionWorld.Domain, "SELECT count(*) FROM content.item_marker"))!,
+                (string?)await world.InDomainAsync(IngestionWorld.Domain, "SELECT string_agg(marker, ',') FROM content.marker_in_use")));
         Assert.Equal(string.Empty, await PseudonymizationEventsAsync(world));
     }
 

@@ -35,7 +35,7 @@ public sealed partial class IngestionBatches
         await using (command.ConfigureAwait(false))
         {
             _ = command.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Bigint) { Value = batchId });
-            return (bool)(await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false))!;
+            return await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) is true;
         }
     }
 }

@@ -14,6 +14,7 @@ namespace Core.Host.Tests.Submissions;
 public sealed class PseudonymizedWritingPathsTests
 {
     private const string Pseudonymized = "SELECT count(*) FILTER (WHERE pseudonymized_text IS NOT NULL) || ',' || count(*) FROM content.item_text";
+    private const string Sanitized = "SELECT (sanitized_text IS NOT NULL)::text FROM content.item_text ORDER BY id LIMIT 1";
     private const string SanitizedAsPseudonymized = "UPDATE content.item_text SET pseudonymized_text = sanitized_text WHERE id = @item";
     private const string Resanitized = "INSERT INTO public.custody_event (actor_system, item_kind, item_id, step, reason, reference) "
         + "VALUES (true, 'item_text', @item, 'item_resanitized', 'sanitization_replaced', repeat('0a', 32))";
@@ -34,11 +35,14 @@ public sealed class PseudonymizedWritingPathsTests
         var notSwapped = new NewItemText("texto bruto zqx", "texto sanitizado zqx", []) { Sanitization = ItemTexts.Sanitization("texto sanitizado zqx") };
 
         _ = await Assert.ThrowsAsync<PseudonymizedRefusedException>(() => new ContentWriter(world.DataSource, world.Content).AddItemTextAsync(SubmissionWorld.Domain, batch, notSwapped, Token));
+        // The rerun and the emptying reach only items of an accepted batch: the row policy hides the items of an open one, and an update that meets no row refuses nothing.
+        await world.AcceptReviewedAsync(batch);
         var rerun = await Assert.ThrowsAsync<PostgresException>(() => InOneTransactionAsync(world, item, Resanitized, SanitizedAsPseudonymized));
         var emptying = await Assert.ThrowsAsync<PostgresException>(() => InOneTransactionAsync(world, item, Emptied, SanitizedAsPseudonymized));
 
-        // The rerun and the emptying meet the guard that keeps the texts of a row not emptied, never the shape of the event, and after all of them no item holds a pseudonymized text.
-        Assert.Equal("0,", submitted[..2]);
+        // The item updated, the first one, holds a sanitized text, so the update changes the column; the rerun and the emptying meet the guard that keeps the texts of a row
+        // not emptied, never the shape of the event, and after all of them no item holds a pseudonymized text.
+        Assert.Equal(("0,", "true"), (submitted[..2], Assert.Single(await world.StoredAsync(Sanitized))));
         Assert.Equal((ContentKept, ContentKept), (rerun.SqlState, emptying.SqlState));
         Assert.Equal(submitted, Assert.Single(await world.StoredAsync(Pseudonymized)));
     }

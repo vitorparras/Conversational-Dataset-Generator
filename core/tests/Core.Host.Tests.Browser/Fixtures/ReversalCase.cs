@@ -63,7 +63,8 @@ internal sealed class ReversalCase : IAsyncDisposable
         var item = ItemTexts.Of("zqx-bruto", "zqx-limpo", $"zqx {marker} zqx") with { Map = [new NewMapEntry(marker, "zqx-original-sintetico", false, OccurrenceDestination.Pseudonymize)] };
         using var reading = await new SyntheticKey().ReadAsync(CancellationToken.None);
         await using var source = NpgsqlDataSource.Create(Host.Database.AppConnectionString);
-        var written = await new ContentWriter(source, CompositionRoot.ContentOf(reading, new HashSet<string>(Labels, StringComparer.Ordinal))).AddPseudonymizedItemAsync(1, 1, item, CancellationToken.None);
+        var writer = new ContentWriter(source, CompositionRoot.ContentOf(reading, new HashSet<string>(Labels, StringComparer.Ordinal)));
+        var written = await writer.AddPseudonymizedItemAsync(1, 1, item, CancellationToken.None);
         return (written.ItemId ?? throw new InvalidOperationException("The item was not written."), marker);
     }
 

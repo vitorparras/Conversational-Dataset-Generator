@@ -47,7 +47,7 @@ public sealed class ReversalRoutesTests
         var (item, marker) = await world.ItemAsync();
         var draft = new ReversalRequestDraft { Item = item.ToString(CultureInfo.InvariantCulture), Marker = marker, Term = "30", Reason = "zqx-motivo", Use = "zqx-uso" };
 
-        using var access = Assert.NotNull(await world.Desk.OpenAsync(Token));
+        using var access = await world.Desk.OpenAsync(Token) ?? throw new InvalidOperationException("The key was not read.");
         var asked = await access.Requests.AskAsync(SubmissionWorld.Domain, Annotator, draft, Token);
 
         Assert.Equal(ReversalOutcome.NotCuration, asked.Outcome);
@@ -80,7 +80,7 @@ public sealed class ReversalRoutesTests
 
         var theirs = await world.PostAsync(ScreenPaths.ReversalDecideOf(request), Decision("autorizar", world.Tomorrow), world.Other);
         var annotator = await world.PostAsync(ScreenPaths.ReversalDecideOf(request), Decision("autorizar", world.Tomorrow), Annotator);
-        using var access = Assert.NotNull(await world.Desk.OpenAsync(Token));
+        using var access = await world.Desk.OpenAsync(Token) ?? throw new InvalidOperationException("The key was not read.");
         var direct = await access.Requests.AuthorizeAsync(new ReversalAct(SubmissionWorld.Domain, request, Annotator), world.Clock.GetUtcNow().AddDays(1), Token);
 
         Assert.Equal((HttpStatusCode.NotFound, WithoutAddress(absentOther.Page)), (theirs.Status, WithoutAddress(theirs.Page)));
@@ -176,7 +176,7 @@ public sealed class ReversalRoutesTests
         var (item, marker) = await world.ItemAsync();
 
         var sent = await world.PostAsync(ScreenPaths.ReversalAsk, Draft(item, marker));
-        var page = await world.GetAsync(Assert.NotNull(sent.Location));
+        var page = await world.GetAsync(sent.Location ?? throw new InvalidOperationException("The answer leads nowhere."));
         var request = long.Parse(await world.ScalarAsync("SELECT max(id)::text FROM content.reversal_request"), CultureInfo.InvariantCulture);
         var later = await world.GetAsync(ScreenPaths.ReversalMineOf(request));
 
@@ -188,7 +188,9 @@ public sealed class ReversalRoutesTests
         Assert.Matches(Fact("Item", $"{item}"), page.Page);
         Assert.Matches(Fact("Prazo pedido", "30 dias"), page.Page);
         Assert.DoesNotContain("zqx-original-sintetico", page.Page, StringComparison.Ordinal);
-        Assert.Contains($"item_text|{item}|", await world.ScalarAsync("SELECT string_agg(item_kind || '|' || item_id || '|' || coalesce(reference, ''), ',') FROM public.custody_event WHERE step = 'reversal_requested'"), StringComparison.Ordinal);
+        var recorded = await world.ScalarAsync(
+            "SELECT string_agg(item_kind || '|' || item_id || '|' || coalesce(reference, ''), ',') FROM public.custody_event WHERE step = 'reversal_requested'");
+        Assert.Contains($"item_text|{item}|", recorded, StringComparison.Ordinal);
     }
 
     [DatabaseFact]
@@ -241,7 +243,8 @@ public sealed class ReversalRoutesTests
         Assert.Matches(Fact("O que fará", "zqx-uso-sintetico"), page.Page);
         Assert.Matches(Fact("Prazo pedido", "30 dias"), page.Page);
         Assert.Contains("zqx-curadora, em ", page.Page, StringComparison.Ordinal);
-        Assert.Contains($"value=\"{DateOnly.FromDateTime(world.Clock.GetUtcNow().UtcDateTime).AddDays(30).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}\"", page.Page, StringComparison.Ordinal);
+        var offered = DateOnly.FromDateTime(world.Clock.GetUtcNow().UtcDateTime).AddDays(30).ToString("O", CultureInfo.InvariantCulture);
+        Assert.Contains($"value=\"{offered}\"", page.Page, StringComparison.Ordinal);
         Assert.DoesNotContain("zqx-original-sintetico", page.Page, StringComparison.Ordinal);
     }
 
@@ -270,7 +273,7 @@ public sealed class ReversalRoutesTests
 
         var past = await world.PostAsync(ScreenPaths.ReversalDecideOf(request), Decision("autorizar", "2020-01-01"), world.Second);
         var sent = await world.PostAsync(ScreenPaths.ReversalDecideOf(request), Decision("autorizar", world.Tomorrow), world.Second);
-        var page = await world.GetAsync(Assert.NotNull(sent.Location), world.Second);
+        var page = await world.GetAsync(sent.Location ?? throw new InvalidOperationException("The answer leads nowhere."), world.Second);
 
         Assert.Contains("Autorizar este pedido até", unconfirmed.Page, StringComparison.Ordinal);
         Assert.Matches(Error("validade", "Nada foi autorizado: escolha uma data futura."), past.Page);
@@ -310,7 +313,7 @@ public sealed class ReversalRoutesTests
 
         var sent = await world.PostAsync(ScreenPaths.ReversalDecideOf(request), Decision("recusar", string.Empty), world.Second);
         var recorded = await world.ScalarAsync(LastEvent);
-        var page = await world.GetAsync(Assert.NotNull(sent.Location), world.Second);
+        var page = await world.GetAsync(sent.Location ?? throw new InvalidOperationException("The answer leads nowhere."), world.Second);
         var mine = await world.GetAsync(ScreenPaths.ReversalMineOf(request));
 
         Assert.Equal((HttpStatusCode.SeeOther, $"{ScreenPaths.ReversalDecideOf(request)}?recusado"), (sent.Status, sent.Location));
@@ -370,8 +373,8 @@ public sealed class ReversalRoutesTests
         Assert.Equal(0, Links(declined.Page, ScreenPaths.ReversalMine));
     }
 
-    private static Dictionary<string, string> Decision(string decision, string until) =>
-        new(StringComparer.Ordinal) { ["decisao"] = decision, ["validade"] = until };
+    private static Dictionary<string, string> Decision(string chosen, string until) =>
+        new(StringComparer.Ordinal) { ["decisao"] = chosen, ["validade"] = until };
 
     private static int Links(string page, string under) =>
         Regex.Count(page, $"href=\"{Regex.Escape(under)}/[0-9]+\"", RegexOptions.None, TimeSpan.FromSeconds(1));

@@ -105,7 +105,11 @@ internal sealed class ReversalScreensWorld : IAsyncDisposable
 
     internal static Dictionary<string, string> Draft(long item, string marker) => new(StringComparer.Ordinal)
     {
-        ["item"] = item.ToString(CultureInfo.InvariantCulture), ["marcador"] = marker, ["prazo"] = "30", ["motivo"] = "zqx-motivo-sintetico", ["uso"] = "zqx-uso-sintetico",
+        ["item"] = item.ToString(CultureInfo.InvariantCulture),
+        ["marcador"] = marker,
+        ["prazo"] = "30",
+        ["motivo"] = "zqx-motivo-sintetico",
+        ["uso"] = "zqx-uso-sintetico",
     };
 
     /// <summary>A request sent by the screen by the person given, the first of the curation by default: its identifier, from the address the answer leads to, and its item.</summary>
@@ -114,15 +118,22 @@ internal sealed class ReversalScreensWorld : IAsyncDisposable
         var (item, marker) = await ItemAsync();
         var sent = await PostAsync(ScreenPaths.ReversalAsk, Draft(item, marker), person);
         Assert.Equal(HttpStatusCode.SeeOther, sent.Status);
-        var id = Assert.NotNull(sent.Location)[(ScreenPaths.ReversalMine.Length + 1)..].Split('?')[0];
+        var id = (sent.Location ?? throw new InvalidOperationException("The answer leads nowhere."))[(ScreenPaths.ReversalMine.Length + 1)..].Split('?')[0];
         return (Parsed(id), item);
     }
 
     /// <summary>The day after the one of the clock, as the field of the date takes it.</summary>
-    internal string Tomorrow => DateOnly.FromDateTime(Clock.GetUtcNow().UtcDateTime).AddDays(1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+    internal string Tomorrow => DateOnly.FromDateTime(Clock.GetUtcNow().UtcDateTime).AddDays(1).ToString("O", CultureInfo.InvariantCulture);
 
     /// <summary>The day after the one of the clock, as the screens show it.</summary>
-    internal string TomorrowShown => DateOnly.FromDateTime(Clock.GetUtcNow().UtcDateTime).AddDays(1).ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
+    internal string TomorrowShown
+    {
+        get
+        {
+            var day = DateOnly.FromDateTime(Clock.GetUtcNow().UtcDateTime).AddDays(1);
+            return string.Create(CultureInfo.InvariantCulture, $"{day.Day:00}/{day.Month:00}/{day.Year}");
+        }
+    }
 
     internal async Task<Reply> GetAsync(string route, long? person = null)
     {

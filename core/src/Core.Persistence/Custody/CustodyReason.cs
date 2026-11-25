@@ -62,4 +62,13 @@ public enum CustodyReason
 
     /// <summary>A request to another version closed the item before it was treated, and nothing of it changed.</summary>
     SanitizationSuperseded,
+
+    /// <summary>Who acted on a reversal does not hold the function it asks for.</summary>
+    ReversalFunction,
+
+    /// <summary>The request to reverse reached more than one marker in one item.</summary>
+    ReversalScope,
+
+    /// <summary>Who meant to authorize a reversal is who asked for it.</summary>
+    ReversalSelf,
 }

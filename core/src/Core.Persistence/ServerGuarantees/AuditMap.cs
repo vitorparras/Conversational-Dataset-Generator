@@ -67,5 +67,11 @@ public static class AuditMap
         [CustodyStep.SanitizationRerun] = "o pedido de reexecução grava a fila, tabelas que o mapa não compara: a cadeia guarda o evento do pedido",
         [CustodyStep.ItemResanitized] =
             "a reexecução lê o item e troca a sanitização só quando há o que trocar; o recusado e o superado não alteram a tabela, então os comandos do log não casam com os eventos",
+        [CustodyStep.ReversalRequested] = "o pedido de reversão grava uma linha em tabela que o mapa não compara: a cadeia guarda o evento do pedido",
+        [CustodyStep.ReversalRequestRefused] = "a recusa do pedido não cria linha nenhuma: grava só o evento na cadeia",
+        [CustodyStep.ReversalRequestRead] = "a leitura do texto do pedido é um SELECT em tabela que o mapa não compara: a cadeia guarda o evento da leitura",
+        [CustodyStep.ReversalAuthorized] = "a autorização grava uma linha em tabela que o mapa não compara: a cadeia guarda o evento da autorização",
+        [CustodyStep.ReversalAuthorizationRefused] = "a recusa da autorização não cria linha nenhuma: grava só o evento na cadeia",
+        [CustodyStep.ReversalDeclined] = "o declínio do pedido não cria nem altera linha: grava só o evento na cadeia",
     };
 }

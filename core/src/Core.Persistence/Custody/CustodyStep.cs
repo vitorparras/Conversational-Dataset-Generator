@@ -140,4 +140,22 @@ public enum CustodyStep
 
     /// <summary>The items of a batch were pseudonymized, each with its map; written in the transaction that accepts the batch, by who accepts it. The item is the batch, with no reference.</summary>
     BatchPseudonymized,
+
+    /// <summary>A person asked to reverse one marker in one item; the item is the request and the reference the marker. Why and for what go sealed in the request, never here.</summary>
+    ReversalRequested,
+
+    /// <summary>A request to reverse was refused: by the function, about the item with the marker as the reference, or by the scope, about the domain with the scope as the reference.</summary>
+    ReversalRequestRefused,
+
+    /// <summary>A person read the sealed text of a request to reverse; the item is the request, with no reference.</summary>
+    ReversalRequestRead,
+
+    /// <summary>Another person of the curation authorized a request to reverse until a moment; the item is the authorization and the reference the identifier of the request.</summary>
+    ReversalAuthorized,
+
+    /// <summary>The authorization of a request to reverse was refused, to who asked or to who holds no function of the curation; the item is the request, with no reference.</summary>
+    ReversalAuthorizationRefused,
+
+    /// <summary>A person of the curation declined a request to reverse, which is never authorized after; the item is the request, with no reference.</summary>
+    ReversalDeclined,
 }

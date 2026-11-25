@@ -35,4 +35,10 @@ public enum CustodyItemKind
 
     /// <summary>A request of the rerun of the sanitization, by its identifier.</summary>
     SanitizationRerun,
+
+    /// <summary>A request to reverse a marker, by its identifier.</summary>
+    ReversalRequest,
+
+    /// <summary>An authorization of a request to reverse a marker, by its identifier.</summary>
+    ReversalAuthorization,
 }

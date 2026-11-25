@@ -65,6 +65,8 @@ public sealed class ContentColumnsTests
                 new ProtectedColumn("date_shift", "shift", LabelPurpose.DateShift),
                 new ProtectedColumn("date_shift", "dek_wrapped", LabelPurpose.DateShift),
                 new ProtectedColumn("item_text", "pseudonymized_text", LabelPurpose.RawText),
+                new ProtectedColumn("reversal_request", "justification", LabelPurpose.ReversalMap),
+                new ProtectedColumn("reversal_request", "dek_wrapped", LabelPurpose.ReversalMap),
             ],
             ContentColumns.Protected);
 
@@ -175,6 +177,20 @@ public sealed class ContentColumnsTests
                 new ClearColumn("sanitization_rerun_item", "concluded_at", ClearKind.Moment),
                 new ClearColumn("sanitization_rerun_item", "result", ClearKind.Motive),
                 new ClearColumn("sanitization_rerun_item", "refusal", ClearKind.Motive),
+                new ClearColumn("reversal_request", "id", ClearKind.Identifier),
+                new ClearColumn("reversal_request", "domain_id", ClearKind.Domain),
+                new ClearColumn("reversal_request", "item_id", ClearKind.Identifier),
+                new ClearColumn("reversal_request", "marker", ClearKind.Motive),
+                new ClearColumn("reversal_request", "requested_by", ClearKind.Identifier),
+                new ClearColumn("reversal_request", "requested_at", ClearKind.Moment),
+                new ClearColumn("reversal_request", "term_days", ClearKind.Epoch),
+                new ClearColumn("reversal_request", "dek_epoch", ClearKind.Epoch),
+                new ClearColumn("reversal_authorization", "id", ClearKind.Identifier),
+                new ClearColumn("reversal_authorization", "domain_id", ClearKind.Domain),
+                new ClearColumn("reversal_authorization", "request_id", ClearKind.Identifier),
+                new ClearColumn("reversal_authorization", "authorized_by", ClearKind.Identifier),
+                new ClearColumn("reversal_authorization", "authorized_at", ClearKind.Moment),
+                new ClearColumn("reversal_authorization", "valid_until", ClearKind.Moment),
             ],
             ContentColumns.Clear);
 
@@ -189,7 +205,7 @@ public sealed class ContentColumnsTests
                 "protected:texto-bruto", "protected:texto-bruto", "protected:texto-bruto", "protected:texto-bruto", "protected:texto-bruto", "protected:mapa-reversao",
                 "protected:mapa-reversao",
                 "protected:texto-bruto", "protected:texto-bruto",
-                "protected:deslocamento-datas", "protected:deslocamento-datas", "protected:texto-bruto",
+                "protected:deslocamento-datas", "protected:deslocamento-datas", "protected:texto-bruto", "protected:mapa-reversao", "protected:mapa-reversao",
             ],
             ContentColumns.Protected.Select(column => column.Mark));
 }

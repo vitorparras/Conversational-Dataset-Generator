@@ -22,9 +22,10 @@ no serviço, sobre a conversa inteira.** O resto da 0018 e da 0011 vale.
 
 - **Mesmo nome, mesmo grupo.** Menções de pessoa com o mesmo texto, comparado sem caixa e sem
   acento, e o nome de autor de mesmo texto formam um grupo.
-- **Parte do nome.** A menção de uma só palavra sem par de mesmo texto que seja palavra de um
-  nome mais longo da conversa, de menção ou de autor, comparada do mesmo jeito, entra no grupo
-  dele se houver um só nome candidato. Com dois ou mais, fica em grupo próprio.
+- **Parte do nome.** A menção de uma só palavra sem par de mesmo texto, de menção ou de autor,
+  que seja palavra de um nome mais longo da conversa, também de menção ou de autor, comparada do
+  mesmo jeito, entra no grupo dele se houver um só nome candidato. Com dois ou mais, fica em grupo
+  próprio.
 - **Pronome e apelido** ficam em grupo próprio, cada ocorrência no seu; o apelido de um autor
   recebe marcador distinto do dele.
 - **Limiar de precisão: 0,95**, por pares de menções, na conversa toda e, à parte, nas mensagens

@@ -66,8 +66,8 @@ internal sealed class ContentWorld : IAsyncDisposable
     /// <summary>The store of the requests to reverse a marker, over the custody of the world and the clock of the system, which the database's own clock agrees with.</summary>
     public ReversalRequests ReversalRequests => new(DataSource, custody.Content, TimeProvider.System);
 
-    /// <summary>The reader of the requests to reverse a marker, over the custody of the world and the clock of the system.</summary>
-    public ReversalRequestReader ReversalRequestReader => new(DataSource, custody.Content, TimeProvider.System);
+    /// <summary>The reader of the requests to reverse a marker, over the reader of the world and the clock of the system.</summary>
+    public ReversalRequestReader ReversalRequestReader => new(DataSource, Reader, TimeProvider.System);
 
     /// <summary>The path of protected content over the custody of the world, which seals what a test writes.</summary>
     public ProtectedContent Content => custody.Content;

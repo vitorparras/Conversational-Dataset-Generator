@@ -1,17 +1,15 @@
 using Core.Ingestion.Contracts.Reversal;
-using Core.Persistence.Content.Sealing;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
-using Npgsql;
 using NpgsqlTypes;
 using static Core.Persistence.Content.Rerun.RerunRows;
 
 namespace Core.Persistence.Content.Reversal;
 
-/// <summary>Asks for the reversal of one marker in one item: refused by scope, by function or by the markers of the item, each with its event, or sealed and written.</summary>
-internal sealed class ReversalAsking(NpgsqlDataSource dataSource, ProtectedContent protectedContent)
+/// <summary>The asking for the reversal of one marker in one item: refused by scope, by function or by the markers of the item, each with its event, or sealed and written.</summary>
+public sealed partial class ReversalRequests
 {
-    internal Task<ReversalResult> AskAsync((int Domain, long Person) by, ReversalRequestDraft draft, CancellationToken cancellationToken)
+    private Task<ReversalResult> AskByAsync((int Domain, long Person) by, ReversalRequestDraft draft, CancellationToken cancellationToken)
     {
         var judged = ReversalRequestRule.Judge(draft);
         return judged.Verdict == ReversalRequestVerdict.Incomplete

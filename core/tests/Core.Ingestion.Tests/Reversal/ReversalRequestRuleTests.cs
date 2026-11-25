@@ -26,6 +26,12 @@ public sealed class ReversalRequestRuleTests
         { Complete with { Term = "0" }, ReversalRequestField.Term },
         { Complete with { Term = "trinta" }, ReversalRequestField.Term },
         { Complete with { Marker = "PESSOA 48291307" }, ReversalRequestField.Marker },
+        { Complete with { Marker = "PESSOA_4829130" }, ReversalRequestField.Marker },
+        { Complete with { Marker = "PESSOA_482913071" }, ReversalRequestField.Marker },
+        { Complete with { Marker = "GRUPO_48291307" }, ReversalRequestField.Marker },
+        { Complete with { Marker = "PESSOA_4829130X" }, ReversalRequestField.Marker },
+        { Complete with { Marker = "pessoa_48291307" }, ReversalRequestField.Marker },
+        { Complete with { Marker = "LUGAR-00000001" }, ReversalRequestField.Marker },
         { Complete with { Item = "cento" }, ReversalRequestField.Item },
     };
 
@@ -83,5 +89,16 @@ public sealed class ReversalRequestRuleTests
         Assert.Equal(
             (ReversalRequestVerdict.Accepted, new ReversalRequest { ItemId = 118, Marker = "LUGAR_00000001", TermDays = 30, Reason = "zqx-por-que", Use = "zqx-uso" }),
             (judged.Verdict, judged.Request));
+    }
+
+    [Theory]
+    [InlineData("PESSOA_48291307")]
+    [InlineData("LUGAR_00000001")]
+    [InlineData("ORGANIZACAO_99999999")]
+    public void MarkerOfEveryKindWithEightDigitsIsAccepted(string marker)
+    {
+        var judged = ReversalRequestRule.Judge(Complete with { Marker = marker });
+
+        Assert.Equal((ReversalRequestVerdict.Accepted, marker), (judged.Verdict, judged.Request?.Marker));
     }
 }

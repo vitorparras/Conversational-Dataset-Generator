@@ -1,6 +1,8 @@
 using Core.Persistence.Content.Reading;
 using Core.Persistence.Content.Reversal;
 using Core.Persistence.Content.Rotation;
+using Core.Persistence.Content.Sealing;
+using Core.Persistence.Custody.Chain;
 using Core.Persistence.Tests.Content;
 using Core.Persistence.Tests.Fixtures;
 using Core.Platform.Keys;
@@ -37,7 +39,7 @@ public sealed class ReversalRequestRotationTests
 
         _ = await new EpochRotation(world.DataSource, epochs.Keys).RotateAsync(Token);
 
-        var read = await new ReversalRequestReader(world.DataSource, onlyTheNewest.Content, TimeProvider.System).ReadTextAsync(new ReversalAct(1, request, 3), Token);
+        var read = await ReaderOver(world, onlyTheNewest.Content).ReadTextAsync(new ReversalAct(1, request, 3), Token);
         Assert.Equal((ContentReadOutcome.Read, "zqx-porque", "zqx-uso"), (read.Outcome, read.Reason, read.Use));
         Assert.Equal(("2", asked), (((string)(await world.InDomainAsync(1, Key, ("id", request)))!).Split('|')[0], await world.InDomainAsync(1, Asked, ("id", request))));
     }
@@ -58,7 +60,7 @@ public sealed class ReversalRequestRotationTests
         var rewrapped = await rewrap.RewrapAsync(1, custody.Keys, custody.Labels, Token);
 
         var key = Convert.FromHexString(((string)(await world.InDomainAsync(1, Key, ("id", request)))!).Split('|')[1]);
-        var read = await new ReversalRequestReader(world.DataSource, custody.Content, TimeProvider.System).ReadTextAsync(new ReversalAct(1, request, 3), Token);
+        var read = await ReaderOver(world, custody.Content).ReadTextAsync(new ReversalAct(1, request, 3), Token);
         Assert.Equal(
             (withoutTheRequest with { Behind = withoutTheRequest.Behind + 1 }, withTheRequest.Behind, "mapa-reversao/1/v2"),
             (withTheRequest, rewrapped, EnvelopeCipher.LabelOf(key)));
@@ -66,4 +68,7 @@ public sealed class ReversalRequestRotationTests
             (new RewrapStatus(withTheRequest.Current + withTheRequest.Behind, 0), ContentReadOutcome.Read, "zqx-porque", asked),
             (await rewrap.StatusAsync(1, custody.Labels, Token), read.Outcome, read.Reason, await world.InDomainAsync(1, Asked, ("id", request))));
     }
+
+    private static ReversalRequestReader ReaderOver(ContentWorld world, ProtectedContent content) =>
+        new(world.DataSource, new ProtectedContentReader(world.DataSource, content, new CustodyChain(world.DataSource)), TimeProvider.System);
 }

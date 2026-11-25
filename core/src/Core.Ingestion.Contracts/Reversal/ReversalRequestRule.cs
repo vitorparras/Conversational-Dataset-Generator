@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text.RegularExpressions;
 
 namespace Core.Ingestion.Contracts.Reversal;
 
@@ -8,8 +7,10 @@ namespace Core.Ingestion.Contracts.Reversal;
 /// identity, what will be done with it and for how many days. A request without the four is incomplete and asks nothing. One that reaches more than one item or marker, no
 /// item, which is the marker wherever it is in the domain, or no marker, which is the domain as well, is the reidentification of the collection: refused by its scope.
 /// </summary>
-public static partial class ReversalRequestRule
+public static class ReversalRequestRule
 {
+    private const int Digits = 8;
+    private static readonly string[] Kinds = ["PESSOA_", "LUGAR_", "ORGANIZACAO_"];
     private static readonly char[] Separators = [',', ';', ' ', '\t', '\r', '\n'];
 
     /// <summary>The judgment of the request as the form sent it.</summary>
@@ -45,7 +46,7 @@ public static partial class ReversalRequestRule
         (ReversalRequestField Field, bool Held)[] fields =
         [
             (ReversalRequestField.Item, Array.TrueForAll(items, IsItem)),
-            (ReversalRequestField.Marker, Array.TrueForAll(markers, MarkerShape().IsMatch)),
+            (ReversalRequestField.Marker, Array.TrueForAll(markers, IsMarker)),
             (ReversalRequestField.Term, term > 0),
             (ReversalRequestField.Reason, !string.IsNullOrWhiteSpace(draft.Reason)),
             (ReversalRequestField.Use, !string.IsNullOrWhiteSpace(draft.Use)),
@@ -63,8 +64,9 @@ public static partial class ReversalRequestRule
 
     private static bool IsItem(string part) => long.TryParse(part, NumberStyles.None, CultureInfo.InvariantCulture, out var id) && id > 0;
 
-    private static string[] Parts(string? field) => (field ?? string.Empty).Split(Separators, StringSplitOptions.RemoveEmptyEntries);
+    /// <summary>A marker is its kind and eight digits: PESSOA_, LUGAR_ or ORGANIZACAO_ and then 00000001, say.</summary>
+    private static bool IsMarker(string part) => Array.Exists(
+        Kinds, kind => part.Length == kind.Length + Digits && part.StartsWith(kind, StringComparison.Ordinal) && !part.AsSpan(kind.Length).ContainsAnyExceptInRange('0', '9'));
 
-    [GeneratedRegex("^(PESSOA|LUGAR|ORGANIZACAO)_[0-9]{8}$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
-    private static partial Regex MarkerShape();
+    private static string[] Parts(string? field) => (field ?? string.Empty).Split(Separators, StringSplitOptions.RemoveEmptyEntries);
 }

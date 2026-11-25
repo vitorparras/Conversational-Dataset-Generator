@@ -1,5 +1,4 @@
 using Core.Persistence.Content.Reading;
-using Core.Persistence.Content.Sealing;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
 using Npgsql;
@@ -15,17 +14,16 @@ public sealed class ReversalRequestReader
     private readonly TimeProvider time;
     private readonly ProtectedContentReader reader;
 
-    /// <summary>The requests over the database, opened through the protected content, at the moments the clock gives.</summary>
+    /// <summary>The requests over the database, opened through the reading of protected content, at the moments the clock gives.</summary>
     /// <param name="dataSource">The source of the connections, with the application's credential.</param>
-    /// <param name="protectedContent">Opens why a request asks and what for.</param>
+    /// <param name="reader">Opens why a request asks and what for, once the chain recorded who read it.</param>
     /// <param name="time">The clock that says whether an authorization is in force.</param>
-    public ReversalRequestReader(NpgsqlDataSource dataSource, ProtectedContent protectedContent, TimeProvider time)
+    public ReversalRequestReader(NpgsqlDataSource dataSource, ProtectedContentReader reader, TimeProvider time)
     {
         ArgumentNullException.ThrowIfNull(dataSource);
-        ArgumentNullException.ThrowIfNull(protectedContent);
+        ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(time);
-        (this.dataSource, this.time) = (dataSource, time);
-        reader = new ProtectedContentReader(dataSource, protectedContent, new CustodyChain(dataSource));
+        (this.dataSource, this.reader, this.time) = (dataSource, reader, time);
     }
 
     /// <summary>A request of the domain, with where it stands now; none when the domain holds no such request.</summary>

@@ -77,14 +77,17 @@ public sealed class ReversalRoutesTests
         await using var world = await StartAsync();
         var (request, _) = await world.AskedAsync();
         var (absentOther, absentAnnotator) = (await world.GetAsync(Missing, world.Other), await world.GetAsync(Missing, Annotator));
+        var events = await world.ScalarAsync(CountEvents);
 
         var theirs = await world.PostAsync(ScreenPaths.ReversalDecideOf(request), Decision("autorizar", world.Tomorrow), world.Other);
         var annotator = await world.PostAsync(ScreenPaths.ReversalDecideOf(request), Decision("autorizar", world.Tomorrow), Annotator);
+        var afterTheGate = await world.ScalarAsync(CountEvents);
         using var access = await world.Desk.OpenAsync(Token) ?? throw new InvalidOperationException("The key was not read.");
         var direct = await access.Requests.AuthorizeAsync(new ReversalAct(SubmissionWorld.Domain, request, Annotator), world.Clock.GetUtcNow().AddDays(1), Token);
 
         Assert.Equal((HttpStatusCode.NotFound, WithoutAddress(absentOther.Page)), (theirs.Status, WithoutAddress(theirs.Page)));
         Assert.Equal((HttpStatusCode.NotFound, WithoutAddress(absentAnnotator.Page)), (annotator.Status, WithoutAddress(annotator.Page)));
+        Assert.Equal(events, afterTheGate);
         Assert.Equal(ReversalOutcome.NotCuration, direct.Outcome);
         Assert.Equal(
             ($"reversal_request|{request}|reversal_authorization_refused|reversal_function||{Annotator}|true", "0"),
@@ -427,6 +430,7 @@ public sealed class ReversalRoutesTests
             Assert.Contains("Autorizar este pedido até", open.Page, StringComparison.Ordinal);
         });
         Assert.Matches(Error("validade", "Nada foi autorizado: escolha uma data futura."), past.Page);
+        Assert.Contains("value=\"2020-01-01\"", past.Page, StringComparison.Ordinal);
         Assert.Equal((HttpStatusCode.SeeOther, $"{ScreenPaths.ReversalDecideOf(request)}?autorizado"), (sent.Status, sent.Location));
         Assert.Contains($"<h1>Pedido {request} autorizado</h1>", page.Page, StringComparison.Ordinal);
         Assert.Contains($"quem pediu pode revelar uma vez, até {world.TomorrowShown}.", page.Page, StringComparison.Ordinal);
@@ -456,6 +460,16 @@ public sealed class ReversalRoutesTests
         Assert.Contains($"a autorização venceu em {shown}.", page.Page, StringComparison.Ordinal);
         Assert.Matches(new Regex($"href=\"{ScreenPaths.ReversalMineOf(request)}\".*?Vencido", RegexOptions.Singleline, TimeSpan.FromSeconds(1)), list.Page);
         Assert.Contains($"href=\"{ScreenPaths.ReversalDecideOf(request)}\"", again.Page, StringComparison.Ordinal);
+
+        var expired = await world.GetAsync(ScreenPaths.ReversalDecideOf(request), world.Second);
+        var renewed = await world.PostAsync(ScreenPaths.ReversalDecideOf(request), Decision("autorizar", world.Tomorrow), world.Second);
+
+        Assert.Equal(HttpStatusCode.OK, expired.Status);
+        Assert.Contains("Autorizar este pedido até", expired.Page, StringComparison.Ordinal);
+        Assert.Contains("zqx-motivo-sintetico", expired.Page, StringComparison.Ordinal);
+        Assert.Equal((HttpStatusCode.SeeOther, $"{ScreenPaths.ReversalDecideOf(request)}?autorizado"), (renewed.Status, renewed.Location));
+        Assert.Equal("2", await world.ScalarAsync(CountAuthorizations));
+        Assert.Contains($"Autorizado até {world.TomorrowShown}", (await world.GetAsync(ScreenPaths.ReversalMineOf(request))).Page, StringComparison.Ordinal);
     }
 
     [DatabaseFact]

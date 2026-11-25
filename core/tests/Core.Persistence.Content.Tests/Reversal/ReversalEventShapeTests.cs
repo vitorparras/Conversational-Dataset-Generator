@@ -24,6 +24,9 @@ public sealed class ReversalEventShapeTests
     private const string RefusalOfAnItem = "INSERT INTO public.custody_event (actor_person_id, actor_system, item_kind, item_id, step, reason, reference) "
         + "VALUES (1, false, @kind, 1, 'reversal_request_refused', @reason, @reference)";
 
+    private const string OfAKind = "INSERT INTO public.custody_event (actor_person_id, actor_system, item_kind, item_id, step, reason, reference) "
+        + "VALUES (1, false, @kind, 41, @step, @reason, NULLIF(@reference, ''))";
+
     private const string CountRequests = "SELECT count(*) FROM content.reversal_request";
 
     private const string CountAuthorizations = "SELECT count(*) FROM content.reversal_authorization";
@@ -85,6 +88,22 @@ public sealed class ReversalEventShapeTests
         var refused = await Assert.ThrowsAsync<PostgresException>(() => world.ScalarAsync(RefusalOfAnItem, ("kind", kind), ("reason", reason), ("reference", reference)));
 
         Assert.Equal(PostgresErrorCodes.CheckViolation, refused.SqlState);
+    }
+
+    [DatabaseTheory]
+    [InlineData("reversal_request", "reversal_requested", "PESSOA_48291307")]
+    [InlineData("reversal_request", "reversal_request_read", "")]
+    [InlineData("reversal_authorization", "reversal_authorized", "41")]
+    [InlineData("reversal_request", "reversal_declined", "")]
+    public async Task ActOfTheReversalIsRecordedOnlyAsAnAdministrativeAct(string kind, string step, string reference)
+    {
+        await using var world = await ContentWorld.CreateAsync();
+
+        var refused = await Assert.ThrowsAsync<PostgresException>(() => world.ScalarAsync(
+            OfAKind, ("kind", kind), ("step", step), ("reason", "content_read"), ("reference", reference)));
+
+        Assert.Equal((PostgresErrorCodes.CheckViolation, "custody_event_reversal_shape"), (refused.SqlState, refused.ConstraintName));
+        _ = await world.ScalarAsync(OfAKind, ("kind", kind), ("step", step), ("reason", "administrative_act"), ("reference", reference));
     }
 
     [DatabaseTheory]

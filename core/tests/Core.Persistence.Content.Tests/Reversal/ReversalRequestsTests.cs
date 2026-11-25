@@ -166,7 +166,7 @@ public sealed class ReversalRequestsTests
     }
 
     private static ReversalRequestDraft Draft(long item, string marker) =>
-        new() { Item = item.ToString(System.Globalization.CultureInfo.InvariantCulture), Marker = marker, Term = "30", Reason = "zqx-porque", Use = "zqx-uso" };
+        new() { Item = item.ToString(CultureInfo.InvariantCulture), Marker = marker, Term = "30", Reason = "zqx-porque", Use = "zqx-uso" };
 
     /// <summary>An item of the domain that holds a marker, written as the application writes it.</summary>
     private static async Task<(long Item, string Marker)> ItemAsync(ContentWorld world, int domainId)

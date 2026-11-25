@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text;
-using Core.Ingestion.Contracts.Reversal;
 using Core.Ingestion.Contracts.Dating;
+using Core.Ingestion.Contracts.Reversal;
 using Core.Persistence.Content;
 using Core.Persistence.Content.Reversal;
 using Core.Persistence.Content.Writing;

@@ -43,9 +43,10 @@ finalidade própria que o mapa exige.
 5. O pseudonimizado passa a receber material real, cifrado com a chave do item
    ([0030](../decisoes/0030-qual-texto-fica-em-claro.md)), e o que entra nele já passou pela
    sanitização e pela pseudonimização, nessa ordem.
-6. O referente de cada menção vem da correferência do serviço de linguagem, sobre a conversa
-   inteira, com a precisão em pt-BR medida antes de entrar; a fase só fecha com ela
-   ([fatia F](../arquitetura/fases/005-pseudonimizacao/fatia-f-correferencia.md) do pacote).
+6. O referente de cada menção vem do grupo que o serviço de linguagem dá sobre a conversa
+   inteira, pela regra por nome da [0060](../decisoes/0060-correferencia-na-resposta-da-fronteira.md);
+   modelo de correferência só entra com a precisão em pt-BR medida antes. A fase só fecha com o
+   grupo ([fatia F](../arquitetura/fases/005-pseudonimizacao/fatia-f-correferencia.md) do pacote).
 
 ## O que destrava
 

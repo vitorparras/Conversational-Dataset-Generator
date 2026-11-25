@@ -8,6 +8,7 @@ using Core.Persistence.Tests.Content;
 using Core.Persistence.Tests.Fixtures;
 using Core.Platform.Keys;
 using Npgsql;
+using static Core.Persistence.Tests.Reversal.ReversalAsks;
 
 namespace Core.Persistence.Tests.Reversal;
 
@@ -19,12 +20,6 @@ namespace Core.Persistence.Tests.Reversal;
 public sealed class ReversalRequestsTests
 {
     private const string ReversalRefusal = "CE007";
-
-    private const string CountRequests = "SELECT count(*) FROM content.reversal_request";
-
-    private const string CountAuthorizations = "SELECT count(*) FROM content.reversal_authorization";
-
-    private const string CountEvents = "SELECT count(*) FROM public.custody_event";
 
     private const string Authorizations =
         "SELECT string_agg(a.authorized_by || '|' || (a.authorized_at <= now()) || '|' || to_char(a.valid_until AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') || '|' || e.reference, ';' ORDER BY a.id) "
@@ -164,31 +159,6 @@ public sealed class ReversalRequestsTests
         Assert.Equal((ContentReadOutcome.Read, texts[0], texts[1]), (read.Outcome, read.Reason, read.Use));
         Assert.Equal([false, false, false, false], texts.SelectMany(text => new[] { text, Hex(text) }).Select(seeded => dump.Contains(seeded, StringComparison.Ordinal)));
     }
-
-    private static ReversalRequestDraft Draft(long item, string marker) =>
-        new() { Item = item.ToString(CultureInfo.InvariantCulture), Marker = marker, Term = "30", Reason = "zqx-porque", Use = "zqx-uso" };
-
-    /// <summary>An item of the domain that holds a marker, written as the application writes it.</summary>
-    private static async Task<(long Item, string Marker)> ItemAsync(ContentWorld world, int domainId)
-    {
-        var marker = PseudonymizedTexts.Draw(1)[0];
-        var written = await world.RealWriter.AddPseudonymizedItemAsync(domainId, domainId, PseudonymizedTexts.Holding(marker), Token);
-        return (Assert.NotNull(written.ItemId), marker);
-    }
-
-    /// <summary>A request of the curator of the world, the person 3, in the domain 1, asked through the storage.</summary>
-    private static async Task<long> AskedAsync(ContentWorld world)
-    {
-        var (item, marker) = await ItemAsync(world, 1);
-        var asked = await world.ReversalRequests.AskAsync(1, 3, Draft(item, marker), Token);
-        Assert.Equal(ReversalOutcome.Recorded, asked.Outcome);
-        return Assert.NotNull(asked.Id);
-    }
-
-    private static async Task<long> SecondCuratorAsync(ContentWorld world, string name = "zqx-curator-2") =>
-        (long)(await world.ScalarAsync("INSERT INTO public.person (name, function_name) VALUES (@name, 'Curadoria do acervo') RETURNING id", ("name", name)))!;
-
-    private static async Task<long> CountAsync(ContentWorld world, string statement) => (long)(await world.OwnerInDomainAsync(1, statement))!;
 
     private static string Hex(string text) => Convert.ToHexStringLower(Encoding.UTF8.GetBytes(text));
 }

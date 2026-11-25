@@ -33,6 +33,9 @@ internal sealed class SessionedHost : IAsyncDisposable
     /// <summary>The store the gate asks, which the test seeds.</summary>
     public SessionStore Sessions { get; }
 
+    /// <summary>The container of the host, where a test takes what the root registered, as the routes take it.</summary>
+    public IServiceProvider Services => app.Services;
+
     /// <summary>The host with the fake recognizer and the analysis route, behind the gate.</summary>
     public static Task<SessionedHost> StartWithAnalysisAsync(CancellationToken cancellationToken) =>
         StartAsync(services => services.AddSingleton<IRecognizer, FakeRecognizer>().AddTransient<Host.Analysis.MaterialAnalysis>(), AnalysisEndpoint.Map, cancellationToken);

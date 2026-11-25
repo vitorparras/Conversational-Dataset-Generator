@@ -363,3 +363,22 @@ h1 + .lead { margin-top: 0; }
 .sample__version { color: var(--ink-muted); font-size: var(--text-sm); overflow-wrap: anywhere; }
 .sample__text { margin: 0 0 var(--space-4); padding: var(--space-3) var(--space-4); border-left: var(--line-strong) solid var(--edge); white-space: pre-wrap; overflow-wrap: anywhere; }
 .row--stacked > strong { flex-basis: 100%; }
+
+/* The screens of the reversal (phase 5): the line of where a request stands, right under the title; two or three short fields side by side where they fit; what is read on asking. */
+.status { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2) var(--space-4); margin: 0 0 var(--space-4); color: var(--ink-muted); }
+.pair { display: flex; flex-wrap: wrap; align-items: start; gap: 0 var(--space-5); max-width: var(--field-width); }
+.pair > .field { flex: 1 1 10rem; }
+.more { max-width: var(--measure); margin-top: var(--space-5); }
+.more > summary { display: inline-flex; align-items: center; min-height: var(--control-height); color: var(--accent); cursor: pointer; list-style: none; }
+.more > summary::-webkit-details-marker { display: none; }
+.more > summary::before { content: "\25B8" / ""; display: inline-block; width: 1.25em; }
+.more[open] > summary::before { content: "\25BE" / ""; }
+.more[open] > summary { margin-bottom: var(--space-2); }
+
+/* Each request of a list is one whole line to open, parted by a rule and in no box. */
+.rows { margin: 0; padding: 0; list-style: none; border-top: var(--line) solid var(--edge-soft); }
+.rows > li { border-bottom: var(--line) solid var(--edge-soft); }
+.rows a { display: flex; align-items: center; gap: var(--space-3); min-height: var(--control-height); padding: var(--space-3) 0; color: var(--ink); text-decoration: none; }
+.rows a > span { display: grid; gap: var(--space-1); }
+.rows strong { color: var(--accent); overflow-wrap: anywhere; }
+.rows a::after { content: "\2192" / ""; margin-left: auto; color: var(--accent); }

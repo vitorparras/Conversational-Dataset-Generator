@@ -1,7 +1,7 @@
 <div class="field">
     <label class="field__label" for="@Id">
         @Caption
-        @if (Required)
+        @if (Required && !RequiredAbove)
         {
             <span class="field__required">(obrigatório)</span>
         }
@@ -12,7 +12,8 @@
     }
     @if (Rows > 0)
     {
-        <textarea id="@Id" class="field__input field__input--text" name="@(Name ?? Id)" rows="@Rows" readonly="@ReadOnly" aria-describedby="@DescribedBy">@Value</textarea>
+        <textarea id="@Id" class="field__input@(ReadOnly ? " field__input--text" : null)" name="@(Name ?? Id)" rows="@Rows" readonly="@ReadOnly" autofocus="@Autofocus"
+                  aria-required="@(Required ? "true" : null)" aria-invalid="@(Error is null ? null : "true")" aria-describedby="@DescribedBy">@Value</textarea>
     }
     else if (Options is null)
     {
@@ -60,7 +61,7 @@
     [Parameter]
     public string? Value { get; set; }
 
-    /// <summary>How many lines a field that shows a text to copy takes; above zero it is a box of text that is read and not typed in, never sent back to be trusted.</summary>
+    /// <summary>How many lines a box of text takes; above zero the field is a box, typed in, or only read and copied when <see cref="ReadOnly"/>, and then never sent back to be trusted.</summary>
     [Parameter]
     public int Rows { get; set; }
 
@@ -78,6 +79,10 @@
 
     [Parameter]
     public bool Required { get; set; }
+
+    /// <summary>Whether the form says once, above its fields, that every one is required; the label then does not repeat it, and the field is still announced as required.</summary>
+    [Parameter]
+    public bool RequiredAbove { get; set; }
 
     [Parameter]
     public string? Autocomplete { get; set; }

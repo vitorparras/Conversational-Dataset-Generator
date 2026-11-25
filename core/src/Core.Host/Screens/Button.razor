@@ -1,6 +1,6 @@
 @if (Href is null)
 {
-    <button id="@Id" class="@Classes" type="@Type" disabled="@Disabled" aria-describedby="@DescribedBy" data-shortcut="@Shortcut" aria-keyshortcuts="@Shortcut">@ChildContent@Key</button>
+    <button id="@Id" class="@Classes" type="@Type" name="@Name" value="@Value" disabled="@Disabled" aria-describedby="@DescribedBy" data-shortcut="@Shortcut" aria-keyshortcuts="@Shortcut">@ChildContent@Key</button>
 }
 else
 {
@@ -26,6 +26,13 @@ else
     /// <summary>The kind of the button inside a form; ignored when <see cref="Href"/> makes it a link.</summary>
     [Parameter]
     public string Type { get; set; } = "submit";
+
+    /// <summary>What a button of a form sends, by name and value, when a form has more than one way to be sent; ignored by a link.</summary>
+    [Parameter]
+    public string? Name { get; set; }
+
+    [Parameter]
+    public string? Value { get; set; }
 
     /// <summary>Where the action goes when it is a link rather than a button of a form.</summary>
     [Parameter]

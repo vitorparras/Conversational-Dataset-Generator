@@ -1,4 +1,6 @@
+using Core.Persistence.Content;
 using Core.Persistence.Content.Emptying;
+using Core.Persistence.Content.Writing;
 using Core.Persistence.Custody;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Fixtures;
@@ -18,12 +20,15 @@ public sealed class MarkerStorageTests
     private const string WithoutEvent = "CE005";
     private const string Held = "SELECT coalesce(string_agg(marker, ',' ORDER BY marker), '') FROM content.marker_in_use";
     private const string OfItem = "SELECT coalesce(string_agg(marker, ',' ORDER BY marker), '') FROM content.item_marker WHERE item_id = @id";
+    private const string OfItemWithAuthor = "SELECT string_agg(marker || ':' || author, ',' ORDER BY marker) FROM content.item_marker WHERE item_id = @id";
     private const string Items = "SELECT count(*) || ',' || (SELECT count(*) FROM content.reversal_map) FROM content.item_text";
 
     private const string AddedLater = "WITH held AS (INSERT INTO content.marker_in_use (domain_id, marker, kind) VALUES (1, @marker, 'person') RETURNING marker) "
         + "INSERT INTO content.item_marker (domain_id, item_id, marker, author) SELECT 1, @id, marker, false FROM held";
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
+
+    private static NewMapEntry Entry(string marker, bool author) => new(marker, PseudonymizedTexts.OriginalOf(marker), author, OccurrenceDestination.Pseudonymize);
 
     [DatabaseFact]
     public async Task MarkerIsUniqueInTheInstallation()
@@ -38,6 +43,21 @@ public sealed class MarkerStorageTests
 
         Assert.Equal((true, null, marker), (first.ItemId is not null, second.ItemId, Assert.Single(second.Taken)));
         Assert.Equal((UniqueViolation, "0,0", marker), (byHand.SqlState, (string?)await world.InDomainAsync(2, Items), (string?)await world.InDomainAsync(1, Held)));
+    }
+
+    [DatabaseFact]
+    public async Task MarkerIsHeldAsAnAuthorWhenAnyOfItsOccurrencesStandsForOne()
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        var markers = PseudonymizedTexts.Draw(2);
+        var (author, other) = (markers[0], markers[1]);
+        var item = PseudonymizedTexts.WithMap([Entry(author, false), Entry(author, true), Entry(other, false)]);
+
+        var written = await world.RealWriter.AddPseudonymizedItemAsync(1, 1, item, Token);
+
+        Assert.Equal(
+            string.Join(',', new[] { $"{author}:true", $"{other}:false" }.Order(StringComparer.Ordinal)),
+            (string?)await world.InDomainAsync(1, OfItemWithAuthor, ("id", Assert.NotNull(written.ItemId))));
     }
 
     [DatabaseFact]

@@ -23,6 +23,14 @@ internal static class ReversalRows
         + "INSERT INTO public.custody_event (actor_person_id, actor_system, item_kind, item_id, step, reason, reference) "
         + "SELECT @person, false, 'reversal_authorization', a.id, 'reversal_authorized', 'administrative_act', a.request_id::text FROM a RETURNING item_id";
 
+    /// <summary>The authorization of a request, by the person, that expired a day ago: the bound of the term is set aside for the one statement, as only the superuser can.</summary>
+    public static Task ExpiredAsync(ContentWorld world, (int Domain, long Request) of, long personId) =>
+        world.Database.ExecuteAsSuperuserAsync(
+            "ALTER TABLE content.reversal_authorization DISABLE TRIGGER reversal_authorization_is_bounded; "
+            + Authorization.Replace("now() + @term::interval", "now() - interval '1 day'", StringComparison.Ordinal)
+            + "; ALTER TABLE content.reversal_authorization ENABLE ALWAYS TRIGGER reversal_authorization_is_bounded",
+            ("domain", of.Domain), ("request", of.Request), ("person", personId));
+
     /// <summary>A request of the person in the domain, with its event; the identifier of the request.</summary>
     public static async Task<long> RequestAsync(ContentWorld world, int domainId, long personId) =>
         (long)(await world.InDomainAsync(domainId, Request, ("domain", domainId), ("person", personId)))!;

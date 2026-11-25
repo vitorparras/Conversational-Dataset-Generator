@@ -42,21 +42,15 @@ public static partial class ReversalRequestRule
 
     private static List<ReversalRequestField> Missing(string[] items, string[] markers, int term, ReversalRequestDraft draft)
     {
-        var missing = new List<ReversalRequestField>();
-        Note(missing, ReversalRequestField.Item, Array.TrueForAll(items, IsItem));
-        Note(missing, ReversalRequestField.Marker, markers.Length > 0 && Array.TrueForAll(markers, MarkerShape().IsMatch));
-        Note(missing, ReversalRequestField.Term, term > 0);
-        Note(missing, ReversalRequestField.Reason, !string.IsNullOrWhiteSpace(draft.Reason));
-        Note(missing, ReversalRequestField.Use, !string.IsNullOrWhiteSpace(draft.Use));
-        return missing;
-    }
-
-    private static void Note(List<ReversalRequestField> missing, ReversalRequestField field, bool held)
-    {
-        if (!held)
-        {
-            missing.Add(field);
-        }
+        (ReversalRequestField Field, bool Held)[] fields =
+        [
+            (ReversalRequestField.Item, Array.TrueForAll(items, IsItem)),
+            (ReversalRequestField.Marker, markers.Length > 0 && Array.TrueForAll(markers, MarkerShape().IsMatch)),
+            (ReversalRequestField.Term, term > 0),
+            (ReversalRequestField.Reason, !string.IsNullOrWhiteSpace(draft.Reason)),
+            (ReversalRequestField.Use, !string.IsNullOrWhiteSpace(draft.Use)),
+        ];
+        return [.. fields.Where(field => !field.Held).Select(field => field.Field)];
     }
 
     private static ReversalScope? ScopeOf(int items, int markers) => (items, markers) switch

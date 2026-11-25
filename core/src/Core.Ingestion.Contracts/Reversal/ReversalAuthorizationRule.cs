@@ -19,6 +19,6 @@ public static class ReversalAuthorizationRule
         {
             return ReversalAuthorizationVerdict.OwnRequest;
         }
-        return ask.ValidUntil > ask.Now ? ReversalAuthorizationVerdict.Authorized : ReversalAuthorizationVerdict.TermInThePast;
+        return ask.ValidUntil is null || ask.ValidUntil > ask.Now ? ReversalAuthorizationVerdict.Authorized : ReversalAuthorizationVerdict.TermInThePast;
     }
 }

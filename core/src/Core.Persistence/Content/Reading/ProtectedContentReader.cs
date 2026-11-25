@@ -27,6 +27,10 @@ public sealed class ProtectedContentReader(NpgsqlDataSource dataSource, Protecte
         [ContentColumns.Occurrences] = new(CustodyItemKind.ItemText, CustodyStep.OccurrencesRead, ContentQueries.ReadOccurrences),
         [ContentColumns.Entries] = new(CustodyItemKind.ReversalMap, CustodyStep.ReversalEntriesRead, ContentQueries.ReadReversalEntries, ContentQueries.ReadFirstEntries),
         [ContentColumns.Origin] = new(CustodyItemKind.IngestionBatch, CustodyStep.OriginRead, ContentQueries.ReadBatchOrigin),
+        [ContentColumns.ReversalRequestText] = new(CustodyItemKind.ReversalRequest, CustodyStep.ReversalRequestRead, ContentQueries.ReadReversalRequestText)
+        {
+            Reason = CustodyReason.AdministrativeAct,
+        },
     }.ToFrozenDictionary();
 
     /// <summary>Reads the column of the row under the domain, recording the reading before the content is opened.</summary>
@@ -64,7 +68,7 @@ public sealed class ProtectedContentReader(NpgsqlDataSource dataSource, Protecte
             return refused with { RowId = stored.RowId };
         }
 
-        var recorded = await chain.AppendAsync(CustodyEvent.Of(request.Author, new CustodyItem(reading.Kind, stored.RowId), reading.Step, CustodyReason.ContentRead), cancellationToken)
+        var recorded = await chain.AppendAsync(CustodyEvent.Of(request.Author, new CustodyItem(reading.Kind, stored.RowId), reading.Step, reading.Reason), cancellationToken)
             .ConfigureAwait(false);
         return recorded.Outcome == CustodyOutcome.Appended
             ? new ContentReadResult
@@ -149,7 +153,10 @@ public sealed class ProtectedContentReader(NpgsqlDataSource dataSource, Protecte
         _ => ContentReadOutcome.Empty,
     };
 
-    private sealed record ColumnReading(CustodyItemKind Kind, CustodyStep Step, string Query, string? First = null);
+    private sealed record ColumnReading(CustodyItemKind Kind, CustodyStep Step, string Query, string? First = null)
+    {
+        public CustodyReason Reason { get; init; } = CustodyReason.ContentRead;
+    }
 
     private sealed record Lookup(string Statement, long Id, bool First);
 

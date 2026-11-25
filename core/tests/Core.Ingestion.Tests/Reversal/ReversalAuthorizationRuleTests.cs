@@ -48,4 +48,15 @@ public sealed class ReversalAuthorizationRuleTests
 
         Assert.Equal(ReversalAuthorizationVerdict.OwnRequest, verdict);
     }
+
+    [Theory]
+    [InlineData(8L, true, ReversalAuthorizationVerdict.Authorized)]
+    [InlineData(7L, true, ReversalAuthorizationVerdict.OwnRequest)]
+    [InlineData(8L, false, ReversalAuthorizationVerdict.NotCuration)]
+    public void DeclineIsJudgedWithoutATerm(long decidedBy, bool curation, ReversalAuthorizationVerdict verdict)
+    {
+        var judged = ReversalAuthorizationRule.Judge(ByAnotherCurator with { AuthorizedBy = decidedBy, AuthorizerIsCuration = curation, ValidUntil = null });
+
+        Assert.Equal(verdict, judged);
+    }
 }

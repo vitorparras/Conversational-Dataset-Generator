@@ -12,8 +12,8 @@ public sealed record ReversalAuthorizationAsk
     /// <summary>Whether who means to authorize holds the function of the curation.</summary>
     public required bool AuthorizerIsCuration { get; init; }
 
-    /// <summary>Until when the authorization would hold.</summary>
-    public required DateTimeOffset ValidUntil { get; init; }
+    /// <summary>Until when the authorization would hold; none for a decline, which is judged by who decides alone.</summary>
+    public required DateTimeOffset? ValidUntil { get; init; }
 
     /// <summary>The moment of the authorization.</summary>
     public required DateTimeOffset Now { get; init; }

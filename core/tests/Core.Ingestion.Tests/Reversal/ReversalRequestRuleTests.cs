@@ -44,7 +44,7 @@ public sealed class ReversalRequestRuleTests
     {
         var judged = ReversalRequestRule.Judge(draft);
 
-        Assert.Equal((ReversalRequestVerdict.Incomplete, true, (ReversalRequest?)null), (judged.Verdict, judged.Missing.Contains(missing), judged.Request));
+        Assert.Equal((ReversalRequestVerdict.Incomplete, true, null), (judged.Verdict, judged.Missing.Contains(missing), judged.Request));
     }
 
     [Theory]
@@ -53,7 +53,7 @@ public sealed class ReversalRequestRuleTests
     {
         var judged = ReversalRequestRule.Judge(draft);
 
-        Assert.Equal((ReversalRequestVerdict.TooWide, (ReversalScope?)scope, (ReversalRequest?)null), (judged.Verdict, judged.Scope, judged.Request));
+        Assert.Equal((ReversalRequestVerdict.TooWide, (ReversalScope?)scope, null), (judged.Verdict, judged.Scope, judged.Request));
     }
 
     [Fact]
@@ -61,7 +61,8 @@ public sealed class ReversalRequestRuleTests
     {
         var judged = ReversalRequestRule.Judge(new ReversalRequestDraft { Item = "118" });
 
-        Assert.Equal(new[] { ReversalRequestField.Marker, ReversalRequestField.Term, ReversalRequestField.Reason, ReversalRequestField.Use }, judged.Missing);
+        ReversalRequestField[] every = [ReversalRequestField.Marker, ReversalRequestField.Term, ReversalRequestField.Reason, ReversalRequestField.Use];
+        Assert.Equal(every, judged.Missing);
     }
 
     [Fact]
@@ -69,7 +70,7 @@ public sealed class ReversalRequestRuleTests
     {
         var judged = ReversalRequestRule.Judge(Complete with { Item = "118, 204", Use = null });
 
-        Assert.Equal((ReversalRequestVerdict.Incomplete, (ReversalScope?)null), (judged.Verdict, judged.Scope));
+        Assert.Equal((ReversalRequestVerdict.Incomplete, null), (judged.Verdict, judged.Scope));
     }
 
     [Fact]

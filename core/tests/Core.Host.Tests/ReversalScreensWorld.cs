@@ -155,6 +155,13 @@ internal sealed class ReversalScreensWorld : IAsyncDisposable
         await Submissions.DisposeAsync();
     }
 
+    /// <summary>Makes the chain refuse, as broken, every event of the step given from now on.</summary>
+    internal Task RefuseInTheChainAsync(string step) =>
+        Submissions.Database.ExecuteAsSuperuserAsync(
+            "CREATE FUNCTION public.zqx_chain_refuses() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $f$ "
+            + "BEGIN RAISE EXCEPTION 'broken' USING ERRCODE = 'CE002'; END $f$; "
+            + $"CREATE TRIGGER zqx_chain_refuses BEFORE INSERT ON public.custody_event FOR EACH ROW WHEN (NEW.step = '{step}') EXECUTE FUNCTION public.zqx_chain_refuses()");
+
     private static long Parsed(string id) => long.Parse(id, NumberStyles.None, CultureInfo.InvariantCulture);
 
     private async Task<Reply> SendAsync(HttpRequestMessage request, long? person)

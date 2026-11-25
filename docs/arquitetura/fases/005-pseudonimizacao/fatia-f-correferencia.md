@@ -20,10 +20,10 @@ tamanho máximo nem peso novo na [0041](../../../decisoes/0041-distribuicao-do-s
 
 **F2 — serviço e contrato.** O pedido leva os textos do item na ordem de `MaterialTexts`, cada
 mensagem com o nome do autor. O serviço reconhece cada texto à parte, como a `/analyze`, aplica a
-regra da 0060 sobre o item inteiro e devolve cada ocorrência no seu texto (índice do texto, posições
-nele, tipo, análise gramatical e grupo), e o grupo de cada nome de autor, que nunca volta como
-ocorrência; o nome de autor é candidato da parte do nome, e com dois candidatos a menção fica em
-grupo próprio. O `ResponseValidator` recusa índice fora do item, posição fora do texto e grupo ausente; o `Core.Boundary.Fake` devolve grupos.
+regra da 0060 ao item inteiro e devolve cada ocorrência no seu texto (índice, posições, tipo,
+análise gramatical e grupo) e o grupo de cada nome de autor, que nunca é ocorrência; o autor é
+candidato da parte do nome, e com dois a menção fica em grupo próprio. O `ResponseValidator` recusa
+índice fora do item, posição fora do texto e grupo ausente; o `Core.Boundary.Fake` devolve grupos.
 
 **F3 — o núcleo usa o grupo.** Um pedido por item; o grupo vira o referente da troca da fatia B, e
 a F3 liga a troca à submissão e à reexecução da fase 4. Até ela, nenhum item recebe pseudonimizado.

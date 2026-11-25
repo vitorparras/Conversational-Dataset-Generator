@@ -18,6 +18,8 @@ internal static class CustodyNames
         [CustodyItemKind.IngestionBatch] = "ingestion_batch",
         [CustodyItemKind.ConfigurationChange] = "configuration_change",
         [CustodyItemKind.SanitizationRerun] = "sanitization_rerun",
+        [CustodyItemKind.ReversalRequest] = "reversal_request",
+        [CustodyItemKind.ReversalAuthorization] = "reversal_authorization",
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<CustodyStep, string> Steps = new Dictionary<CustodyStep, string>
@@ -66,6 +68,12 @@ internal static class CustodyNames
         [CustodyStep.SanitizationRerun] = "sanitization_rerun",
         [CustodyStep.ItemResanitized] = "item_resanitized",
         [CustodyStep.BatchPseudonymized] = "batch_pseudonymized",
+        [CustodyStep.ReversalRequested] = "reversal_requested",
+        [CustodyStep.ReversalRequestRefused] = "reversal_request_refused",
+        [CustodyStep.ReversalRequestRead] = "reversal_request_read",
+        [CustodyStep.ReversalAuthorized] = "reversal_authorized",
+        [CustodyStep.ReversalAuthorizationRefused] = "reversal_authorization_refused",
+        [CustodyStep.ReversalDeclined] = "reversal_declined",
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<CustodyReason, string> Reasons = new Dictionary<CustodyReason, string>
@@ -90,6 +98,9 @@ internal static class CustodyNames
         [CustodyReason.SanitizationReplaced] = "sanitization_replaced",
         [CustodyReason.SanitizationRefused] = "sanitization_refused",
         [CustodyReason.SanitizationSuperseded] = "sanitization_superseded",
+        [CustodyReason.ReversalFunction] = "reversal_function",
+        [CustodyReason.ReversalScope] = "reversal_scope",
+        [CustodyReason.ReversalSelf] = "reversal_self",
     }.ToFrozenDictionary();
 
     internal static string Of(CustodyItemKind kind) => Kinds[kind];

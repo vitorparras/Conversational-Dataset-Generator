@@ -6,7 +6,7 @@ namespace Core.Tests.Architecture.Boundaries;
 public sealed class ProtectedColumnQueryTests
 {
     private static readonly HashSet<string> Columns = new(
-        ["raw_text", "sanitized_text", "sanitization_trail", "occurrences", "entries", "dek_wrapped", "origin", "shift", "pseudonymized_text"], StringComparer.Ordinal);
+        ["raw_text", "sanitized_text", "sanitization_trail", "occurrences", "entries", "dek_wrapped", "origin", "shift", "pseudonymized_text", "justification"], StringComparer.Ordinal);
 
     [Fact]
     public void ProductionFiltersAndOrdersByNoProtectedColumn()

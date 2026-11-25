@@ -17,6 +17,7 @@ public static class ContentColumns
     private const string EpochColumn = "dek_epoch";
     private const string RerunTable = "sanitization_rerun";
     private const string RerunItemTable = "sanitization_rerun_item";
+    private const string AuthorizationTable = "reversal_authorization";
 
     /// <summary>The table of the texts of an item.</summary>
     public static string ItemText { get; } = "item_text";
@@ -81,6 +82,15 @@ public static class ContentColumns
     /// <summary>The pseudonymized text of an item, sealed with the key of the item as the other texts of it (decision 0030).</summary>
     public static ProtectedColumn PseudonymizedText { get; } = new(ItemText, "pseudonymized_text", LabelPurpose.RawText);
 
+    /// <summary>The table of the requests to reverse a marker, one row for each request, never changed.</summary>
+    public static string ReversalRequest { get; } = "reversal_request";
+
+    /// <summary>Why the identity is asked for and what will be done with it, sealed with the purpose of the map: the event of the request never carries them.</summary>
+    public static ProtectedColumn ReversalRequestText { get; } = new(ReversalRequest, "justification", LabelPurpose.ReversalMap);
+
+    /// <summary>The key of the text of a request, in the column every wrapped key has.</summary>
+    public static ProtectedColumn ReversalRequestKey { get; } = new(ReversalRequest, ItemKey.Name, LabelPurpose.ReversalMap);
+
     /// <summary>The table of the markers held in the installation, one row for each marker drawn.</summary>
     public static string MarkerInUse { get; } = "marker_in_use";
 
@@ -89,7 +99,7 @@ public static class ContentColumns
 
     /// <summary>The columns stored sealed.</summary>
     public static IReadOnlyList<ProtectedColumn> Protected { get; } =
-        [RawText, SanitizedText, Occurrences, SanitizationTrail, ItemKey, Entries, MapKey, Origin, OriginKey, DateShift, DateShiftKey, PseudonymizedText];
+        [RawText, SanitizedText, Occurrences, SanitizationTrail, ItemKey, Entries, MapKey, Origin, OriginKey, DateShift, DateShiftKey, PseudonymizedText, ReversalRequestText, ReversalRequestKey];
 
     /// <summary>The columns stored in clear: identifiers, the domain, dates, words and numbers the tables check, and the markers, which keep nothing of an original.</summary>
     public static IReadOnlyList<ClearColumn> Clear { get; } =
@@ -197,5 +207,19 @@ public static class ContentColumns
         new(RerunItemTable, "concluded_at", ClearKind.Moment),
         new(RerunItemTable, "result", ClearKind.Motive),
         new(RerunItemTable, "refusal", ClearKind.Motive),
+        new(ReversalRequest, IdColumn, ClearKind.Identifier),
+        new(ReversalRequest, DomainColumn, ClearKind.Domain),
+        new(ReversalRequest, ItemColumn, ClearKind.Identifier),
+        new(ReversalRequest, "marker", ClearKind.Motive),
+        new(ReversalRequest, "requested_by", ClearKind.Identifier),
+        new(ReversalRequest, "requested_at", ClearKind.Moment),
+        new(ReversalRequest, "term_days", ClearKind.Epoch),
+        new(ReversalRequest, EpochColumn, ClearKind.Epoch),
+        new(AuthorizationTable, IdColumn, ClearKind.Identifier),
+        new(AuthorizationTable, DomainColumn, ClearKind.Domain),
+        new(AuthorizationTable, "request_id", ClearKind.Identifier),
+        new(AuthorizationTable, "authorized_by", ClearKind.Identifier),
+        new(AuthorizationTable, "authorized_at", ClearKind.Moment),
+        new(AuthorizationTable, "valid_until", ClearKind.Moment),
     ];
 }

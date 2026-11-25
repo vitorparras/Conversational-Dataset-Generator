@@ -28,6 +28,9 @@ internal static class CustodyStatements
     /// </summary>
     internal const string BatchSqlState = "CE006";
 
+    /// <summary>The SQLSTATE raised when an authorization of a reversal is by who asked, holds until a moment past, or comes while another holds or after a decline (migration 202611251200).</summary>
+    internal const string ReversalSqlState = "CE007";
+
     /// <summary>Every field of every event that the digest covers, with the two digests, in the order of the sequence: what the verification reads.</summary>
     internal const string ReadChain = """
         SELECT sequence, pg_catalog.timestamptz_send(occurred_at) AS occurred_at_send, actor_person_id, actor_system, item_kind, item_id, step, reason, corrects,

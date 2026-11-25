@@ -1,6 +1,9 @@
+using System.Globalization;
 using System.Text;
 using Core.Ingestion.Contracts.Dating;
+using Core.Ingestion.Contracts.Reversal;
 using Core.Persistence.Content;
+using Core.Persistence.Content.Reversal;
 using Core.Persistence.Content.Writing;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Fixtures;
@@ -59,9 +62,15 @@ internal static class OpaqueStorage
     /// <summary>The column of the key of the shift, wrapped.</summary>
     public const string DateShiftKey = "content.date_shift.dek_wrapped";
 
-    private static readonly string[] Seedable = [RawText, SanitizedText, SanitizationTrail, Occurrences, PseudonymizedText, Entries, Origin];
+    /// <summary>The column of why a request to reverse a marker asks and what for, sealed with the purpose of the map.</summary>
+    public const string RequestText = "content.reversal_request.justification";
 
-    private static readonly string[] KeyColumns = [ItemKey, MapKey, OriginKey, DateShiftKey];
+    /// <summary>The column of the key of the request, wrapped.</summary>
+    public const string RequestKey = "content.reversal_request.dek_wrapped";
+
+    private static readonly string[] Seedable = [RawText, SanitizedText, SanitizationTrail, Occurrences, PseudonymizedText, Entries, Origin, RequestText];
+
+    private static readonly string[] KeyColumns = [ItemKey, MapKey, OriginKey, DateShiftKey, RequestKey];
 
     /// <summary>
     /// The columns whose value is drawn, not chosen, so no text of the seeding can be searched for in them: a few digits would be found by chance anywhere in a copy. They are
@@ -120,11 +129,20 @@ internal static class OpaqueStorage
             Sanitization = ItemTexts.Sanitization(texts[SanitizedText]) with { Trail = texts[SanitizationTrail] },
             Map = [new NewMapEntry(marker, texts[Entries], false, OccurrenceDestination.Pseudonymize)],
         };
-        _ = await world.Writer.AddPseudonymizedItemAsync(1, written, TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddPseudonymizedItemAsync(1, written, TestContext.Current.CancellationToken);
+        await AskForTheReversalAsync(world, (item, marker), texts[RequestText]);
         await OpenWithOriginAsync(world, texts[Origin]);
         Assert.Equal(DateShiftOutcome.Kept, (await world.DateShifts.EstablishAsync(1, TestContext.Current.CancellationToken)).Outcome);
         await AssertEveryMarkedColumnHoldsSomethingAsync(world, marked);
         return new Material(texts, marker) { Keys = await KeysInClearAsync(world) };
+    }
+
+    /// <summary>Asks, as the curator of the world, for the reversal of the marker of the item, with the text given as why; the storage seals it in a row of its own with a key of its own.</summary>
+    private static async Task AskForTheReversalAsync(ContentWorld world, (long Item, string Marker) of, string reason)
+    {
+        var draft = new ReversalRequestDraft { Item = of.Item.ToString(CultureInfo.InvariantCulture), Marker = of.Marker, Term = "30", Reason = reason, Use = "zqx-uso" };
+        var asked = await world.ReversalRequests.AskAsync(1, 3, draft, TestContext.Current.CancellationToken);
+        Assert.Equal(ReversalOutcome.Recorded, asked.Outcome);
     }
 
     /// <summary>Opens a batch whose submission declared an origin, which the application seals in a row of its own with a key of its own.</summary>

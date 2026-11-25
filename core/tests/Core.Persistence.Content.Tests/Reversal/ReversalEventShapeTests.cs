@@ -91,6 +91,7 @@ public sealed class ReversalEventShapeTests
     [InlineData("UPDATE content.reversal_request SET marker = 'PESSOA_00000001'")]
     [InlineData("UPDATE content.reversal_request SET term_days = 1")]
     [InlineData("UPDATE content.reversal_request SET justification = '\\x01'::bytea")]
+    [InlineData("UPDATE content.reversal_request SET requested_by = 3, dek_epoch = dek_epoch")]
     [InlineData("DELETE FROM content.reversal_request")]
     [InlineData("TRUNCATE content.reversal_request CASCADE")]
     [InlineData("UPDATE content.reversal_authorization SET valid_until = valid_until + interval '1 day'")]
@@ -105,6 +106,18 @@ public sealed class ReversalEventShapeTests
         var refused = await Assert.ThrowsAsync<PostgresException>(() => world.OwnerInDomainAsync(1, statement));
 
         Assert.Equal((CustodyStatements.BatchSqlState, 1L, 1L), (refused.SqlState, await CountAsync(world, CountRequests), await CountAsync(world, CountAuthorizations)));
+    }
+
+    [DatabaseFact]
+    public async Task RequestKeyIsWrappedAgainOnlyWithTheEventOfTheRotationOrOfTheRewrap()
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        var request = await ReversalRows.RequestAsync(world, 1, 1);
+
+        var refused = await Assert.ThrowsAsync<PostgresException>(
+            () => world.InDomainAsync(1, "UPDATE content.reversal_request SET dek_wrapped = '\\x01'::bytea WHERE id = @id", ("id", request)));
+
+        Assert.Equal(CustodyStatements.WithoutEventSqlState, refused.SqlState);
     }
 
     [DatabaseTheory]

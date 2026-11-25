@@ -32,6 +32,14 @@ public static partial class ContentQueries
         "INSERT INTO content.reversal_request (domain_id, item_id, marker, requested_by, term_days, justification, dek_epoch, dek_wrapped) "
         + "VALUES (@domain, @item, @marker, @person, @term, @justification, @epoch, @wrapped) RETURNING id";
 
+    /// <summary>The keys, wrapped, that an epoch older than the newest wraps, among the requests; a page of them.</summary>
+    internal const string ReadOlderRequestKeys = "SELECT id, dek_epoch, dek_wrapped FROM content.reversal_request WHERE dek_epoch < @newest ORDER BY id LIMIT 500";
+
+    internal const string ReadRequestKeysAfter = "SELECT id, dek_epoch, dek_wrapped FROM content.reversal_request WHERE id > @after ORDER BY id LIMIT @batch";
+
+    /// <summary>Wraps again the key of a request; only the wrapped key and its epoch change.</summary>
+    internal const string RewrapRequestKey = "UPDATE content.reversal_request SET dek_epoch = @epoch, dek_wrapped = @wrapped WHERE id = @id";
+
     /// <summary>Writes an authorization; the database refuses one by who asked, one not to come and a second in force, and lets it through only with its event.</summary>
     internal const string InsertReversalAuthorization =
         "INSERT INTO content.reversal_authorization (domain_id, request_id, authorized_by, valid_until) VALUES (@domain, @request, @person, @until) RETURNING id";

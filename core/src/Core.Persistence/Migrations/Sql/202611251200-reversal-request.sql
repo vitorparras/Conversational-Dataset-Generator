@@ -33,14 +33,36 @@ SELECT public.create_content_table('reversal_authorization',
 CREATE INDEX reversal_authorization_of_request ON content.reversal_authorization (request_id);
 
 GRANT SELECT, INSERT ON content.reversal_request, content.reversal_authorization TO PUBLIC;
+GRANT UPDATE (dek_epoch, dek_wrapped) ON content.reversal_request TO app;
 
--- A request and an authorization are what was asked and what was decided: no row of either changes or goes.
+-- A request and an authorization are what was asked and what was decided: no row of either goes, and an authorization never changes.
 CREATE FUNCTION public.refuse_reversal_change() RETURNS trigger
 LANGUAGE plpgsql
 AS $refuse$
 BEGIN
     RAISE EXCEPTION 'a request to reverse a marker and its authorization never change and never go'
         USING ERRCODE = 'CE006', SCHEMA = TG_TABLE_SCHEMA, TABLE = TG_TABLE_NAME;
+END
+$refuse$;
+
+-- What a request asks never changes: only the key that wraps its text is wrapped again, and only with the event of the rotation or of the rewrap in the same transaction, as for the shift.
+CREATE FUNCTION public.refuse_reversal_request_change() RETURNS trigger
+LANGUAGE plpgsql
+AS $refuse$
+BEGIN
+    IF (NEW.id, NEW.domain_id, NEW.item_id, NEW.marker, NEW.requested_by, NEW.requested_at, NEW.term_days, NEW.justification)
+        IS DISTINCT FROM (OLD.id, OLD.domain_id, OLD.item_id, OLD.marker, OLD.requested_by, OLD.requested_at, OLD.term_days, OLD.justification) THEN
+        RAISE EXCEPTION 'a request to reverse a marker never changes: only the key that wraps its text is wrapped again'
+            USING ERRCODE = 'CE006', SCHEMA = TG_TABLE_SCHEMA, TABLE = TG_TABLE_NAME;
+    END IF;
+
+    IF NOT (public.custody_event_of_this_transaction('content_epoch', NEW.dek_epoch, 'epoch_rotated')
+        OR (NEW.dek_epoch = OLD.dek_epoch AND public.custody_event_of_this_transaction('domain', NEW.domain_id, 'domain_rewrapped'))) THEN
+        RAISE EXCEPTION 'a key is wrapped again only with the event of the rotation or of the rewrap in the same transaction'
+            USING ERRCODE = 'CE005', SCHEMA = TG_TABLE_SCHEMA, TABLE = TG_TABLE_NAME;
+    END IF;
+
+    RETURN NEW;
 END
 $refuse$;
 
@@ -89,7 +111,8 @@ BEGIN
 END
 $refuse$;
 
-CREATE TRIGGER reversal_request_never_changes BEFORE UPDATE OR DELETE ON content.reversal_request FOR EACH ROW EXECUTE FUNCTION public.refuse_reversal_change();
+CREATE TRIGGER reversal_request_change_is_bounded BEFORE UPDATE ON content.reversal_request FOR EACH ROW EXECUTE FUNCTION public.refuse_reversal_request_change();
+CREATE TRIGGER reversal_request_is_never_removed BEFORE DELETE ON content.reversal_request FOR EACH ROW EXECUTE FUNCTION public.refuse_reversal_change();
 CREATE TRIGGER reversal_requests_are_never_emptied BEFORE TRUNCATE ON content.reversal_request FOR EACH STATEMENT EXECUTE FUNCTION public.refuse_reversal_change();
 CREATE CONSTRAINT TRIGGER reversal_request_needs_event AFTER INSERT ON content.reversal_request DEFERRABLE INITIALLY DEFERRED
     FOR EACH ROW EXECUTE FUNCTION public.refuse_reversal_without_event('reversal_request', 'reversal_requested');
@@ -98,7 +121,8 @@ CREATE TRIGGER reversal_authorizations_are_never_emptied BEFORE TRUNCATE ON cont
 CREATE TRIGGER reversal_authorization_is_bounded BEFORE INSERT ON content.reversal_authorization FOR EACH ROW EXECUTE FUNCTION public.refuse_reversal_authorization();
 CREATE CONSTRAINT TRIGGER reversal_authorization_needs_event AFTER INSERT ON content.reversal_authorization DEFERRABLE INITIALLY DEFERRED
     FOR EACH ROW EXECUTE FUNCTION public.refuse_reversal_without_event('reversal_authorization', 'reversal_authorized');
-ALTER TABLE content.reversal_request ENABLE ALWAYS TRIGGER reversal_request_never_changes;
+ALTER TABLE content.reversal_request ENABLE ALWAYS TRIGGER reversal_request_change_is_bounded;
+ALTER TABLE content.reversal_request ENABLE ALWAYS TRIGGER reversal_request_is_never_removed;
 ALTER TABLE content.reversal_request ENABLE ALWAYS TRIGGER reversal_requests_are_never_emptied;
 ALTER TABLE content.reversal_request ENABLE ALWAYS TRIGGER reversal_request_needs_event;
 ALTER TABLE content.reversal_authorization ENABLE ALWAYS TRIGGER reversal_authorization_never_changes;

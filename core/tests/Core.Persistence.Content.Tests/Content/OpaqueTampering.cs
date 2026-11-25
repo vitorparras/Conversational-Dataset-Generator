@@ -45,7 +45,7 @@ internal static class OpaqueTampering
             "item_text" => ["emptied_content_is_final", "item_change_needs_event", "resanitization_needs_rerun", "pseudonymized_needs_map"],
             "reversal_map" => ["emptied_content_is_final", "map_change_needs_event"],
             "date_shift" => ["date_shift_change_is_bounded"],
-            "reversal_request" => ["reversal_request_never_changes"],
+            "reversal_request" => ["reversal_request_change_is_bounded"],
             _ => ["origin_change_is_bounded"],
         };
         // nosemgrep: sql-concatenation-csharp interpolates the names of a column read from the catalog of a throwaway database, never input.

@@ -16,10 +16,12 @@ public sealed class EpochRotation
 {
     private const int WrappedColumn = 2;
     private const string Domains = "SELECT id FROM public.domain ORDER BY id";
-    private static readonly Table Items = new(ContentQueries.ReadOlderItemKeys, ContentQueries.RewrapItemKey);
-    private static readonly Table Maps = new(ContentQueries.ReadOlderMapKeys, ContentQueries.RewrapMapKey);
-    private static readonly Table Origins = new(ContentQueries.ReadOlderOriginKeys, ContentQueries.RewrapOriginKey);
-    private static readonly Table Shifts = new(ContentQueries.ReadOlderShiftKeys, ContentQueries.RewrapShiftKey);
+    private static readonly Table[] Tables =
+    [
+        new(ContentQueries.ReadOlderItemKeys, ContentQueries.RewrapItemKey), new(ContentQueries.ReadOlderMapKeys, ContentQueries.RewrapMapKey),
+        new(ContentQueries.ReadOlderOriginKeys, ContentQueries.RewrapOriginKey), new(ContentQueries.ReadOlderShiftKeys, ContentQueries.RewrapShiftKey),
+        new(ContentQueries.ReadOlderRequestKeys, ContentQueries.RewrapRequestKey),
+    ];
 
     private readonly NpgsqlDataSource dataSource;
     private readonly ItemKeys keys;
@@ -50,15 +52,23 @@ public sealed class EpochRotation
             foreach (var domain in domains)
             {
                 await transaction.ChangeDomainAsync(domain, cancellationToken).ConfigureAwait(false);
-                rewrapped += await RewrapAsync(transaction, Items, recorded, cancellationToken).ConfigureAwait(false);
-                rewrapped += await RewrapAsync(transaction, Maps, recorded, cancellationToken).ConfigureAwait(false);
-                rewrapped += await RewrapAsync(transaction, Origins, recorded, cancellationToken).ConfigureAwait(false);
-                rewrapped += await RewrapAsync(transaction, Shifts, recorded, cancellationToken).ConfigureAwait(false);
+                rewrapped += await RewrapDomainAsync(transaction, recorded, cancellationToken).ConfigureAwait(false);
             }
 
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             return rewrapped;
         }
+    }
+
+    private async Task<int> RewrapDomainAsync(ContentTransaction transaction, Recorded recorded, CancellationToken cancellationToken)
+    {
+        var rewrapped = 0;
+        foreach (var table in Tables)
+        {
+            rewrapped += await RewrapAsync(transaction, table, recorded, cancellationToken).ConfigureAwait(false);
+        }
+
+        return rewrapped;
     }
 
     private async Task<List<int>> ListDomainsAsync(CancellationToken cancellationToken)

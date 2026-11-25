@@ -32,12 +32,15 @@ internal sealed class ReversalScreensWorld : IAsyncDisposable
 
     private static readonly string[] Labels = ["texto-bruto/1/v1", "texto-bruto/2/v1", "mapa-reversao/1/v1", "mapa-reversao/2/v1"];
 
-    private ReversalScreensWorld(SubmissionWorld submissions, SessionedHost host, (long Curator, long Second, long Other) people, ManualClock clock)
+    private readonly MapKeySource key;
+
+    private ReversalScreensWorld(SubmissionWorld submissions, SessionedHost host, (long Curator, long Second, long Other) people, ManualClock clock, MapKeySource key)
     {
         Submissions = submissions;
         Host = host;
         (Curator, Second, Other) = people;
         Clock = clock;
+        this.key = key;
     }
 
     internal SubmissionWorld Submissions { get; }
@@ -79,9 +82,10 @@ internal sealed class ReversalScreensWorld : IAsyncDisposable
         var clock = new ManualClock();
         clock.Advance(DateTimeOffset.UtcNow - clock.GetUtcNow());
         var source = submissions.DataSource;
+        var key = new MapKeySource();
         var host = await SessionedHost.StartAsync(
             services => services
-                .AddSingleton(new ServiceCollection().AddSingleton(source).AddSingleton<IMasterKeySource>(new MapKeySource()).BuildServiceProvider())
+                .AddSingleton(new ServiceCollection().AddSingleton(source).AddSingleton<IMasterKeySource>(key).BuildServiceProvider())
                 .AddSingleton<TimeProvider>(clock)
                 .AddSingleton<DomainGrants>(new GrantedTo((SubmissionWorld.Domain, [people.Curator, people.Second, Annotator]), (SubmissionWorld.OtherDomain, [people.Other]))),
             routes =>
@@ -90,7 +94,7 @@ internal sealed class ReversalScreensWorld : IAsyncDisposable
                 BatchRoutes.Map(routes);
             },
             Token);
-        return new ReversalScreensWorld(submissions, host, people, clock);
+        return new ReversalScreensWorld(submissions, host, people, clock, key);
     }
 
     /// <summary>A pseudonymized item of the domain with one marker of its own, written as the pseudonymization writes it.</summary>
@@ -155,12 +159,16 @@ internal sealed class ReversalScreensWorld : IAsyncDisposable
         await Submissions.DisposeAsync();
     }
 
-    /// <summary>Makes the chain refuse, as broken, every event of the step given from now on.</summary>
-    internal Task RefuseInTheChainAsync(string step) =>
+    /// <summary>Makes the chain refuse, as broken, every event of the steps given from now on.</summary>
+    internal Task RefuseInTheChainAsync(params string[] steps) =>
         Submissions.Database.ExecuteAsSuperuserAsync(
             "CREATE FUNCTION public.zqx_chain_refuses() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $f$ "
             + "BEGIN RAISE EXCEPTION 'broken' USING ERRCODE = 'CE002'; END $f$; "
-            + $"CREATE TRIGGER zqx_chain_refuses BEFORE INSERT ON public.custody_event FOR EACH ROW WHEN (NEW.step = '{step}') EXECUTE FUNCTION public.zqx_chain_refuses()");
+            + $"CREATE TRIGGER zqx_chain_refuses BEFORE INSERT ON public.custody_event FOR EACH ROW WHEN (NEW.step IN ('{string.Join("', '", steps)}')) "
+            + "EXECUTE FUNCTION public.zqx_chain_refuses()");
+
+    /// <summary>From now on the key reads as unreadable, as a file damaged after the start would.</summary>
+    internal void LoseTheKey() => key.Lost = true;
 
     private static long Parsed(string id) => long.Parse(id, NumberStyles.None, CultureInfo.InvariantCulture);
 
@@ -176,8 +184,15 @@ internal sealed class ReversalScreensWorld : IAsyncDisposable
     {
         public string Origin => "zqx-test";
 
+        internal bool Lost { get; set; }
+
         public Task<MasterKeyReading> ReadAsync(CancellationToken cancellationToken)
         {
+            if (Lost)
+            {
+                return Task.FromResult(MasterKeyReading.Unreadable("zqx-chave-ilegivel"));
+            }
+
             var key = Enumerable.Range(0, MasterKey.Length).Select(index => (byte)(0x5A ^ ((index * 29) + 3))).ToArray();
             var secret = Enumerable.Range(0, MasterKey.Length).Select(index => (byte)(0xA7 ^ ((index * 31) + 11))).ToArray();
             return Task.FromResult(MasterKeyReading.FromBytes(key, DerivationLabels.Of(Labels), CustodyEpochs.Of(new Dictionary<int, byte[]> { [1] = secret }), "zqx-test"));

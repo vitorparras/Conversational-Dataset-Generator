@@ -181,6 +181,88 @@ public sealed class ReversalRoutesTests
     }
 
     [DatabaseFact]
+    public async Task DecisionTheChainDidNotTakeRecordsNothingAndSaysWhy()
+    {
+        await using var world = await StartAsync();
+        var (request, _) = await world.AskedAsync();
+        await world.RefuseInTheChainAsync("reversal_authorized", "reversal_declined");
+
+        var authorizing = await world.PostAsync(ScreenPaths.ReversalDecideOf(request), Decision("autorizar", world.Tomorrow), world.Second);
+        var declining = await world.PostAsync(ScreenPaths.ReversalDecideOf(request), Decision("recusar", string.Empty), world.Second);
+
+        Assert.All([authorizing, declining], refused =>
+        {
+            Assert.Equal(HttpStatusCode.ServiceUnavailable, refused.Status);
+            Assert.Contains("a cadeia de custódia não aceitou o registro, e o pedido segue pendente até ela voltar.", refused.Page, StringComparison.Ordinal);
+            Assert.DoesNotContain("zqx-motivo-sintetico", refused.Page, StringComparison.Ordinal);
+        });
+        Assert.Contains("Aguarda autorização", (await world.GetAsync(ScreenPaths.ReversalMineOf(request))).Page, StringComparison.Ordinal);
+        Assert.Equal(
+            ("0", "0"),
+            (await world.ScalarAsync(CountAuthorizations), await world.ScalarAsync("SELECT count(*)::text FROM public.custody_event WHERE step IN ('reversal_authorized', 'reversal_declined')")));
+    }
+
+    [DatabaseFact]
+    public async Task SecondDecisionOnADecidedRequestShowsItAsItStandsAndRecordsNothing()
+    {
+        await using var world = await StartAsync();
+        var (request, _) = await world.AskedAsync();
+        _ = await world.PostAsync(ScreenPaths.ReversalDecideOf(request), Decision("autorizar", world.Tomorrow), world.Second);
+        var events = await world.ScalarAsync(CountEvents);
+
+        var again = await world.PostAsync(ScreenPaths.ReversalDecideOf(request), Decision("recusar", string.Empty), world.Second);
+        var unmarked = await world.GetAsync(ScreenPaths.ReversalDecideOf(request), world.Second);
+
+        Assert.All([again, unmarked], decided =>
+        {
+            Assert.Equal(HttpStatusCode.OK, decided.Status);
+            Assert.Contains($"<h1>Pedido {request}</h1>", decided.Page, StringComparison.Ordinal);
+            Assert.Contains($"Autorizado até {world.TomorrowShown}", decided.Page, StringComparison.Ordinal);
+            Assert.DoesNotContain("Autorizar este pedido até", decided.Page, StringComparison.Ordinal);
+            Assert.DoesNotContain("zqx-motivo-sintetico", decided.Page, StringComparison.Ordinal);
+        });
+        Assert.Equal(("1", events), (await world.ScalarAsync(CountAuthorizations), await world.ScalarAsync(CountEvents)));
+    }
+
+    [DatabaseFact]
+    public async Task UnknownDecisionComesBackOnTheFormAndRecordsNothing()
+    {
+        await using var world = await StartAsync();
+        var (request, _) = await world.AskedAsync();
+
+        var unknown = await world.PostAsync(ScreenPaths.ReversalDecideOf(request), Decision("zqx-outra", world.Tomorrow), world.Second);
+
+        Assert.Equal(HttpStatusCode.OK, unknown.Status);
+        Assert.Contains("Autorizar este pedido até", unknown.Page, StringComparison.Ordinal);
+        Assert.Contains("Aguarda autorização", (await world.GetAsync(ScreenPaths.ReversalMineOf(request))).Page, StringComparison.Ordinal);
+        Assert.Equal(
+            ("0", "0"),
+            (await world.ScalarAsync(CountAuthorizations),
+                await world.ScalarAsync("SELECT count(*)::text FROM public.custody_event WHERE step IN ('reversal_authorized', 'reversal_declined', 'reversal_authorization_refused')")));
+    }
+
+    [DatabaseFact]
+    public async Task UnreadableKeyLeavesEveryPageUnavailableAndAsksNothing()
+    {
+        await using var world = await StartAsync();
+        var (item, marker) = await world.ItemAsync();
+        var (request, _) = await world.AskedAsync();
+        var events = await world.ScalarAsync(CountEvents);
+        world.LoseTheKey();
+
+        var asked = await world.PostAsync(ScreenPaths.ReversalAsk, Draft(item, marker));
+        var deciding = await world.GetAsync(ScreenPaths.ReversalDecideOf(request), world.Second);
+        var mine = await world.GetAsync(ScreenPaths.ReversalMine);
+
+        Assert.All([asked, deciding, mine], unavailable =>
+        {
+            Assert.Equal(HttpStatusCode.ServiceUnavailable, unavailable.Status);
+            Assert.DoesNotContain("zqx-motivo-sintetico", unavailable.Page, StringComparison.Ordinal);
+        });
+        Assert.Equal(("1", events), (await world.ScalarAsync(CountRequests), await world.ScalarAsync(CountEvents)));
+    }
+
+    [DatabaseFact]
     public async Task AnnotatorOpeningTheRequestPageGetsNotFound()
     {
         await using var world = await StartAsync();

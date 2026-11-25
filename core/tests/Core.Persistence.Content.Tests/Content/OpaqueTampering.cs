@@ -1,21 +1,28 @@
 namespace Core.Persistence.Tests.Content;
 
 /// <summary>
-/// The tampering of criterion 4 of requirement 003, shared by the two tests that run it: the texts and the keys. Each tampering takes a dump and a reading of every file of the server,
-/// so the two groups are tests of classes of their own, which run beside the other tests of the storage and not after them; in one class, the group of the texts made the class the
-/// longest wait of each mutant the seeding reaches, past the time the mutation testing gives it. One test per column would seed the storage once per column for each of those mutants.
+/// The tampering of criterion 4 of requirement 003, shared by the tests that run it: two halves of the texts and the keys. Each tampering takes a dump and a reading of every file of
+/// the server, so each group is a test of a class of its own, which runs beside the other tests of the storage and not after them. The texts are split in two because the coverage
+/// the mutation testing captures runs one test at a time and gives each 30 s: seven texts one after another came near that, and a test past it fails the whole part. One test per
+/// column would seed the storage once per column for each mutant the seeding reaches.
 /// </summary>
 internal static class OpaqueTampering
 {
-    /// <summary>Writes the columns of the group in clear one after another, and after each the detector names exactly the ones written so far, the keys found in the files too.</summary>
-    public static async Task TamperOneAfterAnotherAsync(IReadOnlyList<string> group, Func<OpaqueStorage.Material, IEnumerable<string>> seeded)
+    /// <summary>Where the texts, in ordinal order, are split between the two tests that tamper with them, so that neither nears the time the mutation testing gives a test.</summary>
+    public const int TextHalf = 4;
+
+    /// <summary>
+    /// Writes the columns of the slice of the group in clear one after another, and after each the detector names, among every protected column, exactly the ones written so far, the
+    /// keys found in the files too. The whole group, not only the slice, is the one the storage was seeded with.
+    /// </summary>
+    public static async Task TamperOneAfterAnotherAsync(IReadOnlyList<string> group, Func<OpaqueStorage.Material, IEnumerable<string>> seeded, Range slice)
     {
         await using var world = await ContentWorld.CreateAsync();
         var material = await OpaqueStorage.SeedAsync(world);
         Assert.Equal(group.Order(StringComparer.Ordinal), seeded(material).Order(StringComparer.Ordinal));
         var tampered = new List<string>();
 
-        foreach (var column in group.Order(StringComparer.Ordinal))
+        foreach (var column in group.Order(StringComparer.Ordinal).ToArray()[slice])
         {
             await WriteInClearAsync(world, column, material.InClear(column));
             tampered.Add(column);

@@ -8,5 +8,5 @@ public sealed class OpaqueKeyTamperingTests
 {
     [DatabaseFact]
     public Task Ca4KeyColumnsThatWriteInClearFailTheDetectorAndAreNamedTogether() =>
-        OpaqueTampering.TamperOneAfterAnotherAsync(OpaqueStorage.KeyColumnsWrapped, material => material.Keys.Keys);
+        OpaqueTampering.TamperOneAfterAnotherAsync(OpaqueStorage.KeyColumnsWrapped, material => material.Keys.Keys, Range.All);
 }

@@ -34,6 +34,7 @@ public sealed class SessionRoutesInventoryTests
             "GET /lotes/{id:long}", "GET /lotes/{id:long}/revisao", "GET /lotes/{id:long}/revisao/itens/{place:int}/achado",
             "GET /minha-conta", "GET /minha-conta/email", "GET /minha-conta/senha",
             "GET /minha-conta/sessoes/encerrar", "GET /minha-conta/sessoes/encerrar-outras", "GET /pessoas", "GET /pessoas/nova", "GET /pessoas/{id}/email",
+            "GET /reversao/autorizar", "GET /reversao/autorizar/{id:long}", "GET /reversao/meus-pedidos", "GET /reversao/meus-pedidos/{id:long}", "GET /reversao/pedir",
             "GET /sanitizacao", "GET /sanitizacao/reexecucoes/{id:long}", "GET /sanitizacao/reexecutar", "GET /session",
             "GET /versions",
         ];
@@ -65,6 +66,8 @@ public sealed class SessionRoutesInventoryTests
                 "POST /people/{id}/deactivate",
                 "POST /pessoas/nova",
                 "POST /pessoas/{id}/email",
+                "POST /reversao/autorizar/{id:long}",
+                "POST /reversao/pedir",
                 "POST /saida",
                 "POST /sanitizacao/reexecutar",
                 "PUT /people/{id}/password",

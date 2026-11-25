@@ -1,8 +1,8 @@
 namespace Core.Persistence.Content;
 
 /// <summary>
-/// What a column left in clear holds. The only free text is the pseudonymized one; the state, the motive and the condition of a batch are words of a closed form
-/// that the table checks, and any other text is protected.
+/// What a column left in clear holds. No free text is left in clear: the state, the motive and the condition of a batch and the markers are words of a closed form
+/// that the table checks, and any other text is protected, the pseudonymized one included (decision 0030).
 /// </summary>
 public enum ClearKind
 {
@@ -14,9 +14,6 @@ public enum ClearKind
 
     /// <summary>A date or an instant.</summary>
     Moment = 2,
-
-    /// <summary>The pseudonymized text, the one text that decision 0030 leaves in clear.</summary>
-    PseudonymizedText = 3,
 
     /// <summary>A whole number the table checks: the number of the epoch whose secret wraps the key of a row (decision 0049), or the position and the length of a message, in code points.</summary>
     Epoch = 4,
@@ -39,4 +36,7 @@ public enum ClearKind
 
     /// <summary>Whole numbers the table checks are not negative, one for each step of a sanitization: how many edits it made, never a position.</summary>
     Counts = 9,
+
+    /// <summary>A yes or no about the row: whether the marker of an item stands for an author.</summary>
+    Flag = 3,
 }

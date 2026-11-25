@@ -37,7 +37,7 @@ public sealed class EmptiedItemReaderTests
     public async Task ItemNotEmptiedAndItemThatDoesNotExistAnswerNone()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("bruto zqx", "sanitizado zqx", "pseudonimizado zqx"), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddPseudonymizedItemAsync(1, ItemTexts.PseudonymizedItem("bruto zqx", "sanitizado zqx", "pseudonimizado zqx"), TestContext.Current.CancellationToken);
         var reader = new EmptiedItemReader(world.DataSource);
 
         var present = await reader.ReadAsync(1, item, TestContext.Current.CancellationToken);
@@ -61,7 +61,7 @@ public sealed class EmptiedItemReaderTests
     public async Task RefusedEmptyingLeavesNoRecord()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("bruto zqx", "sanitizado zqx", "pseudonimizado zqx"), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddPseudonymizedItemAsync(1, ItemTexts.PseudonymizedItem("bruto zqx", "sanitizado zqx", "pseudonimizado zqx"), TestContext.Current.CancellationToken);
         var annotator = await world.PersonAsync("zqx-active");
         var refused = await world.Emptier.EmptyAsync(new ItemEmptying(CustodyAuthor.Person(annotator), 1, item, EmptyingMotive.ContractRequirement, Protocol), TestContext.Current.CancellationToken);
 
@@ -97,7 +97,7 @@ public sealed class EmptiedItemReaderTests
 
     private static async Task<(long Curator, long Item)> EmptiedAsync(ContentWorld world, EmptyingMotive motive)
     {
-        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("bruto zqx", "sanitizado zqx", "pseudonimizado zqx"), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddPseudonymizedItemAsync(1, ItemTexts.PseudonymizedItem("bruto zqx", "sanitizado zqx", "pseudonimizado zqx"), TestContext.Current.CancellationToken);
         var curator = await world.PersonAsync("zqx-curator");
         var result = await world.Emptier.EmptyAsync(new ItemEmptying(CustodyAuthor.Person(curator), 1, item, motive, Protocol), TestContext.Current.CancellationToken);
         Assert.Equal(EmptyingOutcome.Emptied, result.Outcome);

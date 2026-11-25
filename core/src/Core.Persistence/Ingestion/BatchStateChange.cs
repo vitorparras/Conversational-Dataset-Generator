@@ -38,6 +38,7 @@ internal sealed record BatchStateChange(long BatchId, string State, string? Moti
     {
         await RemoveAsync(scope, ContentQueries.RemoveBatchMarks, cancellationToken).ConfigureAwait(false);
         await RemoveAsync(scope, ContentQueries.RemoveBatchOccurrences, cancellationToken).ConfigureAwait(false);
+        await RemoveAsync(scope, ContentQueries.RemoveBatchItemMarkers, cancellationToken).ConfigureAwait(false);
         await RemoveAsync(scope, ContentQueries.RemoveBatchMaps, cancellationToken).ConfigureAwait(false);
         await RemoveAsync(scope, ContentQueries.RemoveBatchItems, cancellationToken).ConfigureAwait(false);
     }

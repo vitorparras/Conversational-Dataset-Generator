@@ -163,6 +163,21 @@ public sealed class BatchDetailScreenTests
     }
 
     [Fact]
+    public async Task BatchScreenShowsMarkerCountsByKindAndNoText()
+    {
+        var page = await RenderAsync(Accepted with { Markers = [new("author", 5, 40), new("zqx", 1, 1), new("place", 4, 9), new("person", 12, 31), new("organization", 3, 7)] });
+        var onlyAuthors = await RenderAsync(Accepted with { Markers = [new("author", 2, 6)] });
+        var plain = await RenderAsync(Accepted);
+
+        const string Then = @"[\s\S]*";
+        var inOrder = string.Join(Then, Row("Pessoa", "12", "31"), Row("Lugar", "4", "9"), Row("Organização", "3", "7"), Row("Autor de mensagem", "5", "40"), Row("Tipo zqx", "1", "1"));
+        Assert.Matches(inOrder, page);
+        Assert.Contains("Marcadores por tipo, só números", page, StringComparison.Ordinal);
+        Assert.Equal((false, true), (page.Contains(BatchDetailTexts.OnlyAuthors, StringComparison.Ordinal), onlyAuthors.Contains(BatchDetailTexts.OnlyAuthors, StringComparison.Ordinal)));
+        Assert.DoesNotContain("lote-pseudonimizacao", plain, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task ARejectedBatchHasNoItemSaysWhyAndKeepsItsMotive()
     {
         var page = await RenderAsync(new BatchDetailScreen.Detail(8, "zqx-dominio-a", BatchState.Rejected, "no_units", "zqx-bia", At, OriginDeclared: false));
@@ -191,7 +206,7 @@ public sealed class BatchDetailScreenTests
         var types = new[]
         {
             typeof(BatchDetailScreen.Detail), typeof(BatchDetailScreen.FormCount), typeof(BatchDetailScreen.DestinationCount), typeof(BatchDetailScreen.ReplicaCount),
-            typeof(BatchDetailScreen.Recognition), typeof(BatchDetailScreen.Accommodated), typeof(BatchDetailScreen.StepCount),
+            typeof(BatchDetailScreen.Recognition), typeof(BatchDetailScreen.Accommodated), typeof(BatchDetailScreen.StepCount), typeof(BatchDetailScreen.MarkerCount),
         };
 
         var texts = types.SelectMany(type => type.GetProperties().Where(property => Holds(property.PropertyType)).Select(property => $"{type.Name}.{property.Name}"));
@@ -199,7 +214,7 @@ public sealed class BatchDetailScreenTests
         Assert.Equal(
             [
                 "Detail.Domain", "Detail.Motive", "Detail.SubmittedBy", "Detail.Warning", "Detail.StepsVersion", "FormCount.Form", "DestinationCount.Destination", "Recognition.Address",
-                "Accommodated.Source", "Accommodated.Into", "Accommodated.Losses", "StepCount.Step",
+                "Accommodated.Source", "Accommodated.Into", "Accommodated.Losses", "StepCount.Step", "MarkerCount.Kind",
             ],
             texts);
     }

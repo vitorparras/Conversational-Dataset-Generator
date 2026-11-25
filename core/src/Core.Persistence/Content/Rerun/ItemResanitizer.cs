@@ -1,6 +1,7 @@
 using System.Data;
 using Core.Persistence.Content.Reading;
 using Core.Persistence.Content.Sealing;
+using Core.Persistence.Content.Writing;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
 using Core.Persistence.Custody.Chain.Append;
@@ -18,6 +19,8 @@ namespace Core.Persistence.Content.Rerun;
 public sealed class ItemResanitizer
 {
     private const NpgsqlDbType IntegerArray = (NpgsqlDbType)((int)NpgsqlDbType.Array + (int)NpgsqlDbType.Integer);
+    private const NpgsqlDbType TextArray = (NpgsqlDbType)((int)NpgsqlDbType.Array + (int)NpgsqlDbType.Text);
+    private const NpgsqlDbType BooleanArray = (NpgsqlDbType)((int)NpgsqlDbType.Array + (int)NpgsqlDbType.Boolean);
 
     private readonly NpgsqlDataSource dataSource;
     private readonly ProtectedContent protectedContent;
@@ -88,7 +91,7 @@ public sealed class ItemResanitizer
         }
 
         var statement = StatementOf(produced, stored.Version);
-        Func<Task>? write = statement is null ? null : () => WriteAsync(scope, statement, (hold, produced, stored.Key), cancellationToken);
+        Func<Task>? write = statement is null && produced.Markers is null ? null : () => WriteAsync(scope, statement, (hold, produced, stored.Key), cancellationToken);
         return await FinishAsync(scope, work, (new RerunResult(produced.Identical ? RerunOutcome.Identical : RerunOutcome.Replaced), write), cancellationToken).ConfigureAwait(false);
     }
 
@@ -151,9 +154,19 @@ public sealed class ItemResanitizer
         return new RerunSource(raw, occurrences is null ? null : OccurrenceJson.Read(occurrences), Open(ContentColumns.SanitizedText, stored.Sanitized), stored.Version);
     }
 
-    private async Task WriteAsync(CustodyScope scope, string statement, (RerunHold Hold, Resanitized Produced, ContentKey Key) change, CancellationToken cancellationToken)
+    private async Task WriteAsync(CustodyScope scope, string? statement, (RerunHold Hold, Resanitized Produced, ContentKey Key) change, CancellationToken cancellationToken)
     {
         var (hold, produced, key) = change;
+        if (produced.Markers is { } markers)
+        {
+            await KeepMarkersAsync(scope, hold, markers, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (statement is null)
+        {
+            return;
+        }
+
         byte[] Sealed(ProtectedColumn column, string text) => protectedContent.Reseal(column, hold.DomainId, key, text).Envelope.ToArray();
         Bound[] values =
         [
@@ -163,6 +176,18 @@ public sealed class ItemResanitizer
             new("sanitized", NpgsqlDbType.Bytea, statement == ContentQueries.CloseItemResanitization ? Sealed(ContentColumns.SanitizedText, produced.Text) : null),
         ];
         _ = await ScalarAsync(scope, (statement, values), cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>The markers new to the item are held and given to it, the ones it held already are kept as they are, and the ones gone from its text leave it, held still.</summary>
+    private static async Task KeepMarkersAsync(CustodyScope scope, RerunHold hold, IReadOnlyList<HeldMarker> markers, CancellationToken cancellationToken)
+    {
+        string[] names = [.. markers.Select(marker => marker.Marker)];
+        Bound[] held = [new("domain", NpgsqlDbType.Integer, hold.DomainId), new("markers", TextArray, names)];
+        _ = await ScalarAsync(scope, (ContentQueries.InsertMarkersInUse, held), cancellationToken).ConfigureAwait(false);
+        Bound[] given = [.. held, new("item", NpgsqlDbType.Bigint, hold.ItemId), new("authors", BooleanArray, markers.Select(marker => marker.Author).ToArray())];
+        _ = await ScalarAsync(scope, (ContentQueries.InsertItemMarkers, given), cancellationToken).ConfigureAwait(false);
+        Bound[] gone = [new("item", NpgsqlDbType.Bigint, hold.ItemId), new("markers", TextArray, names)];
+        _ = await ScalarAsync(scope, (ContentQueries.RemoveItemMarkersGone, gone), cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>What the item holds, sealed, with the key of its text.</summary>

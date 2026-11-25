@@ -27,6 +27,9 @@ public sealed record BatchDetailCounts
     /// <summary>The most recent version of the list of steps among the ones that sanitized the items of the batch; none when no item was sanitized.</summary>
     public string? SanitizationVersion { get; init; }
 
+    /// <summary>How many markers of each kind the items not emptied hold, the authors apart, and in how many items; none for a batch with no pseudonymized item.</summary>
+    public IReadOnlyList<BatchMarkerCount> Markers { get; init; } = [];
+
     /// <summary>What each step of that version did to the items, in the order the steps ran.</summary>
     public IReadOnlyList<BatchStepCount> Steps { get; init; } = [];
 }

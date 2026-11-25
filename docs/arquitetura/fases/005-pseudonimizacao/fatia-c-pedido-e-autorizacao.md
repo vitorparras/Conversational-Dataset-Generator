@@ -1,7 +1,8 @@
 # Fatia C — pedido e autorização da reversão
 
-> Norma pendente. 2026-11-22. Fecha #103, #104 (menos CA-2 e CA-3, da fatia D), #614 e #615. Teto
-> da fatia: 1.400 linhas de produção.
+> Norma pendente. 2026-11-22. Em dois PRs: C1 fecha #103 e #104 (menos CA-2 e CA-3, da fatia D),
+> com regra, banco, custódia e armazenamento, teto de 1.200 linhas de produção; C2 fecha #614 e
+> #615, com rotas, balcão, telas R1 e R2, navegador e capturas, teto de 900 linhas.
 
 A Curadoria abre `/reversao/pedir` (R1) e pede a reversão de um marcador num item: por que a
 análise não avança sem a identidade, o que fará com ela e por quanto tempo. O escopo é um marcador e

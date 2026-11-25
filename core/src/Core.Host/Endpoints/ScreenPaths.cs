@@ -40,6 +40,11 @@ internal static class ScreenPaths
     internal const string Rerun = "/sanitizacao";
     internal const string RerunConfirm = "/sanitizacao/reexecutar";
     internal const string RerunProgress = "/sanitizacao/reexecucoes/{id:long}";
+    internal const string ReversalAsk = "/reversao/pedir";
+    internal const string ReversalMine = "/reversao/meus-pedidos";
+    internal const string ReversalMineOne = "/reversao/meus-pedidos/{id:long}";
+    internal const string ReversalAuthorize = "/reversao/autorizar";
+    internal const string ReversalDecide = "/reversao/autorizar/{id:long}";
 
     /// <summary>The address of the detail of a batch.</summary>
     internal static string BatchOf(long id) => string.Create(CultureInfo.InvariantCulture, $"/lotes/{id}");
@@ -55,4 +60,10 @@ internal static class ScreenPaths
 
     /// <summary>The address where a request of the rerun is followed.</summary>
     internal static string RerunProgressOf(long id) => string.Create(CultureInfo.InvariantCulture, $"/sanitizacao/reexecucoes/{id}");
+
+    /// <summary>The address of a request of the person of the session, as whoever asked follows it.</summary>
+    internal static string ReversalMineOf(long id) => string.Create(CultureInfo.InvariantCulture, $"/reversao/meus-pedidos/{id}");
+
+    /// <summary>The address where another person of the curation decides a request.</summary>
+    internal static string ReversalDecideOf(long id) => string.Create(CultureInfo.InvariantCulture, $"/reversao/autorizar/{id}");
 }

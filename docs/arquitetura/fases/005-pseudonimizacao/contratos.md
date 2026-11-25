@@ -30,16 +30,16 @@ o lê recebe o valor ou "perdido", nunca um valor adivinhado.
 **Submissão → pseudonimização.** Síncrona, depois da sanitização e antes de gravar o item: recebe o
 sanitizado, as ocorrências a pseudonimizar já levadas ao texto novo (`Sanitizer`, linhas 63 e 107)
 e, na reexecução, o mapa do item; devolve o pseudonimizado e as entradas do mapa do item. Ocorrência
-de outro destino nunca entra no mapa: a troca lança, o lote é rejeitado e o evento fica na cadeia. O
-registro de falha leva lote, posição do item, passo e motivo, porque o item ainda não existe.
+de outro destino nunca entra no mapa: a troca lança e o lote é rejeitado (pseudonym_of_removed), sem
+selar nada, com o evento na cadeia. O registro de falha leva lote, posição do item, passo e motivo,
+porque o item ainda não existe.
 
-**Mapa do item.** A troca resolve a conversa nela mesma, sem abrir mapa de outro item (0057). Só
-a reexecução abre o mapa do item, com o evento de leitura de `ProtectedContentReader` antes, para
-manter os mesmos marcadores.
+**Mapa do item.** A troca resolve a conversa nela mesma, sem abrir mapa de outro item (0057). Na
+reexecução, a B só guarda os marcadores; a F3 abre o mapa, com o evento de leitura antes.
 
-**Gravador.** `ContentWriter.AddItemTextAsync` sela o pseudonimizado com a chave do item; o mapa
-(`ContentWriter.AddReversalMapAsync`) e os marcadores vão no mesmo comando. A reexecução da fase 4
-(`ItemResanitizer`) grava mapa novo e esvazia o anterior na transação do sanitizado.
+**Gravador.** `ContentWriter.AddPseudonymizedItemAsync` grava numa transação o item, o
+pseudonimizado e o mapa selados e os marcadores, ou nada se um marcador já foi tomado; o banco
+recusa pseudonimizado sem mapa. `IngestionBatches.AcceptAsync` grava batch_pseudonymized no aceite.
 
 ## Fatias C e D
 

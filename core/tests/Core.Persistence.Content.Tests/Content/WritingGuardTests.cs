@@ -22,4 +22,12 @@ public sealed class WritingGuardTests
 
         Assert.Equal("raw", refused.ParamName);
     }
+
+    [Fact]
+    public void ATextWithItsOccurrencesDecidedButWithoutTheRawTextIsRefusedByTheRawParameter()
+    {
+        var refused = Assert.Throws<ArgumentNullException>(() => new NewItemText(null!, "ZQXA", []));
+
+        Assert.Equal("raw", refused.ParamName);
+    }
 }

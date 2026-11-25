@@ -19,21 +19,21 @@ rótulos de cada domínio (0013). Não é única entre domínios (fatia A, #108 
 
 ## Fatia B
 
-**`pseudonymization`.** Três mudanças:
+**`pseudonymization`.** content.marker_in_use (marcador e tipo, único na instalação) e
+content.item_marker (item, marcador único e se é o autor), sob a política da 0006: o índice único
+recusa o número usado, sem ler outros domínios. Em claro (0003, linha 21). O marcador nunca sai de
+marker_in_use (CE006); em item_marker, um marcador novo ao item entra só se ganho na mesma
+transação (0057), e a linha sai só com item_emptied, item_resanitized ou o lote rejeitado (CE005).
+pseudonymized_text passa a bytea selada com a chave do item, `protected:texto-bruto` (0030, l. 24).
+O banco não lê o selado: a restrição adiada pseudonymized_needs_map exige no commit o mapa do item
+na mesma transação, e o gatilho do lote exige batch_pseudonymized no aceite. No lote aberto, gatilho
+e tela leem pelo escopo do sistema (batch_holds_pseudonymized, batch_marker_counts).
 
-- content.marker_in_use (marcador e tipo, único na instalação) e content.item_marker (item,
-  marcador e se é o autor, fonte do pedido e das contagens do lote), cada linha com o domínio, sob a
-  política de linha da 0006: o sorteio insere sem ler os outros domínios, e o índice único recusa o
-  número usado. Em claro, porque não guardam nada do original nem derivado dele (0003, linha 21).
-- A coluna pseudonymized_text passa de text a bytea, selada com a chave do item e marcada
-  `protected:texto-bruto` (hoje é nula em todo item). Sai de `Clear` e entra em `Protected` em
-  `ContentColumns`, como manda a 0030 (linha 24).
-- O banco não lê o selado: um gatilho só aceita o pseudonimizado com o mapa do item e o evento da
-  troca na mesma transação, e cada condição tem o seu teste.
-
-Os passos novos: batch_pseudonymized (um por lote) e o motivo pseudonym_of_removed, para a entrada
-de destino remover recusada. Ler um mapa usa o passo que já existe, reversal_entries_read, um por
-mapa. O esvaziamento já zera o mapa (0010, linha 21) e passa a apagar os marcadores do item.
+Os passos novos: batch_pseudonymized, um por lote aceito com item pseudonimizado, gravado no aceite
+e na mesma transação, nunca antes do primeiro item; e o motivo pseudonym_of_removed, que rejeita o
+lote ao chegar entrada de outro destino. Ler um mapa usa reversal_entries_read, um por mapa. O
+esvaziamento já zera o mapa (0010, linha 21) e apaga os marcadores. Na reexecução, a B só guarda os
+marcadores; o pseudonimizado e o mapa novos ficam com a F3.
 
 **F3, `pseudonymization-wiring`.** O gatilho de item_resanitized da fase 4 passa a exigir o
 pseudonimizado e o mapa novos; o mapa anterior é esvaziado (GRANT de UPDATE só nas colunas do

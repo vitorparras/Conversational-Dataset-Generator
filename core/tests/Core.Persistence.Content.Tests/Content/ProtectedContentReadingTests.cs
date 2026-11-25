@@ -120,7 +120,7 @@ public sealed class ProtectedContentReadingTests
         await using var dataSource = NpgsqlDataSource.Create("Host=127.0.0.1;Port=1;Username=u;Password=p;Database=d");
         using var custody = SyntheticCustody.Holding("texto-bruto/1/v1");
         var reader = new ProtectedContentReader(dataSource, custody.Content, new CustodyChain(dataSource));
-        var foreign = new ProtectedColumn("item_text", "pseudonymized_text", LabelPurpose.RawText);
+        var foreign = new ProtectedColumn("item_text", "recorded_at", LabelPurpose.RawText);
 
         Assert.Equal(
             ["request", "request"],

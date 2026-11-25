@@ -16,6 +16,7 @@ public sealed class DomainRewrap
     private static readonly Table Maps = new(ContentQueries.ReadMapKeysAfter, ContentQueries.RewrapMapKey);
     private static readonly Table Origins = new(ContentQueries.ReadOriginKeysAfter, ContentQueries.RewrapOriginKey);
     private static readonly Table Shifts = new(ContentQueries.ReadShiftKeysAfter, ContentQueries.RewrapShiftKey);
+    private static readonly Table Requests = new(ContentQueries.ReadRequestKeysAfter, ContentQueries.RewrapRequestKey);
 
     private readonly NpgsqlDataSource dataSource;
     private readonly int batch;
@@ -52,7 +53,8 @@ public sealed class DomainRewrap
         var items = await RewrapTableAsync(plan, keys, Items, cancellationToken).ConfigureAwait(false);
         var maps = await RewrapTableAsync(plan, keys, Maps, cancellationToken).ConfigureAwait(false);
         var origins = await RewrapTableAsync(plan, keys, Origins, cancellationToken).ConfigureAwait(false);
-        return items + maps + origins + await RewrapTableAsync(plan, keys, Shifts, cancellationToken).ConfigureAwait(false);
+        var shifts = await RewrapTableAsync(plan, keys, Shifts, cancellationToken).ConfigureAwait(false);
+        return items + maps + origins + shifts + await RewrapTableAsync(plan, keys, Requests, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<RewrapStatus> StatusPlannedAsync(int domainId, DerivationLabels loaded, CancellationToken cancellationToken)
@@ -62,7 +64,9 @@ public sealed class DomainRewrap
         var (mapsCurrent, mapsBehind) = await CountTableAsync(plan, Maps, cancellationToken).ConfigureAwait(false);
         var (originsCurrent, originsBehind) = await CountTableAsync(plan, Origins, cancellationToken).ConfigureAwait(false);
         var (shiftsCurrent, shiftsBehind) = await CountTableAsync(plan, Shifts, cancellationToken).ConfigureAwait(false);
-        return new RewrapStatus(itemsCurrent + mapsCurrent + originsCurrent + shiftsCurrent, itemsBehind + mapsBehind + originsBehind + shiftsBehind);
+        var (requestsCurrent, requestsBehind) = await CountTableAsync(plan, Requests, cancellationToken).ConfigureAwait(false);
+        return new RewrapStatus(
+            itemsCurrent + mapsCurrent + originsCurrent + shiftsCurrent + requestsCurrent, itemsBehind + mapsBehind + originsBehind + shiftsBehind + requestsBehind);
     }
 
     private async Task<Plan> PlanAsync(int domainId, DerivationLabels loaded, CancellationToken cancellationToken)

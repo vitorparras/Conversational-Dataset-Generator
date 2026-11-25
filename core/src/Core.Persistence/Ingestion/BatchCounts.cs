@@ -49,8 +49,9 @@ public sealed class BatchCounts
         {
             var rows = await RowsAsync(transaction, (BatchCountStatements.Read, domainId, batchId), Count, cancellationToken).ConfigureAwait(false);
             var steps = await RowsAsync(transaction, (BatchCountStatements.Steps, domainId, batchId), Step, cancellationToken).ConfigureAwait(false);
+            var markers = await RowsAsync(transaction, (BatchCountStatements.Markers, domainId, batchId), Marker, cancellationToken).ConfigureAwait(false);
             var newest = steps.FirstOrDefault();
-            var numbers = Counted(rows) with { SanitizationVersion = newest?.Version, SanitizedItems = newest?.Sanitized ?? 0, Items = newest?.Items ?? 0 };
+            var numbers = Counted(rows) with { SanitizationVersion = newest?.Version, SanitizedItems = newest?.Sanitized ?? 0, Items = newest?.Items ?? 0, Markers = markers };
             return numbers with { Steps = [.. steps.Where(step => step.Version is not null && step.Version == newest?.Version).Select(step => step.Numbers!)] };
         }
     }
@@ -74,6 +75,8 @@ public sealed class BatchCounts
     }
 
     private static (string Kind, BatchCount Count) Count(IDataRecord reader) => (reader.GetString(KindColumn), new BatchCount(reader.GetString(CodeColumn), reader.GetInt64(ValueColumn)));
+
+    private static BatchMarkerCount Marker(IDataRecord reader) => new(reader.GetString(KindColumn), reader.GetInt64(CodeColumn), reader.GetInt64(ValueColumn));
 
     private static StepRow Step(IDataRecord reader) => reader.IsDBNull(KindColumn)
         ? new StepRow(null, null, reader.GetInt64(SanitizedColumn), reader.GetInt64(TotalColumn))

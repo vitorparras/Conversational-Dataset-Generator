@@ -1,6 +1,6 @@
 # 006 — A pseudonimização preserva o contexto
 
-> Norma vigente. 2026-11-23.
+> Norma vigente. 2026-11-25.
 
 **Trocar identidade por rótulo mantém o material legível: a mesma pessoa é o mesmo rótulo em todo
 o escopo, pessoas distintas nunca compartilham rótulo, e o tipo de cada menção continua
@@ -28,7 +28,7 @@ futura.
 - Dado o mesmo participante em duas mensagens da mesma conversa, quando ela é pseudonimizada,
   então ele recebe o mesmo rótulo nas duas, e esse rótulo não aparece em nenhuma outra conversa.
 - Dado dois participantes distintos, quando são pseudonimizados, então os rótulos são distintos,
-  ainda que os nomes de origem coincidam.
+  ainda que os nomes de origem coincidam, salvo os homônimos da mesma conversa (abaixo).
 - Dado o mesmo participante em dois domínios, quando é pseudonimizado em cada um, então os rótulos
   não permitem ligar um ao outro sem passar pela reversão autorizada.
 - Dado um rótulo exibido, quando alguém tenta deduzir dele a identidade, então ele não carrega nada
@@ -44,3 +44,8 @@ prevista em testes/propriedades/pseudonimizacao, ainda inexistente.
 
 Não exige rótulo legível ou pronunciável por pessoa. Não exige estabilidade entre instalações
 diferentes — a consistência é dentro do escopo, não universal.
+
+Não exige separar homônimos na mesma conversa: pela regra por nome da
+[0060](../decisoes/0060-correferencia-na-resposta-da-fronteira.md), dois participantes com o mesmo
+nome de origem na mesma conversa dividem o rótulo. É limite declarado; em conversas distintas, os
+rótulos seguem distintos.

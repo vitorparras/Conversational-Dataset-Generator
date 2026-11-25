@@ -73,6 +73,16 @@ public sealed partial record CustodyEvent
             : throw new ArgumentException("The version of the steps is 64 lowercase hexadecimal digits.", nameof(version));
     }
 
+    /// <summary>The event of the pseudonymization of the items of a batch, written in the transaction that accepts it, by who accepts it; the item is the batch, with no reference.</summary>
+    /// <param name="author">Who accepts the batch.</param>
+    /// <param name="batchId">The batch.</param>
+    public static CustodyEvent BatchPseudonymized(CustodyAuthor author, long batchId)
+    {
+        ArgumentNullException.ThrowIfNull(author);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(batchId);
+        return new CustodyEvent(author, new CustodyItem(CustodyItemKind.IngestionBatch, batchId), CustodyStep.BatchPseudonymized, CustodyReason.AdministrativeAct);
+    }
+
     /// <summary>Whether the text is a motive the database takes: a lowercase letter, then lowercase letters, digits and underscores, up to 63 characters in all.</summary>
     /// <param name="motive">The text to judge.</param>
     public static bool IsBatchMotive(string? motive) =>

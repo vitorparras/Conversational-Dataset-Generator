@@ -95,21 +95,23 @@ internal sealed class EmptyingCase : IAsyncDisposable
 
     private static string ContentOf(int domain, int count) =>
         "INSERT INTO content.item_text (domain_id, batch_id, raw_text, sanitized_text, pseudonymized_text, dek_epoch, dek_wrapped, sanitization_version, sanitization_trail, "
-        + $"sanitization_counts) SELECT {domain}, {domain}, '\x01', '\x02', 'zqx', 1, '\x03', '{ItemTexts.Version}', '\x04', '{{0}}' FROM generate_series(1, {count})";
+        + $"sanitization_counts) SELECT {domain}, {domain}, '\x01', '\x02', '\x05', 1, '\x03', '{ItemTexts.Version}', '\x04', '{{0}}' FROM generate_series(1, {count})";
 
-    private static Task SeedAsync(ScratchDatabase database) =>
-        database.RunAsOwnerAsync(
-            [
-                $"INSERT INTO public.domain (name) VALUES ('{Domain}'), ('{OtherDomain}')",
-                .. SeededBatches.Statements(1, 2),
-                "SELECT set_config('app.domain', '1', false)",
-                ItemTexts.VersionRow(1),
-                ContentOf(1, Items),
-                "SELECT set_config('app.domain', '2', false)",
-                ItemTexts.VersionRow(2),
-                ContentOf(2, 1),
-                "SELECT set_config('app.domain', '', false)",
-            ]);
+    // An item holds a pseudonymized text only with a map of its own written in the same transaction, which the batch of statements is; the map is looked for at the commit, under the
+    // row policy, so each domain writes in a transaction of its own, declared for it alone.
+    private static string MapsOf(int domain) =>
+        "INSERT INTO content.reversal_map (domain_id, batch_id, item_id, entries, dek_epoch, dek_wrapped) "
+        + $"SELECT domain_id, batch_id, id, '\x06', 1, '\x07' FROM content.item_text WHERE domain_id = {domain}";
+
+    private static async Task SeedAsync(ScratchDatabase database)
+    {
+        await database.RunAsOwnerAsync([$"INSERT INTO public.domain (name) VALUES ('{Domain}'), ('{OtherDomain}')", .. SeededBatches.Statements(1, 2)]);
+        await database.RunAsOwnerAsync(ItemsOf(1, Items));
+        await database.RunAsOwnerAsync(ItemsOf(2, 1));
+    }
+
+    private static string[] ItemsOf(int domain, int count) =>
+        [$"SELECT set_config('app.domain', '{domain}', true)", ItemTexts.VersionRow(domain), ContentOf(domain, count), MapsOf(domain)];
 
     /// <summary>The source of grants of the test: the first domain to the person of the curation and none to anyone else.</summary>
     private sealed class GrantedToTheCurator(NpgsqlDataSource source, string curator) : DomainGrants

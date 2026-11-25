@@ -211,6 +211,7 @@ public sealed class BatchReviews
         var rows = await ReviewStatements.ChangeAsync(scope, ContentQueries.CloseBatchReviewFound, cancellationToken, batch, reviewer, finding, motive, where).ConfigureAwait(false);
         _ = await ReviewStatements.ChangeAsync(scope, ContentQueries.RemoveBatchMarks, cancellationToken, ReviewStatements.Id("id", request.BatchId)).ConfigureAwait(false);
         _ = await ReviewStatements.ChangeAsync(scope, ContentQueries.RemoveBatchOccurrences, cancellationToken, ReviewStatements.Id("id", request.BatchId)).ConfigureAwait(false);
+        _ = await ReviewStatements.ChangeAsync(scope, ContentQueries.RemoveBatchItemMarkers, cancellationToken, ReviewStatements.Id("id", request.BatchId)).ConfigureAwait(false);
         _ = await ReviewStatements.ChangeAsync(scope, ContentQueries.RemoveBatchMaps, cancellationToken, ReviewStatements.Id("id", request.BatchId)).ConfigureAwait(false);
         _ = await ReviewStatements.ChangeAsync(scope, ContentQueries.RemoveBatchItems, cancellationToken, ReviewStatements.Id("id", request.BatchId)).ConfigureAwait(false);
         return rows;

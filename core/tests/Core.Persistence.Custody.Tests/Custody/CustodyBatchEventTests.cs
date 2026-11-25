@@ -66,6 +66,16 @@ public sealed class CustodyBatchEventTests
             (sanitized.Author, sanitized.Item, sanitized.Step, sanitized.Reason, sanitized.Reference, sanitized.Corrects));
     }
 
+    [Fact]
+    public void ThePseudonymizationIsTheAcceptorsAboutThatBatchWithNoReference()
+    {
+        var pseudonymized = CustodyEvent.BatchPseudonymized(Person, 5);
+
+        Assert.Equal(
+            (Person, new CustodyItem(CustodyItemKind.IngestionBatch, 5), CustodyStep.BatchPseudonymized, CustodyReason.AdministrativeAct, null, null),
+            (pseudonymized.Author, pseudonymized.Item, pseudonymized.Step, pseudonymized.Reason, pseudonymized.Reference, pseudonymized.Corrects));
+    }
+
     [Theory]
     [InlineData("49CA4D5854062508BA965BBEC6169A7898D926B3570C4DEAE45250F5A36D8700")]
     [InlineData("49ca4d5854062508ba965bbec6169a7898d926b3570c4deae45250f5a36d870")]
@@ -156,6 +166,7 @@ public sealed class CustodyBatchEventTests
     [InlineData(CustodyStep.BatchClosed, CustodyReason.BatchAccepted)]
     [InlineData(CustodyStep.BatchClosed, CustodyReason.BatchRejected)]
     [InlineData(CustodyStep.BatchSanitized, CustodyReason.AdministrativeAct)]
+    [InlineData(CustodyStep.BatchPseudonymized, CustodyReason.AdministrativeAct)]
     public void TheEventsOfABatchAsPlainEventsAreRefused(CustodyStep step, CustodyReason reason) =>
         _ = Assert.Throws<ArgumentException>(() => CustodyEvent.Of(Person, new CustodyItem(CustodyItemKind.IngestionBatch, 9), step, reason));
 }

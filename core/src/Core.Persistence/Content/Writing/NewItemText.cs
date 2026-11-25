@@ -9,7 +9,7 @@ public sealed record NewItemText
 {
     /// <summary>The texts of an item with the occurrences found in the raw text and the destination of each.</summary>
     /// <param name="raw">The text as it arrived; sealed on its way to the database.</param>
-    /// <param name="pseudonymized">The pseudonymized text, the one text stored in clear; null while it does not exist.</param>
+    /// <param name="pseudonymized">The pseudonymized text, sealed like the raw one; null while it does not exist.</param>
     /// <param name="occurrences">The occurrences with their destination, sealed with the item and never changed; an empty list is the decision that none was found.</param>
     public NewItemText(string raw, string? pseudonymized, IReadOnlyList<ItemOccurrence> occurrences)
     {
@@ -22,7 +22,7 @@ public sealed record NewItemText
 
     /// <summary>The texts of an item whose occurrences were not decided, with what the item declares when its material was accommodated.</summary>
     /// <param name="raw">The text as it arrived; sealed on its way to the database.</param>
-    /// <param name="pseudonymized">The pseudonymized text, the one text stored in clear; null while it does not exist.</param>
+    /// <param name="pseudonymized">The pseudonymized text, sealed like the raw one; null while it does not exist.</param>
     /// <param name="accommodation">What the item declares when its material was accommodated into a form that is not exactly its own; null when it fits exactly and nothing was lost.</param>
     internal NewItemText(string raw, string? pseudonymized = null, ItemAccommodation? accommodation = null)
     {
@@ -49,7 +49,7 @@ public sealed record NewItemText
     /// <summary>What the sanitization left with the item, the sanitized text among it; null while the item was not sanitized.</summary>
     public ItemSanitization? Sanitization { get; init; }
 
-    /// <summary>The pseudonymized text, the one text stored in clear; null while it does not exist.</summary>
+    /// <summary>The pseudonymized text, sealed like the raw one; null while it does not exist.</summary>
     public string? Pseudonymized { get; }
 
     /// <summary>The occurrences found in the raw text and the destination of each, sealed with the item and never changed; null when they were not decided.</summary>
@@ -57,4 +57,7 @@ public sealed record NewItemText
 
     /// <summary>What the item declares when its material was accommodated into a form that is not exactly its own; null when it fits exactly and nothing was lost.</summary>
     public ItemAccommodation? Accommodation { get; init; }
+
+    /// <summary>The entries of the map of the item, written with it and with its markers in one transaction; null when the item was not pseudonymized.</summary>
+    public IReadOnlyList<NewMapEntry>? Map { get; init; }
 }

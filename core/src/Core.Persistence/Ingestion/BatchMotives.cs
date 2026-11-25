@@ -8,4 +8,7 @@ public static class BatchMotives
 
     /// <summary>The motive of the batch turned back because another batch of the domain had accepted the same file, recognized by the digest of what came and never by the name of the file.</summary>
     public static string AlreadyReceived => AlreadyReceivedMotive;
+
+    /// <summary>The motive of the batch turned back because an entry of the map of one of its items had a destination other than to pseudonymize; the entry is never sealed.</summary>
+    public static string PseudonymOfRemoved { get; } = "pseudonym_of_removed";
 }

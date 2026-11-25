@@ -12,7 +12,7 @@ namespace Core.Host.Tests.Browser.Fixtures;
 /// <summary>
 /// The case of the pieces of the detail of a batch (issue 609), which have no route of their own yet: the screen at an address that exists for the test, behind the real session and screen
 /// gates, over counts made up for the run. The state is in the address (<c>e</c>): an accepted batch, a rejected one with its motive, one still open with no item, one that lost something
-/// when the form was accommodated and one recognized as the resending of another, whose detail is the state <c>anterior</c>.
+/// when the form was accommodated, one recognized as the resending of another, whose detail is the state <c>anterior</c>, and one pseudonymized, with its markers by kind (issue 101).
 /// </summary>
 internal static class BatchDetailPieceCase
 {
@@ -49,6 +49,10 @@ internal static class BatchDetailPieceCase
             "perda" => Counted(38, BatchState.Accepted, null) with { Accommodation = new BatchDetailScreen.Accommodated("conversation", "comment", 12, ["author", "instant", "replies_to"]) },
             "reenvio" => Counted(42, BatchState.Accepted, null) with { Recognized = new BatchDetailScreen.Recognition(33, $"{Detail}?e=anterior") },
             "anterior" => Counted(33, BatchState.Accepted, null),
+            "pseudonimizado" => Counted(13, BatchState.Accepted, null) with
+            {
+                Markers = [new("person", 12, 31), new("place", 4, 9), new("organization", 3, 7), new("author", 5, 40)],
+            },
             _ => Counted(41, BatchState.Accepted, null),
         };
         return ScreenResult.Of(context, typeof(BatchDetailScreen), "Lote", new Dictionary<string, object?>(StringComparer.Ordinal)

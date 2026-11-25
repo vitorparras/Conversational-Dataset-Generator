@@ -137,4 +137,7 @@ public enum CustodyStep
 
     /// <summary>The system concluded the rerun of one item; the item is the item, the reason the result and the reference the version the request reruns to.</summary>
     ItemResanitized,
+
+    /// <summary>The items of a batch were pseudonymized, each with its map; written in the transaction that accepts the batch, by who accepts it. The item is the batch, with no reference.</summary>
+    BatchPseudonymized,
 }

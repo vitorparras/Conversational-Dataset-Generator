@@ -56,12 +56,13 @@ public sealed class ProtectedContentBrokenChainTests
     public async Task ContentThatNeedsNoEventIsStillReadAndSoIsTheChain()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of(Raw, null, Pseudonymized), TestContext.Current.CancellationToken);
+        var texts = ItemTexts.PseudonymizedItem(Raw, null, Pseudonymized);
+        var item = await world.Writer.AddPseudonymizedItemAsync(1, texts, TestContext.Current.CancellationToken);
         await BreakAsync(world);
 
-        var text = await world.InDomainAsync(1, "SELECT pseudonymized_text FROM content.item_text WHERE id = @id", ("id", item));
+        var marker = await world.InDomainAsync(1, "SELECT marker FROM content.item_marker WHERE item_id = @id", ("id", item));
 
-        Assert.Equal(Pseudonymized, text);
+        Assert.Equal(texts.Map![0].Marker, marker);
         Assert.Equal(3L, await world.ScalarAsync("SELECT count(*) FROM public.custody_event"));
     }
 

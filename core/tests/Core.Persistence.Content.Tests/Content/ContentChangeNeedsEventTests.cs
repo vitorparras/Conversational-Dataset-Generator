@@ -236,10 +236,6 @@ public sealed class ContentChangeNeedsEventTests
     private static Task<object?> InDomainAsync(ContentWorld world, bool byOwner, string statement, long item) =>
         byOwner ? world.OwnerInDomainAsync(1, statement, ("id", item)) : world.InDomainAsync(1, statement, ("id", item));
 
-    private static async Task<long> ItemWithMapAsync(ContentWorld world)
-    {
-        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("texto bruto zqx", "texto sanitizado zqx", "texto pseudonimizado zqx"), TestContext.Current.CancellationToken);
-        _ = await world.Writer.AddReversalMapAsync(1, item, "mapa de reversao zqx", TestContext.Current.CancellationToken);
-        return item;
-    }
+    private static Task<long> ItemWithMapAsync(ContentWorld world) =>
+        world.Writer.AddPseudonymizedItemAsync(1, ItemTexts.PseudonymizedItem("texto bruto zqx", "texto sanitizado zqx", "texto pseudonimizado zqx"), TestContext.Current.CancellationToken);
 }

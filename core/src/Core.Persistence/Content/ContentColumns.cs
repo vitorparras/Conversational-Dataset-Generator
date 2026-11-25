@@ -78,18 +78,26 @@ public static class ContentColumns
     /// <summary>The key of the shift, in the column every wrapped key has, as the key of an item is, for the shift.</summary>
     public static ProtectedColumn DateShiftKey { get; } = new(DateShiftTable, ItemKey.Name, LabelPurpose.DateShift);
 
+    /// <summary>The pseudonymized text of an item, sealed with the key of the item as the other texts of it (decision 0030).</summary>
+    public static ProtectedColumn PseudonymizedText { get; } = new(ItemText, "pseudonymized_text", LabelPurpose.RawText);
+
+    /// <summary>The table of the markers held in the installation, one row for each marker drawn.</summary>
+    public static string MarkerInUse { get; } = "marker_in_use";
+
+    /// <summary>The table of the markers an item holds.</summary>
+    public static string ItemMarker { get; } = "item_marker";
+
     /// <summary>The columns stored sealed.</summary>
     public static IReadOnlyList<ProtectedColumn> Protected { get; } =
-        [RawText, SanitizedText, Occurrences, SanitizationTrail, ItemKey, Entries, MapKey, Origin, OriginKey, DateShift, DateShiftKey];
+        [RawText, SanitizedText, Occurrences, SanitizationTrail, ItemKey, Entries, MapKey, Origin, OriginKey, DateShift, DateShiftKey, PseudonymizedText];
 
-    /// <summary>The columns stored in clear: identifiers, the domain, dates and the pseudonymized text.</summary>
+    /// <summary>The columns stored in clear: identifiers, the domain, dates, words and numbers the tables check, and the markers, which keep nothing of an original.</summary>
     public static IReadOnlyList<ClearColumn> Clear { get; } =
     [
         new(ItemText, IdColumn, ClearKind.Identifier),
         new(ItemText, DomainColumn, ClearKind.Domain),
         new(ItemText, "recorded_at", ClearKind.Moment),
         new(ItemText, "emptied_at", ClearKind.Moment),
-        new(ItemText, "pseudonymized_text", ClearKind.PseudonymizedText),
         new(ItemText, EpochColumn, ClearKind.Epoch),
         new(ItemText, BatchColumn, ClearKind.Identifier),
         new(ItemText, WrittenInColumn, ClearKind.Transaction),
@@ -170,6 +178,15 @@ public static class ContentColumns
         new(RerunTable, "target_version", ClearKind.Motive),
         new(RerunTable, "requested_by", ClearKind.Identifier),
         new(RerunTable, "requested_at", ClearKind.Moment),
+        new(MarkerInUse, IdColumn, ClearKind.Identifier),
+        new(MarkerInUse, DomainColumn, ClearKind.Domain),
+        new(MarkerInUse, "marker", ClearKind.Motive),
+        new(MarkerInUse, "kind", ClearKind.Motive),
+        new(ItemMarker, IdColumn, ClearKind.Identifier),
+        new(ItemMarker, DomainColumn, ClearKind.Domain),
+        new(ItemMarker, ItemColumn, ClearKind.Identifier),
+        new(ItemMarker, "marker", ClearKind.Motive),
+        new(ItemMarker, "author", ClearKind.Flag),
         new(RerunItemTable, IdColumn, ClearKind.Identifier),
         new(RerunItemTable, DomainColumn, ClearKind.Domain),
         new(RerunItemTable, "rerun_id", ClearKind.Identifier),

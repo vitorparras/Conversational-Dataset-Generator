@@ -15,7 +15,7 @@ namespace Core.Persistence.Ingestion;
 /// What the batch holds is not readable as stock until it is accepted: the database sees to that, not this class.
 /// A write that the chain refuses for a collision with another writer is made again, up to three attempts in all (see <see cref="BatchRetry" />); the result of the last one is the answer.
 /// </summary>
-public sealed class IngestionBatches
+public sealed partial class IngestionBatches
 {
     private const string AuthorConstraint = "ingestion_batch_opened_by_fkey";
     internal const string AcceptedDigestIndex = "ingestion_batch_accepted_digest";
@@ -213,7 +213,7 @@ public sealed class IngestionBatches
             return null;
         }
 
-        var appended = await CustodyAppend.AppendAsync(scope, closing.Event, cancellationToken).ConfigureAwait(false);
+        var appended = await AppendClosingAsync(scope, closing, cancellationToken).ConfigureAwait(false);
         if (appended.Outcome != CustodyOutcome.Appended)
         {
             return appended;

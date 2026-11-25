@@ -5,8 +5,8 @@ namespace Core.Ingestion.Contracts.Reversal;
 
 /// <summary>
 /// Whether a request to reverse a marker may be asked for (requirement 007): it names one marker, in one declared item, and says why the analysis does not advance without the
-/// identity, what will be done with it and for how many days. A request without the four is incomplete and asks nothing. One that reaches more than one item, more than one
-/// marker, or no item, which is the marker wherever it is in the domain, is the reidentification of the collection, and is refused by its scope.
+/// identity, what will be done with it and for how many days. A request without the four is incomplete and asks nothing. One that reaches more than one item or marker, no
+/// item, which is the marker wherever it is in the domain, or no marker, which is the domain as well, is the reidentification of the collection: refused by its scope.
 /// </summary>
 public static partial class ReversalRequestRule
 {
@@ -45,7 +45,7 @@ public static partial class ReversalRequestRule
         (ReversalRequestField Field, bool Held)[] fields =
         [
             (ReversalRequestField.Item, Array.TrueForAll(items, IsItem)),
-            (ReversalRequestField.Marker, markers.Length > 0 && Array.TrueForAll(markers, MarkerShape().IsMatch)),
+            (ReversalRequestField.Marker, Array.TrueForAll(markers, MarkerShape().IsMatch)),
             (ReversalRequestField.Term, term > 0),
             (ReversalRequestField.Reason, !string.IsNullOrWhiteSpace(draft.Reason)),
             (ReversalRequestField.Use, !string.IsNullOrWhiteSpace(draft.Use)),
@@ -55,7 +55,7 @@ public static partial class ReversalRequestRule
 
     private static ReversalScope? ScopeOf(int items, int markers) => (items, markers) switch
     {
-        (0, _) => ReversalScope.Domain,
+        (0, _) or (_, 0) => ReversalScope.Domain,
         ( > 1, _) => ReversalScope.ManyItems,
         (_, > 1) => ReversalScope.ManyMarkers,
         _ => null,

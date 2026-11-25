@@ -4,7 +4,7 @@ namespace Core.Ingestion.Tests.Reversal;
 
 /// <summary>
 /// The request to reverse a marker (issue 103): it says which marker, in which item, why the analysis does not advance without the identity, what will be done with it and for how
-/// long; a request without the four is not submitted, and one that reaches more than one marker or item, or no item, is refused by its scope.
+/// long; a request without the four is not submitted, and one that reaches more than one marker or item, or no item, or no marker, is refused by its scope.
 /// </summary>
 public sealed class ReversalRequestRuleTests
 {
@@ -25,7 +25,6 @@ public sealed class ReversalRequestRuleTests
         { Complete with { Term = null }, ReversalRequestField.Term },
         { Complete with { Term = "0" }, ReversalRequestField.Term },
         { Complete with { Term = "trinta" }, ReversalRequestField.Term },
-        { Complete with { Marker = " " }, ReversalRequestField.Marker },
         { Complete with { Marker = "PESSOA 48291307" }, ReversalRequestField.Marker },
         { Complete with { Item = "cento" }, ReversalRequestField.Item },
     };
@@ -36,6 +35,9 @@ public sealed class ReversalRequestRuleTests
         { Complete with { Marker = "PESSOA_48291307, LUGAR_00000001" }, ReversalScope.ManyMarkers },
         { Complete with { Item = "" }, ReversalScope.Domain },
         { Complete with { Item = null }, ReversalScope.Domain },
+        { Complete with { Marker = " " }, ReversalScope.Domain },
+        { Complete with { Marker = null }, ReversalScope.Domain },
+        { Complete with { Item = null, Marker = null }, ReversalScope.Domain },
     };
 
     [Theory]
@@ -59,9 +61,9 @@ public sealed class ReversalRequestRuleTests
     [Fact]
     public void RequestMissingEveryFieldNamesEachOneOfThem()
     {
-        var judged = ReversalRequestRule.Judge(new ReversalRequestDraft { Item = "118" });
+        var judged = ReversalRequestRule.Judge(new ReversalRequestDraft { Item = "cento", Marker = "PESSOA 48291307" });
 
-        ReversalRequestField[] every = [ReversalRequestField.Marker, ReversalRequestField.Term, ReversalRequestField.Reason, ReversalRequestField.Use];
+        ReversalRequestField[] every = [ReversalRequestField.Item, ReversalRequestField.Marker, ReversalRequestField.Term, ReversalRequestField.Reason, ReversalRequestField.Use];
         Assert.Equal(every, judged.Missing);
     }
 

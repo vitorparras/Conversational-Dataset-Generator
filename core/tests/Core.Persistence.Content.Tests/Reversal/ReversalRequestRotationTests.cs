@@ -47,11 +47,11 @@ public sealed class ReversalRequestRotationTests
     {
         await using var world = await ContentWorld.CreateAsync();
         _ = await world.ScalarAsync(Register);
-        _ = await ItemAsync(world, 1);
+        var (item, marker) = await ItemAsync(world, 1);
         using var custody = SyntheticCustody.HoldingEpochs([1], WithTheNextGeneration);
         var rewrap = new DomainRewrap(world.DataSource, 500);
         var withoutTheRequest = await rewrap.StatusAsync(1, custody.Labels, Token);
-        var request = await AskedAsync(world);
+        var request = Assert.NotNull((await world.ReversalRequests.AskAsync(1, 3, Draft(item, marker), Token)).Id);
         var asked = await world.InDomainAsync(1, Asked, ("id", request));
 
         var withTheRequest = await rewrap.StatusAsync(1, custody.Labels, Token);

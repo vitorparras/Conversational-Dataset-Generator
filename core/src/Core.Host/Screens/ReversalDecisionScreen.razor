@@ -43,11 +43,11 @@
                 <p>@Requester, em @ReversalMark.DayOf(Request.RequestedAt).</p>
             </details>
             <form class="form" method="post" action="@ScreenPaths.ReversalDecideOf(Request.Id)" novalidate>
-                <Field Id="validade" Name="@ReversalScreensEndpoint.UntilField" Caption="Autorizar este pedido até" Type="date" Value="@Until"
+                <Field Id="validade" Name="@ReversalDecisionEndpoint.UntilField" Caption="Autorizar este pedido até" Type="date" Value="@Until"
                        Error="@(Showing == Shown.PastDay ? "Nada foi autorizado: escolha uma data futura." : null)" Autofocus="@(Showing == Shown.PastDay)" />
                 <div class="actions">
-                    <Button Id="autorizar" Name="@ReversalScreensEndpoint.DecisionField" Value="@ReversalScreensEndpoint.Authorize">Autorizar</Button>
-                    <Button Id="recusar" Name="@ReversalScreensEndpoint.DecisionField" Value="@ReversalScreensEndpoint.Decline" Kind="Button.Look.Secondary">Recusar</Button>
+                    <Button Id="autorizar" Name="@ReversalDecisionEndpoint.DecisionField" Value="@ReversalDecisionEndpoint.Authorize">Autorizar</Button>
+                    <Button Id="recusar" Name="@ReversalDecisionEndpoint.DecisionField" Value="@ReversalDecisionEndpoint.Decline" Kind="Button.Look.Secondary">Recusar</Button>
                     <a href="@ScreenPaths.ReversalAuthorize">Voltar</a>
                 </div>
             </form>

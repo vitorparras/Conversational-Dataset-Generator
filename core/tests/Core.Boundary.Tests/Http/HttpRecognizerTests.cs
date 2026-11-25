@@ -115,7 +115,7 @@ public sealed class HttpRecognizerTests : IDisposable
     [Fact]
     public async Task ServiceDeclaringAnotherContractVersionIsUnknownContractVersion()
     {
-        using var service = FakeService.Answering(Reply.Version("2"), Reply.Fixture("accepted/response-empty.json"));
+        using var service = FakeService.Answering(Reply.Version("1"), Reply.Fixture("accepted/response-empty.json"));
 
         var outcome = await recognition.AskAsync(service.Port);
 
@@ -125,10 +125,10 @@ public sealed class HttpRecognizerTests : IDisposable
     [Fact]
     public async Task RequestOfAVersionTheCoreDoesNotSpeakIsUnknownContractVersion()
     {
-        using var service = FakeService.Answering(Reply.Version("2"), Reply.Fixture("accepted/response-empty.json"));
+        using var service = FakeService.Answering(Reply.Version("1"), Reply.Fixture("accepted/response-empty.json"));
 
         var outcome = await recognition.Of(service.Port, Recognition.Generous)
-            .RecognizeAsync(Recognition.RequestOfVersion("2"), TestContext.Current.CancellationToken);
+            .RecognizeAsync(Recognition.RequestOfVersion("1"), TestContext.Current.CancellationToken);
 
         Assert.Equal(UnavailabilityReason.UnknownContractVersion, outcome.Reason);
     }
@@ -136,10 +136,10 @@ public sealed class HttpRecognizerTests : IDisposable
     [Fact]
     public async Task RequestOfAVersionTheServiceDoesNotSpeakIsNotSent()
     {
-        using var service = FakeService.Answering(Reply.Version("1"), Reply.Fixture("accepted/response-empty.json"));
+        using var service = FakeService.Answering(Reply.Version("2"), Reply.Fixture("accepted/response-empty.json"));
 
         var outcome = await recognition.Of(service.Port, Recognition.Generous)
-            .RecognizeAsync(Recognition.RequestOfVersion("2"), TestContext.Current.CancellationToken);
+            .RecognizeAsync(Recognition.RequestOfVersion("1"), TestContext.Current.CancellationToken);
 
         Assert.Equal(UnavailabilityReason.UnknownContractVersion, outcome.Reason);
         Assert.DoesNotContain(service.Seen, seen => seen.Path == "/analyze");
@@ -148,7 +148,7 @@ public sealed class HttpRecognizerTests : IDisposable
     [Fact]
     public async Task ContractVersionIsReadAgainOnEveryCall()
     {
-        using var service = FakeService.WithVersions([Reply.Version("1"), Reply.Version("2")], Reply.Fixture("accepted/response-empty.json"));
+        using var service = FakeService.WithVersions([Reply.Version("2"), Reply.Version("1")], Reply.Fixture("accepted/response-empty.json"));
         _ = await recognition.AskAsync(service.Port);
 
         var second = await recognition.AskAsync(service.Port);
@@ -191,7 +191,7 @@ public sealed class HttpRecognizerTests : IDisposable
     [Fact]
     public async Task VersionAnswerOutsideItsShapeIsMalformedResponse()
     {
-        using var service = FakeService.Answering(Reply.Ok(/*lang=json,strict*/ """{"contract_version":"1"}"""), Reply.Fixture("accepted/response-empty.json"));
+        using var service = FakeService.Answering(Reply.Ok(/*lang=json,strict*/ """{"contract_version":"2"}"""), Reply.Fixture("accepted/response-empty.json"));
 
         var outcome = await recognition.AskAsync(service.Port);
 
@@ -200,9 +200,9 @@ public sealed class HttpRecognizerTests : IDisposable
 
     [Theory]
     [InlineData(401, /*lang=json,strict*/ """{"error":"unauthorized"}""")]
-    [InlineData(200, /*lang=json,strict*/ """{"contract_version":"1"}""")]
+    [InlineData(200, /*lang=json,strict*/ """{"contract_version":"2"}""")]
     [InlineData(200, "null")]
-    [InlineData(200, /*lang=json,strict*/ """{"service_version":"0.1.0","contract_version":"2","model_version":null}""")]
+    [InlineData(200, /*lang=json,strict*/ """{"service_version":"0.1.0","contract_version":"1","model_version":null}""")]
     public async Task TextIsNotSentWhenTheVersionIsNotRead(int status, string body)
     {
         using var service = FakeService.Answering(new Reply(status, body), Reply.Fixture("accepted/response-empty.json"));

@@ -20,6 +20,14 @@ internal static class ContractFixture
         JsonSerializer.Deserialize<AnalysisResponse>(Text(relativePath), ContractJson.Options)
             ?? throw new InvalidOperationException($"{relativePath} holds a JSON null.");
 
+    public static ItemAnalysisRequest ReadItemRequest(string relativePath) =>
+        JsonSerializer.Deserialize<ItemAnalysisRequest>(Text(relativePath), ContractJson.Options)
+            ?? throw new InvalidOperationException($"{relativePath} holds a JSON null.");
+
+    public static ItemAnalysisResponse ReadItemResponse(string relativePath) =>
+        JsonSerializer.Deserialize<ItemAnalysisResponse>(Text(relativePath), ContractJson.Options)
+            ?? throw new InvalidOperationException($"{relativePath} holds a JSON null.");
+
     /// <summary>Whether two JSON texts carry the same values, whatever their spacing, key order or escaping.</summary>
     public static bool SameJson(string expected, string actual) =>
         JsonNode.DeepEquals(JsonNode.Parse(expected), JsonNode.Parse(actual));

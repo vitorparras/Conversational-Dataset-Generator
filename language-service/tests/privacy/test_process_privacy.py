@@ -17,7 +17,7 @@ from support.synthetic import MARKER
 pytestmark = pytest.mark.integration
 
 TEXT = f"before {MARKER} after"
-BODY = {"text": TEXT, "language": "pt", "reference": "ref-1", "contract_version": "1"}
+BODY = {"text": TEXT, "language": "pt", "reference": "ref-1", "contract_version": "2"}
 LOG_KEYS = {
     "level",
     "event",

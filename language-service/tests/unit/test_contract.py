@@ -15,7 +15,7 @@ from language_service.recognizers.empty import EmptyRecognizer
 from support.recognizers import OCCURRENCE, OCCURRENCE_JSON
 from support.synthetic import ANALYZE_BODY, MARKER
 
-VERSION = {"service_version": "0.1.0", "contract_version": "1", "model_version": None}
+VERSION = {"service_version": "0.1.0", "contract_version": "2", "model_version": None}
 RESPONSE_WITH_A_TEXT_OFFSET = (
     '{"occurrences": [{"start": "0", "end": 3, "kind": "PERSON", '
     '"part_of_speech": "PROPN", "syntactic_role": "obj"}], "model_version": null}'

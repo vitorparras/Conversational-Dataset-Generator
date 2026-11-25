@@ -5,7 +5,13 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from language_service.contract import CONTRACT_VERSION, AnalyzeRequest, AnalyzeResponse
+from language_service.contract import (
+    CONTRACT_VERSION,
+    AnalyzeItemRequest,
+    AnalyzeItemResponse,
+    AnalyzeRequest,
+    AnalyzeResponse,
+)
 from support.contract_fixtures import fixture_text
 
 REQUEST = "accepted/request.json"
@@ -75,3 +81,36 @@ def test_field_name_in_another_case_is_refused() -> None:
 
     with pytest.raises(ValidationError, match="TEXT"):
         AnalyzeRequest.model_validate_json(text)
+
+
+@pytest.mark.parametrize(
+    ("fixture", "model"),
+    [
+        ("accepted/item-request.json", AnalyzeItemRequest),
+        ("accepted/item-response.json", AnalyzeItemResponse),
+    ],
+)
+def test_item_fixture_is_written_back_unchanged(
+    fixture: str, model: type[AnalyzeItemRequest] | type[AnalyzeItemResponse]
+) -> None:
+    text = fixture_text(fixture)
+
+    written = model.model_validate_json(text).model_dump_json()
+
+    assert json.loads(written) == json.loads(text)
+
+
+def test_item_offsets_count_code_points_in_their_own_text() -> None:
+    request = AnalyzeItemRequest.model_validate_json(fixture_text("accepted/item-request.json"))
+    response = AnalyzeItemResponse.model_validate_json(fixture_text("accepted/item-response.json"))
+
+    spans = [request.texts[o.text_index].text[o.start : o.end] for o in response.occurrences]
+
+    assert spans == ["PESSOA_1", "ela", "PESSOA_2"]
+
+
+def test_item_response_without_groups_is_refused() -> None:
+    text = fixture_text("refused/item-response-without-groups.json")
+
+    with pytest.raises(ValidationError, match="author_groups"):
+        AnalyzeItemResponse.model_validate_json(text)

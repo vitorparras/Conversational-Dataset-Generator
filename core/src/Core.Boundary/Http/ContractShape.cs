@@ -11,7 +11,7 @@ namespace Core.Boundary.Http;
 internal static class ContractShape
 {
     /// <summary>The first unknown or missing field, or a null or non-object where the contract needs an object; null when the shape fits.</summary>
-    internal static ValidationProblem? FirstProblem(JsonElement answer) => Check(answer, typeof(AnalysisResponse));
+    internal static ValidationProblem? FirstProblem(JsonElement answer, Type contract) => Check(answer, contract);
 
     private static ValidationProblem? Check(JsonElement element, Type type)
     {

@@ -9,6 +9,8 @@ from starlette.responses import JSONResponse
 from language_service import __version__
 from language_service.contract import (
     CONTRACT_VERSION,
+    AnalyzeItemRequest,
+    AnalyzeItemResponse,
     AnalyzeRequest,
     AnalyzeResponse,
     HealthResponse,
@@ -16,13 +18,14 @@ from language_service.contract import (
 )
 from language_service.logging_ import RequestLog, Step
 from language_service.recognizers.base import Recognizer
+from language_service.recognizers.name_rule import group_by_name
 
 HTTP_BAD_REQUEST: Final = 400
 
 
 @dataclass(frozen=True)
 class Routes:
-    """The three answers of the service, over one recognizer and the log of its requests."""
+    """The answers of the service, over one recognizer and the log of its requests."""
 
     recognizer: Recognizer
     log: RequestLog
@@ -44,6 +47,13 @@ class Routes:
             return watch.answer(
                 AnalyzeResponse(occurrences=found, model_version=self.recognizer.model_version)
             )
+
+    def analyze_item(self, body: AnalyzeItemRequest) -> AnalyzeItemResponse:
+        """Each text read alone, as ``analyze`` reads it; the name rule groups the whole item."""
+        with self.log.watch(body.reference, sum(len(text.text) for text in body.texts)) as watch:
+            found = [tuple(self.recognizer.recognize(t.text, body.language)) for t in body.texts]
+            watch.reach(Step.RESPOND)
+            return watch.answer(group_by_name(body.texts, found, self.recognizer.model_version))
 
 
 async def refuse_invalid_request(request: Request, error: Exception) -> JSONResponse:

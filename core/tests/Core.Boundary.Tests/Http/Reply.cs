@@ -16,7 +16,7 @@ internal sealed record Reply(int Status, string Body)
     public static Reply VersionOfModel(string? modelVersion)
     {
         var model = modelVersion is null ? "null" : $"\"{modelVersion}\"";
-        return new(200, $$"""{"service_version":"0.1.0","contract_version":"1","model_version":{{model}}}""");
+        return new(200, $$"""{"service_version":"0.1.0","contract_version":"2","model_version":{{model}}}""");
     }
 
     /// <summary>A version answer with the three fields given, each written as JSON null when it is null.</summary>

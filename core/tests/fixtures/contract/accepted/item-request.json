@@ -1,0 +1,19 @@
+{
+  "texts": [
+    {
+      "text": "🙂 PESSOA_1 vem amanhã",
+      "author": "ZQX-AUTOR-A"
+    },
+    {
+      "text": "ela confirmou com 𝔸 PESSOA_2",
+      "author": "ZQX-AUTOR-B"
+    },
+    {
+      "text": "ZQX-MARKER-7731",
+      "author": "ZQX-AUTOR-A"
+    }
+  ],
+  "language": "pt",
+  "reference": "ZQX-REF-0908",
+  "contract_version": "2"
+}

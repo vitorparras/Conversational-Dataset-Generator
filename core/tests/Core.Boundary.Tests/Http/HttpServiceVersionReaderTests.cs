@@ -81,11 +81,11 @@ public sealed class HttpServiceVersionReaderTests : IDisposable
 
     [Theory]
     [InlineData("not json at all")]
-    [InlineData(/*lang=json,strict*/ """{"contract_version":"1","model_version":"pt-model-3.2"}""")]
+    [InlineData(/*lang=json,strict*/ """{"contract_version":"2","model_version":"pt-model-3.2"}""")]
     [InlineData(/*lang=json,strict*/ """{"service_version":"0.1.0","model_version":"pt-model-3.2"}""")]
-    [InlineData(/*lang=json,strict*/ """{"service_version":"0.1.0","contract_version":"1","model_version":"pt-model-3.2","extra":1}""")]
-    [InlineData(/*lang=json,strict*/ """{"service_version":"0.1.0","contract_version":"1","model_version":7}""")]
-    [InlineData(/*lang=json,strict*/ """{"service_version":7,"contract_version":"1","model_version":"pt-model-3.2"}""")]
+    [InlineData(/*lang=json,strict*/ """{"service_version":"0.1.0","contract_version":"2","model_version":"pt-model-3.2","extra":1}""")]
+    [InlineData(/*lang=json,strict*/ """{"service_version":"0.1.0","contract_version":"2","model_version":7}""")]
+    [InlineData(/*lang=json,strict*/ """{"service_version":7,"contract_version":"2","model_version":"pt-model-3.2"}""")]
     public async Task BodyThatIsNotAVersionAnswerLeavesAllThreeAbsent(string body)
     {
         using var service = FakeService.Answering(Reply.Ok(body), Reply.Ok("{}"));

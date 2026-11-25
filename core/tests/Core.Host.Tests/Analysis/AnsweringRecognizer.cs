@@ -20,4 +20,7 @@ internal sealed class AnsweringRecognizer(RecognitionOutcome outcome) : IRecogni
         asked.Enqueue(request);
         return Task.FromResult(outcome);
     }
+
+    public Task<ItemRecognitionOutcome> RecognizeItemAsync(ItemAnalysisRequest request, CancellationToken cancellationToken) =>
+        throw new NotSupportedException("No submission asks for a whole item yet.");
 }

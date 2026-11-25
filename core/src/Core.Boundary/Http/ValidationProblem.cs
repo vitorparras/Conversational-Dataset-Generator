@@ -26,4 +26,10 @@ internal enum ValidationProblem
 
     /// <summary>An occurrence has a kind outside the closed list of the contract.</summary>
     KindOutsideVocabulary = 7,
+
+    /// <summary>An occurrence names a text the item does not have.</summary>
+    TextOutsideItem = 8,
+
+    /// <summary>An author of the item has no group, or more than one, or a group comes for a name the request did not carry.</summary>
+    AuthorWithoutOneGroup = 9,
 }

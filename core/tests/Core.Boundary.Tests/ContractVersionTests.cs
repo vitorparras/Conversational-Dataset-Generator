@@ -6,5 +6,5 @@ namespace Core.Boundary.Tests;
 public sealed class ContractVersionTests
 {
     [Fact]
-    public void TheCoreSpeaksVersionOne() => Assert.Equal("1", ContractVersion.Current);
+    public void TheCoreSpeaksVersionTwo() => Assert.Equal("2", ContractVersion.Current);
 }

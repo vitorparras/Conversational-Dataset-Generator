@@ -11,7 +11,12 @@ from fastapi.exceptions import RequestValidationError
 
 from language_service import __version__
 from language_service.auth import SecretVerifier
-from language_service.contract import AnalyzeResponse, HealthResponse, VersionResponse
+from language_service.contract import (
+    AnalyzeItemResponse,
+    AnalyzeResponse,
+    HealthResponse,
+    VersionResponse,
+)
 from language_service.gate import SecretGate
 from language_service.logging_ import RequestLog
 from language_service.proof import SecretProver
@@ -33,6 +38,12 @@ def create_app(secret: bytes) -> FastAPI:
     app.add_api_route("/health", routes.health, methods=["GET"], response_model=HealthResponse)
     app.add_api_route("/version", routes.version, methods=["GET"], response_model=VersionResponse)
     app.add_api_route("/analyze", routes.analyze, methods=["POST"], response_model=AnalyzeResponse)
+    app.add_api_route(
+        "/analyze-item",
+        routes.analyze_item,
+        methods=["POST"],
+        response_model=AnalyzeItemResponse,
+    )
     app.add_middleware(
         SecretGate, verifier=SecretVerifier.from_secret(secret), prover=SecretProver(secret)
     )

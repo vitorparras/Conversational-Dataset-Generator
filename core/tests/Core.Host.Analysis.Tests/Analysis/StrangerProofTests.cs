@@ -20,7 +20,7 @@ public sealed class StrangerProofTests : IDisposable
 {
     private const string Marker = "ZQX-MARKER-0402-TEXT";
     private const string PlainAnswer = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 2\r\n\r\n{}";
-    private const string VersionBody = /*lang=json,strict*/ """{"service_version":"0.1.0","contract_version":"1","model_version":null}""";
+    private const string VersionBody = /*lang=json,strict*/ """{"service_version":"0.1.0","contract_version":"2","model_version":null}""";
     private const string SecretHeader = "x-service-secret";
 
     private static readonly string VersionAnswer =

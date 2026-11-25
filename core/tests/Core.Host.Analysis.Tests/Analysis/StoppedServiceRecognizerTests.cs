@@ -79,6 +79,28 @@ public sealed class StoppedServiceRecognizerTests
         Assert.Empty(log.Entries);
     }
 
+    [Fact]
+    public async Task ItemIsRefusedAsConnectionRefusedWithOneLineNamingOnlyItsReference()
+    {
+        var item = new ItemAnalysisRequest([new ItemText($"falei com {Marker}", $"{Marker}-AUTOR")], "pt", "ref-0908-a", ContractVersion.Current);
+
+        var outcome = await new StoppedServiceRecognizer(log).RecognizeItemAsync(item, TestContext.Current.CancellationToken);
+
+        var written = Assert.Single(log.Entries);
+        Assert.Equal((null, UnavailabilityReason.ConnectionRefused, 206, "ref-0908-a"), (outcome.Response, outcome.Reason, written.EventId, written.Fields["Reference"]));
+        Assert.DoesNotContain(Marker, written.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task NullItemThrowsAndWritesNothing()
+    {
+        var thrown = await Assert.ThrowsAsync<ArgumentNullException>(
+            () => new StoppedServiceRecognizer(log).RecognizeItemAsync(null!, TestContext.Current.CancellationToken));
+
+        Assert.Equal("request", thrown.ParamName);
+        Assert.Empty(log.Entries);
+    }
+
     private static AnalysisRequest RequestOf(string reference) => new($"falei com PESSOA_1 ontem {Marker}", "pt", reference, ContractVersion.Current);
 
     /// <summary>Every line written to the recognizer's logger: its event, level, message and each field written beside it.</summary>

@@ -236,4 +236,3 @@ def test_item_without_its_texts_is_refused_without_echo(client: TestClient) -> N
         HTTPStatus.BAD_REQUEST,
         {"error": "invalid_request"},
     )
-

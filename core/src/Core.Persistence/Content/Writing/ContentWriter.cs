@@ -75,8 +75,8 @@ public sealed partial class ContentWriter(NpgsqlDataSource dataSource, Protected
         yield return Text("version", sanitization?.Version);
         yield return Text("steps", sanitization?.Steps);
         yield return Bytes("trail", trail);
-        yield return new NpgsqlParameter("counts", IntegerArray) { Value = (object?)sanitization?.Counts.ToArray() ?? DBNull.Value };
-        yield return new NpgsqlParameter("untreated", IntegerArray) { Value = (object?)sanitization?.Untreated.ToArray() ?? DBNull.Value };
+        yield return Integers("counts", sanitization?.Counts);
+        yield return Integers("untreated", sanitization?.Untreated);
     }
 
     private static IEnumerable<NpgsqlParameter> Counted(IReadOnlyList<ItemOccurrence>? occurrences)
@@ -110,6 +110,9 @@ public sealed partial class ContentWriter(NpgsqlDataSource dataSource, Protected
 
     private static NpgsqlParameter Bytes(string name, SealedContent? content) =>
         new(name, NpgsqlDbType.Bytea) { Value = content is null ? DBNull.Value : content.Envelope.ToArray() };
+
+    private static NpgsqlParameter Integers(string name, IReadOnlyList<int>? values) =>
+        new(name, IntegerArray) { Value = (object?)values?.ToArray() ?? DBNull.Value };
 
     private static NpgsqlParameter Text(string name, string? value) =>
         new(name, NpgsqlDbType.Text) { Value = (object?)value ?? DBNull.Value };

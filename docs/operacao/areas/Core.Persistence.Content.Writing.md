@@ -5,7 +5,7 @@
 - Projeto/pacote: `Core.Persistence.Content.Writing`
 - Piso: 90 %
 - Crítica: sim
-- Partes da mutação: 12
+- Partes da mutação: 24
 - Motivo: Acrescenta item e mapa de reversão ao banco, selando o que vai a coluna protegida para o
   domínio da linha, de modo que o banco nunca guarda o texto protegido em claro; separada de
   `Core.Persistence.Content` para que a mutação de cada uma fique em até 12 min (#557), dentro do
@@ -14,6 +14,7 @@
   min; #101: com o pseudonimizado, duas partes passaram dos 20 min com 7 e com 12, porque cada
   mutante da escrita espera a classe do armazenamento opaco, que ficou de 52 para 68 s e batia no
   timeout por mutante; a adulteração ganhou classes próprias, que correm ao lado das outras, e os
-  quatro textos opcionais do item passaram por uma só condição; com 12, o maior peso de uma parte
-  cai de 344 para 251).
+  quatro textos opcionais do item passaram por uma só condição; ainda assim, com 12, uma parte
+  levou 19,8 min e outra passou dos 20, porque os membros por onde passa todo item gravado custam
+  perto de um minuto por mutante; com 24, cada parte fica com metade deles).
   Sem projeto de teste próprio: roda os testes de `Core.Persistence.Content.Tests`

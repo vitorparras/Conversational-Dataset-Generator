@@ -12,6 +12,7 @@ using Core.Platform.Keys;
 using Core.Platform.Sessions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 
 namespace Core.Host.Tests;
 
@@ -156,7 +157,18 @@ internal sealed class ReversalScreensWorld : IAsyncDisposable
         return await SendAsync(request, person);
     }
 
-    internal async Task<string> ScalarAsync(string query) => (await Submissions.Database.FirstColumnAsOwnerAsync(query))[0];
+    /// <summary>
+    /// The first value of the query, read as the superuser: the requests and their authorizations are held to the row policy of the domain even for the owner, and a count read so
+    /// sees every row of every domain; an empty value reads as empty.
+    /// </summary>
+    [SuppressMessage("Security", "CA2100", Justification = "The queries are literals of the calling tests, never input.")]
+    internal async Task<string> ScalarAsync(string query)
+    {
+        await using var connection = new NpgsqlConnection(Submissions.Database.SuperuserConnectionString);
+        await connection.OpenAsync(Token);
+        await using var command = new NpgsqlCommand(query, connection);
+        return Convert.ToString(await command.ExecuteScalarAsync(Token), CultureInfo.InvariantCulture) ?? "";
+    }
 
     public async ValueTask DisposeAsync()
     {

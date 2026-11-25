@@ -16,8 +16,9 @@ from support.recognizers import (
     FixedRecognizer,
     RaisingRecognizer,
     RaisingVersionRecognizer,
-    ResolvingRecognizer,
     SlowRecognizer,
+    Word,
+    WordRecognizer,
 )
 from support.synthetic import MARKER
 
@@ -130,7 +131,7 @@ def test_item_success_line_holds_no_text_and_no_author_name(
 ) -> None:
     install_root_handler(sys.stderr)
     routes = Routes(
-        ResolvingRecognizer(((MARKER, 0),), "m2"),
+        WordRecognizer((Word(MARKER),), "m2"),
         RequestLog(logging.getLogger("language_service")),
     )
     texts = [ItemText(text=TEXT, author=f"{MARKER}-AUTHOR"), ItemText(text="ok", author=None)]

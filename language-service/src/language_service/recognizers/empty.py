@@ -2,7 +2,6 @@
 
 from collections.abc import Sequence
 
-from language_service.recognizers.mention import Mention
 from language_service.recognizers.occurrence import Occurrence
 
 
@@ -14,7 +13,4 @@ class EmptyRecognizer:
         return None
 
     def recognize(self, text: str, language: str) -> Sequence[Occurrence]:
-        return ()
-
-    def resolve(self, text: str, language: str) -> Sequence[Mention]:
         return ()

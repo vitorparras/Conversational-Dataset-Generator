@@ -18,7 +18,7 @@ from language_service.contract import (
 )
 from language_service.logging_ import RequestLog, Step
 from language_service.recognizers.base import Recognizer
-from language_service.recognizers.joined_item import join_item, place_mentions
+from language_service.recognizers.name_rule import group_by_name
 
 HTTP_BAD_REQUEST: Final = 400
 
@@ -49,12 +49,11 @@ class Routes:
             )
 
     def analyze_item(self, body: AnalyzeItemRequest) -> AnalyzeItemResponse:
-        """Every text of the item read together, so one entity has one group across them."""
-        item = join_item(body.texts)
-        with self.log.watch(body.reference, len(item.text)) as watch:
-            mentions = tuple(self.recognizer.resolve(item.text, body.language))
+        """Each text read alone, as ``analyze`` reads it; the name rule groups the whole item."""
+        with self.log.watch(body.reference, sum(len(text.text) for text in body.texts)) as watch:
+            found = [tuple(self.recognizer.recognize(t.text, body.language)) for t in body.texts]
             watch.reach(Step.RESPOND)
-            return watch.answer(place_mentions(item, mentions, self.recognizer.model_version))
+            return watch.answer(group_by_name(body.texts, found, self.recognizer.model_version))
 
 
 async def refuse_invalid_request(request: Request, error: Exception) -> JSONResponse:

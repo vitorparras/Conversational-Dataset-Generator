@@ -1,115 +1,190 @@
-"""A whole item is read as one text and each occurrence comes back in its text with its group."""
+"""Each text of an item is read alone, and the name rule of decision 0060 groups the whole item."""
 
 import json
+import logging
 from http import HTTPStatus
 
 from fastapi.testclient import TestClient
 
-from language_service.contract import AnalyzeItemRequest, AuthorGroup, GroupedOccurrence, ItemText
-from language_service.recognizers.empty import EmptyRecognizer
-from language_service.recognizers.joined_item import join_item, place_mentions
-from language_service.recognizers.mention import Mention
-from language_service.recognizers.occurrence import Occurrence
+from language_service.contract import AnalyzeItemRequest, AnalyzeItemResponse, ItemText
+from language_service.logging_ import RequestLog
+from language_service.routes import Routes
 from support.contract_fixtures import fixture_text
-from support.recognizers import ResolvingRecognizer
+from support.recognizers import Word, WordRecognizer
 from support.synthetic import SECRET_HEADER
 
 AUTHOR_A = "ZQX-AUTOR-A"
 AUTHOR_B = "ZQX-AUTOR-B"
 
 
-def analyse(recognizer: ResolvingRecognizer, *texts: ItemText) -> tuple[object, object]:
-    item = join_item(texts)
-    response = place_mentions(item, recognizer.resolve(item.text, "pt"), "zqx-model-2")
-    return response.occurrences, response.author_groups
-
-
-def found(text_index: int, start: int, end: int, group: int) -> GroupedOccurrence:
-    return GroupedOccurrence(
-        text_index=text_index,
-        start=start,
-        end=end,
-        kind="PERSON",
-        part_of_speech="PROPN",
-        syntactic_role="nsubj",
-        group=group,
+def analyse(recognizer: WordRecognizer, *texts: ItemText) -> AnalyzeItemResponse:
+    routes = Routes(recognizer, RequestLog(logging.getLogger("language_service")))
+    request = AnalyzeItemRequest(
+        texts=list(texts), language="pt", reference="ref-0908", contract_version="2"
     )
+    return routes.analyze_item(request)
 
 
-def test_texts_are_joined_one_line_each_with_the_author_ahead() -> None:
-    item = join_item((ItemText(text="oi", author=AUTHOR_A), ItemText(text="solto", author=None)))
+def said(text: str, author: str | None = None) -> ItemText:
+    return ItemText(text=text, author=author)
 
-    assert item.text == f"{AUTHOR_A}: oi\nsolto\n"
+
+def groups(response: AnalyzeItemResponse) -> list[int]:
+    return [occurrence.group for occurrence in response.occurrences]
+
+
+def author_group(response: AnalyzeItemResponse, author: str) -> int:
+    return next(group.group for group in response.author_groups if group.author == author)
+
+
+def test_each_text_is_recognized_alone_without_its_author() -> None:
+    recognizer = WordRecognizer((Word("Ana Souza"),))
+
+    analyse(recognizer, said("oi", "Bruno Lima"), said("solto"))
+
+    assert recognizer.asked == ["oi", "solto"]
 
 
 def test_every_occurrence_comes_back_in_its_text_with_its_group() -> None:
-    recognizer = ResolvingRecognizer((("PESSOA_1", 0), ("ela", 0), ("PESSOA_2", 1)))
+    recognizer = WordRecognizer((Word("Ana Souza"), Word("ÁNA SOUZA"), Word("Bruno Lima")))
 
-    occurrences, groups = analyse(
+    response = analyse(
         recognizer,
-        ItemText(text="\U0001f642 PESSOA_1 vem amanhã", author=AUTHOR_A),
-        ItemText(text="ela confirmou com PESSOA_2", author=AUTHOR_B),
+        said("\U0001f642 Ana Souza vem", AUTHOR_A),
+        said("ÁNA SOUZA confirmou com Bruno Lima", AUTHOR_B),
     )
 
-    assert occurrences == (found(0, 2, 10, 0), found(1, 0, 3, 0), found(1, 18, 26, 1))
-    assert groups == (AuthorGroup(author=AUTHOR_A, group=2), AuthorGroup(author=AUTHOR_B, group=3))
+    places = [(o.text_index, o.start, o.end) for o in response.occurrences]
+    assert places == [(0, 2, 11), (1, 0, 9), (1, 24, 34)]
+    first, again, other = groups(response)
+    assert (first == again, first == other) == (True, False)
 
 
 def test_author_names_come_back_with_their_group_and_never_as_occurrences() -> None:
-    recognizer = ResolvingRecognizer(((AUTHOR_A, 4),))
+    recognizer = WordRecognizer((Word("ana souza"),))
 
-    occurrences, groups = analyse(
+    response = analyse(
         recognizer,
-        ItemText(text="oi", author=AUTHOR_A),
-        ItemText(text=f"falei com {AUTHOR_A}", author=AUTHOR_B),
-        ItemText(text="de novo", author=AUTHOR_A),
+        said("oi", "Ana Souza"),
+        said("falei com ana souza", AUTHOR_B),
+        said("de novo", "Ana Souza"),
     )
 
-    assert occurrences == (found(1, 10, 21, 4),)
-    assert groups == (AuthorGroup(author=AUTHOR_A, group=4), AuthorGroup(author=AUTHOR_B, group=5))
+    assert [(o.text_index, o.start, o.end) for o in response.occurrences] == [(1, 10, 19)]
+    assert [group.author for group in response.author_groups] == ["Ana Souza", AUTHOR_B]
+    assert groups(response) == [author_group(response, "Ana Souza")]
+    assert author_group(response, AUTHOR_B) != author_group(response, "Ana Souza")
+
+
+def test_one_word_mention_joins_the_only_longer_name_holding_it() -> None:
+    recognizer = WordRecognizer((Word("Ana"), Word("Bruno Lima")))
+
+    response = analyse(
+        recognizer, said("a Ana chegou", "Ana Souza"), said("Bruno Lima viu", AUTHOR_B)
+    )
+
+    ana, bruno = groups(response)
+    assert ana == author_group(response, "Ana Souza")
+    assert bruno != ana
+
+
+def test_one_word_mention_joins_a_longer_mention_holding_it() -> None:
+    recognizer = WordRecognizer((Word("souza"), Word("Ana Souza")))
+
+    response = analyse(recognizer, said("Ana Souza veio"), said("souza saiu"))
+
+    name, part = groups(response)
+    assert part == name
+
+
+def test_one_word_mention_with_two_candidate_names_keeps_its_own_group() -> None:
+    recognizer = WordRecognizer((Word("Ana"), Word("Ana Lima")))
+
+    response = analyse(recognizer, said("Ana Lima e Ana", "Ana Souza"))
+
+    lima, ana = groups(response)
+    assert ana not in (lima, author_group(response, "Ana Souza"))
+
+
+def test_one_word_mention_with_a_pair_of_its_text_keeps_the_pair_apart_from_the_name() -> None:
+    recognizer = WordRecognizer((Word("Ana"), Word("ana")))
+
+    response = analyse(recognizer, said("Ana veio", "Ana Souza"), said("ana saiu"))
+
+    first, second = groups(response)
+    assert (first == second, first == author_group(response, "Ana Souza")) == (True, False)
+
+
+def test_one_word_mention_with_an_author_of_its_text_takes_the_author_group() -> None:
+    recognizer = WordRecognizer((Word("Ana"),))
+
+    response = analyse(recognizer, said("Ana veio", "Ana"), said("oi", "Ana Souza"))
+
+    assert groups(response) == [author_group(response, "Ana")]
+    assert author_group(response, "Ana") != author_group(response, "Ana Souza")
+
+
+def test_a_word_inside_a_longer_word_is_no_candidate() -> None:
+    recognizer = WordRecognizer((Word("Ana"),))
+
+    response = analyse(recognizer, said("Ana veio", "Anabela Souza"))
+
+    assert groups(response) != [author_group(response, "Anabela Souza")]
+
+
+def test_each_pronoun_has_a_group_of_its_own() -> None:
+    recognizer = WordRecognizer((Word("ela", part_of_speech="PRON"), Word("Ana Souza")))
+
+    response = analyse(recognizer, said("ela e Ana Souza"), said("ela"))
+
+    first, name, second = groups(response)
+    assert len({first, name, second}) == len(response.occurrences)
+
+
+def test_places_group_by_their_text_and_never_with_a_person() -> None:
+    words = (
+        Word("São Paulo", kind="LOCATION"),
+        Word("sao paulo", kind="LOCATION"),
+        Word("Paulo Lima"),
+    )
+
+    response = analyse(
+        WordRecognizer(words), said("São Paulo", "Paulo"), said("sao paulo e Paulo Lima")
+    )
+
+    place, again, person = groups(response)
+    assert (place == again, place == person, place == author_group(response, "Paulo")) == (
+        True,
+        False,
+        False,
+    )
+
+
+def test_one_word_place_never_joins_a_longer_name() -> None:
+    recognizer = WordRecognizer((Word("Lima", kind="ORGANIZATION"), Word("Ana Lima")))
+
+    response = analyse(recognizer, said("Ana Lima e Lima"))
+
+    name, organization = groups(response)
+    assert organization != name
 
 
 def test_each_occurrence_keeps_the_kind_and_analysis_the_recognizer_gave() -> None:
-    item = join_item((ItemText(text="PESSOA_1 vem", author=None),))
-    mention = Mention(Occurrence(0, 8, "LOC", "NOUN", "obl"), 0)
-
-    response = place_mentions(item, (mention,), None)
+    response = analyse(
+        WordRecognizer((Word("PESSOA_1", kind="LOCATION", part_of_speech="NOUN"),)),
+        said("PESSOA_1 vem"),
+    )
 
     assert [(o.kind, o.part_of_speech, o.syntactic_role) for o in response.occurrences] == [
-        ("LOC", "NOUN", "obl")
+        ("LOCATION", "NOUN", "nsubj")
     ]
 
 
-def test_first_mention_over_a_name_gives_the_author_its_group() -> None:
-    item = join_item((ItemText(text="oi", author=AUTHOR_A), ItemText(text="oi", author=AUTHOR_A)))
-    first, second = (
-        Occurrence(start, start + len(AUTHOR_A), "PERSON", "PROPN", "nsubj") for start in (0, 16)
-    )
-
-    response = place_mentions(item, (Mention(first, 7), Mention(second, 2)), None)
-
-    assert response.author_groups == (AuthorGroup(author=AUTHOR_A, group=7),)
-
-
-def test_mention_across_two_texts_is_dropped() -> None:
-    recognizer = ResolvingRecognizer((("amanhã\nZQX", 3),))
-
-    occurrences, groups = analyse(
-        recognizer,
-        ItemText(text="vem amanhã", author=AUTHOR_A),
-        ItemText(text="ok", author=AUTHOR_B),
-    )
-
-    assert occurrences == ()
-    assert groups == (AuthorGroup(author=AUTHOR_A, group=4), AuthorGroup(author=AUTHOR_B, group=5))
-
-
 def test_text_without_author_has_its_occurrences_and_no_group_of_author() -> None:
-    occurrences, groups = analyse(
-        ResolvingRecognizer((("PESSOA_1", 0),)), ItemText(text="PESSOA_1 chegou", author=None)
-    )
+    response = analyse(WordRecognizer((Word("PESSOA_1"),)), said("PESSOA_1 chegou"))
 
-    assert (occurrences, groups) == ((found(0, 0, 8, 0),), ())
+    places = [(o.text_index, o.start, o.end) for o in response.occurrences]
+    assert (places, response.author_groups) == ([(0, 0, 8)], ())
 
 
 def test_empty_recognizer_gives_one_group_per_author_and_no_occurrence(
@@ -136,8 +211,3 @@ def test_item_without_its_texts_is_refused_without_echo(client: TestClient) -> N
         {"error": "invalid_request"},
     )
 
-
-def test_empty_recognizer_resolves_nothing() -> None:
-    request = AnalyzeItemRequest.model_validate_json(fixture_text("accepted/item-request.json"))
-
-    assert EmptyRecognizer().resolve(join_item(request.texts).text, "pt") == ()

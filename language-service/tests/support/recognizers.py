@@ -3,9 +3,8 @@
 import re
 import time
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
-from language_service.recognizers.mention import Mention
 from language_service.recognizers.occurrence import Occurrence
 from support.synthetic import MARKER
 
@@ -29,9 +28,6 @@ class FixedRecognizer:
     def recognize(self, text: str, language: str) -> Sequence[Occurrence]:
         return self.found
 
-    def resolve(self, text: str, language: str) -> Sequence[Mention]:
-        return ()
-
 
 @dataclass(frozen=True)
 class RaisingRecognizer:
@@ -41,9 +37,6 @@ class RaisingRecognizer:
 
     def recognize(self, text: str, language: str) -> Sequence[Occurrence]:
         raise ValueError(f"could not analyse {text!r}")
-
-    def resolve(self, text: str, language: str) -> Sequence[Mention]:
-        return ()
 
 
 @dataclass(frozen=True)
@@ -55,9 +48,6 @@ class RaisingVersionRecognizer:
         raise ValueError(f"no version for {MARKER}")
 
     def recognize(self, text: str, language: str) -> Sequence[Occurrence]:
-        return ()
-
-    def resolve(self, text: str, language: str) -> Sequence[Mention]:
         return ()
 
 
@@ -72,24 +62,37 @@ class SlowRecognizer:
         time.sleep(self.delay_seconds)
         return ()
 
-    def resolve(self, text: str, language: str) -> Sequence[Mention]:
-        return ()
+
+@dataclass(frozen=True)
+class Word:
+    """A word the double finds wherever it is, with the kind and part of speech it reports."""
+
+    text: str
+    kind: str = "PERSON"
+    part_of_speech: str = "PROPN"
 
 
 @dataclass(frozen=True)
-class ResolvingRecognizer:
-    """Finds every place of each word it was given in the joined text of an item, with its group."""
+class WordRecognizer:
+    """Finds every place of each word it was given in a text, and keeps the texts it was asked."""
 
-    groups: tuple[tuple[str, int], ...]
+    words: tuple[Word, ...]
     model_version: str | None = None
+    asked: list[str] = field(default_factory=list[str])
 
     def recognize(self, text: str, language: str) -> Sequence[Occurrence]:
-        return ()
-
-    def resolve(self, text: str, language: str) -> Sequence[Mention]:
-        found = (
-            Mention(Occurrence(match.start(), match.end(), "PERSON", "PROPN", "nsubj"), group)
-            for word, group in self.groups
-            for match in re.finditer(re.escape(word), text)
-        )
-        return sorted(found, key=lambda mention: mention.occurrence.start)
+        """The longest word wins where two overlap, as a recognizer gives the whole name."""
+        self.asked.append(text)
+        by_text = {word.text: word for word in self.words}
+        longest_first = sorted(by_text, key=len, reverse=True)
+        pattern = "|".join(rf"(?<!\w){re.escape(word)}(?!\w)" for word in longest_first)
+        return [
+            Occurrence(
+                match.start(),
+                match.end(),
+                by_text[match.group()].kind,
+                by_text[match.group()].part_of_speech,
+                "nsubj",
+            )
+            for match in re.finditer(pattern, text)
+        ]

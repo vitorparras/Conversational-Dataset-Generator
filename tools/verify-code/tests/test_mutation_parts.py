@@ -490,6 +490,7 @@ class RepositoryAreaTests(unittest.TestCase):
         self.assertEqual(areas["Core.Persistence.Content"].parts, 96)
         self.assertEqual(areas["Core.Persistence.Content.Writing"].parts, 24)
         self.assertEqual(areas["Core.Persistence.Content.Sealing"].parts, 3)
+        self.assertEqual(areas["Core.Persistence.Content.Rotation"].parts, 3)
         self.assertEqual(areas["Core.Persistence.Content.Reading"].parts, 1)
         self.assertEqual(areas["Core.Persistence.Ingestion"].parts, 12)
 
@@ -548,16 +549,18 @@ class RepositoryAreaTests(unittest.TestCase):
 
         writing = [name for name in names if name.startswith("Core.Persistence.Content.Writing@")]
         sealing = [name for name in names if name.startswith("Core.Persistence.Content.Sealing@")]
+        rotation = [name for name in names if name.startswith("Core.Persistence.Content.Rotation@")]
 
         expected = [f"Core.Persistence.Content@{n}/96" for n in range(1, 97)]
         ingestion = [name for name in names if name.startswith("Core.Persistence.Ingestion@")]
         self.assertEqual(
-            (problems, content, writing, sealing, ingestion),
+            (problems, content, writing, sealing, rotation, ingestion),
             (
                 (),
                 expected,
                 [f"Core.Persistence.Content.Writing@{n}/24" for n in range(1, 25)],
                 [f"Core.Persistence.Content.Sealing@{n}/3" for n in range(1, 4)],
+                [f"Core.Persistence.Content.Rotation@{n}/3" for n in range(1, 4)],
                 [f"Core.Persistence.Ingestion@{n}/12" for n in range(1, 13)],
             ),
         )

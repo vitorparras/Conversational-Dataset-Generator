@@ -105,9 +105,13 @@ public sealed class ReversalListingTests
             (await Assert.ThrowsAsync<ArgumentNullException>(() => world.ReversalRequestReader.ListAsync(null!, Token))).ParamName,
             (await Assert.ThrowsAsync<ArgumentNullException>(() => world.ReversalRequests.AuthorizeAsync(null!, DateTimeOffset.UtcNow.AddDays(1), Token))).ParamName,
             (await Assert.ThrowsAsync<ArgumentNullException>(() => world.ReversalRequests.DeclineAsync(null!, Token))).ParamName,
+            (await Assert.ThrowsAsync<ArgumentNullException>(() => world.ReversalRequestReader.ReadTextAsync(null!, Token))).ParamName,
+            Assert.Throws<ArgumentNullException>(() => new ReversalRequests(null!, world.Content, TimeProvider.System)).ParamName,
+            Assert.Throws<ArgumentNullException>(() => new ReversalRequests(world.DataSource, null!, TimeProvider.System)).ParamName,
+            Assert.Throws<ArgumentNullException>(() => new ReversalRequests(world.DataSource, world.Content, null!)).ParamName,
         ];
 
-        Assert.Equal(["dataSource", "reader", "time", "listing", "act", "act"], names);
+        Assert.Equal(["dataSource", "reader", "time", "listing", "act", "act", "act", "dataSource", "protectedContent", "time"], names);
     }
 
     [DatabaseTheory]

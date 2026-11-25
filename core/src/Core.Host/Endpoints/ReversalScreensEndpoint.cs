@@ -58,7 +58,11 @@ internal static partial class ReversalScreensEndpoint
         var form = await RequestReader.FormAsync(context);
         var draft = new ReversalRequestDraft
         {
-            Item = form?["item"].ToString(), Marker = form?["marcador"].ToString(), Term = form?["prazo"].ToString(), Reason = form?["motivo"].ToString(), Use = form?["uso"].ToString(),
+            Item = form?["item"].ToString(),
+            Marker = form?["marcador"].ToString(),
+            Term = form?["prazo"].ToString(),
+            Reason = form?["motivo"].ToString(),
+            Use = form?["uso"].ToString(),
         };
         using var access = await desk.OpenAsync(context.RequestAborted);
         if (access is null)
@@ -108,8 +112,12 @@ internal static partial class ReversalScreensEndpoint
         var number = int.TryParse(query[ReversalListScreen.PageKey], NumberStyles.None, CultureInfo.InvariantCulture, out var asked) && asked > 0 ? asked : 1;
         var listing = new ReversalListing
         {
-            DomainId = actor.Domain.Id, PersonId = actor.Person, Mine = mine, Page = number,
-            ItemId = !mine && long.TryParse(item, NumberStyles.None, CultureInfo.InvariantCulture, out var id) ? id : null, State = mine ? ReversalListScreen.StateOf(situation) : null,
+            DomainId = actor.Domain.Id,
+            PersonId = actor.Person,
+            Mine = mine,
+            Page = number,
+            ItemId = !mine && long.TryParse(item, NumberStyles.None, CultureInfo.InvariantCulture, out var id) ? id : null,
+            State = mine ? ReversalListScreen.StateOf(situation) : null,
         };
         return ScreenResult.Of(context, typeof(ReversalListScreen), mine ? ReversalListScreen.MineTitle : ReversalListScreen.AwaitingTitle, new Dictionary<string, object?>(StringComparer.Ordinal)
         {

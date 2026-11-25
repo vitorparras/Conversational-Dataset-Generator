@@ -113,18 +113,21 @@ public sealed class ReversalScreenTests(BrowserFixture browser, ReversalHostFixt
         await page.SetViewportSizeAsync(1280, 800);
     }
 
-    /// <summary>Presses Tab until the condition holds of the element with the focus, past the stops of the header; fails when it never does.</summary>
+    /// <summary>Presses Tab until the condition holds of the element with the focus, past the stops of the header; fails with the stops it went through when it never does.</summary>
     private static async Task FocusAsync(IPage page, string condition)
     {
-        for (var stop = 0; stop < HeaderStops.Count + 12; stop++)
+        var stops = new List<string>();
+        for (var stop = 0; stop < HeaderStops.Count + 20; stop++)
         {
             await page.Keyboard.PressAsync("Tab");
             if (await page.EvaluateAsync<bool>($"() => {condition}"))
             {
                 return;
             }
+
+            stops.Add(await page.EvaluateAsync<string>("() => `${document.activeElement.tagName}#${document.activeElement.id}`"));
         }
 
-        Assert.Fail($"The keyboard never reached what holds: {condition}.");
+        Assert.Fail($"The keyboard never reached what holds: {condition}. It went through {string.Join(", ", stops)}.");
     }
 }

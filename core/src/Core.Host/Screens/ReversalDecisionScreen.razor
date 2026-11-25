@@ -1,0 +1,100 @@
+@using System.Globalization
+@using Core.Host.Endpoints
+@using Core.Persistence.Content.Reversal
+
+<h1>@TitleOf(Request.Id, Showing)</h1>
+@switch (Showing)
+{
+    case Shown.Authorized:
+        <Notice Kind="Notice.Tone.Success">quem pediu pode revelar uma vez, até @ReversalMark.DayOf(Request.ValidUntil).</Notice>
+        <div class="actions">
+            <Button Href="@ScreenPaths.ReversalAuthorize" Kind="Button.Look.Secondary">Voltar aos pendentes</Button>
+        </div>
+        break;
+    case Shown.Declined:
+        <Notice Kind="Notice.Tone.Success">a recusa ficou na cadeia de custódia.</Notice>
+        <div class="actions">
+            <Button Href="@ScreenPaths.ReversalAuthorize" Kind="Button.Look.Secondary">Voltar aos pendentes</Button>
+        </div>
+        break;
+    case Shown.Own:
+        <Notice Kind="Notice.Tone.Error">Você não autoriza o próprio pedido. A tentativa foi registrada.</Notice>
+        <div class="actions">
+            <Button Href="@ScreenPaths.ReversalMineOf(Request.Id)" Kind="Button.Look.Secondary">Ver o pedido</Button>
+        </div>
+        break;
+    case Shown.NotWritten:
+        <Notice Kind="Notice.Tone.Error">a cadeia de custódia não aceitou o registro, e o pedido segue pendente até ela voltar.</Notice>
+        <div class="actions">
+            <a href="@ScreenPaths.ReversalAuthorize">Voltar</a>
+        </div>
+        break;
+    default:
+        if (Text is { } text)
+        {
+            <p class="status"><code>@Request.Marker</code> no item @Request.ItemId</p>
+            <FactList>
+                <Fact Term="Por que precisa">@text.Reason</Fact>
+                <Fact Term="O que fará">@text.Use</Fact>
+                <Fact Term="Prazo pedido">@ReversalScreen.DaysOf(Request.TermDays)</Fact>
+            </FactList>
+            <details class="more">
+                <summary>Quem pediu e quando</summary>
+                <p>@Requester, em @ReversalMark.DayOf(Request.RequestedAt).</p>
+            </details>
+            <form class="form" method="post" action="@ScreenPaths.ReversalDecideOf(Request.Id)" novalidate>
+                <Field Id="validade" Name="@ReversalDecisionEndpoint.UntilField" Caption="Autorizar este pedido até" Type="date" Value="@Until"
+                       Error="@(Showing == Shown.PastDay ? "Nada foi autorizado: escolha uma data futura." : null)" Autofocus="@(Showing == Shown.PastDay)" />
+                <div class="actions">
+                    <Button Id="autorizar" Name="@ReversalDecisionEndpoint.DecisionField" Value="@ReversalDecisionEndpoint.Authorize">Autorizar</Button>
+                    <Button Id="recusar" Name="@ReversalDecisionEndpoint.DecisionField" Value="@ReversalDecisionEndpoint.Decline" Kind="Button.Look.Secondary">Recusar</Button>
+                    <a href="@ScreenPaths.ReversalAuthorize">Voltar</a>
+                </div>
+            </form>
+        }
+        else
+        {
+            <p class="status"><ReversalMark Request="Request" /> <code>@Request.Marker</code> no item @Request.ItemId</p>
+            <div class="actions">
+                <a href="@ScreenPaths.ReversalAuthorize">Voltar</a>
+            </div>
+        }
+        break;
+}
+
+@code {
+    /// <summary>
+    /// What the page shows: the request to decide, or decided, as it stands; the same with a day that is not one or is past; a decision just recorded, confirmed only when the request
+    /// stands so; the refusal of a decision on a request of one's own; and a reading or a decision the chain did not take.
+    /// </summary>
+    public enum Shown
+    {
+        Open,
+        PastDay,
+        Authorized,
+        Declined,
+        Own,
+        NotWritten,
+    }
+
+    [Parameter, EditorRequired]
+    public ListedReversal Request { get; set; } = null!;
+
+    /// <summary>Why the request asks and what for, opened after the chain recorded the reading; none when the request is not to decide or the reading was not recorded.</summary>
+    [Parameter]
+    public ReversalJustification? Text { get; set; }
+
+    /// <summary>The name of whoever asked; the pseudonym is not an identity, and nothing here reveals one.</summary>
+    [Parameter, EditorRequired]
+    public string Requester { get; set; } = "";
+
+    /// <summary>The day the authorization is offered until, as the field of a date takes it: the term asked counted from today, or the day typed.</summary>
+    [Parameter, EditorRequired]
+    public string Until { get; set; } = "";
+
+    [Parameter]
+    public Shown Showing { get; set; }
+
+    internal static string TitleOf(long id, Shown shown) =>
+        string.Create(CultureInfo.InvariantCulture, $"Pedido {id}") + shown switch { Shown.Authorized => " autorizado", Shown.Declined => " recusado", _ => "" };
+}

@@ -7,7 +7,8 @@ namespace Core.Host.Tests.Browser.Accessibility;
 /// the background pass; so the text is hidden, the page is photographed, and the colour of the text is held against the darkest and the lightest pixel under it. Normal text needs 4.5,
 /// large text 3 (WCAG 2.1, 1.4.3), and the transparency of the text itself and of the elements around it is counted. Text off the page and text of a disabled control are left out,
 /// as the criterion leaves out the inactive component, and text that another element covers or that is clipped to a pixel for readers of screens alone is not read by anyone;
-/// the link to skip to the content is measured with the focus on it.
+/// the link to skip to the content is measured with the focus on it. The icon a field of a date draws inside its box is hidden with the text: it is a control, not the background of the
+/// date, and it would be taken for the darkest pixel under it.
 /// </summary>
 internal static class RealBackgroundContrast
 {
@@ -97,7 +98,8 @@ internal static class RealBackgroundContrast
         """;
 
     private const string HideText = "*, *::placeholder { color: transparent !important; -webkit-text-fill-color: transparent !important; text-shadow: none !important; "
-        + "text-decoration-color: transparent !important; caret-color: transparent !important; }";
+        + "text-decoration-color: transparent !important; caret-color: transparent !important; } "
+        + "::-webkit-calendar-picker-indicator { opacity: 0 !important; }";
 
     /// <summary>Fails with the list of the texts under the ratio they need. The page is as it was after the call, apart from the animations the photograph stopped.</summary>
     public static async Task AssertAaAsync(IPage page)

@@ -28,8 +28,8 @@ como pessoa, como lugar ou como nada sempre foi decisão do núcleo
 O mesmo participante é o mesmo rótulo em toda a conversa; participantes distintos nunca compartilham
 rótulo, ainda que os nomes de origem coincidam, salvo os homônimos da mesma conversa, limite
 declarado da [0060](../decisoes/0060-correferencia-na-resposta-da-fronteira.md). O escopo
-dessa estabilidade é a conversa, e ela não a atravessa: um rótulo nunca se repete em outra conversa, de nenhum domínio
-([0057](../decisoes/0057-escopo-do-marcador-e-a-conversa.md)). Ligar conversas exige saber que dois
+dessa estabilidade é a conversa, e ela não a atravessa: um rótulo nunca se repete em outra
+conversa, de nenhum domínio ([0057](../decisoes/0057-escopo-do-marcador-e-a-conversa.md)). Ligar conversas exige saber que dois
 nomes são a mesma pessoa, e o material só traz o nome salvo por quem exportou; entre domínios,
 rótulo comum seria ainda uma ligação entre acervos que sobreviveria à exportação
 ([0006](../decisoes/0006-dominios-coexistem.md)).

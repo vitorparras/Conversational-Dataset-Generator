@@ -133,6 +133,7 @@ public sealed class ReversalEventShapeTests
 
         var sequence = Assert.NotNull(appended.Sequence);
         Assert.Equal(("step", CustodyOutcome.Appended, 0L), (plain.ParamName, appended.Outcome, await CountAsync(world, CountRequests)));
+        await world.Database.RunAsOwnerAsync("GRANT UPDATE, DELETE ON public.custody_event TO owner");
         foreach (var change in new[] { "UPDATE public.custody_event SET reference = 'PESSOA_00000002' WHERE sequence = @sequence", "DELETE FROM public.custody_event WHERE sequence = @sequence" })
         {
             var refused = await Assert.ThrowsAsync<PostgresException>(() => world.ScalarAsync(change, ("sequence", sequence)));

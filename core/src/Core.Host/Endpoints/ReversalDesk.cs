@@ -1,6 +1,3 @@
-using Core.Persistence.Content.Reading;
-using Core.Persistence.Content.Reversal;
-using Core.Persistence.Custody.Chain;
 using Core.Persistence.Domains;
 using Core.Persistence.People;
 using Core.Platform.Keys;
@@ -19,14 +16,14 @@ internal sealed class ReversalDesk
     private readonly IServiceProvider startup;
     private readonly NpgsqlDataSource source;
     private readonly DomainListing domains;
-    private readonly PersonRegistry people;
+    private readonly PersonRegistry registry;
 
     private ReversalDesk(IServiceProvider startup, NpgsqlDataSource source, TimeProvider time)
     {
         this.startup = startup;
         this.source = source;
         domains = new DomainListing(source);
-        people = new PersonRegistry(source);
+        registry = new PersonRegistry(source);
         Time = time;
     }
 
@@ -49,8 +46,8 @@ internal sealed class ReversalDesk
     }
 
     /// <summary>The name of the person, or that the person was removed.</summary>
-    internal async Task<string> NameOfAsync(long person, CancellationToken cancellationToken) =>
-        (await people.NamesOfAsync([person], cancellationToken).ConfigureAwait(false)).TryGetValue(person, out var name) ? name : Removed;
+    internal async Task<string> NameOfAsync(long id, CancellationToken cancellationToken) =>
+        (await registry.NamesOfAsync([id], cancellationToken).ConfigureAwait(false)).TryGetValue(id, out var name) ? name : Removed;
 
     /// <summary>The requests over the key read now; none when the key cannot be read, and the screen then says the host cannot.</summary>
     internal async Task<ReversalAccess?> OpenAsync(CancellationToken cancellationToken)
@@ -65,8 +62,7 @@ internal sealed class ReversalDesk
             }
 
             var content = CompositionRoot.ContentOf(reading, await RegisteredLabels.ReadAsync(source, cancellationToken).ConfigureAwait(false));
-            var reader = new ReversalRequestReader(source, new ProtectedContentReader(source, content, new CustodyChain(source)), Time);
-            return new ReversalAccess(new ReversalRequests(source, content, Time), reader, reading);
+            return CompositionRoot.ReversalOf(source, content, Time, reading);
         }
         catch
         {

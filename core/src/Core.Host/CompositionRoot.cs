@@ -84,8 +84,7 @@ internal static class CompositionRoot
         PlatformLogging.Configure(builder.Logging);
         _ = fileLog is null ? builder.Services : builder.Services.AddSingleton(_ => fileLog);
         _ = builder.Services.AddSingleton(TimeProvider.System).AddRedaction(PlatformLogging.EraseSensitiveData).AddSingleton(configuration)
-            .AddSingleton(ItemEmptyingServices.GrantsOf).AddSingleton(ItemEmptyingServices.DeskOf).AddSingleton(RerunDesk.Of)
-            .AddSingleton(ReversalDesk.Of);
+            .AddSingleton(ItemEmptyingServices.GrantsOf).AddSingleton(ItemEmptyingServices.DeskOf).AddSingleton(RerunDesk.Of).AddSingleton(ReversalDesk.Of);
         _ = builder.Services.ConfigureHttpJsonOptions(HostJson.Strict).AddRazorComponents();
     }
 
@@ -123,6 +122,8 @@ internal static class CompositionRoot
     internal static ProtectedContent ContentOf(MasterKeyReading reading, IReadOnlySet<string> known) => new(reading.Labels, KeysOf(reading), known);
     internal static Persistence.Ingestion.SampleTextReader SampleTextOf(NpgsqlDataSource source, MasterKeyReading reading, IReadOnlySet<string> known) => new(source, ContentOf(reading, known));
     internal static Persistence.Content.Rerun.ItemResanitizer ResanitizerOf(NpgsqlDataSource source, ProtectedContent content, TimeProvider time) => new(source, content, time);
+    internal static ReversalAccess ReversalOf(NpgsqlDataSource source, ProtectedContent content, TimeProvider time, MasterKeyReading reading) =>
+        new(new(source, content, time), new(source, new ProtectedContentReader(source, content, new CustodyChain(source)), time), reading);
     internal static CopyClosing ClosingOf(NpgsqlDataSource source, Persistence.Ingestion.IngestionBatches batches) => new(new Persistence.Ingestion.BatchApprovals(source), batches);
     internal static SanitizationSteps StepsOf() =>
         new([new EncodingRepairStep(new TextBoundaries()), new FormatArtifactStep(new TextBoundaries()), new IdentifierStep(new TextBoundaries()), new DestinationsStep()]);
@@ -177,8 +178,7 @@ internal static class CompositionRoot
             .AddSingleton(provider => SubmissionParts.BatchesOf(provider, loaded.Values)).AddSingleton(provider => SubmissionParts.ServicesOf(provider, loaded.Values))
             .AddSingleton(provider => SampleReviewParts.DeskOf(provider, loaded.Values));
         _ = builder.Services.AddSingleton(_ => new ServerAuditLog(AuditConfiguration.ServerLogDirectory(loaded.Values))).AddSingleton<AuditComparisonState>();
-        _ = builder.Services.AddHostedService(provider => new AuditComparisonService(
-            new AuditComparisonPlan(AuditConfiguration.CompareInterval(loaded.Values),
+        _ = builder.Services.AddHostedService(provider => new AuditComparisonService(new AuditComparisonPlan(AuditConfiguration.CompareInterval(loaded.Values),
                 (from, to, token) => new AuditComparer(
                     provider.GetRequiredService<ServiceProvider>().GetRequiredService<NpgsqlDataSource>(), AuditConfiguration.ServerLogDirectory(loaded.Values))
                     .CompareAsync(from, to, token),
@@ -227,8 +227,7 @@ internal static class CompositionRoot
         var startup = host.GetRequiredService<ServiceProvider>();
         return startup.GetRequiredService<LanguageServiceSupervisor>().Endpoint is { } endpoint
             ? new HttpRecognizer(startup.GetRequiredService<HttpClient>(),
-                new HttpRecognizerSettings(endpoint.Port, endpoint.Secret, analyzeTimeout),
-                host.GetRequiredService<ILogger<HttpRecognizer>>())
+                new HttpRecognizerSettings(endpoint.Port, endpoint.Secret, analyzeTimeout), host.GetRequiredService<ILogger<HttpRecognizer>>())
             : new StoppedServiceRecognizer(host.GetRequiredService<ILogger<StoppedServiceRecognizer>>());
     }
 

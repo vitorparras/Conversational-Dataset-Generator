@@ -39,7 +39,7 @@ internal static class ReversalDecisionEndpoint
             return ScreenResult.NotFound(context);
         }
 
-        if (request.RequestedBy == acting.Person)
+        if (request.RequestedBy == acting.Actor)
         {
             return PageRedirect.Of(context, ScreenPaths.ReversalMineOf(id));
         }
@@ -51,7 +51,7 @@ internal static class ReversalDecisionEndpoint
             (ReversalState.Declined, _, true) => Shown.Declined,
             _ => Shown.Open,
         };
-        return await ReversalDecisionPage.OfAsync(context, acting, request, shown);
+        return await ReversalDecisionPage.OfAsync(context, acting, request, new(shown));
     });
 
     /// <summary>
@@ -66,56 +66,56 @@ internal static class ReversalDecisionEndpoint
 
         var form = await RequestReader.FormAsync(context) ?? FormCollection.Empty;
         var (decision, until) = (form[DecisionField].ToString(), form[UntilField].ToString());
-        var act = new ReversalAct(acting.Domain.Id, id, acting.Person);
-        if (request.RequestedBy == acting.Person)
+        var act = new ReversalAct(acting.Domain.Id, id, acting.Actor);
+        if (request.RequestedBy == acting.Actor)
         {
             // Whatever the form holds, a decision on a request of one's own goes to the requests, which refuse it before the day and record the attempt.
-            return await AnswerAsync(context, acting, request, await acting.Access.Requests.AuthorizeAsync(act, DateTimeOffset.UnixEpoch, context.RequestAborted), (Authorized, until));
+            return await AnswerAsync(context, acting, request, (await acting.Access.Requests.AuthorizeAsync(act, DateTimeOffset.UnixEpoch, context.RequestAborted), Authorized, until));
         }
 
         if (string.Equals(decision, Decline, StringComparison.Ordinal))
         {
-            return await AnswerAsync(context, acting, request, await acting.Access.Requests.DeclineAsync(act, context.RequestAborted), (Declined, until));
+            return await AnswerAsync(context, acting, request, (await acting.Access.Requests.DeclineAsync(act, context.RequestAborted), Declined, until));
         }
 
         var authorizing = string.Equals(decision, Authorize, StringComparison.Ordinal);
         if (!authorizing || !DateOnly.TryParseExact(until, ReversalDecisionPage.DayFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out var day))
         {
-            return await ReversalDecisionPage.OfAsync(context, acting, request, Shown.PastDay, until);
+            return await ReversalDecisionPage.OfAsync(context, acting, request, new(Shown.PastDay, until));
         }
 
         var result = await acting.Access.Requests.AuthorizeAsync(act, new DateTimeOffset(day.ToDateTime(LastSecond), TimeSpan.Zero), context.RequestAborted);
-        return await AnswerAsync(context, acting, request, result, (Authorized, until));
+        return await AnswerAsync(context, acting, request, (result, Authorized, until));
     });
 
     /// <summary>
     /// The confirmation of a decision recorded, marked so in the address, or the page again with why it was not; the gate lets only the curation through, and one whose function changed
     /// since answers as a route that is not there.
     /// </summary>
-    private static async Task<IResult> AnswerAsync(HttpContext context, Acting acting, ListedReversal request, ReversalResult result, (string Mark, string Until) decision)
+    private static async Task<IResult> AnswerAsync(HttpContext context, Acting acting, ListedReversal request, (ReversalResult Result, string Mark, string Until) decision)
     {
-        if (result.Outcome == ReversalOutcome.Recorded)
+        if (decision.Result.Outcome == ReversalOutcome.Recorded)
         {
             return PageRedirect.Of(context, $"{ScreenPaths.ReversalDecideOf(request.Id)}?{decision.Mark}");
         }
 
-        if (result.Outcome == ReversalOutcome.OwnRequest)
+        if (decision.Result.Outcome == ReversalOutcome.OwnRequest)
         {
-            return await ReversalDecisionPage.OfAsync(context, acting, request, Shown.Own);
+            return await ReversalDecisionPage.OfAsync(context, acting, request, new(Shown.Own));
         }
 
-        if (result.Outcome == ReversalOutcome.TermInThePast)
+        if (decision.Result.Outcome == ReversalOutcome.TermInThePast)
         {
-            return await ReversalDecisionPage.OfAsync(context, acting, request, Shown.PastDay, decision.Until);
+            return await ReversalDecisionPage.OfAsync(context, acting, request, new(Shown.PastDay, decision.Until));
         }
 
-        if (result.Outcome == ReversalOutcome.Closed)
+        if (decision.Result.Outcome == ReversalOutcome.Closed)
         {
-            return await ReversalDecisionPage.OfAsync(context, acting, await acting.Access.Reader.ReadAsync(acting.Domain.Id, request.Id, context.RequestAborted) ?? request, Shown.Open);
+            return await ReversalDecisionPage.OfAsync(context, acting, await acting.Access.Reader.ReadAsync(acting.Domain.Id, request.Id, context.RequestAborted) ?? request, new(Shown.Open));
         }
 
-        return result.Outcome == ReversalOutcome.NotRecorded
-            ? await ReversalDecisionPage.OfAsync(context, acting, request, Shown.NotWritten, decision.Until, StatusCodes.Status503ServiceUnavailable)
+        return decision.Result.Outcome == ReversalOutcome.NotRecorded
+            ? await ReversalDecisionPage.OfAsync(context, acting, request, new(Shown.NotWritten, decision.Until, StatusCodes.Status503ServiceUnavailable))
             : ScreenResult.NotFound(context);
     }
 }

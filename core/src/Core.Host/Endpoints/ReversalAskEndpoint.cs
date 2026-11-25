@@ -30,7 +30,7 @@ internal static class ReversalAskEndpoint
             Reason = form["motivo"].ToString(),
             Use = form["uso"].ToString(),
         };
-        return AnswerOf(context, draft, await acting.Access.Requests.AskAsync(acting.Domain.Id, acting.Person, draft, context.RequestAborted));
+        return AnswerOf(context, draft, await acting.Access.Requests.AskAsync(acting.Domain.Id, acting.Actor, draft, context.RequestAborted));
     });
 
     /// <summary>

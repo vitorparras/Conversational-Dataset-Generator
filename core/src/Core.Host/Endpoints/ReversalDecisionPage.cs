@@ -14,13 +14,13 @@ internal static class ReversalDecisionPage
     internal const string DayFormat = "yyyy-MM-dd";
 
     /// <summary>The page of the decision; a request still to decide opens its text first, and a text the chain did not record the reading of is not shown and the page says why.</summary>
-    internal static async Task<IResult> OfAsync(HttpContext context, Acting acting, ListedReversal request, Shown shown, string? until = null, int status = StatusCodes.Status200OK)
+    internal static async Task<IResult> OfAsync(HttpContext context, Acting acting, ListedReversal request, Showing asked)
     {
         ReversalJustification? text = null;
-        var (showing, answered) = (shown, status);
-        if (shown is Shown.Open or Shown.PastDay && request.State is ReversalState.Pending or ReversalState.Expired)
+        var (showing, answered) = (asked.Shown, asked.Status);
+        if (asked.Shown is Shown.Open or Shown.PastDay && request.State is ReversalState.Pending or ReversalState.Expired)
         {
-            text = await acting.Access.Reader.ReadTextAsync(new ReversalAct(acting.Domain.Id, request.Id, acting.Person), context.RequestAborted);
+            text = await acting.Access.Reader.ReadTextAsync(new ReversalAct(acting.Domain.Id, request.Id, acting.Actor), context.RequestAborted);
             if (text.Outcome != ContentReadOutcome.Read)
             {
                 (text, showing, answered) = (null, Shown.NotWritten, StatusCodes.Status503ServiceUnavailable);
@@ -33,10 +33,13 @@ internal static class ReversalDecisionPage
             [nameof(ReversalDecisionScreen.Request)] = request,
             [nameof(ReversalDecisionScreen.Text)] = text,
             [nameof(ReversalDecisionScreen.Requester)] = await acting.Desk.NameOfAsync(request.RequestedBy, context.RequestAborted),
-            [nameof(ReversalDecisionScreen.Until)] = until ?? offered,
+            [nameof(ReversalDecisionScreen.Until)] = asked.Until ?? offered,
             [nameof(ReversalDecisionScreen.Showing)] = showing,
         });
         page.StatusCode = answered;
         return page;
     }
+
+    /// <summary>What the page is asked to show, the day typed when there is one, and the status it answers with.</summary>
+    internal sealed record Showing(Shown Shown, string? Until = null, int Status = StatusCodes.Status200OK);
 }

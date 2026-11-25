@@ -17,7 +17,7 @@ internal static class ReversalListEndpoint
         var listing = new ReversalListing
         {
             DomainId = acting.Domain.Id,
-            PersonId = acting.Person,
+            PersonId = acting.Actor,
             Mine = mine,
             Page = number,
             ItemId = !mine && long.TryParse(item, NumberStyles.None, CultureInfo.InvariantCulture, out var id) ? id : null,
@@ -36,7 +36,7 @@ internal static class ReversalListEndpoint
     /// <summary>A request of the person, as it stands now; the request of someone else answers as a route that is not there.</summary>
     internal static Task<IResult> FollowAsync(HttpContext context, long id, [FromServices] ReversalDesk? desk) => ReversalScreensEndpoint.ActingAsync(context, desk, async acting =>
     {
-        if (await acting.Access.Reader.ReadAsync(acting.Domain.Id, id, context.RequestAborted) is not { } request || request.RequestedBy != acting.Person)
+        if (await acting.Access.Reader.ReadAsync(acting.Domain.Id, id, context.RequestAborted) is not { } request || request.RequestedBy != acting.Actor)
         {
             return ScreenResult.NotFound(context);
         }

@@ -43,15 +43,15 @@ internal static class ReversalScreensEndpoint
             return ScreenResult.Unavailable(context);
         }
 
-        if (granted is null || RequestReader.SessionOf(context) is not { } person || await desk.DomainIdOfAsync(granted, context.RequestAborted) is not { } id)
+        if (granted is null || RequestReader.SessionOf(context) is not { } actor || await desk.DomainIdOfAsync(granted, context.RequestAborted) is not { } id)
         {
             return ScreenResult.NotFound(context);
         }
 
         using var access = await desk.OpenAsync(context.RequestAborted);
-        return access is null ? ScreenResult.Unavailable(context) : await step(new Acting(desk, access, new EmptyingScreensEndpoint.ActiveDomain(granted, id), person));
+        return access is null ? ScreenResult.Unavailable(context) : await step(new Acting(desk, access, new EmptyingScreensEndpoint.ActiveDomain(granted, id), actor));
     }
 
     /// <summary>What a step acts over: the desk, the requests opened with the key read now, the domain where the person of the session acts, and that person.</summary>
-    internal sealed record Acting(ReversalDesk Desk, ReversalAccess Access, EmptyingScreensEndpoint.ActiveDomain Domain, long Person);
+    internal sealed record Acting(ReversalDesk Desk, ReversalAccess Access, EmptyingScreensEndpoint.ActiveDomain Domain, long Actor);
 }

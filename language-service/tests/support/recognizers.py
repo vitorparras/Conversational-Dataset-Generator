@@ -70,19 +70,20 @@ class Word:
     text: str
     kind: str = "PERSON"
     part_of_speech: str = "PROPN"
+    syntactic_role: str = "nsubj"
 
 
 @dataclass(frozen=True)
 class WordRecognizer:
-    """Finds every place of each word it was given in a text, and keeps the texts it was asked."""
+    """Finds every place of each word it was given in a text; keeps each text and language asked."""
 
     words: tuple[Word, ...]
     model_version: str | None = None
-    asked: list[str] = field(default_factory=list[str])
+    asked: list[tuple[str, str]] = field(default_factory=list[tuple[str, str]])
 
     def recognize(self, text: str, language: str) -> Sequence[Occurrence]:
         """The longest word wins where two overlap, as a recognizer gives the whole name."""
-        self.asked.append(text)
+        self.asked.append((text, language))
         by_text = {word.text: word for word in self.words}
         longest_first = sorted(by_text, key=len, reverse=True)
         pattern = "|".join(rf"(?<!\w){re.escape(word)}(?!\w)" for word in longest_first)
@@ -92,7 +93,7 @@ class WordRecognizer:
                 match.end(),
                 by_text[match.group()].kind,
                 by_text[match.group()].part_of_speech,
-                "nsubj",
+                by_text[match.group()].syntactic_role,
             )
             for match in re.finditer(pattern, text)
         ]

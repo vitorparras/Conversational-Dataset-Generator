@@ -17,10 +17,12 @@ AUTHOR_A = "ZQX-AUTOR-A"
 AUTHOR_B = "ZQX-AUTOR-B"
 
 
-def analyse(recognizer: WordRecognizer, *texts: ItemText) -> AnalyzeItemResponse:
+def analyse(
+    recognizer: WordRecognizer, *texts: ItemText, language: str = "pt"
+) -> AnalyzeItemResponse:
     routes = Routes(recognizer, RequestLog(logging.getLogger("language_service")))
     request = AnalyzeItemRequest(
-        texts=list(texts), language="pt", reference="ref-0908", contract_version="2"
+        texts=list(texts), language=language, reference="ref-0908", contract_version="2"
     )
     return routes.analyze_item(request)
 
@@ -40,9 +42,9 @@ def author_group(response: AnalyzeItemResponse, author: str) -> int:
 def test_each_text_is_recognized_alone_without_its_author() -> None:
     recognizer = WordRecognizer((Word("Ana Souza"),))
 
-    analyse(recognizer, said("oi", "Bruno Lima"), said("solto"))
+    analyse(recognizer, said("oi", "Bruno Lima"), said("solto"), language="es")
 
-    assert recognizer.asked == ["oi", "solto"]
+    assert recognizer.asked == [("oi", "es"), ("solto", "es")]
 
 
 def test_every_occurrence_comes_back_in_its_text_with_its_group() -> None:
@@ -133,12 +135,12 @@ def test_a_word_inside_a_longer_word_is_no_candidate() -> None:
 
 
 def test_each_pronoun_has_a_group_of_its_own() -> None:
-    recognizer = WordRecognizer((Word("ela", part_of_speech="PRON"), Word("Ana Souza")))
+    recognizer = WordRecognizer((Word("ela", part_of_speech="PRON"),))
 
-    response = analyse(recognizer, said("ela e Ana Souza"), said("ela"))
+    response = analyse(recognizer, said("ela viu ela", "Ela Souza"), said("ela"))
 
-    first, name, second = groups(response)
-    assert len({first, name, second}) == len(response.occurrences)
+    pronouns = groups(response)
+    assert len({*pronouns, author_group(response, "Ela Souza")}) == len(pronouns) + 1
 
 
 def test_places_group_by_their_text_and_never_with_a_person() -> None:
@@ -160,6 +162,30 @@ def test_places_group_by_their_text_and_never_with_a_person() -> None:
     )
 
 
+def test_one_word_author_never_joins_a_longer_name() -> None:
+    response = analyse(WordRecognizer((Word("Paulo Lima"),)), said("Paulo Lima veio", "Paulo"))
+
+    assert groups(response) != [author_group(response, "Paulo")]
+
+
+def test_no_group_mixes_kinds_of_one_name() -> None:
+    recognizer = WordRecognizer((Word("Lima", kind="ORGANIZATION"), Word("LIMA")))
+
+    response = analyse(recognizer, said("Lima contratou LIMA", "lima"))
+
+    organization, person = groups(response)
+    assert (person == author_group(response, "lima"), organization == person) == (True, False)
+
+
+def test_a_longer_place_is_no_candidate_of_a_person() -> None:
+    recognizer = WordRecognizer((Word("Lima"), Word("Rua Lima", kind="LOCATION")))
+
+    response = analyse(recognizer, said("Lima mora na Rua Lima"))
+
+    person, place = groups(response)
+    assert person != place
+
+
 def test_one_word_place_never_joins_a_longer_name() -> None:
     recognizer = WordRecognizer((Word("Lima", kind="ORGANIZATION"), Word("Ana Lima")))
 
@@ -171,12 +197,12 @@ def test_one_word_place_never_joins_a_longer_name() -> None:
 
 def test_each_occurrence_keeps_the_kind_and_analysis_the_recognizer_gave() -> None:
     response = analyse(
-        WordRecognizer((Word("PESSOA_1", kind="LOCATION", part_of_speech="NOUN"),)),
+        WordRecognizer((Word("PESSOA_1", "LOCATION", "NOUN", "obl"),)),
         said("PESSOA_1 vem"),
     )
 
     assert [(o.kind, o.part_of_speech, o.syntactic_role) for o in response.occurrences] == [
-        ("LOCATION", "NOUN", "nsubj")
+        ("LOCATION", "NOUN", "obl")
     ]
 
 

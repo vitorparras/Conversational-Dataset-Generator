@@ -12,12 +12,11 @@ namespace Core.Persistence.Content.Rotation;
 public sealed class DomainRewrap
 {
     private const string DomainExists = "SELECT EXISTS (SELECT 1 FROM public.domain WHERE id = @id)";
-    private static readonly Table[] Tables =
-    [
-        new(ContentQueries.ReadItemKeysAfter, ContentQueries.RewrapItemKey), new(ContentQueries.ReadMapKeysAfter, ContentQueries.RewrapMapKey),
-        new(ContentQueries.ReadOriginKeysAfter, ContentQueries.RewrapOriginKey), new(ContentQueries.ReadShiftKeysAfter, ContentQueries.RewrapShiftKey),
-        new(ContentQueries.ReadRequestKeysAfter, ContentQueries.RewrapRequestKey),
-    ];
+    private static readonly Table Items = new(ContentQueries.ReadItemKeysAfter, ContentQueries.RewrapItemKey);
+    private static readonly Table Maps = new(ContentQueries.ReadMapKeysAfter, ContentQueries.RewrapMapKey);
+    private static readonly Table Origins = new(ContentQueries.ReadOriginKeysAfter, ContentQueries.RewrapOriginKey);
+    private static readonly Table Shifts = new(ContentQueries.ReadShiftKeysAfter, ContentQueries.RewrapShiftKey);
+    private static readonly Table Requests = new(ContentQueries.ReadRequestKeysAfter, ContentQueries.RewrapRequestKey);
 
     private readonly NpgsqlDataSource dataSource;
     private readonly int batch;
@@ -51,26 +50,23 @@ public sealed class DomainRewrap
     private async Task<int> RewrapPlannedAsync(int domainId, ItemKeys keys, DerivationLabels loaded, CancellationToken cancellationToken)
     {
         var plan = await PlanAsync(domainId, loaded, cancellationToken).ConfigureAwait(false);
-        var rewrapped = 0;
-        foreach (var table in Tables)
-        {
-            rewrapped += await RewrapTableAsync(plan, keys, table, cancellationToken).ConfigureAwait(false);
-        }
-
-        return rewrapped;
+        var items = await RewrapTableAsync(plan, keys, Items, cancellationToken).ConfigureAwait(false);
+        var maps = await RewrapTableAsync(plan, keys, Maps, cancellationToken).ConfigureAwait(false);
+        var origins = await RewrapTableAsync(plan, keys, Origins, cancellationToken).ConfigureAwait(false);
+        var shifts = await RewrapTableAsync(plan, keys, Shifts, cancellationToken).ConfigureAwait(false);
+        return items + maps + origins + shifts + await RewrapTableAsync(plan, keys, Requests, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<RewrapStatus> StatusPlannedAsync(int domainId, DerivationLabels loaded, CancellationToken cancellationToken)
     {
         var plan = await PlanAsync(domainId, loaded, cancellationToken).ConfigureAwait(false);
-        var (current, behind) = (0, 0);
-        foreach (var table in Tables)
-        {
-            var (tableCurrent, tableBehind) = await CountTableAsync(plan, table, cancellationToken).ConfigureAwait(false);
-            (current, behind) = (current + tableCurrent, behind + tableBehind);
-        }
-
-        return new RewrapStatus(current, behind);
+        var (itemsCurrent, itemsBehind) = await CountTableAsync(plan, Items, cancellationToken).ConfigureAwait(false);
+        var (mapsCurrent, mapsBehind) = await CountTableAsync(plan, Maps, cancellationToken).ConfigureAwait(false);
+        var (originsCurrent, originsBehind) = await CountTableAsync(plan, Origins, cancellationToken).ConfigureAwait(false);
+        var (shiftsCurrent, shiftsBehind) = await CountTableAsync(plan, Shifts, cancellationToken).ConfigureAwait(false);
+        var (requestsCurrent, requestsBehind) = await CountTableAsync(plan, Requests, cancellationToken).ConfigureAwait(false);
+        return new RewrapStatus(
+            itemsCurrent + mapsCurrent + originsCurrent + shiftsCurrent + requestsCurrent, itemsBehind + mapsBehind + originsBehind + shiftsBehind + requestsBehind);
     }
 
     private async Task<Plan> PlanAsync(int domainId, DerivationLabels loaded, CancellationToken cancellationToken)

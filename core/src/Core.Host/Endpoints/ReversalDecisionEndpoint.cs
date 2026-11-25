@@ -67,6 +67,12 @@ internal static class ReversalDecisionEndpoint
         var form = await RequestReader.FormAsync(context) ?? FormCollection.Empty;
         var (decision, until) = (form[DecisionField].ToString(), form[UntilField].ToString());
         var act = new ReversalAct(acting.Domain.Id, id, acting.Person);
+        if (request.RequestedBy == acting.Person)
+        {
+            // Whatever the form holds, a decision on a request of one's own goes to the requests, which refuse it before the day and record the attempt.
+            return await AnswerAsync(context, acting, request, await acting.Access.Requests.AuthorizeAsync(act, DateTimeOffset.UnixEpoch, context.RequestAborted), (Authorized, until));
+        }
+
         if (string.Equals(decision, Decline, StringComparison.Ordinal))
         {
             return await AnswerAsync(context, acting, request, await acting.Access.Requests.DeclineAsync(act, context.RequestAborted), (Declined, until));

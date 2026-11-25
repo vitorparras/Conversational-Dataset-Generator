@@ -113,6 +113,7 @@ public sealed class ReversalRoutesTests
         Assert.Matches(Error("marcador", "Diga o marcador, como PESSOA_00000000."), none.Page);
         Assert.Matches(Error("uso", "Diga o que fará com ela."), none.Page);
         Assert.Equal(5, Regex.Count(none.Page, "aria-invalid=\"true\"", RegexOptions.None, TimeSpan.FromSeconds(1)));
+        Assert.Equal(("prazo", "item"), (Focused(some.Page), Focused(none.Page)));
         Assert.Equal(("0", events), (await world.ScalarAsync(CountRequests), await world.ScalarAsync(CountEvents)));
     }
 
@@ -125,16 +126,58 @@ public sealed class ReversalRoutesTests
         many["item"] = $"{item}, 204";
         var markerless = Draft(item, marker);
         markerless["marcador"] = string.Empty;
+        var markers = Draft(item, marker);
+        markers["marcador"] = $"{marker}, PESSOA_00000002";
+        var itemless = Draft(item, marker);
+        itemless["item"] = string.Empty;
 
         var manyPage = await world.PostAsync(ScreenPaths.ReversalAsk, many);
         var manyEvent = await world.ScalarAsync(LastEvent);
         var domainPage = await world.PostAsync(ScreenPaths.ReversalAsk, markerless);
+        var domainEvent = await world.ScalarAsync(LastEvent);
+        var markersPage = await world.PostAsync(ScreenPaths.ReversalAsk, markers);
+        var markersEvent = await world.ScalarAsync(LastEvent);
+        var itemlessPage = await world.PostAsync(ScreenPaths.ReversalAsk, itemless);
 
         Assert.Matches(Error("item", "Um item só. A recusa foi registrada."), manyPage.Page);
         Assert.Matches(Error("marcador", "Sem marcador, o pedido alcança o domínio inteiro. A recusa foi registrada."), domainPage.Page);
+        Assert.Matches(Error("marcador", "Um marcador só. A recusa foi registrada."), markersPage.Page);
+        Assert.Matches(Error("item", "Sem item, o pedido alcança o domínio inteiro. A recusa foi registrada."), itemlessPage.Page);
         Assert.Equal(
-            ($"domain|1|reversal_request_refused|reversal_scope|varios-itens|{world.Curator}|true", $"domain|1|reversal_request_refused|reversal_scope|dominio|{world.Curator}|true", "0"),
-            (manyEvent, await world.ScalarAsync(LastEvent), await world.ScalarAsync(CountRequests)));
+            (Refused("varios-itens"), Refused("dominio"), Refused("varios-marcadores"), Refused("dominio"), "0"),
+            (manyEvent, domainEvent, markersEvent, await world.ScalarAsync(LastEvent), await world.ScalarAsync(CountRequests)));
+
+        string Refused(string reach) => $"domain|1|reversal_request_refused|reversal_scope|{reach}|{world.Curator}|true";
+    }
+
+    [DatabaseFact]
+    public async Task RequestTheChainDidNotTakeComesBackOnTheFormAndAsksNothing()
+    {
+        await using var world = await StartAsync();
+        var (item, marker) = await world.ItemAsync();
+        await world.RefuseInTheChainAsync("reversal_requested");
+
+        var refused = await world.PostAsync(ScreenPaths.ReversalAsk, Draft(item, marker));
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, refused.Status);
+        Assert.Contains("a cadeia de custódia não aceitou o registro, e nada foi pedido; tente de novo em instantes.", refused.Page, StringComparison.Ordinal);
+        Assert.Contains($"value=\"{marker}\"", refused.Page, StringComparison.Ordinal);
+        Assert.Equal("0", await world.ScalarAsync(CountRequests));
+    }
+
+    [DatabaseFact]
+    public async Task ReadingTheChainDidNotTakeShowsNoTextAndSaysWhy()
+    {
+        await using var world = await StartAsync();
+        var (request, _) = await world.AskedAsync();
+        await world.RefuseInTheChainAsync("reversal_request_read");
+
+        var page = await world.GetAsync(ScreenPaths.ReversalDecideOf(request), world.Second);
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, page.Status);
+        Assert.Contains("a cadeia de custódia não aceitou o registro, e o pedido segue pendente até ela voltar.", page.Page, StringComparison.Ordinal);
+        Assert.DoesNotContain("zqx-motivo-sintetico", page.Page, StringComparison.Ordinal);
+        Assert.DoesNotContain("Autorizar este pedido até", page.Page, StringComparison.Ordinal);
     }
 
     [DatabaseFact]
@@ -229,6 +272,26 @@ public sealed class ReversalRoutesTests
     }
 
     [DatabaseFact]
+    public async Task DirectPostOnOwnRequestWithoutADayIsRefused()
+    {
+        await using var world = await StartAsync();
+        var (request, _) = await world.AskedAsync();
+
+        var blank = await world.PostAsync(ScreenPaths.ReversalDecideOf(request), Decision("autorizar", string.Empty));
+        var unknown = await world.PostAsync(ScreenPaths.ReversalDecideOf(request), Decision("zqx-outra", world.Tomorrow));
+
+        Assert.All([blank, unknown], answer =>
+        {
+            Assert.Contains("Você não autoriza o próprio pedido.", answer.Page, StringComparison.Ordinal);
+            Assert.DoesNotContain("zqx-motivo-sintetico", answer.Page, StringComparison.Ordinal);
+        });
+        Assert.Equal(
+            ("0", "2", "0"),
+            (await world.ScalarAsync(CountAuthorizations), await world.ScalarAsync("SELECT count(*)::text FROM public.custody_event WHERE reason = 'reversal_self'"),
+                await world.ScalarAsync("SELECT count(*)::text FROM public.custody_event WHERE step = 'reversal_request_read'")));
+    }
+
+    [DatabaseFact]
     public async Task PendingRequestShowsReasonUseAndTermAndNoIdentity()
     {
         await using var world = await StartAsync();
@@ -270,21 +333,29 @@ public sealed class ReversalRoutesTests
         var (request, _) = await world.AskedAsync();
         var (other, _) = await world.AskedAsync();
         var unconfirmed = await world.GetAsync($"{ScreenPaths.ReversalDecideOf(request)}?autorizado", world.Second);
+        var undeclined = await world.GetAsync($"{ScreenPaths.ReversalDecideOf(request)}?recusado", world.Second);
 
         var past = await world.PostAsync(ScreenPaths.ReversalDecideOf(request), Decision("autorizar", "2020-01-01"), world.Second);
         var sent = await world.PostAsync(ScreenPaths.ReversalDecideOf(request), Decision("autorizar", world.Tomorrow), world.Second);
         var page = await world.GetAsync(sent.Location ?? throw new InvalidOperationException("The answer leads nowhere."), world.Second);
 
-        Assert.Contains("Autorizar este pedido até", unconfirmed.Page, StringComparison.Ordinal);
+        Assert.All([unconfirmed, undeclined], open =>
+        {
+            Assert.Contains($"<h1>Pedido {request}</h1>", open.Page, StringComparison.Ordinal);
+            Assert.Contains("Autorizar este pedido até", open.Page, StringComparison.Ordinal);
+        });
         Assert.Matches(Error("validade", "Nada foi autorizado: escolha uma data futura."), past.Page);
         Assert.Equal((HttpStatusCode.SeeOther, $"{ScreenPaths.ReversalDecideOf(request)}?autorizado"), (sent.Status, sent.Location));
         Assert.Contains($"<h1>Pedido {request} autorizado</h1>", page.Page, StringComparison.Ordinal);
         Assert.Contains($"quem pediu pode revelar uma vez, até {world.TomorrowShown}.", page.Page, StringComparison.Ordinal);
         Assert.Contains($"Autorizado até {world.TomorrowShown}", (await world.GetAsync(ScreenPaths.ReversalMineOf(request))).Page, StringComparison.Ordinal);
         Assert.Contains("Aguarda autorização", (await world.GetAsync(ScreenPaths.ReversalMineOf(other))).Page, StringComparison.Ordinal);
+        var sentAgain = await world.GetAsync($"{ScreenPaths.ReversalMineOf(request)}?{ReversalScreensEndpoint.Sent}");
+        Assert.Contains($"<h1>Pedido {request}</h1>", sentAgain.Page, StringComparison.Ordinal);
         Assert.Equal(
-            $"{request}|{world.Second}",
-            await world.ScalarAsync("SELECT string_agg(request_id || '|' || authorized_by, ',') FROM content.reversal_authorization"));
+            $"{request}|{world.Second}|{world.Tomorrow} 23:59:59",
+            await world.ScalarAsync(
+                "SELECT string_agg(request_id || '|' || authorized_by || '|' || to_char(valid_until AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS'), ',') FROM content.reversal_authorization"));
     }
 
     [DatabaseFact]
@@ -375,6 +446,10 @@ public sealed class ReversalRoutesTests
 
     private static Dictionary<string, string> Decision(string chosen, string until) =>
         new(StringComparer.Ordinal) { ["decisao"] = chosen, ["validade"] = until };
+
+    /// <summary>The field the page puts the focus on.</summary>
+    private static string Focused(string page) =>
+        Regex.Match(page, "<(?:input|textarea) id=\"([a-z]+)\"[^>]*\\bautofocus\\b", RegexOptions.None, TimeSpan.FromSeconds(1)).Groups[1].Value;
 
     private static int Links(string page, string under) =>
         Regex.Count(page, $"href=\"{Regex.Escape(under)}/[0-9]+\"", RegexOptions.None, TimeSpan.FromSeconds(1));

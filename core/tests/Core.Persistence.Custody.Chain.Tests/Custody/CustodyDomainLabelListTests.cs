@@ -25,10 +25,12 @@ public sealed class CustodyDomainLabelListTests : IClassFixture<CustodyDatabase>
         await database.RunAsOwnerAsync(Row("NULL, true, 'domain', 16001, 'domain_label_rotated', 'administrative_act', NULL, 'v2'"));
         await database.RunAsOwnerAsync(Row("NULL, true, 'domain', 16002, 'domain_label_revoked', 'administrative_act', NULL, 'texto-bruto/16002/v1'"));
         await database.RunAsOwnerAsync(Row("NULL, true, 'domain', 16003, 'domain_label_revoked', 'administrative_act', NULL, 'mapa-reversao/16003/v12'"));
+        await database.RunAsOwnerAsync(Row("NULL, true, 'domain', 16021, 'domain_label_revoked', 'administrative_act', NULL, 'deslocamento-datas/16021/v1'"));
         await database.RunAsOwnerAsync(Row("NULL, true, 'domain', 16020, 'domain_rewrapped', 'administrative_act', NULL, NULL"));
 
-        const string Count = "SELECT count(*) FROM public.custody_event WHERE step IN ('domain_label_rotated', 'domain_label_revoked', 'domain_rewrapped') AND item_id IN (16001, 16002, 16003, 16020)";
-        Assert.Equal(4L, await database.CountAsOwnerAsync(Count));
+        const string Count = "SELECT count(*) FROM public.custody_event WHERE step IN ('domain_label_rotated', 'domain_label_revoked', 'domain_rewrapped') "
+            + "AND item_id IN (16001, 16002, 16003, 16020, 16021)";
+        Assert.Equal(5L, await database.CountAsOwnerAsync(Count));
     }
 
     [DatabaseTheory]

@@ -24,7 +24,7 @@ public sealed class RecoveryRehearsalProcessTests
     private const string Entries = "mapa de reversao sintetico zqx-9931";
     private const string Events = "SELECT count(*) FROM public.custody_event";
     private static readonly TimeSpan Limit = TimeSpan.FromSeconds(120);
-    private static readonly string[] Labels = ["texto-bruto/1/v1", "mapa-reversao/1/v1", "texto-bruto/2/v1", "mapa-reversao/2/v1"];
+    private static readonly string[] Labels = [.. DomainCreation.LabelsOf(1), .. DomainCreation.LabelsOf(2)];
 
     [DatabaseFact]
     public async Task Ca1TheCommandOpensTheSamplesPrintsAReceiptThatReadsBackWithTheTopOfTheCopyAndNoContentAndWritesNothing()

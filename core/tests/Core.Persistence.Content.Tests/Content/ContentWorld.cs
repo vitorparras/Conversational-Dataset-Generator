@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Core.Persistence.Content;
+using Core.Persistence.Content.Dating;
 using Core.Persistence.Content.Emptying;
 using Core.Persistence.Content.Reading;
 using Core.Persistence.Content.Sealing;
@@ -58,11 +59,15 @@ internal sealed class ContentWorld : IAsyncDisposable
 
     public ContentEmptier Emptier => new(DataSource);
 
+    /// <summary>The store of the shift of the dates, over the custody of the world.</summary>
+    public DateShifts DateShifts => new(DataSource, custody.Content);
+
     /// <summary>The path of protected content over the custody of the world, which seals what a test writes.</summary>
     public ProtectedContent Content => custody.Content;
 
     /// <summary>The labels the world holds, which a custody of other epochs shares.</summary>
-    public static IReadOnlyList<string> Labels { get; } = ["texto-bruto/1/v1", "mapa-reversao/1/v1", "texto-bruto/2/v1", "mapa-reversao/2/v1"];
+    public static IReadOnlyList<string> Labels { get; } =
+        ["texto-bruto/1/v1", "mapa-reversao/1/v1", "deslocamento-datas/1/v1", "texto-bruto/2/v1", "mapa-reversao/2/v1", "deslocamento-datas/2/v1"];
 
     /// <summary>The keys of the rows, to unwrap what the world stored.</summary>
     public ItemKeys Keys => custody.Keys;

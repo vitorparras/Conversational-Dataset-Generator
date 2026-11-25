@@ -12,6 +12,9 @@ internal static class SingleOffsetArithmeticRules
 
     private const string EnumerateRunes = "EnumerateRunes";
 
+    /// <summary>The code, below <c>core/</c>, that writes a replacement over a text: the sanitizer and the swap of the pseudonymization.</summary>
+    private static readonly string[] ReplacementPaths = ["src/Core.Ingestion/Sanitizing/Sanitizer.cs", "src/Core.Ingestion/Pseudonymizing/"];
+
     private static readonly string[] CountingTypes =
         ["System.Text.Rune", "System.Globalization.StringInfo", "System.Globalization.TextElementEnumerator"];
 
@@ -44,6 +47,28 @@ internal static class SingleOffsetArithmeticRules
 
     public static bool InConverterFolder(string path) =>
         Path.GetRelativePath(SourceTree.CoreRoot, path).Replace('\\', '/').StartsWith(ConverterFolder, StringComparison.Ordinal);
+
+    /// <summary>
+    /// Every cut of a text in the code that writes a replacement over it, whatever offset the cut takes: an offset carried through the trail is no longer the occurrence's, so
+    /// only cutting through <c>ITextBoundaries</c> there keeps every received offset on the converter's path.
+    /// </summary>
+    public static IEnumerable<Violation> CutsInTheReplacement(IReadOnlyList<SourceFile> files)
+    {
+        var compilation = SourceCompilation.Of(files);
+        return files.Where(file => InTheReplacement(file.Path)).SelectMany(file =>
+        {
+            var model = compilation.GetSemanticModel(file.Tree);
+            return file.Root.DescendantNodes()
+                .Where(node => IsCut(model, node))
+                .Select(node => new Violation(file.Path, SourceFile.LineOf(node), "a text is cut in the replacement without ITextBoundaries"));
+        }).Distinct();
+    }
+
+    public static bool InTheReplacement(string path)
+    {
+        var relative = Path.GetRelativePath(SourceTree.CoreRoot, path).Replace('\\', '/');
+        return Array.Exists(ReplacementPaths, prefix => relative.StartsWith(prefix, StringComparison.Ordinal));
+    }
 
     private static IEnumerable<Violation> FindIn(SourceFile file, SemanticModel model)
     {

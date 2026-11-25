@@ -8,6 +8,7 @@ public sealed class DerivationLabelTests
     [Theory]
     [InlineData(LabelPurpose.RawText, 7, 1, "texto-bruto/7/v1")]
     [InlineData(LabelPurpose.ReversalMap, 12, 3, "mapa-reversao/12/v3")]
+    [InlineData(LabelPurpose.DateShift, 5, 2, "deslocamento-datas/5/v2")]
     [InlineData(LabelPurpose.RawText, int.MaxValue, int.MaxValue, "texto-bruto/2147483647/v2147483647")]
     public void LabelIsWrittenAsPurposeDomainAndVersion(LabelPurpose purpose, int domainId, int version, string text) =>
         Assert.Equal(text, new DerivationLabel(purpose, domainId, version).Text);
@@ -15,6 +16,7 @@ public sealed class DerivationLabelTests
     [Theory]
     [InlineData("texto-bruto/7/v1", LabelPurpose.RawText, 7, 1)]
     [InlineData("mapa-reversao/12/v3", LabelPurpose.ReversalMap, 12, 3)]
+    [InlineData("deslocamento-datas/5/v2", LabelPurpose.DateShift, 5, 2)]
     [InlineData("texto-bruto/2147483647/v2147483647", LabelPurpose.RawText, int.MaxValue, int.MaxValue)]
     public void TextOfALabelIsReadBack(string text, LabelPurpose purpose, int domainId, int version)
     {
@@ -71,11 +73,11 @@ public sealed class DerivationLabelTests
 
     [Fact]
     public void PurposeOutsideTheClosedSetIsADefect() =>
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new DerivationLabel((LabelPurpose)2, 1, 1));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new DerivationLabel((LabelPurpose)3, 1, 1));
 
     [Fact]
-    public void ThePurposesAreExactlyTheTwoOfTheDecision() =>
-        Assert.Equal([LabelPurpose.RawText, LabelPurpose.ReversalMap], Enum.GetValues<LabelPurpose>());
+    public void ThePurposesAreExactlyTheThreeOfTheDecisions() =>
+        Assert.Equal([LabelPurpose.RawText, LabelPurpose.ReversalMap, LabelPurpose.DateShift], Enum.GetValues<LabelPurpose>());
 
     [Fact]
     public void LabelsOfTheSameThreePartsAreEqual() =>

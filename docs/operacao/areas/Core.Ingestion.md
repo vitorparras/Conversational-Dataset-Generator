@@ -6,7 +6,8 @@
 - Piso: 90 %
 - Crítica: sim
 - Partes da mutação: 10
-- Motivo: Absorve: `Reading`, `Entrance`, `Deciding`, `Review`, `Sanitizing`; confere a forma
+- Motivo: Absorve: `Reading`, `Entrance`, `Deciding`, `Review`, `Sanitizing`, `Pseudonymizing`;
+  sorteia o marcador de cada referente da conversa (decisão 0057); confere a forma
   declarada do material contra o conteúdo lido e recusa o lote inteiro quando não se sustenta ou
   quando a leitura é parcial, sem tirar ordem nem autoria do nome do arquivo (decisão 0005); ao
   acomodar o material numa forma que não é a sua, declara por unidade a forma recebida e o que ela

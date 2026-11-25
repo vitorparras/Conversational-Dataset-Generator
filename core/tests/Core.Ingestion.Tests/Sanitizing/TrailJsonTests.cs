@@ -43,7 +43,7 @@ public sealed class TrailJsonTests
     {
         var trail = Sanitized("texto sem nada zqx").Trail;
 
-        Assert.Equal(/*lang=json,strict*/ """{"raw":18,"steps":[[]]}""", TrailJson.Write(trail));
+        Assert.Equal(/*lang=json,strict*/ """{"raw":18,"steps":[[]],"unit":"code-point"}""", TrailJson.Write(trail));
     }
 
     [Theory]
@@ -61,9 +61,25 @@ public sealed class TrailJsonTests
     [InlineData(/*lang=json,strict*/ """{"raw":4,"steps":[[{"start":-1,"end":2,"marker":"Data"}]]}""")]
     [InlineData(/*lang=json,strict*/ """{"raw":-1,"steps":[[]]}""")]
     [InlineData(/*lang=json*/ """{"raw":4,"raw":4,"steps":[[]]}""")]
+    [InlineData(/*lang=json,strict*/ """{"raw":4,"steps":[[]],"unit":"utf-16"}""")]
     [InlineData(/*lang=json*/ """{"raw":4,"steps":[[{"start":0,"start":1,"end":2,"marker":"Data"}]]}""")]
     public void TrailThatDoesNotFitItsTextIsADefect(string json) =>
         Assert.Throws<InvalidDataException>(() => TrailJson.Read(json));
+
+    [Theory]
+    [InlineData("null", "The sealed trail is empty.")]
+    [InlineData(/*lang=json,strict*/ """{"raw":4,"steps":[[]],"unit":"utf-16"}""", "The sealed trail counts its limits in another unit.")]
+    [InlineData(/*lang=json,strict*/ """{"raw":4,"steps":[[{"start":1,"end":9,"marker":"Data"}]]}""", "The sealed trail is not a trail whose edits fit the texts.")]
+    public void TrailThatIsADefectIsRefusedWithTheReason(string json, string reason) =>
+        Assert.Equal(reason, Assert.Throws<InvalidDataException>(() => TrailJson.Read(json)).Message);
+
+    [Fact]
+    public void TrailSealedBeforeTheUnitWasWrittenReadsInCodePoints()
+    {
+        var read = TrailJson.Read(/*lang=json,strict*/ """{"raw":4,"steps":[[{"start":1,"end":3,"marker":"Data"}]]}""");
+
+        Assert.Equal((4, 8), (read.RawLength, read.SanitizedLength));
+    }
 
     [Fact]
     public void NoTrailIsWritten() => Assert.Throws<ArgumentNullException>(() => TrailJson.Write(null!));

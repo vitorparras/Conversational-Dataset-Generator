@@ -5,7 +5,7 @@ namespace Core.Tests.Architecture.Boundaries;
 /// <summary>No statement filters or orders by a protected column, because the database holds ciphertext there and would answer over bytes that mean nothing.</summary>
 public sealed class ProtectedColumnQueryTests
 {
-    private static readonly HashSet<string> Columns = new(["raw_text", "sanitized_text", "sanitization_trail", "occurrences", "entries", "dek_wrapped", "origin"], StringComparer.Ordinal);
+    private static readonly HashSet<string> Columns = new(["raw_text", "sanitized_text", "sanitization_trail", "occurrences", "entries", "dek_wrapped", "origin", "shift"], StringComparer.Ordinal);
 
     [Fact]
     public void ProductionFiltersAndOrdersByNoProtectedColumn()

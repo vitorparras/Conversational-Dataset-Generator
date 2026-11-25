@@ -5,6 +5,7 @@
 - Projeto/pacote: `Core.Ingestion.Contracts`
 - Piso: 90 %
 - Crítica: sim
-- Motivo: Decide pelo estado do lote o que a revisão por amostra recusa, uma só vez, para o
-  banco e para o domínio, sem leitura nem escrita (decisão 0055); um erro aqui deixaria a recusa
-  do banco e a do domínio diferirem
+- Motivo: Absorve: `Dating`; decide o deslocamento de datas de cada domínio, sorteado uma vez
+  e nunca sorteado de novo sobre a linha perdida (decisão 0020). Decide pelo estado do lote o que
+  a revisão por amostra recusa, uma só vez, para o banco e para o domínio, sem leitura nem escrita
+  (decisão 0055); um erro aqui deixaria a recusa do banco e a do domínio diferirem

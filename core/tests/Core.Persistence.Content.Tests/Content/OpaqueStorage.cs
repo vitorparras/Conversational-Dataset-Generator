@@ -1,4 +1,5 @@
 using System.Text;
+using Core.Ingestion.Contracts.Dating;
 using Core.Persistence.Content;
 using Core.Persistence.Content.Writing;
 using Core.Persistence.Ingestion;
@@ -49,9 +50,27 @@ internal static class OpaqueStorage
     /// <summary>The column of the key of the origin, wrapped.</summary>
     public const string OriginKey = "content.batch_origin.dek_wrapped";
 
+    /// <summary>The column of the shift of the dates of a domain, sealed with a purpose of its own.</summary>
+    public const string DateShift = "content.date_shift.shift";
+
+    /// <summary>The column of the key of the shift, wrapped.</summary>
+    public const string DateShiftKey = "content.date_shift.dek_wrapped";
+
     private static readonly string[] Seedable = [RawText, SanitizedText, SanitizationTrail, Occurrences, Entries, Origin];
 
-    private static readonly string[] KeyColumns = [ItemKey, MapKey, OriginKey];
+    private static readonly string[] KeyColumns = [ItemKey, MapKey, OriginKey, DateShiftKey];
+
+    /// <summary>
+    /// The columns whose value is drawn, not chosen, so no text of the seeding can be searched for in them: a few digits would be found by chance anywhere in a copy. They are
+    /// filled through the path of the application all the same, and the test of the shift searches them in the forms a copy could show.
+    /// </summary>
+    private static readonly string[] Drawn = [DateShift];
+
+    /// <summary>The columns the seeding fills with a text of its own, which a test may write in clear.</summary>
+    public static IReadOnlyList<string> TextColumns => Seedable;
+
+    /// <summary>The columns of the wrapped keys the seeding fills, whose key in clear a test may write.</summary>
+    public static IReadOnlyList<string> KeyColumnsWrapped => KeyColumns;
 
     /// <summary>The columns the catalog marks as protected, as schema.table.column; the marks are the ones the migrations write.</summary>
     public static Task<IReadOnlyList<string>> MarkedColumnsAsync(ContentWorld world)
@@ -87,7 +106,7 @@ internal static class OpaqueStorage
     private static async Task<Material> SeedMarkedAsync(ContentWorld world)
     {
         var marked = await MarkedColumnsAsync(world);
-        string[] known = [.. Seedable, .. KeyColumns];
+        string[] known = [.. Seedable, .. KeyColumns, .. Drawn];
         Assert.Empty(marked.Except(known, StringComparer.Ordinal));
         Assert.Empty(known.Except(marked, StringComparer.Ordinal));
         var texts = Seedable.ToDictionary(column => column, column => $"zqx-{Guid.NewGuid():N}", StringComparer.Ordinal);
@@ -97,6 +116,7 @@ internal static class OpaqueStorage
         var item = await world.Writer.AddItemTextAsync(1, written, TestContext.Current.CancellationToken);
         _ = await world.Writer.AddReversalMapAsync(1, item, texts[Entries], TestContext.Current.CancellationToken);
         await OpenWithOriginAsync(world, texts[Origin]);
+        Assert.Equal(DateShiftOutcome.Kept, (await world.DateShifts.EstablishAsync(1, TestContext.Current.CancellationToken)).Outcome);
         await AssertEveryMarkedColumnHoldsSomethingAsync(world, marked);
         return new Material(texts, pseudonymized) { Keys = await KeysInClearAsync(world) };
     }

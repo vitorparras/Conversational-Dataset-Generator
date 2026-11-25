@@ -9,7 +9,7 @@ namespace Core.Host.Domains;
 
 /// <summary>
 /// The mode the operator asks for with <c>create-domain --name &lt;name&gt;</c> as the first arguments (issue 54, decision 0045): the same executable, run once with the owner credential as
-/// the migration is, creates the domain if the custody file already holds the labels of its two purposes, and otherwise names the labels to add. It serves nothing, has no endpoint, and
+/// the migration is, creates the domain if the custody file already holds the labels of all its purposes, and otherwise names the labels to add. It serves nothing, has no endpoint, and
 /// says what it did without the name of the domain, a key or a label's content in the words.
 /// </summary>
 internal static class DomainCreationMode

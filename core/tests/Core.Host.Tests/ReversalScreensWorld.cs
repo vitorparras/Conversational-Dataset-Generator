@@ -2,11 +2,14 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net;
 using Core.Host.Endpoints;
+using Core.Host.Operators;
 using Core.Host.Tests.Submissions;
 using Core.Persistence.Content;
 using Core.Persistence.Content.Writing;
+using Core.Persistence.People;
 using Core.Persistence.Tests.Fixtures;
 using Core.Platform.Keys;
+using Core.Platform.Sessions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -87,6 +90,8 @@ internal sealed class ReversalScreensWorld : IAsyncDisposable
             services => services
                 .AddSingleton(new ServiceCollection().AddSingleton(source).AddSingleton<IMasterKeySource>(key).BuildServiceProvider())
                 .AddSingleton<TimeProvider>(clock)
+                .AddSingleton(provider => new OperatorAdministration(
+                    new PersonRegistry(source), new PersonCredentials(source, new PasswordDerivation(1)), provider.GetRequiredService<SessionStore>(), new PersonNotices(source)))
                 .AddSingleton<DomainGrants>(new GrantedTo((SubmissionWorld.Domain, [people.Curator, people.Second, Annotator]), (SubmissionWorld.OtherDomain, [people.Other]))),
             routes =>
             {

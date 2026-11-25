@@ -9,8 +9,16 @@ using static Core.Persistence.Content.Rerun.RerunRows;
 namespace Core.Persistence.Content.Reversal;
 
 /// <summary>The decision on a request of the domain: an authorization until the moment given, or, with none, a decline.</summary>
-internal sealed class ReversalDeciding(NpgsqlDataSource dataSource, TimeProvider time)
+internal sealed class ReversalDeciding
 {
+    private readonly NpgsqlDataSource dataSource;
+    private readonly TimeProvider time;
+
+    internal ReversalDeciding(NpgsqlDataSource dataSource, TimeProvider time)
+    {
+        (this.dataSource, this.time) = (dataSource, time);
+    }
+
     internal Task<ReversalResult> DecideAsync(ReversalAct act, DateTimeOffset? until, CancellationToken cancellationToken) =>
         ReversalAttempts.RetriedAsync(dataSource, scope => DecideInAsync(scope, act, until, cancellationToken), cancellationToken);
 

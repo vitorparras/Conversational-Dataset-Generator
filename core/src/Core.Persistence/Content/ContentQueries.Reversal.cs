@@ -23,7 +23,7 @@ public static partial class ContentQueries
     /// <summary>A page of the requests of the person, or of the others' that wait for a decision, narrowed by item and by state, with how many the list leaves.</summary>
     internal const string ReadReversalRequests =
         ReadReversalStanding + " WHERE CASE WHEN @mine THEN s.requested_by = @person ELSE s.requested_by <> @person AND s.state IN ('pending', 'expired') END "
-        + "AND (@item::bigint IS NULL OR s.item_id = @item) AND (@state::text IS NULL OR s.state = @state) ORDER BY s.id DESC LIMIT @size OFFSET @skip";
+        + "AND (@item::bigint IS NULL OR s.item_id = @item) AND (@state::text IS NULL OR s.state = lower(@state)) ORDER BY s.id DESC LIMIT @size OFFSET @skip";
 
     /// <summary>Why the request asks and what for, sealed, as a reading of one row selects it.</summary>
     internal const string ReadReversalRequestText = "SELECT justification, false, dek_epoch, dek_wrapped FROM content.reversal_request WHERE id = @id";

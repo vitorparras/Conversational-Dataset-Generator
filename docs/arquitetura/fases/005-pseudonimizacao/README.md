@@ -44,9 +44,9 @@ divergem, o pacote segue a opção que a documentação recomenda e o PR a lista
 4. **Fatia D — revelar.** Quem pediu revela uma vez; o registro é gravado antes, sem a identidade.
 5. **Fatia E — a prova do sistema.** A varredura das leituras por valor semeado e o registro sem
    conteúdo no núcleo e no serviço de linguagem.
-6. **Fatia F — o referente.** F1 escolhe e mede o modelo de correferência em pt-BR, com a decisão
-   que põe o grupo na resposta; F2 o serviço devolve o grupo; F3 o núcleo o usa como referente,
-   liga a troca à submissão e dá o primeiro pseudonimizado aos itens gravados antes.
+6. **Fatia F — o referente.** F1 mede o modelo de correferência em pt-BR, com a decisão que põe
+   na resposta o grupo da regra por nome; F2 o serviço devolve o grupo; F3 o núcleo o usa como
+   referente, liga a troca à submissão e dá o primeiro pseudonimizado aos itens gravados antes.
 
 A fatia 3 proposta para a reversão (#103 a #107 e as três telas) foi partida em C, D e E: junta,
 passaria do teto duro de 1.500 linhas da [0054](../../../decisoes/0054-teto-por-fatia-e-migracao-por-data.md).

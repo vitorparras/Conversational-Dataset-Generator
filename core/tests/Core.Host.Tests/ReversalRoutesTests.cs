@@ -318,7 +318,7 @@ public sealed class ReversalRoutesTests
         Assert.DoesNotContain("zqx-original-sintetico", page.Page, StringComparison.Ordinal);
         var recorded = await world.ScalarAsync(
             "SELECT string_agg(item_kind || '|' || item_id || '|' || coalesce(reference, ''), ',') FROM public.custody_event WHERE step = 'reversal_requested'");
-        Assert.Contains($"item_text|{item}|", recorded, StringComparison.Ordinal);
+        Assert.Equal($"reversal_request|{request}|{marker}", recorded);
     }
 
     [DatabaseFact]

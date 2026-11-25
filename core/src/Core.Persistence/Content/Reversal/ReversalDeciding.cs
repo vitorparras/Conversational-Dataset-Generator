@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Core.Ingestion.Contracts.Reversal;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
@@ -53,7 +54,7 @@ internal sealed class ReversalDeciding(NpgsqlDataSource dataSource, TimeProvider
             ReversalAuthorizationVerdict.TermInThePast => (new ReversalResult(ReversalOutcome.TermInThePast), null),
             ReversalAuthorizationVerdict.Authorized when request.State is ReversalState.Declined or ReversalState.Authorized => (new ReversalResult(ReversalOutcome.Closed), null),
             ReversalAuthorizationVerdict.Authorized => await WriteAsync(scope, act, until, cancellationToken).ConfigureAwait(false),
-            _ => throw new ArgumentOutOfRangeException(nameof(act), "The verdict is not one of the authorization."),
+            _ => throw new UnreachableException(),
         };
 
         (ReversalResult, CustodyEvent?) Refused(ReversalOutcome outcome, CustodyReason reason) =>

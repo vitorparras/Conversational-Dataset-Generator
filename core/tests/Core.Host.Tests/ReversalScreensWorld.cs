@@ -184,6 +184,16 @@ internal sealed class ReversalScreensWorld : IAsyncDisposable
             + $"CREATE TRIGGER zqx_chain_refuses BEFORE INSERT ON public.custody_event FOR EACH ROW WHEN (NEW.step IN ('{string.Join("', '", steps)}')) "
             + "EXECUTE FUNCTION public.zqx_chain_refuses()");
 
+    /// <summary>
+    /// Makes every authorization expired for the database as well, whose clock the world's does not move: the change is set aside for the one statement, as only the superuser can,
+    /// so that a renewal is judged as the day after the term would.
+    /// </summary>
+    internal Task ExpireInTheDatabaseAsync() =>
+        Submissions.Database.ExecuteAsSuperuserAsync(
+            "ALTER TABLE content.reversal_authorization DISABLE TRIGGER reversal_authorization_never_changes; "
+            + "UPDATE content.reversal_authorization SET authorized_at = now() - interval '2 days', valid_until = now() - interval '1 day'; "
+            + "ALTER TABLE content.reversal_authorization ENABLE ALWAYS TRIGGER reversal_authorization_never_changes");
+
     /// <summary>From now on the key reads as unreadable, as a file damaged after the start would.</summary>
     internal void LoseTheKey() => key.Lost = true;
 

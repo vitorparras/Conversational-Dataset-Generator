@@ -461,6 +461,7 @@ public sealed class ReversalRoutesTests
         Assert.Matches(new Regex($"href=\"{ScreenPaths.ReversalMineOf(request)}\".*?Vencido", RegexOptions.Singleline, TimeSpan.FromSeconds(1)), list.Page);
         Assert.Contains($"href=\"{ScreenPaths.ReversalDecideOf(request)}\"", again.Page, StringComparison.Ordinal);
 
+        await world.ExpireInTheDatabaseAsync();
         var expired = await world.GetAsync(ScreenPaths.ReversalDecideOf(request), world.Second);
         var renewed = await world.PostAsync(ScreenPaths.ReversalDecideOf(request), Decision("autorizar", world.Tomorrow), world.Second);
 

@@ -11,17 +11,17 @@ máquina, naquele dia; não é regra nem previsão.
 
 | Item | Valor |
 |---|---|
-| Modelo | Stanza 1.15.1, `udcoref_xlm-roberta-lora` (pacote `es` do Stanza), 136 MB de LoRA |
+| Modelo | Stanza 1.15.1, udcoref_xlm-roberta-lora (pacote es do Stanza), 136 MB de LoRA |
 | Base que ele carrega | xlm-roberta-large, 2,1 GiB de pesos |
-| Tokenização | Stanza pt, `tokenize` e `mwt` do pacote `bosque` |
+| Tokenização | Stanza pt: tokenize do pacote bosque_nocharlm e mwt do bosque |
 | Bibliotecas | torch 2.15.0+cpu, transformers 5.24.0, peft 0.22.0, psutil 7.2.2 |
 | Python | 3.12.16, ambiente descartável do `uv` |
-| Sistema | Linux x86_64 do GitHub Actions (run 45553459284), 4 núcleos, 15.700 a 15.983 MiB |
+| Sistema | Linux x86_64 do GitHub Actions, 4 núcleos, 15.700 a 15.983 MiB |
 | Corpus | `language-service/tools/coreference/fixtures/conversas.json`: 20 conversas, 123 mensagens, 14 que misturam línguas |
 | Limiar | 0,95 na precisão geral e na do recorte misto |
 | Tamanhos | 10, 40, 160 e 640 mensagens, em três execuções: 10 e 40; 160; 640 |
 
-Numa máquina Windows de 27,7 GiB a carga levou a memória livre a 1,79 GB e foi interrompida, sem
+Numa máquina Windows de 29,76 GB a carga levou a memória livre a 1,79 GB e foi interrompida, sem
 número; por isso a medição foi ao Actions. Uma primeira execução lá perdeu o runner aos 48 minutos.
 
 ## Números

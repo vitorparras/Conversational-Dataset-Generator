@@ -22,15 +22,15 @@ no serviço, sobre a conversa inteira.** O resto da 0018 e da 0011 vale.
 
 - **Mesmo nome, mesmo grupo.** Menções de pessoa com o mesmo texto, comparado sem caixa e sem
   acento, e o nome de autor de mesmo texto formam um grupo.
-- **Parte do nome.** A menção de uma só palavra que é palavra de um nome mais longo da conversa,
-  de menção ou de autor, entra no grupo dele se houver um só candidato. Com dois ou mais, fica em
-  grupo próprio.
-- **Pronome e apelido** ficam em grupo próprio; a menção que não casa com o nome de um autor
+- **Parte do nome.** A menção de uma só palavra sem par de mesmo texto que seja palavra de um
+  nome mais longo da conversa, de menção ou de autor, comparada do mesmo jeito, entra no grupo
+  dele se houver um só nome candidato. Com dois ou mais, fica em grupo próprio.
+- **Pronome e apelido** ficam em grupo próprio, cada ocorrência no seu; o apelido de um autor
   recebe marcador distinto do dele.
 - **Limiar de precisão: 0,95**, por pares de menções, na conversa toda e, à parte, nas mensagens
   que misturam línguas, para modelo. O Stanza udcoref fica abaixo e não entra; a regra não é
   modelo e entra sem a medição.
-- **Tamanho máximo do pedido: nenhum.** A regra não carrega modelo, e nada entra na pasta do
+- **Tamanho máximo do pedido: nenhum novo.** A regra não carrega modelo, e nada entra na pasta do
   serviço da [0041](0041-distribuicao-do-servico-de-linguagem.md).
 
 ## Alternativas recusadas
@@ -46,7 +46,8 @@ no serviço, sobre a conversa inteira.** O resto da 0018 e da 0011 vale.
 Limites declarados da regra: homônimos na mesma conversa dividem o marcador, e quem anota lê uma
 pessoa onde há duas; a menção de uma palavra com dois candidatos e o apelido separam a mesma pessoa
 em dois marcadores; o pronome nunca liga. Em conversas distintas, os marcadores seguem distintos
-(0057).
+(0057). O [requisito 006](../requisitos/006-pseudonimizacao-preserva-contexto.md) passa a declarar o
+limite dos homônimos.
 
 ## O que reabre
 

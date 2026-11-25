@@ -19,10 +19,11 @@ parte de um nome mais longo entra no grupo dele se ele for o único candidato. S
 tamanho máximo nem peso novo na [0041](../../../decisoes/0041-distribuicao-do-servico-de-linguagem.md).
 
 **F2 — serviço e contrato.** O pedido leva os textos do item na ordem de `MaterialTexts`, cada
-mensagem com o nome do autor. O serviço junta tudo, aplica a regra da 0060 sobre o todo e devolve
-cada ocorrência no seu texto (índice do texto, posições nele, tipo, análise gramatical e grupo), e
-o grupo de cada nome de autor, que nunca volta como ocorrência; o nome de autor é candidato da
-parte do nome, e com dois candidatos a menção fica em grupo próprio. O `ResponseValidator` recusa
+mensagem com o nome do autor. O serviço reconhece cada texto à parte, como a `/analyze`, para que
+posição e tipo sejam os dela, aplica a regra da 0060 sobre o item inteiro e devolve cada
+ocorrência no seu texto (índice do texto, posições nele, tipo, análise gramatical e grupo), e o
+grupo de cada nome de autor, que nunca volta como ocorrência; o nome de autor é candidato da parte
+do nome, e com dois candidatos a menção fica em grupo próprio. O `ResponseValidator` recusa
 índice fora do item, posição fora do texto e grupo ausente; o `Core.Boundary.Fake` devolve grupos.
 
 **F3 — o núcleo usa o grupo.** Um pedido por item; o grupo vira o referente da troca da fatia B, e

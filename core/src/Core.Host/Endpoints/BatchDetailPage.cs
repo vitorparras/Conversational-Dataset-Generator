@@ -70,6 +70,7 @@ internal static class BatchDetailPage
             VersionedItems = numbers.SanitizedItems,
             Items = numbers.Items,
             Steps = [.. numbers.Steps.Select(step => new BatchDetailScreen.StepCount(step.Name, step.Edits, step.Items) { Untreated = step.Untreated })],
+            Markers = [.. numbers.Markers.Select(count => new BatchDetailScreen.MarkerCount(count.Kind, count.Markers, count.Items))],
         };
     }
 

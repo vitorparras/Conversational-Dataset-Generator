@@ -19,7 +19,7 @@ public sealed class ProtectedContentEmptyingTests
     public async Task ItemIsEmptiedByMarkingItAndClearingEveryContentColumn()
     {
         await using var world = await ContentWorld.CreateAsync();
-        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("bruto", "sanitizado", "pseudonimizado"), TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddPseudonymizedItemAsync(1, ItemTexts.PseudonymizedItem("bruto", "sanitizado", "pseudonimizado"), TestContext.Current.CancellationToken);
 
         var emptied = await world.OwnerInDomainAfterAsync(ContentWorld.EmptiedEvent, 1, Empty, ("id", item));
 

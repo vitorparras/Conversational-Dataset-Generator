@@ -1,6 +1,9 @@
+using System.Globalization;
 using System.Text;
 using Core.Ingestion.Contracts.Dating;
+using Core.Ingestion.Contracts.Reversal;
 using Core.Persistence.Content;
+using Core.Persistence.Content.Reversal;
 using Core.Persistence.Content.Writing;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Fixtures;
@@ -35,6 +38,9 @@ internal static class OpaqueStorage
     /// <summary>The column of the occurrences found in the item and the destination of each.</summary>
     public const string Occurrences = "content.item_text.occurrences";
 
+    /// <summary>The column of the pseudonymized text, sealed with the key of the item as the other texts of it.</summary>
+    public const string PseudonymizedText = "content.item_text.pseudonymized_text";
+
     /// <summary>The column of the entries of the reversal map.</summary>
     public const string Entries = "content.reversal_map.entries";
 
@@ -56,9 +62,15 @@ internal static class OpaqueStorage
     /// <summary>The column of the key of the shift, wrapped.</summary>
     public const string DateShiftKey = "content.date_shift.dek_wrapped";
 
-    private static readonly string[] Seedable = [RawText, SanitizedText, SanitizationTrail, Occurrences, Entries, Origin];
+    /// <summary>The column of why a request to reverse a marker asks and what for, sealed with the purpose of the map.</summary>
+    public const string RequestText = "content.reversal_request.justification";
 
-    private static readonly string[] KeyColumns = [ItemKey, MapKey, OriginKey, DateShiftKey];
+    /// <summary>The column of the key of the request, wrapped.</summary>
+    public const string RequestKey = "content.reversal_request.dek_wrapped";
+
+    private static readonly string[] Seedable = [RawText, SanitizedText, SanitizationTrail, Occurrences, PseudonymizedText, Entries, Origin, RequestText];
+
+    private static readonly string[] KeyColumns = [ItemKey, MapKey, OriginKey, DateShiftKey, RequestKey];
 
     /// <summary>
     /// The columns whose value is drawn, not chosen, so no text of the seeding can be searched for in them: a few digits would be found by chance anywhere in a copy. They are
@@ -94,7 +106,7 @@ internal static class OpaqueStorage
     }
 
     /// <summary>
-    /// Writes one text of its own into every marked column and one into the column left in clear, all through the writer of the application. A marked column the writer
+    /// Writes one text of its own into every marked column and a marker held in clear, all through the writer of the application. A marked column the writer
     /// cannot seed fails the test by name, as does a column the writer seeds that the catalog does not mark: neither is skipped.
     /// </summary>
     public static Task<Material> SeedAsync(ContentWorld world)
@@ -110,15 +122,27 @@ internal static class OpaqueStorage
         Assert.Empty(marked.Except(known, StringComparer.Ordinal));
         Assert.Empty(known.Except(marked, StringComparer.Ordinal));
         var texts = Seedable.ToDictionary(column => column, column => $"zqx-{Guid.NewGuid():N}", StringComparer.Ordinal);
-        var pseudonymized = $"zqx-{Guid.NewGuid():N}";
+        var marker = ItemTexts.Marker();
         ItemOccurrence[] occurrences = [new(0, 1, texts[Occurrences], OccurrenceDestination.Remove)];
-        var written = new NewItemText(texts[RawText], pseudonymized, occurrences) { Sanitization = ItemTexts.Sanitization(texts[SanitizedText]) with { Trail = texts[SanitizationTrail] } };
-        var item = await world.Writer.AddItemTextAsync(1, written, TestContext.Current.CancellationToken);
-        _ = await world.Writer.AddReversalMapAsync(1, item, texts[Entries], TestContext.Current.CancellationToken);
+        var written = new NewItemText(texts[RawText], texts[PseudonymizedText], occurrences)
+        {
+            Sanitization = ItemTexts.Sanitization(texts[SanitizedText]) with { Trail = texts[SanitizationTrail] },
+            Map = [new NewMapEntry(marker, texts[Entries], false, OccurrenceDestination.Pseudonymize)],
+        };
+        var item = await world.Writer.AddPseudonymizedItemAsync(1, written, TestContext.Current.CancellationToken);
+        await AskForTheReversalAsync(world, (item, marker), texts[RequestText]);
         await OpenWithOriginAsync(world, texts[Origin]);
         Assert.Equal(DateShiftOutcome.Kept, (await world.DateShifts.EstablishAsync(1, TestContext.Current.CancellationToken)).Outcome);
         await AssertEveryMarkedColumnHoldsSomethingAsync(world, marked);
-        return new Material(texts, pseudonymized) { Keys = await KeysInClearAsync(world) };
+        return new Material(texts, marker) { Keys = await KeysInClearAsync(world) };
+    }
+
+    /// <summary>Asks, as the curator of the world, for the reversal of the marker of the item, with the text given as why; the storage seals it in a row of its own with a key of its own.</summary>
+    private static async Task AskForTheReversalAsync(ContentWorld world, (long Item, string Marker) of, string reason)
+    {
+        var draft = new ReversalRequestDraft { Item = of.Item.ToString(CultureInfo.InvariantCulture), Marker = of.Marker, Term = "30", Reason = reason, Use = "zqx-uso" };
+        var asked = await world.ReversalRequests.AskAsync(1, 3, draft, TestContext.Current.CancellationToken);
+        Assert.Equal(ReversalOutcome.Recorded, asked.Outcome);
     }
 
     /// <summary>Opens a batch whose submission declared an origin, which the application seals in a row of its own with a key of its own.</summary>
@@ -156,7 +180,7 @@ internal static class OpaqueStorage
     {
         ArgumentNullException.ThrowIfNull(world);
         ArgumentNullException.ThrowIfNull(material);
-        var texts = material.Texts.Values.Append(material.Pseudonymized);
+        var texts = material.Texts.Values.Append(material.Marker);
         return ObserveNeedlesAsync(world, material, [.. texts.Select(Encoding.UTF8.GetBytes), .. extraNeedles]);
     }
 
@@ -265,10 +289,10 @@ internal static class OpaqueStorage
             : [key, .. KeyAsText().Select(Encoding.UTF8.GetBytes)];
     }
 
-    /// <summary>The texts seeded: one per marked column, by the name of the column, and the one left in clear.</summary>
-    /// <param name="Texts">The text of each protected column.</param>
-    /// <param name="Pseudonymized">The text of the column kept in clear on purpose.</param>
-    internal sealed record Material(IReadOnlyDictionary<string, string> Texts, string Pseudonymized)
+    /// <summary>The texts seeded: one per marked column, by the name of the column, and the marker left in clear.</summary>
+    /// <param name="Texts">The text of each protected column; the one of the entries is the original the marker stands for.</param>
+    /// <param name="Marker">The marker the item holds, kept in clear on purpose, since it keeps nothing of the original.</param>
+    internal sealed record Material(IReadOnlyDictionary<string, string> Texts, string Marker)
     {
         /// <summary>The key of each row in clear, by the column that wraps it.</summary>
         public IReadOnlyDictionary<string, byte[]> Keys { get; init; } = new Dictionary<string, byte[]>();
@@ -297,7 +321,7 @@ internal static class OpaqueStorage
 
         /// <summary>The matches in the files that are none of the texts seeded: what a search for the key found, if it found anything.</summary>
         public IEnumerable<PostgresFixture.FileMatch> FilesBeyond(Material material) =>
-            Files.Where(match => !string.Equals(match.Text, material.Pseudonymized, StringComparison.Ordinal) && !material.Texts.Values.Contains(match.Text, StringComparer.Ordinal));
+            Files.Where(match => !string.Equals(match.Text, material.Marker, StringComparison.Ordinal) && !material.Texts.Values.Contains(match.Text, StringComparer.Ordinal));
 
         /// <summary>Whether the dump holds any of the forms.</summary>
         public bool DumpShowsAny(IEnumerable<string> forms) => forms.Any(form => Dump.Contains(form, StringComparison.OrdinalIgnoreCase));

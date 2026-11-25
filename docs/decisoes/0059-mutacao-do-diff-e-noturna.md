@@ -7,9 +7,9 @@
 
 A [0007](0007-garantia-de-qualidade.md) põe a mutação dos módulos críticos no bloqueio, e a
 [017](../operacao/017-teste-de-mutacao.md) muta inteiro cada módulo que o pull request alcança. Um
-módulo grande ocupa muitos jobs: `Core.Persistence.Content` roda em 48 partes
-([039](../operacao/039-repartir-a-mutacao.md)). Um pull request que muda um arquivo dele espera a
-mutação de todos os outros, que não mudaram.
+módulo grande ocupa muitos jobs: `Core.Persistence.Content` roda em 96 partes, e a área da escrita
+dele, em 24 ([039](../operacao/039-repartir-a-mutacao.md)). Um pull request que muda um arquivo
+dele espera a mutação de todos os outros, que não mudaram.
 
 ## Decisão
 

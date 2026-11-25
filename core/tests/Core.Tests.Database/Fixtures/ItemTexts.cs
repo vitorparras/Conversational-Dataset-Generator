@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using Core.Persistence.Content;
 using Core.Persistence.Content.Writing;
 
 namespace Core.Persistence.Tests.Fixtures;
@@ -23,14 +25,33 @@ public static class ItemTexts
     /// <summary>The texts of an item with the raw and the sanitized text, with an empty list of occurrences as the decision.</summary>
     /// <param name="raw">The text as it arrived.</param>
     /// <param name="sanitized">The sanitized text.</param>
-    public static NewItemText Of(string raw, string sanitized) => Of(raw, sanitized, null);
+    public static NewItemText Of(string raw, string sanitized) => new(raw, null, []) { Sanitization = Sanitization(sanitized) };
 
-    /// <summary>The texts of an item with the three texts, with an empty list of occurrences as the decision.</summary>
+    /// <summary>
+    /// The texts of an item with the raw, the sanitized and the pseudonymized text and no map, with an empty list of occurrences as the decision: the database refuses it at the commit
+    /// for want of a map, so it serves the test of that refusal, or one that gives it a map before writing it. A test that wants the item written takes <see cref="PseudonymizedItem"/>.
+    /// </summary>
+    /// <param name="raw">The text as it arrived.</param>
+    /// <param name="sanitized">The sanitized text.</param>
+    /// <param name="pseudonymized">The pseudonymized text.</param>
+    public static NewItemText Of(string raw, string sanitized, string pseudonymized) => new(raw, pseudonymized, []) { Sanitization = Sanitization(sanitized) };
+
+    /// <summary>
+    /// The texts of a pseudonymized item, with an empty list of occurrences as the decision and the map that reverses it: one entry under a marker drawn for the test, since a marker is
+    /// held once in the installation and the tests share the database. Only the path that writes the item with its map takes it.
+    /// </summary>
     /// <param name="raw">The text as it arrived.</param>
     /// <param name="sanitized">The sanitized text; null while it does not exist.</param>
-    /// <param name="pseudonymized">The pseudonymized text; null while it does not exist.</param>
-    public static NewItemText Of(string raw, string? sanitized, string? pseudonymized) =>
-        new(raw, pseudonymized, []) { Sanitization = sanitized is null ? null : Sanitization(sanitized) };
+    /// <param name="pseudonymized">The pseudonymized text.</param>
+    public static NewItemText PseudonymizedItem(string raw, string? sanitized, string pseudonymized) =>
+        new(raw, pseudonymized, [])
+        {
+            Sanitization = sanitized is null ? null : Sanitization(sanitized),
+            Map = [new NewMapEntry(Marker(), "original sintetico zqx", false, OccurrenceDestination.Pseudonymize)],
+        };
+
+    /// <summary>A marker of a person drawn at random, so that tests sharing the database do not draw the same one.</summary>
+    public static string Marker() => $"PESSOA_{RandomNumberGenerator.GetInt32(100_000_000):D8}";
 
     /// <summary>What a sanitization of one step that made no edit leaves with an item, with the sanitized text given.</summary>
     /// <param name="sanitized">The sanitized text.</param>

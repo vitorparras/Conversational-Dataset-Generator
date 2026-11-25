@@ -12,4 +12,7 @@ internal static class BatchCountStatements
     /// </summary>
     internal const string Steps =
         "SELECT sanitization_version, step_name, step_edits, items_changed, step_untreated, items_sanitized, items_total FROM public.batch_sanitization_counts(@batch, @domain)";
+
+    /// <summary>How many markers of each kind the items of the batch hold, the authors apart, and in how many items, from the function that answers numbers alone (issue 101).</summary>
+    internal const string Markers = "SELECT count_kind, count_markers, count_items FROM public.batch_marker_counts(@batch, @domain)";
 }

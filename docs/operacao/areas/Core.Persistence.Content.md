@@ -5,9 +5,9 @@
 - Projeto/pacote: `Core.Persistence.Content`
 - Piso: 90 %
 - Crítica: sim
-- Partes da mutação: 48
+- Partes da mutação: 96
 - Motivo: Declara o domínio que o banco usa para decidir o que uma consulta de conteúdo vê (decisão
-  0006); inteira, a área estoura o teto da 017 (#580) e por isso muta em 48 partes (#557, #716:
+  0006); inteira, a área estoura o teto da 017 (#580) e por isso muta em 96 partes (#557, #716:
   com 5 partes a 3 passou dos 20 min; #726: com 8, a 2 levou 17 a 20 min por 17 mutantes de 41 a
   61 s cada, que rodam a suíte do banco; #791: com 12, a 6 testou 26 mutantes de 65 a 93 s cada,
   a suíte inteira, e passou dos 20 min com 0 mutantes; #801: com 16, a 3 testou 15 mutantes de 70
@@ -18,7 +18,10 @@
   `ContentColumns` a 84 literais, e com 40 doze partes ficaram com três mutantes de suíte; 46 é o
   menor número com dois no máximo; #857: com 46, a 25 passou dos 20 min duas vezes na main com
   0 mutantes, pelos seis do filtro de `ContentQueries.Declared`, que o `All` estático roda antes
-  de qualquer teste; o filtro virou `Exposed` e `IsQuery`, e 48 é o menor com dois no máximo).
+  de qualquer teste; o filtro virou `Exposed` e `IsQuery`, e 48 é o menor com dois no máximo;
+  #101: a mutação do diff tira as partes da fração do peso, que os membros de suíte fora do diff
+  inflam; com 48, cada uma das 14 partes do diff ficou com seis literais de `ContentColumns` e
+  quatro passaram dos 20 min; com 96, são 28 partes com três no máximo, e uma no run inteiro).
   O tempo de uma parte segue os mutantes que rodam a suíte inteira: o peso conta um por literal de
   inicializador estático, e os métodos por onde passa todo teste de conteúdo, `OpenAsync` e
   `DeclareAsync` de `ContentTransaction`, e os que o `All` estático roda, `Exposed` e `IsQuery` de

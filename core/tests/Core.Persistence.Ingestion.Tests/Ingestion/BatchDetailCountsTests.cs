@@ -161,6 +161,27 @@ public sealed class BatchDetailCountsTests
         Assert.Equal(5L, Assert.Single(counts.Steps).Untreated);
     }
 
+    [DatabaseFact]
+    public async Task BatchCountsTellTheMarkersByKindWithTheAuthorsApartAndInHowManyItems()
+    {
+        await using var world = await IngestionWorld.CreateAsync();
+        using var custody = SyntheticCustody.Holding(Labels);
+        var batch = await OpenAsync(world, "conversation");
+        var plain = await OpenAsync(world, "conversation");
+        _ = await new ContentWriter(world.DataSource, custody.Content).AddItemTextAsync(IngestionWorld.Domain, plain, ItemTexts.Of("texto bruto zqx"), TestContext.Current.CancellationToken);
+
+        // Two places in one item, people in two, an organization in one, and two authors, each in its own item: markers and items part where a kind repeats in one item.
+        _ = await WriteMarkedAsync(world, custody, batch, [(Drawn("PESSOA"), false), (Drawn("PESSOA"), true), (Drawn("LUGAR"), false), (Drawn("LUGAR"), false)]);
+        _ = await WriteMarkedAsync(world, custody, batch, [(Drawn("PESSOA"), false), (Drawn("PESSOA"), true), (Drawn("ORGANIZACAO"), false)]);
+        var counts = await new BatchCounts(world.DataSource).ReadAsync(IngestionWorld.Domain, batch, TestContext.Current.CancellationToken);
+        var none = await new BatchCounts(world.DataSource).ReadAsync(IngestionWorld.Domain, plain, TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            "author:2:2,organization:1:1,person:2:2,place:2:1",
+            string.Join(',', counts.Markers.OrderBy(count => count.Kind, StringComparer.Ordinal).Select(count => $"{count.Kind}:{count.Markers}:{count.Items}")));
+        Assert.Empty(none.Markers);
+    }
+
     private static StoredOccurrence Said(long item, int position) =>
         new(item, position, new string('a', 64), new string('b', 64), 20, new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
 
@@ -171,11 +192,28 @@ public sealed class BatchDetailCountsTests
 
     private static async Task<long> WriteAsync(
         BatchesWorld world, SyntheticCustody custody, long batch, IReadOnlyList<ItemOccurrence> occurrences, ItemSanitization? sanitization = null) =>
-        await new ContentWriter(world.DataSource, custody.Content).AddItemTextAsync(
+        (await new ContentWriter(world.DataSource, custody.Content).AddPseudonymizedItemAsync(
             IngestionWorld.Domain,
             batch,
-            new NewItemText("texto bruto zqx", "texto pseudonimizado zqx", occurrences) { Sanitization = sanitization ?? ItemTexts.Sanitization("texto sanitizado zqx") },
-            TestContext.Current.CancellationToken);
+            new NewItemText("texto bruto zqx", "texto pseudonimizado zqx", occurrences)
+            {
+                Sanitization = sanitization ?? ItemTexts.Sanitization("texto sanitizado zqx"),
+                Map = [new NewMapEntry(ItemTexts.Marker(), "original sintetico zqx", false, OccurrenceDestination.Pseudonymize)],
+            },
+            TestContext.Current.CancellationToken)).ItemId!.Value;
+
+    private static string Drawn(string word) => $"{word}_{System.Security.Cryptography.RandomNumberGenerator.GetInt32(100_000_000):D8}";
+
+    private static async Task<long> WriteMarkedAsync(BatchesWorld world, SyntheticCustody custody, long batch, IReadOnlyList<(string Marker, bool Author)> markers) =>
+        (await new ContentWriter(world.DataSource, custody.Content).AddPseudonymizedItemAsync(
+            IngestionWorld.Domain,
+            batch,
+            new NewItemText("texto bruto zqx", string.Join(' ', markers.Select(held => held.Marker)), [])
+            {
+                Sanitization = ItemTexts.Sanitization("texto sanitizado zqx"),
+                Map = [.. markers.Select(held => new NewMapEntry(held.Marker, "original sintetico zqx", held.Author, OccurrenceDestination.Pseudonymize))],
+            },
+            TestContext.Current.CancellationToken)).ItemId!.Value;
 
     private static async Task<long> OpenAsync(BatchesWorld world, string form)
     {

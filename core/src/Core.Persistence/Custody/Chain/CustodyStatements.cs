@@ -19,11 +19,17 @@ internal static class CustodyStatements
     /// <summary>The SQLSTATE raised when a row of content that was emptied is changed, and when a map is added to an item that was emptied (migration 0016).</summary>
     internal const string EmptiedSqlState = "CE004";
 
+    /// <summary>The SQLSTATE raised when content changes without the event that allows it, and when a pseudonymized text is written without its map (migration 202611241200).</summary>
+    internal const string WithoutEventSqlState = "CE005";
+
     /// <summary>
     /// The SQLSTATE raised when content is added to a batch that is not open, when a batch changes any way but the one closing it allows,
     /// and when a batch is removed (migration 0034).
     /// </summary>
     internal const string BatchSqlState = "CE006";
+
+    /// <summary>The SQLSTATE raised when an authorization of a reversal is by who asked, holds until a moment past, or comes while another holds or after a decline (migration 202611251200).</summary>
+    internal const string ReversalSqlState = "CE007";
 
     /// <summary>Every field of every event that the digest covers, with the two digests, in the order of the sequence: what the verification reads.</summary>
     internal const string ReadChain = """

@@ -192,7 +192,7 @@ public static partial class ContentQueries
     /// <summary>The epochs that the keys of the rows not emptied name, in the domain declared.</summary>
     internal const string ReadEpochsInUse =
         "SELECT dek_epoch FROM content.item_text WHERE emptied_at IS NULL UNION SELECT dek_epoch FROM content.reversal_map WHERE emptied_at IS NULL "
-        + "UNION SELECT dek_epoch FROM content.batch_origin UNION SELECT dek_epoch FROM content.date_shift";
+        + "UNION SELECT dek_epoch FROM content.batch_origin UNION SELECT dek_epoch FROM content.date_shift UNION SELECT dek_epoch FROM content.reversal_request";
 
     /// <summary>The state, the sample and the review of the batch of the domain declared, whatever its state.</summary>
     internal const string ReadBatchReview =

@@ -20,6 +20,7 @@ public sealed class EpochRotation
     private static readonly Table Maps = new(ContentQueries.ReadOlderMapKeys, ContentQueries.RewrapMapKey);
     private static readonly Table Origins = new(ContentQueries.ReadOlderOriginKeys, ContentQueries.RewrapOriginKey);
     private static readonly Table Shifts = new(ContentQueries.ReadOlderShiftKeys, ContentQueries.RewrapShiftKey);
+    private static readonly Table Requests = new(ContentQueries.ReadOlderRequestKeys, ContentQueries.RewrapRequestKey);
 
     private readonly NpgsqlDataSource dataSource;
     private readonly ItemKeys keys;
@@ -54,6 +55,7 @@ public sealed class EpochRotation
                 rewrapped += await RewrapAsync(transaction, Maps, recorded, cancellationToken).ConfigureAwait(false);
                 rewrapped += await RewrapAsync(transaction, Origins, recorded, cancellationToken).ConfigureAwait(false);
                 rewrapped += await RewrapAsync(transaction, Shifts, recorded, cancellationToken).ConfigureAwait(false);
+                rewrapped += await RewrapAsync(transaction, Requests, recorded, cancellationToken).ConfigureAwait(false);
             }
 
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);

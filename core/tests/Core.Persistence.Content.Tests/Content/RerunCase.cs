@@ -81,6 +81,16 @@ internal sealed class RerunCase
     public Task<long> UndecidedItemAsync() =>
         new ContentWriter(application, custody.Content).AddItemTextAsync(DomainId, DomainId, new NewItemText(Raw), TestContext.Current.CancellationToken);
 
+    /// <summary>A pseudonymized item of the accepted batch of the domain, with its map and its markers, as the writer answers it: written, or the markers held already.</summary>
+    public Task<PseudonymizedWrite> PseudonymizedAsync(NewItemText item) =>
+        new ContentWriter(application, custody.Content).AddPseudonymizedItemAsync(DomainId, DomainId, item, TestContext.Current.CancellationToken);
+
+    /// <summary>The markers the item holds, each with whether it stands for an author, then the ones the domain holds in the installation, read as the owner.</summary>
+    public Task<string> MarkersOfAsync(long item) => OwnerTextAsync(
+        "SELECT coalesce((SELECT string_agg(marker || ':' || author, ',' ORDER BY marker) FROM content.item_marker WHERE item_id = @item), '') || '|' || "
+        + "coalesce((SELECT string_agg(marker, ',' ORDER BY marker) FROM content.marker_in_use WHERE domain_id = current_setting('app.domain')::int), '')",
+        item);
+
     /// <summary>The request of the curator to rerun the domain to the steps given.</summary>
     public async Task<RerunResult> RequestAsync(string steps = TargetSteps, SanitizationReruns? queue = null) =>
         await (queue ?? Queue).RequestAsync(new RerunRequest(DomainId, await CuratorAsync(), VersionOf(steps), steps), TestContext.Current.CancellationToken);

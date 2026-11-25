@@ -6,8 +6,8 @@ A troca roda síncrona na submissão, logo depois da sanitização e antes de gr
 [fatia F](fatia-f-correferencia.md) a ligar. Cada item nasce com o pseudonimizado, com o mapa dele
 (marcador e original, selado com a finalidade do mapa) e com os marcadores em claro, o do autor
 incluído. A tela do lote ganha a seção da pseudonimização: marcadores por tipo e itens com marcador,
-contados dos marcadores do item, só números. A reexecução da fase 4 refaz o pseudonimizado e o mapa
-junto com o sanitizado. O protótipo é `lote.html`, em [protótipos](prototipos/index.html).
+contados dos marcadores do item, só números. Na reexecução, a B guarda os marcadores e a F3 refaz o
+pseudonimizado e o mapa. Protótipo: `lote.html`, em [protótipos](prototipos/index.html).
 
 **Pseudonimizado cifrado** com a chave do item: [0030](../../../decisoes/0030-qual-texto-fica-em-claro.md)
 (linha 24), [0049](../../../decisoes/0049-chave-por-item-e-epoca.md) (linha 27) e CA-3 da #102.
@@ -34,10 +34,10 @@ processo não muda o resultado. Nenhum outro mapa é aberto ([contratos](contrat
 | `Core.Host.Tests.Browser` | PseudonymizationSectionIsReadByKeyboardAndPassesTheAccessibilityCheck |
 
 O CA-4 da #102 percorre os caminhos que escrevem o item (`ContentWriter.AddItemTextAsync`, a
-reexecução e o esvaziamento) e, em cada um, tenta gravar o sanitizado onde vai o pseudonimizado,
-sem a troca; o banco não lê o selado, então o que barra é o gatilho que exige o mapa e o evento. O
-CA-5 da #101 tem dois testes: a troca lança antes de selar, e o gravador recusa a entrada e grava o
-evento na cadeia.
+reexecução e o esvaziamento) e, em cada um, tenta gravar o sanitizado onde vai o pseudonimizado, sem
+a troca. O banco não lê o selado: na gravação, barra a restrição que exige o mapa (CE005); na
+reexecução e no esvaziamento, o gatilho que já guarda o texto da linha (CE004). O CA-5 da #101 tem
+dois testes: a troca lança antes de selar, e o gravador recusa a entrada e grava o evento na cadeia.
 
 ## Peças e padrões
 

@@ -12,8 +12,6 @@ namespace Core.Persistence.Content.Reversal;
 /// <summary>Where a request stands, whether a person is of the curation, and why a request asks and what for as they go sealed.</summary>
 internal static class ReversalStanding
 {
-    internal static readonly string[] States = ["pending", "declined", "authorized", "expired"];
-
     private const string FunctionOfPerson = "SELECT function_name FROM public.person WHERE id = @person";
 
     internal static async Task<ListedReversal?> ReadAsync(CustodyScope scope, long requestId, DateTimeOffset now, CancellationToken cancellationToken)
@@ -36,7 +34,7 @@ internal static class ReversalStanding
             RequestedAt = row.GetFieldValue<DateTimeOffset>(at++),
             AuthorizedBy = Held(row.IsDBNull, at++, row.GetInt64),
             ValidUntil = Held(row.IsDBNull, at++, row.GetFieldValue<DateTimeOffset>),
-            State = (ReversalState)Array.IndexOf(States, row.GetString(at)),
+            State = Enum.Parse<ReversalState>(row.GetString(at), ignoreCase: true),
         };
     }
 

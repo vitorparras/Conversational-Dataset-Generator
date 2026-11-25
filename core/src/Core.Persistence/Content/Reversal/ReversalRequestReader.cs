@@ -42,7 +42,7 @@ public sealed class ReversalRequestReader
         Bound[] narrowed =
         [
             new("now", NpgsqlDbType.TimestampTz, time.GetUtcNow()), new("mine", NpgsqlDbType.Boolean, listing.Mine), new("person", NpgsqlDbType.Bigint, listing.PersonId),
-            new("item", NpgsqlDbType.Bigint, listing.ItemId), new("state", NpgsqlDbType.Text, listing.State is { } state ? ReversalStanding.States[(int)state] : null),
+            new("item", NpgsqlDbType.Bigint, listing.ItemId), new("state", NpgsqlDbType.Text, listing.State?.ToString()),
             new("size", NpgsqlDbType.Integer, ReversalPage.Size), new("skip", NpgsqlDbType.Integer, (Math.Max(listing.Page, 1) - 1) * ReversalPage.Size),
         ];
         return InDomainAsync(listing.DomainId, async scope =>

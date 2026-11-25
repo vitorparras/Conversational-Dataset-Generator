@@ -1,0 +1,47 @@
+@using System.Globalization
+@using Core.Host.Endpoints
+@using Core.Persistence.Content.Reversal
+
+<h1>@TitleOf(Request.Id, Sent)</h1>
+@if (Request.State == ReversalState.Pending)
+{
+    <p class="status"><ReversalMark Request="Request" /> Falta outra pessoa da Curadoria de @Domain.</p>
+    <FactList>
+        <Fact Term="Marcador"><code>@Request.Marker</code></Fact>
+        <Fact Term="Item">@Request.ItemId</Fact>
+        <Fact Term="Prazo pedido">@DaysOf(Request.TermDays)</Fact>
+    </FactList>
+}
+else
+{
+    <p class="status"><ReversalMark Request="Request" /> <code>@Request.Marker</code> no item @Request.ItemId</p>
+}
+@if (Request.State == ReversalState.Expired)
+{
+    <Notice>a autorização venceu em @ReversalMark.DayOf(Request.ValidUntil).</Notice>
+}
+<div class="actions">
+    @if (Request.State is ReversalState.Declined or ReversalState.Expired)
+    {
+        <Button Href="@ScreenPaths.ReversalAsk">Fazer outro pedido</Button>
+    }
+    <a href="@ScreenPaths.ReversalMine">Meus pedidos</a>
+</div>
+
+@code {
+    /// <summary>The request of the person of the session, as it stands now.</summary>
+    [Parameter, EditorRequired]
+    public ListedReversal Request { get; set; } = null!;
+
+    /// <summary>The name of the domain, whose curation decides.</summary>
+    [Parameter, EditorRequired]
+    public string Domain { get; set; } = "";
+
+    /// <summary>Whether the request was just sent, which titles the page so.</summary>
+    [Parameter]
+    public bool Sent { get; set; }
+
+    internal static string TitleOf(long id, bool sent) => string.Create(CultureInfo.InvariantCulture, $"Pedido {id}{(sent ? " enviado" : "")}");
+
+    internal static string DaysOf(int days) => string.Create(CultureInfo.InvariantCulture, $"{days} {(days == 1 ? "dia" : "dias")}");
+}

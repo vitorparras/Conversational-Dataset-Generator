@@ -11,7 +11,7 @@
 }
 else
 {
-    <ul class="paged-list" aria-label="@Caption">
+    <ul class="@ListClass" aria-label="@Caption">
         @foreach (var item in Items)
         {
             <li>@ItemContent(item)</li>
@@ -44,6 +44,10 @@ else
     /// <summary>What the list holds, which names it and its pages for a reader of screens.</summary>
     [Parameter, EditorRequired]
     public string Caption { get; set; } = "";
+
+    /// <summary>How the list is drawn: boxes by default, or <c>rows</c>, where each item is one whole line to open.</summary>
+    [Parameter]
+    public string ListClass { get; set; } = "paged-list";
 
     [Parameter]
     public int Page { get; set; } = 1;

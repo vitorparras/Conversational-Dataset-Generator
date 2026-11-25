@@ -1,0 +1,122 @@
+@using System.Globalization
+@using Core.Host.Endpoints
+@using Core.Persistence.Content.Reversal
+
+<h1>@(Mine ? MineTitle : AwaitingTitle)</h1>
+@if (!Mine)
+{
+    <p class="status">@Waiting</p>
+}
+@if (Mine || Found.Total > 0 || Filtered)
+{
+    <PagedList Items="Found.Items" ListClass="rows" Caption="@(Mine ? "Seus pedidos" : "Pedidos que aguardam você")" Page="Page" PageCount="Pages" PageSize="ReversalPage.Size"
+               Address="Address" EmptyTitle="@Empty" EmptyHint="@(Filtered ? "Mude ou limpe o filtro para ver os outros." : null)">
+        <ItemContent>
+            <a href="@(Mine ? ScreenPaths.ReversalMineOf(context.Id) : ScreenPaths.ReversalDecideOf(context.Id))">
+                <span>
+                    <strong>Pedido @context.Id · <code>@context.Marker</code></strong>
+                    @if (Mine)
+                    {
+                        <span><ReversalMark Request="context" /></span>
+                    }
+                    else
+                    {
+                        <span>Item @context.ItemId · @ReversalScreen.DaysOf(context.TermDays)</span>
+                    }
+                </span>
+            </a>
+        </ItemContent>
+    </PagedList>
+}
+<details class="more" open="@Filtered">
+    @if (Mine)
+    {
+        <summary>Filtrar por situação</summary>
+        <form class="filter" method="get" action="@ScreenPaths.ReversalMine">
+            <Field Id="filtro-situacao" Name="@StateKey" Caption="Situação" Value="@Situation" Options="States" />
+            <div class="actions">
+                <Button Id="filtrar" Kind="Button.Look.Secondary">Filtrar</Button>
+            </div>
+        </form>
+    }
+    else
+    {
+        <summary>Filtrar por item</summary>
+        <form class="filter" method="get" action="@ScreenPaths.ReversalAuthorize">
+            <Field Id="filtro-item" Name="@ItemKey" Caption="Item" Value="@Item" InputMode="numeric" Autocomplete="off" />
+            <div class="actions">
+                <Button Id="filtrar" Kind="Button.Look.Secondary">Filtrar</Button>
+            </div>
+        </form>
+    }
+</details>
+
+@code {
+    /// <summary>The titles of the two lists and of their entries in the menu.</summary>
+    internal const string AwaitingTitle = "Autorizar reversão";
+
+    internal const string MineTitle = "Meus pedidos de reversão";
+
+    /// <summary>The keys of the filter and of the page in the address, which keeps both so that going back and sharing work (decision 0051).</summary>
+    internal const string ItemKey = "item";
+
+    internal const string StateKey = "situacao";
+
+    internal const string PageKey = "pagina";
+
+    /// <summary>The situations a person filters the requests of their own by, as the address names them; a reveal is of another slice and is not among them.</summary>
+    private static readonly (string Key, string Caption, ReversalState State)[] Situations =
+    [
+        ("pendente", "Aguarda autorização", ReversalState.Pending), ("autorizado", "Autorizado", ReversalState.Authorized),
+        ("recusado", "Recusado", ReversalState.Declined), ("vencido", "Vencido", ReversalState.Expired),
+    ];
+
+    private static readonly Field.Option[] States = [new("", "Todas"), .. Situations.Select(situation => new Field.Option(situation.Key, situation.Caption))];
+
+    /// <summary>Whether the list is of the requests of the person, or of those of the others that wait for a decision.</summary>
+    [Parameter]
+    public bool Mine { get; set; }
+
+    /// <summary>The page the requests answered, already filtered and cut to its fixed size by the server.</summary>
+    [Parameter, EditorRequired]
+    public ReversalPage Found { get; set; } = null!;
+
+    [Parameter]
+    public int Page { get; set; } = 1;
+
+    /// <summary>The filter as it is in the address, given back to its field.</summary>
+    [Parameter]
+    public string? Item { get; set; }
+
+    [Parameter]
+    public string? Situation { get; set; }
+
+    /// <summary>The state a situation of the address names; none for any other word, which filters nothing.</summary>
+    internal static ReversalState? StateOf(string? situation) =>
+        Array.Find(Situations, known => string.Equals(known.Key, situation, StringComparison.Ordinal)) is { Key: not null } found ? found.State : null;
+
+    private bool Filtered => !string.IsNullOrEmpty(Item) || !string.IsNullOrEmpty(Situation);
+
+    private int Pages => Math.Max(1, (Found.Total + ReversalPage.Size - 1) / ReversalPage.Size);
+
+    private string Empty => (Mine, Filtered) switch
+    {
+        (_, true) => "Nenhum pedido com esse filtro.",
+        (true, _) => "Você não fez nenhum pedido de reversão.",
+        _ => "Nenhum pedido aguarda você.",
+    };
+
+    private string Waiting => Found.Total switch
+    {
+        0 => "Nenhum pedido aguarda você.",
+        1 => "1 pedido de outra pessoa da Curadoria aguarda você.",
+        var count => string.Create(CultureInfo.InvariantCulture, $"{count} pedidos de outras pessoas da Curadoria aguardam você."),
+    };
+
+    /// <summary>The address of a page with the filter in force, leaving out what is not filtered.</summary>
+    private string Address(int page)
+    {
+        var keys = new Dictionary<string, string?>(StringComparer.Ordinal) { [ItemKey] = Item, [StateKey] = Situation, [PageKey] = page.ToString(CultureInfo.InvariantCulture) };
+        return (Mine ? ScreenPaths.ReversalMine : ScreenPaths.ReversalAuthorize) + QueryString.Create(keys.Where(pair => !string.IsNullOrEmpty(pair.Value))).ToUriComponent();
+    }
+}

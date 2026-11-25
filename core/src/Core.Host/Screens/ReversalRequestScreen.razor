@@ -1,0 +1,74 @@
+@using Core.Host.Endpoints
+@using Core.Ingestion.Contracts.Reversal
+
+<h1>@Title</h1>
+<form class="form" method="post" action="@ScreenPaths.ReversalAsk" novalidate>
+    @if (NotWritten)
+    {
+        <Notice Kind="Notice.Tone.Error">O pedido não foi gravado, e nada foi pedido. Tente de novo em instantes; se a falha se repetir, avise quem administra o sistema.</Notice>
+    }
+    <p class="field__hint">Todos os campos são obrigatórios.</p>
+    <div class="pair">
+        <Field Id="item" Caption="Item" Value="@Draft.Item" InputMode="numeric" Autocomplete="off" Required="true" RequiredAbove="true"
+               Error="@ErrorOf(ReversalRequestField.Item)" Autofocus="@FocusOn(ReversalRequestField.Item)" />
+        <Field Id="marcador" Caption="Marcador" Value="@Draft.Marker" Autocomplete="off" Required="true" RequiredAbove="true"
+               Error="@ErrorOf(ReversalRequestField.Marker)" Autofocus="@FocusOn(ReversalRequestField.Marker)" />
+        <Field Id="prazo" Caption="Prazo, em dias" Type="number" Value="@Draft.Term" InputMode="numeric" Autocomplete="off" Required="true" RequiredAbove="true"
+               Error="@ErrorOf(ReversalRequestField.Term)" Autofocus="@FocusOn(ReversalRequestField.Term)" />
+    </div>
+    <Field Id="motivo" Caption="Por que precisa da identidade" Rows="2" Value="@Draft.Reason" Required="true" RequiredAbove="true"
+           Error="@ErrorOf(ReversalRequestField.Reason)" Autofocus="@FocusOn(ReversalRequestField.Reason)" />
+    <Field Id="uso" Caption="O que fará com ela" Rows="2" Value="@Draft.Use" Required="true" RequiredAbove="true"
+           Error="@ErrorOf(ReversalRequestField.Use)" Autofocus="@FocusOn(ReversalRequestField.Use)" />
+    <div class="actions">
+        <Button Id="enviar">Enviar pedido</Button>
+    </div>
+</form>
+<details class="more">
+    <summary>Como funciona</summary>
+    <p>Um pedido vale para um marcador, em um item. Outra pessoa da Curadoria deste domínio decide; você não autoriza o próprio pedido.</p>
+</details>
+
+@code {
+    /// <summary>What a field of the request was refused for: missing, or reaching more than one item, one marker or the whole domain, or naming a marker the item does not hold.</summary>
+    public enum Problem
+    {
+        Missing,
+        ManyItems,
+        ManyMarkers,
+        WholeDomain,
+        NotInItem,
+    }
+
+    /// <summary>The title of the page and of its entry in the menu.</summary>
+    internal const string Title = "Pedir reversão";
+
+    /// <summary>The request as typed, given back when the server refuses it (decision 0051).</summary>
+    [Parameter, EditorRequired]
+    public ReversalRequestDraft Draft { get; set; } = null!;
+
+    /// <summary>What the server refused, field by field; a refusal of scope was recorded, and the words say so.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyDictionary<ReversalRequestField, Problem> Problems { get; set; } = null!;
+
+    /// <summary>Whether the chain did not take the request, which is then not asked.</summary>
+    [Parameter]
+    public bool NotWritten { get; set; }
+
+    /// <summary>The first field refused takes the focus, or the first of the page when none was.</summary>
+    private bool FocusOn(ReversalRequestField field) => Problems.Count == 0 ? field == ReversalRequestField.Item : Problems.Keys.Min() == field;
+
+    private string? ErrorOf(ReversalRequestField field) => Problems.TryGetValue(field, out var problem) ? (problem, field) switch
+    {
+        (Problem.Missing, ReversalRequestField.Item) => "Diga o número do item.",
+        (Problem.Missing, ReversalRequestField.Marker) => "Diga o marcador, como PESSOA_00000000.",
+        (Problem.Missing, ReversalRequestField.Term) => "Diga quantos dias.",
+        (Problem.Missing, ReversalRequestField.Reason) => "Diga por que precisa da identidade.",
+        (Problem.Missing, _) => "Diga o que fará com ela.",
+        (Problem.ManyItems, _) => "Um item só. A recusa foi registrada.",
+        (Problem.ManyMarkers, _) => "Um marcador só. A recusa foi registrada.",
+        (Problem.WholeDomain, ReversalRequestField.Item) => "Sem item, o pedido alcança o domínio inteiro. A recusa foi registrada.",
+        (Problem.WholeDomain, _) => "Sem marcador, o pedido alcança o domínio inteiro. A recusa foi registrada.",
+        _ => "Este marcador não está no item. A recusa foi registrada.",
+    } : null;
+}

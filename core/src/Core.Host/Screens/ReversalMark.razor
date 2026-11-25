@@ -1,0 +1,27 @@
+@using System.Globalization
+@using Core.Persistence.Content.Reversal
+
+@switch (Request.State)
+{
+    case ReversalState.Pending:
+        <StateMark Kind="StateMark.Tone.Waiting">Aguarda autorização</StateMark>
+        break;
+    case ReversalState.Authorized:
+        <StateMark Kind="StateMark.Tone.Good">Autorizado até @DayOf(Request.ValidUntil)</StateMark>
+        break;
+    case ReversalState.Declined:
+        <StateMark Kind="StateMark.Tone.Bad">Recusado</StateMark>
+        break;
+    default:
+        <StateMark Kind="StateMark.Tone.Hidden">Vencido</StateMark>
+        break;
+}
+
+@code {
+    /// <summary>Where a request stands, in the words of every screen of the reversal.</summary>
+    [Parameter, EditorRequired]
+    public ListedReversal Request { get; set; } = null!;
+
+    /// <summary>The day of an instant, in universal time, as the screens of the reversal write the last day an authorization is valid and the day of a request.</summary>
+    internal static string DayOf(DateTimeOffset? at) => at?.UtcDateTime.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) ?? "";
+}

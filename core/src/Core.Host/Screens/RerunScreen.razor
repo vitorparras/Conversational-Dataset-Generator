@@ -59,8 +59,8 @@
     [Parameter, EditorRequired]
     public RerunSituation Situation { get; set; } = null!;
 
-    /// <summary>How many items of the situation are in a version other than the one in force, the ones a rerun queues.</summary>
-    internal static long Behind(RerunSituation situation, string current) => situation.Versions.Where(version => version.Version != current).Sum(version => version.Items);
+    /// <summary>How many items a rerun queues: the ones in a version other than the one in force, and the ones in it that hold no map.</summary>
+    internal static long Behind(RerunSituation situation, string current) => situation.Versions.Sum(version => version.Version == current ? version.WithoutMap : version.Items);
 
     private long Waiting => Behind(Situation, Current);
 

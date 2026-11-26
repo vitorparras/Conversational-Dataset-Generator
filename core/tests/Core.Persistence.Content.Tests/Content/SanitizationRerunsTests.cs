@@ -131,7 +131,7 @@ public sealed class SanitizationRerunsTests : IClassFixture<RerunDatabase>
 
         var situation = await rerun.Queue.SituationAsync(rerun.DomainId, TestContext.Current.CancellationToken);
 
-        Assert.Equal([new VersionItems(ItemTexts.Version, 2)], situation.Versions);
+        Assert.Equal([new VersionItems(ItemTexts.Version, 2, 2)], situation.Versions);
         Assert.Equal((requested.RerunId, RerunCase.Target), (situation.OpenRerunId, situation.OpenVersion));
     }
 

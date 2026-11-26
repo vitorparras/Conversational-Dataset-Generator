@@ -107,9 +107,10 @@ public static partial class ContentQueries
         + "UPDATE content.item_text SET sanitization_version = @version, sanitization_trail = @trail, sanitization_counts = @counts, sanitization_untreated = @untreated, "
         + "pseudonymized_text = @pseudonymized WHERE id = @id AND emptied_at IS NULL";
 
-    /// <summary>How many items of the accepted batches, not emptied, each version holds, the most recent first and the items with none last.</summary>
+    /// <summary>How many items of the accepted batches, not emptied, each version holds, and how many of them hold no map, the most recent first and the items with none last.</summary>
     internal const string ReadRerunSituation =
-        "SELECT i.sanitization_version, count(*) FROM content.item_text i JOIN content.ingestion_batch b ON b.id = i.batch_id AND b.domain_id = i.domain_id "
+        "SELECT i.sanitization_version, count(*), count(*) FILTER (WHERE NOT EXISTS (SELECT 1 FROM content.reversal_map m WHERE m.item_id = i.id AND m.emptied_at IS NULL)) "
+        + "FROM content.item_text i JOIN content.ingestion_batch b ON b.id = i.batch_id AND b.domain_id = i.domain_id "
         + "LEFT JOIN content.sanitization_version v ON v.version = i.sanitization_version AND v.domain_id = i.domain_id "
         + "WHERE b.state = 'accepted' AND i.emptied_at IS NULL GROUP BY i.sanitization_version, v.id ORDER BY v.id DESC NULLS LAST";
 

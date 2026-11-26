@@ -156,7 +156,7 @@ public sealed class ReversalScreenTests(BrowserFixture browser, ReversalHostFixt
 
         var first = tab.Page.Locator("#revelar").ClickAsync();
         await onTheWay.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
-        await tab.Page.Locator("#revelar").ClickAsync();
+        await tab.Page.Keyboard.PressAsync("Enter");
         _ = await tab.Page.WaitForFunctionAsync("() => JSON.parse(sessionStorage.getItem('submits') || '[]').length === 2");
         release.SetResult();
         await first;

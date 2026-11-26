@@ -13,8 +13,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Core.Host.Tests.Submissions;
 
 /// <summary>
-/// The submission analyzes the material before it writes the items (#841, CA-1 of #84): each text is asked once, in Portuguese, in the order of the material, and each item is born with
-/// the occurrences found in it and the destination of each. With the service of the language gone, a malformed answer or the request cancelled, the batch is rejected with no item.
+/// The submission analyzes the material before it writes the items (#841, CA-1 of #84): the whole item is asked once (issue 102), in Portuguese, its texts in the order of the material
+/// and each message with its author, and each item is born with the occurrences found in it and the destination of each. With the service of the language gone, a malformed answer or the request cancelled, the batch is rejected with no item.
 /// </summary>
 public sealed class SubmissionDestinationsTests
 {
@@ -32,14 +32,16 @@ public sealed class SubmissionDestinationsTests
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     [DatabaseFact]
-    public async Task EachUnitIsAnalyzedOnceInTheOrderOfTheMaterial()
+    public async Task OneRequestPerItem()
     {
         var recognizer = AnsweringRecognizer.Finding();
         await using var world = await SubmissionWorld.CreateAsync(recognizer: recognizer);
 
         _ = await world.SubmitAsync(SubmissionWorld.Request(Reversed));
 
-        Assert.Equal([Earlier, Later], recognizer.Asked.Select(request => request.Text));
+        var asked = Assert.Single(recognizer.AskedItems);
+        Assert.Equal([(Earlier, "ZQXDOIS"), (Later, "ZQXUM")], asked.Texts.Select(text => (text.Text, text.Author)));
+        Assert.Empty(recognizer.Asked);
     }
 
     [DatabaseFact]
@@ -50,7 +52,7 @@ public sealed class SubmissionDestinationsTests
 
         _ = await world.SubmitAsync(SubmissionWorld.Request(Reversed));
 
-        Assert.Equal(["pt", "pt"], recognizer.Asked.Select(request => request.Language));
+        Assert.Equal("pt", Assert.Single(recognizer.AskedItems).Language);
     }
 
     [DatabaseFact]
@@ -113,16 +115,16 @@ public sealed class SubmissionDestinationsTests
     }
 
     [DatabaseFact]
-    public async Task AnalysisStopsAtTheFirstTextLeftUnanalyzed()
+    public async Task ItemLeftUnanalyzedIsAskedOnceAndKeepsNoText()
     {
-        var recognizer = new FirstOnlyRecognizer();
+        var recognizer = AnsweringRecognizer.Unavailable(UnavailabilityReason.ConnectionRefused);
         await using var world = await SubmissionWorld.CreateAsync(recognizer: recognizer);
         var content = SubmissionWorld.Messages(("ZQXUM", "ZQXUM ZQX-FAKE-PERSON"), ("ZQXDOIS", "ZQXDOIS ZQX-FAKE-PERSON"), ("ZQXTRES", "ZQXTRES ZQX-FAKE-PERSON"));
 
         var outcome = await world.SubmitAsync(SubmissionWorld.Request(content));
         var detail = await world.Service.DetailAsync(Granted, outcome.Batch!.Value, Token);
 
-        Assert.Equal(["ZQXUM ZQX-FAKE-PERSON", "ZQXDOIS ZQX-FAKE-PERSON"], recognizer.Asked.Select(request => request.Text));
+        Assert.Equal(3, Assert.Single(recognizer.AskedItems).Texts.Count);
         Assert.Equal(
             (SubmissionKind.Unavailable, AnalysisUnavailable, BatchState.Rejected, AnalysisUnavailable, 0L),
             (outcome.Kind, outcome.Code, detail!.State, detail.Reason, await world.ItemRowsAsync()));
@@ -161,33 +163,18 @@ public sealed class SubmissionDestinationsTests
         return found;
     }
 
-    /// <summary>A recognizer that analyzes the first text it is asked for and cannot reach the service for every text after it, keeping the requests it was asked.</summary>
-    private sealed class FirstOnlyRecognizer : IRecognizer
-    {
-        private readonly AnsweringRecognizer first = AnsweringRecognizer.Finding("PERSON");
-        private readonly AnsweringRecognizer rest = AnsweringRecognizer.Unavailable(UnavailabilityReason.ConnectionRefused);
-
-        public IEnumerable<AnalysisRequest> Asked => first.Asked.Concat(rest.Asked);
-
-        public Task<RecognitionOutcome> RecognizeAsync(AnalysisRequest request, CancellationToken cancellationToken) =>
-            (first.Asked.Count == 0 ? first : rest).RecognizeAsync(request, cancellationToken);
-
-        public Task<ItemRecognitionOutcome> RecognizeItemAsync(ItemAnalysisRequest request, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("No submission asks for a whole item yet.");
-    }
-
     /// <summary>A recognizer that cancels the submission when it is first asked, and then answers as the fake one does to a request whose token is cancelled.</summary>
     private sealed class CancellingRecognizer(CancellationTokenSource cancelling) : IRecognizer
     {
         private readonly FakeRecognizer fake = new();
 
-        public async Task<RecognitionOutcome> RecognizeAsync(AnalysisRequest request, CancellationToken cancellationToken)
+        public Task<RecognitionOutcome> RecognizeAsync(AnalysisRequest request, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("The submission asks for the whole item.");
+
+        public async Task<ItemRecognitionOutcome> RecognizeItemAsync(ItemAnalysisRequest request, CancellationToken cancellationToken)
         {
             await cancelling.CancelAsync();
-            return await fake.RecognizeAsync(request, cancellationToken);
+            return await fake.RecognizeItemAsync(request, cancellationToken);
         }
-
-        public Task<ItemRecognitionOutcome> RecognizeItemAsync(ItemAnalysisRequest request, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("No submission asks for a whole item yet.");
     }
 }

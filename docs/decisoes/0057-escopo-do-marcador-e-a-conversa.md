@@ -1,6 +1,6 @@
 # 0057 — O escopo do marcador é a conversa
 
-> Decisão vigente. 2026-11-23.
+> Decisão vigente. 2026-11-23, emendada em 2026-11-25.
 
 ## Contexto
 
@@ -17,8 +17,9 @@ inteira cabe nesse texto.
 
 ## Decisão
 
-**O escopo do marcador é a conversa: cada item tem os seus marcadores, e um marcador nunca se
-repete em outra conversa, de nenhum domínio.** Nas formas sem fio de conversa
+**O escopo do marcador é a conversa: as mensagens da mesma conversa compartilham os marcadores,
+e um marcador nunca se repete em outra conversa, de nenhum domínio.** O marcador fica preso ao
+lote em que a conversa entrou, não a uma mensagem. Nas formas sem fio de conversa
 ([0005](0005-unidades-de-analise.md)), cada item vale como uma conversa. O requisito 006 passa a
 dizer isso no escopo, no primeiro critério e na propriedade; o critério dos dois domínios continua.
 
@@ -37,10 +38,21 @@ A mesma pessoa em duas conversas recebe dois marcadores: a análise entre conver
 quem aparece nas duas pontas) não se faz no acervo, e fica como melhoria futura. Piora o que o
 requisito 006 defendia ao pôr o escopo no domínio.
 
-A troca resolve a conversa nela mesma e não procura marcador em outros mapas; só a reexecução de
-um item abre o mapa daquele item, com o evento de leitura, para manter os mesmos marcadores. Para
-que um marcador não se repita em outra conversa, os marcadores em uso ficam numa tabela única na
-instalação, sem o original.
+A troca resolve a conversa nela mesma, num só sorteio para todas as mensagens, e não procura
+marcador em outros mapas; só a reexecução de um item abre o mapa daquele item, com o evento de
+leitura, e reaproveita cada marcador casado pelo original. Os marcadores em uso ficam numa tabela
+única na instalação, sem o original, cada um preso ao seu lote: nunca vale em outra conversa.
+
+## Emenda de 2026-11-25
+
+O texto anterior dava a cada item os seus marcadores. Com uma mensagem por item, a mesma pessoa
+recebia um marcador em cada mensagem, contra o primeiro critério do
+[requisito 006](../requisitos/006-pseudonimizacao-preserva-contexto.md) (linha 28) e a
+[fatia F](../arquitetura/fases/005-pseudonimizacao/fatia-f-correferencia.md), cujo grupo cobre a
+conversa inteira. O resto não muda: nenhum marcador em outra conversa ou domínio, nem mapa alheio.
+Limite: os itens gravados antes da F3 não compartilham marcador entre si, porque não guardam o
+autor e recebem o primeiro pseudonimizado cada um no seu; o pedido por lote só melhora o grupo
+dentro da mensagem.
 
 ## O que reabre
 

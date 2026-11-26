@@ -1,6 +1,4 @@
-using System.Globalization;
 using System.Net;
-using System.Text.RegularExpressions;
 using Core.Host.Endpoints;
 using Core.Host.Tests.Submissions;
 using Core.Persistence.Content.Emptying;
@@ -188,12 +186,6 @@ public sealed class ReversalRevealRoutesTests
         var authorization = await world.ScalarAsync("SELECT id::text FROM content.reversal_authorization");
         var emptied = await ItemEmptyingDesk.On(world.Submissions.DataSource)
             .EmptyAsync(world.Curator, new(SubmissionWorld.Domain, item, EmptyingMotive.ContractRequirement, "PROT-2026/0042"), TestContext.Current.CancellationToken);
-        var probe = await world.PostAsync(ScreenPaths.ReversalRevealOf(request), Nothing);
-        var (last, count) = (await world.ScalarAsync(LastEvent), await world.ScalarAsync(CountRevelations));
-        var h1 = Regex.Match(probe.Page, "<h1>[^<]{0,80}", RegexOptions.None, TimeSpan.FromSeconds(1)).Value;
-        var notice = Regex.Match(probe.Page, "notice__kind[^\n]{0,200}", RegexOptions.None, TimeSpan.FromSeconds(1)).Value;
-        var said = string.Create(CultureInfo.InvariantCulture, $"error: diag emptied={emptied.Outcome} refusal={emptied.Refusal?.Outcome}:{emptied.Refusal?.Refusal} status={probe.Status}");
-        Assert.Fail(string.Create(CultureInfo.InvariantCulture, $"{said} last={last} count={count} h1={h1} notice={notice}"));
         Assert.Equal(EmptyingOutcome.Emptied, emptied.Outcome);
 
         var refused = await world.PostAsync(ScreenPaths.ReversalRevealOf(request), Nothing);

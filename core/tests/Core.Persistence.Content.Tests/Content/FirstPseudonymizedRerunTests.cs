@@ -15,6 +15,7 @@ public sealed class FirstPseudonymizedRerunTests : IClassFixture<RerunDatabase>
 {
     private const string Sanitized = "texto sanitizado antigo zqx";
     private const string NewText = "texto sanitizado de novo zqx";
+    private const string OtherRaw = "outro texto bruto zqx";
 
     private readonly RerunDatabase database;
 
@@ -31,7 +32,7 @@ public sealed class FirstPseudonymizedRerunTests : IClassFixture<RerunDatabase>
         var rerun = await database.CaseAsync();
         var marker = PseudonymizedTexts.Draw(1)[0];
         var item = await rerun.ItemAsync(Sanitized);
-        _ = await rerun.ItemAsync(Sanitized);
+        _ = await rerun.ItemAsync(Sanitized, raw: OtherRaw);
         await rerun.EmptyAsync(await rerun.ItemAsync(Sanitized));
         _ = await rerun.ItemAsync(Sanitized, await rerun.AnotherBatchAsync());
         _ = await rerun.RequestAsync();
@@ -43,7 +44,7 @@ public sealed class FirstPseudonymizedRerunTests : IClassFixture<RerunDatabase>
         Assert.Equal((PseudonymizedTexts.PseudonymizedOf([marker]), NewText), (await rerun.PseudonymizedTextAsync(item), await rerun.SanitizedAsync(item)));
         Assert.Equal(("1,1", $"{marker}:false|{marker}"), (await rerun.MapsOfAsync(item), await rerun.MarkersOfAsync(item)));
         var source = Assert.Single(seen);
-        Assert.Equal([RerunCase.Raw, RerunCase.Raw], source.Batch);
+        Assert.Equal([RerunCase.Raw, OtherRaw], source.Batch);
         Assert.Equal((0, true), (source.Position, source.Map is null));
     }
 

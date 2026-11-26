@@ -224,8 +224,9 @@ public sealed class ReversalRevelationTests
         await using var world = await ContentWorld.CreateAsync();
         var authorized = await AuthorizedAsync(world);
         await world.Database.ExecuteAsSuperuserAsync(
-            "ALTER TABLE content.reversal_map DISABLE TRIGGER USER; UPDATE content.reversal_map SET emptied_at = now() WHERE item_id = @item; "
-            + "ALTER TABLE content.reversal_map ENABLE ALWAYS TRIGGER USER",
+            "ALTER TABLE content.reversal_map DISABLE TRIGGER map_emptied_with_item, DISABLE TRIGGER map_change_needs_event; "
+            + "UPDATE content.reversal_map SET emptied_at = now(), entries = NULL, dek_epoch = NULL, dek_wrapped = NULL WHERE item_id = @item; "
+            + "ALTER TABLE content.reversal_map ENABLE ALWAYS TRIGGER map_emptied_with_item, ENABLE ALWAYS TRIGGER map_change_needs_event",
             ("item", authorized.Item));
 
         var revealed = await world.ReversalRevelations.RevealAsync(ByWhoAsked(authorized.Request), Token);

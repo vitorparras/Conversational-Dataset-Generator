@@ -83,7 +83,8 @@ public sealed class SanitizationReruns
     /// <summary>The items of the accepted batches of the domain by version, and the open request.</summary>
     public Task<RerunSituation> SituationAsync(int domainId, CancellationToken cancellationToken) => InDomainAsync(domainId, async scope =>
     {
-        var versions = await RowsAsync(scope, (ContentQueries.ReadRerunSituation, []), row => new VersionItems(row.IsDBNull(0) ? null : row.GetString(0), row.GetInt64(1)), cancellationToken)
+        var versions = await RowsAsync(
+            scope, (ContentQueries.ReadRerunSituation, []), row => new VersionItems(row.IsDBNull(0) ? null : row.GetString(0), row.GetInt64(1), row.GetInt64(2)), cancellationToken)
             .ConfigureAwait(false);
         var open = await RowsAsync(scope, (ContentQueries.ReadRerunOpen, []), row => (Id: row.GetInt64(0), Version: row.GetString(1)), cancellationToken).ConfigureAwait(false);
         return open.Count == 0 ? new RerunSituation(versions, null, null) : new RerunSituation(versions, open[0].Id, open[0].Version);

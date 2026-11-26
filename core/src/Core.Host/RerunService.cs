@@ -1,3 +1,4 @@
+using Core.Boundary.Contracts;
 using Core.Host.Submissions;
 using Core.Ingestion.Pseudonymizing;
 using Core.Ingestion.Sanitizing;
@@ -66,7 +67,11 @@ internal sealed class RerunService : BackgroundService
         }
 
         var time = host.GetRequiredService<TimeProvider>();
-        return new Parts(new DomainListing(source), new SanitizationReruns(source, time), rerun, token => OpenAsync(startup, source, time, token)) { Swap = CompositionRoot.SwapOf() };
+        return new Parts(new DomainListing(source), new SanitizationReruns(source, time), rerun, token => OpenAsync(startup, source, time, token))
+        {
+            Swap = CompositionRoot.SwapOf(),
+            Recognizer = host.GetRequiredService<IRecognizer>,
+        };
     }
 
     /// <summary>The content opened with the master key and the labels the database registers, for one item; none to rerun with when the key was not read.</summary>
@@ -129,7 +134,7 @@ internal sealed class RerunService : BackgroundService
     {
         try
         {
-            var result = await resanitizer.ResanitizeAsync(hold, held => DecidedItemTexts.Rerun(work.Rerun, work.Swap, held), cancellationToken).ConfigureAwait(false);
+            var result = await resanitizer.ResanitizeAsync(hold, (held, token) => RerunAnswers.OfAsync((work.Rerun, work.Swap), work.Recognizer, held, token), cancellationToken).ConfigureAwait(false);
             Report(hold, result);
         }
         catch (Exception failure) when (failure is SanitizationStepFailedException or ArgumentException)
@@ -162,6 +167,9 @@ internal sealed class RerunService : BackgroundService
     {
         /// <summary>Pseudonymizes again, with the markers of its map, an item whose sanitized text the rerun changes.</summary>
         internal required PseudonymSwap Swap { get; init; }
+
+        /// <summary>The recognizer at the boundary, one per use, which gives the groups of an item stored before the coreference.</summary>
+        internal required Func<IRecognizer> Recognizer { get; init; }
     }
 
     /// <summary>The rerun of the held items over the content opened, none when the key was not read, and the reading of the key, let go with it.</summary>

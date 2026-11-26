@@ -12,12 +12,26 @@ namespace Core.Persistence.Content.Rerun;
 /// <summary>What the queue and the rerun share: statements bound by name, rows read whole, the events of concluded items, and a hold given back or spent.</summary>
 internal static class RerunRows
 {
-    private static readonly string[] Refusals = ["emptied", "key_lost", "failed", "undecided"];
-
     /// <summary>The name the queue keeps for the refusal, and back; the database accepts no other.</summary>
-    internal static string NameOf(RerunRefusal refusal) => Refusals[(int)refusal];
+    internal static string NameOf(RerunRefusal refusal) => refusal switch
+    {
+        RerunRefusal.Emptied => "emptied",
+        RerunRefusal.KeyLost => "key_lost",
+        RerunRefusal.Failed => "failed",
+        RerunRefusal.Undecided => "undecided",
+        RerunRefusal.PseudonymWithoutPair => "pseudonym_without_pair",
+        _ => throw new ArgumentOutOfRangeException(nameof(refusal)),
+    };
 
-    internal static RerunRefusal RefusalOf(string name) => (RerunRefusal)Array.IndexOf(Refusals, name);
+    internal static RerunRefusal RefusalOf(string name) => name switch
+    {
+        "emptied" => RerunRefusal.Emptied,
+        "key_lost" => RerunRefusal.KeyLost,
+        "failed" => RerunRefusal.Failed,
+        "undecided" => RerunRefusal.Undecided,
+        "pseudonym_without_pair" => RerunRefusal.PseudonymWithoutPair,
+        _ => throw new ArgumentOutOfRangeException(nameof(name)),
+    };
 
     /// <summary>The version, the moment, the end of a new hold and the tries, for the statements over a version.</summary>
     internal static Bound[] Over(string version, DateTimeOffset now) =>

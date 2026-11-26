@@ -74,9 +74,9 @@ internal sealed class RerunCase
         version is null ? [0, 2] : [0],
         string.Equals(text, source.StoredText, StringComparison.Ordinal));
 
-    /// <summary>An item of the accepted batch of the domain, sanitized by the list the tests of the content write with.</summary>
-    public Task<long> ItemAsync(string sanitized) =>
-        new ContentWriter(application, custody.Content).AddItemTextAsync(DomainId, DomainId, ItemTexts.Of(Raw, sanitized), TestContext.Current.CancellationToken);
+    /// <summary>An item of <see cref="Raw"/>, or of the raw text given, of the accepted batch of the domain or of the batch given, sanitized by the list the tests of the content write with.</summary>
+    public Task<long> ItemAsync(string sanitized, long? batch = null, string raw = Raw) =>
+        new ContentWriter(application, custody.Content).AddItemTextAsync(DomainId, batch ?? DomainId, ItemTexts.Of(raw, sanitized), TestContext.Current.CancellationToken);
 
     /// <summary>An item of the accepted batch of the domain written before the destinations were decided: with no occurrences and no sanitization.</summary>
     public Task<long> UndecidedItemAsync() =>
@@ -124,6 +124,19 @@ internal sealed class RerunCase
     public async Task<string?> SanitizedAsync(long item) =>
         (await new ProtectedContentReader(application, custody.Content, new CustodyChain(application)).ReadAsync(
             new ContentRead(CustodyAuthor.System, ContentColumns.SanitizedText, DomainId, item), TestContext.Current.CancellationToken)).Text;
+
+    /// <summary>The pseudonymized text of the item, read as the owner and opened with the key of the item, as no reading of production opens it yet; none when it has none.</summary>
+    public async Task<string?> PseudonymizedTextAsync(long item)
+    {
+        var row = (await OwnerTextAsync(
+            "SELECT coalesce(encode(pseudonymized_text, 'base64'), '') || ',' || dek_epoch || ',' || encode(dek_wrapped, 'base64') FROM content.item_text WHERE id = @item", item)).Split(',');
+        var key = new ContentKey(int.Parse(row[1], CultureInfo.InvariantCulture), Convert.FromBase64String(row[2]));
+        return row[0].Length == 0 ? null : custody.Content.Open(ContentColumns.PseudonymizedText, DomainId, Convert.FromBase64String(row[0]), key);
+    }
+
+    /// <summary>How many maps of the item are not emptied, then how many it ever had, read as the owner.</summary>
+    public Task<string> MapsOfAsync(long item) => OwnerTextAsync(
+        "SELECT count(*) FILTER (WHERE emptied_at IS NULL) || ',' || count(*) FROM content.reversal_map WHERE item_id = @item", item);
 
     /// <summary>The version the detail of the batch names, read by the counts of production.</summary>
     public async Task<string?> VersionAsync() =>

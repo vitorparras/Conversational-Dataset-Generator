@@ -73,6 +73,21 @@ public sealed class SubmissionCollisionTests
     }
 
     [DatabaseFact]
+    public async Task DiagKinds()
+    {
+        var odd = new List<string>();
+        for (var round = 0; round < 6; round++)
+        {
+            await using var world = await SubmissionWorld.CreateAsync();
+            var outcomes = await Task.WhenAll(Enumerable.Range(0, Simultaneous).Select(at => Task.Run(() => world.SubmitAsync(Distinct(at)), TestContext.Current.CancellationToken)));
+            odd.AddRange(outcomes.Where(o => o.Kind is not (SubmissionKind.Done or SubmissionKind.Collided)).Select(o => $"r{round} {o.Kind} {o.Code} {o.Failure}"));
+            odd.Add($"r{round} kinds " + string.Join(',', outcomes.Select(o => o.Kind)));
+        }
+
+        Assert.Equal(["x"], [.. odd, .. SubmissionStoring.Seen]);
+    }
+
+    [DatabaseFact]
     public async Task OpeningThatMeetsAnotherEventOfTheChainIsToldToTryAgainWithNoBatch()
     {
         await using var world = await SubmissionWorld.CreateAsync(attempts: 1);

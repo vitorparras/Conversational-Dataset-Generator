@@ -101,9 +101,12 @@ internal static class SubmissionStoring
         }
         catch (Exception failure) when (failure is InvalidOperationException or NpgsqlException)
         {
+            Seen.Add(failure is Npgsql.PostgresException pg ? $"PG {pg.SqlState} {pg.MessageText} at {pg.TableName}/{pg.ConstraintName}" : $"{failure.GetType().Name}: {failure.Message}");
             return Keeping.WriteFailed;
         }
     }
+
+    internal static readonly System.Collections.Concurrent.ConcurrentBag<string> Seen = [];
 
     /// <summary>
     /// Rejects the batch that could not be kept, and again for a few rounds while the chain refuses the rejection for a collision.

@@ -187,6 +187,71 @@ public sealed class ReversalRevelationTests
     }
 
     [DatabaseFact]
+    public async Task RequestOfAnotherOrNoneIsNotFoundWithNoEvent()
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        var authorized = await AuthorizedAsync(world);
+        var second = await world.PersonAsync($"zqx-curator-{authorized.Marker}");
+        var events = await ReversalAsks.CountAsync(world, ReversalAsks.CountEvents);
+
+        var byAnother = await world.ReversalRevelations.RevealAsync(new ReversalAct(1, authorized.Request, second), Token);
+        var ofNone = await world.ReversalRevelations.RevealAsync(ByWhoAsked(authorized.Request + 100), Token);
+
+        Assert.Equal((ReversalOutcome.NotFound, ReversalOutcome.NotFound), (byAnother.Outcome, ofNone.Outcome));
+        Assert.Equal((null, null), (byAnother.Identity, ofNone.Identity));
+        Assert.Equal((0L, events), (await ReversalAsks.CountAsync(world, CountRevelations), await ReversalAsks.CountAsync(world, ReversalAsks.CountEvents)));
+    }
+
+    [DatabaseFact]
+    public async Task FailureToRecordTheReadingOfTheMapRevealsNothingAndKeepsTheRevelation()
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        var authorized = await AuthorizedAsync(world);
+        await RefuseInTheChainAsync(world, "reversal_entries_read");
+
+        var revealed = await world.ReversalRevelations.RevealAsync(ByWhoAsked(authorized.Request), Token);
+
+        Assert.Equal((ReversalOutcome.NotRecorded, null), (revealed.Outcome, revealed.Identity));
+        _ = Assert.NotNull(revealed.RevealedAt);
+        _ = Assert.NotNull(revealed.Refusal);
+        Assert.Equal((1L, 1L, 0L), (await ReversalAsks.CountAsync(world, CountRevelations), await CountOfStepAsync(world, "reversal_revealed"),
+            await CountOfStepAsync(world, "reversal_entries_read")));
+    }
+
+    [DatabaseFact]
+    public async Task MapGoneAfterTheRevelationIsRecordedIsDeniedAsEmptied()
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        var authorized = await AuthorizedAsync(world);
+        await world.Database.ExecuteAsSuperuserAsync(
+            "ALTER TABLE content.reversal_map DISABLE TRIGGER USER; UPDATE content.reversal_map SET emptied_at = now() WHERE item_id = @item; "
+            + "ALTER TABLE content.reversal_map ENABLE ALWAYS TRIGGER USER",
+            ("item", authorized.Item));
+
+        var revealed = await world.ReversalRevelations.RevealAsync(ByWhoAsked(authorized.Request), Token);
+
+        Assert.Equal((ReversalOutcome.Emptied, null), (revealed.Outcome, revealed.Identity));
+        _ = Assert.NotNull(revealed.RevealedAt);
+        Assert.Equal((1L, 0L), (await ReversalAsks.CountAsync(world, CountRevelations), await CountOfStepAsync(world, "reversal_entries_read")));
+    }
+
+    [DatabaseFact]
+    public async Task NullArgumentOfTheRevelationIsRefusedByItsName()
+    {
+        await using var world = await ContentWorld.CreateAsync();
+
+        string?[] names =
+        [
+            Assert.Throws<ArgumentNullException>(() => new ReversalRevelations(null!, world.Reader, TimeProvider.System)).ParamName,
+            Assert.Throws<ArgumentNullException>(() => new ReversalRevelations(world.DataSource, null!, TimeProvider.System)).ParamName,
+            Assert.Throws<ArgumentNullException>(() => new ReversalRevelations(world.DataSource, world.Reader, null!)).ParamName,
+            (await Assert.ThrowsAsync<ArgumentNullException>(() => world.ReversalRevelations.RevealAsync(null!, Token))).ParamName,
+        ];
+
+        Assert.Equal(["dataSource", "reader", "time", "act"], names);
+    }
+
+    [DatabaseFact]
     public async Task TwoRevealPostsAtOnceRevealOnce()
     {
         await using var world = await ContentWorld.CreateAsync();

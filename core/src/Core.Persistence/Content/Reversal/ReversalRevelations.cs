@@ -73,7 +73,7 @@ public sealed class ReversalRevelations
         Bound[] row = [new("domain", NpgsqlDbType.Integer, act.DomainId), new("authorization", NpgsqlDbType.Bigint, authorizationId)];
         var written = await ScalarAsync(scope, (ContentQueries.InsertReversalRevelation, row), cancellationToken).ConfigureAwait(false);
         return written is long id
-            ? (new ReversalResult(ReversalOutcome.Recorded) { Id = id }, CustodyEvent.ReversalRevealed(act.PersonId, id, authorizationId))
+            ? (new ReversalResult(ReversalOutcome.Recorded), CustodyEvent.ReversalRevealed(act.PersonId, id, authorizationId))
             : (new ReversalResult(ReversalOutcome.NotRecorded) { Refusal = CustodyRefusals.Conflict() }, null);
     }
 

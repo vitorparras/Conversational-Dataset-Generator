@@ -43,6 +43,7 @@ internal static class ScreenPaths
     internal const string ReversalAsk = "/reversao/pedir";
     internal const string ReversalMine = "/reversao/meus-pedidos";
     internal const string ReversalMineOne = "/reversao/meus-pedidos/{id:long}";
+    internal const string ReversalReveal = "/reversao/meus-pedidos/{id:long}/revelar";
     internal const string ReversalAuthorize = "/reversao/autorizar";
     internal const string ReversalDecide = "/reversao/autorizar/{id:long}";
 
@@ -63,6 +64,9 @@ internal static class ScreenPaths
 
     /// <summary>The address of a request of the person of the session, as whoever asked follows it.</summary>
     internal static string ReversalMineOf(long id) => string.Create(CultureInfo.InvariantCulture, $"/reversao/meus-pedidos/{id}");
+
+    /// <summary>The address where whoever asked a request authorized reveals its marker.</summary>
+    internal static string ReversalRevealOf(long id) => string.Create(CultureInfo.InvariantCulture, $"/reversao/meus-pedidos/{id}/revelar");
 
     /// <summary>The address where another person of the curation decides a request.</summary>
     internal static string ReversalDecideOf(long id) => string.Create(CultureInfo.InvariantCulture, $"/reversao/autorizar/{id}");

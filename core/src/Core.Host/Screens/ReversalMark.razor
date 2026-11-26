@@ -9,6 +9,9 @@
     case ReversalState.Authorized:
         <StateMark Kind="StateMark.Tone.Good">Autorizado até @DayOf(Request.ValidUntil)</StateMark>
         break;
+    case ReversalState.Revealed:
+        <StateMark>Revelado em @DayOf(Request.RevealedAt)@(Timed ? $", {HourOf(Request.RevealedAt)}" : "")</StateMark>
+        break;
     case ReversalState.Declined:
         <StateMark Kind="StateMark.Tone.Bad">Recusado</StateMark>
         break;
@@ -22,6 +25,12 @@
     [Parameter, EditorRequired]
     public ListedReversal Request { get; set; } = null!;
 
+    /// <summary>Whether a revelation says the hour as well as the day, as the page of the request does and a list does not.</summary>
+    [Parameter]
+    public bool Timed { get; set; }
+
     /// <summary>The day of an instant, in universal time, as the screens of the reversal write the last day an authorization is valid and the day of a request.</summary>
     internal static string DayOf(DateTimeOffset? at) => at?.UtcDateTime.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) ?? "";
+
+    internal static string HourOf(DateTimeOffset? at) => at?.UtcDateTime.ToString("HH:mm", CultureInfo.InvariantCulture) ?? "";
 }

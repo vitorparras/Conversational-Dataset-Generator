@@ -1,0 +1,80 @@
+@using System.Globalization
+@using Core.Host.Endpoints
+@using Core.Persistence.Content.Reversal
+
+@switch (Showing)
+{
+    case Shown.Confirm:
+        <h1>Revelar <code>@Request.Marker</code>?</h1>
+        <ul>
+            <li>A revelação fica registrada antes de a identidade aparecer.</li>
+            <li>Ela aparece uma só vez. Voltar ou recarregar não a mostra de novo.</li>
+        </ul>
+        <form class="actions" method="post" action="@ScreenPaths.ReversalRevealOf(Request.Id)">
+            <Button Id="revelar" Kind="Button.Look.Danger">Revelar agora</Button>
+            <a href="@ScreenPaths.ReversalMineOf(Request.Id)">Voltar sem revelar</a>
+        </form>
+        break;
+    case Shown.Revealed:
+        <h1><code>@Request.Marker</code>, item @Request.ItemId</h1>
+        <p class="reveal">@Identity</p>
+        <p class="status">
+            <StateMark Kind="StateMark.Tone.Good">Registrado às @ReversalMark.HourOf(RevealedAt) de @ReversalMark.DayOf(RevealedAt)</StateMark> Esta é a única vez que ela aparece.
+        </p>
+        <p><a href="@ScreenPaths.ReversalMine">Meus pedidos</a></p>
+        break;
+    default:
+        <h1>Pedido @Request.Id</h1>
+        <Notice Kind="Notice.Tone.Error" Label="Não revelado">@Reason</Notice>
+        <div class="actions">
+            @if (Showing is Shown.Expired or Shown.Used)
+            {
+                <Button Href="@ScreenPaths.ReversalAsk">Fazer outro pedido</Button>
+            }
+            <a href="@ScreenPaths.ReversalMine">Meus pedidos</a>
+        </div>
+        break;
+}
+
+@code {
+    /// <summary>What the page shows: the confirmation, the identity revealed, or why it was not.</summary>
+    public enum Shown
+    {
+        Confirm,
+        Revealed,
+        Expired,
+        Used,
+        Emptied,
+        NotWritten,
+    }
+
+    /// <summary>The request of the person of the session, as it stands now.</summary>
+    [Parameter, EditorRequired]
+    public ListedReversal Request { get; set; } = null!;
+
+    [Parameter]
+    public Shown Showing { get; set; }
+
+    /// <summary>The original the marker stands for, only on the one answer that reveals it.</summary>
+    [Parameter]
+    public string? Identity { get; set; }
+
+    /// <summary>When the revelation was recorded, only when it was.</summary>
+    [Parameter]
+    public DateTimeOffset? RevealedAt { get; set; }
+
+    private string Reason => Showing switch
+    {
+        Shown.Expired => $"a autorização venceu em {ReversalMark.DayOf(Request.ValidUntil)}.",
+        Shown.Used => $"este pedido já foi revelado em {ReversalMark.DayOf(Request.RevealedAt)}.",
+        Shown.Emptied => string.Create(CultureInfo.InvariantCulture, $"o item {Request.ItemId} foi esvaziado, e o mapa dele não existe mais."),
+        _ => "a cadeia de custódia não aceitou o registro, e a identidade não foi mostrada.",
+    };
+
+    internal static string TitleOf(ListedReversal request, Shown shown) => shown switch
+    {
+        Shown.Confirm => $"Revelar {request.Marker}?",
+        Shown.Revealed => string.Create(CultureInfo.InvariantCulture, $"{request.Marker}, item {request.ItemId}"),
+        _ => string.Create(CultureInfo.InvariantCulture, $"Pedido {request.Id}"),
+    };
+}

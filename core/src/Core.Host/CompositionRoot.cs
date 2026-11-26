@@ -123,7 +123,8 @@ internal static class CompositionRoot
     internal static Persistence.Ingestion.SampleTextReader SampleTextOf(NpgsqlDataSource source, MasterKeyReading reading, IReadOnlySet<string> known) => new(source, ContentOf(reading, known));
     internal static Persistence.Content.Rerun.ItemResanitizer ResanitizerOf(NpgsqlDataSource source, ProtectedContent content, TimeProvider time) => new(source, content, time);
     internal static ReversalAccess ReversalOf(NpgsqlDataSource source, ProtectedContent content, TimeProvider time, MasterKeyReading reading) =>
-        new(new(source, content, time), new(source, new ProtectedContentReader(source, content, new CustodyChain(source)), time), reading);
+        new(new(source, content, time), new(source, ReadingOf(source, content), time), new(source, ReadingOf(source, content), time), reading);
+    internal static ProtectedContentReader ReadingOf(NpgsqlDataSource source, ProtectedContent content) => new(source, content, new CustodyChain(source));
     internal static CopyClosing ClosingOf(NpgsqlDataSource source, Persistence.Ingestion.IngestionBatches batches) => new(new Persistence.Ingestion.BatchApprovals(source), batches);
     internal static SanitizationSteps StepsOf() =>
         new([new EncodingRepairStep(new TextBoundaries()), new FormatArtifactStep(new TextBoundaries()), new IdentifierStep(new TextBoundaries()), new DestinationsStep()]);
@@ -140,7 +141,6 @@ internal static class CompositionRoot
 
     /// <summary>The rehearsal of the recovery over a source that was read, opening content with the labels the database registers.</summary>
     internal static RecoveryRehearsal RehearsalOf(NpgsqlDataSource source, MasterKeyReading reading, IReadOnlySet<string> known) => new(source, ContentOf(reading, known), TimeProvider.System);
-
     /// <summary>The record of the rehearsal in the chain of the production, and the load of a restored copy.</summary>
     internal static RecoveryRecording RecordingOf(NpgsqlDataSource dataSource) => new(dataSource);
     internal static RestoreLoader LoaderOf(NpgsqlDataSource dataSource) => new(dataSource, new GuaranteeVerifier(dataSource), TimeProvider.System);

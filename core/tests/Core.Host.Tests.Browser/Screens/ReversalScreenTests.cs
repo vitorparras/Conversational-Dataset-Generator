@@ -9,7 +9,8 @@ namespace Core.Host.Tests.Browser.Screens;
 
 /// <summary>
 /// The screens of the reversal of a marker (issues 614 and 615) in a real Chromium, over the host with the real gates, the real routes and the desk the root registers: the request is filled and
-/// sent by the keyboard alone, with its button in the first fold of a phone, and another person of the curation opens it from the list and authorizes it by the keyboard; every page has no
+/// sent by the keyboard alone, with its button in the first fold of a phone, another person of the curation opens it from the list and authorizes it by the keyboard, and whoever asked
+/// confirms the revelation and reads the identity once, which going back does not show again (issues 105 and 616); every page has no
 /// violation of WCAG 2.1 A and AA, in the light and in the dark, on 1280 px and on the width of a phone.
 /// </summary>
 [Trait("Category", "Browser")]
@@ -72,7 +73,7 @@ public sealed class ReversalScreenTests(BrowserFixture browser, ReversalHostFixt
     [Fact]
     public async Task AuthorizationIsConfirmedByKeyboardAndPassesTheAccessibilityCheck()
     {
-        var asked = await reversal.Case.AskedAsync();
+        var (asked, _, _) = await reversal.Case.AskedAsync();
         await using var tab = await EmptyingPages.OpenAsync(browser, reversal.Host, reversal.Case.Second, "/reversao/autorizar");
         await ScreenAccessibility.AssertAccessibleAsync(tab.Page, MediaMode.Light, "reversao-pendentes");
         await ScreenAccessibility.AssertAccessibleAsync(tab.Page, MediaMode.Dark, "reversao-pendentes");
@@ -98,6 +99,37 @@ public sealed class ReversalScreenTests(BrowserFixture browser, ReversalHostFixt
         await ScreenAccessibility.AssertAccessibleAsync(tab.Page, MediaMode.Light, "reversao-autorizado");
         await ScreenAccessibility.AssertAccessibleAsync(tab.Page, MediaMode.Dark, "reversao-autorizado");
         await CaptureAsync(tab.Page, "reversao-autorizado");
+    }
+
+    [Fact]
+    public async Task RevelationIsReadByKeyboardAndPassesTheAccessibilityCheck()
+    {
+        var (request, item, marker) = await reversal.Case.AuthorizedAsync();
+        await using var tab = await EmptyingPages.OpenAsync(browser, reversal.Host, reversal.Host.Curator, $"/reversao/meus-pedidos/{request}");
+        await FocusAsync(tab.Page, $"(document.activeElement.getAttribute('href') || '').endsWith('/reversao/meus-pedidos/{request}/revelar')");
+        Assert.True(await tab.Page.EvaluateAsync<bool>(FocusIsSeen));
+        await tab.Page.Keyboard.PressAsync("Enter");
+
+        await Expect(tab.Page.GetByRole(AriaRole.Heading, new() { Name = $"Revelar {marker}?", Exact = true, Level = 1 })).ToBeVisibleAsync();
+        await ScreenAccessibility.AssertAccessibleAsync(tab.Page, MediaMode.Light, "reversao-confirmar");
+        await ScreenAccessibility.AssertAccessibleAsync(tab.Page, MediaMode.Dark, "reversao-confirmar");
+        await CaptureAsync(tab.Page, "reversao-confirmar");
+        await FocusAsync(tab.Page, "document.activeElement.id === 'revelar'");
+        Assert.True(await tab.Page.EvaluateAsync<bool>(FocusIsSeen));
+        await tab.Page.Keyboard.PressAsync("Enter");
+
+        await Expect(tab.Page.GetByRole(AriaRole.Heading, new() { Name = $"{marker}, item {item}", Exact = true, Level = 1 })).ToBeVisibleAsync();
+        await Expect(tab.Page.GetByText(ReversalCase.Original, new() { Exact = true })).ToBeVisibleAsync();
+        await ScreenAccessibility.AssertAccessibleAsync(tab.Page, MediaMode.Light, "reversao-revelada");
+        await ScreenAccessibility.AssertAccessibleAsync(tab.Page, MediaMode.Dark, "reversao-revelada");
+        await CaptureAsync(tab.Page, "reversao-revelada");
+
+        _ = await tab.Page.GoBackAsync();
+        await Expect(tab.Page.GetByRole(AriaRole.Heading, new() { Name = $"Pedido {request}", Exact = true, Level = 1 })).ToBeVisibleAsync();
+        await Expect(tab.Page.Locator(".status")).ToContainTextAsync(new Regex("Revelado em [0-9]{2}/[0-9]{2}/[0-9]{4}, [0-9]{2}:[0-9]{2}", RegexOptions.None, TimeSpan.FromSeconds(1)));
+        Assert.DoesNotContain(ReversalCase.Original, await tab.Page.ContentAsync(), StringComparison.Ordinal);
+        await ScreenAccessibility.AssertAccessibleAsync(tab.Page, MediaMode.Light, "reversao-revelado");
+        await ScreenAccessibility.AssertAccessibleAsync(tab.Page, MediaMode.Dark, "reversao-revelado");
     }
 
     /// <summary>The page in the light on the phone and on the common width of a notebook, kept when the run asks for captures; the width of the checks comes back after.</summary>

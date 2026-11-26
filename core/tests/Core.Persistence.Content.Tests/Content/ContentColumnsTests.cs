@@ -162,6 +162,7 @@ public sealed class ContentColumnsTests
                 new ClearColumn("marker_in_use", "domain_id", ClearKind.Domain),
                 new ClearColumn("marker_in_use", "marker", ClearKind.Motive),
                 new ClearColumn("marker_in_use", "kind", ClearKind.Motive),
+                new ClearColumn("marker_in_use", "batch_id", ClearKind.Identifier),
                 new ClearColumn("item_marker", "id", ClearKind.Identifier),
                 new ClearColumn("item_marker", "domain_id", ClearKind.Domain),
                 new ClearColumn("item_marker", "item_id", ClearKind.Identifier),

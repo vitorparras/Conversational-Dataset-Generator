@@ -13,7 +13,8 @@ public sealed partial class ContentWriter
 
     /// <summary>
     /// Adds a pseudonymized item to an open batch of the domain with the map that reverses it and the markers it holds, in one transaction: the pseudonymized text and the
-    /// map are sealed, the markers are held in clear in the installation. When another row holds some marker already, nothing is written and the markers taken are named.
+    /// map are sealed, the markers are held in clear in the installation for the batch. When another batch holds some marker already, nothing is written and the markers taken are named;
+    /// a marker the batch holds, won by an earlier message of the same conversation, is the item's too (0057).
     /// </summary>
     /// <param name="domainId">The domain the item belongs to.</param>
     /// <param name="batchId">The batch the item comes in with, which must be open.</param>
@@ -50,7 +51,7 @@ public sealed partial class ContentWriter
         NpgsqlParameter[] map = [Batch(pending.BatchId), ItemOf(itemId), .. pending.Map()];
         _ = await ScalarAsync(transaction, domainId, (ContentQueries.InsertReversalMap, map), cancellationToken).ConfigureAwait(false);
         string[] markers = [.. pending.Held.Select(marker => marker.Marker)];
-        var kept = await HeldAsync(transaction, domainId, markers, cancellationToken).ConfigureAwait(false);
+        var kept = await HeldAsync(transaction, (domainId, pending.BatchId), markers, cancellationToken).ConfigureAwait(false);
         if (markers.Where(marker => !kept.Contains(marker)).ToList() is { Count: > 0 } taken)
         {
             return new PseudonymizedWrite(null, taken);
@@ -62,13 +63,14 @@ public sealed partial class ContentWriter
         return new PseudonymizedWrite(itemId, []);
     }
 
-    /// <summary>The markers this transaction came to hold; the ones another row holds already are not among them.</summary>
-    private static async Task<HashSet<string>> HeldAsync(ContentTransaction transaction, int domainId, string[] markers, CancellationToken cancellationToken)
+    /// <summary>The markers the batch holds among the ones given, won now or before; the ones another batch holds are not among them.</summary>
+    private static async Task<HashSet<string>> HeldAsync(ContentTransaction transaction, (int DomainId, long BatchId) of, string[] markers, CancellationToken cancellationToken)
     {
         var command = transaction.CreateCommand(ContentQueries.InsertMarkersInUse);
         await using (command.ConfigureAwait(false))
         {
-            _ = command.Parameters.Add(new NpgsqlParameter("domain", NpgsqlDbType.Integer) { Value = domainId });
+            _ = command.Parameters.Add(new NpgsqlParameter("domain", NpgsqlDbType.Integer) { Value = of.DomainId });
+            _ = command.Parameters.Add(Batch(of.BatchId));
             _ = command.Parameters.Add(MarkersOf(markers));
             var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             await using (reader.ConfigureAwait(false))

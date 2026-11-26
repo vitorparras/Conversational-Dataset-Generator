@@ -178,13 +178,19 @@ public sealed class ItemResanitizer
         _ = await ScalarAsync(scope, (statement, values), cancellationToken).ConfigureAwait(false);
     }
 
-    /// <summary>The markers new to the item are held and given to it, the ones it held already are kept as they are, and the ones gone from its text leave it, held still.</summary>
+    /// <summary>
+    /// The markers new to the item are held for its batch and given to it, the ones it held already are kept as they are, and the ones gone from its text leave it, held still.
+    /// </summary>
     private static async Task KeepMarkersAsync(CustodyScope scope, RerunHold hold, IReadOnlyList<HeldMarker> markers, CancellationToken cancellationToken)
     {
         string[] names = [.. markers.Select(marker => marker.Marker)];
+        Bound item = new("item", NpgsqlDbType.Bigint, hold.ItemId);
+        Bound[] ofItem = [item];
+        var batch = (long)(await ScalarAsync(scope, (ContentQueries.ReadItemBatch, ofItem), cancellationToken).ConfigureAwait(false))!;
         Bound[] held = [new("domain", NpgsqlDbType.Integer, hold.DomainId), new("markers", TextArray, names)];
-        _ = await ScalarAsync(scope, (ContentQueries.InsertMarkersInUse, held), cancellationToken).ConfigureAwait(false);
-        Bound[] given = [.. held, new("item", NpgsqlDbType.Bigint, hold.ItemId), new("authors", BooleanArray, markers.Select(marker => marker.Author).ToArray())];
+        Bound[] inBatch = [.. held, new("batch", NpgsqlDbType.Bigint, batch)];
+        _ = await ScalarAsync(scope, (ContentQueries.InsertMarkersInUse, inBatch), cancellationToken).ConfigureAwait(false);
+        Bound[] given = [.. held, item, new("authors", BooleanArray, markers.Select(marker => marker.Author).ToArray())];
         _ = await ScalarAsync(scope, (ContentQueries.InsertItemMarkers, given), cancellationToken).ConfigureAwait(false);
         Bound[] gone = [new("item", NpgsqlDbType.Bigint, hold.ItemId), new("markers", TextArray, names)];
         _ = await ScalarAsync(scope, (ContentQueries.RemoveItemMarkersGone, gone), cancellationToken).ConfigureAwait(false);

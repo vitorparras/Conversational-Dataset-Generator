@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Core.Boundary.Contracts;
+using Core.Boundary.Fake;
 using Core.Boundary.Text;
 using Core.Host.Submissions;
 using Core.Host.Tests.Submissions;
@@ -86,6 +87,7 @@ internal sealed class RerunWorld : IAsyncDisposable
         var parts = new RerunService.Parts(new DomainListing(Submissions.DataSource), new SanitizationReruns(Submissions.DataSource, Clock), rerun, open ?? OpenAsync)
         {
             Swap = CompositionRoot.SwapOf(),
+            Recognizer = () => new FakeRecognizer(),
         };
         worker = new RerunService(parts, Clock, loggers);
         return worker.StartAsync(Token);

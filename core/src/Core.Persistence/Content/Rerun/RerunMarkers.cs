@@ -3,6 +3,7 @@ using Core.Persistence.Content.Writing;
 using Core.Persistence.Custody.Chain;
 using NpgsqlTypes;
 using static Core.Persistence.Content.Rerun.RerunRows;
+using Answering = System.Func<Core.Persistence.Content.Rerun.RerunSource, System.Threading.CancellationToken, System.Threading.Tasks.Task<Core.Persistence.Content.Rerun.RerunAnswer>>;
 
 namespace Core.Persistence.Content.Rerun;
 
@@ -21,43 +22,51 @@ internal static class RerunMarkers
 
     /// <summary>
     /// What the domain makes of the item, drawn again for as many draws as <see cref="Draws"/> until its batch wins every marker new to the item, a marker held by no batch; the markers
-    /// of its map need no draw. A text identical, or an item with no map, is not drawn.
+    /// of its map need no draw. What the domain gives no new map is not drawn, and the first map of an item holds no marker of another item, of its batch or not (option 2 of F3).
     /// </summary>
-    internal static async Task<Resanitized?> DrawnAsync(
-        CustodyScope scope, (RerunHold Hold, Func<RerunSource, Resanitized?> Rerun) work, RerunSource source, CancellationToken cancellationToken)
+    internal static async Task<RerunAnswer> DrawnAsync(CustodyScope scope, (RerunHold Hold, Answering Rerun) work, RerunSource source, CancellationToken cancellationToken)
     {
-        var produced = work.Rerun(source);
-        if (produced?.Map is null || produced.Identical)
+        var answer = await work.Rerun(source, cancellationToken).ConfigureAwait(false);
+        if (answer.Produced is not { Map: not null } produced)
         {
-            return produced;
+            return answer;
         }
 
         var held = MarkersOf(source.Map);
         var batch = await BatchOfAsync(scope, work.Hold.ItemId, cancellationToken).ConfigureAwait(false);
         var taken = new HashSet<string>(StringComparer.Ordinal);
         var draw = 1;
-        while (await LostAsync(scope, (work.Hold.DomainId, batch), (held, produced.Map!), cancellationToken).ConfigureAwait(false) is { Count: > 0 } lost)
+        while (await LostAsync(scope, (work.Hold.DomainId, batch), (held, produced.Map), cancellationToken).ConfigureAwait(false) is { Count: > 0 } lost)
         {
             taken.UnionWith(lost);
-            produced = draw++ < Draws && work.Rerun(source with { Taken = taken.ToHashSet(StringComparer.Ordinal) }) is { Map: not null } again
-                ? again
-                : throw new InvalidOperationException("Every draw of the rerun met a marker another batch holds.");
+            var next = draw++ < Draws ? await work.Rerun(source with { Taken = taken.ToHashSet(StringComparer.Ordinal) }, cancellationToken).ConfigureAwait(false) : null;
+            if (next?.Produced is not { Map: not null } again)
+            {
+                return next ?? throw new InvalidOperationException("Every draw of the rerun met a marker another batch holds.");
+            }
+
+            produced = again;
         }
 
-        return produced;
+        return answer with { Produced = produced };
     }
 
-    /// <summary>The map the rerun gave, written: its markers kept for the item, the old map emptied, with the event of its rerun, and the new one sealed under the key of the old one.</summary>
+    /// <summary>
+    /// The map the rerun gave, written: its markers kept for the item, the old map emptied, with the event of its rerun, and the new one sealed under the key of the old one, or under a
+    /// key of its own when it is the first map of the item.
+    /// </summary>
     internal static async Task RemapAsync(
         CustodyScope scope, (ProtectedContent Content, RerunHold Hold) of, (IReadOnlyList<NewMapEntry> Entries, ContentKey? Key) map, CancellationToken cancellationToken)
     {
-        var key = map.Key ?? throw new InvalidOperationException("The rerun gave a map to an item that holds none.");
         var hold = of.Hold;
+        using var first = map.Key is null ? of.Content.Begin(ContentColumns.MapKey, hold.DomainId) : null;
+        var key = map.Key ?? first!.Stored;
         var batch = await BatchOfAsync(scope, hold.ItemId, cancellationToken).ConfigureAwait(false);
         await KeepAsync(scope, (hold, batch), HeldOf(map.Entries), cancellationToken).ConfigureAwait(false);
         Bound[] emptied = [new("id", NpgsqlDbType.Bigint, hold.ItemId)];
         _ = await ScalarAsync(scope, (ContentQueries.EmptyReversalMaps, emptied), cancellationToken).ConfigureAwait(false);
-        var entries = of.Content.Reseal(ContentColumns.Entries, hold.DomainId, key, MapEntryJson.Write(map.Entries)).Envelope.ToArray();
+        var json = MapEntryJson.Write(map.Entries);
+        var entries = (first?.Seal(ContentColumns.Entries, json) ?? of.Content.Reseal(ContentColumns.Entries, hold.DomainId, key, json)).Envelope.ToArray();
         Bound[] written =
         [
             new("domain", NpgsqlDbType.Integer, hold.DomainId), new("batch", NpgsqlDbType.Bigint, batch), new("item", NpgsqlDbType.Bigint, hold.ItemId),

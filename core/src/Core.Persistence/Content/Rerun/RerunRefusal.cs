@@ -14,4 +14,7 @@ public enum RerunRefusal
 
     /// <summary>The destinations of the occurrences of the item were never decided, so nothing says what may stay.</summary>
     Undecided,
+
+    /// <summary>An occurrence the item holds from before the coreference has no pair in the answer of the service, so nothing gives it its group.</summary>
+    PseudonymWithoutPair,
 }

@@ -1,4 +1,3 @@
-using System.Data;
 using Core.Persistence.Content.Reading;
 using Core.Persistence.Content.Sealing;
 using Core.Persistence.Custody;
@@ -7,6 +6,7 @@ using Core.Persistence.Custody.Chain.Append;
 using Npgsql;
 using NpgsqlTypes;
 using static Core.Persistence.Content.Rerun.RerunRows;
+using Answering = System.Func<Core.Persistence.Content.Rerun.RerunSource, System.Threading.CancellationToken, System.Threading.Tasks.Task<Core.Persistence.Content.Rerun.RerunAnswer>>;
 
 namespace Core.Persistence.Content.Rerun;
 
@@ -39,10 +39,17 @@ public sealed class ItemResanitizer
     public Task<RerunResult> ResanitizeAsync(RerunHold hold, Func<RerunSource, Resanitized?> rerun, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(rerun);
+        return ResanitizingAsync(hold, (held, _) => Task.FromResult(RerunAnswer.Of(rerun(held))), cancellationToken);
+    }
+
+    /// <summary>Reruns the held item by the answer of the domain, which may ask the service: a refusal concludes it with its reason, and no answer spends a try of it.</summary>
+    public Task<RerunResult> ResanitizeAsync(RerunHold hold, Answering rerun, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(rerun);
         return ResanitizingAsync(hold, rerun, cancellationToken);
     }
 
-    private async Task<RerunResult> ResanitizingAsync(RerunHold hold, Func<RerunSource, Resanitized?> rerun, CancellationToken cancellationToken)
+    private async Task<RerunResult> ResanitizingAsync(RerunHold hold, Answering rerun, CancellationToken cancellationToken)
     {
         var now = time.GetUtcNow();
         var judged = new RerunResult(RerunOutcome.NotHeld);
@@ -66,11 +73,11 @@ public sealed class ItemResanitizer
     }
 
     private async Task<(RerunResult, CustodyResult?)> TreatInAsync(
-        CustodyScope scope, (RerunHold Hold, Func<RerunSource, Resanitized?> Rerun, DateTimeOffset Now) work, CancellationToken cancellationToken)
+        CustodyScope scope, (RerunHold Hold, Answering Rerun, DateTimeOffset Now) work, CancellationToken cancellationToken)
     {
         var hold = work.Hold;
         await DeclareAsync(scope, hold.DomainId, cancellationToken).ConfigureAwait(false);
-        var found = await RowsAsync(scope, (ContentQueries.ReadResanitizationSource, [new("id", NpgsqlDbType.Bigint, hold.ItemId)]), Stored, cancellationToken).ConfigureAwait(false);
+        var found = await RerunItemSource.ReadAsync(scope, hold.ItemId, cancellationToken).ConfigureAwait(false);
         if (found is not [{ } stored])
         {
             return await FinishAsync(scope, work, (new RerunResult(RerunOutcome.Refused, Refusal: RerunRefusal.Emptied), null), cancellationToken).ConfigureAwait(false);
@@ -83,9 +90,13 @@ public sealed class ItemResanitizer
                 : (new RerunResult(RerunOutcome.Failed), null);
         }
 
-        if (await RerunMarkers.DrawnAsync(scope, (hold, work.Rerun), Opened(stored, hold), cancellationToken).ConfigureAwait(false) is not { } produced)
+        var source = await RerunItemSource.OpenedAsync(scope, (protectedContent, hold), stored, cancellationToken).ConfigureAwait(false);
+        var answer = await RerunMarkers.DrawnAsync(scope, (hold, work.Rerun), source, cancellationToken).ConfigureAwait(false);
+        if (answer.Produced is not { } produced)
         {
-            return await FinishAsync(scope, work, (new RerunResult(RerunOutcome.Refused, Refusal: RerunRefusal.Undecided), null), cancellationToken).ConfigureAwait(false);
+            return answer.Refusal is { } refusal
+                ? await FinishAsync(scope, work, (new RerunResult(RerunOutcome.Refused, Refusal: refusal), null), cancellationToken).ConfigureAwait(false)
+                : (new RerunResult(RerunOutcome.Failed), null);
         }
 
         var statement = StatementOf(produced, stored.Version);
@@ -95,7 +106,7 @@ public sealed class ItemResanitizer
 
     /// <summary>The event and the conclusion in the queue first, as the database asks, then the change of the item, and the commit; nothing is kept when the hold is no longer this one.</summary>
     private static async Task<(RerunResult, CustodyResult?)> FinishAsync(
-        CustodyScope scope, (RerunHold Hold, Func<RerunSource, Resanitized?> Rerun, DateTimeOffset Now) work, (RerunResult Result, Func<Task>? Write) end, CancellationToken cancellationToken)
+        CustodyScope scope, (RerunHold Hold, Answering Rerun, DateTimeOffset Now) work, (RerunResult Result, Func<Task>? Write) end, CancellationToken cancellationToken)
     {
         var (name, reason) = Concluded(end.Result.Outcome);
         var appended = await CustodyAppend.AppendAsync(scope, CustodyEvent.ItemResanitized(work.Hold.ItemId, reason, work.Hold.Version), cancellationToken).ConfigureAwait(false);
@@ -124,7 +135,10 @@ public sealed class ItemResanitizer
         return outcome == RerunOutcome.Replaced ? ("replaced", CustodyReason.SanitizationReplaced) : ("refused", CustodyReason.SanitizationRefused);
     }
 
-    /// <summary>The change of the item: none for the same text of the same version, the counts and the version for the same text of another, and everything for a new text.</summary>
+    /// <summary>
+    /// The change of the item: none for the same text of the same version, the counts and the version for the same text of another, with the first pseudonymized text of an item that
+    /// held none, and everything for a new text.
+    /// </summary>
     private static string? StatementOf(Resanitized produced, string? storedVersion)
     {
         if (!produced.Identical)
@@ -132,33 +146,15 @@ public sealed class ItemResanitizer
             return ContentQueries.CloseItemResanitization;
         }
 
+        if (produced.Pseudonymized is not null)
+        {
+            return ContentQueries.CloseItemFirstRecount;
+        }
+
         return string.Equals(produced.Version, storedVersion, StringComparison.Ordinal) ? null : ContentQueries.CloseItemRecount;
     }
 
-    /// <summary>What the item holds, sealed, in the columns of the statement.</summary>
-    private static StoredItem Stored(IDataRecord row)
-    {
-        var at = 0;
-        T? Next<T>()
-            where T : class => row.IsDBNull(at++) ? null : (T)row.GetValue(at - 1);
-        var item = new StoredItem(Next<byte[]>()!, Next<byte[]>(), Next<byte[]>(), Next<string>(), new ContentKey(row.GetInt32(at++), Next<byte[]>()!));
-        var entries = Next<byte[]>();
-        return item with { Entries = entries, MapKey = entries is null ? null : new ContentKey(row.GetInt32(at), (byte[])row.GetValue(at + 1)) };
-    }
-
-    private RerunSource Opened(StoredItem stored, RerunHold hold)
-    {
-        string? Open(ProtectedColumn column, byte[]? sealedValue) => sealedValue is null ? null : protectedContent.Open(column, hold.DomainId, sealedValue, stored.Key);
-        var occurrences = Open(ContentColumns.Occurrences, stored.Occurrences);
-        var raw = Open(ContentColumns.RawText, stored.Raw)!;
-        return new RerunSource(raw, occurrences is null ? null : OccurrenceJson.Read(occurrences), Open(ContentColumns.SanitizedText, stored.Sanitized), stored.Version)
-        {
-            ItemId = hold.ItemId,
-            Map = stored.Entries is { } entries ? MapEntryJson.Read(protectedContent.Open(ContentColumns.Entries, hold.DomainId, entries, stored.MapKey!)) : null,
-        };
-    }
-
-    private async Task WriteAsync(CustodyScope scope, string? statement, (RerunHold Hold, Resanitized Produced, StoredItem Stored) change, CancellationToken cancellationToken)
+    private async Task WriteAsync(CustodyScope scope, string? statement, (RerunHold Hold, Resanitized Produced, RerunItemSource.StoredItem Stored) change, CancellationToken cancellationToken)
     {
         var (hold, produced, stored) = change;
         if (produced.Map is { } map)
@@ -179,16 +175,8 @@ public sealed class ItemResanitizer
             new("steps", NpgsqlDbType.Text, produced.Steps), new("trail", NpgsqlDbType.Bytea, Sealed(ContentColumns.SanitizationTrail, produced.Trail)),
             new("counts", IntegerArray, produced.Counts.ToArray()), new("untreated", IntegerArray, produced.Untreated.ToArray()),
             new("sanitized", NpgsqlDbType.Bytea, replaced ? Sealed(ContentColumns.SanitizedText, produced.Text) : null),
-            new("pseudonymized", NpgsqlDbType.Bytea, replaced && produced.Pseudonymized is { } swapped ? Sealed(ContentColumns.PseudonymizedText, swapped) : null),
+            new("pseudonymized", NpgsqlDbType.Bytea, produced.Pseudonymized is { } swapped ? Sealed(ContentColumns.PseudonymizedText, swapped) : null),
         ];
         _ = await ScalarAsync(scope, (statement, values), cancellationToken).ConfigureAwait(false);
-    }
-
-    /// <summary>What the item holds, sealed, with the key of its text, and the entries of its map, sealed, with their key, none when the item is not pseudonymized.</summary>
-    private sealed record StoredItem(byte[] Raw, byte[]? Occurrences, byte[]? Sanitized, string? Version, ContentKey Key)
-    {
-        public byte[]? Entries { get; init; }
-
-        public ContentKey? MapKey { get; init; }
     }
 }

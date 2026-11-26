@@ -8,10 +8,14 @@ public static partial class ContentQueries
         "SELECT r.id, r.target_version FROM content.sanitization_rerun r "
         + "WHERE EXISTS (SELECT 1 FROM content.sanitization_rerun_item q WHERE q.rerun_id = r.id AND q.state <> 'done') ORDER BY r.id DESC LIMIT 1";
 
-    /// <summary>One item a request to the version would queue: of an accepted batch, not emptied, of another version, and in no open request, not even concluded in one.</summary>
+    /// <summary>
+    /// One item a request to the version would queue: of an accepted batch, not emptied, of another version or stored before the coreference, with no map, which the version in
+    /// force also gives its first pseudonymized text (issue 102, F3), and in no open request, not even concluded in one; no sealed column is looked into.
+    /// </summary>
     internal const string ReadRerunPending =
         "SELECT i.id FROM content.item_text i JOIN content.ingestion_batch b ON b.id = i.batch_id AND b.domain_id = i.domain_id "
-        + "WHERE b.state = 'accepted' AND i.emptied_at IS NULL AND i.sanitization_version IS DISTINCT FROM @version "
+        + "WHERE b.state = 'accepted' AND i.emptied_at IS NULL AND (i.sanitization_version IS DISTINCT FROM @version "
+        + "OR NOT EXISTS (SELECT 1 FROM content.reversal_map m WHERE m.item_id = i.id AND m.emptied_at IS NULL)) "
         + "AND NOT EXISTS (SELECT 1 FROM content.sanitization_rerun_item q WHERE q.item_id = i.id "
         + "AND EXISTS (SELECT 1 FROM content.sanitization_rerun_item o WHERE o.rerun_id = q.rerun_id AND o.state <> 'done')) LIMIT 1";
 
@@ -27,7 +31,8 @@ public static partial class ContentQueries
         + "target AS (SELECT id FROM rerun UNION ALL SELECT @rerun::bigint WHERE @rerun::bigint IS NOT NULL), "
         + "queued AS (INSERT INTO content.sanitization_rerun_item (domain_id, rerun_id, item_id) SELECT @domain, target.id, i.id FROM target, content.item_text i "
         + "JOIN content.ingestion_batch b ON b.id = i.batch_id AND b.domain_id = i.domain_id WHERE b.state = 'accepted' AND i.emptied_at IS NULL "
-        + "AND i.sanitization_version IS DISTINCT FROM @version AND NOT EXISTS (SELECT 1 FROM content.sanitization_rerun_item q WHERE q.item_id = i.id "
+        + "AND (i.sanitization_version IS DISTINCT FROM @version OR NOT EXISTS (SELECT 1 FROM content.reversal_map m "
+        + "WHERE m.item_id = i.id AND m.emptied_at IS NULL)) AND NOT EXISTS (SELECT 1 FROM content.sanitization_rerun_item q WHERE q.item_id = i.id "
         + "AND EXISTS (SELECT 1 FROM content.sanitization_rerun_item o WHERE o.rerun_id = q.rerun_id AND o.state <> 'done')) "
         + "RETURNING rerun_id) SELECT id FROM target";
 
@@ -72,6 +77,11 @@ public static partial class ContentQueries
         "SELECT i.raw_text, i.occurrences, i.sanitized_text, i.sanitization_version, i.dek_epoch, i.dek_wrapped, m.entries, m.dek_epoch, m.dek_wrapped FROM content.item_text i "
         + "LEFT JOIN content.reversal_map m ON m.item_id = i.id AND m.emptied_at IS NULL WHERE i.id = @id AND i.emptied_at IS NULL";
 
+    /// <summary>The items of the batch of an item, not emptied, in the order they came in: the id, the sealed raw text and its key, for the groups of an item that holds no map.</summary>
+    internal const string ReadBatchRawTexts =
+        "SELECT o.id, o.raw_text, o.dek_epoch, o.dek_wrapped FROM content.item_text i JOIN content.item_text o ON o.batch_id = i.batch_id AND o.domain_id = i.domain_id "
+        + "WHERE i.id = @id AND o.emptied_at IS NULL ORDER BY o.id";
+
     /// <summary>
     /// Writes the new sanitization of an item not emptied, its version once per domain, and its new pseudonymized text when it has one; the database lets it through only with the rerun
     /// in the same transaction.
@@ -87,9 +97,20 @@ public static partial class ContentQueries
         + "ON CONFLICT (version, domain_id) DO NOTHING) UPDATE content.item_text SET sanitization_version = @version, sanitization_trail = @trail, "
         + "sanitization_counts = @counts, sanitization_untreated = @untreated WHERE id = @id AND emptied_at IS NULL";
 
-    /// <summary>How many items of the accepted batches, not emptied, each version holds, the most recent first and the items with none last.</summary>
+    /// <summary>
+    /// As <see cref="CloseItemRecount"/>, with the first pseudonymized text of an item stored before the coreference (issue 102, F3); only this one names the column, so that an item
+    /// pseudonymized whose text is the same is not asked for a new map.
+    /// </summary>
+    internal const string CloseItemFirstRecount =
+        "WITH version AS (INSERT INTO content.sanitization_version (domain_id, version, steps) "
+        + "SELECT @domain::integer, @version::text, @steps::text WHERE @version::text IS NOT NULL ON CONFLICT (version, domain_id) DO NOTHING) "
+        + "UPDATE content.item_text SET sanitization_version = @version, sanitization_trail = @trail, sanitization_counts = @counts, sanitization_untreated = @untreated, "
+        + "pseudonymized_text = @pseudonymized WHERE id = @id AND emptied_at IS NULL";
+
+    /// <summary>How many items of the accepted batches, not emptied, each version holds, and how many of them hold no map, the most recent first and the items with none last.</summary>
     internal const string ReadRerunSituation =
-        "SELECT i.sanitization_version, count(*) FROM content.item_text i JOIN content.ingestion_batch b ON b.id = i.batch_id AND b.domain_id = i.domain_id "
+        "SELECT i.sanitization_version, count(*), count(*) FILTER (WHERE NOT EXISTS (SELECT 1 FROM content.reversal_map m WHERE m.item_id = i.id AND m.emptied_at IS NULL)) "
+        + "FROM content.item_text i JOIN content.ingestion_batch b ON b.id = i.batch_id AND b.domain_id = i.domain_id "
         + "LEFT JOIN content.sanitization_version v ON v.version = i.sanitization_version AND v.domain_id = i.domain_id "
         + "WHERE b.state = 'accepted' AND i.emptied_at IS NULL GROUP BY i.sanitization_version, v.id ORDER BY v.id DESC NULLS LAST";
 

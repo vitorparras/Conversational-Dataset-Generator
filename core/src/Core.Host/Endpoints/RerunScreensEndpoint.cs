@@ -39,7 +39,7 @@ internal static class RerunScreensEndpoint
             : ScreenResult.NotFound(context);
     }
 
-    /// <summary>The confirmation, or the situation when no item is in another version.</summary>
+    /// <summary>The confirmation, or the situation when a rerun would queue no item.</summary>
     private static async Task<IResult> ConfirmAsync(HttpContext context, [FromServices] RerunDesk? desk)
     {
         if (desk is null)

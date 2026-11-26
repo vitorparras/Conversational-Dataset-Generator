@@ -20,6 +20,7 @@ internal static class CustodyNames
         [CustodyItemKind.SanitizationRerun] = "sanitization_rerun",
         [CustodyItemKind.ReversalRequest] = "reversal_request",
         [CustodyItemKind.ReversalAuthorization] = "reversal_authorization",
+        [CustodyItemKind.ReversalRevelation] = "reversal_revelation",
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<CustodyStep, string> Steps = new Dictionary<CustodyStep, string>
@@ -74,6 +75,8 @@ internal static class CustodyNames
         [CustodyStep.ReversalAuthorized] = "reversal_authorized",
         [CustodyStep.ReversalAuthorizationRefused] = "reversal_authorization_refused",
         [CustodyStep.ReversalDeclined] = "reversal_declined",
+        [CustodyStep.ReversalRevealed] = "reversal_revealed",
+        [CustodyStep.ReversalDenied] = "reversal_denied",
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<CustodyReason, string> Reasons = new Dictionary<CustodyReason, string>
@@ -101,6 +104,9 @@ internal static class CustodyNames
         [CustodyReason.ReversalFunction] = "reversal_function",
         [CustodyReason.ReversalScope] = "reversal_scope",
         [CustodyReason.ReversalSelf] = "reversal_self",
+        [CustodyReason.ReversalExpired] = "reversal_expired",
+        [CustodyReason.ReversalUsed] = "reversal_used",
+        [CustodyReason.ReversalEmptied] = "reversal_emptied",
     }.ToFrozenDictionary();
 
     internal static string Of(CustodyItemKind kind) => Kinds[kind];

@@ -49,4 +49,18 @@ public sealed partial record CustodyEvent
     /// <summary>The decline of a request, by who declined it; the request is never authorized after.</summary>
     internal static CustodyEvent ReversalDeclined(long personId, long requestId) =>
         new(CustodyAuthor.Person(personId), new CustodyItem(CustodyItemKind.ReversalRequest, requestId), CustodyStep.ReversalDeclined, CustodyReason.AdministrativeAct);
+
+    /// <summary>The event of a revelation, by who asked; the item is the revelation and the reference the identifier of the authorization it used. Never the identity revealed.</summary>
+    internal static CustodyEvent ReversalRevealed(long personId, long revelationId, long authorizationId) =>
+        new(CustodyAuthor.Person(personId), new CustodyItem(CustodyItemKind.ReversalRevelation, revelationId), CustodyStep.ReversalRevealed, CustodyReason.AdministrativeAct)
+        {
+            Reference = authorizationId.ToString(CultureInfo.InvariantCulture),
+        };
+
+    /// <summary>
+    /// The denial of a revelation, by who asked; the item is the authorization, and the reason <see cref="CustodyReason.ReversalExpired"/>, <see cref="CustodyReason.ReversalUsed"/>
+    /// or <see cref="CustodyReason.ReversalEmptied"/>.
+    /// </summary>
+    internal static CustodyEvent ReversalDenied(long personId, long authorizationId, CustodyReason reason) =>
+        new(CustodyAuthor.Person(personId), new CustodyItem(CustodyItemKind.ReversalAuthorization, authorizationId), CustodyStep.ReversalDenied, reason);
 }

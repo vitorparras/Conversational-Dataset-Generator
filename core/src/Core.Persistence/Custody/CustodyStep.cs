@@ -158,4 +158,13 @@ public enum CustodyStep
 
     /// <summary>A person of the curation declined a request to reverse, which is never authorized after; the item is the request, with no reference.</summary>
     ReversalDeclined,
+
+    /// <summary>
+    /// Who asked revealed the marker, recorded and committed before the map is opened; the item is the revelation and the reference the identifier of the authorization. The identity
+    /// revealed never goes in the event.
+    /// </summary>
+    ReversalRevealed,
+
+    /// <summary>The revelation was denied to who asked: the authorization expired, was used, or the item was emptied; the item is the authorization, with no reference.</summary>
+    ReversalDenied,
 }

@@ -15,7 +15,7 @@ public sealed class CustodyNamesFreshLoadTests
     private static readonly string[] Declared =
     [
         "person", "item_text", "reversal_map", "custody_chain", "content_epoch", "domain", "sign_in_attempt", "master_key", "ingestion_batch", "configuration_change",
-        "sanitization_rerun", "reversal_request", "reversal_authorization",
+        "sanitization_rerun", "reversal_request", "reversal_authorization", "reversal_revelation",
         "person_created", "person_deactivated", "person_function_changed", "person_password_set", "correction",
         "raw_text_read", "sanitized_text_read", "reversal_entries_read", "verify_chain", "item_emptied", "item_emptying_refused", "epoch_rotated", "domain_created", "seal_recorded",
         "domain_label_rotated", "sign_in_accepted", "sign_in_refused", "credential_recomputed", "key_loss_declared", "recovery_tested", "verify_guarantees",
@@ -24,11 +24,12 @@ public sealed class CustodyNamesFreshLoadTests
         "configuration_approved", "configuration_refused", "configuration_in_force", "configuration_not_applied", "person_email_corrected",
         "sanitization_rerun", "item_resanitized", "batch_pseudonymized",
         "reversal_requested", "reversal_request_refused", "reversal_request_read", "reversal_authorized", "reversal_authorization_refused", "reversal_declined",
+        "reversal_revealed", "reversal_denied",
         "administrative_act", "correction_of_record", "content_read", "verification_passed", "verification_failed",
         "removal_requested_by_subject", "contract_requirement", "author_without_function", "item_already_emptied", "credentials_accepted", "password_wrong", "account_not_recognized",
         "batch_accepted", "batch_rejected", "review_clean", "review_found",
         "sanitization_identical", "sanitization_replaced", "sanitization_refused", "sanitization_superseded",
-        "reversal_function", "reversal_scope", "reversal_self",
+        "reversal_function", "reversal_scope", "reversal_self", "reversal_expired", "reversal_used", "reversal_emptied",
     ];
 
     [Fact]

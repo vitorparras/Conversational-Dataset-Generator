@@ -71,4 +71,13 @@ public enum CustodyReason
 
     /// <summary>Who meant to authorize a reversal is who asked for it.</summary>
     ReversalSelf,
+
+    /// <summary>The authorization of a revelation no longer holds.</summary>
+    ReversalExpired,
+
+    /// <summary>The authorization of a revelation was already used.</summary>
+    ReversalUsed,
+
+    /// <summary>The item of a revelation was emptied, and its map is gone.</summary>
+    ReversalEmptied,
 }

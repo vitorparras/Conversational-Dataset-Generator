@@ -125,10 +125,14 @@ internal sealed class RerunCase
         (await new ProtectedContentReader(application, custody.Content, new CustodyChain(application)).ReadAsync(
             new ContentRead(CustodyAuthor.System, ContentColumns.SanitizedText, DomainId, item), TestContext.Current.CancellationToken)).Text;
 
-    /// <summary>The pseudonymized text of the item, read by the reader of production; none when it has none.</summary>
-    public async Task<string?> PseudonymizedTextAsync(long item) =>
-        (await new ProtectedContentReader(application, custody.Content, new CustodyChain(application)).ReadAsync(
-            new ContentRead(CustodyAuthor.System, ContentColumns.PseudonymizedText, DomainId, item), TestContext.Current.CancellationToken)).Text;
+    /// <summary>The pseudonymized text of the item, read as the owner and opened with the key of the item, as no reading of production opens it yet; none when it has none.</summary>
+    public async Task<string?> PseudonymizedTextAsync(long item)
+    {
+        var row = (await OwnerTextAsync(
+            "SELECT coalesce(encode(pseudonymized_text, 'base64'), '') || ',' || dek_epoch || ',' || encode(dek_wrapped, 'base64') FROM content.item_text WHERE id = @item", item)).Split(',');
+        var key = new ContentKey(int.Parse(row[1], CultureInfo.InvariantCulture), Convert.FromBase64String(row[2]));
+        return row[0].Length == 0 ? null : custody.Content.Open(ContentColumns.PseudonymizedText, DomainId, Convert.FromBase64String(row[0]), key);
+    }
 
     /// <summary>How many maps of the item are not emptied, then how many it ever had, read as the owner.</summary>
     public Task<string> MapsOfAsync(long item) => OwnerTextAsync(

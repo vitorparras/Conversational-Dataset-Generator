@@ -95,9 +95,9 @@ internal static class DecidedItemTexts
 
     private static NewMapEntry Written(MapEntry entry) => new(entry.Marker.Text, entry.Original, entry.IsAuthor, OccurrenceDestination.Pseudonymize);
 
-    private static Resanitized Produced(SanitizedText sanitized, bool identical)
+    private static Resanitized Produced(SanitizedText clean, bool identical)
     {
-        var stored = Stored(sanitized);
+        var stored = Stored(clean);
         return new Resanitized(stored.Text, stored.Version, stored.Steps, stored.Trail, stored.Counts, stored.Untreated, identical);
     }
 

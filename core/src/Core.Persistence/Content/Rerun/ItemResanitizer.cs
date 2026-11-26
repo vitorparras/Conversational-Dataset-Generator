@@ -136,8 +136,8 @@ public sealed class ItemResanitizer
     }
 
     /// <summary>
-    /// The change of the item: none for the same text of the same version, the counts and the version for the same text of another or with a first pseudonymized text, and everything
-    /// for a new text.
+    /// The change of the item: none for the same text of the same version, the counts and the version for the same text of another, with the first pseudonymized text of an item that
+    /// held none, and everything for a new text.
     /// </summary>
     private static string? StatementOf(Resanitized produced, string? storedVersion)
     {
@@ -146,7 +146,12 @@ public sealed class ItemResanitizer
             return ContentQueries.CloseItemResanitization;
         }
 
-        return string.Equals(produced.Version, storedVersion, StringComparison.Ordinal) && produced.Pseudonymized is null ? null : ContentQueries.CloseItemRecount;
+        if (produced.Pseudonymized is not null)
+        {
+            return ContentQueries.CloseItemFirstRecount;
+        }
+
+        return string.Equals(produced.Version, storedVersion, StringComparison.Ordinal) ? null : ContentQueries.CloseItemRecount;
     }
 
     private async Task WriteAsync(CustodyScope scope, string? statement, (RerunHold Hold, Resanitized Produced, RerunItemSource.StoredItem Stored) change, CancellationToken cancellationToken)

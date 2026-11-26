@@ -52,7 +52,7 @@ internal static class ReversalReveals
     }
 
     /// <summary>The last event of the chain, read by another connection, once it is the revelation; empty when the revelation ends, or ten seconds go, before it is seen.</summary>
-    public static async Task<string> RevelationSeenAsync(ContentWorld world, Task revealing)
+    public static async Task<string> RevelationSeenAsync(ContentWorld world, IAsyncResult revealing)
     {
         for (var tries = 0; tries < 100 && !revealing.IsCompleted; tries++)
         {

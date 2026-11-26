@@ -1,6 +1,7 @@
 using System.Globalization;
 using Core.Persistence.Content.Reversal;
 using Core.Persistence.Custody;
+using Core.Persistence.Custody.Chain;
 using Core.Persistence.Custody.Verification;
 using Core.Persistence.Tests.Content;
 using Core.Persistence.Tests.Fixtures;
@@ -56,7 +57,7 @@ public sealed class ReversalRevelationTests
         var second = await world.PersonAsync($"zqx-curator-{authorized.Marker}");
         Assert.Equal($"3|{second}|{authorized.Marker}|{authorized.Item}|true", await world.InDomainAsync(1, WhatTheEventReaches, ("id", revelation)));
         Assert.Equal((ReversalOutcome.Recorded, PseudonymizedTexts.OriginalOf(authorized.Marker)), (revealed.Outcome, revealed.Identity));
-        Assert.NotNull(revealed.RevealedAt);
+        _ = Assert.NotNull(revealed.RevealedAt);
         Assert.Equal("reversal_revealed,reversal_entries_read", await world.ScalarAsync(RevealedThenRead));
     }
 
@@ -175,7 +176,7 @@ public sealed class ReversalRevelationTests
             world.ReversalRevelations.RevealAsync(ByWhoAsked(authorized.Request), Token), world.ReversalRevelations.RevealAsync(ByWhoAsked(authorized.Request), Token));
 
         Assert.Equal([ReversalOutcome.Recorded, ReversalOutcome.AlreadyRevealed], both.Select(revealed => revealed.Outcome).Order());
-        Assert.Single(both, revealed => revealed.Identity is not null);
+        _ = Assert.Single(both, revealed => revealed.Identity is not null);
         Assert.Equal((1L, 1L, 1L), (await ReversalAsks.CountAsync(world, CountRevelations), await CountOfStepAsync(world, "reversal_revealed"),
             await CountOfStepAsync(world, "reversal_entries_read")));
         Assert.Equal($"reversal_authorization|{authorized.Authorization}|reversal_denied|reversal_used||3", await world.ScalarAsync(

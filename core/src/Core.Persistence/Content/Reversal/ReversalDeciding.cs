@@ -60,7 +60,8 @@ internal sealed class ReversalDeciding
             ReversalAuthorizationVerdict.NotCuration => Refused(ReversalOutcome.NotCuration, CustodyReason.ReversalFunction),
             ReversalAuthorizationVerdict.OwnRequest => Refused(ReversalOutcome.OwnRequest, CustodyReason.ReversalSelf),
             ReversalAuthorizationVerdict.TermInThePast => (new ReversalResult(ReversalOutcome.TermInThePast), null),
-            ReversalAuthorizationVerdict.Authorized when request.State is ReversalState.Declined or ReversalState.Authorized or ReversalState.Revealed => (new ReversalResult(ReversalOutcome.Closed), null),
+            ReversalAuthorizationVerdict.Authorized when request.State is ReversalState.Declined or ReversalState.Authorized or ReversalState.Revealed =>
+                (new ReversalResult(ReversalOutcome.Closed), null),
             ReversalAuthorizationVerdict.Authorized => await WriteAsync(scope, act, until, cancellationToken).ConfigureAwait(false),
             _ => throw new UnreachableException(),
         };

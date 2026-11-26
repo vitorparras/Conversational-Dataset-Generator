@@ -13,7 +13,7 @@ internal static class MapEntryJson
 
     /// <summary>The original the marker stands for among the entries opened; none when the marker is not among them.</summary>
     internal static string? OriginalOf(string entries, string marker) =>
-        JsonSerializer.Deserialize<List<Row>>(entries, Options)?.FirstOrDefault(entry => string.Equals(entry.Marker, marker, StringComparison.Ordinal))?.Original;
+        JsonSerializer.Deserialize<List<Row>>(entries, Options)?.Find(entry => string.Equals(entry.Marker, marker, StringComparison.Ordinal))?.Original;
 
     private sealed record Row(string Marker, string Original, bool Author);
 }

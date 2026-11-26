@@ -10,7 +10,10 @@ public sealed class ReversalRevelation
 {
     /// <summary>A revelation that ended as given.</summary>
     /// <param name="outcome">How it ended.</param>
-    public ReversalRevelation(ReversalOutcome outcome) => Outcome = outcome;
+    public ReversalRevelation(ReversalOutcome outcome)
+    {
+        Outcome = outcome;
+    }
 
     /// <summary>How it ended: recorded, denied with the reason, or not recorded at all.</summary>
     public ReversalOutcome Outcome { get; }

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Core.Persistence.Content.Reading;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
@@ -46,20 +47,25 @@ public sealed class ReversalRevelations
         }
 
         var authorization = request.AuthorizationId.GetValueOrDefault();
-        var held = request.State == ReversalState.Authorized
-            && await ScalarAsync(scope, (ContentQueries.ReadItemHeld, [new("item", NpgsqlDbType.Bigint, request.ItemId)]), cancellationToken).ConfigureAwait(false) is true;
+        var held = await HeldAsync(scope, request, cancellationToken).ConfigureAwait(false);
         return request.State switch
         {
             ReversalState.Authorized when held => await WriteAsync(scope, act, authorization, cancellationToken).ConfigureAwait(false),
             ReversalState.Authorized => Denied(ReversalOutcome.Emptied, CustodyReason.ReversalEmptied),
             ReversalState.Expired => Denied(ReversalOutcome.Expired, CustodyReason.ReversalExpired),
             ReversalState.Revealed => Denied(ReversalOutcome.AlreadyRevealed, CustodyReason.ReversalUsed),
-            _ => (new ReversalResult(ReversalOutcome.Closed), null),
+            ReversalState.Pending or ReversalState.Declined => (new ReversalResult(ReversalOutcome.Closed), null),
+            _ => throw new UnreachableException(),
         };
 
         (ReversalResult, CustodyEvent?) Denied(ReversalOutcome outcome, CustodyReason reason) =>
             (new ReversalResult(outcome), CustodyEvent.ReversalDenied(act.PersonId, authorization, reason));
     }
+
+    /// <summary>Whether the request is authorized and its item still holds its text, and so its map.</summary>
+    private static async Task<bool> HeldAsync(CustodyScope scope, ListedReversal request, CancellationToken cancellationToken) =>
+        request.State == ReversalState.Authorized
+        && await ScalarAsync(scope, (ContentQueries.ReadItemHeld, [new("item", NpgsqlDbType.Bigint, request.ItemId)]), cancellationToken).ConfigureAwait(false) is true;
 
     /// <summary>The revelation by the authorization, with its event; another that took the authorization first is a conflict, and the next attempt finds it used.</summary>
     private static async Task<(ReversalResult, CustodyEvent?)> WriteAsync(CustodyScope scope, ReversalAct act, long authorizationId, CancellationToken cancellationToken)

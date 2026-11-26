@@ -24,7 +24,11 @@ public sealed partial class SubmissionPseudonymizingTests
 
     private const string MarkersOfTheItems = "SELECT (dense_rank() OVER (ORDER BY item_id) - 1) || ':' || marker || ':' || author FROM content.item_marker ORDER BY item_id, marker";
 
+    private const string ByBatch = "SELECT batch_id || ':' || count(*) FILTER (WHERE pseudonymized_text IS NOT NULL) || ',' || count(*) FROM content.item_text GROUP BY batch_id ORDER BY batch_id";
+
     private static readonly int[] Granted = [SubmissionWorld.Domain];
+
+    private static readonly OriginConditions Conditions = OriginConditions.Of([SubmissionWorld.Strictest, "zqx_media", SubmissionWorld.Loosest]);
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -46,14 +50,20 @@ public sealed partial class SubmissionPseudonymizingTests
     [DatabaseFact]
     public async Task BatchRejectedForAnalysisLeavesNoPseudonymizedText()
     {
-        await using var world = await SubmissionWorld.CreateAsync(recognizer: AnsweringRecognizer.Unavailable(UnavailabilityReason.ConnectionRefused));
+        await using var world = await SubmissionWorld.CreateAsync(recognizer: new FakeRecognizer());
+        var kept = (await world.SubmitAsync(Conversation(("ZQXANA", "ZQX-FAKE-PERSON-1 viu"), ("ZQXBETO", "ZQX-FAKE-NOTHING de novo")))).Batch!.Value;
+        var unavailable = new SubmissionService(
+            SubmissionWorld.Intake(1_000_000, Conditions, world.Content, world.DataSource, recognizer: AnsweringRecognizer.Unavailable(UnavailabilityReason.ConnectionRefused)),
+            world.Batches, world.DataSource, NullLogger.Instance);
 
-        var outcome = await world.SubmitAsync(SubmissionWorld.Request());
+        var outcome = await unavailable.SubmitAsync(SubmissionWorld.Request(), Token);
         var detail = await world.Service.DetailAsync(Granted, outcome.Batch!.Value, Token);
 
+        // The batch submitted before holds its rows, so the reading sees the items it looks at; the item whose analysis failed is never written, so no row of its batch holds a
+        // pseudonymized text, nor the sanitized one in its place, and none of its markers is held.
         Assert.Equal(
-            (BatchState.Rejected, SubmissionStoring.AnalysisUnavailable, "0,0,0", "0"),
-            (detail!.State, detail.Reason, Assert.Single(await world.StoredAsync(Rows)), Assert.Single(await world.StoredAsync("SELECT count(*)::text FROM content.marker_in_use"))));
+            (BatchState.Rejected, SubmissionStoring.AnalysisUnavailable, [$"{kept}:2,2"], "0"),
+            (detail!.State, detail.Reason, await world.StoredAsync(ByBatch), Assert.Single(await world.StoredAsync(HeldOf(outcome.Batch!.Value)))));
     }
 
     [DatabaseTheory]
@@ -67,9 +77,11 @@ public sealed partial class SubmissionPseudonymizingTests
         var outcome = await CancelledBy(world, cancelling, afterTheItems).SubmitAsync(Conversation(("ZQXANA", "ZQX-FAKE-PERSON-1 viu"), ("ZQXBETO", "ZQX-FAKE-NOTHING de novo")), cancelling.Token);
         var detail = await world.Service.DetailAsync(Granted, outcome.Batch!.Value, Token);
 
+        // The markers are held for the batch before the first item and stay held when it is rejected, so that no other batch is given them (0057): none when the swap was cancelled,
+        // the three of the conversation (its two authors and the mention) when the cancellation came after the items.
         Assert.Equal(
-            (true, BatchState.Rejected, SubmissionStoring.SubmissionCancelled, "0,0,0"),
-            (cancelling.IsCancellationRequested, detail!.State, detail.Reason, Assert.Single(await world.StoredAsync(Rows))));
+            (true, BatchState.Rejected, SubmissionStoring.SubmissionCancelled, "0,0,0", afterTheItems ? "3" : "0"),
+            (cancelling.IsCancellationRequested, detail!.State, detail.Reason, Assert.Single(await world.StoredAsync(Rows)), Assert.Single(await world.StoredAsync(HeldOf(outcome.Batch!.Value)))));
     }
 
     [DatabaseFact]
@@ -129,6 +141,9 @@ public sealed partial class SubmissionPseudonymizingTests
         Assert.Equal([$"{homonym}-3 chegou", $"outro {homonym}-3 saiu"], texts);
     }
 
+    /// <summary>How many markers the batch holds; the batch is a number the submission gave, never input.</summary>
+    private static string HeldOf(long batch) => string.Create(CultureInfo.InvariantCulture, $"SELECT count(*)::text FROM content.marker_in_use WHERE batch_id = {batch}");
+
     private static SubmissionRequest Conversation(params (string Sender, string Text)[] messages) => SubmissionWorld.Request(SubmissionWorld.Messages(messages));
 
     /// <summary>The markers written in a text, in the order they appear.</summary>
@@ -143,11 +158,10 @@ public sealed partial class SubmissionPseudonymizingTests
     /// <summary>A service over the world that cancels the submission the first time a text is measured: by the swap, before any item, or by the marking, after all of them.</summary>
     private static SubmissionService CancelledBy(SubmissionWorld world, CancellationTokenSource cancelling, bool afterTheItems)
     {
-        var conditions = OriginConditions.Of([SubmissionWorld.Strictest, "zqx_media", SubmissionWorld.Loosest]);
         var rule = new ReplicationRule(minLength: 10, minSenders: 2);
         var intake = afterTheItems
-            ? SubmissionWorld.Intake(1_000_000, conditions, world.Content, world.DataSource, rule, new CancellingBoundaries(cancelling), new FakeRecognizer())
-            : SubmissionWorld.Intake(1_000_000, conditions, world.Content, world.DataSource, recognizer: new FakeRecognizer()) with
+            ? SubmissionWorld.Intake(1_000_000, Conditions, world.Content, world.DataSource, rule, new CancellingBoundaries(cancelling), new FakeRecognizer())
+            : SubmissionWorld.Intake(1_000_000, Conditions, world.Content, world.DataSource, recognizer: new FakeRecognizer()) with
             {
                 Swap = new PseudonymSwap(new CancellingBoundaries(cancelling), (elsewhere, known) => new ConversationMarkers(new MarkerDraw(), elsewhere, known)),
             };

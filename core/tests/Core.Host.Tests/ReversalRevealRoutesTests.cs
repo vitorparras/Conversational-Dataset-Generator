@@ -26,6 +26,9 @@ public sealed class ReversalRevealRoutesTests
     private const string RecordedText =
         "SELECT coalesce(string_agg(e::text, '|'), '') || (SELECT coalesce(string_agg(v::text, '|'), '') FROM content.reversal_revelation v) FROM public.custody_event e";
 
+    /// <summary>The action that offers a new request, apart from the link of the same path in the menu of every page.</summary>
+    private const string AskAgain = "href=\"" + ScreenPaths.ReversalAsk + "\"[^>]*>Fazer outro pedido</a>";
+
     private static readonly IReadOnlyDictionary<string, string> Nothing = new Dictionary<string, string>(StringComparer.Ordinal);
 
     [DatabaseFact]
@@ -106,7 +109,7 @@ public sealed class ReversalRevealRoutesTests
         Assert.Equal(HttpStatusCode.OK, refused.Status);
         Assert.Contains($"<h1>Pedido {request}</h1>", refused.Page, StringComparison.Ordinal);
         Assert.Contains($"Não revelado:</span> a autorização venceu em {shown}.", refused.Page, StringComparison.Ordinal);
-        Assert.Contains($"href=\"{ScreenPaths.ReversalAsk}\"", refused.Page, StringComparison.Ordinal);
+        Assert.Matches(AskAgain, refused.Page);
         Assert.DoesNotContain(Original, refused.Page, StringComparison.Ordinal);
         Assert.Equal(
             ($"reversal_authorization|{authorization}|reversal_denied|reversal_expired||{world.Curator}|true", "0"),
@@ -204,7 +207,7 @@ public sealed class ReversalRevealRoutesTests
 
         Assert.Equal(HttpStatusCode.OK, refused.Status);
         Assert.Contains($"Não revelado:</span> o item {item} foi esvaziado, e o mapa dele não existe mais.", refused.Page, StringComparison.Ordinal);
-        Assert.DoesNotContain($"href=\"{ScreenPaths.ReversalAsk}\"", refused.Page, StringComparison.Ordinal);
+        Assert.DoesNotMatch(AskAgain, refused.Page);
         Assert.DoesNotContain(Original, refused.Page, StringComparison.Ordinal);
         Assert.Equal(
             ($"reversal_authorization|{authorization}|reversal_denied|reversal_emptied||{world.Curator}|true", "0"),

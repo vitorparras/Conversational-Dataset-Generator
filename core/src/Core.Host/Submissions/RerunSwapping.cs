@@ -1,5 +1,4 @@
 using System.Globalization;
-using Core.Boundary.Contracts;
 using Core.Ingestion.Pseudonymizing;
 using Core.Ingestion.Sanitizing;
 using Core.Persistence.Content;
@@ -30,7 +29,7 @@ internal static class RerunSwapping
             _ = byOriginal.TryAdd(entry.Original, byMarker[entry.Marker]);
         }
 
-        foreach (var original in clean.Pseudonyms.Select(occurrence => Span(clean.Text, occurrence.Occurrence)).Where(original => !byOriginal.ContainsKey(original)))
+        foreach (var original in clean.Pseudonyms.Select(occurrence => swap.Original(clean.Text, occurrence.Occurrence)).Where(original => !byOriginal.ContainsKey(original)))
         {
             byOriginal[original] = Referent.Group(byMarker.Count + byOriginal.Count + 1);
         }
@@ -38,7 +37,7 @@ internal static class RerunSwapping
         var request = new SwapRequest
         {
             Sanitized = clean.Text,
-            Occurrences = [.. clean.Pseudonyms.Select(occurrence => new ReferredOccurrence(occurrence, byOriginal[Span(clean.Text, occurrence.Occurrence)]))],
+            Occurrences = [.. clean.Pseudonyms.Select(occurrence => new ReferredOccurrence(occurrence, byOriginal[swap.Original(clean.Text, occurrence.Occurrence)]))],
             Author = author,
             ItemId = held.ItemId,
             Map = new ItemMap(held.ItemId, [.. map.Select(entry => new MapEntry(byMarker[entry.Marker], MarkerOf(entry.Marker), entry.Original))]),
@@ -59,10 +58,6 @@ internal static class RerunSwapping
 
         return referents;
     }
-
-    /// <summary>The span of the occurrence in the text, cut by code points as the swap cuts it.</summary>
-    private static string Span(string text, Occurrence occurrence) =>
-        string.Concat(text.EnumerateRunes().Skip(occurrence.Start).Take(occurrence.End - occurrence.Start).Select(rune => rune.ToString()));
 
     private static Marker MarkerOf(string text)
     {

@@ -31,6 +31,15 @@ public sealed class PseudonymSwapTests
     }
 
     [Fact]
+    public void OriginalIsTheSpanOfTheOccurrenceCutByCodePoints()
+    {
+        // The pair before the span is one code point and two UTF-16 units: a cut by units would start one unit too soon.
+        var original = SwapOf(Draws.Of()).Original("😀 ZQXA viu", new Occurrence(2, 6, OccurrenceKinds.Person, "PROPN", "nsubj"));
+
+        Assert.Equal("ZQXA", original);
+    }
+
+    [Fact]
     public void RemovedSpanNeverBecomesAMapEntry()
     {
         var swap = SwapOf(Draws.Of());

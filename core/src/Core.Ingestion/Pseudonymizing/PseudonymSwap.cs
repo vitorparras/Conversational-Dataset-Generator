@@ -25,6 +25,12 @@ public sealed class PseudonymSwap
         this.conversation = conversation ?? throw new ArgumentNullException(nameof(conversation));
     }
 
+    /// <summary>The original an occurrence points at in the sanitized text, cut by code points as the swap cuts it.</summary>
+    /// <param name="sanitized">The sanitized text the occurrence was found in.</param>
+    /// <param name="occurrence">An occurrence of that text.</param>
+    /// <exception cref="ArgumentOutOfRangeException">The occurrence ends before it starts or falls outside the text.</exception>
+    public string Original(string sanitized, Occurrence occurrence) => boundaries.Slice(sanitized, occurrence);
+
     /// <summary>The pseudonymized text and the entries of the map of the item.</summary>
     /// <param name="request">The sanitized text, its occurrences and, when the item is pseudonymized again, the item and its map.</param>
     /// <param name="inUseElsewhere">Whether a marker is held by another conversation, of any domain.</param>

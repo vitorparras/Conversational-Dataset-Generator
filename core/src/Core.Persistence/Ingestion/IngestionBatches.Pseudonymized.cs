@@ -16,18 +16,23 @@ public sealed partial class IngestionBatches
     /// </summary>
     private static async Task<CustodyResult> AppendClosingAsync(CustodyScope scope, Closing closing, CancellationToken cancellationToken)
     {
-        if (closing.State == "accepted" && await PseudonymizedAsync(scope, closing.Request.BatchId, cancellationToken).ConfigureAwait(false))
+        if (closing.State == "accepted" && await AppendPseudonymizedAsync(scope, closing.Request.Author, closing.Request.BatchId, cancellationToken).ConfigureAwait(false) is
+            { Outcome: not CustodyOutcome.Appended } refused)
         {
-            var pseudonymized = CustodyEvent.BatchPseudonymized(closing.Request.Author, closing.Request.BatchId);
-            var appended = await CustodyAppend.AppendAsync(scope, pseudonymized, cancellationToken).ConfigureAwait(false);
-            if (appended.Outcome != CustodyOutcome.Appended)
-            {
-                return appended;
-            }
+            return refused;
         }
 
         return await CustodyAppend.AppendAsync(scope, closing.Event, cancellationToken).ConfigureAwait(false);
     }
+
+    /// <summary>
+    /// The event of the pseudonymization of the batch, appended when some item of it is pseudonymized, before the acceptance asks for it (issues 101 and 102); none when no item is,
+    /// in the domain the scope declared.
+    /// </summary>
+    internal static async Task<CustodyResult?> AppendPseudonymizedAsync(CustodyScope scope, CustodyAuthor author, long batchId, CancellationToken cancellationToken) =>
+        await PseudonymizedAsync(scope, batchId, cancellationToken).ConfigureAwait(false)
+            ? await CustodyAppend.AppendAsync(scope, CustodyEvent.BatchPseudonymized(author, batchId), cancellationToken).ConfigureAwait(false)
+            : null;
 
     private static async Task<bool> PseudonymizedAsync(CustodyScope scope, long batchId, CancellationToken cancellationToken)
     {

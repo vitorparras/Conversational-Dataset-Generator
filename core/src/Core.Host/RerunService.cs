@@ -60,10 +60,13 @@ internal sealed class RerunService : BackgroundService
     private static Parts? PartsOf(IServiceProvider host, SanitizationRerun rerun)
     {
         var startup = host.GetRequiredService<ServiceProvider>();
-        return startup.GetService<NpgsqlDataSource>() is { } source
-            ? new Parts(new DomainListing(source), new SanitizationReruns(source, host.GetRequiredService<TimeProvider>()), rerun,
-                token => OpenAsync(startup, source, host.GetRequiredService<TimeProvider>(), token)) { Swap = CompositionRoot.SwapOf() }
-            : null;
+        if (startup.GetService<NpgsqlDataSource>() is not { } source)
+        {
+            return null;
+        }
+
+        var time = host.GetRequiredService<TimeProvider>();
+        return new Parts(new DomainListing(source), new SanitizationReruns(source, time), rerun, token => OpenAsync(startup, source, time, token)) { Swap = CompositionRoot.SwapOf() };
     }
 
     /// <summary>The content opened with the master key and the labels the database registers, for one item; none to rerun with when the key was not read.</summary>

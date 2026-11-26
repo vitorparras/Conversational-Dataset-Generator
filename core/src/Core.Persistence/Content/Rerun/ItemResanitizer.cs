@@ -1,7 +1,6 @@
 using System.Data;
 using Core.Persistence.Content.Reading;
 using Core.Persistence.Content.Sealing;
-using Core.Persistence.Content.Writing;
 using Core.Persistence.Custody;
 using Core.Persistence.Custody.Chain;
 using Core.Persistence.Custody.Chain.Append;
@@ -12,15 +11,14 @@ using static Core.Persistence.Content.Rerun.RerunRows;
 namespace Core.Persistence.Content.Rerun;
 
 /// <summary>
-/// The rerun of one held item over its raw text (issue 97), in one serializable transaction: the item is read, the domain reruns it, and the event item_resanitized, the conclusion in the queue and
-/// the new sanitization are written together or not at all, with the new pseudonymized text and map of an item pseudonymized. An identical text is not written again; an emptied item, one whose key was declared lost or one never decided is refused with
-/// the reason; a transaction the database stopped for another gives the item back without spending a try, and a label the installation did not load spends one.
+/// The rerun of one held item over its raw text (issue 97), in one serializable transaction: the item is read, the domain reruns it, and the event item_resanitized, the conclusion in the
+/// queue and the new sanitization are written together or not at all, with the new pseudonymized text and map of an item pseudonymized. An identical text is not written again; an emptied
+/// item, one whose key was declared lost or one never decided is refused with the reason; a transaction the database stopped for another gives the item back without spending a try, and a
+/// label the installation did not load spends one.
 /// </summary>
-public sealed partial class ItemResanitizer
+public sealed class ItemResanitizer
 {
     private const NpgsqlDbType IntegerArray = (NpgsqlDbType)((int)NpgsqlDbType.Array + (int)NpgsqlDbType.Integer);
-    private const NpgsqlDbType TextArray = (NpgsqlDbType)((int)NpgsqlDbType.Array + (int)NpgsqlDbType.Text);
-    private const NpgsqlDbType BooleanArray = (NpgsqlDbType)((int)NpgsqlDbType.Array + (int)NpgsqlDbType.Boolean);
 
     private readonly NpgsqlDataSource dataSource;
     private readonly ProtectedContent protectedContent;
@@ -85,7 +83,7 @@ public sealed partial class ItemResanitizer
                 : (new RerunResult(RerunOutcome.Failed), null);
         }
 
-        if (await DrawnAsync(scope, (hold, work.Rerun), Opened(stored, hold), cancellationToken).ConfigureAwait(false) is not { } produced)
+        if (await RerunMarkers.DrawnAsync(scope, (hold, work.Rerun), Opened(stored, hold), cancellationToken).ConfigureAwait(false) is not { } produced)
         {
             return await FinishAsync(scope, work, (new RerunResult(RerunOutcome.Refused, Refusal: RerunRefusal.Undecided), null), cancellationToken).ConfigureAwait(false);
         }
@@ -165,8 +163,7 @@ public sealed partial class ItemResanitizer
         var (hold, produced, stored) = change;
         if (produced.Map is { } map)
         {
-            await KeepMarkersAsync(scope, hold, HeldOf(map), cancellationToken).ConfigureAwait(false);
-            await RemapAsync(scope, hold, (map, stored.MapKey ?? throw new InvalidOperationException("The rerun gave a map to an item that holds none.")), cancellationToken).ConfigureAwait(false);
+            await RerunMarkers.RemapAsync(scope, (protectedContent, hold), (map, stored.MapKey), cancellationToken).ConfigureAwait(false);
         }
 
         if (statement is null)
@@ -185,23 +182,6 @@ public sealed partial class ItemResanitizer
             new("pseudonymized", NpgsqlDbType.Bytea, replaced && produced.Pseudonymized is { } swapped ? Sealed(ContentColumns.PseudonymizedText, swapped) : null),
         ];
         _ = await ScalarAsync(scope, (statement, values), cancellationToken).ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// The markers new to the item are held for its batch and given to it, the ones it held already are kept as they are, and the ones gone from its text leave it, held still.
-    /// </summary>
-    private static async Task KeepMarkersAsync(CustodyScope scope, RerunHold hold, IReadOnlyList<HeldMarker> markers, CancellationToken cancellationToken)
-    {
-        string[] names = [.. markers.Select(marker => marker.Marker)];
-        Bound item = new("item", NpgsqlDbType.Bigint, hold.ItemId);
-        var batch = await BatchOfAsync(scope, hold.ItemId, cancellationToken).ConfigureAwait(false);
-        Bound[] held = [new("domain", NpgsqlDbType.Integer, hold.DomainId), new("markers", TextArray, names)];
-        Bound[] inBatch = [.. held, new("batch", NpgsqlDbType.Bigint, batch)];
-        _ = await ScalarAsync(scope, (ContentQueries.InsertMarkersInUse, inBatch), cancellationToken).ConfigureAwait(false);
-        Bound[] given = [.. held, item, new("authors", BooleanArray, markers.Select(marker => marker.Author).ToArray())];
-        _ = await ScalarAsync(scope, (ContentQueries.InsertItemMarkers, given), cancellationToken).ConfigureAwait(false);
-        Bound[] gone = [new("item", NpgsqlDbType.Bigint, hold.ItemId), new("markers", TextArray, names)];
-        _ = await ScalarAsync(scope, (ContentQueries.RemoveItemMarkersGone, gone), cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>What the item holds, sealed, with the key of its text, and the entries of its map, sealed, with their key, none when the item is not pseudonymized.</summary>

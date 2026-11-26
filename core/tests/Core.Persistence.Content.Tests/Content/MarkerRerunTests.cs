@@ -92,12 +92,12 @@ public sealed class MarkerRerunTests : IClassFixture<RerunDatabase>
 
         _ = await Assert.ThrowsAsync<InvalidOperationException>(() => rerun.Resanitizer.ResanitizeAsync(held, Remapping(_ => [Entry(x), Entry(y)], seen), Token));
 
-        Assert.Equal((ItemResanitizer.Draws, true), (seen.Count, seen[^1].Taken.Contains(y)));
+        Assert.Equal((RerunMarkers.Draws, true), (seen.Count, seen[^1].Taken.Contains(y)));
         Assert.Equal(($"{x}:false|{Joined(x, y)}", $"{y}:false|{Joined(x, y)}"), (await rerun.MarkersOfAsync(a), await rerun.MarkersOfAsync(b)));
     }
 
     /// <summary>The rerun to <see cref="NewText"/> that pseudonymizes the item again with the map the function gives for what it is given, keeping each source it was given.</summary>
-    private static Func<RerunSource, Resanitized> Remapping(Func<RerunSource, NewMapEntry[]> map, List<RerunSource>? seen = null) => source =>
+    private static Func<RerunSource, Resanitized> Remapping(Func<RerunSource, NewMapEntry[]> map, ICollection<RerunSource>? seen = null) => source =>
     {
         seen?.Add(source);
         var entries = map(source);

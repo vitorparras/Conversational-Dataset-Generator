@@ -46,17 +46,20 @@ internal static class RerunSwapping
     private static Dictionary<string, Referent> ReferentsOf(IReadOnlyList<NewMapEntry> map, string? author)
     {
         var referents = new Dictionary<string, Referent>(StringComparer.Ordinal);
-        foreach (var entry in map.Where(entry => !referents.ContainsKey(entry.Marker)))
+        foreach (var marker in map.Select(entry => entry.Marker).Distinct(StringComparer.Ordinal))
         {
-            var authors = map.Where(other => other.Author && string.Equals(other.Marker, entry.Marker, StringComparison.Ordinal)).Select(other => other.Original).ToList();
-            referents[entry.Marker] = authors.Count == 0 ? Referent.Group(referents.Count + 1) : Referent.Author(author is not null && authors.Contains(author) ? author : authors[0]);
+            var authors = map.Where(other => other.Author && string.Equals(other.Marker, marker, StringComparison.Ordinal)).Select(other => other.Original).ToList();
+            referents[marker] = authors.Count == 0 ? Referent.Group(referents.Count + 1) : Referent.Author(AuthorOf(authors, author));
         }
 
         return referents;
     }
 
+    /// <summary>The author of the message when the marker stands for it, or the first author the marker stands for.</summary>
+    private static string AuthorOf(List<string> authors, string? author) => author is not null && authors.Contains(author) ? author : authors[0];
+
     /// <summary>The referent of the original in the map, or a group of its own, which the same original met again shares.</summary>
-    private static Referent Matched(Dictionary<string, Referent> byOriginal, int markers, string original)
+    private static Referent Matched(IDictionary<string, Referent> byOriginal, int markers, string original)
     {
         if (!byOriginal.TryGetValue(original, out var referent))
         {

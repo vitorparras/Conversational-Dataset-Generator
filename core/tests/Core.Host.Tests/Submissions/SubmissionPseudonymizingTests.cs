@@ -84,7 +84,8 @@ public sealed partial class SubmissionPseudonymizingTests
         var maps = await SealedColumns.OpenedAsync(world, ContentColumns.Entries, "reversal_map");
         Assert.Equal([$"0:{ana}:true", $"1:{beto}:true", $"2:{ana}:true"], markers);
         Assert.NotEqual(ana, beto);
-        Assert.Equal([true, true, true], [maps[0].Contains("ZQXANA", StringComparison.Ordinal), maps[1].Contains("ZQXBETO", StringComparison.Ordinal), maps[2].Contains(ana, StringComparison.Ordinal)]);
+        bool[] held = [maps[0].Contains("ZQXANA", StringComparison.Ordinal), maps[1].Contains("ZQXBETO", StringComparison.Ordinal), maps[2].Contains(ana, StringComparison.Ordinal)];
+        Assert.Equal([true, true, true], held);
     }
 
     [DatabaseFact]
@@ -134,7 +135,7 @@ public sealed partial class SubmissionPseudonymizingTests
 
     /// <summary>The marker of the item at the position given that the rows hold, the only one there but the one excluded.</summary>
     private static string MarkerOf(IEnumerable<string> rows, int item, string? but = null) =>
-        Assert.Single(rows.Select(row => row.Split(':')).Where(parts => parts[0] == item.ToString(CultureInfo.InvariantCulture) && parts[1] != but))[1];
+        Assert.Single(rows.Select(row => row.Split(':')), parts => parts[0] == item.ToString(CultureInfo.InvariantCulture) && parts[1] != but)[1];
 
     private static string[] Ordered(params string[] rows) => [.. rows.Order(StringComparer.Ordinal)];
 

@@ -46,7 +46,7 @@ internal static class SubmissionPseudonymizing
     /// <param name="items">The request of each item, and whether they are the messages of one conversation.</param>
     /// <param name="reserve">Holds the markers for the batch, all or none, and names the ones another batch holds.</param>
     internal static async Task<IReadOnlyList<Pseudonymized>> SwappedAsync(
-        PseudonymSwap swap, (IReadOnlyList<SwapRequest> Requests, bool Conversation) items, Func<string[], Task<IReadOnlyList<string>>> reserve)
+        PseudonymSwap swap, (IReadOnlyList<SwapRequest> Requests, bool Conversation) items, Reservation reserve)
     {
         var lost = new HashSet<string>(StringComparer.Ordinal);
         for (var draw = 0; draw < Draws; draw++)
@@ -64,7 +64,7 @@ internal static class SubmissionPseudonymizing
         throw new InvalidOperationException("Every draw of the conversation met a marker another batch holds.");
     }
 
-    private static IReadOnlyList<Pseudonymized> Swapped(PseudonymSwap swap, (IReadOnlyList<SwapRequest> Requests, bool Conversation) items, HashSet<string> lost)
+    private static IReadOnlyList<Pseudonymized> Swapped(PseudonymSwap swap, (IReadOnlyList<SwapRequest> Requests, bool Conversation) items, ICollection<string> lost)
     {
         if (items.Conversation)
         {
@@ -94,6 +94,9 @@ internal static class SubmissionPseudonymizing
             Author = authors[position],
         })];
     }
+
+    /// <summary>Holds the markers given for the batch, all or none, and names the ones another batch holds, none when the batch won them all.</summary>
+    internal delegate Task<IReadOnlyList<string>> Reservation(string[] markers);
 
     /// <summary>What the analysis and the sanitization left of the material, by unit.</summary>
     /// <param name="Decided">The destination and the group of every occurrence of every text, and the group of each author.</param>

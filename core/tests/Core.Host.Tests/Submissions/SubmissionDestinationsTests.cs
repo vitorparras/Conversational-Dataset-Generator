@@ -14,7 +14,8 @@ namespace Core.Host.Tests.Submissions;
 
 /// <summary>
 /// The submission analyzes the material before it writes the items (#841, CA-1 of #84): the whole item is asked once (issue 102), in Portuguese, its texts in the order of the material
-/// and each message with its author, and each item is born with the occurrences found in it and the destination of each. With the service of the language gone, a malformed answer or the request cancelled, the batch is rejected with no item.
+/// and each message with its author, and each item is born with the occurrences found in it and the destination of each. With the service of the language gone, a malformed answer or
+/// the request cancelled, the batch is rejected with no item.
 /// </summary>
 public sealed class SubmissionDestinationsTests
 {

@@ -13,7 +13,8 @@ namespace Core.Host.Tests.Submissions;
 [Trait("Category", "Database")]
 public sealed class PseudonymizedWritingPathsTests
 {
-    private const string Pseudonymized = "SELECT count(*) FILTER (WHERE pseudonymized_text IS NOT NULL) || ',' || (SELECT count(*) FROM content.reversal_map) || ',' || count(*) FROM content.item_text";
+    private const string Pseudonymized =
+        "SELECT count(*) FILTER (WHERE pseudonymized_text IS NOT NULL) || ',' || (SELECT count(*) FROM content.reversal_map) || ',' || count(*) FROM content.item_text";
     private const string Sealed = "SELECT string_agg(encode(pseudonymized_text, 'base64'), ',' ORDER BY id) FROM content.item_text";
     private const string Sanitized = "SELECT (sanitized_text IS NOT NULL)::text FROM content.item_text ORDER BY id LIMIT 1";
     private const string SanitizedAsPseudonymized = "UPDATE content.item_text SET pseudonymized_text = sanitized_text WHERE id = @item";

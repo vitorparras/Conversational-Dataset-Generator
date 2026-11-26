@@ -120,7 +120,8 @@ public sealed class SubmissionPartsTests
 
         using var first = await holder.GetAsync(TestContext.Current.CancellationToken);
         var before = await first!.Service.SubmitAsync(SubmissionWorld.Request(), TestContext.Current.CancellationToken);
-        await world.Database.RunAsOwnerAsync("INSERT INTO public.domain (name) VALUES ('zqx-domain-c')", "INSERT INTO public.derivation_label (label) VALUES ('texto-bruto/3/v1'), ('mapa-reversao/3/v1')");
+        await world.Database.RunAsOwnerAsync(
+            "INSERT INTO public.domain (name) VALUES ('zqx-domain-c')", "INSERT INTO public.derivation_label (label) VALUES ('texto-bruto/3/v1'), ('mapa-reversao/3/v1')");
         using var next = await holder.GetAsync(TestContext.Current.CancellationToken);
         var after = await next!.Service.SubmitAsync(SubmissionWorld.Request() with { DomainId = 3 }, TestContext.Current.CancellationToken);
 

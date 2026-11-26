@@ -1,5 +1,5 @@
-using System.Globalization;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using Core.Persistence.Content;
@@ -90,14 +90,12 @@ internal sealed class RerunCase
     public async Task<long> AnotherBatchAsync()
     {
         await database.RunAsOwnerAsync(
-            [
-                "ALTER TABLE content.ingestion_batch DISABLE TRIGGER batch_is_born_open",
-                "ALTER TABLE content.ingestion_batch DISABLE TRIGGER batch_open_needs_event",
-                $"SELECT set_config('app.domain', '{DomainId}', false)",
-                $"INSERT INTO content.ingestion_batch (domain_id, state, opened_by, condition, closed_at) SELECT {DomainId}, 'accepted', min(id), 'restrita', now() FROM public.person",
-                "ALTER TABLE content.ingestion_batch ENABLE ALWAYS TRIGGER batch_is_born_open",
-                "ALTER TABLE content.ingestion_batch ENABLE ALWAYS TRIGGER batch_open_needs_event",
-            ]);
+            "ALTER TABLE content.ingestion_batch DISABLE TRIGGER batch_is_born_open",
+            "ALTER TABLE content.ingestion_batch DISABLE TRIGGER batch_open_needs_event",
+            $"SELECT set_config('app.domain', '{DomainId}', false)",
+            $"INSERT INTO content.ingestion_batch (domain_id, state, opened_by, condition, closed_at) SELECT {DomainId}, 'accepted', min(id), 'restrita', now() FROM public.person",
+            "ALTER TABLE content.ingestion_batch ENABLE ALWAYS TRIGGER batch_is_born_open",
+            "ALTER TABLE content.ingestion_batch ENABLE ALWAYS TRIGGER batch_open_needs_event");
         return long.Parse(await OwnerTextAsync($"SELECT max(id)::text FROM content.ingestion_batch WHERE domain_id = {DomainId} AND id <> @item", DomainId), CultureInfo.InvariantCulture);
     }
 
@@ -274,7 +272,7 @@ internal sealed class RerunCase
         await using var connection = await Sql.OpenAsync(database.OwnerConnectionString);
         await using (var scope = new NpgsqlCommand("SELECT set_config('app.domain', @domain, false)", connection))
         {
-            _ = scope.Parameters.AddWithValue("domain", DomainId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            _ = scope.Parameters.AddWithValue("domain", DomainId.ToString(CultureInfo.InvariantCulture));
             _ = await scope.ExecuteScalarAsync(TestContext.Current.CancellationToken);
         }
 

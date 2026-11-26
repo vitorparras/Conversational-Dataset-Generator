@@ -17,10 +17,15 @@ internal static class RerunAnswers
     /// <param name="recognizer">The recognizer at the boundary, asked only for such an item.</param>
     /// <param name="held">What the item holds, with the raw texts of its batch when it holds no map.</param>
     /// <param name="cancellationToken">Cancels the analysis.</param>
-    internal static async Task<RerunAnswer> OfAsync((SanitizationRerun Steps, PseudonymSwap Swap) work, Func<IRecognizer> recognizer, RerunSource held, CancellationToken cancellationToken)
+    internal static Task<RerunAnswer> OfAsync((SanitizationRerun Steps, PseudonymSwap Swap) work, Func<IRecognizer> recognizer, RerunSource held, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(recognizer);
         ArgumentNullException.ThrowIfNull(held);
+        return AnswerAsync(work, recognizer, held, cancellationToken);
+    }
+
+    private static async Task<RerunAnswer> AnswerAsync((SanitizationRerun Steps, PseudonymSwap Swap) work, Func<IRecognizer> recognizer, RerunSource held, CancellationToken cancellationToken)
+    {
         if (held.Batch is not { } batch || DecidedItemTexts.Held(held) is not { } stored)
         {
             return RerunAnswer.Of(DecidedItemTexts.Rerun(work.Steps, work.Swap, held));

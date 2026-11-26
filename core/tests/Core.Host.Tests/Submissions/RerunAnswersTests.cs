@@ -92,7 +92,7 @@ public sealed class RerunAnswersTests
 
     /// <summary>An item of <see cref="Raw"/> stored with no map, its place held with the destination given, alone in its batch.</summary>
     private static RerunSource Old(OccurrenceDestination place) =>
-        new RerunSource(Raw, [new ItemOccurrence(0, Place.Length, OccurrenceKinds.Location, place)], "texto antigo zqx", null) { ItemId = 7, Batch = [Raw], Position = 0 };
+        new(Raw, [new ItemOccurrence(0, Place.Length, OccurrenceKinds.Location, place)], "texto antigo zqx", null) { ItemId = 7, Batch = [Raw], Position = 0 };
 
     private static AnsweringRecognizer Answering(params Occurrence[] found) => new(RecognitionOutcome.Analyzed(new AnalysisResponse(found, "zqx-model-0102")));
 

@@ -11,8 +11,8 @@ internal static class ReversalReveals
 
     public const string CountOfStep = "SELECT count(*) FROM public.custody_event WHERE step = @step";
 
-    /// <summary>How many events of the step that conflicts once reached the chain, the one refused included.</summary>
-    public const string ConflictAttempts = "SELECT last_value FROM public.zqx_chain_conflicts";
+    /// <summary>How many events of the step whose first ones the chain refuses reached it, the refused included.</summary>
+    public const string AttemptsInTheChain = "SELECT last_value FROM public.zqx_chain_attempts";
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -42,15 +42,15 @@ internal static class ReversalReveals
             + $"CREATE TRIGGER zqx_chain_refuses BEFORE INSERT ON public.custody_event FOR EACH ROW WHEN (NEW.step = '{step}') EXECUTE FUNCTION public.zqx_chain_refuses()");
 
     /// <summary>
-    /// Makes the chain refuse the first event of the step given as a conflict with another writer, as the server does when two take the same link, and take the ones after it; the
-    /// sequence counts the events of the step that reached the chain, because a sequence is not undone with the transaction refused.
+    /// Makes the chain refuse the first events of the step given with the state given, as a conflict with another writer (40001) or as broken (CE002), and take the ones after them;
+    /// the sequence counts the events of the step that reached the chain, because a sequence is not undone with the transaction refused.
     /// </summary>
-    public static Task ConflictOnceInTheChainAsync(ContentWorld world, string step) =>
+    public static Task RefuseTheFirstInTheChainAsync(ContentWorld world, string step, int refusals, string sqlState) =>
         world.Database.ExecuteAsSuperuserAsync(
-            "CREATE SEQUENCE public.zqx_chain_conflicts; GRANT SELECT ON SEQUENCE public.zqx_chain_conflicts TO PUBLIC; "
-            + "CREATE FUNCTION public.zqx_chain_conflicts() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $f$ "
-            + "BEGIN IF nextval('public.zqx_chain_conflicts') = 1 THEN RAISE EXCEPTION 'conflict' USING ERRCODE = '40001'; END IF; RETURN NEW; END $f$; "
-            + $"CREATE TRIGGER zqx_chain_conflicts BEFORE INSERT ON public.custody_event FOR EACH ROW WHEN (NEW.step = '{step}') EXECUTE FUNCTION public.zqx_chain_conflicts()");
+            "CREATE SEQUENCE public.zqx_chain_attempts; GRANT SELECT ON SEQUENCE public.zqx_chain_attempts TO PUBLIC; "
+            + "CREATE FUNCTION public.zqx_chain_refuses_first() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $f$ "
+            + $"BEGIN IF nextval('public.zqx_chain_attempts') <= {refusals} THEN RAISE EXCEPTION 'refused' USING ERRCODE = '{sqlState}'; END IF; RETURN NEW; END $f$; "
+            + $"CREATE TRIGGER zqx_chain_refuses_first BEFORE INSERT ON public.custody_event FOR EACH ROW WHEN (NEW.step = '{step}') EXECUTE FUNCTION public.zqx_chain_refuses_first()");
 
     /// <summary>
     /// Holds the map of every item locked, so that no reading of it goes through until the hold is let go: a revelation that opened the map before its event was committed would

@@ -218,18 +218,36 @@ public sealed class ReversalRevelationTests
             await CountOfStepAsync(world, "reversal_entries_read")));
     }
 
-    [DatabaseFact]
-    public async Task ConflictOnRecordingTheReadingOfTheMapIsTriedAgainAndRevealsTheIdentity()
+    [DatabaseTheory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task ConflictOnRecordingTheReadingOfTheMapIsTriedAgainAndRevealsTheIdentity(int conflicts)
     {
         await using var world = await ContentWorld.CreateAsync();
         var authorized = await AuthorizedAsync(world);
-        await ConflictOnceInTheChainAsync(world, "reversal_entries_read");
+        await RefuseTheFirstInTheChainAsync(world, "reversal_entries_read", conflicts, "40001");
 
         var revealed = await world.ReversalRevelations.RevealAsync(ByWhoAsked(authorized.Request), Token);
 
         Assert.Equal((ReversalOutcome.Recorded, PseudonymizedTexts.OriginalOf(authorized.Marker)), (revealed.Outcome, revealed.Identity));
-        Assert.Equal(2L, (long)(await world.ScalarAsync(ConflictAttempts))!);
+        Assert.Equal(conflicts + 1L, (long)(await world.ScalarAsync(AttemptsInTheChain))!);
         Assert.Equal((1L, 1L), (await CountOfStepAsync(world, "reversal_revealed"), await CountOfStepAsync(world, "reversal_entries_read")));
+    }
+
+    [DatabaseTheory]
+    [InlineData("40001", 3, CustodyOutcome.Conflict, 3L)]
+    [InlineData("CE002", 1, CustodyOutcome.ChainBroken, 1L)]
+    public async Task ReadingOfTheMapRefusedPastItsAttemptsRevealsNothing(string sqlState, int refusals, CustodyOutcome refusal, long attempts)
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        var authorized = await AuthorizedAsync(world);
+        await RefuseTheFirstInTheChainAsync(world, "reversal_entries_read", refusals, sqlState);
+
+        var revealed = await world.ReversalRevelations.RevealAsync(ByWhoAsked(authorized.Request), Token);
+
+        Assert.Equal((ReversalOutcome.NotRecorded, null, (CustodyOutcome?)refusal), (revealed.Outcome, revealed.Identity, revealed.Refusal?.Outcome));
+        Assert.Equal(attempts, (long)(await world.ScalarAsync(AttemptsInTheChain))!);
+        Assert.Equal(0L, await CountOfStepAsync(world, "reversal_entries_read"));
     }
 
     [DatabaseFact]

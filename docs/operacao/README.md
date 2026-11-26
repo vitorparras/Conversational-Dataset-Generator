@@ -65,5 +65,6 @@ e por quem ela roda.
 | [051](051-o-que-o-aplicador-faz-e-recusa.md) | O que o aplicador faz, o que recusa e o que fica registrado |
 | [052](052-imagem-do-banco-de-teste.md) | A imagem do banco de teste na verificação: quem publica e quem só lê |
 | [053](053-medicao-da-correferencia.md) | Medição da correferência |
+| [054](054-mutacao-sem-cobertura.md) | Mutação sem a cobertura por teste: a parte só de suíte e a parte do diff sem código |
 
 Ver [regras de escrita](../regras-de-escrita.md).

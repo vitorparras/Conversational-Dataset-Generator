@@ -150,14 +150,15 @@ def slices(text: str, suite: frozenset[str] = frozenset()) -> tuple[tuple[int, i
     """The slices of a file as ``(start, end, weight)``: offsets from the first character to
     ``UNBOUNDED``, cut after each member and, in a static list, after each element; the weight is
     the tokens, so comments weigh nothing, plus ``SUITE_MUTANT`` for each literal of a static
-    initializer, and times it for a method whose signature is in ``suite``."""
+    initializer, and times it for a method whose signature is in ``suite``; each weight is a
+    ``Cost``, which says whether the slice is of the suite or inert."""
     found = tokens(text)
     ends = [token.end for token in found]
     members = [0, *(bisect_right(ends, cut) for cut in ends_of(found)), len(ends)]
     cut = [
-        (end, weight * suite_factor(found[a:b], suite))
+        (end, cost.times(suite_factor(found[a:b], suite)))
         for a, b in pairwise(members)
-        for end, weight in pieces(text, found, a, b)
+        for end, cost in pieces(text, found, a, b)
     ]
     bounds = (0, *(units(text, found[end - 1].end) for end, _ in cut[:-1]), UNBOUNDED)
     return tuple((a, b, w) for (a, b), (_, w) in zip(pairwise(bounds), cut, strict=True))

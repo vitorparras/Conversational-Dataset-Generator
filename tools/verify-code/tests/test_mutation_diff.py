@@ -53,7 +53,7 @@ def runner(*changed: str, stryker: str = "", unreadable: bool = False) -> DiffRu
 class StepDiffTests(fixture.MutationFixture):
     def setUp(self) -> None:
         super().setUp()
-        support.write(self.root, SINK, "class S {}\n")
+        support.write(self.root, SINK, "class S { int f = 0; }\n")
         support.write(self.root, SERVICE_SINK, "def write(x):\n    return x + 1\n")
 
     def step(self, tools: DiffRunner, module: str | None = None) -> StepResult:

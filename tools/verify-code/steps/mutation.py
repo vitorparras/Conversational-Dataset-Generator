@@ -18,11 +18,12 @@ from steps.common import Context, StepResult, failed, passed
 from steps.coverage_by_area import summarize
 from steps.floors import Verdict
 from steps.mutation_judge import judge_language
-from steps.mutation_parts import SEPARATOR, Part, module_name, parts_of, split_module
+from steps.mutation_parts import SEPARATOR, Part, dealt, inert, module_name, parts_of, split_module
 from steps.mutation_policy import critical, read_policy
 from steps.mutation_scope import DiffScope, read
 
 NAME = "mutation"
+IDLE = "nenhuma fatia com código a mutar nos arquivos do diff; a suíte não roda"
 
 
 def listed(table: AreaTable) -> tuple[tuple[Area, ...], tuple[str, ...]]:
@@ -37,11 +38,27 @@ def jobs(
     root: Path, area: Area, areas: tuple[Area, ...], scope: DiffScope | None = None
 ) -> tuple[str, ...]:
     """The names of the jobs of one module: its prefix, or one name per part when it has several;
-    none in a run of the diff that changed no file of it."""
+    none in a run of the diff that changed no file of it, nor for a part with no code to mutate."""
     if scope is not None and not scope.keeps(files(root, area, areas)):
         return ()
     count = mutation_core.part_count(root, area, areas, scope)
-    return tuple(module_name(area.prefix, part) for part in parts_of(count))
+    left: frozenset[Part | None] = frozenset() if scope is None else idle(root, area, areas, scope)
+    return tuple(module_name(area.prefix, part) for part in parts_of(count) if part not in left)
+
+
+def idle(
+    root: Path, area: Area, areas: tuple[Area, ...], scope: DiffScope
+) -> frozenset[Part | None]:
+    """In a run of the diff, the parts of a core module whose slices hold no code Stryker could
+    mutate, so they run no suite (#935); None when it is one part. None in the nightly run."""
+    core_module = within(area.prefix, mutation_core.ROOT) and scope.paths is not None
+    core = mutation_core.scoped(root, area, areas, scope) if core_module else None
+    if core is None:
+        return frozenset()
+    found = mutation_core.pieces(root, core)
+    count = mutation_core.part_count(root, area, areas, scope)
+    held = ((part, found if part is None else dealt(found, part)) for part in parts_of(count))
+    return frozenset(part for part, mine in held if inert(mine))
 
 
 def files(root: Path, area: Area, areas: tuple[Area, ...]) -> tuple[str, ...]:
@@ -68,6 +85,18 @@ def wrong_part(ctx: Context, area: Area, areas: tuple[Area, ...], part: Part | N
     return f"`{area.prefix}` roda em {count} parte(s); `{SEPARATOR}{part.label}` não é uma delas"
 
 
+def halted(
+    ctx: Context, area: Area, areas: tuple[Area, ...], part: Part | None
+) -> StepResult | None:
+    """How the run of one module ends before Stryker: refused for a part the area does not run in,
+    passed for a part of the diff with no code to mutate; None when Stryker runs."""
+    if wrong := wrong_part(ctx, area, areas, part):
+        return failed(NAME, wrong)
+    if ctx.module and part in idle(ctx.root, area, areas, read(ctx)):
+        return passed(NAME, f"`{ctx.module}`: {IDLE}")
+    return None
+
+
 def run(ctx: Context) -> StepResult:
     policy = read_policy(ctx.root)
     if isinstance(policy, tuple):
@@ -83,8 +112,8 @@ def run(ctx: Context) -> StepResult:
     if not modules:
         known = ", ".join(f"`{area.prefix}`" for area in every)
         return failed(NAME, f"`{ctx.module}` não é módulo crítico de {FOLDER}; são: {known}")
-    if wrong := wrong_part(ctx, modules[0], table.areas, part):
-        return failed(NAME, wrong)
+    if (stop := halted(ctx, modules[0], table.areas, part)) is not None:
+        return stop
     core = tuple(area for area in modules if within(area.prefix, mutation_core.ROOT))
     service = tuple(area for area in modules if within(area.prefix, mutation_service.ROOT))
     stray = (

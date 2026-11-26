@@ -17,11 +17,12 @@ ALTER TABLE content.marker_in_use
     ADD COLUMN batch_id bigint NOT NULL,
     ADD CONSTRAINT marker_in_use_batch FOREIGN KEY (batch_id, domain_id) REFERENCES content.ingestion_batch (id, domain_id);
 
--- Every message of the conversation holds the markers it shares: the marker is unique for each item only.
+-- Every message of the conversation holds the markers it shares: the marker is unique for each item only. A batch that is no conversation keeps it unique for each item, below.
 ALTER TABLE content.item_marker DROP CONSTRAINT item_marker_one_item;
 
 -- The markers of an item are written with the item or with its rerun, as before; a marker new to the item is one its batch holds, won in this transaction or by an earlier message of
--- the same conversation, so that none another conversation holds, or held before it was emptied or rejected, is ever given to it (0057).
+-- the same conversation, so that none another conversation holds, or held before it was emptied or rejected, is ever given to it (0057). In a batch that is no conversation each item
+-- counts as a conversation of its own, so no other item of it holds the marker; the batch has no form declared only before the form was recorded, and counts as none.
 CREATE OR REPLACE FUNCTION public.refuse_item_marker_outside_its_path() RETURNS trigger
 LANGUAGE plpgsql
 AS $refuse$
@@ -41,6 +42,13 @@ BEGIN
         SELECT 1 FROM content.marker_in_use u JOIN content.item_text i ON i.batch_id = u.batch_id AND i.domain_id = u.domain_id
         WHERE u.marker = NEW.marker AND u.domain_id = NEW.domain_id AND i.id = NEW.item_id) THEN
         RAISE EXCEPTION 'a marker new to an item is one its batch holds'
+            USING ERRCODE = 'CE005', SCHEMA = TG_TABLE_SCHEMA, TABLE = TG_TABLE_NAME;
+    END IF;
+
+    IF TG_OP = 'INSERT' AND EXISTS (SELECT 1 FROM content.item_marker m WHERE m.marker = NEW.marker AND m.domain_id = NEW.domain_id AND m.item_id <> NEW.item_id)
+        AND NOT EXISTS (SELECT 1 FROM content.item_text i JOIN content.ingestion_batch b ON b.id = i.batch_id AND b.domain_id = i.domain_id
+                        WHERE i.id = NEW.item_id AND i.domain_id = NEW.domain_id AND b.declared_form = 'conversation') THEN
+        RAISE EXCEPTION 'a marker of an item outside a conversation is held by no other item'
             USING ERRCODE = 'CE005', SCHEMA = TG_TABLE_SCHEMA, TABLE = TG_TABLE_NAME;
     END IF;
 

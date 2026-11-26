@@ -12,7 +12,7 @@ namespace Core.Persistence.Tests.Content;
 /// <summary>
 /// The markers in clear (issue 101): each held once in the installation and never released, given to the item with its map in one transaction, emptied with the item while staying held,
 /// and a draw that loses to another domain drawn again without the row that won it ever being read. The marker is held by the batch of its conversation (issue 102, 0057): every message of
-/// the batch takes it, and no item of another batch, of the same domain or not, ever does.
+/// the batch takes it, and no item of another batch, of the same domain or not, ever does; in a batch that is no conversation, no other item of the batch does either.
 /// </summary>
 [Trait("Category", "Database")]
 public sealed class MarkerStorageTests
@@ -28,9 +28,14 @@ public sealed class MarkerStorageTests
     private const string AddedLater = "WITH held AS (INSERT INTO content.marker_in_use (domain_id, batch_id, marker, kind) VALUES (1, 1, @marker, 'person') RETURNING marker) "
         + "INSERT INTO content.item_marker (domain_id, item_id, marker, author) SELECT 1, @id, marker, false FROM held";
 
-    private const string AnotherBatch = "ALTER TABLE content.ingestion_batch DISABLE TRIGGER batch_is_born_open; ALTER TABLE content.ingestion_batch DISABLE TRIGGER batch_open_needs_event; "
-        + "INSERT INTO content.ingestion_batch (domain_id, state, opened_by, condition, closed_at) SELECT 1, 'accepted', min(id), 'restrita', now() FROM public.person; "
-        + "ALTER TABLE content.ingestion_batch ENABLE ALWAYS TRIGGER batch_is_born_open; ALTER TABLE content.ingestion_batch ENABLE ALWAYS TRIGGER batch_open_needs_event";
+    private const string Parked = "ALTER TABLE content.ingestion_batch DISABLE TRIGGER batch_is_born_open; ALTER TABLE content.ingestion_batch DISABLE TRIGGER batch_open_needs_event; ";
+    private const string Restored = "; ALTER TABLE content.ingestion_batch ENABLE ALWAYS TRIGGER batch_is_born_open; ALTER TABLE content.ingestion_batch ENABLE ALWAYS TRIGGER batch_open_needs_event";
+
+    private const string AnotherBatch =
+        Parked + "INSERT INTO content.ingestion_batch (domain_id, state, opened_by, condition, closed_at) SELECT 1, 'accepted', min(id), 'restrita', now() FROM public.person" + Restored;
+
+    private const string ConversationBatch = Parked + "INSERT INTO content.ingestion_batch (domain_id, state, opened_by, condition, closed_at, declared_form) "
+        + "SELECT 1, 'accepted', min(id), 'restrita', now(), 'conversation' FROM public.person" + Restored;
 
     private const string Resanitized = "INSERT INTO public.custody_event (actor_system, item_kind, item_id, step, reason, reference) "
         + "VALUES (true, 'item_text', @id, 'item_resanitized', 'sanitization_replaced', repeat('0a', 32))";
@@ -61,14 +66,33 @@ public sealed class MarkerStorageTests
     {
         await using var world = await ContentWorld.CreateAsync();
         var marker = PseudonymizedTexts.Draw(1)[0];
+        var conversation = await AnotherBatchAsync(world, ConversationBatch);
 
-        var first = await world.RealWriter.AddPseudonymizedItemAsync(1, 1, PseudonymizedTexts.Holding(marker), Token);
-        var second = await world.RealWriter.AddPseudonymizedItemAsync(1, 1, PseudonymizedTexts.Holding(marker), Token);
+        var first = await world.RealWriter.AddPseudonymizedItemAsync(1, conversation, PseudonymizedTexts.Holding(marker), Token);
+        var second = await world.RealWriter.AddPseudonymizedItemAsync(1, conversation, PseudonymizedTexts.Holding(marker), Token);
 
         Assert.Equal(
             (marker, marker, marker),
             ((string?)await world.InDomainAsync(1, OfItem, ("id", Assert.NotNull(first.ItemId))), (string?)await world.InDomainAsync(1, OfItem, ("id", Assert.NotNull(second.ItemId))),
                 (string?)await world.InDomainAsync(1, Held)));
+    }
+
+    [DatabaseFact]
+    public async Task ItemOutsideAConversationHoldsNoMarkerAnotherItemOfItsBatchHolds()
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        var markers = PseudonymizedTexts.Draw(2);
+        _ = Assert.NotNull((await world.RealWriter.AddPseudonymizedItemAsync(1, 1, PseudonymizedTexts.Holding(markers[0]), Token)).ItemId);
+        var item = Assert.NotNull((await world.RealWriter.AddPseudonymizedItemAsync(1, 1, PseudonymizedTexts.Holding(markers[1]), Token)).ItemId);
+
+        // The seeded batch declares no form, so each of its items counts as a conversation of its own: the writer passes over the marker of the first item, and the database refuses it.
+        var written = await world.RealWriter.AddPseudonymizedItemAsync(1, 1, PseudonymizedTexts.Holding(markers[0]), Token);
+        var byHand = await Assert.ThrowsAsync<PostgresException>(() => world.OwnerInDomainAfterAsync(Resanitized, 1, GivenByHand, ("id", item), ("marker", markers[0])));
+
+        Assert.Equal((null, markers[0], "2,2"), (written.ItemId, Assert.Single(written.Taken), (string?)await world.InDomainAsync(1, Items)));
+        Assert.Equal(
+            (WithoutEvent, "a marker of an item outside a conversation is held by no other item", markers[1]),
+            (byHand.SqlState, byHand.MessageText, (string?)await world.InDomainAsync(1, OfItem, ("id", item))));
     }
 
     [DatabaseFact]
@@ -200,7 +224,7 @@ public sealed class MarkerStorageTests
         Assert.Equal(("CE006", "CE006", marker), (deleted.SqlState, changed.SqlState, (string?)await world.InDomainAsync(1, Held)));
     }
 
-    /// <summary>A second batch of the first domain, accepted, seeded by the owner as the batch of every domain is.</summary>
-    private static async Task<long> AnotherBatchAsync(ContentWorld world) =>
-        (long)(await world.OwnerInDomainAfterAsync(AnotherBatch, 1, "SELECT max(id) FROM content.ingestion_batch WHERE domain_id = 1"))!;
+    /// <summary>A second batch of the first domain, accepted, seeded by the owner as the batch of every domain is: with no form declared, or as the seed given declares it.</summary>
+    private static async Task<long> AnotherBatchAsync(ContentWorld world, string seed = AnotherBatch) =>
+        (long)(await world.OwnerInDomainAfterAsync(seed, 1, "SELECT max(id) FROM content.ingestion_batch WHERE domain_id = 1"))!;
 }

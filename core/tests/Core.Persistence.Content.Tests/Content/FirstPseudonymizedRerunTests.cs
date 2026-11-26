@@ -8,7 +8,8 @@ namespace Core.Persistence.Tests.Content;
 /// <summary>
 /// The first pseudonymized text of an item stored before the coreference, through the rerun (issue 102, F3): the item that holds no map is given the raw texts of its batch, gets its
 /// pseudonymized text and a map of its own in the transaction of the rerun, and its markers are won for its batch; two such items of one batch never share a marker, the second being
-/// drawn again without it; an item refused because an occurrence has no pair keeps no pseudonymized text, is counted with the reason and is queued again by a new request.
+/// drawn again without it, and a request to the version in force queues an old item already in it; an item refused because an occurrence has no pair keeps no pseudonymized text, is
+/// counted with the reason and is queued again by a new request.
 /// </summary>
 [Trait("Category", "Database")]
 public sealed class FirstPseudonymizedRerunTests : IClassFixture<RerunDatabase>
@@ -64,6 +65,22 @@ public sealed class FirstPseudonymizedRerunTests : IClassFixture<RerunDatabase>
     }
 
     [DatabaseFact]
+    public async Task OldItemAlreadyInTheVersionInForceGetsItsFirstOne()
+    {
+        var rerun = await database.CaseAsync();
+        var marker = PseudonymizedTexts.Draw(1)[0];
+        var item = await rerun.ItemAsync(Sanitized);
+
+        var requested = await rerun.RequestAsync(ItemTexts.Steps);
+        var hold = Assert.NotNull(await rerun.Queue.TakeAsync(rerun.DomainId, ItemTexts.Version, Token));
+        var result = await rerun.Resanitizer.ResanitizeAsync(hold, First(_ => marker, _ => { }, Sanitized, ItemTexts.Version), Token);
+
+        Assert.Equal((RerunOutcome.Queued, RerunOutcome.Identical), (requested.Outcome, result.Outcome));
+        Assert.Equal((PseudonymizedTexts.PseudonymizedOf([marker]), "1,1"), (await rerun.PseudonymizedTextAsync(item), await rerun.MapsOfAsync(item)));
+        Assert.Equal(ItemTexts.Version, await rerun.VersionAsync());
+    }
+
+    [DatabaseFact]
     public async Task OldItemTheServiceDoesNotAnswerSpendsATryAndKeepsNoPseudonymized()
     {
         var rerun = await database.CaseAsync();
@@ -115,14 +132,14 @@ public sealed class FirstPseudonymizedRerunTests : IClassFixture<RerunDatabase>
     }
 
     /// <summary>
-    /// The rerun to the text given, by default <see cref="NewText"/>, that gives the item its first pseudonymized text, with the one marker the function picks for what it is given,
-    /// keeping each source given.
+    /// The rerun to the text given, by default <see cref="NewText"/>, and to the version given, by default the target, that gives the item its first pseudonymized text, with the one
+    /// marker the function picks for what it is given, keeping each source given.
     /// </summary>
-    private static Func<RerunSource, Resanitized> First(Func<RerunSource, string> marker, Action<RerunSource> seen, string text = NewText) => source =>
+    private static Func<RerunSource, Resanitized> First(Func<RerunSource, string> marker, Action<RerunSource> seen, string text = NewText, string? version = null) => source =>
     {
         seen(source);
         var picked = marker(source);
-        return RerunCase.Rerunning(text)(source) with
+        return RerunCase.Rerunning(text, version)(source) with
         {
             Pseudonymized = PseudonymizedTexts.PseudonymizedOf([picked]),
             Map = [new NewMapEntry(picked, PseudonymizedTexts.OriginalOf(picked), false, OccurrenceDestination.Pseudonymize)],

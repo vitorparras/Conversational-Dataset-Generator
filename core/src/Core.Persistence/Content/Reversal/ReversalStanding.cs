@@ -34,7 +34,9 @@ internal static class ReversalStanding
             RequestedAt = row.GetFieldValue<DateTimeOffset>(at++),
             AuthorizedBy = Held(row.IsDBNull, at++, row.GetInt64),
             ValidUntil = Held(row.IsDBNull, at++, row.GetFieldValue<DateTimeOffset>),
-            State = Enum.Parse<ReversalState>(row.GetString(at), ignoreCase: true),
+            State = Enum.Parse<ReversalState>(row.GetString(at++), ignoreCase: true),
+            AuthorizationId = Held(row.IsDBNull, at++, row.GetInt64),
+            RevealedAt = Held(row.IsDBNull, at, row.GetFieldValue<DateTimeOffset>),
         };
     }
 
